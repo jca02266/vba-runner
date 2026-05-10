@@ -995,6 +995,8 @@ export class Evaluator {
                 return this.evaluateMemberExpression(expr as MemberExpression);
             case 'DictionaryAccessExpression':
                 return this.evaluateDictionaryAccessExpression(expr as DictionaryAccessExpression);
+            case 'TypeOfIsExpression':
+                return this.evaluateTypeOfIsExpression(expr as TypeOfIsExpression);
             case 'UnaryExpression':
                 return this.evaluateUnaryExpression(expr as UnaryExpression);
             case 'BinaryExpression':
@@ -1166,6 +1168,23 @@ export class Evaluator {
 
         // Fallback or error (some objects might support ! besides Dictionary, but we only have Dictionary for now)
         throw new Error(`Execution error: Object does not support '!' access for property '${property}'`);
+    }
+
+    private evaluateTypeOfIsExpression(expr: TypeOfIsExpression): any {
+        const obj = this.evaluateExpression(expr.expression);
+        const typeName = expr.typeName.toLowerCase();
+
+        if (obj === null || obj === undefined || typeof obj !== 'object') return 0; // False
+
+        // Check for built-in types
+        if (typeName === 'object') return -1; // Everything that reaches here is an object
+        if (typeName === 'dictionary' && obj.__isVbaDict__) return -1;
+        if (typeName === 'collection' && obj.__isVbaCollection__) return -1;
+
+        // User defined types or classes (if we store metadata)
+        if (obj.__vbaTypeName__ && obj.__vbaTypeName__.toLowerCase() === typeName) return -1;
+
+        return 0; // False
     }
 
     private evaluateUnaryExpression(expr: UnaryExpression): any {

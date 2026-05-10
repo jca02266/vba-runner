@@ -236,6 +236,12 @@ export interface DictionaryAccessExpression extends Expression {
     property: Identifier;
 }
 
+export interface TypeOfIsExpression extends Expression {
+    type: 'TypeOfIsExpression';
+    expression: Expression;
+    typeName: string;
+}
+
 export interface Identifier extends Expression {
     type: 'Identifier';
     name: string;
@@ -1367,6 +1373,16 @@ export class Parser {
             if (!this.match(TokenType.OperatorRParen)) {
                 throw new Error(`Parse error: Expected ')' at line ${this.peek().line} `);
             }
+        } else if (token.type === TokenType.KeywordTypeOf) {
+            expr = this.parseRelational(); // Stop before 'Is'
+            if (!this.match(TokenType.KeywordIs)) {
+                throw new Error(`Parse error: Expected 'Is' after 'TypeOf' at line ${this.peek().line}`);
+            }
+            const typeToken = this.advance();
+            if (typeToken.type !== TokenType.Identifier && typeToken.type !== TokenType.KeywordCollection) {
+                 throw new Error(`Parse error: Expected type name after 'Is' at line ${typeToken.line}`);
+            }
+            expr = { type: 'TypeOfIsExpression', expression: expr, typeName: typeToken.value } as TypeOfIsExpression;
         } else if (token.type === TokenType.OperatorDot) {
             const propToken = this.advance();
             if (propToken.type !== TokenType.Identifier) {
