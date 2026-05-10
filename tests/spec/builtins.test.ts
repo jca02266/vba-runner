@@ -29,6 +29,7 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('CInt("123.5")'), 124, 'CInt (round)');
     assert.strictEqual(evalExpr('CStr(123)'), '123', 'CStr');
     assert.strictEqual(evalExpr('CBool(1)'), true, 'CBool(1)');
+    assert.strictEqual(evalExpr('1 = 1'), -1, 'Equality 1 = 1');
     assert.strictEqual(evalExpr('CBool(0)'), false, 'CBool(0)');
     assert.strictEqual(evalExpr('Fix(123.9)'), 123, 'Fix positive');
     assert.strictEqual(evalExpr('Fix(-123.9)'), -123, 'Fix negative');

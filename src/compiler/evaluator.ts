@@ -173,8 +173,11 @@ export class Evaluator {
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
         this.env.set('clng', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('int', (val: any) => Math.floor(parseFloat(val)) || 0);
-        this.env.set('ucase', (val: any) => String(val || '').toUpperCase());
-        this.env.set('trim', (val: any) => String(val || '').trim());
+        this.env.set('ucase', (val: any) => val === null ? null : String(val).toUpperCase());
+        this.env.set('lcase', (val: any) => val === null ? null : String(val).toLowerCase());
+        this.env.set('trim', (val: any) => val === null ? null : String(val).trim());
+        this.env.set('ltrim', (val: any) => val === null ? null : String(val).replace(/^\s+/, ''));
+        this.env.set('rtrim', (val: any) => val === null ? null : String(val).replace(/\s+$/, ''));
         this.env.set('len', (val: any) => String(val || '').length);
         this.env.set('left', (val: any, len: number) => String(val || '').substring(0, len));
         this.env.set('right', (val: any, len: number) => {
@@ -186,7 +189,6 @@ export class Evaluator {
             return len !== undefined ? s.substring(start - 1, start - 1 + len) : s.substring(start - 1);
         });
         this.env.set('instr', (s1: any, s2: any) => String(s1 || '').indexOf(String(s2 || '')) + 1);
-        this.env.set('lcase', (val: any) => String(val || '').toLowerCase());
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
         this.env.set('cint', (val: any) => Math.round(parseFloat(val)) || 0);
@@ -288,6 +290,7 @@ export class Evaluator {
         this.env.set('false', false);
         this.env.set('empty', EmptyVBA);
         this.env.set('nothing', null);
+        this.env.set('null', null);
 
         // Add common Excel VBA constants
         this.env.set('xlup', -4162);

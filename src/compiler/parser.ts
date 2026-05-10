@@ -1421,6 +1421,8 @@ export class Parser {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordNothing) {
             expr = { type: 'Identifier', name: 'Nothing' } as Identifier;
+        } else if (token.type === TokenType.KeywordNull) {
+            expr = { type: 'Identifier', name: 'Null' } as Identifier;
         } else if (token.type === TokenType.OperatorLParen) {
             expr = this.parseExpression();
             if (!this.match(TokenType.OperatorRParen)) {

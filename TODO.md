@@ -79,7 +79,7 @@
 |------|------|--------|
 | ✅ | Sub / Function 宣言 | §5.3.1.6 |
 | ✅ | Parameter Lists（ByVal, ByRef, Optional） | §5.3.1.5 |
-| ❌ | Property Get / Let / Set 宣言 | §5.3.1.7 |
+| ✅ | Property Get / Let / Set 宣言 | §5.3.1.7 |
 | ❌ | Event Handler 宣言 | §5.3.1.8 |
 | ✅ | Variable Declarations（`Dim`） | §5.2.3.1 |
 | ✅ | Public / Private / Friend スコープ制御（パースのみ、アクセス制御なし） | §5.2.3.1 / §5.3.1.1 |
@@ -122,7 +122,7 @@
 | ❌ | CDate / CVDate | §6.1.2.3.1.4 |
 | ✅ | CDbl | §6.1.2.3.1.5 |
 | ❌ | CDec | §6.1.2.3.1.6 |
-| ❌ | CInt | §6.1.2.3.1.7 |
+| ✅ | CInt | §6.1.2.3.1.7 |
 | ✅ | CLng | §6.1.2.3.1.8 |
 | ❌ | CLngLng | §6.1.2.3.1.9 |
 | ❌ | CSng | §6.1.2.3.1.11 |
@@ -191,7 +191,7 @@
 | ✅ | LCase / LCase$ | §6.1.2.11.1.17/18 |
 | ✅ | Left / Left$ | §6.1.2.11.1.19/20 |
 | ✅ | Len | §6.1.2.11.1.22 |
-| ❌ | LTrim / RTrim | §6.1.2.11.1.23 |
+| ✅ | LTrim / RTrim | §6.1.2.11.1.23 |
 | ✅ | Trim / Trim$ | §6.1.2.11.1.23 |
 | ✅ | Mid / Mid$ | §6.1.2.11.1.25/26 |
 | ✅ | Replace | §6.1.2.11.1.29 |
