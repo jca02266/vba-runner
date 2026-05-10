@@ -78,6 +78,8 @@ export enum TokenType {
     KeywordLib,
     KeywordAlias,
     KeywordPtrSafe,
+    KeywordBase,
+    KeywordModule,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -442,6 +444,8 @@ export class Lexer {
                 if (lowerId === 'lib') return { type: TokenType.KeywordLib, value: idStr, line: this.line };
                 if (lowerId === 'alias') return { type: TokenType.KeywordAlias, value: idStr, line: this.line };
                 if (lowerId === 'ptrsafe') return { type: TokenType.KeywordPtrSafe, value: idStr, line: this.line };
+                if (lowerId === 'base') return { type: TokenType.KeywordBase, value: idStr, line: this.line };
+                if (lowerId === 'module') return { type: TokenType.KeywordModule, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

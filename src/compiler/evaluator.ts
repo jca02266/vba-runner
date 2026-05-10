@@ -62,6 +62,67 @@ export class VbaDate {
 }
 
 export const vbaEmpty = null;
+
+class VbaCollection {
+    private _items: any[] = [];
+    private _keys: Map<string, any> = new Map();
+
+    public add(item: any, key?: string, before?: any, after?: any) {
+        if (key) {
+            const k = key.toLowerCase();
+            if (this._keys.has(k)) {
+                throw new Error("This key is already associated with an element of this collection");
+            }
+            this._keys.set(k, item);
+        }
+
+        if (before !== undefined && before !== vbaEmpty) {
+            const idx = this.findIndex(before) - 1;
+            this._items.splice(idx, 0, item);
+        } else if (after !== undefined && after !== vbaEmpty) {
+            const idx = this.findIndex(after);
+            this._items.splice(idx, 0, item);
+        } else {
+            this._items.push(item);
+        }
+    }
+
+    private findIndex(id: any): number {
+        if (typeof id === 'number') {
+            if (id < 1 || id > this._items.length) throw new Error("Subscript out of range");
+            return id;
+        } else if (typeof id === 'string') {
+            const k = id.toLowerCase();
+            // Find index of item with this key
+            const targetItem = this._keys.get(k);
+            if (targetItem === undefined) throw new Error("Invalid procedure call or argument");
+            return this._items.indexOf(targetItem) + 1;
+        }
+        throw new Error("Invalid procedure call or argument");
+    }
+
+    public count() {
+        return this._items.length;
+    }
+
+    public item(id: any) {
+        const idx = this.findIndex(id);
+        return this._items[idx - 1];
+    }
+
+    public remove(id: any) {
+        const idx = this.findIndex(id);
+        const item = this._items[idx - 1];
+        this._items.splice(idx - 1, 1);
+        // Remove from keys
+        for (const [k, v] of this._keys.entries()) {
+            if (v === item) {
+                this._keys.delete(k);
+                break;
+            }
+        }
+    }
+}
 export const vbaNull = Symbol('vbaNull');
 export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
@@ -185,6 +246,7 @@ export class Evaluator {
     private gosubStack: number[] = []; // Stack of statement indices for GoSub/Return
     private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
     private currentProcIsStatic: boolean = false;
+    private arrayBase: number = 0;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
@@ -197,7 +259,12 @@ export class Evaluator {
         this.onPrint = onPrint;
         // Add built-in debug object
         this.env.set('debug', {
-            print: (...args: any[]) => this.onPrint(args.join(' '))
+            print: (...args: any[]) => this.onPrint(args.join(' ')),
+            assert: (condition: any) => {
+                if (!this.isTrue(condition)) {
+                    throw new Error('Execution error: Assertion failed');
+                }
+            }
         });
 
         // VBA date serial: days since 1899-12-30 (VBA epoch)
@@ -517,9 +584,12 @@ export class Evaluator {
         this.env.set('vbdataobject', 13);
         this.env.set('vbdecimal', 14);
         this.env.set('vbbyte', 17);
-        this.env.set('vbarray', 8192);
-        
-        this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
+        this.env.set('lbound', (arr: any) => {
+            if (Array.isArray(arr)) {
+                return (arr as any).vbaBase || 0;
+            }
+            return 0;
+        });
 
         this.env.set('iif', (cond: any, truePart: any, falsePart: any) => cond ? truePart : falsePart);
         this.env.set('array', (...args: any[]) => [...args]);
@@ -533,14 +603,14 @@ export class Evaluator {
             return (s.length > 0 ? s[0] : '').repeat(n);
         });
 
-        this.env.set('ubound', (arr: any[], dimension?: number) => {
+        this.env.set('ubound', (arr: any, dimension?: number) => {
             if (Array.isArray(arr)) {
+                const base = (arr as any).vbaBase || 0;
                 if (dimension === 2 && arr.length > 0 && Array.isArray(arr[0])) {
-                    return arr[0].length - 1;
-                } else if (dimension === 2 && arr.length > 1 && Array.isArray(arr[1])) {
-                    return arr[1].length - 1; // Fallback if arr[0] is null/empty in mocks
+                    const subBase = (arr[0] as any).vbaBase || 0;
+                    return subBase + arr[0].length - 1;
                 }
-                return arr.length - 1; // Assuming 0-indexed in JS (or 1-indexed filled with nulls)
+                return base + arr.length - 1;
             }
             return 0;
         });
@@ -1027,6 +1097,15 @@ export class Evaluator {
             case 'OnGoToSubStatement':
                 this.evaluateOnGoToSubStatement(stmt as OnGoToSubStatement);
                 break;
+            case 'OptionExplicitStatement':
+                this.evaluateOptionExplicitStatement(stmt as OptionExplicitStatement);
+                break;
+            case 'OptionBaseStatement':
+                this.evaluateOptionBaseStatement(stmt as OptionBaseStatement);
+                break;
+            case 'OptionPrivateModuleStatement':
+                this.evaluateOptionPrivateModuleStatement(stmt as OptionPrivateModuleStatement);
+                break;
             case 'LSetStatement':
                 this.evaluateLSetStatement(stmt as LSetStatement);
                 break;
@@ -1342,21 +1421,26 @@ export class Evaluator {
                 }
 
                 const target = this.env.get(name);
-                const idx = this.evaluateExpression(call.args[0]);
-
+                
                 if (Array.isArray(target)) {
                     // Support 1D or multi-dimensional array assignment arr(0, 1) = val -> arr[0][1] = val
                     let current = target;
                     for (let i = 0; i < call.args.length - 1; i++) {
-                        const d = this.evaluateExpression(call.args[i]);
-                        if (!current[d]) current[d] = []; // Auto-instantiate inner arrays
+                        const base = (current as any).vbaBase || 0;
+                        const d = (this.evaluateExpression(call.args[i]) as number) - base;
+                        if (!current[d]) {
+                            current[d] = [];
+                            (current[d] as any).vbaBase = base; // Inherit base for multi-dim? (VBA doesn't really have jagged with Base, but let's be consistent)
+                        }
                         current = current[d];
                     }
-                    const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]);
+                    const lastBase = (current as any).vbaBase || 0;
+                    const lastIdx = (this.evaluateExpression(call.args[call.args.length - 1]) as number) - lastBase;
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
-                    target.__map__.set(idx, val);
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    target.__map__.set(key, val);
                 } else {
                     throw new Error(`Execution error: ${name} is not an array or dictionary`);
                 }
@@ -1430,17 +1514,15 @@ export class Evaluator {
             if (decl.isArray) {
                 if (decl.arraySize) {
                     const size = this.evaluateExpression(decl.arraySize);
-                    initialValue = new Array(size + 1).fill(vbaEmpty);
+                    const count = size - this.arrayBase + 1;
+                    initialValue = new Array(count).fill(vbaEmpty);
+                    (initialValue as any).vbaBase = this.arrayBase;
                 } else {
                     initialValue = [];
+                    (initialValue as any).vbaBase = this.arrayBase;
                 }
             } else if (decl.isNew && decl.objectType === 'Collection') {
-                initialValue = {
-                    items: [],
-                    add: function (item: any) { this.items.push(item); },
-                    count: function () { return this.items.length; },
-                    item: function (index: number) { return this.items[index - 1]; }
-                };
+                initialValue = new VbaCollection();
             } else if (decl.isNew && decl.objectType && this.classDefinitions.has(decl.objectType.toLowerCase())) {
                 initialValue = this.instantiateClass(decl.objectType);
             } else if (decl.objectType) {
@@ -1473,6 +1555,18 @@ export class Evaluator {
 
     private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {
         this.comparisonMode = stmt.mode;
+    }
+
+    private evaluateOptionExplicitStatement(stmt: OptionExplicitStatement) {
+        // No-op at runtime. Parser should handle validation.
+    }
+
+    private evaluateOptionBaseStatement(stmt: OptionBaseStatement) {
+        this.arrayBase = stmt.base;
+    }
+
+    private evaluateOptionPrivateModuleStatement(stmt: OptionPrivateModuleStatement) {
+        // No-op for now. Affects visibility in multi-module environment.
     }
 
     private evaluateClassDeclaration(stmt: ClassDeclaration) {
@@ -1835,7 +1929,9 @@ export class Evaluator {
         // Evaluate bounds (just size for 1D for now)
         if (stmt.bounds.length > 0) {
             const size = this.evaluateExpression(stmt.bounds[stmt.bounds.length - 1]); // naive: takes last bound as size
-            const arr = new Array(size + 1).fill(0); // VBA numeric arrays default to 0
+            const count = size - this.arrayBase + 1;
+            const arr = new Array(count).fill(0); // VBA numeric arrays default to 0
+            (arr as any).vbaBase = this.arrayBase;
             this.env.set(stmt.name.name, arr);
         }
     }
@@ -1981,7 +2077,8 @@ export class Evaluator {
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
                         if (!current) return vbaEmpty; // Out of bounds or jagged array
-                        const idx = this.evaluateExpression(expr.args[i]);
+                        const base = (current as any).vbaBase || 0;
+                        const idx = (this.evaluateExpression(expr.args[i]) as number) - base;
                         current = current[idx];
                     }
                     if (current === undefined) return vbaEmpty;

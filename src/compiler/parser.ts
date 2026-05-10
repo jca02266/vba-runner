@@ -142,6 +142,19 @@ export interface OnErrorStatement extends Statement {
     label: string; // "Cleanup", "Resume Next", "0"
 }
 
+export interface OptionExplicitStatement extends Statement {
+    type: 'OptionExplicitStatement';
+}
+
+export interface OptionBaseStatement extends Statement {
+    type: 'OptionBaseStatement';
+    base: 0 | 1;
+}
+
+export interface OptionPrivateModuleStatement extends Statement {
+    type: 'OptionPrivateModuleStatement';
+}
+
 export interface OptionCompareStatement extends Statement {
     type: 'OptionCompareStatement';
     mode: 'Binary' | 'Text';
@@ -607,7 +620,18 @@ export class Parser {
                 return this.parseOptionCompareStatement();
             }
             if (this.match(TokenType.KeywordExplicit)) {
-                // Ignore for now
+                return { type: 'OptionExplicitStatement' } as OptionExplicitStatement;
+            }
+            if (this.match(TokenType.KeywordBase)) {
+                const baseToken = this.advance();
+                if (baseToken.value === '0' || baseToken.value === '1') {
+                    return { type: 'OptionBaseStatement', base: parseInt(baseToken.value) } as OptionBaseStatement;
+                }
+                throw new Error(`Parse error: Option Base must be 0 or 1 at line ${baseToken.line}`);
+            }
+            if (this.match(TokenType.KeywordPrivate)) {
+                this.consume(TokenType.KeywordModule, "Expected 'Module' after 'Option Private'");
+                return { type: 'OptionPrivateModuleStatement' } as OptionPrivateModuleStatement;
             }
             return null;
         } else if (token.type === TokenType.KeywordAttribute) {

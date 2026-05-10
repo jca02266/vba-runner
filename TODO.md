@@ -34,7 +34,7 @@
 | ❌ | P2 | RaiseEvent Statement | §5.4.2.20 |
 | ✅ | P0 | With Statement (`With...End With`) | §5.4.2.21 |
 | ✅ | P1 | End Statement（プログラム終了） | §5.4.2.22 |
-| ❌ | P1 | Assert Statement | §5.4.2.23 |
+| ✅ | P1 | Assert Statement | §5.4.2.23 |
 
 ## 第5章：データ操作ステートメント (§5.4.3)
 
