@@ -197,7 +197,24 @@ export class Evaluator {
             const s = String(val || '');
             return len !== undefined ? s.substring(start - 1, start - 1 + len) : s.substring(start - 1);
         });
-        this.env.set('instr', (s1: any, s2: any) => String(s1 || '').indexOf(String(s2 || '')) + 1);
+        this.env.set('instr', (...args: any[]) => {
+            let start: number, s1: string, s2: string;
+            if (args.length >= 3 && typeof args[0] === 'number') {
+                [start, s1, s2] = [args[0], String(args[1] ?? ''), String(args[2] ?? '')];
+            } else {
+                [start, s1, s2] = [1, String(args[0] ?? ''), String(args[1] ?? '')];
+            }
+            const idx = s1.indexOf(s2, start - 1);
+            return idx === -1 ? 0 : idx + 1;
+        });
+        this.env.set('instrrev', (s1: any, s2: any, start?: number) => {
+            const str = String(s1 ?? '');
+            const find = String(s2 ?? '');
+            const idx = (start === undefined || start === -1)
+                ? str.lastIndexOf(find)
+                : str.lastIndexOf(find, start - 1);
+            return idx === -1 ? 0 : idx + 1;
+        });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
         this.env.set('cint', (val: any) => Math.round(parseFloat(val)) || 0);
@@ -1126,6 +1143,17 @@ export class Evaluator {
             }
 
             let initialValue: any = vbaEmpty;
+            // Typed numeric/string variables get VBA-spec default values
+            if (decl.objectType) {
+                const t = decl.objectType.toLowerCase();
+                if (['integer', 'long', 'single', 'double', 'currency', 'byte'].includes(t)) {
+                    initialValue = 0;
+                } else if (t === 'string') {
+                    initialValue = '';
+                } else if (t === 'boolean') {
+                    initialValue = 0; // vbaFalse
+                }
+            }
             if (decl.isArray) {
                 if (decl.arraySize) {
                     const size = this.evaluateExpression(decl.arraySize);
