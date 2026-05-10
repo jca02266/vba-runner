@@ -203,6 +203,19 @@ export class Evaluator {
             return num.toString(16).toUpperCase();
         });
 
+        this.env.set('TypeName', (val: any) => {
+            if (val === null || val === undefined || val === EmptyVBA) return 'Empty';
+            if (typeof val === 'number') return 'Double';
+            if (typeof val === 'string') return 'String';
+            if (typeof val === 'boolean') return 'Boolean';
+            if (Array.isArray(val)) return 'Variant()';
+            if (val.__isVbaDict__) return 'Dictionary';
+            if (val.__isVbaCollection__) return 'Collection';
+            if (val.__vbaTypeName__) return val.__vbaTypeName__;
+            if (typeof val === 'object') return 'Object';
+            return 'Unknown';
+        });
+
         this.env.set('abs', (val: any) => Math.abs(val));
         this.env.set('round', (val: any, digits: number = 0) => {
             const factor = Math.pow(10, digits);
