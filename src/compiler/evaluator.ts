@@ -414,6 +414,31 @@ export class Evaluator {
         });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
+        this.env.set('filter', (sourceArray: any, match: any, include: any = vbaTrue, compare: any = 0) => {
+            if (!Array.isArray(sourceArray)) {
+                this.throwVbaError(13, "Type mismatch: SourceArray must be an array");
+            }
+            const matchStr = String(match ?? '');
+            const includeBool = this.isTrue(include);
+            
+            const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
+            
+            const result = sourceArray.filter(item => {
+                const itemStr = String(item ?? '');
+                let found: boolean;
+                if (isText) {
+                    found = itemStr.toLowerCase().includes(matchStr.toLowerCase());
+                } else {
+                    found = itemStr.includes(matchStr);
+                }
+                return includeBool ? found : !found;
+            });
+            
+            const resArray = [...result];
+            (resArray as any).vbaBase = 0;
+            return resArray;
+        });
+
         this.env.set('cint', (val: any) => {
             const n = this.vbaRound(parseFloat(val) || 0);
             if (n < -32768 || n > 32767) this.throwVbaError(6, "Overflow");
