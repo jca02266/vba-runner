@@ -42,7 +42,7 @@ import {
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 
-export const EmptyVBA = null;
+export const vbaEmpty = null;
 export const vbaTrue = -1;
 export const vbaFalse = 0;
 
@@ -221,7 +221,7 @@ export class Evaluator {
         });
 
         this.env.set('TypeName', (val: any) => {
-            if (val === null || val === undefined || val === EmptyVBA) return 'Empty';
+            if (val === null || val === undefined || val === vbaEmpty) return 'Empty';
             if (typeof val === 'number') return 'Double';
             if (typeof val === 'string') return 'String';
             if (typeof val === 'boolean') return 'Boolean';
@@ -290,7 +290,7 @@ export class Evaluator {
         // Add VBA intrinsic constants
         this.env.set('true', vbaTrue);
         this.env.set('false', vbaFalse);
-        this.env.set('empty', EmptyVBA);
+        this.env.set('empty', vbaEmpty);
         this.env.set('nothing', null);
         this.env.set('null', null);
 
@@ -337,7 +337,7 @@ export class Evaluator {
         // Map arguments to parameter names
         for (let i = 0; i < proc.parameters.length; i++) {
             const paramName = proc.parameters[i].name;
-            const argValue = i < args.length ? args[i] : EmptyVBA;
+            const argValue = i < args.length ? args[i] : vbaEmpty;
             localEnv.setLocally(paramName, argValue);
         }
 
@@ -386,7 +386,7 @@ export class Evaluator {
         if (proc.isFunction || proc.isProperty) {
             return localEnv.get(procName);
         }
-        return EmptyVBA;
+        return vbaEmpty;
     }
 
     public setSourceModule(moduleName: string) {
@@ -540,7 +540,7 @@ export class Evaluator {
         const varName = stmt.identifier.name;
 
         // Initialize block scope variable if it doesn't exist
-        if (this.env.get(varName) === EmptyVBA) { // Check against EmptyVBA
+        if (this.env.get(varName) === vbaEmpty) { // Check against vbaEmpty
             this.env.set(varName, startValue);
         } else {
             this.env.setLocally(varName, startValue);
@@ -884,11 +884,11 @@ export class Evaluator {
 
     private evaluateVariableDeclaration(stmt: VariableDeclaration) {
         for (const decl of stmt.declarations) {
-            let initialValue: any = EmptyVBA;
+            let initialValue: any = vbaEmpty;
             if (decl.isArray) {
                 if (decl.arraySize) {
                     const size = this.evaluateExpression(decl.arraySize);
-                    initialValue = new Array(size + 1).fill(EmptyVBA);
+                    initialValue = new Array(size + 1).fill(vbaEmpty);
                 } else {
                     initialValue = [];
                 }
@@ -1165,7 +1165,7 @@ export class Evaluator {
 
                 if (proc.isFunction) {
                     // Implicit variable for function return value
-                    localEnv.setLocally(proc.name.name, EmptyVBA);
+                    localEnv.setLocally(proc.name.name, vbaEmpty);
                 }
 
                 const previousEnv = this.env;
@@ -1213,11 +1213,11 @@ export class Evaluator {
                     // Support multi-dimensional array lookup arr(0, 1) -> arr[0][1]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
-                        if (!current) return EmptyVBA; // Out of bounds or jagged array
+                        if (!current) return vbaEmpty; // Out of bounds or jagged array
                         const idx = this.evaluateExpression(expr.args[i]);
                         current = current[idx];
                     }
-                    if (current === undefined) return EmptyVBA;
+                    if (current === undefined) return vbaEmpty;
                     return current;
                 } else if (variable && variable.__isVbaDict__) {
                     // Dictionary read: dict("key")
@@ -1277,11 +1277,11 @@ export class Evaluator {
             if (expr.args.length === 0) throw new Error(`Execution error: Missing index for array access`);
             let current = target;
             for (let i = 0; i < expr.args.length; i++) {
-                if (!current) return EmptyVBA;
+                if (!current) return vbaEmpty;
                 const idx = this.evaluateExpression(expr.args[i]);
                 current = current[idx];
             }
-            return current === undefined ? EmptyVBA : current;
+            return current === undefined ? vbaEmpty : current;
         } else if (target && target.__isVbaDict__) {
             if (expr.args.length === 0) throw new Error(`Execution error: Missing key for dictionary access`);
             const key = this.evaluateExpression(expr.args[0]);
