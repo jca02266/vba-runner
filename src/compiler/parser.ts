@@ -27,6 +27,14 @@ export interface ForStatement extends Statement {
     nextIdentifier?: Identifier;
 }
 
+export interface ForEachStatement extends Statement {
+    type: 'ForEachStatement';
+    variable: Identifier;
+    collection: Expression;
+    body: Statement[];
+    nextIdentifier?: Identifier;
+}
+
 export interface IfStatement extends Statement {
     type: 'IfStatement';
     condition: Expression;
@@ -637,8 +645,12 @@ export class Parser {
         return { type: 'TypeDeclaration', name: typeName, members };
     }
 
-    private parseForStatement(): ForStatement {
+    private parseForStatement(): ForStatement | ForEachStatement {
         this.advance(); // consume 'For'
+
+        if (this.peek().type === TokenType.KeywordEach) {
+            return this.parseForEachStatementBody();
+        }
 
         const idToken = this.advance();
         if (idToken.type !== TokenType.Identifier) {
@@ -694,6 +706,49 @@ export class Parser {
     }
 
 
+
+    private parseForEachStatementBody(): ForEachStatement {
+        this.advance(); // consume 'Each'
+
+        const varToken = this.advance();
+        if (varToken.type !== TokenType.Identifier) {
+            throw new Error(`Parse error: Expected identifier after 'For Each' at line ${varToken.line}`);
+        }
+        const variable: Identifier = { type: 'Identifier', name: varToken.value };
+
+        if (!this.match(TokenType.KeywordIn)) {
+            throw new Error(`Parse error: Expected 'In' in For Each statement at line ${this.peek().line}`);
+        }
+
+        const collection = this.parseExpression();
+
+        this.skipNewlines();
+
+        const body: Statement[] = [];
+        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF) {
+            const stmt = this.parseStatement();
+            if (stmt) body.push(stmt);
+            this.skipNewlines();
+        }
+
+        if (!this.match(TokenType.KeywordNext)) {
+            throw new Error(`Parse error: Expected 'Next' at line ${this.peek().line}`);
+        }
+
+        let nextIdentifier: Identifier | undefined;
+        if (this.peek().type === TokenType.Identifier) {
+            const nextIdToken = this.advance();
+            nextIdentifier = { type: 'Identifier', name: nextIdToken.value } as Identifier;
+        }
+
+        return {
+            type: 'ForEachStatement',
+            variable,
+            collection,
+            body,
+            nextIdentifier
+        };
+    }
 
     private parseIfStatement(): IfStatement {
         this.advance(); // Consume 'If' or 'ElseIf'

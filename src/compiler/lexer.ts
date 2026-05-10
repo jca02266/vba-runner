@@ -44,6 +44,8 @@ export enum TokenType {
     KeywordResume,
     KeywordSelect,
     KeywordCase,
+    KeywordEach,
+    KeywordIn,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -305,6 +307,8 @@ export class Lexer {
                 if (lowerId === 'resume') return { type: TokenType.KeywordResume, value: idStr, line: this.line };
                 if (lowerId === 'select') return { type: TokenType.KeywordSelect, value: idStr, line: this.line };
                 if (lowerId === 'case') return { type: TokenType.KeywordCase, value: idStr, line: this.line };
+                if (lowerId === 'each') return { type: TokenType.KeywordEach, value: idStr, line: this.line };
+                if (lowerId === 'in') return { type: TokenType.KeywordIn, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

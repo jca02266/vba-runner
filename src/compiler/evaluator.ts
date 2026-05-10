@@ -25,6 +25,7 @@ import {
     TypeDeclaration,
     TypeMember,
     SelectCaseStatement,
+    ForEachStatement,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -306,6 +307,9 @@ export class Evaluator {
             case 'ForStatement':
                 this.evaluateForStatement(stmt as ForStatement);
                 break;
+            case 'ForEachStatement':
+                this.evaluateForEachStatement(stmt as ForEachStatement);
+                break;
             case 'IfStatement':
                 this.evaluateIfStatement(stmt as IfStatement);
                 break;
@@ -389,6 +393,48 @@ export class Evaluator {
             // Increment/decrement loop variable
             this.env.setLocally(varName, this.env.get(varName) + stepValue);
         }
+    }
+
+    private evaluateForEachStatement(stmt: ForEachStatement) {
+        const collection = this.evaluateExpression(stmt.collection);
+        const varName = stmt.variable.name;
+
+        let elements: any[];
+        if (Array.isArray(collection)) {
+            elements = this.flattenArray(collection);
+        } else if (collection && collection.__isVbaDict__) {
+            elements = Array.from((collection.__map__ as Map<any, any>).keys());
+        } else if (collection && typeof collection.items !== 'undefined') {
+            elements = Array.isArray(collection.items) ? collection.items : [];
+        } else {
+            throw new Error(`Execution error: 'For Each' requires a collection or array`);
+        }
+
+        for (const element of elements) {
+            this.env.set(varName, element);
+            try {
+                for (const bodyStmt of stmt.body) {
+                    this.evaluateStatement(bodyStmt);
+                }
+            } catch (e: any) {
+                if (e && e.type === 'Exit' && e.target === 'For') {
+                    break;
+                }
+                throw e;
+            }
+        }
+    }
+
+    private flattenArray(arr: any[]): any[] {
+        const result: any[] = [];
+        const walk = (a: any[]) => {
+            for (const item of a) {
+                if (Array.isArray(item)) walk(item);
+                else result.push(item);
+            }
+        };
+        walk(arr);
+        return result;
     }
 
     private evaluateIfStatement(stmt: IfStatement) {

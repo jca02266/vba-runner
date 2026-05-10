@@ -13,7 +13,7 @@
 | ✅ | Call Statement | §5.4.2.1 |
 | ❌ | While Statement (`While...Wend`) | §5.4.2.2 |
 | ✅ | For Statement (`For...Next`、Step対応) | §5.4.2.3 |
-| ❌ | For Each Statement (`For Each...In`) | §5.4.2.4 |
+| ✅ | For Each Statement (`For Each...In`) | §5.4.2.4 |
 | ✅ | Exit For Statement | §5.4.2.5 |
 | ⚠️ | Do Statement (`Do While...Loop` のみ、`Do...Loop Until` 未実装) | §5.4.2.6 |
 | ✅ | Exit Do Statement | §5.4.2.7 |
