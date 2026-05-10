@@ -106,6 +106,7 @@ export interface ProcedureDeclaration extends Statement {
     parameters: Parameter[];
     body: Statement[];
     scope?: 'public' | 'private' | 'friend';
+    isStatic?: boolean;
     moduleName?: string;
 }
 
@@ -120,6 +121,7 @@ export interface VariableDeclarator {
 export interface VariableDeclaration extends Statement {
     type: 'VariableDeclaration';
     declarations: VariableDeclarator[];
+    isStatic?: boolean;
 }
 
 export interface ConstDeclaration extends Statement {
@@ -383,8 +385,20 @@ export class Parser {
             if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
                 return this.parseProcedureDeclaration(scope);
             }
+            if (next.type === TokenType.KeywordStatic) {
+                this.advance(); // consume 'Static'
+                return this.parseProcedureDeclaration(scope, true);
+            }
             // Public/Private on Dim/Const — consume scope keyword and parse normally
             return this.parseStatement();
+        } else if (token.type === TokenType.KeywordStatic) {
+            this.advance(); // consume 'Static'
+            const next = this.peek();
+            if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
+                return this.parseProcedureDeclaration(undefined, true);
+            }
+            // Static variable declaration inside a procedure
+            return this.parseDimStatement(true);
         } else if (token.type === TokenType.KeywordDim) {
             return this.parseDimStatement();
         } else if (token.type === TokenType.KeywordConst) {
@@ -514,7 +528,7 @@ export class Parser {
         return null;
     }
 
-    private parseProcedureDeclaration(scope?: 'public' | 'private' | 'friend'): ProcedureDeclaration {
+    private parseProcedureDeclaration(scope?: 'public' | 'private' | 'friend', isStatic?: boolean): ProcedureDeclaration {
         const isFunction = this.peek().type === TokenType.KeywordFunction;
         const isProperty = this.peek().type === TokenType.KeywordProperty;
         this.advance(); // consume Sub, Function, or Property
@@ -607,6 +621,12 @@ export class Parser {
             this.advance(); // consume Type name
         }
 
+        // Trailing Static: Sub Foo() Static
+        if (this.peek().type === TokenType.KeywordStatic) {
+            this.advance(); // consume trailing 'Static'
+            isStatic = true;
+        }
+
         this.skipNewlines();
         const body: Statement[] = [];
         while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
@@ -625,11 +645,11 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope, isStatic };
     }
 
-    private parseDimStatement(): VariableDeclaration {
-        this.advance(); // 'Dim'
+    private parseDimStatement(isStatic?: boolean): VariableDeclaration {
+        if (!isStatic) this.advance(); // 'Dim' (already consumed for Static)
         const declarations: VariableDeclarator[] = [];
 
         while (true) {
@@ -668,7 +688,7 @@ export class Parser {
             }
         }
 
-        return { type: 'VariableDeclaration', declarations };
+        return { type: 'VariableDeclaration', declarations, isStatic };
     }
 
     private parseConstDeclaration(): ConstDeclaration {

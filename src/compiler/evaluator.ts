@@ -161,6 +161,9 @@ export class Evaluator {
     private executingModuleName: string = '';
     private withObjectStack: any[] = [];
     private gosubStack: number[] = []; // Stack of statement indices for GoSub/Return
+    private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
+    private currentProcIsStatic: boolean = false;
+    private staticVarsInCurrentProc: Set<string> = new Set();
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -349,12 +352,16 @@ export class Evaluator {
         const previousProcedureName = this.currentProcedureName;
         const previousProcedureType = this.currentProcedureType;
         const previousExecutingModule = this.executingModuleName;
+        const previousProcIsStatic = this.currentProcIsStatic;
+        const previousStaticVars = this.staticVarsInCurrentProc;
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
         this.executingModuleName = proc.moduleName ?? '';
+        this.currentProcIsStatic = proc.isStatic ?? false;
+        this.staticVarsInCurrentProc = new Set();
 
         try {
             // Execute procedure body with error handling support
@@ -362,7 +369,7 @@ export class Evaluator {
         } catch (e: any) {
             if (e && e.type === 'Exit') {
                 if (
-                    (e.target === 'Function' && proc.isFunction) || 
+                    (e.target === 'Function' && proc.isFunction) ||
                     (e.target === 'Sub' && !proc.isFunction && !proc.isProperty) ||
                     (e.target === 'Property' && proc.isProperty)
                 ) {
@@ -374,6 +381,11 @@ export class Evaluator {
                 throw e; // Real error
             }
         } finally {
+            // Persist static variable values
+            for (const varName of this.staticVarsInCurrentProc) {
+                const key = `${procName}:${varName}`;
+                this.staticVarStore.set(key, localEnv.get(varName));
+            }
             // Restore previous environment and error handler state
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
@@ -381,6 +393,8 @@ export class Evaluator {
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
             this.executingModuleName = previousExecutingModule;
+            this.currentProcIsStatic = previousProcIsStatic;
+            this.staticVarsInCurrentProc = previousStaticVars;
         }
 
         // Return the function or property value
@@ -884,7 +898,19 @@ export class Evaluator {
     }
 
     private evaluateVariableDeclaration(stmt: VariableDeclaration) {
+        const isStaticDecl = stmt.isStatic || this.currentProcIsStatic;
         for (const decl of stmt.declarations) {
+            const varName = decl.name.name;
+            const varKey = varName.toLowerCase();
+            const staticKey = `${this.currentProcedureName?.toLowerCase()}:${varKey}`;
+
+            // For static variables, restore persisted value if available
+            if (isStaticDecl && this.staticVarStore.has(staticKey)) {
+                this.env.set(varName, this.staticVarStore.get(staticKey));
+                this.staticVarsInCurrentProc.add(varKey);
+                continue;
+            }
+
             let initialValue: any = vbaEmpty;
             if (decl.isArray) {
                 if (decl.arraySize) {
@@ -917,7 +943,10 @@ export class Evaluator {
                     initialValue = instance;
                 }
             }
-            this.env.set(decl.name.name, initialValue);
+            this.env.set(varName, initialValue);
+            if (isStaticDecl) {
+                this.staticVarsInCurrentProc.add(varKey);
+            }
         }
     }
 
