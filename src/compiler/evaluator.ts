@@ -45,6 +45,7 @@ import {
 import { Lexer, TokenType } from './lexer';
 
 export const vbaEmpty = null;
+export const vbaMissing = Symbol('vbaMissing');
 export const vbaTrue = -1;
 export const vbaFalse = 0;
 export type VbaBoolean = typeof vbaTrue | typeof vbaFalse;
@@ -178,6 +179,7 @@ export class Evaluator {
 
         // Add typical VBA built-ins
         this.env.set('isempty', (val: any) => (val === undefined || val === null || val === '') ? vbaTrue : vbaFalse);
+        this.env.set('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse);
         this.env.set('isnumeric', (val: any) => (!isNaN(parseFloat(val)) && isFinite(val)) ? vbaTrue : vbaFalse);
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
         this.env.set('clng', (val: any) => Math.round(parseFloat(val)) || 0);
@@ -635,8 +637,9 @@ export class Evaluator {
 
         // Map arguments to parameter names
         for (let i = 0; i < proc.parameters.length; i++) {
-            const paramName = proc.parameters[i].name;
-            const argValue = i < args.length ? args[i] : vbaEmpty;
+            const param = proc.parameters[i];
+            const paramName = param.name;
+            const argValue = i < args.length ? args[i] : (param.isOptional ? vbaMissing : vbaEmpty);
             localEnv.setLocally(paramName, argValue);
         }
 

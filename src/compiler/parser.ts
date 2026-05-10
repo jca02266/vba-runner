@@ -95,6 +95,7 @@ export interface Parameter extends ASTNode {
     type: 'Parameter';
     name: string;
     isByVal: boolean;
+    isOptional?: boolean;
 }
 
 export interface ProcedureDeclaration extends Statement {
@@ -572,9 +573,11 @@ export class Parser {
                 let isByVal = false;
                 let paramNameToken = this.peek();
 
+                let isOptional = false;
                 // Skip 'Optional' keyword
                 if (paramNameToken.type === TokenType.KeywordOptional) {
                     this.advance();
+                    isOptional = true;
                     paramNameToken = this.peek();
                 }
 
@@ -596,14 +599,16 @@ export class Parser {
                     this.parseExpression(); // consume default value expression
                 }
 
-                parameters.push({ type: 'Parameter', name: paramName.value, isByVal });
+                parameters.push({ type: 'Parameter', name: paramName.value, isByVal, isOptional });
 
                 while (this.match(TokenType.OperatorComma)) {
                     isByVal = false;
+                    let isOptional = false;
                     // Skip 'Optional' keyword
                     let nextParamToken = this.peek();
                     if (nextParamToken.type === TokenType.KeywordOptional) {
                         this.advance();
+                        isOptional = true;
                         nextParamToken = this.peek();
                     }
 
@@ -623,7 +628,7 @@ export class Parser {
                     if (this.match(TokenType.OperatorEquals)) {
                         this.parseExpression(); // consume default value expression
                     }
-                    parameters.push({ type: 'Parameter', name: paramName.value, isByVal });
+                    parameters.push({ type: 'Parameter', name: paramName.value, isByVal, isOptional });
                 }
             }
             if (!this.match(TokenType.OperatorRParen)) {
