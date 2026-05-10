@@ -55,7 +55,6 @@ export class Environment {
     }
 
     set(name: string, value: any) {
-        // Find scope where variable is defined to update it, or set locally
         const key = name.toLowerCase();
         if (this.variables.has(key)) {
             this.variables.set(key, value);
@@ -69,7 +68,6 @@ export class Environment {
             }
             env = env.enclosing;
         }
-        // If not found, implicitly declare locally
         this.variables.set(key, value);
     }
 
@@ -96,18 +94,31 @@ export class Environment {
     }
 
     setProcedure(name: string, proc: ProcedureDeclaration) {
-        this.procedures.set(name.toLowerCase(), proc);
+        const key = name.toLowerCase();
+        if (proc.isProperty && proc.propertyType) {
+            this.procedures.set(`${key}:${proc.propertyType}`, proc);
+        } else {
+            this.procedures.set(key, proc);
+        }
     }
 
-    getProcedure(name: string): ProcedureDeclaration | undefined {
-        const key = name.toLowerCase();
-        if (this.procedures.has(key)) {
-            return this.procedures.get(key);
+    getProcedure(name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
+        const baseKey = name.toLowerCase();
+        // If type is not specified, try baseKey then baseKey:get
+        const keysToTry = type ? [`${baseKey}:${type}`] : [baseKey, `${baseKey}:get`];
+
+        for (const key of keysToTry) {
+            if (this.procedures.has(key)) {
+                return this.procedures.get(key);
+            }
         }
+
         let env: Environment | undefined = this.enclosing;
         while (env) {
-            if (env.procedures.has(key)) {
-                return env.procedures.get(key);
+            for (const key of keysToTry) {
+                if (env.procedures.has(key)) {
+                    return env.procedures.get(key);
+                }
             }
             env = env.enclosing;
         }
@@ -141,6 +152,8 @@ export class Evaluator {
     private onPrint: PrintCallback;
     private errorHandlerLabel: string | null = null;
     private currentProcBody: Statement[] | null = null;
+    private currentProcedureName: string | null = null;
+    private currentProcedureType: string | null = null;
     private currentSourceModule: string = '';
     private executingModuleName: string = '';
     private withObjectStack: any[] = [];
@@ -224,9 +237,13 @@ export class Evaluator {
         this.env.set('sqr', (val: any) => Math.sqrt(val));
 
         this.env.set('isnull', (val: any) => val === null);
+        this.env.set('isarray', (val: any) => Array.isArray(val));
+        this.env.set('isobject', (val: any) => val !== null && typeof val === 'object' && !Array.isArray(val));
+        
         this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
 
         this.env.set('iif', (cond: any, truePart: any, falsePart: any) => cond ? truePart : falsePart);
+        this.env.set('array', (...args: any[]) => [...args]);
         this.env.set('split', (s: any, delimiter: string = ' ') => String(s || '').split(delimiter));
         this.env.set('join', (arr: any[], delimiter: string = ' ') => Array.isArray(arr) ? arr.join(delimiter) : String(arr));
         this.env.set('asc', (s: any) => String(s || '').charCodeAt(0));
@@ -301,9 +318,9 @@ export class Evaluator {
         this.env.set(name, value);
     }
 
-    public callProcedure(name: string, args: any[]): any {
+    public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set'): any {
         const procName = name.toLowerCase();
-        const proc = this.env.getProcedure(procName);
+        const proc = this.env.getProcedure(procName, type);
 
         if (!proc) {
             throw new Error(`Execution error: Procedure '${name}' not found`);
@@ -323,10 +340,14 @@ export class Evaluator {
         const previousEnv = this.env;
         const previousErrorHandler = this.errorHandlerLabel;
         const previousProcBody = this.currentProcBody;
+        const previousProcedureName = this.currentProcedureName;
+        const previousProcedureType = this.currentProcedureType;
         const previousExecutingModule = this.executingModuleName;
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.currentProcBody = proc.body;
+        this.currentProcedureName = proc.name.name;
+        this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
         this.executingModuleName = proc.moduleName ?? '';
 
         try {
@@ -351,6 +372,8 @@ export class Evaluator {
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
             this.currentProcBody = previousProcBody;
+            this.currentProcedureName = previousProcedureName;
+            this.currentProcedureType = previousProcedureType;
             this.executingModuleName = previousExecutingModule;
         }
 
@@ -761,6 +784,21 @@ export class Evaluator {
 
         if (stmt.left.type === 'Identifier') {
             const name = (stmt.left as Identifier).name;
+            const procNameLower = name.toLowerCase();
+
+            // Special case: assigning to current function/property name (return value)
+            if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
+                if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
+                    this.env.setLocally(name, val);
+                    return;
+                }
+            }
+
+            const proc = this.env.getProcedure(name, 'let');
+            if (proc) {
+                this.callProcedure(name, [val], 'let');
+                return;
+            }
             this.env.set(name, val);
         } else if (stmt.left.type === 'CallExpression') {
             // Array/Dictionary assignment: arr(0) = val OR dict("key") = val
@@ -910,13 +948,34 @@ export class Evaluator {
 
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
+
+        // VBA requires Set target to be an object
+        if (value !== null && typeof value !== 'object') {
+            throw new Error(`Execution error: Object required`);
+        }
         // If the right side evaluates to a variable name (string), resolve it
         if (typeof value === 'string' && stmt.right.type === 'Identifier') {
             value = this.env.get(value);
         }
 
         if (stmt.left.type === 'Identifier') {
-            this.env.set((stmt.left as Identifier).name, value);
+            const name = (stmt.left as Identifier).name;
+            const procNameLower = name.toLowerCase();
+
+            // Special case: assigning to current function/property name (return value)
+            if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
+                if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
+                    this.env.setLocally(name, value);
+                    return;
+                }
+            }
+
+            const proc = this.env.getProcedure(name, 'set');
+            if (proc) {
+                this.callProcedure(name, [value], 'set');
+                return;
+            }
+            this.env.set(name, value);
         } else {
             throw new Error(`Execution error: Unsupported Set target ${stmt.left.type}`);
         }
@@ -1205,7 +1264,29 @@ export class Evaluator {
             throw new Error(`Execution error: Object does not support property or method '${methodNameOriginal}'`);
         }
 
-        throw new Error(`Execution error: Unsupported call expression`);
+
+        // Generic fallback for calling result of an expression: (expr)(args)
+        // e.g. Array(1, 2)(0)
+        const target = this.evaluateExpression(expr.callee);
+        if (Array.isArray(target)) {
+            if (expr.args.length === 0) throw new Error(`Execution error: Missing index for array access`);
+            let current = target;
+            for (let i = 0; i < expr.args.length; i++) {
+                if (!current) return EmptyVBA;
+                const idx = this.evaluateExpression(expr.args[i]);
+                current = current[idx];
+            }
+            return current === undefined ? EmptyVBA : current;
+        } else if (target && target.__isVbaDict__) {
+            if (expr.args.length === 0) throw new Error(`Execution error: Missing key for dictionary access`);
+            const key = this.evaluateExpression(expr.args[0]);
+            return target.__map__.get(key);
+        } else if (typeof target === 'function') {
+            const argsVals = expr.args.map(a => this.evaluateExpression(a));
+            return target(...argsVals);
+        }
+
+        throw new Error(`Execution error: Unsupported call expression or target is not callable`);
     }
 
     private evaluateDictionaryAccessExpression(expr: DictionaryAccessExpression): any {

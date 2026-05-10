@@ -33,12 +33,13 @@ export class VBATest {
         this.evaluator.setSourceModule('');
     }
 
-    run(procedureName: string, args: any[]): any {
+    run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {
         const start = Date.now();
-        const result = this.evaluator.callProcedure(procedureName, args);
+        const result = this.evaluator.callProcedure(procedureName, args, type);
         const duration = Date.now() - start;
-        const formatArgs = args.map(a => typeof a === 'object' ? '[Object]' : String(a)).join(', ');
-        console.log(`[PASS] ${procedureName}(${formatArgs}) -> ${result} (${duration}ms)`);
+        const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : '[Object]') : String(a)).join(', ');
+        const typeStr = type ? `:${type}` : '';
+        console.log(`[PASS] ${procedureName}${typeStr}(${formatArgs}) -> ${result} (${duration}ms)`);
         return result;
     }
 

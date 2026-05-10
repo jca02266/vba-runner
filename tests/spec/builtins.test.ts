@@ -43,14 +43,19 @@ function evalExpr(expr: string): any {
 
 // 4. Information Functions
 {
-    assert.strictEqual(evalExpr('IsNull(nothing)'), true, 'IsNull');
+    assert.strictEqual(evalExpr('IsNull(nothing)'), true, 'IsNull(Nothing)');
+    assert.strictEqual(evalExpr('IsNull(123)'), false, 'IsNull(123)');
+    assert.strictEqual(evalExpr('IsArray(Array(1, 2))'), true, 'IsArray(Array())');
+    assert.strictEqual(evalExpr('IsArray(123)'), false, 'IsArray(123)');
+    assert.strictEqual(evalExpr('IsObject(CreateObject("Scripting.Dictionary"))'), true, 'IsObject(Dictionary)');
+    assert.strictEqual(evalExpr('IsObject(123)'), false, 'IsObject(123)');
 }
 
 // 5. Array Functions
 {
-    // Need to test with an actual array
-    // Since evalExpr can't easily create an array in VBA expression yet (no Array() function)
-    // we'll skip LBound for now or add Array() first.
+    assert.strictEqual(evalExpr('LBound(Array(1, 2, 3))'), 0, 'LBound');
+    assert.strictEqual(evalExpr('Array(1, 2, 3)(0)'), 1, 'Array index 0');
+    assert.strictEqual(evalExpr('Array(1, 2, 3)(2)'), 3, 'Array index 2');
 }
 
 // 6. IIf

@@ -101,6 +101,7 @@ export interface ProcedureDeclaration extends Statement {
     type: 'ProcedureDeclaration';
     isFunction: boolean;
     isProperty: boolean;
+    propertyType?: 'get' | 'let' | 'set';
     name: Identifier;
     parameters: Parameter[];
     body: Statement[];
@@ -518,14 +519,14 @@ export class Parser {
         const isProperty = this.peek().type === TokenType.KeywordProperty;
         this.advance(); // consume Sub, Function, or Property
 
+        let propertyType: 'get' | 'let' | 'set' | undefined;
         if (isProperty) {
             // consume Get, Let, or Set
             const typeToken = this.advance();
-            if (
-                typeToken.type !== TokenType.KeywordGet &&
-                typeToken.type !== TokenType.KeywordLet &&
-                typeToken.type !== TokenType.KeywordSet
-            ) {
+            if (typeToken.type === TokenType.KeywordGet) propertyType = 'get';
+            else if (typeToken.type === TokenType.KeywordLet) propertyType = 'let';
+            else if (typeToken.type === TokenType.KeywordSet) propertyType = 'set';
+            else {
                 throw new Error(`Parse error: Expected 'Get', 'Let', or 'Set' after 'Property' at line ${typeToken.line}`);
             }
         }
@@ -624,7 +625,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, name, parameters, body, scope };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope };
     }
 
     private parseDimStatement(): VariableDeclaration {
