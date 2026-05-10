@@ -66,6 +66,7 @@ export interface ProcedureDeclaration extends Statement {
     name: Identifier;
     parameters: Parameter[];
     body: Statement[];
+    scope?: 'public' | 'private' | 'friend';
 }
 
 export interface VariableDeclarator {
@@ -270,6 +271,19 @@ export class Parser {
             return this.parseWhileStatement();
         } else if (token.type === TokenType.KeywordSub || token.type === TokenType.KeywordFunction) {
             return this.parseProcedureDeclaration();
+        } else if (
+            token.type === TokenType.KeywordPublic ||
+            token.type === TokenType.KeywordPrivate ||
+            token.type === TokenType.KeywordFriend
+        ) {
+            const scopeToken = this.advance();
+            const scope = scopeToken.value.toLowerCase() as 'public' | 'private' | 'friend';
+            const next = this.peek();
+            if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction) {
+                return this.parseProcedureDeclaration(scope);
+            }
+            // Public/Private on Dim/Const — consume scope keyword and parse normally
+            return this.parseStatement();
         } else if (token.type === TokenType.KeywordDim) {
             return this.parseDimStatement();
         } else if (token.type === TokenType.KeywordConst) {
@@ -361,7 +375,7 @@ export class Parser {
         return null;
     }
 
-    private parseProcedureDeclaration(): ProcedureDeclaration {
+    private parseProcedureDeclaration(scope?: 'public' | 'private' | 'friend'): ProcedureDeclaration {
         const isFunction = this.peek().type === TokenType.KeywordFunction;
         this.advance(); // consume Sub or Function
 
@@ -458,7 +472,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, name, parameters, body };
+        return { type: 'ProcedureDeclaration', isFunction, name, parameters, body, scope };
     }
 
     private parseDimStatement(): VariableDeclaration {

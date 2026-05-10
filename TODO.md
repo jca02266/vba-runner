@@ -82,7 +82,7 @@
 | ❌ | Property Get / Let / Set 宣言 | §5.3.1.7 |
 | ❌ | Event Handler 宣言 | §5.3.1.8 |
 | ✅ | Variable Declarations（`Dim`） | §5.2.3.1 |
-| ❌ | Public / Private / Friend スコープ制御 | §5.2.3.1 / §5.3.1.1 |
+| ✅ | Public / Private / Friend スコープ制御（パースのみ、アクセス制御なし） | §5.2.3.1 / §5.3.1.1 |
 | ❌ | Static キーワード（変数・プロシージャ） | §5.3.1.2 |
 | ✅ | Const Declarations | §5.2.3.2 |
 | ✅ | User Defined Type Declarations（`Type`） | §5.2.3.3 |

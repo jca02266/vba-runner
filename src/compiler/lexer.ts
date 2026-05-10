@@ -47,6 +47,9 @@ export enum TokenType {
     KeywordCase,
     KeywordEach,
     KeywordIn,
+    KeywordPublic,
+    KeywordPrivate,
+    KeywordFriend,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -311,6 +314,9 @@ export class Lexer {
                 if (lowerId === 'case') return { type: TokenType.KeywordCase, value: idStr, line: this.line };
                 if (lowerId === 'each') return { type: TokenType.KeywordEach, value: idStr, line: this.line };
                 if (lowerId === 'in') return { type: TokenType.KeywordIn, value: idStr, line: this.line };
+                if (lowerId === 'public') return { type: TokenType.KeywordPublic, value: idStr, line: this.line };
+                if (lowerId === 'private') return { type: TokenType.KeywordPrivate, value: idStr, line: this.line };
+                if (lowerId === 'friend') return { type: TokenType.KeywordFriend, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }
