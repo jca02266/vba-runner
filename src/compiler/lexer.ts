@@ -51,6 +51,7 @@ export enum TokenType {
     KeywordPublic,
     KeywordPrivate,
     KeywordFriend,
+    KeywordWith,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -319,6 +320,7 @@ export class Lexer {
                 if (lowerId === 'public') return { type: TokenType.KeywordPublic, value: idStr, line: this.line };
                 if (lowerId === 'private') return { type: TokenType.KeywordPrivate, value: idStr, line: this.line };
                 if (lowerId === 'friend') return { type: TokenType.KeywordFriend, value: idStr, line: this.line };
+                if (lowerId === 'with') return { type: TokenType.KeywordWith, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

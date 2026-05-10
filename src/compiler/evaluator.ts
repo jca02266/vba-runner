@@ -27,6 +27,8 @@ import {
     TypeMember,
     SelectCaseStatement,
     ForEachStatement,
+    WithStatement,
+    ImplicitWithObjectExpression,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -132,6 +134,7 @@ export class Evaluator {
     private currentProcBody: Statement[] | null = null;
     private currentSourceModule: string = '';
     private executingModuleName: string = '';
+    private withObjectStack: any[] = [];
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -375,6 +378,9 @@ export class Evaluator {
             case 'SelectCaseStatement':
                 this.evaluateSelectCaseStatement(stmt as SelectCaseStatement);
                 break;
+            case 'WithStatement':
+                this.evaluateWithStatement(stmt as WithStatement);
+                break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
         }
@@ -546,6 +552,18 @@ export class Evaluator {
         }
     }
 
+    private evaluateWithStatement(stmt: WithStatement) {
+        const obj = this.evaluateExpression(stmt.expression);
+        this.withObjectStack.push(obj);
+        try {
+            for (const bodyStmt of stmt.body) {
+                this.evaluateStatement(bodyStmt);
+            }
+        } finally {
+            this.withObjectStack.pop();
+        }
+    }
+
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
         const val = this.evaluateExpression(stmt.right);
 
@@ -589,6 +607,18 @@ export class Evaluator {
                 obj[propName] = val;
             } else {
                 throw new Error(`Execution error: Cannot assign property '${propName}' of undefined or primitive`);
+            }
+        } else if (stmt.left.type === 'ImplicitWithObjectExpression') {
+            if (this.withObjectStack.length === 0) {
+                throw new Error(`Execution error: '.' outside of With block`);
+            }
+            const obj = this.withObjectStack[this.withObjectStack.length - 1];
+            const member = stmt.left as ImplicitWithObjectExpression;
+            const propName = member.property.name.toLowerCase();
+            if (obj && typeof obj === 'object') {
+                obj[propName] = val;
+            } else {
+                throw new Error(`Execution error: Cannot assign property '${propName}' of undefined or primitive in With block`);
             }
         } else {
             throw new Error(`Execution error: Invalid assignment target`);
@@ -758,6 +788,8 @@ export class Evaluator {
                 return this.evaluateUnaryExpression(expr as UnaryExpression);
             case 'BinaryExpression':
                 return this.evaluateBinaryExpression(expr as BinaryExpression);
+            case 'ImplicitWithObjectExpression':
+                return this.evaluateImplicitWithObjectExpression(expr as ImplicitWithObjectExpression);
             default:
                 throw new Error(`Execution error: Unknown expression type ${expr.type}`);
         }
@@ -867,12 +899,23 @@ export class Evaluator {
                 }
                 throw new Error(`Execution error: Cannot call unknown procedure or index unknown array '${name}'`);
             }
-        } else if (expr.callee.type === 'MemberExpression') {
-            // Example: col.Add("Cherry")
-            const member = expr.callee as MemberExpression;
-            const obj = this.evaluateExpression(member.object);
-            const methodNameLower = member.property.name.toLowerCase();
-            const methodNameOriginal = member.property.name;
+        } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
+            let obj: any;
+            let methodNameOriginal: string;
+
+            if (expr.callee.type === 'MemberExpression') {
+                const member = expr.callee as MemberExpression;
+                obj = this.evaluateExpression(member.object);
+                methodNameOriginal = member.property.name;
+            } else {
+                if (this.withObjectStack.length === 0) {
+                    throw new Error(`Execution error: '.' outside of With block`);
+                }
+                obj = this.withObjectStack[this.withObjectStack.length - 1];
+                methodNameOriginal = (expr.callee as ImplicitWithObjectExpression).property.name;
+            }
+
+            const methodNameLower = methodNameOriginal.toLowerCase();
 
             if (obj) {
                 // Try case-insensitive lookup first, then fallback to original casing
@@ -968,5 +1011,34 @@ export class Evaluator {
             default:
                 throw new Error(`Execution error: Unknown operator ${expr.operator}`);
         }
+    }
+
+    private evaluateImplicitWithObjectExpression(expr: ImplicitWithObjectExpression): any {
+        if (this.withObjectStack.length === 0) {
+            throw new Error(`Execution error: '.' outside of With block`);
+        }
+        const obj = this.withObjectStack[this.withObjectStack.length - 1];
+        const propName = expr.property.name.toLowerCase();
+        if (obj && typeof obj === 'object') {
+            // Check for direct property access
+            if (Object.prototype.hasOwnProperty.call(obj, propName)) {
+                const val = obj[propName];
+                if (typeof val === 'function') {
+                    return val.bind(obj);
+                }
+                return val;
+            }
+            // Case-insensitive fallback
+            const keys = Object.keys(obj);
+            const match = keys.find(k => k.toLowerCase() === propName);
+            if (match) {
+                const val = obj[match];
+                if (typeof val === 'function') {
+                    return val.bind(obj);
+                }
+                return val;
+            }
+        }
+        throw new Error(`Execution error: Cannot access property '${propName}' of undefined or primitive in With block`);
     }
 }

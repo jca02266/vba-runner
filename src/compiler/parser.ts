@@ -50,6 +50,12 @@ export interface DoWhileStatement extends Statement {
     body: Statement[];
 }
 
+export interface WithStatement extends Statement {
+    type: 'WithStatement';
+    expression: Expression;
+    body: Statement[];
+}
+
 export interface WhileStatement extends Statement {
     type: 'WhileStatement';
     condition: Expression;
@@ -182,6 +188,11 @@ export interface Identifier extends Expression {
     name: string;
 }
 
+export interface ImplicitWithObjectExpression extends Expression {
+    type: 'ImplicitWithObjectExpression';
+    property: Identifier;
+}
+
 export interface NumberLiteral extends Expression {
     type: 'NumberLiteral';
     value: number;
@@ -311,6 +322,8 @@ export class Parser {
             return null;
         } else if (token.type === TokenType.KeywordSelect) {
             return this.parseSelectCaseStatement();
+        } else if (token.type === TokenType.KeywordWith) {
+            return this.parseWithStatement();
         } else if (token.type === TokenType.KeywordType) {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
@@ -322,9 +335,9 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot) {
             // Check if it's a label "Identifier:"
-            if (this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
+            if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;
                 this.advance(); // consume Identifier
                 this.advance(); // consume ':'
@@ -988,6 +1001,28 @@ export class Parser {
         return { type: 'SelectCaseStatement', expression, cases, elseBody };
     }
 
+    private parseWithStatement(): WithStatement {
+        this.advance(); // consume 'With'
+        const expression = this.parseExpression();
+        this.skipNewlines();
+
+        const body: Statement[] = [];
+        while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
+            const stmt = this.parseStatement();
+            if (stmt) body.push(stmt);
+            this.skipNewlines();
+        }
+
+        if (this.peek().type === TokenType.KeywordEnd) {
+            this.advance(); // consume 'End'
+            if (!this.match(TokenType.KeywordWith)) {
+                throw new Error(`Parse error: Expected 'With' after 'End' at line ${this.peek().line}`);
+            }
+        }
+
+        return { type: 'WithStatement', expression, body };
+    }
+
     private parseRangeClause(): RangeClause {
         // [Is] comparison-operator expression
         const isKeyword = this.peek().type === TokenType.KeywordIs;
@@ -1176,6 +1211,13 @@ export class Parser {
             if (!this.match(TokenType.OperatorRParen)) {
                 throw new Error(`Parse error: Expected ')' at line ${this.peek().line} `);
             }
+        } else if (token.type === TokenType.OperatorDot) {
+            const propToken = this.advance();
+            if (propToken.type !== TokenType.Identifier) {
+                throw new Error(`Parse error: Expected identifier after '.' at line ${propToken.line}`);
+            }
+            const property = { type: 'Identifier', name: propToken.value } as Identifier;
+            expr = { type: 'ImplicitWithObjectExpression', property } as ImplicitWithObjectExpression;
         } else {
             throw new Error(`Parse error: Unexpected token in expression '${token.value}' at line ${token.line} `);
         }

@@ -32,7 +32,7 @@
 | ✅ | Exit Function Statement | §5.4.2.18 |
 | ❌ | Exit Property Statement | §5.4.2.19 |
 | ❌ | RaiseEvent Statement | §5.4.2.20 |
-| ❌ | With Statement (`With...End With`) | §5.4.2.21 |
+| ✅ | With Statement (`With...End With`) | §5.4.2.21 |
 | ❌ | End Statement（プログラム終了） | §5.4.2.22 |
 
 ## 第5章：データ操作ステートメント (§5.4.3)
