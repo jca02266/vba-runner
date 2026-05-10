@@ -207,12 +207,22 @@ export class Evaluator {
             const idx = s1.indexOf(s2, start - 1);
             return idx === -1 ? 0 : idx + 1;
         });
-        this.env.set('instrrev', (s1: any, s2: any, start?: number) => {
-            const str = String(s1 ?? '');
-            const find = String(s2 ?? '');
-            const idx = (start === undefined || start === -1)
-                ? str.lastIndexOf(find)
-                : str.lastIndexOf(find, start - 1);
+        this.env.set('instrrev', (s1: any, s2: any, start: any = -1, compare: number = 0) => {
+            if (s1 === null || s2 === null) return null;
+            const str = String(s1);
+            const find = String(s2);
+            if (str === "") return 0;
+            if (find === "") return (start === -1 || start === undefined) ? str.length : Number(start);
+            
+            const effectiveStart = (start === -1 || start === undefined) ? str.length : Number(start);
+            if (effectiveStart > str.length) return 0;
+
+            let idx: number;
+            if (compare === 1) { // vbTextCompare
+                idx = str.toLowerCase().lastIndexOf(find.toLowerCase(), effectiveStart - 1);
+            } else {
+                idx = str.lastIndexOf(find, effectiveStart - 1);
+            }
             return idx === -1 ? 0 : idx + 1;
         });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
