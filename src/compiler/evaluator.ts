@@ -64,26 +64,25 @@ export class VbaDate {
 export const vbaEmpty = null;
 
 class VbaCollection {
-    private _items: any[] = [];
-    private _keys: Map<string, any> = new Map();
+    private _items: { value: any, key: string | null }[] = [];
+    public readonly __isVbaCollection__ = true;
 
     public add(item: any, key?: string, before?: any, after?: any) {
-        if (key) {
-            const k = key.toLowerCase();
-            if (this._keys.has(k)) {
-                throw new Error("This key is already associated with an element of this collection");
-            }
-            this._keys.set(k, item);
+        const keyLower = (key !== undefined && key !== vbaEmpty && key !== null) ? String(key).toLowerCase() : null;
+        if (keyLower && this._items.some(i => i.key === keyLower)) {
+            throw new Error("This key is already associated with an element of this collection");
         }
+        
+        const newItem = { value: item, key: keyLower };
 
-        if (before !== undefined && before !== vbaEmpty) {
+        if (before !== undefined && before !== vbaEmpty && before !== null) {
             const idx = this.findIndex(before) - 1;
-            this._items.splice(idx, 0, item);
-        } else if (after !== undefined && after !== vbaEmpty) {
+            this._items.splice(idx, 0, newItem);
+        } else if (after !== undefined && after !== vbaEmpty && after !== null) {
             const idx = this.findIndex(after);
-            this._items.splice(idx, 0, item);
+            this._items.splice(idx, 0, newItem);
         } else {
-            this._items.push(item);
+            this._items.push(newItem);
         }
     }
 
@@ -91,12 +90,11 @@ class VbaCollection {
         if (typeof id === 'number') {
             if (id < 1 || id > this._items.length) throw new Error("Subscript out of range");
             return id;
-        } else if (typeof id === 'string') {
-            const k = id.toLowerCase();
-            // Find index of item with this key
-            const targetItem = this._keys.get(k);
-            if (targetItem === undefined) throw new Error("Invalid procedure call or argument");
-            return this._items.indexOf(targetItem) + 1;
+        } else if (id !== undefined && id !== null && id !== vbaEmpty) {
+            const k = String(id).toLowerCase();
+            const idx = this._items.findIndex(i => i.key === k);
+            if (idx === -1) throw new Error("Invalid procedure call or argument");
+            return idx + 1;
         }
         throw new Error("Invalid procedure call or argument");
     }
@@ -107,20 +105,16 @@ class VbaCollection {
 
     public item(id: any) {
         const idx = this.findIndex(id);
-        return this._items[idx - 1];
+        return this._items[idx - 1].value;
     }
 
     public remove(id: any) {
         const idx = this.findIndex(id);
-        const item = this._items[idx - 1];
         this._items.splice(idx - 1, 1);
-        // Remove from keys
-        for (const [k, v] of this._keys.entries()) {
-            if (v === item) {
-                this._keys.delete(k);
-                break;
-            }
-        }
+    }
+
+    public get items(): any[] {
+        return this._items.map(i => i.value);
     }
 }
 export const vbaNull = Symbol('vbaNull');

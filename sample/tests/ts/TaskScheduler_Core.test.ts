@@ -229,8 +229,8 @@ async function main() {
     row2[8] = "";         // empty level
     mockMetaRow.push(row2);
 
-    assert.strictEqual(vbaTest.run('IsRowLocked', [mockMetaRow, 1, taskCfg]), -1, "Row 1 is locked");
-    assert.strictEqual(vbaTest.run('IsRowLocked', [mockMetaRow, 2, taskCfg]), 0, "Row 2 is not locked");
+    assert.strictEqual(vbaTest.run('IsRowLocked', [mockMetaRow, 1, taskCfg]).valueOf(), -1, "Row 1 is locked");
+    assert.strictEqual(vbaTest.run('IsRowLocked', [mockMetaRow, 2, taskCfg]).valueOf(), 0, "Row 2 is not locked");
     assert.strictEqual(vbaTest.run('GetAssigneeName', [mockMetaRow, 1, taskCfg]), "Alice", "Row 1 assignee trimmed");
     assert.strictEqual(vbaTest.run('GetAssigneeName', [mockMetaRow, 2, taskCfg]), "Bob", "Row 2 assignee");
     assert.strictEqual(vbaTest.run('GetTaskLevel', [mockMetaRow, 1, taskCfg]), 2, "Row 1 level = 2");
