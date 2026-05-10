@@ -61,6 +61,12 @@ export class VbaDate {
     }
 }
 
+export class VbaErrorValue {
+    constructor(public code: number) {}
+    valueOf() { return this.code; }
+    toString() { return `Error ${this.code}`; }
+}
+
 export const vbaEmpty = null;
 
 class VbaCollection {
@@ -534,6 +540,7 @@ export class Evaluator {
             if (val === vbaNull) return 'Null';
             if (val === vbaNothing) return 'Nothing';
             if (val === vbaMissing) return 'Error';
+            if (val instanceof VbaErrorValue) return 'Error';
             if (val instanceof VbaBoolean) return 'Boolean';
             if (val instanceof VbaDate) return 'Date';
             if (typeof val === 'number') return 'Double';
@@ -632,7 +639,15 @@ export class Evaluator {
             }
             return vbaFalse;
         });
-        this.env.set('iserror', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse); // Still missing for now
+        this.env.set('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse);
+        this.env.set('cverr', (val: any) => {
+            if (val instanceof VbaErrorValue) return val;
+            const code = parseInt(val) || 0;
+            if (code < 0 || code > 65535) {
+                this.throwVbaError(5, "Invalid procedure call or argument");
+            }
+            return new VbaErrorValue(code);
+        });
         this.env.set('ismissing', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
         this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
@@ -2435,11 +2450,17 @@ export class Evaluator {
                 return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
             case '=': 
+                if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
+                    return leftVal.code === rightVal.code ? vbaTrue : vbaFalse;
+                }
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() === rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal === rightVal ? vbaTrue : vbaFalse;
             case '<>': 
+                if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
+                    return leftVal.code !== rightVal.code ? vbaTrue : vbaFalse;
+                }
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
