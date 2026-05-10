@@ -286,6 +286,17 @@ export class Evaluator {
         this.env.set('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse);
         this.env.set('isnumeric', (val: any) => (!isNaN(parseFloat(val)) && isFinite(val)) ? vbaTrue : vbaFalse);
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
+        this.env.set('csng', (val: any) => {
+            let num: number;
+            if (val === vbaTrue) num = -1;
+            else if (val === vbaFalse) num = 0;
+            else num = parseFloat(val) || 0;
+            const f32 = Math.fround(num);
+            if (!isFinite(f32) && isFinite(num)) {
+                this.throwVbaError(6, "Overflow");
+            }
+            return f32;
+        });
         this.env.set('cdate', (val: any) => {
             if (val === null || val === vbaNull || val === vbaEmpty) throw new Error('Execution error: Type mismatch');
             if (val instanceof VbaDate) return val;
