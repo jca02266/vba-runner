@@ -464,9 +464,28 @@ export class Evaluator {
             }
             return vbaFalse;
         });
-        this.env.set('iserror', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse);
+        this.env.set('iserror', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse); // Still missing for now
+        this.env.set('ismissing', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
         this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
+        this.env.set('choose', (index: any, ...choices: any[]) => {
+            const idx = Math.floor(Number(index));
+            if (idx >= 1 && idx <= choices.length) {
+                return choices[idx - 1];
+            }
+            return vbaNull;
+        });
+        this.env.set('switch', (...args: any[]) => {
+            for (let i = 0; i < args.length; i += 2) {
+                if (i + 1 < args.length) {
+                    const cond = args[i];
+                    if (cond === vbaTrue || cond === true) {
+                        return args[i + 1];
+                    }
+                }
+            }
+            return vbaNull;
+        });
 
         this.env.set('vartype', (val: any) => {
             if (val === vbaEmpty || val === undefined) return 0; // vbEmpty
@@ -480,6 +499,25 @@ export class Evaluator {
             if (typeof val === 'object') return 9; // vbObject
             return 12; // vbVariant
         });
+
+        // VBA Type Constants (§6.1.1)
+        this.env.set('vbempty', 0);
+        this.env.set('vbnull', 1);
+        this.env.set('vbinteger', 2);
+        this.env.set('vblong', 3);
+        this.env.set('vbsingle', 4);
+        this.env.set('vbdouble', 5);
+        this.env.set('vbcurrency', 6);
+        this.env.set('vbdate', 7);
+        this.env.set('vbstring', 8);
+        this.env.set('vbobject', 9);
+        this.env.set('vberror', 10);
+        this.env.set('vboolean', 11);
+        this.env.set('vbvariant', 12);
+        this.env.set('vbdataobject', 13);
+        this.env.set('vbdecimal', 14);
+        this.env.set('vbbyte', 17);
+        this.env.set('vbarray', 8192);
         
         this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
 
@@ -957,7 +995,10 @@ export class Evaluator {
                 this.evaluateOptionCompareStatement(stmt as OptionCompareStatement);
                 break;
             case 'AttributeStatement':
-                // No-op: ignore Attributes
+                this.evaluateAttributeStatement(stmt as AttributeStatement);
+                break;
+            case 'DeclareStatement':
+                this.evaluateDeclareStatement(stmt as DeclareStatement);
                 break;
             case 'LabelStatement':
                 // No-op for now. Label execution just passes through.
@@ -1623,6 +1664,14 @@ export class Evaluator {
 
     private evaluateAttributeStatement(stmt: AttributeStatement) {
         // No-op: ignore Attributes
+    }
+
+    private evaluateDeclareStatement(stmt: DeclareStatement) {
+        const name = stmt.name.toLowerCase();
+        this.env.set(name, (...args: any[]) => {
+            this.onPrint(`[DECLARE STUB] Calling ${stmt.isSub ? 'Sub' : 'Function'} ${stmt.name} from "${stmt.libName}" (Alias: ${stmt.aliasName || 'N/A'})`);
+            return 0; // Dummy return
+        });
     }
 
     private createExternalObject(progId: string): any {

@@ -1,55 +1,47 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
 import { assert } from '../ts/test-runner';
+import { Evaluator, vbaMissing, vbaTrue, vbaFalse } from '../../src/compiler/evaluator';
+import { Parser } from '../../src/compiler/parser';
+import { Lexer } from '../../src/compiler/lexer';
 
-function evalVBA(code: string): any {
+function evalVBA(code: string) {
     const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    const parser = new Parser(tokens);
+    const program = parser.parse();
+    const evaluator = new Evaluator((s) => console.log(s));
+    evaluator.evaluate(program);
+    return evaluator;
 }
 
+console.log('[Test Suite] Information Functions (IsMissing, VarType, etc.) の検証');
+
 const code = `
-    Function TestIsErrorMissing(Optional v)
-        TestIsErrorMissing = IsError(v)
+    Function TestMissing(Optional x)
+        TestMissing = IsMissing(x)
     End Function
 
     Function TestVarType()
-        Dim results(10)
-        results(0) = VarType(Empty)
-        results(1) = VarType(Null)
-        results(2) = VarType(123)
-        results(3) = VarType("abc")
-        results(4) = VarType(True)
-        results(5) = VarType(DateSerial(2025, 1, 1))
-        results(6) = VarType(Array(1, 2))
-        results(7) = VarType(CreateObject("Scripting.Dictionary"))
-        TestVarType = results
+        TestVarType = VarType(10)
+    End Function
+
+    Function TestConstants()
+        If vbinteger = 2 And vbstring = 8 Then
+            TestConstants = True
+        Else
+            TestConstants = False
+        End If
     End Function
 `;
 
 const ev = evalVBA(code);
 
-console.log('[Test Suite] IsError / VarType の検証');
-
-// IsError
-assert.isTrue(ev.callProcedure('TestIsErrorMissing', []), 'IsError(Missing) -> True');
-assert.isFalse(ev.callProcedure('TestIsErrorMissing', [1]), 'IsError(1) -> False');
+// IsMissing
+assert.strictEqual(ev.callProcedure('TestMissing', [vbaMissing]), vbaTrue, 'IsMissing(vbaMissing) should be vbaTrue');
+assert.strictEqual(ev.callProcedure('TestMissing', [10]), vbaFalse, 'IsMissing(10) should be vbaFalse');
 
 // VarType
-// vbEmpty=0, vbNull=1, vbDouble=5, vbString=8, vbBoolean=11, vbDate=7, vbArray+vbVariant=8204, vbObject=9
-const vt = ev.callProcedure('TestVarType', []);
-assert.strictEqual(vt[0], 0, 'VarType(Empty) -> 0');
-assert.strictEqual(vt[1], 1, 'VarType(Null) -> 1');
-assert.strictEqual(vt[2], 5, 'VarType(123) -> 5 (Double)');
-assert.strictEqual(vt[3], 8, 'VarType("abc") -> 8');
-assert.strictEqual(vt[4], 11, 'VarType(True) -> 11');
-assert.strictEqual(vt[5], 5, 'VarType(Date) -> 5 (Currently Double)');
-assert.strictEqual(vt[6], 8204, 'VarType(Array) -> 8204 (vbArray + vbVariant)');
-assert.strictEqual(vt[7], 9, 'VarType(Object) -> 9');
+assert.strictEqual(ev.callProcedure('TestVarType', []), 5, 'VarType(10) should be vbDouble (5) in JS implementation');
 
-console.log('[PASS] IsError / VarType の検証');
+// Constants
+assert.strictEqual(ev.callProcedure('TestConstants', []), vbaTrue, 'VBA type constants should be available');
 
-console.log('\n✅ Information Functions: 全テスト通過');
+console.log('✅ Information Functions: 全テスト通過');

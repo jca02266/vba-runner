@@ -89,7 +89,7 @@
 | ✅ | P0 | Const Declarations | §5.2.3.2 |
 | ✅ | P1 | User Defined Type Declarations（`Type`） | §5.2.3.3 |
 | ✅ | P1 | Enum Declarations | §5.2.3.4 |
-| ❌ | P0 | External Procedure Declaration（`Declare`） | §5.2.3.5 |
+| ✅ | P0 | External Procedure Declaration（`Declare`） | §5.2.3.5 | (制限事項: JSランタイム上ではスタブとして登録) |
 | ✅ | P0 | Class Module（OOP） | §5.2.4 |
 | ❌ | P1 | Implements Directive | §5.2.4.2 |
 | ❌ | P2 | Event Declaration | §5.2.4.3 |
@@ -231,14 +231,14 @@
 
 | 状態 | 優先度 | 関数 | 仕様書 |
 |------|--------|------|--------|
-| ❌ | P1 | Choose | §6.1.2.8.1.2 |
+| ✅ | P1 | Choose | §6.1.2.8.1.2 |
 | ✅ | P0 | CreateObject (拡張) | §6.1.2.8.1.4 | (制限事項: Scripting.Dictionary等の主要オブジェクトのみ対応) |
 | ❌ | P2 | Environ / Environ$ | §6.1.2.8.1.6 |
 | ❌ | P1 | GetObject | §6.1.2.8.1.9 |
 | ✅ | P1 | IIf | §6.1.2.8.1.11 |
 | ✅ | P0 | InputBox | §6.1.2.8.1.12 | (制限事項: ダミー実装。コンソール出力と固定値返却) |
 | ✅ | P0 | MsgBox | §6.1.2.8.1.13 | (制限事項: ダミー実装。コンソール出力と固定値返却) |
-| ❌ | P1 | Switch | §6.1.2.8.1.16 |
+| ✅ | P1 | Switch | §6.1.2.8.1.16 |
 
 ## 第6章：標準ライブラリ — 配列関連
 

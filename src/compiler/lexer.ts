@@ -74,6 +74,10 @@ export enum TokenType {
     KeywordBinary,
     KeywordText,
     KeywordAttribute,
+    KeywordDeclare,
+    KeywordLib,
+    KeywordAlias,
+    KeywordPtrSafe,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -434,6 +438,10 @@ export class Lexer {
                 if (lowerId === 'binary') return { type: TokenType.KeywordBinary, value: idStr, line: this.line };
                 if (lowerId === 'text') return { type: TokenType.KeywordText, value: idStr, line: this.line };
                 if (lowerId === 'attribute') return { type: TokenType.KeywordAttribute, value: idStr, line: this.line };
+                if (lowerId === 'declare') return { type: TokenType.KeywordDeclare, value: idStr, line: this.line };
+                if (lowerId === 'lib') return { type: TokenType.KeywordLib, value: idStr, line: this.line };
+                if (lowerId === 'alias') return { type: TokenType.KeywordAlias, value: idStr, line: this.line };
+                if (lowerId === 'ptrsafe') return { type: TokenType.KeywordPtrSafe, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

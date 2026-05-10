@@ -170,6 +170,17 @@ export interface EraseStatement extends Statement {
     name: Identifier;
 }
 
+export interface DeclareStatement extends Statement {
+    type: 'DeclareStatement';
+    isPtrSafe: boolean;
+    isSub: boolean;
+    name: string;
+    libName: string;
+    aliasName?: string;
+    parameters: Parameter[];
+    returnType?: string;
+}
+
 export interface ReDimStatement extends Statement {
     type: 'ReDimStatement';
     name: Identifier;
@@ -352,17 +363,102 @@ export class Parser {
         return { type: 'OptionCompareStatement', mode };
     }
 
+    private parseParameter(): Parameter {
+        let isByVal = false;
+        let isOptional = false;
+
+        if (this.match(TokenType.KeywordOptional)) {
+            isOptional = true;
+        }
+
+        if (this.peek().type === TokenType.KeywordByVal || this.peek().type === TokenType.KeywordByRef) {
+            isByVal = this.advance().type === TokenType.KeywordByVal;
+        }
+
+        const nameToken = this.consume(TokenType.Identifier, "Expected parameter name");
+
+        if (this.match(TokenType.KeywordAs)) {
+            this.advance(); // consume type name
+        }
+
+        if (this.match(TokenType.OperatorEquals)) {
+            this.parseExpression(); // skip default value
+        }
+
+        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional };
+    }
+
     private parseAttributeStatement(): AttributeStatement {
         this.advance(); // 'Attribute'
-        let name = '';
-        while (this.peek().type === TokenType.Identifier || this.peek().type === TokenType.OperatorDot) {
-            name += this.advance().value;
+        const name = this.advance().value;
+        this.consume(TokenType.OperatorEquals, "Expected '=' after Attribute name");
+        const value = this.parseExpression();
+        return { type: 'AttributeStatement', name, value };
+    }
+
+    private parseDeclareStatement(): DeclareStatement {
+        this.advance(); // 'Declare'
+        let isPtrSafe = false;
+        if (this.peek().type === TokenType.KeywordPtrSafe) {
+            this.advance();
+            isPtrSafe = true;
         }
-        if (this.match(TokenType.OperatorEquals)) {
-            const value = this.parseExpression();
-            return { type: 'AttributeStatement', name, value };
+
+        let isSub = false;
+        if (this.peek().type === TokenType.KeywordSub) {
+            this.advance();
+            isSub = true;
+        } else if (this.peek().type === TokenType.KeywordFunction) {
+            this.advance();
+            isSub = false;
+        } else {
+            throw new Error(`Parser error: Expected Sub or Function after Declare at line ${this.peek().line}`);
         }
-        return { type: 'AttributeStatement', name, value: { type: 'StringLiteral', value: '' } as StringLiteral };
+
+        const name = this.advance().value;
+
+        if (this.peek().type !== TokenType.KeywordLib) {
+            throw new Error(`Parser error: Expected Lib after Declare name at line ${this.peek().line}`);
+        }
+        this.advance();
+        const libName = this.advance().value.replace(/^"|"$/g, '');
+
+        let aliasName: string | undefined;
+        if (this.peek().type === TokenType.KeywordAlias) {
+            this.advance();
+            aliasName = this.advance().value.replace(/^"|"$/g, '');
+        }
+
+        let parameters: Parameter[] = [];
+        if (this.peek().type === TokenType.OperatorLParen) {
+            this.advance();
+            while (this.peek().type !== TokenType.OperatorRParen && this.peek().type !== TokenType.EOF) {
+                parameters.push(this.parseParameter());
+                if (this.peek().type === TokenType.OperatorComma) {
+                    this.advance();
+                }
+            }
+            this.consume(TokenType.OperatorRParen, "Expected ')' after declare parameters");
+        }
+
+        let returnType: string | undefined;
+        if (!isSub) {
+            if (this.peek().type === TokenType.KeywordAs) {
+                this.advance();
+                returnType = this.advance().value;
+            }
+        }
+
+        return {
+            type: 'DeclareStatement',
+            isPtrSafe,
+            isSub,
+            name,
+            libName,
+            aliasName,
+            parameters,
+            returnType
+        };
     }
 
     private isAtEndTerminator(): boolean {
@@ -388,6 +484,13 @@ export class Parser {
             return true;
         }
         return false;
+    }
+
+    private consume(expectedType: TokenType, message: string): Token {
+        if (this.peek().type === expectedType) {
+            return this.advance();
+        }
+        throw new Error(`Parse error at line ${this.peek().line}: ${message}`);
     }
 
     private skipNewlines() {
@@ -509,6 +612,8 @@ export class Parser {
             return null;
         } else if (token.type === TokenType.KeywordAttribute) {
             return this.parseAttributeStatement();
+        } else if (token.type === TokenType.KeywordDeclare) {
+            return this.parseDeclareStatement();
         } else if (token.type === TokenType.KeywordSelect) {
             return this.parseSelectCaseStatement();
         } else if (token.type === TokenType.KeywordWith) {
@@ -617,70 +722,13 @@ export class Parser {
 
         if (this.match(TokenType.OperatorLParen)) {
             if (this.peek().type !== TokenType.OperatorRParen) {
-                let isByVal = false;
-                let paramNameToken = this.peek();
-
-                let isOptional = false;
-                // Skip 'Optional' keyword
-                if (paramNameToken.type === TokenType.KeywordOptional) {
-                    this.advance();
-                    isOptional = true;
-                    paramNameToken = this.peek();
-                }
-
-                if (paramNameToken.type === TokenType.KeywordByVal || paramNameToken.type === TokenType.KeywordByRef) {
-                    isByVal = (paramNameToken.type === TokenType.KeywordByVal);
-                    this.advance(); // consume ByVal/ByRef
-                    paramNameToken = this.peek();
-                }
-
-                let paramName = this.advance(); // consume name
-
-                // Optional parameter type (e.g. 'As Long')
-                if (this.match(TokenType.KeywordAs)) {
-                    this.advance(); // consume Type name
-                }
-
-                // Skip default value (e.g. '= Nothing')
-                if (this.match(TokenType.OperatorEquals)) {
-                    this.parseExpression(); // consume default value expression
-                }
-
-                parameters.push({ type: 'Parameter', name: paramName.value, isByVal, isOptional });
+                parameters.push(this.parseParameter());
 
                 while (this.match(TokenType.OperatorComma)) {
-                    isByVal = false;
-                    let isOptional = false;
-                    // Skip 'Optional' keyword
-                    let nextParamToken = this.peek();
-                    if (nextParamToken.type === TokenType.KeywordOptional) {
-                        this.advance();
-                        isOptional = true;
-                        nextParamToken = this.peek();
-                    }
-
-                    // Optional ByVal/ByRef
-                    if (nextParamToken.type === TokenType.KeywordByVal || nextParamToken.type === TokenType.KeywordByRef) {
-                        isByVal = (nextParamToken.type === TokenType.KeywordByVal);
-                        this.advance(); // consume ByVal/ByRef
-                        nextParamToken = this.peek();
-                    }
-                    paramName = this.advance(); // consume name
-
-                    if (this.match(TokenType.KeywordAs)) {
-                        this.advance(); // consume Type name
-                    }
-
-                    // Skip default value (e.g. '= Nothing')
-                    if (this.match(TokenType.OperatorEquals)) {
-                        this.parseExpression(); // consume default value expression
-                    }
-                    parameters.push({ type: 'Parameter', name: paramName.value, isByVal, isOptional });
+                    parameters.push(this.parseParameter());
                 }
             }
-            if (!this.match(TokenType.OperatorRParen)) {
-                throw new Error(`Parse error: Expected ')' at line ${this.peek().line}`);
-            }
+            this.consume(TokenType.OperatorRParen, "Expected ')' after procedure parameters");
         }
 
         // Optional Function return type (e.g. 'As Long')
