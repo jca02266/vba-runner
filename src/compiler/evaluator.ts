@@ -35,6 +35,8 @@ import {
     GoSubStatement,
     ReturnStatement,
     OnGoToSubStatement,
+    LSetStatement,
+    RSetStatement,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -441,6 +443,12 @@ export class Evaluator {
             case 'OnGoToSubStatement':
                 this.evaluateOnGoToSubStatement(stmt as OnGoToSubStatement);
                 break;
+            case 'LSetStatement':
+                this.evaluateLSetStatement(stmt as LSetStatement);
+                break;
+            case 'RSetStatement':
+                this.evaluateRSetStatement(stmt as RSetStatement);
+                break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
         }
@@ -648,20 +656,42 @@ export class Evaluator {
     private evaluateOnGoToSubStatement(stmt: OnGoToSubStatement) {
         const val = this.evaluateExpression(stmt.expression);
         const idx = Math.floor(Number(val));
-        
+
         if (idx < 0 || idx > 255) {
             throw new Error(`Execution error: Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
         }
-        
-        if (idx === 0 || idx > stmt.labels.length) {
-            return; // completed immediately
+
+        if (idx >= 1 && idx <= stmt.labels.length) {
+            const label = stmt.labels[idx - 1];
+            if (stmt.isGoSub) {
+                throw { type: 'GoSub', label };
+            } else {
+                throw { type: 'GoTo', label };
+            }
         }
-        
-        const label = stmt.labels[idx - 1];
-        if (stmt.isGoSub) {
-            throw { type: 'GoSub', label };
+    }
+
+    private evaluateLSetStatement(stmt: LSetStatement) {
+        const val = String(this.evaluateExpression(stmt.right) || '');
+        if (stmt.left.type === 'Identifier') {
+            const name = (stmt.left as Identifier).name;
+            const target = String(this.env.get(name) || '');
+            const result = val.padEnd(target.length, ' ').substring(0, target.length);
+            this.env.set(name, result);
         } else {
-            throw { type: 'GoTo', label };
+            throw new Error("Execution error: LSet currently only supported for string variables");
+        }
+    }
+
+    private evaluateRSetStatement(stmt: RSetStatement) {
+        const val = String(this.evaluateExpression(stmt.right) || '');
+        if (stmt.left.type === 'Identifier') {
+            const name = (stmt.left as Identifier).name;
+            const target = String(this.env.get(name) || '');
+            const result = val.padStart(target.length, ' ').substring(0, target.length);
+            this.env.set(name, result);
+        } else {
+            throw new Error("Execution error: RSet currently only supported for string variables");
         }
     }
 
@@ -676,6 +706,28 @@ export class Evaluator {
             const call = stmt.left as CallExpression;
             if (call.callee.type === 'Identifier') {
                 const name = (call.callee as Identifier).name;
+                const lowerName = name.toLowerCase();
+
+                if (lowerName === 'mid') {
+                    // Mid(s, start, [len]) = val
+                    const targetName = (call.args[0] as Identifier).name; // Must be identifier for assignment
+                    const start = this.evaluateExpression(call.args[1]) as number;
+                    const length = call.args.length > 2 ? this.evaluateExpression(call.args[2]) as number : -1;
+                    const sourceStr = String(this.env.get(targetName) || '');
+                    const replacement = String(val || '');
+
+                    let replaceLen = length === -1 ? replacement.length : length;
+                    // Mid statement rules: replacement is limited by length of source and specified length
+                    replaceLen = Math.min(replaceLen, replacement.length, sourceStr.length - start + 1);
+
+                    const head = sourceStr.substring(0, start - 1);
+                    const tail = sourceStr.substring(start - 1 + replaceLen);
+                    const mid = replacement.substring(0, replaceLen);
+
+                    this.env.set(targetName, head + mid + tail);
+                    return;
+                }
+
                 const target = this.env.get(name);
                 const idx = this.evaluateExpression(call.args[0]);
 

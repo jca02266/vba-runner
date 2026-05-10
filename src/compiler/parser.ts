@@ -138,6 +138,18 @@ export interface OnErrorStatement extends Statement {
     label: string; // "Cleanup", "Resume Next", "0"
 }
 
+export interface LSetStatement extends Statement {
+    type: 'LSetStatement';
+    left: Expression;
+    right: Expression;
+}
+
+export interface RSetStatement extends Statement {
+    type: 'RSetStatement';
+    left: Expression;
+    right: Expression;
+}
+
 export interface EraseStatement extends Statement {
     type: 'EraseStatement';
     name: Identifier;
@@ -371,6 +383,10 @@ export class Parser {
         } else if (token.type === TokenType.KeywordReturn) {
             this.advance(); // consume 'Return'
             return { type: 'ReturnStatement' } as ReturnStatement;
+        } else if (token.type === TokenType.KeywordLSet) {
+            return this.parseLSetStatement();
+        } else if (token.type === TokenType.KeywordRSet) {
+            return this.parseRSetStatement();
         } else if (token.type === TokenType.KeywordExit) {
             return this.parseExitStatement();
         } else if (token.type === TokenType.KeywordErase) {
@@ -1390,5 +1406,25 @@ export class Parser {
             throw new Error(`Parse error: Expected label after GoSub at line ${labelToken.line}`);
         }
         return { type: 'GoSubStatement', label: labelToken.value };
+    }
+
+    private parseLSetStatement(): LSetStatement {
+        this.advance(); // 'LSet'
+        const left = this.parsePrimary();
+        if (!this.match(TokenType.OperatorEquals)) {
+            throw new Error(`Parse error: Expected '=' in LSet statement at line ${this.peek().line}`);
+        }
+        const right = this.parseExpression();
+        return { type: 'LSetStatement', left, right };
+    }
+
+    private parseRSetStatement(): RSetStatement {
+        this.advance(); // 'RSet'
+        const left = this.parsePrimary();
+        if (!this.match(TokenType.OperatorEquals)) {
+            throw new Error(`Parse error: Expected '=' in RSet statement at line ${this.peek().line}`);
+        }
+        const right = this.parseExpression();
+        return { type: 'RSetStatement', left, right };
     }
 }

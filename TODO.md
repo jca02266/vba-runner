@@ -43,9 +43,9 @@
 | ✅ | Local Constant Declarations (`Const`) | §5.4.3.2 |
 | ⚠️ | ReDim Statement（`Preserve` は簡易実装） | §5.4.3.3 |
 | ✅ | Erase Statement | §5.4.3.4 |
-| ❌ | Mid Statement（代入形式: `Mid(str, n) = val`） | §5.4.3.5 |
-| ❌ | LSet Statement | §5.4.3.6 |
-| ❌ | RSet Statement | §5.4.3.7 |
+| ✅ | Mid Statement（代入形式: `Mid(str, n) = val`） | §5.4.3.5 |
+| ✅ | LSet Statement | §5.4.3.6 |
+| ✅ | RSet Statement | §5.4.3.7 |
 | ✅ | Let Statement（代入） | §5.4.3.8 |
 | ✅ | Set Statement（オブジェクト参照） | §5.4.3.9 |
 
