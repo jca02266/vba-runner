@@ -60,6 +60,10 @@ export enum TokenType {
     KeywordPrivate,
     KeywordFriend,
     KeywordWith,
+    KeywordLike,
+    KeywordXor,
+    KeywordEqv,
+    KeywordImp,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -305,8 +309,12 @@ export class Lexer {
                 if (lowerId === 'as') return { type: TokenType.KeywordAs, value: idStr, line: this.line };
                 if (lowerId === 'new') return { type: TokenType.KeywordNew, value: idStr, line: this.line };
                 if (lowerId === 'collection') return { type: TokenType.KeywordCollection, value: idStr, line: this.line };
+                if (lowerId === 'like') return { type: TokenType.KeywordLike, value: idStr, line: this.line };
                 if (lowerId === 'and') return { type: TokenType.KeywordAnd, value: idStr, line: this.line };
                 if (lowerId === 'or') return { type: TokenType.KeywordOr, value: idStr, line: this.line };
+                if (lowerId === 'xor') return { type: TokenType.KeywordXor, value: idStr, line: this.line };
+                if (lowerId === 'eqv') return { type: TokenType.KeywordEqv, value: idStr, line: this.line };
+                if (lowerId === 'imp') return { type: TokenType.KeywordImp, value: idStr, line: this.line };
                 if (lowerId === 'not') return { type: TokenType.KeywordNot, value: idStr, line: this.line };
                 if (lowerId === 'option') return { type: TokenType.KeywordOption, value: idStr, line: this.line };
                 if (lowerId === 'explicit') return { type: TokenType.KeywordExplicit, value: idStr, line: this.line };

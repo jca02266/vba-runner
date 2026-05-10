@@ -1175,7 +1175,37 @@ export class Parser {
     }
 
     private parseExpression(): Expression {
-        return this.parseLogicalOr();
+        return this.parseLogicalImp();
+    }
+
+    private parseLogicalImp(): Expression {
+        let left = this.parseLogicalEqv();
+        while (this.peek().type === TokenType.KeywordImp) {
+            const operator = this.advance().value;
+            const right = this.parseLogicalEqv();
+            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+        }
+        return left;
+    }
+
+    private parseLogicalEqv(): Expression {
+        let left = this.parseLogicalXor();
+        while (this.peek().type === TokenType.KeywordEqv) {
+            const operator = this.advance().value;
+            const right = this.parseLogicalXor();
+            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+        }
+        return left;
+    }
+
+    private parseLogicalXor(): Expression {
+        let left = this.parseLogicalOr();
+        while (this.peek().type === TokenType.KeywordXor) {
+            const operator = this.advance().value;
+            const right = this.parseLogicalOr();
+            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+        }
+        return left;
     }
 
     private parseLogicalOr(): Expression {
@@ -1211,7 +1241,8 @@ export class Parser {
         while (
             this.peek().type === TokenType.OperatorEquals ||
             this.peek().type === TokenType.OperatorNotEquals ||
-            this.peek().type === TokenType.KeywordIs
+            this.peek().type === TokenType.KeywordIs ||
+            this.peek().type === TokenType.KeywordLike
         ) {
             const operator = this.advance().value;
             const right = this.parseRelational();

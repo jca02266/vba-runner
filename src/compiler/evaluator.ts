@@ -1143,7 +1143,8 @@ export class Evaluator {
         const argument = this.evaluateExpression(expr.argument);
         switch (expr.operator.toLowerCase()) {
             case 'not':
-                return !argument;
+                const val = (argument === true) ? -1 : (argument === false ? 0 : argument);
+                return ~val;
             case '-':
                 return -argument;
             case '+':
@@ -1182,8 +1183,14 @@ export class Evaluator {
     }
 
     private evaluateBinaryExpression(expr: BinaryExpression): any {
-        const leftVal = this.evaluateExpression(expr.left);
-        const rightVal = this.evaluateExpression(expr.right);
+        let leftVal = this.evaluateExpression(expr.left);
+        let rightVal = this.evaluateExpression(expr.right);
+
+        // Normalize booleans to VBA integers (-1, 0)
+        if (leftVal === true) leftVal = -1;
+        if (leftVal === false) leftVal = 0;
+        if (rightVal === true) rightVal = -1;
+        if (rightVal === false) rightVal = 0;
 
         switch (expr.operator.toLowerCase()) {
             case '+': return leftVal + rightVal;
@@ -1194,15 +1201,19 @@ export class Evaluator {
             case '\\': return Math.floor(leftVal / rightVal);
             case 'mod': return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
-            case '=': return leftVal === rightVal;
-            case '<>': return leftVal !== rightVal;
-            case '<': return leftVal < rightVal;
-            case '>': return leftVal > rightVal;
-            case '<=': return leftVal <= rightVal;
-            case '>=': return leftVal >= rightVal;
-            case 'is': return leftVal === rightVal;
-            case 'and': return leftVal && rightVal;
-            case 'or': return leftVal || rightVal;
+            case '=': return leftVal === rightVal ? -1 : 0;
+            case '<>': return leftVal !== rightVal ? -1 : 0;
+            case '<': return leftVal < rightVal ? -1 : 0;
+            case '>': return leftVal > rightVal ? -1 : 0;
+            case '<=': return leftVal <= rightVal ? -1 : 0;
+            case '>=': return leftVal >= rightVal ? -1 : 0;
+            case 'is': return leftVal === rightVal ? -1 : 0;
+            case 'like': return this.evaluateLike(leftVal, rightVal) ? -1 : 0;
+            case 'and': return leftVal & rightVal;
+            case 'or': return leftVal | rightVal;
+            case 'xor': return leftVal ^ rightVal;
+            case 'eqv': return ~(leftVal ^ rightVal);
+            case 'imp': return (~leftVal) | rightVal;
             default:
                 throw new Error(`Execution error: Unknown operator ${expr.operator}`);
         }
@@ -1235,5 +1246,62 @@ export class Evaluator {
             }
         }
         throw new Error(`Execution error: Cannot access property '${propName}' of undefined or primitive in With block`);
+    }
+
+    private evaluateLike(text: any, pattern: any): boolean {
+        const textStr = String(text);
+        const patternStr = String(pattern);
+        
+        // Convert VBA Like pattern to Regex
+        let regexStr = '^';
+        let i = 0;
+        while (i < patternStr.length) {
+            const char = patternStr[i];
+            if (char === '*') {
+                regexStr += '.*';
+            } else if (char === '?') {
+                regexStr += '.';
+            } else if (char === '#') {
+                regexStr += '\\d';
+            } else if (char === '[') {
+                regexStr += '[';
+                i++;
+                let negate = false;
+                if (i < patternStr.length && patternStr[i] === '!') {
+                    regexStr += '^';
+                    negate = true;
+                    i++;
+                }
+                while (i < patternStr.length && patternStr[i] !== ']') {
+                    const charInList = patternStr[i];
+                    if (charInList === '-' && i > 0 && i < patternStr.length - 1) {
+                         // Range - keep as is in regex
+                         regexStr += '-';
+                    } else if ('\\^$-.[]'.indexOf(charInList) !== -1) {
+                        regexStr += '\\' + charInList;
+                    } else {
+                        regexStr += charInList;
+                    }
+                    i++;
+                }
+                regexStr += ']';
+            } else {
+                // Escape regex special characters
+                if ('\\.[]{}()^$+*?|'.indexOf(char) !== -1) {
+                    regexStr += '\\' + char;
+                } else {
+                    regexStr += char;
+                }
+            }
+            i++;
+        }
+        regexStr += '$';
+
+        try {
+            const regex = new RegExp(regexStr, 'i'); // VBA Like is case-insensitive by default
+            return regex.test(textStr);
+        } catch (e) {
+            return false;
+        }
     }
 }
