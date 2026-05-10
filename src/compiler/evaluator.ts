@@ -188,6 +188,9 @@ export class Evaluator {
     private staticVarsInCurrentProc: Set<string> = new Set();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
+    private errorHandlingMode: 'None' | 'Label' | 'ResumeNext' = 'None';
+    private isInErrorHandler: boolean = false;
+    private lastErrorIndex: number = -1;
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -504,21 +507,7 @@ export class Evaluator {
             return 0;
         });
         this.env.set('createobject', (progId: string) => {
-            if (progId.toLowerCase() === 'scripting.dictionary') {
-                const dict = new Map<string, any>();
-                // We return an object that can act as a dictionary for method calls
-                // but ALSO retains the inner Map for our `CallExpression` hacks
-                const vbaDict: any = {
-                    __isVbaDict__: true,
-                    __map__: dict,
-                    add: (k: string, v: any) => dict.set(k, v),
-                    exists: (k: string): VbaBoolean => dict.has(k) ? vbaTrue : vbaFalse,
-                    items: () => Array.from(dict.values()),
-                    keys: () => Array.from(dict.keys())
-                };
-                return vbaDict;
-            }
-            throw new Error(`Execution error: Unsupported CreateObject '${progId}'`);
+            return this.createExternalObject(progId);
         });
 
         // Add VBA intrinsic constants
@@ -790,14 +779,23 @@ export class Evaluator {
         // Save current env and error handler state, swap to local
         const previousEnv = this.env;
         const previousErrorHandler = this.errorHandlerLabel;
+        const previousErrorHandlingMode = this.errorHandlingMode;
+        const previousIsInErrorHandler = this.isInErrorHandler;
+        const previousLastErrorIndex = this.lastErrorIndex;
+
         const previousProcBody = this.currentProcBody;
         const previousProcedureName = this.currentProcedureName;
         const previousProcedureType = this.currentProcedureType;
         const previousExecutingModule = this.executingModuleName;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
+
         this.env = localEnv;
         this.errorHandlerLabel = null;
+        this.errorHandlingMode = 'None';
+        this.isInErrorHandler = false;
+        this.lastErrorIndex = -1;
+
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
@@ -831,6 +829,10 @@ export class Evaluator {
             // Restore previous environment and error handler state
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
+            this.errorHandlingMode = previousErrorHandlingMode;
+            this.isInErrorHandler = previousIsInErrorHandler;
+            this.lastErrorIndex = previousLastErrorIndex;
+
             this.currentProcBody = previousProcBody;
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
@@ -931,8 +933,7 @@ export class Evaluator {
                 this.evaluateOnErrorStatement(stmt as OnErrorStatement);
                 break;
             case 'ResumeStatement':
-                // Resume Next is handled as a throw from within error handler
-                throw { type: 'ResumeNext' };
+                this.evaluateResumeStatement(stmt as ResumeStatement);
                 break;
             case 'EraseStatement':
                 this.evaluateEraseStatement(stmt as EraseStatement);
@@ -1594,26 +1595,89 @@ export class Evaluator {
         }
     }
 
+    private evaluateResumeStatement(stmt: ResumeStatement) {
+        if (!this.isInErrorHandler && this.errorHandlingMode !== 'ResumeNext') {
+            // Technically Resume is only for error handlers, but let's be strict
+            throw new Error('Execution error: Resume without active error handler');
+        }
+        throw { type: 'Resume', target: stmt.target };
+    }
+
     private evaluateOnErrorStatement(stmt: OnErrorStatement) {
-        if (stmt.label === '0') {
+        const label = (stmt.label || '').toLowerCase().trim();
+        if (label === '0') {
             // On Error GoTo 0 - disable error handling
             this.errorHandlerLabel = null;
-        } else if (stmt.label.toLowerCase() === 'resume next') {
-            // On Error Resume Next - not implemented yet, treat as no-op
+            this.errorHandlingMode = 'None';
+            this.isInErrorHandler = false; // Reset error handler state too
+        } else if (label === 'resume next') {
+            // On Error Resume Next
             this.errorHandlerLabel = null;
+            this.errorHandlingMode = 'ResumeNext';
         } else {
             // On Error GoTo <label>
             this.errorHandlerLabel = stmt.label;
+            this.errorHandlingMode = 'Label';
         }
+    }
+
+    private evaluateAttributeStatement(stmt: AttributeStatement) {
+        // No-op: ignore Attributes
+    }
+
+    private createExternalObject(progId: string): any {
+        const id = progId.toLowerCase();
+        if (id === 'scripting.dictionary') {
+            const dict = new Map<any, any>();
+            return {
+                __isVbaDict__: true,
+                __map__: dict,
+                add: (k: any, v: any) => dict.set(k, v),
+                exists: (k: any) => dict.has(k) ? vbaTrue : vbaFalse,
+                remove: (k: any) => dict.delete(k),
+                removeall: () => dict.clear(),
+                count: () => dict.size,
+                keys: () => Array.from(dict.keys()),
+                items: () => Array.from(dict.values()),
+                item: (k: any, v?: any) => {
+                    if (v !== undefined) {
+                        dict.set(k, v);
+                    }
+                    return dict.get(k);
+                }
+            };
+        } else if (id === 'scripting.filesystemobject') {
+            return {
+                __isVbaFso__: true,
+                fileexists: (path: string) => vbaFalse,
+                folderexists: (path: string) => vbaFalse,
+                createtextfile: (path: string) => ({
+                    write: (s: string) => this.onPrint(`[FSO Write] ${path}: ${s}`),
+                    writeline: (s: string) => this.onPrint(`[FSO WriteLine] ${path}: ${s}`),
+                    close: () => {}
+                }),
+                opentextfile: (path: string) => ({
+                    readall: () => "",
+                    close: () => {}
+                })
+            };
+        }
+        throw new Error(`Execution error: Unsupported CreateObject '${progId}'`);
     }
 
     // Execute a sequence of statements starting from startIndex, with error handling support
     private executeStatements(body: Statement[], startIndex: number) {
-        for (let i = startIndex; i < body.length; i++) {
+        let i = startIndex;
+        while (i < body.length) {
             const stmt = body[i];
             try {
                 this.evaluateStatement(stmt);
+                i++;
             } catch (e: any) {
+                if (e && (e.type === 'Exit' || e.type === 'Terminate')) {
+                    throw e;
+                }
+
                 if (e && e.type === 'GoTo') {
                     const labelName = e.label.toLowerCase();
                     const labelIndex = body.findIndex(s =>
@@ -1621,11 +1685,13 @@ export class Evaluator {
                         (s as any).label.toLowerCase() === labelName
                     );
                     if (labelIndex >= 0) {
-                        i = labelIndex - 1;
+                        i = labelIndex;
                         continue;
                     }
                     throw e;
-                } else if (e && e.type === 'GoSub') {
+                }
+
+                if (e && e.type === 'GoSub') {
                     const labelName = e.label.toLowerCase();
                     const labelIndex = body.findIndex(s =>
                         s.type === 'LabelStatement' &&
@@ -1633,26 +1699,63 @@ export class Evaluator {
                     );
                     if (labelIndex >= 0) {
                         this.gosubStack.push(i);
-                        i = labelIndex - 1;
+                        i = labelIndex;
                         continue;
                     }
                     throw e;
-                } else if (e && e.type === 'Return') {
+                }
+
+                if (e && e.type === 'Return') {
                     if (this.gosubStack.length === 0) {
                         throw new Error('Execution error: Return without GoSub');
                     }
-                    i = this.gosubStack.pop()!;
+                    i = this.gosubStack.pop()! + 1;
                     continue;
-                } else if (this.errorHandlerLabel) {
-                    // Error handler active
-                    if (e && (e.type === 'Exit' || e.type === 'Terminate')) {
-                        throw e;
+                }
+
+                if (e && e.type === 'Resume') {
+                    this.isInErrorHandler = false;
+                    if (e.target === '' || e.target === '0') {
+                        i = this.lastErrorIndex;
+                    } else if (e.target.toLowerCase() === 'next') {
+                        i = this.lastErrorIndex + 1;
+                    } else {
+                        const labelName = e.target.toLowerCase();
+                        const labelIndex = body.findIndex(s =>
+                            s.type === 'LabelStatement' &&
+                            (s as any).label.toLowerCase() === labelName
+                        );
+                        if (labelIndex >= 0) {
+                            i = labelIndex;
+                        } else {
+                            throw new Error(`Execution error: Label '${e.target}' not found for Resume`);
+                        }
                     }
+                    // Clear Err object on Resume
+                    const errObj = this.env.get('err');
+                    if (errObj) { errObj.number = 0; errObj.description = ''; }
+                    continue;
+                }
+
+                // Actual Error Handling
+                if (this.isInErrorHandler) {
+                    // Error inside error handler -> bubble up
+                    this.isInErrorHandler = false;
+                    throw e;
+                }
+
+                if (this.errorHandlingMode === 'ResumeNext') {
+                    this.lastErrorIndex = i;
+                    i++;
+                    continue;
+                } else if (this.errorHandlingMode === 'Label' && this.errorHandlerLabel) {
                     const labelIndex = body.findIndex(s =>
                         s.type === 'LabelStatement' &&
-                        (s as any).label === this.errorHandlerLabel
+                        (s as any).label.toLowerCase() === this.errorHandlerLabel!.toLowerCase()
                     );
                     if (labelIndex >= 0) {
+                        this.isInErrorHandler = true;
+                        this.lastErrorIndex = i;
                         // Populate Err object
                         const errObj = this.env.get('err');
                         if (errObj) {
@@ -1664,25 +1767,13 @@ export class Evaluator {
                                 errObj.description = e.message || String(e);
                             }
                         }
-                        const resumeIndex = i + 1;
-                        const savedHandler = this.errorHandlerLabel;
-                        this.errorHandlerLabel = null;
-                        try {
-                            this.executeStatements(body, labelIndex + 1);
-                        } catch (resumeE: any) {
-                            if (resumeE && resumeE.type === 'ResumeNext') {
-                                this.errorHandlerLabel = savedHandler;
-                                this.executeStatements(body, resumeIndex);
-                                return;
-                            }
-                            throw resumeE;
-                        }
-                        return;
+                        i = labelIndex;
+                        continue;
                     }
-                    throw e;
-                } else {
-                    throw e;
                 }
+
+                // Default behavior: throw
+                throw e;
             }
         }
     }
@@ -2050,9 +2141,15 @@ export class Evaluator {
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) return diff; // Date - Date = Number
                 return (leftVal instanceof VbaDate) ? new VbaDate(diff) : diff;
             case '*': return leftVal * rightVal;
-            case '/': return leftVal / rightVal;
-            case '\\': return Math.floor(leftVal / rightVal);
-            case 'mod': return leftVal % rightVal;
+            case '/': 
+                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                return leftVal / rightVal;
+            case '\\': 
+                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                return Math.floor(leftVal / rightVal);
+            case 'mod': 
+                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
             case '=': 
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
