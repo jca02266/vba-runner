@@ -31,8 +31,8 @@ Excelがない環境で、作成したVBAコードの動作確認、リファク
 ```typescript
 import { VBATest } from '../../tests/ts/test-runner';
 
-const vbaTest = new VBATest('sample/src/vba/TaskScheduler_Core.vba');
-vbaTest.run('CalcBaseStartIdx', [1, 10, 1.0]);
+const vba = new VBATest('sample/src/vba/TaskScheduler_Core.vba');
+vba.run('CalcBaseStartIdx', [1, 10, 1.0]);
 ```
 
 ### ディレクトリを指定して複数ファイルをまとめてロードする
@@ -41,16 +41,16 @@ vbaTest.run('CalcBaseStartIdx', [1, 10, 1.0]);
 **同一スコープ**に登録します。どのファイルに定義されたプロシージャでも相互に呼び出せます。
 
 ```typescript
-const vbaTest = new VBATest('src/vba/');   // ディレクトリを指定
+const vba = new VBATest('src/vba/');   // ディレクトリを指定
 
 // MathUtils.vba のプロシージャ
-vbaTest.run('Add', [3, 4]);          // => 7
+vba.run('Add', [3, 4]);          // => 7
 
 // StringUtils.cls のプロシージャ
-vbaTest.run('Greet', ['World']);     // => "Hello, World!"
+vba.run('Greet', ['World']);     // => "Hello, World!"
 
 // Main.frm のプロシージャが他ファイルの Add / Greet を呼び出す
-vbaTest.run('CalcAndGreet', ['Alice', 10, 20]);
+vba.run('CalcAndGreet', ['Alice', 10, 20]);
 ```
 
 | 拡張子 | 対象モジュール種別 |
