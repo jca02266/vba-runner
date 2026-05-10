@@ -264,7 +264,7 @@ export class Evaluator {
         this.onPrint = onPrint;
         // Add built-in debug object
         this.env.set('debug', {
-            print: (...args: any[]) => this.onPrint(args.join(' ')),
+            print: (...args: any[]) => this.onPrint(args.map(a => this.toDisplayString(a)).join(' ')),
             assert: (condition: any) => {
                 if (!this.isTrue(condition)) {
                     throw new Error('Execution error: Assertion failed');
@@ -398,12 +398,18 @@ export class Evaluator {
         this.env.set('cvar', (val: any) => val);
         this.env.set('int', (val: any) => {
             if (val === vbaNull) return vbaNull;
-            const n = Math.floor(parseFloat(val));
+            const n = Math.floor(this.toNumber(val));
             if (!isFinite(n)) this.throwVbaError(6, "Overflow");
             return n;
         });
         this.env.set('ucase', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).toUpperCase());
         this.env.set('lcase', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).toLowerCase());
+        this.env.set('str', (val: any) => {
+            if (val === vbaNull) return vbaNull;
+            const n = this.toNumber(val);
+            return (n >= 0 ? " " : "") + String(n);
+        });
+        this.env.set('str$', this.env.get('str'));
         this.env.set('trim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).trim());
         this.env.set('ltrim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).replace(/^\s+/, ''));
         this.env.set('rtrim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).replace(/\s+$/, ''));
@@ -572,21 +578,6 @@ export class Evaluator {
             return match ? parseFloat(match[0]) || 0 : 0;
         });
 
-        this.env.set('Str', (n: any) => {
-            const num = Number(n);
-            if (isNaN(num)) return String(n);
-            return num >= 0 ? ' ' + String(num) : String(num);
-        });
-
-        this.env.set('Oct', (n: any) => {
-            const num = Math.floor(Number(n));
-            return num.toString(8);
-        });
-
-        this.env.set('Hex', (n: any) => {
-            const num = Math.floor(Number(n));
-            return num.toString(16).toUpperCase();
-        });
 
         this.env.set('TypeName', (val: any) => {
             if (val === vbaEmpty || val === undefined) return 'Empty';
@@ -610,29 +601,33 @@ export class Evaluator {
             return 'Unknown';
         });
 
-        this.env.set('abs', (val: any) => Math.abs(val));
+        this.env.set('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(val));
         this.env.set('round', (val: any, digits: any = 0) => {
+            if (val === vbaNull) return vbaNull;
             return this.vbaRound(parseFloat(val) || 0, parseInt(digits) || 0);
         });
-        this.env.set('sqr', (val: any) => Math.sqrt(val));
+        this.env.set('sqr', (val: any) => val === vbaNull ? vbaNull : Math.sqrt(val));
 
         // --- Math Module (§6.1.2.10) ---
         this.env.set('sgn', (val: any) => {
-            const n = Number(val);
+            if (val === vbaNull) return vbaNull;
+            const n = this.toNumber(val);
             return n > 0 ? 1 : n < 0 ? -1 : 0;
         });
-        this.env.set('atn', (val: any) => Math.atan(Number(val)));
-        this.env.set('cos', (val: any) => Math.cos(Number(val)));
-        this.env.set('sin', (val: any) => Math.sin(Number(val)));
-        this.env.set('tan', (val: any) => Math.tan(Number(val)));
+        this.env.set('sin', (val: any) => val === vbaNull ? vbaNull : Math.sin(this.toNumber(val)));
+        this.env.set('cos', (val: any) => val === vbaNull ? vbaNull : Math.cos(this.toNumber(val)));
+        this.env.set('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(this.toNumber(val)));
+        this.env.set('atn', (val: any) => val === vbaNull ? vbaNull : Math.atan(this.toNumber(val)));
         this.env.set('exp', (val: any) => {
-            const n = Number(val);
-            if (n > 709.782712893) throw new Error('Execution error: Overflow');
+            if (val === vbaNull) return vbaNull;
+            const n = this.toNumber(val);
+            if (n > 709.782712893) this.throwVbaError(6, "Overflow");
             return Math.exp(n);
         });
         this.env.set('log', (val: any) => {
-            const n = Number(val);
-            if (n <= 0) throw new Error('Execution error: Invalid procedure call or argument');
+            if (val === vbaNull) return vbaNull;
+            const n = this.toNumber(val);
+            if (n <= 0) this.throwVbaError(5, "Invalid procedure call or argument");
             return Math.log(n);
         });
 
@@ -2229,6 +2224,32 @@ export class Evaluator {
 
     private evaluateExitStatement(stmt: ExitStatement) {
         throw { type: 'Exit', target: stmt.exitType };
+    }
+
+    private toNumber(val: any): number {
+        if (val === vbaNull || val === vbaEmpty || val === vbaNothing || val === vbaMissing) {
+            // Symbols cannot be converted to number directly in JS
+            return 0;
+        }
+        if (val instanceof VbaBoolean) return val.value;
+        if (val instanceof VbaDate) return val.value;
+        if (val instanceof VbaDecimal) return val.value;
+        if (typeof val === 'bigint') return Number(val);
+        const n = parseFloat(val);
+        return isNaN(n) ? 0 : n;
+    }
+
+    private toDisplayString(val: any): string {
+        if (val === vbaEmpty || val === undefined) return "";
+        if (val === vbaNull) return "Null";
+        if (val === vbaNothing) return "Nothing";
+        if (val === vbaTrue || (val instanceof VbaBoolean && val.value === -1)) return "True";
+        if (val === vbaFalse || (val instanceof VbaBoolean && val.value === 0)) return "False";
+        if (val instanceof VbaDate) return val.toString();
+        if (val instanceof VbaErrorValue) return val.toString();
+        if (val instanceof VbaDecimal) return val.toString();
+        if (typeof val === 'bigint') return val.toString();
+        return String(val);
     }
 
     private evaluateExpression(expr: Expression): any {
