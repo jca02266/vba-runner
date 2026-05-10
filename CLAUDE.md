@@ -1,0 +1,47 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## コマンド
+
+**Web UI 開発サーバー:**
+```bash
+npm run dev        # http://localhost:5173/
+npm run build      # TypeScript チェック + Vite ビルド
+npm run lint       # ESLint
+```
+
+**テスト実行**（esbuild でバンドル後、Node で実行）:
+```bash
+npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+```
+
+## アーキテクチャ
+
+TypeScript で実装された VBA インタープリター。Excel なしで VBA コードのユニットテストを可能にする。
+
+**コアパイプライン**（`src/compiler/`）:
+- `lexer.ts` — VBA ソースをトークン列に変換（50 種類以上のトークン型）
+- `parser.ts` — トークンから AST を構築（ForStatement, IfStatement, ProcedureDeclaration など）
+- `evaluator.ts` — `Environment` クラスでスコープ管理しながら AST を評価
+
+**`Environment` スコープチェーン**: 変数とプロシージャは `enclosing` 参照を持つ `Environment` インスタンスで管理。VBA の大文字小文字無視の仕様に合わせ、識別子は小文字に正規化。未定義変数は暗黙的に `0` に初期化（VBA の仕様通り）。
+
+**組み込み VBA 関数**（`evaluator.ts` に実装）: `IsEmpty`, `IsNumeric`, `CDBl`, `CLng`, `Int`, `UCase`, `Trim`, `UBound`, `CreateObject("Scripting.Dictionary")`（JS の `Map` で実装、内部アクセス用に `__map__` プロパティを持つ）。
+
+**Web UI**（`src/App.tsx`）: リアルタイムのトークナイズによるシンタックスハイライト付きで、ブラウザ上でコンパイラパイプラインを実行する React コンポーネント。
+
+## テストパターン
+
+テストは `sample/tests/ts/` に配置。`VBATest` クラス（`tests/ts/test-runner.ts`）はコンストラクタ時に `.vba` ファイルを読み込み、2 つの実行メソッドを提供する:
+
+- **`vbaEditor.run(procedureName, args)`** — TypeScript の配列引数を渡して名前付き Sub/Function を呼び出す
+- **`vbaEditor.eval(expressionString)`** — VBA の式または文を文字列として評価する。式の場合は戻り値を返し、文の場合は `undefined` を返す
+
+引数付きのプロシージャ呼び出しには `run`、式の直接評価や引数なしのプロシージャ呼び出しには `eval` を使う。
+
+## サンプルコードの構成
+
+- `sample/src/vba/TaskScheduler_Core.vba` — 純粋なビジネスロジック関数（ユニットテスト対象）
+- `sample/src/vba/TaskScheduler.vba` — リファクタリング後のメインルーチン（Excel オブジェクト依存のため直接テスト対象外）
+- `sample/src/vba_legacy/TaskScheduler_v1.vba` — 参照用のリファクタリング前のオリジナルソース

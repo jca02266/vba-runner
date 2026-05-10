@@ -24,3 +24,5 @@ dist-ssr
 
 # Test outputs
 *.cjs
+
+spec/
