@@ -428,11 +428,14 @@ export class Evaluator {
             case 'ExitStatement':
                 this.evaluateExitStatement(stmt as ExitStatement);
                 break;
-            case 'LabelStatement':
-                // No-op for now. Label execution just passes through.
+            case 'EnumDeclaration':
+                this.evaluateEnumDeclaration(stmt as EnumDeclaration);
                 break;
             case 'TypeDeclaration':
                 this.evaluateTypeDeclaration(stmt as TypeDeclaration);
+                break;
+            case 'LabelStatement':
+                // No-op for now. Label execution just passes through.
                 break;
             case 'SelectCaseStatement':
                 this.evaluateSelectCaseStatement(stmt as SelectCaseStatement);
@@ -846,6 +849,24 @@ export class Evaluator {
 
     private evaluateTypeDeclaration(stmt: TypeDeclaration) {
         this.env.setType(stmt.name, stmt.members);
+    }
+
+    private evaluateEnumDeclaration(stmt: EnumDeclaration) {
+        let currentValue = 0;
+        const enumObj: any = {};
+        for (const member of stmt.members) {
+            if (member.value) {
+                currentValue = this.evaluateExpression(member.value);
+            }
+            const memberName = member.name.name;
+            // Set directly in environment for flat access (common in VBA)
+            this.env.set(memberName, currentValue);
+            // Also store in enum object for EnumName.MemberName access
+            enumObj[memberName] = currentValue;
+            currentValue++;
+        }
+        // Register the Enum name itself
+        this.env.set(stmt.name.name, enumObj);
     }
 
     private evaluateCallStatement(stmt: CallStatement) {

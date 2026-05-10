@@ -176,6 +176,18 @@ export interface LabelStatement extends Statement {
     label: string;
 }
 
+export interface EnumMember {
+    name: Identifier;
+    value?: Expression;
+}
+
+export interface EnumDeclaration extends Statement {
+    type: 'EnumDeclaration';
+    name: Identifier;
+    members: EnumMember[];
+    scope?: 'public' | 'private';
+}
+
 export interface TypeMember {
     name: string;
     memberType: string;
@@ -306,6 +318,7 @@ export class Parser {
             next.type === TokenType.KeywordSelect ||
             next.type === TokenType.KeywordWith ||
             next.type === TokenType.KeywordType ||
+            next.type === TokenType.KeywordEnum ||
             next.type === TokenType.KeywordProperty
         );
     }
@@ -426,6 +439,8 @@ export class Parser {
             return this.parseWithStatement();
         } else if (token.type === TokenType.KeywordType) {
             return this.parseTypeDeclaration();
+        } else if (token.type === TokenType.KeywordEnum) {
+            return this.parseEnumDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
             this.advance(); // consume 'Call'
             const expr = this.parsePrimary();
@@ -805,13 +820,50 @@ export class Parser {
 
         // Consume 'End Type'
         if (this.peek().type === TokenType.KeywordEnd) {
-            this.advance(); // 'End'
+            this.advance(); // consume 'End'
             if (!this.match(TokenType.KeywordType)) {
                 throw new Error(`Parse error: Expected 'Type' after 'End' at line ${this.peek().line}`);
             }
         }
 
-        return { type: 'TypeDeclaration', name: typeName, members };
+        return { type: 'TypeDeclaration', name: typeName, members } as TypeDeclaration;
+    }
+
+    private parseEnumDeclaration(): EnumDeclaration {
+        this.advance(); // consume 'Enum'
+        const nameToken = this.advance();
+        if (nameToken.type !== TokenType.Identifier) {
+            throw new Error(`Parse error: Expected identifier after 'Enum' at line ${nameToken.line}`);
+        }
+        const name: Identifier = { type: 'Identifier', name: nameToken.value };
+        const members: EnumMember[] = [];
+
+        this.skipNewlines();
+
+        while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
+            const memberNameToken = this.advance();
+            if (memberNameToken.type !== TokenType.Identifier) {
+                throw new Error(`Parse error: Expected member name in Enum at line ${memberNameToken.line}`);
+            }
+            const memberName: Identifier = { type: 'Identifier', name: memberNameToken.value };
+            let value: Expression | undefined;
+
+            if (this.match(TokenType.OperatorEquals)) {
+                value = this.parseExpression();
+            }
+
+            members.push({ name: memberName, value });
+            this.skipNewlines();
+        }
+
+        if (this.peek().type === TokenType.KeywordEnd) {
+            this.advance(); // consume 'End'
+            if (!this.match(TokenType.KeywordEnum)) {
+                throw new Error(`Parse error: Expected 'Enum' after 'End' at line ${this.peek().line}`);
+            }
+        }
+
+        return { type: 'EnumDeclaration', name, members } as EnumDeclaration;
     }
 
     private parseForStatement(): ForStatement | ForEachStatement {

@@ -58,6 +58,7 @@ export enum TokenType {
     KeywordIn,
     KeywordPublic,
     KeywordPrivate,
+    KeywordEnum,
     KeywordFriend,
     KeywordWith,
     KeywordTypeOf,
@@ -350,6 +351,7 @@ export class Lexer {
                 if (lowerId === 'in') return { type: TokenType.KeywordIn, value: idStr, line: this.line };
                 if (lowerId === 'public') return { type: TokenType.KeywordPublic, value: idStr, line: this.line };
                 if (lowerId === 'private') return { type: TokenType.KeywordPrivate, value: idStr, line: this.line };
+                if (lowerId === 'enum') return { type: TokenType.KeywordEnum, value: idStr, line: this.line };
                 if (lowerId === 'typeof') return { type: TokenType.KeywordTypeOf, value: idStr, line: this.line };
                 if (lowerId === 'friend') return { type: TokenType.KeywordFriend, value: idStr, line: this.line };
                 if (lowerId === 'with') return { type: TokenType.KeywordWith, value: idStr, line: this.line };
