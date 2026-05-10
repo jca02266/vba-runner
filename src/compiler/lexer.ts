@@ -84,6 +84,7 @@ export enum TokenType {
     OperatorDot,
     OperatorColon,
     OperatorColonEquals,
+    OperatorExclamation,
     Newline,
     EOF,
     Unknown
@@ -210,6 +211,11 @@ export class Lexer {
             if (char === '-') {
                 this.advance();
                 return { type: TokenType.OperatorMinus, value: '-', line: this.line };
+            }
+
+            if (char === '!') {
+                this.advance();
+                return { type: TokenType.OperatorExclamation, value: '!', line: this.line };
             }
 
             if (char === '&') {

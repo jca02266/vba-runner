@@ -109,7 +109,7 @@
 | ✅ | Eqv 演算子 | §5.6.9.8.5 |
 | ✅ | Imp 演算子 | §5.6.9.8.6 |
 | ❌ | TypeOf…Is 式 | §5.6.7 |
-| ❌ | Dictionary Access 式（`!` 演算子） | §5.6.14 |
+| ✅ | Dictionary Access 式（`!` 演算子） | §5.6.14 |
 | ❌ | AddressOf 式 | §5.6.16.8 |
 
 ## 第6章：標準ライブラリ — 変換関数 Conversion Module (§6.1.2.3)

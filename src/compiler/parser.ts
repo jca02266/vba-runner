@@ -230,6 +230,12 @@ export interface MemberExpression extends Expression {
     property: Identifier;
 }
 
+export interface DictionaryAccessExpression extends Expression {
+    type: 'DictionaryAccessExpression';
+    object: Expression;
+    property: Identifier;
+}
+
 export interface Identifier extends Expression {
     type: 'Identifier';
     name: string;
@@ -1377,6 +1383,10 @@ export class Parser {
                 const propToken = this.advance();
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'MemberExpression', object: expr, property } as MemberExpression;
+            } else if (this.match(TokenType.OperatorExclamation)) {
+                const propToken = this.advance();
+                const property = { type: 'Identifier', name: propToken.value } as Identifier;
+                expr = { type: 'DictionaryAccessExpression', object: expr, property } as DictionaryAccessExpression;
             } else if (this.match(TokenType.OperatorLParen)) {
                 const args: Expression[] = [];
                 if (this.peek().type !== TokenType.OperatorRParen) {

@@ -993,6 +993,8 @@ export class Evaluator {
                 return this.evaluateCallExpression(expr as CallExpression);
             case 'MemberExpression':
                 return this.evaluateMemberExpression(expr as MemberExpression);
+            case 'DictionaryAccessExpression':
+                return this.evaluateDictionaryAccessExpression(expr as DictionaryAccessExpression);
             case 'UnaryExpression':
                 return this.evaluateUnaryExpression(expr as UnaryExpression);
             case 'BinaryExpression':
@@ -1151,6 +1153,19 @@ export class Evaluator {
         }
 
         throw new Error(`Execution error: Unsupported call expression`);
+    }
+
+    private evaluateDictionaryAccessExpression(expr: DictionaryAccessExpression): any {
+        const obj = this.evaluateExpression(expr.object);
+        const property = expr.property.name;
+
+        if (obj && obj.__isVbaDict__) {
+            // VBA bang (!) access is essentially string key lookup: dict!Key -> dict("Key")
+            return obj.__map__.get(property);
+        }
+
+        // Fallback or error (some objects might support ! besides Dictionary, but we only have Dictionary for now)
+        throw new Error(`Execution error: Object does not support '!' access for property '${property}'`);
     }
 
     private evaluateUnaryExpression(expr: UnaryExpression): any {
