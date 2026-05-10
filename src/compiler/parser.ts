@@ -147,6 +147,12 @@ export interface OptionCompareStatement extends Statement {
     mode: 'Binary' | 'Text';
 }
 
+export interface AttributeStatement extends Statement {
+    type: 'AttributeStatement';
+    name: string;
+    value: Expression;
+}
+
 export interface LSetStatement extends Statement {
     type: 'LSetStatement';
     left: Expression;
@@ -346,6 +352,19 @@ export class Parser {
         return { type: 'OptionCompareStatement', mode };
     }
 
+    private parseAttributeStatement(): AttributeStatement {
+        this.advance(); // 'Attribute'
+        let name = '';
+        while (this.peek().type === TokenType.Identifier || this.peek().type === TokenType.OperatorDot) {
+            name += this.advance().value;
+        }
+        if (this.match(TokenType.OperatorEquals)) {
+            const value = this.parseExpression();
+            return { type: 'AttributeStatement', name, value };
+        }
+        return { type: 'AttributeStatement', name, value: { type: 'StringLiteral', value: '' } as StringLiteral };
+    }
+
     private isAtEndTerminator(): boolean {
         const token = this.peek();
         if (token.type !== TokenType.KeywordEnd) return false;
@@ -488,6 +507,8 @@ export class Parser {
                 // Ignore for now
             }
             return null;
+        } else if (token.type === TokenType.KeywordAttribute) {
+            return this.parseAttributeStatement();
         } else if (token.type === TokenType.KeywordSelect) {
             return this.parseSelectCaseStatement();
         } else if (token.type === TokenType.KeywordWith) {

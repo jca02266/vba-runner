@@ -94,10 +94,10 @@
 | ❌ | P1 | Implements Directive | §5.2.4.2 |
 | ❌ | P2 | Event Declaration | §5.2.4.3 |
 | ✅ | P1 | Option Explicit（パース済み、実行時は無視） | §5.2 |
-| ❌ | P0 | Option Compare | §5.2.1.1 |
+| ✅ | P0 | Option Compare | §5.2.1.1 |
 | ❌ | P1 | Option Base | §5.2.1.2 |
 | ❌ | P1 | Option Private Module | §5.2.1.4 |
-| ❌ | P0 | Attributes (VB_Name, etc.) | §5.2.3.1.6 / §5.2.4.1 |
+| ✅ | P0 | Attributes (VB_Name, etc.) | §5.2.3.1.6 / §5.2.4.1 | (制限事項: パースのみ。実行時は無視) |
 | ✅ | P0 | Date Literals (#mm/dd/yyyy#) | §3.3.3.3 |
 
 ## 第5章：演算子 (§5.6.9)
@@ -232,12 +232,12 @@
 | 状態 | 優先度 | 関数 | 仕様書 |
 |------|--------|------|--------|
 | ❌ | P1 | Choose | §6.1.2.8.1.2 |
-| ⚠️ | P0 | CreateObject（`Scripting.Dictionary` のみ対応） | §6.1.2.8.1.4 |
+| ✅ | P0 | CreateObject (拡張) | §6.1.2.8.1.4 | (制限事項: Scripting.Dictionary等の主要オブジェクトのみ対応) |
 | ❌ | P2 | Environ / Environ$ | §6.1.2.8.1.6 |
 | ❌ | P1 | GetObject | §6.1.2.8.1.9 |
 | ✅ | P1 | IIf | §6.1.2.8.1.11 |
-| ❌ | P0 | InputBox | §6.1.2.8.1.12 |
-| ❌ | P0 | MsgBox | §6.1.2.8.1.13 |
+| ✅ | P0 | InputBox | §6.1.2.8.1.12 | (制限事項: ダミー実装。コンソール出力と固定値返却) |
+| ✅ | P0 | MsgBox | §6.1.2.8.1.13 | (制限事項: ダミー実装。コンソール出力と固定値返却) |
 | ❌ | P1 | Switch | §6.1.2.8.1.16 |
 
 ## 第6章：標準ライブラリ — 配列関連

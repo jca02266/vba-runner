@@ -708,6 +708,38 @@ export class Evaluator {
         this.env.set('xltoleft', -4159);
         this.env.set('xltoright', -4161);
 
+        // MsgBox constants
+        this.env.set('vbokonly', 0);
+        this.env.set('vboxcancel', 1);
+        this.env.set('vbabortretryignore', 2);
+        this.env.set('vbyesnocancel', 3);
+        this.env.set('vbyesno', 4);
+        this.env.set('vbretrycancel', 5);
+        this.env.set('vbcritical', 16);
+        this.env.set('vbquestion', 32);
+        this.env.set('vboxclamation', 48);
+        this.env.set('vbinformation', 64);
+        this.env.set('vbdefaultbutton1', 0);
+        this.env.set('vbdefaultbutton2', 256);
+
+        this.env.set('vbok', 1);
+        this.env.set('vbcancel', 2);
+        this.env.set('vbabort', 3);
+        this.env.set('vbretry', 4);
+        this.env.set('vbignore', 5);
+        this.env.set('vbyes', 6);
+        this.env.set('vbno', 7);
+
+        this.env.set('msgbox', (prompt: any, buttons: number = 0, title: string = "Microsoft Excel") => {
+            this.onPrint(`[MSGBOX] ${title}: ${prompt} (Buttons: ${buttons})`);
+            return 1; // vbOK
+        });
+
+        this.env.set('inputbox', (prompt: any, title: string = "Microsoft Excel", defaultVal: string = "") => {
+            this.onPrint(`[INPUTBOX] ${title}: ${prompt} (Default: ${defaultVal})`);
+            return defaultVal;
+        });
+
         // Add VBA Err object
         this.env.set('err', {
             number: 0,
@@ -922,6 +954,9 @@ export class Evaluator {
                 break;
             case 'OptionCompareStatement':
                 this.evaluateOptionCompareStatement(stmt as OptionCompareStatement);
+                break;
+            case 'AttributeStatement':
+                // No-op: ignore Attributes
                 break;
             case 'LabelStatement':
                 // No-op for now. Label execution just passes through.

@@ -73,6 +73,7 @@ export enum TokenType {
     KeywordCompare,
     KeywordBinary,
     KeywordText,
+    KeywordAttribute,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -432,6 +433,7 @@ export class Lexer {
                 if (lowerId === 'compare') return { type: TokenType.KeywordCompare, value: idStr, line: this.line };
                 if (lowerId === 'binary') return { type: TokenType.KeywordBinary, value: idStr, line: this.line };
                 if (lowerId === 'text') return { type: TokenType.KeywordText, value: idStr, line: this.line };
+                if (lowerId === 'attribute') return { type: TokenType.KeywordAttribute, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }
