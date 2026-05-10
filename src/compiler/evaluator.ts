@@ -130,6 +130,8 @@ export class Evaluator {
     private onPrint: PrintCallback;
     private errorHandlerLabel: string | null = null;
     private currentProcBody: Statement[] | null = null;
+    private currentSourceModule: string = '';
+    private executingModuleName: string = '';
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -233,9 +235,11 @@ export class Evaluator {
         const previousEnv = this.env;
         const previousErrorHandler = this.errorHandlerLabel;
         const previousProcBody = this.currentProcBody;
+        const previousExecutingModule = this.executingModuleName;
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.currentProcBody = proc.body;
+        this.executingModuleName = proc.moduleName ?? '';
 
         try {
             // Execute procedure body with error handling support
@@ -255,6 +259,7 @@ export class Evaluator {
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
             this.currentProcBody = previousProcBody;
+            this.executingModuleName = previousExecutingModule;
         }
 
         // Return the function value if it was a function
@@ -262,6 +267,10 @@ export class Evaluator {
             return localEnv.get(procName);
         }
         return EmptyVBA;
+    }
+
+    public setSourceModule(moduleName: string) {
+        this.currentSourceModule = moduleName;
     }
 
     public evaluate(program: Program) {
@@ -323,9 +332,12 @@ export class Evaluator {
             case 'AssignmentStatement':
                 this.evaluateAssignmentStatement(stmt as AssignmentStatement);
                 break;
-            case 'ProcedureDeclaration':
-                this.env.setProcedure((stmt as ProcedureDeclaration).name.name, stmt as ProcedureDeclaration);
+            case 'ProcedureDeclaration': {
+                const procDecl = stmt as ProcedureDeclaration;
+                procDecl.moduleName = this.currentSourceModule;
+                this.env.setProcedure(procDecl.name.name, procDecl);
                 break;
+            }
             case 'VariableDeclaration':
                 this.evaluateVariableDeclaration(stmt as VariableDeclaration);
                 break;
@@ -741,6 +753,20 @@ export class Evaluator {
             const proc = this.env.getProcedure(name);
 
             if (proc) {
+                // Cross-module Private access check
+                if (
+                    proc.scope === 'private' &&
+                    proc.moduleName !== undefined &&
+                    proc.moduleName !== '' &&
+                    proc.moduleName !== this.executingModuleName
+                ) {
+                    throw new Error(
+                        `Execution error: Cannot call Private procedure '${proc.name.name}' ` +
+                        `from module '${this.executingModuleName || '(top-level)'}' ` +
+                        `(defined in '${proc.moduleName}')`
+                    );
+                }
+
                 // Procedure call (Function/Sub)
                 const localEnv = new Environment(this.env);
 
@@ -769,9 +795,11 @@ export class Evaluator {
                 const previousEnv = this.env;
                 const previousErrorHandler = this.errorHandlerLabel;
                 const previousProcBody = this.currentProcBody;
+                const previousExecutingModule = this.executingModuleName;
                 this.env = localEnv;
                 this.errorHandlerLabel = null;
                 this.currentProcBody = proc.body;
+                this.executingModuleName = proc.moduleName ?? '';
 
                 try {
                     this.executeStatements(proc.body, 0);
@@ -786,6 +814,7 @@ export class Evaluator {
                 this.env = previousEnv; // Restore scope
                 this.errorHandlerLabel = previousErrorHandler;
                 this.currentProcBody = previousProcBody;
+                this.executingModuleName = previousExecutingModule;
 
                 // Synchronize ByRef arguments back to caller scope
                 for (const ref of byRefArgs) {

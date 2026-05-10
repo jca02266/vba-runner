@@ -23,12 +23,14 @@ export class VBATest {
         for (const file of files) {
             const source = fs.readFileSync(file, 'utf-8');
             try {
+                this.evaluator.setSourceModule(path.basename(file));
                 const ast = new Parser(new Lexer(source).tokenize()).parse();
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
             }
         }
+        this.evaluator.setSourceModule('');
     }
 
     run(procedureName: string, args: any[]): any {

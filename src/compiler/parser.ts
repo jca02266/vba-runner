@@ -67,6 +67,7 @@ export interface ProcedureDeclaration extends Statement {
     parameters: Parameter[];
     body: Statement[];
     scope?: 'public' | 'private' | 'friend';
+    moduleName?: string;
 }
 
 export interface VariableDeclarator {

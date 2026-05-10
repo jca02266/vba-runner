@@ -63,9 +63,26 @@ vbaTest.run('CalcAndGreet', ['Alice', 10, 20]);
 
 ### スコープ修飾子（Public / Private / Friend）について
 
-`Public`・`Private`・`Friend` の修飾子はパースされ AST に保持されますが、**アクセス制御は実施しません**。すべてのプロシージャはスコープ修飾子によらず、どのモジュールからでも呼び出し可能です。
+`Public`・`Private`・`Friend` の修飾子はパースされ、プロシージャ宣言の AST に保持されます。
 
-これはユニットテストの用途に合わせた意図的な仕様です。`Private` なヘルパー関数もテストコードから直接 `vbaTest.run()` で呼び出せます。
+#### アクセス制御の仕様
+
+| 呼び出し元 | Private プロシージャ | Public / 修飾子なし |
+|-----------|-------------------|-------------------|
+| `vbaTest.run()` / `vbaTest.eval()`（TypeScript） | ✅ 呼び出し可能 | ✅ 呼び出し可能 |
+| **同一モジュール**内の VBA コード | ✅ 呼び出し可能 | ✅ 呼び出し可能 |
+| **別モジュール**の VBA コード | ❌ 実行時エラー | ✅ 呼び出し可能 |
+
+- **テストランナーからは `Private` でも直接呼び出せます**。ユニットテストの用途でプライベートなヘルパー関数も個別に検証できます。
+- **VBA ソース同士のクロスモジュール呼び出しでは `Private` が制御されます**。別ファイルの `Private` プロシージャを呼んだ場合、以下のようなエラーが発生します：
+
+  ```
+  Execution error: Cannot call Private procedure 'PrivateHelper'
+    from module 'ModuleB.vba' (defined in 'ModuleA.vba')
+  ```
+
+- `Friend` はパース・保持されますが、実行時のアクセス制御は `Public` と同等です（制御なし）。
+- 修飾子なしのプロシージャは VBA 仕様どおり `Public` と同等です。
 
 ## テスト環境での `run` と `eval` の使い分け
 TypeScript側からVBAのロジックを呼び出す際、用途に応じて以下の2つのメソッドを利用します。
