@@ -44,7 +44,9 @@ export interface IfStatement extends Statement {
 
 export interface DoWhileStatement extends Statement {
     type: 'DoWhileStatement';
-    condition: Expression;
+    conditionType?: 'while' | 'until'; // undefined = infinite loop
+    conditionPosition?: 'pre' | 'post'; // undefined = infinite loop
+    condition?: Expression;
     body: Statement[];
 }
 
@@ -847,11 +849,25 @@ export class Parser {
 
     private parseDoWhileStatement(): DoWhileStatement {
         this.advance(); // consume 'Do'
-        if (!this.match(TokenType.KeywordWhile)) {
-            throw new Error(`Parse error: Expected 'While' after 'Do' at line ${this.peek().line} `);
-        }
 
-        const condition = this.parseExpression();
+        // Check for pre-condition: Do While/Until condition
+        let conditionType: 'while' | 'until' | undefined;
+        let conditionPosition: 'pre' | 'post' | undefined;
+        let condition: Expression | undefined;
+
+        if (this.peek().type === TokenType.KeywordWhile) {
+            this.advance(); // consume 'While'
+            conditionType = 'while';
+            conditionPosition = 'pre';
+            condition = this.parseExpression();
+        } else if (this.peek().type === TokenType.KeywordUntil) {
+            this.advance(); // consume 'Until'
+            conditionType = 'until';
+            conditionPosition = 'pre';
+            condition = this.parseExpression();
+        }
+        // else: no pre-condition (infinite or post-condition)
+
         this.skipNewlines();
 
         const body: Statement[] = [];
@@ -865,8 +881,23 @@ export class Parser {
             throw new Error(`Parse error: Expected 'Loop' at line ${this.peek().line} `);
         }
 
+        // Check for post-condition: Loop While/Until condition
+        if (this.peek().type === TokenType.KeywordWhile) {
+            this.advance(); // consume 'While'
+            conditionType = 'while';
+            conditionPosition = 'post';
+            condition = this.parseExpression();
+        } else if (this.peek().type === TokenType.KeywordUntil) {
+            this.advance(); // consume 'Until'
+            conditionType = 'until';
+            conditionPosition = 'post';
+            condition = this.parseExpression();
+        }
+
         return {
             type: 'DoWhileStatement',
+            conditionType,
+            conditionPosition,
             condition,
             body
         };

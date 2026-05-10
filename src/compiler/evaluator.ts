@@ -508,7 +508,17 @@ export class Evaluator {
     }
 
     private evaluateDoWhileStatement(stmt: DoWhileStatement) {
-        while (this.evaluateExpression(stmt.condition)) {
+        const checkCondition = (): boolean => {
+            if (stmt.condition === undefined) return true; // infinite
+            const val = this.evaluateExpression(stmt.condition);
+            return stmt.conditionType === 'until' ? !val : !!val;
+        };
+
+        // eslint-disable-next-line no-constant-condition
+        while (true) {
+            // pre-condition check
+            if (stmt.conditionPosition === 'pre' && !checkCondition()) break;
+
             try {
                 for (const bodyStmt of stmt.body) {
                     this.evaluateStatement(bodyStmt);
@@ -519,6 +529,12 @@ export class Evaluator {
                 }
                 throw e;
             }
+
+            // post-condition check
+            if (stmt.conditionPosition === 'post' && !checkCondition()) break;
+
+            // infinite loop: no condition, no break unless Exit Do
+            if (stmt.conditionPosition === undefined) continue;
         }
     }
 
