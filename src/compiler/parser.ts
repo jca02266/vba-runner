@@ -48,6 +48,12 @@ export interface DoWhileStatement extends Statement {
     body: Statement[];
 }
 
+export interface WhileStatement extends Statement {
+    type: 'WhileStatement';
+    condition: Expression;
+    body: Statement[];
+}
+
 export interface Parameter extends ASTNode {
     type: 'Parameter';
     name: string;
@@ -260,6 +266,8 @@ export class Parser {
             return this.parseIfStatement();
         } else if (token.type === TokenType.KeywordDo) {
             return this.parseDoWhileStatement();
+        } else if (token.type === TokenType.KeywordWhile) {
+            return this.parseWhileStatement();
         } else if (token.type === TokenType.KeywordSub || token.type === TokenType.KeywordFunction) {
             return this.parseProcedureDeclaration();
         } else if (token.type === TokenType.KeywordDim) {
@@ -847,6 +855,25 @@ export class Parser {
             condition,
             body
         };
+    }
+
+    private parseWhileStatement(): WhileStatement {
+        this.advance(); // consume 'While'
+        const condition = this.parseExpression();
+        this.skipNewlines();
+
+        const body: Statement[] = [];
+        while (this.peek().type !== TokenType.KeywordWend && this.peek().type !== TokenType.EOF) {
+            const stmt = this.parseStatement();
+            if (stmt) body.push(stmt);
+            this.skipNewlines();
+        }
+
+        if (!this.match(TokenType.KeywordWend)) {
+            throw new Error(`Parse error: Expected 'Wend' at line ${this.peek().line}`);
+        }
+
+        return { type: 'WhileStatement', condition, body };
     }
 
     private parseSelectCaseStatement(): SelectCaseStatement {

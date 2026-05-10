@@ -12,6 +12,7 @@ export enum TokenType {
     KeywordEnd,
     KeywordDo,
     KeywordWhile,
+    KeywordWend,
     KeywordLoop,
     KeywordSub,
     KeywordFunction,
@@ -274,6 +275,7 @@ export class Lexer {
                 if (lowerId === 'end') return { type: TokenType.KeywordEnd, value: idStr, line: this.line };
                 if (lowerId === 'do') return { type: TokenType.KeywordDo, value: idStr, line: this.line };
                 if (lowerId === 'while') return { type: TokenType.KeywordWhile, value: idStr, line: this.line };
+                if (lowerId === 'wend') return { type: TokenType.KeywordWend, value: idStr, line: this.line };
                 if (lowerId === 'loop') return { type: TokenType.KeywordLoop, value: idStr, line: this.line };
                 if (lowerId === 'sub') return { type: TokenType.KeywordSub, value: idStr, line: this.line };
                 if (lowerId === 'function') return { type: TokenType.KeywordFunction, value: idStr, line: this.line };

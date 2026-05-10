@@ -13,7 +13,7 @@
 | 状態 | 機能 | 仕様書 |
 |------|------|--------|
 | ✅ | Call Statement | §5.4.2.1 |
-| ❌ | While Statement (`While...Wend`) | §5.4.2.2 |
+| ✅ | While Statement (`While...Wend`) | §5.4.2.2 |
 | ✅ | For Statement (`For...Next`、Step対応) | §5.4.2.3 |
 | ✅ | For Each Statement (`For Each...In`) | §5.4.2.4 |
 | ✅ | Exit For Statement | §5.4.2.5 |

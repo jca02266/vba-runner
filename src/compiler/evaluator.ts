@@ -4,6 +4,7 @@ import {
     ForStatement,
     IfStatement,
     DoWhileStatement,
+    WhileStatement,
     Expression,
     UnaryExpression,
     BinaryExpression,
@@ -316,6 +317,9 @@ export class Evaluator {
             case 'DoWhileStatement':
                 this.evaluateDoWhileStatement(stmt as DoWhileStatement);
                 break;
+            case 'WhileStatement':
+                this.evaluateWhileStatement(stmt as WhileStatement);
+                break;
             case 'AssignmentStatement':
                 this.evaluateAssignmentStatement(stmt as AssignmentStatement);
                 break;
@@ -502,6 +506,14 @@ export class Evaluator {
                     break;
                 }
                 throw e;
+            }
+        }
+    }
+
+    private evaluateWhileStatement(stmt: WhileStatement) {
+        while (this.evaluateExpression(stmt.condition)) {
+            for (const bodyStmt of stmt.body) {
+                this.evaluateStatement(bodyStmt);
             }
         }
     }
