@@ -18,6 +18,22 @@ export interface EndStatement extends Statement {
     type: 'EndStatement';
 }
 
+export interface GoSubStatement extends Statement {
+    type: 'GoSubStatement';
+    label: string;
+}
+
+export interface ReturnStatement extends Statement {
+    type: 'ReturnStatement';
+}
+
+export interface OnGoToSubStatement extends Statement {
+    type: 'OnGoToSubStatement';
+    expression: Expression;
+    isGoSub: boolean;
+    labels: string[];
+}
+
 export interface ASTNode {
     type: string;
 }
@@ -342,7 +358,17 @@ export class Parser {
         } else if (token.type === TokenType.KeywordSet) {
             return this.parseSetStatement();
         } else if (token.type === TokenType.KeywordOn) {
-            return this.parseOnErrorStatement();
+            const next = this.peek(1);
+            if (next.type === TokenType.KeywordError) {
+                return this.parseOnErrorStatement();
+            } else {
+                return this.parseOnGoToSubStatement();
+            }
+        } else if (token.type === TokenType.KeywordGoSub) {
+            return this.parseGoSubStatement();
+        } else if (token.type === TokenType.KeywordReturn) {
+            this.advance(); // consume 'Return'
+            return { type: 'ReturnStatement' } as ReturnStatement;
         } else if (token.type === TokenType.KeywordExit) {
             return this.parseExitStatement();
         } else if (token.type === TokenType.KeywordErase) {
@@ -1309,5 +1335,43 @@ export class Parser {
             this.advance(); // consume ':='
         }
         return this.parseExpression();
+    }
+
+    private parseOnGoToSubStatement(): OnGoToSubStatement {
+        this.advance(); // 'On'
+        const expression = this.parseExpression();
+        
+        let isGoSub = false;
+        if (this.match(TokenType.KeywordGoTo)) {
+            isGoSub = false;
+        } else if (this.match(TokenType.KeywordGoSub)) {
+            isGoSub = true;
+        } else {
+            throw new Error(`Parse error: Expected 'GoTo' or 'GoSub' after 'On' expression at line ${this.peek().line}`);
+        }
+
+        const labels: string[] = [];
+        while (true) {
+            const labelToken = this.advance();
+            if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+                throw new Error(`Parse error: Expected label (identifier or number) in On...GoTo/GoSub at line ${labelToken.line}`);
+            }
+            labels.push(labelToken.value);
+
+            if (!this.match(TokenType.OperatorComma)) {
+                break;
+            }
+        }
+
+        return { type: 'OnGoToSubStatement', expression, isGoSub, labels };
+    }
+
+    private parseGoSubStatement(): GoSubStatement {
+        this.advance(); // 'GoSub'
+        const labelToken = this.advance();
+        if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+            throw new Error(`Parse error: Expected label after GoSub at line ${labelToken.line}`);
+        }
+        return { type: 'GoSubStatement', label: labelToken.value };
     }
 }

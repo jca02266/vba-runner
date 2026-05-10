@@ -33,6 +33,8 @@ export enum TokenType {
     KeywordOn,
     KeywordError,
     KeywordGoTo,
+    KeywordGoSub,
+    KeywordReturn,
     KeywordErase,
     KeywordReDim,
     KeywordStep,
@@ -284,6 +286,8 @@ export class Lexer {
                 if (lowerId === 'wend') return { type: TokenType.KeywordWend, value: idStr, line: this.line };
                 if (lowerId === 'loop') return { type: TokenType.KeywordLoop, value: idStr, line: this.line };
                 if (lowerId === 'until') return { type: TokenType.KeywordUntil, value: idStr, line: this.line };
+                if (lowerId === 'gosub') return { type: TokenType.KeywordGoSub, value: idStr, line: this.line };
+                if (lowerId === 'return') return { type: TokenType.KeywordReturn, value: idStr, line: this.line };
                 if (lowerId === 'stop') return { type: TokenType.KeywordStop, value: idStr, line: this.line };
                 if (lowerId === 'sub') return { type: TokenType.KeywordSub, value: idStr, line: this.line };
                 if (lowerId === 'function') return { type: TokenType.KeywordFunction, value: idStr, line: this.line };

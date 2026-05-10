@@ -24,10 +24,10 @@
 | ✅ | Select Case Statement | §5.4.2.10 |
 | ✅ | Stop Statement | §5.4.2.11 |
 | ✅ | GoTo Statement（汎用ラベルジャンプ） | §5.4.2.12 |
-| ❌ | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |
-| ❌ | GoSub Statement | §5.4.2.14 |
-| ❌ | Return Statement（GoSub用） | §5.4.2.15 |
-| ❌ | On…GoSub Statement | §5.4.2.16 |
+| ✅ | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |
+| ✅ | GoSub Statement | §5.4.2.14 |
+| ✅ | Return Statement（GoSub用） | §5.4.2.15 |
+| ✅ | On…GoSub Statement | §5.4.2.16 |
 | ✅ | Exit Sub Statement | §5.4.2.17 |
 | ✅ | Exit Function Statement | §5.4.2.18 |
 | ❌ | Exit Property Statement | §5.4.2.19 |

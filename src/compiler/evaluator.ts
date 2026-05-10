@@ -32,6 +32,9 @@ import {
     GoToStatement,
     StopStatement,
     EndStatement,
+    GoSubStatement,
+    ReturnStatement,
+    OnGoToSubStatement,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -138,6 +141,7 @@ export class Evaluator {
     private currentSourceModule: string = '';
     private executingModuleName: string = '';
     private withObjectStack: any[] = [];
+    private gosubStack: number[] = []; // Stack of statement indices for GoSub/Return
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -393,6 +397,15 @@ export class Evaluator {
             case 'EndStatement':
                 this.evaluateEndStatement(stmt as EndStatement);
                 break;
+            case 'GoSubStatement':
+                this.evaluateGoSubStatement(stmt as GoSubStatement);
+                break;
+            case 'ReturnStatement':
+                this.evaluateReturnStatement(stmt as ReturnStatement);
+                break;
+            case 'OnGoToSubStatement':
+                this.evaluateOnGoToSubStatement(stmt as OnGoToSubStatement);
+                break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
         }
@@ -589,6 +602,34 @@ export class Evaluator {
         throw { type: 'Terminate' };
     }
 
+    private evaluateGoSubStatement(stmt: GoSubStatement) {
+        throw { type: 'GoSub', label: stmt.label };
+    }
+
+    private evaluateReturnStatement(stmt: ReturnStatement) {
+        throw { type: 'Return' };
+    }
+
+    private evaluateOnGoToSubStatement(stmt: OnGoToSubStatement) {
+        const val = this.evaluateExpression(stmt.expression);
+        const idx = Math.floor(Number(val));
+        
+        if (idx < 0 || idx > 255) {
+            throw new Error(`Execution error: Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
+        }
+        
+        if (idx === 0 || idx > stmt.labels.length) {
+            return; // completed immediately
+        }
+        
+        const label = stmt.labels[idx - 1];
+        if (stmt.isGoSub) {
+            throw { type: 'GoSub', label };
+        } else {
+            throw { type: 'GoTo', label };
+        }
+    }
+
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
         const val = this.evaluateExpression(stmt.right);
 
@@ -733,51 +774,7 @@ export class Evaluator {
         for (let i = startIndex; i < body.length; i++) {
             const stmt = body[i];
             try {
-                if (this.errorHandlerLabel) {
-                    // Error handler active: wrap each statement in try-catch
-                    try {
-                        this.evaluateStatement(stmt);
-                    } catch (e: any) {
-                        // Let Exit, ResumeNext, and GoTo propagate
-                        if (e && (e.type === 'Exit' || e.type === 'ResumeNext' || e.type === 'GoTo')) {
-                            throw e;
-                        }
-                        // Find the error handler label in the body and jump to it
-                        const labelIndex = body.findIndex(s =>
-                            s.type === 'LabelStatement' &&
-                            (s as any).label === this.errorHandlerLabel
-                        );
-                        if (labelIndex >= 0) {
-                            // Populate Err object with error info
-                            const errObj = this.env.get('err');
-                            if (errObj) {
-                                errObj.number = 1000;
-                                errObj.source = 'VBARuntime';
-                                errObj.description = e.message || String(e);
-                            }
-                            // Save the resume point (statement after the one that caused the error)
-                            const resumeIndex = i + 1;
-                            // Disable error handler while inside handler body to prevent infinite recursion
-                            const savedHandler = this.errorHandlerLabel;
-                            this.errorHandlerLabel = null;
-                            try {
-                                this.executeStatements(body, labelIndex + 1);
-                            } catch (resumeE: any) {
-                                if (resumeE && resumeE.type === 'ResumeNext') {
-                                    // Resume Next: restore error handler and continue from statement after error
-                                    this.errorHandlerLabel = savedHandler;
-                                    this.executeStatements(body, resumeIndex);
-                                    return;
-                                }
-                                throw resumeE;
-                            }
-                            return; // Error handler completed normally
-                        }
-                        throw e; // Label not found, re-throw
-                    }
-                } else {
-                    this.evaluateStatement(stmt);
-                }
+                this.evaluateStatement(stmt);
             } catch (e: any) {
                 if (e && e.type === 'GoTo') {
                     const labelName = e.label.toLowerCase();
@@ -785,20 +782,64 @@ export class Evaluator {
                         s.type === 'LabelStatement' &&
                         (s as any).label.toLowerCase() === labelName
                     );
-
                     if (labelIndex >= 0) {
-                        // Restart loop from label
-                        i = labelIndex; // loop will increment i to labelIndex + 1? 
-                        // Wait, if I set i = labelIndex, the loop i++ will make it labelIndex + 1.
-                        // So I should set i = labelIndex - 1.
                         i = labelIndex - 1;
                         continue;
-                    } else {
-                        // Label not found in current block, propagate up
+                    }
+                    throw e;
+                } else if (e && e.type === 'GoSub') {
+                    const labelName = e.label.toLowerCase();
+                    const labelIndex = body.findIndex(s =>
+                        s.type === 'LabelStatement' &&
+                        (s as any).label.toLowerCase() === labelName
+                    );
+                    if (labelIndex >= 0) {
+                        this.gosubStack.push(i);
+                        i = labelIndex - 1;
+                        continue;
+                    }
+                    throw e;
+                } else if (e && e.type === 'Return') {
+                    if (this.gosubStack.length === 0) {
+                        throw new Error('Execution error: Return without GoSub');
+                    }
+                    i = this.gosubStack.pop()!;
+                    continue;
+                } else if (this.errorHandlerLabel) {
+                    // Error handler active
+                    if (e && (e.type === 'Exit' || e.type === 'Terminate')) {
                         throw e;
                     }
+                    const labelIndex = body.findIndex(s =>
+                        s.type === 'LabelStatement' &&
+                        (s as any).label === this.errorHandlerLabel
+                    );
+                    if (labelIndex >= 0) {
+                        // Populate Err object
+                        const errObj = this.env.get('err');
+                        if (errObj) {
+                            errObj.number = 1000;
+                            errObj.description = e.message || String(e);
+                        }
+                        const resumeIndex = i + 1;
+                        const savedHandler = this.errorHandlerLabel;
+                        this.errorHandlerLabel = null;
+                        try {
+                            this.executeStatements(body, labelIndex + 1);
+                        } catch (resumeE: any) {
+                            if (resumeE && resumeE.type === 'ResumeNext') {
+                                this.errorHandlerLabel = savedHandler;
+                                this.executeStatements(body, resumeIndex);
+                                return;
+                            }
+                            throw resumeE;
+                        }
+                        return;
+                    }
+                    throw e;
+                } else {
+                    throw e;
                 }
-                throw e; // Propagate Exit, ResumeNext, or real errors
             }
         }
     }
