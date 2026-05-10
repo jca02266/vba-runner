@@ -25,4 +25,16 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // VBA is dynamically typed; any is appropriate in the compiler and test files
+    files: [
+      'src/compiler/**/*.ts',
+      'src/App.tsx',
+      'tests/**/*.ts',
+      'sample/tests/**/*.ts',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
 )

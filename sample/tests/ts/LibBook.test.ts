@@ -80,7 +80,7 @@ async function main() {
         let errorThrown = false;
         try {
             vbaTest.run('NewWorkbook', [2]);
-        } catch (e: any) {
+        } catch {
             errorThrown = true;
         }
 

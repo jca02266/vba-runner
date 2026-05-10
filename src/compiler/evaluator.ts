@@ -44,7 +44,11 @@ export class Environment {
     set(name: string, value: any) {
         // Find scope where variable is defined to update it, or set locally
         const key = name.toLowerCase();
-        let env: Environment | undefined = this;
+        if (this.variables.has(key)) {
+            this.variables.set(key, value);
+            return;
+        }
+        let env: Environment | undefined = this.enclosing;
         while (env) {
             if (env.variables.has(key)) {
                 env.variables.set(key, value);
@@ -62,7 +66,10 @@ export class Environment {
 
     get(name: string): any {
         const key = name.toLowerCase();
-        let env: Environment | undefined = this;
+        if (this.variables.has(key)) {
+            return this.variables.get(key);
+        }
+        let env: Environment | undefined = this.enclosing;
         while (env) {
             if (env.variables.has(key)) {
                 return env.variables.get(key);
@@ -81,7 +88,10 @@ export class Environment {
 
     getProcedure(name: string): ProcedureDeclaration | undefined {
         const key = name.toLowerCase();
-        let env: Environment | undefined = this;
+        if (this.procedures.has(key)) {
+            return this.procedures.get(key);
+        }
+        let env: Environment | undefined = this.enclosing;
         while (env) {
             if (env.procedures.has(key)) {
                 return env.procedures.get(key);
@@ -97,7 +107,10 @@ export class Environment {
 
     getType(name: string): TypeMember[] | undefined {
         const key = name.toLowerCase();
-        let env: Environment | undefined = this;
+        if (this.types.has(key)) {
+            return this.types.get(key);
+        }
+        let env: Environment | undefined = this.enclosing;
         while (env) {
             if (env.types.has(key)) {
                 return env.types.get(key);
@@ -277,7 +290,7 @@ export class Evaluator {
                 // Otherwise evaluate as a typical expression returning a value
                 return this.evaluateExpression(expr);
             }
-        } catch (e) {
+        } catch {
             // Ignored: fallback to full statement parsing
         }
 
@@ -348,9 +361,9 @@ export class Evaluator {
     }
 
     private evaluateForStatement(stmt: ForStatement) {
-        let startValue = this.evaluateExpression(stmt.start);
+        const startValue = this.evaluateExpression(stmt.start);
         const endValue = this.evaluateExpression(stmt.end);
-        let stepValue = stmt.step ? this.evaluateExpression(stmt.step) : 1;
+        const stepValue = stmt.step ? this.evaluateExpression(stmt.step) : 1;
         const varName = stmt.identifier.name;
 
         // Initialize block scope variable if it doesn't exist

@@ -14,6 +14,7 @@ export interface Program extends ASTNode {
     body: Statement[];
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Statement extends ASTNode { }
 
 export interface ForStatement extends Statement {
@@ -143,6 +144,7 @@ export interface CallStatement extends Statement {
     expression: CallExpression;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Expression extends ASTNode { }
 
 export interface CallExpression extends Expression {
@@ -215,7 +217,7 @@ export class Parser {
     }
 
     private skipNewlines() {
-        while (this.match(TokenType.Newline)) { }
+        while (this.match(TokenType.Newline)) { /* skip */ }
     }
 
     public parse(): Program {
