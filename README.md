@@ -22,6 +22,45 @@ Excelがない環境で、作成したVBAコードの動作確認、リファク
   - `TaskScheduler_Core.test.ts`: `TaskScheduler_Core.vba` 内の各関数の振る舞いを検証するユニットテスト。
 - `tests/ts/` - 汎用のテストランナーユーティリティ。
 
+## VBATest — テストランナーの使い方
+
+`tests/ts/test-runner.ts` の `VBATest` クラスは、単一ファイルとディレクトリ（複数ファイル）の両方をロードできます。
+
+### 単一ファイルを指定する（従来の使い方）
+
+```typescript
+import { VBATest } from '../../tests/ts/test-runner';
+
+const vbaTest = new VBATest('sample/src/vba/TaskScheduler_Core.vba');
+vbaTest.run('CalcBaseStartIdx', [1, 10, 1.0]);
+```
+
+### ディレクトリを指定して複数ファイルをまとめてロードする
+
+ディレクトリを渡すと、配下の `.vba` / `.cls` / `.frm` ファイルをアルファベット順にすべてロードし、
+**同一スコープ**に登録します。どのファイルに定義されたプロシージャでも相互に呼び出せます。
+
+```typescript
+const vbaTest = new VBATest('src/vba/');   // ディレクトリを指定
+
+// MathUtils.vba のプロシージャ
+vbaTest.run('Add', [3, 4]);          // => 7
+
+// StringUtils.cls のプロシージャ
+vbaTest.run('Greet', ['World']);     // => "Hello, World!"
+
+// Main.frm のプロシージャが他ファイルの Add / Greet を呼び出す
+vbaTest.run('CalcAndGreet', ['Alice', 10, 20]);
+```
+
+| 拡張子 | 対象モジュール種別 |
+|--------|------------------|
+| `.vba` | 標準モジュール |
+| `.cls` | クラスモジュール |
+| `.frm` | フォームモジュール |
+
+> **ファイルロード順**: アルファベット順で確定的にロードされます。モジュールレベルの初期化コード（`Sub`/`Function` 外）がある場合はこの順で実行されます。
+
 ## テスト環境での `run` と `eval` の使い分け
 TypeScript側からVBAのロジックを呼び出す際、用途に応じて以下の2つのメソッドを利用します。
 

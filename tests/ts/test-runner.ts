@@ -1,19 +1,34 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { Lexer } from '../../src/compiler/lexer';
 import { Parser } from '../../src/compiler/parser';
 import { Evaluator } from '../../src/compiler/evaluator';
 
+const VBA_EXTENSIONS = new Set(['.vba', '.cls', '.frm']);
+
 export class VBATest {
     private evaluator: Evaluator;
 
-    constructor(filePath: string) {
-        const sourceCode = fs.readFileSync(filePath, 'utf-8');
-        const lexer = new Lexer(sourceCode);
-        const tokens = lexer.tokenize();
-        const parser = new Parser(tokens);
-        const ast = parser.parse();
+    constructor(pathOrDir: string) {
         this.evaluator = new Evaluator(console.log);
-        this.evaluator.evaluate(ast);
+
+        const stat = fs.statSync(pathOrDir);
+        const files = stat.isDirectory()
+            ? fs.readdirSync(pathOrDir)
+                  .filter(f => VBA_EXTENSIONS.has(path.extname(f).toLowerCase()))
+                  .sort()
+                  .map(f => path.join(pathOrDir, f))
+            : [pathOrDir];
+
+        for (const file of files) {
+            const source = fs.readFileSync(file, 'utf-8');
+            try {
+                const ast = new Parser(new Lexer(source).tokenize()).parse();
+                this.evaluator.evaluate(ast);
+            } catch (e: any) {
+                throw new Error(`[${path.basename(file)}] ${e.message}`);
+            }
+        }
     }
 
     run(procedureName: string, args: any[]): any {
