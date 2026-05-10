@@ -91,6 +91,7 @@ export enum TokenType {
     OperatorColon,
     OperatorColonEquals,
     OperatorExclamation,
+    Date,
     Newline,
     EOF,
     Unknown
@@ -156,6 +157,21 @@ export class Lexer {
             }
 
             const char = this.peek();
+            
+            // Handle Date literal #mm/dd/yyyy#
+            if (char === '#') {
+                this.advance(); // consume opening #
+                let dateValue = '';
+                while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {
+                    dateValue += this.advance();
+                }
+                if (this.peek() === '#') {
+                    this.advance(); // consume closing #
+                    return { type: TokenType.Date, value: dateValue, line: this.line };
+                }
+                // If no closing #, treat as Unknown or fallback
+                return { type: TokenType.Unknown, value: '#', line: this.line };
+            }
 
             // Line continuation: _ must be immediately followed by \n or \r\n (no trailing spaces)
             if (char === '_') {
@@ -185,11 +201,19 @@ export class Lexer {
             if (char === '"') {
                 this.advance(); // consume opening quote
                 let strValue = '';
-                while (this.peek() !== '"' && this.peek() !== '\0') {
-                    strValue += this.advance();
-                }
-                if (this.peek() === '"') {
-                    this.advance(); // consume closing quote
+                while (this.peek() !== '\0') {
+                    if (this.peek() === '"') {
+                        this.advance(); // consume first quote
+                        if (this.peek() === '"') {
+                            strValue += '"'; // it's an escaped quote
+                            this.advance(); // consume second quote
+                        } else {
+                            // end of string
+                            return { type: TokenType.String, value: strValue, line: this.line };
+                        }
+                    } else {
+                        strValue += this.advance();
+                    }
                 }
                 return { type: TokenType.String, value: strValue, line: this.line };
             }
@@ -238,6 +262,22 @@ export class Lexer {
 
             if (char === '&') {
                 this.advance();
+                const next = this.peek().toLowerCase();
+                if (next === 'h') {
+                    this.advance(); // consume 'h'
+                    let hexStr = '';
+                    while (/[0-9a-f]/i.test(this.peek())) {
+                        hexStr += this.advance();
+                    }
+                    return { type: TokenType.Number, value: '0x' + hexStr, line: this.line };
+                } else if (next === 'o' || this.isDigit(next)) {
+                    if (next === 'o') this.advance(); // consume 'o'
+                    let octStr = '';
+                    while (/[0-7]/.test(this.peek())) {
+                        octStr += this.advance();
+                    }
+                    return { type: TokenType.Number, value: '0o' + octStr, line: this.line };
+                }
                 return { type: TokenType.OperatorAmpersand, value: '&', line: this.line };
             }
 
@@ -282,9 +322,20 @@ export class Lexer {
                         numStr += this.advance();
                     }
                 }
-                // Check for VBA Type Declaration Suffixes for numbers (%, &, @, !, #)
+                // Handle scientific notation: [eE][+-]?digits
+                const nextChar = this.peek().toLowerCase();
+                if (nextChar === 'e') {
+                    numStr += this.advance(); // consume 'e'
+                    if (this.peek() === '+' || this.peek() === '-') {
+                        numStr += this.advance();
+                    }
+                    while (this.isDigit(this.peek())) {
+                        numStr += this.advance();
+                    }
+                }
+                // Check for VBA Type Declaration Suffixes for numbers (%, &, @, !, #, ^)
                 const peekChar = this.peek();
-                if (['%', '&', '@', '!', '#'].indexOf(peekChar) !== -1) {
+                if (['%', '&', '@', '!', '#', '^'].indexOf(peekChar) !== -1) {
                     numStr += this.advance();
                 }
                 return { type: TokenType.Number, value: numStr, line: this.line };

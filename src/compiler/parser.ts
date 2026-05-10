@@ -290,6 +290,11 @@ export interface StringLiteral extends Expression {
     value: string;
 }
 
+export interface DateLiteral extends Expression {
+    type: 'DateLiteral';
+    value: string;
+}
+
 export interface BinaryExpression extends Expression {
     type: 'BinaryExpression';
     operator: string;
@@ -1532,11 +1537,14 @@ export class Parser {
         const token = this.advance();
         let expr: Expression;
         if (token.type === TokenType.Number) {
-            // Remove VBA type suffix (%, &, @, !, #) before parsing into a float
-            const cleanVal = token.value.replace(/[%&@!#]$/, '');
-            expr = { type: 'NumberLiteral', value: parseFloat(cleanVal) } as NumberLiteral;
+            // Remove VBA type suffix (%, &, @, !, #, ^) before parsing into a float/int
+            const cleanVal = token.value.replace(/[%&@!#^]$/, '');
+            // Use Number() to support 0x (Hex) and 0o (Octal) prefixes
+            expr = { type: 'NumberLiteral', value: Number(cleanVal) } as NumberLiteral;
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
+        } else if (token.type === TokenType.Date) {
+            expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
         } else if (token.type === TokenType.Identifier) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordEmpty) {

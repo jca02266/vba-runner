@@ -1,0 +1,67 @@
+import { Lexer } from '../../src/compiler/lexer';
+import { Parser } from '../../src/compiler/parser';
+import { Evaluator } from '../../src/compiler/evaluator';
+import { assert } from '../ts/test-runner';
+
+function evalVBA(code: string): any {
+    const tokens = new Lexer(code).tokenize();
+    const ast = new Parser(tokens).parse();
+    const ev = new Evaluator(console.log);
+    ev.evaluate(ast);
+    return ev;
+}
+
+const code = `
+    Function TestHex()
+        TestHex = &HFF
+    End Function
+
+    Function TestOctal()
+        TestOctal = &O10
+    End Function
+
+    Function TestOctalShort()
+        TestOctalShort = &10
+    End Function
+
+    Function TestSuffixes()
+        Dim results(5)
+        results(0) = 123%   ' Integer
+        results(1) = 123&   ' Long
+        results(2) = 123.4! ' Single
+        results(3) = 123.4# ' Double
+        results(4) = 123.4@ ' Currency
+        results(5) = 123^   ' LongLong
+        TestSuffixes = results
+    End Function
+
+    Function TestStringEscape()
+        TestStringEscape = "a""b"
+    End Function
+
+    Function TestScientific()
+        TestScientific = 1.23E+2
+    End Function
+`;
+
+const ev = evalVBA(code);
+
+console.log('[Test Suite] リテラルの検証');
+
+assert.strictEqual(ev.callProcedure('TestHex', []), 255, 'Hex &HFF -> 255');
+assert.strictEqual(ev.callProcedure('TestOctal', []), 8, 'Octal &O10 -> 8');
+assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
+assert.strictEqual(ev.callProcedure('TestStringEscape', []), 'a"b', 'String escape "a""b" -> a"b');
+assert.strictEqual(ev.callProcedure('TestScientific', []), 123, 'Scientific 1.23E+2 -> 123');
+
+const sfx = ev.callProcedure('TestSuffixes', []);
+assert.strictEqual(sfx[0], 123, 'Suffix % -> 123');
+assert.strictEqual(sfx[1], 123, 'Suffix & -> 123');
+assert.strictEqual(sfx[2], 123.4, 'Suffix ! -> 123.4');
+assert.strictEqual(sfx[3], 123.4, 'Suffix # -> 123.4');
+assert.strictEqual(sfx[4], 123.4, 'Suffix @ -> 123.4');
+assert.strictEqual(sfx[5], 123, 'Suffix ^ -> 123');
+
+console.log('[PASS] 数値リテラルの検証');
+
+console.log('\n✅ Number Literals: 全テスト通過');

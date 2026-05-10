@@ -11,6 +11,7 @@ import {
     Identifier,
     NumberLiteral,
     StringLiteral,
+    DateLiteral,
     AssignmentStatement,
     ProcedureDeclaration,
     VariableDeclaration,
@@ -48,6 +49,16 @@ export class VbaBoolean {
     constructor(public value: -1 | 0) {}
     valueOf() { return this.value; }
     toString() { return this.value === -1 ? 'True' : 'False'; }
+}
+
+export class VbaDate {
+    constructor(public value: number) {}
+    valueOf() { return this.value; }
+    toString() {
+        // Simple conversion for now
+        const d = new Date((this.value - 25569) * 86400000);
+        return d.toLocaleDateString();
+    }
 }
 
 export const vbaEmpty = null;
@@ -289,6 +300,7 @@ export class Evaluator {
             if (val === vbaNothing) return 'Nothing';
             if (val === vbaMissing) return 'Error';
             if (val instanceof VbaBoolean) return 'Boolean';
+            if (val instanceof VbaDate) return 'Date';
             if (typeof val === 'number') return 'Double';
             if (typeof val === 'string') return 'String';
             if (typeof val === 'boolean') return 'Boolean';
@@ -376,8 +388,32 @@ export class Evaluator {
         });
 
         this.env.set('isnull', (val: any) => val === vbaNull ? vbaTrue : vbaFalse);
+        this.env.set('isdate', (val: any) => {
+            if (val === null || val === undefined || val === vbaNull || val === vbaEmpty || val === vbaMissing) return vbaFalse;
+            if (val instanceof VbaDate) return vbaTrue;
+            if (typeof val === 'number') return vbaTrue;
+            if (typeof val === 'string') {
+                const d = new Date(val);
+                return !isNaN(d.getTime()) ? vbaTrue : vbaFalse;
+            }
+            return vbaFalse;
+        });
+        this.env.set('iserror', (val: any) => (val === vbaMissing) ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
         this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
+
+        this.env.set('vartype', (val: any) => {
+            if (val === vbaEmpty || val === undefined) return 0; // vbEmpty
+            if (val === vbaNull) return 1; // vbNull
+            if (val instanceof VbaBoolean) return 11; // vbBoolean
+            if (val instanceof VbaDate) return 7; // vbDate
+            if (val === vbaMissing) return 10; // vbError
+            if (Array.isArray(val)) return 8192 + 12; // vbArray + vbVariant
+            if (typeof val === 'number') return 5; // vbDouble
+            if (typeof val === 'string') return 8; // vbString
+            if (typeof val === 'object') return 9; // vbObject
+            return 12; // vbVariant
+        });
         
         this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
 
@@ -1587,6 +1623,8 @@ export class Evaluator {
                 return (expr as NumberLiteral).value;
             case 'StringLiteral':
                 return (expr as StringLiteral).value;
+            case 'DateLiteral':
+                return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
                 return this.env.get((expr as Identifier).name);
             case 'CallExpression':
@@ -1608,6 +1646,21 @@ export class Evaluator {
             default:
                 throw new Error(`Execution error: Unknown expression type ${expr.type}`);
         }
+    }
+
+    private evaluateDateLiteral(expr: DateLiteral): any {
+        const d = new Date(expr.value);
+        if (isNaN(d.getTime())) {
+            // Try fallback or simple parser if standard Date fails
+            // VBA #mm/dd/yyyy# or #yyyy-mm-dd#
+            // For now, let's assume JS Date can handle common formats
+            throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
+        }
+        // Excel/VBA serial number: days since 1899-12-30
+        const baseDate = new Date(1899, 11, 30); // Dec 30, 1899
+        const diff = d.getTime() - baseDate.getTime();
+        const serial = diff / (24 * 60 * 60 * 1000);
+        return new VbaDate(serial);
     }
 
     private evaluateCallExpression(expr: CallExpression): any {
@@ -1901,9 +1954,14 @@ export class Evaluator {
         if (rightVal === false) rightVal = vbaFalse;
 
         switch (expr.operator.toLowerCase()) {
-            case '+': return leftVal + rightVal;
+            case '+': 
+                const sum = leftVal + rightVal;
+                return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(sum) : sum;
             case '&': return String(leftVal) + String(rightVal);
-            case '-': return leftVal - rightVal;
+            case '-': 
+                const diff = leftVal - rightVal;
+                if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) return diff; // Date - Date = Number
+                return (leftVal instanceof VbaDate) ? new VbaDate(diff) : diff;
             case '*': return leftVal * rightVal;
             case '/': return leftVal / rightVal;
             case '\\': return Math.floor(leftVal / rightVal);
