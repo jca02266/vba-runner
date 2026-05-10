@@ -46,6 +46,41 @@ npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample
 ```
 
 
+## ファイル入出力のSandbox方針
+
+VBAコードからのファイル入出力はすべて**Sandboxディレクトリ**内に限定します。これにより、実行環境のファイルシステムを保護しつつ、VBAのファイル操作命令をテスト可能にします。
+
+### Sandboxの動作ルール
+
+1. **Sandboxルートの指定**: Evaluatorの初期化時にSandboxルートディレクトリを指定します。デフォルトは `workspace/`（プロジェクトルートからの相対パス）です。
+
+2. **Windowsパスの仮想化**: VBAコード内の絶対パス（例: `C:\Users\foo\bar.txt`、`C:/data/output.csv`）はSandboxルート配下のパスに変換されます。
+   - `C:\foo\bar.txt` → `{sandboxRoot}/foo/bar.txt`
+   - ドライブレター（`C:`、`D:` など）はSandboxルートに置換されます。
+
+3. **上位ディレクトリへのアクセス禁止**: `../` などを使ってSandboxルートの外へのアクセスを試みた場合はエラーになります。
+
+4. **相対パスの扱い**: VBAコード内の相対パスはSandboxルートを起点として解決されます。
+
+### パス変換ユーティリティ（テスト用）
+
+`tests/ts/sandbox.ts` に実パスと仮想パス（VBAから見えるWindowsパス）を相互変換するユーティリティを提供します。
+
+```typescript
+import { SandboxPath } from '../../tests/ts/sandbox';
+
+const sandbox = new SandboxPath('./workspace');
+
+// 実パス → VBA上の仮想パス（Windows形式）
+sandbox.toVirtualPath('./workspace/foo/bar.txt'); // => "C:\\foo\\bar.txt"
+
+// VBA上の仮想パス → 実パス
+sandbox.toRealPath('C:\\foo\\bar.txt');           // => "./workspace/foo/bar.txt"
+sandbox.toRealPath('C:/foo/bar.txt');             // => "./workspace/foo/bar.txt"
+```
+
+テストコードでは、VBAコードに渡すパスをこのユーティリティで組み立てることで、実ファイルシステムへの影響を限定しながらファイル操作の動作を検証できます。
+
 ## UI画面の起動
 ブラウザ上でVBAエディタ環境を立ち上げ、`Debug.Print` クラスの動作などを確認します。
 これはおまけです。VBAを実行できることを示すデモのためにあります。

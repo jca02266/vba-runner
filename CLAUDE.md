@@ -40,6 +40,16 @@ TypeScript で実装された VBA インタープリター。Excel なしで VBA
 
 引数付きのプロシージャ呼び出しには `run`、式の直接評価や引数なしのプロシージャ呼び出しには `eval` を使う。
 
+## ファイル入出力の実装規則
+
+**ファイル操作（Open, Close, Print#, Write#, Input# など §5.4.5 全般）を実装する際は、必ず README.md の「ファイル入出力のSandbox方針」を参照すること。**
+
+実装上の必須要件:
+- すべてのファイルパスは `src/compiler/sandbox.ts` の `SandboxPath` クラスを通じて解決する
+- Windowsパス（`C:\...`）はSandboxルートへの変換を行う
+- Sandboxルート外へのパス traversal（`../` など）は実行時エラーにする
+- テストコードでは `tests/ts/sandbox.ts` のユーティリティでパスを組み立てる
+
 ## サンプルコードの構成
 
 - `sample/src/vba/TaskScheduler_Core.vba` — 純粋なビジネスロジック関数（ユニットテスト対象）
