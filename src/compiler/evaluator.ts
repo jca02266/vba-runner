@@ -436,6 +436,41 @@ export class Evaluator {
             if (s === vbaNull) throw new Error('Execution error: Invalid use of Null');
             return String(s ?? '').split('').reverse().join('');
         });
+        this.env.set('strconv', (s: any, conversion: any, lcid?: any) => {
+            let str = String(s ?? '');
+            const c = parseInt(conversion) || 0;
+
+            const casing = c & 3;
+            if (casing === 1) { // vbUpperCase
+                str = str.toUpperCase();
+            } else if (casing === 2) { // vbLowerCase
+                str = str.toLowerCase();
+            } else if (casing === 3) { // vbProperCase
+                str = str.toLowerCase().replace(/(^|[^a-zA-Z0-9])([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+            }
+
+            if (c & 4) { // vbWide
+                str = str.replace(/[!-~]/g, m => String.fromCharCode(m.charCodeAt(0) + 0xFEE0));
+                const map: any = { '｡': '。', '｢': '「', '｣': '」', '､': '、', '･': '・', 'ｦ': 'ヲ', 'ｧ': 'ァ', 'ｨ': 'ィ', 'ｩ': 'ゥ', 'ｪ': 'ェ', 'ｫ': 'ォ', 'ｬ': 'ャ', 'ｭ': 'ュ', 'ｮ': 'ョ', 'ｯ': 'ッ', 'ｰ': 'ー', 'ｱ': 'ア', 'ｲ': 'イ', 'ｳ': 'ウ', 'ｴ': 'エ', 'ｵ': 'オ', 'ｶ': 'カ', 'ｷ': 'キ', 'ｸ': 'ク', 'ｹ': 'ケ', 'ｺ': 'コ', 'ｻ': 'サ', 'ｼ': 'シ', 'ｽ': 'ス', 'ｾ': 'セ', 'ｿ': 'ソ', 'ﾀ': 'タ', 'ﾁ': 'チ', 'ﾂ': 'ツ', 'ﾃ': 'テ', 'ﾄ': 'ト', 'ﾅ': 'ナ', 'ﾆ': 'ニ', 'ﾇ': 'ヌ', 'ネ': 'ネ', 'ﾉ': 'ノ', 'ﾊ': 'ハ', 'ﾋ': 'ヒ', 'ﾌ': 'フ', 'ﾍ': 'ヘ', 'ﾎ': 'ホ', 'ﾏ': 'マ', 'ﾐ': 'ミ', 'ﾑ': 'ム', 'ﾒ': 'メ', 'ﾓ': 'モ', 'ﾔ': 'ヤ', 'ﾕ': 'ユ', 'ﾖ': 'ヨ', 'ﾗ': 'ラ', 'ﾘ': 'リ', 'ﾙ': 'ル', 'ﾚ': 'レ', 'ﾛ': 'ロ', 'ﾜ': 'ワ', 'ﾝ': 'ン', 'ﾞ': '゛', 'ﾟ': '゜' };
+                str = str.replace(/[｡-ﾟ]/g, m => map[m] || m);
+            }
+
+            if (c & 8) { // vbNarrow
+                str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0));
+                const map: any = { '。': '｡', '「': '｢', '」': '｣', '、': '､', '・': '･', 'ヲ': 'ｦ', 'ァ': 'ｧ', 'ィ': 'ｨ', 'ゥ': 'ｩ', 'ェ': 'ｪ', 'ォ': 'ｫ', 'ャ': 'ｬ', 'ュ': 'ｭ', 'ョ': 'ｮ', 'ッ': 'ｯ', 'ー': 'ｰ', 'ア': 'ｱ', 'イ': 'ｲ', 'ウ': 'ｳ', 'エ': 'ｴ', 'オ': 'ｵ', 'カ': 'ｶ', 'キ': 'ｷ', 'ク': 'ｸ', 'ケ': 'ｹ', 'コ': 'ｺ', 'サ': 'ｻ', 'シ': 'ｼ', 'ス': 'ｽ', 'セ': 'ｾ', 'ソ': 'ｿ', 'タ': 'ﾀ', 'チ': 'ﾁ', 'ツ': 'ﾂ', 'テ': 'ﾃ', 'ト': 'ﾄ', 'ナ': 'ﾅ', 'ニ': 'ﾆ', 'ヌ': 'ﾇ', 'ネ': 'ﾈ', 'ノ': 'ﾉ', 'ハ': 'ﾊ', 'ヒ': 'ﾋ', 'フ': 'ﾌ', 'ヘ': 'ﾍ', 'ホ': 'ﾎ', 'マ': 'ﾏ', 'ミ': 'ﾐ', 'ム': 'ﾑ', 'メ': 'ﾒ', 'モ': 'ﾓ', 'ヤ': 'ﾔ', 'ユ': 'ﾕ', 'ヨ': 'ﾖ', 'ラ': 'ﾗ', 'リ': 'ﾘ', 'ル': 'ﾙ', 'レ': 'ﾚ', 'ロ': 'ﾛ', 'ワ': 'ﾜ', 'ン': 'ﾝ', '゛': 'ﾞ', '゜': 'ﾟ' };
+                str = str.replace(/[。-゜]/g, m => map[m] || m);
+            }
+
+            if (c & 16) { // vbKatakana
+                str = str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+            }
+
+            if (c & 32) { // vbHiragana
+                str = str.replace(/[\u30A1-\u30FA]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+            }
+
+            return str;
+        });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
         this.env.set('filter', (sourceArray: any, match: any, include: any = vbaTrue, compare: any = 0) => {
@@ -514,9 +549,8 @@ export class Evaluator {
         });
 
         this.env.set('abs', (val: any) => Math.abs(val));
-        this.env.set('round', (val: any, digits: number = 0) => {
-            const factor = Math.pow(10, digits);
-            return Math.round(val * factor) / factor;
+        this.env.set('round', (val: any, digits: any = 0) => {
+            return this.vbaRound(parseFloat(val) || 0, parseInt(digits) || 0);
         });
         this.env.set('sqr', (val: any) => Math.sqrt(val));
 
