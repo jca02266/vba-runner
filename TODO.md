@@ -1,6 +1,8 @@
 # VBA実装 TODOリスト（MS-VBAL仕様書準拠）
 
 仕様書: `spec/[MS-VBAL]-250520.docx`（テキスト版: `spec/MS-VBAL.txt`）
+- **バージョン**: 2.4（2025-05-20）
+- **URL**: https://learn.microsoft.com/en-us/openspecs/microsoft_general_purpose_programming_languages/ms-vbal/d5418146-0bd2-45eb-9c7a-fd9502722c74
 
 凡例: ✅ 実装済み / ❌ 未実装 / ⚠️ 部分実装
 

@@ -22,12 +22,44 @@ TODO.mdから優先度の高い未実装機能を1件選び、テスト作成・
 ### Step 4: テストを作成
 
 `tests/spec/` 配下に機能名に対応するテストファイルを作成する（例: `tests/spec/select-case.test.ts`）。
-テストは以下の観点を網羅する:
+
+#### tests/spec/ のテスト記述ルール
+
+**ファイル冒頭のボイラープレート**（必ずこの形式で書く）:
+
+```typescript
+import { Lexer } from '../../src/compiler/lexer';
+import { Parser } from '../../src/compiler/parser';
+import { Evaluator } from '../../src/compiler/evaluator';
+import { assert } from '../ts/test-runner';
+
+function evalVBA(code: string): any {
+    const tokens = new Lexer(code).tokenize();
+    const ast = new Parser(tokens).parse();
+    const ev = new Evaluator(console.log);
+    ev.evaluate(ast);
+    return ev;
+}
+
+function runFunc(code: string, name: string, args: any[] = []): any {
+    return evalVBA(code).callProcedure(name, args);
+}
+```
+
+**テストの書き方**:
+- VBAコードはテンプレートリテラルのインライン文字列として書く（`.vba` ファイルは使わない）
+- 引数なしでプロシージャを呼ぶ場合も `runFunc(code, 'FuncName')` を使う
+- 式や副作用のみ確認する場合は `evalVBA(code)` を使う
+- アサーションは `assert.strictEqual(actual, expected, 'テストの説明')` を使う
+- 各テストグループの末尾に `console.log('[PASS] テスト名')` を入れる
+- ファイル末尾に `console.log('\n✅ <機能名>: 全テスト通過')` を入れる
+
+**テストで網羅する観点**:
 - 基本動作（正常系）
 - エッジケース（仕様書に明記されているもの）
 - エラー系（不正な入力）
 
-テストには `VBATest` クラス（`tests/ts/test-runner.ts`）を使用し、`vbaEditor.run()` または `vbaEditor.eval()` で検証する。
+> **注意**: `tests/ts/test-runner.ts` の `VBATest` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
 
 ### Step 5: 実装
 
@@ -43,14 +75,16 @@ TODO.mdから優先度の高い未実装機能を1件選び、テスト作成・
 以下のコマンドでテストを実行し、全件パスすることを確認する:
 
 ```bash
-npx esbuild tests/spec/<テストファイル名>.ts --bundle --outfile=tests/spec/<テストファイル名>.cjs --platform=node && node tests/spec/<テストファイル名>.cjs
+./node_modules/.bin/esbuild tests/spec/<テストファイル名>.ts --bundle --outfile=tests/spec/<テストファイル名>.cjs --platform=node && node tests/spec/<テストファイル名>.cjs
 ```
 
 既存テストのリグレッションも確認する:
 
 ```bash
-npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+./node_modules/.bin/esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
 ```
+
+> **注意**: `esbuild` は PATH に入っていないため `npx` ではなく `./node_modules/.bin/esbuild` で実行すること。
 
 ### Step 7: 仕様書との照合
 

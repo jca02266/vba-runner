@@ -13,8 +13,10 @@ npm run lint       # ESLint
 
 **テスト実行**（esbuild でバンドル後、Node で実行）:
 ```bash
-npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+./node_modules/.bin/esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
 ```
+
+> **注意**: `esbuild` など Node.js のローカルツールは PATH に入っていないことを前提に、常に `./node_modules/.bin/<コマンド>` で直接実行すること。`npx` は使わない。
 
 ## アーキテクチャ
 
