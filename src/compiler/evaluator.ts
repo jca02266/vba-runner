@@ -528,6 +528,11 @@ export class Evaluator {
         const proc = this.env.getProcedure(procName, type);
 
         if (!proc) {
+            // Fall back to built-in functions stored as closures in env
+            const builtin = this.env.get(procName);
+            if (typeof builtin === 'function') {
+                return builtin(...args);
+            }
             throw new Error(`Execution error: Procedure '${name}' not found`);
         }
 

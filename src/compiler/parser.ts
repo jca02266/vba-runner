@@ -1091,12 +1091,24 @@ export class Parser {
         let alternate: Statement[] | IfStatement | null = null;
 
         if (!isMultiLine) {
-            // Single-line If
-            while (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF) {
+            // Single-line If: read consequent until Else/Newline/EOF
+            while (
+                this.peek().type !== TokenType.Newline &&
+                this.peek().type !== TokenType.EOF &&
+                this.peek().type !== TokenType.KeywordElse
+            ) {
                 const stmt = this.parseStatement();
                 if (stmt) consequent.push(stmt);
             }
-            // No End If expected
+            // Handle optional inline Else
+            if (this.peek().type === TokenType.KeywordElse) {
+                this.advance(); // consume 'Else'
+                alternate = [];
+                while (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF) {
+                    const stmt = this.parseStatement();
+                    if (stmt) (alternate as Statement[]).push(stmt);
+                }
+            }
             return {
                 type: 'IfStatement',
                 condition,

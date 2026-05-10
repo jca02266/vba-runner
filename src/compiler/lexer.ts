@@ -157,6 +157,22 @@ export class Lexer {
 
             const char = this.peek();
 
+            // Line continuation: _ followed by optional whitespace/comment then newline
+            if (char === '_') {
+                let lookahead = this.pos + 1;
+                while (lookahead < this.input.length &&
+                       (this.input[lookahead] === ' ' || this.input[lookahead] === '\t' || this.input[lookahead] === '\r')) {
+                    lookahead++;
+                }
+                if (lookahead >= this.input.length || this.input[lookahead] === '\n') {
+                    // Skip _ and the rest of the line including the newline
+                    this.advance(); // consume '_'
+                    while (this.peek() !== '\n' && this.peek() !== '\0') this.advance();
+                    if (this.peek() === '\n') this.advance(); // consume newline (advance() updates this.line)
+                    continue;
+                }
+            }
+
             // Handle single quote comment
             if (char === "'") {
                 while (this.peek() !== '\n' && this.peek() !== '\0') {
