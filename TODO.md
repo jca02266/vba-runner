@@ -55,8 +55,8 @@
 
 | 状態 | 優先度 | 機能 | 仕様書 |
 |------|--------|------|--------|
-| ✅ | P1 | On Error Statement（GoTo / Resume Next / GoTo 0） | §5.4.4.1 |
-| ✅ | P1 | Resume Statement | §5.4.4.2 |
+| ✅ | P0 | On Error Statement（GoTo / Resume Next / GoTo 0） | §5.4.4.1 |
+| ✅ | P0 | Resume Statement | §5.4.4.2 |
 | ✅ | P2 | Error Statement（エラー番号の発生） | §5.4.4.3 |
 
 ## 第5章：ファイル操作ステートメント (§5.4.5)
@@ -326,6 +326,7 @@
 4.  **Option Compare** (§5.2.1.1) — 文字列比較の正確性
 5.  **Attributes** (§5.2.3.1.6) — ソースエクスポートファイルの直接読込
 6.  **CreateObject (拡張)** (§6.1.2.8.1.4) — 外部オブジェクト連携の強化
+7.  **エラーハンドリング** (§5.4.4) — `On Error GoTo`, `Resume` の完全な準拠
 
 ### P1：重要（標準ライブラリの拡充）
 
