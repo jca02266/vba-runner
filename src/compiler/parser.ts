@@ -5,6 +5,11 @@ export interface ResumeStatement extends Statement {
     target: string; // 'Next' or label
 }
 
+export interface GoToStatement extends Statement {
+    type: 'GoToStatement';
+    label: string;
+}
+
 export interface ASTNode {
     type: string;
 }
@@ -302,6 +307,8 @@ export class Parser {
             return this.parseDimStatement();
         } else if (token.type === TokenType.KeywordConst) {
             return this.parseConstDeclaration();
+        } else if (token.type === TokenType.KeywordGoTo) {
+            return this.parseGoToStatement();
         } else if (token.type === TokenType.KeywordSet) {
             return this.parseSetStatement();
         } else if (token.type === TokenType.KeywordOn) {
@@ -335,12 +342,19 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot) {
-            // Check if it's a label "Identifier:"
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number) {
+            // Check if it's a label "Identifier:" or "Number" (line number)
             if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;
                 this.advance(); // consume Identifier
                 this.advance(); // consume ':'
+                return { type: 'LabelStatement', label: labelName } as any;
+            } else if (token.type === TokenType.Number) {
+                // Line number label.
+                const labelName = token.value;
+                this.advance(); // consume Number
+                // Optional colon after line number
+                this.match(TokenType.OperatorColon);
                 return { type: 'LabelStatement', label: labelName } as any;
             }
 
@@ -595,6 +609,15 @@ export class Parser {
         }
 
         return { type: 'ExitStatement', exitType };
+    }
+
+    private parseGoToStatement(): GoToStatement {
+        this.advance(); // consume 'GoTo'
+        const labelToken = this.advance();
+        if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+            throw new Error(`Parse error: Expected identifier or number after 'GoTo' at line ${labelToken.line}`);
+        }
+        return { type: 'GoToStatement', label: labelToken.value };
     }
 
     private parseResumeStatement(): ResumeStatement {

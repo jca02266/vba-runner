@@ -29,6 +29,7 @@ import {
     ForEachStatement,
     WithStatement,
     ImplicitWithObjectExpression,
+    GoToStatement,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -381,6 +382,9 @@ export class Evaluator {
             case 'WithStatement':
                 this.evaluateWithStatement(stmt as WithStatement);
                 break;
+            case 'GoToStatement':
+                this.evaluateGoToStatement(stmt as GoToStatement);
+                break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
         }
@@ -564,6 +568,10 @@ export class Evaluator {
         }
     }
 
+    private evaluateGoToStatement(stmt: GoToStatement) {
+        throw { type: 'GoTo', label: stmt.label };
+    }
+
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
         const val = this.evaluateExpression(stmt.right);
 
@@ -707,50 +715,73 @@ export class Evaluator {
     private executeStatements(body: Statement[], startIndex: number) {
         for (let i = startIndex; i < body.length; i++) {
             const stmt = body[i];
-            if (this.errorHandlerLabel) {
-                // Error handler active: wrap each statement in try-catch
-                try {
-                    this.evaluateStatement(stmt);
-                } catch (e: any) {
-                    // Let Exit and ResumeNext propagate
-                    if (e && (e.type === 'Exit' || e.type === 'ResumeNext')) {
-                        throw e;
+            try {
+                if (this.errorHandlerLabel) {
+                    // Error handler active: wrap each statement in try-catch
+                    try {
+                        this.evaluateStatement(stmt);
+                    } catch (e: any) {
+                        // Let Exit, ResumeNext, and GoTo propagate
+                        if (e && (e.type === 'Exit' || e.type === 'ResumeNext' || e.type === 'GoTo')) {
+                            throw e;
+                        }
+                        // Find the error handler label in the body and jump to it
+                        const labelIndex = body.findIndex(s =>
+                            s.type === 'LabelStatement' &&
+                            (s as any).label === this.errorHandlerLabel
+                        );
+                        if (labelIndex >= 0) {
+                            // Populate Err object with error info
+                            const errObj = this.env.get('err');
+                            if (errObj) {
+                                errObj.number = 1000;
+                                errObj.source = 'VBARuntime';
+                                errObj.description = e.message || String(e);
+                            }
+                            // Save the resume point (statement after the one that caused the error)
+                            const resumeIndex = i + 1;
+                            // Disable error handler while inside handler body to prevent infinite recursion
+                            const savedHandler = this.errorHandlerLabel;
+                            this.errorHandlerLabel = null;
+                            try {
+                                this.executeStatements(body, labelIndex + 1);
+                            } catch (resumeE: any) {
+                                if (resumeE && resumeE.type === 'ResumeNext') {
+                                    // Resume Next: restore error handler and continue from statement after error
+                                    this.errorHandlerLabel = savedHandler;
+                                    this.executeStatements(body, resumeIndex);
+                                    return;
+                                }
+                                throw resumeE;
+                            }
+                            return; // Error handler completed normally
+                        }
+                        throw e; // Label not found, re-throw
                     }
-                    // Find the error handler label in the body and jump to it
+                } else {
+                    this.evaluateStatement(stmt);
+                }
+            } catch (e: any) {
+                if (e && e.type === 'GoTo') {
+                    const labelName = e.label.toLowerCase();
                     const labelIndex = body.findIndex(s =>
                         s.type === 'LabelStatement' &&
-                        (s as any).label === this.errorHandlerLabel
+                        (s as any).label.toLowerCase() === labelName
                     );
+
                     if (labelIndex >= 0) {
-                        // Populate Err object with error info
-                        const errObj = this.env.get('err');
-                        if (errObj) {
-                            errObj.number = 1000;
-                            errObj.source = 'VBARuntime';
-                            errObj.description = e.message || String(e);
-                        }
-                        // Save the resume point (statement after the one that caused the error)
-                        const resumeIndex = i + 1;
-                        // Disable error handler while inside handler body to prevent infinite recursion
-                        const savedHandler = this.errorHandlerLabel;
-                        this.errorHandlerLabel = null;
-                        try {
-                            this.executeStatements(body, labelIndex + 1);
-                        } catch (resumeE: any) {
-                            if (resumeE && resumeE.type === 'ResumeNext') {
-                                // Resume Next: restore error handler and continue from statement after error
-                                this.errorHandlerLabel = savedHandler;
-                                this.executeStatements(body, resumeIndex);
-                                return;
-                            }
-                            throw resumeE;
-                        }
-                        return; // Error handler completed normally
+                        // Restart loop from label
+                        i = labelIndex; // loop will increment i to labelIndex + 1? 
+                        // Wait, if I set i = labelIndex, the loop i++ will make it labelIndex + 1.
+                        // So I should set i = labelIndex - 1.
+                        i = labelIndex - 1;
+                        continue;
+                    } else {
+                        // Label not found in current block, propagate up
+                        throw e;
                     }
-                    throw e; // Label not found, re-throw
                 }
-            } else {
-                this.evaluateStatement(stmt);
+                throw e; // Propagate Exit, ResumeNext, or real errors
             }
         }
     }

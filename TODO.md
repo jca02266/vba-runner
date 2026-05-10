@@ -23,7 +23,7 @@
 | ✅ | Single-line If Statement | §5.4.2.9 |
 | ✅ | Select Case Statement | §5.4.2.10 |
 | ❌ | Stop Statement | §5.4.2.11 |
-| ❌ | GoTo Statement（汎用ラベルジャンプ） | §5.4.2.12 |
+| ✅ | GoTo Statement（汎用ラベルジャンプ） | §5.4.2.12 |
 | ❌ | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |
 | ❌ | GoSub Statement | §5.4.2.14 |
 | ❌ | Return Statement（GoSub用） | §5.4.2.15 |
