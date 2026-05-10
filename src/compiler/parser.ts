@@ -115,6 +115,23 @@ export interface TypeDeclaration extends Statement {
     members: TypeMember[];
 }
 
+export type RangeClause =
+    | { kind: 'expression'; value: Expression }
+    | { kind: 'to'; start: Expression; end: Expression }
+    | { kind: 'comparison'; operator: string; value: Expression };
+
+export interface CaseClause {
+    ranges: RangeClause[];
+    body: Statement[];
+}
+
+export interface SelectCaseStatement extends Statement {
+    type: 'SelectCaseStatement';
+    expression: Expression;
+    cases: CaseClause[];
+    elseBody: Statement[] | null;
+}
+
 export interface AssignmentStatement extends Statement {
     type: 'AssignmentStatement';
     left: Expression; // Identifier, CallExpression (for arrays), MemberExpression
@@ -257,6 +274,8 @@ export class Parser {
                 // Ignore for now
             }
             return null;
+        } else if (token.type === TokenType.KeywordSelect) {
+            return this.parseSelectCaseStatement();
         } else if (token.type === TokenType.KeywordType) {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
@@ -771,6 +790,104 @@ export class Parser {
             condition,
             body
         };
+    }
+
+    private parseSelectCaseStatement(): SelectCaseStatement {
+        this.advance(); // consume 'Select'
+        if (!this.match(TokenType.KeywordCase)) {
+            throw new Error(`Parse error: Expected 'Case' after 'Select' at line ${this.peek().line}`);
+        }
+        const expression = this.parseExpression();
+        this.skipNewlines();
+
+        const cases: CaseClause[] = [];
+        let elseBody: Statement[] | null = null;
+
+        while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
+            if (this.peek().type !== TokenType.KeywordCase) {
+                throw new Error(`Parse error: Expected 'Case' in Select Case at line ${this.peek().line}`);
+            }
+            this.advance(); // consume 'Case'
+
+            // Case Else
+            if (this.peek().type === TokenType.KeywordElse) {
+                this.advance(); // consume 'Else'
+                this.skipNewlines();
+                elseBody = [];
+                while (
+                    this.peek().type !== TokenType.KeywordEnd &&
+                    this.peek().type !== TokenType.KeywordCase &&
+                    this.peek().type !== TokenType.EOF
+                ) {
+                    const stmt = this.parseStatement();
+                    if (stmt) elseBody.push(stmt);
+                    this.skipNewlines();
+                }
+                continue;
+            }
+
+            // Parse range-clauses (comma-separated)
+            const ranges: RangeClause[] = [];
+            ranges.push(this.parseRangeClause());
+            while (this.match(TokenType.OperatorComma)) {
+                ranges.push(this.parseRangeClause());
+            }
+            this.skipNewlines();
+
+            const body: Statement[] = [];
+            while (
+                this.peek().type !== TokenType.KeywordCase &&
+                this.peek().type !== TokenType.KeywordEnd &&
+                this.peek().type !== TokenType.EOF
+            ) {
+                const stmt = this.parseStatement();
+                if (stmt) body.push(stmt);
+                this.skipNewlines();
+            }
+            cases.push({ ranges, body });
+        }
+
+        // consume 'End Select'
+        if (this.peek().type === TokenType.KeywordEnd) {
+            this.advance(); // 'End'
+            if (!this.match(TokenType.KeywordSelect)) {
+                throw new Error(`Parse error: Expected 'Select' after 'End' at line ${this.peek().line}`);
+            }
+        }
+
+        return { type: 'SelectCaseStatement', expression, cases, elseBody };
+    }
+
+    private parseRangeClause(): RangeClause {
+        // [Is] comparison-operator expression
+        const isKeyword = this.peek().type === TokenType.KeywordIs;
+        if (isKeyword) this.advance(); // consume 'Is'
+
+        const compOp = this.peek();
+        if (
+            compOp.type === TokenType.OperatorEquals ||
+            compOp.type === TokenType.OperatorNotEquals ||
+            compOp.type === TokenType.OperatorLessThan ||
+            compOp.type === TokenType.OperatorGreaterThan ||
+            compOp.type === TokenType.OperatorLessThanOrEqual ||
+            compOp.type === TokenType.OperatorGreaterThanOrEqual
+        ) {
+            this.advance(); // consume operator
+            const value = this.parseExpression();
+            return { kind: 'comparison', operator: compOp.value, value };
+        }
+
+        if (isKeyword) {
+            throw new Error(`Parse error: Expected comparison operator after 'Is' at line ${this.peek().line}`);
+        }
+
+        // expression or start-value To end-value
+        const startExpr = this.parseExpression();
+        if (this.match(TokenType.KeywordTo)) {
+            const endExpr = this.parseExpression();
+            return { kind: 'to', start: startExpr, end: endExpr };
+        }
+        return { kind: 'expression', value: startExpr };
     }
 
     private parseExpression(): Expression {

@@ -42,6 +42,8 @@ export enum TokenType {
     KeywordOptional,
     KeywordIs,
     KeywordResume,
+    KeywordSelect,
+    KeywordCase,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -301,6 +303,8 @@ export class Lexer {
                 if (lowerId === 'optional') return { type: TokenType.KeywordOptional, value: idStr, line: this.line };
                 if (lowerId === 'is') return { type: TokenType.KeywordIs, value: idStr, line: this.line };
                 if (lowerId === 'resume') return { type: TokenType.KeywordResume, value: idStr, line: this.line };
+                if (lowerId === 'select') return { type: TokenType.KeywordSelect, value: idStr, line: this.line };
+                if (lowerId === 'case') return { type: TokenType.KeywordCase, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

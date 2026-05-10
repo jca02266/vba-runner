@@ -21,7 +21,7 @@ TODO.mdから優先度の高い未実装機能を1件選び、テスト作成・
 
 ### Step 4: テストを作成
 
-`sample/tests/ts/` 配下に機能名に対応するテストファイルを作成する（既存ファイルがあれば追記）。
+`tests/spec/` 配下に機能名に対応するテストファイルを作成する（例: `tests/spec/select-case.test.ts`）。
 テストは以下の観点を網羅する:
 - 基本動作（正常系）
 - エッジケース（仕様書に明記されているもの）
@@ -43,7 +43,7 @@ TODO.mdから優先度の高い未実装機能を1件選び、テスト作成・
 以下のコマンドでテストを実行し、全件パスすることを確認する:
 
 ```bash
-npx esbuild sample/tests/ts/<テストファイル名>.ts --bundle --outfile=sample/tests/ts/<テストファイル名>.cjs --platform=node && node sample/tests/ts/<テストファイル名>.cjs
+npx esbuild tests/spec/<テストファイル名>.ts --bundle --outfile=tests/spec/<テストファイル名>.cjs --platform=node && node tests/spec/<テストファイル名>.cjs
 ```
 
 既存テストのリグレッションも確認する:

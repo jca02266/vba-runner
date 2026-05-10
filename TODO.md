@@ -19,7 +19,7 @@
 | ✅ | Exit Do Statement | §5.4.2.7 |
 | ✅ | If Statement（複数行） | §5.4.2.8 |
 | ✅ | Single-line If Statement | §5.4.2.9 |
-| ❌ | Select Case Statement | §5.4.2.10 |
+| ✅ | Select Case Statement | §5.4.2.10 |
 | ❌ | Stop Statement | §5.4.2.11 |
 | ❌ | GoTo Statement（汎用ラベルジャンプ） | §5.4.2.12 |
 | ❌ | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |

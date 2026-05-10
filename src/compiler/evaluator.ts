@@ -24,6 +24,7 @@ import {
     OnErrorStatement,
     TypeDeclaration,
     TypeMember,
+    SelectCaseStatement,
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
@@ -338,6 +339,9 @@ export class Evaluator {
             case 'TypeDeclaration':
                 this.evaluateTypeDeclaration(stmt as TypeDeclaration);
                 break;
+            case 'SelectCaseStatement':
+                this.evaluateSelectCaseStatement(stmt as SelectCaseStatement);
+                break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
         }
@@ -388,6 +392,43 @@ export class Evaluator {
             } else {
                 this.evaluateIfStatement(stmt.alternate as IfStatement);
             }
+        }
+    }
+
+    private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
+        const selectVal = this.evaluateExpression(stmt.expression);
+
+        for (const caseClause of stmt.cases) {
+            let matched = false;
+            for (const range of caseClause.ranges) {
+                if (range.kind === 'expression') {
+                    matched = selectVal === this.evaluateExpression(range.value);
+                } else if (range.kind === 'to') {
+                    const start = this.evaluateExpression(range.start);
+                    const end = this.evaluateExpression(range.end);
+                    matched = selectVal >= start && selectVal <= end;
+                } else {
+                    // comparison: selectVal <op> value
+                    const val = this.evaluateExpression(range.value);
+                    switch (range.operator) {
+                        case '=':  matched = selectVal === val; break;
+                        case '<>': matched = selectVal !== val; break;
+                        case '<':  matched = selectVal < val;   break;
+                        case '>':  matched = selectVal > val;   break;
+                        case '<=': matched = selectVal <= val;  break;
+                        case '>=': matched = selectVal >= val;  break;
+                    }
+                }
+                if (matched) break;
+            }
+            if (matched) {
+                for (const s of caseClause.body) this.evaluateStatement(s);
+                return;
+            }
+        }
+
+        if (stmt.elseBody) {
+            for (const s of stmt.elseBody) this.evaluateStatement(s);
         }
     }
 
