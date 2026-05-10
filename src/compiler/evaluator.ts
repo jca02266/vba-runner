@@ -298,6 +298,198 @@ export class Evaluator {
         this.env.set('nothing', null);
         this.env.set('null', null);
 
+        // VBA date serial: days since 1899-12-30 (VBA epoch)
+        const VBA_EPOCH = new Date(1899, 11, 30); // local time
+        const MS_PER_DAY = 86400000;
+
+        const toVbaDate = (d: Date): number =>
+            (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
+
+        const fromVbaDate = (serial: number): Date => {
+            const ms = Math.round(serial * MS_PER_DAY);
+            return new Date(VBA_EPOCH.getTime() + ms);
+        };
+
+        const parseVbaDate = (val: any): Date => {
+            if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
+            if (typeof val === 'number') return fromVbaDate(val);
+            const d = new Date(val);
+            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+            return d;
+        };
+
+        // Weekday constants (vbSunday=1 ... vbSaturday=7)
+        this.env.set('vbsunday', 1);
+        this.env.set('vbmonday', 2);
+        this.env.set('vbtuesday', 3);
+        this.env.set('vbwednesday', 4);
+        this.env.set('vbthursday', 5);
+        this.env.set('vbfriday', 6);
+        this.env.set('vbsaturday', 7);
+        this.env.set('vbusesystemdayofweek', 0);
+
+        // --- DateTime extraction functions ---
+        this.env.set('year',   (d: any) => d === null ? null : parseVbaDate(d).getFullYear());
+        this.env.set('month',  (d: any) => d === null ? null : parseVbaDate(d).getMonth() + 1);
+        this.env.set('day',    (d: any) => d === null ? null : parseVbaDate(d).getDate());
+        this.env.set('hour',   (d: any) => d === null ? null : parseVbaDate(d).getHours());
+        this.env.set('minute', (d: any) => d === null ? null : parseVbaDate(d).getMinutes());
+        this.env.set('second', (d: any) => d === null ? null : parseVbaDate(d).getSeconds());
+
+        this.env.set('weekday', (d: any, firstDay: number = 1) => {
+            if (d === null) return null;
+            const jsDay = parseVbaDate(d).getDay(); // 0=Sun
+            // VBA: firstDay=1(Sun)..7(Sat). JS getDay() 0=Sun..6=Sat
+            // Shift so that firstDay maps to 1
+            const offset = (firstDay <= 1) ? 0 : (firstDay - 1);
+            return ((jsDay - offset + 7) % 7) + 1;
+        });
+
+        // --- DateSerial / TimeSerial ---
+        this.env.set('dateserial', (year: number, month: number, day: number) => {
+            const d = new Date(year, month - 1, day);
+            if (year >= 0 && year <= 99) d.setFullYear(year); // preserve 2-digit years as-is
+            return toVbaDate(d);
+        });
+
+        this.env.set('timeserial', (hour: number, minute: number, second: number) => {
+            const totalSec = hour * 3600 + minute * 60 + second;
+            return totalSec / 86400; // fraction of a day
+        });
+
+        // --- DateValue / TimeValue ---
+        this.env.set('datevalue', (s: any) => {
+            if (s === null) return null;
+            const d = new Date(String(s));
+            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${s}'`);
+            // Return date-only serial (strip time portion)
+            return Math.floor(toVbaDate(d));
+        });
+
+        this.env.set('timevalue', (s: any) => {
+            if (s === null) return null;
+            const d = new Date(`1970-01-01T${String(s)}`);
+            if (isNaN(d.getTime())) {
+                const d2 = new Date(String(s));
+                if (isNaN(d2.getTime())) throw new Error(`Execution error: Type mismatch: '${s}'`);
+                return toVbaDate(d2) % 1;
+            }
+            return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
+        });
+
+        // --- DateAdd ---
+        // Add months/years with VBA's month-end clamping behavior
+        const addMonths = (d: Date, months: number): Date => {
+            const day = d.getDate();
+            const result = new Date(d);
+            result.setDate(1); // avoid overflow when changing month
+            result.setMonth(result.getMonth() + months);
+            // Clamp to last day of the resulting month
+            const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+            result.setDate(Math.min(day, lastDay));
+            return result;
+        };
+
+        this.env.set('dateadd', (interval: string, number: number, date: any) => {
+            const d = parseVbaDate(date);
+            const n = Math.round(number);
+            const iv = String(interval).toLowerCase();
+            let result: Date;
+            switch (iv) {
+                case 'yyyy': result = addMonths(d, n * 12); break;
+                case 'q':    result = addMonths(d, n * 3); break;
+                case 'm':    result = addMonths(d, n); break;
+                case 'y': case 'd': case 'w':
+                    result = new Date(d); result.setDate(result.getDate() + n); break;
+                case 'ww':
+                    result = new Date(d); result.setDate(result.getDate() + n * 7); break;
+                case 'h':
+                    result = new Date(d); result.setHours(result.getHours() + n); break;
+                case 'n':
+                    result = new Date(d); result.setMinutes(result.getMinutes() + n); break;
+                case 's':
+                    result = new Date(d); result.setSeconds(result.getSeconds() + n); break;
+                default: throw new Error('Execution error: Invalid procedure call or argument (DateAdd interval)');
+            }
+            return toVbaDate(result);
+        });
+
+        // --- DateDiff ---
+        this.env.set('datediff', (interval: string, date1: any, date2: any, firstDayOfWeek: number = 1) => {
+            const d1 = parseVbaDate(date1);
+            const d2 = parseVbaDate(date2);
+            const iv = String(interval).toLowerCase();
+            switch (iv) {
+                case 'yyyy': return d2.getFullYear() - d1.getFullYear();
+                case 'q':    return (d2.getFullYear() - d1.getFullYear()) * 4 +
+                                    Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
+                case 'm':    return (d2.getFullYear() - d1.getFullYear()) * 12 +
+                                    (d2.getMonth() - d1.getMonth());
+                case 'y': case 'd': return Math.floor(toVbaDate(d2)) - Math.floor(toVbaDate(d1));
+                case 'w':    return Math.floor((toVbaDate(d2) - toVbaDate(d1)) / 7);
+                case 'ww': {
+                    // Count week boundaries between d1 and d2
+                    const offset = (firstDayOfWeek <= 1) ? 0 : firstDayOfWeek - 1;
+                    const adj1 = Math.floor((Math.floor(toVbaDate(d1)) - offset + 7) / 7);
+                    const adj2 = Math.floor((Math.floor(toVbaDate(d2)) - offset + 7) / 7);
+                    return adj2 - adj1;
+                }
+                case 'h': return Math.floor((d2.getTime() - d1.getTime()) / 3600000);
+                case 'n': return Math.floor((d2.getTime() - d1.getTime()) / 60000);
+                case 's': return Math.floor((d2.getTime() - d1.getTime()) / 1000);
+                default: throw new Error('Execution error: Invalid procedure call or argument (DateDiff interval)');
+            }
+        });
+
+        // --- DatePart ---
+        this.env.set('datepart', (interval: string, date: any, firstDayOfWeek: number = 1) => {
+            const d = parseVbaDate(date);
+            const iv = String(interval).toLowerCase();
+            switch (iv) {
+                case 'yyyy': return d.getFullYear();
+                case 'q':    return Math.floor(d.getMonth() / 3) + 1;
+                case 'm':    return d.getMonth() + 1;
+                case 'y':    return Math.floor(toVbaDate(d)) - Math.floor(toVbaDate(new Date(d.getFullYear(), 0, 1))) + 1;
+                case 'd':    return d.getDate();
+                case 'w': {
+                    const jsDay = d.getDay();
+                    const offset = (firstDayOfWeek <= 1) ? 0 : (firstDayOfWeek - 1);
+                    return ((jsDay - offset + 7) % 7) + 1;
+                }
+                case 'ww': return Math.ceil((Math.floor(toVbaDate(d)) - toVbaDate(new Date(d.getFullYear(), 0, 1)) + 1) / 7);
+                case 'h':  return d.getHours();
+                case 'n':  return d.getMinutes();
+                case 's':  return d.getSeconds();
+                default: throw new Error('Execution error: Invalid procedure call or argument (DatePart interval)');
+            }
+        });
+
+        // --- Now / Date / Time / Timer ---
+        this.env.set('now',   () => toVbaDate(new Date()));
+        this.env.set('date',  () => Math.floor(toVbaDate(new Date())));
+        this.env.set('date$', () => {
+            const d = new Date();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            const yyyy = d.getFullYear();
+            return `${mm}-${dd}-${yyyy}`;
+        });
+        this.env.set('time',  () => {
+            const d = new Date();
+            return (d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds()) / 86400;
+        });
+        this.env.set('time$', () => {
+            const d = new Date();
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            const ss = String(d.getSeconds()).padStart(2, '0');
+            return `${hh}:${mm}:${ss}`;
+        });
+        this.env.set('timer', () => {
+            const d = new Date();
+            return d.getHours() * 3600 + d.getMinutes() * 60 + d.getSeconds() + d.getMilliseconds() / 1000;
+        });
+
         // Add common Excel VBA constants
         this.env.set('xlup', -4162);
         this.env.set('xldown', -4121);
