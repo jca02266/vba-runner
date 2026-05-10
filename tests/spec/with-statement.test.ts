@@ -28,7 +28,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             TestWith = obj.Exists("key1")
         End Function
     `;
-    assert.strictEqual(runFunc(code, 'TestWith'), true, 'With block should call methods on the object');
+    assert.isTrue(runFunc(code, 'TestWith'), 'With block should call methods on the object');
     console.log('[PASS] Basic With (Object)');
 }
 
@@ -48,7 +48,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             TestNestedWith = obj1.Exists("name") And obj2.Exists("name")
         End Function
     `;
-    assert.strictEqual(runFunc(code, 'TestNestedWith'), true, 'Nested With blocks should work correctly');
+    assert.isTrue(runFunc(code, 'TestNestedWith'), 'Nested With blocks should work correctly');
     console.log('[PASS] Nested With');
 }
 
@@ -59,7 +59,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             Name As String
             Age As Integer
         End Type
-        
+
         Function TestWithUDT()
             Dim p As Person
             With p
@@ -87,7 +87,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             End With
         End Function
     `;
-    assert.strictEqual(runFunc(code, 'TestWithExpr'), true, 'With block should work with expressions');
+    assert.isTrue(runFunc(code, 'TestWithExpr'), 'With block should work with expressions');
     console.log('[PASS] With with Expression');
 }
 

@@ -103,6 +103,4 @@ Feat: Implement <機能名> (<仕様書章番号>)
 
 - <実装内容の箇条書き>
 - テスト: <テストファイル名>
-
-Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>
 ```

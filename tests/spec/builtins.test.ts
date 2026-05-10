@@ -28,9 +28,9 @@ function evalExpr(expr: string): any {
 {
     assert.strictEqual(evalExpr('CInt("123.5")'), 124, 'CInt (round)');
     assert.strictEqual(evalExpr('CStr(123)'), '123', 'CStr');
-    assert.strictEqual(evalExpr('CBool(1)'), true, 'CBool(1)');
-    assert.strictEqual(evalExpr('1 = 1'), -1, 'Equality 1 = 1');
-    assert.strictEqual(evalExpr('CBool(0)'), false, 'CBool(0)');
+    assert.isTrue(evalExpr('CBool(1)'), 'CBool(1)');
+    assert.isTrue(evalExpr('1 = 1'), 'Equality 1 = 1');
+    assert.isFalse(evalExpr('CBool(0)'), 'CBool(0)');
     assert.strictEqual(evalExpr('Fix(123.9)'), 123, 'Fix positive');
     assert.strictEqual(evalExpr('Fix(-123.9)'), -123, 'Fix negative');
 }
@@ -44,12 +44,12 @@ function evalExpr(expr: string): any {
 
 // 4. Information Functions
 {
-    assert.strictEqual(evalExpr('IsNull(nothing)'), true, 'IsNull(Nothing)');
-    assert.strictEqual(evalExpr('IsNull(123)'), false, 'IsNull(123)');
-    assert.strictEqual(evalExpr('IsArray(Array(1, 2))'), true, 'IsArray(Array())');
-    assert.strictEqual(evalExpr('IsArray(123)'), false, 'IsArray(123)');
-    assert.strictEqual(evalExpr('IsObject(CreateObject("Scripting.Dictionary"))'), true, 'IsObject(Dictionary)');
-    assert.strictEqual(evalExpr('IsObject(123)'), false, 'IsObject(123)');
+    assert.isTrue(evalExpr('IsNull(nothing)'), 'IsNull(Nothing)');
+    assert.isFalse(evalExpr('IsNull(123)'), 'IsNull(123)');
+    assert.isTrue(evalExpr('IsArray(Array(1, 2))'), 'IsArray(Array())');
+    assert.isFalse(evalExpr('IsArray(123)'), 'IsArray(123)');
+    assert.isTrue(evalExpr('IsObject(CreateObject("Scripting.Dictionary"))'), 'IsObject(Dictionary)');
+    assert.isFalse(evalExpr('IsObject(123)'), 'IsObject(123)');
 }
 
 // 5. Array Functions

@@ -55,9 +55,9 @@ Function IsWeekend(day)
     End Select
 End Function
 `;
-assert.strictEqual(runFunc(multiCode, 'IsWeekend', [1]), true,  'day=1 is weekend');
-assert.strictEqual(runFunc(multiCode, 'IsWeekend', [7]), true,  'day=7 is weekend');
-assert.strictEqual(runFunc(multiCode, 'IsWeekend', [3]), false, 'day=3 is not weekend');
+assert.isTrue(runFunc(multiCode, 'IsWeekend', [1]),  'day=1 is weekend');
+assert.isTrue(runFunc(multiCode, 'IsWeekend', [7]),  'day=7 is weekend');
+assert.isFalse(runFunc(multiCode, 'IsWeekend', [3]), 'day=3 is not weekend');
 console.log('[PASS] カンマ区切り複数値');
 
 // --- 3. To による範囲マッチ ---

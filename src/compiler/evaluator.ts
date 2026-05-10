@@ -43,6 +43,8 @@ import {
 import { Lexer, TokenType } from './lexer';
 
 export const EmptyVBA = null;
+export const vbaTrue = -1;
+export const vbaFalse = 0;
 
 export class Environment {
     private variables: Map<string, any> = new Map();
@@ -168,8 +170,8 @@ export class Evaluator {
         });
 
         // Add typical VBA built-ins
-        this.env.set('isempty', (val: any) => val === undefined || val === null || val === '');
-        this.env.set('isnumeric', (val: any) => !isNaN(parseFloat(val)) && isFinite(val));
+        this.env.set('isempty', (val: any) => (val === undefined || val === null || val === '') ? vbaTrue : vbaFalse);
+        this.env.set('isnumeric', (val: any) => (!isNaN(parseFloat(val)) && isFinite(val)) ? vbaTrue : vbaFalse);
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
         this.env.set('clng', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('int', (val: any) => Math.floor(parseFloat(val)) || 0);
@@ -193,7 +195,7 @@ export class Evaluator {
 
         this.env.set('cint', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('cstr', (val: any) => String(val === null ? '' : val));
-        this.env.set('cbool', (val: any) => !!val);
+        this.env.set('cbool', (val: any) => !!val ? vbaTrue : vbaFalse);
         this.env.set('fix', (val: any) => val > 0 ? Math.floor(val) : Math.ceil(val));
         this.env.set('Val', (s: any) => {
             if (typeof s !== 'string') return 0;
@@ -238,9 +240,9 @@ export class Evaluator {
         });
         this.env.set('sqr', (val: any) => Math.sqrt(val));
 
-        this.env.set('isnull', (val: any) => val === null);
-        this.env.set('isarray', (val: any) => Array.isArray(val));
-        this.env.set('isobject', (val: any) => val !== null && typeof val === 'object' && !Array.isArray(val));
+        this.env.set('isnull', (val: any) => val === null ? vbaTrue : vbaFalse);
+        this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
+        this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
         
         this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
 
@@ -276,7 +278,7 @@ export class Evaluator {
                     __isVbaDict__: true,
                     __map__: dict,
                     add: (k: string, v: any) => dict.set(k, v),
-                    exists: (k: string) => dict.has(k),
+                    exists: (k: string) => dict.has(k) ? vbaTrue : vbaFalse,
                     items: () => Array.from(dict.values()),
                     keys: () => Array.from(dict.keys())
                 };
@@ -286,8 +288,8 @@ export class Evaluator {
         });
 
         // Add VBA intrinsic constants
-        this.env.set('true', true);
-        this.env.set('false', false);
+        this.env.set('true', vbaTrue);
+        this.env.set('false', vbaFalse);
         this.env.set('empty', EmptyVBA);
         this.env.set('nothing', null);
         this.env.set('null', null);
@@ -1309,24 +1311,24 @@ export class Evaluator {
         const obj = this.evaluateExpression(expr.expression);
         const typeName = expr.typeName.toLowerCase();
 
-        if (obj === null || obj === undefined || typeof obj !== 'object') return 0; // False
+        if (obj === null || obj === undefined || typeof obj !== 'object') return vbaFalse;
 
         // Check for built-in types
-        if (typeName === 'object') return -1; // Everything that reaches here is an object
-        if (typeName === 'dictionary' && obj.__isVbaDict__) return -1;
-        if (typeName === 'collection' && obj.__isVbaCollection__) return -1;
+        if (typeName === 'object') return vbaTrue; // Everything that reaches here is an object
+        if (typeName === 'dictionary' && obj.__isVbaDict__) return vbaTrue;
+        if (typeName === 'collection' && obj.__isVbaCollection__) return vbaTrue;
 
         // User defined types or classes (if we store metadata)
-        if (obj.__vbaTypeName__ && obj.__vbaTypeName__.toLowerCase() === typeName) return -1;
+        if (obj.__vbaTypeName__ && obj.__vbaTypeName__.toLowerCase() === typeName) return vbaTrue;
 
-        return 0; // False
+        return vbaFalse;
     }
 
     private evaluateUnaryExpression(expr: UnaryExpression): any {
         const argument = this.evaluateExpression(expr.argument);
         switch (expr.operator.toLowerCase()) {
             case 'not':
-                const val = (argument === true) ? -1 : (argument === false ? 0 : argument);
+                const val = (argument === true) ? vbaTrue : (argument === false ? vbaFalse : argument);
                 return ~val;
             case '-':
                 return -argument;
@@ -1370,10 +1372,10 @@ export class Evaluator {
         let rightVal = this.evaluateExpression(expr.right);
 
         // Normalize booleans to VBA integers (-1, 0)
-        if (leftVal === true) leftVal = -1;
-        if (leftVal === false) leftVal = 0;
-        if (rightVal === true) rightVal = -1;
-        if (rightVal === false) rightVal = 0;
+        if (leftVal === true) leftVal = vbaTrue;
+        if (leftVal === false) leftVal = vbaFalse;
+        if (rightVal === true) rightVal = vbaTrue;
+        if (rightVal === false) rightVal = vbaFalse;
 
         switch (expr.operator.toLowerCase()) {
             case '+': return leftVal + rightVal;
@@ -1384,14 +1386,14 @@ export class Evaluator {
             case '\\': return Math.floor(leftVal / rightVal);
             case 'mod': return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
-            case '=': return leftVal === rightVal ? -1 : 0;
-            case '<>': return leftVal !== rightVal ? -1 : 0;
-            case '<': return leftVal < rightVal ? -1 : 0;
-            case '>': return leftVal > rightVal ? -1 : 0;
-            case '<=': return leftVal <= rightVal ? -1 : 0;
-            case '>=': return leftVal >= rightVal ? -1 : 0;
-            case 'is': return leftVal === rightVal ? -1 : 0;
-            case 'like': return this.evaluateLike(leftVal, rightVal) ? -1 : 0;
+            case '=': return leftVal === rightVal ? vbaTrue : vbaFalse;
+            case '<>': return leftVal !== rightVal ? vbaTrue : vbaFalse;
+            case '<': return leftVal < rightVal ? vbaTrue : vbaFalse;
+            case '>': return leftVal > rightVal ? vbaTrue : vbaFalse;
+            case '<=': return leftVal <= rightVal ? vbaTrue : vbaFalse;
+            case '>=': return leftVal >= rightVal ? vbaTrue : vbaFalse;
+            case 'is': return leftVal === rightVal ? vbaTrue : vbaFalse;
+            case 'like': return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
             case 'and': return leftVal & rightVal;
             case 'or': return leftVal | rightVal;
             case 'xor': return leftVal ^ rightVal;

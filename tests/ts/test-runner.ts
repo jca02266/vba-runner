@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Lexer } from '../../src/compiler/lexer';
 import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Evaluator, vbaTrue, vbaFalse } from '../../src/compiler/evaluator';
 
 const VBA_EXTENSIONS = new Set(['.vba', '.cls', '.frm']);
 
@@ -65,5 +65,17 @@ export const assert = {
             console.error(`[FAIL] ${message || 'Assertion failed'} - Expected ${expected} but got ${actual}`);
             throw new Error(`Assertion Failed`);
         }
-    }
+    },
+    isTrue: (actual: any, message?: string) => {
+        if (actual !== vbaTrue) {
+            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected vbaTrue (${vbaTrue}) but got ${actual}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
+    isFalse: (actual: any, message?: string) => {
+        if (actual !== vbaFalse) {
+            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected vbaFalse (${vbaFalse}) but got ${actual}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
 };
