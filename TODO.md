@@ -96,7 +96,7 @@
 | ✅ | P1 | Option Explicit（パース済み、実行時は無視） | §5.2 |
 | ✅ | P0 | Option Compare | §5.2.1.1 |
 | ✅ | P1 | Option Base | §5.2.1.2 |
-| ❌ | P1 | Option Private Module | §5.2.1.4 |
+| ✅ | P1 | Option Private Module | §5.2.1.4 |
 | ✅ | P0 | Attributes (VB_Name, etc.) | §5.2.3.1.6 / §5.2.4.1 | (制限事項: パースのみ。実行時は無視) |
 | ✅ | P0 | Date Literals (#mm/dd/yyyy#) | §3.3.3.3 |
 
