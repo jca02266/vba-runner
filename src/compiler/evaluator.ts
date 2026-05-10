@@ -227,6 +227,10 @@ export class Evaluator {
             }
             return idx === -1 ? 0 : idx + 1;
         });
+        this.env.set('strreverse', (s: any) => {
+            if (s === null) throw new Error('Execution error: Invalid use of Null');
+            return String(s).split('').reverse().join('');
+        });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
         this.env.set('cint', (val: any) => Math.round(parseFloat(val)) || 0);
