@@ -45,6 +45,8 @@ import {
 import { Lexer, TokenType } from './lexer';
 
 export const vbaEmpty = null;
+export const vbaNull = Symbol('vbaNull');
+export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
 export const vbaTrue = -1;
 export const vbaFalse = 0;
@@ -184,11 +186,11 @@ export class Evaluator {
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
         this.env.set('clng', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('int', (val: any) => Math.floor(parseFloat(val)) || 0);
-        this.env.set('ucase', (val: any) => val === null ? null : String(val).toUpperCase());
-        this.env.set('lcase', (val: any) => val === null ? null : String(val).toLowerCase());
-        this.env.set('trim', (val: any) => val === null ? null : String(val).trim());
-        this.env.set('ltrim', (val: any) => val === null ? null : String(val).replace(/^\s+/, ''));
-        this.env.set('rtrim', (val: any) => val === null ? null : String(val).replace(/\s+$/, ''));
+        this.env.set('ucase', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).toUpperCase());
+        this.env.set('lcase', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).toLowerCase());
+        this.env.set('trim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).trim());
+        this.env.set('ltrim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).replace(/^\s+/, ''));
+        this.env.set('rtrim', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).replace(/\s+$/, ''));
         this.env.set('len', (val: any) => String(val || '').length);
         this.env.set('left', (val: any, len: number) => String(val || '').substring(0, len));
         this.env.set('right', (val: any, len: number) => {
@@ -200,19 +202,22 @@ export class Evaluator {
             return len !== undefined ? s.substring(start - 1, start - 1 + len) : s.substring(start - 1);
         });
         this.env.set('instr', (...args: any[]) => {
-            let start: number, s1: string, s2: string;
+            let start: number, s1: any, s2: any;
             if (args.length >= 3 && typeof args[0] === 'number') {
-                [start, s1, s2] = [args[0], String(args[1] ?? ''), String(args[2] ?? '')];
+                [start, s1, s2] = [args[0], args[1], args[2]];
             } else {
-                [start, s1, s2] = [1, String(args[0] ?? ''), String(args[1] ?? '')];
+                [start, s1, s2] = [1, args[0], args[1]];
             }
-            const idx = s1.indexOf(s2, start - 1);
+            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
+            const str1 = String(s1 ?? '');
+            const str2 = String(s2 ?? '');
+            const idx = str1.indexOf(str2, start - 1);
             return idx === -1 ? 0 : idx + 1;
         });
         this.env.set('instrrev', (s1: any, s2: any, start: any = -1, compare: number = 0) => {
-            if (s1 === null || s2 === null) return null;
-            const str = String(s1);
-            const find = String(s2);
+            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
+            const str = String(s1 ?? '');
+            const find = String(s2 ?? '');
             if (str === "") return 0;
             if (find === "") return (start === -1 || start === undefined) ? str.length : Number(start);
             
@@ -228,9 +233,9 @@ export class Evaluator {
             return idx === -1 ? 0 : idx + 1;
         });
         this.env.set('strcomp', (s1: any, s2: any, compare: number = 0) => {
-            if (s1 === null || s2 === null) return null;
-            let str1 = String(s1);
-            let str2 = String(s2);
+            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
+            let str1 = String(s1 ?? '');
+            let str2 = String(s2 ?? '');
             if (compare === 1) { // vbTextCompare
                 str1 = str1.toLowerCase();
                 str2 = str2.toLowerCase();
@@ -240,8 +245,8 @@ export class Evaluator {
             return 0;
         });
         this.env.set('strreverse', (s: any) => {
-            if (s === null) throw new Error('Execution error: Invalid use of Null');
-            return String(s).split('').reverse().join('');
+            if (s === vbaNull) throw new Error('Execution error: Invalid use of Null');
+            return String(s ?? '').split('').reverse().join('');
         });
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
@@ -273,7 +278,10 @@ export class Evaluator {
         });
 
         this.env.set('TypeName', (val: any) => {
-            if (val === null || val === undefined || val === vbaEmpty) return 'Empty';
+            if (val === vbaEmpty || val === undefined) return 'Empty';
+            if (val === vbaNull) return 'Null';
+            if (val === vbaNothing) return 'Nothing';
+            if (val === vbaMissing) return 'Error';
             if (typeof val === 'number') return 'Double';
             if (typeof val === 'string') return 'String';
             if (typeof val === 'boolean') return 'Boolean';
@@ -360,7 +368,7 @@ export class Evaluator {
             lastRnd = rndSeed / 4294967296;
         });
 
-        this.env.set('isnull', (val: any) => val === null ? vbaTrue : vbaFalse);
+        this.env.set('isnull', (val: any) => val === vbaNull ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
         this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
         
@@ -411,8 +419,8 @@ export class Evaluator {
         this.env.set('true', vbaTrue);
         this.env.set('false', vbaFalse);
         this.env.set('empty', vbaEmpty);
-        this.env.set('nothing', null);
-        this.env.set('null', null);
+        this.env.set('nothing', vbaNothing);
+        this.env.set('null', vbaNull);
 
         // VBA date serial: days since 1899-12-30 (VBA epoch)
         const VBA_EPOCH = new Date(1899, 11, 30); // local time
