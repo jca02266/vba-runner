@@ -24,7 +24,7 @@
 | ✅ | P0 | Select Case Statement | §5.4.2.10 |
 | ✅ | P1 | Stop Statement | §5.4.2.11 |
 | ✅ | P1 | GoTo Statement（汎用ラベルジャンプ） | §5.4.2.12 |
-| ✅ | P2 | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |
+| ✅ | P0 | On…GoTo Statement（複数ラベル選択） | §5.4.2.13 |
 | ✅ | P2 | GoSub Statement | §5.4.2.14 |
 | ✅ | P2 | Return Statement（GoSub用） | §5.4.2.15 |
 | ✅ | P2 | On…GoSub Statement | §5.4.2.16 |
@@ -339,4 +339,4 @@
 
 11. 財務関数 (Financial Module) 全般
 12. ファイル操作ステートメント (Open/Print等) — Node.js環境での設計が必要
-13. レガシー構文: `GoSub`, `On...GoTo` 等
+13. レガシー構文: `GoSub` 等
