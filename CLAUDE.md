@@ -37,8 +37,8 @@ TypeScript で実装された VBA インタープリター。Excel なしで VBA
 
 テストは `sample/tests/ts/` に配置。`VBATest` クラス（`tests/ts/test-runner.ts`）はコンストラクタ時に `.vba` ファイルを読み込み、2 つの実行メソッドを提供する:
 
-- **`vbaEditor.run(procedureName, args)`** — TypeScript の配列引数を渡して名前付き Sub/Function を呼び出す
-- **`vbaEditor.eval(expressionString)`** — VBA の式または文を文字列として評価する。式の場合は戻り値を返し、文の場合は `undefined` を返す
+- **`vbaTest.run(procedureName, args)`** — TypeScript の配列引数を渡して名前付き Sub/Function を呼び出す
+- **`vbaTest.eval(expressionString)`** — VBA の式または文を文字列として評価する。式の場合は戻り値を返し、文の場合は `undefined` を返す
 
 引数付きのプロシージャ呼び出しには `run`、式の直接評価や引数なしのプロシージャ呼び出しには `eval` を使う。
 
