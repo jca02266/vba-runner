@@ -187,6 +187,7 @@ export class Evaluator {
     private currentProcIsStatic: boolean = false;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
+    private comparisonMode: 'Binary' | 'Text' = 'Binary';
 
     constructor(onPrint: PrintCallback) {
         this.env = new Environment();
@@ -196,11 +197,48 @@ export class Evaluator {
             print: (...args: any[]) => this.onPrint(args.join(' '))
         });
 
+        // VBA date serial: days since 1899-12-30 (VBA epoch)
+        const VBA_EPOCH = new Date(1899, 11, 30); // local time
+        const MS_PER_DAY = 86400000;
+
+        const toVbaDate = (d: Date): number =>
+            (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
+
+        const fromVbaDate = (serial: number): Date => {
+            const ms = Math.round(serial * MS_PER_DAY);
+            return new Date(VBA_EPOCH.getTime() + ms);
+        };
+
+        const parseVbaDate = (val: any): Date => {
+            if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
+            if (typeof val === 'number') return fromVbaDate(val);
+            const d = new Date(val);
+            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+            return d;
+        };
+
         // Add typical VBA built-ins
         this.env.set('isempty', (val: any) => (val === undefined || val === null || val === '') ? vbaTrue : vbaFalse);
         this.env.set('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse);
         this.env.set('isnumeric', (val: any) => (!isNaN(parseFloat(val)) && isFinite(val)) ? vbaTrue : vbaFalse);
         this.env.set('cdbl', (val: any) => parseFloat(val) || 0);
+        this.env.set('cdate', (val: any) => {
+            if (val === null || val === vbaNull || val === vbaEmpty) throw new Error('Execution error: Type mismatch');
+            if (val instanceof VbaDate) return val;
+            if (typeof val === 'number') return new VbaDate(val);
+            const d = new Date(val);
+            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+            return new VbaDate(toVbaDate(d));
+        });
+        this.env.set('cvdate', (val: any) => {
+            if (val === vbaNull) return vbaNull;
+            if (val === null || val === vbaEmpty) throw new Error('Execution error: Type mismatch');
+            if (val instanceof VbaDate) return val;
+            if (typeof val === 'number') return new VbaDate(val);
+            const d = new Date(val);
+            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+            return new VbaDate(toVbaDate(d));
+        });
         this.env.set('clng', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('int', (val: any) => Math.floor(parseFloat(val)) || 0);
         this.env.set('ucase', (val: any) => val === vbaNull ? vbaNull : val === vbaEmpty ? "" : String(val).toUpperCase());
@@ -218,9 +256,26 @@ export class Evaluator {
             const s = String(val || '');
             return len !== undefined ? s.substring(start - 1, start - 1 + len) : s.substring(start - 1);
         });
+        this.env.set('format', (val: any, pattern?: string) => {
+            if (val === null || val === vbaNull || val === vbaEmpty) return "";
+            const fmt = pattern ? String(pattern) : "";
+            if (fmt === "") return String(val);
+            if (val instanceof VbaDate) {
+                return this.formatDate(fromVbaDate(val.value), fmt);
+            }
+            if (typeof val === 'number') {
+                return this.formatNumber(val, fmt);
+            }
+            return String(val);
+        });
+        this.env.set('format$', (val: any, pattern?: string) => {
+            return this.env.get('format')(val, pattern);
+        });
         this.env.set('instr', (...args: any[]) => {
-            let start: number, s1: any, s2: any;
-            if (args.length >= 3 && typeof args[0] === 'number') {
+            let start: number, s1: any, s2: any, compare: number | undefined;
+            if (args.length >= 4) {
+                [start, s1, s2, compare] = [args[0], args[1], args[2], args[3]];
+            } else if (args.length === 3 && typeof args[0] === 'number') {
                 [start, s1, s2] = [args[0], args[1], args[2]];
             } else {
                 [start, s1, s2] = [1, args[0], args[1]];
@@ -228,10 +283,17 @@ export class Evaluator {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str1 = String(s1 ?? '');
             const str2 = String(s2 ?? '');
-            const idx = str1.indexOf(str2, start - 1);
-            return idx === -1 ? 0 : idx + 1;
+            
+            const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
+            if (isText) {
+                const idx = str1.toLowerCase().indexOf(str2.toLowerCase(), start - 1);
+                return idx === -1 ? 0 : idx + 1;
+            } else {
+                const idx = str1.indexOf(str2, start - 1);
+                return idx === -1 ? 0 : idx + 1;
+            }
         });
-        this.env.set('instrrev', (s1: any, s2: any, start: any = -1, compare: number = 0) => {
+        this.env.set('instrrev', (s1: any, s2: any, start: any = -1, compare: any = undefined) => {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? '');
             const find = String(s2 ?? '');
@@ -241,8 +303,9 @@ export class Evaluator {
             const effectiveStart = (start === -1 || start === undefined) ? str.length : Number(start);
             if (effectiveStart > str.length) return 0;
 
+            const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
             let idx: number;
-            if (compare === 1) { // vbTextCompare
+            if (isText) {
                 idx = str.toLowerCase().lastIndexOf(find.toLowerCase(), effectiveStart - 1);
             } else {
                 idx = str.lastIndexOf(find, effectiveStart - 1);
@@ -465,25 +528,7 @@ export class Evaluator {
         this.env.set('nothing', vbaNothing);
         this.env.set('null', vbaNull);
 
-        // VBA date serial: days since 1899-12-30 (VBA epoch)
-        const VBA_EPOCH = new Date(1899, 11, 30); // local time
-        const MS_PER_DAY = 86400000;
 
-        const toVbaDate = (d: Date): number =>
-            (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
-
-        const fromVbaDate = (serial: number): Date => {
-            const ms = Math.round(serial * MS_PER_DAY);
-            return new Date(VBA_EPOCH.getTime() + ms);
-        };
-
-        const parseVbaDate = (val: any): Date => {
-            if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
-            if (typeof val === 'number') return fromVbaDate(val);
-            const d = new Date(val);
-            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
-            return d;
-        };
 
         // Weekday constants (vbSunday=1 ... vbSaturday=7)
         this.env.set('vbsunday', 1);
@@ -874,6 +919,9 @@ export class Evaluator {
                 break;
             case 'ClassDeclaration':
                 this.evaluateClassDeclaration(stmt as ClassDeclaration);
+                break;
+            case 'OptionCompareStatement':
+                this.evaluateOptionCompareStatement(stmt as OptionCompareStatement);
                 break;
             case 'LabelStatement':
                 // No-op for now. Label execution just passes through.
@@ -1344,6 +1392,10 @@ export class Evaluator {
 
     private evaluateTypeDeclaration(stmt: TypeDeclaration) {
         this.env.setType(stmt.name, stmt.members);
+    }
+
+    private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {
+        this.comparisonMode = stmt.mode;
     }
 
     private evaluateClassDeclaration(stmt: ClassDeclaration) {
@@ -1967,12 +2019,36 @@ export class Evaluator {
             case '\\': return Math.floor(leftVal / rightVal);
             case 'mod': return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
-            case '=': return leftVal === rightVal ? vbaTrue : vbaFalse;
-            case '<>': return leftVal !== rightVal ? vbaTrue : vbaFalse;
-            case '<': return leftVal < rightVal ? vbaTrue : vbaFalse;
-            case '>': return leftVal > rightVal ? vbaTrue : vbaFalse;
-            case '<=': return leftVal <= rightVal ? vbaTrue : vbaFalse;
-            case '>=': return leftVal >= rightVal ? vbaTrue : vbaFalse;
+            case '=': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() === rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal === rightVal ? vbaTrue : vbaFalse;
+            case '<>': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal !== rightVal ? vbaTrue : vbaFalse;
+            case '<': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() < rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal < rightVal ? vbaTrue : vbaFalse;
+            case '>': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() > rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal > rightVal ? vbaTrue : vbaFalse;
+            case '<=': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() <= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal <= rightVal ? vbaTrue : vbaFalse;
+            case '>=': 
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                    return leftVal.toLowerCase() >= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                return leftVal >= rightVal ? vbaTrue : vbaFalse;
             case 'is': return leftVal === rightVal ? vbaTrue : vbaFalse;
             case 'like': return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
             case 'and':
@@ -2074,7 +2150,8 @@ export class Evaluator {
         regexStr += '$';
 
         try {
-            const regex = new RegExp(regexStr, 'i'); // VBA Like is case-insensitive by default
+            const flags = this.comparisonMode === 'Text' ? 'i' : '';
+            const regex = new RegExp(regexStr, flags);
             return regex.test(textStr);
         } catch (e) {
             return false;
@@ -2087,5 +2164,50 @@ export class Evaluator {
         if (typeof val === 'number') return val !== 0;
         if (typeof val === 'boolean') return val;
         return !!val;
+    }
+
+    private formatDate(d: Date, pattern: string): string {
+        let result = pattern;
+        // Replace patterns from longest to shortest to avoid partial matches
+        const replacements: [string | RegExp, string][] = [
+            ['yyyy', String(d.getFullYear())],
+            ['yy', String(d.getFullYear()).slice(-2)],
+            ['mmmm', d.toLocaleString('en-US', { month: 'long' })],
+            ['mmm', d.toLocaleString('en-US', { month: 'short' })],
+            ['mm', String(d.getMonth() + 1).padStart(2, '0')],
+            ['m', String(d.getMonth() + 1)],
+            ['dddd', d.toLocaleString('en-US', { weekday: 'long' })],
+            ['ddd', d.toLocaleString('en-US', { weekday: 'short' })],
+            ['dd', String(d.getDate()).padStart(2, '0')],
+            ['d', String(d.getDate())],
+            ['hh', String(d.getHours()).padStart(2, '0')],
+            ['h', String(d.getHours())],
+            ['nn', String(d.getMinutes()).padStart(2, '0')],
+            ['n', String(d.getMinutes())],
+            ['ss', String(d.getSeconds()).padStart(2, '0')],
+            ['s', String(d.getSeconds())],
+        ];
+
+        for (const [p, r] of replacements) {
+            result = result.replace(new RegExp(String(p), 'g'), r);
+        }
+        return result;
+    }
+
+    private formatNumber(n: number, pattern: string): string {
+        // Very basic implementation: handle "0.00", "0", "#,##0" etc.
+        if (pattern.includes('.')) {
+            const decimalPlaces = (pattern.split('.')[1] || '').length;
+            return n.toLocaleString(undefined, {
+                minimumFractionDigits: decimalPlaces,
+                maximumFractionDigits: decimalPlaces,
+                useGrouping: pattern.includes(',')
+            });
+        }
+        return n.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+            useGrouping: pattern.includes(',')
+        });
     }
 }

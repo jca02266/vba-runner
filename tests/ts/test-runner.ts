@@ -66,6 +66,12 @@ export const assert = {
             throw new Error(`Assertion Failed`);
         }
     },
+    ok: (value: any, message?: string) => {
+        if (!value) {
+            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected truthy value but got ${value}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
     isTrue: (actual: VbaBoolean, message?: string) => {
         if (actual !== vbaTrue) {
             console.error(`[FAIL] ${message || 'Assertion failed'} - Expected vbaTrue (${vbaTrue}) but got ${actual}`);

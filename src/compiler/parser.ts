@@ -142,6 +142,11 @@ export interface OnErrorStatement extends Statement {
     label: string; // "Cleanup", "Resume Next", "0"
 }
 
+export interface OptionCompareStatement extends Statement {
+    type: 'OptionCompareStatement';
+    mode: 'Binary' | 'Text';
+}
+
 export interface LSetStatement extends Statement {
     type: 'LSetStatement';
     left: Expression;
@@ -328,6 +333,19 @@ export class Parser {
         return token;
     }
 
+    private parseOptionCompareStatement(): OptionCompareStatement {
+        const modeToken = this.advance();
+        let mode: 'Binary' | 'Text';
+        if (modeToken.type === TokenType.KeywordBinary) {
+            mode = 'Binary';
+        } else if (modeToken.type === TokenType.KeywordText) {
+            mode = 'Text';
+        } else {
+            throw new Error(`Parse error: Expected 'Binary' or 'Text' after 'Option Compare' at line ${modeToken.line}`);
+        }
+        return { type: 'OptionCompareStatement', mode };
+    }
+
     private isAtEndTerminator(): boolean {
         const token = this.peek();
         if (token.type !== TokenType.KeywordEnd) return false;
@@ -463,6 +481,9 @@ export class Parser {
             return this.parseResumeStatement();
         } else if (token.type === TokenType.KeywordOption) {
             this.advance(); // 'Option'
+            if (this.match(TokenType.KeywordCompare)) {
+                return this.parseOptionCompareStatement();
+            }
             if (this.match(TokenType.KeywordExplicit)) {
                 // Ignore for now
             }

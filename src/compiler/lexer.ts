@@ -70,6 +70,9 @@ export enum TokenType {
     KeywordStatic,
     KeywordClass,
     KeywordMe,
+    KeywordCompare,
+    KeywordBinary,
+    KeywordText,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -426,6 +429,9 @@ export class Lexer {
                 if (lowerId === 'static') return { type: TokenType.KeywordStatic, value: idStr, line: this.line };
                 if (lowerId === 'class') return { type: TokenType.KeywordClass, value: idStr, line: this.line };
                 if (lowerId === 'me') return { type: TokenType.KeywordMe, value: idStr, line: this.line };
+                if (lowerId === 'compare') return { type: TokenType.KeywordCompare, value: idStr, line: this.line };
+                if (lowerId === 'binary') return { type: TokenType.KeywordBinary, value: idStr, line: this.line };
+                if (lowerId === 'text') return { type: TokenType.KeywordText, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }
