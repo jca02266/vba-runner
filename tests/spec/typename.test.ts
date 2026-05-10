@@ -47,8 +47,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     // Basic types
     assert.strictEqual(ev.evalExpression('TypeName(10)'), 'Double', 'TypeName(10) -> Double (JS numbers are Double)');
     assert.strictEqual(ev.evalExpression('TypeName("abc")'), 'String', 'TypeName("abc") -> String');
-    // Note: In this implementation, True/False are -1/0 (Double)
-    assert.strictEqual(ev.evalExpression('TypeName(True)'), 'Double', 'TypeName(True) -> Double');
+    assert.strictEqual(ev.evalExpression('TypeName(True)'), 'Boolean', 'TypeName(True) -> Boolean');
 
     // Null/Nothing/Empty
     assert.strictEqual(runFunc(code, 'TestNull'), 'Null', 'TypeName(Null) -> Null');

@@ -78,6 +78,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 - `src/compiler/evaluator.ts` — 実行時の動作が必要な場合
 
 実装は仕様書の動作定義に忠実に行う。
+仕様と異なる実装や制限事項がある場合は、必ず TODO.md の該当項目に制限事項としてメモを残すこと。
 
 ### Step 6: テスト実行
 
@@ -103,7 +104,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 ### Step 8: TODO.mdを更新してコミット
 
 `TODO.md` の対象項目を `🚧` → `✅` に更新する。
-部分実装の場合は `⚠️`（備考を括弧内に記載）にする。
+部分実装や仕様上の制限がある場合は `⚠️`（備考を括弧内に記載）にする。
+仕様と異なる挙動が残る場合は、該当行に制限事項を明記すること。
 
 以下の形式でコミットする:
 

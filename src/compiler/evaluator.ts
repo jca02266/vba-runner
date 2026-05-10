@@ -44,13 +44,19 @@ import {
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 
+export class VbaBoolean {
+    constructor(public value: -1 | 0) {}
+    valueOf() { return this.value; }
+    toString() { return this.value === -1 ? 'True' : 'False'; }
+}
+
 export const vbaEmpty = null;
 export const vbaNull = Symbol('vbaNull');
 export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
-export const vbaTrue = -1;
-export const vbaFalse = 0;
-export type VbaBoolean = typeof vbaTrue | typeof vbaFalse;
+export const vbaTrue = new VbaBoolean(-1);
+export const vbaFalse = new VbaBoolean(0);
+export type VbaBooleanType = VbaBoolean;
 
 export class Environment {
     private variables: Map<string, any> = new Map();
@@ -252,7 +258,7 @@ export class Evaluator {
 
         this.env.set('cint', (val: any) => Math.round(parseFloat(val)) || 0);
         this.env.set('cstr', (val: any) => String(val === null ? '' : val));
-        this.env.set('cbool', (val: any) => !!val ? vbaTrue : vbaFalse);
+        this.env.set('cbool', (val: any) => this.isTrue(val) ? vbaTrue : vbaFalse);
         this.env.set('fix', (val: any) => val > 0 ? Math.floor(val) : Math.ceil(val));
         this.env.set('Val', (s: any) => {
             if (typeof s !== 'string') return 0;
@@ -282,6 +288,7 @@ export class Evaluator {
             if (val === vbaNull) return 'Null';
             if (val === vbaNothing) return 'Nothing';
             if (val === vbaMissing) return 'Error';
+            if (val instanceof VbaBoolean) return 'Boolean';
             if (typeof val === 'number') return 'Double';
             if (typeof val === 'string') return 'String';
             if (typeof val === 'boolean') return 'Boolean';
@@ -948,7 +955,7 @@ export class Evaluator {
 
     private evaluateIfStatement(stmt: IfStatement) {
         const conditionVal = this.evaluateExpression(stmt.condition);
-        if (conditionVal) {
+        if (this.isTrue(conditionVal)) {
             for (const bodyStmt of stmt.consequent) {
                 this.evaluateStatement(bodyStmt);
             }
@@ -1004,7 +1011,8 @@ export class Evaluator {
         const checkCondition = (): boolean => {
             if (stmt.condition === undefined) return true; // infinite
             const val = this.evaluateExpression(stmt.condition);
-            return stmt.conditionType === 'until' ? !val : !!val;
+            const truthy = this.isTrue(val);
+            return stmt.conditionType === 'until' ? !truthy : truthy;
         };
 
         // eslint-disable-next-line no-constant-condition
@@ -1032,7 +1040,7 @@ export class Evaluator {
     }
 
     private evaluateWhileStatement(stmt: WhileStatement) {
-        while (this.evaluateExpression(stmt.condition)) {
+        while (this.isTrue(this.evaluateExpression(stmt.condition))) {
             for (const bodyStmt of stmt.body) {
                 this.evaluateStatement(bodyStmt);
             }
@@ -1818,8 +1826,8 @@ export class Evaluator {
         const argument = this.evaluateExpression(expr.argument);
         switch (expr.operator.toLowerCase()) {
             case 'not':
-                const val = (argument === true) ? vbaTrue : (argument === false ? vbaFalse : argument);
-                return ~val;
+                const res = ~argument;
+                return (argument instanceof VbaBoolean) ? new VbaBoolean(res as any) : res;
             case '-':
                 return -argument;
             case '+':
@@ -1909,11 +1917,21 @@ export class Evaluator {
             case '>=': return leftVal >= rightVal ? vbaTrue : vbaFalse;
             case 'is': return leftVal === rightVal ? vbaTrue : vbaFalse;
             case 'like': return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
-            case 'and': return leftVal & rightVal;
-            case 'or': return leftVal | rightVal;
-            case 'xor': return leftVal ^ rightVal;
-            case 'eqv': return ~(leftVal ^ rightVal);
-            case 'imp': return (~leftVal) | rightVal;
+            case 'and':
+                const andRes = leftVal & rightVal;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(andRes as any) : andRes;
+            case 'or':
+                const orRes = leftVal | rightVal;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(orRes as any) : orRes;
+            case 'xor':
+                const xorRes = leftVal ^ rightVal;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(xorRes as any) : xorRes;
+            case 'eqv':
+                const eqvRes = ~(leftVal ^ rightVal);
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(eqvRes as any) : eqvRes;
+            case 'imp':
+                const impRes = (~leftVal) | rightVal;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(impRes as any) : impRes;
             default:
                 throw new Error(`Execution error: Unknown operator ${expr.operator}`);
         }
@@ -2003,5 +2021,13 @@ export class Evaluator {
         } catch (e) {
             return false;
         }
+    }
+
+    private isTrue(val: any): boolean {
+        if (val === undefined || val === null || val === vbaNull) return false;
+        if (val instanceof VbaBoolean) return val.value !== 0;
+        if (typeof val === 'number') return val !== 0;
+        if (typeof val === 'boolean') return val;
+        return !!val;
     }
 }
