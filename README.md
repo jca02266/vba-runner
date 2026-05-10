@@ -163,6 +163,56 @@ assert.strictEqual(dict.exists('key1'), true);
 | `Function`（引数あり）| 戻り値     | ——（`run`を使う）|
 | `Function`（引数なし）| 戻り値     | 戻り値         |
 | VBA式（`eval`用）| ——           | 評価結果        |
+ 
+## VBA 実行時の終了ステータスと例外の検知
+ 
+TypeScript 側から `vbaTest.run()` または `vbaTest.eval()` を呼び出した際、VBA の終了状態（正常終了、`End` による強制終了、実行時エラー）を以下のように区別して検知できます。
+ 
+### 1. 正常終了（Sub/Function の戻り値）
+ 
+プロシージャが最後まで実行された、または `Exit Sub/Function` で抜けた場合、戻り値が TypeScript 側に返ります。
+ 
+```typescript
+try {
+    const result = vbaTest.run("MyFunction", [10]);
+    console.log("正常終了:", result);
+} catch (e) {
+    // 正常終了時はここには来ない
+}
+```
+ 
+### 2. `End` ステートメントによる強制終了
+ 
+VBA コード内で `End` ステートメントが実行されると、呼び出し側に `{ type: 'Terminate' }` というオブジェクトがスローされます。これは通常のランタイムエラーとは区別してハンドルできます。
+ 
+```typescript
+try {
+    vbaTest.eval("End");
+} catch (e: any) {
+    if (e && e.type === 'Terminate') {
+        console.log("End ステートメントによりプログラムが終了しました");
+    }
+}
+```
+ 
+> **設計意図**: VBA の `End` は、すべてのコールスタックを破棄し実行を即座に中断する強力な命令です。本エンジンではこの「強制終了」の振る舞いを確実に再現するため、JavaScript の例外機構を利用してトップレベルまで制御を戻す設計としています。通常の `Exit Sub/Function` による正常な脱出とは明確に区別されます。
+ 
+### 3. 実行時エラー（例外）
+ 
+構文エラー（パース時）や、未定義の関数呼び出し、ゼロ除算、型不一致などの実行時エラーが発生した場合は、標準的な `Error` オブジェクト（またはメッセージ文字列を含むオブジェクト）がスローされます。
+ 
+```typescript
+try {
+    vbaTest.run("NonExistentSub", []);
+} catch (e: any) {
+    console.error("実行時エラー:", e.message); // 例: "Procedure not found: NonExistentSub"
+}
+```
+ 
+### 4. `Stop` ステートメント
+ 
+`Stop` ステートメントは、現在の実装では `console.log` に `STOP Statement encountered` と出力するのみで、プログラムの実行自体はそのまま継続されます（デバッガのブレークポイントのような動作は行いません）。
+ 
 
 ### 未初期化変数の暗黙初期化
 
