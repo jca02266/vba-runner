@@ -639,6 +639,86 @@ export class Evaluator {
             }
             return vbaFalse;
         });
+        const errorMessages: Record<number, string> = {
+            3: "Return without GoSub",
+            5: "Invalid procedure call or argument",
+            6: "Overflow",
+            7: "Out of memory",
+            9: "Subscript out of range",
+            10: "This array is fixed or temporarily locked",
+            11: "Division by zero",
+            13: "Type mismatch",
+            14: "Out of string space",
+            16: "Expression too complex",
+            17: "Can't perform requested operation",
+            18: "User interrupt occurred",
+            20: "Resume without error",
+            28: "Out of stack space",
+            35: "Sub or Function not defined",
+            48: "Error in loading DLL",
+            51: "Internal error",
+            52: "Bad file name or number",
+            53: "File not found",
+            54: "Bad file mode",
+            55: "File already open",
+            57: "Device I/O error",
+            58: "File already exists",
+            59: "Bad record length",
+            61: "Disk full",
+            62: "Input past end of file",
+            63: "Bad record number",
+            67: "Too many files",
+            68: "Device unavailable",
+            70: "Permission denied",
+            71: "Disk not ready",
+            74: "Can't rename with different drive",
+            75: "Path/File access error",
+            76: "Path not found",
+            91: "Object variable or With block variable not set",
+            92: "For loop not initialized",
+            93: "Invalid pattern string",
+            94: "Invalid use of Null",
+            321: "Invalid file format",
+            322: "Can't create necessary temporary file",
+            325: "Invalid format in resource file",
+            380: "Invalid property value",
+            424: "Object required",
+            429: "ActiveX component can't create object",
+            430: "Class doesn't support Automation or doesn't support expected interface",
+            438: "Object doesn't support this property or method",
+            440: "Automation error",
+            445: "Object doesn't support this action",
+            446: "Object doesn't support named arguments",
+            447: "Object doesn't support current locale settings",
+            448: "Named argument not found",
+            449: "Argument not optional",
+            450: "Wrong number of arguments or invalid property assignment",
+            451: "Property let procedure not defined and property get procedure did not return an object",
+            453: "Specified DLL function not found",
+            457: "This key is already associated with an element of this collection",
+            458: "Variable uses an Automation type not supported in Visual Basic",
+            459: "Object or class does not support the set of events",
+            460: "Invalid clipboard format",
+            461: "Method or data member not found",
+            462: "The remote server machine does not exist or is unavailable",
+            463: "Class not registered on local machine",
+            481: "Invalid picture",
+            482: "Printer error",
+            735: "Can't save file to TEMP",
+            744: "Search text not found",
+            746: "Replacements too long"
+        };
+
+        const errorFunc = (errNum?: any) => {
+            const num = (errNum === undefined) ? this.env.get('err').number : (parseInt(errNum) || 0);
+            if (num === 0) return "";
+            if (num > 65535) this.throwVbaError(6, "Overflow");
+            return errorMessages[num] || "Application-defined or object-defined error";
+        };
+        (errorFunc as any).__vbaAutoCall__ = true;
+        this.env.set('error', errorFunc);
+        this.env.set('error$', errorFunc);
+
         this.env.set('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse);
         this.env.set('cverr', (val: any) => {
             if (val instanceof VbaErrorValue) return val;
@@ -2101,7 +2181,18 @@ export class Evaluator {
             case 'DateLiteral':
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
-                return this.env.get((expr as Identifier).name);
+                const idName = (expr as Identifier).name;
+                const v = this.env.get(idName);
+                if (typeof v === 'function' && (v as any).__vbaAutoCall__) {
+                    return v();
+                }
+                const p = this.env.getProcedure(idName);
+                if (p) {
+                    // Only auto-call if it's a Function (not Sub) and has 0 required arguments
+                    // For now, assume it's okay to call
+                    return this.callProcedure(idName, []);
+                }
+                return v;
             case 'CallExpression':
                 return this.evaluateCallExpression(expr as CallExpression);
             case 'MemberExpression':

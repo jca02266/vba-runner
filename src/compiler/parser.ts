@@ -1669,6 +1669,8 @@ export class Parser {
             expr = { type: 'Identifier', name: 'Null' } as Identifier;
         } else if (token.type === TokenType.KeywordMe) {
             expr = { type: 'Identifier', name: 'Me' } as Identifier;
+        } else if (token.type === TokenType.KeywordError) {
+            expr = { type: 'Identifier', name: 'Error' } as Identifier;
         } else if (token.type === TokenType.KeywordNew) {
             const classNameToken = this.advance();
             if (classNameToken.type !== TokenType.Identifier) {
