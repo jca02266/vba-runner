@@ -225,7 +225,7 @@
 | ✅ | P1 | IsNumeric | §6.1.2.7.1.8 |
 | ✅ | P1 | IsObject | §6.1.2.7.1.9 |
 | ✅ | P0 | TypeName | §6.1.2.7.1.12 | (制限事項: 全ての数値はJSのnumber(Double)として扱われ、Integer/Longの区別は未実装) |
-| ✅ | P0 | VarType | §6.1.2.7.1.13 |
+| ✅ | P1 | VarType | §6.1.2.7.1.13 |
 
 ## 第6章：標準ライブラリ — インタラクション Interaction Module (§6.1.2.8)
 

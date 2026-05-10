@@ -767,7 +767,7 @@ export class Evaluator {
             if (val === vbaNull) return 1; // vbNull
             if (val instanceof VbaBoolean) return 11; // vbBoolean
             if (val instanceof VbaDate) return 7; // vbDate
-            if (val === vbaMissing) return 10; // vbError
+            if (val === vbaMissing || val instanceof VbaErrorValue) return 10; // vbError
             if (Array.isArray(val)) return 8192 + 12; // vbArray + vbVariant
             if (typeof val === 'number') return 5; // vbDouble
             if (typeof val === 'string') return 8; // vbString
@@ -787,11 +787,13 @@ export class Evaluator {
         this.env.set('vbstring', 8);
         this.env.set('vbobject', 9);
         this.env.set('vberror', 10);
-        this.env.set('vboolean', 11);
+        this.env.set('vbboolean', 11);
         this.env.set('vbvariant', 12);
         this.env.set('vbdataobject', 13);
         this.env.set('vbdecimal', 14);
         this.env.set('vbbyte', 17);
+        this.env.set('vblonglong', 20);
+        this.env.set('vbarray', 8192);
         this.env.set('lbound', (arr: any) => {
             if (Array.isArray(arr)) {
                 return (arr as any).vbaBase || 0;
