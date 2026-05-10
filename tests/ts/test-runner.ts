@@ -9,8 +9,8 @@ const VBA_EXTENSIONS = new Set(['.vba', '.cls', '.frm']);
 export class VBATest {
     private evaluator: Evaluator;
 
-    constructor(pathOrDir: string) {
-        this.evaluator = new Evaluator(console.log);
+    constructor(pathOrDir: string, config: { sandboxRoot?: string, env?: Record<string, string> } = {}) {
+        this.evaluator = new Evaluator(console.log, config);
 
         const stat = fs.statSync(pathOrDir);
         const files = stat.isDirectory()

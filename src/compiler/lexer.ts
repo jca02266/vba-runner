@@ -356,6 +356,11 @@ export class Lexer {
                 while (this.isAlphaNumeric(this.peek())) {
                     idStr += this.advance();
                 }
+                // Handle type hint characters at the end of an identifier
+                const typeHints = ['$', '%', '&', '!', '#', '@'];
+                if (typeHints.includes(this.peek())) {
+                    idStr += this.advance();
+                }
 
                 const lowerId = idStr.toLowerCase();
                 if (lowerId === 'rem') {

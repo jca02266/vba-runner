@@ -44,6 +44,7 @@ import {
     Parser,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
+import { SandboxPath } from './sandbox';
 
 export class VbaBoolean {
     constructor(public value: -1 | 0) {}
@@ -258,10 +259,15 @@ export class Evaluator {
     private errorHandlingMode: 'None' | 'Label' | 'ResumeNext' = 'None';
     private isInErrorHandler: boolean = false;
     private lastErrorIndex: number = -1;
+    private openFileNumbers: Set<number> = new Set();
+    private dirIterator: string[] | null = null;
+    private dirIndex: number = 0;
+    private sandbox: SandboxPath;
 
-    constructor(onPrint: PrintCallback) {
+    constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string> } = {}) {
         this.env = new Environment();
         this.onPrint = onPrint;
+        this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         // Add built-in debug object
         this.env.set('debug', {
             print: (...args: any[]) => this.onPrint(args.map(a => this.toDisplayString(a)).join(' ')),
@@ -496,6 +502,7 @@ export class Evaluator {
             return String(s ?? '').split('').reverse().join('');
         });
         this.env.set('strconv', (s: any, conversion: any, lcid?: any) => {
+            if (s === vbaNull) return vbaNull;
             let str = String(s ?? '');
             const c = parseInt(conversion) || 0;
 
@@ -841,6 +848,11 @@ export class Evaluator {
             return 0;
         });
 
+        this.env.set('environ', (key: any) => {
+            if (key === vbaNull) return "";
+            return this.sandbox.getEnv(key);
+        });
+        this.env.set('environ$', this.env.get('environ'));
         this.env.set('iif', (cond: any, truePart: any, falsePart: any) => cond ? truePart : falsePart);
         this.env.set('array', (...args: any[]) => [...args]);
         this.env.set('split', (s: any, delimiter: string = ' ') => String(s || '').split(delimiter));
@@ -867,6 +879,34 @@ export class Evaluator {
         this.env.set('createobject', (progId: string) => {
             return this.createExternalObject(progId);
         });
+        this.env.set('getobject', (pathName?: any, class_?: any) => {
+            if (pathName === "" || pathName === null) {
+                return this.createExternalObject(class_ || "");
+            }
+            if (class_ !== undefined && (pathName === undefined || pathName === "")) {
+                return this.createExternalObject(class_);
+            }
+            // If pathName is provided, we would normally load a file, but for now we just throw
+            throw new Error(`Execution error: GetObject with PathName "${pathName}" not supported yet`);
+        });
+
+        this.env.set('freefile', (range?: number) => {
+            const start = (range === 1) ? 256 : 1;
+            const end = (range === 1) ? 511 : 255;
+            for (let i = start; i <= end; i++) {
+                if (!this.openFileNumbers.has(i)) return i;
+            }
+            throw new Error("Execution error: Too many files");
+        });
+
+        // Stubs for other file functions
+        this.env.set('eof', (fileNumber: number) => {
+            // Mock: if it's not open, it's EOF or error. Let's say False for mock.
+            return false;
+        });
+        this.env.set('fileattr', (fileNumber: number, retType: number = 1) => {
+            return 0; // Mock
+        });
 
         // Add VBA intrinsic constants
         this.env.set('true', vbaTrue);
@@ -876,6 +916,74 @@ export class Evaluator {
         this.env.set('null', vbaNull);
 
 
+
+        this.env.set('curdir', () => {
+            return this.sandbox.toVirtualPath(this.sandbox.getRoot());
+        });
+        this.env.set('curdir$', this.env.get('curdir'));
+
+        this.env.set('dir', (pathName?: string, attributes?: number) => {
+            if (pathName !== undefined && pathName !== null && pathName !== "") {
+                // Initialize iterator
+                try {
+                    const fs = require('fs');
+                    const path = require('path');
+                    const realPath = this.sandbox.toRealPath(pathName);
+                    
+                    let dirPath = path.dirname(realPath);
+                    const filter = path.basename(realPath);
+                    
+                    // Basic glob support: *.* or *.txt
+                    const files = fs.readdirSync(dirPath);
+                    if (filter === "*.*" || filter === "*" || filter === "") {
+                        this.dirIterator = files;
+                    } else {
+                        const regex = new RegExp('^' + filter.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+                        this.dirIterator = files.filter((f: string) => regex.test(f));
+                    }
+                    this.dirIndex = 0;
+                } catch (e) {
+                    this.dirIterator = [];
+                }
+            }
+            
+            if (!this.dirIterator || this.dirIndex >= this.dirIterator.length) {
+                return "";
+            }
+            return this.dirIterator[this.dirIndex++];
+        });
+        this.env.set('dir$', this.env.get('dir'));
+
+        this.env.set('kill', (pathName: string) => {
+            const fs = require('fs');
+            fs.unlinkSync(this.sandbox.toRealPath(pathName));
+        });
+
+        this.env.set('filecopy', (source: string, destination: string) => {
+            const fs = require('fs');
+            fs.copyFileSync(this.sandbox.toRealPath(source), this.sandbox.toRealPath(destination));
+        });
+
+        this.env.set('filelen', (pathName: string) => {
+            const fs = require('fs');
+            return fs.statSync(this.sandbox.toRealPath(pathName)).size;
+        });
+
+        this.env.set('chdir', (vbaPath: string) => {
+            // VBA ChDir doesn't change Node process.cwd, it's relative to sandbox
+            // In our simple implementation, CurDir is always sandbox root.
+            // We could track a "current directory" within sandbox if needed.
+        });
+
+        this.env.set('mkdir', (vbaPath: string) => {
+            const fs = require('fs');
+            fs.mkdirSync(this.sandbox.toRealPath(vbaPath), { recursive: true });
+        });
+
+        this.env.set('rmdir', (vbaPath: string) => {
+            const fs = require('fs');
+            fs.rmdirSync(this.sandbox.toRealPath(vbaPath));
+        });
 
         // Weekday constants (vbSunday=1 ... vbSaturday=7)
         this.env.set('vbsunday', 1);
