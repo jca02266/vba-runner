@@ -61,6 +61,11 @@ export class VbaDate {
     }
 }
 
+export class VbaDecimal {
+    constructor(public value: number) {}
+    toString() { return String(this.value); }
+}
+
 export class VbaErrorValue {
     constructor(public code: number) {}
     valueOf() { return this.code; }
@@ -319,6 +324,13 @@ export class Evaluator {
             const d = new Date(val);
             if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
             return new VbaDate(toVbaDate(d));
+        });
+        this.env.set('cdec', (val: any) => {
+            if (val === vbaNull || val === null) this.throwVbaError(13, "Type mismatch");
+            if (val instanceof VbaErrorValue) this.throwVbaError(13, "Type mismatch");
+            const n = parseFloat(val);
+            if (isNaN(n)) this.throwVbaError(13, "Type mismatch");
+            return new VbaDecimal(n);
         });
         this.env.set('clng', (val: any) => {
             const n = this.vbaRound(parseFloat(val) || 0);
@@ -592,6 +604,7 @@ export class Evaluator {
             if (val.__isVbaCollection__) return 'Collection';
             if (val.__vbaClass__) return val.__className__;
             if (val.__vbaTypeName__) return val.__vbaTypeName__;
+            if (val instanceof VbaDecimal) return 'Decimal';
             if (typeof val === 'bigint') return 'LongLong';
             if (typeof val === 'object') return 'Object';
             return 'Unknown';
@@ -801,8 +814,9 @@ export class Evaluator {
             if (Array.isArray(val)) return 8192 + 12; // vbArray + vbVariant
             if (typeof val === 'number') return 5; // vbDouble
             if (typeof val === 'string') return 8; // vbString
-            if (typeof val === 'object') return 9; // vbObject
+            if (val instanceof VbaDecimal) return 14; // vbDecimal
             if (typeof val === 'bigint') return 20; // vbLongLong
+            if (typeof val === 'object') return 9; // vbObject
             return 12; // vbVariant
         });
 
