@@ -192,6 +192,15 @@ export class Evaluator {
         this.env.set('lbound', (arr: any[]) => 0); // VBA arrays in this implementation are 0-indexed JS arrays
 
         this.env.set('iif', (cond: any, truePart: any, falsePart: any) => cond ? truePart : falsePart);
+        this.env.set('split', (s: any, delimiter: string = ' ') => String(s || '').split(delimiter));
+        this.env.set('join', (arr: any[], delimiter: string = ' ') => Array.isArray(arr) ? arr.join(delimiter) : String(arr));
+        this.env.set('asc', (s: any) => String(s || '').charCodeAt(0));
+        this.env.set('chr', (n: number) => String.fromCharCode(n));
+        this.env.set('space', (n: number) => ' '.repeat(n));
+        this.env.set('string', (n: number, char: any) => {
+            const s = String(char || '');
+            return (s.length > 0 ? s[0] : '').repeat(n);
+        });
 
         this.env.set('ubound', (arr: any[], dimension?: number) => {
             if (Array.isArray(arr)) {
