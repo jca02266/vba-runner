@@ -46,8 +46,9 @@ TypeScript で実装された VBA インタープリター。Excel なしで VBA
 
 実装上の必須要件:
 - すべてのファイルパスは `src/compiler/sandbox.ts` の `SandboxPath` クラスを通じて解決する
-- Windowsパス（`C:\...`）はSandboxルートへの変換を行う
+- Windowsパス（`C:\...`）はドライブレターをサブディレクトリとして変換する（例: `C:\foo` → `{sandboxRoot}/c/foo`）
 - Sandboxルート外へのパス traversal（`../` など）は実行時エラーにする
+- `Environ` 関数はOSの実環境変数を参照せず、Sandbox内の定義（メモリまたは `{sandboxRoot}/.env`）のみを返す
 - テストコードでは `tests/ts/sandbox.ts` のユーティリティでパスを組み立てる
 
 ## サンプルコードの構成
