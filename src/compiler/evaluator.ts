@@ -227,6 +227,18 @@ export class Evaluator {
             }
             return idx === -1 ? 0 : idx + 1;
         });
+        this.env.set('strcomp', (s1: any, s2: any, compare: number = 0) => {
+            if (s1 === null || s2 === null) return null;
+            let str1 = String(s1);
+            let str2 = String(s2);
+            if (compare === 1) { // vbTextCompare
+                str1 = str1.toLowerCase();
+                str2 = str2.toLowerCase();
+            }
+            if (str1 < str2) return -1;
+            if (str1 > str2) return 1;
+            return 0;
+        });
         this.env.set('strreverse', (s: any) => {
             if (s === null) throw new Error('Execution error: Invalid use of Null');
             return String(s).split('').reverse().join('');
