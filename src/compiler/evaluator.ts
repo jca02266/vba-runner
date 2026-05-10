@@ -265,6 +265,73 @@ export class Evaluator {
         });
         this.env.set('sqr', (val: any) => Math.sqrt(val));
 
+        // --- Math Module (§6.1.2.10) ---
+        this.env.set('sgn', (val: any) => {
+            const n = Number(val);
+            return n > 0 ? 1 : n < 0 ? -1 : 0;
+        });
+        this.env.set('atn', (val: any) => Math.atan(Number(val)));
+        this.env.set('cos', (val: any) => Math.cos(Number(val)));
+        this.env.set('sin', (val: any) => Math.sin(Number(val)));
+        this.env.set('tan', (val: any) => Math.tan(Number(val)));
+        this.env.set('exp', (val: any) => {
+            const n = Number(val);
+            if (n > 709.782712893) throw new Error('Execution error: Overflow');
+            return Math.exp(n);
+        });
+        this.env.set('log', (val: any) => {
+            const n = Number(val);
+            if (n <= 0) throw new Error('Execution error: Invalid procedure call or argument');
+            return Math.log(n);
+        });
+
+        // Rnd / Randomize: shared state for the random sequence
+        let rndSeed = 0.5;   // initial seed value
+        let lastRnd = 0.5;   // most recently generated value
+        let rndInitialized = false;
+
+        // Simple LCG for seeded Rnd(< 0) — matches "same every time for given seed"
+        const seededRnd = (seed: number): number => {
+            // Use a deterministic formula: frac(abs(seed) * some_constant)
+            const s = Math.abs(seed) * 9301 + 49297;
+            return (s % 233280) / 233280;
+        };
+
+        this.env.set('rnd', (val?: any) => {
+            if (!rndInitialized) {
+                // Without Randomize, use a fixed initial sequence
+                rndSeed = 0.5;
+                rndInitialized = true;
+            }
+            if (val === undefined || val === null || (typeof val === 'number' && val > 0)) {
+                // Next in sequence
+                rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
+                lastRnd = rndSeed / 4294967296;
+                return lastRnd;
+            } else if (typeof val === 'number' && val === 0) {
+                // Return most recently generated number
+                return lastRnd;
+            } else if (typeof val === 'number' && val < 0) {
+                // Same number every time for given seed
+                const r = seededRnd(val);
+                lastRnd = r;
+                return r;
+            }
+            return lastRnd;
+        });
+
+        this.env.set('randomize', (val?: any) => {
+            rndInitialized = true;
+            if (val === undefined || val === null) {
+                rndSeed = Date.now() % 4294967296;
+            } else {
+                // Seed from given number — deterministic
+                const n = Math.abs(Number(val));
+                rndSeed = Math.round(n * 1000) % 4294967296;
+            }
+            lastRnd = rndSeed / 4294967296;
+        });
+
         this.env.set('isnull', (val: any) => val === null ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
         this.env.set('isobject', (val: any) => (val !== null && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
