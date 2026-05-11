@@ -136,13 +136,13 @@ class VbaCollection {
         return this._items[idx - 1].value;
     }
 
+    public get items(): any[] {
+        return this._items.map(i => i.value);
+    }
+
     public remove(id: any) {
         const idx = this.findIndex(id);
         this._items.splice(idx - 1, 1);
-    }
-
-    public get items(): any[] {
-        return this._items.map(i => i.value);
     }
 }
 export const vbaNull = Symbol('vbaNull');
@@ -556,7 +556,7 @@ export class Evaluator {
             } else if (casing === 2) { // vbLowerCase
                 str = str.toLowerCase();
             } else if (casing === 3) { // vbProperCase
-                str = str.toLowerCase().replace(/(^|[^a-zA-Z0-9])([a-z])/g, (m, p1, p2) => p1 + p2.toUpperCase());
+                str = str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
             }
 
             if (c & 4) { // vbWide
@@ -581,32 +581,32 @@ export class Evaluator {
 
             return str;
         });
+
+
         this.env.set('replace', (s: any, find: any, repl: any) => String(s || '').split(String(find || '')).join(String(repl || '')));
 
-        this.env.set('filter', (sourceArray: any, match: any, include: any = vbaTrue, compare: any = 0) => {
-            if (!Array.isArray(sourceArray)) {
-                this.throwVbaError(13, "Type mismatch: SourceArray must be an array");
-            }
-            const matchStr = String(match ?? '');
-            const includeBool = this.isTrue(include);
-            
+        this.env.set('filter', (sourceArray: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
+            if (!Array.isArray(sourceArray)) return [];
+            const matchStr = String(match);
+            const isInclude = this.isTrue(include);
             const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
             
             const result = sourceArray.filter(item => {
-                const itemStr = String(item ?? '');
-                let found: boolean;
-                if (isText) {
-                    found = itemStr.toLowerCase().includes(matchStr.toLowerCase());
-                } else {
-                    found = itemStr.includes(matchStr);
-                }
-                return includeBool ? found : !found;
+                const s = String(item);
+                const found = isText ? s.toLowerCase().includes(matchStr.toLowerCase()) : s.includes(matchStr);
+                return isInclude ? found : !found;
             });
-            
             const resArray = [...result];
             (resArray as any).vbaBase = 0;
             return resArray;
         });
+
+        // Information Module
+        this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
+        this.env.set('isdate', (val: any) => (val instanceof VbaDate || !isNaN(Date.parse(String(val)))) ? vbaTrue : vbaFalse);
+        this.env.set('isobject', (val: any) => (val && typeof val === 'object' && !Array.isArray(val)) ? vbaTrue : vbaFalse);
+        this.env.set('iserror', (val: any) => (val && val.type === 'VbaError') ? vbaTrue : vbaFalse);
+        this.env.set('isnull', (val: any) => (val === null || val === vbaNull) ? vbaTrue : vbaFalse);
 
         this.env.set('cint', (val: any) => {
             const n = this.vbaRound(parseFloat(val) || 0);
@@ -1375,6 +1375,45 @@ export class Evaluator {
         this.onPrint(msg);
     }
 
+    private triggerTerminate(obj: any) {
+        if (obj && obj.__vbaClass__) {
+            const classDef = obj.__classDef__ as ClassDeclaration;
+            const terminateProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_terminate');
+            if (terminateProc) {
+                try {
+                    this.callClassMethod(obj, terminateProc, []);
+                } catch (e) {
+                    // Errors in Terminate are typically suppressed or handled specially in VBA, 
+                    // but for now let's just log or ignore to prevent crashing the lifecycle
+                    console.error("Error in Class_Terminate:", e);
+                }
+            }
+        }
+    }
+
+    private instantiateType(typeName: string): any {
+        const typeMembers = this.env.getType(typeName);
+        if (!typeMembers) return 0;
+
+        const instance: any = {
+            __vbaTypeName__: typeName
+        };
+        for (const member of typeMembers) {
+            const mt = member.memberType;
+            const mtLower = mt.toLowerCase();
+            if (mtLower === 'string') {
+                instance[member.name.toLowerCase()] = '';
+            } else if (mtLower === 'boolean') {
+                instance[member.name.toLowerCase()] = 0; // vbaFalse
+            } else if (this.env.getType(mt)) {
+                instance[member.name.toLowerCase()] = this.instantiateType(mt);
+            } else {
+                instance[member.name.toLowerCase()] = 0;
+            }
+        }
+        return instance;
+    }
+
     public get(name: string): any {
         return this.env.get(name);
     }
@@ -1961,6 +2000,9 @@ export class Evaluator {
     private evaluateAssignmentToVariable(left: Expression, val: any) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
+            const oldVal = this.env.get(name);
+            if (oldVal !== val) this.triggerTerminate(oldVal);
+
             const procNameLower = name.toLowerCase();
 
             // Special case: assigning to current function/property name (return value)
@@ -2109,21 +2151,7 @@ export class Evaluator {
             } else if (decl.isNew && decl.objectType && this.classDefinitions.has(decl.objectType.toLowerCase())) {
                 initialValue = this.instantiateClass(decl.objectType);
             } else if (decl.objectType) {
-                // Check if it's a user-defined Type
-                const typeMembers = this.env.getType(decl.objectType);
-                if (typeMembers) {
-                    // Create an instance of the Type as a plain object with default values
-                    const instance: any = {};
-                    for (const member of typeMembers) {
-                        const mt = member.memberType.toLowerCase();
-                        if (mt === 'string') {
-                            instance[member.name.toLowerCase()] = '';
-                        } else {
-                            instance[member.name.toLowerCase()] = 0;
-                        }
-                    }
-                    initialValue = instance;
-                }
+                initialValue = this.instantiateType(decl.objectType);
             }
             this.env.set(varName, initialValue);
             if (isStaticDecl) {
@@ -2180,6 +2208,7 @@ export class Evaluator {
         const instance: any = {
             __vbaClass__: true,
             __className__: classDef.name,
+            __vbaTypeName__: classDef.name,
             __classDef__: classDef,
             __instanceEnv__: instanceEnv,
         };
@@ -2281,8 +2310,8 @@ export class Evaluator {
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
 
-        // VBA requires Set target to be an object
-        if (value !== null && typeof value !== 'object') {
+        // VBA requires Set target to be an object (or Nothing)
+        if (value !== null && value !== vbaNothing && typeof value !== 'object') {
             throw new Error(`Execution error: Object required`);
         }
         // If the right side evaluates to a variable name (string), resolve it
@@ -2301,6 +2330,9 @@ export class Evaluator {
                     return;
                 }
             }
+
+            const oldVal = this.env.get(name);
+            if (oldVal !== value) this.triggerTerminate(oldVal);
 
             const proc = this.env.getProcedure(name, 'set');
             if (proc) {
@@ -3244,6 +3276,8 @@ export class Evaluator {
         const patternStr = String(pattern);
         
         // Convert VBA Like pattern to Regex
+        // Special characters in VBA Like: *, ?, #, [
+        // Regex special characters to escape: \, ^, $, ., |, (, ), [, ], {, }, +, * , ?
         let regexStr = '^';
         let i = 0;
         while (i < patternStr.length) {
@@ -3257,28 +3291,26 @@ export class Evaluator {
             } else if (char === '[') {
                 regexStr += '[';
                 i++;
-                let negate = false;
                 if (i < patternStr.length && patternStr[i] === '!') {
                     regexStr += '^';
-                    negate = true;
                     i++;
                 }
                 while (i < patternStr.length && patternStr[i] !== ']') {
                     const charInList = patternStr[i];
-                    if (charInList === '-' && i > 0 && i < patternStr.length - 1) {
-                         // Range - keep as is in regex
-                         regexStr += '-';
-                    } else if ('\\^$-.[]'.indexOf(charInList) !== -1) {
+                    // Escape regex special chars inside [] if they are not part of range
+                    if ('\\^$[]{}|()+.'.includes(charInList) && charInList !== '-') {
                         regexStr += '\\' + charInList;
                     } else {
                         regexStr += charInList;
                     }
                     i++;
                 }
-                regexStr += ']';
+                if (i < patternStr.length) {
+                    regexStr += ']';
+                }
             } else {
                 // Escape regex special characters
-                if ('\\.[]{}()^$+*?|'.indexOf(char) !== -1) {
+                if ('\\^$[]{}|()+.'.includes(char)) {
                     regexStr += '\\' + char;
                 } else {
                     regexStr += char;
@@ -3348,8 +3380,9 @@ export class Evaluator {
     }
 
     private formatNumber(n: number, pattern: string): string {
+        const pLower = pattern.toLowerCase();
         // Handle named formats
-        switch (pattern.toLowerCase()) {
+        switch (pLower) {
             case 'general number': return String(n);
             case 'currency': return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
             case 'fixed': return n.toFixed(2);
@@ -3361,20 +3394,31 @@ export class Evaluator {
             case 'on/off': return n !== 0 ? 'On' : 'Off';
         }
 
-        // Basic custom patterns
-        if (pattern.includes('.')) {
-            const parts = pattern.split('.');
-            const decimalPlaces = parts[1].length;
-            return n.toLocaleString(undefined, {
-                minimumFractionDigits: decimalPlaces,
-                maximumFractionDigits: decimalPlaces,
-                useGrouping: pattern.includes(',')
-            });
+        // Custom patterns: #, 0, ., ,, %
+        let fmt = pattern;
+        let isPercent = false;
+        if (fmt.includes('%')) {
+            isPercent = true;
+            n *= 100;
+            fmt = fmt.replace('%', '');
         }
-        return n.toLocaleString(undefined, {
-            minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
-            useGrouping: pattern.includes(',')
+
+        const hasThousands = fmt.includes(',');
+        const parts = fmt.split('.');
+        const integerPart = parts[0];
+        const decimalPart = parts.length > 1 ? parts[1] : '';
+
+        // Determine decimal places
+        const minDecimals = (decimalPart.match(/0/g) || []).length;
+        const maxDecimals = decimalPart.length;
+
+        let result = n.toLocaleString(undefined, {
+            minimumFractionDigits: minDecimals,
+            maximumFractionDigits: maxDecimals,
+            useGrouping: hasThousands
         });
+
+        if (isPercent) result += '%';
+        return result;
     }
 }
