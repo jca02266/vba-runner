@@ -13,6 +13,7 @@
 | 状態 | 優先度 | 機能 | 仕様書 |
 |------|--------|------|--------|
 | ✅ | P0 | Call Statement | §5.4.2.1 |
+| ✅ | P1 | Named Parameters | §5.6.3.1.2 |
 | ✅ | P0 | While Statement (`While...Wend`) | §5.4.2.2 |
 | ✅ | P0 | For Statement (`For...Next`、Step対応) | §5.4.2.3 |
 | ✅ | P0 | For Each Statement (`For Each...In`) | §5.4.2.4 |
@@ -31,7 +32,7 @@
 | ✅ | P1 | Exit Sub Statement | §5.4.2.17 |
 | ✅ | P1 | Exit Function Statement | §5.4.2.18 |
 | ✅ | P1 | Exit Property Statement | §5.4.2.19 |
-| ❌ | P2 | RaiseEvent Statement | §5.4.2.20 |
+| ✅ | P2 | RaiseEvent Statement | §5.4.2.20 |
 | ✅ | P0 | With Statement (`With...End With`) | §5.4.2.21 |
 | ✅ | P1 | End Statement（プログラム終了） | §5.4.2.22 |
 | ✅ | P1 | Assert Statement | §5.4.2.23 |
@@ -45,7 +46,7 @@
 | ⚠️ | P1 | ReDim Statement（`Preserve` は簡易実装） | §5.4.3.3 |
 | ✅ | P1 | Erase Statement | §5.4.3.4 |
 | ✅ | P1 | Mid Statement（代入形式: `Mid(str, n) = val`） | §5.4.3.5 |
-| ❌ | P2 | MidB / Mid$ / MidB$ Statement | §5.4.3.5 |
+| ✅ | P2 | MidB / Mid$ / MidB$ Statement | §5.4.3.5 |
 | ✅ | P1 | LSet Statement | §5.4.3.6 |
 | ✅ | P1 | RSet Statement | §5.4.3.7 |
 | ✅ | P0 | Let Statement（代入） | §5.4.3.8 |
@@ -66,9 +67,9 @@
 | ✅ | P1 | Open Statement | §5.4.5.1 |
 | ✅ | P1 | Close / Reset Statements | §5.4.5.2 |
 | ✅ | P2 | Seek Statement | §5.4.5.3 |
-| ❌ | P2 | Lock / Unlock Statements | §5.4.5.4/5 |
+| ✅ | P2 | Lock / Unlock Statements | §5.4.5.4/5 | (制限事項: スタブ化) |
 | ✅ | P2 | Line Input Statement | §5.4.5.6 |
-| ❌ | P2 | Width Statement | §5.4.5.7 |
+| ✅ | P2 | Width Statement | §5.4.5.7 | (制限事項: スタブ化) |
 | ✅ | P2 | Print Statement（`Print #n`） | §5.4.5.8 |
 | ✅ | P2 | Write Statement | §5.4.5.9 |
 | ✅ | P2 | Input Statement | §5.4.5.10 |
@@ -91,8 +92,8 @@
 | ✅ | P1 | Enum Declarations | §5.2.3.4 |
 | ✅ | P0 | External Procedure Declaration（`Declare`） | §5.2.3.5 | (制限事項: JSランタイム上ではスタブとして登録) |
 | ✅ | P0 | Class Module（OOP） | §5.2.4 |
-| ❌ | P1 | Implements Directive | §5.2.4.2 |
-| ❌ | P2 | Event Declaration | §5.2.4.3 |
+| ✅ | P1 | Implements Directive | §5.2.4.2 |
+| ✅ | P2 | Event Declaration | §5.2.4.3 |
 | ✅ | P1 | Option Explicit（パース済み、実行時は無視） | §5.2 |
 | ✅ | P0 | Option Compare | §5.2.1.1 |
 | ✅ | P1 | Option Base | §5.2.1.2 |
@@ -224,6 +225,9 @@
 | ✅ | P1 | IsEmpty | §6.1.2.7.1.4 |
 | ✅ | P1 | IsError | §6.1.2.7.1.5 |
 | ✅ | P1 | IsMissing | §6.1.2.7.1.6 |
+| ✅ | P1 | On Error | §5.4.4.1 |
+| ✅ | P1 | Resume | §5.4.4.2 |
+| ✅ | P1 | Err Object | §6.1.3.2 |
 | ✅ | P1 | IsNull | §6.1.2.7.1.7 |
 | ✅ | P1 | IsNumeric | §6.1.2.7.1.8 |
 | ✅ | P1 | IsObject | §6.1.2.7.1.9 |

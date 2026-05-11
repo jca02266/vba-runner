@@ -209,6 +209,7 @@ export class Environment {
     private variables: Map<string, any> = new Map();
     private procedures: Map<string, ProcedureDeclaration> = new Map();
     private types: Map<string, TypeMember[]> = new Map();
+    private withEventsVariables: Set<string> = new Set();
     public enclosing?: Environment;
 
     constructor(enclosing?: Environment) {
@@ -234,6 +235,17 @@ export class Environment {
 
     setLocally(name: string, value: any) {
         this.variables.set(name.toLowerCase(), value);
+    }
+
+    setWithEvents(name: string) {
+        this.withEventsVariables.add(name.toLowerCase());
+    }
+
+    isWithEvents(name: string): boolean {
+        const key = name.toLowerCase();
+        if (this.withEventsVariables.has(key)) return true;
+        if (this.enclosing) return this.enclosing.isWithEvents(name);
+        return false;
     }
 
     get(name: string): any {
@@ -319,7 +331,6 @@ export class Evaluator {
     }> = new Map();
     private sandbox: SandboxPath = new SandboxPath();
     private onPrint: PrintCallback;
-    private errorHandlerLabel: string | null = null;
     private currentProcBody: Statement[] | null = null;
     private currentProcedureName: string | null = null;
     private currentProcedureType: string | null = null;
@@ -334,10 +345,11 @@ export class Evaluator {
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
-    private errorHandlingMode: 'None' | 'Label' | 'ResumeNext' = 'None';
+    private errorHandlerLabel: string | null = null;
+    private errorHandlingMode: 'None' | 'ResumeNext' | 'GoTo' = 'None';
     private isInErrorHandler: boolean = false;
+    private lastErrorIndex: number | null = null;
     private virtualRegistry: { [app: string]: { [section: string]: { [key: string]: string } } } = {};
-    private lastErrorIndex: number = -1;
     private dirIterator: string[] | null = null;
     private dirIndex: number = 0;
 
@@ -1059,7 +1071,7 @@ export class Evaluator {
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
         this.isInErrorHandler = false;
-        this.lastErrorIndex = -1;
+        this.lastErrorIndex = null;
 
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
@@ -1296,6 +1308,12 @@ export class Evaluator {
             case 'OptionPrivateModuleStatement':
                 this.evaluateOptionPrivateModuleStatement(stmt as OptionPrivateModuleStatement);
                 break;
+            case 'EventDeclaration':
+                this.evaluateEventDeclaration(stmt as EventDeclaration);
+                break;
+            case 'RaiseEventStatement':
+                this.evaluateRaiseEventStatement(stmt as RaiseEventStatement);
+                break;
             case 'LSetStatement':
                 this.evaluateLSetStatement(stmt as LSetStatement);
                 break;
@@ -1304,6 +1322,24 @@ export class Evaluator {
                 break;
             case 'ErrorStatement':
                 this.evaluateErrorStatement(stmt as ErrorStatement);
+                break;
+            case 'ImplementsDirective':
+                this.evaluateImplementsDirective(stmt as ImplementsDirective);
+                break;
+            case 'AppActivateStatement':
+                this.evaluateAppActivateStatement(stmt as AppActivateStatement);
+                break;
+            case 'SendKeysStatement':
+                this.evaluateSendKeysStatement(stmt as SendKeysStatement);
+                break;
+            case 'LockStatement':
+                this.evaluateLockStatement(stmt as LockStatement);
+                break;
+            case 'UnlockStatement':
+                this.evaluateUnlockStatement(stmt as UnlockStatement);
+                break;
+            case 'WidthStatement':
+                this.evaluateWidthStatement(stmt as WidthStatement);
                 break;
             default:
                 throw new Error(`Execution error: Unknown statement type ${stmt.type}`);
@@ -1604,6 +1640,55 @@ export class Evaluator {
         }
     }
 
+    private evaluateEventDeclaration(stmt: EventDeclaration) {
+        // Top-level event declarations are just metadata for the class
+    }
+
+    private evaluateRaiseEventStatement(stmt: RaiseEventStatement) {
+        const eventName = stmt.eventName.name.toLowerCase();
+        // Look for the instance in the current environment (Me)
+        const me = this.env.get('Me');
+        if (me && me.__events__) {
+            const handlers = me.__events__.get(eventName);
+            if (handlers) {
+                const args = stmt.args.map(a => this.evaluateExpression(a));
+                for (const handler of handlers) {
+                    handler(...args);
+                }
+            }
+        }
+    }
+
+    private evaluateImplementsDirective(stmt: ImplementsDirective) {
+        // No-op for now. Used for interface compliance metadata.
+    }
+
+    private evaluateAppActivateStatement(stmt: AppActivateStatement) {
+        const title = String(this.evaluateExpression(stmt.title));
+        console.log(`[STUB] AppActivate "${title}"`);
+    }
+
+    private evaluateSendKeysStatement(stmt: SendKeysStatement) {
+        const keys = String(this.evaluateExpression(stmt.keys));
+        console.log(`[STUB] SendKeys "${keys}"`);
+    }
+
+    private evaluateLockStatement(stmt: LockStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        console.log(`[STUB] Lock #${fileNum}`);
+    }
+
+    private evaluateUnlockStatement(stmt: UnlockStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        console.log(`[STUB] Unlock #${fileNum}`);
+    }
+
+    private evaluateWidthStatement(stmt: WidthStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const width = Number(this.evaluateExpression(stmt.width));
+        console.log(`[STUB] Width #${fileNum}, ${width}`);
+    }
+
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
         const val = this.evaluateExpression(stmt.right);
         this.evaluateAssignmentToVariable(stmt.left, val);
@@ -1638,7 +1723,7 @@ export class Evaluator {
                 const name = (call.callee as Identifier).name;
                 const lowerName = name.toLowerCase();
 
-                if (lowerName === 'mid') {
+                if (lowerName === 'mid' || lowerName === 'mid$' || lowerName === 'midb' || lowerName === 'midb$') {
                     // Mid(s, start, [len]) = val
                     const targetName = (call.args[0] as Identifier).name; // Must be identifier for assignment
                     const start = this.evaluateExpression(call.args[1]) as number;
@@ -1726,6 +1811,9 @@ export class Evaluator {
         const isStaticDecl = stmt.isStatic || this.currentProcIsStatic;
         for (const decl of stmt.declarations) {
             const varName = decl.name.name;
+            if (decl.isWithEvents) {
+                this.env.setWithEvents(varName);
+            }
             const varKey = varName.toLowerCase();
             const staticKey = `${this.currentProcedureName?.toLowerCase()}:${varKey}`;
 
@@ -1792,8 +1880,12 @@ export class Evaluator {
         // No-op for now. Affects visibility in multi-module environment.
     }
 
+    public registerClass(name: string, classDef: ClassDeclaration) {
+        this.classDefinitions.set(name.toLowerCase(), classDef);
+    }
+
     private evaluateClassDeclaration(stmt: ClassDeclaration) {
-        this.classDefinitions.set(stmt.name.toLowerCase(), stmt);
+        this.registerClass(stmt.name, stmt);
     }
 
     private instantiateClass(className: string): any {
@@ -1823,7 +1915,16 @@ export class Evaluator {
             __vbaTypeName__: classDef.name,
             __classDef__: classDef,
             __instanceEnv__: instanceEnv,
+            __events__: new Map<string, ((...args: any[]) => void)[]>(),
         };
+
+        // Initialize Events
+        for (const stmt of classDef.body) {
+            if (stmt.type === 'EventDeclaration') {
+                const eventDecl = stmt as EventDeclaration;
+                instance.__events__.set(eventDecl.name.name.toLowerCase(), []);
+            }
+        }
 
         // Set Me in instance env pointing to the instance itself
         instanceEnv.setLocally('Me', instance);
@@ -1968,37 +2069,50 @@ export class Evaluator {
                 return;
             }
             this.env.set(name, value);
+
+            // Check for WithEvents binding
+            if (this.env.isWithEvents(name) && value && value.__events__) {
+                // Binding: look for VarName_EventName subs in the current environment
+                for (const eventName of value.__events__.keys()) {
+                    const handlerName = `${name}_${eventName}`;
+                    const handler = this.env.getProcedure(handlerName);
+                    if (handler) {
+                        const handlers = value.__events__.get(eventName);
+                        handlers.push((...args: any[]) => {
+                            this.callProcedure(handlerName, args);
+                        });
+                    }
+                }
+            }
         } else {
             throw new Error(`Execution error: Unsupported Set target ${stmt.left.type}`);
         }
     }
 
     private evaluateResumeStatement(stmt: ResumeStatement) {
-        if (!this.isInErrorHandler && this.errorHandlingMode !== 'ResumeNext') {
-            // Technically Resume is only for error handlers, but let's be strict
-            throw new Error('Execution error: Resume without active error handler');
+        const target = (stmt.target || '').toLowerCase().trim();
+        if (target === '') {
+            throw { type: 'Resume', mode: 'Current' };
+        } else if (target === 'next') {
+            throw { type: 'Resume', mode: 'Next' };
+        } else {
+            throw { type: 'Resume', mode: 'Label', label: stmt.target };
         }
-        throw { type: 'Resume', target: stmt.target };
     }
 
     private evaluateOnErrorStatement(stmt: OnErrorStatement) {
         const label = (stmt.label || '').toLowerCase().trim();
         if (label === '0') {
-            // On Error GoTo 0 - disable error handling
             this.errorHandlerLabel = null;
             this.errorHandlingMode = 'None';
-            this.isInErrorHandler = false; // Reset error handler state too
         } else if (label === '-1') {
-            // On Error GoTo -1 - clear the current error state
             this.isInErrorHandler = false;
         } else if (label === 'resume next') {
-            // On Error Resume Next
             this.errorHandlerLabel = null;
             this.errorHandlingMode = 'ResumeNext';
         } else {
-            // On Error GoTo <label>
             this.errorHandlerLabel = stmt.label;
-            this.errorHandlingMode = 'Label';
+            this.errorHandlingMode = 'GoTo';
         }
     }
 
@@ -2221,7 +2335,10 @@ export class Evaluator {
     }
 
     private evaluateAttributeStatement(stmt: AttributeStatement) {
-        // No-op: ignore Attributes
+        if (stmt.name.toLowerCase() === 'vb_name') {
+            const val = String(this.evaluateExpression(stmt.value)).replace(/"/g, '');
+            this.executingModuleName = val;
+        }
     }
 
     private evaluateDeclareStatement(stmt: DeclareStatement) {
@@ -2333,6 +2450,49 @@ export class Evaluator {
                 getparentfoldername: (p: string) => path.dirname(p),
                 getabsolutepathname: (p: string) => p // already handled by sandbox resolve internally
             };
+        } else if (id === 'msxml2.xmlhttp' || id === 'microsoft.xmlhttp') {
+            let responseText = "";
+            let status = 0;
+            return {
+                open: (method: string, url: string, async: boolean = true) => {
+                    this.onPrint(`[XMLHTTP] Open: ${method} ${url}`);
+                },
+                send: (body?: any) => {
+                    this.onPrint(`[XMLHTTP] Send`);
+                    responseText = "Mock Response";
+                    status = 200;
+                },
+                setrequestheader: (h: string, v: string) => { /* Mock */ },
+                getresponsetext: () => responseText,
+                responsetext: responseText, // Property access
+                getstatus: () => status,
+                status: status,
+                readystate: 4
+            };
+        } else if (id === 'adodb.stream') {
+            let content = "";
+            let streamPos = 0;
+            return {
+                open: () => { streamPos = 0; },
+                close: () => { },
+                write: (data: any) => { content += String(data); },
+                writetext: (text: string) => { content += text; },
+                read: (len: number) => { const r = content.slice(streamPos, streamPos + len); streamPos += len; return r; },
+                readtext: () => { const r = content.slice(streamPos); streamPos = content.length; return r; },
+                savetofile: (p: string, mode: number = 1) => {
+                    const full = this.sandbox.resolve(p);
+                    fs.writeFileSync(full, content);
+                },
+                loadfromfile: (p: string) => {
+                    const full = this.sandbox.resolve(p);
+                    content = fs.readFileSync(full, 'utf8');
+                    streamPos = 0;
+                },
+                type: 2, // adTypeText
+                charset: 'utf-8',
+                position: streamPos,
+                size: content.length
+            };
         }
         throw new Error(`Execution error: Unsupported CreateObject '${progId}'`);
     }
@@ -2346,7 +2506,7 @@ export class Evaluator {
                 this.evaluateStatement(stmt);
                 i++;
             } catch (e: any) {
-                if (e && (e.type === 'Exit' || e.type === 'Terminate')) {
+                if (e && (e.type === 'Exit' || e.type === 'Terminate' || e.type === 'ProcedureReturn')) {
                     throw e;
                 }
 
@@ -2360,7 +2520,7 @@ export class Evaluator {
                         i = labelIndex;
                         continue;
                     }
-                    throw e;
+                    throw new Error(`Execution error: Label '${e.label}' not found`);
                 }
 
                 if (e && e.type === 'GoSub') {
@@ -2387,12 +2547,12 @@ export class Evaluator {
 
                 if (e && e.type === 'Resume') {
                     this.isInErrorHandler = false;
-                    if (e.target === '' || e.target === '0') {
-                        i = this.lastErrorIndex;
-                    } else if (e.target.toLowerCase() === 'next') {
-                        i = this.lastErrorIndex + 1;
-                    } else {
-                        const labelName = e.target.toLowerCase();
+                    if (e.mode === 'Current') {
+                        i = this.lastErrorIndex !== null ? this.lastErrorIndex : i;
+                    } else if (e.mode === 'Next') {
+                        i = this.lastErrorIndex !== null ? this.lastErrorIndex + 1 : i + 1;
+                    } else if (e.mode === 'Label') {
+                        const labelName = e.label.toLowerCase();
                         const labelIndex = body.findIndex(s =>
                             s.type === 'LabelStatement' &&
                             (s as any).label.toLowerCase() === labelName
@@ -2400,55 +2560,45 @@ export class Evaluator {
                         if (labelIndex >= 0) {
                             i = labelIndex;
                         } else {
-                            throw new Error(`Execution error: Label '${e.target}' not found for Resume`);
+                            throw new Error(`Execution error: Label '${e.label}' not found for Resume`);
                         }
                     }
-                    // Clear Err object on Resume
                     this.errObj.clear();
                     continue;
                 }
 
-                // Actual Error Handling
-                if (this.isInErrorHandler) {
-                    // Error inside error handler -> bubble up
-                    this.isInErrorHandler = false;
-                    throw e;
-                }
+                // Handle VbaError or standard JS Error
+                if (!this.isInErrorHandler) {
+                    const errorNumber = e.type === 'VbaError' ? e.number : 1000;
+                    const errorMessage = e.message || String(e);
+                    
+                    this.errObj.number = errorNumber;
+                    this.errObj.description = errorMessage;
 
-                if (this.errorHandlingMode === 'ResumeNext') {
-                    this.lastErrorIndex = i;
-                    // Populate Err object
-                    if (e && e.type === 'VbaError') {
-                        this.errObj.number = e.number;
-                        this.errObj.description = e.message;
-                    } else {
-                        this.errObj.number = 1000;
-                        this.errObj.description = e.message || String(e);
-                    }
-                    i++;
-                    continue;
-                } else if (this.errorHandlingMode === 'Label' && this.errorHandlerLabel) {
-                    const labelIndex = body.findIndex(s =>
-                        s.type === 'LabelStatement' &&
-                        (s as any).label.toLowerCase() === this.errorHandlerLabel!.toLowerCase()
-                    );
-                    if (labelIndex >= 0) {
-                        this.isInErrorHandler = true;
+                    if (this.errorHandlingMode === 'ResumeNext') {
                         this.lastErrorIndex = i;
-                        // Populate Err object
-                        if (e && e.type === 'VbaError') {
-                            this.errObj.number = e.number;
-                            this.errObj.description = e.message;
-                        } else {
-                            this.errObj.number = 1000;
-                            this.errObj.description = e.message || String(e);
-                        }
-                        i = labelIndex;
+                        i++;
                         continue;
                     }
+
+                    if (this.errorHandlingMode === 'GoTo' && this.errorHandlerLabel) {
+                        const labelName = this.errorHandlerLabel.toLowerCase();
+                        const labelIndex = body.findIndex(s =>
+                            s.type === 'LabelStatement' &&
+                            (s as any).label.toLowerCase() === labelName
+                        );
+                        if (labelIndex >= 0) {
+                            this.lastErrorIndex = i;
+                            this.isInErrorHandler = true;
+                            i = labelIndex;
+                            continue;
+                        }
+                    }
                 }
 
-                // Default behavior: throw
+                // If we reach here, either we are already in an error handler,
+                // or there's no handler configured. Bubble up.
+                this.isInErrorHandler = false;
                 throw e;
             }
         }
@@ -2582,18 +2732,34 @@ export class Evaluator {
 
                 // Map arguments to parameters
                 const byRefArgs: { paramName: string, identifierName: string }[] = [];
+                const namedArgs = new Map<string, any>();
+                const positionalArgs: any[] = [];
+
+                for (const argExpr of expr.args) {
+                    if (argExpr.type === 'NamedArgument') {
+                        const namedArg = argExpr as NamedArgument;
+                        namedArgs.set(namedArg.name.toLowerCase(), this.evaluateExpression(namedArg.value));
+                    } else {
+                        positionalArgs.push(this.evaluateExpression(argExpr));
+                    }
+                }
+
                 for (let i = 0; i < proc.parameters.length; i++) {
                     const param = proc.parameters[i];
+                    const paramNameLower = param.name.toLowerCase();
+
                     if (param.isParamArray) {
-                        const remainingArgs = expr.args.slice(i).map(a => this.evaluateExpression(a));
+                        const remainingArgs = positionalArgs.slice(i);
                         (remainingArgs as any).vbaBase = 0;
                         localEnv.set(param.name, remainingArgs);
                         break;
                     }
 
                     let argVal: any;
-                    if (i < expr.args.length) {
-                        argVal = this.evaluateExpression(expr.args[i]);
+                    if (namedArgs.has(paramNameLower)) {
+                        argVal = namedArgs.get(paramNameLower);
+                    } else if (i < positionalArgs.length) {
+                        argVal = positionalArgs[i];
                     } else if (param.defaultValue) {
                         argVal = this.evaluateExpression(param.defaultValue);
                     } else {
@@ -2601,8 +2767,8 @@ export class Evaluator {
                     }
                     localEnv.set(param.name, argVal);
 
+                    // ByRef handling (only for positional for now to keep it simple, or named if possible)
                     if (i < expr.args.length && expr.args[i].type === 'Identifier') {
-                        // VBA Default is ByRef. If it is NOT explicitly ByVal, it is ByRef
                         if (!param.isByVal) {
                             byRefArgs.push({
                                 paramName: param.name,

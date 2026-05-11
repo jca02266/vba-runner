@@ -101,6 +101,14 @@ export enum TokenType {
     KeywordReset,
     KeywordUnlock,
     KeywordParamArray,
+    KeywordEvent,
+    KeywordRaiseEvent,
+    KeywordWithEvents,
+    KeywordImplements,
+    KeywordAppActivate,
+    KeywordSendKeys,
+    KeywordMid,
+    KeywordWidth,
     OperatorHash,
     OperatorPlus,
     OperatorMinus,
@@ -534,6 +542,17 @@ export class Lexer {
                 if (lowerId === 'paramarray') return { type: TokenType.KeywordParamArray, value: idStr, line: this.line };
                 if (lowerId === 'base') return { type: TokenType.KeywordBase, value: idStr, line: this.line };
                 if (lowerId === 'module') return { type: TokenType.KeywordModule, value: idStr, line: this.line };
+                if (lowerId === 'event') return { type: TokenType.KeywordEvent, value: idStr, line: this.line };
+                if (lowerId === 'raiseevent') return { type: TokenType.KeywordRaiseEvent, value: idStr, line: this.line };
+                if (lowerId === 'withevents') return { type: TokenType.KeywordWithEvents, value: idStr, line: this.line };
+                if (lowerId === 'implements') return { type: TokenType.KeywordImplements, value: idStr, line: this.line };
+                if (lowerId === 'appactivate') return { type: TokenType.KeywordAppActivate, value: idStr, line: this.line };
+                if (lowerId === 'sendkeys') return { type: TokenType.KeywordSendKeys, value: idStr, line: this.line };
+                if (lowerId === 'mid') return { type: TokenType.KeywordMid, value: idStr, line: this.line };
+                if (lowerId === 'mid$') return { type: TokenType.KeywordMid, value: idStr, line: this.line };
+                if (lowerId === 'midb') return { type: TokenType.KeywordMid, value: idStr, line: this.line };
+                if (lowerId === 'midb$') return { type: TokenType.KeywordMid, value: idStr, line: this.line };
+                if (lowerId === 'width') return { type: TokenType.KeywordWidth, value: idStr, line: this.line };
 
                 return { type: TokenType.Identifier, value: idStr, line: this.line };
             }

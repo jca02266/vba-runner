@@ -116,8 +116,9 @@ export interface ProcedureDeclaration extends Statement {
 export interface VariableDeclarator {
     name: Identifier;
     isArray: boolean;
-    arraySize?: Expression; // TODO: Array size should ideally support multiple dimensions
+    arraySize?: Expression;
     isNew: boolean;
+    isWithEvents: boolean;
     objectType?: string;
 }
 
@@ -175,6 +176,24 @@ export interface OpenStatement extends Statement {
     access?: 'Read' | 'Write' | 'Read Write';
     lock?: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write';
     fileNumber: Expression;
+}
+
+export interface LockStatement extends Statement {
+    type: 'LockStatement';
+    fileNumber: Expression;
+    recordRange?: { start: Expression, end?: Expression };
+}
+
+export interface UnlockStatement extends Statement {
+    type: 'UnlockStatement';
+    fileNumber: Expression;
+    recordRange?: { start: Expression, end?: Expression };
+}
+
+export interface WidthStatement extends Statement {
+    type: 'WidthStatement';
+    fileNumber: Expression;
+    width: Expression;
 }
 
 export interface CloseStatement extends Statement {
@@ -250,6 +269,36 @@ export interface RSetStatement extends Statement {
 export interface EraseStatement extends Statement {
     type: 'EraseStatement';
     name: Identifier;
+}
+
+export interface ImplementsDirective extends Statement {
+    type: 'ImplementsDirective';
+    interfaceName: string;
+}
+
+export interface AppActivateStatement extends Statement {
+    type: 'AppActivateStatement';
+    title: Expression;
+    wait?: Expression;
+}
+
+export interface SendKeysStatement extends Statement {
+    type: 'SendKeysStatement';
+    keys: Expression;
+    wait?: Expression;
+}
+
+export interface EventDeclaration extends Statement {
+    type: 'EventDeclaration';
+    name: Identifier;
+    parameters: Parameter[];
+    scope?: 'public' | 'private' | 'friend';
+}
+
+export interface RaiseEventStatement extends Statement {
+    type: 'RaiseEventStatement';
+    eventName: Identifier;
+    args: Expression[];
 }
 
 export interface DeclareStatement extends Statement {
@@ -349,6 +398,12 @@ export interface CallExpression extends Expression {
     type: 'CallExpression';
     callee: Expression;
     args: Expression[];
+}
+
+export interface NamedArgument extends Expression {
+    type: 'NamedArgument';
+    name: string;
+    value: Expression;
 }
 
 export interface MemberExpression extends Expression {
@@ -835,15 +890,15 @@ export class Parser {
             const scopeToken = this.advance();
             const scope = scopeToken.value.toLowerCase() as 'public' | 'private' | 'friend';
             const next = this.peek();
-            if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
-                return this.parseProcedureDeclaration(scope);
-            }
-            if (next.type === TokenType.KeywordStatic) {
-                this.advance(); // consume 'Static'
-                return this.parseProcedureDeclaration(scope, true);
+            if (next.type === TokenType.KeywordEvent) {
+                return this.parseEventDeclaration(scope);
             }
             // Public/Private on Dim/Const — consume scope keyword and parse normally
-            return this.parseStatement();
+            const stmt = this.parseStatement();
+            if (stmt && stmt.type === 'VariableDeclaration') {
+                (stmt as any).scope = scope;
+            }
+            return stmt;
         } else if (token.type === TokenType.KeywordStatic) {
             this.advance(); // consume 'Static'
             const next = this.peek();
@@ -895,6 +950,12 @@ export class Parser {
             return this.parseReDimStatement();
         } else if (token.type === TokenType.KeywordResume) {
             return this.parseResumeStatement();
+        } else if (token.type === TokenType.KeywordImplements) {
+            return this.parseImplementsDirective();
+        } else if (token.type === TokenType.KeywordAppActivate) {
+            return this.parseAppActivateStatement();
+        } else if (token.type === TokenType.KeywordSendKeys) {
+            return this.parseSendKeysStatement();
         } else if (token.type === TokenType.KeywordOption) {
             this.advance(); // 'Option'
             if (this.match(TokenType.KeywordCompare)) {
@@ -949,6 +1010,16 @@ export class Parser {
             return this.parseResetStatement();
         } else if (token.type === TokenType.KeywordKill) {
             return this.parseKillStatement();
+        } else if (token.type === TokenType.KeywordEvent) {
+            return this.parseEventDeclaration();
+        } else if (token.type === TokenType.KeywordRaiseEvent) {
+            return this.parseRaiseEventStatement();
+        } else if (token.type === TokenType.KeywordLock) {
+            return this.parseLockStatement();
+        } else if (token.type === TokenType.KeywordUnlock) {
+            return this.parseUnlockStatement();
+        } else if (token.type === TokenType.KeywordWidth) {
+            return this.parseWidthStatement();
         } else if (token.type === TokenType.KeywordClass) {
             return this.parseClassDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
@@ -1095,6 +1166,10 @@ export class Parser {
         const declarations: VariableDeclarator[] = [];
 
         while (true) {
+            let isWithEvents = false;
+            if (this.match(TokenType.KeywordWithEvents)) {
+                isWithEvents = true;
+            }
             const idToken = this.advance();
             const name: Identifier = { type: 'Identifier', name: idToken.value };
 
@@ -1121,7 +1196,7 @@ export class Parser {
                 }
             }
 
-            declarations.push({ name, isArray, arraySize, isNew, objectType });
+            declarations.push({ name, isArray, arraySize, isNew, isWithEvents, objectType });
 
             if (this.match(TokenType.OperatorComma)) {
                 continue;
@@ -1962,7 +2037,7 @@ export class Parser {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
             expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
-        } else if (token.type === TokenType.Identifier) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.KeywordMid) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordEmpty) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
@@ -2045,8 +2120,10 @@ export class Parser {
         if (this.peek().type === TokenType.Identifier &&
             this.pos + 1 < this.tokens.length &&
             this.tokens[this.pos + 1].type === TokenType.OperatorColonEquals) {
-            this.advance(); // consume identifier (the name)
+            const nameToken = this.advance(); // consume identifier (the name)
             this.advance(); // consume ':='
+            const value = this.parseExpression();
+            return { type: 'NamedArgument', name: nameToken.value, value } as NamedArgument;
         }
         return this.parseExpression();
     }
@@ -2113,5 +2190,110 @@ export class Parser {
         this.advance(); // 'Error'
         const errorNumber = this.parseExpression();
         return { type: 'ErrorStatement', errorNumber };
+    }
+
+    private parseEventDeclaration(scope?: 'public' | 'private' | 'friend'): EventDeclaration {
+        this.advance(); // 'Event'
+        const idToken = this.consume(TokenType.Identifier, "Expected identifier after 'Event'");
+        const name: Identifier = { type: 'Identifier', name: idToken.value };
+        const parameters: Parameter[] = [];
+        
+        if (this.match(TokenType.OperatorLParen)) {
+            if (this.peek().type !== TokenType.OperatorRParen) {
+                parameters.push(this.parseParameter());
+                while (this.match(TokenType.OperatorComma)) {
+                    parameters.push(this.parseParameter());
+                }
+            }
+            this.consume(TokenType.OperatorRParen, "Expected ')' after event parameters");
+        }
+        
+        return { type: 'EventDeclaration', name, parameters, scope };
+    }
+
+    private parseRaiseEventStatement(): RaiseEventStatement {
+        this.advance(); // 'RaiseEvent'
+        const idToken = this.consume(TokenType.Identifier, "Expected identifier after 'RaiseEvent'");
+        const eventName: Identifier = { type: 'Identifier', name: idToken.value };
+        const args: Expression[] = [];
+        
+        if (this.match(TokenType.OperatorLParen)) {
+            if (this.peek().type !== TokenType.OperatorRParen) {
+                args.push(this.parseExpression());
+                while (this.match(TokenType.OperatorComma)) {
+                    args.push(this.parseExpression());
+                }
+            }
+            this.consume(TokenType.OperatorRParen, "Expected ')' after RaiseEvent arguments");
+        }
+        
+        return { type: 'RaiseEventStatement', eventName, args };
+    }
+
+    private parseImplementsDirective(): ImplementsDirective {
+        this.advance(); // 'Implements'
+        const idToken = this.consume(TokenType.Identifier, "Expected interface name after 'Implements'");
+        return { type: 'ImplementsDirective', interfaceName: idToken.value };
+    }
+
+    private parseAppActivateStatement(): AppActivateStatement {
+        this.advance(); // 'AppActivate'
+        const title = this.parseExpression();
+        let wait: Expression | undefined;
+        if (this.match(TokenType.OperatorComma)) {
+            wait = this.parseExpression();
+        }
+        return { type: 'AppActivateStatement', title, wait };
+    }
+
+    private parseSendKeysStatement(): SendKeysStatement {
+        this.advance(); // 'SendKeys'
+        const keys = this.parseExpression();
+        let wait: Expression | undefined;
+        if (this.match(TokenType.OperatorComma)) {
+            wait = this.parseExpression();
+        }
+        return { type: 'SendKeysStatement', keys, wait };
+    }
+
+    private parseLockStatement(): LockStatement {
+        this.advance(); // 'Lock'
+        this.match(TokenType.OperatorHash);
+        const fileNumber = this.parseExpression();
+        let recordRange: any;
+        if (this.match(TokenType.OperatorComma)) {
+            const start = this.parseExpression();
+            let end: any;
+            if (this.match(TokenType.KeywordTo)) {
+                end = this.parseExpression();
+            }
+            recordRange = { start, end };
+        }
+        return { type: 'LockStatement', fileNumber, recordRange };
+    }
+
+    private parseUnlockStatement(): UnlockStatement {
+        this.advance(); // 'Unlock'
+        this.match(TokenType.OperatorHash);
+        const fileNumber = this.parseExpression();
+        let recordRange: any;
+        if (this.match(TokenType.OperatorComma)) {
+            const start = this.parseExpression();
+            let end: any;
+            if (this.match(TokenType.KeywordTo)) {
+                end = this.parseExpression();
+            }
+            recordRange = { start, end };
+        }
+        return { type: 'UnlockStatement', fileNumber, recordRange };
+    }
+
+    private parseWidthStatement(): WidthStatement {
+        this.advance(); // 'Width'
+        this.consume(TokenType.OperatorHash, "Expected '#' after Width");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' after file number");
+        const width = this.parseExpression();
+        return { type: 'WidthStatement', fileNumber, width };
     }
 }
