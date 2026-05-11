@@ -166,6 +166,44 @@ export interface AttributeStatement extends Statement {
     value: Expression;
 }
 
+export interface OpenStatement extends Statement {
+    type: 'OpenStatement';
+    path: Expression;
+    mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary';
+    access?: 'Read' | 'Write' | 'Read Write';
+    lock?: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write';
+    fileNumber: Expression;
+}
+
+export interface CloseStatement extends Statement {
+    type: 'CloseStatement';
+    fileNumbers: Expression[]; // Empty means close all
+}
+
+export interface PrintStatement extends Statement {
+    type: 'PrintStatement';
+    fileNumber: Expression;
+    expressions: (Expression | 'Spc' | 'Tab' | 'Comma' | 'Semicolon')[];
+}
+
+export interface LineInputStatement extends Statement {
+    type: 'LineInputStatement';
+    fileNumber: Expression;
+    variable: Identifier;
+}
+
+export interface PutStatement extends Statement {
+    type: 'PutStatement';
+    fileNumber: Expression;
+    recordNumber?: Expression;
+    data: Expression;
+}
+
+export interface KillStatement extends Statement {
+    type: 'KillStatement';
+    path: Expression;
+}
+
 export interface LSetStatement extends Statement {
     type: 'LSetStatement';
     left: Expression;
@@ -409,6 +447,140 @@ export class Parser {
         return { type: 'AttributeStatement', name, value };
     }
 
+    private parseOpenStatement(): OpenStatement {
+        this.advance(); // 'Open'
+        const path = this.parseExpression();
+        this.consume(TokenType.KeywordFor, "Expected 'For' in Open statement");
+        
+        let mode: any = 'Random';
+        const modeToken = this.advance();
+        switch (modeToken.type) {
+            case TokenType.KeywordInput: mode = 'Input'; break;
+            case TokenType.KeywordOutput: mode = 'Output'; break;
+            case TokenType.KeywordAppend: mode = 'Append'; break;
+            case TokenType.KeywordRandom: mode = 'Random'; break;
+            case TokenType.KeywordBinary: mode = 'Binary'; break;
+            default: throw new Error(`Parse error: Invalid Open mode '${modeToken.value}' at line ${modeToken.line}`);
+        }
+
+        let access: any = undefined;
+        if (this.match(TokenType.KeywordAccess)) {
+            const first = this.advance();
+            if (first.type === TokenType.KeywordRead) {
+                if (this.match(TokenType.KeywordWrite)) {
+                    access = 'Read Write';
+                } else {
+                    access = 'Read';
+                }
+            } else if (first.type === TokenType.KeywordWrite) {
+                access = 'Write';
+            }
+        }
+
+        let lock: any = undefined;
+        if (this.match(TokenType.KeywordLock)) {
+            const first = this.advance();
+            if (first.type === TokenType.KeywordShared) {
+                lock = 'Shared';
+            } else if (first.type === TokenType.KeywordRead) {
+                if (this.match(TokenType.KeywordWrite)) {
+                    lock = 'Lock Read Write';
+                } else {
+                    lock = 'Lock Read';
+                }
+            } else if (first.type === TokenType.KeywordWrite) {
+                lock = 'Lock Write';
+            }
+        }
+
+        this.consume(TokenType.KeywordAs, "Expected 'As' in Open statement");
+        this.match(TokenType.OperatorHash); // optional #
+        const fileNumber = this.parseExpression();
+
+        return { type: 'OpenStatement', path, mode, access, lock, fileNumber };
+    }
+
+    private parseCloseStatement(): CloseStatement {
+        this.advance(); // 'Close'
+        const fileNumbers: Expression[] = [];
+        while (!this.isAtTerminator()) {
+            this.match(TokenType.OperatorHash); // optional #
+            fileNumbers.push(this.parseExpression());
+            if (!this.match(TokenType.OperatorComma)) break;
+        }
+        return { type: 'CloseStatement', fileNumbers };
+    }
+
+    private parsePrintStatement(): PrintStatement {
+        this.advance(); // 'Print'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Print statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' after file number in Print statement");
+
+        const expressions: any[] = [];
+        while (!this.isAtTerminator()) {
+            if (this.match(TokenType.KeywordSpc)) {
+                this.consume(TokenType.OperatorLParen, "Expected '(' after Spc");
+                expressions.push({ type: 'Spc', val: this.parseExpression() });
+                this.consume(TokenType.OperatorRParen, "Expected ')' after Spc");
+            } else if (this.match(TokenType.KeywordTab)) {
+                if (this.match(TokenType.OperatorLParen)) {
+                    expressions.push({ type: 'Tab', val: this.parseExpression() });
+                    this.consume(TokenType.OperatorRParen, "Expected ')' after Tab");
+                } else {
+                    expressions.push('Tab');
+                }
+            } else if (this.peek().type === TokenType.OperatorComma) {
+                this.advance();
+                expressions.push('Comma');
+            } else if (this.peek().type === TokenType.OperatorSemicolon) {
+                this.advance();
+                expressions.push('Semicolon');
+            } else {
+                expressions.push(this.parseExpression());
+            }
+            
+            // Check for trailing separators
+            if (this.isAtTerminator()) break;
+        }
+        return { type: 'PrintStatement', fileNumber, expressions };
+    }
+
+    private parseLineInputStatement(): LineInputStatement {
+        this.advance(); // 'Line'
+        this.consume(TokenType.KeywordInput, "Expected 'Input' after 'Line'");
+        this.consume(TokenType.OperatorHash, "Expected '#' in Line Input statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' after file number");
+        const variable = this.parsePrimary();
+        if (variable.type !== 'Identifier') {
+            throw new Error(`Parse error: Expected variable name in Line Input at line ${this.peek().line}`);
+        }
+        return { type: 'LineInputStatement', fileNumber, variable: variable as Identifier };
+    }
+
+    private parsePutStatement(): PutStatement {
+        this.advance(); // 'Put'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Put statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' after file number");
+        
+        let recordNumber: Expression | undefined = undefined;
+        if (this.peek().type !== TokenType.OperatorComma) {
+            recordNumber = this.parseExpression();
+        }
+        this.consume(TokenType.OperatorComma, "Expected second ',' in Put statement");
+        const data = this.parseExpression();
+
+        return { type: 'PutStatement', fileNumber, recordNumber, data };
+    }
+
+    private parseKillStatement(): KillStatement {
+        this.advance(); // 'Kill'
+        const path = this.parseExpression();
+        return { type: 'KillStatement', path };
+    }
+
     private parseDeclareStatement(): DeclareStatement {
         this.advance(); // 'Declare'
         let isPtrSafe = false;
@@ -497,6 +669,11 @@ export class Parser {
             return true;
         }
         return false;
+    }
+
+    private isAtTerminator(): boolean {
+        const type = this.peek().type;
+        return type === TokenType.Newline || type === TokenType.EOF || type === TokenType.OperatorColon;
     }
 
     private consume(expectedType: TokenType, message: string): Token {
@@ -646,6 +823,18 @@ export class Parser {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordEnum) {
             return this.parseEnumDeclaration();
+        } else if (token.type === TokenType.KeywordOpen) {
+            return this.parseOpenStatement();
+        } else if (token.type === TokenType.KeywordClose) {
+            return this.parseCloseStatement();
+        } else if (token.type === TokenType.KeywordLine) {
+            return this.parseLineInputStatement();
+        } else if (token.type === TokenType.KeywordPrint) {
+            return this.parsePrintStatement();
+        } else if (token.type === TokenType.KeywordPut) {
+            return this.parsePutStatement();
+        } else if (token.type === TokenType.KeywordKill) {
+            return this.parseKillStatement();
         } else if (token.type === TokenType.KeywordClass) {
             return this.parseClassDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
@@ -1733,6 +1922,11 @@ export class Parser {
 
     // Parse a call argument, handling named arguments (e.g., shift:=xlUp)
     private parseCallArgument(): Expression {
+        const next = this.peek().type;
+        if (next === TokenType.OperatorComma || next === TokenType.OperatorRParen || this.isAtTerminator()) {
+            return { type: 'Identifier', name: 'vbaEmpty' } as any;
+        }
+
         // Check for named argument: Identifier := Expression
         if (this.peek().type === TokenType.Identifier &&
             this.pos + 1 < this.tokens.length &&

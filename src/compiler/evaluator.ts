@@ -42,7 +42,18 @@ import {
     ClassDeclaration,
     NewExpression,
     Parser,
+    ResumeStatement,
+    OpenStatement,
+    CloseStatement,
+    PrintStatement,
+    LineInputStatement,
+    PutStatement,
+    KillStatement,
+    AttributeStatement,
+    DeclareStatement,
 } from './parser';
+import * as fs from 'fs';
+import * as path from 'path';
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 
@@ -241,6 +252,14 @@ export type PrintCallback = (output: string) => void;
 
 export class Evaluator {
     private env: Environment;
+    private fileHandles: Map<number, {
+        fd: number,
+        mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',
+        path: string,
+        buffer?: Buffer,
+        pos?: number
+    }> = new Map();
+    private sandbox: SandboxPath = new SandboxPath();
     private onPrint: PrintCallback;
     private errorHandlerLabel: string | null = null;
     private currentProcBody: Statement[] | null = null;
@@ -263,7 +282,6 @@ export class Evaluator {
     private openFileNumbers: Set<number> = new Set();
     private dirIterator: string[] | null = null;
     private dirIndex: number = 0;
-    private sandbox: SandboxPath;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string> } = {}) {
         this.env = new Environment();
@@ -1004,11 +1022,9 @@ export class Evaluator {
             if (pathName !== undefined && pathName !== null && pathName !== "") {
                 // Initialize iterator
                 try {
-                    const fs = require('fs');
-                    const path = require('path');
                     const realPath = this.sandbox.toRealPath(pathName);
                     
-                    let dirPath = path.dirname(realPath);
+                    const dirPath = path.dirname(realPath);
                     const filter = path.basename(realPath);
                     
                     // Basic glob support: *.* or *.txt
@@ -1033,34 +1049,33 @@ export class Evaluator {
         this.env.set('dir$', this.env.get('dir'));
 
         this.env.set('kill', (pathName: string) => {
-            const fs = require('fs');
             fs.unlinkSync(this.sandbox.toRealPath(pathName));
         });
 
         this.env.set('filecopy', (source: string, destination: string) => {
-            const fs = require('fs');
             fs.copyFileSync(this.sandbox.toRealPath(source), this.sandbox.toRealPath(destination));
         });
 
         this.env.set('filelen', (pathName: string) => {
-            const fs = require('fs');
             return fs.statSync(this.sandbox.toRealPath(pathName)).size;
         });
 
-        this.env.set('chdir', (vbaPath: string) => {
-            // VBA ChDir doesn't change Node process.cwd, it's relative to sandbox
-            // In our simple implementation, CurDir is always sandbox root.
-            // We could track a "current directory" within sandbox if needed.
-        });
-
         this.env.set('mkdir', (vbaPath: string) => {
-            const fs = require('fs');
             fs.mkdirSync(this.sandbox.toRealPath(vbaPath), { recursive: true });
         });
 
         this.env.set('rmdir', (vbaPath: string) => {
-            const fs = require('fs');
             fs.rmdirSync(this.sandbox.toRealPath(vbaPath));
+        });
+
+        this.env.set('environ', (env: any) => {
+            return this.sandbox.getEnv(env);
+        });
+        this.env.set('environ$', this.env.get('environ'));
+
+        this.env.set('shell', (pathname: string, windowstyle?: number) => {
+             this.onPrint(`[SHELL STUB] Executing: ${pathname} (Style: ${windowstyle || 1})`);
+             return 1;
         });
 
         // Weekday constants (vbSunday=1 ... vbSaturday=7)
@@ -1306,6 +1321,13 @@ export class Evaluator {
                 throw { type: 'VbaError', number: num, message: desc || `VBA Error ${num}` };
             }
         });
+
+        this.env.set('freefile', () => {
+            for (let i = 1; i <= 255; i++) {
+                if (!this.fileHandles.has(i)) return i;
+            }
+            this.throwVbaError(67, "Too many files");
+        });
     }
 
     public get(name: string): any {
@@ -1525,6 +1547,24 @@ export class Evaluator {
                 break;
             case 'DeclareStatement':
                 this.evaluateDeclareStatement(stmt as DeclareStatement);
+                break;
+            case 'OpenStatement':
+                this.evaluateOpenStatement(stmt as OpenStatement);
+                break;
+            case 'CloseStatement':
+                this.evaluateCloseStatement(stmt as CloseStatement);
+                break;
+            case 'PrintStatement':
+                this.evaluatePrintStatement(stmt as PrintStatement);
+                break;
+            case 'LineInputStatement':
+                this.evaluateLineInputStatement(stmt as LineInputStatement);
+                break;
+            case 'PutStatement':
+                this.evaluatePutStatement(stmt as PutStatement);
+                break;
+            case 'KillStatement':
+                this.evaluateKillStatement(stmt as KillStatement);
                 break;
             case 'LabelStatement':
                 // No-op for now. Label execution just passes through.
@@ -2226,6 +2266,9 @@ export class Evaluator {
             this.errorHandlerLabel = null;
             this.errorHandlingMode = 'None';
             this.isInErrorHandler = false; // Reset error handler state too
+        } else if (label === '-1') {
+            // On Error GoTo -1 - clear the current error state
+            this.isInErrorHandler = false;
         } else if (label === 'resume next') {
             // On Error Resume Next
             this.errorHandlerLabel = null;
@@ -2235,6 +2278,145 @@ export class Evaluator {
             this.errorHandlerLabel = stmt.label;
             this.errorHandlingMode = 'Label';
         }
+    }
+
+    private evaluateOpenStatement(stmt: OpenStatement) {
+        const vbaPath = String(this.evaluateExpression(stmt.path));
+        const realPath = this.sandbox.toRealPath(vbaPath);
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+
+        if (this.fileHandles.has(fileNum)) {
+            this.throwVbaError(55, "File already open");
+        }
+
+        let flags = '';
+        switch (stmt.mode) {
+            case 'Input': flags = 'r'; break;
+            case 'Output': flags = 'w'; break;
+            case 'Append': flags = 'a'; break;
+            case 'Random':
+            case 'Binary': flags = 'r+'; break;
+        }
+
+        try {
+            // Ensure directory exists for write modes
+            if (flags === 'w' || flags === 'a') {
+                const dir = path.dirname(realPath);
+                if (!fs.existsSync(dir)) {
+                    fs.mkdirSync(dir, { recursive: true });
+                }
+            } else if (flags === 'r' && !fs.existsSync(realPath)) {
+                this.throwVbaError(53, "File not found");
+            }
+
+            const fd = fs.openSync(realPath, flags);
+            this.fileHandles.set(fileNum, {
+                fd,
+                mode: stmt.mode,
+                path: realPath,
+                pos: 0
+            });
+        } catch (e: any) {
+            if (e.code === 'ENOENT') this.throwVbaError(53, "File not found");
+            if (e.code === 'EACCES') this.throwVbaError(75, "Path/File access error");
+            throw e;
+        }
+    }
+
+    private evaluateCloseStatement(stmt: CloseStatement) {
+        const nums = stmt.fileNumbers.length > 0 
+            ? stmt.fileNumbers.map(n => Number(this.evaluateExpression(n)))
+            : Array.from(this.fileHandles.keys());
+
+        for (const num of nums) {
+            const handle = this.fileHandles.get(num);
+            if (handle) {
+                fs.closeSync(handle.fd);
+                this.fileHandles.delete(num);
+            }
+        }
+    }
+
+    private evaluatePrintStatement(stmt: PrintStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(52, "Bad file name or number");
+        if (handle.mode === 'Input') this.throwVbaError(54, "Bad file mode");
+
+        let output = "";
+        for (const expr of stmt.expressions) {
+            if (expr === 'Comma') {
+                const currentLen = output.length;
+                const target = Math.ceil((currentLen + 1) / 14) * 14;
+                output += " ".repeat(target - currentLen);
+            } else if (expr === 'Semicolon') {
+                // Continue
+            } else if (typeof expr === 'object' && expr !== null && 'type' in expr) {
+                 if (expr.type === 'Spc') {
+                     const n = Number(this.evaluateExpression((expr as any).val));
+                     output += " ".repeat(Math.max(0, n));
+                 } else if (expr.type === 'Tab') {
+                     const n = Number(this.evaluateExpression((expr as any).val));
+                     output += " ".repeat(Math.max(0, n - output.length));
+                 } else {
+                     output += String(this.evaluateExpression(expr as any));
+                 }
+            } else {
+                const val = this.evaluateExpression(expr as any);
+                output += String(val === vbaNull ? "Null" : (val === vbaEmpty ? "" : val));
+            }
+        }
+        
+        const last = stmt.expressions[stmt.expressions.length - 1];
+        if (last !== 'Semicolon' && last !== 'Comma') {
+            output += "\r\n";
+        }
+
+        fs.writeSync(handle.fd, output);
+    }
+
+    private evaluateLineInputStatement(stmt: LineInputStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(52, "Bad file name or number");
+        
+        const buffer = Buffer.alloc(1);
+        let line = "";
+        let bytesRead = 0;
+
+        while (true) {
+            bytesRead = fs.readSync(handle.fd, buffer, 0, 1, handle.pos);
+            if (bytesRead === 0) break;
+            const char = buffer.toString('utf8', 0, 1);
+            handle.pos!++;
+            if (char === '\n') break;
+            if (char !== '\r') line += char;
+        }
+
+        this.env.setLocally(stmt.variable.name, line);
+    }
+
+    private evaluatePutStatement(stmt: PutStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(52, "Bad file name or number");
+
+        const data = this.evaluateExpression(stmt.data);
+        const buffer = Buffer.from(JSON.stringify(data)); // Naive for now
+        
+        let position = handle.pos;
+        if (stmt.recordNumber) {
+            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1) * buffer.length; // Simplified
+        }
+
+        fs.writeSync(handle.fd, buffer, 0, buffer.length, position);
+        handle.pos! += buffer.length;
+    }
+
+    private evaluateKillStatement(stmt: KillStatement) {
+        const vbaPath = String(this.evaluateExpression(stmt.path));
+        const realPath = this.sandbox.toRealPath(vbaPath);
+        fs.unlinkSync(realPath);
     }
 
     private evaluateAttributeStatement(stmt: AttributeStatement) {
@@ -2562,10 +2744,17 @@ export class Evaluator {
 
                 const previousEnv = this.env;
                 const previousErrorHandler = this.errorHandlerLabel;
+                const previousErrorHandlingMode = this.errorHandlingMode;
+                const previousIsInErrorHandler = this.isInErrorHandler;
+                const previousLastErrorIndex = this.lastErrorIndex;
+
                 const previousProcBody = this.currentProcBody;
                 const previousExecutingModule = this.executingModuleName;
                 this.env = localEnv;
                 this.errorHandlerLabel = null;
+                this.errorHandlingMode = 'None';
+                this.isInErrorHandler = false;
+                this.lastErrorIndex = -1;
                 this.currentProcBody = proc.body;
                 this.executingModuleName = proc.moduleName ?? '';
 
@@ -2577,12 +2766,16 @@ export class Evaluator {
                     } else {
                         throw e;
                     }
-                }
+                } finally {
+                    this.env = previousEnv; // Restore scope
+                    this.errorHandlerLabel = previousErrorHandler;
+                    this.errorHandlingMode = previousErrorHandlingMode;
+                    this.isInErrorHandler = previousIsInErrorHandler;
+                    this.lastErrorIndex = previousLastErrorIndex;
 
-                this.env = previousEnv; // Restore scope
-                this.errorHandlerLabel = previousErrorHandler;
-                this.currentProcBody = previousProcBody;
-                this.executingModuleName = previousExecutingModule;
+                    this.currentProcBody = previousProcBody;
+                    this.executingModuleName = previousExecutingModule;
+                }
 
                 // Synchronize ByRef arguments back to caller scope
                 for (const ref of byRefArgs) {

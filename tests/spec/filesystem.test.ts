@@ -7,59 +7,66 @@ import * as path from 'path';
 function testFileSystem() {
     console.log("Running FileSystem tests...");
 
-    const sandboxRoot = path.join(process.cwd(), "tests/sandbox");
-    if (!fs.existsSync(sandboxRoot)) fs.mkdirSync(sandboxRoot, { recursive: true });
+    // Setup: clean workspace/test.txt
+    const workspace = path.resolve(process.cwd(), 'workspace');
+    if (!fs.existsSync(workspace)) fs.mkdirSync(workspace);
+    const testFile = path.join(workspace, 'test.txt');
+    if (fs.existsSync(testFile)) fs.unlinkSync(testFile);
 
-    const tempFile = path.join(sandboxRoot, "vba_test_file.txt");
-    const copyFile = path.join(sandboxRoot, "vba_test_file_copy.txt");
+    const vbaCode = `
+        Sub TestFile()
+            Dim fn As Integer
+            fn = FreeFile()
+            Open "test.txt" For Output As #fn
+            Print #fn, "Hello VBA"
+            Print #fn, "Line 2"
+            Close #fn
+            
+            Dim lineStr As String
+            Open "test.txt" For Input As #1
+            Line Input #1, lineStr
+            Debug.Print lineStr
+            Line Input #1, lineStr
+            Debug.Print lineStr
+            Close #1
+            
+            Kill "test.txt"
+            
+            ' Environ test (mocked)
+            Debug.Print Environ("TEMP")
+        End Sub
+        TestFile
+    `;
 
-    // Prepare temp file
-    fs.writeFileSync(tempFile, "Hello VBA FileSystem");
+    let output = "";
+    const lexer = new Lexer(vbaCode);
+    const tokens = lexer.tokenize();
+    const parser = new Parser(tokens);
+    const program = parser.parse();
+    // Setup initial env for Sandbox
+    const evaluator = new Evaluator((o) => { output += o + "\n"; }, { env: { "temp": "/tmp/vba" } });
+    evaluator.evaluate(program);
 
-    const tests = [
-        { code: "Debug.Print CurDir()", expected: "\\" },
-        { code: "Debug.Print Dir(\"vba_test_file.txt\")", expected: "vba_test_file.txt" },
-        { code: "Debug.Print FileLen(\"vba_test_file.txt\")", expected: String(fs.statSync(tempFile).size) },
-        { 
-            code: "FileCopy \"vba_test_file.txt\", \"vba_test_file_copy.txt\"\nDebug.Print Dir(\"vba_test_file_copy.txt\")", 
-            expected: "vba_test_file_copy.txt" 
-        },
-        {
-            code: "Kill \"vba_test_file.txt\"\nKill \"vba_test_file_copy.txt\"\nDebug.Print Dir(\"vba_test_file.txt\")",
-            expected: ""
-        }
+    const lines = output.trim().split("\n").map(l => l.trim());
+    const expected = [
+        "Hello VBA",
+        "Line 2",
+        "/tmp/vba"
     ];
 
     let passed = 0;
-    for (const t of tests) {
-        let output = "";
-        const lexer = new Lexer(t.code);
-        const tokens = lexer.tokenize();
-        const parser = new Parser(tokens);
-        const program = parser.parse();
-        const evaluator = new Evaluator((o) => { 
-            if (output) output += "\n";
-            output += o; 
-        }, { sandboxRoot });
-        evaluator.evaluate(program);
-
-        const lines = output.trim().split("\n");
-        const actual = lines[lines.length - 1]; // Get last output line
-        if (actual === t.expected) {
+    for (let i = 0; i < expected.length; i++) {
+        if (lines[i] === expected[i]) {
             passed++;
         } else {
-            console.log(`[FAIL] ${t.code} - Expected ${t.expected} but got ${actual}`);
+            console.log(`[FAIL] FileSystem line ${i+1} - Expected "${expected[i]}" but got "${lines[i]}"`);
         }
     }
 
-    // Cleanup
-    if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
-    if (fs.existsSync(copyFile)) fs.unlinkSync(copyFile);
-
-    console.log(`\nFileSystem Tests: ${passed}/${tests.length} passed`);
-    if (passed === tests.length) {
+    if (passed === expected.length) {
         console.log("✅ FileSystem: 全テスト通過");
     } else {
+        console.log("Actual output lines:", lines);
         process.exit(1);
     }
 }

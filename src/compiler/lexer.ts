@@ -80,6 +80,24 @@ export enum TokenType {
     KeywordPtrSafe,
     KeywordBase,
     KeywordModule,
+    KeywordOpen,
+    KeywordClose,
+    KeywordLine,
+    KeywordInput,
+    KeywordPrint,
+    KeywordPut,
+    KeywordOutput,
+    KeywordAppend,
+    KeywordRandom,
+    KeywordAccess,
+    KeywordRead,
+    KeywordWrite,
+    KeywordLock,
+    KeywordShared,
+    KeywordSpc,
+    KeywordTab,
+    KeywordKill,
+    OperatorHash,
     OperatorPlus,
     OperatorMinus,
     OperatorMultiply,
@@ -170,17 +188,30 @@ export class Lexer {
             
             // Handle Date literal #mm/dd/yyyy#
             if (char === '#') {
-                this.advance(); // consume opening #
-                let dateValue = '';
-                while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {
-                    dateValue += this.advance();
+                // Peek ahead to see if there's a closing # on the same line
+                let foundClosingHash = false;
+                for (let j = this.pos + 1; j < this.input.length; j++) {
+                    if (this.input[j] === '#') {
+                        foundClosingHash = true;
+                        break;
+                    }
+                    if (this.input[j] === '\n') break;
                 }
-                if (this.peek() === '#') {
-                    this.advance(); // consume closing #
-                    return { type: TokenType.Date, value: dateValue, line: this.line };
+
+                if (foundClosingHash) {
+                    this.advance(); // consume opening #
+                    let dateValue = '';
+                    while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {
+                        dateValue += this.advance();
+                    }
+                    if (this.peek() === '#') {
+                        this.advance(); // consume closing #
+                        return { type: TokenType.Date, value: dateValue, line: this.line };
+                    }
                 }
-                // If no closing #, treat as Unknown or fallback
-                return { type: TokenType.Unknown, value: '#', line: this.line };
+                // Fallback to OperatorHash
+                this.advance();
+                return { type: TokenType.OperatorHash, value: '#', line: this.line };
             }
 
             // Line continuation: _ must be immediately followed by \n or \r\n (no trailing spaces)
@@ -294,6 +325,11 @@ export class Lexer {
             if (char === ',') {
                 this.advance();
                 return { type: TokenType.OperatorComma, value: ',', line: this.line };
+            }
+
+            if (char === '#') {
+                this.advance();
+                return { type: TokenType.OperatorHash, value: '#', line: this.line };
             }
 
             if (char === '(') {
@@ -449,6 +485,23 @@ export class Lexer {
                 if (lowerId === 'lib') return { type: TokenType.KeywordLib, value: idStr, line: this.line };
                 if (lowerId === 'alias') return { type: TokenType.KeywordAlias, value: idStr, line: this.line };
                 if (lowerId === 'ptrsafe') return { type: TokenType.KeywordPtrSafe, value: idStr, line: this.line };
+                if (lowerId === 'open') return { type: TokenType.KeywordOpen, value: idStr, line: this.line };
+                if (lowerId === 'close') return { type: TokenType.KeywordClose, value: idStr, line: this.line };
+                if (lowerId === 'line') return { type: TokenType.KeywordLine, value: idStr, line: this.line };
+                if (lowerId === 'input') return { type: TokenType.KeywordInput, value: idStr, line: this.line };
+                if (lowerId === 'print') return { type: TokenType.KeywordPrint, value: idStr, line: this.line };
+                if (lowerId === 'put') return { type: TokenType.KeywordPut, value: idStr, line: this.line };
+                if (lowerId === 'output') return { type: TokenType.KeywordOutput, value: idStr, line: this.line };
+                if (lowerId === 'append') return { type: TokenType.KeywordAppend, value: idStr, line: this.line };
+                if (lowerId === 'random') return { type: TokenType.KeywordRandom, value: idStr, line: this.line };
+                if (lowerId === 'access') return { type: TokenType.KeywordAccess, value: idStr, line: this.line };
+                if (lowerId === 'read') return { type: TokenType.KeywordRead, value: idStr, line: this.line };
+                if (lowerId === 'write') return { type: TokenType.KeywordWrite, value: idStr, line: this.line };
+                if (lowerId === 'lock') return { type: TokenType.KeywordLock, value: idStr, line: this.line };
+                if (lowerId === 'shared') return { type: TokenType.KeywordShared, value: idStr, line: this.line };
+                if (lowerId === 'spc') return { type: TokenType.KeywordSpc, value: idStr, line: this.line };
+                if (lowerId === 'tab') return { type: TokenType.KeywordTab, value: idStr, line: this.line };
+                if (lowerId === 'kill') return { type: TokenType.KeywordKill, value: idStr, line: this.line };
                 if (lowerId === 'base') return { type: TokenType.KeywordBase, value: idStr, line: this.line };
                 if (lowerId === 'module') return { type: TokenType.KeywordModule, value: idStr, line: this.line };
 

@@ -63,16 +63,16 @@
 
 | 状態 | 優先度 | 機能 | 仕様書 |
 |------|--------|------|--------|
-| ❌ | P1 | Open Statement | §5.4.5.1 |
-| ❌ | P1 | Close / Reset Statements | §5.4.5.2 |
+| ✅ | P1 | Open Statement | §5.4.5.1 |
+| ✅ | P1 | Close / Reset Statements | §5.4.5.2 |
 | ❌ | P2 | Seek Statement | §5.4.5.3 |
 | ❌ | P2 | Lock / Unlock Statements | §5.4.5.4/5 |
-| ❌ | P2 | Line Input Statement | §5.4.5.6 |
+| ✅ | P2 | Line Input Statement | §5.4.5.6 |
 | ❌ | P2 | Width Statement | §5.4.5.7 |
-| ❌ | P2 | Print Statement（`Print #n`） | §5.4.5.8 |
+| ✅ | P2 | Print Statement（`Print #n`） | §5.4.5.8 |
 | ❌ | P2 | Write Statement | §5.4.5.9 |
 | ❌ | P2 | Input Statement | §5.4.5.10 |
-| ❌ | P2 | Put Statement | §5.4.5.11 |
+| ✅ | P2 | Put Statement | §5.4.5.11 |
 | ❌ | P2 | Get Statement | §5.4.5.12 |
 
 ## 第5章：宣言 (§5.2, §5.3)
