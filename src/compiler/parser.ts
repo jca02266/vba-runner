@@ -204,6 +204,35 @@ export interface KillStatement extends Statement {
     path: Expression;
 }
 
+export interface WriteStatement extends Statement {
+    type: 'WriteStatement';
+    fileNumber: Expression;
+    items: Expression[];
+}
+
+export interface InputStatement extends Statement {
+    type: 'InputStatement';
+    fileNumber: Expression;
+    variables: Expression[];
+}
+
+export interface GetStatement extends Statement {
+    type: 'GetStatement';
+    fileNumber: Expression;
+    recordNumber?: Expression;
+    variable: Expression;
+}
+
+export interface SeekStatement extends Statement {
+    type: 'SeekStatement';
+    fileNumber: Expression;
+    position: Expression;
+}
+
+export interface ResetStatement extends Statement {
+    type: 'ResetStatement';
+}
+
 export interface LSetStatement extends Statement {
     type: 'LSetStatement';
     left: Expression;
@@ -581,6 +610,68 @@ export class Parser {
         return { type: 'KillStatement', path };
     }
 
+    private parseWriteStatement(): WriteStatement {
+        this.advance(); // 'Write'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Write statement");
+        const fileNumber = this.parseExpression();
+        
+        const items: Expression[] = [];
+        if (this.match(TokenType.OperatorComma)) {
+            while (!this.isAtTerminator()) {
+                items.push(this.parseExpression());
+                if (!this.match(TokenType.OperatorComma)) break;
+            }
+        }
+        
+        return { type: 'WriteStatement', fileNumber, items };
+    }
+
+    private parseInputStatement(): InputStatement {
+        this.advance(); // 'Input'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Input statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' in Input statement");
+        
+        const variables: Expression[] = [];
+        while (!this.isAtTerminator()) {
+            variables.push(this.parseExpression());
+            if (!this.match(TokenType.OperatorComma)) break;
+        }
+        
+        return { type: 'InputStatement', fileNumber, variables };
+    }
+
+    private parseGetStatement(): GetStatement {
+        this.advance(); // 'Get'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Get statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' in Get statement");
+        
+        let recordNumber: Expression | undefined = undefined;
+        if (this.peek().type !== TokenType.OperatorComma) {
+            recordNumber = this.parseExpression();
+        }
+        this.consume(TokenType.OperatorComma, "Expected ',' in Get statement");
+        const variable = this.parseExpression();
+        
+        return { type: 'GetStatement', fileNumber, recordNumber, variable };
+    }
+
+    private parseSeekStatement(): SeekStatement {
+        this.advance(); // 'Seek'
+        this.consume(TokenType.OperatorHash, "Expected '#' in Seek statement");
+        const fileNumber = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' in Seek statement");
+        const position = this.parseExpression();
+        
+        return { type: 'SeekStatement', fileNumber, position };
+    }
+
+    private parseResetStatement(): ResetStatement {
+        this.advance(); // 'Reset'
+        return { type: 'ResetStatement' };
+    }
+
     private parseDeclareStatement(): DeclareStatement {
         this.advance(); // 'Declare'
         let isPtrSafe = false;
@@ -833,6 +924,16 @@ export class Parser {
             return this.parsePrintStatement();
         } else if (token.type === TokenType.KeywordPut) {
             return this.parsePutStatement();
+        } else if (token.type === TokenType.KeywordGet) {
+            return this.parseGetStatement();
+        } else if (token.type === TokenType.KeywordInput) {
+            return this.parseInputStatement();
+        } else if (token.type === TokenType.KeywordWrite) {
+            return this.parseWriteStatement();
+        } else if (token.type === TokenType.KeywordSeek) {
+            return this.parseSeekStatement();
+        } else if (token.type === TokenType.KeywordReset) {
+            return this.parseResetStatement();
         } else if (token.type === TokenType.KeywordKill) {
             return this.parseKillStatement();
         } else if (token.type === TokenType.KeywordClass) {

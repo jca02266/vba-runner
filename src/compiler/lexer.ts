@@ -97,6 +97,9 @@ export enum TokenType {
     KeywordSpc,
     KeywordTab,
     KeywordKill,
+    KeywordSeek,
+    KeywordReset,
+    KeywordUnlock,
     OperatorHash,
     OperatorPlus,
     OperatorMinus,
@@ -199,14 +202,29 @@ export class Lexer {
                 }
 
                 if (foundClosingHash) {
-                    this.advance(); // consume opening #
-                    let dateValue = '';
-                    while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {
-                        dateValue += this.advance();
+                    // Check if it really looks like a date (digits, /, -, :, whitespace, AM/PM)
+                    let potentialDate = '';
+                    let k = this.pos + 1;
+                    while (k < this.input.length && this.input[k] !== '#' && this.input[k] !== '\n') {
+                        potentialDate += this.input[k];
+                        k++;
                     }
-                    if (this.peek() === '#') {
-                        this.advance(); // consume closing #
-                        return { type: TokenType.Date, value: dateValue, line: this.line };
+                    
+                    // Simple heuristic: if it contains letters (other than AM/PM/months), it's probably not a date
+                    const dateRegex = /^[0-9\/\-\s:apm,]+$/i;
+                    // Month names are also allowed: Jan, Feb, etc.
+                    const monthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+                    
+                    if (dateRegex.test(potentialDate) || monthsRegex.test(potentialDate)) {
+                        this.advance(); // consume opening #
+                        let dateValue = '';
+                        while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {
+                            dateValue += this.advance();
+                        }
+                        if (this.peek() === '#') {
+                            this.advance(); // consume closing #
+                            return { type: TokenType.Date, value: dateValue, line: this.line };
+                        }
                     }
                 }
                 // Fallback to OperatorHash
@@ -502,6 +520,10 @@ export class Lexer {
                 if (lowerId === 'spc') return { type: TokenType.KeywordSpc, value: idStr, line: this.line };
                 if (lowerId === 'tab') return { type: TokenType.KeywordTab, value: idStr, line: this.line };
                 if (lowerId === 'kill') return { type: TokenType.KeywordKill, value: idStr, line: this.line };
+                if (lowerId === 'get') return { type: TokenType.KeywordGet, value: idStr, line: this.line };
+                if (lowerId === 'seek') return { type: TokenType.KeywordSeek, value: idStr, line: this.line };
+                if (lowerId === 'reset') return { type: TokenType.KeywordReset, value: idStr, line: this.line };
+                if (lowerId === 'unlock') return { type: TokenType.KeywordUnlock, value: idStr, line: this.line };
                 if (lowerId === 'base') return { type: TokenType.KeywordBase, value: idStr, line: this.line };
                 if (lowerId === 'module') return { type: TokenType.KeywordModule, value: idStr, line: this.line };
 

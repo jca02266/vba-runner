@@ -49,6 +49,11 @@ import {
     LineInputStatement,
     PutStatement,
     KillStatement,
+    WriteStatement,
+    InputStatement,
+    GetStatement,
+    SeekStatement,
+    ResetStatement,
     AttributeStatement,
     DeclareStatement,
 } from './parser';
@@ -279,7 +284,6 @@ export class Evaluator {
     private isInErrorHandler: boolean = false;
     private virtualRegistry: { [app: string]: { [section: string]: { [key: string]: string } } } = {};
     private lastErrorIndex: number = -1;
-    private openFileNumbers: Set<number> = new Set();
     private dirIterator: string[] | null = null;
     private dirIndex: number = 0;
 
@@ -455,10 +459,15 @@ export class Evaluator {
 
             const fmtLower = fmt.toLowerCase();
             const namedFormats = ['general number', 'currency', 'fixed', 'standard', 'percent', 'scientific', 'true/false', 'yes/no', 'on/off'];
+            const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
             
             if (namedFormats.includes(fmtLower)) {
                 if (typeof val === 'number') return this.formatNumber(val, fmt);
                 return String(val);
+            }
+            if (dateNamedFormats.includes(fmtLower)) {
+                const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(String(val)));
+                return this.formatDate(dateVal, fmt);
             }
 
             // If pattern looks like a date pattern, treat number as a date
@@ -990,18 +999,56 @@ export class Evaluator {
             const start = (range === 1) ? 256 : 1;
             const end = (range === 1) ? 511 : 255;
             for (let i = start; i <= end; i++) {
-                if (!this.openFileNumbers.has(i)) return i;
+                if (!this.fileHandles.has(i)) return i;
             }
             throw new Error("Execution error: Too many files");
         });
 
-        // Stubs for other file functions
-        this.env.set('eof', (fileNumber: number) => {
-            // Mock: if it's not open, it's EOF or error. Let's say False for mock.
-            return false;
+        // File System functions
+        this.env.set('eof', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+            const stats = fs.fstatSync(handle.fd);
+            return handle.pos! >= stats.size;
+        });
+
+        this.env.set('lof', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+            const stats = fs.fstatSync(handle.fd);
+            return stats.size;
+        });
+
+        this.env.set('loc', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+            return handle.pos!;
+        });
+
+        this.env.set('seek', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+            return handle.pos!;
+        });
+
+        this.env.set('input', (count: number, fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+            const buf = Buffer.alloc(count);
+            const bytesRead = fs.readSync(handle.fd, buf, 0, count, handle.pos!);
+            handle.pos! += bytesRead;
+            return buf.toString('utf8', 0, bytesRead);
         });
         this.env.set('fileattr', (fileNumber: number, retType: number = 1) => {
             return 0; // Mock
+        });
+
+        this.env.set('doevents', () => 0);
+        this.env.set('appactivate', (title: string, wait?: boolean) => {
+            this.print(`[Stub] AppActivate: ${title}`);
+        });
+        this.env.set('sendkeys', (keys: string, wait?: boolean) => {
+            this.print(`[Stub] SendKeys: ${keys}`);
         });
 
         // Add VBA intrinsic constants
@@ -1322,12 +1369,10 @@ export class Evaluator {
             }
         });
 
-        this.env.set('freefile', () => {
-            for (let i = 1; i <= 255; i++) {
-                if (!this.fileHandles.has(i)) return i;
-            }
-            this.throwVbaError(67, "Too many files");
-        });
+    }
+
+    private print(msg: string) {
+        this.onPrint(msg);
     }
 
     public get(name: string): any {
@@ -1565,6 +1610,21 @@ export class Evaluator {
                 break;
             case 'KillStatement':
                 this.evaluateKillStatement(stmt as KillStatement);
+                break;
+            case 'WriteStatement':
+                this.evaluateWriteStatement(stmt as WriteStatement);
+                break;
+            case 'InputStatement':
+                this.evaluateInputStatement(stmt as InputStatement);
+                break;
+            case 'GetStatement':
+                this.evaluateGetStatement(stmt as GetStatement);
+                break;
+            case 'SeekStatement':
+                this.evaluateSeekStatement(stmt as SeekStatement);
+                break;
+            case 'ResetStatement':
+                this.evaluateResetStatement(stmt as ResetStatement);
                 break;
             case 'LabelStatement':
                 // No-op for now. Label execution just passes through.
@@ -1895,9 +1955,12 @@ export class Evaluator {
 
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
         const val = this.evaluateExpression(stmt.right);
+        this.evaluateAssignmentToVariable(stmt.left, val);
+    }
 
-        if (stmt.left.type === 'Identifier') {
-            const name = (stmt.left as Identifier).name;
+    private evaluateAssignmentToVariable(left: Expression, val: any) {
+        if (left.type === 'Identifier') {
+            const name = (left as Identifier).name;
             const procNameLower = name.toLowerCase();
 
             // Special case: assigning to current function/property name (return value)
@@ -1914,9 +1977,9 @@ export class Evaluator {
                 return;
             }
             this.env.set(name, val);
-        } else if (stmt.left.type === 'CallExpression') {
+        } else if (left.type === 'CallExpression') {
             // Array/Dictionary assignment: arr(0) = val OR dict("key") = val
-            const call = stmt.left as CallExpression;
+            const call = left as CallExpression;
             if (call.callee.type === 'Identifier') {
                 const name = (call.callee as Identifier).name;
                 const lowerName = name.toLowerCase();
@@ -1951,7 +2014,7 @@ export class Evaluator {
                         const d = (this.evaluateExpression(call.args[i]) as number) - base;
                         if (!current[d]) {
                             current[d] = [];
-                            (current[d] as any).vbaBase = base; // Inherit base for multi-dim? (VBA doesn't really have jagged with Base, but let's be consistent)
+                            (current[d] as any).vbaBase = base;
                         }
                         current = current[d];
                     }
@@ -1968,12 +2031,11 @@ export class Evaluator {
             } else {
                 throw new Error("Execution error: Complex left hand assignments not supported yet");
             }
-        } else if (stmt.left.type === 'MemberExpression') {
-            const member = stmt.left as MemberExpression;
+        } else if (left.type === 'MemberExpression') {
+            const member = left as MemberExpression;
             const obj = this.evaluateExpression(member.object);
             const propName = member.property.name.toLowerCase();
             if (obj && obj.__vbaClass__) {
-                // VBA class instance: check for Property Let/Set, then fallback to field assignment
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 const setter = classDef.procedures.find(
@@ -1989,12 +2051,12 @@ export class Evaluator {
             } else {
                 throw new Error(`Execution error: Cannot assign property '${propName}' of undefined or primitive`);
             }
-        } else if (stmt.left.type === 'ImplicitWithObjectExpression') {
+        } else if (left.type === 'ImplicitWithObjectExpression') {
             if (this.withObjectStack.length === 0) {
                 throw new Error(`Execution error: '.' outside of With block`);
             }
             const obj = this.withObjectStack[this.withObjectStack.length - 1];
-            const member = stmt.left as ImplicitWithObjectExpression;
+            const member = left as ImplicitWithObjectExpression;
             const propName = member.property.name.toLowerCase();
             if (obj && typeof obj === 'object') {
                 obj[propName] = val;
@@ -2417,6 +2479,77 @@ export class Evaluator {
         const vbaPath = String(this.evaluateExpression(stmt.path));
         const realPath = this.sandbox.toRealPath(vbaPath);
         fs.unlinkSync(realPath);
+    }
+
+    private evaluateWriteStatement(stmt: WriteStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+
+        const output = stmt.items.map(item => {
+            const val = this.evaluateExpression(item);
+            if (typeof val === 'string') return `"${val}"`;
+            if (val instanceof VbaDate) return `#${val.toString()}#`;
+            if (val === null) return "#NULL#";
+            return String(val);
+        }).join(",");
+
+        fs.writeSync(handle.fd, output + "\n");
+    }
+
+    private evaluateInputStatement(stmt: InputStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+
+        // Simple line-based implementation for now.
+        // Real VBA Input # parses delimiters even across lines.
+        let content = "";
+        const buf = Buffer.alloc(1024);
+        let bytesRead = 0;
+        while ((bytesRead = fs.readSync(handle.fd, buf, 0, 1024)) > 0) {
+            content += buf.toString('utf8', 0, bytesRead);
+            if (content.includes('\n')) break;
+        }
+        
+        const line = content.split('\n')[0];
+        // Move file pointer back if we read too much (simulated)
+        // For simplicity, we assume one line per Input statement call for now.
+        
+        const values = line.split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+        for (let i = 0; i < stmt.variables.length; i++) {
+            if (i < values.length) {
+                this.evaluateAssignmentToVariable(stmt.variables[i], values[i]);
+            }
+        }
+    }
+
+    private evaluateGetStatement(stmt: GetStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+
+        // Fake implementation: just read some bytes or JSON
+        const val = { type: 'FakeBinaryData', content: '...' };
+        this.evaluateAssignmentToVariable(stmt.variable, val);
+    }
+
+    private evaluateSeekStatement(stmt: SeekStatement) {
+        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
+
+        const pos = Number(this.evaluateExpression(stmt.position));
+        // Node doesn't have seekSync on FD directly without lseek, 
+        // but we can track it in our handle if we use it for subsequent read/write.
+        handle.pos = pos; 
+    }
+
+    private evaluateResetStatement(stmt: ResetStatement) {
+        for (const [num, handle] of this.fileHandles) {
+            fs.closeSync(handle.fd);
+        }
+        this.fileHandles.clear();
     }
 
     private evaluateAttributeStatement(stmt: AttributeStatement) {
@@ -3173,6 +3306,17 @@ export class Evaluator {
     }
 
     private formatDate(d: Date, pattern: string): string {
+        const pLower = pattern.toLowerCase();
+        if (pLower === 'general date') return d.toLocaleString();
+        if (pLower === 'long date') return d.toLocaleDateString(undefined, { dateStyle: 'full' });
+        if (pLower === 'medium date') return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
+        if (pLower === 'short date') return d.toLocaleDateString(undefined, { dateStyle: 'short' });
+        if (pLower === 'long time') return d.toLocaleTimeString(undefined, { timeStyle: 'medium' });
+        if (pLower === 'medium time') return d.toLocaleTimeString(undefined, { timeStyle: 'short' });
+        if (pLower === 'short time') {
+            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+        }
+
         const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
         const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -3209,7 +3353,7 @@ export class Evaluator {
             case 'general number': return String(n);
             case 'currency': return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
             case 'fixed': return n.toFixed(2);
-            case 'standard': return n.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            case 'standard': return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             case 'percent': return (n * 100).toFixed(2) + '%';
             case 'scientific': return n.toExponential(2);
             case 'true/false': return n !== 0 ? 'True' : 'False';

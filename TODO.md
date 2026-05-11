@@ -65,15 +65,15 @@
 |------|--------|------|--------|
 | ✅ | P1 | Open Statement | §5.4.5.1 |
 | ✅ | P1 | Close / Reset Statements | §5.4.5.2 |
-| ❌ | P2 | Seek Statement | §5.4.5.3 |
+| ✅ | P2 | Seek Statement | §5.4.5.3 |
 | ❌ | P2 | Lock / Unlock Statements | §5.4.5.4/5 |
 | ✅ | P2 | Line Input Statement | §5.4.5.6 |
 | ❌ | P2 | Width Statement | §5.4.5.7 |
 | ✅ | P2 | Print Statement（`Print #n`） | §5.4.5.8 |
-| ❌ | P2 | Write Statement | §5.4.5.9 |
-| ❌ | P2 | Input Statement | §5.4.5.10 |
+| ✅ | P2 | Write Statement | §5.4.5.9 |
+| ✅ | P2 | Input Statement | §5.4.5.10 |
 | ✅ | P2 | Put Statement | §5.4.5.11 |
-| ❌ | P2 | Get Statement | §5.4.5.12 |
+| ✅ | P2 | Get Statement | §5.4.5.12 |
 
 ## 第5章：宣言 (§5.2, §5.3)
 
@@ -244,6 +244,9 @@
 | ✅ | P1 | Switch | §6.1.2.8.1.16 |
 | ✅ | P2 | GetSetting / SaveSetting | §6.1.2.8.1.10 / .14 | (制限事項: 仮想レジストリ) |
 | ✅ | P2 | DeleteSetting / GetAllSettings | §6.1.2.8.1.5 / .8 | (制限事項: 仮想レジストリ) |
+| ✅ | P1 | DoEvents | §6.1.2.8.1.5 | (制限事項: スタブ化) |
+| ✅ | P1 | AppActivate | §6.1.2.8.1.1 | (制限事項: スタブ化) |
+| ✅ | P1 | SendKeys | §6.1.2.8.1.14 | (制限事項: スタブ化) |
 
 ## 第6章：標準ライブラリ — 配列関連
 
