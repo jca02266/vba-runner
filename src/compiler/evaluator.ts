@@ -145,6 +145,33 @@ class VbaCollection {
         this._items.splice(idx - 1, 1);
     }
 }
+
+export class VbaErrObject {
+    public number: number = 0;
+    public source: string = "";
+    public description: string = "";
+    public helpfile: string = "";
+    public helpcontext: number = 0;
+    public lastdllerror: number = 0;
+
+    public clear() {
+        this.number = 0;
+        this.source = "";
+        this.description = "";
+        this.helpfile = "";
+        this.helpcontext = 0;
+    }
+
+    public raise(number: number, source?: any, description?: any, helpfile?: any, helpcontext?: any) {
+        this.number = number;
+        if (source !== undefined && source !== vbaEmpty && source !== null) this.source = String(source);
+        if (description !== undefined && description !== vbaEmpty && description !== null) this.description = String(description);
+        if (helpfile !== undefined && helpfile !== vbaEmpty && helpfile !== null) this.helpfile = String(helpfile);
+        if (helpcontext !== undefined && helpcontext !== vbaEmpty && helpcontext !== null) this.helpcontext = Number(helpcontext);
+        
+        throw { type: 'VbaError', number: this.number, message: this.description };
+    }
+}
 export const vbaNull = Symbol('vbaNull');
 export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
@@ -278,6 +305,7 @@ export class Evaluator {
     private currentProcIsStatic: boolean = false;
     private arrayBase: number = 0;
     private staticVarsInCurrentProc: Set<string> = new Set();
+    private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
     private errorHandlingMode: 'None' | 'Label' | 'ResumeNext' = 'None';
@@ -299,6 +327,17 @@ export class Evaluator {
                     throw new Error('Execution error: Assertion failed');
                 }
             }
+        });
+        this.env.set('err', this.errObj);
+        this.env.set('application', {
+            wait: (time: any) => {
+                // Synchronous wait is bad in JS, but for VBA stubs we can just log or use a busy-wait if really needed
+                this.onPrint(`[APPLICATION.WAIT] ${time}`);
+                return vbaTrue;
+            },
+            statusbar: "",
+            displayalerts: true,
+            screenupdating: true
         });
 
         // VBA date serial: days since 1899-12-30 (VBA epoch)
@@ -648,7 +687,13 @@ export class Evaluator {
         this.env.set('cvdate', parseToDate);
         this.env.set('Val', (s: any) => {
             if (typeof s !== 'string') return 0;
-            const cleaned = s.replace(/ /g, '');
+            const cleaned = s.trim().replace(/ /g, '');
+            if (cleaned.toLowerCase().startsWith('&h')) {
+                return parseInt(cleaned.slice(2), 16) || 0;
+            }
+            if (cleaned.toLowerCase().startsWith('&o')) {
+                return parseInt(cleaned.slice(2), 8) || 0;
+            }
             const match = cleaned.match(/^[+-]?\d*(\.\d*)?/);
             return match ? parseFloat(match[0]) || 0 : 0;
         });
@@ -922,7 +967,11 @@ export class Evaluator {
         });
         this.env.set('environ$', this.env.get('environ'));
         this.env.set('iif', (cond: any, truePart: any, falsePart: any) => cond ? truePart : falsePart);
-        this.env.set('array', (...args: any[]) => [...args]);
+        this.env.set('array', (...args: any[]) => {
+            const arr = [...args];
+            (arr as any).vbaBase = 0;
+            return arr;
+        });
         this.env.set('split', (s: any, delimiter: string = ' ') => String(s || '').split(delimiter));
         this.env.set('join', (arr: any[], delimiter: string = ' ') => Array.isArray(arr) ? arr.join(delimiter) : String(arr));
         this.env.set('asc', (s: any) => String(s || '').charCodeAt(0));
@@ -1442,6 +1491,15 @@ export class Evaluator {
         for (let i = 0; i < proc.parameters.length; i++) {
             const param = proc.parameters[i];
             const paramName = param.name;
+
+            if (param.isParamArray) {
+                // Capture all remaining arguments into a Variant array
+                const remainingArgs = args.slice(i);
+                (remainingArgs as any).vbaBase = 0; // ParamArray is always 0-based
+                localEnv.setLocally(paramName, remainingArgs);
+                break;
+            }
+
             const argValue = i < args.length ? args[i] : (param.isOptional ? vbaMissing : vbaEmpty);
             localEnv.setLocally(paramName, argValue);
         }
@@ -2231,8 +2289,17 @@ export class Evaluator {
 
         // Map arguments to parameters
         for (let i = 0; i < proc.parameters.length; i++) {
-            const paramName = proc.parameters[i].name;
-            const argValue = i < args.length ? args[i] : vbaEmpty;
+            const param = proc.parameters[i];
+            const paramName = param.name;
+
+            if (param.isParamArray) {
+                const remainingArgs = args.slice(i);
+                (remainingArgs as any).vbaBase = 0;
+                localEnv.setLocally(paramName, remainingArgs);
+                break;
+            }
+
+            const argValue = i < args.length ? args[i] : (param.isOptional ? vbaMissing : vbaEmpty);
             localEnv.setLocally(paramName, argValue);
         }
 
@@ -2703,8 +2770,7 @@ export class Evaluator {
                         }
                     }
                     // Clear Err object on Resume
-                    const errObj = this.env.get('err');
-                    if (errObj) { errObj.number = 0; errObj.description = ''; }
+                    this.errObj.clear();
                     continue;
                 }
 
@@ -2718,15 +2784,12 @@ export class Evaluator {
                 if (this.errorHandlingMode === 'ResumeNext') {
                     this.lastErrorIndex = i;
                     // Populate Err object
-                    const errObj = this.env.get('err');
-                    if (errObj) {
-                        if (e && e.type === 'VbaError') {
-                            errObj.number = e.number;
-                            errObj.description = e.message;
-                        } else {
-                            errObj.number = 1000;
-                            errObj.description = e.message || String(e);
-                        }
+                    if (e && e.type === 'VbaError') {
+                        this.errObj.number = e.number;
+                        this.errObj.description = e.message;
+                    } else {
+                        this.errObj.number = 1000;
+                        this.errObj.description = e.message || String(e);
                     }
                     i++;
                     continue;
@@ -2739,15 +2802,12 @@ export class Evaluator {
                         this.isInErrorHandler = true;
                         this.lastErrorIndex = i;
                         // Populate Err object
-                        const errObj = this.env.get('err');
-                        if (errObj) {
-                            if (e && e.type === 'VbaError') {
-                                errObj.number = e.number;
-                                errObj.description = e.message;
-                            } else {
-                                errObj.number = 1000;
-                                errObj.description = e.message || String(e);
-                            }
+                        if (e && e.type === 'VbaError') {
+                            this.errObj.number = e.number;
+                            this.errObj.description = e.message;
+                        } else {
+                            this.errObj.number = 1000;
+                            this.errObj.description = e.message || String(e);
                         }
                         i = labelIndex;
                         continue;
@@ -2888,14 +2948,22 @@ export class Evaluator {
                 // Map arguments to parameters
                 const byRefArgs: { paramName: string, identifierName: string }[] = [];
                 for (let i = 0; i < proc.parameters.length; i++) {
-                    const argVal = i < expr.args.length ? this.evaluateExpression(expr.args[i]) : 0;
-                    localEnv.set(proc.parameters[i].name, argVal);
+                    const param = proc.parameters[i];
+                    if (param.isParamArray) {
+                        const remainingArgs = expr.args.slice(i).map(a => this.evaluateExpression(a));
+                        (remainingArgs as any).vbaBase = 0;
+                        localEnv.set(param.name, remainingArgs);
+                        break;
+                    }
+
+                    const argVal = i < expr.args.length ? this.evaluateExpression(expr.args[i]) : (param.isOptional ? vbaMissing : 0);
+                    localEnv.set(param.name, argVal);
 
                     if (i < expr.args.length && expr.args[i].type === 'Identifier') {
                         // VBA Default is ByRef. If it is NOT explicitly ByVal, it is ByRef
-                        if (!proc.parameters[i].isByVal) {
+                        if (!param.isByVal) {
                             byRefArgs.push({
-                                paramName: proc.parameters[i].name,
+                                paramName: param.name,
                                 identifierName: (expr.args[i] as Identifier).name
                             });
                         }

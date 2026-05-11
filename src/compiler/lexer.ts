@@ -100,6 +100,7 @@ export enum TokenType {
     KeywordSeek,
     KeywordReset,
     KeywordUnlock,
+    KeywordParamArray,
     OperatorHash,
     OperatorPlus,
     OperatorMinus,
@@ -524,6 +525,7 @@ export class Lexer {
                 if (lowerId === 'seek') return { type: TokenType.KeywordSeek, value: idStr, line: this.line };
                 if (lowerId === 'reset') return { type: TokenType.KeywordReset, value: idStr, line: this.line };
                 if (lowerId === 'unlock') return { type: TokenType.KeywordUnlock, value: idStr, line: this.line };
+                if (lowerId === 'paramarray') return { type: TokenType.KeywordParamArray, value: idStr, line: this.line };
                 if (lowerId === 'base') return { type: TokenType.KeywordBase, value: idStr, line: this.line };
                 if (lowerId === 'module') return { type: TokenType.KeywordModule, value: idStr, line: this.line };
 

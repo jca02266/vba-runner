@@ -80,7 +80,7 @@
 | 状態 | 優先度 | 機能 | 仕様書 |
 |------|--------|------|--------|
 | ✅ | P0 | Sub / Function 宣言 | §5.3.1.6 |
-| ✅ | P0 | Parameter Lists（ByVal, ByRef, Optional） | §5.3.1.5 |
+| ✅ | P0 | Parameter Lists（ByVal, ByRef, Optional, ParamArray） | §5.3.1.5 |
 | ✅ | P0 | Property Get / Let / Set 宣言 | §5.3.1.7 |
 | ❌ | P2 | Event Handler 宣言 | §5.3.1.8 |
 | ✅ | P0 | Variable Declarations（`Dim`） | §5.2.3.1 |
@@ -226,8 +226,9 @@
 | ✅ | P1 | IsNull | §6.1.2.7.1.7 |
 | ✅ | P1 | IsNumeric | §6.1.2.7.1.8 |
 | ✅ | P1 | IsObject | §6.1.2.7.1.9 |
-| ✅ | P0 | TypeName | §6.1.2.7.1.12 | (制限事項: 全ての数値はJSのnumber(Double)として扱われ、Integer/Longの区別は未実装) |
+| ✅ | P0 | TypeName | §6.1.2.7.1.12 | (UDTおよびClassに対応) |
 | ✅ | P1 | VarType | §6.1.2.7.1.13 |
+| ✅ | P0 | Err オブジェクト | §6.1.2.4 | (Number, Source, Description等、Raise/Clearメソッド対応) |
 
 ## 第6章：標準ライブラリ — インタラクション Interaction Module (§6.1.2.8)
 

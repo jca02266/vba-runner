@@ -96,6 +96,7 @@ export interface Parameter extends ASTNode {
     name: string;
     isByVal: boolean;
     isOptional?: boolean;
+    isParamArray?: boolean;
 }
 
 export interface ProcedureDeclaration extends Statement {
@@ -451,11 +452,21 @@ export class Parser {
             isOptional = true;
         }
 
+        let isParamArray = false;
+        if (this.match(TokenType.KeywordParamArray)) {
+            isParamArray = true;
+        }
+
         if (this.peek().type === TokenType.KeywordByVal || this.peek().type === TokenType.KeywordByRef) {
             isByVal = this.advance().type === TokenType.KeywordByVal;
         }
 
         const nameToken = this.consume(TokenType.Identifier, "Expected parameter name");
+
+        // Consume optional () for arrays or ParamArray
+        if (this.match(TokenType.OperatorLParen)) {
+            this.consume(TokenType.OperatorRParen, "Expected ')' after parameter name");
+        }
 
         if (this.match(TokenType.KeywordAs)) {
             this.advance(); // consume type name
@@ -465,7 +476,7 @@ export class Parser {
             this.parseExpression(); // skip default value
         }
 
-        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional };
+        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional, isParamArray };
     }
 
     private parseAttributeStatement(): AttributeStatement {
