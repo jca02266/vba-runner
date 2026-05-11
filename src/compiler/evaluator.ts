@@ -258,6 +258,7 @@ export class Evaluator {
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
     private errorHandlingMode: 'None' | 'Label' | 'ResumeNext' = 'None';
     private isInErrorHandler: boolean = false;
+    private virtualRegistry: { [app: string]: { [section: string]: { [key: string]: string } } } = {};
     private lastErrorIndex: number = -1;
     private openFileNumbers: Set<number> = new Set();
     private dirIterator: string[] | null = null;
@@ -578,6 +579,25 @@ export class Evaluator {
             if (!isFinite(res)) this.throwVbaError(6, "Overflow");
             return res;
         });
+
+        const parseToDate = (val: any) => {
+            if (val === null || val === vbaNull) return vbaNull;
+            if (val instanceof VbaDate) return val;
+            if (typeof val === 'number') return new VbaDate(val);
+            if (typeof val === 'string') {
+                if (/^\d+(\.\d+)?$/.test(val)) {
+                    return new VbaDate(parseFloat(val));
+                }
+                const d = Date.parse(val);
+                if (isNaN(d)) {
+                    this.throwVbaError(13, "Type mismatch");
+                }
+                return new VbaDate(d / 86400000 + 25569);
+            }
+            this.throwVbaError(13, "Type mismatch");
+        };
+        this.env.set('cdate', parseToDate);
+        this.env.set('cvdate', parseToDate);
         this.env.set('Val', (s: any) => {
             if (typeof s !== 'string') return 0;
             const cleaned = s.replace(/ /g, '');
@@ -880,6 +900,37 @@ export class Evaluator {
             // Mock implementation: do not execute external commands
             this.onPrint(`[Mock Shell] Executing: ${pathname} (Style: ${windowstyle})`);
             return 1; // Dummy task ID
+        });
+
+        this.env.set('savesetting', (app: string, section: string, key: string, setting: any) => {
+            if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
+            if (!this.virtualRegistry[app][section]) this.virtualRegistry[app][section] = {};
+            this.virtualRegistry[app][section][key] = String(setting);
+        });
+
+        this.env.set('getsetting', (app: string, section: string, key: string, defaultValue: string = "") => {
+            return (this.virtualRegistry[app] && this.virtualRegistry[app][section] && this.virtualRegistry[app][section][key]) ?? defaultValue;
+        });
+
+        this.env.set('deletesetting', (app: string, section?: string, key?: string) => {
+            if (!this.virtualRegistry[app]) return;
+            if (section === undefined) {
+                delete this.virtualRegistry[app];
+            } else if (key === undefined) {
+                delete this.virtualRegistry[app][section];
+            } else {
+                delete this.virtualRegistry[app][section][key];
+            }
+        });
+
+        this.env.set('getallsettings', (app: string, section: string) => {
+            if (!this.virtualRegistry[app] || !this.virtualRegistry[app][section]) return vbaEmpty;
+            const settings = this.virtualRegistry[app][section];
+            const result: string[][] = [];
+            for (const key in settings) {
+                result.push([key, settings[key]]);
+            }
+            return result;
         });
 
         this.env.set('createobject', (progId: string) => {
