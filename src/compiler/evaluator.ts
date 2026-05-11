@@ -68,13 +68,38 @@ export class VbaBoolean {
     toString() { return this.value === -1 ? 'True' : 'False'; }
 }
 
+// VBA date serial: days since 1899-12-30 (VBA epoch)
+// Using UTC to avoid timezone-dependent serial numbers
+const VBA_EPOCH = new Date(Date.UTC(1899, 11, 30));
+const MS_PER_DAY = 86400000;
+
+export const toVbaDate = (d: Date): number =>
+    (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
+
+export const fromVbaDate = (serial: number): Date => {
+    const ms = Math.round(serial * MS_PER_DAY);
+    return new Date(VBA_EPOCH.getTime() + ms);
+};
+
+export const parseVbaDate = (val: any): Date => {
+    if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
+    if (val instanceof VbaDate) return fromVbaDate(val.value);
+    if (typeof val === 'number') return fromVbaDate(val);
+    const d = new Date(val);
+    if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+    return d;
+};
+
 export class VbaDate {
+    public __isVbaDate__ = true;
     constructor(public value: number) {}
     valueOf() { return this.value; }
     toString() {
-        // Simple conversion for now
-        const d = new Date((this.value - 25569) * 86400000);
-        return d.toLocaleDateString();
+        const d = fromVbaDate(this.value);
+        if (Math.abs(this.value - Math.round(this.value)) < 1e-10) {
+            return d.toLocaleDateString();
+        }
+        return d.toLocaleString();
     }
 }
 
@@ -340,25 +365,6 @@ export class Evaluator {
             screenupdating: true
         });
 
-        // VBA date serial: days since 1899-12-30 (VBA epoch)
-        const VBA_EPOCH = new Date(1899, 11, 30); // local time
-        const MS_PER_DAY = 86400000;
-
-        const toVbaDate = (d: Date): number =>
-            (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
-
-        const fromVbaDate = (serial: number): Date => {
-            const ms = Math.round(serial * MS_PER_DAY);
-            return new Date(VBA_EPOCH.getTime() + ms);
-        };
-
-        const parseVbaDate = (val: any): Date => {
-            if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
-            if (typeof val === 'number') return fromVbaDate(val);
-            const d = new Date(val);
-            if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
-            return d;
-        };
 
         // Add typical VBA built-ins
         this.env.set('isempty', (val: any) => (val === undefined || val === null || val === '') ? vbaTrue : vbaFalse);
@@ -999,6 +1005,104 @@ export class Evaluator {
             return 1; // Dummy task ID
         });
 
+        // --- File I/O Functions ---
+        this.env.set('freefile', () => {
+            for (let i = 1; i <= 511; i++) {
+                if (!this.fileHandles.has(i)) return i;
+            }
+            throw new Error("Execution error: Too many open files");
+        });
+        this.env.set('lof', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) this.throwVbaError(52, "Bad file name or number");
+            return fs.statSync(handle.path).size;
+        });
+        this.env.set('eof', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) this.throwVbaError(52, "Bad file name or number");
+            const size = fs.statSync(handle.path).size;
+            return handle.pos! >= size ? vbaTrue : vbaFalse;
+        });
+        this.env.set('loc', (fileNum: number) => {
+            const handle = this.fileHandles.get(fileNum);
+            if (!handle) this.throwVbaError(52, "Bad file name or number");
+            // For sequential files, Loc returns the last 128-byte block read/written
+            // For binary, it returns the position of the last byte read/written
+            return handle.pos;
+        });
+
+        // --- Conversion Functions ---
+        this.env.set('hex', (n: any) => {
+            if (n === vbaNull) return vbaNull;
+            const val = Math.floor(Number(n));
+            return (val >>> 0).toString(16).toUpperCase();
+        });
+        this.env.set('oct', (n: any) => {
+            if (n === vbaNull) return vbaNull;
+            const val = Math.floor(Number(n));
+            return (val >>> 0).toString(8);
+        });
+
+        // --- Math Functions ---
+        this.env.set('int', (n: any) => {
+            if (n === vbaNull) return vbaNull;
+            const val = Number(n);
+            return Math.floor(val);
+        });
+        this.env.set('fix', (n: any) => {
+            if (n === vbaNull) return vbaNull;
+            const val = Number(n);
+            return val >= 0 ? Math.floor(val) : Math.ceil(val);
+        });
+
+        // --- Utility Functions ---
+        this.env.set('choose', (index: any, ...choices: any[]) => {
+            const idx = Math.floor(Number(index));
+            if (idx >= 1 && idx <= choices.length) return choices[idx - 1];
+            return vbaNull;
+        });
+        this.env.set('switch', (...args: any[]) => {
+            for (let i = 0; i < args.length; i += 2) {
+                if (this.isTrue(args[i])) return args[i + 1];
+            }
+            return vbaNull;
+        });
+
+        // --- Date/Time Functions Enhancement ---
+        this.env.set('dateadd', (interval: string, number: number, date: any) => {
+            if (date === vbaNull) return vbaNull;
+            const d = parseVbaDate(date);
+            const n = Math.floor(number);
+            switch (interval.toLowerCase()) {
+                case 'yyyy': d.setFullYear(d.getFullYear() + n); break;
+                case 'q': d.setMonth(d.getMonth() + n * 3); break;
+                case 'm': d.setMonth(d.getMonth() + n); break;
+                case 'y':
+                case 'd':
+                case 'w': d.setDate(d.getDate() + n); break;
+                case 'ww': d.setDate(d.getDate() + n * 7); break;
+                case 'h': d.setHours(d.getHours() + n); break;
+                case 'n': d.setMinutes(d.getMinutes() + n); break;
+                case 's': d.setSeconds(d.getSeconds() + n); break;
+            }
+            return new VbaDate(toVbaDate(d));
+        });
+        this.env.set('datediff', (interval: string, date1: any, date2: any) => {
+            if (date1 === vbaNull || date2 === vbaNull) return vbaNull;
+            const d1 = parseVbaDate(date1);
+            const d2 = parseVbaDate(date2);
+            const diffMs = d2.getTime() - d1.getTime();
+            switch (interval.toLowerCase()) {
+                case 'yyyy': return d2.getFullYear() - d1.getFullYear();
+                case 'm': return (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth());
+                case 'd': return Math.floor(diffMs / (24 * 60 * 60 * 1000));
+                case 'h': return Math.floor(diffMs / (60 * 60 * 1000));
+                case 'n': return Math.floor(diffMs / (60 * 1000));
+                case 's': return Math.floor(diffMs / 1000);
+                default: return 0;
+            }
+        });
+
         this.env.set('savesetting', (app: string, section: string, key: string, setting: any) => {
             if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
             if (!this.virtualRegistry[app][section]) this.virtualRegistry[app][section] = {};
@@ -1500,7 +1604,14 @@ export class Evaluator {
                 break;
             }
 
-            const argValue = i < args.length ? args[i] : (param.isOptional ? vbaMissing : vbaEmpty);
+            let argValue: any;
+            if (i < args.length) {
+                argValue = args[i];
+            } else if (param.defaultValue) {
+                argValue = this.evaluateExpression(param.defaultValue);
+            } else {
+                argValue = (param.isOptional ? vbaMissing : vbaEmpty);
+            }
             localEnv.setLocally(paramName, argValue);
         }
 
@@ -2299,7 +2410,14 @@ export class Evaluator {
                 break;
             }
 
-            const argValue = i < args.length ? args[i] : (param.isOptional ? vbaMissing : vbaEmpty);
+            let argValue: any;
+            if (i < args.length) {
+                argValue = args[i];
+            } else if (param.defaultValue) {
+                argValue = this.evaluateExpression(param.defaultValue);
+            } else {
+                argValue = (param.isOptional ? vbaMissing : vbaEmpty);
+            }
             localEnv.setLocally(paramName, argValue);
         }
 
@@ -2534,6 +2652,7 @@ export class Evaluator {
         }
 
         fs.writeSync(handle.fd, output);
+        handle.pos! += output.length;
     }
 
     private evaluateLineInputStatement(stmt: LineInputStatement) {
@@ -2593,7 +2712,9 @@ export class Evaluator {
             return String(val);
         }).join(",");
 
-        fs.writeSync(handle.fd, output + "\n");
+        const lineOutput = output + "\n";
+        fs.writeSync(handle.fd, lineOutput);
+        handle.pos! += lineOutput.length;
     }
 
     private evaluateInputStatement(stmt: InputStatement) {
@@ -2606,16 +2727,21 @@ export class Evaluator {
         let content = "";
         const buf = Buffer.alloc(1024);
         let bytesRead = 0;
-        while ((bytesRead = fs.readSync(handle.fd, buf, 0, 1024)) > 0) {
+        let readPos = handle.pos || 0;
+        while ((bytesRead = fs.readSync(handle.fd, buf, 0, 1024, readPos)) > 0) {
             content += buf.toString('utf8', 0, bytesRead);
             if (content.includes('\n')) break;
+            readPos += bytesRead;
         }
         
-        const line = content.split('\n')[0];
-        // Move file pointer back if we read too much (simulated)
-        // For simplicity, we assume one line per Input statement call for now.
+        const lineEnd = content.indexOf('\n');
+        const line = lineEnd === -1 ? content : content.slice(0, lineEnd);
+        handle.pos = (handle.pos || 0) + line.length + (lineEnd === -1 ? 0 : 1);
+        if (content[lineEnd - 1] === '\r') {
+            // handle CRLF
+        }
         
-        const values = line.split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+        const values = line.trim().split(",").map(v => v.trim().replace(/^"|"$/g, ''));
         for (let i = 0; i < stmt.variables.length; i++) {
             if (i < values.length) {
                 this.evaluateAssignmentToVariable(stmt.variables[i], values[i]);
@@ -2858,7 +2984,9 @@ export class Evaluator {
         if (val === vbaNothing) return "Nothing";
         if (val === vbaTrue || (val instanceof VbaBoolean && val.value === -1)) return "True";
         if (val === vbaFalse || (val instanceof VbaBoolean && val.value === 0)) return "False";
-        if (val instanceof VbaDate) return val.toString();
+        if (val && typeof val === 'object' && (val instanceof VbaDate || (val as any).__isVbaDate__)) {
+            return val.toString();
+        }
         if (val instanceof VbaErrorValue) return val.toString();
         if (val instanceof VbaDecimal) return val.toString();
         if (typeof val === 'bigint') return val.toString();
@@ -2908,18 +3036,17 @@ export class Evaluator {
     }
 
     private evaluateDateLiteral(expr: DateLiteral): any {
-        const d = new Date(expr.value);
+        // Ensure UTC for consistency in serial numbers
+        let d = new Date(expr.value);
         if (isNaN(d.getTime())) {
-            // Try fallback or simple parser if standard Date fails
-            // VBA #mm/dd/yyyy# or #yyyy-mm-dd#
-            // For now, let's assume JS Date can handle common formats
             throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
         }
-        // Excel/VBA serial number: days since 1899-12-30
-        const baseDate = new Date(1899, 11, 30); // Dec 30, 1899
-        const diff = d.getTime() - baseDate.getTime();
-        const serial = diff / (24 * 60 * 60 * 1000);
-        return new VbaDate(serial);
+        // If it's a date-only string like "yyyy-mm-dd", JS Date(string) might treat it as UTC already,
+        // but it's better to be explicit.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(expr.value)) {
+            d = new Date(expr.value + "T00:00:00Z");
+        }
+        return new VbaDate(toVbaDate(d));
     }
 
     private evaluateCallExpression(expr: CallExpression): any {
@@ -2956,7 +3083,14 @@ export class Evaluator {
                         break;
                     }
 
-                    const argVal = i < expr.args.length ? this.evaluateExpression(expr.args[i]) : (param.isOptional ? vbaMissing : 0);
+                    let argVal: any;
+                    if (i < expr.args.length) {
+                        argVal = this.evaluateExpression(expr.args[i]);
+                    } else if (param.defaultValue) {
+                        argVal = this.evaluateExpression(param.defaultValue);
+                    } else {
+                        argVal = param.isOptional ? vbaMissing : 0;
+                    }
                     localEnv.set(param.name, argVal);
 
                     if (i < expr.args.length && expr.args[i].type === 'Identifier') {
@@ -3236,7 +3370,7 @@ export class Evaluator {
             case '+': 
                 const sum = leftVal + rightVal;
                 return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(sum) : sum;
-            case '&': return String(leftVal) + String(rightVal);
+            case '&': return this.toDisplayString(leftVal) + this.toDisplayString(rightVal);
             case '-': 
                 const diff = leftVal - rightVal;
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) return diff; // Date - Date = Number

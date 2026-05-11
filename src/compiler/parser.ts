@@ -97,6 +97,7 @@ export interface Parameter extends ASTNode {
     isByVal: boolean;
     isOptional?: boolean;
     isParamArray?: boolean;
+    defaultValue?: Expression;
 }
 
 export interface ProcedureDeclaration extends Statement {
@@ -472,11 +473,12 @@ export class Parser {
             this.advance(); // consume type name
         }
 
+        let defaultValue: Expression | undefined;
         if (this.match(TokenType.OperatorEquals)) {
-            this.parseExpression(); // skip default value
+            defaultValue = this.parseExpression();
         }
 
-        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional, isParamArray };
+        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional, isParamArray, defaultValue };
     }
 
     private parseAttributeStatement(): AttributeStatement {

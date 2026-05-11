@@ -123,6 +123,7 @@ export enum TokenType {
     OperatorColon,
     OperatorColonEquals,
     OperatorExclamation,
+    OperatorSemicolon,
     Date,
     Newline,
     EOF,
@@ -374,6 +375,11 @@ export class Lexer {
                     return { type: TokenType.OperatorColonEquals, value: ':=', line: this.line };
                 }
                 return { type: TokenType.OperatorColon, value: ':', line: this.line };
+            }
+
+            if (char === ';') {
+                this.advance();
+                return { type: TokenType.OperatorSemicolon, value: ';', line: this.line };
             }
 
             if (this.isDigit(char)) {
