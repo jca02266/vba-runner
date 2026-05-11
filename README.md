@@ -17,6 +17,12 @@ AIを活用する場合、リファクタリングしたいソースコードと
 ```
 project-dir
  ├── vba-compiler          ...本プロジェクト(`git clone`で配置してください)
+ │   ├── src/compiler/
+ │   ├── sample/src/vba/
+ │   ├── sample/src/vba_legacy/
+ │   ├── sample/tests/ts/        
+ │   ├── tests/spec/             
+ │   └── tests/ts/               
  ├── node-vX.X.X-win-x64   ...実行用Node.jsの実行環境（Windows64bitスタンドアローン版の例）
  │   ├── node_modules/        普段Node.jsを使わない人はここにスタンドアローン版を配置するのが手軽です
  │   └── ...
