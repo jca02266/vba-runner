@@ -876,6 +876,12 @@ export class Evaluator {
             }
             return 0;
         });
+        this.env.set('shell', (pathname: string, windowstyle: number = 1) => {
+            // Mock implementation: do not execute external commands
+            this.onPrint(`[Mock Shell] Executing: ${pathname} (Style: ${windowstyle})`);
+            return 1; // Dummy task ID
+        });
+
         this.env.set('createobject', (progId: string) => {
             return this.createExternalObject(progId);
         });
@@ -1002,6 +1008,26 @@ export class Evaluator {
         this.env.set('hour',   (d: any) => d === null ? null : parseVbaDate(d).getHours());
         this.env.set('minute', (d: any) => d === null ? null : parseVbaDate(d).getMinutes());
         this.env.set('second', (d: any) => d === null ? null : parseVbaDate(d).getSeconds());
+
+        this.env.set('monthname', (month: any, abbreviate: any = false) => {
+            const m = parseInt(month);
+            if (m < 1 || m > 12) this.throwVbaError(5, "Invalid procedure call or argument");
+            const isAbbr = abbreviate === true || (abbreviate && abbreviate.valueOf && abbreviate.valueOf() !== 0);
+            const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const name = names[m - 1];
+            return isAbbr ? name.substring(0, 3) : name;
+        });
+
+        this.env.set('weekdayname', (weekday: any, abbreviate: any = false, firstDayOfWeek: any = 0) => {
+            const w = parseInt(weekday);
+            const isAbbr = abbreviate === true || (abbreviate && abbreviate.valueOf && abbreviate.valueOf() !== 0);
+            let fdw = parseInt(firstDayOfWeek);
+            if (isNaN(fdw) || fdw === 0) fdw = 1;
+            const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const actualIdx = (w + fdw - 2) % 7;
+            const name = names[actualIdx];
+            return isAbbr ? name.substring(0, 3) : name;
+        });
 
         this.env.set('weekday', (d: any, firstDay: number = 1) => {
             if (d === null) return null;
