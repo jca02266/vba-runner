@@ -185,6 +185,7 @@ export class VbaErrObject {
         this.description = "";
         this.helpfile = "";
         this.helpcontext = 0;
+        this.lastdllerror = 0;
     }
 
     public raise(number: number, source?: any, description?: any, helpfile?: any, helpcontext?: any) {
@@ -407,7 +408,9 @@ export class Evaluator {
             if (typeof val === 'string') return 8; // vbString
             if (val instanceof VbaDecimal) return 14; // vbDecimal
             if (typeof val === 'bigint') return 20; // vbLongLong
-            if (typeof val === 'object') return 9; // vbObject
+            if (val && val.__vbaTypeName__) return 36; // vbUserDefinedType
+            if (val && (val.__vbaClass__ || val.__isVbaDict__ || val.__isVbaCollection__)) return 9; // vbObject
+            if (typeof val === 'object' && val !== null) return 9; // vbObject
             return 12; // vbVariant
         });
 
@@ -421,9 +424,10 @@ export class Evaluator {
             if (typeof val === 'number') return 'Double';
             if (typeof val === 'string') return 'String';
             if (Array.isArray(val)) return 'Variant()';
-            if (val.__isVbaDict__) return 'Dictionary';
-            if (val.__isVbaCollection__) return 'Collection';
-            if (val.__vbaClass__) return val.__className__;
+            if (val && val.__vbaTypeName__) return val.__vbaTypeName__;
+            if (val && val.__isVbaDict__) return 'Dictionary';
+            if (val && val.__isVbaCollection__) return 'Collection';
+            if (val && val.__vbaClass__) return val.__className__;
             if (val instanceof VbaDecimal) return 'Decimal';
             if (typeof val === 'bigint') return 'LongLong';
             return 'Object';
@@ -627,7 +631,38 @@ export class Evaluator {
             if (c & 3) str = str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
             return str;
         });
-        this.env.set('strreverse', (s: any) => val === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''));
+        this.env.set('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''));
+        this.env.set('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
+            if (!Array.isArray(source)) this.throwVbaError(13, "Type mismatch");
+            const find = String(match ?? '');
+            const isInclude = this.isTrue(include);
+            const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
+            const result = source.filter(s => {
+                const str = String(s ?? '');
+                const found = isText ? str.toLowerCase().includes(find.toLowerCase()) : str.includes(find);
+                return isInclude ? found : !found;
+            });
+            (result as any).vbaBase = 0;
+            return result;
+        });
+        this.env.set('leftb', (val: any, len: any) => {
+            const s = String(val ?? '');
+            // In VBA, strings are UTF-16, so each char is 2 bytes. 
+            // LeftB(s, 2) returns first char.
+            return s.substring(0, Math.floor(Number(len) / 2));
+        });
+        this.env.set('rightb', (val: any, len: any) => {
+            const s = String(val ?? '');
+            const charLen = Math.floor(Number(len) / 2);
+            return s.substring(s.length - charLen);
+        });
+        this.env.set('midb', (val: any, start: any, len?: any) => {
+            const s = String(val ?? '');
+            const charStart = Math.floor((Number(start) + 1) / 2);
+            if (len === undefined) return s.substring(charStart - 1);
+            const charLen = Math.floor(Number(len) / 2);
+            return s.substring(charStart - 1, charStart - 1 + charLen);
+        });
         this.env.set('format', (val: any, pattern?: string) => {
             if (val === null || val === vbaNull || val === vbaEmpty) return "";
             const fmt = pattern ? String(pattern) : "";
@@ -701,6 +736,44 @@ export class Evaluator {
             if (!h) this.throwVbaError(52, "Bad file name or number");
             return h.pos!;
         });
+        this.env.set('filedatetime', (path: any) => {
+            const realPath = this.sandbox.toRealPath(String(path));
+            const stats = fs.statSync(realPath);
+            return new VbaDate(toVbaDate(stats.mtime));
+        });
+        this.env.set('fileattr', (fn: any, type: number = 1) => 0); // Stub
+        this.env.set('chdrive', (drive: string) => { /* Mock */ });
+        this.env.set('setattr', (path: string, attr: number) => { /* Mock */ });
+        this.env.set('curdir', (drive?: string) => this.sandbox.toVirtualPath(this.sandbox.getRoot()));
+        this.env.set('curdir$', this.env.get('curdir'));
+        this.env.set('dir', (pathName?: string, attributes?: number) => {
+            if (pathName !== undefined && pathName !== null && pathName !== "") {
+                try {
+                    const realPath = this.sandbox.toRealPath(pathName);
+                    const dirPath = path.dirname(realPath);
+                    const filter = path.basename(realPath);
+                    const files = fs.readdirSync(dirPath);
+                    if (filter === "*.*" || filter === "*" || filter === "") {
+                        this.dirIterator = files;
+                    } else {
+                        const regex = new RegExp('^' + filter.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+                        this.dirIterator = files.filter((f: string) => regex.test(f));
+                    }
+                    this.dirIndex = 0;
+                } catch (e) {
+                    this.dirIterator = [];
+                }
+            }
+            if (!this.dirIterator || this.dirIndex >= this.dirIterator.length) return "";
+            return this.dirIterator[this.dirIndex++];
+        });
+        this.env.set('dir$', this.env.get('dir'));
+        this.env.set('kill', (path: string) => fs.unlinkSync(this.sandbox.toRealPath(path)));
+        this.env.set('filecopy', (src: string, dest: string) => fs.copyFileSync(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
+        this.env.set('mkdir', (path: string) => fs.mkdirSync(this.sandbox.toRealPath(path), { recursive: true }));
+        this.env.set('rmdir', (path: string) => fs.rmdirSync(this.sandbox.toRealPath(path)));
+        this.env.set('chdir', (path: string) => { /* Mock or Sandbox logic */ });
+        this.env.set('filelen', (path: string) => fs.statSync(this.sandbox.toRealPath(path)).size);
 
         // --- Interaction Module ---
         this.env.set('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; });
@@ -709,6 +782,131 @@ export class Evaluator {
         this.env.set('appactivate', (title: string, wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
         this.env.set('sendkeys', (keys: string, wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
         this.env.set('doevents', () => 0);
+
+        // --- Financial Module ---
+        const getRateFactor = (rate: number, nper: number) => {
+            if (rate === 0) return nper;
+            return (Math.pow(1 + rate, nper) - 1) / rate;
+        };
+        this.env.set('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
+            const r = Number(rate), n = Number(nper), p = Number(pmt), v = Number(pv), t = Number(type);
+            const factor = getRateFactor(r, n);
+            const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
+            return result;
+        });
+        this.env.set('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
+            const r = Number(rate), n = Number(nper), p = Number(pmt), f = Number(fv), t = Number(type);
+            if (r === 0) return -(f + p * n);
+            const p1 = Math.pow(1 + r, n);
+            const result = -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
+            return result;
+        });
+        this.env.set('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+            const r = Number(rate), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+            if (r === 0) return -(v + f) / n;
+            const p1 = Math.pow(1 + r, n);
+            const result = -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));
+            return result;
+        });
+        this.env.set('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
+            const r = Number(rate), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
+            if (r === 0) return -(v + f) / p;
+            const num = p * (1 + r * t) - f * r;
+            const den = p * (1 + r * t) + v * r;
+            return Math.log(num / den) / Math.log(1 + r);
+        });
+        this.env.set('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
+            // Newton-Raphson approximation for Rate
+            let r = Number(guess);
+            const n = Number(nper), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
+            for (let i = 0; i < 20; i++) {
+                const p1 = Math.pow(1 + r, n);
+                const f_r = v * p1 + p * (1 + r * t) * ((p1 - 1) / r) + f;
+                const df_r = v * n * Math.pow(1 + r, n - 1) + p * (t * ((p1 - 1) / r) + (1 + r * t) * (n * Math.pow(1 + r, n - 1) * r - (p1 - 1)) / (r * r));
+                const newR = r - f_r / df_r;
+                if (Math.abs(newR - r) < 1e-10) return newR;
+                r = newR;
+            }
+            return r;
+        });
+        this.env.set('sln', (cost: any, salvage: any, life: any) => {
+            return (Number(cost) - Number(salvage)) / Number(life);
+        });
+        this.env.set('syd', (cost: any, salvage: any, life: any, period: any) => {
+            const c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period);
+            return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
+        });
+        this.env.set('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
+            let c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period), f = Number(factor);
+            if (p <= 0 || p > l) return 0;
+            let book = c;
+            let dep = 0;
+            for (let i = 1; i <= p; i++) {
+                dep = Math.min(book * (f / l), Math.max(0, book - s));
+                book -= dep;
+            }
+            return dep;
+        });
+        this.env.set('irr', (values: any, guess: any = 0.1) => {
+            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            const v = values.map(Number);
+            let r = Number(guess);
+            for (let i = 0; i < 100; i++) {
+                let npv = 0;
+                let dnpv = 0;
+                for (let t = 0; t < v.length; t++) {
+                    const p1 = Math.pow(1 + r, t);
+                    npv += v[t] / p1;
+                    if (t > 0) dnpv -= t * v[t] / (p1 * (1 + r));
+                }
+                const newR = r - npv / dnpv;
+                if (Math.abs(newR - r) < 1e-10) return newR;
+                r = newR;
+            }
+            return r;
+        });
+        this.env.set('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
+            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            const v = values.map(Number);
+            const fr = Number(finance_rate), rr = Number(reinvest_rate);
+            const n = v.length - 1;
+            let npv_neg = 0;
+            let npv_pos = 0;
+            for (let t = 0; t < v.length; t++) {
+                if (v[t] < 0) npv_neg += v[t] / Math.pow(1 + fr, t);
+                else npv_pos += v[t] / Math.pow(1 + rr, t);
+            }
+            const tv = npv_pos * Math.pow(1 + rr, n);
+            return Math.pow(-tv / npv_neg, 1 / n) - 1;
+        });
+        this.env.set('npv', (rate: any, values: any) => {
+            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            const r = Number(rate);
+            const v = values.map(Number);
+            let result = 0;
+            for (let i = 0; i < v.length; i++) {
+                result += v[i] / Math.pow(1 + r, i + 1);
+            }
+            return result;
+        });
+        this.env.set('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+            const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+            const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
+            let ipmt: number;
+            if (p === 1) {
+                ipmt = t === 1 ? 0 : -v * r;
+            } else {
+                const fv_prev = Number(this.env.get('fv')(r, p - 1, pmt, v, t));
+                ipmt = -fv_prev * r;
+            }
+            return ipmt;
+        });
+        this.env.set('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+            const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+            const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
+            const ipmt = Number(this.env.get('ipmt')(r, p, n, v, f, t));
+            return pmt - ipmt;
+        });
 
         // --- Constants & Registry ---
         const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
@@ -728,6 +926,28 @@ export class Evaluator {
         this.env.set('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; });
         this.env.set('lbound', (a: any) => Array.isArray(a) ? ((a as any).vbaBase || 0) : 0);
         this.env.set('ubound', (a: any) => Array.isArray(a) ? (((a as any).vbaBase || 0) + a.length - 1) : 0);
+
+        // --- Registry Module ---
+        this.env.set('savesetting', (app: string, sec: string, key: string, val: any) => {
+            if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
+            if (!this.virtualRegistry[app][sec]) this.virtualRegistry[app][sec] = {};
+            this.virtualRegistry[app][sec][key] = String(val);
+        });
+        this.env.set('getsetting', (app: string, sec: string, key: string, def: any = "") => {
+            return (this.virtualRegistry[app]?.[sec]?.[key]) ?? String(def);
+        });
+        this.env.set('getallsettings', (app: string, sec: string) => {
+            const s = this.virtualRegistry[app]?.[sec];
+            if (!s) return vbaEmpty;
+            const res = Object.entries(s).map(([k, v]) => [k, v]);
+            (res as any).vbaBase = 0;
+            return res;
+        });
+        this.env.set('deletesetting', (app: string, sec?: string, key?: string) => {
+            if (!sec) delete this.virtualRegistry[app];
+            else if (!key) delete this.virtualRegistry[app]?.[sec];
+            else delete this.virtualRegistry[app]?.[sec]?.[key];
+        });
     }
 
     private print(msg: string) {
