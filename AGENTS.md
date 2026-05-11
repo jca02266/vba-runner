@@ -34,11 +34,11 @@ When implementing or modifying file-related functions (e.g., `Open`, `Kill`, `Di
 
 ## Environment-Dependent Operations Policy
 
-This project's primary goal is **Refactoring and Unit Testing**. Therefore, all operations that depend on the host environment (external commands, GUI, network, etc.) must be implemented as **mocks or dummies**.
+This project's primary goal is **Refactoring and Unit Testing**. Therefore, all operations that depend on the host environment (external commands, GUI, network, etc.) must be implemented as **stubs or fakes**.
 
 - **External Commands**: Functions like `Shell` must not execute actual commands. They should log the command and return a success task ID (default: `1`).
 - **External Files**: All file operations must be restricted to the sandbox root via `SandboxPath`. Do not access files outside the `workspace/` directory.
-- **External Objects**: `CreateObject` and `GetObject` must return mock objects for standard libraries (e.g., `Scripting.Dictionary`, `MSXML2.XMLHTTP`) and not attempt to instantiate actual COM objects or make network requests.
+- **External Objects**: `CreateObject` and `GetObject` must return stub/fake objects for standard libraries (e.g., `Scripting.Dictionary`, `MSXML2.XMLHTTP`) and not attempt to instantiate actual COM objects or make network requests.
 - **Registry**: Functions like `GetSetting` and `SaveSetting` must use a virtual registry (e.g., a memory map) rather than the actual Windows Registry.
 - **App State**: Functions like `AppActivate` and `SendKeys` must be implemented as no-ops or log the action.
-- **UI/Interactions**: `MsgBox` and `InputBox` must not block execution. They should log the message and return a default value.
+- **UI/Interactions**: `MsgBox` and `InputBox` must not block execution. They should log the message and return a default value (stubbing).
