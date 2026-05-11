@@ -57,6 +57,33 @@ function testFullRuntime() {
             d = #2023-01-01#
             Debug.Print "DateAdd: " & DateAdd("m", 1, d)
             Debug.Print "DateDiff: " & DateDiff("d", d, #2023-01-10#)
+
+            ' 6. String functions
+            Debug.Print "LTrim: " & LTrim("  abc")
+            Debug.Print "RTrim: " & RTrim("abc  ")
+            
+            ' 7. Arrays
+            Dim arr(1 To 2, 1 To 2) As Integer
+            arr(1, 1) = 100
+            ReDim Preserve arr(1 To 2, 1 To 3)
+            arr(1, 3) = 200
+            Debug.Print "arr(1,1): " & arr(1, 1)
+            Debug.Print "arr(1,3): " & arr(1, 3)
+            Debug.Print "UBound(arr, 2): " & UBound(arr, 2)
+            
+            ' 8. Error Object
+            On Error Resume Next
+            Err.Raise 100, "Source", "Desc", "HelpFile", 1000
+            Debug.Print "Err.Number: " & Err.Number
+            Debug.Print "Err.Source: " & Err.Source
+            Debug.Print "Err.Description: " & Err.Description
+            Debug.Print "Err.HelpFile: " & Err.HelpFile
+            Debug.Print "Err.HelpContext: " & Err.HelpContext
+            Debug.Print "Err.LastDllError: " & Err.LastDllError
+            On Error GoTo 0
+            
+            ' 9. File System Stubs
+            Debug.Print "FileAttr: " & FileAttr(1)
         End Sub
 
         Function GetVal(Optional x As Integer = 123)
@@ -75,7 +102,7 @@ function testFullRuntime() {
     
     evaluator.evaluate(program);
 
-    const lines = output.trim().split("\n").map(l => l.trim());
+    const lines = output.trim().split("\n").map(l => l.trim()).filter(l => !l.startsWith("[STUB]"));
     console.log("Output lines:", lines);
 
     const expected = [
@@ -94,7 +121,19 @@ function testFullRuntime() {
         "Choose: Orange",
         "Switch: Yes",
         "DateAdd: ", // Partial match
-        "DateDiff: 9"
+        "DateDiff: 9",
+        "LTrim: abc",
+        "RTrim: abc",
+        "arr(1,1): 100",
+        "arr(1,3): 200",
+        "UBound(arr, 2): 3",
+        "Err.Number: 100",
+        "Err.Source: Source",
+        "Err.Description: Desc",
+        "Err.HelpFile: HelpFile",
+        "Err.HelpContext: 1000",
+        "Err.LastDllError: 0",
+        "FileAttr: 1"
     ];
 
     let passed = 0;

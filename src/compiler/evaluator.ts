@@ -721,6 +721,35 @@ export class Evaluator {
         this.env.set('second', (d: any) => parseVbaDate(d).getSeconds());
         this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))));
         this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(0, 0, 0, Number(h), Number(n), Number(s)))));
+        this.env.set('dateadd', (interval: any, number: any, date: any) => {
+            const d = new Date(parseVbaDate(date).getTime());
+            const n = Number(number);
+            const intv = String(interval).toLowerCase();
+            if (intv === 'yyyy') d.setFullYear(d.getFullYear() + n);
+            else if (intv === 'q') d.setMonth(d.getMonth() + n * 3);
+            else if (intv === 'm') d.setMonth(d.getMonth() + n);
+            else if (intv === 'y' || intv === 'd' || intv === 'w') d.setDate(d.getDate() + n);
+            else if (intv === 'ww') d.setDate(d.getDate() + n * 7);
+            else if (intv === 'h') d.setHours(d.getHours() + n);
+            else if (intv === 'n') d.setMinutes(d.getMinutes() + n);
+            else if (intv === 's') d.setSeconds(d.getSeconds() + n);
+            return new VbaDate(toVbaDate(d));
+        });
+        this.env.set('datediff', (interval: any, date1: any, date2: any) => {
+            const d1 = parseVbaDate(date1);
+            const d2 = parseVbaDate(date2);
+            const intv = String(interval).toLowerCase();
+            const diffMs = d2.getTime() - d1.getTime();
+            if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
+            else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
+            else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
+            else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
+            else if (intv === 'ww') return Math.round(diffMs / 604800000);
+            else if (intv === 'h') return Math.round(diffMs / 3600000);
+            else if (intv === 'n') return Math.round(diffMs / 60000);
+            else if (intv === 's') return Math.round(diffMs / 1000);
+            return 0;
+        });
 
         // --- File System Module ---
         this.env.set('freefile', (range?: number) => {
@@ -764,9 +793,7 @@ export class Evaluator {
             const stats = fs.statSync(realPath);
             return new VbaDate(toVbaDate(stats.mtime));
         });
-        this.env.set('fileattr', (fn: any, type: number = 1) => 0); // Stub
-        this.env.set('chdrive', (drive: string) => { /* Mock */ });
-        this.env.set('setattr', (path: string, attr: number) => { /* Mock */ });
+
         this.env.set('curdir', (drive?: string) => this.sandbox.toVirtualPath(this.sandbox.getRoot()));
         this.env.set('curdir$', this.env.get('curdir'));
         this.env.set('dir', (pathName?: string, attributes?: number) => {
