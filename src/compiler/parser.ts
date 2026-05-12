@@ -529,7 +529,11 @@ export class Parser {
             isByVal = this.advance().type === TokenType.KeywordByVal;
         }
 
-        const nameToken = this.consume(TokenType.Identifier, "Expected parameter name");
+        const token = this.peek();
+        if (token.type !== TokenType.Identifier && (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf)) {
+            throw new Error(`Parse error at line ${token.line}: Expected parameter name (Found ${token.value})`);
+        }
+        const nameToken = this.advance();
 
         // Consume optional () for arrays or ParamArray
         if (this.match(TokenType.OperatorLParen)) {
@@ -882,7 +886,27 @@ export class Parser {
     }
 
     private parseStatement(): Statement | null {
+        this.skipNewlines();
         const token = this.peek();
+
+        if (token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate || token.type === TokenType.KeywordFriend) {
+            const scope = this.advance().value.toLowerCase() as 'public' | 'private' | 'friend';
+            const next = this.peek();
+            if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
+                return this.parseProcedureDeclaration(scope, false);
+            }
+            if (next.type === TokenType.KeywordConst) {
+                const stmt = this.parseConstDeclaration();
+                (stmt as any).scope = scope;
+                return stmt;
+            }
+            // Public/Private on Dim/Const — handle as variable declaration
+            const stmt = this.parseDimStatement(false, true);
+            if (stmt) {
+                (stmt as any).scope = scope;
+            }
+            return stmt;
+        }
 
         if (token.type === TokenType.KeywordFor) {
             return this.parseForStatement();
@@ -981,7 +1005,8 @@ export class Parser {
             if (this.match(TokenType.KeywordExplicit)) {
                 return { type: 'OptionExplicitStatement' } as OptionExplicitStatement;
             }
-            if (this.match(TokenType.KeywordBase)) {
+            if (this.peek().type === TokenType.Identifier && this.peek().value.toLowerCase() === 'base') {
+                this.advance(); // 'Base'
                 const baseToken = this.advance();
                 if (baseToken.value === '0' || baseToken.value === '1') {
                     return { type: 'OptionBaseStatement', base: parseInt(baseToken.value) } as OptionBaseStatement;
@@ -1129,8 +1154,8 @@ export class Parser {
         }
 
         const idToken = this.advance();
-        if (idToken.type !== TokenType.Identifier) {
-            throw new Error(`Parse error: Expected identifier after Sub/Function at line ${idToken.line}`);
+        if (idToken.type !== TokenType.Identifier && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
+            throw new Error(`Parse error at line ${idToken.line}: Expected procedure name (Found ${idToken.value})`);
         }
         const name: Identifier = { type: 'Identifier', name: idToken.value };
         const parameters: Parameter[] = [];
@@ -1175,7 +1200,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope, isStatic };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope: scope || 'public', isStatic };
     }
 
     private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
@@ -1188,6 +1213,9 @@ export class Parser {
                 isWithEvents = true;
             }
             const idToken = this.advance();
+            if (idToken.type !== TokenType.Identifier && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
+                throw new Error(`Parse error at line ${idToken.line}: Expected variable name (Found ${idToken.value})`);
+            }
             const name: Identifier = { type: 'Identifier', name: idToken.value };
 
             let isArray = false;
@@ -2084,7 +2112,18 @@ export class Parser {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
             expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.KeywordMid || token.type === TokenType.KeywordSeek) {
+        } else if (token.type === TokenType.Identifier || 
+                   token.type === TokenType.KeywordMid || 
+                   token.type === TokenType.KeywordWidth ||
+                   token.type === TokenType.KeywordSeek ||
+                   token.type === TokenType.KeywordLine ||
+                   token.type === TokenType.KeywordInput ||
+                   token.type === TokenType.KeywordPrint ||
+                   token.type === TokenType.KeywordPut ||
+                   token.type === TokenType.KeywordGet ||
+                   token.type === TokenType.KeywordLock ||
+                   token.type === TokenType.KeywordUnlock ||
+                   token.type === TokenType.KeywordKill) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const procName = this.consume(TokenType.Identifier, "Expected procedure name after 'AddressOf'");
@@ -2133,10 +2172,12 @@ export class Parser {
 
         while (true) {
             if (this.match(TokenType.OperatorDot)) {
+                if (this.peek().type === TokenType.EOF) throw new Error("Expected property name after '.'");
                 const propToken = this.advance();
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'MemberExpression', object: expr, property } as MemberExpression;
             } else if (this.match(TokenType.OperatorExclamation)) {
+                if (this.peek().type === TokenType.EOF) throw new Error("Expected identifier after '!'");
                 const propToken = this.advance();
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'DictionaryAccessExpression', object: expr, property } as DictionaryAccessExpression;

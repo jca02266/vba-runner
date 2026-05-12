@@ -64,6 +64,7 @@ import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 
 export class VbaBoolean {
+    public readonly __isVbaBoolean__ = true;
     constructor(public value: -1 | 0) {}
     valueOf() { return this.value; }
     toString() { return this.value === -1 ? 'True' : 'False'; }
@@ -84,11 +85,23 @@ export const fromVbaDate = (serial: number): Date => {
 
 export const parseVbaDate = (val: any): Date => {
     if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
-    if (val instanceof VbaDate) return fromVbaDate(val.value);
+    if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
     if (typeof val === 'number') return fromVbaDate(val);
-    const d = new Date(val);
+    
+    let str = String(val);
+    // If it looks like a time-only string, prepend a base date for JS parser
+    if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(str)) {
+        str = "1899/12/30 " + str;
+    }
+    
+    const d = new Date(str);
     if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
-    return d;
+    
+    // Treat the parsed local time components as UTC to maintain timezone independence
+    return new Date(Date.UTC(
+        d.getFullYear(), d.getMonth(), d.getDate(),
+        d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()
+    ));
 };
 
 export class VbaDate {
@@ -384,7 +397,7 @@ export class Evaluator {
             print: (...args: any[]) => this.onPrint(args.map(a => this.toDisplayString(a)).join(' ')),
             assert: (condition: any) => {
                 if (!this.isTrue(condition)) {
-                    throw new Error('Execution error: Assertion failed');
+                    throw new Error('Assertion failed');
                 }
             }
         });
@@ -512,7 +525,30 @@ export class Evaluator {
         this.env.set('clnglng', (val: any) => {
             if (val === vbaNull || val === null) this.throwVbaError(13, "Type mismatch");
             if (typeof val === 'bigint') return val;
-            const n = BigInt(this.vbaRound(this.toVbaNumber(val)));
+            if (typeof val === 'string') {
+                const trimmed = val.trim();
+                if (/^-?\d+$/.test(trimmed)) {
+                    try {
+                        const n = BigInt(trimmed);
+                        if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(6, "Overflow");
+                        return n;
+                    } catch {
+                        this.throwVbaError(13, "Type mismatch");
+                    }
+                }
+            }
+            const num = this.toVbaNumber(val);
+            // Check range using number (approximate but necessary for large floats)
+            // Note: 9223372036854775807 is exactly represented as a double but the next double is 9223372036854775807 + 1024
+            if (num < -9223372036854775808 || num > 9223372036854775807) {
+                // If it's very close to the edge, it might be a precision issue
+                if (Math.abs(num - 9223372036854775807) < 1025 || Math.abs(num + 9223372036854775808) < 1025) {
+                    // Keep going and let BigInt conversion handle it if it was a float that rounded to the edge
+                } else {
+                    this.throwVbaError(6, "Overflow");
+                }
+            }
+            const n = BigInt(this.vbaRound(num));
             if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(6, "Overflow");
             return n;
         });
@@ -543,6 +579,44 @@ export class Evaluator {
             const match = cleaned.match(/^[+-]?\d*(\.\d*)?/);
             return match ? parseFloat(match[0]) || 0 : 0;
         });
+
+        // Constants
+        this.env.set('vbcrlf', "\r\n");
+        this.env.set('vbcr', "\r");
+        this.env.set('vblf', "\n");
+        this.env.set('vbtab', "\t");
+        this.env.set('vbnullstring', "");
+        this.env.set('vbnullchar', "\0");
+        this.env.set('vbok', 1);
+        this.env.set('vbcancel', 2);
+        this.env.set('vbabort', 3);
+        this.env.set('vbretry', 4);
+        this.env.set('vbignore', 5);
+        this.env.set('vbyes', 6);
+        this.env.set('vbno', 7);
+        this.env.set('vbokonly', 0);
+        this.env.set('vbokcancel', 1);
+        this.env.set('vbabortretryignore', 2);
+        this.env.set('vbyesnocancel', 3);
+        this.env.set('vbyesno', 4);
+        this.env.set('vbretrycancel', 5);
+        this.env.set('vbcritical', 16);
+        this.env.set('vbquestion', 32);
+        this.env.set('vbexclamation', 48);
+        this.env.set('vbinformation', 64);
+        this.env.set('vbdefaultbutton1', 0);
+        this.env.set('vbdefaultbutton2', 256);
+        this.env.set('vbdefaultbutton3', 512);
+        this.env.set('vbdefaultbutton4', 768);
+        this.env.set('vbtextcompare', 1);
+        this.env.set('vbbinarycompare', 0);
+        this.env.set('vbuppercase', 1);
+        this.env.set('vblowercase', 2);
+        this.env.set('vbpropercase', 3);
+        this.env.set('vbwide', 4);
+        this.env.set('vbnarrow', 8);
+        this.env.set('vbkatakana', 16);
+        this.env.set('vbhiragana', 32);
 
         // --- Math Module ---
         this.env.set('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(this.toVbaNumber(val)));
@@ -628,7 +702,11 @@ export class Evaluator {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? ''), find = String(s2 ?? '');
             if (find === "") return (start === -1) ? str.length : Number(start);
-            const effStart = (start === -1) ? str.length : Number(start);
+            
+            const startNum = Number(start);
+            if (startNum !== -1 && startNum > str.length) return 0;
+            
+            const effStart = (start === -1) ? str.length : startNum;
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
             return idx === -1 ? 0 : idx + 1;
@@ -636,6 +714,14 @@ export class Evaluator {
         const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
         this.env.set('lcase', lcaseFunc);
         this.env.set('lcase$', lcaseFunc);
+        const strFunc = (val: any) => {
+            if (val === vbaNull) return vbaNull;
+            const n = this.toVbaNumber(val);
+            return n >= 0 ? " " + n : String(n);
+        };
+        this.env.set('str', strFunc);
+        this.env.set('str$', strFunc);
+
         const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
         this.env.set('ucase', ucaseFunc);
         this.env.set('ucase$', ucaseFunc);
@@ -687,9 +773,22 @@ export class Evaluator {
             if (s === vbaNull) return vbaNull;
             let str = String(s ?? '');
             const c = Number(conv);
-            if (c & 1) str = str.toUpperCase();
-            if (c & 2) str = str.toLowerCase();
-            if (c & 3) str = str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+            const caseConv = c & 3;
+            if (caseConv === 1) str = str.toUpperCase();
+            else if (caseConv === 2) str = str.toLowerCase();
+            else if (caseConv === 3) str = str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+
+            if (c & 16) {
+                str = str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
+            } else if (c & 32) {
+                str = str.replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+            }
+
+            if (c & 4) {
+                str = str.replace(/[!-~]/g, m => String.fromCharCode(m.charCodeAt(0) + 0xFEE0)).replace(/ /g, '　');
+            } else if (c & 8) {
+                str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
+            }
             return str;
         });
         this.env.set('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''));
@@ -753,37 +852,64 @@ export class Evaluator {
         this.env.set('format$', formatFunc);
 
         // --- Date/Time Module ---
-        this.env.set('now', () => new VbaDate(toVbaDate(new Date())));
-        this.env.set('date', () => new VbaDate(Math.floor(toVbaDate(new Date()))));
-        this.env.set('time', () => {
+        const nowFunc = () => new VbaDate(toVbaDate(new Date()));
+        (nowFunc as any).__vbaAutoCall__ = true;
+        this.env.set('now', nowFunc);
+
+        const dateFunc = () => new VbaDate(Math.floor(toVbaDate(new Date())));
+        (dateFunc as any).__vbaAutoCall__ = true;
+        this.env.set('date', dateFunc);
+
+        const timeFunc = () => {
             const serial = toVbaDate(new Date());
             return new VbaDate(serial - Math.floor(serial));
-        });
-        this.env.set('timer', () => {
+        };
+        (timeFunc as any).__vbaAutoCall__ = true;
+        this.env.set('time', timeFunc);
+
+        const timerFunc = () => {
             const now = new Date();
             const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             return (now.getTime() - midnight.getTime()) / 1000;
-        });
-        this.env.set('year', (d: any) => parseVbaDate(d).getFullYear());
-        this.env.set('month', (d: any) => parseVbaDate(d).getMonth() + 1);
-        this.env.set('day', (d: any) => parseVbaDate(d).getDate());
-        this.env.set('hour', (d: any) => parseVbaDate(d).getHours());
-        this.env.set('minute', (d: any) => parseVbaDate(d).getMinutes());
-        this.env.set('second', (d: any) => parseVbaDate(d).getSeconds());
-        this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))));
-        this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(0, 0, 0, Number(h), Number(n), Number(s)))));
+        };
+        (timerFunc as any).__vbaAutoCall__ = true;
+        this.env.set('timer', timerFunc);
+        this.env.set('year', (d: any) => parseVbaDate(d).getUTCFullYear());
+        this.env.set('month', (d: any) => parseVbaDate(d).getUTCMonth() + 1);
+        this.env.set('day', (d: any) => parseVbaDate(d).getUTCDate());
+        this.env.set('hour', (d: any) => parseVbaDate(d).getUTCHours());
+        this.env.set('minute', (d: any) => parseVbaDate(d).getUTCMinutes());
+        this.env.set('second', (d: any) => parseVbaDate(d).getUTCSeconds());
+        this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))))));
+        this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(Date.UTC(1899, 11, 30, Number(h), Number(n), Number(s))))));
+        this.env.set('weekday', (d: any) => parseVbaDate(d).getUTCDay() + 1);
         this.env.set('dateadd', (interval: any, number: any, date: any) => {
-            const d = new Date(parseVbaDate(date).getTime());
+            const d = parseVbaDate(date);
             const n = Number(number);
             const intv = String(interval).toLowerCase();
-            if (intv === 'yyyy') d.setFullYear(d.getFullYear() + n);
-            else if (intv === 'q') d.setMonth(d.getMonth() + n * 3);
-            else if (intv === 'm') d.setMonth(d.getMonth() + n);
-            else if (intv === 'y' || intv === 'd' || intv === 'w') d.setDate(d.getDate() + n);
-            else if (intv === 'ww') d.setDate(d.getDate() + n * 7);
-            else if (intv === 'h') d.setHours(d.getHours() + n);
-            else if (intv === 'n') d.setMinutes(d.getMinutes() + n);
-            else if (intv === 's') d.setSeconds(d.getSeconds() + n);
+            
+            if (intv === 'yyyy' || intv === 'q' || intv === 'm') {
+                const oldDay = d.getUTCDate();
+                if (intv === 'yyyy') d.setUTCFullYear(d.getUTCFullYear() + n);
+                else if (intv === 'q') d.setUTCMonth(d.getUTCMonth() + n * 3);
+                else if (intv === 'm') d.setUTCMonth(d.getUTCMonth() + n);
+                
+                // VBA behavior: if the day exceeds the last day of the month, 
+                // it is set to the last day of that month.
+                if (d.getUTCDate() !== oldDay) {
+                    d.setUTCDate(0);
+                }
+            } else if (intv === 'y' || intv === 'd' || intv === 'w') {
+                d.setUTCDate(d.getUTCDate() + n);
+            } else if (intv === 'ww') {
+                d.setUTCDate(d.getUTCDate() + n * 7);
+            } else if (intv === 'h') {
+                d.setUTCHours(d.getUTCHours() + n);
+            } else if (intv === 'n') {
+                d.setUTCMinutes(d.getUTCMinutes() + n);
+            } else if (intv === 's') {
+                d.setUTCSeconds(d.getUTCSeconds() + n);
+            }
             return new VbaDate(toVbaDate(d));
         });
         this.env.set('datediff', (interval: any, date1: any, date2: any) => {
@@ -791,15 +917,64 @@ export class Evaluator {
             const d2 = parseVbaDate(date2);
             const intv = String(interval).toLowerCase();
             const diffMs = d2.getTime() - d1.getTime();
-            if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
-            else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
-            else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
+            if (intv === 'yyyy') return d2.getUTCFullYear() - d1.getUTCFullYear();
+            else if (intv === 'q') return (d2.getUTCFullYear() - d1.getUTCFullYear()) * 4 + Math.floor(d2.getUTCMonth() / 3) - Math.floor(d1.getUTCMonth() / 3);
+            else if (intv === 'm') return (d2.getUTCFullYear() - d1.getUTCFullYear()) * 12 + d2.getUTCMonth() - d1.getUTCMonth();
             else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
             else if (intv === 'ww') return Math.round(diffMs / 604800000);
             else if (intv === 'h') return Math.round(diffMs / 3600000);
             else if (intv === 'n') return Math.round(diffMs / 60000);
             else if (intv === 's') return Math.round(diffMs / 1000);
             return 0;
+        });
+        this.env.set('datepart', (interval: any, date: any) => {
+            const d = parseVbaDate(date);
+            const intv = String(interval).toLowerCase();
+            if (intv === 'yyyy') return d.getUTCFullYear();
+            else if (intv === 'q') return Math.floor(d.getUTCMonth() / 3) + 1;
+            else if (intv === 'm') return d.getUTCMonth() + 1;
+            else if (intv === 'y') {
+                const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
+                const diff = d.getTime() - start.getTime();
+                return Math.floor(diff / 86400000);
+            }
+            else if (intv === 'd') return d.getUTCDate();
+            else if (intv === 'w') return d.getUTCDay() + 1;
+            else if (intv === 'ww') {
+                const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const diff = d.getTime() - start.getTime();
+                return Math.floor((diff / 86400000 + start.getUTCDay() + 6) / 7);
+            }
+            else if (intv === 'h') return d.getUTCHours();
+            else if (intv === 'n') return d.getUTCMinutes();
+            else if (intv === 's') return d.getUTCSeconds();
+            return 0;
+        });
+        this.env.set('datevalue', (val: any) => {
+            const d = parseVbaDate(val);
+            return new VbaDate(Math.floor(toVbaDate(d)));
+        });
+        this.env.set('timevalue', (val: any) => {
+            const d = parseVbaDate(val);
+            const serial = toVbaDate(d);
+            return new VbaDate(serial - Math.floor(serial));
+        });
+        this.env.set('monthname', (month: any, abbreviate: any = vbaFalse) => {
+            const m = Number(month);
+            if (m < 1 || m > 12) this.throwVbaError(5, "Invalid procedure call or argument");
+            const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const abbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            return this.isTrue(abbreviate) ? abbrs[m - 1] : names[m - 1];
+        });
+        this.env.set('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
+            const w = Number(weekday);
+            let first = Number(firstdayofweek);
+            if (first === 0) first = 1;
+            if (w < 1 || w > 7) this.throwVbaError(5, "Invalid procedure call or argument");
+            const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            const abbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            const idx = (w + first - 2) % 7;
+            return this.isTrue(abbreviate) ? abbrs[idx] : names[idx];
         });
 
         // --- File System Module ---
@@ -1011,9 +1186,20 @@ export class Evaluator {
 
         // --- Constants & Registry ---
         const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
-        const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Error";
+        const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Application-defined or object-defined error";
+        (errFunc as any).__vbaAutoCall__ = true;
         this.env.set('error', errFunc);
         this.env.set('error$', errFunc);
+        this.env.set('vbsunday', 1);
+        this.env.set('vbmonday', 2);
+        this.env.set('vbtuesday', 3);
+        this.env.set('vbwednesday', 4);
+        this.env.set('vbthursday', 5);
+        this.env.set('vbfriday', 6);
+        this.env.set('vbsaturday', 7);
+        this.env.set('vbusesystem', 0);
+        this.env.set('vbbinarycompare', 0);
+        this.env.set('vbtextcompare', 1);
         this.env.set('vbempty', 0); this.env.set('vbnull', 1); this.env.set('vbinteger', 2); this.env.set('vblong', 3); this.env.set('vbsingle', 4); this.env.set('vbdouble', 5); this.env.set('vbcurrency', 6); this.env.set('vbdate', 7); this.env.set('vbstring', 8); this.env.set('vbobject', 9); this.env.set('vberror', 10); this.env.set('vbboolean', 11); this.env.set('vbvariant', 12); this.env.set('vbbyte', 17); this.env.set('vblonglong', 20); this.env.set('vbarray', 8192);
         this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n");
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
@@ -1021,6 +1207,19 @@ export class Evaluator {
         this.env.set('environ', (k: any) => this.sandbox.getEnv(k));
         this.env.set('environ$', this.env.get('environ'));
         this.env.set('createobject', (id: string) => this.createExternalObject(id));
+        this.env.set('getobject', (pathname?: string, classId?: string) => {
+            if (pathname) {
+                return {
+                    __vbaTypeName__: 'Object',
+                    Path: pathname,
+                    Name: pathname.split(/[\\\/]/).pop()
+                };
+            }
+            if (classId) {
+                return this.createExternalObject(classId);
+            }
+            return vbaNothing;
+        });
         this.env.set('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f);
         this.env.set('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; });
         this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
@@ -2511,18 +2710,18 @@ export class Evaluator {
                 __isVbaFso__: true,
                 fileexists: (p: string) => {
                     try {
-                        const full = this.sandbox.resolve(p);
+                        const full = this.sandbox.toRealPath(p);
                         return (fs.existsSync(full) && fs.statSync(full).isFile()) ? vbaTrue : vbaFalse;
                     } catch { return vbaFalse; }
                 },
                 folderexists: (p: string) => {
                     try {
-                        const full = this.sandbox.resolve(p);
+                        const full = this.sandbox.toRealPath(p);
                         return (fs.existsSync(full) && fs.statSync(full).isDirectory()) ? vbaTrue : vbaFalse;
                     } catch { return vbaFalse; }
                 },
                 createtextfile: (p: string, overwrite: boolean = true) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     if (!overwrite && fs.existsSync(full)) this.throwVbaError(58, "File already exists");
                     const fd = fs.openSync(full, 'w');
                     return {
@@ -2532,7 +2731,7 @@ export class Evaluator {
                     };
                 },
                 opentextfile: (p: string, iomode: number = 1) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
                     const fd = fs.openSync(full, mode);
                     let pos = 0;
@@ -2557,20 +2756,20 @@ export class Evaluator {
                     };
                 },
                 createfolder: (p: string) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     fs.mkdirSync(full, { recursive: true });
                     return { path: p };
                 },
                 deletefile: (p: string) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     fs.unlinkSync(full);
                 },
                 deletefolder: (p: string) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     fs.rmSync(full, { recursive: true, force: true });
                 },
                 getfile: (p: string) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     const stats = fs.statSync(full);
                     return {
                         path: p,
@@ -2616,11 +2815,11 @@ export class Evaluator {
                 read: (len: number) => { const r = content.slice(streamPos, streamPos + len); streamPos += len; return r; },
                 readtext: () => { const r = content.slice(streamPos); streamPos = content.length; return r; },
                 savetofile: (p: string, mode: number = 1) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     fs.writeFileSync(full, content);
                 },
                 loadfromfile: (p: string) => {
-                    const full = this.sandbox.resolve(p);
+                    const full = this.sandbox.toRealPath(p);
                     content = fs.readFileSync(full, 'utf8');
                     streamPos = 0;
                 },
@@ -2891,9 +3090,11 @@ export class Evaluator {
                 }
                 const p = this.env.getProcedure(idName);
                 if (p) {
-                    // Only auto-call if it's a Function (not Sub) and has 0 required arguments
-                    // For now, assume it's okay to call
-                    return this.callProcedure(idName, []);
+                    // Only auto-call if it's a Function/Property and has 0 required arguments
+                    const requiredCount = p.parameters.filter(param => !param.isOptional && !param.isParamArray).length;
+                    if (requiredCount === 0) {
+                        return this.callProcedure(idName, []);
+                    }
                 }
                 return v;
             case 'CallExpression':
@@ -3053,8 +3254,11 @@ export class Evaluator {
                 }
                 return undefined;
             } else {
-                // Might be an array access or built-in function
+                // Might be an array access, built-in function, or variable reference
                 const variable = this.env.get(name);
+                if (expr.args.length === 0 && typeof variable !== 'function' && !Array.isArray(variable) && !(variable && variable.__isVbaDict__)) {
+                    return variable;
+                }
                 if (typeof variable === 'function') {
                     const argsVals = expr.args.map(a => this.evaluateExpression(a));
                     return variable(...argsVals);
@@ -3324,19 +3528,19 @@ export class Evaluator {
             case 'like': return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
             case 'and':
                 const andRes = leftVal & rightVal;
-                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(andRes as any) : andRes;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (andRes === -1 ? vbaTrue : vbaFalse) : andRes;
             case 'or':
                 const orRes = leftVal | rightVal;
-                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(orRes as any) : orRes;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (orRes === -1 ? vbaTrue : vbaFalse) : orRes;
             case 'xor':
                 const xorRes = leftVal ^ rightVal;
-                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(xorRes as any) : xorRes;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (xorRes === -1 ? vbaTrue : vbaFalse) : xorRes;
             case 'eqv':
                 const eqvRes = ~(leftVal ^ rightVal);
-                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(eqvRes as any) : eqvRes;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (eqvRes === -1 ? vbaTrue : vbaFalse) : eqvRes;
             case 'imp':
                 const impRes = (~leftVal) | rightVal;
-                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? new VbaBoolean(impRes as any) : impRes;
+                return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (impRes === -1 ? vbaTrue : vbaFalse) : impRes;
             default:
                 throw new Error(`Execution error: Unknown operator ${expr.operator}`);
         }

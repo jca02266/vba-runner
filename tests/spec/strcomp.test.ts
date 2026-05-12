@@ -1,7 +1,7 @@
 import { Lexer } from '../../src/compiler/lexer';
 import { Parser } from '../../src/compiler/parser';
 import { Evaluator } from '../../src/compiler/evaluator';
-import { assert } from '../ts/test-runner';
+import { assert, vbaNull } from '../ts/test-runner';
 
 function evalVBA(code: string): any {
     const tokens = new Lexer(code).tokenize();
@@ -55,8 +55,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             TestEmpty = StrComp("", "")
         End Function
     `;
-    assert.strictEqual(runFunc(code, 'TestNull1'), null, 'StrComp: Null input -> Null');
-    assert.strictEqual(runFunc(code, 'TestNull2'), null, 'StrComp: Null input -> Null');
+    assert.strictEqual(runFunc(code, 'TestNull1'), vbaNull, 'StrComp: Null input -> Null');
+    assert.strictEqual(runFunc(code, 'TestNull2'), vbaNull, 'StrComp: Null input -> Null');
     assert.strictEqual(runFunc(code, 'TestEmpty'), 0, 'StrComp: "" = "" -> 0');
     console.log('[PASS] エッジケース');
 }

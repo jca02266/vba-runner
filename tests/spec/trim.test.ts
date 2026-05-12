@@ -1,7 +1,7 @@
 import { Lexer } from '../../src/compiler/lexer';
 import { Parser } from '../../src/compiler/parser';
 import { Evaluator } from '../../src/compiler/evaluator';
-import { assert } from '../ts/test-runner';
+import { assert, vbaNull } from '../ts/test-runner';
 
 function evalVBA(code: string): any {
     const tokens = new Lexer(code).tokenize();
@@ -59,7 +59,7 @@ console.log('[PASS] Trim');
     End Function
     `;
     assert.strictEqual(runFunc(code, 'TestEmpty'), "", 'LTrim of empty string');
-    assert.strictEqual(runFunc(code, 'TestNull'), null, 'RTrim of Null is Null');
+    assert.strictEqual(runFunc(code, 'TestNull'), vbaNull, 'RTrim of Null is Null');
 }
 console.log('[PASS] Empty and Null');
 
