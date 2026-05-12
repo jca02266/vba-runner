@@ -18,7 +18,7 @@ function evalVBA(code: string): any {
     return ev;
 }
 
-const sandboxRoot = path.join(process.cwd(), 'workspace');
+const sandboxRoot = path.join(process.cwd(), 'sandbox');
 if (!fs.existsSync(sandboxRoot)) fs.mkdirSync(sandboxRoot);
 
 console.log("--- Starting FS Lock/Width Stub Tests ---");

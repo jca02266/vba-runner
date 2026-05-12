@@ -455,18 +455,18 @@ describe('File Operations with VFS', () => {
   it('should read virtual file', () => {
     // VFS 上にテストデータを配置
     vbaTest.evaluator.fs.writeFileSync(
-      '/workspace/c/test-data.txt',
+      '/sandbox/c/test-data.txt',
       'test content'
     );
 
     // VBA 関数で読み込み・処理
-    const result = vbaTest.run('ReadFile', ['/workspace/c/test-data.txt']);
+    const result = vbaTest.run('ReadFile', ['/sandbox/c/test-data.txt']);
     expect(result).toContain('test');
   });
 
   it('should handle missing file', () => {
     expect(() => {
-      vbaTest.run('ReadFile', ['/workspace/c/nonexistent.txt']);
+      vbaTest.run('ReadFile', ['/sandbox/c/nonexistent.txt']);
     }).toThrow('File not found');
   });
 });

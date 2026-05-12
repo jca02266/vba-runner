@@ -7,12 +7,12 @@ import * as path from 'path';
 function testFullRuntime() {
     console.log("Running Full Runtime tests...");
     
-    // Clean workspace
-    const workspace = path.join(process.cwd(), 'workspace');
-    if (fs.existsSync(workspace)) {
-        fs.rmSync(workspace, { recursive: true, force: true });
+    // Clean sandbox
+    const sandbox = path.join(process.cwd(), 'sandbox');
+    if (fs.existsSync(sandbox)) {
+        fs.rmSync(sandbox, { recursive: true, force: true });
     }
-    fs.mkdirSync(workspace);
+    fs.mkdirSync(sandbox);
 
     const vbaCode = `
         Sub Main()
@@ -98,7 +98,7 @@ function testFullRuntime() {
     const tokens = lexer.tokenize();
     const parser = new Parser(tokens);
     const program = parser.parse();
-    const evaluator = new Evaluator((o) => { output += o + "\n"; }, { sandboxRoot: workspace });
+    const evaluator = new Evaluator((o) => { output += o + "\n"; }, { sandboxRoot: sandbox });
     
     evaluator.evaluate(program);
 

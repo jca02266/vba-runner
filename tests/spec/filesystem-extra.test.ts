@@ -17,7 +17,7 @@ function evalVBA(code: string): any {
 }
 
 // Sandbox 用ディレクトリ作成
-const sandboxRoot = path.join(process.cwd(), 'workspace');
+const sandboxRoot = path.join(process.cwd(), 'sandbox');
 if (!fs.existsSync(sandboxRoot)) fs.mkdirSync(sandboxRoot);
 
 // --- 1. Put / Get (Binary mode) ---

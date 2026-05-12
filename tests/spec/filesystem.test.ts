@@ -7,10 +7,10 @@ import * as path from 'path';
 function testFileSystem() {
     console.log("Running FileSystem tests...");
 
-    // Setup: clean workspace/test.txt
-    const workspace = path.resolve(process.cwd(), 'workspace');
-    if (!fs.existsSync(workspace)) fs.mkdirSync(workspace);
-    const testFile = path.join(workspace, 'test.txt');
+    // Setup: clean sandbox/test.txt
+    const sandbox = path.resolve(process.cwd(), 'sandbox');
+    if (!fs.existsSync(sandbox)) fs.mkdirSync(sandbox);
+    const testFile = path.join(sandbox, 'test.txt');
     if (fs.existsSync(testFile)) fs.unlinkSync(testFile);
 
     const vbaCode = `

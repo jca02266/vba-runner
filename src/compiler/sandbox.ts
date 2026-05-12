@@ -8,7 +8,7 @@ export class SandboxPath {
     private root: string;
     private env: Map<string, string> = new Map();
 
-    constructor(root: string = '/workspace', initialEnv: Record<string, string> = {}) {
+    constructor(root: string = '/sandbox', initialEnv: Record<string, string> = {}) {
         // In browser environment, we use a virtual root.
         // We ensure it's absolute within the virtual space.
         this.root = root.startsWith('/') ? root : '/' + root;
