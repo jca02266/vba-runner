@@ -522,6 +522,11 @@ export class Evaluator {
         this.registerStandardLibrary();
     }
 
+    // Public accessor for testing/mocking
+    getGlobalEnv(): Environment {
+        return this.env;
+    }
+
     private registerStandardLibrary() {
         // --- Core Objects ---
         this.env.set('debug', {
