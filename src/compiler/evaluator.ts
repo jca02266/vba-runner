@@ -3238,6 +3238,17 @@ export class Evaluator {
                     }
                 } finally {
                     this.env = previousEnv; // Restore scope
+                    
+                    // Synchronize ByRef arguments back to caller scope (even if an error occurred)
+                    for (const ref of byRefArgs) {
+                        const updatedVal = localEnv.get(ref.paramName);
+                        try {
+                            this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
+                        } catch {
+                            // If it's an r-value (like a function call, literal, or expression), VBA silently discards the ByRef update
+                        }
+                    }
+
                     this.errorHandlerLabel = previousErrorHandler;
                     this.errorHandlingMode = previousErrorHandlingMode;
                     this.isInErrorHandler = previousIsInErrorHandler;
@@ -3245,16 +3256,6 @@ export class Evaluator {
 
                     this.currentProcBody = previousProcBody;
                     this.executingModuleName = previousExecutingModule;
-                }
-
-                // Synchronize ByRef arguments back to caller scope
-                for (const ref of byRefArgs) {
-                    const updatedVal = localEnv.get(ref.paramName);
-                    try {
-                        this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
-                    } catch {
-                        // If it's an r-value (like a function call, literal, or expression), VBA silently discards the ByRef update
-                    }
                 }
 
                 if (proc.isFunction) {
