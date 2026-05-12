@@ -44,7 +44,7 @@ function evalExpr(expr: string): any {
 
 // 4. Information Functions
 {
-    assert.isTrue(evalExpr('IsNull(nothing)'), 'IsNull(Nothing)');
+    assert.isTrue(evalExpr('IsNull(Null)'), 'IsNull(Null)');
     assert.isFalse(evalExpr('IsNull(123)'), 'IsNull(123)');
     assert.isTrue(evalExpr('IsArray(Array(1, 2))'), 'IsArray(Array())');
     assert.isFalse(evalExpr('IsArray(123)'), 'IsArray(123)');

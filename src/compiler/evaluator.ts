@@ -465,6 +465,9 @@ export class Evaluator {
 
         // --- Conversion Module ---
         this.env.set('cbyte', (val: any) => {
+            if (val instanceof VbaBoolean) {
+                return val.valueOf() ? 255 : 0;
+            }
             const n = this.vbaRound(this.toVbaNumber(val));
             if (n < 0 || n > 255) this.throwVbaError(6, "Overflow");
             return n;
@@ -496,7 +499,10 @@ export class Evaluator {
             }
             return new VbaDate(this.toVbaNumber(val));
         });
-        this.env.set('cvdate', this.env.get('cdate'));
+        this.env.set('cvdate', (val: any) => {
+            if (val === vbaNull) return vbaNull;
+            return (this.env.get('cdate') as Function)(val);
+        });
         this.env.set('cdec', (val: any) => new VbaDecimal(this.toVbaNumber(val)));
         this.env.set('ccur', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val), 4);

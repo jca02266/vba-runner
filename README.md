@@ -412,12 +412,30 @@ npm run dev
 
 ## CLI(自動テスト)の実行
 
-CLIからTypeScriptのテストランナーを利用し、`sample/src/vba` 以下のVBAモジュール内の関数を直接評価・検証します。
+CLIからTypeScriptのテストランナーを利用し、VBAモジュールのユニットテストや言語仕様テストを実行します。
+
+### 1. 個別のテスト実行
+
+特定のテストファイル（例: サンプルのユニットテストや特定の仕様テスト）を実行する場合、`esbuild` でバンドルしてから `node` で実行します。
 
 ```bash
-# バンドルしてテスト（AST構築・検証）を実行
+# サンプルのユニットテストを実行
 npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+
+# 特定の仕様テスト（例: 文字列関数バリアント）を実行
+npx esbuild tests/spec/mid-variants.test.ts --bundle --outfile=tests/spec/mid-variants.test.cjs --platform=node && node tests/spec/mid-variants.test.cjs
 ```
+
+### 2. 全ての仕様テスト (spec) の一括実行
+
+`tests/spec/` ディレクトリには、VBAの言語仕様（文字列操作、数学関数、プロシージャ宣言等）を網羅するためのテストが多数配置されています。これらを一括で実行するためのスクリプトを用意しています。
+
+```bash
+# tests/spec/ 配下のすべてのテストを一括実行
+./run_spec_tests.sh
+```
+
+実行後、すべてのテストで `✅ ... All tests passed!` と表示され、最後に `--- All spec tests completed successfully! ---` と出力されれば正常です。
 
 # 補足: 技術的な詳細仕様
 
