@@ -387,7 +387,8 @@ import { VBATest } from './tests/ts/test-runner';
 const vbaTest = new VBATest('source.vba', { useVirtualFS: true });
 
 // 1. テストデータの準備 (VBA実行前にファイルを配置)
-//    JavaScriptから実ファイルシステムにアクセスする場合は/workspaceを含む実パスを使用
+//    useVirtualFS: true の場合、/workspace/c はメモリ内の仮想パス
+//    useVirtualFS: false の場合、/workspace/c は実ファイルシステムのパス
 const fs = vbaTest.evaluator.fs;
 fs.writeFileSync('/workspace/c/input.txt', "テストデータ内容");
 
@@ -398,6 +399,10 @@ vbaTest.run('ProcessFile', []);
 const result = fs.readFileSync('/workspace/c/output.txt', 'utf-8');
 console.log(result);
 ```
+
+**重要**: ファイルシステムのモードによる違い：
+- **VFS モード** (`useVirtualFS: true`): `/workspace/c/input.txt` はメモリ内の仮想パス
+- **Node.js モード** (`useVirtualFS: false`): `/workspace/c/input.txt` は実ファイルシステムのパス（`sandboxRoot` で指定した位置）
 
 ## 高度な機能と仕様
 
