@@ -297,7 +297,7 @@ console.log('[DEBUG] ...');
 
 ## 関連ドキュメント
 
-- **`docs/MOCK_USAGE.md`** — MockWorksheet の使い方
+- **`docs/MOCK_GUIDE.md`** — MockWorksheet の使い方と設計原則
 - **`docs/TESTING_STRATEGY.md`** — テスト戦略の原則
 - **`tests/spec/TaskScheduler_Core.test.ts`** — ドメインロジック単体テスト（既存）
 
