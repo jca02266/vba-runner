@@ -132,6 +132,7 @@ export interface VariableDeclaration extends Statement {
     type: 'VariableDeclaration';
     declarations: VariableDeclarator[];
     isStatic?: boolean;
+    scope?: 'public' | 'private' | 'friend';
 }
 
 export interface ConstDeclaration extends Statement {
@@ -323,6 +324,7 @@ export interface ReDimStatement extends Statement {
     name: Identifier;
     bounds: ArrayBound[]; // Multi-dimensional bounds (e.g. 1 To numDays)
     isPreserve: boolean;
+    objectType?: string;
 }
 
 export interface AddressOfExpression extends Expression {
@@ -925,28 +927,6 @@ export class Parser {
             return this.parseWhileStatement();
         } else if (token.type === TokenType.KeywordSub || token.type === TokenType.KeywordFunction || token.type === TokenType.KeywordProperty) {
             return this.parseProcedureDeclaration();
-        } else if (
-            token.type === TokenType.KeywordPublic ||
-            token.type === TokenType.KeywordPrivate ||
-            token.type === TokenType.KeywordFriend
-        ) {
-            const scopeToken = this.advance();
-            const scope = scopeToken.value.toLowerCase() as 'public' | 'private' | 'friend';
-            const next = this.peek();
-            if (next.type === TokenType.KeywordEvent) {
-                return this.parseEventDeclaration(scope);
-            }
-            if (next.type === TokenType.Identifier) {
-                const stmt = this.parseDimStatement(false, true);
-                stmt.scope = scope;
-                return stmt;
-            }
-            // Public/Private on Dim/Const — consume scope keyword and parse normally
-            const stmt = this.parseStatement();
-            if (stmt && stmt.type === 'VariableDeclaration') {
-                (stmt as any).scope = scope;
-            }
-            return stmt;
         } else if (token.type === TokenType.KeywordStatic) {
             this.advance(); // consume 'Static'
             const next = this.peek();
@@ -1080,7 +1060,7 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number || token.type === TokenType.KeywordMid || token.type === TokenType.KeywordSeek) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number || token.type === TokenType.KeywordMid) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;

@@ -58,6 +58,23 @@ import {
     ResetStatement,
     AttributeStatement,
     DeclareStatement,
+    AddressOfExpression,
+    DictionaryAccessExpression,
+    TypeOfIsExpression,
+    NamedArgument,
+    OptionPrivateModuleStatement,
+    EventDeclaration,
+    EnumDeclaration,
+    OptionExplicitStatement,
+    RaiseEventStatement,
+    ImplementsDirective,
+    AppActivateStatement,
+    SendKeysStatement,
+    LockStatement,
+    UnlockStatement,
+    WidthStatement,
+    OptionCompareStatement,
+    OptionBaseStatement,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
@@ -1134,9 +1151,9 @@ export class Evaluator {
             return new VbaDate(toVbaDate(stats.mtime));
         });
 
-        this.env.set('curdir', (drive?: string) => this.sandbox.toVirtualPath(this.sandbox.getRoot()));
+        this.env.set('curdir', (_drive?: string) => this.sandbox.toVirtualPath(this.sandbox.getRoot()));
         this.env.set('curdir$', this.env.get('curdir'));
-        this.env.set('dir', (pathName?: string, attributes?: number) => {
+        this.env.set('dir', (pathName?: string, _attributes?: number) => {
             if (pathName !== undefined && pathName !== null && pathName !== "") {
                 try {
                     const realPath = this.sandbox.toRealPath(pathName);
@@ -1158,19 +1175,19 @@ export class Evaluator {
             return this.dirIterator[this.dirIndex++];
         });
         this.env.set('dir$', this.env.get('dir'));
-        this.env.set('kill', (path: string) => this.fs.unlinkSync(this.sandbox.toRealPath(path)));
-        this.env.set('filecopy', (src: string, dest: string) => this.fs.copyFileSync(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
-        this.env.set('mkdir', (path: string) => this.fs.mkdirSync(this.sandbox.toRealPath(path), { recursive: true }));
-        this.env.set('rmdir', (path: string) => this.fs.rmdirSync(this.sandbox.toRealPath(path)));
-        this.env.set('chdir', (path: string) => { /* Mock or Sandbox logic */ });
-        this.env.set('filelen', (path: string) => this.fs.statSync(this.sandbox.toRealPath(path)).size);
+        this.env.set('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
+        this.env.set('kill', (p: string) => this.fs.unlinkSync(this.sandbox.toRealPath(p)));
+        this.env.set('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }));
+        this.env.set('rmdir', (p: string) => this.fs.rmdirSync?.(this.sandbox.toRealPath(p)));
+        this.env.set('chdir', (_p: string) => { /* Mock or Sandbox logic */ });
+        this.env.set('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size);
 
         // --- Interaction Module ---
         this.env.set('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; });
-        this.env.set('msgbox', (msg: any, buttons: any = 0, title: any = "") => { this.onPrint(`[MSGBOX] ${title}: ${msg}`); return 1; });
-        this.env.set('inputbox', (prompt: any, title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; });
-        this.env.set('appactivate', (title: string, wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
-        this.env.set('sendkeys', (keys: string, wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
+        this.env.set('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => { this.onPrint(`[MSGBOX]: ${msg}`); return 1; });
+        this.env.set('inputbox', (prompt: any, _title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; });
+        this.env.set('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
+        this.env.set('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
         this.env.set('doevents', () => 0);
 
         // --- Financial Module ---
@@ -1388,9 +1405,7 @@ export class Evaluator {
         });
     }
 
-    private print(msg: string) {
-        this.onPrint(msg);
-    }
+
 
     private triggerTerminate(obj: any) {
         if (obj && obj.__vbaClass__) {
@@ -1892,7 +1907,7 @@ export class Evaluator {
         return ((i % 2 === 0) ? i : i + 1) / factor;
     }
 
-    private throwVbaError(number: number, message: string) {
+    private throwVbaError(number: number, message: string): never {
         const err: any = new Error(message);
         err.type = 'VbaError';
         err.number = number;
@@ -2009,12 +2024,12 @@ export class Evaluator {
         throw { type: 'GoTo', label: stmt.label };
     }
 
-    private evaluateStopStatement(stmt: StopStatement) {
+    private evaluateStopStatement(_stmt: StopStatement) {
         console.log('STOP Statement encountered');
         // implementation-defined: just log for now
     }
 
-    private evaluateEndStatement(stmt: EndStatement) {
+    private evaluateEndStatement(_stmt: EndStatement) {
         throw { type: 'Terminate' };
     }
 
@@ -2022,7 +2037,7 @@ export class Evaluator {
         throw { type: 'GoSub', label: stmt.label };
     }
 
-    private evaluateReturnStatement(stmt: ReturnStatement) {
+    private evaluateReturnStatement(_stmt: ReturnStatement) {
         throw { type: 'Return' };
     }
 
@@ -2078,7 +2093,7 @@ export class Evaluator {
         }
     }
 
-    private evaluateEventDeclaration(stmt: EventDeclaration) {
+    private evaluateEventDeclaration(_stmt: EventDeclaration) {
         // Top-level event declarations are just metadata for the class
     }
 
@@ -2089,7 +2104,7 @@ export class Evaluator {
         if (me && me.__events__) {
             const handlers = me.__events__.get(eventName);
             if (handlers) {
-                const args = stmt.args.map(a => this.evaluateExpression(a));
+                const args = stmt.args.map((a: any) => this.evaluateExpression(a));
                 for (const handler of handlers) {
                     handler(...args);
                 }
@@ -2097,7 +2112,7 @@ export class Evaluator {
         }
     }
 
-    private evaluateImplementsDirective(stmt: ImplementsDirective) {
+    private evaluateImplementsDirective(_stmt: ImplementsDirective) {
         // No-op for now. Used for interface compliance metadata.
     }
 
@@ -2330,7 +2345,7 @@ export class Evaluator {
         this.comparisonMode = stmt.mode;
     }
 
-    private evaluateOptionExplicitStatement(stmt: OptionExplicitStatement) {
+    private evaluateOptionExplicitStatement(_stmt: OptionExplicitStatement) {
         // No-op at runtime. Parser should handle validation.
     }
 
@@ -2338,7 +2353,7 @@ export class Evaluator {
         this.arrayBase = stmt.base;
     }
 
-    private evaluateOptionPrivateModuleStatement(stmt: OptionPrivateModuleStatement) {
+    private evaluateOptionPrivateModuleStatement(_stmt: OptionPrivateModuleStatement) {
         // No-op for now. Affects visibility in multi-module environment.
     }
 
@@ -2362,7 +2377,6 @@ export class Evaluator {
         // Initialize public/private fields with default values
         for (const fieldDecl of classDef.fields) {
             for (const decl of fieldDecl.declarations) {
-                const fieldKey = decl.name.name.toLowerCase();
                 let defaultVal: any = vbaEmpty;
                 const mt = (decl.objectType || '').toLowerCase();
                 if (mt === 'string') defaultVal = '';
@@ -2688,9 +2702,9 @@ export class Evaluator {
         let bytesRead = 0;
 
         while (true) {
-            bytesRead = this.fs.readSync(handle.fd, buffer, 0, 1, handle.pos);
+            bytesRead = this.fs.readSync(handle.fd, buffer, 0, 1, handle.pos ?? null);
             if (bytesRead === 0) break;
-            const char = buffer.toString('utf8', 0, 1);
+            const char = new TextDecoder().decode(buffer.subarray(0, 1));
             handle.pos!++;
             if (char === '\n') break;
             if (char !== '\r') line += char;
@@ -2708,7 +2722,7 @@ export class Evaluator {
         const s = String(data);
         const buffer = new TextEncoder().encode(s);
         
-        let position: number | null = handle.pos;
+        let position: number | null = handle.pos ?? null;
         if (stmt.recordNumber) {
             position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
         }
@@ -2757,7 +2771,7 @@ export class Evaluator {
         let bytesRead = 0;
         let readPos = handle.pos || 0;
         while ((bytesRead = this.fs.readSync(handle.fd, buf, 0, 1024, readPos)) > 0) {
-            content += buf.toString('utf8', 0, bytesRead);
+            content += new TextDecoder().decode(buf.subarray(0, bytesRead));
             if (content.includes('\n')) break;
             readPos += bytesRead;
         }
@@ -2784,13 +2798,13 @@ export class Evaluator {
 
         // Basic implementation: read up to 1024 bytes or until EOF
         const buffer = new Uint8Array(1024);
-        let position: number | null = handle.pos;
+        let position: number | null = handle.pos ?? null;
         if (stmt.recordNumber) {
             position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
         }
         
         const bytesRead = this.fs.readSync(handle.fd, buffer, 0, buffer.length, position);
-        const s = buffer.toString('utf8', 0, bytesRead);
+        const s = new TextDecoder().decode(buffer.subarray(0, bytesRead));
         this.evaluateAssignmentToVariable(stmt.variable, s);
         handle.pos! += bytesRead;
     }
@@ -2806,8 +2820,8 @@ export class Evaluator {
         handle.pos = Math.max(0, pos - 1); 
     }
 
-    private evaluateResetStatement(stmt: ResetStatement) {
-        for (const [num, handle] of this.fileHandles) {
+    private evaluateResetStatement(_stmt: ResetStatement) {
+        for (const [_num, handle] of this.fileHandles) {
             this.fs.closeSync(handle.fd);
         }
         this.fileHandles.clear();
@@ -2822,7 +2836,7 @@ export class Evaluator {
 
     private evaluateDeclareStatement(stmt: DeclareStatement) {
         const name = stmt.name.toLowerCase();
-        this.env.set(name, (...args: any[]) => {
+        this.env.set(name, (..._args: any[]) => {
             this.onPrint(`[DECLARE STUB] Calling ${stmt.isSub ? 'Sub' : 'Function'} ${stmt.name} from "${stmt.libName}" (Alias: ${stmt.aliasName || 'N/A'})`);
             return 0; // Dummy return
         });
@@ -2910,7 +2924,7 @@ export class Evaluator {
                 },
                 deletefolder: (p: string) => {
                     const full = this.sandbox.toRealPath(p);
-                    this.fs.rmSync(full, { recursive: true, force: true });
+                    this.fs.rmSync?.(full, { recursive: true, force: true });
                 },
                 getfile: (p: string) => {
                     const full = this.sandbox.toRealPath(p);
@@ -2918,9 +2932,10 @@ export class Evaluator {
                     return {
                         path: p,
                         size: stats.size,
-                        datecreated: new VbaDate(toVbaDate(stats.birthtime)),
+                        datecreated: new VbaDate(toVbaDate(stats.birthtime || stats.mtime)),
+                        datelastaccessed: new VbaDate(toVbaDate(stats.mtime)),
                         datelastmodified: new VbaDate(toVbaDate(stats.mtime)),
-                        attributes: stats.mode
+                        attributes: stats.mode || 0
                     };
                 },
                 getfolder: (p: string) => ({ path: p }),
@@ -2933,15 +2948,13 @@ export class Evaluator {
             let responseText = "";
             let status = 0;
             return {
-                open: (method: string, url: string, async: boolean = true) => {
-                    this.onPrint(`[XMLHTTP] Open: ${method} ${url}`);
+                open: (_method: string, _url: string, _async: boolean = true) => {
+                    /* Mock */
                 },
-                send: (body?: any) => {
-                    this.onPrint(`[XMLHTTP] Send`);
-                    responseText = "Mock Response";
-                    status = 200;
+                send: (_body?: any) => {
+                    /* Mock */
                 },
-                setrequestheader: (h: string, v: string) => { /* Mock */ },
+                setrequestheader: (_h: string, _v: string) => { /* Mock */ },
                 getresponsetext: () => responseText,
                 responsetext: responseText, // Property access
                 getstatus: () => status,
@@ -2958,7 +2971,7 @@ export class Evaluator {
                 writetext: (text: string) => { content += text; },
                 read: (len: number) => { const r = content.slice(streamPos, streamPos + len); streamPos += len; return r; },
                 readtext: () => { const r = content.slice(streamPos); streamPos = content.length; return r; },
-                savetofile: (p: string, mode: number = 1) => {
+                savetofile: (p: string, _mode: number = 1) => {
                     const full = this.sandbox.toRealPath(p);
                     this.fs.writeFileSync(full, content);
                 },
@@ -3186,19 +3199,6 @@ export class Evaluator {
 
     private evaluateExitStatement(stmt: ExitStatement) {
         throw { type: 'Exit', target: stmt.exitType };
-    }
-
-    private toNumber(val: any): number {
-        if (val === vbaNull || val === vbaEmpty || val === vbaNothing || val === vbaMissing) {
-            // Symbols cannot be converted to number directly in JS
-            return 0;
-        }
-        if (val instanceof VbaBoolean) return val.value;
-        if (val instanceof VbaDate) return val.value;
-        if (val instanceof VbaDecimal) return val.value;
-        if (typeof val === 'bigint') return Number(val);
-        const n = parseFloat(val);
-        return isNaN(n) ? 0 : n;
     }
 
     private toDisplayString(val: any): string {
@@ -3956,7 +3956,6 @@ export class Evaluator {
 
         const hasThousands = fmt.includes(',');
         const parts = fmt.split('.');
-        const integerPart = parts[0];
         const decimalPart = parts.length > 1 ? parts[1] : '';
 
         // Determine decimal places

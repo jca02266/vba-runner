@@ -9,6 +9,9 @@ export class NodeFileSystem implements FileSystem {
     readFileSync(p: string, encoding: 'utf-8' | 'utf8') { return fs.readFileSync(p, encoding); }
     writeFileSync(p: string, content: string) { fs.writeFileSync(p, content); }
     mkdirSync(p: string, options?: { recursive?: boolean }) { fs.mkdirSync(p, options); }
+    rmdirSync(p: string) { fs.rmdirSync(p); }
+    rmSync(p: string, options?: { recursive?: boolean, force?: boolean }) { fs.rmSync(p, options); }
+    copyFileSync(src: string, dest: string) { fs.copyFileSync(src, dest); }
     unlinkSync(p: string) { fs.unlinkSync(p); }
     readdirSync(p: string) { return fs.readdirSync(p); }
     statSync(p: string) {
