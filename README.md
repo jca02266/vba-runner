@@ -379,57 +379,65 @@ const vbaTest = new VBATest('source.vba', { useVirtualFS: true });
 ```
 
 ### JavaScript から VFS への直接アクセス (テストデータの準備)
-テストの準備（事前データの配置）や、実行結果の検証のために、JavaScript 側から VFS に対して直接ファイルを書き込んだり読み取ったりすることが可能です。
 
-#### VFS モード (useVirtualFS: true)
+テストの準備や実行結果の検証のために、JavaScript から VFS に対して直接ファイルを読み書きできます。
+
+**簡潔な例**（VFS と Node.js 両対応）:
 
 ```typescript
 import { VBATest } from './tests/ts/test-runner';
 
+// VFS モード
 const vbaTest = new VBATest('source.vba', { useVirtualFS: true });
-
-// メモリ内の仮想パスを使用 (/workspace/c, /foo など任意のパス)
 const fs = vbaTest.evaluator.fs;
-fs.writeFileSync('/workspace/c/input.txt', "テストデータ内容");
-
-// VBAを実行 (VBA側からは C:\input.txt として見える)
+fs.writeFileSync('/workspace/c/input.txt', "データ");
 vbaTest.run('ProcessFile', []);
-
-// 実行結果の検証
 const result = fs.readFileSync('/workspace/c/output.txt', 'utf-8');
-console.log(result);
 ```
-
-**注意**: VFS モードではメモリ内にファイルを作成するため、`/workspace/c`, `/foo`, `/bar` など任意のパスを使用できます。ただし、VBA側が SandboxPath を通じて `C:\foo` → `/workspace/c/foo` と変換するため、一貫性を保つには `/workspace/c/` を使うことをお勧めします。
-
-#### Node.js モード (useVirtualFS: false)
 
 ```typescript
-import { VBATest } from './tests/ts/test-runner';
-import * as path from 'path';
-
-// sandboxRoot で指定したディレクトリ (相対パスを使用)
-const vbaTest = new VBATest('source.vba', { 
-  useVirtualFS: false,
-  sandboxRoot: './test-workspace'  // 相対パスで指定
-});
-
+// Node.js モード (実ファイルを使用)
+const vbaTest = new VBATest('source.vba', { useVirtualFS: false });
 const fs = vbaTest.evaluator.fs;
-// 実ファイルシステムのパスを使用 (./test-workspace/c/input.txt)
-fs.writeFileSync(path.join('./test-workspace', 'c', 'input.txt'), "テストデータ内容");
-
-// VBAを実行
+fs.writeFileSync('./workspace/c/input.txt', "データ");
 vbaTest.run('ProcessFile', []);
-
-// 実行結果の検証
-const result = fs.readFileSync(path.join('./test-workspace', 'c', 'output.txt'), 'utf-8');
-console.log(result);
+const result = fs.readFileSync('./workspace/c/output.txt', 'utf-8');
 ```
 
-**重要**: Node.js モードでは実ファイルシステムにアクセスするため：
-- 絶対パス `/workspace/c` は OS のルート直下を指すため危険です
-- 必ず相対パス `./workspace/c` または `path.join()` で組み立ててください
-- `sandboxRoot` に指定したパスがルートになります
+| モード | パス表記 | 説明 |
+|--------|---------|------|
+| **VFS** (`useVirtualFS: true`) | `/workspace/c/input.txt` | メモリ内の仮想パス |
+| **Node.js** (`useVirtualFS: false`) | `./workspace/c/input.txt` | 実ファイルシステムの相対パス |
+
+**詳細説明** は下の「[詳細: ファイルシステムモードの違い](#詳細-ファイルシステムモードの違い)」を参照してください。
+
+## 詳細: ファイルシステムモードの違い
+
+### VFS モード (useVirtualFS: true)
+
+- **ストレージ**: メモリ上の仮想ファイルシステム (`MemoryFileSystem`)
+- **パス形式**: 絶対パス `/workspace/c/input.txt` を使用
+- **特徴**:
+  - テストが完全に分離され、他のテストやホスト OS に影響を与えない
+  - パスは任意（`/foo`, `/bar` など）でも技術的には動作するが、VBA の `SandboxPath` が `C:\foo` → `/workspace/c/foo` と変換するため、一貫性のため `/workspace/c/` を使うことをお勧め
+
+### Node.js モード (useVirtualFS: false)
+
+- **ストレージ**: 実ファイルシステム (`NodeFileSystem`)
+- **パス形式**: 相対パス `./workspace/c/input.txt` を使用
+- **特徴**:
+  - `sandboxRoot` に指定したディレクトリをルートとする
+  - 必ず **相対パス** を使用（絶対パス `/workspace/c` は OS ルートを指すため危険）
+  - `sandboxRoot` はデフォルト値 `/workspace` だが、`new VBATest(..., { sandboxRoot: './test-files' })` で上書き可能
+
+### 実装の詳細
+
+| 内部処理 | VFS | Node.js |
+|---------|-----|---------|
+| ファイルシステム | `MemoryFileSystem` | `NodeFileSystem` |
+| `/workspace/c/foo` の解釈 | メモリ上のキー | 実ディレクトリ `./workspace/c/foo` |
+| `SandboxPath.toRealPath('C:\\foo')` | `/workspace/c/foo` (仮想) | `./workspace/c/foo` (実) |
+| 環境変数隔離 | ✅ 完全隔離 | ⚠️ `sandboxRoot` 内のみ |
 
 ## 高度な機能と仕様
 
