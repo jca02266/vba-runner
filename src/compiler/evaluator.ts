@@ -211,6 +211,7 @@ export class Environment {
     private procedures: Map<string, ProcedureDeclaration> = new Map();
     private types: Map<string, TypeMember[]> = new Map();
     private withEventsVariables: Set<string> = new Set();
+    private constantVariables: Set<string> = new Set();
     public enclosing?: Environment;
 
     constructor(enclosing?: Environment) {
@@ -219,6 +220,9 @@ export class Environment {
 
     set(name: string, value: any) {
         const key = name.toLowerCase();
+        if (this.isConstant(key)) {
+            throw new Error(`Execution error: Assignment to constant not allowed: '${name}'`);
+        }
         if (this.variables.has(key)) {
             this.variables.set(key, value);
             return;
@@ -246,6 +250,19 @@ export class Environment {
         const key = name.toLowerCase();
         if (this.withEventsVariables.has(key)) return true;
         if (this.enclosing) return this.enclosing.isWithEvents(name);
+        return false;
+    }
+
+    setConstant(name: string, value: any) {
+        const key = name.toLowerCase();
+        this.variables.set(key, value);
+        this.constantVariables.add(key);
+    }
+
+    isConstant(name: string): boolean {
+        const key = name.toLowerCase();
+        if (this.constantVariables.has(key)) return true;
+        if (this.enclosing) return this.enclosing.isConstant(name);
         return false;
     }
 
@@ -583,8 +600,13 @@ export class Evaluator {
         });
 
         // --- String Module ---
-        this.env.set('asc', (s: any) => String(s || '').charCodeAt(0));
-        this.env.set('chr', (n: any) => String.fromCharCode(Number(n)));
+        const ascFunc = (s: any) => String(s || '').charCodeAt(0);
+        this.env.set('asc', ascFunc);
+        this.env.set('ascw', ascFunc);
+        const chrFunc = (n: any) => String.fromCharCode(Number(n));
+        this.env.set('chr', chrFunc);
+        this.env.set('chr$', chrFunc);
+        this.env.set('chrw', chrFunc);
         this.env.set('instr', (...args: any[]) => {
             let start = 1, s1, s2, comp;
             if (args.length >= 4) [start, s1, s2, comp] = args;
@@ -605,26 +627,46 @@ export class Evaluator {
             const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
             return idx === -1 ? 0 : idx + 1;
         });
-        this.env.set('lcase', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase());
-        this.env.set('ucase', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase());
-        this.env.set('left', (val: any, len: any) => String(val ?? '').substring(0, Number(len)));
-        this.env.set('right', (val: any, len: any) => {
+        const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
+        this.env.set('lcase', lcaseFunc);
+        this.env.set('lcase$', lcaseFunc);
+        const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
+        this.env.set('ucase', ucaseFunc);
+        this.env.set('ucase$', ucaseFunc);
+        const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
+        this.env.set('left', leftFunc);
+        this.env.set('left$', leftFunc);
+        const rightFunc = (val: any, len: any) => {
             const s = String(val ?? ''), l = Number(len);
             return s.substring(s.length - l);
-        });
-        this.env.set('mid', (val: any, start: any, len?: any) => {
+        };
+        this.env.set('right', rightFunc);
+        this.env.set('right$', rightFunc);
+        const midFunc = (val: any, start: any, len?: any) => {
             const s = String(val ?? ''), st = Number(start);
             return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
-        });
+        };
+        this.env.set('mid', midFunc);
+        this.env.set('mid$', midFunc);
         this.env.set('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length);
-        this.env.set('ltrim', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart());
-        this.env.set('rtrim', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimEnd());
-        this.env.set('trim', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim());
-        this.env.set('space', (n: any) => ' '.repeat(Number(n)));
-        this.env.set('string', (n: any, char: any) => {
+        const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart();
+        this.env.set('ltrim', ltrimFunc);
+        this.env.set('ltrim$', ltrimFunc);
+        const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimEnd();
+        this.env.set('rtrim', rtrimFunc);
+        this.env.set('rtrim$', rtrimFunc);
+        const trimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim();
+        this.env.set('trim', trimFunc);
+        this.env.set('trim$', trimFunc);
+        const spaceFunc = (n: any) => ' '.repeat(Number(n));
+        this.env.set('space', spaceFunc);
+        this.env.set('space$', spaceFunc);
+        const stringFunc = (n: any, char: any) => {
             const s = String(char ?? '');
             return (s.length > 0 ? s[0] : '').repeat(Number(n));
-        });
+        };
+        this.env.set('string', stringFunc);
+        this.env.set('string$', stringFunc);
         this.env.set('split', (s: any, del: string = ' ') => String(s ?? '').split(del));
         this.env.set('join', (arr: any, del: string = ' ') => Array.isArray(arr) ? arr.join(del) : String(arr));
         this.env.set('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')));
@@ -669,14 +711,16 @@ export class Evaluator {
             const charLen = Math.floor(Number(len) / 2);
             return s.substring(s.length - charLen);
         });
-        this.env.set('midb', (val: any, start: any, len?: any) => {
+        const midbFunc = (val: any, start: any, len?: any) => {
             const s = String(val ?? '');
             const charStart = Math.floor((Number(start) + 1) / 2);
             if (len === undefined) return s.substring(charStart - 1);
             const charLen = Math.floor(Number(len) / 2);
             return s.substring(charStart - 1, charStart - 1 + charLen);
-        });
-        this.env.set('format', (val: any, pattern?: string) => {
+        };
+        this.env.set('midb', midbFunc);
+        this.env.set('midb$', midbFunc);
+        const formatFunc = (val: any, pattern?: string) => {
             if (val === null || val === vbaNull || val === vbaEmpty) return "";
             const fmt = pattern ? String(pattern) : "";
             if (fmt === "") return String(val);
@@ -698,8 +742,9 @@ export class Evaluator {
                 return this.formatNumber(val, fmt);
             }
             return String(val);
-        });
-        this.env.set('format$', this.env.get('format'));
+        };
+        this.env.set('format', formatFunc);
+        this.env.set('format$', formatFunc);
 
         // --- Date/Time Module ---
         this.env.set('now', () => new VbaDate(toVbaDate(new Date())));
@@ -776,7 +821,7 @@ export class Evaluator {
         this.env.set('seek', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(52, "Bad file name or number");
-            return h.pos!;
+            return (h.pos || 0) + 1;
         });
         this.env.set('fileattr', (fn: any, info: any = 1) => {
             console.log(`[STUB] FileAttr #${fn}, ${info}`);
@@ -1788,8 +1833,16 @@ export class Evaluator {
                 if (lowerName === 'mid' || lowerName === 'mid$' || lowerName === 'midb' || lowerName === 'midb$') {
                     // Mid(s, start, [len]) = val
                     const targetName = (call.args[0] as Identifier).name; // Must be identifier for assignment
-                    const start = this.evaluateExpression(call.args[1]) as number;
-                    const length = call.args.length > 2 ? this.evaluateExpression(call.args[2]) as number : -1;
+                    let start = this.evaluateExpression(call.args[1]) as number;
+                    let length = call.args.length > 2 ? this.evaluateExpression(call.args[2]) as number : -1;
+                    
+                    const isByte = lowerName.startsWith('midb');
+                    if (isByte) {
+                        // Convert byte position to char position (approximate: 2 bytes per char)
+                        start = Math.floor((start + 1) / 2);
+                        if (length !== -1) length = Math.floor(length / 2);
+                    }
+
                     const sourceStr = String(this.env.get(targetName) || '');
                     const replacement = String(val || '');
 
@@ -1901,16 +1954,21 @@ export class Evaluator {
             if (decl.isArray) {
                 if (decl.arrayBounds && decl.arrayBounds.length > 0) {
                     initialValue = this.createMultiDimArray(decl.arrayBounds, initialValue);
+                    (initialValue as any).vbaFixed = true;
                 } else {
                     initialValue = [];
                     (initialValue as any).vbaBase = this.arrayBase;
+                    (initialValue as any).vbaFixed = false;
                 }
             } else if (decl.isNew && decl.objectType === 'Collection') {
                 initialValue = new VbaCollection();
             } else if (decl.isNew && decl.objectType && this.classDefinitions.has(decl.objectType.toLowerCase())) {
                 initialValue = this.instantiateClass(decl.objectType);
             } else if (decl.objectType) {
-                initialValue = this.instantiateType(decl.objectType);
+                const t = decl.objectType.toLowerCase();
+                if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean'].includes(t)) {
+                    initialValue = this.instantiateType(decl.objectType);
+                }
             }
             this.env.set(varName, initialValue);
             if (isStaticDecl) {
@@ -2092,7 +2150,7 @@ export class Evaluator {
 
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
         const value = this.evaluateExpression(stmt.value);
-        this.env.set(stmt.name.name, value);
+        this.env.setConstant(stmt.name.name, value);
     }
 
     private evaluateSetStatement(stmt: SetStatement) {
@@ -2190,7 +2248,11 @@ export class Evaluator {
             case 'Output': flags = 'w'; break;
             case 'Append': flags = 'a'; break;
             case 'Random':
-            case 'Binary': flags = 'r+'; break;
+            case 'Binary': 
+                if (!fs.existsSync(realPath)) {
+                    fs.writeFileSync(realPath, "");
+                }
+                flags = 'r+'; break;
         }
 
         try {
@@ -2298,11 +2360,12 @@ export class Evaluator {
         if (!handle) this.throwVbaError(52, "Bad file name or number");
 
         const data = this.evaluateExpression(stmt.data);
-        const buffer = Buffer.from(JSON.stringify(data)); // Naive for now
+        const s = String(data);
+        const buffer = Buffer.from(s);
         
-        let position = handle.pos;
+        let position: number | null = handle.pos;
         if (stmt.recordNumber) {
-            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1) * buffer.length; // Simplified
+            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
         }
 
         fs.writeSync(handle.fd, buffer, 0, buffer.length, position);
@@ -2370,9 +2433,17 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) throw new Error(`Execution error: File number ${fileNum} not open`);
 
-        // Fake implementation: just read some bytes or JSON
-        const val = { type: 'FakeBinaryData', content: '...' };
-        this.evaluateAssignmentToVariable(stmt.variable, val);
+        // Basic implementation: read up to 1024 bytes or until EOF
+        const buffer = Buffer.alloc(1024);
+        let position: number | null = handle.pos;
+        if (stmt.recordNumber) {
+            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
+        }
+        
+        const bytesRead = fs.readSync(handle.fd, buffer, 0, buffer.length, position);
+        const s = buffer.toString('utf8', 0, bytesRead);
+        this.evaluateAssignmentToVariable(stmt.variable, s);
+        handle.pos! += bytesRead;
     }
 
     private evaluateSeekStatement(stmt: SeekStatement) {
@@ -2383,7 +2454,7 @@ export class Evaluator {
         const pos = Number(this.evaluateExpression(stmt.position));
         // Node doesn't have seekSync on FD directly without lseek, 
         // but we can track it in our handle if we use it for subsequent read/write.
-        handle.pos = pos; 
+        handle.pos = Math.max(0, pos - 1); 
     }
 
     private evaluateResetStatement(stmt: ResetStatement) {
@@ -2664,7 +2735,31 @@ export class Evaluator {
     }
 
     private evaluateEraseStatement(stmt: EraseStatement) {
-        this.env.set(stmt.name.name, []);
+        const varName = stmt.name.name;
+        const arr = this.env.get(varName);
+        if (Array.isArray(arr)) {
+            if ((arr as any).vbaFixed) {
+                // Fixed array: re-initialize elements
+                const defaultValue = (arr as any).__vbaDefaultValue__ ?? 0;
+                this.reinitializeArray(arr, defaultValue);
+            } else {
+                // Dynamic array: de-allocate
+                const newArr: any[] = [];
+                (newArr as any).vbaBase = (arr as any).vbaBase ?? this.arrayBase;
+                (newArr as any).vbaFixed = false;
+                this.env.set(varName, newArr);
+            }
+        }
+    }
+
+    private reinitializeArray(arr: any[], defaultValue: any) {
+        for (let i = 0; i < arr.length; i++) {
+            if (Array.isArray(arr[i]) && !(arr[i] as any).__vbaClass__) {
+                this.reinitializeArray(arr[i], defaultValue);
+            } else {
+                arr[i] = defaultValue;
+            }
+        }
     }
 
     private createMultiDimArray(bounds: ArrayBound[], initialValue: any): any[] {
@@ -2695,6 +2790,7 @@ export class Evaluator {
         const result = buildArray(0);
         (result as any).__vbaDimensions__ = dimensions;
         (result as any).vbaBase = dimensions[0].lower; // Fallback for 1D code
+        (result as any).__vbaDefaultValue__ = initialValue;
         return result;
     }
 
@@ -2716,10 +2812,20 @@ export class Evaluator {
 
     private evaluateReDimStatement(stmt: ReDimStatement) {
         const varName = stmt.name.name;
-        const oldArr = stmt.isPreserve ? this.env.get(varName) : null;
+        const oldArr = this.env.get(varName);
+        
+        let defaultValue: any = 0;
+        if (stmt.objectType) {
+            const t = stmt.objectType.toLowerCase();
+            if (t === 'string') defaultValue = '';
+            else if (t === 'boolean') defaultValue = 0;
+        } else if (Array.isArray(oldArr)) {
+            defaultValue = (oldArr as any).__vbaDefaultValue__ ?? 0;
+        }
 
         if (stmt.bounds.length > 0) {
-            const arr = this.createMultiDimArray(stmt.bounds, 0);
+            const arr = this.createMultiDimArray(stmt.bounds, defaultValue);
+            (arr as any).vbaFixed = false;
 
             if (stmt.isPreserve && Array.isArray(oldArr)) {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);

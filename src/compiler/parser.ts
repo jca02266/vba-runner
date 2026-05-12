@@ -372,6 +372,7 @@ export interface ClassDeclaration extends Statement {
     name: string;
     fields: VariableDeclaration[];
     procedures: ProcedureDeclaration[];
+    body: Statement[];
 }
 
 export type RangeClause =
@@ -904,6 +905,11 @@ export class Parser {
             if (next.type === TokenType.KeywordEvent) {
                 return this.parseEventDeclaration(scope);
             }
+            if (next.type === TokenType.Identifier) {
+                const stmt = this.parseDimStatement(false, true);
+                stmt.scope = scope;
+                return stmt;
+            }
             // Public/Private on Dim/Const — consume scope keyword and parse normally
             const stmt = this.parseStatement();
             if (stmt && stmt.type === 'VariableDeclaration') {
@@ -917,7 +923,7 @@ export class Parser {
                 return this.parseProcedureDeclaration(undefined, true);
             }
             // Static variable declaration inside a procedure
-            return this.parseDimStatement(true);
+            return this.parseDimStatement(true, true);
         } else if (token.type === TokenType.KeywordDim) {
             return this.parseDimStatement();
         } else if (token.type === TokenType.KeywordConst) {
@@ -1042,7 +1048,7 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number || token.type === TokenType.KeywordMid || token.type === TokenType.KeywordSeek) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;
@@ -1172,8 +1178,8 @@ export class Parser {
         return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope, isStatic };
     }
 
-    private parseDimStatement(isStatic?: boolean): VariableDeclaration {
-        if (!isStatic) this.advance(); // 'Dim' (already consumed for Static)
+    private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
+        if (!keywordConsumed && !isStatic) this.advance(); // 'Dim' (already consumed for Static or caller)
         const declarations: VariableDeclarator[] = [];
 
         while (true) {
@@ -1353,12 +1359,12 @@ export class Parser {
             this.match(TokenType.OperatorRParen);
         }
 
+        let objectType: string | undefined;
         if (this.match(TokenType.KeywordAs)) {
-            this.advance();
-            this.advance(); // type
+            objectType = this.advance().value;
         }
 
-        return { type: 'ReDimStatement', name, bounds, isPreserve };
+        return { type: 'ReDimStatement', name, bounds, isPreserve, objectType };
     }
 
     private parseTypeDeclaration(): TypeDeclaration {
@@ -1447,6 +1453,7 @@ export class Parser {
         const className = nameToken.value;
         const fields: VariableDeclaration[] = [];
         const procedures: ProcedureDeclaration[] = [];
+        const body: Statement[] = [];
 
         this.skipNewlines();
 
@@ -1474,22 +1481,28 @@ export class Parser {
                 const proc = this.parseProcedureDeclaration(scope);
                 proc.moduleName = className;
                 procedures.push(proc);
+                body.push(proc);
             } else if (inner.type === TokenType.KeywordDim) {
                 this.advance(); // consume 'Dim'
-                const field = this.parseDimStatement(true) as VariableDeclaration; // true = keyword already consumed
+                const field = this.parseDimStatement(false, true); // NOT static, but keyword consumed
                 field.scope = scope ?? 'public';
                 fields.push(field);
+                body.push(field);
+            } else if (inner.type === TokenType.KeywordEvent) {
+                const event = this.parseEventDeclaration(scope);
+                body.push(event);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'
-                const field = this.parseDimStatement(true) as VariableDeclaration;
-                field.isStatic = true;
+                const field = this.parseDimStatement(true, true); // IS static, keyword consumed
                 field.scope = scope ?? 'public';
                 fields.push(field);
+                body.push(field);
             } else if (scope !== undefined && inner.type === TokenType.Identifier) {
                 // Public/Private Name As Type (no Dim keyword)
-                const field = this.parseDimStatement(true) as VariableDeclaration;
+                const field = this.parseDimStatement(false, true); // keyword consumed (it was the scope keyword)
                 field.scope = scope;
                 fields.push(field);
+                body.push(field);
             } else {
                 // Skip unknown tokens gracefully
                 this.advance();
@@ -1505,7 +1518,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ClassDeclaration', name: className, fields, procedures } as ClassDeclaration;
+        return { type: 'ClassDeclaration', name: className, fields, procedures, body } as ClassDeclaration;
     }
 
     private parseForStatement(): ForStatement | ForEachStatement {
@@ -2071,7 +2084,7 @@ export class Parser {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
             expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.KeywordMid) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.KeywordMid || token.type === TokenType.KeywordSeek) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const procName = this.consume(TokenType.Identifier, "Expected procedure name after 'AddressOf'");
