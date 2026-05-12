@@ -381,28 +381,55 @@ const vbaTest = new VBATest('source.vba', { useVirtualFS: true });
 ### JavaScript から VFS への直接アクセス (テストデータの準備)
 テストの準備（事前データの配置）や、実行結果の検証のために、JavaScript 側から VFS に対して直接ファイルを書き込んだり読み取ったりすることが可能です。
 
+#### VFS モード (useVirtualFS: true)
+
 ```typescript
 import { VBATest } from './tests/ts/test-runner';
 
 const vbaTest = new VBATest('source.vba', { useVirtualFS: true });
 
-// 1. テストデータの準備 (VBA実行前にファイルを配置)
-//    useVirtualFS: true の場合、/workspace/c はメモリ内の仮想パス
-//    useVirtualFS: false の場合、/workspace/c は実ファイルシステムのパス
+// メモリ内の仮想パスを使用 (/workspace/c, /foo など任意のパス)
 const fs = vbaTest.evaluator.fs;
 fs.writeFileSync('/workspace/c/input.txt', "テストデータ内容");
 
-// 2. VBAを実行 (VBA側からは C:\input.txt として見える)
+// VBAを実行 (VBA側からは C:\input.txt として見える)
 vbaTest.run('ProcessFile', []);
 
-// 3. 実行結果の検証 (VFS上の出力を確認)
+// 実行結果の検証
 const result = fs.readFileSync('/workspace/c/output.txt', 'utf-8');
 console.log(result);
 ```
 
-**重要**: ファイルシステムのモードによる違い：
-- **VFS モード** (`useVirtualFS: true`): `/workspace/c/input.txt` はメモリ内の仮想パス
-- **Node.js モード** (`useVirtualFS: false`): `/workspace/c/input.txt` は実ファイルシステムのパス（`sandboxRoot` で指定した位置）
+**注意**: VFS モードではメモリ内にファイルを作成するため、`/workspace/c`, `/foo`, `/bar` など任意のパスを使用できます。ただし、VBA側が SandboxPath を通じて `C:\foo` → `/workspace/c/foo` と変換するため、一貫性を保つには `/workspace/c/` を使うことをお勧めします。
+
+#### Node.js モード (useVirtualFS: false)
+
+```typescript
+import { VBATest } from './tests/ts/test-runner';
+import * as path from 'path';
+
+// sandboxRoot で指定したディレクトリ (相対パスを使用)
+const vbaTest = new VBATest('source.vba', { 
+  useVirtualFS: false,
+  sandboxRoot: './test-workspace'  // 相対パスで指定
+});
+
+const fs = vbaTest.evaluator.fs;
+// 実ファイルシステムのパスを使用 (./test-workspace/c/input.txt)
+fs.writeFileSync(path.join('./test-workspace', 'c', 'input.txt'), "テストデータ内容");
+
+// VBAを実行
+vbaTest.run('ProcessFile', []);
+
+// 実行結果の検証
+const result = fs.readFileSync(path.join('./test-workspace', 'c', 'output.txt'), 'utf-8');
+console.log(result);
+```
+
+**重要**: Node.js モードでは実ファイルシステムにアクセスするため：
+- 絶対パス `/workspace/c` は OS のルート直下を指すため危険です
+- 必ず相対パス `./workspace/c` または `path.join()` で組み立ててください
+- `sandboxRoot` に指定したパスがルートになります
 
 ## 高度な機能と仕様
 
