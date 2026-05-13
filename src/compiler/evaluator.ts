@@ -3937,23 +3937,58 @@ export class Evaluator {
             }
         }
 
+        // String → Number の暗黙変換
+        // - `+` は両方 String なら連結、それ以外は数値加算 (VBA 仕様)
+        // - 他の算術演算 (-, *, /, \, Mod, ^) は常に数値変換
+        // - 変換できない文字列は Type mismatch (Error 13)
+        const toVbaNumber = (v: any): number => {
+            if (typeof v === 'number') return v;
+            if (v instanceof VbaBoolean) return v.value;
+            if (v instanceof VbaDate) return v.value;
+            if (typeof v === 'string') {
+                const trimmed = v.trim();
+                if (trimmed === '') return 0;
+                const n = Number(trimmed);
+                if (isNaN(n)) {
+                    throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+                }
+                return n;
+            }
+            throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+        };
+
+        const isPlusConcatenation = op === '+' && typeof leftVal === 'string' && typeof rightVal === 'string';
+        const numericArithOps = new Set(['-', '*', '/', '\\', 'mod', '^']);
+        if (numericArithOps.has(op) || (op === '+' && !isPlusConcatenation)) {
+            // Date は VbaDate のままにして、後続の case で処理させる
+            if (!(leftVal instanceof VbaDate)) leftVal = toVbaNumber(leftVal);
+            if (!(rightVal instanceof VbaDate)) rightVal = toVbaNumber(rightVal);
+        }
+
         switch (op) {
-            case '+': 
-                const sum = leftVal + rightVal;
+            case '+': {
+                if (isPlusConcatenation) return leftVal + rightVal;
+                const l = leftVal instanceof VbaDate ? leftVal.value : leftVal;
+                const r = rightVal instanceof VbaDate ? rightVal.value : rightVal;
+                const sum = l + r;
                 return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(sum) : sum;
+            }
             case '&': return this.toDisplayString(leftVal) + this.toDisplayString(rightVal);
-            case '-': 
-                const diff = leftVal - rightVal;
+            case '-': {
+                const l = leftVal instanceof VbaDate ? leftVal.value : leftVal;
+                const r = rightVal instanceof VbaDate ? rightVal.value : rightVal;
+                const diff = l - r;
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) return diff; // Date - Date = Number
                 return (leftVal instanceof VbaDate) ? new VbaDate(diff) : diff;
+            }
             case '*': return leftVal * rightVal;
-            case '/': 
+            case '/':
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
                 return leftVal / rightVal;
-            case '\\': 
+            case '\\':
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
                 return Math.floor(leftVal / rightVal);
-            case 'mod': 
+            case 'mod':
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
                 return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);

@@ -449,7 +449,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - [ ] **`Variant` 型の値伝播**: `Variant + Number` の結果型の自動拡張
 - [x] **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
-- [ ] **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別
+- [x] **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
 - [ ] **`Boolean` の代入時の型強制**: 非 0 数値 → True (-1) への自動変換（[`assert.isTrue` 含む既存の挙動](README.md#ブール値のアサーション)）
 - [ ] **Integer/Long のオーバーフロー検出**: VBA 仕様ではエラー、現在は Double として通る
 - [ ] **`Decimal` 型の精度**: 28 桁の固定精度サポート
