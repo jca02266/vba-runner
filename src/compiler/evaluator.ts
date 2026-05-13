@@ -834,6 +834,21 @@ export class Evaluator {
             const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), start - 1) : str1.indexOf(str2, start - 1);
             return idx === -1 ? 0 : idx + 1;
         });
+        // InStrB: バイト単位での検索（VBA では文字列を UTF-16 として扱うため 1 文字 = 2 バイト）
+        // start もバイト位置、戻り値もバイト位置（1-based）
+        this.env.set('instrb', (...args: any[]) => {
+            let startByte = 1, s1, s2, comp;
+            if (args.length >= 4) [startByte, s1, s2, comp] = args;
+            else if (args.length === 3 && typeof args[0] === 'number') [startByte, s1, s2] = args;
+            else [s1, s2] = args;
+            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
+            const str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
+            // バイト位置 → 文字位置に変換（1-based のまま）
+            const startChar = Math.floor((Number(startByte) - 1) / 2) + 1;
+            const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
+            const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startChar - 1) : str1.indexOf(str2, startChar - 1);
+            return idx === -1 ? 0 : idx * 2 + 1;
+        });
         this.env.set('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? ''), find = String(s2 ?? '');
@@ -890,8 +905,15 @@ export class Evaluator {
         this.env.set('space', spaceFunc);
         this.env.set('space$', spaceFunc);
         const stringFunc = (n: any, char: any) => {
-            const s = String(char ?? '');
-            return (s.length > 0 ? s[0] : '').repeat(Number(n));
+            // VBA 仕様: 数値が渡された場合は文字コードとして扱う、文字列の場合は先頭文字を使う
+            let c: string;
+            if (typeof char === 'number') {
+                c = String.fromCharCode(char);
+            } else {
+                const s = String(char ?? '');
+                c = s.length > 0 ? s[0] : '';
+            }
+            return c.repeat(Number(n));
         };
         this.env.set('string', stringFunc);
         this.env.set('string$', stringFunc);

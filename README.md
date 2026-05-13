@@ -220,6 +220,33 @@ assert.strictEqual(arr.length, 6);    // N=5 のため要素数は 6
 assert.strictEqual(arr[1], "first");
 ```
 
+#### `ReDim arr(1 To N)`（1-based 配列）の扱い
+
+VBA の `ReDim arr(1 To N)` で作成された 1-based 配列は、JavaScript 側では **要素数 `N` の 0-based 配列** として保持されます。VBA コード内のアクセス（`arr(1)`〜`arr(N)`）は Evaluator が自動変換しますが、テストコードから JS 側で直接アクセスする場合は **`arr[0]`〜`arr[N-1]`** で参照します。
+
+**VBA側:**
+```vba
+Sub Fill(ByRef result As Variant, n As Long)
+    ReDim arr(1 To n) As Double
+    Dim i As Long
+    For i = 1 To n
+        arr(i) = i * 0.5
+    Next i
+    result = arr
+End Sub
+```
+
+**TypeScript側:**
+```typescript
+const out: { value?: number[] } = {};
+vbaTest.run('Fill', [out, 3]);
+// VBA の arr(1)..arr(3) は JS では out.value[0]..out.value[2]
+assert.strictEqual(out.value!.length, 3);
+assert.strictEqual(out.value![0], 0.5);  // VBA: arr(1)
+assert.strictEqual(out.value![1], 1.0);  // VBA: arr(2)
+assert.strictEqual(out.value![2], 1.5);  // VBA: arr(3)
+```
+
 ### Scripting.Dictionary
 
 `CreateObject("Scripting.Dictionary")` が返すオブジェクトの構造:

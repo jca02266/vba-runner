@@ -119,16 +119,18 @@ async function main() {
 
     vbaTest.run('ScanLockedRows', [taskCfg, 3, 3, mockMetaData, mockGridData, assigneeUsage]);
 
+    // VBA 内の `ReDim arr(1 To numDays)` は JS 側では 0-based の配列として保持されるため、
+    // JS から直接アクセスする際は day N → index N-1 で参照する。
     // Bob has 0.5 on Day 2, 0.5 on Day 3
     const bobUsage = assigneeUsage.__map__.get("Bob");
-    assert.strictEqual(bobUsage[2], 0.5, "Bob day 2 usage pre-allocated");
-    assert.strictEqual(bobUsage[3], 0.5, "Bob day 3 usage pre-allocated");
+    assert.strictEqual(bobUsage[1], 0.5, "Bob day 2 usage pre-allocated");
+    assert.strictEqual(bobUsage[2], 0.5, "Bob day 3 usage pre-allocated");
 
     // Alice is Row 1 (Unlocked) padding to 0, Row 3 (Locked) adding 0.5 and 0.25
     const aliceUsage = assigneeUsage.__map__.get("Alice");
-    assert.strictEqual(aliceUsage[1], 0.5, "Alice day 1 usage pre-allocated");
-    assert.strictEqual(aliceUsage[2], 0.0, "Alice day 2 remains 0");
-    assert.strictEqual(aliceUsage[3], 0.25, "Alice day 3 usage pre-allocated");
+    assert.strictEqual(aliceUsage[0], 0.5, "Alice day 1 usage pre-allocated");
+    assert.strictEqual(aliceUsage[1], 0.0, "Alice day 2 remains 0");
+    assert.strictEqual(aliceUsage[2], 0.25, "Alice day 3 usage pre-allocated");
 
     console.log("\n[Test Suite] ClearTaskGridRow");
 
