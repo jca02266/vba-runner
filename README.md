@@ -298,6 +298,77 @@ assert.strictEqual(dict.__map__.get('key1'), 'value1');
 assert.isTrue(dict.exists('key1'));
 ```
 
+### CreateObject のファクトリ差し替え（モック登録）
+
+VBA の `CreateObject(progId)` が返すオブジェクトを **テストコード側でモックに差し替え** できます。これにより、本体（`src/compiler/evaluator.ts`）に手を入れずに、テスト固有の COM オブジェクトをエミュレートできます。
+
+#### API
+- `Evaluator.registerExternalObject(progId, factory)`
+- `VBATest.registerExternalObject(progId, factory)` （上記のプロキシ）
+
+`factory` は `CreateObject` が呼ばれるたびに **新しいオブジェクト** を返す関数です。登録されたファクトリは既存の組み込みスタブ（`Scripting.Dictionary` 等）よりも優先されます。
+
+#### モック実装の作り方
+
+VBA 側の API に合わせて以下を実装します。
+
+- **プロパティ**: 通常の JS オブジェクトのフィールドとして書きます。Boolean は `vbaTrue / vbaFalse`（`-1 / 0`）を使う。
+- **メソッド**: 関数フィールドとして書きます（VBA からは `obj.Method(args)` で呼ばれる）。
+- **デフォルトプロパティ（`obj(i)` 形式）**: オブジェクト本体を **関数** にして、追加のプロパティを生やします（例: `SubMatches(i)` や Collection の `Item(i)`）。
+- **`For Each` 対応**: 関数 / オブジェクトに `[Symbol.iterator]` を実装する。
+
+#### サンプル: `VBScript.RegExp` のモック
+
+`test-libs/regexp-mock.ts` に実装例があります（JS の `RegExp` をベースに VBA RegExp 互換 API を提供）。
+
+```typescript
+// test-libs/regexp-mock.ts より抜粋
+import { vbaTrue, vbaFalse } from '../src/compiler/evaluator';
+
+export function createRegExpMock(): any {
+    const state: any = {
+        __isVbaRegExp__: true,
+        pattern: '',
+        ignorecase: vbaFalse,
+        global: vbaFalse,
+        multiline: vbaFalse,
+
+        test(s: any) { /* JS RegExp.test を呼んで vbaTrue/vbaFalse を返す */ },
+        execute(s: any) { /* MatchCollection を返す */ },
+        replace(s: any, repl: any) { /* JS String.replace を呼ぶ */ },
+    };
+    return state;
+}
+```
+
+#### テストコードでの登録例
+
+```typescript
+import { VBATest, assert } from '../../test-libs/test-runner';
+import { createRegExpMock } from '../../test-libs/regexp-mock';
+
+const vbaTest = new VBATest('macro.vba');
+vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
+
+// VBA 側で CreateObject("VBScript.RegExp") を呼ぶと createRegExpMock() が使われる
+const result = vbaTest.run('CountDigits', ['abc 123 def 456']);
+assert.strictEqual(result, 2);
+```
+
+VBA 側のコード例:
+```vba
+Function CountDigits(s As String) As Long
+    Dim re As Object
+    Set re = CreateObject("VBScript.RegExp")
+    re.Pattern = "\d+"
+    re.Global = True
+    CountDigits = re.Execute(s).Count
+End Function
+```
+
+> **動作確認**: `tests/test-libs-tests/regexp-mock.test.ts` に動作テストがあります。
+> 同じ仕組みで `MSXML2.XMLHTTP` や自社の独自 COM オブジェクトもモック化できます。
+
 ---
 
 ## VBA 実行時の終了ステータスと例外の検知

@@ -55,6 +55,19 @@ export class VBATest {
     set(name: string, value: any): void {
         this.evaluator.set(name, value);
     }
+
+    /**
+     * VBA の `CreateObject(progId)` が返すオブジェクトを差し替えるためのファクトリを登録する。
+     * 既存の組み込みスタブよりも優先される。
+     *
+     * @example
+     *   import { createRegExpMock } from '../../test-libs/regexp-mock';
+     *   const vbaTest = new VBATest('source.vba');
+     *   vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
+     */
+    registerExternalObject(progId: string, factory: () => any): void {
+        this.evaluator.registerExternalObject(progId, factory);
+    }
 }
 
 // Keep backward compatibility

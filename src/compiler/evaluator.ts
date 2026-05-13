@@ -2870,8 +2870,23 @@ export class Evaluator {
         });
     }
 
+    private externalObjectFactories: Map<string, () => any> = new Map();
+
+    /**
+     * CreateObject(progId) で返されるオブジェクトのファクトリを登録する。
+     * 既存の組み込みスタブ（Scripting.Dictionary 等）よりも優先して使われる。
+     * 主にテスト用途でモックを差し込むために使用する。
+     */
+    public registerExternalObject(progId: string, factory: () => any): void {
+        this.externalObjectFactories.set(progId.toLowerCase(), factory);
+    }
+
     private createExternalObject(progId: string): any {
         const id = progId.toLowerCase();
+        // 外部から登録されたファクトリを最優先
+        const factory = this.externalObjectFactories.get(id);
+        if (factory) return factory();
+
         if (id === 'scripting.dictionary') {
             const dict = new Map<any, any>();
             return {
