@@ -2238,19 +2238,16 @@ export class Evaluator {
                 const target = this.env.get(name);
                 
                 if (Array.isArray(target)) {
-                    // Support 1D or multi-dimensional array assignment arr(0, 1) = val -> arr[0][1] = val
+                    // VBA index == JS index. Multi-dimensional: arr(i, j) = val -> arr[i][j] = val
                     let current = target;
                     for (let i = 0; i < call.args.length - 1; i++) {
-                        const base = (current as any).vbaBase || 0;
-                        const d = (this.evaluateExpression(call.args[i]) as number) - base;
+                        const d = this.evaluateExpression(call.args[i]) as number;
                         if (!current[d]) {
                             current[d] = [];
-                            (current[d] as any).vbaBase = base;
                         }
                         current = current[d];
                     }
-                    const lastBase = (current as any).vbaBase || 0;
-                    const lastIdx = (this.evaluateExpression(call.args[call.args.length - 1]) as number) - lastBase;
+                    const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
@@ -3157,32 +3154,36 @@ export class Evaluator {
 
     private createMultiDimArray(bounds: ArrayBound[], initialValue: any): any[] {
         const dimensions: { lower: number, upper: number }[] = [];
-        
+
         for (const bound of bounds) {
             const upper = Number(this.evaluateExpression(bound.upper));
             const lower = bound.lower ? Number(this.evaluateExpression(bound.lower)) : this.arrayBase;
             dimensions.push({ lower, upper });
         }
 
+        // VBA index と JS index を一致させるため、length = upper + 1 の配列を作り、
+        // [0]〜[lower-1] は undefined、[lower]〜[upper] を initialValue で埋める。
         const buildArray = (dimIdx: number): any[] => {
             const { lower, upper } = dimensions[dimIdx];
-            const count = upper - lower + 1;
-            if (count < 0) throw new Error("Execution error: Subscript out of range");
+            if (upper < lower - 1) throw new Error("Execution error: Subscript out of range");
 
-            const arr = new Array(count);
+            const totalSize = upper + 1;
+            const arr = new Array(totalSize);
             if (dimIdx < dimensions.length - 1) {
-                for (let i = 0; i < count; i++) {
+                for (let i = lower; i <= upper; i++) {
                     arr[i] = buildArray(dimIdx + 1);
                 }
             } else {
-                arr.fill(initialValue);
+                for (let i = lower; i <= upper; i++) {
+                    arr[i] = initialValue;
+                }
             }
             return arr;
         };
 
         const result = buildArray(0);
         (result as any).__vbaDimensions__ = dimensions;
-        (result as any).vbaBase = dimensions[0].lower; // Fallback for 1D code
+        (result as any).vbaBase = dimensions[0].lower; // 既存コードとの互換用
         (result as any).__vbaDefaultValue__ = initialValue;
         return result;
     }
@@ -3542,12 +3543,11 @@ export class Evaluator {
                     return variable(...argsVals);
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) throw new Error(`Execution error: Missing index for array ${name}`);
-                    // Support multi-dimensional array lookup arr(0, 1) -> arr[0][1]
+                    // VBA index == JS index. Multi-dimensional: arr(i, j) -> arr[i][j]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
                         if (!current) return vbaEmpty; // Out of bounds or jagged array
-                        const base = (current as any).vbaBase || 0;
-                        const idx = (this.evaluateExpression(expr.args[i]) as number) - base;
+                        const idx = this.evaluateExpression(expr.args[i]) as number;
                         current = current[idx];
                     }
                     if (current === undefined) return vbaEmpty;

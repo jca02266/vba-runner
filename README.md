@@ -202,7 +202,12 @@ assert.isFalse(vbaTest.eval('IsNull(123)'), 'IsNull(123)');
 
 ### 配列
 
-VBAでの宣言が `Dim arr(N)` の場合、JavaScript側では要素数が `N + 1` （インデックス 0〜N）の配列として返ります。
+本コンパイラの配列表現の基本ルール：**VBA インデックスと JavaScript の配列インデックスを一致させる**。
+JavaScript 配列の `length` は常に `upper + 1`、`[0]`〜`[lower-1]` は未使用（`undefined`）、`[lower]`〜`[upper]` に値が入ります。
+
+#### デフォルト (`Option Base 0`) — `Dim arr(N)`
+
+`Dim arr(N)` は `arr(0)`〜`arr(N)` の `N + 1` 要素配列。JS 側でも `arr[0]`〜`arr[N]` がそのまま有効です。
 
 **VBA側:**
 ```vba
@@ -220,31 +225,54 @@ assert.strictEqual(arr.length, 6);    // N=5 のため要素数は 6
 assert.strictEqual(arr[1], "first");
 ```
 
-#### `ReDim arr(1 To N)`（1-based 配列）の扱い
+#### `Option Base 1` — `Dim arr(N)`
 
-VBA の `ReDim arr(1 To N)` で作成された 1-based 配列は、JavaScript 側では **要素数 `N` の 0-based 配列** として保持されます。VBA コード内のアクセス（`arr(1)`〜`arr(N)`）は Evaluator が自動変換しますが、テストコードから JS 側で直接アクセスする場合は **`arr[0]`〜`arr[N-1]`** で参照します。
+モジュール先頭で `Option Base 1` を宣言すると、`Dim arr(N)` は `arr(1)`〜`arr(N)` になります。JS 配列も `length = N + 1` のまま `[0]` は未使用となり、`[1]`〜`[N]` に値が入ります。
 
 **VBA側:**
 ```vba
-Sub Fill(ByRef result As Variant, n As Long)
-    ReDim arr(1 To n) As Double
-    Dim i As Long
-    For i = 1 To n
-        arr(i) = i * 0.5
-    Next i
-    result = arr
-End Sub
+Option Base 1
+
+Function GetArray()
+    Dim arr(3)
+    arr(1) = "a"
+    arr(3) = "c"
+    GetArray = arr
+End Function
 ```
 
 **TypeScript側:**
 ```typescript
-const out: { value?: number[] } = {};
-vbaTest.run('Fill', [out, 3]);
-// VBA の arr(1)..arr(3) は JS では out.value[0]..out.value[2]
-assert.strictEqual(out.value!.length, 3);
-assert.strictEqual(out.value![0], 0.5);  // VBA: arr(1)
-assert.strictEqual(out.value![1], 1.0);  // VBA: arr(2)
-assert.strictEqual(out.value![2], 1.5);  // VBA: arr(3)
+const arr = vbaTest.run('GetArray', []) as any[];
+assert.strictEqual(arr.length, 4);          // [0]〜[3]
+assert.strictEqual(arr[0], undefined);      // Option Base 1 のため [0] は未使用
+assert.strictEqual(arr[1], "a");            // VBA: arr(1)
+assert.strictEqual(arr[3], "c");            // VBA: arr(3)
+```
+
+#### `Dim arr(L To U)` / `ReDim arr(L To U)`（任意の下限）
+
+明示的に下限を指定した場合も同じルールです。`length = U + 1`、`[0]`〜`[L-1]` は未使用、`[L]`〜`[U]` が有効。
+
+**VBA側:**
+```vba
+Function GetArr1To3() As Variant
+    Dim arr(1 To 3) As Double
+    arr(1) = 0.5
+    arr(2) = 1.0
+    arr(3) = 1.5
+    GetArr1To3 = arr
+End Function
+```
+
+**TypeScript側:**
+```typescript
+const arr = vbaTest.run('GetArr1To3', []) as any[];
+assert.strictEqual(arr.length, 4);          // [0]〜[3]、[0] は未使用
+assert.strictEqual(arr[0], undefined);      // VBA インデックス外
+assert.strictEqual(arr[1], 0.5);            // VBA: arr(1)
+assert.strictEqual(arr[2], 1.0);            // VBA: arr(2)
+assert.strictEqual(arr[3], 1.5);            // VBA: arr(3)
 ```
 
 ### Scripting.Dictionary
