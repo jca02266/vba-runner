@@ -3023,9 +3023,15 @@ export class Evaluator {
                 };
             },
             getfolder: (p: string) => ({ path: p }),
-            getbasename: (p: string) => path.basename(p),
-            getextensionname: (p: string) => path.extname(p).replace('.', ''),
-            getparentfoldername: (p: string) => path.dirname(p),
+            // VBA は Windows パス前提。path.win32 で `\` をセパレータとして処理する。
+            // GetBaseName は VBA 仕様で「拡張子を除いたファイル名」。
+            getbasename: (p: string) => {
+                const base = path.win32.basename(p);
+                const ext = path.win32.extname(base);
+                return ext ? base.slice(0, -ext.length) : base;
+            },
+            getextensionname: (p: string) => path.win32.extname(p).replace('.', ''),
+            getparentfoldername: (p: string) => path.win32.dirname(p),
             getabsolutepathname: (p: string) => p
         }));
 

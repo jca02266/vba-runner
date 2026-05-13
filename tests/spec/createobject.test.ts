@@ -1,76 +1,220 @@
+/**
+ * CreateObject / New ClassName の組み込みオブジェクトテスト
+ *
+ * 対象:
+ *   - Scripting.Dictionary
+ *   - Scripting.FileSystemObject
+ *   - MSXML2.XMLHTTP / Microsoft.XMLHTTP
+ *   - ADODB.Stream
+ *
+ * いずれも `CreateObject(progId)` と `New ClassName` の両方で同じファクトリが
+ * 使われることを検証する（参照設定相当）。
+ *
+ * ファイル操作は VFS (MemoryFileSystem) を使用して、ホスト OS に副作用を
+ *与えずに検証する。
+ */
 import { assert } from '../../test-libs/test-runner';
 import { Evaluator } from '../../src/compiler/evaluator';
 import { Parser } from '../../src/compiler/parser';
 import { Lexer } from '../../src/compiler/lexer';
+import { MemoryFileSystem } from '../../src/compiler/filesystem';
 
-function evalVBA(code: string) {
+function evalVBA(code: string, fs?: MemoryFileSystem) {
     const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
+    const program = new Parser(tokens).parse();
+    const evaluator = new Evaluator((s) => console.log(s), fs ? { fs } : {});
     evaluator.evaluate(program);
     return evaluator;
 }
 
-console.log('[Test Suite] CreateObject (Dictionary / FSO) の検証');
+console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェクト検証');
 
-const code = `
-    Function TestDictionary()
-        Dim dict
-        Set dict = CreateObject("Scripting.Dictionary")
-        dict.Add "A", 100
-        dict.Add "B", 200
-        
-        Dim res
-        res = 0
-        If dict.Exists("A") Then res = res + dict.Item("A")
-        If dict.Exists("B") Then res = res + dict.Item("B")
-        
-        dict.Remove "A"
-        If Not dict.Exists("A") Then res = res + 50
-        
-        TestDictionary = res + dict.Count
-    End Function
+// =============================================================================
+// 1. Scripting.Dictionary
+// =============================================================================
+{
+    const code = `
+        Function TestDictionary()
+            Dim dict
+            Set dict = CreateObject("Scripting.Dictionary")
+            dict.Add "A", 100
+            dict.Add "B", 200
 
-    Function TestFSO()
-        Dim fso, f
-        Set fso = CreateObject("Scripting.FileSystemObject")
-        Set f = fso.CreateTextFile("test.txt")
-        f.WriteLine "Hello"
-        f.Close
-        TestFSO = 1
-    End Function
-`;
+            Dim res
+            res = 0
+            If dict.Exists("A") Then res = res + dict.Item("A")
+            If dict.Exists("B") Then res = res + dict.Item("B")
 
-const ev = evalVBA(code);
+            dict.Remove "A"
+            If Not dict.Exists("A") Then res = res + 50
 
-assert.strictEqual(ev.callProcedure('TestDictionary', []), 351, 'Dictionary operations (Add, Exists, Item, Remove, Count) should work (100+200+50+1 = 351)');
-assert.strictEqual(ev.callProcedure('TestFSO', []), 1, 'FSO stub should work without error');
+            TestDictionary = res + dict.Count
+        End Function
 
-// --- 参照設定相当: 組み込みオブジェクトを `Dim As New` / `Set = New` で生成できる ---
-const newSyntaxCode = `
-    Function TestNewDictionary()
-        Dim d As New Dictionary
-        d.Add "A", 10
-        d.Add "B", 20
-        TestNewDictionary = d.Count
-    End Function
+        Function TestNewDictionary()
+            Dim d As New Dictionary
+            d.Add "A", 10
+            d.Add "B", 20
+            TestNewDictionary = d.Count
+        End Function
 
-    Function TestSetNewDictionary()
-        Dim d As Dictionary
-        Set d = New Dictionary
-        d.Add "key", 42
-        TestSetNewDictionary = d.Item("key")
-    End Function
+        Function TestSetNewDictionary()
+            Dim d As Dictionary
+            Set d = New Dictionary
+            d.Add "key", 42
+            TestSetNewDictionary = d.Item("key")
+        End Function
+    `;
+    const ev = evalVBA(code);
+    assert.strictEqual(ev.callProcedure('TestDictionary', []), 351, 'Dictionary: CreateObject (100+200+50+1)');
+    assert.strictEqual(ev.callProcedure('TestNewDictionary', []), 2, 'Dictionary: Dim As New');
+    assert.strictEqual(ev.callProcedure('TestSetNewDictionary', []), 42, 'Dictionary: Set = New');
+    console.log('[PASS] Scripting.Dictionary');
+}
 
-    Function TestNewFSO() As Boolean
-        Dim fso As New FileSystemObject
-        TestNewFSO = fso.FileExists("nonexistent.txt")
-    End Function
-`;
-const ev2 = evalVBA(newSyntaxCode);
-assert.strictEqual(ev2.callProcedure('TestNewDictionary', []), 2, 'Dim d As New Dictionary が動く');
-assert.strictEqual(ev2.callProcedure('TestSetNewDictionary', []), 42, 'Set d = New Dictionary が動く');
-assert.isFalse(ev2.callProcedure('TestNewFSO', []), 'Dim fso As New FileSystemObject が動く');
+// =============================================================================
+// 2. Scripting.FileSystemObject
+// =============================================================================
+{
+    const vfs = new MemoryFileSystem();
 
-console.log('✅ CreateObject: 全テスト通過');
+    const code = `
+        Function TestFSOCreateText() As Boolean
+            Dim fso
+            Set fso = CreateObject("Scripting.FileSystemObject")
+            Dim f
+            Set f = fso.CreateTextFile("C:\\\\fso1.txt")
+            f.WriteLine "Hello"
+            f.WriteLine "World"
+            f.Close
+            TestFSOCreateText = fso.FileExists("C:\\\\fso1.txt")
+        End Function
+
+        Function TestFSOReadAll() As String
+            Dim fso As New FileSystemObject
+            Dim f
+            Set f = fso.OpenTextFile("C:\\\\fso1.txt", 1)
+            TestFSOReadAll = f.ReadAll
+            f.Close
+        End Function
+
+        Function TestFSOFolderOps() As Boolean
+            Dim fso As FileSystemObject
+            Set fso = New FileSystemObject
+            fso.CreateFolder "C:\\\\subdir"
+            TestFSOFolderOps = fso.FolderExists("C:\\\\subdir")
+        End Function
+
+        Function TestFSODeleteFile() As Boolean
+            Dim fso As New FileSystemObject
+            Dim f
+            Set f = fso.CreateTextFile("C:\\\\delme.txt")
+            f.Close
+            fso.DeleteFile "C:\\\\delme.txt"
+            If fso.FileExists("C:\\\\delme.txt") Then
+                TestFSODeleteFile = False
+            Else
+                TestFSODeleteFile = True
+            End If
+        End Function
+
+        Function TestFSOPathOps(p As String) As String
+            Dim fso As New FileSystemObject
+            TestFSOPathOps = fso.GetBaseName(p) & "|" & fso.GetExtensionName(p) & "|" & fso.GetParentFolderName(p)
+        End Function
+    `;
+    const ev = evalVBA(code, vfs);
+    assert.isTrue(ev.callProcedure('TestFSOCreateText', []), 'FSO: CreateTextFile + FileExists');
+    // ReadAll が改行を含めて返す
+    const content = ev.callProcedure('TestFSOReadAll', []) as string;
+    assert.strictEqual(content.includes('Hello') && content.includes('World'), true, 'FSO: OpenTextFile + ReadAll');
+    assert.isTrue(ev.callProcedure('TestFSOFolderOps', []), 'FSO: CreateFolder + FolderExists');
+    assert.isTrue(ev.callProcedure('TestFSODeleteFile', []), 'FSO: DeleteFile');
+    assert.strictEqual(
+        ev.callProcedure('TestFSOPathOps', ['C:\\path\\to\\report.xlsx']),
+        'report|xlsx|C:\\path\\to',
+        'FSO: GetBaseName / GetExtensionName / GetParentFolderName'
+    );
+    console.log('[PASS] Scripting.FileSystemObject');
+}
+
+// =============================================================================
+// 3. MSXML2.XMLHTTP / Microsoft.XMLHTTP
+// =============================================================================
+// スタブ実装のため、メソッド呼び出しが例外なく完了し、固定値が返ることのみ検証する。
+{
+    const code = `
+        Function TestXmlHttpCreateObject() As Long
+            Dim http
+            Set http = CreateObject("MSXML2.XMLHTTP")
+            http.Open "GET", "http://example.com/", False
+            http.SetRequestHeader "Accept", "text/plain"
+            http.Send
+            ' ReadyState は固定値 4 を返すスタブ
+            TestXmlHttpCreateObject = http.ReadyState
+        End Function
+
+        Function TestXmlHttpNew() As Long
+            Dim http As New XMLHTTP
+            http.Open "POST", "http://example.com/api", True
+            http.Send "payload"
+            TestXmlHttpNew = http.ReadyState
+        End Function
+
+        Function TestMicrosoftXmlHttp() As Long
+            Dim http
+            Set http = CreateObject("Microsoft.XMLHTTP")
+            http.Open "GET", "http://example.com/", False
+            http.Send
+            TestMicrosoftXmlHttp = http.ReadyState
+        End Function
+    `;
+    const ev = evalVBA(code);
+    assert.strictEqual(ev.callProcedure('TestXmlHttpCreateObject', []), 4, 'XMLHTTP: CreateObject + Open/SetRequestHeader/Send/ReadyState');
+    assert.strictEqual(ev.callProcedure('TestXmlHttpNew', []), 4, 'XMLHTTP: New XMLHTTP');
+    assert.strictEqual(ev.callProcedure('TestMicrosoftXmlHttp', []), 4, 'XMLHTTP: Microsoft.XMLHTTP も同じ factory');
+    console.log('[PASS] MSXML2.XMLHTTP / Microsoft.XMLHTTP');
+}
+
+// =============================================================================
+// 4. ADODB.Stream
+// =============================================================================
+{
+    const vfs = new MemoryFileSystem();
+
+    const code = `
+        Function TestStreamWriteRead() As String
+            Dim s
+            Set s = CreateObject("ADODB.Stream")
+            s.Open
+            s.WriteText "Hello, "
+            s.WriteText "VBA Stream"
+            ' 書き込んだ内容を先頭から読む
+            s.Position = 0
+            TestStreamWriteRead = s.ReadText
+            s.Close
+        End Function
+
+        Function TestStreamSaveLoad() As String
+            ' Save → 別の Stream で Load して内容一致を検証
+            Dim s1 As New Stream
+            s1.Open
+            s1.WriteText "persisted content"
+            s1.SaveToFile "C:\\\\stream.txt", 2
+            s1.Close
+
+            Dim s2 As Stream
+            Set s2 = New Stream
+            s2.Open
+            s2.LoadFromFile "C:\\\\stream.txt"
+            TestStreamSaveLoad = s2.ReadText
+            s2.Close
+        End Function
+    `;
+    const ev = evalVBA(code, vfs);
+    assert.strictEqual(ev.callProcedure('TestStreamWriteRead', []), 'Hello, VBA Stream', 'Stream: WriteText + ReadText');
+    assert.strictEqual(ev.callProcedure('TestStreamSaveLoad', []), 'persisted content', 'Stream: SaveToFile + LoadFromFile (CreateObject と New 混在)');
+    console.log('[PASS] ADODB.Stream');
+}
+
+console.log('\n✅ CreateObject: 全テスト通過');
