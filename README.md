@@ -200,6 +200,50 @@ assert.isFalse(vbaTest.eval('IsNull(123)'), 'IsNull(123)');
 // assert.strictEqual(result, vbaTrue);
 ```
 
+#### `assert.isTrue` / `assert.isFalse` の比較ルール
+
+`assert.isTrue` / `assert.isFalse` は **VBA の `= True` / `= False`（厳密比較）と等価** です。
+本エンジン内部では VBA Boolean を `vbaTrue` / `vbaFalse` のシングルトンで表すため、これらの assert はシングルトンと一致するかを **リファレンス比較** します。
+
+```typescript
+assert.isTrue(vbaTrue);          // ✅ OK
+assert.isTrue(vbaTest.eval('1 = 1'));  // ✅ OK（比較演算は vbaTrue を返す）
+
+assert.isTrue(-1);               // ❌ FAIL（数値 -1 は vbaTrue シングルトンとは別物）
+assert.isTrue(vbaTest.eval('Not 5')); // ❌ FAIL（Not <数値> はビット反転の数値 -6 を返す）
+```
+
+「数値が **真とみなせる**（truthy）こと」を確認したいときは `assert.ok` を使います。
+
+```typescript
+assert.ok(vbaTest.eval('5'));       // ✅ OK（5 は truthy）
+assert.ok(vbaTest.eval('Not 5'));   // ✅ OK（-6 は truthy）
+assert.ok(vbaTest.eval('0'));       // ❌ FAIL（0 は falsy）
+```
+
+#### VBA の Truthy/Boolean 仕様（補足）
+
+VBA の Boolean は **値そのものは -1 (True) / 0 (False) のみ** ですが、文脈によって解釈が変わります。
+
+| 文脈 | 例 | 結果 |
+|------|-----|------|
+| **代入時の暗黙型変換** | `Dim b As Boolean : b = 5` | `b = -1`（非 0 → True に自動変換） |
+| **`If` 条件の Boolean 評価** | `If 5 Then ...` | 実行される（非 0 は True 扱い） |
+| **比較演算 `= True` / `= False`** | `5 = True` | **False**（数値 5 と -1 は等しくない） |
+
+### `Not` 演算子の戻り値
+
+`Not` は引数の型によって戻り値の型が変わります（MS-VBAL §5.6.9.8.1）:
+
+- **Boolean オペランド** → Boolean 反転（シングルトン）
+  - `Not vbaTrue` → `vbaFalse`
+  - `Not vbaFalse` → `vbaTrue`
+- **数値オペランド** → ビット反転（数値）
+  - `Not 5` → `-6`
+  - `Not 0` → `-1`（ただし数値の `-1` であって Boolean シングルトンではない）
+
+そのため、`Not <数値>` の結果を **Boolean として** assert したい場合は、VBA 側で `CBool(...)` を挟むか、TypeScript 側で `assert.ok(...)` を使ってください。
+
 ### 配列
 
 本コンパイラの配列表現の基本ルール：**VBA インデックスと JavaScript の配列インデックスを一致させる**。

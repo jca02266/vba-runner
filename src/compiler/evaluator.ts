@@ -81,11 +81,32 @@ import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
 import * as path from 'path';
 
+/**
+ * VBA Boolean を表すラッパークラス。VBA Boolean は仕様上 -1 (True) / 0 (False) の
+ * 2 値のみのため、シングルトン `vbaTrue` / `vbaFalse` 以外のインスタンスは存在しない。
+ *
+ * 新しい VbaBoolean を作りたい場合は `VbaBoolean.from(n)` を使うこと。これは
+ * 数値からシングルトンを返すファクトリで、`new VbaBoolean()` を直接呼ぶのは禁止
+ * （コンストラクタが private）。
+ */
 export class VbaBoolean {
     public readonly __isVbaBoolean__ = true;
-    constructor(public value: -1 | 0) {}
+    private constructor(public readonly value: -1 | 0) {}
     valueOf() { return this.value; }
     toString() { return this.value === -1 ? 'True' : 'False'; }
+
+    /** 数値からシングルトンを返すファクトリ。0 は False、それ以外は True。 */
+    static from(n: number): VbaBoolean {
+        return n !== 0 ? vbaTrue : vbaFalse;
+    }
+
+    /**
+     * モジュール内部用: シングルトン初期化のみで使う。外部からは使わないこと。
+     * @internal
+     */
+    static _createSingleton(value: -1 | 0): VbaBoolean {
+        return new VbaBoolean(value);
+    }
 }
 
 // VBA date serial: days since 1899-12-30 (VBA epoch)
@@ -233,8 +254,8 @@ export class VbaErrObject {
 export const vbaNull = Symbol('vbaNull');
 export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
-export const vbaTrue = new VbaBoolean(-1);
-export const vbaFalse = new VbaBoolean(0);
+export const vbaTrue: VbaBoolean = VbaBoolean._createSingleton(-1);
+export const vbaFalse: VbaBoolean = VbaBoolean._createSingleton(0);
 export type VbaBooleanType = VbaBoolean;
 
 export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong';
@@ -346,7 +367,7 @@ export class Environment {
                 return value;
             case 'Boolean':
                 if (typeof value === 'number') {
-                    return value !== 0 ? new VbaBoolean(-1) : new VbaBoolean(0);
+                    return value !== 0 ? vbaTrue : vbaFalse;
                 }
                 return value;
             default:
@@ -3738,13 +3759,10 @@ export class Evaluator {
         const argument = this.evaluateExpression(expr.argument);
         switch (expr.operator.toLowerCase()) {
             case 'not':
-                if (argument instanceof VbaBoolean) {
-                    // Boolean に対する Not はシングルトン vbaTrue / vbaFalse を返す。
-                    // 通常の Boolean は値が -1 か 0 だが、想定外の値はビット反転を維持。
-                    if (argument === vbaTrue) return vbaFalse;
-                    if (argument === vbaFalse) return vbaTrue;
-                    return new VbaBoolean(~argument.value as any);
-                }
+                // VBA Boolean は -1 / 0 の 2 値のみ。VbaBoolean インスタンスは
+                // すべてシングルトン (vbaTrue / vbaFalse) であることが invariant。
+                if (argument === vbaTrue) return vbaFalse;
+                if (argument === vbaFalse) return vbaTrue;
                 return ~argument;
             case '-':
                 return -argument;
