@@ -67,8 +67,8 @@ All MS-VBAL specification features, statements, and standard library functions d
 
 | 状態 | 優先度 | 機能 | 仕様書 | テスト |
 |------|--------|------|--------|--------|
-| ✅ | P1 | Open Statement | §5.4.5.1 | `filesystem.test.ts`, `multi-file.test.ts` |
-| ✅ | P1 | Close / Reset Statements | §5.4.5.2 | `filesystem.test.ts`, `multi-file.test.ts` |
+| ✅ | P1 | Open Statement | §5.4.5.1 | `filesystem.test.ts` |
+| ✅ | P1 | Close / Reset Statements | §5.4.5.2 | `filesystem.test.ts` |
 | ✅ | P2 | Seek Statement | §5.4.5.3 | `filesystem-extra.test.ts` |
 | ✅ | P2 | Lock / Unlock Statements | §5.4.5.4/5 | (制限事項: スタブ化) | `fs-lock-width.test.ts` |
 | ✅ | P2 | Line Input Statement | §5.4.5.6 | `filesystem.test.ts` |
@@ -153,9 +153,9 @@ All MS-VBAL specification features, statements, and standard library functions d
 
 | 状態 | 優先度 | 関数/プロパティ | 仕様書 | テスト |
 |------|--------|----------------|--------|--------|
-| ✅ | P1 | DateAdd | §6.1.2.4.1.1 | `libdate.test.ts` |
-| ✅ | P1 | DateDiff | §6.1.2.4.1.2 | `libdate.test.ts` |
-| ✅ | P1 | DatePart | §6.1.2.4.1.3 | `libdate.test.ts` |
+| ✅ | P1 | DateAdd | §6.1.2.4.1.1 | `datetime.test.ts` |
+| ✅ | P1 | DateDiff | §6.1.2.4.1.2 | `datetime.test.ts` |
+| ✅ | P1 | DatePart | §6.1.2.4.1.3 | `datetime.test.ts` |
 | ✅ | P0 | DateSerial | §6.1.2.4.1.4 | `datetime.test.ts` |
 | ✅ | P1 | DateValue | §6.1.2.4.1.5 | `datetime.test.ts` |
 | ✅ | P1 | Day | §6.1.2.4.1.6 | `datetime.test.ts` |
@@ -201,17 +201,17 @@ All MS-VBAL specification features, statements, and standard library functions d
 | ✅ | P0 | Format / Format$ | §6.1.2.11.1.8/9 | `format.test.ts` |
 | ✅ | P0 | InStr / InStrB | §6.1.2.11.1.14 | `builtin-strings.test.ts` |
 | ✅ | P1 | InStrRev | §6.1.2.11.1.15 | `instrrev.test.ts` |
-| ✅ | P1 | Join | §6.1.2.11.1.16 | `libstring.test.ts` |
+| ✅ | P1 | Join | §6.1.2.11.1.16 | `split-join.test.ts` |
 | ✅ | P1 | LCase / LCase$ | §6.1.2.11.1.17/18 | `builtin-strings.test.ts` |
 | ✅ | P1 | Left / Left$ | §6.1.2.11.1.19/20 | `builtin-strings.test.ts` |
 | ✅ | P0 | Len | §6.1.2.11.1.22 | `builtin-strings.test.ts` |
-| ✅ | P1 | LTrim / RTrim | §6.1.2.11.1.23 | `libstring.test.ts`, `trim.test.ts` |
-| ✅ | P1 | Trim / Trim$ | §6.1.2.11.1.23 | `libstring.test.ts`, `trim.test.ts` |
+| ✅ | P1 | LTrim / RTrim | §6.1.2.11.1.23 | `trim.test.ts` |
+| ✅ | P1 | Trim / Trim$ | §6.1.2.11.1.23 | `trim.test.ts` |
 | ✅ | P0 | Mid / Mid$ | §6.1.2.11.1.25/26 | `builtin-strings.test.ts` |
-| ✅ | P1 | Replace | §6.1.2.11.1.29 | `libstring.test.ts` |
+| ✅ | P1 | Replace | §6.1.2.11.1.29 | `builtins.test.ts` |
 | ✅ | P1 | Right / Right$ | §6.1.2.11.1.30/31 | `builtin-strings.test.ts` |
 | ✅ | P1 | Space / Space$ | §6.1.2.11.1.33/34 | `builtin-strings.test.ts` |
-| ✅ | P1 | Split | §6.1.2.11.1.35 | `libstring.test.ts` |
+| ✅ | P1 | Split | §6.1.2.11.1.35 | `split-join.test.ts` |
 | ✅ | P1 | StrComp | §6.1.2.11.1.36 | `strcomp.test.ts` |
 | ✅ | P2 | StrConv | §6.1.2.11.1.37 | `strconv.test.ts`, `strconv_null.test.ts` |
 | ✅ | P1 | LeftB / RightB / MidB | §6.1.2.11.1.x | `mid-variants.test.ts` |
@@ -269,9 +269,9 @@ All MS-VBAL specification features, statements, and standard library functions d
 
 | 状態 | 優先度 | 関数/サブプロシージャ | 仕様書 | テスト |
 |------|--------|----------------|--------|--------|
-| ✅ | P2 | CurDir / CurDir$ | §6.1.2.5.1.1 | `libpath.test.ts` |
-| ✅ | P2 | Dir | §6.1.2.5.1.2 | `libpath.test.ts` |
-| ✅ | P2 | EOF | §6.1.2.5.1.3 | `filesystem.test.ts`, `multi-file.test.ts` |
+| ✅ | P2 | CurDir / CurDir$ | §6.1.2.5.1.1 | `curdir.test.ts` |
+| ✅ | P2 | Dir | §6.1.2.5.1.2 | `mkdir_rmdir.test.ts` |
+| ✅ | P2 | EOF | §6.1.2.5.1.3 | `filesystem.test.ts` |
 | ✅ | P2 | FileAttr | §6.1.2.5.1.4 | (制限事項: スタブ化) | `filesystem-extra.test.ts` |
 | ✅ | P2 | FileDateTime | §6.1.2.5.1.5 | `filesystem-extra.test.ts` |
 | ✅ | P2 | FileLen | §6.1.2.5.1.6 | `filesystem-extra.test.ts` |

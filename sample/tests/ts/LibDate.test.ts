@@ -1,12 +1,12 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
-import { assert, vbaTrue, vbaFalse } from '../ts/test-runner';
+import { Lexer } from '../../../src/compiler/lexer';
+import { Parser } from '../../../src/compiler/parser';
+import { Evaluator } from '../../../src/compiler/evaluator';
+import { assert, vbaTrue, vbaFalse } from '../../../tests/ts/test-runner';
 import * as fs from 'fs';
 import * as path from 'path';
 
 const libCode = fs.readFileSync(
-    path.join(__dirname, '../../sample/src/vba/LibDate.bas'),
+    path.join(__dirname, '../../src/vba/LibDate.bas'),
     'utf-8'
 );
 
