@@ -457,9 +457,43 @@ Set d3 = New Dictionary
 
 テストでこれらをモックに差し替えたい場合は、同じ progId / class 名で `registerExternalObject` を呼ぶと **組み込みの実装を上書き** できます。
 
+#### Auto-Instantiation 仕様（`Dim x As New ClassName`）
+
+VBA の `Dim x As New ClassName` は通常の宣言とは異なる特殊な挙動を持ち、本コンパイラもこれに準拠しています：
+
+- **遅延インスタンス化**: 宣言時点では実際のインスタンスは作成されず、最初のメンバ参照やメソッド呼び出しで自動生成される
+- **`Nothing` 後の自動再生成**: `Set x = Nothing` した後でも、再度参照すると新しいインスタンスが自動生成される
+- **`x Is Nothing` は常に False**: auto-instance 変数は参照前でも `Nothing` ではないと判定される
+
+```vba
+Dim a As New Dictionary  ' この時点ではインスタンスは未生成
+Debug.Print a Is Nothing ' → False（auto-instance なので Nothing ではない）
+
+a.Add "x", 1             ' 初回アクセスで生成される
+Debug.Print a.Count      ' → 1
+
+Set a = Nothing          ' リセット
+Debug.Print a Is Nothing ' → False（再アクセス対象なので Nothing 扱いではない）
+a.Add "y", 2             ' 自動再インスタンス化 → 新しい Dictionary
+Debug.Print a.Count      ' → 1（"x" は前のインスタンスにあったので新インスタンスにはない）
+```
+
+通常の `Dim x As ClassName`（`As New` なし）はオブジェクト型参照の標準的な挙動で、デフォルトは `Nothing` です：
+
+```vba
+Dim b As Dictionary       ' b は Nothing
+Debug.Print b Is Nothing  ' → True
+b.Add "x", 1              ' エラー（オブジェクト参照が未設定）
+
+Set b = New Dictionary    ' 明示的にインスタンス化
+b.Add "x", 1              ' OK
+Set b = Nothing
+b.Add "y", 2              ' エラー（再アクセスでも自動生成されない）
+```
+
 > **動作確認**:
 > - `tests/test-libs-tests/regexp-mock.test.ts` — ユーザー登録モック（VBScript.RegExp）の `CreateObject` 形式と `New RegExp` 形式
-> - `tests/spec/createobject.test.ts` — 組み込みオブジェクト（Dictionary, FSO）の `New` 構文サポート
+> - `tests/spec/createobject.test.ts` — 組み込みオブジェクト（Dictionary, FSO, XMLHTTP, ADODB.Stream）の `New` 構文サポート、Auto-Instantiation 仕様
 >
 > 同じ仕組みで `MSXML2.XMLHTTP` や自社の独自 COM オブジェクトもモック化できます。
 

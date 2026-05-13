@@ -254,6 +254,27 @@ export class VbaErrObject {
 export const vbaNull = Symbol('vbaNull');
 export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
+
+/**
+ * `Dim x As New ClassName` で生成される Auto-Instantiation のプレースホルダー。
+ * VBA 仕様では:
+ *   - 宣言時点では実際のインスタンスは作成されない（遅延インスタンス化）
+ *   - 最初のメンバ参照やメソッド呼び出しで自動的にインスタンス化される
+ *   - `Set x = Nothing` した後でも、再度参照すると再インスタンス化される
+ *   - `x Is Nothing` は常に False を返す（参照前であっても）
+ */
+export interface AutoInstancePlaceholder {
+    readonly __isAutoInstance__: true;
+    readonly __className__: string;
+}
+
+export function createAutoInstancePlaceholder(className: string): AutoInstancePlaceholder {
+    return { __isAutoInstance__: true, __className__: className };
+}
+
+export function isAutoInstancePlaceholder(v: any): v is AutoInstancePlaceholder {
+    return v != null && typeof v === 'object' && v.__isAutoInstance__ === true;
+}
 export const vbaTrue: VbaBoolean = VbaBoolean._createSingleton(-1);
 export const vbaFalse: VbaBoolean = VbaBoolean._createSingleton(0);
 export type VbaBooleanType = VbaBoolean;
@@ -2283,7 +2304,7 @@ export class Evaluator {
             }
         } else if (left.type === 'MemberExpression') {
             const member = left as MemberExpression;
-            const obj = this.evaluateExpression(member.object);
+            const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
             const propName = member.property.name.toLowerCase();
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
@@ -2376,11 +2397,25 @@ export class Evaluator {
                 this.classDefinitions.has(decl.objectType.toLowerCase()) ||
                 this.externalObjectFactories.has(decl.objectType.toLowerCase())
             )) {
-                initialValue = this.instantiateClass(decl.objectType);
+                // Auto-Instantiation: 宣言時点ではインスタンス化せず、placeholder を入れる。
+                // メンバアクセスやメソッド呼び出し時に遅延インスタンス化される。
+                initialValue = createAutoInstancePlaceholder(decl.objectType);
+                this.autoInstanceVars.set(varName.toLowerCase(), decl.objectType);
             } else if (decl.objectType) {
                 const t = decl.objectType.toLowerCase();
                 if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean'].includes(t)) {
-                    initialValue = this.instantiateType(decl.objectType);
+                    if (this.env.getType(decl.objectType)) {
+                        // UDT 型: 各メンバを既定値で初期化したインスタンスを生成
+                        initialValue = this.instantiateType(decl.objectType);
+                    } else if (
+                        this.classDefinitions.has(t) ||
+                        this.externalObjectFactories.has(t) ||
+                        t === 'object' || t === 'collection'
+                    ) {
+                        // クラスオブジェクト型（New なし）: VBA 仕様により Nothing
+                        initialValue = vbaNothing;
+                    }
+                    // Variant や未知の型は vbaEmpty のまま
                 }
             }
             this.env.set(varName, initialValue);
@@ -2601,6 +2636,14 @@ export class Evaluator {
             const proc = this.env.getProcedure(name, 'set');
             if (proc) {
                 this.callProcedure(name, [value], 'set');
+                return;
+            }
+
+            // Auto-Instantiation: `Set x = Nothing` で auto-instance 変数なら placeholder に戻す。
+            // 仕様: 再度参照したら新しいインスタンスが生成される。
+            const className = this.autoInstanceVars.get(name.toLowerCase());
+            if (className && value === vbaNothing) {
+                this.env.set(name, createAutoInstancePlaceholder(className));
                 return;
             }
             this.env.set(name, value);
@@ -2902,6 +2945,11 @@ export class Evaluator {
     }
 
     private externalObjectFactories: Map<string, () => any> = new Map();
+    /**
+     * `Dim x As New ClassName` で宣言された変数の追跡。キーは変数名(小文字)、
+     * 値はクラス名。Set x = Nothing 後の再インスタンス化判定で使う。
+     */
+    private autoInstanceVars: Map<string, string> = new Map();
 
     /**
      * CreateObject(progId) で返されるオブジェクトのファクトリを登録する。
@@ -3446,7 +3494,8 @@ export class Evaluator {
         }
 
         // Evaluate the value and use existing logic (with literal type inference)
-        const val = this.evaluateExpression(argExpr);
+        // Auto-Instantiation placeholder は TypeName で参照されたタイミングで解決する。
+        const val = this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr));
 
         if (funcName === 'typename') {
             // Check for number literal type inference
@@ -3653,7 +3702,7 @@ export class Evaluator {
 
             if (expr.callee.type === 'MemberExpression') {
                 const member = expr.callee as MemberExpression;
-                obj = this.evaluateExpression(member.object);
+                obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
                 methodNameOriginal = member.property.name;
             } else {
                 if (this.withObjectStack.length === 0) {
@@ -3773,8 +3822,25 @@ export class Evaluator {
         }
     }
 
+    /**
+     * Auto-Instance placeholder を実際のインスタンスに解決する。
+     * 解決後は `Identifier` の場合 env に書き戻して、次回のアクセスではインスタンスが
+     * 直接使えるようにする（毎回 instantiate するコストを避ける）。
+     * Placeholder でない値はそのまま返す。
+     */
+    private resolveAutoInstance(sourceExpr: Expression | null, value: any): any {
+        if (!isAutoInstancePlaceholder(value)) return value;
+        const instance = this.instantiateClass(value.__className__);
+        // Identifier 経由のアクセスなら env に書き戻す
+        if (sourceExpr && sourceExpr.type === 'Identifier') {
+            this.env.set((sourceExpr as Identifier).name, instance);
+        }
+        return instance;
+    }
+
     private evaluateMemberExpression(expr: MemberExpression): any {
-        const obj = this.evaluateExpression(expr.object);
+        const evaluated = this.evaluateExpression(expr.object);
+        const obj = this.resolveAutoInstance(expr.object, evaluated);
         const propName = expr.property.name.toLowerCase();
 
         // VBA class instance: look up field in instance environment or invoke Property Get
