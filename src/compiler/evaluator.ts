@@ -3738,8 +3738,14 @@ export class Evaluator {
         const argument = this.evaluateExpression(expr.argument);
         switch (expr.operator.toLowerCase()) {
             case 'not':
-                const res = ~argument;
-                return (argument instanceof VbaBoolean) ? new VbaBoolean(res as any) : res;
+                if (argument instanceof VbaBoolean) {
+                    // Boolean に対する Not はシングルトン vbaTrue / vbaFalse を返す。
+                    // 通常の Boolean は値が -1 か 0 だが、想定外の値はビット反転を維持。
+                    if (argument === vbaTrue) return vbaFalse;
+                    if (argument === vbaFalse) return vbaTrue;
+                    return new VbaBoolean(~argument.value as any);
+                }
+                return ~argument;
             case '-':
                 return -argument;
             case '+':

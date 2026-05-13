@@ -111,11 +111,7 @@ console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェ�
             Set f = fso.CreateTextFile("C:\\\\delme.txt")
             f.Close
             fso.DeleteFile "C:\\\\delme.txt"
-            If fso.FileExists("C:\\\\delme.txt") Then
-                TestFSODeleteFile = False
-            Else
-                TestFSODeleteFile = True
-            End If
+            TestFSODeleteFile = Not fso.FileExists("C:\\\\delme.txt")
         End Function
 
         Function TestFSOPathOps(p As String) As String
