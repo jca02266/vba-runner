@@ -3805,8 +3805,18 @@ export class Evaluator {
     }
 
     private evaluateUnaryExpression(expr: UnaryExpression): any {
-        const argument = this.evaluateExpression(expr.argument);
-        switch (expr.operator.toLowerCase()) {
+        let argument = this.evaluateExpression(expr.argument);
+        const op = expr.operator.toLowerCase();
+
+        // VBA Null / Empty の伝播ルール
+        // - 算術系の単項 (-, +): Null は Null、Empty は 0 として扱う
+        // - Not: Null は Null
+        if (argument === vbaNull) return vbaNull;
+        if (argument === vbaEmpty && (op === '-' || op === '+' || op === 'not')) {
+            argument = 0;
+        }
+
+        switch (op) {
             case 'not':
                 // VBA Boolean は -1 / 0 の 2 値のみ。VbaBoolean インスタンスは
                 // すべてシングルトン (vbaTrue / vbaFalse) であることが invariant。
@@ -3902,7 +3912,32 @@ export class Evaluator {
         if (rightVal === true) rightVal = vbaTrue;
         if (rightVal === false) rightVal = vbaFalse;
 
-        switch (expr.operator.toLowerCase()) {
+        const op = expr.operator.toLowerCase();
+
+        // ===== VBA Null / Empty の伝播ルール =====
+        // 算術 / 比較 / 論理演算では Null が含まれていれば結果は Null。
+        // 例外: 文字列連結 & では Null / Empty を "" として扱う。
+        const arithmeticOps = new Set(['+', '-', '*', '/', '\\', 'mod', '^']);
+        const comparisonOps = new Set(['=', '<>', '<', '>', '<=', '>=']);
+        const logicalOps = new Set(['and', 'or', 'xor', 'eqv', 'imp']);
+
+        if (op === '&') {
+            // 文字列連結: Null も Empty も "" 扱い
+            if (leftVal === vbaNull || leftVal === vbaEmpty) leftVal = '';
+            if (rightVal === vbaNull || rightVal === vbaEmpty) rightVal = '';
+        } else if (arithmeticOps.has(op) || comparisonOps.has(op) || logicalOps.has(op)) {
+            // Null 伝播: どちらかが Null なら Null
+            if (leftVal === vbaNull || rightVal === vbaNull) return vbaNull;
+            // Empty を数値文脈では 0、文字列文脈では "" に正規化
+            if (leftVal === vbaEmpty) {
+                leftVal = typeof rightVal === 'string' ? '' : 0;
+            }
+            if (rightVal === vbaEmpty) {
+                rightVal = typeof leftVal === 'string' ? '' : 0;
+            }
+        }
+
+        switch (op) {
             case '+': 
                 const sum = leftVal + rightVal;
                 return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(sum) : sum;
