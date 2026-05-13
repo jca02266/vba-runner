@@ -2394,6 +2394,12 @@ export class Evaluator {
     }
 
     private instantiateClass(className: string): any {
+        // 外部登録ファクトリ（class 名で別名登録されたもの）を先に確認
+        // - registerExternalObject(progId, factory) で factory().__className__ が登録されている
+        // - これにより VBA の「参照設定」相当（New ClassName / Dim x As ClassName）が動く
+        const factory = this.externalObjectFactories.get(className.toLowerCase());
+        if (factory) return factory();
+
         const classDef = this.classDefinitions.get(className.toLowerCase());
         if (!classDef) {
             throw new Error(`Execution error: Class '${className}' not found`);
@@ -2875,10 +2881,26 @@ export class Evaluator {
     /**
      * CreateObject(progId) で返されるオブジェクトのファクトリを登録する。
      * 既存の組み込みスタブ（Scripting.Dictionary 等）よりも優先して使われる。
+     *
+     * 加えて、factory() が返すオブジェクトに `__className__` が含まれていれば、
+     * その名前でも別名登録する。これにより VBA の「参照設定」相当の構文
+     * （`Dim re As RegExp` / `Set re = New RegExp`）からも同じ factory が
+     * 呼ばれる。
+     *
      * 主にテスト用途でモックを差し込むために使用する。
      */
     public registerExternalObject(progId: string, factory: () => any): void {
         this.externalObjectFactories.set(progId.toLowerCase(), factory);
+        // factory を 1 度呼んで __className__ を取り出し、別名としても登録
+        try {
+            const sample = factory();
+            if (sample && sample.__className__) {
+                const alias = String(sample.__className__).toLowerCase();
+                if (!this.externalObjectFactories.has(alias)) {
+                    this.externalObjectFactories.set(alias, factory);
+                }
+            }
+        } catch { /* sample 取得時のエラーは無視 */ }
     }
 
     private createExternalObject(progId: string): any {

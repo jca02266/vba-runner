@@ -37,6 +37,10 @@ function isTruthy(v: any): boolean {
 export function createRegExpMock(): any {
     const state: any = {
         __isVbaRegExp__: true,
+        // 参照設定相当: VBA で `Dim re As RegExp` / `Set re = New RegExp` と
+        // 書く際の class 名。Evaluator.registerExternalObject はこの値も
+        // 別名としてファクトリに登録する。
+        __className__: 'RegExp',
         pattern: '',
         ignorecase: vbaFalse,
         global: vbaFalse,

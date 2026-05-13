@@ -149,4 +149,47 @@ console.log('--- Starting VBScript.RegExp Mock Tests ---');
     console.log('[PASS] Global=False');
 }
 
+// --- 9. 参照設定相当: `New RegExp` / `Dim re As RegExp` ---
+// registerExternalObject('VBScript.RegExp', createRegExpMock) 1 回の登録で、
+// `CreateObject("VBScript.RegExp")` だけでなく、
+// `Set re = New RegExp` / `Dim re As RegExp` も同じ factory で生成される。
+{
+    const code = `
+        Function CountViaNew(s As String) As Long
+            Dim re As RegExp
+            Set re = New RegExp
+            re.Pattern = "\\d+"
+            re.Global = True
+            CountViaNew = re.Execute(s).Count
+        End Function
+    `;
+    assert.strictEqual(runFunc(code, 'CountViaNew', ['1 22 333']), 3, 'New RegExp で 3 マッチ');
+    console.log('[PASS] 参照設定相当 (New RegExp)');
+}
+
+// --- 10. CreateObject と New が同じ動作 ---
+{
+    const code = `
+        Function MatchByCreateObject(s As String) As Boolean
+            Dim re As Object
+            Set re = CreateObject("VBScript.RegExp")
+            re.Pattern = "[a-z]+"
+            MatchByCreateObject = re.Test(s)
+        End Function
+
+        Function MatchByNew(s As String) As Boolean
+            Dim re As RegExp
+            Set re = New RegExp
+            re.Pattern = "[a-z]+"
+            MatchByNew = re.Test(s)
+        End Function
+    `;
+    assert.strictEqual(
+        runFunc(code, 'MatchByCreateObject', ['hello']),
+        runFunc(code, 'MatchByNew', ['hello']),
+        'CreateObject と New RegExp は同じ結果'
+    );
+    console.log('[PASS] CreateObject と New が同じ動作');
+}
+
 console.log('\n✅ VBScript.RegExp Mock: 全テスト通過');

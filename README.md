@@ -316,6 +316,7 @@ VBA 側の API に合わせて以下を実装します。
 - **メソッド**: 関数フィールドとして書きます（VBA からは `obj.Method(args)` で呼ばれる）。
 - **デフォルトプロパティ（`obj(i)` 形式）**: オブジェクト本体を **関数** にして、追加のプロパティを生やします（例: `SubMatches(i)` や Collection の `Item(i)`）。
 - **`For Each` 対応**: 関数 / オブジェクトに `[Symbol.iterator]` を実装する。
+- **参照設定 (`Dim x As ClassName` / `New ClassName`) 対応** *(任意)*: factory が返すオブジェクトに `__className__: 'クラス名'` を含めると、その名前でも自動的に別名登録されます。
 
 #### サンプル: `VBScript.RegExp` のモック
 
@@ -328,6 +329,7 @@ import { vbaTrue, vbaFalse } from '../src/compiler/evaluator';
 export function createRegExpMock(): any {
     const state: any = {
         __isVbaRegExp__: true,
+        __className__: 'RegExp',   // ★ 参照設定相当: New RegExp / Dim x As RegExp で使う名前
         pattern: '',
         ignorecase: vbaFalse,
         global: vbaFalse,
@@ -348,14 +350,16 @@ import { VBATest, assert } from '../../test-libs/test-runner';
 import { createRegExpMock } from '../../test-libs/regexp-mock';
 
 const vbaTest = new VBATest('macro.vba');
+// 1 回の登録で「CreateObject」も「New / Dim As」も同じ factory が使われる
 vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
 
-// VBA 側で CreateObject("VBScript.RegExp") を呼ぶと createRegExpMock() が使われる
 const result = vbaTest.run('CountDigits', ['abc 123 def 456']);
 assert.strictEqual(result, 2);
 ```
 
-VBA 側のコード例:
+VBA 側のコード例 — どちらの書き方も同じ結果になります：
+
+**`CreateObject` 経由（progId 文字列）:**
 ```vba
 Function CountDigits(s As String) As Long
     Dim re As Object
@@ -366,7 +370,25 @@ Function CountDigits(s As String) As Long
 End Function
 ```
 
-> **動作確認**: `tests/test-libs-tests/regexp-mock.test.ts` に動作テストがあります。
+**参照設定相当（`New` 演算子）:**
+```vba
+Function CountDigits(s As String) As Long
+    Dim re As RegExp           ' 型として直接参照
+    Set re = New RegExp        ' New 演算子でインスタンス化
+    re.Pattern = "\d+"
+    re.Global = True
+    CountDigits = re.Execute(s).Count
+End Function
+```
+
+#### 「参照設定」相当が動く仕組み
+
+- `registerExternalObject(progId, factory)` は登録時に factory を 1 度呼び、戻り値の `__className__` プロパティを読み取ります。
+- 値があれば、その class 名（小文字化）でもファクトリを登録します。
+- VBA の `New ClassName` / `Dim x As ClassName` は内部的に同じ class 名 lookup を行うため、`CreateObject` と同じ factory が使われます。
+- `__className__` を持たないオブジェクトを返す factory は `CreateObject` 経由でのみアクセスできます。
+
+> **動作確認**: `tests/test-libs-tests/regexp-mock.test.ts` に `CreateObject` 形式と `New RegExp` 形式の両方を網羅したテストがあります。
 > 同じ仕組みで `MSXML2.XMLHTTP` や自社の独自 COM オブジェクトもモック化できます。
 
 ---
