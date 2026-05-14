@@ -38,7 +38,7 @@ Function Calculate()
 End Function
 `;
 
-loadAndEvaluate(ev1, globalCode, '');  // Registered as Module1
+loadAndEvaluate(ev1, globalCode, 'Module1');  // Registered as Module1
 loadAndEvaluate(ev1, moduleCalcCode, 'Module2');
 
 // Unqualified call to global procedure

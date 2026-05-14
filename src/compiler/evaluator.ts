@@ -1752,7 +1752,10 @@ export class Evaluator {
     }
 
     public setSourceModule(moduleName: string) {
-        this.currentSourceModule = moduleName;
+        if (moduleName === '' && !this.currentSourceModule) {
+            throw new Error("Cannot set empty module name when no module is currently set. Provide an explicit module name (e.g., 'Module1') or use Attribute VB_Name in VBA source.");
+        }
+        this.currentSourceModule = moduleName || this.currentSourceModule;
     }
 
     public evaluate(program: Program) {
@@ -3183,6 +3186,8 @@ export class Evaluator {
     private evaluateAttributeStatement(stmt: AttributeStatement) {
         if (stmt.name.toLowerCase() === 'vb_name') {
             const val = String(this.evaluateExpression(stmt.value)).replace(/"/g, '');
+            // Attribute VB_Name defines the module name for procedures in this source
+            this.currentSourceModule = val;
             this.executingModuleName = val;
         }
     }

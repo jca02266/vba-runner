@@ -98,8 +98,8 @@ Function ModuleFunc()
 End Function
 `;
 
-// グローバルコード（モジュール名なし）
-loadAndEvaluate(ev3, globalCode, '');
+// グローバルコード（Module1 として登録）
+loadAndEvaluate(ev3, globalCode, 'Module1');
 // モジュール名付きコード
 loadAndEvaluate(ev3, moduleZCode, 'ModuleZ');
 
