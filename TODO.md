@@ -476,7 +476,14 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### プロシージャ呼び出しの細部
 
-- ✅ **モジュール修飾付きプロシージャ呼び出し**: `ModuleName.ProcedureName()` による複数ファイル間での同名関数の区別 | `module-qualified-calls.test.ts`
+- ✅ **モジュール修飾付きプロシージャ呼び出し**: `ModuleName.ProcedureName()` による複数ファイル間での同名関数の区別
+  - 実装: `Environment.setProcedureWithModule()` / `getProcedureFromModule()` でモジュール名付き登録・検索
+  - VBA 名前解決優先度（修飾なし呼び出し）:
+    1. グローバルスコープ（モジュール名なし）← 最優先
+    2. 単一モジュール内のプロシージャ（曖昧でない）
+    3. 複数モジュール → 曖昧性エラー（修飾必須）
+  - 曖昧性検出: 複数モジュールに同名プロシージャがある場合、実行時に詳細エラーを発生
+  - テスト: `module-qualified-calls.test.ts`, `ambiguous-procedure-call.test.ts`, `evaluator-scoping.test.ts`
 - ⚠️ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean は正常; 配列・オブジェクトのメンバアクセスはバグあり | `byref-reference-preservation.test.ts`
 - ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
