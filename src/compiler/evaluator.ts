@@ -2217,7 +2217,23 @@ export class Evaluator {
     }
 
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
-        const val = this.evaluateExpression(stmt.right);
+        let val = this.evaluateExpression(stmt.right);
+
+        // FEATURE: Implicit default Value getter (result = obj -> result = obj.Value)
+        // If RHS evaluates to an object with a default Value property, call the getter
+        if (val && typeof val === 'object' && val.__vbaClass__ && !(val instanceof VbaDate) && !(val instanceof VbaBoolean)) {
+            const classDef = val.__classDef__ as ClassDeclaration;
+            if (classDef) {
+                const valueGetter = classDef.procedures.find(
+                    p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === 'value'
+                );
+                if (valueGetter) {
+                    // Call the Value property getter to extract the value
+                    val = this.callClassMethod(val, valueGetter, []);
+                }
+            }
+        }
+
         this.evaluateAssignmentToVariable(stmt.left, val);
     }
 

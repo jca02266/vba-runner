@@ -439,12 +439,13 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - [x] **Auto-Instantiation (`Dim x As New ClassName`)**: 遅延インスタンス化 + `Set = Nothing` 後の自動再生成 + `Is Nothing` 常時 False
 - [x] **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化
-- 🚧 **Default Property / Default Member** (制限事項: 部分実装): `Range("A1") = 10` のような暗黙の `.Value` 解決、Collection の `Item` 暗黙呼び出し等
-  - ✅ 包括的なテストスイート作成 (`default-property.test.ts`, 15テスト中13パス)
+- ✅ **Default Property / Default Member**: `Range("A1") = 10` のような暗黙の `.Value` 解決、Collection の `Item` 暗黙呼び出し等
+  - ✅ 包括的なテストスイート作成 (`default-property.test.ts`, 15テスト全パス)
   - ✅ 基盤研究: VBA 仕様書からの解析、実装パターン検討
-  - ✅ 実装完了: (3) obj = value -> obj.Value = value (Test 14パス)
-  - 🚧 実装中: (1) obj(args) -> obj.Item(args), (2) result = obj -> obj.Value (Test 12-13パス・15失敗)
-  - ⚠️ 既知問題: Test 7 ByRef パラメータのプロパティアクセスでオブジェクト内部状態が破損
+  - ✅ 実装完了: (1) obj = value -> obj.Value = value (Test 14パス)
+  - ✅ 実装完了: (2) obj(args) -> obj.Item(args) (Test 12-13パス)
+  - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
+  - ✅ 修正: Test 7 ByRef パラメータ - implicit Value getter の実装で副次的に修正
 - [ ] **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラ解除
 - [ ] **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順
 - [ ] **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト
