@@ -476,6 +476,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### プロシージャ呼び出しの細部
 
+- ✅ **モジュール修飾付きプロシージャ呼び出し**: `ModuleName.ProcedureName()` による複数ファイル間での同名関数の区別 | `module-qualified-calls.test.ts`
 - ⚠️ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean は正常; 配列・オブジェクトのメンバアクセスはバグあり | `byref-reference-preservation.test.ts`
 - ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
