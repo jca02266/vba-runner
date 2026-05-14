@@ -497,11 +497,33 @@ export class Environment {
             }
         }
 
+        // Also search for module-qualified procedures (e.g., "module:procname")
+        // This allows calling module-scoped procedures without qualification
+        for (const [key, proc] of this.procedures.entries()) {
+            const matches = type
+                ? key === `${baseKey}:${type}` || key.endsWith(`:${baseKey}:${type}`)
+                : key === baseKey || key === `${baseKey}:get` ||
+                  key.endsWith(`:${baseKey}`) || key.endsWith(`:${baseKey}:get`);
+            if (matches) {
+                return proc;
+            }
+        }
+
         let env: Environment | undefined = this.enclosing;
         while (env) {
             for (const key of keysToTry) {
                 if (env.procedures.has(key)) {
                     return env.procedures.get(key);
+                }
+            }
+            // Also search for module-qualified procedures in enclosing scopes
+            for (const [key, proc] of env.procedures.entries()) {
+                const matches = type
+                    ? key === `${baseKey}:${type}` || key.endsWith(`:${baseKey}:${type}`)
+                    : key === baseKey || key === `${baseKey}:get` ||
+                      key.endsWith(`:${baseKey}`) || key.endsWith(`:${baseKey}:get`);
+                if (matches) {
+                    return proc;
                 }
             }
             env = env.enclosing;

@@ -83,7 +83,7 @@ const crossModuleResult = ev2.callProcedure('ModuleA.CallHelper', []);
 assert.strictEqual(crossModuleResult, 42, 'ModuleA から ModuleB のプロシージャを呼び出し');
 console.log('[PASS] モジュールをまたいだプロシージャ呼び出し');
 
-// --- 3. モジュール修飾なしでも同名プロシージャは修飾付きでのみ呼び出し可能 ---
+// --- 3. モジュール内のプロシージャは修飾あり/なしどちらでも呼び出し可能 ---
 const ev3 = new Evaluator(console.log);
 
 const globalCode = `
@@ -108,9 +108,13 @@ const globalResult = ev3.callProcedure('GlobalFunc', []);
 assert.strictEqual(globalResult, 999, 'グローバル関数は修飾なしで呼び出し可能');
 
 // モジュール関数は修飾付きで呼び出し可能
-const moduleResult = ev3.callProcedure('ModuleZ.ModuleFunc', []);
-assert.strictEqual(moduleResult, 333, 'モジュール関数は修飾付きで呼び出し可能');
+const moduleResultQualified = ev3.callProcedure('ModuleZ.ModuleFunc', []);
+assert.strictEqual(moduleResultQualified, 333, 'モジュール関数は修飾付きで呼び出し可能');
 
-console.log('[PASS] モジュール修飾の厳密な呼び出し分け');
+// モジュール関数は修飾なしでも呼び出し可能（唯一の同名関数の場合）
+const moduleResultUnqualified = ev3.callProcedure('ModuleFunc', []);
+assert.strictEqual(moduleResultUnqualified, 333, 'モジュール関数は修飾なしでも呼び出し可能');
+
+console.log('[PASS] モジュール内プロシージャは修飾あり/なしで呼び出し可能');
 
 console.log('[PASS] モジュール修飾付きプロシージャ呼び出し - 全テスト完了');
