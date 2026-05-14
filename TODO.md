@@ -464,8 +464,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### Variant 配列とコレクション
 
 - [ ] **2 次元 Variant 配列の `For Each` 挙動**: 行優先 vs 列優先の反復順
-- ✅ **Array() で作る Variant 配列の境界**: `LBound = 0`、明示的 `Option Base` の効果
-- ✅ **`ReDim Preserve` の多次元配列での制約**: 最終次元のみ変更可
+- ✅ **Array() で作る Variant 配列の境界**: `LBound = 0`、明示的 `Option Base` の効果 | `array-lbound-defaults.test.ts`
+- ✅ **`ReDim Preserve` の多次元配列での制約**: 最終次元のみ変更可 | `redim-preserve-multidim.test.ts`
 
 ### エラーハンドリング
 
