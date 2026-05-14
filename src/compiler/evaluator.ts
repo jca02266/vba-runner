@@ -3609,17 +3609,155 @@ export class Evaluator {
     }
 
     private evaluateDateLiteral(expr: DateLiteral): any {
-        // Ensure UTC for consistency in serial numbers
-        let d = new Date(expr.value);
+        const parsed = this.parseDateLiteral(expr.value);
+        if (!parsed) {
+            throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
+        }
+        const d = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute, parsed.second));
         if (isNaN(d.getTime())) {
             throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
         }
-        // If it's a date-only string like "yyyy-mm-dd", JS Date(string) might treat it as UTC already,
-        // but it's better to be explicit.
-        if (/^\d{4}-\d{2}-\d{2}$/.test(expr.value)) {
-            d = new Date(expr.value + "T00:00:00Z");
-        }
         return new VbaDate(toVbaDate(d));
+    }
+
+    private parseDateLiteral(dateStr: string): { year: number, month: number, day: number, hour: number, minute: number, second: number } | null {
+        // Month names mapping
+        const monthMap: Record<string, number> = {
+            'january': 1, 'february': 2, 'march': 3, 'april': 4, 'may': 5, 'june': 6,
+            'july': 7, 'august': 8, 'september': 9, 'october': 10, 'november': 11, 'december': 12,
+            'jan': 1, 'feb': 2, 'mar': 3, 'apr': 4, 'jun': 6, 'jul': 7,
+            'aug': 8, 'sep': 9, 'oct': 10, 'nov': 11, 'dec': 12
+        };
+
+        // Parse date and time components
+        const timeMatch = dateStr.match(/(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*([ap]\.?m\.?)?/i);
+        let dateComponent = dateStr;
+        let hour = 0, minute = 0, second = 0;
+
+        if (timeMatch) {
+            hour = parseInt(timeMatch[1], 10);
+            minute = parseInt(timeMatch[2], 10);
+            second = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+            const ampm = timeMatch[4];
+            if (ampm && /^p/i.test(ampm) && hour < 12) hour += 12;
+            if (ampm && /^a/i.test(ampm) && hour === 12) hour = 0;
+            dateComponent = dateStr.replace(timeMatch[0], '').trim();
+        }
+
+        // Extract date components (up to 3 parts separated by /, -, or whitespace+comma)
+        const parts = dateComponent.split(/[\/\-,\s]+/).filter(p => p.length > 0);
+        if (parts.length === 0 || parts.length > 3) return null;
+
+        // Parse each part (number or month name)
+        const parsed: (number | string)[] = [];
+        for (const part of parts) {
+            if (/^\d+$/.test(part)) {
+                parsed.push(parseInt(part, 10));
+            } else {
+                const monthNum = monthMap[part.toLowerCase()];
+                if (monthNum) {
+                    parsed.push(monthNum);
+                } else {
+                    return null;
+                }
+            }
+        }
+
+        let month: number, day: number, year: number;
+        const currentYear = new Date().getFullYear();
+
+        if (parsed.length === 2) {
+            // Two components: try mm/dd or dd/mm
+            const [L, M] = parsed;
+            if (typeof L === 'number' && typeof M === 'number') {
+                // Rule: If L is valid month and M is valid day, L=month, M=day, year=current
+                if (this.isValidMonth(L) && this.isValidDay(L, M, currentYear)) {
+                    month = L; day = M; year = currentYear;
+                } else if (this.isValidMonth(M) && this.isValidDay(M, L, currentYear)) {
+                    // Otherwise if M is valid month and L is valid day, M=month, L=day
+                    month = M; day = L; year = currentYear;
+                } else {
+                    return null;
+                }
+            } else {
+                // One part is a month name
+                let monthNum: number, dayNum: number;
+                if (typeof L === 'string') {
+                    monthNum = L as any;
+                    dayNum = M as number;
+                } else {
+                    monthNum = M as any;
+                    dayNum = L as number;
+                }
+                if (this.isValidDay(monthNum, dayNum, currentYear)) {
+                    month = monthNum;
+                    day = dayNum;
+                    year = currentYear;
+                } else {
+                    month = monthNum;
+                    day = 1;
+                    year = dayNum;
+                }
+            }
+        } else if (parsed.length === 3) {
+            // Three components: try mm/dd/yyyy, dd/mm/yyyy, etc.
+            const [L, M, R] = parsed;
+            if (typeof L === 'number' && typeof M === 'number' && typeof R === 'number') {
+                // Rule: If L is valid month and M is valid day in that month with year R, use that
+                if (this.isValidMonth(L) && this.isValidDay(L, M, R)) {
+                    month = L; day = M; year = R;
+                } else if (this.isValidMonth(M) && this.isValidDay(M, R, L)) {
+                    // Otherwise if M is valid month and R is valid day in that month with year L
+                    month = M; day = R; year = L;
+                } else if (this.isValidMonth(M) && this.isValidDay(M, L, R)) {
+                    // Otherwise if M is valid month and L is valid day in that month with year R
+                    month = M; day = L; year = R;
+                } else {
+                    return null;
+                }
+            } else {
+                // One part is a month name - find which one and apply rules
+                let monthNum: number, n1: number, n2: number;
+                if (typeof L === 'string') {
+                    monthNum = L as any; n1 = M as number; n2 = R as number;
+                } else if (typeof M === 'string') {
+                    monthNum = M as any; n1 = L as number; n2 = R as number;
+                } else {
+                    monthNum = R as any; n1 = L as number; n2 = M as number;
+                }
+                // Try both possibilities
+                if (this.isValidDay(monthNum, n1, n2)) {
+                    month = monthNum; day = n1; year = n2;
+                } else if (this.isValidDay(monthNum, n2, n1)) {
+                    month = monthNum; day = n2; year = n1;
+                } else {
+                    return null;
+                }
+            }
+        } else {
+            return null;
+        }
+
+        // Handle two-digit years (sliding window: 00-99 -> 2000-2099 for now)
+        if (year < 100) {
+            year += 2000;
+        }
+
+        return { year, month, day, hour, minute, second };
+    }
+
+    private isValidMonth(m: number): boolean {
+        return m >= 1 && m <= 12;
+    }
+
+    private isValidDay(month: number, day: number, year: number): boolean {
+        if (day < 1) return false;
+        const daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        // Leap year check
+        if (month === 2 && ((year % 4 === 0 && year % 100 !== 0) || year % 400 === 0)) {
+            return day <= 29;
+        }
+        return day <= daysInMonth[month - 1];
     }
 
     /**
@@ -4186,17 +4324,23 @@ export class Evaluator {
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
                 return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
-            case '=': 
+            case '=':
                 if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
                     return leftVal.code === rightVal.code ? vbaTrue : vbaFalse;
+                }
+                if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) {
+                    return leftVal.value === rightVal.value ? vbaTrue : vbaFalse;
                 }
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() === rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal === rightVal ? vbaTrue : vbaFalse;
-            case '<>': 
+            case '<>':
                 if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
                     return leftVal.code !== rightVal.code ? vbaTrue : vbaFalse;
+                }
+                if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) {
+                    return leftVal.value !== rightVal.value ? vbaTrue : vbaFalse;
                 }
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
