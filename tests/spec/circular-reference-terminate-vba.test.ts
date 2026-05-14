@@ -2,6 +2,7 @@ import * as path from 'path';
 import { VBATest } from '../../test-libs/test-runner';
 
 // Load all VBA files from the vba/ directory (includes .cls and .vba files)
+// VBA test files use _Test suffix for grouping related test artifacts
 const vbaDir = path.join(__dirname, 'vba');
 const vbaTest = new VBATest(vbaDir);
 

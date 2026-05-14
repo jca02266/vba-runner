@@ -1,7 +1,7 @@
-' CircularRefB.cls
+' CircularRefB_Test.cls
 ' Test class for circular reference testing
 
-Class CircularRefB
+Class CircularRefB_Test
     Public RefA As Object
     Public Helper As Object
 
