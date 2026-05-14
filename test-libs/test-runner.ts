@@ -37,7 +37,6 @@ export class VBATest {
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
             }
         }
-        this.evaluator.setSourceModule('');
     }
 
     run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {
