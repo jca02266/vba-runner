@@ -230,9 +230,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     `;
 
     const result = runFunc(code, 'TestPropertyByRef');
-    // SKIP: Known bug - ByRef parameter property access returns [object Object]
-    // assert.strictEqual(result, 15, 'ByRef parameter with property works');
-    console.log('[SKIP] ByRef parameter with property access - Known issue');
+    assert.strictEqual(result, 15, 'ByRef parameter with property works');
+    console.log('[PASS] ByRef parameter with property access');
 }
 
 // Test 8: Property returning object
