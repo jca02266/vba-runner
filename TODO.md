@@ -484,7 +484,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     3. 複数モジュール → 曖昧性エラー（修飾必須）
   - 曖昧性検出: 複数モジュールに同名プロシージャがある場合、実行時に詳細エラーを発生
   - テスト: `module-qualified-calls.test.ts`, `ambiguous-procedure-call.test.ts`, `evaluator-scoping.test.ts`
-- ⚠️ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean は正常; 配列・オブジェクトのメンバアクセスはバグあり | `byref-reference-preservation.test.ts`
+- ✅ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean・配列・オブジェクト全て正常動作 | `byref-reference-preservation.test.ts`
 - ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
 - ✅ **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度 | `property-resolution-order.test.ts`
@@ -499,7 +499,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### 文字列処理
 
-- ⚠️ **`Like` 演算子の文字クラス `[a-z]` 詳細**: 範囲外文字・特殊エスケープの扱い (制限事項: 基本的な[abc]パターンのみ対応、a-zのような範囲未対応) | `like-charclass.test.ts`
+- ✅ **`Like` 演算子の文字クラス `[a-z]` 詳細**: 範囲外文字・特殊エスケープの扱い全て対応済み | `like-charclass.test.ts`
 - ✅ **`Mid$` 代入文の長さ規則**: 元文字列長を超える代入の挙動 | `mid-statement-length.test.ts`
 - ✅ **`StrComp` の Option Compare 影響**: モジュールレベル設定の伝播 | `strcomp-option-compare.test.ts`
 - ✅ **ANSI/Unicode 切り替え**: `StrConv(..., vbFromUnicode)` 等の挙動 | `strconv-unicode.test.ts`
