@@ -479,7 +479,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ⚠️ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean は正常; 配列・オブジェクトのメンバアクセスはバグあり | `byref-reference-preservation.test.ts`
 - ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
-- [ ] **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度
+- ✅ **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度 | `property-resolution-order.test.ts`
 - ✅ **暗黙の Let（`Call` なしの呼び出し）**: 戻り値が破棄される / されない場面 | `implicit-let.test.ts`
 
 ### 数値・日付の演算
