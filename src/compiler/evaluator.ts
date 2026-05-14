@@ -2221,6 +2221,50 @@ export class Evaluator {
         this.evaluateAssignmentToVariable(stmt.left, val);
     }
 
+    /**
+     * VBA Let-coercion: 宣言型に合わせて値を強制変換する。
+     * 現在は Boolean のみサポート。他の型（Integer/Long/...）の coercion は後続作業。
+     */
+    private coerceToDeclaredType(val: any, vbaType: string): any {
+        // Null は数値・Boolean 型では「Invalid use of Null (Error 94)」
+        if (val === vbaNull) {
+            const errorTypes = new Set(['Boolean', 'Byte', 'Integer', 'Long', 'LongLong', 'Single', 'Double', 'Currency', 'Date']);
+            if (errorTypes.has(vbaType)) {
+                throw { type: 'VbaError', number: 94, message: 'Invalid use of Null' };
+            }
+            return val;
+        }
+        switch (vbaType) {
+            case 'Boolean':
+                return this.coerceToBoolean(val);
+            default:
+                return val;  // 他の型の coercion は今後実装
+        }
+    }
+
+    private coerceToBoolean(val: any): VbaBoolean {
+        if (val instanceof VbaBoolean) return val;
+        if (val === vbaEmpty) return vbaFalse;
+        if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
+        if (typeof val === 'string') {
+            const trimmed = val.trim();
+            // VBA: 大文字小文字無視で "True"/"False" を判定
+            const lc = trimmed.toLowerCase();
+            if (lc === 'true') return vbaTrue;
+            if (lc === 'false') return vbaFalse;
+            // 数値表現として解釈
+            if (trimmed === '') {
+                throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+            }
+            const n = Number(trimmed);
+            if (isNaN(n)) {
+                throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+            }
+            return n !== 0 ? vbaTrue : vbaFalse;
+        }
+        throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+    }
+
     private evaluateAssignmentToVariable(left: Expression, val: any) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
@@ -2232,7 +2276,12 @@ export class Evaluator {
             // Special case: assigning to current function/property name (return value)
             if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
                 if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
-                    this.env.setLocally(name, val);
+                    // 関数の戻り値も宣言された返り値型に Let-coercion される
+                    const retType = this.currentProcedureType === 'function'
+                        ? this.env.getVariableType(name)  // 関数名は変数型として記録される
+                        : null;
+                    const coerced = retType ? this.coerceToDeclaredType(val, retType.vbaType) : val;
+                    this.env.setLocally(name, coerced);
                     return;
                 }
             }
@@ -2241,6 +2290,12 @@ export class Evaluator {
             if (proc) {
                 this.callProcedure(name, [val], 'let');
                 return;
+            }
+
+            // Let-coercion: 宣言型に合わせて値を変換
+            const typeInfo = this.env.getVariableType(name);
+            if (typeInfo) {
+                val = this.coerceToDeclaredType(val, typeInfo.vbaType);
             }
             this.env.set(name, val);
         } else if (left.type === 'CallExpression') {
