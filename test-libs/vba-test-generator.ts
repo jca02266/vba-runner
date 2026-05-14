@@ -36,21 +36,37 @@ export class VBATestGenerator {
     }
 
     /**
+     * モジュール名を抽出（ファイル名から .vba 拡張子を除いたもの）
+     * @param filePath ファイルパス
+     * @returns モジュール名
+     */
+    static extractModuleName(filePath: string): string {
+        return path.basename(filePath, '.vba');
+    }
+
+    /**
      * 実VBA環境で動作するテストランナー Sub を生成
      * @param testProcedures テストプロシージャ名の配列
      * @param hasSetUp SetUp Sub があるか
      * @param hasTearDown TearDown Sub があるか
      * @param runnerName ランナーの Sub 名（デフォルト: RunAllTests）
+     * @param moduleName モジュール名（省略可）- 指定されない場合は修飾なしで生成
      * @returns VBA Sub ソースコード
      */
-    static generateTestRunner(testProcedures: string[], hasSetUp: boolean = false, hasTearDown: boolean = false, runnerName: string = 'RunAllTests'): string {
+    static generateTestRunner(testProcedures: string[], hasSetUp: boolean = false, hasTearDown: boolean = false, runnerName: string = 'RunAllTests', moduleName?: string): string {
         if (testProcedures.length === 0) {
             return `' No test procedures found\nSub ${runnerName}()\n    MsgBox "No test procedures found"\nEnd Sub\n`;
         }
 
+        // 修飾プレフィックス（モジュール名が指定されている場合のみ使用）
+        const modulePrefix = moduleName ? `${moduleName}.` : '';
+
         // テストランナー Sub の生成（実VBA環境で動作）
         let runner = `' Auto-generated test runner from vba-test-generator\n`;
         runner += `' Run this Sub in Excel VBA environment to execute all tests\n`;
+        if (moduleName) {
+            runner += `' Module-qualified calls: ${modulePrefix}TestProcedures\n`;
+        }
         if (hasSetUp || hasTearDown) {
             runner += `' Note: SetUp/TearDown will be called before/after each test\n`;
         }
@@ -72,13 +88,13 @@ export class VBATestGenerator {
             // SetUp を呼び出す
             if (hasSetUp) {
                 runner += `    On Error Resume Next\n`;
-                runner += `    SetUp\n`;
+                runner += `    ${modulePrefix}SetUp\n`;
                 runner += `    On Error GoTo 0\n`;
             }
 
             // テストを実行
             runner += `    On Error Resume Next\n`;
-            runner += `    If ${testProc}() Then\n`;
+            runner += `    If ${modulePrefix}${testProc}() Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
             runner += `        passCount = passCount + 1\n`;
             runner += `    Else\n`;
@@ -91,7 +107,7 @@ export class VBATestGenerator {
             // TearDown を呼び出す
             if (hasTearDown) {
                 runner += `    On Error Resume Next\n`;
-                runner += `    TearDown\n`;
+                runner += `    ${modulePrefix}TearDown\n`;
                 runner += `    On Error GoTo 0\n`;
             }
 
@@ -116,8 +132,9 @@ export class VBATestGenerator {
      * @param inputFilePath 入力 VBA ファイルパス
      * @param outputFilePath 出力ファイルパス（指定しない場合は stdout）
      * @param runnerName ランナー Sub の名前
+     * @param useModuleQualifier モジュール修飾を使用するか（デフォルト: true）
      */
-    static generateFromFile(inputFilePath: string, outputFilePath?: string, runnerName: string = 'RunAllTests'): void {
+    static generateFromFile(inputFilePath: string, outputFilePath?: string, runnerName: string = 'RunAllTests', useModuleQualifier: boolean = true): void {
         if (!fs.existsSync(inputFilePath)) {
             throw new Error(`File not found: ${inputFilePath}`);
         }
@@ -133,7 +150,13 @@ export class VBATestGenerator {
             if (hasTearDown) console.error(`  - TearDown Sub detected`);
         }
 
-        const runner = this.generateTestRunner(procedures, hasSetUp, hasTearDown, runnerName);
+        // モジュール名を抽出
+        const moduleName = useModuleQualifier ? this.extractModuleName(inputFilePath) : undefined;
+        if (moduleName) {
+            console.error(`  - Module name: ${moduleName}`);
+        }
+
+        const runner = this.generateTestRunner(procedures, hasSetUp, hasTearDown, runnerName, moduleName);
 
         if (outputFilePath) {
             fs.writeFileSync(outputFilePath, runner, 'utf-8');
@@ -147,8 +170,9 @@ export class VBATestGenerator {
      * ディレクトリ内のすべての VBA テストファイルに対してランナーを生成
      * @param dirPath ディレクトリパス
      * @param outputDir 出力ディレクトリ（指定しない場合は元のファイルの隣に _runner.vba で出力）
+     * @param useModuleQualifier モジュール修飾を使用するか（デフォルト: true）
      */
-    static generateForDirectory(dirPath: string, outputDir?: string): void {
+    static generateForDirectory(dirPath: string, outputDir?: string, useModuleQualifier: boolean = true): void {
         if (!fs.existsSync(dirPath)) {
             throw new Error(`Directory not found: ${dirPath}`);
         }
@@ -180,7 +204,7 @@ export class VBATestGenerator {
             }
 
             try {
-                this.generateFromFile(inputPath, outputPath, runnerName);
+                this.generateFromFile(inputPath, outputPath, runnerName, useModuleQualifier);
             } catch (e: any) {
                 console.error(`✗ Error processing ${file}: ${e.message}`);
             }
@@ -198,15 +222,22 @@ if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes
         console.error('VBA Test Generator - Generate test runners from VBA test files');
         console.error('');
         console.error('Usage:');
-        console.error('  vba-test-generator.ts <input.vba> [output.vba]');
-        console.error('  vba-test-generator.ts --dir <directory> [output-directory]');
+        console.error('  vba-test-generator.ts <input.vba> [output.vba] [options]');
+        console.error('  vba-test-generator.ts --dir <directory> [output-directory] [options]');
+        console.error('');
+        console.error('Options:');
+        console.error('  --no-module-qualifier  Do not qualify function calls with module name');
+        console.error('                         (default: module qualifier is enabled for real VBA environments)');
         console.error('');
         console.error('Examples:');
-        console.error('  # Generate and print to stdout');
+        console.error('  # Generate with module qualifiers (for real VBA environments)');
         console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba');
         console.error('');
+        console.error('  # Generate without module qualifiers (for VBA interpreter)');
+        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier');
+        console.error('');
         console.error('  # Generate and save to file');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba tests/spec/vba/Test_CurrencyOperations_runner.vba');
+        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba output.vba');
         console.error('');
         console.error('  # Generate runners for all VBA files in a directory');
         console.error('  npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba');
@@ -217,17 +248,27 @@ if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes
     }
 
     try {
-        if (args[0] === '--dir') {
-            const dirPath = args[1];
-            const outputDir = args[2];
+        // Parse options
+        let useModuleQualifier = true;
+        const optionArgs = args.filter(arg => {
+            if (arg === '--no-module-qualifier') {
+                useModuleQualifier = false;
+                return false;
+            }
+            return true;
+        });
+
+        if (optionArgs[0] === '--dir') {
+            const dirPath = optionArgs[1];
+            const outputDir = optionArgs[2];
             if (!dirPath) {
                 throw new Error('--dir requires a directory path');
             }
-            VBATestGenerator.generateForDirectory(dirPath, outputDir);
+            VBATestGenerator.generateForDirectory(dirPath, outputDir, useModuleQualifier);
         } else {
-            const inputPath = args[0];
-            const outputPath = args[1];
-            VBATestGenerator.generateFromFile(inputPath, outputPath, 'RunAllTests');
+            const inputPath = optionArgs[0];
+            const outputPath = optionArgs[1];
+            VBATestGenerator.generateFromFile(inputPath, outputPath, 'RunAllTests', useModuleQualifier);
         }
     } catch (e: any) {
         console.error(`Error: ${e.message}`);

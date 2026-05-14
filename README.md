@@ -975,7 +975,11 @@ TearDown()
 #### 1. 単一ファイルのテストランナーを生成
 
 ```bash
+# モジュール修飾付き（デフォルト、実 VBA 環境推奨）
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
+
+# モジュール修飾なし（VBA インタープリター環境向け）
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
 ```
 
 **標準出力に VBA テストランナー Sub が表示されます:**
@@ -1042,6 +1046,64 @@ Sub RunAllTests()
     On Error GoTo 0
     ...
 End Sub
+```
+
+#### 3. モジュール修飾（Module Qualification）
+
+テストランナーは、デフォルトで**モジュール修飾**を使用してプロシージャを呼び出します。これにより、複数のモジュールで同じ名前のテスト関数が定義されている場合でも、それぞれを区別して実行できます。
+
+**デフォルト（モジュール修飾あり）:**
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
+```
+
+生成されたコード：
+
+```vba
+Sub RunAllTests()
+    ...
+    ' Module 修飾で呼び出し
+    If Test_CurrencyOperations.TestCurrencyArithmetic() Then
+        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
+        ...
+    End If
+    ...
+End Sub
+```
+
+このモジュール修飾形式は、**実 VBA 環境（Excel マクロなど）で使用するのに適しています**。同じプロジェクト内に複数のテストモジュールがある場合、各モジュール独立してテストを実行できます。
+
+**モジュール修飾なし:**
+
+VBA インタープリター環境など、モジュール修飾が不要な場合は `--no-module-qualifier` オプションを使用してください：
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
+```
+
+生成されたコード：
+
+```vba
+Sub RunAllTests()
+    ...
+    ' 修飾なしで呼び出し
+    If TestCurrencyArithmetic() Then
+        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
+        ...
+    End If
+    ...
+End Sub
+```
+
+**複数ファイルの場合:**
+
+ディレクトリ内のすべてのテストファイルを処理するときも、各ファイルのモジュール名で自動的に修飾されます：
+
+```bash
+# 各ファイル（Test_A.vba, Test_B.vba など）に対して、
+# それぞれ Test_A.TestXxx(), Test_B.TestXxx() のように修飾されたランナーを生成
+npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
 ```
 
 #### 2. ファイルに保存
