@@ -472,7 +472,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`On Error Resume Next` 下の暗黙の `Err.Clear`**: 正常文実行時のクリア（または非クリア）タイミング | `err-clear-timing.test.ts`
 - ✅ **`Resume` の対象決定**: エラー発生点・Resume Next・Resume <label> の正確な制御フロー | `resume-statement-target.test.ts`
 - ✅ **エラーハンドラ内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
-- [ ] **`Erl` 関数**: エラー発生行番号の取得（要 lexer の行番号付与）
+- ⚠️ **`Erl` 関数**: エラー発生行番号の取得（制限事項: MS-VBAL spec未定義、line number tracking未実装） | `erl-function.test.ts`
 
 ### プロシージャ呼び出しの細部
 
