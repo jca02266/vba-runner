@@ -494,7 +494,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ⚠️ **`Like` 演算子の文字クラス `[a-z]` 詳細**: 範囲外文字・特殊エスケープの扱い (制限事項: 基本的な[abc]パターンのみ対応、a-zのような範囲未対応) | `like-charclass.test.ts`
 - ✅ **`Mid$` 代入文の長さ規則**: 元文字列長を超える代入の挙動 | `mid-statement-length.test.ts`
 - ✅ **`StrComp` の Option Compare 影響**: モジュールレベル設定の伝播 | `strcomp-option-compare.test.ts`
-- [ ] **ANSI/Unicode 切り替え**: `StrConv(..., vbFromUnicode)` 等の挙動
+- ✅ **ANSI/Unicode 切り替え**: `StrConv(..., vbFromUnicode)` 等の挙動 | `strconv-unicode.test.ts`
 
 ### Late Binding 周辺
 
