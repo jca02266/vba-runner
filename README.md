@@ -977,17 +977,15 @@ TearDown()
 **npm scripts を使用（推奨）:**
 
 ```bash
-# モジュール修飾付き（デフォルト、実 VBA 環境推奨）
 npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba
 
-# モジュール修飾なし（VBA インタープリター環境向け）
+# モジュール修飾なし
 npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
 ```
 
 **ts-node を使用（ts-node インストール時）:**
 
 ```bash
-# モジュール修飾付き（デフォルト）
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
 
 # モジュール修飾なし
@@ -1093,11 +1091,9 @@ Sub RunAllTests()
 End Sub
 ```
 
-このモジュール修飾形式は、**実 VBA 環境（Excel マクロなど）で使用するのに適しています**。同じプロジェクト内に複数のテストモジュールがある場合、各モジュール独立してテストを実行できます。
-
 **モジュール修飾なし:**
 
-VBA インタープリター環境など、モジュール修飾が不要な場合は `--no-module-qualifier` オプションを使用してください：
+モジュール修飾を不要とする場合は `--no-module-qualifier` オプションを使用してください：
 
 ```bash
 npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
