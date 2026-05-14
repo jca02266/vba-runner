@@ -1563,13 +1563,19 @@ export class Evaluator {
 
     private triggerTerminate(obj: any) {
         if (obj && obj.__vbaClass__) {
+            // VBA spec: Class_Terminate executes at most once during the lifetime of an object
+            if (obj.__terminateCalled__) {
+                return;
+            }
+            obj.__terminateCalled__ = true;
+
             const classDef = obj.__classDef__ as ClassDeclaration;
             const terminateProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_terminate');
             if (terminateProc) {
                 try {
                     this.callClassMethod(obj, terminateProc, []);
                 } catch (e) {
-                    // Errors in Terminate are typically suppressed or handled specially in VBA, 
+                    // Errors in Terminate are typically suppressed or handled specially in VBA,
                     // but for now let's just log or ignore to prevent crashing the lifecycle
                     console.error("Error in Class_Terminate:", e);
                 }
@@ -2910,6 +2916,30 @@ export class Evaluator {
                         });
                     }
                 }
+            }
+        } else if (stmt.left.type === 'MemberExpression') {
+            const member = stmt.left as MemberExpression;
+            const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
+            const propName = member.property.name.toLowerCase();
+            if (obj && obj.__vbaClass__) {
+                const classDef = obj.__classDef__ as ClassDeclaration;
+                const instanceEnv = obj.__instanceEnv__ as Environment;
+                const oldVal = instanceEnv.get(propName);
+                if (oldVal !== value) this.triggerTerminate(oldVal);
+                const setter = classDef.procedures.find(
+                    p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
+                );
+                if (setter) {
+                    this.callClassMethod(obj, setter, [value]);
+                } else {
+                    instanceEnv.set(propName, value);
+                }
+            } else if (obj && typeof obj === 'object') {
+                const oldVal = obj[propName];
+                if (oldVal !== value) this.triggerTerminate(oldVal);
+                obj[propName] = value;
+            } else {
+                throw new Error(`Execution error: Cannot set property '${propName}' of undefined or primitive`);
             }
         } else {
             throw new Error(`Execution error: Unsupported Set target ${stmt.left.type}`);
