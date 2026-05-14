@@ -3446,7 +3446,7 @@ export class Evaluator {
     private evaluateReDimStatement(stmt: ReDimStatement) {
         const varName = stmt.name.name;
         const oldArr = this.env.get(varName);
-        
+
         let defaultValue: any = 0;
         if (stmt.objectType) {
             const t = stmt.objectType.toLowerCase();
@@ -3457,6 +3457,37 @@ export class Evaluator {
         }
 
         if (stmt.bounds.length > 0) {
+            // Validate ReDim Preserve constraints for multi-dimensional arrays
+            if (stmt.isPreserve && Array.isArray(oldArr) && (oldArr as any).__vbaDimensions__) {
+                const oldDims = (oldArr as any).__vbaDimensions__ as { lower: number, upper: number }[];
+
+                // Evaluate new bounds
+                const newDims = stmt.bounds.map(bound => {
+                    const lower = bound.lower ? this.evaluateExpression(bound.lower) : 0;
+                    const upper = this.evaluateExpression(bound.upper);
+                    return { lower, upper };
+                });
+
+                // Check constraint 1: Number of dimensions cannot change
+                if (newDims.length !== oldDims.length) {
+                    this.throwVbaError(9, "Subscript out of range");
+                }
+
+                // Check constraint 2: Lower bound of any dimension cannot change
+                for (let i = 0; i < newDims.length; i++) {
+                    if (newDims[i].lower !== oldDims[i].lower) {
+                        this.throwVbaError(9, "Subscript out of range");
+                    }
+                }
+
+                // Check constraint 3: Upper bound of any dimension other than the last cannot change
+                for (let i = 0; i < newDims.length - 1; i++) {
+                    if (newDims[i].upper !== oldDims[i].upper) {
+                        this.throwVbaError(9, "Subscript out of range");
+                    }
+                }
+            }
+
             const arr = this.createMultiDimArray(stmt.bounds, defaultValue);
             (arr as any).vbaFixed = false;
 
