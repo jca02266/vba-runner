@@ -4095,7 +4095,7 @@ export class Evaluator {
                 return leftVal / rightVal;
             case '\\':
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
-                return Math.floor(leftVal / rightVal);
+                return Math.trunc(leftVal / rightVal);
             case 'mod':
                 if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
                 return leftVal % rightVal;
