@@ -839,3 +839,206 @@ VBAには `Integer` (16bit), `Long` (32bit), `Double` (64bit float) 等の厳密
 ### 4. 外部コマンドの実行 (Shell)
 - **制限**: セキュリティおよびユニットテストへの集中を目的とし、`Shell` 関数は外部コマンドを実際に実行しません。
 - **挙動**: 実行しようとしたコマンドの内容を `Debug.Print` 相当の出力としてログに記録し、固定のタスクID（1）を返します。
+
+## VBA でテストを書き、実環境で実行する
+
+VBA で直接テストコードを記述し、実 VBA 環境（Excel など）で実行するための仕組みを提供しています。このアプローチは、**Excel マクロ環境で直接動作を検証したい場合**に適しています。
+
+### VBA テストコードの書き方
+
+`tests/spec/vba/` ディレクトリに VBA ファイルを配置し、テストプロシージャを `Test*` パターンで定義します。各テストプロシージャは **Boolean を戻り値とする Function** として記述します。
+
+#### テストプロシージャの命名規則
+
+- テストプロシージャは `Function Test<機能名>() As Boolean` の形式で定義
+- プロシージャ名は `Test` で始まる必要があります（例: `TestCurrencyArithmetic`, `TestStringConcatenation`）
+- 戻り値は Boolean（成功時 `True`, 失敗時 `False`）
+
+#### テストプロシージャの記述例
+
+```vba
+' tests/spec/vba/Test_CurrencyOperations.vba
+Option Explicit
+
+' Test 1: Basic Currency arithmetic
+Function TestCurrencyArithmetic() As Boolean
+    Dim c1 As Currency
+    Dim c2 As Currency
+    Dim result As Currency
+
+    c1 = 100.25
+    c2 = 50.75
+    result = c1 + c2
+
+    ' 結果を Boolean で返す
+    TestCurrencyArithmetic = (result = 151#)
+End Function
+
+' Test 2: Currency multiplication with precision
+Function TestCurrencyMultiplication() As Boolean
+    Dim price As Currency
+    Dim quantity As Currency
+    Dim total As Currency
+
+    price = 19.99
+    quantity = 3
+    total = price * quantity
+
+    TestCurrencyMultiplication = (total = 59.97)
+End Function
+
+' Test 3: Currency division
+Function TestCurrencyDivision() As Boolean
+    Dim total As Currency
+    Dim count As Currency
+    Dim average As Currency
+
+    total = 100#
+    count = 4
+    average = total / count
+
+    TestCurrencyDivision = (average = 25#)
+End Function
+```
+
+### テストランナーの自動生成
+
+`test-libs/vba-test-generator.ts` ツールを使用して、VBA テストファイル内のすべての `Test*` プロシージャを検出し、**実 VBA 環境で動作するテストランナー Sub** を自動生成できます。
+
+#### 1. 単一ファイルのテストランナーを生成
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
+```
+
+**標準出力に VBA テストランナー Sub が表示されます:**
+
+```vba
+' Auto-generated test runner from vba-test-generator
+' Run this Sub in Excel VBA environment to execute all tests
+Sub RunAllTests()
+    Dim allPass As Boolean
+    Dim passCount As Integer
+    Dim failCount As Integer
+    Dim testResults As String
+    
+    allPass = True
+    passCount = 0
+    failCount = 0
+    testResults = "=== Test Results ===" & vbCrLf & vbCrLf
+
+    ' Execute TestCurrencyArithmetic
+    On Error Resume Next
+    If TestCurrencyArithmetic() Then
+        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
+        passCount = passCount + 1
+    Else
+        testResults = testResults & "[FAIL] TestCurrencyArithmetic" & vbCrLf
+        failCount = failCount + 1
+        allPass = False
+    End If
+    On Error GoTo 0
+
+    ' Execute TestCurrencyMultiplication
+    ' ... (省略)
+    
+    testResults = testResults & vbCrLf
+    testResults = testResults & "=== Test Summary ===" & vbCrLf
+    testResults = testResults & "Total: " & (passCount + failCount) & vbCrLf
+    testResults = testResults & "Passed: " & passCount & vbCrLf
+    testResults = testResults & "Failed: " & failCount & vbCrLf
+    
+    Debug.Print testResults
+    MsgBox testResults, IIf(allPass, vbInformation, vbCritical), "Test Results"
+End Sub
+```
+
+#### 2. ファイルに保存
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba tests/spec/vba/Test_CurrencyOperations_runner.vba
+```
+
+生成されたテストランナーを `Test_CurrencyOperations_runner.vba` に保存します。
+
+#### 3. ディレクトリ内のすべてのテストファイルを処理
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
+```
+
+`tests/spec/vba/` ディレクトリ内のすべての `.vba` ファイルに対してランナーを生成し、各ファイルの隣に `<filename>_runner.vba` として保存します。
+
+#### 4. 別のディレクトリに出力
+
+```bash
+npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners
+```
+
+生成されたテストランナーを `tests/spec/runners/` ディレクトリに保存します。
+
+### 実 VBA 環境でテストを実行
+
+生成されたテストランナー Sub を、Excel または他の VBA 環境で実行します。
+
+#### 手順
+
+1. **Excel を開き、VBA エディタを起動** （Alt + F11）
+2. **テストファイルと生成されたテストランナーをインポート**
+   - 生成された `*_runner.vba` ファイルをコピー
+   - VBA エディタでモジュールを新規作成
+   - テストランナーコードをペースト
+3. **`RunAllTests` Sub を実行** （F5 キーまたは「実行」ボタン）
+4. **結果を確認**
+   - メッセージボックスに結果が表示されます
+   - `Debug.Print` 出力は VBA エディタのイミディエイトウィンドウに表示されます
+
+#### 実行例
+
+```vba
+' VBA Editor で RunAllTests Sub を実行すると以下のような結果が表示されます：
+' === Test Results ===
+'
+' [PASS] TestCurrencyArithmetic
+' [PASS] TestCurrencyMultiplication
+' [PASS] TestCurrencyDivision
+' [PASS] TestCurrencyTaxCalculation
+' [PASS] TestCurrencyArray
+' [PASS] TestCurrencyConversion
+' [PASS] TestCurrencyComparison
+' [PASS] TestCurrencyNegative
+' [PASS] TestCurrencyPrecision
+' [PASS] TestCurrencyFunctionParameter
+'
+' === Test Summary ===
+' Total: 10
+' Passed: 10
+' Failed: 0
+' === Test Complete ===
+```
+
+### テスト書き方のベストプラクティス
+
+1. **テストプロシージャは単一責任**: 各テストプロシージャは 1 つの機能・シナリオのみをテストする
+2. **テストデータは自動初期化**: テストプロシージャ内でテストデータを自動生成・初期化する（外部依存性を避ける）
+3. **明示的な検証**: 処理結果を必ず `TestFunction = (条件)` で Boolean で返す
+4. **独立実行可能**: テストプロシージャ間に依存関係を持たない（実行順序を変えても成功するように）
+5. **エラーハンドリング**: 予期しないエラーが発生した場合、`On Error Resume Next` で catch し、テスト失敗として報告する
+
+### ワークフロー例
+
+```bash
+# 1. テストファイルを作成
+# tests/spec/vba/Test_MyFeature.vba
+
+# 2. テストランナーを生成
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_MyFeature.vba tests/spec/vba/Test_MyFeature_runner.vba
+
+# 3. 生成されたテストランナーをテストコードと一緒に Excel に貼り込む
+# (ファイルをコピーして VBA Editor にペーストするか、ファイルメニューでインポート)
+
+# 4. Excel で RunAllTests を実行
+# (VBA Editor の Run メニュー、または Alt+F5)
+
+# 5. 結果をメッセージボックスと Debug.Print で確認
+```
