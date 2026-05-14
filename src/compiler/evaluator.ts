@@ -477,8 +477,40 @@ export class Environment {
         }
     }
 
+    setProcedureWithModule(name: string, proc: ProcedureDeclaration, moduleName: string) {
+        const baseKey = `${moduleName.toLowerCase()}:${name.toLowerCase()}`;
+        if (proc.isProperty && proc.propertyType) {
+            this.procedures.set(`${baseKey}:${proc.propertyType}`, proc);
+        } else {
+            this.procedures.set(baseKey, proc);
+        }
+    }
+
     getProcedure(name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
         const baseKey = name.toLowerCase();
+        // If type is not specified, try baseKey then baseKey:get
+        const keysToTry = type ? [`${baseKey}:${type}`] : [baseKey, `${baseKey}:get`];
+
+        for (const key of keysToTry) {
+            if (this.procedures.has(key)) {
+                return this.procedures.get(key);
+            }
+        }
+
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            for (const key of keysToTry) {
+                if (env.procedures.has(key)) {
+                    return env.procedures.get(key);
+                }
+            }
+            env = env.enclosing;
+        }
+        return undefined;
+    }
+
+    getProcedureFromModule(name: string, moduleName: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
+        const baseKey = `${moduleName.toLowerCase()}:${name.toLowerCase()}`;
         // If type is not specified, try baseKey then baseKey:get
         const keysToTry = type ? [`${baseKey}:${type}`] : [baseKey, `${baseKey}:get`];
 
@@ -1541,14 +1573,14 @@ export class Evaluator {
             }
         }
 
-        let proc = this.env.getProcedure(procName, type);
+        let proc: ProcedureDeclaration | undefined;
 
-        // If moduleName is specified, filter by module
-        if (extractedModuleName && proc) {
-            const moduleNameLower = extractedModuleName.toLowerCase();
-            if (proc.moduleName?.toLowerCase() !== moduleNameLower) {
-                proc = undefined;
-            }
+        // Try module-qualified lookup first if module name is specified
+        if (extractedModuleName) {
+            proc = this.env.getProcedureFromModule(procName, extractedModuleName, type);
+        } else {
+            // Fall back to non-qualified lookup
+            proc = this.env.getProcedure(procName, type);
         }
 
         if (!proc) {
@@ -1737,7 +1769,15 @@ export class Evaluator {
             case 'ProcedureDeclaration': {
                 const procDecl = stmt as ProcedureDeclaration;
                 procDecl.moduleName = this.currentSourceModule;
-                this.env.setProcedure(procDecl.name.name, procDecl);
+                // Store procedure with module-qualified key to distinguish same-named procedures in different modules
+                const procName = procDecl.name.name;
+                if (this.currentSourceModule) {
+                    // Module-qualified storage: module:procname
+                    this.env.setProcedureWithModule(procName, procDecl, this.currentSourceModule);
+                } else {
+                    // Global scope storage
+                    this.env.setProcedure(procName, procDecl);
+                }
                 break;
             }
             case 'VariableDeclaration':
@@ -4050,7 +4090,6 @@ export class Evaluator {
         } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
             let obj: any;
             let methodNameOriginal: string;
-            let moduleName: string | undefined;
 
             if (expr.callee.type === 'MemberExpression') {
                 const member = expr.callee as MemberExpression;
