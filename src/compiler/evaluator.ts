@@ -491,41 +491,67 @@ export class Environment {
         // If type is not specified, try baseKey then baseKey:get
         const keysToTry = type ? [`${baseKey}:${type}`] : [baseKey, `${baseKey}:get`];
 
+        // Priority 1: Unqualified procedures (global scope)
         for (const key of keysToTry) {
             if (this.procedures.has(key)) {
                 return this.procedures.get(key);
             }
         }
 
-        // Also search for module-qualified procedures (e.g., "module:procname")
-        // This allows calling module-scoped procedures without qualification
+        // Priority 2: Module-qualified procedures with disambiguation
+        // Collect all candidates from current environment
+        const candidates: ProcedureDeclaration[] = [];
         for (const [key, proc] of this.procedures.entries()) {
             const matches = type
                 ? key === `${baseKey}:${type}` || key.endsWith(`:${baseKey}:${type}`)
                 : key === baseKey || key === `${baseKey}:get` ||
                   key.endsWith(`:${baseKey}`) || key.endsWith(`:${baseKey}:get`);
             if (matches) {
-                return proc;
+                candidates.push(proc);
             }
         }
 
+        // Check for ambiguity: multiple module-qualified procedures
+        if (candidates.length > 1) {
+            const modules = candidates.map(p => p.moduleName).filter(m => m).join(', ');
+            throw new Error(`Execution error: Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
+        }
+
+        if (candidates.length === 1) {
+            return candidates[0];
+        }
+
+        // Priority 3: Search in enclosing scopes
         let env: Environment | undefined = this.enclosing;
         while (env) {
+            // Try unqualified first
             for (const key of keysToTry) {
                 if (env.procedures.has(key)) {
                     return env.procedures.get(key);
                 }
             }
-            // Also search for module-qualified procedures in enclosing scopes
+
+            // Then try module-qualified with disambiguation
+            const envCandidates: ProcedureDeclaration[] = [];
             for (const [key, proc] of env.procedures.entries()) {
                 const matches = type
                     ? key === `${baseKey}:${type}` || key.endsWith(`:${baseKey}:${type}`)
                     : key === baseKey || key === `${baseKey}:get` ||
                       key.endsWith(`:${baseKey}`) || key.endsWith(`:${baseKey}:get`);
                 if (matches) {
-                    return proc;
+                    envCandidates.push(proc);
                 }
             }
+
+            if (envCandidates.length > 1) {
+                const modules = envCandidates.map(p => p.moduleName).filter(m => m).join(', ');
+                throw new Error(`Execution error: Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
+            }
+
+            if (envCandidates.length === 1) {
+                return envCandidates[0];
+            }
+
             env = env.enclosing;
         }
         return undefined;
