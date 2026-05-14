@@ -27,3 +27,6 @@ dist-ssr
 
 /spec/
 /sandbox/
+
+# Claude Code lock files
+.claude/**/*.lock
