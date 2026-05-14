@@ -23,7 +23,7 @@ function loadAndEvaluate(evaluator: Evaluator, code: string, moduleName: string)
     evaluator.evaluate(ast);
 }
 
-// --- Test 1: Global procedure takes priority over module procedures ---
+// --- Test 1: Global procedure (Module1) accessible both ways ---
 const ev1 = new Evaluator(console.log);
 
 const globalCode = `
@@ -32,19 +32,24 @@ Function GetValue()
 End Function
 `;
 
-const module1Code = `
-Function GetValue()
-    GetValue = 111
+const moduleCalcCode = `
+Function Calculate()
+    Calculate = 555
 End Function
 `;
 
-loadAndEvaluate(ev1, globalCode, '');
-loadAndEvaluate(ev1, module1Code, 'Module1');
+loadAndEvaluate(ev1, globalCode, '');  // Registered as Module1
+loadAndEvaluate(ev1, moduleCalcCode, 'Module2');
 
-// Unqualified call returns global version
-const result1 = ev1.callProcedure('GetValue', []);
-assert.strictEqual(result1, 999, 'Global procedure takes priority in unqualified call');
-console.log('[PASS] Global procedure priority confirmed');
+// Unqualified call to global procedure
+const result1a = ev1.callProcedure('GetValue', []);
+assert.strictEqual(result1a, 999, 'Global procedure accessible unqualified');
+
+// Qualified call to global procedure via Module1
+const result1b = ev1.callProcedure('Module1.GetValue', []);
+assert.strictEqual(result1b, 999, 'Global procedure accessible as Module1.GetValue');
+
+console.log('[PASS] Global procedure (Module1) accessible both ways');
 
 // --- Test 2: Single module procedure works with unqualified call ---
 const ev2 = new Evaluator(console.log);

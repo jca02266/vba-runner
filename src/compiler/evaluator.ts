@@ -1816,16 +1816,12 @@ export class Evaluator {
                 break;
             case 'ProcedureDeclaration': {
                 const procDecl = stmt as ProcedureDeclaration;
-                procDecl.moduleName = this.currentSourceModule;
+                // Use Module1 as default module name for global scope
+                const moduleName = this.currentSourceModule || 'Module1';
+                procDecl.moduleName = moduleName;
                 // Store procedure with module-qualified key to distinguish same-named procedures in different modules
                 const procName = procDecl.name.name;
-                if (this.currentSourceModule) {
-                    // Module-qualified storage: module:procname
-                    this.env.setProcedureWithModule(procName, procDecl, this.currentSourceModule);
-                } else {
-                    // Global scope storage
-                    this.env.setProcedure(procName, procDecl);
-                }
+                this.env.setProcedureWithModule(procName, procDecl, moduleName);
                 break;
             }
             case 'VariableDeclaration':
