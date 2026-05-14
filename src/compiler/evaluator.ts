@@ -3481,6 +3481,9 @@ export class Evaluator {
                 return this.evaluateExpression((expr as ParenthesizedExpression).expression);
             case 'NewExpression':
                 return this.instantiateClass((expr as NewExpression).className);
+            case 'NamedArgument':
+                // Named arguments should only appear as call arguments, but evaluate the value if encountered
+                return this.evaluateExpression((expr as NamedArgument).value);
             default:
                 throw new Error(`Execution error: Unknown expression type ${expr.type}`);
         }
