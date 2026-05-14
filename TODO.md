@@ -456,7 +456,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - [x] **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
 - [x] **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
 - [x] **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
-- [ ] **Integer/Long のオーバーフロー検出**: VBA 仕様ではエラー、現在は Double として通る
+- ✅ **Integer/Long のオーバーフロー検出**: Error 6 を正しく発生させる (Byte/Integer/Long/Currency/Single)
 - [ ] **`Decimal` 型の精度**: 28 桁の固定精度サポート
 - [ ] **`Currency` 型の精度**: 64-bit 整数 / 10000 の固定小数
 
