@@ -476,7 +476,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### プロシージャ呼び出しの細部
 
-- [ ] **ByRef での文字列・配列・オブジェクトの参照保持**: 内部での再代入が呼び出し元にも反映されるか
+- ⚠️ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean は正常; 配列・オブジェクトのメンバアクセスはバグあり | `byref-reference-preservation.test.ts`
 - ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
 - [ ] **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度
