@@ -7,31 +7,43 @@ import * as path from 'path';
  */
 export class VBATestGenerator {
     /**
-     * VBA ファイルから Test* で始まるプロシージャを検出
+     * VBA ファイルからテスト関連プロシージャを検出
      * @param vbaSource VBA ソースコード
-     * @returns テストプロシージャ名の配列（検出順）
+     * @returns { procedures: テストプロシージャ名の配列, hasSetUp: SetUp があるか, hasTearDown: TearDown があるか }
      */
-    static extractTestProcedures(vbaSource: string): string[] {
+    static extractTestProcedures(vbaSource: string): { procedures: string[], hasSetUp: boolean, hasTearDown: boolean } {
         const testProcedures: string[] = [];
+        let hasSetUp = false;
+        let hasTearDown = false;
+
         // Sub Test*() または Function Test*() パターンを検出
         // 先頭の空白を許容、括弧内の空白も許容
-        const procedurePattern = /^\s*(?:Sub|Function)\s+(Test\w+)\s*\(\s*\)/gim;
+        const procedurePattern = /^\s*(?:Sub|Function)\s+(\w+)\s*\(\s*\)/gim;
 
         let match;
         while ((match = procedurePattern.exec(vbaSource)) !== null) {
-            testProcedures.push(match[1]);
+            const name = match[1];
+            if (name.match(/^Test/i)) {
+                testProcedures.push(name);
+            } else if (name.match(/^SetUp$/i)) {
+                hasSetUp = true;
+            } else if (name.match(/^TearDown$/i)) {
+                hasTearDown = true;
+            }
         }
 
-        return testProcedures;
+        return { procedures: testProcedures, hasSetUp, hasTearDown };
     }
 
     /**
      * 実VBA環境で動作するテストランナー Sub を生成
      * @param testProcedures テストプロシージャ名の配列
+     * @param hasSetUp SetUp Sub があるか
+     * @param hasTearDown TearDown Sub があるか
      * @param runnerName ランナーの Sub 名（デフォルト: RunAllTests）
      * @returns VBA Sub ソースコード
      */
-    static generateTestRunner(testProcedures: string[], runnerName: string = 'RunAllTests'): string {
+    static generateTestRunner(testProcedures: string[], hasSetUp: boolean = false, hasTearDown: boolean = false, runnerName: string = 'RunAllTests'): string {
         if (testProcedures.length === 0) {
             return `' No test procedures found\nSub ${runnerName}()\n    MsgBox "No test procedures found"\nEnd Sub\n`;
         }
@@ -39,6 +51,9 @@ export class VBATestGenerator {
         // テストランナー Sub の生成（実VBA環境で動作）
         let runner = `' Auto-generated test runner from vba-test-generator\n`;
         runner += `' Run this Sub in Excel VBA environment to execute all tests\n`;
+        if (hasSetUp || hasTearDown) {
+            runner += `' Note: SetUp/TearDown will be called before/after each test\n`;
+        }
         runner += `Sub ${runnerName}()\n`;
         runner += `    Dim allPass As Boolean\n`;
         runner += `    Dim passCount As Integer\n`;
@@ -53,6 +68,15 @@ export class VBATestGenerator {
         // 各テストプロシージャの実行コードを生成
         for (const testProc of testProcedures) {
             runner += `    ' Execute ${testProc}\n`;
+
+            // SetUp を呼び出す
+            if (hasSetUp) {
+                runner += `    On Error Resume Next\n`;
+                runner += `    SetUp\n`;
+                runner += `    On Error GoTo 0\n`;
+            }
+
+            // テストを実行
             runner += `    On Error Resume Next\n`;
             runner += `    If ${testProc}() Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
@@ -62,7 +86,16 @@ export class VBATestGenerator {
             runner += `        failCount = failCount + 1\n`;
             runner += `        allPass = False\n`;
             runner += `    End If\n`;
-            runner += `    On Error GoTo 0\n\n`;
+            runner += `    On Error GoTo 0\n`;
+
+            // TearDown を呼び出す
+            if (hasTearDown) {
+                runner += `    On Error Resume Next\n`;
+                runner += `    TearDown\n`;
+                runner += `    On Error GoTo 0\n`;
+            }
+
+            runner += `\n`;
         }
 
         runner += `    testResults = testResults & vbCrLf\n`;
@@ -90,15 +123,17 @@ export class VBATestGenerator {
         }
 
         const vbaSource = fs.readFileSync(inputFilePath, 'utf-8');
-        const testProcedures = this.extractTestProcedures(vbaSource);
+        const { procedures, hasSetUp, hasTearDown } = this.extractTestProcedures(vbaSource);
 
-        if (testProcedures.length === 0) {
+        if (procedures.length === 0) {
             console.warn(`No test procedures found in ${inputFilePath}`);
         } else {
-            console.error(`Found ${testProcedures.length} test procedure(s): ${testProcedures.join(', ')}`);
+            console.error(`Found ${procedures.length} test procedure(s): ${procedures.join(', ')}`);
+            if (hasSetUp) console.error(`  - SetUp Sub detected`);
+            if (hasTearDown) console.error(`  - TearDown Sub detected`);
         }
 
-        const runner = this.generateTestRunner(testProcedures, runnerName);
+        const runner = this.generateTestRunner(procedures, hasSetUp, hasTearDown, runnerName);
 
         if (outputFilePath) {
             fs.writeFileSync(outputFilePath, runner, 'utf-8');
@@ -132,7 +167,7 @@ export class VBATestGenerator {
         for (const file of files) {
             const inputPath = path.join(dirPath, file);
             const baseName = path.basename(file, '.vba');
-            const runnerName = 'RunAllTests';  // 統一したランナー名
+            const runnerName = 'RunAllTests';
 
             let outputPath: string | undefined;
             if (outputDir) {

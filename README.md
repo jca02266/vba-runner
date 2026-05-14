@@ -901,6 +901,73 @@ Function TestCurrencyDivision() As Boolean
 End Function
 ```
 
+#### SetUp と TearDown（テスト前後の処理）
+
+テストランナーは **`SetUp`** と **`TearDown`** というサブルーチンを自動検出し、サポートします。
+
+- **`SetUp` Sub**: 各テストの**実行前**に自動的に呼び出されます。テスト環境の初期化、テストデータの準備などに使用します。
+- **`TearDown` Sub**: 各テストの**実行後**に自動的に呼び出されます。テスト後の後処理、リソース解放などに使用します。
+
+```vba
+' tests/spec/vba/Test_WithSetupTeardown.vba
+Option Explicit
+
+' Global state
+Dim testCounter As Integer
+Dim testState As String
+
+' SetUp - called before each test
+Sub SetUp()
+    testCounter = 0
+    testState = "initialized"
+End Sub
+
+' TearDown - called after each test
+Sub TearDown()
+    testCounter = 0
+    testState = ""
+End Sub
+
+' Test 1: テストはSetUpによって初期化された状態から始まる
+Function TestSetupInitializes() As Boolean
+    TestSetupInitializes = (testCounter = 0) And (testState = "initialized")
+End Function
+
+' Test 2: 各テストは独立して実行される（TearDownにより状態がリセットされる）
+Function TestCounterIncrement() As Boolean
+    testCounter = testCounter + 1
+    testCounter = testCounter + 1
+    TestCounterIncrement = (testCounter = 2)
+End Function
+
+' Test 3: 次のテストも同じ初期状態から開始
+Function TestStateReset() As Boolean
+    TestStateReset = (testCounter = 0)  ' SetUpにより再度 0 にリセットされている
+End Function
+```
+
+**実行フロー:**
+
+```
+SetUp()
+  └─ TestSetupInitializes() → PASS
+TearDown()
+
+SetUp()
+  └─ TestCounterIncrement() → PASS
+TearDown()
+
+SetUp()
+  └─ TestStateReset() → PASS
+TearDown()
+```
+
+**ベストプラクティス:**
+
+- SetUp で共通のテスト環境を準備し、各テストが独立して実行できるようにする
+- TearDown でテスト実行時に作成されたリソースを確実に解放する
+- SetUp/TearDown 内でエラーが発生した場合、`On Error Resume Next` で catch され、テストの実行は継続される
+
 ### テストランナーの自動生成
 
 `test-libs/vba-test-generator.ts` ツールを使用して、VBA テストファイル内のすべての `Test*` プロシージャを検出し、**実 VBA 環境で動作するテストランナー Sub** を自動生成できます。
@@ -950,6 +1017,30 @@ Sub RunAllTests()
     
     Debug.Print testResults
     MsgBox testResults, IIf(allPass, vbInformation, vbCritical), "Test Results"
+End Sub
+```
+
+**SetUp/TearDown がある場合:**
+
+SetUp Sub と TearDown Sub を検出すると、生成されたテストランナーは各テストの前後にこれらを自動的に呼び出します：
+
+```vba
+' SetUp/TearDown を含む場合の生成例
+Sub RunAllTests()
+    ...
+    ' Execute TestSetupInitializes
+    On Error Resume Next
+    SetUp          ' ← 各テストの前に SetUp を呼び出し
+    On Error GoTo 0
+    On Error Resume Next
+    If TestSetupInitializes() Then
+        ...
+    End If
+    On Error GoTo 0
+    On Error Resume Next
+    TearDown       ' ← 各テストの後に TearDown を呼び出し
+    On Error GoTo 0
+    ...
 End Sub
 ```
 
