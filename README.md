@@ -974,12 +974,31 @@ TearDown()
 
 #### 1. 単一ファイルのテストランナーを生成
 
+**npm scripts を使用（推奨）:**
+
 ```bash
 # モジュール修飾付き（デフォルト、実 VBA 環境推奨）
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
+npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba
 
 # モジュール修飾なし（VBA インタープリター環境向け）
+npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
+```
+
+**ts-node を使用（ts-node インストール時）:**
+
+```bash
+# モジュール修飾付き（デフォルト）
+npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
+
+# モジュール修飾なし
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
+```
+
+**直接バンドル済みのツールを使用:**
+
+```bash
+node dist/test-generator.cjs tests/spec/vba/Test_CurrencyOperations.vba
+node dist/test-generator.cjs tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
 ```
 
 **標準出力に VBA テストランナー Sub が表示されます:**
@@ -1055,6 +1074,8 @@ End Sub
 **デフォルト（モジュール修飾あり）:**
 
 ```bash
+npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba
+# または
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba
 ```
 
@@ -1079,6 +1100,8 @@ End Sub
 VBA インタープリター環境など、モジュール修飾が不要な場合は `--no-module-qualifier` オプションを使用してください：
 
 ```bash
+npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
+# または
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba --no-module-qualifier
 ```
 
@@ -1101,14 +1124,19 @@ End Sub
 ディレクトリ内のすべてのテストファイルを処理するときも、各ファイルのモジュール名で自動的に修飾されます：
 
 ```bash
+npm run test-gen --dir tests/spec/vba
+# または
+npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
+
 # 各ファイル（Test_A.vba, Test_B.vba など）に対して、
 # それぞれ Test_A.TestXxx(), Test_B.TestXxx() のように修飾されたランナーを生成
-npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
 ```
 
 #### 2. ファイルに保存
 
 ```bash
+npm run test-gen tests/spec/vba/Test_CurrencyOperations.vba tests/spec/vba/Test_CurrencyOperations_runner.vba
+# または
 npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.vba tests/spec/vba/Test_CurrencyOperations_runner.vba
 ```
 
@@ -1117,6 +1145,8 @@ npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperatio
 #### 3. ディレクトリ内のすべてのテストファイルを処理
 
 ```bash
+npm run test-gen --dir tests/spec/vba
+# または
 npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
 ```
 
@@ -1125,6 +1155,8 @@ npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
 #### 4. 別のディレクトリに出力
 
 ```bash
+npm run test-gen --dir tests/spec/vba tests/spec/runners
+# または
 npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners
 ```
 
