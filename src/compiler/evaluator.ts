@@ -1528,9 +1528,28 @@ export class Evaluator {
         this.env.set(name, value);
     }
 
-    public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set'): any {
-        const procName = name.toLowerCase();
-        const proc = this.env.getProcedure(procName, type);
+    public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string): any {
+        let procName = name.toLowerCase();
+        let extractedModuleName = moduleName;
+
+        // Check if name contains module qualifier (e.g., "ModuleName.ProcedureName")
+        if (!extractedModuleName && procName.includes('.')) {
+            const parts = procName.split('.');
+            if (parts.length === 2) {
+                extractedModuleName = parts[0];
+                procName = parts[1];
+            }
+        }
+
+        let proc = this.env.getProcedure(procName, type);
+
+        // If moduleName is specified, filter by module
+        if (extractedModuleName && proc) {
+            const moduleNameLower = extractedModuleName.toLowerCase();
+            if (proc.moduleName?.toLowerCase() !== moduleNameLower) {
+                proc = undefined;
+            }
+        }
 
         if (!proc) {
             // Fall back to built-in functions stored as closures in env
@@ -1538,7 +1557,7 @@ export class Evaluator {
             if (typeof builtin === 'function') {
                 return builtin(...args);
             }
-            throw new Error(`Execution error: Procedure '${name}' not found`);
+            throw new Error(`Execution error: Procedure '${name}' not found${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
         // Create a new local environment for the procedure call
@@ -4031,9 +4050,29 @@ export class Evaluator {
         } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
             let obj: any;
             let methodNameOriginal: string;
+            let moduleName: string | undefined;
 
             if (expr.callee.type === 'MemberExpression') {
                 const member = expr.callee as MemberExpression;
+
+                // Check if this is a module-qualified procedure call (e.g., Module.Procedure)
+                // member.object is Identifier -> it might be a module name
+                if ((member.object as any).type === 'Identifier') {
+                    const possibleModuleName = (member.object as any).name;
+                    const potentialObj = this.evaluateExpression(member.object);
+
+                    // If evaluating the object gives undefined/null, it might be a module name
+                    if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
+                        // Try as module-qualified procedure call
+                        const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                        try {
+                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
+                        } catch (e) {
+                            // If that fails, fall through to normal object method handling
+                        }
+                    }
+                }
+
                 obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
                 methodNameOriginal = member.property.name;
             } else {

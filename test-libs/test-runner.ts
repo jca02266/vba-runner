@@ -28,7 +28,9 @@ export class VBATest {
         for (const file of files) {
             const source = fs.readFileSync(file, 'utf-8');
             try {
-                this.evaluator.setSourceModule(path.basename(file));
+                // Set module name without file extension
+                const moduleName = path.basename(file, path.extname(file));
+                this.evaluator.setSourceModule(moduleName);
                 const ast = new Parser(new Lexer(source).tokenize()).parse();
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
