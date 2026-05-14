@@ -450,7 +450,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### 型変換と暗黙のキャスト
 
-- [ ] **`Variant` 型の値伝播**: `Variant + Number` の結果型の自動拡張
+- ✅ **`Variant` 型の値伝播**: `Variant + Number` の結果型の自動拡張 (`variant-propagation.test.ts`)
 - [x] **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
 - [x] **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
 - [x] **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
