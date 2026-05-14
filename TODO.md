@@ -447,7 +447,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
   - ✅ 修正: Test 7 ByRef パラメータ - implicit Value getter の実装で副次的に修正
 - ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラ解除 (制限事項: RaiseEventコア存在; ハンドラ自動登録・検出機構未実装、イベントパラメータ解析未対応) | `withevents-lifecycle.test.ts`
-- ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Test_circular_reference_terminate.vba`
+- ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts` (VBA source test は class definition が必要で標準モジュール形式に未対応)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - [ ] **`Implements` インターフェース呼び出し**: 明示キャスト `Set obj = inst` で interface ビューに切り替わる挙動
 
