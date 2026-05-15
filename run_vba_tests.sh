@@ -15,8 +15,8 @@ if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
   VERBOSE=1
 fi
 
-RUNNER_FILE="tests/spec/run-all-vba-tests.test.ts"
-RUNNER_OUT="tests/spec/run-all-vba-tests.test.cjs"
+RUNNER_FILE="tests/spec/vba/run-all-vba-tests.ts"
+RUNNER_OUT="tests/spec/vba/run-all-vba-tests.cjs"
 
 if [ ! -f "$RUNNER_FILE" ]; then
   echo "❌ VBA test runner not found: $RUNNER_FILE"

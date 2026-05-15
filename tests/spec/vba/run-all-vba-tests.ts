@@ -6,9 +6,9 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { VBATest } from '../../test-libs/test-runner';
+import { VBATest } from '../../../test-libs/test-runner';
 
-const vbaDir = path.join(__dirname, 'vba');
+const vbaDir = path.join(__dirname);
 
 // VBA テストディレクトリ内のすべてのファイルをロード
 console.log('=== VBA Test Runner ===\n');
