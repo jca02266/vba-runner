@@ -19,32 +19,32 @@ Sub TearDown()
     testState = ""
 End Sub
 
-' Test 1: Verify SetUp initializes state
-Function TestSetupInitializesCounter() As Boolean
-    TestSetupInitializesCounter = (testCounter = 0)
-End Function
+' Test 1: Verify SetUp initializes counter
+Sub Test_SetupInitializesCounter()
+    Debug.Assert testCounter = 0, "SetUp failed to initialize counter"
+End Sub
 
 ' Test 2: Verify SetUp sets state
-Function TestSetupInitializesState() As Boolean
-    TestSetupInitializesState = (testState = "initialized")
-End Function
+Sub Test_SetupInitializesState()
+    Debug.Assert testState = "initialized", "SetUp failed to initialize state"
+End Sub
 
 ' Test 3: Modify counter
-Function TestCounterIncrement() As Boolean
+Sub Test_CounterIncrement()
     testCounter = testCounter + 1
     testCounter = testCounter + 1
-    TestCounterIncrement = (testCounter = 2)
-End Function
+    Debug.Assert testCounter = 2, "Counter increment failed"
+End Sub
 
 ' Test 4: String operations
-Function TestStringConcat() As Boolean
+Sub Test_StringConcat()
     testState = testState & " and working"
-    TestStringConcat = (testState = "initialized and working")
-End Function
+    Debug.Assert testState = "initialized and working", "String concat failed"
+End Sub
 
 ' Test 5: Boolean operations
-Function TestLogicalAnd() As Boolean
+Sub Test_LogicalAnd()
     Dim result As Boolean
     result = (testCounter = 0) And (testState = "initialized")
-    TestLogicalAnd = result
-End Function
+    Debug.Assert result, "Boolean operations failed"
+End Sub

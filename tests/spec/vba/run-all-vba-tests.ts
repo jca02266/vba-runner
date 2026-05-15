@@ -75,16 +75,31 @@ const allProcs = collectProcedures(env);
 for (const [procName] of allProcs) {
   if (typeof procName === 'string') {
     const lower = procName.toLowerCase();
+    // Module-qualified names look like "module:procedure"
+    // Extract the procedure name after the colon, or use the whole name if no colon
+    const baseProcName = lower.includes(':') ? lower.split(':')[1] : lower;
+    const moduleName = lower.includes(':') ? lower.split(':')[0] : '';
+
     // VBA での Sub テスト（Test_* で始まる）
-    if (lower.startsWith('test_')) {
+    if (baseProcName.startsWith('test_')) {
       testCount++;
       console.log(`[Test] ${procName}`);
 
       try {
+        // Call SetUp if it exists in the same module
+        if (moduleName && allProcs.has(`${moduleName}:setup`)) {
+          vbaTest.run(`${moduleName}:setup`, []);
+        }
+
         // Sub テストを実行（戻り値なし）
         vbaTest.run(procName, []);
         passCount++;
         console.log(`  ✅ Pass\n`);
+
+        // Call TearDown if it exists in the same module
+        if (moduleName && allProcs.has(`${moduleName}:teardown`)) {
+          vbaTest.run(`${moduleName}:teardown`, []);
+        }
       } catch (e: any) {
         console.error(`  ❌ FAILED: ${e.message}\n`);
         failedTests.push(procName);
