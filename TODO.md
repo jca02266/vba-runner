@@ -530,7 +530,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
 
 - [ ] **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
-  - 優先度: **中** （Option Explicit あり時は問題なし）
+  - 優先度: **低** （Option Explicit あり時は問題なし）
   - 実VBA動作の違い：
     - `unknownProc()` → **コンパイルエラー**（Sub/Function が定義されていません）
     - `unknownModule.unknownProc()` → **実行時エラー 424**（オブジェクトが必要です）
