@@ -55,6 +55,23 @@ End Sub
 
 ただし、**Excelで実行することを想定したVBAコード**（`.cls` ファイル）では、このクラス定義構文を使用しないでください。`.cls` ファイルはVBA標準の形式で、ファイル名がクラス名となります。
 
+## VBA仕様上の制限
+
+本エンジンで実装されているVBAは、MS-VBAL（MS-VBA Language）仕様に準拠しています。以下はVBA言語仕様で定義されている制限事項です。
+
+### モジュール名の長さ制限
+
+VBA仕様により、モジュール名（`.cls` ファイルの場合はファイル名、`.bas` ファイルの場合は名前属性）の最大長は **31文字** に制限されています。（MS-VBAL 仕様書 §5.2 参照）
+
+```vba
+' OK: 31文字以下
+Module MyModule                    ' 8文字
+Class VeryLongModuleNameExample    ' 27文字
+
+' NG: 32文字以上
+' Class ThisIsAVeryLongModuleNameThatExceeds31Chars  ' 計50文字以上
+```
+
 ## ディレクトリ構成とVBAサンプルコード
 本プロジェクトでは、巨大なVBAマクロを「テスト可能な単位」にリファクタリングする事例として、以下の構成を採用しています。
 

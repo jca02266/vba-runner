@@ -521,3 +521,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 改善案: Parser に `parseAsClass` フラグを追加し、Lexer / Parser で正式にクラスパースモードを切り替える
   - 影響範囲: `src/compiler/parser.ts`, `src/compiler/lexer.ts`, `test-libs/test-runner.ts`
   - 関連: VBA標準では .cls ファイルはファイル名がクラス名となり、本エンジンの拡張機能として Class...End Class 構文を .bas 内でサポート
+
+### VBA 仕様制約の検証
+
+- ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証
+  - 仕様: モジュール名は最大 31 文字（ファイル名またはVB_Name属性）
+  - 実装: `Evaluator.setSourceModule()` でモジュール名長をチェック、超過時にエラー発生
+  - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`

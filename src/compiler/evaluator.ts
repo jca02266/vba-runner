@@ -1761,7 +1761,11 @@ export class Evaluator {
         if (moduleName === '' && !this.currentSourceModule) {
             throw new Error("Cannot set empty module name when no module is currently set. Provide an explicit module name (e.g., 'Module1') or use Attribute VB_Name in VBA source.");
         }
-        this.currentSourceModule = moduleName || this.currentSourceModule;
+        const effectiveModuleName = moduleName || this.currentSourceModule;
+        if (effectiveModuleName && effectiveModuleName.length > 31) {
+            throw new Error(`Module name '${effectiveModuleName}' exceeds the maximum length of 31 characters (MS-VBAL §5.2). Current length: ${effectiveModuleName.length}`);
+        }
+        this.currentSourceModule = effectiveModuleName;
     }
 
     public evaluate(program: Program) {
