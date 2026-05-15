@@ -76,7 +76,7 @@ export class VBATestGenerator {
         runner += `    Dim passCount As Integer\n`;
         runner += `    Dim failCount As Integer\n`;
         runner += `    Dim testResults As String\n`;
-        runner += `    Dim assert As New Assert\n\n`;
+        runner += `    Dim assert As New AssertHelper\n\n`;
         runner += `    allPass = True\n`;
         runner += `    passCount = 0\n`;
         runner += `    failCount = 0\n`;
