@@ -4,7 +4,7 @@
 Option Explicit
 
 ' Test 1: Basic Currency arithmetic
-Sub Test_CurrencyArithmetic(testResult)
+Sub Test_CurrencyArithmetic(assert)
     Dim c1 As Currency
     Dim c2 As Currency
     Dim result As Currency
@@ -13,11 +13,11 @@ Sub Test_CurrencyArithmetic(testResult)
     c2 = 50.75
     result = c1 + c2
 
-    If result <> 151# Then testResult = False
+    assert.Assert result, 151#, "Currency arithmetic"
 End Sub
 
 ' Test 2: Currency multiplication with precision
-Sub Test_CurrencyMultiplication(testResult)
+Sub Test_CurrencyMultiplication(assert)
     Dim price As Currency
     Dim quantity As Currency
     Dim total As Currency
@@ -26,11 +26,11 @@ Sub Test_CurrencyMultiplication(testResult)
     quantity = 3
     total = price * quantity
 
-    If total <> 59.97 Then testResult = False
+    assert.Assert total, 59.97, "Currency multiplication"
 End Sub
 
 ' Test 3: Currency division
-Sub Test_CurrencyDivision(testResult)
+Sub Test_CurrencyDivision(assert)
     Dim total As Currency
     Dim count As Currency
     Dim average As Currency
@@ -39,11 +39,11 @@ Sub Test_CurrencyDivision(testResult)
     count = 4
     average = total / count
 
-    If average <> 25# Then testResult = False
+    assert.Assert average, 25#, "Currency division"
 End Sub
 
 ' Test 4: Currency with tax calculation
-Sub Test_CurrencyTaxCalculation(testResult)
+Sub Test_CurrencyTaxCalculation(assert)
     Dim subtotal As Currency
     Dim taxRate As Currency
     Dim tax As Currency
@@ -54,11 +54,11 @@ Sub Test_CurrencyTaxCalculation(testResult)
     tax = subtotal * taxRate
     total = subtotal + tax
 
-    If total <> 108# Then testResult = False
+    assert.Assert total, 108#, "Currency tax calculation"
 End Sub
 
 ' Test 5: Currency array operations
-Sub Test_CurrencyArray(testResult)
+Sub Test_CurrencyArray(assert)
     Dim amounts(1 To 3) As Currency
     Dim sum As Currency
 
@@ -67,33 +67,33 @@ Sub Test_CurrencyArray(testResult)
     amounts(3) = 30.25
 
     sum = amounts(1) + amounts(2) + amounts(3)
-    If sum <> 61.5 Then testResult = False
+    assert.Assert sum, 61.5, "Currency array operations"
 End Sub
 
 ' Test 6: Currency type conversion
-Sub Test_CurrencyConversion(testResult)
+Sub Test_CurrencyConversion(assert)
     Dim i As Integer
     Dim c As Currency
 
     i = 42
     c = CCur(i)
 
-    If c <> 42# Then testResult = False
+    assert.Assert c, 42#, "Currency conversion"
 End Sub
 
 ' Test 7: Currency comparison
-Sub Test_CurrencyComparison(testResult)
+Sub Test_CurrencyComparison(assert)
     Dim c1 As Currency
     Dim c2 As Currency
 
     c1 = 99.99
     c2 = 99.99
 
-    If c1 <> c2 Then testResult = False
+    assert.Assert c1, c2, "Currency comparison"
 End Sub
 
 ' Test 8: Currency with negative values
-Sub Test_CurrencyNegative(testResult)
+Sub Test_CurrencyNegative(assert)
     Dim expense As Currency
     Dim income As Currency
     Dim net As Currency
@@ -102,14 +102,14 @@ Sub Test_CurrencyNegative(testResult)
     income = 100#
     net = income + expense
 
-    If net <> 49.75 Then testResult = False
+    assert.Assert net, 49.75, "Currency negative values"
 End Sub
 
 ' Test 9: Currency precision with 4 decimals
-Sub Test_CurrencyPrecision(testResult)
+Sub Test_CurrencyPrecision(assert)
     Dim c As Currency
     c = 10.1234
-    If c <> 10.1234 Then testResult = False
+    assert.Assert c, 10.1234, "Currency precision"
 End Sub
 
 ' Test 10: Currency in function parameter
@@ -117,12 +117,12 @@ Function CalculateDiscount(price As Currency, discountPercent As Currency) As Cu
     CalculateDiscount = price * (1 - discountPercent / 100)
 End Function
 
-Sub Test_CurrencyFunctionParameter(testResult)
+Sub Test_CurrencyFunctionParameter(assert)
     Dim originalPrice As Currency
     Dim discountedPrice As Currency
 
     originalPrice = 100#
     discountedPrice = CalculateDiscount(originalPrice, 10)
 
-    If discountedPrice <> 90# Then testResult = False
+    assert.Assert discountedPrice, 90#, "Currency function parameter"
 End Sub

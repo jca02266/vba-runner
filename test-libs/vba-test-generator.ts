@@ -76,8 +76,7 @@ export class VBATestGenerator {
         runner += `    Dim passCount As Integer\n`;
         runner += `    Dim failCount As Integer\n`;
         runner += `    Dim testResults As String\n`;
-        runner += `    Dim testResult\n`;
-        runner += `    Dim i As Integer\n\n`;
+        runner += `    Dim assert As New Assert\n\n`;
         runner += `    allPass = True\n`;
         runner += `    passCount = 0\n`;
         runner += `    failCount = 0\n`;
@@ -94,10 +93,11 @@ export class VBATestGenerator {
                 runner += `    On Error GoTo 0\n`;
             }
 
-            // テストを実行（Sub の呼び出し）
-            runner += `    testResult = True\n`;
-            runner += `    ${modulePrefix}${testProc} testResult\n`;
-            runner += `    If testResult Then\n`;
+            // テストを実行（assert オブジェクトを渡す）
+            runner += `    On Error Resume Next\n`;
+            runner += `    Err.Clear\n`;
+            runner += `    ${modulePrefix}${testProc} assert\n`;
+            runner += `    If Err.Number = 0 Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
             runner += `        passCount = passCount + 1\n`;
             runner += `    Else\n`;
@@ -105,6 +105,7 @@ export class VBATestGenerator {
             runner += `        failCount = failCount + 1\n`;
             runner += `        allPass = False\n`;
             runner += `    End If\n`;
+            runner += `    On Error GoTo 0\n`;
 
             // TearDown を呼び出す
             if (hasTearDown) {

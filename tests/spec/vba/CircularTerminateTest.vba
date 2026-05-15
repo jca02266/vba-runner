@@ -4,7 +4,7 @@ Option Explicit
 ' VBA source tests for circular reference and Class_Terminate behavior
 ' Tests verify that Class_Terminate is called at most once per object instance
 
-Sub Test_BasicTerminate(testResult)
+Sub Test_BasicTerminate(assert)
     Dim helper As CircularTestHelper
     Dim objA As CircularReferenceATest
 
@@ -14,10 +14,10 @@ Sub Test_BasicTerminate(testResult)
 
     Set objA = Nothing
 
-    If helper.TerminateCount <> 1 Then testResult = False
+    assert.Assert helper.TerminateCount, 1, "Basic terminate"
 End Sub
 
-Sub Test_MutualReferences(testResult)
+Sub Test_MutualReferences(assert)
     Dim helper As CircularTestHelper
     Dim objA As CircularReferenceATest
     Dim objB As CircularReferenceBTest
@@ -34,10 +34,10 @@ Sub Test_MutualReferences(testResult)
     Set objA = Nothing
     Set objB = Nothing
 
-    If helper.TerminateCount <> 2 Then testResult = False
+    assert.Assert helper.TerminateCount, 2, "Mutual references"
 End Sub
 
-Sub Test_TerminateNotCalledTwice(testResult)
+Sub Test_TerminateNotCalledTwice(assert)
     Dim helper As CircularTestHelper
     Dim objA As CircularReferenceATest
 
@@ -48,10 +48,10 @@ Sub Test_TerminateNotCalledTwice(testResult)
     Set objA = Nothing
     Set objA = Nothing
 
-    If helper.TerminateCount <> 1 Then testResult = False
+    assert.Assert helper.TerminateCount, 1, "Not called twice"
 End Sub
 
-Sub Test_MultipleObjects(testResult)
+Sub Test_MultipleObjects(assert)
     Dim helper As CircularTestHelper
     Dim objA1 As CircularReferenceATest
     Dim objA2 As CircularReferenceATest
@@ -70,10 +70,10 @@ Sub Test_MultipleObjects(testResult)
     Set objA2 = Nothing
     Set objA3 = Nothing
 
-    If helper.TerminateCount <> 3 Then testResult = False
+    assert.Assert helper.TerminateCount, 3, "Multiple objects"
 End Sub
 
-Sub Test_CircularChainCleanup(testResult)
+Sub Test_CircularChainCleanup(assert)
     Dim helper As CircularTestHelper
     Dim objA As CircularReferenceATest
     Dim objB As CircularReferenceBTest
@@ -96,5 +96,5 @@ Sub Test_CircularChainCleanup(testResult)
     Set objB = Nothing
     Set objA2 = Nothing
 
-    If helper.TerminateCount <> 3 Then testResult = False
+    assert.Assert helper.TerminateCount, 3, "Circular chain cleanup"
 End Sub
