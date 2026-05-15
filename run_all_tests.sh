@@ -25,6 +25,10 @@ TESTS_FAILED=0
 FAILED_TESTS=""
 
 for f in tests/spec/*.test.ts tests/test-libs-tests/*.test.ts sample/tests/ts/*.test.ts; do
+  # VBA テスト用の特別なランナーはスキップ（run_vba_tests.sh で実行）
+  if [[ "$f" == *"run-all-vba-tests"* ]]; then
+    continue
+  fi
   if [ -f "$f" ]; then
     out="${f%.ts}.cjs"
 
