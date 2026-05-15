@@ -1,7 +1,7 @@
-' TestHelper.cls
-' Helper class for tracking test state
+' CircularTestHelper.cls
+' Helper class for tracking circular reference test state
 
-Class TestHelper
+Class CircularTestHelper
     Public TerminateCount As Integer
     Public TerminateLog As String
 

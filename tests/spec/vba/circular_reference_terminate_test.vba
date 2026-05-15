@@ -1,13 +1,13 @@
-' Circular_reference_terminate_Test.vba
+' circular_reference_terminate_test.vba
 ' VBA source tests for circular reference and Class_Terminate behavior
 ' Tests verify that Class_Terminate is called at most once per object instance
 
 Sub Test_BasicTerminate()
-    Dim helper As TestHelper
-    Dim objA As CircularRefA_Test
+    Dim helper As CircularTestHelper
+    Dim objA As CircularReferenceATest
 
-    Set helper = New TestHelper
-    Set objA = New CircularRefA_Test
+    Set helper = New CircularTestHelper
+    Set objA = New CircularReferenceATest
     Set objA.Helper = helper
 
     Set objA = Nothing
@@ -18,13 +18,13 @@ Sub Test_BasicTerminate()
 End Sub
 
 Sub Test_MutualReferences()
-    Dim helper As TestHelper
-    Dim objA As CircularRefA_Test
-    Dim objB As CircularRefB_Test
+    Dim helper As CircularTestHelper
+    Dim objA As CircularReferenceATest
+    Dim objB As CircularReferenceBTest
 
-    Set helper = New TestHelper
-    Set objA = New CircularRefA_Test
-    Set objB = New CircularRefB_Test
+    Set helper = New CircularTestHelper
+    Set objA = New CircularReferenceATest
+    Set objB = New CircularReferenceBTest
 
     Set objA.Helper = helper
     Set objB.Helper = helper
@@ -41,11 +41,11 @@ Sub Test_MutualReferences()
 End Sub
 
 Sub Test_TerminateNotCalledTwice()
-    Dim helper As TestHelper
-    Dim objA As CircularRefA_Test
+    Dim helper As CircularTestHelper
+    Dim objA As CircularReferenceATest
 
-    Set helper = New TestHelper
-    Set objA = New CircularRefA_Test
+    Set helper = New CircularTestHelper
+    Set objA = New CircularReferenceATest
     Set objA.Helper = helper
 
     ' Set to Nothing twice - second call should not increment count
@@ -57,15 +57,15 @@ Sub Test_TerminateNotCalledTwice()
 End Sub
 
 Sub Test_MultipleObjects()
-    Dim helper As TestHelper
-    Dim objA1 As CircularRefA_Test
-    Dim objA2 As CircularRefA_Test
-    Dim objA3 As CircularRefA_Test
+    Dim helper As CircularTestHelper
+    Dim objA1 As CircularReferenceATest
+    Dim objA2 As CircularReferenceATest
+    Dim objA3 As CircularReferenceATest
 
-    Set helper = New TestHelper
-    Set objA1 = New CircularRefA_Test
-    Set objA2 = New CircularRefA_Test
-    Set objA3 = New CircularRefA_Test
+    Set helper = New CircularTestHelper
+    Set objA1 = New CircularReferenceATest
+    Set objA2 = New CircularReferenceATest
+    Set objA3 = New CircularReferenceATest
 
     Set objA1.Helper = helper
     Set objA2.Helper = helper
@@ -81,15 +81,15 @@ Sub Test_MultipleObjects()
 End Sub
 
 Sub Test_CircularChainCleanup()
-    Dim helper As TestHelper
-    Dim objA As CircularRefA_Test
-    Dim objB As CircularRefB_Test
-    Dim objA2 As CircularRefA_Test
+    Dim helper As CircularTestHelper
+    Dim objA As CircularReferenceATest
+    Dim objB As CircularReferenceBTest
+    Dim objA2 As CircularReferenceATest
 
-    Set helper = New TestHelper
-    Set objA = New CircularRefA_Test
-    Set objB = New CircularRefB_Test
-    Set objA2 = New CircularRefA_Test
+    Set helper = New CircularTestHelper
+    Set objA = New CircularReferenceATest
+    Set objB = New CircularReferenceBTest
+    Set objA2 = New CircularReferenceATest
 
     Set objA.Helper = helper
     Set objB.Helper = helper
