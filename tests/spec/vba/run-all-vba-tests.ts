@@ -8,6 +8,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { VBATest } from '../../../test-libs/test-runner';
+import { Lexer } from '../../../src/compiler/lexer';
+import { Parser } from '../../../src/compiler/parser';
 
 const vbaDir = path.join(__dirname);
 
@@ -97,8 +99,13 @@ for (const [procName] of allProcs) {
           vbaTest.run(`${moduleName}:setup`, []);
         }
 
-        // Sub テストを実行（戻り値なし）
-        vbaTest.run(procName, []);
+        // AssertHelper インスタンスを渡してテストを実行（モジュール修飾なしで呼ぶ）
+        const wrapperCode = `Sub __test_wrapper__()\n    Dim assert As New AssertHelper\n    ${baseProcName} assert\nEnd Sub`;
+        const tokens = new Lexer(wrapperCode).tokenize();
+        const ast = new Parser(tokens).parse();
+        evaluator.evaluate(ast);
+        evaluator.callProcedure('__test_wrapper__', []);
+
         passCount++;
         console.log(`  ✅ Pass\n`);
 

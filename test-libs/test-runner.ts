@@ -37,10 +37,8 @@ export class VBATest {
                 // Only wrap if the file contains member variable definitions (Dim/Public/Private) at module level
                 const ext = path.extname(file).toLowerCase();
                 if (ext === '.cls' && !source.trim().toLowerCase().startsWith('class ')) {
-                    // Check if this looks like a class file with member variables (contains Dim/Public/Private)
-                    // but not a simple module file (contains only Sub/Function)
-                    const hasMemberVariables = /^\s*(Dim|Public|Private)\s+\w+\s+As\b/mi.test(source);
-                    if (hasMemberVariables && !source.toLowerCase().includes('end class')) {
+                    // .cls ファイルは VBA 仕様上常にクラスモジュール。メンバー変数の有無に関わらずラップする
+                    if (!source.toLowerCase().includes('end class')) {
                         source = `Class ${moduleName}\n${source}\nEnd Class`;
                     }
                 }
