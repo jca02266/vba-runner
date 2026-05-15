@@ -32,11 +32,17 @@ export class VBATest {
                 const moduleName = path.basename(file, path.extname(file));
                 this.evaluator.setSourceModule(moduleName);
 
-                // For .cls files, treat the class name as the file name (VBA standard)
-                // Wrap the content in a Class...End Class block if not already wrapped
+                // For .cls files that define member variables directly (not already wrapped),
+                // treat the file name as the class name (VBA standard)
+                // Only wrap if the file contains member variable definitions (Dim/Public/Private) at module level
                 const ext = path.extname(file).toLowerCase();
                 if (ext === '.cls' && !source.trim().toLowerCase().startsWith('class ')) {
-                    source = `Class ${moduleName}\n${source}\nEnd Class`;
+                    // Check if this looks like a class file with member variables (contains Dim/Public/Private)
+                    // but not a simple module file (contains only Sub/Function)
+                    const hasMemberVariables = /^\s*(Dim|Public|Private)\s+\w+\s+As\b/mi.test(source);
+                    if (hasMemberVariables && !source.toLowerCase().includes('end class')) {
+                        source = `Class ${moduleName}\n${source}\nEnd Class`;
+                    }
                 }
 
                 const ast = new Parser(new Lexer(source).tokenize()).parse();
