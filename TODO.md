@@ -530,6 +530,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
 
 - [ ] **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
+  - 優先度: **中** （Option Explicit あり時は問題なし）
   - 実VBA動作の違い：
     - `unknownProc()` → **コンパイルエラー**（Sub/Function が定義されていません）
     - `unknownModule.unknownProc()` → **実行時エラー 424**（オブジェクトが必要です）
@@ -537,4 +538,5 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     - 非修飾: 静的検証（コンパイル時）
     - 修飾: 動的解決（実行時のメンバアクセス）
   - 当エンジン問題: 両者を同じレベルで処理している（4199-4203行の try-catch が根本原因）
+  - 注記: **Option Explicit がない場合の未定義変数の動作**に限定される問題。モダンなVBA開発では Option Explicit が標準であるため、この互換性追求の優先度は低い。Option Explicit ありの場合はコンパイル時に検出される。
   - 修正内容: Parser/Evaluator で修飾/非修飾を区別し、エラーのタイミングを正確に再現
