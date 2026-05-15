@@ -26,11 +26,19 @@ export class VBATest {
             : [pathOrDir];
 
         for (const file of files) {
-            const source = fs.readFileSync(file, 'utf-8');
+            let source = fs.readFileSync(file, 'utf-8');
             try {
                 // Set module name without file extension
                 const moduleName = path.basename(file, path.extname(file));
                 this.evaluator.setSourceModule(moduleName);
+
+                // For .cls files, treat the class name as the file name (VBA standard)
+                // Wrap the content in a Class...End Class block if not already wrapped
+                const ext = path.extname(file).toLowerCase();
+                if (ext === '.cls' && !source.trim().toLowerCase().startsWith('class ')) {
+                    source = `Class ${moduleName}\n${source}\nEnd Class`;
+                }
+
                 const ast = new Parser(new Lexer(source).tokenize()).parse();
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
