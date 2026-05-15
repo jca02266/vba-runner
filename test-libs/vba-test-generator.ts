@@ -93,9 +93,11 @@ export class VBATestGenerator {
                 runner += `    On Error GoTo 0\n`;
             }
 
-            // テストを実行
+            // テストを実行（Sub の呼び出し）
+            runner += `    Err.Clear\n`;
             runner += `    On Error Resume Next\n`;
-            runner += `    If Not IsEmpty(${modulePrefix}${testProc}()) Then\n`;
+            runner += `    Call ${modulePrefix}${testProc}\n`;
+            runner += `    If Err.Number = 0 Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
             runner += `        passCount = passCount + 1\n`;
             runner += `    Else\n`;
