@@ -528,3 +528,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 仕様: モジュール名は最大 31 文字（ファイル名またはVB_Name属性）
   - 実装: `Evaluator.setSourceModule()` でモジュール名長をチェック、超過時にエラー発生
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
+
+- [ ] **モジュール修飾プロシージャ呼び出しのエラーハンドリング一貫性**: 修飾・非修飾での動作差異
+  - 現状: `unknownModule.unknownProc()` ではエラーが暗黙に吸収される（4199-4203行）
+  - 問題: `On Error Resume Next` 下での挙動が `unknownProc()` と異なる
+  - 仕様書では両者とも同じエラーハンドリング規則に従うべき
+  - 確認項目: ExcelVBA での実際の動作を検証し、実装を統一すること
