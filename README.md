@@ -888,24 +888,67 @@ VBAには `Integer` (16bit), `Long` (32bit), `Double` (64bit float) 等の厳密
 
 VBA で直接テストコードを記述し、実 VBA 環境（Excel など）で実行するための仕組みを提供しています。このアプローチは、**Excel マクロ環境で直接動作を検証したい場合**に適しています。
 
-### VBA テストコードの書き方
+### VBA テストソースの構成ルール
 
-`tests/spec/vba/` ディレクトリに VBA ファイルを配置し、テストプロシージャを `Test*` パターンで定義します。各テストプロシージャは **Boolean を戻り値とする Function** として記述します。
+`tests/spec/vba/` ディレクトリに VBA ファイルを配置します。ファイルの種類によって命名規則が異なります。
+
+#### ファイル命名規則
+
+| 種類 | 命名 | 例 |
+|---|---|---|
+| テストプロシージャを含む `.vba` | `<名前>Test.vba`（**Test サフィックス**） | `CurrencyOperationsTest.vba` |
+| テスト専用サポートクラス `.cls` | 短い名前（`Test` サフィックスなし） | `RefA.cls`, `Helper.cls` |
+| 共通インフラクラス `.cls` | 用途がわかる名前 | `AssertHelper.cls` |
+| 生成されたランナー `.vba` | `<名前>Test_runner.vba` | `CurrencyOperationsTest_runner.vba` |
+
+> **注意**: ファイル名から拡張子を除いた文字列が VBA のモジュール名になります。VBA のモジュール名は **31 文字以内** でなければなりません。
+
+#### 複数ファイルが必要なテストはサブディレクトリに
+
+1 つのテストで複数のクラスファイルが必要になる場合は、サブディレクトリを作成してファイル名を短くします。
+
+```
+tests/spec/vba/
+├── AssertHelper.cls              ← 全テスト共通（assert オブジェクト）
+├── CurrencyOperationsTest.vba    ← Currency 型テスト
+├── CurrencyOperationsTest_runner.vba  ← 自動生成ランナー
+├── SetupTeardownTest.vba
+├── SetupTeardownTest_runner.vba
+├── ArgCountTest.vba
+├── ArgCountTest_runner.vba
+└── Circular/                     ← 複数クラスが必要なテストはサブディレクトリ
+    ├── RefA.cls
+    ├── RefB.cls
+    ├── Helper.cls
+    ├── TerminateTest.vba
+    └── TerminateTest_runner.vba
+```
+
+#### AssertHelper クラス（`tests/spec/vba/AssertHelper.cls`）
+
+テストの検証には `AssertHelper` インスタンスを使用します。失敗時は `Debug.Print` でメッセージを出力してから `Err.Raise` を発生させます。
+
+| メソッド | 用途 |
+|---|---|
+| `assert.Assert actual, expected, "メッセージ"` | 値比較 |
+| `assert.IsTrue value, "メッセージ"` | 真であることの検証 |
+| `assert.IsFalse value, "メッセージ"` | 偽であることの検証 |
+
+### VBA テストコードの書き方
 
 #### テストプロシージャの命名規則
 
-- テストプロシージャは `Function Test<機能名>() As Boolean` の形式で定義
-- プロシージャ名は `Test` で始まる必要があります（例: `TestCurrencyArithmetic`, `TestStringConcatenation`）
-- 戻り値は Boolean（成功時 `True`, 失敗時 `False`）
+- テストプロシージャは `Sub Test_<機能名>(assert)` の形式で定義
+- プロシージャ名は `Test_` で始める（例: `Test_CurrencyArithmetic`）
+- `assert` 引数に `AssertHelper` インスタンスが渡される
 
 #### テストプロシージャの記述例
 
 ```vba
-' tests/spec/vba/currency_operations_test.vba
+' tests/spec/vba/CurrencyOperationsTest.vba
 Option Explicit
 
-' Test 1: Basic Currency arithmetic
-Function TestCurrencyArithmetic() As Boolean
+Sub Test_CurrencyArithmetic(assert)
     Dim c1 As Currency
     Dim c2 As Currency
     Dim result As Currency
@@ -914,12 +957,10 @@ Function TestCurrencyArithmetic() As Boolean
     c2 = 50.75
     result = c1 + c2
 
-    ' 結果を Boolean で返す
-    TestCurrencyArithmetic = (result = 151#)
-End Function
+    assert.Assert result, 151#, "100.25 + 50.75 = 151"
+End Sub
 
-' Test 2: Currency multiplication with precision
-Function TestCurrencyMultiplication() As Boolean
+Sub Test_CurrencyMultiplication(assert)
     Dim price As Currency
     Dim quantity As Currency
     Dim total As Currency
@@ -928,11 +969,10 @@ Function TestCurrencyMultiplication() As Boolean
     quantity = 3
     total = price * quantity
 
-    TestCurrencyMultiplication = (total = 59.97)
-End Function
+    assert.Assert total, 59.97, "19.99 * 3 = 59.97"
+End Sub
 
-' Test 3: Currency division
-Function TestCurrencyDivision() As Boolean
+Sub Test_CurrencyDivision(assert)
     Dim total As Currency
     Dim count As Currency
     Dim average As Currency
@@ -941,8 +981,8 @@ Function TestCurrencyDivision() As Boolean
     count = 4
     average = total / count
 
-    TestCurrencyDivision = (average = 25#)
-End Function
+    assert.Assert average, 25#, "100 / 4 = 25"
+End Sub
 ```
 
 #### SetUp と TearDown（テスト前後の処理）
@@ -953,56 +993,42 @@ End Function
 - **`TearDown` Sub**: 各テストの**実行後**に自動的に呼び出されます。テスト後の後処理、リソース解放などに使用します。
 
 ```vba
-' tests/spec/vba/Test_WithSetupTeardown.vba
+' tests/spec/vba/SetupTeardownTest.vba
 Option Explicit
 
-' Global state
 Dim testCounter As Integer
 Dim testState As String
 
-' SetUp - called before each test
 Sub SetUp()
     testCounter = 0
     testState = "initialized"
 End Sub
 
-' TearDown - called after each test
 Sub TearDown()
     testCounter = 0
     testState = ""
 End Sub
 
-' Test 1: テストはSetUpによって初期化された状態から始まる
-Function TestSetupInitializes() As Boolean
-    TestSetupInitializes = (testCounter = 0) And (testState = "initialized")
-End Function
+Sub Test_SetupInitializesCounter(assert)
+    assert.Assert testCounter, 0, "SetUp counter=0"
+End Sub
 
-' Test 2: 各テストは独立して実行される（TearDownにより状態がリセットされる）
-Function TestCounterIncrement() As Boolean
+Sub Test_CounterIncrement(assert)
     testCounter = testCounter + 1
     testCounter = testCounter + 1
-    TestCounterIncrement = (testCounter = 2)
-End Function
-
-' Test 3: 次のテストも同じ初期状態から開始
-Function TestStateReset() As Boolean
-    TestStateReset = (testCounter = 0)  ' SetUpにより再度 0 にリセットされている
-End Function
+    assert.Assert testCounter, 2, "Counter increment"
+End Sub
 ```
 
 **実行フロー:**
 
 ```
 SetUp()
-  └─ TestSetupInitializes() → PASS
+  └─ Test_SetupInitializesCounter(assert) → PASS
 TearDown()
 
 SetUp()
-  └─ TestCounterIncrement() → PASS
-TearDown()
-
-SetUp()
-  └─ TestStateReset() → PASS
+  └─ Test_CounterIncrement(assert) → PASS
 TearDown()
 ```
 
@@ -1011,41 +1037,28 @@ TearDown()
 - SetUp で共通のテスト環境を準備し、各テストが独立して実行できるようにする
 - TearDown でテスト実行時に作成されたリソースを確実に解放する
 - SetUp/TearDown 内でエラーが発生した場合、`On Error Resume Next` で catch され、テストの実行は継続される
+- `On Error Resume Next` が有効な間に `assert` メソッドを呼ぶと、`Err.Raise` が飲み込まれてテストが誤ってパスする。必ず `Err.Number` を変数に退避してから `On Error GoTo 0` を呼び、アサーションはその後に行うこと
 
 ### テストランナーの自動生成
 
-`test-libs/vba-test-generator.ts` ツールを使用して、VBA テストファイル内のすべての `Test*` プロシージャを検出し、**実 VBA 環境で動作するテストランナー Sub** を自動生成できます。
+`test-libs/vba-test-generator.ts` ツールを使用して、VBA テストファイル内のすべての `Test_*` プロシージャを検出し、**実 VBA 環境で動作するテストランナー Sub** を自動生成できます。生成されたランナーは `<名前>Test_runner.vba` として保存し、リポジトリにコミットします。
 
 #### 1. 単一ファイルのテストランナーを生成
 
-**npm scripts を使用（推奨）:**
-
 ```bash
-npm run test-gen tests/spec/vba/currency_operations_test.vba
+# esbuild でジェネレーターをビルドして実行（推奨）
+./node_modules/.bin/esbuild test-libs/vba-test-generator.ts --bundle --outfile=test-libs/vba-test-generator.cjs --platform=node
+node test-libs/vba-test-generator.cjs tests/spec/vba/CurrencyOperationsTest.vba tests/spec/vba/CurrencyOperationsTest_runner.vba
 
 # モジュール修飾なし
-npm run test-gen tests/spec/vba/currency_operations_test.vba --no-module-qualifier
+node test-libs/vba-test-generator.cjs tests/spec/vba/CurrencyOperationsTest.vba tests/spec/vba/CurrencyOperationsTest_runner.vba --no-module-qualifier
 ```
 
-**ts-node を使用（ts-node インストール時）:**
-
-```bash
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/currency_operations_test.vba
-
-# モジュール修飾なし
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/currency_operations_test.vba --no-module-qualifier
-```
-
-**直接バンドル済みのツールを使用:**
-
-```bash
-node dist/test-generator.cjs tests/spec/vba/currency_operations_test.vba
-node dist/test-generator.cjs tests/spec/vba/currency_operations_test.vba --no-module-qualifier
-```
-
-**標準出力に VBA テストランナー Sub が表示されます:**
+**生成されるテストランナー（`CurrencyOperationsTest_runner.vba`）の例:**
 
 ```vba
+Option Explicit
+
 ' Auto-generated test runner from vba-test-generator
 ' Run this Sub in Excel VBA environment to execute all tests
 Sub RunAllTests()
@@ -1053,33 +1066,29 @@ Sub RunAllTests()
     Dim passCount As Integer
     Dim failCount As Integer
     Dim testResults As String
-    
+    Dim assert As New AssertHelper
+
     allPass = True
     passCount = 0
     failCount = 0
     testResults = "=== Test Results ===" & vbCrLf & vbCrLf
 
-    ' Execute TestCurrencyArithmetic
+    ' Execute Test_CurrencyArithmetic
     On Error Resume Next
-    If TestCurrencyArithmetic() Then
-        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
+    Err.Clear
+    CurrencyOperationsTest.Test_CurrencyArithmetic assert
+    If Err.Number = 0 Then
+        testResults = testResults & "[PASS] Test_CurrencyArithmetic" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] TestCurrencyArithmetic" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyArithmetic" & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
     On Error GoTo 0
 
-    ' Execute TestCurrencyMultiplication
-    ' ... (省略)
-    
-    testResults = testResults & vbCrLf
-    testResults = testResults & "=== Test Summary ===" & vbCrLf
-    testResults = testResults & "Total: " & (passCount + failCount) & vbCrLf
-    testResults = testResults & "Passed: " & passCount & vbCrLf
-    testResults = testResults & "Failed: " & failCount & vbCrLf
-    
+    ' ... (以降同様)
+
     Debug.Print testResults
     MsgBox testResults, IIf(allPass, vbInformation, vbCritical), "Test Results"
 End Sub
@@ -1090,117 +1099,45 @@ End Sub
 SetUp Sub と TearDown Sub を検出すると、生成されたテストランナーは各テストの前後にこれらを自動的に呼び出します：
 
 ```vba
-' SetUp/TearDown を含む場合の生成例
-Sub RunAllTests()
-    ...
-    ' Execute TestSetupInitializes
+    ' Execute Test_SetupInitializesCounter
     On Error Resume Next
-    SetUp          ' ← 各テストの前に SetUp を呼び出し
+    SetupTeardownTest.SetUp    ' ← 各テストの前に SetUp を呼び出し
     On Error GoTo 0
     On Error Resume Next
-    If TestSetupInitializes() Then
+    Err.Clear
+    SetupTeardownTest.Test_SetupInitializesCounter assert
+    If Err.Number = 0 Then
         ...
     End If
     On Error GoTo 0
     On Error Resume Next
-    TearDown       ' ← 各テストの後に TearDown を呼び出し
+    SetupTeardownTest.TearDown  ' ← 各テストの後に TearDown を呼び出し
     On Error GoTo 0
-    ...
-End Sub
 ```
 
-#### 3. モジュール修飾（Module Qualification）
+#### 2. モジュール修飾（Module Qualification）
 
 テストランナーは、デフォルトで**モジュール修飾**を使用してプロシージャを呼び出します。これにより、複数のモジュールで同じ名前のテスト関数が定義されている場合でも、それぞれを区別して実行できます。
 
-**デフォルト（モジュール修飾あり）:**
-
 ```bash
-npm run test-gen tests/spec/vba/currency_operations_test.vba
-# または
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/currency_operations_test.vba
+# モジュール修飾あり（デフォルト）
+node test-libs/vba-test-generator.cjs tests/spec/vba/CurrencyOperationsTest.vba
+
+# モジュール修飾なし
+node test-libs/vba-test-generator.cjs tests/spec/vba/CurrencyOperationsTest.vba --no-module-qualifier
 ```
-
-生成されたコード：
-
-```vba
-Sub RunAllTests()
-    ...
-    ' Module 修飾で呼び出し
-    If currency_operations_test.TestCurrencyArithmetic() Then
-        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
-        ...
-    End If
-    ...
-End Sub
-```
-
-**モジュール修飾なし:**
-
-モジュール修飾を不要とする場合は `--no-module-qualifier` オプションを使用してください：
-
-```bash
-npm run test-gen tests/spec/vba/currency_operations_test.vba --no-module-qualifier
-# または
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/currency_operations_test.vba --no-module-qualifier
-```
-
-生成されたコード：
-
-```vba
-Sub RunAllTests()
-    ...
-    ' 修飾なしで呼び出し
-    If TestCurrencyArithmetic() Then
-        testResults = testResults & "[PASS] TestCurrencyArithmetic" & vbCrLf
-        ...
-    End If
-    ...
-End Sub
-```
-
-**複数ファイルの場合:**
-
-ディレクトリ内のすべてのテストファイルを処理するときも、各ファイルのモジュール名で自動的に修飾されます：
-
-```bash
-npm run test-gen --dir tests/spec/vba
-# または
-npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
-
-# 各ファイル（Test_A.vba, Test_B.vba など）に対して、
-# それぞれ Test_A.TestXxx(), Test_B.TestXxx() のように修飾されたランナーを生成
-```
-
-#### 2. ファイルに保存
-
-```bash
-npm run test-gen tests/spec/vba/currency_operations_test.vba tests/spec/vba/currency_operations_test_runner.vba
-# または
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/currency_operations_test.vba tests/spec/vba/currency_operations_test_runner.vba
-```
-
-生成されたテストランナーを `currency_operations_test_runner.vba` に保存します。
 
 #### 3. ディレクトリ内のすべてのテストファイルを処理
 
 ```bash
-npm run test-gen --dir tests/spec/vba
-# または
-npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba
+node test-libs/vba-test-generator.cjs --dir tests/spec/vba
 ```
 
-`tests/spec/vba/` ディレクトリ内のすべての `.vba` ファイルに対してランナーを生成し、各ファイルの隣に `<filename>_runner.vba` として保存します。
-
-#### 4. 別のディレクトリに出力
+`tests/spec/vba/` ディレクトリ内のすべての `.vba` ファイルに対してランナーを生成し、各ファイルの隣に `<filename>_runner.vba` として保存します。サブディレクトリは個別に実行してください：
 
 ```bash
-npm run test-gen --dir tests/spec/vba tests/spec/runners
-# または
-npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners
+node test-libs/vba-test-generator.cjs --dir tests/spec/vba/Circular
 ```
-
-生成されたテストランナーを `tests/spec/runners/` ディレクトリに保存します。
 
 ### 実 VBA 環境でテストを実行
 

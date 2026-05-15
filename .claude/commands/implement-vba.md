@@ -80,37 +80,56 @@ function runFunc(code: string, name: string, args: any[] = []): any {
   - 例: `Dim As New X` の Auto-Instantiation、Default Property 経由の暗黙呼び出し、`Variant` の型推移、`On Error` ハンドラ内での再帰エラー など
   - 「仕様書のリストにある関数を呼んでみた」だけでは VBA の "癖" を見落とすため、ユーザーの実際の書き方を想定する
 
-#### tests/spec/vba/ の VBA ソーステスト記述ルール（VBA ランタイム挙動用）
+#### tests/spec/vba/ の VBA ソーステスト構成ルール
 
-**テストファイルの構造**:
+**ファイル命名規則**:
 
-```vba
-' Test_<テスト名>: テストケース（複数作成可）
-Sub Test_BasicBehavior()
-    ' テスト内容を実装
-    ' Debug.Print や Err.Raise で結果を検証
-End Sub
+| 種類 | 命名 | 例 |
+|---|---|---|
+| テストプロシージャを含む `.vba` | `<名前>Test.vba` | `ArgCountTest.vba` |
+| テスト専用サポートクラス `.cls` | 短い名前（`Test` サフィックスなし） | `RefA.cls`, `Helper.cls` |
+| 共通インフラクラス `.cls` | 用途がわかる名前 | `AssertHelper.cls` |
 
-Sub Test_EdgeCase()
-    ' エッジケースの検証
-End Sub
+**モジュール名の長さ制限（31文字）への対応**:
+- VBA ではモジュール名（= ファイル名から拡張子を除いたもの）が **31文字以内** でなければならない
+- テストに複数のファイル（`.vba` + 複数の `.cls`）が必要な場合は、**サブディレクトリを作成**してファイル名を短くする
 
-' Setup (オプション): 各テスト前の初期化
-Sub Setup()
-    ' テスト共通の初期化処理
-End Sub
-
-' TearDown (オプション): 各テスト後のクリーンアップ
-Sub TearDown()
-    ' テスト共通のクリーンアップ処理
-End Sub
+```
+tests/spec/vba/
+├── Circular/               ← 複数ファイルが必要なテストはサブディレクトリに
+│   ├── TerminateTest.vba  ← テストプロシージャを含む（"Test"サフィックス）
+│   ├── RefA.cls            ← テスト専用クラス（短い名前）
+│   ├── RefB.cls
+│   └── Helper.cls
+├── ArgCountTest.vba        ← 単一ファイルで完結するテスト
+└── AssertHelper.cls        ← 全テスト共通のインフラクラス
 ```
 
-**テストの書き方**:
-- `test` で始まる Sub プロシージャをテストケースとして認識（例: `Test_BasicBehavior`, `test_edge_case` など）
-- 検証は `Debug.Assert` で行う（実行時に失敗すると assert エラーで中断）
-- `Setup` / `TearDown` Sub は自動で呼び出される（テスト前後に実行）
-- エラーハンドリングのテストは `Err.Raise` で明示的にエラーを発生させる
+**テストプロシージャの書き方**:
+- `Sub Test_XXX(assert)` 形式で定義。ランナーが `test` で始まるプロシージャを自動検出する
+- 検証は `AssertHelper` オブジェクト（引数 `assert`）のメソッドを使う:
+  - `assert.Assert actual, expected, "メッセージ"` — 値比較、失敗時に Debug.Print して Err.Raise
+  - `assert.IsTrue value, "メッセージ"` — 真偽値テスト
+  - `assert.IsFalse value, "メッセージ"` — 偽であることのテスト
+- `SetUp` / `TearDown` Sub は引数なし。ランナーが各テストの前後に自動呼び出し
+
+```vba
+Option Explicit
+
+Sub Test_BasicBehavior(assert)
+    Dim result As Long
+    result = SomeFunc(1, 2)
+    assert.Assert result, 3, "1+2=3"
+End Sub
+
+Sub SetUp()
+    ' 各テスト前の初期化
+End Sub
+
+Sub TearDown()
+    ' 各テスト後のクリーンアップ
+End Sub
+```
 
 > **注意**: `test-libs/test-runner.ts` の `VBATest` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
 
