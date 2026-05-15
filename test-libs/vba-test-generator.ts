@@ -62,7 +62,8 @@ export class VBATestGenerator {
         const modulePrefix = moduleName ? `${moduleName}.` : '';
 
         // テストランナー Sub の生成（実VBA環境で動作）
-        let runner = `' Auto-generated test runner from vba-test-generator\n`;
+        let runner = `Option Explicit\n\n`;
+        runner += `' Auto-generated test runner from vba-test-generator\n`;
         runner += `' Run this Sub in Excel VBA environment to execute all tests\n`;
         if (moduleName) {
             runner += `' Module-qualified calls: ${modulePrefix}TestProcedures\n`;

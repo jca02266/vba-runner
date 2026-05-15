@@ -1,3 +1,5 @@
+Option Explicit
+
 ' circular_reference_terminate_test.vba
 ' VBA source tests for circular reference and Class_Terminate behavior
 ' Tests verify that Class_Terminate is called at most once per object instance

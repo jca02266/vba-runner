@@ -1,3 +1,5 @@
+Option Explicit
+
 ' Test class for circular reference testing (Class B)
 
 Public RefA As Object
