@@ -94,10 +94,10 @@ export class VBATestGenerator {
             }
 
             // テストを実行（Sub の呼び出し）
-            runner += `    Err.Clear\n`;
-            runner += `    On Error Resume Next\n`;
-            runner += `    Call ${modulePrefix}${testProc}\n`;
-            runner += `    If Err.Number = 0 Then\n`;
+            runner += `    Dim testResult\n`;
+            runner += `    testResult = True\n`;
+            runner += `    ${modulePrefix}${testProc} testResult\n`;
+            runner += `    If testResult Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
             runner += `        passCount = passCount + 1\n`;
             runner += `    Else\n`;
@@ -105,7 +105,6 @@ export class VBATestGenerator {
             runner += `        failCount = failCount + 1\n`;
             runner += `        allPass = False\n`;
             runner += `    End If\n`;
-            runner += `    On Error GoTo 0\n`;
 
             // TearDown を呼び出す
             if (hasTearDown) {
