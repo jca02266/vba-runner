@@ -60,7 +60,14 @@ fi
 TEST_OUTPUT=$(node "$RUNNER_OUT" 2>&1)
 TEST_STATUS=$?
 
-if [ $VERBOSE -eq 1 ] || [ $TEST_STATUS -ne 0 ]; then
+# 簡潔出力の場合、最終行のサマリーのみ表示
+if [ $VERBOSE -eq 1 ]; then
+  echo "$TEST_OUTPUT"
+elif [ $TEST_STATUS -eq 0 ]; then
+  # サマリー行のみ抽出
+  echo "$TEST_OUTPUT" | tail -3
+else
+  # エラー時は全出力
   echo "$TEST_OUTPUT"
 fi
 
