@@ -36,8 +36,9 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 **VBA ランタイム挙動の場合**:
 以下の両方を作成する：
 - TypeScript テスト: `tests/spec/<機能名>.test.ts` （基本的な動作確認用）
-- VBA ソーステスト: `tests/spec/vba/Test_<機能名>.vba` （実際のVBAコードの挙動確認用）
-  - ファイル名例: `Test_byref_arrays.vba`, `Test_default_property.vba`, `Test_auto_instantiation.vba`
+- VBA ソーステスト: `tests/spec/vba/<機能名>_test.vba` （実際のVBAコードの挙動確認用）
+  - ファイル名例: `byref_arrays_test.vba`, `default_property_test.vba`, `auto_instantiation_test.vba`
+  - テストプロシージャは `Test_` で始まる名前で記述（`Test_BasicBehavior` など）
   - TODO.md の「VBA ランタイム挙動」セクションに両テストファイル名を記載
 
 #### tests/spec/ のテスト記述ルール
@@ -106,9 +107,9 @@ End Sub
 ```
 
 **テストの書き方**:
-- `Test_` で始まる Sub プロシージャをテストケースとして認識
-- 検証は `Debug.Print` や `Assert` で行う
-- `Setup` / `TearDown` Sub は自動で呼び出される（VBA テストランナー生成時に）
+- `test` で始まる Sub プロシージャをテストケースとして認識（例: `Test_BasicBehavior`, `test_edge_case` など）
+- 検証は `Debug.Assert` で行う（実行時に失敗すると assert エラーで中断）
+- `Setup` / `TearDown` Sub は自動で呼び出される（テスト前後に実行）
 - エラーハンドリングのテストは `Err.Raise` で明示的にエラーを発生させる
 
 > **注意**: `test-libs/test-runner.ts` の `VBATest` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
@@ -152,7 +153,7 @@ End Sub
 
 **VBA ランタイム挙動の場合は、テスト列に両テストファイル名を記載する：**
 ```
-| ✅ | **機能説明** | テスト: `test-name.test.ts`, `Test_name.vba` |
+| ✅ | **機能説明** | テスト: `feature-name.test.ts`, `feature_name_test.vba` |
 ```
 
 以下の形式でコミットする:
