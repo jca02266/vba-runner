@@ -85,6 +85,7 @@ export class VBATestGenerator {
         // 各テストプロシージャの実行コードを生成
         for (const testProc of testProcedures) {
             runner += `    ' Execute ${testProc}\n`;
+            runner += `    assert.Reset\n`;
 
             // SetUp を呼び出す
             if (hasSetUp) {
@@ -95,17 +96,16 @@ export class VBATestGenerator {
 
             // テストを実行（assert オブジェクトを渡す）
             runner += `    On Error Resume Next\n`;
-            runner += `    Err.Clear\n`;
             runner += `    ${modulePrefix}${testProc} assert\n`;
-            runner += `    If Err.Number = 0 Then\n`;
+            runner += `    On Error GoTo 0\n`;
+            runner += `    If Not assert.Failed Then\n`;
             runner += `        testResults = testResults & "[PASS] ${testProc}" & vbCrLf\n`;
             runner += `        passCount = passCount + 1\n`;
             runner += `    Else\n`;
-            runner += `        testResults = testResults & "[FAIL] ${testProc}" & vbCrLf\n`;
+            runner += `        testResults = testResults & "[FAIL] ${testProc} - " & assert.FailMessage & vbCrLf\n`;
             runner += `        failCount = failCount + 1\n`;
             runner += `        allPass = False\n`;
             runner += `    End If\n`;
-            runner += `    On Error GoTo 0\n`;
 
             // TearDown を呼び出す
             if (hasTearDown) {

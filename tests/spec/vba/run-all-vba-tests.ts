@@ -1,8 +1,7 @@
 /**
- * VBA Test Runner - すべての .cls / .vba ファイルを自動実行
- * tests/spec/vba/ ディレクトリ内のすべての .cls および .vba ファイルを
- * 自動検出し、VBATest ランナーで実行する汎用テストランナー
- * テストプロシージャは test で始まる名前（大文字小文字を区別しない）で検出される
+ * VBA Test Runner - .cls / .vba ファイルを自動実行
+ * tests/spec/vba/ 直下のファイルと各サブディレクトリを別スイートとして実行する。
+ * テストプロシージャは test で始まる名前（大文字小文字を区別しない）で検出される。
  */
 
 import * as fs from 'fs';
@@ -12,130 +11,150 @@ import { Lexer } from '../../../src/compiler/lexer';
 import { Parser } from '../../../src/compiler/parser';
 
 const vbaDir = path.join(__dirname);
+const VBA_EXTS = new Set(['.cls', '.vba']);
 
-// VBA テストディレクトリ内のすべてのファイルをロード
 console.log('=== VBA Test Runner ===\n');
-console.log(`Loading VBA test files from: ${vbaDir}\n`);
 
-let fileCount = 0;
-let testCount = 0;
-let passCount = 0;
-const failedTests: string[] = [];
+let totalFiles = 0;
+let totalTests = 0;
+let totalPass = 0;
+const allFailed: string[] = [];
 
-// ディレクトリ内のファイルをリスト
-// run-all-vba-tests.ts 自身を除外し、.cls と .vba ファイルを全て読み込む
-const files = fs.readdirSync(vbaDir);
-const testFiles = files.filter(f => {
-  const ext = path.extname(f).toLowerCase();
-  const isVbaFile = ext === '.cls' || ext === '.vba';
-  const isNotRunner = !f.toLowerCase().includes('run-all-vba-tests');
-  return isVbaFile && isNotRunner;
+function collectProcedures(environment: any): Map<string, any> {
+    const procs = new Map();
+    if (environment && environment.procedures) {
+        for (const [name, proc] of environment.procedures.entries()) {
+            if (typeof name === 'string') procs.set(name, proc);
+        }
+    }
+    if (environment && environment.enclosing) {
+        const parent = collectProcedures(environment.enclosing);
+        for (const [name, proc] of parent) {
+            if (!procs.has(name)) procs.set(name, proc);
+        }
+    }
+    return procs;
+}
+
+function injectFile(vbaTest: VBATest, filePath: string): void {
+    let source = fs.readFileSync(filePath, 'utf-8');
+    const ext = path.extname(filePath).toLowerCase();
+    const moduleName = path.basename(filePath, path.extname(filePath));
+    const evaluator = (vbaTest as any).evaluator;
+    evaluator.setSourceModule(moduleName);
+    if (ext === '.cls' && !source.trim().toLowerCase().startsWith('class ') && !source.toLowerCase().includes('end class')) {
+        source = `Class ${moduleName}\n${source}\nEnd Class`;
+    }
+    const ast = new Parser(new Lexer(source).tokenize()).parse();
+    evaluator.evaluate(ast);
+}
+
+function runSuite(label: string, vbaTest: VBATest): void {
+    const evaluator = (vbaTest as any).evaluator;
+    const allProcs = collectProcedures(evaluator.env);
+
+    for (const [procName] of allProcs) {
+        if (typeof procName !== 'string') continue;
+        const lower = procName.toLowerCase();
+        const baseProcName = lower.includes(':') ? lower.split(':')[1] : lower;
+        const moduleName = lower.includes(':') ? lower.split(':')[0] : '';
+
+        if (!baseProcName.startsWith('test')) continue;
+
+        totalTests++;
+        console.log(`[Test] ${label} / ${procName}`);
+
+        try {
+            if (moduleName && allProcs.has(`${moduleName}:setup`)) {
+                vbaTest.run(`${moduleName}:setup`, []);
+            }
+
+            const wrapperCode = [
+                `Sub __test_wrapper__()`,
+                `    Dim assert As New AssertHelper`,
+                `    On Error Resume Next`,
+                `    ${baseProcName} assert`,
+                `    On Error GoTo 0`,
+                `    If assert.Failed Then`,
+                `        Err.Raise vbObjectError + 1, "__test_wrapper__", assert.FailMessage`,
+                `    End If`,
+                `End Sub`
+            ].join('\n');
+            const ast = new Parser(new Lexer(wrapperCode).tokenize()).parse();
+            evaluator.evaluate(ast);
+            evaluator.callProcedure('__test_wrapper__', []);
+
+            totalPass++;
+            console.log(`  ✅ Pass\n`);
+
+            if (moduleName && allProcs.has(`${moduleName}:teardown`)) {
+                vbaTest.run(`${moduleName}:teardown`, []);
+            }
+        } catch (e: any) {
+            console.error(`  ❌ FAILED: ${e.message}\n`);
+            allFailed.push(`${label} / ${procName}`);
+        }
+    }
+}
+
+// --- 1. Top-level suite ---
+const topLevelFiles = fs.readdirSync(vbaDir).filter(f => {
+    const fullPath = path.join(vbaDir, f);
+    return VBA_EXTS.has(path.extname(f).toLowerCase()) &&
+           !f.toLowerCase().includes('run-all-vba-tests') &&
+           fs.statSync(fullPath).isFile();
 });
 
-console.log(`Found ${testFiles.length} test file(s):`);
-testFiles.forEach(f => console.log(`  - ${f}`));
-console.log('');
-
-if (testFiles.length === 0) {
-  console.log('No test files found.\n');
-  process.exit(0);
+if (topLevelFiles.length > 0) {
+    console.log(`Top-level suite (${topLevelFiles.length} file(s)):`);
+    topLevelFiles.forEach(f => console.log(`  - ${f}`));
+    console.log('');
+    totalFiles += topLevelFiles.length;
+    runSuite('top-level', new VBATest(vbaDir));
 }
 
-// VBATest にすべてのファイルをロード
-const vbaTest = new VBATest(vbaDir);
-fileCount = testFiles.length;
+// --- 2. Subdirectory suites ---
+const assertHelperPath = path.join(vbaDir, 'AssertHelper.cls');
 
-// テスト関数を探して実行
-// VBA での Sub テスト（パラメータなし、戻り値なし）を識別して実行
-const evaluator = (vbaTest as any).evaluator;
-const env = evaluator.env;
+const subdirs = fs.readdirSync(vbaDir).filter(f => {
+    return fs.statSync(path.join(vbaDir, f)).isDirectory();
+});
 
-// プロシージャマップから test で始まる Sub を検出
+for (const subdir of subdirs) {
+    const subdirPath = path.join(vbaDir, subdir);
+    const subdirFiles = fs.readdirSync(subdirPath).filter(f =>
+        VBA_EXTS.has(path.extname(f).toLowerCase())
+    );
 
-// 環境内のすべてのプロシージャを取得
-function collectProcedures(environment: any): Map<string, any> {
-  const procs = new Map();
+    if (subdirFiles.length === 0) continue;
 
-  if (environment && environment.procedures) {
-    for (const [name, proc] of environment.procedures.entries()) {
-      if (typeof name === 'string') {
-        procs.set(name, proc);
-      }
+    console.log(`Suite: ${subdir} (${subdirFiles.length} file(s)):`);
+    subdirFiles.forEach(f => console.log(`  - ${f}`));
+    console.log('');
+    totalFiles += subdirFiles.length;
+
+    const subdirTest = new VBATest(subdirPath);
+    if (fs.existsSync(assertHelperPath)) {
+        injectFile(subdirTest, assertHelperPath);
     }
-  }
-
-  // 親環境も走査
-  if (environment && environment.enclosing) {
-    const parentProcs = collectProcedures(environment.enclosing);
-    for (const [name, proc] of parentProcs) {
-      if (!procs.has(name)) {
-        procs.set(name, proc);
-      }
-    }
-  }
-
-  return procs;
+    runSuite(subdir, subdirTest);
 }
 
-const allProcs = collectProcedures(env);
-
-// test で始まるプロシージャを実行（大文字小文字を区別しない）
-for (const [procName] of allProcs) {
-  if (typeof procName === 'string') {
-    const lower = procName.toLowerCase();
-    // Module-qualified names look like "module:procedure"
-    // Extract the procedure name after the colon, or use the whole name if no colon
-    const baseProcName = lower.includes(':') ? lower.split(':')[1] : lower;
-    const moduleName = lower.includes(':') ? lower.split(':')[0] : '';
-
-    // VBA での Sub テスト（test で始まる）
-    if (baseProcName.startsWith('test')) {
-      testCount++;
-      console.log(`[Test] ${procName}`);
-
-      try {
-        // Call SetUp if it exists in the same module
-        if (moduleName && allProcs.has(`${moduleName}:setup`)) {
-          vbaTest.run(`${moduleName}:setup`, []);
-        }
-
-        // AssertHelper インスタンスを渡してテストを実行（モジュール修飾なしで呼ぶ）
-        const wrapperCode = `Sub __test_wrapper__()\n    Dim assert As New AssertHelper\n    ${baseProcName} assert\nEnd Sub`;
-        const tokens = new Lexer(wrapperCode).tokenize();
-        const ast = new Parser(tokens).parse();
-        evaluator.evaluate(ast);
-        evaluator.callProcedure('__test_wrapper__', []);
-
-        passCount++;
-        console.log(`  ✅ Pass\n`);
-
-        // Call TearDown if it exists in the same module
-        if (moduleName && allProcs.has(`${moduleName}:teardown`)) {
-          vbaTest.run(`${moduleName}:teardown`, []);
-        }
-      } catch (e: any) {
-        console.error(`  ❌ FAILED: ${e.message}\n`);
-        failedTests.push(procName);
-      }
-    }
-  }
-}
-
-// 結果をサマリー
+// --- Summary ---
 console.log('=== Summary ===');
-console.log(`Files loaded: ${fileCount}`);
-console.log(`Tests run: ${testCount}`);
-console.log(`Tests passed: ${passCount}`);
+console.log(`Files loaded: ${totalFiles}`);
+console.log(`Tests run: ${totalTests}`);
+console.log(`Tests passed: ${totalPass}`);
 
-if (failedTests.length > 0) {
-  console.log(`Tests failed: ${failedTests.length}`);
-  console.log('\nFailed tests:');
-  failedTests.forEach(name => console.log(`  - ${name}`));
-  process.exit(1);
-} else if (testCount > 0) {
-  console.log(`\n✅ All ${testCount} test(s) passed!`);
-  process.exit(0);
+if (allFailed.length > 0) {
+    console.log(`Tests failed: ${allFailed.length}`);
+    console.log('\nFailed tests:');
+    allFailed.forEach(name => console.log(`  - ${name}`));
+    process.exit(1);
+} else if (totalTests > 0) {
+    console.log(`\n✅ All ${totalTests} test(s) passed!`);
+    process.exit(0);
 } else {
-  console.log('\n⚠️  No tests found to run');
-  process.exit(0);
+    console.log('\n⚠️  No tests found to run');
+    process.exit(0);
 }

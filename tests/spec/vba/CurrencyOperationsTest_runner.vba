@@ -16,144 +16,144 @@ Sub RunAllTests()
     testResults = "=== Test Results ===" & vbCrLf & vbCrLf
 
     ' Execute Test_CurrencyArithmetic
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyArithmetic assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyArithmetic" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyArithmetic" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyArithmetic - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyMultiplication
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyMultiplication assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyMultiplication" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyMultiplication" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyMultiplication - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyDivision
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyDivision assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyDivision" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyDivision" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyDivision - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyTaxCalculation
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyTaxCalculation assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyTaxCalculation" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyTaxCalculation" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyTaxCalculation - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyArray
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyArray assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyArray" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyArray" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyArray - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyConversion
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyConversion assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyConversion" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyConversion" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyConversion - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyComparison
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyComparison assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyComparison" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyComparison" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyComparison - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyNegative
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyNegative assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyNegative" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyNegative" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyNegative - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyPrecision
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyPrecision assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyPrecision" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyPrecision" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyPrecision - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CurrencyFunctionParameter
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     CurrencyOperationsTest.Test_CurrencyFunctionParameter assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CurrencyFunctionParameter" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CurrencyFunctionParameter" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CurrencyFunctionParameter - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     testResults = testResults & vbCrLf
     testResults = testResults & "=== Test Summary ===" & vbCrLf

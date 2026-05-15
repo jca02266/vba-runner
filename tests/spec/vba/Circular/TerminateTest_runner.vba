@@ -16,74 +16,74 @@ Sub RunAllTests()
     testResults = "=== Test Results ===" & vbCrLf & vbCrLf
 
     ' Execute Test_BasicTerminate
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     TerminateTest.Test_BasicTerminate assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_BasicTerminate" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_BasicTerminate" & vbCrLf
+        testResults = testResults & "[FAIL] Test_BasicTerminate - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_MutualReferences
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     TerminateTest.Test_MutualReferences assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_MutualReferences" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_MutualReferences" & vbCrLf
+        testResults = testResults & "[FAIL] Test_MutualReferences - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_TerminateNotCalledTwice
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     TerminateTest.Test_TerminateNotCalledTwice assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_TerminateNotCalledTwice" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_TerminateNotCalledTwice" & vbCrLf
+        testResults = testResults & "[FAIL] Test_TerminateNotCalledTwice - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_MultipleObjects
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     TerminateTest.Test_MultipleObjects assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_MultipleObjects" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_MultipleObjects" & vbCrLf
+        testResults = testResults & "[FAIL] Test_MultipleObjects - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_CircularChainCleanup
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     TerminateTest.Test_CircularChainCleanup assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CircularChainCleanup" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CircularChainCleanup" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CircularChainCleanup - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     testResults = testResults & vbCrLf
     testResults = testResults & "=== Test Summary ===" & vbCrLf

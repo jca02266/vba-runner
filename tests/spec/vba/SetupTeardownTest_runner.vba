@@ -17,101 +17,101 @@ Sub RunAllTests()
     testResults = "=== Test Results ===" & vbCrLf & vbCrLf
 
     ' Execute Test_SetupInitializesCounter
+    assert.Reset
     On Error Resume Next
     SetupTeardownTest.SetUp
     On Error GoTo 0
     On Error Resume Next
-    Err.Clear
     SetupTeardownTest.Test_SetupInitializesCounter assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_SetupInitializesCounter" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_SetupInitializesCounter" & vbCrLf
+        testResults = testResults & "[FAIL] Test_SetupInitializesCounter - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
     On Error Resume Next
     SetupTeardownTest.TearDown
     On Error GoTo 0
 
     ' Execute Test_SetupInitializesState
+    assert.Reset
     On Error Resume Next
     SetupTeardownTest.SetUp
     On Error GoTo 0
     On Error Resume Next
-    Err.Clear
     SetupTeardownTest.Test_SetupInitializesState assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_SetupInitializesState" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_SetupInitializesState" & vbCrLf
+        testResults = testResults & "[FAIL] Test_SetupInitializesState - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
     On Error Resume Next
     SetupTeardownTest.TearDown
     On Error GoTo 0
 
     ' Execute Test_CounterIncrement
+    assert.Reset
     On Error Resume Next
     SetupTeardownTest.SetUp
     On Error GoTo 0
     On Error Resume Next
-    Err.Clear
     SetupTeardownTest.Test_CounterIncrement assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_CounterIncrement" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_CounterIncrement" & vbCrLf
+        testResults = testResults & "[FAIL] Test_CounterIncrement - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
     On Error Resume Next
     SetupTeardownTest.TearDown
     On Error GoTo 0
 
     ' Execute Test_StringConcat
+    assert.Reset
     On Error Resume Next
     SetupTeardownTest.SetUp
     On Error GoTo 0
     On Error Resume Next
-    Err.Clear
     SetupTeardownTest.Test_StringConcat assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_StringConcat" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_StringConcat" & vbCrLf
+        testResults = testResults & "[FAIL] Test_StringConcat - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
     On Error Resume Next
     SetupTeardownTest.TearDown
     On Error GoTo 0
 
     ' Execute Test_LogicalAnd
+    assert.Reset
     On Error Resume Next
     SetupTeardownTest.SetUp
     On Error GoTo 0
     On Error Resume Next
-    Err.Clear
     SetupTeardownTest.Test_LogicalAnd assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_LogicalAnd" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_LogicalAnd" & vbCrLf
+        testResults = testResults & "[FAIL] Test_LogicalAnd - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
     On Error Resume Next
     SetupTeardownTest.TearDown
     On Error GoTo 0

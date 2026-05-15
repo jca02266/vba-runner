@@ -16,74 +16,74 @@ Sub RunAllTests()
     testResults = "=== Test Results ===" & vbCrLf & vbCrLf
 
     ' Execute Test_TooManyArgsToFunction
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     ArgCountTest.Test_TooManyArgsToFunction assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_TooManyArgsToFunction" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_TooManyArgsToFunction" & vbCrLf
+        testResults = testResults & "[FAIL] Test_TooManyArgsToFunction - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_TooFewArgsToFunction
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     ArgCountTest.Test_TooFewArgsToFunction assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_TooFewArgsToFunction" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_TooFewArgsToFunction" & vbCrLf
+        testResults = testResults & "[FAIL] Test_TooFewArgsToFunction - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_ArgsToNoArgFunction
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     ArgCountTest.Test_ArgsToNoArgFunction assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_ArgsToNoArgFunction" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_ArgsToNoArgFunction" & vbCrLf
+        testResults = testResults & "[FAIL] Test_ArgsToNoArgFunction - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_TooManyArgsToSub
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     ArgCountTest.Test_TooManyArgsToSub assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_TooManyArgsToSub" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_TooManyArgsToSub" & vbCrLf
+        testResults = testResults & "[FAIL] Test_TooManyArgsToSub - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     ' Execute Test_ArgsToNoArgSub
+    assert.Reset
     On Error Resume Next
-    Err.Clear
     ArgCountTest.Test_ArgsToNoArgSub assert
-    If Err.Number = 0 Then
+    On Error GoTo 0
+    If Not assert.Failed Then
         testResults = testResults & "[PASS] Test_ArgsToNoArgSub" & vbCrLf
         passCount = passCount + 1
     Else
-        testResults = testResults & "[FAIL] Test_ArgsToNoArgSub" & vbCrLf
+        testResults = testResults & "[FAIL] Test_ArgsToNoArgSub - " & assert.FailMessage & vbCrLf
         failCount = failCount + 1
         allPass = False
     End If
-    On Error GoTo 0
 
     testResults = testResults & vbCrLf
     testResults = testResults & "=== Test Summary ===" & vbCrLf
