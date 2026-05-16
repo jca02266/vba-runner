@@ -649,6 +649,7 @@ export class Evaluator {
     private dirIterator: string[] | null = null;
     private dirIndex: number = 0;
     private currentLine: number = 0;
+    private nowOverride: (() => Date) | null = null;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -662,6 +663,40 @@ export class Evaluator {
     // Public accessor for testing/mocking
     getGlobalEnv(): Environment {
         return this.env;
+    }
+
+    setNowFn(fn: (() => Date) | null): void {
+        this.nowOverride = fn;
+        this.registerDateTimeFunctions();
+    }
+
+    private getNow(): Date {
+        return this.nowOverride ? this.nowOverride() : new Date();
+    }
+
+    private registerDateTimeFunctions() {
+        const nowFunc = () => new VbaDate(toVbaDate(this.getNow()));
+        (nowFunc as any).__vbaAutoCall__ = true;
+        this.env.set('now', nowFunc);
+
+        const dateFunc = () => new VbaDate(Math.floor(toVbaDate(this.getNow())));
+        (dateFunc as any).__vbaAutoCall__ = true;
+        this.env.set('date', dateFunc);
+
+        const timeFunc = () => {
+            const serial = toVbaDate(this.getNow());
+            return new VbaDate(serial - Math.floor(serial));
+        };
+        (timeFunc as any).__vbaAutoCall__ = true;
+        this.env.set('time', timeFunc);
+
+        const timerFunc = () => {
+            const now = this.getNow();
+            const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            return (now.getTime() - midnight.getTime()) / 1000;
+        };
+        (timerFunc as any).__vbaAutoCall__ = true;
+        this.env.set('timer', timerFunc);
     }
 
     private registerStandardLibrary() {
@@ -1147,28 +1182,7 @@ export class Evaluator {
         this.env.set('format$', formatFunc);
 
         // --- Date/Time Module ---
-        const nowFunc = () => new VbaDate(toVbaDate(new Date()));
-        (nowFunc as any).__vbaAutoCall__ = true;
-        this.env.set('now', nowFunc);
-
-        const dateFunc = () => new VbaDate(Math.floor(toVbaDate(new Date())));
-        (dateFunc as any).__vbaAutoCall__ = true;
-        this.env.set('date', dateFunc);
-
-        const timeFunc = () => {
-            const serial = toVbaDate(new Date());
-            return new VbaDate(serial - Math.floor(serial));
-        };
-        (timeFunc as any).__vbaAutoCall__ = true;
-        this.env.set('time', timeFunc);
-
-        const timerFunc = () => {
-            const now = new Date();
-            const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-            return (now.getTime() - midnight.getTime()) / 1000;
-        };
-        (timerFunc as any).__vbaAutoCall__ = true;
-        this.env.set('timer', timerFunc);
+        this.registerDateTimeFunctions();
         this.env.set('year', (d: any) => parseVbaDate(d).getUTCFullYear());
         this.env.set('month', (d: any) => parseVbaDate(d).getUTCMonth() + 1);
         this.env.set('day', (d: any) => parseVbaDate(d).getUTCDate());

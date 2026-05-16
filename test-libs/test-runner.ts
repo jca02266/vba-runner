@@ -78,6 +78,20 @@ export class VBATest {
     registerExternalObject(progId: string, factory: () => any): void {
         this.evaluator.registerExternalObject(progId, factory);
     }
+
+    /**
+     * Fix the date/time returned by `Now`, `Date`, `Time`, and `Timer`.
+     * Accepts any value parseable by `new Date(...)`, e.g. `'2024-12-31T09:00:00'`.
+     * Pass `null` to restore real system time.
+     */
+    mockDate(dateStr: string | null): void {
+        if (dateStr === null) {
+            this.evaluator.setNowFn(null);
+        } else {
+            const fixed = new Date(dateStr);
+            this.evaluator.setNowFn(() => fixed);
+        }
+    }
 }
 
 // Keep backward compatibility
