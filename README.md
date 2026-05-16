@@ -594,6 +594,8 @@ const result = ev.callProcedure('GetTotal', []);
 
 ### MockApplication の拡張
 
+前述のとおり、ドメインロジックの分離を優先しているため、`MockApplication` などのモックオブジェクトは機能が限定的です。それでも既存モックを拡張することで当面の問題に対処できます。
+
 `WorksheetFunction` をモック化するには、**`MockApplication` を継承**して `worksheetfunction` プロパティを追加します。`application` オブジェクトを丸ごと差し替えると `Sheets` などの既存機能が失われるため、継承による拡張を使います。
 
 > **注意**: エンジンは VBA の識別子を小文字で解決します（`Application.WorksheetFunction` → `application.worksheetfunction`）。プロパティ名はすべて lowercase で定義してください。
