@@ -619,6 +619,50 @@ vbaTest.mockDate('2024-12-31T23:59:59Z')  // 日時を固定
 vbaTest.mockDate(null)                      // 解除
 ```
 
+#### `spy(name, returnFn?)` → `SpyRecord`
+
+VBA 関数をスパイでラップし、呼び出し記録を返す。`returnFn` を指定すると戻り値を上書きできる。
+
+```typescript
+// 基本: 呼び出し記録だけ（MsgBox の元の動作を維持）
+const spy = vbaTest.spy('MsgBox');
+vbaTest.run('MyProc', []);
+
+spy.callCount              // 呼び出し回数
+spy.calls                  // 引数配列の配列: [['msg1'], ['msg2', 0, 'Title'], ...]
+spy.lastCall               // 最後の呼び出しの引数配列
+spy.calledWith('Error!')   // 指定引数で呼ばれたか（boolean）
+spy.returnValues           // 各呼び出しの戻り値
+spy.reset()                // 履歴をリセット
+
+// 戻り値モック: ユーザーが「はい」を選んだ状態を再現（vbYes = 6）
+const spy2 = vbaTest.spy('MsgBox', () => 6);
+
+// InputBox をモックして固定文字列を返す
+vbaTest.spy('InputBox', () => 'Alice');
+```
+
+`SpyRecord` は `test-libs/test-runner` から型としてもインポートできる。
+
+```typescript
+import { VBATest, SpyRecord } from '../../test-libs/test-runner';
+// ※ SpyRecord は evaluator.ts から再エクスポートされていないため、
+//    型だけ必要な場合は import type { SpyRecord } from '../../src/compiler/evaluator';
+```
+
+**使用例: MsgBox のエラーメッセージを検証する**
+
+```typescript
+it('should show error when input is invalid', () => {
+  const spy = vbaTest.spy('MsgBox');
+  
+  vbaTest.eval('Validate("")');  // 空文字 → エラー表示
+  
+  expect(spy.callCount).toBe(1);
+  expect(spy.calledWith('入力値が不正です')).toBe(true);
+});
+```
+
 #### `registerExternalObject(progId, factory)` → `void`
 
 `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える。
@@ -864,6 +908,7 @@ try {
 | **テスト対象** | Domain Logic のみ |
 | **入力データ** | 配列、スカラー値（シンプル） |
 | **日時モック** | `vbaTest.mockDate('2024-01-01T00:00:00Z')` |
+| **副作用スパイ** | `vbaTest.spy('MsgBox')` → `SpyRecord` |
 | **外部オブジェクト** | `vbaTest.registerExternalObject(progId, factory)` |
 | **エラーデバッグ** | `e.vbaLine` / `e.number` / `e.message` |
 | **テスト実行** | npm scripts から |

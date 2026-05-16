@@ -89,6 +89,32 @@ import * as path from 'path';
  * 数値からシングルトンを返すファクトリで、`new VbaBoolean()` を直接呼ぶのは禁止
  * （コンストラクタが private）。
  */
+
+/**
+ * VBATest.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
+ * 各 call は引数の配列として記録される。
+ */
+export class SpyRecord {
+    readonly calls: any[][] = [];
+    readonly returnValues: any[] = [];
+
+    get callCount(): number { return this.calls.length; }
+    get lastCall(): any[] | null { return this.calls[this.calls.length - 1] ?? null; }
+
+    /** 指定した引数で呼び出されたことがあるか（引数は先頭から部分一致） */
+    calledWith(...args: any[]): boolean {
+        return this.calls.some(callArgs =>
+            args.every((arg, i) => callArgs[i] === arg)
+        );
+    }
+
+    /** 呼び出し履歴をリセットする */
+    reset(): void {
+        this.calls.length = 0;
+        this.returnValues.length = 0;
+    }
+}
+
 export class VbaBoolean {
     public readonly __isVbaBoolean__ = true;
     private constructor(public readonly value: -1 | 0) {}
@@ -668,6 +694,36 @@ export class Evaluator {
     setNowFn(fn: (() => Date) | null): void {
         this.nowOverride = fn;
         this.registerDateTimeFunctions();
+    }
+
+    /**
+     * 指定した VBA 組み込み関数 / ユーザー定義関数をスパイでラップし、呼び出し記録を返す。
+     * returnFn を渡すと戻り値をオーバーライドできる（例: MsgBox を常に vbYes=6 にする）。
+     * returnFn を省略すると元の実装をそのまま呼び出す。
+     */
+    spy(name: string, returnFn?: (...args: any[]) => any): SpyRecord {
+        const key = name.toLowerCase();
+        const original = this.env.get(key);
+        const record = new SpyRecord();
+
+        const spyFn = (...args: any[]) => {
+            record.calls.push([...args]);
+            let ret: any;
+            if (returnFn) {
+                ret = returnFn(...args);
+            } else if (typeof original === 'function') {
+                ret = original(...args);
+            }
+            record.returnValues.push(ret);
+            return ret;
+        };
+
+        if (original && (original as any).__vbaAutoCall__) {
+            (spyFn as any).__vbaAutoCall__ = true;
+        }
+
+        this.env.set(key, spyFn);
+        return record;
     }
 
     private getNow(): Date {

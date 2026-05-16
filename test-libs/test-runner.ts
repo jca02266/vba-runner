@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Lexer } from '../src/compiler/lexer';
 import { Parser } from '../src/compiler/parser';
-import { Evaluator, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/compiler/evaluator';
+import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/compiler/evaluator';
 import { NodeFileSystem } from '../src/compiler/node_filesystem';
 import { MemoryFileSystem } from '../src/compiler/filesystem';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
@@ -77,6 +77,24 @@ export class VBATest {
      */
     registerExternalObject(progId: string, factory: () => any): void {
         this.evaluator.registerExternalObject(progId, factory);
+    }
+
+    /**
+     * VBA 関数をスパイでラップし、呼び出し記録を返す。
+     * returnFn を指定すると戻り値をオーバーライドできる。
+     *
+     * @example
+     *   const spy = vbaTest.spy('MsgBox');
+     *   vbaTest.run('MyProc', []);
+     *   console.log(spy.callCount);           // 呼び出し回数
+     *   console.log(spy.lastCall);            // 最後の引数配列
+     *   console.log(spy.calledWith('Error!')); // 引数一致チェック
+     *
+     * @example MsgBox の戻り値をモックする（vbYes=6）
+     *   const spy = vbaTest.spy('MsgBox', () => 6);
+     */
+    spy(name: string, returnFn?: (...args: any[]) => any): SpyRecord {
+        return this.evaluator.spy(name, returnFn);
     }
 
     /**
