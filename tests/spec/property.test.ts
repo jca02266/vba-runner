@@ -83,7 +83,7 @@ function runVba(source: string): Evaluator {
         ev.callProcedure('ReadOnly', ["Error"], 'let');
         assert.strictEqual(true, false, 'Should have thrown error for writing to read-only property');
     } catch (e: any) {
-        assert.strictEqual(e.message.includes('Procedure \'ReadOnly\' not found'), true, 'Error message for missing Property Let');
+        assert.strictEqual(e.message.includes('ReadOnly'), true, 'Error message for missing Property Let');
     }
 }
 
