@@ -1323,10 +1323,10 @@ export class Evaluator {
                     const dirPath = path.dirname(realPath);
                     const filter = path.basename(realPath);
                     const files = this.fs.readdirSync(dirPath);
-                    if (filter === "*.*" || filter === "*" || filter === "") {
+                    if (filter === '' || filter === '*' || filter === '*.*') {
                         this.dirIterator = files;
                     } else {
-                        const regex = new RegExp('^' + filter.replace(/\./g, '\\.').replace(/\*/g, '.*').replace(/\?/g, '.') + '$', 'i');
+                        const regex = this.vbaWildcardToRegex(filter);
                         this.dirIterator = files.filter((f: string) => regex.test(f));
                     }
                     this.dirIndex = 0;
@@ -1339,7 +1339,7 @@ export class Evaluator {
         });
         this.env.set('dir$', this.env.get('dir'));
         this.env.set('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
-        this.env.set('kill', (p: string) => this.fs.unlinkSync(this.sandbox.toRealPath(p)));
+        this.env.set('kill', (p: string) => this.executeKill(p));
         this.env.set('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }));
         this.env.set('rmdir', (p: string) => this.fs.rmdirSync?.(this.sandbox.toRealPath(p)));
         this.env.set('chdir', (_p: string) => { /* Mock or Sandbox logic */ });
@@ -3167,14 +3167,59 @@ export class Evaluator {
         handle.pos! += buffer.length;
     }
 
+    private vbaWildcardToRegex(pattern: string): RegExp {
+        let regexStr = '';
+        for (const ch of pattern) {
+            if (ch === '*') regexStr += '.*';
+            else if (ch === '?') regexStr += '.';
+            else if (/[.+^${}()|[\]\\]/.test(ch)) regexStr += '\\' + ch;
+            else regexStr += ch;
+        }
+        return new RegExp('^' + regexStr + '$', 'i');
+    }
+
+    private executeKill(vbaPath: string): void {
+        if (vbaPath.includes('*') || vbaPath.includes('?')) {
+            const norm = vbaPath.replace(/\\/g, '/');
+            const lastSlash = norm.lastIndexOf('/');
+            const dirPart = lastSlash === -1 ? '' : norm.substring(0, lastSlash);
+            const pattern = lastSlash === -1 ? norm : norm.substring(lastSlash + 1);
+
+            const realDir = this.sandbox.toRealPath(dirPart || '');
+            let files: string[];
+            try {
+                files = this.fs.readdirSync(realDir);
+            } catch {
+                this.throwVbaError(53, 'File not found');
+                return;
+            }
+
+            const regex = this.vbaWildcardToRegex(pattern);
+            const matched = files.filter((f: string) => {
+                if (!regex.test(f)) return false;
+                try { return this.fs.statSync(realDir + '/' + f).isFile(); } catch { return false; }
+            });
+
+            if (matched.length === 0) {
+                this.throwVbaError(53, 'File not found');
+                return;
+            }
+            for (const file of matched) {
+                this.fs.unlinkSync(realDir + '/' + file);
+            }
+        } else {
+            const realPath = this.sandbox.toRealPath(vbaPath);
+            try {
+                this.fs.unlinkSync(realPath);
+            } catch {
+                this.throwVbaError(53, 'File not found');
+            }
+        }
+    }
+
     private evaluateKillStatement(stmt: KillStatement) {
         const vbaPath = String(this.evaluateExpression(stmt.path));
-        const realPath = this.sandbox.toRealPath(vbaPath);
-        try {
-            this.fs.unlinkSync(realPath);
-        } catch (e: any) {
-            this.throwVbaError(53, "File not found");
-        }
+        this.executeKill(vbaPath);
     }
 
     private evaluateWriteStatement(stmt: WriteStatement) {

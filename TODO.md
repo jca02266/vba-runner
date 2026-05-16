@@ -405,7 +405,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 | ✅ | | `rmdirSync` | ディレクトリ削除。 |
 | ✅ | **メタデータ** | `statSync` | `size`, `mtime`, `birthtime`, `mode` の取得。 |
 | ✅ | | `existsSync` | ファイル/ディレクトリの存在確認。 |
-| ⚠️ | **高度な操作** | **ワイルドカード** | `Kill` および `Dir` における `*`, `?` のサポート。 |
+| ✅ | **高度な操作** | **ワイルドカード** | `Kill` および `Dir` における `*`, `?` のサポート。 |
 | ⚠️ | | **カレントディレクトリ** | `ChDir` / `CurDir` による仮想的な作業ディレクトリの保持。 |
 | ❌ | | **永続化** | `localStorage` や `IndexedDB` への保存・復元。 |
 | ❌ | | **排他制御** | `Lock` / `Unlock` ステートメントのエミュレーション。 |
@@ -414,7 +414,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### VFS 開発ロードマップ (TODO)
 
 #### 1. コア機能の強化
-- [ ] `MemoryFileSystem` にワイルドカードマッチングロジックの実装（`Kill` への統合）。
+- ✅ `MemoryFileSystem` にワイルドカードマッチングロジックの実装（`Kill` への統合）。 | `wildcard-kill-dir.test.ts`
 - [ ] `MemoryFileSystem` 内部での `cwd` (Current Working Directory) の保持と `ChDir` 対応。
 - [ ] `statSync` における VBA 属性（Read-only, Hidden 等）のシミュレーション。
 
