@@ -1037,18 +1037,22 @@ End Type
 
 ### VBA 側の実装
 
-`GetSetting` は `LibSheet.vba` に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
+`GetSetting` は [`sample/src/vba/LibSheet.vba`](../sample/src/vba/LibSheet.vba) に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
 
 ```vba
 ' LibSheet.vba
 Function GetSetting(tbl As ListObject, itemName As String) As Variant
-    Dim r As ListRow
-    For Each r In tbl.ListRows
-        If r.Range(1, 1).Value = itemName Then
-            GetSetting = r.Range(1, 2).Value
+    Dim colItem As ListColumn
+    Dim colValue As ListColumn
+    Set colItem = tbl.ListColumns("項目")
+    Set colValue = tbl.ListColumns("値")
+    Dim i As Long
+    For i = 1 To tbl.ListRows.Count
+        If colItem.DataBodyRange(i, 1).Value = itemName Then
+            GetSetting = colValue.DataBodyRange(i, 1).Value
             Exit Function
         End If
-    Next r
+    Next i
     Err.Raise 1004, "GetSetting", "設定項目 '" & itemName & "' が見つかりません"
 End Function
 
@@ -1078,5 +1082,17 @@ End Sub
 | 列挿入時の対応 | ソースを手修正 | 数式が自動追従 |
 | 設定の一覧性 | Const が散在 | シートで一覧確認・変更可 |
 | 非エンジニアによる調整 | 不可 | シートを直接編集できる |
+
+### 代替案：名前付き範囲（Named Ranges）との比較
+
+Excel の名前付き範囲（名前マネージャー）を使ってセル位置を管理する方法もありますが、以下のデメリットがあります。
+
+| デメリット | 説明 |
+|-----------|------|
+| 定義が不可視 | 名前はワークブック内に隠れており、シートを見ただけでは何が定義されているか分からない |
+| スコープが分かりづらい | ブック全体とシートローカルの2種類があり、意図せず混在すると参照が壊れる |
+| シート操作で壊れやすい | シートの移動・コピー・改名で名前の参照が壊れることがあり、しかもエラーが出ないまま気づきにくい |
+
+設定シート方式は設定の一覧がシート上に可視化されており、上記のリスクがないため、長期運用するブックでは設定シート方式を推奨します。
 
 ビジネスロジックの変更なしにシートレイアウトを変えられるため、**長期運用するマクロほど効果が大きい**パターンです。

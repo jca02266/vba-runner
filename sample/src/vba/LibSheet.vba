@@ -2,13 +2,17 @@
 ' tbl: 設定テーブルの ListObject（呼び出し元で取得して渡す）
 ' itemName: 「項目」列の値
 Function GetSetting(tbl As ListObject, itemName As String) As Variant
-    Dim r As ListRow
-    For Each r In tbl.ListRows
-        If r.Range(1, 1).Value = itemName Then
-            GetSetting = r.Range(1, 2).Value
+    Dim colItem As ListColumn
+    Dim colValue As ListColumn
+    Set colItem = tbl.ListColumns("項目")
+    Set colValue = tbl.ListColumns("値")
+    Dim i As Long
+    For i = 1 To tbl.ListRows.Count
+        If colItem.DataBodyRange(i, 1).Value = itemName Then
+            GetSetting = colValue.DataBodyRange(i, 1).Value
             Exit Function
         End If
-    Next r
+    Next i
     Err.Raise 1004, "GetSetting", "設定項目 '" & itemName & "' が見つかりません"
 End Function
 
