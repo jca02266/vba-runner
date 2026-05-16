@@ -23,6 +23,7 @@ import * as path from 'path';
 interface ProcedureMetrics {
     name: string;
     kind: 'Sub' | 'Function' | 'Property';
+    scope: 'public' | 'private' | 'friend';
     startLine: number;
     endLine: number;
     lineCount: number;
@@ -31,7 +32,9 @@ interface ProcedureMetrics {
     assignmentBlocks: Array<{ startLine: number; endLine: number; count: number; context: string }>;
     excelAccessCount: number;
     excelAccessSamples: Array<{ line: number; expr: string }>;
+    excelObjectsUsed: string[];           // 例: ['Sheets', 'Range', 'Application'] - モック必要候補
     repeatedNumericLiterals: Array<{ value: string; occurrences: number; lines: number[] }>;
+    referenceCount: number;               // 他のプロシージャから呼ばれている回数（クロスファイル含む）
 }
 
 interface FileReport {
@@ -40,6 +43,13 @@ interface FileReport {
     procedureCount: number;
     procedures: ProcedureMetrics[];
     warnings: string[];
+}
+
+interface WorkspaceReport {
+    files: FileReport[];
+    entryPointCandidates: Array<{ file: string; name: string; kind: string; line: number; reason: string }>;
+    deadCodeCandidates: Array<{ file: string; name: string; kind: string; line: number }>;
+    excelMockTargets: Array<{ file: string; procName: string; objects: string[]; sampleAccesses: string[] }>;
 }
 
 // ---------------------------------------------------------
@@ -126,26 +136,72 @@ function findConsecutiveAssignmentBlocks(
     return out;
 }
 
-function findExcelAccess(stmts: any, samplesLimit = 10): { count: number; samples: Array<{ line: number; expr: string }> } {
-    const excelRoots = new Set(['sheets', 'range', 'cells', 'application', 'activesheet', 'activeworkbook', 'thisworkbook', 'workbook', 'worksheet', 'ws']);
+// Excel系の "ルート" オブジェクト名（モック化の必要性判定に使う）
+const EXCEL_ROOT_OBJECTS = new Set([
+    'sheets', 'range', 'cells', 'application',
+    'activesheet', 'activeworkbook', 'activecell',
+    'thisworkbook', 'workbook', 'workbooks',
+    'worksheet', 'worksheets', 'columns', 'rows',
+    'selection', 'workbookbeforesave',
+]);
+
+// 表示用の正規化（小文字 → よく使われる大文字表記）
+const EXCEL_DISPLAY_NAMES: Record<string, string> = {
+    sheets: 'Sheets',
+    range: 'Range',
+    cells: 'Cells',
+    application: 'Application',
+    activesheet: 'ActiveSheet',
+    activeworkbook: 'ActiveWorkbook',
+    activecell: 'ActiveCell',
+    thisworkbook: 'ThisWorkbook',
+    workbook: 'Workbook',
+    workbooks: 'Workbooks',
+    worksheet: 'Worksheet',
+    worksheets: 'Worksheets',
+    columns: 'Columns',
+    rows: 'Rows',
+    selection: 'Selection',
+};
+
+function findExcelAccess(stmts: any, samplesLimit = 10): {
+    count: number;
+    samples: Array<{ line: number; expr: string }>;
+    objectsUsed: string[];
+} {
     let count = 0;
     const samples: Array<{ line: number; expr: string }> = [];
+    const objectsUsed = new Set<string>();
+
+    function recordObject(name: string) {
+        const lower = name.toLowerCase();
+        objectsUsed.add(EXCEL_DISPLAY_NAMES[lower] ?? name);
+    }
 
     function visit(node: any) {
         if (!node || typeof node !== 'object') return;
         if (node.type === 'MemberAccess' || node.type === 'MemberExpression') {
             const objName = (node.object?.name || node.object?.callee?.name || '').toLowerCase();
-            if (excelRoots.has(objName)) {
+            if (EXCEL_ROOT_OBJECTS.has(objName)) {
                 count++;
+                recordObject(objName);
                 if (samples.length < samplesLimit) {
                     samples.push({
                         line: node.loc?.start.line ?? -1,
-                        expr: `${objName}.${node.property?.name || '?'}`,
+                        expr: `${EXCEL_DISPLAY_NAMES[objName] ?? objName}.${node.property?.name || '?'}`,
                     });
                 }
             }
         }
+        // 識別子単体での Excel 参照（例: `Set ws = ActiveSheet` の右辺）
+        if (node.type === 'Identifier' && typeof node.name === 'string') {
+            const lower = node.name.toLowerCase();
+            if (EXCEL_ROOT_OBJECTS.has(lower)) {
+                recordObject(lower);
+            }
+        }
         for (const key of Object.keys(node)) {
+            if (key === 'loc') continue;
             const v = node[key];
             if (Array.isArray(v)) v.forEach(visit);
             else if (v && typeof v === 'object' && v.type) visit(v);
@@ -153,7 +209,39 @@ function findExcelAccess(stmts: any, samplesLimit = 10): { count: number; sample
     }
 
     if (isStatementArray(stmts)) for (const s of stmts) visit(s);
-    return { count, samples };
+    return { count, samples, objectsUsed: [...objectsUsed].sort() };
+}
+
+// プロシージャ本体から「呼び出している識別子名」を収集する
+// 簡易ヒューリスティック: CallExpression の callee が Identifier の場合 / Call/サブ名直接呼びの場合
+function collectProcedureCalls(stmts: any, definedTypes: Set<string>): Set<string> {
+    const calls = new Set<string>();
+
+    function visit(node: any) {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'CallExpression') {
+            if (node.callee?.type === 'Identifier' && node.callee.name) {
+                calls.add(node.callee.name.toLowerCase());
+            } else if (node.callee?.name) {
+                calls.add(String(node.callee.name).toLowerCase());
+            }
+        }
+        if (node.type === 'CallStatement' && node.name) {
+            calls.add(String(node.name).toLowerCase());
+        }
+        // 型名（UDT）として登場するものは呼び出しとみなさない
+        for (const key of Object.keys(node)) {
+            if (key === 'loc') continue;
+            const v = node[key];
+            if (Array.isArray(v)) v.forEach(visit);
+            else if (v && typeof v === 'object' && v.type) visit(v);
+        }
+    }
+
+    if (isStatementArray(stmts)) for (const s of stmts) visit(s);
+    // UDT 型名は呼び出しではないので除外
+    for (const t of definedTypes) calls.delete(t.toLowerCase());
+    return calls;
 }
 
 function findRepeatedNumericLiterals(
@@ -191,7 +279,15 @@ function findRepeatedNumericLiterals(
 // 単一ファイル解析
 // ---------------------------------------------------------
 
-function analyzeFile(filePath: string): FileReport {
+interface FileAnalysis {
+    report: FileReport;
+    // クロスファイル分析に使う中間データ
+    definedProcs: Map<string, { proc: any; kind: string; scope: string }>;
+    definedTypes: Set<string>;
+    callsByProc: Map<string, Set<string>>;  // procName -> called identifiers
+}
+
+function analyzeFile(filePath: string): FileAnalysis {
     const src = fs.readFileSync(filePath, 'utf-8');
     const lines = src.split('\n');
     const warnings: string[] = [];
@@ -202,7 +298,12 @@ function analyzeFile(filePath: string): FileReport {
         ast = new Parser(tokens).parse();
     } catch (e: any) {
         warnings.push(`Parse error: ${e.message}`);
-        return { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], warnings };
+        return {
+            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], warnings },
+            definedProcs: new Map(),
+            definedTypes: new Set(),
+            callsByProc: new Map(),
+        };
     }
 
     if (ast.diagnostics && ast.diagnostics.length > 0) {
@@ -211,7 +312,21 @@ function analyzeFile(filePath: string): FileReport {
         }
     }
 
+    // 定義された型名（UDT）を集めておく - call と区別するため
+    const definedTypes = new Set<string>();
+    for (const s of ast.body) {
+        if (s.type === 'TypeDeclaration' && s.name?.name) {
+            definedTypes.add(s.name.name);
+        }
+        if (s.type === 'ClassDeclaration' && s.name) {
+            definedTypes.add(s.name);
+        }
+    }
+
     const procs = ast.body.filter((s: any) => s.type === 'ProcedureDeclaration');
+    const definedProcs = new Map<string, { proc: any; kind: string; scope: string }>();
+    const callsByProc = new Map<string, Set<string>>();
+
     const procedures: ProcedureMetrics[] = procs.map((proc: any) => {
         const startLine = proc.loc?.start.line ?? -1;
         const endLine = proc.loc?.end.line ?? -1;
@@ -221,12 +336,20 @@ function analyzeFile(filePath: string): FileReport {
         const kind: 'Sub' | 'Function' | 'Property' =
             proc.isProperty ? 'Property' : proc.isFunction ? 'Function' : 'Sub';
 
+        // VBA のスコープデフォルトは Public
+        const scope = (proc.scope ?? 'public') as 'public' | 'private' | 'friend';
+
         const excel = findExcelAccess(proc.body);
         const numericLits = findRepeatedNumericLiterals(proc.body);
+        const procName = proc.name?.name ?? '<anonymous>';
+
+        definedProcs.set(procName.toLowerCase(), { proc, kind, scope });
+        callsByProc.set(procName.toLowerCase(), collectProcedureCalls(proc.body, definedTypes));
 
         return {
-            name: proc.name?.name ?? '<anonymous>',
+            name: procName,
             kind,
+            scope,
             startLine,
             endLine,
             lineCount: endLine - startLine + 1,
@@ -235,16 +358,108 @@ function analyzeFile(filePath: string): FileReport {
             assignmentBlocks: findConsecutiveAssignmentBlocks(proc.body),
             excelAccessCount: excel.count,
             excelAccessSamples: excel.samples,
+            excelObjectsUsed: excel.objectsUsed,
             repeatedNumericLiterals: numericLits.slice(0, 10),
+            referenceCount: 0,  // 後段のワークスペース解析で埋める
         };
     });
 
     return {
-        filePath,
-        totalLines: lines.length,
-        procedureCount: procedures.length,
-        procedures,
-        warnings,
+        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, warnings },
+        definedProcs,
+        definedTypes,
+        callsByProc,
+    };
+}
+
+// ワークスペース全体での参照カウント / エントリーポイント候補 / モック必要箇所 を集計
+function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
+    // 全プロシージャ名（lowercase）→ 定義ファイル
+    const procDefs = new Map<string, { file: string; name: string; kind: string; scope: string }>();
+    for (const a of analyses) {
+        for (const [lname, info] of a.definedProcs) {
+            // 同名定義がある場合は最初を採用（後段で警告するかは将来課題）
+            if (!procDefs.has(lname)) {
+                procDefs.set(lname, { file: a.report.filePath, name: info.proc.name?.name ?? lname, kind: info.kind, scope: info.scope });
+            }
+        }
+    }
+
+    // 全呼び出しを集計
+    const refCounts = new Map<string, number>();
+    for (const a of analyses) {
+        for (const calls of a.callsByProc.values()) {
+            for (const callee of calls) {
+                if (procDefs.has(callee)) {
+                    refCounts.set(callee, (refCounts.get(callee) ?? 0) + 1);
+                }
+            }
+        }
+    }
+
+    // 各 FileReport の referenceCount を埋める
+    for (const a of analyses) {
+        for (const p of a.report.procedures) {
+            p.referenceCount = refCounts.get(p.name.toLowerCase()) ?? 0;
+        }
+    }
+
+    // エントリーポイント候補 / Dead code 候補 を抽出
+    const entryPointCandidates: WorkspaceReport['entryPointCandidates'] = [];
+    const deadCodeCandidates: WorkspaceReport['deadCodeCandidates'] = [];
+    for (const a of analyses) {
+        for (const p of a.report.procedures) {
+            if (p.referenceCount === 0) {
+                if (p.scope === 'private') {
+                    deadCodeCandidates.push({
+                        file: a.report.filePath,
+                        name: p.name,
+                        kind: p.kind,
+                        line: p.startLine,
+                    });
+                } else {
+                    // public / friend / 暗黙のpublic
+                    let reason = 'Public Sub/Function with 0 internal references';
+                    // ヒューリスティック: Workbook_Open など特定の名前はイベントハンドラ
+                    if (/^(Workbook|Worksheet|Auto)_/i.test(p.name)) {
+                        reason = 'Excel event handler / auto macro';
+                    } else if (/^Test_/i.test(p.name)) {
+                        reason = 'Test procedure';
+                    } else if (p.kind === 'Sub' && p.lineCount > 5) {
+                        reason = 'Public Sub - likely button/macro entry point';
+                    }
+                    entryPointCandidates.push({
+                        file: a.report.filePath,
+                        name: p.name,
+                        kind: p.kind,
+                        line: p.startLine,
+                        reason,
+                    });
+                }
+            }
+        }
+    }
+
+    // Excel モック必要箇所
+    const excelMockTargets: WorkspaceReport['excelMockTargets'] = [];
+    for (const a of analyses) {
+        for (const p of a.report.procedures) {
+            if (p.excelObjectsUsed.length > 0) {
+                excelMockTargets.push({
+                    file: a.report.filePath,
+                    procName: p.name,
+                    objects: p.excelObjectsUsed,
+                    sampleAccesses: p.excelAccessSamples.slice(0, 3).map(s => s.expr),
+                });
+            }
+        }
+    }
+
+    return {
+        files: analyses.map(a => a.report),
+        entryPointCandidates,
+        deadCodeCandidates,
+        excelMockTargets,
     };
 }
 
@@ -252,7 +467,7 @@ function analyzeFile(filePath: string): FileReport {
 // テキストフォーマッタ
 // ---------------------------------------------------------
 
-function formatReport(r: FileReport): string {
+function formatFileReport(r: FileReport): string {
     const out: string[] = [];
     out.push(`=== ${r.filePath} ===`);
     out.push(`  総行数: ${r.totalLines}`);
@@ -264,7 +479,8 @@ function formatReport(r: FileReport): string {
 
     for (const p of r.procedures) {
         out.push('');
-        out.push(`  [${p.kind}] ${p.name}  (${p.lineCount}行, L${p.startLine}-L${p.endLine})`);
+        const scopeLabel = p.scope === 'public' ? '' : `[${p.scope}] `;
+        out.push(`  ${scopeLabel}[${p.kind}] ${p.name}  (${p.lineCount}行, L${p.startLine}-L${p.endLine}, refs=${p.referenceCount})`);
         const flags: string[] = [];
         if (p.lineCount >= 100) flags.push(`📏 LARGE (${p.lineCount}行)`);
         if (p.maxNestDepth >= 5) flags.push(`🌀 DEEP_NEST (${p.maxNestDepth}段)`);
@@ -273,6 +489,9 @@ function formatReport(r: FileReport): string {
         if (flags.length) out.push(`    フラグ: ${flags.join(' / ')}`);
         else out.push(`    最大ネスト ${p.maxNestDepth} / Dim ${p.localDeclCount} / Excel ${p.excelAccessCount}`);
 
+        if (p.excelObjectsUsed.length > 0) {
+            out.push(`    🧪 モック必要候補: ${p.excelObjectsUsed.join(', ')}`);
+        }
         if (p.assignmentBlocks.length) {
             out.push(`    連続代入ブロック（抽出候補）:`);
             for (const b of p.assignmentBlocks) {
@@ -290,6 +509,80 @@ function formatReport(r: FileReport): string {
             out.push(`    繰り返し数値リテラル: ${top.map(n => `${n.value}(×${n.occurrences})`).join(', ')}`);
         }
     }
+    return out.join('\n');
+}
+
+function formatWorkspaceSummary(w: WorkspaceReport): string {
+    const out: string[] = [];
+
+    if (w.entryPointCandidates.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('🚪 エントリーポイント候補（Public・参照0）');
+        out.push('========================================');
+        out.push('  以下は他のVBAコードから呼ばれていない Public プロシージャです。');
+        out.push('  Excel のボタン・イベントハンドラ・Application.Run 等から呼ばれている可能性が高く、');
+        out.push('  そのまま「マクロの入口」として扱うべき候補です（安易に削除しないこと）。');
+        out.push('');
+        for (const e of w.entryPointCandidates) {
+            const fname = path.basename(e.file);
+            out.push(`  • [${e.kind}] ${e.name}  (${fname}:L${e.line})`);
+            out.push(`      → ${e.reason}`);
+        }
+    }
+
+    if (w.deadCodeCandidates.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('💀 Dead code 候補（Private・参照0）');
+        out.push('========================================');
+        out.push('  Private 宣言で他から参照されていない関数。削除候補ですが、');
+        out.push('  Application.Run による動的呼び出しの可能性があるため最終判断は人間が行うこと。');
+        out.push('');
+        for (const d of w.deadCodeCandidates) {
+            const fname = path.basename(d.file);
+            out.push(`  • [${d.kind}] ${d.name}  (${fname}:L${d.line})`);
+        }
+    }
+
+    if (w.excelMockTargets.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('🧪 Excel モック必要箇所一覧');
+        out.push('========================================');
+        out.push('  リファクタリングで純粋ロジックを抽出する際、');
+        out.push('  以下のプロシージャは Excel オブジェクトのモック化（または依存分離）が必要です。');
+        out.push('');
+
+        // モック対象オブジェクト別に集計
+        const byObject = new Map<string, Array<{ file: string; procName: string }>>();
+        for (const t of w.excelMockTargets) {
+            for (const obj of t.objects) {
+                if (!byObject.has(obj)) byObject.set(obj, []);
+                byObject.get(obj)!.push({ file: t.file, procName: t.procName });
+            }
+        }
+        out.push('  ◆ オブジェクト別の利用箇所:');
+        const sortedObjs = [...byObject.entries()].sort((a, b) => b[1].length - a[1].length);
+        for (const [obj, users] of sortedObjs) {
+            out.push(`    ${obj}: ${users.length}プロシージャ`);
+            for (const u of users.slice(0, 5)) {
+                out.push(`      - ${u.procName} (${path.basename(u.file)})`);
+            }
+            if (users.length > 5) out.push(`      ... 他 ${users.length - 5} 件`);
+        }
+
+        out.push('');
+        out.push('  ◆ プロシージャ別のモック必要オブジェクト:');
+        for (const t of w.excelMockTargets) {
+            out.push(`    ${t.procName} (${path.basename(t.file)})`);
+            out.push(`      要モック: ${t.objects.join(', ')}`);
+            if (t.sampleAccesses.length) {
+                out.push(`      使用例: ${t.sampleAccesses.join(' / ')}`);
+            }
+        }
+    }
+
     return out.join('\n');
 }
 
@@ -317,12 +610,14 @@ function collectVbaFiles(target: string): string[] {
 function main() {
     const args = process.argv.slice(2);
     if (args.length === 0 || args.includes('--help')) {
-        console.log('Usage: node vba-analyzer.cjs <file-or-dir> [--json]');
+        console.log('Usage: node vba-analyzer.cjs <file-or-dir> [options]');
         console.log('');
-        console.log('  --json   JSON 形式で出力（プログラム連携用）');
+        console.log('  --json          JSON 形式で出力（プログラム連携用）');
+        console.log('  --summary-only  ワークスペース要約（エントリーポイント候補・モック必要箇所）のみ表示');
         process.exit(args.length === 0 ? 1 : 0);
     }
     const wantJson = args.includes('--json');
+    const summaryOnly = args.includes('--summary-only');
     const target = args.find(a => !a.startsWith('--'));
     if (!target) {
         console.error('対象ファイルまたはディレクトリを指定してください');
@@ -335,13 +630,18 @@ function main() {
         process.exit(1);
     }
 
-    const reports = files.map(analyzeFile);
+    const analyses = files.map(analyzeFile);
+    const workspace = buildWorkspaceReport(analyses);
 
     if (wantJson) {
-        console.log(JSON.stringify(reports, null, 2));
-    } else {
-        for (const r of reports) console.log(formatReport(r));
+        console.log(JSON.stringify(workspace, null, 2));
+        return;
     }
+
+    if (!summaryOnly) {
+        for (const r of workspace.files) console.log(formatFileReport(r));
+    }
+    console.log(formatWorkspaceSummary(workspace));
 }
 
 main();
