@@ -648,6 +648,7 @@ export class Evaluator {
     private virtualRegistry: { [app: string]: { [section: string]: { [key: string]: string } } } = {};
     private dirIterator: string[] | null = null;
     private dirIndex: number = 0;
+    private currentLine: number = 0;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -1830,6 +1831,7 @@ export class Evaluator {
     }
 
     private evaluateStatement(stmt: Statement) {
+        if (stmt.line !== undefined) this.currentLine = stmt.line;
         switch (stmt.type) {
             case 'ForStatement':
                 this.evaluateForStatement(stmt as ForStatement);
@@ -2156,9 +2158,12 @@ export class Evaluator {
     }
 
     private throwVbaError(number: number, message: string): never {
-        const err: any = new Error(message);
+        const line = this.currentLine || undefined;
+        const msg = line !== undefined ? `${message} (line ${line})` : message;
+        const err: any = new Error(msg);
         err.type = 'VbaError';
         err.number = number;
+        err.vbaLine = line;
         throw err;
     }
 
@@ -4682,13 +4687,13 @@ export class Evaluator {
             }
             case '*': return leftVal * rightVal;
             case '/':
-                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
                 return leftVal / rightVal;
             case '\\':
-                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
                 return Math.trunc(leftVal / rightVal);
             case 'mod':
-                if (rightVal === 0) throw { type: 'VbaError', number: 11, message: 'Division by zero' };
+                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
                 return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
             case '=':

@@ -36,6 +36,7 @@ export interface OnGoToSubStatement extends Statement {
 
 export interface ASTNode {
     type: string;
+    line?: number;
 }
 
 export interface Program extends ASTNode {
@@ -906,6 +907,13 @@ export class Parser {
 
     private parseStatement(): Statement | null {
         this.skipNewlines();
+        const startLine = this.peek().line;
+        const stmt = this.parseStatementInner();
+        if (stmt !== null && startLine !== undefined) stmt.line = startLine;
+        return stmt;
+    }
+
+    private parseStatementInner(): Statement | null {
         const token = this.peek();
 
         if (token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate || token.type === TokenType.KeywordFriend) {
