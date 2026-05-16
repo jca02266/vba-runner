@@ -50,9 +50,16 @@ export interface ASTNode {
     loc?: SourceLocation; // source position (ESTree convention)
 }
 
+export interface ParseDiagnostic {
+    message: string;
+    loc: SourceLocation;
+    severity: 'error' | 'warning';
+}
+
 export interface Program extends ASTNode {
     type: 'Program';
     body: Statement[];
+    diagnostics: ParseDiagnostic[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -504,10 +511,25 @@ export class Parser {
     private tokens: Token[];
     private pos: number = 0;
     private readonly parseAsClass: string | undefined;
+    private readonly _diagnostics: ParseDiagnostic[] = [];
 
     constructor(tokens: Token[], options: { parseAsClass?: string } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
+    }
+
+    private recordError(message: string, token: Token): void {
+        const pos: Position = { line: token.line, column: token.column };
+        this._diagnostics.push({ message, loc: { start: pos, end: pos }, severity: 'error' });
+    }
+
+    private syncToNextStatement(): void {
+        while (
+            this.peek().type !== TokenType.EOF &&
+            this.peek().type !== TokenType.Newline
+        ) {
+            this.advance();
+        }
     }
 
     private peek(offset: number = 0): Token {
@@ -891,12 +913,13 @@ export class Parser {
     public parse(): Program {
         if (this.parseAsClass) {
             const classDecl = this.parseClassBody(this.parseAsClass, false);
-            return { type: 'Program', body: [classDecl] };
+            return { type: 'Program', body: [classDecl], diagnostics: this._diagnostics };
         }
 
         const program: Program = {
             type: 'Program',
-            body: []
+            body: [],
+            diagnostics: this._diagnostics,
         };
 
         this.skipNewlines();
@@ -919,7 +942,15 @@ export class Parser {
     private parseStatement(): Statement | null {
         this.skipNewlines();
         const startToken = this.peek();
-        const stmt = this.parseStatementInner();
+        let stmt: Statement | null;
+        try {
+            stmt = this.parseStatementInner();
+        } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            this.recordError(msg, startToken);
+            this.syncToNextStatement();
+            return null;
+        }
         if (stmt !== null) {
             const endToken = this.tokens[this.pos - 1];
             if (startToken.line !== undefined) {

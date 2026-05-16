@@ -52,9 +52,18 @@ for f in tests/engine/*.test.ts tests/spec/*.test.ts tests/test-libs-tests/*.tes
       continue
     fi
 
-    # テスト実行
-    TEST_OUTPUT=$(node "$out" 2>&1)
+    # テスト実行（30秒タイムアウト）
+    TEST_OUTPUT=$(timeout 30 node "$out" 2>&1)
     TEST_STATUS=$?
+
+    if [ $TEST_STATUS -eq 124 ]; then
+      if [ $VERBOSE -eq 1 ]; then
+        echo "❌ Test timed out: $f"
+      fi
+      TESTS_FAILED=1
+      FAILED_TESTS="${FAILED_TESTS}❌ Test timed out (>30s): $f\n"
+      continue
+    fi
 
     if [ $TEST_STATUS -ne 0 ]; then
       if [ $VERBOSE -eq 1 ]; then
