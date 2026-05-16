@@ -594,29 +594,55 @@ const result = ev.callProcedure('GetTotal', []);
 
 ### Application.WorksheetFunction のモック化
 
-`Application.WorksheetFunction.VLookup` などは `ev.getGlobalEnv().set('application', ...)` で `application` オブジェクトごと差し替えることでモック化できます。
+`Application.WorksheetFunction.VLookup` などをモック化するには、**`MockApplication` を継承**して `worksheetfunction` プロパティを追加します。`application` オブジェクトを丸ごと差し替えると `Sheets` などの既存機能が失われるため、継承による拡張を使います。
+
+> **注意**: エンジンは VBA の識別子を小文字で解決します（`Application.WorksheetFunction` → `application.worksheetfunction`）。プロパティ名はすべて lowercase で定義してください。
 
 ```typescript
-ev.getGlobalEnv().set('application', {
-    worksheetfunction: {
+import { MockApplication } from '../../src/compiler/mock/MockWorksheet';
+
+// MockApplication を継承して WorksheetFunction を追加
+class MockApplicationEx extends MockApplication {
+    readonly worksheetfunction = {
         vlookup: (lookupVal: any, table: any[][], col: number) => {
-            for (const row of table) {
-                if (row[0] === lookupVal) return row[col - 1];
-            }
-            throw new Error('N/A');
+            const row = (table as any[][]).find(r => r[0] === lookupVal);
+            if (!row) throw Object.assign(new Error('N/A'), { number: 1004 });
+            return row[col - 1];
         },
-        sum: (...args: any[]) => args.flat().reduce((a, b) => a + Number(b), 0),
-        max: (...args: any[]) => Math.max(...args.flat().map(Number)),
-        min: (...args: any[]) => Math.min(...args.flat().map(Number)),
+        sum: (...args: any[]) =>
+            args.flat(Infinity).reduce((a: number, b: any) => a + Number(b), 0),
+        max: (...args: any[]) => Math.max(...(args.flat(Infinity).map(Number))),
         countif: (range: any[][], criteria: any) =>
-            range.flat().filter(v => v === criteria).length,
-    },
-    // 既存スタブを維持
-    wait: () => {},
-    statusbar: '',
-    displayalerts: true,
-    screenupdating: true,
+            (range as any[][]).flat().filter(v => v === criteria).length,
+    };
+}
+
+// テストデータを準備
+const mockApp = new MockApplicationEx();
+mockApp.Sheets('Data').setCellValue('A1:B3', [
+    ['Alice', 90000],
+    ['Bob',   75000],
+    ['Carol', 85000],
+]);
+
+// エンジンに注入
+//   Sheets(...)  → グローバル関数として登録（VBA では Application. なしで呼べる）
+//   application  → WorksheetFunction を含む拡張モックを登録
+ev.getGlobalEnv().set('Sheets', (name: string) => {
+    const ws = mockApp.Sheets(name);
+    return { Range: (addr: string) => ws.Range(addr) };
 });
+ev.getGlobalEnv().set('application', mockApp);
+```
+
+上記で VBA 側の以下のような呼び出しが動作します：
+
+```vba
+Function GetSalary(name As String) As Long
+    Dim data As Variant
+    data = Sheets("Data").Range("A1:B3").Value
+    GetSalary = Application.WorksheetFunction.VLookup(name, data, 2)
+End Function
 ```
 
 > **詳細は [`docs/MOCK_GUIDE.md`](docs/MOCK_GUIDE.md) を参照してください。**
