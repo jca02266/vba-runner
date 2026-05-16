@@ -10,7 +10,6 @@
 //   node test-libs/vba-analyzer.cjs <path> --json     # JSON 形式
 //
 // 既知の制約（TODO_NEXT.md「実証実験で判明したギャップ」を参照）:
-//   - Expression レベルの loc が欠落しているため、Excel I/O アクセス等の行番号が -1 になる
 //   - 連続代入の「形状クラスタリング」は未実装（件数のみ）
 //   - データフロー解析（Def-Use）は未実装
 //   - 接頭辞クラスタによる UDT 抽出候補検出は未実装
@@ -29,7 +28,7 @@ interface ProcedureMetrics {
     lineCount: number;
     maxNestDepth: number;
     localDeclCount: number;
-    assignmentBlocks: Array<{ startLine: number; endLine: number; count: number; context: string }>;
+    assignmentBlocks: Array<{ startLine: number; endLine: number; count: number; context: string; shape: string }>;
     excelAccessCount: number;
     excelAccessSamples: Array<{ line: number; expr: string }>;
     excelObjectsUsed: string[];           // 例: ['Sheets', 'Range', 'Application'] - モック必要候補
@@ -37,12 +36,26 @@ interface ProcedureMetrics {
     referenceCount: number;               // 他のプロシージャから呼ばれている回数（クロスファイル含む）
 }
 
+interface PrefixCluster {
+    prefix: string;
+    members: string[];
+    suggestion: string;
+}
+
 interface FileReport {
     filePath: string;
     totalLines: number;
     procedureCount: number;
     procedures: ProcedureMetrics[];
+    prefixClusters: PrefixCluster[];
     warnings: string[];
+}
+
+interface CallGraphEdge {
+    from: string;
+    fromFile: string;
+    to: string;
+    toFile: string;
 }
 
 interface WorkspaceReport {
@@ -50,6 +63,7 @@ interface WorkspaceReport {
     entryPointCandidates: Array<{ file: string; name: string; kind: string; line: number; reason: string }>;
     deadCodeCandidates: Array<{ file: string; name: string; kind: string; line: number }>;
     excelMockTargets: Array<{ file: string; procName: string; objects: string[]; sampleAccesses: string[] }>;
+    callGraph: CallGraphEdge[];
 }
 
 // ---------------------------------------------------------
@@ -100,26 +114,71 @@ function countLocalDeclarations(stmts: any): number {
     return n;
 }
 
+// Classify a single assignment-like statement into a shape category.
+function classifyStmtShape(s: any): string {
+    if (s.type === 'ConstDeclaration') return 'const-decl';
+    if (s.type === 'VariableDeclaration') return 'dim-decl';
+    if (s.type === 'SetStatement') {
+        const rhs = s.right || s.value;
+        if (rhs?.type === 'MemberExpression' || rhs?.type === 'CallExpression') {
+            const root = (rhs.object?.name || rhs.callee?.name || '').toLowerCase();
+            if (EXCEL_ROOT_OBJECTS.has(root)) return 'set-excel';
+        }
+        return 'set-obj';
+    }
+    if (s.type === 'AssignmentStatement') {
+        const lhs = s.left;
+        const rhs = s.right;
+        // LHS is Excel object?
+        const lhsRoot = (lhs?.object?.name || '').toLowerCase();
+        if (EXCEL_ROOT_OBJECTS.has(lhsRoot)) return 'range-write';
+        // RHS is Excel object?
+        const rhsRoot = (rhs?.object?.name || rhs?.callee?.object?.name || '').toLowerCase();
+        if (EXCEL_ROOT_OBJECTS.has(rhsRoot)) return 'range-read';
+        // RHS is a simple literal → variable initialization
+        const rhsType = rhs?.type;
+        if (rhsType === 'NumberLiteral' || rhsType === 'StringLiteral' || rhsType === 'DateLiteral') return 'var-init';
+        return 'assign';
+    }
+    return 'other';
+}
+
+// Compute dominant shape from a list of individual statement shapes.
+function dominantShape(shapes: string[]): string {
+    if (shapes.length === 0) return 'mixed';
+    const counts = new Map<string, number>();
+    for (const s of shapes) counts.set(s, (counts.get(s) ?? 0) + 1);
+    const sorted = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+    const [topShape, topCount] = sorted[0];
+    // All same → use that shape; majority (>50%) → "mostly-X"; otherwise mixed
+    if (topCount === shapes.length) return topShape;
+    if (topCount / shapes.length > 0.5) return `mostly-${topShape}`;
+    return 'mixed';
+}
+
 function findConsecutiveAssignmentBlocks(
     stmts: any,
     minRun = 5,
     context = 'root',
-): Array<{ startLine: number; endLine: number; count: number; context: string }> {
-    const out: Array<{ startLine: number; endLine: number; count: number; context: string }> = [];
+): Array<{ startLine: number; endLine: number; count: number; context: string; shape: string }> {
+    const out: Array<{ startLine: number; endLine: number; count: number; context: string; shape: string }> = [];
     if (!isStatementArray(stmts)) return out;
     let runStart = -1, runEnd = -1, runCount = 0;
+    const runShapes: string[] = [];
     const flush = () => {
-        if (runCount >= minRun) out.push({ startLine: runStart, endLine: runEnd, count: runCount, context });
-        runStart = -1; runEnd = -1; runCount = 0;
+        if (runCount >= minRun) out.push({ startLine: runStart, endLine: runEnd, count: runCount, context, shape: dominantShape(runShapes) });
+        runStart = -1; runEnd = -1; runCount = 0; runShapes.length = 0;
     };
     const isAssignmentLike = (s: any) =>
-        s.type === 'AssignmentStatement' || s.type === 'SetStatement' || s.type === 'VariableDeclaration';
+        s.type === 'AssignmentStatement' || s.type === 'SetStatement' ||
+        s.type === 'VariableDeclaration' || s.type === 'ConstDeclaration';
 
     for (const s of stmts) {
         if (isAssignmentLike(s) && s.loc) {
             if (runStart === -1) runStart = s.loc.start.line;
             runEnd = s.loc.end.line;
             runCount++;
+            runShapes.push(classifyStmtShape(s));
         } else {
             flush();
         }
@@ -276,6 +335,68 @@ function findRepeatedNumericLiterals(
 }
 
 // ---------------------------------------------------------
+// 接頭辞クラスタ検出（UDT抽出候補）
+// ---------------------------------------------------------
+
+// Extract the string name from a ConstDeclaration or VariableDeclaration node.
+function extractDeclName(s: any): string | null {
+    if (s.type === 'ConstDeclaration') {
+        // name is an Identifier object: { type: 'Identifier', name: '...' }
+        return s.name?.name ?? (typeof s.name === 'string' ? s.name : null);
+    }
+    return null;
+}
+
+// Collect all Const identifier names from module-level and all procedure bodies.
+function collectTopLevelIdentifiers(stmts: any[]): string[] {
+    const names: string[] = [];
+    for (const s of stmts) {
+        const n = extractDeclName(s);
+        if (n) names.push(n);
+        if (s.type === 'VariableDeclaration' && Array.isArray(s.declarations)) {
+            for (const d of s.declarations) {
+                const dName = d.name?.name ?? (typeof d.name === 'string' ? d.name : null);
+                if (dName) names.push(dName);
+            }
+        }
+        // Recurse into ProcedureDeclaration body
+        if (s.type === 'ProcedureDeclaration' && Array.isArray(s.body)) {
+            for (const inner of s.body) {
+                const inner_n = extractDeclName(inner);
+                if (inner_n) names.push(inner_n);
+            }
+        }
+    }
+    return names;
+}
+
+// Detect groups of identifiers sharing a common UPPER_CASE prefix (e.g. COL_, ROW_).
+function detectPrefixClusters(stmts: any[], minClusterSize = 3): PrefixCluster[] {
+    const names = collectTopLevelIdentifiers(stmts);
+    // Only consider identifiers with at least one '_' separator and an uppercase-looking prefix
+    const prefixBuckets = new Map<string, string[]>();
+    for (const name of names) {
+        const underPos = name.indexOf('_');
+        if (underPos < 2) continue;  // too short prefix
+        const prefix = name.slice(0, underPos + 1).toUpperCase();  // e.g. "COL_"
+        if (!/^[A-Z][A-Z0-9]*_$/.test(prefix)) continue;
+        if (!prefixBuckets.has(prefix)) prefixBuckets.set(prefix, []);
+        prefixBuckets.get(prefix)!.push(name);
+    }
+    const clusters: PrefixCluster[] = [];
+    for (const [prefix, members] of prefixBuckets) {
+        if (members.length < minClusterSize) continue;
+        const uniqueMembers = [...new Set(members)].sort();
+        clusters.push({
+            prefix,
+            members: uniqueMembers,
+            suggestion: `Extract ${uniqueMembers.length} constants with prefix "${prefix}" to a VBA Type or Enum`,
+        });
+    }
+    return clusters.sort((a, b) => b.members.length - a.members.length);
+}
+
+// ---------------------------------------------------------
 // 単一ファイル解析
 // ---------------------------------------------------------
 
@@ -364,8 +485,10 @@ function analyzeFile(filePath: string): FileAnalysis {
         };
     });
 
+    const prefixClusters = detectPrefixClusters(ast.body);
+
     return {
-        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, warnings },
+        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings },
         definedProcs,
         definedTypes,
         callsByProc,
@@ -455,11 +578,32 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
         }
     }
 
+    // コールグラフ構築
+    const callGraph: CallGraphEdge[] = [];
+    for (const a of analyses) {
+        for (const [callerLower, callees] of a.callsByProc) {
+            const callerDef = a.definedProcs.get(callerLower);
+            if (!callerDef) continue;
+            const fromName = callerDef.proc.name?.name ?? callerLower;
+            for (const callee of callees) {
+                const calleeDef = procDefs.get(callee);
+                if (!calleeDef) continue;  // 外部/組み込み関数は除外
+                callGraph.push({
+                    from: fromName,
+                    fromFile: a.report.filePath,
+                    to: calleeDef.name,
+                    toFile: calleeDef.file,
+                });
+            }
+        }
+    }
+
     return {
         files: analyses.map(a => a.report),
         entryPointCandidates,
         deadCodeCandidates,
         excelMockTargets,
+        callGraph,
     };
 }
 
@@ -495,7 +639,7 @@ function formatFileReport(r: FileReport): string {
         if (p.assignmentBlocks.length) {
             out.push(`    連続代入ブロック（抽出候補）:`);
             for (const b of p.assignmentBlocks) {
-                out.push(`      L${b.startLine}-L${b.endLine}: ${b.count}件 [${b.context}]`);
+                out.push(`      L${b.startLine}-L${b.endLine}: ${b.count}件 [shape:${b.shape}] [${b.context}]`);
             }
         }
         if (p.excelAccessSamples.length) {
@@ -509,6 +653,16 @@ function formatFileReport(r: FileReport): string {
             out.push(`    繰り返し数値リテラル: ${top.map(n => `${n.value}(×${n.occurrences})`).join(', ')}`);
         }
     }
+
+    if (r.prefixClusters.length > 0) {
+        out.push('');
+        out.push('  📦 接頭辞クラスタ（UDT/Enum 抽出候補）:');
+        for (const c of r.prefixClusters) {
+            out.push(`    ${c.prefix} × ${c.members.length}件  → ${c.suggestion}`);
+            out.push(`      例: ${c.members.slice(0, 4).join(', ')}${c.members.length > 4 ? ' ...' : ''}`);
+        }
+    }
+
     return out.join('\n');
 }
 
@@ -583,6 +737,24 @@ function formatWorkspaceSummary(w: WorkspaceReport): string {
         }
     }
 
+    if (w.callGraph.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('📞 コールグラフ（呼び出し関係）');
+        out.push('========================================');
+        // Group by caller
+        const byCaller = new Map<string, string[]>();
+        for (const e of w.callGraph) {
+            const key = `${e.from} (${path.basename(e.fromFile)})`;
+            if (!byCaller.has(key)) byCaller.set(key, []);
+            byCaller.get(key)!.push(e.to);
+        }
+        for (const [caller, callees] of byCaller) {
+            out.push(`  ${caller}`);
+            for (const callee of callees) out.push(`    → ${callee}`);
+        }
+    }
+
     return out.join('\n');
 }
 
@@ -607,6 +779,33 @@ function collectVbaFiles(target: string): string[] {
     return out.sort();
 }
 
+// Workspace Outline: compact summary suitable for pasting into AI context
+function formatWorkspaceOutline(workspace: WorkspaceReport): string {
+    const out: string[] = [];
+    const refCounts = new Map<string, number>();
+    for (const f of workspace.files) {
+        for (const p of f.procedures) {
+            refCounts.set(p.name.toLowerCase(), p.referenceCount);
+        }
+    }
+    for (const f of workspace.files) {
+        if (f.procedures.length === 0) continue;
+        out.push(`[${path.basename(f.filePath, path.extname(f.filePath))}]  (${f.totalLines}L)`);
+        for (const p of f.procedures) {
+            const scopePrefix = p.scope === 'private' ? 'Private ' : '';
+            const kindLabel = p.kind === 'Function' ? 'Function' : p.kind === 'Property' ? 'Property' : 'Sub';
+            const refs = p.referenceCount === 0 ? '  ← 0 refs' : '';
+            const flags: string[] = [];
+            if (p.lineCount >= 100) flags.push(`${p.lineCount}L`);
+            if (p.maxNestDepth >= 5) flags.push(`nest=${p.maxNestDepth}`);
+            if (p.excelAccessCount > 0) flags.push(`Excel×${p.excelAccessCount}`);
+            const flagStr = flags.length ? `  [${flags.join(', ')}]` : '';
+            out.push(`  ${scopePrefix}${kindLabel} ${p.name}${flagStr}${refs}`);
+        }
+    }
+    return out.join('\n');
+}
+
 function main() {
     const args = process.argv.slice(2);
     if (args.length === 0 || args.includes('--help')) {
@@ -614,10 +813,12 @@ function main() {
         console.log('');
         console.log('  --json          JSON 形式で出力（プログラム連携用）');
         console.log('  --summary-only  ワークスペース要約（エントリーポイント候補・モック必要箇所）のみ表示');
+        console.log('  --outline       Workspace Outline（AI向けコンテキスト圧縮）を出力');
         process.exit(args.length === 0 ? 1 : 0);
     }
     const wantJson = args.includes('--json');
     const summaryOnly = args.includes('--summary-only');
+    const wantOutline = args.includes('--outline');
     const target = args.find(a => !a.startsWith('--'));
     if (!target) {
         console.error('対象ファイルまたはディレクトリを指定してください');
@@ -635,6 +836,11 @@ function main() {
 
     if (wantJson) {
         console.log(JSON.stringify(workspace, null, 2));
+        return;
+    }
+
+    if (wantOutline) {
+        console.log(formatWorkspaceOutline(workspace));
         return;
     }
 

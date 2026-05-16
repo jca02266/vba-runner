@@ -915,6 +915,14 @@ export class Parser {
         while (this.match(TokenType.Newline)) { /* skip */ }
     }
 
+    // Build a SourceLocation spanning from start token to end token (inclusive).
+    private exprLoc(start: Token, end: Token): SourceLocation {
+        return {
+            start: { line: start.line, column: start.column },
+            end: { line: end.line, column: end.column + end.value.length },
+        };
+    }
+
     public parse(): Program {
         if (this.parseAsClass) {
             const classDecl = this.parseClassBody(this.parseAsClass, false);
@@ -2013,7 +2021,7 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordImp) {
             const operator = this.advance().value;
             const right = this.parseLogicalEqv();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2023,7 +2031,7 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordEqv) {
             const operator = this.advance().value;
             const right = this.parseLogicalXor();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2033,7 +2041,7 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordXor) {
             const operator = this.advance().value;
             const right = this.parseLogicalOr();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2043,7 +2051,7 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordOr) {
             const operator = this.advance().value;
             const right = this.parseLogicalAnd();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2053,17 +2061,26 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordAnd) {
             const operator = this.advance().value;
             const right = this.parseLogicalNot();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
 
     private parseLogicalNot(): Expression {
-        if (this.match(TokenType.KeywordNot)) {
+        if (this.peek().type === TokenType.KeywordNot) {
+            const notTok = this.tokens[this.pos];
+            this.advance();
             const argument = this.parseEquality();
-            return { type: 'UnaryExpression', operator: 'Not', argument } as UnaryExpression;
+            const node: UnaryExpression = { type: 'UnaryExpression', operator: 'Not', argument };
+            node.loc = { start: { line: notTok.line, column: notTok.column }, end: argument.loc?.end ?? { line: notTok.line, column: notTok.column } };
+            return node;
         }
         return this.parseEquality();
+    }
+
+    private makeBinaryLoc(left: Expression, right: Expression): SourceLocation | undefined {
+        if (!left.loc || !right.loc) return undefined;
+        return { start: left.loc.start, end: right.loc.end };
     }
 
     private parseEquality(): Expression {
@@ -2076,7 +2093,7 @@ export class Parser {
         ) {
             const operator = this.advance().value;
             const right = this.parseRelational();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2091,7 +2108,7 @@ export class Parser {
         ) {
             const operator = this.advance().value;
             const right = this.parseConcatenation();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2101,7 +2118,7 @@ export class Parser {
         while (this.peek().type === TokenType.OperatorAmpersand) {
             const operator = this.advance().value;
             const right = this.parseAdditive();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2114,7 +2131,7 @@ export class Parser {
         ) {
             const operator = this.advance().value;
             const right = this.parseModulo();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2124,7 +2141,7 @@ export class Parser {
         while (this.peek().type === TokenType.KeywordMod) {
             const operator = this.advance().value;
             const right = this.parseIntDivision();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2134,7 +2151,7 @@ export class Parser {
         while (this.peek().type === TokenType.OperatorIntDivide) {
             const operator = this.advance().value;
             const right = this.parseMultiplicative();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
@@ -2147,16 +2164,19 @@ export class Parser {
         ) {
             const operator = this.advance().value;
             const right = this.parseUnary();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
 
     private parseUnary(): Expression {
         if (this.peek().type === TokenType.OperatorMinus || this.peek().type === TokenType.OperatorPlus) {
+            const opTok = this.tokens[this.pos];
             const operator = this.advance().value;
             const argument = this.parseUnary();
-            return { type: 'UnaryExpression', operator, argument } as UnaryExpression;
+            const node: UnaryExpression = { type: 'UnaryExpression', operator, argument };
+            node.loc = { start: { line: opTok.line, column: opTok.column }, end: argument.loc?.end ?? { line: opTok.line, column: opTok.column } };
+            return node;
         }
         return this.parseExponentiation();
     }
@@ -2166,12 +2186,13 @@ export class Parser {
         while (this.peek().type === TokenType.OperatorPower) {
             const operator = this.advance().value;
             const right = this.parsePrimary();
-            left = { type: 'BinaryExpression', operator, left, right } as BinaryExpression;
+            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
     }
 
     private parsePrimary(): Expression {
+        const startTok = this.tokens[this.pos];
         const token = this.advance();
         let expr: Expression;
         if (token.type === TokenType.Number) {
@@ -2242,17 +2263,21 @@ export class Parser {
             throw new Error(`Parse error: Unexpected token in expression '${token.value}' at line ${token.line} `);
         }
 
+        expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
+
         while (true) {
             if (this.match(TokenType.OperatorDot)) {
                 if (this.peek().type === TokenType.EOF) throw new Error("Expected property name after '.'");
                 const propToken = this.advance();
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'MemberExpression', object: expr, property } as MemberExpression;
+                expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
             } else if (this.match(TokenType.OperatorExclamation)) {
                 if (this.peek().type === TokenType.EOF) throw new Error("Expected identifier after '!'");
                 const propToken = this.advance();
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'DictionaryAccessExpression', object: expr, property } as DictionaryAccessExpression;
+                expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
             } else if (this.match(TokenType.OperatorLParen)) {
                 const args: Expression[] = [];
                 if (this.peek().type !== TokenType.OperatorRParen) {
@@ -2265,6 +2290,7 @@ export class Parser {
                     throw new Error(`Parse error: Expected ')' at line ${this.peek().line} `);
                 }
                 expr = { type: 'CallExpression', callee: expr, args } as CallExpression;
+                expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
             } else {
                 break;
             }
