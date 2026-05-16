@@ -518,11 +518,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Parser の拡張機能
 
-- ❌ **Parser に `parseAsClass` パラメータを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定
-  - 現状: VBATest で `.cls` ファイル内のメンバー変数定義を検出して自動的に `Class...End Class` でラップしている
-  - 改善案: Parser に `parseAsClass` フラグを追加し、Lexer / Parser で正式にクラスパースモードを切り替える
-  - 影響範囲: `src/compiler/parser.ts`, `src/compiler/lexer.ts`, `test-libs/test-runner.ts`
-  - 関連: VBA標準では .cls ファイルはファイル名がクラス名となり、本エンジンの拡張機能として Class...End Class 構文を .bas 内でサポート
+- ✅ **Parser に `parseAsClass` パラメータを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定 | `parse-as-class.test.ts`
+  - `new Parser(tokens, { parseAsClass: 'ClassName' })` でクラスボディとしてパース
+  - `parseClassDeclaration` のボディ解析を `parseClassBody(name, untilEndClass)` に抽出し再利用
+  - `test-libs/test-runner.ts` の文字列ラップハックを削除し `parseAsClass` オプションに統一
 
 ### VBA 仕様制約の検証
 

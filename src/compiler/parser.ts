@@ -491,9 +491,11 @@ export interface UnaryExpression extends Expression {
 export class Parser {
     private tokens: Token[];
     private pos: number = 0;
+    private readonly parseAsClass: string | undefined;
 
-    constructor(tokens: Token[]) {
+    constructor(tokens: Token[], options: { parseAsClass?: string } = {}) {
         this.tokens = tokens;
+        this.parseAsClass = options.parseAsClass;
     }
 
     private peek(offset: number = 0): Token {
@@ -875,6 +877,11 @@ export class Parser {
     }
 
     public parse(): Program {
+        if (this.parseAsClass) {
+            const classDecl = this.parseClassBody(this.parseAsClass, false);
+            return { type: 'Program', body: [classDecl] };
+        }
+
         const program: Program = {
             type: 'Program',
             body: []
@@ -1468,7 +1475,10 @@ export class Parser {
         if (nameToken.type !== TokenType.Identifier) {
             throw new Error(`Parse error: Expected class name after 'Class' at line ${nameToken.line}`);
         }
-        const className = nameToken.value;
+        return this.parseClassBody(nameToken.value, true);
+    }
+
+    private parseClassBody(className: string, untilEndClass: boolean): ClassDeclaration {
         const fields: VariableDeclaration[] = [];
         const procedures: ProcedureDeclaration[] = [];
         const body: Statement[] = [];
@@ -1476,7 +1486,7 @@ export class Parser {
         this.skipNewlines();
 
         while (this.peek().type !== TokenType.EOF) {
-            if (this.peek().type === TokenType.KeywordEnd && this.peek(1).type === TokenType.KeywordClass) {
+            if (untilEndClass && this.peek().type === TokenType.KeywordEnd && this.peek(1).type === TokenType.KeywordClass) {
                 break;
             }
             const tok = this.peek();
@@ -1502,7 +1512,7 @@ export class Parser {
                 body.push(proc);
             } else if (inner.type === TokenType.KeywordDim) {
                 this.advance(); // consume 'Dim'
-                const field = this.parseDimStatement(false, true); // NOT static, but keyword consumed
+                const field = this.parseDimStatement(false, true);
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
@@ -1514,13 +1524,13 @@ export class Parser {
                 body.push(event);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'
-                const field = this.parseDimStatement(true, true); // IS static, keyword consumed
+                const field = this.parseDimStatement(true, true);
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
             } else if (scope !== undefined && inner.type === TokenType.Identifier) {
                 // Public/Private Name As Type (no Dim keyword)
-                const field = this.parseDimStatement(false, true); // keyword consumed (it was the scope keyword)
+                const field = this.parseDimStatement(false, true);
                 field.scope = scope;
                 fields.push(field);
                 body.push(field);
@@ -1531,8 +1541,7 @@ export class Parser {
             this.skipNewlines();
         }
 
-        // Consume 'End Class'
-        if (this.peek().type === TokenType.KeywordEnd) {
+        if (untilEndClass && this.peek().type === TokenType.KeywordEnd) {
             this.advance();
             if (!this.match(TokenType.KeywordClass)) {
                 throw new Error(`Parse error: Expected 'Class' after 'End' at line ${this.peek().line}`);
