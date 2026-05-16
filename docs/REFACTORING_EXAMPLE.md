@@ -1037,11 +1037,11 @@ End Type
 
 ### VBA 側の実装
 
+`GetSetting` は `LibSheet.vba` に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
+
 ```vba
-' 設定テーブルから項目名で値を取得するヘルパー
-Function GetSetting(itemName As String) As Variant
-    Dim tbl As ListObject
-    Set tbl = Worksheets("設定").ListObjects("設定")
+' LibSheet.vba
+Function GetSetting(tbl As ListObject, itemName As String) As Variant
     Dim r As ListRow
     For Each r In tbl.ListRows
         If r.Range(1, 1).Value = itemName Then
@@ -1052,14 +1052,23 @@ Function GetSetting(itemName As String) As Variant
     Err.Raise 1004, "GetSetting", "設定項目 '" & itemName & "' が見つかりません"
 End Function
 
-' InitTaskConfig() で設定シートから値を読み込む
-Function InitTaskConfig() As TaskConfig
+' InitTaskConfig() で設定テーブルを受け取り値を読み込む
+Function InitTaskConfig(tbl As ListObject) As TaskConfig
     Dim cfg As TaskConfig
-    cfg.COL_ASSIGNEE = GetSetting("COL_ASSIGNEE")
-    cfg.COL_DURATION = GetSetting("COL_DURATION")
-    cfg.ROW_START    = GetSetting("ROW_TASK_START")
+    cfg.COL_ASSIGNEE = GetSetting(tbl, "COL_ASSIGNEE")
+    cfg.COL_DURATION = GetSetting(tbl, "COL_DURATION")
+    cfg.ROW_START    = GetSetting(tbl, "ROW_TASK_START")
     InitTaskConfig = cfg
 End Function
+
+' 呼び出し元（TaskScheduler.vba）
+Sub AutoScheduleTasks()
+    Dim tbl As ListObject
+    Set tbl = Worksheets("設定").ListObjects("設定")
+    Dim taskCfg As TaskConfig
+    taskCfg = InitTaskConfig(tbl)
+    ' ...
+End Sub
 ```
 
 ### メリット
