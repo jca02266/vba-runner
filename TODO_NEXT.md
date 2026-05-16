@@ -12,7 +12,8 @@ MS-VBAL 仕様書で個別セクションに名前の付いた構文要素・標
   - [x] Parser: ASTノードに `loc: {start, end}` の位置情報を付与。テスト: `parser-error-recovery.test.ts`
   - [x] Error Recovery: エラー発生時にパースを中断せず収集。
 - [ ] **Diagnostics（構文エラー表示）**
-  - [x] DiagnosticsProvider 実装済み。テスト: `lsp-diagnostics.test.ts`
+  - [x] Parser が `ast.diagnostics[]` にエラーを収集（エラー耐性パース）。テスト: `lsp-diagnostics.test.ts`
+  - [ ] DiagnosticsProvider クラスの作成（`ast.diagnostics` → `vscode.Diagnostic[]` 変換）
   - [ ] extension.ts への登録（`createDiagnosticCollection`）
 - [x] **シンボル解決とホバー機能**
   - [ ] `textDocument/documentSymbol`（アウトライン表示）— SymbolProvider 実装済み（テスト: `lsp-symbol-provider.test.ts`）だが extension.ts 未接続
