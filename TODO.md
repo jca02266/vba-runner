@@ -485,7 +485,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 曖昧性検出: 複数モジュールに同名プロシージャがある場合、実行時に詳細エラーを発生
   - テスト: `module-qualified-calls.test.ts`, `ambiguous-procedure-call.test.ts`, `evaluator-scoping.test.ts`
 - ✅ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean・配列・オブジェクト全て正常動作 | `byref-reference-preservation.test.ts`
-- ⚠️ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則 | `paramarray-edge-cases.test.ts` (制限事項: ByRef semantics未実装)
+- ✅ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則、ByRef semantics (spec §5.3.1.5) | `paramarray-edge-cases.test.ts`
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
 - ✅ **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度 | `property-resolution-order.test.ts`
 - ✅ **暗黙の Let（`Call` なしの呼び出し）**: 戻り値が破棄される / されない場面 | `implicit-let.test.ts`

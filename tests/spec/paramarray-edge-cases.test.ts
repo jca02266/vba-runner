@@ -164,9 +164,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     }
 }
 
-// Test 7: ParamArray ByRef semantics - LIMITATION: Not yet implemented
-// Per MS-VBAL spec, ParamArray elements should behave as ByRef parameters
-// Currently not implemented due to architecture limitations
+// Test 7: ParamArray ByRef semantics (spec §5.3.1.5: elements behave as ByRef positional params)
 {
     const code = `
         Function Test7() As String
@@ -186,12 +184,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 
     try {
         const result = runFunc(code, 'Test7');
-        // Currently fails because ParamArray ByRef semantics are not implemented
-        // Expected: '10,20,30', Got: '1,2,3' (modifications don't propagate back)
-        // This is a known limitation - marking as SKIP
-        console.log('[SKIP] ParamArray ByRef semantics (limitation: not yet implemented per spec)');
+        assert.strictEqual(result, '10,20,30', 'ParamArray ByRef: modifications propagate back to caller variables');
+        console.log('[PASS] ParamArray ByRef semantics');
     } catch (e: any) {
-        console.log('[SKIP] ParamArray ByRef semantics (limitation):', e.message);
+        console.log('[FAIL] ParamArray ByRef semantics:', e.message);
     }
 }
 
@@ -279,6 +275,64 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         console.log('[PASS] ParamArray with mixed types');
     } catch (e: any) {
         console.log('[FAIL] ParamArray with mixed types:', e.message);
+    }
+}
+
+// Test 11: ParamArray ByRef with literals - literals are r-values, silently not written back
+{
+    const code = `
+        Function Test11() As String
+            Call ModifyParams(10, 20)
+            Test11 = "ok"
+        End Function
+
+        Sub ModifyParams(ParamArray params())
+            params(0) = params(0) * 99
+        End Sub
+    `;
+
+    try {
+        const result = runFunc(code, 'Test11');
+        assert.strictEqual(result, 'ok', 'ParamArray ByRef with literals: does not crash');
+        console.log('[PASS] ParamArray ByRef with literals (r-values silently ignored)');
+    } catch (e: any) {
+        console.log('[FAIL] ParamArray ByRef with literals:', e.message);
+    }
+}
+
+// Test 12: Real-world pattern - normalize array values via ParamArray ByRef
+{
+    const code = `
+        Function Test12() As String
+            Dim x As Double, y As Double, z As Double
+            x = 3: y = 4: z = 5
+            NormalizeInPlace x, y, z
+            Test12 = x & "," & y & "," & z
+        End Function
+
+        Sub NormalizeInPlace(ParamArray vals())
+            Dim total As Double, i As Integer
+            total = 0
+            For i = 0 To UBound(vals)
+                total = total + vals(i)
+            Next
+            If total > 0 Then
+                For i = 0 To UBound(vals)
+                    vals(i) = vals(i) / total
+                Next
+            End If
+        End Sub
+    `;
+
+    try {
+        const result = runFunc(code, 'Test12');
+        const parts = String(result).split(',').map(Number);
+        const expected = [3/12, 4/12, 5/12];
+        const ok = parts.every((v, i) => Math.abs(v - expected[i]) < 1e-10);
+        assert.strictEqual(ok, true, 'ParamArray ByRef normalization pattern');
+        console.log('[PASS] Real-world: normalize via ParamArray ByRef');
+    } catch (e: any) {
+        console.log('[FAIL] Real-world: normalize via ParamArray ByRef:', e.message);
     }
 }
 

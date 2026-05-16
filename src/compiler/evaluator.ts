@@ -4062,6 +4062,8 @@ export class Evaluator {
 
                 // Map arguments to parameters
                 const byRefArgs: { paramName: string, originalExpr: Expression }[] = [];
+                let paramArrayParamName: string | null = null;
+                let paramArrayByRefExprs: Expression[] = [];
                 const namedArgs = new Map<string, any>();
                 const namedArgExpressions = new Map<string, Expression>();
                 const positionalArgs: any[] = [];
@@ -4102,6 +4104,9 @@ export class Evaluator {
                         const remainingArgs = positionalArgs.slice(i);
                         (remainingArgs as any).vbaBase = 0;
                         localEnv.set(param.name, remainingArgs);
+                        // Track for ByRef writeback (spec §5.3.1.5: param array elements behave as ByRef)
+                        paramArrayParamName = param.name;
+                        paramArrayByRefExprs = positionalArgExpressions.slice(i);
                         break;
                     }
 
@@ -4185,6 +4190,20 @@ export class Evaluator {
                             this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
                         } catch {
                             // If it's an r-value (like a function call, literal, or expression), VBA silently discards the ByRef update
+                        }
+                    }
+
+                    // Synchronize ParamArray elements back (spec §5.3.1.5: elements behave as ByRef)
+                    if (paramArrayParamName !== null) {
+                        const updatedArray = localEnv.get(paramArrayParamName) as any[];
+                        if (Array.isArray(updatedArray)) {
+                            for (let j = 0; j < paramArrayByRefExprs.length; j++) {
+                                try {
+                                    this.evaluateAssignmentToVariable(paramArrayByRefExprs[j], updatedArray[j]);
+                                } catch {
+                                    // r-values (literals, expressions) silently ignored
+                                }
+                            }
                         }
                     }
 
