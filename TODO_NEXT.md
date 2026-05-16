@@ -160,8 +160,17 @@ AIによるリファクタリング提案は、このプロジェクトがなけ
 
 ## 実証実験：TaskScheduler_v1 を再リファクタリング解析して判明したギャップ
 
-`sample/src/vba_legacy/TaskScheduler_v1.vba`（394行・1プロシージャの巨大Sub）に対して
-本プロジェクトのAST解析を実際に走らせた結果、以下が判明した。
+実証実験で使った解析スクリプトは `test-libs/vba-analyzer.ts` に汎用ツールとして整備済み。
+Step 4 で挙げた AI 支援機能の **試作・改善基盤** として活用し、徐々に機能を足していく。
+
+```bash
+./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
+node test-libs/vba-analyzer.cjs <file-or-dir>           # テキスト形式
+node test-libs/vba-analyzer.cjs <file-or-dir> --json    # JSON 形式（プログラム連携用）
+```
+
+このツールでの実証結果：`sample/src/vba_legacy/TaskScheduler_v1.vba`（394行・1プロシージャの巨大Sub）に対して
+AST解析を実際に走らせた結果、以下が判明した。
 
 ### 機械的に検出できたこと（既存能力で十分なもの）
 
