@@ -9,6 +9,8 @@
 - **リファクタリング前**: `sample/src/vba_legacy/TaskScheduler_v1.vba`（393 行の巨大 Sub）
 - **リファクタリング後**: `sample/src/vba/TaskScheduler.vba` + `sample/src/vba/TaskScheduler_Core.vba`
 
+`TaskScheduler_v1.vba` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/vba_legacy/TaskScheduler.md`](../sample/src/vba_legacy/TaskScheduler.md) を参照してください。
+
 ---
 
 ## 問題点：リファクタリング前のコード
@@ -1003,3 +1005,69 @@ Main Sub
 ```
 
 このリファクタリングは、**REFACTORING_GUIDE.md で説明した「分割統治」と「関心の分離」の実践例**です。
+
+---
+
+## さらなるリファクタリング：セル位置の即値を避ける
+
+リファクタリング後のコードでも、列番号・行番号はソースに直書きされています。
+
+```vba
+Type TaskConfig
+    COL_ASSIGNEE As Long  ' = 17（Q 列）
+    ROW_START    As Long  ' = 19
+    ' ...
+End Type
+```
+
+この数値はシートに行や列を挿入・削除すると即座にずれ、バグの温床になります。
+
+### 解決策：設定シートでセル位置を管理する
+
+**シート「設定」** に Excel テーブル（名前: `設定`）を用意し、項目名と値の対で設定を管理します。
+
+| 項目 | 値 |
+|------|----|
+| COL_ASSIGNEE | `=COLUMN(Q1)` |
+| COL_DURATION | `=COLUMN(O1)` |
+| ROW_TASK_START | `=ROW(A19)` |
+| MAX_DAILY_LOAD | `1.0` |
+
+セル位置には `=COLUMN(Q1)` や `=ROW(A19)` のようなセル参照式を入れておきます。シートに列・行を挿入・削除しても数式が自動で追従するため、設定テーブルの値が常に正しい位置を指し続けます。
+
+### VBA 側の実装
+
+```vba
+' 設定テーブルから項目名で値を取得するヘルパー
+Function GetSetting(itemName As String) As Variant
+    Dim tbl As ListObject
+    Set tbl = Worksheets("設定").ListObjects("設定")
+    Dim r As ListRow
+    For Each r In tbl.ListRows
+        If r.Range(1, 1).Value = itemName Then
+            GetSetting = r.Range(1, 2).Value
+            Exit Function
+        End If
+    Next r
+    Err.Raise 1004, "GetSetting", "設定項目 '" & itemName & "' が見つかりません"
+End Function
+
+' InitTaskConfig() で設定シートから値を読み込む
+Function InitTaskConfig() As TaskConfig
+    Dim cfg As TaskConfig
+    cfg.COL_ASSIGNEE = GetSetting("COL_ASSIGNEE")
+    cfg.COL_DURATION = GetSetting("COL_DURATION")
+    cfg.ROW_START    = GetSetting("ROW_TASK_START")
+    InitTaskConfig = cfg
+End Function
+```
+
+### メリット
+
+| 比較 | ソース即値 | 設定シート管理 |
+|------|-----------|--------------|
+| 列挿入時の対応 | ソースを手修正 | 数式が自動追従 |
+| 設定の一覧性 | Const が散在 | シートで一覧確認・変更可 |
+| 非エンジニアによる調整 | 不可 | シートを直接編集できる |
+
+ビジネスロジックの変更なしにシートレイアウトを変えられるため、**長期運用するマクロほど効果が大きい**パターンです。
