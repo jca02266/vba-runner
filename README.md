@@ -592,9 +592,9 @@ ev.getGlobalEnv().set('Sheets', (name: string) => {
 const result = ev.callProcedure('GetTotal', []);
 ```
 
-### Application.WorksheetFunction のモック化
+### MockApplication の拡張
 
-`Application.WorksheetFunction.VLookup` などをモック化するには、**`MockApplication` を継承**して `worksheetfunction` プロパティを追加します。`application` オブジェクトを丸ごと差し替えると `Sheets` などの既存機能が失われるため、継承による拡張を使います。
+`WorksheetFunction` をモック化するには、**`MockApplication` を継承**して `worksheetfunction` プロパティを追加します。`application` オブジェクトを丸ごと差し替えると `Sheets` などの既存機能が失われるため、継承による拡張を使います。
 
 > **注意**: エンジンは VBA の識別子を小文字で解決します（`Application.WorksheetFunction` → `application.worksheetfunction`）。プロパティ名はすべて lowercase で定義してください。
 
@@ -626,22 +626,28 @@ mockApp.Sheets('Data').setCellValue('A1:B3', [
 ]);
 
 // エンジンに注入
-//   Sheets(...)  → グローバル関数として登録（VBA では Application. なしで呼べる）
-//   application  → WorksheetFunction を含む拡張モックを登録
-ev.getGlobalEnv().set('Sheets', (name: string) => {
+ev.getGlobalEnv().set('Sheets', (name: string) => {        // Sheets("Data") グローバル呼び出し用
     const ws = mockApp.Sheets(name);
     return { Range: (addr: string) => ws.Range(addr) };
 });
-ev.getGlobalEnv().set('application', mockApp);
+ev.getGlobalEnv().set('application', mockApp);             // Application.WorksheetFunction 用
+ev.getGlobalEnv().set('worksheetfunction', mockApp.worksheetfunction); // WorksheetFunction 省略形用
 ```
 
-上記で VBA 側の以下のような呼び出しが動作します：
+#### VBA 側の呼び出しパターン
+
+Excel VBA では `Application` のパブリックメンバーはグローバルスコープに自動公開されるため、以下の **2 つの書き方が等価**です。上記の注入でどちらも動作します。
 
 ```vba
 Function GetSalary(name As String) As Long
     Dim data As Variant
     data = Sheets("Data").Range("A1:B3").Value
+
+    ' パターン 1: Application. あり（ev に application を注入）
     GetSalary = Application.WorksheetFunction.VLookup(name, data, 2)
+
+    ' パターン 2: Application. 省略（ev に worksheetfunction を直接注入）
+    ' GetSalary = WorksheetFunction.VLookup(name, data, 2)
 End Function
 ```
 
