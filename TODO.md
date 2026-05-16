@@ -563,13 +563,15 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### Error 5 — Invalid procedure call or argument
 
 - ✅ `evaluator.ts:202, 205` `VbaCollection.findIndex` でキー未発見 → `throwVbaError(5, ...)` | `CollectionErrorTest.vba`
-- [ ] `evaluator.ts:2278` On…GoTo/GoSub のインデックス範囲外 → `throwVbaError(5, "Invalid procedure call or argument")`
+- ✅ `evaluator.ts:2278` On…GoTo/GoSub のインデックス範囲外 → `throwVbaError(5, ...)` | `MiscErrorTest.vba`
+- ✅ `Environment.set` 定数への代入 → VbaError 5 | `MiscErrorTest.vba`
 
 ### Error 9 — Subscript out of range
 
 - ✅ `evaluator.ts:197` `VbaCollection.findIndex` の数値インデックス範囲外 → `throwVbaError(9, ...)` | `CollectionErrorTest.vba`
-- [ ] `evaluator.ts:3614` `createMultiDimArray` で upper < lower → `throwVbaError(9, "Subscript out of range")`
-- [ ] `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, "Subscript out of range")`
+- ✅ `evaluator.ts:3614` `createMultiDimArray` で upper < lower → VbaError 9 | `MiscErrorTest.vba`
+- ✅ `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, ...)` | `MiscErrorTest.vba`
+- ✅ 代入先が配列/辞書でない変数の添字アクセス (`x(0) = 5`) → `throwVbaError(9, ...)`
 
 ### Error 11 — Division by zero
 
@@ -583,6 +585,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ `evaluator.ts:1646` `callProcedure` でプロシージャが見つからないとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
 - ✅ `evaluator.ts:4217` `evaluateCallExpression` で未知の識別子が引数付きで呼ばれたとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
+- ✅ `Environment.getProcedure` で同名プロシージャが複数モジュールに存在する（曖昧性エラー）→ VbaError 35
 
 ### Error 52 — Bad file name or number
 
@@ -611,10 +614,14 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ `evaluateCallExpression`: クラスインスタンスに存在しないメソッド → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
 - ✅ `evaluateCallExpression`: JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
 - ✅ `evaluateMemberExpression`: プロパティが見つからない → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
-- [ ] `evaluator.ts:4326` `!` アクセス (DictionaryAccessExpression) が非 Dictionary オブジェクト → `throwVbaError(438, ...)`
-- [ ] `evaluator.ts:4215` デフォルトプロパティが見つからない → `throwVbaError(438, ...)`
-- [ ] `evaluator.ts:2556` デフォルト `Item` setter が見つからない → `throwVbaError(438, ...)`
-- [ ] `evaluator.ts:4201, 4305` Dictionary アクセス時に引数なし → `throwVbaError(438, ...)`
+- ✅ `evaluateDictionaryAccessExpression`: `!` アクセスが非 Dictionary → `throwVbaError(438, ...)` | `MiscErrorTest.vba`
+- ✅ `evaluateCallExpression`: デフォルトプロパティが見つからない → `throwVbaError(438, ...)`
+- ✅ `evaluateLetStatement`: デフォルト `Item` setter が見つからない → `throwVbaError(438, ...)`
+- ✅ Dictionary アクセス時に引数なし → `throwVbaError(449, "Argument not optional")` に変更
+
+### Error 449 — Argument not optional (Dictionary 引数なし)
+
+- ✅ `dict()` / `dict` を引数なしで呼んだとき → `throwVbaError(449, ...)`
 
 ### Error 457 — This key is already associated with an element of this collection
 

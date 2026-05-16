@@ -304,7 +304,7 @@ export class Environment {
     set(name: string, value: any) {
         const key = name.toLowerCase();
         if (this.isConstant(key)) {
-            throw new Error(`Execution error: Assignment to constant not allowed: '${name}'`);
+            throw { type: 'VbaError', number: 5, message: `Assignment to constant not allowed: '${name}'` };
         }
         if (this.variables.has(key)) {
             this.variables.set(key, this.coerceToType(key, value));
@@ -516,7 +516,7 @@ export class Environment {
         // Check for ambiguity: multiple module-qualified procedures
         if (candidates.length > 1) {
             const modules = candidates.map(p => p.moduleName).filter(m => m).join(', ');
-            throw new Error(`Execution error: Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
+            throw { type: 'VbaError', number: 35, message: `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.` };
         }
 
         if (candidates.length === 1) {
@@ -547,7 +547,7 @@ export class Environment {
 
             if (envCandidates.length > 1) {
                 const modules = envCandidates.map(p => p.moduleName).filter(m => m).join(', ');
-                throw new Error(`Execution error: Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
+                throw { type: 'VbaError', number: 35, message: `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.` };
             }
 
             if (envCandidates.length === 1) {
@@ -2277,7 +2277,7 @@ export class Evaluator {
         const idx = Math.floor(Number(val));
 
         if (idx < 0 || idx > 255) {
-            throw new Error(`Execution error: Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
+            this.throwVbaError(5, `Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
         }
 
         if (idx >= 1 && idx <= stmt.labels.length) {
@@ -2555,10 +2555,10 @@ export class Evaluator {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         this.callClassMethod(target, setter, [...argsVals, val]);
                     } else {
-                        throw new Error(`Execution error: No default Item property setter found on class`);
+                        this.throwVbaError(438, "Object doesn't support this property or method");
                     }
                 } else {
-                    throw new Error(`Execution error: ${name} is not an array or dictionary`);
+                    this.throwVbaError(9, 'Subscript out of range');
                 }
             } else {
                 throw new Error("Execution error: Complex left hand assignments not supported yet");
@@ -3625,7 +3625,7 @@ export class Evaluator {
         // [0]〜[lower-1] は undefined、[lower]〜[upper] を initialValue で埋める。
         const buildArray = (dimIdx: number): any[] => {
             const { lower, upper } = dimensions[dimIdx];
-            if (upper < lower - 1) throw new Error("Execution error: Subscript out of range");
+            if (upper < lower - 1) throw { type: 'VbaError', number: 9, message: 'Subscript out of range' };
 
             const totalSize = upper + 1;
             const arr = new Array(totalSize);
@@ -4200,7 +4200,7 @@ export class Evaluator {
                     const argsVals = expr.args.map(a => this.evaluateExpression(a));
                     return variable(...argsVals);
                 } else if (Array.isArray(variable)) {
-                    if (expr.args.length === 0) throw new Error(`Execution error: Missing index for array ${name}`);
+                    if (expr.args.length === 0) this.throwVbaError(9, 'Subscript out of range');
                     // VBA index == JS index. Multi-dimensional: arr(i, j) -> arr[i][j]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
@@ -4212,7 +4212,7 @@ export class Evaluator {
                     return current;
                 } else if (variable && variable.__isVbaDict__) {
                     // Dictionary read: dict("key")
-                    if (expr.args.length === 0) throw new Error(`Execution error: Missing key for dictionary ${name}`);
+                    if (expr.args.length === 0) this.throwVbaError(449, 'Argument not optional');
                     const key = this.evaluateExpression(expr.args[0]);
                     return variable.__map__.get(key);
                 } else if (variable && variable.__isVbaCollection__) {
@@ -4230,7 +4230,7 @@ export class Evaluator {
                         const argsVals = expr.args.map(a => this.evaluateExpression(a));
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
-                    throw new Error(`Execution error: No default property found on class '${(variable.__classDef__ as ClassDeclaration).name}'`);
+                    this.throwVbaError(438, "Object doesn't support this property or method");
                 }
                 this.throwVbaError(35, `Sub or Function not defined: '${name}'`);
             }
@@ -4316,7 +4316,7 @@ export class Evaluator {
         // e.g. Array(1, 2)(0)
         const target = this.evaluateExpression(expr.callee);
         if (Array.isArray(target)) {
-            if (expr.args.length === 0) throw new Error(`Execution error: Missing index for array access`);
+            if (expr.args.length === 0) this.throwVbaError(9, 'Subscript out of range');
             let current = target;
             for (let i = 0; i < expr.args.length; i++) {
                 if (!current) return vbaEmpty;
@@ -4325,7 +4325,7 @@ export class Evaluator {
             }
             return current === undefined ? vbaEmpty : current;
         } else if (target && target.__isVbaDict__) {
-            if (expr.args.length === 0) throw new Error(`Execution error: Missing key for dictionary access`);
+            if (expr.args.length === 0) this.throwVbaError(449, 'Argument not optional');
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
@@ -4346,7 +4346,7 @@ export class Evaluator {
         }
 
         // Fallback or error (some objects might support ! besides Dictionary, but we only have Dictionary for now)
-        throw new Error(`Execution error: Object does not support '!' access for property '${property}'`);
+        this.throwVbaError(438, "Object doesn't support this property or method");
     }
 
     private evaluateTypeOfIsExpression(expr: TypeOfIsExpression): any {
@@ -4651,7 +4651,11 @@ export class Evaluator {
                 return val;
             }
         }
-        throw new Error(`Execution error: Cannot access property '${propName}' of undefined or primitive in With block`);
+        if (obj === null || obj === undefined || obj === vbaNothing) {
+            this.throwVbaError(91, 'Object variable or With block variable not set');
+        } else {
+            this.throwVbaError(424, 'Object required');
+        }
     }
 
     private evaluateLike(text: any, pattern: any): boolean {
