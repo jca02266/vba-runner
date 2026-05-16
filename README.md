@@ -9,11 +9,10 @@ Excelがない環境で、作成したVBAコードの動作確認、リファク
 
 上記より、VS Codeなどのモダンな環境で（AIによる支援を受けながら）VBAソースのリファクタリングとテストの実行を可能にします。
 
-### 今後の展望: VSCode統合開発環境 (Phase 2)
+### VSCode拡張機能 (Phase 2)
 本プロジェクトにおける第一段階（[MS-VBAL 仕様書](https://learn.microsoft.com/en-us/openspecs/microsoft_general_purpose_programming_languages/ms-vbal/d5418146-0bd2-45eb-9c7a-fd9502722c74)で名前の付いた構文要素・標準ライブラリ関数の実装）は完了しました。仕様書本文に書かれているが個別セクションを持たない **ランタイム挙動** の検証は継続中で、進捗は [`TODO.md` の「VBA ランタイム挙動」](TODO.md#vba-ランタイム挙動)を参照してください。
 
-次なる最終目標として、このコンパイラエンジンとテスト基盤を組み込んだ **「VSCode完結のVBA統合開発環境（IDE）」** を提供する拡張機能の開発を構想しています。
-LSP (Language Server Protocol) によるリアルタイムな構文チェックや補完、VSCode Testing APIへの統合に関するロードマップの詳細は [`TODO_NEXT.md`](TODO_NEXT.md) および [`LSP.md`](LSP.md) を参照してください。
+第二段階として、このコンパイラエンジンを組み込んだ **VSCode拡張機能** を実装しました。`.vba` / `.bas` / `.cls` / `.frm` ファイルを開くと、以下のLSP機能が有効になります。詳細は後述の「[VSCode拡張機能の使い方](#vscode拡張機能の使い方)」を参照してください。
 
 ## 基本方針：環境依存操作のスタブ・仮想化
 
@@ -894,6 +893,49 @@ const result = fs.readFileSync('./sandbox/c/output.txt', 'utf-8');
 
 - `Friend` はパース・保持されますが、実行時のアクセス制御は `Public` と同等です（制御なし）。
 - 修飾子なしのプロシージャは VBA 仕様どおり `Public` と同等です。
+
+## VSCode拡張機能の使い方
+
+### インストール・起動
+
+1. このリポジトリを VSCode で開く
+2. `F5` キーで「Extension Development Host」を起動する
+3. 新しいウィンドウで `.vba` / `.bas` / `.cls` / `.frm` ファイルを開く
+
+### 実装済みLSP機能
+
+#### ホバー (Hover)
+
+シンボル（Sub/Function/変数/定数/クラス/イベント）にマウスカーソルを合わせると、シグネチャをポップアップ表示します。
+
+```vba
+Sub CalcSum(a As Integer, b As Integer)
+'         ↑ ここにホバー → "Sub CalcSum(a As Integer, b As Integer)" が表示される
+```
+
+#### 定義へ移動 (Go to Definition)
+
+シンボルにカーソルを置いて `F12` を押すと、そのシンボルの宣言位置にジャンプします。呼び出し元から定義元への移動に使います。
+
+| 対応シンボル | 例 |
+|---|---|
+| Sub / Function / Property | `Sub Foo()`, `Function Bar() As Long` |
+| 変数宣言 | `Dim x As Integer`, `Public count As Long` |
+| 定数 | `Const MAX As Long = 100` |
+| クラス | `Class MyClass` |
+| イベント | `Event DataChanged(newVal As Variant)` |
+
+#### コード補完 (Completion)
+
+入力中に VBA キーワード・組み込み関数・ソース内で定義されたプロシージャの候補を表示します。`.` を入力したときにもトリガーされます。
+
+### 拡張機能のビルド
+
+```bash
+npm run build:extension   # dist/extension.cjs を生成
+```
+
+---
 
 ## UI画面の起動
 ブラウザ上でVBAエディタ環境を立ち上げ、`Debug.Print` クラスの動作などを確認します。

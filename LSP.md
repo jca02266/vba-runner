@@ -1,4 +1,4 @@
-# VBA Compiler Language Server Protocol (LSP) 開発計画
+# VBA Language Server Protocol (LSP) 開発計画
 
 既存のVBAコンパイラの `Lexer` および `Parser` を活用し、VSCode等のエディタで動作する **VBA Language Server** を構築するためのロードマップと技術設計です。
 
