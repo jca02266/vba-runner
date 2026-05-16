@@ -1646,6 +1646,9 @@ export class Evaluator {
             throw new Error(`Execution error: Procedure '${name}' not found${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
+        // Validate argument count
+        this.checkArgCount(proc, args);
+
         // Create a new local environment for the procedure call
         const localEnv = new Environment(this.env);
 
@@ -2764,12 +2767,30 @@ export class Evaluator {
         return instance;
     }
 
+    private checkArgCount(proc: ProcedureDeclaration, args: any[]): void {
+        const hasParamArray = proc.parameters.some(p => p.isParamArray);
+        if (hasParamArray) return;
+
+        const maxParams = proc.parameters.length;
+        const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
+
+        if (args.length > maxParams) {
+            this.throwVbaError(450, 'Wrong number of arguments or invalid property assignment');
+        }
+        if (args.length < minParams) {
+            this.throwVbaError(449, 'Argument not optional');
+        }
+    }
+
     private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[]): any {
         const instanceEnv = instance.__instanceEnv__ as Environment;
         const localEnv = new Environment(instanceEnv);
 
         // Make Me available as the current instance
         localEnv.setLocally('Me', instance);
+
+        // Validate argument count
+        this.checkArgCount(proc, args);
 
         // Map arguments to parameters
         for (let i = 0; i < proc.parameters.length; i++) {
@@ -4029,6 +4050,22 @@ export class Evaluator {
                     } else {
                         positionalArgs.push(this.evaluateExpression(argExpr));
                         positionalArgExpressions.push(argExpr);
+                    }
+                }
+
+                // Validate argument count
+                {
+                    const hasParamArray = proc.parameters.some(p => p.isParamArray);
+                    if (!hasParamArray) {
+                        const maxParams = proc.parameters.length;
+                        const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
+                        const totalProvided = positionalArgs.length + namedArgs.size;
+                        if (totalProvided > maxParams) {
+                            this.throwVbaError(450, 'Wrong number of arguments or invalid property assignment');
+                        }
+                        if (totalProvided < minParams) {
+                            this.throwVbaError(449, 'Argument not optional');
+                        }
                     }
                 }
 
