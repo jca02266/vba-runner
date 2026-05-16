@@ -48,11 +48,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run build:extension",
+    "build": "tsc -b && vite build && npm run build:extension && npm run build:extension:web",
     "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode",
-    "build:extension:web": "esbuild src/extension.ts --bundle --outfile=dist/extension-web.cjs --platform=browser --external:vscode",
+    "build:extension:web": "esbuild src/extension-web.ts --bundle --outfile=dist/extension-web.cjs --platform=browser --external:vscode --alias:path=path-browserify",
     "lint": "eslint .",
     "preview": "vite preview",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish",
     "test-gen": "esbuild test-libs/vba-test-generator.ts --bundle --outfile=dist/test-generator.cjs --platform=node && node dist/test-generator.cjs"
   },
   "dependencies": {
