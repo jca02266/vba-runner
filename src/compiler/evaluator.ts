@@ -123,18 +123,18 @@ export const fromVbaDate = (serial: number): Date => {
 };
 
 export const parseVbaDate = (val: any): Date => {
-    if (val === null || val === undefined) throw new Error('Execution error: Invalid date');
+    if (val === null || val === undefined) throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
     if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
     if (typeof val === 'number') return fromVbaDate(val);
-    
+
     let str = String(val);
     // If it looks like a time-only string, prepend a base date for JS parser
     if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(str)) {
         str = "1899/12/30 " + str;
     }
-    
+
     const d = new Date(str);
-    if (isNaN(d.getTime())) throw new Error(`Execution error: Type mismatch: '${val}'`);
+    if (isNaN(d.getTime())) throw { type: 'VbaError', number: 13, message: `Type mismatch: '${val}'` };
     
     // Treat the parsed local time components as UTC to maintain timezone independence
     return new Date(Date.UTC(
@@ -468,6 +468,17 @@ export class Environment {
         // Implicit initialization
         this.variables.set(key, 0);
         return 0;
+    }
+
+    hasVariable(name: string): boolean {
+        const key = name.toLowerCase();
+        if (this.variables.has(key)) return true;
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            if (env.variables.has(key)) return true;
+            env = env.enclosing;
+        }
+        return false;
     }
 
     setProcedure(name: string, proc: ProcedureDeclaration) {
@@ -2298,7 +2309,7 @@ export class Evaluator {
             const result = val.padEnd(target.length, ' ').substring(0, target.length);
             this.env.set(name, result);
         } else {
-            throw new Error("Execution error: LSet currently only supported for string variables");
+            this.throwVbaError(13, 'Type mismatch');
         }
     }
 
@@ -2310,7 +2321,7 @@ export class Evaluator {
             const result = val.padStart(target.length, ' ').substring(0, target.length);
             this.env.set(name, result);
         } else {
-            throw new Error("Execution error: RSet currently only supported for string variables");
+            this.throwVbaError(13, 'Type mismatch');
         }
     }
 
@@ -2320,7 +2331,7 @@ export class Evaluator {
         if (errObj) {
             errObj.raise(errNum);
         } else {
-            throw new Error(`VBA Error ${errNum}`);
+            this.throwVbaError(Number(errNum), String(errNum));
         }
     }
 
@@ -2561,7 +2572,7 @@ export class Evaluator {
                     this.throwVbaError(9, 'Subscript out of range');
                 }
             } else {
-                throw new Error("Execution error: Complex left hand assignments not supported yet");
+                this.throwVbaError(5, 'Invalid procedure call or argument');
             }
         } else if (left.type === 'MemberExpression') {
             const member = left as MemberExpression;
@@ -2589,7 +2600,7 @@ export class Evaluator {
             }
         } else if (left.type === 'ImplicitWithObjectExpression') {
             if (this.withObjectStack.length === 0) {
-                throw new Error(`Execution error: '.' outside of With block`);
+                this.throwVbaError(91, 'Object variable or With block variable not set');
             }
             const obj = this.withObjectStack[this.withObjectStack.length - 1];
             const member = left as ImplicitWithObjectExpression;
@@ -2604,7 +2615,7 @@ export class Evaluator {
                 }
             }
         } else {
-            throw new Error(`Execution error: Invalid assignment target`);
+            this.throwVbaError(5, 'Invalid procedure call or argument');
         }
     }
 
@@ -2981,7 +2992,7 @@ export class Evaluator {
                 }
             }
         } else {
-            throw new Error(`Execution error: Unsupported Set target ${stmt.left.type}`);
+            this.throwVbaError(5, 'Invalid procedure call or argument');
         }
     }
 
@@ -3500,7 +3511,7 @@ export class Evaluator {
                         i = labelIndex;
                         continue;
                     }
-                    throw new Error(`Execution error: Label '${e.label}' not found`);
+                    this.throwVbaError(35, `Sub or Function not defined: label '${e.label}'`);
                 }
 
                 if (e && e.type === 'GoSub') {
@@ -3540,7 +3551,7 @@ export class Evaluator {
                         if (labelIndex >= 0) {
                             i = labelIndex;
                         } else {
-                            throw new Error(`Execution error: Label '${e.label}' not found for Resume`);
+                            this.throwVbaError(35, `Sub or Function not defined: label '${e.label}'`);
                         }
                     }
                     this.errObj.clear();
@@ -3793,11 +3804,11 @@ export class Evaluator {
     private evaluateDateLiteral(expr: DateLiteral): any {
         const parsed = this.parseDateLiteral(expr.value);
         if (!parsed) {
-            throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
+            this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
         }
         const d = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute, parsed.second));
         if (isNaN(d.getTime())) {
-            throw new Error(`Execution error: Invalid date literal #${expr.value}#`);
+            this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
         }
         return new VbaDate(toVbaDate(d));
     }
@@ -4039,8 +4050,8 @@ export class Evaluator {
                     proc.moduleName !== '' &&
                     proc.moduleName !== this.executingModuleName
                 ) {
-                    throw new Error(
-                        `Execution error: Cannot call Private procedure '${proc.name.name}' ` +
+                    this.throwVbaError(5,
+                        `Cannot call Private procedure '${proc.name.name}' ` +
                         `from module '${this.executingModuleName || '(top-level)'}' ` +
                         `(defined in '${proc.moduleName}')`
                     );
@@ -4192,6 +4203,8 @@ export class Evaluator {
                 return undefined;
             } else {
                 // Might be an array access, built-in function, or variable reference
+                // Check explicit declaration BEFORE env.get() which implicitly initializes to 0
+                const wasExplicitlyDeclared = this.env.hasVariable(name);
                 const variable = this.env.get(name);
                 if (expr.args.length === 0 && typeof variable !== 'function' && !Array.isArray(variable) && !(variable && variable.__isVbaDict__)) {
                     return variable;
@@ -4231,6 +4244,9 @@ export class Evaluator {
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
                     this.throwVbaError(438, "Object doesn't support this property or method");
+                } else if (expr.args.length > 0 && wasExplicitlyDeclared) {
+                    // Variable is declared but not callable (e.g. Long used as function)
+                    this.throwVbaError(424, 'Object required');
                 }
                 this.throwVbaError(35, `Sub or Function not defined: '${name}'`);
             }
@@ -4263,7 +4279,7 @@ export class Evaluator {
                 methodNameOriginal = member.property.name;
             } else {
                 if (this.withObjectStack.length === 0) {
-                    throw new Error(`Execution error: '.' outside of With block`);
+                    this.throwVbaError(91, 'Object variable or With block variable not set');
                 }
                 obj = this.withObjectStack[this.withObjectStack.length - 1];
                 methodNameOriginal = (expr.callee as ImplicitWithObjectExpression).property.name;
@@ -4333,7 +4349,7 @@ export class Evaluator {
             return target(...argsVals);
         }
 
-        throw new Error(`Execution error: Unsupported call expression or target is not callable`);
+        this.throwVbaError(424, 'Object required');
     }
 
     private evaluateDictionaryAccessExpression(expr: DictionaryAccessExpression): any {
@@ -4627,7 +4643,7 @@ export class Evaluator {
 
     private evaluateImplicitWithObjectExpression(expr: ImplicitWithObjectExpression): any {
         if (this.withObjectStack.length === 0) {
-            throw new Error(`Execution error: '.' outside of With block`);
+            this.throwVbaError(91, 'Object variable or With block variable not set');
         }
         const obj = this.withObjectStack[this.withObjectStack.length - 1];
         const propName = expr.property.name.toLowerCase();
