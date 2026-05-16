@@ -1506,6 +1506,9 @@ export class Parser {
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
+            } else if (inner.type === TokenType.KeywordImplements) {
+                const impl = this.parseImplementsDirective();
+                body.push(impl);
             } else if (inner.type === TokenType.KeywordEvent) {
                 const event = this.parseEventDeclaration(scope);
                 body.push(event);

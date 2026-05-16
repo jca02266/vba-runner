@@ -4300,6 +4300,12 @@ export class Evaluator {
                     const argsVals = expr.args.map(a => this.evaluateExpression(a));
                     return this.callClassMethod(obj, proc, argsVals);
                 }
+                // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
+                const ifaceProc = this.findInterfaceDispatch(obj, methodNameOriginal);
+                if (ifaceProc) {
+                    const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                    return this.callClassMethod(obj, ifaceProc, argsVals);
+                }
                 this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
             }
 
@@ -4459,6 +4465,12 @@ export class Evaluator {
                 return this.callClassMethod(obj, method, []);
             }
 
+            // Implements interface dispatch: obj.Area -> obj.IShape_Area
+            const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
+            if (ifaceProc) {
+                return this.callClassMethod(obj, ifaceProc, []);
+            }
+
             // Field access
             return instanceEnv.get(propName);
         }
@@ -4485,6 +4497,38 @@ export class Evaluator {
             }
         }
         this.throwVbaError(438, `Object doesn't support this property or method: '${propName}'`);
+    }
+
+    /**
+     * Implements インターフェースディスパッチ:
+     * obj.Speak() で Speak が見つからない場合、obj の Implements IAnimal から
+     * IAnimal に Speak があれば IAnimal_Speak にディスパッチする。
+     */
+    private findInterfaceDispatch(obj: any, methodNameOriginal: string): ProcedureDeclaration | null {
+        if (!obj || !obj.__vbaClass__) return null;
+        const classDef = obj.__classDef__ as ClassDeclaration;
+        const methodNameLower = methodNameOriginal.toLowerCase();
+
+        for (const stmt of classDef.body) {
+            if (stmt.type !== 'ImplementsDirective') continue;
+            const ifaceName = (stmt as ImplementsDirective).interfaceName;
+            const ifaceClass = this.classDefinitions.get(ifaceName.toLowerCase());
+            if (!ifaceClass) continue;
+
+            // interface has the requested member?
+            const inInterface = ifaceClass.procedures.some(
+                p => p.name.name.toLowerCase() === methodNameLower
+            ) || ifaceClass.fields.some(
+                f => f.declarations.some(d => d.name.name.toLowerCase() === methodNameLower)
+            );
+            if (!inInterface) continue;
+
+            // look for IfaceName_MethodName in concrete class
+            const implName = `${ifaceName}_${methodNameOriginal}`.toLowerCase();
+            const implProc = classDef.procedures.find(p => p.name.name.toLowerCase() === implName);
+            if (implProc) return implProc;
+        }
+        return null;
     }
 
     private evaluateBinaryExpression(expr: BinaryExpression): any {
