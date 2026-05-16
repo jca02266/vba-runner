@@ -7,10 +7,20 @@ let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('VBA Compiler extension activated');
+    console.log('🚀 VBA Compiler extension activated');
+    const outputChannel = vscode.window.createOutputChannel('VBA Compiler');
+    outputChannel.appendLine('Extension initialization started...');
 
-    // Initialize LSP server
     lspServer = new LSPServer();
+    outputChannel.appendLine('LSP Server initialized');
+
+    // Register already-open documents
+    for (const doc of vscode.workspace.textDocuments) {
+        if (doc.languageId === 'vba') {
+            documentMap.set(doc.uri.toString(), doc);
+            lspServer.didOpen(doc.uri.toString(), doc.getText());
+        }
+    }
 
     // Register document open listener
     context.subscriptions.push(
@@ -55,10 +65,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 if (!hover) return null;
 
                 const markdownString = new vscode.MarkdownString();
-                markdownString.appendMarkdown(`\`\`\`vba\n${hover.signature || hover.declaration}\n\`\`\``);
-                if (hover.documentation) {
-                    markdownString.appendText('\n\n' + hover.documentation);
-                }
+                markdownString.appendMarkdown(`\`\`\`vba\n${hover.contents}\n\`\`\``);
 
                 return new vscode.Hover(markdownString, hover.range ?
                     new vscode.Range(
@@ -71,6 +78,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+    outputChannel.appendLine('✓ Hover provider registered');
 
     // Register definition provider
     context.subscriptions.push(
@@ -95,6 +103,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+    outputChannel.appendLine('✓ Definition provider registered');
 
     // Register completion provider
     context.subscriptions.push(
@@ -114,6 +123,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 });
             }
         }, '.')); // Trigger on dot
+    outputChannel.appendLine('✓ Completion provider registered');
 
     // Register test discovery
     const testController = vscode.tests.createTestController('vbaTest', 'VBA Tests');
@@ -181,7 +191,10 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     };
 
-    console.log('VBA extension fully initialized');
+    outputChannel.appendLine('✓ All providers registered successfully');
+    outputChannel.appendLine('📝 Open a .vba file and hover over code to test LSP features');
+    outputChannel.show();
+    console.log('🚀 VBA extension fully initialized');
 }
 
 export function deactivate() {

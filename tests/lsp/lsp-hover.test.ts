@@ -7,7 +7,7 @@ function getHoverAt(src: string, line: number, character: number): any {
     const tokens = new Lexer(src).tokenize();
     const ast = new Parser(tokens).parse();
     const provider = new HoverProvider();
-    return provider.getHoverInfo(ast.body, line, character);
+    return provider.getHoverInfo(ast.body, src, line, character);
 }
 
 // 1. Hover over Sub procedure shows kind and signature

@@ -11,10 +11,20 @@ const documentMap = new Map<string, vscode.TextDocument>();
  * Compatible with VSCode for the Web (vscode.dev, github.dev)
  */
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('VBA Compiler Web Extension activated');
+    console.log('🚀 VBA Compiler Web Extension activated');
+    const outputChannel = vscode.window.createOutputChannel('VBA Compiler');
+    outputChannel.appendLine('Web Extension initialization started...');
 
-    // Initialize LSP server
     lspServer = new LSPServer();
+    outputChannel.appendLine('LSP Server initialized');
+
+    // Register already-open documents
+    for (const doc of vscode.workspace.textDocuments) {
+        if (isVBADocument(doc)) {
+            documentMap.set(doc.uri.toString(), doc);
+            lspServer.didOpen(doc.uri.toString(), doc.getText());
+        }
+    }
 
     // Register document open listener
     context.subscriptions.push(
@@ -59,10 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 if (!hover) return null;
 
                 const markdownString = new vscode.MarkdownString();
-                markdownString.appendMarkdown(`\`\`\`vba\n${hover.signature || hover.declaration}\n\`\`\``);
-                if (hover.documentation) {
-                    markdownString.appendText('\n\n' + hover.documentation);
-                }
+                markdownString.appendMarkdown(`\`\`\`vba\n${hover.contents}\n\`\`\``);
 
                 return new vscode.Hover(markdownString, hover.range ?
                     new vscode.Range(
@@ -327,5 +334,5 @@ function getWebUIHTML(webview: vscode.Webview, extensionUri: vscode.Uri): string
 }
 
 export function deactivate() {
-    console.log('VBA Compiler Web Extension deactivated');
+    console.log('VBA Web Extension deactivated');
 }

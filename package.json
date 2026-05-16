@@ -16,10 +16,7 @@
   "main": "./dist/extension.cjs",
   "browser": "./dist/extension-web.cjs",
   "activationEvents": [
-    "onLanguage:vba",
-    "workspaceContains:**/*.vba",
-    "workspaceContains:**/*.cls",
-    "workspaceContains:**/*.frm"
+    "onStartupFinished"
   ],
   "contributes": {
     "languages": [

@@ -112,7 +112,7 @@ export class LSPServer {
         const ast = this.parseDocument(doc.content);
         if (!ast) return null;
 
-        return this.hoverProvider.getHoverInfo(ast.body, line, character);
+        return this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character);
     }
 
     /**
@@ -126,7 +126,11 @@ export class LSPServer {
         if (!ast) return null;
 
         this.definitionProvider.setDocumentUri(uri);
-        return this.definitionProvider.getDefinition(ast.body, line, character);
+        try {
+            return this.definitionProvider.getDefinition(ast.body, doc.content, line, character);
+        } catch {
+            return null;
+        }
     }
 
     /**

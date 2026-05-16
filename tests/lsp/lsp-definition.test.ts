@@ -8,7 +8,7 @@ function getDefinitionAt(src: string, line: number, character: number): any {
     const ast = new Parser(tokens).parse();
     const provider = new DefinitionProvider();
     provider.setDocumentUri('file:///test.vba');
-    return provider.getDefinition(ast.body, line, character);
+    return provider.getDefinition(ast.body, src, line, character);
 }
 
 // 1. Definition of Sub procedure
