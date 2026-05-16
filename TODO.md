@@ -591,15 +591,15 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Error 91 — Object variable or With block variable not set
 
-- [ ] プロパティ代入先が `Nothing` / `undefined` のとき (Lines 2582, 2594, 2967) → `throwVbaError(91, "Object variable or With block variable not set")`
-  - Nothing アクセスは Error 91、プリミティブへのアクセスは Error 424 と区別する
-- [ ] `evaluator.ts:4397` `evaluateMemberExpression` で obj が `null` / `undefined` のとき → Nothing 判定なら `throwVbaError(91, ...)` を発生させる
-- [ ] `evaluator.ts:4629` With ブロック内の obj がプリミティブのとき → `throwVbaError(91, ...)`
+- ✅ プロパティ代入先が `Nothing` / `undefined` のとき (Lines 2582, 2594, 2967) → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateCallExpression` MemberExpression ブランチで obj が `Nothing`/`null` → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateMemberExpression` で obj が `Nothing`/`null`/`undefined` → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
 
 ### Error 424 — Object required
 
-- [ ] `evaluator.ts:2894` `evaluateSetStatement` で右辺が非オブジェクト (`Set x = 5`) → `throwVbaError(424, "Object required")`
-- [ ] `evaluator.ts:4397` `evaluateMemberExpression` で obj がプリミティブ値のとき → `throwVbaError(424, "Object required")`
+- ✅ `evaluateSetStatement` で右辺が非オブジェクト (`Set x = 5`) → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
+- ✅ プロパティ代入先がプリミティブのとき → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateMemberExpression` で obj がプリミティブ値のとき → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
 
 ### Error 429 — ActiveX component can't create object
 
@@ -608,9 +608,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Error 438 — Object doesn't support this property or method
 
-- [ ] `evaluator.ts:4264` クラスインスタンスに存在しないメソッド呼び出し → `throwVbaError(438, "Object doesn't support this property or method")`
-- [ ] `evaluator.ts:4288` JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)`
-- [ ] `evaluator.ts:4446` `evaluateMemberExpression` でプロパティが見つからない → `throwVbaError(438, ...)`
+- ✅ `evaluateCallExpression`: クラスインスタンスに存在しないメソッド → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateCallExpression`: JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateMemberExpression`: プロパティが見つからない → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
 - [ ] `evaluator.ts:4326` `!` アクセス (DictionaryAccessExpression) が非 Dictionary オブジェクト → `throwVbaError(438, ...)`
 - [ ] `evaluator.ts:4215` デフォルトプロパティが見つからない → `throwVbaError(438, ...)`
 - [ ] `evaluator.ts:2556` デフォルト `Item` setter が見つからない → `throwVbaError(438, ...)`

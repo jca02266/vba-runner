@@ -2581,7 +2581,11 @@ export class Evaluator {
             } else if (obj && typeof obj === 'object') {
                 obj[propName] = val;
             } else {
-                throw new Error(`Execution error: Cannot assign property '${propName}' of undefined or primitive`);
+                if (obj === null || obj === undefined || obj === vbaNothing) {
+                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                } else {
+                    this.throwVbaError(424, 'Object required');
+                }
             }
         } else if (left.type === 'ImplicitWithObjectExpression') {
             if (this.withObjectStack.length === 0) {
@@ -2593,7 +2597,11 @@ export class Evaluator {
             if (obj && typeof obj === 'object') {
                 obj[propName] = val;
             } else {
-                throw new Error(`Execution error: Cannot assign property '${propName}' of undefined or primitive in With block`);
+                if (obj === null || obj === undefined || obj === vbaNothing) {
+                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                } else {
+                    this.throwVbaError(424, 'Object required');
+                }
             }
         } else {
             throw new Error(`Execution error: Invalid assignment target`);
@@ -2893,7 +2901,7 @@ export class Evaluator {
 
         // VBA requires Set target to be an object (or Nothing)
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
-            throw new Error(`Execution error: Object required`);
+            this.throwVbaError(424, 'Object required');
         }
         // If the right side evaluates to a variable name (string), resolve it
         if (typeof value === 'string' && stmt.right.type === 'Identifier') {
@@ -2966,7 +2974,11 @@ export class Evaluator {
                 if (oldVal !== value) this.triggerTerminate(oldVal);
                 obj[propName] = value;
             } else {
-                throw new Error(`Execution error: Cannot set property '${propName}' of undefined or primitive`);
+                if (obj === null || obj === undefined || obj === vbaNothing) {
+                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                } else {
+                    this.throwVbaError(424, 'Object required');
+                }
             }
         } else {
             throw new Error(`Execution error: Unsupported Set target ${stmt.left.type}`);
@@ -4259,6 +4271,11 @@ export class Evaluator {
 
             const methodNameLower = methodNameOriginal.toLowerCase();
 
+            // Nothing / unset object check
+            if (obj === null || obj === undefined || obj === vbaNothing) {
+                this.throwVbaError(91, 'Object variable or With block variable not set');
+            }
+
             // VBA class instance method call
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
@@ -4267,7 +4284,7 @@ export class Evaluator {
                     const argsVals = expr.args.map(a => this.evaluateExpression(a));
                     return this.callClassMethod(obj, proc, argsVals);
                 }
-                throw new Error(`Execution error: Class '${obj.__className__}' has no method '${methodNameOriginal}'`);
+                this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
             }
 
             if (obj) {
@@ -4291,7 +4308,7 @@ export class Evaluator {
                     return targetMethod.apply(obj, argsVals);
                 }
             }
-            throw new Error(`Execution error: Object does not support property or method '${methodNameOriginal}'`);
+            this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
         }
 
 
@@ -4399,8 +4416,10 @@ export class Evaluator {
         const propName = expr.property.name.toLowerCase();
 
         // Safety check: ensure obj is an object before trying member access
-        if (obj === null || obj === undefined || (typeof obj !== 'object' && typeof obj !== 'function')) {
-            throw new Error(`Execution error: Cannot access property '${propName}' of ${typeof obj} value (${obj})`);
+        if (obj === null || obj === undefined || obj === vbaNothing) {
+            this.throwVbaError(91, 'Object variable or With block variable not set');
+        } else if (typeof obj !== 'object' && typeof obj !== 'function') {
+            this.throwVbaError(424, 'Object required');
         }
 
         // VBA class instance: look up field in instance environment or invoke Property Get
@@ -4449,7 +4468,7 @@ export class Evaluator {
                 return val;
             }
         }
-        throw new Error(`Execution error: Method or property not found '${propName}'`);
+        this.throwVbaError(438, `Object doesn't support this property or method: '${propName}'`);
     }
 
     private evaluateBinaryExpression(expr: BinaryExpression): any {
