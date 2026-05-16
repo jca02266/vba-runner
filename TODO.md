@@ -547,3 +547,75 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 例: `Dim assert As New Assert` — 変数 `assert` とクラス `Assert` は VBA では同一識別子
   - VBA はケースインセンシティブなため、コンパイル時に "識別子が重複しています" とすべきケース
   - 実装案: Lexer/Parser で識別子を正規化（小文字化）した後、同一スコープ内に同名の宣言があれば警告またはエラー
+
+---
+
+## VBA エラー番号別の改善項目（Err.Number 対応）
+
+現在のエンジンは多くの場面で `throw new Error(...)` （JavaScript の汎用エラー）を使っており、VBA の `Err.Number` に正しいエラー番号が設定されない。以下は Err.Number 別に整理した改善点。
+
+凡例: `evaluator.ts:行番号` は該当 `throw new Error(...)` の場所を示す。
+
+### Error 3 — Return without GoSub
+
+- [ ] `evaluator.ts:3508` `Return without GoSub` → `throwVbaError(3, "Return without GoSub")`
+
+### Error 5 — Invalid procedure call or argument
+
+- ✅ `evaluator.ts:202, 205` `VbaCollection.findIndex` でキー未発見 → `throwVbaError(5, ...)` | `CollectionErrorTest.vba`
+- [ ] `evaluator.ts:2278` On…GoTo/GoSub のインデックス範囲外 → `throwVbaError(5, "Invalid procedure call or argument")`
+
+### Error 9 — Subscript out of range
+
+- ✅ `evaluator.ts:197` `VbaCollection.findIndex` の数値インデックス範囲外 → `throwVbaError(9, ...)` | `CollectionErrorTest.vba`
+- [ ] `evaluator.ts:3614` `createMultiDimArray` で upper < lower → `throwVbaError(9, "Subscript out of range")`
+- [ ] `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, "Subscript out of range")`
+
+### Error 11 — Division by zero
+
+- ✅ 除算演算子（`/`, `\`, `Mod`）で分母が 0 のとき → `throwVbaError(11, "Division by zero")` — 実装済み
+
+### Error 13 — Type mismatch
+
+- [ ] `evaluator.ts:2043` `For Each` に配列でもコレクションでもない値を渡したとき → `throwVbaError(13, "Type mismatch")`
+  - 注: 実 VBA では `For Each i In 123` は実行時 Error 13
+
+### Error 35 — Sub or Function not defined
+
+- ✅ `evaluator.ts:1646` `callProcedure` でプロシージャが見つからないとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
+- ✅ `evaluator.ts:4217` `evaluateCallExpression` で未知の識別子が引数付きで呼ばれたとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
+
+### Error 52 — Bad file name or number
+
+- [ ] `evaluator.ts:3158, 3176, 3208, 3226` ファイルがオープンされていない状態で `Print#` / `Write#` / `Input#` / `Line Input#` 等を実行したとき → `throwVbaError(52, "Bad file name or number")`
+
+### Error 91 — Object variable or With block variable not set
+
+- [ ] プロパティ代入先が `Nothing` / `undefined` のとき (Lines 2582, 2594, 2967) → `throwVbaError(91, "Object variable or With block variable not set")`
+  - Nothing アクセスは Error 91、プリミティブへのアクセスは Error 424 と区別する
+- [ ] `evaluator.ts:4397` `evaluateMemberExpression` で obj が `null` / `undefined` のとき → Nothing 判定なら `throwVbaError(91, ...)` を発生させる
+- [ ] `evaluator.ts:4629` With ブロック内の obj がプリミティブのとき → `throwVbaError(91, ...)`
+
+### Error 424 — Object required
+
+- [ ] `evaluator.ts:2894` `evaluateSetStatement` で右辺が非オブジェクト (`Set x = 5`) → `throwVbaError(424, "Object required")`
+- [ ] `evaluator.ts:4397` `evaluateMemberExpression` で obj がプリミティブ値のとき → `throwVbaError(424, "Object required")`
+
+### Error 429 — ActiveX component can't create object
+
+- ✅ `evaluator.ts:2724` `New ClassName` でクラス未定義のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.vba`
+- ✅ `evaluator.ts:3294` `CreateObject(progId)` で未サポートの ProgID のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.vba`
+
+### Error 438 — Object doesn't support this property or method
+
+- [ ] `evaluator.ts:4264` クラスインスタンスに存在しないメソッド呼び出し → `throwVbaError(438, "Object doesn't support this property or method")`
+- [ ] `evaluator.ts:4288` JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)`
+- [ ] `evaluator.ts:4446` `evaluateMemberExpression` でプロパティが見つからない → `throwVbaError(438, ...)`
+- [ ] `evaluator.ts:4326` `!` アクセス (DictionaryAccessExpression) が非 Dictionary オブジェクト → `throwVbaError(438, ...)`
+- [ ] `evaluator.ts:4215` デフォルトプロパティが見つからない → `throwVbaError(438, ...)`
+- [ ] `evaluator.ts:2556` デフォルト `Item` setter が見つからない → `throwVbaError(438, ...)`
+- [ ] `evaluator.ts:4201, 4305` Dictionary アクセス時に引数なし → `throwVbaError(438, ...)`
+
+### Error 457 — This key is already associated with an element of this collection
+
+- ✅ `evaluator.ts:179` `VbaCollection.add` でキー重複のとき → `throwVbaError(457, ...)` | `CollectionErrorTest.vba`

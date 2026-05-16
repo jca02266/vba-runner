@@ -176,7 +176,7 @@ class VbaCollection {
     public add(item: any, key?: string, before?: any, after?: any) {
         const keyLower = (key !== undefined && key !== vbaEmpty && key !== null) ? String(key).toLowerCase() : null;
         if (keyLower && this._items.some(i => i.key === keyLower)) {
-            throw new Error("This key is already associated with an element of this collection");
+            throw { type: 'VbaError', number: 457, message: 'This key is already associated with an element of this collection' };
         }
         
         const newItem = { value: item, key: keyLower };
@@ -194,15 +194,17 @@ class VbaCollection {
 
     private findIndex(id: any): number {
         if (typeof id === 'number') {
-            if (id < 1 || id > this._items.length) throw new Error("Subscript out of range");
+            if (id < 1 || id > this._items.length)
+                throw { type: 'VbaError', number: 9, message: 'Subscript out of range' };
             return id;
         } else if (id !== undefined && id !== null && id !== vbaEmpty) {
             const k = String(id).toLowerCase();
             const idx = this._items.findIndex(i => i.key === k);
-            if (idx === -1) throw new Error("Invalid procedure call or argument");
+            if (idx === -1)
+                throw { type: 'VbaError', number: 5, message: 'Invalid procedure call or argument' };
             return idx + 1;
         }
-        throw new Error("Invalid procedure call or argument");
+        throw { type: 'VbaError', number: 5, message: 'Invalid procedure call or argument' };
     }
 
     public count() {
@@ -1643,7 +1645,7 @@ export class Evaluator {
             if (typeof builtin === 'function') {
                 return builtin(...args);
             }
-            throw new Error(`Execution error: Procedure '${name}' not found${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
+            this.throwVbaError(35, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
         // Validate argument count
@@ -2721,7 +2723,7 @@ export class Evaluator {
 
         const classDef = this.classDefinitions.get(className.toLowerCase());
         if (!classDef) {
-            throw new Error(`Execution error: Class '${className}' not found`);
+            this.throwVbaError(429, `Class '${className}' not found`);
         }
 
         // Create instance environment rooted at the global env
@@ -3291,7 +3293,7 @@ export class Evaluator {
         const id = progId.toLowerCase();
         const factory = this.externalObjectFactories.get(id);
         if (factory) return factory();
-        throw new Error(`Execution error: Unsupported CreateObject '${progId}'`);
+        this.throwVbaError(429, `ActiveX component can't create object: '${progId}'`);
     }
 
     /**
@@ -4201,6 +4203,10 @@ export class Evaluator {
                     if (expr.args.length === 0) throw new Error(`Execution error: Missing key for dictionary ${name}`);
                     const key = this.evaluateExpression(expr.args[0]);
                     return variable.__map__.get(key);
+                } else if (variable && variable.__isVbaCollection__) {
+                    // Collection read: col(index_or_key) -> col.Item(...)
+                    const id = this.evaluateExpression(expr.args[0]);
+                    return (variable as VbaCollection).item(id);
                 } else if (variable && variable.__vbaClass__ && expr.args.length > 0) {
                     // Default property access: obj(args) -> obj.Item(args)
                     const classDef = variable.__classDef__ as ClassDeclaration;
@@ -4214,7 +4220,7 @@ export class Evaluator {
                     }
                     throw new Error(`Execution error: No default property found on class '${(variable.__classDef__ as ClassDeclaration).name}'`);
                 }
-                throw new Error(`Execution error: Cannot call unknown procedure or index unknown array '${name}'`);
+                this.throwVbaError(35, `Sub or Function not defined: '${name}'`);
             }
         } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
             let obj: any;
