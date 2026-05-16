@@ -146,10 +146,20 @@ node test-libs/vba-analyzer.cjs sample/src/vba_legacy/TaskScheduler_v1.vba
 
 ### Step 2: リファクタリング前のスナップショットを取る
 
+`./run_all_tests.sh` はこのプロジェクト自体（インタープリタ）のテストであり、対象のVBAコードのテストではない。
+
+リファクタリング対象のVBAコードに対しては、**自分でテストを書く必要がある**:
+
+1. `sample/tests/ts/MyFeature.test.ts` を新規作成し、リファクタリング前の関数の入出力を `VBATest` で記録する
+2. テストを実行して GREEN にしておく（これがスナップショット）
+3. リファクタリング後も同じテストが GREEN であることを確認する
+
 ```bash
-# 既存の参照テストが動くことを確認
-./run_all_tests.sh
+# 自分で書いたテストを実行する
+./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node && node sample/tests/ts/MyFeature.test.cjs
 ```
+
+このプロジェクトのテスト (`./run_all_tests.sh`) は「インタープリタ自体が壊れていないか」の確認にのみ使う。リファクタリング作業の前後に一度ずつ走らせておくと安全。
 
 ### Step 3: ロジックを純粋関数として抽出する
 
