@@ -5,51 +5,59 @@ MS-VBAL 仕様書で個別セクションに名前の付いた構文要素・標
 > なお、Phase 1 はリスト化された機能の網羅であり、仕様書本文に記載された **ランタイム挙動の細部** までは未確認です。これらは [`TODO.md` の「VBA ランタイム挙動」](TODO.md#vba-ランタイム挙動) で個別にトラッキングしています。
 
 ## 1. エディタ支援（Language Server Protocol: LSP）
-VSCode拡張機能として動作し、リアルタイムなコード解析とコーディング支援を提供します。詳細は `LSP.md` を参照。
+✅ **完了** — VSCode拡張機能として動作し、リアルタイムなコード解析とコーディング支援を提供。
 
-- [ ] **Tolerant Parsing（エラー耐性）の実装**
-  - [x] Lexer: トークンに列番号（`column`）と長さ（`length`）を付与する。テスト: `lexer-column.test.ts`
-  - [x] Parser: ASTノードに `start` と `end` の厳密な位置情報を付与する。テスト: `lexer-column.test.ts`
-  - [x] Parser: エラー発生時にパースを中断せず、エラーリストとして収集する仕組み（Error Recovery）の実装。テスト: `parser-error-recovery.test.ts`
+- [x] **Tolerant Parsing（エラー耐性）**
+  - [x] Lexer: 列番号（`column`）を全トークンに付与。テスト: `lexer-column.test.ts`
+  - [x] Parser: ASTノードに `loc: {start, end}` の位置情報を付与。テスト: `parser-error-recovery.test.ts`
+  - [x] Error Recovery: エラー発生時にパースを中断せず収集。
 - [x] **Diagnostics（構文エラー表示）**
-  - [x] 解析されたエラーリストを波線としてエディタ上にフィードバックする。テスト: `lsp-diagnostics.test.ts`
+  - [x] 解析エラーを波線としてエディタ表示。テスト: `lsp-diagnostics.test.ts`
 - [x] **シンボル解決とホバー機能**
-  - [x] `textDocument/documentSymbol` の実装（アウトライン表示）。テスト: `lsp-diagnostics.test.ts`, `lsp-document-symbol.test.ts`, `lsp-symbol-provider.test.ts`
-  - [x] `textDocument/hover` の実装（変数や関数の型情報ツールチップ）。テスト: `lsp-hover.test.ts`
-  - [x] `textDocument/definition` の実装（F12による定義元ジャンプ）。テスト: `lsp-definition.test.ts`
+  - [x] `textDocument/documentSymbol`（アウトライン表示）。テスト: `lsp-symbol-provider.test.ts`
+  - [x] `textDocument/hover`（型情報ツールチップ）。テスト: `lsp-hover.test.ts`
+  - [x] `textDocument/definition`（F12による定義元ジャンプ）。テスト: `lsp-definition.test.ts`
 - [x] **自動補完（Autocomplete）**
-  - [x] `textDocument/completion` の実装（標準関数、モジュール内変数の補完）。テスト: `lsp-completion.test.ts`
+  - [x] `textDocument/completion`（標準関数、変数補完）。テスト: `lsp-completion.test.ts`
 
 ## 2. テストエクスプローラーの統合 (VSCode Testing API)
-VBAのテストコードをVSCode上でシームレスに実行・確認できる環境を構築します。
+✅ **完了** — VBAのテストコードをVSCode上でシームレスに実行・確認。
 
 - [x] **テストの自動検出**
-  - [x] ワークスペース内のVBAファイルから、テスト用プロシージャ（例: `Test_` から始まるSub）を抽出し、VSCodeのテストエクスプローラーに一覧表示する。テスト: `lsp-test-discovery.test.ts`
-- [x] **エディタからの直接実行 (CodeLens)**
-  - [x] 実行結果（Pass/Fail）およびエラーメッセージをVSCodeのTesting UIに直接反映させる。テスト: `lsp-test-runner.test.ts`
-- [x] **Test Double APIの拡張**
-  - [x] テストランナー上で `MsgBox` や `Shell` などの副作用を検証できるSpy/Mock APIの提供。（既実装: spy-mock-api.test.ts）
+  - [x] `Test_` で始まるプロシージャを抽出、VSCodeのテストエクスプローラーに表示。テスト: `lsp-test-discovery.test.ts`
+- [x] **エディタからの直接実行**
+  - [x] Pass/Fail 結果および エラーメッセージをTesting UIに反映。テスト: `lsp-test-runner.test.ts`
+- [x] **Test Double API**
+  - [x] Spy/Mock API で `MsgBox`, `Shell` などの副作用を検証。テスト: `spy-mock-api.test.ts`
 
 ## 3. インタラクティブな実行環境とデバッグ (DAP)
-Excelを持たない環境（Mac/Linux/Web）でも、VBAマクロを実行・デバッグ可能にします。
+✅ **完了** — ExcelなしでVBAマクロを実行・デバッグ可能に。
 
 - [x] **標準入出力のVSCode連携**
-  - [x] `Debug.Print` の出力をVSCodeの Output Panel または内蔵ターミナルにルーティング。（Evaluator の console.log で実装）
-  - [x] `MsgBox` や `InputBox` の呼び出しを、VSCodeの標準UI（`vscode.window`）にバインドして表示。（spy-mock-api で実装）
-- [x] **Debug Adapter Protocol (DAP) の基礎構築**
-  - [x] Evaluatorにステップ実行（Step Over, Step Into）のフックを追加。テスト: `lsp-debugger.test.ts`
-  - [x] エディタで設定されたブレークポイント（赤い丸）で実行を一時停止する機能。テスト: `lsp-debugger.test.ts`
-  - [x] 停止時のスコープ内の変数（ローカル変数など）をVSCodeのデバッグパネルに一覧表示する機能。テスト: `lsp-debug-adapter.test.ts`
+  - [x] `Debug.Print` → Output Panel（console.log で実装）
+  - [x] `MsgBox` / `InputBox` → VSCode標準UI（spy-mock-api で実装）
+- [x] **Debug Adapter Protocol (DAP)**
+  - [x] ステップ実行フック（Step Over, Into）。テスト: `lsp-debugger.test.ts`
+  - [x] ブレークポイント実行一時停止。テスト: `lsp-debugger.test.ts`
+  - [x] デバッグパネルに変数一覧表示。テスト: `lsp-debug-adapter.test.ts`
 
 ## 4. Web拡張機能としてのパッケージングとリリース
 ローカル環境に依存しない、ブラウザ完結の開発体験を提供します。
 
-- [ ] **Web拡張機能 (Web Extension) 化**
-  - [ ] Node.jsのファイルシステム（`fs`）等に依存する処理を抽象化し、`vscode.workspace.fs` に置き換える。
-  - [ ] `esbuild` や `webpack` でブラウザ用（VSCode for the Web, github.dev 向け）にバンドル。
+- [x] **Web拡張機能 (Web Extension) 化**
+  - [x] `src/extension.ts`: Node.js版 (Desktop用)
+  - [x] `src/extension-web.ts`: Browser版 (vscode.dev, github.dev 向け)
+  - [x] `esbuild` でブラウザ用にバンドル（path-browserify alias使用）
+  - [x] 両方式のビルドが成功（296kb-329kb）
+- [x] **Extension インフラストラクチャ**
+  - [x] `language-configuration.json`: 言語設定
+  - [x] `syntaxes/vba.tmLanguage.json`: TextMate グラマー
+  - [x] `package.json`: VSCode extension metadata
+  - [x] `.vscodeignore`: パッケージ除外ルール
 - [ ] **VSCode Marketplace への公開**
   - [ ] 拡張機能のアイコン、README の整備。
-  - [ ] `.vsix` ファイルのビルドパイプラインの構築と公開手続き。
+  - [ ] `.vsix` ファイルのビルドパイプラインの検証。
+  - [ ] VSCode Marketplace への公開手続き。
 ## 5. テスト基盤のエンタープライズ強化 (Advanced Testing API)
 実際の業務マクロを効率よくテストするための基盤拡張です。
 
