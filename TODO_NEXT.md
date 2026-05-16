@@ -158,73 +158,91 @@ AIによるリファクタリング提案は、このプロジェクトがなけ
 
 ---
 
-## 実証実験：TaskScheduler_v1 を再リファクタリング解析して判明したギャップ
+## リファクタリング支援ツール `test-libs/vba-analyzer.ts`
 
-実証実験で使った解析スクリプトは `test-libs/vba-analyzer.ts` に汎用ツールとして整備済み。
-Step 4 で挙げた AI 支援機能の **試作・改善基盤** として活用し、徐々に機能を足していく。
+### 目的
+
+Step 4（AI支援リファクタリング）の機能群を **段階的に試作・改善するための支援基盤** として整備。
+レガシーVBAを解析してリファクタリング候補を機械的に列挙する CLI ツール。
+LSP 機能として VSCode に組み込む前の **プロトタイプの場** であり、ここで使い物になった機能を
+順次 LSP 化していく。
+
+### 使い方
 
 ```bash
 ./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
-node test-libs/vba-analyzer.cjs <file-or-dir>           # テキスト形式
-node test-libs/vba-analyzer.cjs <file-or-dir> --json    # JSON 形式（プログラム連携用）
+node test-libs/vba-analyzer.cjs <file-or-dir>           # テキスト形式（人間が読む用）
+node test-libs/vba-analyzer.cjs <file-or-dir> --json    # JSON 形式（プログラム/AI 連携用）
 ```
 
-このツールでの実証結果：`sample/src/vba_legacy/TaskScheduler_v1.vba`（394行・1プロシージャの巨大Sub）に対して
-AST解析を実際に走らせた結果、以下が判明した。
+### 現在できること
 
-### 機械的に検出できたこと（既存能力で十分なもの）
+`sample/src/vba_legacy/TaskScheduler_v1.vba` での実証結果を例に。
 
-| 項目 | 検出結果 |
+| 機能 | 検出結果の例（v1 で実証）|
 |---|---|
-| 巨大Sub の検出 | 394行で1プロシージャ = 明確な God Sub |
-| ネスト深さ | 最大 9 段 → 深刻 |
-| ローカル変数の多さ | Dim/Const 計51件 → コンテキスト過多 |
-| 連続代入ブロック | 6箇所検出、最大25件（行 96-129）|
-| Excel I/O 利用 | 25箇所 |
-| 繰り返し現れる数値リテラル | 0.25, 0.5 等 |
+| プロシージャごとの行数・ネスト深さ・ローカル変数数 | 394行・最大ネスト9段・Dim 51件 |
+| フラグ表示（LARGE / DEEP_NEST / MANY_LOCALS / EXCEL_HEAVY） | 4つすべて点灯 |
+| 連続代入ブロックの検出（抽出候補） | 6箇所、最大25件（L96-L129） |
+| Excel I/O アクセス箇所のカウントとサンプル | 25件検出（`ws.Cells`, `application.ScreenUpdating` 等） |
+| 繰り返し現れる数値リテラル（マジックナンバー候補） | 0.25(×4), 0.5(×3) |
+| ファイル/ディレクトリ両対応、テキスト/JSON 出力 | `.vba/.bas/.cls/.frm` を再帰的に処理 |
 
-### 解析を実行して初めて見えた **致命的・優先度の高い不足機能**
+### 不足機能（このツールで埋めていく TODO）
 
-- [ ] **Expression レベルの位置情報（loc）の付与**
+- [ ] **Expression レベルの位置情報（loc）の付与**【最優先】
   - 現状、Statement には `loc` が付いているが Expression（MemberAccess, CallExpression 等）には付いていない
-  - 結果として「Excel I/O が25箇所ある」と検出はできても **どの行で起きているか出せない**（`行 -1` になる）
-  - リファクタリング支援の根幹に関わる欠陥。**最優先で着手すべき**
-  - Parser 側で全 Expression に loc を付ける改修が必要
+  - 結果として「Excel I/O が25箇所ある」と検出できても **どの行で起きているか出せない**（`L?` になる）
+  - 解析ツール側ではなく、`src/compiler/parser.ts` 側の改修が必要
+  - リファクタリング支援の根幹に関わる欠陥
 
 - [ ] **代入ブロックの形状クラスタリング**
-  - 「連続代入 N件」と数えるだけでは不十分。LHS/RHS の AST 形状でグループ化が必要
-  - 例: 「Const 宣言 9件（COL_*）」「Range.Value 読み込み 8件」「変数の初期化 7件」のように形状別に分類できれば、抽出候補としての価値が一目でわかる
+  - 現状は「連続代入 N件」と数えるだけ。LHS/RHS の AST 形状でグループ化が必要
+  - 例: 「Const 宣言9件（COL_*）」「`Range.Value` 読み込み8件」「変数の初期化7件」のように形状別に分類する
   - 真に抽出しやすいのは「形状が揃った連続代入」のみ
+  - 出力: `assignmentBlocks` の各エントリに `shape` プロパティを追加（例: `const-decl`, `range-read`, `var-init`）
 
 - [ ] **データフロー解析（Def-Use チェーン）**
   - 「この行範囲を抽出する場合、引数として渡すべき変数」を機械的に算出
   - 「この行範囲で書き換えている変数」（ByRef 引数候補）を機械的に算出
-  - 抽出リファクタリング（Extract Function）の安全性を担保する基礎。AIに「引数何にすればいい？」と聞かなくて済む
+  - 抽出リファクタリング（Extract Function）の安全性を担保する基礎
+  - 出力: 行範囲を指定すると `inputs[]` / `outputs[]` / `local[]` を返す API を追加
 
 - [ ] **識別子の接頭辞クラスタ検出**
   - `COL_LEVEL_IDX`, `COL_OFFSET_IDX`, `COL_LOCK_IDX` のように **同じ接頭辞を持つ定数群** は User Defined Type（VBA の `Type` 宣言）への抽出候補
-  - 実際に TaskScheduler のリファクタリング後では `CalendarConfig` / `TaskConfig` / `AssigneeConfig` という Type に集約されており、これは静的解析で検出できるパターン
-  - 接頭辞でグループ化し「Type に抽出してはどうか」と提案する Code Action
+  - TaskScheduler のリファクタリング後では `CalendarConfig` / `TaskConfig` / `AssigneeConfig` に集約されており、静的解析で検出できるパターン
+  - 出力: `prefixClusters: [{ prefix: "COL_", members: [...], suggestion: "Extract to UDT" }]`
 
 - [ ] **コメント領域からの責務境界推定**
-  - v1 の AutoScheduleTasks は `' Phase 1: Scan Locked Rows` `' Phase 2: Schedule & Calculate` のような領域コメントを持つ
-  - これらを「人間が手で書いた責務境界の宣言」と見なし、**分割位置の第一候補** として提案
-  - AST だけでは見えない設計意図がコメントには現れている
+  - `' Phase 1: Scan Locked Rows` `' =====` のような領域コメントを「人間が書いた責務境界の宣言」と見なし、**分割位置の第一候補** として提案
+  - AST だけでは見えない設計意図がコメントに現れている
+  - Lexer はコメントを捨てているため、コメントトークンの保持が前段に必要
+  - 出力: `regionMarkers: [{ line, label, depth }]`
 
 - [ ] **リファクタリング前後の対応追跡（Refactoring Drift Tracking）**
-  - v1 と現状の比較で、「v1 のどの行範囲がどの抽出関数になったか」を機械的に追跡したい
-  - 今回手動で対応を確認したが、レガシーコードの段階的リファクタリングを進める上で「進捗の見える化」になる
+  - 2ファイルを与えると「v1 のどの行範囲が現状のどの抽出関数になったか」を機械的に追跡
   - 副次効果：抽出漏れ・対応外行が検出できる
+  - 出力: `--diff <file_before> <file_after>` モードを追加
 
-### 実行検証で見えたこと
+- [ ] **Excel API スタブモード（実行系の拡張）**
+  - 解析ではなく Evaluator 側の話だが、解析→実行検証の流れで詰まる箇所
+  - `ActiveSheet` / `Range` / `Cells` を自動でモック化するモード（明示的な MockApplication 準備不要）
+  - 「とにかく実行してみたい」段階のためのデフォルト挙動。値を返すスタブで十分
+  - これがないと「リファクタリング前の挙動を保存する」スナップショット生成の入り口で詰まる
 
-このプロジェクトの「実行できる」価値は確かにある一方で、TaskScheduler_v1 は
-`ActiveSheet` / `Application` への依存があるため、**そのままでは1行も実行できない**。
+- [ ] **呼び出しグラフ（Call Graph）の生成**
+  - プロシージャ間の呼び出し関係を `caller -> callee` のリストで出力
+  - Step 2 の Find All References の基礎データにもなる
+  - 出力: `callGraph: [{ from: "MainSub", to: "HelperFunc", lines: [42, 58] }]`
 
-- [ ] **Excel API のスタブモード**
-  - リファクタリング開始時点（Excel依存がベタ書きの状態）でも、最低限のスナップショット生成ができるよう、`ActiveSheet`, `Range`, `Cells` を **自動でモック化するモード** が必要
-  - 現状の `MockApplication` は明示的な準備が必要だが、「とにかく実行してみたい」場合は値を返すスタブで十分
-  - これがないと「リファクタリング前の挙動を保存する」の入り口で詰まる
+- [ ] **Workspace Outline 形式での出力**
+  - Step 4 の AI 向けコンテキスト圧縮の実体。`--outline` モードで、全モジュール・全プロシージャを最小限のシグネチャ表記でまとめる
+  - 出力例（参考イメージ）:
+    ```
+    [TaskScheduler_Core]
+      Function CalcBaseStartIdx(currentLevel, parentFinishIdx, parentFinishAlloc) → Long
+      Sub UpdateLevelFinish(...) ← called by: AutoScheduleTasks
+    ```
 
 ---
 
