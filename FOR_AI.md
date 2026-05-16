@@ -107,13 +107,6 @@ const val = vbaTest.eval('SomeSub()');  // 引数なし呼び出しにも使う
 ./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node && node sample/tests/ts/MyFeature.test.cjs
 ```
 
-### 全テスト実行
-
-```bash
-./run_all_tests.sh       # 簡潔表示
-./run_all_tests.sh -v    # 詳細表示
-```
-
 > **注意**: `esbuild` は PATH に入っていないため、常に `./node_modules/.bin/esbuild` で実行すること。`npx` は使わない。
 
 ### Excelオブジェクトのモック
