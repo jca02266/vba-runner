@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+**リファクタリング支援として関与する場合は `FOR_AI.md` を先に読むこと。**
+コンパイラ実装に関与する場合はこのファイルを続けて読む。
+
 ## コマンド
 
 **Web UI 開発サーバー:**
