@@ -34,9 +34,16 @@ export interface OnGoToSubStatement extends Statement {
     labels: string[];
 }
 
+export interface Position {
+    line: number;   // 1-based
+    column: number; // 1-based
+}
+
 export interface ASTNode {
     type: string;
-    line?: number;
+    line?: number;       // kept for backward compat (= start.line when start is set)
+    start?: Position;    // position of first token of this node
+    end?: Position;      // position just after last token of this node
 }
 
 export interface Program extends ASTNode {
@@ -907,9 +914,21 @@ export class Parser {
 
     private parseStatement(): Statement | null {
         this.skipNewlines();
-        const startLine = this.peek().line;
+        const startToken = this.peek();
         const stmt = this.parseStatementInner();
-        if (stmt !== null && startLine !== undefined) stmt.line = startLine;
+        if (stmt !== null) {
+            const endToken = this.tokens[this.pos - 1];
+            if (startToken.line !== undefined) {
+                stmt.line = startToken.line;
+                stmt.start = { line: startToken.line, column: startToken.column };
+            }
+            if (endToken && endToken.line !== undefined) {
+                stmt.end = {
+                    line: endToken.line,
+                    column: endToken.column + endToken.value.length,
+                };
+            }
+        }
         return stmt;
     }
 

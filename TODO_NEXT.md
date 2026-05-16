@@ -8,8 +8,8 @@ MS-VBAL 仕様書で個別セクションに名前の付いた構文要素・標
 VSCode拡張機能として動作し、リアルタイムなコード解析とコーディング支援を提供します。詳細は `LSP.md` を参照。
 
 - [ ] **Tolerant Parsing（エラー耐性）の実装**
-  - [ ] Lexer: トークンに列番号（`column`）と長さ（`length`）を付与する。
-  - [ ] Parser: ASTノードに `start` と `end` の厳密な位置情報を付与する。
+  - [x] Lexer: トークンに列番号（`column`）と長さ（`length`）を付与する。テスト: `lexer-column.test.ts`
+  - [x] Parser: ASTノードに `start` と `end` の厳密な位置情報を付与する。テスト: `lexer-column.test.ts`
   - [ ] Parser: エラー発生時にパースを中断せず、エラーリストとして収集する仕組み（Error Recovery）の実装。
 - [ ] **Diagnostics（構文エラー表示）**
   - [ ] 解析されたエラーリストを波線としてエディタ上にフィードバックする。
