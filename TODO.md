@@ -415,19 +415,19 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 #### 1. コア機能の強化
 - ✅ `MemoryFileSystem` にワイルドカードマッチングロジックの実装（`Kill` への統合）。 | `wildcard-kill-dir.test.ts`
-- [ ] `MemoryFileSystem` 内部での `cwd` (Current Working Directory) の保持と `ChDir` 対応。
-- [ ] `statSync` における VBA 属性（Read-only, Hidden 等）のシミュレーション。
+- ❌ `MemoryFileSystem` 内部での `cwd` (Current Working Directory) の保持と `ChDir` 対応。
+- ❌ `statSync` における VBA 属性（Read-only, Hidden 等）のシミュレーション。
 
 #### 2. ブラウザ環境最適化
-- [ ] `FileSystem` インターフェースの非同期版 (`read`, `write` 等) の検討（ブラウザのメインスレッドをブロックしないため）。
-- [ ] `IndexedDB` をバックエンドとした `PersistentFileSystem` の実装。
+- ❌ `FileSystem` インターフェースの非同期版 (`read`, `write` 等) の検討（ブラウザのメインスレッドをブロックしないため）。
+- ❌ `IndexedDB` をバックエンドとした `PersistentFileSystem` の実装。
 
 #### 3. テスト環境の改善
-- [ ] `filesystem-extra.test.ts` 等のテストコードを、Node.js `fs` 直接参照から `this.fs` (抽象インターフェース) 参照へリファクタリング。
-- [ ] 複数の `Evaluator` インスタンス間で単一の `MemoryFileSystem` を共有するためのテスト用設定の追加。
+- ❌ `filesystem-extra.test.ts` 等のテストコードを、Node.js `fs` 直接参照から `this.fs` (抽象インターフェース) 参照へリファクタリング。
+- ❌ 複数の `Evaluator` インスタンス間で単一の `MemoryFileSystem` を共有するためのテスト用設定の追加。
 
 #### 4. バイナリ操作の極致
-- [ ] `Put` / `Get` における固定長文字列、UDT、多次元配列のバイナリレイアウトの完全な VBA 互換性検証。
+- ❌ `Put` / `Get` における固定長文字列、UDT、多次元配列のバイナリレイアウトの完全な VBA 互換性検証。
 
 ---
 
@@ -437,8 +437,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### オブジェクトのライフサイクルと参照
 
-- [x] **Auto-Instantiation (`Dim x As New ClassName`)**: 遅延インスタンス化 + `Set = Nothing` 後の自動再生成 + `Is Nothing` 常時 False
-- [x] **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化
+- ✅ **Auto-Instantiation (`Dim x As New ClassName`)**: 遅延インスタンス化 + `Set = Nothing` 後の自動再生成 + `Is Nothing` 常時 False
+- ✅ **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化
 - ✅ **Default Property / Default Member**: `Range("A1") = 10` のような暗黙の `.Value` 解決、Collection の `Item` 暗黙呼び出し等
   - ✅ 包括的なテストスイート作成 (`default-property.test.ts`, 15テスト全パス)
   - ✅ 基盤研究: VBA 仕様書からの解析、実装パターン検討
@@ -454,9 +454,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### 型変換と暗黙のキャスト
 
 - ✅ **`Variant` 型の値伝播**: `Variant + Number` の結果型の自動拡張 (`variant-propagation.test.ts`)
-- [x] **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
-- [x] **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
-- [x] **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
+- ✅ **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
+- ✅ **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
+- ✅ **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
 - ✅ **Integer/Long のオーバーフロー検出**: Error 6 を正しく発生させる (Byte/Integer/Long/Currency/Single)
 - ⚠️ **`Decimal` 型の精度**: 28 桁の固定精度サポート (制限事項: VbaDecimalラッパー存在; 内部はJavaScriptのnumber型でIEEE 754精度、28桁固定小数点精度未実装) | `decimal-precision.test.ts`
 - ✅ **`Currency` 型の精度**: 64-bit 整数 / 10000 の固定小数 | `currency-precision.test.ts`
@@ -508,7 +508,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Late Binding 周辺
 
-- [x] **`CreateObject(progId)` 経由のオブジェクト呼び出し**: 動的ディスパッチ
+- ✅ **`CreateObject(progId)` 経由のオブジェクト呼び出し**: 動的ディスパッチ
 - ⚠️ **存在しないメソッド呼び出しのエラー詳細**: VBA エラー番号 438 を厳密に再現 (制限事項: late binding error codes未実装)
 - ✅ **`IDispatch` 風のプロパティ get/set 自動振り分け**: 引数の有無でメソッド/プロパティ自動判定 | `idispatch-property-dispatch.test.ts`
 
@@ -518,7 +518,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Parser の拡張機能
 
-- [ ] **Parser に `parseAsClass` パラメータを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定
+- ❌ **Parser に `parseAsClass` パラメータを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定
   - 現状: VBATest で `.cls` ファイル内のメンバー変数定義を検出して自動的に `Class...End Class` でラップしている
   - 改善案: Parser に `parseAsClass` フラグを追加し、Lexer / Parser で正式にクラスパースモードを切り替える
   - 影響範囲: `src/compiler/parser.ts`, `src/compiler/lexer.ts`, `test-libs/test-runner.ts`
@@ -531,7 +531,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 実装: `Evaluator.setSourceModule()` でモジュール名長をチェック、超過時にエラー発生
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
 
-- [ ] **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
+- ❌ **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
   - 優先度: **低** （Option Explicit あり時は問題なし）
   - 実VBA動作の違い：
     - `unknownProc()` → **コンパイルエラー**（Sub/Function が定義されていません）
@@ -543,7 +543,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 注記: **Option Explicit がない場合の未定義変数の動作**に限定される問題。モダンなVBA開発では Option Explicit が標準であるため、この互換性追求の優先度は低い。Option Explicit ありの場合はコンパイル時に検出される。
   - 修正内容: Parser/Evaluator で修飾/非修飾を区別し、エラーのタイミングを正確に再現
 
-- [ ] **識別子の大文字小文字混同の検出**: 同一スコープ内で大文字小文字だけが異なる識別子（変数名・クラス名・プロシージャ名）の宣言を検出してエラーにする
+- ❌ **識別子の大文字小文字混同の検出**: 同一スコープ内で大文字小文字だけが異なる識別子（変数名・クラス名・プロシージャ名）の宣言を検出してエラーにする
   - 例: `Dim assert As New Assert` — 変数 `assert` とクラス `Assert` は VBA では同一識別子
   - VBA はケースインセンシティブなため、コンパイル時に "識別子が重複しています" とすべきケース
   - 実装案: Lexer/Parser で識別子を正規化（小文字化）した後、同一スコープ内に同名の宣言があれば警告またはエラー
