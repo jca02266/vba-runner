@@ -479,7 +479,7 @@ assert.strictEqual(result, 120);
 
 > **vba-analyzer**: 変数名に共通の接頭辞（例: `inv_Stock`, `inv_Min`, `inv_Max`）が見られる場合、`prefixClusters` としてグルーピング候補を報告します。これは `Type` 化の手がかりになります。
 
-同じ構造を複数のテストで使う場合は、TypeScript 側でも型を定義すると型安全になり可読性も上がります。
+同じ構造を複数のテストで使う場合は、TypeScript 側でも `interface` を定義してラッパー関数を用意すると型安全になり可読性も上がります。
 
 ```typescript
 interface InventoryParams {
@@ -498,18 +498,29 @@ assert.strictEqual(calcInventory({ CurrentStock: 100, SoldUnits: 30, RestockAmou
 assert.strictEqual(calcInventory({ CurrentStock: 10,  SoldUnits: 20, RestockAmount: 5,  MinStock: 10, MaxStock: 200 }), 10); // MinStock に丸め
 ```
 
-VBA ソースに `Type` 宣言がある場合、`getTypeDefinitions()` を使うと TypeScript の `interface` 定義を自動生成できます。
+テストケースが多い場合は、入力と期待値をまとめて `forEach` で回すと見通しが良くなります。
 
 ```typescript
-const vbaRunner = new VBARunner('src/vba/inventory.bas');
-const types = vbaRunner.getTypeDefinitions();
-// => { InventoryParams: { CurrentStock: 'number', SoldUnits: 'number', ... } }
+const cases: [InventoryParams, number, string][] = [
+    [{ CurrentStock: 100, SoldUnits: 30, RestockAmount: 50, MinStock: 10, MaxStock: 200 }, 120, '通常'],
+    [{ CurrentStock: 10,  SoldUnits: 20, RestockAmount: 5,  MinStock: 10, MaxStock: 200 },  10, 'MinStock に丸め'],
+    [{ CurrentStock: 100, SoldUnits: 10, RestockAmount: 150, MinStock: 10, MaxStock: 200 }, 200, 'MaxStock に丸め'],
+];
 
-// interface 文字列として出力する場合:
-for (const [name, fields] of Object.entries(types)) {
-    const body = Object.entries(fields).map(([f, t]) => `  ${f}: ${t};`).join('\n');
-    console.log(`interface ${name} {\n${body}\n}`);
-}
+cases.forEach(([params, expected, label]) => {
+    assert.strictEqual(calcInventory(params), expected, label);
+});
+```
+
+さらに `Partial` とデフォルト値を組み合わせると、変化するフィールドだけを書けます（TypeScript 上級者向け）。
+
+```typescript
+type InvParams = Parameters<typeof calcInventory>[0];
+const base: InvParams = { CurrentStock: 100, SoldUnits: 0, RestockAmount: 0, MinStock: 10, MaxStock: 200 };
+const calcInventoryWith = (overrides: Partial<InvParams>) => calcInventory({ ...base, ...overrides });
+
+assert.strictEqual(calcInventoryWith({ SoldUnits: 30, RestockAmount: 50 }), 120);
+assert.strictEqual(calcInventoryWith({ CurrentStock: 10, SoldUnits: 20, RestockAmount: 5 }), 10); // MinStock に丸め
 ```
 
 ### 4. 振る舞いを持たせたい場合はクラスを検討する
@@ -653,7 +664,7 @@ Function ProcessRecords(records() As SalesRecord) As Long
     ' 計算
 End Function
 
-' TypeScript: テストで配列のオブジェクトを渡す
+' TypeScript: テストでオブジェクトの配列を渡す
 vbaRunner.run('ProcessRecords', [[
     { Month: 'Jan', Amount: 100, Category: 'A' },
     { Month: 'Feb', Amount: 200, Category: 'B' }
