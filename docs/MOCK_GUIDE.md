@@ -376,8 +376,53 @@ JavaScript オブジェクトは未定義プロパティへの代入を無視し
 
 **運用上の意味:**
 スケジューリングやデータ変換のロジックをテストする目的では問題ない。
-ただし「`Application.ScreenUpdating` の保存/復元が正しいこと」を検証したい場合は、
-`Application` オブジェクト自体をプロパティを記録するモックに差し替える必要がある。
+ただし `Application` を注入しないと、VBA コード内の `Application.ScreenUpdating` 読み取りで
+"Type mismatch" が発生し、`AutoScheduleTasks` 自体が実行されない。
+
+### Application プロパティを有効にする拡張例
+
+evaluator は `Application.ScreenUpdating` を `obj['screenupdating']`（小文字）としてアクセスする。
+そのため、**小文字のプロパティを持つ拡張クラス**を定義して注入すれば動く。
+
+```typescript
+import { MockApplication } from '../../src/compiler/mock/MockWorksheet';
+
+// Application.ScreenUpdating / Calculation / EnableEvents に対応した拡張モック
+class MockApplicationWithSettings extends MockApplication {
+    // evaluator は propName.toLowerCase() でアクセスするため、
+    // プロパティ名はすべて小文字で定義する
+    screenupdating: boolean = true;
+    calculation: any = -4105;   // xlCalculationAutomatic 相当の初期値
+    enableevents: boolean = true;
+}
+```
+
+**テストへの注入:**
+
+```typescript
+const mockApp = new MockApplicationWithSettings();
+const ws = mockApp.Sheets('Sheet1');
+
+ev.getGlobalEnv().set('ActiveSheet', ws);
+ev.getGlobalEnv().set('Application', mockApp);  // ← これを追加
+
+ev.callProcedure('AutoScheduleTasks', []);       // エラーなく実行される
+
+// 保存・復元が正しく行われたことを確認できる
+assert.strictEqual(mockApp.screenupdating, true, 'ScreenUpdating が元の値に復元された');
+assert.strictEqual(mockApp.enableevents,   true, 'EnableEvents が元の値に復元された');
+```
+
+**なぜこれで動くか:**
+
+| VBA コード | evaluator の動作 | 結果 |
+|---|---|---|
+| `x = Application.ScreenUpdating` | `mockApp['screenupdating']` を読む | `true`（初期値） |
+| `Application.ScreenUpdating = False` | `mockApp['screenupdating'] = false` | プロパティが更新される |
+| `Application.ScreenUpdating = x` | `mockApp['screenupdating'] = true` | 復元される |
+
+`xlCalculationManual` など VBA 定数は evaluator 内で未定義のため `undefined` になるが、
+`calculation` プロパティへの代入・復元のサイクル自体は正常に動作する。
 
 ### 「こういう機能が欲しい」場合の対応方法
 
