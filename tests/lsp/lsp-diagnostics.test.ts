@@ -15,7 +15,7 @@ function toDiagnostic(diag: ParseDiagnostic): any {
         },
         severity: diag.severity === 'error' ? 1 : 2,
         message: diag.message,
-        source: 'vba-compiler'
+        source: 'vba-runner'
     };
 }
 
@@ -35,7 +35,7 @@ function toDiagnostic(diag: ParseDiagnostic): any {
     assert.strictEqual(diag.range.start.character, 0, 'error at column 0 (0-based)');
     assert.strictEqual(diag.severity, 1, 'severity 1 = error');
     assert.ok(diag.message.length > 0, 'message present');
-    assert.strictEqual(diag.source, 'vba-compiler', 'source set');
+    assert.strictEqual(diag.source, 'vba-runner', 'source set');
     console.log('[PASS] Diagnostic range and severity correct');
 }
 

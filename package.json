@@ -1,14 +1,14 @@
 {
-  "name": "vba-compiler",
-  "displayName": "VBA Compiler",
-  "description": "VBA compiler with LSP support, testing integration, and interactive debugging",
+  "name": "vba-runner",
+  "displayName": "VBA Runner",
+  "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
   "version": "0.1.0",
   "type": "module",
-  "publisher": "vba-compiler",
+  "publisher": "vba-runner",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jca02266/vba-compiler"
+    "url": "https://github.com/jca02266/vba-runner"
   },
   "engines": {
     "vscode": "^1.90.0"

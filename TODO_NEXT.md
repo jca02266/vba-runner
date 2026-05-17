@@ -331,7 +331,7 @@ CalculateSalesTotal を以下のように分離してください：
 **ワンショット（全工程を一括依頼する場合）:**
 ```
 legacy/TaskScheduler.vba をリファクタリングしてください。
-vba-compiler を使って以下の順で進めてください：
+VBA Runner を使って以下の順で進めてください：
 
 1. 問題箇所（長大関数・Excel依存混在・Dead code）を列挙
 2. テストしやすい関数を3件選んで優先順位を提案

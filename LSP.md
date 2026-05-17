@@ -24,7 +24,7 @@
 モノレポ構成とし、既存のコンパイラ基盤を共有します。
 
 ```text
-vba-compiler/
+vba-runner/
 ├── src/
 │   └── compiler/          # 既存のLexer, Parser, Evaluator
 ├── lsp/
