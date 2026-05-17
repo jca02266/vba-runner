@@ -300,3 +300,38 @@ node test-libs/vba-analyzer.cjs src/vba/ --json | jq '.excelMockTargets'
 # モック対象オブジェクトを確認
 node test-libs/vba-analyzer.cjs src/vba/ --json | jq '.excelObjectsUsed'
 ```
+
+#### `--gen-test-dir <dir>`: テスト用ソースの自動生成
+
+```bash
+node test-libs/vba-analyzer.cjs src/vba/ --gen-test-dir tests/generated/
+```
+
+VBA ソース中で参照されているが定義されていない `xl*` / `vb*` / `mso*` 形式の Excel/VBA 定数を検出し、指定ディレクトリに `const.ts` として書き出します。
+
+```typescript
+// tests/generated/const.ts（出力例）
+export const xlUp = -4162;
+export const xlDown = -4121;
+export const vbYes = 6;
+export const xlCalculationManual = 0; // TODO: 実際の値を設定
+
+/** vbaRunner.setConstants(allConstants) で一括注入するためのオブジェクト */
+export const allConstants: Record<string, number | string> = {
+    xlUp, xlDown, vbYes, xlCalculationManual,
+};
+```
+
+値が既知でない定数は `0` で出力され `// TODO` コメントが付きます。実際の値は [Microsoft Learn — Excel VBA 列挙型一覧](https://learn.microsoft.com/en-us/office/vba/api/overview/excel/) で確認してください。
+
+**VBARunner への注入**: 生成した `allConstants` を `VBARunner.setConstants()` に渡すと、VBA コード内で `xlUp` などの定数が使えるようになります。
+
+```typescript
+import { VBARunner } from '../../test-libs/test-runner';
+import { allConstants } from './generated/const';
+
+const vbaRunner = new VBARunner('src/vba/MyMacro.bas');
+vbaRunner.setConstants(allConstants);  // xl*/vb* 定数を一括注入
+
+const result = vbaRunner.run('MyFunction', []);
+```

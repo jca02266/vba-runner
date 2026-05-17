@@ -69,6 +69,20 @@ export class VBARunner {
     }
 
     /**
+     * 複数の定数・変数を一括で VBA 環境に注入する。
+     * vba-analyzer の `--gen-test-dir` で生成した `allConstants` を渡す典型用途を想定。
+     *
+     * @example
+     *   import { allConstants } from './generated/const';
+     *   vbaRunner.setConstants(allConstants);
+     */
+    setConstants(constants: Record<string, any>): void {
+        for (const [name, value] of Object.entries(constants)) {
+            this.evaluator.set(name, value);
+        }
+    }
+
+    /**
      * VBA の `CreateObject(progId)` が返すオブジェクトを差し替えるためのファクトリを登録する。
      * 既存の組み込みスタブよりも優先される。
      *
