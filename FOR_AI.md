@@ -184,6 +184,13 @@ const vbaTest = new VBATest('sample/src/vba/MyModule.vba');
 assert.strictEqual(vbaTest.run('TargetFunction', [input1, input2]), expected, 'description');
 ```
 
+テスト対象の関数が `ActiveSheet`・`Range`・`Cells`・`Application` などの Excel オブジェクトを使う場合は、
+モック化が必要になる。**`docs/MOCK_GUIDE.md`** を参照すること。
+
+> **注意**: `MockApplication` が実装しているのは `Sheets()` のみ。
+> `Application.ScreenUpdating` などのプロパティはエラーにならず**暗黙に無視される**。
+> 詳細と影響範囲は `docs/MOCK_GUIDE.md` の「MockApplication の制限」セクションを参照。
+
 ---
 
 ### Step 3: 1件だけ選んで抽出する

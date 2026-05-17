@@ -346,6 +346,39 @@ node tests/spec/your-test.cjs
 | `Paste()` | ❌ | ペースト操作 |
 | `UsedRange` | ❌ | 使用範囲 |
 
+### ⚠️ MockApplication の制限: Application プロパティは「無視」される
+
+`MockApplication` が実装しているのは `Sheets()` メソッドのみ。
+`Application.ScreenUpdating`・`Application.Calculation`・`Application.EnableEvents` などのプロパティは**実装されていない**。
+
+しかしエラーにもならない。理由は evaluator の動作にある:
+
+```
+VBA:  Application.ScreenUpdating = False
+        ↓
+evaluator: obj['screenupdating'] = false   ← JS オブジェクトへの動的プロパティ代入
+```
+
+JavaScript オブジェクトは未定義プロパティへの代入を無視しないため、エラーなくプロパティが生える。
+読み取り時（`state = Application.ScreenUpdating`）も同様に `undefined` が返るだけ。
+
+**結果として何が起きるか:**
+
+| コード | 実際の動作 |
+|--------|-----------|
+| `screenUpdateState = Application.ScreenUpdating` | `undefined` が代入される |
+| `Application.ScreenUpdating = False` | mockApp に `screenupdating: false` が動的に生える（副作用なし） |
+| `Application.ScreenUpdating = screenUpdateState` | `undefined` を書き戻す（副作用なし） |
+
+**何がテストされていないか:**
+- `ScreenUpdating` の保存・復元ロジックそのものは検証されない
+- Excelのパフォーマンス設定（描画停止・手動計算）がテスト中に実際に変わることはない
+
+**運用上の意味:**
+スケジューリングやデータ変換のロジックをテストする目的では問題ない。
+ただし「`Application.ScreenUpdating` の保存/復元が正しいこと」を検証したい場合は、
+`Application` オブジェクト自体をプロパティを記録するモックに差し替える必要がある。
+
 ### 「こういう機能が欲しい」場合の対応方法
 
 1. **Domain Logic で回避**（推奨）
