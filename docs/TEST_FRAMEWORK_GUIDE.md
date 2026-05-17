@@ -647,7 +647,7 @@ vbaTest.spy('InputBox', () => 'Alice');
 ```typescript
 import { VBARunner, SpyRecord } from '../../test-libs/test-runner';
 // ※ SpyRecord は evaluator.ts から再エクスポートされていないため、
-//    型だけ必要な場合は import type { SpyRecord } from '../../src/compiler/evaluator';
+//    型だけ必要な場合は import type { SpyRecord } from '../../src/engine/evaluator';
 ```
 
 **使用例: MsgBox のエラーメッセージを検証する**

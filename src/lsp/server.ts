@@ -1,5 +1,5 @@
-import { Lexer } from '../compiler/lexer';
-import { Parser } from '../compiler/parser';
+import { Lexer } from '../engine/lexer';
+import { Parser } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';

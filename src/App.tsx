@@ -1,8 +1,8 @@
 import { useState, useRef, useCallback, useMemo } from 'react'
 import { Play, Eraser, TerminalSquare, FlaskConical, Github } from 'lucide-react'
-import { Lexer, TokenType } from './compiler/lexer'
-import { Parser } from './compiler/parser'
-import { Evaluator } from './compiler/evaluator'
+import { Lexer, TokenType } from './engine/lexer'
+import { Parser } from './engine/parser'
+import { Evaluator } from './engine/evaluator'
 
 // ======= VBA Syntax Highlighting =======
 function tokenToClass(type: TokenType): string {

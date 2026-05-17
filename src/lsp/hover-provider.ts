@@ -1,4 +1,4 @@
-import { Statement } from '../compiler/parser';
+import { Statement } from '../engine/parser';
 import { buildSymbolTable, getWordAtPosition } from './symbol-table';
 
 export interface Hover {

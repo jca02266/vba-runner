@@ -2,7 +2,7 @@ import {
     ClassDeclaration,
     ProcedureDeclaration,
     Statement,
-} from '../compiler/parser';
+} from '../engine/parser';
 
 export interface TestItem {
     id: string;

@@ -26,7 +26,7 @@
 ```text
 vba-runner/
 ├── src/
-│   └── compiler/          # 既存のLexer, Parser, Evaluator
+│   └── engine/            # 既存のLexer, Parser, Evaluator
 ├── lsp/
 │   ├── client/            # VSCode拡張機能（フロントエンド）
 │   │   └── src/extension.ts

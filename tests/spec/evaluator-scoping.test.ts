@@ -4,9 +4,9 @@
  * 複数 Evaluator インスタンスの場合と、単一 Evaluator インスタンスの場合で
  * モジュール修飾呼び出しがどう動作するかを比較
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 
 function loadAndEvaluate(evaluator: Evaluator, code: string, moduleName: string): void {
     const tokens = new Lexer(code).tokenize();

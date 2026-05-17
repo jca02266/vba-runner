@@ -1,11 +1,11 @@
 /**
  * FileSystem Functions (Extra) (§6.1.2.5) のテスト
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 // Use VFS (MemoryFileSystem) for tests
 const vfs = new MemoryFileSystem();

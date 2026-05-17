@@ -5,9 +5,9 @@
  * で登録し、VBA から `CreateObject("VBScript.RegExp")` を呼んだ際に意図通り
  * 動作することを検証する。
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 import { createRegExpMock } from '../../test-libs/regexp-mock';
 

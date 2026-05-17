@@ -1,7 +1,7 @@
 import { assert } from '../../test-libs/test-runner';
-import { Evaluator } from '../../src/compiler/evaluator';
-import { Parser } from '../../src/compiler/parser';
-import { Lexer } from '../../src/compiler/lexer';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Parser } from '../../src/engine/parser';
+import { Lexer } from '../../src/engine/lexer';
 
 function evalVBA(code: string) {
     const tokens = new Lexer(code).tokenize();

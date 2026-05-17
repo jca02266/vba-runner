@@ -1,7 +1,7 @@
-import { Evaluator } from '../../src/compiler/evaluator';
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { VbaErrorValue } from '../../src/compiler/evaluator';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { VbaErrorValue } from '../../src/engine/evaluator';
 
 function runVba(code: string): any {
     const lexer = new Lexer(code);

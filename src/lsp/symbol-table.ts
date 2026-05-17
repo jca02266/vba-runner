@@ -5,7 +5,7 @@ import {
     VariableDeclaration,
     ConstDeclaration,
     Statement,
-} from '../compiler/parser';
+} from '../engine/parser';
 
 export interface SymbolEntry {
     name: string;

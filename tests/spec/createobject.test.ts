@@ -14,10 +14,10 @@
  *与えずに検証する。
  */
 import { assert } from '../../test-libs/test-runner';
-import { Evaluator } from '../../src/compiler/evaluator';
-import { Parser } from '../../src/compiler/parser';
-import { Lexer } from '../../src/compiler/lexer';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Parser } from '../../src/engine/parser';
+import { Lexer } from '../../src/engine/lexer';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 function evalVBA(code: string, fs?: MemoryFileSystem) {
     const tokens = new Lexer(code).tokenize();

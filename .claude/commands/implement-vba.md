@@ -46,9 +46,9 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 **ファイル冒頭のボイラープレート**（必ずこの形式で書く）:
 
 ```typescript
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
@@ -136,9 +136,9 @@ End Sub
 ### Step 5: 実装
 
 実装対象ファイル（通常は以下の1つ以上）を編集する:
-- `src/compiler/lexer.ts` — 新しいキーワード・トークンが必要な場合
-- `src/compiler/parser.ts` — 新しいASTノード・構文規則が必要な場合
-- `src/compiler/evaluator.ts` — 実行時の動作が必要な場合
+- `src/engine/lexer.ts` — 新しいキーワード・トークンが必要な場合
+- `src/engine/parser.ts` — 新しいASTノード・構文規則が必要な場合
+- `src/engine/evaluator.ts` — 実行時の動作が必要な場合
 
 実装は仕様書の動作定義に忠実に行う。
 仕様と異なる実装や制限事項がある場合は、必ず TODO.md の該当項目に制限事項としてメモを残すこと。

@@ -1,5 +1,5 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
 import { TestDiscovery } from '../../src/lsp/test-discovery';
 import { assert } from '../../test-libs/test-runner';
 

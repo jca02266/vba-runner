@@ -4,9 +4,9 @@
  * VBA の Implements ではインターフェース変数 (As IAnimal) 経由でメソッドを呼ぶと
  * 具象クラスの InterfaceName_MethodName へディスパッチされる。
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {

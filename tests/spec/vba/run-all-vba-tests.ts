@@ -7,8 +7,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { VBARunner } from '../../../test-libs/test-runner';
-import { Lexer } from '../../../src/compiler/lexer';
-import { Parser } from '../../../src/compiler/parser';
+import { Lexer } from '../../../src/engine/lexer';
+import { Parser } from '../../../src/engine/parser';
 
 const vbaDir = path.join(__dirname);
 const VBA_EXTS = new Set(['.cls', '.vba']);

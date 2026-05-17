@@ -29,7 +29,7 @@ npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample
 
 When implementing or modifying file-related functions (e.g., `Open`, `Kill`, `Dir`, `Environ`), you **MUST** follow the Sandbox rules described in `README.md`:
 
-- **All file paths** must be resolved through the `SandboxPath` class in `src/compiler/sandbox.ts`.
+- **All file paths** must be resolved through the `SandboxPath` class in `src/engine/sandbox.ts`.
 - **Sandbox Root**: File operations are restricted to the sandbox root (default: `sandbox/`).
 - **No Traversal**: Any attempt to access paths outside the sandbox root (e.g., using `../`) must result in a runtime error.
 - **Path Virtualization**: Windows-style absolute paths are mapped to subdirectories under the sandbox root (e.g., `C:\foo` → `{sandboxRoot}/c/foo`).

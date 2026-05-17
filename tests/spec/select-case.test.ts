@@ -6,9 +6,9 @@
  *   2. start To end      : Case 1 To 5
  *   3. [Is] comparison   : Case Is > 10
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {

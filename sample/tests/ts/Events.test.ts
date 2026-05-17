@@ -1,6 +1,6 @@
-import { Evaluator } from '../../../src/compiler/evaluator';
-import { Parser } from '../../../src/compiler/parser';
-import { Lexer } from '../../../src/compiler/lexer';
+import { Evaluator } from '../../../src/engine/evaluator';
+import { Parser } from '../../../src/engine/parser';
+import { Lexer } from '../../../src/engine/lexer';
 
 function assert(condition: boolean, message: string) {
     if (!condition) {

@@ -5,10 +5,10 @@
  * Excel オブジェクトに依存した VBA コードをテストする方法を示します。
  */
 
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
-import { MockApplication } from '../../src/compiler/mock/MockWorksheet';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
+import { MockApplication } from '../../src/engine/mock/MockWorksheet';
 import { assert } from '../../test-libs/test-runner';
 
 // ============================================================

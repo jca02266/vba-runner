@@ -1,7 +1,7 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 import { assert } from '../../test-libs/test-runner';
 
 function makeEval(vfs: MemoryFileSystem): { ev: Evaluator; output: string[] } {

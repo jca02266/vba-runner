@@ -24,7 +24,7 @@ Excel 不要で VBA コードを実行・テスト・静的解析できます。
 ## プロジェクトのコアファイル（リファクタリング支援に必要なもの）
 
 ```
-src/compiler/
+src/engine/
   lexer.ts          VBAソース → トークン列
   parser.ts         トークン列 → AST（全ノードに loc: {start, end} 付き）
   evaluator.ts      AST → 実行（VBA実行エンジン本体）

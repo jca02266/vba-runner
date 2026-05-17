@@ -7,9 +7,9 @@
  *   - Nothing: オブジェクト参照のみ。算術演算では Type mismatch エラー
  *   - Missing: 未指定の Optional 引数（IsMissing で検出）
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator, vbaNull, vbaEmpty } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator, vbaNull, vbaEmpty } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {

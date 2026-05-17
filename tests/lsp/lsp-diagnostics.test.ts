@@ -1,5 +1,5 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser, ParseDiagnostic } from '../../src/compiler/parser';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser, ParseDiagnostic } from '../../src/engine/parser';
 import { assert } from '../../test-libs/test-runner';
 
 function parse(src: string) {

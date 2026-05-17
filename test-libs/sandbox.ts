@@ -1,2 +1,2 @@
-import { SandboxPath } from '../src/compiler/sandbox';
+import { SandboxPath } from '../src/engine/sandbox';
 export { SandboxPath };

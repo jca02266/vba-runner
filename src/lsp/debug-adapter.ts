@@ -1,4 +1,4 @@
-import { Program } from '../compiler/parser';
+import { Program } from '../engine/parser';
 import { Debugger, Breakpoint, StackFrame, Variable } from './debugger';
 
 export interface DebugCapabilities {

@@ -1,7 +1,7 @@
-import { Lexer } from '../compiler/lexer';
-import { Parser } from '../compiler/parser';
-import { Evaluator } from '../compiler/evaluator';
-import { ProcedureDeclaration, Statement, ClassDeclaration } from '../compiler/parser';
+import { Lexer } from '../engine/lexer';
+import { Parser } from '../engine/parser';
+import { Evaluator } from '../engine/evaluator';
+import { ProcedureDeclaration, Statement, ClassDeclaration } from '../engine/parser';
 
 export type TestState = 'passed' | 'failed' | 'errored' | 'skipped';
 

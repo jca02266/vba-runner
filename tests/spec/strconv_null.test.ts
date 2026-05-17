@@ -1,6 +1,6 @@
-import { Evaluator } from '../../src/compiler/evaluator';
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
 
 function testStrConvNull() {
     console.log("Running StrConv Null tests...");

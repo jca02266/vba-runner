@@ -14,9 +14,9 @@
  * これは `assert.isTrue` などのリファレンス比較を前提に、シングルトン
  * `vbaTrue` / `vbaFalse` を返す必要がある。
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator, vbaTrue, vbaFalse } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {

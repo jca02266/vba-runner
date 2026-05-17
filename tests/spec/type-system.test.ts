@@ -1,8 +1,8 @@
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
-import { NodeFileSystem } from '../../src/compiler/node_filesystem';
+import { NodeFileSystem } from '../../src/engine/node_filesystem';
 
 function evalVBA(code: string): Evaluator {
     const tokens = new Lexer(code).tokenize();

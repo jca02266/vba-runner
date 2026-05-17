@@ -3,9 +3,9 @@
  *
  * 空のモジュール名による登録を防止
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 
 function loadAndEvaluate(evaluator: Evaluator, code: string, moduleName: string): void {
     const tokens = new Lexer(code).tokenize();

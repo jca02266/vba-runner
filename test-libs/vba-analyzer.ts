@@ -14,8 +14,8 @@
 //   - データフロー解析（Def-Use）は未実装
 //   - 接頭辞クラスタによる UDT 抽出候補検出は未実装
 
-import { Lexer } from '../src/compiler/lexer';
-import { Parser } from '../src/compiler/parser';
+import { Lexer } from '../src/engine/lexer';
+import { Parser } from '../src/engine/parser';
 import * as fs from 'fs';
 import * as path from 'path';
 

@@ -1,7 +1,7 @@
-import { Evaluator } from '../../src/compiler/evaluator';
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 function testFileSystem() {
     console.log("Running FileSystem tests...");

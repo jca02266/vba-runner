@@ -1,4 +1,4 @@
-import { Program, Statement, ProcedureDeclaration } from '../compiler/parser';
+import { Program, Statement, ProcedureDeclaration } from '../engine/parser';
 
 export interface Breakpoint {
     id: string;

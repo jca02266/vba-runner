@@ -6,9 +6,9 @@
  *   - TypeOf <obj> Is Dictionary / Collection: 組み込みクラスの判定
  *   - TypeOf <obj> Is <UserClass>: ユーザー定義型の判定
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {

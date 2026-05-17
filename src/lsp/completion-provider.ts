@@ -3,7 +3,7 @@ import {
     ProcedureDeclaration,
     VariableDeclaration,
     Statement,
-} from '../compiler/parser';
+} from '../engine/parser';
 
 export interface CompletionItem {
     label: string;

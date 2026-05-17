@@ -119,14 +119,14 @@ x = 40000  ' → Runtime Error 6: Overflow
 
 ### 変更が必要なファイル
 
-1. **`src/compiler/evaluator.ts`**
+1. **`src/engine/evaluator.ts`**
    - `Environment` クラスに `variableTypes` マップと関連メソッドを追加
    - `evaluateVariableDeclaration()` で型情報を登録
    - `Environment.set()` で型チェック付き代入を実装
    - `TypeName()` / `VarType()` を環境メタデータ対応に改修
    - リテラルの型推論ロジックを追加
 
-2. **`src/compiler/parser.ts`**
+2. **`src/engine/parser.ts`**
    - `Parameter` インターフェースに `paramType` フィールド追加
    - `parseParameter()` で型名を保持
 

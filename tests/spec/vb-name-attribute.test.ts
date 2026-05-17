@@ -4,9 +4,9 @@
  * VBA ソースファイルが Attribute VB_Name で定義したモジュール名が
  * 正しく認識されるかを確認
  */
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { Evaluator } from '../../src/compiler/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
 
 function loadAndEvaluate(evaluator: Evaluator, code: string): void {

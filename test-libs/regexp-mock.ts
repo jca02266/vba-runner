@@ -25,7 +25,7 @@
  *   Match:
  *     - Value, FirstIndex (0-based), Length, SubMatches(i) (0-based)
  */
-import { vbaTrue, vbaFalse, VbaBoolean } from '../src/compiler/evaluator';
+import { vbaTrue, vbaFalse, VbaBoolean } from '../src/engine/evaluator';
 
 function isTruthy(v: any): boolean {
     if (v instanceof VbaBoolean) return v.valueOf() !== 0;

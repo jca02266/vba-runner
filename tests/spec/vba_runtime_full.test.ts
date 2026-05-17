@@ -1,7 +1,7 @@
-import { Evaluator, vbaMissing } from '../../src/compiler/evaluator';
-import { Lexer } from '../../src/compiler/lexer';
-import { Parser } from '../../src/compiler/parser';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { Evaluator, vbaMissing } from '../../src/engine/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 function testFullRuntime() {
     console.log("Running Full Runtime tests...");

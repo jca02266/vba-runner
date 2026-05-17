@@ -1,5 +1,5 @@
-import { Evaluator } from '../../src/compiler/evaluator';
-import { MemoryFileSystem } from '../../src/compiler/filesystem';
+import { Evaluator } from '../../src/engine/evaluator';
+import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 // Test 1: Valid module name (exactly 31 characters)
 const maxLengthName = 'A'.repeat(31); // 31 characters
