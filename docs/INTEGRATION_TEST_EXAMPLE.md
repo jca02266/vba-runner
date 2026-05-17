@@ -1,5 +1,7 @@
 # 統合テスト例：TaskScheduler マクロ
 
+> 本ドキュメントで登場する手法の名前付き一覧は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md) を参照してください。
+
 ## 概要
 
 このドキュメントは、**MockWorksheet を使用した実践的な統合テスト**の例を示します。
@@ -12,7 +14,7 @@
 
 ---
 
-## なぜ統合テストが必要か
+## なぜ統合テストが必要か [[→ T-10](REFACTORING_TESTING_CATALOG.md#t-10)]
 
 ### 単体テスト（ドメインロジック）
 

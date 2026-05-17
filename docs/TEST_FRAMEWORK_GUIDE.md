@@ -65,7 +65,7 @@ tests/
 
 ---
 
-## パターン1: 基本的な単体テスト
+## パターン1: 基本的な単体テスト [[→ T-01](REFACTORING_TESTING_CATALOG.md#t-01)]
 
 ### VBA コード
 
@@ -130,7 +130,7 @@ describe('Math Operations', () => {
 
 ---
 
-## パターン2: パラメータ化テスト
+## パターン2: パラメータ化テスト [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 
@@ -283,7 +283,7 @@ describe('Array Operations', () => {
 
 ---
 
-## パターン4: エラーハンドリングのテスト
+## パターン4: エラーハンドリングのテスト [[→ T-05](REFACTORING_TESTING_CATALOG.md#t-05)]
 
 ### VBA コード
 
@@ -431,7 +431,7 @@ describe('Sales Business Logic', () => {
 
 ---
 
-## パターン6: ファイルシステム操作（VFS 使用）
+## パターン6: ファイルシステム操作（VFS 使用） [[→ T-06](REFACTORING_TESTING_CATALOG.md#t-06)]
 
 ### VBA コード
 
@@ -474,7 +474,7 @@ describe('File Operations with VFS', () => {
 
 ---
 
-## パターン7: 日時依存テスト（Time Mocking）
+## パターン7: 日時依存テスト（Time Mocking） [[→ T-07](REFACTORING_TESTING_CATALOG.md#t-07)]
 
 `Now()` や `Date()` を使う VBA コードは、実行するたびに結果が変わるため通常はテストできません。
 `mockDate()` で日時を固定すれば、決定論的なテストが書けます。
@@ -619,7 +619,7 @@ vbaRunner.mockDate('2024-12-31T23:59:59Z')  // 日時を固定
 vbaRunner.mockDate(null)                      // 解除
 ```
 
-#### `spy(name, returnFn?)` → `SpyRecord`
+#### `spy(name, returnFn?)` → `SpyRecord` [[→ T-08](REFACTORING_TESTING_CATALOG.md#t-08)]
 
 VBA 関数をスパイでラップし、呼び出し記録を返す。`returnFn` を指定すると戻り値を上書きできる。
 
@@ -663,7 +663,7 @@ it('should show error when input is invalid', () => {
 });
 ```
 
-#### `registerExternalObject(progId, factory)` → `void`
+#### `registerExternalObject(progId, factory)` → `void` [[→ T-09](REFACTORING_TESTING_CATALOG.md#t-09)]
 
 `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える。
 

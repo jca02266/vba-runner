@@ -14,7 +14,7 @@
 
 ---
 
-## 原則1: Domain Logic と Excel I/O の徹底的分離
+## 原則1: Domain Logic と Excel I/O の徹底的分離 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
 ### 問題のあるコード（テストしづらい）
 
@@ -148,7 +148,7 @@ describe('Sales Calculation', () => {
 
 ---
 
-## 原則3: Excel I/O テストは VBA IDE で行う
+## 原則3: Excel I/O テストは VBA IDE で行う [[→ T-12](REFACTORING_TESTING_CATALOG.md#t-12)]
 
 ### Excel I/O テストチェックリスト
 
@@ -186,7 +186,7 @@ Excel I/O を VBA Runnerでテストすると：
 
 ---
 
-## パターン1: 純粋関数（テスト最適）
+## パターン1: 純粋関数（テスト最適） [[→ T-01](REFACTORING_TESTING_CATALOG.md#t-01)]
 
 ### VBA コード
 
@@ -236,7 +236,7 @@ describe('Pure Functions', () => {
 
 ---
 
-## パターン2: パラメータ化テスト（複数ケース）
+## パターン2: パラメータ化テスト（複数ケース） [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 
@@ -280,7 +280,7 @@ describe('Discount Calculation', () => {
 
 ---
 
-## パターン3: 状態変更を伴うロジック（Controller）
+## パターン3: 状態変更を伴うロジック（Controller） [[→ T-04](REFACTORING_TESTING_CATALOG.md#t-04)]
 
 ### VBA コード
 
@@ -330,7 +330,7 @@ describe('Stateful Processing', () => {
 
 ---
 
-## パターン4: エラーハンドリング
+## パターン4: エラーハンドリング [[→ T-05](REFACTORING_TESTING_CATALOG.md#t-05)]
 
 ### VBA コード
 
@@ -432,7 +432,7 @@ End Function
 
 > **vba-analyzer**: Excel オブジェクトへの直接アクセスを含む関数は `excelAccessCount` / `excelAccessSamples` として報告されます。パラメータなしで Excel に依存している関数はリファクタリング候補の筆頭です。
 
-### 3. 関連パラメータは Type にまとめる
+### 3. 関連パラメータは Type にまとめる [[→ R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
 
 引数が増えてきた場合は、**ドメインとして意味のあるまとまり**を `Type` にまとめて渡すことを推奨します。
 個々の引数を並べるよりも呼び出し側・テスト側の可読性が上がり、将来的なパラメータ追加にも強くなります。
@@ -523,7 +523,7 @@ assert.strictEqual(calcInventoryWith({ SoldUnits: 30, RestockAmount: 50 }), 120)
 assert.strictEqual(calcInventoryWith({ CurrentStock: 10, SoldUnits: 20, RestockAmount: 5 }), 10); // MinStock に丸め
 ```
 
-### 4. 振る舞いを持たせたい場合はクラスを検討する
+### 4. 振る舞いを持たせたい場合はクラスを検討する [[→ R-04](REFACTORING_TESTING_CATALOG.md#r-04)]
 
 > **vba-analyzer**: `prefixClusters` で検出された変数群に対して、代入・参照のパターンが複数のプロシージャにまたがる場合はクラス化の候補と考えられます（現時点では人手での判断が必要です）。
 
@@ -568,7 +568,7 @@ End Function
 ' End Function
 ```
 
-### 5. Excel オブジェクト依存は Sub に限定
+### 5. Excel オブジェクト依存は Sub に限定 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
 > **vba-analyzer**: `excelMockTargets` に列挙された Function は Excel 依存を持つリファクタリング候補です。`Sheets`, `Range`, `Application` などのアクセスを含む Function を検出し、Sub への切り出し対象として報告します。
 >

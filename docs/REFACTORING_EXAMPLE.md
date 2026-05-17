@@ -142,7 +142,7 @@ numDays = lastCol - COL_CALENDAR_START_IDX + 1
 
 **目的**: タスク数とカレンダー日数を動的に計算
 
-### フェーズ 2: データ読み込み（行 101-122）
+### フェーズ 2: データ読み込み（行 101-122） [[→ R-05](REFACTORING_TESTING_CATALOG.md#r-05)]
 
 **Double Buffering パターン** — Excel シートをメモリの配列に読み込む：
 
@@ -538,7 +538,7 @@ ev.callProcedure('ScheduleUnlockedTask', [taskData, numDays, ...]);
 
 ## 改善策：リファクタリング後のコード
 
-### 改善 1: 関心の分離と構造化（UDT 導入）
+### 改善 1: 関心の分離と構造化（UDT 導入） [[→ R-06](REFACTORING_TESTING_CATALOG.md#r-06) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
 
 **リファクタリング前**:
 ```vba
@@ -1008,7 +1008,7 @@ Main Sub
 
 ---
 
-## さらなるリファクタリング：セル位置の即値を避ける
+## さらなるリファクタリング：セル位置の即値を避ける [[→ R-09](REFACTORING_TESTING_CATALOG.md#r-09)]
 
 リファクタリング後のコードでも、列番号・行番号はソースに直書きされています。
 

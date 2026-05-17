@@ -71,7 +71,7 @@ End Sub
 
 ## 基本原則
 
-### 原則 1: 職責の分離（Separation of Concerns）
+### 原則 1: 職責の分離（Separation of Concerns） [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
 コードを 3 つの層に分ける：
 
@@ -140,7 +140,7 @@ End Function
 
 ## リファクタリングパターン集
 
-### パターン 1: 単純な集計ロジック
+### パターン 1: 単純な集計ロジック [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02)]
 
 **リファクタリング前**（テスト不可能）:
 ```vba
@@ -234,7 +234,7 @@ End Sub
 
 ---
 
-### パターン 2: データ加工と変換
+### パターン 2: データ加工と変換 [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02)]
 
 **リファクタリング前**:
 ```vba
@@ -301,7 +301,7 @@ End Sub
 
 ---
 
-### パターン 3: 複雑なビジネスロジック（UDT を使用）
+### パターン 3: 複雑なビジネスロジック（UDT を使用） [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
 
 **リファクタリング前**:
 ```vba
@@ -408,7 +408,7 @@ End Sub
 
 ---
 
-### パターン 4: 状態を持つ処理（オブジェクト指向版）
+### パターン 4: 状態を持つ処理（オブジェクト指向版） [[→ R-04](REFACTORING_TESTING_CATALOG.md#r-04)]
 
 **リファクタリング前**（グローバル変数を使用）:
 ```vba
@@ -728,7 +728,7 @@ End Sub
 
 ## 段階的なリファクタリング戦略
 
-### フェーズ 1: ホットスポットを特定
+### フェーズ 1: ホットスポットを特定 [[→ R-07](REFACTORING_TESTING_CATALOG.md#r-07)]
 
 **最初にすべてをリファクタリングしない**。以下を優先：
 
@@ -748,7 +748,7 @@ Sub ExportToCSV()
 End Sub
 ```
 
-### フェーズ 2: 小さく始める
+### フェーズ 2: 小さく始める [[→ R-08](REFACTORING_TESTING_CATALOG.md#r-08)]
 
 複数の Function を同時に リファクタリング しない。1 つずつ：
 
@@ -771,7 +771,7 @@ Sub Main()
 End Sub
 ```
 
-### フェーズ 3: 段階的な導入
+### フェーズ 3: 段階的な導入 [[→ R-08](REFACTORING_TESTING_CATALOG.md#r-08)]
 
 既存コードと新しいコードを共存させる：
 
