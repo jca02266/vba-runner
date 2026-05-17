@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
-import { Parser } from '../src/engine/parser';
+import { Parser, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import { NodeFileSystem } from '../src/engine/node_filesystem';
 import { MemoryFileSystem } from '../src/engine/filesystem';
@@ -11,6 +11,7 @@ const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
 
 export class VBARunner {
     public evaluator: Evaluator;
+    private _asts: Program[] = [];
 
     constructor(pathOrDir: string, config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}) {
         const useVFS = config.useVirtualFS ?? (typeof process !== 'undefined' && process.env.USE_VFS === '1');
@@ -41,6 +42,7 @@ export class VBARunner {
                 const parseOpts = isRawCls ? { parseAsClass: moduleName } : {};
 
                 const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
+                this._asts.push(ast);
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
@@ -98,6 +100,39 @@ export class VBARunner {
     }
 
     /**
+     * ロード済みの VBA ソースに含まれる `Type` 宣言を TypeScript の型情報として返す。
+     * 各フィールドの VBA 型は TypeScript 型文字列にマッピングされる。
+     *
+     * @returns `{ [TypeName]: { [fieldName]: tsType } }` の形式
+     *
+     * @example
+     *   const vbaRunner = new VBARunner('src/vba/inventory.bas');
+     *   const types = vbaRunner.getTypeDefinitions();
+     *   // => { InventoryParams: { CurrentStock: 'number', SoldUnits: 'number', ... } }
+     *
+     *   // TypeScript interface として文字列出力する場合:
+     *   for (const [name, fields] of Object.entries(types)) {
+     *       const body = Object.entries(fields).map(([f, t]) => `  ${f}: ${t};`).join('\n');
+     *       console.log(`interface ${name} {\n${body}\n}`);
+     *   }
+     */
+    getTypeDefinitions(): Record<string, Record<string, string>> {
+        const result: Record<string, Record<string, string>> = {};
+        for (const ast of this._asts) {
+            for (const stmt of ast.body) {
+                if (stmt.type === 'TypeDeclaration') {
+                    const decl = stmt as TypeDeclaration;
+                    result[decl.name] = {};
+                    for (const member of decl.members) {
+                        result[decl.name][member.name] = vbaTypeToTs(member.memberType);
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
      * Fix the date/time returned by `Now`, `Date`, `Time`, and `Timer`.
      * Accepts any value parseable by `new Date(...)`, e.g. `'2024-12-31T09:00:00'`.
      * Pass `null` to restore real system time.
@@ -109,6 +144,18 @@ export class VBARunner {
             const fixed = new Date(dateStr);
             this.evaluator.setNowFn(() => fixed);
         }
+    }
+}
+
+function vbaTypeToTs(vbaType: string): string {
+    switch (vbaType.toLowerCase()) {
+        case 'integer': case 'long': case 'single': case 'double':
+        case 'currency': case 'decimal': case 'byte': case 'date':
+            return 'number';
+        case 'string':    return 'string';
+        case 'boolean':   return 'boolean';
+        case 'object':    return 'object';
+        default:          return 'any';
     }
 }
 

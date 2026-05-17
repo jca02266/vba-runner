@@ -672,6 +672,24 @@ import { createRegExpMock } from '../../test-libs/regexp-mock';
 vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
 ```
 
+#### `getTypeDefinitions()` → `Record<string, Record<string, string>>`
+
+VBA ソースに含まれる `Type` 宣言を TypeScript の型情報として返す。VBA の型は TypeScript の型文字列にマッピングされる。
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/inventory.bas');
+const types = vbaRunner.getTypeDefinitions();
+// => { InventoryParams: { CurrentStock: 'number', SoldUnits: 'number', ... } }
+
+// interface 文字列として出力する場合:
+for (const [name, fields] of Object.entries(types)) {
+    const body = Object.entries(fields).map(([f, t]) => `  ${f}: ${t};`).join('\n');
+    console.log(`interface ${name} {\n${body}\n}`);
+}
+```
+
+型マッピング: `Integer` / `Long` / `Single` / `Double` / `Currency` / `Decimal` / `Byte` / `Date` → `number`、`String` → `string`、`Boolean` → `boolean`、`Object` → `object`、それ以外 → `any`。
+
 #### `evaluator` プロパティ
 
 `Evaluator` インスタンスへの直接アクセス。高度な操作（ファイルシステム書き込み、環境変数設定など）に使う。

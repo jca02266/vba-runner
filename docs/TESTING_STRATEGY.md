@@ -498,6 +498,20 @@ assert.strictEqual(calcInventory({ CurrentStock: 100, SoldUnits: 30, RestockAmou
 assert.strictEqual(calcInventory({ CurrentStock: 10,  SoldUnits: 20, RestockAmount: 5,  MinStock: 10, MaxStock: 200 }), 10); // MinStock に丸め
 ```
 
+VBA ソースに `Type` 宣言がある場合、`getTypeDefinitions()` を使うと TypeScript の `interface` 定義を自動生成できます。
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/inventory.bas');
+const types = vbaRunner.getTypeDefinitions();
+// => { InventoryParams: { CurrentStock: 'number', SoldUnits: 'number', ... } }
+
+// interface 文字列として出力する場合:
+for (const [name, fields] of Object.entries(types)) {
+    const body = Object.entries(fields).map(([f, t]) => `  ${f}: ${t};`).join('\n');
+    console.log(`interface ${name} {\n${body}\n}`);
+}
+```
+
 ### 4. 振る舞いを持たせたい場合はクラスを検討する
 
 > **vba-analyzer**: `prefixClusters` で検出された変数群に対して、代入・参照のパターンが複数のプロシージャにまたがる場合はクラス化の候補と考えられます（現時点では人手での判断が必要です）。
