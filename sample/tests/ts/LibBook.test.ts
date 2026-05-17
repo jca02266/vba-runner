@@ -2,7 +2,7 @@ import { VBARunner, assert } from '../../../test-libs/test-runner';
 
 async function main() {
     console.log("--- Starting LibBook.vba Unit Tests ---");
-    const vbaTest = new VBARunner('sample/src/vba/LibBook.vba');
+    const vbaRunner = new VBARunner('sample/src/vba/LibBook.vba');
 
     // Mock Application object with SheetsInNewWorkbook property
     function createMockApplication(initialSheetCount: number): any {
@@ -28,10 +28,10 @@ async function main() {
         const mockWb = createMockWorkbook();
         const mockWorkbooks = createMockWorkbooks(mockWb);
 
-        vbaTest.set('application', mockApp);
-        vbaTest.set('workbooks', mockWorkbooks);
+        vbaRunner.set('application', mockApp);
+        vbaRunner.set('workbooks', mockWorkbooks);
 
-        const result = vbaTest.run('NewWorkbook', [1]);
+        const result = vbaRunner.run('NewWorkbook', [1]);
 
         assert.strictEqual(result === mockWb, true, "Should return new workbook");
         // SheetsInNewWorkbook should be restored to original value (3)
@@ -52,10 +52,10 @@ async function main() {
             }
         };
 
-        vbaTest.set('application', mockApp);
-        vbaTest.set('workbooks', mockWorkbooks);
+        vbaRunner.set('application', mockApp);
+        vbaRunner.set('workbooks', mockWorkbooks);
 
-        const result = vbaTest.run('NewWorkbook', [3]);
+        const result = vbaRunner.run('NewWorkbook', [3]);
 
         assert.strictEqual(result === mockWb, true, "Should return new workbook");
         // During Add, SheetsInNewWorkbook should have been set to 3
@@ -74,12 +74,12 @@ async function main() {
             }
         };
 
-        vbaTest.set('application', mockApp);
-        vbaTest.set('workbooks', mockWorkbooks);
+        vbaRunner.set('application', mockApp);
+        vbaRunner.set('workbooks', mockWorkbooks);
 
         let errorThrown = false;
         try {
-            vbaTest.run('NewWorkbook', [2]);
+            vbaRunner.run('NewWorkbook', [2]);
         } catch {
             errorThrown = true;
         }

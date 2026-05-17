@@ -87,33 +87,33 @@ End Function
 import { VBARunner } from '../../test-libs/test-runner';
 
 describe('Math Operations', () => {
-  const vbaTest = new VBARunner('src/vba/math.vba');
+  const vbaRunner = new VBARunner('src/vba/math.vba');
 
   describe('Sum', () => {
     it('should add two positive numbers', () => {
-      const result = vbaTest.run('Sum', [10, 20]);
+      const result = vbaRunner.run('Sum', [10, 20]);
       expect(result).toBe(30);
     });
 
     it('should add negative numbers', () => {
-      const result = vbaTest.run('Sum', [-10, -20]);
+      const result = vbaRunner.run('Sum', [-10, -20]);
       expect(result).toBe(-30);
     });
 
     it('should handle zero', () => {
-      const result = vbaTest.run('Sum', [0, 0]);
+      const result = vbaRunner.run('Sum', [0, 0]);
       expect(result).toBe(0);
     });
   });
 
   describe('Multiply', () => {
     it('should multiply two numbers', () => {
-      const result = vbaTest.run('Multiply', [5, 4]);
+      const result = vbaRunner.run('Multiply', [5, 4]);
       expect(result).toBe(20);
     });
 
     it('should handle multiplication by zero', () => {
-      const result = vbaTest.run('Multiply', [100, 0]);
+      const result = vbaRunner.run('Multiply', [100, 0]);
       expect(result).toBe(0);
     });
   });
@@ -150,7 +150,7 @@ End Function
 
 ```typescript
 describe('Discount Calculation', () => {
-  const vbaTest = new VBARunner('src/vba/discount.vba');
+  const vbaRunner = new VBARunner('src/vba/discount.vba');
 
   const testCases = [
     { price: 1000, discount: 0, expected: 1000 },
@@ -162,14 +162,14 @@ describe('Discount Calculation', () => {
 
   testCases.forEach(({ price, discount, expected }) => {
     it(`${discount}% discount on $${price} = $${expected}`, () => {
-      const result = vbaTest.run('ApplyDiscount', [price, discount]);
+      const result = vbaRunner.run('ApplyDiscount', [price, discount]);
       expect(result).toBe(expected);
     });
   });
 
   it('should reject invalid discount', () => {
     expect(() => {
-      vbaTest.run('ApplyDiscount', [1000, -10]);
+      vbaRunner.run('ApplyDiscount', [1000, -10]);
     }).toThrow();
   });
 });
@@ -179,7 +179,7 @@ describe('Discount Calculation', () => {
 
 ```typescript
 describe('Discount Calculation with test.each', () => {
-  const vbaTest = new VBARunner('src/vba/discount.vba');
+  const vbaRunner = new VBARunner('src/vba/discount.vba');
 
   // Jest 標準：test.each
   test.each([
@@ -189,7 +189,7 @@ describe('Discount Calculation with test.each', () => {
     [1000, 100, 0],
     [500, 20, 400],
   ])('discount %p%% on $%i = $%i', (price, discount, expected) => {
-    const result = vbaTest.run('ApplyDiscount', [price, discount]);
+    const result = vbaRunner.run('ApplyDiscount', [price, discount]);
     expect(result).toBe(expected);
   });
 });
@@ -238,43 +238,43 @@ End Function
 
 ```typescript
 describe('Array Operations', () => {
-  const vbaTest = new VBARunner('src/vba/array-ops.vba');
+  const vbaRunner = new VBARunner('src/vba/array-ops.vba');
 
   describe('SumArray', () => {
     it('should sum array of numbers', () => {
-      const result = vbaTest.run('SumArray', [[10, 20, 30, 40]]);
+      const result = vbaRunner.run('SumArray', [[10, 20, 30, 40]]);
       expect(result).toBe(100);
     });
 
     it('should handle negative numbers', () => {
-      const result = vbaTest.run('SumArray', [[-10, 20, -30, 40]]);
+      const result = vbaRunner.run('SumArray', [[-10, 20, -30, 40]]);
       expect(result).toBe(20);
     });
 
     it('should return 0 for empty array', () => {
-      const result = vbaTest.run('SumArray', [[]]);
+      const result = vbaRunner.run('SumArray', [[]]);
       expect(result).toBe(0);
     });
 
     it('should handle single element', () => {
-      const result = vbaTest.run('SumArray', [[42]]);
+      const result = vbaRunner.run('SumArray', [[42]]);
       expect(result).toBe(42);
     });
   });
 
   describe('FilterPositive', () => {
     it('should filter positive numbers', () => {
-      const result = vbaTest.run('FilterPositive', [[10, -5, 20, -3, 30]]);
+      const result = vbaRunner.run('FilterPositive', [[10, -5, 20, -3, 30]]);
       expect(result).toEqual([10, 20, 30]);
     });
 
     it('should return empty array if no positive numbers', () => {
-      const result = vbaTest.run('FilterPositive', [[-1, -2, -3]]);
+      const result = vbaRunner.run('FilterPositive', [[-1, -2, -3]]);
       expect(result).toEqual([]);
     });
 
     it('should preserve order', () => {
-      const result = vbaTest.run('FilterPositive', [[5, 1, 10, 2, 3]]);
+      const result = vbaRunner.run('FilterPositive', [[5, 1, 10, 2, 3]]);
       expect(result).toEqual([5, 1, 10, 2, 3]);
     });
   });
@@ -309,34 +309,34 @@ End Function
 
 ```typescript
 describe('Error Handling', () => {
-  const vbaTest = new VBARunner('src/vba/error-handling.vba');
+  const vbaRunner = new VBARunner('src/vba/error-handling.vba');
 
   describe('SafeDivide', () => {
     it('should divide normally', () => {
-      const result = vbaTest.run('SafeDivide', [10, 2]);
+      const result = vbaRunner.run('SafeDivide', [10, 2]);
       expect(result).toBe(5);
     });
 
     it('should throw on division by zero', () => {
       expect(() => {
-        vbaTest.run('SafeDivide', [10, 0]);
+        vbaRunner.run('SafeDivide', [10, 0]);
       }).toThrow();
     });
 
     it('should handle negative divisor', () => {
-      const result = vbaTest.run('SafeDivide', [10, -2]);
+      const result = vbaRunner.run('SafeDivide', [10, -2]);
       expect(result).toBe(-5);
     });
   });
 
   describe('SafeDivideWithDefault', () => {
     it('should return default on error', () => {
-      const result = vbaTest.run('SafeDivideWithDefault', [10, 0, -1]);
+      const result = vbaRunner.run('SafeDivideWithDefault', [10, 0, -1]);
       expect(result).toBe(-1);
     });
 
     it('should divide normally without error', () => {
-      const result = vbaTest.run('SafeDivideWithDefault', [10, 2, -1]);
+      const result = vbaRunner.run('SafeDivideWithDefault', [10, 2, -1]);
       expect(result).toBe(5);
     });
   });
@@ -384,7 +384,7 @@ End Function
 
 ```typescript
 describe('Sales Business Logic', () => {
-  const vbaTest = new VBARunner('src/vba/sales-logic.vba');
+  const vbaRunner = new VBARunner('src/vba/sales-logic.vba');
 
   describe('CalculateCommission', () => {
     // テストケースマトリックス
@@ -398,7 +398,7 @@ describe('Sales Business Logic', () => {
 
     commissionTests.forEach(({ sales, category, expected }) => {
       it(`category ${category}: ${sales} sales = ${expected} commission`, () => {
-        const result = vbaTest.run('CalculateCommission', [sales, category]);
+        const result = vbaRunner.run('CalculateCommission', [sales, category]);
         expect(result).toBe(expected);
       });
     });
@@ -406,21 +406,21 @@ describe('Sales Business Logic', () => {
 
   describe('ProcessMultipleSales', () => {
     it('should sum amounts over 100', () => {
-      const result = vbaTest.run('ProcessMultipleSales', [
+      const result = vbaRunner.run('ProcessMultipleSales', [
         [50, 150, 200, 30, 100]  // 150 + 200 = 350
       ]);
       expect(result).toBe(350);
     });
 
     it('should return 0 if no amounts exceed 100', () => {
-      const result = vbaTest.run('ProcessMultipleSales', [
+      const result = vbaRunner.run('ProcessMultipleSales', [
         [50, 75, 99]
       ]);
       expect(result).toBe(0);
     });
 
     it('should handle single large amount', () => {
-      const result = vbaTest.run('ProcessMultipleSales', [
+      const result = vbaRunner.run('ProcessMultipleSales', [
         [5000]
       ]);
       expect(result).toBe(5000);
@@ -448,25 +448,25 @@ End Function
 
 ```typescript
 describe('File Operations with VFS', () => {
-  const vbaTest = new VBARunner('src/vba/file-ops.vba', {
+  const vbaRunner = new VBARunner('src/vba/file-ops.vba', {
     useVirtualFS: true
   });
 
   it('should read virtual file', () => {
     // VFS 上にテストデータを配置
-    vbaTest.evaluator.fs.writeFileSync(
+    vbaRunner.evaluator.fs.writeFileSync(
       '/sandbox/c/test-data.txt',
       'test content'
     );
 
     // VBA 関数で読み込み・処理
-    const result = vbaTest.run('ReadFile', ['/sandbox/c/test-data.txt']);
+    const result = vbaRunner.run('ReadFile', ['/sandbox/c/test-data.txt']);
     expect(result).toContain('test');
   });
 
   it('should handle missing file', () => {
     expect(() => {
-      vbaTest.run('ReadFile', ['/sandbox/c/nonexistent.txt']);
+      vbaRunner.run('ReadFile', ['/sandbox/c/nonexistent.txt']);
     }).toThrow('File not found');
   });
 });
@@ -507,35 +507,35 @@ End Function
 import { VBARunner } from '../../test-libs/test-runner';
 
 describe('Fiscal Year Logic', () => {
-  let vbaTest: VBARunner;
+  let vbaRunner: VBARunner;
 
   beforeEach(() => {
-    vbaTest = new VBARunner('src/vba/fiscal-year.vba');
+    vbaRunner = new VBARunner('src/vba/fiscal-year.vba');
   });
 
   afterEach(() => {
     // 他テストへの影響を防ぐためモックを解除
-    vbaTest.mockDate(null);
+    vbaRunner.mockDate(null);
   });
 
   it('should detect current fiscal year (April–March)', () => {
     // 2024年4月1日（FY2024の開始）
-    vbaTest.mockDate('2024-04-01T00:00:00Z');
-    expect(vbaTest.run('IsCurrentFiscalYear', [2024])).toBe(true);
-    expect(vbaTest.run('IsCurrentFiscalYear', [2023])).toBe(false);
+    vbaRunner.mockDate('2024-04-01T00:00:00Z');
+    expect(vbaRunner.run('IsCurrentFiscalYear', [2024])).toBe(true);
+    expect(vbaRunner.run('IsCurrentFiscalYear', [2023])).toBe(false);
   });
 
   it('should treat March as previous fiscal year', () => {
     // 2024年3月31日はまだFY2023
-    vbaTest.mockDate('2024-03-31T00:00:00Z');
-    expect(vbaTest.run('IsCurrentFiscalYear', [2023])).toBe(true);
-    expect(vbaTest.run('IsCurrentFiscalYear', [2024])).toBe(false);
+    vbaRunner.mockDate('2024-03-31T00:00:00Z');
+    expect(vbaRunner.run('IsCurrentFiscalYear', [2023])).toBe(true);
+    expect(vbaRunner.run('IsCurrentFiscalYear', [2024])).toBe(false);
   });
 
   it('should calculate days until deadline', () => {
-    vbaTest.mockDate('2024-01-01T00:00:00Z');
+    vbaRunner.mockDate('2024-01-01T00:00:00Z');
     // 2024-01-11 までの日数
-    const days = vbaTest.run('DaysUntilDeadline', [new Date('2024-01-11')]);
+    const days = vbaRunner.run('DaysUntilDeadline', [new Date('2024-01-11')]);
     expect(days).toBe(10);
   });
 });
@@ -545,8 +545,8 @@ describe('Fiscal Year Logic', () => {
 
 | 呼び出し | 効果 |
 |---------|------|
-| `vbaTest.mockDate('2024-03-15T10:30:45Z')` | `Now()` / `Date()` / `Time()` / `Timer` が固定値を返す |
-| `vbaTest.mockDate(null)` | モックを解除し、実際のシステム時刻に戻す |
+| `vbaRunner.mockDate('2024-03-15T10:30:45Z')` | `Now()` / `Date()` / `Time()` / `Timer` が固定値を返す |
+| `vbaRunner.mockDate(null)` | モックを解除し、実際のシステム時刻に戻す |
 
 固定される関数一覧：
 
@@ -585,10 +585,10 @@ new VBARunner(pathOrDir: string, config?: {
 指定プロシージャを呼び出し、戻り値を返す。実行時間と結果を `console.log` に出力する。
 
 ```typescript
-vbaTest.run('CalcTax', [50000])       // 関数呼び出し
-vbaTest.run('MyValue', [], 'get')     // Property Get
-vbaTest.run('MyValue', [100], 'let')  // Property Let
-vbaTest.run('MyObj', [obj], 'set')    // Property Set
+vbaRunner.run('CalcTax', [50000])       // 関数呼び出し
+vbaRunner.run('MyValue', [], 'get')     // Property Get
+vbaRunner.run('MyValue', [100], 'let')  // Property Let
+vbaRunner.run('MyObj', [obj], 'set')    // Property Set
 ```
 
 #### `eval(exprString)` → `any`
@@ -596,8 +596,8 @@ vbaTest.run('MyObj', [obj], 'set')    // Property Set
 VBA の式や文を文字列で評価する。式なら戻り値を返し、文なら `undefined` を返す。
 
 ```typescript
-vbaTest.eval('MyGlobal = 42')        // 変数の設定（文）
-const v = vbaTest.eval('2 + 3')      // 式の評価 → 5
+vbaRunner.eval('MyGlobal = 42')        // 変数の設定（文）
+const v = vbaRunner.eval('2 + 3')      // 式の評価 → 5
 ```
 
 #### `set(name, value)` → `void`
@@ -605,8 +605,8 @@ const v = vbaTest.eval('2 + 3')      // 式の評価 → 5
 グローバル変数に TypeScript の値を直接注入する。VBA で参照できる。
 
 ```typescript
-vbaTest.set('ExchangeRate', 150.5)
-vbaTest.set('TargetSheet', mockWorksheet)
+vbaRunner.set('ExchangeRate', 150.5)
+vbaRunner.set('TargetSheet', mockWorksheet)
 ```
 
 #### `mockDate(dateStr | null)` → `void`
@@ -615,8 +615,8 @@ vbaTest.set('TargetSheet', mockWorksheet)
 ISO 8601 文字列（`'2024-03-15T10:30:00Z'`）推奨。
 
 ```typescript
-vbaTest.mockDate('2024-12-31T23:59:59Z')  // 日時を固定
-vbaTest.mockDate(null)                      // 解除
+vbaRunner.mockDate('2024-12-31T23:59:59Z')  // 日時を固定
+vbaRunner.mockDate(null)                      // 解除
 ```
 
 #### `spy(name, returnFn?)` → `SpyRecord`
@@ -625,8 +625,8 @@ VBA 関数をスパイでラップし、呼び出し記録を返す。`returnFn`
 
 ```typescript
 // 基本: 呼び出し記録だけ（MsgBox の元の動作を維持）
-const spy = vbaTest.spy('MsgBox');
-vbaTest.run('MyProc', []);
+const spy = vbaRunner.spy('MsgBox');
+vbaRunner.run('MyProc', []);
 
 spy.callCount              // 呼び出し回数
 spy.calls                  // 引数配列の配列: [['msg1'], ['msg2', 0, 'Title'], ...]
@@ -636,10 +636,10 @@ spy.returnValues           // 各呼び出しの戻り値
 spy.reset()                // 履歴をリセット
 
 // 戻り値モック: ユーザーが「はい」を選んだ状態を再現（vbYes = 6）
-const spy2 = vbaTest.spy('MsgBox', () => 6);
+const spy2 = vbaRunner.spy('MsgBox', () => 6);
 
 // InputBox をモックして固定文字列を返す
-vbaTest.spy('InputBox', () => 'Alice');
+vbaRunner.spy('InputBox', () => 'Alice');
 ```
 
 `SpyRecord` は `test-libs/test-runner` から型としてもインポートできる。
@@ -654,9 +654,9 @@ import { VBARunner, SpyRecord } from '../../test-libs/test-runner';
 
 ```typescript
 it('should show error when input is invalid', () => {
-  const spy = vbaTest.spy('MsgBox');
+  const spy = vbaRunner.spy('MsgBox');
   
-  vbaTest.eval('Validate("")');  // 空文字 → エラー表示
+  vbaRunner.eval('Validate("")');  // 空文字 → エラー表示
   
   expect(spy.callCount).toBe(1);
   expect(spy.calledWith('入力値が不正です')).toBe(true);
@@ -669,7 +669,7 @@ it('should show error when input is invalid', () => {
 
 ```typescript
 import { createRegExpMock } from '../../test-libs/regexp-mock';
-vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
+vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
 ```
 
 #### `evaluator` プロパティ
@@ -678,7 +678,7 @@ vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
 
 ```typescript
 // VFS にテスト用ファイルを配置
-(vbaTest.evaluator as any).fs.writeFileSync('/sandbox/c/data.txt', 'hello');
+(vbaRunner.evaluator as any).fs.writeFileSync('/sandbox/c/data.txt', 'hello');
 ```
 
 ---
@@ -689,20 +689,20 @@ vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
 
 ```typescript
 describe('Database-like Operations', () => {
-  let vbaTest: VBARunner;
+  let vbaRunner: VBARunner;
 
   beforeEach(() => {
-    vbaTest = new VBARunner('src/vba/db.vba');
+    vbaRunner = new VBARunner('src/vba/db.vba');
     // 各テスト前にリセット
   });
 
   afterEach(() => {
     // 各テスト後にクリーンアップ
-    vbaTest.evaluator.clearEnvironment();
+    vbaRunner.evaluator.clearEnvironment();
   });
 
   it('should initialize correctly', () => {
-    const result = vbaTest.run('Initialize', []);
+    const result = vbaRunner.run('Initialize', []);
     expect(result).toBe(true);
   });
 });
@@ -732,7 +732,7 @@ test.each([
   [5, 5, 10],
   [-1, -2, -3],
 ])('Sum %i + %i = %i', (a, b, expected) => {
-  const result = vbaTest.run('Sum', [a, b]);
+  const result = vbaRunner.run('Sum', [a, b]);
   expect(result).toBe(expected);
 });
 ```
@@ -741,7 +741,7 @@ test.each([
 
 ```typescript
 it('should generate expected report', () => {
-  const result = vbaTest.run('GenerateReport', []);
+  const result = vbaRunner.run('GenerateReport', []);
   expect(result).toMatchSnapshot();
 });
 ```
@@ -833,7 +833,7 @@ it('should calculate total correctly', () => {
   const input = [100, 200, 300];
   
   // Act: 実行
-  const result = vbaTest.run('SumArray', [input]);
+  const result = vbaRunner.run('SumArray', [input]);
   
   // Assert: 検証
   expect(result).toBe(600);
@@ -845,7 +845,7 @@ it('should calculate total correctly', () => {
 ```typescript
 // ✅ テストすべき
 it('CalculateTotalFromArray([100, 200]) = 300', () => {
-  const result = vbaTest.run('CalculateTotalFromArray', [[100, 200]]);
+  const result = vbaRunner.run('CalculateTotalFromArray', [[100, 200]]);
   expect(result).toBe(300);
 });
 
@@ -863,8 +863,8 @@ it('CalculateTotalFromArray([100, 200]) = 300', () => {
 
 | ケース | 対応方法 |
 |-------|---------|
-| 時間に依存する処理（`Now()`） | `vbaTest.mockDate('2024-01-01')` — **パターン7**参照 |
-| 外部オブジェクト（`CreateObject`） | `vbaTest.registerExternalObject(progId, factory)` |
+| 時間に依存する処理（`Now()`） | `vbaRunner.mockDate('2024-01-01')` — **パターン7**参照 |
+| 外部オブジェクト（`CreateObject`） | `vbaRunner.registerExternalObject(progId, factory)` |
 | ランダム値（`Rnd()`） | テスト前に `Randomize 固定シード` を VBA 側で呼ぶ |
 
 Domain Logic が適切に分離されていれば、通常は mock 不要です。
@@ -875,7 +875,7 @@ Domain Logic が適切に分離されていれば、通常は mock 不要です�
 
 ```typescript
 try {
-    vbaTest.run('MyProc', []);
+    vbaRunner.run('MyProc', []);
 } catch (e: any) {
     console.error('エラー行:', e.vbaLine);   // 例: 12
     console.error('メッセージ:', e.message); // 例: "Type mismatch (line 12)"
@@ -907,9 +907,9 @@ try {
 | **テストフレームワーク** | Jest（既存） |
 | **テスト対象** | Domain Logic のみ |
 | **入力データ** | 配列、スカラー値（シンプル） |
-| **日時モック** | `vbaTest.mockDate('2024-01-01T00:00:00Z')` |
-| **副作用スパイ** | `vbaTest.spy('MsgBox')` → `SpyRecord` |
-| **外部オブジェクト** | `vbaTest.registerExternalObject(progId, factory)` |
+| **日時モック** | `vbaRunner.mockDate('2024-01-01T00:00:00Z')` |
+| **副作用スパイ** | `vbaRunner.spy('MsgBox')` → `SpyRecord` |
+| **外部オブジェクト** | `vbaRunner.registerExternalObject(progId, factory)` |
 | **エラーデバッグ** | `e.vbaLine` / `e.number` / `e.message` |
 | **テスト実行** | npm scripts から |
 

@@ -2,7 +2,7 @@ import { VBARunner, assert } from '../../../test-libs/test-runner';
 
 async function main() {
     console.log("--- Starting LibSheet.vba Unit Tests ---");
-    const vbaTest = new VBARunner('sample/src/vba/LibSheet.vba');
+    const vbaRunner = new VBARunner('sample/src/vba/LibSheet.vba');
 
     // Create mock Worksheet factory
     function createMockWorksheet(name: string): any {
@@ -44,7 +44,7 @@ async function main() {
             worksheets: createMockWorksheets(sheetsMap, () => createMockWorksheet(""))
         };
 
-        const result = vbaTest.run('NewWorksheet', ["Sheet1", mockWb]);
+        const result = vbaRunner.run('NewWorksheet', ["Sheet1", mockWb]);
 
         // The function should return the existing sheet
         assert.strictEqual(result === existingSheet, true, "Should return existing sheet");
@@ -62,7 +62,7 @@ async function main() {
             worksheets: createMockWorksheets(sheetsMap, () => newSheet)
         };
 
-        const result = vbaTest.run('NewWorksheet', ["NewSheet", mockWb]);
+        const result = vbaRunner.run('NewWorksheet', ["NewSheet", mockWb]);
 
         // The error handler should have created a new sheet and named it
         assert.strictEqual(result === newSheet, true, "Should return newly created sheet");
@@ -80,7 +80,7 @@ async function main() {
             worksheets: createMockWorksheets(sheetsMap, () => createMockWorksheet(""))
         };
 
-        const result = vbaTest.run('NewWorksheet', ["DataSheet", mockWb]);
+        const result = vbaRunner.run('NewWorksheet', ["DataSheet", mockWb]);
 
         // Should return the same existing sheet object
         assert.strictEqual(result === existingSheet, true, "Should return existing sheet");

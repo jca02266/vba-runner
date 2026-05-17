@@ -72,8 +72,8 @@ export class VBARunner {
      *
      * @example
      *   import { createRegExpMock } from '../../test-libs/regexp-mock';
-     *   const vbaTest = new VBARunner('source.vba');
-     *   vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
+     *   const vbaRunner = new VBARunner('source.vba');
+     *   vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
      */
     registerExternalObject(progId: string, factory: () => any): void {
         this.evaluator.registerExternalObject(progId, factory);
@@ -84,14 +84,14 @@ export class VBARunner {
      * returnFn を指定すると戻り値をオーバーライドできる。
      *
      * @example
-     *   const spy = vbaTest.spy('MsgBox');
-     *   vbaTest.run('MyProc', []);
+     *   const spy = vbaRunner.spy('MsgBox');
+     *   vbaRunner.run('MyProc', []);
      *   console.log(spy.callCount);           // 呼び出し回数
      *   console.log(spy.lastCall);            // 最後の引数配列
      *   console.log(spy.calledWith('Error!')); // 引数一致チェック
      *
      * @example MsgBox の戻り値をモックする（vbYes=6）
-     *   const spy = vbaTest.spy('MsgBox', () => 6);
+     *   const spy = vbaRunner.spy('MsgBox', () => 6);
      */
     spy(name: string, returnFn?: (...args: any[]) => any): SpyRecord {
         return this.evaluator.spy(name, returnFn);
@@ -114,8 +114,8 @@ export class VBARunner {
 
 // Keep backward compatibility
 export function runVBARunner(filePath: string, procedureName: string, args: any[], config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}): any {
-    const vbaTest = new VBARunner(filePath, config);
-    return vbaTest.run(procedureName, args);
+    const vbaRunner = new VBARunner(filePath, config);
+    return vbaRunner.run(procedureName, args);
 }
 
 // Minimal assert framework

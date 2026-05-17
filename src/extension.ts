@@ -124,7 +124,7 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('✓ Completion provider registered');
 
     // Register test discovery
-    const testController = vscode.tests.createTestController('vbaTest', 'VBA Tests');
+    const testController = vscode.tests.createTestController('vbaRunner', 'VBA Tests');
     context.subscriptions.push(testController);
 
     const createTestItems = (document: vscode.TextDocument) => {

@@ -110,11 +110,11 @@ End Sub
 import { VBARunner } from './test-libs/test-runner';
 
 describe('Sales Calculation', () => {
-  const vbaTest = new VBARunner('macro.vba');
+  const vbaRunner = new VBARunner('macro.vba');
 
   // ✅ 推奨：Domain Logic のみテスト
   it('should calculate total correctly', () => {
-    const result = vbaTest.run('CalculateTotalFromArray', [
+    const result = vbaRunner.run('CalculateTotalFromArray', [
       [100, 200, 300, 150, 250]
     ]);
     expect(result).toBe(1000);
@@ -122,25 +122,25 @@ describe('Sales Calculation', () => {
 
   // ✅ 推奨：境界値テスト
   it('should handle single value', () => {
-    const result = vbaTest.run('CalculateTotalFromArray', [[500]]);
+    const result = vbaRunner.run('CalculateTotalFromArray', [[500]]);
     expect(result).toBe(500);
   });
 
   // ✅ 推奨：空配列テスト
   it('should return 0 for empty array', () => {
-    const result = vbaTest.run('CalculateTotalFromArray', [[]]);
+    const result = vbaRunner.run('CalculateTotalFromArray', [[]]);
     expect(result).toBe(0);
   });
 
   // ❌ 非推奨：Excel I/O まで含める（複雑）
   // it('should save result to Excel', () => {
-  //   vbaTest.setupMocks({
+  //   vbaRunner.setupMocks({
   //     Sheets: {
   //       'SalesData': { Range: { 'A1:A5': { Value: [100, 200, 300, 150, 250] } } },
   //       'Report': { Range: { 'C1': { Value: 0 } } }
   //     }
   //   });
-  //   vbaTest.run('Main', []);
+  //   vbaRunner.run('Main', []);
   //   // ... 複雑な検証 ...
   // });
 });
@@ -216,18 +216,18 @@ End Function
 
 ```typescript
 describe('Pure Functions', () => {
-  const vbaTest = new VBARunner('math.vba');
+  const vbaRunner = new VBARunner('math.vba');
 
   it('SumArray: [100, 200, 300] = 600', () => {
-    expect(vbaTest.run('SumArray', [[100, 200, 300]])).toBe(600);
+    expect(vbaRunner.run('SumArray', [[100, 200, 300]])).toBe(600);
   });
 
   it('AverageArray: [100, 200, 300] = 200', () => {
-    expect(vbaTest.run('AverageArray', [[100, 200, 300]])).toBe(200);
+    expect(vbaRunner.run('AverageArray', [[100, 200, 300]])).toBe(200);
   });
 
   it('AverageArray: empty = 0', () => {
-    expect(vbaTest.run('AverageArray', [[]])).toBe(0);
+    expect(vbaRunner.run('AverageArray', [[]])).toBe(0);
   });
 });
 ```
@@ -254,7 +254,7 @@ End Function
 
 ```typescript
 describe('Discount Calculation', () => {
-  const vbaTest = new VBARunner('pricing.vba');
+  const vbaRunner = new VBARunner('pricing.vba');
 
   const testCases = [
     { price: 1000, discount: 0.1, expected: 900 },
@@ -265,14 +265,14 @@ describe('Discount Calculation', () => {
 
   testCases.forEach(({ price, discount, expected }) => {
     it(`Discount ${discount * 100}% on $${price} = $${expected}`, () => {
-      const result = vbaTest.run('CalculateDiscount', [price, discount]);
+      const result = vbaRunner.run('CalculateDiscount', [price, discount]);
       expect(result).toBe(expected);
     });
   });
 
   it('should reject invalid discount', () => {
     expect(() => {
-      vbaTest.run('CalculateDiscount', [1000, -0.1]);
+      vbaRunner.run('CalculateDiscount', [1000, -0.1]);
     }).toThrow();
   });
 });
@@ -312,18 +312,18 @@ End Sub
 
 ```typescript
 describe('Stateful Processing', () => {
-  const vbaTest = new VBARunner('stateful.vba');
+  const vbaRunner = new VBARunner('stateful.vba');
 
   it('should process value and store state', () => {
-    const result = vbaTest.run('ProcessAndStore', [100]);
+    const result = vbaRunner.run('ProcessAndStore', [100]);
     expect(result).toBe(200);
-    expect(vbaTest.run('GetLastValue', [])).toBe(200);
+    expect(vbaRunner.run('GetLastValue', [])).toBe(200);
   });
 
   it('should update state on each call', () => {
-    vbaTest.run('ProcessAndStore', [50]);
-    vbaTest.run('ProcessAndStore', [75]);
-    expect(vbaTest.run('GetLastValue', [])).toBe(150);
+    vbaRunner.run('ProcessAndStore', [50]);
+    vbaRunner.run('ProcessAndStore', [75]);
+    expect(vbaRunner.run('GetLastValue', [])).toBe(150);
   });
 });
 ```
@@ -356,21 +356,21 @@ End Function
 
 ```typescript
 describe('Error Handling', () => {
-  const vbaTest = new VBARunner('safe-math.vba');
+  const vbaRunner = new VBARunner('safe-math.vba');
 
   it('should raise error on division by zero', () => {
     expect(() => {
-      vbaTest.run('SafeDivide', [10, 0]);
+      vbaRunner.run('SafeDivide', [10, 0]);
     }).toThrow();
   });
 
   it('should return default on error', () => {
-    const result = vbaTest.run('SafeDivideWithDefault', [10, 0, -1]);
+    const result = vbaRunner.run('SafeDivideWithDefault', [10, 0, -1]);
     expect(result).toBe(-1);
   });
 
   it('should divide normally', () => {
-    const result = vbaTest.run('SafeDivide', [10, 2]);
+    const result = vbaRunner.run('SafeDivide', [10, 2]);
     expect(result).toBe(5);
   });
 });
@@ -458,12 +458,12 @@ End Sub
 import { VBARunner } from './test-libs/test-runner';
 
 // テストファイル
-const vbaTest = new VBARunner('src/vba/business-logic.vba');
+const vbaRunner = new VBARunner('src/vba/business-logic.vba');
 
 // テスト実行
 describe('Business Logic Tests', () => {
   it('should calculate correctly', () => {
-    const result = vbaTest.run('MyFunction', [input]);
+    const result = vbaRunner.run('MyFunction', [input]);
     expect(result).toBe(expected);
   });
 });
@@ -521,7 +521,7 @@ Function ProcessRecords(records() As SalesRecord) As Long
 End Function
 
 ' TypeScript: テストで配列のオブジェクトを渡す
-vbaTest.run('ProcessRecords', [[
+vbaRunner.run('ProcessRecords', [[
     { Month: 'Jan', Amount: 100, Category: 'A' },
     { Month: 'Feb', Amount: 200, Category: 'B' }
 ]]);

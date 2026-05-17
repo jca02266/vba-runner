@@ -36,11 +36,11 @@ function collectProcedures(environment: any): Map<string, any> {
     return procs;
 }
 
-function injectFile(vbaTest: VBARunner, filePath: string): void {
+function injectFile(vbaRunner: VBARunner, filePath: string): void {
     let source = fs.readFileSync(filePath, 'utf-8');
     const ext = path.extname(filePath).toLowerCase();
     const moduleName = path.basename(filePath, path.extname(filePath));
-    const evaluator = (vbaTest as any).evaluator;
+    const evaluator = (vbaRunner as any).evaluator;
     evaluator.setSourceModule(moduleName);
     if (ext === '.cls' && !source.trim().toLowerCase().startsWith('class ') && !source.toLowerCase().includes('end class')) {
         source = `Class ${moduleName}\n${source}\nEnd Class`;
@@ -49,8 +49,8 @@ function injectFile(vbaTest: VBARunner, filePath: string): void {
     evaluator.evaluate(ast);
 }
 
-function runSuite(label: string, vbaTest: VBARunner): void {
-    const evaluator = (vbaTest as any).evaluator;
+function runSuite(label: string, vbaRunner: VBARunner): void {
+    const evaluator = (vbaRunner as any).evaluator;
     const allProcs = collectProcedures(evaluator.env);
 
     for (const [procName] of allProcs) {
@@ -66,7 +66,7 @@ function runSuite(label: string, vbaTest: VBARunner): void {
 
         try {
             if (moduleName && allProcs.has(`${moduleName}:setup`)) {
-                vbaTest.run(`${moduleName}:setup`, []);
+                vbaRunner.run(`${moduleName}:setup`, []);
             }
 
             const wrapperCode = [
@@ -88,7 +88,7 @@ function runSuite(label: string, vbaTest: VBARunner): void {
             console.log(`  ✅ Pass\n`);
 
             if (moduleName && allProcs.has(`${moduleName}:teardown`)) {
-                vbaTest.run(`${moduleName}:teardown`, []);
+                vbaRunner.run(`${moduleName}:teardown`, []);
             }
         } catch (e: any) {
             console.error(`  ❌ FAILED: ${e.message}\n`);

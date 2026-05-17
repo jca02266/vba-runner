@@ -380,7 +380,7 @@ TESTING_STRATEGY.md
 → **[TESTING_STRATEGY.md](TESTING_STRATEGY.md)** 全体
 
 ### 「`Now()` など日時依存のコードをテストしたい」
-→ **[TEST_FRAMEWORK_GUIDE.md — パターン7](TEST_FRAMEWORK_GUIDE.md)** (`vbaTest.mockDate()`)
+→ **[TEST_FRAMEWORK_GUIDE.md — パターン7](TEST_FRAMEWORK_GUIDE.md)** (`vbaRunner.mockDate()`)
 
 ### 「VBARunner の API を確認したい」
 → **[TEST_FRAMEWORK_GUIDE.md — VBARunner API リファレンス](TEST_FRAMEWORK_GUIDE.md)**

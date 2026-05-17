@@ -1,9 +1,8 @@
 /**
  * VBScript.RegExp モック実装のテスト
  *
- * test-libs/regexp-mock.ts の `createRegExpMock` を `VBATest.registerExternalObject`
- * で登録し、VBA から `CreateObject("VBScript.RegExp")` を呼んだ際に意図通り
- * 動作することを検証する。
+ * test-libs/regexp-mock.ts の `createRegExpMock` を登録し、
+ * VBA から `CreateObject("VBScript.RegExp")` を呼んだ際に意図通り動作することを検証する。
  */
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
