@@ -1,7 +1,7 @@
 # Agent Information
 
 **If you are here for refactoring assistance, read `FOR_AI.md` first.**
-If you are here to work on the compiler implementation, continue reading this file.
+If you are here to work on the VBA engine implementation, continue reading this file.
 
 ## How to Start the Web App (for Development)
 
