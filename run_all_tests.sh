@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # プロジェクト内のすべてのテストを一括実行するスクリプト
-#  - tests/engine/           : コンパイラエンジン内部のテスト（Lexer, Parser, AST構造）
+#  - tests/engine/           : エンジン内部のテスト（Lexer, Parser, AST構造）
 #  - tests/lsp/              : LSP（Language Server Protocol）のテスト
 #  - tests/spec/             : VBA Runner の仕様テスト
 #  - tests/test-libs-tests/  : test-libs/ (VBARunner 等) のテスト

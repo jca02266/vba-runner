@@ -2,7 +2,7 @@
  * CurDir / CurDir$ 関数のテスト (§6.1.2.5.1.1)
  *
  * VBA のカレントディレクトリ取得関数。
- * 本コンパイラでは Sandbox ルートを Windows 形式の仮想パスとして返す。
+ * VBA Runner では Sandbox ルートを Windows 形式の仮想パスとして返す。
  */
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';

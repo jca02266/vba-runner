@@ -15,7 +15,7 @@ Excel 不要で VBA コードを実行・テスト・静的解析できます。
 | `src/App.tsx` 他 React ファイル | Web UI。リファクタリングには不要 |
 | `dist/` | ビルド成果物 |
 | `node_modules/` | パッケージ |
-| `TODO.md` | VBA実行エンジンのコンパイラ実装TODO。リファクタリング支援とは無関係 |
+| `TODO.md` | VBA実行エンジンの実装TODO。リファクタリング支援とは無関係 |
 | `docs/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
 | `tests/lsp/`, `tests/engine/`, `tests/spec/` | VBA実行エンジン自体のテスト。触らなくてよい |
 
