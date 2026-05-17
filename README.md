@@ -906,6 +906,8 @@ const result = fs.readFileSync('./sandbox/c/output.txt', 'utf-8');
 2. `F5` キーで「Extension Development Host」を起動する
 3. 新しいウィンドウで `.vba` / `.bas` / `.cls` / `.frm` ファイルを開く
 
+LSPの設計・実装方針については [`LSP.md`](LSP.md) を参照してください。
+
 ### 実装済みLSP機能
 
 #### ホバー (Hover)
