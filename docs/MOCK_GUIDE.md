@@ -1029,6 +1029,46 @@ expect(result).toBe(1);
 
 ---
 
+### 原則 4: テストごとにデータを独立させる
+
+複数のテストが1つのモックデータを共有すると、データや期待値の変更が他のテストに波及し、壊れやすいテストスイートになる。**テストごとに入力と期待値を定義する**のが基本方針。
+
+**❌ 悪い：共有モックへの依存**
+
+```typescript
+// トップレベルで1つのモックを定義 → 全テストが依存
+const mockSheet = new MockWorksheet();
+mockSheet.setCellValue('A1', 100);
+mockSheet.setCellValue('A2', 200);
+
+test1(mockSheet); // A1=100 を前提
+test2(mockSheet); // A2=200 を前提 → test1 の変更が波及する
+```
+
+**✅ 良い：テストごとに独立したデータを定義**
+
+```typescript
+// テストごとに最小限のデータを用意
+it('test1', () => {
+    const ws = new MockWorksheet();
+    ws.setCellValue('A1', 100);
+    // ...
+});
+
+it('test2', () => {
+    const ws = new MockWorksheet();
+    ws.setCellValue('A2', 200);
+    // ...
+});
+```
+
+**理由**:
+- どのテストがどのデータに依存するかが明確
+- あるテストのデータ変更が他に波及しない
+- テスト単独での読解・デバッグが容易
+
+---
+
 ## 10. アンチパターン：避けるべき実装
 
 ### アンチパターン 1: テスト固有の複雑ロジック

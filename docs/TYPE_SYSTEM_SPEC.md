@@ -115,54 +115,6 @@ x = 40000  ' → Runtime Error 6: Overflow
 `Parameter` インターフェースに `paramType?: string` フィールドを追加する。
 現在 `parseParameter()` では `As` の後のトークンを `this.advance()` で読み捨てているが、これを保持するように変更する。
 
-## 実装の影響範囲
-
-### 変更が必要なファイル
-
-1. **`src/engine/evaluator.ts`**
-   - `Environment` クラスに `variableTypes` マップと関連メソッドを追加
-   - `evaluateVariableDeclaration()` で型情報を登録
-   - `Environment.set()` で型チェック付き代入を実装
-   - `TypeName()` / `VarType()` を環境メタデータ対応に改修
-   - リテラルの型推論ロジックを追加
-
-2. **`src/engine/parser.ts`**
-   - `Parameter` インターフェースに `paramType` フィールド追加
-   - `parseParameter()` で型名を保持
-
-### 変更が不要な箇所
-
-- `evaluateBinaryExpression()`: 算術演算はそのまま（`number` のまま動作）
-- `toVbaNumber()` / `toNumber()`: 変換ロジックは既存のまま
-- `typeof val === 'number'` のチェック: すべてそのまま動作
-
-## テスト計画
-
-以下のテストケースを `tests/spec/type-system.test.ts` に実装する。
-
-### TypeName テスト
-- `Dim x As Integer: TypeName(x)` → `"Integer"`
-- `Dim x As Long: TypeName(x)` → `"Long"`
-- `Dim x As String: TypeName(x)` → `"String"`
-- `TypeName(10)` → `"Integer"` （リテラル型推論）
-- `TypeName(40000)` → `"Long"` （リテラル型推論）
-- `TypeName(10.5)` → `"Double"` （リテラル型推論）
-
-### VarType テスト
-- `Dim x As Integer: VarType(x)` → `2`
-- `Dim x As Long: VarType(x)` → `3`
-
-### オーバーフローテスト
-- `Dim x As Integer: x = 40000` → エラー 6
-- `Dim x As Byte: x = 256` → エラー 6
-- `Dim x As Byte: x = -1` → エラー 6
-- `Dim x As Long: x = 3000000000` → エラー 6
-- `Dim x As Integer: x = 100` → 正常（100）
-
-### 型強制変換テスト
-- `Dim x As Integer: x = 10.7` → `11`（Banker's Rounding）
-- `Dim x As String: x = 123` → `"123"`
-
 ## 将来の拡張パス
 
 方式Bから方式A（フルラップ方式）への移行が将来必要になった場合：
