@@ -127,14 +127,27 @@ const vbaTest = new VBATest('sample/src/vba/TaskScheduler_Core.vba', {
 
 ## リファクタリング支援のワークフロー
 
+> **⚠️ 重要: VBAファイルを直接 `cat` / `Read` で全文読むことは禁止。**
+> 全文読み込みはトークンを大量消費し、このツールの存在意義を消す。
+> 常に `vba-analyzer` の出力を起点とし、**必要な行範囲だけを狙い読みする**こと。
+
 ### Step 1: 対象コードを把握する
 
 ```bash
-# アウトライン表示（AI向けコンテキスト圧縮）
+# まずアウトラインで全体把握（50行以内に圧縮される）
 node test-libs/vba-analyzer.cjs sample/src/vba_legacy/ --outline
 
-# 問題箇所の列挙
+# 詳細な問題箇所一覧（assignmentBlocks・duplicateBlocks・prefixClusters など）
 node test-libs/vba-analyzer.cjs sample/src/vba_legacy/TaskScheduler_v1.vba
+```
+
+アナライザ出力の `assignmentBlocks`, `duplicateBlocks`, `excelAccessSamples` には
+**行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
+
+```bash
+# 例: 重複ブロックの L81-L83 と L389-L391 だけ読む
+sed -n '79,85p' sample/src/vba_legacy/TaskScheduler_v1.vba
+sed -n '387,393p' sample/src/vba_legacy/TaskScheduler_v1.vba
 ```
 
 ### Step 2: リファクタリング前のスナップショットを取る

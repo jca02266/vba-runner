@@ -108,6 +108,13 @@ Function GetAssigneeName(taskDataFrame As Variant, taskRow As Long, taskCfg As T
     GetAssigneeName = Trim(taskDataFrame(taskRow, taskCfg.COL_ASSIGNEE))
 End Function
 
+' グリッドセルの値を Double として返す。空・非数値の場合は 0 を返す。
+Function GetNumericCellValue(grid As Variant, r As Long, c As Long) As Double
+    Dim v As Variant
+    v = grid(r, c)
+    If IsNumeric(v) And Not IsEmpty(v) Then GetNumericCellValue = CDbl(v) Else GetNumericCellValue = 0
+End Function
+
 Function GetTaskLevel(taskDataFrame As Variant, taskRow As Long, taskCfg As TaskConfig) As Long
     GetTaskLevel = 0
     If IsNumeric(taskDataFrame(taskRow, taskCfg.COL_LEVEL)) And Not IsEmpty(taskDataFrame(taskRow, taskCfg.COL_LEVEL)) Then
@@ -245,38 +252,35 @@ End Function
 
 ' Refactor #6: Extract Phase 1 (Scan Locked Rows)
 ' 全タスクをスキャンし、「L」マーク（ロック）がついている場合は既存スケジュールを assigneeUsage (実績Dict) に事前割り当てする
+' ロック行の日別グリッド値を newAllocArray に加算する
+Sub AccumulateLockedRowUsage(taskRow As Long, numDays As Long, scheduleGrid As Variant, ByRef newAllocArray() As Double)
+    Dim dayIdx As Long
+    Dim existingAlloc As Double
+    For dayIdx = 1 To numDays
+        existingAlloc = GetNumericCellValue(scheduleGrid, taskRow, dayIdx)
+        If existingAlloc > 0 Then
+            newAllocArray(dayIdx) = newAllocArray(dayIdx) + existingAlloc
+        End If
+    Next dayIdx
+End Sub
+
 Sub ScanLockedRows(taskCfg As TaskConfig, numRows As Long, numDays As Long, taskDataFrame As Variant, scheduleGrid As Variant, ByRef assigneeUsage As Object)
     Dim taskRow As Long
-    Dim dayIdx As Long
     Dim assigneeName As String
     Dim newAllocArray() As Double
-    Dim cellVal As Variant
-    Dim existingAlloc As Double
 
     For taskRow = 1 To numRows
         assigneeName = Trim(taskDataFrame(taskRow, taskCfg.COL_ASSIGNEE))
-        
+
         If assigneeName <> "" Then
-            ' Initialize empty array for person if not exists
             If Not assigneeUsage.Exists(assigneeName) Then
                 ReDim newAllocArray(1 To numDays) As Double
                 assigneeUsage.Add assigneeName, newAllocArray
             End If
-            
-            ' If row is locked, scan its grid and pre-allocate usage
+
             If UCase(Trim(taskDataFrame(taskRow, taskCfg.COL_LOCK))) = taskCfg.STR_LOCK_MARK Then
                 newAllocArray = assigneeUsage(assigneeName)
-                For dayIdx = 1 To numDays
-                    cellVal = scheduleGrid(taskRow, dayIdx)
-                    existingAlloc = 0
-                    If IsNumeric(cellVal) And Not IsEmpty(cellVal) Then
-                        existingAlloc = CDbl(cellVal)
-                    End If
-                    
-                    If existingAlloc > 0 Then
-                        newAllocArray(dayIdx) = newAllocArray(dayIdx) + existingAlloc
-                    End If
-                Next dayIdx
+                Call AccumulateLockedRowUsage(taskRow, numDays, scheduleGrid, newAllocArray)
                 assigneeUsage(assigneeName) = newAllocArray
             End If
         End If
@@ -296,17 +300,13 @@ End Sub
 ' ロックされたタスク行を右から左へスキャンし、最後に割り当てがある日 (taskFinishIdx) とその量 (taskFinishAlloc) を見つける
 Sub FindLockedTaskFinish(ByVal taskRow As Long, ByVal numDays As Long, ByRef scheduleGrid As Variant, ByRef taskFinishIdx As Long, ByRef taskFinishAlloc As Double)
     Dim dayIdx As Long
-    Dim cellVal As Variant
     Dim existingAlloc As Double
-    
+
     taskFinishIdx = 0
     taskFinishAlloc = 0
-    
+
     For dayIdx = numDays To 1 Step -1
-        cellVal = scheduleGrid(taskRow, dayIdx)
-        existingAlloc = 0
-        If IsNumeric(cellVal) And Not IsEmpty(cellVal) Then existingAlloc = CDbl(cellVal)
-        
+        existingAlloc = GetNumericCellValue(scheduleGrid, taskRow, dayIdx)
         If existingAlloc > 0 Then
             taskFinishIdx = dayIdx
             taskFinishAlloc = existingAlloc
