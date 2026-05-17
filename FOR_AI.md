@@ -240,9 +240,19 @@ assert.strictEqual(vbaTest.run('GetNumericCellValue', [grid, 1, 4]), 0,   "null 
 node test-libs/vba-analyzer.cjs <対象ファイル>
 ```
 
-**今回選んだ1件**に対応するフラグが変化したことを確認する。
-残っている他のフラグは「次回以降の候補」であり、今すぐ消す必要はない。
+**今回選んだ1件**に対応するフラグが変化したことを確認し、ユーザーに定量的に報告する。
 
+報告に含めるべき項目:
+
+| 項目 | 報告の例 |
+|---|---|
+| 変更した関数と行数の変化 | `ScanLockedRows`: 37行 → 22行（抽出先 `AccumulateLockedRowUsage` 10行） |
+| ネスト深さの変化 | `ScanLockedRows`: DEEP_NEST 5段 → 3段 |
+| 重複の解消件数 | `[4文×2箇所]` の重複を `GetNumericCellValue` に集約、重複ブロック警告が消滅 |
+| 追加したテスト数と検証したエッジケース | `GetNumericCellValue` に4ケース追加（空値・文字列・null・通常値） |
+| 変更していない関数 | `ScheduleUnlockedTask`・`BuildCapacityDict` は今回対象外 |
+
+残っている他のフラグは「次回以降の候補」として列挙し、ユーザーが続けるかどうか判断できるよう渡す。
 アナライザはあくまで候補の提示ツールであり、フラグをゼロにすることが目的ではない。
 「全フラグを消す」を目指すと過剰なリファクタリングになる。止め時の判断はユーザーに委ねる。
 
