@@ -97,17 +97,13 @@ function reportByDept(records) {
 
 ## JavaScript: groupBy 版
 
-モダンな JavaScript では `reduce` + `Object.entries` によるグループ化も有効。
+ES2024 で導入された `Object.groupBy()` は**組み込み高階関数**であり、ループ抽象が言語レベルで提供されているため簡潔に書ける。
 ただしデータをすべてメモリに展開するため、大量データには向かない。
 また「ソート済みデータをストリーム的に処理する」という前提が失われる点に注意。
 
 ```javascript
 function reportByDept(records) {
-    const groups = records.reduce((acc, r) => {
-        (acc[r.dept] ??= []).push(r);
-        return acc;
-    }, {});
-
+    const groups = Object.groupBy(records, r => r.dept);
     for (const [dept, items] of Object.entries(groups)) {
         const subtotal = items.reduce((sum, r) => sum + r.amount, 0);
         console.log(`${dept}: ${subtotal}`);
