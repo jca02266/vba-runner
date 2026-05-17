@@ -918,7 +918,10 @@ export class Evaluator {
         });
         this.env.set('clngptr', this.env.get('clnglng'));
         this.env.set('cstr', (val: any) => val === vbaNull ? this.throwVbaError(94, "Invalid use of Null") : String(val === vbaEmpty ? "" : val));
-        this.env.set('cbool', (val: any) => this.isTrue(val) ? vbaTrue : vbaFalse);
+        this.env.set('cbool', (val: any) => {
+            if (val === vbaNull) this.throwVbaError(94, 'Invalid use of Null');
+            return this.coerceToBoolean(val);
+        });
         this.env.set('cvar', (val: any) => val);
         this.env.set('cverr', (val: any) => {
             if (val instanceof VbaErrorValue) return val;
@@ -4731,6 +4734,12 @@ export class Evaluator {
             throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
         };
 
+        // 比較演算子では VbaBoolean を数値として扱う（True=-1, False=0）
+        if (comparisonOps.has(op)) {
+            if (leftVal instanceof VbaBoolean) leftVal = leftVal.value;
+            if (rightVal instanceof VbaBoolean) rightVal = rightVal.value;
+        }
+
         const isPlusConcatenation = op === '+' && typeof leftVal === 'string' && typeof rightVal === 'string';
         const numericArithOps = new Set(['-', '*', '/', '\\', 'mod', '^']);
         if (numericArithOps.has(op) || (op === '+' && !isPlusConcatenation)) {
@@ -4922,7 +4931,8 @@ export class Evaluator {
     }
 
     private isTrue(val: any): boolean {
-        if (val === undefined || val === null || val === vbaNull) return false;
+        if (val === vbaNull) this.throwVbaError(94, 'Invalid use of Null');
+        if (val === undefined || val === null) return false;
         if (val instanceof VbaBoolean) return val.value !== 0;
         if (typeof val === 'number') return val !== 0;
         if (typeof val === 'boolean') return val;
