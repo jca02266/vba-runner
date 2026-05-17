@@ -2,14 +2,14 @@
 
 ## 概要
 
-このドキュメントは、**実際のレガシーコード（TaskScheduler_v1.vba）をリファクタリングして（TaskScheduler.bas + TaskScheduler_Core.vba）どのように改善されたか、具体的に示します**。
+このドキュメントは、**実際のレガシーコード（TaskScheduler_v1.bas）をリファクタリングして（TaskScheduler.bas + TaskScheduler_Core.bas）どのように改善されたか、具体的に示します**。
 
 ### 対象コード
 
-- **リファクタリング前**: `sample/src/vba_legacy/TaskScheduler_v1.vba`（393 行の巨大 Sub）
-- **リファクタリング後**: `sample/src/vba/TaskScheduler.vba` + `sample/src/vba/TaskScheduler_Core.vba`
+- **リファクタリング前**: `sample/src/vba_legacy/TaskScheduler_v1.bas`（393 行の巨大 Sub）
+- **リファクタリング後**: `sample/src/vba/TaskScheduler.bas` + `sample/src/vba/TaskScheduler_Core.bas`
 
-`TaskScheduler_v1.vba` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/vba_legacy/TaskScheduler.md`](../sample/src/vba_legacy/TaskScheduler.md) を参照してください。
+`TaskScheduler_v1.bas` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/vba_legacy/TaskScheduler.md`](../sample/src/vba_legacy/TaskScheduler.md) を参照してください。
 
 ---
 
@@ -102,7 +102,7 @@ Next
 
 ## TaskScheduler_v1.bas の処理概要
 
-このセクションでは、リファクタリング前の TaskScheduler_v1.vba（393 行の巨大 Sub）がどのような処理フローを実装しているのか、詳細に説明します。このコードは実業務で必要な複雑なロジックを含んでいますが、すべてが 1 つの Sub に詰め込まれているため、その複雑さが明らかになりにくくなっています。
+このセクションでは、リファクタリング前の TaskScheduler_v1.bas（393 行の巨大 Sub）がどのような処理フローを実装しているのか、詳細に説明します。このコードは実業務で必要な複雑なロジックを含んでいますが、すべてが 1 つの Sub に詰め込まれているため、その複雑さが明らかになりにくくなっています。
 
 ### フェーズ 0: 初期化と最適化（行 49-84）
 
@@ -490,7 +490,7 @@ assert.deepEqual(result.grid[0][0], 0.1);  // 期待値
 リファクタリングにより、ビジネスロジックが **I/O から分離** されます：
 
 ```vba
-' TaskScheduler_Core.vba: 純粋な関数（Excel 不要）
+' TaskScheduler_Core.bas: 純粋な関数（Excel 不要）
 Function CalcBaseStartIdx(currentLevel As Long, parentFinishIdx As Long, _
                           parentFinishAlloc As Double) As Long
     ' 入力: プリミティブ型のみ
@@ -504,7 +504,7 @@ Function ScheduleUnlockedTask(taskRow As Long, numDays As Long, ...) As Long
     ' → テスト可能！
 End Function
 
-' TaskScheduler.vba: I/O だけを担当
+' TaskScheduler.bas: I/O だけを担当
 Sub AutoScheduleTasks()
     ' フェーズ 0-3: I/O（Excel 読み込み）
     Call ReadConfigs(...)
@@ -796,7 +796,7 @@ Next taskRow
 Call ScanLockedRows(taskCfg, numRows, numDays, taskDataFrame, scheduleGrid, assigneeUsage)
 ```
 
-**TaskScheduler_Core.vba**:
+**TaskScheduler_Core.bas**:
 ```vba
 Sub ScanLockedRows(taskCfg As TaskConfig, numRows As Long, numDays As Long, _
                    taskDataFrame As Variant, scheduleGrid As Variant, assigneeUsage As Object)
@@ -1037,7 +1037,7 @@ End Type
 
 ### VBA 側の実装
 
-`GetSetting` は [`sample/src/vba/LibSheet.vba`](../sample/src/vba/LibSheet.bas) に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
+`GetSetting` は [`sample/src/vba/LibSheet.bas`](../sample/src/vba/LibSheet.bas) に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
 
 ```vba
 ' LibSheet.bas
@@ -1065,7 +1065,7 @@ Function InitTaskConfig(tbl As ListObject) As TaskConfig
     InitTaskConfig = cfg
 End Function
 
-' 呼び出し元（TaskScheduler.vba）
+' 呼び出し元（TaskScheduler.bas）
 Sub AutoScheduleTasks()
     Dim tbl As ListObject
     Set tbl = Worksheets("設定").ListObjects("設定")

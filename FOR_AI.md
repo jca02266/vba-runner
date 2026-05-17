@@ -281,8 +281,8 @@ node test-libs/vba-analyzer.cjs <対象ファイル>
 
 | ファイル | 用途 |
 |---|---|
-| `sample/src/vba_legacy/TaskScheduler_v1.vba` | リファクタリング**前**の原典。巨大関数(394行)。解析のベンチマーク対象 |
-| `sample/src/vba/TaskScheduler_Core.vba` | リファクタリング**後**の純粋ロジック。テスト対象 |
-| `sample/src/vba/TaskScheduler.vba` | リファクタリング後のメインルーチン（Excel依存部分） |
+| `sample/src/vba_legacy/TaskScheduler_v1.bas` | リファクタリング**前**の原典。巨大関数(394行)。解析のベンチマーク対象 |
+| `sample/src/vba/TaskScheduler_Core.bas` | リファクタリング**後**の純粋ロジック。テスト対象 |
+| `sample/src/vba/TaskScheduler.bas` | リファクタリング後のメインルーチン（Excel依存部分） |
 | `sample/src/vba_legacy/TaskScheduler.md` | リファクタリングの設計メモ |
 | `docs/REFACTORING_EXAMPLE.md` | TaskSchedulerのリファクタリング手順の記録 |

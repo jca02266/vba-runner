@@ -225,7 +225,7 @@ if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes
         console.error('VBA Test Generator - Generate test runners from VBA test files');
         console.error('');
         console.error('Usage:');
-        console.error('  vba-test-generator.ts <input.vba> [output.vba] [options]');
+        console.error('  vba-test-generator.ts <input.bas> [output.bas] [options]');
         console.error('  vba-test-generator.ts --dir <directory> [output-directory] [options]');
         console.error('');
         console.error('Options:');

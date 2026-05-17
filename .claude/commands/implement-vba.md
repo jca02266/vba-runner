@@ -36,8 +36,8 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 **VBA ランタイム挙動の場合**:
 以下の両方を作成する：
 - TypeScript テスト: `tests/spec/<機能名>.test.ts` （基本的な動作確認用）
-- VBA ソーステスト: `tests/spec/vba/<機能名>_test.vba` （実際のVBAコードの挙動確認用）
-  - ファイル名例: `byref_arrays_test.vba`, `default_property_test.vba`, `auto_instantiation_test.vba`
+- VBA ソーステスト: `tests/spec/vba/<機能名>_test.bas` （実際のVBAコードの挙動確認用）
+  - ファイル名例: `byref_arrays_test.bas`, `default_property_test.bas`, `auto_instantiation_test.bas`
   - テストプロシージャは `Test_` で始まる名前で記述（`Test_BasicBehavior` など）
   - TODO.md の「VBA ランタイム挙動」セクションに両テストファイル名を記載
 
@@ -65,7 +65,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 ```
 
 **テストの書き方**:
-- VBAコードはテンプレートリテラルのインライン文字列として書く（`.vba` ファイルは使わない）
+- VBAコードはテンプレートリテラルのインライン文字列として書く（`.bas` ファイルは使わない）
 - 引数なしでプロシージャを呼ぶ場合も `runFunc(code, 'FuncName')` を使う
 - 式や副作用のみ確認する場合は `evalVBA(code)` を使う
 - アサーションは `assert.strictEqual(actual, expected, 'テストの説明')` を使う
@@ -86,13 +86,13 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 
 | 種類 | 命名 | 例 |
 |---|---|---|
-| テストプロシージャを含む `.vba` | `<名前>Test.vba` | `ArgCountTest.vba` |
+| テストプロシージャを含む `.bas` | `<名前>Test.bas` | `ArgCountTest.bas` |
 | テスト専用サポートクラス `.cls` | 短い名前（`Test` サフィックスなし） | `RefA.cls`, `Helper.cls` |
 | 共通インフラクラス `.cls` | 用途がわかる名前 | `AssertHelper.cls` |
 
 **モジュール名の長さ制限（31文字）への対応**:
 - VBA ではモジュール名（= ファイル名から拡張子を除いたもの）が **31文字以内** でなければならない
-- テストに複数のファイル（`.vba` + 複数の `.cls`）が必要な場合は、**サブディレクトリを作成**してファイル名を短くする
+- テストに複数のファイル（`.bas` + 複数の `.cls`）が必要な場合は、**サブディレクトリを作成**してファイル名を短くする
 
 ```
 tests/spec/vba/
@@ -131,7 +131,7 @@ Sub TearDown()
 End Sub
 ```
 
-> **注意**: `test-libs/test-runner.ts` の `VBARunner` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
+> **注意**: `test-libs/test-runner.ts` の `VBARunner` クラスは `sample/tests/ts/` 配下の `.bas` ファイルを読み込むためのもの。`tests/spec/` では使わない。
 
 ### Step 5: 実装
 
@@ -172,7 +172,7 @@ End Sub
 
 **VBA ランタイム挙動の場合は、テスト列に両テストファイル名を記載する：**
 ```
-| ✅ | **機能説明** | テスト: `feature-name.test.ts`, `feature_name_test.vba` |
+| ✅ | **機能説明** | テスト: `feature-name.test.ts`, `feature_name_test.bas` |
 ```
 
 以下の形式でコミットする:

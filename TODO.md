@@ -447,7 +447,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
   - ✅ 修正: Test 7 ByRef パラメータ - implicit Value getter の実装で副次的に修正
 - ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラ解除 (制限事項: RaiseEventコア存在; ハンドラ自動登録・検出機構未実装、イベントパラメータ解析未対応) | `withevents-lifecycle.test.ts`
-- ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.vba` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.vba`)
+- ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - ✅ **`Implements` インターフェース呼び出し**: `obj.Speak` → `IAnimal_Speak` のインターフェースディスパッチ | テスト: `implements-dispatch.test.ts`
 
@@ -489,7 +489,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
 - ✅ **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度 | `property-resolution-order.test.ts`
 - ✅ **暗黙の Let（`Call` なしの呼び出し）**: 戻り値が破棄される / されない場面 | `implicit-let.test.ts`
-- ✅ **引数の数の検証**: プロシージャ呼び出し時に引数の個数が定義と異なる場合にエラーを発生させる (Error 450 / 449) | テスト: `ArgCountTest.vba`
+- ✅ **引数の数の検証**: プロシージャ呼び出し時に引数の個数が定義と異なる場合にエラーを発生させる (Error 450 / 449) | テスト: `ArgCountTest.bas`
   - 制限事項: VBA 本来はコンパイルエラーだが、本インタープリターでは実行時エラーとして発生させる
 
 ### 数値・日付の演算
@@ -557,19 +557,19 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Error 3 — Return without GoSub
 
-- ✅ `evaluator.ts:3508` `Return without GoSub` → `throwVbaError(3, ...)` | `ControlFlowErrorTest.vba`
+- ✅ `evaluator.ts:3508` `Return without GoSub` → `throwVbaError(3, ...)` | `ControlFlowErrorTest.bas`
 
 ### Error 5 — Invalid procedure call or argument
 
-- ✅ `evaluator.ts:202, 205` `VbaCollection.findIndex` でキー未発見 → `throwVbaError(5, ...)` | `CollectionErrorTest.vba`
-- ✅ `evaluator.ts:2278` On…GoTo/GoSub のインデックス範囲外 → `throwVbaError(5, ...)` | `MiscErrorTest.vba`
-- ✅ `Environment.set` 定数への代入 → VbaError 5 | `MiscErrorTest.vba`
+- ✅ `evaluator.ts:202, 205` `VbaCollection.findIndex` でキー未発見 → `throwVbaError(5, ...)` | `CollectionErrorTest.bas`
+- ✅ `evaluator.ts:2278` On…GoTo/GoSub のインデックス範囲外 → `throwVbaError(5, ...)` | `MiscErrorTest.bas`
+- ✅ `Environment.set` 定数への代入 → VbaError 5 | `MiscErrorTest.bas`
 
 ### Error 9 — Subscript out of range
 
-- ✅ `evaluator.ts:197` `VbaCollection.findIndex` の数値インデックス範囲外 → `throwVbaError(9, ...)` | `CollectionErrorTest.vba`
-- ✅ `evaluator.ts:3614` `createMultiDimArray` で upper < lower → VbaError 9 | `MiscErrorTest.vba`
-- ✅ `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, ...)` | `MiscErrorTest.vba`
+- ✅ `evaluator.ts:197` `VbaCollection.findIndex` の数値インデックス範囲外 → `throwVbaError(9, ...)` | `CollectionErrorTest.bas`
+- ✅ `evaluator.ts:3614` `createMultiDimArray` で upper < lower → VbaError 9 | `MiscErrorTest.bas`
+- ✅ `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, ...)` | `MiscErrorTest.bas`
 - ✅ 代入先が配列/辞書でない変数の添字アクセス (`x(0) = 5`) → `throwVbaError(9, ...)`
 
 ### Error 11 — Division by zero
@@ -578,42 +578,42 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Error 13 — Type mismatch
 
-- ✅ `evaluator.ts:2043` `For Each` に配列でもコレクションでもない値を渡したとき → `throwVbaError(13, ...)` | `ControlFlowErrorTest.vba`
+- ✅ `evaluator.ts:2043` `For Each` に配列でもコレクションでもない値を渡したとき → `throwVbaError(13, ...)` | `ControlFlowErrorTest.bas`
 
 ### Error 35 — Sub or Function not defined
 
-- ✅ `evaluator.ts:1646` `callProcedure` でプロシージャが見つからないとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
-- ✅ `evaluator.ts:4217` `evaluateCallExpression` で未知の識別子が引数付きで呼ばれたとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.vba`
+- ✅ `evaluator.ts:1646` `callProcedure` でプロシージャが見つからないとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.bas`
+- ✅ `evaluator.ts:4217` `evaluateCallExpression` で未知の識別子が引数付きで呼ばれたとき → `throwVbaError(35, ...)` | `ProcNotFoundTest.bas`
 - ✅ `Environment.getProcedure` で同名プロシージャが複数モジュールに存在する（曖昧性エラー）→ VbaError 35
 
 ### Error 52 — Bad file name or number
 
-- ✅ `evaluateWriteStatement`, `evaluateInputStatement`, `evaluateGetStatement`, `evaluateSeekStatement` でファイル未オープン → `throwVbaError(52, ...)` | `ControlFlowErrorTest.vba`
+- ✅ `evaluateWriteStatement`, `evaluateInputStatement`, `evaluateGetStatement`, `evaluateSeekStatement` でファイル未オープン → `throwVbaError(52, ...)` | `ControlFlowErrorTest.bas`
   - 注: `Print #`, `Line Input #`, `Put #` は既に `throwVbaError(52)` 実装済み
 
 ### Error 91 — Object variable or With block variable not set
 
-- ✅ プロパティ代入先が `Nothing` / `undefined` のとき (Lines 2582, 2594, 2967) → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateCallExpression` MemberExpression ブランチで obj が `Nothing`/`null` → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateMemberExpression` で obj が `Nothing`/`null`/`undefined` → `throwVbaError(91, ...)` | `ObjectErrorTest.vba`
+- ✅ プロパティ代入先が `Nothing` / `undefined` のとき (Lines 2582, 2594, 2967) → `throwVbaError(91, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateCallExpression` MemberExpression ブランチで obj が `Nothing`/`null` → `throwVbaError(91, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateMemberExpression` で obj が `Nothing`/`null`/`undefined` → `throwVbaError(91, ...)` | `ObjectErrorTest.bas`
 
 ### Error 424 — Object required
 
-- ✅ `evaluateSetStatement` で右辺が非オブジェクト (`Set x = 5`) → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
-- ✅ プロパティ代入先がプリミティブのとき → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateMemberExpression` で obj がプリミティブ値のとき → `throwVbaError(424, ...)` | `ObjectErrorTest.vba`
+- ✅ `evaluateSetStatement` で右辺が非オブジェクト (`Set x = 5`) → `throwVbaError(424, ...)` | `ObjectErrorTest.bas`
+- ✅ プロパティ代入先がプリミティブのとき → `throwVbaError(424, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateMemberExpression` で obj がプリミティブ値のとき → `throwVbaError(424, ...)` | `ObjectErrorTest.bas`
 
 ### Error 429 — ActiveX component can't create object
 
-- ✅ `evaluator.ts:2724` `New ClassName` でクラス未定義のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.vba`
-- ✅ `evaluator.ts:3294` `CreateObject(progId)` で未サポートの ProgID のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.vba`
+- ✅ `evaluator.ts:2724` `New ClassName` でクラス未定義のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.bas`
+- ✅ `evaluator.ts:3294` `CreateObject(progId)` で未サポートの ProgID のとき → `throwVbaError(429, ...)` | `ProcNotFoundTest.bas`
 
 ### Error 438 — Object doesn't support this property or method
 
-- ✅ `evaluateCallExpression`: クラスインスタンスに存在しないメソッド → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateCallExpression`: JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateMemberExpression`: プロパティが見つからない → `throwVbaError(438, ...)` | `ObjectErrorTest.vba`
-- ✅ `evaluateDictionaryAccessExpression`: `!` アクセスが非 Dictionary → `throwVbaError(438, ...)` | `MiscErrorTest.vba`
+- ✅ `evaluateCallExpression`: クラスインスタンスに存在しないメソッド → `throwVbaError(438, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateCallExpression`: JS オブジェクトに存在しないメソッド/プロパティ → `throwVbaError(438, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateMemberExpression`: プロパティが見つからない → `throwVbaError(438, ...)` | `ObjectErrorTest.bas`
+- ✅ `evaluateDictionaryAccessExpression`: `!` アクセスが非 Dictionary → `throwVbaError(438, ...)` | `MiscErrorTest.bas`
 - ✅ `evaluateCallExpression`: デフォルトプロパティが見つからない → `throwVbaError(438, ...)`
 - ✅ `evaluateLetStatement`: デフォルト `Item` setter が見つからない → `throwVbaError(438, ...)`
 - ✅ Dictionary アクセス時に引数なし → `throwVbaError(449, "Argument not optional")` に変更
@@ -624,4 +624,4 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Error 457 — This key is already associated with an element of this collection
 
-- ✅ `evaluator.ts:179` `VbaCollection.add` でキー重複のとき → `throwVbaError(457, ...)` | `CollectionErrorTest.vba`
+- ✅ `evaluator.ts:179` `VbaCollection.add` でキー重複のとき → `throwVbaError(457, ...)` | `CollectionErrorTest.bas`
