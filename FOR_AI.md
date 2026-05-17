@@ -127,60 +127,111 @@ const vbaTest = new VBATest('sample/src/vba/TaskScheduler_Core.vba', {
 
 ## リファクタリング支援のワークフロー
 
-> **⚠️ 重要: VBAファイルを直接 `cat` / `Read` で全文読むことは禁止。**
+> **⚠️ 禁止事項: VBAファイルを `cat` / `Read` で全文読むことは禁止。**
 > 全文読み込みはトークンを大量消費し、このツールの存在意義を消す。
-> 常に `vba-analyzer` の出力を起点とし、**必要な行範囲だけを狙い読みする**こと。
+> 常に `vba-analyzer` の出力を起点とし、**アナライザが示した行番号の範囲だけを狙い読みする**こと。
 
-### Step 1: 対象コードを把握する
+---
 
-```bash
-# まずアウトラインで全体把握（50行以内に圧縮される）
-node test-libs/vba-analyzer.cjs sample/src/vba_legacy/ --outline
-
-# 詳細な問題箇所一覧（assignmentBlocks・duplicateBlocks・prefixClusters など）
-node test-libs/vba-analyzer.cjs sample/src/vba_legacy/TaskScheduler_v1.vba
-```
-
-アナライザ出力の `assignmentBlocks`, `duplicateBlocks`, `excelAccessSamples` には
-**行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
+### Step 1: 対象コードを把握する（アナライザのみ使う）
 
 ```bash
-# 例: 重複ブロックの L81-L83 と L389-L391 だけ読む
-sed -n '79,85p' sample/src/vba_legacy/TaskScheduler_v1.vba
-sed -n '387,393p' sample/src/vba_legacy/TaskScheduler_v1.vba
+# アウトラインで全体把握（全モジュール・全プロシージャを50行程度に圧縮）
+node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
+
+# 詳細な問題箇所一覧（行番号付き）
+node test-libs/vba-analyzer.cjs <対象ファイル>
 ```
 
-### Step 2: リファクタリング前のスナップショットを取る
-
-`./run_all_tests.sh` はこのプロジェクト自体（インタープリタ）のテストであり、対象のVBAコードのテストではない。
-
-リファクタリング対象のVBAコードに対しては、**自分でテストを書く必要がある**:
-
-1. `sample/tests/ts/MyFeature.test.ts` を新規作成し、リファクタリング前の関数の入出力を `VBATest` で記録する
-2. テストを実行して GREEN にしておく（これがスナップショット）
-3. リファクタリング後も同じテストが GREEN であることを確認する
+アナライザ出力には **行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
 
 ```bash
-# 自分で書いたテストを実行する
-./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node && node sample/tests/ts/MyFeature.test.cjs
+# ✅ 正しい読み方: アナライザが示した行番号の前後だけ読む
+sed -n '79,85p' target.vba
+
+# ❌ 禁止: ファイル全体を読む
+cat target.vba        # 禁止
+Read target.vba       # 禁止（ツールの場合も同様）
 ```
 
-このプロジェクトのテスト (`./run_all_tests.sh`) は「インタープリタ自体が壊れていないか」の確認にのみ使う。リファクタリング作業の前後に一度ずつ走らせておくと安全。
+---
 
-### Step 3: ロジックを純粋関数として抽出する
+### Step 2: テストで安全網を張る（リファクタリング前に必須）
 
-Excel依存箇所（`vba-analyzer` の `excelMockTargets` / `excelAccessSamples` で特定）を
-インターフェース境界として扱い、純粋なビジネスロジック関数を別モジュールに抽出する。
+**`./run_all_tests.sh` はインタープリタ自体のテストであり、対象VBAコードのテストではない。**
+リファクタリング対象のVBAコードには、自分でテストを書く必要がある。
 
-パターン（`TaskScheduler_v1.vba` → `TaskScheduler_Core.vba` が実例）:
-- セル読み込みブロック → 引数として受け取る関数に分離
-- マジックナンバー → `Const` 宣言にまとめる（`prefixClusters` が候補を列挙）
-- 巨大プロシージャ → 連続代入ブロック（`assignmentBlocks`）を切り出し関数化
+#### 2-1. 既存テストがある場合: まず GREEN を確認する
 
-### Step 4: テストを書いて検証する
+```bash
+./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts \
+  --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node \
+  && node sample/tests/ts/MyFeature.test.cjs
+```
 
-`sample/tests/ts/` にテストを追加し、抽出した関数を実際に実行して検証する。
-（Excel なしでロジックを検証できるのがこのプロジェクトの価値）
+既存テストが GREEN でなければ、リファクタリングを始めてはいけない。
+
+#### 2-2. 既存テストがない場合: リファクタリング前の挙動をテストに記録する
+
+リファクタリング前の関数の入出力を `VBATest` で記録し、GREEN にしておく。
+これが「壊れていないこと」を判断する唯一の根拠になる。
+
+```typescript
+// sample/tests/ts/MyFeature.test.ts
+import { VBATest, assert } from '../../../test-libs/test-runner';
+
+const vbaTest = new VBATest('sample/src/vba/MyModule.vba');
+assert.strictEqual(vbaTest.run('TargetFunction', [input1, input2]), expected, 'description');
+```
+
+---
+
+### Step 3: 関数を抽出する
+
+アナライザが指摘する問題箇所（`duplicateBlocks`・`assignmentBlocks`・`DEEP_NEST`）を対象に、
+行番号を手がかりに `sed` で該当箇所だけ読んでから抽出する。
+
+抽出の典型パターン:
+- `duplicateBlocks` → 重複する N 行を1つの関数に切り出し、両箇所から呼ぶ
+- `assignmentBlocks` → 連続代入ブロックをデータ構造の初期化関数に切り出す
+- `DEEP_NEST` → 深いネストの内側ループをサブルーチンに切り出す
+
+---
+
+### Step 4: 抽出した関数のテストを書く（抽出直後に必須）
+
+**統合テストのGREENだけでは不十分。** 理由:
+
+- 統合テスト（呼び出し元のテスト）は「正常系の代表データ」しか与えていない
+- 抽出した関数が担う**エッジケース**（空値・非数値・境界値など）は統合テストの外にある
+- 抽出でロジックを一箇所に集めた意味は、そこを直接テストして初めて完結する
+
+```typescript
+// 抽出した関数のエッジケースを直接テストする
+console.log("\n[Test Suite] GetNumericCellValue");
+
+// 通常値
+assert.strictEqual(vbaTest.run('GetNumericCellValue', [grid, 1, 1]), 0.5, "numeric value");
+// 空セル → 0
+assert.strictEqual(vbaTest.run('GetNumericCellValue', [grid, 1, 2]), 0,   "empty cell → 0");
+// 文字列 → 0
+assert.strictEqual(vbaTest.run('GetNumericCellValue', [grid, 1, 3]), 0,   "string cell → 0");
+// null → 0
+assert.strictEqual(vbaTest.run('GetNumericCellValue', [grid, 1, 4]), 0,   "null cell → 0");
+```
+
+テストを追加したら再度実行して、既存テストと新テストがすべて GREEN になることを確認する。
+
+---
+
+### Step 5: アナライザで改善を確認する
+
+```bash
+node test-libs/vba-analyzer.cjs <対象ファイル>
+```
+
+リファクタリング前に指摘されていた問題フラグ（`DEEP_NEST`・`duplicateBlocks` など）が
+消えていることを確認する。消えていなければ抽出が不完全。
 
 ---
 
