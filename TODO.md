@@ -106,7 +106,7 @@
 | ✅ | P1 | Public / Private / Friend スコープ制御（パースのみ、アクセス制御なし） | §5.2.3.1 / §5.3.1.1 | `scope-private.test.ts` |
 | ✅ | P1 | Static キーワード（変数・プロシージャ） | §5.3.1.2 | `static.test.ts` |
 | ✅ | P0 | Const Declarations | §5.2.3.2 | `dim-const.test.ts` |
-| ✅ | P1 | User Defined Type Declarations（`Type`） | §5.2.3.3 | `udt-type.test.ts` |
+| ⚠️ | P1 | User Defined Type Declarations（`Type`） | §5.2.3.3 | `udt-type.test.ts` （制限: `Width` など専用トークンに分類されるキーワードをメンバー名に使うとパース失敗。仕様上は `reserved-name-member-dcl` として有効） |
 | ✅ | P1 | Enum Declarations | §5.2.3.4 | `enum.test.ts` |
 | ✅ | P0 | External Procedure Declaration（`Declare`） | §5.2.3.5 | (制限事項: JSランタイム上ではスタブとして登録) | `declare.test.ts` |
 | ✅ | P0 | Class Module（OOP） | §5.2.4 | `class-module.test.ts` |
@@ -625,34 +625,3 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### Error 457 — This key is already associated with an element of this collection
 
 - ✅ `evaluator.ts:179` `VbaCollection.add` でキー重複のとき → `throwVbaError(457, ...)` | `CollectionErrorTest.bas`
-
----
-
-## 既知のパーサーバグ
-
-### `Type` 宣言のメンバー名にキーワードを使えない (§5.2.3.3)
-
-仕様書 §5.2.3.3 の `udt-member` 規則には以下の2形式がある:
-
-```
-udt-member = reserved-name-member-dcl / untyped-name-member-dcl
-untyped-name-member-dcl = IDENTIFIER optional-array-clause
-reserved-name-member-dcl = reserved-member-name as-clause
-reserved-member-name = statement-keyword / marker-keyword / ...
-```
-
-`reserved-name-member-dcl` により、`Width`・`Name`・`Line` などのキーワードも `As <型>` 付きで UDT メンバー名として使用できる。
-
-**現状**: パーサーの `parseTypeDeclaration` は `IDENTIFIER` トークンのみを受理しており、`KeywordWidth` などが来るとパースが失敗する。
-
-```vba
-' 実VBAでは有効だが、現パーサーでは失敗する
-Type Rect
-    Width  As Long   ' Width は KeywordWidth → パース失敗
-    Height As Long
-End Type
-```
-
-**影響**: `Width`・`Mid`・`Line`・`Print`・`Get`・`Put`・`Input`・`Seek` など、レキサーが専用トークン型に分類している識別子がメンバー名に使えない。
-
-**修正方針**: `parseTypeDeclaration` のメンバー名読み取り箇所で、`Identifier` に加えて上記のソフトキーワードトークンも受け入れるよう拡張する。`parsePrimary` の同様の対応（parser.ts:2209）を参考にする。
