@@ -10,7 +10,8 @@
 
 | ドキュメント | 説明 |
 |-----------|------|
-| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-09、T-01〜T-12、S-01） |
+| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-10、T-01〜T-12、S-01） |
+| **[REFACTORING_CLOSURE.md](REFACTORING_CLOSURE.md)** | クロージャによるループ抽象化（キーブレイク例）— JavaScript 版・VBA クラス版の対比 |
 
 ### グループ1：テスト設計の原則（基礎）
 
