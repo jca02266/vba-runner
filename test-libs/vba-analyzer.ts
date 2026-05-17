@@ -58,12 +58,27 @@ interface CallGraphEdge {
     toFile: string;
 }
 
+interface DuplicateOccurrence {
+    file: string;
+    procName: string;
+    startLine: number;
+    endLine: number;
+}
+
+interface DuplicateBlock {
+    length: number;             // 重複ブロックの行数（statement数ではなくソース行数）
+    stmtCount: number;          // statement数
+    occurrences: DuplicateOccurrence[];
+    shape: string;              // 正規化後のパターン（先頭1行のみ表示）
+}
+
 interface WorkspaceReport {
     files: FileReport[];
     entryPointCandidates: Array<{ file: string; name: string; kind: string; line: number; reason: string }>;
     deadCodeCandidates: Array<{ file: string; name: string; kind: string; line: number }>;
     excelMockTargets: Array<{ file: string; procName: string; objects: string[]; sampleAccesses: string[] }>;
     callGraph: CallGraphEdge[];
+    duplicateBlocks: DuplicateBlock[];
 }
 
 // ---------------------------------------------------------
@@ -397,6 +412,180 @@ function detectPrefixClusters(stmts: any[], minClusterSize = 3): PrefixCluster[]
 }
 
 // ---------------------------------------------------------
+// 重複ブロック検出（クローン検出）
+// ---------------------------------------------------------
+
+// Expression を正規化した文字列にシリアライズ。
+// - Identifier → $ID（変数名の違いを無視）
+// - NumberLiteral → 実値を保持（3 と 5 は区別）
+// - StringLiteral → $STR
+// - MemberExpression のプロパティ名は保持（.Value と .Name は区別）
+function serExpr(node: any): string {
+    if (!node) return '?';
+    switch (node.type) {
+        case 'Identifier':   return '$ID';
+        case 'NumberLiteral': return String(node.value);
+        case 'StringLiteral': return '$STR';
+        case 'DateLiteral':  return '$DATE';
+        case 'MemberExpression':
+            return `${serExpr(node.object)}.${node.property?.name ?? '?'}`;
+        case 'DictionaryAccessExpression':
+            return `${serExpr(node.object)}!${node.property?.name ?? '?'}`;
+        case 'CallExpression':
+            return `${serExpr(node.callee)}(${(node.args ?? []).map(serExpr).join(',')})`;
+        case 'BinaryExpression':
+            return `(${serExpr(node.left)}${node.operator}${serExpr(node.right)})`;
+        case 'UnaryExpression':
+            return `${node.operator}${serExpr(node.argument)}`;
+        case 'NewExpression':
+            return `New $ID`;
+        default:
+            return node.type ?? '?';
+    }
+}
+
+// Statement を正規化した1行文字列にシリアライズ。
+// 制御構造はボディを含まず「型+条件」だけにする（ボディは別途シーケンスとして扱う）。
+function serStmt(s: any): string {
+    if (!s) return '?';
+    switch (s.type) {
+        case 'AssignmentStatement': return `${serExpr(s.left)}=${serExpr(s.right)}`;
+        case 'SetStatement':        return `Set ${serExpr(s.left)}=${serExpr(s.right)}`;
+        case 'CallStatement':       return `Call ${serExpr(s.expression)}`;
+        case 'VariableDeclaration':
+            return `Dim[${(s.declarations ?? []).map((d: any) => d.objectType ?? '').join(',')}]`;
+        case 'ConstDeclaration':    return `Const=${serExpr(s.value)}`;
+        case 'IfStatement':         return `If(${serExpr(s.condition)})`;
+        case 'ForStatement':        return `For $ID=${serExpr(s.start)} To ${serExpr(s.end)}`;
+        case 'ForEachStatement':    return `ForEach $ID In ${serExpr(s.collection)}`;
+        case 'WhileStatement':      return `While(${serExpr(s.condition)})`;
+        case 'DoWhileStatement':    return `Do${s.conditionType ?? ''}(${serExpr(s.condition)})`;
+        case 'SelectCaseStatement': return `Select ${serExpr(s.expression)}`;
+        case 'WithStatement':       return `With ${serExpr(s.expression)}`;
+        case 'OnErrorStatement':    return `OnError`;
+        case 'ExitStatement':       return `Exit ${s.kind ?? ''}`;
+        case 'GoToStatement':       return `GoTo $ID`;
+        case 'ReturnStatement':     return `Return`;
+        default:                    return s.type ?? '?';
+    }
+}
+
+// すべてのフラットなステートメントシーケンスを収集する（制御構造ボディも再帰的に含む）
+interface StmtSeq {
+    stmts: any[];
+    file: string;
+    procName: string;
+}
+
+function collectStmtSeqs(stmts: any[], file: string, procName: string): StmtSeq[] {
+    if (!Array.isArray(stmts) || stmts.length === 0) return [];
+    const result: StmtSeq[] = [{ stmts, file, procName }];
+    for (const s of stmts) {
+        if (Array.isArray(s.consequent))  result.push(...collectStmtSeqs(s.consequent, file, procName));
+        if (Array.isArray(s.alternate))   result.push(...collectStmtSeqs(s.alternate, file, procName));
+        if (Array.isArray(s.body))        result.push(...collectStmtSeqs(s.body, file, procName));
+        if (s.elseIfClauses) for (const c of s.elseIfClauses)
+            result.push(...collectStmtSeqs(c.consequent ?? [], file, procName));
+        if (s.cases) for (const c of s.cases)
+            result.push(...collectStmtSeqs(c.body ?? [], file, procName));
+    }
+    return result;
+}
+
+function detectDuplicateBlocks(
+    analyses: FileAnalysis[],
+    minStmts = 3,
+    minCount = 2,
+    maxStmts = 12,
+): DuplicateBlock[] {
+    // N-gram → 出現箇所リスト
+    const index = new Map<string, DuplicateOccurrence[]>();
+
+    for (const a of analyses) {
+        for (const [procNameLower, info] of a.definedProcs) {
+            const procName = info.proc.name?.name ?? procNameLower;
+            const seqs = collectStmtSeqs(info.proc.body ?? [], a.report.filePath, procName);
+            for (const { stmts } of seqs) {
+                const serialized = stmts.map(serStmt);
+                for (let len = minStmts; len <= Math.min(maxStmts, stmts.length); len++) {
+                    for (let i = 0; i <= stmts.length - len; i++) {
+                        const key = serialized.slice(i, i + len).join('\n');
+                        const startLine = stmts[i]?.loc?.start.line ?? -1;
+                        const endLine   = stmts[i + len - 1]?.loc?.end.line ?? -1;
+                        if (startLine === -1) continue;
+                        if (!index.has(key)) index.set(key, []);
+                        index.get(key)!.push({ file: a.report.filePath, procName, startLine, endLine });
+                    }
+                }
+            }
+        }
+    }
+
+    // 同一 proc 内でオーバーラップする出現を除去（スライディングウィンドウのノイズ対策）
+    // 同一 file+proc で startLine が前の endLine 以下のものは除く（先着優先）
+    function deduplicateOverlapping(occs: DuplicateOccurrence[]): DuplicateOccurrence[] {
+        const sorted = [...occs].sort((a, b) =>
+            a.file.localeCompare(b.file) || a.procName.localeCompare(b.procName) || a.startLine - b.startLine
+        );
+        const lastEnd = new Map<string, number>();
+        return sorted.filter(occ => {
+            const k = `${occ.file}::${occ.procName}`;
+            const prev = lastEnd.get(k) ?? -Infinity;
+            if (occ.startLine > prev) {
+                lastEnd.set(k, occ.endLine);
+                return true;
+            }
+            return false;
+        });
+    }
+
+    // minCount 以上の N-gram を収集（dedup 後）
+    const candidates: Array<{ key: string; occurrences: DuplicateOccurrence[]; stmtCount: number }> = [];
+    for (const [key, occs] of index) {
+        const deduped = deduplicateOverlapping(occs);
+        if (deduped.length < minCount) continue;
+        const stmtCount = key.split('\n').length;
+        candidates.push({ key, occurrences: deduped, stmtCount });
+    }
+
+    // 長いマッチの部分集合になっている短いマッチを除去（maximal match のみ残す）
+    // 同じ出現箇所セットを持つ短いパターンはスキップ
+    candidates.sort((a, b) => b.stmtCount - a.stmtCount);
+    const kept: typeof candidates = [];
+    const coveredKeys = new Set<string>();
+    for (const c of candidates) {
+        // この候補の各出現が、より長い候補に完全に包含されているか確認
+        const allCovered = c.occurrences.every(occ => {
+            // 同一ファイル・プロシージャ・行範囲を包含する longer match が存在するか
+            return kept.some(longer =>
+                longer.stmtCount > c.stmtCount &&
+                longer.occurrences.some(lo =>
+                    lo.file === occ.file &&
+                    lo.procName === occ.procName &&
+                    lo.startLine <= occ.startLine &&
+                    lo.endLine >= occ.endLine
+                )
+            );
+        });
+        if (!allCovered && !coveredKeys.has(c.key)) {
+            kept.push(c);
+            coveredKeys.add(c.key);
+        }
+    }
+
+    // DuplicateBlock に変換、インパクト順（stmtCount × occurrences）でソート
+    return kept
+        .map(c => ({
+            stmtCount: c.stmtCount,
+            length: Math.max(...c.occurrences.map(o => o.endLine - o.startLine + 1)),
+            occurrences: c.occurrences,
+            shape: c.key.split('\n')[0],  // 先頭ステートメントのパターンを代表として表示
+        }))
+        .sort((a, b) => (b.stmtCount * b.occurrences.length) - (a.stmtCount * a.occurrences.length))
+        .slice(0, 30);  // 上位30件
+}
+
+// ---------------------------------------------------------
 // 単一ファイル解析
 // ---------------------------------------------------------
 
@@ -598,12 +787,15 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
         }
     }
 
+    const duplicateBlocks = detectDuplicateBlocks(analyses);
+
     return {
         files: analyses.map(a => a.report),
         entryPointCandidates,
         deadCodeCandidates,
         excelMockTargets,
         callGraph,
+        duplicateBlocks,
     };
 }
 
@@ -742,7 +934,6 @@ function formatWorkspaceSummary(w: WorkspaceReport): string {
         out.push('========================================');
         out.push('📞 コールグラフ（呼び出し関係）');
         out.push('========================================');
-        // Group by caller
         const byCaller = new Map<string, string[]>();
         for (const e of w.callGraph) {
             const key = `${e.from} (${path.basename(e.fromFile)})`;
@@ -752,6 +943,24 @@ function formatWorkspaceSummary(w: WorkspaceReport): string {
         for (const [caller, callees] of byCaller) {
             out.push(`  ${caller}`);
             for (const callee of callees) out.push(`    → ${callee}`);
+        }
+    }
+
+    if (w.duplicateBlocks.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('♻️  重複ブロック候補（関数抽出候補）');
+        out.push('========================================');
+        out.push('  以下は AST レベルで同一パターンが複数箇所に現れるブロックです。');
+        out.push('  変数名は正規化済み（$ID）のため、名前が異なっても構造が同じなら一致します。');
+        out.push('  ※ 制御構造のボディは別シーケンスとして評価するため、');
+        out.push('     "If 内の3行" と "For 内の3行" が同じ構造なら別々に報告されます。');
+        out.push('');
+        for (const b of w.duplicateBlocks) {
+            out.push(`  [${b.stmtCount}文×${b.occurrences.length}箇所]  ${b.shape}`);
+            for (const o of b.occurrences) {
+                out.push(`    ${o.procName} (${path.basename(o.file)}: L${o.startLine}-L${o.endLine})`);
+            }
         }
     }
 
