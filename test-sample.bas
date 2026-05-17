@@ -1,6 +1,6 @@
 Option Explicit
 
-' VBA Compiler Extension Test Sample
+' VBA Runner Extension Test Sample
 
 Public GlobalCounter As Integer
 

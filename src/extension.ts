@@ -5,8 +5,8 @@ let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
 
 export async function activate(context: vscode.ExtensionContext) {
-    console.log('🚀 VBA Compiler extension activated');
-    const outputChannel = vscode.window.createOutputChannel('VBA Compiler');
+    console.log('🚀 VBA Runner extension activated');
+    const outputChannel = vscode.window.createOutputChannel('VBA Runner');
     outputChannel.appendLine('Extension initialization started...');
 
     lspServer = new LSPServer();
@@ -195,5 +195,5 @@ export async function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    console.log('VBA Compiler extension deactivated');
+    console.log('VBA Runner extension deactivated');
 }

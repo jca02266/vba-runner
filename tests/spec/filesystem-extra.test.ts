@@ -25,7 +25,7 @@ const allCode = `
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
         Open "test_bin.dat" For Binary As #1
-        Put #1, , "VBA-Compiler"
+        Put #1, , "VBA-Runner"
         Close #1
 
         Open "test_bin.dat" For Binary As #2
@@ -56,7 +56,7 @@ const ev = evalVBA(allCode);
 
 // Test 1: Put/Get
 ev.callProcedure('Test1', []);
-assert.strictEqual(ev.env.get('s'), "VBA-Compiler", 'Put/Get (Binary)');
+assert.strictEqual(ev.env.get('s'), "VBA-Runner", 'Put/Get (Binary)');
 console.log('[PASS] Put/Get (Binary)');
 
 // Test 2: FileLen, FileDateTime
