@@ -28,7 +28,7 @@ export default tseslint.config(
   {
     // VBA is dynamically typed; any is appropriate in the compiler and test files
     files: [
-      'src/compiler/**/*.ts',
+      'src/engine/**/*.ts',
       'src/App.tsx',
       'tests/**/*.ts',
       'sample/tests/**/*.ts',
