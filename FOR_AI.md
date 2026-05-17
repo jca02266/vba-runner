@@ -37,7 +37,7 @@ test-libs/
 sample/src/vba/
   TaskScheduler_Core.bas   純粋ビジネスロジック（Excelなし）
   TaskScheduler.bas        メインルーチン（Excel依存）
-  Lib*.bas / Lib*.bas      ユーティリティライブラリ群
+  Lib*.bas      ユーティリティライブラリ群
 
 sample/src/vba_legacy/
   TaskScheduler_v1.bas     リファクタリング前の原典（394行の巨大関数）

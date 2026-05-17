@@ -7,7 +7,7 @@ import { NodeFileSystem } from '../src/engine/node_filesystem';
 import { MemoryFileSystem } from '../src/engine/filesystem';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
 
-const VBA_EXTENSIONS = new Set(['.bas', '.bas', '.cls', '.frm']);
+const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
 
 export class VBARunner {
     public evaluator: Evaluator;
