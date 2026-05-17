@@ -3,8 +3,8 @@
 # プロジェクト内のすべてのテストを一括実行するスクリプト
 #  - tests/engine/           : コンパイラエンジン内部のテスト（Lexer, Parser, AST構造）
 #  - tests/lsp/              : LSP（Language Server Protocol）のテスト
-#  - tests/spec/             : VBA コンパイラの仕様テスト
-#  - tests/test-libs-tests/  : test-libs/ (VBATest 等) のテスト
+#  - tests/spec/             : VBA Runner の仕様テスト
+#  - tests/test-libs-tests/  : test-libs/ (VBARunner 等) のテスト
 #  - sample/tests/ts/        : サンプル VBA コードのテスト
 #
 # Usage:

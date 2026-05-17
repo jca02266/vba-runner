@@ -91,7 +91,7 @@ import * as path from 'path';
  */
 
 /**
- * VBATest.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
+ * VBARunner.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
  * 各 call は引数の配列として記録される。
  */
 export class SpyRecord {

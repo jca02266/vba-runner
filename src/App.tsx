@@ -274,7 +274,7 @@ function createBrowserTestRunner(vbaSource: string, outputFn: (msg: string) => v
   const evaluator = new Evaluator((out) => { outputFn(out) });
   evaluator.evaluate(declarationAst);
 
-  // vbaTest object: matches VBATest class interface
+  // vbaTest object: matches VBARunner class interface
   const vbaTest = {
     run(procedureName: string, args: any[]): any {
       return evaluator.callProcedure(procedureName, args);
