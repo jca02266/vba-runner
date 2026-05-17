@@ -7,23 +7,23 @@
 ## リファクタリング手法
 
 <a id="r-01"></a>
-### R-01: Domain Logic / I/O 分離
+### R-01: 純粋関数の切り出し
 
-Excel オブジェクト依存（`Range`, `Cells`, `Sheets` など）を含む処理からビジネスロジックを `Function` に切り出し、I/O を `Sub` に集約する手法。テスト可能性の基礎となる最重要パターン。
+巨大な `Sub` から副作用のない計算・判定ロジックを独立した `Function` として切り出す手法。関数名がビジネスルールの名前になり、引数と戻り値だけで動作が完結するため単独でテスト可能になる。
+
+**具体例: Excel オブジェクト依存の分離**
+VBA における典型的な適用場面。`Range`・`Cells`・`Sheets` などの Excel オブジェクトへのアクセスを `Sub` に限定し、ビジネスロジックを Excel 非依存の `Function` として切り出す。これにより `Function` 単体を Excel なしでテストできる。対象箇所の検出には `vba-analyzer` の `excelMockTargets`・`excelAccessCount` が使える（[VA-01](#va-01)）。
 
 - [TESTING_STRATEGY.md — 原則1](TESTING_STRATEGY.md#原則1-domain-logic-と-excel-io-の徹底的分離)
-- [REFACTORING_GUIDE.md — 原則1](REFACTORING_GUIDE.md#原則-1-職責の分離separation-of-concerns)
+- [TESTING_STRATEGY.md — §5](TESTING_STRATEGY.md#5-excel-オブジェクト依存は-sub-に限定)
+- [REFACTORING_GUIDE.md — 原則1・パターン1〜3](REFACTORING_GUIDE.md#原則-1-職責の分離separation-of-concerns)
+- [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)
 - [MOCK_GUIDE.md — Step 0](MOCK_GUIDE.md#step-0-モックが必要かどうかを確認する)
 
 ---
 
 <a id="r-02"></a>
-### R-02: ビジネスロジック抽出
-
-巨大な `Sub` から計算・判定ロジックを独立した `Function` として切り出す手法。関数名がビジネスルールの名前になり、可読性・保守性が向上する。
-
-- [REFACTORING_GUIDE.md — パターン1〜3](REFACTORING_GUIDE.md#パターン-1-単純な集計ロジック)
-- [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)
+### R-02: （欠番）
 
 ---
 

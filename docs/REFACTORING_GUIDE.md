@@ -140,7 +140,7 @@ End Function
 
 ## リファクタリングパターン集
 
-### パターン 1: 単純な集計ロジック [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02)]
+### パターン 1: 単純な集計ロジック [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
 **リファクタリング前**（テスト不可能）:
 ```vba
@@ -234,7 +234,7 @@ End Sub
 
 ---
 
-### パターン 2: データ加工と変換 [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02)]
+### パターン 2: データ加工と変換 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
 **リファクタリング前**:
 ```vba
@@ -301,7 +301,7 @@ End Sub
 
 ---
 
-### パターン 3: 複雑なビジネスロジック（UDT を使用） [[→ R-02](REFACTORING_TESTING_CATALOG.md#r-02) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
+### パターン 3: 複雑なビジネスロジック（UDT を使用） [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
 
 **リファクタリング前**:
 ```vba
