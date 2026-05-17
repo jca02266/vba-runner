@@ -23,7 +23,7 @@ npm run lint       # ESLint
 
 ## アーキテクチャ
 
-TypeScript で実装された VBA インタープリター。Excel なしで VBA コードのユニットテストを可能にする。
+TypeScript で実装された VBA 実行エンジン（インタープリタ）。Excel 不要で VBA コードの実行・リファクタリング・ユニットテストを可能にする。
 
 **コアパイプライン**（`src/compiler/`）:
 - `lexer.ts` — VBA ソースをトークン列に変換（50 種類以上のトークン型）
