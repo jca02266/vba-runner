@@ -430,7 +430,114 @@ Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
 End Function
 ```
 
-### 3. Excel オブジェクト依存は Sub に限定
+### 3. 関連パラメータは Type にまとめる
+
+引数が増えてきた場合は、**ドメインとして意味のあるまとまり**を `Type` にまとめて渡すことを推奨します。
+個々の引数を並べるよりも呼び出し側・テスト側の可読性が上がり、将来的なパラメータ追加にも強くなります。
+
+> **注意**: 「同じ関数に渡すから」という理由だけでパラメータを1つの `Type` にまとめないでください。
+> ドメインとして意味のあるまとまり（例：在庫状態、注文情報、期間指定）であることが前提です。
+> 無関係なパラメータを1つの `Type` に詰め込むと、責務が曖昧になりテストや再利用がかえって困難になります。
+
+```vba
+' ❌ 引数が増えると呼び出しが煩雑になる
+Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
+                                restockAmount As Long, minStock As Long, _
+                                maxStock As Long) As Long
+    ' ...
+End Function
+
+' ✅ ドメインとしてまとまりのあるパラメータを Type にまとめる
+Type InventoryParams
+    CurrentStock  As Long
+    SoldUnits     As Long
+    RestockAmount As Long
+    MinStock      As Long
+    MaxStock      As Long
+End Type
+
+Function CalculateNewInventory(p As InventoryParams) As Long
+    Dim newStock As Long
+    newStock = p.CurrentStock - p.SoldUnits + p.RestockAmount
+    If newStock < p.MinStock Then newStock = p.MinStock
+    If newStock > p.MaxStock Then newStock = p.MaxStock
+    CalculateNewInventory = newStock
+End Function
+```
+
+TypeScript 側のテストでは、UDT は連想配列として渡します。
+
+```typescript
+const result = vbaRunner.run('CalculateNewInventory', [{
+    CurrentStock: 100, SoldUnits: 30, RestockAmount: 50,
+    MinStock: 10, MaxStock: 200
+}]);
+assert.strictEqual(result, 120);
+```
+
+同じ構造を複数のテストで使う場合は、TypeScript 側でも型を定義すると型安全になり可読性も上がります。
+
+```typescript
+interface InventoryParams {
+    CurrentStock:  number;
+    SoldUnits:     number;
+    RestockAmount: number;
+    MinStock:      number;
+    MaxStock:      number;
+}
+
+function calcInventory(p: InventoryParams): number {
+    return vbaRunner.run('CalculateNewInventory', [p]) as number;
+}
+
+assert.strictEqual(calcInventory({ CurrentStock: 100, SoldUnits: 30, RestockAmount: 50, MinStock: 10, MaxStock: 200 }), 120);
+assert.strictEqual(calcInventory({ CurrentStock: 10,  SoldUnits: 20, RestockAmount: 5,  MinStock: 10, MaxStock: 200 }), 10); // MinStock に丸め
+```
+
+### 4. 振る舞いを持たせたい場合はクラスを検討する
+
+単純なデータの集約には `Type` が適切です。**バリデーションや複数の操作をデータと一緒に持たせたい**場合はクラスを検討します。
+
+ただし VBA のクラスには制限があります（コンストラクタに引数を渡せない・継承がない・メソッドのオーバーロードがないなど）。振る舞いが単純なうちは `Type` + モジュール関数の組み合わせで十分なことが多く、クラス化は慎重に判断してください。
+
+```vba
+' Type + モジュール関数: 振る舞いが少なければこれで十分
+Type InventoryParams
+    CurrentStock  As Long
+    SoldUnits     As Long
+    RestockAmount As Long
+    MinStock      As Long
+    MaxStock      As Long
+End Type
+
+Function CalculateNewInventory(p As InventoryParams) As Long
+    ' ...
+End Function
+
+' ✅ クラス: 状態保持・バリデーション・複数操作が必要になった場合
+' InventoryManager.cls
+'
+' Private m_Stock As Long
+' Private m_Min   As Long
+' Private m_Max   As Long
+'
+' ' Class_Initialize は引数を取れないため Initialize メソッドで代用
+' Sub Initialize(stock As Long, minVal As Long, maxVal As Long)
+'     If minVal > maxVal Then Err.Raise 5, , "min > max"
+'     m_Stock = stock : m_Min = minVal : m_Max = maxVal
+' End Sub
+'
+' Function Apply(sold As Long, restock As Long) As Long
+'     Dim n As Long
+'     n = m_Stock - sold + restock
+'     If n < m_Min Then n = m_Min
+'     If n > m_Max Then n = m_Max
+'     m_Stock = n   ' 状態を更新
+'     Apply = n
+' End Function
+```
+
+### 5. Excel オブジェクト依存は Sub に限定
 
 ```vba
 ' ✅ 推奨パターン
