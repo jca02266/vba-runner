@@ -430,6 +430,8 @@ Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
 End Function
 ```
 
+> **vba-analyzer**: Excel オブジェクトへの直接アクセスを含む関数は `excelAccessCount` / `excelAccessSamples` として報告されます。パラメータなしで Excel に依存している関数はリファクタリング候補の筆頭です。
+
 ### 3. 関連パラメータは Type にまとめる
 
 引数が増えてきた場合は、**ドメインとして意味のあるまとまり**を `Type` にまとめて渡すことを推奨します。
@@ -475,6 +477,8 @@ const result = vbaRunner.run('CalculateNewInventory', [{
 assert.strictEqual(result, 120);
 ```
 
+> **vba-analyzer**: 変数名に共通の接頭辞（例: `inv_Stock`, `inv_Min`, `inv_Max`）が見られる場合、`prefixClusters` としてグルーピング候補を報告します。これは `Type` 化の手がかりになります。
+
 同じ構造を複数のテストで使う場合は、TypeScript 側でも型を定義すると型安全になり可読性も上がります。
 
 ```typescript
@@ -495,6 +499,8 @@ assert.strictEqual(calcInventory({ CurrentStock: 10,  SoldUnits: 20, RestockAmou
 ```
 
 ### 4. 振る舞いを持たせたい場合はクラスを検討する
+
+> **vba-analyzer**: `prefixClusters` で検出された変数群に対して、代入・参照のパターンが複数のプロシージャにまたがる場合はクラス化の候補と考えられます（現時点では人手での判断が必要です）。
 
 単純なデータの集約には `Type` が適切です。**バリデーションや複数の操作をデータと一緒に持たせたい**場合はクラスを検討します。
 
@@ -538,6 +544,12 @@ End Function
 ```
 
 ### 5. Excel オブジェクト依存は Sub に限定
+
+> **vba-analyzer**: `excelMockTargets` に列挙された Function は Excel 依存を持つリファクタリング候補です。`Sheets`, `Range`, `Application` などのアクセスを含む Function を検出し、Sub への切り出し対象として報告します。
+>
+> ```bash
+> node test-libs/vba-analyzer.cjs src/vba/ --json | jq '.excelMockTargets'
+> ```
 
 ```vba
 ' ✅ 推奨パターン
