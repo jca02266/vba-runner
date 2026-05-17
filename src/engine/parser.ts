@@ -128,6 +128,7 @@ export interface ProcedureDeclaration extends Statement {
     propertyType?: 'get' | 'let' | 'set';
     name: Identifier;
     parameters: Parameter[];
+    returnType?: string;
     body: Statement[];
     scope?: 'public' | 'private' | 'friend';
     isStatic?: boolean;
@@ -1246,8 +1247,9 @@ export class Parser {
         }
 
         // Optional Function return type (e.g. 'As Long')
+        let returnType: string | undefined;
         if (this.match(TokenType.KeywordAs)) {
-            this.advance(); // consume Type name
+            returnType = this.advance().value;
         }
 
         // Trailing Static: Sub Foo() Static
@@ -1274,7 +1276,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, body, scope: scope || 'public', isStatic };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, body, scope: scope || 'public', isStatic };
     }
 
     private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
