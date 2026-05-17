@@ -131,7 +131,7 @@ Sub TearDown()
 End Sub
 ```
 
-> **注意**: `test-libs/test-runner.ts` の `VBATest` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
+> **注意**: `test-libs/test-runner.ts` の `VBARunner` クラスは `sample/tests/ts/` 配下の `.vba` ファイルを読み込むためのもの。`tests/spec/` では使わない。
 
 ### Step 5: 実装
 

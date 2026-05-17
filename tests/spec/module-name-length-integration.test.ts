@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { VBATest } from '../../test-libs/test-runner';
+import { VBARunner } from '../../test-libs/test-runner';
 
 const tempDir = '/tmp/vba-module-name-test';
 const fixtureDir = path.join(tempDir, 'fixtures');
@@ -19,7 +19,7 @@ const validFilePath = path.join(fixtureDir, validName + '.vba');
 fs.writeFileSync(validFilePath, 'Sub Test()\n  Debug.Print "OK"\nEnd Sub\n', 'utf-8');
 
 try {
-    const vbaTest = new VBATest(validFilePath);
+    const vbaTest = new VBARunner(validFilePath);
     console.log('[PASS] VBA file with valid module name loads successfully');
 } catch (e: any) {
     console.error(`[FAIL] VBA file with valid name should load: ${e.message}`);
@@ -32,7 +32,7 @@ const limitFilePath = path.join(fixtureDir, limitName + '.vba');
 fs.writeFileSync(limitFilePath, 'Sub Test()\n  Debug.Print "OK"\nEnd Sub\n', 'utf-8');
 
 try {
-    const vbaTest = new VBATest(limitFilePath);
+    const vbaTest = new VBARunner(limitFilePath);
     console.log('[PASS] VBA file with module name exactly 31 characters loads successfully');
 } catch (e: any) {
     console.error(`[FAIL] VBA file with 31-character name should load: ${e.message}`);
@@ -45,7 +45,7 @@ const tooLongFilePath = path.join(fixtureDir, tooLongName + '.vba');
 fs.writeFileSync(tooLongFilePath, 'Sub Test()\n  Debug.Print "OK"\nEnd Sub\n', 'utf-8');
 
 try {
-    const vbaTest = new VBATest(tooLongFilePath);
+    const vbaTest = new VBARunner(tooLongFilePath);
     console.error('[FAIL] VBA file with 32-character name should raise an error');
     throw new Error('Expected error was not raised');
 } catch (e: any) {
@@ -73,7 +73,7 @@ const tooLongFile = path.join(testDir, 'B'.repeat(32) + '.vba');
 fs.writeFileSync(tooLongFile, 'Sub AnotherSub()\n  Debug.Print "Too Long"\nEnd Sub\n', 'utf-8');
 
 try {
-    const vbaTest = new VBATest(testDir);
+    const vbaTest = new VBARunner(testDir);
     console.error('[FAIL] Loading directory with a file with 32-character name should raise an error');
     throw new Error('Expected error was not raised');
 } catch (e: any) {

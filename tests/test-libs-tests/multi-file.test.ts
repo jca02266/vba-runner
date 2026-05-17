@@ -1,15 +1,15 @@
 /**
- * VBATest マルチファイルロードのテスト
+ * VBARunner マルチファイルロードのテスト
  *
  * tests/fixtures/multi-file/ に .vba / .cls / .frm の3ファイルを配置し、
  * ディレクトリを指定するだけで全ファイルが同一スコープにロードされ
  * 相互参照できることを検証する。
  */
-import { VBATest, assert } from '../../test-libs/test-runner';
+import { VBARunner, assert } from '../../test-libs/test-runner';
 
 const DIR = 'tests/fixtures/multi-file';
 
-const suite = new VBATest(DIR);
+const suite = new VBARunner(DIR);
 
 // --- 1. .vba ファイルのプロシージャが呼べる ---
 assert.strictEqual(suite.run('Add', [3, 4]), 7, 'Add (MathUtils.vba)');
@@ -30,7 +30,7 @@ assert.strictEqual(
 console.log('[PASS] ファイル間の相互参照');
 
 // --- 4. 単一ファイル指定（後方互換）も引き続き動作する ---
-const single = new VBATest('tests/fixtures/multi-file/MathUtils.vba');
+const single = new VBARunner('tests/fixtures/multi-file/MathUtils.vba');
 assert.strictEqual(single.run('Add', [1, 2]), 3, '単一ファイル指定の後方互換');
 console.log('[PASS] 単一ファイル指定（後方互換）');
 

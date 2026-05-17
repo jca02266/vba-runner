@@ -1,8 +1,8 @@
-import { VBATest, assert } from '../../../test-libs/test-runner';
+import { VBARunner, assert } from '../../../test-libs/test-runner';
 
 async function main() {
     console.log("--- Starting LibBook.vba Unit Tests ---");
-    const vbaTest = new VBATest('sample/src/vba/LibBook.vba');
+    const vbaTest = new VBARunner('sample/src/vba/LibBook.vba');
 
     // Mock Application object with SheetsInNewWorkbook property
     function createMockApplication(initialSheetCount: number): any {

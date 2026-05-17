@@ -1,7 +1,7 @@
 import { Lexer } from '../../src/compiler/lexer';
 import { Parser } from '../../src/compiler/parser';
 import { Evaluator } from '../../src/compiler/evaluator';
-import { VBATest, assert } from '../../test-libs/test-runner';
+import { VBARunner, assert } from '../../test-libs/test-runner';
 
 function makeEv(nowFn: (() => Date) | null = null): Evaluator {
     const ev = new Evaluator(() => {});
@@ -118,9 +118,9 @@ End Function
     console.log('[PASS] setNowFn changes dynamically');
 }
 
-// 8. VBATest.mockDate integration
+// 8. VBARunner.mockDate integration
 {
-    const vt = new VBATest('/dev/null');
+    const vt = new VBARunner('/dev/null');
     // Load code directly
     const ast = new Parser(new Lexer(`
 Function GetMonth() As Long
@@ -131,12 +131,12 @@ End Function
 
     vt.mockDate('2024-07-04T12:00:00Z');
     const month = vt.evaluator.callProcedure('GetMonth', []);
-    assert.strictEqual(month, 7, 'VBATest.mockDate: July');
+    assert.strictEqual(month, 7, 'VBARunner.mockDate: July');
 
     vt.mockDate(null);
     const realMonth = vt.evaluator.callProcedure('GetMonth', []);
     assert.ok(realMonth >= 1 && realMonth <= 12, 'After mockDate(null): valid month');
-    console.log('[PASS] VBATest.mockDate integration');
+    console.log('[PASS] VBARunner.mockDate integration');
 }
 
 console.log('\n✅ Time Mocking: 全テスト通過');

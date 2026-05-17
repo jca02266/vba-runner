@@ -11,7 +11,7 @@
 ## 推奨構成
 
 ```
-VBA コンパイラ + VBATest クラス
+VBA Runner + VBARunner クラス
            ↓
 JavaScript テストフレームワーク（Jest）
            ↓
@@ -20,7 +20,7 @@ Domain Logic の単体テスト（配列等）
 
 **メリット**:
 - 既存の Jest エコシステムを活用（すぐに使える）
-- VBA コンパイラと TypeScript の統合
+- VBA Runnerと TypeScript の統合
 - 複雑な mock 不要（配列のみでテスト）
 
 ---
@@ -38,13 +38,13 @@ Domain Logic の単体テスト（配列等）
 
 ### 既存環境（推奨）
 
-このプロジェクトは既に以下を備えています：
+VBA Runner は既に以下を備えています：
 
 ```bash
 # TypeScript + esbuild セットアップ
 npm run build          # TypeScript チェック
 
-# テスト実行（VBA コンパイラ環境）
+# テスト実行（VBA Runner環境）
 ./node_modules/.bin/esbuild tests/spec/xxx.test.ts \
   --bundle --outfile=tests/spec/xxx.cjs --platform=node \
   && node tests/spec/xxx.cjs
@@ -54,12 +54,12 @@ npm run build          # TypeScript チェック
 
 ```
 tests/
-├── spec/                           # VBA コンパイラテスト
+├── spec/                           # VBA Runnerテスト
 │   ├── math-module.test.ts        # Domain Logic テスト
 │   ├── business-logic.test.ts     # 計算ロジック
 │   └── edge-cases.test.ts         # エッジケース
 └── ts/
-    ├── test-runner.ts             # VBATest クラス
+    ├── test-runner.ts             # VBARunner クラス
     └── sandbox.ts                 # ファイルシステム
 ```
 
@@ -84,10 +84,10 @@ End Function
 
 ```typescript
 // tests/spec/math.test.ts
-import { VBATest } from '../../test-libs/test-runner';
+import { VBARunner } from '../../test-libs/test-runner';
 
 describe('Math Operations', () => {
-  const vbaTest = new VBATest('src/vba/math.vba');
+  const vbaTest = new VBARunner('src/vba/math.vba');
 
   describe('Sum', () => {
     it('should add two positive numbers', () => {
@@ -150,7 +150,7 @@ End Function
 
 ```typescript
 describe('Discount Calculation', () => {
-  const vbaTest = new VBATest('src/vba/discount.vba');
+  const vbaTest = new VBARunner('src/vba/discount.vba');
 
   const testCases = [
     { price: 1000, discount: 0, expected: 1000 },
@@ -179,7 +179,7 @@ describe('Discount Calculation', () => {
 
 ```typescript
 describe('Discount Calculation with test.each', () => {
-  const vbaTest = new VBATest('src/vba/discount.vba');
+  const vbaTest = new VBARunner('src/vba/discount.vba');
 
   // Jest 標準：test.each
   test.each([
@@ -238,7 +238,7 @@ End Function
 
 ```typescript
 describe('Array Operations', () => {
-  const vbaTest = new VBATest('src/vba/array-ops.vba');
+  const vbaTest = new VBARunner('src/vba/array-ops.vba');
 
   describe('SumArray', () => {
     it('should sum array of numbers', () => {
@@ -309,7 +309,7 @@ End Function
 
 ```typescript
 describe('Error Handling', () => {
-  const vbaTest = new VBATest('src/vba/error-handling.vba');
+  const vbaTest = new VBARunner('src/vba/error-handling.vba');
 
   describe('SafeDivide', () => {
     it('should divide normally', () => {
@@ -384,7 +384,7 @@ End Function
 
 ```typescript
 describe('Sales Business Logic', () => {
-  const vbaTest = new VBATest('src/vba/sales-logic.vba');
+  const vbaTest = new VBARunner('src/vba/sales-logic.vba');
 
   describe('CalculateCommission', () => {
     // テストケースマトリックス
@@ -438,7 +438,7 @@ describe('Sales Business Logic', () => {
 ```vba
 ' src/vba/file-ops.vba
 Function ReadAndProcessFile(filePath As String) As String
-    ' VBA コンパイラ上では、仮想ファイルシステムから読み込み
+    ' VBA Runner上では、仮想ファイルシステムから読み込み
     ' Domain Logic: ファイル内容を処理するだけ
     ReadAndProcessFile = UCase(filePath)  ' 例
 End Function
@@ -448,7 +448,7 @@ End Function
 
 ```typescript
 describe('File Operations with VFS', () => {
-  const vbaTest = new VBATest('src/vba/file-ops.vba', {
+  const vbaTest = new VBARunner('src/vba/file-ops.vba', {
     useVirtualFS: true
   });
 
@@ -504,13 +504,13 @@ End Function
 ### TypeScript テスト
 
 ```typescript
-import { VBATest } from '../../test-libs/test-runner';
+import { VBARunner } from '../../test-libs/test-runner';
 
 describe('Fiscal Year Logic', () => {
-  let vbaTest: VBATest;
+  let vbaTest: VBARunner;
 
   beforeEach(() => {
-    vbaTest = new VBATest('src/vba/fiscal-year.vba');
+    vbaTest = new VBARunner('src/vba/fiscal-year.vba');
   });
 
   afterEach(() => {
@@ -560,14 +560,14 @@ describe('Fiscal Year Logic', () => {
 
 ---
 
-## VBATest API リファレンス
+## VBARunner API リファレンス
 
 `test-libs/test-runner.ts` に定義された公開 API の一覧です。
 
 ### コンストラクタ
 
 ```typescript
-new VBATest(pathOrDir: string, config?: {
+new VBARunner(pathOrDir: string, config?: {
     sandboxRoot?: string,    // ファイル操作のサンドボックスルート
     env?: Record<string, string>,  // VBA の Environ() が返す環境変数
     useVirtualFS?: boolean   // true: メモリ内VFS / false: 実FS（デフォルト: false）
@@ -645,7 +645,7 @@ vbaTest.spy('InputBox', () => 'Alice');
 `SpyRecord` は `test-libs/test-runner` から型としてもインポートできる。
 
 ```typescript
-import { VBATest, SpyRecord } from '../../test-libs/test-runner';
+import { VBARunner, SpyRecord } from '../../test-libs/test-runner';
 // ※ SpyRecord は evaluator.ts から再エクスポートされていないため、
 //    型だけ必要な場合は import type { SpyRecord } from '../../src/compiler/evaluator';
 ```
@@ -689,10 +689,10 @@ vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
 
 ```typescript
 describe('Database-like Operations', () => {
-  let vbaTest: VBATest;
+  let vbaTest: VBARunner;
 
   beforeEach(() => {
-    vbaTest = new VBATest('src/vba/db.vba');
+    vbaTest = new VBARunner('src/vba/db.vba');
     // 各テスト前にリセット
   });
 
@@ -887,7 +887,7 @@ try {
 
 ### Q: VBA オブジェクト（Sheets など）をテストしたい
 
-**A**: VBA IDE で手動テストしてください。VBA コンパイラでのテストは推奨しません。
+**A**: VBA IDE で手動テストしてください。VBA Runnerでのテストは推奨しません。
 
 詳細は `docs/TESTING_STRATEGY.md` を参照。
 
@@ -896,7 +896,7 @@ try {
 **A**: 改善方法：
 1. `test.skip` で不要なテストを一時的に無効化
 2. ファイルを機能ごとに分割（並列化可能）
-3. VBA コンパイラのバンドル時間を短縮（esbuild キャッシュ）
+3. VBA Runnerのバンドル時間を短縮（esbuild キャッシュ）
 
 ---
 

@@ -6,7 +6,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { VBATest } from '../../../test-libs/test-runner';
+import { VBARunner } from '../../../test-libs/test-runner';
 import { Lexer } from '../../../src/compiler/lexer';
 import { Parser } from '../../../src/compiler/parser';
 
@@ -36,7 +36,7 @@ function collectProcedures(environment: any): Map<string, any> {
     return procs;
 }
 
-function injectFile(vbaTest: VBATest, filePath: string): void {
+function injectFile(vbaTest: VBARunner, filePath: string): void {
     let source = fs.readFileSync(filePath, 'utf-8');
     const ext = path.extname(filePath).toLowerCase();
     const moduleName = path.basename(filePath, path.extname(filePath));
@@ -49,7 +49,7 @@ function injectFile(vbaTest: VBATest, filePath: string): void {
     evaluator.evaluate(ast);
 }
 
-function runSuite(label: string, vbaTest: VBATest): void {
+function runSuite(label: string, vbaTest: VBARunner): void {
     const evaluator = (vbaTest as any).evaluator;
     const allProcs = collectProcedures(evaluator.env);
 
@@ -110,7 +110,7 @@ if (topLevelFiles.length > 0) {
     topLevelFiles.forEach(f => console.log(`  - ${f}`));
     console.log('');
     totalFiles += topLevelFiles.length;
-    runSuite('top-level', new VBATest(vbaDir));
+    runSuite('top-level', new VBARunner(vbaDir));
 }
 
 // --- 2. Subdirectory suites ---
@@ -133,7 +133,7 @@ for (const subdir of subdirs) {
     console.log('');
     totalFiles += subdirFiles.length;
 
-    const subdirTest = new VBATest(subdirPath);
+    const subdirTest = new VBARunner(subdirPath);
     if (fs.existsSync(assertHelperPath)) {
         injectFile(subdirTest, assertHelperPath);
     }

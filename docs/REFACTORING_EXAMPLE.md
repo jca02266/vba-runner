@@ -389,7 +389,7 @@ Application.EnableEvents = eventsState
 
 ### Excel との密結合によるテスト困難性
 
-TaskScheduler_v1.vba の最も深刻な問題が、**Excel との密結合**です。ビジネスロジックと I/O 操作が混在しているため、**VBA インタープリターで単体テスト不可能**になっています。
+TaskScheduler_v1.vba の最も深刻な問題が、**Excel との密結合**です。ビジネスロジックと I/O 操作が混在しているため、**VBA Runner で単体テスト不可能**になっています。
 
 #### 問題 1: Excel シート依存
 
@@ -409,7 +409,7 @@ rangeGrid.Value = gridData
 
 **テストの困難性**:
 - `ws.Range()` を呼び出すには **実際の Excel ファイルが必要**
-- VBA インタープリター（例: Node.js の VBA コンパイラ）で実行すると、`Range` オブジェクトが undefined
+- VBA 実行エンジン（例: Node.js の VBA Runner）で実行すると、`Range` オブジェクトが undefined
 - Mock なしでは、**Excel を起動してファイルを手動で開く** という手段しかない
 
 #### 問題 2: ビジネスロジック × I/O の密結合

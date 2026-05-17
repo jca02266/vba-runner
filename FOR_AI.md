@@ -1,6 +1,6 @@
-# FOR_AI.md — このプロジェクトをリファクタリング支援で使うAIが最初に読むドキュメント
+# FOR_AI.md — VBA Runner をリファクタリング支援で使うAIが最初に読むドキュメント
 
-このプロジェクトは **VBA実行環境 + リファクタリング支援ツール** です。
+**VBA Runner** は **VBA実行環境 + リファクタリング支援ツール** です。
 Excel 不要で VBA コードを実行・テスト・静的解析できます。
 リファクタリング支援にのみ関与するAIは、このドキュメントを読めば他を読まずに作業できます。
 
@@ -10,14 +10,14 @@ Excel 不要で VBA コードを実行・テスト・静的解析できます。
 
 | パス | 理由 |
 |---|---|
-| `spec/` | MS-VBAL仕様書（4MBテキスト）。インタープリタ開発者向け。リファクタリングには不要 |
+| `spec/` | MS-VBAL仕様書（4MBテキスト）。実行エンジン開発者向け。リファクタリングには不要 |
 | `src/lsp/` | VSCode LSP拡張機能の実装。エディタ機能。リファクタリング作業とは無関係 |
 | `src/App.tsx` 他 React ファイル | Web UI。リファクタリングには不要 |
 | `dist/` | ビルド成果物 |
 | `node_modules/` | パッケージ |
-| `TODO.md` | VBAインタープリタのコンパイラ実装TODO。リファクタリング支援とは無関係 |
-| `docs/TYPE_SYSTEM_SPEC.md` | インタープリタ内部型システムの仕様書 |
-| `tests/lsp/`, `tests/engine/`, `tests/spec/` | インタープリタ自体のテスト。触らなくてよい |
+| `TODO.md` | VBA実行エンジンのコンパイラ実装TODO。リファクタリング支援とは無関係 |
+| `docs/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
+| `tests/lsp/`, `tests/engine/`, `tests/spec/` | VBA実行エンジン自体のテスト。触らなくてよい |
 
 ---
 
@@ -27,12 +27,12 @@ Excel 不要で VBA コードを実行・テスト・静的解析できます。
 src/compiler/
   lexer.ts          VBAソース → トークン列
   parser.ts         トークン列 → AST（全ノードに loc: {start, end} 付き）
-  evaluator.ts      AST → 実行（VBAインタープリタ本体）
+  evaluator.ts      AST → 実行（VBA実行エンジン本体）
   sandbox.ts        ファイルI/Oのサンドボックス制限
 
 test-libs/
   vba-analyzer.ts   静的解析CLI（リファクタリング支援の主ツール）★
-  test-runner.ts    VBATest クラス（テスト実行ヘルパー）
+  test-runner.ts    VBARunner クラス（テスト実行ヘルパー）
 
 sample/src/vba/
   TaskScheduler_Core.vba   純粋ビジネスロジック（Excelなし）
@@ -84,15 +84,15 @@ node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ> --summ
 
 ---
 
-## 主ツール2：VBAインタープリタ（実行）
+## 主ツール2：VBA実行エンジン（実行）
 
 ### テストの書き方
 
 ```typescript
 // sample/tests/ts/MyFeature.test.ts
-import { VBATest } from '../../test-libs/test-runner';
+import { VBARunner } from '../../test-libs/test-runner';
 
-const vbaTest = new VBATest('sample/src/vba/MyModule.vba');
+const vbaTest = new VBARunner('sample/src/vba/MyModule.vba');
 
 // サブルーチン呼び出し（引数あり）
 const result = vbaTest.run('FunctionName', [arg1, arg2]);
@@ -111,11 +111,11 @@ const val = vbaTest.eval('SomeSub()');  // 引数なし呼び出しにも使う
 
 ### Excelオブジェクトのモック
 
-Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）はインタープリタで直接動作しない。
-テストでは `VBATest` の第2引数にモックを渡す:
+Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）は実行エンジンで直接動作しない。
+テストでは `VBARunner` の第2引数にモックを渡す:
 
 ```typescript
-const vbaTest = new VBATest('sample/src/vba/TaskScheduler_Core.vba', {
+const vbaTest = new VBARunner('sample/src/vba/TaskScheduler_Core.vba', {
     sheets: mockSheets,
     activeSheet: mockSheet,
 });
@@ -158,7 +158,7 @@ Read target.vba       # 禁止（ツールの場合も同様）
 
 ### Step 2: テストで安全網を張る（リファクタリング前に必須）
 
-**`./run_all_tests.sh` はインタープリタ自体のテストであり、対象VBAコードのテストではない。**
+**`./run_all_tests.sh` はVBA実行エンジン自体のテストであり、対象VBAコードのテストではない。**
 リファクタリング対象のVBAコードには、自分でテストを書く必要がある。
 
 #### 2-1. 既存テストがある場合: まず GREEN を確認する
@@ -173,14 +173,14 @@ Read target.vba       # 禁止（ツールの場合も同様）
 
 #### 2-2. 既存テストがない場合: リファクタリング前の挙動をテストに記録する
 
-リファクタリング前の関数の入出力を `VBATest` で記録し、GREEN にしておく。
+リファクタリング前の関数の入出力を `VBARunner` で記録し、GREEN にしておく。
 これが「壊れていないこと」を判断する唯一の根拠になる。
 
 ```typescript
 // sample/tests/ts/MyFeature.test.ts
-import { VBATest, assert } from '../../../test-libs/test-runner';
+import { VBARunner, assert } from '../../../test-libs/test-runner';
 
-const vbaTest = new VBATest('sample/src/vba/MyModule.vba');
+const vbaTest = new VBARunner('sample/src/vba/MyModule.vba');
 assert.strictEqual(vbaTest.run('TargetFunction', [input1, input2]), expected, 'description');
 ```
 
@@ -265,7 +265,7 @@ node test-libs/vba-analyzer.cjs <対象ファイル>
 
 ---
 
-## インタープリタの既知の制約（リファクタリング作業中に詰まったら確認）
+## VBA実行エンジンの既知の制約（リファクタリング作業中に詰まったら確認）
 
 - `ActiveWorkbook`, `ActiveSheet`, `Cells`, `Range`, `Sheets` 等の Excel オブジェクトは自動でモック化されない。テストで明示的に渡す必要がある。
 - `CreateObject("ADODB.Connection")` 等の COM オブジェクトはスタブ扱い（エラーにはならないが動作しない）

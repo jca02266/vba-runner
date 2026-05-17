@@ -1,4 +1,4 @@
-# VBA コンパイラ ドキュメント索引
+# VBA Runner ドキュメント索引
 
 このドキュメントは、`docs/` 配下のすべてのドキュメントを体系化し、読む順序と参照関係を示します。
 
@@ -17,7 +17,7 @@
 
 | ドキュメント | 説明 | 対象読者 |
 |-----------|------|--------|
-| **[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)** | JavaScript テストフレームワークで VBA をテスト（VBATest API・Time Mocking 含む） | テストコード実装者 |
+| **[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)** | JavaScript テストフレームワークで VBA をテスト（VBARunner API・Time Mocking 含む） | テストコード実装者 |
 | **[MOCK_GUIDE.md](MOCK_GUIDE.md)** | Excel オブジェクトのモック実装方法（3 段階） | Excel 依存を避けられない場合 |
 
 ### グループ3：具体例（学習用）
@@ -31,7 +31,7 @@
 
 | ドキュメント | 説明 | 対象読者 |
 |-----------|------|--------|
-| **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とこのプロジェクトでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
+| **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とVBA Runnerでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
 
 ---
 
@@ -148,7 +148,7 @@ INTEGRATION_TEST_EXAMPLE.md
 
 ```
 TYPE_SYSTEM_SPEC.md
-（VBA 型仕様 + このプロジェクトでの実装方法）
+（VBA 型仕様 + VBA Runnerでの実装方法）
 ```
 
 **参照フロー図**:
@@ -248,7 +248,7 @@ TESTING_STRATEGY.md（最上位の原則）
 **主要セクション**:
 - Jest との統合方法
 - 7 つのテストパターン（パターン7: Time Mocking 含む）
-- **VBATest API リファレンス**（`run` / `eval` / `set` / `mockDate` / `registerExternalObject`）
+- **VBARunner API リファレンス**（`run` / `eval` / `set` / `mockDate` / `registerExternalObject`）
 - エラーデバッグ情報（`err.vbaLine` / `err.number`）
 - よくある質問
 
@@ -262,7 +262,7 @@ TESTING_STRATEGY.md（最上位の原則）
 **対象**: Excel 依存を避けられない場合
 
 **主要セクション**:
-- **Part 1**: このプロジェクトの MockWorksheet を使う（実用）
+- **Part 1**: VBA Runnerの MockWorksheet を使う（実用）
 - **Part 2**: MockWorksheet を参考に自分でモックを実装（応用）
 - **Part 3**: モック設計の一般論（背景知識）
 
@@ -286,12 +286,12 @@ TESTING_STRATEGY.md（最上位の原則）
 ---
 
 ### 7. [TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)
-**目的**: VBA 型の仕様とこのプロジェクトでの実装方法（必要に応じて参照）  
+**目的**: VBA 型の仕様とVBA Runnerでの実装方法（必要に応じて参照）  
 **対象**: 型関連のバグ修正・機能追加を行う人
 
 **主要セクション**:
 - VBA 型の基本仕様
-- このプロジェクトでの型情報の保持方式
+- VBA Runnerでの型情報の保持方式
 - TypeName() / VarType() の実装方法
 - オーバーフロー検査
 - 型変換の規則
@@ -382,8 +382,8 @@ TESTING_STRATEGY.md
 ### 「`Now()` など日時依存のコードをテストしたい」
 → **[TEST_FRAMEWORK_GUIDE.md — パターン7](TEST_FRAMEWORK_GUIDE.md)** (`vbaTest.mockDate()`)
 
-### 「VBATest の API を確認したい」
-→ **[TEST_FRAMEWORK_GUIDE.md — VBATest API リファレンス](TEST_FRAMEWORK_GUIDE.md)**
+### 「VBARunner の API を確認したい」
+→ **[TEST_FRAMEWORK_GUIDE.md — VBARunner API リファレンス](TEST_FRAMEWORK_GUIDE.md)**
 
 ### 「型の動作がおかしい / 型機能を追加したい」
 → **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)**（内部実装の詳細を参照）
@@ -414,7 +414,7 @@ TESTING_STRATEGY.md
 
 ## 🎓 まとめ
 
-このプロジェクトのドキュメントは、以下の層で構成されています：
+VBA Runnerのドキュメントは、以下の層で構成されています：
 
 1. **基礎層**: テスト設計原則（[TESTING_STRATEGY.md](TESTING_STRATEGY.md)）
 2. **実装層**: リファクタリング、テストフレームワーク、モック（3 ドキュメント）

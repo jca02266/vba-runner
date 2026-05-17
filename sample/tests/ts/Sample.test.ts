@@ -1,9 +1,9 @@
-import { VBATest, assert } from '../../../test-libs/test-runner';
+import { VBARunner, assert } from '../../../test-libs/test-runner';
 
 async function main() {
     console.log("--- Starting Sample VBA Tests ---\n");
 
-    const vbaTest = new VBATest('sample/src/vba/Sample.vba');
+    const vbaTest = new VBARunner('sample/src/vba/Sample.vba');
 
     // Test Add
     console.log("[Test] Add");

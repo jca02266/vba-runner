@@ -9,7 +9,7 @@ export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
 
 const VBA_EXTENSIONS = new Set(['.vba', '.bas', '.cls', '.frm']);
 
-export class VBATest {
+export class VBARunner {
     public evaluator: Evaluator;
 
     constructor(pathOrDir: string, config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}) {
@@ -72,7 +72,7 @@ export class VBATest {
      *
      * @example
      *   import { createRegExpMock } from '../../test-libs/regexp-mock';
-     *   const vbaTest = new VBATest('source.vba');
+     *   const vbaTest = new VBARunner('source.vba');
      *   vbaTest.registerExternalObject('VBScript.RegExp', createRegExpMock);
      */
     registerExternalObject(progId: string, factory: () => any): void {
@@ -113,8 +113,8 @@ export class VBATest {
 }
 
 // Keep backward compatibility
-export function runVBATest(filePath: string, procedureName: string, args: any[], config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}): any {
-    const vbaTest = new VBATest(filePath, config);
+export function runVBARunner(filePath: string, procedureName: string, args: any[], config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}): any {
+    const vbaTest = new VBARunner(filePath, config);
     return vbaTest.run(procedureName, args);
 }
 

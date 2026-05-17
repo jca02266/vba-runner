@@ -2,13 +2,13 @@
 
 ## はじめに
 
-このドキュメントは、**VBA コンパイラ上で実行可能なマクロの単体テストを効果的に行うための設計原則とパターン**を説明します。
+このドキュメントは、**VBA Runner 上で実行可能なマクロの単体テストを効果的に行うための設計原則とパターン**を説明します。
 
-### このプロジェクトの制約
+### VBA Runner の制約
 
 - **Excel がない** (Node.js / ブラウザ環境)
 - **本物の Excel オブジェクトモデルは使用できない**
-- Excel オブジェクト(`Sheets`, `Range`等) は VBA コンパイラで自前実装する必要がある
+- Excel オブジェクト(`Sheets`, `Range`等) は VBA Runner で自前実装する必要がある
 
 この制約の中で、**テスト可能で保守性の高い VBA コードを書く方法**を提案します。
 
@@ -61,7 +61,7 @@ End Function
 
 ' === Excel I/O 層 ===
 ' 責務：Excel からデータを読み込み、計算結果を書き込むだけ
-' テスト：VBA IDE での手動テスト（VBA コンパイラでは不要）
+' テスト：VBA IDE での手動テスト（VBA Runnerでは不要）
 Sub Main()
     Dim data As Variant
     data = Sheets("SalesData").Range("A1:A5").Value
@@ -97,7 +97,7 @@ End Sub
            │
 ┌──────────────────────────────┐
 │  Excel I/O 層                │  ← VBA IDE での手動テスト
-│  (Sheets, Range操作)        │     VBA コンパイラでテストしない
+│  (Sheets, Range操作)        │     VBA Runnerでテストしない
 │  ・Main()                    │
 │  ・LoadDataFromSheet         │
 │  ・SaveResultToSheet         │
@@ -107,10 +107,10 @@ End Sub
 ### テストコード例
 
 ```typescript
-import { VBATest } from './test-libs/test-runner';
+import { VBARunner } from './test-libs/test-runner';
 
 describe('Sales Calculation', () => {
-  const vbaTest = new VBATest('macro.vba');
+  const vbaTest = new VBARunner('macro.vba');
 
   // ✅ 推奨：Domain Logic のみテスト
   it('should calculate total correctly', () => {
@@ -170,7 +170,7 @@ describe('Sales Calculation', () => {
 
 ### 自動テストが不要な理由
 
-Excel I/O を VBA コンパイラでテストすると：
+Excel I/O を VBA Runnerでテストすると：
 
 ```
 テストコード ← mock 定義 → 本番コード
@@ -216,7 +216,7 @@ End Function
 
 ```typescript
 describe('Pure Functions', () => {
-  const vbaTest = new VBATest('math.vba');
+  const vbaTest = new VBARunner('math.vba');
 
   it('SumArray: [100, 200, 300] = 600', () => {
     expect(vbaTest.run('SumArray', [[100, 200, 300]])).toBe(600);
@@ -254,7 +254,7 @@ End Function
 
 ```typescript
 describe('Discount Calculation', () => {
-  const vbaTest = new VBATest('pricing.vba');
+  const vbaTest = new VBARunner('pricing.vba');
 
   const testCases = [
     { price: 1000, discount: 0.1, expected: 900 },
@@ -312,7 +312,7 @@ End Sub
 
 ```typescript
 describe('Stateful Processing', () => {
-  const vbaTest = new VBATest('stateful.vba');
+  const vbaTest = new VBARunner('stateful.vba');
 
   it('should process value and store state', () => {
     const result = vbaTest.run('ProcessAndStore', [100]);
@@ -356,7 +356,7 @@ End Function
 
 ```typescript
 describe('Error Handling', () => {
-  const vbaTest = new VBATest('safe-math.vba');
+  const vbaTest = new VBARunner('safe-math.vba');
 
   it('should raise error on division by zero', () => {
     expect(() => {
@@ -455,10 +455,10 @@ End Sub
 ### 最小限の準備
 
 ```typescript
-import { VBATest } from './test-libs/test-runner';
+import { VBARunner } from './test-libs/test-runner';
 
 // テストファイル
-const vbaTest = new VBATest('src/vba/business-logic.vba');
+const vbaTest = new VBARunner('src/vba/business-logic.vba');
 
 // テスト実行
 describe('Business Logic Tests', () => {
@@ -489,7 +489,7 @@ End Sub
 
 ### Q1: Excel オブジェクトをテストしたい場合は？
 
-**A**: VBA IDE で手動テストしてください。VBA コンパイラでのテストは推奨しません。
+**A**: VBA IDE で手動テストしてください。VBA Runnerでのテストは推奨しません。
 
 理由：
 - mock の複雑度が高い
@@ -533,9 +533,9 @@ vbaTest.run('ProcessRecords', [[
 
 | テスト対象 | 手段 | 推奨度 |
 |-----------|------|--------|
-| Domain Logic（計算、フィルタリング等） | VBA コンパイラ + 単体テスト | ✅ 推奨 |
+| Domain Logic（計算、フィルタリング等） | VBA Runner + 単体テスト | ✅ 推奨 |
 | Excel I/O | VBA IDE + 手動テスト | ✅ 推奨 |
-| Excel オブジェクト mock | VBA コンパイラ | ❌ 非推奨 |
+| Excel オブジェクト mock | VBA Runner | ❌ 非推奨 |
 | 統合テスト | VBA IDE | ✅ 必要に応じて |
 
 **黄金則**: 
