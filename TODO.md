@@ -458,6 +458,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ 実装完了: (2) obj(args) -> obj.Item(args) (Test 12-13パス)
   - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
   - ✅ 修正: Test 7 ByRef パラメータ - implicit Value getter の実装で副次的に修正
+  - ✅ **非 `__vbaClass__` モックオブジェクトのデフォルトプロパティ**: `x = ws.Range("A1")` で MockRange の `.Value` が自動抽出される
+    - opt-in 方式: モックオブジェクトに `__vbaDefault__ = true` と `valueOf()` を実装することで有効化
+    - `VbaDate` / `VbaBoolean` / `VbaErrorValue` 等の内部型は `__vbaDefault__` を持たないため誤抽出しない
+    - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `valueOf()` 実装)
+    - テスト: `default-property-noncls.test.ts`
 - ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラ解除 (制限事項: RaiseEventコア存在; ハンドラ自動登録・検出機構未実装、イベントパラメータ解析未対応) | `withevents-lifecycle.test.ts`
 - ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
@@ -496,6 +501,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     3. 複数モジュール → 曖昧性エラー（修飾必須）
   - 曖昧性検出: 複数モジュールに同名プロシージャがある場合、実行時に詳細エラーを発生
   - テスト: `module-qualified-calls.test.ts`, `ambiguous-procedure-call.test.ts`, `evaluator-scoping.test.ts`
+- ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
+  - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
+  - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）
+  - 制限事項: 同名のモジュールレベル変数（Const でない）が複数モジュールに存在する場合、最後の代入が勝つ（区別不可）
+  - テスト: `module-qualified-access.test.ts`
 - ✅ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean・配列・オブジェクト全て正常動作 | `byref-reference-preservation.test.ts`
 - ✅ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則、ByRef semantics (spec §5.3.1.5) | `paramarray-edge-cases.test.ts`
 - ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
@@ -527,6 +537,12 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ---
 
 ## エンジンの改善
+
+### テストランナー (`VBARunner`) の改善
+
+- ✅ **`VBARunner()` 引数なし・`null` 対応**: コンストラクタの `pathOrDir` を `string | null = null` に変更し、空文字・`null`・引数省略すべてで「ファイルなし」の空環境を作成できるよう修正
+  - 修正前は `fs.statSync('')` が ENOENT を投げるため、Unix の `/dev/null` 回避策が必要だった
+  - テスト: `time-mocking.test.ts`（test 8 で `new VBARunner()` を使用）
 
 ### Parser の拡張機能
 

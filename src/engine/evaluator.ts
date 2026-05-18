@@ -674,6 +674,8 @@ export class Evaluator {
     private currentProcedureType: string | null = null;
     private currentSourceModule: string = '';
     private executingModuleName: string = '';
+    // Maps module name (lower) -> set of variable/const names (lower) declared at module level
+    private moduleVarRegistry: Map<string, Set<string>> = new Map();
     private withObjectStack: any[] = [];
     private gosubStack: number[] = []; // Stack of statement indices for GoSub/Return
     private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
@@ -2804,6 +2806,10 @@ export class Evaluator {
                 }
             }
             this.env.set(varName, initialValue);
+            // Register in module registry for Module1.VarName style access
+            if (!this.currentProcedureName && this.currentSourceModule) {
+                this.registerModuleVar(this.currentSourceModule, varName);
+            }
             if (isStaticDecl) {
                 this.staticVarsInCurrentProc.add(varKey);
             }
@@ -3009,7 +3015,21 @@ export class Evaluator {
 
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
         const value = this.evaluateExpression(stmt.value);
-        this.env.setConstant(stmt.name.name, value);
+        const name = stmt.name.name;
+        this.env.setConstant(name, value);
+        if (!this.currentProcedureName && this.currentSourceModule) {
+            // Store module-qualified key for same-name disambiguation (constants are immutable)
+            this.env.setConstant(`${this.currentSourceModule}:${name}`, value);
+            this.registerModuleVar(this.currentSourceModule, name);
+        }
+    }
+
+    private registerModuleVar(moduleName: string, varName: string) {
+        const key = moduleName.toLowerCase();
+        if (!this.moduleVarRegistry.has(key)) {
+            this.moduleVarRegistry.set(key, new Set());
+        }
+        this.moduleVarRegistry.get(key)!.add(varName.toLowerCase());
     }
 
     private evaluateSetStatement(stmt: SetStatement) {
@@ -4602,9 +4622,27 @@ export class Evaluator {
     }
 
     private evaluateMemberExpression(expr: MemberExpression): any {
+        const propName = expr.property.name.toLowerCase();
+
+        // Check module-qualified variable/constant BEFORE evaluating expr.object.
+        // This must come first to avoid Environment.get's implicit-zero initialization
+        // turning an undeclared module name into a number.
+        if (expr.object.type === 'Identifier') {
+            const possibleModule = (expr.object as Identifier).name;
+            const moduleKey = `${possibleModule.toLowerCase()}:${propName}`;
+            // Constants are stored with module-qualified key (immutable → no sync issue)
+            if (this.env.hasVariable(moduleKey)) {
+                return this.env.get(moduleKey);
+            }
+            // Variables: look up by unqualified name via module registry
+            const vars = this.moduleVarRegistry.get(possibleModule.toLowerCase());
+            if (vars && vars.has(propName)) {
+                return this.env.get(propName);
+            }
+        }
+
         const evaluated = this.evaluateExpression(expr.object);
         const obj = this.resolveAutoInstance(expr.object, evaluated);
-        const propName = expr.property.name.toLowerCase();
 
         // Safety check: ensure obj is an object before trying member access
         if (obj === null || obj === undefined || obj === vbaNothing) {
