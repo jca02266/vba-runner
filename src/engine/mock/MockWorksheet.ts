@@ -25,6 +25,8 @@ interface CellRect {
 }
 
 export class MockRange {
+    readonly __vbaDefault__ = true;
+
     constructor(private value: any) {}
 
     get Value(): any {
@@ -33,6 +35,10 @@ export class MockRange {
 
     set Value(val: any) {
         this.value = val;
+    }
+
+    valueOf(): any {
+        return this.value;
     }
 }
 

@@ -2500,6 +2500,13 @@ export class Evaluator {
             }
         }
 
+        // FEATURE: Implicit default Value getter for non-VBA-class mock objects
+        // Mock objects (e.g. MockRange) opt in by setting __vbaDefault__ = true and implementing valueOf().
+        // This avoids fragile exclusion lists for internal types (VbaDate, VbaBoolean, VbaErrorValue…).
+        if (val && val.__vbaDefault__ === true && typeof val.valueOf === 'function') {
+            val = val.valueOf();
+        }
+
         this.evaluateAssignmentToVariable(stmt.left, val);
     }
 
