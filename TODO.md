@@ -592,6 +592,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `ConvertToJson` が再帰呼び出しされると、内側の `Dim json_Converted As String` が外側の `json_Converted` を `""` にリセットしてバッファ内容が消失。`{"name":"Alice",...}` が `"":true}` になる
   - 修正: プロシージャ内の変数宣言は `setLocally()` を使用してカレントフレームにのみ変数を作成
 
+- ✅ **Fix: `obj.Method(key) = value` 形式の代入が失敗する** | `member-call-assignment.test.ts`
+  - 原因: `evaluateAssignmentToVariable` が `CallExpression` の LHS を処理する際、`callee` が `Identifier` の場合のみ対応しており、`callee` が `MemberExpression`（`obj.Item(key)` 形式）の場合にエラー 5 を投げていた
+  - 症状: `dict.Item(key) = val` のように `obj.Method(args) = val` 形式で代入すると実行時エラー 5 "Invalid procedure call or argument" が発生
+  - 修正: `call.callee.type === 'MemberExpression'` のケースを追加。Dictionary には `__map__.set(key, val)` で、VBA クラスオブジェクトには Property Let を探してディスパッチ
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証

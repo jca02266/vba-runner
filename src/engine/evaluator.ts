@@ -2678,6 +2678,32 @@ export class Evaluator {
                 } else {
                     this.throwVbaError(9, 'Subscript out of range');
                 }
+            } else if (call.callee.type === 'MemberExpression') {
+                // obj.Method(key) = val  →  Property Let / Dictionary item set
+                const memberCallee = call.callee as MemberExpression;
+                const obj = this.resolveAutoInstance(memberCallee.object, this.evaluateExpression(memberCallee.object));
+                const methodName = memberCallee.property.name.toLowerCase();
+                if (obj && obj.__isVbaDict__) {
+                    // dict.Item(key) = val
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    obj.__map__.set(key, val);
+                } else if (obj && obj.__vbaClass__) {
+                    const classDef = obj.__classDef__ as ClassDeclaration;
+                    const setter = classDef.procedures.find(
+                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === methodName
+                    );
+                    if (setter) {
+                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        this.callClassMethod(obj, setter, [...argsVals, val]);
+                    } else {
+                        this.throwVbaError(438, "Object doesn't support this property or method");
+                    }
+                } else if (obj && typeof obj === 'object') {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    obj[key] = val;
+                } else {
+                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                }
             } else {
                 this.throwVbaError(5, 'Invalid procedure call or argument');
             }
