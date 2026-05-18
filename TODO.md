@@ -604,6 +604,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `F = F & "X"` がスタックオーバーフロー、または戻り値変数が `""` でなく `0` になる
   - 修正: Identifier 評価で `currentProcedureName` と一致する場合は auto-call しない。`callProcedure` に `localEnv.setLocally(proc.name.name, vbaEmpty)` を追加
 
+- ✅ **Fix: `On Error Resume Next` が `Select Case` / `If` / `For` / `While` / `With` ブロック内部で機能しない** | `on-error-in-blocks.test.ts`
+  - 原因: `evaluateSelectCaseStatement`・`evaluateIfStatement`・`evaluateForStatement`・`evaluateForEachStatement`・`evaluateDoWhileStatement`・`evaluateWhileStatement`・`evaluateWithStatement` が単純な `for...of` ループでブロック内ステートメントを実行しており、`On Error Resume Next` のエラーキャッチが機能しなかった。エラーはブロック全体を貫通して `executeStatements`（プロシージャ本体レベル）に伝播し、Select Case 全体・If 全体が「1ステートメント」としてスキップされていた
+  - 症状: `Select Case VarType(arr)` 内で `LBound(arr, 2)` が VBA エラー 9 を投げると、`On Error Resume Next` で次行に進まず Select Case 全体がスキップされ、戻り値が null になる（`ConvertToJson(array)` が `""` を返す）
+  - 修正: 各ブロック評価関数でブロック本体の実行を `executeStatements(body, 0, false)` に変更。`isTopLevel=false` の場合は VBA エラーのみ `On Error Resume Next` で処理し、`GoTo` / `GoSub` / `Return` / `Resume` はプロシージャ本体の `executeStatements` に委譲するよう再スロー
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証

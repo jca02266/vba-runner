@@ -1595,7 +1595,7 @@ export class Evaluator {
         this.env.set('vbbinarycompare', 0);
         this.env.set('vbtextcompare', 1);
         this.env.set('vbempty', 0); this.env.set('vbnull', 1); this.env.set('vbinteger', 2); this.env.set('vblong', 3); this.env.set('vbsingle', 4); this.env.set('vbdouble', 5); this.env.set('vbcurrency', 6); this.env.set('vbdate', 7); this.env.set('vbstring', 8); this.env.set('vbobject', 9); this.env.set('vberror', 10); this.env.set('vbboolean', 11); this.env.set('vbvariant', 12); this.env.set('vbbyte', 17); this.env.set('vblonglong', 20); this.env.set('vbarray', 8192);
-        this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n");
+        this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0');
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
 
         this.env.set('environ', (k: any) => this.sandbox.getEnv(k));
@@ -1619,30 +1619,28 @@ export class Evaluator {
         this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
         this.env.set('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; });
         this.env.set('lbound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) return 0;
+            if (!Array.isArray(a)) this.throwVbaError(9, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
-            if ((a as any).__vbaDimensions__ && dimIndex >= 0 && dimIndex < (a as any).__vbaDimensions__.length) {
+            if ((a as any).__vbaDimensions__) {
+                if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
+                    this.throwVbaError(9, "Subscript out of range");
+                }
                 return (a as any).__vbaDimensions__[dimIndex].lower;
             }
-            let current = a;
-            for (let i = 0; i < dimIndex; i++) {
-                if (Array.isArray(current) && current.length > 0) current = current[0];
-                else this.throwVbaError(9, "Subscript out of range");
-            }
-            return (current as any).vbaBase || 0;
+            if (dimIndex > 0) this.throwVbaError(9, "Subscript out of range");
+            return (a as any).vbaBase || 0;
         });
         this.env.set('ubound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) return 0;
+            if (!Array.isArray(a)) this.throwVbaError(9, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
-            if ((a as any).__vbaDimensions__ && dimIndex >= 0 && dimIndex < (a as any).__vbaDimensions__.length) {
+            if ((a as any).__vbaDimensions__) {
+                if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
+                    this.throwVbaError(9, "Subscript out of range");
+                }
                 return (a as any).__vbaDimensions__[dimIndex].upper;
             }
-            let current = a;
-            for (let i = 0; i < dimIndex; i++) {
-                if (Array.isArray(current) && current.length > 0) current = current[0];
-                else this.throwVbaError(9, "Subscript out of range");
-            }
-            return ((current as any).vbaBase || 0) + current.length - 1;
+            if (dimIndex > 0) this.throwVbaError(9, "Subscript out of range");
+            return ((a as any).vbaBase || 0) + a.length - 1;
         });
 
         // --- Registry Module ---
@@ -2123,9 +2121,7 @@ export class Evaluator {
 
         while (condition()) {
             try {
-                for (const bodyStmt of stmt.body) {
-                    this.evaluateStatement(bodyStmt);
-                }
+                this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
                 if (e && e.type === 'Exit' && e.target === 'For') {
                     break;
@@ -2160,9 +2156,7 @@ export class Evaluator {
         for (const element of elements) {
             this.env.set(varName, element);
             try {
-                for (const bodyStmt of stmt.body) {
-                    this.evaluateStatement(bodyStmt);
-                }
+                this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
                 if (e && e.type === 'Exit' && e.target === 'For') {
                     break;
@@ -2263,14 +2257,10 @@ export class Evaluator {
     private evaluateIfStatement(stmt: IfStatement) {
         const conditionVal = this.evaluateExpression(stmt.condition);
         if (this.isTrue(conditionVal)) {
-            for (const bodyStmt of stmt.consequent) {
-                this.evaluateStatement(bodyStmt);
-            }
+            this.executeStatements(stmt.consequent, 0, false);
         } else if (stmt.alternate) {
             if (Array.isArray(stmt.alternate)) {
-                for (const bodyStmt of stmt.alternate) {
-                    this.evaluateStatement(bodyStmt);
-                }
+                this.executeStatements(stmt.alternate as Statement[], 0, false);
             } else {
                 this.evaluateIfStatement(stmt.alternate as IfStatement);
             }
@@ -2304,13 +2294,13 @@ export class Evaluator {
                 if (matched) break;
             }
             if (matched) {
-                for (const s of caseClause.body) this.evaluateStatement(s);
+                this.executeStatements(caseClause.body, 0, false);
                 return;
             }
         }
 
         if (stmt.elseBody) {
-            for (const s of stmt.elseBody) this.evaluateStatement(s);
+            this.executeStatements(stmt.elseBody, 0, false);
         }
     }
 
@@ -2328,9 +2318,7 @@ export class Evaluator {
             if (stmt.conditionPosition === 'pre' && !checkCondition()) break;
 
             try {
-                for (const bodyStmt of stmt.body) {
-                    this.evaluateStatement(bodyStmt);
-                }
+                this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
                 if (e && e.type === 'Exit' && e.target === 'Do') {
                     break;
@@ -2348,9 +2336,7 @@ export class Evaluator {
 
     private evaluateWhileStatement(stmt: WhileStatement) {
         while (this.isTrue(this.evaluateExpression(stmt.condition))) {
-            for (const bodyStmt of stmt.body) {
-                this.evaluateStatement(bodyStmt);
-            }
+            this.executeStatements(stmt.body, 0, false);
         }
     }
 
@@ -2358,9 +2344,7 @@ export class Evaluator {
         const obj = this.evaluateExpression(stmt.expression);
         this.withObjectStack.push(obj);
         try {
-            for (const bodyStmt of stmt.body) {
-                this.evaluateStatement(bodyStmt);
-            }
+            this.executeStatements(stmt.body, 0, false);
         } finally {
             this.withObjectStack.pop();
         }
@@ -3806,8 +3790,10 @@ export class Evaluator {
         });
     }
 
-    // Execute a sequence of statements starting from startIndex, with error handling support
-    private executeStatements(body: Statement[], startIndex: number) {
+    // Execute a sequence of statements starting from startIndex, with error handling support.
+    // isTopLevel=true (default): full handling for procedure bodies (GoTo, GoSub, Return, Resume).
+    // isTopLevel=false: only handle On Error Resume Next; all control flow re-throws to outer scope.
+    private executeStatements(body: Statement[], startIndex: number, isTopLevel: boolean = true) {
         let i = startIndex;
         while (i < body.length) {
             const stmt = body[i];
@@ -3816,6 +3802,11 @@ export class Evaluator {
                 i++;
             } catch (e: any) {
                 if (e && (e.type === 'Exit' || e.type === 'Terminate' || e.type === 'ProcedureReturn')) {
+                    throw e;
+                }
+
+                // In nested block contexts, propagate all procedure-level control flow
+                if (!isTopLevel && e && (e.type === 'GoTo' || e.type === 'GoSub' || e.type === 'Return' || e.type === 'Resume')) {
                     throw e;
                 }
 
@@ -4305,11 +4296,12 @@ export class Evaluator {
      * to resolve variable type metadata from the Environment.
      */
     private evaluateTypeIntrinsic(funcName: 'typename' | 'vartype', argExpr: Expression): any {
-        // If argument is an Identifier, check environment metadata first
+        // If argument is an Identifier with a specific declared type, use it.
+        // Exception: Variant and Object hold any value — always inspect the runtime value.
         if (argExpr.type === 'Identifier') {
             const varName = (argExpr as Identifier).name;
             const typeInfo = this.env.getVariableType(varName);
-            if (typeInfo) {
+            if (typeInfo && typeInfo.vbaType !== 'Variant' && typeInfo.vbaType !== 'Object') {
                 if (funcName === 'typename') {
                     return typeInfo.vbaType;
                 } else {
@@ -4319,7 +4311,6 @@ export class Evaluator {
                         'Single': 4, 'Double': 5, 'Currency': 6,
                         'LongLong': 20,
                         'String': 8, 'Boolean': 11, 'Date': 7,
-                        'Variant': 12, 'Object': 9,
                     };
                     return vtMap[typeInfo.vbaType] ?? 12;
                 }
