@@ -1,4 +1,6 @@
-import * as path from 'path';
+import path from 'path';
+
+const vpath = path.posix;
 
 /**
  * VBA File System Sandbox Path Resolver
@@ -42,14 +44,14 @@ export class SandboxPath {
         let resolved: string;
         if (normalized.startsWith('/')) {
             // 3a. Absolute path: resolve from sandbox root
-            resolved = path.join(this.root, normalized.substring(1));
+            resolved = vpath.join(this.root, normalized.substring(1));
         } else {
             // 3b. Relative path: resolve from cwd
-            resolved = path.join(this.cwd, normalized);
+            resolved = vpath.join(this.cwd, normalized);
         }
 
         // 4. Traversal check
-        if (!resolved.startsWith(this.root)) {
+        if (!resolved.startsWith(this.root + '/') && resolved !== this.root) {
             throw new Error(`Execution error: Access denied outside of sandbox root (${vbaPath})`);
         }
 
@@ -64,7 +66,7 @@ export class SandboxPath {
     /** Changes the current working directory. Raises if path escapes sandbox. */
     public setCwd(vbaPath: string): void {
         const real = this.toRealPath(vbaPath);
-        if (!real.startsWith(this.root)) {
+        if (!real.startsWith(this.root + '/') && real !== this.root) {
             throw new Error(`Execution error: Access denied outside of sandbox root (${vbaPath})`);
         }
         this.cwd = real;
@@ -76,8 +78,8 @@ export class SandboxPath {
      * @returns VBA path (Windows format if it maps to a drive)
      */
     public toVirtualPath(realPath: string): string {
-        const relative = path.relative(this.root, realPath);
-        
+        const relative = vpath.relative(this.root, realPath);
+
         if (relative.startsWith('..')) {
             throw new Error(`Security Error: Real path is outside of sandbox root (${realPath})`);
         }
