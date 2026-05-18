@@ -3522,6 +3522,60 @@ export class Evaluator {
             };
         });
 
+        // --- Collection (§6.1.3.1) ---
+        this.registerExternalObject('Collection', () => {
+            const items: any[] = [];
+            const keys: (string | undefined)[] = [];
+
+            const resolveIndex = (index: any): number => {
+                if (typeof index === 'string') {
+                    const i = keys.findIndex(k => k !== undefined && k.toLowerCase() === index.toLowerCase());
+                    if (i === -1) this.throwVbaError(5, `Collection key not found: '${index}'`);
+                    return i;
+                }
+                const i = Number(index) - 1;
+                if (i < 0 || i >= items.length) this.throwVbaError(9, 'Subscript out of range');
+                return i;
+            };
+
+            return {
+                __isVbaCollection__: true,
+                __className__: 'Collection',
+                count: () => items.length,
+                add: (item: any, key?: any, before?: any, after?: any) => {
+                    if (key !== undefined && key !== null && typeof key === 'string') {
+                        if (keys.some(k => k !== undefined && k.toLowerCase() === key.toLowerCase())) {
+                            this.throwVbaError(457, 'This key is already associated with an element of this collection');
+                        }
+                    }
+                    const keyStr = (key !== undefined && key !== null && typeof key === 'string') ? key : undefined;
+                    if (before !== undefined && before !== null) {
+                        const pos = resolveIndex(before);
+                        items.splice(pos, 0, item);
+                        keys.splice(pos, 0, keyStr);
+                    } else if (after !== undefined && after !== null) {
+                        const pos = resolveIndex(after) + 1;
+                        items.splice(pos, 0, item);
+                        keys.splice(pos, 0, keyStr);
+                    } else {
+                        items.push(item);
+                        keys.push(keyStr);
+                    }
+                },
+                item: (index: any) => {
+                    const i = resolveIndex(index);
+                    return items[i];
+                },
+                remove: (index: any) => {
+                    const i = resolveIndex(index);
+                    items.splice(i, 1);
+                    keys.splice(i, 1);
+                },
+                // For For Each support
+                [Symbol.iterator]: function* () { yield* items; },
+            };
+        });
+
         // --- Scripting.FileSystemObject ---
         this.registerExternalObject('Scripting.FileSystemObject', () => ({
             __isVbaFso__: true,
@@ -3922,6 +3976,8 @@ export class Evaluator {
 
     private evaluateExpression(expr: Expression): any {
         switch (expr.type) {
+            case 'MissingArgument':
+                return vbaEmpty;
             case 'NumberLiteral':
                 return (expr as NumberLiteral).value;
             case 'StringLiteral':

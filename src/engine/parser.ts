@@ -2323,7 +2323,7 @@ export class Parser {
     private parseCallArgument(): Expression {
         const next = this.peek().type;
         if (next === TokenType.OperatorComma || next === TokenType.OperatorRParen || this.isAtTerminator()) {
-            return { type: 'Identifier', name: 'vbaEmpty' } as any;
+            return { type: 'MissingArgument' } as any;
         }
 
         // Check for named argument: Identifier := Expression
