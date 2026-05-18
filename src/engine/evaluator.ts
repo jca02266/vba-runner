@@ -2704,6 +2704,18 @@ export class Evaluator {
                 } else {
                     this.throwVbaError(5, 'Invalid procedure call or argument');
                 }
+            } else if (call.callee.type === 'CallExpression') {
+                // outer("sub")("x") = val  →  evaluate outer("sub") to get inner dict, then assign
+                const innerObj = this.evaluateExpression(call.callee);
+                if (innerObj && innerObj.__isVbaDict__) {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    innerObj.__map__.set(key, val);
+                } else if (innerObj && typeof innerObj === 'object') {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    innerObj[key] = val;
+                } else {
+                    this.throwVbaError(9, 'Subscript out of range');
+                }
             } else {
                 this.throwVbaError(5, 'Invalid procedure call or argument');
             }
@@ -3147,6 +3159,52 @@ export class Evaluator {
                 } else {
                     this.throwVbaError(424, 'Object required');
                 }
+            }
+        } else if (stmt.left.type === 'CallExpression') {
+            // Set obj.Item(key) = obj2  or  Set obj(key) = obj2
+            const call = stmt.left as CallExpression;
+            if (call.callee.type === 'MemberExpression') {
+                const memberCallee = call.callee as MemberExpression;
+                const obj = this.resolveAutoInstance(memberCallee.object, this.evaluateExpression(memberCallee.object));
+                const methodName = memberCallee.property.name.toLowerCase();
+                if (obj && obj.__isVbaDict__) {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    const oldVal = obj.__map__.get(key);
+                    if (oldVal !== value) this.triggerTerminate(oldVal);
+                    obj.__map__.set(key, value);
+                } else if (obj && obj.__vbaClass__) {
+                    const classDef = obj.__classDef__ as ClassDeclaration;
+                    const setter = classDef.procedures.find(
+                        p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === methodName
+                    );
+                    if (setter) {
+                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        this.callClassMethod(obj, setter, [...argsVals, value]);
+                    } else {
+                        this.throwVbaError(438, "Object doesn't support this property or method");
+                    }
+                } else if (obj && typeof obj === 'object') {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    obj[key] = value;
+                } else {
+                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                }
+            } else if (call.callee.type === 'Identifier') {
+                const name = (call.callee as Identifier).name;
+                const target = this.env.get(name);
+                if (target && target.__isVbaDict__) {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    const oldVal = target.__map__.get(key);
+                    if (oldVal !== value) this.triggerTerminate(oldVal);
+                    target.__map__.set(key, value);
+                } else if (target && typeof target === 'object') {
+                    const key = String(this.evaluateExpression(call.args[0]));
+                    target[key] = value;
+                } else {
+                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                }
+            } else {
+                this.throwVbaError(5, 'Invalid procedure call or argument');
             }
         } else {
             this.throwVbaError(5, 'Invalid procedure call or argument');
