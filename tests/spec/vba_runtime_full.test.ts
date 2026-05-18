@@ -138,10 +138,10 @@ function testFullRuntime() {
         
         if (exp === "DateAdd: ") {
             // Accept either formatted string or serial number
-            if (line.includes("2/1/2023") || line.includes("2023-02-01") || line.includes("44958")) {
+            if (line.includes("2/1/2023") || line.includes("2023-02-01") || line.includes("2023/02/01") || line.includes("44958")) {
                 passed++;
             } else {
-                console.log(`[FAIL] Line ${i + 1}: Expected DateAdd to match 2023-02-01 or 44958, got "${line}"`);
+                console.log(`[FAIL] Line ${i + 1}: Expected DateAdd to match 2023-02-01 or 2023/02/01 or 44958, got "${line}"`);
             }
             continue;
         }

@@ -15,7 +15,7 @@ function run(ev: Evaluator, code: string, proc: string, args: any[] = []): any {
     return ev.callProcedure(proc, args);
 }
 
-const FIXED = new Date('2024-03-15T10:30:45Z');
+const FIXED = new Date(2024, 2, 15, 10, 30, 45); // 2024-03-15 10:30:45 local
 
 // 1. Now() returns mocked date
 {
@@ -79,7 +79,7 @@ End Function
 
 // 6. VBA branch based on mocked year
 {
-    const ev = makeEv(() => new Date('2024-01-01T00:00:00Z'));
+    const ev = makeEv(() => new Date(2024, 0, 1)); // 2024-01-01 local
     const result = run(ev, `
 Function Test6() As String
     If Year(Now()) = 2024 Then
@@ -104,11 +104,11 @@ End Function
     const ast = new Parser(new Lexer(code).tokenize()).parse();
     ev.evaluate(ast);
 
-    ev.setNowFn(() => new Date('2020-06-01T00:00:00Z'));
+    ev.setNowFn(() => new Date(2020, 5, 1)); // 2020-06-01 local
     const r1 = ev.callProcedure('GetYear', []);
     assert.strictEqual(r1, 2020, 'First mock: 2020');
 
-    ev.setNowFn(() => new Date('2030-11-11T00:00:00Z'));
+    ev.setNowFn(() => new Date(2030, 10, 11)); // 2030-11-11 local
     const r2 = ev.callProcedure('GetYear', []);
     assert.strictEqual(r2, 2030, 'Second mock: 2030');
 

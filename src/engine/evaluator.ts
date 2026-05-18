@@ -135,9 +135,10 @@ export class VbaBoolean {
     }
 }
 
-// VBA date serial: days since 1899-12-30 (VBA epoch)
-// Using UTC to avoid timezone-dependent serial numbers
-const VBA_EPOCH = new Date(Date.UTC(1899, 11, 30));
+// VBA date serial: days since local midnight 1899-12-30 (VBA epoch)
+// Using local time so that Now(), Date(), DateSerial(), and display are all consistent
+// with the local timezone — matching real VBA behavior.
+const VBA_EPOCH = new Date(1899, 11, 30);
 const MS_PER_DAY = 86400000;
 
 export const toVbaDate = (d: Date): number =>
@@ -161,12 +162,10 @@ export const parseVbaDate = (val: any): Date => {
 
     const d = new Date(str);
     if (isNaN(d.getTime())) throw { type: 'VbaError', number: 13, message: `Type mismatch: '${val}'` };
-    
-    // Treat the parsed local time components as UTC to maintain timezone independence
-    return new Date(Date.UTC(
-        d.getFullYear(), d.getMonth(), d.getDate(),
-        d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()
-    ));
+
+    // Normalize to local midnight to ensure date-only values produce integer serials
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate(),
+        d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
 };
 
 export class VbaDate {
@@ -175,10 +174,27 @@ export class VbaDate {
     valueOf() { return this.value; }
     toString() {
         const d = fromVbaDate(this.value);
-        if (Math.abs(this.value - Math.round(this.value)) < 1e-10) {
-            return d.toLocaleDateString();
+        // yyyy/MM/dd
+        const datePart = [
+            String(d.getFullYear()),
+            String(d.getMonth() + 1).padStart(2, '0'),
+            String(d.getDate()).padStart(2, '0')
+        ].join("/");
+
+        const hasFraction = Math.abs(this.value - Math.round(this.value)) > 1e-10;
+        if (!hasFraction) {
+            return datePart;
         }
-        return d.toLocaleString();
+
+        // HH:MM:SS
+        const timePart = [
+            String(d.getHours()).padStart(2, '0'),
+            String(d.getMinutes()).padStart(2, '0'),
+            String(d.getSeconds()).padStart(2, '0')
+        ].join(':');
+
+        // 整数部が 0 = 時刻のみ（TimeSerial等）、それ以外は日付+時刻
+        return Math.round(this.value) === 0 ? timePart : datePart + ' ' + timePart;
     }
 }
 
@@ -204,7 +220,7 @@ class VbaCollection {
         if (keyLower && this._items.some(i => i.key === keyLower)) {
             throw { type: 'VbaError', number: 457, message: 'This key is already associated with an element of this collection' };
         }
-        
+
         const newItem = { value: item, key: keyLower };
 
         if (before !== undefined && before !== vbaEmpty && before !== null) {
@@ -275,7 +291,7 @@ export class VbaErrObject {
         if (description !== undefined && description !== vbaEmpty && description !== null) this.description = String(description);
         if (helpfile !== undefined && helpfile !== vbaEmpty && helpfile !== null) this.helpfile = String(helpfile);
         if (helpcontext !== undefined && helpcontext !== vbaEmpty && helpcontext !== null) this.helpcontext = Number(helpcontext);
-        
+
         throw { type: 'VbaError', number: this.number, message: this.description };
     }
 }
@@ -870,9 +886,7 @@ export class Evaluator {
             if (val === null || val === vbaNull || val === vbaEmpty) this.throwVbaError(13, "Type mismatch");
             if (val instanceof VbaDate) return val;
             if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
-                const d = Date.parse(val);
-                if (isNaN(d)) this.throwVbaError(13, "Type mismatch");
-                return new VbaDate(d / 86400000 + 25569);
+                return new VbaDate(toVbaDate(parseVbaDate(val)));
             }
             return new VbaDate(this.toVbaNumber(val));
         });
@@ -1084,10 +1098,10 @@ export class Evaluator {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? ''), find = String(s2 ?? '');
             if (find === "") return (start === -1) ? str.length : Number(start);
-            
+
             const startNum = Number(start);
             if (startNum !== -1 && startNum > str.length) return 0;
-            
+
             const effStart = (start === -1) ? str.length : startNum;
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
@@ -1196,7 +1210,7 @@ export class Evaluator {
         });
         this.env.set('leftb', (val: any, len: any) => {
             const s = String(val ?? '');
-            // In VBA, strings are UTF-16, so each char is 2 bytes. 
+            // In VBA, strings are UTF-16, so each char is 2 bytes.
             // LeftB(s, 2) returns first char.
             return s.substring(0, Math.floor(Number(len) / 2));
         });
@@ -1242,41 +1256,41 @@ export class Evaluator {
 
         // --- Date/Time Module ---
         this.registerDateTimeFunctions();
-        this.env.set('year', (d: any) => parseVbaDate(d).getUTCFullYear());
-        this.env.set('month', (d: any) => parseVbaDate(d).getUTCMonth() + 1);
-        this.env.set('day', (d: any) => parseVbaDate(d).getUTCDate());
-        this.env.set('hour', (d: any) => parseVbaDate(d).getUTCHours());
-        this.env.set('minute', (d: any) => parseVbaDate(d).getUTCMinutes());
-        this.env.set('second', (d: any) => parseVbaDate(d).getUTCSeconds());
-        this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))))));
-        this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(Date.UTC(1899, 11, 30, Number(h), Number(n), Number(s))))));
-        this.env.set('weekday', (d: any) => parseVbaDate(d).getUTCDay() + 1);
+        this.env.set('year',   (d: any) => parseVbaDate(d).getFullYear());
+        this.env.set('month',  (d: any) => parseVbaDate(d).getMonth() + 1);
+        this.env.set('day',    (d: any) => parseVbaDate(d).getDate());
+        this.env.set('hour',   (d: any) => parseVbaDate(d).getHours());
+        this.env.set('minute', (d: any) => parseVbaDate(d).getMinutes());
+        this.env.set('second', (d: any) => parseVbaDate(d).getSeconds());
+        this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))));
+        this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))));
+        this.env.set('weekday', (d: any) => parseVbaDate(d).getDay() + 1);
         this.env.set('dateadd', (interval: any, number: any, date: any) => {
             const d = parseVbaDate(date);
             const n = Number(number);
             const intv = String(interval).toLowerCase();
-            
+
             if (intv === 'yyyy' || intv === 'q' || intv === 'm') {
-                const oldDay = d.getUTCDate();
-                if (intv === 'yyyy') d.setUTCFullYear(d.getUTCFullYear() + n);
-                else if (intv === 'q') d.setUTCMonth(d.getUTCMonth() + n * 3);
-                else if (intv === 'm') d.setUTCMonth(d.getUTCMonth() + n);
-                
-                // VBA behavior: if the day exceeds the last day of the month, 
+                const oldDay = d.getDate();
+                if (intv === 'yyyy') d.setFullYear(d.getFullYear() + n);
+                else if (intv === 'q') d.setMonth(d.getMonth() + n * 3);
+                else if (intv === 'm') d.setMonth(d.getMonth() + n);
+
+                // VBA behavior: if the day exceeds the last day of the month,
                 // it is set to the last day of that month.
-                if (d.getUTCDate() !== oldDay) {
-                    d.setUTCDate(0);
+                if (d.getDate() !== oldDay) {
+                    d.setDate(0);
                 }
             } else if (intv === 'y' || intv === 'd' || intv === 'w') {
-                d.setUTCDate(d.getUTCDate() + n);
+                d.setDate(d.getDate() + n);
             } else if (intv === 'ww') {
-                d.setUTCDate(d.getUTCDate() + n * 7);
+                d.setDate(d.getDate() + n * 7);
             } else if (intv === 'h') {
-                d.setUTCHours(d.getUTCHours() + n);
+                d.setHours(d.getHours() + n);
             } else if (intv === 'n') {
-                d.setUTCMinutes(d.getUTCMinutes() + n);
+                d.setMinutes(d.getMinutes() + n);
             } else if (intv === 's') {
-                d.setUTCSeconds(d.getUTCSeconds() + n);
+                d.setSeconds(d.getSeconds() + n);
             }
             return new VbaDate(toVbaDate(d));
         });
@@ -1285,9 +1299,9 @@ export class Evaluator {
             const d2 = parseVbaDate(date2);
             const intv = String(interval).toLowerCase();
             const diffMs = d2.getTime() - d1.getTime();
-            if (intv === 'yyyy') return d2.getUTCFullYear() - d1.getUTCFullYear();
-            else if (intv === 'q') return (d2.getUTCFullYear() - d1.getUTCFullYear()) * 4 + Math.floor(d2.getUTCMonth() / 3) - Math.floor(d1.getUTCMonth() / 3);
-            else if (intv === 'm') return (d2.getUTCFullYear() - d1.getUTCFullYear()) * 12 + d2.getUTCMonth() - d1.getUTCMonth();
+            if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
+            else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
+            else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
             else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
             else if (intv === 'ww') return Math.round(diffMs / 604800000);
             else if (intv === 'h') return Math.round(diffMs / 3600000);
@@ -1298,24 +1312,24 @@ export class Evaluator {
         this.env.set('datepart', (interval: any, date: any) => {
             const d = parseVbaDate(date);
             const intv = String(interval).toLowerCase();
-            if (intv === 'yyyy') return d.getUTCFullYear();
-            else if (intv === 'q') return Math.floor(d.getUTCMonth() / 3) + 1;
-            else if (intv === 'm') return d.getUTCMonth() + 1;
+            if (intv === 'yyyy') return d.getFullYear();
+            else if (intv === 'q') return Math.floor(d.getMonth() / 3) + 1;
+            else if (intv === 'm') return d.getMonth() + 1;
             else if (intv === 'y') {
-                const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 0));
+                const start = new Date(d.getFullYear(), 0, 0);
                 const diff = d.getTime() - start.getTime();
                 return Math.floor(diff / 86400000);
             }
-            else if (intv === 'd') return d.getUTCDate();
-            else if (intv === 'w') return d.getUTCDay() + 1;
+            else if (intv === 'd') return d.getDate();
+            else if (intv === 'w') return d.getDay() + 1;
             else if (intv === 'ww') {
-                const start = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+                const start = new Date(d.getFullYear(), 0, 1);
                 const diff = d.getTime() - start.getTime();
-                return Math.floor((diff / 86400000 + start.getUTCDay() + 6) / 7);
+                return Math.floor((diff / 86400000 + start.getDay() + 6) / 7);
             }
-            else if (intv === 'h') return d.getUTCHours();
-            else if (intv === 'n') return d.getUTCMinutes();
-            else if (intv === 's') return d.getUTCSeconds();
+            else if (intv === 'h') return d.getHours();
+            else if (intv === 'n') return d.getMinutes();
+            else if (intv === 's') return d.getSeconds();
             return 0;
         });
         this.env.set('datevalue', (val: any) => {
@@ -2218,7 +2232,7 @@ export class Evaluator {
         const scaled = val * factor;
         const i = Math.floor(scaled);
         const f = scaled - i;
-        
+
         // Handle very close to midpoint due to float precision
         const epsilon = 1e-10;
         if (Math.abs(f - 0.5) < epsilon) {
@@ -2599,7 +2613,7 @@ export class Evaluator {
                     const targetName = (call.args[0] as Identifier).name; // Must be identifier for assignment
                     let start = this.evaluateExpression(call.args[1]) as number;
                     let length = call.args.length > 2 ? this.evaluateExpression(call.args[2]) as number : -1;
-                    
+
                     const isByte = lowerName.startsWith('midb');
                     if (isByte) {
                         // Convert byte position to char position (approximate: 2 bytes per char)
@@ -3127,7 +3141,7 @@ export class Evaluator {
             case 'Output': flags = 'w'; break;
             case 'Append': flags = 'a'; break;
             case 'Random':
-            case 'Binary': 
+            case 'Binary':
                 if (!this.fs.existsSync(realPath)) {
                     this.fs.writeFileSync(realPath, "");
                 }
@@ -3160,7 +3174,7 @@ export class Evaluator {
     }
 
     private evaluateCloseStatement(stmt: CloseStatement) {
-        const nums = stmt.fileNumbers.length > 0 
+        const nums = stmt.fileNumbers.length > 0
             ? stmt.fileNumbers.map(n => Number(this.evaluateExpression(n)))
             : Array.from(this.fileHandles.keys());
 
@@ -3202,7 +3216,7 @@ export class Evaluator {
                 output += String(val === vbaNull ? "Null" : (val === vbaEmpty ? "" : val));
             }
         }
-        
+
         const last = stmt.expressions[stmt.expressions.length - 1];
         if (last !== 'Semicolon' && last !== 'Comma') {
             output += "\r\n";
@@ -3216,7 +3230,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(52, "Bad file name or number");
-        
+
         const buffer = new Uint8Array(1);
         let line = "";
         let bytesRead = 0;
@@ -3241,7 +3255,7 @@ export class Evaluator {
         const data = this.evaluateExpression(stmt.data);
         const s = String(data);
         const buffer = new TextEncoder().encode(s);
-        
+
         let position: number | null = handle.pos ?? null;
         if (stmt.recordNumber) {
             position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
@@ -3340,14 +3354,14 @@ export class Evaluator {
             if (content.includes('\n')) break;
             readPos += bytesRead;
         }
-        
+
         const lineEnd = content.indexOf('\n');
         const line = lineEnd === -1 ? content : content.slice(0, lineEnd);
         handle.pos = (handle.pos || 0) + line.length + (lineEnd === -1 ? 0 : 1);
         if (content[lineEnd - 1] === '\r') {
             // handle CRLF
         }
-        
+
         const values = line.trim().split(",").map(v => v.trim().replace(/^"|"$/g, ''));
         for (let i = 0; i < stmt.variables.length; i++) {
             if (i < values.length) {
@@ -3367,7 +3381,7 @@ export class Evaluator {
         if (stmt.recordNumber) {
             position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
         }
-        
+
         const bytesRead = this.fs.readSync(handle.fd, buffer, 0, buffer.length, position);
         const s = new TextDecoder().decode(buffer.subarray(0, bytesRead));
         this.evaluateAssignmentToVariable(stmt.variable, s);
@@ -3380,9 +3394,9 @@ export class Evaluator {
         if (!handle) this.throwVbaError(52, `Bad file name or number: #${fileNum}`);
 
         const pos = Number(this.evaluateExpression(stmt.position));
-        // Node doesn't have seekSync on FD directly without lseek, 
+        // Node doesn't have seekSync on FD directly without lseek,
         // but we can track it in our handle if we use it for subsequent read/write.
-        handle.pos = Math.max(0, pos - 1); 
+        handle.pos = Math.max(0, pos - 1);
     }
 
     private evaluateResetStatement(_stmt: ResetStatement) {
@@ -3691,7 +3705,7 @@ export class Evaluator {
                 if (!this.isInErrorHandler) {
                     const errorNumber = e.type === 'VbaError' ? e.number : 1000;
                     const errorMessage = e.message || String(e);
-                    
+
                     this.errObj.number = errorNumber;
                     this.errObj.description = errorMessage;
 
@@ -4311,7 +4325,7 @@ export class Evaluator {
                     }
                 } finally {
                     this.env = previousEnv; // Restore scope
-                    
+
                     // Synchronize ByRef arguments back to caller scope (even if an error occurred)
                     for (const ref of byRefArgs) {
                         const updatedVal = localEnv.get(ref.paramName);
@@ -4797,22 +4811,22 @@ export class Evaluator {
                     return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal !== rightVal ? vbaTrue : vbaFalse;
-            case '<': 
+            case '<':
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() < rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal < rightVal ? vbaTrue : vbaFalse;
-            case '>': 
+            case '>':
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() > rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal > rightVal ? vbaTrue : vbaFalse;
-            case '<=': 
+            case '<=':
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() <= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal <= rightVal ? vbaTrue : vbaFalse;
-            case '>=': 
+            case '>=':
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() >= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
@@ -4875,7 +4889,7 @@ export class Evaluator {
     private evaluateLike(text: any, pattern: any): boolean {
         const textStr = String(text);
         const patternStr = String(pattern);
-        
+
         // Convert VBA Like pattern to Regex
         // Special characters in VBA Like: *, ?, #, [
         // Regex special characters to escape: \, ^, $, ., |, (, ), [, ], {, }, +, * , ?
@@ -4941,59 +4955,82 @@ export class Evaluator {
 
     private formatDate(d: Date, pattern: string): string {
         const pLower = pattern.toLowerCase();
-        if (pLower === 'general date') return d.toLocaleString();
-        if (pLower === 'long date') return d.toLocaleDateString(undefined, { dateStyle: 'full' });
-        if (pLower === 'medium date') return d.toLocaleDateString(undefined, { dateStyle: 'medium' });
-        if (pLower === 'short date') return d.toLocaleDateString(undefined, { dateStyle: 'short' });
-        if (pLower === 'long time') return d.toLocaleTimeString(undefined, { timeStyle: 'medium' });
-        if (pLower === 'medium time') return d.toLocaleTimeString(undefined, { timeStyle: 'short' });
-        if (pLower === 'short time') {
-            return d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
-        }
 
-        const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const monthsShort = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-        const daysShort = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const pad2 = (n: number) => String(n).padStart(2, '0');
+        const yyyy = String(d.getFullYear());
+        const MM   = pad2(d.getMonth() + 1);
+        const dd   = pad2(d.getDate());
+        const HH   = pad2(d.getHours());
+        const mm   = pad2(d.getMinutes());
+        const ss   = pad2(d.getSeconds());
+
+        const months      = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+        const monthsShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+        const days        = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const daysShort   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        const h12  = d.getHours() % 12 || 12;
+        const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+
+        // Named formats — fixed English format strings (VBA named formats are locale-dependent in real VBA,
+        // but we use fixed format strings to ensure consistent output regardless of OS locale settings)
+        if (pLower === 'general date') {
+            const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
+            return hasTime ? `${yyyy}/${MM}/${dd} ${HH}:${mm}:${ss}` : `${yyyy}/${MM}/${dd}`;
+        }
+        if (pLower === 'long date')   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${yyyy}`;
+        if (pLower === 'medium date') return `${dd}-${monthsShort[d.getMonth()]}-${yyyy.slice(-2)}`;
+        if (pLower === 'short date')  return `${yyyy}/${MM}/${dd}`;
+        if (pLower === 'long time')   return `${HH}:${mm}:${ss}`;
+        if (pLower === 'medium time') return `${h12}:${mm} ${ampm}`;
+        if (pLower === 'short time')  return `${HH}:${mm}`;
 
         return pattern.replace(/yyyy|yy|mmmm|mmm|mm|m|dddd|ddd|dd|d|hh|h|nn|n|ss|s|AM\/PM|am\/pm/g, (match) => {
-            const mLower = match.toLowerCase();
-            switch (mLower) {
-                case 'yyyy': return String(d.getFullYear());
-                case 'yy': return String(d.getFullYear()).slice(-2);
+            switch (match.toLowerCase()) {
+                case 'yyyy': return yyyy;
+                case 'yy':   return yyyy.slice(-2);
                 case 'mmmm': return months[d.getMonth()];
-                case 'mmm': return monthsShort[d.getMonth()];
-                case 'mm': return String(d.getMonth() + 1).padStart(2, '0');
-                case 'm': return String(d.getMonth() + 1);
+                case 'mmm':  return monthsShort[d.getMonth()];
+                case 'mm':   return pad2(d.getMonth() + 1);
+                case 'm':    return String(d.getMonth() + 1);
                 case 'dddd': return days[d.getDay()];
-                case 'ddd': return daysShort[d.getDay()];
-                case 'dd': return String(d.getDate()).padStart(2, '0');
-                case 'd': return String(d.getDate());
-                case 'hh': return String(d.getHours()).padStart(2, '0');
-                case 'h': return String(d.getHours());
-                case 'nn': return String(d.getMinutes()).padStart(2, '0');
-                case 'n': return String(d.getMinutes());
-                case 'ss': return String(d.getSeconds()).padStart(2, '0');
-                case 's': return String(d.getSeconds());
-                case 'am/pm': return d.getHours() >= 12 ? (match === 'AM/PM' ? 'PM' : 'pm') : (match === 'AM/PM' ? 'AM' : 'am');
-                default: return match;
+                case 'ddd':  return daysShort[d.getDay()];
+                case 'dd':   return pad2(d.getDate());
+                case 'd':    return String(d.getDate());
+                case 'hh':   return HH;
+                case 'h':    return String(d.getHours());
+                case 'nn':   return mm;
+                case 'n':    return String(d.getMinutes());
+                case 'ss':   return ss;
+                case 's':    return String(d.getSeconds());
+                case 'am/pm': return match === 'AM/PM' ? ampm : ampm.toLowerCase();
+                default:     return match;
             }
         });
     }
 
     private formatNumber(n: number, pattern: string): string {
         const pLower = pattern.toLowerCase();
+        // locale-independent thousands separator helper
+        const withThousands = (num: number, decimals: number): string => {
+            const fixed = Math.abs(num).toFixed(decimals);
+            const [intPart, decPart] = fixed.split('.');
+            const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            const sign = num < 0 ? '-' : '';
+            return decPart !== undefined ? `${sign}${grouped}.${decPart}` : `${sign}${grouped}`;
+        };
+
         // Handle named formats
         switch (pLower) {
             case 'general number': return String(n);
-            case 'currency': return n.toLocaleString(undefined, { style: 'currency', currency: 'USD' });
-            case 'fixed': return n.toFixed(2);
-            case 'standard': return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            case 'percent': return (n * 100).toFixed(2) + '%';
+            case 'currency': return (n < 0 ? '-$' : '$') + withThousands(n, 2).replace(/^-/, '');
+            case 'fixed':    return n.toFixed(2);
+            case 'standard': return withThousands(n, 2);
+            case 'percent':  return (n * 100).toFixed(2) + '%';
             case 'scientific': return n.toExponential(2);
             case 'true/false': return n !== 0 ? 'True' : 'False';
-            case 'yes/no': return n !== 0 ? 'Yes' : 'No';
-            case 'on/off': return n !== 0 ? 'On' : 'Off';
+            case 'yes/no':   return n !== 0 ? 'Yes' : 'No';
+            case 'on/off':   return n !== 0 ? 'On' : 'Off';
         }
 
         // Custom patterns: #, 0, ., ,, %
@@ -5013,11 +5050,15 @@ export class Evaluator {
         const minDecimals = (decimalPart.match(/0/g) || []).length;
         const maxDecimals = decimalPart.length;
 
-        let result = n.toLocaleString(undefined, {
-            minimumFractionDigits: minDecimals,
-            maximumFractionDigits: maxDecimals,
-            useGrouping: hasThousands
-        });
+        const absFixed = Math.abs(n).toFixed(maxDecimals);
+        const [intPart, decPart] = absFixed.split('.');
+        const intFormatted = hasThousands
+            ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+            : intPart;
+        const decFormatted = decPart !== undefined
+            ? decPart.replace(/0+$/, '').padEnd(minDecimals, '0') || (minDecimals > 0 ? '0'.repeat(minDecimals) : '')
+            : '';
+        let result = (n < 0 ? '-' : '') + intFormatted + (decFormatted ? '.' + decFormatted : '');
 
         if (isPercent) result += '%';
         return result;
