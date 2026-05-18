@@ -13,10 +13,12 @@ export class VBARunner {
     public evaluator: Evaluator;
     private _asts: Program[] = [];
 
-    constructor(pathOrDir: string, config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}) {
+    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}) {
         const useVFS = config.useVirtualFS ?? (typeof process !== 'undefined' && process.env.USE_VFS === '1');
         const fileSystem = useVFS ? new MemoryFileSystem() : new NodeFileSystem();
         this.evaluator = new Evaluator(console.log, { ...config, fs: fileSystem });
+
+        if (!pathOrDir) return;
 
         const stat = fs.statSync(pathOrDir);
         const files = stat.isDirectory()

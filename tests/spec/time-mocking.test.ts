@@ -120,7 +120,7 @@ End Function
 
 // 8. VBARunner.mockDate integration
 {
-    const vt = new VBARunner('/dev/null');
+    const vt = new VBARunner();
     // Load code directly
     const ast = new Parser(new Lexer(`
 Function GetMonth() As Long
