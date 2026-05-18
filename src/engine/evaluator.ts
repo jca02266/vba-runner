@@ -1811,6 +1811,10 @@ export class Evaluator {
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
 
+        if (proc.isFunction || proc.isProperty) {
+            localEnv.setLocally(proc.name.name, vbaEmpty);
+        }
+
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
@@ -4084,10 +4088,15 @@ export class Evaluator {
                 }
                 const p = this.env.getProcedure(idName);
                 if (p) {
-                    // Only auto-call if it's a Function/Property and has 0 required arguments
-                    const requiredCount = p.parameters.filter(param => !param.isOptional && !param.isParamArray).length;
-                    if (requiredCount === 0) {
-                        return this.callProcedure(idName, []);
+                    // Inside function F, bare `F` refers to the return value, not a recursive call.
+                    const isCurrentProcReturn = this.currentProcedureName &&
+                        idName.toLowerCase() === this.currentProcedureName.toLowerCase();
+                    if (!isCurrentProcReturn) {
+                        // Only auto-call if it's a Function/Property and has 0 required arguments
+                        const requiredCount = p.parameters.filter(param => !param.isOptional && !param.isParamArray).length;
+                        if (requiredCount === 0) {
+                            return this.callProcedure(idName, []);
+                        }
                     }
                 }
                 return v;

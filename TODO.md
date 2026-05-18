@@ -598,6 +598,12 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `evaluateAssignmentToVariable` に `callee=MemberExpression`（`obj.Item(k) = v`）と `callee=CallExpression`（`outer(k1)(k2) = v`）のケースを追加
   - `evaluateSetStatement` にも同様の `CallExpression` LHS ケースを追加（`Set obj.Item(k) = obj2`）
 
+- ✅ **Fix: 関数内で `F = F & "X"` が再帰呼び出しになり、戻り値変数の初期値が `0` になる** | `function-return-var.test.ts`
+  - 原因1: `Identifier` 評価時に「0引数なら auto-call」するロジックが、現在実行中の関数名（= 戻り値変数）にも適用されていた
+  - 原因2: `callProcedure`（公開 API）が `evaluateCallExpression` と異なり、関数の戻り値変数を `vbaEmpty` で初期化していなかった。`env.get` が implicit initialization で `0` を返していた
+  - 症状: `F = F & "X"` がスタックオーバーフロー、または戻り値変数が `""` でなく `0` になる
+  - 修正: Identifier 評価で `currentProcedureName` と一致する場合は auto-call しない。`callProcedure` に `localEnv.setLocally(proc.name.name, vbaEmpty)` を追加
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証
