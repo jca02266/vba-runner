@@ -817,7 +817,7 @@ export class Evaluator {
             }
             return vbaFalse;
         });
-        this.env.set('isobject', (val: any) => (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull) ? vbaTrue : vbaFalse);
+        this.env.set('isobject', (val: any) => (val === vbaNothing || (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull)) ? vbaTrue : vbaFalse);
         this.env.set('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse);
         this.env.set('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse);
         this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
@@ -3596,7 +3596,10 @@ export class Evaluator {
                 __isVbaDict__: true,
                 __className__: 'Dictionary',
                 __map__: dict,
-                add: (k: any, v: any) => dict.set(k, v),
+                add: (k: any, v: any) => {
+                    if (dict.has(k)) this.throwVbaError(457, 'This key is already associated with an element of this collection');
+                    dict.set(k, v);
+                },
                 exists: (k: any) => dict.has(k) ? vbaTrue : vbaFalse,
                 remove: (k: any) => dict.delete(k),
                 removeall: () => dict.clear(),
