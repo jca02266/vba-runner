@@ -791,7 +791,7 @@ export class Evaluator {
             },
             statusbar: "",
             displayalerts: true,
-            screenupdating: true
+            screenupdating: true,
         });
 
         // --- Information Module ---
@@ -4606,7 +4606,7 @@ export class Evaluator {
                     return variable;
                 }
                 if (typeof variable === 'function') {
-                    const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return variable(...argsVals);
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) this.throwVbaError(9, 'Subscript out of range');
@@ -4636,7 +4636,7 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === 'item'
                     );
                     if (defaultProperty) {
-                        const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
                     this.throwVbaError(438, "Object doesn't support this property or method");
@@ -4662,7 +4662,7 @@ export class Evaluator {
                     // If evaluating the object gives undefined/null, it might be a module name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
                         // Try as module-qualified procedure call
-                        const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                         try {
                             return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
                         } catch (e) {
@@ -4693,13 +4693,13 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const proc = classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
                 if (proc) {
-                    const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, proc, argsVals);
                 }
                 // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
                 const ifaceProc = this.findInterfaceDispatch(obj, methodNameOriginal);
                 if (ifaceProc) {
-                    const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, ifaceProc, argsVals);
                 }
                 this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
@@ -4722,7 +4722,7 @@ export class Evaluator {
                 }
 
                 if (typeof targetMethod === 'function') {
-                    const argsVals = expr.args.map(a => this.evaluateExpression(a));
+                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return targetMethod.apply(obj, argsVals);
                 }
             }
@@ -4747,7 +4747,7 @@ export class Evaluator {
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
-            const argsVals = expr.args.map(a => this.evaluateExpression(a));
+            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
             return target(...argsVals);
         }
 

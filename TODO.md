@@ -450,6 +450,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### オブジェクトのライフサイクルと参照
 
 - ✅ **Auto-Instantiation (`Dim x As New ClassName`)**: 遅延インスタンス化 + `Set = Nothing` 後の自動再生成 + `Is Nothing` 常時 False
+  - ✅ **Auto-Instanceを関数/メソッド引数として渡す**: 未アクセスのAuto-Instanceを引数に渡す際にプレースホルダーのまま渡されるバグを修正 | テスト: `auto-instance-args.test.ts`
+    - 修正箇所: JS組み込み関数引数 (L4611)、VBAクラスメソッド引数 (L4698/L4704)、JSオブジェクトメソッド引数 (L4727)、汎用フォールバック (L4752)、デフォルトプロパティ引数 (L4641)
+    - 実害バグ: `CallByName body, "Method", VbMethod, autoInstance`（`__vbaClass__` 直接参照で失敗）および `d.Add b, val` でbをキーに使う場合（後でbが解決されると`Exists`がFalse）
 - ✅ **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化
 - ✅ **Default Property / Default Member**: `Range("A1") = 10` のような暗黙の `.Value` 解決、Collection の `Item` 暗黙呼び出し等
   - ✅ 包括的なテストスイート作成 (`default-property.test.ts`, 15テスト全パス)
