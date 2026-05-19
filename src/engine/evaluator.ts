@@ -4449,9 +4449,11 @@ export class Evaluator {
                     }
 
                     let argVal: any;
+                    const isMissingSlot = i < positionalArgExpressions.length &&
+                        positionalArgExpressions[i].type === 'MissingArgument';
                     if (namedArgs.has(paramNameLower)) {
                         argVal = namedArgs.get(paramNameLower);
-                    } else if (i < positionalArgs.length) {
+                    } else if (i < positionalArgs.length && !isMissingSlot) {
                         argVal = positionalArgs[i];
                     } else if (param.defaultValue) {
                         argVal = this.evaluateExpression(param.defaultValue);
