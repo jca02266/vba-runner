@@ -514,6 +514,82 @@ export class Parser {
     private readonly parseAsClass: string | undefined;
     private readonly _diagnostics: ParseDiagnostic[] = [];
 
+    // ---------------------------------------------------------------
+    // §3.3.5.2 contextual keyword Sets
+    //
+    // IDENTIFIER = <any lex-identifier that is not a reserved-identifier>
+    // The following keywords are NOT listed in any <reserved-identifier>
+    // category and are therefore valid IDENTIFIERs outside the specific
+    // syntactic positions where they carry dedicated meaning.
+    // ---------------------------------------------------------------
+
+    /** file-mode specifiers: Open...For <mode>  (§5.4.5.1 open-stmt) */
+    private static readonly CONTEXTUAL_KW_FILE_MODE = new Set<TokenType>([
+        TokenType.KeywordOutput,
+        TokenType.KeywordAppend,
+        TokenType.KeywordRandom,
+        TokenType.KeywordBinary,  // also: Option Compare Binary
+    ]);
+
+    /** file-access specifiers: Open...Access <access>  (§5.4.5.1 open-stmt) */
+    private static readonly CONTEXTUAL_KW_FILE_ACCESS = new Set<TokenType>([
+        TokenType.KeywordAccess,
+        TokenType.KeywordRead,
+    ]);
+
+    /** option-statement modifiers: Option Compare/Base/Explicit/Module  (§5.2.2) */
+    private static readonly CONTEXTUAL_KW_OPTION = new Set<TokenType>([
+        TokenType.KeywordText,      // Option Compare Text
+        TokenType.KeywordCompare,   // Option Compare ...
+        TokenType.KeywordExplicit,  // Option Explicit
+        TokenType.KeywordBase,      // Option Base 0|1
+        TokenType.KeywordModule,    // Option Private Module
+    ]);
+
+    /** declare-statement modifiers: Declare [PtrSafe]...Lib...Alias  (§5.2.3.1) */
+    private static readonly CONTEXTUAL_KW_DECLARE = new Set<TokenType>([
+        TokenType.KeywordLib,
+        TokenType.KeywordAlias,
+        TokenType.KeywordPtrSafe,
+    ]);
+
+    /** standalone statements absent from <statement-keyword>  (§3.3.5.2) */
+    private static readonly CONTEXTUAL_KW_STMT_ABSENT = new Set<TokenType>([
+        TokenType.KeywordStep,         // For...Step  (not in <marker-keyword>)
+        TokenType.KeywordMid,          // Mid-stmt mode-specifier (§5.4.3.8); also Mid/Mid$/MidB function
+        TokenType.KeywordKill,         // Kill <pathname>
+        TokenType.KeywordWidth,        // Width #<filenumber>, <width>
+        TokenType.KeywordLine,         // Line Input #<filenumber>, <variable>
+        TokenType.KeywordReset,        // Reset
+        TokenType.KeywordAppActivate,  // AppActivate <title>
+        TokenType.KeywordSendKeys,     // SendKeys <keys>
+    ]);
+
+    /** Union of all contextual keyword groups above.
+     *  Tokens in this Set are valid IDENTIFIERs in Dim declarations,
+     *  expression context, and assignment statements. */
+    private static readonly CONTEXTUAL_KW = new Set<TokenType>([
+        ...Parser.CONTEXTUAL_KW_FILE_MODE,
+        ...Parser.CONTEXTUAL_KW_FILE_ACCESS,
+        ...Parser.CONTEXTUAL_KW_OPTION,
+        ...Parser.CONTEXTUAL_KW_DECLARE,
+        ...Parser.CONTEXTUAL_KW_STMT_ABSENT,
+    ]);
+
+    /** <statement-keyword> tokens additionally permitted as IDENTIFIERs in
+     *  expression context (parsePrimary) for practical VBA compatibility —
+     *  e.g. as method names (obj.Print, ws.Get) or file I/O targets.
+     *  These remain <reserved-identifier> per §3.3.5.2. */
+    private static readonly COMPAT_KW_EXPR = new Set<TokenType>([
+        TokenType.KeywordSeek,    // <statement-keyword>
+        TokenType.KeywordInput,   // <statement-keyword> / <special-form>
+        TokenType.KeywordPrint,   // <statement-keyword>
+        TokenType.KeywordPut,     // <statement-keyword>
+        TokenType.KeywordGet,     // <statement-keyword>
+        TokenType.KeywordLock,    // <statement-keyword>
+        TokenType.KeywordUnlock,  // <statement-keyword>
+    ]);
+
     constructor(tokens: Token[], options: { parseAsClass?: string } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
@@ -1164,17 +1240,8 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot || token.type === TokenType.Number || token.type === TokenType.KeywordMid ||
-                   token.type === TokenType.KeywordOutput || token.type === TokenType.KeywordAppend || token.type === TokenType.KeywordRandom || token.type === TokenType.KeywordBinary ||
-                   // Contextual keywords usable as identifiers (§3.3.5.2 — not in reserved-identifier list)
-                   token.type === TokenType.KeywordAccess || token.type === TokenType.KeywordRead ||
-                   token.type === TokenType.KeywordModule || token.type === TokenType.KeywordText ||
-                   token.type === TokenType.KeywordCompare || token.type === TokenType.KeywordExplicit ||
-                   token.type === TokenType.KeywordLib || token.type === TokenType.KeywordAlias ||
-                   token.type === TokenType.KeywordPtrSafe || token.type === TokenType.KeywordStep ||
-                   token.type === TokenType.KeywordKill || token.type === TokenType.KeywordWidth ||
-                   token.type === TokenType.KeywordLine || token.type === TokenType.KeywordReset ||
-                   token.type === TokenType.KeywordAppActivate || token.type === TokenType.KeywordSendKeys) {
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot ||
+                   token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type)) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;
@@ -1319,15 +1386,10 @@ export class Parser {
                 isWithEvents = true;
             }
             const idToken = this.advance();
-            // Allow contextual keywords (non-reserved per §3.3.5.2) as variable names.
-            // These fall below KeywordBase in the enum but are valid IDENTIFIERs per spec.
-            const isContextualKwDim = (t: TokenType): boolean =>
-                t === TokenType.KeywordBinary || t === TokenType.KeywordText ||
-                t === TokenType.KeywordCompare || t === TokenType.KeywordExplicit ||
-                t === TokenType.KeywordLib || t === TokenType.KeywordAlias ||
-                t === TokenType.KeywordPtrSafe || t === TokenType.KeywordStep;
+            // CONTEXTUAL_KW covers keywords below KeywordBase that are valid IDENTIFIERs
+            // per §3.3.5.2; the range check catches the rest (KeywordBase..KeywordAddressOf).
             if (idToken.type !== TokenType.Identifier &&
-                !isContextualKwDim(idToken.type) &&
+                !Parser.CONTEXTUAL_KW.has(idToken.type) &&
                 (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
                 throw new Error(`Parse error at line ${idToken.line}: Expected variable name (Found ${idToken.value})`);
             }
@@ -2261,35 +2323,8 @@ export class Parser {
         } else if (token.type === TokenType.Date) {
             expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
         } else if (token.type === TokenType.Identifier ||
-                   token.type === TokenType.KeywordMid ||
-                   token.type === TokenType.KeywordWidth ||
-                   token.type === TokenType.KeywordSeek ||
-                   token.type === TokenType.KeywordLine ||
-                   token.type === TokenType.KeywordInput ||
-                   token.type === TokenType.KeywordPrint ||
-                   token.type === TokenType.KeywordPut ||
-                   token.type === TokenType.KeywordGet ||
-                   token.type === TokenType.KeywordLock ||
-                   token.type === TokenType.KeywordUnlock ||
-                   token.type === TokenType.KeywordKill ||
-                   // Contextual keywords usable as identifiers (§3.3.5.2 — not in reserved-identifier list)
-                   token.type === TokenType.KeywordOutput ||
-                   token.type === TokenType.KeywordAppend ||
-                   token.type === TokenType.KeywordRandom ||
-                   token.type === TokenType.KeywordBinary ||
-                   token.type === TokenType.KeywordAccess ||
-                   token.type === TokenType.KeywordRead ||
-                   token.type === TokenType.KeywordModule ||
-                   token.type === TokenType.KeywordText ||
-                   token.type === TokenType.KeywordCompare ||
-                   token.type === TokenType.KeywordExplicit ||
-                   token.type === TokenType.KeywordLib ||
-                   token.type === TokenType.KeywordAlias ||
-                   token.type === TokenType.KeywordPtrSafe ||
-                   token.type === TokenType.KeywordStep ||
-                   token.type === TokenType.KeywordReset ||
-                   token.type === TokenType.KeywordAppActivate ||
-                   token.type === TokenType.KeywordSendKeys) {
+                   Parser.CONTEXTUAL_KW.has(token.type) ||
+                   Parser.COMPAT_KW_EXPR.has(token.type)) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const procName = this.consume(TokenType.Identifier, "Expected procedure name after 'AddressOf'");
