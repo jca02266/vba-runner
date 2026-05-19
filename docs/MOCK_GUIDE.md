@@ -1505,7 +1505,76 @@ const v = ws.Range('A1:C3 B2:D4').Value as any[][];
 
 ---
 
-## 14. 関連ドキュメント
+---
+
+## 14. Declare ステートメントと DLL 呼び出しのスタブ差し替え
+
+### Declare の自動スタブ化
+
+`Private Declare Function` / `Private Declare Sub` は DLL や共有ライブラリを呼び出す宣言です。
+VBA Runner は宣言を評価した時点で **自動的にスタブ関数として登録** します。
+
+```vba
+Private Declare Function GetTickCount Lib "kernel32" () As Long
+```
+
+登録されるスタブの挙動:
+- 実際の DLL は呼ばれない
+- 常に `0` を返す
+- `[DECLARE STUB] Calling Function GetTickCount from "kernel32" (Alias: N/A)` をコンソールに出力する
+
+`Declare` を含むソースをそのまま読み込んでもエラーにはならず実行できます。
+ただし戻り値が常に `0` なので、その関数の戻り値に依存するロジックは正しく動きません。
+
+### VBARunner からスタブを登録する
+
+`VBARunner` が持つ `set(name, value)` を使うと、ソースを改変せずに DLL 関数を差し替えられます。
+コンストラクタでソースを読み込んだ後に呼ぶだけで、複数ソースをまたいでグローバルに有効になります。
+
+```typescript
+const vbaRunner = new VBARunner('MyLib.bas');
+
+// コンストラクタ（ソース読み込み）の後に登録する
+// Private Declare でもグローバル env に登録されるため差し替え可能
+vbaRunner.set('gettickcount', () => 12345);
+```
+
+> **注意**: `set()` はコンストラクタの後に呼んでください。コンストラクタ内でソースが評価されて `Declare` が自動スタブとして登録されるため、その前に `set()` しても上書きされます。
+
+識別子はすべて小文字に正規化されるため、`GetTickCount` → `'gettickcount'` として登録します。
+
+### 具体例：DLL 関数に依存するロジックのテスト
+
+```vba
+' MyLib.bas（テスト対象）
+Private Declare Function GetElapsedMs Lib "myutil.dll" () As Long
+
+Function IsTimeout(limitMs As Long) As Boolean
+    IsTimeout = (GetElapsedMs() > limitMs)
+End Function
+```
+
+```typescript
+const vbaRunner = new VBARunner('MyLib.bas');
+
+// DLL 関数を TypeScript のスタブで差し替える（GetElapsedMs → 小文字で登録）
+vbaRunner.set('getelapsedms', () => 5000);  // 5000ms 経過したと見なす
+
+// DLL なしで IsTimeout のロジックをテストできる
+assert.strictEqual(vbaRunner.run('IsTimeout', [3000]), true,  '5000 > 3000 → timeout');
+assert.strictEqual(vbaRunner.run('IsTimeout', [9000]), false, '5000 < 9000 → not timeout');
+```
+
+### CreateObject 系との使い分け
+
+| 依存の種類 | 対応方法 |
+|---|---|
+| `Declare Function` / DLL 直呼び出し | 同名 VBA 関数を後ろに追記して差し替え（本節） |
+| `CreateObject("Foo.Bar")` | `vbaRunner.registerExternalObject(...)` で TypeScript ファクトリを登録（README.md 参照） |
+
+---
+
+## 15. 関連ドキュメント
 
 - **`docs/TESTING_STRATEGY.md`** — テスト設計の原則（最初に読む）
 - **`docs/REFACTORING_GUIDE.md`** — Domain Logic 分離（モック前に読む）
