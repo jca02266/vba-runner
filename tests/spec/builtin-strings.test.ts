@@ -148,4 +148,11 @@ function ev(expr: string): any {
     console.log('[PASS] UCase / UCase$');
 }
 
+// vbBack / vbFormFeed 定数
+{
+    assert.strictEqual(ev('Asc(vbBack)'), 8, 'vbBack = Chr(8)');
+    assert.strictEqual(ev('Asc(vbFormFeed)'), 12, 'vbFormFeed = Chr(12)');
+    console.log('[PASS] vbBack / vbFormFeed');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

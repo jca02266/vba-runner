@@ -960,7 +960,7 @@ export class Evaluator {
             const cleaned = s.trim().replace(/ /g, '');
             if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
             if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
-            const match = cleaned.match(/^[+-]?\d*(\.\d*)?/);
+            const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
             return match ? parseFloat(match[0]) || 0 : 0;
         });
 
@@ -1596,7 +1596,7 @@ export class Evaluator {
         this.env.set('vbbinarycompare', 0);
         this.env.set('vbtextcompare', 1);
         this.env.set('vbempty', 0); this.env.set('vbnull', 1); this.env.set('vbinteger', 2); this.env.set('vblong', 3); this.env.set('vbsingle', 4); this.env.set('vbdouble', 5); this.env.set('vbcurrency', 6); this.env.set('vbdate', 7); this.env.set('vbstring', 8); this.env.set('vbobject', 9); this.env.set('vberror', 10); this.env.set('vbboolean', 11); this.env.set('vbvariant', 12); this.env.set('vbbyte', 17); this.env.set('vblonglong', 20); this.env.set('vbarray', 8192);
-        this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0');
+        this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0'); this.env.set('vbback', "\b"); this.env.set('vbformfeed', "\f");
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
 
         this.env.set('environ', (k: any) => this.sandbox.getEnv(k));

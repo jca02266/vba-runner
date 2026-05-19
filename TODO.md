@@ -619,6 +619,15 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `ParseJson("[1,2,3]")` が返す Collection への `For Each` でエラー 13 が発生
   - 修正: `evaluateForEachStatement` に `__isVbaCollection__` チェックを追加し、`Symbol.iterator` があれば `Array.from` で列挙するパスを設ける
 
+- ✅ **Fix: `Val()` が科学表記（`1.5e2` など）を正しく変換しない** | `conversion-int-val.test.ts`
+  - 原因: 正規表現が `/^[+-]?\d*(\.\d*)?/` で `eE` を含まず、`Val("1.5e2")` が `1.5` を返していた
+  - 症状: `json_ParseNumber` 内で `VBA.Val("1.5e2")` を呼ぶと 1.5 になり、科学表記の数値が正しくパースされない
+  - 修正: 正規表現に `([eE][+-]?\d+)?` を追加
+
+- ✅ **Fix: `vbBack`・`vbFormFeed` 定数が未定義** | `builtin-strings.test.ts`
+  - 原因: 定数登録が漏れており、`json_ParseString` の `\b`・`\f` エスケープで `vbBack`/`vbFormFeed` を参照するとエラーになる
+  - 修正: `vbBack = "\b"`, `vbFormFeed = "\f"` を定数として登録
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証
