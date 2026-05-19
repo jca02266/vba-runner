@@ -527,6 +527,105 @@ Extension Host
 - [ ] VBA 実行の `worker_threads` 分離
 - [ ] npm publish / VSCode Marketplace 公開
 
+### VBA フォーマッター（`vba-formatter`）
+
+VBA コードを AST ベースで整形する CLI ツール。`vba-analyzer` と同様に、**中核ロジックとインターフェースを分離した設計**にし、CLI・VSCode 拡張の両方から利用できるようにする。
+
+#### アーキテクチャ方針
+
+```
+src/lsp/formatter.ts          ← 中核: FormatRule[] を受け取りTextEdit[] を返す純粋関数
+    ↑ import
+test-libs/vba-formatter.ts    ← CLI エントリーポイント（vba-analyzer と同様）
+src/extension.ts              ← DocumentFormattingEditProvider から formatter.ts を呼ぶ
+```
+
+- **`formatter.ts`（中核）**: `format(source: string, options: FormatterOptions): TextEdit[]` を公開。AST と元ソースから編集箇所のリストを返す。VSCode の `WorkspaceEdit` や CLI の文字列置換の両方に対応できる形式。
+- **CLI（`vba-formatter.ts`）**: `--check`（差分表示のみ）/ `--write`（上書き）モードを持つ。`vba-analyzer` と同様に `./node_modules/.bin/esbuild` でバンドルして実行。
+- **VSCode 拡張**: `registerDocumentFormattingEditProvider` から `formatter.ts` を呼ぶ。ルールの ON/OFF は VSCode 設定（`vba.formatter.*`）で制御。
+
+#### 実装予定のフォーマットルール
+
+| ルール | デフォルト | 内容 |
+|---|---|---|
+| `indentation` | ON | `If`/`For`/`Sub` 内を4スペース（または指定幅）でインデント |
+| `keywordCase` | ON | キーワードを正規大文字化（`dim` → `Dim`、`sub` → `Sub`） |
+| `operatorSpacing` | ON | 演算子前後にスペース（`x=1` → `x = 1`） |
+| `thenOnSameLine` | ON | `If x` の後の `Then` を同一行に |
+| `lineWrap` | ON | 指定幅（デフォルト 120 文字）を超える行を `_` 継続で折り返す |
+| `argumentAlignment` | ON | 折り返した引数リストを開き括弧の直後の位置に揃える（下記参照） |
+| `mergeDimAndAssign` | OFF | `Dim` 宣言の直後に同一変数への代入がある場合、`: ` で1行にまとめる（下記参照） |
+| `moveDimToFirstUse` | OFF | `Dim` 宣言を初使用直前に移動（VBA はプロシージャスコープのため意味論的に安全。大規模ファイルでは diff が大きくなるためデフォルト OFF） |
+
+#### `lineWrap` / `argumentAlignment` の変換例
+
+```vba
+' 変換前（長い関数呼び出し）
+result = SomeLongFunctionName(firstArgument, secondArgument, thirdArgument, fourthArgument)
+
+' 変換後（開き括弧の直後に揃える）
+result = SomeLongFunctionName(firstArgument, _
+                              secondArgument, _
+                              thirdArgument, _
+                              fourthArgument)
+```
+
+- 折り返し位置はトークン境界（引数の `,` の後）で行う
+- 継続行の頭は開き括弧 `(` の次の文字位置にスペースで揃える
+- 既存の `_` 継続行は一旦展開してから再整形する（べき等性のため）
+
+#### `mergeDimAndAssign` の変換例
+
+```vba
+' 変換前
+Dim total As Long
+total = CalcTotal(a, b)
+
+' 変換後（: で1行に）
+Dim total As Long: total = CalcTotal(a, b)
+```
+
+- 対象: `Dim` の直後の文（間に他の文がない場合のみ）が同一変数への代入
+- 除外: `Set` 代入（オブジェクト参照）、`Dim x As New Foo`、配列宣言
+
+#### `moveDimToFirstUse` の除外ケース
+
+- `Dim x As New Foo`（Auto-Instantiation — オブジェクト生成タイミングに意図がある）
+- 配列宣言（`Dim arr(10) As Long`）
+- `Dim` と初使用の間に `On Error` がある場合
+
+#### Diagnostics: `Dim` 型指定の罠（警告）
+
+フォーマッターとは別に、LSP Diagnostics（または vba-analyzer）として以下の警告を追加する。
+
+**`Dim x, y, z As Long` — 先頭変数が Variant になる罠**
+
+VBA では `Dim x, y, z As Long` と書いた場合、型指定 `As Long` は **最後の `z` にのみ適用**される。`x` と `y` は `Variant` になる。他の言語（C, TypeScript 等）から来た開発者が誤りやすい。
+
+```vba
+Dim x, y, z As Long   ' ⚠️ x, y は Variant（Long ではない）
+```
+
+```
+警告: 'x', 'y' は型指定がなく Variant になります。
+     各変数に型を明示してください: Dim x As Long, y As Long, z As Long
+```
+
+- 検出条件: `VariableDeclaration` で宣言子が2つ以上あり、かつ途中の宣言子に `As` 型指定がない
+- severity: Warning（意図的な Variant 利用の可能性があるため Error にしない）
+- 実装場所: `getDiagnostics()` に追加（`CodeLensProvider.getDeadCodeWarnings()` と同様の統合方式）
+
+#### 作業順序（実施時）
+
+- [ ] `src/lsp/formatter.ts` の中核実装（`indentation` + `keywordCase` から着手）
+- [ ] `test-libs/vba-formatter.ts` CLI 実装（`--check` / `--write` / `--rules`）
+- [ ] `lineWrap` + `argumentAlignment` ルール実装
+- [ ] `mergeDimAndAssign` ルール実装
+- [ ] `moveDimToFirstUse` ルール実装（Def-Use 解析または参照検索で初使用行を特定）
+- [ ] VSCode 拡張への統合（`DocumentFormattingEditProvider` 登録）
+- [ ] `Dim x, y, z As Long` 型指定警告を `getDiagnostics()` に追加
+- [ ] フォーマッター・警告のテスト（`tests/lsp/lsp-formatter.test.ts`）
+
 ### パッケージング（Marketplace 公開）
 - [ ] VSCode Marketplace への公開（アイコン整備、`.vsix` ビルド検証）
 - [ ] Web Extension 化（evaluator が Node.js `path` に依存しており、先にブラウザ対応が必要）
