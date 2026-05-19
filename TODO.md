@@ -628,10 +628,20 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 原因: 定数登録が漏れており、`json_ParseString` の `\b`・`\f` エスケープで `vbBack`/`vbFormFeed` を参照するとエラーになる
   - 修正: `vbBack = "\b"`, `vbFormFeed = "\f"` を定数として登録
 
-- ✅ **Fix: `Hex$`・`Oct$` が未登録（`hex`/`oct` のみあり）** | `builtin-strings.test.ts`
-  - 原因: `$` なし版のみ登録しており `Hex$`・`Oct$` 呼び出しで Error 438 になっていた
+- ✅ **Fix: `Hex$`・`Oct$` が未登録（`hex`/`oct` のみあり）** | `number_literals.test.ts`, `builtin-strings.test.ts`
+  - 原因: `$` なし版のみ登録しており `Hex$`・`Oct$`・`ChrW$` 呼び出しで Error 438 になっていた
   - 症状: `json_Encode` 内の `"\u" & Right$("0000" & Hex$(AscW), 4)` が失敗し、非ASCII文字の `\uXXXX` エンコードが動かない
-  - 修正: `hex$`・`oct$` を `hex`・`oct` のエイリアスとして登録
+  - 修正: `hex$`・`oct$`・`chrw$` を各々のエイリアスとして登録
+
+- ✅ **Fix: `Format$` の `HH`（大文字）が時刻として認識されず、`mm` が文脈判定なしに常に月になっていた** | `format.test.ts`
+  - 原因1: `formatDate` の正規表現が小文字 `hh` のみ対応で `HH` をリテラルとして出力していた
+  - 原因2: `mm` が月か分かの文脈判定がなく、`"HH:mm:ss"` の `mm` が常に月になっていた
+  - 修正: トークン単位の処理に変更し、直前が `h`/`hh` のとき `mm`/`m` を分として解釈する `prevTokenWasHour` フラグを実装
+
+- ✅ **Fix: `evaluateDateLiteral` が UTC ベースの Date を生成していたため `formatDate` と時差分ずれていた** | `format.test.ts`
+  - 原因: `evaluateDateLiteral` が `Date.UTC(...)` で JS Date を生成していたが、`formatDate` はローカル時刻の `getHours()` 等を使うため時差分ずれていた
+  - 修正: `evaluateDateLiteral` を `new Date(y, m-1, d, h, min, s)`（ローカル時刻）に変更し、`Now()`/`DateSerial()` と一貫した挙動にした。`formatDate` はローカル時刻の `get*` メソッドのまま
+  - 影響: `ConvertToJson(Date)` の ISO 8601 出力が正しくなった
 
 ### VBA 仕様制約の検証
 

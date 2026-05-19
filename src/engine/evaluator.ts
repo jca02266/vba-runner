@@ -4134,7 +4134,7 @@ export class Evaluator {
         if (!parsed) {
             this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
         }
-        const d = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute, parsed.second));
+        const d = new Date(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute, parsed.second);
         if (isNaN(d.getTime())) {
             this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
         }
@@ -5194,28 +5194,42 @@ export class Evaluator {
         if (pLower === 'medium time') return `${h12}:${mm} ${ampm}`;
         if (pLower === 'short time')  return `${HH}:${mm}`;
 
-        return pattern.replace(/yyyy|yy|mmmm|mmm|mm|m|dddd|ddd|dd|d|hh|h|nn|n|ss|s|AM\/PM|am\/pm/g, (match) => {
-            switch (match.toLowerCase()) {
-                case 'yyyy': return yyyy;
-                case 'yy':   return yyyy.slice(-2);
-                case 'mmmm': return months[d.getMonth()];
-                case 'mmm':  return monthsShort[d.getMonth()];
-                case 'mm':   return pad2(d.getMonth() + 1);
-                case 'm':    return String(d.getMonth() + 1);
-                case 'dddd': return days[d.getDay()];
-                case 'ddd':  return daysShort[d.getDay()];
-                case 'dd':   return pad2(d.getDate());
-                case 'd':    return String(d.getDate());
-                case 'hh':   return HH;
-                case 'h':    return String(d.getHours());
-                case 'nn':   return mm;
-                case 'n':    return String(d.getMinutes());
-                case 'ss':   return ss;
-                case 's':    return String(d.getSeconds());
-                case 'am/pm': return match === 'AM/PM' ? ampm : ampm.toLowerCase();
-                default:     return match;
+        // VBA Format: mm/m is context-sensitive — minutes if immediately after h/hh, otherwise month
+        // prevTokenWasHour tracks whether the previous format token was an hour (h/hh),
+        // so the next mm/m is interpreted as minutes rather than month.
+        const tokens = pattern.match(/yyyy|yy|mmmm|mmm|mm|m|dddd|ddd|dd|d|hh|h|nn|n|ss|s|AM\/PM|am\/pm|[^a-zA-Z]+|[a-zA-Z]/gi) || [];
+        let prevTokenWasHour = false;
+        return tokens.map(tok => {
+            const tl = tok.toLowerCase();
+            switch (tl) {
+                case 'yyyy': prevTokenWasHour = false; return yyyy;
+                case 'yy':   prevTokenWasHour = false; return yyyy.slice(-2);
+                case 'mmmm': prevTokenWasHour = false; return months[d.getMonth()];
+                case 'mmm':  prevTokenWasHour = false; return monthsShort[d.getMonth()];
+                case 'mm': {
+                    const isMinutes = prevTokenWasHour;
+                    prevTokenWasHour = false;
+                    return isMinutes ? mm : pad2(d.getMonth() + 1);
+                }
+                case 'm': {
+                    const isMinutes = prevTokenWasHour;
+                    prevTokenWasHour = false;
+                    return isMinutes ? String(d.getMinutes()) : String(d.getMonth() + 1);
+                }
+                case 'dddd': prevTokenWasHour = false; return days[d.getDay()];
+                case 'ddd':  prevTokenWasHour = false; return daysShort[d.getDay()];
+                case 'dd':   prevTokenWasHour = false; return pad2(d.getDate());
+                case 'd':    prevTokenWasHour = false; return String(d.getDate());
+                case 'hh':   prevTokenWasHour = true;  return HH;
+                case 'h':    prevTokenWasHour = true;  return String(d.getHours());
+                case 'nn':   prevTokenWasHour = false; return mm;
+                case 'n':    prevTokenWasHour = false; return String(d.getMinutes());
+                case 'ss':   prevTokenWasHour = false; return ss;
+                case 's':    prevTokenWasHour = false; return String(d.getSeconds());
+                case 'am/pm': prevTokenWasHour = false; return tok === 'AM/PM' ? ampm : ampm.toLowerCase();
+                default:     return tok;
             }
-        });
+        }).join('');
     }
 
     private formatNumber(n: number, pattern: string): string {
