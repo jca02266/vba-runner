@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { LSPServer } from './lsp/server';
+import { VBADebugAdapterFactory } from './lsp/vscode-debug-adapter';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -12,11 +13,33 @@ export async function activate(context: vscode.ExtensionContext) {
     lspServer = new LSPServer();
     outputChannel.appendLine('LSP Server initialized');
 
+    // Create diagnostic collection for VBA parse errors
+    const diagnosticCollection = vscode.languages.createDiagnosticCollection('vba');
+    context.subscriptions.push(diagnosticCollection);
+
+    function updateDiagnostics(uri: vscode.Uri): void {
+        const raw = lspServer.getDiagnostics(uri.toString());
+        const diags = raw.map((d: any) => {
+            const range = new vscode.Range(
+                d.range.start.line,
+                d.range.start.character,
+                d.range.end.line,
+                d.range.end.character
+            );
+            const sev = d.severity === 1 ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
+            const diag = new vscode.Diagnostic(range, d.message, sev);
+            diag.source = d.source;
+            return diag;
+        });
+        diagnosticCollection.set(uri, diags);
+    }
+
     // Register already-open documents
     for (const doc of vscode.workspace.textDocuments) {
         if (doc.languageId === 'vba') {
             documentMap.set(doc.uri.toString(), doc);
             lspServer.didOpen(doc.uri.toString(), doc.getText());
+            updateDiagnostics(doc.uri);
         }
     }
 
@@ -26,6 +49,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (doc.languageId === 'vba') {
                 documentMap.set(doc.uri.toString(), doc);
                 lspServer.didOpen(doc.uri.toString(), doc.getText());
+                updateDiagnostics(doc.uri);
             }
         })
     );
@@ -37,6 +61,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (doc.languageId === 'vba') {
                 documentMap.set(doc.uri.toString(), doc);
                 lspServer.didChange(doc.uri.toString(), doc.getText());
+                updateDiagnostics(doc.uri);
             }
         })
     );
@@ -47,9 +72,11 @@ export async function activate(context: vscode.ExtensionContext) {
             if (doc.languageId === 'vba') {
                 documentMap.delete(doc.uri.toString());
                 lspServer.didClose(doc.uri.toString());
+                diagnosticCollection.delete(doc.uri);
             }
         })
     );
+    outputChannel.appendLine('✓ Diagnostics collection registered');
 
     // Register hover provider
     context.subscriptions.push(
@@ -102,6 +129,33 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
     outputChannel.appendLine('✓ Definition provider registered');
+
+    // Register document symbol provider (outline)
+    function toVscodeSymbol(sym: any): vscode.DocumentSymbol {
+        const range = new vscode.Range(
+            sym.location.range.start.line,
+            sym.location.range.start.character,
+            sym.location.range.end.line,
+            sym.location.range.end.character
+        );
+        // SymbolProvider enum is 1-based; vscode.SymbolKind is 0-based
+        const kind = (sym.kind - 1) as vscode.SymbolKind;
+        const ds = new vscode.DocumentSymbol(sym.name, sym.detail ?? '', kind, range, range);
+        if (sym.children?.length) {
+            ds.children = sym.children.map(toVscodeSymbol);
+        }
+        return ds;
+    }
+
+    context.subscriptions.push(
+        vscode.languages.registerDocumentSymbolProvider('vba', {
+            provideDocumentSymbols(document) {
+                const symbols = lspServer.getDocumentSymbols(document.uri.toString());
+                return symbols.map(toVscodeSymbol);
+            }
+        })
+    );
+    outputChannel.appendLine('✓ DocumentSymbol provider registered');
 
     // Register completion provider
     context.subscriptions.push(
@@ -187,6 +241,12 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         }
     }, true);
+
+    // Register DAP debug adapter factory
+    context.subscriptions.push(
+        vscode.debug.registerDebugAdapterDescriptorFactory('vba', new VBADebugAdapterFactory(lspServer))
+    );
+    outputChannel.appendLine('✓ Debug adapter factory registered');
 
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');

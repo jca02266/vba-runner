@@ -63,6 +63,13 @@ export class LSPServer {
     }
 
     /**
+     * Check whether a document is currently open
+     */
+    hasDocument(uri: string): boolean {
+        return this.documents.has(uri);
+    }
+
+    /**
      * Open a document
      */
     didOpen(uri: string, content: string): void {
@@ -170,6 +177,30 @@ export class LSPServer {
         if (!ast) return [];
 
         return this.testRunner.runTests(ast.body);
+    }
+
+    /**
+     * Get diagnostics (parse errors/warnings) for document
+     */
+    getDiagnostics(uri: string): any[] {
+        const doc = this.documents.get(uri);
+        if (!doc) return [];
+
+        try {
+            const tokens = new Lexer(doc.content).tokenize();
+            const ast = new Parser(tokens).parse();
+            return ast.diagnostics.map((d: any) => ({
+                range: {
+                    start: { line: d.loc.start.line - 1, character: d.loc.start.column - 1 },
+                    end: { line: d.loc.end.line - 1, character: d.loc.end.column - 1 },
+                },
+                severity: d.severity === 'error' ? 1 : 2,
+                message: d.message,
+                source: 'vba-runner',
+            }));
+        } catch {
+            return [];
+        }
     }
 
     /**

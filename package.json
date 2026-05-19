@@ -40,6 +40,33 @@
         "scopeName": "source.bas",
         "path": "./syntaxes/vba.tmLanguage.json"
       }
+    ],
+    "debuggers": [
+      {
+        "type": "vba",
+        "label": "VBA Debugger",
+        "languages": ["vba"],
+        "configurationAttributes": {
+          "launch": {
+            "required": ["program"],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the .bas file to debug",
+                "default": "${file}"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "vba",
+            "request": "launch",
+            "name": "Debug VBA",
+            "program": "${file}"
+          }
+        ]
+      }
     ]
   },
   "scripts": {
