@@ -402,7 +402,105 @@ VBA Runner を使って以下の順で進めてください：
 
 ## 保留中・将来課題
 
-### パッケージング
+### npm パッケージ化と VS Code 拡張統合
+
+> **当面はエンジン本体の改修を優先するため実施しない。**
+> 構想として記録しておく。
+
+#### 目的
+
+現在のリポジトリ直接利用では、ユーザーのテストファイルが
+
+```typescript
+import { VBARunner } from '../../test-libs/test-runner';
+```
+
+というローカル相対パスに依存している。`vba-runner` として npm 公開することで、
+
+```typescript
+import { VBARunner } from 'vba-runner';
+```
+
+という標準的な import になり、VS Code 拡張からの利用・ユーザープロジェクトへの組み込みが自然に行える。
+
+#### npm パッケージとして公開するもの
+
+| エクスポート | 用途 |
+|---|---|
+| `VBARunner` クラス | メインの実行 API |
+| `assert` | テスト用アサーション |
+| `vbaTrue`, `vbaFalse`, `vbaNull`, `vbaEmpty` | VBA 型定数 |
+| 型定義（`.d.ts`）| TypeScript サポート |
+
+`Evaluator` / `Parser` / `Lexer` などのエンジン内部は原則非公開。高度なユースケース向けに別エントリで公開することは可能。
+
+#### VS Code 拡張との統合アーキテクチャ
+
+```
+npm publish → vba-runner パッケージ
+                 ↓
+VS Code 拡張（vba-runner を bundle）
+                 ↓ esbuild でコンパイル（ユーザーの test.ts）
+                 ↓ vba-runner → ユーザーの node_modules から解決
+                 ↓ child_process / worker_thread で実行
+                 ↓ stdout をキャプチャ
+VS Code Test API に結果を反映
+```
+
+ユーザーのテスト実行フロー（拡張機能が自動化）:
+1. `.ts` テストファイルを保存
+2. 拡張がワークスペースの `./node_modules/.bin/esbuild` でバンドル
+3. `child_process` で `node` を起動、stdout をキャプチャ
+4. `[PASS]` / `[FAIL]` を Test Explorer に反映
+
+#### esbuild の扱い
+
+ユーザーが `npm install --save-dev vba-runner` すると `esbuild` も devDependency として入るようにする。
+拡張機能はワークスペースの `./node_modules/.bin/esbuild` を使うため、拡張自体に esbuild をバンドルする必要がない。
+
+#### vba-analyzer の npm 化
+
+`vba-analyzer` も同様に npm パッケージ（CLI + API）として公開する。
+
+```bash
+npx vba-analyzer <file-or-dir>          # テキスト出力
+npx vba-analyzer <file-or-dir> --json   # JSON 出力（AI 連携用）
+```
+
+VS Code 拡張は `vba-analyzer` の API を import して Call Graph・Dead code・Outline 生成に使う。
+
+#### プロセス分離（安全性）
+
+VBA の無限ループや未捕捉例外が Extension Host プロセスを落とさないよう、
+VBA 実行・TypeScript テスト実行は **`child_process` または `worker_threads`** に分離する。
+現在の `Evaluator` には実行時間・メモリ上限がないため、分離は必須要件。
+
+```
+Extension Host
+├── LSP / Diagnostics / 補完（軽量・同期）← 現状のまま
+└── VBA実行 / テスト実行 / vba-analyzer
+    └── worker_threads or child_process（ここで分離）
+```
+
+#### 残る制限・前提条件
+
+| 項目 | 内容 |
+|---|---|
+| **デスクトップ限定** | `NodeFileSystem` が Node.js `fs` に依存。Web 拡張（vscode.dev）には対応しない（`MemoryFileSystem` に統一すれば将来対応可能） |
+| **バージョン整合** | 拡張が bundle する `vba-runner` とユーザーの `node_modules` のバージョンが異なると挙動差が生じる可能性がある |
+| **`console.log` のリダイレクト** | `VBARunner` コンストラクタに渡す print 関数を stdout 経由で OutputChannel に転送する仕組みが必要（現状の設計で対応可能） |
+
+#### 作業順序（実施時）
+
+- [ ] `package.json` の `exports` フィールド整備（ESM + CJS デュアルビルド）
+- [ ] 公開 API の整理（`test-libs/test-runner.ts` の内容を `src/index.ts` に移動）
+- [ ] `.d.ts` 型定義の出力確認
+- [ ] `vba-analyzer` のエントリーポイント整備（`bin` フィールド追加）
+- [ ] VS Code 拡張の `esbuild` 呼び出し実装（ワークスペースの esbuild を使う）
+- [ ] VBA 実行の `worker_threads` 分離
+- [ ] npm publish / VSCode Marketplace 公開
+
+### パッケージング（Marketplace 公開）
 - [ ] VSCode Marketplace への公開（アイコン整備、`.vsix` ビルド検証）
 - [ ] Web Extension 化（evaluator が Node.js `path` に依存しており、先にブラウザ対応が必要）
 
