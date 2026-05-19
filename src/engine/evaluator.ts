@@ -947,14 +947,18 @@ export class Evaluator {
             return new VbaErrorValue(code);
         });
 
-        this.env.set('hex', (n: any) => {
+        const hexFn = (n: any) => {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(16).toUpperCase();
-        });
-        this.env.set('oct', (n: any) => {
+        };
+        this.env.set('hex', hexFn);
+        this.env.set('hex$', hexFn);
+        const octFn = (n: any) => {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(8);
-        });
+        };
+        this.env.set('oct', octFn);
+        this.env.set('oct$', octFn);
         this.env.set('val', (s: any) => {
             if (typeof s !== 'string') return 0;
             const cleaned = s.trim().replace(/ /g, '');
@@ -1071,6 +1075,7 @@ export class Evaluator {
         this.env.set('chr', chrFunc);
         this.env.set('chr$', chrFunc);
         this.env.set('chrw', chrFunc);
+        this.env.set('chrw$', chrFunc);
         this.env.set('instr', (...args: any[]) => {
             let start = 1, s1, s2, comp;
             if (args.length >= 4) [start, s1, s2, comp] = args;

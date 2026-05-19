@@ -628,6 +628,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 原因: 定数登録が漏れており、`json_ParseString` の `\b`・`\f` エスケープで `vbBack`/`vbFormFeed` を参照するとエラーになる
   - 修正: `vbBack = "\b"`, `vbFormFeed = "\f"` を定数として登録
 
+- ✅ **Fix: `Hex$`・`Oct$` が未登録（`hex`/`oct` のみあり）** | `builtin-strings.test.ts`
+  - 原因: `$` なし版のみ登録しており `Hex$`・`Oct$` 呼び出しで Error 438 になっていた
+  - 症状: `json_Encode` 内の `"\u" & Right$("0000" & Hex$(AscW), 4)` が失敗し、非ASCII文字の `\uXXXX` エンコードが動かない
+  - 修正: `hex$`・`oct$` を `hex`・`oct` のエイリアスとして登録
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証

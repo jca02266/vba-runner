@@ -51,6 +51,18 @@ console.log('[Test Suite] リテラルの検証');
 assert.strictEqual(ev.callProcedure('TestHex', []), 255, 'Hex &HFF -> 255');
 assert.strictEqual(ev.callProcedure('TestOctal', []), 8, 'Octal &O10 -> 8');
 assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
+
+// Hex$() / Oct$() 関数呼び出し（リテラルとは別に関数として動作すること）
+{
+    const e2 = evalVBA(`
+        Function TestHexFn() As String: TestHexFn = Hex$(255): End Function
+        Function TestHexFn0() As String: TestHexFn0 = Hex$(0): End Function
+        Function TestOctFn() As String: TestOctFn = Oct$(8): End Function
+    `);
+    assert.strictEqual(e2.callProcedure('TestHexFn', []), 'FF', 'Hex$(255) = "FF"');
+    assert.strictEqual(e2.callProcedure('TestHexFn0', []), '0', 'Hex$(0) = "0"');
+    assert.strictEqual(e2.callProcedure('TestOctFn', []), '10', 'Oct$(8) = "10"');
+}
 assert.strictEqual(ev.callProcedure('TestStringEscape', []), 'a"b', 'String escape "a""b" -> a"b');
 assert.strictEqual(ev.callProcedure('TestScientific', []), 123, 'Scientific 1.23E+2 -> 123');
 

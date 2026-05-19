@@ -48,8 +48,9 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`Chr(97)`), 'a', 'Chr(97) = "a"');
     assert.strictEqual(ev(`Chr$(65)`), 'A', 'Chr$(65) = "A"');
     assert.strictEqual(ev(`ChrW(12354)`), 'あ', 'ChrW(12354) = "あ"');
+    assert.strictEqual(ev(`ChrW$(169)`), '©', 'ChrW$(169) = "©"');
     assert.strictEqual(ev(`Chr(Asc("Z"))`), 'Z', 'Chr(Asc("Z")) = "Z" (往復)');
-    console.log('[PASS] Chr / Chr$ / ChrW');
+    console.log('[PASS] Chr / Chr$ / ChrW / ChrW$');
 }
 
 // --- InStr / InStrB ---
