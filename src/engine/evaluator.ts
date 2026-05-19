@@ -3910,7 +3910,9 @@ export class Evaluator {
 
                 // If we reach here, either we are already in an error handler,
                 // or there's no handler configured. Bubble up.
-                this.isInErrorHandler = false;
+                // Do NOT reset isInErrorHandler here: if we're inside a handler and a nested
+                // block (If/For/While) re-throws, the outer executeStatements must still see
+                // isInErrorHandler=true so it doesn't re-enter the same handler (infinite loop).
                 throw e;
             }
         }

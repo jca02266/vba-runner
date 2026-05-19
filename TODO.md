@@ -643,6 +643,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `evaluateDateLiteral` を `new Date(y, m-1, d, h, min, s)`（ローカル時刻）に変更し、`Now()`/`DateSerial()` と一貫した挙動にした。`formatDate` はローカル時刻の `get*` メソッドのまま
   - 影響: `ConvertToJson(Date)` の ISO 8601 出力が正しくなった
 
+- ✅ **Fix: `On Error GoTo` ハンドラ内の `If`/`For`/`While` ブロックで `Err.Raise` すると無限ループになる** | `error-handler-reentry.test.ts`
+  - 原因: ネストブロックの `executeStatements(isTopLevel=false)` が re-throw 前に `isInErrorHandler = false` にリセットしていたため、外側の `executeStatements` がフラグを見て「ハンドラ外」と誤判断し、同じ GoTo ラベルに再ジャンプしてループ
+  - 修正: "bubble up" パスの `this.isInErrorHandler = false` を削除。ネストブロックからの re-throw では `isInErrorHandler` を保持し、外側が正しくバブルアップする
+  - 影響: `LibBook.bas` の `NewWorkbook` 関数（Cleanup ハンドラ内で `Err.Raise` するパターン）がハングしなくなった
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証
