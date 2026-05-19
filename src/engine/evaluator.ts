@@ -859,6 +859,37 @@ export class Evaluator {
             return 'Object';
         });
 
+        // CallByName(object, procName, callType, args...)
+        // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
+        this.env.set('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
+            if (obj === null || obj === undefined || obj === vbaNothing) {
+                this.throwVbaError(91, 'Object variable or With block variable not set');
+            }
+            const name = String(procName).toLowerCase();
+            if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
+                if (obj.__vbaClass__) {
+                    const classDef = obj.__classDef__ as ClassDeclaration;
+                    const getter = classDef.procedures.find(
+                        p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === name
+                    );
+                    if (getter) return this.callClassMethod(obj, getter, args);
+                    const method = classDef.procedures.find(
+                        p => !p.isProperty && p.name.name.toLowerCase() === name
+                    );
+                    if (method) return this.callClassMethod(obj, method, args);
+                    return obj.__instanceEnv__.get(name);
+                }
+                if (typeof obj === 'object' && obj !== null) {
+                    const keys = Object.keys(obj);
+                    const match = keys.find(k => k.toLowerCase() === name) ?? name;
+                    const val = obj[match];
+                    if (typeof val === 'function') return val.apply(obj, args);
+                    return val;
+                }
+            }
+            this.throwVbaError(438, `Object doesn't support this property or method: '${procName}'`);
+        });
+
         // --- Conversion Module ---
         this.env.set('cbyte', (val: any) => {
             if (val instanceof VbaBoolean) {
@@ -982,6 +1013,12 @@ export class Evaluator {
         this.env.set('vbignore', 5);
         this.env.set('vbyes', 6);
         this.env.set('vbno', 7);
+        // CallByName callType constants
+        this.env.set('vbmethod', 1);
+        this.env.set('vbget', 2);
+        this.env.set('vblet', 4);
+        this.env.set('vbset', 8);
+
         this.env.set('vbokonly', 0);
         this.env.set('vbokcancel', 1);
         this.env.set('vbabortretryignore', 2);
