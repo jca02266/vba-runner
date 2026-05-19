@@ -39,6 +39,9 @@ interface ProcedureMetrics {
     returnType: string | null;            // Function の戻り値型（Sub/Property は null）
     ioSideEffectCount: number;            // MsgBox / InputBox / Debug.Print の呼び出し回数
     referenceCount: number;               // 他のプロシージャから呼ばれている回数（クロスファイル含む）
+    // 凝集度指標
+    hardcodedSheetCount: number;          // Sheets("名前")/Worksheets("名前") の固定シート名の種類数
+    hardcodedAddressCount: number;        // Range("A1")/Cells(1,1) の固定アドレス引数の種類数
 }
 
 interface PrefixCluster {
@@ -1068,6 +1071,12 @@ function analyzeFile(filePath: string): FileAnalysis {
             returnType: proc.returnType ?? null,
             ioSideEffectCount,
             referenceCount: 0,  // 後段のワークスペース解析で埋める
+            hardcodedSheetCount: magicLits.filter(m =>
+                (m.callee.toLowerCase() === 'sheets' || m.callee.toLowerCase() === 'worksheets') && m.argIndex === 0
+            ).length,
+            hardcodedAddressCount: magicLits.filter(m =>
+                m.callee.toLowerCase() === 'range' || m.callee.toLowerCase() === 'cells'
+            ).length,
         };
     });
 
@@ -1199,6 +1208,66 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
 }
 
 // ---------------------------------------------------------
+// 凝集度判定
+// ---------------------------------------------------------
+
+// 各指標のペナルティスコア合計で HIGH/MEDIUM/LOW を判定する。
+//
+// 変数数:           0-7 → 0点  8-14 → 1点  15-29 → 2点  30+ → 3点
+// 固定シート参照:   0-1 → 0点  2    → 1点  3-4  → 2点  5+  → 3点
+// 固定アドレス引数: 0-2 → 0点  3-4  → 1点  5-7  → 2点  8+  → 3点
+//
+// 合計スコア: 0-1 → HIGH ✅   2-3 → MED ⚠️   4+ → LOW ❌
+function cohesionJudge(p: ProcedureMetrics): { label: string; reasons: string[] } {
+    let score = 0;
+    const reasons: string[] = [];
+
+    // 変数の数
+    if      (p.localDeclCount >= 30) { score += 3; reasons.push(`変数多(${p.localDeclCount}個)`); }
+    else if (p.localDeclCount >= 15) { score += 2; reasons.push(`変数多(${p.localDeclCount}個)`); }
+    else if (p.localDeclCount >= 8)  { score += 1; }
+
+    // 固定シート参照の種類数
+    if      (p.hardcodedSheetCount >= 5) { score += 3; reasons.push(`シート参照多(${p.hardcodedSheetCount}種)`); }
+    else if (p.hardcodedSheetCount >= 3) { score += 2; reasons.push(`シート参照多(${p.hardcodedSheetCount}種)`); }
+    else if (p.hardcodedSheetCount >= 2) { score += 1; }
+
+    // 固定アドレス引数の種類数
+    if      (p.hardcodedAddressCount >= 8) { score += 3; reasons.push(`アドレス多(${p.hardcodedAddressCount}種)`); }
+    else if (p.hardcodedAddressCount >= 5) { score += 2; reasons.push(`アドレス多(${p.hardcodedAddressCount}種)`); }
+    else if (p.hardcodedAddressCount >= 3) { score += 1; }
+
+    if (score >= 3) return { label: 'LOW  ❌', reasons };
+    if (score >= 1) return { label: 'MED  ⚠️ ', reasons };
+    return { label: 'HIGH ✅', reasons: [] };
+}
+
+// 行数の良し悪し: <30 ✅  30-99 ⚠️  100+ ❌
+function lineEmoji(n: number): string {
+    if (n >= 100) return '❌';
+    if (n >= 30)  return '⚠️ ';
+    return '✅';
+}
+// ネスト深さの良し悪し: 0-2 ✅  3-4 ⚠️  5+ ❌
+function nestEmoji(n: number): string {
+    if (n >= 5) return '❌';
+    if (n >= 3) return '⚠️ ';
+    return '✅';
+}
+// Excel アクセス数の良し悪し: 0-4 ✅  5-9 ⚠️  10+ ❌
+function excelEmoji(n: number): string {
+    if (n >= 10) return '❌';
+    if (n >= 5)  return '⚠️ ';
+    return '✅';
+}
+// 重複ブロックの種類数の良し悪し: 0 ✅  1-2 ⚠️  3+ ❌
+function dupEmoji(n: number): string {
+    if (n >= 3) return '❌';
+    if (n >= 1) return '⚠️ ';
+    return '✅';
+}
+
+// ---------------------------------------------------------
 // テキストフォーマッタ
 // ---------------------------------------------------------
 
@@ -1215,20 +1284,21 @@ function formatFileReport(r: FileReport): string {
     for (const p of r.procedures) {
         out.push('');
         const scopeLabel = p.scope === 'public' ? '' : `[${p.scope}] `;
-        out.push(`  ${scopeLabel}[${p.kind}] ${p.name}  (${p.lineCount}行, L${p.startLine}-L${p.endLine}, refs=${p.referenceCount})`);
-        const flags: string[] = [];
-        if (p.lineCount >= 100) flags.push(`📏 LARGE (${p.lineCount}行)`);
-        if (p.maxNestDepth >= 5) flags.push(`🌀 DEEP_NEST (${p.maxNestDepth}段)`);
-        if (p.localDeclCount >= 30) flags.push(`🧮 MANY_LOCALS (${p.localDeclCount}個)`);
-        if (p.excelAccessCount >= 10) flags.push(`📊 EXCEL_HEAVY (${p.excelAccessCount}件)`);
-        if (flags.length) out.push(`    フラグ: ${flags.join(' / ')}`);
-        else out.push(`    最大ネスト ${p.maxNestDepth} / Dim ${p.localDeclCount} / Excel ${p.excelAccessCount}`);
+        out.push(`  ${scopeLabel}[${p.kind}] ${p.name}  (L${p.startLine}-L${p.endLine}, refs=${p.referenceCount})`);
+
+        // 指標サマリー（常に表示、各指標に良し悪しの絵文字付き）
+        out.push(`    行数 ${p.lineCount}${lineEmoji(p.lineCount)} / ネスト ${p.maxNestDepth}${nestEmoji(p.maxNestDepth)} / Excel ${p.excelAccessCount}${excelEmoji(p.excelAccessCount)}`);
+
+        // 凝集度
+        const cohesion = cohesionJudge(p);
+        const cohesionReasons = cohesion.reasons.length ? `  ← ${cohesion.reasons.join(', ')}` : '';
+        out.push(`    凝集度: ${cohesion.label}  (Dim ${p.localDeclCount} / シート参照 ${p.hardcodedSheetCount}種 / アドレス ${p.hardcodedAddressCount}種)${cohesionReasons}`);
 
         if (p.excelObjectsUsed.length > 0) {
             out.push(`    🧪 モック必要候補: ${p.excelObjectsUsed.join(', ')}`);
         }
         if (p.assignmentBlocks.length) {
-            out.push(`    連続代入ブロック（抽出候補）:`);
+            out.push(`    ⚠️  連続代入ブロック（関数抽出候補）:`);
             for (const b of p.assignmentBlocks) {
                 out.push(`      L${b.startLine}-L${b.endLine}: ${b.count}件 [shape:${b.shape}] [${b.context}]`);
             }
@@ -1241,10 +1311,10 @@ function formatFileReport(r: FileReport): string {
         }
         if (p.repeatedNumericLiterals.length) {
             const top = p.repeatedNumericLiterals.slice(0, 5);
-            out.push(`    繰り返し数値リテラル: ${top.map(n => `${n.value}(×${n.occurrences})`).join(', ')}`);
+            out.push(`    ⚠️  繰り返し数値リテラル（定数化候補）: ${top.map(n => `${n.value}(×${n.occurrences})`).join(', ')}`);
         }
         if (p.byRefAssignments.length) {
-            out.push(`    ⚠️  ByRef パラメータへの代入（UDT 戻り値リファクタリング候補）:`);
+            out.push(`    ❌ ByRef パラメータへの代入（UDT 戻り値リファクタリング候補）:`);
             for (const b of p.byRefAssignments) {
                 const typeStr = b.paramType ? ` As ${b.paramType}` : '';
                 const linesStr = b.lines.map(l => `L${l}`).join(', ');
@@ -1252,7 +1322,7 @@ function formatFileReport(r: FileReport): string {
             }
         }
         if (p.magicLiteralsInCalls.length) {
-            out.push(`    📌 即値引数（定数化候補）: ${p.magicLiteralsInCalls.length}種`);
+            out.push(`    ⚠️  即値引数（定数化候補）: ${p.magicLiteralsInCalls.length}種`);
             for (const m of p.magicLiteralsInCalls.slice(0, 10)) {
                 const val = typeof m.value === 'string' ? `"${m.value}"` : String(m.value);
                 const linesStr = m.lines.map(l => `L${l}`).join(', ');
