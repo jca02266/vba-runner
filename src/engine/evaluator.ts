@@ -1727,6 +1727,11 @@ export class Evaluator {
         this.env.set(name, value);
     }
 
+    /** 名前をグローバル定数として登録する。VBA コード側からの代入は Error 5 になる。 */
+    public setConstant(name: string, value: any): void {
+        this.env.setConstant(name, value);
+    }
+
     public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string): any {
         let procName = name.toLowerCase();
         let extractedModuleName = moduleName;

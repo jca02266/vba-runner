@@ -83,7 +83,7 @@ export class VBARunner {
      */
     setConstants(constants: Record<string, any>): void {
         for (const [name, value] of Object.entries(constants)) {
-            this.evaluator.set(name, value);
+            this.evaluator.setConstant(name, value);
         }
     }
 
