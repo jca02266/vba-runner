@@ -301,6 +301,7 @@ node test-libs/vba-analyzer.cjs src/vba/ --json
 | `prefixClusters` | 共通の接頭辞（例: `inv_Stock`, `inv_Min`）を持つ変数群のグルーピング候補。`Type` 化やクラス化の手がかりになる | [R-03](#r-03) / [R-04](#r-04) |
 | `excelMockTargets` | `Sheets`, `Range`, `Application` などへのアクセスを含む Function の一覧。Sub への切り出し（R-01）の対象候補 | [R-01](#r-01) |
 | `excelObjectsUsed` | VBA コード中で参照されている Excel オブジェクト名の一覧。モック注入が必要なオブジェクトを特定する | [T-10](#t-10) |
+| `assignmentBlocks` | 5件以上連続する代入・Dim 宣言の塊。`shape` によって UDT 化・関数抽出などの手法を選ぶ | [VA-01b](#va-01b) |
 
 #### 使用例
 
@@ -420,6 +421,50 @@ const result = vbaRunner.run('MyFunction', []);
 | Range 結果の `.Item()` | `Range("A1:B3").Item(3, 5)` | ✅ |
 | `Worksheets()` | `Worksheets("Config")` / `Worksheets(1)` | ✅ |
 | Range 変数経由 | `rng.Item(3, 5)` / `rng(3, 5)` | ❌ 型追跡が必要 |
+
+---
+
+<a id="va-01b"></a>
+### VA-01b: 連続代入ブロック検出（関数抽出・UDT化候補）
+
+`AssignmentStatement`（代入）・`SetStatement`（Set 代入）・`VariableDeclaration`（Dim 宣言）・`ConstDeclaration`（Const 宣言）が **5件以上連続している箇所**を検出し、`shape`（形状）を付けて報告する。
+
+テキスト出力例:
+
+```
+[Function] ConvertToJson  (L199-L455, refs=1)
+    行数 257❌ / ネスト 6❌ / Excel 0✅
+    凝集度: MED  ⚠️
+    ⚠️  連続代入ブロック（関数抽出候補）:
+      L200-L226: 26件 [shape:mostly-dim-decl] [root]
+```
+
+#### shape の種類と意味
+
+| shape | 内容 | 典型的なリファクタリング手法 |
+|---|---|---|
+| `mostly-dim-decl` | `Dim` 宣言が大半を占める | 変数が多すぎるシグナル。関連する変数を **UDT（Type 構造体）にまとめる**か、変数が多い原因（処理が大きすぎる）を見てプロシージャを分割する（[R-03](#r-03)） |
+| `mostly-range-write` | `Range`/`Cells` への書き込みが大半 | Excel への一括書き出し処理。ロジックから切り離して **専用の出力 Sub に抽出**する（[R-01](#r-01)）|
+| `mostly-range-read` | `Range`/`Cells` からの読み込みが大半 | Excel からの一括読み込み処理。**専用の入力 Sub/Function に抽出**し、戻り値は UDT か配列で返す（[R-01](#r-01) / [R-03](#r-03)） |
+| `mostly-assign` | 通常の変数への代入が大半 | 初期化処理や前処理の塊。**初期化専用の Sub/Function に抽出**して本体の行数を削減する |
+| `mostly-set-obj` | `Set obj = ...` が大半 | オブジェクト生成・注入処理。**ファクトリ関数または初期化 Sub** として切り出す |
+| `mostly-var-init` | 変数への初期値設定が大半 | `mostly-assign` と同様。定数化できるものは `Const` に昇格させる |
+| `mixed` | 上記の混在 | 複数の責務が混在している可能性が高い。個別に内容を確認してから手法を選ぶ |
+
+#### `mostly-dim-decl` の場合の判断基準
+
+`Dim` 宣言が 10 件を超えていても、それ自体は必ずしも問題ではない。以下の観点で判断する:
+
+| 状況 | 対処 |
+|---|---|
+| 変数名に共通の接頭辞がある（`inv_Stock`, `inv_Min` 等） | UDT にまとめる（[R-03](#r-03)）。`prefixClusters` も参照 |
+| 変数が関数の複数フェーズ（読み込み・計算・書き込み）に分散して使われている | フェーズごとに関数を分割し、各フェーズに必要な変数だけを宣言する |
+| ほとんどの変数が関数全体で使われており分割が難しい | まず ByRef 出力パラメータを UDT にまとめ（[VA-02](#va-02)）、変数数を物理的に削減してから再評価する |
+
+#### 検出しないケース
+
+- 5件未満の連続（閾値未満はノイズとして除外）
+- `If`/`For` などの制御構造をまたいだ非連続な代入（制御構造の内側は別ブロックとして独立に評価される）
 
 ---
 
