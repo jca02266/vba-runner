@@ -16,6 +16,7 @@
 
 import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
+import { preprocess } from '../src/engine/preprocessor';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -989,7 +990,7 @@ function analyzeFile(filePath: string): FileAnalysis {
 
     let ast: any;
     try {
-        const tokens = new Lexer(src).tokenize();
+        const tokens = new Lexer(preprocess(src)).tokenize();
         ast = new Parser(tokens).parse();
     } catch (e: any) {
         warnings.push(`Parse error: ${e.message}`);

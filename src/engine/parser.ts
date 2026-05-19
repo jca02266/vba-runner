@@ -1089,6 +1089,11 @@ export class Parser {
                 (stmt as any).scope = scope;
                 return stmt;
             }
+            if (next.type === TokenType.KeywordDeclare) {
+                const stmt = this.parseDeclareStatement();
+                (stmt as any).scope = scope;
+                return stmt;
+            }
             // Public/Private on Dim/Const — handle as variable declaration
             const stmt = this.parseDimStatement(false, true);
             if (stmt) {
