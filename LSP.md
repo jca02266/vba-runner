@@ -1,77 +1,254 @@
-# VBA Language Server Protocol (LSP) 開発計画
+# VBA Language Server — 実装済み機能リファレンス
 
-既存のVBA実行エンジンの `Lexer` および `Parser` を活用し、VSCode等のエディタで動作する **VBA Language Server** を構築するためのロードマップと技術設計です。
+本ドキュメントは `src/lsp/` 配下に実装された VBA Language Server の機能仕様と使い方を記述します。
+LSP サーバーは **別プロセスを持たないインライン拡張** として動作します（`vscode-languageserver` ライブラリは不使用）。
 
-## 1. 目標と提供する機能
+---
 
-標準的なLSPの仕様（`vscode-languageserver`）に則り、以下の機能の提供を目指します。
+## アーキテクチャ概要
 
-1. **Diagnostics（構文エラーのリアルタイム表示）**
-   - タイピング中に構文エラーや未定義変数の警告をエディタ上に波線で表示する。
-2. **Document Symbol（アウトライン表示）**
-   - ファイル内の `Sub`, `Function`, `Type`, モジュールレベル変数などを一覧表示し、アウトラインペインやブレッドクラムに対応する。
-3. **Hover（ホバー情報表示）**
-   - 変数や関数にカーソルを合わせた際、そのスコープや組み込み関数のシグネチャをツールチップで表示する。
-4. **Go to Definition（定義へジャンプ）**
-   - 関数呼び出しや変数参照から、その定義位置へジャンプ（F12）する機能。
-5. **Completion（自動補完）**
-   - `Public`, `Sub`, などの予約語の補完。
-   - 同一モジュール内の変数やプロシージャ名の補完。
-
-## 2. アーキテクチャ設計
-
-### ディレクトリ構成案
-モノレポ構成とし、既存のエンジン基盤を共有します。
-
-```text
-vba-runner/
-├── src/
-│   └── engine/            # 既存のLexer, Parser, Evaluator
-├── lsp/
-│   ├── client/            # VSCode拡張機能（フロントエンド）
-│   │   └── src/extension.ts
-│   └── server/            # LSPサーバー（バックエンド）
-│       └── src/server.ts
-└── package.json
+```
+VSCode Extension Host (src/extension.ts)
+    │
+    ├── LSPServer (src/lsp/server.ts)          ← すべてのプロバイダの中心
+    │       ├── SymbolProvider                  (src/lsp/symbol-provider.ts)
+    │       ├── HoverProvider                   (src/lsp/hover-provider.ts)
+    │       ├── DefinitionProvider              (src/lsp/definition-provider.ts)
+    │       ├── CompletionProvider              (src/lsp/completion-provider.ts)
+    │       ├── ReferencesProvider              (src/lsp/references-provider.ts)
+    │       ├── RenameProvider                  (src/lsp/rename-provider.ts)
+    │       ├── CodeLensProvider                (src/lsp/code-lens-provider.ts)
+    │       ├── TestDiscovery                   (src/lsp/test-discovery.ts)
+    │       └── TestRunner                      (src/lsp/test-runner.ts)
+    │
+    └── VBADebugAdapterFactory                  (src/lsp/vscode-debug-adapter.ts)
+            └── VBAInlineDebugAdapter
+                    └── DebugAdapter            (src/lsp/debug-adapter.ts)
 ```
 
-### 依存パッケージ
-- `vscode-languageserver`: サーバーサイド用モジュール
-- `vscode-languageserver-textdocument`: テキスト同期・位置情報管理
-- `vscode-languageclient`: VSCode拡張用クライアント
+- **LSPServer** は `didOpen` / `didChange` / `didClose` でドキュメントを管理し、各プロバイダの呼び出し口となる。
+- 拡張機能の `activate()` はすべての VSCode プロバイダを登録し、`LSPServer` インスタンスを共有する。
+- インライン実装のため起動オーバーヘッドがなく、Node.js IPC が不要。
 
-## 3. 実装フェーズ
+---
 
-### Phase 1: 基礎構築とVSCode拡張のセットアップ
-- `lsp/client` および `lsp/server` の初期化。
-- クライアント・サーバー間のプロセス間通信（IPC）の確立。
-- エディタでドキュメントを開いた際、または編集した際にサーバーへテキスト内容を送信するイベント連携の構築。
+## 実装済み機能一覧
 
-### Phase 2: 既存エンジンのLSP向け改修（重要課題）
-LSPとして動作させるためには、既存のエンジン基盤に以下の改修が必要です。
+| 機能 | VSCode 操作 | 実装ファイル |
+|---|---|---|
+| Diagnostics | 自動（保存不要） | `server.ts`, `code-lens-provider.ts` |
+| Document Symbol | アウトラインペイン / `@` 検索 | `symbol-provider.ts` |
+| Hover | カーソルホバー | `hover-provider.ts` |
+| Go to Definition | F12 | `definition-provider.ts` |
+| Completion | Ctrl+Space / 入力時 | `completion-provider.ts` |
+| Find All References | Shift+F12 | `references-provider.ts` |
+| Rename Symbol | F2 | `rename-provider.ts` |
+| Code Lens | 行上部のインライン UI | `code-lens-provider.ts` |
+| Test Discovery / Run | テストエクスプローラー | `test-discovery.ts`, `test-runner.ts` |
+| DAP Debugger | F5 / デバッグビュー | `debug-adapter.ts`, `vscode-debug-adapter.ts` |
 
-1. **トークン・ASTへの完全な位置情報の付与**
-   - 現在 `Lexer` は `line` (行番号) のみを保持しています。LSPでは「何行目の何文字目から何文字目まで」が必須となるため、各トークンおよびASTノードに `{ line, character }` 形式の `start` と `end` 位置を追加する改修を行います。
-2. **Tolerant Parsing (寛容なパース・エラー耐性)**
-   - 現在の `Parser` は構文エラーに遭遇すると `throw new Error` で直ちにパースを停止します。LSPではエラー箇所をスキップして後続のコードをパースし続ける仕組み（Error Recovery）が必要です。エラーを配列に収集し、不完全なASTでも返却できるように `Parser` を拡張します。
+---
 
-### Phase 3: Diagnostics（エラー解析）の統合
-- クライアントから受け取ったテキストを `Lexer` -> `Parser` に通す。
-- Phase 2 で収集したエラーの配列（行番号、列、メッセージ）を `Diagnostic` オブジェクトに変換し、クライアントに送信して波線を表示させる。
+## 各機能の詳細
 
-### Phase 4: シンボルとホバー機能 (Language Features) の実装
-- パースされたASTを走査（Visitorパターン等）し、変数やプロシージャの「シンボルテーブル」を構築。
-- エディタからの `textDocument/documentSymbol` リクエストに対し、シンボルの一覧を返す。
-- `textDocument/hover` リクエストに対し、カーソル位置のノードを特定し、関連する情報を返す。
+### Diagnostics（構文エラー・警告）
 
-### Phase 5: リリースとパッケージング
-- `.vsix` ファイルへのパッケージング（`vsce` ツールを使用）。
-- 拡張機能のインストールと利用手順のドキュメント化。
+パースエラーと Dead code 警告を `DiagnosticCollection` に出力する。ドキュメントを開く・編集するたびに自動更新。
 
-## 4. 次のステップ（提案）
+**出力する診断の種類:**
 
-もしこの計画で進める場合、最初のタスクは以下のようになります。
+| 種別 | severity | 内容 |
+|---|---|---|
+| 構文エラー | Error (1) | `Parser` が検出した構文違反 |
+| Dead code 警告 | Warning (2) | Private プロシージャで外部参照が 0 件のもの |
 
-1. **Step 1:** `Lexer` を改修し、行番号に加えて**列番号 (column)** と**トークン長 (length)** を取得できるようにする。
-2. **Step 2:** `Parser` を改修し、ASTノード（`Statement` や `Expression`）に `start` と `end` の位置情報を付与する。
-3. **Step 3:** LSPの初期パッケージ構成（`package.json`の更新など）を作成し、Hello WorldのDiagnosticsを出力するサーバーを立ち上げる。
+**実装詳細:**
+- `Parser.diagnostics` は 1-based line/column → LSP 変換時に `line - 1`, `character - 1`
+- Dead code = `isPrivate && refCount === 0`（`CodeLensProvider.getDeadCodeWarnings()` と連携）
+
+**テスト:** `tests/lsp/server-diagnostics.test.ts`, `tests/lsp/lsp-dead-code.test.ts`
+
+---
+
+### Document Symbol（アウトライン表示）
+
+ファイル内のシンボルをアウトラインペインに表示する。
+
+**対応するシンボル種別:**
+
+| VBA | VSCode SymbolKind |
+|---|---|
+| Sub / Function | Function (11) |
+| Type | Struct (22) |
+| Class / Module変数 | Variable (12) |
+
+**実装詳細:**
+- `SymbolProvider` の enum 値は 1-based。VSCode の `SymbolKind` は 0-based のため `kind - 1` で変換する。
+
+**テスト:** `tests/lsp/lsp-document-symbol.test.ts`, `tests/lsp/lsp-symbol-provider.test.ts`
+
+---
+
+### Hover（ホバー情報）
+
+カーソル位置のシンボルに関する情報をツールチップで表示する。
+
+**表示内容:**
+- プロシージャ: シグネチャ（名前・パラメータ・戻り値型）
+- 変数: 宣言時の型
+
+**テスト:** `tests/lsp/lsp-hover.test.ts`
+
+---
+
+### Go to Definition（定義へジャンプ）
+
+F12 でカーソル位置のシンボルの宣言位置へジャンプする。
+
+**実装詳細:**
+- `DefinitionProvider` はシンボルテーブルを参照し、宣言の `loc` を返す。
+- 組み込み関数は対象外。
+
+**テスト:** `tests/lsp/lsp-definition.test.ts`
+
+---
+
+### Completion（自動補完）
+
+入力中に候補リストを表示する。
+
+**補完対象:**
+- VBA キーワード（`Sub`, `Function`, `Dim`, `If` … 50種類以上）
+- 同一モジュール内の Sub/Function 名
+- 同一モジュール内の変数名
+
+**テスト:** `tests/lsp/lsp-completion.test.ts`
+
+---
+
+### Find All References（参照箇所の検索）
+
+Shift+F12 でカーソル位置のシンボルが使用されているすべての位置を列挙する。
+
+**実装詳細 (text-based search):**
+- AST ではなくソーステキストを対象に正規表現で検索する（`(?<![a-zA-Z0-9_])word(?![a-zA-Z0-9_])`、大文字小文字無視）
+- 純コメント行・インラインコメント後・文字列リテラル内はスキップ
+- `includeDeclaration=false` 時は宣言位置を結果から除外する
+
+**API:**
+```typescript
+findAllReferences(sourceText, targetWord, uri, statements, includeDeclaration): LocationInfo[]
+```
+
+**テスト:** `tests/lsp/lsp-references.test.ts`
+
+---
+
+### Rename Symbol（シンボル名の変更）
+
+F2 でシンボルをリネームし、ファイル内すべての参照を一括置換する。
+
+**実装詳細:**
+- `findAllReferences(includeDeclaration=true)` で宣言を含む全参照を取得し、`TextEdit[]` を返す。
+- VSCode の `WorkspaceEdit` 経由で適用される。
+
+**テスト:** `tests/lsp/lsp-references.test.ts`（Rename テストを含む）
+
+---
+
+### Code Lens（プロシージャ行上部の UI）
+
+各 Sub/Function の宣言行の上部に最大 3 つのレンズ項目を表示する。
+
+| レンズ | 条件 | コマンド |
+|---|---|---|
+| `▶ Run` | 必須パラメータなし | `vba-runner.runProcedure` |
+| `N references` | 常に表示 | `vba-runner.findReferences` |
+| `⚠ 0 references` | Private かつ 0 参照 | `vba-runner.findReferences` |
+| `✓ テスト済み` | `Test_*` プロシージャが参照 | `vba-runner.goToTest` |
+| `未テスト` | テスト参照なし | `vba-runner.generateTest` |
+
+**実装詳細:**
+- 参照数カウント: `findAllReferences` の結果からプロシージャ本体の行範囲内を除外し外部参照のみを計算する
+  ```typescript
+  const externalRefs = refs.filter(r =>
+      r.range.start.line < line || r.range.start.line > endLine
+  );
+  const refCount = externalRefs.length;
+  ```
+- テスト済み判定: `Test_*` プロシージャの本文内に対象名が全単語マッチで登場するか確認
+
+**テスト:** `tests/lsp/lsp-code-lens.test.ts`
+
+---
+
+### Test Discovery / Run（テスト探索と実行）
+
+`Test_` で始まる Sub を自動検出し、テストエクスプローラーに表示・実行する。
+
+**テスト:** `tests/lsp/lsp-test-discovery.test.ts`, `tests/lsp/lsp-test-runner.test.ts`
+
+---
+
+### DAP Debugger（デバッグアダプタ）
+
+F5 で VBA コードをステップ実行する。別プロセス不要のインライン実装。
+
+**対応 DAP コマンド:**
+
+| コマンド | 動作 |
+|---|---|
+| `initialize` | デバッガ初期化、`initialized` イベント送出 |
+| `launch` | 実行開始、`stopped(entry)` イベント送出 |
+| `configurationDone` | ブレークポイント設定完了、`stopped(entry)` 送出 |
+| `setBreakpoints` | ブレークポイント登録 |
+| `threads` | スレッド一覧（1スレッド固定） |
+| `stackTrace` | コールスタック |
+| `scopes` | スコープ一覧（Locals） |
+| `variables` | 変数一覧 |
+| `continue` | 実行継続、`stopped(step)` 送出 |
+| `next` | ステップオーバー、`stopped(step)` 送出 |
+| `stepIn` / `stepOut` | ステップイン/アウト |
+| `disconnect` | 終了、`terminated` イベント送出 |
+
+**起動設定（`.vscode/launch.json`）:**
+```json
+{
+    "type": "vba",
+    "request": "launch",
+    "name": "Run VBA",
+    "program": "${file}"
+}
+```
+
+**実装ファイル:**
+- `src/lsp/debug-adapter.ts` — DAP ロジック本体
+- `src/lsp/vscode-debug-adapter.ts` — VSCode `DebugAdapterDescriptorFactory` / `DebugAdapter` ラッパー
+
+**テスト:** `tests/lsp/lsp-debug-adapter.test.ts`, `tests/lsp/lsp-debugger.test.ts`
+
+---
+
+## テストの実行方法
+
+```bash
+# 個別テスト（例: Code Lens）
+./node_modules/.bin/esbuild tests/lsp/lsp-code-lens.test.ts --bundle --outfile=tests/lsp/lsp-code-lens.test.cjs --platform=node && node tests/lsp/lsp-code-lens.test.cjs
+
+# 全 LSP テスト一括実行
+for f in tests/lsp/*.test.ts; do
+    base=$(basename "$f" .ts)
+    ./node_modules/.bin/esbuild "$f" --bundle --outfile="tests/lsp/${base}.cjs" --platform=node && node "tests/lsp/${base}.cjs"
+done
+```
+
+---
+
+## 今後の拡張候補
+
+- Extract Sub/Function リファクタリング（Code Action）
+- Workspace Outline（プロジェクト横断のシンボル検索）
+- コールグラフの可視化
+- npm パッケージ化（エンジン本体を `@vba-compiler/engine` として公開）
+
+詳細は `TODO_NEXT.md` を参照。
