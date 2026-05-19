@@ -666,6 +666,23 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     - 仕様: §3.3.5.2 `TYPED-NAME = IDENTIFIER type-suffix`。IDENTIFIER は reserved-identifier でないものに限られるため、`dim$`・`for$` 等は無効なはず
     - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法
 
+### エンジン内部の構造改善
+
+- [ ] **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `toNumber()`/`toString()`/`toBoolean()` を集約する
+  - 現状: `evaluator.ts` の `evaluateBinaryExpression`・`compareValues`・組み込み関数の 3 か所に分散実装しており、型変換ルールの修正が全箇所への波及を必要とする
+
+- [ ] **`registerStandardLibrary` の分割 + `$` suffix 宣言的登録**: 900 行の単一メソッドをカテゴリ別ファイルに分割し、`$` 付き variant を `{ variants: ['$'] }` 形式で自動登録する仕組みを導入する
+  - 現状: `Left`/`Left$` を別々にif分岐で手動登録しており、新しい組み込み関数追加のたびに `$` 版を忘れるリスクがある
+
+- [ ] **エラー番号の一元管理**: `vba-errors.ts` を新設し、全エラー番号・メッセージ・カテゴリを辞書として集約する
+  - 現状: エラー番号が evaluator.ts の各所にハードコードされており、登録済みエラーも 14 件のみ（実 VBA は 450+ 件）
+
+- [ ] **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数へのアクセスでコンパイルエラーを発生させる
+  - 現状: `Option Explicit` をパースするが実際の検証は行わず、未宣言変数が暗黙的に `0` で初期化される（VBA の仕様違反）
+
+- [ ] **`Identifier` AST ノードへの `loc` 付与**: `parser.ts` の Identifier 生成箇所に位置情報（行番号・列番号）を追加する
+  - 現状: `Identifier` ノードに `loc` がないため、LSP のシンボル参照・リネーム・ホバー機能の実装でトークン再スキャンが必要になる
+
 ### VBA 仕様制約の検証
 
 - ✅ **モジュール名の長さ検証（31 文字制限）**: MS-VBAL §5.2 で定義されたモジュール名の最大長を実行時に検証
