@@ -112,7 +112,7 @@
 | ✅ | P0 | Class Module（OOP） | §5.2.4 | `class-module.test.ts` |
 | ✅ | P1 | Implements Directive | §5.2.4.2 | `implements.test.ts` |
 | ✅ | P2 | Event Declaration | §5.2.4.3 | `raiseevent.test.ts` |
-| ✅ | P1 | Option Explicit（パース済み、実行時は無視） | §5.2 | `math-module.test.ts` |
+| ✅ | P1 | Option Explicit（静的解析 + 実行時エラー） | §5.2 | `option-explicit.test.ts` |
 | ✅ | P0 | Option Compare | §5.2.1.1 | `option_compare.test.ts` |
 | ✅ | P1 | Option Base | §5.2.1.2 | `option_base.test.ts` |
 | ✅ | P1 | Option Private Module | §5.2.1.4 | `option-private.test.ts` |
@@ -680,8 +680,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - [ ] **エラー番号の一元管理**: `vba-errors.ts` を新設し、全エラー番号・メッセージ・カテゴリを辞書として集約する
   - 現状: エラー番号が evaluator.ts の各所にハードコードされており、登録済みエラーも 14 件のみ（実 VBA は 450+ 件）
 
-- [ ] **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数へのアクセスでコンパイルエラーを発生させる
-  - 現状: `Option Explicit` をパースするが実際の検証は行わず、未宣言変数が暗黙的に `0` で初期化される（VBA の仕様違反）
+- ✅ **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数を静的解析 + 実行時エラーで検出
+  - 実装: `src/engine/option-explicit-checker.ts`; AST を2パスで解析し `program.diagnostics` に追記、違反SubはLSP破線＋呼び出し時にVBAエラー1で停止
+  - テスト: `option-explicit.test.ts`
 
 - [ ] **`Identifier` AST ノードへの `loc` 付与**: `parser.ts` の Identifier 生成箇所に位置情報（行番号・列番号）を追加する
   - 現状: `Identifier` ノードに `loc` がないため、LSP のシンボル参照・リネーム・ホバー機能の実装でトークン再スキャンが必要になる

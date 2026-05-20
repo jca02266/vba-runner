@@ -79,6 +79,7 @@ import {
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
+import { checkOptionExplicit } from './option-explicit-checker';
 import * as path from 'path';
 
 /**
@@ -694,6 +695,7 @@ export class Evaluator {
     private dirIndex: number = 0;
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
+    private optionExplicitViolations: Set<string> = new Set();
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -1801,6 +1803,11 @@ export class Evaluator {
             this.throwVbaError(35, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
+        // Option Explicit: refuse to run a procedure with undeclared variable violations
+        if (this.optionExplicitViolations.has(procName)) {
+            this.throwVbaError(1, `Variable not declared in '${proc.name.name}' (Option Explicit)`);
+        }
+
         // Validate argument count
         this.checkArgCount(proc, args);
 
@@ -1931,6 +1938,12 @@ export class Evaluator {
     }
 
     public evaluate(program: Program) {
+        // Run Option Explicit static analysis; results stored for callProcedure checks
+        const { violatedProcedures } = checkOptionExplicit(program);
+        for (const name of violatedProcedures) {
+            this.optionExplicitViolations.add(name);
+        }
+
         for (const stmt of program.body) {
             this.evaluateStatement(stmt);
         }
