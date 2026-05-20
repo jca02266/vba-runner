@@ -55,7 +55,7 @@ export class CodeLensProvider {
                 command: {
                     title: refLabel,
                     command: 'vba-runner.findReferences',
-                    arguments: [uri, proc.name],
+                    arguments: [uri, proc.line, 0],
                 },
             });
 

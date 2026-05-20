@@ -24,7 +24,7 @@ export class RenameProvider {
         const word = getWordAtPosition(sourceText, line, character);
         if (!word) return null;
 
-        const refs = findAllReferences(sourceText, word, this.uri, statements, true);
+        const refs = findAllReferences(sourceText, word, this.uri, statements, true, line);
         if (refs.length === 0) return null;
 
         return refs.map(ref => ({ range: ref.range, newText: newName }));

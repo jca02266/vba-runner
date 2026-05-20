@@ -9,12 +9,31 @@ import {
 
 export interface SymbolEntry {
     name: string;
-    displayText: string; // shown in hover tooltip
+    displayText: string;
     range: {
         start: { line: number; character: number };
         end: { line: number; character: number };
     };
 }
+
+export interface ProcedureScope {
+    name: string;
+    /** 0-based line range of the entire procedure (Sub ... End Sub) */
+    range: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+    localSymbols: Map<string, SymbolEntry>;
+}
+
+export interface ScopedSymbolTable {
+    /** Module-level declarations: procedures, module Dims, Consts, Classes */
+    moduleSymbols: Map<string, SymbolEntry>;
+    /** Per-procedure scopes with local declarations */
+    procedures: ProcedureScope[];
+}
+
+// ─── text helpers ────────────────────────────────────────────────────────────
 
 export function getWordAtPosition(text: string, line: number, character: number): string | null {
     const lines = text.split('\n');
@@ -30,138 +49,274 @@ export function getWordAtPosition(text: string, line: number, character: number)
     return lineText.slice(start, end);
 }
 
-export function buildSymbolTable(statements: Statement[]): Map<string, SymbolEntry> {
-    const symbols = new Map<string, SymbolEntry>();
-    collectSymbols(statements, symbols);
-    return symbols;
+// ─── scope-aware builder ─────────────────────────────────────────────────────
+
+export function buildScopedSymbolTable(statements: Statement[]): ScopedSymbolTable {
+    const moduleSymbols = new Map<string, SymbolEntry>();
+    const procedures: ProcedureScope[] = [];
+    collectScopedSymbols(statements, moduleSymbols, procedures);
+    return { moduleSymbols, procedures };
 }
 
-function collectSymbols(statements: Statement[], symbols: Map<string, SymbolEntry>): void {
+function collectScopedSymbols(
+    statements: Statement[],
+    moduleSymbols: Map<string, SymbolEntry>,
+    procedures: ProcedureScope[],
+): void {
     for (const stmt of statements) {
         if (stmt.type === 'ProcedureDeclaration') {
             const proc = stmt as ProcedureDeclaration;
             if (!proc.loc) continue;
 
-            const procLine = proc.loc.start.line - 1;
-            const procCol  = proc.loc.start.column - 1;
+            const procEntry = makeProcEntry(proc);
+            moduleSymbols.set(proc.name.name.toLowerCase(), procEntry);
 
-            let keyword = 'Sub';
-            let keywordLen = 3;
-            if (proc.isFunction) { keyword = 'Function'; keywordLen = 8; }
-            if (proc.isProperty) {
-                keyword = 'Property';
-                keywordLen = 8;
-                const pt = proc.propertyType || 'get';
-                keywordLen += 1 + pt.length; // ' Get' etc.
-            }
-            const nameStart = procCol + keywordLen + 1;
-            const nameEnd   = nameStart + proc.name.name.length;
+            const localSymbols = new Map<string, SymbolEntry>();
 
-            // Build signature for hover display
-            const params = proc.parameters
-                .map(p => {
-                    const pname = p.name as unknown as string;
-                    const ptype = p.paramType || 'Variant';
-                    const byref = p.isByVal ? 'ByVal ' : '';
-                    return `${byref}${pname} As ${ptype}`;
-                })
-                .join(', ');
-            let sig = `${keyword} ${proc.name.name}(${params})`;
-            if (proc.isFunction || proc.isProperty) {
-                sig += ' As Variant'; // return type not tracked in AST simply
-            }
-
-            symbols.set(proc.name.name.toLowerCase(), {
-                name: proc.name.name,
-                displayText: sig,
-                range: { start: { line: procLine, character: nameStart }, end: { line: procLine, character: nameEnd } },
-            });
-
-            // Parameters (name is plain string in AST)
+            // Parameters
             for (const param of proc.parameters) {
                 const pname = param.name as unknown as string;
                 if (!pname) continue;
                 const ptype = param.paramType || 'Variant';
-                symbols.set(pname.toLowerCase(), {
+                // param has no loc in AST; best-effort: position them at the procedure header line
+                const procLine = proc.loc.start.line - 1;
+                localSymbols.set(pname.toLowerCase(), {
                     name: pname,
                     displayText: `(parameter) ${pname} As ${ptype}`,
-                    range: { start: { line: procLine, character: nameStart }, end: { line: procLine, character: nameEnd } },
+                    range: {
+                        start: { line: procLine, character: 0 },
+                        end: { line: procLine, character: pname.length },
+                    },
                 });
             }
 
-            if (proc.body) collectSymbols(proc.body, symbols);
+            // Local declarations (body)
+            collectLocalDeclarations(proc.body, localSymbols);
+
+            procedures.push({
+                name: proc.name.name,
+                range: {
+                    start: { line: proc.loc.start.line - 1, character: 0 },
+                    end: { line: proc.loc.end.line - 1, character: Number.MAX_SAFE_INTEGER },
+                },
+                localSymbols,
+            });
 
         } else if (stmt.type === 'VariableDeclaration') {
-            const decl = stmt as VariableDeclaration;
-            if (!decl.loc) continue;
-
-            const declLine = decl.loc.start.line - 1;
-            const declCol  = decl.loc.start.column - 1;
-            const scope = decl.scope;
-            const keyword = scope ?? 'Dim';
-            const nameStart = declCol + keyword.length + 1;
-
-            for (const d of decl.declarations) {
-                const varName = d.name.name;
-                const varType = d.objectType || 'Variant';
-                symbols.set(varName.toLowerCase(), {
-                    name: varName,
-                    displayText: `${keyword} ${varName} As ${varType}`,
-                    range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + varName.length } },
-                });
-            }
+            addVariableDeclaration(stmt as VariableDeclaration, moduleSymbols);
 
         } else if (stmt.type === 'ConstDeclaration') {
-            const decl = stmt as ConstDeclaration;
-            if (!decl.loc) continue;
-
-            const declLine  = decl.loc.start.line - 1;
-            const declCol   = decl.loc.start.column - 1;
-            const nameStart = declCol + 6; // 'Const '
-            const constName = decl.name.name;
-
-            symbols.set(constName.toLowerCase(), {
-                name: constName,
-                displayText: `Const ${constName}`,
-                range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
-            });
+            addConstDeclaration(stmt as ConstDeclaration, moduleSymbols);
 
         } else if (stmt.type === 'ClassDeclaration') {
             const cls = stmt as ClassDeclaration;
             if (!cls.loc) continue;
 
-            const clsLine   = cls.loc.start.line - 1;
+            const clsLine = cls.loc.start.line - 1;
             const nameStart = (cls.loc.start.column - 1) + 6; // 'Class '
-
-            symbols.set(cls.name.toLowerCase(), {
+            moduleSymbols.set(cls.name.toLowerCase(), {
                 name: cls.name,
                 displayText: `Class ${cls.name}`,
                 range: { start: { line: clsLine, character: nameStart }, end: { line: clsLine, character: nameStart + cls.name.length } },
             });
-
-            if (cls.body) collectSymbols(cls.body, symbols);
+            collectScopedSymbols(cls.body, moduleSymbols, procedures);
 
         } else if (stmt.type === 'EventDeclaration') {
             const evt = stmt as EventDeclaration;
             if (!evt.loc) continue;
-
-            const evtLine   = evt.loc.start.line - 1;
+            const evtLine = evt.loc.start.line - 1;
             const nameStart = (evt.loc.start.column - 1) + 6; // 'Event '
-            const evtName   = evt.name.name;
-
+            const evtName = evt.name.name;
             const params = evt.parameters
-                .map(p => {
-                    const pname = p.name as unknown as string;
-                    const ptype = p.paramType || 'Variant';
-                    return `${pname} As ${ptype}`;
-                })
+                .map(p => `${p.name} As ${p.paramType || 'Variant'}`)
                 .join(', ');
-
-            symbols.set(evtName.toLowerCase(), {
+            moduleSymbols.set(evtName.toLowerCase(), {
                 name: evtName,
                 displayText: `Event ${evtName}(${params})`,
                 range: { start: { line: evtLine, character: nameStart }, end: { line: evtLine, character: nameStart + evtName.length } },
             });
         }
     }
+}
+
+/** Collect Dim/Const inside a Sub/Function body (does not recurse into nested Sub). */
+function collectLocalDeclarations(body: Statement[], out: Map<string, SymbolEntry>): void {
+    for (const stmt of body) {
+        if (stmt.type === 'VariableDeclaration') {
+            addVariableDeclaration(stmt as VariableDeclaration, out);
+        } else if (stmt.type === 'ConstDeclaration') {
+            addConstDeclaration(stmt as ConstDeclaration, out);
+        } else if (stmt.type === 'ForStatement') {
+            const f = stmt as any;
+            // For loop variable: use its identifier loc if available
+            if (f.identifier?.loc) {
+                const id = f.identifier;
+                const ln = id.loc.start.line - 1;
+                const col = id.loc.start.column - 1;
+                out.set(id.name.toLowerCase(), {
+                    name: id.name,
+                    displayText: `(for) ${id.name}`,
+                    range: { start: { line: ln, character: col }, end: { line: ln, character: col + id.name.length } },
+                });
+            }
+            collectLocalDeclarations(f.body ?? [], out);
+        } else if (stmt.type === 'ForEachStatement') {
+            const f = stmt as any;
+            if (f.variable?.loc) {
+                const id = f.variable;
+                const ln = id.loc.start.line - 1;
+                const col = id.loc.start.column - 1;
+                out.set(id.name.toLowerCase(), {
+                    name: id.name,
+                    displayText: `(for each) ${id.name}`,
+                    range: { start: { line: ln, character: col }, end: { line: ln, character: col + id.name.length } },
+                });
+            }
+            collectLocalDeclarations((f.body ?? []), out);
+        } else if (stmt.type === 'IfStatement') {
+            const s = stmt as any;
+            collectLocalDeclarations(s.consequent ?? [], out);
+            if (Array.isArray(s.alternate)) collectLocalDeclarations(s.alternate, out);
+            else if (s.alternate) collectLocalDeclarations([s.alternate], out);
+        } else if (stmt.type === 'DoWhileStatement' || stmt.type === 'WhileStatement' || stmt.type === 'WithStatement') {
+            collectLocalDeclarations((stmt as any).body ?? [], out);
+        } else if (stmt.type === 'SelectCaseStatement') {
+            const sc = stmt as any;
+            for (const c of sc.cases ?? []) collectLocalDeclarations(c.body ?? [], out);
+            if (sc.elseBody) collectLocalDeclarations(sc.elseBody, out);
+        }
+    }
+}
+
+function addVariableDeclaration(decl: VariableDeclaration, out: Map<string, SymbolEntry>): void {
+    if (!decl.loc) return;
+    for (const d of decl.declarations) {
+        if (d.name.loc) {
+            const ln = d.name.loc.start.line - 1;
+            const col = d.name.loc.start.column - 1;
+            const varType = d.objectType || 'Variant';
+            const keyword = decl.scope ?? 'Dim';
+            out.set(d.name.name.toLowerCase(), {
+                name: d.name.name,
+                displayText: `${keyword} ${d.name.name} As ${varType}`,
+                range: { start: { line: ln, character: col }, end: { line: ln, character: col + d.name.name.length } },
+            });
+        } else {
+            // fallback: compute from statement loc + keyword offset
+            const declLine = decl.loc!.start.line - 1;
+            const declCol  = decl.loc!.start.column - 1;
+            const keyword = decl.scope ?? 'Dim';
+            const nameStart = declCol + keyword.length + 1;
+            const varType = d.objectType || 'Variant';
+            out.set(d.name.name.toLowerCase(), {
+                name: d.name.name,
+                displayText: `${keyword} ${d.name.name} As ${varType}`,
+                range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + d.name.name.length } },
+            });
+        }
+    }
+}
+
+function addConstDeclaration(decl: ConstDeclaration, out: Map<string, SymbolEntry>): void {
+    if (!decl.loc) return;
+    const constName = decl.name.name;
+    if (decl.name.loc) {
+        const ln = decl.name.loc.start.line - 1;
+        const col = decl.name.loc.start.column - 1;
+        out.set(constName.toLowerCase(), {
+            name: constName,
+            displayText: `Const ${constName}`,
+            range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
+        });
+    } else {
+        const declLine = decl.loc.start.line - 1;
+        const declCol  = decl.loc.start.column - 1;
+        const nameStart = declCol + 6; // 'Const '
+        out.set(constName.toLowerCase(), {
+            name: constName,
+            displayText: `Const ${constName}`,
+            range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
+        });
+    }
+}
+
+function makeProcEntry(proc: ProcedureDeclaration): SymbolEntry {
+    const procLine = proc.loc!.start.line - 1;
+
+    let nameRange: { start: { line: number; character: number }; end: { line: number; character: number } };
+    if (proc.name.loc) {
+        const ln = proc.name.loc.start.line - 1;
+        const col = proc.name.loc.start.column - 1;
+        nameRange = { start: { line: ln, character: col }, end: { line: ln, character: col + proc.name.name.length } };
+    } else {
+        const procCol = proc.loc!.start.column - 1;
+        let keywordLen = 3;
+        if (proc.isFunction) { keywordLen = 8; }
+        if (proc.isProperty) {
+            keywordLen = 8 + 1 + (proc.propertyType || 'get').length;
+        }
+        const nameStart = procCol + keywordLen + 1;
+        nameRange = { start: { line: procLine, character: nameStart }, end: { line: procLine, character: nameStart + proc.name.name.length } };
+    }
+
+    const params = proc.parameters
+        .map(p => {
+            const pname = p.name as unknown as string;
+            const ptype = p.paramType || 'Variant';
+            const byref = p.isByVal ? 'ByVal ' : '';
+            return `${byref}${pname} As ${ptype}`;
+        })
+        .join(', ');
+    let keyword = 'Sub';
+    if (proc.isFunction) keyword = 'Function';
+    if (proc.isProperty) keyword = `Property ${proc.propertyType ?? 'Get'}`;
+    let sig = `${keyword} ${proc.name.name}(${params})`;
+    if (proc.isFunction || proc.isProperty) sig += ` As ${proc.returnType || 'Variant'}`;
+
+    return { name: proc.name.name, displayText: sig, range: nameRange };
+}
+
+// ─── legacy flat builder (kept for any remaining callers) ────────────────────
+
+export function buildSymbolTable(statements: Statement[]): Map<string, SymbolEntry> {
+    const { moduleSymbols, procedures } = buildScopedSymbolTable(statements);
+    // Merge all scopes into a flat map (last write wins — same behaviour as before)
+    const flat = new Map<string, SymbolEntry>(moduleSymbols);
+    for (const proc of procedures) {
+        for (const [k, v] of proc.localSymbols) flat.set(k, v);
+    }
+    return flat;
+}
+
+// ─── scope lookup helper ─────────────────────────────────────────────────────
+
+/**
+ * Find the procedure scope that contains (line, character) (0-based).
+ * Returns null if the cursor is at module level.
+ */
+export function findEnclosingScope(procedures: ProcedureScope[], line: number): ProcedureScope | null {
+    for (const scope of procedures) {
+        if (line >= scope.range.start.line && line <= scope.range.end.line) {
+            return scope;
+        }
+    }
+    return null;
+}
+
+/**
+ * Look up a symbol name respecting scope.
+ * Returns the entry from the innermost scope that declares it, or null.
+ */
+export function lookupSymbol(
+    name: string,
+    cursorLine: number,
+    table: ScopedSymbolTable,
+): SymbolEntry | null {
+    const lower = name.toLowerCase();
+    const enclosing = findEnclosingScope(table.procedures, cursorLine);
+    if (enclosing) {
+        const local = enclosing.localSymbols.get(lower);
+        if (local) return local;
+    }
+    return table.moduleSymbols.get(lower) ?? null;
 }

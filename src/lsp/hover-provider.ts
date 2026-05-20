@@ -1,5 +1,5 @@
 import { Statement } from '../engine/parser';
-import { buildSymbolTable, getWordAtPosition } from './symbol-table';
+import { buildScopedSymbolTable, getWordAtPosition, lookupSymbol } from './symbol-table';
 
 export interface Hover {
     contents: string;
@@ -14,13 +14,10 @@ export class HoverProvider {
         const word = getWordAtPosition(sourceText, line, character);
         if (!word) return null;
 
-        const symbols = buildSymbolTable(statements);
-        const entry = symbols.get(word.toLowerCase());
+        const table = buildScopedSymbolTable(statements);
+        const entry = lookupSymbol(word, line, table);
         if (!entry) return null;
 
-        return {
-            contents: entry.displayText,
-            range: entry.range,
-        };
+        return { contents: entry.displayText, range: entry.range };
     }
 }

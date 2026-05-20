@@ -339,13 +339,13 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // vba-runner.findReferences: References ビューを開く
+    // vba-runner.findReferences: CodeLens から呼ばれる「参照を検索」コマンド
+    // uri, line, character は CodeLens が宣言位置として渡す
     context.subscriptions.push(
-        vscode.commands.registerCommand('vba-runner.findReferences', (uri: string, procName: string) => {
-            const doc = documentMap.get(uri);
-            if (!doc) return;
-            const refs = lspServer.getReferences(uri, 0, 0, true);
-            // カーソルを宣言行に移動して References コマンドを実行
+        vscode.commands.registerCommand('vba-runner.findReferences', async (uri: string, line: number, character: number) => {
+            const docUri = vscode.Uri.parse(uri);
+            const pos = new vscode.Position(line, character);
+            await vscode.window.showTextDocument(docUri, { selection: new vscode.Range(pos, pos) });
             vscode.commands.executeCommand('editor.action.referenceSearch.trigger');
         })
     );

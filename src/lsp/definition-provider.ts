@@ -1,5 +1,5 @@
 import { Statement } from '../engine/parser';
-import { buildSymbolTable, getWordAtPosition } from './symbol-table';
+import { buildScopedSymbolTable, getWordAtPosition, lookupSymbol } from './symbol-table';
 
 export interface LocationInfo {
     uri: string;
@@ -20,8 +20,8 @@ export class DefinitionProvider {
         const word = getWordAtPosition(sourceText, line, character);
         if (!word) return null;
 
-        const symbols = buildSymbolTable(statements);
-        const entry = symbols.get(word.toLowerCase());
+        const table = buildScopedSymbolTable(statements);
+        const entry = lookupSymbol(word, line, table);
         if (!entry) return null;
 
         return { uri: this.uri, range: entry.range };

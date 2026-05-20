@@ -1006,6 +1006,18 @@ export class Parser {
         };
     }
 
+    // Create an Identifier node with location from the given token.
+    private makeIdentifier(token: Token): Identifier {
+        return {
+            type: 'Identifier',
+            name: token.value,
+            loc: {
+                start: { line: token.line, column: token.column },
+                end: { line: token.line, column: token.column + token.value.length },
+            },
+        };
+    }
+
     public parse(): Program {
         if (this.parseAsClass) {
             const classDecl = this.parseClassBody(this.parseAsClass, false);
@@ -1330,7 +1342,7 @@ export class Parser {
         if (idToken.type !== TokenType.Identifier && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
             throw new Error(`Parse error at line ${idToken.line}: Expected procedure name (Found ${idToken.value})`);
         }
-        const name: Identifier = { type: 'Identifier', name: idToken.value };
+        const name: Identifier = this.makeIdentifier(idToken);
         const parameters: Parameter[] = [];
 
         if (this.match(TokenType.OperatorLParen)) {
@@ -1398,7 +1410,7 @@ export class Parser {
                 (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
                 throw new Error(`Parse error at line ${idToken.line}: Expected variable name (Found ${idToken.value})`);
             }
-            const name: Identifier = { type: 'Identifier', name: idToken.value };
+            const name: Identifier = this.makeIdentifier(idToken);
 
             let isArray = false;
             let arrayBounds: ArrayBound[] | undefined;
@@ -1455,7 +1467,7 @@ export class Parser {
         this.advance(); // 'Const'
         const idToken = this.advance();
         if (idToken.type !== TokenType.Identifier) throw new Error(`Parse error: Expected identifier after Const at line ${idToken.line}`);
-        const name = { type: 'Identifier', name: idToken.value } as Identifier;
+        const name = this.makeIdentifier(idToken);
 
         // Optional 'As Type'
         if (this.match(TokenType.KeywordAs)) {
@@ -1537,7 +1549,7 @@ export class Parser {
     private parseEraseStatement(): EraseStatement {
         this.advance(); // 'Erase'
         const idToken = this.advance();
-        const name = { type: 'Identifier', name: idToken.value } as Identifier;
+        const name = this.makeIdentifier(idToken);
         return { type: 'EraseStatement', name };
     }
 
@@ -1552,7 +1564,7 @@ export class Parser {
         }
 
         const idToken = this.advance();
-        const name = { type: 'Identifier', name: idToken.value } as Identifier;
+        const name = this.makeIdentifier(idToken);
         const bounds: ArrayBound[] = [];
 
         if (this.match(TokenType.OperatorLParen)) {
@@ -1638,7 +1650,7 @@ export class Parser {
         if (nameToken.type !== TokenType.Identifier) {
             throw new Error(`Parse error: Expected identifier after 'Enum' at line ${nameToken.line}`);
         }
-        const name: Identifier = { type: 'Identifier', name: nameToken.value };
+        const name: Identifier = this.makeIdentifier(nameToken);
         const members: EnumMember[] = [];
 
         this.skipNewlines();
@@ -1648,7 +1660,7 @@ export class Parser {
             if (memberNameToken.type !== TokenType.Identifier) {
                 throw new Error(`Parse error: Expected member name in Enum at line ${memberNameToken.line}`);
             }
-            const memberName: Identifier = { type: 'Identifier', name: memberNameToken.value };
+            const memberName: Identifier = this.makeIdentifier(memberNameToken);
             let value: Expression | undefined;
 
             if (this.match(TokenType.OperatorEquals)) {
@@ -1762,7 +1774,7 @@ export class Parser {
         if (idToken.type !== TokenType.Identifier) {
             throw new Error(`Parse error: Expected identifier after 'For' at line ${idToken.line} `);
         }
-        const identifier: Identifier = { type: 'Identifier', name: idToken.value };
+        const identifier: Identifier = this.makeIdentifier(idToken);
 
         if (!this.match(TokenType.OperatorEquals)) {
             throw new Error(`Parse error: Expected '=' in For statement at line ${this.peek().line} `);
@@ -1797,7 +1809,7 @@ export class Parser {
         let nextIdentifier: Identifier | undefined;
         if (this.peek().type === TokenType.Identifier) {
             const nextIdToken = this.advance();
-            nextIdentifier = { type: 'Identifier', name: nextIdToken.value } as Identifier;
+            nextIdentifier = this.makeIdentifier(nextIdToken);
         }
 
         return {
@@ -1820,7 +1832,7 @@ export class Parser {
         if (varToken.type !== TokenType.Identifier) {
             throw new Error(`Parse error: Expected identifier after 'For Each' at line ${varToken.line}`);
         }
-        const variable: Identifier = { type: 'Identifier', name: varToken.value };
+        const variable: Identifier = this.makeIdentifier(varToken);
 
         if (!this.match(TokenType.KeywordIn)) {
             throw new Error(`Parse error: Expected 'In' in For Each statement at line ${this.peek().line}`);
@@ -1844,7 +1856,7 @@ export class Parser {
         let nextIdentifier: Identifier | undefined;
         if (this.peek().type === TokenType.Identifier) {
             const nextIdToken = this.advance();
-            nextIdentifier = { type: 'Identifier', name: nextIdToken.value } as Identifier;
+            nextIdentifier = this.makeIdentifier(nextIdToken);
         }
 
         return {
