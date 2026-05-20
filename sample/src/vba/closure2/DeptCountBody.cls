@@ -9,6 +9,10 @@ Implements IKeyBreakBody
 Private mCount As Long
 Private mResult As String
 
+Private Function IKeyBreakBody_GetKey(rec As Object) As Variant
+    IKeyBreakBody_GetKey = rec.Department
+End Function
+
 Private Sub IKeyBreakBody_OnRecord(rec As Object)
     mCount = mCount + 1
 End Sub

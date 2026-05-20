@@ -5,6 +5,10 @@ END
 Attribute VB_Name = "IKeyBreakBody"
 Option Explicit
 
+' グループキーを返す
+Public Function GetKey(rec As Object) As Variant
+End Function
+
 ' 各レコードを処理する
 Public Sub OnRecord(rec As Object)
 End Sub

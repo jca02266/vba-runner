@@ -9,6 +9,10 @@ Implements IKeyBreakBody
 Private mSubtotal As Long
 Private mResult As String
 
+Private Function IKeyBreakBody_GetKey(rec As Object) As Variant
+    IKeyBreakBody_GetKey = rec.Department
+End Function
+
 ' 各レコード: 金額を累積
 Private Sub IKeyBreakBody_OnRecord(rec As Object)
     mSubtotal = mSubtotal + rec.Amount

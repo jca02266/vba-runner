@@ -33,7 +33,7 @@ Function RunSubtotalTest() As String
     records.Add r
 
     Dim body As New DeptSubtotalBody
-    RunKeyBreak records, "Department", body
+    RunKeyBreak records, body
     RunSubtotalTest = body.GetResult()
 End Function
 
@@ -49,6 +49,6 @@ Function RunCountTest() As String
     Set r = New SalesRecord : r.Department = "総務" : r.Amount = 80  : records.Add r
 
     Dim body As New DeptCountBody
-    RunKeyBreak records, "Department", body
+    RunKeyBreak records, body
     RunCountTest = body.GetResult()
 End Function

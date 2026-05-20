@@ -3,9 +3,8 @@ Option Explicit
 
 ' ループ構造だけを担う汎用プロシージャ
 ' records : Object の Collection（キーでソート済み）
-' keyProp : キーとして使うプロパティ名（CallByName で取得）
-' body    : IKeyBreakBody の実装クラス
-Public Sub RunKeyBreak(records As Collection, keyProp As String, body As IKeyBreakBody)
+' body    : GetKey(rec) / OnRecord(rec) / OnBreak(key) メソッドを持つ任意のオブジェクト
+Public Sub RunKeyBreak(records As Collection, body As Object)
     Dim currentKey As Variant
     Dim isFirst As Boolean
     isFirst = True
@@ -13,15 +12,15 @@ Public Sub RunKeyBreak(records As Collection, keyProp As String, body As IKeyBre
     Dim rec As Object
     For Each rec In records
         Dim key As Variant
-        key = CallByName(rec, keyProp, VbGet)
+        key = CallByName(body, "GetKey", VbMethod, rec)
 
         If isFirst Or key <> currentKey Then
-            If Not isFirst Then body.OnBreak currentKey
+            If Not isFirst Then CallByName body, "OnBreak", VbMethod, currentKey
             currentKey = key
             isFirst = False
         End If
-        body.OnRecord rec
+        CallByName body, "OnRecord", VbMethod, rec
     Next rec
 
-    If Not isFirst Then body.OnBreak currentKey
+    If Not isFirst Then CallByName body, "OnBreak", VbMethod, currentKey
 End Sub
