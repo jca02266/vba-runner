@@ -684,8 +684,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 実装: `src/engine/option-explicit-checker.ts`; AST を2パスで解析し `program.diagnostics` に追記、違反SubはLSP破線＋呼び出し時にVBAエラー1で停止
   - テスト: `option-explicit.test.ts`
 
-- [ ] **`Identifier` AST ノードへの `loc` 付与**: `parser.ts` の Identifier 生成箇所に位置情報（行番号・列番号）を追加する
-  - 現状: `Identifier` ノードに `loc` がないため、LSP のシンボル参照・リネーム・ホバー機能の実装でトークン再スキャンが必要になる
+- ✅ **`Identifier` AST ノードへの `loc` 付与 + スコープ対応シンボルテーブル**: 宣言位置の Identifier に `loc` を付与し、LSP のシンボル参照をスコープ対応に刷新
+  - `parser.ts`: `makeIdentifier(token)` ヘルパー追加；Dim・Sub 名・For 変数・Const など全宣言位置に正確な `loc`
+  - `symbol-table.ts`: フラット Map → `ScopedSymbolTable`（手続きスコープ別 `localSymbols`）+ `lookupSymbol()`（内側優先解決）
+  - 効果: 同名ローカル変数が別 Sub にある場合でも「定義へ移動」「参照検索」「ホバー」「リネーム」が正しいスコープを対象にする
+  - `extension.ts` / `code-lens-provider.ts`: `findReferences` コマンドの引数バグ修正（`procName` → `line, character`）
 
 ### VBA 仕様制約の検証
 

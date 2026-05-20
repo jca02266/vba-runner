@@ -25,6 +25,9 @@ dist-ssr
 # Test outputs
 *.cjs
 
+# TypeScript incremental build info
+*.tsbuildinfo
+
 /spec/
 /sandbox/
 
