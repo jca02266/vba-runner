@@ -55,6 +55,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 documentMap.set(doc.uri.toString(), doc);
                 lspServer.didOpen(doc.uri.toString(), doc.getText());
                 updateDiagnostics(doc.uri);
+                createTestItems(doc);
             }
         })
     );
@@ -272,24 +273,25 @@ export async function activate(context: vscode.ExtensionContext) {
     };
 
     testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, _cancellation) => {
-        for (const item of request.include || []) {
+        const run = testController.createTestRun(request);
+        const items = request.include?.length ? request.include : [...testController.items].map(([, item]) => item);
+        for (const item of items) {
+            run.started(item);
             const uri = item.uri?.toString();
             if (uri) {
                 const results = lspServer.runTests(uri);
-
                 for (const result of results) {
                     const test = testController.items.get(result.id);
-                    if (test) {
-                        if (result.state === 'passed') {
-                            test.busy = false;
-                        } else if (result.state === 'failed') {
-                            test.error = result.error || 'Test failed';
-                            test.busy = false;
-                        }
+                    if (!test) continue;
+                    if (result.state === 'passed') {
+                        run.passed(test);
+                    } else {
+                        run.failed(test, new vscode.TestMessage(result.error ?? 'Test failed'));
                     }
                 }
             }
         }
+        run.end();
     }, true);
 
     // Register DAP debug adapter factory
@@ -375,15 +377,31 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
-    // vba-runner.generateTest / vba-runner.goToTest: stub（将来実装）
+    // vba-runner.generateTest: stub（将来実装）
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.generateTest', () => {
             vscode.window.showInformationMessage('Test generation: coming soon');
         })
     );
+
+    // vba-runner.goToTest: シンボル検索で Test_<procName> 関数へジャンプ
     context.subscriptions.push(
-        vscode.commands.registerCommand('vba-runner.goToTest', () => {
-            vscode.commands.executeCommand('workbench.action.findInFiles');
+        vscode.commands.registerCommand('vba-runner.goToTest', async (uri: string, procName: string) => {
+            const testName = `Test_${procName}`;
+            const symbols = lspServer.getDocumentSymbols(uri);
+            const testSymbol = symbols.find((s: any) =>
+                s.name.toLowerCase() === testName.toLowerCase()
+            );
+            if (testSymbol) {
+                const docUri = vscode.Uri.parse(uri);
+                const pos = new vscode.Position(
+                    testSymbol.location.range.start.line,
+                    testSymbol.location.range.start.character
+                );
+                await vscode.window.showTextDocument(docUri, { selection: new vscode.Range(pos, pos) });
+            } else {
+                vscode.window.showInformationMessage(`テスト関数 '${testName}' が見つかりません`);
+            }
         })
     );
 
