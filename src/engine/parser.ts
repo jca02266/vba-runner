@@ -2436,11 +2436,14 @@ export class Parser {
             return { type: 'MissingArgument' } as any;
         }
 
-        // Check for named argument: Identifier := Expression
-        if (this.peek().type === TokenType.Identifier &&
-            this.pos + 1 < this.tokens.length &&
+        // Check for named argument: name := Expression
+        // MS-VBAL §5.6.13.1: named-argument ::= unrestricted-name ':=' expression
+        // unrestricted-name includes keywords. User-defined procedures cannot declare
+        // keyword-named parameters, but COM/built-in methods (e.g. Validation.Add) can have
+        // parameters named Type, Date, Name, etc. We accept any token before ':=' as the name.
+        if (this.pos + 1 < this.tokens.length &&
             this.tokens[this.pos + 1].type === TokenType.OperatorColonEquals) {
-            const nameToken = this.advance(); // consume identifier (the name)
+            const nameToken = this.advance(); // consume the name token (identifier or keyword)
             this.advance(); // consume ':='
             const value = this.parseExpression();
             return { type: 'NamedArgument', name: nameToken.value, value } as NamedArgument;
