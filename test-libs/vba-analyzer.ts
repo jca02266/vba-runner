@@ -1612,6 +1612,25 @@ function formatWorkspaceSummary(w: WorkspaceReport): string {
         }
     }
 
+    // パースエラーのあったファイルを最後にまとめて表示
+    const parseErrorFiles = w.files.filter(f =>
+        f.warnings.some(w => w.includes('Parse error'))
+    );
+    if (parseErrorFiles.length > 0) {
+        out.push('');
+        out.push('========================================');
+        out.push('🚨 パースエラーのあったファイル');
+        out.push('========================================');
+        out.push('  以下のファイルは構文解析に失敗しました。解析結果が不完全な可能性があります。');
+        out.push('');
+        for (const f of parseErrorFiles) {
+            out.push(`  • ${f.filePath}`);
+            for (const w of f.warnings.filter(w => w.includes('Parse error'))) {
+                out.push(`      ${w}`);
+            }
+        }
+    }
+
     return out.join('\n');
 }
 
@@ -1767,6 +1786,11 @@ function main() {
         for (const r of workspace.files) console.log(formatFileReport(r));
     }
     console.log(formatWorkspaceSummary(workspace));
+
+    const hasParseErrors = workspace.files.some(f =>
+        f.warnings.some(w => w.includes('Parse error'))
+    );
+    if (hasParseErrors) process.exit(1);
 }
 
 if (process.argv[1]?.includes('vba-analyzer')) main();
