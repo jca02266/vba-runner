@@ -118,7 +118,12 @@ function measureNestDepth(node: any, depth: number, current: { max: number }): v
 
     walk(node.body, depth);
     walk(node.consequent, depth);
-    walk(node.alternate, depth);
+    // alternate が IfStatement (ElseIf の再帰表現) の場合は同じ depth で再帰する
+    if (node.alternate && !Array.isArray(node.alternate) && node.alternate.type === 'IfStatement') {
+        measureNestDepth(node.alternate, depth, current);
+    } else {
+        walk(node.alternate, depth);
+    }
     if (node.elseIfClauses) for (const c of node.elseIfClauses) walk(c.consequent, depth);
     if (node.cases) for (const c of node.cases) walk(c.body, depth);
 }
