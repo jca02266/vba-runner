@@ -130,7 +130,7 @@ describe('Math Operations', () => {
 
 ---
 
-## パターン2: パラメータ化テスト [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
+## パターン2: パラメーター化テスト [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 

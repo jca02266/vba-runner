@@ -11,7 +11,7 @@ Excel 不要で VBA コードを実行・テスト・静的解析できます。
 | パス | 理由 |
 |---|---|
 | `spec/` | MS-VBAL仕様書（4MBテキスト）。実行エンジン開発者向け。リファクタリングには不要 |
-| `src/lsp/` | VSCode LSP拡張機能の実装。エディタ機能。リファクタリング作業とは無関係 |
+| `src/lsp/` | VS Code LSP拡張機能の実装。エディター機能。リファクタリング作業とは無関係 |
 | `src/App.tsx` 他 React ファイル | Web UI。リファクタリングには不要 |
 | `dist/` | ビルド成果物 |
 | `node_modules/` | パッケージ |
@@ -73,13 +73,13 @@ node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ> --summ
 | Excel I/O アクセス箇所（**行番号付き**） | `excelAccessSamples[].line` |
 | Excel モック必要候補（オブジェクト別） | `excelObjectsUsed[]` |
 | 繰り返し数値リテラル（マジックナンバー） | `repeatedNumericLiterals[]` |
-| 接頭辞クラスタ（UDT/Enum 抽出候補） | `prefixClusters[]` 例: `COL_×6` → Enum化提案 |
+| 接頭辞クラスター（UDT/Enum 抽出候補） | `prefixClusters[]` 例: `COL_×6` → Enum化提案 |
 | エントリーポイント候補（Public・参照0） | `entryPointCandidates[]` + ヒューリスティック分類 |
 | Dead code 候補（Private・参照0） | `deadCodeCandidates[]` |
 | コールグラフ | `callGraph[].{from, fromFile, to, toFile}` |
 | ワークスペース横断の参照カウント | `procedure.referenceCount` |
 
-**注意**: Excel ボタン・イベントハンドラ・`Application.Run` による呼び出しは静的解析の範囲外。
+**注意**: Excel ボタン・イベントハンドラー・`Application.Run` による呼び出しは静的解析の範囲外。
 参照0のPublicプロシージャを「dead code」として削除しないこと。
 
 ---
@@ -133,7 +133,7 @@ const vbaRunner = new VBARunner('sample/src/vba/TaskScheduler_Core.bas', {
 
 ---
 
-### Step 1: 対象コードを把握する（アナライザのみ使う）
+### Step 1: 対象コードを把握する（アナライザーのみ使う）
 
 ```bash
 # アウトラインで全体把握（全モジュール・全プロシージャを50行程度に圧縮）
@@ -143,7 +143,7 @@ node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
 node test-libs/vba-analyzer.cjs <対象ファイル>
 ```
 
-アナライザ出力には **行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
+アナライザー出力には **行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
 
 ```bash
 # ✅ 正しい読み方: アナライザが示した行番号の前後だけ読む
@@ -195,7 +195,7 @@ assert.strictEqual(vbaRunner.run('TargetFunction', [input1, input2]), expected, 
 
 ### Step 3: 1件だけ選んで抽出する
 
-アナライザ出力はリファクタリング候補の一覧であり、**全部やる指示ではない**。
+アナライザー出力はリファクタリング候補の一覧であり、**全部やる指示ではない**。
 
 ユーザーが「何を改善したいか」を確認してから、候補の中で最も優先度が高い1件を選ぶ。
 ユーザーが指定しない場合は、以下の観点で1件選びユーザーに提案する:
@@ -241,7 +241,7 @@ assert.strictEqual(vbaRunner.run('GetNumericCellValue', [grid, 1, 4]), 0,   "nul
 
 ---
 
-### Step 5: アナライザで今回の変更を確認する
+### Step 5: アナライザーで今回の変更を確認する
 
 ```bash
 node test-libs/vba-analyzer.cjs <対象ファイル>
@@ -260,7 +260,7 @@ node test-libs/vba-analyzer.cjs <対象ファイル>
 | 変更していない関数 | `ScheduleUnlockedTask`・`BuildCapacityDict` は今回対象外 |
 
 残っている他のフラグは「次回以降の候補」として列挙し、ユーザーが続けるかどうか判断できるよう渡す。
-アナライザはあくまで候補の提示ツールであり、フラグをゼロにすることが目的ではない。
+アナライザーはあくまで候補の提示ツールであり、フラグをゼロにすることが目的ではない。
 「全フラグを消す」を目指すと過剰なリファクタリングになる。止め時の判断はユーザーに委ねる。
 
 ---

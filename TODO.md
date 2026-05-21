@@ -460,13 +460,13 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ 実装完了: (1) obj = value -> obj.Value = value (Test 14パス)
   - ✅ 実装完了: (2) obj(args) -> obj.Item(args) (Test 12-13パス)
   - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
-  - ✅ 修正: Test 7 ByRef パラメータ - implicit Value getter の実装で副次的に修正
+  - ✅ 修正: Test 7 ByRef パラメーター - implicit Value getter の実装で副次的に修正
   - ✅ **非 `__vbaClass__` モックオブジェクトのデフォルトプロパティ**: `x = ws.Range("A1")` で MockRange の `.Value` が自動抽出される
     - opt-in 方式: モックオブジェクトに `__vbaDefault__ = true` と `valueOf()` を実装することで有効化
     - `VbaDate` / `VbaBoolean` / `VbaErrorValue` 等の内部型は `__vbaDefault__` を持たないため誤抽出しない
     - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `valueOf()` 実装)
     - テスト: `default-property-noncls.test.ts`
-- ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラ解除 (制限事項: RaiseEventコア存在; ハンドラ自動登録・検出機構未実装、イベントパラメータ解析未対応) | `withevents-lifecycle.test.ts`
+- ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラー解除 (制限事項: RaiseEventコア存在; ハンドラー自動登録・検出機構未実装、イベントパラメーター解析未対応) | `withevents-lifecycle.test.ts`
 - ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - ✅ **`Implements` インターフェース呼び出し**: `obj.Speak` → `IAnimal_Speak` のインターフェースディスパッチ | テスト: `implements-dispatch.test.ts`
@@ -491,7 +491,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ **`On Error Resume Next` 下の暗黙の `Err.Clear`**: 正常文実行時のクリア（または非クリア）タイミング | `err-clear-timing.test.ts`
 - ✅ **`Resume` の対象決定**: エラー発生点・Resume Next・Resume <label> の正確な制御フロー | `resume-statement-target.test.ts`
-- ✅ **エラーハンドラ内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
+- ✅ **エラーハンドラー内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
 - ⚠️ **`Erl` 関数**: エラー発生行番号の取得（制限事項: MS-VBAL spec未定義、line number tracking未実装） | `erl-function.test.ts`
 
 ### プロシージャ呼び出しの細部
@@ -511,7 +511,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - テスト: `module-qualified-access.test.ts`
 - ✅ **ByRef での文字列・配列・オブジェクトの参照保持**: 文字列・数値・Boolean・配列・オブジェクト全て正常動作 | `byref-reference-preservation.test.ts`
 - ✅ **ParamArray の境界ケース**: 0 個渡し、配列を 1 つだけ渡したときの展開規則、ByRef semantics (spec §5.3.1.5) | `paramarray-edge-cases.test.ts`
-- ✅ **Optional パラメータの IsMissing 判定**: デフォルト値ありと未指定の区別
+- ✅ **Optional パラメーターの IsMissing 判定**: デフォルト値ありと未指定の区別
 - ✅ **Property Get/Let/Set の解決順序**: 同名で混在した場合の優先度 | `property-resolution-order.test.ts`
 - ✅ **暗黙の Let（`Call` なしの呼び出し）**: 戻り値が破棄される / されない場面 | `implicit-let.test.ts`
 - ✅ **引数の数の検証**: プロシージャ呼び出し時に引数の個数が定義と異なる場合にエラーを発生させる (Error 450 / 449) | テスト: `ArgCountTest.bas`
@@ -577,7 +577,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### Parser の拡張機能
 
-- ✅ **Parser に `parseAsClass` パラメータを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定 | `parse-as-class.test.ts`
+- ✅ **Parser に `parseAsClass` パラメーターを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定 | `parse-as-class.test.ts`
   - `new Parser(tokens, { parseAsClass: 'ClassName' })` でクラスボディとしてパース
   - `parseClassDeclaration` のボディ解析を `parseClassBody(name, untilEndClass)` に抽出し再利用
   - `test-libs/test-runner.ts` の文字列ラップハックを削除し `parseAsClass` オプションに統一
@@ -585,7 +585,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **Fix: `Private/Public Type` 宣言が無視される** | `private-type-declaration.test.ts`
   - 原因: パーサーがスコープ修飾子（`Private`/`Public`）の後に `Type` キーワードが来るケースを未処理。`parseDimStatement` にフォールスルーし、`Type` がキーワードトークンのため変数名チェックに失敗してエラーリカバリされていた
   - 症状: `Private Type json_Options ... End Type` が AST に含まれず、`json_Options` 型の変数が常に `0` になる
-  - 修正: `Public/Private/Friend` ブロックに `KeywordType` / `KeywordEnum` のケースを追加。`parseTypeDeclaration` の配列メンバ（`name(0 To N) As Type`）も括弧をスキップして対応
+  - 修正: `Public/Private/Friend` ブロックに `KeywordType` / `KeywordEnum` のケースを追加。`parseTypeDeclaration` の配列メンバー（`name(0 To N) As Type`）も括弧をスキップして対応
 
 - ✅ **Fix: `VBA.vbNull` など `VBA.` モジュール修飾定数アクセスが失敗する** | `vba-module-qualifier.test.ts`
   - 原因: `evaluateMemberExpression` が `VBA.SomeThing` を評価する際、`VBA` 変数が未定義のため `0` になりプロパティアクセスでエラー 424 になっていた
@@ -648,10 +648,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `evaluateDateLiteral` を `new Date(y, m-1, d, h, min, s)`（ローカル時刻）に変更し、`Now()`/`DateSerial()` と一貫した挙動にした。`formatDate` はローカル時刻の `get*` メソッドのまま
   - 影響: `ConvertToJson(Date)` の ISO 8601 出力が正しくなった
 
-- ✅ **Fix: `On Error GoTo` ハンドラ内の `If`/`For`/`While` ブロックで `Err.Raise` すると無限ループになる** | `error-handler-reentry.test.ts`
-  - 原因: ネストブロックの `executeStatements(isTopLevel=false)` が re-throw 前に `isInErrorHandler = false` にリセットしていたため、外側の `executeStatements` がフラグを見て「ハンドラ外」と誤判断し、同じ GoTo ラベルに再ジャンプしてループ
+- ✅ **Fix: `On Error GoTo` ハンドラー内の `If`/`For`/`While` ブロックで `Err.Raise` すると無限ループになる** | `error-handler-reentry.test.ts`
+  - 原因: ネストブロックの `executeStatements(isTopLevel=false)` が re-throw 前に `isInErrorHandler = false` にリセットしていたため、外側の `executeStatements` がフラグを見て「ハンドラー外」と誤判断し、同じ GoTo ラベルに再ジャンプしてループ
   - 修正: "bubble up" パスの `this.isInErrorHandler = false` を削除。ネストブロックからの re-throw では `isInErrorHandler` を保持し、外側が正しくバブルアップする
-  - 影響: `LibBook.bas` の `NewWorkbook` 関数（Cleanup ハンドラ内で `Err.Raise` するパターン）がハングしなくなった
+  - 影響: `LibBook.bas` の `NewWorkbook` 関数（Cleanup ハンドラー内で `Err.Raise` するパターン）がハングしなくなった
 
 - ✅ **Fix: `Append`・`Output`・`Binary`・`Random` がファイルモードキーワードとして予約語化され変数名/式に使えない** | `backslash-escape-min.test.ts`
   - 原因: Lexer が `append` / `output` / `binary` / `random` を無条件に `KeywordAppend` 等のトークンに変換していたため、`Dim append As String` の Dim 宣言後の代入（`append = "\\\\"` など）がパースエラーになっていた
@@ -704,7 +704,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     - `unknownModule.unknownProc()` → **実行時エラー 424**（オブジェクトが必要です）
   - 根本原因: VBA仕様では修飾/非修飾で名前解決方式が異なる
     - 非修飾: 静的検証（コンパイル時）
-    - 修飾: 動的解決（実行時のメンバアクセス）
+    - 修飾: 動的解決（実行時のメンバーアクセス）
   - 当エンジン問題: 両者を同じレベルで処理している（4199-4203行の try-catch が根本原因）
   - 注記: **Option Explicit がない場合の未定義変数の動作**に限定される問題。モダンなVBA開発では Option Explicit が標準であるため、この互換性追求の優先度は低い。Option Explicit ありの場合はコンパイル時に検出される。
   - 修正内容: Parser/Evaluator で修飾/非修飾を区別し、エラーのタイミングを正確に再現

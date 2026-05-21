@@ -567,7 +567,7 @@ Function CalculateDiscount(price As Currency) As Currency
 End Function
 ```
 
-### ステップ 3: パラメータを最小化する
+### ステップ 3: パラメーターを最小化する
 
 ロジック Function が依存する **すべてのデータを引数** にする：
 
@@ -750,7 +750,7 @@ End Sub
 
 ### フェーズ 2: 小さく始める [[→ R-08](REFACTORING_TESTING_CATALOG.md#r-08)]
 
-複数の Function を同時に リファクタリング しない。1 つずつ：
+複数の Function を同時にリファクタリングしない。1つずつ：
 
 ```vba
 ' Step 1: 1 つの Function を抽出
@@ -803,7 +803,7 @@ End Sub
 
 ### ロジック Function の設計
 
-- [ ] **入力** — すべてのパラメータが Function の引数か？
+- [ ] **入力** — すべてのパラメーターが Function の引数か？
 - [ ] **出力** — 戻り値の型が明確か？（Variant ではない）
 - [ ] **依存性** — Excel オブジェクト（Sheets, Range）に依存していないか？
 - [ ] **副作用** — Debug.Print や MsgBox を含んでいないか？（テスト時にエラーになる）
@@ -832,7 +832,7 @@ End Sub
 
 ### Q1: Excel 操作なしで VBA コードをテストできるのか？
 
-**A**: はい。ドメインロジックを Function に分離すれば、配列データで テスト できます。
+**A**: はい。ドメインロジックを Function に分離すれば、配列データでテストできます。
 
 ```vba
 ' シートを使わずにテスト

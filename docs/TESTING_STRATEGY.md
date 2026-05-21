@@ -236,7 +236,7 @@ describe('Pure Functions', () => {
 
 ---
 
-## パターン2: パラメータ化テスト（複数ケース） [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
+## パターン2: パラメーター化テスト（複数ケース） [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 
@@ -415,7 +415,7 @@ Sub ProcessSalesData()
 End Sub
 ```
 
-### 2. 入力パラメータは具体的に
+### 2. 入力パラメーターは具体的に
 
 ```vba
 ' ❌ 暗黙的（テストしづらい）
@@ -430,14 +430,14 @@ Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
 End Function
 ```
 
-### 3. 関連パラメータは Type にまとめる [[→ R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
+### 3. 関連パラメーターは Type にまとめる [[→ R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
 
 引数が増えてきた場合は、**ドメインとして意味のあるまとまり**を `Type` にまとめて渡すことを推奨します。
-個々の引数を並べるよりも呼び出し側・テスト側の可読性が上がり、将来的なパラメータ追加にも強くなります。
+個々の引数を並べるよりも呼び出し側・テスト側の可読性が上がり、将来的なパラメーター追加にも強くなります。
 
-> **注意**: 「同じ関数に渡すから」という理由だけでパラメータを1つの `Type` にまとめないでください。
+> **注意**: 「同じ関数に渡すから」という理由だけでパラメーターを1つの `Type` にまとめないでください。
 > ドメインとして意味のあるまとまり（例：在庫状態、注文情報、期間指定）であることが前提です。
-> 無関係なパラメータを1つの `Type` に詰め込むと、責務が曖昧になりテストや再利用がかえって困難になります。
+> 無関係なパラメーターを1つの `Type` に詰め込むと、責務が曖昧になりテストや再利用がかえって困難になります。
 
 ```vba
 ' ❌ 引数が増えると呼び出しが煩雑になる
@@ -447,7 +447,7 @@ Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
     ' ...
 End Function
 
-' ✅ ドメインとしてまとまりのあるパラメータを Type にまとめる
+' ✅ ドメインとしてまとまりのあるパラメーターを Type にまとめる
 Type InventoryParams
     CurrentStock  As Long
     SoldUnits     As Long

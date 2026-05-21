@@ -77,7 +77,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 - エッジケース（仕様書に明記されているもの）
 - エラー系（不正な入力）
 - **VBA ベテランが書きそうな代表コード**（重要）: 単に API 呼び出しを確認するだけでなく、実務でハマりやすい暗黙のランタイム挙動や、ライブラリの組み合わせ利用パターンを必ず含める
-  - 例: `Dim As New X` の Auto-Instantiation、Default Property 経由の暗黙呼び出し、`Variant` の型推移、`On Error` ハンドラ内での再帰エラー など
+  - 例: `Dim As New X` の Auto-Instantiation、Default Property 経由の暗黙呼び出し、`Variant` の型推移、`On Error` ハンドラー内での再帰エラー など
   - 「仕様書のリストにある関数を呼んでみた」だけでは VBA の "癖" を見落とすため、ユーザーの実際の書き方を想定する
 
 #### tests/spec/vba/ の VBA ソーステスト構成ルール
