@@ -32,6 +32,7 @@
 |------|--------|------|--------|--------|
 | ✅ | P0 | Call Statement | §5.4.2.1 | `call-named-params.test.ts` |
 | ✅ | P1 | Named Parameters | §5.6.3.1.2 | `call-named-params.test.ts` |
+| ✅ | P1 | Named Parameters — キーワードを引数名に使用（unrestricted-name, §5.6.13.1） | COM メソッド例: `.Add Type:=xlValidateList` | `call-named-params.test.ts` |
 | ✅ | P0 | While Statement (`While...Wend`) | §5.4.2.2 | `while-wend.test.ts` |
 | ✅ | P0 | For Statement (`For...Next`、Step対応) | §5.4.2.3 | `for-next.test.ts` |
 | ✅ | P0 | For Each Statement (`For Each...In`) | §5.4.2.4 | `for-each.test.ts` |

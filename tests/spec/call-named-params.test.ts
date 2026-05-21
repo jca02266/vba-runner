@@ -76,4 +76,43 @@ ev4.callProcedure('Main', []);
 assert.strictEqual(ev4.env.get('result'), 999, 'Call Store(val:=999) が動作する');
 console.log('[PASS] Call + Named Parameters');
 
+// --- 5. 名前付き引数名がキーワードの場合（COM/組み込みメソッド用途） ---
+// MS-VBAL §5.6.13.1: named-argument ::= unrestricted-name ':=' expression
+// unrestricted-name はキーワードを含む。Type・Date・Name など VBA キーワードが
+// パラメーター名になる COM メソッド（Validation.Add 等）の呼び出しに必要。
+// ユーザー定義関数でキーワードをパラメーター名にすることはできないが、
+// パーサーは呼び出し側で unrestricted-name を許容しなければならない。
+{
+    const src = `
+Sub Test()
+    .Add Type:=1, AlertStyle:=2, Formula1:="A,B"
+End Sub
+`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens).parse();
+    assert.strictEqual(ast.diagnostics?.length ?? 0, 0, 'Type:= を含む名前付き引数がパースエラーにならない');
+
+    const proc = ast.body[0] as any;
+    const callStmt = proc.body[0] as any;
+    const args: any[] = callStmt.expression?.args ?? [];
+    assert.strictEqual(args.length, 3, '引数が3つ認識される');
+    assert.strictEqual(args[0].type, 'NamedArgument', '第1引数が NamedArgument');
+    assert.strictEqual(args[0].name, 'Type', '第1引数名が Type');
+    assert.strictEqual(args[1].name, 'AlertStyle', '第2引数名が AlertStyle');
+    assert.strictEqual(args[2].name, 'Formula1', '第3引数名が Formula1');
+    console.log('[PASS] キーワードを名前とする名前付き引数（Type:=, Date:=, Name:= 等）');
+}
+
+// --- 6. 他のキーワード（Date, Name, End）も名前付き引数として認識される ---
+{
+    const src = `Sub Test() : Call Foo(Date:=1, Name:="x") : End Sub`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens).parse();
+    assert.strictEqual(ast.diagnostics?.length ?? 0, 0, 'Date: / Name:= もパースエラーにならない');
+    const args: any[] = (ast.body[0] as any).body[0].expression?.args ?? [];
+    assert.strictEqual(args[0].name, 'Date',  'Date が引数名として認識される');
+    assert.strictEqual(args[1].name, 'Name',  'Name が引数名として認識される');
+    console.log('[PASS] Date:= / Name:= も名前付き引数として認識される');
+}
+
 console.log('\n✅ Call & Named Parameters: 全テスト通過');
