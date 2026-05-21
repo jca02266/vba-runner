@@ -1,0 +1,16 @@
+{
+  "[vba]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  },
+  "files.associations": {
+    "*.vba": "vba",
+    "*.bas": "vba",
+    "*.cls": "vba",
+    "*.frm": "vba"
+  },
+  "code-runner.executorMap": {
+    "typescript": "$workspaceRoot/node_modules/.bin/esbuild $fullFileName --bundle --outfile=/tmp/$fileNameWithoutExt.cjs --platform=node && node /tmp/$fileNameWithoutExt.cjs"
+  },
+  "code-runner.runInTerminal": true
+}

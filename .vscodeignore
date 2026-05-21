@@ -1,18 +1,52 @@
+# Source / config
 .git
 .gitignore
 .prettierrc
 .eslintrc.cjs
+.claude
+.mdq
+eslint.config.js
 vite.config.ts
 tsconfig.json
 tsconfig.app.json
-src/**/*.test.ts
-tests/**
-sample/**
-spec/**
+tsconfig.extension.json
+tsconfig.node.json
+index.html
+
+# Source code (bundled into dist/extension.cjs by esbuild)
+src
+
+# Tests / docs / sample
+tests
+sample
+spec
+docs
+test-libs
+
+# Scripts / logs
+*.sh
+*.log
+debug-test.bas
+test-sample.bas
+
+# Markdown (except README.md which vsce always includes)
 TODO*.md
-*.md
+CLAUDE.md
+FOR_AI.md
+LSP.md
+AGENTS.md
+
+# Dist: only extension.cjs is needed; exclude web UI build output
+dist/assets
+dist/index.html
+dist/*.js
+dist/*.svg
+dist/*.png
+dist/*.css
+
+# Misc
 node_modules
-dist
-*.cjs
+public
+out.log
 .vscode
 .DS_Store
