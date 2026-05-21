@@ -733,14 +733,20 @@ Dim x, y, z As Long   ' ⚠️ x, y は Variant（Long ではない）
 
 #### 作業順序（実施時）
 
-- [ ] `src/lsp/formatter.ts` の中核実装（`indentation` + `keywordCase` から着手）
-- [ ] `test-libs/vba-formatter.ts` CLI 実装（`--check` / `--write` / `--rules`）
+- [x] `src/lsp/formatter.ts` の中核実装（`indentation` + `keywordCase` から着手）
+- [x] `test-libs/vba-formatter.ts` CLI 実装（`--check` / `--write` / stdout）
+- [x] VS Code 拡張への統合（`DocumentFormattingEditProvider` 登録）
+- [x] フォーマッター・警告のテスト（`tests/lsp/lsp-formatter.test.ts`）
 - [ ] `lineWrap` + `argumentAlignment` ルール実装
 - [ ] `mergeDimAndAssign` ルール実装
 - [ ] `moveDimToFirstUse` ルール実装（Def-Use 解析または参照検索で初使用行を特定）
-- [ ] VS Code 拡張への統合（`DocumentFormattingEditProvider` 登録）
 - [ ] `Dim x, y, z As Long` 型指定警告を `getDiagnostics()` に追加
-- [ ] フォーマッター・警告のテスト（`tests/lsp/lsp-formatter.test.ts`）
+- [ ] GoTo ラベル（`Label:` 形式）はインデントしない（現在は本文と同じ深さになっている）
+- [ ] **型名の大文字化**（`keywordCase` ルールの拡張）
+  現在のレキサーは `Long`/`Integer`/`Single`/`Double`/`String`/`Boolean`/`Byte`/`Currency`/`Date`/`Object`/`Variant` を識別子（`Identifier` トークン）として扱うため、`dim x as long` の `long` が `Long` に正規化されない。
+  VBA標準のスタイルではこれらも Pascal 化が期待される。
+  **対応方針:** `formatter.ts` の `KEYWORD_CANONICAL` に型名エントリを追加し、識別子トークンの値（小文字化）が型名と一致する場合に正規化する。トークンは単語単位なので `stringVar` のような変数名と混同しない。
+  対象型名: `Integer`, `Long`, `Single`, `Double`, `String`, `Boolean`, `Byte`, `Currency`, `Date`, `Object`, `Variant`, `LongLong`, `LongPtr`
 
 ### パッケージング（Marketplace 公開）
 - [ ] VS Code Marketplace への公開（アイコン整備、`.vsix` ビルド検証）

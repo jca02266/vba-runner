@@ -6,6 +6,7 @@ import { VBADebugAdapterFactory } from './lsp/vscode-debug-adapter';
 import { Lexer } from './engine/lexer';
 import { Parser } from './engine/parser';
 import { Evaluator } from './engine/evaluator';
+import { format as vbaFormat } from './lsp/formatter';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -462,6 +463,27 @@ End Class`;
             }
         })
     );
+
+    // Register document formatting provider (Shift+Alt+F)
+    context.subscriptions.push(
+        vscode.languages.registerDocumentFormattingEditProvider('vba', {
+            provideDocumentFormattingEdits(document, formattingOptions) {
+                const source = document.getText();
+                const edits = vbaFormat(source, {
+                    indentSize: formattingOptions.tabSize,
+                    indentChar: formattingOptions.insertSpaces ? ' ' : '\t',
+                });
+                return edits.map(e => new vscode.TextEdit(
+                    new vscode.Range(
+                        e.range.start.line, e.range.start.character,
+                        e.range.end.line, e.range.end.character,
+                    ),
+                    e.newText,
+                ));
+            }
+        })
+    );
+    outputChannel.appendLine('✓ Document formatting provider registered');
 
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');
