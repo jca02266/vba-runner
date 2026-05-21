@@ -1,6 +1,11 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 import { LSPServer } from './lsp/server';
 import { VBADebugAdapterFactory } from './lsp/vscode-debug-adapter';
+import { Lexer } from './engine/lexer';
+import { Parser } from './engine/parser';
+import { Evaluator } from './engine/evaluator';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -318,19 +323,39 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // vba-runner.runProcedure: parameterless Sub/Function を即実行
     context.subscriptions.push(
-        vscode.commands.registerCommand('vba-runner.runProcedure', async (uri: string, procName: string) => {
+        vscode.commands.registerCommand('vba-runner.runProcedure', (uri: string, procName: string) => {
             try {
-                const { Lexer } = await import('./engine/lexer');
-                const { Parser } = await import('./engine/parser');
-                const { Evaluator } = await import('./engine/evaluator');
                 const doc = documentMap.get(uri);
-                if (!doc) return;
-                const tokens = new Lexer(doc.getText()).tokenize();
+                if (!doc) {
+                    outputChannel.appendLine(`[Error] Document not found in map: ${uri}`);
+                    outputChannel.show();
+                    return;
+                }
+
+                // 同ディレクトリの .bas/.cls を収集して結合
+                const dir = path.dirname(doc.uri.fsPath);
+                const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
+                const parts: string[] = [];
+                for (const entry of entries) {
+                    const filePath = path.join(dir, entry);
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    if (/\.cls$/i.test(entry)) {
+                        const className = path.basename(entry, path.extname(entry));
+                        parts.push(`Class ${className}\n${content}\nEnd Class`);
+                    } else {
+                        parts.push(content);
+                    }
+                }
+                const combined = parts.join('\n\n');
+
+                const tokens = new Lexer(combined).tokenize();
                 const ast = new Parser(tokens).parse();
                 const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
                 ev.evaluate(ast);
                 const result = ev.callProcedure(procName, []);
-                outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
+                if (result !== undefined) {
+                    outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
+                }
                 outputChannel.show();
             } catch (e: any) {
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);

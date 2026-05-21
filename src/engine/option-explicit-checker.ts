@@ -409,8 +409,12 @@ function checkCallExpr(expr: CallExpression, declared: Set<string>, diagnostics:
     const callee = expr.callee;
     if (callee.type === 'MemberExpression') {
         const m = callee as MemberExpression;
-        checkExpr(m.object, declared, diagnostics, onViolation);
-        // m.property is the method name — skip
+        // Bare Identifier object may be a module name (e.g. ArgCountTest.Method) —
+        // module names don't need Dim, so skip the check. Only check complex objects
+        // (chained access, array index, etc.) that must be declared variables.
+        if (m.object.type !== 'Identifier') {
+            checkExpr(m.object, declared, diagnostics, onViolation);
+        }
     }
     // Bare Identifier callee = procedure name, skip variable check
     // Check all arguments
