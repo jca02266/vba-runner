@@ -102,6 +102,9 @@ interface CommentedCodeBlock {
     confidence: 'high' | 'medium' | 'low';
     detectedKeywords: Record<string, number>;
     strippedContent: string;  // ' を除去したテキスト（AI評価用）
+    rawContent: string;       // ' を保持したテキスト（表示用）
+    contextBefore: string[];  // ブロック直前の数行（元のソース行）
+    contextAfter: string[];   // ブロック直後の数行（元のソース行）
 }
 
 interface WorkspaceReport {
@@ -1031,27 +1034,37 @@ const COMMENTED_CODE_PATTERNS: Array<[RegExp, number, string]> = [
     [/\bGoTo\b/gi,     1, 'GoTo'],
 ];
 
+const CONTEXT_LINES = 3;
+
 function detectCommentedCode(sourceText: string, filePath: string): CommentedCodeBlock[] {
     const lines = sourceText.split('\n');
     const results: CommentedCodeBlock[] = [];
     let blockStart = -1;
-    const blockLines: string[] = [];
+    const blockRawLines: string[] = [];
+    const blockStrippedLines: string[] = [];
 
     const flush = (endIdx: number) => {
-        if (blockLines.length >= 3) {
-            const block = scoreCommentBlock([...blockLines], filePath, blockStart, endIdx);
+        if (blockStrippedLines.length >= 3) {
+            const contextBefore = lines.slice(Math.max(0, blockStart - CONTEXT_LINES), blockStart);
+            const contextAfter  = lines.slice(endIdx + 1, Math.min(lines.length, endIdx + 1 + CONTEXT_LINES));
+            const block = scoreCommentBlock(
+                [...blockStrippedLines], [...blockRawLines],
+                contextBefore, contextAfter,
+                filePath, blockStart, endIdx,
+            );
             if (block) results.push(block);
         }
         blockStart = -1;
-        blockLines.length = 0;
+        blockRawLines.length = 0;
+        blockStrippedLines.length = 0;
     };
 
     for (let i = 0; i < lines.length; i++) {
         const trimmed = lines[i].trimStart();
         if (trimmed.startsWith("'")) {
             if (blockStart === -1) blockStart = i;
-            // ' の直後のスペース 1 つは除去してインデントを保つ
-            blockLines.push(trimmed.slice(1).replace(/^ /, ''));
+            blockRawLines.push(trimmed);                          // ' を保持（表示用）
+            blockStrippedLines.push(trimmed.slice(1).replace(/^ /, '')); // ' を除去（スコアリング用）
         } else {
             flush(i - 1);
         }
@@ -1063,6 +1076,9 @@ function detectCommentedCode(sourceText: string, filePath: string): CommentedCod
 
 function scoreCommentBlock(
     strippedLines: string[],
+    rawLines: string[],
+    contextBefore: string[],
+    contextAfter: string[],
     filePath: string,
     startIdx: number,
     endIdx: number,
@@ -1102,6 +1118,9 @@ function scoreCommentBlock(
         confidence,
         detectedKeywords,
         strippedContent: content,
+        rawContent: rawLines.join('\n'),
+        contextBefore,
+        contextAfter,
     };
 }
 
@@ -1127,7 +1146,7 @@ function analyzeFile(filePath: string): FileAnalysis {
     } catch (e: any) {
         warnings.push(`Parse error: ${e.message}`);
         return {
-            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], warnings },
+            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], prefixClusters: [], warnings },
             definedProcs: new Map(),
             definedTypes: new Set(),
             callsByProc: new Map(),
@@ -1606,6 +1625,8 @@ function formatCommentedCodeBlocks(blocks: CommentedCodeBlock[]): string {
     out.push('  AI に渡すなど、人間が最終判断してください。');
     out.push('');
 
+    const pad = (n: number) => String(n).padStart(5);
+
     for (const b of blocks) {
         const fname = path.basename(b.file);
         const kwStr = Object.entries(b.detectedKeywords)
@@ -1613,10 +1634,25 @@ function formatCommentedCodeBlocks(blocks: CommentedCodeBlock[]): string {
             .join(', ');
         out.push(`  [${b.confidence.toUpperCase()}] ${fname} L${b.startLine}-L${b.endLine}  (${b.lineCount}行, score=${b.score})`);
         if (kwStr) out.push(`    キーワード: ${kwStr}`);
-        out.push('    --- 内容 ---');
-        for (const line of b.strippedContent.split('\n')) {
-            out.push(`    ${line}`);
+        out.push('    ---');
+
+        // コンテキスト（前）
+        const beforeStart = b.startLine - b.contextBefore.length;
+        for (let i = 0; i < b.contextBefore.length; i++) {
+            out.push(`    ${pad(beforeStart + i)}: ${b.contextBefore[i]}`);
         }
+
+        // コメントブロック本体（' を保持）
+        const rawLines = b.rawContent.split('\n');
+        for (let i = 0; i < rawLines.length; i++) {
+            out.push(`  > ${pad(b.startLine + i)}: ${rawLines[i]}`);
+        }
+
+        // コンテキスト（後）
+        for (let i = 0; i < b.contextAfter.length; i++) {
+            out.push(`    ${pad(b.endLine + 1 + i)}: ${b.contextAfter[i]}`);
+        }
+
         out.push('');
     }
     return out.join('\n');
