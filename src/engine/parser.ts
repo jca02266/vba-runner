@@ -677,7 +677,12 @@ export class Parser {
 
         let paramType: string | undefined;
         if (this.match(TokenType.KeywordAs)) {
-            paramType = this.advance().value; // capture type name
+            paramType = this.advance().value; // capture type name (first token)
+            // Handle qualified type names: MSForms.ReturnInteger, Module.TypeName, etc.
+            if (this.peek().type === TokenType.OperatorDot) {
+                this.advance(); // consume '.'
+                paramType += '.' + this.advance().value;
+            }
         }
 
         let defaultValue: Expression | undefined;
@@ -1253,7 +1258,8 @@ export class Parser {
             const expr = this.parsePrimary();
             if (expr.type === 'CallExpression') {
                 return { type: 'CallStatement', expression: expr } as CallStatement;
-            } else if (expr.type === 'Identifier') {
+            } else if (expr.type === 'Identifier' || expr.type === 'MemberExpression') {
+                // Call ProcName  /  Call Module.ProcName  — no arguments
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             throw new Error(`Parse error: Expected procedure call after 'Call'`);
@@ -2440,9 +2446,13 @@ export class Parser {
         // MS-VBAL §5.6.13.1: named-argument ::= unrestricted-name ':=' expression
         // unrestricted-name includes keywords. User-defined procedures cannot declare
         // keyword-named parameters, but COM/built-in methods (e.g. Validation.Add) can have
-        // parameters named Type, Date, Name, etc. We accept any token before ':=' as the name.
+        // parameters named Type, Date, Name, etc.
+        // Restrict to tokens whose value is an identifier-like string to avoid treating
+        // number literals or other tokens as names (e.g. "1:=x" must not match).
         if (this.pos + 1 < this.tokens.length &&
-            this.tokens[this.pos + 1].type === TokenType.OperatorColonEquals) {
+            this.tokens[this.pos + 1].type === TokenType.OperatorColonEquals &&
+            typeof this.peek().value === 'string' &&
+            /^[A-Za-z_]\w*$/.test(this.peek().value as string)) {
             const nameToken = this.advance(); // consume the name token (identifier or keyword)
             this.advance(); // consume ':='
             const value = this.parseExpression();

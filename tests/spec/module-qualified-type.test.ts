@@ -74,4 +74,29 @@ End Function
     console.log('[PASS] As String: plain return type still works');
 }
 
+// Test 6: ByVal parameter As Module.Type (e.g. MSForms.ReturnInteger)
+{
+    const stmts = parseStatements(`
+Private Sub Proc(ByVal arg As MSForms.ReturnInteger)
+End Sub
+`);
+    assert.strictEqual(stmts.length, 1, 'Sub parsed');
+    const param = (stmts[0] as any).parameters[0];
+    assert.strictEqual(param.paramType, 'MSForms.ReturnInteger', 'paramType is dotted name');
+    console.log('[PASS] ByVal arg As MSForms.ReturnInteger: paramType = "MSForms.ReturnInteger"');
+}
+
+// Test 7: multiple parameters, some qualified some not
+{
+    const stmts = parseStatements(`
+Sub S(ByVal a As Long, ByVal b As MSForms.ReturnInteger, ByVal c As String)
+End Sub
+`);
+    const params = (stmts[0] as any).parameters;
+    assert.strictEqual(params[0].paramType, 'Long', 'first param type');
+    assert.strictEqual(params[1].paramType, 'MSForms.ReturnInteger', 'second param dotted type');
+    assert.strictEqual(params[2].paramType, 'String', 'third param type');
+    console.log('[PASS] Mixed qualified/plain parameter types');
+}
+
 console.log('\n✅ module-qualified-type: 全テスト通過');

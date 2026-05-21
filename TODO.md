@@ -31,6 +31,8 @@
 | 状態 | 優先度 | 機能 | 仕様書 | テスト |
 |------|--------|------|--------|--------|
 | ✅ | P0 | Call Statement | §5.4.2.1 | `call-named-params.test.ts` |
+| ✅ | P1 | Call Statement — モジュール修飾呼び出し `Call Module.Proc` / `Call Module.Proc(args)` | §5.4.2.1 | `module-qualified-calls.test.ts` |
+| ✅ | P1 | Parameter 型名のモジュール修飾 `ByVal arg As MSForms.ReturnInteger` | §5.3.1 | `module-qualified-type.test.ts` |
 | ✅ | P1 | Named Parameters | §5.6.3.1.2 | `call-named-params.test.ts` |
 | ✅ | P1 | Named Parameters — キーワードを引数名に使用（unrestricted-name, §5.6.13.1） | COM メソッド例: `.Add Type:=xlValidateList` | `call-named-params.test.ts` |
 | ✅ | P0 | While Statement (`While...Wend`) | §5.4.2.2 | `while-wend.test.ts` |

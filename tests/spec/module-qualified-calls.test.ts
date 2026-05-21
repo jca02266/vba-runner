@@ -117,4 +117,38 @@ assert.strictEqual(moduleResultUnqualified, 333, 'モジュール関数は修飾
 
 console.log('[PASS] モジュール内プロシージャは修飾あり/なしで呼び出し可能');
 
+// --- 4. Call Module.ProcName（引数なし）のパースが成功する ---
+{
+    const src = `
+Sub Test()
+    Call Module1.DoSomething
+End Sub
+`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens).parse();
+    const diags = ast.diagnostics ?? [];
+    assert.strictEqual(diags.length, 0, 'Call Module.ProcName はパースエラーにならない');
+    const stmt = (ast.body[0] as any).body[0];
+    assert.strictEqual(stmt.type, 'CallStatement', 'CallStatement として解析される');
+    assert.strictEqual(stmt.expression.type, 'CallExpression', 'expression が CallExpression');
+    assert.strictEqual(stmt.expression.callee.type, 'MemberExpression', 'callee が MemberExpression');
+    console.log('[PASS] Call Module.ProcName のパース');
+}
+
+// --- 5. Call Module.ProcName(args) のパースが成功する ---
+{
+    const src = `
+Sub Test()
+    Call Module1.DoSomething(1, 2)
+End Sub
+`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens).parse();
+    const diags = ast.diagnostics ?? [];
+    assert.strictEqual(diags.length, 0, 'Call Module.ProcName(args) はパースエラーにならない');
+    const stmt = (ast.body[0] as any).body[0];
+    assert.strictEqual(stmt.expression.args.length, 2, '引数が2つ認識される');
+    console.log('[PASS] Call Module.ProcName(args) のパース');
+}
+
 console.log('[PASS] モジュール修飾付きプロシージャ呼び出し - 全テスト完了');

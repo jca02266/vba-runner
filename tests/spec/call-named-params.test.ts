@@ -83,9 +83,12 @@ console.log('[PASS] Call + Named Parameters');
 // ユーザー定義関数でキーワードをパラメーター名にすることはできないが、
 // パーサーは呼び出し側で unrestricted-name を許容しなければならない。
 {
+    // With ブロック内の .Add Type:=... — 実際の用途: With Selection.Validation : .Add Type:=xlValidateList
     const src = `
 Sub Test()
-    .Add Type:=1, AlertStyle:=2, Formula1:="A,B"
+    With Selection.Validation
+        .Add Type:=1, AlertStyle:=2, Formula1:="A,B"
+    End With
 End Sub
 `;
     const tokens = new Lexer(src).tokenize();
@@ -93,7 +96,8 @@ End Sub
     assert.strictEqual(ast.diagnostics?.length ?? 0, 0, 'Type:= を含む名前付き引数がパースエラーにならない');
 
     const proc = ast.body[0] as any;
-    const callStmt = proc.body[0] as any;
+    const withStmt = proc.body[0] as any;
+    const callStmt = withStmt.body[0] as any;
     const args: any[] = callStmt.expression?.args ?? [];
     assert.strictEqual(args.length, 3, '引数が3つ認識される');
     assert.strictEqual(args[0].type, 'NamedArgument', '第1引数が NamedArgument');
@@ -103,16 +107,28 @@ End Sub
     console.log('[PASS] キーワードを名前とする名前付き引数（Type:=, Date:=, Name:= 等）');
 }
 
-// --- 6. 他のキーワード（Date, Name, End）も名前付き引数として認識される ---
+// --- 6. 他のキーワード（Date, Name）も名前付き引数として認識される ---
 {
     const src = `Sub Test() : Call Foo(Date:=1, Name:="x") : End Sub`;
     const tokens = new Lexer(src).tokenize();
     const ast = new Parser(tokens).parse();
-    assert.strictEqual(ast.diagnostics?.length ?? 0, 0, 'Date: / Name:= もパースエラーにならない');
+    assert.strictEqual(ast.diagnostics?.length ?? 0, 0, 'Date:= / Name:= もパースエラーにならない');
     const args: any[] = (ast.body[0] as any).body[0].expression?.args ?? [];
-    assert.strictEqual(args[0].name, 'Date',  'Date が引数名として認識される');
-    assert.strictEqual(args[1].name, 'Name',  'Name が引数名として認識される');
+    assert.strictEqual(args[0].name, 'Date', 'Date が引数名として認識される');
+    assert.strictEqual(args[1].name, 'Name', 'Name が引数名として認識される');
     console.log('[PASS] Date:= / Name:= も名前付き引数として認識される');
+}
+
+// --- 7. 数値リテラルは名前付き引数の名前として扱われない ---
+{
+    const src = `Sub Test() : Call Foo(1 + 2) : End Sub`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens).parse();
+    // 数値の後に ':=' が来ないケースで誤検知しないことを確認
+    assert.strictEqual(ast.diagnostics?.length ?? 0, 0, '数値引数は通常の式として扱われる');
+    const args: any[] = (ast.body[0] as any).body[0].expression?.args ?? [];
+    assert.strictEqual(args[0].type, 'BinaryExpression', '1 + 2 は BinaryExpression として解析される');
+    console.log('[PASS] 数値リテラルは名前付き引数名として扱われない');
 }
 
 console.log('\n✅ Call & Named Parameters: 全テスト通過');
