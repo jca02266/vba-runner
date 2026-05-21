@@ -6,13 +6,25 @@
 //
 // Usage:
 //   ./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
-//   node test-libs/vba-analyzer.cjs <path>            # テキスト形式
-//   node test-libs/vba-analyzer.cjs <path> --json     # JSON 形式
+//   node test-libs/vba-analyzer.cjs <path>                        # テキスト形式（全項目）
+//   node test-libs/vba-analyzer.cjs <path> --json                 # JSON 形式
+//   node test-libs/vba-analyzer.cjs <path> --summary-only         # エントリーポイント・モック・重複のみ
+//   node test-libs/vba-analyzer.cjs <path> --outline              # AI向けコンパクト要約
+//   node test-libs/vba-analyzer.cjs <path> --commented-code       # コメントアウトコード候補のみ
+//
+// オプション別の用途:
+//   --outline         ファイル全体をAIに渡す前の「どのプロシージャが問題か」の絞り込みに使う。
+//                     出力が小さいため、AI への読み込みトークンを節約できる。
+//   --commented-code  コメントアウトされた死コードの確認に特化。出力をそのまま AI に貼り付けて
+//                     「これはコードか説明文か」を判断させることを想定している。
+//                     ファイル全体を AI に渡す前にこのフラグで先に絞り込むと読み込みトークンを削減できる。
+//   --summary-only    エントリーポイント候補・Dead code・Excel モック・重複ブロックに集中したいとき。
 //
 // 既知の制約（TODO_NEXT.md「実証実験で判明したギャップ」を参照）:
 //   - 連続代入の「形状クラスタリング」は未実装（件数のみ）
 //   - データフロー解析（Def-Use）は未実装
 //   - 接頭辞クラスタによる UDT 抽出候補検出は未実装
+//   - --commented-code のスコアリングはヒューリスティック。自然言語の仕様説明も低スコアで検出される場合がある
 
 import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
@@ -81,6 +93,17 @@ interface DuplicateBlock {
     shape: string;              // 正規化後のパターン（先頭1行のみ表示）
 }
 
+interface CommentedCodeBlock {
+    file: string;
+    startLine: number;   // 1-based
+    endLine: number;     // 1-based
+    lineCount: number;
+    score: number;
+    confidence: 'high' | 'medium' | 'low';
+    detectedKeywords: Record<string, number>;
+    strippedContent: string;  // ' を除去したテキスト（AI評価用）
+}
+
 interface WorkspaceReport {
     files: FileReport[];
     entryPointCandidates: Array<{ file: string; name: string; kind: string; line: number; reason: string }>;
@@ -88,6 +111,7 @@ interface WorkspaceReport {
     excelMockTargets: Array<{ file: string; procName: string; objects: string[]; sampleAccesses: string[] }>;
     callGraph: CallGraphEdge[];
     duplicateBlocks: DuplicateBlock[];
+    commentedCodeBlocks: CommentedCodeBlock[];
 }
 
 // ---------------------------------------------------------
@@ -979,6 +1003,108 @@ function emitConstTs(analyses: FileAnalysis[], outputDir: string): void {
 // 単一ファイル解析
 // ---------------------------------------------------------
 
+// ---------------------------------------------------------
+// Commented-out code detection
+// ---------------------------------------------------------
+
+// [キーワード正規表現, スコア重み] のリスト
+const COMMENTED_CODE_PATTERNS: Array<[RegExp, number, string]> = [
+    [/\bSub\b/gi,      3, 'Sub'],
+    [/\bFunction\b/gi, 3, 'Function'],
+    [/\bClass\b/gi,    3, 'Class'],
+    [/\bProperty\b/gi, 3, 'Property'],
+    [/\bType\b/gi,     2, 'Type'],
+    [/\bDim\b/gi,      1, 'Dim'],
+    [/\bConst\b/gi,    1, 'Const'],
+    [/\bSet\b/gi,      1, 'Set'],
+    [/\bReDim\b/gi,    1, 'ReDim'],
+    [/\bIf\b/gi,       1, 'If'],
+    [/\bFor\b/gi,      1, 'For'],
+    [/\bDo\b/gi,       1, 'Do'],
+    [/\bWhile\b/gi,    1, 'While'],
+    [/\bWith\b/gi,     1, 'With'],
+    [/\bSelect\b/gi,   1, 'Select'],
+    [/\bCase\b/gi,     1, 'Case'],
+    [/\bCall\b/gi,     1, 'Call'],
+    [/\bEnd\b/gi,      1, 'End'],
+    [/\bExit\b/gi,     1, 'Exit'],
+    [/\bGoTo\b/gi,     1, 'GoTo'],
+];
+
+function detectCommentedCode(sourceText: string, filePath: string): CommentedCodeBlock[] {
+    const lines = sourceText.split('\n');
+    const results: CommentedCodeBlock[] = [];
+    let blockStart = -1;
+    const blockLines: string[] = [];
+
+    const flush = (endIdx: number) => {
+        if (blockLines.length >= 3) {
+            const block = scoreCommentBlock([...blockLines], filePath, blockStart, endIdx);
+            if (block) results.push(block);
+        }
+        blockStart = -1;
+        blockLines.length = 0;
+    };
+
+    for (let i = 0; i < lines.length; i++) {
+        const trimmed = lines[i].trimStart();
+        if (trimmed.startsWith("'")) {
+            if (blockStart === -1) blockStart = i;
+            // ' の直後のスペース 1 つは除去してインデントを保つ
+            blockLines.push(trimmed.slice(1).replace(/^ /, ''));
+        } else {
+            flush(i - 1);
+        }
+    }
+    flush(lines.length - 1);
+
+    return results.sort((a, b) => b.score - a.score);
+}
+
+function scoreCommentBlock(
+    strippedLines: string[],
+    filePath: string,
+    startIdx: number,
+    endIdx: number,
+): CommentedCodeBlock | null {
+    const content = strippedLines.join('\n');
+    let totalScore = 0;
+    const detectedKeywords: Record<string, number> = {};
+
+    for (const [re, weight, label] of COMMENTED_CODE_PATTERNS) {
+        const matches = content.match(re);
+        if (matches) {
+            detectedKeywords[label] = matches.length;
+            totalScore += matches.length * weight;
+        }
+    }
+
+    // 代入文を含む行（比較・不等号を除く）
+    const assignLines = strippedLines.filter(l => /[^!=<>]=[^=]/.test(l)).length;
+    totalScore += assignLines * 0.5;
+
+    // メソッド/プロパティアクセスを含む行
+    const dotLines = strippedLines.filter(l => /\w\.\w/.test(l)).length;
+    totalScore += dotLines * 0.3;
+
+    const score = Math.round(totalScore * 10) / 10;
+    if (score < 2) return null;
+
+    const confidence: 'high' | 'medium' | 'low' =
+        score >= 8 ? 'high' : score >= 4 ? 'medium' : 'low';
+
+    return {
+        file: filePath,
+        startLine: startIdx + 1,
+        endLine: endIdx + 1,
+        lineCount: strippedLines.length,
+        score,
+        confidence,
+        detectedKeywords,
+        strippedContent: content,
+    };
+}
+
 interface FileAnalysis {
     report: FileReport;
     // クロスファイル分析に使う中間データ
@@ -986,6 +1112,7 @@ interface FileAnalysis {
     definedTypes: Set<string>;
     callsByProc: Map<string, Set<string>>;  // procName -> called identifiers
     xlVbConstantRefs: Set<string>;          // xl*/vb*/mso* 定数の参照名
+    commentedCodeBlocks: CommentedCodeBlock[];
 }
 
 function analyzeFile(filePath: string): FileAnalysis {
@@ -1005,6 +1132,7 @@ function analyzeFile(filePath: string): FileAnalysis {
             definedTypes: new Set(),
             callsByProc: new Map(),
             xlVbConstantRefs: new Set(),
+            commentedCodeBlocks: detectCommentedCode(src, filePath),
         };
     }
 
@@ -1095,6 +1223,7 @@ function analyzeFile(filePath: string): FileAnalysis {
         definedTypes,
         callsByProc,
         xlVbConstantRefs,
+        commentedCodeBlocks: detectCommentedCode(src, filePath),
     };
 }
 
@@ -1203,6 +1332,10 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
 
     const duplicateBlocks = detectDuplicateBlocks(analyses);
 
+    const commentedCodeBlocks = analyses
+        .flatMap(a => a.commentedCodeBlocks)
+        .sort((a, b) => b.score - a.score);
+
     return {
         files: analyses.map(a => a.report),
         entryPointCandidates,
@@ -1210,6 +1343,7 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
         excelMockTargets,
         callGraph,
         duplicateBlocks,
+        commentedCodeBlocks,
     };
 }
 
@@ -1462,6 +1596,32 @@ function formatWorkspaceSummary(w: WorkspaceReport): string {
     return out.join('\n');
 }
 
+function formatCommentedCodeBlocks(blocks: CommentedCodeBlock[]): string {
+    if (blocks.length === 0) return '(コメントアウトされたコードは検出されませんでした)';
+    const out: string[] = [];
+    out.push('========================================');
+    out.push('💬 コメントアウトされたコード候補');
+    out.push('========================================');
+    out.push('  連続するコメント行の中に VBA キーワードが多く含まれるブロックです。');
+    out.push('  AI に渡すなど、人間が最終判断してください。');
+    out.push('');
+
+    for (const b of blocks) {
+        const fname = path.basename(b.file);
+        const kwStr = Object.entries(b.detectedKeywords)
+            .map(([k, n]) => `${k}×${n}`)
+            .join(', ');
+        out.push(`  [${b.confidence.toUpperCase()}] ${fname} L${b.startLine}-L${b.endLine}  (${b.lineCount}行, score=${b.score})`);
+        if (kwStr) out.push(`    キーワード: ${kwStr}`);
+        out.push('    --- 内容 ---');
+        for (const line of b.strippedContent.split('\n')) {
+            out.push(`    ${line}`);
+        }
+        out.push('');
+    }
+    return out.join('\n');
+}
+
 // ---------------------------------------------------------
 // CLI
 // ---------------------------------------------------------
@@ -1518,12 +1678,14 @@ function main() {
         console.log('  --json                JSON 形式で出力（プログラム連携用）');
         console.log('  --summary-only        ワークスペース要約（エントリーポイント候補・モック必要箇所）のみ表示');
         console.log('  --outline             Workspace Outline（AI向けコンテキスト圧縮）を出力');
+        console.log('  --commented-code      コメントアウトされたコード候補のみ表示');
         console.log('  --gen-test-dir <dir>  テスト用ソースを指定ディレクトリに生成（const.ts 等）');
         process.exit(args.length === 0 ? 1 : 0);
     }
     const wantJson = args.includes('--json');
     const summaryOnly = args.includes('--summary-only');
     const wantOutline = args.includes('--outline');
+    const wantCommentedCode = args.includes('--commented-code');
     const genTestDirIdx = args.indexOf('--gen-test-dir');
     const genTestDir = genTestDirIdx !== -1 ? args[genTestDirIdx + 1] : null;
     if (genTestDirIdx !== -1 && (!genTestDir || genTestDir.startsWith('--'))) {
@@ -1557,6 +1719,11 @@ function main() {
 
     if (wantOutline) {
         console.log(formatWorkspaceOutline(workspace));
+        return;
+    }
+
+    if (wantCommentedCode) {
+        console.log(formatCommentedCodeBlocks(workspace.commentedCodeBlocks));
         return;
     }
 

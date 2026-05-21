@@ -287,11 +287,28 @@ Unit Tests（70〜80%）→ Integration Tests（15〜25%）→ E2E / VBA IDE 手
 <a id="va-01"></a>
 ### VA-01: vba-analyzer による静的解析支援
 
-`vba-analyzer` は VBA ソースを静的解析し、リファクタリング・テスト設計の手がかりとなる情報を JSON 形式で出力するツールです。
+`vba-analyzer` は VBA ソースを静的解析し、リファクタリング・テスト設計の手がかりとなる情報を出力するツールです。単一ファイルとディレクトリの両方を対象にできます。
+
+#### ビルドと基本実行
 
 ```bash
-node test-libs/vba-analyzer.cjs src/vba/ --json
+# ビルド（変更後に実行）
+./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
+
+# 基本実行（テキスト形式）
+node test-libs/vba-analyzer.cjs src/vba/
 ```
+
+#### CLI オプション一覧
+
+| オプション | 内容 | 主な用途 |
+|---|---|---|
+| _(なし)_ | 全項目をテキスト形式で出力 | ファイル単体を詳細確認するとき |
+| `--json` | JSON 形式で出力 | `jq` で絞り込む・プログラムに渡すとき |
+| `--summary-only` | エントリーポイント候補・Dead code・モック必要箇所・重複ブロックのみ表示 | ディレクトリ全体の俯瞰 |
+| `--outline` | プロシージャ名と問題フラグだけのコンパクト要約 | AI に渡す前の絞り込み。出力が小さくトークン節約になる |
+| `--commented-code` | コメントアウトされたコード候補のみ表示 | 死コードの確認。出力をそのまま AI に貼って判断させることを想定（[VA-04](#va-04)） |
+| `--gen-test-dir <dir>` | テストひな形と定数ファイルを生成 | テスト整備の起点（[VA-03](#va-03)） |
 
 #### 主要出力フィールド
 
@@ -555,3 +572,71 @@ describe('GetLastTaskRow', () => {
 - 引数の型コメントは VBA の型宣言から推定（`Long`/`Integer`/… → `number`、`String` → `string`、`Boolean` → `boolean`、その他 → `any`）
 - 戻り値型も同様に推定して `as number` 等を付加する
 - `test.skip` のブロックはモック設定を追加してから有効化する（[T-07](#t-07) 参照）
+
+---
+
+<a id="va-04"></a>
+### VA-04: コメントアウトされたコード検出（`--commented-code`）
+
+`--commented-code` オプションを指定すると、連続するコメント行の中に VBA キーワードが多く含まれるブロックを抽出して表示する。
+
+```bash
+node test-libs/vba-analyzer.cjs src/vba/ --commented-code
+```
+
+#### 出力例
+
+```
+========================================
+💬 コメントアウトされたコード候補
+========================================
+
+  [HIGH] TaskScheduler_Core.bas L45-L62  (18行, score=12.5)
+    キーワード: Sub×2, Dim×4, If×3, End×3, For×1
+    --- 内容 ---
+    Sub OldCalculation()
+        Dim i As Long
+        Dim total As Double
+        For i = 1 To 10
+            If total > 0 Then
+                ...
+    End Sub
+
+  [LOW] TaskScheduler_v1.bas L4-L44  (41行, score=3.8)
+    キーワード: End×1
+    --- 内容 ---
+    【仕様説明】 - 自動スケジュールロジック v2.0
+    ...
+```
+
+#### 信頼度の基準
+
+| 信頼度 | スコア | 意味 |
+|---|---|---|
+| **HIGH** | 8 以上 | VBA キーワードが多数。コードである可能性が高い |
+| **MEDIUM** | 4〜7 | 複数のキーワードが含まれる。人間またはAIによる確認推奨 |
+| **LOW** | 2〜3 | キーワードは少ないが何らかの構造を含む。自然言語の仕様説明も混入しやすい |
+
+スコア 2 未満のブロックは出力されない。
+
+#### スコアリング方式
+
+| 要素 | 重み |
+|---|---|
+| `Sub` / `Function` / `Class` / `Property` | 3点/件 |
+| `Type` | 2点/件 |
+| `Dim` / `Const` / `Set` / `ReDim` / `If` / `For` / `Do` / `While` / `With` / `Select` / `Case` / `Call` / `End` / `Exit` / `GoTo` | 1点/件 |
+| 代入文を含む行（`=` があり比較演算子でない） | 0.5点/行 |
+| メンバーアクセスを含む行（`obj.prop` 形式） | 0.3点/行 |
+
+#### 用途
+
+- **ファイル全体を AI に渡す前の絞り込み**: `--commented-code` の出力だけを AI に貼り付けて「これはコードか説明文か」を判断させる。ファイル全体を渡すよりトークン消費を大幅に削減できる
+- **Dead code の確認**: 過去にコメントアウトされたままのコードは削除候補。HIGH/MEDIUM のブロックを中心に確認する
+- **復元候補の把握**: リファクタリング作業でコメントアウトされたが削除されていない旧実装を把握できる
+
+#### 検出しないケース
+
+- 2行以下の短いコメントブロック（ノイズとして除外）
+- スコア 2 未満のブロック（自然言語の説明文として扱う）
+- インラインコメント（`x = 1 ' 旧コード: x = 0` のような行末コメント）
