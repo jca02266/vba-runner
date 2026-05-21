@@ -323,9 +323,47 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     outputChannel.appendLine('✓ Code Lens provider registered');
 
-    // vba-runner.runProcedure: parameterless Sub/Function を即実行
+    // AssertHelper クラス定義（テスト実行時に自動注入）
+    const ASSERT_HELPER_SRC = `Class AssertHelper
+Option Explicit
+Public Failed As Boolean
+Public FailMessage As String
+Sub Reset()
+    Failed = False
+    FailMessage = ""
+End Sub
+Sub Assert(actual, expected, message)
+    If actual <> expected Then
+        Debug.Print "[FAIL] " & message
+        Debug.Print "  Expected: " & CStr(expected)
+        Debug.Print "  Actual  : " & CStr(actual)
+        Failed = True
+        FailMessage = message
+        Err.Raise vbObjectError + 1, "Assert", message
+    End If
+End Sub
+Sub IsTrue(value, message)
+    If Not CBool(value) Then
+        Debug.Print "[FAIL] " & message & " (expected True)"
+        Failed = True
+        FailMessage = message
+        Err.Raise vbObjectError + 1, "Assert", message
+    End If
+End Sub
+Sub IsFalse(value, message)
+    If CBool(value) Then
+        Debug.Print "[FAIL] " & message & " (expected False)"
+        Failed = True
+        FailMessage = message
+        Err.Raise vbObjectError + 1, "Assert", message
+    End If
+End Sub
+End Class`;
+
+    // vba-runner.runProcedure: Sub/Function を即実行
+    // isTestProc=true のとき: AssertHelper を注入したラッパー Sub を生成して呼び出す
     context.subscriptions.push(
-        vscode.commands.registerCommand('vba-runner.runProcedure', (uri: string, procName: string) => {
+        vscode.commands.registerCommand('vba-runner.runProcedure', (uri: string, procName: string, isTestProc?: boolean) => {
             try {
                 const doc = documentMap.get(uri);
                 if (!doc) {
@@ -337,8 +375,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 // 同ディレクトリの .bas/.cls を収集して結合
                 const dir = path.dirname(doc.uri.fsPath);
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
-                const parts: string[] = [];
+                const parts: string[] = [ASSERT_HELPER_SRC];
                 for (const entry of entries) {
+                    // ディレクトリに AssertHelper.cls があっても重複注入しない
+                    if (/^AssertHelper\.cls$/i.test(entry)) continue;
                     const filePath = path.join(dir, entry);
                     const content = fs.readFileSync(filePath, 'utf8');
                     if (/\.cls$/i.test(entry)) {
@@ -348,13 +388,31 @@ export async function activate(context: vscode.ExtensionContext) {
                         parts.push(content);
                     }
                 }
-                const combined = parts.join('\n\n');
 
+                let callTarget = procName;
+                if (isTestProc) {
+                    // ラッパー Sub を生成: assert インスタンスを作って渡し、結果を表示
+                    const wrapperName = `__VBARunner_${procName}__`;
+                    parts.push([
+                        `Sub ${wrapperName}()`,
+                        `    Dim assert As New AssertHelper`,
+                        `    ${procName} assert`,
+                        `    If assert.Failed Then`,
+                        `        Debug.Print "[FAIL] ${procName}: " & assert.FailMessage`,
+                        `    Else`,
+                        `        Debug.Print "[PASS] ${procName}"`,
+                        `    End If`,
+                        `End Sub`,
+                    ].join('\n'));
+                    callTarget = wrapperName;
+                }
+
+                const combined = parts.join('\n\n');
                 const tokens = new Lexer(combined).tokenize();
                 const ast = new Parser(tokens).parse();
                 const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
                 ev.evaluate(ast);
-                const result = ev.callProcedure(procName, []);
+                const result = ev.callProcedure(callTarget, []);
                 if (result !== undefined) {
                     outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
                 }

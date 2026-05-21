@@ -19,6 +19,7 @@ export interface ProcInfo {
     endLine: number;        // 0-based (End Sub/Function line)
     isPrivate: boolean;
     hasRequiredParams: boolean;
+    isTestProc: boolean;    // Test_* with exactly 1 param (the assert helper)
     refCount: number;       // call sites from outside this procedure
     isTested: boolean;      // any Test_* proc references this one
 }
@@ -34,14 +35,14 @@ export class CodeLensProvider {
                 end:   { line: proc.line, character: 0 },
             };
 
-            // ▶ Run (parameterless only)
-            if (!proc.hasRequiredParams) {
+            // ▶ Run: parameterless、または Test_* の assert 1引数プロシージャ
+            if (!proc.hasRequiredParams || proc.isTestProc) {
                 items.push({
                     range,
                     command: {
                         title: '▶ Run',
                         command: 'vba-runner.runProcedure',
-                        arguments: [uri, proc.name],
+                        arguments: [uri, proc.name, proc.isTestProc],
                     },
                 });
             }
@@ -114,6 +115,7 @@ export class CodeLensProvider {
             const hasRequiredParams = proc.parameters.some(
                 p => !p.isOptional && !p.isParamArray && p.defaultValue == null
             );
+            const isTestProc = name.toLowerCase().startsWith('test_') && proc.parameters.length === 1;
 
             // Count call sites from outside this procedure's own body
             const refs = findAllReferences(sourceText, name, uri, statements, true);
@@ -129,7 +131,7 @@ export class CodeLensProvider {
                 this.testProcReferences(statements, testName, name.toLowerCase(), sourceText)
             );
 
-            result.push({ name, line, endLine, isPrivate, hasRequiredParams, refCount, isTested });
+            result.push({ name, line, endLine, isPrivate, hasRequiredParams, isTestProc, refCount, isTested });
         }
 
         return result;
