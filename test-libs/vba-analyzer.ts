@@ -103,21 +103,34 @@ interface GotoGraph {
     procScore: number;       // プロシージャ内最大スコア
 }
 
+// 変数の役割
+// accumulator : x = x + n / x = x & s  など前回値を利用して累積
+// state_flag  : Boolean 値または比較式のみ代入
+// loop_local  : 毎回書いてから読む（ローカル変数化可能）
+// cross_iter  : 前の繰り返しで書いた値を次の繰り返しで読む
+// out_param   : ループ内では書くだけ・ループ後で読む
+type VarRole = 'accumulator' | 'state_flag' | 'loop_local' | 'cross_iter' | 'out_param';
+
 interface CrossIterVar {
     name: string;
-    writeLines: number[];    // 書き込まれる行番号（1-based）
-    readLines: number[];     // 読み込まれる行番号（1-based）
+    role: VarRole;
+    isArray: boolean;           // arr(i) 形式でアクセスされる
+    extractionScore: number;    // 0=ローカル化可, 1=ByRef scalar, 2=ByRef array
+    writeLines: number[];
+    readLines: number[];        // ループ内での読み込み行
+    readLinesAfter: number[];   // ループ後の読み込み行（out_param 判定用）
 }
 
 interface LoopAnalysis {
     loopKind: string;           // 'For' | 'ForEach' | 'While' | 'Do'
     startLine: number;
     endLine: number;
-    counterVar: string | null;  // For/ForEach のカウンタ変数（crossIterVars から除外済み）
+    counterVar: string | null;
     crossIterationVars: CrossIterVar[];
     gotoRetryCount: number;
     gotoSkipCount: number;
     gotoExitLoopCount: number;
+    extractionFeasibility: number;  // crossIterVars の extractionScore の平均（1 decimal）
 }
 
 interface ProcLoopAnalysis {
@@ -1392,6 +1405,88 @@ function collectVarRefsInBody(
     }
 }
 
+// 式の中に varName が含まれるか（accumulator 検出用）
+function containsVarInExpr(expr: any, varName: string): boolean {
+    if (!expr) return false;
+    switch (expr.type) {
+        case 'Identifier': return (expr.name as string).toLowerCase() === varName;
+        case 'BinaryExpression': return containsVarInExpr(expr.left, varName) || containsVarInExpr(expr.right, varName);
+        case 'UnaryExpression': return containsVarInExpr(expr.argument, varName);
+        case 'ParenthesizedExpression': return containsVarInExpr(expr.expression, varName);
+        case 'CallExpression': return containsVarInExpr(expr.callee, varName) || (expr.args ?? []).some((a: any) => containsVarInExpr(a, varName));
+        case 'MemberExpression': return containsVarInExpr(expr.object, varName);
+        default: return false;
+    }
+}
+
+// Boolean 値・比較式・Not のみの式か（state_flag 検出用）
+function isBoolLikeExpr(expr: any): boolean {
+    if (!expr) return false;
+    switch (expr.type) {
+        case 'Identifier': { const n = (expr.name as string).toLowerCase(); return n === 'true' || n === 'false'; }
+        case 'BinaryExpression': return ['=', '<>', '>', '<', '>=', '<='].includes(expr.operator);
+        case 'UnaryExpression': return (expr.operator as string).toLowerCase() === 'not';
+        case 'NumberLiteral': return expr.value === 0 || expr.value === 1 || expr.value === -1;
+        case 'ParenthesizedExpression': return isBoolLikeExpr(expr.expression);
+        default: return false;
+    }
+}
+
+// 代入文を再帰走査して selfRefs・boolOnly・arrayWrites を収集
+function collectWriteAttrs(
+    stmts: any[],
+    targets: Set<string>,
+    selfRefs: Set<string>,
+    boolOnly: Map<string, boolean>,
+    arrayWrites: Set<string>,
+): void {
+    for (const stmt of stmts) {
+        if (!stmt) continue;
+        if (stmt.type === 'AssignmentStatement' || stmt.type === 'SetStatement') {
+            const w = extractWriteName(stmt.left);
+            if (w && targets.has(w)) {
+                if (containsVarInExpr(stmt.right, w)) selfRefs.add(w);
+                if (!selfRefs.has(w) && boolOnly.get(w) !== false)
+                    boolOnly.set(w, isBoolLikeExpr(stmt.right) ? true : false);
+                if (stmt.left?.type === 'CallExpression') arrayWrites.add(w);
+            }
+        }
+        const sub = (s: any) => collectWriteAttrs(Array.isArray(s) ? s : [s], targets, selfRefs, boolOnly, arrayWrites);
+        if (stmt.body)      sub(stmt.body);
+        if (stmt.consequent) sub(stmt.consequent);
+        if (stmt.alternate)  sub(stmt.alternate);
+        if (stmt.cases) for (const c of stmt.cases) sub(c.body ?? []);
+        if (stmt.elseBody)   sub(stmt.elseBody);
+    }
+}
+
+// 式内で配列アクセスされている変数名を収集（arr(i) → 'arr'）
+function collectArrayAccessInExpr(expr: any, result: Set<string>): void {
+    if (!expr || typeof expr !== 'object') return;
+    if (expr.type === 'CallExpression' && expr.callee?.type === 'Identifier')
+        result.add((expr.callee.name as string).toLowerCase());
+    for (const key of ['left', 'right', 'argument', 'callee', 'object', 'expression', 'value'])
+        if (expr[key]) collectArrayAccessInExpr(expr[key], result);
+    for (const a of expr.args ?? []) collectArrayAccessInExpr(a, result);
+}
+
+// 文リスト内の全式から配列アクセスを収集
+function collectArrayAccessInStmts(stmts: any[], result: Set<string>): void {
+    for (const stmt of stmts) {
+        if (!stmt) continue;
+        for (const key of ['right', 'left', 'condition', 'expression', 'start', 'end', 'step', 'collection', 'fileNumber', 'data'])
+            if (stmt[key]) collectArrayAccessInExpr(stmt[key], result);
+        for (const e of stmt.expressions ?? []) { if (typeof e === 'object') collectArrayAccessInExpr(e, result); }
+        for (const e of stmt.items ?? []) collectArrayAccessInExpr(e, result);
+        const sub = (s: any) => collectArrayAccessInStmts(Array.isArray(s) ? s : [s], result);
+        if (stmt.body)      sub(stmt.body);
+        if (stmt.consequent) sub(stmt.consequent);
+        if (stmt.alternate)  sub(stmt.alternate);
+        if (stmt.cases) for (const c of stmt.cases) { sub(c.body ?? []); for (const rng of c.ranges ?? []) { collectArrayAccessInExpr(rng.value, result); collectArrayAccessInExpr(rng.start, result); collectArrayAccessInExpr(rng.end, result); } }
+        if (stmt.elseBody)   sub(stmt.elseBody);
+    }
+}
+
 function collectLoopsInStmts(stmts: any[], result: any[]): void {
     const loopTypes = new Set(['ForStatement', 'ForEachStatement', 'WhileStatement', 'DoWhileStatement']);
     for (const stmt of stmts) {
@@ -1405,7 +1500,11 @@ function collectLoopsInStmts(stmts: any[], result: any[]): void {
     }
 }
 
-function analyzeOneLoop(loopStmt: any, gotoGotos: GotoEntry[]): LoopAnalysis {
+function analyzeOneLoop(
+    loopStmt: any,
+    gotoGotos: GotoEntry[],
+    procReadsAll: Map<string, number[]>,  // プロシージャ全体の読み込み（out_param 判定用）
+): LoopAnalysis {
     const startLine: number = loopStmt.loc?.start.line ?? -1;
     const endLine: number = loopStmt.loc?.end.line ?? startLine;
     const loopKindMap: Record<string, string> = {
@@ -1434,25 +1533,71 @@ function analyzeOneLoop(loopStmt: any, gotoGotos: GotoEntry[]): LoopAnalysis {
     } else if (loopStmt.condition) {
         collectReadsInExpr(loopStmt.condition, reads);
     }
-
     collectVarRefsInBody(loopStmt.body ?? [], writes, reads, skipVars);
 
+    // 追加属性: self-ref（accumulator）・bool-only（state_flag）・配列アクセス
+    const writtenVarSet = new Set(writes.keys());
+    const selfRefs    = new Set<string>();
+    const boolOnly    = new Map<string, boolean>();
+    const arrayWrites = new Set<string>();
+    collectWriteAttrs(loopStmt.body ?? [], writtenVarSet, selfRefs, boolOnly, arrayWrites);
+
+    const arrayReadsInBody = new Set<string>();
+    collectArrayAccessInStmts(loopStmt.body ?? [], arrayReadsInBody);
+
+    // ループ後の読み込み（out_param 判定: ループ内読み込みなし & ループ後に読む）
+    const readsAfterMap = new Map<string, number[]>();
+    for (const [name, lines] of procReadsAll) {
+        const after = lines.filter(l => l > endLine);
+        if (after.length > 0) readsAfterMap.set(name, after);
+    }
+
+    // 変数ごとに role・score を決定
     const crossIterationVars: CrossIterVar[] = [];
     for (const [name, wLines] of writes) {
-        const rLines = reads.get(name);
-        if (rLines && rLines.length > 0) {
-            crossIterationVars.push({
-                name,
-                writeLines: [...new Set(wLines)].sort((a, b) => a - b),
-                readLines: [...new Set(rLines)].sort((a, b) => a - b),
-            });
+        const rLines  = reads.get(name) ?? [];
+        const rAfter  = readsAfterMap.get(name) ?? [];
+        if (rLines.length === 0 && rAfter.length === 0) continue; // dead write
+
+        const isArray = arrayWrites.has(name) || arrayReadsInBody.has(name);
+
+        let role: VarRole;
+        if (rLines.length === 0) {
+            role = 'out_param';
+        } else if (selfRefs.has(name)) {
+            role = 'accumulator';
+        } else if (boolOnly.get(name) === true) {
+            role = 'state_flag';
+        } else {
+            // 最初の書き込みが最初の読み込みより前にあれば毎回初期化 → loop_local
+            const minWrite = Math.min(...wLines);
+            const minRead  = Math.min(...rLines);
+            role = minWrite < minRead ? 'loop_local' : 'cross_iter';
         }
+
+        const extractionScore = role === 'loop_local' ? 0 : isArray ? 2 : 1;
+
+        crossIterationVars.push({
+            name, role, isArray, extractionScore,
+            writeLines:     [...new Set(wLines)].sort((a, b) => a - b),
+            readLines:      [...new Set(rLines)].sort((a, b) => a - b),
+            readLinesAfter: [...new Set(rAfter)].sort((a, b) => a - b),
+        });
     }
-    crossIterationVars.sort((a, b) => a.name.localeCompare(b.name));
+
+    // ソート: score 昇順 → 名前昇順
+    crossIterationVars.sort((a, b) =>
+        a.extractionScore !== b.extractionScore
+            ? a.extractionScore - b.extractionScore
+            : a.name.localeCompare(b.name)
+    );
+
+    const extractionFeasibility = crossIterationVars.length === 0 ? 0
+        : Math.round(crossIterationVars.reduce((s, v) => s + v.extractionScore, 0) / crossIterationVars.length * 10) / 10;
 
     const loopGotos = gotoGotos.filter(g => g.line >= startLine && g.line <= endLine);
     return {
-        loopKind, startLine, endLine, counterVar, crossIterationVars,
+        loopKind, startLine, endLine, counterVar, crossIterationVars, extractionFeasibility,
         gotoRetryCount:    loopGotos.filter(g => g.kind === 'retry').length,
         gotoSkipCount:     loopGotos.filter(g => g.kind === 'loop_skip').length,
         gotoExitLoopCount: loopGotos.filter(g => g.kind === 'exit_loop').length,
@@ -1462,12 +1607,18 @@ function analyzeOneLoop(loopStmt: any, gotoGotos: GotoEntry[]): LoopAnalysis {
 function analyzeLoopsInProc(proc: any, gotoGraph: GotoGraph): ProcLoopAnalysis {
     const loopStmts: any[] = [];
     collectLoopsInStmts(proc.body ?? [], loopStmts);
+
+    // プロシージャ全体の読み込みを収集（out_param 判定用）
+    const procAllReads  = new Map<string, number[]>();
+    const procDumWrites = new Map<string, number[]>();
+    collectVarRefsInBody(proc.body ?? [], procDumWrites, procAllReads, new Set());
+
     return {
         procName: proc.name?.name ?? proc.name ?? '?',
         procKind: proc.kind ?? 'Sub',
         startLine: proc.loc?.start.line ?? -1,
         endLine:   proc.loc?.end.line ?? -1,
-        loops: loopStmts.map(l => analyzeOneLoop(l, gotoGraph.gotos)),
+        loops: loopStmts.map(l => analyzeOneLoop(l, gotoGraph.gotos, procAllReads)),
     };
 }
 
@@ -2333,6 +2484,21 @@ function formatGotoGraphs(files: FileReport[]): string {
 function formatCrossIter(files: FileReport[]): string {
     const out: string[] = [];
 
+    const ROLE_LABEL: Record<VarRole, string> = {
+        loop_local:  '✅ local ',
+        accumulator: '🔄 accum ',
+        state_flag:  '🚩 flag  ',
+        out_param:   '📤 out   ',
+        cross_iter:  '⚠️  cross ',
+    };
+    const ROLE_JA: Record<VarRole, string> = {
+        loop_local:  'ローカル化可能',
+        accumulator: '累積変数',
+        state_flag:  '状態フラグ',
+        out_param:   'ループ後で読む',
+        cross_iter:  'クロスイテレーション',
+    };
+
     for (const r of files) {
         const activeProcs = r.loopAnalyses.filter(p =>
             p.loops.some(l => l.crossIterationVars.length > 0 || l.gotoRetryCount > 0 || l.gotoSkipCount > 0 || l.gotoExitLoopCount > 0)
@@ -2351,17 +2517,25 @@ function formatCrossIter(files: FileReport[]): string {
                 if (loop.crossIterationVars.length === 0 && loop.gotoRetryCount === 0 && loop.gotoSkipCount === 0 && loop.gotoExitLoopCount === 0) continue;
 
                 const counterInfo = loop.counterVar ? `, カウンタ: ${loop.counterVar}` : '';
-                out.push(`    ${loop.loopKind} ループ (L${loop.startLine}–L${loop.endLine}${counterInfo})`);
+                const feasStr = loop.crossIterationVars.length > 0
+                    ? `  抽出難度: ${loop.extractionFeasibility.toFixed(1)}`
+                    : '';
+                out.push(`    ${loop.loopKind} ループ (L${loop.startLine}–L${loop.endLine}${counterInfo})${feasStr}`);
 
-                if (loop.crossIterationVars.length === 0) {
-                    out.push(`      クロスイテレーション変数: なし`);
-                } else {
-                    out.push(`      クロスイテレーション変数 (${loop.crossIterationVars.length}件, 関数化時は ByRef 必要):`);
+                if (loop.crossIterationVars.length > 0) {
                     const nameWidth = Math.max(...loop.crossIterationVars.map(v => v.name.length));
+                    out.push(`      ${'role'.padEnd(10)} [s] ${'変数名'.padEnd(nameWidth)}  write / read`);
+                    out.push(`      ${'-'.repeat(10)} --- ${'-'.repeat(nameWidth)}  ${'-'.repeat(24)}`);
                     for (const v of loop.crossIterationVars) {
-                        const wStr = v.writeLines.map(l => `L${l}`).join(', ');
-                        const rStr = v.readLines.map(l => `L${l}`).join(', ');
-                        out.push(`        ${v.name.padEnd(nameWidth)}  write: ${wStr}  read: ${rStr}`);
+                        const wStr = v.writeLines.map(l => `L${l}`).join(',');
+                        const rStr = v.readLines.length > 0
+                            ? v.readLines.map(l => `L${l}`).join(',')
+                            : '—';
+                        const afterStr = v.readLinesAfter.length > 0
+                            ? `  →after: ${v.readLinesAfter.map(l => `L${l}`).join(',')}`
+                            : '';
+                        const arrMark = v.isArray ? '[]' : '  ';
+                        out.push(`      ${ROLE_LABEL[v.role]} [${v.extractionScore}] ${v.name.padEnd(nameWidth)}${arrMark}  write:${wStr}  read:${rStr}${afterStr}`);
                     }
                 }
 
@@ -2371,11 +2545,24 @@ function formatCrossIter(files: FileReport[]): string {
                 if (loop.gotoExitLoopCount > 0) gotoStats.push(`exit_loop×${loop.gotoExitLoopCount}`);
                 if (gotoStats.length > 0) out.push(`      GoTo: ${gotoStats.join(', ')}`);
 
+                // role 内訳
+                const roleCounts = new Map<VarRole, number>();
+                for (const v of loop.crossIterationVars) roleCounts.set(v.role, (roleCounts.get(v.role) ?? 0) + 1);
+                const roleSum = [...roleCounts.entries()]
+                    .filter(([, n]) => n > 0)
+                    .map(([r, n]) => `${ROLE_JA[r]}×${n}`)
+                    .join(', ');
+                if (roleSum) out.push(`      内訳: ${roleSum}`);
+
+                // リファクタリングヒント
                 const hints: string[] = [];
-                if (loop.gotoRetryCount > 0)          hints.push('retry → Do While 変換');
-                if (loop.gotoSkipCount  > 0)          hints.push('loop_skip → If で囲んで GoTo 除去');
-                if (loop.crossIterationVars.length >= 4) hints.push(`crossIterVars=${loop.crossIterationVars.length} → State 構造体定義`);
-                else if (loop.crossIterationVars.length > 0) hints.push(`crossIterVars=${loop.crossIterationVars.length} → 関数化時は ByRef で渡す`);
+                if (loop.gotoRetryCount > 0) hints.push('retry → Do While 変換');
+                if (loop.gotoSkipCount  > 0) hints.push('loop_skip → If で囲んで GoTo 除去');
+                const crossCount = (roleCounts.get('cross_iter') ?? 0) + (roleCounts.get('accumulator') ?? 0);
+                if (crossCount >= 4)      hints.push(`ByRef 変数=${crossCount} → State 構造体定義`);
+                else if (crossCount > 0)  hints.push(`ByRef 変数=${crossCount} → 関数化時に ByRef で渡す`);
+                const localCount = roleCounts.get('loop_local') ?? 0;
+                if (localCount > 0) hints.push(`local×${localCount} → 関数内ローカル変数化可`);
                 if (hints.length > 0) out.push(`      💡 ${hints.join(' / ')}`);
             }
         }
@@ -2383,9 +2570,11 @@ function formatCrossIter(files: FileReport[]): string {
 
     // サマリ
     const allLoops = files.flatMap(r => r.loopAnalyses.flatMap(p => p.loops));
-    const totalLoops     = allLoops.length;
-    const loopsWithVars  = allLoops.filter(l => l.crossIterationVars.length > 0).length;
-    const totalCrossVars = allLoops.reduce((s, l) => s + l.crossIterationVars.length, 0);
+    const totalLoops    = allLoops.length;
+    const loopsWithVars = allLoops.filter(l => l.crossIterationVars.length > 0).length;
+
+    const roleTotals = new Map<VarRole, number>();
+    for (const l of allLoops) for (const v of l.crossIterationVars) roleTotals.set(v.role, (roleTotals.get(v.role) ?? 0) + 1);
 
     if (totalLoops > 0) {
         out.push('');
@@ -2393,8 +2582,10 @@ function formatCrossIter(files: FileReport[]): string {
         out.push('📊 クロスイテレーション サマリ');
         out.push('='.repeat(40));
         out.push(`  総ループ数: ${totalLoops}  うち変数あり: ${loopsWithVars} ループ`);
-        out.push(`  総クロスイテレーション変数: ${totalCrossVars} 件`);
-        if (totalCrossVars === 0) out.push('  ✅ すべてのループが自己完結しています');
+        for (const [role, count] of roleTotals) {
+            out.push(`  ${ROLE_LABEL[role].trim().padEnd(12)} [score ${role === 'loop_local' ? 0 : role === 'accumulator' || role === 'state_flag' || role === 'out_param' ? 1 : 1}]: ${count} 件  (${ROLE_JA[role]})`);
+        }
+        if (roleTotals.size === 0) out.push('  ✅ すべてのループが自己完結しています');
     }
 
     return out.join('\n');
