@@ -240,4 +240,24 @@ function fmt(source: string, options?: FormatterOptions): string {
     console.log('[PASS] Multi-line If...Then continuation indents body correctly');
 }
 
+// 26. Multi-line ElseIf...Then (line continuation) indents body correctly
+{
+    const result = fmt('sub S()\nif x > 0 then\ny = 1\nelseif xxxx _\n   and yyyy then\ny = 2\nend if\nend sub');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[3], '    ElseIf xxxx _', 'ElseIf line at level 1');
+    assert.strictEqual(lines[5], '        y = 2', 'ElseIf body at level 2');
+    assert.strictEqual(lines[6], '    End If', 'End If at level 1');
+    console.log('[PASS] Multi-line ElseIf...Then continuation indents body correctly');
+}
+
+// 27. Multi-line For loop (line continuation) indents body correctly
+{
+    const result = fmt('sub S()\nfor i = 1 _\n   to 10\nx = x + i\nnext i\nend sub');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[1], '    For i = 1 _', 'For line at level 1');
+    assert.strictEqual(lines[3], '        x = x + i', 'For body at level 2');
+    assert.strictEqual(lines[4], '    Next i', 'Next at level 1');
+    console.log('[PASS] Multi-line For loop continuation indents body correctly');
+}
+
 console.log('\n✅ lsp-formatter: 全テスト通過');

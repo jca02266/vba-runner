@@ -220,21 +220,18 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
                 }
             }
         } else if (isLastContinuation && !isLabel) {
-            // Classify the complete logical line to detect block openers/closers
+            // Classify the complete logical line to detect block openers.
+            // closerBefore was already applied at the first physical line of this statement,
+            // so only openerAfter is processed here to avoid double-applying closerBefore
+            // (e.g. ElseIf cond _ / And cond2 Then).
             const logicalLine = continuationAccum
                 .map(l => l.replace(/[ \t]+_[ \t]*$/, ''))
                 .join(' ');
             const logTokens = tokenizeLine(logicalLine);
             const logFirst = logTokens[0]?.type;
             const logSecond = logTokens[1]?.type;
-            const { closerBefore, openerAfter } = classifyLine(logTokens, selectDepth);
+            const { openerAfter } = classifyLine(logTokens, selectDepth);
 
-            if (closerBefore) {
-                level = Math.max(0, level - 1);
-                if (logFirst === TokenType.KeywordEnd && logSecond === TokenType.KeywordSelect) {
-                    selectDepth = Math.max(0, selectDepth - 1);
-                }
-            }
             // expectedLevel stays as-is (continuation line keeps its existing indent)
             if (openerAfter) {
                 level++;
