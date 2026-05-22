@@ -108,7 +108,7 @@ interface GotoGraph {
 // state_flag  : Boolean 値または比較式のみ代入
 // loop_local  : 毎回書いてから読む（ローカル変数化可能）
 // cross_iter  : 前の繰り返しで書いた値を次の繰り返しで読む
-// out_param   : ループ内では書くだけ・ループ後で読む
+// out_param   : ループ後で読まれる（ループ内でのみ書く場合も、loop_local でも後続で読む場合も含む）
 type VarRole = 'accumulator' | 'state_flag' | 'loop_local' | 'cross_iter' | 'out_param';
 
 interface CrossIterVar {
@@ -1573,6 +1573,12 @@ function analyzeOneLoop(
             const minWrite = Math.min(...wLines);
             const minRead  = Math.min(...rLines);
             role = minWrite < minRead ? 'loop_local' : 'cross_iter';
+        }
+
+        // loop_local でもループ後で読まれる場合は out_param に昇格
+        // （最終イテレーションの値がループ外へ流出するため ByRef/戻り値が必要）
+        if (role === 'loop_local' && rAfter.length > 0) {
+            role = 'out_param';
         }
 
         const extractionScore = role === 'loop_local' ? 0 : isArray ? 2 : 1;
