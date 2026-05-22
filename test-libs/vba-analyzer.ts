@@ -65,10 +65,10 @@ interface PrefixCluster {
 
 // GoTo 種別 ---------------------------------------------------------------
 // error_handler : On Error GoTo <label> の対象（VBA 標準イディオム）
-// cleanup       : 前方ジャンプ、ループ外、飛び先の直前に Exit Sub/Function がある（後処理パターン）
-// exit_loop     : 前方ジャンプ、ループ内から飛び出す（Exit For/Do で代替可能）
-// loop_skip     : 前方ジャンプ、ループ内で同じループの後方ラベルへ（continue 相当）
-// retry         : 後方ジャンプ（ループ先頭や入力再試行パターン）
+// cleanup       : 後方ジャンプ (forward)、ループ外、飛び先の直前に Exit Sub/Function がある（後処理パターン）
+// exit_loop     : 後方ジャンプ (forward)、ループ内から飛び出す（Exit For/Do で代替可能）
+// loop_skip     : 後方ジャンプ (forward)、ループ内で同じループの後方ラベルへ（continue 相当）
+// retry         : 前方ジャンプ (backward)（ループ先頭や入力再試行パターン）
 // other         : 上記に分類できない複雑なジャンプ
 type GotoKind = 'error_handler' | 'cleanup' | 'exit_loop' | 'loop_skip' | 'retry' | 'other';
 
@@ -1258,7 +1258,7 @@ function classifyGoto(
     // 同じラベルへの通常 GoTo は cleanup 等として通常分類する。
     const inLoopBase = g.loopStack.length > 0;
     const loopKindBase = g.loopStack[g.loopStack.length - 1] ?? null;
-    const dirBase = targetLine >= 0 ? (targetLine < g.line ? 'forward' : 'backward') : 'backward';
+    const dirBase = targetLine >= 0 ? (targetLine < g.line ? 'backward' : 'forward') : 'forward';
 
     if (isOnError) {
         return { line: g.line, targetLabel: g.target, direction: dirBase, kind: 'error_handler', isOnError, inLoop: inLoopBase, loopKind: loopKindBase, score: 0, hint: GOTO_HINTS.error_handler };
@@ -1266,12 +1266,12 @@ function classifyGoto(
 
     if (targetLine < 0) {
         // ラベルが見つからない（外部ラベルや行番号）
-        return { line: g.line, targetLabel: g.target, direction: 'backward', kind: 'other', isOnError, inLoop: inLoopBase, loopKind: loopKindBase, score: 4, hint: '対象ラベルが同プロシージャ内に見つかりません' };
+        return { line: g.line, targetLabel: g.target, direction: 'forward', kind: 'other', isOnError, inLoop: inLoopBase, loopKind: loopKindBase, score: 4, hint: '対象ラベルが同プロシージャ内に見つかりません' };
     }
 
-    // 前方（↑）= ラベルが GoTo より上（低い行番号）= すでに通過したコードへ戻る = retry 系
-    // 後方（↓）= ラベルが GoTo より下（高い行番号）= まだ通過していないコードへ進む = skip/cleanup 系
-    const direction: 'forward' | 'backward' = targetLine < g.line ? 'forward' : 'backward';
+    // forward (後方↓) = ラベルが GoTo より下（高い行番号）= まだ通過していないコードへ進む = skip/cleanup 系
+    // backward (前方↑) = ラベルが GoTo より上（低い行番号）= すでに通過したコードへ戻る = retry 系
+    const direction: 'forward' | 'backward' = targetLine < g.line ? 'backward' : 'forward';
     const inLoop = g.loopStack.length > 0;
     const loopKind = g.loopStack[g.loopStack.length - 1] ?? null;
 
@@ -1279,11 +1279,11 @@ function classifyGoto(
     const innerLoop = [...loopBounds].reverse().find(lb => lb.startLine <= g.line && g.line <= lb.endLine);
 
     let kind: GotoKind;
-    if (direction === 'forward') {
-        // 前方（↑）ジャンプ = 上の行へ戻る = retry
+    if (direction === 'backward') {
+        // backward (前方↑) ジャンプ = 上の行へ戻る = retry
         kind = 'retry';
     } else {
-        // 後方（↓）ジャンプ = 下の行へ進む
+        // forward (後方↓) ジャンプ = 下の行へ進む
         if (innerLoop) {
             // GoTo がループ内にある
             if (targetLine > innerLoop.endLine) {
@@ -1292,7 +1292,7 @@ function classifyGoto(
                 kind = 'loop_skip'; // 同ループ内の下方位置へ（continue 相当）
             }
         } else {
-            // ループ外からの後方ジャンプ
+            // ループ外からの forward (後方↓) ジャンプ
             // (a) ラベルが On Error GoTo の対象 → cleanup（アーリーリターンパターン）
             // (b) GoTo と label の間に Exit Sub/Function がある → cleanup
             const isErrLabel = errorHandlerLabels.has(targetKey);
@@ -1922,7 +1922,7 @@ function formatGotoGraphs(files: FileReport[]): string {
         cleanup:       '後処理ジャンプ',
         exit_loop:     'ループ脱出',
         loop_skip:     'ループスキップ (continue相当)',
-        retry:         '後方ジャンプ (retry)',
+        retry:         '前方ジャンプ (retry)',
         other:         '不明な複雑ジャンプ',
     };
 
@@ -1962,7 +1962,7 @@ function formatGotoGraphs(files: FileReport[]): string {
             // GoTo 文一覧
             out.push('    GoTo 文:');
             for (const gt of g.gotos) {
-                const dir = gt.direction === 'forward' ? '↑前方' : '↓後方';
+                const dir = gt.direction === 'forward' ? '↓後方' : '↑前方';
                 const prefix = gt.isOnError ? 'On Error GoTo' : 'GoTo';
                 const loopStr = gt.inLoop ? `[${gt.loopKind}内]` : '';
                 out.push(`      L${String(gt.line).padEnd(5)} ${prefix} ${gt.targetLabel}  ${dir} ${loopStr}  ${scoreEmoji(gt.score)} ${kindJa[gt.kind]}`);
