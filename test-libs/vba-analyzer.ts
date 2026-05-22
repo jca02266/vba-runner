@@ -103,6 +103,31 @@ interface GotoGraph {
     procScore: number;       // プロシージャ内最大スコア
 }
 
+interface CrossIterVar {
+    name: string;
+    writeLines: number[];    // 書き込まれる行番号（1-based）
+    readLines: number[];     // 読み込まれる行番号（1-based）
+}
+
+interface LoopAnalysis {
+    loopKind: string;           // 'For' | 'ForEach' | 'While' | 'Do'
+    startLine: number;
+    endLine: number;
+    counterVar: string | null;  // For/ForEach のカウンタ変数（crossIterVars から除外済み）
+    crossIterationVars: CrossIterVar[];
+    gotoRetryCount: number;
+    gotoSkipCount: number;
+    gotoExitLoopCount: number;
+}
+
+interface ProcLoopAnalysis {
+    procName: string;
+    procKind: string;
+    startLine: number;
+    endLine: number;
+    loops: LoopAnalysis[];
+}
+
 interface FileReport {
     filePath: string;
     totalLines: number;
@@ -111,6 +136,7 @@ interface FileReport {
     prefixClusters: PrefixCluster[];
     warnings: string[];
     gotoGraphs: GotoGraph[];
+    loopAnalyses: ProcLoopAnalysis[];
 }
 
 interface CallGraphEdge {
@@ -1166,6 +1192,286 @@ function scoreCommentBlock(
 }
 
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// Cross-iteration variable analysis
+// ---------------------------------------------------------
+
+function collectReadsInExpr(expr: any, result: Map<string, number[]>): void {
+    if (!expr) return;
+    const line: number = expr.loc?.start.line ?? -1;
+    switch (expr.type) {
+        case 'Identifier': {
+            const n = (expr.name as string).toLowerCase();
+            if (!result.has(n)) result.set(n, []);
+            result.get(n)!.push(line);
+            break;
+        }
+        case 'BinaryExpression':
+            collectReadsInExpr(expr.left, result);
+            collectReadsInExpr(expr.right, result);
+            break;
+        case 'UnaryExpression':
+            collectReadsInExpr(expr.argument, result);
+            break;
+        case 'CallExpression':
+            collectReadsInExpr(expr.callee, result);
+            for (const a of expr.args ?? []) collectReadsInExpr(a, result);
+            break;
+        case 'NamedArgument':
+            collectReadsInExpr(expr.value, result);
+            break;
+        case 'MemberExpression':
+        case 'DictionaryAccessExpression':
+            collectReadsInExpr(expr.object, result);
+            break;
+        case 'ParenthesizedExpression':
+            collectReadsInExpr(expr.expression, result);
+            break;
+        case 'TypeOfIsExpression':
+            collectReadsInExpr(expr.expression, result);
+            break;
+    }
+}
+
+function extractWriteName(expr: any): string | null {
+    if (!expr) return null;
+    if (expr.type === 'Identifier') return (expr.name as string).toLowerCase();
+    if (expr.type === 'CallExpression') return extractWriteName(expr.callee); // arr(i) = x → 'arr'
+    return null; // MemberExpression 等はオブジェクトプロパティなので除外
+}
+
+function collectVarRefsInBody(
+    stmts: any[],
+    writes: Map<string, number[]>,
+    reads: Map<string, number[]>,
+    skipVars: Set<string>,
+): void {
+    for (const stmt of stmts) {
+        if (!stmt) continue;
+        const line: number = stmt.loc?.start.line ?? -1;
+        switch (stmt.type) {
+            case 'AssignmentStatement':
+            case 'SetStatement': {
+                const w = extractWriteName(stmt.left);
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                if (stmt.left?.type === 'CallExpression') {
+                    for (const a of stmt.left.args ?? []) collectReadsInExpr(a, reads);
+                }
+                collectReadsInExpr(stmt.right, reads);
+                break;
+            }
+            case 'LSetStatement':
+            case 'RSetStatement': {
+                const w = extractWriteName(stmt.left);
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                collectReadsInExpr(stmt.right, reads);
+                break;
+            }
+            case 'ReDimStatement': {
+                const w = (stmt.name?.name as string | undefined)?.toLowerCase() ?? null;
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                for (const b of stmt.bounds ?? []) {
+                    if (b.lower) collectReadsInExpr(b.lower, reads);
+                    collectReadsInExpr(b.upper, reads);
+                }
+                break;
+            }
+            case 'ForStatement': {
+                const counter = (stmt.identifier?.name as string | undefined)?.toLowerCase() ?? null;
+                const innerSkip = counter ? new Set([...skipVars, counter]) : skipVars;
+                collectReadsInExpr(stmt.start, reads);
+                collectReadsInExpr(stmt.end, reads);
+                if (stmt.step) collectReadsInExpr(stmt.step, reads);
+                collectVarRefsInBody(stmt.body ?? [], writes, reads, innerSkip);
+                break;
+            }
+            case 'ForEachStatement': {
+                const elem = (stmt.variable?.name as string | undefined)?.toLowerCase() ?? null;
+                const innerSkip = elem ? new Set([...skipVars, elem]) : skipVars;
+                collectReadsInExpr(stmt.collection, reads);
+                collectVarRefsInBody(stmt.body ?? [], writes, reads, innerSkip);
+                break;
+            }
+            case 'WhileStatement': {
+                collectReadsInExpr(stmt.condition, reads);
+                collectVarRefsInBody(stmt.body ?? [], writes, reads, skipVars);
+                break;
+            }
+            case 'DoWhileStatement': {
+                if (stmt.condition) collectReadsInExpr(stmt.condition, reads);
+                collectVarRefsInBody(stmt.body ?? [], writes, reads, skipVars);
+                break;
+            }
+            case 'IfStatement': {
+                collectReadsInExpr(stmt.condition, reads);
+                if (stmt.consequent) collectVarRefsInBody(Array.isArray(stmt.consequent) ? stmt.consequent : [stmt.consequent], writes, reads, skipVars);
+                if (stmt.alternate) collectVarRefsInBody(Array.isArray(stmt.alternate) ? stmt.alternate : [stmt.alternate], writes, reads, skipVars);
+                break;
+            }
+            case 'WithStatement': {
+                collectReadsInExpr(stmt.expression, reads);
+                collectVarRefsInBody(stmt.body ?? [], writes, reads, skipVars);
+                break;
+            }
+            case 'SelectCaseStatement': {
+                collectReadsInExpr(stmt.expression, reads);
+                for (const c of stmt.cases ?? []) {
+                    for (const rng of c.ranges ?? []) {
+                        if (rng.kind === 'to') { collectReadsInExpr(rng.start, reads); collectReadsInExpr(rng.end, reads); }
+                        else collectReadsInExpr(rng.value, reads);
+                    }
+                    collectVarRefsInBody(c.body ?? [], writes, reads, skipVars);
+                }
+                if (stmt.elseBody) collectVarRefsInBody(stmt.elseBody, writes, reads, skipVars);
+                break;
+            }
+            case 'CallStatement':
+                collectReadsInExpr(stmt.expression, reads);
+                break;
+            case 'PrintStatement':
+                collectReadsInExpr(stmt.fileNumber, reads);
+                for (const e of stmt.expressions ?? []) { if (typeof e === 'object') collectReadsInExpr(e, reads); }
+                break;
+            case 'WriteStatement':
+                collectReadsInExpr(stmt.fileNumber, reads);
+                for (const e of stmt.items ?? []) collectReadsInExpr(e, reads);
+                break;
+            case 'LineInputStatement': {
+                collectReadsInExpr(stmt.fileNumber, reads);
+                const w = (stmt.variable?.name as string | undefined)?.toLowerCase() ?? null;
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                break;
+            }
+            case 'InputStatement': {
+                collectReadsInExpr(stmt.fileNumber, reads);
+                for (const v of stmt.variables ?? []) {
+                    const w = extractWriteName(v);
+                    if (w && !skipVars.has(w)) {
+                        if (!writes.has(w)) writes.set(w, []);
+                        writes.get(w)!.push(line);
+                    }
+                }
+                break;
+            }
+            case 'GetStatement': {
+                collectReadsInExpr(stmt.fileNumber, reads);
+                if (stmt.recordNumber) collectReadsInExpr(stmt.recordNumber, reads);
+                const w = extractWriteName(stmt.variable);
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                break;
+            }
+            case 'PutStatement':
+                collectReadsInExpr(stmt.fileNumber, reads);
+                if (stmt.recordNumber) collectReadsInExpr(stmt.recordNumber, reads);
+                collectReadsInExpr(stmt.data, reads);
+                break;
+            case 'EraseStatement': {
+                const w = (stmt.name?.name as string | undefined)?.toLowerCase() ?? null;
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                break;
+            }
+        }
+    }
+}
+
+function collectLoopsInStmts(stmts: any[], result: any[]): void {
+    const loopTypes = new Set(['ForStatement', 'ForEachStatement', 'WhileStatement', 'DoWhileStatement']);
+    for (const stmt of stmts) {
+        if (!stmt) continue;
+        if (loopTypes.has(stmt.type)) result.push(stmt);
+        if (stmt.body) collectLoopsInStmts(Array.isArray(stmt.body) ? stmt.body : [stmt.body], result);
+        if (stmt.consequent) collectLoopsInStmts(Array.isArray(stmt.consequent) ? stmt.consequent : [stmt.consequent], result);
+        if (stmt.alternate) collectLoopsInStmts(Array.isArray(stmt.alternate) ? stmt.alternate : [stmt.alternate], result);
+        if (stmt.cases) for (const c of stmt.cases) collectLoopsInStmts(c.body ?? [], result);
+        if (stmt.elseBody) collectLoopsInStmts(stmt.elseBody, result);
+    }
+}
+
+function analyzeOneLoop(loopStmt: any, gotoGotos: GotoEntry[]): LoopAnalysis {
+    const startLine: number = loopStmt.loc?.start.line ?? -1;
+    const endLine: number = loopStmt.loc?.end.line ?? startLine;
+    const loopKindMap: Record<string, string> = {
+        ForStatement: 'For', ForEachStatement: 'ForEach',
+        WhileStatement: 'While', DoWhileStatement: 'Do',
+    };
+    const loopKind = loopKindMap[loopStmt.type] ?? 'Unknown';
+
+    let counterVar: string | null = null;
+    if (loopStmt.type === 'ForStatement') {
+        counterVar = (loopStmt.identifier?.name as string | undefined)?.toLowerCase() ?? null;
+    } else if (loopStmt.type === 'ForEachStatement') {
+        counterVar = (loopStmt.variable?.name as string | undefined)?.toLowerCase() ?? null;
+    }
+    const skipVars: Set<string> = counterVar ? new Set([counterVar]) : new Set();
+
+    const writes = new Map<string, number[]>();
+    const reads = new Map<string, number[]>();
+
+    if (loopStmt.type === 'ForStatement') {
+        collectReadsInExpr(loopStmt.start, reads);
+        collectReadsInExpr(loopStmt.end, reads);
+        if (loopStmt.step) collectReadsInExpr(loopStmt.step, reads);
+    } else if (loopStmt.type === 'ForEachStatement') {
+        collectReadsInExpr(loopStmt.collection, reads);
+    } else if (loopStmt.condition) {
+        collectReadsInExpr(loopStmt.condition, reads);
+    }
+
+    collectVarRefsInBody(loopStmt.body ?? [], writes, reads, skipVars);
+
+    const crossIterationVars: CrossIterVar[] = [];
+    for (const [name, wLines] of writes) {
+        const rLines = reads.get(name);
+        if (rLines && rLines.length > 0) {
+            crossIterationVars.push({
+                name,
+                writeLines: [...new Set(wLines)].sort((a, b) => a - b),
+                readLines: [...new Set(rLines)].sort((a, b) => a - b),
+            });
+        }
+    }
+    crossIterationVars.sort((a, b) => a.name.localeCompare(b.name));
+
+    const loopGotos = gotoGotos.filter(g => g.line >= startLine && g.line <= endLine);
+    return {
+        loopKind, startLine, endLine, counterVar, crossIterationVars,
+        gotoRetryCount:    loopGotos.filter(g => g.kind === 'retry').length,
+        gotoSkipCount:     loopGotos.filter(g => g.kind === 'loop_skip').length,
+        gotoExitLoopCount: loopGotos.filter(g => g.kind === 'exit_loop').length,
+    };
+}
+
+function analyzeLoopsInProc(proc: any, gotoGraph: GotoGraph): ProcLoopAnalysis {
+    const loopStmts: any[] = [];
+    collectLoopsInStmts(proc.body ?? [], loopStmts);
+    return {
+        procName: proc.name?.name ?? proc.name ?? '?',
+        procKind: proc.kind ?? 'Sub',
+        startLine: proc.loc?.start.line ?? -1,
+        endLine:   proc.loc?.end.line ?? -1,
+        loops: loopStmts.map(l => analyzeOneLoop(l, gotoGraph.gotos)),
+    };
+}
+
+// ---------------------------------------------------------
 // GoTo グラフ解析
 // ---------------------------------------------------------
 
@@ -1382,7 +1688,7 @@ function analyzeFile(filePath: string): FileAnalysis {
     } catch (e: any) {
         warnings.push(`Parse error: ${e.message}`);
         return {
-            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], prefixClusters: [], warnings, gotoGraphs: [] },
+            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], prefixClusters: [], warnings, gotoGraphs: [], loopAnalyses: [] },
             definedProcs: new Map(),
             definedTypes: new Set(),
             callsByProc: new Map(),
@@ -1472,9 +1778,10 @@ function analyzeFile(filePath: string): FileAnalysis {
     const prefixClusters = detectPrefixClusters(ast.body);
     const xlVbConstantRefs = collectExcelConstantRefs(ast);
     const gotoGraphs = procs.map((proc: any) => analyzeGotoInProc(proc));
+    const loopAnalyses = procs.map((proc: any, i: number) => analyzeLoopsInProc(proc, gotoGraphs[i]));
 
     return {
-        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings, gotoGraphs },
+        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings, gotoGraphs, loopAnalyses },
         definedProcs,
         definedTypes,
         callsByProc,
@@ -2023,6 +2330,76 @@ function formatGotoGraphs(files: FileReport[]): string {
     return out.join('\n');
 }
 
+function formatCrossIter(files: FileReport[]): string {
+    const out: string[] = [];
+
+    for (const r of files) {
+        const activeProcs = r.loopAnalyses.filter(p =>
+            p.loops.some(l => l.crossIterationVars.length > 0 || l.gotoRetryCount > 0 || l.gotoSkipCount > 0 || l.gotoExitLoopCount > 0)
+        );
+        if (activeProcs.length === 0) continue;
+
+        out.push('='.repeat(40));
+        out.push(`📊 クロスイテレーション変数: ${r.filePath}`);
+        out.push('='.repeat(40));
+
+        for (const p of activeProcs) {
+            out.push('');
+            out.push(`  ${p.procKind} ${p.procName}  (L${p.startLine}–L${p.endLine})`);
+
+            for (const loop of p.loops) {
+                if (loop.crossIterationVars.length === 0 && loop.gotoRetryCount === 0 && loop.gotoSkipCount === 0 && loop.gotoExitLoopCount === 0) continue;
+
+                const counterInfo = loop.counterVar ? `, カウンタ: ${loop.counterVar}` : '';
+                out.push(`    ${loop.loopKind} ループ (L${loop.startLine}–L${loop.endLine}${counterInfo})`);
+
+                if (loop.crossIterationVars.length === 0) {
+                    out.push(`      クロスイテレーション変数: なし`);
+                } else {
+                    out.push(`      クロスイテレーション変数 (${loop.crossIterationVars.length}件, 関数化時は ByRef 必要):`);
+                    const nameWidth = Math.max(...loop.crossIterationVars.map(v => v.name.length));
+                    for (const v of loop.crossIterationVars) {
+                        const wStr = v.writeLines.map(l => `L${l}`).join(', ');
+                        const rStr = v.readLines.map(l => `L${l}`).join(', ');
+                        out.push(`        ${v.name.padEnd(nameWidth)}  write: ${wStr}  read: ${rStr}`);
+                    }
+                }
+
+                const gotoStats: string[] = [];
+                if (loop.gotoRetryCount    > 0) gotoStats.push(`retry×${loop.gotoRetryCount}`);
+                if (loop.gotoSkipCount     > 0) gotoStats.push(`skip×${loop.gotoSkipCount}`);
+                if (loop.gotoExitLoopCount > 0) gotoStats.push(`exit_loop×${loop.gotoExitLoopCount}`);
+                if (gotoStats.length > 0) out.push(`      GoTo: ${gotoStats.join(', ')}`);
+
+                const hints: string[] = [];
+                if (loop.gotoRetryCount > 0)          hints.push('retry → Do While 変換');
+                if (loop.gotoSkipCount  > 0)          hints.push('loop_skip → If で囲んで GoTo 除去');
+                if (loop.crossIterationVars.length >= 4) hints.push(`crossIterVars=${loop.crossIterationVars.length} → State 構造体定義`);
+                else if (loop.crossIterationVars.length > 0) hints.push(`crossIterVars=${loop.crossIterationVars.length} → 関数化時は ByRef で渡す`);
+                if (hints.length > 0) out.push(`      💡 ${hints.join(' / ')}`);
+            }
+        }
+    }
+
+    // サマリ
+    const allLoops = files.flatMap(r => r.loopAnalyses.flatMap(p => p.loops));
+    const totalLoops     = allLoops.length;
+    const loopsWithVars  = allLoops.filter(l => l.crossIterationVars.length > 0).length;
+    const totalCrossVars = allLoops.reduce((s, l) => s + l.crossIterationVars.length, 0);
+
+    if (totalLoops > 0) {
+        out.push('');
+        out.push('='.repeat(40));
+        out.push('📊 クロスイテレーション サマリ');
+        out.push('='.repeat(40));
+        out.push(`  総ループ数: ${totalLoops}  うち変数あり: ${loopsWithVars} ループ`);
+        out.push(`  総クロスイテレーション変数: ${totalCrossVars} 件`);
+        if (totalCrossVars === 0) out.push('  ✅ すべてのループが自己完結しています');
+    }
+
+    return out.join('\n');
+}
+
 // ---------------------------------------------------------
 // CLI
 // ---------------------------------------------------------
@@ -2081,6 +2458,7 @@ function main() {
         console.log('  --outline             Workspace Outline（AI向けコンテキスト圧縮）を出力');
         console.log('  --commented-code      コメントアウトされたコード候補のみ表示');
         console.log('  --goto-graph          GoTo 文の制御フローグラフとリファクタリング提案を表示');
+        console.log('  --cross-iter          クロスイテレーション変数（ByRef 必要変数）の一覧を表示');
         console.log('  --gen-test-dir <dir>  テスト用ソースを指定ディレクトリに生成（const.ts 等）');
         process.exit(args.length === 0 ? 1 : 0);
     }
@@ -2088,7 +2466,8 @@ function main() {
     const summaryOnly = args.includes('--summary-only');
     const wantOutline = args.includes('--outline');
     const wantCommentedCode = args.includes('--commented-code');
-    const wantGotoGraph = args.includes('--goto-graph');
+    const wantGotoGraph  = args.includes('--goto-graph');
+    const wantCrossIter  = args.includes('--cross-iter');
     const genTestDirIdx = args.indexOf('--gen-test-dir');
     const genTestDir = genTestDirIdx !== -1 ? args[genTestDirIdx + 1] : null;
     if (genTestDirIdx !== -1 && (!genTestDir || genTestDir.startsWith('--'))) {
@@ -2132,6 +2511,11 @@ function main() {
 
     if (wantGotoGraph) {
         console.log(formatGotoGraphs(workspace.files));
+        return;
+    }
+
+    if (wantCrossIter) {
+        console.log(formatCrossIter(workspace.files));
         return;
     }
 
