@@ -267,11 +267,23 @@ interface LineKind {
     openerAfter: boolean;
 }
 
+const ACCESS_MODIFIERS = new Set([
+    TokenType.KeywordPublic,
+    TokenType.KeywordPrivate,
+    TokenType.KeywordFriend,
+    TokenType.KeywordStatic,
+]);
+
 function classifyLine(tokens: Token[], selectDepth: number): LineKind {
     if (tokens.length === 0) return { closerBefore: false, openerAfter: false };
 
-    const first = tokens[0].type;
-    const second = tokens[1]?.type;
+    // Skip leading access modifiers (Public/Private/Friend/Static) to find the keyword
+    let offset = 0;
+    while (offset < tokens.length && ACCESS_MODIFIERS.has(tokens[offset].type)) {
+        offset++;
+    }
+    const first = tokens[offset]?.type ?? tokens[0].type;
+    const second = tokens[offset + 1]?.type;
 
     // End <X>
     if (first === TokenType.KeywordEnd && second !== undefined) {
@@ -313,11 +325,14 @@ function classifyLine(tokens: Token[], selectDepth: number): LineKind {
         return { closerBefore: false, openerAfter: true };
     }
 
-    // If ... Then (block form: nothing after Then)
+    // If ... Then (block form: nothing after Then, ignoring trailing `:` separators)
     if (first === TokenType.KeywordIf) {
         const thenIdx = tokens.findIndex(t => t.type === TokenType.KeywordThen);
-        if (thenIdx !== -1 && tokens.slice(thenIdx + 1).length === 0) {
-            return { closerBefore: false, openerAfter: true };
+        if (thenIdx !== -1) {
+            const afterThen = tokens.slice(thenIdx + 1).filter(t => t.type !== TokenType.OperatorColon);
+            if (afterThen.length === 0) {
+                return { closerBefore: false, openerAfter: true };
+            }
         }
         return { closerBefore: false, openerAfter: false };
     }

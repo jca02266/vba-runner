@@ -181,4 +181,42 @@ function fmt(source: string, options?: FormatterOptions): string {
     console.log('[PASS] Option Explicit keyword case');
 }
 
+// 20. Public Type block indentation
+{
+    const result = fmt('Public Type AAA\nResponse As Object\nStatus As Integer\nEnd Type');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[0], 'Public Type AAA', 'Public Type header unchanged');
+    assert.strictEqual(lines[1], '    Response As Object', 'member indented 4 spaces');
+    assert.strictEqual(lines[2], '    Status As Integer', 'second member indented 4 spaces');
+    assert.strictEqual(lines[3], 'End Type', 'End Type at level 0');
+    console.log('[PASS] Public Type block indentation');
+}
+
+// 21. Private Enum block indentation
+{
+    const result = fmt('Private Enum MyEnum\nValA\nValB\nEnd Enum');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[1], '    ValA', 'Enum member indented 4 spaces');
+    assert.strictEqual(lines[3], 'End Enum', 'End Enum at level 0');
+    console.log('[PASS] Private Enum block indentation');
+}
+
+// 22. If ... Then: (block If with trailing colon is treated as block, not single-line)
+{
+    const result = fmt('sub S()\nif x > 0 then:\nx = 1\nend if\nend sub');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[1], '    If x > 0 Then:', 'If...Then: at level 1 (block form)');
+    assert.strictEqual(lines[2], '        x = 1', 'body indented to level 2');
+    assert.strictEqual(lines[3], '    End If', 'End If at level 1');
+    console.log('[PASS] If...Then: (trailing colon) treated as block If');
+}
+
+// 23. On Error GoTo lbl: trailing colon does not affect formatter
+{
+    const result = fmt('sub S()\non error goto errHandler:\nx = 1\nexit sub\nerrHandler:\nx = 0\nend sub');
+    assert.ok(result.includes('On Error GoTo errHandler:'), 'On Error GoTo label: preserved');
+    assert.ok(result.includes('errHandler:'), 'label line preserved');
+    console.log('[PASS] On Error GoTo lbl: trailing colon handled');
+}
+
 console.log('\n✅ lsp-formatter: 全テスト通過');
