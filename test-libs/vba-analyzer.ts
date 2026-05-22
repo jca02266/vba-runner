@@ -63,6 +63,46 @@ interface PrefixCluster {
     suggestion: string;
 }
 
+// GoTo 種別 ---------------------------------------------------------------
+// error_handler : On Error GoTo <label> の対象（VBA 標準イディオム）
+// cleanup       : 前方ジャンプ、ループ外、飛び先の直前に Exit Sub/Function がある（後処理パターン）
+// exit_loop     : 前方ジャンプ、ループ内から飛び出す（Exit For/Do で代替可能）
+// loop_skip     : 前方ジャンプ、ループ内で同じループの後方ラベルへ（continue 相当）
+// retry         : 後方ジャンプ（ループ先頭や入力再試行パターン）
+// other         : 上記に分類できない複雑なジャンプ
+type GotoKind = 'error_handler' | 'cleanup' | 'exit_loop' | 'loop_skip' | 'retry' | 'other';
+
+interface LabelInfo {
+    name: string;
+    line: number;            // 1-based
+    inLoop: boolean;
+    loopKind: string | null; // 'For' | 'ForEach' | 'While' | 'Do' | null
+    isErrorHandler: boolean; // On Error GoTo の対象
+    hasExitSubBefore: boolean; // ラベルの直前（同プロシージャ内）に Exit Sub/Function がある
+}
+
+interface GotoEntry {
+    line: number;            // GoTo 文の行（1-based）
+    targetLabel: string;
+    direction: 'forward' | 'backward';
+    kind: GotoKind;
+    isOnError: boolean;      // On Error GoTo かどうか
+    inLoop: boolean;         // GoTo 文自体がループ内にあるか
+    loopKind: string | null;
+    score: number;           // 0=問題なし … 4=最優先リファクタリング
+    hint: string;            // リファクタリング提案
+}
+
+interface GotoGraph {
+    procName: string;
+    procKind: string;
+    startLine: number;
+    endLine: number;
+    labels: LabelInfo[];
+    gotos: GotoEntry[];
+    procScore: number;       // プロシージャ内最大スコア
+}
+
 interface FileReport {
     filePath: string;
     totalLines: number;
@@ -70,6 +110,7 @@ interface FileReport {
     procedures: ProcedureMetrics[];
     prefixClusters: PrefixCluster[];
     warnings: string[];
+    gotoGraphs: GotoGraph[];
 }
 
 interface CallGraphEdge {
@@ -1124,6 +1165,195 @@ function scoreCommentBlock(
     };
 }
 
+// ---------------------------------------------------------
+// GoTo グラフ解析
+// ---------------------------------------------------------
+
+/** AST を再帰的に走査してラベル・GoTo・ループ境界・Exit Sub 行を収集する */
+interface RawLabel { name: string; line: number; loopStack: string[] }
+interface RawGoto  { line: number; target: string; loopStack: string[]; isOnError: boolean }
+interface LoopBound { kind: string; startLine: number; endLine: number }
+
+function collectGotoItems(
+    stmts: any[],
+    loopStack: string[],
+    labels: RawLabel[],
+    gotos: RawGoto[],
+    exitSubLines: number[],
+    loopBounds: LoopBound[],
+): void {
+    for (const stmt of stmts) {
+        if (!stmt) continue;
+        const line: number = stmt.loc?.start.line ?? stmt.line ?? -1;
+
+        if (stmt.type === 'LabelStatement') {
+            labels.push({ name: String(stmt.label), line, loopStack: [...loopStack] });
+        }
+        if (stmt.type === 'GoToStatement') {
+            gotos.push({ line, target: String(stmt.label), loopStack: [...loopStack], isOnError: false });
+        }
+        if (stmt.type === 'OnErrorStatement' && stmt.label &&
+            stmt.label !== 'Resume Next' && stmt.label !== '0') {
+            gotos.push({ line, target: String(stmt.label), loopStack: [...loopStack], isOnError: true });
+        }
+        if (stmt.type === 'ExitStatement' &&
+            (stmt.exitType === 'Sub' || stmt.exitType === 'Function' || stmt.exitType === 'Property')) {
+            exitSubLines.push(line);
+        }
+
+        // ループブロック: 境界を記録してから body を深く走査
+        const loopTypes: Record<string, string> = {
+            ForStatement: 'For', ForEachStatement: 'ForEach',
+            WhileStatement: 'While', DoWhileStatement: 'Do',
+        };
+        const loopKind = loopTypes[stmt.type];
+        if (loopKind) {
+            const endLine: number = stmt.loc?.end.line ?? line;
+            loopBounds.push({ kind: loopKind, startLine: line, endLine });
+            collectGotoItems(stmt.body ?? [], [...loopStack, loopKind], labels, gotos, exitSubLines, loopBounds);
+            continue; // body は上で処理済み
+        }
+
+        // その他のブロックを再帰
+        if (stmt.body)        collectGotoItems(Array.isArray(stmt.body) ? stmt.body : [stmt.body], loopStack, labels, gotos, exitSubLines, loopBounds);
+        if (stmt.consequent)  collectGotoItems(Array.isArray(stmt.consequent) ? stmt.consequent : [stmt.consequent], loopStack, labels, gotos, exitSubLines, loopBounds);
+        if (stmt.alternate)   collectGotoItems(Array.isArray(stmt.alternate)  ? stmt.alternate  : [stmt.alternate],  loopStack, labels, gotos, exitSubLines, loopBounds);
+        if (stmt.elseIfClauses) for (const c of stmt.elseIfClauses) collectGotoItems(c.consequent ?? [], loopStack, labels, gotos, exitSubLines, loopBounds);
+        if (stmt.cases)       for (const c of stmt.cases) collectGotoItems(c.body ?? [], loopStack, labels, gotos, exitSubLines, loopBounds);
+    }
+}
+
+const GOTO_SCORES: Record<GotoKind, number> = {
+    error_handler: 0,
+    cleanup:       1,
+    exit_loop:     2,
+    loop_skip:     3,
+    retry:         3,
+    other:         4,
+};
+
+const GOTO_HINTS: Record<GotoKind, string> = {
+    error_handler: 'VBA 標準パターン。On Error GoTo は維持してよい',
+    cleanup:       'Exit Sub/Function に置き換えるか、後処理をヘルパー Sub に抽出する',
+    exit_loop:     'Exit For / Exit Do に置き換え可能',
+    loop_skip:     'If 条件を反転して残りのループ本体を If...End If で囲み GoTo を除去する',
+    retry:         'Do...Loop Until（または Do While...Loop）パターンに書き換える',
+    other:         '制御フローが複雑。プロシージャ分割または構造化ループへの変換を検討',
+};
+
+function classifyGoto(
+    g: RawGoto,
+    labelMap: Map<string, RawLabel>,
+    loopBounds: LoopBound[],
+    exitSubLines: number[],
+    errorHandlerLabels: Set<string>,
+): GotoEntry {
+    const targetKey = g.target.toLowerCase();
+    const label = labelMap.get(targetKey);
+    const targetLine = label?.line ?? -1;
+
+    const isOnError = g.isOnError;
+
+    // On Error GoTo 文自体のみ error_handler。
+    // 同じラベルへの通常 GoTo は cleanup 等として通常分類する。
+    if (isOnError) {
+        return { line: g.line, targetLabel: g.target, direction: 'forward', kind: 'error_handler', isOnError, inLoop: g.loopStack.length > 0, loopKind: g.loopStack[g.loopStack.length - 1] ?? null, score: 0, hint: GOTO_HINTS.error_handler };
+    }
+
+    if (targetLine < 0) {
+        // ラベルが見つからない（外部ラベルや行番号）
+        return { line: g.line, targetLabel: g.target, direction: 'forward', kind: 'other', isOnError, inLoop: g.loopStack.length > 0, loopKind: g.loopStack[g.loopStack.length - 1] ?? null, score: 4, hint: '対象ラベルが同プロシージャ内に見つかりません' };
+    }
+
+    const direction: 'forward' | 'backward' = targetLine > g.line ? 'forward' : 'backward';
+    const inLoop = g.loopStack.length > 0;
+    const loopKind = g.loopStack[g.loopStack.length - 1] ?? null;
+
+    // GoTo 文を内包する最内ループ
+    const innerLoop = [...loopBounds].reverse().find(lb => lb.startLine <= g.line && g.line <= lb.endLine);
+
+    let kind: GotoKind;
+    if (direction === 'backward') {
+        // 後方ジャンプ = retry（ループ内外問わず）
+        kind = 'retry';
+    } else {
+        // 前方ジャンプ
+        if (innerLoop) {
+            // GoTo がループ内にある
+            if (targetLine > innerLoop.endLine) {
+                kind = 'exit_loop'; // ループを脱出
+            } else {
+                kind = 'loop_skip'; // 同ループ内の後方位置へ（continue 相当）
+            }
+        } else {
+            // ループ外からの前方ジャンプ
+            // (a) ラベルが On Error GoTo の対象 → cleanup（アーリーリターンパターン）
+            // (b) GoTo と label の間に Exit Sub/Function がある → cleanup
+            const isErrLabel = errorHandlerLabels.has(targetKey);
+            const hasExitBefore = exitSubLines.some(el => el > g.line && el < targetLine);
+            kind = (isErrLabel || hasExitBefore) ? 'cleanup' : 'other';
+        }
+    }
+
+    return {
+        line: g.line, targetLabel: g.target, direction, kind, isOnError,
+        inLoop, loopKind,
+        score: GOTO_SCORES[kind],
+        hint: GOTO_HINTS[kind],
+    };
+}
+
+function analyzeGotoInProc(proc: any): GotoGraph {
+    const rawLabels: RawLabel[]  = [];
+    const rawGotos: RawGoto[]    = [];
+    const exitSubLines: number[] = [];
+    const loopBounds: LoopBound[]= [];
+
+    collectGotoItems(proc.body ?? [], [], rawLabels, rawGotos, exitSubLines, loopBounds);
+
+    // On Error GoTo の対象ラベルを集める
+    const errorHandlerLabels = new Set(
+        rawGotos.filter(g => g.isOnError).map(g => g.target.toLowerCase())
+    );
+
+    const labelMap = new Map<string, RawLabel>(rawLabels.map(l => [l.name.toLowerCase(), l]));
+
+    // ラベル情報を構築
+    const labels: LabelInfo[] = rawLabels.map(l => {
+        const isErrorHandler = errorHandlerLabels.has(l.name.toLowerCase());
+        // ラベル行の直前（同プロシージャ内）に Exit Sub/Function があるか
+        const prevExit = exitSubLines.filter(el => el < l.line);
+        const hasExitSubBefore = prevExit.length > 0 && prevExit[prevExit.length - 1] > (
+            // 最後の GoTo や他ラベルより後にある Exit かどうか（簡易判定: 10 行以内）
+            l.line - 20
+        );
+        return {
+            name: l.name,
+            line: l.line,
+            inLoop: l.loopStack.length > 0,
+            loopKind: l.loopStack[l.loopStack.length - 1] ?? null,
+            isErrorHandler,
+            hasExitSubBefore,
+        };
+    });
+
+    const gotos: GotoEntry[] = rawGotos.map(g =>
+        classifyGoto(g, labelMap, loopBounds, exitSubLines, errorHandlerLabels)
+    );
+
+    const procScore = gotos.reduce((max, g) => Math.max(max, g.score), 0);
+
+    return {
+        procName: proc.name?.name ?? '<anonymous>',
+        procKind: proc.isProperty ? 'Property' : proc.isFunction ? 'Function' : 'Sub',
+        startLine: proc.loc?.start.line ?? -1,
+        endLine: proc.loc?.end.line ?? -1,
+        labels,
+        gotos,
+        procScore,
+    };
+}
+
 interface FileAnalysis {
     report: FileReport;
     // クロスファイル分析に使う中間データ
@@ -1146,7 +1376,7 @@ function analyzeFile(filePath: string): FileAnalysis {
     } catch (e: any) {
         warnings.push(`Parse error: ${e.message}`);
         return {
-            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], prefixClusters: [], warnings },
+            report: { filePath, totalLines: lines.length, procedureCount: 0, procedures: [], prefixClusters: [], warnings, gotoGraphs: [] },
             definedProcs: new Map(),
             definedTypes: new Set(),
             callsByProc: new Map(),
@@ -1235,9 +1465,10 @@ function analyzeFile(filePath: string): FileAnalysis {
 
     const prefixClusters = detectPrefixClusters(ast.body);
     const xlVbConstantRefs = collectExcelConstantRefs(ast);
+    const gotoGraphs = procs.map((proc: any) => analyzeGotoInProc(proc));
 
     return {
-        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings },
+        report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings, gotoGraphs },
         definedProcs,
         definedTypes,
         callsByProc,
@@ -1677,6 +1908,115 @@ function formatCommentedCodeBlocks(blocks: CommentedCodeBlock[]): string {
     return out.join('\n');
 }
 
+function formatGotoGraphs(files: FileReport[]): string {
+    const out: string[] = [];
+    const scoreEmoji = (s: number) => ['✅', '🟡', '🟠', '🔴', '🚨'][Math.min(s, 4)];
+    const kindJa: Record<GotoKind, string> = {
+        error_handler: 'エラーハンドラ',
+        cleanup:       '後処理ジャンプ',
+        exit_loop:     'ループ脱出',
+        loop_skip:     'ループスキップ (continue相当)',
+        retry:         '後方ジャンプ (retry)',
+        other:         '不明な複雑ジャンプ',
+    };
+
+    let totalGotos = 0;
+    let filesWithGotos = 0;
+
+    for (const r of files) {
+        const graphs = r.gotoGraphs.filter(g => g.gotos.length > 0 || g.labels.length > 0);
+        if (graphs.length === 0) continue;
+        filesWithGotos++;
+
+        out.push('');
+        out.push('========================================');
+        out.push(`📍 GoTo グラフ: ${r.filePath}`);
+        out.push('========================================');
+
+        for (const g of graphs) {
+            const procHasGotos = g.gotos.length > 0;
+            if (!procHasGotos) continue;
+            totalGotos += g.gotos.length;
+
+            out.push('');
+            out.push(`  ${g.procKind} ${g.procName}  (L${g.startLine}–L${g.endLine})  ${scoreEmoji(g.procScore)} スコア=${g.procScore}`);
+
+            // ラベル一覧
+            if (g.labels.length > 0) {
+                out.push('    ラベル:');
+                for (const lbl of g.labels) {
+                    const loopStr = lbl.inLoop ? `[${lbl.loopKind}ループ内]` : '[ループ外]';
+                    const flags: string[] = [];
+                    if (lbl.isErrorHandler) flags.push('← On Error GoTo の対象');
+                    if (lbl.hasExitSubBefore) flags.push('← 直前に Exit Sub/Function');
+                    out.push(`      L${String(lbl.line).padEnd(5)} ${lbl.name}:  ${loopStr}  ${flags.join('  ')}`);
+                }
+            }
+
+            // GoTo 文一覧
+            out.push('    GoTo 文:');
+            for (const gt of g.gotos) {
+                const dir = gt.direction === 'forward' ? '↓前方' : '↑後方';
+                const prefix = gt.isOnError ? 'On Error GoTo' : 'GoTo';
+                const loopStr = gt.inLoop ? `[${gt.loopKind}内]` : '';
+                out.push(`      L${String(gt.line).padEnd(5)} ${prefix} ${gt.targetLabel}  ${dir} ${loopStr}  ${scoreEmoji(gt.score)} ${kindJa[gt.kind]}`);
+            }
+
+            // リファクタリング提案（score > 0 のものだけ）
+            const suggestions = g.gotos.filter(gt => gt.score > 0);
+            if (suggestions.length > 0) {
+                out.push('    💡 提案:');
+                // 同じ hint をまとめる
+                const byHint = new Map<string, number[]>();
+                for (const gt of suggestions) {
+                    if (!byHint.has(gt.hint)) byHint.set(gt.hint, []);
+                    byHint.get(gt.hint)!.push(gt.line);
+                }
+                for (const [hint, lines] of byHint) {
+                    out.push(`      L${lines.join(', L')}: ${hint}`);
+                }
+            }
+        }
+    }
+
+    if (filesWithGotos === 0) {
+        return '(GoTo 文は検出されませんでした)';
+    }
+
+    // サマリ
+    out.push('');
+    out.push('========================================');
+    out.push('📊 GoTo サマリ');
+    out.push('========================================');
+
+    const kindCounts: Partial<Record<GotoKind, number>> = {};
+    for (const r of files) {
+        for (const g of r.gotoGraphs) {
+            for (const gt of g.gotos) {
+                kindCounts[gt.kind] = (kindCounts[gt.kind] ?? 0) + 1;
+            }
+        }
+    }
+    out.push(`  総 GoTo 数: ${totalGotos}  (${filesWithGotos} ファイル)`);
+    for (const [kind, count] of Object.entries(kindCounts) as [GotoKind, number][]) {
+        out.push(`  ${scoreEmoji(GOTO_SCORES[kind])} ${kindJa[kind]}: ${count} 件`);
+    }
+
+    const highPriority = files.flatMap(r => r.gotoGraphs)
+        .filter(g => g.procScore >= 3)
+        .sort((a, b) => b.procScore - a.procScore);
+    if (highPriority.length > 0) {
+        out.push('');
+        out.push('  🔴 優先リファクタリング対象:');
+        for (const g of highPriority) {
+            const kinds = [...new Set(g.gotos.filter(gt => gt.score >= 3).map(gt => kindJa[gt.kind]))].join(', ');
+            out.push(`    ${g.procName}  スコア=${g.procScore}  (${kinds})`);
+        }
+    }
+
+    return out.join('\n');
+}
+
 // ---------------------------------------------------------
 // CLI
 // ---------------------------------------------------------
@@ -1734,6 +2074,7 @@ function main() {
         console.log('  --summary-only        ワークスペース要約（エントリーポイント候補・モック必要箇所）のみ表示');
         console.log('  --outline             Workspace Outline（AI向けコンテキスト圧縮）を出力');
         console.log('  --commented-code      コメントアウトされたコード候補のみ表示');
+        console.log('  --goto-graph          GoTo 文の制御フローグラフとリファクタリング提案を表示');
         console.log('  --gen-test-dir <dir>  テスト用ソースを指定ディレクトリに生成（const.ts 等）');
         process.exit(args.length === 0 ? 1 : 0);
     }
@@ -1741,6 +2082,7 @@ function main() {
     const summaryOnly = args.includes('--summary-only');
     const wantOutline = args.includes('--outline');
     const wantCommentedCode = args.includes('--commented-code');
+    const wantGotoGraph = args.includes('--goto-graph');
     const genTestDirIdx = args.indexOf('--gen-test-dir');
     const genTestDir = genTestDirIdx !== -1 ? args[genTestDirIdx + 1] : null;
     if (genTestDirIdx !== -1 && (!genTestDir || genTestDir.startsWith('--'))) {
@@ -1779,6 +2121,11 @@ function main() {
 
     if (wantCommentedCode) {
         console.log(formatCommentedCodeBlocks(workspace.commentedCodeBlocks));
+        return;
+    }
+
+    if (wantGotoGraph) {
+        console.log(formatGotoGraphs(workspace.files));
         return;
     }
 
