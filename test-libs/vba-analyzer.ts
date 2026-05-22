@@ -1256,16 +1256,22 @@ function classifyGoto(
 
     // On Error GoTo 文自体のみ error_handler。
     // 同じラベルへの通常 GoTo は cleanup 等として通常分類する。
+    const inLoopBase = g.loopStack.length > 0;
+    const loopKindBase = g.loopStack[g.loopStack.length - 1] ?? null;
+    const dirBase = targetLine >= 0 ? (targetLine < g.line ? 'forward' : 'backward') : 'backward';
+
     if (isOnError) {
-        return { line: g.line, targetLabel: g.target, direction: 'forward', kind: 'error_handler', isOnError, inLoop: g.loopStack.length > 0, loopKind: g.loopStack[g.loopStack.length - 1] ?? null, score: 0, hint: GOTO_HINTS.error_handler };
+        return { line: g.line, targetLabel: g.target, direction: dirBase, kind: 'error_handler', isOnError, inLoop: inLoopBase, loopKind: loopKindBase, score: 0, hint: GOTO_HINTS.error_handler };
     }
 
     if (targetLine < 0) {
         // ラベルが見つからない（外部ラベルや行番号）
-        return { line: g.line, targetLabel: g.target, direction: 'forward', kind: 'other', isOnError, inLoop: g.loopStack.length > 0, loopKind: g.loopStack[g.loopStack.length - 1] ?? null, score: 4, hint: '対象ラベルが同プロシージャ内に見つかりません' };
+        return { line: g.line, targetLabel: g.target, direction: 'backward', kind: 'other', isOnError, inLoop: inLoopBase, loopKind: loopKindBase, score: 4, hint: '対象ラベルが同プロシージャ内に見つかりません' };
     }
 
-    const direction: 'forward' | 'backward' = targetLine > g.line ? 'forward' : 'backward';
+    // 前方（↑）= ラベルが GoTo より上（低い行番号）= すでに通過したコードへ戻る = retry 系
+    // 後方（↓）= ラベルが GoTo より下（高い行番号）= まだ通過していないコードへ進む = skip/cleanup 系
+    const direction: 'forward' | 'backward' = targetLine < g.line ? 'forward' : 'backward';
     const inLoop = g.loopStack.length > 0;
     const loopKind = g.loopStack[g.loopStack.length - 1] ?? null;
 
@@ -1273,20 +1279,20 @@ function classifyGoto(
     const innerLoop = [...loopBounds].reverse().find(lb => lb.startLine <= g.line && g.line <= lb.endLine);
 
     let kind: GotoKind;
-    if (direction === 'backward') {
-        // 後方ジャンプ = retry（ループ内外問わず）
+    if (direction === 'forward') {
+        // 前方（↑）ジャンプ = 上の行へ戻る = retry
         kind = 'retry';
     } else {
-        // 前方ジャンプ
+        // 後方（↓）ジャンプ = 下の行へ進む
         if (innerLoop) {
             // GoTo がループ内にある
             if (targetLine > innerLoop.endLine) {
-                kind = 'exit_loop'; // ループを脱出
+                kind = 'exit_loop'; // ループを脱出（↓ループ外へ）
             } else {
-                kind = 'loop_skip'; // 同ループ内の後方位置へ（continue 相当）
+                kind = 'loop_skip'; // 同ループ内の下方位置へ（continue 相当）
             }
         } else {
-            // ループ外からの前方ジャンプ
+            // ループ外からの後方ジャンプ
             // (a) ラベルが On Error GoTo の対象 → cleanup（アーリーリターンパターン）
             // (b) GoTo と label の間に Exit Sub/Function がある → cleanup
             const isErrLabel = errorHandlerLabels.has(targetKey);
@@ -1956,7 +1962,7 @@ function formatGotoGraphs(files: FileReport[]): string {
             // GoTo 文一覧
             out.push('    GoTo 文:');
             for (const gt of g.gotos) {
-                const dir = gt.direction === 'forward' ? '↓前方' : '↑後方';
+                const dir = gt.direction === 'forward' ? '↑前方' : '↓後方';
                 const prefix = gt.isOnError ? 'On Error GoTo' : 'GoTo';
                 const loopStr = gt.inLoop ? `[${gt.loopKind}内]` : '';
                 out.push(`      L${String(gt.line).padEnd(5)} ${prefix} ${gt.targetLabel}  ${dir} ${loopStr}  ${scoreEmoji(gt.score)} ${kindJa[gt.kind]}`);
