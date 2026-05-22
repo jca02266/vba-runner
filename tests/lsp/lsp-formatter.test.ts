@@ -219,4 +219,15 @@ function fmt(source: string, options?: FormatterOptions): string {
     console.log('[PASS] On Error GoTo lbl: trailing colon handled');
 }
 
+// 24. Label is always at column 0 (VBA convention)
+{
+    const result = fmt('sub S()\non error goto ErrHandler\nx = 1\nexit sub\n    ErrHandler:\nx = 0\nend sub');
+    const lines = result.split('\n');
+    const labelLine = lines.find(l => l.includes('ErrHandler:'));
+    assert.ok(labelLine !== undefined, 'label line exists');
+    assert.strictEqual(labelLine, 'ErrHandler:', 'label at column 0 (no leading indent)');
+    assert.strictEqual(lines[lines.indexOf(labelLine!) + 1], '    x = 0', 'code after label indented normally');
+    console.log('[PASS] Label is always at column 0');
+}
+
 console.log('\n✅ lsp-formatter: 全テスト通過');

@@ -182,9 +182,14 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
         const first = lineTokens[0]?.type;
         const second = lineTokens[1]?.type;
 
+        // Label lines (e.g. `errHandler:`) are always at column 0 per VBA convention
+        const isLabel = lineTokens.length >= 2 &&
+            lineTokens[0].type === TokenType.Identifier &&
+            lineTokens[1].type === TokenType.OperatorColon;
+
         let expectedLevel = level;
 
-        if (!isContinuation) {
+        if (!isContinuation && !isLabel) {
             const { closerBefore, openerAfter } = classifyLine(lineTokens, selectDepth);
 
             if (closerBefore) {
@@ -205,7 +210,7 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
         }
 
         // Build the new line: expected indent + keyword-fixed content
-        const expectedIndent = isContinuation ? '' : unit.repeat(expectedLevel);
+        const expectedIndent = isContinuation ? '' : isLabel ? '' : unit.repeat(expectedLevel);
         const actualIndent = leadingWhitespace(line);
         const contentStart = actualIndent.length;
 
