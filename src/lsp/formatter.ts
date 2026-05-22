@@ -163,6 +163,8 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
     const edits: TextEdit[] = [];
     let level = 0;
     let selectDepth = 0;
+    // Accumulate physical lines that form one logical statement (line continuations)
+    let continuationAccum: string[] = [];
 
     for (let i = 0; i < physicalLines.length; i++) {
         const rawLine = physicalLines[i];
@@ -177,6 +179,15 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
         const prevLine = i > 0 ? physicalLines[i - 1].replace(/\r$/, '').trimEnd() : '';
         const isContinuation = prevLine.endsWith(' _') || prevLine.endsWith('\t_');
 
+        // Track accumulated lines for block-structure analysis across continuations
+        if (!isContinuation) {
+            continuationAccum = [trimmed];
+        } else {
+            continuationAccum.push(trimmed);
+        }
+        const isLastContinuation = isContinuation &&
+            !trimmed.endsWith(' _') && !trimmed.endsWith('\t_');
+
         // Tokenize for block structure analysis
         const lineTokens = tokenizeLine(trimmed);
         const first = lineTokens[0]?.type;
@@ -190,6 +201,7 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
         let expectedLevel = level;
 
         if (!isContinuation && !isLabel) {
+            const startsMultiLine = trimmed.endsWith(' _') || trimmed.endsWith('\t_');
             const { closerBefore, openerAfter } = classifyLine(lineTokens, selectDepth);
 
             if (closerBefore) {
@@ -200,10 +212,33 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
             }
             expectedLevel = level;
 
-            // Apply the line
-            if (openerAfter) {
+            // For multi-line statements, defer opener detection to the last continuation line
+            if (openerAfter && !startsMultiLine) {
                 level++;
                 if (first === TokenType.KeywordSelect && second === TokenType.KeywordCase) {
+                    selectDepth++;
+                }
+            }
+        } else if (isLastContinuation && !isLabel) {
+            // Classify the complete logical line to detect block openers/closers
+            const logicalLine = continuationAccum
+                .map(l => l.replace(/[ \t]+_[ \t]*$/, ''))
+                .join(' ');
+            const logTokens = tokenizeLine(logicalLine);
+            const logFirst = logTokens[0]?.type;
+            const logSecond = logTokens[1]?.type;
+            const { closerBefore, openerAfter } = classifyLine(logTokens, selectDepth);
+
+            if (closerBefore) {
+                level = Math.max(0, level - 1);
+                if (logFirst === TokenType.KeywordEnd && logSecond === TokenType.KeywordSelect) {
+                    selectDepth = Math.max(0, selectDepth - 1);
+                }
+            }
+            // expectedLevel stays as-is (continuation line keeps its existing indent)
+            if (openerAfter) {
+                level++;
+                if (logFirst === TokenType.KeywordSelect && logSecond === TokenType.KeywordCase) {
                     selectDepth++;
                 }
             }

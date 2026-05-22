@@ -230,4 +230,14 @@ function fmt(source: string, options?: FormatterOptions): string {
     console.log('[PASS] Label is always at column 0');
 }
 
+// 25. Multi-line If...Then (line continuation) indents body correctly
+{
+    const result = fmt('sub S()\nif xxxx _\n   and yyyy then\nx = 1\nend if\nend sub');
+    const lines = result.split('\n');
+    assert.strictEqual(lines[1], '    If xxxx _', 'If line at level 1');
+    assert.strictEqual(lines[3], '        x = 1', 'If body at level 2');
+    assert.strictEqual(lines[4], '    End If', 'End If at level 1');
+    console.log('[PASS] Multi-line If...Then continuation indents body correctly');
+}
+
 console.log('\n✅ lsp-formatter: 全テスト通過');
