@@ -308,37 +308,116 @@ function buildMermaidText(graph: CallGraph, visibleNodes: Set<string>, visibleEd
     lines.push('    classDef excel stroke:#ff9900,stroke-width:3px');
     lines.push('    classDef deadExcel fill:#ff8888,stroke:#ff9900,stroke-width:3px,color:#fff');
 
-    // Add visible nodes with appropriate classes
+    // エントリーポイント（public かつ refs=0）を特定
+    const entryPoints: { key: string; node: any }[] = [];
     for (const key of visibleNodes) {
         const node = graph.nodes.get(key);
-        if (!node) continue;
+        if (node && node.scope === 'public' && node.referenceCount === 0) {
+            entryPoints.push({ key, node });
+        }
+    }
 
-        // Use node name as-is (Mermaid handles identifiers)
-        const nodeId = node.name;
-        let classDef = '';
+    // 各エントリーポイント配下のプロシージャを特定
+    const assignedNodes = new Set<string>();
+    const nodeToSubgraph = new Map<string, string>();
 
-        const isEntryPoint = node.scope === 'public' && node.referenceCount === 0;
-        const isDeadCode = node.scope === 'private' && node.referenceCount === 0;
-        const isExcelDep = node.isExcelDependent;
+    for (const entry of entryPoints) {
+        const subgraphNodes = new Set<string>([entry.key]);
+        const queue = [entry.key];
 
-        if (isDeadCode && isExcelDep) {
-            classDef = ':::deadExcel';
-        } else if (isEntryPoint) {
-            classDef = ':::entry';
-        } else if (isDeadCode) {
-            classDef = ':::dead';
-        } else if (isExcelDep) {
-            classDef = ':::excel';
+        while (queue.length > 0) {
+            const current = queue.shift()!;
+            if (assignedNodes.has(current)) continue;
+
+            // current から呼ばれるプロシージャを探す
+            for (const edge of visibleEdges) {
+                if (edge.from === current && visibleNodes.has(edge.to) && !assignedNodes.has(edge.to)) {
+                    subgraphNodes.add(edge.to);
+                    queue.push(edge.to);
+                }
+            }
         }
 
-        if (classDef) {
-            lines.push(`    ${nodeId}${classDef}`);
-        } else {
-            lines.push(`    ${nodeId}`);
+        // ノードをサブグラフに割り当て
+        for (const nodeKey of subgraphNodes) {
+            if (!assignedNodes.has(nodeKey)) {
+                assignedNodes.add(nodeKey);
+                nodeToSubgraph.set(nodeKey, entry.node.name);
+            }
         }
+    }
 
-        // Add click handler using callback syntax
-        lines.push(`    click ${nodeId} nodeClicked`);
+    // サブグラフごとにノードを生成
+    for (const entry of entryPoints) {
+        const subgraphNodes = Array.from(visibleNodes).filter(key => nodeToSubgraph.get(key) === entry.node.name);
+        if (subgraphNodes.length === 0) continue;
+
+        lines.push(`    subgraph SG_${entry.node.name}`);
+        for (const key of subgraphNodes) {
+            const node = graph.nodes.get(key);
+            if (!node) continue;
+
+            const nodeId = node.name;
+            let classDef = '';
+
+            const isEntryPoint = node.scope === 'public' && node.referenceCount === 0;
+            const isDeadCode = node.scope === 'private' && node.referenceCount === 0;
+            const isExcelDep = node.isExcelDependent;
+
+            if (isDeadCode && isExcelDep) {
+                classDef = ':::deadExcel';
+            } else if (isEntryPoint) {
+                classDef = ':::entry';
+            } else if (isDeadCode) {
+                classDef = ':::dead';
+            } else if (isExcelDep) {
+                classDef = ':::excel';
+            }
+
+            if (classDef) {
+                lines.push(`        ${nodeId}${classDef}`);
+            } else {
+                lines.push(`        ${nodeId}`);
+            }
+
+            // Add click handler using callback syntax
+            lines.push(`        click ${nodeId} nodeClicked`);
+        }
+        lines.push(`    end`);
+    }
+
+    // 割り当てられていないノード（共有ユーティリティなど）を処理
+    for (const key of visibleNodes) {
+        if (!assignedNodes.has(key)) {
+            const node = graph.nodes.get(key);
+            if (!node) continue;
+
+            const nodeId = node.name;
+            let classDef = '';
+
+            const isEntryPoint = node.scope === 'public' && node.referenceCount === 0;
+            const isDeadCode = node.scope === 'private' && node.referenceCount === 0;
+            const isExcelDep = node.isExcelDependent;
+
+            if (isDeadCode && isExcelDep) {
+                classDef = ':::deadExcel';
+            } else if (isEntryPoint) {
+                classDef = ':::entry';
+            } else if (isDeadCode) {
+                classDef = ':::dead';
+            } else if (isExcelDep) {
+                classDef = ':::excel';
+            }
+
+            if (classDef) {
+                lines.push(`    ${nodeId}${classDef}`);
+            } else {
+                lines.push(`    ${nodeId}`);
+            }
+
+            // Add click handler using callback syntax
+            lines.push(`    click ${nodeId} nodeClicked`);
+        }
     }
 
     // Add edges
