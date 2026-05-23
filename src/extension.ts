@@ -662,7 +662,32 @@ End Class`;
             replaceEdit.replace(uri, new vscode.Range(replacementStart, replacementEnd), varName);
             await vscode.workspace.applyEdit(replaceEdit);
 
-            vscode.window.showInformationMessage(`Variable '${varName}' introduced`);
+            // Set multi-cursor on all occurrences of the variable name
+            const dimLineText = editor.document.lineAt(insertLine).text;
+            const assignLineText = editor.document.lineAt(insertLine + 1).text;
+            const dimVarPos = dimLineText.indexOf(varName);
+            const assignVarPos = assignLineText.indexOf(varName);
+
+            const selections: vscode.Selection[] = [];
+            if (dimVarPos >= 0) {
+                selections.push(new vscode.Selection(
+                    insertLine, dimVarPos,
+                    insertLine, dimVarPos + varName.length
+                ));
+            }
+            if (assignVarPos >= 0) {
+                selections.push(new vscode.Selection(
+                    insertLine + 1, assignVarPos,
+                    insertLine + 1, assignVarPos + varName.length
+                ));
+            }
+            selections.push(new vscode.Selection(
+                range.start.line + 2, range.start.character,
+                range.start.line + 2, range.start.character + varName.length
+            ));
+
+            editor.selections = selections;
+            editor.revealRange(new vscode.Range(selections[0].start, selections[0].end));
         })
     );
     outputChannel.appendLine('✓ Code Actions (Refactor) registered');
