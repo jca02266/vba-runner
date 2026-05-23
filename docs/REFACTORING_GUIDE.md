@@ -519,6 +519,206 @@ Sub ProcessBatchData()
 End Sub
 ```
 
+### パターン 5: テーブル駆動パターン [[→ TABLE_DRIVEN_REFACTORING.md](../sample/docs/TABLE_DRIVEN_REFACTORING.md)]
+
+**概要**: 大量の同じ構造を持つ分岐を、**データテーブルとシンプルなルックアップロジック**に置き換える。複雑な if-else-if チェーンが繰り返されている場合に特に有効。
+
+**リファクタリング前**（ネストされた分岐地獄）:
+```vba
+' ❌ 71行の分岐地獄：5部門 × 4閾値 = 20パターン
+Function GetApprover(amount As Long, department As String) As String
+    If department = "Sales" Then
+        If amount < 50000 Then
+            GetApprover = "Manager"
+        ElseIf amount < 500000 Then
+            GetApprover = "Director"
+        ElseIf amount < 2000000 Then
+            GetApprover = "VP"
+        Else
+            GetApprover = "CFO"
+        End If
+    ElseIf department = "Marketing" Then
+        If amount < 30000 Then
+            GetApprover = "Manager"
+        ElseIf amount < 300000 Then
+            GetApprover = "Director"
+        ' ... 同じパターンが5部門分繰り返される
+    End If
+End Function
+```
+
+**リファクタリング後**（テーブル駆動）:
+```vba
+' ✅ 型定義：テーブル行
+Type ApprovalRule
+    department As String
+    threshold1 As Long
+    approver1 As String
+    threshold2 As Long
+    approver2 As String
+    threshold3 As Long
+    approver3 As String
+    defaultApprover As String
+End Type
+
+Dim g_rules() As ApprovalRule
+
+Sub InitializeApprovalRules()
+    ReDim g_rules(4)
+    
+    g_rules(0).department = "Sales"
+    g_rules(0).threshold1 = 50000
+    g_rules(0).approver1 = "Manager"
+    g_rules(0).threshold2 = 500000
+    g_rules(0).approver2 = "Director"
+    ' ... テーブルをデータで埋める
+End Sub
+
+' ✅ シンプルなルックアップロジック（23行に削減）
+Function GetApprover(amount As Long, department As String) As String
+    Dim i As Integer
+    Dim rule As ApprovalRule
+    
+    For i = LBound(g_rules) To UBound(g_rules)
+        rule = g_rules(i)
+        If rule.department = department Then
+            If amount < rule.threshold1 Then
+                GetApprover = rule.approver1
+            ElseIf amount < rule.threshold2 Then
+                GetApprover = rule.approver2
+            ElseIf amount < rule.threshold3 Then
+                GetApprover = rule.approver3
+            Else
+                GetApprover = rule.defaultApprover
+            End If
+            Exit Function
+        End If
+    Next i
+    
+    GetApprover = "Unknown"
+End Function
+```
+
+**テスト**:
+```vba
+Sub TestApprovalRules()
+    ' テーブルの初期化
+    InitializeApprovalRules
+    
+    ' テストケース：Sales部, 100,000円 → Director
+    Debug.Assert GetApprover(100000, "Sales") = "Director"
+    
+    ' Marketing部, 15,000円 → Manager
+    Debug.Assert GetApprover(15000, "Marketing") = "Manager"
+    
+    ' 不明な部門 → Unknown
+    Debug.Assert GetApprover(100000, "Unknown") = "Unknown"
+End Sub
+```
+
+**パターン 5 の利点**:
+- **コード削減**: 71行 → 47行（35%削減、規則が多いほど効果大）
+- **保守性向上**: ルール変更 = **コード編集ではなくデータ更新**
+- **変更頻度が高い場合に有効**: 金額閾値や承認者が頻繁に変わる環境
+- **外部データ連携**: テーブルを Excel シートや JSON から読み込み可能
+
+**パターン 5 の注意点**:
+- テーブル行の構造が固定化する（新しい条件型が追加できない）
+- Dictionary ベースの動的アプローチ（パターン 5b）で解決可能
+
+**パターン 5b: 動的テーブル（Dictionary）**:
+```vba
+' 外部データから動的にルールを構築
+Function BuildApprovalRulesDictionary() As Object
+    Dim dict As Object
+    Set dict = CreateObject("Scripting.Dictionary")
+    
+    Dim salesRules As Object
+    Set salesRules = CreateObject("Scripting.Dictionary")
+    salesRules.Add "levels", Array( _
+        CreateLevelTuple(50000, "Manager"), _
+        CreateLevelTuple(500000, "Director"))
+    dict.Add "Sales", salesRules
+    
+    Set BuildApprovalRulesDictionary = dict
+End Function
+
+Function GetApproverFromTable(amount As Long, department As String, rules As Object) As String
+    If Not rules.Exists(department) Then
+        GetApproverFromTable = "Unknown"
+        Exit Function
+    End If
+    
+    Dim deptRules As Object
+    Set deptRules = rules(department)
+    Dim levels As Variant
+    levels = deptRules("levels")
+    
+    Dim i As Integer
+    For i = LBound(levels) To UBound(levels)
+        If amount < levels(i)("threshold") Then
+            GetApproverFromTable = levels(i)("approver")
+            Exit Function
+        End If
+    Next i
+    
+    GetApproverFromTable = deptRules("default")
+End Function
+```
+
+**テーブル駆動の検出と提案**:
+
+IDE の自動検出機能（`TableDrivenDetector`）により、リファクタリング候補を自動判定可能：
+
+| 判定項目 | 条件 |
+|---------|------|
+| **外側分岐数** | ≥ 3 個（異なる条件値） |
+| **内側分岐数** | ≥ 3 個（反復するパターン） |
+| **形状一致** | すべての分岐が同じ構造 |
+| **代入パターン** | リテラル/識別子のみ（複雑な式なし） |
+| **副作用** | 関数呼び出しがない |
+| **信頼度** | ≥ 70/100 → 強く推奨 |
+
+**テーブル設計の自動提案**（将来の拡張）:
+```
+検出結果：
+  - 5個の外側分岐（department）
+  - 3個の内側分岐（amount thresholds）
+  
+自動提案テーブル設計：
+  Type ApprovalRule
+    department As String       ← 外側分岐のキー
+    threshold1 As Long         ← 内側分岐①の条件値
+    approver1 As String        ← 内側分岐①の結果
+    threshold2 As Long         ← 内側分岐②の条件値
+    approver2 As String        ← 内側分岐②の結果
+    defaultApprover As String  ← else節の結果
+  End Type
+```
+
+**テストケース生成の可能性**（将来の拡張）:
+
+リファクタリング前後の動作検証テストを自動生成：
+```vba
+' 自動生成テスト：カバレッジ = 5部門 × (3閾値 + 1デフォルト) = 20パターン
+
+Sub TestApprovalRulesAutoGenerated()
+    InitializeApprovalRules
+    
+    ' Sales部テスト
+    Debug.Assert GetApprover(10000, "Sales") = "Manager"      ' < threshold1
+    Debug.Assert GetApprover(100000, "Sales") = "Director"    ' < threshold2
+    Debug.Assert GetApprover(1000000, "Sales") = "VP"         ' < threshold3
+    Debug.Assert GetApprover(5000000, "Sales") = "CFO"        ' >= threshold3
+    
+    ' Marketing部テスト（異なる閾値で同じパターン）
+    Debug.Assert GetApprover(10000, "Marketing") = "Manager"
+    Debug.Assert GetApprover(100000, "Marketing") = "Director"
+    
+    ' ... 全部門カバレッジ自動生成
+End Sub
+```
+
 ---
 
 ## リファクタリングのステップバイステップガイド
