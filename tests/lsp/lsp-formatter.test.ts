@@ -290,4 +290,18 @@ function fmt(source: string, options?: FormatterOptions): string {
     console.log('[PASS] Type member identifier case');
 }
 
+// 32. Identifier casing is scoped: same name with different cases in different procs
+{
+    const src = 'Function Add(A, b)\nAdd = A + b\nEnd Function\n\nFunction Multiply(a, b)\nMultiply = a * b\nEnd Function';
+    const result = fmt(src);
+    const lines = result.split('\n');
+    // Add's scope: A stays A
+    assert.strictEqual(lines[0], 'Function Add(A, b)', 'Add param A preserved');
+    assert.strictEqual(lines[1], '    Add = A + b', 'A in Add scope stays A');
+    // Multiply's scope: a stays a
+    assert.strictEqual(lines[4], 'Function Multiply(a, b)', 'Multiply param a preserved');
+    assert.strictEqual(lines[5], '    Multiply = a * b', 'a in Multiply scope stays a');
+    console.log('[PASS] Identifier casing is scoped per procedure');
+}
+
 console.log('\n✅ lsp-formatter: 全テスト通過');

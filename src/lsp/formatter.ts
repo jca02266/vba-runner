@@ -159,19 +159,37 @@ function collectParamNames(tokens: Token[], startIdx: number, define: (name: str
     }
 }
 
-/** Scan tokens for declaration sites and return lowercase→canonical map. */
-function collectDefinitions(source: string): Map<string, string> {
-    const defs = new Map<string, string>();
+interface ProcScope {
+    startLine: number;
+    endLine: number;
+    defs: Map<string, string>; // proc-local: params + Dim/Const inside the body
+}
+
+interface ScopedDefinitions {
+    moduleDefs: Map<string, string>; // proc names, module-level Dim/Const, Type/Enum members
+    procs: ProcScope[];
+}
+
+/** Scan tokens for declaration sites, split into module-level and per-procedure scopes. */
+function collectDefinitions(source: string): ScopedDefinitions {
+    const moduleDefs = new Map<string, string>();
+    const procs: ProcScope[] = [];
     let tokens: Token[];
     try {
         tokens = new Lexer(source).tokenize()
             .filter(t => t.type !== TokenType.Newline && t.type !== TokenType.EOF);
     } catch {
-        return defs;
+        return { moduleDefs, procs };
     }
 
-    const define = (name: string) => {
-        if (!defs.has(name.toLowerCase())) defs.set(name.toLowerCase(), name);
+    const defModule = (name: string) => {
+        if (!moduleDefs.has(name.toLowerCase())) moduleDefs.set(name.toLowerCase(), name);
+    };
+
+    let currentProc: { startLine: number; defs: Map<string, string> } | null = null;
+    const defLocal = (name: string) => {
+        const map = currentProc?.defs ?? moduleDefs;
+        if (!map.has(name.toLowerCase())) map.set(name.toLowerCase(), name);
     };
 
     let inTypeOrEnum = false;
@@ -179,11 +197,11 @@ function collectDefinitions(source: string): Map<string, string> {
 
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
+        const next = tokens[i + 1];
 
         // Inside Type/Enum block: first Identifier on each line is a member name
         if (inTypeOrEnum) {
             if (t.type === TokenType.KeywordEnd) {
-                const next = tokens[i + 1];
                 if (next?.type === TokenType.KeywordType || next?.type === TokenType.KeywordEnum) {
                     inTypeOrEnum = false;
                 }
@@ -191,61 +209,73 @@ function collectDefinitions(source: string): Map<string, string> {
                 continue;
             }
             if (t.type === TokenType.Identifier && t.line !== prevLine) {
-                define(t.value);
+                defModule(t.value);
             }
             prevLine = t.line;
             continue;
         }
 
-        // Skip access modifiers to reach the declaring keyword
+        // Skip access modifiers
         if (ACCESS_MODIFIERS.has(t.type)) continue;
 
-        const next  = tokens[i + 1];
-        const next2 = tokens[i + 2];
+        // End Sub/Function/Property → close current procedure scope
+        if (t.type === TokenType.KeywordEnd) {
+            if (next?.type === TokenType.KeywordSub ||
+                next?.type === TokenType.KeywordFunction ||
+                next?.type === TokenType.KeywordProperty) {
+                if (currentProc) {
+                    procs.push({ startLine: currentProc.startLine, endLine: next.line, defs: currentProc.defs });
+                    currentProc = null;
+                }
+            }
+            if (next?.type === TokenType.KeywordType || next?.type === TokenType.KeywordEnum) {
+                inTypeOrEnum = false;
+            }
+            continue;
+        }
 
         switch (t.type) {
             case TokenType.KeywordDim:
             case TokenType.KeywordConst:
             case TokenType.KeywordStatic: {
-                const nameToken = next?.type === TokenType.Identifier ? next : null;
-                if (nameToken) define(nameToken.value);
+                if (next?.type === TokenType.Identifier) defLocal(next.value);
                 break;
             }
             case TokenType.KeywordReDim: {
-                // ReDim [Preserve] name
                 const skip = next?.value?.toLowerCase() === 'preserve' ? tokens[i + 2] : next;
-                if (skip?.type === TokenType.Identifier) define(skip.value);
+                if (skip?.type === TokenType.Identifier) defLocal(skip.value);
                 break;
             }
             case TokenType.KeywordSub:
             case TokenType.KeywordFunction: {
                 if (next?.type === TokenType.Identifier) {
-                    define(next.value);
-                    collectParamNames(tokens, i + 2, define);
+                    defModule(next.value); // proc name belongs to module scope
+                    currentProc = { startLine: t.line, defs: new Map() };
+                    collectParamNames(tokens, i + 2, name => defLocal(name));
                 }
                 break;
             }
             case TokenType.KeywordProperty: {
-                // Property Get/Let/Set <name>
                 let nameIdx = i + 1;
                 const verb = tokens[nameIdx]?.value?.toLowerCase();
                 if (verb === 'get' || verb === 'let' || verb === 'set') nameIdx++;
                 if (tokens[nameIdx]?.type === TokenType.Identifier) {
-                    define(tokens[nameIdx].value);
-                    collectParamNames(tokens, nameIdx + 1, define);
+                    defModule(tokens[nameIdx].value);
+                    currentProc = { startLine: t.line, defs: new Map() };
+                    collectParamNames(tokens, nameIdx + 1, name => defLocal(name));
                 }
                 break;
             }
             case TokenType.KeywordType:
             case TokenType.KeywordEnum: {
-                if (next?.type === TokenType.Identifier) define(next.value);
+                if (next?.type === TokenType.Identifier) defModule(next.value);
                 inTypeOrEnum = true;
                 break;
             }
         }
     }
 
-    return defs;
+    return { moduleDefs, procs };
 }
 
 // ---------------------------------------------------------------------------
@@ -259,7 +289,7 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
     const physicalLines = source.split('\n');
 
     // Phase 1: collect keyword-case and identifier-case changes per line index (0-based)
-    const identDefs = collectDefinitions(source);
+    const scopedDefs = collectDefinitions(source);
     const keywordChangesByLine = new Map<number, TokenChange[]>();
     {
         let tokens: Token[];
@@ -274,7 +304,14 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
                 canonical = KEYWORD_CANONICAL.get(token.type);
             }
             if (!canonical && token.type === TokenType.Identifier) {
-                canonical = identDefs.get((token.value as string).toLowerCase());
+                const lv = (token.value as string).toLowerCase();
+                // Look up in the innermost scope that contains this line, then fall back to module
+                const proc = scopedDefs.procs.find(
+                    p => token.line >= p.startLine && token.line <= p.endLine
+                );
+                canonical = proc
+                    ? (proc.defs.get(lv) ?? scopedDefs.moduleDefs.get(lv))
+                    : scopedDefs.moduleDefs.get(lv);
             }
             if (!canonical) continue;
             const value = token.value as string;
