@@ -107,14 +107,13 @@ export function generateCallGraphHtml(
             min-height: 200px;
         }
         .mermaid-container > .mermaid {
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            min-width: min-content;
+            display: inline-block;
             padding: 16px;
+            min-width: min-content;
         }
         .mermaid svg {
-            max-width: 100%;
+            display: block;
+            width: auto;
             height: auto;
         }
         .mermaid g.node text {
@@ -229,9 +228,18 @@ ${mermaidText}
             currentZoom = Math.max(minZoom, Math.min(maxZoom, zoomFactor));
             const svg = document.querySelector('.mermaid svg');
             if (svg) {
-                svg.style.transform = 'scale(' + currentZoom + ')';
-                svg.style.transformOrigin = 'top center';
-                svg.style.transformBox = 'fill-box';
+                // 元のサイズを記録（初回のみ）
+                if (!svg.__originalWidth) {
+                    svg.__originalWidth = svg.getBBox ? svg.getBBox().width : svg.clientWidth;
+                    svg.__originalHeight = svg.getBBox ? svg.getBBox().height : svg.clientHeight;
+                }
+
+                // スケーリングされたサイズを計算して直接設定
+                const scaledWidth = svg.__originalWidth * currentZoom;
+                const scaledHeight = svg.__originalHeight * currentZoom;
+                svg.setAttribute('width', scaledWidth);
+                svg.setAttribute('height', scaledHeight);
+                svg.style.display = 'block';
             }
             document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
             saveState();
@@ -284,14 +292,21 @@ ${mermaidText}
         setTimeout(() => {
             const svg = document.querySelector('.mermaid svg');
             if (svg) {
+                // 元のサイズを記録
+                svg.__originalWidth = svg.getBBox ? svg.getBBox().width : svg.clientWidth;
+                svg.__originalHeight = svg.getBBox ? svg.getBBox().height : svg.clientHeight;
+
                 // 保存された状態を復元、なければ 1.0 で初期化
                 if (!restoreState()) {
                     currentZoom = 1.0;
                 }
+
                 // ズームレベルを表示に反映
-                svg.style.transform = 'scale(' + currentZoom + ')';
-                svg.style.transformOrigin = 'top center';
-                svg.style.transformBox = 'fill-box';
+                const scaledWidth = svg.__originalWidth * currentZoom;
+                const scaledHeight = svg.__originalHeight * currentZoom;
+                svg.setAttribute('width', scaledWidth);
+                svg.setAttribute('height', scaledHeight);
+                svg.style.display = 'block';
                 document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
             }
         }, 100);
