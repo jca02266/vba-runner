@@ -420,6 +420,53 @@ VBA Runner は AST・実行・参照解析をすべて持っているため、AI
   - **テスト可能な純粋関数の自動識別**：Excel依存なし・グローバル変数非参照のプロシージャを候補として列挙
   - AIへの活用:「このモジュールのどの関数から先にテストを書くべきか」の判断材料を構造化データで提供
 
+- [ ] **vba-analyzer 差分モード（リファクタリング改善効果の可視化）**
+  リファクタリング前後の `vba-analyzer` 出力を比較し、指標の変化を定量的に表示する。
+  `FOR_AI.md` の Step 6「アナライザーで今回の変更を確認する」を自動化・視覚化する機能。
+
+  **使い方のイメージ:**
+  ```bash
+  # リファクタリング前にスナップショットを保存
+  node test-libs/vba-analyzer.cjs src/vba/Main.bas --json > .vba-baseline.json
+
+  # リファクタリング後に差分を表示
+  node test-libs/vba-analyzer.cjs src/vba/Main.bas --diff .vba-baseline.json
+  ```
+
+  **差分表示の出力例:**
+  ```
+  === vba-analyzer diff: Main.bas ===
+
+  [ScanLockedRows]
+    lineCount:     37 → 22  (-15) ✅
+    maxNestDepth:   5 →  3  (-2)  ✅
+    flags:         DEEP_NEST, LARGE → (none) ✅
+
+  [AccumulateLockedRowUsage]  ← 新規追加
+    lineCount:     10
+    flags:         (none) ✅
+
+  [ワークスペース集計]
+    totalLines:   394 → 371  (-23)
+    deepNestCount:  3 →   1  (-2)  ✅
+    deadCode:       2 →   2  (変化なし)
+    duplicateBlocks: 2 →  0  (-2)  ✅
+  ```
+
+  **実装方針:**
+
+  | フェーズ | 内容 | 難度 |
+  |---|---|---|
+  | 1. `--json` スナップショット保存 | すでに `--json` オプションあり。`.vba-baseline.json` として保存するヘルパーコマンドを追加 | ★☆☆ |
+  | 2. `--diff <baseline>` モード | 現在の JSON 出力と baseline を関数名でキー照合し、数値差分・フラグ変化を計算して表示 | ★★☆ |
+  | 3. 改善/悪化の色分け | 数値が改善（減少）なら ✅ 緑、悪化なら ⚠ 赤、変化なしはグレーで表示 | ★☆☆ |
+  | 4. 新規追加・削除関数の検出 | baseline にない関数名 = 抽出で新規追加、baseline にあって現在ない = 削除済み | ★☆☆ |
+
+  **実装上のポイント:**
+  - baseline との照合は関数名（`name`）をキーにする。ファイル名も含めてキーを作ると複数ファイル対応になる
+  - `--diff` は `--json` と組み合わせて `--diff baseline.json --json` で差分自体を JSON 出力できると AI 連携に便利
+  - `.vba-baseline.json` は `.gitignore` に追加してコミット対象外にする
+
 - [ ] **Code Smell 定量化レポート**
   静的解析で問題箇所を数値化してリスト化。AIにそのまま渡してリファクタリング提案を求めるワークフロー。
   - Dead code（VBAコード内からの参照数0のプロシージャ。Excel ボタン・イベント・`Application.Run` からの呼び出しは検出不可のため「削除候補」として扱う）

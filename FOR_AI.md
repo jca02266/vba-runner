@@ -1,288 +1,384 @@
-# FOR_AI.md — VBA Runner をリファクタリング支援で使うAIが最初に読むドキュメント
+# FOR_AI.md — VBA Runner リファクタリング支援 AI 向けガイド
 
 **VBA Runner** は **VBA実行環境 + リファクタリング支援ツール** です。
 Excel 不要で VBA コードを実行・テスト・静的解析できます。
-リファクタリング支援にのみ関与するAIは、このドキュメントを読めば他を読まずに作業できます。
+
+**このドキュメントの使い方:**
+ユーザーから「このファイルの内容をもとにリファクタリングしてください」と指示されたら、
+このドキュメントだけを読み、以下の**リファクタリングサイクル**を実行してください。
+他のファイルを先読みする必要はありません。
 
 ---
 
-## 読む必要のないディレクトリ・ファイル（スキップ推奨）
+## ⚠️ 基本ルール（違反禁止）
 
-| パス | 理由 |
+1. **VBAファイルの全文読み禁止** — `cat` / `Read` でファイル全体を読むことは禁止。
+   常に `vba-analyzer` の行番号を使って必要な範囲だけ読む。
+2. **1件ずつ** — アナライザーの出力は候補一覧。全部やる指示ではない。1件終えるたびにユーザーに確認する。
+3. **テストなしで変更しない** — リファクタリング前に必ずテストを GREEN にしてから変更する。
+4. **`npx` を使わない** — Node.js ローカルツールは常に `./node_modules/.bin/<コマンド>` で実行する。
+
+---
+
+## リファクタリングサイクル
+
+```
+                ┌─────────────────────────────────────────────┐
+                │  計画が完了したら Phase 2（次の計画）へ戻る  │
+                └──────────────────────┬──────────────────────┘
+                                       ↑
+Phase 1: 解析 → Phase 2: 計画 → Phase 3: 提案 → [ユーザー承認]
+                                                        ↓
+                              ┌─── Phase 4: リファクタリング ←─┐
+                              │    Phase 5: テスト              │
+                              │    Phase 6: 効果測定            │ 計画内の
+                              │    Phase 7: レポート記録        │ 次のアイテムへ
+                              │    コミット                     │
+                              └────────────────────────────────┘
+```
+
+---
+
+### Phase 1: 解析（Analysis）
+
+**コマンド:**
+```bash
+# Step 1-a: 全体把握（全モジュール・全プロシージャを数十行に圧縮）
+node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
+
+# Step 1-b: 詳細解析（問題箇所・行番号付き）
+node test-libs/vba-analyzer.cjs <対象ディレクトリ>
+
+# Step 1-c: コメントアウトコード確認
+# コメントアウトコードが多いソースの場合無駄なトークン削減のためこの出力を使って
+# 効果的に削除候補を判断、削除する
+node test-libs/vba-analyzer.cjs <対象ディレクトリ> --commented-code
+```
+
+**解析結果から読み取るもの:**
+
+| 優先度 | 判断材料 | 意味 |
+|---|---|---|
+| 高 | `duplicateBlocks[].stmtCount × occurrences` が大きい | 重複解消のインパクトが最大 |
+| 高 | `loopAnalyses[].extractionFeasibility` が低い（0〜0.5） | ループが抽出しやすい状態 |
+| 中 | `maxNestDepth >= 5`（フラグ `nest=N`） | 深いネストの関数 |
+| 中 | `lineCount >= 100`（フラグ `100L+`） | 巨大関数 |
+| 低 | `excelObjectsUsed` がある | Excel依存でモック準備が必要 |
+
+コードを読む必要がある場合は、アナライザーが示した**行番号の範囲だけ**読む:
+```bash
+# ✅ 正しい: 行番号指定
+sed -n '79,115p' target.bas
+
+# ❌ 禁止: 全文読み
+cat target.bas
+```
+
+---
+
+### Phase 2: 計画（Planning）
+
+解析結果をもとに**複数件の優先順位付きリスト**を作る。
+このリストが1回の「計画」単位。計画内の全件が完了したら次の計画へ移る。
+
+**優先ルール（ユーザーが指定しない場合）:**
+1. `duplicateBlocks` の `stmtCount × occurrences` が最大のもの
+2. `excelObjectsUsed` が空かつ `ioSideEffectCount === 0`（純粋関数 → テストが書きやすい）
+3. `loopAnalyses[].extractionFeasibility` が低いもの
+4. 上記が同等なら `lineCount` が最大のもの
+
+**計画フォーマット（内部で保持する。Phase 3 で提示する）:**
+```
+PLAN #N（<対象ディレクトリ名>）
+
+#1 `<関数名>` (L<開始>-L<終了>, <行数>行)
+   問題: <フラグ>
+   変更: <1〜2文>
+   期待: <指標> → <予測値>
+
+#2 `<関数名>` (L<開始>-L<終了>, <行数>行)
+   問題: <フラグ>
+   変更: <1〜2文>
+   期待: <指標> → <予測値>
+
+（以下同様）
+
+対象外:
+- `<関数名>`: <理由>
+```
+
+---
+
+### Phase 3: 提案（Proposal）
+
+Phase 2 で作った計画をユーザーに提示し、承認を得る。
+**承認なしに Phase 4 へ進んではいけない。**
+
+```
+## PLAN #N の提案
+
+<Phase 2 の計画フォーマットをそのまま出力>
+
+この順番で進めます。変更・追加があればお知らせください。
+承認しますか？
+```
+
+ユーザーが承認したら → **Phase 4** へ（計画の #1 から順に実行）。
+ユーザーが修正を求めたら → 計画を修正して再提示する。
+
+---
+
+### Phase 4: リファクタリング（Refactoring）
+
+計画の現在のアイテムを実行する。ユーザーへの確認は不要（承認済みの計画に従う）。
+
+**手順:**
+1. アナライザーが示した行番号で対象コードを読む（`sed -n '<start>,<end>p'`）
+2. 変更を加える
+3. アナライザーを再実行して構文エラーがないことを確認する
+
+**典型パターン:**
+
+| 原因フィールド | 対処 |
 |---|---|
-| `spec/` | MS-VBAL仕様書（4MBテキスト）。実行エンジン開発者向け。リファクタリングには不要 |
-| `src/lsp/` | VS Code LSP拡張機能の実装。エディター機能。リファクタリング作業とは無関係 |
-| `src/App.tsx` 他 React ファイル | Web UI。リファクタリングには不要 |
-| `dist/` | ビルド成果物 |
-| `node_modules/` | パッケージ |
-| `TODO.md` | VBA実行エンジンの実装TODO。リファクタリング支援とは無関係 |
-| `docs/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
-| `tests/lsp/`, `tests/engine/`, `tests/spec/` | VBA実行エンジン自体のテスト。触らなくてよい |
+| `assignmentBlocks` | 連続代入ブロックをデータ初期化関数に切り出す |
+| `duplicateBlocks` | 重複する N 行を1つの関数に切り出し、両箇所から呼び出しに変える |
+| `loopAnalyses` | 内側ループを `crossIterationVars` から ByRef パラメーターを推定して抽出 |
+| `maxNestDepth >= 5` | 内側ループ・深い条件分岐をサブルーチンに切り出してガード節を使う |
 
 ---
 
-## VBA Runner のコアファイル（リファクタリング支援に必要なもの）
+### Phase 5: テスト（Testing）
 
+**5-a. 既存テストの確認（変更前後の両方で必須）**
+
+```bash
+./node_modules/.bin/esbuild <テストファイル>.ts \
+  --bundle --outfile=<テストファイル>.cjs --platform=node \
+  && node <テストファイル>.cjs
 ```
-src/engine/
-  lexer.ts          VBAソース → トークン列
-  parser.ts         トークン列 → AST（全ノードに loc: {start, end} 付き）
-  evaluator.ts      AST → 実行（VBA実行エンジン本体）
-  sandbox.ts        ファイルI/Oのサンドボックス制限
 
-test-libs/
-  vba-analyzer.ts   静的解析CLI（リファクタリング支援の主ツール）★
-  test-runner.ts    VBARunner クラス（テスト実行ヘルパー）
+既存テストが RED になったら **計画を中断してユーザーに報告する。**
 
-sample/src/vba/
-  TaskScheduler_Core.bas   純粋ビジネスロジック（Excelなし）
-  TaskScheduler.bas        メインルーチン（Excel依存）
-  Lib*.bas      ユーティリティライブラリ群
+**5-b. 既存テストがない場合: リファクタリング前に記録する**
 
-sample/src/vba_legacy/
-  TaskScheduler_v1.bas     リファクタリング前の原典（394行の巨大関数）
-
-sample/tests/ts/
-  *.test.ts                VBAコードのユニットテスト群
+```typescript
+import { VBARunner, assert } from '../../../test-libs/test-runner';
+const vbaRunner = new VBARunner('sample/src/vba/MyModule.bas');
+assert.strictEqual(vbaRunner.run('TargetFunction', [input1, input2]), expected, '説明');
 ```
+
+`excelObjectsUsed` に列挙されたオブジェクトがある場合はモックが必要。
+→ `docs/MOCK_GUIDE.md` の冒頭「Step 1: 対応表」でオブジェクト名を引く。
+
+**5-c. 抽出した関数の単体テストを追加する（抽出直後に必須）**
+
+統合テストの GREEN だけでは不十分。抽出した関数のエッジケース（空値・境界値・非数値等）を直接テストする。
+
+```typescript
+assert.strictEqual(vbaRunner.run('NewFunction', [edgeInput]), expected, 'エッジケースの説明');
+```
+
+全テスト（既存 + 新規）が GREEN になることを確認してから次へ進む。
 
 ---
 
-## 主ツール1：静的解析 `vba-analyzer`
+### Phase 6: 効果測定（Measurement）
 
-### ビルドと実行
+アナライザーを再実行して変更前後の指標を比較する。
+
+```bash
+node test-libs/vba-analyzer.cjs <対象ファイル>
+```
+
+変更前の指標はアナライザーの出力または Phase 2 の計画から取得する。
+
+---
+
+### Phase 7: レポート記録（Report）
+
+以下のフォーマットで出力する（ユーザーへの表示 + コミットメッセージの素材）。
+
+```
+## REPORT #N-<番号> `<関数名>`
+
+### 変更内容
+<何を変更したかを1〜2文>
+
+### 定量的改善
+| 指標 | 変更前 | 変更後 | 変化 |
+|---|---|---|---|
+| `<関数名>` 行数 | N行 | M行 | -X ✅ |
+| `<関数名>` ネスト深さ | N | M | -X ✅ |
+| フラグ | <変更前> | <変更後> | ✅ |
+| 重複ブロック | N件 | M件 | -X ✅ |
+
+### テスト
+- 既存: N件 GREEN ✅
+- 新規追加: N件 GREEN ✅（<エッジケースの説明>）
+
+### 残り計画
+- [ ] #<次番号> `<関数名>`
+- [ ] #<その次> `<関数名>`
+```
+
+レポート出力後、**コミットする**（コミットメッセージはレポートの「変更内容」を使う）。
+
+コミット後:
+- **計画に次のアイテムがある** → Phase 4 に戻り次のアイテムを実行する
+- **計画の全アイテムが完了** → Phase 2 に戻り次の計画を立てる（またはユーザーが終了を選択）
+
+**重要:** アナライザーのフラグをゼロにすることが目的ではない。
+「全フラグを消す」を目指すと過剰なリファクタリングになる。止め時の判断は常にユーザーに委ねる。
+
+---
+
+## ツールリファレンス
+
+### vba-analyzer（静的解析）
 
 ```bash
 # ビルド（初回、またはvba-analyzer.tsを変更したとき）
 ./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
 
-# 実行
-node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ>          # テキスト出力
-node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ> --json   # JSON出力（プログラム連携）
-node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ> --outline # AI向けコンパクト要約
-node test-libs/vba-analyzer.cjs <ファイルまたはディレクトリ> --summary-only  # ワークスペース集計のみ
+# 実行オプション
+node test-libs/vba-analyzer.cjs <パス>                   # テキスト出力
+node test-libs/vba-analyzer.cjs <パス> --json            # JSON出力（プログラム連携）
+node test-libs/vba-analyzer.cjs <パス> --outline         # AI向けコンパクト要約
+node test-libs/vba-analyzer.cjs <パス> --summary-only    # ワークスペース集計のみ
+node test-libs/vba-analyzer.cjs <パス> --commented-code  # コメントアウトコード候補のみ
 ```
 
-### 検出できること
+**`--outline` の出力形式:**
+```
+[TaskScheduler_Core]  (210L)
+  Function CalcDeadline  [nest=3]
+  Function IsHoliday
+  Private Sub UpdateStatus  ← 0 refs
+[TaskScheduler]  (394L)
+  Sub Main  [394L, nest=7, Excel×42]
+```
 
-| 機能 | 出力 |
+**主要フィールド（プロシージャ単位）:**
+
+| フィールド | 内容 |
 |---|---|
-| プロシージャごとの行数・ネスト深さ・Dim数 | `lineCount`, `maxNestDepth`, `localDeclCount` |
-| 問題フラグ | `LARGE(100行+)` `DEEP_NEST(5段+)` `MANY_LOCALS(30個+)` `EXCEL_HEAVY(10件+)` |
-| 連続代入ブロック（抽出候補）+ 形状分類 | `assignmentBlocks[].shape` = `const-decl` / `dim-decl` / `range-read` / `range-write` / `var-init` / `assign` / `mixed` |
-| Excel I/O アクセス箇所（**行番号付き**） | `excelAccessSamples[].line` |
-| Excel モック必要候補（オブジェクト別） | `excelObjectsUsed[]` |
-| 繰り返し数値リテラル（マジックナンバー） | `repeatedNumericLiterals[]` |
-| 接頭辞クラスター（UDT/Enum 抽出候補） | `prefixClusters[]` 例: `COL_×6` → Enum化提案 |
-| エントリーポイント候補（Public・参照0） | `entryPointCandidates[]` + ヒューリスティック分類 |
-| Dead code 候補（Private・参照0） | `deadCodeCandidates[]` |
-| コールグラフ | `callGraph[].{from, fromFile, to, toFile}` |
-| ワークスペース横断の参照カウント | `procedure.referenceCount` |
+| `name`, `kind`, `scope` | 名前・種別（Sub/Function/Property）・スコープ（public/private/friend） |
+| `startLine`, `endLine`, `lineCount` | 行範囲と行数 |
+| `maxNestDepth` | 最大ネスト深さ（5以上で `nest=N` フラグ） |
+| `localDeclCount` | ローカル `Dim`/`Const` 宣言数 |
+| `referenceCount` | 他プロシージャからの参照数（ワークスペース横断） |
+| `assignmentBlocks[].shape` | 連続代入ブロックと形状: `const-decl` / `dim-decl` / `range-read` / `range-write` / `var-init` / `assign` / `mixed` |
+| `excelAccessCount`, `excelAccessSamples[]` | Excel アクセス件数と行番号付きサンプル |
+| `excelObjectsUsed[]` | モック必要候補オブジェクト（`Sheets`, `Range`, `Application` 等） |
+| `hardcodedSheetCount`, `hardcodedAddressCount` | 固定シート名・固定セルアドレスの種類数 |
+| `repeatedNumericLiterals[]` | 同じ数値リテラルが複数回登場（マジックナンバー候補） |
+| `magicLiteralsInCalls[]` | 関数呼び出し引数のリテラル値（呼び出し先・引数インデックス付き） |
+| `byRefAssignments[]` | ByRef パラメーターへの代入箇所 |
+| `parameters[]`, `returnType` | パラメーター一覧（型・ByVal/ByRef）と戻り値型 |
+| `ioSideEffectCount` | `MsgBox` / `InputBox` / `Debug.Print` の呼び出し回数 |
 
-**注意**: Excel ボタン・イベントハンドラー・`Application.Run` による呼び出しは静的解析の範囲外。
-参照0のPublicプロシージャを「dead code」として削除しないこと。
+**主要フィールド（ファイル単位）:**
 
----
+| フィールド | 内容 |
+|---|---|
+| `prefixClusters[]` | 接頭辞クラスター（例: `COL_×6` → Enum 化提案） |
+| `gotoGraphs[]` | GoTo 解析（種別: `error_handler` / `cleanup` / `exit_loop` / `loop_skip` / `retry` / `other`、スコアと改善ヒント付き） |
+| `loopAnalyses[].loops[].crossIterationVars[]` | ループ内変数の役割分析。詳細は下記 |
+| `commentedCodeBlocks[]` | コメントアウトコード候補（`confidence` high/medium/low・`score`・`strippedContent` 付き） |
+| `warnings[]` | パースエラー等の警告 |
 
-## 主ツール2：VBA実行エンジン（実行）
+**`crossIterationVars` の `role` と `extractionScore`:**
 
-### テストの書き方
+| `role` | 意味 | `extractionScore` |
+|---|---|---|
+| `loop_local` | 毎回書いてから読む。完全なローカル変数 | 0（そのまま抽出可能） |
+| `accumulator` | `x = x + n` など前回値を累積 | 1（ByRef スカラーで渡す） |
+| `state_flag` | Boolean 値または比較式のみ代入 | 1（ByRef で渡す） |
+| `cross_iter` | 前の繰り返しで書いた値を次の繰り返しで読む | 1（ByRef で渡す） |
+| `out_param` | ループ後に読まれる出力値 | 1 または 2（配列なら 2） |
 
-```typescript
-// sample/tests/ts/MyFeature.test.ts
-import { VBARunner } from '../../test-libs/test-runner';
+`extractionFeasibility`（ループ単位の平均スコア）が低いほどループを関数に抽出しやすい。
 
-const vbaRunner = new VBARunner('sample/src/vba/MyModule.bas');
+**主要フィールド（ワークスペース横断）:**
 
-// サブルーチン呼び出し（引数あり）
-const result = vbaRunner.run('FunctionName', [arg1, arg2]);
+| フィールド | 内容 |
+|---|---|
+| `entryPointCandidates[]` | Public・参照0（ヒューリスティック分類・理由付き） |
+| `deadCodeCandidates[]` | Private・参照0（削除候補） |
+| `callGraph[]` | `{from, fromFile, to, toFile}` プロシージャ間呼び出し |
+| `duplicateBlocks[]` | 複数箇所に同一コードブロックが存在する重複 |
 
-// 式を評価
-const val = vbaRunner.eval('SomeSub()');  // 引数なし呼び出しにも使う
-```
-
-### テストのビルドと実行
-
-```bash
-./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node && node sample/tests/ts/MyFeature.test.cjs
-```
-
-> **注意**: `esbuild` は PATH に入っていないため、常に `./node_modules/.bin/esbuild` で実行すること。`npx` は使わない。
-
-### Excelオブジェクトのモック
-
-Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）は実行エンジンで直接動作しない。
-テストでは `VBARunner` の第2引数にモックを渡す:
-
-```typescript
-const vbaRunner = new VBARunner('sample/src/vba/TaskScheduler_Core.bas', {
-    sheets: mockSheets,
-    activeSheet: mockSheet,
-});
-```
-
-詳細: `docs/MOCK_GUIDE.md`
+> **注意**: Excel ボタン・イベントハンドラー・`Application.Run` による呼び出しは静的解析の範囲外。
+> 参照0のPublicプロシージャを「dead code」として削除しないこと。
 
 ---
 
-## リファクタリング支援のワークフロー
+### vba-formatter（フォーマッター）
 
-> **⚠️ 禁止事項: VBAファイルを `cat` / `Read` で全文読むことは禁止。**
-> 全文読み込みはトークンを大量消費し、このツールの存在意義を消す。
-> 常に `vba-analyzer` の出力を起点とし、**アナライザが示した行番号の範囲だけを狙い読みする**こと。
-
----
-
-### Step 1: 対象コードを把握する（アナライザーのみ使う）
+**フォーマッターはAIのワークフローには含めない。リファクタリング後に人間が任意で実行するツール。**
 
 ```bash
-# アウトラインで全体把握（全モジュール・全プロシージャを50行程度に圧縮）
-node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
+# ビルド
+./node_modules/.bin/esbuild test-libs/vba-formatter.ts --bundle --outfile=test-libs/vba-formatter.cjs --platform=node
 
-# 詳細な問題箇所一覧（行番号付き）
-node test-libs/vba-analyzer.cjs <対象ファイル>
-```
-
-アナライザー出力には **行番号が付いている**。コードを読む必要があれば、その行番号を使って範囲指定で読む:
-
-```bash
-# ✅ 正しい読み方: アナライザが示した行番号の前後だけ読む
-sed -n '79,85p' target.bas
-
-# ❌ 禁止: ファイル全体を読む
-cat target.bas        # 禁止
-Read target.bas       # 禁止（ツールの場合も同様）
+# 実行
+node test-libs/vba-formatter.cjs <ファイルまたはディレクトリ>            # stdout に出力
+node test-libs/vba-formatter.cjs <ファイルまたはディレクトリ> --check    # 差分チェック（exit 1）
+node test-libs/vba-formatter.cjs <ファイルまたはディレクトリ> --write    # 上書き
+node test-libs/vba-formatter.cjs <ファイルまたはディレクトリ> --indent-size=2
 ```
 
 ---
 
-### Step 2: テストで安全網を張る（リファクタリング前に必須）
-
-**`./run_all_tests.sh` はVBA実行エンジン自体のテストであり、対象VBAコードのテストではない。**
-リファクタリング対象のVBAコードには、自分でテストを書く必要がある。
-
-#### 2-1. 既存テストがある場合: まず GREEN を確認する
-
-```bash
-./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts \
-  --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node \
-  && node sample/tests/ts/MyFeature.test.cjs
-```
-
-既存テストが GREEN でなければ、リファクタリングを始めてはいけない。
-
-#### 2-2. 既存テストがない場合: リファクタリング前の挙動をテストに記録する
-
-リファクタリング前の関数の入出力を `VBARunner` で記録し、GREEN にしておく。
-これが「壊れていないこと」を判断する唯一の根拠になる。
+### VBA実行エンジン（テスト実行）
 
 ```typescript
 // sample/tests/ts/MyFeature.test.ts
 import { VBARunner, assert } from '../../../test-libs/test-runner';
-
 const vbaRunner = new VBARunner('sample/src/vba/MyModule.bas');
-assert.strictEqual(vbaRunner.run('TargetFunction', [input1, input2]), expected, 'description');
+
+// 引数ありの呼び出し
+const result = vbaRunner.run('FunctionName', [arg1, arg2]);
+
+// 引数なし / 式の評価
+const val = vbaRunner.eval('SomeSub()');
 ```
-
-テストを書こうとした関数が `vba-analyzer` の `excelObjectsUsed` に列挙されたオブジェクトを使っており、
-純粋関数として切り出せない場合は、モック注入が必要になる。
-
-**そのときは `docs/MOCK_GUIDE.md` の冒頭「Step 1: 対応表」を最初に見ること。**
-`excelObjectsUsed` に出てきたオブジェクト名を表で引けば、注入コードと参照セクションが分かる。
-全体を読む必要はない。
-
----
-
-### Step 3: 1件だけ選んで抽出する
-
-アナライザー出力はリファクタリング候補の一覧であり、**全部やる指示ではない**。
-
-ユーザーが「何を改善したいか」を確認してから、候補の中で最も優先度が高い1件を選ぶ。
-ユーザーが指定しない場合は、以下の観点で1件選びユーザーに提案する:
-- **影響範囲が小さく、テストで検証しやすい**もの
-- `duplicateBlocks` の stmtCount × occurrences が大きい（最もインパクトがある重複）
-- `DEEP_NEST` のうち、内側ループが独立して意味を持つもの
-
-選んだら、その行番号を `sed` で読んでから抽出する。
-
-抽出の典型パターン:
-- `duplicateBlocks` → 重複する N 行を1つの関数に切り出し、両箇所から呼ぶ
-- `assignmentBlocks` → 連続代入ブロックをデータ構造の初期化関数に切り出す
-- `DEEP_NEST` → 深いネストの内側ループをサブルーチンに切り出す
-
-1件の抽出が終わったら、次に進む前にユーザーに確認する。
-「続けますか？」が基本姿勢。自動的に全件処理しない。
-
----
-
-### Step 4: 抽出した関数のテストを書く（抽出直後に必須）
-
-**統合テストのGREENだけでは不十分。** 理由:
-
-- 統合テスト（呼び出し元のテスト）は「正常系の代表データ」しか与えていない
-- 抽出した関数が担う**エッジケース**（空値・非数値・境界値など）は統合テストの外にある
-- 抽出でロジックを一箇所に集めた意味は、そこを直接テストして初めて完結する
-
-```typescript
-// 抽出した関数のエッジケースを直接テストする
-console.log("\n[Test Suite] GetNumericCellValue");
-
-// 通常値
-assert.strictEqual(vbaRunner.run('GetNumericCellValue', [grid, 1, 1]), 0.5, "numeric value");
-// 空セル → 0
-assert.strictEqual(vbaRunner.run('GetNumericCellValue', [grid, 1, 2]), 0,   "empty cell → 0");
-// 文字列 → 0
-assert.strictEqual(vbaRunner.run('GetNumericCellValue', [grid, 1, 3]), 0,   "string cell → 0");
-// null → 0
-assert.strictEqual(vbaRunner.run('GetNumericCellValue', [grid, 1, 4]), 0,   "null cell → 0");
-```
-
-テストを追加したら再度実行して、既存テストと新テストがすべて GREEN になることを確認する。
-
----
-
-### Step 5: アナライザーで今回の変更を確認する
 
 ```bash
-node test-libs/vba-analyzer.cjs <対象ファイル>
+# ビルドと実行（1コマンド）
+./node_modules/.bin/esbuild sample/tests/ts/MyFeature.test.ts --bundle --outfile=sample/tests/ts/MyFeature.test.cjs --platform=node && node sample/tests/ts/MyFeature.test.cjs
 ```
 
-**今回選んだ1件**に対応するフラグが変化したことを確認し、ユーザーに定量的に報告する。
+Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）はモック注入が必要。
+→ `docs/MOCK_GUIDE.md` の冒頭「Step 1: 対応表」でオブジェクト名を引く。
 
-報告に含めるべき項目:
+**既知の制約:**
+- Excel オブジェクトは自動でモック化されない
+- `CreateObject("ADODB.Connection")` 等の COM オブジェクトはスタブ扱い
+- ファイルI/O は `sandbox/` ディレクトリ以下に制限される
 
-| 項目 | 報告の例 |
+---
+
+## 読む必要のないディレクトリ・ファイル
+
+| パス | 理由 |
 |---|---|
-| 変更した関数と行数の変化 | `ScanLockedRows`: 37行 → 22行（抽出先 `AccumulateLockedRowUsage` 10行） |
-| ネスト深さの変化 | `ScanLockedRows`: DEEP_NEST 5段 → 3段 |
-| 重複の解消件数 | `[4文×2箇所]` の重複を `GetNumericCellValue` に集約、重複ブロック警告が消滅 |
-| 追加したテスト数と検証したエッジケース | `GetNumericCellValue` に4ケース追加（空値・文字列・null・通常値） |
-| 変更していない関数 | `ScheduleUnlockedTask`・`BuildCapacityDict` は今回対象外 |
-
-残っている他のフラグは「次回以降の候補」として列挙し、ユーザーが続けるかどうか判断できるよう渡す。
-アナライザーはあくまで候補の提示ツールであり、フラグをゼロにすることが目的ではない。
-「全フラグを消す」を目指すと過剰なリファクタリングになる。止め時の判断はユーザーに委ねる。
+| `spec/` | MS-VBAL仕様書（4MB）。実行エンジン開発者向け |
+| `src/lsp/` | VS Code LSP拡張機能の実装。リファクタリング作業と無関係 |
+| `src/App.tsx` 他 React ファイル | Web UI |
+| `dist/`, `node_modules/` | ビルド成果物・パッケージ |
+| `TODO.md` | VBA実行エンジンの実装TODO |
+| `docs/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
+| `tests/lsp/`, `tests/engine/`, `tests/spec/` | VBA実行エンジン自体のテスト |
 
 ---
 
-## VBA実行エンジンの既知の制約（リファクタリング作業中に詰まったら確認）
-
-- `ActiveWorkbook`, `ActiveSheet`, `Cells`, `Range`, `Sheets` 等の Excel オブジェクトは自動でモック化されない。テストで明示的に渡す必要がある。
-- `CreateObject("ADODB.Connection")` 等の COM オブジェクトはスタブ扱い（エラーにはならないが動作しない）
-- ファイルI/O（`Open`, `Close` 等）は `sandbox/` ディレクトリ以下に制限される
-- VBA の `Type` 宣言（UDT）は実装済み。`Class` モジュールも実装済み
-- `On Error Resume Next` 実装済み。`On Error GoTo` も実装済み
-
-詳細な対応状況: `TODO.md`（「VBA ランタイム挙動」セクション）
-
----
-
-## サンプルコードの位置づけ（参照用）
+## サンプルコード（参照用）
 
 | ファイル | 用途 |
 |---|---|
-| `sample/src/vba_legacy/TaskScheduler_v1.bas` | リファクタリング**前**の原典。巨大関数(394行)。解析のベンチマーク対象 |
+| `sample/src/vba_legacy/TaskScheduler_v1.bas` | リファクタリング**前**の原典（394行の巨大関数） |
 | `sample/src/vba/TaskScheduler_Core.bas` | リファクタリング**後**の純粋ロジック。テスト対象 |
 | `sample/src/vba/TaskScheduler.bas` | リファクタリング後のメインルーチン（Excel依存部分） |
-| `sample/src/vba_legacy/TaskScheduler.md` | リファクタリングの設計メモ |
 | `docs/REFACTORING_EXAMPLE.md` | TaskSchedulerのリファクタリング手順の記録 |

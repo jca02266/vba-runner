@@ -39,3 +39,6 @@ dist-ssr
 .mdq/
 
 *.vsix
+
+# vba-analyzer baseline snapshots
+.vba-baseline.json
