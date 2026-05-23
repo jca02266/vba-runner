@@ -250,7 +250,7 @@ export class LSPServer {
         if (!doc) return [];
 
         try {
-            const tokens = new Lexer(doc.content).tokenize();
+            const tokens = new Lexer(this.stripClsHeader(doc.content)).tokenize();
             const ast = new Parser(tokens).parse();
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
@@ -291,11 +291,31 @@ export class LSPServer {
     }
 
     /**
+     * Strip .cls file header (VERSION 1.0 CLASS / BEGIN...END block).
+     * Replaces header lines with empty lines to preserve line numbers.
+     */
+    private stripClsHeader(content: string): string {
+        const lines = content.split('\n');
+        if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return content;
+        const result = [...lines];
+        let i = 0;
+        result[i] = '';
+        i++;
+        while (i < result.length) {
+            const trimmed = result[i].trimEnd().toUpperCase();
+            result[i] = '';
+            i++;
+            if (trimmed === 'END') break;
+        }
+        return result.join('\n');
+    }
+
+    /**
      * Parse document content
      */
     private parseDocument(content: string): any {
         try {
-            const tokens = new Lexer(content).tokenize();
+            const tokens = new Lexer(this.stripClsHeader(content)).tokenize();
             return new Parser(tokens).parse();
         } catch (error) {
             return null;
