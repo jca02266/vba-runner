@@ -18,6 +18,7 @@ VS Code Extension Host (src/extension.ts)
     │       ├── ReferencesProvider              (src/lsp/references-provider.ts)
     │       ├── RenameProvider                  (src/lsp/rename-provider.ts)
     │       ├── CodeLensProvider                (src/lsp/code-lens-provider.ts)
+    │       ├── FoldingRangeProvider            (src/lsp/folding-range-provider.ts)
     │       ├── TestDiscovery                   (src/lsp/test-discovery.ts)
     │       └── TestRunner                      (src/lsp/test-runner.ts)
     │
@@ -44,6 +45,7 @@ VS Code Extension Host (src/extension.ts)
 | Find All References | Shift+F12 | `references-provider.ts` |
 | Rename Symbol | F2 | `rename-provider.ts` |
 | Code Lens | 行上部のインライン UI | `code-lens-provider.ts` |
+| Folding Range | 折りたたみ / Sticky Scroll | `folding-range-provider.ts` |
 | Test Discovery / Run | テストエクスプローラー | `test-discovery.ts`, `test-runner.ts` |
 | DAP Debugger | F5 / デバッグビュー | `debug-adapter.ts`, `vscode-debug-adapter.ts` |
 
@@ -206,6 +208,42 @@ tests/spec/vba/
 - 引数ありプロシージャには `▶ Run` は表示されない（Code Lens 側の制約）
 
 **テスト:** `tests/lsp/lsp-code-lens.test.ts`
+
+---
+
+### Folding Range（折りたたみ / Sticky Scroll）
+
+VBA のブロック構造を VS Code の折りたたみ機能と Sticky Scroll に対応させる。
+
+**対応するブロック:**
+
+| VBA 構文 | 説明 |
+|---|---|
+| `Sub` / `Function` / `Property` | プロシージャ本体 |
+| `For ... Next` / `For Each ... Next` | For ループ |
+| `Do ... Loop` | Do ループ |
+| `While ... Wend` | While ループ |
+| `With ... End With` | With ブロック |
+| `If ... End If` | If ブロック（単行 If を除く） |
+| `Select Case ... End Select` | Select Case ブロック |
+| `Type ... End Type` | ユーザー定義型 |
+| `Enum ... End Enum` | 列挙型 |
+
+**Sticky Scroll の動作:**
+
+エディター上部に現在カーソルが属するブロックのヘッダー行が固定表示される。たとえばループ本体が画面外にスクロールした場合でも `For i = 1 To 100` の行が上部に残る。
+
+```
+Sub ProcessData()           ← 常に上部に表示
+    For i = 1 To 100        ← スクロールアウトしても上部に表示
+        │
+        │  ← カーソル位置
+```
+
+**実装詳細:**
+- `FoldingRangeProvider.getFoldingRanges()` が AST を再帰的に走査して `{ startLine, endLine }` を返す（0-based）
+- `IfStatement.alternate` が `IfStatement`（ElseIf チェーン）の場合は再帰的に処理する
+- パーサーの `loc` フィールド（1-based）を 0-based に変換して返す
 
 ---
 

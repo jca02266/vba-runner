@@ -485,6 +485,17 @@ End Class`;
     );
     outputChannel.appendLine('✓ Document formatting provider registered');
 
+    // Register folding range provider (enables sticky scroll for Sub/For/While/With/If etc.)
+    context.subscriptions.push(
+        vscode.languages.registerFoldingRangeProvider('vba', {
+            provideFoldingRanges(document) {
+                const ranges = lspServer.getFoldingRanges(document.uri.toString());
+                return ranges.map(r => new vscode.FoldingRange(r.startLine, r.endLine));
+            }
+        })
+    );
+    outputChannel.appendLine('✓ Folding range provider registered');
+
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');
     outputChannel.show();

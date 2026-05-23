@@ -10,6 +10,7 @@ import { CodeLensProvider } from './code-lens-provider';
 import { TestDiscovery } from './test-discovery';
 import { TestRunner } from './test-runner';
 import { DebugAdapter } from './debug-adapter';
+import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
 
 export interface TextDocument {
     uri: string;
@@ -37,6 +38,7 @@ export class LSPServer {
     private referencesProvider: ReferencesProvider;
     private renameProvider: RenameProvider;
     private codeLensProvider: CodeLensProvider;
+    private foldingRangeProvider: FoldingRangeProvider;
     private testDiscovery: TestDiscovery;
     private testRunner: TestRunner;
     private debugAdapters: Map<string, DebugAdapter> = new Map();
@@ -49,6 +51,7 @@ export class LSPServer {
         this.referencesProvider = new ReferencesProvider();
         this.renameProvider = new RenameProvider();
         this.codeLensProvider = new CodeLensProvider();
+        this.foldingRangeProvider = new FoldingRangeProvider();
         this.testDiscovery = new TestDiscovery();
         this.testRunner = new TestRunner();
     }
@@ -116,6 +119,16 @@ export class LSPServer {
 
         this.symbolProvider.setDocumentUri(uri);
         return this.symbolProvider.extractSymbols(ast.body);
+    }
+
+    getFoldingRanges(uri: string): FoldingRange[] {
+        const doc = this.documents.get(uri);
+        if (!doc) return [];
+
+        const ast = this.parseDocument(doc.content);
+        if (!ast) return [];
+
+        return this.foldingRangeProvider.getFoldingRanges(ast.body);
     }
 
     /**
