@@ -647,18 +647,21 @@ End Class`;
             const currentLineText = editor.document.lineAt(insertLine).text;
             const indent = currentLineText.match(/^\s*/)?.[0] || '';
 
-            const edit = new vscode.WorkspaceEdit();
-
             const insertPosition = new vscode.Position(insertLine, 0);
             const dimAndAssign = `${indent}Dim ${varName}\n${indent}${varName} = ${selectedText}\n`;
 
-            edit.insert(uri, insertPosition, dimAndAssign);
+            // First, insert Dim and assignment
+            const insertEdit = new vscode.WorkspaceEdit();
+            insertEdit.insert(uri, insertPosition, dimAndAssign);
+            await vscode.workspace.applyEdit(insertEdit);
 
+            // Then, replace the original expression with variable name
             const replacementStart = new vscode.Position(range.start.line + 2, range.start.character);
             const replacementEnd = new vscode.Position(range.end.line + 2, range.end.character);
-            edit.replace(uri, new vscode.Range(replacementStart, replacementEnd), varName);
+            const replaceEdit = new vscode.WorkspaceEdit();
+            replaceEdit.replace(uri, new vscode.Range(replacementStart, replacementEnd), varName);
+            await vscode.workspace.applyEdit(replaceEdit);
 
-            await vscode.workspace.applyEdit(edit);
             vscode.window.showInformationMessage(`Variable '${varName}' introduced`);
         })
     );
