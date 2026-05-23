@@ -1468,7 +1468,7 @@ class MockRange {
 
 1. **Domain Logic で回避（推奨）**
    - 色判定の代わりに値で判定
-   - 例：赤 → 負の値, 緑 → 正の値
+   - 例：赤 → 負の値、緑 → 正の値
 
 2. **MockWorksheet を拡張（Part 2 参照）**
    - `Interior.Color` を実装
@@ -1529,7 +1529,7 @@ Private Declare Function GetTickCount Lib "kernel32" () As Long
 ### VBARunner からスタブを登録する
 
 `VBARunner` が持つ `set(name, value)` を使うと、ソースを改変せずに DLL 関数を差し替えられます。
-コンストラクタでソースを読み込んだ後に呼ぶだけで、複数ソースをまたいでグローバルに有効になります。
+コンストラクターでソースを読み込んだ後に呼ぶだけで、複数ソースをまたいでグローバルに有効になります。
 
 ```typescript
 const vbaRunner = new VBARunner('MyLib.bas');

@@ -411,7 +411,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 | 状態 | 機能カテゴリ | 項目 | 説明 |
 | :---: | :--- | :--- | :--- |
-| ✅ | **基本 I/O** | `readSync` / `writeSync` | バッファ/文字列の同期読み書き。ハンドル位置の自動更新対応。 |
+| ✅ | **基本 I/O** | `readSync` / `writeSync` | バッファー/文字列の同期読み書き。ハンドル位置の自動更新対応。 |
 | ✅ | | `openSync` / `closeSync` | ファイルオープン。`w` フラグ時の truncation (切り詰め) 対応済み。 |
 | ✅ | **ファイル管理** | `unlinkSync` | `Kill` ステートメントの基盤。現状は完全一致のみ。 |
 | ✅ | | `copyFileSync` | `FileCopy` ステートメントの基盤。 |
@@ -548,7 +548,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### テストランナー (`VBARunner`) の改善
 
-- ✅ **`VBARunner()` 引数なし・`null` 対応**: コンストラクタの `pathOrDir` を `string | null = null` に変更し、空文字・`null`・引数省略すべてで「ファイルなし」の空環境を作成できるよう修正
+- ✅ **`VBARunner()` 引数なし・`null` 対応**: コンストラクターの `pathOrDir` を `string | null = null` に変更し、空文字・`null`・引数省略すべてで「ファイルなし」の空環境を作成できるよう修正
   - 修正前は `fs.statSync('')` が ENOENT を投げるため、Unix の `/dev/null` 回避策が必要だった
   - テスト: `time-mocking.test.ts`（test 8 で `new VBARunner()` を使用）
 
@@ -556,7 +556,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ **`#If` / `#ElseIf` / `#Else` / `#End If` / `#Const` 対応**: `src/engine/preprocessor.ts` でソーステキストを Lexer 前処理 | `conditional-compilation.test.ts`
   - デフォルト定数: `VBA7=0`, `Win64=0`, `Win32=-1`, `Mac=0`（ホストアプリ定義の project-level constants）
-  - `VBARunner` コンストラクタの `config.compilerConstants` で上書き可能
+  - `VBARunner` コンストラクターの `config.compilerConstants` で上書き可能
   - 未定義シンボルは `0`（falsy）として扱う（VBA 仕様に準拠）
   - `#Const` はすべてのブロック（excluded block も含む）で処理される（仕様 §3.4.1）
   - ネスト・`#EndIf`（スペースなし）・`And`/`Or`/`Not` 演算子すべて対応
@@ -597,7 +597,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ **Fix: 再帰関数で `Dim` が外側のスコープを上書きする** | `recursive-dim-scope.test.ts`
   - 原因: `evaluateVariableDeclaration` が `this.env.set(varName, initialValue)` を使っており、`set()` はスコープチェーンを遡って既存の変数を上書きする。再帰呼び出し時に内側の `Dim` が外側の同名変数を初期値でリセットしてしまう
-  - 症状: `ConvertToJson` が再帰呼び出しされると、内側の `Dim json_Converted As String` が外側の `json_Converted` を `""` にリセットしてバッファ内容が消失。`{"name":"Alice",...}` が `"":true}` になる
+  - 症状: `ConvertToJson` が再帰呼び出しされると、内側の `Dim json_Converted As String` が外側の `json_Converted` を `""` にリセットしてバッファー内容が消失。`{"name":"Alice",...}` が `"":true}` になる
   - 修正: プロシージャ内の変数宣言は `setLocally()` を使用してカレントフレームにのみ変数を作成
 
 - ✅ **Fix: `obj.Method(key) = value` / `Set obj.Item(key) = obj2` / `outer(k1)(k2) = val` 形式の代入が失敗する** | `member-call-assignment.test.ts`, `object-member-assignment.test.ts`

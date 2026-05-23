@@ -566,7 +566,7 @@ describe('Fiscal Year Logic', () => {
 
 `test-libs/test-runner.ts` に定義された公開 API の一覧です。
 
-### コンストラクタ
+### コンストラクター
 
 ```typescript
 new VBARunner(pathOrDir: string, config?: {
