@@ -519,7 +519,7 @@ Sub ProcessBatchData()
 End Sub
 ```
 
-### パターン 5: テーブル駆動パターン [[→ TABLE_DRIVEN_REFACTORING.md](../sample/docs/TABLE_DRIVEN_REFACTORING.md)]
+### パターン 5: テーブル駆動パターン [[→ TABLE_DRIVEN_GUIDE.md](TABLE_DRIVEN_GUIDE.md)]
 
 **概要**: 大量の同じ構造を持つ分岐を、**データテーブルとシンプルなルックアップロジック**に置き換える。複雑な if-else-if チェーンが繰り返されている場合に特に有効。
 
