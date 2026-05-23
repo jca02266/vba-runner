@@ -2,9 +2,11 @@
 
 ## 概要
 
-大量の**同じ構造の分岐**を、**データテーブル + シンプルなルックアップロジック**に置き換えるリファクタリング手法です。
+大量の**同じ構造の分岐**を、**Map（キー → 設定セット）+ 統一されたルックアップロジック**に置き換えるリファクタリング手法です。
 
-**効果**: 複雑な 3-4 個の `if-else-if` チェーンを、統一された 10-20 行のシンプルなコードに統合。ビジネスルール変更は「コード編集」ではなく「データ更新」で対応可能。
+**本質**: 「どのキーが来たか」で Map を引いて設定セットを取得し、その設定セットに従って結果を決める。分岐ロジックをコードではなくデータとして外出しする。
+
+**効果**: 複雑な入れ子の `If-ElseIf` チェーンを、統一された 10-20 行のコードに統合。ビジネスルール変更は「コード編集」ではなく「Map の値変更」で対応可能。
 
 ---
 
@@ -37,65 +39,119 @@ End Function
 - ルール変更 → コード修正が必要
 - テスト困難
 
-### After（テーブル駆動：23行）
+### After（テーブル駆動：Map ベース）
 
 ```vba
-Type ApprovalRule
-    department As String
-    threshold1 As Long
-    approver1 As String
-    threshold2 As Long
-    approver2 As String
-    threshold3 As Long
-    approver3 As String
-    defaultApprover As String
-End Type
+' Map 定義 — ビジネスルールをデータとして管理
+'   キー: department（文字列）
+'   値:   しきい値と承認者のペアのリスト + デフォルト承認者
+Function BuildApprovalRules() As Object
+    Dim rules As Object
+    Set rules = CreateObject("Scripting.Dictionary")
 
+    Dim sales As Object: Set sales = CreateObject("Scripting.Dictionary")
+    sales.Add "levels", Array(Level(50000, "Manager"), Level(500000, "Director"), Level(2000000, "VP"))
+    sales.Add "default", "CFO"
+    rules.Add "Sales", sales
+
+    Dim mktg As Object: Set mktg = CreateObject("Scripting.Dictionary")
+    mktg.Add "levels", Array(Level(30000, "Manager"), Level(300000, "Director"), Level(1500000, "VP"))
+    mktg.Add "default", "CFO"
+    rules.Add "Marketing", mktg
+
+    ' IT, HR, Finance も同様に追加...
+    Set BuildApprovalRules = rules
+End Function
+
+' ルックアップロジック — すべての部門で共通
 Function GetApprover(amount As Long, department As String) As String
-    Dim rule As ApprovalRule
-    rule = GetRuleByDepartment(department)
-    
-    If amount < rule.threshold1 Then
-        GetApprover = rule.approver1
-    ElseIf amount < rule.threshold2 Then
-        GetApprover = rule.approver2
-    ElseIf amount < rule.threshold3 Then
-        GetApprover = rule.approver3
-    Else
-        GetApprover = rule.defaultApprover
+    Dim rules As Object
+    Set rules = BuildApprovalRules()
+
+    If Not rules.Exists(department) Then
+        GetApprover = "Unknown" : Exit Function
     End If
+
+    Dim deptRules As Object
+    Set deptRules = rules(department)       ' キーで設定セットを引く（Map ルックアップ）
+
+    Dim levels As Variant
+    levels = deptRules("levels")
+
+    Dim i As Integer
+    For i = LBound(levels) To UBound(levels)
+        If amount < levels(i)("threshold") Then
+            GetApprover = levels(i)("approver") : Exit Function
+        End If
+    Next i
+    GetApprover = deptRules("default")
+End Function
+
+' ヘルパー：(threshold, approver) ペアを生成
+Function Level(threshold As Long, approver As String) As Object
+    Dim t As Object: Set t = CreateObject("Scripting.Dictionary")
+    t.Add "threshold", threshold
+    t.Add "approver", approver
+    Set Level = t
 End Function
 ```
 
 **利点**:
-- 35.7% のコード削減（20 行）
-- ルール変更 → CSV 編集のみ
-- テスト容易
+- ルール変更 → `BuildApprovalRules()` のデータのみ修正
+- 部門追加 → Map に 1 エントリ追加するだけ
+- `GetApprover` 本体は変更不要
+- テスト容易（Map を差し替えるだけでテストデータを注入できる）
 
 ---
 
 ## 2. デシジョンテーブル分析
 
-コードの分岐をテーブル形式で視覚化し、テーブル構造から直接判定します。
+コードの分岐をデシジョンテーブルで視覚化することで、Map 構造への変換可能性を評価します。
 
-### テーブル形式での表現
+### デシジョンテーブルの形式
+
+- **行**: 個々の条件
+- **セル**: Y（成立） / N（不成立） / -（前条件で確定済み、don't care）
+- **列**: ルール（条件の組み合わせパターン）
+- **最終行**: そのルールが成立したときの結果
+
+### テーブルから Map 構造を読み取る
+
+Sales 部門のルールをデシジョンテーブルで表すと：
 
 ```
-┌──────────────┬──────┬──────────┬──────────┬──────┐
-│ Department   │ <50k │ 50k-500k │ 500k-2M  │ >2M  │
-├──────────────┼──────┼──────────┼──────────┼──────┤
-│ Sales        │ Mgr  │ Dir      │ VP       │ CFO  │
-│ Marketing    │ Mgr  │ Dir      │ VP       │ CFO  │
-│ IT           │ Mgr  │ Dir      │ VP       │ CFO  │
-│ HR           │ Mgr  │ Dir      │ VP       │ CFO  │
-│ Finance      │ Mgr  │ Dir      │ VP       │ CFO  │
-└──────────────┴──────┴──────────┴──────────┴──────┘
+┌──────────────────────┬─────────┬──────────┬────┬─────┐
+│ 条件                 │   R1    │    R2    │ R3 │  R4 │
+├──────────────────────┼─────────┼──────────┼────┼─────┤
+│ amount < 50,000      │    Y    │    N     │  N │   N │
+│ amount < 500,000     │    -    │    Y     │  N │   N │
+│ amount < 2,000,000   │    -    │    -     │  Y │   N │
+├──────────────────────┼─────────┼──────────┼────┼─────┤
+│ Approver（結果）     │ Manager │ Director │ VP │ CFO │
+└──────────────────────┴─────────┴──────────┴────┴─────┘
+```
+
+Marketing 部門も同じ構造（しきい値の数が異なるだけ）：
+
+```
+┌──────────────────────┬─────────┬──────────┬─────┐
+│ 条件                 │   R1    │    R2    │  R3 │
+├──────────────────────┼─────────┼──────────┼─────┤
+│ amount < 30,000      │    Y    │    N     │   N │
+│ amount < 300,000     │    -    │    Y     │   N │
+├──────────────────────┼─────────┼──────────┼─────┤
+│ Approver（結果）     │ Manager │ Director │ CFO │
+└──────────────────────┴─────────┴──────────┴─────┘
 ```
 
 **観察**:
-- ✅ すべての行が同じ「4列」構造
-- ✅ 5 つの部門が同じパターンを繰り返す
-- ✅ テーブルが完全な矩形
+- ✅ Sales と Marketing は同じ「しきい値を順に評価する」構造
+- ✅ 違いはしきい値の値と段階数だけ
+- ✅ `department` が Map のキーとなり、各部門の設定セット（しきい値リスト）が値になる
+
+```
+department（キー） → Map → 設定セット（しきい値リスト） → 結果
+```
 
 → **テーブル駆動化に非常に適切**
 
@@ -103,21 +159,21 @@ End Function
 
 | 指標 | 説明 | 計算 |
 |------|------|------|
-| **パターン一貫性** | すべての行が同じ決定構造を持つ | 0-1（1=全て同じ） |
-| **行の相似性** | 複数行が同じパターンを繰り返す | 0-1（1=全て同じ） |
-| **テーブル規則性** | テーブルが整形された矩形か | 密度 / 最大密度 |
+| **パターン一貫性** | すべての部門が同じ決定構造を持つ | 0-1（1=全て同じ） |
+| **行の相似性** | 複数部門が同じパターンを繰り返す | 0-1（1=全て同じ） |
+| **テーブル規則性** | しきい値段階数がそろっているか | 最小段階数 / 最大段階数 |
 
 **ApprovalRules の場合**:
-- パターン一貫性: 100% (5/5 行が同じ)
-- 行の相似性: 100% (全行が同じパターン)
-- テーブル規則性: 100% (完全な矩形)
+- パターン一貫性: 100% (5/5 部門が同じ構造)
+- 行の相似性: 100% (全部門が同じパターン)
+- テーブル規則性: 100% (全部門が同じ段階数)
 - **→ スコア 98/100（強く推奨）**
 
 ---
 
 ## 3. 非対称テーブル（実務で最も多いパターン）
 
-列数が異なっても**テーブル駆動化は可能**です。
+部門ごとにしきい値の段階数が異なっても、**テーブル駆動化は可能**です。Map の各エントリのリスト長が異なるだけで、ルックアップロジックは変わりません。
 
 ### 実例
 
@@ -141,63 +197,78 @@ ElseIf department = "IT" Then
     Else result = "Director"
 ```
 
-### テーブル表現
+### デシジョンテーブル
 
 ```
-┌──────────────┬──────┬──────────┬──────────┬──────┐
-│ Department   │ <T1  │ T1-T2    │ T2-T3    │ >T3  │
-├──────────────┼──────┼──────────┼──────────┼──────┤
-│ Sales        │ Mgr  │ Dir      │ VP       │ CFO  │
-│ Marketing    │ Mgr  │ Dir      │ (skip)   │ CFO  │  ← 3列
-│ IT           │ Mgr  │ (skip)   │ (skip)   │ Dir  │  ← 2列
-└──────────────┴──────┴──────────┴──────────┴──────┘
+┌──────────────────────┬─────────┬──────────┬────┬─────┐
+│ Sales 条件           │   R1    │    R2    │ R3 │  R4 │
+├──────────────────────┼─────────┼──────────┼────┼─────┤
+│ amount < 50,000      │    Y    │    N     │  N │   N │
+│ amount < 500,000     │    -    │    Y     │  N │   N │
+│ amount < 2,000,000   │    -    │    -     │  Y │   N │
+├──────────────────────┼─────────┼──────────┼────┼─────┤
+│ Approver（結果）     │ Manager │ Director │ VP │ CFO │
+└──────────────────────┴─────────┴──────────┴────┴─────┘
+
+┌──────────────────────┬─────────┬──────────┬─────┐
+│ Marketing 条件       │   R1    │    R2    │  R3 │
+├──────────────────────┼─────────┼──────────┼─────┤
+│ amount < 30,000      │    Y    │    N     │   N │
+│ amount < 300,000     │    -    │    Y     │   N │
+├──────────────────────┼─────────┼──────────┼─────┤
+│ Approver（結果）     │ Manager │ Director │ CFO │
+└──────────────────────┴─────────┴──────────┴─────┘
+
+┌──────────────────────┬─────────┬──────────┐
+│ IT 条件              │   R1    │    R2    │
+├──────────────────────┼─────────┼──────────┤
+│ amount < 100,000     │    Y    │    N     │
+├──────────────────────┼─────────┼──────────┤
+│ Approver（結果）     │ Manager │ Director │
+└──────────────────────┴─────────┴──────────┘
 ```
 
-### 実装（2つの方式）
+**観察**: 各部門のテーブルはサイズが異なるが、構造（しきい値を順に評価する）は同じ。→ Map の各エントリのリスト長が変わるだけ。
 
-**方式A: NULL/0 でスキップ（シンプル）**
+### 実装
 
 ```vba
-Function GetApprover(amount, department)
-    rule = GetRuleByDepartment(department)
-    
-    If rule.threshold1 > 0 And amount < rule.threshold1 Then
-        GetApprover = rule.approver1
-    ElseIf rule.threshold2 > 0 And amount < rule.threshold2 Then
-        GetApprover = rule.approver2
-    ElseIf rule.threshold3 > 0 And amount < rule.threshold3 Then
-        GetApprover = rule.approver3
-    Else
-        GetApprover = rule.defaultApprover
-    End If
+Function BuildApprovalRules() As Object
+    Dim rules As Object
+    Set rules = CreateObject("Scripting.Dictionary")
+
+    ' 各部門のリスト長が異なっても同じ Map 構造で表現できる
+    Dim sales As Object: Set sales = CreateObject("Scripting.Dictionary")
+    sales.Add "levels", Array(Level(50000, "Manager"), Level(500000, "Director"), Level(2000000, "VP"))
+    sales.Add "default", "CFO"
+    rules.Add "Sales", sales
+
+    Dim mktg As Object: Set mktg = CreateObject("Scripting.Dictionary")
+    mktg.Add "levels", Array(Level(30000, "Manager"), Level(300000, "Director"))
+    mktg.Add "default", "CFO"
+    rules.Add "Marketing", mktg
+
+    Dim it As Object: Set it = CreateObject("Scripting.Dictionary")
+    it.Add "levels", Array(Level(100000, "Manager"))
+    it.Add "default", "Director"
+    rules.Add "IT", it
+
+    Set BuildApprovalRules = rules
 End Function
-```
 
-**方式B: 動的配列（柔軟）**
-
-```vba
-Function GetApproverDynamic(amount, department)
-    rule = GetRuleByDepartment(department)
-    
-    Dim i As Integer
-    For i = LBound(rule.thresholds) To UBound(rule.thresholds)
-        If amount < rule.thresholds(i) Then
-            GetApproverDynamic = rule.approvers(i)
-            Exit Function
-        End If
-    Next i
-    
-    GetApproverDynamic = rule.defaultApprover
+' ルックアップロジックは変わらない
+Function GetApprover(amount As Long, department As String) As String
+    ' ... （セクション 1 と同じ）
 End Function
 ```
 
 ### 非対称度スコア
 
 ```
-非対称度 = 1 - (最小列数 / 最大列数)
+非対称度 = 1 - (最小段階数 / 最大段階数)
 
-Sales(4) + Marketing(3) + IT(2):
-  = 1 - (2/4) = 0.5 (中程度の非対称)
+Sales(3) + Marketing(2) + IT(1):
+  = 1 - (1/3) ≈ 0.67 (中程度の非対称)
   → スコア 75-85/100 (テーブル駆動化可能)
 ```
 
@@ -209,8 +280,8 @@ Sales(4) + Marketing(3) + IT(2):
 
 | 条件 | 値 | 判定 |
 |------|-----|------|
-| **外側分岐数** | ≥ 3 | ✅ 十分 |
-| **内側分岐数** | ≥ 2 | ✅ 十分 |
+| **外側分岐数（Map キー数）** | ≥ 3 | ✅ 十分 |
+| **内側分岐数（段階数）** | ≥ 2 | ✅ 十分 |
 | **パターン一貫性** | ≥ 60% | ✅ 対応可能 |
 | **行の相似性** | ≥ 50% | ✅ 有効 |
 | **副作用** | なし | ✅ 安全 |
@@ -235,20 +306,20 @@ Sales(4) + Marketing(3) + IT(2):
 
 ## 5. 実装ステップ
 
-### Phase 1: テーブル構造提案（1-2週間）
+### Phase 1: Map 構造提案（1-2週間）
 
 **自動生成内容**:
-- Type 定義テンプレート
-- 初期化関数テンプレート
-- Lookup 関数テンプレート
+- Map 初期化関数テンプレート
+- Level ヘルパー関数テンプレート
+- ルックアップ関数テンプレート
 
 **IDE フロー**:
 ```
 1. ユーザーが if-else-if を選択
 2. IDE が検出・分析
-3. テーブル形式で視覚化
+3. デシジョンテーブル形式で視覚化
 4. "テーブル駆動化を推奨" → [Accept]
-5. コード自動生成
+5. Map 初期化コードを自動生成
 6. ユーザーが値を埋める
 ```
 
@@ -265,8 +336,8 @@ Sales(4) + Marketing(3) + IT(2):
 ### Phase 3: テストケース生成（3-4週間）
 
 ```
-テーブル行数 × 列数 = テストケース自動生成
-例: 5行 × 4列 = 20テストケース
+Map エントリ数 × 段階数 = テストケース自動生成
+例: 5部門 × 4段階 = 20テストケース
 
 リファクタリング前後の等価性を自動検証
 ```
@@ -298,8 +369,8 @@ Sales(4) + Marketing(3) + IT(2):
 | ファイル | 状態 | 検出 | スコア |
 |---------|------|------|--------|
 | **ApprovalRules_Before** | 分岐地獄 | ✅ | 98/100 |
-| **ApprovalRules_After** | テーブル駆動 | ❌ | - |
-| **ApprovalRules_Advanced** | Dictionary 版 | ❌ | - |
+| **ApprovalRules_After** | テーブル駆動（Type版） | ❌ | - |
+| **ApprovalRules_Advanced** | テーブル駆動（Dictionary版） | ❌ | - |
 
 **精度**: 100%（偽陽性なし、検出漏れなし）
 
@@ -313,8 +384,8 @@ Sales(4) + Marketing(3) + IT(2):
 |------|------|
 | **行数削減** | 30-70% |
 | **複雑度** | ネスト深度 -1段階 |
-| **保守性** | ルール変更 = データ更新のみ |
-| **テスト化** | 自動テスト生成可能 |
+| **保守性** | ルール変更 = Map の値変更のみ |
+| **テスト化** | Map を差し替えてテストデータ注入可能 |
 
 ### 適用範囲
 
@@ -339,38 +410,31 @@ Sales(4) + Marketing(3) + IT(2):
 
 代わりに **Strategy Pattern** や **Inheritance** を検討。
 
-### Q: 列数が異なる場合は？
+### Q: 段階数が部門ごとに異なる場合は？
 
-**A**: **対応可能**です。`threshold = 0` で段階をスキップ：
-
-```vba
-' Marketing: 3段階のみ
-g_rules(1).threshold3 = 0  ' ← 4段階目は不要
-
-' Lookup 関数で判定
-If rule.threshold3 > 0 And amount < rule.threshold3 Then ...
-```
-
-非対称テーブル対応により、実務の **50-70%** に適用可能。
+**A**: **対応可能**です。Map の各エントリのリスト長が異なるだけで、ルックアップロジックは変わりません（セクション 3 参照）。
 
 ### Q: ビジネス担当者が直接編集できるか？
 
-**A**: はい。CSV 形式で管理可能：
+**A**: はい。CSV 形式で管理し、コード側で Map に変換できます：
 
 ```csv
-department,threshold1,approver1,threshold2,approver2,threshold3,approver3,defaultApprover
-Sales,50000,Manager,500000,Director,2000000,VP,CFO
-Marketing,30000,Manager,300000,Director,0,NULL,CFO
+department,threshold,approver
+Sales,50000,Manager
+Sales,500000,Director
+Sales,2000000,VP
+Marketing,30000,Manager
+Marketing,300000,Director
 ```
 
-ビジネス担当者が値を編集 → コード側に自動反映。
+ビジネス担当者が CSV を編集 → コード側で Map に読み込んで自動反映。
 
 ---
 
 ## 9. 次のステップ
 
 ### 短期（1-2週間）
-**Phase 1 実装**: IDE Quick Action で Type 定義生成
+**Phase 1 実装**: IDE Quick Action で Map 初期化コード生成
 
 ### 中期（2-4週間）
 **Phase 2-3**: テストケース生成、等価性検証
@@ -387,8 +451,8 @@ Marketing,30000,Manager,300000,Director,0,NULL,CFO
 
 **サンプル**:
 - `sample/src/vba/ApprovalRules_Before.bas` — リファクタリング前
-- `sample/src/vba/ApprovalRules_After.bas` — リファクタリング後
-- `sample/src/vba/ApprovalRules_Advanced.bas` — Dictionary 版
+- `sample/src/vba/ApprovalRules_After.bas` — リファクタリング後（Type版）
+- `sample/src/vba/ApprovalRules_Advanced.bas` — リファクタリング後（Dictionary/Map版）
 
 **テスト**:
 - `sample/tests/ts/table-driven-detector.eval.test.ts` — 単ファイル分析
