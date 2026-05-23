@@ -23,7 +23,17 @@
   - 多ファイルテスト結果（精度 100%）
   - 実装の正確性と有効性の実証
 
-### 3️⃣ 拡張計画
+### 3️⃣ 非対称テーブル対応
+
+- **[ASYMMETRIC_DECISION_TABLES.md](ASYMMETRIC_DECISION_TABLES.md)**  
+  列数が異なる場合のテーブル駆動化（実務で最も多いパターン）
+
+  - 列数が異なってもテーブル駆動化は可能
+  - threshold = 0 で段階をスキップする方法
+  - 動的配列による柔軟な段階数対応
+  - 実務適用範囲が 5-7 倍に拡大
+
+### 4️⃣ 拡張計画
 
 - **[TABLE_DRIVEN_DESIGN_PROPOSAL.md](TABLE_DRIVEN_DESIGN_PROPOSAL.md)**  
   テーブル設計提案・テストケース生成の **4段階ロードマップ**
