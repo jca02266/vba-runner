@@ -192,6 +192,8 @@ ${mermaidText}
         const minZoom = 0.2;
         const maxZoom = 20.0;
         const zoomStep = 0.1;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
 
         // 状態を保存・復元
         function saveState() {
@@ -224,8 +226,22 @@ ${mermaidText}
             vscode.postMessage({ type: 'showFullGraph' });
         }
 
-        function updateZoom(zoomFactor) {
+        function updateZoom(zoomFactor, mouseX, mouseY) {
+            const container = document.querySelector('.mermaid-container');
+
+            // 拡大前のズーム比率とスクロール位置を記録
+            const zoomBefore = currentZoom;
+            const scrollLeftBefore = container ? container.scrollLeft : 0;
+            const scrollTopBefore = container ? container.scrollTop : 0;
+
+            // マウス位置（コンテナ内の相対座標）を計算
+            const containerRect = container ? container.getBoundingClientRect() : { left: 0, top: 0 };
+            const relativeMouseX = typeof mouseX === 'number' ? mouseX - containerRect.left : 0;
+            const relativeMouseY = typeof mouseY === 'number' ? mouseY - containerRect.top : 0;
+
+            // 新しいズームレベルを計算
             currentZoom = Math.max(minZoom, Math.min(maxZoom, zoomFactor));
+
             const svg = document.querySelector('.mermaid svg');
             if (svg) {
                 // 元のサイズを記録（初回のみ）
@@ -241,20 +257,42 @@ ${mermaidText}
                 svg.setAttribute('height', scaledHeight);
                 svg.style.display = 'block';
             }
+
+            // スクロール位置をカーソル位置を中心に調整
+            if (container && typeof mouseX === 'number') {
+                const zoomRatio = currentZoom / zoomBefore;
+                const newScrollLeft = scrollLeftBefore * zoomRatio + relativeMouseX * (zoomRatio - 1);
+                const newScrollTop = scrollTopBefore * zoomRatio + relativeMouseY * (zoomRatio - 1);
+
+                setTimeout(() => {
+                    container.scrollLeft = newScrollLeft;
+                    container.scrollTop = newScrollTop;
+                }, 0);
+            }
+
             document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
             saveState();
         }
 
         function zoomIn() {
-            updateZoom(currentZoom + zoomStep);
+            const container = document.querySelector('.mermaid-container');
+            const centerX = container ? container.clientWidth / 2 : 0;
+            const centerY = container ? container.clientHeight / 2 : 0;
+            updateZoom(currentZoom + zoomStep, centerX, centerY);
         }
 
         function zoomOut() {
-            updateZoom(currentZoom - zoomStep);
+            const container = document.querySelector('.mermaid-container');
+            const centerX = container ? container.clientWidth / 2 : 0;
+            const centerY = container ? container.clientHeight / 2 : 0;
+            updateZoom(currentZoom - zoomStep, centerX, centerY);
         }
 
         function resetZoom() {
-            updateZoom(1.0);
+            const container = document.querySelector('.mermaid-container');
+            const centerX = container ? container.clientWidth / 2 : 0;
+            const centerY = container ? container.clientHeight / 2 : 0;
+            updateZoom(1.0, centerX, centerY);
         }
 
         // Initialize Mermaid with optimized layout
@@ -278,12 +316,15 @@ ${mermaidText}
 
         // マウスホイールズーム（Ctrl キー押下時）
         document.addEventListener('wheel', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-                if (e.deltaY < 0) {
-                    zoomIn();
-                } else {
-                    zoomOut();
+            const container = document.querySelector('.mermaid-container');
+            if (container && container.contains(e.target)) {
+                if (e.ctrlKey || e.metaKey) {
+                    e.preventDefault();
+                    if (e.deltaY < 0) {
+                        updateZoom(currentZoom + zoomStep, e.clientX, e.clientY);
+                    } else {
+                        updateZoom(currentZoom - zoomStep, e.clientX, e.clientY);
+                    }
                 }
             }
         }, { passive: false });
