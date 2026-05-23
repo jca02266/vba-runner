@@ -73,7 +73,8 @@ Example:
         process.exit(0);
     }
 
-    const target = args[0];
+    // First non-option argument is the target file/directory
+    const target = args.find(a => !a.startsWith('-'));
     const isCheck = args.includes('--check');
     const isWrite = args.includes('--write');
     const noKeywordCase = args.includes('--no-keyword-case');
@@ -81,8 +82,8 @@ Example:
     const indentSizeArg = args.find(a => a.startsWith('--indent-size='));
     const indentSize = indentSizeArg ? parseInt(indentSizeArg.split('=')[1], 10) : 4;
 
-    if (!fs.existsSync(target)) {
-        console.error(`Error: "${target}" が見つかりません`);
+    if (!target || !fs.existsSync(target)) {
+        console.error(`Error: "${target ?? '(指定なし)'}" が見つかりません`);
         process.exit(1);
     }
 
