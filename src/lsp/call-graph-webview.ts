@@ -256,12 +256,13 @@ ${mermaidText}
             securityLevel: 'loose',
             flowchart: {
                 curve: 'linear',
-                nodeSpacing: 40,
-                rankSpacing: 60,
+                nodeSpacing: 20,
+                rankSpacing: 100,
                 padding: 16,
                 useMaxWidth: false,
                 htmlLabels: true,
-                fontSize: 14
+                fontSize: 13,
+                subGraphTitleMargin: { top: 8, bottom: 4 }
             },
             fontFamily: 'inherit'
         });
@@ -300,7 +301,7 @@ ${mermaidText}
 }
 
 function buildMermaidText(graph: CallGraph, visibleNodes: Set<string>, visibleEdges: any[]): string {
-    const lines: string[] = ['graph TD'];
+    const lines: string[] = ['graph LR'];
 
     // Define classDefs
     lines.push('    classDef entry fill:#6699ff,stroke:#3366cc,color:#fff');
