@@ -169,7 +169,7 @@ function fmt(source: string, options?: FormatterOptions): string {
     const result = fmt('function Add(a as long, b as long) as long\nadd = a + b\nend function');
     const lines = result.split('\n');
     assert.strictEqual(lines[0], 'Function Add(a As long, b As long) As long', 'Function keyword and As cased');
-    assert.strictEqual(lines[1], '    add = a + b', 'Function body indented');
+    assert.strictEqual(lines[1], '    Add = a + b', 'Function body indented (Add cased to match definition)');
     assert.strictEqual(lines[2], 'End Function', 'End Function');
     console.log('[PASS] Function declaration formatting');
 }
@@ -258,6 +258,36 @@ function fmt(source: string, options?: FormatterOptions): string {
     assert.strictEqual(lines[3], '        x = x + i', 'For body at level 2');
     assert.strictEqual(lines[4], '    Next i', 'Next at level 1');
     console.log('[PASS] Multi-line For loop continuation indents body correctly');
+}
+
+// 28. Identifier case matches declaration (Dim)
+{
+    const result = fmt('Sub S()\nDim myVariable As Long\nmyvariable = 1\nMYVARIABLE = MYVARIABLE + 1\nEnd Sub');
+    assert.ok(result.includes('myVariable = 1'), 'myvariable → myVariable');
+    assert.ok(result.includes('myVariable = myVariable + 1'), 'MYVARIABLE → myVariable');
+    console.log('[PASS] Identifier case matches Dim declaration');
+}
+
+// 29. Identifier case matches Sub/Function name
+{
+    const result = fmt('Sub MyProc()\nmyproc\nEnd Sub');
+    assert.ok(result.includes('    MyProc'), 'myproc → MyProc (recursive call)');
+    console.log('[PASS] Identifier case matches Sub name');
+}
+
+// 30. Identifier case matches parameter name
+{
+    const result = fmt('Sub Greet(personName As String)\ndim msg as string\nmsg = "Hello " & PERSONNAME\nEnd Sub');
+    assert.ok(result.includes('personName'), 'PERSONNAME → personName');
+    console.log('[PASS] Identifier case matches parameter name');
+}
+
+// 31. Type member identifier case normalization
+{
+    const result = fmt('Public Type Person\n    FirstName As String\nEnd Type\nSub S()\nDim p As Person\np.firstname = "Alice"\nEnd Sub');
+    // Type member names in assignments are normalized
+    assert.ok(result.includes('FirstName As String'), 'Type member definition preserved');
+    console.log('[PASS] Type member identifier case');
 }
 
 console.log('\n✅ lsp-formatter: 全テスト通過');

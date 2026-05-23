@@ -127,6 +127,129 @@ interface TokenChange {
     text: string;
 }
 
+// --- identifier definition collector ---------------------------------------
+
+const PARAM_INTRO = new Set([
+    TokenType.OperatorLParen,
+    TokenType.OperatorComma,
+    TokenType.KeywordByRef,
+    TokenType.KeywordByVal,
+    TokenType.KeywordOptional,
+    TokenType.KeywordParamArray,
+]);
+
+function collectParamNames(tokens: Token[], startIdx: number, define: (name: string) => void) {
+    // Find opening paren
+    let i = startIdx;
+    while (i < tokens.length && tokens[i].type !== TokenType.OperatorLParen) {
+        if (i > startIdx + 2) return;
+        i++;
+    }
+    i++; // skip (
+    let depth = 1;
+    while (i < tokens.length && depth > 0) {
+        const t = tokens[i];
+        if (t.type === TokenType.OperatorLParen)  { depth++; i++; continue; }
+        if (t.type === TokenType.OperatorRParen)  { depth--; i++; continue; }
+        if (depth === 1 && t.type === TokenType.Identifier) {
+            const prev = tokens[i - 1];
+            if (prev && PARAM_INTRO.has(prev.type)) define(t.value);
+        }
+        i++;
+    }
+}
+
+/** Scan tokens for declaration sites and return lowercase→canonical map. */
+function collectDefinitions(source: string): Map<string, string> {
+    const defs = new Map<string, string>();
+    let tokens: Token[];
+    try {
+        tokens = new Lexer(source).tokenize()
+            .filter(t => t.type !== TokenType.Newline && t.type !== TokenType.EOF);
+    } catch {
+        return defs;
+    }
+
+    const define = (name: string) => {
+        if (!defs.has(name.toLowerCase())) defs.set(name.toLowerCase(), name);
+    };
+
+    let inTypeOrEnum = false;
+    let prevLine = -1;
+
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+
+        // Inside Type/Enum block: first Identifier on each line is a member name
+        if (inTypeOrEnum) {
+            if (t.type === TokenType.KeywordEnd) {
+                const next = tokens[i + 1];
+                if (next?.type === TokenType.KeywordType || next?.type === TokenType.KeywordEnum) {
+                    inTypeOrEnum = false;
+                }
+                prevLine = t.line;
+                continue;
+            }
+            if (t.type === TokenType.Identifier && t.line !== prevLine) {
+                define(t.value);
+            }
+            prevLine = t.line;
+            continue;
+        }
+
+        // Skip access modifiers to reach the declaring keyword
+        if (ACCESS_MODIFIERS.has(t.type)) continue;
+
+        const next  = tokens[i + 1];
+        const next2 = tokens[i + 2];
+
+        switch (t.type) {
+            case TokenType.KeywordDim:
+            case TokenType.KeywordConst:
+            case TokenType.KeywordStatic: {
+                const nameToken = next?.type === TokenType.Identifier ? next : null;
+                if (nameToken) define(nameToken.value);
+                break;
+            }
+            case TokenType.KeywordReDim: {
+                // ReDim [Preserve] name
+                const skip = next?.value?.toLowerCase() === 'preserve' ? tokens[i + 2] : next;
+                if (skip?.type === TokenType.Identifier) define(skip.value);
+                break;
+            }
+            case TokenType.KeywordSub:
+            case TokenType.KeywordFunction: {
+                if (next?.type === TokenType.Identifier) {
+                    define(next.value);
+                    collectParamNames(tokens, i + 2, define);
+                }
+                break;
+            }
+            case TokenType.KeywordProperty: {
+                // Property Get/Let/Set <name>
+                let nameIdx = i + 1;
+                const verb = tokens[nameIdx]?.value?.toLowerCase();
+                if (verb === 'get' || verb === 'let' || verb === 'set') nameIdx++;
+                if (tokens[nameIdx]?.type === TokenType.Identifier) {
+                    define(tokens[nameIdx].value);
+                    collectParamNames(tokens, nameIdx + 1, define);
+                }
+                break;
+            }
+            case TokenType.KeywordType:
+            case TokenType.KeywordEnum: {
+                if (next?.type === TokenType.Identifier) define(next.value);
+                inTypeOrEnum = true;
+                break;
+            }
+        }
+    }
+
+    return defs;
+}
+
+// ---------------------------------------------------------------------------
+
 export function format(source: string, options: FormatterOptions = {}): TextEdit[] {
     const indentSize = options.indentSize ?? 4;
     const indentChar = options.indentChar ?? ' ';
@@ -135,9 +258,10 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
 
     const physicalLines = source.split('\n');
 
-    // Phase 1: collect keyword-case changes per line index (0-based)
+    // Phase 1: collect keyword-case and identifier-case changes per line index (0-based)
+    const identDefs = collectDefinitions(source);
     const keywordChangesByLine = new Map<number, TokenChange[]>();
-    if (doKeywordCase) {
+    {
         let tokens: Token[];
         try {
             tokens = new Lexer(source).tokenize();
@@ -145,7 +269,13 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
             tokens = [];
         }
         for (const token of tokens) {
-            const canonical = KEYWORD_CANONICAL.get(token.type);
+            let canonical: string | undefined;
+            if (doKeywordCase) {
+                canonical = KEYWORD_CANONICAL.get(token.type);
+            }
+            if (!canonical && token.type === TokenType.Identifier) {
+                canonical = identDefs.get((token.value as string).toLowerCase());
+            }
             if (!canonical) continue;
             const value = token.value as string;
             if (value === canonical) continue;
