@@ -191,7 +191,7 @@ ${mermaidText}
         let currentZoom = 1.0;
         const minZoom = 0.2;
         const maxZoom = 20.0;
-        const zoomStep = 0.5;
+        const zoomStep = 0.1;
 
         // 状態を保存・復元
         function saveState() {
