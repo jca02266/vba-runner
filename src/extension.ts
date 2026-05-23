@@ -655,7 +655,85 @@ End Class`;
             insertEdit.insert(uri, insertPosition, dimAndAssign);
             await vscode.workspace.applyEdit(insertEdit);
 
-            // Then, replace the original expression with variable name
+            // Parse selected expression to AST for comparison
+            let selectedExprAst: any = null;
+            try {
+                const exprTokens = new Lexer(selectedText).tokenize();
+                const exprParser = new Parser(exprTokens);
+                selectedExprAst = exprParser.parseExpressionPublic();
+            } catch (e) {
+                // If parsing fails, use null to skip AST comparison
+            }
+
+            // Find all matching expressions in the procedure using AST comparison
+            const replacementOffsets: Array<{ line: number; start: number; end: number }> = [];
+
+            if (selectedExprAst) {
+                const ast = lspServer.parseDocument(editor.document.getText());
+                if (ast?.body) {
+                    // Find the procedure containing the current line
+                    for (const stmt of ast.body) {
+                        if (stmt.type === 'ProcedureDeclaration') {
+                            const procStart = stmt.loc?.start.line ?? 0;
+                            const procEnd = stmt.loc?.end.line ?? 0;
+                            if (procStart <= range.start.line + 1 && range.start.line + 1 <= procEnd) {
+                                // Walk procedure body to find matching expressions
+                                const astToKey = (node: any): string => {
+                                    if (!node) return '';
+                                    const { loc, ...rest } = node;
+                                    return JSON.stringify(rest);
+                                };
+
+                                const selectedKey = astToKey(selectedExprAst);
+                                let foundMatches = false;
+
+                                const walkExprs = (body: any) => {
+                                    if (!body || typeof body !== 'object') return;
+                                    if (Array.isArray(body)) {
+                                        for (const item of body) walkExprs(item);
+                                    } else {
+                                        if (body.type && (body.type.includes('Expression') || body.type === 'BinaryOp')) {
+                                            if (astToKey(body) === selectedKey && body.loc) {
+                                                const { start, end } = body.loc;
+                                                replacementOffsets.push({
+                                                    line: start.line - 1,
+                                                    start: start.column - 1,
+                                                    end: end.column - 1
+                                                });
+                                                foundMatches = true;
+                                            }
+                                        }
+                                        for (const key of Object.keys(body)) {
+                                            if (key !== 'loc' && key !== 'type') {
+                                                walkExprs(body[key]);
+                                            }
+                                        }
+                                    }
+                                };
+
+                                walkExprs(stmt.body);
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Remove the original selection from replacements
+            const otherReplacements = replacementOffsets.filter(r =>
+                !(r.line === range.start.line && r.start === range.start.character && r.end === range.end.character)
+            );
+
+            // Apply replacements from back to front to avoid offset changes
+            otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
+            for (const repl of otherReplacements) {
+                const replaceEdit = new vscode.WorkspaceEdit();
+                replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
+                await vscode.workspace.applyEdit(replaceEdit);
+            }
+
+            // Then, replace the original expression (accounting for Dim and assignment added earlier)
+            const lineOffset = otherReplacements.filter(r => r.line < range.start.line).length * 0;  // Each replace doesn't add lines
             const replacementStart = new vscode.Position(range.start.line + 2, range.start.character);
             const replacementEnd = new vscode.Position(range.end.line + 2, range.end.character);
             const replaceEdit = new vscode.WorkspaceEdit();
@@ -681,6 +759,15 @@ End Class`;
                     insertLine + 1, assignVarPos + varName.length
                 ));
             }
+
+            // Add selections for all matched and replaced expressions
+            for (const repl of otherReplacements) {
+                selections.push(new vscode.Selection(
+                    repl.line, repl.start,
+                    repl.line, repl.start + varName.length
+                ));
+            }
+
             selections.push(new vscode.Selection(
                 range.start.line + 2, range.start.character,
                 range.start.line + 2, range.start.character + varName.length
