@@ -7,6 +7,7 @@ import { Lexer } from './engine/lexer';
 import { Parser } from './engine/parser';
 import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
+import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -486,11 +487,20 @@ End Class`;
     outputChannel.appendLine('✓ Document formatting provider registered');
 
     // Register folding range provider (enables sticky scroll for Sub/For/While/With/If etc.)
+    // Parse directly from the document text to avoid LSP cache timing issues.
+    const vbaFoldingProvider = new VBAFoldingRangeProvider();
     context.subscriptions.push(
         vscode.languages.registerFoldingRangeProvider('vba', {
             provideFoldingRanges(document) {
-                const ranges = lspServer.getFoldingRanges(document.uri.toString());
-                return ranges.map(r => new vscode.FoldingRange(r.startLine, r.endLine));
+                try {
+                    const source = document.getText();
+                    const tokens = new Lexer(source).tokenize();
+                    const ast = new Parser(tokens).parse();
+                    const ranges = vbaFoldingProvider.getFoldingRanges(ast.body);
+                    return ranges.map(r => new vscode.FoldingRange(r.startLine, r.endLine));
+                } catch {
+                    return [];
+                }
             }
         })
     );

@@ -67,7 +67,12 @@
           }
         ]
       }
-    ]
+    ],
+    "configurationDefaults": {
+      "[vba]": {
+        "editor.stickyScroll.defaultModel": "foldingProviderModel"
+      }
+    }
   },
   "scripts": {
     "dev": "vite",
@@ -75,7 +80,7 @@
     "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode",
     "lint": "eslint .",
     "preview": "vite preview",
-    "package": "vsce package --no-dependencies",
+    "package": "npm run build:extension && vsce package --no-dependencies",
     "publish": "vsce publish",
     "test-gen": "esbuild test-libs/vba-test-generator.ts --bundle --outfile=dist/test-generator.cjs --platform=node && node dist/test-generator.cjs"
   },
