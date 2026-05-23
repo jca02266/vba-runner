@@ -48,6 +48,35 @@ export interface TableDrivenCandidate {
         detectedPatterns: string[];
         warnings: string[];
     };
+
+    // デシジョンテーブル（抽出できた場合のみ）
+    decisionTable?: DecisionTable;
+}
+
+/**
+ * デシジョンテーブルの1ルール（1列分）
+ */
+export interface DecisionRule {
+    condition: string;  // e.g., "amount < 50000"
+    result: string;     // e.g., "Manager"
+}
+
+/**
+ * デシジョンテーブルの1行（1キー分）
+ */
+export interface DecisionTableRow {
+    key: string;            // e.g., "Sales"
+    rules: DecisionRule[];  // 各しきい値条件とその結果（最後のルールを除く）
+    defaultResult: string;  // else の結果
+}
+
+/**
+ * デシジョンテーブル全体
+ */
+export interface DecisionTable {
+    keyVariable: string;      // e.g., "department"
+    valueVariable: string;    // e.g., "amount"
+    rows: DecisionTableRow[];
 }
 
 /**
@@ -256,6 +285,8 @@ export class TableDrivenDetector {
             },
 
             diagnostics,
+
+            decisionTable: this.extractDecisionTable(outerChain),
         };
     }
 
@@ -516,6 +547,213 @@ export class TableDrivenDetector {
             return `検討推奨。テーブル化で約${linesToSave}行削減可能。${assignmentComplexity > 30 ? 'ただし、恣意的修正が検出されたため、事前にロジック整理が必要です。' : ''}`;
         }
         return `検討の余地あり。スコア${Math.round(score)}は中程度です。ビジネスルール抽出やStrategy Patternも検討してください。`;
+    }
+
+    // -------------------------------------------------------------------------
+    // デシジョンテーブル抽出
+    // -------------------------------------------------------------------------
+
+    /**
+     * 外側の if-else-if チェーンからデシジョンテーブルを構築する
+     */
+    private extractDecisionTable(outerChain: IfStatement[]): DecisionTable | undefined {
+        const rows: DecisionTableRow[] = [];
+        let keyVariable = '';
+        let valueVariable = '';
+
+        for (const branch of outerChain) {
+            const key = this.extractKeyValue(branch.condition as any);
+            if (!keyVariable) keyVariable = this.extractKeyVariable(branch.condition as any);
+
+            const { rules, defaultResult, innerVariable } = this.extractInnerRules(branch.consequent);
+            if (!valueVariable && innerVariable) valueVariable = innerVariable;
+
+            rows.push({ key, rules, defaultResult });
+        }
+
+        if (rows.length === 0 || !keyVariable) return undefined;
+        return { keyVariable, valueVariable, rows };
+    }
+
+    /** 外側条件からキー変数名を取得（例: "department"） */
+    private extractKeyVariable(condition: any): string {
+        if (condition?.type === 'BinaryExpression') {
+            if (condition.left?.type === 'Identifier') return (condition.left as any).name ?? '';
+            if (condition.right?.type === 'Identifier') return (condition.right as any).name ?? '';
+        }
+        return '';
+    }
+
+    /** 外側条件からキー値を取得（例: "Sales"） */
+    private extractKeyValue(condition: any): string {
+        if (condition?.type === 'BinaryExpression') {
+            const lit = condition.right?.type === 'StringLiteral' ? condition.right
+                      : condition.left?.type === 'StringLiteral'  ? condition.left
+                      : null;
+            if (lit) return String((lit as any).value ?? '?');
+        }
+        return '?';
+    }
+
+    /**
+     * 外側分岐の consequent から内側の条件チェーンを収集する
+     */
+    private extractInnerRules(stmts: Statement[]): {
+        rules: DecisionRule[];
+        defaultResult: string;
+        innerVariable: string;
+    } {
+        const rules: DecisionRule[] = [];
+        let defaultResult = '?';
+        let innerVariable = '';
+
+        const innerIf = stmts.find((s) => s?.type === 'IfStatement') as IfStatement | undefined;
+        if (!innerIf) {
+            defaultResult = this.extractResult(stmts);
+            return { rules, defaultResult, innerVariable };
+        }
+
+        let current: any = innerIf;
+        while (current && current.type === 'IfStatement') {
+            if (!innerVariable) innerVariable = this.extractKeyVariable(current.condition);
+            const condition = this.formatCondition(current.condition);
+            const result = this.extractResult(current.consequent as Statement[]);
+            rules.push({ condition, result });
+
+            if (Array.isArray(current.alternate)) {
+                defaultResult = this.extractResult(current.alternate as Statement[]);
+                break;
+            }
+            current = current.alternate ?? null;
+        }
+
+        return { rules, defaultResult, innerVariable };
+    }
+
+    /** 条件式を文字列にフォーマット（例: "amount < 50000"） */
+    private formatCondition(condition: any): string {
+        if (!condition) return '?';
+        if (condition.type === 'BinaryExpression') {
+            const left  = this.formatExpr(condition.left);
+            const op    = condition.operator ?? '?';
+            const right = this.formatExpr(condition.right);
+            return `${left} ${op} ${right}`;
+        }
+        return '?';
+    }
+
+    /** 式ノードを文字列にフォーマット */
+    private formatExpr(expr: any): string {
+        if (!expr) return '?';
+        if (expr.type === 'Identifier')    return String(expr.name ?? '?');
+        if (expr.type === 'NumberLiteral') return this.formatNumber(expr.value);
+        if (expr.type === 'StringLiteral') return String(expr.value ?? '?');
+        return '?';
+    }
+
+    /** 数値を千区切りでフォーマット（例: 50000 → "50,000"） */
+    private formatNumber(n: any): string {
+        const num = Number(n);
+        if (isNaN(num)) return String(n ?? '?');
+        return num.toLocaleString('en-US');
+    }
+
+    /** ステートメント列から代入の右辺値を取得（例: "Manager"） */
+    private extractResult(stmts: Statement[]): string {
+        if (!Array.isArray(stmts)) return '?';
+        for (const stmt of stmts) {
+            const s = stmt as any;
+            if (s?.type === 'AssignmentStatement' && s.right) {
+                return this.formatExpr(s.right);
+            }
+        }
+        return '?';
+    }
+
+    // -------------------------------------------------------------------------
+    // デシジョンテーブル ASCII レンダリング
+    // -------------------------------------------------------------------------
+
+    /**
+     * DecisionTableRow を Y/N/- 形式の ASCII テーブルとして描画する
+     *
+     * 例:
+     *   renderRow(salesRow) →
+     *   ┌──────────────────────┬─────────┬──────────┬────┬─────┐
+     *   │ 条件                 │   R1    │    R2    │ R3 │  R4 │
+     *   ├──────────────────────┼─────────┼──────────┼────┼─────┤
+     *   │ amount < 50,000      │    Y    │    N     │  N │   N │
+     *   │ amount < 500,000     │    -    │    Y     │  N │   N │
+     *   │ amount < 2,000,000   │    -    │    -     │  Y │   N │
+     *   ├──────────────────────┼─────────┼──────────┼────┼─────┤
+     *   │ Approver（結果）     │ Manager │ Director │ VP │ CFO │
+     *   └──────────────────────┴─────────┴──────────┴────┴─────┘
+     */
+    renderRow(row: DecisionTableRow): string {
+        const n = row.rules.length;               // 条件数
+        const ruleCount = n + 1;                  // ルール列数（条件数 + else）
+
+        // 各列の結果値
+        const results = [...row.rules.map((r) => r.result), row.defaultResult];
+
+        // 列幅の計算（ヘッダー "R1".."Rn" と結果値の最大幅）
+        const ruleColWidths = results.map((v, i) => Math.max(2, `R${i + 1}`.length, v.length));
+
+        // 条件列の幅
+        const condColWidth = Math.max(
+            '条件'.length * 2,                   // 全角2文字 = 半角4
+            ...row.rules.map((r) => r.condition.length),
+            '結果'.length * 2 + 4,
+        );
+
+        const pad = (s: string, w: number) => s.padEnd(w);
+        const center = (s: string, w: number) => {
+            const space = Math.max(0, w - s.length);
+            const l = Math.floor(space / 2);
+            return ' '.repeat(l) + s + ' '.repeat(space - l);
+        };
+
+        const colSep = '┼';
+        const hRule = (l: string, m: string, r: string) =>
+            l + '─'.repeat(condColWidth + 2) + m +
+            ruleColWidths.map((w) => '─'.repeat(w + 2)).join(m) + r;
+
+        const dataRow = (label: string, cells: string[]) =>
+            '│ ' + pad(label, condColWidth) + ' │' +
+            cells.map((c, i) => ' ' + center(c, ruleColWidths[i]) + ' │').join('');
+
+        const lines: string[] = [];
+        lines.push(hRule('┌', '┬', '┐'));
+
+        // ヘッダー行
+        const headers = Array.from({ length: ruleCount }, (_, i) => `R${i + 1}`);
+        lines.push(dataRow('条件', headers));
+        lines.push(hRule('├', colSep, '┤'));
+
+        // 条件行（Y/N/- マトリクス）
+        for (let ci = 0; ci < n; ci++) {
+            const cells = Array.from({ length: ruleCount }, (_, ri) => {
+                if (ri < ci)  return '-';   // 前条件でマッチ済み → don't care
+                if (ri === ci) return 'Y';  // このルールがマッチする条件
+                return 'N';                 // まだマッチしていない
+            });
+            lines.push(dataRow(row.rules[ci].condition, cells));
+        }
+
+        lines.push(hRule('├', colSep, '┤'));
+
+        // 結果行
+        lines.push(dataRow('結果', results));
+        lines.push(hRule('└', '┴', '┘'));
+
+        return `${row.key}（${ruleCount}ルール）:\n` + lines.join('\n');
+    }
+
+    /**
+     * DecisionTable 全体を描画する
+     */
+    renderDecisionTable(table: DecisionTable): string {
+        return table.rows.map((row) => this.renderRow(row)).join('\n\n');
     }
 }
 
