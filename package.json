@@ -41,6 +41,37 @@
         "path": "./syntaxes/vba.tmLanguage.json"
       }
     ],
+    "commands": [
+      {
+        "command": "vba-runner.showCallGraph",
+        "title": "Show Call Graph",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.showInCallGraph",
+        "title": "Show in Call Graph",
+        "category": "VBA"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vba-runner.showCallGraph",
+          "when": "resourceLangId == vba",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "vba-runner.showCallGraph",
+          "when": "resourceLangId == vba"
+        },
+        {
+          "command": "vba-runner.showInCallGraph",
+          "when": "false"
+        }
+      ]
+    },
     "debuggers": [
       {
         "type": "vba",

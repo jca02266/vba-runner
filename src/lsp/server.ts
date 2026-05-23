@@ -7,6 +7,7 @@ import { CompletionProvider } from './completion-provider';
 import { ReferencesProvider } from './references-provider';
 import { RenameProvider } from './rename-provider';
 import { CodeLensProvider } from './code-lens-provider';
+import { CallGraphProvider, CallGraph } from './call-graph-provider';
 import { TestDiscovery } from './test-discovery';
 import { TestRunner } from './test-runner';
 import { DebugAdapter } from './debug-adapter';
@@ -38,6 +39,7 @@ export class LSPServer {
     private referencesProvider: ReferencesProvider;
     private renameProvider: RenameProvider;
     private codeLensProvider: CodeLensProvider;
+    private callGraphProvider: CallGraphProvider;
     private foldingRangeProvider: FoldingRangeProvider;
     private testDiscovery: TestDiscovery;
     private testRunner: TestRunner;
@@ -51,6 +53,7 @@ export class LSPServer {
         this.referencesProvider = new ReferencesProvider();
         this.renameProvider = new RenameProvider();
         this.codeLensProvider = new CodeLensProvider();
+        this.callGraphProvider = new CallGraphProvider();
         this.foldingRangeProvider = new FoldingRangeProvider();
         this.testDiscovery = new TestDiscovery();
         this.testRunner = new TestRunner();
@@ -294,6 +297,17 @@ export class LSPServer {
      * Strip .cls file header (VERSION 1.0 CLASS / BEGIN...END block).
      * Replaces header lines with empty lines to preserve line numbers.
      */
+    getCallGraph(_currentUri: string): CallGraph {
+        const fileMap = new Map<string, { statements: any[], uri: string }>();
+        for (const [uri, doc] of this.documents) {
+            const ast = this.parseDocument(doc.content);
+            if (ast?.body) {
+                fileMap.set(uri, { statements: ast.body, uri });
+            }
+        }
+        return this.callGraphProvider.buildCallGraph(fileMap);
+    }
+
     private stripClsHeader(content: string): string {
         const lines = content.split('\n');
         if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return content;

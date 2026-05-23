@@ -8,6 +8,7 @@ import { Parser } from './engine/parser';
 import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
+import { generateCallGraphHtml } from './lsp/call-graph-webview';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -505,6 +506,63 @@ End Class`;
         })
     );
     outputChannel.appendLine('✓ Folding range provider registered');
+
+    // Helper function for showing call graph panel
+    function showCallGraphPanel(uri: string, focusProcName: string | null): void {
+        try {
+            const graph = lspServer.getCallGraph(uri);
+            const panel = vscode.window.createWebviewPanel(
+                'vbaCallGraph',
+                'VBA Call Graph',
+                vscode.ViewColumn.Beside,
+                { enableScripts: true, localResourceRoots: [] }
+            );
+            panel.webview.html = generateCallGraphHtml(graph, panel.webview, context.extensionUri, focusProcName);
+
+            panel.webview.onDidReceiveMessage(
+                async (msg: any) => {
+                    if (msg.type === 'goToDefinition') {
+                        const procName = msg.procName;
+                        const node = graph.nodes.get(procName.toLowerCase());
+                        if (node) {
+                            const docUri = vscode.Uri.parse(node.uri);
+                            const pos = new vscode.Position(node.line, 0);
+                            await vscode.window.showTextDocument(docUri, { selection: new vscode.Range(pos, pos) });
+                        }
+                    } else if (msg.type === 'showFullGraph') {
+                        showCallGraphPanel(uri, null);
+                        panel.dispose();
+                    }
+                },
+                undefined,
+                context.subscriptions
+            );
+        } catch (e: any) {
+            vscode.window.showErrorMessage(`Failed to show call graph: ${e.message}`);
+            outputChannel.appendLine(`[Error] Call graph: ${e.message}`);
+            outputChannel.show();
+        }
+    }
+
+    // vba-runner.showCallGraph: Show call graph for the current document
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.showCallGraph', () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.languageId !== 'vba') {
+                vscode.window.showWarningMessage('Please open a VBA file first');
+                return;
+            }
+            showCallGraphPanel(editor.document.uri.toString(), null);
+        })
+    );
+
+    // vba-runner.showInCallGraph: Show call graph focused on a procedure (from Code Lens)
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.showInCallGraph', (uri: string, procName: string) => {
+            showCallGraphPanel(uri, procName);
+        })
+    );
+    outputChannel.appendLine('✓ Call graph commands registered');
 
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');

@@ -69,6 +69,16 @@ export class CodeLensProvider {
                     arguments: [uri, proc.name],
                 },
             });
+
+            // Show in Call Graph
+            items.push({
+                range,
+                command: {
+                    title: '📊 Show in Call Graph',
+                    command: 'vba-runner.showInCallGraph',
+                    arguments: [uri, proc.name],
+                },
+            });
         }
 
         return items;
