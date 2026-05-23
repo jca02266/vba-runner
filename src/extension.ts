@@ -9,6 +9,7 @@ import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
 import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
+import { astEqual, serializeAst, findMatchingExpressions } from './lsp/ast-comparison';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -665,7 +666,7 @@ End Class`;
                 // If parsing fails, use null to skip AST comparison
             }
 
-            // Find all matching expressions in the procedure using AST comparison
+            // Find all matching expressions in the procedure
             const replacementOffsets: Array<{ line: number; start: number; end: number }> = [];
 
             if (selectedExprAst) {
@@ -677,41 +678,14 @@ End Class`;
                             const procStart = stmt.loc?.start.line ?? 0;
                             const procEnd = stmt.loc?.end.line ?? 0;
                             if (procStart <= range.start.line + 1 && range.start.line + 1 <= procEnd) {
-                                // Walk procedure body to find matching expressions
-                                const astToKey = (node: any): string => {
-                                    if (!node) return '';
-                                    const { loc, ...rest } = node;
-                                    return JSON.stringify(rest);
-                                };
-
-                                const selectedKey = astToKey(selectedExprAst);
-                                let foundMatches = false;
-
-                                const walkExprs = (body: any) => {
-                                    if (!body || typeof body !== 'object') return;
-                                    if (Array.isArray(body)) {
-                                        for (const item of body) walkExprs(item);
-                                    } else {
-                                        if (body.type && (body.type.includes('Expression') || body.type === 'BinaryOp')) {
-                                            if (astToKey(body) === selectedKey && body.loc) {
-                                                const { start, end } = body.loc;
-                                                replacementOffsets.push({
-                                                    line: start.line - 1,
-                                                    start: start.column - 1,
-                                                    end: end.column - 1
-                                                });
-                                                foundMatches = true;
-                                            }
-                                        }
-                                        for (const key of Object.keys(body)) {
-                                            if (key !== 'loc' && key !== 'type') {
-                                                walkExprs(body[key]);
-                                            }
-                                        }
-                                    }
-                                };
-
-                                walkExprs(stmt.body);
+                                const matches = findMatchingExpressions(stmt.body, selectedExprAst);
+                                for (const match of matches) {
+                                    replacementOffsets.push({
+                                        line: match.start.line,
+                                        start: match.start.column,
+                                        end: match.end.column
+                                    });
+                                }
                                 break;
                             }
                         }
