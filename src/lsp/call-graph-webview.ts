@@ -191,8 +191,8 @@ ${mermaidText}
         const mermaidSource = ${JSON.stringify(mermaidText)};
         let currentZoom = 1.0;
         const minZoom = 0.2;
-        const maxZoom = 3.0;
-        const zoomStep = 0.2;
+        const maxZoom = 20.0;
+        const zoomStep = 0.5;
 
         function nodeClicked(nodeId) {
             const cleanId = nodeId.replace(/["']/g, '');
