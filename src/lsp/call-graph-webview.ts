@@ -156,7 +156,7 @@ export function generateCallGraphHtml(
         </div>
         <div class="buttons">
             <button onclick="copyAsMarkdown()">📋 Copy as Mermaid</button>
-            <button onclick="copyAsDrawio()">📊 Copy as Draw.io</button>
+            <button onclick="saveAsDrawio()">💾 Save as Draw.io</button>
             ${focusProcName ? `<button onclick="showFullGraph()">🔄 Show Full Graph</button>` : ''}
             <div class="zoom-controls">
                 <button onclick="zoomOut()" style="padding: 4px 8px;">−</button>
@@ -227,20 +227,9 @@ ${mermaidText}
             vscode.postMessage({ type: 'showFullGraph' });
         }
 
-        function copyAsDrawio() {
-            vscode.postMessage({ type: 'generateDrawio' });
+        function saveAsDrawio() {
+            vscode.postMessage({ type: 'saveDrawio' });
         }
-
-        window.addEventListener('message', event => {
-            const message = event.data;
-            if (message.type === 'drawioXml') {
-                navigator.clipboard.writeText(message.xml).then(() => {
-                    alert('Draw.io XML copied to clipboard');
-                }).catch(() => {
-                    alert('Failed to copy');
-                });
-            }
-        });
 
         function updateZoom(zoomFactor, mouseX, mouseY) {
             const container = document.querySelector('.mermaid-container');

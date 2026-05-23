@@ -552,9 +552,16 @@ End Class`;
                     } else if (msg.type === 'showFullGraph') {
                         showCallGraphPanel(uri, null);
                         panel.dispose();
-                    } else if (msg.type === 'generateDrawio') {
+                    } else if (msg.type === 'saveDrawio') {
                         const xml = generateDrawioXml(graph, focusProcName);
-                        panel.webview.postMessage({ type: 'drawioXml', xml });
+                        const saveUri = await vscode.window.showSaveDialog({
+                            filters: { 'Draw.io': ['drawio'] },
+                            defaultUri: vscode.Uri.file(path.join(path.dirname(docUri.fsPath), 'call-graph.drawio')),
+                        });
+                        if (saveUri) {
+                            fs.writeFileSync(saveUri.fsPath, xml, 'utf8');
+                            vscode.window.showInformationMessage(`Saved: ${saveUri.fsPath}`);
+                        }
                     }
                 },
                 undefined,
