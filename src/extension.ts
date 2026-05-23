@@ -8,7 +8,7 @@ import { Parser } from './engine/parser';
 import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
-import { generateCallGraphHtml } from './lsp/call-graph-webview';
+import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -552,6 +552,9 @@ End Class`;
                     } else if (msg.type === 'showFullGraph') {
                         showCallGraphPanel(uri, null);
                         panel.dispose();
+                    } else if (msg.type === 'generateDrawio') {
+                        const xml = generateDrawioXml(graph, focusProcName);
+                        panel.webview.postMessage({ type: 'drawioXml', xml });
                     }
                 },
                 undefined,

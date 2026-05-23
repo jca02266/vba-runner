@@ -156,6 +156,7 @@ export function generateCallGraphHtml(
         </div>
         <div class="buttons">
             <button onclick="copyAsMarkdown()">📋 Copy as Mermaid</button>
+            <button onclick="copyAsDrawio()">📊 Copy as Draw.io</button>
             ${focusProcName ? `<button onclick="showFullGraph()">🔄 Show Full Graph</button>` : ''}
             <div class="zoom-controls">
                 <button onclick="zoomOut()" style="padding: 4px 8px;">−</button>
@@ -225,6 +226,21 @@ ${mermaidText}
         function showFullGraph() {
             vscode.postMessage({ type: 'showFullGraph' });
         }
+
+        function copyAsDrawio() {
+            vscode.postMessage({ type: 'generateDrawio' });
+        }
+
+        window.addEventListener('message', event => {
+            const message = event.data;
+            if (message.type === 'drawioXml') {
+                navigator.clipboard.writeText(message.xml).then(() => {
+                    alert('Draw.io XML copied to clipboard');
+                }).catch(() => {
+                    alert('Failed to copy');
+                });
+            }
+        });
 
         function updateZoom(zoomFactor, mouseX, mouseY) {
             const container = document.querySelector('.mermaid-container');
@@ -517,4 +533,54 @@ function getTransitiveNodes(graph: CallGraph, focusKey: string): Set<string> {
     }
 
     return result;
+}
+
+export function generateDrawioXml(graph: CallGraph, focusProcName: string | null): string {
+    let visibleNodes = new Set<string>();
+    let visibleEdges = graph.edges;
+
+    if (focusProcName) {
+        const focusKey = focusProcName.toLowerCase();
+        visibleNodes = graph.nodes.has(focusKey)
+            ? getTransitiveNodes(graph, focusKey)
+            : new Set(graph.nodes.keys());
+        visibleEdges = graph.edges.filter(e => visibleNodes.has(e.from) && visibleNodes.has(e.to));
+    } else {
+        visibleNodes = new Set(graph.nodes.keys());
+    }
+
+    const cells: string[] = [];
+    cells.push('<mxCell id="0"/>');
+    cells.push('<mxCell id="1" parent="0"/>');
+
+    let id = 2;
+    const nodeIdMap = new Map<string, number>();
+
+    for (const key of visibleNodes) {
+        const node = graph.nodes.get(key);
+        if (!node) continue;
+        const cellId = id++;
+        nodeIdMap.set(key, cellId);
+        const color = node.scope === 'public' && node.referenceCount === 0
+            ? 'fillColor=#6699ff;fontColor=#ffffff;strokeColor=#3366cc;'
+            : node.scope === 'private' && node.referenceCount === 0
+                ? 'fillColor=#ff8888;fontColor=#ffffff;strokeColor=#cc3333;'
+                : node.isExcelDependent
+                    ? 'strokeColor=#ff9900;strokeWidth=3;'
+                    : '';
+        cells.push(`<mxCell id="${cellId}" value="${escapeXmlAttr(node.name)}" style="rounded=1;${color}" vertex="1" parent="1"><mxGeometry x="${(id % 5) * 160}" y="${Math.floor(id / 5) * 80}" width="120" height="40" as="geometry"/></mxCell>`);
+    }
+
+    for (const edge of visibleEdges) {
+        const fromId = nodeIdMap.get(edge.from);
+        const toId = nodeIdMap.get(edge.to);
+        if (fromId === undefined || toId === undefined) continue;
+        cells.push(`<mxCell id="${id++}" edge="1" source="${fromId}" target="${toId}" parent="1"><mxGeometry relative="1" as="geometry"/></mxCell>`);
+    }
+
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<mxGraphModel><root>${cells.join('')}</root></mxGraphModel>`;
+}
+
+function escapeXmlAttr(str: string): string {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
