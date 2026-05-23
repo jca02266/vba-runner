@@ -67,6 +67,7 @@ export function generateCallGraphHtml(
             display: flex;
             gap: 8px;
             flex-wrap: wrap;
+            align-items: center;
         }
         button {
             padding: 6px 12px;
@@ -81,6 +82,20 @@ export function generateCallGraphHtml(
         }
         button:hover {
             background: var(--vscode-button-hoverBackground, #1177bb);
+        }
+        .zoom-controls {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            border-left: 1px solid var(--vscode-editor-lineHighlightBorderBackground, #3e3e42);
+            padding-left: 8px;
+            margin-left: 8px;
+        }
+        .zoom-level {
+            font-size: 11px;
+            min-width: 40px;
+            text-align: center;
+            color: var(--vscode-editor-foreground, #d4d4d4);
         }
         .mermaid-container {
             flex: 1;
@@ -143,6 +158,12 @@ export function generateCallGraphHtml(
         <div class="buttons">
             <button onclick="copyAsMarkdown()">📋 Copy as Mermaid</button>
             ${focusProcName ? `<button onclick="showFullGraph()">🔄 Show Full Graph</button>` : ''}
+            <div class="zoom-controls">
+                <button onclick="zoomOut()" style="padding: 4px 8px;">−</button>
+                <div class="zoom-level" id="zoomLevel">100%</div>
+                <button onclick="zoomIn()" style="padding: 4px 8px;">+</button>
+                <button onclick="resetZoom()" style="padding: 4px 8px;">Reset</button>
+            </div>
         </div>
     </div>
 
@@ -168,6 +189,10 @@ ${mermaidText}
     <script nonce="${nonce}">
         const vscode = acquireVsCodeApi();
         const mermaidSource = ${JSON.stringify(mermaidText)};
+        let currentZoom = 1.0;
+        const minZoom = 0.2;
+        const maxZoom = 3.0;
+        const zoomStep = 0.2;
 
         function nodeClicked(nodeId) {
             const cleanId = nodeId.replace(/["']/g, '');
@@ -184,6 +209,29 @@ ${mermaidText}
 
         function showFullGraph() {
             vscode.postMessage({ type: 'showFullGraph' });
+        }
+
+        function updateZoom(zoomFactor) {
+            currentZoom = Math.max(minZoom, Math.min(maxZoom, zoomFactor));
+            const svg = document.querySelector('.mermaid svg');
+            if (svg) {
+                svg.style.transform = 'scale(' + currentZoom + ')';
+                svg.style.transformOrigin = 'top center';
+                svg.style.transformBox = 'fill-box';
+            }
+            document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
+        }
+
+        function zoomIn() {
+            updateZoom(currentZoom + zoomStep);
+        }
+
+        function zoomOut() {
+            updateZoom(currentZoom - zoomStep);
+        }
+
+        function resetZoom() {
+            updateZoom(1.0);
         }
 
         // Initialize Mermaid with optimized layout
@@ -203,6 +251,26 @@ ${mermaidText}
             fontFamily: 'inherit'
         });
         mermaid.contentLoaded();
+
+        // マウスホイールズーム（Ctrl キー押下時）
+        document.addEventListener('wheel', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+                if (e.deltaY < 0) {
+                    zoomIn();
+                } else {
+                    zoomOut();
+                }
+            }
+        }, { passive: false });
+
+        // Mermaid レンダリング後にズーム適用
+        setTimeout(() => {
+            const svg = document.querySelector('.mermaid svg');
+            if (svg) {
+                updateZoom(1.0);
+            }
+        }, 100);
     </script>
 </body>
 </html>`;
