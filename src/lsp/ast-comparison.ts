@@ -1,4 +1,3 @@
-import { Statement, Expression } from '../engine/parser';
 
 /**
  * Compare two AST nodes for semantic equivalence (ignoring location info).

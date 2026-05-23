@@ -6,7 +6,7 @@ import { assert } from '../../test-libs/test-runner';
 function procBody(code: string): any[] {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
-    const proc = ast.body.find((s: any) => s.type === 'ProcedureDeclaration');
+    const proc = ast.body.find((s: any) => s.type === 'ProcedureDeclaration') as any;
     return proc?.body ?? [];
 }
 

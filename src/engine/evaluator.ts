@@ -659,7 +659,7 @@ export class Environment {
 export type PrintCallback = (output: string) => void;
 
 export class Evaluator {
-    private env: Environment;
+    public env: Environment;
     private fileHandles: Map<number, {
         fd: number,
         mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',

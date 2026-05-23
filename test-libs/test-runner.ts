@@ -212,4 +212,8 @@ export const assert = {
             throw new Error(`Assertion Failed`);
         }
     },
+    fail: (message?: string) => {
+        console.error(`[FAIL] ${message || 'Assertion failed'}`);
+        throw new Error(`Assertion Failed`);
+    },
 };

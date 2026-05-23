@@ -89,7 +89,7 @@ const code11 = `Sub Test()
 End Sub`;
 const ast11 = parseCode(code11);
 const targetExpr11 = parseExpression('CalcSum(a, b)');
-const proc11 = ast11.body.find((s: any) => s.type === 'ProcedureDeclaration');
+const proc11 = ast11.body.find((s: any) => s.type === 'ProcedureDeclaration') as any;
 const matches11 = findMatchingExpressions(proc11?.body || [], targetExpr11);
 test('11. Finding matching expressions in procedure', matches11.length >= 2, `found ${matches11.length} matches (expected >=2)`);
 
@@ -99,7 +99,7 @@ const code12 = `Sub Test()
 End Sub`;
 const ast12 = parseCode(code12);
 const targetExpr12 = parseExpression('CalcSum(a, b)');
-const proc12 = ast12.body.find((s: any) => s.type === 'ProcedureDeclaration');
+const proc12 = ast12.body.find((s: any) => s.type === 'ProcedureDeclaration') as any;
 const matches12 = findMatchingExpressions(proc12?.body || [], targetExpr12);
 test('12. Different function arguments not matched', matches12.length === 1, `found ${matches12.length} matches (expected 1)`);
 

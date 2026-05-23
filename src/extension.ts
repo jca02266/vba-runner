@@ -9,7 +9,7 @@ import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
 import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
-import { astEqual, serializeAst, findMatchingExpressions } from './lsp/ast-comparison';
+import { findMatchingExpressions } from './lsp/ast-comparison';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -698,16 +698,9 @@ End Class`;
                 !(r.line === range.start.line && r.start === range.start.character && r.end === range.end.character)
             );
 
-            // Apply replacements from back to front to avoid offset changes
-            otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
-            for (const repl of otherReplacements) {
-                const replaceEdit = new vscode.WorkspaceEdit();
-                replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
-                await vscode.workspace.applyEdit(replaceEdit);
-            }
+            // Note: Don't apply other replacements yet; will ask user after showing multi-cursor
 
             // Then, replace the original expression (accounting for Dim and assignment added earlier)
-            const lineOffset = otherReplacements.filter(r => r.line < range.start.line).length * 0;  // Each replace doesn't add lines
             const replacementStart = new vscode.Position(range.start.line + 2, range.start.character);
             const replacementEnd = new vscode.Position(range.end.line + 2, range.end.character);
             const replaceEdit = new vscode.WorkspaceEdit();
@@ -749,6 +742,45 @@ End Class`;
 
             editor.selections = selections;
             editor.revealRange(new vscode.Range(selections[0].start, selections[0].end));
+
+            // Ask user about other replacements after multi-cursor is set
+            if (otherReplacements.length > 0) {
+                const choice = await vscode.window.showQuickPick(
+                    ['全て置換', '一つずつ確認', '置換しない'],
+                    { placeHolder: `他に ${otherReplacements.length} 箇所見つかりました` }
+                );
+
+                if (choice === '全て置換') {
+                    // Apply all replacements from back to front to avoid offset changes
+                    otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
+                    for (const repl of otherReplacements) {
+                        const replaceEdit = new vscode.WorkspaceEdit();
+                        replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
+                        await vscode.workspace.applyEdit(replaceEdit);
+                    }
+                } else if (choice === '一つずつ確認') {
+                    // Apply replacements one by one, asking for each
+                    otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
+                    for (const repl of otherReplacements) {
+                        const lineText = editor.document.lineAt(repl.line).text;
+                        const exprText = lineText.substring(repl.start, repl.end);
+
+                        const userChoice = await vscode.window.showQuickPick(
+                            ['置換', 'スキップ'],
+                            {
+                                placeHolder: `行 ${repl.line + 1}: "${exprText}" を置換しますか？`,
+                                canPickMany: false
+                            }
+                        );
+
+                        if (userChoice === '置換') {
+                            const replaceEdit = new vscode.WorkspaceEdit();
+                            replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
+                            await vscode.workspace.applyEdit(replaceEdit);
+                        }
+                    }
+                }
+            }
         })
     );
     outputChannel.appendLine('✓ Code Actions (Refactor) registered');

@@ -338,7 +338,7 @@ export class LSPServer {
     /**
      * Parse document content
      */
-    private parseDocument(content: string): any {
+    parseDocument(content: string): any {
         try {
             const tokens = new Lexer(this.stripClsHeader(content)).tokenize();
             return new Parser(tokens).parse();
