@@ -308,6 +308,17 @@ export class LSPServer {
         return this.callGraphProvider.buildCallGraph(fileMap);
     }
 
+    buildCallGraphFromFiles(fileContents: Map<string, string>): CallGraph {
+        const fileMap = new Map<string, { statements: any[], uri: string }>();
+        for (const [uri, content] of fileContents) {
+            const ast = this.parseDocument(content);
+            if (ast?.body) {
+                fileMap.set(uri, { statements: ast.body, uri });
+            }
+        }
+        return this.callGraphProvider.buildCallGraph(fileMap);
+    }
+
     private stripClsHeader(content: string): string {
         const lines = content.split('\n');
         if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return content;

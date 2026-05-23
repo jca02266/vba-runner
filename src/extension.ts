@@ -510,7 +510,27 @@ End Class`;
     // Helper function for showing call graph panel
     function showCallGraphPanel(uri: string, focusProcName: string | null): void {
         try {
-            const graph = lspServer.getCallGraph(uri);
+            // スキャン対象ディレクトリを決定
+            const docUri = vscode.Uri.parse(uri);
+            const dir = path.dirname(docUri.fsPath);
+
+            // 同ディレクトリの全 .bas/.cls ファイルをスキャン
+            const fileContents = new Map<string, string>();
+            const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
+            for (const entry of entries) {
+                const filePath = path.join(dir, entry);
+                try {
+                    const content = fs.readFileSync(filePath, 'utf8');
+                    const fileUri = vscode.Uri.file(filePath).toString();
+                    fileContents.set(fileUri, content);
+                } catch (e) {
+                    outputChannel.appendLine(`[Warning] Failed to read ${entry}: ${(e as any).message}`);
+                }
+            }
+
+            // LSP Server で複数ファイルからコールグラフを生成
+            const graph = lspServer.buildCallGraphFromFiles(fileContents);
+
             const panel = vscode.window.createWebviewPanel(
                 'vbaCallGraph',
                 'VBA Call Graph',
