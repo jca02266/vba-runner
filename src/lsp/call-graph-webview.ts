@@ -39,24 +39,30 @@ export function generateCallGraphHtml(
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
+        html, body {
+            width: 100%;
+            height: 100%;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
             background: var(--vscode-editor-background, #1e1e1e);
             color: var(--vscode-editor-foreground, #d4d4d4);
-            padding: 16px;
-            max-height: 100vh;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            padding: 12px;
             overflow: hidden;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            margin-bottom: 12px;
             flex-wrap: wrap;
             gap: 12px;
+            flex-shrink: 0;
         }
-        h1 { font-size: 18px; font-weight: 500; }
-        .info { font-size: 13px; opacity: 0.8; }
+        h1 { font-size: 16px; font-weight: 600; }
+        .info { font-size: 12px; opacity: 0.8; }
         .buttons {
             display: flex;
             gap: 8px;
@@ -71,35 +77,49 @@ export function generateCallGraphHtml(
             cursor: pointer;
             font-size: 12px;
             transition: background 0.2s;
+            white-space: nowrap;
         }
         button:hover {
             background: var(--vscode-button-hoverBackground, #1177bb);
         }
         .mermaid-container {
-            width: 100%;
-            height: calc(100vh - 120px);
+            flex: 1;
             overflow: auto;
             border: 1px solid var(--vscode-editor-lineHighlightBorderBackground, #3e3e42);
             border-radius: 4px;
-            padding: 12px;
+            padding: 8px;
             background: var(--vscode-editor-background, #1e1e1e);
+            min-height: 200px;
         }
-        .mermaid {
-            min-height: 100%;
+        .mermaid-container > .mermaid {
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
+            min-width: min-content;
+            padding: 16px;
+        }
+        .mermaid svg {
+            max-width: 100%;
+            height: auto;
+        }
+        .mermaid g.node text {
+            font-size: 14px !important;
+            font-weight: 500;
+        }
+        .mermaid g.edgeLabel text {
+            font-size: 12px !important;
         }
         .legend {
-            margin-top: 12px;
-            font-size: 12px;
+            margin-top: 8px;
+            font-size: 11px;
             padding: 8px;
             border-top: 1px solid var(--vscode-editor-lineHighlightBorderBackground, #3e3e42);
+            flex-shrink: 0;
         }
         .legend-item {
             display: inline-block;
             margin-right: 16px;
-            margin-top: 6px;
+            margin-top: 4px;
         }
         .legend-color {
             display: inline-block;
@@ -166,8 +186,22 @@ ${mermaidText}
             vscode.postMessage({ type: 'showFullGraph' });
         }
 
-        // Initialize Mermaid
-        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+        // Initialize Mermaid with optimized layout
+        mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+            flowchart: {
+                curve: 'linear',
+                nodeSpacing: 40,
+                rankSpacing: 60,
+                padding: 16,
+                useMaxWidth: false,
+                htmlLabels: true,
+                fontSize: 14
+            },
+            fontFamily: 'inherit'
+        });
         mermaid.contentLoaded();
     </script>
 </body>
