@@ -51,6 +51,11 @@
         "command": "vba-runner.showInCallGraph",
         "title": "Show in Call Graph",
         "category": "VBA"
+      },
+      {
+        "command": "vba-runner.introduceVariable",
+        "title": "Introduce Variable",
+        "category": "Refactor"
       }
     ],
     "menus": {

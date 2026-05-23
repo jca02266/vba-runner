@@ -594,6 +594,76 @@ End Class`;
     );
     outputChannel.appendLine('✓ Call graph commands registered');
 
+    // Register Code Actions (Refactor menu)
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider('vba', {
+            provideCodeActions(document, range) {
+                const actions: vscode.CodeAction[] = [];
+
+                if (!range.isEmpty) {
+                    const action = new vscode.CodeAction('Introduce Variable', vscode.CodeActionKind.Refactor);
+                    action.command = {
+                        title: 'Introduce Variable',
+                        command: 'vba-runner.introduceVariable',
+                        arguments: [document.uri, range],
+                    };
+                    actions.push(action);
+                }
+
+                return actions;
+            }
+        })
+    );
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.introduceVariable', async (uri: vscode.Uri, range: vscode.Range) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) {
+                vscode.window.showWarningMessage('Document context lost');
+                return;
+            }
+
+            const selectedText = editor.document.getText(range);
+            if (!selectedText.trim()) {
+                vscode.window.showWarningMessage('Please select an expression');
+                return;
+            }
+
+            const varName = await vscode.window.showInputBox({
+                prompt: 'Variable name:',
+                value: 'result',
+                validateInput: (input) => {
+                    if (!input) return 'Variable name is required';
+                    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) {
+                        return 'Invalid variable name (must start with letter or underscore)';
+                    }
+                    return '';
+                },
+            });
+
+            if (!varName) return;
+
+            const insertLine = range.start.line;
+            const currentLineText = editor.document.lineAt(insertLine).text;
+            const indent = currentLineText.match(/^\s*/)?.[0] || '';
+
+            const edit = new vscode.WorkspaceEdit();
+
+            const insertPosition = new vscode.Position(insertLine, 0);
+            const dimAndAssign = `${indent}Dim ${varName}\n${indent}${varName} = ${selectedText}\n`;
+
+            edit.insert(uri, insertPosition, dimAndAssign);
+
+            const replacementStart = new vscode.Position(range.start.line + 2, range.start.character);
+            const replacementEnd = new vscode.Position(range.end.line + 2, range.end.character);
+            edit.replace(uri, new vscode.Range(replacementStart, replacementEnd), varName);
+
+            await vscode.workspace.applyEdit(edit);
+            vscode.window.showInformationMessage(`Variable '${varName}' introduced`);
+        })
+    );
+    outputChannel.appendLine('✓ Code Actions (Refactor) registered');
+
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');
     outputChannel.show();
