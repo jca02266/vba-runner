@@ -194,6 +194,20 @@ ${mermaidText}
         const maxZoom = 20.0;
         const zoomStep = 0.5;
 
+        // 状態を保存・復元
+        function saveState() {
+            vscode.setState({ zoom: currentZoom });
+        }
+
+        function restoreState() {
+            const state = vscode.getState();
+            if (state && typeof state.zoom === 'number') {
+                currentZoom = state.zoom;
+                return true;
+            }
+            return false;
+        }
+
         function nodeClicked(nodeId) {
             const cleanId = nodeId.replace(/["']/g, '');
             vscode.postMessage({ type: 'goToDefinition', procName: cleanId });
@@ -220,6 +234,7 @@ ${mermaidText}
                 svg.style.transformBox = 'fill-box';
             }
             document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
+            saveState();
         }
 
         function zoomIn() {
@@ -268,7 +283,15 @@ ${mermaidText}
         setTimeout(() => {
             const svg = document.querySelector('.mermaid svg');
             if (svg) {
-                updateZoom(1.0);
+                // 保存された状態を復元、なければ 1.0 で初期化
+                if (!restoreState()) {
+                    currentZoom = 1.0;
+                }
+                // ズームレベルを表示に反映
+                svg.style.transform = 'scale(' + currentZoom + ')';
+                svg.style.transformOrigin = 'top center';
+                svg.style.transformBox = 'fill-box';
+                document.getElementById('zoomLevel').textContent = Math.round(currentZoom * 100) + '%';
             }
         }, 100);
     </script>
