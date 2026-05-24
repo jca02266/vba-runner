@@ -26,6 +26,14 @@
 
 ---
 
+## 言語実装の拡張機能
+
+| 状態 | 優先度 | 機能 | 概要 | テスト |
+|------|--------|------|------|--------|
+| ❌ | P2 | 日本語識別子対応 | レキサーの `isAlpha()` メソッドを拡張して Unicode 文字（日本語含む）をサポート。`Dim 氏名 As String` のような識別子を使用可能に | TBD |
+
+---
+
 ## 第5章：制御ステートメント (§5.4.2)
 
 | 状態 | 優先度 | 機能 | 仕様書 | テスト |
@@ -470,6 +478,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `valueOf()` 実装)
     - テスト: `default-property-noncls.test.ts`
 - ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラー解除 (制限事項: RaiseEventコア存在; ハンドラー自動登録・検出機構未実装、イベントパラメーター解析未対応) | `withevents-lifecycle.test.ts`
+  - 実装しても**同期呼び出しのみ対応**（`src.Fire` → `src_TestEvent` が即時実行される形）
+  - `DoEvents` + `Sleep` によるイベント待ちループ（wait/notify パターン）は不可。evaluator がシングルスレッド同期のため、ループ中に外から RaiseEvent を発火する主体が存在しない
 - ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - ✅ **`Implements` インターフェース呼び出し**: `obj.Speak` → `IAnimal_Speak` のインターフェースディスパッチ | テスト: `implements-dispatch.test.ts`
@@ -668,10 +678,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 残課題: キーワード補完実装時に contextual keyword が補完候補に混入する恐れがある
   - 対策案: `TokenType` に `ContextualKeyword*` カテゴリを追加して Lexer 判定を分離
 
-- ❌ **予約語 + 型接尾辞（`dim$`・`for$` 等）が変数名として通ってしまう**（バグ）
-  - 原因: Lexer が型接尾辞 `$` を先付けしてから keyword テーブルと照合するため、`dim$` が `dim` にマッチせず `Identifier` トークンになる
-  - 仕様: §3.3.5.2 `TYPED-NAME = IDENTIFIER type-suffix`。IDENTIFIER は reserved-identifier でないものに限られるため、`dim$`・`for$` 等は無効なはず
-  - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法
+- ✅ **予約語 + 型接尾辞（`dim$`・`for$` 等）が変数名として通ってしまう**（バグ）
+  - 修正: Lexer でキーワード照合前に型接尾辞を除去（`lowerBase`）することで `dim$` → `KeywordDim` と正しく識別
+  - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法 | `lexer-column.test.ts`
 
 ### エンジン内部の構造改善
 
