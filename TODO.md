@@ -496,7 +496,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`On Error Resume Next` 下の暗黙の `Err.Clear`**: 正常文実行時のクリア（または非クリア）タイミング | `err-clear-timing.test.ts`
 - ✅ **`Resume` の対象決定**: エラー発生点・Resume Next・Resume <label> の正確な制御フロー | `resume-statement-target.test.ts`
 - ✅ **エラーハンドラー内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
-- ⚠️ **`Erl` 関数**: エラー発生行番号の取得（制限事項: MS-VBAL spec未定義、line number tracking未実装） | `erl-function.test.ts`
+- ⚠️ **`Erl` 関数**: エラー発生行番号の取得（制限事項: MS-VBAL spec未定義、line number tracking未実装）★優先度低: VBA ソース側に数値行ラベル（`10 If ...` 形式）がないと Erl は常に 0 を返すため、実用コードでの使用頻度が低い | `erl-function.test.ts`
 
 ### プロシージャ呼び出しの細部
 
@@ -678,7 +678,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `vbaToNumber()`/`vbaToString()`/`vbaToBoolean()`/`vbaToDisplayString()`/`vbaRound()` を集約する
   - VBA 型定義は `vba-types.ts` に抽出。`evaluator.ts` の各変換メソッドは委譲形に置き換え、re-export で後方互換を維持 | `coerce.ts`, `vba-types.ts`
 
-- [ ] **`registerStandardLibrary` の分割 + `$` suffix 宣言的登録**: 900 行の単一メソッドをカテゴリ別ファイルに分割し、`$` 付き variant を `{ variants: ['$'] }` 形式で自動登録する仕組みを導入する
+- ✅ **`registerStandardLibrary` の分割 + `$` suffix 宣言的登録**: 940 行の単一メソッドを 11 の private メソッドに分割し、`envSet(name, fn, ['$'])` ヘルパーで 21 件の `$` variant 二重登録を一元化 | `evaluator.ts`
   - 現状: `Left`/`Left$` を別々にif分岐で手動登録しており、新しい組み込み関数追加のたびに `$` 版を忘れるリスクがある
 
 - ✅ **エラー番号の一元管理**: `vba-errors.ts` を新設し、全エラー番号・メッセージ・カテゴリを辞書として集約する

@@ -614,6 +614,12 @@ export class Evaluator {
         return this.nowOverride ? this.nowOverride() : new Date();
     }
 
+    /** Register a function under `name`, and also under `name$` when variants includes '$'. */
+    private envSet(name: string, fn: any, variants: string[] = []) {
+        this.env.set(name, fn);
+        for (const v of variants) this.env.set(name + v, fn);
+    }
+
     private registerDateTimeFunctions() {
         const nowFunc = () => new VbaDate(toVbaDate(this.getNow()));
         (nowFunc as any).__vbaAutoCall__ = true;
@@ -640,7 +646,21 @@ export class Evaluator {
     }
 
     private registerStandardLibrary() {
-        // --- Core Objects ---
+        this.registerCoreObjects();
+        this.registerInformationFunctions();
+        this.registerConversionFunctions();
+        this.registerMathFunctions();
+        this.registerStringFunctions();
+        this.registerDateTimeFunctions();
+        this.registerStdlibDateTimeFunctions();
+        this.registerFileSystemFunctions();
+        this.registerInteractionFunctions();
+        this.registerFinancialFunctions();
+        this.registerConstants();
+        this.registerRegistryFunctions();
+    }
+
+    private registerCoreObjects() {
         this.env.set('debug', {
             print: (...args: any[]) => this.onPrint(args.map(a => this.toDisplayString(a)).join(' ')),
             assert: (condition: any) => {
@@ -659,8 +679,9 @@ export class Evaluator {
             displayalerts: true,
             screenupdating: true,
         });
+    }
 
-        // --- Information Module ---
+    private registerInformationFunctions() {
         this.env.set('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse);
         this.env.set('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse);
         this.env.set('isnumeric', (val: any) => {
@@ -755,8 +776,9 @@ export class Evaluator {
             }
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
         });
+    }
 
-        // --- Conversion Module ---
+    private registerConversionFunctions() {
         this.env.set('cbyte', (val: any) => {
             if (val instanceof VbaBoolean) {
                 return val.valueOf() ? 255 : 0;
@@ -853,14 +875,12 @@ export class Evaluator {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(16).toUpperCase();
         };
-        this.env.set('hex', hexFn);
-        this.env.set('hex$', hexFn);
+        this.envSet('hex', hexFn, ['$']);
         const octFn = (n: any) => {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(8);
         };
-        this.env.set('oct', octFn);
-        this.env.set('oct$', octFn);
+        this.envSet('oct', octFn, ['$']);
         this.env.set('val', (s: any) => {
             if (typeof s !== 'string') return 0;
             const cleaned = s.trim().replace(/ /g, '');
@@ -913,8 +933,9 @@ export class Evaluator {
         this.env.set('vbnarrow', 8);
         this.env.set('vbkatakana', 16);
         this.env.set('vbhiragana', 32);
+    }
 
-        // --- Math Module ---
+    private registerMathFunctions() {
         this.env.set('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(this.toVbaNumber(val)));
         this.env.set('atn', (val: any) => val === vbaNull ? vbaNull : Math.atan(this.toVbaNumber(val)));
         this.env.set('cos', (val: any) => val === vbaNull ? vbaNull : Math.cos(this.toVbaNumber(val)));
@@ -974,16 +995,15 @@ export class Evaluator {
             rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
             lastRnd = rndSeed / 4294967296;
         });
+    }
 
-        // --- String Module ---
+    private registerStringFunctions() {
         const ascFunc = (s: any) => String(s || '').charCodeAt(0);
         this.env.set('asc', ascFunc);
         this.env.set('ascw', ascFunc);
         const chrFunc = (n: any) => String.fromCharCode(Number(n));
-        this.env.set('chr', chrFunc);
-        this.env.set('chr$', chrFunc);
-        this.env.set('chrw', chrFunc);
-        this.env.set('chrw$', chrFunc);
+        this.envSet('chr', chrFunc, ['$']);
+        this.envSet('chrw', chrFunc, ['$']);
         this.env.set('instr', (...args: any[]) => {
             let start = 1, s1, s2, comp;
             if (args.length >= 4) [start, s1, s2, comp] = args;
@@ -1024,47 +1044,37 @@ export class Evaluator {
             return idx === -1 ? 0 : idx + 1;
         });
         const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
-        this.env.set('lcase', lcaseFunc);
-        this.env.set('lcase$', lcaseFunc);
+        this.envSet('lcase', lcaseFunc, ['$']);
         const strFunc = (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             return n >= 0 ? " " + n : String(n);
         };
-        this.env.set('str', strFunc);
-        this.env.set('str$', strFunc);
+        this.envSet('str', strFunc, ['$']);
 
         const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
-        this.env.set('ucase', ucaseFunc);
-        this.env.set('ucase$', ucaseFunc);
+        this.envSet('ucase', ucaseFunc, ['$']);
         const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
-        this.env.set('left', leftFunc);
-        this.env.set('left$', leftFunc);
+        this.envSet('left', leftFunc, ['$']);
         const rightFunc = (val: any, len: any) => {
             const s = String(val ?? ''), l = Number(len);
             return s.substring(s.length - l);
         };
-        this.env.set('right', rightFunc);
-        this.env.set('right$', rightFunc);
+        this.envSet('right', rightFunc, ['$']);
         const midFunc = (val: any, start: any, len?: any) => {
             const s = String(val ?? ''), st = Number(start);
             return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
         };
-        this.env.set('mid', midFunc);
-        this.env.set('mid$', midFunc);
+        this.envSet('mid', midFunc, ['$']);
         this.env.set('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length);
         const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart();
-        this.env.set('ltrim', ltrimFunc);
-        this.env.set('ltrim$', ltrimFunc);
+        this.envSet('ltrim', ltrimFunc, ['$']);
         const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimEnd();
-        this.env.set('rtrim', rtrimFunc);
-        this.env.set('rtrim$', rtrimFunc);
+        this.envSet('rtrim', rtrimFunc, ['$']);
         const trimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim();
-        this.env.set('trim', trimFunc);
-        this.env.set('trim$', trimFunc);
+        this.envSet('trim', trimFunc, ['$']);
         const spaceFunc = (n: any) => ' '.repeat(Number(n));
-        this.env.set('space', spaceFunc);
-        this.env.set('space$', spaceFunc);
+        this.envSet('space', spaceFunc, ['$']);
         const stringFunc = (n: any, char: any) => {
             // VBA 仕様: 数値が渡された場合は文字コードとして扱う、文字列の場合は先頭文字を使う
             let c: string;
@@ -1076,8 +1086,7 @@ export class Evaluator {
             }
             return c.repeat(Number(n));
         };
-        this.env.set('string', stringFunc);
-        this.env.set('string$', stringFunc);
+        this.envSet('string', stringFunc, ['$']);
         this.env.set('split', (s: any, del: string = ' ') => String(s ?? '').split(del));
         this.env.set('join', (arr: any, del: string = ' ') => Array.isArray(arr) ? arr.join(del) : String(arr));
         this.env.set('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')));
@@ -1142,8 +1151,7 @@ export class Evaluator {
             const charLen = Math.floor(Number(len) / 2);
             return s.substring(charStart - 1, charStart - 1 + charLen);
         };
-        this.env.set('midb', midbFunc);
-        this.env.set('midb$', midbFunc);
+        this.envSet('midb', midbFunc, ['$']);
         const formatFunc = (val: any, pattern?: string) => {
             if (val === null || val === vbaNull || val === vbaEmpty) return "";
             const fmt = pattern ? String(pattern) : "";
@@ -1167,11 +1175,10 @@ export class Evaluator {
             }
             return String(val);
         };
-        this.env.set('format', formatFunc);
-        this.env.set('format$', formatFunc);
+        this.envSet('format', formatFunc, ['$']);
+    }
 
-        // --- Date/Time Module ---
-        this.registerDateTimeFunctions();
+    private registerStdlibDateTimeFunctions() {
         this.env.set('year',   (d: any) => parseVbaDate(d).getFullYear());
         this.env.set('month',  (d: any) => parseVbaDate(d).getMonth() + 1);
         this.env.set('day',    (d: any) => parseVbaDate(d).getDate());
@@ -1274,8 +1281,9 @@ export class Evaluator {
             const idx = (w + first - 2) % 7;
             return this.isTrue(abbreviate) ? abbrs[idx] : names[idx];
         });
+    }
 
-        // --- File System Module ---
+    private registerFileSystemFunctions() {
         this.env.set('freefile', (range?: number) => {
             const start = (range === 1) ? 256 : 1;
             const end = (range === 1) ? 511 : 255;
@@ -1318,9 +1326,8 @@ export class Evaluator {
             return new VbaDate(toVbaDate(stats.mtime));
         });
 
-        this.env.set('curdir', (_drive?: string) => this.sandbox.getCwd());
-        this.env.set('curdir$', this.env.get('curdir'));
-        this.env.set('dir', (pathName?: string, _attributes?: number) => {
+        this.envSet('curdir', (_drive?: string) => this.sandbox.getCwd(), ['$']);
+        this.envSet('dir', (pathName?: string, _attributes?: number) => {
             if (pathName !== undefined && pathName !== null && pathName !== "") {
                 try {
                     const realPath = this.sandbox.toRealPath(pathName);
@@ -1340,8 +1347,7 @@ export class Evaluator {
             }
             if (!this.dirIterator || this.dirIndex >= this.dirIterator.length) return "";
             return this.dirIterator[this.dirIndex++];
-        });
-        this.env.set('dir$', this.env.get('dir'));
+        }, ['$']);
         this.env.set('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
         this.env.set('kill', (p: string) => this.executeKill(p));
         this.env.set('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }));
@@ -1354,8 +1360,9 @@ export class Evaluator {
             }
         });
         this.env.set('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size);
+    }
 
-        // --- Interaction Module ---
+    private registerInteractionFunctions() {
         this.env.set('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; });
         this.env.set('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => {
             const title = _title ? ` ${_title}:` : '';
@@ -1366,8 +1373,9 @@ export class Evaluator {
         this.env.set('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
         this.env.set('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
         this.env.set('doevents', () => 0);
+    }
 
-        // --- Financial Module ---
+    private registerFinancialFunctions() {
         const getRateFactor = (rate: number, nper: number) => {
             if (rate === 0) return nper;
             return (Math.pow(1 + rate, nper) - 1) / rate;
@@ -1491,13 +1499,13 @@ export class Evaluator {
             const ipmt = Number(this.env.get('ipmt')(r, p, n, v, f, t));
             return pmt - ipmt;
         });
+    }
 
-        // --- Constants & Registry ---
+    private registerConstants() {
         const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
         const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Application-defined or object-defined error";
         (errFunc as any).__vbaAutoCall__ = true;
-        this.env.set('error', errFunc);
-        this.env.set('error$', errFunc);
+        this.envSet('error', errFunc, ['$']);
         this.env.set('vbsunday', 1);
         this.env.set('vbmonday', 2);
         this.env.set('vbtuesday', 3);
@@ -1512,8 +1520,7 @@ export class Evaluator {
         this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0'); this.env.set('vbback', "\b"); this.env.set('vbformfeed', "\f");
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
 
-        this.env.set('environ', (k: any) => this.sandbox.getEnv(k));
-        this.env.set('environ$', this.env.get('environ'));
+        this.envSet('environ', (k: any) => this.sandbox.getEnv(k), ['$']);
         this.env.set('createobject', (id: string) => this.createExternalObject(id));
         this.env.set('getobject', (pathname?: string, classId?: string) => {
             if (pathname) {
@@ -1556,8 +1563,9 @@ export class Evaluator {
             if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             return ((a as any).vbaBase || 0) + a.length - 1;
         });
+    }
 
-        // --- Registry Module ---
+    private registerRegistryFunctions() {
         this.env.set('savesetting', (app: string, sec: string, key: string, val: any) => {
             if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
             if (!this.virtualRegistry[app][sec]) this.virtualRegistry[app][sec] = {};
