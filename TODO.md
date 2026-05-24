@@ -662,16 +662,16 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `json_BufferAppend` 内の `json_Append` ではなく、ユーザーコードで `append` などを変数名に使うとパース失敗。スタックトレースは "Unexpected token in expression 'append'"
   - 修正: `parseStatementInner` の識別子ステートメント開始条件と `parsePrimary` の文脈的識別子リストに `KeywordOutput`/`KeywordAppend`/`KeywordRandom`/`KeywordBinary` を追加（`Open...For Append` の文法は既に `parseOpenStatement` で正しく処理される）
 
-- ⚠️ **TODO: Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**
+- ⚠️ **Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**（可読性・保守性）
   - 現状: 全キーワードが `Keyword*` トークンのフラットな羅列で、仕様上の種別（`statement-keyword` / `marker-keyword` / `operator-identifier` / contextual）が区別されていない
-  - 問題1: `Append`・`Output`・`Binary`・`Random` のように仕様上は非予約（contextual）なキーワードを誤って予約語として扱う → Parser 側でのホワイトリストによるパッチ対応が必要
-  - 問題2: キーワード補完機能を実装する際、本来変数名に使える語（contextual keyword）まで補完候補に混入する恐れがある
-  - 仕様上の分類: `statement-keyword`（`Dim`, `For`, `If` 等）、`marker-keyword`（`As`, `ByRef`, `To` 等）、`operator-identifier`（`And`, `Or`, `Not` 等）は真の予約語。`Append` 等は `open-stmt` 文法内にのみ登場する文脈的トークン
-  - 対策案: ① `TokenType` に `ContextualKeyword*` カテゴリを追加して Lexer 判定を分離、または ② `Open...For` の後にのみ `KeywordAppend` を生成するコンテキスト依存字句解析に変更
-  - 関連バグ ❌: 予約語 + 型接尾辞（`dim$`・`for$` 等）が変数名として通ってしまう
-    - 原因: Lexer が型接尾辞 `$` を先付けしてから keyword テーブルと照合するため、`dim$` が `dim` にマッチせず `Identifier` トークンになる
-    - 仕様: §3.3.5.2 `TYPED-NAME = IDENTIFIER type-suffix`。IDENTIFIER は reserved-identifier でないものに限られるため、`dim$`・`for$` 等は無効なはず
-    - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法
+  - contextual キーワードの誤予約語化（`Append`・`Output` 等が変数名に使えない問題）は Parser の `CONTEXTUAL_KW` Set 化により軽減済み。新規追加も Set に1行追加するだけ
+  - 残課題: キーワード補完実装時に contextual keyword が補完候補に混入する恐れがある
+  - 対策案: `TokenType` に `ContextualKeyword*` カテゴリを追加して Lexer 判定を分離
+
+- ❌ **予約語 + 型接尾辞（`dim$`・`for$` 等）が変数名として通ってしまう**（バグ）
+  - 原因: Lexer が型接尾辞 `$` を先付けしてから keyword テーブルと照合するため、`dim$` が `dim` にマッチせず `Identifier` トークンになる
+  - 仕様: §3.3.5.2 `TYPED-NAME = IDENTIFIER type-suffix`。IDENTIFIER は reserved-identifier でないものに限られるため、`dim$`・`for$` 等は無効なはず
+  - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法
 
 ### エンジン内部の構造改善
 
