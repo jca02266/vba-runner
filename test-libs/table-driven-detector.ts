@@ -749,6 +749,16 @@ export class TableDrivenDetector {
                 const val = this.formatExpr(condition.right);
                 return `${funcName}=${val}`;
             }
+            // var = ConstantIdentifier（定数識別子との比較: direction = xlUp）
+            // NumericLiteral はしきい値として別途処理されるためここには来ない
+            const rightType = condition.right?.type;
+            if (rightType === 'Identifier' || rightType === 'MemberExpression') {
+                return this.formatExprFull(condition.right);
+            }
+            const leftType = condition.left?.type;
+            if (leftType === 'Identifier' || leftType === 'MemberExpression') {
+                return this.formatExprFull(condition.left);
+            }
         }
         // FunctionCall(var)  →  関数名をキー値に
         if (condition.type === 'CallExpression') {
