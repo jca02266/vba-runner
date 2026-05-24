@@ -47,6 +47,10 @@ export class VBARunner {
                 const parseOpts = isRawCls ? { parseAsClass: moduleName } : {};
 
                 const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
+                if (ast.diagnostics.length > 0) {
+                    const msg = ast.diagnostics.map((d: any) => `line ${d.loc?.start?.line ?? '?'}: ${d.message}`).join('; ');
+                    throw new Error(`Parse error: ${msg}`);
+                }
                 this._asts.push(ast);
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
