@@ -86,16 +86,17 @@ import {
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate,
-    AutoInstancePlaceholder, createAutoInstancePlaceholder, isAutoInstancePlaceholder,
+    createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
+import type { VbaVarType } from './vba-types';
 export {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate,
-    AutoInstancePlaceholder, createAutoInstancePlaceholder, isAutoInstancePlaceholder,
+    createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
-export type { VbaBooleanType, VbaNumericType, VbaVarType } from './vba-types';
+export type { AutoInstancePlaceholder, VbaBooleanType, VbaNumericType, VbaVarType } from './vba-types';
 import {
     vbaToNumber as _vbaToNumber,
     vbaToBoolean,
