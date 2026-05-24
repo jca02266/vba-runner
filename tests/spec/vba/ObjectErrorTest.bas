@@ -79,3 +79,32 @@ Sub TestReadNonExistentProperty(assert)
 
     assert.Assert savedErr, 438, "obj.存在しないプロパティ -> Error 438"
 End Sub
+
+' Error 438: CreateObject 返り値の存在しないメソッド呼び出し (Late Binding)
+Sub TestLateBindingNonExistentMethod(assert)
+    Dim savedErr As Long
+    On Error Resume Next
+    Err.Clear
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.NoSuchMethod
+    savedErr = Err.Number
+    On Error GoTo 0
+
+    assert.Assert savedErr, 438, "CreateObject返り値.存在しないメソッド -> Error 438"
+End Sub
+
+' Error 438: CreateObject 返り値の存在しないプロパティ読み取り (Late Binding)
+Sub TestLateBindingNonExistentProperty(assert)
+    Dim savedErr As Long
+    On Error Resume Next
+    Err.Clear
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    Dim v
+    v = d.NoSuchProperty
+    savedErr = Err.Number
+    On Error GoTo 0
+
+    assert.Assert savedErr, 438, "CreateObject返り値.存在しないプロパティ -> Error 438"
+End Sub

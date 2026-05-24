@@ -540,7 +540,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### Late Binding 周辺
 
 - ✅ **`CreateObject(progId)` 経由のオブジェクト呼び出し**: 動的ディスパッチ
-- ⚠️ **存在しないメソッド呼び出しのエラー詳細**: VBA エラー番号 438 を厳密に再現 (制限事項: late binding error codes未実装)
+- ✅ **存在しないメソッド呼び出しのエラー詳細**: VBA エラー番号 438 を厳密に再現 — クラスインスタンス・CreateObject 返り値いずれも 438 | `ObjectErrorTest.bas`
 - ✅ **`IDispatch` 風のプロパティ get/set 自動振り分け**: 引数の有無でメソッド/プロパティ自動判定 | `idispatch-property-dispatch.test.ts`
 
 ---
