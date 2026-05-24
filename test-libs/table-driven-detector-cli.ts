@@ -77,6 +77,24 @@ JSON 出力フィールド（--json）:
     structureSummary      副作用の AST 形状（例: "log=(log&STR), count=(count+NUM)"）
     mismatchedBranches[]  構造が不一致だったブランチのキーパス（不均一時のみ）
 
+  条件変数情報（conditionVariables[]）:
+    name                  キー式（例: "department", "task.Category", "GetPriority(taskType)"）
+                          単純識別子だけでなく MemberExpression・CallExpression も取得する
+    level                 ネストレベル（0=外側キー, 1=第2キー, 2=しきい値 など）
+    declaredAt            Dim 宣言行（1始まり）。引数・外部変数の場合は undefined
+    assignedLines[]       if チェーン開始より前にある代入文の行番号リスト
+    assignmentAstShapes[] 各代入文の右辺 AST 形状（例: "IDENT.Cells(IDENT,NUM).Value"）
+                          同一形状が並ぶ場合、データ読み込みもテーブル駆動化の候補
+    hasUniformAssignment  全代入が同一形状か（代入部分もテーブル化できるか）
+
+  レベル別条件形状（levelShapes[]）:
+    level                 ネストレベル（0, 1, 2, …）
+    shape                 このレベルの代表条件形状（例: "(IDENT=STR)", "(IDENT<NUM)"）
+                          変数名は IDENT に正規化、関数名・プロパティ名は保持
+    isUniform             全ブランチでこのレベルの条件形状が一致しているか
+    nonUniformBranches[]  形状が異なるブランチのキー値（不均一時のみ）
+                          isUniform=false の場合はスコアに -15 ペナルティと警告が出る
+
 例:
   # 候補の検出（テキスト形式）
   node table-driven-detector-cli.cjs sample/src/vba/ApprovalRules_Before.bas
