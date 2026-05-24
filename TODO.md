@@ -480,7 +480,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Empty` / `Null` / `Nothing` / `Missing` の演算子挙動**: `Null + 5 = Null`、`Empty + 5 = 5` などの伝播規則 (`null-empty-propagation.test.ts`)
 - ✅ **`String` ↔ 数値の暗黙変換**: `"5" + 3 = 8`、`"5" & 3 = "53"` の区別 (`string-numeric-coercion.test.ts`)
 - ✅ **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
-- ✅ **`If` 条件式の truthy 判定**: 数値・Boolean・文字列（"True"/"False"/数値文字列→変換、それ以外 Type mismatch）・Null(Error 94)・Empty(False)。Boolean 算術（True=-1）・Not ビット反転・比較演算子結果が vbaTrue(-1)/vbaFalse(0) (`if-condition-truthy.test.ts`)
+- ✅ **`If` 条件式の truthy 判定**: 数値・Boolean・文字列（"True"/"False"/数値文字列→変換、それ以外 Type mismatch）・Null(Error 94)・Empty(False)。Boolean 算術（True=-1）・Not ビット反転・比較演算子結果が vbaTrue(-1)/vbaFalse(0)。文字列変換は §5.6.9（条件式は §6.1.2.3 の value coercion を適用）＋ §6.1.2.3.1.1（CBool 変換規則）が根拠 (`if-condition-truthy.test.ts`)
 - ✅ **Integer/Long のオーバーフロー検出**: Error 6 を正しく発生させる (Byte/Integer/Long/Currency/Single)
 - ⚠️ **`Decimal` 型の精度**: 28 桁の固定精度サポート (制限事項: VbaDecimalラッパー存在; 内部はJavaScriptのnumber型でIEEE 754精度、28桁固定小数点精度未実装) | `decimal-precision.test.ts`
 - ✅ **`Currency` 型の精度**: 64-bit 整数 / 10000 の固定小数 | `currency-precision.test.ts`
