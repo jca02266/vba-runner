@@ -10,7 +10,7 @@
 
 | ドキュメント | 説明 |
 |-----------|------|
-| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-18、T-01〜T-15、S-01） |
+| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-18、T-01〜T-15、S-01、VA-01/VA-01b/VA-02/VA-03/VA-04） |
 | **[REFACTORING_CLOSURE.md](REFACTORING_CLOSURE.md)** | クロージャによるループ抽象化（キーブレイク例）— JavaScript 版・VBA クラス版の対比 |
 | **[TABLE_DRIVEN_GUIDE.md](TABLE_DRIVEN_GUIDE.md)** | テーブル駆動リファクタリング（複雑な分岐を統一テーブルに） |
 | **[FEATHERS_TECHNIQUES_TODO.md](FEATHERS_TECHNIQUES_TODO.md)** | Feathers "Working Effectively with Legacy Code" の手法一覧とカタログ収録状況 |
@@ -197,6 +197,7 @@ TESTING_STRATEGY.md（最上位の原則）
 
 | ドキュメント | 参照先 | 理由 |
 |-----------|--------|------|
+| [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md) | [TESTING_STRATEGY.md](TESTING_STRATEGY.md), [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md), [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md), [MOCK_GUIDE.md](MOCK_GUIDE.md) | R/T/S/VA 手法の一覧。各手法の詳細説明ドキュメントへのリンクを提供 |
 | [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | テスト設計原則を前提に実装パターンを提示 |
 | [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) | [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) | 4 つのリファクタリングパターンの実例 |
 | [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md) | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) | テスト設計原則を実装に落とし込む |

@@ -1242,5 +1242,6 @@ End Sub
 
 ## 関連ドキュメント
 
+- **`REFACTORING_TESTING_CATALOG.md`** — リファクタリング・テスト手法カタログ（R-01〜R-18、T-01〜T-15、S-01、VA-01〜VA-04）
 - **`TESTING_STRATEGY.md`** — VBA テストの設計原則
 - **`TEST_FRAMEWORK_GUIDE.md`** — JavaScript テストフレームワークの活用
