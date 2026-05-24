@@ -813,12 +813,13 @@ export class TableDrivenDetector {
     /**
      * 条件が数値しきい値比較（葉レベル）か判定
      * BinaryExpression で </<=/>/>=  かつ 片側が NumberLiteral のもの
+     * = による数値等値比較（例: purchaseCount = 1）もしきい値として扱う
      * それ以外（文字列等値、関数呼び出し、論理演算など）はすべてキーレベルとして再帰する
      */
     private isNumericThresholdCondition(condition: any): boolean {
         if (condition?.type !== 'BinaryExpression') return false;
         const op: string = condition.operator ?? '';
-        if (!['<', '<=', '>', '>='].includes(op)) return false;
+        if (!['<', '<=', '>', '>=', '='].includes(op)) return false;
         return condition.left?.type === 'NumberLiteral' || condition.right?.type === 'NumberLiteral';
     }
 
