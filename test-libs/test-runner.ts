@@ -197,11 +197,15 @@ export const assert = {
     deepStrictEqual: (actual: any, expected: any, message?: string) => {
         const normalize = (v: any) =>
             (v && (v instanceof VbaBoolean || (v as any).__isVbaBoolean__)) ? v.valueOf() : v;
+        const seen = new WeakMap<object, WeakSet<object>>();
         const deepEqual = (a: any, e: any): boolean => {
             a = normalize(a);
             e = normalize(e);
             if (a === e) return true;
             if (a === null || e === null || typeof a !== 'object' || typeof e !== 'object') return false;
+            if (!seen.has(a)) seen.set(a, new WeakSet());
+            if (seen.get(a)!.has(e)) return true;
+            seen.get(a)!.add(e);
             if (Array.isArray(a) !== Array.isArray(e)) return false;
             const aKeys = Object.keys(a);
             const eKeys = Object.keys(e);
