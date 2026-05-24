@@ -714,8 +714,8 @@ import { assert } from '../../test-libs/test-runner';
 | `assert.strictEqual(actual, expected, msg?)` | `===` で比較。VbaBoolean は `-1` / `0` に正規化してから比較する |
 | `assert.deepStrictEqual(actual, expected, msg?)` | 配列・オブジェクトを再帰的に深く比較。VbaBoolean 正規化・循環参照検出あり |
 | `assert.ok(value, msg?)` | 値が truthy であることを検証 |
-| `assert.isTrue(actual, msg?)` | `vbaTrue` と等しいことを検証 |
-| `assert.isFalse(actual, msg?)` | `vbaFalse` と等しいことを検証 |
+| `assert.isTrue(actual, msg?)` | `vbaTrue` シングルトンと同一であることを検証。`-1`（数値）は不可 |
+| `assert.isFalse(actual, msg?)` | `vbaFalse` シングルトンと同一であることを検証。`0`（数値）は不可 |
 | `assert.fail(msg?)` | 無条件に失敗させる |
 
 ```typescript
