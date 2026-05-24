@@ -603,6 +603,107 @@ src/vba/
 
 ---
 
+<a id="r-17"></a>
+### R-17: Sprout Method（芽生えメソッド）
+
+既存コードを変更せず、新機能を別の Sub/Function に実装して呼び出す。変更箇所を最小化しながら新ロジックをテスト可能な単位として切り出せる。
+
+**Before:** 既存の処理に直接追記
+
+```vba
+Sub ProcessOrder(orderId As Long)
+    ' ... 既存処理 300行 ...
+    ' ここに新ロジックを直接追記してしまう（Bad）
+    If IsEligibleForDiscount(orderId) Then
+        ' ... ディスカウント処理を埋め込む ...
+    End If
+End Sub
+```
+
+**After:** 新ロジックを Sprout した関数に切り出す
+
+```vba
+Sub ProcessOrder(orderId As Long)
+    ' ... 既存処理（変更なし）...
+    ApplyDiscount orderId   ' ← 新たに Sprout した呼び出しのみ追加
+End Sub
+
+' 新規追加。既存コードとは独立してテスト可能
+Sub ApplyDiscount(orderId As Long)
+    If Not IsEligibleForDiscount(orderId) Then Exit Sub
+    ' ... ディスカウント処理 ...
+End Sub
+```
+
+既存コードへの変更は「呼び出しを 1 行追加するだけ」に限定されるため、既存ロジックを壊すリスクが最小になる。切り出した関数は VBA Runner で独立してテストできる。
+
+---
+
+<a id="r-18"></a>
+### R-18: Wrap Method（ラップメソッド）
+
+既存メソッドをリネームして `_Impl` などの名前に移し、同名の新メソッドで旧実装を呼び出す形にして前後処理を追加する。既存の呼び出し元コードを変更せずに横断的関心事（ログ・バリデーション・トランザクション管理等）を追加できる。
+
+**Before:**
+
+```vba
+Public Sub SaveData(ws As Worksheet)
+    ' ... データ保存処理 ...
+End Sub
+```
+
+**After:**
+
+```vba
+' 同名で新設。既存の呼び出し元は変更不要
+Public Sub SaveData(ws As Worksheet)
+    LogStart "SaveData"           ' 前処理を追加
+    SaveData_Impl ws              ' 旧実装を委譲呼び出し
+    LogEnd "SaveData"             ' 後処理を追加
+End Sub
+
+' 旧実装をリネーム（ロジックは変更なし）
+Private Sub SaveData_Impl(ws As Worksheet)
+    ' ... 元の保存処理（そのまま）...
+End Sub
+```
+
+Wrap Method は既存の呼び出し元が多い場合に特に有効。前後処理だけを独立してテストしたい場合は [R-17](#r-17) の Sprout Method の方が適している。
+
+---
+
+<a id="r-19"></a>
+### R-19: Command/Query Separation - CQS（コマンド・クエリー分離）
+
+状態を変える操作（Command）と値を返す操作（Query）を明確に分離する設計原則。VBA の言語仕様（Sub = Command、Function = Query）がそのまま CQS に対応しており、自然に適用できる。
+
+**副作用のある Sub（Command）と値を返す Function（Query）を混在させない:**
+
+```vba
+' NG: Function が副作用を持つ（Query でありながら Command を兼ねている）
+Function CalcAndSave(ws As Worksheet, amount As Long) As Long
+    Dim result As Long
+    result = amount * 1.1
+    ws.Range("A1").Value = result   ' ← 副作用！Query に混入している
+    CalcAndSave = result
+End Function
+
+' OK: Command と Query を分離
+Function CalcTotal(amount As Long) As Long     ' Query: 副作用なし
+    CalcTotal = amount * 1.1
+End Function
+
+Sub SaveTotal(ws As Worksheet, total As Long)  ' Command: 戻り値なし
+    ws.Range("A1").Value = total
+End Sub
+```
+
+Query（Function）は副作用がないため、[T-01](#t-01) の純粋関数テストで直接検証できる。Command（Sub）は [R-13](#r-13) の Seam で副作用を切り離してからテストする。
+
+CQS を守ることで [R-12](#r-12) FC/IS の Core（Query）と Shell（Command）の分離も自然に実現できる。
+
+---
+
 ## テスト手法
 
 <a id="t-01"></a>
@@ -797,6 +898,55 @@ ReadDeptStatus("Marketing")           → "inactive"
 4. テストが通ることを確認する（挙動が保たれた証明）
 
 バグが含まれていても記録する。リファクタリング後にバグを直す場合はその時点でテストを更新する。
+
+---
+
+<a id="t-15"></a>
+### T-15: Object Seam（オブジェクト縫い目）via `Implements`
+
+VBA の `Implements` キーワードでインターフェースを定義し、本番用クラスとテスト用クラスをそれぞれ実装して差し替えることで、依存を切り離してテストする手法。Michael Feathers の Object Seam をVBA で実現する最も現実的な方法。
+
+**インターフェース定義（ILogger.cls）:**
+
+```vba
+' ILogger.cls — メソッド定義のみ（本体は空）
+Public Sub Log(msg As String): End Sub
+Public Function GetLog() As String: End Function
+```
+
+**本番実装（FileLogger.cls）:**
+
+```vba
+Implements ILogger
+Private Sub ILogger_Log(msg As String)
+    ' ファイルへ書き出す実装
+End Sub
+Private Function ILogger_GetLog() As String: End Function
+```
+
+**テスト用実装（FakeLogger.cls）:**
+
+```vba
+Implements ILogger
+Private log_ As String
+Private Sub ILogger_Log(msg As String)
+    log_ = log_ & msg & vbLf   ' メモリに記録するだけ
+End Sub
+Private Function ILogger_GetLog() As String
+    ILogger_GetLog = log_
+End Function
+```
+
+**本体コードはインターフェース型で受け取る:**
+
+```vba
+Sub ProcessOrder(orderId As Long, logger As ILogger)
+    ' ... 処理 ...
+    logger.Log "Processed: " & orderId   ' 本番でも Fake でも同じ呼び出し
+End Sub
+```
+
+**TypeScript テスト側では Spy/Mock で代替できる** ため、VBA Runner でのテストでは既存の Spy API を使う方が簡単なことも多い。Object Seam は VBA IDE 上での手動テスト・デバッグや、VBA のみで完結させたい場合に特に有効。
 
 ---
 
