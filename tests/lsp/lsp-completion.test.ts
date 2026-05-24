@@ -5,7 +5,7 @@ import { assert } from '../../test-libs/test-runner';
 
 function getCompletionsAt(src: string, line: number, character: number): any[] {
     const tokens = new Lexer(src).tokenize();
-    const ast = new Parser(tokens).parse();
+    const ast = new Parser(tokens, { errorRecovery: true }).parse();
     const provider = new CompletionProvider();
     return provider.getCompletions(ast.body, src, line, character);
 }

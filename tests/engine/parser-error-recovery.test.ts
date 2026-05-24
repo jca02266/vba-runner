@@ -4,7 +4,7 @@ import { assert } from '../../test-libs/test-runner';
 
 function parse(src: string) {
     const tokens = new Lexer(src).tokenize();
-    return new Parser(tokens).parse();
+    return new Parser(tokens, { errorRecovery: true }).parse();
 }
 
 // 1. Valid code produces no diagnostics
@@ -92,7 +92,7 @@ function parse(src: string) {
 // 10. diagnostics array is the same reference as program.diagnostics (live)
 {
     const tokens = new Lexer('@@@ err').tokenize();
-    const parser = new Parser(tokens);
+    const parser = new Parser(tokens, { errorRecovery: true });
     const ast = parser.parse();
     assert.ok(ast.diagnostics === ast.diagnostics, 'diagnostics reference stable');
     assert.ok(ast.diagnostics.length >= 1, 'diagnostic recorded');

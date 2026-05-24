@@ -4,7 +4,7 @@ import { assert } from '../../test-libs/test-runner';
 
 function parse(src: string) {
     const tokens = new Lexer(src).tokenize();
-    return new Parser(tokens).parse();
+    return new Parser(tokens, { errorRecovery: true }).parse();
 }
 
 function toDiagnostic(diag: ParseDiagnostic): any {
