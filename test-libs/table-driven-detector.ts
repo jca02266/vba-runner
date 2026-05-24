@@ -57,6 +57,9 @@ export interface TableDrivenCandidate {
 
     // 条件式に使われているローカル変数
     conditionVariables?: LocalVariableInfo[];
+
+    // T-04: 各ネストレベルの条件形状情報
+    levelShapes?: LevelShapeInfo[];
 }
 
 /**
@@ -91,10 +94,21 @@ export interface DecisionTable {
  */
 export interface LocalVariableInfo {
     name: string;
-    declaredAt?: number;      // Dim 宣言行（1始まり）。引数の場合は undefined
-    assignedLines: number[];  // if チェーン開始より前にある代入文の行番号リスト
-    // TODO(T-01): assignmentAstShape を追加し代入ロジックの均一性チェックへ
-    // TODO(T-02): level フィールドでネストレベル（0=外側キー, 1=第2キー, …）を付与
+    level?: number;                  // T-02: ネストレベル（0=外側キー, 1=第2キー, …）
+    declaredAt?: number;             // Dim 宣言行（1始まり）。引数の場合は undefined
+    assignedLines: number[];         // if チェーン開始より前にある代入文の行番号リスト
+    assignmentAstShapes?: string[];  // T-01: 各代入文の RHS 形状（computeConditionShape 形式）
+    hasUniformAssignment?: boolean;  // T-01: 全代入が同一形状か（代入部分もテーブル駆動化できるか）
+}
+
+/**
+ * ネストレベルごとの条件形状情報（T-04）
+ */
+export interface LevelShapeInfo {
+    level: number;
+    shape: string;        // 代表形状（最初のブランチの条件形状）
+    isUniform: boolean;   // 全ブランチで条件形状が一致しているか
+    nonUniformBranches?: string[];  // 形状が異なるブランチのキー値
 }
 
 /**
@@ -272,6 +286,22 @@ export class TableDrivenDetector {
             }
         }
 
+        // Step 6.6: 各レベルの条件形状を分析（T-04）
+        const levelShapes = this.computeLevelShapes(outerChain);
+        const nonUniformLevels = levelShapes.filter((ls) => !ls.isUniform);
+        if (nonUniformLevels.length > 0) {
+            confidenceScore = Math.max(0, confidenceScore - 15);
+            for (const ls of nonUniformLevels) {
+                diagnostics.warnings.push(
+                    `Level ${ls.level} の条件形状が不均一（基準: "${ls.shape}"、異形ブランチ: ${(ls.nonUniformBranches ?? []).join(', ')}）`
+                );
+            }
+        } else {
+            diagnostics.detectedPatterns.push(
+                `全レベルの条件形状が均一（${levelShapes.map((ls) => `L${ls.level}: ${ls.shape}`).join(', ')}）`
+            );
+        }
+
         // Step 7: 信頼度が低ければ候補から除外
         if (confidenceScore < 40) {
             return null;
@@ -333,6 +363,7 @@ export class TableDrivenDetector {
             decisionTable: this.extractDecisionTable(outerChain),
             sideEffects,
             conditionVariables: this.findConditionVariables(ifStmt, procBody),
+            levelShapes,
         };
     }
 
@@ -600,6 +631,51 @@ export class TableDrivenDetector {
     // -------------------------------------------------------------------------
 
     /**
+     * 各ネストレベルの条件形状を収集する（T-04）
+     * 外側チェーン = level 0、その consequent 内の内側チェーン = level 1、以降再帰
+     */
+    private computeLevelShapes(outerChain: IfStatement[], level = 0): LevelShapeInfo[] {
+        if (outerChain.length === 0) return [];
+
+        // このレベルの全ブランチの条件形状を収集
+        const branchShapes = outerChain.map((branch) => ({
+            keyValue: this.extractKeyValue(branch.condition as any),
+            shape: this.computeConditionShape(branch.condition as any),
+        }));
+        const firstShape = branchShapes[0].shape;
+        const nonUniform = branchShapes.filter((b) => b.shape !== firstShape);
+
+        const levelInfo: LevelShapeInfo = {
+            level,
+            shape: firstShape,
+            isUniform: nonUniform.length === 0,
+            ...(nonUniform.length > 0 && {
+                nonUniformBranches: nonUniform.map((b) => b.keyValue),
+            }),
+        };
+
+        // 内側レベルを再帰的に収集
+        // 各外側ブランチの consequent から内側 if を取得し、内側チェーンを収集
+        const innerChains: IfStatement[][] = [];
+        for (const branch of outerChain) {
+            const stmts: any[] = Array.isArray(branch.consequent) ? branch.consequent : [];
+            const innerIf = stmts.find((s: any) => s?.type === 'IfStatement') as IfStatement | undefined;
+            if (innerIf) {
+                innerChains.push(this.collectIfElseChain(innerIf));
+            }
+        }
+
+        const innerResults: LevelShapeInfo[] = [];
+        if (innerChains.length > 0) {
+            // 全ブランチの内側チェーンを統合してレベル+1 を再帰
+            const allInnerBranches = innerChains.flat();
+            innerResults.push(...this.computeLevelShapes(allInnerBranches, level + 1));
+        }
+
+        return [levelInfo, ...innerResults];
+    }
+
+    /**
      * 外側の if-else-if チェーンからデシジョンテーブルを構築する
      * キーレベルが複数ある場合（多段ネスト）は再帰的に処理する
      */
@@ -621,23 +697,31 @@ export class TableDrivenDetector {
         return { keyVariable, valueVariable, rows };
     }
 
-    /** 外側条件からキー変数名を取得（例: "department", または関数引数 "task"） */
+    /**
+     * 条件式からキー式を取得する（T-03: 形状比較ファースト対応）
+     * ブランチ間で変化しない「左辺」の式全体を返す。
+     * 例: department = "Sales"            → "department"
+     *     task.Category = "Infrastructure" → "task.Category"
+     *     GetPriority(taskType) = "High"   → "GetPriority(taskType)"
+     *     amount < 50000                   → "amount"
+     */
     private extractKeyVariable(condition: any): string {
         if (!condition) return '';
         if (condition.type === 'BinaryExpression') {
-            // var = "literal" or var < NUM
-            if (condition.left?.type === 'Identifier') return String(condition.left.name ?? '');
-            if (condition.right?.type === 'Identifier') return String(condition.right.name ?? '');
-            // FunctionCall(var) = literal
-            const call = condition.left?.type === 'CallExpression' ? condition.left
-                       : condition.right?.type === 'CallExpression' ? condition.right : null;
-            if (call) return this.extractFirstArgName(call);
+            // 右辺がリテラル → 左辺がキー式
+            if (condition.right?.type === 'StringLiteral' || condition.right?.type === 'NumberLiteral') {
+                return this.formatExprFull(condition.left);
+            }
+            // 左辺がリテラル → 右辺がキー式
+            if (condition.left?.type === 'StringLiteral' || condition.left?.type === 'NumberLiteral') {
+                return this.formatExprFull(condition.right);
+            }
+            // しきい値比較（IDENT < IDENT など）→ 左辺を返す
+            return this.formatExprFull(condition.left);
         }
-        // FunctionCall(var)
-        if (condition.type === 'CallExpression') return this.extractFirstArgName(condition);
-        // Not FunctionCall(var)
+        if (condition.type === 'CallExpression') return this.formatExprFull(condition);
         if (condition.type === 'UnaryExpression' && condition.operator === 'Not') {
-            if (condition.argument?.type === 'CallExpression') return this.extractFirstArgName(condition.argument);
+            return this.formatExprFull(condition.argument);
         }
         return '';
     }
@@ -777,12 +861,83 @@ export class TableDrivenDetector {
         return '?';
     }
 
-    /** 式ノードを文字列にフォーマット */
+    /** 式ノードを文字列にフォーマット（単純型のみ、後方互換用） */
     private formatExpr(expr: any): string {
         if (!expr) return '?';
         if (expr.type === 'Identifier')    return String(expr.name ?? '?');
         if (expr.type === 'NumberLiteral') return this.formatNumber(expr.value);
         if (expr.type === 'StringLiteral') return String(expr.value ?? '?');
+        return '?';
+    }
+
+    /**
+     * 式ノードを完全な文字列に展開する（T-03: MemberExpression・CallExpression に対応）
+     * 例: task.Category              → "task.Category"
+     *     GetPriority(taskType)      → "GetPriority(taskType)"
+     *     Sheet1.Cells(row, 1).Value → "Sheet1.Cells(row, 1).Value"
+     */
+    private formatExprFull(expr: any): string {
+        if (!expr) return '?';
+        if (expr.type === 'Identifier')    return String(expr.name ?? '?');
+        if (expr.type === 'StringLiteral') return String(expr.value ?? '?');
+        if (expr.type === 'NumberLiteral') return this.formatNumber(expr.value);
+        if (expr.type === 'MemberExpression') {
+            return `${this.formatExprFull(expr.object)}.${expr.property?.name ?? '?'}`;
+        }
+        if (expr.type === 'CallExpression') {
+            // callee が MemberExpression（Sheet1.Cells）の場合も再帰展開
+            const callee = this.formatExprFull(expr.callee);
+            const args = (expr.args ?? []).map((a: any) => this.formatExprFull(a)).join(', ');
+            return `${callee}(${args})`;
+        }
+        return '?';
+    }
+
+    /**
+     * 条件式・代入式を正規化した形状文字列に変換する（T-03/T-01 共用）
+     * 変数（データ）は IDENT/STR/NUM に置換し、構造（関数名・プロパティ名）は保持する。
+     * 例: task.Category = "Sales"             → "(IDENT.Category=STR)"
+     *     GetPriority(taskType) = "High"       → "(GetPriority(IDENT)=STR)"
+     *     amount < 50000                       → "(IDENT<NUM)"
+     *     Sheet1.Cells(row, 1).Value（代入RHS）→ "IDENT.Cells(IDENT,NUM).Value"
+     */
+    private computeConditionShape(expr: any): string {
+        if (!expr) return '?';
+        if (expr.type === 'Identifier')    return 'IDENT';
+        if (expr.type === 'StringLiteral') return 'STR';
+        if (expr.type === 'NumberLiteral') return 'NUM';
+        if (expr.type === 'BinaryExpression') {
+            const l = this.computeConditionShape(expr.left);
+            const r = this.computeConditionShape(expr.right);
+            return `(${l}${expr.operator ?? '?'}${r})`;
+        }
+        if (expr.type === 'CallExpression') {
+            // callee は関数名として保持（Identifier → 名前をそのまま、MemberExpression → 再帰）
+            const calleeShape = this.computeCalleeShape(expr.callee);
+            const args = (expr.args ?? []).map((a: any) => this.computeConditionShape(a)).join(',');
+            return `${calleeShape}(${args})`;
+        }
+        if (expr.type === 'MemberExpression') {
+            const obj = this.computeConditionShape(expr.object);
+            const prop = String(expr.property?.name ?? '?');
+            return `${obj}.${prop}`;
+        }
+        return expr.type ?? '?';
+    }
+
+    /**
+     * CallExpression の callee を形状文字列に変換する（構造要素なので名前を保持）
+     * Identifier  → 名前をそのまま（例: "GetPriority"）
+     * MemberExpression → object を正規化し property 名を保持（例: "IDENT.Cells"）
+     */
+    private computeCalleeShape(callee: any): string {
+        if (!callee) return '?';
+        if (callee.type === 'Identifier') return String(callee.name ?? '?');
+        if (callee.type === 'MemberExpression') {
+            const obj = this.computeConditionShape(callee.object);
+            const prop = String(callee.property?.name ?? '?');
+            return `${obj}.${prop}`;
+        }
         return '?';
     }
 
@@ -826,8 +981,35 @@ export class TableDrivenDetector {
     }
 
     /**
+     * if 文全体を再帰的に走査し、条件式とそのネストレベルをコールバックに渡す（T-02）
+     * - ElseIf チェーン（alternate）: 同じレベルを維持
+     * - consequent 内の内側 if: レベル +1
+     */
+    private walkConditionsWithLevel(
+        ifStmt: any,
+        level: number,
+        callback: (condition: any, level: number) => void
+    ): void {
+        let current: any = ifStmt;
+        while (current && current.type === 'IfStatement') {
+            callback(current.condition, level);
+
+            // consequent 内の内側 if を探してレベル +1 で再帰
+            const stmts: any[] = Array.isArray(current.consequent) ? current.consequent : [];
+            const innerIf = stmts.find((s: any) => s?.type === 'IfStatement');
+            if (innerIf) {
+                this.walkConditionsWithLevel(innerIf, level + 1, callback);
+            }
+
+            // alternate が ElseIf なら同レベルで継続
+            current = current.alternate?.type === 'IfStatement' ? current.alternate : null;
+        }
+    }
+
+    /**
      * 条件式の AST を再帰的に走査して Identifier 名を収集する
      * CallExpression の callee（関数名）はスキップし、引数のみ収集する
+     * MemberExpression は object 側の識別子のみ収集する（property は変数名ではない）
      */
     private collectIdentifiersFromExpr(expr: any, result: Set<string>): void {
         if (!expr) return;
@@ -842,6 +1024,11 @@ export class TableDrivenDetector {
             }
             return;
         }
+        if (expr.type === 'MemberExpression') {
+            // object 側のみ走査（property は変数名ではなくプロパティ名）
+            this.collectIdentifiersFromExpr(expr.object, result);
+            return;
+        }
         // BinaryExpression / UnaryExpression / その他: 既知の子ノードを走査
         for (const key of ['left', 'right', 'argument', 'callee']) {
             if (expr[key]) this.collectIdentifiersFromExpr(expr[key], result);
@@ -849,25 +1036,32 @@ export class TableDrivenDetector {
     }
 
     /**
-     * if 文の全条件から識別子を収集し、関数本体から宣言・代入情報を付与して返す
+     * if 文の全条件からキー式を収集し、関数本体から宣言・代入情報を付与して返す
+     * T-03 対応: 単純識別子だけでなく MemberExpression や CallExpression も取得する
      */
     private findConditionVariables(
         ifStmt: IfStatement,
         procBody: Statement[]
     ): LocalVariableInfo[] {
-        // Step 1: 全条件から識別子を収集
-        const identifiers = new Set<string>();
-        this.walkConditions(ifStmt, (cond) => this.collectIdentifiersFromExpr(cond, identifiers));
+        // Step 1: 全条件からキー式とレベルを収集（T-02: レベル情報付き）
+        const keyExprLevels = new Map<string, number>();
+        this.walkConditionsWithLevel(ifStmt, 0, (cond, level) => {
+            const keyExpr = this.extractKeyVariable(cond);
+            if (keyExpr && !keyExprLevels.has(keyExpr)) {
+                keyExprLevels.set(keyExpr, level);
+            }
+        });
 
-        if (identifiers.size === 0) return [];
+        if (keyExprLevels.size === 0) return [];
 
         const ifStartLine = ifStmt.loc?.start.line ?? 0;
         const infoMap = new Map<string, LocalVariableInfo>();
-        for (const name of identifiers) {
-            infoMap.set(name, { name, assignedLines: [] });
+        for (const [keyExpr, level] of keyExprLevels) {
+            infoMap.set(keyExpr, { name: keyExpr, level, assignedLines: [] });
         }
 
         // Step 2: 関数本体を走査して Dim 宣言と代入を収集
+        // キー式が単純識別子の場合のみ宣言/代入を照合できる
         for (const stmt of procBody) {
             const s = stmt as any;
 
@@ -875,8 +1069,10 @@ export class TableDrivenDetector {
             if (s.type === 'VariableDeclaration') {
                 for (const decl of (s.declarations ?? [])) {
                     const declName = String(decl.name?.name ?? '').toLowerCase();
-                    if (infoMap.has(declName)) {
-                        infoMap.get(declName)!.declaredAt = s.loc?.start.line ?? undefined;
+                    for (const [keyExpr, info] of infoMap) {
+                        if (keyExpr.toLowerCase() === declName) {
+                            info.declaredAt = s.loc?.start.line ?? undefined;
+                        }
                     }
                 }
             }
@@ -886,19 +1082,50 @@ export class TableDrivenDetector {
                 const stmtLine: number = s.loc?.start.line ?? 0;
                 if (stmtLine < ifStartLine) {
                     const target = s.left as any;
+                    // 単純識別子の代入: `amount = ...`
                     if (target?.type === 'Identifier') {
                         const targetName = String(target.name ?? '').toLowerCase();
-                        if (infoMap.has(targetName)) {
-                            infoMap.get(targetName)!.assignedLines.push(stmtLine);
+                        for (const [keyExpr, info] of infoMap) {
+                            if (keyExpr.toLowerCase() === targetName) {
+                                info.assignedLines.push(stmtLine);
+                                // T-01: RHS の形状を収集
+                                if (s.right) {
+                                    const shape = this.computeConditionShape(s.right);
+                                    if (!info.assignmentAstShapes) info.assignmentAstShapes = [];
+                                    info.assignmentAstShapes.push(shape);
+                                }
+                            }
+                        }
+                    }
+                    // メンバーアクセスの代入: `task.Category = ...`
+                    if (target?.type === 'MemberExpression') {
+                        const memberStr = this.formatExprFull(target);
+                        if (infoMap.has(memberStr)) {
+                            const info = infoMap.get(memberStr)!;
+                            info.assignedLines.push(stmtLine);
+                            // T-01: RHS の形状を収集
+                            if (s.right) {
+                                const shape = this.computeConditionShape(s.right);
+                                if (!info.assignmentAstShapes) info.assignmentAstShapes = [];
+                                info.assignmentAstShapes.push(shape);
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 関数引数（宣言も代入もない）も残す。ソート: 宣言行順
+        // T-01: hasUniformAssignment を計算
+        for (const info of infoMap.values()) {
+            const shapes = info.assignmentAstShapes;
+            if (shapes && shapes.length > 0) {
+                info.hasUniformAssignment = shapes.every(s => s === shapes[0]);
+            }
+        }
+
+        // ソート: 宣言行順（引数など宣言なしは末尾）
         return Array.from(infoMap.values()).sort((a, b) =>
-            (a.declaredAt ?? 0) - (b.declaredAt ?? 0)
+            (a.declaredAt ?? 999999) - (b.declaredAt ?? 999999)
         );
     }
 
