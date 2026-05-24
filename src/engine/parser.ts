@@ -1011,6 +1011,12 @@ export class Parser {
         };
     }
 
+    // Returns true if the token can serve as a name (identifier or any keyword).
+    // VBA §5.2.3.3 allows reserved words as UDT/Enum member names (reserved-name-member-dcl).
+    private isWordToken(t: Token): boolean {
+        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(t.value);
+    }
+
     // Create an Identifier node with location from the given token.
     private makeIdentifier(token: Token): Identifier {
         return {
@@ -1613,8 +1619,9 @@ export class Parser {
         // Parse members until 'End Type'
         while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
             // Each member line: memberName [(bounds)] As memberType
+            // VBA §5.2.3.3: reserved words are valid member names (reserved-name-member-dcl)
             const memberNameToken = this.advance();
-            if (memberNameToken.type !== TokenType.Identifier) {
+            if (!this.isWordToken(memberNameToken)) {
                 throw new Error(`Parse error: Expected member name in Type at line ${memberNameToken.line}`);
             }
 
@@ -1662,8 +1669,9 @@ export class Parser {
         this.skipNewlines();
 
         while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
+            // VBA §5.2.3.3: reserved words are valid member names (reserved-name-member-dcl)
             const memberNameToken = this.advance();
-            if (memberNameToken.type !== TokenType.Identifier) {
+            if (!this.isWordToken(memberNameToken)) {
                 throw new Error(`Parse error: Expected member name in Enum at line ${memberNameToken.line}`);
             }
             const memberName: Identifier = this.makeIdentifier(memberNameToken);

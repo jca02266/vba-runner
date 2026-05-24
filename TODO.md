@@ -109,7 +109,7 @@
 | ✅ | P1 | Public / Private / Friend スコープ制御（パースのみ、アクセス制御なし） | §5.2.3.1 / §5.3.1.1 | `scope-private.test.ts` |
 | ✅ | P1 | Static キーワード（変数・プロシージャ） | §5.3.1.2 | `static.test.ts` |
 | ✅ | P0 | Const Declarations | §5.2.3.2 | `dim-const.test.ts` |
-| ⚠️ | P1 | User Defined Type Declarations（`Type`） | §5.2.3.3 | `udt-type.test.ts` （制限: `Width` など専用トークンに分類されるキーワードをメンバー名に使うとパース失敗。仕様上は `reserved-name-member-dcl` として有効） |
+| ✅ | P1 | User Defined Type Declarations（`Type`） | §5.2.3.3 | `udt-type.test.ts` （`Width`/`Height`/`Left`/`Top`/`Name`/`Value` など予約語メンバー名も対応済み） |
 | ✅ | P1 | Enum Declarations | §5.2.3.4 | `enum.test.ts` |
 | ✅ | P0 | External Procedure Declaration（`Declare`） | §5.2.3.5 | (制限事項: JSランタイム上ではスタブとして登録) | `declare.test.ts` |
 | ✅ | P0 | Class Module（OOP） | §5.2.4 | `class-module.test.ts` |

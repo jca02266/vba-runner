@@ -82,4 +82,37 @@ assert.strictEqual(v3.s, "", 'UDT メンバーの初期値 (String) は ""');
 assert.strictEqual(v3.i, 0, 'UDT メンバーの初期値 (Integer) は 0');
 console.log('[PASS] Type 変数の初期値');
 
+// --- 4. 予約語をメンバー名に使用 (§5.2.3.3 reserved-name-member-dcl) ---
+const reservedMemberCode = `
+    Type WindowRect
+        Width As Long
+        Height As Long
+        Left As Long
+        Top As Long
+        Name As String
+        Value As Double
+    End Type
+
+    Public wr As WindowRect
+
+    Sub Test()
+        wr.Width = 800
+        wr.Height = 600
+        wr.Left = 100
+        wr.Top = 50
+        wr.Name = "main"
+        wr.Value = 1.5
+    End Sub
+`;
+const ev4 = evalVBA(reservedMemberCode);
+ev4.callProcedure('Test', []);
+const wr4 = ev4.env.get('wr');
+assert.strictEqual(wr4.width,  800,    'wr.Width = 800');
+assert.strictEqual(wr4.height, 600,    'wr.Height = 600');
+assert.strictEqual(wr4.left,   100,    'wr.Left = 100');
+assert.strictEqual(wr4.top,    50,     'wr.Top = 50');
+assert.strictEqual(wr4.name,   'main', 'wr.Name = "main"');
+assert.strictEqual(wr4.value,  1.5,    'wr.Value = 1.5');
+console.log('[PASS] 予約語メンバー名 (Width/Height/Left/Top/Name/Value)');
+
 console.log('\n✅ User Defined Type: 全テスト通過');
