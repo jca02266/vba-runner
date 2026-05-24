@@ -448,8 +448,11 @@ export class TableDrivenDetector {
                 // 別途分析するためここではスキップする（deep-walk による誤カウント防止）
                 if ((stmt as any).type === 'IfStatement') continue;
 
-                // 関数呼び出しがあれば副作用の可能性
-                if (this.hasFunctionCallInTree(stmt)) {
+                // AssignmentStatement / SetStatement の RHS 呼び出しはgetter（副作用なし）として扱う
+                // 制限: RHS 関数が実際に副作用を持つ場合（ログ・DB更新など）は検出できない（T-07 参照）
+                const sType = (stmt as any).type;
+                const isAssignment = sType === 'AssignmentStatement' || sType === 'SetStatement';
+                if (!isAssignment && this.hasFunctionCallInTree(stmt)) {
                     hasSideEffects = true;
                     complexity += 20;
                 }
@@ -1243,8 +1246,9 @@ export class TableDrivenDetector {
         return stmts
             .filter((s) => {
                 const stmt = s as any;
-                if (stmt?.type !== 'AssignmentStatement') return true;
-                const target = this.formatExpr(stmt.left);
+                // AssignmentStatement と SetStatement の両方で結果代入を除外する
+                if (stmt?.type !== 'AssignmentStatement' && stmt?.type !== 'SetStatement') return true;
+                const target = this.formatExprFull(stmt.left);
                 return target.toLowerCase() !== funcName.toLowerCase();
             })
             .map((s) => this.computeStmtShape(s));
@@ -1253,9 +1257,12 @@ export class TableDrivenDetector {
     /** 文の AST 形状を文字列で返す（リテラル値を型プレースホルダーに置換） */
     private computeStmtShape(stmt: any): string {
         if (!stmt) return '?';
-        if (stmt.type === 'AssignmentStatement') {
-            const target = this.formatExpr(stmt.left);
-            const right = this.computeExprShape(stmt.right);
+        // AssignmentStatement と SetStatement を同様に扱う
+        // RHS 呼び出しはgetter（副作用なし）として computeConditionShape で形状を正規化する
+        // 制限: RHS 関数が副作用を持つ場合は検出できない（T-07 参照）
+        if (stmt.type === 'AssignmentStatement' || stmt.type === 'SetStatement') {
+            const target = this.formatExprFull(stmt.left);
+            const right = this.computeConditionShape(stmt.right);
             return `${target}=(${right})`;
         }
         return stmt.type ?? '?';
