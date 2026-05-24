@@ -254,9 +254,9 @@ export class TableDrivenDetector {
             diagnostics.warnings.push('恣意的な修正が検出されました。テーブル化の効果が限定的です。');
         }
 
-        // Step 5: 条件の複雑度
+        // Step 5: 条件の複雑度（ブランチあたり平均: 5=単純, 15=複雑）
         const conditionComplexity = this.analyzeConditions(outerChain);
-        if (conditionComplexity > 30) {
+        if (conditionComplexity > 8) {
             diagnostics.warnings.push('条件式が複雑です。テーブル化に向きません。');
         }
 
@@ -353,7 +353,7 @@ export class TableDrivenDetector {
             reasons: {
                 isRepeatingStructure: shapesMatch,
                 isSimpleAssignment: assignmentAnalysis.complexity < 30,
-                isSimpleCondition: conditionComplexity < 50,
+                isSimpleCondition: conditionComplexity <= 6,
                 branchCountThreshold: outerCount >= 3,
                 hasNoSideEffects: assignmentAnalysis.hasSideEffects === false,
             },
@@ -494,10 +494,13 @@ export class TableDrivenDetector {
     }
 
     /**
-     * 条件式の複雑度を分析
+     * 条件式の複雑度を分析（ブランチあたりの平均値を返す）
+     * 分岐数は repetitionBonus で別途評価するため、ここでは 1 ブランチあたりの
+     * 条件複雑度を返す。BinaryExpression=5, LogicalExpression=15, その他=10。
      */
     private analyzeConditions(outerChain: IfStatement[]): number {
-        let complexity = 0;
+        if (outerChain.length === 0) return 0;
+        let total = 0;
 
         for (const branch of outerChain) {
             const condition = branch.condition;
@@ -505,19 +508,20 @@ export class TableDrivenDetector {
 
             // BinaryExpression（=, <, >, etc.）なら低複雑度
             if ((condition as any).type === 'BinaryExpression' || (condition as any).type === 'BinaryOp') {
-                complexity += 5;
+                total += 5;
             }
             // LogicalExpression（AND/OR）なら高複雑度
             else if ((condition as any).type === 'LogicalExpression') {
-                complexity += 15;
+                total += 15;
             }
             // その他の複雑な式
             else {
-                complexity += 10;
+                total += 10;
             }
         }
 
-        return complexity;
+        // ブランチあたり平均（5=全BinaryExpression, 15=全LogicalExpression）
+        return total / outerChain.length;
     }
 
     /**
@@ -580,7 +584,8 @@ export class TableDrivenDetector {
         score -= assignmentPenalty;
 
         // 条件複雑度ペナルティ（-0 to -15）
-        const conditionPenalty = (conditionComplexity / 100) * 15;
+        // conditionComplexity は 1 ブランチ平均値（5=単純, 15=複雑）のため /15 で正規化
+        const conditionPenalty = (conditionComplexity / 15) * 15;
         score -= conditionPenalty;
 
         // 行数によるボーナス（削減が大きいほど+10）
