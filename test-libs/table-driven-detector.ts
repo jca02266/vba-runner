@@ -1198,20 +1198,28 @@ export class TableDrivenDetector {
                 continue;
             }
 
+            // 外側ブランチの非 IfStatement 文（Set info.xxx = ... など）を保持する
+            const outerNonIfStmts = stmts.filter((s: any) => s?.type !== 'IfStatement');
+
             if (this.isNumericThresholdCondition(innerIf.condition as any)) {
                 // しきい値レベル: 各 branch の consequent と最後の else を収集
+                // 外側非 if 文を各葉にマージして副作用を引き継ぐ
                 let current: any = innerIf;
                 while (current && current.type === 'IfStatement') {
-                    result.push({ keyPath: currentPath, stmts: current.consequent as Statement[] });
+                    result.push({ keyPath: currentPath, stmts: [...outerNonIfStmts, ...current.consequent as Statement[]] });
                     if (Array.isArray(current.alternate)) {
-                        result.push({ keyPath: currentPath, stmts: current.alternate as Statement[] });
+                        result.push({ keyPath: currentPath, stmts: [...outerNonIfStmts, ...current.alternate as Statement[]] });
                         break;
                     }
                     current = current.alternate ?? null;
                 }
             } else {
                 // キーレベル（文字列等値・関数呼び出し・その他）: 再帰
-                result.push(...this.collectLeafStatements(this.collectIfElseChain(innerIf), currentPath));
+                // 外側非 if 文を各再帰葉にマージして副作用を引き継ぐ
+                const recursed = this.collectLeafStatements(this.collectIfElseChain(innerIf), currentPath);
+                for (const leaf of recursed) {
+                    result.push({ keyPath: leaf.keyPath, stmts: [...outerNonIfStmts, ...leaf.stmts] });
+                }
             }
         }
 
