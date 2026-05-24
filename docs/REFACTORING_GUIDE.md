@@ -721,6 +721,163 @@ End Sub
 
 ---
 
+### パターン 6: 副作用が絡み合った関数のリファクタリング [[→ R-12](REFACTORING_TESTING_CATALOG.md#r-12) / [R-13](REFACTORING_TESTING_CATALOG.md#r-13)]
+
+**概要**: `Sheets` / `MsgBox` / ファイル I/O などの副作用がロジックの途中に散在し、テストも書けない大きな関数に対処する2つのパターン。副作用の性質に応じてどちらを使うか選ぶ。
+
+---
+
+#### パターン 6a: FC/IS（副作用を末尾にまとめられる場合）
+
+副作用の実行タイミングを後ろにまとめても結果が変わらない場合に、副作用なしの純粋ロジック（Core）と副作用だけを実行する外殻（Shell）に分離する。
+
+**Before: 副作用がロジックの途中に散在**
+
+```vb
+Sub ProcessApproval(dept As String, amount As Long)
+    Dim decision As String
+    If dept = "Engineering" And amount < 100000 Then
+        decision = "TeamLead"
+    ElseIf dept = "Sales" Then
+        decision = "Manager"
+    End If
+
+    WriteApprovalLog dept, decision        ' 副作用①（ロジックの途中）
+
+    If decision = "TeamLead" Then amount = amount * 0.9
+
+    Sheets("Result").Cells(1, 1).Value = decision  ' 副作用②
+End Sub
+```
+
+**After: 副作用の実行順を変えても安全であることを確認してから分離**
+
+```vb
+' Core: 純粋関数。副作用なし
+Function DecideApproval(dept As String, amount As Long) As String
+    If dept = "Engineering" And amount < 100000 Then
+        DecideApproval = "TeamLead"
+    ElseIf dept = "Sales" Then
+        DecideApproval = "Manager"
+    End If
+End Function
+
+' Shell: Core を呼び、副作用をまとめて実行するだけ
+Sub ProcessApproval(dept As String, amount As Long)
+    Dim decision As String
+    decision = DecideApproval(dept, amount)         ' Core
+    WriteApprovalLog dept, decision                 ' 副作用①
+    Sheets("Result").Cells(1, 1).Value = decision   ' 副作用②
+End Sub
+```
+
+Core（`DecideApproval`）は Excel なしでユニットテストできる。Shell は手動確認または統合テストで検証する。
+
+**注意**: 副作用①の実行タイミングを後ろに移動しても本当に問題ないか慎重に確認すること（ログの目的・失敗時の挙動など）。Core に `ByRef` を使った変形が必要になる場合は FC/IS の適用自体を再検討し、パターン 6b（Seam）を選ぶ。
+
+---
+
+#### パターン 6b: Seam（副作用の結果がロジックに影響する場合）
+
+副作用の出力が後続のロジック分岐に影響する、または副作用への入力値が処理途中の計算結果に依存するため、後ろにまとめられない場合に使う。**テストが書ける状態を作るための前段階**として副作用の塊を関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）で関数（縫い目）として抽出し、テスト時にモックに差し替えられるようにする。
+
+**Before: 副作用の出力がロジックに入り込んでいる**
+
+```vb
+' 副作用①の結果で分岐 → 中間計算 → 副作用②の入力に使う → 副作用②の結果で分岐
+' 副作用②への入力 route は副作用①の出力から計算されるため、引数に追い出しても呼び出し元に問題が移るだけ
+Function ProcessApproval(dept As String, amount As Long) As String
+    Dim status As String
+    status = Sheets("Config").Cells(GetDeptRow(dept), 2).Value  ' 副作用①
+    If status <> "active" Then
+        ProcessApproval = "Rejected": Exit Function
+    End If
+
+    Dim route As String
+    route = DecideRoute(dept, status)   ' 中間計算（①の出力に依存）
+
+    Dim limit As Long
+    limit = Sheets("Limits").Cells(GetRouteRow(route), 2).Value  ' 副作用②（route を入力に使う）
+    If amount > limit Then
+        ProcessApproval = "Escalate"
+    Else
+        ProcessApproval = "Approve"
+    End If
+    Sheets("Log").Cells(GetNextLogRow(), 1).Value = ProcessApproval  ' 副作用③
+End Function
+```
+
+**Step 1: 副作用の塊を縫い目（関数）として関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）する**
+
+```vb
+Function ProcessApproval(dept As String, amount As Long) As String
+    Dim status As String
+    status = ReadDeptStatus(dept)              ' ← 縫い目①
+    If status <> "active" Then
+        ProcessApproval = "Rejected": Exit Function
+    End If
+    Dim route As String
+    route = DecideRoute(dept, status)          ' 中間計算（純粋ロジック）
+    Dim limit As Long
+    limit = ReadApprovalLimit(route)           ' ← 縫い目②（route を受け取る）
+    If amount > limit Then
+        ProcessApproval = "Escalate"
+    Else
+        ProcessApproval = "Approve"
+    End If
+    WriteApprovalLog dept, ProcessApproval     ' ← 縫い目③
+End Function
+
+Function ReadDeptStatus(dept As String) As String
+    ReadDeptStatus = Sheets("Config").Cells(GetDeptRow(dept), 2).Value
+End Function
+
+Function ReadApprovalLimit(route As String) As Long
+    ReadApprovalLimit = Sheets("Limits").Cells(GetRouteRow(route), 2).Value
+End Function
+
+Sub WriteApprovalLog(dept As String, result As String)
+    Sheets("Log").Cells(GetNextLogRow(), 1).Value = result
+End Sub
+```
+
+**Step 2: Excel で実際に動かしてスナップショットを記録する**（VBA Runner は `Sheets` をスタブするため不可）
+
+**Step 3: TypeScript テストで縫い目をモックに差し替えてロジックをテスト**
+
+```typescript
+const runner = new VBARunner("ProcessApproval.bas");
+runner.mock("ReadDeptStatus",    (_dept: string)  => "active");
+runner.mock("ReadApprovalLimit", (_route: string) => 500000);
+const logSpy = runner.spy("WriteApprovalLog");
+
+assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Approve");
+assert.strictEqual(logSpy.calls[0].args, ["Engineering", "Approve"]);
+
+// 上限超えのケース
+runner.mock("ReadApprovalLimit", (_route: string) => 50000);
+assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Escalate");
+```
+
+縫い目が作れると `ReadDeptStatus` / `ReadApprovalLimit` の戻り値を自由に設定でき、ロジックの全パターンをテストできる。
+
+**モックの粒度**: 低レベル API（`Sheets`・`MsgBox`）ではなくビジネス的な意味を持つ塊単位で縫い目を作る。塊の中に `ByRef` 変数への更新が含まれる場合はモックでもその更新を再現する。
+
+**重要**: 縫い目を作る関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）自体はテストなしで行うため、抽出後は必ず Excel 上での手動実行で動作確認してからスナップショット（[T-13](REFACTORING_TESTING_CATALOG.md#t-13)）を記録する。
+
+---
+
+#### パターン選択の判断基準
+
+| 状況 | 選択 |
+|---|---|
+| 副作用の実行順を後ろに変えても結果が変わらない | パターン 6a（FC/IS） |
+| 副作用の結果が後続のロジック分岐に影響する | パターン 6b（Seam） |
+| 副作用への入力が処理途中の計算結果に依存する | パターン 6b（Seam） |
+| Core に `ByRef` が必要になる変形が生じる | FC/IS を断念して 6b（Seam） |
+
+---
+
 ## リファクタリングのステップバイステップガイド
 
 ### ステップ 1: ビジネスロジックを特定する
@@ -1087,4 +1244,3 @@ End Sub
 
 - **`TESTING_STRATEGY.md`** — VBA テストの設計原則
 - **`TEST_FRAMEWORK_GUIDE.md`** — JavaScript テストフレームワークの活用
-- **`PLAN.md`** — Excel オブジェクト実装のロードマップ
