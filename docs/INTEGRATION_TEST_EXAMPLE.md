@@ -18,7 +18,7 @@
 
 ### 単体テスト（ドメインロジック）
 
-```vba
+```vb
 ' ✅ テスト可能：純粋関数
 Function CalcBaseStartIdx(currentLevel As Long, parentFinishIdx As Long, parentFinishAlloc As Double) As Long
     ' ...計算...
@@ -29,7 +29,7 @@ End Function
 
 ### 統合テスト（Excel I/O を含む）
 
-```vba
+```vb
 ' ❌ テスト困難：Excel シートに依存
 Sub AutoScheduleTasks()
     Dim ws As Worksheet

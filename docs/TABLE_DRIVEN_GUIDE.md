@@ -14,7 +14,7 @@
 
 ### Before
 
-```vba
+```vb
 Function GetApprover(amount As Long, department As String) As String
     If department = "Sales" Then
         If amount < 50000 Then
@@ -48,7 +48,7 @@ End Function
 
 ### After（Map ベース）
 
-```vba
+```vb
 ' Map 定義 — ビジネスルールをデータとして管理
 '   キー: department（文字列）
 '   値:   しきい値と承認者のペアのリスト + デフォルト

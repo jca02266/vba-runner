@@ -69,7 +69,7 @@ tests/
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/math.bas
 Function Sum(a As Long, b As Long) As Long
     Sum = a + b
@@ -134,7 +134,7 @@ describe('Math Operations', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/discount.bas
 Function ApplyDiscount(price As Double, discountPercent As Double) As Double
     If discountPercent < 0 Or discountPercent > 100 Then
@@ -203,7 +203,7 @@ describe('Discount Calculation with test.each', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/array-ops.bas
 Function SumArray(arr As Variant) As Long
     Dim i As Integer
@@ -287,7 +287,7 @@ describe('Array Operations', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/error-handling.bas
 Function SafeDivide(a As Long, b As Long) As Double
     If b = 0 Then
@@ -349,7 +349,7 @@ describe('Error Handling', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/sales-logic.bas
 Type SalesData
     Month As String
@@ -435,7 +435,7 @@ describe('Sales Business Logic', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/file-ops.bas
 Function ReadAndProcessFile(filePath As String) As String
     ' VBA Runner上では、仮想ファイルシステムから読み込み
@@ -483,7 +483,7 @@ describe('File Operations with VFS', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' src/vba/fiscal-year.bas
 Function IsCurrentFiscalYear(targetYear As Long) As Boolean
     ' 現在年度（4月始まり）を判定

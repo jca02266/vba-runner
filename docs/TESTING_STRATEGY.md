@@ -18,7 +18,7 @@
 
 ### 問題のあるコード（テストしづらい）
 
-```vba
+```vb
 ' ❌ Excel オブジェクトに直接依存
 Function CalculateSalesTotal() As Long
     Dim data As Variant
@@ -45,7 +45,7 @@ End Sub
 
 ### 改善されたコード（テスト可能）
 
-```vba
+```vb
 ' === Domain Logic 層 ===
 ' 入力：配列（プリミティブなデータ）
 ' 出力：計算結果
@@ -154,7 +154,7 @@ describe('Sales Calculation', () => {
 
 **VBA IDE（Excel 内）で手動確認**:
 
-```vba
+```vb
 ' 手動テスト手順
 ' 1. test-fixtures/sales-data.xlsx を開く
 ' 2. VBA IDE で Main() を実行
@@ -190,7 +190,7 @@ Excel I/O を VBA Runnerでテストすると：
 
 ### VBA コード
 
-```vba
+```vb
 ' 入力：配列のみ
 ' 出力：計算結果
 ' 副作用：なし
@@ -240,7 +240,7 @@ describe('Pure Functions', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' ビジネスロジック：割引計算
 Function CalculateDiscount(price As Double, discount As Double) As Double
     If discount < 0 Or discount > 1 Then
@@ -284,7 +284,7 @@ describe('Discount Calculation', () => {
 
 ### VBA コード
 
-```vba
+```vb
 ' 状態を保持する（クラスまたはモジュール変数）
 Private lastCalculatedValue As Long
 
@@ -334,7 +334,7 @@ describe('Stateful Processing', () => {
 
 ### VBA コード
 
-```vba
+```vb
 Function SafeDivide(numerator As Long, denominator As Long) As Double
     If denominator = 0 Then
         Err.Raise 11  ' Division by zero
@@ -382,7 +382,7 @@ describe('Error Handling', () => {
 
 ### 1. VBA 関数は単一責任を持つ
 
-```vba
+```vb
 ' ❌ 悪い例（複数責任）
 Function ProcessSalesData()
     Dim data As Variant
@@ -417,7 +417,7 @@ End Sub
 
 ### 2. 入力パラメーターは具体的に
 
-```vba
+```vb
 ' ❌ 暗黙的（テストしづらい）
 Function UpdateInventory()
     ' グローバル変数に依存
@@ -439,7 +439,7 @@ End Function
 > ドメインとして意味のあるまとまり（例：在庫状態、注文情報、期間指定）であることが前提です。
 > 無関係なパラメーターを1つの `Type` に詰め込むと、責務が曖昧になりテストや再利用がかえって困難になります。
 
-```vba
+```vb
 ' ❌ 引数が増えると呼び出しが煩雑になる
 Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
                                 restockAmount As Long, minStock As Long, _
@@ -525,7 +525,7 @@ assert.strictEqual(calcInventoryWith({ CurrentStock: 10, SoldUnits: 20, RestockA
 
 ただし VBA のクラスには制限があります（コンストラクターに引数を渡せない・継承がない・メソッドのオーバーロードがないなど）。振る舞いが単純なうちは `Type` + モジュール関数の組み合わせで十分なことが多く、クラス化は慎重に判断してください。
 
-```vba
+```vb
 ' Type + モジュール関数: 振る舞いが少なければこれで十分
 Type InventoryParams
     CurrentStock  As Long
@@ -564,7 +564,7 @@ End Function
 
 ### 5. Excel オブジェクト依存は Sub に限定 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
 
-```vba
+```vb
 ' ✅ 推奨パターン
 Function CalculateXxx(param1 As ..., param2 As ...) As ...
     ' Domain Logic のみ
@@ -603,7 +603,7 @@ describe('Business Logic Tests', () => {
 
 ### VBA IDE での補助テスト（手動）
 
-```vba
+```vb
 ' Debug パネルで実行
 Sub DebugTest()
     ' Domain Logic のテスト（確認用）
@@ -640,7 +640,7 @@ End Sub
 
 **A**: 配列や辞書を活用：
 
-```vba
+```vb
 ' VBA: 複雑な構造
 Type SalesRecord
     Month As String

@@ -113,7 +113,7 @@ tests/spec/vba/
   - `assert.IsFalse value, "メッセージ"` — 偽であることのテスト
 - `SetUp` / `TearDown` Sub は引数なし。ランナーが各テストの前後に自動呼び出し
 
-```vba
+```vb
 Option Explicit
 
 Sub Test_BasicBehavior(assert)

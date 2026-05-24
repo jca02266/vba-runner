@@ -118,7 +118,7 @@ VBA でクロージャ相当を実現する方法は主に 2 つある。
 
 どちらの方法でも `RunKeyBreak` の呼び出し側は同じ形になる:
 
-```vba
+```vb
 Dim body As New DeptSubtotalBody
 RunKeyBreak records, body
 ```
@@ -132,7 +132,7 @@ RunKeyBreak records, body
 
 ### ループ構造（`KeyBreakModule.bas`）
 
-```vba
+```vb
 Public Sub RunKeyBreak(records As Collection, body As Object)
     Dim currentKey As Variant
     Dim isFirst As Boolean
@@ -157,7 +157,7 @@ End Sub
 
 ### 処理クラス（`DeptSubtotalBody.cls`）
 
-```vba
+```vb
 Option Explicit
 
 Private mSubtotal As Long
@@ -192,7 +192,7 @@ End Function
 
 ### Step 1: インターフェースを定義する（`IKeyBreakBody.cls`）
 
-```vba
+```vb
 Option Explicit
 
 Public Function GetKey(rec As Object) As Variant
@@ -208,7 +208,7 @@ End Sub
 ### Step 2: ループ構造を汎用プロシージャとして書く（`KeyBreakModule.bas`）
 
 
-```vba
+```vb
 ' body の型としてインターフェース IKeyBreakBody を指定できる
 ' インターフェースによって3つのメソッドが定義されていることを保証する
 Public Sub RunKeyBreak(records As Collection, body As IKeyBreakBody)
@@ -235,7 +235,7 @@ End Sub
 
 ### Step 3: 処理クラスを実装する（`DeptSubtotalBody.cls`）
 
-```vba
+```vb
 Option Explicit
 Implements IKeyBreakBody
 
@@ -262,7 +262,7 @@ End Function
 
 ### Step 4: 呼び出し側（`ReportModule.bas`）
 
-```vba
+```vb
 Sub PrintDeptReport(records As Collection)
     Dim body As New DeptSubtotalBody
     RunKeyBreak records, body
@@ -287,7 +287,7 @@ End Sub
 
 `RunKeyBreak` はそのままで、body クラスだけ差し替えれば別の集計に対応できる（どちらの方法も同じ）。
 
-```vba
+```vb
 ' 例: 部門ごとのレコード件数をカウントする
 Private mCount As Long
 
@@ -305,7 +305,7 @@ Public Sub OnBreak(currentKey As Variant)
 End Sub
 ```
 
-```vba
+```vb
 ' 呼び出し側を変えるだけ
 Sub PrintDeptCount(records As Collection)
     Dim body As New DeptCountBody
