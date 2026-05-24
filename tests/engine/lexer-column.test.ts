@@ -132,4 +132,29 @@ function tokenize(src: string) {
     console.log('[PASS] All tokens have positive line and column');
 }
 
+// 13. Reserved word with type suffix is lexed as keyword, not identifier
+// VBA §3.3.5.2: TYPED-NAME requires IDENTIFIER (non-reserved); 'dim$', 'for%' are invalid.
+{
+    const tokens = tokenize('dim$');
+    assert.strictEqual(tokens[0].type, TokenType.KeywordDim, 'dim$ lexed as KeywordDim');
+    console.log('[PASS] dim$ token type:', tokens[0].type);
+}
+{
+    const tokens = tokenize('for%');
+    assert.strictEqual(tokens[0].type, TokenType.KeywordFor, 'for% lexed as KeywordFor');
+    console.log('[PASS] for% token type:', tokens[0].type);
+}
+{
+    const tokens = tokenize('sub$');
+    assert.strictEqual(tokens[0].type, TokenType.KeywordSub, 'sub$ lexed as KeywordSub');
+    console.log('[PASS] sub$ token type:', tokens[0].type);
+}
+
+// 14. mid$ is still lexed as KeywordMid (built-in function with $ suffix)
+{
+    const tokens = tokenize('mid$');
+    assert.strictEqual(tokens[0].type, TokenType.KeywordMid, 'mid$ lexed as KeywordMid');
+    console.log('[PASS] mid$ token type:', tokens[0].type);
+}
+
 console.log('\n✅ Lexer column tracking: 全テスト通過');
