@@ -5221,6 +5221,14 @@ export class Evaluator {
         if (val instanceof VbaBoolean) return val.value !== 0;
         if (typeof val === 'number') return val !== 0;
         if (typeof val === 'boolean') return val;
+        if (typeof val === 'string') {
+            const u = val.toUpperCase();
+            if (u === 'TRUE') return true;
+            if (u === 'FALSE') return false;
+            const n = Number(val);
+            if (!isNaN(n) && val.trim() !== '') return n !== 0;
+            this.throwVbaError(13, 'Type mismatch');
+        }
         return !!val;
     }
 
