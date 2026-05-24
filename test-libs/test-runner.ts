@@ -194,6 +194,21 @@ export const assert = {
             throw new Error(`Assertion Failed`);
         }
     },
+    deepStrictEqual: (actual: any, expected: any, message?: string) => {
+        const deepEqual = (a: any, e: any): boolean => {
+            if (a === e) return true;
+            if (a === null || e === null || typeof a !== 'object' || typeof e !== 'object') return false;
+            if (Array.isArray(a) !== Array.isArray(e)) return false;
+            const aKeys = Object.keys(a);
+            const eKeys = Object.keys(e);
+            if (aKeys.length !== eKeys.length) return false;
+            return aKeys.every(k => Object.prototype.hasOwnProperty.call(e, k) && deepEqual(a[k], e[k]));
+        };
+        if (!deepEqual(actual, expected)) {
+            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected ${JSON.stringify(expected)} but got ${JSON.stringify(actual)}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
     ok: (value: any, message?: string) => {
         if (!value) {
             console.error(`[FAIL] ${message || 'Assertion failed'} - Expected truthy value but got ${String(value)}`);

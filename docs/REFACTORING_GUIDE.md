@@ -855,8 +855,7 @@ runner.spy("ReadApprovalLimit", () => 500000);
 const logSpy = runner.spy("WriteApprovalLog");
 
 assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Approve");
-assert.strictEqual(logSpy.calls[0][0], "Engineering");
-assert.strictEqual(logSpy.calls[0][1], "Approve");
+assert.deepStrictEqual(logSpy.calls[0], ["Engineering", "Approve"]);
 
 // 上限超えのケース
 runner.spy("ReadApprovalLimit", () => 50000);
