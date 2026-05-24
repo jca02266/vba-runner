@@ -742,9 +742,12 @@ Sub ProcessApproval(dept As String, amount As Long)
         decision = "Manager"
     End If
 
-    WriteApprovalLog dept, decision        ' 副作用①（ロジックの途中）
+    WriteApprovalLog dept, decision        ' 副作用①（計算の途中）
+
+    If decision = "TeamLead" Then amount = amount * 0.9  ' 中間計算
 
     Sheets("Result").Cells(1, 1).Value = decision  ' 副作用②
+    Sheets("Result").Cells(1, 2).Value = amount    ' 副作用③（修正後の金額）
 End Sub
 ```
 
@@ -760,12 +763,14 @@ Function DecideApproval(dept As String, amount As Long) As String
     End If
 End Function
 
-' Shell: Core を呼び、副作用をまとめて実行するだけ
+' Shell: Core の計算をすべて先に済ませ、副作用をまとめて実行するだけ
 Sub ProcessApproval(dept As String, amount As Long)
     Dim decision As String
-    decision = DecideApproval(dept, amount)         ' Core
-    WriteApprovalLog dept, decision                 ' 副作用①
-    Sheets("Result").Cells(1, 1).Value = decision   ' 副作用②
+    decision = DecideApproval(dept, amount)              ' Core①
+    If decision = "TeamLead" Then amount = amount * 0.9  ' Core②（副作用なし）
+    WriteApprovalLog dept, decision                      ' 副作用①
+    Sheets("Result").Cells(1, 1).Value = decision        ' 副作用②
+    Sheets("Result").Cells(1, 2).Value = amount          ' 副作用③
 End Sub
 ```
 
