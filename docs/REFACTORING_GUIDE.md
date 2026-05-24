@@ -744,8 +744,6 @@ Sub ProcessApproval(dept As String, amount As Long)
 
     WriteApprovalLog dept, decision        ' 副作用①（ロジックの途中）
 
-    If decision = "TeamLead" Then amount = amount * 0.9
-
     Sheets("Result").Cells(1, 1).Value = decision  ' 副作用②
 End Sub
 ```
@@ -847,15 +845,15 @@ End Sub
 
 ```typescript
 const runner = new VBARunner("ProcessApproval.bas");
-runner.mock("ReadDeptStatus",    (_dept: string)  => "active");
-runner.mock("ReadApprovalLimit", (_route: string) => 500000);
+runner.spy("ReadDeptStatus",    () => "active");
+runner.spy("ReadApprovalLimit", () => 500000);
 const logSpy = runner.spy("WriteApprovalLog");
 
 assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Approve");
-assert.strictEqual(logSpy.calls[0].args, ["Engineering", "Approve"]);
+assert.deepStrictEqual(logSpy.calls[0], ["Engineering", "Approve"]);
 
 // 上限超えのケース
-runner.mock("ReadApprovalLimit", (_route: string) => 50000);
+runner.spy("ReadApprovalLimit", () => 50000);
 assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Escalate");
 ```
 
