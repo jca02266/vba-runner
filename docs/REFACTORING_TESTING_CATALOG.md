@@ -12,6 +12,27 @@
 
 巨大な `Sub` から副作用のない計算・判定ロジックを独立した `Function` として切り出す手法。関数名がビジネスルールの名前になり、引数と戻り値だけで動作が完結するため単独でテスト可能になる。
 
+**背景にある設計原則 — CQS（Command/Query Separation）**: 状態を変える操作（Command = Sub）と値を返す操作（Query = Function）を混在させないという原則。VBA の言語仕様（Sub は戻り値なし／Function は戻り値あり）がそのまま CQS に対応している。R-01 で純粋関数を切り出すことは、Query を Command から分離することと同義。
+
+```vb
+' NG: Function が副作用を持つ（Query に Command が混入）
+Function CalcAndSave(ws As Worksheet, amount As Long) As Long
+    Dim result As Long
+    result = amount * 1.1
+    ws.Range("A1").Value = result   ' ← 副作用が混入
+    CalcAndSave = result
+End Function
+
+' OK: Command と Query を分離（R-01 の適用結果）
+Function CalcTotal(amount As Long) As Long  ' Query: 副作用なし → テスト可能
+    CalcTotal = amount * 1.1
+End Function
+
+Sub SaveTotal(ws As Worksheet, total As Long)  ' Command: 副作用のみ
+    ws.Range("A1").Value = total
+End Sub
+```
+
 **具体例: Excel オブジェクト依存の分離**
 VBA における典型的な適用場面。`Range`・`Cells`・`Sheets` などの Excel オブジェクトへのアクセスを `Sub` に限定し、ビジネスロジックを Excel 非依存の `Function` として切り出す。これにより `Function` 単体を Excel なしでテストできる。対象箇所の検出には `vba-analyzer` の `excelMockTargets`・`excelAccessCount` が使える（[VA-01](#va-01)）。
 
@@ -700,39 +721,6 @@ End Sub
 ```
 
 Wrap Method は既存の呼び出し元が多い場合に特に有効。前後処理だけを独立してテストしたい場合は [R-17](#r-17) の Sprout Method の方が適している。
-
-***
-
-<a id="r-19"></a>
-
-### R-19: Command/Query Separation - CQS（コマンド・クエリー分離）
-
-状態を変える操作（Command）と値を返す操作（Query）を明確に分離する設計原則。VBA の言語仕様（Sub = Command、Function = Query）がそのまま CQS に対応しており、自然に適用できる。
-
-**副作用のある Sub（Command）と値を返す Function（Query）を混在させない:**
-
-```vb
-' NG: Function が副作用を持つ（Query でありながら Command を兼ねている）
-Function CalcAndSave(ws As Worksheet, amount As Long) As Long
-    Dim result As Long
-    result = amount * 1.1
-    ws.Range("A1").Value = result   ' ← 副作用！Query に混入している
-    CalcAndSave = result
-End Function
-
-' OK: Command と Query を分離
-Function CalcTotal(amount As Long) As Long     ' Query: 副作用なし
-    CalcTotal = amount * 1.1
-End Function
-
-Sub SaveTotal(ws As Worksheet, total As Long)  ' Command: 戻り値なし
-    ws.Range("A1").Value = total
-End Sub
-```
-
-Query（Function）は副作用がないため、[T-01](#t-01) の純粋関数テストで直接検証できる。Command（Sub）は [R-13](#r-13) の Seam で副作用を切り離してからテストする。
-
-CQS を守ることで [R-12](#r-12) FC/IS の Core（Query）と Shell（Command）の分離も自然に実現できる。
 
 ***
 
