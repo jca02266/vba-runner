@@ -827,15 +827,24 @@ export class TableDrivenDetector {
 
     /**
      * 条件が数値しきい値比較（葉レベル）か判定
-     * BinaryExpression で </<=/>/>=  かつ 片側が NumberLiteral のもの
-     * = による数値等値比較（例: purchaseCount = 1）もしきい値として扱う
+     * - <, <=, >, >= : 片側が NumberLiteral または Identifier（定数名）
+     * - =            : 片側が NumberLiteral のみ
+     *                  （= + Identifier は direction = xlUp のようなキー等値比較と区別できないため）
      * それ以外（文字列等値、関数呼び出し、論理演算など）はすべてキーレベルとして再帰する
      */
     private isNumericThresholdCondition(condition: any): boolean {
         if (condition?.type !== 'BinaryExpression') return false;
         const op: string = condition.operator ?? '';
         if (!['<', '<=', '>', '>=', '='].includes(op)) return false;
-        return condition.left?.type === 'NumberLiteral' || condition.right?.type === 'NumberLiteral';
+        const leftType  = condition.left?.type  ?? '';
+        const rightType = condition.right?.type ?? '';
+        if (op === '=') {
+            // = は即値のみ（定数識別子はキーレベルとして処理）
+            return leftType === 'NumberLiteral' || rightType === 'NumberLiteral';
+        }
+        // <, <=, >, >= は即値または定数識別子を許可
+        const isNumericLike = (t: string) => t === 'NumberLiteral' || t === 'Identifier';
+        return isNumericLike(leftType) || isNumericLike(rightType);
     }
 
     /**
