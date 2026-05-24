@@ -258,7 +258,7 @@ TESTING_STRATEGY.md（最上位の原則）
 **主要セクション**:
 - Jest との統合方法
 - 7 つのテストパターン（パターン7: Time Mocking 含む）
-- **VBARunner API リファレンス**（`run` / `eval` / `set` / `mockDate` / `registerExternalObject`）
+- **VBARunner API リファレンス**（`run` / `eval` / `set` / `mockDate` / `registerExternalObject`）、**assert ユーティリティ**（`strictEqual` / `deepStrictEqual` / `ok` / `isTrue` / `isFalse` / `fail`）
 - エラーデバッグ情報（`err.vbaLine` / `err.number`）
 - よくある質問
 

@@ -701,6 +701,33 @@ for (const [name, fields] of Object.entries(types)) {
 (vbaRunner.evaluator as any).fs.writeFileSync('/sandbox/c/data.txt', 'hello');
 ```
 
+### `assert` ユーティリティ
+
+`test-libs/test-runner` からエクスポートされる軽量アサーションオブジェクト。
+
+```typescript
+import { assert } from '../../test-libs/test-runner';
+```
+
+| メソッド | 説明 |
+|---|---|
+| `assert.strictEqual(actual, expected, msg?)` | `===` で比較。VbaBoolean は `-1` / `0` に正規化してから比較する |
+| `assert.deepStrictEqual(actual, expected, msg?)` | 配列・オブジェクトを再帰的に深く比較。VbaBoolean 正規化・循環参照検出あり |
+| `assert.ok(value, msg?)` | 値が truthy であることを検証 |
+| `assert.isTrue(actual, msg?)` | `vbaTrue` と等しいことを検証 |
+| `assert.isFalse(actual, msg?)` | `vbaFalse` と等しいことを検証 |
+| `assert.fail(msg?)` | 無条件に失敗させる |
+
+```typescript
+// 配列・オブジェクトの比較には deepStrictEqual を使う
+const spy = vbaRunner.spy('WriteLog');
+vbaRunner.run('ProcessOrder', ['Engineering', 100000]);
+assert.deepStrictEqual(spy.calls[0], ['Engineering', 'Approve']);
+
+// プリミティブの比較は strictEqual で十分
+assert.strictEqual(vbaRunner.run('CalcTax', [50000]), 5000);
+```
+
 ---
 
 ## Jest の活用：便利な機能
