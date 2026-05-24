@@ -2,6 +2,7 @@
  * VBA runtime value types and sentinel constants.
  * Extracted here to avoid circular imports between evaluator.ts and coerce.ts.
  */
+import { VbaErrorCode, throwVbaError } from './vba-errors';
 
 /**
  * VBA Boolean wrapper. Only two instances exist: vbaTrue (-1) and vbaFalse (0).
@@ -36,7 +37,7 @@ export const fromVbaDate = (serial: number): Date => {
 };
 
 export const parseVbaDate = (val: any): Date => {
-    if (val === null || val === undefined) throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+    if (val === null || val === undefined) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
     if (typeof val === 'number') return fromVbaDate(val);
 
@@ -45,7 +46,7 @@ export const parseVbaDate = (val: any): Date => {
         str = "1899/12/30 " + str;
     }
     const d = new Date(str);
-    if (isNaN(d.getTime())) throw { type: 'VbaError', number: 13, message: `Type mismatch: '${val}'` };
+    if (isNaN(d.getTime())) throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: '${val}'`);
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(),
         d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
 };

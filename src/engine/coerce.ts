@@ -15,10 +15,7 @@ import {
     vbaEmpty, vbaNull, vbaNothing,
     VbaDate, VbaDecimal, VbaErrorValue,
 } from './vba-types';
-
-function throwVbaError(number: number, message: string): never {
-    throw { type: 'VbaError', number, message };
-}
+import { VbaErrorCode, throwVbaError } from './vba-errors';
 
 // ---------------------------------------------------------------------------
 // §6.1.2.2 Numeric value coercion
@@ -35,7 +32,7 @@ function throwVbaError(number: number, message: string): never {
  */
 export function vbaToNumber(val: any): number {
     if (val === vbaEmpty) return 0;                          // null === null
-    if (val === vbaNull) throwVbaError(13, 'Type mismatch');
+    if (val === vbaNull) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val instanceof VbaBoolean) return val.value;
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
@@ -43,10 +40,10 @@ export function vbaToNumber(val: any): number {
     if (typeof val === 'bigint') return Number(val);
     if (typeof val === 'string') {
         const n = parseFloat(val);
-        if (isNaN(n)) throwVbaError(13, 'Type mismatch');
+        if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
         return n;
     }
-    if (val instanceof VbaErrorValue) throwVbaError(13, 'Type mismatch');
+    if (val instanceof VbaErrorValue) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     return Number(val);
 }
 
@@ -93,12 +90,12 @@ export function vbaToBoolean(val: any): VbaBoolean {
         const lc = trimmed.toLowerCase();
         if (lc === 'true') return vbaTrue;
         if (lc === 'false') return vbaFalse;
-        if (trimmed === '') throwVbaError(13, 'Type mismatch');
+        if (trimmed === '') throwVbaError(VbaErrorCode.TYPE_MISMATCH);
         const n = Number(trimmed);
-        if (isNaN(n)) throwVbaError(13, 'Type mismatch');
+        if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
         return n !== 0 ? vbaTrue : vbaFalse;
     }
-    throwVbaError(13, 'Type mismatch');
+    throwVbaError(VbaErrorCode.TYPE_MISMATCH);
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +110,7 @@ export function vbaToBoolean(val: any): VbaBoolean {
  * - Others → String representation (delegates to toString())
  */
 export function vbaToString(val: any): string {
-    if (val === vbaNull) throwVbaError(94, 'Invalid use of Null');
+    if (val === vbaNull) throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL);
     if (val === vbaEmpty) return '';
     return String(val);
 }

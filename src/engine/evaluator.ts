@@ -103,6 +103,8 @@ import {
     vbaToDisplayString,
     vbaRound as _vbaRound,
 } from './coerce';
+import { VbaErrorCode, throwVbaError } from './vba-errors';
+export { VbaErrorCode } from './vba-errors';
 
 /**
  * VBARunner.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
@@ -136,7 +138,7 @@ class VbaCollection {
     public add(item: any, key?: string, before?: any, after?: any) {
         const keyLower = (key !== undefined && key !== vbaEmpty && key !== null) ? String(key).toLowerCase() : null;
         if (keyLower && this._items.some(i => i.key === keyLower)) {
-            throw { type: 'VbaError', number: 457, message: 'This key is already associated with an element of this collection' };
+            throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS);
         }
 
         const newItem = { value: item, key: keyLower };
@@ -155,16 +157,16 @@ class VbaCollection {
     private findIndex(id: any): number {
         if (typeof id === 'number') {
             if (id < 1 || id > this._items.length)
-                throw { type: 'VbaError', number: 9, message: 'Subscript out of range' };
+                throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE);
             return id;
         } else if (id !== undefined && id !== null && id !== vbaEmpty) {
             const k = String(id).toLowerCase();
             const idx = this._items.findIndex(i => i.key === k);
             if (idx === -1)
-                throw { type: 'VbaError', number: 5, message: 'Invalid procedure call or argument' };
+                throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL);
             return idx + 1;
         }
-        throw { type: 'VbaError', number: 5, message: 'Invalid procedure call or argument' };
+        throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL);
     }
 
     public count() {
@@ -233,7 +235,7 @@ export class Environment {
     set(name: string, value: any) {
         const key = name.toLowerCase();
         if (this.isConstant(key)) {
-            throw { type: 'VbaError', number: 5, message: `Assignment to constant not allowed: '${name}'` };
+            throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Assignment to constant not allowed: '${name}'`);
         }
         if (this.variables.has(key)) {
             this.variables.set(key, this.coerceToType(key, value));
@@ -331,9 +333,7 @@ export class Environment {
 
     private static vbaRoundStatic(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
-    private static throwOverflow(): never {
-        throw { type: 'VbaError', number: 6, message: 'Overflow' };
-    }
+    private static throwOverflow(): never { throwVbaError(VbaErrorCode.OVERFLOW); }
 
     setWithEvents(name: string) {
         this.withEventsVariables.add(name.toLowerCase());
@@ -434,7 +434,7 @@ export class Environment {
         // Check for ambiguity: multiple module-qualified procedures
         if (candidates.length > 1) {
             const modules = candidates.map(p => p.moduleName).filter(m => m).join(', ');
-            throw { type: 'VbaError', number: 35, message: `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.` };
+            throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
         }
 
         if (candidates.length === 1) {
@@ -465,7 +465,7 @@ export class Environment {
 
             if (envCandidates.length > 1) {
                 const modules = envCandidates.map(p => p.moduleName).filter(m => m).join(', ');
-                throw { type: 'VbaError', number: 35, message: `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.` };
+                throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Ambiguous procedure '${name}'. Found in multiple modules: ${modules}. Use module qualification (e.g., Module.${name}()) to disambiguate.`);
             }
 
             if (envCandidates.length === 1) {
@@ -729,7 +729,7 @@ export class Evaluator {
         // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
         this.env.set('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
             if (obj === null || obj === undefined || obj === vbaNothing) {
-                this.throwVbaError(91, 'Object variable or With block variable not set');
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
             }
             const name = String(procName).toLowerCase();
             if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
@@ -753,7 +753,7 @@ export class Evaluator {
                     return val;
                 }
             }
-            this.throwVbaError(438, `Object doesn't support this property or method: '${procName}'`);
+            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
         });
 
         // --- Conversion Module ---
@@ -762,28 +762,28 @@ export class Evaluator {
                 return val.valueOf() ? 255 : 0;
             }
             const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < 0 || n > 255) this.throwVbaError(6, "Overflow");
+            if (n < 0 || n > 255) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
         });
         this.env.set('cint', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < -32768 || n > 32767) this.throwVbaError(6, "Overflow");
+            if (n < -32768 || n > 32767) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
         });
         this.env.set('clng', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < -2147483648 || n > 2147483647) this.throwVbaError(6, "Overflow");
+            if (n < -2147483648 || n > 2147483647) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
         });
         this.env.set('csng', (val: any) => {
             const n = this.toVbaNumber(val);
             const f32 = Math.fround(n);
-            if (!isFinite(f32) && isFinite(n)) this.throwVbaError(6, "Overflow");
+            if (!isFinite(f32) && isFinite(n)) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return f32;
         });
         this.env.set('cdbl', (val: any) => this.toVbaNumber(val));
         this.env.set('cdate', (val: any) => {
-            if (val === null || val === vbaNull || val === vbaEmpty) this.throwVbaError(13, "Type mismatch");
+            if (val === null || val === vbaNull || val === vbaEmpty) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             if (val instanceof VbaDate) return val;
             if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
                 return new VbaDate(toVbaDate(parseVbaDate(val)));
@@ -797,21 +797,21 @@ export class Evaluator {
         this.env.set('cdec', (val: any) => new VbaDecimal(this.toVbaNumber(val)));
         this.env.set('ccur', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val), 4);
-            if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(6, "Overflow");
+            if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
         });
         this.env.set('clnglng', (val: any) => {
-            if (val === vbaNull || val === null) this.throwVbaError(13, "Type mismatch");
+            if (val === vbaNull || val === null) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             if (typeof val === 'bigint') return val;
             if (typeof val === 'string') {
                 const trimmed = val.trim();
                 if (/^-?\d+$/.test(trimmed)) {
                     try {
                         const n = BigInt(trimmed);
-                        if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(6, "Overflow");
+                        if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
                         return n;
                     } catch {
-                        this.throwVbaError(13, "Type mismatch");
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
                     }
                 }
             }
@@ -823,11 +823,11 @@ export class Evaluator {
                 if (Math.abs(num - 9223372036854775807) < 1025 || Math.abs(num + 9223372036854775808) < 1025) {
                     // Keep going and let BigInt conversion handle it if it was a float that rounded to the edge
                 } else {
-                    this.throwVbaError(6, "Overflow");
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
                 }
             }
             const n = BigInt(this.vbaRound(num));
-            if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(6, "Overflow");
+            if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
         });
         this.env.set('clngptr', this.env.get('clnglng'));
@@ -838,14 +838,14 @@ export class Evaluator {
             }
         });
         this.env.set('cbool', (val: any) => {
-            if (val === vbaNull) this.throwVbaError(94, 'Invalid use of Null');
+            if (val === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
             return this.coerceToBoolean(val);
         });
         this.env.set('cvar', (val: any) => val);
         this.env.set('cverr', (val: any) => {
             if (val instanceof VbaErrorValue) return val;
             const code = this.toVbaNumber(val);
-            if (code < 0 || code > 65535) this.throwVbaError(5, "Invalid procedure call or argument");
+            if (code < 0 || code > 65535) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return new VbaErrorValue(code);
         });
 
@@ -921,7 +921,7 @@ export class Evaluator {
         this.env.set('exp', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
-            if (n > 709.782712893) this.throwVbaError(6, "Overflow");
+            if (n > 709.782712893) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return Math.exp(n);
         });
         this.env.set('int', (val: any) => val === vbaNull ? vbaNull : Math.floor(this.toVbaNumber(val)));
@@ -933,7 +933,7 @@ export class Evaluator {
         this.env.set('log', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
-            if (n <= 0) this.throwVbaError(5, "Invalid procedure call or argument");
+            if (n <= 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return Math.log(n);
         });
         this.env.set('round', (val: any, digits: any = 0) => val === vbaNull ? vbaNull : this.vbaRound(this.toVbaNumber(val), Number(digits)));
@@ -946,7 +946,7 @@ export class Evaluator {
         this.env.set('sqr', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
-            if (n < 0) this.throwVbaError(5, "Invalid procedure call or argument");
+            if (n < 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return Math.sqrt(n);
         });
         this.env.set('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(this.toVbaNumber(val)));
@@ -1112,7 +1112,7 @@ export class Evaluator {
         });
         this.env.set('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''));
         this.env.set('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
-            if (!Array.isArray(source)) this.throwVbaError(13, "Type mismatch");
+            if (!Array.isArray(source)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const find = String(match ?? '');
             const isInclude = this.isTrue(include);
             const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
@@ -1259,7 +1259,7 @@ export class Evaluator {
         });
         this.env.set('monthname', (month: any, abbreviate: any = vbaFalse) => {
             const m = Number(month);
-            if (m < 1 || m > 12) this.throwVbaError(5, "Invalid procedure call or argument");
+            if (m < 1 || m > 12) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             const abbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             return this.isTrue(abbreviate) ? abbrs[m - 1] : names[m - 1];
@@ -1268,7 +1268,7 @@ export class Evaluator {
             const w = Number(weekday);
             let first = Number(firstdayofweek);
             if (first === 0) first = 1;
-            if (w < 1 || w > 7) this.throwVbaError(5, "Invalid procedure call or argument");
+            if (w < 1 || w > 7) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
             const abbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             const idx = (w + first - 2) % 7;
@@ -1280,26 +1280,26 @@ export class Evaluator {
             const start = (range === 1) ? 256 : 1;
             const end = (range === 1) ? 511 : 255;
             for (let i = start; i <= end; i++) if (!this.fileHandles.has(i)) return i;
-            this.throwVbaError(67, "Too many files");
+            this.throwVbaError(VbaErrorCode.TOO_MANY_FILES, "Too many files");
         });
         this.env.set('eof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
-            if (!h) this.throwVbaError(52, "Bad file name or number");
+            if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos! >= this.fs.statSync(h.path).size ? vbaTrue : vbaFalse;
         });
         this.env.set('lof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
-            if (!h) this.throwVbaError(52, "Bad file name or number");
+            if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return this.fs.statSync(h.path).size;
         });
         this.env.set('loc', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
-            if (!h) this.throwVbaError(52, "Bad file name or number");
+            if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos;
         });
         this.env.set('seek', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
-            if (!h) this.throwVbaError(52, "Bad file name or number");
+            if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return (h.pos || 0) + 1;
         });
         this.env.set('fileattr', (fn: any, info: any = 1) => {
@@ -1350,7 +1350,7 @@ export class Evaluator {
             try {
                 this.sandbox.setCwd(p);
             } catch {
-                this.throwVbaError(76, 'Path not found');
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
             }
         });
         this.env.set('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size);
@@ -1432,7 +1432,7 @@ export class Evaluator {
             return dep;
         });
         this.env.set('irr', (values: any, guess: any = 0.1) => {
-            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const v = values.map(Number);
             let r = Number(guess);
             for (let i = 0; i < 100; i++) {
@@ -1450,7 +1450,7 @@ export class Evaluator {
             return r;
         });
         this.env.set('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
-            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const v = values.map(Number);
             const fr = Number(finance_rate), rr = Number(reinvest_rate);
             const n = v.length - 1;
@@ -1464,7 +1464,7 @@ export class Evaluator {
             return Math.pow(-tv / npv_neg, 1 / n) - 1;
         });
         this.env.set('npv', (rate: any, values: any) => {
-            if (!Array.isArray(values)) this.throwVbaError(13, "Type mismatch");
+            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const r = Number(rate);
             const v = values.map(Number);
             let result = 0;
@@ -1533,27 +1533,27 @@ export class Evaluator {
         this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
         this.env.set('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; });
         this.env.set('lbound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) this.throwVbaError(9, "Subscript out of range");
+            if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
             if ((a as any).__vbaDimensions__) {
                 if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
-                    this.throwVbaError(9, "Subscript out of range");
+                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                 }
                 return (a as any).__vbaDimensions__[dimIndex].lower;
             }
-            if (dimIndex > 0) this.throwVbaError(9, "Subscript out of range");
+            if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             return (a as any).vbaBase || 0;
         });
         this.env.set('ubound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) this.throwVbaError(9, "Subscript out of range");
+            if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
             if ((a as any).__vbaDimensions__) {
                 if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
-                    this.throwVbaError(9, "Subscript out of range");
+                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                 }
                 return (a as any).__vbaDimensions__[dimIndex].upper;
             }
-            if (dimIndex > 0) this.throwVbaError(9, "Subscript out of range");
+            if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             return ((a as any).vbaBase || 0) + a.length - 1;
         });
 
@@ -1669,12 +1669,12 @@ export class Evaluator {
             if (typeof builtin === 'function') {
                 return builtin(...args);
             }
-            this.throwVbaError(35, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
+            this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
         // Option Explicit: refuse to run a procedure with undeclared variable violations
         if (this.optionExplicitViolations.has(procName)) {
-            this.throwVbaError(1, `Variable not declared in '${proc.name.name}' (Option Explicit)`);
+            this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION, `Variable not declared in '${proc.name.name}' (Option Explicit)`);
         }
 
         // Validate argument count
@@ -2086,7 +2086,7 @@ export class Evaluator {
         } else if (collection && typeof collection.items !== 'undefined') {
             elements = Array.isArray(collection.items) ? collection.items : [];
         } else {
-            this.throwVbaError(13, "Type mismatch: 'For Each' requires a collection or array");
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch: 'For Each' requires a collection or array");
         }
 
         for (const element of elements) {
@@ -2288,7 +2288,7 @@ export class Evaluator {
         const idx = Math.floor(Number(val));
 
         if (idx < 0 || idx > 255) {
-            this.throwVbaError(5, `Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Invalid procedure call or argument (On...GoTo/GoSub index ${idx})`);
         }
 
         if (idx >= 1 && idx <= stmt.labels.length) {
@@ -2309,7 +2309,7 @@ export class Evaluator {
             const result = val.padEnd(target.length, ' ').substring(0, target.length);
             this.env.set(name, result);
         } else {
-            this.throwVbaError(13, 'Type mismatch');
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
     }
 
@@ -2321,7 +2321,7 @@ export class Evaluator {
             const result = val.padStart(target.length, ' ').substring(0, target.length);
             this.env.set(name, result);
         } else {
-            this.throwVbaError(13, 'Type mismatch');
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
     }
 
@@ -2421,7 +2421,7 @@ export class Evaluator {
         if (val === vbaNull) {
             const errorTypes = new Set(['Boolean', 'Byte', 'Integer', 'Long', 'LongLong', 'Single', 'Double', 'Currency', 'Date']);
             if (errorTypes.has(vbaType)) {
-                throw { type: 'VbaError', number: 94, message: 'Invalid use of Null' };
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
             }
             return val;
         }
@@ -2552,10 +2552,10 @@ export class Evaluator {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         this.callClassMethod(target, setter, [...argsVals, val]);
                     } else {
-                        this.throwVbaError(438, "Object doesn't support this property or method");
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 } else {
-                    this.throwVbaError(9, 'Subscript out of range');
+                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                 }
             } else if (call.callee.type === 'MemberExpression') {
                 // obj.Method(key) = val  →  Property Let / Dictionary item set
@@ -2575,13 +2575,13 @@ export class Evaluator {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         this.callClassMethod(obj, setter, [...argsVals, val]);
                     } else {
-                        this.throwVbaError(438, "Object doesn't support this property or method");
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 } else if (obj && typeof obj === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
                     obj[key] = val;
                 } else {
-                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
             } else if (call.callee.type === 'CallExpression') {
                 // outer("sub")("x") = val  →  evaluate outer("sub") to get inner dict, then assign
@@ -2593,10 +2593,10 @@ export class Evaluator {
                     const key = String(this.evaluateExpression(call.args[0]));
                     innerObj[key] = val;
                 } else {
-                    this.throwVbaError(9, 'Subscript out of range');
+                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                 }
             } else {
-                this.throwVbaError(5, 'Invalid procedure call or argument');
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
             }
         } else if (left.type === 'MemberExpression') {
             const member = left as MemberExpression;
@@ -2617,14 +2617,14 @@ export class Evaluator {
                 obj[propName] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
-                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
                 } else {
-                    this.throwVbaError(424, 'Object required');
+                    this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                 }
             }
         } else if (left.type === 'ImplicitWithObjectExpression') {
             if (this.withObjectStack.length === 0) {
-                this.throwVbaError(91, 'Object variable or With block variable not set');
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
             }
             const obj = this.withObjectStack[this.withObjectStack.length - 1];
             const member = left as ImplicitWithObjectExpression;
@@ -2633,13 +2633,13 @@ export class Evaluator {
                 obj[propName] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
-                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
                 } else {
-                    this.throwVbaError(424, 'Object required');
+                    this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                 }
             }
         } else {
-            this.throwVbaError(5, 'Invalid procedure call or argument');
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
     }
 
@@ -2776,7 +2776,7 @@ export class Evaluator {
 
         const classDef = this.classDefinitions.get(className.toLowerCase());
         if (!classDef) {
-            this.throwVbaError(429, `Class '${className}' not found`);
+            this.throwVbaError(VbaErrorCode.ACTIVEX_CANT_CREATE_OBJECT, `Class '${className}' not found`);
         }
 
         // Create instance environment rooted at the global env
@@ -2830,10 +2830,10 @@ export class Evaluator {
         const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
 
         if (args.length > maxParams) {
-            this.throwVbaError(450, 'Wrong number of arguments or invalid property assignment');
+            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
         }
         if (args.length < minParams) {
-            this.throwVbaError(449, 'Argument not optional');
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
     }
 
@@ -2960,7 +2960,7 @@ export class Evaluator {
 
         // VBA requires Set target to be an object (or Nothing)
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
-            this.throwVbaError(424, 'Object required');
+            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }
         // If the right side evaluates to a variable name (string), resolve it
         if (typeof value === 'string' && stmt.right.type === 'Identifier') {
@@ -3034,9 +3034,9 @@ export class Evaluator {
                 obj[propName] = value;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
-                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
                 } else {
-                    this.throwVbaError(424, 'Object required');
+                    this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                 }
             }
         } else if (stmt.left.type === 'CallExpression') {
@@ -3060,13 +3060,13 @@ export class Evaluator {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         this.callClassMethod(obj, setter, [...argsVals, value]);
                     } else {
-                        this.throwVbaError(438, "Object doesn't support this property or method");
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 } else if (obj && typeof obj === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
                     obj[key] = value;
                 } else {
-                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
             } else if (call.callee.type === 'Identifier') {
                 const name = (call.callee as Identifier).name;
@@ -3080,20 +3080,20 @@ export class Evaluator {
                     const key = String(this.evaluateExpression(call.args[0]));
                     target[key] = value;
                 } else {
-                    this.throwVbaError(5, 'Invalid procedure call or argument');
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
             } else {
-                this.throwVbaError(5, 'Invalid procedure call or argument');
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
             }
         } else {
-            this.throwVbaError(5, 'Invalid procedure call or argument');
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
     }
 
     private evaluateResumeStatement(stmt: ResumeStatement) {
         // Check if there's an active error
         if (this.errObj.number === 0) {
-            throw { type: 'VbaError', number: 20, message: 'Resume without error' };
+            this.throwVbaError(VbaErrorCode.RESUME_WITHOUT_ERROR, 'Resume without error');
         }
 
         const target = (stmt.target || '').toLowerCase().trim();
@@ -3128,7 +3128,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
 
         if (this.fileHandles.has(fileNum)) {
-            this.throwVbaError(55, "File already open");
+            this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
         }
 
         let flags = '';
@@ -3152,7 +3152,7 @@ export class Evaluator {
                     this.fs.mkdirSync(dir, { recursive: true });
                 }
             } else if (flags === 'r' && !this.fs.existsSync(realPath)) {
-                this.throwVbaError(53, "File not found");
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, "File not found");
             }
 
             const fd = this.fs.openSync(realPath, flags);
@@ -3163,8 +3163,8 @@ export class Evaluator {
                 pos: 0
             });
         } catch (e: any) {
-            if (e.code === 'ENOENT') this.throwVbaError(53, "File not found");
-            if (e.code === 'EACCES') this.throwVbaError(75, "Path/File access error");
+            if (e.code === 'ENOENT') this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, "File not found");
+            if (e.code === 'EACCES') this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
             throw e;
         }
     }
@@ -3186,8 +3186,8 @@ export class Evaluator {
     private evaluatePrintStatement(stmt: PrintStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, "Bad file name or number");
-        if (handle.mode === 'Input') this.throwVbaError(54, "Bad file mode");
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        if (handle.mode === 'Input') this.throwVbaError(VbaErrorCode.BAD_FILE_MODE, "Bad file mode");
 
         let output = "";
         for (const expr of stmt.expressions) {
@@ -3225,7 +3225,7 @@ export class Evaluator {
     private evaluateLineInputStatement(stmt: LineInputStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, "Bad file name or number");
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
 
         const buffer = new Uint8Array(1);
         let line = "";
@@ -3246,7 +3246,7 @@ export class Evaluator {
     private evaluatePutStatement(stmt: PutStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, "Bad file name or number");
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
 
         const data = this.evaluateExpression(stmt.data);
         const s = String(data);
@@ -3284,7 +3284,7 @@ export class Evaluator {
             try {
                 files = this.fs.readdirSync(realDir);
             } catch {
-                this.throwVbaError(53, 'File not found');
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
                 return;
             }
 
@@ -3295,7 +3295,7 @@ export class Evaluator {
             });
 
             if (matched.length === 0) {
-                this.throwVbaError(53, 'File not found');
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
                 return;
             }
             for (const file of matched) {
@@ -3306,7 +3306,7 @@ export class Evaluator {
             try {
                 this.fs.unlinkSync(realPath);
             } catch {
-                this.throwVbaError(53, 'File not found');
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
             }
         }
     }
@@ -3319,7 +3319,7 @@ export class Evaluator {
     private evaluateWriteStatement(stmt: WriteStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, `Bad file name or number: #${fileNum}`);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
         const output = stmt.items.map(item => {
             const val = this.evaluateExpression(item);
@@ -3337,7 +3337,7 @@ export class Evaluator {
     private evaluateInputStatement(stmt: InputStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, `Bad file name or number: #${fileNum}`);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
         // Simple line-based implementation for now.
         // Real VBA Input # parses delimiters even across lines.
@@ -3369,7 +3369,7 @@ export class Evaluator {
     private evaluateGetStatement(stmt: GetStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, `Bad file name or number: #${fileNum}`);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
         // Basic implementation: read up to 1024 bytes or until EOF
         const buffer = new Uint8Array(1024);
@@ -3387,7 +3387,7 @@ export class Evaluator {
     private evaluateSeekStatement(stmt: SeekStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
-        if (!handle) this.throwVbaError(52, `Bad file name or number: #${fileNum}`);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
         const pos = Number(this.evaluateExpression(stmt.position));
         // Node doesn't have seekSync on FD directly without lseek,
@@ -3455,7 +3455,7 @@ export class Evaluator {
         const id = progId.toLowerCase();
         const factory = this.externalObjectFactories.get(id);
         if (factory) return factory();
-        this.throwVbaError(429, `ActiveX component can't create object: '${progId}'`);
+        this.throwVbaError(VbaErrorCode.ACTIVEX_CANT_CREATE_OBJECT, `ActiveX component can't create object: '${progId}'`);
     }
 
     /**
@@ -3476,7 +3476,7 @@ export class Evaluator {
                 __className__: 'Dictionary',
                 __map__: dict,
                 add: (k: any, v: any) => {
-                    if (dict.has(k)) this.throwVbaError(457, 'This key is already associated with an element of this collection');
+                    if (dict.has(k)) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
                     dict.set(k, v);
                 },
                 exists: (k: any) => dict.has(k) ? vbaTrue : vbaFalse,
@@ -3502,11 +3502,11 @@ export class Evaluator {
             const resolveIndex = (index: any): number => {
                 if (typeof index === 'string') {
                     const i = keys.findIndex(k => k !== undefined && k.toLowerCase() === index.toLowerCase());
-                    if (i === -1) this.throwVbaError(5, `Collection key not found: '${index}'`);
+                    if (i === -1) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Collection key not found: '${index}'`);
                     return i;
                 }
                 const i = Number(index) - 1;
-                if (i < 0 || i >= items.length) this.throwVbaError(9, 'Subscript out of range');
+                if (i < 0 || i >= items.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                 return i;
             };
 
@@ -3517,7 +3517,7 @@ export class Evaluator {
                 add: (item: any, key?: any, before?: any, after?: any) => {
                     if (key !== undefined && key !== null && typeof key === 'string') {
                         if (keys.some(k => k !== undefined && k.toLowerCase() === key.toLowerCase())) {
-                            this.throwVbaError(457, 'This key is already associated with an element of this collection');
+                            this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
                         }
                     }
                     const keyStr = (key !== undefined && key !== null && typeof key === 'string') ? key : undefined;
@@ -3566,7 +3566,7 @@ export class Evaluator {
             },
             createtextfile: (p: string, overwrite: boolean = true) => {
                 const full = this.sandbox.toRealPath(p);
-                if (!overwrite && this.fs.existsSync(full)) this.throwVbaError(58, "File already exists");
+                if (!overwrite && this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, "File already exists");
                 const fd = this.fs.openSync(full, 'w');
                 return {
                     write: (s: string) => this.fs.writeSync(fd, s),
@@ -3714,7 +3714,7 @@ export class Evaluator {
                         i = labelIndex;
                         continue;
                     }
-                    this.throwVbaError(35, `Sub or Function not defined: label '${e.label}'`);
+                    this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: label '${e.label}'`);
                 }
 
                 if (e && e.type === 'GoSub') {
@@ -3733,7 +3733,7 @@ export class Evaluator {
 
                 if (e && e.type === 'Return') {
                     if (this.gosubStack.length === 0) {
-                        this.throwVbaError(3, 'Return without GoSub');
+                        this.throwVbaError(VbaErrorCode.RETURN_WITHOUT_GOSUB, 'Return without GoSub');
                     }
                     i = this.gosubStack.pop()! + 1;
                     continue;
@@ -3754,7 +3754,7 @@ export class Evaluator {
                         if (labelIndex >= 0) {
                             i = labelIndex;
                         } else {
-                            this.throwVbaError(35, `Sub or Function not defined: label '${e.label}'`);
+                            this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: label '${e.label}'`);
                         }
                     }
                     this.errObj.clear();
@@ -3841,7 +3841,7 @@ export class Evaluator {
         // [0]〜[lower-1] は undefined、[lower]〜[upper] を initialValue で埋める。
         const buildArray = (dimIdx: number): any[] => {
             const { lower, upper } = dimensions[dimIdx];
-            if (upper < lower - 1) throw { type: 'VbaError', number: 9, message: 'Subscript out of range' };
+            if (upper < lower - 1) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
 
             const totalSize = upper + 1;
             const arr = new Array(totalSize);
@@ -3907,20 +3907,20 @@ export class Evaluator {
 
                 // Check constraint 1: Number of dimensions cannot change
                 if (newDims.length !== oldDims.length) {
-                    this.throwVbaError(9, "Subscript out of range");
+                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                 }
 
                 // Check constraint 2: Lower bound of any dimension cannot change
                 for (let i = 0; i < newDims.length; i++) {
                     if (newDims[i].lower !== oldDims[i].lower) {
-                        this.throwVbaError(9, "Subscript out of range");
+                        this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                     }
                 }
 
                 // Check constraint 3: Upper bound of any dimension other than the last cannot change
                 for (let i = 0; i < newDims.length - 1; i++) {
                     if (newDims[i].upper !== oldDims[i].upper) {
-                        this.throwVbaError(9, "Subscript out of range");
+                        this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                     }
                 }
             }
@@ -4003,11 +4003,11 @@ export class Evaluator {
     private evaluateDateLiteral(expr: DateLiteral): any {
         const parsed = this.parseDateLiteral(expr.value);
         if (!parsed) {
-            this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: invalid date literal #${expr.value}#`);
         }
         const d = new Date(parsed.year, parsed.month - 1, parsed.day, parsed.hour, parsed.minute, parsed.second);
         if (isNaN(d.getTime())) {
-            this.throwVbaError(13, `Type mismatch: invalid date literal #${expr.value}#`);
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: invalid date literal #${expr.value}#`);
         }
         return new VbaDate(toVbaDate(d));
     }
@@ -4249,7 +4249,7 @@ export class Evaluator {
                     proc.moduleName !== '' &&
                     proc.moduleName !== this.executingModuleName
                 ) {
-                    this.throwVbaError(5,
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                         `Cannot call Private procedure '${proc.name.name}' ` +
                         `from module '${this.executingModuleName || '(top-level)'}' ` +
                         `(defined in '${proc.moduleName}')`
@@ -4287,10 +4287,10 @@ export class Evaluator {
                         const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
                         const totalProvided = positionalArgs.length + namedArgs.size;
                         if (totalProvided > maxParams) {
-                            this.throwVbaError(450, 'Wrong number of arguments or invalid property assignment');
+                            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
                         }
                         if (totalProvided < minParams) {
-                            this.throwVbaError(449, 'Argument not optional');
+                            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                         }
                     }
                 }
@@ -4433,7 +4433,7 @@ export class Evaluator {
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return variable(...argsVals);
                 } else if (Array.isArray(variable)) {
-                    if (expr.args.length === 0) this.throwVbaError(9, 'Subscript out of range');
+                    if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     // VBA index == JS index. Multi-dimensional: arr(i, j) -> arr[i][j]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
@@ -4445,7 +4445,7 @@ export class Evaluator {
                     return current;
                 } else if (variable && variable.__isVbaDict__) {
                     // Dictionary read: dict("key")
-                    if (expr.args.length === 0) this.throwVbaError(449, 'Argument not optional');
+                    if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                     const key = this.evaluateExpression(expr.args[0]);
                     return variable.__map__.get(key);
                 } else if (variable && variable.__isVbaCollection__) {
@@ -4463,12 +4463,12 @@ export class Evaluator {
                         const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
-                    this.throwVbaError(438, "Object doesn't support this property or method");
+                    this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                 } else if (expr.args.length > 0 && wasExplicitlyDeclared) {
                     // Variable is declared but not callable (e.g. Long used as function)
-                    this.throwVbaError(424, 'Object required');
+                    this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                 }
-                this.throwVbaError(35, `Sub or Function not defined: '${name}'`);
+                this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'`);
             }
         } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
             let obj: any;
@@ -4499,7 +4499,7 @@ export class Evaluator {
                 methodNameOriginal = member.property.name;
             } else {
                 if (this.withObjectStack.length === 0) {
-                    this.throwVbaError(91, 'Object variable or With block variable not set');
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
                 }
                 obj = this.withObjectStack[this.withObjectStack.length - 1];
                 methodNameOriginal = (expr.callee as ImplicitWithObjectExpression).property.name;
@@ -4509,7 +4509,7 @@ export class Evaluator {
 
             // Nothing / unset object check
             if (obj === null || obj === undefined || obj === vbaNothing) {
-                this.throwVbaError(91, 'Object variable or With block variable not set');
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
             }
 
             // VBA class instance method call
@@ -4526,7 +4526,7 @@ export class Evaluator {
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, ifaceProc, argsVals);
                 }
-                this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
+                this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
             }
 
             if (obj) {
@@ -4550,7 +4550,7 @@ export class Evaluator {
                     return targetMethod.apply(obj, argsVals);
                 }
             }
-            this.throwVbaError(438, `Object doesn't support this property or method: '${methodNameOriginal}'`);
+            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
         }
 
 
@@ -4558,7 +4558,7 @@ export class Evaluator {
         // e.g. Array(1, 2)(0)
         const target = this.evaluateExpression(expr.callee);
         if (Array.isArray(target)) {
-            if (expr.args.length === 0) this.throwVbaError(9, 'Subscript out of range');
+            if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
             let current = target;
             for (let i = 0; i < expr.args.length; i++) {
                 if (!current) return vbaEmpty;
@@ -4567,7 +4567,7 @@ export class Evaluator {
             }
             return current === undefined ? vbaEmpty : current;
         } else if (target && target.__isVbaDict__) {
-            if (expr.args.length === 0) this.throwVbaError(449, 'Argument not optional');
+            if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
@@ -4575,7 +4575,7 @@ export class Evaluator {
             return target(...argsVals);
         }
 
-        this.throwVbaError(424, 'Object required');
+        this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
     }
 
     private evaluateDictionaryAccessExpression(expr: DictionaryAccessExpression): any {
@@ -4588,7 +4588,7 @@ export class Evaluator {
         }
 
         // Fallback or error (some objects might support ! besides Dictionary, but we only have Dictionary for now)
-        this.throwVbaError(438, "Object doesn't support this property or method");
+        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
     }
 
     private evaluateTypeOfIsExpression(expr: TypeOfIsExpression): any {
@@ -4683,9 +4683,9 @@ export class Evaluator {
 
         // Safety check: ensure obj is an object before trying member access
         if (obj === null || obj === undefined || obj === vbaNothing) {
-            this.throwVbaError(91, 'Object variable or With block variable not set');
+            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
         } else if (typeof obj !== 'object' && typeof obj !== 'function') {
-            this.throwVbaError(424, 'Object required');
+            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }
 
         // VBA class instance: look up field in instance environment or invoke Property Get
@@ -4740,7 +4740,7 @@ export class Evaluator {
                 return val;
             }
         }
-        this.throwVbaError(438, `Object doesn't support this property or method: '${propName}'`);
+        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
     }
 
     /**
@@ -4822,12 +4822,10 @@ export class Evaluator {
                 const trimmed = v.trim();
                 if (trimmed === '') return 0;
                 const n = Number(trimmed);
-                if (isNaN(n)) {
-                    throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-                }
+                if (isNaN(n)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
                 return n;
             }
-            throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         };
 
         // 比較演算子では VbaBoolean を数値として扱う（True=-1, False=0）
@@ -4862,13 +4860,13 @@ export class Evaluator {
             }
             case '*': return leftVal * rightVal;
             case '/':
-                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
+                if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return leftVal / rightVal;
             case '\\':
-                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
+                if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return Math.trunc(leftVal / rightVal);
             case 'mod':
-                if (rightVal === 0) this.throwVbaError(11, 'Division by zero');
+                if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return leftVal % rightVal;
             case '^': return Math.pow(leftVal, rightVal);
             case '=':
@@ -4937,7 +4935,7 @@ export class Evaluator {
 
     private evaluateImplicitWithObjectExpression(expr: ImplicitWithObjectExpression): any {
         if (this.withObjectStack.length === 0) {
-            this.throwVbaError(91, 'Object variable or With block variable not set');
+            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
         }
         const obj = this.withObjectStack[this.withObjectStack.length - 1];
         const propName = expr.property.name.toLowerCase();
@@ -4962,9 +4960,9 @@ export class Evaluator {
             }
         }
         if (obj === null || obj === undefined || obj === vbaNothing) {
-            this.throwVbaError(91, 'Object variable or With block variable not set');
+            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
         } else {
-            this.throwVbaError(424, 'Object required');
+            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }
     }
 
@@ -5027,7 +5025,7 @@ export class Evaluator {
     }
 
     private isTrue(val: any): boolean {
-        if (val === vbaNull) this.throwVbaError(94, 'Invalid use of Null');
+        if (val === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (val === undefined || val === null) return false;
         if (val instanceof VbaBoolean) return val.value !== 0;
         if (typeof val === 'number') return val !== 0;

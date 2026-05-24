@@ -681,8 +681,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - [ ] **`registerStandardLibrary` の分割 + `$` suffix 宣言的登録**: 900 行の単一メソッドをカテゴリ別ファイルに分割し、`$` 付き variant を `{ variants: ['$'] }` 形式で自動登録する仕組みを導入する
   - 現状: `Left`/`Left$` を別々にif分岐で手動登録しており、新しい組み込み関数追加のたびに `$` 版を忘れるリスクがある
 
-- [ ] **エラー番号の一元管理**: `vba-errors.ts` を新設し、全エラー番号・メッセージ・カテゴリを辞書として集約する
-  - 現状: エラー番号が evaluator.ts の各所にハードコードされており、登録済みエラーも 14 件のみ（実 VBA は 450+ 件）
+- ✅ **エラー番号の一元管理**: `vba-errors.ts` を新設し、全エラー番号・メッセージ・カテゴリを辞書として集約する
+  - `VbaErrorCode` 定数・`VBA_ERROR_MESSAGES` 辞書・`throwVbaError` ヘルパーを実装。evaluator.ts / coerce.ts / vba-types.ts のマジックナンバーをすべて定数に置き換え | `vba-errors.ts`
 
 - ✅ **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数を静的解析 + 実行時エラーで検出
   - 実装: `src/engine/option-explicit-checker.ts`; AST を2パスで解析し `program.diagnostics` に追記、違反SubはLSP破線＋呼び出し時にVBAエラー1で停止
