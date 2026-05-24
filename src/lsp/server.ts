@@ -254,7 +254,7 @@ export class LSPServer {
 
         try {
             const tokens = new Lexer(this.stripClsHeader(doc.content)).tokenize();
-            const ast = new Parser(tokens).parse();
+            const ast = new Parser(tokens, { errorRecovery: true }).parse();
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
                     start: { line: d.loc.start.line - 1, character: d.loc.start.column - 1 },
@@ -341,7 +341,7 @@ export class LSPServer {
     parseDocument(content: string): any {
         try {
             const tokens = new Lexer(this.stripClsHeader(content)).tokenize();
-            return new Parser(tokens).parse();
+            return new Parser(tokens, { errorRecovery: true }).parse();
         } catch (error) {
             return null;
         }

@@ -590,9 +590,12 @@ export class Parser {
         TokenType.KeywordUnlock,  // <statement-keyword>
     ]);
 
-    constructor(tokens: Token[], options: { parseAsClass?: string } = {}) {
+    private readonly errorRecovery: boolean;
+
+    constructor(tokens: Token[], options: { parseAsClass?: string; errorRecovery?: boolean } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
+        this.errorRecovery = options.errorRecovery ?? false;
     }
 
     // Keywords can appear as property/class names in VBA (e.g. obj.Property, New Collection)
@@ -1051,6 +1054,7 @@ export class Parser {
                     program.body.push(stmt);
                 }
             } catch (e) {
+                if (!this.errorRecovery) throw e;
                 const msg = e instanceof Error ? e.message : String(e);
                 this.recordError(msg, startToken);
                 this.syncToNextTopLevelStatement();

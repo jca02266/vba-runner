@@ -256,7 +256,7 @@ function createBrowserTestRunner(vbaSource: string, outputFn: (msg: string) => v
   // Compile VBA source once
   const lexer = new Lexer(vbaSource);
   const tokens = lexer.tokenize();
-  const parser = new Parser(tokens);
+  const parser = new Parser(tokens, { errorRecovery: true });
   const ast = parser.parse();
 
   // Only evaluate declarations (Functions, Subs, Types, Consts, Variables) 
@@ -337,7 +337,7 @@ assert.strictEqual(r, 300);`;
     try {
       const lexer = new Lexer(code)
       const tokens = lexer.tokenize()
-      const parser = new Parser(tokens)
+      const parser = new Parser(tokens, { errorRecovery: true })
       const ast = parser.parse()
       const newOutputs: string[] = []
       const evaluator = new Evaluator((out) => { newOutputs.push(out) })
