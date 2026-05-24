@@ -31,6 +31,7 @@ dist-ssr
 
 /spec/
 /sandbox/
+/ideas/
 
 # Claude Code lock files
 .claude/**/*.lock

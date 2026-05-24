@@ -10,9 +10,10 @@
 
 | ドキュメント | 説明 |
 |-----------|------|
-| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-11、T-01〜T-12、S-01） |
+| **[REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)** | 各ドキュメントに登場するリファクタリング・テスト手法を名前付きで集約した参照用カタログ（R-01〜R-15、T-01〜T-14、S-01） |
 | **[REFACTORING_CLOSURE.md](REFACTORING_CLOSURE.md)** | クロージャによるループ抽象化（キーブレイク例）— JavaScript 版・VBA クラス版の対比 |
 | **[TABLE_DRIVEN_GUIDE.md](TABLE_DRIVEN_GUIDE.md)** | テーブル駆動リファクタリング（複雑な分岐を統一テーブルに） |
+| **[FEATHERS_TECHNIQUES_TODO.md](FEATHERS_TECHNIQUES_TODO.md)** | Feathers "Working Effectively with Legacy Code" の手法一覧とカタログ収録状況 |
 
 ### グループ1：テスト設計の原則（基礎）
 

@@ -51,6 +51,12 @@ export interface TableDrivenCandidate {
 
     // デシジョンテーブル（抽出できた場合のみ）
     decisionTable?: DecisionTable;
+
+    // 副作用の均一性分析
+    sideEffects?: SideEffectAnalysis;
+
+    // 条件式に使われているローカル変数
+    conditionVariables?: LocalVariableInfo[];
 }
 
 /**
@@ -65,7 +71,8 @@ export interface DecisionRule {
  * デシジョンテーブルの1行（1キー分）
  */
 export interface DecisionTableRow {
-    key: string;            // e.g., "Sales"
+    key: string;            // e.g., "Sales" or composite "Capex|Emergency"
+    keyPath?: string[];     // e.g., ["Engineering", "Capex", "Emergency"]
     rules: DecisionRule[];  // 各しきい値条件とその結果（最後のルールを除く）
     defaultResult: string;  // else の結果
 }
@@ -77,6 +84,27 @@ export interface DecisionTable {
     keyVariable: string;      // e.g., "department"
     valueVariable: string;    // e.g., "amount"
     rows: DecisionTableRow[];
+}
+
+/**
+ * 条件式に使われているローカル変数の情報
+ */
+export interface LocalVariableInfo {
+    name: string;
+    declaredAt?: number;      // Dim 宣言行（1始まり）。引数の場合は undefined
+    assignedLines: number[];  // if チェーン開始より前にある代入文の行番号リスト
+    // TODO(T-01): assignmentAstShape を追加し代入ロジックの均一性チェックへ
+    // TODO(T-02): level フィールドでネストレベル（0=外側キー, 1=第2キー, …）を付与
+}
+
+/**
+ * 副作用（結果代入以外の文）の均一性分析
+ */
+export interface SideEffectAnalysis {
+    hasUniformStructure: boolean;   // 全ブランチで副作用の構造が同一か
+    sideEffectCount: number;        // 副作用文数（主代入を除く）
+    structureSummary: string;       // 副作用の AST 形状サマリー
+    mismatchedBranches?: string[];  // 不一致があったブランチのキーパス
 }
 
 /**
@@ -219,7 +247,7 @@ export class TableDrivenDetector {
         }
 
         // Step 6: スコアを計算
-        const confidenceScore = this.calculateConfidenceScore(
+        const rawScore = this.calculateConfidenceScore(
             outerCount,
             innerCount,
             shapesMatch,
@@ -227,6 +255,22 @@ export class TableDrivenDetector {
             conditionComplexity,
             ifStmt
         );
+
+        // Step 6.5: 副作用の均一性を分析
+        const sideEffects = this.analyzeSideEffects(outerChain, funcName);
+        let confidenceScore = rawScore;
+        if (sideEffects.sideEffectCount > 0) {
+            if (sideEffects.hasUniformStructure) {
+                diagnostics.detectedPatterns.push(
+                    `副作用: ${sideEffects.sideEffectCount}文（構造均一 → テーブル化可能）`
+                );
+            } else {
+                confidenceScore = Math.max(0, rawScore - 20);
+                diagnostics.warnings.push(
+                    `副作用の構造が不均一（${(sideEffects.mismatchedBranches ?? []).length}ブランチが不一致）`
+                );
+            }
+        }
 
         // Step 7: 信頼度が低ければ候補から除外
         if (confidenceScore < 40) {
@@ -287,6 +331,8 @@ export class TableDrivenDetector {
             diagnostics,
 
             decisionTable: this.extractDecisionTable(outerChain),
+            sideEffects,
+            conditionVariables: this.findConditionVariables(ifStmt, procBody),
         };
     }
 
@@ -555,50 +601,144 @@ export class TableDrivenDetector {
 
     /**
      * 外側の if-else-if チェーンからデシジョンテーブルを構築する
+     * キーレベルが複数ある場合（多段ネスト）は再帰的に処理する
      */
     private extractDecisionTable(outerChain: IfStatement[]): DecisionTable | undefined {
-        const rows: DecisionTableRow[] = [];
-        let keyVariable = '';
-        let valueVariable = '';
+        if (outerChain.length === 0) return undefined;
+        const keyVariable = this.extractKeyVariable(outerChain[0].condition as any);
 
-        for (const branch of outerChain) {
-            const key = this.extractKeyValue(branch.condition as any);
-            if (!keyVariable) keyVariable = this.extractKeyVariable(branch.condition as any);
+        const nested = this.extractNestedRows(outerChain, []);
+        if (nested.length === 0 || !keyVariable) return undefined;
 
-            const { rules, defaultResult, innerVariable } = this.extractInnerRules(branch.consequent);
-            if (!valueVariable && innerVariable) valueVariable = innerVariable;
+        const valueVariable = nested.find((r) => r.rules.length > 0)?.innerVariable ?? '';
+        const rows: DecisionTableRow[] = nested.map((r) => ({
+            key: r.keyPath[r.keyPath.length - 1] ?? '?',
+            keyPath: r.keyPath,
+            rules: r.rules,
+            defaultResult: r.defaultResult,
+        }));
 
-            rows.push({ key, rules, defaultResult });
-        }
-
-        if (rows.length === 0 || !keyVariable) return undefined;
         return { keyVariable, valueVariable, rows };
     }
 
-    /** 外側条件からキー変数名を取得（例: "department"） */
+    /** 外側条件からキー変数名を取得（例: "department", または関数引数 "task"） */
     private extractKeyVariable(condition: any): string {
-        if (condition?.type === 'BinaryExpression') {
-            if (condition.left?.type === 'Identifier') return (condition.left as any).name ?? '';
-            if (condition.right?.type === 'Identifier') return (condition.right as any).name ?? '';
+        if (!condition) return '';
+        if (condition.type === 'BinaryExpression') {
+            // var = "literal" or var < NUM
+            if (condition.left?.type === 'Identifier') return String(condition.left.name ?? '');
+            if (condition.right?.type === 'Identifier') return String(condition.right.name ?? '');
+            // FunctionCall(var) = literal
+            const call = condition.left?.type === 'CallExpression' ? condition.left
+                       : condition.right?.type === 'CallExpression' ? condition.right : null;
+            if (call) return this.extractFirstArgName(call);
+        }
+        // FunctionCall(var)
+        if (condition.type === 'CallExpression') return this.extractFirstArgName(condition);
+        // Not FunctionCall(var)
+        if (condition.type === 'UnaryExpression' && condition.operator === 'Not') {
+            if (condition.argument?.type === 'CallExpression') return this.extractFirstArgName(condition.argument);
         }
         return '';
     }
 
-    /** 外側条件からキー値を取得（例: "Sales"） */
+    /** 外側条件からキー値を取得（例: "Sales", "IsHighPriority", "GetLevel=1"） */
     private extractKeyValue(condition: any): string {
-        if (condition?.type === 'BinaryExpression') {
+        if (!condition) return '?';
+        if (condition.type === 'BinaryExpression') {
+            // var = "literal"
             const lit = condition.right?.type === 'StringLiteral' ? condition.right
-                      : condition.left?.type === 'StringLiteral'  ? condition.left
-                      : null;
-            if (lit) return String((lit as any).value ?? '?');
+                      : condition.left?.type === 'StringLiteral'  ? condition.left : null;
+            if (lit) return String(lit.value ?? '?');
+            // FunctionCall(var) = literal  →  "FuncName=val"
+            const call = condition.left?.type === 'CallExpression' ? condition.left : null;
+            if (call) {
+                const funcName = String((call.callee as any)?.name ?? '?');
+                const val = this.formatExpr(condition.right);
+                return `${funcName}=${val}`;
+            }
+        }
+        // FunctionCall(var)  →  関数名をキー値に
+        if (condition.type === 'CallExpression') {
+            return String((condition.callee as any)?.name ?? '?');
+        }
+        // Not FunctionCall(var)  →  "Not FuncName"
+        if (condition.type === 'UnaryExpression' && condition.operator === 'Not') {
+            if (condition.argument?.type === 'CallExpression') {
+                const name = String((condition.argument.callee as any)?.name ?? '?');
+                return `Not ${name}`;
+            }
         }
         return '?';
     }
 
+    /** CallExpression の第1引数の識別子名を取得 */
+    private extractFirstArgName(call: any): string {
+        const args: any[] = call.args ?? [];
+        const first = args[0];
+        if (first?.type === 'Identifier') return String(first.name ?? '');
+        return '';
+    }
+
     /**
-     * 外側分岐の consequent から内側の条件チェーンを収集する
+     * 再帰的にキーレベルを辿り、末端のしきい値ルールを収集する
+     * - 条件が文字列等値なら「キーレベル」として再帰
+     * - 条件が数値比較なら「しきい値レベル」としてルール抽出
      */
-    private extractInnerRules(stmts: Statement[]): {
+    private extractNestedRows(
+        chain: IfStatement[],
+        keyPath: string[]
+    ): Array<{ keyPath: string[]; rules: DecisionRule[]; defaultResult: string; innerVariable: string }> {
+        const result: Array<{ keyPath: string[]; rules: DecisionRule[]; defaultResult: string; innerVariable: string }> = [];
+
+        for (const branch of chain) {
+            const keyValue = this.extractKeyValue(branch.condition as any);
+            const currentPath = [...keyPath, keyValue];
+
+            const stmts = branch.consequent;
+            const innerIf = stmts.find((s) => s?.type === 'IfStatement') as IfStatement | undefined;
+
+            if (!innerIf) {
+                // 葉ノード: 直接代入
+                result.push({
+                    keyPath: currentPath,
+                    rules: [],
+                    defaultResult: this.extractResult(stmts),
+                    innerVariable: '',
+                });
+                continue;
+            }
+
+            if (this.isNumericThresholdCondition(innerIf.condition as any)) {
+                // しきい値レベル: ルール抽出
+                const extracted = this.extractThresholdRulesFromIfChain(innerIf);
+                result.push({ keyPath: currentPath, ...extracted });
+            } else {
+                // キーレベル（文字列等値・関数呼び出し・その他）: 再帰
+                const innerChain = this.collectIfElseChain(innerIf);
+                result.push(...this.extractNestedRows(innerChain, currentPath));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 条件が数値しきい値比較（葉レベル）か判定
+     * BinaryExpression で </<=/>/>=  かつ 片側が NumberLiteral のもの
+     * それ以外（文字列等値、関数呼び出し、論理演算など）はすべてキーレベルとして再帰する
+     */
+    private isNumericThresholdCondition(condition: any): boolean {
+        if (condition?.type !== 'BinaryExpression') return false;
+        const op: string = condition.operator ?? '';
+        if (!['<', '<=', '>', '>='].includes(op)) return false;
+        return condition.left?.type === 'NumberLiteral' || condition.right?.type === 'NumberLiteral';
+    }
+
+    /**
+     * 数値しきい値の if-else-if チェーンからルールを抽出する
+     */
+    private extractThresholdRulesFromIfChain(ifStmt: IfStatement): {
         rules: DecisionRule[];
         defaultResult: string;
         innerVariable: string;
@@ -606,19 +746,14 @@ export class TableDrivenDetector {
         const rules: DecisionRule[] = [];
         let defaultResult = '?';
         let innerVariable = '';
+        let current: any = ifStmt;
 
-        const innerIf = stmts.find((s) => s?.type === 'IfStatement') as IfStatement | undefined;
-        if (!innerIf) {
-            defaultResult = this.extractResult(stmts);
-            return { rules, defaultResult, innerVariable };
-        }
-
-        let current: any = innerIf;
         while (current && current.type === 'IfStatement') {
             if (!innerVariable) innerVariable = this.extractKeyVariable(current.condition);
-            const condition = this.formatCondition(current.condition);
-            const result = this.extractResult(current.consequent as Statement[]);
-            rules.push({ condition, result });
+            rules.push({
+                condition: this.formatCondition(current.condition),
+                result: this.extractResult(current.consequent as Statement[]),
+            });
 
             if (Array.isArray(current.alternate)) {
                 defaultResult = this.extractResult(current.alternate as Statement[]);
@@ -668,6 +803,216 @@ export class TableDrivenDetector {
             }
         }
         return '?';
+    }
+
+    // -------------------------------------------------------------------------
+    // 条件変数の抽出
+    // -------------------------------------------------------------------------
+
+    /**
+     * if 文全体を再帰的に走査し、条件式に現れる識別子を全て収集する
+     */
+    private walkConditions(node: any, callback: (condition: any) => void): void {
+        if (!node) return;
+        if (Array.isArray(node)) {
+            for (const item of node) this.walkConditions(item, callback);
+            return;
+        }
+        if (node.type === 'IfStatement') {
+            callback(node.condition);
+            this.walkConditions(node.consequent, callback);
+            this.walkConditions(node.alternate, callback);
+        }
+    }
+
+    /**
+     * 条件式の AST を再帰的に走査して Identifier 名を収集する
+     * CallExpression の callee（関数名）はスキップし、引数のみ収集する
+     */
+    private collectIdentifiersFromExpr(expr: any, result: Set<string>): void {
+        if (!expr) return;
+        if (expr.type === 'Identifier') {
+            result.add(String(expr.name ?? '').toLowerCase());
+            return;
+        }
+        if (expr.type === 'CallExpression') {
+            // callee（関数名）はスキップ、引数の識別子だけを収集
+            for (const arg of (expr.args ?? [])) {
+                this.collectIdentifiersFromExpr(arg, result);
+            }
+            return;
+        }
+        // BinaryExpression / UnaryExpression / その他: 既知の子ノードを走査
+        for (const key of ['left', 'right', 'argument', 'callee']) {
+            if (expr[key]) this.collectIdentifiersFromExpr(expr[key], result);
+        }
+    }
+
+    /**
+     * if 文の全条件から識別子を収集し、関数本体から宣言・代入情報を付与して返す
+     */
+    private findConditionVariables(
+        ifStmt: IfStatement,
+        procBody: Statement[]
+    ): LocalVariableInfo[] {
+        // Step 1: 全条件から識別子を収集
+        const identifiers = new Set<string>();
+        this.walkConditions(ifStmt, (cond) => this.collectIdentifiersFromExpr(cond, identifiers));
+
+        if (identifiers.size === 0) return [];
+
+        const ifStartLine = ifStmt.loc?.start.line ?? 0;
+        const infoMap = new Map<string, LocalVariableInfo>();
+        for (const name of identifiers) {
+            infoMap.set(name, { name, assignedLines: [] });
+        }
+
+        // Step 2: 関数本体を走査して Dim 宣言と代入を収集
+        for (const stmt of procBody) {
+            const s = stmt as any;
+
+            // Dim 宣言
+            if (s.type === 'VariableDeclaration') {
+                for (const decl of (s.declarations ?? [])) {
+                    const declName = String(decl.name?.name ?? '').toLowerCase();
+                    if (infoMap.has(declName)) {
+                        infoMap.get(declName)!.declaredAt = s.loc?.start.line ?? undefined;
+                    }
+                }
+            }
+
+            // 代入文（if チェーン開始より前のもの）
+            if (s.type === 'AssignmentStatement') {
+                const stmtLine: number = s.loc?.start.line ?? 0;
+                if (stmtLine < ifStartLine) {
+                    const target = s.left as any;
+                    if (target?.type === 'Identifier') {
+                        const targetName = String(target.name ?? '').toLowerCase();
+                        if (infoMap.has(targetName)) {
+                            infoMap.get(targetName)!.assignedLines.push(stmtLine);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 関数引数（宣言も代入もない）も残す。ソート: 宣言行順
+        return Array.from(infoMap.values()).sort((a, b) =>
+            (a.declaredAt ?? 0) - (b.declaredAt ?? 0)
+        );
+    }
+
+    // -------------------------------------------------------------------------
+    // 副作用の均一性分析
+    // -------------------------------------------------------------------------
+
+    /**
+     * 全ブランチの副作用文の構造を比較し、均一かどうかを判定する
+     */
+    private analyzeSideEffects(outerChain: IfStatement[], funcName: string): SideEffectAnalysis {
+        const leafBlocks = this.collectLeafStatements(outerChain, []);
+        if (leafBlocks.length === 0) {
+            return { hasUniformStructure: true, sideEffectCount: 0, structureSummary: 'none' };
+        }
+
+        const shapeGroups = leafBlocks.map((lb) => this.getSideEffectShape(lb.stmts, funcName));
+        const firstShape = JSON.stringify(shapeGroups[0]);
+        const hasUniformStructure = shapeGroups.every((s) => JSON.stringify(s) === firstShape);
+        const sideEffectCount = shapeGroups[0]?.length ?? 0;
+
+        return {
+            hasUniformStructure,
+            sideEffectCount,
+            structureSummary: (shapeGroups[0] ?? []).join(', ') || 'none',
+            mismatchedBranches: hasUniformStructure
+                ? undefined
+                : leafBlocks
+                      .filter((lb, i) => JSON.stringify(shapeGroups[i]) !== firstShape)
+                      .map((lb) => lb.keyPath.join('|')),
+        };
+    }
+
+    /**
+     * ネストされた if チェーンから末端（葉）の statement ブロックを再帰的に収集する
+     */
+    private collectLeafStatements(
+        chain: IfStatement[],
+        keyPath: string[]
+    ): Array<{ keyPath: string[]; stmts: Statement[] }> {
+        const result: Array<{ keyPath: string[]; stmts: Statement[] }> = [];
+
+        for (const branch of chain) {
+            const keyValue = this.extractKeyValue(branch.condition as any);
+            const currentPath = [...keyPath, keyValue];
+            const stmts = branch.consequent;
+            const innerIf = stmts.find((s) => s?.type === 'IfStatement') as IfStatement | undefined;
+
+            if (!innerIf) {
+                result.push({ keyPath: currentPath, stmts });
+                continue;
+            }
+
+            if (this.isNumericThresholdCondition(innerIf.condition as any)) {
+                // しきい値レベル: 各 branch の consequent と最後の else を収集
+                let current: any = innerIf;
+                while (current && current.type === 'IfStatement') {
+                    result.push({ keyPath: currentPath, stmts: current.consequent as Statement[] });
+                    if (Array.isArray(current.alternate)) {
+                        result.push({ keyPath: currentPath, stmts: current.alternate as Statement[] });
+                        break;
+                    }
+                    current = current.alternate ?? null;
+                }
+            } else {
+                // キーレベル（文字列等値・関数呼び出し・その他）: 再帰
+                result.push(...this.collectLeafStatements(this.collectIfElseChain(innerIf), currentPath));
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 葉ブロックの副作用文を AST 形状文字列の配列として返す
+     * （funcName に代入する文は結果代入なので除外する）
+     */
+    private getSideEffectShape(stmts: Statement[], funcName: string): string[] {
+        return stmts
+            .filter((s) => {
+                const stmt = s as any;
+                if (stmt?.type !== 'AssignmentStatement') return true;
+                const target = this.formatExpr(stmt.left);
+                return target.toLowerCase() !== funcName.toLowerCase();
+            })
+            .map((s) => this.computeStmtShape(s));
+    }
+
+    /** 文の AST 形状を文字列で返す（リテラル値を型プレースホルダーに置換） */
+    private computeStmtShape(stmt: any): string {
+        if (!stmt) return '?';
+        if (stmt.type === 'AssignmentStatement') {
+            const target = this.formatExpr(stmt.left);
+            const right = this.computeExprShape(stmt.right);
+            return `${target}=(${right})`;
+        }
+        return stmt.type ?? '?';
+    }
+
+    /** 式の AST 形状を文字列で返す（リテラルは STR/NUM に置換） */
+    private computeExprShape(expr: any): string {
+        if (!expr) return '?';
+        switch (expr.type) {
+            case 'StringLiteral': return 'STR';
+            case 'NumberLiteral': return 'NUM';
+            case 'Identifier': return String(expr.name ?? '?');
+            case 'BinaryExpression': {
+                const l = this.computeExprShape(expr.left);
+                const op = expr.operator ?? '?';
+                const r = this.computeExprShape(expr.right);
+                return `${l}${op}${r}`;
+            }
+            default: return expr.type ?? '?';
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -751,9 +1096,42 @@ export class TableDrivenDetector {
 
     /**
      * DecisionTable 全体を描画する
+     * 多段キー（keyPath.length > 1）の場合は第1キーでグループ化して表示する
      */
     renderDecisionTable(table: DecisionTable): string {
-        return table.rows.map((row) => this.renderRow(row)).join('\n\n');
+        if (table.rows.length === 0) return '';
+
+        const isMultiLevel = table.rows.some((r) => (r.keyPath?.length ?? 1) > 1);
+
+        if (!isMultiLevel) {
+            return table.rows.map((row) => this.renderRow(row)).join('\n\n');
+        }
+
+        // 第1キーでグループ化
+        const groups = new Map<string, DecisionTableRow[]>();
+        for (const row of table.rows) {
+            const groupKey = row.keyPath?.[0] ?? row.key;
+            if (!groups.has(groupKey)) groups.set(groupKey, []);
+            groups.get(groupKey)!.push(row);
+        }
+
+        const sections: string[] = [];
+        for (const [groupKey, groupRows] of groups) {
+            const lines: string[] = [`${groupKey}:`];
+            for (const row of groupRows) {
+                // 第1キーを除いたサブパスを表示キーに
+                const subKey = row.keyPath ? row.keyPath.slice(1).join('|') : row.key;
+                const displayRow = { ...row, key: subKey };
+                const rendered = this.renderRow(displayRow)
+                    .split('\n')
+                    .map((l) => '  ' + l)
+                    .join('\n');
+                lines.push(rendered);
+            }
+            sections.push(lines.join('\n'));
+        }
+
+        return sections.join('\n\n');
     }
 }
 
