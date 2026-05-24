@@ -444,6 +444,9 @@ export class TableDrivenDetector {
             const stmts = Array.isArray(consequent) ? consequent : [consequent];
             for (const stmt of stmts) {
                 if (!stmt) continue;
+                // ネストされた IfStatement は analyzeSideEffects / computeLevelShapes で
+                // 別途分析するためここではスキップする（deep-walk による誤カウント防止）
+                if ((stmt as any).type === 'IfStatement') continue;
 
                 // 関数呼び出しがあれば副作用の可能性
                 if (this.hasFunctionCallInTree(stmt)) {
