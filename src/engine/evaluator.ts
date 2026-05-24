@@ -5221,14 +5221,8 @@ export class Evaluator {
         if (val instanceof VbaBoolean) return val.value !== 0;
         if (typeof val === 'number') return val !== 0;
         if (typeof val === 'boolean') return val;
-        if (typeof val === 'string') {
-            const u = val.toUpperCase();
-            if (u === 'TRUE') return true;
-            if (u === 'FALSE') return false;
-            const n = Number(val);
-            if (!isNaN(n) && val.trim() !== '') return n !== 0;
-            this.throwVbaError(13, 'Type mismatch');
-        }
+        // 文字列は §5.6.9 + §6.1.2.3 の value coercion（CBool と同規則）で変換
+        if (typeof val === 'string') return this.coerceToBoolean(val).value !== 0;
         return !!val;
     }
 
