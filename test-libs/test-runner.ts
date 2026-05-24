@@ -195,7 +195,11 @@ export const assert = {
         }
     },
     deepStrictEqual: (actual: any, expected: any, message?: string) => {
+        const normalize = (v: any) =>
+            (v && (v instanceof VbaBoolean || (v as any).__isVbaBoolean__)) ? v.valueOf() : v;
         const deepEqual = (a: any, e: any): boolean => {
+            a = normalize(a);
+            e = normalize(e);
             if (a === e) return true;
             if (a === null || e === null || typeof a !== 'object' || typeof e !== 'object') return false;
             if (Array.isArray(a) !== Array.isArray(e)) return false;
