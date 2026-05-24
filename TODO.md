@@ -675,8 +675,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ### エンジン内部の構造改善
 
-- [ ] **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `toNumber()`/`toString()`/`toBoolean()` を集約する
-  - 現状: `evaluator.ts` の `evaluateBinaryExpression`・`compareValues`・組み込み関数の 3 か所に分散実装しており、型変換ルールの修正が全箇所への波及を必要とする
+- ✅ **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `vbaToNumber()`/`vbaToString()`/`vbaToBoolean()`/`vbaToDisplayString()`/`vbaRound()` を集約する
+  - VBA 型定義は `vba-types.ts` に抽出。`evaluator.ts` の各変換メソッドは委譲形に置き換え、re-export で後方互換を維持 | `coerce.ts`, `vba-types.ts`
 
 - [ ] **`registerStandardLibrary` の分割 + `$` suffix 宣言的登録**: 900 行の単一メソッドをカテゴリ別ファイルに分割し、`$` 付き variant を `{ variants: ['$'] }` 形式で自動登録する仕組みを導入する
   - 現状: `Left`/`Left$` を別々にif分岐で手動登録しており、新しい組み込み関数追加のたびに `$` 版を忘れるリスクがある

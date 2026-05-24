@@ -81,15 +81,28 @@ import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
 import { checkOptionExplicit } from './option-explicit-checker';
 import * as path from 'path';
-
-/**
- * VBA Boolean を表すラッパークラス。VBA Boolean は仕様上 -1 (True) / 0 (False) の
- * 2 値のみのため、シングルトン `vbaTrue` / `vbaFalse` 以外のインスタンスは存在しない。
- *
- * 新しい VbaBoolean を作りたい場合は `VbaBoolean.from(n)` を使うこと。これは
- * 数値からシングルトンを返すファクトリで、`new VbaBoolean()` を直接呼ぶのは禁止
- * （コンストラクタが private）。
- */
+import {
+    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
+    vbaEmpty, vbaNull, vbaNothing, vbaMissing,
+    vbaTrue, vbaFalse,
+    toVbaDate, fromVbaDate, parseVbaDate,
+    AutoInstancePlaceholder, createAutoInstancePlaceholder, isAutoInstancePlaceholder,
+} from './vba-types';
+export {
+    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
+    vbaEmpty, vbaNull, vbaNothing, vbaMissing,
+    vbaTrue, vbaFalse,
+    toVbaDate, fromVbaDate, parseVbaDate,
+    AutoInstancePlaceholder, createAutoInstancePlaceholder, isAutoInstancePlaceholder,
+} from './vba-types';
+export type { VbaBooleanType, VbaNumericType, VbaVarType } from './vba-types';
+import {
+    vbaToNumber as _vbaToNumber,
+    vbaToBoolean,
+    vbaToString,
+    vbaToDisplayString,
+    vbaRound as _vbaRound,
+} from './coerce';
 
 /**
  * VBARunner.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
@@ -115,102 +128,6 @@ export class SpyRecord {
         this.returnValues.length = 0;
     }
 }
-
-export class VbaBoolean {
-    public readonly __isVbaBoolean__ = true;
-    private constructor(public readonly value: -1 | 0) {}
-    valueOf() { return this.value; }
-    toString() { return this.value === -1 ? 'True' : 'False'; }
-
-    /** 数値からシングルトンを返すファクトリ。0 は False、それ以外は True。 */
-    static from(n: number): VbaBoolean {
-        return n !== 0 ? vbaTrue : vbaFalse;
-    }
-
-    /**
-     * モジュール内部用: シングルトン初期化のみで使う。外部からは使わないこと。
-     * @internal
-     */
-    static _createSingleton(value: -1 | 0): VbaBoolean {
-        return new VbaBoolean(value);
-    }
-}
-
-// VBA date serial: days since local midnight 1899-12-30 (VBA epoch)
-// Using local time so that Now(), Date(), DateSerial(), and display are all consistent
-// with the local timezone — matching real VBA behavior.
-const VBA_EPOCH = new Date(1899, 11, 30);
-const MS_PER_DAY = 86400000;
-
-export const toVbaDate = (d: Date): number =>
-    (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
-
-export const fromVbaDate = (serial: number): Date => {
-    const ms = Math.round(serial * MS_PER_DAY);
-    return new Date(VBA_EPOCH.getTime() + ms);
-};
-
-export const parseVbaDate = (val: any): Date => {
-    if (val === null || val === undefined) throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-    if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
-    if (typeof val === 'number') return fromVbaDate(val);
-
-    let str = String(val);
-    // If it looks like a time-only string, prepend a base date for JS parser
-    if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(str)) {
-        str = "1899/12/30 " + str;
-    }
-
-    const d = new Date(str);
-    if (isNaN(d.getTime())) throw { type: 'VbaError', number: 13, message: `Type mismatch: '${val}'` };
-
-    // Normalize to local midnight to ensure date-only values produce integer serials
-    return new Date(d.getFullYear(), d.getMonth(), d.getDate(),
-        d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
-};
-
-export class VbaDate {
-    public __isVbaDate__ = true;
-    constructor(public value: number) {}
-    valueOf() { return this.value; }
-    toString() {
-        const d = fromVbaDate(this.value);
-        // yyyy/MM/dd
-        const datePart = [
-            String(d.getFullYear()),
-            String(d.getMonth() + 1).padStart(2, '0'),
-            String(d.getDate()).padStart(2, '0')
-        ].join("/");
-
-        const hasFraction = Math.abs(this.value - Math.round(this.value)) > 1e-10;
-        if (!hasFraction) {
-            return datePart;
-        }
-
-        // HH:MM:SS
-        const timePart = [
-            String(d.getHours()).padStart(2, '0'),
-            String(d.getMinutes()).padStart(2, '0'),
-            String(d.getSeconds()).padStart(2, '0')
-        ].join(':');
-
-        // 整数部が 0 = 時刻のみ（TimeSerial等）、それ以外は日付+時刻
-        return Math.round(this.value) === 0 ? timePart : datePart + ' ' + timePart;
-    }
-}
-
-export class VbaDecimal {
-    constructor(public value: number) {}
-    toString() { return String(this.value); }
-}
-
-export class VbaErrorValue {
-    constructor(public code: number) {}
-    valueOf() { return this.code; }
-    toString() { return `Error ${this.code}`; }
-}
-
-export const vbaEmpty = null;
 
 class VbaCollection {
     private _items: { value: any, key: string | null }[] = [];
@@ -296,37 +213,6 @@ export class VbaErrObject {
         throw { type: 'VbaError', number: this.number, message: this.description };
     }
 }
-export const vbaNull = Symbol('vbaNull');
-export const vbaNothing = Symbol('vbaNothing');
-export const vbaMissing = Symbol('vbaMissing');
-
-/**
- * `Dim x As New ClassName` で生成される Auto-Instantiation のプレースホルダー。
- * VBA 仕様では:
- *   - 宣言時点では実際のインスタンスは作成されない（遅延インスタンス化）
- *   - 最初のメンバ参照やメソッド呼び出しで自動的にインスタンス化される
- *   - `Set x = Nothing` した後でも、再度参照すると再インスタンス化される
- *   - `x Is Nothing` は常に False を返す（参照前であっても）
- */
-export interface AutoInstancePlaceholder {
-    readonly __isAutoInstance__: true;
-    readonly __className__: string;
-}
-
-export function createAutoInstancePlaceholder(className: string): AutoInstancePlaceholder {
-    return { __isAutoInstance__: true, __className__: className };
-}
-
-export function isAutoInstancePlaceholder(v: any): v is AutoInstancePlaceholder {
-    return v != null && typeof v === 'object' && v.__isAutoInstance__ === true;
-}
-export const vbaTrue: VbaBoolean = VbaBoolean._createSingleton(-1);
-export const vbaFalse: VbaBoolean = VbaBoolean._createSingleton(0);
-export type VbaBooleanType = VbaBoolean;
-
-export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong';
-export type VbaVarType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
-
 export interface VbaTypeInfo {
     vbaType: VbaVarType;
 }
@@ -441,31 +327,9 @@ export class Environment {
         }
     }
 
-    private static toNumeric(val: any): number {
-        if (typeof val === 'number') return val;
-        if (val instanceof VbaBoolean) return val.value;
-        if (val instanceof VbaDate) return val.value;
-        if (val instanceof VbaDecimal) return val.value;
-        if (typeof val === 'bigint') return Number(val);
-        if (typeof val === 'string') {
-            const n = parseFloat(val);
-            if (isNaN(n)) throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-            return n;
-        }
-        return Number(val);
-    }
+    private static toNumeric(val: any): number { return _vbaToNumber(val); }
 
-    private static vbaRoundStatic(val: number, decimals: number = 0): number {
-        const factor = Math.pow(10, decimals);
-        const scaled = val * factor;
-        const i = Math.floor(scaled);
-        const f = scaled - i;
-        const epsilon = 1e-10;
-        if (Math.abs(f - 0.5) < epsilon) {
-            return (i % 2 === 0 ? i : i + 1) / factor;
-        }
-        return Math.round(scaled) / factor;
-    }
+    private static vbaRoundStatic(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
     private static throwOverflow(): never {
         throw { type: 'VbaError', number: 6, message: 'Overflow' };
@@ -967,7 +831,12 @@ export class Evaluator {
             return n;
         });
         this.env.set('clngptr', this.env.get('clnglng'));
-        this.env.set('cstr', (val: any) => val === vbaNull ? this.throwVbaError(94, "Invalid use of Null") : String(val === vbaEmpty ? "" : val));
+        this.env.set('cstr', (val: any) => {
+            try { return vbaToString(val); } catch (e: any) {
+                if (e?.type === 'VbaError') this.throwVbaError(e.number, e.message);
+                throw e;
+            }
+        });
         this.env.set('cbool', (val: any) => {
             if (val === vbaNull) this.throwVbaError(94, 'Invalid use of Null');
             return this.coerceToBoolean(val);
@@ -2277,39 +2146,15 @@ export class Evaluator {
     }
 
     private toVbaNumber(val: any): number {
-        if (val === vbaEmpty || val === undefined) return 0;
-        if (val === vbaNull || val === null) this.throwVbaError(13, "Type mismatch");
-        if (val instanceof VbaBoolean) return val.value;
-        if (val instanceof VbaDate) return val.value;
-        if (val instanceof VbaDecimal) return val.value;
-        if (typeof val === 'number') return val;
-        if (typeof val === 'bigint') return Number(val);
-        if (typeof val === 'string') {
-            const n = parseFloat(val);
-            if (isNaN(n)) this.throwVbaError(13, "Type mismatch");
-            return n;
+        try {
+            return _vbaToNumber(val);
+        } catch (e: any) {
+            if (e?.type === 'VbaError') this.throwVbaError(e.number, e.message);
+            throw e;
         }
-        if (val instanceof VbaErrorValue) this.throwVbaError(13, "Type mismatch");
-        return Number(val);
     }
 
-    private vbaRound(val: number, decimals: number = 0): number {
-        const factor = Math.pow(10, decimals);
-        // Use a small epsilon to handle floating point precision issues before rounding
-        const scaled = val * factor;
-        const i = Math.floor(scaled);
-        const f = scaled - i;
-
-        // Handle very close to midpoint due to float precision
-        const epsilon = 1e-10;
-        if (Math.abs(f - 0.5) < epsilon) {
-            return ((i % 2 === 0) ? i : i + 1) / factor;
-        }
-
-        if (f < 0.5) return i / factor;
-        if (f > 0.5) return (i + 1) / factor;
-        return ((i % 2 === 0) ? i : i + 1) / factor;
-    }
+    private vbaRound(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
     private throwVbaError(number: number, message: string): never {
         const line = this.currentLine || undefined;
@@ -2588,28 +2433,7 @@ export class Evaluator {
         }
     }
 
-    private coerceToBoolean(val: any): VbaBoolean {
-        if (val instanceof VbaBoolean) return val;
-        if (val === vbaEmpty) return vbaFalse;
-        if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
-        if (typeof val === 'string') {
-            const trimmed = val.trim();
-            // VBA: 大文字小文字無視で "True"/"False" を判定
-            const lc = trimmed.toLowerCase();
-            if (lc === 'true') return vbaTrue;
-            if (lc === 'false') return vbaFalse;
-            // 数値表現として解釈
-            if (trimmed === '') {
-                throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-            }
-            const n = Number(trimmed);
-            if (isNaN(n)) {
-                throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-            }
-            return n !== 0 ? vbaTrue : vbaFalse;
-        }
-        throw { type: 'VbaError', number: 13, message: 'Type mismatch' };
-    }
+    private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
     private evaluateAssignmentToVariable(left: Expression, val: any) {
         if (left.type === 'Identifier') {
@@ -4116,20 +3940,7 @@ export class Evaluator {
         throw { type: 'Exit', target: stmt.exitType };
     }
 
-    private toDisplayString(val: any): string {
-        if (val === vbaEmpty || val === undefined) return "";
-        if (val === vbaNull) return "Null";
-        if (val === vbaNothing) return "Nothing";
-        if (val === vbaTrue || (val instanceof VbaBoolean && val.value === -1)) return "True";
-        if (val === vbaFalse || (val instanceof VbaBoolean && val.value === 0)) return "False";
-        if (val && typeof val === 'object' && (val instanceof VbaDate || (val as any).__isVbaDate__)) {
-            return val.toString();
-        }
-        if (val instanceof VbaErrorValue) return val.toString();
-        if (val instanceof VbaDecimal) return val.toString();
-        if (typeof val === 'bigint') return val.toString();
-        return String(val);
-    }
+    private toDisplayString(val: any): string { return vbaToDisplayString(val); }
 
     private evaluateExpression(expr: Expression): any {
         switch (expr.type) {
