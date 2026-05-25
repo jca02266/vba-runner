@@ -777,87 +777,45 @@ const sandbox = new SandboxPath('./sandbox', {
 });
 ```
 
-## 仮想ファイルシステム (VFS) の利用と将来構想
+## 仮想ファイルシステム (VFS) の利用
 
-VBA Runnerでは、ブラウザ上での動作や、テストの安全性を高めるために **仮想ファイルシステム (VFS)** を導入しています。
+VBA Runnerでは、ブラウザ上での動作や、テストの安全性を高めるために **仮想ファイルシステム (VFS)** を採用しています。
 
-### 将来構想：VFS を基本とした実行環境
-長期的には、Node.js 環境においても実際のディスクを操作する `NodeFileSystem` ではなく、メモリ上で完結する `MemoryFileSystem` (VFS) をデフォルトの実行環境にすることを構想しています。これにより、以下のメリットが得られます：
-- **安全性**: テスト実行によってホスト OS のファイルが誤って削除・上書きされるリスクをゼロにします。
-- **再現性**: テスト実行ごとにクリーンなファイルシステム状態から開始でき、並列実行も容易になります。
-- **ブラウザ互換性**: テストコードそのものをブラウザ上でそのまま実行可能になります。
+### VFS がデフォルト
 
-### VFS の有効化方法
-`VBARunner` の初期化時に `useVirtualFS: true` を指定するか、環境変数 `USE_VFS=1` を設定することで VFS モードになります。
-
-```typescript
-// 個別にVFSを有効化
-const vbaRunner = new VBARunner('source.bas', { useVirtualFS: true });
-
-// または環境変数で一括切り替え
-// USE_VFS=1 node tests/spec/xxx.test.cjs
-```
+`VBARunner` は `MemoryFileSystem` (VFS) をデフォルトのファイルシステムとして使用します。これにより：
+- **安全性**: テスト実行によってホスト OS のファイルが誤って削除・上書きされるリスクがゼロ
+- **再現性**: テスト実行ごとにクリーンなファイルシステム状態から開始でき、並列実行も容易
+- **ブラウザ互換性**: テストコードそのものをブラウザ上でそのまま実行可能
 
 ### JavaScript から VFS への直接アクセス (テストデータの準備)
 
 テストの準備や実行結果の検証のために、JavaScript から VFS に対して直接ファイルを読み書きできます。
 
-**簡潔な例**（VFS と Node.js 両対応）:
-
 ```typescript
 import { VBARunner } from './test-libs/test-runner';
 
-// VFS モード
-const vbaRunner = new VBARunner('source.bas', { useVirtualFS: true });
+const vbaRunner = new VBARunner('source.bas');
 const fs = vbaRunner.evaluator.fs;
 fs.writeFileSync('/sandbox/c/input.txt', "データ");
 vbaRunner.run('ProcessFile', []);
 const result = fs.readFileSync('/sandbox/c/output.txt', 'utf-8');
 ```
 
-```typescript
-// Node.js モード (実ファイルを使用)
-const vbaRunner = new VBARunner('source.bas', { useVirtualFS: false });
-const fs = vbaRunner.evaluator.fs;
-fs.writeFileSync('./sandbox/c/input.txt', "データ");
-vbaRunner.run('ProcessFile', []);
-const result = fs.readFileSync('./sandbox/c/output.txt', 'utf-8');
-```
+VBA の `SandboxPath` が `C:\foo` → `/sandbox/c/foo` と変換するため、パスは `/sandbox/c/` 配下を使うことをお勧めします。
 
-| モード | パス表記 | 説明 |
-|--------|---------|------|
-| **VFS** (`useVirtualFS: true`) | `/sandbox/c/input.txt` | メモリ内の仮想パス |
-| **Node.js** (`useVirtualFS: false`) | `./sandbox/c/input.txt` | 実ファイルシステムの相対パス |
-
-**詳細説明** は下の「[詳細: ファイルシステムモードの違い](#詳細-ファイルシステムモードの違い)」を参照してください。
-
-## 詳細: ファイルシステムモードの違い
-
-### VFS モード (useVirtualFS: true)
+## 詳細: ファイルシステムの仕様
 
 - **ストレージ**: メモリ上の仮想ファイルシステム (`MemoryFileSystem`)
 - **パス形式**: 絶対パス `/sandbox/c/input.txt` を使用
-- **特徴**:
-  - テストが完全に分離され、他のテストやホスト OS に影響を与えない
-  - パスは任意（`/foo`, `/bar` など）でも技術的には動作するが、VBA の `SandboxPath` が `C:\foo` → `/sandbox/c/foo` と変換するため、一貫性のため `/sandbox/c/` を使うことをお勧め
+- テストが完全に分離され、他のテストやホスト OS に影響を与えない
 
-### Node.js モード (useVirtualFS: false)
-
-- **ストレージ**: 実ファイルシステム (`NodeFileSystem`)
-- **パス形式**: 相対パス `./sandbox/c/input.txt` を使用
-- **特徴**:
-  - `sandboxRoot` に指定したディレクトリをルートとする
-  - 必ず **相対パス** を使用（絶対パス `/sandbox/c` は OS ルートを指すため危険）
-  - `sandboxRoot` はデフォルト値 `/sandbox` だが、`new VBARunner(..., { sandboxRoot: './test-files' })` で上書き可能
-
-### 実装の詳細
-
-| 内部処理 | VFS | Node.js |
-|---------|-----|---------|
-| ファイルシステム | `MemoryFileSystem` | `NodeFileSystem` |
-| `/sandbox/c/foo` の解釈 | メモリ上のキー | 実ディレクトリ `./sandbox/c/foo` |
-| `SandboxPath.toRealPath('C:\\foo')` | `/sandbox/c/foo` (仮想) | `./sandbox/c/foo` (実) |
-| 環境変数隔離 | ✅ 完全隔離 | ⚠️ `sandboxRoot` 内のみ |
+| 内部処理 | 説明 |
+|---------|------|
+| ファイルシステム | `MemoryFileSystem` |
+| `/sandbox/c/foo` の解釈 | メモリ上のキー |
+| `SandboxPath.toRealPath('C:\\foo')` | `/sandbox/c/foo` (仮想) |
+| 環境変数隔離 | ✅ 完全隔離 |
 
 ## 高度な機能と仕様
 

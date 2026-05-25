@@ -3,7 +3,6 @@ import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
-import { NodeFileSystem } from '../src/engine/node_filesystem';
 import { MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, CompilerConstants } from '../src/engine/preprocessor';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
@@ -14,10 +13,8 @@ export class VBARunner {
     public evaluator: Evaluator;
     private _asts: Program[] = [];
 
-    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean, compilerConstants?: CompilerConstants } = {}) {
-        const useVFS = config.useVirtualFS ?? (typeof process !== 'undefined' && process.env.USE_VFS === '1');
-        const fileSystem = useVFS ? new MemoryFileSystem() : new NodeFileSystem();
-        this.evaluator = new Evaluator(console.log, { ...config, fs: fileSystem });
+    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants } = {}) {
+        this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
 
         if (!pathOrDir) return;
 
@@ -179,7 +176,7 @@ function vbaTypeToTs(vbaType: string): string {
 }
 
 // Keep backward compatibility
-export function runVBARunner(filePath: string, procedureName: string, args: any[], config: { sandboxRoot?: string, env?: Record<string, string>, useVirtualFS?: boolean } = {}): any {
+export function runVBARunner(filePath: string, procedureName: string, args: any[], config: { sandboxRoot?: string, env?: Record<string, string> } = {}): any {
     const vbaRunner = new VBARunner(filePath, config);
     return vbaRunner.run(procedureName, args);
 }

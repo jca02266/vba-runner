@@ -448,9 +448,7 @@ End Function
 
 ```typescript
 describe('File Operations with VFS', () => {
-  const vbaRunner = new VBARunner('src/vba/file-ops.bas', {
-    useVirtualFS: true
-  });
+  const vbaRunner = new VBARunner('src/vba/file-ops.bas');
 
   it('should read virtual file', () => {
     // VFS 上にテストデータを配置
@@ -572,9 +570,10 @@ describe('Fiscal Year Logic', () => {
 new VBARunner(pathOrDir: string, config?: {
     sandboxRoot?: string,    // ファイル操作のサンドボックスルート
     env?: Record<string, string>,  // VBA の Environ() が返す環境変数
-    useVirtualFS?: boolean   // true: メモリ内VFS / false: 実FS（デフォルト: false）
 })
 ```
+
+ファイルシステムは常に `MemoryFileSystem` (VFS) を使用します。
 
 - `pathOrDir` にファイルパスを渡すと単一ファイルを読み込む
 - ディレクトリパスを渡すと `.bas` / `.cls` / `.frm` を**名前順**に全ロード
