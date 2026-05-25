@@ -1016,8 +1016,9 @@ export class Parser {
 
     // Returns true if the token can serve as a name (identifier or any keyword).
     // VBA §5.2.3.3 allows reserved words as UDT/Enum member names (reserved-name-member-dcl).
+    // MS-VBAL §3.3.5: name-start は Unicode-Letter (Lo を含む) も許容するため Unicode フラグを使う。
     private isWordToken(t: Token): boolean {
-        return /^[A-Za-z_][A-Za-z0-9_]*$/.test(t.value);
+        return /^[\p{L}\p{Nl}_][\p{L}\p{Nl}\p{Mn}\p{Mc}\p{Nd}\p{Pc}_]*$/u.test(t.value);
     }
 
     // Create an Identifier node with location from the given token.

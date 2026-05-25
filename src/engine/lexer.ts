@@ -152,6 +152,11 @@ export class Lexer {
     private line: number = 1;
     private column: number = 1;
 
+    // MS-VBAL §3.3.5: name-start-character = Unicode-Letter (Lu,Ll,Lt,Lm,Lo,Nl) | "_"
+    private static readonly reUnicodeNameStart = /^[\p{L}\p{Nl}]$/u;
+    // name-continue-character adds Unicode-Combining-Character (Mn,Mc), Digit (Nd), Connector-Punct (Pc)
+    private static readonly reUnicodeNameContinue = /^[\p{Mn}\p{Mc}\p{Nd}\p{Pc}]$/u;
+
     constructor(input: string) {
         this.input = input;
     }
@@ -178,11 +183,16 @@ export class Lexer {
     }
 
     private isAlpha(char: string): boolean {
-        return (char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_';
+        if ((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_') return true;
+        const code = char.codePointAt(0) ?? 0;
+        return code > 0x7F && Lexer.reUnicodeNameStart.test(char);
     }
 
     private isAlphaNumeric(char: string): boolean {
-        return this.isAlpha(char) || (char >= '0' && char <= '9');
+        if ((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || char === '_') return true;
+        if (char >= '0' && char <= '9') return true;
+        const code = char.codePointAt(0) ?? 0;
+        return code > 0x7F && (Lexer.reUnicodeNameStart.test(char) || Lexer.reUnicodeNameContinue.test(char));
     }
 
     private isDigit(char: string): boolean {
