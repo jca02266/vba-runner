@@ -2704,6 +2704,10 @@ export class Evaluator {
                     (initialValue as any).vbaBase = this.arrayBase;
                     (initialValue as any).vbaFixed = false;
                 }
+                // UDT 型配列: ReDim 時に要素を初期化できるよう型名を保持する
+                if (decl.objectType && this.env.getType(decl.objectType)) {
+                    (initialValue as any).__vbaElementTypeName__ = decl.objectType;
+                }
             } else if (decl.isNew && decl.objectType === 'Collection') {
                 initialValue = new VbaCollection();
             } else if (decl.isNew && decl.objectType && (
@@ -3893,6 +3897,11 @@ export class Evaluator {
         const varName = stmt.name.name;
         const oldArr = this.env.get(varName);
 
+        // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ
+        const elementTypeName: string | undefined =
+            (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
+            (stmt.objectType && this.env.getType(stmt.objectType) ? stmt.objectType : undefined);
+
         let defaultValue: any = 0;
         if (stmt.objectType) {
             const t = stmt.objectType.toLowerCase();
@@ -3937,11 +3946,33 @@ export class Evaluator {
             const arr = this.createMultiDimArray(stmt.bounds, defaultValue);
             (arr as any).vbaFixed = false;
 
+            if (elementTypeName) {
+                // UDT 配列: 要素ごとに独立したインスタンスを生成する
+                // createMultiDimArray は全要素を同一参照で埋めるため、ここで上書きする
+                (arr as any).__vbaElementTypeName__ = elementTypeName;
+                if (!stmt.isPreserve) {
+                    this.fillArrayWithUDT(arr, (arr as any).__vbaDimensions__, 0, elementTypeName);
+                }
+            }
+
             if (stmt.isPreserve && Array.isArray(oldArr)) {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);
             }
 
             this.env.set(varName, arr);
+        }
+    }
+
+    private fillArrayWithUDT(arr: any[], dimensions: { lower: number, upper: number }[], dimIdx: number, typeName: string) {
+        const { lower, upper } = dimensions[dimIdx];
+        if (dimIdx < dimensions.length - 1) {
+            for (let i = lower; i <= upper; i++) {
+                this.fillArrayWithUDT(arr[i], dimensions, dimIdx + 1, typeName);
+            }
+        } else {
+            for (let i = lower; i <= upper; i++) {
+                arr[i] = this.instantiateType(typeName);
+            }
         }
     }
 

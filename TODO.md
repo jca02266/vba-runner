@@ -500,6 +500,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **2 次元 Variant 配列の `For Each` 挙動**: 行優先 vs 列優先の反復順 | `2d-array-foreach.test.ts`
 - ✅ **Array() で作る Variant 配列の境界**: `LBound = 0`、明示的 `Option Base` の効果 | `array-lbound-defaults.test.ts`
 - ✅ **`ReDim Preserve` の多次元配列での制約**: 最終次元のみ変更可 | `redim-preserve-multidim.test.ts`
+- ✅ **UDT 配列の `ReDim` 時の要素初期化**: `Dim d() As MyType` + `ReDim d(0 To N)` で各要素が UDT インスタンスではなく `0` になるバグを修正 | `udt-type.test.ts`
 
 ### エラーハンドリング
 

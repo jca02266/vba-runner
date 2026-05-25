@@ -115,4 +115,72 @@ assert.strictEqual(wr4.name,   'main', 'wr.Name = "main"');
 assert.strictEqual(wr4.value,  1.5,    'wr.Value = 1.5');
 console.log('[PASS] 予約語メンバー名 (Width/Height/Left/Top/Name/Value)');
 
+// --- 5. UDT 配列: ReDim 後の要素初期化 ---
+const udtArrayRedimCode = `
+    Type Point
+        X As Integer
+        Y As Integer
+    End Type
+
+    Public pts() As Point
+
+    Sub Test()
+        ReDim pts(0 To 1)
+        pts(0).X = 10
+        pts(0).Y = 20
+        pts(1).X = 30
+        pts(1).Y = 40
+    End Sub
+`;
+const ev5 = evalVBA(udtArrayRedimCode);
+ev5.callProcedure('Test', []);
+const pts5 = ev5.env.get('pts');
+assert.strictEqual(typeof pts5[0], 'object', 'pts(0) は UDT インスタンス (object) である');
+assert.strictEqual(typeof pts5[1], 'object', 'pts(1) は UDT インスタンス (object) である');
+assert.strictEqual(pts5[0].x, 10, 'pts(0).X = 10');
+assert.strictEqual(pts5[0].y, 20, 'pts(0).Y = 20');
+assert.strictEqual(pts5[1].x, 30, 'pts(1).X = 30');
+assert.strictEqual(pts5[1].y, 40, 'pts(1).Y = 40');
+console.log('[PASS] UDT 配列: ReDim 後の要素初期化');
+
+// --- 6. UDT 配列: 要素の独立性 (同一参照にならない) ---
+const udtArrayIndepCode = `
+    Type Counter
+        N As Integer
+    End Type
+
+    Public cs() As Counter
+
+    Sub Test()
+        ReDim cs(0 To 1)
+        cs(0).N = 99
+    End Sub
+`;
+const ev6 = evalVBA(udtArrayIndepCode);
+ev6.callProcedure('Test', []);
+const cs6 = ev6.env.get('cs');
+assert.strictEqual(cs6[0].n, 99, 'cs(0).N = 99');
+assert.strictEqual(cs6[1].n, 0,  'cs(1).N は 0 のまま (独立したインスタンス)');
+console.log('[PASS] UDT 配列: 要素の独立性');
+
+// --- 7. UDT 配列: 初期値が UDT の既定値になっている ---
+const udtArrayDefaultCode = `
+    Type MyType
+        S As String
+        I As Integer
+    End Type
+
+    Public arr() As MyType
+
+    Sub Test()
+        ReDim arr(0 To 0)
+    End Sub
+`;
+const ev7 = evalVBA(udtArrayDefaultCode);
+ev7.callProcedure('Test', []);
+const arr7 = ev7.env.get('arr');
+assert.strictEqual(arr7[0].s, '',  'arr(0).S は "" (String の既定値)');
+assert.strictEqual(arr7[0].i, 0,   'arr(0).I は 0 (Integer の既定値)');
+console.log('[PASS] UDT 配列: 初期値が UDT の既定値');
+
 console.log('\n✅ User Defined Type: 全テスト通過');
