@@ -442,12 +442,10 @@ export class TableDrivenDetector {
             if (!consequent) continue;
 
             const stmts = Array.isArray(consequent) ? consequent : [consequent];
-            for (const stmt of stmts) {
-                if (!stmt) continue;
-                // ネストされた IfStatement は analyzeSideEffects / computeLevelShapes で
-                // 別途分析するためここではスキップする（deep-walk による誤カウント防止）
-                if ((stmt as any).type === 'IfStatement') continue;
+            // IfStatement を除いた有効な文のみを対象にする
+            const effectiveStmts = stmts.filter((s: any) => s && s.type !== 'IfStatement');
 
+            for (const stmt of effectiveStmts) {
                 // AssignmentStatement / SetStatement の RHS 呼び出しはgetter（副作用なし）として扱う
                 // 制限: RHS 関数が実際に副作用を持つ場合（ログ・DB更新など）は検出できない（T-07 参照）
                 const sType = (stmt as any).type;
@@ -456,11 +454,11 @@ export class TableDrivenDetector {
                     hasSideEffects = true;
                     complexity += 20;
                 }
+            }
 
-                // 複数ステートメントなら複雑度アップ
-                if (Array.isArray(stmts) && stmts.length > 2) {
-                    complexity += 10;
-                }
+            // 文の数が多い場合は1ブランチあたり1回だけ加算(ループ内で多重加算しない)
+            if (effectiveStmts.length > 3) {
+                complexity += (effectiveStmts.length - 3) * 5;
             }
         }
 
