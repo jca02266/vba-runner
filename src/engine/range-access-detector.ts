@@ -155,8 +155,8 @@ function scanExpr(
                             varName,
                             kind: 'member-call',
                             property: me.property.name,
-                            line: me.object.loc?.start.line ?? 0,
-                            column: me.object.loc?.start.column ?? 0,
+                            line: (me.object.loc?.start.line ?? 1) - 1,
+                            column: (me.object.loc?.start.column ?? 1) - 1,
                         });
                     }
                 }
@@ -168,8 +168,8 @@ function scanExpr(
                     hits.push({
                         varName,
                         kind: 'index-call',
-                        line: ce.callee.loc?.start.line ?? 0,
-                        column: ce.callee.loc?.start.column ?? 0,
+                        line: (ce.callee.loc?.start.line ?? 1) - 1,
+                        column: (ce.callee.loc?.start.column ?? 1) - 1,
                     });
                 }
             }
@@ -190,8 +190,8 @@ function scanExpr(
                         varName,
                         kind: 'member-access',
                         property: me.property.name,
-                        line: me.object.loc?.start.line ?? 0,
-                        column: me.object.loc?.start.column ?? 0,
+                        line: (me.object.loc?.start.line ?? 1) - 1,
+                        column: (me.object.loc?.start.column ?? 1) - 1,
                     });
                 }
             }
