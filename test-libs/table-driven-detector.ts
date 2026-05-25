@@ -7,6 +7,7 @@
 
 import { Lexer } from '../src/engine/lexer';
 import { Parser, Statement, IfStatement, Expression, Identifier } from '../src/engine/parser';
+import { buildTypeEnvironment, lookupType, isNumericType, ModuleTypeEnvironment } from '../src/engine/type-environment';
 
 /**
  * テーブル駆動リファクタリング候補の評価結果
@@ -125,6 +126,9 @@ export interface SideEffectAnalysis {
  * テーブル駆動検出器
  */
 export class TableDrivenDetector {
+    /** Phase 1 型環境: detectFromCode 呼び出しごとに再構築 */
+    private typeEnv: ModuleTypeEnvironment | null = null;
+
     /**
      * VBA コードを解析して、テーブル駆動の候補を検出
      */
@@ -132,6 +136,7 @@ export class TableDrivenDetector {
         try {
             const tokens = new Lexer(code).tokenize();
             const ast = new Parser(tokens).parse();
+            this.typeEnv = buildTypeEnvironment(ast);
             return this.detectFromAST(ast.body);
         } catch (e) {
             console.error('[TableDrivenDetector] Parse error:', e);
@@ -837,15 +842,31 @@ export class TableDrivenDetector {
         if (condition?.type !== 'BinaryExpression') return false;
         const op: string = condition.operator ?? '';
         if (!['<', '<=', '>', '>=', '='].includes(op)) return false;
-        const leftType  = condition.left?.type  ?? '';
-        const rightType = condition.right?.type ?? '';
+
+        const isNumericNode = (node: any): boolean => {
+            if (!node) return false;
+            if (node.type === 'NumberLiteral') return true;
+            if (node.type === 'Identifier') {
+                // TypeEnvironment で型を解決できる場合はそれを優先
+                if (this.typeEnv) {
+                    const info = lookupType(this.typeEnv, node.name);
+                    if (info) {
+                        return isNumericType(info.declaredType) ||
+                               (info.kind === 'const' && typeof info.constValue === 'number');
+                    }
+                }
+                // 未知の識別子は数値とみなす（後方互換）
+                return true;
+            }
+            return false;
+        };
+
         if (op === '=') {
-            // = は即値のみ（定数識別子はキーレベルとして処理）
-            return leftType === 'NumberLiteral' || rightType === 'NumberLiteral';
+            // = は数値リテラルまたは数値型定数のみ（文字列キー判定を除外）
+            return isNumericNode(condition.left) || isNumericNode(condition.right);
         }
-        // <, <=, >, >= は即値または定数識別子を許可
-        const isNumericLike = (t: string) => t === 'NumberLiteral' || t === 'Identifier';
-        return isNumericLike(leftType) || isNumericLike(rightType);
+        // <, <=, >, >= は即値または数値型識別子を許可
+        return isNumericNode(condition.left) || isNumericNode(condition.right);
     }
 
     /**
