@@ -43,3 +43,6 @@ dist-ssr
 
 # vba-analyzer baseline snapshots
 .vba-baseline.json
+
+# Claude Code auto-memory (local only)
+/memory/
