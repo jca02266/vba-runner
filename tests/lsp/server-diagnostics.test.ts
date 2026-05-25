@@ -34,4 +34,30 @@ const d5 = server.getDiagnostics('file:///test.bas');
 console.assert(d5.length === 0, 'After close: empty array');
 console.log('[PASS] didClose: empty diagnostics');
 
+// Test 6: Range 変数の添字アクセスに Hint が出る
+server.didOpen('file:///range.bas', [
+    'Sub Test()',
+    '    Dim rng As Range',
+    '    rng(1, 1) = 99',
+    'End Sub',
+].join('\n'));
+const d6 = server.getDiagnostics('file:///range.bas');
+const rangeHints = d6.filter((d: any) => d.source === 'vba-dataflow');
+console.assert(rangeHints.length >= 1, `Expected >= 1 Range hint, got ${rangeHints.length}`);
+console.assert(rangeHints[0].severity === 4, 'Severity should be 4 (Hint)');
+console.assert(rangeHints[0].message.includes('rng'), `Message should mention 'rng': ${rangeHints[0].message}`);
+console.log('[PASS] Range 添字アクセスに Hint が出る');
+
+// Test 7: Range 変数がない場合は vba-dataflow Hint が出ない
+server.didOpen('file:///norange.bas', [
+    'Sub Test()',
+    '    Dim n As Long',
+    '    n = 42',
+    'End Sub',
+].join('\n'));
+const d7 = server.getDiagnostics('file:///norange.bas');
+const noRangeHints = d7.filter((d: any) => d.source === 'vba-dataflow');
+console.assert(noRangeHints.length === 0, `Expected 0 Range hints, got ${noRangeHints.length}`);
+console.log('[PASS] 非 Range コードには vba-dataflow Hint が出ない');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

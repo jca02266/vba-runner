@@ -1,5 +1,6 @@
 import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
+import { detectRangeAccess } from '../engine/range-access-detector';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
@@ -265,7 +266,20 @@ export class LSPServer {
                 source: 'vba-runner',
             }));
             const deadCodeWarnings = this.codeLensProvider.getDeadCodeWarnings(ast.body, doc.content, uri);
-            return [...parseDiags, ...deadCodeWarnings];
+            const rangeAccessHints = detectRangeAccess(ast).map(hit => ({
+                range: {
+                    start: { line: hit.line, character: hit.column },
+                    end:   { line: hit.line, character: hit.column + hit.varName.length },
+                },
+                severity: 4, // Hint
+                message: hit.kind === 'index-call'
+                    ? `Range 変数 '${hit.varName}' への添字アクセス（${hit.varName}(...) は ${hit.varName}.Item(...) と等価）`
+                    : hit.kind === 'member-call'
+                        ? `Range 変数 '${hit.varName}' へのメソッド呼び出し: .${hit.property}()`
+                        : `Range 変数 '${hit.varName}' へのプロパティアクセス: .${hit.property}`,
+                source: 'vba-dataflow',
+            }));
+            return [...parseDiags, ...deadCodeWarnings, ...rangeAccessHints];
         } catch {
             return [];
         }
