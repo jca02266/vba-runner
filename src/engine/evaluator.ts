@@ -2667,7 +2667,6 @@ export class Evaluator {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
-                    'longlonglong': 'LongLong',
                     'longlong': 'LongLong',
                     'longptr': 'LongPtr',
                     'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
