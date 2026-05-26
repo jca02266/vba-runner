@@ -17,8 +17,14 @@ import { computeLiveVars, getStmtDefs, getStmtUses } from './live-vars';
 export interface DeadStore {
     /** 代入先変数名（小文字正規化済み） */
     varName: string;
-    /** ソース行（1-based、パーサーの loc 由来。0 は位置情報なし） */
+    /** ステートメント種別（AssignmentStatement / SetStatement / ForStatement 等） */
+    stmtType: string;
+    /** ソース行（1-based、0 は位置情報なし） */
     line: number;
+    /** ソース列（1-based、0 は位置情報なし）— LHS 変数の先頭 */
+    column: number;
+    /** LHS 変数の末尾列（1-based） */
+    endColumn: number;
 }
 
 // ─── 公開 API ─────────────────────────────────────────────────────────────────
@@ -48,12 +54,11 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
     const { blockOut } = computeLiveVars(cfg, alwaysLive);
 
     const results: DeadStore[] = [];
-    const seen = new Set<string>(); // 同一変数の重複報告を抑制
+    const seen = new Set<string>();
 
     for (const block of cfg.blocks) {
         if (block.kind !== 'normal') continue;
 
-        // ブロック末尾の生変数集合を出発点に後ろ向きシミュレーション
         const live = new Set<string>(blockOut.get(block.id)!);
 
         for (let i = block.stmts.length - 1; i >= 0; i--) {
@@ -63,11 +68,17 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
 
             for (const v of defs) {
                 if (!live.has(v) && !paramNames.has(v)) {
-                    const line = (stmt as any).loc?.start.line ?? 0;
-                    const key = `${v}:${line}`;
+                    const loc = lhsLoc(stmt, v);
+                    const key = `${v}:${loc.line}:${loc.column}`;
                     if (!seen.has(key)) {
                         seen.add(key);
-                        results.push({ varName: v, line });
+                        results.push({
+                            varName:   v,
+                            stmtType:  stmt.type,
+                            line:      loc.line,
+                            column:    loc.column,
+                            endColumn: loc.endColumn,
+                        });
                     }
                 }
             }
@@ -78,6 +89,48 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
         }
     }
 
-    // 行番号昇順でソート
-    return results.sort((a, b) => a.line - b.line);
+    return results.sort((a, b) => a.line - b.line || a.column - b.column);
+}
+
+// ─── 内部ユーティリティ ───────────────────────────────────────────────────────
+
+function lhsLoc(stmt: any, varName: string): { line: number; column: number; endColumn: number } {
+    // AssignmentStatement / SetStatement: LHS Identifier の loc を優先
+    if (stmt.type === 'AssignmentStatement' || stmt.type === 'SetStatement') {
+        const lhsLoc = stmt.left?.loc;
+        if (lhsLoc) {
+            return {
+                line:      lhsLoc.start.line,
+                column:    lhsLoc.start.column,
+                endColumn: lhsLoc.end?.column ?? lhsLoc.start.column + varName.length,
+            };
+        }
+    }
+    // ForStatement: ループカウンター識別子の loc
+    if (stmt.type === 'ForStatement') {
+        const idLoc = stmt.identifier?.loc;
+        if (idLoc) {
+            return {
+                line:      idLoc.start.line,
+                column:    idLoc.start.column,
+                endColumn: idLoc.end?.column ?? idLoc.start.column + varName.length,
+            };
+        }
+    }
+    // ForEachStatement
+    if (stmt.type === 'ForEachStatement') {
+        const vLoc = stmt.variable?.loc;
+        if (vLoc) {
+            return {
+                line:      vLoc.start.line,
+                column:    vLoc.start.column,
+                endColumn: vLoc.end?.column ?? vLoc.start.column + varName.length,
+            };
+        }
+    }
+    // フォールバック: ステートメント全体の loc
+    const stmtLoc = stmt.loc;
+    const line   = stmtLoc?.start.line   ?? 0;
+    const column = stmtLoc?.start.column ?? 0;
+    return { line, column, endColumn: column + varName.length };
 }

@@ -1,6 +1,6 @@
 /**
  * vba-lint.ts のテスト
- * VBA 固有 Diagnostics 警告 (VBA001〜VBA008) の検出を確認する
+ * VBA 固有 Diagnostics 警告 (VBA001〜VBA009) の検出を確認する
  */
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
@@ -221,6 +221,76 @@ function lint(code: string): LintDiagnostic[] {
     assert.strictEqual(codes.includes('VBA003'), true, '複合: VBA003 あり');
     assert.strictEqual(codes.includes('VBA004'), true, '複合: VBA004 あり');
     console.log('[PASS] 複合: 複数ルール同時検出');
+}
+
+// ─── VBA009: デッドストア ────────────────────────────────────────────────────
+
+// 代入後に未使用 → 検出
+{
+    const diags = lint([
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 42',
+        'End Sub',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length >= 1, true, 'VBA009: x = 42 をデッドストア検出');
+    assert.strictEqual(d[0].message.includes('x'), true, 'VBA009: 変数名 x を含む');
+    assert.strictEqual(d[0].severity, 2, 'VBA009: severity = Warning');
+    console.log('[PASS] VBA009: 代入後未使用のデッドストア検出');
+}
+
+// 上書き代入 → 最初の代入を検出
+{
+    const diags = lint([
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 1',
+        '    x = 2',
+        '    Debug.Print x',
+        'End Sub',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length >= 1, true, 'VBA009: x = 1（上書き）をデッドストア検出');
+    console.log('[PASS] VBA009: 上書き代入のデッドストア検出');
+}
+
+// 使用後に代入 → 検出なし
+{
+    const diags = lint([
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 5',
+        '    Debug.Print x',
+        'End Sub',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length, 0, 'VBA009: 使用済み変数 → 検出なし');
+    console.log('[PASS] VBA009: 使用済み変数はデッドストアなし');
+}
+
+// 関数戻り値への代入 → 検出なし
+{
+    const diags = lint([
+        'Function Calc() As Long',
+        '    Calc = 42',
+        'End Function',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length, 0, 'VBA009: 関数戻り値 → 検出なし');
+    console.log('[PASS] VBA009: 関数戻り値代入はデッドストアなし');
+}
+
+// ByRef パラメーターへの代入 → 検出なし
+{
+    const diags = lint([
+        'Sub Test(ByRef result As Long)',
+        '    result = 99',
+        'End Sub',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length, 0, 'VBA009: ByRef パラメーター → 検出なし');
+    console.log('[PASS] VBA009: ByRef パラメーター代入はデッドストアなし');
 }
 
 console.log('\n✅ VBA Lint: 全テスト通過');

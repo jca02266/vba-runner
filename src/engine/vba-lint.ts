@@ -12,6 +12,7 @@
  *   VBA006 - Sheets(n) / Worksheets(n) 数値インデックス → シート順変更で壊れる
  *   VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
  *   VBA008 - GoTo（エラーハンドラー以外） → スパゲッティ化の原因
+ *   VBA009 - デッドストア → 代入値が使用前に上書きまたは破棄される
  */
 
 import {
@@ -30,6 +31,7 @@ import {
     NumberLiteral,
     MemberExpression,
 } from './parser';
+import { findDeadStores } from './dead-store';
 
 // ─── 公開型 ──────────────────────────────────────────────────────────────────
 
@@ -71,6 +73,7 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
         case 'ProcedureDeclaration': {
             const proc = stmt as ProcedureDeclaration;
             checkParameters(proc, out);
+            checkDeadStores(proc, out);
             for (const s of proc.body) lintStatement(s, out);
             break;
         }
@@ -328,4 +331,29 @@ function checkGoTo(stmt: GoToStatement, out: LintDiagnostic[]): void {
         message: `'GoTo ${label}' はスパゲッティコードの原因になります。ループや条件分岐での代替を検討してください`,
         line, column: col, endLine: line, endColumn: col + 4,
     });
+}
+
+/** VBA009: デッドストア（代入値が使用前に上書きまたは破棄される） */
+function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
+    let deadStores;
+    try {
+        deadStores = findDeadStores(proc);
+    } catch {
+        return; // CFG/解析エラーは lint を止めない
+    }
+
+    for (const ds of deadStores) {
+        // 対象: 単純代入のみ（For/ForEach ループカウンターは除外）
+        if (ds.stmtType !== 'AssignmentStatement' && ds.stmtType !== 'SetStatement') continue;
+
+        const line      = ds.line      > 0 ? ds.line      - 1 : 0;
+        const col       = ds.column    > 0 ? ds.column    - 1 : 0;
+        const endCol    = ds.endColumn > 0 ? ds.endColumn - 1 : col + ds.varName.length;
+        out.push({
+            code: 'VBA009',
+            severity: 2,
+            message: `'${ds.varName}' への代入値が使用される前に上書きまたは破棄されます（デッドストア）`,
+            line, column: col, endLine: line, endColumn: endCol,
+        });
+    }
 }
