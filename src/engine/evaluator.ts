@@ -1744,6 +1744,17 @@ export class Evaluator {
 
         if (proc.isFunction || proc.isProperty) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
+            // 戻り値の Let-coercion に使うため戻り型を変数型として登録する
+            if (proc.returnType) {
+                const retTypeMap: Record<string, VbaVarType> = {
+                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                    'longlong': 'LongLong', 'longptr': 'LongPtr',
+                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                };
+                const mapped = retTypeMap[proc.returnType.toLowerCase()];
+                if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
+            }
         }
 
         this.env = localEnv;
@@ -2437,8 +2448,27 @@ export class Evaluator {
         switch (vbaType) {
             case 'Boolean':
                 return this.coerceToBoolean(val);
+            case 'Byte':
+                return this.env.get('cbyte')(val);
+            case 'Integer':
+                return this.env.get('cint')(val);
+            case 'Long':
+                return this.env.get('clng')(val);
+            case 'LongLong':
+            case 'LongPtr':
+                return this.env.get('clnglng')(val);
+            case 'Single':
+                return this.env.get('csng')(val);
+            case 'Double':
+                return this.env.get('cdbl')(val);
+            case 'Currency':
+                return this.env.get('ccur')(val);
+            case 'String':
+                return this.env.get('cstr')(val);
+            case 'Date':
+                return this.env.get('cdate')(val);
             default:
-                return val;  // 他の型の coercion は今後実装
+                return val;
         }
     }
 
@@ -2477,8 +2507,8 @@ export class Evaluator {
             if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
                 if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
                     // 関数の戻り値も宣言された返り値型に Let-coercion される
-                    const retType = this.currentProcedureType === 'function'
-                        ? this.env.getVariableType(name)  // 関数名は変数型として記録される
+                    const retType = (this.currentProcedureType === 'function' || this.currentProcedureType === 'get')
+                        ? this.env.getVariableType(name)
                         : null;
                     const coerced = retType ? this.coerceToDeclaredType(val, retType.vbaType) : val;
                     this.env.setLocally(name, coerced);
@@ -2882,6 +2912,20 @@ export class Evaluator {
                 argValue = (param.isOptional ? vbaMissing : vbaEmpty);
             }
             localEnv.setLocally(paramName, argValue);
+        }
+
+        if (proc.isFunction || proc.isProperty) {
+            localEnv.setLocally(proc.name.name, vbaEmpty);
+            if (proc.returnType) {
+                const retTypeMap: Record<string, VbaVarType> = {
+                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                    'longlong': 'LongLong', 'longptr': 'LongPtr',
+                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                };
+                const mapped = retTypeMap[proc.returnType.toLowerCase()];
+                if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
+            }
         }
 
         const previousEnv = this.env;
@@ -4396,6 +4440,17 @@ export class Evaluator {
                 if (proc.isFunction) {
                     // Implicit variable for function return value
                     localEnv.setLocally(proc.name.name, vbaEmpty);
+                    // 戻り値の Let-coercion に使うため戻り型を変数型として登録する
+                    if (proc.returnType) {
+                        const retTypeMap: Record<string, VbaVarType> = {
+                            'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                            'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                            'longlong': 'LongLong', 'longptr': 'LongPtr',
+                            'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                        };
+                        const mapped = retTypeMap[proc.returnType.toLowerCase()];
+                        if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
+                    }
                 }
 
                 const previousEnv = this.env;
