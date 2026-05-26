@@ -114,6 +114,8 @@ export interface Parameter extends ASTNode {
     type: 'Parameter';
     name: string;
     isByVal: boolean;
+    /** ByVal または ByRef が明示されている場合 true */
+    hasPassingModifier: boolean;
     isOptional?: boolean;
     isParamArray?: boolean;
     isArray?: boolean;
@@ -661,7 +663,9 @@ export class Parser {
             isParamArray = true;
         }
 
+        let hasPassingModifier = false;
         if (this.peek().type === TokenType.KeywordByVal || this.peek().type === TokenType.KeywordByRef) {
+            hasPassingModifier = true;
             isByVal = this.advance().type === TokenType.KeywordByVal;
         }
 
@@ -693,7 +697,7 @@ export class Parser {
             defaultValue = this.parseExpression();
         }
 
-        return { type: 'Parameter', name: nameToken.value, isByVal, isOptional, isParamArray, isArray, paramType, defaultValue };
+        return { type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, defaultValue };
     }
 
     private parseAttributeStatement(): AttributeStatement {

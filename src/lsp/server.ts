@@ -1,6 +1,7 @@
 import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
+import { lintProgram } from '../engine/vba-lint';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
@@ -279,7 +280,16 @@ export class LSPServer {
                         : `Range 変数 '${hit.varName}' へのプロパティアクセス: .${hit.property}`,
                 source: 'vba-dataflow',
             }));
-            return [...parseDiags, ...deadCodeWarnings, ...rangeAccessHints];
+            const vbaLintDiags = lintProgram(ast).map(d => ({
+                range: {
+                    start: { line: d.line, character: d.column },
+                    end:   { line: d.endLine, character: d.endColumn },
+                },
+                severity: d.severity,
+                message: d.message,
+                source: `vba-lint(${d.code})`,
+            }));
+            return [...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags];
         } catch {
             return [];
         }
