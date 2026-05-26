@@ -4263,55 +4263,74 @@ export class Evaluator {
      * Special evaluator for TypeName() and VarType() that inspects the AST
      * to resolve variable type metadata from the Environment.
      */
+    // 組み込み変換関数の戻り型マップ
+    private static readonly BUILTIN_RETURN_TYPES: Record<string, VbaVarType> = {
+        'cbool': 'Boolean', 'cbyte': 'Byte', 'ccur': 'Currency',
+        'cdate': 'Date', 'cdbl': 'Double', 'cint': 'Integer',
+        'clng': 'Long', 'clnglng': 'LongLong', 'clngptr': 'LongPtr',
+        'csng': 'Single', 'cstr': 'String',
+    };
+
     private evaluateTypeIntrinsic(funcName: 'typename' | 'vartype', argExpr: Expression): any {
-        // If argument is an Identifier with a specific declared type, use it.
-        // Exception: Variant and Object hold any value — always inspect the runtime value.
-        if (argExpr.type === 'Identifier') {
-            const varName = (argExpr as Identifier).name;
-            const typeInfo = this.env.getVariableType(varName);
-            if (typeInfo && typeInfo.vbaType !== 'Variant' && typeInfo.vbaType !== 'Object') {
-                if (funcName === 'typename') {
-                    return typeInfo.vbaType;
-                } else {
-                    // VarType code mapping
-                    const vtMap: Record<string, number> = {
-                        'Byte': 17, 'Integer': 2, 'Long': 3,
-                        'Single': 4, 'Double': 5, 'Currency': 6,
-                        'LongLong': 20, 'LongPtr': 20,
-                        'String': 8, 'Boolean': 11, 'Date': 7,
-                    };
-                    return vtMap[typeInfo.vbaType] ?? 12;
-                }
-            }
+        // VarType/TypeName のコードマップ（共通）
+        const vtMap: Record<string, number> = {
+            'Byte': 17, 'Integer': 2, 'Long': 3,
+            'Single': 4, 'Double': 5, 'Currency': 6,
+            'LongLong': 20, 'LongPtr': 20,
+            'String': 8, 'Boolean': 11, 'Date': 7,
+        };
+
+        // 宣言型が確定しているケースを AST レベルで解決する（値の評価前）
+        const declaredType = this.resolveDeclaredReturnType(argExpr);
+        if (declaredType && declaredType !== 'Variant' && declaredType !== 'Object') {
+            return funcName === 'typename' ? declaredType : (vtMap[declaredType] ?? 12);
         }
 
-        // Evaluate the value and use existing logic (with literal type inference)
-        // Auto-Instantiation placeholder は TypeName で参照されたタイミングで解決する。
+        // 値を評価して型を判定する
         const val = this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr));
 
         if (funcName === 'typename') {
-            // Check for number literal type inference
             if (typeof val === 'number') {
-                // If the argument is a literal in the AST, infer type from value
-                if (argExpr.type === 'NumberLiteral') {
-                    return this.inferLiteralTypeName(val);
-                }
-                return 'Double'; // Expression results default to Double
+                if (argExpr.type === 'NumberLiteral') return this.inferLiteralTypeName(val);
+                return 'Double'; // 型情報なしの式は Double
             }
-            // Delegate to existing typename function
-            const typenameFn = this.env.get('typename');
-            return typenameFn(val);
+            return this.env.get('typename')(val);
         } else {
-            // VarType with literal inference
             if (typeof val === 'number') {
-                if (argExpr.type === 'NumberLiteral') {
-                    return this.inferLiteralVarType(val);
-                }
+                if (argExpr.type === 'NumberLiteral') return this.inferLiteralVarType(val);
                 return 5; // vbDouble
             }
-            const vartypeFn = this.env.get('vartype');
-            return vartypeFn(val);
+            return this.env.get('vartype')(val);
         }
+    }
+
+    /** AST から式の宣言戻り型を解決する（変数・関数・組み込み変換関数） */
+    private resolveDeclaredReturnType(expr: Expression): VbaVarType | undefined {
+        if (expr.type === 'Identifier') {
+            const typeInfo = this.env.getVariableType((expr as Identifier).name);
+            return typeInfo?.vbaType;
+        }
+        if (expr.type === 'CallExpression') {
+            const ce = expr as CallExpression;
+            if (ce.callee.type === 'Identifier') {
+                const nameLower = (ce.callee as Identifier).name.toLowerCase();
+                // 組み込み変換関数
+                const builtin = Evaluator.BUILTIN_RETURN_TYPES[nameLower];
+                if (builtin) return builtin;
+                // ユーザー定義関数の宣言型
+                const proc = this.env.getProcedure(nameLower);
+                if (proc?.returnType) {
+                    const typeMap: Record<string, VbaVarType> = {
+                        'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                        'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                        'longlong': 'LongLong', 'longptr': 'LongPtr',
+                        'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                    };
+                    return typeMap[proc.returnType.toLowerCase()];
+                }
+            }
+        }
+        return undefined;
     }
 
     private evaluateCallExpression(expr: CallExpression): any {

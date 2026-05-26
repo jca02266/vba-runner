@@ -152,7 +152,7 @@ Debug.Print F()
     console.log('[PASS] Integer ← 40000 → Overflow');
 }
 
-// ─── 呼び出し側の値 ──────────────────────────────────────────────────────────
+// ─── 呼び出し側の型と値 ──────────────────────────────────────────────────────
 
 // Long 関数の戻り値は丸め済みの整数値として呼び出し側に届く
 {
@@ -166,6 +166,25 @@ Debug.Print v
 `);
     assert.strictEqual(r, '4', '呼び出し側: 丸め済みの値 4 が届く');
     console.log('[PASS] 呼び出し側に丸め済み値 4 が届く');
+}
+
+// TypeName(F()) は宣言型を返す
+{
+    const r = run(`
+Function F() As Long
+    F = 3.7
+End Function
+Debug.Print TypeName(F())
+`);
+    assert.strictEqual(r, 'Long', 'TypeName(F()) = Long');
+    console.log('[PASS] TypeName(F()) = Long');
+}
+
+// TypeName(CLng(1)) = Long
+{
+    const r = run('Debug.Print TypeName(CLng(1))');
+    assert.strictEqual(r, 'Long', 'TypeName(CLng(1)) = Long');
+    console.log('[PASS] TypeName(CLng(1)) = Long');
 }
 
 console.log('\n✅ 関数戻り値 Let-coercion: 全テスト通過');
