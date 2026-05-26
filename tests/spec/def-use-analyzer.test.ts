@@ -184,4 +184,76 @@ function analyze(code: string, procName: string, startLine: number, endLine: num
     console.log('[PASS] 結果はソート済み');
 }
 
+// ─── 8. CFG 精密化: If 分岐の両パスで定義 → 確実な output ────────────────────
+{
+    // 線形スキャンでも output になるが、CFG では到達保証を解析できる
+    const code = [
+        'Sub Test()',
+        '    Dim result As Long',
+        '    Dim flag As Boolean',
+        '    flag = True',
+        '    If flag Then',            // line 5
+        '        result = 1',          // line 6
+        '    Else',
+        '        result = 2',          // line 8
+        '    End If',                  // line 9
+        '    MsgBox result',           // line 10
+        'End Sub',
+    ].join('\n');
+
+    const r = analyze(code, 'Test', 5, 9);
+    assert.strictEqual(r.outputs.includes('result'), true, 'CFG: If/Else 両パスの定義 → output');
+    assert.strictEqual(r.inputs.includes('flag'),    true, 'CFG: flag は input');
+    console.log('[PASS] CFG: If/Else 両分岐で定義された変数は output');
+}
+
+// ─── 9. CFG 精密化: 条件分岐内で read-modify-write → input かつ output ────────
+{
+    // x = x + 1 はループ内で "前の値を読んで書く" → input AND output
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    Dim flag As Boolean',
+        '    x = 0',
+        '    flag = True',
+        '    If flag Then',            // line 6
+        '        x = x + 1',          // line 7: x を読んで書く
+        '    End If',                  // line 8
+        '    MsgBox x',               // line 9
+        'End Sub',
+    ].join('\n');
+
+    const r = analyze(code, 'Test', 6, 8);
+    // x は範囲内で定義され、範囲後で使用される → output
+    assert.strictEqual(r.outputs.includes('x'),   true, 'CFG: read-modify-write の x は output');
+    // x は範囲前に定義（x=0）され、範囲内で読まれる → input
+    assert.strictEqual(r.inputs.includes('x'),    true, 'CFG: read-modify-write の x は input でもある');
+    assert.strictEqual(r.inputs.includes('flag'), true, 'CFG: flag は input');
+    console.log('[PASS] CFG: read-modify-write は input かつ output');
+}
+
+// ─── 10. CFG 精密化: ループ内の変数で範囲外に出ない ─────────────────────────
+{
+    // ループ内で tmp を計算するが tmp は範囲外で使わない → local
+    const code = [
+        'Sub Test()',
+        '    Dim i As Long',
+        '    Dim result As Long',
+        '    Dim tmp As Long',
+        '    For i = 1 To 5',         // line 5
+        '        tmp = i * i',        // line 6
+        '        result = result + tmp', // line 7
+        '    Next i',                 // line 8
+        '    MsgBox result',
+        'End Sub',
+    ].join('\n');
+
+    const r = analyze(code, 'Test', 5, 8);
+    assert.strictEqual(r.locals.includes('i'),      true, 'CFG: ループカウンター i は local');
+    assert.strictEqual(r.locals.includes('tmp'),    true, 'CFG: 中間変数 tmp は local');
+    assert.strictEqual(r.inputs.includes('result'), true, 'CFG: result は input（前イテレーション依存）');
+    assert.strictEqual(r.outputs.includes('result'),true, 'CFG: result は output（後で使用）');
+    console.log('[PASS] CFG: ループ内中間変数は local、蓄積変数は input+output');
+}
+
 console.log('\n✅ DefUseAnalyzer: 全テスト通過');

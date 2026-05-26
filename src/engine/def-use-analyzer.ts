@@ -9,20 +9,22 @@
  *   outputs — 範囲内で定義され範囲外（後）で使用される変数（ByRef 引数候補）
  *   locals  — 範囲内だけで完結する変数（ローカル変数候補）
  *
- * 制限:
- *   分岐マージなし（線形スキャン）。CFG ベースの精密解析は Phase 4C 以降。
+ * 実装: CFG + 到達定義（Phase 4B）+ 生変数（Phase 4C）による精密解析。
+ *   - 到達定義: 使用点に到達する定義集合から「範囲外の定義」を検出 → inputs
+ *   - 生変数: 範囲内の定義変数が範囲後で生きているか判定 → outputs
+ *   - 条件分岐・ループを含む場合も正確に分類できる。
  */
 
+import { ProcedureDeclaration } from './parser';
+import { buildCFG, CFG } from './cfg';
 import {
-    ProcedureDeclaration,
-    Statement,
-    Expression,
-    AssignmentStatement,
-    SetStatement,
-    ForStatement,
-    ForEachStatement,
-    Identifier,
-} from './parser';
+    computeReachingDefs,
+    buildDefUseChains,
+    usePointKey,
+    UsePoint,
+    ReachingDefsResult,
+} from './reaching-defs';
+import { computeLiveVars, LiveVarsResult, getStmtDefs, getStmtUses } from './live-vars';
 
 // ─── 公開型 ──────────────────────────────────────────────────────────────────
 
@@ -33,12 +35,6 @@ export interface DefUseResult {
     outputs: string[];
     /** 範囲内だけで完結する変数（抽出後のローカル変数候補） */
     locals: string[];
-}
-
-interface VarEvent {
-    varName: string;
-    line: number;  // 1-based（パーサーの loc に合わせる）
-    kind: 'def' | 'use';
 }
 
 // ─── 公開 API ─────────────────────────────────────────────────────────────────
@@ -52,189 +48,123 @@ export function analyzeDefUse(
     startLine: number,
     endLine: number,
 ): DefUseResult {
-    const events = collectEvents(proc);
+    const cfg = buildCFG(proc);
 
-    // 変数名ごとにイベントをグループ化
-    const byVar = new Map<string, VarEvent[]>();
-    for (const ev of events) {
-        const list = byVar.get(ev.varName) ?? [];
-        list.push(ev);
-        byVar.set(ev.varName, list);
+    // 到達定義解析（パラメーターを暗黙 def として登録）
+    const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
+    const rdResult = computeReachingDefs(cfg, paramNames);
+
+    // 生変数解析（ByRef 引数・関数戻り値を出口で常に生きているとみなす）
+    const alwaysLive = new Set<string>();
+    if (proc.isFunction || proc.isProperty) alwaysLive.add(proc.name.name.toLowerCase());
+    for (const param of proc.parameters) {
+        if (!param.isByVal) alwaysLive.add(param.name.toLowerCase());
+    }
+    const lvResult = computeLiveVars(cfg, alwaysLive);
+
+    // プロシージャ内で少なくとも 1 回 def される変数名 + パラメーター
+    // （VBA 組み込み関数名などの偽変数をフィルタリングするために使用）
+    const knownVars = new Set<string>(rdResult.allDefs.map(d => d.varName));
+    for (const p of paramNames) knownVars.add(p);
+
+    // ─── 範囲内ステートメントの収集 ─────────────────────────────────────────
+    const inRangeUsePoints: UsePoint[] = [];
+    const allDefsInRange = new Set<string>();
+
+    for (const block of cfg.blocks) {
+        if (block.kind !== 'normal') continue;
+        for (let i = 0; i < block.stmts.length; i++) {
+            const stmt = block.stmts[i];
+            const line = (stmt as any).loc?.start.line ?? 0;
+            if (line < startLine || line > endLine) continue;
+
+            for (const v of getStmtDefs(stmt)) allDefsInRange.add(v);
+            for (const v of getStmtUses(stmt)) {
+                if (knownVars.has(v)) {
+                    inRangeUsePoints.push({ blockId: block.id, stmtIdx: i, varName: v });
+                }
+            }
+        }
     }
 
-    const inputs: string[] = [];
-    const outputs: string[] = [];
+    // ─── inputs: 範囲外の定義が到達する使用点 ─────────────────────────────────
+    const chains = buildDefUseChains(cfg, rdResult, inRangeUsePoints);
+    const inputs = new Set<string>();
+
+    for (const up of inRangeUsePoints) {
+        const reachDefs = chains.get(usePointKey(up)) ?? new Set();
+        const hasOutsideDef = [...reachDefs].some(d =>
+            d.stmtIdx === -1          || // パラメーター（暗黙 def）
+            d.line < startLine        ||
+            d.line > endLine,
+        );
+        // 「本物の先行定義」がない = inputs とみなすケース:
+        //   1. 到達定義が空 → VBA 暗黙初期化値に依存
+        //   2. すべての到達定義が「同ブロック・同位置以降」= ループバックエッジ経由の
+        //      前イテレーションの残像であり、このパス上に真の先行定義がない
+        const noGenuinePriorDef = reachDefs.size === 0 || [...reachDefs].every(d =>
+            d.blockId === up.blockId && d.stmtIdx >= up.stmtIdx,
+        );
+
+        if (hasOutsideDef || noGenuinePriorDef) inputs.add(up.varName);
+    }
+
+    // ─── outputs: 範囲内の定義変数が endLine より後で生きている ───────────────
+    const outputs = new Set<string>();
+    for (const varName of allDefsInRange) {
+        if (isLiveAfterEndLine(varName, cfg, lvResult, endLine)) outputs.add(varName);
+    }
+
+    // ─── locals: 範囲内で完結（inputs でも outputs でもない） ─────────────────
     const locals: string[] = [];
-
-    for (const [varName, evs] of byVar) {
-        const hasDefBefore  = evs.some(e => e.kind === 'def' && e.line < startLine);
-        const hasUseInRange = evs.some(e => e.kind === 'use' && e.line >= startLine && e.line <= endLine);
-        const hasDefInRange = evs.some(e => e.kind === 'def' && e.line >= startLine && e.line <= endLine);
-        const hasUseAfter   = evs.some(e => e.kind === 'use' && e.line > endLine);
-        const onlyInRange   = evs.every(e => e.line >= startLine && e.line <= endLine);
-
-        // 範囲内の最初のイベントが USE なら外部値に依存 → input
-        const firstInRange = evs.find(e => e.line >= startLine && e.line <= endLine);
-        const firstIsUse   = firstInRange?.kind === 'use';
-
-        const isInput  = hasUseInRange && (hasDefBefore || firstIsUse);
-        const isOutput = hasDefInRange && hasUseAfter;
-
-        if (isOutput) outputs.push(varName);
-        if (isInput)  inputs.push(varName);
-        if (!isInput && !isOutput && onlyInRange) locals.push(varName);
+    for (const varName of allDefsInRange) {
+        if (!inputs.has(varName) && !outputs.has(varName)) locals.push(varName);
     }
 
     return {
-        inputs:  inputs.sort(),
-        outputs: outputs.sort(),
+        inputs:  [...inputs].sort(),
+        outputs: [...outputs].sort(),
         locals:  locals.sort(),
     };
 }
 
-// ─── イベント収集 ─────────────────────────────────────────────────────────────
+// ─── 内部ユーティリティ ───────────────────────────────────────────────────────
 
-function collectEvents(proc: ProcedureDeclaration): VarEvent[] {
-    const events: VarEvent[] = [];
-    const procStartLine = proc.loc?.start.line ?? 1;
+/**
+ * 変数 varName が endLine より後の任意の時点で生きているかを判定する。
+ *
+ * 各ブロックについて blockOut から後ろ向きにシミュレーションし、
+ * line > endLine のステートメント直前（= そのステートメントかそれ以降で使用）で
+ * varName が生きていれば true を返す。
+ */
+function isLiveAfterEndLine(
+    varName: string,
+    cfg: CFG,
+    lvResult: LiveVarsResult,
+    endLine: number,
+): boolean {
+    for (const block of cfg.blocks) {
+        if (block.kind !== 'normal') continue;
 
-    // パラメーターはプロシージャ開始行で Def として登録
-    for (const param of proc.parameters) {
-        events.push({ varName: param.name.toLowerCase(), line: procStartLine, kind: 'def' });
-    }
+        const hasAfterLine = block.stmts.some(
+            s => ((s as any).loc?.start.line ?? 0) > endLine,
+        );
+        if (!hasAfterLine) continue;
 
-    for (const stmt of proc.body) {
-        collectStmtEvents(stmt, events);
-    }
+        // ブロック出口の生変数集合を出発点に後ろ向きシミュレーション
+        const live = new Set<string>(lvResult.blockOut.get(block.id)!);
 
-    return events;
-}
+        for (let i = block.stmts.length - 1; i >= 0; i--) {
+            const stmt = block.stmts[i];
+            const line = (stmt as any).loc?.start.line ?? 0;
 
-function collectStmtEvents(stmt: Statement, out: VarEvent[]): void {
-    const line = (stmt as any).loc?.start.line ?? 0;
+            // live_before(stmt i) = (live_after − defs) ∪ uses
+            for (const v of getStmtDefs(stmt)) live.delete(v);
+            for (const v of getStmtUses(stmt)) live.add(v);
 
-    switch (stmt.type) {
-        case 'AssignmentStatement': {
-            const as_ = stmt as AssignmentStatement;
-            // RHS を先に収集（右辺が先に評価される）→ total = total + 1 で total が USE-before-DEF
-            collectUseFromExpr(as_.right, line, out);
-            collectDefFromLHS(as_.left, line, out);
-            break;
-        }
-        case 'SetStatement': {
-            const ss = stmt as SetStatement;
-            collectUseFromExpr(ss.right, line, out);
-            collectDefFromLHS(ss.left, line, out);
-            break;
-        }
-        case 'ForStatement': {
-            const fs = stmt as ForStatement;
-            // ループカウンター変数は Def
-            out.push({ varName: fs.identifier.name.toLowerCase(), line, kind: 'def' });
-            collectUseFromExpr(fs.start, line, out);
-            collectUseFromExpr(fs.end, line, out);
-            if (fs.step) collectUseFromExpr(fs.step, line, out);
-            for (const s of fs.body) collectStmtEvents(s, out);
-            break;
-        }
-        case 'ForEachStatement': {
-            const fe = stmt as ForEachStatement;
-            out.push({ varName: fe.variable.name.toLowerCase(), line, kind: 'def' });
-            collectUseFromExpr(fe.collection, line, out);
-            for (const s of fe.body) collectStmtEvents(s, out);
-            break;
-        }
-        case 'ReDimStatement': {
-            const rd = stmt as any;
-            out.push({ varName: rd.name.name.toLowerCase(), line, kind: 'def' });
-            for (const b of (rd.bounds ?? [])) {
-                if (b.lower) collectUseFromExpr(b.lower, line, out);
-                if (b.upper) collectUseFromExpr(b.upper, line, out);
-            }
-            break;
-        }
-        case 'IfStatement': {
-            const is = stmt as any;
-            collectUseFromExpr(is.condition, line, out);
-            const cons = Array.isArray(is.consequent) ? is.consequent : (is.consequent ? [is.consequent] : []);
-            const alt  = Array.isArray(is.alternate)  ? is.alternate  : (is.alternate  ? [is.alternate]  : []);
-            for (const s of cons) collectStmtEvents(s, out);
-            for (const s of alt)  collectStmtEvents(s, out);
-            break;
-        }
-        case 'DoWhileStatement':
-        case 'WhileStatement': {
-            const ws = stmt as any;
-            if (ws.condition) collectUseFromExpr(ws.condition, line, out);
-            for (const s of (ws.body ?? [])) collectStmtEvents(s, out);
-            break;
-        }
-        case 'WithStatement': {
-            const ws = stmt as any;
-            collectUseFromExpr(ws.object, line, out);
-            for (const s of (ws.body ?? [])) collectStmtEvents(s, out);
-            break;
-        }
-        case 'SelectCaseStatement': {
-            const sc = stmt as any;
-            collectUseFromExpr(sc.expression, line, out);
-            for (const clause of (sc.cases ?? [])) {
-                for (const s of (clause.body ?? [])) collectStmtEvents(s, out);
-            }
-            if (sc.elseBody) {
-                for (const s of sc.elseBody) collectStmtEvents(s, out);
-            }
-            break;
-        }
-        case 'CallStatement': {
-            collectUseFromExpr((stmt as any).expression, line, out);
-            break;
+            // live_before: stmt i またはそれ以降で varName が使われるか
+            if (line > endLine && live.has(varName)) return true;
         }
     }
-}
-
-function collectDefFromLHS(expr: Expression, line: number, out: VarEvent[]): void {
-    if (!expr) return;
-    if (expr.type === 'Identifier') {
-        out.push({ varName: (expr as Identifier).name.toLowerCase(), line, kind: 'def' });
-    }
-    // MemberExpression の左辺（obj.Prop = ...）は obj が use
-    if (expr.type === 'MemberExpression') {
-        collectUseFromExpr((expr as any).object, line, out);
-    }
-}
-
-function collectUseFromExpr(expr: Expression, line: number, out: VarEvent[]): void {
-    if (!expr) return;
-
-    switch (expr.type) {
-        case 'Identifier':
-            out.push({ varName: (expr as Identifier).name.toLowerCase(), line, kind: 'use' });
-            break;
-        case 'MemberExpression': {
-            const me = expr as any;
-            collectUseFromExpr(me.object, line, out);
-            // me.property は識別子だが変数ではなくプロパティ名なので収集しない
-            break;
-        }
-        case 'CallExpression': {
-            const ce = expr as any;
-            collectUseFromExpr(ce.callee, line, out);
-            for (const arg of (ce.args ?? [])) collectUseFromExpr(arg, line, out);
-            break;
-        }
-        case 'BinaryExpression':
-        case 'LogicalExpression': {
-            const be = expr as any;
-            collectUseFromExpr(be.left, line, out);
-            collectUseFromExpr(be.right, line, out);
-            break;
-        }
-        case 'UnaryExpression':
-            collectUseFromExpr((expr as any).argument, line, out);
-            break;
-        case 'ParenthesizedExpression':
-            collectUseFromExpr((expr as any).expression, line, out);
-            break;
-    }
+    return false;
 }
