@@ -54,7 +54,7 @@ export interface ModuleTypeEnvironment {
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
 
 const NUMERIC_TYPES = new Set([
-    'byte', 'integer', 'long', 'longlng', 'longlong', 'single',
+    'byte', 'integer', 'long', 'longlng', 'longlong', 'longptr', 'single',
     'double', 'currency', 'decimal',
 ]);
 

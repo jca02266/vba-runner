@@ -100,7 +100,7 @@ export const vbaTrue: VbaBoolean = VbaBoolean._createSingleton(-1);
 export const vbaFalse: VbaBoolean = VbaBoolean._createSingleton(0);
 
 export type VbaBooleanType = VbaBoolean;
-export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong';
+export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong' | 'LongPtr';
 export type VbaVarType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
 
 export interface AutoInstancePlaceholder {

@@ -13,6 +13,13 @@ function testCLngLng() {
         { code: "Debug.Print CLngLng(\"-9223372036854775808\")", expected: "-9223372036854775808" },
         { code: "Debug.Print TypeName(CLngLng(1))", expected: "LongLong" },
         { code: "Debug.Print VarType(CLngLng(1))", expected: "20" },
+        // LongPtr: CLngPtr は CLngLng と同等（64bit 環境）
+        { code: "Debug.Print CLngPtr(42)", expected: "42" },
+        { code: "Debug.Print CLngPtr(-1)", expected: "-1" },
+        { code: "Debug.Print VarType(CLngPtr(1))", expected: "20" },
+        // Dim As LongPtr: 初期値 0、TypeName は LongLong (bigint)
+        { code: "Sub T()\n    Dim x As LongPtr\n    Debug.Print x\nEnd Sub\nT", expected: "0" },
+        { code: "Sub T()\n    Dim x As LongPtr\n    x = 100\n    Debug.Print x\nEnd Sub\nT", expected: "100" },
     ];
 
     let passed = 0;

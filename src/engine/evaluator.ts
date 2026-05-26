@@ -2428,7 +2428,7 @@ export class Evaluator {
     private coerceToDeclaredType(val: any, vbaType: string): any {
         // Null は数値・Boolean 型では「Invalid use of Null (Error 94)」
         if (val === vbaNull) {
-            const errorTypes = new Set(['Boolean', 'Byte', 'Integer', 'Long', 'LongLong', 'Single', 'Double', 'Currency', 'Date']);
+            const errorTypes = new Set(['Boolean', 'Byte', 'Integer', 'Long', 'LongLong', 'LongPtr', 'Single', 'Double', 'Currency', 'Date']);
             if (errorTypes.has(vbaType)) {
                 this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
             }
@@ -2668,6 +2668,8 @@ export class Evaluator {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
                     'longlonglong': 'LongLong',
+                    'longlong': 'LongLong',
+                    'longptr': 'LongPtr',
                     'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
                 };
                 const mapped = typeMap[decl.objectType.toLowerCase()];
@@ -2687,7 +2689,7 @@ export class Evaluator {
             // Typed numeric/string variables get VBA-spec default values
             if (decl.objectType) {
                 const t = decl.objectType.toLowerCase();
-                if (['integer', 'long', 'single', 'double', 'currency', 'byte'].includes(t)) {
+                if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(t)) {
                     initialValue = 0;
                 } else if (t === 'string') {
                     initialValue = '';
@@ -4232,7 +4234,7 @@ export class Evaluator {
                     const vtMap: Record<string, number> = {
                         'Byte': 17, 'Integer': 2, 'Long': 3,
                         'Single': 4, 'Double': 5, 'Currency': 6,
-                        'LongLong': 20,
+                        'LongLong': 20, 'LongPtr': 20,
                         'String': 8, 'Boolean': 11, 'Date': 7,
                     };
                     return vtMap[typeInfo.vbaType] ?? 12;
