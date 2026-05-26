@@ -79,6 +79,16 @@ export class CodeLensProvider {
                     arguments: [uri, proc.name],
                 },
             });
+
+            // Extract Function hint
+            items.push({
+                range,
+                command: {
+                    title: '⚡ Extract Function',
+                    command: 'vba-runner.extractFunction',
+                    arguments: [uri, proc.name, proc.line + 1, proc.endLine],
+                },
+            });
         }
 
         return items;

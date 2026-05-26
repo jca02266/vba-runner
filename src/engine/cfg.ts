@@ -47,6 +47,24 @@ export function buildCFG(proc: ProcedureDeclaration): CFG {
     return builder.build(proc);
 }
 
+/**
+ * CFG から到達不能な normal ブロック（stmts が 1 件以上）を返す。
+ * entry からの BFS で到達可能集合を求め、残りを unreachable とみなす。
+ */
+export function findUnreachableBlocks(cfg: CFG): BasicBlock[] {
+    const reachable = new Set<number>();
+    const queue: BasicBlock[] = [cfg.entry];
+    while (queue.length > 0) {
+        const b = queue.pop()!;
+        if (reachable.has(b.id)) continue;
+        reachable.add(b.id);
+        for (const s of b.succs) queue.push(s);
+    }
+    return cfg.blocks.filter(
+        b => b.kind === 'normal' && !reachable.has(b.id) && b.stmts.length > 0,
+    );
+}
+
 // ─── 内部実装 ─────────────────────────────────────────────────────────────────
 
 class CFGBuilder {

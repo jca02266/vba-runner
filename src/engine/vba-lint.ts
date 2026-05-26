@@ -13,6 +13,7 @@
  *   VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
  *   VBA008 - GoTo（エラーハンドラー以外） → スパゲッティ化の原因
  *   VBA009 - デッドストア → 代入値が使用前に上書きまたは破棄される
+ *   VBA010 - 到達不能コード → Exit Sub / GoTo などで実行されないコード
  */
 
 import {
@@ -32,6 +33,7 @@ import {
     MemberExpression,
 } from './parser';
 import { findDeadStores } from './dead-store';
+import { buildCFG, findUnreachableBlocks } from './cfg';
 
 // ─── 公開型 ──────────────────────────────────────────────────────────────────
 
@@ -74,6 +76,7 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
             const proc = stmt as ProcedureDeclaration;
             checkParameters(proc, out);
             checkDeadStores(proc, out);
+            checkUnreachableCode(proc, out);
             for (const s of proc.body) lintStatement(s, out);
             break;
         }
@@ -331,6 +334,31 @@ function checkGoTo(stmt: GoToStatement, out: LintDiagnostic[]): void {
         message: `'GoTo ${label}' はスパゲッティコードの原因になります。ループや条件分岐での代替を検討してください`,
         line, column: col, endLine: line, endColumn: col + 4,
     });
+}
+
+/** VBA010: 到達不能コード（Exit Sub / GoTo などで実行されないコード） */
+function checkUnreachableCode(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
+    try {
+        const cfg = buildCFG(proc);
+        for (const block of findUnreachableBlocks(cfg)) {
+            const first = block.stmts[0];
+            const last  = block.stmts[block.stmts.length - 1];
+            const startLoc = (first as any).loc?.start;
+            const endLoc   = (last  as any).loc?.end ?? (last as any).loc?.start;
+            if (!startLoc) continue;
+            out.push({
+                code: 'VBA010',
+                severity: 3,
+                message: 'このコードには到達できません（到達不能コード）',
+                line:      startLoc.line   - 1,
+                column:    startLoc.column - 1,
+                endLine:   (endLoc?.line   ?? startLoc.line)   - 1,
+                endColumn: (endLoc?.column ?? startLoc.column) - 1,
+            });
+        }
+    } catch {
+        // CFG 構築失敗は lint を止めない
+    }
 }
 
 /** VBA009: デッドストア（代入値が使用前に上書きまたは破棄される） */

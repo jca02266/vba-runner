@@ -2,6 +2,8 @@ import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram } from '../engine/vba-lint';
+import { analyzeDefUse } from '../engine/def-use-analyzer';
+import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
@@ -341,6 +343,63 @@ export class LSPServer {
             }
         }
         return this.callGraphProvider.buildCallGraph(fileMap);
+    }
+
+    /**
+     * Get code actions for a selection range.
+     * Offers "Extract Function" when the selection is within a procedure.
+     */
+    getCodeActions(
+        uri: string,
+        range: { start: { line: number; character: number }; end: { line: number; character: number } },
+    ): any[] {
+        const doc = this.documents.get(uri);
+        if (!doc) return [];
+
+        try {
+            const tokens    = new Lexer(this.stripClsHeader(doc.content)).tokenize();
+            const ast       = new Parser(tokens, { errorRecovery: true }).parse();
+            const startLine = range.start.line + 1;  // 0-based → 1-based
+            const endLine   = range.end.line   + 1;
+
+            // 選択範囲を含むプロシージャを探す
+            const proc = ast.body.find((s: any) =>
+                s.type === 'ProcedureDeclaration' &&
+                s.loc  != null                    &&
+                s.loc.start.line <= startLine     &&
+                s.loc.end.line   >= endLine,
+            ) as ProcedureDeclaration | undefined;
+            if (!proc) return [];
+
+            const result = analyzeDefUse(proc, startLine, endLine);
+            if (
+                result.inputs.length  === 0 &&
+                result.outputs.length === 0 &&
+                result.locals.length  === 0
+            ) return [];
+
+            const inputParams  = result.inputs.map(v  => `ByVal ${v} As Variant`);
+            const outputParams = result.outputs.map(v => `ByRef ${v} As Variant`);
+            const allParams    = [...inputParams, ...outputParams].join(', ');
+            const localDecls   = result.locals.map(v => `    Dim ${v} As Variant`).join('\n');
+            const callArgs     = [...result.inputs, ...result.outputs].join(', ');
+            const newProcName  = 'ExtractedSub';
+            const procBody     = localDecls ? `${localDecls}\n    ' TODO: 抽出したコードをここに移動` : `    ' TODO: 抽出したコードをここに移動`;
+            const procSignature = `Private Sub ${newProcName}(${allParams})\n${procBody}\nEnd Sub`;
+            const callStatement = `${newProcName}(${callArgs})`;
+
+            return [{
+                title: `⚡ Extract Function: ${callStatement}`,
+                kind: 'refactor.extract.function',
+                command: {
+                    title: 'Extract Function',
+                    command: 'vba-runner.doExtractFunction',
+                    arguments: [uri, range, result, procSignature, callStatement],
+                },
+            }];
+        } catch {
+            return [];
+        }
     }
 
     private stripClsHeader(content: string): string {

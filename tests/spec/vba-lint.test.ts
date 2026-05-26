@@ -293,4 +293,51 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA009: ByRef パラメーター代入はデッドストアなし');
 }
 
+// ─── VBA010: 到達不能コード ───────────────────────────────────────────────────
+
+// Exit Sub の後ろのコード → 検出
+{
+    const code = [
+        'Sub Test()',
+        '    Exit Sub',
+        '    Dim x As Long',
+        '    x = 1',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA010');
+    assert.strictEqual(d.length >= 1, true, 'VBA010: Exit Sub 後のコード検出');
+    assert.strictEqual(d[0].severity, 3, 'VBA010: severity = Information');
+    console.log('[PASS] VBA010: Exit Sub 後の到達不能コード');
+}
+
+// GoTo でスキップされたコード → 検出
+{
+    const code = [
+        'Sub Test()',
+        '    GoTo Done',
+        '    Dim x As Long',
+        'Done:',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA010');
+    assert.strictEqual(d.length >= 1, true, 'VBA010: GoTo スキップ後のコード検出');
+    console.log('[PASS] VBA010: GoTo スキップ後の到達不能コード');
+}
+
+// 到達可能なコードのみ → 警告なし
+{
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 1',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA010');
+    assert.strictEqual(d.length, 0, 'VBA010: 到達可能コード → 警告なし');
+    console.log('[PASS] VBA010: 到達可能コード → 警告なし');
+}
+
 console.log('\n✅ VBA Lint: 全テスト通過');
