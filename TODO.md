@@ -174,7 +174,7 @@
 | ✅ | P1 | Oct / Oct$ | §6.1.2.3.1.19 | `number_literals.test.ts` |
 | ✅ | P1 | Str / Str$ | §6.1.2.3.1.20 | `str_fix.test.ts` |
 | ✅ | P1 | Val | §6.1.2.3.1.21 | `conversion-int-val.test.ts` |
-| ✅ | P1 | TypeName | §6.1.2.3.1.22 | (制限事項: 全ての数値はJSのnumber(Double)として扱われ、Integer/Longの区別は未実装) | `typename.test.ts` |
+| ✅ | P1 | TypeName | §6.1.2.3.1.22 | 宣言型変数・組み込み変換関数(CLng等)・UBound/Len等の固定戻り型関数・ユーザー定義関数の宣言戻り型を正しく返す。Variant値の型タグは未実装のため `TypeName(v)` where `v = CLng(1)` は `Double` になる制限あり | `typename.test.ts`, `function-return-coercion.test.ts` |
 
 ## 第6章：標準ライブラリ — 日付/時刻 DateTime Module (§6.1.2.4)
 
