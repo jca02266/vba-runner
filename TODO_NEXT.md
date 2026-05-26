@@ -976,7 +976,6 @@ Dim x, y, z As Long   ' ⚠️ x, y は Variant（Long ではない）
 - [ ] `mergeDimAndAssign` ルール実装
 - [ ] `moveDimToFirstUse` ルール実装（Def-Use 解析または参照検索で初使用行を特定）
 - [x] `Dim x, y, z As Long` 型指定警告を `getDiagnostics()` に追加（VBA001 として vba-lint.ts に実装済み）
-- [x] **`LongPtr` 型のサポート** — 64bit 環境で `LongLong` と同等（`bigint`）として扱う。`vba-types.ts`, `type-environment.ts`, `evaluator.ts` に追加済み
 - [ ] GoTo ラベル（`Label:` 形式）はインデントしない（現在は本文と同じ深さになっている）
 - [ ] **型名の大文字化**（`keywordCase` ルールの拡張）
   現在のレキサーは `Long`/`Integer`/`Single`/`Double`/`String`/`Boolean`/`Byte`/`Currency`/`Date`/`Object`/`Variant` を識別子（`Identifier` トークン）として扱うため、`dim x as long` の `long` が `Long` に正規化されない。

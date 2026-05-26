@@ -162,6 +162,7 @@
 | ✅ | P1 | CInt | §6.1.2.3.1.7 | `conversion-extra.test.ts` |
 | ✅ | P1 | CLng | §6.1.2.3.1.8 | `conversion-extra.test.ts` |
 | ✅ | P2 | CLngLng | §6.1.2.3.1.9 | `clnglng.test.ts` |
+| ✅ | P2 | CLngPtr | §6.1.2.3.1.10 | 64bit 環境で CLngLng と同等 | `clnglng.test.ts` |
 | ✅ | P2 | CSng | §6.1.2.3.1.11 | `csng.test.ts` |
 | ✅ | P1 | CStr | §6.1.2.3.1.12 | `conversion-extra.test.ts` |
 | ✅ | P2 | CVar | §6.1.2.3.1.13 | `conversion-extra.test.ts` |
@@ -492,6 +493,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Boolean` の代入時の型強制**: 非 0 数値・文字列 "True"/"False"・数値文字列・Empty を Boolean に変換、Null は Error 94 (`boolean-coercion.test.ts`)
 - ✅ **`If` 条件式の truthy 判定**: 数値・Boolean・文字列（"True"/"False"/数値文字列→変換、それ以外 Type mismatch）・Null(Error 94)・Empty(False)。Boolean 算術（True=-1）・Not ビット反転・比較演算子結果が vbaTrue(-1)/vbaFalse(0)。文字列変換は §5.6.9（条件式は §6.1.2.3 の value coercion を適用）＋ §6.1.2.3.1.1（CBool 変換規則）が根拠 (`if-condition-truthy.test.ts`)
 - ✅ **Integer/Long のオーバーフロー検出**: Error 6 を正しく発生させる (Byte/Integer/Long/Currency/Single)
+- ✅ **`LongPtr` 型のサポート**: 64bit 環境で `LongLong` と同等（`bigint`、VarType=20）。`Dim x As LongPtr`・`CLngPtr()` 対応 | `clnglng.test.ts`
 - ⚠️ **`Decimal` 型の精度**: 28 桁の固定精度サポート (制限事項: VbaDecimalラッパー存在; 内部はJavaScriptのnumber型でIEEE 754精度、28桁固定小数点精度未実装) | `decimal-precision.test.ts`
 - ✅ **`Currency` 型の精度**: 64-bit 整数 / 10000 の固定小数 | `currency-precision.test.ts`
 
