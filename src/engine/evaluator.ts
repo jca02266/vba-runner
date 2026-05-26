@@ -4263,12 +4263,47 @@ export class Evaluator {
      * Special evaluator for TypeName() and VarType() that inspects the AST
      * to resolve variable type metadata from the Environment.
      */
-    // 組み込み変換関数の戻り型マップ
+    // 組み込み関数の戻り型マップ（固定戻り型のもののみ）
     private static readonly BUILTIN_RETURN_TYPES: Record<string, VbaVarType> = {
+        // 型変換関数
         'cbool': 'Boolean', 'cbyte': 'Byte', 'ccur': 'Currency',
         'cdate': 'Date', 'cdbl': 'Double', 'cint': 'Integer',
         'clng': 'Long', 'clnglng': 'LongLong', 'clngptr': 'LongPtr',
         'csng': 'Single', 'cstr': 'String',
+        // Long を返す関数
+        'ubound': 'Long', 'lbound': 'Long',
+        'len': 'Long', 'lenb': 'Long',
+        'instr': 'Long', 'instrb': 'Long', 'instrrev': 'Long',
+        // Integer を返す関数
+        'asc': 'Integer', 'ascb': 'Integer', 'ascw': 'Integer',
+        'vartype': 'Integer',
+        // Double を返す関数
+        'sqr': 'Double', 'sin': 'Double', 'cos': 'Double',
+        'tan': 'Double', 'atn': 'Double', 'exp': 'Double', 'log': 'Double',
+        'val': 'Double',
+        // Single を返す関数
+        'rnd': 'Single', 'timer': 'Single',
+        // Boolean を返す関数
+        'isarray': 'Boolean', 'isdate': 'Boolean', 'isempty': 'Boolean',
+        'iserror': 'Boolean', 'ismissing': 'Boolean', 'isnull': 'Boolean',
+        'isnumeric': 'Boolean', 'isobject': 'Boolean',
+        // Date を返す関数
+        'now': 'Date', 'date': 'Date', 'time': 'Date',
+        'dateserial': 'Date', 'timeserial': 'Date',
+        'dateadd': 'Date',
+        // String を返す関数
+        'typename': 'String',
+        'chr': 'String', 'chr$': 'String', 'chrb': 'String', 'chrw': 'String',
+        'left': 'String', 'left$': 'String', 'right': 'String', 'right$': 'String',
+        'mid': 'String', 'mid$': 'String',
+        'ltrim': 'String', 'ltrim$': 'String', 'rtrim': 'String', 'rtrim$': 'String',
+        'trim': 'String', 'trim$': 'String',
+        'ucase': 'String', 'ucase$': 'String', 'lcase': 'String', 'lcase$': 'String',
+        'space': 'String', 'space$': 'String',
+        'string': 'String', 'string$': 'String',
+        'hex': 'String', 'hex$': 'String', 'oct': 'String', 'oct$': 'String',
+        'format': 'String', 'format$': 'String',
+        'str': 'String', 'str$': 'String',
     };
 
     private evaluateTypeIntrinsic(funcName: 'typename' | 'vartype', argExpr: Expression): any {
