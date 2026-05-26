@@ -983,6 +983,60 @@ Dim x, y, z As Long   ' ⚠️ x, y は Variant（Long ではない）
   **対応方針:** `formatter.ts` の `KEYWORD_CANONICAL` に型名エントリを追加し、識別子トークンの値（小文字化）が型名と一致する場合に正規化する。トークンは単語単位なので `stringVar` のような変数名と混同しない。
   対象型名: `Integer`, `Long`, `Single`, `Double`, `String`, `Boolean`, `Byte`, `Currency`, `Date`, `Object`, `Variant`, `LongLong`, `LongPtr`
 
+### VBARunner アノテーション構文（アイデア案）
+
+VBA コードのコメントまたはラベルに VBARunner 専用のメタ情報を埋め込み、CFG 未実装の段階でも型精度・警告制御・テスト記述を強化するアイデア。TypeScript の JSDoc 型注釈や `// @ts-ignore` に相当する仕組み。
+
+> **ステータス**: アイデア段階。着手前に構文・パーサー拡張の設計が必要。
+
+#### `'@type TypeName` — 型アサーション
+
+`FlowEnvironment` の型推定が届かない変数に、人間が型を補完する。CFG（Phase 4）の代替として機能する。
+
+```vba
+Dim r As Variant
+Set r = GetSomething()  '@type Range
+r.Value = 1             ' → Range アクセスとして LSP Hint に検出される
+```
+
+#### `'@lint-disable VBACODE` — Lint 抑制
+
+特定行の VBA lint 警告（VBA001〜VBA008）を意図的に抑制する。既知の false positive やレガシーコードの一時的な除外に使う。
+
+```vba
+Sub LegacyProc(x)  '@lint-disable VBA003
+End Sub
+```
+
+#### `'@param name As Type` / `'@returns Type` — パラメーター型補完
+
+`As Type` 宣言なしの関数・プロシージャに型情報を付与し、呼び出し側の型推定を改善する。
+
+```vba
+'@param ws As Worksheet
+'@returns Range
+Function GetHeader(ws)
+End Function
+```
+
+#### `'@mock ObjectName As TypeName` — Excel オブジェクトモック宣言
+
+テスト実行時に `ActiveSheet` 等の Excel オブジェクトを指定の変数に差し替える指示。
+
+```vba
+'@mock ActiveSheet As Sheet1
+Sub Process()
+    ActiveSheet.Cells(1, 1) = 1  ' テスト時は Sheet1 として解釈
+End Sub
+```
+
+#### 実装方針（着手時）
+
+- パーサーまたは LSP サーバーのプリパス でコメントトークンを走査し `@` アノテーションを抽出
+- `vba-lint.ts` の `lintProgram()` に抑制リストを渡す
+- `FlowEnvironment` に型アサーションを注入するインターフェースを追加
+- 優先度: `@type` → `@lint-disable` → `@param`/`@returns` → `@mock` の順
+
 ### パッケージング（Marketplace 公開）
 - [ ] VS Code Marketplace への公開（アイコン整備、`.vsix` ビルド検証）
 - [ ] Web Extension 化（evaluator が Node.js `path` に依存しており、先にブラウザ対応が必要）
