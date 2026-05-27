@@ -697,7 +697,10 @@ export class Parser {
             defaultValue = this.parseExpression();
         }
 
-        return { type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, defaultValue };
+        return {
+            type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, defaultValue,
+            loc: { start: { line: nameToken.line, column: nameToken.column }, end: { line: nameToken.line, column: nameToken.column + nameToken.value.length } },
+        };
     }
 
     private parseAttributeStatement(): AttributeStatement {
