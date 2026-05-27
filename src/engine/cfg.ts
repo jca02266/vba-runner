@@ -90,12 +90,14 @@ class CFGBuilder {
         const labelMap = new Map<string, BasicBlock>();
         // GoTo の前向き参照を後で解決するためのパッチリスト
         const gotoPatches: { from: BasicBlock; label: string }[] = [];
+        // On Error GoTo のターゲットラベル（entry から到達可能とみなす）
+        const onErrorLabels: string[] = [];
 
         const first = this.newBlock();
         this.addEdge(entry, first);
 
         const fallthroughs = this.buildStmts(
-            proc.body, first, exit, null, null, labelMap, gotoPatches,
+            proc.body, first, exit, null, null, labelMap, gotoPatches, onErrorLabels,
         );
         for (const b of fallthroughs) this.addEdge(b, exit);
 
@@ -103,6 +105,12 @@ class CFGBuilder {
         for (const patch of gotoPatches) {
             const target = labelMap.get(patch.label.toLowerCase());
             if (target) this.addEdge(patch.from, target);
+        }
+
+        // On Error GoTo のターゲットを entry から到達可能にする
+        for (const label of onErrorLabels) {
+            const target = labelMap.get(label.toLowerCase());
+            if (target) this.addEdge(entry, target);
         }
 
         return { entry, exit, blocks: this.blocks };
@@ -123,13 +131,14 @@ class CFGBuilder {
         loopExit: BasicBlock | null,
         labelMap: Map<string, BasicBlock>,
         gotoPatches: { from: BasicBlock; label: string }[],
+        onErrorLabels: string[] = [],
     ): BasicBlock[] {
         let cur = current;
         let terminated = false;
 
         for (const stmt of stmts) {
             const result = this.buildStmt(
-                stmt, cur, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                stmt, cur, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
             );
             if (result === null) {
                 // 終端後も後続のラベル登録のため dead block を作って処理を続ける
@@ -156,8 +165,19 @@ class CFGBuilder {
         loopExit: BasicBlock | null,
         labelMap: Map<string, BasicBlock>,
         gotoPatches: { from: BasicBlock; label: string }[],
+        onErrorLabels: string[] = [],
     ): BasicBlock | null {
         switch (stmt.type) {
+
+            // ─── On Error GoTo ───────────────────────────────────────────
+            case 'OnErrorStatement': {
+                const errLabel = (stmt as any).label as string;
+                if (errLabel && errLabel !== '0' && errLabel.toLowerCase() !== 'resume next') {
+                    onErrorLabels.push(errLabel);
+                }
+                current.stmts.push(stmt);
+                return current;
+            }
 
             // ─── ラベル ──────────────────────────────────────────────────
             case 'LabelStatement': {
@@ -214,7 +234,7 @@ class CFGBuilder {
                 const thenBody = Array.isArray(is.consequent)
                     ? is.consequent : (is.consequent ? [is.consequent] : []);
                 const thenFalls = this.buildStmts(
-                    thenBody, thenBlock, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                    thenBody, thenBlock, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
                 );
                 for (const b of thenFalls) this.addEdge(b, mergeBlock);
 
@@ -224,7 +244,7 @@ class CFGBuilder {
                     const elseBlock = this.newBlock();
                     this.addEdge(current, elseBlock);
                     const elseFalls = this.buildStmts(
-                        altBody, elseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                        altBody, elseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
                     );
                     for (const b of elseFalls) this.addEdge(b, mergeBlock);
                 } else {
@@ -245,7 +265,7 @@ class CFGBuilder {
                     const caseBlock = this.newBlock();
                     this.addEdge(current, caseBlock);
                     const falls = this.buildStmts(
-                        clause.body ?? [], caseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                        clause.body ?? [], caseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
                     );
                     for (const b of falls) this.addEdge(b, mergeBlock);
                 }
@@ -254,7 +274,7 @@ class CFGBuilder {
                     const elseBlock = this.newBlock();
                     this.addEdge(current, elseBlock);
                     const falls = this.buildStmts(
-                        sc.elseBody, elseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                        sc.elseBody, elseBlock, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
                     );
                     for (const b of falls) this.addEdge(b, mergeBlock);
                 } else {
@@ -276,7 +296,7 @@ class CFGBuilder {
                 this.addEdge(current, afterBlock);  // 初回から条件偽（空配列など）
 
                 const bodyFalls = this.buildStmts(
-                    fs.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches,
+                    fs.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
                 for (const b of bodyFalls) this.addEdge(b, current); // バックエッジ
 
@@ -294,7 +314,7 @@ class CFGBuilder {
                 this.addEdge(current, afterBlock);
 
                 const bodyFalls = this.buildStmts(
-                    fe.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches,
+                    fe.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
                 for (const b of bodyFalls) this.addEdge(b, current);
 
@@ -314,7 +334,7 @@ class CFGBuilder {
                 this.addEdge(headerBlock, afterBlock); // 条件偽
 
                 const bodyFalls = this.buildStmts(
-                    dw.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches,
+                    dw.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
                 for (const b of bodyFalls) this.addEdge(b, headerBlock);
 
@@ -334,7 +354,7 @@ class CFGBuilder {
                 this.addEdge(headerBlock, afterBlock);
 
                 const bodyFalls = this.buildStmts(
-                    ws.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches,
+                    ws.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
                 for (const b of bodyFalls) this.addEdge(b, headerBlock);
 
@@ -346,7 +366,7 @@ class CFGBuilder {
                 const ws = stmt as any;
                 current.stmts.push(stmt);
                 const bodyFalls = this.buildStmts(
-                    ws.body ?? [], current, procExit, loopNext, loopExit, labelMap, gotoPatches,
+                    ws.body ?? [], current, procExit, loopNext, loopExit, labelMap, gotoPatches, onErrorLabels,
                 );
                 if (bodyFalls.length === 0) return null;
                 // With は分岐しないので bodyFalls は [current] または []

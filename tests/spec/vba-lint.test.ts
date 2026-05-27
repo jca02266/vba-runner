@@ -340,4 +340,22 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA010: 到達可能コード → 警告なし');
 }
 
+// On Error GoTo のエラーハンドラー以降のコードは到達不能扱いしない
+{
+    const code = [
+        'Sub Test()',
+        '    On Error GoTo ErrHandler',
+        '    Dim x As Long',
+        '    x = 1',
+        '    Exit Sub',
+        'ErrHandler:',
+        '    MsgBox "error"',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA010');
+    assert.strictEqual(d.length, 0, 'VBA010: On Error GoTo ハンドラー → 到達不能扱いしない');
+    console.log('[PASS] VBA010: On Error GoTo ハンドラーは到達不能扱いしない');
+}
+
 console.log('\n✅ VBA Lint: 全テスト通過');
