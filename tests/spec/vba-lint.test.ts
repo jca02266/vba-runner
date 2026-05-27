@@ -340,6 +340,22 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA010: 到達可能コード → 警告なし');
 }
 
+// Select Case の case 値に使われた変数 → デッドストアなし
+{
+    const diags = lint([
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 2',
+        '    Select Case 1',
+        '        Case x',
+        '    End Select',
+        'End Sub',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA009');
+    assert.strictEqual(d.length, 0, 'VBA009: Case 節で使用された変数 → 検出なし');
+    console.log('[PASS] VBA009: Case 節で使用された変数はデッドストアなし');
+}
+
 // On Error GoTo のエラーハンドラー以降のコードは到達不能扱いしない
 {
     const code = [

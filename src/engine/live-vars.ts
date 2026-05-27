@@ -171,6 +171,15 @@ export function getStmtUses(stmt: Statement): string[] {
             break;
         case 'SelectCaseStatement':
             collectExprUses((stmt as any).expression, uses);
+            for (const clause of ((stmt as any).cases ?? [])) {
+                for (const range of (clause.ranges ?? [])) {
+                    if (range.kind === 'expression') collectExprUses(range.value, uses);
+                    else if (range.kind === 'to') {
+                        collectExprUses(range.start, uses);
+                        collectExprUses(range.end, uses);
+                    } else if (range.kind === 'comparison') collectExprUses(range.value, uses);
+                }
+            }
             break;
         case 'CallStatement':
             collectExprUses((stmt as any).expression, uses);
