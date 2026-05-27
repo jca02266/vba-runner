@@ -12,11 +12,11 @@ AIによる支援を前提とした設計で、レガシーVBAコードの品質
 VS Code などのモダンな環境で、AIの支援を受けながら VBA ソースのリファクタリングとテストを進めることができます。
 
 ### VS Code拡張機能 (Phase 2)
-VBA Runnerにおける第一段階（[MS-VBAL 仕様書](https://learn.microsoft.com/en-us/openspecs/microsoft_general_purpose_programming_languages/ms-vbal/d5418146-0bd2-45eb-9c7a-fd9502722c74)で名前の付いた構文要素・標準ライブラリ関数の実装）は完了しました。仕様書本文に書かれているが個別セクションを持たない **ランタイム挙動** の検証は継続中で、進捗は [`TODO.md` の「VBA ランタイム挙動」](TODO.md#vba-ランタイム挙動)を参照してください。
+VBA Runnerにおける第一段階（[MS-VBAL 仕様書](https://learn.microsoft.com/en-us/openspecs/microsoft_general_purpose_programming_languages/ms-vbal/d5418146-0bd2-45eb-9c7a-fd9502722c74)で名前の付いた構文要素・標準ライブラリ関数の実装）は完了しました。仕様書本文に書かれているが個別セクションを持たない **ランタイム挙動** の検証は継続中で、進捗は [`TODO_SPEC.md` の「VBA ランタイム挙動」](TODO_SPEC.md#vba-ランタイム挙動)を参照してください。
 
 第二段階として、この実行エンジンを組み込んだ **VS Code拡張機能** を実装しました。`.bas` / `.cls` / `.frm` ファイルを開くと、以下のLSP機能が有効になります。詳細は後述の「[VS Code拡張機能の使い方](#vs-code拡張機能の使い方)」を参照してください。
 
-今後の開発方針については [`TODO_NEXT.md`](TODO_NEXT.md) を参照してください。
+今後の開発方針については [`TODO.md`](TODO.md) を参照してください。
 
 ## 基本方針：環境依存操作のスタブ・仮想化
 

@@ -929,7 +929,7 @@ try {
 }
 ```
 
-エラー番号の一覧は [VBA Error 番号一覧（TODO.md）](../TODO.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
+エラー番号の一覧は [VBA Error 番号一覧（TODO_SPEC.md）](../TODO_SPEC.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
 
 ### Q: VBA オブジェクト（Sheets など）をテストしたい
 

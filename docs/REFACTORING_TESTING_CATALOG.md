@@ -326,9 +326,9 @@ dst.NumberFormat = src.NumberFormat
 
 * [ ] `vba-analyzer` で `PasteSpecial` の使用箇所を検出し、オプション別に「直接代替可能」「要検討」を分類して警告
 
-* [ ] Code Action（[TODO\_NEXT.md](../TODO_NEXT.md)）として `ActiveSheet` → 引数 `ws As Worksheet` への自動リファクタリングを追加（Introduce Parameter）
+* [ ] Code Action（[TODO.md](../TODO.md)）として `ActiveSheet` → 引数 `ws As Worksheet` への自動リファクタリングを追加（Introduce Parameter）
 
-* [ ] Diagnostics 警告（[TODO\_NEXT.md](../TODO_NEXT.md)）: `PasteSpecial` 使用時に「クリップボード依存あり、直接代入への書き換えを検討」を表示
+* [ ] Diagnostics 警告（[TODO.md](../TODO.md)）: `PasteSpecial` 使用時に「クリップボード依存あり、直接代入への書き換えを検討」を表示
 
 ***
 

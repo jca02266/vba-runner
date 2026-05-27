@@ -300,7 +300,7 @@ function run(code: string, name: string): any {
 // (TYPED-NAME requires IDENTIFIER, not reserved-identifier)
 // Current engine: incorrectly allows them because lexer appends $ before
 // keyword matching (dim$ ≠ dim in the keyword table).
-// Documented as known issue in TODO.md.
+// Documented as known issue in TODO_SPEC.md.
 // ---------------------------------------------------------------
 {
     // This SHOULD be a parse error per spec, but currently passes.
