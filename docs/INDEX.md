@@ -41,7 +41,7 @@
 
 | ドキュメント | 説明 | 対象読者 |
 |-----------|------|--------|
-| **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とVBA Runnerでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
+| **[TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とVBA Runnerでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
 
 ---
 
@@ -154,10 +154,10 @@ INTEGRATION_TEST_EXAMPLE.md
 
 **参照方法**:
 
-問題に直面したときに **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)** を参照：
+問題に直面したときに **[TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)** を参照：
 
 ```
-TYPE_SYSTEM_SPEC.md
+internals/TYPE_SYSTEM_SPEC.md
 （VBA 型仕様 + VBA Runnerでの実装方法）
 ```
 
@@ -165,7 +165,7 @@ TYPE_SYSTEM_SPEC.md
 ```
 問題発生
       ↓
-TYPE_SYSTEM_SPEC.md を参照
+internals/TYPE_SYSTEM_SPEC.md を参照
 （VBA 型の仕様と実装方法を確認）
       ↓
 evaluator.ts や Environment クラスのコード実装に反映
@@ -191,7 +191,7 @@ TESTING_STRATEGY.md（最上位の原則）
     │       ↓
     │       └─→ INTEGRATION_TEST_EXAMPLE.md
     │
-    └─→ TYPE_SYSTEM_SPEC.md（リファレンス）
+    └─→ internals/TYPE_SYSTEM_SPEC.md（リファレンス）
 ```
 
 ### 詳細な参照関係
@@ -296,7 +296,7 @@ TESTING_STRATEGY.md（最上位の原則）
 
 ---
 
-### 7. [TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)
+### 7. [TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)
 **目的**: VBA 型の仕様とVBA Runnerでの実装方法（必要に応じて参照）  
 **対象**: 型関連のバグ修正・機能追加を行う人
 
@@ -345,7 +345,7 @@ TESTING_STRATEGY.md
   ↓
   
 内部実装層（必要に応じて参照）
-  └─ TYPE_SYSTEM_SPEC.md
+  └─ internals/TYPE_SYSTEM_SPEC.md
       └─ VBA 型仕様 + 実装方法
          （バグ修正・機能追加時に参照）
 ```
@@ -372,7 +372,7 @@ TESTING_STRATEGY.md
 - すべてのドキュメント（INDEX.md を除く）
 - [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) で実装を読む
 - [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md) でテストコード全体を読む
-- 必要に応じて [TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md) を参照
+- 必要に応じて [TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md) を参照
 
 ---
 
@@ -397,7 +397,7 @@ TESTING_STRATEGY.md
 → **[TEST_FRAMEWORK_GUIDE.md — VBARunner API リファレンス](TEST_FRAMEWORK_GUIDE.md)**
 
 ### 「型の動作がおかしい / 型機能を追加したい」
-→ **[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)**（内部実装の詳細を参照）
+→ **[TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)**（内部実装の詳細を参照）
 
 ### 「統合テストを書きたい」
 → **[INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md)**
@@ -430,7 +430,7 @@ VBA Runnerのドキュメントは、以下の層で構成されています：
 1. **基礎層**: テスト設計原則（[TESTING_STRATEGY.md](TESTING_STRATEGY.md)）
 2. **実装層**: リファクタリング、テストフレームワーク、モック（3 ドキュメント）
 3. **具体例層**: TaskScheduler の実例（2 ドキュメント）
-4. **内部実装層**: VBA 型の仕様と実装方法（[TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)）
+4. **内部実装層**: VBA 型の仕様と実装方法（[TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)）
    - 通常は「必要に応じて参照」する
 
 **学習の流れ**:
@@ -448,6 +448,6 @@ VBA Runnerのドキュメントは、以下の層で構成されています：
 - **入門者**: [TESTING_STRATEGY.md](TESTING_STRATEGY.md) → [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)
 - **リファクタリング者**: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) → [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)
 - **モック活用者**: [MOCK_GUIDE.md](MOCK_GUIDE.md)（3 段階で学習）
-- **型バグ修正・追加**: [TYPE_SYSTEM_SPEC.md](TYPE_SYSTEM_SPEC.md)（参照）
+- **型バグ修正・追加**: [TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)（参照）
 
 用途に応じて、このインデックスを参考に適切なドキュメントから読み始めてください。
