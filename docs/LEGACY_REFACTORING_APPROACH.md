@@ -126,25 +126,124 @@ End Sub
 
 ### 状況 C: 「既存コードを変えずに新機能を追加したい」
 
-**手法: Sprout Method（発芽メソッド）→ [`R-17`](REFACTORING_TESTING_CATALOG.md)**
+「既存コードを変えたくない」という動機はさまざまです。
+*Working Effectively with Legacy Code*（Feathers）はこの状況に対していくつかの手法を示しています。
+目的に合わせて選んでください。
 
-既存コードには一切手を加えず、新しい機能を別の Sub/Function として実装し、
-既存コードから呼び出すだけにします。
+---
+
+**① Sprout Method（発芽メソッド）の基本パターン → [`R-17`](REFACTORING_TESTING_CATALOG.md)**
+
+新機能のロジックを別 Sub に書き、既存コードには呼び出しを 1 行追加するだけにします。
+既存の処理本体には触れないため、デグレのリスクを最小化できます。
 
 ```vb
-' 既存コード（変更しない）
+' 既存コード（処理本体は変更しない）
 Sub ProcessOrders()
     ' ... 既存処理 ...
-    Call NotifySlack(orderId)   ' ← 新機能はここで呼ぶだけ
+    Call NotifySlack(orderId)   ' ← 呼び出しを 1 行追加するだけ
 End Sub
 
-' 新しく追加するだけ（既存コードは触らない）
+' 新機能はここに書く（既存コードには触れない）
 Sub NotifySlack(ByVal orderId As String)
     ' 新機能の実装
 End Sub
 ```
 
-**いつ使うか:** 既存コードが複雑で触りたくないとき。変更リスクをゼロにできます。
+---
+
+**② 既存処理の途中に新機能を割り込ませる → Sprout Method（発芽メソッド）[`R-17`](REFACTORING_TESTING_CATALOG.md)**
+
+新機能を追加するとき、既存ループの中にコードを混ぜ込みたくなりがちです。
+よくあるのが「ループの中に処理を追加する」パターンですが、
+**新しいループ処理として後から実行する** 方が既存コードへの影響を最小にできます。
+
+```vb
+' ❌ 避けたい: 新機能を既存ループの中に混ぜ込んでいる
+Sub ProcessOrders()
+    Dim i As Long
+    For i = 2 To LastRow
+        Dim orderId As String
+        orderId = Cells(i, 1).Value
+        SaveOrder orderId, CalcTotal(i)
+        ' ↓ 新機能が既存ループの中に絡み合っている
+        If NeedsNotification(i) Then
+            SendMail orderId
+        End If
+    Next i
+End Sub
+```
+
+```vb
+' ✅ 推奨: 既存ループはそのまま。新機能は Sprout Method として後から実行する
+Sub ProcessOrders()
+    Dim i As Long
+    For i = 2 To LastRow
+        SaveOrder Cells(i, 1).Value, CalcTotal(i)  ' 既存処理（変更しない）
+    Next i
+    Call SendNotifications()  ' ← 末尾に呼び出しを 1 行追加するだけ
+End Sub
+
+' 新機能のループはここに閉じる（既存ループとは独立してテストできる）
+Sub SendNotifications()
+    Dim i As Long
+    For i = 2 To LastRow
+        If NeedsNotification(i) Then
+            SendMail Cells(i, 1).Value
+        End If
+    Next i
+End Sub
+```
+
+ループを 2 回回すことになりますが、各ループの責務が明確になり、
+新機能を既存処理から切り離してテスト・修正できるメリットの方が大きいです。
+
+---
+
+**③ 既存処理の前後に処理を追加する → Wrap Method（ラップメソッド）[`R-18`](REFACTORING_TESTING_CATALOG.md)**
+
+既存 Sub をリネームして内部に隠し、同名の新 Sub でラップします。
+呼び出し元を一切変えずに、前処理・後処理を追加できます。
+
+```vb
+' 既存の ProcessOrders を ProcessOrders_Core にリネーム（中身は変えない）
+Sub ProcessOrders_Core()
+    ' ... 既存処理（変更しない）...
+End Sub
+
+' 同名の新 Sub でラップ。呼び出し元からは変化が見えない
+Sub ProcessOrders()
+    Call BeforeProcess()        ' ← 前処理を追加
+    Call ProcessOrders_Core()   ' ← 既存処理をそのまま呼ぶ
+    Call AfterProcess()         ' ← 後処理を追加
+End Sub
+```
+
+---
+
+**④ 既存処理は変えず、呼び出し元で新旧を組み合わせる**
+
+呼び出し元を変更できる場合は、呼び出し元で新旧の処理を並べて呼ぶだけで済みます。
+実装モジュールには一切手を加えません。
+
+```vb
+' 呼び出し元（ボタンクリックなど）
+Sub Button_Click()
+    Call ProcessOrders()    ' ← 既存処理（変更しない）
+    Call NotifySlack()      ' ← 新機能を後から追加
+End Sub
+```
+
+---
+
+**選び方の目安**
+
+| 状況 | 手法 |
+|---|---|
+| 新機能が既存処理と無関係 | ① 新 Sub をただ追加 |
+| 既存処理の途中に割り込みたい | ② Sprout Method |
+| 既存処理の前後に処理を追加したい | ③ Wrap Method |
+| 呼び出し元を変えられる | ④ 呼び出し元で並べる |
 
 ---
 
@@ -214,7 +313,10 @@ node test-libs/vba-analyzer.cjs <対象ディレクトリ> --diff .vba-baseline.
     │       └─ ロジックを純粋関数に切り出す（R-01, R-13）
     │
     ├─ 既存コードは変えたくない（新機能追加）
-    │       └─ Sprout Method で外に追加する（R-17）
+    │       ├─ 新機能が独立している → 新 Sub をただ追加
+    │       ├─ 既存処理の途中に割り込む → Sprout Method（R-17）
+    │       ├─ 既存処理の前後に追加する → Wrap Method（R-18）
+    │       └─ 呼び出し元を変えられる → 呼び出し元で新旧を並べる
     │
     └─ テストで守れた → リファクタリングを実行する
 ```
