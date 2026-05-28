@@ -2645,12 +2645,153 @@ function formatWorkspaceOutline(workspace: WorkspaceReport): string {
     return out.join('\n');
 }
 
+// ─── 差分モード ──────────────────────────────────────────────────────────────
+
+function diffSign(delta: number, lowerIsBetter = true): string {
+    if (delta === 0) return '  (変化なし)';
+    const improved = lowerIsBetter ? delta < 0 : delta > 0;
+    const sign = delta > 0 ? '+' : '';
+    return improved ? ` (${sign}${delta}) ✅` : ` (${sign}${delta}) ⚠`;
+}
+
+function formatDiffReport(baseline: WorkspaceReport, current: WorkspaceReport, wantJson: boolean): string {
+    if (wantJson) {
+        return JSON.stringify(buildDiffJson(baseline, current), null, 2);
+    }
+
+    const lines: string[] = [];
+
+    // プロシージャ単位の比較
+    const baseProcs = new Map<string, ProcedureMetrics>();
+    for (const f of baseline.files) {
+        for (const p of f.procedures) baseProcs.set(`${f.filePath}::${p.name}`, p);
+    }
+    const curProcs = new Map<string, ProcedureMetrics>();
+    for (const f of current.files) {
+        for (const p of f.procedures) curProcs.set(`${f.filePath}::${p.name}`, p);
+    }
+
+    // ファイルごとにまとめて表示
+    const fileNames = [...new Set([
+        ...baseline.files.map(f => f.filePath),
+        ...current.files.map(f => f.filePath),
+    ])];
+
+    for (const filePath of fileNames) {
+        const baseFile = baseline.files.find(f => f.filePath === filePath);
+        const curFile  = current.files.find(f => f.filePath === filePath);
+        const shortPath = filePath.split('/').slice(-1)[0];
+
+        const procLines: string[] = [];
+
+        // 既存・変更プロシージャ
+        const allProcNames = [...new Set([
+            ...(baseFile?.procedures.map(p => p.name) ?? []),
+            ...(curFile?.procedures.map(p => p.name) ?? []),
+        ])];
+        for (const name of allProcNames) {
+            const key = `${filePath}::${name}`;
+            const bp = baseProcs.get(key);
+            const cp = curProcs.get(key);
+            if (!bp && cp) {
+                procLines.push(`  [${name}]  ← 新規追加`);
+                procLines.push(`    lineCount:    ${cp.lineCount}`);
+                procLines.push(`    maxNestDepth: ${cp.maxNestDepth}`);
+                continue;
+            }
+            if (bp && !cp) {
+                procLines.push(`  [${name}]  ← 削除済み`);
+                continue;
+            }
+            if (!bp || !cp) continue;
+
+            const dLine  = cp.lineCount    - bp.lineCount;
+            const dNest  = cp.maxNestDepth - bp.maxNestDepth;
+            const dExcel = cp.excelAccessCount - bp.excelAccessCount;
+            if (dLine === 0 && dNest === 0 && dExcel === 0) continue; // 変化なし
+
+            procLines.push(`  [${name}]`);
+            if (dLine  !== 0) procLines.push(`    lineCount:     ${bp.lineCount} → ${cp.lineCount}${diffSign(dLine)}`);
+            if (dNest  !== 0) procLines.push(`    maxNestDepth:  ${bp.maxNestDepth} → ${cp.maxNestDepth}${diffSign(dNest)}`);
+            if (dExcel !== 0) procLines.push(`    excelAccess:   ${bp.excelAccessCount} → ${cp.excelAccessCount}${diffSign(dExcel)}`);
+        }
+
+        if (procLines.length > 0) {
+            lines.push(`=== ${shortPath} ===`);
+            lines.push(...procLines);
+            lines.push('');
+        }
+    }
+
+    // ワークスペース集計
+    const bTotal = baseline.files.reduce((s, f) => s + f.totalLines, 0);
+    const cTotal = current.files.reduce((s, f) => s + f.totalLines, 0);
+    const bDead  = baseline.deadCodeCandidates.length;
+    const cDead  = current.deadCodeCandidates.length;
+    const bDup   = baseline.duplicateBlocks.length;
+    const cDup   = current.duplicateBlocks.length;
+
+    lines.push('=== ワークスペース集計 ===');
+    lines.push(`  totalLines:      ${bTotal} → ${cTotal}${diffSign(cTotal - bTotal)}`);
+    lines.push(`  deadCode:        ${bDead} → ${cDead}${diffSign(cDead - bDead)}`);
+    lines.push(`  duplicateBlocks: ${bDup} → ${cDup}${diffSign(cDup - bDup)}`);
+
+    return lines.join('\n');
+}
+
+function buildDiffJson(baseline: WorkspaceReport, current: WorkspaceReport): object {
+    const procs: object[] = [];
+    const baseProcs = new Map<string, ProcedureMetrics & { filePath: string }>();
+    for (const f of baseline.files) {
+        for (const p of f.procedures) baseProcs.set(`${f.filePath}::${p.name}`, { ...p, filePath: f.filePath });
+    }
+    for (const f of current.files) {
+        for (const cp of f.procedures) {
+            const key = `${f.filePath}::${cp.name}`;
+            const bp = baseProcs.get(key);
+            if (!bp) {
+                procs.push({ file: f.filePath, name: cp.name, status: 'added', current: cp });
+            } else {
+                const delta = {
+                    lineCount: cp.lineCount - bp.lineCount,
+                    maxNestDepth: cp.maxNestDepth - bp.maxNestDepth,
+                    excelAccessCount: cp.excelAccessCount - bp.excelAccessCount,
+                };
+                if (Object.values(delta).some(v => v !== 0)) {
+                    procs.push({ file: f.filePath, name: cp.name, status: 'changed', delta, baseline: bp, current: cp });
+                }
+            }
+        }
+    }
+    for (const f of baseline.files) {
+        for (const bp of f.procedures) {
+            const key = `${f.filePath}::${bp.name}`;
+            if (!current.files.find(cf => cf.procedures.find(p => `${cf.filePath}::${p.name}` === key))) {
+                procs.push({ file: f.filePath, name: bp.name, status: 'removed', baseline: bp });
+            }
+        }
+    }
+    const bTotal = baseline.files.reduce((s, f) => s + f.totalLines, 0);
+    const cTotal = current.files.reduce((s, f) => s + f.totalLines, 0);
+    return {
+        procedures: procs,
+        workspace: {
+            totalLines:      { baseline: bTotal, current: cTotal, delta: cTotal - bTotal },
+            deadCode:        { baseline: baseline.deadCodeCandidates.length, current: current.deadCodeCandidates.length, delta: current.deadCodeCandidates.length - baseline.deadCodeCandidates.length },
+            duplicateBlocks: { baseline: baseline.duplicateBlocks.length, current: current.duplicateBlocks.length, delta: current.duplicateBlocks.length - baseline.duplicateBlocks.length },
+        },
+    };
+}
+
+// ─── main ────────────────────────────────────────────────────────────────────
+
 function main() {
     const args = process.argv.slice(2);
     if (args.length === 0 || args.includes('--help')) {
         console.log('Usage: node vba-analyzer.cjs <file-or-dir> [options]');
         console.log('');
         console.log('  --json                JSON 形式で出力（プログラム連携用）');
+        console.log('  --diff <baseline>     baseline JSON との差分を表示（--json と併用可）');
         console.log('  --summary-only        ワークスペース要約（エントリーポイント候補・モック必要箇所）のみ表示');
         console.log('  --outline             Workspace Outline（AI向けコンテキスト圧縮）を出力');
         console.log('  --commented-code      コメントアウトされたコード候補のみ表示');
@@ -2665,13 +2806,19 @@ function main() {
     const wantCommentedCode = args.includes('--commented-code');
     const wantGotoGraph  = args.includes('--goto-graph');
     const wantCrossIter  = args.includes('--cross-iter');
+    const diffIdx = args.indexOf('--diff');
+    const diffBaseline = diffIdx !== -1 ? args[diffIdx + 1] : null;
+    if (diffIdx !== -1 && (!diffBaseline || diffBaseline.startsWith('--'))) {
+        console.error('--diff には baseline JSON ファイルを指定してください');
+        process.exit(1);
+    }
     const genTestDirIdx = args.indexOf('--gen-test-dir');
     const genTestDir = genTestDirIdx !== -1 ? args[genTestDirIdx + 1] : null;
     if (genTestDirIdx !== -1 && (!genTestDir || genTestDir.startsWith('--'))) {
         console.error('--gen-test-dir には出力ディレクトリを指定してください');
         process.exit(1);
     }
-    const target = args.find(a => !a.startsWith('--') && a !== genTestDir);
+    const target = args.find(a => !a.startsWith('--') && a !== genTestDir && a !== diffBaseline);
     if (!target) {
         console.error('対象ファイルまたはディレクトリを指定してください');
         process.exit(1);
@@ -2689,6 +2836,17 @@ function main() {
     if (genTestDir) {
         emitConstTs(analyses, genTestDir);
         emitTestTemplates(analyses, genTestDir);
+    }
+
+    if (diffBaseline) {
+        const fs = require('fs') as typeof import('fs');
+        if (!fs.existsSync(diffBaseline)) {
+            console.error(`baseline ファイルが見つかりません: ${diffBaseline}`);
+            process.exit(1);
+        }
+        const base: WorkspaceReport = JSON.parse(fs.readFileSync(diffBaseline, 'utf8'));
+        console.log(formatDiffReport(base, workspace, wantJson));
+        return;
     }
 
     if (wantJson) {
