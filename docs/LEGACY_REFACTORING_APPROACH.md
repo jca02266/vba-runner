@@ -92,7 +92,7 @@ node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
 
 ### 状況 B: 「テストを書きたいが Excel に依存していて書けない」
 
-**手法: 縫い目の作成（Seam）+ 純粋関数の切り出し（Extract Function）→ [`R-01`](REFACTORING_TESTING_CATALOG.md), [`R-13`](REFACTORING_TESTING_CATALOG.md)**
+**手法: 接合部の作成（Seam）+ 純粋関数の切り出し（Extract Function）→ [`R-01`](REFACTORING_TESTING_CATALOG.md), [`R-13`](REFACTORING_TESTING_CATALOG.md)**
 
 Excel 依存（`Range`, `Sheets`, `ActiveCell` 等）とビジネスロジックを分離します。
 

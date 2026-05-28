@@ -782,7 +782,7 @@ Core（`DecideApproval`）は Excel なしでユニットテストできる。Sh
 
 #### パターン 6b: Seam（副作用の結果がロジックに影響する場合）
 
-副作用の出力が後続のロジック分岐に影響する、または副作用への入力値が処理途中の計算結果に依存するため、後ろにまとめられない場合に使う。**テストが書ける状態を作るための前段階**として副作用の塊を関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）で関数（縫い目）として抽出し、テスト時にモックに差し替えられるようにする。
+副作用の出力が後続のロジック分岐に影響する、または副作用への入力値が処理途中の計算結果に依存するため、後ろにまとめられない場合に使う。**テストが書ける状態を作るための前段階**として副作用の塊を関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）で関数（接合部）として抽出し、テスト時にモックに差し替えられるようにする。
 
 **Before: 副作用の出力がロジックに入り込んでいる**
 
@@ -810,25 +810,25 @@ Function ProcessApproval(dept As String, amount As Long) As String
 End Function
 ```
 
-**Step 1: 副作用の塊を縫い目（関数）として関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）する**
+**Step 1: 副作用の塊を接合部（関数）として関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）する**
 
 ```vb
 Function ProcessApproval(dept As String, amount As Long) As String
     Dim status As String
-    status = ReadDeptStatus(dept)              ' ← 縫い目①
+    status = ReadDeptStatus(dept)              ' ← 接合部①
     If status <> "active" Then
         ProcessApproval = "Rejected": Exit Function
     End If
     Dim route As String
     route = DecideRoute(dept, status)          ' 中間計算（純粋ロジック）
     Dim limit As Long
-    limit = ReadApprovalLimit(route)           ' ← 縫い目②（route を受け取る）
+    limit = ReadApprovalLimit(route)           ' ← 接合部②（route を受け取る）
     If amount > limit Then
         ProcessApproval = "Escalate"
     Else
         ProcessApproval = "Approve"
     End If
-    WriteApprovalLog dept, ProcessApproval     ' ← 縫い目③
+    WriteApprovalLog dept, ProcessApproval     ' ← 接合部③
 End Function
 
 Function ReadDeptStatus(dept As String) As String
@@ -846,7 +846,7 @@ End Sub
 
 **Step 2: Excel で実際に動かしてスナップショットを記録する**（VBA Runner は `Sheets` をスタブするため不可）
 
-**Step 3: TypeScript テストで縫い目をモックに差し替えてロジックをテスト**
+**Step 3: TypeScript テストで接合部をモックに差し替えてロジックをテスト**
 
 ```typescript
 const runner = new VBARunner("ProcessApproval.bas");
@@ -862,11 +862,11 @@ runner.spy("ReadApprovalLimit", () => 50000);
 assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Escalate");
 ```
 
-縫い目が作れると `ReadDeptStatus` / `ReadApprovalLimit` の戻り値を自由に設定でき、ロジックの全パターンをテストできる。
+接合部が作れると `ReadDeptStatus` / `ReadApprovalLimit` の戻り値を自由に設定でき、ロジックの全パターンをテストできる。
 
-**モックの粒度**: 低レベル API（`Sheets`・`MsgBox`）ではなくビジネス的な意味を持つ塊単位で縫い目を作る。塊の中に `ByRef` 変数への更新が含まれる場合はモックでもその更新を再現する。
+**モックの粒度**: 低レベル API（`Sheets`・`MsgBox`）ではなくビジネス的な意味を持つ塊単位で接合部を作る。塊の中に `ByRef` 変数への更新が含まれる場合はモックでもその更新を再現する。
 
-**重要**: 縫い目を作る関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）自体はテストなしで行うため、抽出後は必ず Excel 上での手動実行で動作確認してからスナップショット（[T-13](REFACTORING_TESTING_CATALOG.md#t-13)）を記録する。
+**重要**: 接合部を作る関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）自体はテストなしで行うため、抽出後は必ず Excel 上での手動実行で動作確認してからスナップショット（[T-13](REFACTORING_TESTING_CATALOG.md#t-13)）を記録する。
 
 ---
 
