@@ -14,6 +14,7 @@
 | **[REFACTORING_CLOSURE.md](REFACTORING_CLOSURE.md)** | クロージャによるループ抽象化（キーブレイク例）— JavaScript 版・VBA クラス版の対比 |
 | **[TABLE_DRIVEN_GUIDE.md](TABLE_DRIVEN_GUIDE.md)** | テーブル駆動リファクタリング（複雑な分岐を統一テーブルに） |
 | **[FEATHERS_TECHNIQUES_TODO.md](FEATHERS_TECHNIQUES_TODO.md)** | Feathers "Working Effectively with Legacy Code" の手法一覧とカタログ収録状況 |
+| **[LEGACY_REFACTORING_APPROACH.md](LEGACY_REFACTORING_APPROACH.md)** | レガシー VBA にどこから手を付けるか・手法選択の判断フロー（Feathers の考え方を VBA に適用した概要ガイド） |
 
 ### グループ1：テスト設計の原則（基礎）
 
