@@ -787,7 +787,6 @@ End Class`;
 
     outputChannel.appendLine('✓ All providers registered successfully');
     outputChannel.appendLine('📝 Open a .bas file and hover over code to test LSP features');
-    outputChannel.show();
     console.log('🚀 VBA extension fully initialized');
 }
 
