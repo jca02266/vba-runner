@@ -81,10 +81,14 @@
       {
         "type": "vba",
         "label": "VBA Debugger",
-        "languages": ["vba"],
+        "languages": [
+          "vba"
+        ],
         "configurationAttributes": {
           "launch": {
-            "required": ["program"],
+            "required": [
+              "program"
+            ],
             "properties": {
               "program": {
                 "type": "string",
@@ -108,12 +112,19 @@
       "[vba]": {
         "editor.stickyScroll.defaultModel": "foldingProviderModel"
       }
+    },
+    "mcpServers": {
+      "vba-runner": {
+        "command": "node",
+        "args": ["${extensionPath}/dist/mcp-server.cjs"]
+      }
     }
   },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && npm run build:extension",
     "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode",
+    "build:mcp": "esbuild src/mcp/server.ts --bundle --outfile=dist/mcp-server.cjs --platform=node --format=cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "package": "npm run build:extension && vsce package --no-dependencies",
@@ -121,6 +132,7 @@
     "test-gen": "esbuild test-libs/vba-test-generator.ts --bundle --outfile=dist/test-generator.cjs --platform=node && node dist/test-generator.cjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@tailwindcss/vite": "^4.2.0",
     "lucide-react": "^0.575.0",
     "react": "^18.3.1",

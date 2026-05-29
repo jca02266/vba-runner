@@ -2896,3 +2896,25 @@ function main() {
 }
 
 if (process.argv[1]?.includes('vba-analyzer')) main();
+
+// MCP サーバー向け export
+export {
+    collectVbaFiles as collectVbaFilesForMcp,
+    analyzeFile,
+    buildWorkspaceReport as analyzeWorkspaceForMcp,
+    formatFileReport,
+    formatWorkspaceSummary,
+    formatWorkspaceOutline as formatWorkspaceOutlineForMcp,
+};
+
+export function analyzeWorkspaceForMcpFromFiles(files: string[]): WorkspaceReport {
+    const analyses = files.map(f => analyzeFile(f));
+    return buildWorkspaceReport(analyses);
+}
+
+export function formatWorkspaceReportForMcp(w: WorkspaceReport): string {
+    const parts: string[] = [];
+    for (const r of w.files) parts.push(formatFileReport(r));
+    parts.push(formatWorkspaceSummary(w));
+    return parts.join('\n');
+}
