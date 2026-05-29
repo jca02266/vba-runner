@@ -2,7 +2,7 @@ import { VBARunner, assert } from '../../../test-libs/test-runner';
 
 async function main() {
     console.log("--- Starting VBA Unit Tests ---");
-    const vbaRunner = new VBARunner('sample/src/vba/TaskScheduler_Core.bas');
+    const vbaRunner = new VBARunner('sample/src/refactoring/TaskScheduler_Core.bas');
 
     // Initialize Config types (shared across tests that need them)
     const taskCfg = vbaRunner.run('InitTaskConfig', []);

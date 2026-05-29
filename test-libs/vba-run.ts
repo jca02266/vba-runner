@@ -9,7 +9,7 @@
 //
 // Examples:
 //   node test-libs/vba-run.cjs sample/src/vba/closure/ClosureTest.bas RunSubtotalTest
-//   node test-libs/vba-run.cjs sample/src/vba/TaskScheduler_Core.bas InitCalendarConfig
+//   node test-libs/vba-run.cjs sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -40,7 +40,7 @@ function usage(): never {
         '',
         'Examples:',
         '  node vba-run.cjs sample/src/vba/closure/ClosureTest.bas RunSubtotalTest',
-        '  node vba-run.cjs sample/src/vba/TaskScheduler_Core.bas InitCalendarConfig',
+        '  node vba-run.cjs sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig',
     ].join('\n') + '\n');
     process.exit(1);
 }
