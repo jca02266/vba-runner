@@ -120,6 +120,16 @@ for i in $(seq 1 "$IDX"); do
   fi
 done
 
+# VBA テスト（run_vba_tests.sh）を追加実行
+if [ -f "./run_vba_tests.sh" ]; then
+  if [ "$VERBOSE" -eq 1 ]; then
+    ./run_vba_tests.sh -v
+  else
+    ./run_vba_tests.sh
+  fi
+  [ $? -ne 0 ] && TESTS_FAILED=1
+fi
+
 if [ "$TESTS_FAILED" -eq 0 ]; then
   echo "--- All tests completed successfully! ---"
   exit 0
