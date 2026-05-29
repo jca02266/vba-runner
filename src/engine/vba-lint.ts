@@ -12,7 +12,7 @@
  *   VBA006 - Sheets(n) / Worksheets(n) 数値インデックス → シート順変更で壊れる
  *   VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
  *   VBA008 - GoTo（エラーハンドラー以外） → スパゲッティ化の原因
- *   VBA009 - デッドストア → 代入値が使用前に上書きまたは破棄される
+ *   VBA009 - デッドストア → 代入値が上書きまたは未使用
  *   VBA010 - 到達不能コード → Exit Sub / GoTo などで実行されないコード
  *   VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
  */
@@ -362,7 +362,7 @@ function checkUnreachableCode(proc: ProcedureDeclaration, out: LintDiagnostic[])
     }
 }
 
-/** VBA009: デッドストア（代入値が使用前に上書きまたは破棄される） */
+/** VBA009: デッドストア（代入値が上書きまたは未使用） */
 function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
     let deadStores;
     try {
@@ -381,7 +381,7 @@ function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
         out.push({
             code: 'VBA009',
             severity: 2,
-            message: `'${ds.varName}' への代入値が使用される前に上書きまたは破棄されます（デッドストア）`,
+            message: `'${ds.varName}' への代入値が上書きまたは未使用です（デッドストア）`,
             line, column: col, endLine: line, endColumn: endCol,
         });
     }
