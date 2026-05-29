@@ -275,11 +275,12 @@ export class LSPServer {
                     end:   { line: hit.line, character: hit.column + hit.varName.length },
                 },
                 severity: 4, // Hint
+                code: 'VBA011',
                 message: hit.kind === 'index-call'
-                    ? `Range 変数 '${hit.varName}' への添字アクセス（${hit.varName}(...) は ${hit.varName}.Item(...) と等価）`
+                    ? `Excel依存：Range 変数 '${hit.varName}' への添字アクセス（${hit.varName}(...) は ${hit.varName}.Item(...) と等価）`
                     : hit.kind === 'member-call'
-                        ? `Range 変数 '${hit.varName}' へのメソッド呼び出し: .${hit.property}()`
-                        : `Range 変数 '${hit.varName}' へのプロパティアクセス: .${hit.property}`,
+                        ? `Excel依存：Range 変数 '${hit.varName}' へのメソッド呼び出し: .${hit.property}()`
+                        : `Excel依存：Range 変数 '${hit.varName}' へのプロパティアクセス: .${hit.property}`,
                 source: 'vba-dataflow',
             }));
             const vbaLintDiags = lintProgram(ast).map(d => ({
