@@ -46,6 +46,8 @@ dist/*.css
 
 # Misc
 node_modules
+memory
+ideas
 public
 out.log
 .vscode
