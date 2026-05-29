@@ -146,11 +146,18 @@ export interface Token {
     column: number; // 1-based column of the first character of this token
 }
 
+export interface LexerDiagnostic {
+    message: string;
+    line: number;
+    column: number;
+}
+
 export class Lexer {
     private input: string = '';
     private pos: number = 0;
     private line: number = 1;
     private column: number = 1;
+    public readonly diagnostics: LexerDiagnostic[] = [];
 
     // MS-VBAL §3.3.5: name-start-character = Unicode-Letter (Lu,Ll,Lt,Lm,Lo,Nl) | "_"
     private static readonly reUnicodeNameStart = /^[\p{L}\p{Nl}]$/u;
@@ -268,6 +275,20 @@ export class Lexer {
                     this.advance(); // consume '_'
                     if (this.peek() === '\r') this.advance(); // consume \r
                     if (this.peek() === '\n') this.advance(); // consume \n (advance() updates this.line)
+                    continue;
+                }
+                // _ followed by spaces then comment: invalid line continuation — record diagnostic and consume the line
+                let lookahead = this.pos + 1;
+                while (lookahead < this.input.length && this.input[lookahead] === ' ') lookahead++;
+                if (lookahead < this.input.length && this.input[lookahead] === "'") {
+                    this.diagnostics.push({
+                        message: "行継続文字 '_' の後にコメントは記述できません",
+                        line: startLine,
+                        column: startColumn,
+                    });
+                    this.advance(); // consume '_'
+                    while (this.peek() !== '\n' && this.peek() !== '\0') this.advance(); // consume rest of line
+                    if (this.peek() === '\n') this.advance();
                     continue;
                 }
             }

@@ -258,7 +258,17 @@ export class LSPServer {
         if (!doc) return [];
 
         try {
-            const tokens = new Lexer(this.stripClsHeader(doc.content)).tokenize();
+            const lexer = new Lexer(this.stripClsHeader(doc.content));
+            const tokens = lexer.tokenize();
+            const lexerDiags = lexer.diagnostics.map(d => ({
+                range: {
+                    start: { line: d.line - 1, character: d.column - 1 },
+                    end:   { line: d.line - 1, character: d.column - 1 + 1 },
+                },
+                severity: 1, // Error
+                message: d.message,
+                source: 'vba-runner',
+            }));
             const ast = new Parser(tokens, { errorRecovery: true }).parse();
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
@@ -294,7 +304,7 @@ export class LSPServer {
                 message: d.message,
                 source: `vba-lint(${d.code})`,
             }));
-            return [...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags];
+            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags];
         } catch {
             return [];
         }
