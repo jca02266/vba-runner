@@ -783,6 +783,13 @@ End Class`;
             }
         })
     );
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.extractFunction',
+            (_uri: string, _procName: string, _startLine: number, _endLine: number) => {
+                vscode.window.showInformationMessage('Extract Function は未実装です。');
+            }
+        )
+    );
     outputChannel.appendLine('✓ Code Actions (Refactor) registered');
 
     outputChannel.appendLine('✓ All providers registered successfully');
