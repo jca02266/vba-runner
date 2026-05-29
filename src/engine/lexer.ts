@@ -277,15 +277,15 @@ export class Lexer {
                     if (this.peek() === '\n') this.advance(); // consume \n (advance() updates this.line)
                     continue;
                 }
-                // _ followed by spaces then comment: invalid line continuation — record diagnostic and consume the line
+                // _ followed by spaces (with optional comment) then newline: invalid — must be _ immediately before newline
                 let lookahead = this.pos + 1;
                 while (lookahead < this.input.length && this.input[lookahead] === ' ') lookahead++;
-                if (lookahead < this.input.length && this.input[lookahead] === "'") {
-                    this.diagnostics.push({
-                        message: "行継続文字 '_' の後にコメントは記述できません",
-                        line: startLine,
-                        column: startColumn,
-                    });
+                const afterSpaces = lookahead < this.input.length ? this.input[lookahead] : '\0';
+                if (afterSpaces === '\n' || afterSpaces === '\r' || afterSpaces === "'") {
+                    const msg = afterSpaces === "'"
+                        ? "行継続文字 '_' の後にコメントは記述できません"
+                        : "行継続文字 '_' の直後に空白を置くことはできません";
+                    this.diagnostics.push({ message: msg, line: startLine, column: startColumn });
                     this.advance(); // consume '_'
                     while (this.peek() !== '\n' && this.peek() !== '\0') this.advance(); // consume rest of line
                     if (this.peek() === '\n') this.advance();
