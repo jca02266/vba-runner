@@ -27,6 +27,7 @@ import {
     WhileStatement,
     SelectCaseStatement,
     GoToStatement,
+    LabelStatement,
     ClassDeclaration,
     CallExpression,
     Identifier,
@@ -52,6 +53,43 @@ export interface LintDiagnostic {
     endColumn: number;
 }
 
+// ─── ループ continue ラベル収集 ───────────────────────────────────────────────
+
+/**
+ * ループ本体（For/ForEach/DoWhile/While）の末尾にある LabelStatement を収集する。
+ * そのラベルへの GoTo はループの continue として使われているとみなす。
+ */
+export function findLoopContinueLabels(stmts: Statement[]): Set<string> {
+    const result = new Set<string>();
+    for (const stmt of stmts) {
+        switch (stmt.type) {
+            case 'ForStatement':
+            case 'ForEachStatement':
+            case 'DoWhileStatement':
+            case 'WhileStatement': {
+                const body: Statement[] = (stmt as any).body ?? [];
+                if (body.length > 0 && body[body.length - 1].type === 'LabelStatement') {
+                    result.add((body[body.length - 1] as LabelStatement).label.toLowerCase());
+                }
+                for (const l of findLoopContinueLabels(body)) result.add(l);
+                break;
+            }
+            case 'IfStatement': {
+                const is = stmt as any;
+                const cons = Array.isArray(is.consequent) ? is.consequent : (is.consequent ? [is.consequent] : []);
+                const alt  = Array.isArray(is.alternate)  ? is.alternate  : (is.alternate  ? [is.alternate]  : []);
+                for (const l of findLoopContinueLabels(cons)) result.add(l);
+                for (const l of findLoopContinueLabels(alt))  result.add(l);
+                break;
+            }
+            case 'WithStatement':
+                for (const l of findLoopContinueLabels((stmt as any).body ?? [])) result.add(l);
+                break;
+        }
+    }
+    return result;
+}
+
 // ─── エントリーポイント ───────────────────────────────────────────────────────
 
 export function lintProgram(program: Program): LintDiagnostic[] {
@@ -66,7 +104,7 @@ export function lintProgram(program: Program): LintDiagnostic[] {
 
 // ─── ステートメント走査 ───────────────────────────────────────────────────────
 
-function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
+function lintStatement(stmt: Statement, out: LintDiagnostic[], continueLabels: Set<string> = new Set()): void {
     switch (stmt.type) {
         case 'VariableDeclaration':
             checkDimMultiDecl(stmt as VariableDeclaration, out);
@@ -78,34 +116,35 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
             checkParameters(proc, out);
             checkDeadStores(proc, out);
             checkUnreachableCode(proc, out);
-            for (const s of proc.body) lintStatement(s, out);
+            const procContinueLabels = findLoopContinueLabels(proc.body);
+            for (const s of proc.body) lintStatement(s, out, procContinueLabels);
             break;
         }
 
         case 'ClassDeclaration': {
             const cls = stmt as ClassDeclaration;
-            for (const field of cls.fields) lintStatement(field, out);
-            for (const proc of cls.procedures) lintStatement(proc, out);
+            for (const field of cls.fields) lintStatement(field, out, continueLabels);
+            for (const proc of cls.procedures) lintStatement(proc, out, continueLabels);
             break;
         }
 
         case 'WhileStatement':
             checkWhileWend(stmt as WhileStatement, out);
-            for (const s of (stmt as any).body ?? []) lintStatement(s, out);
+            for (const s of (stmt as any).body ?? []) lintStatement(s, out, continueLabels);
             break;
 
         case 'SelectCaseStatement':
             checkSelectCaseElse(stmt as SelectCaseStatement, out);
             for (const clause of (stmt as SelectCaseStatement).cases ?? []) {
-                for (const s of clause.body ?? []) lintStatement(s, out);
+                for (const s of clause.body ?? []) lintStatement(s, out, continueLabels);
             }
             if ((stmt as SelectCaseStatement).elseBody) {
-                for (const s of (stmt as SelectCaseStatement).elseBody!) lintStatement(s, out);
+                for (const s of (stmt as SelectCaseStatement).elseBody!) lintStatement(s, out, continueLabels);
             }
             break;
 
         case 'GoToStatement':
-            checkGoTo(stmt as GoToStatement, out);
+            checkGoTo(stmt as GoToStatement, out, continueLabels);
             break;
 
         case 'CallStatement':
@@ -125,8 +164,8 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
             lintExpr(is.condition, out);
             const cons = Array.isArray(is.consequent) ? is.consequent : (is.consequent ? [is.consequent] : []);
             const alt  = Array.isArray(is.alternate)  ? is.alternate  : (is.alternate  ? [is.alternate]  : []);
-            for (const s of cons) lintStatement(s, out);
-            for (const s of alt)  lintStatement(s, out);
+            for (const s of cons) lintStatement(s, out, continueLabels);
+            for (const s of alt)  lintStatement(s, out, continueLabels);
             break;
         }
 
@@ -135,7 +174,7 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[]): void {
         case 'DoWhileStatement':
         case 'WithStatement': {
             const bs = stmt as any;
-            for (const s of (bs.body ?? [])) lintStatement(s, out);
+            for (const s of (bs.body ?? [])) lintStatement(s, out, continueLabels);
             break;
         }
     }
@@ -319,12 +358,14 @@ function checkActiveObject(id: Identifier, out: LintDiagnostic[]): void {
     });
 }
 
-/** VBA008: GoTo（エラーハンドラーラベル以外） */
-function checkGoTo(stmt: GoToStatement, out: LintDiagnostic[]): void {
+/** VBA008: GoTo（エラーハンドラー・ループcontinue以外） */
+function checkGoTo(stmt: GoToStatement, out: LintDiagnostic[], continueLabels: Set<string> = new Set()): void {
     const label = (stmt as any).label ?? '';
     const lower = label.toLowerCase();
     // エラーハンドラーらしいラベル名は除外
     if (lower.includes('err') || lower.includes('exit') || lower.includes('clean') || lower.includes('finally')) return;
+    // ループ末尾に定義されたラベルはcontinueとして除外
+    if (continueLabels.has(lower)) return;
 
     const loc  = (stmt as any).loc;
     const line = (loc?.start.line   ?? 1) - 1;

@@ -205,6 +205,24 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA008: エラーハンドラーラベル → 除外');
 }
 
+// ─── VBA008: GoTo Continue（ループcontinue） → 除外 ─────────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim i As Long',
+        '    For i = 1 To 10',
+        '        If i = 5 Then GoTo Continue',
+        '        Debug.Print i',
+        'Continue:',
+        '    Next i',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA008');
+    assert.strictEqual(d.length, 0, 'VBA008: continueラベル → 除外');
+    console.log('[PASS] VBA008: ループcontinueラベル → 除外');
+}
+
 // ─── 複合: 複数ルールの同時検出 ─────────────────────────────────────────────
 {
     const code = [
