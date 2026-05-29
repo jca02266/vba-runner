@@ -543,6 +543,28 @@ End Class`;
     );
     outputChannel.appendLine('✓ Inlay hints provider registered');
 
+    // Register on-type formatting provider (auto line continuation _)
+    context.subscriptions.push(
+        vscode.languages.registerOnTypeFormattingEditProvider('vba', {
+            provideOnTypeFormattingEdits(document, position) {
+                const config = vscode.workspace.getConfiguration('vba-runner');
+                if (!config.get('editor.autoLineContinuation', true)) return [];
+                if (position.line === 0) return [];
+
+                const prevLine = document.lineAt(position.line - 1);
+                const trimmed = prevLine.text.trimEnd();
+
+                if (!needsLineContinuation(trimmed)) return [];
+
+                // Insert ' _' replacing trailing whitespace on the previous line
+                const insertPos = new vscode.Position(position.line - 1, trimmed.length);
+                const lineEnd   = new vscode.Position(position.line - 1, prevLine.text.length);
+                return [vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _')];
+            }
+        }, '\n')
+    );
+    outputChannel.appendLine('✓ On-type formatting provider (line continuation) registered');
+
     // Helper function for showing call graph panel
     function showCallGraphPanel(uri: string, focusProcName: string | null): void {
         try {
@@ -834,4 +856,17 @@ End Class`;
 
 export function deactivate() {
     console.log('VBA Runner extension deactivated');
+}
+
+// 式の途中で改行されたとき _ が必要かを判定する
+const CONTINUATION_CHARS = /[+\-*\/\\^&,=(]$|[<>]$|<=$|>=$|<>$/;
+const CONTINUATION_KEYWORDS = /\b(And|Or|Xor|Eqv|Imp|Mod|Like|Is)\s*$/i;
+
+function needsLineContinuation(trimmedLine: string): boolean {
+    if (trimmedLine.length === 0) return false;
+    if (trimmedLine.endsWith('_')) return false;          // already continued
+    if (/^\s*'/.test(trimmedLine)) return false;          // comment line
+    if (CONTINUATION_CHARS.test(trimmedLine)) return true;
+    if (CONTINUATION_KEYWORDS.test(trimmedLine)) return true;
+    return false;
 }

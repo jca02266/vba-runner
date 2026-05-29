@@ -121,12 +121,18 @@
           "items": { "type": "string" },
           "default": [],
           "description": "有効にする lint コードを個別指定する（例: [\"VBA009\"]）。空の場合は lint.enabled の値に従う"
+        },
+        "vba-runner.editor.autoLineContinuation": {
+          "type": "boolean",
+          "default": true,
+          "description": "式の途中で Enter を押したとき行継続文字 _ を自動挿入する（editor.formatOnType が有効な場合のみ動作）"
         }
       }
     },
     "configurationDefaults": {
       "[vba]": {
-        "editor.stickyScroll.defaultModel": "foldingProviderModel"
+        "editor.stickyScroll.defaultModel": "foldingProviderModel",
+        "editor.formatOnType": true
       }
     }
   },
