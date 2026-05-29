@@ -26,9 +26,17 @@ export async function activate(context: vscode.ExtensionContext) {
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('vba');
     context.subscriptions.push(diagnosticCollection);
 
+    function shouldShowLintDiag(code: string | undefined): boolean {
+        const config = vscode.workspace.getConfiguration('vba-runner');
+        const enabledCodes = config.get<string[]>('lint.enabledCodes', []);
+        if (enabledCodes.length > 0) return enabledCodes.includes(code ?? '');
+        return config.get('lint.enabled', false);
+    }
+
     function updateDiagnostics(uri: vscode.Uri): void {
         const raw = lspServer.getDiagnostics(uri.toString());
-        const diags = raw.map((d: any) => {
+        const filtered = raw.filter((d: any) => !d.code || shouldShowLintDiag(String(d.code)));
+        const diags = filtered.map((d: any) => {
             const range = new vscode.Range(
                 d.range.start.line,
                 d.range.start.character,
@@ -44,6 +52,7 @@ export async function activate(context: vscode.ExtensionContext) {
     }
 
     // Register already-open documents
+
     for (const doc of vscode.workspace.textDocuments) {
         if (doc.languageId === 'vba') {
             documentMap.set(doc.uri.toString(), doc);
@@ -83,6 +92,17 @@ export async function activate(context: vscode.ExtensionContext) {
                 documentMap.delete(doc.uri.toString());
                 lspServer.didClose(doc.uri.toString());
                 diagnosticCollection.delete(doc.uri);
+            }
+        })
+    );
+
+    // Refresh diagnostics when the setting changes
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration((event) => {
+            if (event.affectsConfiguration('vba-runner.lint.enabled') || event.affectsConfiguration('vba-runner.lint.enabledCodes')) {
+                for (const [uriStr, doc] of documentMap) {
+                    updateDiagnostics(vscode.Uri.parse(uriStr));
+                }
             }
         })
     );

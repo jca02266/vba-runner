@@ -108,6 +108,22 @@
         ]
       }
     ],
+    "configuration": {
+      "title": "VBA Runner",
+      "properties": {
+        "vba-runner.lint.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "VBA lint 警告（VBA001〜 等のコード付き診断）をすべて有効にする。lint.enabledCodes が設定されている場合はそちらが優先される。パーサー構文エラーは常に表示される"
+        },
+        "vba-runner.lint.enabledCodes": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": [],
+          "description": "有効にする lint コードを個別指定する（例: [\"VBA009\"]）。空の場合は lint.enabled の値に従う"
+        }
+      }
+    },
     "configurationDefaults": {
       "[vba]": {
         "editor.stickyScroll.defaultModel": "foldingProviderModel"

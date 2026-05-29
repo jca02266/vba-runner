@@ -289,6 +289,7 @@ export class LSPServer {
                     end:   { line: d.endLine, character: d.endColumn },
                 },
                 severity: d.severity,
+                code: d.code,
                 message: d.message,
                 source: `vba-lint(${d.code})`,
             }));
