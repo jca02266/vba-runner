@@ -3,6 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod';
 import * as fs from 'fs';
 import * as path from 'path';
+import { execSync } from 'child_process';
 import { Lexer } from '../engine/lexer.js';
 import { Parser } from '../engine/parser.js';
 import { Evaluator } from '../engine/evaluator.js';
@@ -107,8 +108,8 @@ server.tool(
                 const src = fs.readFileSync(filePath, 'utf-8');
                 const tokens = new Lexer(src).tokenize();
                 const ast = new Parser(tokens).parse();
-                const evaluator = new Evaluator();
-                evaluator.evalStatements(ast.body);
+                const evaluator = new Evaluator(() => {});
+                evaluator.evaluate(ast);
 
                 const testProcs = ast.body
                     .filter((n: any) => n.type === 'SubDeclaration' && /^test_/i.test(n.name?.name ?? ''))
@@ -164,6 +165,59 @@ server.tool(
         } catch (e: any) {
             return { content: [{ type: 'text', text: `エラー: ${e.message}` }], isError: true };
         }
+    }
+);
+
+// ------------------------------------------------------------------
+// vba_run_ts_tests: TypeScript テストの実行
+// ------------------------------------------------------------------
+server.tool(
+    'vba_run_ts_tests',
+    'TypeScript テストファイル (.test.ts) を esbuild でバンドルして Node.js で実行し、結果を返す',
+    {
+        path: z.string().describe('テスト対象の .test.ts ファイルまたはディレクトリのパス'),
+    },
+    async ({ path: targetPath }) => {
+        const projectRoot = path.resolve(__dirname, '..');
+        const esbuild = path.join(projectRoot, 'node_modules/.bin/esbuild');
+        const abs = path.resolve(targetPath);
+        if (!fs.existsSync(abs)) {
+            return { content: [{ type: 'text', text: `パスが見つかりません: ${abs}` }], isError: true };
+        }
+
+        const testFiles: string[] = [];
+        const stat = fs.statSync(abs);
+        if (stat.isDirectory()) {
+            const walk = (dir: string) => {
+                for (const entry of fs.readdirSync(dir)) {
+                    const full = path.join(dir, entry);
+                    if (fs.statSync(full).isDirectory()) walk(full);
+                    else if (entry.endsWith('.test.ts')) testFiles.push(full);
+                }
+            };
+            walk(abs);
+        } else if (abs.endsWith('.test.ts')) {
+            testFiles.push(abs);
+        }
+
+        if (testFiles.length === 0) {
+            return { content: [{ type: 'text', text: '.test.ts ファイルが見つかりません' }], isError: true };
+        }
+
+        const results: string[] = [];
+        for (const tsFile of testFiles) {
+            const cjsFile = tsFile.replace(/\.ts$/, '.cjs');
+            try {
+                execSync(`${esbuild} ${tsFile} --bundle --outfile=${cjsFile} --platform=node`, { cwd: projectRoot });
+                const output = execSync(`node ${cjsFile}`, { cwd: projectRoot, encoding: 'utf-8' });
+                results.push(`=== ${path.basename(tsFile)} ===\n${output}`);
+            } catch (e: any) {
+                const out = (e.stdout ?? '') + (e.stderr ?? '') + (e.message ?? '');
+                results.push(`=== ${path.basename(tsFile)} [FAILED] ===\n${out}`);
+            }
+        }
+
+        return { content: [{ type: 'text', text: results.join('\n') }] };
     }
 );
 
