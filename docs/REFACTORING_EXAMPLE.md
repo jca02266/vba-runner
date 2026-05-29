@@ -6,10 +6,10 @@
 
 ### 対象コード
 
-- **リファクタリング前**: `sample/src/vba_legacy/TaskScheduler_v1.bas`（393 行の巨大 Sub）
-- **リファクタリング後**: `sample/src/vba/TaskScheduler.bas` + `sample/src/vba/TaskScheduler_Core.bas`
+- **リファクタリング前**: `sample/src/refactoring/TaskScheduler_v1.bas`（393 行の巨大 Sub）
+- **リファクタリング後**: `sample/src/refactoring/TaskScheduler.bas` + `sample/src/refactoring/TaskScheduler_Core.bas`
 
-`TaskScheduler_v1.bas` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/vba_legacy/TaskScheduler.md`](../sample/src/vba_legacy/TaskScheduler.md) を参照してください。
+`TaskScheduler_v1.bas` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/refactoring/TaskScheduler.md`](../sample/src/refactoring/TaskScheduler.md) を参照してください。
 
 ---
 
