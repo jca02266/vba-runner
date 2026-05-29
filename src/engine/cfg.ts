@@ -287,18 +287,21 @@ class CFGBuilder {
             // ─── For...Next ──────────────────────────────────────────────
             case 'ForStatement': {
                 const fs = stmt as any;
-                // ヘッダーブロック（初期化 + 条件判定）
-                current.stmts.push(stmt);
+                // current と切り離した専用ヘッダーブロックを作る
+                // （current に他の文が混在するとバックエッジが誤った def を跨ぐため）
+                const headerBlock = this.newBlock();
+                this.addEdge(current, headerBlock);
+                headerBlock.stmts.push(stmt);
                 const bodyBlock  = this.newBlock();
                 const afterBlock = this.newBlock();
 
-                this.addEdge(current, bodyBlock);   // ループ入る
-                this.addEdge(current, afterBlock);  // 初回から条件偽（空配列など）
+                this.addEdge(headerBlock, bodyBlock);   // ループ入る
+                this.addEdge(headerBlock, afterBlock);  // 初回から条件偽（空配列など）
 
                 const bodyFalls = this.buildStmts(
-                    fs.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches, onErrorLabels,
+                    fs.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
-                for (const b of bodyFalls) this.addEdge(b, current); // バックエッジ
+                for (const b of bodyFalls) this.addEdge(b, headerBlock); // バックエッジ
 
                 return afterBlock;
             }
@@ -306,17 +309,20 @@ class CFGBuilder {
             // ─── For Each...Next ─────────────────────────────────────────
             case 'ForEachStatement': {
                 const fe = stmt as any;
-                current.stmts.push(stmt);
+                // current と切り離した専用ヘッダーブロックを作る
+                const headerBlock = this.newBlock();
+                this.addEdge(current, headerBlock);
+                headerBlock.stmts.push(stmt);
                 const bodyBlock  = this.newBlock();
                 const afterBlock = this.newBlock();
 
-                this.addEdge(current, bodyBlock);
-                this.addEdge(current, afterBlock);
+                this.addEdge(headerBlock, bodyBlock);
+                this.addEdge(headerBlock, afterBlock);
 
                 const bodyFalls = this.buildStmts(
-                    fe.body ?? [], bodyBlock, procExit, current, afterBlock, labelMap, gotoPatches, onErrorLabels,
+                    fe.body ?? [], bodyBlock, procExit, headerBlock, afterBlock, labelMap, gotoPatches, onErrorLabels,
                 );
-                for (const b of bodyFalls) this.addEdge(b, current);
+                for (const b of bodyFalls) this.addEdge(b, headerBlock);
 
                 return afterBlock;
             }
