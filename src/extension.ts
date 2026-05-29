@@ -528,6 +528,21 @@ End Class`;
     );
     outputChannel.appendLine('✓ Folding range provider registered');
 
+    // Register inlay hints provider (loop-continue GoTo)
+    context.subscriptions.push(
+        vscode.languages.registerInlayHintsProvider('vba', {
+            provideInlayHints(document) {
+                const hints = lspServer.getInlayHints(document.uri.toString());
+                return hints.map(h => new vscode.InlayHint(
+                    new vscode.Position(h.line, h.character),
+                    h.label,
+                    vscode.InlayHintKind.Type,
+                ));
+            }
+        })
+    );
+    outputChannel.appendLine('✓ Inlay hints provider registered');
+
     // Helper function for showing call graph panel
     function showCallGraphPanel(uri: string, focusProcName: string | null): void {
         try {

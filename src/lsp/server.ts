@@ -1,7 +1,8 @@
 import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
-import { lintProgram } from '../engine/vba-lint';
+import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
+import { Statement, GoToStatement } from '../engine/parser';
 import { analyzeDefUse } from '../engine/def-use-analyzer';
 import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
@@ -421,6 +422,21 @@ export class LSPServer {
     }
 
     /**
+     * Get inlay hints for loop-continue GoTo statements
+     */
+    getInlayHints(uri: string): Array<{ line: number; character: number; label: string }> {
+        const doc = this.documents.get(uri);
+        if (!doc) return [];
+
+        const ast = this.parseDocument(doc.content);
+        if (!ast) return [];
+
+        const hints: Array<{ line: number; character: number; label: string }> = [];
+        collectGoToContinueHints(ast.body, new Set(), hints);
+        return hints;
+    }
+
+    /**
      * Parse document content
      */
     parseDocument(content: string): any {
@@ -429,6 +445,50 @@ export class LSPServer {
             return new Parser(tokens, { errorRecovery: true }).parse();
         } catch (error) {
             return null;
+        }
+    }
+}
+
+function collectGoToContinueHints(
+    stmts: Statement[],
+    continueLabels: Set<string>,
+    out: Array<{ line: number; character: number; label: string }>,
+): void {
+    for (const stmt of stmts) {
+        if (stmt.type === 'GoToStatement') {
+            const gs = stmt as GoToStatement;
+            if (continueLabels.has(gs.label.toLowerCase())) {
+                const loc = (gs as any).loc;
+                if (loc) {
+                    out.push({
+                        line: loc.end.line - 1,
+                        character: loc.end.column - 1,
+                        label: ' ⟨loop continue⟩',
+                    });
+                }
+            }
+        } else if (stmt.type === 'ProcedureDeclaration') {
+            // プロシージャに入るたびにそのbodyからcontinueLabelsを再計算する
+            const procBody: Statement[] = (stmt as any).body ?? [];
+            const procLabels = findLoopContinueLabels(procBody);
+            collectGoToContinueHints(procBody, procLabels, out);
+        } else if (stmt.type === 'ClassDeclaration') {
+            collectGoToContinueHints((stmt as any).procedures ?? [], continueLabels, out);
+        } else if (stmt.type === 'IfStatement') {
+            const is = stmt as any;
+            const cons = Array.isArray(is.consequent) ? is.consequent : (is.consequent ? [is.consequent] : []);
+            const alt  = Array.isArray(is.alternate)  ? is.alternate  : (is.alternate  ? [is.alternate]  : []);
+            collectGoToContinueHints(cons, continueLabels, out);
+            collectGoToContinueHints(alt,  continueLabels, out);
+        } else if (stmt.type === 'SelectCaseStatement') {
+            for (const clause of (stmt as any).cases ?? []) {
+                collectGoToContinueHints(clause.body ?? [], continueLabels, out);
+            }
+            collectGoToContinueHints((stmt as any).elseBody ?? [], continueLabels, out);
+        } else {
+            // For/ForEach/DoWhile/While/With など body を持つ汎用ケース
+            const body: Statement[] = (stmt as any).body ?? [];
+            if (body.length) collectGoToContinueHints(body, continueLabels, out);
         }
     }
 }
