@@ -39,6 +39,7 @@ interface ProcedureMetrics {
     startLine: number;
     endLine: number;
     lineCount: number;
+    effectiveLineCount: number;  // 空白行・コメント行（' / REM）を除いた行数
     maxNestDepth: number;
     localDeclCount: number;
     assignmentBlocks: Array<{ startLine: number; endLine: number; count: number; context: string; shape: string }>;
@@ -1903,13 +1904,20 @@ function analyzeFile(filePath: string): FileAnalysis {
         definedProcs.set(procName.toLowerCase(), { proc, kind, scope });
         callsByProc.set(procName.toLowerCase(), collectProcedureCalls(proc.body, definedTypes));
 
+        const physicalLineCount = endLine - startLine + 1;
+        const effectiveLineCount = lines
+            .slice(startLine - 1, endLine)
+            .filter(l => { const t = l.trim(); return t !== '' && !t.startsWith("'") && !/^rem\b/i.test(t); })
+            .length;
+
         return {
             name: procName,
             kind,
             scope,
             startLine,
             endLine,
-            lineCount: endLine - startLine + 1,
+            lineCount: physicalLineCount,
+            effectiveLineCount,
             maxNestDepth: nestState.max,
             localDeclCount: countLocalDeclarations(proc.body),
             assignmentBlocks: findConsecutiveAssignmentBlocks(proc.body),
@@ -2147,7 +2155,7 @@ function formatFileReport(r: FileReport): string {
         out.push(`  ${scopeLabel}[${p.kind}] ${p.name}  (L${p.startLine}-L${p.endLine}, refs=${p.referenceCount})`);
 
         // 指標サマリー（常に表示、各指標に良し悪しの絵文字付き）
-        out.push(`    行数 ${p.lineCount}${lineEmoji(p.lineCount)} / ネスト ${p.maxNestDepth}${nestEmoji(p.maxNestDepth)} / Excel ${p.excelAccessCount}${excelEmoji(p.excelAccessCount)}`);
+        out.push(`    行数 ${p.lineCount}${lineEmoji(p.lineCount)} (有効 ${p.effectiveLineCount}) / ネスト ${p.maxNestDepth}${nestEmoji(p.maxNestDepth)} / Excel ${p.excelAccessCount}${excelEmoji(p.excelAccessCount)}`);
 
         // 凝集度
         const cohesion = cohesionJudge(p);
@@ -2705,15 +2713,17 @@ function formatDiffReport(baseline: WorkspaceReport, current: WorkspaceReport, w
             }
             if (!bp || !cp) continue;
 
-            const dLine  = cp.lineCount    - bp.lineCount;
-            const dNest  = cp.maxNestDepth - bp.maxNestDepth;
-            const dExcel = cp.excelAccessCount - bp.excelAccessCount;
-            if (dLine === 0 && dNest === 0 && dExcel === 0) continue; // 変化なし
+            const dLine    = cp.lineCount          - bp.lineCount;
+            const dEff     = cp.effectiveLineCount - bp.effectiveLineCount;
+            const dNest    = cp.maxNestDepth       - bp.maxNestDepth;
+            const dExcel   = cp.excelAccessCount   - bp.excelAccessCount;
+            if (dLine === 0 && dEff === 0 && dNest === 0 && dExcel === 0) continue; // 変化なし
 
             procLines.push(`  [${name}]`);
-            if (dLine  !== 0) procLines.push(`    lineCount:     ${bp.lineCount} → ${cp.lineCount}${diffSign(dLine)}`);
-            if (dNest  !== 0) procLines.push(`    maxNestDepth:  ${bp.maxNestDepth} → ${cp.maxNestDepth}${diffSign(dNest)}`);
-            if (dExcel !== 0) procLines.push(`    excelAccess:   ${bp.excelAccessCount} → ${cp.excelAccessCount}${diffSign(dExcel)}`);
+            if (dLine  !== 0) procLines.push(`    lineCount:          ${bp.lineCount} → ${cp.lineCount}${diffSign(dLine)}`);
+            if (dEff   !== 0) procLines.push(`    effectiveLineCount: ${bp.effectiveLineCount} → ${cp.effectiveLineCount}${diffSign(dEff)}`);
+            if (dNest  !== 0) procLines.push(`    maxNestDepth:       ${bp.maxNestDepth} → ${cp.maxNestDepth}${diffSign(dNest)}`);
+            if (dExcel !== 0) procLines.push(`    excelAccess:        ${bp.excelAccessCount} → ${cp.excelAccessCount}${diffSign(dExcel)}`);
         }
 
         if (procLines.length > 0) {
