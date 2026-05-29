@@ -3,6 +3,7 @@ import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
 import { Statement, GoToStatement } from '../engine/parser';
+import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
 import { analyzeDefUse } from '../engine/def-use-analyzer';
 import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
@@ -162,6 +163,10 @@ export class LSPServer {
         const ast = this.parseDocument(doc.content);
         if (!ast) return null;
 
+        // ラベル定義ジャンプ（GoTo のラベル名 → LabelStatement）
+        const labelDef = findLabelDefinition(ast.body, line, character, uri);
+        if (labelDef) return labelDef;
+
         this.definitionProvider.setDocumentUri(uri);
         try {
             return this.definitionProvider.getDefinition(ast.body, doc.content, line, character);
@@ -179,6 +184,11 @@ export class LSPServer {
 
         const ast = this.parseDocument(doc.content);
         if (!ast) return [];
+
+        // ラベル参照ジャンプ（LabelStatement → GoTo 一覧）
+        if (isOnLabel(ast.body, line, character)) {
+            return findGoToReferences(ast.body, line, character, uri, includeDeclaration);
+        }
 
         this.referencesProvider.setDocumentUri(uri);
         return this.referencesProvider.getReferences(ast.body, doc.content, line, character, includeDeclaration);
