@@ -686,6 +686,26 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: Lexer でキーワード照合前に型接尾辞を除去（`lowerBase`）することで `dim$` → `KeywordDim` と正しく識別
   - ただし contextual keyword + `$`（`append$` 等）は IDENTIFIER なので合法 | `lexer-column.test.ts`
 
+- ✅ **Fix: For/ForEach/DoWhile/While ループ本体内のラベルへの GoTo がエラーになる** | `goto-in-loop.test.ts`
+  - 原因: `executeStatements(body, 0, isTopLevel=false)` は GoTo 例外を無条件で re-throw する設計で、ループ本体（`stmt.body`）内にあるラベルを自分では探さなかった。`evaluateForStatement` 等が GoTo を受け取っても `Exit For` 以外はすべて上位に投げていたため、トップレベルの `executeStatements` が手続き本体からラベルを探し、ループ内にしか存在しないラベルを見つけられずエラーになっていた
+  - 修正: `evaluateForStatement` / `evaluateForEachStatement` / `evaluateDoWhileStatement` / `evaluateWhileStatement` の catch ブロックで GoTo を受け取ったとき、`stmt.body` 内にラベルが存在すれば `executeStatements(stmt.body, labelIndex + 1, false)` でラベル直後から残りを実行するよう変更。`findLabelInBody` ヘルパーを追加
+  - 影響: MS-VBAL §5.2.1.2 — ラベルのスコープは手続き全体（ループの内外を問わない）という仕様に準拠
+
+- ✅ **Fix: Option Explicit チェックを呼び出し時の env 状態で判定する** | `cross-module-const.test.ts`
+  - 原因: `optionExplicitViolations` に記録された未宣言名を呼び出し前に固定判定していたため、`runner.set()` や別モジュールで後から定義した定数が解決済みと扱われなかった
+  - 修正: `callProcedure` 内のチェックを `env.hasVariable(name)` で再評価するよう変更。呼び出し時点の env に名前が存在すれば通過する（`optionExplicitViolations` は `Map<procName, Set<undeclaredNames>>` に変更）
+  - 詳細: `docs/internals/NAME_RESOLUTION.md` 参照
+
+- ✅ **Fix: モジュールレベル定数のクロスモジュール参照がロード順依存になっていた** | `cross-module-const.test.ts`
+  - 原因: `evaluate()` 実行時に定数の右辺を即評価するため、参照先モジュールがまだロードされていない場合に `env.get()` の暗黙初期化（0）が採用されていた
+  - 修正: `VBARunner` に二段階ロードを導入。Pass 1 で全モジュールをロード後、Pass 2 で `reEvaluateModuleConstsAll()` を呼んで全モジュールレベル定数を再評価。依存グラフをトポロジカルソートして正しい順序で確定させる
+  - 仕様: VBA では全モジュールがコンパイル時に一括解決されるため、ロード順によらずクロスモジュール定数参照が動作する（MS-VBAL §5.6.10 tier 4）
+
+- ✅ **Fix: モジュールレベル定数の循環参照を検出してエラーにする** | `cross-module-const.test.ts`
+  - 原因: 二段階評価の Pass 2 を単純に一度だけ実行した場合、相互参照する定数は不定値になりエラーにもならなかった
+  - 修正: `topologicalSortConsts()` で DFS による閉路検出を実装。循環が見つかれば `"Circular reference in constant declarations: A → B → A"` 形式のエラーを throw する
+  - 仕様: VBA コンパイラは定数の循環参照をコンパイルエラーとして検出する
+
 ### エンジン内部の構造改善
 
 - ✅ **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `vbaToNumber()`/`vbaToString()`/`vbaToBoolean()`/`vbaToDisplayString()`/`vbaRound()` を集約する
