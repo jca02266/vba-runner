@@ -577,6 +577,18 @@ export class Parser {
         TokenType.KeywordSendKeys,     // SendKeys <keys>
     ]);
 
+    /** Structural keywords that appear in dedicated lexer token types but are NOT
+     *  listed in any §3.3.5.2 reserved-identifier category.
+     *  They are valid IDENTIFIERs in declaration and expression contexts.
+     *  Note: statement-level dispatch (e.g. Class → parseClassDeclaration) still has
+     *  priority; assignment `Class = x` is disambiguated by a `!= OperatorEquals` guard. */
+    private static readonly CONTEXTUAL_KW_STRUCTURAL = new Set<TokenType>([
+        TokenType.KeywordClass,       // Class declaration keyword (not in spec's statement-keyword list)
+        TokenType.KeywordCollection,  // Built-in object type name (not in reserved-identifier list)
+        TokenType.KeywordError,       // On Error construct element (not standalone reserved)
+        TokenType.KeywordProperty,    // Property Get/Set/Let keyword (not in spec's statement-keyword list)
+    ]);
+
     /** Union of all contextual keyword groups above.
      *  Tokens in this Set are valid IDENTIFIERs in Dim declarations,
      *  expression context, and assignment statements. */
@@ -586,6 +598,7 @@ export class Parser {
         ...Parser.CONTEXTUAL_KW_OPTION,
         ...Parser.CONTEXTUAL_KW_DECLARE,
         ...Parser.CONTEXTUAL_KW_STMT_ABSENT,
+        ...Parser.CONTEXTUAL_KW_STRUCTURAL,
     ]);
 
     /** <statement-keyword> tokens additionally permitted as IDENTIFIERs in
@@ -603,6 +616,13 @@ export class Parser {
     ]);
 
     private readonly errorRecovery: boolean;
+
+    /** Returns true if token is a valid IDENTIFIER per §3.3.5.2:
+     *  either a plain lex-identifier or a contextual keyword that is not reserved. */
+    private isIdentifier(token: Token): boolean {
+        return token.type === TokenType.Identifier
+            || Parser.CONTEXTUAL_KW.has(token.type);
+    }
 
     constructor(tokens: Token[], options: { parseAsClass?: string; errorRecovery?: boolean } = {}) {
         this.tokens = tokens;
@@ -1237,7 +1257,8 @@ export class Parser {
             return this.parseDoWhileStatement();
         } else if (token.type === TokenType.KeywordWhile) {
             return this.parseWhileStatement();
-        } else if (token.type === TokenType.KeywordSub || token.type === TokenType.KeywordFunction || token.type === TokenType.KeywordProperty) {
+        } else if (token.type === TokenType.KeywordSub || token.type === TokenType.KeywordFunction ||
+                   (token.type === TokenType.KeywordProperty && this.peek(1).type !== TokenType.OperatorEquals)) {
             return this.parseProcedureDeclaration();
         } else if (token.type === TokenType.KeywordStatic) {
             this.advance(); // consume 'Static'
@@ -1271,7 +1292,7 @@ export class Parser {
             } else {
                 return this.parseOnGoToSubStatement();
             }
-        } else if (token.type === TokenType.KeywordError) {
+        } else if (token.type === TokenType.KeywordError && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseErrorStatement();
         } else if (token.type === TokenType.KeywordGoSub) {
             return this.parseGoSubStatement();
@@ -1361,7 +1382,7 @@ export class Parser {
             return this.parseUnlockStatement();
         } else if (token.type === TokenType.KeywordWidth && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseWidthStatement();
-        } else if (token.type === TokenType.KeywordClass) {
+        } else if (token.type === TokenType.KeywordClass && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseClassDeclaration();
         } else if (token.type === TokenType.KeywordCall) {
             this.advance(); // consume 'Call'
@@ -1455,7 +1476,7 @@ export class Parser {
         }
 
         const idToken = this.advance();
-        if (idToken.type !== TokenType.Identifier && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
+        if (!this.isIdentifier(idToken) && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
             this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${this.tokenDisplay(idToken.value)})`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
@@ -1521,10 +1542,7 @@ export class Parser {
                 isWithEvents = true;
             }
             const idToken = this.advance();
-            // CONTEXTUAL_KW covers keywords below KeywordBase that are valid IDENTIFIERs
-            // per §3.3.5.2; the range check catches the rest (KeywordBase..KeywordAddressOf).
-            if (idToken.type !== TokenType.Identifier &&
-                !Parser.CONTEXTUAL_KW.has(idToken.type) &&
+            if (!this.isIdentifier(idToken) &&
                 (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
                 this.throwError(`Parse error at line ${idToken.line}: Expected variable name (Found ${this.tokenDisplay(idToken.value)})`);
             }
@@ -1588,8 +1606,7 @@ export class Parser {
     private parseConstDeclaration(): ConstDeclaration {
         this.advance(); // 'Const'
         const idToken = this.advance();
-        // §3.3.5.2: Step / Append / Output 等の contextual keyword は識別子として使用可能
-        if (idToken.type !== TokenType.Identifier && !Parser.CONTEXTUAL_KW.has(idToken.type)) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
+        if (!this.isIdentifier(idToken)) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
         const name = this.makeIdentifier(idToken);
 
         // Optional 'As Type'
