@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+
 import * as path from 'path';
 import * as fs from 'fs';
 import { LSPServer } from './lsp/server';
@@ -534,16 +535,8 @@ End Class`;
         vscode.languages.registerInlayHintsProvider('vba', {
             provideInlayHints(document) {
                 const uri = document.uri.toString();
-
-                // GoTo loop-continue hints (whole document)
-                const gotoHints = lspServer.getInlayHints(uri);
-
-                // Variant type hints (procedure at cursor only)
-                const editor = vscode.window.activeTextEditor;
-                const cursorLine = (editor?.document.uri.toString() === uri)
-                    ? editor.selection.active.line
-                    : -1;
-                const variantHints = lspServer.getVariantTypeHints(uri, cursorLine);
+                const gotoHints    = lspServer.getInlayHints(uri);
+                const variantHints = lspServer.getVariantTypeHints(uri);
 
                 return [...gotoHints, ...variantHints].map(h => new vscode.InlayHint(
                     new vscode.Position(h.line, h.character),

@@ -443,22 +443,21 @@ export class LSPServer {
     }
 
     /**
-     * Get inlay hints for Variant-typed variables in the procedure at cursorLine.
-     * cursorLine is 0-based. Pass -1 to skip variant inference.
+     * Get inlay hints for Variant-typed variables in all procedures of the document.
+     * A single shared memo prevents redundant function-return-type resolution.
      */
-    getVariantTypeHints(uri: string, cursorLine: number): Array<{ line: number; character: number; label: string }> {
-        if (cursorLine < 0) return [];
+    getVariantTypeHints(uri: string): Array<{ line: number; character: number; label: string }> {
         const doc = this.documents.get(uri);
         if (!doc) return [];
         const ast = this.parseDocument(doc.content);
         if (!ast) return [];
 
-        const proc = findProcAtLine(ast.body, cursorLine);
-        if (!proc) return [];
-
         const allProcs = buildProcMap(ast.body);
         const memo = new Map();
-        const hints = inferVariantTypes(proc, allProcs, memo);
+        const allHints = [...allProcs.values()].flatMap(proc =>
+            inferVariantTypes(proc, allProcs, memo)
+        );
+        const hints = allHints;
 
         return hints
             .filter(h => h.inferredType !== null)
