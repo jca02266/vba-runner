@@ -64,7 +64,7 @@ export function inferVariantTypes(
         if (stmt.type !== 'VariableDeclaration') continue;
         for (const decl of (stmt as VariableDeclaration).declarations) {
             const t = decl.objectType?.toLowerCase();
-            if (t && t !== 'variant') continue; // 明示的な非 Variant 型はスキップ
+            if (t && t !== 'variant' && t !== 'object') continue; // 明示的な非 Variant/Object 型はスキップ
             const loc = (decl.name as any).loc;
             if (!loc) continue;
             const nameEnd = loc.end?.column ?? loc.start.column + decl.name.name.length;

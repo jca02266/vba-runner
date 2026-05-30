@@ -323,8 +323,20 @@ function infer(src: string, procName?: string) {
         'End Sub',
     ].join('\n'));
     const h = hints.find(h => h.varName === 'seenids');
-    assert.strictEqual(h?.inferredType, 'Dictionary', 'CreateObject("Scripting.Dictionary") → Dictionary');
-    console.log('[PASS] CreateObject("Scripting.Dictionary") → Dictionary');
+    assert.strictEqual(h?.inferredType, 'Dictionary', 'Dim (型なし) + CreateObject → Dictionary');
+    console.log('[PASS] Dim (型なし) + CreateObject("Scripting.Dictionary") → Dictionary');
+}
+
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim seenIDs As Object',
+        '    Set seenIDs = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n'));
+    const h = hints.find(h => h.varName === 'seenids');
+    assert.strictEqual(h?.inferredType, 'Dictionary', 'Dim As Object + CreateObject → Dictionary');
+    console.log('[PASS] Dim As Object + CreateObject("Scripting.Dictionary") → Dictionary');
 }
 
 {
