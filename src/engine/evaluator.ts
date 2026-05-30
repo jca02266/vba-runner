@@ -4264,7 +4264,7 @@ export class Evaluator {
      * to resolve variable type metadata from the Environment.
      */
     // 組み込み関数の戻り型マップ（固定戻り型のもののみ）
-    private static readonly BUILTIN_RETURN_TYPES: Record<string, VbaVarType> = {
+    public static readonly BUILTIN_RETURN_TYPES: Record<string, VbaVarType> = {
         // 型変換関数
         'cbool': 'Boolean', 'cbyte': 'Byte', 'ccur': 'Currency',
         'cdate': 'Date', 'cdbl': 'Double', 'cint': 'Integer',
