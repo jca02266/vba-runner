@@ -1844,6 +1844,10 @@ export class Evaluator {
         }
 
         for (const stmt of program.body) {
+            // モジュールレベルの ConstDeclaration は Pass 2（reEvaluateModuleConstsAll）で評価する。
+            // ここで評価すると参照先が未定義の場合に env.get() の暗黙初期化が起き、
+            // 誤った値が env に登録されてしまう。
+            if (stmt.type === 'ConstDeclaration') continue;
             this.evaluateStatement(stmt);
         }
     }
