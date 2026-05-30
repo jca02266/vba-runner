@@ -71,4 +71,54 @@ function makeModules(sources: Record<string, string>) {
     assert.ok(threw, '自己参照も循環として検出される');
 }
 
+// --- 5. Pass 1 後に未定義名が env に登録されていないこと ---
+// このテストがなかったため Pass 1 の暗黙初期化バグを検出できなかった
+{
+    const ev = new Evaluator(console.log);
+    // xlUp を定義しないまま xlUp を参照する const を含むモジュールをロード
+    const ast = new Parser(new Lexer(`Private Const myDir = xlUp`).tokenize()).parse();
+    ev.setSourceModule('Module1');
+    ev.evaluate(ast);
+
+    // Pass 1 終了時点では xlup は env に登録されていてはいけない
+    assert.ok(!ev['env'].hasVariable('xlup'),
+        'Pass 1 後: 未定義名 xlup が env に登録されていない');
+    assert.ok(!ev['env'].hasVariable('mydir'),
+        'Pass 1 後: 定数 mydir も env に登録されていない');
+
+    // Pass 2 後も xlup はどこにも定義されていないので登録されない
+    ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
+    assert.ok(!ev['env'].hasVariable('xlup'),
+        'Pass 2 後: どこにも定義されていない xlup は env に存在しない');
+}
+
+// --- 6. 未定義名を手続き内で直接使うと Option Explicit が機能する ---
+// const 右辺経由ではなく、手続き内で直接参照した場合のテスト
+{
+    const ev = new Evaluator(console.log);
+    // xlUp を手続きの引数として渡す（引数位置の識別子はチェッカーが検査する）
+    const src = [
+        'Option Explicit',
+        'Function Identity(x As Long) As Long',
+        '  Identity = x',
+        'End Function',
+        'Function UseXlUp() As Long',
+        '  UseXlUp = Identity(xlUp)',
+        'End Function',
+    ].join('\n');
+    const ast = new Parser(new Lexer(src).tokenize()).parse();
+    ev.setSourceModule('Module1');
+    ev.evaluate(ast);
+    ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
+
+    // xlUp はどこにも定義されていないので Option Explicit 違反
+    let threw = false;
+    try {
+        ev.callProcedure('UseXlUp', []);
+    } catch {
+        threw = true;
+    }
+    assert.ok(threw, '手続き内で未定義の xlup を引数として使うと Option Explicit エラーになる');
+}
+
 console.log('cross-module-const: all tests passed');

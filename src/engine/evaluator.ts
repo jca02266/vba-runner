@@ -228,6 +228,8 @@ export class Environment {
     private withEventsVariables: Set<string> = new Set();
     private constantVariables: Set<string> = new Set();
     public enclosing?: Environment;
+    /** true の間は get() の暗黙初期化（未登録名を 0 で登録）を行わない */
+    public noImplicitInit = false;
 
     constructor(enclosing?: Environment) {
         this.enclosing = enclosing;
@@ -373,7 +375,8 @@ export class Environment {
             env = env.enclosing;
         }
 
-        // Implicit initialization
+        // Implicit initialization（noImplicitInit フラグが立っている間はスキップ）
+        if (this.noImplicitInit) return 0;
         this.variables.set(key, 0);
         return 0;
     }
@@ -3095,13 +3098,18 @@ export class Evaluator {
         // トポロジカルソート（循環参照を検出）
         const order = this.topologicalSortConsts(allConsts, deps);
 
-        // 正しい順序で再評価
-        for (const name of order) {
-            const { stmt, moduleName } = allConsts.get(name)!;
-            const prev = this.currentSourceModule;
-            this.currentSourceModule = moduleName;
-            this.evaluateConstDeclaration(stmt);
-            this.currentSourceModule = prev;
+        // 正しい順序で再評価（未定義名の暗黙初期化を防ぐため noImplicitInit を立てる）
+        this.env.noImplicitInit = true;
+        try {
+            for (const name of order) {
+                const { stmt, moduleName } = allConsts.get(name)!;
+                const prev = this.currentSourceModule;
+                this.currentSourceModule = moduleName;
+                this.evaluateConstDeclaration(stmt);
+                this.currentSourceModule = prev;
+            }
+        } finally {
+            this.env.noImplicitInit = false;
         }
     }
 
