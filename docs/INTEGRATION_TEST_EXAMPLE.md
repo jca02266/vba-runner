@@ -240,10 +240,7 @@ assert.strictEqual(result4, 6, 'Level 2 with 0.8 allocation should start at next
 ## テスト実行方法
 
 ```bash
-# コンパイルと実行
-./node_modules/.bin/esbuild tests/spec/TaskScheduler.test.ts \
-  --bundle --outfile=tests/spec/TaskScheduler.test.cjs --platform=node \
-  && node tests/spec/TaskScheduler.test.cjs
+npx tsx tests/spec/TaskScheduler.test.ts
 ```
 
 ---
