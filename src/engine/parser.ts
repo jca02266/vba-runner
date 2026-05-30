@@ -617,6 +617,13 @@ export class Parser {
         this._diagnostics.push({ message, loc: { start: pos, end: pos }, severity: 'error' });
     }
 
+    private tokenDisplay(value: string): string {
+        return value
+            .replace(/\n/g, '<改行>')
+            .replace(/\r/g, '<CR>')
+            .replace(/\t/g, '<タブ>');
+    }
+
     private throwError(message: string, token?: Token): never {
         const peek = this.peek();
         const t = token ?? (peek.type !== TokenType.EOF ? peek : this.tokens[Math.max(0, this.pos - 1)]);
@@ -698,7 +705,7 @@ export class Parser {
 
         const token = this.peek();
         if (token.type !== TokenType.Identifier && (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf)) {
-            this.throwError(`Parse error at line ${token.line}: Expected parameter name (Found ${token.value})`);
+            this.throwError(`Parse error at line ${token.line}: Expected parameter name (Found ${this.tokenDisplay(token.value)})`);
         }
         const nameToken = this.advance();
 
@@ -1377,7 +1384,7 @@ export class Parser {
                 }
             }
         } else if (token.type === TokenType.Unknown) {
-            this.throwError(`Parse error: Unknown token '${token.value}' at line ${token.line}`);
+            this.throwError(`Parse error: Unknown token '${this.tokenDisplay(token.value)}' at line ${token.line}`);
         } else {
             // Unknown or unexpected top-level token
             this.advance();
@@ -1404,7 +1411,7 @@ export class Parser {
 
         const idToken = this.advance();
         if (idToken.type !== TokenType.Identifier && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
-            this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${idToken.value})`);
+            this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${this.tokenDisplay(idToken.value)})`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
         const parameters: Parameter[] = [];
@@ -1472,7 +1479,7 @@ export class Parser {
             if (idToken.type !== TokenType.Identifier &&
                 !Parser.CONTEXTUAL_KW.has(idToken.type) &&
                 (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
-                this.throwError(`Parse error at line ${idToken.line}: Expected variable name (Found ${idToken.value})`);
+                this.throwError(`Parse error at line ${idToken.line}: Expected variable name (Found ${this.tokenDisplay(idToken.value)})`);
             }
             const name: Identifier = this.makeIdentifier(idToken);
 
@@ -2457,7 +2464,7 @@ export class Parser {
             const property = { type: 'Identifier', name: propToken.value } as Identifier;
             expr = { type: 'ImplicitWithObjectExpression', property } as ImplicitWithObjectExpression;
         } else {
-            this.throwError(`Parse error: Unexpected token in expression '${token.value}' at line ${token.line} `, token);
+            this.throwError(`Parse error: Unexpected token in expression '${this.tokenDisplay(token.value)}' at line ${token.line} `, token);
         }
 
         expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
