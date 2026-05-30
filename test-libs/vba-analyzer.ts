@@ -1069,7 +1069,7 @@ function emitConstTs(analyses: FileAnalysis[], outputDir: string): void {
     lines.push('');
     lines.push('/** vbaRunner.setConstants(allConstants) で一括注入するためのオブジェクト */');
     lines.push('export const allConstants: Record<string, number | string> = {');
-    for (const [name, value] of known) {
+    for (const [name] of known) {
         lines.push(`    ${name},`);
     }
     for (const name of unknown) {
@@ -2128,13 +2128,6 @@ function excelEmoji(n: number): string {
     if (n >= 5)  return '⚠️ ';
     return '✅';
 }
-// 重複ブロックの種類数の良し悪し: 0 ✅  1-2 ⚠️  3+ ❌
-function dupEmoji(n: number): string {
-    if (n >= 3) return '❌';
-    if (n >= 1) return '⚠️ ';
-    return '✅';
-}
-
 // ---------------------------------------------------------
 // テキストフォーマッタ
 // ---------------------------------------------------------

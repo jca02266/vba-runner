@@ -23,18 +23,11 @@ import {
     MemberExpression,
     CallExpression,
     Identifier,
-    ForStatement,
-    ForEachStatement,
-    DoWhileStatement,
-    WhileStatement,
-    WithStatement,
     IfStatement,
-    SelectCaseStatement,
 } from './parser';
 import {
     ModuleTypeEnvironment,
     lookupType,
-    isNumericType,
 } from './type-environment';
 
 // ─── 公開型 ──────────────────────────────────────────────────────────────────

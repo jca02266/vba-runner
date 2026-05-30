@@ -102,7 +102,7 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration('vba-runner.lint.enabled') || event.affectsConfiguration('vba-runner.lint.enabledCodes')) {
-                for (const [uriStr, doc] of documentMap) {
+                for (const [uriStr] of documentMap) {
                     updateDiagnostics(vscode.Uri.parse(uriStr));
                 }
             }

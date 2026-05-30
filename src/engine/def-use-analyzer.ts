@@ -22,7 +22,6 @@ import {
     buildDefUseChains,
     usePointKey,
     UsePoint,
-    ReachingDefsResult,
 } from './reaching-defs';
 import { computeLiveVars, LiveVarsResult, getStmtDefs, getStmtUses } from './live-vars';
 

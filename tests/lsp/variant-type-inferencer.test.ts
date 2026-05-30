@@ -313,4 +313,30 @@ function infer(src: string, procName?: string) {
     console.log('[PASS] 配列変数ヒント位置: arr() の ) の後 (endColumn=10)');
 }
 
+// ─── CreateObject 型推論 ─────────────────────────────────────────────────────
+
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim seenIDs',
+        '    Set seenIDs = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n'));
+    const h = hints.find(h => h.varName === 'seenids');
+    assert.strictEqual(h?.inferredType, 'Dictionary', 'CreateObject("Scripting.Dictionary") → Dictionary');
+    console.log('[PASS] CreateObject("Scripting.Dictionary") → Dictionary');
+}
+
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim fso',
+        '    Set fso = CreateObject("Scripting.FileSystemObject")',
+        'End Sub',
+    ].join('\n'));
+    const h = hints.find(h => h.varName === 'fso');
+    assert.strictEqual(h?.inferredType, 'FileSystemObject', 'CreateObject("Scripting.FileSystemObject") → FileSystemObject');
+    console.log('[PASS] CreateObject("Scripting.FileSystemObject") → FileSystemObject');
+}
+
 console.log('\n✅ Variant 型推論: 全テスト通過');

@@ -4,7 +4,7 @@ import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
 import { Statement, GoToStatement } from '../engine/parser';
 import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
-import { inferProcedureHints, buildProcMap, findProcAtLine } from './variant-type-inferencer';
+import { inferProcedureHints, buildProcMap } from './variant-type-inferencer';
 import { analyzeDefUse } from '../engine/def-use-analyzer';
 import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';

@@ -103,7 +103,7 @@ export function computeReachingDefs(
 
         const gen = new Set<string>();
         for (const [v, idx] of lastDefIdx) {
-            gen.add(defKey({ varName: v, blockId: block.id, stmtIdx: idx, line: 0 }));
+            gen.add(defKey({ varName: v, blockId: block.id, stmtIdx: idx }));
         }
         genMap.set(block.id, gen);
 
@@ -192,7 +192,6 @@ export function buildDefUseChains(
             if (defs.length > 0) {
                 // この変数は i で再定義された → それ以前の定義はすべてキル
                 reachable.clear();
-                const line = (block.stmts[i] as any).loc?.start.line ?? 0;
                 const newDef = result.allDefs.find(
                     d => d.blockId === up.blockId && d.stmtIdx === i && d.varName === up.varName,
                 );

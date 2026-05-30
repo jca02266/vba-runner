@@ -107,8 +107,8 @@ server.tool(
                 const src = fs.readFileSync(filePath, 'utf-8');
                 const tokens = new Lexer(src).tokenize();
                 const ast = new Parser(tokens).parse();
-                const evaluator = new Evaluator();
-                evaluator.evalStatements(ast.body);
+                const evaluator = new Evaluator(() => {});
+                evaluator.evaluate(ast);
 
                 const testProcs = ast.body
                     .filter((n: any) => n.type === 'SubDeclaration' && /^test_/i.test(n.name?.name ?? ''))

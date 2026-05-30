@@ -24,6 +24,7 @@ import {
     VariableDeclaration,
     Identifier,
     NumberLiteral,
+    StringLiteral,
     CallExpression,
 } from '../engine/parser';
 import { Evaluator } from '../engine/evaluator';
@@ -236,9 +237,9 @@ function inferReturnTypeHint(
 
 function inferCollectionElementType(
     collection: Expression,
-    allProcs: Map<string, ProcedureDeclaration>,
-    memo: Map<string, InferredType>,
-    depth: number,
+    _allProcs: Map<string, ProcedureDeclaration>,
+    _memo: Map<string, InferredType>,
+    _depth: number,
 ): InferredType {
     if (!collection) return null;
     // Split() → 要素は String
@@ -295,6 +296,13 @@ function inferExprType(
             const callee = (expr as CallExpression).callee;
             if (callee.type === 'Identifier') {
                 const name = (callee as Identifier).name;
+                if (name.toLowerCase() === 'createobject') {
+                    const ce = expr as CallExpression;
+                    if (ce.args.length > 0 && ce.args[0].type === 'StringLiteral') {
+                        return resolveProgIdType((ce.args[0] as StringLiteral).value);
+                    }
+                    return 'Object';
+                }
                 const builtin = Evaluator.BUILTIN_RETURN_TYPES[name.toLowerCase()];
                 if (builtin) return builtin;
                 return lookupReturnType(name, allProcs, memo, depth);
@@ -393,6 +401,16 @@ function searchReturnAssignment(
 }
 
 // ─── ユーティリティ ───────────────────────────────────────────────────────────
+
+function resolveProgIdType(progId: string): string {
+    const lower = progId.toLowerCase();
+    if (lower.includes('dictionary'))  return 'Dictionary';
+    if (lower.includes('filesystem'))  return 'FileSystemObject';
+    if (lower.includes('range'))       return 'Range';
+    if (lower.includes('worksheet'))   return 'Worksheet';
+    if (lower.includes('workbook'))    return 'Workbook';
+    return 'Object';
+}
 
 function normalizeType(t: string): string {
     const map: Record<string, string> = {
