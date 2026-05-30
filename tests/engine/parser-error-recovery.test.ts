@@ -99,4 +99,37 @@ function parse(src: string) {
     console.log('[PASS] diagnostics reference is stable');
 }
 
+// 11. 式の途中の改行エラーが実際の位置を指す（ParseError位置修正）
+{
+    // Array() の途中で _ なし改行 → エラー位置が Sub先頭でなく該当行を指す
+    const src = [
+        'Sub Test()',
+        '    x = Array(1,',   // line 2: , の後で改行 → ここでエラー
+        '    2)',
+        'End Sub',
+    ].join('\n');
+    const ast = parse(src);
+    assert.ok(ast.diagnostics.length >= 1, '式途中改行でエラーが記録される');
+    const diag = ast.diagnostics[0];
+    // エラーは line 2（0-based: 1）または line 3（Array 呼び出し行）を指すべき
+    // Sub先頭の line 1 を指してはならない
+    assert.ok(diag.loc.start.line >= 2, `エラーがSub先頭ではなく実際の位置を指す (loc.line=${diag.loc.start.line})`);
+    console.log('[PASS] 式途中改行エラーの位置: line=', diag.loc.start.line, 'col=', diag.loc.start.column);
+}
+
+// 12. 演算子の後で改行したエラーも実際の位置を指す
+{
+    const src = [
+        'Sub Test()',
+        '    x = 1 +',    // line 2: + の後で改行
+        '    2',
+        'End Sub',
+    ].join('\n');
+    const ast = parse(src);
+    assert.ok(ast.diagnostics.length >= 1, 'エラーが記録される');
+    const diag = ast.diagnostics[0];
+    assert.ok(diag.loc.start.line >= 2, `エラーがSub先頭(line=1)ではなく line=${diag.loc.start.line} を指す`);
+    console.log('[PASS] 演算子後改行エラーの位置: line=', diag.loc.start.line, 'col=', diag.loc.start.column);
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');

@@ -618,7 +618,8 @@ export class Parser {
     }
 
     private throwError(message: string, token?: Token): never {
-        const t = token ?? this.tokens[Math.max(0, this.pos - 1)];
+        const peek = this.peek();
+        const t = token ?? (peek.type !== TokenType.EOF ? peek : this.tokens[Math.max(0, this.pos - 1)]);
         throw new ParseError(message, t.line, t.column);
     }
 

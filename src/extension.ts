@@ -10,6 +10,7 @@ import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
 import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
 import { findMatchingExpressions } from './lsp/ast-comparison';
+import { needsLineContinuation } from './lsp/line-continuation-checker';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -858,15 +859,3 @@ export function deactivate() {
     console.log('VBA Runner extension deactivated');
 }
 
-// 式の途中で改行されたとき _ が必要かを判定する
-const CONTINUATION_CHARS = /[+\-*\/\\^&,=(]$|[<>]$|<=$|>=$|<>$/;
-const CONTINUATION_KEYWORDS = /\b(And|Or|Xor|Eqv|Imp|Mod|Like|Is)\s*$/i;
-
-function needsLineContinuation(trimmedLine: string): boolean {
-    if (trimmedLine.length === 0) return false;
-    if (trimmedLine.endsWith('_')) return false;          // already continued
-    if (/^\s*'/.test(trimmedLine)) return false;          // comment line
-    if (CONTINUATION_CHARS.test(trimmedLine)) return true;
-    if (CONTINUATION_KEYWORDS.test(trimmedLine)) return true;
-    return false;
-}
