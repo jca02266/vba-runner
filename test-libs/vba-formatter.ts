@@ -8,9 +8,9 @@
 //   npx tsx test-libs/vba-formatter.ts
 //
 // Usage:
-//   node test-libs/vba-formatter.cjs <file-or-dir>          # フォーマット後のコードを stdout に出力
-//   node test-libs/vba-formatter.cjs <file-or-dir> --check  # 差分があれば表示して exit 1
-//   node test-libs/vba-formatter.cjs <file-or-dir> --write  # ファイルを上書き
+//   npx tsx test-libs/vba-formatter.ts <file-or-dir>          # フォーマット後のコードを stdout に出力
+//   npx tsx test-libs/vba-formatter.ts <file-or-dir> --check  # 差分があれば表示して exit 1
+//   npx tsx test-libs/vba-formatter.ts <file-or-dir> --write  # ファイルを上書き
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -67,9 +67,9 @@ Options:
   --no-keyword-case  キーワードの大文字化を無効化
 
 Example:
-  node vba-formatter.cjs src/vba/Main.bas
-  node vba-formatter.cjs src/vba/ --check
-  node vba-formatter.cjs src/vba/Main.bas --write --indent-size=2`);
+  npx tsx test-libs/vba-formatter.ts src/vba/Main.bas
+  npx tsx test-libs/vba-formatter.ts src/vba/ --check
+  npx tsx test-libs/vba-formatter.ts src/vba/Main.bas --write --indent-size=2`);
         process.exit(0);
     }
 

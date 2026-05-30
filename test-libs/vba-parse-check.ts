@@ -5,8 +5,8 @@
 //
 // Usage:
 //   npx tsx test-libs/vba-parse-check.ts
-//   node test-libs/vba-parse-check.cjs <path>         # テキスト形式
-//   node test-libs/vba-parse-check.cjs <path> --json  # JSON 形式
+//   npx tsx test-libs/vba-parse-check.ts <path>         # テキスト形式
+//   npx tsx test-libs/vba-parse-check.ts <path> --json  # JSON 形式
 
 import { Lexer, LexError } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';

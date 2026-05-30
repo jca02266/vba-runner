@@ -13,7 +13,7 @@ const HELP = `
 テーブル駆動リファクタリング候補検出ツール
 
 使い方:
-  node table-driven-detector-cli.cjs <file.bas> [options]
+  npx tsx test-libs/table-driven-detector-cli.ts <file.bas> [options]
 
 引数:
   <file.bas>         解析対象の VBA ファイル（.bas）
@@ -92,13 +92,13 @@ JSON 出力フィールド（--json）:
 
 例:
   # 候補の検出（テキスト形式）
-  node table-driven-detector-cli.cjs sample/src/vba/ApprovalRules_Before.bas
+  npx tsx test-libs/table-driven-detector-cli.ts sample/src/vba/ApprovalRules_Before.bas
 
   # デシジョンテーブルも一緒に出力（人間向け）
-  node table-driven-detector-cli.cjs sample/src/vba/ApprovalRules_Before.bas --decision-table
+  npx tsx test-libs/table-driven-detector-cli.ts sample/src/vba/ApprovalRules_Before.bas --decision-table
 
   # JSON 形式で出力（AI・他ツール連携向け、decisionTable と sideEffects を含む）
-  node table-driven-detector-cli.cjs sample/src/vba/ApprovalRules_Before.bas --json
+  npx tsx test-libs/table-driven-detector-cli.ts sample/src/vba/ApprovalRules_Before.bas --json
 `.trimStart();
 
 function main() {
