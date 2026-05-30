@@ -41,13 +41,11 @@ Domain Logic の単体テスト（配列等）
 VBA Runner は既に以下を備えています：
 
 ```bash
-# TypeScript + esbuild セットアップ
-npm run build          # TypeScript チェック
+# TypeScript チェック
+npm run build
 
 # テスト実行（VBA Runner環境）
-./node_modules/.bin/esbuild tests/spec/xxx.test.ts \
-  --bundle --outfile=tests/spec/xxx.cjs --platform=node \
-  && node tests/spec/xxx.cjs
+./node_modules/.bin/tsx tests/spec/xxx.test.ts
 ```
 
 ### テストファイル構成
@@ -123,9 +121,7 @@ describe('Math Operations', () => {
 **実行方法**:
 
 ```bash
-./node_modules/.bin/esbuild tests/spec/math.test.ts \
-  --bundle --outfile=tests/spec/math.cjs --platform=node \
-  && node tests/spec/math.cjs
+./node_modules/.bin/tsx tests/spec/math.test.ts
 ```
 
 ---
@@ -804,7 +800,7 @@ it('should generate expected report', () => {
 {
   "scripts": {
     "test": "node tests/run-all-tests.js",
-    "test:math": "esbuild tests/spec/math.test.ts --bundle --outfile=tests/spec/math.cjs --platform=node && node tests/spec/math.cjs",
+    "test:math": "./node_modules/.bin/tsx tests/spec/math.test.ts",
     "test:watch": "nodemon --watch src/vba --exec 'npm run test'"
   }
 }
@@ -831,9 +827,7 @@ testFiles.forEach(file => {
   console.log(`\n📝 Running ${file}...`);
   try {
     execSync(
-      `./node_modules/.bin/esbuild tests/spec/${file} ` +
-      `--bundle --outfile=tests/spec/${file.replace('.ts', '.cjs')} ` +
-      `--platform=node && node tests/spec/${file.replace('.ts', '.cjs')}`,
+      `./node_modules/.bin/tsx tests/spec/${file}`,
       { stdio: 'inherit' }
     );
     passed++;
@@ -942,7 +936,7 @@ try {
 **A**: 改善方法：
 1. `test.skip` で不要なテストを一時的に無効化
 2. ファイルを機能ごとに分割（並列化可能）
-3. VBA Runnerのバンドル時間を短縮（esbuild キャッシュ）
+3. ファイルを機能ごとに分割して並列実行（`run_all_tests.sh -j 4`）
 
 ---
 

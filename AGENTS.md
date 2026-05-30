@@ -21,8 +21,8 @@ This project includes a TypeScript-based unit testing environment for verifying 
 When an agent makes changes to the code, please run the following command to ensure there are no regressions:
 
 ```bash
-# Bundle and run tests (AST construction and verification)
-npx esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+# Run tests directly with tsx
+./node_modules/.bin/tsx sample/tests/ts/TaskScheduler_Core.test.ts
 ```
 
 ## File I/O Sandbox Policy
