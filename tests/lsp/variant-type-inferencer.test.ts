@@ -1,7 +1,7 @@
 import * as assert from 'assert';
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
-import { inferVariantTypes, buildProcMap, findProcAtLine } from '../../src/lsp/variant-type-inferencer';
+import { inferVariantTypes, inferProcedureHints, buildProcMap, findProcAtLine } from '../../src/lsp/variant-type-inferencer';
 
 function parse(src: string) {
     const tokens = new Lexer(src).tokenize();
@@ -200,6 +200,68 @@ function infer(src: string, procName?: string) {
     assert.strictEqual(proc1?.name.name.toLowerCase(), 'first',  'line 1 → First');
     assert.strictEqual(proc2?.name.name.toLowerCase(), 'second', 'line 4 → Second');
     console.log('[PASS] findProcAtLine: カーソル行から手続きを特定');
+}
+
+// ─── kind フィールド ──────────────────────────────────────────────────────────
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim x',
+        '    x = 42',
+        'End Sub',
+    ].join('\n'));
+    assert.strictEqual(hints[0].kind, 'var', '変数ヒントの kind は var');
+    console.log('[PASS] kind: var');
+}
+
+// ─── パラメーターヒント ───────────────────────────────────────────────────────
+{
+    const stmts = parse([
+        'Sub Test(a, b As Long)',
+        '    x = 1',
+        'End Sub',
+    ].join('\n'));
+    const procMap = buildProcMap(stmts);
+    const proc = [...procMap.values()][0];
+    const hints = inferProcedureHints(proc, procMap, new Map());
+    const paramHint = hints.find(h => h.kind === 'param');
+    assert.ok(paramHint !== undefined, 'パラメーターヒントが存在');
+    assert.strictEqual(paramHint!.varName, 'a', '型なしパラメーター a');
+    assert.strictEqual(paramHint!.inferredType, 'Variant', '型なしパラメーター → Variant');
+    const bHint = hints.find(h => h.varName === 'b' && h.kind === 'param');
+    assert.strictEqual(bHint, undefined, '明示型 Long のパラメーターはヒントなし');
+    console.log('[PASS] パラメーターヒント: 型なし→Variant, 明示型→スキップ');
+}
+
+// ─── 戻り型ヒント ─────────────────────────────────────────────────────────────
+{
+    const stmts = parse([
+        'Function GetNum()',
+        '    GetNum = 99',
+        'End Function',
+    ].join('\n'));
+    const procMap = buildProcMap(stmts);
+    const proc = [...procMap.values()][0];
+    const hints = inferProcedureHints(proc, procMap, new Map());
+    const retHint = hints.find(h => h.kind === 'return');
+    assert.ok(retHint !== undefined, '戻り型ヒントが存在');
+    assert.strictEqual(retHint!.inferredType, 'Long', '戻り型推論 → Long');
+    console.log('[PASS] 戻り型ヒント: 型なし Function → Long');
+}
+
+{
+    // 明示的な戻り型がある場合はヒントなし
+    const stmts = parse([
+        'Function GetStr() As String',
+        '    GetStr = "x"',
+        'End Function',
+    ].join('\n'));
+    const procMap = buildProcMap(stmts);
+    const proc = [...procMap.values()][0];
+    const hints = inferProcedureHints(proc, procMap, new Map());
+    const retHint = hints.find(h => h.kind === 'return');
+    assert.strictEqual(retHint, undefined, '明示戻り型がある場合はヒントなし');
+    console.log('[PASS] 戻り型ヒント: 明示 As String → スキップ');
 }
 
 console.log('\n✅ Variant 型推論: 全テスト通過');

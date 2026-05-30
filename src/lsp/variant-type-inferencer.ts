@@ -37,10 +37,12 @@ export interface VarHint {
     varName: string;
     /** 推論された型名 */
     inferredType: InferredType;
-    /** Dim 宣言子の位置 (1-based) */
+    /** ヒント表示位置 (1-based) */
     line: number;
     column: number;
     endColumn: number;
+    /** ヒントの種別 */
+    kind: 'var' | 'param' | 'return';
 }
 
 // ─── 公開エントリーポイント ───────────────────────────────────────────────────
@@ -82,9 +84,33 @@ export function inferVariantTypes(
     for (const [varName, pos] of variantVars) {
         const inferred = resolved.get(varName) ?? null;
         if (inferred) {
-            hints.push({ varName, inferredType: inferred, ...pos });
+            hints.push({ varName, inferredType: inferred, ...pos, kind: 'var' });
         }
     }
+    return hints;
+}
+
+/**
+ * 手続きのパラメーター・戻り型・変数の全ヒントを返す。
+ * `inferVariantTypes`（変数のみ）の上位 API。
+ */
+export function inferProcedureHints(
+    proc: ProcedureDeclaration,
+    allProcs: Map<string, ProcedureDeclaration>,
+    memo: Map<string, InferredType>,
+): VarHint[] {
+    const hints: VarHint[] = [];
+
+    // 変数宣言ヒント
+    hints.push(...inferVariantTypes(proc, allProcs, memo));
+
+    // パラメーターヒント（型なし / Variant）
+    hints.push(...collectParameterHints(proc));
+
+    // 戻り型ヒント（Function で型なし / Variant の場合）
+    const ret = inferReturnTypeHint(proc, allProcs, memo);
+    if (ret) hints.push(ret);
+
     return hints;
 }
 
@@ -145,6 +171,60 @@ function recurseBody(
     for (const body of bodies) {
         collectAssignmentTypes(body, targets, resolved, allProcs, memo, depth);
     }
+}
+
+// ─── パラメーターヒント収集 ───────────────────────────────────────────────────
+
+/** 型なし / Variant パラメーターに "As Variant" ヒントを付ける */
+function collectParameterHints(proc: ProcedureDeclaration): VarHint[] {
+    const hints: VarHint[] = [];
+    for (const param of proc.parameters) {
+        if (param.isParamArray) continue; // ParamArray はスキップ
+        const t = param.paramType?.toLowerCase();
+        if (t && t !== 'variant') continue; // 明示的な非 Variant 型はスキップ
+
+        const loc = (param as any).loc;
+        if (!loc) continue;
+
+        hints.push({
+            varName:       param.name,
+            inferredType:  'Variant',
+            line:          loc.start.line,
+            column:        loc.start.column,
+            endColumn:     loc.start.column + param.name.length,
+            kind:          'param',
+        });
+    }
+    return hints;
+}
+
+// ─── 戻り型ヒント（Function の場合のみ） ─────────────────────────────────────
+
+/** 型なし / Variant 関数の戻り型を推論してヒントを返す */
+function inferReturnTypeHint(
+    proc: ProcedureDeclaration,
+    allProcs: Map<string, ProcedureDeclaration>,
+    memo: Map<string, InferredType>,
+): VarHint | null {
+    if (!proc.isFunction && !proc.isProperty) return null;
+    const declaredType = proc.returnType?.toLowerCase();
+    if (declaredType && declaredType !== 'variant') return null; // 明示型あり → スキップ
+
+    const inferred = inferFunctionReturnType(proc, allProcs, memo, 0);
+    if (!inferred) return null;
+
+    // 手続き名識別子の後（() の前）にヒントを表示
+    const nameLoc = (proc.name as any).loc;
+    if (!nameLoc) return null;
+
+    return {
+        varName:      proc.name.name,
+        inferredType: inferred,
+        line:         nameLoc.start.line,
+        column:       nameLoc.start.column,
+        endColumn:    nameLoc.end?.column ?? nameLoc.start.column + proc.name.name.length,
+        kind:         'return',
+    };
 }
 
 // ─── コレクション要素型の推論（For Each 用） ─────────────────────────────────

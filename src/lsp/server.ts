@@ -4,7 +4,7 @@ import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
 import { Statement, GoToStatement } from '../engine/parser';
 import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
-import { inferVariantTypes, buildProcMap, findProcAtLine } from './variant-type-inferencer';
+import { inferProcedureHints, buildProcMap, findProcAtLine } from './variant-type-inferencer';
 import { analyzeDefUse } from '../engine/def-use-analyzer';
 import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
@@ -454,17 +454,13 @@ export class LSPServer {
 
         const allProcs = buildProcMap(ast.body);
         const memo = new Map();
-        const allHints = [...allProcs.values()].flatMap(proc =>
-            inferVariantTypes(proc, allProcs, memo)
-        );
-        const hints = allHints;
-
-        return hints
+        return [...allProcs.values()]
+            .flatMap(proc => inferProcedureHints(proc, allProcs, memo))
             .filter(h => h.inferredType !== null)
             .map(h => ({
-                line: h.line - 1,
+                line:      h.line - 1,
                 character: h.endColumn - 1,
-                label: ` ⟨${h.inferredType}⟩`,
+                label:     ` As ${h.inferredType}`,
             }));
     }
 
