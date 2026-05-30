@@ -4,7 +4,7 @@
     {
       "label": "Run VBA TypeScript Test",
       "type": "shell",
-      "command": "./node_modules/.bin/esbuild ${file} --bundle --outfile=${fileDirname}/${fileBasenameNoExtension}.cjs --platform=node && node ${fileDirname}/${fileBasenameNoExtension}.cjs",
+      "command": "npx tsx ${file}",
       "group": {
         "kind": "test",
         "isDefault": true
