@@ -215,10 +215,8 @@ export class VBATestGenerator {
     }
 }
 
-// CLI 実行（Node.js で直接実行された場合のみ）
-// esbuild でバンドルされた場合は実行されないようにする
-const isMainModule = typeof require !== 'undefined' && require.main === module && process.argv.length > 2 && !process.argv[1].includes('esbuild');
-if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-generator'))) {
+// CLI 実行（tsx または dist/bin 経由で直接実行された場合のみ）
+if (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-generator')) {
     const args = process.argv.slice(2);
 
     if (args.length === 0) {

@@ -2,12 +2,7 @@
  * テーブル駆動検出器 CLI
  *
  * 使い方:
- *   node table-driven-detector-cli.cjs <file.bas> [options]
- *
- * ビルド:
- *   ./node_modules/.bin/esbuild test-libs/table-driven-detector-cli.ts \
- *     --bundle --platform=node \
- *     --outfile=test-libs/table-driven-detector-cli.cjs
+ *   npx tsx test-libs/table-driven-detector-cli.ts <file.bas> [options]
  */
 
 import * as fs from 'fs';

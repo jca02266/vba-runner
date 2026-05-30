@@ -8,24 +8,12 @@ echo "--- Starting all spec tests ---"
 TESTS_FAILED=0
 
 for f in tests/spec/*.test.ts; do
-  out="${f%.ts}.cjs"
   echo "Running $f..."
 
-  # esbuild でバンドル
-  if ! ./node_modules/.bin/esbuild "$f" --bundle --outfile="$out" --platform=node; then
-    echo "❌ Build failed: $f"
-    TESTS_FAILED=1
-    continue
-  fi
-
-  # テスト実行
-  if ! node "$out"; then
+  if ! npx tsx "$f"; then
     echo "❌ Test failed: $f"
     TESTS_FAILED=1
   fi
-
-  # 中間ファイルを削除したい場合はコメント解除
-  # rm "$out"
 done
 
 echo ""

@@ -4,7 +4,7 @@
 // 指定したプロシージャを実行して結果を stdout に出力する。
 //
 // Usage:
-//   ./node_modules/.bin/esbuild test-libs/vba-run.ts --bundle --outfile=test-libs/vba-run.cjs --platform=node
+//   npx tsx test-libs/vba-run.ts
 //   node test-libs/vba-run.cjs <file.bas> <ProcedureName> [args...]
 //
 // Examples:

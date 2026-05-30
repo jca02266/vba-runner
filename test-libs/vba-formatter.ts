@@ -5,7 +5,7 @@
 // VS Code 拡張機能からも利用できる。
 //
 // Build:
-//   ./node_modules/.bin/esbuild test-libs/vba-formatter.ts --bundle --outfile=test-libs/vba-formatter.cjs --platform=node
+//   npx tsx test-libs/vba-formatter.ts
 //
 // Usage:
 //   node test-libs/vba-formatter.cjs <file-or-dir>          # フォーマット後のコードを stdout に出力

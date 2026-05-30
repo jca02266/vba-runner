@@ -4,7 +4,7 @@
 // 単一ファイルまたはディレクトリを引数に取り、lexer/parser の診断を出力する。
 //
 // Usage:
-//   ./node_modules/.bin/esbuild test-libs/vba-parse-check.ts --bundle --outfile=test-libs/vba-parse-check.cjs --platform=node
+//   npx tsx test-libs/vba-parse-check.ts
 //   node test-libs/vba-parse-check.cjs <path>         # テキスト形式
 //   node test-libs/vba-parse-check.cjs <path> --json  # JSON 形式
 

@@ -5,7 +5,7 @@
 // 問題箇所（巨大プロシージャ・深いネスト・連続代入・Excel依存・繰り返し数値リテラル等）を列挙する。
 //
 // Usage:
-//   ./node_modules/.bin/esbuild test-libs/vba-analyzer.ts --bundle --outfile=test-libs/vba-analyzer.cjs --platform=node
+//   npx tsx test-libs/vba-analyzer.ts
 //   node test-libs/vba-analyzer.cjs <path>                        # テキスト形式（全項目）
 //   node test-libs/vba-analyzer.cjs <path> --json                 # JSON 形式
 //   node test-libs/vba-analyzer.cjs <path> --summary-only         # エントリーポイント・モック・重複のみ
