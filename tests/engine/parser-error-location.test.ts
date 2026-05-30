@@ -194,4 +194,26 @@ function assertError(label: string, diags: Diag[], expectedLine: number, expecte
     console.log('[PASS] E16: Or + コメント + 改行 → line=2 でエラー');
 }
 
+// ─── E17: End Sub がエラー回復後に連鎖エラーを起こさない ────────────────────
+// Sub 内でパースエラーが起きたとき、その Sub の End Sub が
+// "Expected procedure name" などの連鎖エラーを出してはならない
+{
+    const src = [
+        'Sub CreateData()',     // line 1
+        '    x = Array(1,',    // line 2: ) が欠落 → エラー
+        '    2)',               // line 3
+        'End Sub',             // line 4: 連鎖エラーが出ないこと
+        'Sub Other()',         // line 5
+        'End Sub',             // line 6
+    ].join('\n');
+    const diags = diagnose(src);
+    // 最初のエラーは line 2 の ) 欠落
+    assert.ok(diags.length >= 1, 'E17: 少なくとも1件のエラー');
+    assert.strictEqual(diags[0].line, 2, 'E17: 最初のエラーが line=2');
+    // line 4 (End Sub) や line 5 (Sub Other) への連鎖エラーがないこと
+    const cascading = diags.slice(1).filter(d => d.line >= 4);
+    assert.strictEqual(cascading.length, 0, `E17: End Sub 以降に連鎖エラーなし (got: ${JSON.stringify(cascading)})`);
+    console.log('[PASS] E17: End Sub が連鎖エラーを起こさない');
+}
+
 console.log('\n✅ パースエラー位置精度テスト: 全テスト通過');

@@ -626,14 +626,29 @@ export class Parser {
     private syncToNextTopLevelStatement(): void {
         // After a parse error, skip tokens until we find what looks like
         // the start of a new top-level statement. We always advance at least
-        // one token to guarantee forward progress, then advance until we hit
-        // a Newline. The Newline itself is left for parse()'s skipNewlines().
-        // This is coarse but keeps the parser state consistent.
+        // one token to guarantee forward progress, then skip to the next
+        // Newline. Additionally consume any "End Sub/Function/Property"
+        // terminators so they don't orphan at the top level and cause
+        // spurious cascading errors.
         while (
             this.peek().type !== TokenType.EOF &&
             this.peek().type !== TokenType.Newline
         ) {
             this.advance();
+        }
+        // Skip past any End Sub / End Function / End Property / End Property
+        // that were left un-consumed by the failed parse. Without this they
+        // reach the outer parse loop and are misinterpreted as starting a
+        // new Sub/Function/Property declaration.
+        while (this.isAtEndTerminator()) {
+            this.advance(); // consume 'End'
+            this.advance(); // consume 'Sub' / 'Function' / etc.
+            while (
+                this.peek().type !== TokenType.EOF &&
+                this.peek().type !== TokenType.Newline
+            ) {
+                this.advance();
+            }
         }
     }
 
@@ -1084,9 +1099,17 @@ export class Parser {
                 }
                 this.syncToNextTopLevelStatement();
             }
-            // Defensive: ensure forward progress even if a parser returns without advancing
+            // Defensive: ensure forward progress even if a parser returns without advancing.
+            // When parseStatement() returns null due to isAtEndTerminator() (e.g. "End Sub"
+            // orphaned by error recovery), skip the full "End <keyword>" pair so it is not
+            // misinterpreted as starting a new procedure declaration.
             if (this.pos === startPos && this.peek().type !== TokenType.EOF) {
-                this.advance();
+                if (this.isAtEndTerminator()) {
+                    this.advance(); // consume 'End'
+                    this.advance(); // consume 'Sub' / 'Function' / 'Property' / etc.
+                } else {
+                    this.advance();
+                }
             }
             this.skipNewlines();
         }
