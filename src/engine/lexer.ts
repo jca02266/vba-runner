@@ -295,8 +295,17 @@ export class Lexer {
 
             // Handle single quote comment
             if (char === "'") {
+                // Collect comment text to check for trailing _ (which would be useless)
+                let commentText = '';
                 while (this.peek() !== '\n' && this.peek() !== '\0') {
-                    this.advance();
+                    commentText += this.advance();
+                }
+                if (/[ \t]*_[ \t]*$/.test(commentText)) {
+                    this.diagnostics.push({
+                        message: "コメント末尾の '_' は行継続として機能しません",
+                        line: startLine,
+                        column: startColumn + 1 + commentText.lastIndexOf('_'),
+                    });
                 }
                 continue; // Skip the comment and loop again to get the next valid token
             }

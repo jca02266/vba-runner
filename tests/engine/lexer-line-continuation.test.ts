@@ -103,4 +103,35 @@ function parse(src: string) {
     console.log('[PASS] 複数の無効な行継続: エラー件数=', diags.length);
 }
 
+// ─── コメント末尾の _（行継続として無効）────────────────────────────────────
+
+{
+    // ' aaa _ → _ はコメント内なので行継続として機能しない
+    const diags = lex("x = 1\n' aaa _\ny = 2");
+    assert.strictEqual(diags.length, 1, "コメント末尾の _: エラー1件");
+    assert.ok(diags[0].message.includes('コメント'), "コメント末尾メッセージ");
+    console.log('[PASS] コメント末尾の _:', diags[0].message);
+}
+
+{
+    // インラインコメントで末尾に _ がある場合
+    const diags = lex('x = Foo(a, b) \' note _');
+    assert.strictEqual(diags.length, 1, "インラインコメント末尾の _: エラー1件");
+    console.log('[PASS] インラインコメント末尾の _:', diags[0].message);
+}
+
+{
+    // コメント末尾にスペース + _ の場合
+    const diags = lex("' comment   _   \nx = 1");
+    assert.strictEqual(diags.length, 1, "コメント末尾スペース+_: エラー1件");
+    console.log('[PASS] コメント末尾スペース+_:', diags[0].message);
+}
+
+{
+    // コメント末尾に _ がない場合はエラーなし
+    const diags = lex("' just a comment\nx = 1");
+    assert.strictEqual(diags.length, 0, "普通のコメント: エラーなし");
+    console.log('[PASS] 普通のコメント: エラーなし');
+}
+
 console.log('\n✅ Lexer 行継続チェック: 全テスト通過');

@@ -65,4 +65,19 @@ for (const [line, desc] of shouldNotContinue) {
     console.log('[PASS] AND 大文字: 継続必要');
 }
 
+// ─── インラインコメントがある行は継続不要（コメント後の _ は無効） ─────────────
+
+const inlineCommentCases: [string, string][] = [
+    ['    Array(1, 2), \' コメント',          ', の後にコメント'],
+    ['    x = 1 + \' note',                   '+ の後にコメント'],
+    ['    If x And \' check',                 'And の後にコメント'],
+    ['    x = "hello" \' use Or Or Or',       'コメント内にキーワード Or'],
+    ['    Foo(a, b) \' done',                 '完結した呼び出し+コメント'],
+];
+
+for (const [line, desc] of inlineCommentCases) {
+    assert.strictEqual(needsLineContinuation(line), false, `継続不要: ${desc}`);
+    console.log(`[PASS] 継続不要（インラインコメント）: ${desc}`);
+}
+
 console.log('\n✅ needsLineContinuation: 全テスト通過');
