@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const libCode = fs.readFileSync(
-    path.join(__dirname, '../../src/vba/LibDate.bas'),
+    path.join(import.meta.dirname, '../../src/vba/LibDate.bas'),
     'utf-8'
 );
 

@@ -19,7 +19,7 @@ import { assert } from '../../../test-libs/test-runner';
 
 function readVbaFile(filename: string): string {
   const filepath = path.join(
-    __dirname,
+    import.meta.dirname,
     '../../src/refactoring',
     filename
   );

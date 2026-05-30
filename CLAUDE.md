@@ -14,13 +14,13 @@ npm run build      # TypeScript チェック + Vite ビルド
 npm run lint       # ESLint
 ```
 
-**テスト実行**（tsx CJS ローダー経由で直接実行）:
+**テスト実行**（tsx でそのまま実行）:
 ```bash
-node scripts/run-test.cjs sample/tests/ts/TaskScheduler_Core.test.ts
-node scripts/run-test.cjs tests/spec/eval-call-scope.test.ts
+./node_modules/.bin/tsx sample/tests/ts/TaskScheduler_Core.test.ts
+./node_modules/.bin/tsx tests/spec/eval-call-scope.test.ts
 ```
 
-> **注意**: `package.json` に `"type":"module"` があるため `tsx` を直接使うと ESM ローダーで失敗する。`scripts/run-test.cjs` が tsx の CJS フックを手動でロードして `.ts` ファイルをそのまま実行する。`npx` は使わない。
+> **注意**: テストファイルは ESM 前提。`__dirname` の代わりに `import.meta.dirname` を使う。`npx` は使わない。
 
 ## アーキテクチャ
 
