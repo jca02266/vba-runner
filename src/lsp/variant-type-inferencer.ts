@@ -110,6 +110,17 @@ function collectAssignmentTypes(
                 }
             }
         }
+
+        // For Each variable: For Each varName In collection
+        if (stmt.type === 'ForEachStatement') {
+            const fe = stmt as any;
+            const varName = fe.variable?.name?.toLowerCase?.();
+            if (varName && targets.has(varName) && !resolved.has(varName)) {
+                const t = inferCollectionElementType(fe.collection, allProcs, memo, depth);
+                if (t) resolved.set(varName, t);
+            }
+        }
+
         // 再帰: if/for/while/with 等のボディも走査
         recurseBody(stmt, targets, resolved, allProcs, memo, depth);
     }
@@ -133,6 +144,27 @@ function recurseBody(
     for (const body of bodies) {
         collectAssignmentTypes(body, targets, resolved, allProcs, memo, depth);
     }
+}
+
+// ─── コレクション要素型の推論（For Each 用） ─────────────────────────────────
+
+function inferCollectionElementType(
+    collection: Expression,
+    allProcs: Map<string, ProcedureDeclaration>,
+    memo: Map<string, InferredType>,
+    depth: number,
+): InferredType {
+    if (!collection) return null;
+    // Split() → 要素は String
+    if (collection.type === 'CallExpression') {
+        const callee = (collection as CallExpression).callee;
+        if (callee.type === 'Identifier') {
+            const name = (callee as Identifier).name.toLowerCase();
+            if (name === 'split') return 'String';
+        }
+    }
+    // .Keys / .Values / .Items → Dictionary 系は Variant のまま
+    return null;
 }
 
 // ─── 式の型推論 ───────────────────────────────────────────────────────────────
@@ -176,7 +208,10 @@ function inferExprType(
         case 'CallExpression': {
             const callee = (expr as CallExpression).callee;
             if (callee.type === 'Identifier') {
-                return lookupReturnType((callee as Identifier).name, allProcs, memo, depth);
+                const name = (callee as Identifier).name;
+                const builtin = BUILTIN_RETURN_TYPES[name.toLowerCase()];
+                if (builtin) return builtin;
+                return lookupReturnType(name, allProcs, memo, depth);
             }
             return null;
         }
@@ -194,6 +229,42 @@ function inferExprType(
             return null;
     }
 }
+
+// ─── VBA 組み込み関数の戻り型テーブル ────────────────────────────────────────
+
+const BUILTIN_RETURN_TYPES: Record<string, string> = {
+    // 型変換
+    cstr: 'String', cint: 'Integer', clng: 'Long', cdbl: 'Double',
+    csng: 'Single', cbool: 'Boolean', cdate: 'Date', cbyte: 'Byte',
+    ccur: 'Currency', cdec: 'Decimal', cvar: 'Variant', clnglng: 'Long',
+    // 文字列
+    left: 'String', right: 'String', mid: 'String', trim: 'String',
+    ltrim: 'String', rtrim: 'String', ucase: 'String', lcase: 'String',
+    str: 'String', hex: 'String', oct: 'String', chr: 'String',
+    chrw: 'String', string: 'String', space: 'String', format: 'String',
+    join: 'String', replace: 'String', strreverse: 'String',
+    // 数値
+    len: 'Long', lenb: 'Long', asc: 'Integer', ascw: 'Integer',
+    instr: 'Long', instrrev: 'Long', val: 'Double', abs: 'Double',
+    int: 'Long', fix: 'Long', sgn: 'Integer', sqr: 'Double',
+    log: 'Double', exp: 'Double', sin: 'Double', cos: 'Double',
+    tan: 'Double', atn: 'Double', rnd: 'Single',
+    // 日付
+    now: 'Date', date: 'Date', time: 'Date', dateadd: 'Date',
+    datediff: 'Long', datepart: 'Integer', dateserial: 'Date', timeserial: 'Date',
+    year: 'Integer', month: 'Integer', day: 'Integer',
+    hour: 'Integer', minute: 'Integer', second: 'Integer', weekday: 'Integer',
+    // 情報
+    typename: 'String', vartype: 'Integer', isempty: 'Boolean',
+    isnull: 'Boolean', isnumeric: 'Boolean', isdate: 'Boolean',
+    isarray: 'Boolean', isobject: 'Boolean', ismissing: 'Boolean',
+    // その他
+    ubound: 'Long', lbound: 'Long', rgb: 'Long', msgbox: 'Integer',
+    inputbox: 'String', environ: 'String', curdir: 'String',
+    dir: 'String', filelength: 'Long', freefile: 'Integer',
+    // CreateObject は返り型不明 (Object)
+    createobject: 'Object', getobject: 'Object',
+};
 
 // ─── 関数の戻り型解決（メモ化・再帰） ─────────────────────────────────────────
 
