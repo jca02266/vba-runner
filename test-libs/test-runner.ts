@@ -12,6 +12,7 @@ const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
 export class VBARunner {
     public evaluator: Evaluator;
     private _asts: Program[] = [];
+    private _moduleNames: string[] = [];
 
     constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants } = {}) {
         this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
@@ -26,17 +27,15 @@ export class VBARunner {
                   .map(f => path.join(pathOrDir, f))
             : [pathOrDir];
 
+        // Pass 1: 全モジュールをロードして手続き・変数を登録する
         for (const file of files) {
             let source = fs.readFileSync(file, 'utf-8');
             try {
-                // Set module name without file extension
                 const moduleName = path.basename(file, path.extname(file));
                 this.evaluator.setSourceModule(moduleName);
 
                 source = preprocess(source, config.compilerConstants);
 
-                // .cls files are always class modules in VBA (file name = class name).
-                // Use parseAsClass option instead of string-wrapping the source.
                 const ext = path.extname(file).toLowerCase();
                 const isRawCls = ext === '.cls'
                     && !source.trim().toLowerCase().startsWith('class ')
@@ -45,11 +44,18 @@ export class VBARunner {
 
                 const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
                 this._asts.push(ast);
+                this._moduleNames.push(moduleName);
                 this.evaluator.evaluate(ast);
             } catch (e: any) {
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
             }
         }
+
+        // Pass 2: 全モジュールの名前が揃った状態でモジュールレベル定数を再評価する。
+        // 依存グラフのトポロジカルソートで評価順を決定し、循環参照はエラーとして検出する。
+        this.evaluator.reEvaluateModuleConstsAll(
+            this._asts.map((ast, i) => ({ ast, moduleName: this._moduleNames[i] }))
+        );
     }
 
     run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {

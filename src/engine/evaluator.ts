@@ -560,7 +560,7 @@ export class Evaluator {
     private dirIndex: number = 0;
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
-    private optionExplicitViolations: Set<string> = new Set();
+    private optionExplicitViolations: Map<string, Set<string>> = new Map();
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -1681,9 +1681,14 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
-        // Option Explicit: refuse to run a procedure with undeclared variable violations
+        // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
+        // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
         if (this.optionExplicitViolations.has(procName)) {
-            this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION, `Variable not declared in '${proc.name.name}' (Option Explicit)`);
+            const undeclared = this.optionExplicitViolations.get(procName)!;
+            const stillMissing = [...undeclared].filter(n => !this.env.hasVariable(n));
+            if (stillMissing.length > 0) {
+                this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION, `Variable not declared in '${proc.name.name}' (Option Explicit): ${stillMissing.join(', ')}`);
+            }
         }
 
         // Validate argument count
@@ -1829,8 +1834,13 @@ export class Evaluator {
     public evaluate(program: Program) {
         // Run Option Explicit static analysis; results stored for callProcedure checks
         const { violatedProcedures } = checkOptionExplicit(program);
-        for (const name of violatedProcedures) {
-            this.optionExplicitViolations.add(name);
+        for (const [name, undeclared] of violatedProcedures) {
+            const existing = this.optionExplicitViolations.get(name);
+            if (existing) {
+                for (const n of undeclared) existing.add(n);
+            } else {
+                this.optionExplicitViolations.set(name, new Set(undeclared));
+            }
         }
 
         for (const stmt of program.body) {
@@ -2073,10 +2083,22 @@ export class Evaluator {
             try {
                 this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
-                if (e && e.type === 'Exit' && e.target === 'For') {
-                    break;
+                if (e && e.type === 'Exit' && e.target === 'For') break;
+                if (e && e.type === 'GoTo') {
+                    const idx = this.findLabelInBody(stmt.body, e.label);
+                    if (idx >= 0) {
+                        try {
+                            this.executeStatements(stmt.body, idx + 1, false);
+                        } catch (e2: any) {
+                            if (e2 && e2.type === 'Exit' && e2.target === 'For') break;
+                            throw e2;
+                        }
+                    } else {
+                        throw e;
+                    }
+                } else {
+                    throw e;
                 }
-                throw e; // re-throw if it wasn't an Exit For
             }
             // Increment/decrement loop variable
             this.env.setLocally(varName, this.env.get(varName) + stepValue);
@@ -2114,10 +2136,22 @@ export class Evaluator {
             try {
                 this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
-                if (e && e.type === 'Exit' && e.target === 'For') {
-                    break;
+                if (e && e.type === 'Exit' && e.target === 'For') break;
+                if (e && e.type === 'GoTo') {
+                    const idx = this.findLabelInBody(stmt.body, e.label);
+                    if (idx >= 0) {
+                        try {
+                            this.executeStatements(stmt.body, idx + 1, false);
+                        } catch (e2: any) {
+                            if (e2 && e2.type === 'Exit' && e2.target === 'For') break;
+                            throw e2;
+                        }
+                    } else {
+                        throw e;
+                    }
+                } else {
+                    throw e;
                 }
-                throw e;
             }
         }
     }
@@ -2252,10 +2286,22 @@ export class Evaluator {
             try {
                 this.executeStatements(stmt.body, 0, false);
             } catch (e: any) {
-                if (e && e.type === 'Exit' && e.target === 'Do') {
-                    break;
+                if (e && e.type === 'Exit' && e.target === 'Do') break;
+                if (e && e.type === 'GoTo') {
+                    const idx = this.findLabelInBody(stmt.body, e.label);
+                    if (idx >= 0) {
+                        try {
+                            this.executeStatements(stmt.body, idx + 1, false);
+                        } catch (e2: any) {
+                            if (e2 && e2.type === 'Exit' && e2.target === 'Do') break;
+                            throw e2;
+                        }
+                    } else {
+                        throw e;
+                    }
+                } else {
+                    throw e;
                 }
-                throw e;
             }
 
             // post-condition check
@@ -2268,7 +2314,20 @@ export class Evaluator {
 
     private evaluateWhileStatement(stmt: WhileStatement) {
         while (this.isTrue(this.evaluateExpression(stmt.condition))) {
-            this.executeStatements(stmt.body, 0, false);
+            try {
+                this.executeStatements(stmt.body, 0, false);
+            } catch (e: any) {
+                if (e && e.type === 'GoTo') {
+                    const idx = this.findLabelInBody(stmt.body, e.label);
+                    if (idx >= 0) {
+                        this.executeStatements(stmt.body, idx + 1, false);
+                    } else {
+                        throw e;
+                    }
+                } else {
+                    throw e;
+                }
+            }
         }
     }
 
@@ -2280,6 +2339,11 @@ export class Evaluator {
         } finally {
             this.withObjectStack.pop();
         }
+    }
+
+    private findLabelInBody(body: Statement[], label: string): number {
+        const lower = label.toLowerCase();
+        return body.findIndex(s => s.type === 'LabelStatement' && (s as any).label.toLowerCase() === lower);
     }
 
     private evaluateGoToStatement(stmt: GoToStatement) {
@@ -2992,6 +3056,129 @@ export class Evaluator {
 
     private evaluateCallStatement(stmt: CallStatement) {
         this.evaluateExpression(stmt.expression);
+    }
+
+    /**
+     * 全モジュールロード後に呼ぶ。モジュールレベル定数を依存グラフでトポロジカルソートして
+     * 正しい順序で再評価する。循環参照はエラーとして検出する。
+     */
+    public reEvaluateModuleConstsAll(modules: Array<{ ast: Program; moduleName: string }>): void {
+        // 全モジュールレベル定数を収集
+        const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string }>();
+        for (const { ast, moduleName } of modules) {
+            for (const stmt of ast.body) {
+                if (stmt.type === 'ConstDeclaration') {
+                    const name = (stmt as ConstDeclaration).name.name.toLowerCase();
+                    allConsts.set(name, { stmt: stmt as ConstDeclaration, moduleName });
+                } else if (stmt.type === 'ClassDeclaration') {
+                    for (const member of (stmt as ClassDeclaration).body) {
+                        if (member.type === 'ConstDeclaration') {
+                            const name = (member as ConstDeclaration).name.name.toLowerCase();
+                            allConsts.set(name, { stmt: member as ConstDeclaration, moduleName });
+                        }
+                    }
+                }
+            }
+        }
+
+        // 定数間の依存グラフを構築（他の定数への参照のみ）
+        const deps = new Map<string, Set<string>>();
+        for (const [name, { stmt }] of allConsts) {
+            const exprDeps = this.collectConstExprDeps(stmt.value);
+            deps.set(name, new Set([...exprDeps].filter(d => allConsts.has(d))));
+        }
+
+        // トポロジカルソート（循環参照を検出）
+        const order = this.topologicalSortConsts(allConsts, deps);
+
+        // 正しい順序で再評価
+        for (const name of order) {
+            const { stmt, moduleName } = allConsts.get(name)!;
+            const prev = this.currentSourceModule;
+            this.currentSourceModule = moduleName;
+            this.evaluateConstDeclaration(stmt);
+            this.currentSourceModule = prev;
+        }
+    }
+
+    private collectConstExprDeps(expr: Expression): Set<string> {
+        const deps = new Set<string>();
+        const walk = (e: Expression): void => {
+            switch (e.type) {
+                case 'Identifier':
+                    deps.add((e as Identifier).name.toLowerCase());
+                    break;
+                case 'BinaryExpression': {
+                    const b = e as BinaryExpression;
+                    walk(b.left); walk(b.right);
+                    break;
+                }
+                case 'UnaryExpression':
+                    walk((e as UnaryExpression).argument);
+                    break;
+                case 'ParenthesizedExpression':
+                    walk((e as ParenthesizedExpression).expression);
+                    break;
+                case 'CallExpression': {
+                    const ce = e as CallExpression;
+                    if (ce.callee.type === 'Identifier') {
+                        deps.add((ce.callee as Identifier).name.toLowerCase());
+                    }
+                    for (const arg of ce.args) walk(arg);
+                    break;
+                }
+            }
+        };
+        walk(expr);
+        return deps;
+    }
+
+    private topologicalSortConsts(
+        consts: Map<string, { stmt: ConstDeclaration; moduleName: string }>,
+        deps: Map<string, Set<string>>
+    ): string[] {
+        type State = 'unvisited' | 'visiting' | 'done';
+        const state = new Map<string, State>();
+        const order: string[] = [];
+        const path: string[] = [];
+
+        for (const name of consts.keys()) state.set(name, 'unvisited');
+
+        const visit = (name: string): void => {
+            const s = state.get(name);
+            if (s === 'done') return;
+            if (s === 'visiting') {
+                const cycle = [...path.slice(path.indexOf(name)), name].join(' → ');
+                throw new Error(`Circular reference in constant declarations: ${cycle}`);
+            }
+            state.set(name, 'visiting');
+            path.push(name);
+            for (const dep of deps.get(name) ?? []) visit(dep);
+            path.pop();
+            state.set(name, 'done');
+            order.push(name);
+        };
+
+        for (const name of consts.keys()) visit(name);
+        return order;
+    }
+
+    /** 単一モジュールの定数を再評価する（後方互換用）。循環検出は行わない。 */
+    public reEvaluateModuleConsts(program: Program, moduleName: string): void {
+        const prev = this.currentSourceModule;
+        this.currentSourceModule = moduleName;
+        for (const stmt of program.body) {
+            if (stmt.type === 'ConstDeclaration') {
+                this.evaluateConstDeclaration(stmt as ConstDeclaration);
+            } else if (stmt.type === 'ClassDeclaration') {
+                for (const member of (stmt as ClassDeclaration).body) {
+                    if (member.type === 'ConstDeclaration') {
+                        this.evaluateConstDeclaration(member as ConstDeclaration);
+                    }
+                }
+            }
+        }
+        this.currentSourceModule = prev;
     }
 
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
