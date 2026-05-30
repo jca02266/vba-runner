@@ -22,7 +22,7 @@ When an agent makes changes to the code, please run the following command to ens
 
 ```bash
 # Run tests directly with tsx
-./node_modules/.bin/tsx sample/tests/ts/TaskScheduler_Core.test.ts
+npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 ```
 
 ## File I/O Sandbox Policy

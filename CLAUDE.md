@@ -16,11 +16,11 @@ npm run lint       # ESLint
 
 **テスト実行**（tsx でそのまま実行）:
 ```bash
-./node_modules/.bin/tsx sample/tests/ts/TaskScheduler_Core.test.ts
-./node_modules/.bin/tsx tests/spec/eval-call-scope.test.ts
+npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
+npx tsx tests/spec/eval-call-scope.test.ts
 ```
 
-> **注意**: テストファイルは ESM 前提。`__dirname` の代わりに `import.meta.dirname` を使う。`npx` は使わない。
+> **注意**: テストファイルは ESM 前提。`__dirname` の代わりに `import.meta.dirname` を使う。
 
 ## アーキテクチャ
 

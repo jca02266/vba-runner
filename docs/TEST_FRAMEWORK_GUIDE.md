@@ -45,7 +45,7 @@ VBA Runner は既に以下を備えています：
 npm run build
 
 # テスト実行（VBA Runner環境）
-./node_modules/.bin/tsx tests/spec/xxx.test.ts
+npx tsx tests/spec/xxx.test.ts
 ```
 
 ### テストファイル構成
@@ -121,7 +121,7 @@ describe('Math Operations', () => {
 **実行方法**:
 
 ```bash
-./node_modules/.bin/tsx tests/spec/math.test.ts
+npx tsx tests/spec/math.test.ts
 ```
 
 ---
@@ -800,7 +800,7 @@ it('should generate expected report', () => {
 {
   "scripts": {
     "test": "node tests/run-all-tests.js",
-    "test:math": "./node_modules/.bin/tsx tests/spec/math.test.ts",
+    "test:math": "npx tsx tests/spec/math.test.ts",
     "test:watch": "nodemon --watch src/vba --exec 'npm run test'"
   }
 }
@@ -827,7 +827,7 @@ testFiles.forEach(file => {
   console.log(`\n📝 Running ${file}...`);
   try {
     execSync(
-      `./node_modules/.bin/tsx tests/spec/${file}`,
+      `npx tsx tests/spec/${file}`,
       { stdio: 'inherit' }
     );
     passed++;

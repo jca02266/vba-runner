@@ -168,7 +168,7 @@ console.log(result);  // 100
 ### 実行方法
 
 ```bash
-./node_modules/.bin/tsx your-test.ts
+npx tsx your-test.ts
 ```
 
 ---
@@ -376,7 +376,7 @@ console.log('[PASS] Multiple Sheets');
 ### tsx で直接実行
 
 ```bash
-./node_modules/.bin/tsx tests/spec/your-test.ts
+npx tsx tests/spec/your-test.ts
 ```
 
 ### 出力例
