@@ -529,12 +529,23 @@ End Class`;
     );
     outputChannel.appendLine('✓ Folding range provider registered');
 
-    // Register inlay hints provider (loop-continue GoTo)
+    // Register inlay hints provider (loop-continue GoTo + Variant type inference)
     context.subscriptions.push(
         vscode.languages.registerInlayHintsProvider('vba', {
             provideInlayHints(document) {
-                const hints = lspServer.getInlayHints(document.uri.toString());
-                return hints.map(h => new vscode.InlayHint(
+                const uri = document.uri.toString();
+
+                // GoTo loop-continue hints (whole document)
+                const gotoHints = lspServer.getInlayHints(uri);
+
+                // Variant type hints (procedure at cursor only)
+                const editor = vscode.window.activeTextEditor;
+                const cursorLine = (editor?.document.uri.toString() === uri)
+                    ? editor.selection.active.line
+                    : -1;
+                const variantHints = lspServer.getVariantTypeHints(uri, cursorLine);
+
+                return [...gotoHints, ...variantHints].map(h => new vscode.InlayHint(
                     new vscode.Position(h.line, h.character),
                     h.label,
                     vscode.InlayHintKind.Type,

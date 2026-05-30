@@ -4,6 +4,7 @@ import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
 import { Statement, GoToStatement } from '../engine/parser';
 import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
+import { inferVariantTypes, buildProcMap, findProcAtLine } from './variant-type-inferencer';
 import { analyzeDefUse } from '../engine/def-use-analyzer';
 import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
@@ -439,6 +440,33 @@ export class LSPServer {
             if (trimmed === 'END') break;
         }
         return result.join('\n');
+    }
+
+    /**
+     * Get inlay hints for Variant-typed variables in the procedure at cursorLine.
+     * cursorLine is 0-based. Pass -1 to skip variant inference.
+     */
+    getVariantTypeHints(uri: string, cursorLine: number): Array<{ line: number; character: number; label: string }> {
+        if (cursorLine < 0) return [];
+        const doc = this.documents.get(uri);
+        if (!doc) return [];
+        const ast = this.parseDocument(doc.content);
+        if (!ast) return [];
+
+        const proc = findProcAtLine(ast.body, cursorLine);
+        if (!proc) return [];
+
+        const allProcs = buildProcMap(ast.body);
+        const memo = new Map();
+        const hints = inferVariantTypes(proc, allProcs, memo);
+
+        return hints
+            .filter(h => h.inferredType !== null)
+            .map(h => ({
+                line: h.line - 1,
+                character: h.endColumn - 1,
+                label: ` ⟨${h.inferredType}⟩`,
+            }));
     }
 
     /**
