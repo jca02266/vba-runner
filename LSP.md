@@ -298,12 +298,11 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 
 ```bash
 # 個別テスト（例: Code Lens）
-./node_modules/.bin/esbuild tests/lsp/lsp-code-lens.test.ts --bundle --outfile=tests/lsp/lsp-code-lens.test.cjs --platform=node && node tests/lsp/lsp-code-lens.test.cjs
+npx tsx tests/lsp/lsp-code-lens.test.ts
 
 # 全 LSP テスト一括実行
 for f in tests/lsp/*.test.ts; do
-    base=$(basename "$f" .ts)
-    ./node_modules/.bin/esbuild "$f" --bundle --outfile="tests/lsp/${base}.cjs" --platform=node && node "tests/lsp/${base}.cjs"
+    npx tsx "$f"
 done
 ```
 
