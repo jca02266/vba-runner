@@ -1839,7 +1839,7 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF) {
+        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
@@ -1886,7 +1886,7 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF) {
+        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
@@ -2019,7 +2019,7 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordLoop && this.peek().type !== TokenType.EOF) {
+        while (this.peek().type !== TokenType.KeywordLoop && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
@@ -2057,7 +2057,7 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordWend && this.peek().type !== TokenType.EOF) {
+        while (this.peek().type !== TokenType.KeywordWend && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
@@ -2434,7 +2434,7 @@ export class Parser {
             const property = { type: 'Identifier', name: propToken.value } as Identifier;
             expr = { type: 'ImplicitWithObjectExpression', property } as ImplicitWithObjectExpression;
         } else {
-            this.throwError(`Parse error: Unexpected token in expression '${token.value}' at line ${token.line} `);
+            this.throwError(`Parse error: Unexpected token in expression '${token.value}' at line ${token.line} `, token);
         }
 
         expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
