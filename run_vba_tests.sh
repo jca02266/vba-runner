@@ -16,7 +16,6 @@ if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
 fi
 
 RUNNER_FILE="tests/spec/vba/run-all-vba-tests.ts"
-RUNNER_OUT="tests/spec/vba/run-all-vba-tests.cjs"
 
 if [ ! -f "$RUNNER_FILE" ]; then
   echo "❌ VBA test runner not found: $RUNNER_FILE"
@@ -34,30 +33,13 @@ else
   echo "--- Starting VBA tests ---"
 fi
 
-# esbuild でコンパイル
-if [ $VERBOSE -eq 1 ]; then
-  echo "Compiling $RUNNER_FILE..."
-fi
-
-BUILD_OUTPUT=$(./node_modules/.bin/esbuild "$RUNNER_FILE" --bundle --outfile="$RUNNER_OUT" --platform=node 2>&1)
-BUILD_STATUS=$?
-
-if [ $BUILD_STATUS -ne 0 ]; then
-  echo ""
-  echo "❌ Build failed"
-  if [ $VERBOSE -eq 1 ]; then
-    echo "$BUILD_OUTPUT"
-  fi
-  exit 1
-fi
-
-# テスト実行
+# tsx で直接実行（esbuild によるバンドル不要）
 if [ $VERBOSE -eq 1 ]; then
   echo "Running VBA tests..."
   echo ""
 fi
 
-TEST_OUTPUT=$(node "$RUNNER_OUT" 2>&1)
+TEST_OUTPUT=$(./node_modules/.bin/tsx "$RUNNER_FILE" 2>&1)
 TEST_STATUS=$?
 
 # 簡潔出力の場合、最終行のサマリーのみ表示

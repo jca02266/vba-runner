@@ -62,19 +62,9 @@ for f in "${FILES[@]}"; do
   RESULT_FILE="$WORK_DIR/result_${IDX}.txt"
 
   (
-    out="${f%.ts}.cjs"
-
-    # esbuild でバンドル
-    build_out=$(./node_modules/.bin/esbuild "$f" --bundle --outfile="$out" --platform=node 2>&1)
-    if [ $? -ne 0 ]; then
-      { echo "FAIL"; echo "$f"; echo "❌ Build failed: $f"; echo "$build_out"; } > "$RESULT_FILE"
-      printf '.' >&2
-      printf '\n' >&3  # セマフォ解放
-      exit 0
-    fi
-
+    # tsx で直接実行（esbuild によるバンドル不要）
     # テスト実行（30秒タイムアウト）
-    test_out=$(timeout 30 node "$out" 2>&1)
+    test_out=$(timeout 30 ./node_modules/.bin/tsx "$f" 2>&1)
     test_status=$?
 
     if [ "$test_status" -eq 124 ]; then
