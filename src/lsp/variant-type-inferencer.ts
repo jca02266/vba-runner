@@ -66,10 +66,11 @@ export function inferVariantTypes(
             if (t && t !== 'variant') continue; // 明示的な非 Variant 型はスキップ
             const loc = (decl.name as any).loc;
             if (!loc) continue;
+            const nameEnd = loc.end?.column ?? loc.start.column + decl.name.name.length;
             variantVars.set(decl.name.name.toLowerCase(), {
                 line:      loc.start.line,
                 column:    loc.start.column,
-                endColumn: loc.end?.column ?? loc.start.column + decl.name.name.length,
+                endColumn: (decl as any).arrayEndColumn ?? nameEnd,
             });
         }
     }
@@ -213,16 +214,20 @@ function inferReturnTypeHint(
     const inferred = inferFunctionReturnType(proc, allProcs, memo, 0);
     if (!inferred) return null;
 
-    // 手続き名識別子の後（() の前）にヒントを表示
+    // パラメーターリストの ')' の直後にヒントを表示（例: GetLabel() As String）
     const nameLoc = (proc.name as any).loc;
     if (!nameLoc) return null;
+
+    const endColumn = (proc as any).paramsEndColumn
+        ?? nameLoc.end?.column
+        ?? nameLoc.start.column + proc.name.name.length;
 
     return {
         varName:      proc.name.name,
         inferredType: inferred,
         line:         nameLoc.start.line,
         column:       nameLoc.start.column,
-        endColumn:    nameLoc.end?.column ?? nameLoc.start.column + proc.name.name.length,
+        endColumn,
         kind:         'return',
     };
 }

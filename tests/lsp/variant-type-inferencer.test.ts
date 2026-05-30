@@ -264,4 +264,53 @@ function infer(src: string, procName?: string) {
     console.log('[PASS] 戻り型ヒント: 明示 As String → スキップ');
 }
 
+// ─── ヒント挿入位置: () の後（修正確認） ─────────────────────────────────────
+
+// Function GetLabel() の戻り型ヒントは ) の後に挿入される
+// "Function GetLabel()"
+//  col: 1234567890123456789...
+//  "Function " = 9 chars → GetLabel at col 10
+//  "GetLabel"  = 8 chars → nameLoc.end.column = 18（( の直前）
+//  "("         at col 18, ")" at col 19 → paramsEndColumn = 20
+{
+    const stmts = parse([
+        'Function GetLabel()',
+        '    GetLabel = "商品名"',
+        'End Function',
+    ].join('\n'));
+    const procMap = buildProcMap(stmts);
+    const proc = [...procMap.values()][0];
+    const hints = inferProcedureHints(proc, procMap, new Map());
+    const retHint = hints.find(h => h.kind === 'return');
+    assert.ok(retHint !== undefined, '戻り型ヒントが存在');
+    assert.strictEqual(retHint!.inferredType, 'String', '戻り型推論 → String');
+    // endColumn = 20: `)` の直後（修正前は 18 = `(` の直前）
+    assert.strictEqual(retHint!.endColumn, 20, 'endColumn は ) の直後 (col 20)');
+    console.log('[PASS] 戻り型ヒント位置: GetLabel() の ) の後 (endColumn=20)');
+}
+
+// Dim arr() の変数ヒントは ) の後に挿入される
+// "Dim arr()"
+//  col: 123456789...
+//  "Dim " = 4 chars → arr at col 5
+//  "arr"   = 3 chars → nameLoc.end.column = 8（( の直前）
+//  "("     at col 8, ")" at col 9 → arrayEndColumn = 10
+{
+    const stmts = parse([
+        'Sub Test()',
+        'Dim arr()',
+        'arr = UCase("x")',
+        'End Sub',
+    ].join('\n'));
+    const procMap = buildProcMap(stmts);
+    const proc = [...procMap.values()][0];
+    const hints = inferVariantTypes(proc, procMap, new Map());
+    const arrHint = hints.find(h => h.varName === 'arr');
+    assert.ok(arrHint !== undefined, 'arr のヒントが存在');
+    assert.strictEqual(arrHint!.inferredType, 'String', 'arr → String (UCase)');
+    // endColumn = 10: `)` の直後（修正前は 8 = `(` の直前）
+    assert.strictEqual(arrHint!.endColumn, 10, 'endColumn は ) の直後 (col 10)');
+    console.log('[PASS] 配列変数ヒント位置: arr() の ) の後 (endColumn=10)');
+}
+
 console.log('\n✅ Variant 型推論: 全テスト通過');

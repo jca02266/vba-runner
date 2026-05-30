@@ -135,6 +135,8 @@ export interface ProcedureDeclaration extends Statement {
     scope?: 'public' | 'private' | 'friend';
     isStatic?: boolean;
     moduleName?: string;
+    /** 1-based column immediately after the closing ')' of the parameter list */
+    paramsEndColumn?: number;
 }
 
 export interface ArrayBound {
@@ -149,6 +151,8 @@ export interface VariableDeclarator {
     isNew: boolean;
     isWithEvents: boolean;
     objectType?: string;
+    /** 1-based column immediately after the closing ')' of the array bounds, when isArray is true */
+    arrayEndColumn?: number;
 }
 
 export interface VariableDeclaration extends Statement {
@@ -1456,6 +1460,7 @@ export class Parser {
         }
         const name: Identifier = this.makeIdentifier(idToken);
         const parameters: Parameter[] = [];
+        let paramsEndColumn: number | undefined;
 
         if (this.match(TokenType.OperatorLParen)) {
             if (this.peek().type !== TokenType.OperatorRParen) {
@@ -1465,7 +1470,8 @@ export class Parser {
                     parameters.push(this.parseParameter());
                 }
             }
-            this.consume(TokenType.OperatorRParen, "Expected ')' after procedure parameters");
+            const rParen = this.consume(TokenType.OperatorRParen, "Expected ')' after procedure parameters");
+            paramsEndColumn = rParen.column + 1; // 1-based column immediately after ')'
         }
 
         // Optional Function return type (e.g. 'As Long', 'As Scripting.Dictionary')
@@ -1502,7 +1508,7 @@ export class Parser {
             }
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, body, scope: scope || 'public', isStatic };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, body, scope: scope || 'public', isStatic, paramsEndColumn };
     }
 
     private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
@@ -1529,6 +1535,7 @@ export class Parser {
             let isNew = false;
             let objectType: string | undefined;
 
+            let arrayEndColumn: number | undefined;
             if (this.match(TokenType.OperatorLParen)) {
                 isArray = true;
                 if (this.peek().type !== TokenType.OperatorRParen) {
@@ -1546,7 +1553,10 @@ export class Parser {
                         }
                     }
                 }
-                this.match(TokenType.OperatorRParen);
+                const rParenTok = this.peek();
+                if (this.match(TokenType.OperatorRParen)) {
+                    arrayEndColumn = rParenTok.column + 1; // 1-based column immediately after ')'
+                }
             }
 
             if (this.match(TokenType.KeywordAs)) {
@@ -1563,7 +1573,7 @@ export class Parser {
                 }
             }
 
-            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType });
+            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, arrayEndColumn });
 
             if (this.match(TokenType.OperatorComma)) {
                 continue;
