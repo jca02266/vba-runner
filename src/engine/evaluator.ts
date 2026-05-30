@@ -4734,6 +4734,14 @@ export class Evaluator {
 
                 const previousProcBody = this.currentProcBody;
                 const previousExecutingModule = this.executingModuleName;
+                // proc コンテキストも退避する。これを設定しないと、呼び出された
+                // 関数本体の Dim 文が currentProcedureName 未設定のため set()
+                // （enclosing を辿る代入）になり、呼び出し元の同名変数を破壊する。
+                const previousProcedureName = this.currentProcedureName;
+                const previousProcedureType = this.currentProcedureType;
+                const previousProcIsStatic = this.currentProcIsStatic;
+                const previousStaticVars = this.staticVarsInCurrentProc;
+                const procNameKey = proc.name.name.toLowerCase();
                 this.env = localEnv;
                 this.errorHandlerLabel = null;
                 this.errorHandlingMode = 'None';
@@ -4741,6 +4749,10 @@ export class Evaluator {
                 this.lastErrorIndex = -1;
                 this.currentProcBody = proc.body;
                 this.executingModuleName = proc.moduleName ?? '';
+                this.currentProcedureName = proc.name.name;
+                this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
+                this.currentProcIsStatic = proc.isStatic ?? false;
+                this.staticVarsInCurrentProc = new Set();
 
                 try {
                     this.executeStatements(proc.body, 0);
@@ -4777,6 +4789,12 @@ export class Evaluator {
                         }
                     }
 
+                    // Persist static variable values
+                    for (const varName of this.staticVarsInCurrentProc) {
+                        const key = `${procNameKey}:${varName}`;
+                        this.staticVarStore.set(key, localEnv.get(varName));
+                    }
+
                     this.errorHandlerLabel = previousErrorHandler;
                     this.errorHandlingMode = previousErrorHandlingMode;
                     this.isInErrorHandler = previousIsInErrorHandler;
@@ -4784,6 +4802,10 @@ export class Evaluator {
 
                     this.currentProcBody = previousProcBody;
                     this.executingModuleName = previousExecutingModule;
+                    this.currentProcedureName = previousProcedureName;
+                    this.currentProcedureType = previousProcedureType;
+                    this.currentProcIsStatic = previousProcIsStatic;
+                    this.staticVarsInCurrentProc = previousStaticVars;
                 }
 
                 if (proc.isFunction) {

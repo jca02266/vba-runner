@@ -39,7 +39,20 @@ export function vbaToNumber(val: any): number {
     if (typeof val === 'number') return val;
     if (typeof val === 'bigint') return Number(val);
     if (typeof val === 'string') {
-        const n = parseFloat(val);
+        const trimmed = val.trim();
+        // Handle hex literals: &H<hex> or &h<hex>
+        if (trimmed.toLowerCase().startsWith('&h')) {
+            const hexPart = trimmed.slice(2);
+            if (!/^[0-9a-fA-F]+$/.test(hexPart)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+            return parseInt(hexPart, 16);
+        }
+        // Handle octal literals: &O<octal> or &o<octal>
+        if (trimmed.toLowerCase().startsWith('&o')) {
+            const octPart = trimmed.slice(2);
+            if (!/^[0-7]+$/.test(octPart)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+            return parseInt(octPart, 8);
+        }
+        const n = parseFloat(trimmed);
         if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
         return n;
     }
