@@ -152,6 +152,13 @@ export interface LexerDiagnostic {
     column: number;
 }
 
+export class LexError extends Error {
+    constructor(message: string, public readonly line: number, public readonly column: number) {
+        super(`${message} (line ${line})`);
+        this.name = 'LexError';
+    }
+}
+
 export class Lexer {
     private input: string = '';
     private pos: number = 0;
@@ -285,11 +292,10 @@ export class Lexer {
                     const msg = afterSpaces === "'"
                         ? "行継続文字 '_' の後にコメントは記述できません"
                         : "行継続文字 '_' の直後に空白を置くことはできません";
-                    this.diagnostics.push({ message: msg, line: startLine, column: startColumn });
                     this.advance(); // consume '_'
                     while (this.peek() !== '\n' && this.peek() !== '\0') this.advance(); // consume rest of line
                     if (this.peek() === '\n') this.advance();
-                    continue;
+                    throw new LexError(msg, startLine, startColumn);
                 }
             }
 

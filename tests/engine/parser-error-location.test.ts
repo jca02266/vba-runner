@@ -11,7 +11,7 @@
  *     これはパーサーが混乱した位置を報告する現在の仕様。
  */
 
-import { Lexer } from '../../src/engine/lexer';
+import { Lexer, LexError } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { assert } from '../../test-libs/test-runner';
 
@@ -19,7 +19,15 @@ interface Diag { line: number; col: number; msg: string; src: 'lexer' | 'parser'
 
 function diagnose(src: string): Diag[] {
     const lexer = new Lexer(src);
-    const tokens = lexer.tokenize();
+    let tokens;
+    try {
+        tokens = lexer.tokenize();
+    } catch (e) {
+        if (e instanceof LexError) {
+            return [{ line: e.line, col: e.column, msg: e.message.replace(/ \(line \d+\)$/, ''), src: 'lexer' }];
+        }
+        throw e;
+    }
     const ast = new Parser(tokens, { errorRecovery: true }).parse();
     return [
         ...lexer.diagnostics.map(d => ({ line: d.line, col: d.column, msg: d.message, src: 'lexer' as const })),
