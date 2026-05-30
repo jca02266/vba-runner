@@ -8,13 +8,11 @@
   ],
   "autoClosingPairs": [
     ["(", ")"],
-    ["\"", "\""],
-    ["'", "'"]
+    ["\"", "\""]
   ],
   "surroundingPairs": [
     ["(", ")"],
-    ["\"", "\""],
-    ["'", "'"]
+    ["\"", "\""]
   ],
   "indentationRules": {
     "increaseIndentPattern": "^\\s*(If|For|While|Do|With|Sub|Function|Property|Class|Type|Select)\\b",
