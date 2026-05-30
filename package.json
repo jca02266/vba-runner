@@ -14,6 +14,19 @@
     "vscode": "^1.90.0"
   },
   "main": "./dist/extension.cjs",
+  "exports": {
+    ".": "./dist/lib.cjs"
+  },
+  "bin": {
+    "vba-run": "./dist/bin/vba-run.cjs",
+    "vba-analyzer": "./dist/bin/vba-analyzer.cjs",
+    "vba-formatter": "./dist/bin/vba-formatter.cjs",
+    "vba-parse-check": "./dist/bin/vba-parse-check.cjs"
+  },
+  "files": [
+    "dist/lib.cjs",
+    "dist/bin/"
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -140,8 +153,10 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build && npm run build:extension",
+    "build": "tsc -b && vite build && npm run build:extension && npm run build:lib && npm run build:bin",
     "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode",
+    "build:lib": "esbuild test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node",
+    "build:bin": "esbuild test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js='#!/usr/bin/env node'",
     "lint": "eslint .",
     "preview": "vite preview",
     "package": "npm run build:extension && vsce package --no-dependencies",
