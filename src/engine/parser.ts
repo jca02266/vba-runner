@@ -617,6 +617,47 @@ export class Parser {
         this._diagnostics.push({ message, loc: { start: pos, end: pos }, severity: 'error' });
     }
 
+    private throwMissingRParen(): never {
+        const peek = this.peek();
+        if (peek.type === TokenType.Newline) {
+            const prevToken = this.tokens[Math.max(0, this.pos - 1)];
+            if (prevToken && this.isContinuationEndToken(prevToken.type)) {
+                this.throwError(
+                    `行継続文字 '_' が必要です（'${prevToken.value}' の後で改行されています）`,
+                    peek
+                );
+            }
+        }
+        this.throwError(`Parse error: Expected ')' at line ${peek.line} `);
+    }
+
+    private isContinuationEndToken(type: TokenType): boolean {
+        return type === TokenType.OperatorPlus
+            || type === TokenType.OperatorMinus
+            || type === TokenType.OperatorMultiply
+            || type === TokenType.OperatorDivide
+            || type === TokenType.OperatorIntDivide
+            || type === TokenType.OperatorPower
+            || type === TokenType.OperatorAmpersand
+            || type === TokenType.OperatorEquals
+            || type === TokenType.OperatorNotEquals
+            || type === TokenType.OperatorLessThan
+            || type === TokenType.OperatorGreaterThan
+            || type === TokenType.OperatorLessThanOrEqual
+            || type === TokenType.OperatorGreaterThanOrEqual
+            || type === TokenType.OperatorComma
+            || type === TokenType.OperatorLParen
+            || type === TokenType.KeywordAnd
+            || type === TokenType.KeywordOr
+            || type === TokenType.KeywordXor
+            || type === TokenType.KeywordEqv
+            || type === TokenType.KeywordImp
+            || type === TokenType.KeywordMod
+            || type === TokenType.KeywordLike
+            || type === TokenType.KeywordIs
+            || type === TokenType.KeywordNot;
+    }
+
     private tokenDisplay(value: string): string {
         return value
             .replace(/\n/g, '<改行>')
@@ -2443,7 +2484,7 @@ export class Parser {
         } else if (token.type === TokenType.OperatorLParen) {
             const innerExpr = this.parseExpression();
             if (!this.match(TokenType.OperatorRParen)) {
-                this.throwError(`Parse error: Expected ')' at line ${this.peek().line} `);
+                this.throwMissingRParen();
             }
             expr = { type: 'ParenthesizedExpression', expression: innerExpr } as any; // Type added implicitly or via cast
         } else if (token.type === TokenType.KeywordTypeOf) {
@@ -2463,6 +2504,17 @@ export class Parser {
             }
             const property = { type: 'Identifier', name: propToken.value } as Identifier;
             expr = { type: 'ImplicitWithObjectExpression', property } as ImplicitWithObjectExpression;
+        } else if (token.type === TokenType.Newline) {
+            // Check if the token before the newline suggests a missing line continuation
+            const prevToken = this.tokens[Math.max(0, this.pos - 2)];
+            if (prevToken && this.isContinuationEndToken(prevToken.type)) {
+                this.throwError(
+                    `行継続文字 '_' が必要です（'${prevToken.value}' の後で改行されています）`,
+                    token
+                );
+            } else {
+                this.throwError(`Parse error: Unexpected token in expression '${this.tokenDisplay(token.value)}' at line ${token.line} `, token);
+            }
         } else {
             this.throwError(`Parse error: Unexpected token in expression '${this.tokenDisplay(token.value)}' at line ${token.line} `, token);
         }
@@ -2491,7 +2543,7 @@ export class Parser {
                     }
                 }
                 if (!this.match(TokenType.OperatorRParen)) {
-                    this.throwError(`Parse error: Expected ')' at line ${this.peek().line} `);
+                    this.throwMissingRParen();
                 }
                 expr = { type: 'CallExpression', callee: expr, args } as CallExpression;
                 expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);

@@ -55,7 +55,7 @@ function assertError(label: string, diags: Diag[], expectedLine: number, expecte
 {
     const diags = diagnose('Sub Test()\n    x = 1 +\n    2\nEnd Sub');
     assertError('E03', diags, 2);
-    assert.ok(diags[0].msg.includes('Unexpected token'), 'E03: Unexpected token メッセージ');
+    assert.ok(diags[0].msg.includes("'_'") || diags[0].msg.includes('Unexpected token'), 'E03: _ または Unexpected token メッセージ');
     console.log('[PASS] E03: + 後の改行エラー → line=2');
 }
 
@@ -77,7 +77,7 @@ function assertError(label: string, diags: Diag[], expectedLine: number, expecte
 {
     const diags = diagnose('Sub Test()\n    x =\n    1\nEnd Sub');
     assertError('E06', diags, 2);
-    assert.ok(diags[0].msg.includes('Unexpected token'), 'E06: Unexpected token メッセージ');
+    assert.ok(diags[0].msg.includes("'_'") || diags[0].msg.includes('Unexpected token'), 'E06: _ または Unexpected token メッセージ');
     console.log('[PASS] E06: = 後の改行エラー → line=2');
 }
 
@@ -183,7 +183,7 @@ function assertError(label: string, diags: Diag[], expectedLine: number, expecte
 {
     const diags = diagnose("Sub Test()\n    x = 1 And ' 右辺がない\n    2\nEnd Sub");
     assertError('E15', diags, 2);
-    assert.ok(diags[0].msg.includes('Unexpected token'), 'E15: Unexpected token メッセージ');
+    assert.ok(diags[0].msg.includes("'_'") || diags[0].msg.includes('Unexpected token'), 'E15: _ または Unexpected token メッセージ');
     console.log('[PASS] E15: And + コメント + 改行 → line=2 でエラー');
 }
 
