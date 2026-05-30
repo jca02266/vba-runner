@@ -8,7 +8,7 @@
 //   node test-libs/vba-parse-check.cjs <path>         # テキスト形式
 //   node test-libs/vba-parse-check.cjs <path> --json  # JSON 形式
 
-import { Lexer } from '../src/engine/lexer';
+import { Lexer, LexError } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -27,7 +27,22 @@ function checkFile(filePath: string): Diagnostic[] {
     const diags: Diagnostic[] = [];
 
     const lexer = new Lexer(src);
-    const tokens = lexer.tokenize();
+    let tokens;
+    try {
+        tokens = lexer.tokenize();
+    } catch (e) {
+        if (e instanceof LexError) {
+            return [{
+                file: filePath,
+                line: e.line,
+                column: e.column,
+                severity: 'error',
+                source: 'lexer',
+                message: e.message.replace(/ \(line \d+\)$/, ''),
+            }];
+        }
+        throw e;
+    }
 
     for (const d of lexer.diagnostics) {
         diags.push({
