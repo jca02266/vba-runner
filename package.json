@@ -154,9 +154,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build && npm run build:extension && npm run build:lib && npm run build:bin",
-    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode",
-    "build:lib": "esbuild test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node",
-    "build:bin": "esbuild test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js='#!/usr/bin/env node' && esbuild test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js='#!/usr/bin/env node'",
+    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname",
+    "build:lib": "esbuild test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node --define:import.meta.dirname=__dirname",
+    "build:bin": "esbuild test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname",
     "lint": "eslint .",
     "preview": "vite preview",
     "package": "npm run build:extension && vsce package --no-dependencies",
