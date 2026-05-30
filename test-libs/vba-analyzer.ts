@@ -6,11 +6,11 @@
 //
 // Usage:
 //   npx tsx test-libs/vba-analyzer.ts
-//   node test-libs/vba-analyzer.cjs <path>                        # テキスト形式（全項目）
-//   node test-libs/vba-analyzer.cjs <path> --json                 # JSON 形式
-//   node test-libs/vba-analyzer.cjs <path> --summary-only         # エントリーポイント・モック・重複のみ
-//   node test-libs/vba-analyzer.cjs <path> --outline              # AI向けコンパクト要約
-//   node test-libs/vba-analyzer.cjs <path> --commented-code       # コメントアウトコード候補のみ
+//   npx tsx test-libs/vba-analyzer.ts <path>                        # テキスト形式（全項目）
+//   npx tsx test-libs/vba-analyzer.ts <path> --json                 # JSON 形式
+//   npx tsx test-libs/vba-analyzer.ts <path> --summary-only         # エントリーポイント・モック・重複のみ
+//   npx tsx test-libs/vba-analyzer.ts <path> --outline              # AI向けコンパクト要約
+//   npx tsx test-libs/vba-analyzer.ts <path> --commented-code       # コメントアウトコード候補のみ
 //
 // オプション別の用途:
 //   --outline         ファイル全体をAIに渡す前の「どのプロシージャが問題か」の絞り込みに使う。
@@ -2791,7 +2791,7 @@ function buildDiffJson(baseline: WorkspaceReport, current: WorkspaceReport): obj
 function main() {
     const args = process.argv.slice(2);
     if (args.length === 0 || args.includes('--help')) {
-        console.log('Usage: node vba-analyzer.cjs <file-or-dir> [options]');
+        console.log('Usage: npx tsx test-libs/vba-analyzer.ts <file-or-dir> [options]');
         console.log('');
         console.log('  --json                JSON 形式で出力（プログラム連携用）');
         console.log('  --diff <baseline>     baseline JSON との差分を表示（--json と併用可）');
