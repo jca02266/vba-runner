@@ -679,6 +679,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ⚠️ **Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**（可読性・保守性）
   - 現状: 全キーワードが `Keyword*` トークンのフラットな羅列で、仕様上の種別（`statement-keyword` / `marker-keyword` / `operator-identifier` / contextual）が区別されていない
   - contextual キーワードの誤予約語化（`Append`・`Output` 等が変数名に使えない問題）は Parser の `CONTEXTUAL_KW` Set 化により軽減済み。新規追加も Set に1行追加するだけ
+  - 2025-05-30: `Class / Collection / Error / Property` の未登録を修正、`isIdentifier()` ヘルパー導入、`parseVarDeclaration` / `parseConstDeclaration` / `parseProcedureDeclaration` のチェックを統一。詳細は `docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md` を参照
+  - 残課題: `parseEnumDeclaration` / `parseTypeDeclaration` / `parseForStatement` の変数名チェックも `isIdentifier()` に統一（現状は range check で動いているが統一性の観点で要対応）
   - 残課題: キーワード補完実装時に contextual keyword が補完候補に混入する恐れがある
   - 対策案: `TokenType` に `ContextualKeyword*` カテゴリを追加して Lexer 判定を分離
 
