@@ -216,4 +216,133 @@ End Sub
     console.log('[PASS] Multiple documents handled independently');
 }
 
+// ─── getVariantTypeHints ─────────────────────────────────────────────────────
+
+// 16. Dim なし型 → リテラル代入から推論
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim x',
+        '    x = 42',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const h = hints.find(h => h.label === ' As Long');
+    assert.ok(h !== undefined, 'x = 42 → As Long ヒントが存在する');
+    console.log('[PASS] getVariantTypeHints: Dim なし型 + 整数代入 → As Long');
+}
+
+// 17. Dim As Object + CreateObject → 具体型に推論
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim dict As Object',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const h = hints.find(h => h.label === ' As Dictionary');
+    assert.ok(h !== undefined, 'As Object + CreateObject("Scripting.Dictionary") → As Dictionary');
+    console.log('[PASS] getVariantTypeHints: Dim As Object + CreateObject → As Dictionary');
+}
+
+// 18. 複数の Object 型変数を同一プロシージャで推論
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim totals As Object',
+        '    Dim counts As Object',
+        '    Dim seenIDs As Object',
+        '    Set totals  = CreateObject("Scripting.Dictionary")',
+        '    Set counts  = CreateObject("Scripting.Dictionary")',
+        '    Set seenIDs = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const dictHints = hints.filter(h => h.label === ' As Dictionary');
+    assert.strictEqual(dictHints.length, 3, '3変数すべてに As Dictionary ヒントが出る');
+    console.log('[PASS] getVariantTypeHints: 複数 As Object 変数を同一手続きで推論');
+}
+
+// 19. 型あり変数はヒントなし（As Long 等）
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim n As Long',
+        '    n = 1',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    assert.strictEqual(hints.length, 0, '明示型変数はヒントなし');
+    console.log('[PASS] getVariantTypeHints: 明示型 (As Long) はヒントなし');
+}
+
+// 20. 型なしパラメーター → As Variant ヒント
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test(a, b As Long)',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const paramHint = hints.find(h => h.label === ' As Variant');
+    assert.ok(paramHint !== undefined, '型なしパラメーター a に As Variant ヒント');
+    assert.strictEqual(hints.filter(h => h.label === ' As Variant').length, 1, 'b は型あり → ヒントなし');
+    console.log('[PASS] getVariantTypeHints: 型なしパラメーター → As Variant');
+}
+
+// 21. 型なし Function → 戻り型ヒント
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Function GetName()',
+        '    GetName = "Alice"',
+        'End Function',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const retHint = hints.find(h => h.label === ' As String');
+    assert.ok(retHint !== undefined, '型なし Function に As String 戻り型ヒント');
+    console.log('[PASS] getVariantTypeHints: 型なし Function → As String 戻り型ヒント');
+}
+
+// 22. As Object で未代入 → ヒントなし
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim obj As Object',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    assert.strictEqual(hints.length, 0, 'As Object で未代入ならヒントなし');
+    console.log('[PASS] getVariantTypeHints: As Object 未代入 → ヒントなし');
+}
+
+// 23. FileSystemObject の推論
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Sub Test()',
+        '    Dim fso As Object',
+        '    Set fso = CreateObject("Scripting.FileSystemObject")',
+        'End Sub',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const h = hints.find(h => h.label === ' As FileSystemObject');
+    assert.ok(h !== undefined, 'As Object + CreateObject(FSO) → As FileSystemObject');
+    console.log('[PASS] getVariantTypeHints: CreateObject("Scripting.FileSystemObject") → As FileSystemObject');
+}
+
 console.log('\n✅ LSPServer: 全テスト通過');
