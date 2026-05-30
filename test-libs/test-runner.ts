@@ -187,6 +187,37 @@ export function runVBARunner(filePath: string, procedureName: string, args: any[
     return vbaRunner.run(procedureName, args);
 }
 
+/**
+ * 単一モジュールのインライン VBA コードを評価して Evaluator を返す。
+ * Pass 1（登録）と Pass 2（定数確定）を両方実行する。
+ * tests/spec/ のテストで evalVBASingle をローカル定義する代わりに使う。
+ */
+export function evalVBASingle(code: string): Evaluator {
+    const ast = new Parser(new Lexer(code).tokenize()).parse();
+    const ev = new Evaluator(console.log);
+    ev.evaluate(ast);
+    ev.reEvaluateModuleConstsAll([{ ast, moduleName: '' }]);
+    return ev;
+}
+
+/**
+ * 複数モジュールのインライン VBA コードを評価して Evaluator を返す。
+ * 各モジュールを Pass 1 でロードした後、全モジュール分まとめて Pass 2 を実行する。
+ * クロスモジュール定数参照（ModA.X = ModB.Y + 1 など）を正しく解決するため、
+ * reEvaluateModuleConstsAll は全モジュールのロード後に1回だけ呼ぶ。
+ */
+export function evalVBAModules(modules: Array<{ name: string; code: string }>): Evaluator {
+    const ev = new Evaluator(console.log);
+    const asts = modules.map(({ name, code }) => {
+        const ast = new Parser(new Lexer(code).tokenize()).parse();
+        ev.setSourceModule(name);
+        ev.evaluate(ast);
+        return { ast, moduleName: name };
+    });
+    ev.reEvaluateModuleConstsAll(asts);
+    return ev;
+}
+
 // Minimal assert framework
 export const assert = {
     strictEqual: (actual: any, expected: any, message?: string) => {

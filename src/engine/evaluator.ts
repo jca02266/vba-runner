@@ -1850,6 +1850,7 @@ export class Evaluator {
             // モジュールレベルの ConstDeclaration は Pass 2（reEvaluateModuleConstsAll）で評価する。
             // ここで評価すると参照先が未定義の場合に env.get() の暗黙初期化が起き、
             // 誤った値が env に登録されてしまう。
+            // 全モジュールのロード完了後に呼び出し側が reEvaluateModuleConstsAll() を実行すること。
             if (stmt.type === 'ConstDeclaration') continue;
             this.evaluateStatement(stmt);
         }
@@ -3070,29 +3071,48 @@ export class Evaluator {
      * 正しい順序で再評価する。循環参照はエラーとして検出する。
      */
     public reEvaluateModuleConstsAll(modules: Array<{ ast: Program; moduleName: string }>): void {
-        // 全モジュールレベル定数を収集
-        const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string }>();
+        // 全モジュールレベル定数を「module:name」修飾キーで収集する。
+        // 同名定数が複数モジュールにあっても衝突しないようにするため
+        // （例: ModA.MAX と ModB.MAX は別エントリとして保持）。
+        const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string; name: string }>();
+        const collect = (stmt: ConstDeclaration, moduleName: string) => {
+            const name = stmt.name.name.toLowerCase();
+            allConsts.set(`${moduleName.toLowerCase()}:${name}`, { stmt, moduleName, name });
+        };
         for (const { ast, moduleName } of modules) {
             for (const stmt of ast.body) {
                 if (stmt.type === 'ConstDeclaration') {
-                    const name = (stmt as ConstDeclaration).name.name.toLowerCase();
-                    allConsts.set(name, { stmt: stmt as ConstDeclaration, moduleName });
+                    collect(stmt as ConstDeclaration, moduleName);
                 } else if (stmt.type === 'ClassDeclaration') {
                     for (const member of (stmt as ClassDeclaration).body) {
                         if (member.type === 'ConstDeclaration') {
-                            const name = (member as ConstDeclaration).name.name.toLowerCase();
-                            allConsts.set(name, { stmt: member as ConstDeclaration, moduleName });
+                            collect(member as ConstDeclaration, moduleName);
                         }
                     }
                 }
             }
         }
 
-        // 定数間の依存グラフを構築（他の定数への参照のみ）
+        // 定数間の依存グラフを構築（他の定数への参照のみ）。
+        // 式中の参照は非修飾名なので、まず同一モジュール内の定数を優先し、
+        // なければ他モジュールの同名定数を解決する。
+        const resolveDep = (depName: string, fromModule: string): string | undefined => {
+            const sameModule = `${fromModule.toLowerCase()}:${depName}`;
+            if (allConsts.has(sameModule)) return sameModule;
+            for (const key of allConsts.keys()) {
+                if (key.endsWith(`:${depName}`)) return key;
+            }
+            return undefined;
+        };
         const deps = new Map<string, Set<string>>();
-        for (const [name, { stmt }] of allConsts) {
+        for (const [qkey, { stmt, moduleName }] of allConsts) {
             const exprDeps = this.collectConstExprDeps(stmt.value);
-            deps.set(name, new Set([...exprDeps].filter(d => allConsts.has(d))));
+            const resolved = new Set<string>();
+            for (const d of exprDeps) {
+                const r = resolveDep(d, moduleName);
+                if (r) resolved.add(r);
+            }
+            deps.set(qkey, resolved);
         }
 
         // トポロジカルソート（循環参照を検出）
@@ -3101,8 +3121,8 @@ export class Evaluator {
         // 正しい順序で再評価（未定義名の暗黙初期化を防ぐため noImplicitInit を立てる）
         this.env.noImplicitInit = true;
         try {
-            for (const name of order) {
-                const { stmt, moduleName } = allConsts.get(name)!;
+            for (const qkey of order) {
+                const { stmt, moduleName } = allConsts.get(qkey)!;
                 const prev = this.currentSourceModule;
                 this.currentSourceModule = moduleName;
                 this.evaluateConstDeclaration(stmt);
@@ -3146,7 +3166,7 @@ export class Evaluator {
     }
 
     private topologicalSortConsts(
-        consts: Map<string, { stmt: ConstDeclaration; moduleName: string }>,
+        consts: Map<string, unknown>,
         deps: Map<string, Set<string>>
     ): string[] {
         type State = 'unvisited' | 'visiting' | 'done';

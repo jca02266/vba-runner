@@ -1,18 +1,7 @@
 /**
  * Dim, Const, Let, Set (§5.4.2.1, §5.4.2.2, §5.4.3.8, §5.4.3.2) のテスト
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
-
-function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 // --- 1. Dim と初期値 ---
 const dimCode = `
@@ -24,7 +13,7 @@ const dimCode = `
     Sub Test()
     End Sub
 `;
-const ev1 = evalVBA(dimCode);
+const ev1 = evalVBASingle(dimCode);
 assert.strictEqual(ev1.env.get('i'), 0, 'Integer の初期値は 0');
 assert.strictEqual(ev1.env.get('s'), "", 'String の初期値は ""');
 assert.strictEqual(ev1.env.get('b'), 0, 'Boolean の初期値は 0 (False)');
@@ -39,7 +28,7 @@ const constCode = `
     Sub Test()
     End Sub
 `;
-const ev2 = evalVBA(constCode);
+const ev2 = evalVBASingle(constCode);
 assert.strictEqual(ev2.env.get('my_pi'), 3.14, 'Const 定数が取得できる');
 assert.strictEqual(ev2.env.get('app_name'), "VBA", '型付き Const が取得できる');
 
@@ -49,7 +38,7 @@ const constErrCode = `
         X = 20
     End Sub
 `;
-const ev2e = evalVBA(constErrCode);
+const ev2e = evalVBASingle(constErrCode);
 let threwConst = false;
 try {
     ev2e.callProcedure('Fail', []);
@@ -69,7 +58,7 @@ const letCode = `
         y = 200
     End Sub
 `;
-const ev3 = evalVBA(letCode);
+const ev3 = evalVBASingle(letCode);
 ev3.callProcedure('Test', []);
 assert.strictEqual(ev3.env.get('x'), 100, '明示的 Let');
 assert.strictEqual(ev3.env.get('y'), 200, '暗黙的 Let');
@@ -89,7 +78,7 @@ const setGlobalCode = `
         gObj.Value = "Modified"
     End Sub
 `;
-const ev5 = evalVBA(setGlobalCode);
+const ev5 = evalVBASingle(setGlobalCode);
 ev5.callProcedure('TestSet', []);
 const gObj = ev5.env.get('gobj');
 assert.strictEqual(gObj.__instanceEnv__.get('value'), "Modified", 'Set による参照代入とプロパティ更新');

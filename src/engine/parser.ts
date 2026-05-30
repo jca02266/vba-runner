@@ -1588,7 +1588,8 @@ export class Parser {
     private parseConstDeclaration(): ConstDeclaration {
         this.advance(); // 'Const'
         const idToken = this.advance();
-        if (idToken.type !== TokenType.Identifier) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
+        // §3.3.5.2: Step / Append / Output 等の contextual keyword は識別子として使用可能
+        if (idToken.type !== TokenType.Identifier && !Parser.CONTEXTUAL_KW.has(idToken.type)) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
         const name = this.makeIdentifier(idToken);
 
         // Optional 'As Type'

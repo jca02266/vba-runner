@@ -46,28 +46,38 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 **ファイル冒頭のボイラープレート**（必ずこの形式で書く）:
 
 ```typescript
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
-
-function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
-}
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function runFunc(code: string, name: string, args: any[] = []): any {
-    return evalVBA(code).callProcedure(name, args);
+    return evalVBASingle(code).callProcedure(name, args);
 }
 ```
+
+`evalVBASingle` と `evalVBAModules` は `test-libs/test-runner.ts` にエクスポートされている共有関数。ローカルに定義しない。
+
+| 関数 | 用途 |
+|---|---|
+| `evalVBASingle(code)` | 単一モジュール。Pass 1 + Pass 2 を実行して `Evaluator` を返す |
+| `evalVBAModules([{code, name}, ...])` | 複数モジュール。全モジュールを Pass 1 でロード後、Pass 2 を1回実行して `Evaluator` を返す |
+
+**複数モジュールの例**（`Module1.A` のようなモジュール修飾アクセスが必要な場合）:
+
+```typescript
+const ev = evalVBAModules([
+    { name: 'ModA', code: modACode },
+    { name: 'ModB', code: modBCode },
+]);
+ev.callProcedure('TestProc', []);
+```
+
+> **2パスの設計について**: `evaluate()` は Pass 1（手続き・変数・クラスの登録のみ）で、モジュールレベルの `Const` は評価しない。定数は Pass 2（`reEvaluateModuleConstsAll`）で依存グラフ順に確定させる。`evalVBASingle` / `evalVBAModules` は両パスをカプセル化しているため、利用者が意識する必要はない。
+
+> **既存テストの移行**: `tests/spec/` 内の古いテストは `evalVBASingle` をローカル定義（`reEvaluateModuleConstsAll` なし）している。これらは現在の定数がない or `setConstants()` 注入のテストであるため即壊れないが、モジュールレベル `Const` を追加した場合は壊れる。既存テストを修正する際は、ローカル定義の `evalVBASingle` を削除して `test-libs/test-runner` からのインポートに置き換えること。
 
 **テストの書き方**:
 - VBAコードはテンプレートリテラルのインライン文字列として書く（`.bas` ファイルは使わない）
 - 引数なしでプロシージャを呼ぶ場合も `runFunc(code, 'FuncName')` を使う
-- 式や副作用のみ確認する場合は `evalVBA(code)` を使う
+- 式や副作用のみ確認する場合は `evalVBASingle(code)` を使う
 - アサーションは `assert.strictEqual(actual, expected, 'テストの説明')` を使う
 - 各テストグループの末尾に `console.log('[PASS] テスト名')` を入れる
 - ファイル末尾に `console.log('\n✅ <機能名>: 全テスト通過')` を入れる
