@@ -390,6 +390,8 @@ End Class`;
     // isTestProc=true のとき: AssertHelper を注入したラッパー Sub を生成して呼び出す
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.runProcedure', (uri: string, procName: string, isTestProc?: boolean) => {
+            // catch ブロックからも参照できるようスコープを外に出す
+            const moduleFileMap = new Map<string, string>();
             try {
                 const doc = documentMap.get(uri);
                 if (!doc) {
@@ -417,7 +419,9 @@ End Class`;
                     // ディレクトリに AssertHelper.cls があっても重複注入しない
                     if (/^AssertHelper\.cls$/i.test(entry)) continue;
                     const moduleName = path.basename(entry, path.extname(entry));
-                    const content = fs.readFileSync(path.join(dir, entry), 'utf8');
+                    const filePath = path.join(dir, entry);
+                    moduleFileMap.set(moduleName.toLowerCase(), filePath);
+                    const content = fs.readFileSync(filePath, 'utf8');
                     const tokens = new Lexer(content).tokenize();
                     let ast;
                     if (/\.cls$/i.test(entry)) {
@@ -461,6 +465,12 @@ End Class`;
                 outputChannel.show();
             } catch (e: any) {
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
+                if (e.vbaLine && e.vbaModule) {
+                    const filePath = moduleFileMap.get((e.vbaModule as string).toLowerCase());
+                    if (filePath) {
+                        outputChannel.appendLine(`  ${filePath}:${e.vbaLine}:1`);
+                    }
+                }
                 outputChannel.show();
             }
         })
