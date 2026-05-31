@@ -1834,7 +1834,12 @@ export class Evaluator {
         this.currentSourceModule = effectiveModuleName;
     }
 
-    public evaluate(program: Program) {
+    /**
+     * Pass 1: 1モジュール分の AST を登録する。
+     * 手続き・変数を env に登録し、Option Explicit の保守的チェックを行う。
+     * モジュールレベル ConstDeclaration はスキップし、Pass 2（resolveIdentifiers）で評価する。
+     */
+    public evaluateModule(program: Program) {
         // Run Option Explicit static analysis; results stored for callProcedure checks
         const { violatedProcedures } = checkOptionExplicit(program);
         for (const [name, undeclared] of violatedProcedures) {
@@ -1855,6 +1860,9 @@ export class Evaluator {
             this.evaluateStatement(stmt);
         }
     }
+
+    /** @deprecated Use {@link evaluateModule} instead. */
+    public evaluate(program: Program) { this.evaluateModule(program); }
 
     public evalExpression(exprString: string): any {
         const lexer = new Lexer(exprString);
@@ -1885,7 +1893,7 @@ export class Evaluator {
         // Fallback: parse and evaluate as a Statement (returns undefined)
         const stmtParser = new Parser(tokens);
         const program = stmtParser.parse();
-        this.evaluate(program);
+        this.evaluateModule(program);
         return undefined;
     }
 
@@ -3073,7 +3081,13 @@ export class Evaluator {
      * 全モジュールロード後に呼ぶ。モジュールレベル定数を依存グラフでトポロジカルソートして
      * 正しい順序で再評価する。循環参照はエラーとして検出する。
      */
-    public reEvaluateModuleConstsAll(modules: Array<{ ast: Program; moduleName: string }>): void {
+    /**
+     * Pass 2: 全モジュールのロード完了後に識別子を解決する。
+     * モジュールレベル定数を依存グラフ順に再評価し、全モジュール名が確定した状態で
+     * Option Explicit の精密チェックを再実行する。
+     * evalVBASingle / evalVBAModules から必ず1回だけ呼ぶこと。
+     */
+    public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
         // 全モジュールレベル定数を「module:name」修飾キーで収集する。
         // 同名定数が複数モジュールにあっても衝突しないようにするため
         // （例: ModA.MAX と ModB.MAX は別エントリとして保持）。
@@ -3153,6 +3167,11 @@ export class Evaluator {
                 }
             }
         }
+    }
+
+    /** @deprecated Use {@link resolveIdentifiers} instead. */
+    public reEvaluateModuleConstsAll(modules: Array<{ ast: Program; moduleName: string }>): void {
+        this.resolveIdentifiers(modules);
     }
 
     private collectConstExprDeps(expr: Expression): Set<string> {

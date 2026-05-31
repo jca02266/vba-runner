@@ -45,7 +45,7 @@ export class VBARunner {
                 const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
                 this._asts.push(ast);
                 this._moduleNames.push(moduleName);
-                this.evaluator.evaluate(ast);
+                this.evaluator.evaluateModule(ast);
             } catch (e: any) {
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
             }
@@ -53,7 +53,7 @@ export class VBARunner {
 
         // Pass 2: 全モジュールの名前が揃った状態でモジュールレベル定数を再評価する。
         // 依存グラフのトポロジカルソートで評価順を決定し、循環参照はエラーとして検出する。
-        this.evaluator.reEvaluateModuleConstsAll(
+        this.evaluator.resolveIdentifiers(
             this._asts.map((ast, i) => ({ ast, moduleName: this._moduleNames[i] }))
         );
     }
@@ -195,26 +195,27 @@ export function runVBARunner(filePath: string, procedureName: string, args: any[
 export function evalVBASingle(code: string): Evaluator {
     const ast = new Parser(new Lexer(code).tokenize()).parse();
     const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    ev.reEvaluateModuleConstsAll([{ ast, moduleName: '' }]);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev;
 }
 
 /**
  * 複数モジュールのインライン VBA コードを評価して Evaluator を返す。
- * 各モジュールを Pass 1 でロードした後、全モジュール分まとめて Pass 2 を実行する。
+ * 各モジュールを Pass 1（evaluateModule）でロードした後、全モジュール分まとめて
+ * Pass 2（resolveIdentifiers）を実行する。
  * クロスモジュール定数参照（ModA.X = ModB.Y + 1 など）を正しく解決するため、
- * reEvaluateModuleConstsAll は全モジュールのロード後に1回だけ呼ぶ。
+ * resolveIdentifiers は全モジュールのロード後に1回だけ呼ぶ。
  */
 export function evalVBAModules(modules: Array<{ name: string; code: string }>): Evaluator {
     const ev = new Evaluator(console.log);
     const asts = modules.map(({ name, code }) => {
         const ast = new Parser(new Lexer(code).tokenize()).parse();
         ev.setSourceModule(name);
-        ev.evaluate(ast);
+        ev.evaluateModule(ast);
         return { ast, moduleName: name };
     });
-    ev.reEvaluateModuleConstsAll(asts);
+    ev.resolveIdentifiers(asts);
     return ev;
 }
 
