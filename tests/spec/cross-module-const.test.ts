@@ -139,4 +139,31 @@ function makeModules(sources: Record<string, string>) {
     assert.ok(threw, '手続き内で未定義の xlup を引数として使うと Option Explicit エラーになる');
 }
 
+// --- 7. Private Const は他モジュールから参照不可 ---
+{
+    let threw = false;
+    let msg = '';
+    try {
+        makeModules({
+            Module1: `Public Const A = B`,
+            Module2: `Private Const B As Long = 42`,
+        });
+    } catch (e: any) {
+        threw = true;
+        msg = e.message;
+    }
+    assert.ok(threw, '他モジュールの Private Const 参照はエラーになる');
+    assert.ok(msg.includes('Constant expression required'),
+        `エラーメッセージに "Constant expression required" を含む: ${msg}`);
+}
+
+// --- 8. Public Const は他モジュールから参照可 ---
+{
+    const ev = makeModules({
+        Module1: `Public Const A = B`,
+        Module2: `Public Const B As Long = 42`,
+    });
+    assert.strictEqual(ev.get('a'), 42, '他モジュールの Public Const は参照可');
+}
+
 console.log('cross-module-const: all tests passed');

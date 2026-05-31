@@ -709,6 +709,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `VBARunner` に二段階ロードを導入。Pass 1（`evaluateModule()`）で全モジュールをロード後、Pass 2（`resolveIdentifiers()`）で全モジュールレベル定数を再評価。依存グラフをトポロジカルソートして正しい順序で確定させる
   - 仕様: VBA では全モジュールがコンパイル時に一括解決されるため、ロード順によらずクロスモジュール定数参照が動作する（MS-VBAL §5.6.10 tier 4）
 
+- ✅ **Fix: `Private Const` の他モジュールからのアクセスをエラーにする** | `cross-module-const.test.ts`
+  - 仕様: VBA では `Private Const` は同一モジュール内からのみ参照可。他モジュールから参照すると「コンパイルエラー 定数式が必要です」
+  - 実装: `resolveIdentifiers()` の依存グラフ構築時に、参照先 Const の `scope` が `'private'` かつ別モジュールであればエラーを throw
+
 - ✅ **Fix: モジュールレベル定数の循環参照を検出してエラーにする** | `cross-module-const.test.ts`
   - 原因: 二段階評価の Pass 2 を単純に一度だけ実行した場合、相互参照する定数は不定値になりエラーにもならなかった
   - 修正: `topologicalSortConsts()` で DFS による閉路検出を実装。循環が見つかれば `"Circular reference in constant declarations: A → B → A"` 形式のエラーを throw する

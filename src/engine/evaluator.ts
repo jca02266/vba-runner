@@ -3132,6 +3132,7 @@ export class Evaluator {
         }
 
         // 依存グラフを構築。非修飾名は同一モジュール優先、なければ他モジュールを探す。
+        // 他モジュールの Private Const を参照するとエラー（VBA 仕様: Private は同一モジュール内のみ）。
         const resolveDep = (depName: string, fromModule: string): string | undefined => {
             const sameModule = `${fromModule.toLowerCase()}:${depName}`;
             if (allConsts.has(sameModule)) return sameModule;
@@ -3146,7 +3147,17 @@ export class Evaluator {
             const resolved = new Set<string>();
             for (const d of exprDeps) {
                 const r = resolveDep(d, moduleName);
-                if (r) resolved.add(r);
+                if (r) {
+                    // 他モジュールの Private Const への参照はエラー
+                    const { moduleName: depModule, stmt: depStmt } = allConsts.get(r)!;
+                    if (depModule.toLowerCase() !== moduleName.toLowerCase() &&
+                        (depStmt as any).scope === 'private') {
+                        throw new Error(
+                            `Constant expression required: '${stmt.name.name}' references private constant '${depStmt.name.name}' in module '${depModule}'`
+                        );
+                    }
+                    resolved.add(r);
+                }
             }
             deps.set(qkey, resolved);
         }
