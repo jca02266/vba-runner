@@ -482,9 +482,12 @@ End Class`;
                                 vscode.DiagnosticSeverity.Error
                             )
                         ]);
+                        // Problems にフォーカス（outputChannel.show() は呼ばない）
                         vscode.commands.executeCommand('workbench.panel.markers.view.focus');
+                        return;
                     }
                 }
+                // ファイル情報がない場合は Output にフォールバック
                 outputChannel.show();
             }
         })
