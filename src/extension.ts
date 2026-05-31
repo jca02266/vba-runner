@@ -482,6 +482,7 @@ End Class`;
                                 vscode.DiagnosticSeverity.Error
                             )
                         ]);
+                        vscode.commands.executeCommand('workbench.panel.markers.view.focus');
                     }
                 }
                 outputChannel.show();
