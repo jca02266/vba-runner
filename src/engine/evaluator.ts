@@ -4995,15 +4995,28 @@ export class Evaluator {
 
                     // If evaluating the object gives undefined/null, it might be a module name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
-                        // モジュール修飾呼び出しとして解決できるか事前確認する。
-                        // ここで try/catch して握りつぶすと、呼び出し先プロシージャが投げた
-                        // 正当なランタイムエラー（ゼロ除算など）まで飲み込んでしまい、
-                        // member access へフォールスルーして誤った Error 91 になる。
                         const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
                             ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
+                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+
                         if (qualifiedProc) {
-                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                            // ユーザー定義のモジュール修飾プロシージャが確実に存在する。
+                            // 呼び出し先のランタイムエラーは握りつぶさずそのまま伝播させる。
                             return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
+                        }
+
+                        // ユーザー定義 proc は無いが、型ライブラリ修飾の組み込み関数
+                        // （VBA.InStr / VBA.Mid$ など）かもしれない。callProcedure は組み込み関数
+                        // フォールバックを持つので試す。「Sub or Function not defined」のときだけ
+                        // 通常の member access へフォールスルーし、呼び出し先が投げた実行時エラー
+                        // （Type mismatch など）は握りつぶさず伝播させる。
+                        try {
+                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
+                        } catch (e: any) {
+                            if (!(e && e.type === 'VbaError' && e.number === VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED)) {
+                                throw e;
+                            }
+                            // 見つからない → 下の通常の member access 処理へフォールスルー
                         }
                     }
                 }
