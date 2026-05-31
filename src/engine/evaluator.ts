@@ -3196,15 +3196,14 @@ export class Evaluator {
         const knownModuleNames = new Set<string>(
             modules.map(m => m.moduleName.toLowerCase()).filter(n => n !== '')
         );
+        // Pass 2 は全モジュールを精密モードで完全に再スキャンするため、その結果を
+        // 権威とする。Pass 1（保守的モード）の結果は不正確な行番号を含みうるので、
+        // ここでクリアして Pass 2 の結果だけで再構築する。
+        this.optionExplicitViolations.clear();
         for (const { ast } of modules) {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
             for (const [name, undeclared] of violatedProcedures) {
-                const existing = this.optionExplicitViolations.get(name);
-                if (existing) {
-                    for (const [n, line] of undeclared) if (!existing.has(n)) existing.set(n, line);
-                } else {
-                    this.optionExplicitViolations.set(name, new Map(undeclared));
-                }
+                this.optionExplicitViolations.set(name, new Map(undeclared));
             }
         }
     }
