@@ -1315,7 +1315,7 @@ node test-libs/vba-test-generator.cjs --dir tests/spec/vba/Circular
 # tests/spec/vba/Test_MyFeature.bas
 
 # 2. テストランナーを生成
-npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_MyFeature.bas tests/spec/vba/Test_MyFeature_runner.bas
+npx tsx test-libs/vba-test-generator.ts tests/spec/vba/Test_MyFeature.bas tests/spec/vba/Test_MyFeature_runner.bas
 
 # 3. 生成されたテストランナーをテストコードと一緒に Excel に貼り込む
 # (ファイルをコピーして VBA Editor にペーストするか、ファイルメニューでインポート)
