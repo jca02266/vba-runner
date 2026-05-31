@@ -466,7 +466,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ **Auto-Instanceを関数/メソッド引数として渡す**: 未アクセスのAuto-Instanceを引数に渡す際にプレースホルダーのまま渡されるバグを修正 | テスト: `auto-instance-args.test.ts`
     - 修正箇所: JS組み込み関数引数 (L4611)、VBAクラスメソッド引数 (L4698/L4704)、JSオブジェクトメソッド引数 (L4727)、汎用フォールバック (L4752)、デフォルトプロパティ引数 (L4641)
     - 実害バグ: `CallByName body, "Method", VbMethod, autoInstance`（`__vbaClass__` 直接参照で失敗）および `d.Add b, val` でbをキーに使う場合（後でbが解決されると`Exists`がFalse）
-- ✅ **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化
+- ✅ **`Dim x As ClassName`（New なし）のデフォルト値**: `Nothing` 初期化 | `on-error-nothing.test.ts`
 - ✅ **Default Property / Default Member**: `Range("A1") = 10` のような暗黙の `.Value` 解決、Collection の `Item` 暗黙呼び出し等
   - ✅ 包括的なテストスイート作成 (`default-property.test.ts`, 15テスト全パス)
   - ✅ 基盤研究: VBA 仕様書からの解析、実装パターン検討
@@ -662,6 +662,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 原因2: `mm` が月か分かの文脈判定がなく、`"HH:mm:ss"` の `mm` が常に月になっていた
   - 修正: トークン単位の処理に変更し、直前が `h`/`hh` のとき `mm`/`m` を分として解釈する `prevTokenWasHour` フラグを実装
 
+- ✅ **Fix: `Dim ws As Worksheet` など未知の外部オブジェクト型の初期値が `Nothing` でなく `Empty` になる** | `on-error-nothing.test.ts`
+  - 原因: 変数宣言の初期化ロジックが `classDefinitions`/`externalObjectFactories` に未登録の型を "Variant や未知の型" と同扱いして `vbaEmpty` を返していた
+  - 症状: `Dim ws As Worksheet` で `ws Is Nothing` が False になり、`On Error Resume Next` で `Set` が失敗した後もワークシートアクセスで Error 91 が発生する
+  - 修正: `Variant`・`Date` 以外の未知型は外部COMオブジェクト型とみなし `vbaNothing` で初期化
+
 - ✅ **Fix: `evaluateDateLiteral` が UTC ベースの Date を生成していたため `formatDate` と時差分ずれていた** | `format.test.ts`
   - 原因: `evaluateDateLiteral` が `Date.UTC(...)` で JS Date を生成していたが、`formatDate` はローカル時刻の `getHours()` 等を使うため時差分ずれていた
   - 修正: `evaluateDateLiteral` を `new Date(y, m-1, d, h, min, s)`（ローカル時刻）に変更し、`Now()`/`DateSerial()` と一貫した挙動にした。`formatDate` はローカル時刻の `get*` メソッドのまま
@@ -723,6 +728,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数を静的解析 + 実行時エラーで検出
   - 実装: `src/engine/option-explicit-checker.ts`; AST を2パスで解析し `program.diagnostics` に追記、違反SubはLSP破線＋呼び出し時にVBAエラー1で停止
   - テスト: `option-explicit.test.ts`
+  - ✅ **マルチモジュール 2nd pass チェック強化**: `reEvaluateModuleConstsAll()` 呼び出し時に全モジュール名を `checkOptionExplicit` へ渡し、コール式の bare identifier オブジェクト（`undeclaredObj.Method()` 形式）を精密に検出。既知モジュール名のみスキップ、それ以外は未宣言エラー | `option-explicit.test.ts`（Test 11-12）
 
 - ✅ **`Identifier` AST ノードへの `loc` 付与 + スコープ対応シンボルテーブル**: 宣言位置の Identifier に `loc` を付与し、LSP のシンボル参照をスコープ対応に刷新
   - `parser.ts`: `makeIdentifier(token)` ヘルパー追加；Dim・Sub 名・For 変数・Const など全宣言位置に正確な `loc`
