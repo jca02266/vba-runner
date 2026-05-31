@@ -1,33 +1,53 @@
 #!/usr/bin/env node
 /**
  * import-vba.mjs
- * .bas / .cls ファイルを読んで xlsm の VBA ソースを書き戻す。
+ * UTF-8 の .bas / .cls ファイルを読んで xlsm の VBA ソースを書き戻す。
+ * コードページは xlsm の dir ストリーム（PROJECTCODEPAGE）から自動検出し、
+ * UTF-8 から変換して格納する。
  *
  * Usage:
- *   node import-vba.mjs <input.xlsm> <source-dir> [output.xlsm]
+ *   node import-vba.mjs <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
+ *
+ * Options:
+ *   --encoding <cp>  コードページを明示指定（例: cp932, cp1252）。
+ *                    省略時は xlsm 内の PROJECTCODEPAGE を使用。
  *
  * output.xlsm のデフォルトは input.xlsm（上書き）。
- * 安全のため input と output が同じ場合は一時ファイルを経由する。
  */
 
 import JSZip from 'jszip';
 import CFB from 'cfb';
+import iconv from 'iconv-lite';
 import { readFileSync, writeFileSync, readdirSync } from 'fs';
-import { resolve, dirname, extname, basename } from 'path';
+import { resolve, extname, basename } from 'path';
 import { decompress, compress } from './lib/ovba.mjs';
 import { parseDirStream } from './lib/dir-parser.mjs';
 
-const [,, xlsmPath, srcDir, outPathArg] = process.argv;
-if (!xlsmPath || !srcDir) {
-    console.error('Usage: node import-vba.mjs <input.xlsm> <source-dir> [output.xlsm]');
+// ── 引数パース ──────────────────────────────────────────────────────────────
+const args = process.argv.slice(2);
+if (args.length < 2 || args[0] === '--help') {
+    console.error('Usage: node import-vba.mjs <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]');
     process.exit(1);
+}
+
+let xlsmPath, srcDir, outPathArg, encodingOverride;
+for (let i = 0; i < args.length; i++) {
+    if (args[i] === '--encoding') {
+        encodingOverride = args[++i];
+    } else if (!xlsmPath) {
+        xlsmPath = args[i];
+    } else if (!srcDir) {
+        srcDir = args[i];
+    } else {
+        outPathArg = args[i];
+    }
 }
 
 const absXlsm = resolve(xlsmPath);
 const absSrc  = resolve(srcDir);
 const outPath = resolve(outPathArg ?? absXlsm);
 
-// 1. ソースファイルを収集（ファイル名（拡張子なし）→ソース）
+// ── ソースファイルを収集（UTF-8 として読み込む）──────────────────────────────
 const sourceMap = new Map();
 for (const f of readdirSync(absSrc)) {
     const ext = extname(f).toLowerCase();
@@ -37,7 +57,7 @@ for (const f of readdirSync(absSrc)) {
 }
 console.log(`ソースファイル: ${sourceMap.size} 件`);
 
-// 2. xlsm を ZIP として開く
+// ── xlsm を ZIP として開く ──────────────────────────────────────────────────
 const zip = await JSZip.loadAsync(readFileSync(absXlsm));
 
 const vbaBinEntry = zip.file('xl/vbaProject.bin');
@@ -47,17 +67,24 @@ if (!vbaBinEntry) {
 }
 const vbaBuf = Buffer.from(await vbaBinEntry.async('nodebuffer'));
 
-// 3. CFB を解析
+// ── CFB を解析 ─────────────────────────────────────────────────────────────
 const cfb = CFB.read(vbaBuf, { type: 'buffer' });
 
-// 4. dir ストリームからモジュール一覧を取得
+// ── dir ストリームからモジュール一覧・コードページを取得 ──────────────────────
 const dirEntry = CFB.find(cfb, '/VBA/dir');
 const dirDecompressed = decompress(Buffer.from(dirEntry.content));
-const modules = parseDirStream(dirDecompressed);
+const { codePage, modules } = parseDirStream(dirDecompressed);
 
+// エンコーディングの決定: コマンドライン引数 > dir ストリームの PROJECTCODEPAGE
+if (!encodingOverride && codePage === null) {
+    console.warn('警告: PROJECTCODEPAGE が見つかりませんでした。--encoding で指定してください。');
+    process.exit(1);
+}
+const encoding = encodingOverride ?? `cp${codePage}`;
 console.log(`VBAモジュール: ${modules.length} 件`);
+console.log(`エンコーディング: ${encoding}${codePage !== null ? ` (PROJECTCODEPAGE=${codePage})` : ' (--encoding 指定)'}`);
 
-// 5. 各モジュールのストリームを更新
+// ── 各モジュールのストリームを更新 ────────────────────────────────────────
 let updated = 0;
 for (const mod of modules) {
     const src = sourceMap.get(mod.name.toLowerCase());
@@ -75,16 +102,17 @@ for (const mod of modules) {
 
     const raw = Buffer.from(entry.content);
 
-    // オフセット以前のバイトコード部分は保持し、ソース部分だけ置き換える
-    const header = raw.slice(0, mod.offset);
-    const newSource = compress(Buffer.from(src, 'latin1'));
-    const newStream = Buffer.concat([header, newSource]);
+    // UTF-8 → コードページ変換してから OVBA 圧縮
+    const srcBytes  = iconv.encode(src, encoding);
+    const newSource = compress(srcBytes);
 
-    // CFB のエントリを上書き
+    // offset 以前のバイトコード部分は保持し、ソース部分だけ置き換える
+    const newStream = Buffer.concat([raw.slice(0, mod.offset), newSource]);
+
     entry.content = newStream;
-    entry.size = newStream.length;
+    entry.size    = newStream.length;
 
-    console.log(`  ✓ ${mod.name} (${src.length} bytes)`);
+    console.log(`  ✓ ${mod.name} (${srcBytes.length} bytes as ${encoding})`);
     updated++;
 }
 
@@ -93,10 +121,9 @@ if (updated === 0) {
     process.exit(1);
 }
 
-// 6. CFB を再シリアライズ
+// ── CFB を再シリアライズして xlsm を保存 ────────────────────────────────────
 const newVbaBin = CFB.write(cfb, { type: 'buffer' });
 
-// 7. ZIP に書き戻して xlsm を保存
 zip.file('xl/vbaProject.bin', newVbaBin);
 const newXlsm = await zip.generateAsync({
     type: 'nodebuffer',

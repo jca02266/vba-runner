@@ -27,26 +27,29 @@ npm install
 ### VBA ソースの抽出
 
 ```bash
-node extract-vba.mjs <input.xlsm> [出力ディレクトリ]
+node extract-vba.mjs <input.xlsm> [出力ディレクトリ] [--encoding <cp>]
 ```
 
 - 出力ディレクトリのデフォルトは `input.xlsm` と同じディレクトリ
-- 標準モジュール（`.bas`）とクラスモジュール（`.cls`）を生成する
+- エンコーディングは xlsm の `PROJECTCODEPAGE` から**自動検出**する（`--encoding` で上書き可）
+- 標準モジュール（`.bas`）とクラスモジュール（`.cls`）を UTF-8 で生成する
 
 例:
 
 ```bash
 node extract-vba.mjs test.xlsm ./src
+# エンコーディング: cp932 (PROJECTCODEPAGE=932) のように自動検出を表示
 # → ./src/Module1.bas, ThisWorkbook.cls, Sheet1.cls ...
 ```
 
 ### VBA ソースの書き戻し
 
 ```bash
-node import-vba.mjs <input.xlsm> <ソースディレクトリ> [output.xlsm]
+node import-vba.mjs <input.xlsm> <ソースディレクトリ> [output.xlsm] [--encoding <cp>]
 ```
 
 - `output.xlsm` のデフォルトは `input.xlsm`（上書き）
+- エンコーディングは xlsm の `PROJECTCODEPAGE` から**自動検出**する（`--encoding` で上書き可）
 - ソースディレクトリ内の `.bas` / `.cls` ファイルのうち、モジュール名が xlsm 内に存在するものだけを更新する
 
 例:
@@ -163,10 +166,15 @@ Excel が書き出す xlsm では最終チャンクを raw で書き、実デー
 
 ### ソースのエンコーディング
 
-VBA ソースは xlsm 内でプロジェクトのコードページ（日本語環境では Shift-JIS: CP932）で
-エンコードされている。抽出時は `latin1` として読み出し、そのまま `utf8` でファイルに書き出す。
-書き戻し時は `utf8` ファイルを読んで `latin1` として Buffer に変換することで
-元のバイト列を復元している。
+VBA ソースは xlsm 内でプロジェクトのコードページでエンコードされている。
+コードページは `dir` ストリームの `PROJECTCODEPAGE` レコード（id=0x0003）に格納されており、
+両スクリプトはこの値を自動的に読み取る（日本語環境では 932 = Shift-JIS）。
+
+- **抽出時**: `PROJECTCODEPAGE` のコードページ → UTF-8 に変換してファイルに書き出す
+- **書き戻し時**: UTF-8 ファイルを読んで `PROJECTCODEPAGE` のコードページに変換してから OVBA 圧縮する
+
+`--encoding` オプションで上書き可能（例: `--encoding cp1252`）。
+エンコーディングの指定がなく `PROJECTCODEPAGE` も見つからない場合はエラーで終了する。
 
 ### ラウンドトリップの確認
 

@@ -11,6 +11,7 @@
   "description": "",
   "dependencies": {
     "cfb": "^1.2.2",
+    "iconv-lite": "^0.7.2",
     "jszip": "^3.10.1"
   }
 }

@@ -1,8 +1,8 @@
 /**
  * VBA Project dir stream parser  [MS-OVBA] 2.3.4
  *
- * Returns an array of:
- *   { name: string, streamName: string, offset: number, isClass: boolean }
+ * parseDirStream(buf) returns:
+ *   { codePage: number, modules: Array<{ name, streamName, offset, isClass }> }
  */
 
 export function parseDirStream(buf) {
@@ -18,11 +18,16 @@ export function parseDirStream(buf) {
     // Special case: PROJECTVERSION (0x0009) has a MinorVersion WORD that lies
     // OUTSIDE the size field (size=4 covers only MajorVersion DWORD).
     let moduleCount = 0;
+    let codePage = null; // filled from PROJECTCODEPAGE (0x0003)
     while (i < buf.length) {
         const id = readU16();
         const sz = readU32();
 
-        if (id === 0x0009) {
+        if (id === 0x0003) {
+            // PROJECTCODEPAGE: WORD code page number
+            codePage = buf.readUInt16LE(i);
+            skip(sz); // sz=2
+        } else if (id === 0x0009) {
             // PROJECTVERSION: skip sz(=4) bytes + 2 extra (MinorVersion)
             skip(sz + 2);
         } else if (id === 0x000F) {
@@ -94,5 +99,5 @@ export function parseDirStream(buf) {
         }
     }
 
-    return modules;
+    return { codePage, modules };
 }
