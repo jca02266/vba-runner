@@ -94,8 +94,14 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
  * Checks Option Explicit rules across the entire program AST.
  * Violations are appended to program.diagnostics.
  * Returns the set of procedure names that have violations.
+ *
+ * @param knownModuleNames - When provided (even as an empty set), bare Identifier objects in
+ *   call expressions are checked precisely: only names in this set are treated as module
+ *   references and skipped. When undefined (single-module first pass), all bare identifier
+ *   objects in call-expression callees are skipped to avoid false positives from
+ *   cross-module references that are not yet known.
  */
-export function checkOptionExplicit(program: Program): OptionExplicitResult {
+export function checkOptionExplicit(program: Program, knownModuleNames?: ReadonlySet<string>): OptionExplicitResult {
     const violatedProcedures = new Map<string, Set<string>>();
 
     // Determine if Option Explicit is active
@@ -115,7 +121,7 @@ export function checkOptionExplicit(program: Program): OptionExplicitResult {
     for (const stmt of program.body) {
         if (stmt.type === 'ProcedureDeclaration') {
             const proc = stmt as ProcedureDeclaration;
-            const undeclared = checkProcedure(proc, moduleLevelNames, program.diagnostics);
+            const undeclared = checkProcedure(proc, moduleLevelNames, program.diagnostics, knownModuleNames);
             if (undeclared) {
                 violatedProcedures.set(proc.name.name.toLowerCase(), undeclared);
             }
@@ -129,7 +135,7 @@ export function checkOptionExplicit(program: Program): OptionExplicitResult {
                 }
             }
             for (const proc of cls.procedures) {
-                const undeclared = checkProcedure(proc, classModuleNames, program.diagnostics);
+                const undeclared = checkProcedure(proc, classModuleNames, program.diagnostics, knownModuleNames);
                 if (undeclared) {
                     violatedProcedures.set(proc.name.name.toLowerCase(), undeclared);
                 }
@@ -172,12 +178,13 @@ function collectModuleLevelDeclaredNames(stmt: Statement, names: Set<string>): v
 }
 
 /**
- * Returns true if the procedure has at least one undeclared-variable violation.
+ * Returns the set of undeclared identifiers in this procedure, or null if no violations.
  */
 function checkProcedure(
     proc: ProcedureDeclaration,
     moduleLevelNames: Set<string>,
-    diagnostics: ParseDiagnostic[]
+    diagnostics: ParseDiagnostic[],
+    knownModuleNames?: ReadonlySet<string>
 ): Set<string> | null {
     // Build the declared-name set for this procedure:
     // module-level names + parameters + function name (for return value)
@@ -191,6 +198,11 @@ function checkProcedure(
 
     const undeclaredNames = new Set<string>();
     const onViol = (name: string) => { undeclaredNames.add(name); };
+
+    // Helpers that close over the mutable `declared` set and other context
+    const chkExpr = (e: Expression) => checkExpr(e, declared, diagnostics, onViol, knownModuleNames);
+    const chkCall = (e: CallExpression) => checkCallExpr(e, declared, diagnostics, onViol, knownModuleNames);
+    const chkIdents = (e: Expression) => checkExprIdents(e, declared, diagnostics, onViol);
 
     // Forward scan through the body
     const visitStmt = (stmt: Statement): void => {
@@ -210,50 +222,50 @@ function checkProcedure(
             case 'ReDimStatement': {
                 const r = stmt as ReDimStatement;
                 // ReDim does NOT declare — it requires prior Dim
-                checkExprIdents(r.name, declared, diagnostics, onViol);
+                chkIdents(r.name);
                 for (const bound of r.bounds) {
-                    if (bound.lower) checkExpr(bound.lower, declared, diagnostics, onViol);
-                    checkExpr(bound.upper, declared, diagnostics, onViol);
+                    if (bound.lower) chkExpr(bound.lower);
+                    chkExpr(bound.upper);
                 }
                 break;
             }
             case 'AssignmentStatement': {
                 const a = stmt as AssignmentStatement;
-                checkExpr(a.left, declared, diagnostics, onViol);
-                checkExpr(a.right, declared, diagnostics, onViol);
+                chkExpr(a.left);
+                chkExpr(a.right);
                 break;
             }
             case 'SetStatement': {
                 const s = stmt as SetStatement;
-                checkExpr(s.left, declared, diagnostics, onViol);
-                checkExpr(s.right, declared, diagnostics, onViol);
+                chkExpr(s.left);
+                chkExpr(s.right);
                 break;
             }
             case 'CallStatement': {
                 const c = stmt as CallStatement;
-                checkCallExpr(c.expression, declared, diagnostics, onViol);
+                chkCall(c.expression);
                 break;
             }
             case 'ForStatement': {
                 const f = stmt as ForStatement;
                 // For loop variable must be explicitly declared
-                checkExprIdents(f.identifier, declared, diagnostics, onViol);
-                checkExpr(f.start, declared, diagnostics, onViol);
-                checkExpr(f.end, declared, diagnostics, onViol);
-                if (f.step) checkExpr(f.step, declared, diagnostics, onViol);
+                chkIdents(f.identifier);
+                chkExpr(f.start);
+                chkExpr(f.end);
+                if (f.step) chkExpr(f.step);
                 for (const s of f.body) visitStmt(s);
                 break;
             }
             case 'ForEachStatement': {
                 const f = stmt as ForEachStatement;
-                checkExprIdents(f.variable, declared, diagnostics, onViol);
-                checkExpr(f.collection, declared, diagnostics, onViol);
+                chkIdents(f.variable);
+                chkExpr(f.collection);
                 for (const s of f.body) visitStmt(s);
                 break;
             }
             case 'IfStatement': {
                 const i = stmt as IfStatement;
-                checkExpr(i.condition, declared, diagnostics, onViol);
+                chkExpr(i.condition);
                 for (const s of i.consequent) visitStmt(s);
                 if (i.alternate) {
                     if (Array.isArray(i.alternate)) {
@@ -266,34 +278,34 @@ function checkProcedure(
             }
             case 'DoWhileStatement': {
                 const d = stmt as DoWhileStatement;
-                if (d.condition) checkExpr(d.condition, declared, diagnostics, onViol);
+                if (d.condition) chkExpr(d.condition);
                 for (const s of d.body) visitStmt(s);
                 break;
             }
             case 'WhileStatement': {
                 const w = stmt as WhileStatement;
-                checkExpr(w.condition, declared, diagnostics, onViol);
+                chkExpr(w.condition);
                 for (const w2 of w.body) visitStmt(w2);
                 break;
             }
             case 'WithStatement': {
                 const w = stmt as WithStatement;
-                checkExpr(w.expression, declared, diagnostics, onViol);
+                chkExpr(w.expression);
                 for (const s of w.body) visitStmt(s);
                 break;
             }
             case 'SelectCaseStatement': {
                 const sc = stmt as SelectCaseStatement;
-                checkExpr(sc.expression, declared, diagnostics, onViol);
+                chkExpr(sc.expression);
                 for (const c of sc.cases) {
                     for (const range of c.ranges) {
                         if (range.kind === 'expression') {
-                            checkExpr(range.value, declared, diagnostics, onViol);
+                            chkExpr(range.value);
                         } else if (range.kind === 'to') {
-                            checkExpr(range.start, declared, diagnostics, onViol);
-                            checkExpr(range.end, declared, diagnostics, onViol);
+                            chkExpr(range.start);
+                            chkExpr(range.end);
                         } else {
-                            checkExpr(range.value, declared, diagnostics, onViol);
+                            chkExpr(range.value);
                         }
                     }
                     for (const s of c.body) visitStmt(s);
@@ -305,14 +317,14 @@ function checkProcedure(
             }
             case 'LSetStatement': {
                 const l = stmt as LSetStatement;
-                checkExpr(l.left, declared, diagnostics, onViol);
-                checkExpr(l.right, declared, diagnostics, onViol);
+                chkExpr(l.left);
+                chkExpr(l.right);
                 break;
             }
             case 'RSetStatement': {
                 const r = stmt as RSetStatement;
-                checkExpr(r.left, declared, diagnostics, onViol);
-                checkExpr(r.right, declared, diagnostics, onViol);
+                chkExpr(r.left);
+                chkExpr(r.right);
                 break;
             }
             // Statements with no variable references to check:
@@ -323,8 +335,6 @@ function checkProcedure(
             // generic expression walker if they contain Identifiers in their expressions.
             // For now, handled by the default (no-op) case.
             default:
-                // For any other statement types that have expressions, we do a best-effort
-                // check by scanning their sub-expressions if exposed.
                 break;
         }
     };
@@ -351,7 +361,7 @@ function checkExprIdents(expr: Expression, declared: Set<string>, diagnostics: P
 }
 
 /** Recursively check an expression for undeclared Identifiers */
-function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation): void {
+function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation, knownModuleNames?: ReadonlySet<string>): void {
     switch (expr.type) {
         case 'Identifier': {
             const id = expr as Identifier;
@@ -363,39 +373,39 @@ function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDi
             break;
         }
         case 'CallExpression': {
-            checkCallExpr(expr as CallExpression, declared, diagnostics, onViolation);
+            checkCallExpr(expr as CallExpression, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'MemberExpression': {
             const m = expr as MemberExpression;
             // Only check the object (left side); property is always a name, not a variable reference
-            checkExpr(m.object, declared, diagnostics, onViolation);
+            checkExpr(m.object, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'DictionaryAccessExpression': {
             const d = expr as { type: string; object: Expression; property: Identifier };
-            checkExpr(d.object, declared, diagnostics, onViolation);
+            checkExpr(d.object, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'BinaryExpression': {
             const b = expr as BinaryExpression;
-            checkExpr(b.left, declared, diagnostics, onViolation);
-            checkExpr(b.right, declared, diagnostics, onViolation);
+            checkExpr(b.left, declared, diagnostics, onViolation, knownModuleNames);
+            checkExpr(b.right, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'UnaryExpression': {
             const u = expr as UnaryExpression;
-            checkExpr(u.argument, declared, diagnostics, onViolation);
+            checkExpr(u.argument, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'ParenthesizedExpression': {
             const p = expr as ParenthesizedExpression;
-            checkExpr(p.expression, declared, diagnostics, onViolation);
+            checkExpr(p.expression, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         case 'NamedArgument': {
             const n = expr as NamedArgument;
-            checkExpr(n.value, declared, diagnostics, onViolation);
+            checkExpr(n.value, declared, diagnostics, onViolation, knownModuleNames);
             break;
         }
         // Literals, NewExpression, ImplicitWithObjectExpression, etc. — no variable refs
@@ -404,23 +414,34 @@ function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDi
     }
 }
 
-function checkCallExpr(expr: CallExpression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation): void {
+function checkCallExpr(expr: CallExpression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation, knownModuleNames?: ReadonlySet<string>): void {
     // callee: if it's a bare Identifier, it's a function/sub call — NOT a variable reference
     // if it's a MemberExpression, check the object part only
     const callee = expr.callee;
     if (callee.type === 'MemberExpression') {
         const m = callee as MemberExpression;
-        // Bare Identifier object may be a module name (e.g. ArgCountTest.Method) —
-        // module names don't need Dim, so skip the check. Only check complex objects
-        // (chained access, array index, etc.) that must be declared variables.
-        if (m.object.type !== 'Identifier') {
-            checkExpr(m.object, declared, diagnostics, onViolation);
+        if (m.object.type === 'Identifier') {
+            const lower = (m.object as Identifier).name.toLowerCase();
+            if (knownModuleNames !== undefined) {
+                // 2nd pass: knownModuleNames is available — only skip actual module names.
+                // Bare identifiers that are not a known module / declared var / built-in are
+                // undeclared variables and should be flagged.
+                if (!knownModuleNames.has(lower) && !declared.has(lower) && !VBA_BUILTINS.has(lower)) {
+                    reportUndeclared((m.object as Identifier).name, m.object, diagnostics);
+                    onViolation(lower);
+                }
+            }
+            // 1st pass (knownModuleNames === undefined): skip all bare identifier objects.
+            // Cannot distinguish module references from undeclared variables without
+            // knowing all loaded module names.
+        } else {
+            checkExpr(m.object, declared, diagnostics, onViolation, knownModuleNames);
         }
     }
     // Bare Identifier callee = procedure name, skip variable check
     // Check all arguments
     for (const arg of expr.args) {
-        checkExpr(arg, declared, diagnostics, onViolation);
+        checkExpr(arg, declared, diagnostics, onViolation, knownModuleNames);
     }
 }
 

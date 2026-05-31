@@ -204,4 +204,59 @@ End Sub
     console.log('[PASS] Option Explicit: diagnostics populated for static analysis');
 }
 
+// --- 11. Multi-module: undeclared object in call expression is flagged in 2nd pass ---
+// evalVBAModules を使うことで reEvaluateModuleConstsAll が全モジュール名を持ち、
+// bare identifier が本当に未宣言かどうかを精密に判定できる。
+{
+    const { evalVBAModules } = await import('../../test-libs/test-runner');
+    const ev = evalVBAModules([
+        {
+            name: 'ModA',
+            code: `
+Option Explicit
+Sub Test()
+    undeclaredObj.Method()
+End Sub
+`,
+        },
+    ]);
+    let threw = false;
+    try {
+        ev.callProcedure('Test', []);
+    } catch (e: any) {
+        threw = true;
+        assert.strictEqual(e.message.includes('not declared') || e.message.includes('undeclaredObj'), true,
+            'Error mentions undeclaredObj: ' + e.message);
+    }
+    assert.strictEqual(threw, true, 'undeclaredObj.Method() flagged when module names are known');
+    console.log('[PASS] Option Explicit: undeclaredObj.Method() detected in multi-module 2nd pass');
+}
+
+// --- 12. Multi-module: known module name in call is NOT flagged ---
+{
+    const { evalVBAModules } = await import('../../test-libs/test-runner');
+    const ev = evalVBAModules([
+        {
+            name: 'Helper',
+            code: `
+Public Function Add(a As Long, b As Long) As Long
+    Add = a + b
+End Function
+`,
+        },
+        {
+            name: 'Main',
+            code: `
+Option Explicit
+Function RunTest() As Long
+    RunTest = Helper.Add(3, 4)
+End Function
+`,
+        },
+    ]);
+    const result = ev.callProcedure('RunTest', []);
+    assert.strictEqual(result, 7, 'Known module name Helper.Add() is not flagged');
+    console.log('[PASS] Option Explicit: known module name in call is not flagged');
+}
+
 console.log('\n✅ Option Explicit: 全テスト通過');

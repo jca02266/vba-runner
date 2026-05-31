@@ -3134,6 +3134,25 @@ export class Evaluator {
         } finally {
             this.env.noImplicitInit = false;
         }
+
+        // 2nd pass: 全モジュール名が確定した状態で Option Explicit チェックを再実行する。
+        // 1st pass（evaluate()）では他モジュール名が未知のためコール式の bare identifier
+        // オブジェクトをスキップしていた。ここでは全モジュール名を knownModuleNames として
+        // 渡すことで、本当に未宣言の変数（モジュール名ではない bare identifier）を検出できる。
+        const knownModuleNames = new Set<string>(
+            modules.map(m => m.moduleName.toLowerCase()).filter(n => n !== '')
+        );
+        for (const { ast } of modules) {
+            const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
+            for (const [name, undeclared] of violatedProcedures) {
+                const existing = this.optionExplicitViolations.get(name);
+                if (existing) {
+                    for (const n of undeclared) existing.add(n);
+                } else {
+                    this.optionExplicitViolations.set(name, new Set(undeclared));
+                }
+            }
+        }
     }
 
     private collectConstExprDeps(expr: Expression): Set<string> {
