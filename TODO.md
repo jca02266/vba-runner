@@ -919,6 +919,30 @@ VBA Runner を使って以下の順で進めてください：
 
 ## 保留中・将来課題
 
+### `.cls` モジュール評価の冗長問題（`parseAsClass` と `setSourceModule`）
+
+**問題**: `.cls` ファイルをクラスモジュールとして評価する際、現状では
+`parseAsClass: moduleName`（パーサーへ）と `setSourceModule(moduleName)`（エバリュエーターへ）に
+同じ文字列を2回書く必要がある。
+
+**実際には `setSourceModule` は `.cls` 評価時に不要**（`evaluateClassDeclaration` は
+`stmt.name` を使い `currentSourceModule` を参照しない。`proc.moduleName` もパーサーが設定済み）。
+
+**対処方針**: `evaluateClassDeclaration` の冒頭で `this.currentSourceModule = stmt.name` を
+セットするよう変更すれば、`.cls` 評価時に `setSourceModule` が不要になり冗長さが解消する。
+`ClassDeclaration.name` は `string` のまま変更不要で LSP ツールへの影響もない。
+
+```ts
+private evaluateClassDeclaration(stmt: ClassDeclaration) {
+    this.currentSourceModule = stmt.name;  // 追加
+    this.executingModuleName = stmt.name;  // 追加
+    this.registerClass(stmt.name, stmt);
+}
+```
+
+**現状**: `extension.ts` のマルチモジュール化対応では `.cls` に `setSourceModule` を呼ばない
+実装にしている（動作上は問題なし）。`evaluator.ts` の変更は別途対応。
+
 ### 拡張機能の自己完結化（MCP 廃案）
 
 > **当面はエンジン本体の改修を優先するため実施しない。**

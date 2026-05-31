@@ -398,28 +398,44 @@ End Class`;
                     return;
                 }
 
-                // 同ディレクトリの .bas/.cls を収集して結合
+                // 同ディレクトリの .bas/.cls をマルチモジュール評価（行番号をファイル単位で独立させる）
                 const dir = path.dirname(doc.uri.fsPath);
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
-                const parts: string[] = [ASSERT_HELPER_SRC];
+
+                const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
+                const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];
+
+                // AssertHelper をクラスモジュールとして評価
+                const assertAst = new Parser(
+                    new Lexer(ASSERT_HELPER_SRC).tokenize(),
+                    { parseAsClass: 'AssertHelper' }
+                ).parse();
+                ev.evaluate(assertAst);
+                asts.push({ ast: assertAst, moduleName: 'AssertHelper' });
+
                 for (const entry of entries) {
                     // ディレクトリに AssertHelper.cls があっても重複注入しない
                     if (/^AssertHelper\.cls$/i.test(entry)) continue;
-                    const filePath = path.join(dir, entry);
-                    const content = fs.readFileSync(filePath, 'utf8');
+                    const moduleName = path.basename(entry, path.extname(entry));
+                    const content = fs.readFileSync(path.join(dir, entry), 'utf8');
+                    const tokens = new Lexer(content).tokenize();
+                    let ast;
                     if (/\.cls$/i.test(entry)) {
-                        const className = path.basename(entry, path.extname(entry));
-                        parts.push(`Class ${className}\n${content}\nEnd Class`);
+                        ast = new Parser(tokens, { parseAsClass: moduleName }).parse();
+                        ev.evaluate(ast);
                     } else {
-                        parts.push(content);
+                        ev.setSourceModule(moduleName);
+                        ast = new Parser(tokens).parse();
+                        ev.evaluate(ast);
                     }
+                    asts.push({ ast, moduleName });
                 }
 
                 let callTarget = procName;
                 if (isTestProc) {
                     // ラッパー Sub を生成: assert インスタンスを作って渡し、結果を表示
                     const wrapperName = `__VBARunner_${procName}__`;
-                    parts.push([
+                    const wrapperSrc = [
                         `Sub ${wrapperName}()`,
                         `    Dim assert As New AssertHelper`,
                         `    ${procName} assert`,
@@ -429,15 +445,15 @@ End Class`;
                         `        Debug.Print "[PASS] ${procName}"`,
                         `    End If`,
                         `End Sub`,
-                    ].join('\n'));
+                    ].join('\n');
+                    ev.setSourceModule('__VBARunner_wrapper__');
+                    const wrapperAst = new Parser(new Lexer(wrapperSrc).tokenize()).parse();
+                    ev.evaluate(wrapperAst);
+                    asts.push({ ast: wrapperAst, moduleName: '__VBARunner_wrapper__' });
                     callTarget = wrapperName;
                 }
 
-                const combined = parts.join('\n\n');
-                const tokens = new Lexer(combined).tokenize();
-                const ast = new Parser(tokens).parse();
-                const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
-                ev.evaluate(ast);
+                ev.reEvaluateModuleConstsAll(asts);
                 const result = ev.callProcedure(callTarget, []);
                 if (result !== undefined) {
                     outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
