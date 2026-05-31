@@ -2834,8 +2834,11 @@ export class Evaluator {
                     ) {
                         // クラスオブジェクト型（New なし）: VBA 仕様により Nothing
                         initialValue = vbaNothing;
+                    } else if (t !== 'variant' && t !== 'date') {
+                        // 外部COMオブジェクト型（Worksheet, Workbook 等）: VBA 仕様により Nothing
+                        initialValue = vbaNothing;
                     }
-                    // Variant や未知の型は vbaEmpty のまま
+                    // Variant / Date は vbaEmpty のまま
                 }
             }
             // Inside a procedure, declare locally to avoid corrupting outer scopes in recursive calls.
