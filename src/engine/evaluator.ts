@@ -583,7 +583,7 @@ export class Evaluator {
     private dirIndex: number = 0;
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
-    private optionExplicitViolations: Map<string, Set<string>> = new Map();
+    private optionExplicitViolations: Map<string, Map<string, number>> = new Map();
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
@@ -1714,10 +1714,14 @@ export class Evaluator {
         // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
         // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
         if (this.optionExplicitViolations.has(procName)) {
-            const undeclared = this.optionExplicitViolations.get(procName)!;
-            const stillMissing = [...undeclared].filter(n => !this.env.hasVariable(n));
+            const violations = this.optionExplicitViolations.get(procName)!;
+            const stillMissing = [...violations.entries()].filter(([n]) => !this.env.hasVariable(n));
             if (stillMissing.length > 0) {
-                this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION, `Variable not declared in '${proc.name.name}' (Option Explicit): ${stillMissing.join(', ')}`);
+                const names = stillMissing.map(([n]) => n).join(', ');
+                const firstLine = stillMissing[0][1] || undefined;
+                this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                    `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+                    firstLine, proc.moduleName ?? undefined);
             }
         }
 
@@ -1876,9 +1880,9 @@ export class Evaluator {
         for (const [name, undeclared] of violatedProcedures) {
             const existing = this.optionExplicitViolations.get(name);
             if (existing) {
-                for (const n of undeclared) existing.add(n);
+                for (const [n, line] of undeclared) if (!existing.has(n)) existing.set(n, line);
             } else {
-                this.optionExplicitViolations.set(name, new Set(undeclared));
+                this.optionExplicitViolations.set(name, new Map(undeclared));
             }
         }
 
@@ -2257,14 +2261,15 @@ export class Evaluator {
 
     private vbaRound(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
-    private throwVbaError(number: number, message: string): never {
-        const line = this.currentLine || undefined;
+    private throwVbaError(number: number, message: string, overrideLine?: number, overrideModule?: string): never {
+        const line = overrideLine ?? (this.currentLine || undefined);
+        const mod = overrideModule ?? (this.executingModuleName || this.currentSourceModule || null);
         const msg = line !== undefined ? `Run-time error '${number}': ${message} (line ${line})` : `Run-time error '${number}': ${message}`;
         const err: any = new Error(msg);
         err.type = 'VbaError';
         err.number = number;
         err.vbaLine = line;
-        err.vbaModule = this.executingModuleName || this.currentSourceModule || null;
+        err.vbaModule = mod;
         err.vbaStack = [...this.vbaCallStack].reverse();
         throw err;
     }
@@ -3196,9 +3201,9 @@ export class Evaluator {
             for (const [name, undeclared] of violatedProcedures) {
                 const existing = this.optionExplicitViolations.get(name);
                 if (existing) {
-                    for (const n of undeclared) existing.add(n);
+                    for (const [n, line] of undeclared) if (!existing.has(n)) existing.set(n, line);
                 } else {
-                    this.optionExplicitViolations.set(name, new Set(undeclared));
+                    this.optionExplicitViolations.set(name, new Map(undeclared));
                 }
             }
         }
@@ -4719,10 +4724,13 @@ export class Evaluator {
                 // Option Explicit check (mirrors callProcedure)
                 const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
                 if (oeViolations) {
-                    const stillMissing = [...oeViolations].filter(n => !this.env.hasVariable(n));
+                    const stillMissing = [...oeViolations.entries()].filter(([n]) => !this.env.hasVariable(n));
                     if (stillMissing.length > 0) {
+                        const names = stillMissing.map(([n]) => n).join(', ');
+                        const firstLine = stillMissing[0][1] || undefined;
                         this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                            `Variable not declared in '${proc.name.name}' (Option Explicit): ${stillMissing.join(', ')}`);
+                            `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+                            firstLine, proc.moduleName ?? undefined);
                     }
                 }
 

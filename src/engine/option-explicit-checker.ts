@@ -31,8 +31,8 @@ import {
 } from './parser';
 
 export interface OptionExplicitResult {
-    /** Map of procedure names (lower-cased) to sets of undeclared identifier names (lower-cased) */
-    violatedProcedures: Map<string, Set<string>>;
+    /** Map of procedure names (lower-cased) to maps of undeclared name (lower-cased) → first line in AST */
+    violatedProcedures: Map<string, Map<string, number>>;
 }
 
 // VBA built-in names that are always available without a Dim declaration.
@@ -185,7 +185,7 @@ function checkProcedure(
     moduleLevelNames: Set<string>,
     diagnostics: ParseDiagnostic[],
     knownModuleNames?: ReadonlySet<string>
-): Set<string> | null {
+): Map<string, number> | null {
     // Build the declared-name set for this procedure:
     // module-level names + parameters + function name (for return value)
     const declared = new Set<string>(moduleLevelNames);
@@ -196,8 +196,10 @@ function checkProcedure(
         declared.add(param.name.toLowerCase());
     }
 
-    const undeclaredNames = new Set<string>();
-    const onViol = (name: string) => { undeclaredNames.add(name); };
+    const undeclaredNames = new Map<string, number>();
+    const onViol = (name: string, line: number) => {
+        if (!undeclaredNames.has(name)) undeclaredNames.set(name, line);
+    };
 
     // Helpers that close over the mutable `declared` set and other context
     const chkExpr = (e: Expression) => checkExpr(e, declared, diagnostics, onViol, knownModuleNames);
@@ -346,7 +348,11 @@ function checkProcedure(
     return undeclaredNames.size > 0 ? undeclaredNames : null;
 }
 
-type OnViolation = (name: string) => void;
+type OnViolation = (name: string, line: number) => void;
+
+function exprLine(expr: Expression): number {
+    return (expr as any).loc?.start?.line ?? 0;
+}
 
 /** Check an expression that is known to be an Identifier (for loop var, etc.) */
 function checkExprIdents(expr: Expression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation): void {
@@ -355,7 +361,7 @@ function checkExprIdents(expr: Expression, declared: Set<string>, diagnostics: P
         const lower = id.name.toLowerCase();
         if (!declared.has(lower) && !VBA_BUILTINS.has(lower)) {
             reportUndeclared(id.name, expr, diagnostics);
-            onViolation(lower);
+            onViolation(lower, exprLine(expr));
         }
     }
 }
@@ -368,7 +374,7 @@ function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDi
             const lower = id.name.toLowerCase();
             if (!declared.has(lower) && !VBA_BUILTINS.has(lower)) {
                 reportUndeclared(id.name, expr, diagnostics);
-                onViolation(lower);
+                onViolation(lower, exprLine(expr));
             }
             break;
         }
@@ -428,7 +434,7 @@ function checkCallExpr(expr: CallExpression, declared: Set<string>, diagnostics:
                 // undeclared variables and should be flagged.
                 if (!knownModuleNames.has(lower) && !declared.has(lower) && !VBA_BUILTINS.has(lower)) {
                     reportUndeclared((m.object as Identifier).name, m.object, diagnostics);
-                    onViolation(lower);
+                    onViolation(lower, exprLine(m.object));
                 }
             }
             // 1st pass (knownModuleNames === undefined): skip all bare identifier objects.
