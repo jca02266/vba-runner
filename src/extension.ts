@@ -499,8 +499,9 @@ End Class`;
 
                         // スタックトレースを relatedInformation（Problems パネル上の
                         // クリック可能なサブ項目）として添付する。各フレームの該当行へジャンプできる。
+                        // frames[0]（最内フレーム）はメイン diagnostic と同じ行を指すため除外する。
                         const related: vscode.DiagnosticRelatedInformation[] = [];
-                        for (let i = 0; i < frames.length; i++) {
+                        for (let i = 1; i < frames.length; i++) {
                             const fp = moduleFileMap.get(frames[i].moduleName.toLowerCase());
                             if (!fp) continue;
                             const fl = Math.max(0, frameLine(i) - 1);
