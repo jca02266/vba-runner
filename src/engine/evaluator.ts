@@ -4953,9 +4953,14 @@ export class Evaluator {
         } else if (expr.callee.type === 'MemberExpression' || expr.callee.type === 'ImplicitWithObjectExpression') {
             let obj: any;
             let methodNameOriginal: string;
+            let callObjectName = '';
 
             if (expr.callee.type === 'MemberExpression') {
                 const member = expr.callee as MemberExpression;
+
+                if (member.object.type === 'Identifier') {
+                    callObjectName = (member.object as Identifier).name;
+                }
 
                 // Check if this is a module-qualified procedure call (e.g., Module.Procedure)
                 // member.object is Identifier -> it might be a module name
@@ -4989,7 +4994,8 @@ export class Evaluator {
 
             // Nothing / unset object check
             if (obj === null || obj === undefined || obj === vbaNothing) {
-                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+                const suffix = callObjectName ? `: '${callObjectName}' is not set` : '';
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, `Object variable or With block variable not set${suffix}`);
             }
 
             // VBA class instance method call
@@ -5163,7 +5169,10 @@ export class Evaluator {
 
         // Safety check: ensure obj is an object before trying member access
         if (obj === null || obj === undefined || obj === vbaNothing) {
-            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+            const objName = expr.object.type === 'Identifier'
+                ? `: '${(expr.object as Identifier).name}' is not set`
+                : '';
+            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, `Object variable or With block variable not set${objName}`);
         } else if (typeof obj !== 'object' && typeof obj !== 'function') {
             this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }
