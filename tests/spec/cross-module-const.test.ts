@@ -21,37 +21,25 @@ function makeModules(sources: Record<string, string>) {
     return ev;
 }
 
-// --- 1. クロスモジュール定数参照はエラー ---
+// --- 1. 非循環: ロード順に依存しない（Public Const はクロスモジュール参照可）---
 {
-    let threw = false;
-    let msg = '';
-    try {
-        makeModules({
-            Module2: `Option Explicit\nPrivate Const myDir = xlUp`,
-            Module1: `Public Const xlUp As Long = -4162`,
-        });
-    } catch (e: any) {
-        threw = true;
-        msg = e.message;
-    }
-    assert.ok(threw, 'クロスモジュール定数参照はエラーになる');
-    assert.ok(msg.includes('Constant expression required'),
-        `エラーメッセージに "Constant expression required" を含む: ${msg}`);
+    const ev = makeModules({
+        Module2: `Option Explicit\nPublic Const myDir = xlUp`,
+        Module1: `Public Const xlUp As Long = -4162`,
+    });
+    assert.strictEqual(ev.get('myDir'), -4162,
+        '逆ロード順でもクロスモジュール Public Const が正しく解決される');
 }
 
-// --- 2. クロスモジュールチェーン参照もエラー ---
+// --- 2. チェーン参照 ---
 {
-    let threw = false;
-    try {
-        makeModules({
-            ModA: `Public Const BaseVal As Long = 10`,
-            ModB: `Public Const Increment As Long = BaseVal + 5`,
-            ModC: `Public Const Limit As Long = Increment * 2`,
-        });
-    } catch {
-        threw = true;
-    }
-    assert.ok(threw, 'クロスモジュールチェーン参照はエラーになる');
+    const ev = makeModules({
+        ModA: `Public Const BaseVal As Long = 10`,
+        ModB: `Public Const Increment As Long = BaseVal + 5`,
+        ModC: `Public Const Limit As Long = Increment * 2`,
+    });
+    assert.strictEqual(ev.get('limit'), 30,
+        'チェーン参照: BaseVal=10, Increment=15, Limit=30');
 }
 
 // --- 3. クロスモジュール循環参照はエラー（クロスモジュールとして先に検出される）---
