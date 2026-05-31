@@ -706,7 +706,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ **Fix: モジュールレベル定数のクロスモジュール参照がロード順依存になっていた** | `cross-module-const.test.ts`
   - 原因: `evaluate()` 実行時に定数の右辺を即評価するため、参照先モジュールがまだロードされていない場合に `env.get()` の暗黙初期化（0）が採用されていた
-  - 修正: `VBARunner` に二段階ロードを導入。Pass 1 で全モジュールをロード後、Pass 2 で `reEvaluateModuleConstsAll()` を呼んで全モジュールレベル定数を再評価。依存グラフをトポロジカルソートして正しい順序で確定させる
+  - 修正: `VBARunner` に二段階ロードを導入。Pass 1（`evaluateModule()`）で全モジュールをロード後、Pass 2（`resolveIdentifiers()`）で全モジュールレベル定数を再評価。依存グラフをトポロジカルソートして正しい順序で確定させる
   - 仕様: VBA では全モジュールがコンパイル時に一括解決されるため、ロード順によらずクロスモジュール定数参照が動作する（MS-VBAL §5.6.10 tier 4）
 
 - ✅ **Fix: モジュールレベル定数の循環参照を検出してエラーにする** | `cross-module-const.test.ts`
@@ -728,7 +728,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Option Explicit` 検証の実装**: `Option Explicit` 宣言がある場合、未宣言変数を静的解析 + 実行時エラーで検出
   - 実装: `src/engine/option-explicit-checker.ts`; AST を2パスで解析し `program.diagnostics` に追記、違反SubはLSP破線＋呼び出し時にVBAエラー1で停止
   - テスト: `option-explicit.test.ts`
-  - ✅ **マルチモジュール 2nd pass チェック強化**: `reEvaluateModuleConstsAll()` 呼び出し時に全モジュール名を `checkOptionExplicit` へ渡し、コール式の bare identifier オブジェクト（`undeclaredObj.Method()` 形式）を精密に検出。既知モジュール名のみスキップ、それ以外は未宣言エラー | `option-explicit.test.ts`（Test 11-12）
+  - ✅ **マルチモジュール 2nd pass チェック強化**: `resolveIdentifiers()` 呼び出し時に全モジュール名を `checkOptionExplicit` へ渡し、コール式の bare identifier オブジェクト（`undeclaredObj.Method()` 形式）を精密に検出。既知モジュール名のみスキップ、それ以外は未宣言エラー | `option-explicit.test.ts`（Test 11-12）
 
 - ✅ **`Identifier` AST ノードへの `loc` 付与 + スコープ対応シンボルテーブル**: 宣言位置の Identifier に `loc` を付与し、LSP のシンボル参照をスコープ対応に刷新
   - `parser.ts`: `makeIdentifier(token)` ヘルパー追加；Dim・Sub 名・For 変数・Const など全宣言位置に正確な `loc`

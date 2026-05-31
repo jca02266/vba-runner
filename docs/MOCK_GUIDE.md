@@ -146,7 +146,7 @@ const vbaCode = `
 const tokens = new Lexer(vbaCode).tokenize();
 const ast = new Parser(tokens).parse();
 const ev = new Evaluator(() => {});
-ev.evaluate(ast);
+ev.evaluateModule(ast);
 
 // モック設定
 const mockApp = new MockApplication();
@@ -334,7 +334,7 @@ const vbaCode = `
 const tokens = new Lexer(vbaCode).tokenize();
 const ast = new Parser(tokens).parse();
 const ev = new Evaluator(() => {});
-ev.evaluate(ast);
+ev.evaluateModule(ast);
 
 const mockApp = new MockApplication();
 const ws = mockApp.Sheets('Data');

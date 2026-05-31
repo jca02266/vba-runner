@@ -919,13 +919,13 @@ VBA Runner を使って以下の順で進めてください：
 
 ## 保留中・将来課題
 
-### Option Explicit チェックを `reEvaluateModuleConstsAll()` に一本化
+### Option Explicit チェックを `resolveIdentifiers()` に一本化
 
-現在 `evaluate()` と `reEvaluateModuleConstsAll()` の両方で `checkOptionExplicit` を呼んでいるが、2nd pass は 1st pass の厳密な上位集合なので 1st pass は冗長。
+現在 `evaluateModule()` と `resolveIdentifiers()` の両方で `checkOptionExplicit` を呼んでいるが、2nd pass は 1st pass の厳密な上位集合なので 1st pass は冗長。
 
 **対処方針:**
-- `evaluate()` 側の `checkOptionExplicit` 呼び出しを削除する
-- `reEvaluateModuleConstsAll()` を呼ばない直接呼び出し（テスト内ローカルの `evalVBA()` など）を `evalVBASingle` に統一する
+- `evaluateModule()` 側の `checkOptionExplicit` 呼び出しを削除する
+- `resolveIdentifiers()` を呼ばない直接呼び出し（テスト内ローカルの `evalVBA()` など）を `evalVBASingle` に統一する
 
 ---
 

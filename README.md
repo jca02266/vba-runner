@@ -585,7 +585,7 @@ const mockApp = new MockApplication();
 mockApp.Sheets('Data').setCellValue('A1:A3', [[10], [20], [30]]);
 
 const ev = new Evaluator(() => {});
-ev.evaluate(new Parser(new Lexer(vbaCode).tokenize()).parse());
+ev.evaluateModule(new Parser(new Lexer(vbaCode).tokenize()).parse());
 
 // Sheets 関数をモックに置き換えてエンジンに注入
 ev.getGlobalEnv().set('Sheets', (name: string) => {
