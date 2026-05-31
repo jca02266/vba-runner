@@ -470,6 +470,13 @@ End Class`;
                 outputChannel.show();
             } catch (e: any) {
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
+                // Stack trace
+                if (Array.isArray(e.vbaStack) && e.vbaStack.length > 0) {
+                    for (const frame of e.vbaStack as Array<{ name: string; moduleName: string }>) {
+                        const mod = frame.moduleName ? `${frame.moduleName}.` : '';
+                        outputChannel.appendLine(`    at ${mod}${frame.name}`);
+                    }
+                }
                 if (e.vbaLine && e.vbaModule) {
                     const filePath = moduleFileMap.get((e.vbaModule as string).toLowerCase());
                     if (filePath) {

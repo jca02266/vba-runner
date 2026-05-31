@@ -586,6 +586,7 @@ export class Evaluator {
     private optionExplicitViolations: Map<string, Set<string>> = new Map();
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
+    private vbaCallStack: Array<{ name: string; moduleName: string }> = [];
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -1706,6 +1707,9 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
+        this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '' });
+        try {
+
         // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
         // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
         if (this.optionExplicitViolations.has(procName)) {
@@ -1843,6 +1847,10 @@ export class Evaluator {
             return localEnv.get(procName);
         }
         return vbaEmpty;
+
+        } finally {
+            this.vbaCallStack.pop();
+        }
     }
 
     public setSourceModule(moduleName: string) {
@@ -2256,6 +2264,7 @@ export class Evaluator {
         err.number = number;
         err.vbaLine = line;
         err.vbaModule = this.executingModuleName || this.currentSourceModule || null;
+        err.vbaStack = [...this.vbaCallStack].reverse();
         throw err;
     }
 
@@ -4703,6 +4712,9 @@ export class Evaluator {
                     );
                 }
 
+                this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '' });
+                try {
+
                 // Option Explicit check (mirrors callProcedure)
                 const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
                 if (oeViolations) {
@@ -4911,6 +4923,10 @@ export class Evaluator {
                     return localEnv.get(proc.name.name);
                 }
                 return undefined;
+
+                } finally {
+                    this.vbaCallStack.pop();
+                }
             } else {
                 // Might be an array access, built-in function, or variable reference
                 // Check explicit declaration BEFORE env.get() which implicitly initializes to 0
