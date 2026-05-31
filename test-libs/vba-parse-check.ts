@@ -4,9 +4,9 @@
 // 単一ファイルまたはディレクトリを引数に取り、lexer/parser の診断を出力する。
 //
 // Usage:
-//   ./node_modules/.bin/esbuild test-libs/vba-parse-check.ts --bundle --outfile=test-libs/vba-parse-check.cjs --platform=node
-//   node test-libs/vba-parse-check.cjs <path>         # テキスト形式
-//   node test-libs/vba-parse-check.cjs <path> --json  # JSON 形式
+//   npx tsx test-libs/vba-parse-check.ts
+//   npx tsx test-libs/vba-parse-check.ts <path>         # テキスト形式
+//   npx tsx test-libs/vba-parse-check.ts <path> --json  # JSON 形式
 
 import { Lexer, LexError } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';

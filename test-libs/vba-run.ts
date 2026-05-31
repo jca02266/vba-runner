@@ -4,12 +4,12 @@
 // 指定したプロシージャを実行して結果を stdout に出力する。
 //
 // Usage:
-//   ./node_modules/.bin/esbuild test-libs/vba-run.ts --bundle --outfile=test-libs/vba-run.cjs --platform=node
-//   node test-libs/vba-run.cjs <file.bas> <ProcedureName> [args...]
+//   npx tsx test-libs/vba-run.ts
+//   npx tsx test-libs/vba-run.ts <file.bas> <ProcedureName> [args...]
 //
 // Examples:
-//   node test-libs/vba-run.cjs sample/src/vba/closure/ClosureTest.bas RunSubtotalTest
-//   node test-libs/vba-run.cjs sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig
+//   npx tsx test-libs/vba-run.ts sample/src/vba/closure/ClosureTest.bas RunSubtotalTest
+//   npx tsx test-libs/vba-run.ts sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,15 +32,15 @@ function parseArg(s: string): any {
 
 function usage(): never {
     process.stderr.write([
-        'Usage: node vba-run.cjs <file> <ProcedureName> [args...]',
+        'Usage: npx tsx test-libs/vba-run.ts <file> <ProcedureName> [args...]',
         '',
         '  file            VBA ソースファイル（同じディレクトリ内の全 .bas/.cls/.frm をロード）',
         '  ProcedureName   呼び出す Sub/Function 名',
         '  args            引数（数値・True/False/Nothing は自動変換、それ以外は文字列）',
         '',
         'Examples:',
-        '  node vba-run.cjs sample/src/vba/closure/ClosureTest.bas RunSubtotalTest',
-        '  node vba-run.cjs sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig',
+        '  npx tsx test-libs/vba-run.ts sample/src/vba/closure/ClosureTest.bas RunSubtotalTest',
+        '  npx tsx test-libs/vba-run.ts sample/src/refactoring/TaskScheduler_Core.bas InitCalendarConfig',
     ].join('\n') + '\n');
     process.exit(1);
 }

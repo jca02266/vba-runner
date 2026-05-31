@@ -158,16 +158,14 @@ End Sub
 以下のコマンドでテストを実行し、全件パスすることを確認する:
 
 ```bash
-./node_modules/.bin/esbuild tests/spec/<テストファイル名>.ts --bundle --outfile=tests/spec/<テストファイル名>.cjs --platform=node && node tests/spec/<テストファイル名>.cjs
+npx tsx tests/spec/<テストファイル名>.ts
 ```
 
 既存テストのリグレッションも確認する:
 
 ```bash
-./node_modules/.bin/esbuild sample/tests/ts/TaskScheduler_Core.test.ts --bundle --outfile=sample/tests/ts/TaskScheduler_Core.test.cjs --platform=node && node sample/tests/ts/TaskScheduler_Core.test.cjs
+npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 ```
-
-> **注意**: `esbuild` は PATH に入っていないため `npx` ではなく `./node_modules/.bin/esbuild` で実行すること。
 
 ### Step 7: 仕様書との照合
 

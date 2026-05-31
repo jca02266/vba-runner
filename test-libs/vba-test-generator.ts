@@ -215,10 +215,8 @@ export class VBATestGenerator {
     }
 }
 
-// CLI 実行（Node.js で直接実行された場合のみ）
-// esbuild でバンドルされた場合は実行されないようにする
-const isMainModule = typeof require !== 'undefined' && require.main === module && process.argv.length > 2 && !process.argv[1].includes('esbuild');
-if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-generator'))) {
+// CLI 実行（tsx または dist/bin 経由で直接実行された場合のみ）
+if (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-generator')) {
     const args = process.argv.slice(2);
 
     if (args.length === 0) {
@@ -234,19 +232,19 @@ if (isMainModule || (typeof process !== 'undefined' && process.argv[1]?.includes
         console.error('');
         console.error('Examples:');
         console.error('  # Generate with module qualifiers (for real VBA environments)');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas');
+        console.error('  npx tsx test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas');
         console.error('');
         console.error('  # Generate without module qualifiers (for VBA interpreter)');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas --no-module-qualifier');
+        console.error('  npx tsx test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas --no-module-qualifier');
         console.error('');
         console.error('  # Generate and save to file');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas output.bas');
+        console.error('  npx tsx test-libs/vba-test-generator.ts tests/spec/vba/Test_CurrencyOperations.bas output.bas');
         console.error('');
         console.error('  # Generate runners for all VBA files in a directory');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba');
+        console.error('  npx tsx test-libs/vba-test-generator.ts --dir tests/spec/vba');
         console.error('');
         console.error('  # Generate runners in a separate output directory');
-        console.error('  npx ts-node test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners');
+        console.error('  npx tsx test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners');
         process.exit(1);
     }
 

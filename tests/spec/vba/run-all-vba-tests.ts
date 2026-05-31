@@ -10,7 +10,7 @@ import { VBARunner } from '../../../test-libs/test-runner';
 import { Lexer } from '../../../src/engine/lexer';
 import { Parser } from '../../../src/engine/parser';
 
-const vbaDir = path.join(__dirname);
+const vbaDir = path.join(import.meta.dirname);
 const VBA_EXTS = new Set(['.cls', '.bas']);
 
 console.log('=== VBA Test Runner ===\n');

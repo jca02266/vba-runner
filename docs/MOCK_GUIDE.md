@@ -168,9 +168,7 @@ console.log(result);  // 100
 ### 実行方法
 
 ```bash
-./node_modules/.bin/esbuild your-test.ts \
-  --bundle --outfile=your-test.cjs --platform=node \
-  && node your-test.cjs
+npx tsx your-test.ts
 ```
 
 ---
@@ -375,15 +373,10 @@ console.log('[PASS] Multiple Sheets');
 
 ## 4. テスト実行方法
 
-### esbuild でコンパイル・実行
+### tsx で直接実行
 
 ```bash
-# テストファイルをコンパイル
-./node_modules/.bin/esbuild tests/spec/your-test.ts \
-  --bundle --outfile=tests/spec/your-test.cjs --platform=node
-
-# 実行
-node tests/spec/your-test.cjs
+npx tsx tests/spec/your-test.ts
 ```
 
 ### 出力例

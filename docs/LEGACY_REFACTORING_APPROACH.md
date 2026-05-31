@@ -29,10 +29,10 @@ VBA Runner があることで、Excel を開かずにこの安全網を素早く
 
 ```bash
 # ベースラインを保存（リファクタリング効果の比較用）
-node test-libs/vba-analyzer.cjs <対象ディレクトリ> --json > .vba-baseline.json
+npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --json > .vba-baseline.json
 
 # 全体の構造を把握
-node test-libs/vba-analyzer.cjs <対象ディレクトリ> --outline
+npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --outline
 ```
 
 **見るべき指標:**
@@ -285,7 +285,7 @@ vba-analyzer の `duplicateBlocks` で検出した重複を統合します。
 
 ```bash
 # ベースラインとの差分を確認
-node test-libs/vba-analyzer.cjs <対象ディレクトリ> --diff .vba-baseline.json
+npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --diff .vba-baseline.json
 ```
 
 改善の目安:
