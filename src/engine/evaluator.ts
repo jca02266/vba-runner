@@ -2259,7 +2259,7 @@ export class Evaluator {
         err.type = 'VbaError';
         err.number = number;
         err.vbaLine = line;
-        err.vbaModule = this.currentSourceModule || null;
+        err.vbaModule = this.executingModuleName || this.currentSourceModule || null;
         throw err;
     }
 
