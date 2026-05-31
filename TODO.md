@@ -707,7 +707,7 @@ npx tsx test-libs/vba-analyzer.ts <file-or-dir> --json    # JSON 形式（プロ
 
   **用途:**
   - 日本語 Windows（`LANG=ja`）では日本語、英語環境では英語が自動で出る
-  - 英語出力にしたい場合は `VBA_ANALYZER_LANG=en node vba-analyzer.cjs ...` で上書き可能
+  - 英語出力にしたい場合は `VBA_ANALYZER_LANG=en npx tsx test-libs/vba-analyzer.ts ...` で上書き可能
   - 英語出力はトークン効率が若干よくなるケースがある（全角文字・絵文字の削減）
 
 - [x] **データフロー解析（Def-Use チェーン）**
