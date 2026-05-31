@@ -1871,21 +1871,14 @@ export class Evaluator {
 
     /**
      * Pass 1: 1モジュール分の AST を登録する。
-     * 手続き・変数を env に登録し、Option Explicit の保守的チェックを行う。
+     * 手続き・変数を env に登録する。
      * モジュールレベル ConstDeclaration はスキップし、Pass 2（resolveIdentifiers）で評価する。
+     *
+     * Option Explicit チェックは Pass 2（resolveIdentifiers）に一本化している。
+     * Pass 2 は全モジュール名を知った精密モードで実行され、Pass 1 の保守的チェックの
+     * 厳密な上位集合なので、ここでは行わない。
      */
     public evaluateModule(program: Program) {
-        // Run Option Explicit static analysis; results stored for callProcedure checks
-        const { violatedProcedures } = checkOptionExplicit(program);
-        for (const [name, undeclared] of violatedProcedures) {
-            const existing = this.optionExplicitViolations.get(name);
-            if (existing) {
-                for (const [n, line] of undeclared) if (!existing.has(n)) existing.set(n, line);
-            } else {
-                this.optionExplicitViolations.set(name, new Map(undeclared));
-            }
-        }
-
         for (const stmt of program.body) {
             // モジュールレベルの ConstDeclaration は Pass 2（reEvaluateModuleConstsAll）で評価する。
             // ここで評価すると参照先が未定義の場合に env.get() の暗黙初期化が起き、
@@ -3189,16 +3182,14 @@ export class Evaluator {
             this.currentSourceModule = prev;
         }
 
-        // 2nd pass: 全モジュール名が確定した状態で Option Explicit チェックを再実行する。
-        // 1st pass（evaluate()）では他モジュール名が未知のためコール式の bare identifier
-        // オブジェクトをスキップしていた。ここでは全モジュール名を knownModuleNames として
-        // 渡すことで、本当に未宣言の変数（モジュール名ではない bare identifier）を検出できる。
+        // Option Explicit チェックはここ（Pass 2）に一本化している。
+        // 全モジュール名を knownModuleNames として渡す精密モードで実行することで、
+        // コール式の bare identifier オブジェクト（obj.Method() の obj）が本物のモジュール名か
+        // 未宣言変数かを判定できる。
         const knownModuleNames = new Set<string>(
             modules.map(m => m.moduleName.toLowerCase()).filter(n => n !== '')
         );
-        // Pass 2 は全モジュールを精密モードで完全に再スキャンするため、その結果を
-        // 権威とする。Pass 1（保守的モード）の結果は不正確な行番号を含みうるので、
-        // ここでクリアして Pass 2 の結果だけで再構築する。
+        // resolveIdentifiers が複数回呼ばれても冪等になるよう、毎回クリアして再構築する。
         this.optionExplicitViolations.clear();
         for (const { ast } of modules) {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);

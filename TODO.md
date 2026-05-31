@@ -919,16 +919,6 @@ VBA Runner を使って以下の順で進めてください：
 
 ## 保留中・将来課題
 
-### Option Explicit チェックを `resolveIdentifiers()` に一本化
-
-現在 `evaluateModule()` と `resolveIdentifiers()` の両方で `checkOptionExplicit` を呼んでいるが、2nd pass は 1st pass の厳密な上位集合なので 1st pass は冗長。
-
-**対処方針:**
-- `evaluateModule()` 側の `checkOptionExplicit` 呼び出しを削除する
-- `resolveIdentifiers()` を呼ばない直接呼び出し（テスト内ローカルの `evalVBA()` など）を `evalVBASingle` に統一する
-
----
-
 ### `.cls` モジュール評価の冗長問題（`parseAsClass` と `setSourceModule`）
 
 **問題**: `.cls` ファイルをクラスモジュールとして評価する際、現状では

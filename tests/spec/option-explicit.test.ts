@@ -1,14 +1,12 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { assert, evalVBASingle } from '../../test-libs/test-runner';
 
+// Option Explicit チェックは Pass 2（resolveIdentifiers）に一本化されているため、
+// 単一モジュールのテストは Pass 1+2 を両方実行する evalVBASingle を使う。
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {
@@ -197,7 +195,9 @@ End Sub
 `).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
+    // Option Explicit の静的解析は Pass 2（resolveIdentifiers）で実行される。
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     const errors = ast.diagnostics.filter(d => d.message.includes('not declared'));
     assert.strictEqual(errors.length > 0, true, 'Diagnostics contain undeclared variable error');
     assert.strictEqual(errors[0].severity, 'error', 'Diagnostic severity is error');
