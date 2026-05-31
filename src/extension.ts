@@ -28,6 +28,10 @@ export async function activate(context: vscode.ExtensionContext) {
     const diagnosticCollection = vscode.languages.createDiagnosticCollection('vba');
     context.subscriptions.push(diagnosticCollection);
 
+    // Create diagnostic collection for VBA runtime errors (shown in Problems panel)
+    const runtimeDiagnostics = vscode.languages.createDiagnosticCollection('vba-runner');
+    context.subscriptions.push(runtimeDiagnostics);
+
     function shouldShowLintDiag(code: string | undefined): boolean {
         const config = vscode.workspace.getConfiguration('vba-runner');
         const enabledCodes = config.get<string[]>('lint.enabledCodes', []);
@@ -458,6 +462,7 @@ End Class`;
                 }
 
                 ev.reEvaluateModuleConstsAll(asts);
+                runtimeDiagnostics.clear();
                 const result = ev.callProcedure(callTarget, []);
                 if (result !== undefined) {
                     outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
@@ -468,7 +473,15 @@ End Class`;
                 if (e.vbaLine && e.vbaModule) {
                     const filePath = moduleFileMap.get((e.vbaModule as string).toLowerCase());
                     if (filePath) {
-                        outputChannel.appendLine(`  ${filePath}:${e.vbaLine}:1`);
+                        const line = (e.vbaLine as number) - 1;
+                        const uri = vscode.Uri.file(filePath);
+                        runtimeDiagnostics.set(uri, [
+                            new vscode.Diagnostic(
+                                new vscode.Range(line, 0, line, 999),
+                                `${procName}: ${e.message}`,
+                                vscode.DiagnosticSeverity.Error
+                            )
+                        ]);
                     }
                 }
                 outputChannel.show();
