@@ -260,6 +260,14 @@ export const assert = {
             throw new Error(`Assertion Failed`);
         }
     },
+    notStrictEqual: (actual: any, expected: any, message?: string) => {
+        const a = (actual && (actual instanceof VbaBoolean || (actual as any).__isVbaBoolean__)) ? actual.valueOf() : actual;
+        const e = (expected && (expected instanceof VbaBoolean || (expected as any).__isVbaBoolean__)) ? expected.valueOf() : expected;
+        if (a === e) {
+            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected values to differ but both were ${String(actual)}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
     ok: (value: any, message?: string) => {
         if (!value) {
             console.error(`[FAIL] ${message || 'Assertion failed'} - Expected truthy value but got ${String(value)}`);

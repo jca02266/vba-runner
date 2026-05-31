@@ -135,17 +135,12 @@ main().catch(e => { console.error(e); process.exit(1); });
 | メソッド | 説明 |
 |---|---|
 | `assert.strictEqual(actual, expected, msg?)` | 厳密等価（`===`）で比較 |
+| `assert.notStrictEqual(actual, expected, msg?)` | 厳密不等価（`!==`）で比較 |
 | `assert.deepStrictEqual(actual, expected, msg?)` | オブジェクトの深い等価比較 |
 | `assert.ok(value, msg?)` | truthy であることを確認 |
 | `assert.isTrue(actual, msg?)` | VBA の `True`（`vbaTrue`）と等しいか確認 |
 | `assert.isFalse(actual, msg?)` | VBA の `False`（`vbaFalse`）と等しいか確認 |
 | `assert.fail(msg?)` | 無条件に失敗させる |
-
-`assert.notStrictEqual` は存在しない。代わりに `assert.ok` を使う:
-
-```js
-assert.ok(actual !== expected, '等しくないこと');
-```
 
 ### パスの解決
 
