@@ -4995,28 +4995,21 @@ export class Evaluator {
 
                     // If evaluating the object gives undefined/null, it might be a module name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
-                        const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
-                            ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
-                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-
-                        if (qualifiedProc) {
-                            // ユーザー定義のモジュール修飾プロシージャが確実に存在する。
-                            // 呼び出し先のランタイムエラーは握りつぶさずそのまま伝播させる。
-                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
+                        // VBA 標準ライブラリ名前空間: VBA.InStr(...) は非修飾の InStr(...) と同義。
+                        // 修飾子を剥がして同じ呼び出し経路（組み込み関数・ユーザー定義の解決）に
+                        // 載せ直す。evaluateMemberExpression の VBA.vbString 等の扱いと対になる。
+                        if (possibleModuleName.toLowerCase() === 'vba') {
+                            return this.evaluateCallExpression({ ...expr, callee: member.property });
                         }
 
-                        // ユーザー定義 proc は無いが、型ライブラリ修飾の組み込み関数
-                        // （VBA.InStr / VBA.Mid$ など）かもしれない。callProcedure は組み込み関数
-                        // フォールバックを持つので試す。「Sub or Function not defined」のときだけ
-                        // 通常の member access へフォールスルーし、呼び出し先が投げた実行時エラー
-                        // （Type mismatch など）は握りつぶさず伝播させる。
-                        try {
+                        // ユーザー定義のモジュール修飾プロシージャ（Module1.Proc など）。
+                        // 存在を事前確認してから呼ぶ（try/catch で呼び出し先のランタイムエラーを
+                        // 握りつぶさないため）。見つからなければ下の member access へフォールスルー。
+                        const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
+                            ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
+                        if (qualifiedProc) {
+                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                             return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
-                        } catch (e: any) {
-                            if (!(e && e.type === 'VbaError' && e.number === VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED)) {
-                                throw e;
-                            }
-                            // 見つからない → 下の通常の member access 処理へフォールスルー
                         }
                     }
                 }
