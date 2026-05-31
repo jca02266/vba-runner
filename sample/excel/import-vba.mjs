@@ -124,7 +124,9 @@ if (updated === 0) {
 // ── CFB を再シリアライズして xlsm を保存 ────────────────────────────────────
 const newVbaBin = CFB.write(cfb, { type: 'buffer' });
 
-zip.file('xl/vbaProject.bin', newVbaBin);
+// createFolders:false で xl/ などの親ディレクトリエントリの自動生成を抑制し、
+// 元の xlsm のエントリ構成を保つ。
+zip.file('xl/vbaProject.bin', newVbaBin, { createFolders: false });
 const newXlsm = await zip.generateAsync({
     type: 'nodebuffer',
     compression: 'DEFLATE',

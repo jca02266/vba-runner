@@ -27,7 +27,9 @@ export function decompress(src) {
             // Raw chunk: always exactly 4096 bytes
             for (let j = 0; j < 4096 && i < src.length; j++) out.push(src[i++]);
         } else {
-            const dataLen = (hdr & 0x0FFF) + 3;
+            // CompressedChunkSize (bits 0-11) = total chunk byte count (2-byte
+            // header + data) minus 3. Therefore data length = size + 3 - 2 = size + 1.
+            const dataLen = (hdr & 0x0FFF) + 1;
             const chunkEnd = i + dataLen;
             const chunkBase = out.length;
 
@@ -89,9 +91,10 @@ export function compress(src) {
             chunk.copy(raw);
             parts.push(hdr, raw);
         } else {
-            // Compressed chunk
+            // Compressed chunk.
+            // size field = total chunk size (2-byte header + data) - 3 = data length - 1
             const hdr = Buffer.alloc(2);
-            hdr.writeUInt16LE(((compressed.length - 3) & 0x0FFF) | 0x8000, 0);
+            hdr.writeUInt16LE(((compressed.length - 1) & 0x0FFF) | 0x8000, 0);
             parts.push(hdr, compressed);
         }
     }
