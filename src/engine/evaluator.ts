@@ -2842,7 +2842,7 @@ export class Evaluator {
                 this.autoInstanceVars.set(varName.toLowerCase(), decl.objectType);
             } else if (decl.objectType) {
                 const t = decl.objectType.toLowerCase();
-                if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean'].includes(t)) {
+                if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean', 'longlong', 'longptr'].includes(t)) {
                     if (this.env.getType(decl.objectType)) {
                         // UDT 型: 各メンバを既定値で初期化したインスタンスを生成
                         initialValue = this.instantiateType(decl.objectType);
