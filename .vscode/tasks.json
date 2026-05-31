@@ -39,9 +39,9 @@
       "problemMatcher": []
     },
     {
-      "label": "setup: vba-sample",
+      "label": "setup: sample-workspace",
       "type": "shell",
-      "command": "npm run build:lib && npm run build:bin && npm pack && npm install --prefix ./vba-sample $(ls -t vba-runner-*.tgz | head -1) && npm run build:extension",
+      "command": "npm run build:lib && npm run build:bin && npm pack && npm install --prefix ./sample/workspace $(ls -t vba-runner-*.tgz | head -1) && npm run build:extension",
       "options": {
         "cwd": "${workspaceFolder}"
       },

@@ -27,7 +27,7 @@ npm pack             # vba-runner-x.x.x.tgz を生成
 ### 2. テストワークスペースにインストール
 
 ```bash
-cd vba-sample
+cd sample/workspace
 npm install
 ```
 
@@ -100,7 +100,7 @@ main().catch(e => { console.error(e); process.exit(1); });
 
 ### パスの解決
 
-`new VBARunner('./DataProcessor.bas')` のパスは **Node.js プロセスの実行ディレクトリ（cwd）** 基準で解決される。`vba-sample/` から実行するなら `./DataProcessor.bas` でよい。
+`new VBARunner('./DataProcessor.bas')` のパスは **Node.js プロセスの実行ディレクトリ（cwd）** 基準で解決される。`sample/workspace/` から実行するなら `./DataProcessor.bas` でよい。
 
 ---
 
