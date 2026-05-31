@@ -2250,7 +2250,7 @@ export class Evaluator {
 
     private throwVbaError(number: number, message: string): never {
         const line = this.currentLine || undefined;
-        const msg = line !== undefined ? `${message} (Error ${number}, line ${line})` : `${message} (Error ${number})`;
+        const msg = line !== undefined ? `Run-time error '${number}': ${message} (line ${line})` : `Run-time error '${number}': ${message}`;
         const err: any = new Error(msg);
         err.type = 'VbaError';
         err.number = number;
