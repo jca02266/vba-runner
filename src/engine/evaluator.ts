@@ -4703,6 +4703,16 @@ export class Evaluator {
                     );
                 }
 
+                // Option Explicit check (mirrors callProcedure)
+                const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
+                if (oeViolations) {
+                    const stillMissing = [...oeViolations].filter(n => !this.env.hasVariable(n));
+                    if (stillMissing.length > 0) {
+                        this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                            `Variable not declared in '${proc.name.name}' (Option Explicit): ${stillMissing.join(', ')}`);
+                    }
+                }
+
                 // Procedure call (Function/Sub)
                 const localEnv = new Environment(this.env);
 
