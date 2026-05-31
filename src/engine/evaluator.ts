@@ -378,7 +378,7 @@ export class Environment {
         return vbaEmpty;
     }
 
-    /** 定数式の識別子解決専用。未定義名は "Constant expression required" エラー。 */
+    /** スコープチェーンを検索し、見つからなければ undefined を返す（暗黙初期化なし）。 */
     getConst(name: string): any {
         const key = name.toLowerCase();
         if (this.variables.has(key)) return this.variables.get(key);
@@ -387,7 +387,18 @@ export class Environment {
             if (env.variables.has(key)) return env.variables.get(key);
             env = env.enclosing;
         }
-        throw new Error(`Constant expression required: '${name}' is not defined`);
+        return undefined;
+    }
+
+    /** resolveIdentifiers() 開始前のスナップショット取得用。全スコープのキー集合を返す。 */
+    getAllKeys(): Set<string> {
+        const keys = new Set<string>();
+        let env: Environment | undefined = this;
+        while (env) {
+            for (const k of env.variables.keys()) keys.add(k);
+            env = env.enclosing;
+        }
+        return keys;
     }
 
     hasVariable(name: string): boolean {
@@ -573,8 +584,12 @@ export class Evaluator {
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
     private optionExplicitViolations: Map<string, Set<string>> = new Map();
-    /** 定数式評価中は true。Identifier 解決で getConst() を使い、未定義名をエラーにする。 */
+    /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
+    /** resolveIdentifiers() 開始時点の env キー集合（外部注入済み + 組み込み）。null = 非定数評価中。 */
+    private constEvalSnapshotKeys: Set<string> | null = null;
+    /** 定数名（小文字）→ その定数を登録したモジュール名（小文字）。 */
+    private constRegisteredByModule: Map<string, string> = new Map();
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -3099,60 +3114,68 @@ export class Evaluator {
      * evalVBASingle / evalVBAModules から必ず1回だけ呼ぶこと。
      */
     public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
-        // 全モジュールレベル定数を「module:name」修飾キーで収集する。
-        // 同名定数が複数モジュールにあっても衝突しないようにするため
-        // （例: ModA.MAX と ModB.MAX は別エントリとして保持）。
-        const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string; name: string }>();
-        const collect = (stmt: ConstDeclaration, moduleName: string) => {
-            const name = stmt.name.name.toLowerCase();
-            allConsts.set(`${moduleName.toLowerCase()}:${name}`, { stmt, moduleName, name });
-        };
-        for (const { ast, moduleName } of modules) {
-            for (const stmt of ast.body) {
-                if (stmt.type === 'ConstDeclaration') {
-                    collect(stmt as ConstDeclaration, moduleName);
-                } else if (stmt.type === 'ClassDeclaration') {
-                    for (const member of (stmt as ClassDeclaration).body) {
-                        if (member.type === 'ConstDeclaration') {
-                            collect(member as ConstDeclaration, moduleName);
+        // 評価開始前のスナップショット（外部注入済み + 組み込み値のみ含む）
+        this.constEvalSnapshotKeys = this.env.getAllKeys();
+
+        try {
+            // モジュール単位で定数を評価する。
+            // クロスモジュール参照はスナップショットにない = VBA 仕様どおりエラー。
+            for (const { ast, moduleName } of modules) {
+                // このモジュールの定数を収集
+                const moduleConsts = new Map<string, ConstDeclaration>();
+                const collectConst = (stmt: ConstDeclaration) => {
+                    moduleConsts.set(stmt.name.name.toLowerCase(), stmt);
+                };
+                for (const stmt of ast.body) {
+                    if (stmt.type === 'ConstDeclaration') {
+                        collectConst(stmt as ConstDeclaration);
+                    } else if (stmt.type === 'ClassDeclaration') {
+                        for (const member of (stmt as ClassDeclaration).body) {
+                            if (member.type === 'ConstDeclaration') {
+                                collectConst(member as ConstDeclaration);
+                            }
                         }
                     }
                 }
-            }
-        }
+                if (moduleConsts.size === 0) continue;
 
-        // 定数間の依存グラフを構築（他の定数への参照のみ）。
-        // 式中の参照は非修飾名なので、まず同一モジュール内の定数を優先し、
-        // なければ他モジュールの同名定数を解決する。
-        const resolveDep = (depName: string, fromModule: string): string | undefined => {
-            const sameModule = `${fromModule.toLowerCase()}:${depName}`;
-            if (allConsts.has(sameModule)) return sameModule;
-            for (const key of allConsts.keys()) {
-                if (key.endsWith(`:${depName}`)) return key;
-            }
-            return undefined;
-        };
-        const deps = new Map<string, Set<string>>();
-        for (const [qkey, { stmt, moduleName }] of allConsts) {
-            const exprDeps = this.collectConstExprDeps(stmt.value);
-            const resolved = new Set<string>();
-            for (const d of exprDeps) {
-                const r = resolveDep(d, moduleName);
-                if (r) resolved.add(r);
-            }
-            deps.set(qkey, resolved);
-        }
+                // 依存グラフ構築（同一モジュール内のみ）
+                // スナップショット外 + 別モジュール = クロスモジュール参照 → エラー
+                const deps = new Map<string, Set<string>>();
+                for (const [name, stmt] of moduleConsts) {
+                    const exprDeps = this.collectConstExprDeps(stmt.value);
+                    const sameModuleDeps = new Set<string>();
+                    for (const dep of exprDeps) {
+                        if (moduleConsts.has(dep)) {
+                            sameModuleDeps.add(dep);
+                        } else if (!this.constEvalSnapshotKeys!.has(dep)) {
+                            throw new Error(
+                                `Constant expression required: '${stmt.name.name}' references '${dep}' which is not pre-defined`
+                            );
+                        }
+                    }
+                    deps.set(name, sameModuleDeps);
+                }
 
-        // トポロジカルソート（循環参照を検出）
-        const order = this.topologicalSortConsts(allConsts, deps);
+                // モジュール内トポロジカルソート（循環参照を検出）
+                const order = this.topologicalSortConsts(moduleConsts, deps);
 
-        // 正しい順序で再評価（evaluateConstValue が getConst() を使うため未定義名はエラーになる）
-        for (const qkey of order) {
-            const { stmt, moduleName } = allConsts.get(qkey)!;
-            const prev = this.currentSourceModule;
-            this.currentSourceModule = moduleName;
-            this.evaluateConstDeclaration(stmt);
-            this.currentSourceModule = prev;
+                // 評価
+                const prev = this.currentSourceModule;
+                this.currentSourceModule = moduleName;
+                for (const name of order) {
+                    const stmt = moduleConsts.get(name)!;
+                    this.evaluateConstDeclaration(stmt);
+                    this.constRegisteredByModule.set(name, (moduleName || '').toLowerCase());
+                    // モジュール修飾キーも追跡
+                    if (moduleName) {
+                        this.constRegisteredByModule.set(`${moduleName.toLowerCase()}:${name}`, (moduleName || '').toLowerCase());
+                    }
+                }
+                this.currentSourceModule = prev;
+            }
+        } finally {
+            this.constEvalSnapshotKeys = null;
         }
 
         // 2nd pass: 全モジュール名が確定した状態で Option Explicit チェックを再実行する。
@@ -3260,7 +3283,30 @@ export class Evaluator {
         this.currentSourceModule = prev;
     }
 
-    /** 定数式を評価する。識別子は getConst() で解決し、未定義名はエラー。 */
+    /**
+     * 定数式中の識別子を解決する。
+     * スナップショット（外部注入済み + 組み込み）または同一モジュールの評価済み定数のみ参照可。
+     * 他モジュールの VBA 定数を参照すると "Constant expression required" エラー。
+     */
+    private resolveConstIdent(name: string): any {
+        const key = name.toLowerCase();
+        const val = this.env.getConst(key);
+        if (val === undefined) {
+            throw new Error(`Constant expression required: '${name}' is not defined`);
+        }
+        if (this.constEvalSnapshotKeys !== null) {
+            const inSnapshot = this.constEvalSnapshotKeys.has(key);
+            const registeredBy = this.constRegisteredByModule.get(key);
+            const sameModule = registeredBy !== undefined &&
+                registeredBy === (this.currentSourceModule ?? '').toLowerCase();
+            if (!inSnapshot && !sameModule) {
+                throw new Error(`Constant expression required: '${name}' is defined in another module`);
+            }
+        }
+        return val;
+    }
+
+    /** 定数式を評価する。識別子は resolveConstIdent() で解決し、未定義名はエラー。 */
     private evaluateConstValue(expr: Expression): any {
         this.inConstEval = true;
         try {
@@ -4317,7 +4363,7 @@ export class Evaluator {
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
                 const idName = (expr as Identifier).name;
-                const v = this.inConstEval ? this.env.getConst(idName) : this.env.get(idName);
+                const v = this.inConstEval ? this.resolveConstIdent(idName) : this.env.get(idName);
                 if (typeof v === 'function' && (v as any).__vbaAutoCall__) {
                     return v();
                 }

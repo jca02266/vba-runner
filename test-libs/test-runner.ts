@@ -13,6 +13,7 @@ export class VBARunner {
     public evaluator: Evaluator;
     private _asts: Program[] = [];
     private _moduleNames: string[] = [];
+    private _resolved = false;
 
     constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants } = {}) {
         this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
@@ -51,14 +52,20 @@ export class VBARunner {
             }
         }
 
-        // Pass 2: 全モジュールの名前が揃った状態でモジュールレベル定数を再評価する。
-        // 依存グラフのトポロジカルソートで評価順を決定し、循環参照はエラーとして検出する。
+        // Pass 2（resolveIdentifiers）は set() による定数注入を可能にするため
+        // 初回 run()/eval() 呼び出し時まで遅延する。
+    }
+
+    private _ensureResolved(): void {
+        if (this._resolved) return;
+        this._resolved = true;
         this.evaluator.resolveIdentifiers(
             this._asts.map((ast, i) => ({ ast, moduleName: this._moduleNames[i] }))
         );
     }
 
     run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {
+        this._ensureResolved();
         const start = Date.now();
         const result = this.evaluator.callProcedure(procedureName, args, type);
         const duration = Date.now() - start;
@@ -69,6 +76,7 @@ export class VBARunner {
     }
 
     eval(exprString: string): any {
+        this._ensureResolved();
         return this.evaluator.evalExpression(exprString);
     }
 
