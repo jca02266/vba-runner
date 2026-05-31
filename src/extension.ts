@@ -470,29 +470,49 @@ End Class`;
                 outputChannel.show();
             } catch (e: any) {
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
-                // Stack trace
-                if (Array.isArray(e.vbaStack) && e.vbaStack.length > 0) {
-                    const frames = e.vbaStack as Array<{ name: string; moduleName: string; line: number }>;
-                    for (let i = 0; i < frames.length; i++) {
-                        const mod = frames[i].moduleName ? `${frames[i].moduleName}.` : '';
-                        // frames[i-1].line = "frames[i] was at this line when it called frames[i-1]"
-                        const callerLine = i > 0 ? frames[i - 1].line : 0;
-                        const lineStr = callerLine ? ` (line ${callerLine})` : '';
-                        outputChannel.appendLine(`    at ${mod}${frames[i].name}${lineStr}`);
-                    }
+
+                // スタックトレースを Output にも出力する。
+                // frames[i].line = frame[i] が呼び出し元（frames[i+1]）の何行目から呼ばれたか。
+                // よって frame[i] 内で実行されていた行は:
+                //   - 最深フレーム frame[0]: エラー発生行 e.vbaLine
+                //   - それ以外 frame[i]: frames[i-1].line（次の深いフレームを呼び出した行）
+                const frames: Array<{ name: string; moduleName: string; line: number }> =
+                    Array.isArray(e.vbaStack) ? e.vbaStack : [];
+                const frameLine = (i: number): number =>
+                    i === 0 ? (e.vbaLine || 0) : frames[i - 1].line;
+                for (let i = 0; i < frames.length; i++) {
+                    const mod = frames[i].moduleName ? `${frames[i].moduleName}.` : '';
+                    const ln = frameLine(i);
+                    outputChannel.appendLine(`    at ${mod}${frames[i].name}${ln ? ` (line ${ln})` : ''}`);
                 }
+
                 if (e.vbaLine && e.vbaModule) {
                     const filePath = moduleFileMap.get((e.vbaModule as string).toLowerCase());
                     if (filePath) {
                         const line = (e.vbaLine as number) - 1;
                         const uri = vscode.Uri.file(filePath);
-                        runtimeDiagnostics.set(uri, [
-                            new vscode.Diagnostic(
-                                new vscode.Range(line, 0, line, 999),
-                                `${procName}: ${e.message}`,
-                                vscode.DiagnosticSeverity.Error
-                            )
-                        ]);
+                        const diag = new vscode.Diagnostic(
+                            new vscode.Range(line, 0, line, 999),
+                            `${procName}: ${e.message}`,
+                            vscode.DiagnosticSeverity.Error
+                        );
+
+                        // スタックトレースを relatedInformation（Problems パネル上の
+                        // クリック可能なサブ項目）として添付する。各フレームの該当行へジャンプできる。
+                        const related: vscode.DiagnosticRelatedInformation[] = [];
+                        for (let i = 0; i < frames.length; i++) {
+                            const fp = moduleFileMap.get(frames[i].moduleName.toLowerCase());
+                            if (!fp) continue;
+                            const fl = Math.max(0, frameLine(i) - 1);
+                            const mod = frames[i].moduleName ? `${frames[i].moduleName}.` : '';
+                            related.push(new vscode.DiagnosticRelatedInformation(
+                                new vscode.Location(vscode.Uri.file(fp), new vscode.Range(fl, 0, fl, 999)),
+                                `at ${mod}${frames[i].name}`
+                            ));
+                        }
+                        if (related.length > 0) diag.relatedInformation = related;
+
+                        runtimeDiagnostics.set(uri, [diag]);
                         // Problems にフォーカス（outputChannel.show() は呼ばない）
                         vscode.commands.executeCommand('workbench.panel.markers.view.focus');
                         return;

@@ -5004,12 +5004,15 @@ export class Evaluator {
 
                     // If evaluating the object gives undefined/null, it might be a module name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
-                        // Try as module-qualified procedure call
-                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                        try {
+                        // モジュール修飾呼び出しとして解決できるか事前確認する。
+                        // ここで try/catch して握りつぶすと、呼び出し先プロシージャが投げた
+                        // 正当なランタイムエラー（ゼロ除算など）まで飲み込んでしまい、
+                        // member access へフォールスルーして誤った Error 91 になる。
+                        const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
+                            ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
+                        if (qualifiedProc) {
+                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                             return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
-                        } catch (e) {
-                            // If that fails, fall through to normal object method handling
                         }
                     }
                 }

@@ -523,6 +523,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     3. 複数モジュール → 曖昧性エラー（修飾必須）
   - 曖昧性検出: 複数モジュールに同名プロシージャがある場合、実行時に詳細エラーを発生
   - テスト: `module-qualified-calls.test.ts`, `ambiguous-procedure-call.test.ts`, `evaluator-scoping.test.ts`
+- ✅ **Fix: モジュール修飾呼び出しが呼び出し先のランタイムエラーを握りつぶす** | `runtime-error-trace.test.ts`
+  - 原因: `evaluateCallExpression` の `Module.Proc` 検出が `try { callProcedure } catch { フォールスルー }` で**あらゆる例外**を飲み込み、member access に落ちていた
+  - 症状: `ModB.DoWork` の本体がゼロ除算（Error 11）を投げても握りつぶされ、未定義オブジェクト `ModB` への member access として Error 91 にすり替わる
+  - 修正: `getProcedureFromModule` で**事前に存在確認**し、見つかった場合のみ `callProcedure` を呼ぶ（try/catch を廃止）。呼び出し先のエラーは正しく伝播する
 - ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
   - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
   - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）
