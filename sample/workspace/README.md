@@ -130,6 +130,23 @@ main().catch(e => { console.error(e); process.exit(1); });
 | `runner.setConstants(obj)` | 複数の定数を一括注入する |
 | `runner.evaluator` | 内部 `Evaluator` インスタンスへの直接アクセス |
 
+### assert の利用可能メソッド
+
+| メソッド | 説明 |
+|---|---|
+| `assert.strictEqual(actual, expected, msg?)` | 厳密等価（`===`）で比較 |
+| `assert.deepStrictEqual(actual, expected, msg?)` | オブジェクトの深い等価比較 |
+| `assert.ok(value, msg?)` | truthy であることを確認 |
+| `assert.isTrue(actual, msg?)` | VBA の `True`（`vbaTrue`）と等しいか確認 |
+| `assert.isFalse(actual, msg?)` | VBA の `False`（`vbaFalse`）と等しいか確認 |
+| `assert.fail(msg?)` | 無条件に失敗させる |
+
+`assert.notStrictEqual` は存在しない。代わりに `assert.ok` を使う:
+
+```js
+assert.ok(actual !== expected, '等しくないこと');
+```
+
 ### パスの解決
 
 `new VBARunner('./DataProcessor.bas')` のパスは **Node.js プロセスの実行ディレクトリ（cwd）** 基準で解決される。`sample/workspace/` から実行するなら `./DataProcessor.bas` でよい。
@@ -161,12 +178,15 @@ ws.rows = function(r) {
 ws.rows.count = 1048576;  // ws.Rows.Count
 ```
 
-同様に `ws.cells.clear()` も:
+同様に `ws.Cells.Clear`（引数なし・シート全体をクリア）も、`cells` 関数にプロパティとして追加する:
 
 ```js
-ws.cells = function(r, c) { return { ... }; };
-ws.cells.clear = function() { ... };
+ws.cells = function(r, c) { return { value: ..., ... }; };
+ws.cells.clear = function() { /* cellData をすべてクリア */ };
 ```
+
+> **注意**: `ws.Cells.Clear` は `cells(r, c)` の返り値の `.clear` ではなく、
+> `cells` 関数そのものに付けたプロパティとして実装する。
 
 ### 行コピー（`Rows(i).Copy destCell`）の実装
 
@@ -261,6 +281,14 @@ runner.setConstants({
 runner.set('rgb',    (r, g, b) => r + g * 256 + b * 65536);
 runner.set('msgbox', (msg) => console.log('[MsgBox]', msg));
 ```
+
+#### チェック対象は「直接呼び出したプロシージャ」のみ
+
+`runner.run('CreateSampleData', [ws])` のように特定のプロシージャを直接呼び出す場合、
+OE チェックの対象は **そのプロシージャ内で参照している識別子のみ**。
+
+例: `CreateSampleData` は `xlUp` を参照しないため、`runner.set('xlup', -4162)` の注入は不要。
+`LastRow` を直接テストする場合のみ `xlup` の注入が必要になる。
 
 ### Private プロシージャのテスト
 
