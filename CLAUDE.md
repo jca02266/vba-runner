@@ -20,7 +20,32 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 npx tsx tests/spec/eval-call-scope.test.ts
 ```
 
-> **注意**: テストファイルは ESM 前提。`__dirname` の代わりに `import.meta.dirname` を使う。
+**CLI ツールのローカル実行**（esbuild ビルド不要）:
+```bash
+npx tsx test-libs/vba-analyzer.ts <path>
+npx tsx test-libs/vba-formatter.ts <path>
+```
+
+## 開発時実行とパッケージビルドの方針
+
+| 用途 | 方法 | 備考 |
+|------|------|------|
+| 開発・テスト時 | `npx tsx <file>.ts` | esbuild 不要、ソースを直接実行 |
+| npm パッケージ配布 | `npm run build` → `dist/*.cjs` | esbuild で CJS バンドルを生成 |
+
+### `__dirname` の扱い
+
+`package.json` が `"type":"module"` のため Node.js は ESM モードで動く。ソースコードでは ESM ネイティブの **`import.meta.dirname`** を使う。
+
+```ts
+// ✅ 正しい（ESM / tsx 両対応）
+const dir = import.meta.dirname;
+
+// ❌ 使わない（CJS 専用、ESM では ReferenceError）
+const dir = __dirname;
+```
+
+CJS バンドル時（`npm run build`）は esbuild の `--define:import.meta.dirname=__dirname` オプションで自動的に `__dirname` へ置換されるため、配布後の `.cjs` ファイルも正常に動作する。
 
 ## アーキテクチャ
 

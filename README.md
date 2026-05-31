@@ -920,6 +920,29 @@ npm run dev
 ```
 ---
 
+## 開発時実行とパッケージビルドの方針
+
+| 用途 | 方法 |
+|------|------|
+| 開発・テスト時 | `npx tsx <file>.ts` でソースを直接実行（esbuild 不要） |
+| npm パッケージ配布 | `npm run build` で `dist/*.cjs` を生成（esbuild で CJS バンドル） |
+
+### `__dirname` の扱い
+
+`package.json` が `"type":"module"` のため、ソースコードでは ESM ネイティブの `import.meta.dirname` を使用します。`__dirname` は ESM では使えません。
+
+```ts
+// ✅ 正しい（tsx / ESM 両対応）
+const dir = import.meta.dirname;
+
+// ❌ 使わない（CJS 専用、ESM では ReferenceError）
+const dir = __dirname;
+```
+
+`npm run build` 時は esbuild の `--define:import.meta.dirname=__dirname` により、生成される `dist/*.cjs` 内では自動的に `__dirname` へ置換されます。
+
+---
+
 ## CLI(自動テスト)の実行
 
 CLIからTypeScriptのテストランナーを利用し、VBAモジュールのユニットテストや言語仕様テストを実行します。
