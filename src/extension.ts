@@ -472,9 +472,10 @@ End Class`;
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
                 // Stack trace
                 if (Array.isArray(e.vbaStack) && e.vbaStack.length > 0) {
-                    for (const frame of e.vbaStack as Array<{ name: string; moduleName: string }>) {
+                    for (const frame of e.vbaStack as Array<{ name: string; moduleName: string; line: number }>) {
                         const mod = frame.moduleName ? `${frame.moduleName}.` : '';
-                        outputChannel.appendLine(`    at ${mod}${frame.name}`);
+                        const lineStr = frame.line ? ` (line ${frame.line})` : '';
+                        outputChannel.appendLine(`    at ${mod}${frame.name}${lineStr}`);
                     }
                 }
                 if (e.vbaLine && e.vbaModule) {

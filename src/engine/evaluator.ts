@@ -586,7 +586,7 @@ export class Evaluator {
     private optionExplicitViolations: Map<string, Set<string>> = new Map();
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
-    private vbaCallStack: Array<{ name: string; moduleName: string }> = [];
+    private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -1707,7 +1707,8 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'${extractedModuleName ? ` in module '${extractedModuleName}'` : ''}`);
         }
 
-        this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '' });
+        if (this.vbaCallStack.length === 0) this.currentLine = 0;
+        this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '', line: this.currentLine });
         try {
 
         // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
@@ -4712,7 +4713,7 @@ export class Evaluator {
                     );
                 }
 
-                this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '' });
+                this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '', line: this.currentLine });
                 try {
 
                 // Option Explicit check (mirrors callProcedure)
