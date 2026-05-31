@@ -472,10 +472,13 @@ End Class`;
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
                 // Stack trace
                 if (Array.isArray(e.vbaStack) && e.vbaStack.length > 0) {
-                    for (const frame of e.vbaStack as Array<{ name: string; moduleName: string; line: number }>) {
-                        const mod = frame.moduleName ? `${frame.moduleName}.` : '';
-                        const lineStr = frame.line ? ` (line ${frame.line})` : '';
-                        outputChannel.appendLine(`    at ${mod}${frame.name}${lineStr}`);
+                    const frames = e.vbaStack as Array<{ name: string; moduleName: string; line: number }>;
+                    for (let i = 0; i < frames.length; i++) {
+                        const mod = frames[i].moduleName ? `${frames[i].moduleName}.` : '';
+                        // frames[i-1].line = "frames[i] was at this line when it called frames[i-1]"
+                        const callerLine = i > 0 ? frames[i - 1].line : 0;
+                        const lineStr = callerLine ? ` (line ${callerLine})` : '';
+                        outputChannel.appendLine(`    at ${mod}${frames[i].name}${lineStr}`);
                     }
                 }
                 if (e.vbaLine && e.vbaModule) {
