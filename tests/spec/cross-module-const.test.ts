@@ -71,25 +71,31 @@ function makeModules(sources: Record<string, string>) {
     assert.ok(threw, '自己参照も循環として検出される');
 }
 
-// --- 5. Pass 1 後に未定義名が env に登録されていないこと ---
-// このテストがなかったため Pass 1 の暗黙初期化バグを検出できなかった
+// --- 5. 未定義名を参照する Const は "Constant expression required" エラーになる ---
 {
     const ev = new Evaluator(console.log);
-    // xlUp を定義しないまま xlUp を参照する const を含むモジュールをロード
     const ast = new Parser(new Lexer(`Private Const myDir = xlUp`).tokenize()).parse();
     ev.setSourceModule('Module1');
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
 
-    // Pass 1 終了時点では xlup は env に登録されていてはいけない
+    // Pass 1 終了時点では xlup も mydir も env に登録されていない
     assert.ok(!ev['env'].hasVariable('xlup'),
         'Pass 1 後: 未定義名 xlup が env に登録されていない');
     assert.ok(!ev['env'].hasVariable('mydir'),
         'Pass 1 後: 定数 mydir も env に登録されていない');
 
-    // Pass 2 後も xlup はどこにも定義されていないので登録されない
-    ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
-    assert.ok(!ev['env'].hasVariable('xlup'),
-        'Pass 2 後: どこにも定義されていない xlup は env に存在しない');
+    // Pass 2 で xlup が未定義のため "Constant expression required" エラーになる
+    let threw = false;
+    let msg = '';
+    try {
+        ev.resolveIdentifiers([{ ast, moduleName: 'Module1' }]);
+    } catch (e: any) {
+        threw = true;
+        msg = e.message;
+    }
+    assert.ok(threw, 'Pass 2: 未定義名を参照する Const はエラーになる');
+    assert.ok(msg.includes('Constant expression required'),
+        `エラーメッセージに "Constant expression required" を含む: ${msg}`);
 }
 
 // --- 6. 未定義名を手続き内で直接使うと Option Explicit が機能する ---

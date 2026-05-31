@@ -228,8 +228,6 @@ export class Environment {
     private withEventsVariables: Set<string> = new Set();
     private constantVariables: Set<string> = new Set();
     public enclosing?: Environment;
-    /** true の間は get() の暗黙初期化（未登録名を 0 で登録）を行わない */
-    public noImplicitInit = false;
 
     constructor(enclosing?: Environment) {
         this.enclosing = enclosing;
@@ -375,10 +373,21 @@ export class Environment {
             env = env.enclosing;
         }
 
-        // Implicit initialization（noImplicitInit フラグが立っている間はスキップ）
-        if (this.noImplicitInit) return 0;
-        this.variables.set(key, 0);
-        return 0;
+        // VBA without Option Explicit: implicit variable initialized to Empty
+        this.variables.set(key, vbaEmpty);
+        return vbaEmpty;
+    }
+
+    /** 定数式の識別子解決専用。未定義名は "Constant expression required" エラー。 */
+    getConst(name: string): any {
+        const key = name.toLowerCase();
+        if (this.variables.has(key)) return this.variables.get(key);
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            if (env.variables.has(key)) return env.variables.get(key);
+            env = env.enclosing;
+        }
+        throw new Error(`Constant expression required: '${name}' is not defined`);
     }
 
     hasVariable(name: string): boolean {
@@ -564,6 +573,8 @@ export class Evaluator {
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
     private optionExplicitViolations: Map<string, Set<string>> = new Map();
+    /** 定数式評価中は true。Identifier 解決で getConst() を使い、未定義名をエラーにする。 */
+    private inConstEval = false;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -3135,18 +3146,13 @@ export class Evaluator {
         // トポロジカルソート（循環参照を検出）
         const order = this.topologicalSortConsts(allConsts, deps);
 
-        // 正しい順序で再評価（未定義名の暗黙初期化を防ぐため noImplicitInit を立てる）
-        this.env.noImplicitInit = true;
-        try {
-            for (const qkey of order) {
-                const { stmt, moduleName } = allConsts.get(qkey)!;
-                const prev = this.currentSourceModule;
-                this.currentSourceModule = moduleName;
-                this.evaluateConstDeclaration(stmt);
-                this.currentSourceModule = prev;
-            }
-        } finally {
-            this.env.noImplicitInit = false;
+        // 正しい順序で再評価（evaluateConstValue が getConst() を使うため未定義名はエラーになる）
+        for (const qkey of order) {
+            const { stmt, moduleName } = allConsts.get(qkey)!;
+            const prev = this.currentSourceModule;
+            this.currentSourceModule = moduleName;
+            this.evaluateConstDeclaration(stmt);
+            this.currentSourceModule = prev;
         }
 
         // 2nd pass: 全モジュール名が確定した状態で Option Explicit チェックを再実行する。
@@ -3254,8 +3260,18 @@ export class Evaluator {
         this.currentSourceModule = prev;
     }
 
+    /** 定数式を評価する。識別子は getConst() で解決し、未定義名はエラー。 */
+    private evaluateConstValue(expr: Expression): any {
+        this.inConstEval = true;
+        try {
+            return this.evaluateExpression(expr);
+        } finally {
+            this.inConstEval = false;
+        }
+    }
+
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
-        const value = this.evaluateExpression(stmt.value);
+        const value = this.evaluateConstValue(stmt.value);
         const name = stmt.name.name;
         this.env.setConstant(name, value);
         if (!this.currentProcedureName && this.currentSourceModule) {
@@ -4301,7 +4317,7 @@ export class Evaluator {
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
                 const idName = (expr as Identifier).name;
-                const v = this.env.get(idName);
+                const v = this.inConstEval ? this.env.getConst(idName) : this.env.get(idName);
                 if (typeof v === 'function' && (v as any).__vbaAutoCall__) {
                     return v();
                 }
