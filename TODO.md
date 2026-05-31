@@ -919,6 +919,31 @@ VBA Runner を使って以下の順で進めてください：
 
 ## 保留中・将来課題
 
+### Excel ⇔ VBA ソースの抽出・書き戻し機能の評価と拡張機能への組み込み
+
+`sample/excel/` に xlsm から VBA ソースを抽出（エクスポート）・書き戻し（インポート）する
+Node.js スクリプトを実装済み（`extract-vba.mjs` / `import-vba.mjs`、MS-OVBA 圧縮・伸長と
+`dir` ストリーム解析を含む）。これを正式機能として育てる。
+
+**(1) 評価**
+- 多様な xlsm での抽出・書き戻しの堅牢性検証（複数モジュール、クラス、フォーム、
+  異なるコードページ、大きなモジュール、空モジュール等）
+- ラウンドトリップだけでなく、書き戻した xlsm を実際の Excel で開けるか検証
+- PerformanceCache（バイトコード）とソースの不整合時に Excel が再コンパイルするかの確認
+- 既知課題: 型ライブラリ修飾やフォーム（`.frm`）のバイナリ部分の扱い
+
+**(2) パッケージ化**
+- `sample/excel/lib/`（`ovba.mjs` / `dir-parser.mjs`）を再利用可能なライブラリとして整理
+- CLI ツール化（`dist/bin/vba-extract.cjs` / `vba-import.cjs`）。esbuild で CJS バンドル
+- `iconv-lite` / `cfb` / `jszip` の依存をバンドルに含める方針を決める
+
+**(3) 拡張機能への組み込み**
+- VS Code コマンド（例: `vba-runner.extractFromXlsx` / `vba-runner.importToXlsx`）を追加
+- ワークフロー: `.xlsm` を右クリック → ソース抽出 → ワークスペースで編集/テスト →
+  書き戻し、というサイクルを拡張機能内で完結させる
+- エンジン（実行・テスト・リファクタリング）と接続し、
+  「Excel から取り出して AI と編集して戻す」体験を実現する
+
 ### `.cls` モジュール評価の冗長問題（`parseAsClass` と `setSourceModule`）
 
 **問題**: `.cls` ファイルをクラスモジュールとして評価する際、現状では
