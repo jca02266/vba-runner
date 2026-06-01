@@ -1,176 +1,28 @@
 {
-  "name": "vba-runner",
-  "displayName": "VBA Runner",
-  "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
+  "name": "vba-compiler",
   "version": "0.1.0",
+  "private": true,
+  "description": "VBA execution engine (lexer/parser/evaluator) and monorepo for the VBA Runner npm package, VS Code extension, and Web UI playground",
   "type": "module",
-  "publisher": "vba-runner",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/jca02266/vba-runner"
   },
-  "engines": {
-    "vscode": "^1.90.0"
-  },
-  "main": "./dist/extension.cjs",
-  "exports": {
-    ".": "./dist/lib.cjs"
-  },
-  "bin": {
-    "vba-run": "./dist/bin/vba-run.cjs",
-    "vba-analyzer": "./dist/bin/vba-analyzer.cjs",
-    "vba-formatter": "./dist/bin/vba-formatter.cjs",
-    "vba-parse-check": "./dist/bin/vba-parse-check.cjs"
-  },
-  "files": [
-    "dist/lib.cjs",
-    "dist/bin/"
-  ],
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "contributes": {
-    "languages": [
-      {
-        "id": "vba",
-        "aliases": [
-          "VBA",
-          "vba"
-        ],
-        "extensions": [
-          ".bas",
-          ".bas",
-          ".cls",
-          ".frm"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ],
-    "grammars": [
-      {
-        "language": "vba",
-        "scopeName": "source.bas",
-        "path": "./syntaxes/vba.tmLanguage.json"
-      }
-    ],
-    "commands": [
-      {
-        "command": "vba-runner.showCallGraph",
-        "title": "Show Call Graph",
-        "category": "VBA"
-      },
-      {
-        "command": "vba-runner.showInCallGraph",
-        "title": "Show in Call Graph",
-        "category": "VBA"
-      },
-      {
-        "command": "vba-runner.introduceVariable",
-        "title": "Introduce Variable",
-        "category": "Refactor"
-      }
-    ],
-    "menus": {
-      "editor/context": [
-        {
-          "command": "vba-runner.showCallGraph",
-          "when": "resourceLangId == vba",
-          "group": "navigation"
-        }
-      ],
-      "commandPalette": [
-        {
-          "command": "vba-runner.showCallGraph",
-          "when": "resourceLangId == vba"
-        },
-        {
-          "command": "vba-runner.showInCallGraph",
-          "when": "false"
-        }
-      ]
-    },
-    "debuggers": [
-      {
-        "type": "vba",
-        "label": "VBA Debugger",
-        "languages": [
-          "vba"
-        ],
-        "configurationAttributes": {
-          "launch": {
-            "required": [
-              "program"
-            ],
-            "properties": {
-              "program": {
-                "type": "string",
-                "description": "Path to the .bas file to debug",
-                "default": "${file}"
-              }
-            }
-          }
-        },
-        "initialConfigurations": [
-          {
-            "type": "vba",
-            "request": "launch",
-            "name": "Debug VBA",
-            "program": "${file}"
-          }
-        ]
-      }
-    ],
-    "configuration": {
-      "title": "VBA Runner",
-      "properties": {
-        "vba-runner.lint.enabled": {
-          "type": "boolean",
-          "default": false,
-          "description": "VBA lint 警告（VBA001〜 等のコード付き診断）をすべて有効にする。lint.enabledCodes が設定されている場合はそちらが優先される。パーサー構文エラーは常に表示される"
-        },
-        "vba-runner.lint.enabledCodes": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "default": [],
-          "description": "有効にする lint コードを個別指定する（例: [\"VBA009\"]）。空の場合は lint.enabled の値に従う"
-        },
-        "vba-runner.editor.autoLineContinuation": {
-          "type": "boolean",
-          "default": true,
-          "description": "式の途中で Enter を押したとき行継続文字 _ を自動挿入する（editor.formatOnType が有効な場合のみ動作）"
-        }
-      }
-    },
-    "configurationDefaults": {
-      "[vba]": {
-        "editor.stickyScroll.defaultModel": "foldingProviderModel",
-        "editor.formatOnType": true
-      }
-    }
-  },
   "scripts": {
-    "dev": "vite",
-    "build": "tsc -b && vite build && npm run build:extension && npm run build:lib && npm run build:bin",
-    "build:extension": "esbuild src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname",
-    "build:lib": "esbuild test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node --define:import.meta.dirname=__dirname",
-    "build:bin": "esbuild test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && esbuild test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname",
+    "test": "./run_spec_tests.sh",
+    "test:all": "./run_all_tests.sh",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "package": "npm run build:extension && vsce package --no-dependencies",
-    "publish": "vsce publish",
-    "test-gen": "esbuild test-libs/vba-test-generator.ts --bundle --outfile=dist/test-generator.cjs --platform=node && node dist/test-generator.cjs"
-  },
-  "dependencies": {
-    "@tailwindcss/vite": "^4.2.0",
-    "lucide-react": "^0.575.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "typecheck": "tsc -b",
+    "build": "npm run build --prefix build/runner && npm run build --prefix build/extension && npm run build --prefix build/playground",
+    "build:runner": "npm run build --prefix build/runner",
+    "build:extension": "npm run build --prefix build/extension",
+    "build:playground": "npm run build --prefix build/playground",
+    "package:extension": "npm run package --prefix build/extension"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@tailwindcss/vite": "^4.2.0",
     "@types/node": "^25.3.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
@@ -183,8 +35,11 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
+    "lucide-react": "^0.575.0",
     "path-browserify": "^1.0.1",
     "postcss": "^8.5.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "tailwindcss": "^4.2.0",
     "tsx": "^4.22.3",
     "typescript": "~5.6.2",

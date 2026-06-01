@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "dependencies": {
-    "vba-runner": "file:../vba-runner-0.1.0.tgz"
+    "vba-runner": "file:../../build/runner/vba-runner-0.1.0.tgz"
   }
 }

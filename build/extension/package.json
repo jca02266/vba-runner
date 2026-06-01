@@ -1,0 +1,148 @@
+{
+  "name": "vba-runner",
+  "displayName": "VBA Runner",
+  "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
+  "version": "0.1.0",
+  "publisher": "vba-runner",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jca02266/vba-runner"
+  },
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "languages": [
+      {
+        "id": "vba",
+        "aliases": [
+          "VBA",
+          "vba"
+        ],
+        "extensions": [
+          ".bas",
+          ".cls",
+          ".frm"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "vba",
+        "scopeName": "source.bas",
+        "path": "./syntaxes/vba.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "vba-runner.showCallGraph",
+        "title": "Show Call Graph",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.showInCallGraph",
+        "title": "Show in Call Graph",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.introduceVariable",
+        "title": "Introduce Variable",
+        "category": "Refactor"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "vba-runner.showCallGraph",
+          "when": "resourceLangId == vba",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "vba-runner.showCallGraph",
+          "when": "resourceLangId == vba"
+        },
+        {
+          "command": "vba-runner.showInCallGraph",
+          "when": "false"
+        }
+      ]
+    },
+    "debuggers": [
+      {
+        "type": "vba",
+        "label": "VBA Debugger",
+        "languages": [
+          "vba"
+        ],
+        "configurationAttributes": {
+          "launch": {
+            "required": [
+              "program"
+            ],
+            "properties": {
+              "program": {
+                "type": "string",
+                "description": "Path to the .bas file to debug",
+                "default": "${file}"
+              }
+            }
+          }
+        },
+        "initialConfigurations": [
+          {
+            "type": "vba",
+            "request": "launch",
+            "name": "Debug VBA",
+            "program": "${file}"
+          }
+        ]
+      }
+    ],
+    "configuration": {
+      "title": "VBA Runner",
+      "properties": {
+        "vba-runner.lint.enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "VBA lint 警告（VBA001〜 等のコード付き診断）をすべて有効にする。lint.enabledCodes が設定されている場合はそちらが優先される。パーサー構文エラーは常に表示される"
+        },
+        "vba-runner.lint.enabledCodes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "有効にする lint コードを個別指定する（例: [\"VBA009\"]）。空の場合は lint.enabled の値に従う"
+        },
+        "vba-runner.editor.autoLineContinuation": {
+          "type": "boolean",
+          "default": true,
+          "description": "式の途中で Enter を押したとき行継続文字 _ を自動挿入する（editor.formatOnType が有効な場合のみ動作）"
+        }
+      }
+    },
+    "configurationDefaults": {
+      "[vba]": {
+        "editor.stickyScroll.defaultModel": "foldingProviderModel",
+        "editor.formatOnType": true
+      }
+    }
+  },
+  "scripts": {
+    "build": "../../node_modules/.bin/esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname && npm run build:readme",
+    "build:readme": "cp ../../README.md README.md",
+    "package": "npm run build && ../../node_modules/.bin/vsce package --no-dependencies",
+    "publish": "../../node_modules/.bin/vsce publish --no-dependencies"
+  },
+  "devDependencies": {
+    "@vscode/vsce": "^2.6.0"
+  }
+}

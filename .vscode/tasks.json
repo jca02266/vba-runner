@@ -27,12 +27,6 @@
       }
     },
     {
-      "label": "npm: build:extension:web",
-      "type": "npm",
-      "script": "build:extension:web",
-      "problemMatcher": []
-    },
-    {
       "label": "npm: build",
       "type": "npm",
       "script": "build",
@@ -41,7 +35,7 @@
     {
       "label": "setup: sample-workspace",
       "type": "shell",
-      "command": "npm run build:lib && npm run build:bin && npm pack && npm install --prefix ./sample/workspace $(ls -t vba-runner-*.tgz | head -1) && npm run build:extension",
+      "command": "npm run build:runner && (cd build/runner && npm pack) && npm install --prefix ./sample/workspace ./build/runner/vba-runner-0.1.0.tgz && npm run build:extension",
       "options": {
         "cwd": "${workspaceFolder}"
       },

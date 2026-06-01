@@ -1,0 +1,33 @@
+{
+  "name": "vba-runner",
+  "version": "0.1.0",
+  "description": "VBA execution engine with test runner and CLI tools (analyzer, formatter, parse-check)",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jca02266/vba-runner"
+  },
+  "exports": {
+    ".": "./dist/lib.cjs"
+  },
+  "bin": {
+    "vba-run": "./dist/bin/vba-run.cjs",
+    "vba-analyzer": "./dist/bin/vba-analyzer.cjs",
+    "vba-formatter": "./dist/bin/vba-formatter.cjs",
+    "vba-parse-check": "./dist/bin/vba-parse-check.cjs"
+  },
+  "files": [
+    "dist/lib.cjs",
+    "dist/bin/",
+    "README.md"
+  ],
+  "dependencies": {},
+  "scripts": {
+    "build": "npm run build:lib && npm run build:bin && npm run build:readme",
+    "build:lib": "../../node_modules/.bin/esbuild ../../test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node --define:import.meta.dirname=__dirname",
+    "build:bin": "../../node_modules/.bin/esbuild ../../test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && ../../node_modules/.bin/esbuild ../../test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && ../../node_modules/.bin/esbuild ../../test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname && ../../node_modules/.bin/esbuild ../../test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js='#!/usr/bin/env node' --define:import.meta.dirname=__dirname",
+    "build:readme": "cp ../../README.md README.md",
+    "pack": "npm run build && npm pack"
+  }
+}

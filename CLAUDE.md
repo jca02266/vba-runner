@@ -5,19 +5,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **リファクタリング支援として関与する場合は `FOR_AI.md` を先に読むこと。**
 VBA実行エンジンの実装に関与する場合はこのファイルを続けて読む。
 
-## コマンド
+## リポジトリ構成（成果物の分離）
 
-**Web UI 開発サーバー:**
-```bash
-npm run dev        # http://localhost:5173/
-npm run build      # TypeScript チェック + Vite ビルド
-npm run lint       # ESLint
-```
+ルートはエンジン本体（`src/`）と共通設定のみを持ち、**配布成果物ごとに `build/` 配下へ `package.json` を分離**している。`src/` は移動しないため、テスト・LSP・test-libs の import パスは不変。
+
+| ディレクトリ | 成果物 | 主なソース |
+|---|---|---|
+| ルート `package.json` | エンジン本体 + 共通（test/lint/build 統括、全 devDeps） | `src/engine/` |
+| `build/runner/` | npm パッケージ `vba-runner`（ライブラリ + CLI） | `test-libs/test-runner.ts`, `test-libs/vba-*.ts` |
+| `build/extension/` | VS Code 拡張機能 (.vsix) | `src/extension.ts`, `src/lsp/` |
+| `build/playground/` | Web UI デモ | `src/App.tsx`, `index.html` |
+
+各配布物は esbuild `--bundle` で自己完結（Node 組み込みと extension の `vscode` external のみ）。`vba-runner` の `dependencies` は空（react 等の混入なし）。
+
+## コマンド
 
 **テスト実行**（tsx でそのまま実行）:
 ```bash
-npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 npx tsx tests/spec/eval-call-scope.test.ts
+npm test            # tests/spec/ 一括（run_spec_tests.sh）
+npm run typecheck   # tsc -b（プロジェクト参照を辿る。tsc --noEmit はルートが references のみで素通りするので不可）
+npm run lint        # ESLint
 ```
 
 **CLI ツールのローカル実行**（esbuild ビルド不要）:
@@ -26,12 +34,27 @@ npx tsx test-libs/vba-analyzer.ts <path>
 npx tsx test-libs/vba-formatter.ts <path>
 ```
 
+**成果物のビルド**（配布時）:
+```bash
+npm run build              # 3 成果物すべて（runner → extension → playground）
+npm run build:runner       # build/runner/dist/{lib.cjs,bin/*.cjs}
+npm run build:extension    # build/extension/dist/extension.cjs
+npm run build:playground   # build/playground/dist/（Vite）
+npm run package:extension  # build/extension/ で vsce package → .vsix
+```
+
+**Web UI 開発サーバー:**
+```bash
+npm run dev --prefix build/playground   # http://localhost:5173/
+```
+
 ## 開発時実行とパッケージビルドの方針
 
 | 用途 | 方法 | 備考 |
 |------|------|------|
 | 開発・テスト時 | `npx tsx <file>.ts` | esbuild 不要、ソースを直接実行 |
-| npm パッケージ配布 | `npm run build` → `dist/*.cjs` | esbuild で CJS バンドルを生成 |
+| npm パッケージ配布 | `npm run build:runner` → `build/runner/dist/*.cjs` | esbuild で CJS バンドルを生成 |
+| 拡張機能配布 | `npm run package:extension` → `.vsix` | esbuild + vsce |
 
 ### `__dirname` の扱い
 

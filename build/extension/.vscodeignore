@@ -1,0 +1,7 @@
+# ソース・ビルド設定は extension.cjs にバンドル済みなので含めない
+**/*.map
+.gitignore
+
+# パッケージ化に必要なのは以下のみ:
+#   dist/extension.cjs, language-configuration.json, syntaxes/, README.md, package.json
+# vsce はデフォルトで package.json と README.md を含める

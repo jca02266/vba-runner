@@ -102,7 +102,7 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
  *   cross-module references that are not yet known.
  */
 export function checkOptionExplicit(program: Program, knownModuleNames?: ReadonlySet<string>): OptionExplicitResult {
-    const violatedProcedures = new Map<string, Set<string>>();
+    const violatedProcedures = new Map<string, Map<string, number>>();
 
     // Determine if Option Explicit is active
     const hasOptionExplicit = program.body.some(s => s.type === 'OptionExplicitStatement');
