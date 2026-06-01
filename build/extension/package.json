@@ -137,10 +137,9 @@
     }
   },
   "scripts": {
-    "build": "../../node_modules/.bin/esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname && npm run build:readme",
-    "build:readme": "cp ../../README.md README.md",
-    "package": "npm run build && ../../node_modules/.bin/vsce package --no-dependencies",
-    "publish": "../../node_modules/.bin/vsce publish --no-dependencies"
+    "build": "esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname",
+    "package": "npm run build && vsce package --no-dependencies",
+    "publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@vscode/vsce": "^2.6.0"
