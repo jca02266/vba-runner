@@ -313,6 +313,6 @@ done
 - Extract Sub/Function リファクタリング（Code Action）
 - Workspace Outline（プロジェクト横断のシンボル検索）
 - コールグラフの可視化
-- npm パッケージ化（エンジン本体を `@vba-compiler/engine` として公開）
+- npm パッケージ化（エンジン本体を `@vba-runner/engine` として公開）
 
 詳細は `TODO.md` を参照。

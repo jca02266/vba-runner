@@ -8,7 +8,7 @@
 ## ディレクトリ構成
 
 ```
-vba-compiler/              ← モノレポ
+vba-runner/              ← モノレポ
 ├── src/                   ← エンジンのソース（TypeScript）
 ├── dist/
 │   ├── extension.cjs      ← VS Code 拡張機能

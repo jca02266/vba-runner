@@ -3,7 +3,7 @@ import * as path from 'path';
 import { TableDrivenDetector } from '../../../test-libs/table-driven-detector';
 
 // Load ApprovalRules_Before.bas
-const samplePath = '/Users/koji/src/github.com/jca02266/vba-compiler/sample/src/vba/ApprovalRules_Before.bas';
+const samplePath = '../../src/vba/ApprovalRules_Before.bas';
 const sourceCode = fs.readFileSync(samplePath, 'utf-8');
 
 console.log('=== Table-Driven Refactoring Detector Evaluation ===\n');

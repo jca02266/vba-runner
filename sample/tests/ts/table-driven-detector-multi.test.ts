@@ -4,17 +4,17 @@ import { TableDrivenDetector } from '../../../test-libs/table-driven-detector';
 const samples = [
     {
         name: 'ApprovalRules_Before',
-        path: '/Users/koji/src/github.com/jca02266/vba-compiler/sample/src/vba/ApprovalRules_Before.bas',
+        path: '../../src/vba/ApprovalRules_Before.bas',
         description: 'Original: nested if-else pattern'
     },
     {
         name: 'ApprovalRules_After',
-        path: '/Users/koji/src/github.com/jca02266/vba-compiler/sample/src/vba/ApprovalRules_After.bas',
+        path: '../../src/vba/ApprovalRules_After.bas',
         description: 'Refactored: table-driven with Type and initialization'
     },
     {
         name: 'ApprovalRules_Advanced',
-        path: '/Users/koji/src/github.com/jca02266/vba-compiler/sample/src/vba/ApprovalRules_Advanced.bas',
+        path: '../../src/vba/ApprovalRules_Advanced.bas',
         description: 'Advanced: Dictionary-based dynamic rules'
     }
 ];

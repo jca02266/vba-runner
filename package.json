@@ -1,5 +1,5 @@
 {
-  "name": "vba-compiler",
+  "name": "vba-runner",
   "version": "0.1.0",
   "private": true,
   "description": "VBA execution engine (lexer/parser/evaluator) and monorepo for the VBA Runner npm package, VS Code extension, and Web UI playground",
