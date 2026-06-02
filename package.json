@@ -10,8 +10,7 @@
     "url": "https://github.com/jca02266/vba-runner"
   },
   "scripts": {
-    "test": "./run_spec_tests.sh",
-    "test:all": "./run_all_tests.sh",
+    "test": "./run_all_tests.sh",
     "lint": "eslint .",
     "typecheck": "tsc -b",
     "build": "npm run build --prefix build/runner && npm run build --prefix build/extension && npm run build --prefix build/playground",
