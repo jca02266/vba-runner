@@ -438,6 +438,7 @@ assert.strictEqual(r, 300);`;
             GitHub
           </a>
         </div>
+        <span className="ml-auto text-xs text-neutral-600 font-mono">{__COMMIT_HASH__}</span>
       </header>
 
       {/* Editors (top row) */}
