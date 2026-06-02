@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(code --install-extension ./vba-runner-0.1.0.vsix)",
+      "Bash(cat > *)"
+    ],
+    "additionalDirectories": [
+      "/tmp"
+    ]
+  }
+}
