@@ -1574,6 +1574,9 @@ export class Parser {
             if (endToken.value.toLowerCase() !== expectedEndStr.toLowerCase()) {
                 this.throwError(`Parse error: Expected '${expectedEndStr}' after 'End' at line ${endToken.line}`);
             }
+        } else if (this.peek().type === TokenType.EOF) {
+            const expectedEndStr = isFunction ? 'Function' : (isProperty ? 'Property' : 'Sub');
+            this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
         }
 
         return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, body, scope: scope || 'public', isStatic, paramsEndColumn };

@@ -4932,6 +4932,10 @@ export class Evaluator {
                 const wasExplicitlyDeclared = this.env.hasVariable(name);
                 const variable = this.env.get(name);
                 if (expr.args.length === 0 && typeof variable !== 'function' && !Array.isArray(variable) && !(variable && variable.__isVbaDict__)) {
+                    // Undeclared identifier used as a procedure call: "Mainloo" when Sub is "MainLoop"
+                    if (!wasExplicitlyDeclared) {
+                        this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: '${name}'`);
+                    }
                     return variable;
                 }
                 if (typeof variable === 'function') {
