@@ -1569,8 +1569,11 @@ export class Parser {
                 const nextTok = this.peek(1);
                 if (nextTok.type === TokenType.Identifier) {
                     const expected = expectedEndStr.toLowerCase();
-                    const actual = nextTok.value.toLowerCase();
-                    if (expected.startsWith(actual) && actual.length < expected.length) {
+                    // NFKC正規化で全角文字（ｎ等）を半角に変換してから比較する
+                    const actual = nextTok.value.normalize('NFKC').toLowerCase();
+                    const isMissingTail = expected.startsWith(actual) && actual.length < expected.length;
+                    const isExtraChars = actual.startsWith(expected) && actual.length <= expected.length + 2;
+                    if (isMissingTail || isExtraChars) {
                         this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
                     }
                 }
