@@ -701,6 +701,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `json_BufferAppend` 内の `json_Append` ではなく、ユーザーコードで `append` などを変数名に使うとパース失敗。スタックトレースは "Unexpected token in expression 'append'"
   - 修正: `parseStatementInner` の識別子ステートメント開始条件と `parsePrimary` の文脈的識別子リストに `KeywordOutput`/`KeywordAppend`/`KeywordRandom`/`KeywordBinary` を追加（`Open...For Append` の文法は既に `parseOpenStatement` で正しく処理される）
 
+- ✅ **Fix: `Sub (expr)*x` 形式でスペース前 `(` が関数呼び出しとして貪欲解析され ParseError になる** | `sub-call-paren-expr.test.ts`
+  - 原因: `parsePrimary()` のポストフィックスループが `Debug.Print (1+2)` を `CallExpression(Debug.Print, [1+2])` として貪欲消費し、後続の `*3` が新引数の先頭トークンとして解析されようとしたが `*` は式の先頭に置けないため ParseError
+  - 症状: `Debug.Print (1+2)*3` が "Unexpected token in expression '*'" でパースエラー。VBA の正しい動作は `9` を表示
+  - 修正: `isBinaryOnlyOperator()` で単項不可の二項演算子 (`*`,`/`,`^`,`\`,`+`,`-`,`&`,`Mod`, 比較演算子) を判定。文ステートメントで `parsePrimary()` が `CallExpression` を返し次トークンが該当演算子の場合、位置をリセットして `parsePrimary(stopBeforeSpacedLParen=true)` で再解析。スペース前の `(` をポストフィックス消費せず、`parseCallArgument()` が `(1+2)*3` を一つの引数式として正しく解析する
+
 - ⚠️ **Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**（可読性・保守性）
   - 現状: 全キーワードが `Keyword*` トークンのフラットな羅列で、仕様上の種別（`statement-keyword` / `marker-keyword` / `operator-identifier` / contextual）が区別されていない
   - contextual キーワードの誤予約語化（`Append`・`Output` 等が変数名に使えない問題）は Parser の `CONTEXTUAL_KW` Set 化により軽減済み。新規追加も Set に1行追加するだけ

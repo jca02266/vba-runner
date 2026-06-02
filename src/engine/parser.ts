@@ -1096,6 +1096,36 @@ export class Parser {
         return false;
     }
 
+    // Returns true for operators that can ONLY appear in a binary position (never as unary or
+    // argument starters). When one of these follows a greedily-parsed CallExpression in a
+    // statement context, it signals that the `(args)` was actually part of the argument expression.
+    private isBinaryOnlyOperator(type: TokenType): boolean {
+        return type === TokenType.OperatorMultiply
+            || type === TokenType.OperatorDivide
+            || type === TokenType.OperatorIntDivide
+            || type === TokenType.OperatorPower
+            || type === TokenType.OperatorPlus
+            || type === TokenType.OperatorMinus
+            || type === TokenType.OperatorAmpersand
+            || type === TokenType.OperatorNotEquals
+            || type === TokenType.OperatorLessThan
+            || type === TokenType.OperatorGreaterThan
+            || type === TokenType.OperatorLessThanOrEqual
+            || type === TokenType.OperatorGreaterThanOrEqual
+            || type === TokenType.KeywordMod;
+    }
+
+    // Returns true if there is whitespace between the previous token and the current token (same line).
+    // Used to distinguish `Foo(arg)` (no space = function-call postfix) from
+    // `Foo (arg)*x` (space = argument expression; `(arg)*x` must be parsed as one expression).
+    private hasSpaceBeforeCurrentToken(): boolean {
+        if (this.pos <= 0) return false;
+        const cur = this.tokens[this.pos];
+        const prev = this.tokens[this.pos - 1];
+        if (prev.line !== cur.line) return false;
+        return cur.column > prev.column + prev.value.length;
+    }
+
     private isAtTerminator(): boolean {
         const type = this.peek().type;
         return type === TokenType.Newline || type === TokenType.EOF || type === TokenType.OperatorColon;
@@ -1412,6 +1442,7 @@ export class Parser {
             }
 
             // Unify assignment, array access, method call
+            const savedPos = this.pos;
             const expr = this.parsePrimary(); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
 
             if (this.match(TokenType.OperatorEquals)) {
@@ -1421,6 +1452,22 @@ export class Parser {
                     right: this.parseExpression()
                 } as AssignmentStatement;
             } else {
+                // If parsePrimary() greedily consumed `(args)` as a function call postfix but the
+                // next token is a binary-only operator (cannot start an argument expression), the
+                // `(...)` was actually the start of the argument expression, not a call argument list.
+                // Example: `Debug.Print (1+2)*3` — `(1+2)` was mis-parsed as the argument; `*3` is
+                // the continuation. Backtrack and re-parse with stopBeforeSpacedLParen=true so that
+                // `(1+2)*3` is parsed as a single expression argument.
+                if (expr.type === 'CallExpression' && this.isBinaryOnlyOperator(this.peek().type)) {
+                    this.pos = savedPos;
+                    const callee = this.parsePrimary(/* stopBeforeSpacedLParen= */ true);
+                    const args: Expression[] = [this.parseCallArgument()];
+                    while (this.match(TokenType.OperatorComma)) {
+                        args.push(this.parseCallArgument());
+                    }
+                    return { type: 'CallStatement', expression: { type: 'CallExpression', callee, args } } as CallStatement;
+                }
+
                 // If it's not an assignment, maybe it's a CallStatement with arguments separated by comma
                 const args: Expression[] = [];
                 // Check if there are args on the same line
@@ -2468,7 +2515,7 @@ export class Parser {
         return left;
     }
 
-    private parsePrimary(): Expression {
+    private parsePrimary(stopBeforeSpacedLParen: boolean = false): Expression {
         const startTok = this.tokens[this.pos];
         const token = this.advance();
         let expr: Expression;
@@ -2562,7 +2609,11 @@ export class Parser {
                 const property = { type: 'Identifier', name: propToken.value } as Identifier;
                 expr = { type: 'DictionaryAccessExpression', object: expr, property } as DictionaryAccessExpression;
                 expr.loc = this.exprLoc(startTok, this.tokens[this.pos - 1]);
-            } else if (this.match(TokenType.OperatorLParen)) {
+            } else if (this.peek().type === TokenType.OperatorLParen) {
+                if (stopBeforeSpacedLParen && this.hasSpaceBeforeCurrentToken()) {
+                    break;
+                }
+                this.advance(); // consume '('
                 const args: Expression[] = [];
                 if (this.peek().type !== TokenType.OperatorRParen) {
                     args.push(this.parseCallArgument());
