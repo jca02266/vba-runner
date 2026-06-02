@@ -290,4 +290,44 @@ export const assert = {
         console.error(`[FAIL] ${message || 'Assertion failed'}`);
         throw new Error(`Assertion Failed`);
     },
+    doesNotThrow: (fn: () => void, message?: string) => {
+        try {
+            fn();
+        } catch (e: any) {
+            const detail = e?.message ?? String(e);
+            console.error(`[FAIL] ${message || 'Expected no exception'} - threw: ${detail}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
+    throws: (fn: () => void, message?: string) => {
+        let threw = false;
+        try {
+            fn();
+        } catch {
+            threw = true;
+        }
+        if (!threw) {
+            console.error(`[FAIL] ${message || 'Expected an exception but none was thrown'}`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
+    throwsMatch: (fn: () => void, pattern: string | RegExp, message?: string) => {
+        let threw = false;
+        let detail = '';
+        try {
+            fn();
+        } catch (e: any) {
+            threw = true;
+            detail = e?.message ?? String(e);
+        }
+        if (!threw) {
+            console.error(`[FAIL] ${message || 'Expected an exception but none was thrown'}`);
+            throw new Error(`Assertion Failed`);
+        }
+        const matched = typeof pattern === 'string' ? detail.includes(pattern) : pattern.test(detail);
+        if (!matched) {
+            console.error(`[FAIL] ${message || 'Exception message did not match'} - pattern: ${pattern}, got: "${detail}"`);
+            throw new Error(`Assertion Failed`);
+        }
+    },
 };

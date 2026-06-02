@@ -706,6 +706,13 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `Debug.Print (1+2)*3` が "Unexpected token in expression '*'" でパースエラー。VBA の正しい動作は `9` を表示
   - 修正: `isBinaryOnlyOperator()` で単項不可の二項演算子 (`*`,`/`,`^`,`\`,`+`,`-`,`&`,`Mod`, 比較演算子) を判定。文ステートメントで `parsePrimary()` が `CallExpression` を返し次トークンが該当演算子の場合、位置をリセットして `parsePrimary(stopBeforeSpacedLParen=true)` で再解析。スペース前の `(` をポストフィックス消費せず、`parseCallArgument()` が `(1+2)*3` を一つの引数式として正しく解析する
 
+- ❌ **Parser の EOS 検証を体系化する**（構文精度の根本課題）
+  - 背景: MS-VBAL §5.4.1 `statement-block = *(block-statement EOS)` / `EOS = *(EOL / ":")` によれば、各文の後には必ず EOS（改行またはコロン）が必要。現在の手書き再帰下降パーサーはこの検証を文ごとに個別実装しており、漏れが生じやすい。
+  - 今回修正した例: `End Foo`・`Stop Foo` → `parseStatement` 内で `isAtTerminator()` チェックを追加（`parser.ts:1306-1316`）。テスト: `reserved-stmt-args.test.ts`, `block-end-typo.test.ts`
+  - 未調査の懸念箇所: 他の単一キーワード文（`Return`・`Resume`・`Exit Sub`・`Exit For`・`Exit Do` など）も同様のチェックが必要か未確認。`GoTo label`・`GoSub label` は次トークンが識別子前提なので問題ないはずだが、ラベルの後に余分なトークンが続く場合のチェックが抜けている可能性がある。
+  - 根本対処案: `parseStatement` が文を返した後、呼び出し側（各ブロックループ）が `isAtTerminator()` を必ず検証する共通処理を設ける。現状は `skipNewlines()` が黙って消費するだけでエラーを出さない。
+  - 関連: §3.3.5.2 のキーワード分類整理（下記の ⚠️ 項目）が完了すると、単一キーワード文の列挙がしやすくなる。
+
 - ⚠️ **Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**（可読性・保守性）
   - 現状: 全キーワードが `Keyword*` トークンのフラットな羅列で、仕様上の種別（`statement-keyword` / `marker-keyword` / `operator-identifier` / contextual）が区別されていない
   - contextual キーワードの誤予約語化（`Append`・`Output` 等が変数名に使えない問題）は Parser の `CONTEXTUAL_KW` Set 化により軽減済み。新規追加も Set に1行追加するだけ
@@ -812,6 +819,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ `evaluator.ts:3614` `createMultiDimArray` で upper < lower → VbaError 9 | `MiscErrorTest.bas`
 - ✅ `evaluator.ts:4189, 4296` 配列アクセス時に引数なし（インデックス省略） → `throwVbaError(9, ...)` | `MiscErrorTest.bas`
 - ✅ 代入先が配列/辞書でない変数の添字アクセス (`x(0) = 5`) → `throwVbaError(9, ...)`
+- ✅ 1D/2D 静的配列の読み取り・書き込みで `__vbaDimensions__` の lower/upper を超えたとき → `throwVbaError(9, ...)` | `array-subscript-bounds.test.ts`
+- ✅ 次元数不一致（2D 配列を 1 インデックスでアクセス等） → `throwVbaError(9, ...)` | `array-subscript-bounds.test.ts`
+- ✅ `ReDim` 後も更新された境界で正しくチェック | `array-subscript-bounds.test.ts`
+- ✅ `Option Base 1` 時に index 0 アクセス → `throwVbaError(9, ...)` | `array-subscript-bounds.test.ts`
 
 ### Error 11 — Division by zero
 

@@ -1304,12 +1304,18 @@ export class Parser {
             return this.parseConstDeclaration();
         } else if (token.type === TokenType.KeywordStop) {
             this.advance(); // consume 'Stop'
+            if (!this.isAtTerminator()) {
+                this.throwError(`Parse error: unexpected token after 'Stop'`);
+            }
             return { type: 'StopStatement' } as StopStatement;
         } else if (token.type === TokenType.KeywordEnd) {
             if (this.isAtEndTerminator()) {
                 return null;
             }
             this.advance(); // consume standalone 'End'
+            if (!this.isAtTerminator()) {
+                this.throwError(`Parse error: unexpected token after 'End'`);
+            }
             return { type: 'EndStatement' } as EndStatement;
         } else if (token.type === TokenType.KeywordGoTo) {
             return this.parseGoToStatement();
@@ -1562,17 +1568,6 @@ export class Parser {
         const body: Statement[] = [];
         const expectedEndStr = isFunction ? 'Function' : (isProperty ? 'Property' : 'Sub');
         while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
-            // "End Functio" / "End Su" のようなタイポを早期検出する。
-            // peek() = End, peek(1) = Identifier で、その識別子が期待キーワードの前方一致なら
-            // その行でエラーを報告する（EOF まで飲み込まれて行番号がずれるのを防ぐ）。
-            if (this.peek().type === TokenType.KeywordEnd) {
-                const nextTok = this.peek(1);
-                // Sub/Function/Property ボディ内で "End <識別子>" は常にタイポ。
-                // 有効な End 形式（End Sub/If/With 等）はすべてキーワードであり識別子ではない。
-                if (nextTok.type === TokenType.Identifier) {
-                    this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
-                }
-            }
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();

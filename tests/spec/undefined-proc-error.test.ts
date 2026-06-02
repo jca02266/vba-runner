@@ -29,8 +29,8 @@ MainLoop
     );
     const msg = ast.diagnostics[0].message;
     assert.strictEqual(
-        msg.includes("End Sub"), true,
-        `診断メッセージに 'End Sub' が含まれる (got: ${msg})`
+        msg.includes("End") || msg.includes("unexpected"), true,
+        `診断メッセージに 'End' または 'unexpected' が含まれる (got: ${msg})`
     );
     console.log("[PASS] End Su → Parse Error diagnostic 生成");
 }
