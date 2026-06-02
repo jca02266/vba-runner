@@ -1560,7 +1560,21 @@ export class Parser {
 
         this.skipNewlines();
         const body: Statement[] = [];
+        const expectedEndStr = isFunction ? 'Function' : (isProperty ? 'Property' : 'Sub');
         while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
+            // "End Functio" / "End Su" のようなタイポを早期検出する。
+            // peek() = End, peek(1) = Identifier で、その識別子が期待キーワードの前方一致なら
+            // その行でエラーを報告する（EOF まで飲み込まれて行番号がずれるのを防ぐ）。
+            if (this.peek().type === TokenType.KeywordEnd) {
+                const nextTok = this.peek(1);
+                if (nextTok.type === TokenType.Identifier) {
+                    const expected = expectedEndStr.toLowerCase();
+                    const actual = nextTok.value.toLowerCase();
+                    if (expected.startsWith(actual) && actual.length < expected.length) {
+                        this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
+                    }
+                }
+            }
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
@@ -1568,14 +1582,11 @@ export class Parser {
 
         if (this.peek().type === TokenType.KeywordEnd) {
             this.advance(); // consume 'End'
-            let expectedEndStr = isFunction ? 'Function' : 'Sub';
-            if (isProperty) expectedEndStr = 'Property';
             const endToken = this.advance();
             if (endToken.value.toLowerCase() !== expectedEndStr.toLowerCase()) {
                 this.throwError(`Parse error: Expected '${expectedEndStr}' after 'End' at line ${endToken.line}`);
             }
         } else if (this.peek().type === TokenType.EOF) {
-            const expectedEndStr = isFunction ? 'Function' : (isProperty ? 'Property' : 'Sub');
             this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
         }
 
