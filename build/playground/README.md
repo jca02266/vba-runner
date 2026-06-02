@@ -1,4 +1,4 @@
-# VBA Runner Playground — Web UI デモ
+# VBA Web Runner — Web UI デモ
 
 ブラウザ上で VBA コードを実行・確認できる Web UI デモです。
 インストール不要で、VBA Runner の動作をすぐに試すことができます。

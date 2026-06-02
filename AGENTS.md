@@ -27,7 +27,7 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 
 ## File I/O Sandbox Policy
 
-When implementing or modifying file-related functions (e.g., `Open`, `Kill`, `Dir`, `Environ`), you **MUST** follow the Sandbox rules described in `README.md`:
+When implementing or modifying file-related functions (e.g., `Open`, `Kill`, `Dir`, `Environ`), you **MUST** follow the Sandbox rules described in `REFERENCE.md`:
 
 - **All file paths** must be resolved through the `SandboxPath` class in `src/engine/sandbox.ts`.
 - **Sandbox Root**: File operations are restricted to the sandbox root (default: `sandbox/`).
