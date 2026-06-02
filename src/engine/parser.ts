@@ -1567,15 +1567,10 @@ export class Parser {
             // その行でエラーを報告する（EOF まで飲み込まれて行番号がずれるのを防ぐ）。
             if (this.peek().type === TokenType.KeywordEnd) {
                 const nextTok = this.peek(1);
+                // Sub/Function/Property ボディ内で "End <識別子>" は常にタイポ。
+                // 有効な End 形式（End Sub/If/With 等）はすべてキーワードであり識別子ではない。
                 if (nextTok.type === TokenType.Identifier) {
-                    const expected = expectedEndStr.toLowerCase();
-                    // NFKC正規化で全角文字（ｎ等）を半角に変換してから比較する
-                    const actual = nextTok.value.normalize('NFKC').toLowerCase();
-                    const isMissingTail = expected.startsWith(actual) && actual.length < expected.length;
-                    const isExtraChars = actual.startsWith(expected) && actual.length <= expected.length + 2;
-                    if (isMissingTail || isExtraChars) {
-                        this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
-                    }
+                    this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
                 }
             }
             const stmt = this.parseStatement();
