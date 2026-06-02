@@ -2677,16 +2677,26 @@ export class Evaluator {
                 const target = this.env.get(name);
 
                 if (Array.isArray(target)) {
+                    const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                    if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     // VBA index == JS index. Multi-dimensional: arr(i, j) = val -> arr[i][j] = val
                     let current = target;
                     for (let i = 0; i < call.args.length - 1; i++) {
                         const d = this.evaluateExpression(call.args[i]) as number;
+                        if (dims) {
+                            const { lower, upper } = dims[i];
+                            if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
                         if (!current[d]) {
                             current[d] = [];
                         }
                         current = current[d];
                     }
                     const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                    if (dims) {
+                        const { lower, upper } = dims[call.args.length - 1];
+                        if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    }
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
@@ -4943,11 +4953,17 @@ export class Evaluator {
                     return variable(...argsVals);
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    const dims = (variable as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                    if (dims && expr.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     // VBA index == JS index. Multi-dimensional: arr(i, j) -> arr[i][j]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
-                        if (!current) return vbaEmpty; // Out of bounds or jagged array
+                        if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                         const idx = this.evaluateExpression(expr.args[i]) as number;
+                        if (dims) {
+                            const { lower, upper } = dims[i];
+                            if (idx < lower || idx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
                         current = current[idx];
                     }
                     if (current === undefined) return vbaEmpty;

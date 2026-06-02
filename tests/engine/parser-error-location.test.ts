@@ -5,7 +5,6 @@
  * loc はすべて 1-based。
  *
  * 既知の制限:
- *   E08: End Sub 欠落は未検知（パーサーは EOF まで正常に進む）
  *   E09/E10/E11: 対応するクローズキーワード（End If / Next / Loop）が欠落した
  *     場合、エラーは "End Sub" が現れた行で報告される（開始文の行ではない）。
  *     これはパーサーが混乱した位置を報告する現在の仕様。
@@ -97,12 +96,12 @@ function assertError(label: string, diags: Diag[], expectedLine: number, expecte
     console.log('[PASS] E07: ) 不足 → line=2');
 }
 
-// ─── E08: End Sub が欠落（既知の制限：エラー未検知） ─────────────────────────
+// ─── E08: End Sub が欠落 ─────────────────────────────────────────────────────
 {
     const diags = diagnose('Sub Test()\n    x = 1\n');
-    // パーサーは EOF まで正常に進むためエラーを報告しない
-    assert.strictEqual(diags.length, 0, 'E08: End Sub 欠落はエラー未検知（既知の制限）');
-    console.log('[PASS] E08: End Sub 欠落 → エラーなし（既知の制限）');
+    assertError('E08', diags, 2);
+    assert.ok(diags[0].msg.includes('End Sub'), `E08: 'End Sub' メッセージ (got: ${diags[0].msg})`);
+    console.log('[PASS] E08: End Sub 欠落 → line=2 でエラー');
 }
 
 // ─── E09: End If が欠落 ──────────────────────────────────────────────────────
