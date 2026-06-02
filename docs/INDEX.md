@@ -41,7 +41,10 @@
 
 | ドキュメント | 説明 | 対象読者 |
 |-----------|------|--------|
-| **[TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とVBA Runnerでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
+| **[internals/TYPE_SYSTEM_SPEC.md](internals/TYPE_SYSTEM_SPEC.md)** | VBA 型の仕様とVBA Runnerでの実装方法 | 型関連のバグ修正・機能追加時に参照 |
+| **[internals/NAME_RESOLUTION.md](internals/NAME_RESOLUTION.md)** | 名前解決の仕様と実装（MS-VBAL §5.6.10） | 名前解決・スコープ関連のバグ修正時に参照 |
+| **[internals/DATAFLOW_ANALYSIS_TODO.md](internals/DATAFLOW_ANALYSIS_TODO.md)** | データフロー解析の実装計画 | データフロー解析を実装する際に参照 |
+| **[internals/IDENTIFIER_CLASSIFICATION_TODO.md](internals/IDENTIFIER_CLASSIFICATION_TODO.md)** | 識別子分類の正規化 TODO | 識別子解決の改善を行う際に参照 |
 
 ---
 
