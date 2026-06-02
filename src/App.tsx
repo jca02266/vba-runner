@@ -258,6 +258,10 @@ function createBrowserTestRunner(vbaSource: string, outputFn: (msg: string) => v
   const tokens = lexer.tokenize();
   const parser = new Parser(tokens, { errorRecovery: true });
   const ast = parser.parse();
+  if (ast.diagnostics && ast.diagnostics.length > 0) {
+    ast.diagnostics.forEach(d => outputFn(`Parse Error (line ${d.loc.start.line}): ${d.message}`));
+    throw new Error('Parse errors in VBA source');
+  }
 
   // Only evaluate declarations (Functions, Subs, Types, Consts, Variables) 
   // to avoid executing top-level subroutine calls (e.g. `MainLoop`) during initialization
@@ -339,6 +343,11 @@ assert.strictEqual(r, 300);`;
       const tokens = lexer.tokenize()
       const parser = new Parser(tokens, { errorRecovery: true })
       const ast = parser.parse()
+      if (ast.diagnostics && ast.diagnostics.length > 0) {
+        const diagMsgs = ast.diagnostics.map(d => `Parse Error (line ${d.loc.start.line}): ${d.message}`);
+        setRunOutput(prev => [...prev, ...diagMsgs])
+        return
+      }
       const newOutputs: string[] = []
       const evaluator = new Evaluator((out) => { newOutputs.push(out) })
       evaluator.evaluate(ast)
@@ -411,7 +420,7 @@ assert.strictEqual(r, 300);`;
         line.includes('[FAIL]') ? 'text-red-400' :
           line.startsWith('✅') ? 'text-emerald-400 font-semibold mt-2' :
             line.startsWith('❌') ? 'text-red-400 font-semibold mt-2' :
-              line.startsWith('Error:') ? 'text-red-400' :
+              line.startsWith('Error:') || line.startsWith('Parse Error') ? 'text-red-400' :
                 ''
         }`}
     >{line}</div>
