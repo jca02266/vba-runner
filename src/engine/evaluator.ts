@@ -5015,10 +5015,16 @@ export class Evaluator {
 
                     // If evaluating the object gives undefined/null, it might be a module name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
-                        // VBA 標準ライブラリ名前空間: VBA.InStr(...) は非修飾の InStr(...) と同義。
-                        // 修飾子を剥がして同じ呼び出し経路（組み込み関数・ユーザー定義の解決）に
-                        // 載せ直す。evaluateMemberExpression の VBA.vbString 等の扱いと対になる。
+                        // VBA 標準ライブラリ名前空間: VBA.InStr(...) は必ず組み込み関数を呼ぶ。
+                        // ユーザーが同名の関数を定義していても組み込みが優先される（VBA 仕様）。
+                        // variables のみを辿る getConst でユーザー定義（procedures）をスキップ。
                         if (possibleModuleName.toLowerCase() === 'vba') {
+                            const builtin = this.env.getConst(member.property.name);
+                            if (typeof builtin === 'function') {
+                                const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                                return builtin(...argsVals);
+                            }
+                            // 組み込みでない（想定外）場合は従来の経路でエラーを出す
                             return this.evaluateCallExpression({ ...expr, callee: member.property });
                         }
 

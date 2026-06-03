@@ -527,21 +527,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 原因: `evaluateCallExpression` の `Module.Proc` 検出が `try { callProcedure } catch { フォールスルー }` で**あらゆる例外**を飲み込み、member access に落ちていた
   - 症状: `ModB.DoWork` の本体がゼロ除算（Error 11）を投げても握りつぶされ、未定義オブジェクト `ModB` への member access として Error 91 にすり替わる
   - 修正: `getProcedureFromModule` で**事前に存在確認**し、見つかった場合のみ `callProcedure` を呼ぶ（try/catch を廃止）。呼び出し先のエラーは正しく伝播する
-- ❌ **要修正: `VBA.Func()` が標準ライブラリ関数を呼ぶ強制力を持たない**（後で修正）
-  - VBA 仕様: `VBA.InStr(...)` のような型ライブラリ修飾呼び出しは、ユーザーが同名の関数
-    （例: `Public Function InStr` を別モジュールに定義）を持っていても**標準ライブラリの関数**を呼ぶ。
-  - 現状の症状（検証済み）: `UserDef` モジュールに `Public Function InStr` を定義した状態で
-    - 非修飾 `InStr(...)` → ユーザー定義（999）※これは VBA 仕様通り（tier 4 が tier 6 より優先）
-    - `UserDef.InStr(...)` → ユーザー定義（999）※正しい
-    - `VBA.InStr(...)` → **ユーザー定義（999）になってしまう**（標準の 2 を呼ぶべき）
-  - 原因: `evaluateCallExpression` の `VBA.X` 処理が「callee を非修飾 `X` に差し替えて再帰」
-    （`{ ...expr, callee: member.property }`）するため、`getProcedure`（ユーザー定義優先）の
-    経路に乗ってしまう。なお `ebffc53` 時点では `callProcedure(..., 'VBA')` の組み込み
-    フォールバック経由で標準（2）を呼べていたが、握りつぶし修正のリファクタリングで退行した。
-  - 対処方針: `VBA.X` は `getProcedure`（ユーザー定義）をスキップし、組み込み関数テーブルを
-    直接引いて呼ぶ。`VBA` を ad-hoc な文字列マッチではなく既知の標準ライブラリ名前空間として
-    体系的に扱い、`evaluateMemberExpression`（`VBA.vbString` 等）の処理と統一する。
-  - 影響範囲: ユーザーが `InStr` 等の標準名を再定義する稀なケースのみ。通常の `VBA.InStr` は正常動作。
+- ✅ **Fix: `VBA.Func()` が標準ライブラリ関数を呼ぶ強制力を持たない** | `vba-stdlib-qualifier.test.ts`
+  - VBA 仕様: `VBA.InStr(...)` のような型ライブラリ修飾呼び出しは、ユーザーが同名の関数を定義していても必ず標準ライブラリを呼ぶ
+  - 原因: `evaluateCallExpression` の `VBA.X` 処理が callee を非修飾 `X` に差し替えて再帰していたため、`getProcedure`（ユーザー定義優先）の経路に乗っていた
+  - 修正: `env.getConst(name)` で `variables`（組み込み関数テーブル）のみを検索し、`procedures`（ユーザー定義）をスキップして直接呼び出す
 - ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
   - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
   - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）
