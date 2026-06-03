@@ -3842,6 +3842,16 @@ export class Evaluator {
                 }
             }
         } catch { /* sample 取得時のエラーは無視 */ }
+        // "ProjectName.ClassName" 形式の場合、プロジェクト名を VbaNamespaceRef として登録。
+        // これにより VarType(Scripting) 等の誤用がエラーになる（VBA 仕様通り）。
+        const dotIndex = progId.indexOf('.');
+        if (dotIndex > 0) {
+            const projectName = progId.slice(0, dotIndex);
+            const projectKey = projectName.toLowerCase();
+            if (!this.env.hasVariable(projectKey)) {
+                this.env.set(projectKey, new VbaNamespaceRef(projectName, 'project'));
+            }
+        }
     }
 
     private createExternalObject(progId: string): any {

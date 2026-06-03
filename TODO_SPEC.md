@@ -534,12 +534,12 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **Fix: `VarType(VBA)` / `VarType(Module1)` のようにプロジェクト名・モジュール名を値として使った場合にエラーにならない** | `namespace-as-value-error.test.ts`
   - VBA 仕様: `VarType(VBA)` → コンパイルエラー「プロジェクトではなく、変数またはプロシージャを指定してください」。モジュール名も同様。
   - 修正: `vba-types.ts` に `VbaNamespaceRef` センチネルクラスを追加し、`VBA` を `kind='project'` で、各モジュール名を `kind='module'` で env に事前登録。`Identifier` 評価時に `VbaNamespaceRef` を検出してエラーを投げる。修飾形式（`VBA.X`、`Module1.Proc`）は早期リターンで正常動作を維持。
-  - **MS-VBAL 上の「プロジェクト」の定義**（将来の実装参考）:
+  - **MS-VBAL 上の「プロジェクト」の定義**:
     MS-VBAL では "Project" が3種類ある。
     1. **ライブラリプロジェクト**: `VBA`（VBA 標準ライブラリ）、`Scripting`、`ADODB` など参照設定した型ライブラリ。`VBA` は予約名。
     2. **ホストプロジェクト**: `Excel`、`Word` などホストアプリのオブジェクトモデル。
     3. **ソースプロジェクト**: ユーザーの VBA コード本体（通常 `VBAProject` と命名）。
-    当エンジンは COM 型ライブラリ参照を実装しないため、現状「プロジェクト」として事前登録すべきものは `VBA` のみ。将来 `Scripting.Dictionary` を `New` で生成するなど型ライブラリ修飾に対応する場合は、参照設定ライブラリ名も `VbaNamespaceRef kind='project'` として追加登録する必要がある。
+  - **当エンジンの実装**: `registerExternalObject('Scripting.Dictionary', factory)` のように `ProjectName.ClassName` 形式で登録すると、プロジェクト名（`Scripting`）が `VbaNamespaceRef kind='project'` として自動登録される。これにより `New Scripting.Dictionary`・`VarType(Scripting)` の両方が正しく動作する。カスタムモック登録時も同様（`registerExternalObject('MyLib.MyClass', factory)` → `VarType(MyLib)` がエラーになる）。
 - ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
   - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
   - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）

@@ -2,11 +2,15 @@
  * プロジェクト名・モジュール名を値として使った場合のエラー検出テスト
  *
  * VBA 仕様:
- * - VarType(VBA)   → コンパイルエラー「プロジェクトではなく、変数またはプロシージャを指定してください。」
- * - VarType(Mod1)  → コンパイルエラー「モジュールではなく、変数またはプロシージャを指定してください。」
- * 修飾子としての VBA.X や Mod1.Proc は引き続き正常。
+ * - VarType(VBA)       → コンパイルエラー「プロジェクトではなく、変数またはプロシージャを指定してください。」
+ * - VarType(Scripting) → 同上（型ライブラリ名もプロジェクト扱い）
+ * - VarType(Mod1)      → コンパイルエラー「モジュールではなく、変数またはプロシージャを指定してください。」
+ * 修飾子としての VBA.X・Scripting.Dictionary・Mod1.Proc は引き続き正常。
  */
 import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
+import { Evaluator } from '../../src/engine/evaluator';
+import { Lexer } from '../../src/engine/lexer';
+import { Parser } from '../../src/engine/parser';
 
 function catchError(modules: Array<{ name: string; code: string }>, entry: string): any {
     const ev = evalVBAModules(modules);
@@ -115,5 +119,68 @@ Function Test() As Long
     Test = VBA
 End Function`}], 'Test');
 console.log('[PASS] Dim VBA As Long → 変数として正常使用');
+
+// ---------------------------------------------------------------------------
+// 組み込み型ライブラリ名（Scripting 等）もプロジェクト扱いでエラー
+// ---------------------------------------------------------------------------
+{
+    const e = catchError([{ name: 'Main', code: `
+Function Test() As Long
+    Test = VarType(Scripting)
+End Function`}], 'Test');
+    assert.ok(e, 'VarType(Scripting) はエラーを投げる');
+    assert.ok(e.message.includes('project') || e.message.includes('プロジェクト'), `エラーメッセージに "project" を含む: "${e.message}"`);
+    console.log('[PASS] VarType(Scripting) → エラー（型ライブラリ名はプロジェクト扱い）');
+}
+
+// Scripting.Dictionary は修飾形式として正常動作
+{
+    const ev = evalVBASingle(`
+Function Test() As Long
+    Dim d As Object
+    Set d = New Scripting.Dictionary
+    d.Add "key", 42
+    Test = d("key")
+End Function`);
+    const result = ev.callProcedure('Test', []);
+    assert.strictEqual(result, 42, 'New Scripting.Dictionary → 42');
+    console.log('[PASS] New Scripting.Dictionary → 正常 (42)');
+}
+
+// ---------------------------------------------------------------------------
+// registerExternalObject でカスタムプロジェクト名を登録するとエラー検出される
+// ---------------------------------------------------------------------------
+{
+    const ev = new Evaluator(console.log);
+    ev.registerExternalObject('MyLib.MyClass', () => ({ __className__: 'MyClass', getValue: () => 99 }));
+    const ast = new Parser(new Lexer(`
+Function Test() As Long
+    Test = VarType(MyLib)
+End Function`).tokenize()).parse();
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    try {
+        ev.callProcedure('Test', []);
+        assert.fail('VarType(MyLib) should throw');
+    } catch (e: any) {
+        assert.ok(e.message.includes('project'), `MyLib はプロジェクトとしてエラー: "${e.message}"`);
+        console.log('[PASS] registerExternalObject("MyLib.MyClass") → VarType(MyLib) がエラー');
+    }
+}
+{
+    const ev = new Evaluator(console.log);
+    ev.registerExternalObject('MyLib.MyClass', () => ({ __className__: 'MyClass', getValue: () => 99 }));
+    const ast = new Parser(new Lexer(`
+Function Test() As Long
+    Dim obj As Object
+    Set obj = New MyLib.MyClass
+    Test = obj.getValue()
+End Function`).tokenize()).parse();
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    const result = ev.callProcedure('Test', []);
+    assert.strictEqual(result, 99, 'New MyLib.MyClass → 99');
+    console.log('[PASS] New MyLib.MyClass → 正常 (99)');
+}
 
 console.log('\n✅ namespace-as-value-error: 全テスト通過');
