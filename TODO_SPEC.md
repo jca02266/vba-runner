@@ -531,6 +531,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - VBA 仕様: `VBA.InStr(...)` のような型ライブラリ修飾呼び出しは、ユーザーが同名の関数を定義していても必ず標準ライブラリを呼ぶ
   - 原因: `evaluateCallExpression` の `VBA.X` 処理が callee を非修飾 `X` に差し替えて再帰していたため、`getProcedure`（ユーザー定義優先）の経路に乗っていた
   - 修正: `env.getConst(name)` で `variables`（組み込み関数テーブル）のみを検索し、`procedures`（ユーザー定義）をスキップして直接呼び出す
+- ✅ **Fix: `VarType(VBA)` / `VarType(Module1)` のようにプロジェクト名・モジュール名を値として使った場合にエラーにならない** | `namespace-as-value-error.test.ts`
+  - VBA 仕様: `VarType(VBA)` → コンパイルエラー「プロジェクトではなく、変数またはプロシージャを指定してください」。モジュール名も同様。
+  - 修正: `vba-types.ts` に `VbaNamespaceRef` センチネルクラスを追加し、`VBA` を `kind='project'` で、各モジュール名を `kind='module'` で env に事前登録。`Identifier` 評価時に `VbaNamespaceRef` を検出してエラーを投げる。修飾形式（`VBA.X`、`Module1.Proc`）は早期リターンで正常動作を維持。
 - ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
   - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
   - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）

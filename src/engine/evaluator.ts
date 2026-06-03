@@ -82,7 +82,7 @@ import { FileSystem, MemoryFileSystem } from './filesystem';
 import { checkOptionExplicit } from './option-explicit-checker';
 import * as path from 'path';
 import {
-    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
+    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate,
@@ -90,7 +90,7 @@ import {
 } from './vba-types';
 import type { VbaVarType } from './vba-types';
 export {
-    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
+    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate,
@@ -673,6 +673,8 @@ export class Evaluator {
     }
 
     private registerStandardLibrary() {
+        // VBA プロジェクト名前空間を事前定義。bare 使用（VarType(VBA) 等）を検出するためのセンチネル。
+        this.env.set('vba', new VbaNamespaceRef('VBA', 'project'));
         this.registerCoreObjects();
         this.registerInformationFunctions();
         this.registerConversionFunctions();
@@ -1867,6 +1869,13 @@ export class Evaluator {
             throw new Error(`Module name '${effectiveModuleName}' exceeds the maximum length of 31 characters (MS-VBAL §5.2). Current length: ${effectiveModuleName.length}`);
         }
         this.currentSourceModule = effectiveModuleName;
+        if (effectiveModuleName) {
+            // モジュール名を VbaNamespaceRef として登録。bare 使用（VarType(Mod1) 等）を検出するためのセンチネル。
+            // すでに変数として宣言されている名前は上書きしない。
+            if (!this.env.hasVariable(effectiveModuleName.toLowerCase())) {
+                this.env.set(effectiveModuleName.toLowerCase(), new VbaNamespaceRef(effectiveModuleName, 'module'));
+            }
+        }
     }
 
     /**
@@ -1879,6 +1888,9 @@ export class Evaluator {
      * 厳密な上位集合なので、ここでは行わない。
      */
     public evaluateModule(program: Program) {
+        if (this.currentSourceModule && !this.env.hasVariable(this.currentSourceModule.toLowerCase())) {
+            this.env.set(this.currentSourceModule.toLowerCase(), new VbaNamespaceRef(this.currentSourceModule, 'module'));
+        }
         for (const stmt of program.body) {
             // モジュールレベルの ConstDeclaration は Pass 2（reEvaluateModuleConstsAll）で評価する。
             // ここで評価すると参照先が未定義の場合に env.get() の暗黙初期化が起き、
@@ -4364,7 +4376,15 @@ export class Evaluator {
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
                 const idName = (expr as Identifier).name;
+                // VbaNamespaceRef（プロジェクト名・モジュール名）を値として使う場合はコンパイルエラー。
+                // Dim VBA As Long のように明示宣言済みの場合は env.set で上書きされているため
+                // VbaNamespaceRef ではなく実際の変数値が返る。
                 const v = this.inConstEval ? this.resolveConstIdent(idName) : this.env.get(idName);
+                if (v instanceof VbaNamespaceRef) {
+                    const label = v.kind === 'project' ? 'project' : 'module';
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        `Compile error: Expected variable or procedure, not ${label} ('${v.name}')`);
+                }
                 if (typeof v === 'function' && (v as any).__vbaAutoCall__) {
                     return v();
                 }
@@ -5011,14 +5031,16 @@ export class Evaluator {
                 // member.object is Identifier -> it might be a module name
                 if ((member.object as any).type === 'Identifier') {
                     const possibleModuleName = (member.object as any).name;
-                    const potentialObj = this.evaluateExpression(member.object);
+                    // env.getConst で auto-initialize せずに変数値を取得。
+                    // VBA や未宣言モジュール名は undefined を返す（evaluateExpression だと vbaEmpty に初期化される）。
+                    const potentialObj = this.env.getConst(possibleModuleName);
 
-                    // If evaluating the object gives undefined/null, it might be a module name
-                    if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull) {
+                    // If evaluating the object gives undefined/null/VbaNamespaceRef, it might be a module/project name
+                    if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull || potentialObj instanceof VbaNamespaceRef) {
                         // VBA 標準ライブラリ名前空間: VBA.InStr(...) は必ず組み込み関数を呼ぶ。
                         // ユーザーが同名の関数を定義していても組み込みが優先される（VBA 仕様）。
                         // variables のみを辿る getConst でユーザー定義（procedures）をスキップ。
-                        if (possibleModuleName.toLowerCase() === 'vba') {
+                        if (possibleModuleName.toLowerCase() === 'vba' || (potentialObj instanceof VbaNamespaceRef && potentialObj.kind === 'project')) {
                             const builtin = this.env.getConst(member.property.name);
                             if (typeof builtin === 'function') {
                                 const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));

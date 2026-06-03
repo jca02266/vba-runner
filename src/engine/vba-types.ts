@@ -96,6 +96,18 @@ export const vbaNothing = Symbol('vbaNothing');
 /** Sentinel for missing optional argument. */
 export const vbaMissing = Symbol('vbaMissing');
 
+/**
+ * Represents a VBA project or module name used as a namespace qualifier.
+ * Exists as a pre-defined value in the environment so that bare uses
+ * (e.g. `VarType(VBA)` or `VarType(Module1)`) can be detected and rejected.
+ */
+export class VbaNamespaceRef {
+    constructor(
+        public readonly name: string,
+        public readonly kind: 'project' | 'module'
+    ) {}
+}
+
 export const vbaTrue: VbaBoolean = VbaBoolean._createSingleton(-1);
 export const vbaFalse: VbaBoolean = VbaBoolean._createSingleton(0);
 
