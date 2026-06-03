@@ -4,7 +4,7 @@
   },
   "brackets": [
     ["(", ")"],
-    "[", "]"]
+    ["[", "]"]
   ],
   "autoClosingPairs": [
     ["(", ")"],
@@ -15,7 +15,7 @@
     ["\"", "\""]
   ],
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(If|For|While|Do|With|Sub|Function|Property|Class|Type|Select)\\b",
-    "decreaseIndentPattern": "^\\s*(End|Else|ElseIf|Loop|Next|Wend)\\b"
+    "increaseIndentPattern": { "pattern": "^\\s*(If\\b.*\\bThen\\s*$|For\\b|While\\b|Do\\b|With\\b|Sub\\b|Function\\b|Property\\b|Class\\b|Type\\b|Select\\s+Case\\b|Enum\\b)", "flags": "i" },
+    "decreaseIndentPattern": { "pattern": "^\\s*(End\\b|Else\\b|ElseIf\\b|Loop\\b|Next\\b|Wend\\b)", "flags": "i" }
   }
 }

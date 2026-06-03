@@ -121,10 +121,11 @@ export class CompletionProvider {
         for (const stmt of statements) {
             if (stmt.type === 'ProcedureDeclaration') {
                 const proc = stmt as ProcedureDeclaration;
+                const scope = proc.scope ?? 'public';
                 symbols.push({
                     label: proc.name.name,
                     kind: proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
-                    detail: proc.isFunction ? 'Function' : 'Sub',
+                    detail: `${scope} ${proc.isFunction ? 'Function' : 'Sub'}`,
                 });
             } else if (stmt.type === 'ClassDeclaration') {
                 const cls = stmt as ClassDeclaration;
@@ -137,29 +138,32 @@ export class CompletionProvider {
                 for (const member of cls.body) {
                     if (member.type === 'VariableDeclaration') {
                         const decl = member as VariableDeclaration;
+                        const scope = decl.scope ?? 'private';
                         for (const d of decl.declarations) {
                             symbols.push({
                                 label: d.name.name,
                                 kind: CompletionItemKind.Property,
-                                detail: `${d.objectType || 'Variant'} (class member)`,
+                                detail: `${scope} ${d.objectType || 'Variant'} (class member)`,
                             });
                         }
                     } else if (member.type === 'ProcedureDeclaration') {
                         const proc = member as ProcedureDeclaration;
+                        const scope = proc.scope ?? 'public';
                         symbols.push({
                             label: proc.name.name,
                             kind: proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
-                            detail: `${proc.isFunction ? 'Function' : 'Sub'} (class member)`,
+                            detail: `${scope} ${proc.isFunction ? 'Function' : 'Sub'} (class member)`,
                         });
                     }
                 }
             } else if (stmt.type === 'VariableDeclaration') {
                 const decl = stmt as VariableDeclaration;
+                const scope = decl.scope ?? 'private';
                 for (const d of decl.declarations) {
                     symbols.push({
                         label: d.name.name,
                         kind: CompletionItemKind.Variable,
-                        detail: d.objectType || 'Variant',
+                        detail: `${scope} ${d.objectType || 'Variant'}`,
                     });
                 }
             }
