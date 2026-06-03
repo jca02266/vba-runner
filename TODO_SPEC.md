@@ -749,6 +749,11 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `topologicalSortConsts()` で DFS による閉路検出を実装。循環が見つかれば `"Circular reference in constant declarations: A → B → A"` 形式のエラーを throw する
   - 仕様: VBA コンパイラは定数の循環参照をコンパイルエラーとして検出する
 
+- ✅ **Fix: `For i ... Next j` のようにループ変数と Next 後の変数が不一致の場合にコンパイルエラーを生成しない** | `for-next-variable-mismatch.test.ts`
+  - 原因: パーサーが `nextIdentifier` を AST に記録するだけで、ループ変数（`identifier` / `variable`）との一致検証を行っていなかった
+  - 修正: `parseForStatementBody` と `parseForEachStatementBody` の `Next` 解析直後に大文字小文字を無視した名前比較を追加し、不一致なら `throwError` でコンパイルエラーを throw する。`Next`（変数名なし）は引き続き正常
+  - 仕様: VBA コンパイラは「Next で指定された変数の参照が不正です」としてコンパイルエラーを生成する
+
 ### エンジン内部の構造改善
 
 - ✅ **型変換（Coercion）ロジックの一元化**: `coerce.ts` を新設し `vbaToNumber()`/`vbaToString()`/`vbaToBoolean()`/`vbaToDisplayString()`/`vbaRound()` を集約する
