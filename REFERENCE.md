@@ -230,6 +230,74 @@ assert.isTrue(dict.exists('key1'));
 
 ---
 
+## 外部ライブラリの参照設定と `New ProjectName.ClassName`
+
+### VBA における参照設定とは
+
+VBA IDE の **[ツール] → [参照設定]** でライブラリを追加すると、オブジェクト生成に2通りの構文が使えます：
+
+```vba
+' 方法1: CreateObject — 遅延バインディング（参照設定不要）
+Dim d As Object
+Set d = CreateObject("Scripting.Dictionary")
+
+' 方法2: New 修飾名 / Dim As 型名 — 早期バインディング（参照設定が必要）
+Dim d As New Scripting.Dictionary   ' Dim + New
+Set d = New Scripting.Dictionary    ' Set + New
+Dim d As Scripting.Dictionary       ' 型名だけ（= Nothing で初期化）
+```
+
+本エンジンでは `registerExternalObject(progId, factory)` でファクトリを登録することで、両方の構文が動作します。
+
+### プロジェクト名前空間の自動登録
+
+`registerExternalObject('Scripting.Dictionary', factory)` のように `ProjectName.ClassName` 形式で登録すると：
+
+- **プロジェクト名（`Scripting`）が自動的に「ライブラリプロジェクト」として登録される**
+- `New Scripting.Dictionary` → factory が呼ばれてインスタンスを生成
+- `CreateObject("Scripting.Dictionary")` → 同じ factory を使用
+- `New Dictionary`（短縮形）→ `__className__: 'Dictionary'` が登録されていれば使用可
+- `VarType(Scripting)` → **コンパイルエラー**「プロジェクトではなく、変数またはプロシージャを指定してください」（VBA 仕様通り）
+- `Scripting.Dictionary` の修飾アクセス形式は引き続き正常動作
+
+```typescript
+// カスタムライブラリの登録例
+vbaRunner.registerExternalObject('MyLib.MyClass', () => ({
+    __className__: 'MyClass',   // New MyClass / Dim x As MyClass でも使える
+    doSomething: () => 42,
+}));
+// → New MyLib.MyClass / CreateObject("MyLib.MyClass") が使えるようになる
+// → VarType(MyLib) はエラーになる（VBA 仕様通り）
+```
+
+### MS-VBAL 上のプロジェクト分類
+
+VBA の名前空間として機能する「プロジェクト」は MS-VBAL で3種類定義されています：
+
+| 種別 | 例 | 説明 |
+|---|---|---|
+| **ライブラリプロジェクト** | `VBA`、`Scripting`、`ADODB` | 参照設定した型ライブラリ。`VBA` は予約名 |
+| **ホストプロジェクト** | `Excel`、`Word` | ホストアプリのオブジェクトモデル |
+| **ソースプロジェクト** | `VBAProject`（ユーザー命名可） | ユーザーの VBA コード本体 |
+
+当エンジンはホストプロジェクト（`Excel` 等）を実装しないため、`registerExternalObject` で明示登録したライブラリのみがライブラリプロジェクトとして認識されます。`VBA` は起動時に常に登録済みです。
+
+### 組み込みで使用可能なライブラリ
+
+以下は `registerExternalObject` を呼ばずに最初から動作します：
+
+| ProgID | `New` 修飾形式 | 短縮 `New` | 備考 |
+|---|---|---|---|
+| `Scripting.Dictionary` | `New Scripting.Dictionary` | `New Dictionary` | Map ベースの簡易実装 |
+| `Scripting.FileSystemObject` | `New Scripting.FileSystemObject` | `New FileSystemObject` | Sandbox VFS に委譲 |
+| `MSXML2.XMLHTTP` | `New MSXML2.XMLHTTP` | `New XMLHTTP` | スタブ（実通信なし） |
+| `Microsoft.XMLHTTP` | `New Microsoft.XMLHTTP` | — | 同上 |
+| `ADODB.Stream` | `New ADODB.Stream` | `New Stream` | スタブ |
+
+テストでこれらをモックに差し替えたい場合は、同じ progId / class 名で `registerExternalObject` を呼ぶと **組み込みの実装を上書き** できます。
+
+---
+
 ## CreateObject のファクトリ差し替え（モック登録）
 
 VBA の `CreateObject(progId)` が返すオブジェクトを **テストコード側でモックに差し替え** できます。
@@ -286,14 +354,7 @@ vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
 
 ### 組み込み外部オブジェクト
 
-| ProgID | 参照設定相当の class 名 |
-|--------|---------------------|
-| `Scripting.Dictionary` | `Dictionary` |
-| `Scripting.FileSystemObject` | `FileSystemObject` |
-| `MSXML2.XMLHTTP` / `Microsoft.XMLHTTP` | `XMLHTTP` |
-| `ADODB.Stream` | `Stream` |
-
-テストでこれらをモックに差し替えたい場合は、同じ progId / class 名で `registerExternalObject` を呼ぶと **組み込みの実装を上書き** できます。
+組み込みで使用可能なライブラリの一覧と差し替え方法は、前セクション「[外部ライブラリの参照設定と `New ProjectName.ClassName`](#外部ライブラリの参照設定と-new-projectnameclassname)」を参照してください。
 
 ### Auto-Instantiation 仕様（`Dim x As New ClassName`）
 
