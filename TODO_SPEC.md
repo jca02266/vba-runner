@@ -432,7 +432,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 | ✅ | | `existsSync` | ファイル/ディレクトリの存在確認。 |
 | ✅ | **高度な操作** | **ワイルドカード** | `Kill` および `Dir` における `*`, `?` のサポート。 |
 | ⚠️ | | **カレントディレクトリ** | `ChDir` / `CurDir` による仮想的な作業ディレクトリの保持。 |
-| ❌ | | **永続化** | `localStorage` や `IndexedDB` への保存・復元。 |
+| N/A | | **永続化** | `localStorage` や `IndexedDB` への保存・復元。（実装予定なし：本エンジンの用途範囲外） |
 | ❌ | | **排他制御** | `Lock` / `Unlock` ステートメントのエミュレーション。 |
 | ⚠️ | **互換性** | **バイナリ/テキスト** | `Binary` / `Random` / `Input` / `Output` 各モードの厳密な挙動。 |
 
@@ -445,10 +445,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 #### 2. ブラウザ環境最適化
 - ❌ `FileSystem` インターフェースの非同期版 (`read`, `write` 等) の検討（ブラウザのメインスレッドをブロックしないため）。
-- ❌ `IndexedDB` をバックエンドとした `PersistentFileSystem` の実装。
+- N/A `IndexedDB` をバックエンドとした `PersistentFileSystem` の実装。（実装予定なし：本エンジンの用途範囲外）
 
 #### 3. テスト環境の改善
-- ❌ `filesystem-extra.test.ts` 等のテストコードを、Node.js `fs` 直接参照から `this.fs` (抽象インターフェース) 参照へリファクタリング。
+- ✅ `filesystem-extra.test.ts` 等のテストコードを、Node.js `fs` 直接参照から `this.fs` (抽象インターフェース) 参照へリファクタリング。（`MemoryFileSystem` + `Evaluator({ fs: vfs })` で対応済み）
 - ❌ 複数の `Evaluator` インスタンス間で単一の `MemoryFileSystem` を共有するためのテスト用設定の追加。
 
 #### 4. バイナリ操作の極致
