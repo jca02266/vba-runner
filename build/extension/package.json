@@ -137,7 +137,8 @@
     "configurationDefaults": {
       "[vba]": {
         "editor.stickyScroll.defaultModel": "foldingProviderModel",
-        "editor.formatOnType": true
+        "editor.formatOnType": true,
+        "editor.acceptSuggestionOnEnter": "off"
       }
     }
   },
