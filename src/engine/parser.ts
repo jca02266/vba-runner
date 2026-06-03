@@ -2006,6 +2006,12 @@ export class Parser {
         if (this.peek().type === TokenType.Identifier) {
             const nextIdToken = this.advance();
             nextIdentifier = this.makeIdentifier(nextIdToken);
+            if (nextIdentifier.name.toLowerCase() !== identifier.name.toLowerCase()) {
+                this.throwError(
+                    `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${nextIdentifier.name}')`,
+                    nextIdToken
+                );
+            }
         }
 
         return {
@@ -2053,6 +2059,12 @@ export class Parser {
         if (this.peek().type === TokenType.Identifier) {
             const nextIdToken = this.advance();
             nextIdentifier = this.makeIdentifier(nextIdToken);
+            if (nextIdentifier.name.toLowerCase() !== variable.name.toLowerCase()) {
+                this.throwError(
+                    `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${nextIdentifier.name}')`,
+                    nextIdToken
+                );
+            }
         }
 
         return {
