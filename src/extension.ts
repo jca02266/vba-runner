@@ -12,6 +12,7 @@ import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-r
 import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
+import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -623,27 +624,41 @@ End Class`;
     );
     outputChannel.appendLine('✓ Inlay hints provider registered');
 
-    // Register on-type formatting provider (auto line continuation _)
+    // Register on-type formatting provider:
+    //   - auto line continuation: append ' _' when an expression is left dangling
+    //   - auto keyword casing: rewrite keywords to canonical VBA casing (VBE-style)
     context.subscriptions.push(
         vscode.languages.registerOnTypeFormattingEditProvider('vba', {
-            provideOnTypeFormattingEdits(document, position) {
+            provideOnTypeFormattingEdits(document, position, ch) {
                 const config = vscode.workspace.getConfiguration('vba-runner');
-                if (!config.get('editor.autoLineContinuation', true)) return [];
-                if (position.line === 0) return [];
+                const edits: vscode.TextEdit[] = [];
 
-                const prevLine = document.lineAt(position.line - 1);
-                const trimmed = prevLine.text.trimEnd();
+                // Auto line continuation: insert ' _' at the end of the previous line.
+                if (ch === '\n' && config.get('editor.autoLineContinuation', true) && position.line > 0) {
+                    const prevLine = document.lineAt(position.line - 1);
+                    const trimmed = prevLine.text.trimEnd();
+                    if (needsLineContinuation(trimmed)) {
+                        const insertPos = new vscode.Position(position.line - 1, trimmed.length);
+                        const lineEnd = new vscode.Position(position.line - 1, prevLine.text.length);
+                        edits.push(vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _'));
+                    }
+                }
 
-                if (!needsLineContinuation(trimmed)) return [];
+                // Auto keyword casing: rewrite the just-completed word to its
+                // canonical VBA casing (e.g. 'if' -> 'If', 'withevents' -> 'WithEvents').
+                if (config.get('editor.autoKeywordCasing', true)) {
+                    const casing = keywordCasingEdit(document, position, ch);
+                    // Avoid overlapping the line-continuation edit (different ranges in practice).
+                    if (casing && !edits.some((e) => !!e.range.intersection(casing.range))) {
+                        edits.push(casing);
+                    }
+                }
 
-                // Insert ' _' replacing trailing whitespace on the previous line
-                const insertPos = new vscode.Position(position.line - 1, trimmed.length);
-                const lineEnd   = new vscode.Position(position.line - 1, prevLine.text.length);
-                return [vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _')];
+                return edits;
             }
-        }, '\n')
+        }, '\n', ' ', '\t')
     );
-    outputChannel.appendLine('✓ On-type formatting provider (line continuation) registered');
+    outputChannel.appendLine('✓ On-type formatting provider (line continuation + keyword casing) registered');
 
     // Helper function for showing call graph panel
     function showCallGraphPanel(uri: string, focusProcName: string | null): void {
@@ -936,5 +951,54 @@ End Class`;
 
 export function deactivate() {
     console.log('VBA Runner extension deactivated');
+}
+
+/**
+ * Builds a TextEdit that rewrites the word just completed by the trigger
+ * character `ch` to its canonical VBA keyword casing, or returns undefined when
+ * there is nothing to correct.
+ *
+ * - For '\n', the completed word is the last identifier of the previous line.
+ * - For ' '/'\t', it is the identifier ending immediately before the trigger.
+ *
+ * Words inside strings/comments, and member accesses (`obj.Type`) or bracketed
+ * identifiers (`[Type]`), are left untouched.
+ */
+function keywordCasingEdit(
+    document: vscode.TextDocument,
+    position: vscode.Position,
+    ch: string
+): vscode.TextEdit | undefined {
+    let lineNum: number;
+    let endCol: number;
+    if (ch === '\n') {
+        if (position.line === 0) return undefined;
+        lineNum = position.line - 1;
+        endCol = document.lineAt(lineNum).text.length; // word ends at end of line
+    } else {
+        // The trigger char (space/tab) was inserted at position.character - 1.
+        lineNum = position.line;
+        endCol = position.character - 1;
+    }
+    if (endCol <= 0) return undefined;
+
+    const lineText = document.lineAt(lineNum).text;
+    const before = lineText.substring(0, endCol);
+    const m = before.match(/([A-Za-z_][A-Za-z0-9_]*)$/);
+    if (!m) return undefined;
+
+    const word = m[1];
+    const startCol = endCol - word.length;
+
+    // Skip member access (obj.Type) and bracketed identifiers ([Type]).
+    const prevCh = startCol > 0 ? lineText[startCol - 1] : '';
+    if (prevCh === '.' || prevCh === '[') return undefined;
+
+    if (isInStringOrComment(lineText, startCol)) return undefined;
+
+    const canonical = canonicalKeyword(word);
+    if (!canonical) return undefined;
+
+    return vscode.TextEdit.replace(new vscode.Range(lineNum, startCol, lineNum, endCol), canonical);
 }
 
