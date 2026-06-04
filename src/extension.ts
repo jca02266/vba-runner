@@ -761,6 +761,16 @@ End Class`;
                         arguments: [document.uri, range],
                     };
                     actions.push(action);
+
+                    const lspActions = lspServer.getCodeActions(document.uri.toString(), {
+                        start: { line: range.start.line, character: range.start.character },
+                        end:   { line: range.end.line,   character: range.end.character },
+                    });
+                    for (const la of lspActions) {
+                        const vsAction = new vscode.CodeAction(la.title, vscode.CodeActionKind.RefactorExtract);
+                        vsAction.command = la.command;
+                        actions.push(vsAction);
+                    }
                 }
 
                 return actions;
@@ -934,6 +944,99 @@ End Class`;
                 }
             }
         })
+    );
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.doExtractFunction',
+            async (
+                uri: string,
+                lspRange: { start: { line: number; character: number }; end: { line: number; character: number } },
+                result: { inputs: string[]; outputs: string[]; locals: string[] },
+                procSignature: string,
+                callStatement: string,
+            ) => {
+                const vsUri = vscode.Uri.parse(uri);
+                const editor = vscode.window.activeTextEditor;
+                if (!editor || editor.document.uri.toString() !== vsUri.toString()) {
+                    vscode.window.showWarningMessage('ドキュメントのコンテキストが失われました');
+                    return;
+                }
+
+                const defaultName = callStatement.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/)?.[1] ?? 'ExtractedSub';
+                const procName = await vscode.window.showInputBox({
+                    prompt: '新しいプロシージャ名:',
+                    value: defaultName,
+                    validateInput: (input) => {
+                        if (!input) return 'プロシージャ名は必須です';
+                        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) return '無効なプロシージャ名';
+                        return '';
+                    },
+                });
+                if (!procName) return;
+
+                const startLine = lspRange.start.line;
+                const endLine   = lspRange.end.line;
+
+                // Collect selected lines
+                const selectedLines: string[] = [];
+                for (let i = startLine; i <= endLine; i++) {
+                    selectedLines.push(editor.document.lineAt(i).text);
+                }
+
+                // Re-indent: strip common leading whitespace, add 4-space indent
+                const nonBlank = selectedLines.filter(l => l.trim().length > 0);
+                const minIndentLen = nonBlank.length > 0
+                    ? Math.min(...nonBlank.map(l => (l.match(/^(\s*)/)?.[1].length) ?? 0))
+                    : 0;
+                const reindented = selectedLines.map(l =>
+                    l.trim().length > 0 ? '    ' + l.slice(minIndentLen) : ''
+                );
+
+                // Apply user-provided name to signature/call
+                const finalSigLine = procSignature.split('\n')[0].replace(/\bExtractedSub\b/, procName);
+                const finalCall    = callStatement.replace(/^ExtractedSub\b/, procName);
+
+                // Add Dim declarations for locals not already declared within selected lines
+                const dimmedInSelection = new Set(
+                    selectedLines
+                        .map(l => l.match(/^\s*Dim\s+(\w+)/i)?.[1]?.toLowerCase())
+                        .filter((v): v is string => v !== undefined)
+                );
+                const extraDims = result.locals
+                    .filter(v => !dimmedInSelection.has(v.toLowerCase()))
+                    .map(v => `    Dim ${v} As Variant`);
+
+                // Build new Sub text
+                const newProcText = [finalSigLine, ...extraDims, ...reindented, 'End Sub'].join('\n');
+
+                // Find containing procedure's last line (0-based) for insertion point
+                const ast = lspServer.parseDocument(editor.document.getText());
+                let procEndLine = endLine;
+                if (ast?.body) {
+                    for (const stmt of ast.body) {
+                        if (
+                            stmt.type === 'ProcedureDeclaration' &&
+                            stmt.loc != null &&
+                            stmt.loc.start.line - 1 <= startLine &&
+                            stmt.loc.end.line   - 1 >= endLine
+                        ) {
+                            procEndLine = stmt.loc.end.line - 1;
+                            break;
+                        }
+                    }
+                }
+
+                const callIndent = selectedLines[0]?.match(/^\s*/)?.[0] ?? '';
+
+                const edit = new vscode.WorkspaceEdit();
+                edit.replace(
+                    vsUri,
+                    new vscode.Range(startLine, 0, endLine, editor.document.lineAt(endLine).text.length),
+                    callIndent + finalCall,
+                );
+                edit.insert(vsUri, new vscode.Position(procEndLine + 1, 0), '\n' + newProcText + '\n');
+                await vscode.workspace.applyEdit(edit);
+            }
+        )
     );
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.extractFunction',
