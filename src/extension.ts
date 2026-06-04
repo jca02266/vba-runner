@@ -13,6 +13,7 @@ import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webvi
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
+import { checkOptionExplicit } from './engine/option-explicit-checker';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -754,14 +755,49 @@ End Class`;
                 const actions: vscode.CodeAction[] = [];
 
                 if (!range.isEmpty) {
-                    const action = new vscode.CodeAction('Introduce Variable', vscode.CodeActionKind.Refactor);
-                    action.command = {
+                    const introduceVarAction = new vscode.CodeAction('Introduce Variable', vscode.CodeActionKind.Refactor);
+                    introduceVarAction.command = {
                         title: 'Introduce Variable',
                         command: 'vba-runner.introduceVariable',
                         arguments: [document.uri, range],
                     };
-                    actions.push(action);
+                    actions.push(introduceVarAction);
 
+                    // Extract Constant: selection is a literal value
+                    const selectedText = document.getText(range).trim();
+                    if (/^("(?:[^""]|"")*"|-?\d+(?:\.\d+)?(?:[Ee][+-]?\d+)?|True|False)$/i.test(selectedText)) {
+                        const extractConstAction = new vscode.CodeAction('Extract Constant', vscode.CodeActionKind.RefactorExtract);
+                        extractConstAction.command = {
+                            title: 'Extract Constant',
+                            command: 'vba-runner.extractConstant',
+                            arguments: [document.uri, range],
+                        };
+                        actions.push(extractConstAction);
+                    }
+
+                    // Introduce With: selection spans multiple lines with same object prefix
+                    if (range.start.line < range.end.line) {
+                        const lineTexts: string[] = [];
+                        for (let i = range.start.line; i <= range.end.line; i++) {
+                            lineTexts.push(document.lineAt(i).text.trim());
+                        }
+                        const nonEmpty = lineTexts.filter(Boolean);
+                        const objMatch = nonEmpty[0]?.match(/^([A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*)\./);
+                        if (objMatch && nonEmpty.every(l => l.toLowerCase().startsWith(objMatch[1].toLowerCase() + '.'))) {
+                            const withAction = new vscode.CodeAction(
+                                `Introduce With '${objMatch[1]}'`,
+                                vscode.CodeActionKind.Refactor
+                            );
+                            withAction.command = {
+                                title: 'Introduce With',
+                                command: 'vba-runner.introduceWith',
+                                arguments: [document.uri, range, objMatch[1]],
+                            };
+                            actions.push(withAction);
+                        }
+                    }
+
+                    // Extract Sub/Function (from LSP server)
                     const lspActions = lspServer.getCodeActions(document.uri.toString(), {
                         start: { line: range.start.line, character: range.start.character },
                         end:   { line: range.end.line,   character: range.end.character },
@@ -771,10 +807,72 @@ End Class`;
                         vsAction.command = la.command;
                         actions.push(vsAction);
                     }
+                } else {
+                    // Inline Variable: cursor on an identifier (no selection)
+                    const wordRange = document.getWordRangeAtPosition(range.start, /[A-Za-z_][A-Za-z0-9_]*/);
+                    if (wordRange) {
+                        const word = document.getText(wordRange);
+                        if (!/^(Sub|Function|End|Dim|As|Private|Public|Friend|If|Then|Else|ElseIf|For|Each|In|Next|Do|While|Until|Loop|With|Select|Case|GoTo|GoSub|Return|Exit|True|False|Nothing|Null|Empty|Not|And|Or|Xor|Eqv|Imp|Mod|Like|Is|Let|Set|New|ByVal|ByRef|Optional|ParamArray|Preserve|Static|Type|Enum|Property|Get|Put|Call|On|Error|Resume|Wend|Me|ReDim)$/i.test(word)) {
+                            const inlineAction = new vscode.CodeAction(
+                                `Inline Variable '${word}'`,
+                                vscode.CodeActionKind.RefactorInline
+                            );
+                            inlineAction.command = {
+                                title: 'Inline Variable',
+                                command: 'vba-runner.inlineVariable',
+                                arguments: [document.uri, wordRange],
+                            };
+                            actions.push(inlineAction);
+                        }
+                    }
                 }
 
                 return actions;
             }
+        }, {
+            providedCodeActionKinds: [
+                vscode.CodeActionKind.Refactor,
+                vscode.CodeActionKind.RefactorExtract,
+                vscode.CodeActionKind.RefactorInline,
+            ]
+        })
+    );
+
+    // Register Source Actions (Source Actions menu)
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider('vba', {
+            provideCodeActions(document) {
+                const actions: vscode.CodeAction[] = [];
+
+                const removeAction = new vscode.CodeAction(
+                    'Remove Unused Variables',
+                    vscode.CodeActionKind.SourceFixAll
+                );
+                removeAction.command = {
+                    title: 'Remove Unused Variables',
+                    command: 'vba-runner.removeUnusedVariables',
+                    arguments: [document.uri],
+                };
+                actions.push(removeAction);
+
+                const organizeAction = new vscode.CodeAction(
+                    'Organize Declarations',
+                    vscode.CodeActionKind.Source
+                );
+                organizeAction.command = {
+                    title: 'Organize Declarations',
+                    command: 'vba-runner.organizeDeclarations',
+                    arguments: [document.uri],
+                };
+                actions.push(organizeAction);
+
+                return actions;
+            }
+        }, {
+            providedCodeActionKinds: [
+                vscode.CodeActionKind.Source,
+                vscode.CodeActionKind.SourceFixAll,
+            ]
         })
     );
 
@@ -1045,6 +1143,303 @@ End Class`;
             }
         )
     );
+
+    // Extract Constant: selected literal → Const at procedure top, replace all occurrences
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.extractConstant', async (uri: vscode.Uri, range: vscode.Range) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) return;
+
+            const literal = editor.document.getText(range).trim();
+
+            // Derive default name from literal
+            let defaultName = 'CONST_VALUE';
+            if (literal.startsWith('"')) {
+                const word = literal.slice(1, -1).trim().match(/^[A-Za-z_][A-Za-z0-9_]*/)?.[0];
+                if (word) defaultName = word.toUpperCase();
+            } else if (/^\d/.test(literal)) {
+                defaultName = 'CONST_' + literal.replace(/[^0-9A-Za-z]/g, '_').replace(/_+$/, '');
+            }
+
+            const constName = await vscode.window.showInputBox({
+                prompt: '定数名:',
+                value: defaultName,
+                validateInput: v => !v ? '定数名は必須です' : !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? '無効な定数名' : '',
+            });
+            if (!constName) return;
+
+            const ast = lspServer.parseDocument(editor.document.getText());
+            const lineNum1 = range.start.line + 1; // 1-based
+            const proc = ast?.body?.find((s: any) =>
+                s.type === 'ProcedureDeclaration' && s.loc?.start.line <= lineNum1 && s.loc?.end.line >= lineNum1
+            );
+
+            if (!proc) {
+                vscode.window.showWarningMessage('カーソルはプロシージャ内にある必要があります');
+                return;
+            }
+
+            const procStart0 = (proc.loc.start.line as number) - 1; // 0-based
+            const procEnd0 = (proc.loc.end.line as number) - 1;
+            const insertLine0 = procStart0 + 1; // line after Sub/Function header
+            const insertIndent = editor.document.lineAt(insertLine0).text.match(/^\s*/)?.[0] ?? '    ';
+
+            // Build search pattern for this literal
+            const isString = literal.startsWith('"');
+            const escaped = literal.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const pattern = isString
+                ? new RegExp(escaped, 'g')
+                : new RegExp(`(?<![A-Za-z0-9_.])${escaped}(?![A-Za-z0-9_.])`, 'gi');
+
+            // Collect all occurrences in the procedure body (skip comments)
+            const replacements: vscode.Range[] = [];
+            for (let i = procStart0 + 1; i <= procEnd0; i++) {
+                const lineText = editor.document.lineAt(i).text;
+                const commentIdx = lineText.indexOf("'");
+                const searchIn = commentIdx >= 0 ? lineText.slice(0, commentIdx) : lineText;
+                pattern.lastIndex = 0;
+                let m: RegExpExecArray | null;
+                while ((m = pattern.exec(searchIn)) !== null) {
+                    replacements.push(new vscode.Range(i, m.index, i, m.index + m[0].length));
+                }
+            }
+
+            const edit = new vscode.WorkspaceEdit();
+            // Apply replacements bottom to top (WorkspaceEdit handles this correctly, but explicit ordering is safe)
+            for (const r of [...replacements].reverse()) {
+                edit.replace(uri, r, constName);
+            }
+            edit.insert(uri, new vscode.Position(insertLine0, 0), `${insertIndent}Const ${constName} = ${literal}\n`);
+            await vscode.workspace.applyEdit(edit);
+        })
+    );
+
+    // Inline Variable: replace all references with the assigned expression, remove Dim + assignment
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.inlineVariable', async (uri: vscode.Uri, wordRange: vscode.Range) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) return;
+
+            const varName = editor.document.getText(wordRange);
+            const ast = lspServer.parseDocument(editor.document.getText());
+            const lineNum1 = wordRange.start.line + 1; // 1-based
+
+            const proc = ast?.body?.find((s: any) =>
+                s.type === 'ProcedureDeclaration' && s.loc?.start.line <= lineNum1 && s.loc?.end.line >= lineNum1
+            );
+            if (!proc) {
+                vscode.window.showWarningMessage('変数がプロシージャ内にありません');
+                return;
+            }
+
+            const procStart0 = (proc.loc.start.line as number) - 1;
+            const procEnd0 = (proc.loc.end.line as number) - 1;
+
+            const dimRe = new RegExp(`^\\s*(?:Static\\s+)?Dim\\s+${varName}\\b`, 'i');
+            const assignRe = new RegExp(`^(\\s*)${varName}\\s*=\\s*(.+)$`, 'i');
+
+            let dimLine = -1;
+            let assignLine = -1;
+            let assignExpr = '';
+            let assignCount = 0;
+
+            for (let i = procStart0; i <= procEnd0; i++) {
+                const text = editor.document.lineAt(i).text;
+                if (dimRe.test(text)) { dimLine = i; continue; }
+                const m = text.match(assignRe);
+                if (m) {
+                    assignCount++;
+                    if (assignCount === 1) { assignLine = i; assignExpr = m[2].trim(); }
+                }
+            }
+
+            if (dimLine < 0) {
+                vscode.window.showWarningMessage(`'${varName}' の Dim 宣言が見つかりません`);
+                return;
+            }
+            if (assignLine < 0) {
+                vscode.window.showWarningMessage(`'${varName}' の代入文が見つかりません`);
+                return;
+            }
+            if (assignCount > 1) {
+                vscode.window.showWarningMessage(`'${varName}' に複数の代入があるためインライン化できません`);
+                return;
+            }
+
+            // Collect reference positions (exclude Dim and assignment lines)
+            const refPattern = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
+            const replacements: vscode.Range[] = [];
+            for (let i = procStart0; i <= procEnd0; i++) {
+                if (i === dimLine || i === assignLine) continue;
+                const text = editor.document.lineAt(i).text;
+                refPattern.lastIndex = 0;
+                let m: RegExpExecArray | null;
+                while ((m = refPattern.exec(text)) !== null) {
+                    replacements.push(new vscode.Range(i, m.index, i, m.index + m[0].length));
+                }
+            }
+
+            // Parenthesize if multi-use and expression contains operators
+            const needsParens =
+                replacements.length > 1 &&
+                /[+\-*&^\\]|\bMod\b|\bAnd\b|\bOr\b|\bXor\b|\bNot\b/i.test(assignExpr);
+            const inlined = needsParens ? `(${assignExpr})` : assignExpr;
+
+            const edit = new vscode.WorkspaceEdit();
+            for (const r of [...replacements].reverse()) {
+                edit.replace(uri, r, inlined);
+            }
+            // Delete lines from bottom to top
+            for (const ln of [dimLine, assignLine].sort((a, b) => b - a)) {
+                edit.delete(uri, new vscode.Range(ln, 0, ln + 1, 0));
+            }
+            await vscode.workspace.applyEdit(edit);
+        })
+    );
+
+    // Introduce With: wrap selected consecutive obj.Xxx lines in With obj ... End With
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.introduceWith', async (uri: vscode.Uri, range: vscode.Range, obj: string) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) return;
+
+            const indent = editor.document.lineAt(range.start.line).text.match(/^\s*/)?.[0] ?? '';
+            const innerIndent = indent + '    ';
+            const objLower = obj.toLowerCase();
+
+            const bodyLines: string[] = [];
+            for (let i = range.start.line; i <= range.end.line; i++) {
+                const trimmed = editor.document.lineAt(i).text.trim();
+                if (!trimmed) { bodyLines.push(''); continue; }
+                if (trimmed.toLowerCase().startsWith(objLower + '.')) {
+                    bodyLines.push(`${innerIndent}.${trimmed.slice(obj.length + 1)}`);
+                } else {
+                    bodyLines.push(`${innerIndent}${trimmed}`);
+                }
+            }
+
+            const newText = `${indent}With ${obj}\n${bodyLines.join('\n')}\n${indent}End With`;
+            const fullRange = new vscode.Range(
+                range.start.line, 0,
+                range.end.line, editor.document.lineAt(range.end.line).text.length
+            );
+            const edit = new vscode.WorkspaceEdit();
+            edit.replace(uri, fullRange, newText);
+            await vscode.workspace.applyEdit(edit);
+        })
+    );
+
+    // Remove Unused Variables: delete Dim declarations with no references
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.removeUnusedVariables', async (uri: vscode.Uri) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) return;
+
+            const ast = lspServer.parseDocument(editor.document.getText());
+            if (!ast) return;
+
+            type DimVar = { line: number; varName: string; col: number; isSingleVar: boolean };
+            const dimVars: DimVar[] = [];
+
+            const walkBody = (body: any[]) => {
+                for (const s of body) {
+                    if (s.type === 'VariableDeclaration' && s.loc && !s.scope) {
+                        const line0 = (s.loc.start.line as number) - 1;
+                        const lineText = editor.document.lineAt(line0).text;
+                        const isSingleVar = (s.declarations as any[]).length === 1;
+                        for (const decl of (s.declarations as any[])) {
+                            const name: string = decl.name?.name ?? '';
+                            if (!name) continue;
+                            const col = lineText.toLowerCase().indexOf(name.toLowerCase());
+                            if (col >= 0) dimVars.push({ line: line0, varName: name, col, isSingleVar });
+                        }
+                    }
+                    if (s.body) walkBody(s.body);
+                    if (Array.isArray(s.alternate)) walkBody(s.alternate);
+                    else if (s.alternate?.body) walkBody(s.alternate.body);
+                    if (s.cases) for (const c of s.cases as any[]) if (c.body) walkBody(c.body);
+                }
+            };
+
+            for (const stmt of (ast.body ?? [])) {
+                if (stmt.type === 'ProcedureDeclaration') walkBody(stmt.body ?? []);
+            }
+
+            const toDeleteLines = new Set<number>();
+            for (const { line, col, isSingleVar } of dimVars) {
+                if (!isSingleVar) continue; // skip multi-var Dim to avoid removing used vars
+                const refs = lspServer.getReferences(uri.toString(), line, col + 1, false);
+                if (refs.length === 0) toDeleteLines.add(line);
+            }
+
+            if (toDeleteLines.size === 0) {
+                vscode.window.showInformationMessage('未使用の変数はありません');
+                return;
+            }
+
+            const edit = new vscode.WorkspaceEdit();
+            for (const ln of [...toDeleteLines].sort((a, b) => b - a)) {
+                edit.delete(uri, new vscode.Range(ln, 0, ln + 1, 0));
+            }
+            await vscode.workspace.applyEdit(edit);
+            vscode.window.showInformationMessage(`${toDeleteLines.size} 個の未使用変数宣言を削除しました`);
+        })
+    );
+
+    // Organize Declarations: add Option Explicit and Dim for undeclared variables
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.organizeDeclarations', async (uri: vscode.Uri) => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor || editor.document.uri.toString() !== uri.toString()) return;
+
+            const docText = editor.document.getText();
+            const hasOptionExplicit = /^\s*Option\s+Explicit\s*$/im.test(docText);
+
+            // Parse with Option Explicit active (prepend if missing) to detect undeclared vars
+            const sourceForCheck = hasOptionExplicit ? docText : 'Option Explicit\n' + docText;
+            const tokens = new Lexer(sourceForCheck).tokenize();
+            const modifiedAst = new Parser(tokens, { errorRecovery: true }).parse();
+            const oeResult = checkOptionExplicit(modifiedAst);
+
+            // Also parse original AST to get correct procedure line positions
+            const origAst = lspServer.parseDocument(docText);
+
+            const edit = new vscode.WorkspaceEdit();
+
+            if (!hasOptionExplicit) {
+                edit.insert(uri, new vscode.Position(0, 0), 'Option Explicit\n');
+            }
+
+            let dimCount = 0;
+            for (const stmt of (origAst?.body ?? [])) {
+                if (stmt.type !== 'ProcedureDeclaration') continue;
+                const procNameLower: string = (stmt as any).name?.name?.toLowerCase() ?? '';
+                const undeclared = oeResult.violatedProcedures.get(procNameLower);
+                if (!undeclared || undeclared.size === 0) continue;
+
+                const procStart0 = ((stmt as any).loc.start.line as number) - 1;
+                const insertLine0 = procStart0 + 1;
+                const insertIndent = editor.document.lineAt(insertLine0).text.match(/^\s*/)?.[0] ?? '    ';
+
+                const dimLines = [...undeclared.keys()]
+                    .sort()
+                    .map(name => `${insertIndent}Dim ${name} As Variant`)
+                    .join('\n');
+
+                edit.insert(uri, new vscode.Position(insertLine0, 0), dimLines + '\n');
+                dimCount += undeclared.size;
+            }
+
+            await vscode.workspace.applyEdit(edit);
+
+            const parts: string[] = [];
+            if (!hasOptionExplicit) parts.push('Option Explicit を追加');
+            if (dimCount > 0) parts.push(`${dimCount} 個の Dim 宣言を追加`);
+            if (parts.length === 0) parts.push('変更なし');
+            vscode.window.showInformationMessage(parts.join('、') + 'しました');
+        })
+    );
+
     outputChannel.appendLine('✓ Code Actions (Refactor) registered');
 
     outputChannel.appendLine('✓ All providers registered successfully');
