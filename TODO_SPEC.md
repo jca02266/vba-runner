@@ -32,7 +32,6 @@
 |------|--------|------|------|--------|
 | ✅ | P2 | 日本語識別子対応 | MS-VBAL §3.3.5 に従い `isAlpha()` を Unicode プロパティエスケープ (`\p{L}`) で拡張。パーサーの `isWordToken()` も同様に対応。`Dim 氏名 As String` 等の識別子・UDT・関数名で使用可能に | `unicode-identifiers.test.ts` |
 | ❌ | P2 | VarPtr / StrPtr / ObjPtr | MS-VBAL 仕様外の Office VBA ランタイム非公式拡張。`VarPtr(x)` は変数のアドレス、`StrPtr(s)` は文字列バッファのアドレス、`ObjPtr(obj)` はオブジェクトポインターを返す。Windows CryptoAPI 等の Declare 関数へのバッファ渡しに使用される。エンジン上では実アドレスに意味はないため、`VarPtr` は引数を識別するための一意な整数を返すダミー実装が現実的。 | |
-| ✅ | P1 | DAP ステップ実行（VS Code デバッガー） | Worker スレッド + SharedArrayBuffer + Atomics による本実装。stepOver / stepInto / stepOut / continue / ブレークポイント / 変数表示 / スタックフレームに対応。`DebugHook` インターフェースを Evaluator に追加し、各ステートメント実行前にフックを呼び出す | `lsp-debug-hook.test.ts`, `lsp-debug-session.test.ts` |
 
 ---
 
