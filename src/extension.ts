@@ -254,10 +254,18 @@ export async function activate(context: vscode.ExtensionContext) {
                     const ci = new vscode.CompletionItem(item.label, item.kind || vscode.CompletionItemKind.Function);
                     ci.detail = item.detail;
                     ci.documentation = item.documentation;
+                    if (item.insertText !== undefined) ci.insertText = item.insertText;
+                    if (item.filterText !== undefined) ci.filterText = item.filterText;
+                    if (item.replaceStartCharacter !== undefined) {
+                        ci.range = new vscode.Range(
+                            position.line, item.replaceStartCharacter,
+                            position.line, position.character
+                        );
+                    }
                     return ci;
                 });
             }
-        }, '.')); // Trigger on dot
+        }, '.', ' ')); // Trigger on dot and space (for "End ", "Next ", etc.)
     outputChannel.appendLine('✓ Completion provider registered');
 
     // Register test discovery
