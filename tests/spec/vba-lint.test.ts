@@ -392,4 +392,68 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA010: On Error GoTo ハンドラーは到達不能扱いしない');
 }
 
+// ─── VBA012: ByRef 明示なしのパラメーターへ代入 ──────────────────────────────
+
+// 修飾子なしのパラメーターへ代入 → 検出
+{
+    const diags = lint('Sub Test(x As Long)\n    x = 5\nEnd Sub');
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 1, 'VBA012: 1 件検出');
+    assert.strictEqual(d[0].message.includes('x'), true, 'VBA012: パラメーター名 x を含む');
+    assert.strictEqual(d[0].severity, 2, 'VBA012: severity = Warning');
+    console.log('[PASS] VBA012: 修飾子なしパラメーターへの代入');
+}
+
+// ByRef 明示あり → 警告なし
+{
+    const diags = lint('Sub Test(ByRef x As Long)\n    x = 5\nEnd Sub');
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 0, 'VBA012: ByRef 明示 → 警告なし');
+    console.log('[PASS] VBA012: ByRef 明示 → 警告なし');
+}
+
+// ByVal 明示あり → 警告なし
+{
+    const diags = lint('Sub Test(ByVal x As Long)\n    x = 5\nEnd Sub');
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 0, 'VBA012: ByVal 明示 → 警告なし');
+    console.log('[PASS] VBA012: ByVal 明示 → 警告なし');
+}
+
+// 代入していない修飾子なしパラメーター → 警告なし（VBA003 のみ）
+{
+    const diags = lint('Sub Test(x As Long)\n    Debug.Print x\nEnd Sub');
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 0, 'VBA012: 代入なし → 警告なし');
+    console.log('[PASS] VBA012: 代入なし → 警告なし');
+}
+
+// ネストしたブロック内での代入 → 検出
+{
+    const code = [
+        'Sub Test(x As Long)',
+        '    If x > 0 Then',
+        '        x = x - 1',
+        '    End If',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 1, 'VBA012: ネスト内代入を検出');
+    console.log('[PASS] VBA012: ネストしたブロック内の代入');
+}
+
+// Set 代入も検出
+{
+    const code = [
+        'Sub Test(obj As Object)',
+        '    Set obj = Nothing',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA012');
+    assert.strictEqual(d.length, 1, 'VBA012: Set 代入を検出');
+    console.log('[PASS] VBA012: Set 代入');
+}
+
 console.log('\n✅ VBA Lint: 全テスト通過');

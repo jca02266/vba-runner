@@ -15,6 +15,7 @@
  *   VBA009 - デッドストア → 代入値が上書きまたは未使用
  *   VBA010 - 到達不能コード → Exit Sub / GoTo などで実行されないコード
  *   VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
+ *   VBA012 - ByRef 明示なしのパラメーターへ代入 → 呼び出し元を意図せず書き換える罠
  */
 
 import {
@@ -114,6 +115,7 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[], continueLabels: S
         case 'ProcedureDeclaration': {
             const proc = stmt as ProcedureDeclaration;
             checkParameters(proc, out);
+            checkParamAssignWithoutByRef(proc, out);
             checkDeadStores(proc, out);
             checkUnreachableCode(proc, out);
             const procContinueLabels = findLoopContinueLabels(proc.body);
@@ -293,6 +295,86 @@ function checkParameters(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
     }
 }
 
+/**
+ * 文の列を走査し、代入先となっている識別子名（小文字）を収集する。
+ * 対象: 単純代入 / Set 代入の左辺 Identifier、For/For Each のループ変数。
+ * ネストしたブロック（If/For/While/Do/With/Select Case）も再帰的にたどる。
+ */
+function collectAssignedNames(stmts: Statement[], out: Set<string> = new Set()): Set<string> {
+    for (const stmt of stmts) {
+        switch (stmt.type) {
+            case 'AssignmentStatement':
+            case 'SetStatement': {
+                const left = (stmt as any).left;
+                if (left && left.type === 'Identifier') out.add((left as Identifier).name.toLowerCase());
+                break;
+            }
+            case 'ForStatement': {
+                const id = (stmt as any).identifier;
+                if (id && id.type === 'Identifier') out.add((id as Identifier).name.toLowerCase());
+                collectAssignedNames((stmt as any).body ?? [], out);
+                break;
+            }
+            case 'ForEachStatement': {
+                const v = (stmt as any).variable;
+                if (v && v.type === 'Identifier') out.add((v as Identifier).name.toLowerCase());
+                collectAssignedNames((stmt as any).body ?? [], out);
+                break;
+            }
+            case 'DoWhileStatement':
+            case 'WhileStatement':
+            case 'WithStatement':
+                collectAssignedNames((stmt as any).body ?? [], out);
+                break;
+            case 'IfStatement': {
+                const is = stmt as any;
+                const cons = Array.isArray(is.consequent) ? is.consequent : (is.consequent ? [is.consequent] : []);
+                const alt  = Array.isArray(is.alternate)  ? is.alternate  : (is.alternate  ? [is.alternate]  : []);
+                collectAssignedNames(cons, out);
+                collectAssignedNames(alt, out);
+                break;
+            }
+            case 'SelectCaseStatement': {
+                const sc = stmt as SelectCaseStatement;
+                for (const clause of sc.cases ?? []) collectAssignedNames(clause.body ?? [], out);
+                if (sc.elseBody) collectAssignedNames(sc.elseBody, out);
+                break;
+            }
+        }
+    }
+    return out;
+}
+
+/**
+ * VBA012: パラメーターに ByRef の指定がないのに代入している
+ *
+ * 修飾子なし（暗黙の ByRef）のパラメーターに本体内で代入していると、
+ * 呼び出し元の変数を意図せず書き換えてしまう。明示的に ByRef（書き戻す）
+ * または ByVal（ローカルコピー）を指定するよう促す。
+ * ByVal/ByRef が明示されている場合は対象外。
+ */
+function checkParamAssignWithoutByRef(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
+    const assigned = collectAssignedNames(proc.body);
+
+    for (const param of proc.parameters) {
+        // ByVal / ByRef が明示されているものは対象外
+        if (param.hasPassingModifier) continue;
+        // ParamArray は代入対象として扱わない
+        if (param.isParamArray) continue;
+        if (!assigned.has(param.name.toLowerCase())) continue;
+
+        const loc  = (param as any).loc;
+        const line = (loc?.start.line   ?? 1) - 1;
+        const col  = (loc?.start.column ?? 1) - 1;
+        out.push({
+            code: 'VBA012',
+            severity: 2,
+            message: `パラメーター '${param.name}' は ByRef の指定がないのに代入されています。呼び出し元の変数を意図せず書き換える可能性があります（明示的に ByRef または ByVal を指定してください）`,
+            line, column: col, endLine: line, endColumn: col + param.name.length,
+        });
+    }
+}
+
 /** VBA004: While...Wend → Do While...Loop を推奨 */
 function checkWhileWend(stmt: WhileStatement, out: LintDiagnostic[]): void {
     const loc  = (stmt as any).loc;
@@ -422,7 +504,7 @@ function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
         out.push({
             code: 'VBA009',
             severity: 2,
-            message: `'${ds.varName}' への代入値が上書きまたは未使用です（デッドストア）`,
+            message: `'${ds.varName}' への代入はデッドストア（使用されない代入値）`,
             line, column: col, endLine: line, endColumn: endCol,
         });
     }
