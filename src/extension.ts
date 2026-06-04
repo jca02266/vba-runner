@@ -527,6 +527,21 @@ End Class`;
         })
     );
 
+    // vba-runner.debugProcedure: CodeLens から呼ばれる「指定プロシージャをデバッグ実行」コマンド
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.debugProcedure', (uri: string, procName: string) => {
+            const filePath = vscode.Uri.parse(uri).fsPath;
+            const folder = vscode.workspace.getWorkspaceFolder(vscode.Uri.parse(uri));
+            vscode.debug.startDebugging(folder, {
+                type: 'vba',
+                request: 'launch',
+                name: `Debug VBA: ${procName}`,
+                program: filePath,
+                entryPoint: procName,
+            });
+        })
+    );
+
     // vba-runner.findReferences: CodeLens から呼ばれる「参照を検索」コマンド
     // uri, line, character は CodeLens が宣言位置として渡す
     context.subscriptions.push(

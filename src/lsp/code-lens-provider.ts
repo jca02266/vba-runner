@@ -35,7 +35,7 @@ export class CodeLensProvider {
                 end:   { line: proc.line, character: 0 },
             };
 
-            // ▶ Run: parameterless、または Test_* の assert 1引数プロシージャ
+            // ▶ Run / 🐛 Debug: parameterless、または Test_* の assert 1引数プロシージャ
             if (!proc.hasRequiredParams || proc.isTestProc) {
                 items.push({
                     range,
@@ -43,6 +43,14 @@ export class CodeLensProvider {
                         title: '▶ Run',
                         command: 'vba-runner.runProcedure',
                         arguments: [uri, proc.name, proc.isTestProc],
+                    },
+                });
+                items.push({
+                    range,
+                    command: {
+                        title: '🐛 Debug',
+                        command: 'vba-runner.debugProcedure',
+                        arguments: [uri, proc.name],
                     },
                 });
             }
