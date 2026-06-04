@@ -220,6 +220,15 @@ export interface VbaTypeInfo {
     vbaType: VbaVarType;
 }
 
+export interface DebugHook {
+    onBeforeStatement(
+        line: number,
+        callDepth: number,
+        env: Environment,
+        callStack: ReadonlyArray<{ name: string; moduleName: string; line: number }>
+    ): void;
+}
+
 export class Environment {
     private variables: Map<string, any> = new Map();
     private variableTypes: Map<string, VbaTypeInfo> = new Map();
@@ -399,6 +408,11 @@ export class Environment {
             env = env.enclosing;
         }
         return keys;
+    }
+
+    /** このスコープのローカル変数のみを返す（デバッガー変数表示用）。 */
+    getLocalVariables(): Map<string, any> {
+        return new Map(this.variables);
     }
 
     hasVariable(name: string): boolean {
@@ -587,6 +601,7 @@ export class Evaluator {
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
+    private debugHook: DebugHook | null = null;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         this.env = new Environment();
@@ -600,6 +615,14 @@ export class Evaluator {
     // Public accessor for testing/mocking
     getGlobalEnv(): Environment {
         return this.env;
+    }
+
+    setDebugHook(hook: DebugHook | null): void {
+        this.debugHook = hook;
+    }
+
+    getVbaCallStack(): ReadonlyArray<{ name: string; moduleName: string; line: number }> {
+        return this.vbaCallStack;
     }
 
     setNowFn(fn: (() => Date) | null): void {
@@ -1938,7 +1961,12 @@ export class Evaluator {
     }
 
     private evaluateStatement(stmt: Statement) {
-        if (stmt.line !== undefined) this.currentLine = stmt.line;
+        if (stmt.line !== undefined) {
+            this.currentLine = stmt.line;
+            if (this.debugHook && this.vbaCallStack.length > 0) {
+                this.debugHook.onBeforeStatement(stmt.line, this.vbaCallStack.length, this.env, this.vbaCallStack);
+            }
+        }
         switch (stmt.type) {
             case 'ForStatement':
                 this.evaluateForStatement(stmt as ForStatement);

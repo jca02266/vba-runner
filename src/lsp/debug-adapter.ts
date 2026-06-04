@@ -1,5 +1,4 @@
-import { Program } from '../engine/parser';
-import { Debugger, Breakpoint, StackFrame, Variable } from './debugger';
+import { VBADebugSession, SessionBreakpoint, SessionStackFrame, SessionVariable } from './debug-session';
 
 export interface DebugCapabilities {
     supportsConfigurationDoneRequest?: boolean;
@@ -25,17 +24,22 @@ export interface DebugResponse {
     error?: string;
 }
 
-export class DebugAdapter {
-    private debugger: Debugger;
-    private initialized: boolean = false;
+export type { SessionBreakpoint as Breakpoint, SessionStackFrame as StackFrame, SessionVariable as Variable };
 
-    constructor(ast: Program) {
-        this.debugger = new Debugger(ast);
+export class DebugAdapter {
+    private session: VBADebugSession | null = null;
+    private initialized = false;
+    private moduleName: string;
+
+    /** DAP イベントを送るコールバック（VBAInlineDebugAdapter が設定する） */
+    public onEvent?: (event: any) => void;
+
+    constructor(private readonly source: string, moduleName = 'Module1') {
+        this.moduleName = moduleName;
     }
 
     handleInitialize(): any {
         this.initialized = true;
-
         return {
             capabilities: {
                 supportsConfigurationDoneRequest: true,
@@ -49,98 +53,125 @@ export class DebugAdapter {
         };
     }
 
-    handleLaunch(_args: any): any {
+    handleLaunch(args: any): any {
         if (!this.initialized) {
             return { success: false, error: 'Not initialized' };
         }
 
-        // Initialize the debugger session
-        this.debugger.getState();
+        const entryPoint = args?.entryPoint ?? null;
+        this.session = new VBADebugSession(this.source, this.moduleName, entryPoint);
+
+        this.session.on('stopped', (info: { reason: string; line: number }) => {
+            this.onEvent?.({
+                type: 'event',
+                event: 'stopped',
+                body: { reason: info.reason, threadId: 1, allThreadsStopped: true },
+            });
+        });
+
+        this.session.on('output', (text: string) => {
+            this.onEvent?.({
+                type: 'event',
+                event: 'output',
+                body: { category: 'stdout', output: text + '\n' },
+            });
+        });
+
+        this.session.on('runtimeError', (msg: string) => {
+            this.onEvent?.({
+                type: 'event',
+                event: 'output',
+                body: { category: 'stderr', output: msg + '\n' },
+            });
+        });
+
+        this.session.on('exited', (exitCode: number) => {
+            this.onEvent?.({ type: 'event', event: 'terminated' });
+            this.onEvent?.({ type: 'event', event: 'exited', body: { exitCode } });
+        });
+
+        this.session.start();
         return { success: true };
     }
 
-    handleSetBreakpoints(location: any): Breakpoint[] {
-        const breakpoints: Breakpoint[] = [];
+    handleConfigurationDone(): any {
+        return { success: true };
+    }
 
-        if (location.line !== undefined) {
-            const bp = this.debugger.setBreakpoint(location.line, location.column ?? 0);
-            breakpoints.push(bp);
+    handleSetBreakpoints(args: any): any {
+        const lines: number[] = [];
+        if (Array.isArray(args?.breakpoints)) {
+            for (const bp of args.breakpoints) lines.push(bp.line);
+        } else if (args?.line !== undefined) {
+            lines.push(args.line);
         }
 
-        return breakpoints;
+        const bps = this.session?.setBreakpoints(lines) ?? lines.map((line, i) => ({
+            id: `bp_${i}`,
+            line,
+            column: 0,
+            verified: false,
+        }));
+
+        return {
+            breakpoints: bps.map(bp => ({ id: bp.id, verified: bp.verified, line: bp.line })),
+        };
     }
 
     handleThreads(): Array<{ id: number; name: string }> {
-        return this.debugger.getThreads();
+        return this.session?.getThreads() ?? [{ id: 1, name: 'Main Thread' }];
     }
 
-    handleStackTrace(_threadId: number): StackFrame[] {
-        return this.debugger.getStackFrames();
+    handleStackTrace(_threadId: number): any {
+        const frames = this.session?.getStackFrames() ?? [];
+        return { stackFrames: frames, totalFrames: frames.length };
     }
 
-    handleVariables(frameId: number): Variable[] {
-        return this.debugger.getVariables(frameId);
+    handleVariables(_frameId: number): any {
+        const vars = this.session?.getVariables(_frameId) ?? [];
+        return { variables: vars };
     }
 
-    handleContinue(_threadId: number): boolean {
-        this.debugger.continue();
-        return true;
+    handleContinue(_threadId: number): any {
+        this.session?.continue();
+        return { allThreadsContinued: true };
     }
 
     handleStepOver(_threadId: number): any {
-        this.debugger.stepOver();
-        return { success: true };
+        this.session?.stepOver();
+        return {};
     }
 
     handleStepInto(_threadId: number): any {
-        this.debugger.stepInto();
-        return { success: true };
+        this.session?.stepInto();
+        return {};
     }
 
     handleStepOut(_threadId: number): any {
-        this.debugger.stepOut();
-        return { success: true };
+        this.session?.stepOut();
+        return {};
     }
 
     handlePause(_threadId: number): any {
-        this.debugger.pause();
-        return { success: true };
+        this.session?.pause();
+        return {};
     }
 
-    handleEvaluate(expression: string, _frameId: number, _context?: string): any {
-        const result = this.debugger.evaluateExpression(expression);
-
+    handleEvaluate(_expression: string, _frameId: number, _context?: string): any {
         return {
-            result: result !== undefined ? String(result) : '(undefined)',
-            type: typeof result,
+            result: '(evaluation not supported in current version)',
+            type: 'string',
             variablesReference: 0,
         };
     }
 
-    handleSetVariable(_frameId: number, name: string, value: string): any {
-        try {
-            // Try to parse value as a number, otherwise treat as string
-            let parsedValue: any = value;
-            if (!isNaN(Number(value))) {
-                parsedValue = Number(value);
-            }
-
-            this.debugger.setVariableValue(name, parsedValue);
-
-            return {
-                value: String(parsedValue),
-                type: typeof parsedValue,
-                variablesReference: 0,
-            };
-        } catch (error) {
-            return {
-                success: false,
-                error: error instanceof Error ? error.message : String(error),
-            };
-        }
+    handleSetVariable(_frameId: number, _name: string, _value: string): any {
+        return { success: false, error: 'setVariable not supported' };
     }
 
     handleDisconnect(): any {
+        this.session?.terminate();
+        this.session = null;
         return { success: true };
     }
 
@@ -150,14 +181,16 @@ export class DebugAdapter {
                 return this.handleInitialize();
             case 'launch':
                 return this.handleLaunch(request.arguments);
+            case 'configurationDone':
+                return this.handleConfigurationDone();
             case 'setBreakpoints':
                 return this.handleSetBreakpoints(request.arguments);
             case 'threads':
-                return this.handleThreads();
+                return { threads: this.handleThreads() };
             case 'stackTrace':
                 return this.handleStackTrace(request.arguments?.threadId ?? 1);
             case 'variables':
-                return this.handleVariables(request.arguments?.frameId ?? 0);
+                return this.handleVariables(request.arguments?.variablesReference ?? 0);
             case 'continue':
                 return this.handleContinue(request.arguments?.threadId ?? 1);
             case 'next':

@@ -328,10 +328,11 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return null;
 
-        const ast = this.parseDocument(doc.content);
-        if (!ast) return null;
+        // Derive module name from URI (filename without extension)
+        const uriPath = uri.startsWith('file://') ? decodeURIComponent(uri.slice(7)) : uri;
+        const moduleName = uriPath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Module1';
 
-        const adapter = new DebugAdapter(ast);
+        const adapter = new DebugAdapter(doc.content, moduleName);
         this.debugAdapters.set(uri, adapter);
         return adapter;
     }

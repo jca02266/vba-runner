@@ -12,7 +12,6 @@ export class VBADebugAdapterFactory implements vscode.DebugAdapterDescriptorFact
 
         const uri = vscode.Uri.file(program).toString();
 
-        // Ensure the document is loaded in LSPServer
         if (!this.lspServer.hasDocument(uri)) {
             try {
                 const content = fs.readFileSync(program, 'utf-8');
@@ -34,7 +33,12 @@ class VBAInlineDebugAdapter implements vscode.DebugAdapter {
     readonly onDidSendMessage: vscode.Event<vscode.DebugProtocolMessage> = this._emitter.event;
     private _seq = 1;
 
-    constructor(private adapter: DebugAdapter) {}
+    constructor(private adapter: DebugAdapter) {
+        // Wire up async events from the debug session
+        adapter.onEvent = (event: any) => {
+            this._send({ ...event, seq: this._seq++ });
+        };
+    }
 
     handleMessage(message: vscode.DebugProtocolMessage): void {
         const msg = message as any;
@@ -56,13 +60,12 @@ class VBAInlineDebugAdapter implements vscode.DebugAdapter {
         // Synthetic events required by the DAP handshake
         if (msg.command === 'initialize') {
             this._send({ type: 'event', seq: this._seq++, event: 'initialized' });
-        } else if (msg.command === 'launch' || msg.command === 'configurationDone') {
-            this._send({ type: 'event', seq: this._seq++, event: 'stopped', body: { reason: 'entry', threadId: 1, allThreadsStopped: true } });
-        } else if (msg.command === 'continue' || msg.command === 'next' || msg.command === 'stepIn' || msg.command === 'stepOut') {
-            this._send({ type: 'event', seq: this._seq++, event: 'stopped', body: { reason: 'step', threadId: 1, allThreadsStopped: true } });
         } else if (msg.command === 'disconnect') {
             this._send({ type: 'event', seq: this._seq++, event: 'terminated' });
         }
+        // NOTE: 'stopped' events are emitted asynchronously by the VBADebugSession
+        // (via adapter.onEvent) when the worker thread actually pauses —
+        // not immediately after step/continue commands.
     }
 
     private _send(msg: any): void {

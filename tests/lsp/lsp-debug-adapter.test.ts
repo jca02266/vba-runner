@@ -1,12 +1,8 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
 import { DebugAdapter } from '../../src/lsp/debug-adapter';
 import { assert } from '../../test-libs/test-runner';
 
 function createAdapter(src: string): DebugAdapter {
-    const tokens = new Lexer(src).tokenize();
-    const ast = new Parser(tokens).parse();
-    return new DebugAdapter(ast);
+    return new DebugAdapter(src, 'TestModule');
 }
 
 // 1. Initialize request
@@ -26,6 +22,9 @@ function createAdapter(src: string): DebugAdapter {
     adapter.handleInitialize();
     const response = adapter.handleLaunch({});
     assert.ok(response !== null, 'launch response');
+    assert.ok(response.success, 'launch succeeded');
+    // worker が起動するので後始末
+    adapter.handleDisconnect();
     console.log('[PASS] Launch request');
 }
 
@@ -34,8 +33,9 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\n  x = 1\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleSetBreakpoints({ line: 1, column: 0 });
-    assert.ok(Array.isArray(response), 'breakpoints array');
+    const response = adapter.handleSetBreakpoints({ breakpoints: [{ line: 2, column: 0 }] });
+    assert.ok(response, 'breakpoints response');
+    assert.ok(Array.isArray(response.breakpoints), 'breakpoints array');
     console.log('[PASS] Set breakpoints request');
 }
 
@@ -47,6 +47,7 @@ function createAdapter(src: string): DebugAdapter {
     const response = adapter.handleThreads();
     assert.ok(Array.isArray(response), 'threads array');
     assert.ok(response.length > 0, 'at least one thread');
+    assert.strictEqual(response[0].id, 1, 'thread id is 1');
     console.log('[PASS] Threads request');
 }
 
@@ -55,8 +56,9 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleStackTrace(1); // threadId
-    assert.ok(Array.isArray(response), 'stack frames array');
+    const response = adapter.handleStackTrace(1);
+    assert.ok(response, 'stack trace response');
+    assert.ok(Array.isArray(response.stackFrames), 'stack frames array');
     console.log('[PASS] Stack trace request');
 }
 
@@ -65,8 +67,9 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\n  Dim x As Integer\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleVariables(0); // frameId
-    assert.ok(Array.isArray(response), 'variables array');
+    const response = adapter.handleVariables(0);
+    assert.ok(response, 'variables response');
+    assert.ok(Array.isArray(response.variables), 'variables array');
     console.log('[PASS] Variables request');
 }
 
@@ -76,7 +79,7 @@ function createAdapter(src: string): DebugAdapter {
     const adapter = createAdapter(code);
     adapter.handleInitialize();
     const response = adapter.handleContinue(1);
-    assert.ok(typeof response === 'boolean', 'continue returns boolean');
+    assert.ok(response !== null, 'continue returns response');
     console.log('[PASS] Continue request');
 }
 
@@ -95,7 +98,7 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleEvaluate('x + 1', 0); // expression, frameId
+    const response = adapter.handleEvaluate('x + 1', 0);
     assert.ok(response, 'evaluate response');
     assert.ok(typeof response.result === 'string', 'result is string');
     console.log('[PASS] Evaluate request');
@@ -106,6 +109,7 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
+    adapter.handleLaunch({});
     const response = adapter.handleDisconnect();
     assert.ok(response !== null, 'disconnect response');
     console.log('[PASS] Disconnect request');
