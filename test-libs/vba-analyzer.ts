@@ -510,6 +510,27 @@ export function findMagicLiteralsInCalls(
 ): Array<{ callee: string; argIndex: number; value: string | number; lines: number[] }> {
     const raw: Array<{ line: number; callee: string; argIndex: number; value: string | number }> = [];
 
+    // Dim宣言の型マップ: As Range と宣言された変数名（小文字）を収集
+    const rangeVars = new Set<string>();
+    function collectRangeVars(node: any): void {
+        if (!node || typeof node !== 'object') return;
+        if (node.type === 'VariableDeclaration') {
+            for (const decl of node.declarations ?? []) {
+                if (decl.objectType?.toLowerCase() === 'range') {
+                    const varName: unknown = decl.name?.name ?? decl.name;
+                    if (typeof varName === 'string') rangeVars.add(varName.toLowerCase());
+                }
+            }
+        }
+        for (const key of Object.keys(node)) {
+            if (key === 'loc') continue;
+            const v = node[key];
+            if (Array.isArray(v)) v.forEach(collectRangeVars);
+            else if (v && typeof v === 'object' && v.type) collectRangeVars(v);
+        }
+    }
+    if (isStatementArray(stmts)) for (const s of stmts) collectRangeVars(s);
+
     function getCalleeName(callee: any): string | null {
         if (!callee) return null;
         if (callee.type === 'Identifier') return callee.name;
@@ -555,11 +576,17 @@ export function findMagicLiteralsInCalls(
             if (calleeName && RANGE_CELLS_SHEETS.has(calleeName.toLowerCase())) {
                 // Cells(3,5) / ws.Cells(3,5) / Worksheets("X") / Range("A1")
                 pushLiterals(node, calleeName);
+            } else if (calleeName && rangeVars.has(calleeName.toLowerCase())) {
+                // rng(3,5) — As Range と宣言された変数への直接インデックス
+                pushLiterals(node, 'Range()');
             } else if (callee?.type === 'MemberExpression' && calleeName?.toLowerCase() === 'item') {
                 // Cells.Item(3,5) / ws.Cells.Item(3,5) / Range("A1:B3").Item(3,5)
+                // rng.Item(3,5) — As Range 変数経由
                 const objName = getObjectName(callee.object);
                 if (objName && RANGE_CELLS_SHEETS.has(objName.toLowerCase())) {
                     pushLiterals(node, objName + '.Item');
+                } else if (objName && rangeVars.has(objName.toLowerCase())) {
+                    pushLiterals(node, 'Range.Item');
                 }
             } else if (callee?.type === 'CallExpression') {
                 // Range("A1:B3")(3,5) — Range 結果への直接インデックス

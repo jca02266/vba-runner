@@ -162,4 +162,49 @@ End Sub`);
     console.log('[PASS] 左辺代入でも検出');
 }
 
+// --- As Range 変数への直接インデックス rng(3,5) ---
+{
+    const r = findResults(`
+Sub T()
+    Dim rng As Range
+    Set rng = ws.Range("A1:B4")
+    x = rng(3, 5).Value
+End Sub`);
+    const row = r.find(m => m.callee === 'Range()' && m.argIndex === 0);
+    const col = r.find(m => m.callee === 'Range()' && m.argIndex === 1);
+    assert.ok(row, 'rng(3,5): RowIndex を検出');
+    assert.strictEqual(row?.value, 3, 'RowIndex=3');
+    assert.ok(col, 'rng(3,5): ColumnIndex を検出');
+    assert.strictEqual(col?.value, 5, 'ColumnIndex=5');
+    console.log('[PASS] As Range 変数への直接インデックス rng(3,5)');
+}
+
+// --- As Range 変数の .Item アクセス rng.Item(1,2) ---
+{
+    const r = findResults(`
+Sub T()
+    Dim target As Range
+    Set target = ActiveSheet.UsedRange
+    x = target.Item(1, 2).Value
+End Sub`);
+    const row = r.find(m => m.callee === 'Range.Item' && m.argIndex === 0);
+    const col = r.find(m => m.callee === 'Range.Item' && m.argIndex === 1);
+    assert.ok(row, 'rng.Item(1,2): RowIndex を検出');
+    assert.strictEqual(row?.value, 1, 'RowIndex=1');
+    assert.ok(col, 'rng.Item(1,2): ColumnIndex を検出');
+    assert.strictEqual(col?.value, 2, 'ColumnIndex=2');
+    console.log('[PASS] As Range 変数の .Item アクセス rng.Item(1,2)');
+}
+
+// --- Range 型でない変数は検出しない ---
+{
+    const r = findResults(`
+Sub T()
+    Dim val As Long
+    x = val(3, 5)
+End Sub`);
+    assert.strictEqual(r.length, 0, 'As Long 変数への呼び出しは検出しない');
+    console.log('[PASS] Range 型でない変数は検出しない');
+}
+
 console.log('\n✅ magic-literals: 全テスト通過');

@@ -411,7 +411,7 @@ VBA Runner の性質上、テストの安定性および検証精度の向上の
 
 ### 即値引数検出（`Range`/`Cells`/`Sheets`/`Worksheets`）
 
-- ❌ **Range 変数経由のアクセスは未検出**: `rng.Item(3, 5)` / `rng(3, 5)` のように、Range 型の変数を介したアクセスは型追跡（データフロー解析）が必要なため検出できない。`Dim rng As Range` 宣言と `Set rng = ...` 代入を辿って型を推定する仕組みが必要。
+- ✅ **Range 変数経由のアクセス**: `rng(3, 5)` / `rng.Item(3, 5)` のように `Dim rng As Range` と宣言された変数を介したアクセスを検出。`findMagicLiteralsInCalls` 内で Dim 宣言を先行走査して型マップを構築し、visit 時に照合する軽量実装で対応（CFG/reaching-defs は不使用）。なお既存の CFG + reaching-defs + live-vars インフラ（`def-use-analyzer.ts`）を活用すれば Dead Store 検出・未初期化変数の精密検出・Const 候補検出なども将来実装可能。 | `magic-literals.test.ts`
 
 ## 仮想ファイルシステム (VFS) の実装状況と課題
 
