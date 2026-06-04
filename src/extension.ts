@@ -256,6 +256,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     ci.documentation = item.documentation;
                     if (item.insertText !== undefined) ci.insertText = item.insertText;
                     if (item.filterText !== undefined) ci.filterText = item.filterText;
+                    if (item.sortText !== undefined) ci.sortText = item.sortText;
                     if (item.replaceStartCharacter !== undefined) {
                         ci.range = new vscode.Range(
                             position.line, item.replaceStartCharacter,

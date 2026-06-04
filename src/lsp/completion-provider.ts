@@ -12,6 +12,7 @@ export interface CompletionItem {
     documentation?: string;
     insertText?: string;
     filterText?: string;
+    sortText?: string;
     /** 行内でこの文字位置から cursor までを insertText で置換する */
     replaceStartCharacter?: number;
 }
@@ -150,11 +151,13 @@ export class CompletionProvider {
             if (/^WEND\b/.test(u))           { closersSeen.push('WEND'); continue; }
 
             // ── オープナー ──
+            // sortText は発見順（内側ほど小さい）で付与し VS Code の並び替えを防ぐ
             const makeItem = (label: string): CompletionItem => ({
                 label,
                 kind: CompletionItemKind.Keyword,
                 insertText: label,
                 filterText: label,
+                sortText: String(suggestions.length).padStart(4, '0'),
                 replaceStartCharacter: indent,
             });
 
