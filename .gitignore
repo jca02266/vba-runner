@@ -48,3 +48,5 @@ dist-ssr
 
 # Claude Code auto-memory (local only)
 /memory/
+
+/pending/
