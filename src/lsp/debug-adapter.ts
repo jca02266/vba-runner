@@ -34,7 +34,11 @@ export class DebugAdapter {
     /** DAP イベントを送るコールバック（VBAInlineDebugAdapter が設定する） */
     public onEvent?: (event: any) => void;
 
-    constructor(private readonly source: string, moduleName = 'Module1') {
+    constructor(
+        private readonly source: string,
+        moduleName = 'Module1',
+        private readonly filePath: string | null = null
+    ) {
         this.moduleName = moduleName;
     }
 
@@ -124,7 +128,13 @@ export class DebugAdapter {
 
     handleStackTrace(_threadId: number): any {
         const frames = this.session?.getStackFrames() ?? [];
-        return { stackFrames: frames, totalFrames: frames.length };
+        const stackFrames = frames.map(frame => {
+            const source = this.filePath && frame.source === this.moduleName
+                ? { name: this.moduleName, path: this.filePath }
+                : { name: frame.source };
+            return { ...frame, source };
+        });
+        return { stackFrames, totalFrames: stackFrames.length };
     }
 
     handleVariables(_frameId: number): any {

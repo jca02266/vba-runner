@@ -75,6 +75,11 @@
         }
       ]
     },
+    "breakpoints": [
+      {
+        "language": "vba"
+      }
+    ],
     "debuggers": [
       {
         "type": "vba",
@@ -92,6 +97,10 @@
                 "type": "string",
                 "description": "Path to the .bas file to debug",
                 "default": "${file}"
+              },
+              "entryPoint": {
+                "type": "string",
+                "description": "Name of the Sub/Function to run (omit to auto-detect: first Sub, or first Function as fallback)"
               }
             }
           }

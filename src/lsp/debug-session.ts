@@ -74,8 +74,8 @@ export class VBADebugSession extends EventEmitter {
         if (useCjs) {
             worker = new Worker(cjsPath, { workerData });
         } else {
-            const tsWorkerPath = new URL('./debug-worker.ts', import.meta.url).pathname;
-            const tsxCjsPath = new URL('../../node_modules/tsx/dist/cjs/index.cjs', import.meta.url).pathname;
+            const tsWorkerPath = path.join(import.meta.dirname, 'debug-worker.ts');
+            const tsxCjsPath = path.join(import.meta.dirname, '../../node_modules/tsx/dist/cjs/index.cjs');
             const evalCode = `require(${JSON.stringify(tsxCjsPath)});require(${JSON.stringify(tsWorkerPath)});`;
             worker = new Worker(evalCode, { eval: true, workerData });
         }

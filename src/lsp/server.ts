@@ -332,7 +332,7 @@ export class LSPServer {
         const uriPath = uri.startsWith('file://') ? decodeURIComponent(uri.slice(7)) : uri;
         const moduleName = uriPath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Module1';
 
-        const adapter = new DebugAdapter(doc.content, moduleName);
+        const adapter = new DebugAdapter(doc.content, moduleName, uriPath);
         this.debugAdapters.set(uri, adapter);
         return adapter;
     }

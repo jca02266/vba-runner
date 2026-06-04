@@ -164,19 +164,26 @@ try {
 
     let ep = entryPoint;
     if (!ep) {
+        // まず Sub を探し、なければ Function にフォールバック
+        let firstFunction: string | null = null;
         for (const stmt of ast.body) {
             if (stmt.type === 'ProcedureDeclaration') {
                 const proc = stmt as ProcedureDeclaration;
-                if (!proc.isFunction && !proc.isProperty) {
+                if (proc.isProperty) continue;
+                if (!proc.isFunction) {
                     ep = proc.name.name;
                     break;
                 }
+                if (!firstFunction) firstFunction = proc.name.name;
             }
         }
+        if (!ep) ep = firstFunction;
     }
 
     if (ep) {
         evaluator.callProcedure(ep, []);
+    } else {
+        parentPort!.postMessage({ type: 'output', text: 'Error: No Sub or Function found. Add "entryPoint" to your launch.json configuration (e.g. "entryPoint": "MyProcedure").' });
     }
 
     parentPort!.postMessage({ type: 'exited', exitCode: 0 });

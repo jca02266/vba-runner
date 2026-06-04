@@ -9,6 +9,7 @@ Option Explicit
 '   4. 結果の別シートへの出力
 ' ============================================================
 
+
 ' エントリポイント: リボンのボタンや Alt+F8 から実行
 Public Sub ProcessData()
     Dim wsData As Worksheet
