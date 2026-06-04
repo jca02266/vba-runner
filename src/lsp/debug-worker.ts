@@ -1,4 +1,4 @@
-import { parentPort, workerData } from 'worker_threads';
+import { parentPort, workerData, receiveMessageOnPort, MessagePort } from 'worker_threads';
 import { Evaluator, Environment, DebugHook } from '../engine/evaluator';
 import { vbaToDisplayString } from '../engine/coerce';
 import { Lexer } from '../engine/lexer';
@@ -25,18 +25,28 @@ const control = new Int32Array(controlBuffer);
 
 let currentCommand = CMD_STEP_INTO; // pause at first statement by default
 let startCallDepth = 0;
-let pauseAfterCurrent = false; // for CMD_PAUSE
+let pauseAfterCurrent = false;
 const breakpointLines = new Set<number>();
 let isFirstPause = true;
 
-parentPort!.on('message', (msg: any) => {
-    if (msg.type === 'setBreakpoints') {
-        breakpointLines.clear();
-        for (const line of msg.lines as number[]) breakpointLines.add(line);
-    } else if (msg.type === 'pause') {
-        pauseAfterCurrent = true;
+/**
+ * Atomics.wait はスレッドをブロックするためイベントループが止まり、
+ * parentPort の 'message' イベントが発火しない。
+ * receiveMessageOnPort で同期的にキューを読み、setBreakpoints / pause を処理する。
+ */
+function processMessages(): void {
+    while (true) {
+        const received = receiveMessageOnPort(parentPort as MessagePort);
+        if (!received) break;
+        const msg = received.message;
+        if (msg.type === 'setBreakpoints') {
+            breakpointLines.clear();
+            for (const line of msg.lines as number[]) breakpointLines.add(line);
+        } else if (msg.type === 'pause') {
+            pauseAfterCurrent = true;
+        }
     }
-});
+}
 
 function shouldPause(line: number, callDepth: number): boolean {
     if (pauseAfterCurrent) {
@@ -103,6 +113,9 @@ const hook: DebugHook = {
         env: Environment,
         callStack: ReadonlyArray<{ name: string; moduleName: string; line: number }>
     ) {
+        // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
+        processMessages();
+
         if (!shouldPause(line, callDepth)) return;
 
         const variables = extractVariables(env);
@@ -119,7 +132,7 @@ const hook: DebugHook = {
 
         parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frames, reason });
 
-        // Block until command arrives
+        // main スレッドからのコマンドを待つ
         Atomics.wait(control, 0, CMD_WAIT);
         const cmd = Atomics.load(control, 0);
 
@@ -130,6 +143,9 @@ const hook: DebugHook = {
         currentCommand = cmd;
         startCallDepth = callDepth;
         Atomics.store(control, 0, CMD_WAIT);
+
+        // Atomics.wait 復帰後のキューも処理（Resume 直後の setBreakpoints など）
+        processMessages();
     },
 };
 
@@ -146,7 +162,6 @@ try {
     evaluator.evaluateModule(ast);
     evaluator.resolveIdentifiers([{ ast, moduleName: moduleName || 'Module1' }]);
 
-    // Determine entry point
     let ep = entryPoint;
     if (!ep) {
         for (const stmt of ast.body) {

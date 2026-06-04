@@ -1,5 +1,6 @@
 import { Worker } from 'worker_threads';
 import * as path from 'path';
+import * as fs from 'fs';
 import { EventEmitter } from 'events';
 
 export interface SessionBreakpoint {
@@ -57,15 +58,34 @@ export class VBADebugSession extends EventEmitter {
     }
 
     start(): void {
-        const workerPath = path.join(import.meta.dirname, 'debug-worker.cjs');
-        this.worker = new Worker(workerPath, {
-            workerData: {
-                source: this.source,
-                moduleName: this.moduleName,
-                entryPoint: this.entryPoint,
-                controlBuffer: this.controlBuffer,
-            },
-        });
+        const cjsPath = path.join(import.meta.dirname, 'debug-worker.cjs');
+        const useCjs = fs.existsSync(cjsPath);
+
+        // production: バンドル済み .cjs をファイルパスで起動
+        // development(tsx): tsx CJS フックを eval ワーカー経由でロード
+        let worker: Worker;
+        const workerData = {
+            source: this.source,
+            moduleName: this.moduleName,
+            entryPoint: this.entryPoint,
+            controlBuffer: this.controlBuffer,
+        };
+
+        if (useCjs) {
+            worker = new Worker(cjsPath, { workerData });
+        } else {
+            const tsWorkerPath = new URL('./debug-worker.ts', import.meta.url).pathname;
+            const tsxCjsPath = new URL('../../node_modules/tsx/dist/cjs/index.cjs', import.meta.url).pathname;
+            const evalCode = `require(${JSON.stringify(tsxCjsPath)});require(${JSON.stringify(tsWorkerPath)});`;
+            worker = new Worker(evalCode, { eval: true, workerData });
+        }
+        this.worker = worker;
+
+        // 起動前に設定されたブレークポイントを Worker へ送信
+        if (this.breakpoints.size > 0) {
+            const lines = [...this.breakpoints.values()].map(bp => bp.line);
+            this.worker.postMessage({ type: 'setBreakpoints', lines });
+        }
 
         this.worker.on('message', (msg: any) => {
             switch (msg.type) {

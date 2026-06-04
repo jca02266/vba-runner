@@ -1964,7 +1964,7 @@ export class Evaluator {
         if (stmt.line !== undefined) {
             this.currentLine = stmt.line;
             if (this.debugHook && this.vbaCallStack.length > 0) {
-                this.debugHook.onBeforeStatement(stmt.line, this.vbaCallStack.length, this.env, this.vbaCallStack);
+                this.debugHook.onBeforeStatement(stmt.line, this.vbaCallStack.length, this.env, [...this.vbaCallStack]);
             }
         }
         switch (stmt.type) {
