@@ -149,4 +149,94 @@ function ws(): MockWorksheet {
     console.log('[PASS] 複合アドレスでも例外なし');
 }
 
+// ---- 1D 配列での書き込み（setCellValue / Range().Value = 共通） ----
+
+{
+    // 単一列範囲: 1D 配列の col[0] が全行に繰り返される
+    const m = ws();
+    m.setCellValue('A1:A4', [10, 20, 30, 40]);
+    assert.strictEqual(m.getCellValue('A1'), 10, '1D単一列: A1=10');
+    assert.strictEqual(m.getCellValue('A2'), 10, '1D単一列: A2=10（繰り返し）');
+    assert.strictEqual(m.getCellValue('A3'), 10, '1D単一列: A3=10（繰り返し）');
+    assert.strictEqual(m.getCellValue('A4'), 10, '1D単一列: A4=10（繰り返し）');
+    console.log('[PASS] 1D 配列 単一列 (A1:A4)');
+}
+
+{
+    // 複数列範囲: 各列に1D配列の対応要素が全行に繰り返される
+    const m = ws();
+    m.setCellValue('A1:B4', [10, 20, 30, 40]);
+    assert.strictEqual(m.getCellValue('A1'), 10, '1D複数列: A1=10');
+    assert.strictEqual(m.getCellValue('B1'), 20, '1D複数列: B1=20');
+    assert.strictEqual(m.getCellValue('A2'), 10, '1D複数列: A2=10（繰り返し）');
+    assert.strictEqual(m.getCellValue('B2'), 20, '1D複数列: B2=20（繰り返し）');
+    assert.strictEqual(m.getCellValue('A4'), 10, '1D複数列: A4=10（繰り返し）');
+    assert.strictEqual(m.getCellValue('B4'), 20, '1D複数列: B4=20（繰り返し）');
+    console.log('[PASS] 1D 配列 複数列 (A1:B4)');
+}
+
+{
+    // Range().Value = での 1D 配列書き戻し
+    const m = ws();
+    m.Range('A1:A4').Value = [10, 20, 30, 40];
+    assert.strictEqual(m.getCellValue('A1'), 10, '1D Range書き戻し: A1=10');
+    assert.strictEqual(m.getCellValue('A2'), 10, '1D Range書き戻し: A2=10（繰り返し）');
+    assert.strictEqual(m.getCellValue('A4'), 10, '1D Range書き戻し: A4=10（繰り返し）');
+    console.log('[PASS] 1D 配列 Range().Value = 書き戻し');
+}
+
+// ---- Range().Value = 書き戻し ----
+
+{
+    // 単一セル（既存動作の確認）
+    const m = ws();
+    m.Range('A1').Value = 42;
+    assert.strictEqual(m.getCellValue('A1'), 42, 'Range 単一セル書き戻し');
+    console.log('[PASS] Range 単一セル書き戻し');
+}
+
+{
+    // 複数セル範囲 — スカラー一括書き込み
+    const m = ws();
+    m.Range('A1:B2').Value = 99;
+    assert.strictEqual(m.getCellValue('A1'), 99, '範囲書き戻し: A1');
+    assert.strictEqual(m.getCellValue('B1'), 99, '範囲書き戻し: B1');
+    assert.strictEqual(m.getCellValue('A2'), 99, '範囲書き戻し: A2');
+    assert.strictEqual(m.getCellValue('B2'), 99, '範囲書き戻し: B2');
+    console.log('[PASS] Range 複数セル範囲 スカラー書き戻し');
+}
+
+{
+    // 複数セル範囲 — 2D 配列書き込み
+    const m = ws();
+    m.Range('A1:B2').Value = [[1, 2], [3, 4]];
+    assert.strictEqual(m.getCellValue('A1'), 1, '配列書き戻し: A1');
+    assert.strictEqual(m.getCellValue('B1'), 2, '配列書き戻し: B1');
+    assert.strictEqual(m.getCellValue('A2'), 3, '配列書き戻し: A2');
+    assert.strictEqual(m.getCellValue('B2'), 4, '配列書き戻し: B2');
+    console.log('[PASS] Range 複数セル範囲 2D 配列書き戻し');
+}
+
+{
+    // 複数セル範囲 — 書き戻し後に Range().Value で再読み込み
+    const m = ws();
+    m.Range('A1:B2').Value = [[10, 20], [30, 40]];
+    const v = m.Range('A1:B2').Value as any[][];
+    assert.strictEqual(v[0][0], 10, '書き戻し後再読み込み: A1');
+    assert.strictEqual(v[1][1], 40, '書き戻し後再読み込み: B2');
+    console.log('[PASS] Range 書き戻し後再読み込み');
+}
+
+{
+    // Union — 書き戻し
+    const m = ws();
+    m.Range('A1:A2,C1:C2').Value = 77;
+    assert.strictEqual(m.getCellValue('A1'), 77, 'Union 書き戻し: A1');
+    assert.strictEqual(m.getCellValue('A2'), 77, 'Union 書き戻し: A2');
+    assert.strictEqual(m.getCellValue('C1'), 77, 'Union 書き戻し: C1');
+    assert.strictEqual(m.getCellValue('C2'), 77, 'Union 書き戻し: C2');
+    assert.strictEqual(m.getCellValue('B1'), 0, 'Union 書き戻し: B1 は未設定');
+    console.log('[PASS] Union 書き戻し');
+}
+
 console.log('\n✅ mock-worksheet-address: 全テスト通過');

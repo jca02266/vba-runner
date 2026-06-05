@@ -2778,6 +2778,20 @@ export class Evaluator {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 } else if (obj && typeof obj === 'object') {
+                    // obj.Method(args) = val: Method を呼び出し、結果が __vbaDefault__ を持つ場合は
+                    // そのデフォルトプロパティ (Value) に代入する（例: ws.Range("A1:D1") = arr）
+                    // メソッドは case-insensitive で解決する（VBA は大文字小文字不問）
+                    const methodKey = this.resolveObjectMemberKey(obj, methodName);
+                    const method = methodKey !== undefined ? (obj as any)[methodKey] : undefined;
+                    if (typeof method === 'function') {
+                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const result = method.call(obj, ...argsVals);
+                        if (result && result.__vbaDefault__ === true) {
+                            const valueKey = this.resolveObjectMemberKey(result, 'value') ?? 'Value';
+                            result[valueKey] = val;
+                            return;
+                        }
+                    }
                     const key = String(this.evaluateExpression(call.args[0]));
                     obj[key] = val;
                 } else {
@@ -2814,7 +2828,9 @@ export class Evaluator {
                     instanceEnv.set(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
-                obj[propName] = val;
+                // VBA は大文字小文字不問: アクセサ(setter)・プロトタイプも辿って実キーを解決する
+                const resolvedProp = this.resolveObjectMemberKey(obj, propName) ?? propName;
+                obj[resolvedProp] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
                     this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
@@ -5258,6 +5274,26 @@ export class Evaluator {
         return instance;
     }
 
+    /**
+     * プレーンな JS オブジェクト（VBA クラスではないモック等）に対し、VBA の大文字小文字
+     * 無視ルールで実際のプロパティキーを解決する。getter/setter（アクセサ）や非列挙
+     * プロパティも拾えるよう、プロトタイプチェーンを getOwnPropertyNames で辿る。
+     * 各階層で厳密一致 → case-insensitive 一致の順に探し、own を prototype より優先する。
+     * @param lowerName 小文字化済みのプロパティ名
+     * @returns 実際のキー名。見つからなければ undefined。
+     */
+    private resolveObjectMemberKey(obj: any, lowerName: string): string | undefined {
+        let cur = obj;
+        while (cur && cur !== Object.prototype && cur !== Function.prototype) {
+            const names = Object.getOwnPropertyNames(cur);
+            if (names.includes(lowerName)) return lowerName;
+            const ci = names.find(k => k.toLowerCase() === lowerName);
+            if (ci) return ci;
+            cur = Object.getPrototypeOf(cur);
+        }
+        return undefined;
+    }
+
     private evaluateMemberExpression(expr: MemberExpression): any {
         const propName = expr.property.name.toLowerCase();
 
@@ -5328,21 +5364,13 @@ export class Evaluator {
             return instanceEnv.get(propName);
         }
 
-        if (obj && propName in obj) {
-            const val = obj[propName];
-            // Auto-call only zero-arg functions (VBA property/method without parens like col.Count, ws.Add)
-            // Functions requiring args (like Worksheets(name)) are returned as references
-            if (typeof val === 'function' && val.length === 0) {
-                return val.call(obj);
-            }
-            return val;
-        }
-        // Case-insensitive fallback for JS objects
-        if (obj && typeof obj === 'object') {
-            const keys = Object.keys(obj);
-            const match = keys.find(k => k.toLowerCase() === propName);
-            if (match) {
-                const val = obj[match];
+        // case-insensitive にプロパティを解決（アクセサ・プロトタイプ・非列挙も対象）
+        if (obj && (typeof obj === 'object' || typeof obj === 'function')) {
+            const key = this.resolveObjectMemberKey(obj, propName);
+            if (key !== undefined) {
+                const val = obj[key];
+                // Auto-call only zero-arg functions (VBA property/method without parens like col.Count, ws.Add)
+                // Functions requiring args (like Worksheets(name)) are returned as references
                 if (typeof val === 'function' && val.length === 0) {
                     return val.call(obj);
                 }

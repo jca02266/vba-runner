@@ -27,18 +27,20 @@ interface CellRect {
 export class MockRange {
     readonly __vbaDefault__ = true;
 
-    constructor(private value: any) {}
+    // フィールド名は `Value` アクセサと大文字小文字で衝突しないよう `_value` にする
+    // （case-insensitive なプロパティ解決がアクセサより先にフィールドを拾うのを防ぐ）
+    constructor(private _value: any) {}
 
     get Value(): any {
-        return this.value;
+        return this._value;
     }
 
     set Value(val: any) {
-        this.value = val;
+        this._value = val;
     }
 
     valueOf(): any {
-        return this.value;
+        return this._value;
     }
 }
 
@@ -62,26 +64,48 @@ export class MockWorksheet {
 
         if (areas.length === 1) {
             const area = areas[0];
+            const self = this;
             if (area.startCol === area.endCol && area.startRow === area.endRow) {
                 // 単一セル — setter で cells を同期
                 const cellAddr = this.cellAddress(area.startCol, area.startRow);
                 const range = new MockRange(this.cells.get(cellAddr) ?? 0);
-                const self = this;
                 Object.defineProperty(range, 'Value', {
                     get: () => self.cells.get(cellAddr) ?? 0,
                     set: (val: any) => { self.cells.set(cellAddr, val); },
                 });
                 return range;
             }
-            return new MockRange(this.getRectValues(area));
+            // 複数セル範囲 — setter で cells に書き戻す
+            const range = new MockRange(this.getRectValues(area));
+            Object.defineProperty(range, 'Value', {
+                get: () => self.getRectValues(area),
+                set: (val: any) => { self.setRectValue(area, val); },
+            });
+            return range;
         }
 
         // 複数エリア（Union）: 全エリアの行を縦に結合して返す
+        const self = this;
         const combined: any[][] = [];
         for (const area of areas) {
             combined.push(...this.getRectValues(area));
         }
-        return new MockRange(combined);
+        const unionRange = new MockRange(combined);
+        Object.defineProperty(unionRange, 'Value', {
+            get: () => {
+                const result: any[][] = [];
+                for (const area of areas) {
+                    result.push(...self.getRectValues(area));
+                }
+                return result;
+            },
+            set: (val: any) => {
+                for (const area of areas) {
+                    self.setRectValue(area, val);
+                }
+            },
+        });
+        return unionRange;
     }
 
     /**
@@ -197,17 +221,29 @@ export class MockWorksheet {
 
     private setRectValue(area: CellRect, value: any): void {
         if (Array.isArray(value)) {
-            let ri = 0;
-            for (let r = area.startRow; r <= area.endRow; r++) {
-                const rowData = value[ri];
-                if (Array.isArray(rowData)) {
+            const is1D = value.length === 0 || !Array.isArray(value[0]);
+            if (is1D) {
+                // 1D 配列: 1行分の列値として全行に繰り返し適用（VBA の Array() 代入と同じ）
+                for (let r = area.startRow; r <= area.endRow; r++) {
                     let ci = 0;
                     for (let c = area.startCol; c <= area.endCol; c++) {
-                        this.cells.set(this.cellAddress(c, r), rowData[ci] ?? '');
+                        this.cells.set(this.cellAddress(c, r), value[ci] ?? '');
                         ci++;
                     }
                 }
-                ri++;
+            } else {
+                let ri = 0;
+                for (let r = area.startRow; r <= area.endRow; r++) {
+                    const rowData = value[ri];
+                    if (Array.isArray(rowData)) {
+                        let ci = 0;
+                        for (let c = area.startCol; c <= area.endCol; c++) {
+                            this.cells.set(this.cellAddress(c, r), rowData[ci] ?? '');
+                            ci++;
+                        }
+                    }
+                    ri++;
+                }
             }
         } else {
             for (let r = area.startRow; r <= area.endRow; r++) {

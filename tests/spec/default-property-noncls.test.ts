@@ -141,4 +141,52 @@ End Function
     console.log('[PASS] MockRange values in arithmetic →', result);
 }
 
+// 7. ws.Range("A1:D1") = Array(...) — デフォルトプロパティへの暗黙代入
+{
+    const ev = makeEv();
+    const ws = new MockWorksheet('Sheet1');
+    ev.set('ws', ws);
+    run(ev, `
+Sub Test7()
+    ws.Range("A1:D1") = Array(10, 20, 30, 40)
+End Sub
+`, 'Test7');
+    assert.strictEqual(ws.getCellValue('A1'), 10, 'A1=10');
+    assert.strictEqual(ws.getCellValue('B1'), 20, 'B1=20');
+    assert.strictEqual(ws.getCellValue('C1'), 30, 'C1=30');
+    assert.strictEqual(ws.getCellValue('D1'), 40, 'D1=40');
+    console.log('[PASS] ws.Range("A1:D1") = Array(...) は ws.Range("A1:D1").Value = Array(...) と等価');
+}
+
+// 8. ws.Range("A1:A4") = Array(...) — 1D 配列が単一列に繰り返し適用
+{
+    const ev = makeEv();
+    const ws = new MockWorksheet('Sheet1');
+    ev.set('ws', ws);
+    run(ev, `
+Sub Test8()
+    ws.Range("A1:A4") = Array(10, 20, 30, 40)
+End Sub
+`, 'Test8');
+    assert.strictEqual(ws.getCellValue('A1'), 10, 'A1=10');
+    assert.strictEqual(ws.getCellValue('A2'), 10, 'A2=10（繰り返し）');
+    assert.strictEqual(ws.getCellValue('A3'), 10, 'A3=10（繰り返し）');
+    assert.strictEqual(ws.getCellValue('A4'), 10, 'A4=10（繰り返し）');
+    console.log('[PASS] ws.Range("A1:A4") = Array(10,20,30,40) → A1〜A4 すべて 10');
+}
+
+// 9. ws.Range(...).Value = と ws.Range(...) = が同じ結果
+{
+    const ws1 = new MockWorksheet('Sheet1');
+    const ws2 = new MockWorksheet('Sheet1');
+    const ev1 = makeEv(); ev1.set('ws', ws1);
+    const ev2 = makeEv(); ev2.set('ws', ws2);
+    run(ev1, `Sub Test9()\n    ws.Range("A1:C2").Value = Array(1, 2, 3)\nEnd Sub`, 'Test9');
+    run(ev2, `Sub Test9()\n    ws.Range("A1:C2") = Array(1, 2, 3)\nEnd Sub`, 'Test9');
+    assert.strictEqual(ws1.getCellValue('A1'), ws2.getCellValue('A1'), '.Value = と = が同じ: A1');
+    assert.strictEqual(ws1.getCellValue('B1'), ws2.getCellValue('B1'), '.Value = と = が同じ: B1');
+    assert.strictEqual(ws1.getCellValue('A2'), ws2.getCellValue('A2'), '.Value = と = が同じ: A2');
+    console.log('[PASS] .Value = と = が同じ結果');
+}
+
 console.log('\n✅ Default Property (non-__vbaClass__): 全テスト通過');

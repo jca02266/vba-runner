@@ -390,9 +390,9 @@
 VBA Runner の性質上、テストの安定性および検証精度の向上のために以下の実装を今後検討します。
 
 - **MockWorksheet の改善**:
-    - ❌ **1D 配列での単一行/列設定**: VBA では `Range("A1:A4").Value = Array(10,20,30,40)` のように 1D 配列で単一列（行）に書き込めるが、`MockWorksheet.setCellValue` は 2D 配列のみ対応。
+    - ✅ **1D 配列での書き込み**: VBA では `Range("A1:A4").Value = Array(10,20,30,40)` のように 1D 配列を代入すると、配列を1行分の列値として解釈し全行に繰り返し適用する（例: A1〜A4 すべてが 10）。`MockWorksheet.setCellValue` / `Range().Value =` の両方で対応。 | `mock-worksheet-address.test.ts`
     - ❌ **配列サイズ不一致時のエラー検出**: 範囲と配列のサイズが合わない場合、VBA は Error 1004 を発生させるが、MockWorksheet はサイレントにスキップ/空文字填充する。
-    - ❌ **`Range().Value =` の書き戻し**: VBA では `ws.Range("A1:B3").Value = array` でセルに書き込めるが、MockWorksheet では `setCellValue` を使わないとセルに反映されない。
+    - ✅ **`Range().Value =` の書き戻し**: VBA では `ws.Range("A1:B3").Value = array` でセルに書き込めるが、MockWorksheet では `setCellValue` を使わないとセルに反映されない。 | `mock-worksheet-address.test.ts`
 - **`VBARunner.setConstants()` で注入した値の上書き制限**:
     - ✅ 現状、`setConstants()` は通常の変数として値を設定するため、VBA コード内で `xlUp = 999` のように上書きできてしまう。`Evaluator.setConstant()` を追加し `VBARunner.setConstants()` から呼ぶよう変更。VBA コード側からの代入は既存の `Environment.setConstant()` / `isConstant()` 機構により Error 5 になる。 | `set-constants-protection.test.ts`
 - **副作用の検証機能 (Spy / Verify)**:
