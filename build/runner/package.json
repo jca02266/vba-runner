@@ -27,6 +27,6 @@
     "build": "npm run build:lib && npm run build:bin",
     "build:lib": "esbuild ../../test-libs/test-runner.ts --bundle --outfile=dist/lib.cjs --platform=node --define:import.meta.dirname=__dirname",
     "build:bin": "esbuild ../../test-libs/vba-run.ts --bundle --outfile=dist/bin/vba-run.cjs --platform=node --banner:js=\"#!/usr/bin/env node\" --define:import.meta.dirname=__dirname && esbuild ../../test-libs/vba-analyzer.ts --bundle --outfile=dist/bin/vba-analyzer.cjs --platform=node --banner:js=\"#!/usr/bin/env node\" --define:import.meta.dirname=__dirname && esbuild ../../test-libs/vba-formatter.ts --bundle --outfile=dist/bin/vba-formatter.cjs --platform=node --banner:js=\"#!/usr/bin/env node\" --define:import.meta.dirname=__dirname && esbuild ../../test-libs/vba-parse-check.ts --bundle --outfile=dist/bin/vba-parse-check.cjs --platform=node --banner:js=\"#!/usr/bin/env node\" --define:import.meta.dirname=__dirname",
-    "pack": "npm run build && npm pack"
+    "pack": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && npm pack"
   }
 }

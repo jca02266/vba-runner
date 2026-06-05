@@ -19,6 +19,7 @@ AI は VBA コードを読んでリファクタリング案を提案できます
 | パッケージ | 内容 | 詳細 |
 |---|---|---|
 | `vba-runner`（npm ライブラリ） | VBA実行エンジン + テストランナー + CLI ツール | [build/runner/README.md](build/runner/README.md) |
+| `vba-extractor`（npm CLI） | Excel 等の Office ファイルから VBA ソースを export/import | [build/extractor/README.md](build/extractor/README.md) |
 | VBA Runner（VS Code 拡張機能） | LSP 統合・デバッガー・コール階層表示 | [build/extension/README.md](build/extension/README.md) |
 | VBA Web Runner（Web UI デモ） | ブラウザ上でVBAを即試せるデモサイト | [build/playground/README.md](build/playground/README.md) |
 
@@ -27,6 +28,7 @@ AI は VBA コードを読んでリファクタリング案を提案できます
 | やりたいこと | 最初に読むドキュメント |
 |---|---|
 | VBA 関数を TypeScript からテストしたい | [build/runner/README.md](build/runner/README.md) |
+| Excel の VBA ソースをファイルに書き出したい | [build/extractor/README.md](build/extractor/README.md) |
 | レガシー VBA のリファクタリングを AI に依頼したい | [FOR_AI.md](FOR_AI.md) |
 | 自分でリファクタリング手法を学びたい | [docs/REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) → [docs/INDEX.md](docs/INDEX.md) |
 | VS Code で VBA を快適に編集したい | [build/extension/README.md](build/extension/README.md) |
@@ -63,8 +65,10 @@ vba-runner/
 ├── sample/              リファクタリング事例（TaskScheduler）
 │   ├── src/vba/         プロダクションコード（VBA）
 │   └── tests/ts/        サンプルのユニットテスト（TypeScript）
+├── tools/extractor/     vba-extractor CLI の実装
 ├── build/
 │   ├── runner/          npm パッケージ配布物
+│   ├── extractor/       vba-extractor npm パッケージ配布物
 │   ├── extension/       VS Code 拡張機能配布物（.vsix）
 │   └── playground/      VBA Web Runner 配布物（Vite）
 └── docs/                詳細設計ガイド・実践例（12本）

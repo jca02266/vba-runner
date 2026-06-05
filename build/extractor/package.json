@@ -1,0 +1,23 @@
+{
+  "name": "vba-extractor",
+  "version": "0.1.0",
+  "description": "CLI tool to export/import VBA source from Office files (.xlsm, etc.)",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jca02266/vba-runner"
+  },
+  "bin": {
+    "vba-extractor": "./dist/bin/vba-extractor.cjs"
+  },
+  "files": [
+    "dist/bin/",
+    "README.md"
+  ],
+  "dependencies": {},
+  "scripts": {
+    "build": "esbuild ../../tools/extractor/vba-extractor.ts --bundle --outfile=dist/bin/vba-extractor.cjs --platform=node --banner:js=\"#!/usr/bin/env node\" --define:import.meta.dirname=__dirname",
+    "pack": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && npm pack"
+  }
+}
