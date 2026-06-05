@@ -1790,7 +1790,7 @@ export class Parser {
     private parseTypeDeclaration(): TypeDeclaration {
         this.advance(); // consume 'Type'
         const nameToken = this.advance();
-        if (nameToken.type !== TokenType.Identifier) {
+        if (!this.isIdentifier(nameToken)) {
             this.throwError(`Parse error: Expected identifier after 'Type' at line ${nameToken.line}`);
         }
         const typeName = nameToken.value;
@@ -1842,7 +1842,7 @@ export class Parser {
     private parseEnumDeclaration(): EnumDeclaration {
         this.advance(); // consume 'Enum'
         const nameToken = this.advance();
-        if (nameToken.type !== TokenType.Identifier) {
+        if (!this.isIdentifier(nameToken)) {
             this.throwError(`Parse error: Expected identifier after 'Enum' at line ${nameToken.line}`);
         }
         const name: Identifier = this.makeIdentifier(nameToken);
@@ -1967,7 +1967,7 @@ export class Parser {
         }
 
         const idToken = this.advance();
-        if (idToken.type !== TokenType.Identifier) {
+        if (!this.isIdentifier(idToken)) {
             this.throwError(`Parse error: Expected identifier after 'For' at line ${idToken.line} `);
         }
         const identifier: Identifier = this.makeIdentifier(idToken);
@@ -2003,7 +2003,7 @@ export class Parser {
         }
 
         let nextIdentifier: Identifier | undefined;
-        if (this.peek().type === TokenType.Identifier) {
+        if (this.isIdentifier(this.peek())) {
             const nextIdToken = this.advance();
             nextIdentifier = this.makeIdentifier(nextIdToken);
             if (nextIdentifier.name.toLowerCase() !== identifier.name.toLowerCase()) {
@@ -2031,7 +2031,7 @@ export class Parser {
         this.advance(); // consume 'Each'
 
         const varToken = this.advance();
-        if (varToken.type !== TokenType.Identifier) {
+        if (!this.isIdentifier(varToken)) {
             this.throwError(`Parse error: Expected identifier after 'For Each' at line ${varToken.line}`);
         }
         const variable: Identifier = this.makeIdentifier(varToken);
@@ -2056,7 +2056,7 @@ export class Parser {
         }
 
         let nextIdentifier: Identifier | undefined;
-        if (this.peek().type === TokenType.Identifier) {
+        if (this.isIdentifier(this.peek())) {
             const nextIdToken = this.advance();
             nextIdentifier = this.makeIdentifier(nextIdToken);
             if (nextIdentifier.name.toLowerCase() !== variable.name.toLowerCase()) {
