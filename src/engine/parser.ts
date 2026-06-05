@@ -1224,11 +1224,16 @@ export class Parser {
         return this.parseExpression();
     }
 
-    private parseStatement(): Statement | null {
+    // §5.4.1: block-statement = statement EOS
+    // checkEOS=false is used only for inline-If bodies where Else/EOF terminate instead of EOS.
+    private parseStatement(checkEOS = true): Statement | null {
         this.skipNewlines();
         const startToken = this.peek();
         const stmt = this.parseStatementInner();
         if (stmt !== null) {
+            if (checkEOS && !this.isAtTerminator()) {
+                this.throwError(`Parse error: unexpected token '${this.peek().value}' after statement at line ${this.peek().line}`);
+            }
             const endToken = this.tokens[this.pos - 1];
             if (startToken.line !== undefined) {
                 stmt.line = startToken.line;
@@ -2090,13 +2095,14 @@ export class Parser {
         let alternate: Statement[] | IfStatement | null = null;
 
         if (!isMultiLine) {
-            // Single-line If: read consequent until Else/Newline/EOF
+            // Single-line If: read consequent until Else/Newline/EOF.
+            // EOS check disabled: Else terminates the body but is not an EOS token.
             while (
                 this.peek().type !== TokenType.Newline &&
                 this.peek().type !== TokenType.EOF &&
                 this.peek().type !== TokenType.KeywordElse
             ) {
-                const stmt = this.parseStatement();
+                const stmt = this.parseStatement(false);
                 if (stmt) consequent.push(stmt);
             }
             // Handle optional inline Else
@@ -2104,7 +2110,7 @@ export class Parser {
                 this.advance(); // consume 'Else'
                 alternate = [];
                 while (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF) {
-                    const stmt = this.parseStatement();
+                    const stmt = this.parseStatement(false);
                     if (stmt) (alternate as Statement[]).push(stmt);
                 }
             }
