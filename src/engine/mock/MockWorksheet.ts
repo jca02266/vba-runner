@@ -280,6 +280,19 @@ export class MockWorksheet {
         return `${colStr}${row}`;
     }
 
+    /**
+     * Cells メソッド：行・列インデックス（1始まり）で単一セルを返す
+     */
+    Cells(row: number, col: number): MockRange {
+        let colStr = '';
+        let c = col;
+        while (c > 0) {
+            colStr = String.fromCharCode(((c - 1) % 26) + 65) + colStr;
+            c = Math.floor((c - 1) / 26);
+        }
+        return this.Range(`${colStr}${row}`);
+    }
+
     // ========== 基本プロパティ ==========
 
     get Name(): string {

@@ -587,6 +587,8 @@ export class Evaluator {
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
+    /** §5.6.10 Tier 6: 修飾なし識別子の最終フォールバック先オブジェクト（MockApplication 等） */
+    private defaultBindingObject: any = null;
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
     private errorHandlerLabel: string | null = null;
     private errorHandlingMode: 'None' | 'ResumeNext' | 'GoTo' = 'None';
@@ -1693,6 +1695,16 @@ export class Evaluator {
 
     public set(name: string, value: any): void {
         this.env.set(name, value);
+    }
+
+    /**
+     * §5.6.10 Tier 6 のデフォルト束縛オブジェクトを設定する。
+     * Tier 1〜4 で解決できなかった修飾なし識別子を、このオブジェクトのプロパティ/メソッドとして検索する。
+     * Excel VBA の Application 相当。MockApplication を渡すと Range("A1") / Cells(1,1) / ActiveSheet 等が動作する。
+     * null を渡すと解除する。
+     */
+    public setDefaultBindingObject(obj: any): void {
+        this.defaultBindingObject = obj;
     }
 
     /** 名前をグローバル定数として登録する。VBA コード側からの代入は Error 5 になる。 */
@@ -4430,6 +4442,20 @@ export class Evaluator {
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':
                 const idName = (expr as Identifier).name;
+                // §5.6.10 Tier 6: env に明示宣言がなく、手続きにも該当がない場合は
+                // defaultBindingObject（MockApplication 等）のプロパティとして解決する。
+                // env.get() より先に確認しないと暗黙初期化（vbaEmpty）で上書きされてしまう。
+                if (!this.inConstEval && this.defaultBindingObject
+                        && !this.env.hasVariable(idName) && !this.env.getProcedure(idName)) {
+                    const tier6Key = this.resolveObjectMemberKey(this.defaultBindingObject, idName.toLowerCase());
+                    if (tier6Key !== undefined) {
+                        const tier6Val = this.defaultBindingObject[tier6Key];
+                        if (typeof tier6Val === 'function') {
+                            return (tier6Val as (...a: any[]) => any).apply(this.defaultBindingObject, []);
+                        }
+                        return tier6Val;
+                    }
+                }
                 // VbaNamespaceRef（プロジェクト名・モジュール名）を値として使う場合はコンパイルエラー。
                 // Dim VBA As Long のように明示宣言済みの場合は env.set で上書きされているため
                 // VbaNamespaceRef ではなく実際の変数値が返る。
@@ -5014,6 +5040,23 @@ export class Evaluator {
                 // Might be an array access, built-in function, or variable reference
                 // Check explicit declaration BEFORE env.get() which implicitly initializes to 0
                 const wasExplicitlyDeclared = this.env.hasVariable(name);
+
+                // §5.6.10 Tier 6 (早期チェック): env に明示宣言がない名前は env.get() で
+                // auto-initialize される前に defaultBindingObject を確認する。
+                // これをしないと 2 回目の呼び出し時に wasExplicitlyDeclared = true になり
+                // OBJECT_REQUIRED になってしまう。
+                if (!wasExplicitlyDeclared && this.defaultBindingObject) {
+                    const tier6Key = this.resolveObjectMemberKey(this.defaultBindingObject, name.toLowerCase());
+                    if (tier6Key !== undefined) {
+                        const tier6Member = this.defaultBindingObject[tier6Key];
+                        if (typeof tier6Member === 'function') {
+                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                            return (tier6Member as (...a: any[]) => any).apply(this.defaultBindingObject, argsVals);
+                        }
+                        if (expr.args.length === 0) return tier6Member;
+                    }
+                }
+
                 const variable = this.env.get(name);
                 if (expr.args.length === 0 && typeof variable !== 'function' && !Array.isArray(variable) && !(variable && variable.__isVbaDict__)) {
                     // Undeclared identifier used as a procedure call: "Mainloo" when Sub is "MainLoop"
@@ -5064,11 +5107,20 @@ export class Evaluator {
                     }
                     this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                 } else if (variable instanceof VbaNamespaceRef) {
-                    // §5.6.10: Class/procedural module names are in the type namespace, not the
-                    // value namespace for unqualified calls. Calling `Range("A1")` when `Range`
-                    // is only known as a module/class name should give SUB_OR_FUNCTION_NOT_DEFINED,
-                    // not OBJECT_REQUIRED. This allows mock functions registered via ev.set() to
-                    // coexist with a class definition of the same name.
+                    // §5.6.10: クラスモジュール名は型名前空間のみ。値名前空間では OBJECT_REQUIRED
+                    // でなく SUB_OR_FUNCTION_NOT_DEFINED へフォールスルーする。
+                    // defaultBindingObject がある場合は Tier 6 も試みる。
+                    if (this.defaultBindingObject) {
+                        const tier6Key = this.resolveObjectMemberKey(this.defaultBindingObject, name.toLowerCase());
+                        if (tier6Key !== undefined) {
+                            const tier6Member = this.defaultBindingObject[tier6Key];
+                            if (typeof tier6Member === 'function') {
+                                const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                                return (tier6Member as (...a: any[]) => any).apply(this.defaultBindingObject, argsVals);
+                            }
+                            if (expr.args.length === 0) return tier6Member;
+                        }
+                    }
                 } else if (expr.args.length > 0 && wasExplicitlyDeclared) {
                     // Variable is declared but not callable (e.g. Long used as function)
                     this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');

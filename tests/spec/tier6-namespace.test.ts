@@ -10,6 +10,7 @@
  * - 修正後は SUB_OR_FUNCTION_NOT_DEFINED が返り、モック関数の登録で解決できる
  */
 import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
+import { MockApplication } from '../../src/engine/mock/MockExcel';
 
 function expectError(fn: () => any, expectedCode: number, msg: string) {
     try {
@@ -246,6 +247,150 @@ End Function
     const result = ev.callProcedure('TestDimAsRange', []);
     // r should be vbaNothing after declaration
     console.log('[PASS] 6. Dim r As Range → 型名前空間から解決されて vbaNothing に初期化される');
+}
+
+// ============================================================
+// 7. setDefaultBindingObject(MockApplication) — Range("A1") が Tier 6 で解決される
+// ============================================================
+{
+    const userCode = `
+Option Explicit
+
+Sub TestTier6Range()
+    Dim val As Variant
+    val = Range("A1").Value
+    Debug.Print val
+End Sub
+`;
+    const app = new MockApplication();
+    app.ActiveSheet.setCellValue('A1', 99);
+
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestTier6Range', []);
+    assert.strictEqual(Number(printed), 99, 'Range("A1").Value should be 99 via Tier 6');
+    console.log('[PASS] 7. Range("A1") が Tier 6 (MockApplication) 経由で解決される');
+}
+
+// ============================================================
+// 8. Cells(row, col) が Tier 6 で解決される
+// ============================================================
+{
+    const userCode = `
+Option Explicit
+
+Sub TestTier6Cells()
+    Cells(2, 3).Value = "hello"
+    Debug.Print Cells(2, 3).Value
+End Sub
+`;
+    const app = new MockApplication();
+
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestTier6Cells', []);
+    assert.strictEqual(printed, 'hello', 'Cells(2,3).Value should be "hello" via Tier 6');
+    console.log('[PASS] 8. Cells(row, col) が Tier 6 (MockApplication) 経由で解決される');
+}
+
+// ============================================================
+// 9. ActiveSheet プロパティが Tier 6 で解決される
+// Note: ActiveSheet は宣言なしの識別子なので Option Explicit なしが前提
+// ============================================================
+{
+    const userCode = `
+Sub TestTier6ActiveSheet()
+    Debug.Print ActiveSheet.Name
+End Sub
+`;
+    const app = new MockApplication();
+
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestTier6ActiveSheet', []);
+    assert.strictEqual(printed, 'Sheet1', 'ActiveSheet.Name should be "Sheet1" via Tier 6');
+    console.log('[PASS] 9. ActiveSheet が Tier 6 (MockApplication) 経由で解決される');
+}
+
+// ============================================================
+// 10. Sheets("SheetName") が Tier 6 で解決される
+// ============================================================
+{
+    const userCode = `
+Option Explicit
+
+Sub TestTier6Sheets()
+    Sheets("Data").Range("B2").Value = 123
+    Debug.Print Sheets("Data").Range("B2").Value
+End Sub
+`;
+    const app = new MockApplication();
+
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestTier6Sheets', []);
+    assert.strictEqual(Number(printed), 123, 'Sheets("Data").Range("B2").Value should be 123');
+    console.log('[PASS] 10. Sheets("SheetName") が Tier 6 (MockApplication) 経由で解決される');
+}
+
+// ============================================================
+// 11. setActiveSheet で ActiveSheet が切り替わる
+// ============================================================
+{
+    const userCode = `
+Sub TestActiveSheetSwitch()
+    Debug.Print ActiveSheet.Name
+End Sub
+`;
+    const app = new MockApplication();
+    app.setActiveSheet('Summary');
+
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestActiveSheetSwitch', []);
+    assert.strictEqual(printed, 'Summary', 'ActiveSheet.Name should be "Summary" after setActiveSheet');
+    console.log('[PASS] 11. setActiveSheet でアクティブシートを切り替えられる');
+}
+
+// ============================================================
+// 12. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
+// ============================================================
+{
+    const userCode = `
+Sub TestNoTier6()
+    Dim v As Variant
+    v = Range("A1").Value
+End Sub
+`;
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    // defaultBindingObject は設定しない
+
+    try {
+        ev.callProcedure('TestNoTier6', []);
+        throw new Error('Expected error but succeeded');
+    } catch (e: any) {
+        const msg = e.message || '';
+        const isSubNotDefined = msg.includes("'35'") || e.vbaErrorCode === 35;
+        if (!isSubNotDefined) {
+            throw new Error(`Expected error 35 (Sub or Function not defined), got: ${msg}`);
+        }
+        console.log('[PASS] 12. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
+    }
 }
 
 console.log('\n✅ Tier 6 型名前空間/値名前空間分離: 全テスト通過');

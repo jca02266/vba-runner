@@ -330,25 +330,36 @@ ev.spy('MsgBox', () => 6);     // vbYes を固定返却してスパイ
 - **クラス名 = モジュール名**（例: `setSourceModule('Range')` + `Class Range`）の場合、
   `Range("A1")` を動かすには `ev.set('Range', fn)` で関数を上書き登録する。
 
-### Tier 6 デフォルト束縛オブジェクト（計画中）
+### Tier 6 デフォルト束縛オブジェクト（実装済み）
 
 ```
 evaluateCallExpression — 名前が見つからない場合の最終フォールバック
 │
-└─ [Tier 6] defaultBindingObject[name] が callable ならそれを呼ぶ
+├─ [早期] 未宣言の名前: env.get() の auto-init より前に defaultBindingObject を確認
+│         → Cells(1,1) を 2 回呼んでも 2 回目が OBJECT_REQUIRED にならない
+│
+├─ [通常の Tier 1〜4 解決]
+│
+└─ [VbaNamespaceRef の場合] defaultBindingObject も確認（クラスモジュール名の衝突対策）
 ```
 
 ```typescript
-// 計画中の API
-import { MockApplication } from '../src/engine/mock/MockExcel'; // 新設予定
+import { MockApplication } from '../src/engine/mock/MockExcel';
 
 const app = new MockApplication();
 app.ActiveSheet.setCellValue('A1', 42);
 ev.setDefaultBindingObject(app);
-// VBA: Range("A1") → app.Range("A1") → app.ActiveSheet.Range("A1") に解決
+
+// VBA: Range("A1").Value  → 42  (CallExpression → Tier 6)
+// VBA: Cells(1, 1).Value = 100  (書き込みも可)
+// VBA: ActiveSheet.Name  → "Sheet1"  (Identifier → Tier 6)
+// VBA: Sheets("Data").Range("B2").Value = 123
 ```
 
-`MockApplication` は `MockWorksheet` と同列の opt-in モック。登録しない場合は現在と同じ動作（未登録の名前は `SUB_OR_FUNCTION_NOT_DEFINED`）。
+`MockApplication` は `MockWorksheet` と同列の opt-in モック。登録しない場合は現在と同じ動作（未解決名は `SUB_OR_FUNCTION_NOT_DEFINED`）。
+
+**Option Explicit について**: `Range` / `ActiveSheet` 等は宣言なし識別子として使うため、
+これらを使う VBA モジュールは `Option Explicit` なしにする必要がある（実 Excel VBA でも同様）。
 
 ---
 
