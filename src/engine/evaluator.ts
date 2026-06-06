@@ -3932,16 +3932,29 @@ export class Evaluator {
      */
     public registerExternalObject(progId: string, factory: () => any): void {
         this.externalObjectFactories.set(progId.toLowerCase(), factory);
-        // factory を 1 度呼んで __progId__ / __className__ を取り出し、別名としても登録。
-        // __progId__ (VbaComObject) を優先し、なければ旧来の __className__ にフォールバック。
+        // factory を 1 度呼んでオブジェクトを検査し、別名を追加登録する。
+        // 優先順位: __progId__ (VbaComObject) → __className__ (旧来の互換)
+        //
+        // __progId__ が "Scripting.Dictionary" のようなドット区切り形式の場合、
+        // ドット後ろの短縮クラス名（"dictionary"）も自動登録する。
+        // これにより `New Dictionary` / `New RegExp` 等の短縮構文が動く。
         try {
             const sample = factory();
-            const alias = sample?.__progId__ ?? sample?.__className__;
-            if (alias) {
-                const aliasKey = String(alias).toLowerCase();
-                if (!this.externalObjectFactories.has(aliasKey)) {
-                    this.externalObjectFactories.set(aliasKey, factory);
+            const progIdAlias: string | undefined = sample?.__progId__;
+            const classNameAlias: string | undefined = sample?.__className__;
+            const register = (key: string) => {
+                const k = key.toLowerCase();
+                if (!this.externalObjectFactories.has(k)) {
+                    this.externalObjectFactories.set(k, factory);
                 }
+            };
+            if (progIdAlias) {
+                register(progIdAlias);
+                // "X.Y" → "Y" の短縮形も登録
+                const dot = progIdAlias.lastIndexOf('.');
+                if (dot >= 0) register(progIdAlias.slice(dot + 1));
+            } else if (classNameAlias) {
+                register(classNameAlias);
             }
         } catch { /* sample 取得時のエラーは無視 */ }
         // "ProjectName.ClassName" 形式の場合、プロジェクト名を VbaNamespaceRef として登録。
@@ -3978,7 +3991,7 @@ export class Evaluator {
             const dict = new Map<any, any>();
             return {
                 __isVbaDict__: true,
-                __className__: 'Dictionary',
+                __progId__: 'Scripting.Dictionary',
                 __map__: dict,
                 add: (k: any, v: any) => {
                     if (dict.has(k)) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
@@ -4017,7 +4030,7 @@ export class Evaluator {
 
             return {
                 __isVbaCollection__: true,
-                __className__: 'Collection',
+                __progId__: 'Collection',
                 count: () => items.length,
                 add: (item: any, key?: any, before?: any, after?: any) => {
                     if (key !== undefined && key !== null && typeof key === 'string') {
@@ -4056,7 +4069,7 @@ export class Evaluator {
         // --- Scripting.FileSystemObject ---
         this.registerExternalObject('Scripting.FileSystemObject', () => ({
             __isVbaFso__: true,
-            __className__: 'FileSystemObject',
+            __progId__: 'Scripting.FileSystemObject',
             fileexists: (p: string) => {
                 try {
                     const full = this.sandbox.toRealPath(p);
@@ -4146,7 +4159,7 @@ export class Evaluator {
             let responseText = "";
             let status = 0;
             return {
-                __className__: 'XMLHTTP',
+                __progId__: 'MSXML2.XMLHTTP',
                 open: (_method: string, _url: string, _async: boolean = true) => { /* Mock */ },
                 send: (_body?: any) => { /* Mock */ },
                 setrequestheader: (_h: string, _v: string) => { /* Mock */ },
@@ -4165,7 +4178,7 @@ export class Evaluator {
             let content = "";
             let streamPos = 0;
             return {
-                __className__: 'Stream',
+                __progId__: 'ADODB.Stream',
                 open: () => { streamPos = 0; },
                 close: () => { },
                 write: (data: any) => { content += String(data); },
