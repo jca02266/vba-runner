@@ -5,6 +5,9 @@ import { Parser, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import { MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, CompilerConstants } from '../src/engine/preprocessor';
+import { loadMocks } from './mock-loader';
+import { injectExcelStub } from './excel-stub';
+import { MockApplication } from '../src/engine/mock/MockExcel';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
 
 const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
@@ -15,18 +18,32 @@ export class VBARunner {
     private _moduleNames: string[] = [];
     private _resolved = false;
 
-    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants } = {}) {
+    /** `excelStub: true` のとき注入された MockApplication。セル初期値の設定に使う。 */
+    public readonly excelStub: MockApplication | null = null;
+
+    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants, excelStub?: boolean } = {}) {
         this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
+        if (config.excelStub) {
+            (this as any).excelStub = injectExcelStub(this.evaluator);
+        }
 
         if (!pathOrDir) return;
 
         const stat = fs.statSync(pathOrDir);
+        const dir = stat.isDirectory() ? pathOrDir : path.dirname(pathOrDir);
         const files = stat.isDirectory()
             ? fs.readdirSync(pathOrDir)
                   .filter(f => VBA_EXTENSIONS.has(path.extname(f).toLowerCase()))
                   .sort()
                   .map(f => path.join(pathOrDir, f))
             : [pathOrDir];
+
+        // モックを先にロード（標準ライブラリより後、本番コードより前に注入）
+        const mockModules = loadMocks(dir, this.evaluator);
+        for (const { ast, moduleName } of mockModules) {
+            this._asts.push(ast);
+            this._moduleNames.push(moduleName);
+        }
 
         // Pass 1: 全モジュールをロードして手続き・変数を登録する
         for (const file of files) {

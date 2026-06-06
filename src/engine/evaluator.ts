@@ -3025,6 +3025,10 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.ACTIVEX_CANT_CREATE_OBJECT, `Class '${className}' not found`);
         }
 
+        return this.createInstanceFromDef(classDef!);
+    }
+
+    private createInstanceFromDef(classDef: ClassDeclaration): any {
         // Create instance environment rooted at the global env
         const instanceEnv = new Environment(this.env);
 
@@ -3066,6 +3070,36 @@ export class Evaluator {
         }
 
         return instance;
+    }
+
+    /**
+     * __mocks__ VBA モジュール評価後に呼び出す。
+     * classesBefore に含まれない（新しく追加された）クラス定義を
+     * classDefinitions から externalObjectFactories へ昇格させる。
+     * externalObjectFactories は instantiateClass で classDefinitions より先に参照されるため、
+     * ビルトインクラスやユーザー定義クラスより確実に優先される。
+     */
+    public promoteMockVbaClasses(classesBefore: ReadonlySet<string>): void {
+        for (const [name, classDef] of this.classDefinitions) {
+            if (!classesBefore.has(name)) {
+                const def = classDef;
+                this.externalObjectFactories.set(name, () => this.createInstanceFromDef(def));
+                this.classDefinitions.delete(name);
+            }
+        }
+    }
+
+    /** classDefinitions に登録済みのクラス名一覧（小文字）を返す。 */
+    public getRegisteredClassNames(): Set<string> {
+        return new Set(this.classDefinitions.keys());
+    }
+
+    /**
+     * JS/TS モックから呼び出す。指定した名前でグローバル env を上書きする。
+     * registerStandardLibrary より後に呼ぶことでビルトインを差し替えられる。
+     */
+    public setBuiltinOverride(name: string, fn: any): void {
+        this.env.set(name.toLowerCase(), fn);
     }
 
     private checkArgCount(proc: ProcedureDeclaration, args: any[]): void {

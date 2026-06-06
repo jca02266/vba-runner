@@ -26,6 +26,85 @@ interface CellRect {
     endRow: number;
 }
 
+// ========== フォーマット/スタイルのノーオプスタブ ==========
+
+class MockFont {
+    get Bold() { return false; }
+    set Bold(_v: any) {}
+    get Italic() { return false; }
+    set Italic(_v: any) {}
+    get Underline() { return 0; }
+    set Underline(_v: any) {}
+    get Color() { return 0; }
+    set Color(_v: any) {}
+    get ColorIndex() { return 0; }
+    set ColorIndex(_v: any) {}
+    get Size() { return 11; }
+    set Size(_v: any) {}
+    get Name() { return 'Calibri'; }
+    set Name(_v: any) {}
+}
+
+class MockInterior {
+    get Color() { return 0; }
+    set Color(_v: any) {}
+    get ColorIndex() { return 0; }
+    set ColorIndex(_v: any) {}
+    get Pattern() { return 0; }
+    set Pattern(_v: any) {}
+    get PatternColor() { return 0; }
+    set PatternColor(_v: any) {}
+}
+
+class MockBorder {
+    get LineStyle() { return 0; }
+    set LineStyle(_v: any) {}
+    get Weight() { return 0; }
+    set Weight(_v: any) {}
+    get Color() { return 0; }
+    set Color(_v: any) {}
+    get ColorIndex() { return 0; }
+    set ColorIndex(_v: any) {}
+}
+
+class MockBorders {
+    Item() { return new MockBorder(); }
+    get LineStyle() { return 0; }
+    set LineStyle(_v: any) {}
+    get Weight() { return 0; }
+    set Weight(_v: any) {}
+    get Color() { return 0; }
+    set Color(_v: any) {}
+}
+
+// ========== 行/列コレクションのスタブ ==========
+
+/** Rows コレクションの最小スタブ。ws.Rows.Count や ws.Rows(n).Hidden などで使う。 */
+export class MockRows {
+    Count = 1048576;
+    get Hidden() { return false; }
+    set Hidden(_v: any) {}
+    get RowHeight() { return 15; }
+    set RowHeight(_v: any) {}
+    AutoFit() {}
+    Select() {}
+    Delete() {}
+}
+
+/** Columns コレクションの最小スタブ。ws.Columns.Count や ws.Columns(n).ColumnWidth などで使う。 */
+export class MockColumns {
+    Count = 16384;
+    get Hidden() { return false; }
+    set Hidden(_v: any) {}
+    get ColumnWidth() { return 8; }
+    set ColumnWidth(_v: any) {}
+    AutoFit() {}
+    Select() {}
+    Delete() {}
+}
+
+// ========== Range ==========
+
 export class MockRange implements VbaType, VbaDefaultProperty {
     readonly __vbaDefault__ = true as const;
     /** TypeName(r) → "Range"、TypeOf r Is Range → True になるための型メタデータ */
@@ -47,7 +126,114 @@ export class MockRange implements VbaType, VbaDefaultProperty {
     valueOf(): any {
         return this._value;
     }
+
+    // ==============================
+    // 位置情報（Cells で設定される）
+    // ==============================
+
+    Row = 1;
+    Column = 1;
+
+    get Address(): string {
+        return `$A$${this.Row}`;
+    }
+
+    // ==============================
+    // ナビゲーション
+    // ==============================
+
+    /** ws.Cells(lastRow, col).End(xlUp) などで使う。スタブは Row=1 / Column=1 を返す。 */
+    End(_direction?: any): MockRange {
+        return new MockRange(0);
+    }
+
+    get EntireRow(): MockRange {
+        return new MockRange(0);
+    }
+
+    get EntireColumn(): MockRange {
+        return new MockRange(0);
+    }
+
+    get Offset(): MockRange {
+        return new MockRange(0);
+    }
+
+    Resize() { return new MockRange(0); }
+
+    // ==============================
+    // スタイル / フォーマット（ノーオプ）
+    // ==============================
+
+    get NumberFormat() { return 'General'; }
+    set NumberFormat(_v: any) {}
+
+    get NumberFormatLocal() { return 'G/標準'; }
+    set NumberFormatLocal(_v: any) {}
+
+    get HorizontalAlignment() { return 0; }
+    set HorizontalAlignment(_v: any) {}
+
+    get VerticalAlignment() { return 0; }
+    set VerticalAlignment(_v: any) {}
+
+    get WrapText() { return false; }
+    set WrapText(_v: any) {}
+
+    get MergeCells() { return false; }
+    set MergeCells(_v: any) {}
+
+    get RowHeight() { return 15; }
+    set RowHeight(_v: any) {}
+
+    get ColumnWidth() { return 8; }
+    set ColumnWidth(_v: any) {}
+
+    get Hidden() { return false; }
+    set Hidden(_v: any) {}
+
+    get Locked() { return true; }
+    set Locked(_v: any) {}
+
+    get Font(): MockFont { return new MockFont(); }
+    get Interior(): MockInterior { return new MockInterior(); }
+    get Borders(): MockBorders { return new MockBorders(); }
+
+    // ==============================
+    // アクション（ノーオプ）
+    // ==============================
+
+    Select() {}
+    Activate() {}
+    Copy() {}
+    Cut() {}
+    Paste() {}
+    PasteSpecial() {}
+    Delete() {}
+    Insert() {}
+    Clear() {}
+    ClearContents() {}
+    ClearFormats() {}
+    Merge() {}
+    UnMerge() {}
+    AutoFit() {}
+    AutoFill() {}
+    Sort() {}
+    FillDown() {}
+    FillRight() {}
+    Find() { return null; }
+
+    // ==============================
+    // コレクション
+    // ==============================
+
+    Rows() { return new MockRows(); }
+    Columns() { return new MockColumns(); }
+
+    get Count() { return 1; }
 }
+
+// ========== Worksheet ==========
 
 export class MockWorksheet implements VbaType {
     /** TypeName(ws) → "Worksheet"、TypeOf ws Is Worksheet → True になるための型メタデータ */
@@ -117,6 +303,32 @@ export class MockWorksheet implements VbaType {
     }
 
     /**
+     * Cells メソッド：行・列インデックス（1始まり）で単一セルを返す
+     * 引数なし（ws.Cells）で呼ばれた場合はシート全体を表すスタブを返す。
+     * 注: length=0 にするため引数を宣言しない。VBA の ws.Cells(r, c) 呼び出しは
+     * evaluator が引数を渡して呼ぶため動作に問題はない。
+     */
+    Cells(...args: any[]): MockRange {
+        const [row, col] = args;
+        if (row === undefined || col === undefined) {
+            // ws.Cells（引数なし）: シート全体を表すスタブ
+            return new MockRange(0);
+        }
+        const r = Number(row);
+        const c = Number(col);
+        let colStr = '';
+        let cv = c;
+        while (cv > 0) {
+            colStr = String.fromCharCode(((cv - 1) % 26) + 65) + colStr;
+            cv = Math.floor((cv - 1) / 26);
+        }
+        const range = this.Range(`${colStr}${r}`);
+        range.Row = r;
+        range.Column = c;
+        return range;
+    }
+
+    /**
      * セルに値を設定
      * @param address セルアドレス ('A1') または範囲 ('A1:A5', 'A1:C5,E6:F8' など)
      * @param value スカラー値または配列
@@ -143,7 +355,61 @@ export class MockWorksheet implements VbaType {
         return result;
     }
 
-    // ========== アドレス解析 ==========
+    // ==============================
+    // 行/列コレクション
+    // ==============================
+
+    /**
+     * ws.Rows.Count / ws.Rows(n).Hidden などで使う。
+     * length=0 のメソッドにすることで ws.Rows（引数なし）でも auto-call される。
+     */
+    Rows(..._args: any[]): MockRows {
+        return new MockRows();
+    }
+
+    /**
+     * ws.Columns.Count / ws.Columns(n).ColumnWidth などで使う。
+     */
+    Columns(..._args: any[]): MockColumns {
+        return new MockColumns();
+    }
+
+    /** ws.UsedRange: 使用済みセル範囲のスタブ（A1 を返す） */
+    get UsedRange(): MockRange {
+        return this.Range('A1');
+    }
+
+    // ==============================
+    // プロパティ
+    // ==============================
+
+    get Name(): string {
+        return this.name;
+    }
+
+    get Index(): number { return 1; }
+
+    get Visible(): boolean { return true; }
+    set Visible(_v: any) {}
+
+    get EnableSelection(): number { return 0; }
+    set EnableSelection(_v: any) {}
+
+    // ==============================
+    // アクション（ノーオプ）
+    // ==============================
+
+    Activate() {}
+    Select() {}
+    Copy() {}
+    Move() {}
+    Delete() {}
+    Protect() {}
+    Unprotect() {}
+
+    // ==============================
+    // アドレス解析
+    // ==============================
 
     /**
      * アドレス文字列を CellRect の配列に解決する。
@@ -213,7 +479,9 @@ export class MockWorksheet implements VbaType {
         return result;
     }
 
-    // ========== セル読み書きヘルパー ==========
+    // ==============================
+    // セル読み書きヘルパー
+    // ==============================
 
     private getRectValues(area: CellRect): any[][] {
         const result: any[][] = [];
@@ -262,7 +530,9 @@ export class MockWorksheet implements VbaType {
         }
     }
 
-    // ========== 基本ヘルパー ==========
+    // ==============================
+    // 基本ヘルパー
+    // ==============================
 
     private parseAddress(address: string): [number, number] | null {
         const match = address.match(/^([A-Z]+)(\d+)$/);
@@ -286,25 +556,6 @@ export class MockWorksheet implements VbaType {
             c = Math.floor((c - 1) / 26);
         }
         return `${colStr}${row}`;
-    }
-
-    /**
-     * Cells メソッド：行・列インデックス（1始まり）で単一セルを返す
-     */
-    Cells(row: number, col: number): MockRange {
-        let colStr = '';
-        let c = col;
-        while (c > 0) {
-            colStr = String.fromCharCode(((c - 1) % 26) + 65) + colStr;
-            c = Math.floor((c - 1) / 26);
-        }
-        return this.Range(`${colStr}${row}`);
-    }
-
-    // ========== 基本プロパティ ==========
-
-    get Name(): string {
-        return this.name;
     }
 }
 

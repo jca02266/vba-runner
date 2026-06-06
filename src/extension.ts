@@ -14,6 +14,8 @@ import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
 import { checkOptionExplicit } from './engine/option-explicit-checker';
+import { loadMocks } from '../test-libs/mock-loader';
+import { injectExcelStub } from '../test-libs/excel-stub';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -420,6 +422,8 @@ End Class`;
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
 
                 const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
+                // Excel API スタブを自動注入（Range / Cells / ActiveSheet 等をノーオプで動かす）
+                injectExcelStub(ev);
                 const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];
 
                 // AssertHelper をクラスモジュールとして評価
@@ -429,6 +433,12 @@ End Class`;
                 ).parse();
                 ev.evaluate(assertAst);
                 asts.push({ ast: assertAst, moduleName: 'AssertHelper' });
+
+                // __mocks__/ と __mocks__.* からモックを注入（本番モジュールより先）
+                const mockModules = loadMocks(dir, ev);
+                for (const { ast: mockAst, moduleName: mockName } of mockModules) {
+                    asts.push({ ast: mockAst, moduleName: mockName });
+                }
 
                 for (const entry of entries) {
                     // ディレクトリに AssertHelper.cls があっても重複注入しない

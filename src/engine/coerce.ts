@@ -98,6 +98,7 @@ export function vbaToBoolean(val: any): VbaBoolean {
     if (val instanceof VbaBoolean) return val;
     if (val === vbaEmpty) return vbaFalse;
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
+    if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
     if (typeof val === 'string') {
         const trimmed = val.trim();
         const lc = trimmed.toLowerCase();

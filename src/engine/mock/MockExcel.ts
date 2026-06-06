@@ -19,10 +19,10 @@
  * MockApplication は opt-in。`setDefaultBindingObject` を呼ばなければ既存の動作と変わらない。
  */
 
-import { MockWorksheet, MockRange } from './MockWorksheet';
+import { MockWorksheet, MockRange, MockRows, MockColumns } from './MockWorksheet';
 import { VbaType, VbaDefaultProperty, VbaIterable } from '../vba-types';
 
-export { MockWorksheet, MockRange };
+export { MockWorksheet, MockRange, MockRows, MockColumns };
 export type { VbaType, VbaDefaultProperty, VbaIterable };
 
 /** ActiveWorkbook / ThisWorkbook の最小スタブ */
@@ -111,6 +111,91 @@ export class MockApplication {
     /** VBA: `Application.Name` */
     get Name(): string {
         return 'Microsoft Excel';
+    }
+
+    // ==============================
+    // Application レベルの設定（ノーオプ）
+    // VBA: Application.ScreenUpdating = False / Application.Calculation = xlCalculationManual
+    // ==============================
+
+    get ScreenUpdating() { return true; }
+    set ScreenUpdating(_v: any) {}
+
+    get DisplayAlerts() { return true; }
+    set DisplayAlerts(_v: any) {}
+
+    get EnableEvents() { return true; }
+    set EnableEvents(_v: any) {}
+
+    get Calculation() { return -4105; } // xlCalculationAutomatic
+    set Calculation(_v: any) {}
+
+    get StatusBar() { return false as any; }
+    set StatusBar(_v: any) {}
+
+    get CutCopyMode() { return false as any; }
+    set CutCopyMode(_v: any) {}
+
+    get Visible() { return true; }
+    set Visible(_v: any) {}
+
+    /** VBA: `Application.Version` */
+    get Version() { return '16.0'; }
+
+    /** VBA: `Application.Application` — 自己参照（Application.Application.ScreenUpdating 等） */
+    get Application(): this { return this; }
+
+    // ==============================
+    // シートコレクション別名
+    // ==============================
+
+    /** Worksheets は Sheets の別名 */
+    Worksheets(nameOrIndex: string | number): MockWorksheet {
+        return this.Sheets(nameOrIndex);
+    }
+
+    /** Workbooks スタブ（ThisWorkbook / ActiveWorkbook と共通のスタブを返す） */
+    get Workbooks(): { Item: (i: any) => MockWorkbook; Count: number; Open: (path: string) => MockWorkbook } {
+        const wb = this._workbook;
+        return {
+            Count: 1,
+            Item: (_i: any) => wb,
+            Open: (_path: string) => wb,
+        };
+    }
+
+    // ==============================
+    // グローバル行/列コレクション
+    // ==============================
+
+    /** VBA: Rows.Count / Rows(n).Hidden — アクティブシートに委譲 */
+    Rows(...args: any[]): MockRows {
+        return this.ActiveSheet.Rows(...args);
+    }
+
+    /** VBA: Columns.Count / Columns(n).ColumnWidth — アクティブシートに委譲 */
+    Columns(...args: any[]): MockColumns {
+        return this.ActiveSheet.Columns(...args);
+    }
+
+    // ==============================
+    // アクティブセル / 選択範囲（スタブ）
+    // ==============================
+
+    get ActiveCell(): MockRange { return this.ActiveSheet.Range('A1'); }
+    get Selection(): MockRange { return this.ActiveSheet.Range('A1'); }
+
+    // ==============================
+    // WorksheetFunction — 全メソッドを 0 / false で返すプロキシ
+    // ==============================
+
+    get WorksheetFunction(): Record<string, (...args: any[]) => any> {
+        return new Proxy({} as Record<string, (...args: any[]) => any>, {
+            get: (_t, prop) => {
+                if (typeof prop === 'string') return (..._args: any[]) => 0;
+                return undefined;
+            },
+        });
     }
 
     // ==============================
