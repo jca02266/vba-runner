@@ -20,6 +20,6 @@ export function injectWordStub(evaluator: Evaluator): MockWordApplication {
     evaluator.setDefaultBindingObject(app);
     evaluator.setBuiltinOverride('Application', app);
     // CreateObject("Word.Application") / New Word.Application に対応
-    evaluator.registerExternalObject('Word.Application', () => new MockWordApplication());
+    evaluator.registerComObject(() => new MockWordApplication());
     return app;
 }

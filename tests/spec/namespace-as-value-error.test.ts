@@ -11,6 +11,7 @@ import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runn
 import { Evaluator } from '../../src/engine/evaluator';
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
+import type { VbaComObject } from '../../src/engine/vba-types';
 
 function catchError(modules: Array<{ name: string; code: string }>, entry: string): any {
     const ev = evalVBAModules(modules);
@@ -152,7 +153,7 @@ End Function`);
 // ---------------------------------------------------------------------------
 {
     const ev = new Evaluator(console.log);
-    ev.registerExternalObject('MyLib.MyClass', () => ({ __className__: 'MyClass', getValue: () => 99 }));
+    ev.registerComObject((): VbaComObject & { getValue: () => number } => ({ __progId__: 'MyLib.MyClass', getValue: () => 99 }));
     const ast = new Parser(new Lexer(`
 Function Test() As Long
     Test = VarType(MyLib)
@@ -164,12 +165,12 @@ End Function`).tokenize()).parse();
         assert.fail('VarType(MyLib) should throw');
     } catch (e: any) {
         assert.ok(e.message.includes('project'), `MyLib はプロジェクトとしてエラー: "${e.message}"`);
-        console.log('[PASS] registerExternalObject("MyLib.MyClass") → VarType(MyLib) がエラー');
+        console.log('[PASS] registerComObject("MyLib.MyClass") → VarType(MyLib) がエラー');
     }
 }
 {
     const ev = new Evaluator(console.log);
-    ev.registerExternalObject('MyLib.MyClass', () => ({ __className__: 'MyClass', getValue: () => 99 }));
+    ev.registerComObject((): VbaComObject & { getValue: () => number } => ({ __progId__: 'MyLib.MyClass', getValue: () => 99 }));
     const ast = new Parser(new Lexer(`
 Function Test() As Long
     Dim obj As Object

@@ -178,9 +178,9 @@ export interface VbaIterable {
 /**
  * `CreateObject(progId)` で生成される COM オブジェクトのモック。
  * `__progId__` に COM ProgID（`"Word.Application"` 等）を宣言することで、
- * `registerExternalObject` の自動別名登録が機能する。
+ * `registerComObject` の自動別名登録が機能する。
  *
- * `registerExternalObject("Word.Application", factory)` は factory() を一度呼び出し、
+ * `registerComObject("Word.Application", factory)` は factory() を一度呼び出し、
  * 返り値の `__progId__` を読んで同じ factory を別名でも登録する。
  * これにより `CreateObject("Word.Application")` と `New Word.Application` の両方が動く。
  *
@@ -188,7 +188,7 @@ export interface VbaIterable {
  * class MockWordApplication implements VbaComObject {
  *   readonly __progId__ = 'Word.Application';
  * }
- * evaluator.registerExternalObject('Word.Application', () => new MockWordApplication());
+ * evaluator.registerComObject('Word.Application', () => new MockWordApplication());
  * // VBA: Set app = CreateObject("Word.Application")  → MockWordApplication
  * // VBA: Dim app As New Word.Application             → MockWordApplication（自動別名）
  */

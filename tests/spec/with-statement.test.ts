@@ -2,6 +2,7 @@ import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
 import { assert } from '../../test-libs/test-runner';
+import type { VbaComObject } from '../../src/engine/vba-types';
 
 function evalVBA(code: string): any {
     const tokens = new Lexer(code).tokenize();
@@ -96,7 +97,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 // TypeScript class の get accessor（prototype 上に定義）を .Prop 構文で解決できなかった。
 {
     // prototype に getter を持つ JS クラスを外部オブジェクトとして登録
-    class MockFindLike {
+    class MockFindLike implements VbaComObject {
+        readonly __progId__ = 'Test.MockFindLike';
         _text: string = '';
         _replacement = { Text: '' };
 
@@ -112,7 +114,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     const code = `
         Function TestWithPrototypeGetter() As String
             Dim obj As Object
-            Set obj = CreateObject("MockFindLike")
+            Set obj = CreateObject("Test.MockFindLike")
             With obj
                 .Text = "foo"
                 .Replacement.Text = "bar"
@@ -121,7 +123,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         End Function
     `;
     const ev = evalVBA(code);
-    ev.registerExternalObject('MockFindLike', () => new MockFindLike());
+    ev.registerComObject(() => new MockFindLike());
     assert.strictEqual(
         ev.callProcedure('TestWithPrototypeGetter', []),
         'foo|bar',
@@ -132,7 +134,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 
 // 6. With ブロック内で prototype の no-arg メソッドが auto-call されること
 {
-    class MockAutoCall {
+    class MockAutoCall implements VbaComObject {
+        readonly __progId__ = 'Test.MockAutoCall';
         _count: number = 0;
         /** no-arg メソッド — With ブロック内で .Count とアクセスすると auto-call される */
         Count() { return this._count; }
@@ -142,7 +145,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     const code = `
         Function TestWithAutoCall() As Long
             Dim obj As Object
-            Set obj = CreateObject("MockAutoCall")
+            Set obj = CreateObject("Test.MockAutoCall")
             obj.Increment
             obj.Increment
             With obj
@@ -151,7 +154,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         End Function
     `;
     const ev = evalVBA(code);
-    ev.registerExternalObject('MockAutoCall', () => new MockAutoCall());
+    ev.registerComObject(() => new MockAutoCall());
     assert.strictEqual(
         ev.callProcedure('TestWithAutoCall', []),
         2,

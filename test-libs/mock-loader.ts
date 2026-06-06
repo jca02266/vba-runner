@@ -161,7 +161,8 @@ function loadVbaMock(file: string, evaluator: Evaluator): MockModule | null {
  * JS/TS モジュールのエクスポートを evaluator に適用する。
  *
  * - TS default export か CJS module.exports を正規化して走査する
- * - `__addCreateObject__` キー → registerExternalObject に登録
+ * - `__addCreateObject__` キー → registerComObject に登録
+ *   factory が __progId__ を持たない場合はキー名を __progId__ として補完する
  * - それ以外の関数 → setBuiltinOverride で env に登録
  */
 function applyJsMockExports(mod: any, evaluator: Evaluator, file: string): void {
@@ -175,7 +176,15 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string): void 
         if (key === '__addCreateObject__') {
             if (typeof value === 'object' && value !== null) {
                 for (const [progId, factory] of Object.entries(value as Record<string, () => any>)) {
-                    evaluator.registerExternalObject(progId, factory as () => any);
+                    // factory が __progId__ を持たない場合はキーで補完して VbaComObject 型に合わせる
+                    const wrappedFactory = () => {
+                        const obj = (factory as () => any)();
+                        if (obj && typeof obj === 'object' && !('__progId__' in obj)) {
+                            obj.__progId__ = progId;
+                        }
+                        return obj;
+                    };
+                    evaluator.registerComObject(wrappedFactory);
                 }
             }
         } else if (typeof value === 'function') {

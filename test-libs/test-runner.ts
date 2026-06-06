@@ -3,6 +3,7 @@ import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
+import type { VbaComObject } from '../src/engine/vba-types';
 import { MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, CompilerConstants } from '../src/engine/preprocessor';
 import { loadMocks } from './mock-loader';
@@ -116,16 +117,17 @@ export class VBARunner {
     }
 
     /**
-     * VBA の `CreateObject(progId)` が返すオブジェクトを差し替えるためのファクトリを登録する。
+     * COM オブジェクトのファクトリを登録する。factory() が返すオブジェクトは
+     * `VbaComObject`（`__progId__: string` を持つ）である必要がある。
      * 既存の組み込みスタブよりも優先される。
      *
      * @example
      *   import { createRegExpMock } from '../../test-libs/regexp-mock';
      *   const vbaRunner = new VBARunner('source.bas');
-     *   vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
+     *   vbaRunner.registerComObject(createRegExpMock);
      */
-    registerExternalObject(progId: string, factory: () => any): void {
-        this.evaluator.registerExternalObject(progId, factory);
+    registerComObject(factory: () => VbaComObject): void {
+        this.evaluator.registerComObject(factory);
     }
 
     /**

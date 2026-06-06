@@ -88,7 +88,7 @@ import {
     toVbaDate, fromVbaDate, parseVbaDate,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
-import type { VbaVarType } from './vba-types';
+import type { VbaVarType, VbaComObject } from './vba-types';
 export {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
@@ -3015,7 +3015,7 @@ export class Evaluator {
 
     private instantiateClass(className: string): any {
         // 外部登録ファクトリ（class 名で別名登録されたもの）を先に確認
-        // - registerExternalObject(progId, factory) で factory().__className__ が登録されている
+        // - registerComObject(factory) で factory().__progId__ が登録されている
         // - これにより VBA の「参照設定」相当（New ClassName / Dim x As ClassName）が動く
         const factory = this.externalObjectFactories.get(className.toLowerCase());
         if (factory) return factory();
@@ -3930,42 +3930,48 @@ export class Evaluator {
      *
      * 主にテスト用途でモックを差し込むために使用する。
      */
-    public registerExternalObject(progId: string, factory: () => any): void {
-        this.externalObjectFactories.set(progId.toLowerCase(), factory);
-        // factory を 1 度呼んでオブジェクトを検査し、別名を追加登録する。
-        // 優先順位: __progId__ (VbaComObject) → __className__ (旧来の互換)
-        //
-        // __progId__ が "Scripting.Dictionary" のようなドット区切り形式の場合、
-        // ドット後ろの短縮クラス名（"dictionary"）も自動登録する。
-        // これにより `New Dictionary` / `New RegExp` 等の短縮構文が動く。
+    /**
+     * COM オブジェクトのファクトリを登録する。
+     *
+     * factory() が返すオブジェクトの `__progId__` を主キーとして登録し、
+     * ドット後ろの短縮クラス名（"Dictionary" 等）も自動的に別名登録する。
+     * これにより `CreateObject("Scripting.Dictionary")` と `New Dictionary` の両方が動く。
+     *
+     * @param factory VbaComObject を返すファクトリ関数
+     * @param extraProgIds 同じ factory を追加で登録する ProgID（例: "Microsoft.XMLHTTP"）
+     */
+    public registerComObject(factory: () => VbaComObject, ...extraProgIds: string[]): void {
+        const register = (key: string) => {
+            const k = key.toLowerCase();
+            if (!this.externalObjectFactories.has(k)) {
+                this.externalObjectFactories.set(k, factory);
+            }
+            // "ProjectName.ClassName" 形式ならプロジェクト名を VbaNamespaceRef として登録。
+            // VarType(Scripting) 等の誤用がエラーになる（VBA 仕様通り）。
+            const dot = k.indexOf('.');
+            if (dot > 0) {
+                const projectName = k.slice(0, dot);
+                if (!this.env.hasVariable(projectName)) {
+                    this.env.set(projectName, new VbaNamespaceRef(k.slice(0, dot), 'project'));
+                }
+            }
+        };
+
         try {
             const sample = factory();
-            const progIdAlias: string | undefined = sample?.__progId__;
-            const classNameAlias: string | undefined = sample?.__className__;
-            const register = (key: string) => {
-                const k = key.toLowerCase();
-                if (!this.externalObjectFactories.has(k)) {
-                    this.externalObjectFactories.set(k, factory);
-                }
-            };
-            if (progIdAlias) {
-                register(progIdAlias);
-                // "X.Y" → "Y" の短縮形も登録
-                const dot = progIdAlias.lastIndexOf('.');
-                if (dot >= 0) register(progIdAlias.slice(dot + 1));
-            } else if (classNameAlias) {
-                register(classNameAlias);
-            }
+            const progId = sample.__progId__;
+            // 主キー登録
+            this.externalObjectFactories.set(progId.toLowerCase(), factory);
+            // "X.Y" → "Y" の短縮形も登録
+            const dot = progId.lastIndexOf('.');
+            if (dot >= 0) register(progId.slice(dot + 1));
+            // VbaNamespaceRef 登録
+            register(progId);
         } catch { /* sample 取得時のエラーは無視 */ }
-        // "ProjectName.ClassName" 形式の場合、プロジェクト名を VbaNamespaceRef として登録。
-        // これにより VarType(Scripting) 等の誤用がエラーになる（VBA 仕様通り）。
-        const dotIndex = progId.indexOf('.');
-        if (dotIndex > 0) {
-            const projectName = progId.slice(0, dotIndex);
-            const projectKey = projectName.toLowerCase();
-            if (!this.env.hasVariable(projectKey)) {
-                this.env.set(projectKey, new VbaNamespaceRef(projectName, 'project'));
-            }
+
+        // 追加 ProgID
+        for (const extra of extraProgIds) {
+            register(extra);
         }
     }
 
@@ -3982,12 +3988,12 @@ export class Evaluator {
      *   - CreateObject("Scripting.Dictionary")
      *   - Dim d As New Dictionary / Set d = New Dictionary（参照設定相当）
      *
-     * テスト用に registerExternalObject で同じ progId / className を再登録すれば
+     * テスト用に registerComObject で同じ factory を再登録すれば
      * 上書き（モック差し替え）も可能。
      */
     private registerBuiltinExternalObjects(): void {
         // --- Scripting.Dictionary ---
-        this.registerExternalObject('Scripting.Dictionary', () => {
+        this.registerComObject( () => {
             const dict = new Map<any, any>();
             return {
                 __isVbaDict__: true,
@@ -4013,7 +4019,7 @@ export class Evaluator {
         });
 
         // --- Collection (§6.1.3.1) ---
-        this.registerExternalObject('Collection', () => {
+        this.registerComObject( () => {
             const items: any[] = [];
             const keys: (string | undefined)[] = [];
 
@@ -4067,7 +4073,7 @@ export class Evaluator {
         });
 
         // --- Scripting.FileSystemObject ---
-        this.registerExternalObject('Scripting.FileSystemObject', () => ({
+        this.registerComObject( () => ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
             fileexists: (p: string) => {
@@ -4170,11 +4176,11 @@ export class Evaluator {
                 readystate: 4
             };
         };
-        this.registerExternalObject('MSXML2.XMLHTTP', xmlhttpFactory);
-        this.registerExternalObject('Microsoft.XMLHTTP', xmlhttpFactory);
+        this.registerComObject(xmlhttpFactory, 'Microsoft.XMLHTTP');
+        
 
         // --- ADODB.Stream ---
-        this.registerExternalObject('ADODB.Stream', () => {
+        this.registerComObject( () => {
             let content = "";
             let streamPos = 0;
             return {

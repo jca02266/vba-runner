@@ -14,7 +14,7 @@ function evalVBA(code: string): any {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(console.log);
-    ev.registerExternalObject('VBScript.RegExp', createRegExpMock);
+    ev.registerComObject(createRegExpMock);
     ev.evaluate(ast);
     return ev;
 }
@@ -149,7 +149,7 @@ console.log('--- Starting VBScript.RegExp Mock Tests ---');
 }
 
 // --- 9. 参照設定相当: `New RegExp` / `Dim re As RegExp` ---
-// registerExternalObject('VBScript.RegExp', createRegExpMock) 1 回の登録で、
+// registerComObject(createRegExpMock) 1 回の登録で、
 // `CreateObject("VBScript.RegExp")` だけでなく、
 // `Set re = New RegExp` / `Dim re As RegExp` も同じ factory で生成される。
 {
