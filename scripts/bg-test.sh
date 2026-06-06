@@ -48,6 +48,11 @@ set +e
 EXIT_CODE=$?
 set -e
 
+# テスト結果サマリーをログから抜粋して表示
+echo "--- テスト結果 ---"
+grep -E "passed|failed|PASS|FAIL|Tests passed|All [0-9]+" "${LOG}" | tail -10 || true
+echo "------------------"
+
 if [ ${EXIT_CODE} -eq 0 ]; then
     echo "✅ テスト成功 — worktree / ブランチを削除します"
     git -C "${REPO_ROOT}" worktree remove "${WORKTREE}" --force
@@ -66,6 +71,5 @@ else
     echo "     git worktree remove ${WORKTREE} --force"
     echo "     git branch -d ${BRANCH}"
     echo "     git stash pop"
-    tail -20 "${LOG}"
     exit ${EXIT_CODE}
 fi
