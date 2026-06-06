@@ -579,6 +579,66 @@ End Class`;
         })
     );
 
+    // vba-runner.generateMocks: __mocks__/ExcelObjects.bas のひな形を生成
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.generateMocks', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage('VBA ファイルを開いた状態で実行してください');
+                return;
+            }
+
+            const filePath = editor.document.uri.fsPath;
+            const dir = path.dirname(filePath);
+            const outPath = path.join(dir, '__mocks__', 'ExcelObjects.bas');
+
+            try {
+                // vba-analyzer --json でオブジェクト依存を解析
+                const { execSync } = await import('child_process');
+                const analyzerPath = path.join(import.meta.dirname, '../../test-libs/vba-analyzer.ts');
+                const raw = execSync(
+                    `npx tsx "${analyzerPath}" "${dir}" --json`,
+                    { encoding: 'utf-8', cwd: path.dirname(analyzerPath) }
+                );
+                const json = JSON.parse(raw);
+                const { extractObjectsFromAnalyzerJson, generateExcelMockBas } = await import('../test-libs/mock-generator');
+                const objects = extractObjectsFromAnalyzerJson(json);
+
+                if (objects.length === 0) {
+                    vscode.window.showInformationMessage('Excel 依存オブジェクトが検出されませんでした。');
+                    return;
+                }
+
+                // 既存ファイルのチェック
+                if (fs.existsSync(outPath)) {
+                    const answer = await vscode.window.showWarningMessage(
+                        `__mocks__/ExcelObjects.bas は既に存在します。上書きしますか？`,
+                        '上書き', 'キャンセル'
+                    );
+                    if (answer !== '上書き') return;
+                }
+
+                // ひな形生成・書き出し
+                const content = generateExcelMockBas(objects, {
+                    procName: path.basename(filePath),
+                    date: new Date().toISOString().slice(0, 10),
+                });
+                fs.mkdirSync(path.dirname(outPath), { recursive: true });
+                fs.writeFileSync(outPath, content, 'utf-8');
+
+                // 生成したファイルを開く
+                const doc = await vscode.workspace.openTextDocument(outPath);
+                await vscode.window.showTextDocument(doc);
+                vscode.window.showInformationMessage(
+                    `検出: ${objects.join(', ')}\n__mocks__/ExcelObjects.bas を生成しました。`
+                );
+            } catch (e: any) {
+                vscode.window.showErrorMessage(`generateMocks エラー: ${e.message}`);
+                outputChannel.appendLine(`[generateMocks] ${e.message}`);
+            }
+        })
+    );
+
     // vba-runner.goToTest: シンボル検索で Test_<procName> 関数へジャンプ
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.goToTest', async (uri: string, procName: string) => {

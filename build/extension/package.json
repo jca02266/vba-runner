@@ -59,6 +59,11 @@
         "command": "vba-runner.introduceVariable",
         "title": "Introduce Variable",
         "category": "Refactor"
+      },
+      {
+        "command": "vba-runner.generateMocks",
+        "title": "Generate Mock Stubs",
+        "category": "VBA"
       }
     ],
     "menus": {
@@ -77,6 +82,10 @@
         {
           "command": "vba-runner.showInCallGraph",
           "when": "false"
+        },
+        {
+          "command": "vba-runner.generateMocks",
+          "when": "resourceLangId == vba"
         }
       ]
     },
