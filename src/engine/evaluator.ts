@@ -1750,7 +1750,9 @@ export class Evaluator {
 
         // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
         // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
-        // §5.6.10 Tier 6: defaultBindingObject（MockApplication 等）で解決できる名前も違反対象外。
+        // §5.6.10 Tier 6: Option Explicit は「変数」の宣言漏れを検出するもの。
+        // defaultBindingObject のメンバーは変数ではなく型ライブラリのメンバーであり、
+        // Option Explicit の管轄外（実 VBA の型ライブラリメンバーと同等の扱い）。
         if (this.optionExplicitViolations.has(procName)) {
             const violations = this.optionExplicitViolations.get(procName)!;
             const stillMissing = [...violations.entries()].filter(([n]) => {
@@ -4828,6 +4830,8 @@ export class Evaluator {
                 try {
 
                 // Option Explicit check (mirrors callProcedure)
+                // §5.6.10 Tier 6: defaultBindingObject のメンバーは型ライブラリのメンバーと同等で
+                // 変数宣言が不要。Option Explicit の管轄外として扱う。
                 const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
                 if (oeViolations) {
                     const stillMissing = [...oeViolations.entries()].filter(([n]) => {

@@ -372,11 +372,12 @@ End Sub
 }
 
 // ============================================================
-// 12. Option Explicit + Tier 6 の共存：Tier 6 メンバーは違反対象外
+// 12. Option Explicit と Tier 6 の共存
+//    Option Explicit は「変数」の宣言漏れを検出するもの。
+//    Tier 6 メンバー (Range / Cells 等) は変数ではなく型ライブラリのメンバーであり、
+//    そもそも Option Explicit の管轄外（実 VBA の型ライブラリと同じ扱い）。
 // ============================================================
 {
-    // Option Explicit があっても、defaultBindingObject が Range / Cells / ActiveSheet を
-    // 提供していれば Option Explicit 違反にならない（実 VBA の型ライブラリと同じ挙動）
     const userCode = `
 Option Explicit
 
@@ -394,7 +395,7 @@ End Sub
     (ev as any).onPrint = (s: string) => { printed = s; };
     ev.callProcedure('TestOptionExplicitWithTier6', []);
     assert.strictEqual(Number(printed), 30, 'Range + Cells via Tier 6 should work with Option Explicit');
-    console.log('[PASS] 12. Option Explicit + Tier 6 共存：Tier 6 メンバーは違反対象外');
+    console.log('[PASS] 12. Option Explicit と Tier 6 の共存：型ライブラリメンバーは変数宣言不要');
 }
 
 // ============================================================
