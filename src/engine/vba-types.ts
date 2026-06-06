@@ -115,14 +115,58 @@ export type VbaBooleanType = VbaBoolean;
 export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong' | 'LongPtr';
 export type VbaVarType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
 
+// ============================================================
+// VBA オブジェクトインターフェース
+//
+// JS/TS で VBA オブジェクトとして振る舞うクラス（モック・外部スタブ等）が
+// 実装すべきインターフェース群。evaluator.ts が各マーカーを参照して挙動を決定する。
+// ============================================================
+
 /**
- * VBA の型名を宣言するオブジェクトのインターフェース。
- * evaluator は obj.__vbaTypeName__ を参照して TypeOf / TypeName の型を決定する（§5.6.10）。
- * クラス・モックオブジェクト・外部 COM スタブなど、VBA 側から型判定されうるオブジェクトが実装する。
- * TypeScript がコンパイル時に __vbaTypeName__ の定義漏れを検出できる。
+ * VBA 型名を宣言するオブジェクト。
+ * `TypeOf x Is Range` / `TypeName(x)` で正しい型名を返すために必要。
+ * VBA 側から型判定されうるすべてのオブジェクト（モック・外部 COM スタブ等）が実装する。
+ *
+ * @example
+ * class MockRange implements VbaType {
+ *   readonly __vbaTypeName__ = 'Range';
+ * }
  */
 export interface VbaType {
     readonly __vbaTypeName__: string;
+}
+
+/**
+ * デフォルトプロパティを持つオブジェクト。
+ * Let 代入（`x = r`）で VBA がオブジェクトを値として評価するとき valueOf() を呼び出す。
+ * Excel の Range.Value のように「オブジェクトそのものを値文脈で使う」場合に実装する。
+ *
+ * @example
+ * class MockRange implements VbaDefaultProperty {
+ *   readonly __vbaDefault__ = true as const;
+ *   valueOf() { return this._value; }  // セルの値を返す
+ * }
+ * // VBA: x = Range("A1")  → Range オブジェクトではなくセルの値が x に入る
+ */
+export interface VbaDefaultProperty {
+    readonly __vbaDefault__: true;
+    valueOf(): any;
+}
+
+/**
+ * For Each でイテレートできるコレクション。
+ * `For Each item In col` で要素を列挙するために Symbol.iterator を実装する。
+ * または items プロパティ（any[]）で代替できる。
+ *
+ * @example
+ * class MockCollection implements VbaIterable {
+ *   private _items: any[] = [];
+ *   [Symbol.iterator]() { return this._items[Symbol.iterator](); }
+ * }
+ * // VBA: For Each item In col → _items の各要素を列挙
+ */
+export interface VbaIterable {
+    [Symbol.iterator](): Iterator<any>;
 }
 
 export interface AutoInstancePlaceholder {

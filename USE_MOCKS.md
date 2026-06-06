@@ -375,6 +375,63 @@ export default {
 
 ***
 
+## JS/TS モックオブジェクトの規約
+
+TypeScript で VBA オブジェクトとして振る舞うクラスを書く際に実装すべきインターフェースの一覧。
+すべて `src/engine/vba-types.ts` に定義されており `MockExcel` からも re-export している。
+
+```typescript
+import type { VbaType, VbaDefaultProperty, VbaIterable } from '../src/engine/mock/MockExcel';
+```
+
+| インターフェース | マーカー | 用途 | 例 |
+|---|---|---|---|
+| `VbaType` | `__vbaTypeName__: string` | `TypeOf x Is Range` / `TypeName(x)` | `MockRange`, `MockWorksheet` |
+| `VbaDefaultProperty` | `__vbaDefault__: true` + `valueOf()` | Let 代入で暗黙的に `.Value` を返す | `MockRange` |
+| `VbaIterable` | `[Symbol.iterator]()` | `For Each item In col` | カスタムコレクション |
+
+### VbaType — TypeOf / TypeName 対応
+
+```typescript
+class MockRange implements VbaType {
+    readonly __vbaTypeName__ = 'Range';  // TypeOf r Is Range → True
+    // TypeName(r) → "Range"
+}
+```
+
+### VbaDefaultProperty — 暗黙 .Value アクセス
+
+```typescript
+class MockRange implements VbaDefaultProperty {
+    readonly __vbaDefault__ = true as const;
+    private _value: any;
+    valueOf() { return this._value; }
+    // VBA: x = Range("A1")  → セル値が x に入る（Range オブジェクトではない）
+    // VBA: Range("A1") + 1  → valueOf() の戻り値に 1 を足す
+}
+```
+
+### VbaIterable — For Each 列挙
+
+```typescript
+class MockRows implements VbaIterable {
+    private _rows: any[];
+    [Symbol.iterator]() { return this._rows[Symbol.iterator](); }
+    // VBA: For Each row In Rows → _rows の各要素を列挙
+}
+```
+
+> **`items` プロパティによる代替**: `[Symbol.iterator]` の代わりに `items: any[]` プロパティでも
+> `For Each` に対応できる（エンジンがフォールバック検出する）。ただし `VbaIterable` の型安全は得られない。
+
+### メソッド命名規則
+
+- **PascalCase 推奨**（`Range`, `Cells`, `GetValue`）
+- エンジンが大文字小文字を無視して解決するため `range` でも動作するが、
+  VBA 側の呼び出しと大文字小文字を合わせておくと見通しがよい
+
+---
+
 ## 用語について
 
 「モック」という言葉は文脈によって意味が異なります。

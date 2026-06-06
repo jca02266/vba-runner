@@ -17,7 +17,7 @@
  * - '@A1:A10'        implicit intersection operator（Excel 365）— @ を除去して通常参照として扱う
  */
 
-import { VbaType } from '../vba-types';
+import { VbaType, VbaDefaultProperty } from '../vba-types';
 
 interface CellRect {
     startCol: number;
@@ -26,8 +26,8 @@ interface CellRect {
     endRow: number;
 }
 
-export class MockRange implements VbaType {
-    readonly __vbaDefault__ = true;
+export class MockRange implements VbaType, VbaDefaultProperty {
+    readonly __vbaDefault__ = true as const;
     /** TypeName(r) → "Range"、TypeOf r Is Range → True になるための型メタデータ */
     readonly __vbaTypeName__ = 'Range';
 
