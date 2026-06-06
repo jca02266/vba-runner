@@ -45,9 +45,11 @@ End Function
 
 ' Find/Replace（スタブは常に Not Found）
 Function TestFind() As Boolean
-    Selection.Find.Text = "foo"
-    Selection.Find.Replacement.Text = "bar"
-    Selection.Find.Execute
+    With Selection.Find
+        .Text = "foo"
+        .Replacement.Text = "bar"
+        .Execute
+    End With
     TestFind = Selection.Find.Found
 End Function
 

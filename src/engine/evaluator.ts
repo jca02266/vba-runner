@@ -5685,20 +5685,16 @@ export class Evaluator {
         }
         const obj = this.withObjectStack[this.withObjectStack.length - 1];
         const propName = expr.property.name.toLowerCase();
-        if (obj && typeof obj === 'object') {
-            // Check for direct property access
-            if (Object.prototype.hasOwnProperty.call(obj, propName)) {
-                const val = obj[propName];
-                if (typeof val === 'function') {
-                    return val.bind(obj);
+        if (obj && (typeof obj === 'object' || typeof obj === 'function')) {
+            // resolveObjectMemberKey でプロトタイプチェーン（getter/メソッド含む）を辿る。
+            // 旧実装は Object.keys() のみで own property しか探さなかったため、
+            // TypeScript class の get accessor が With ブロック内で発見できないバグがあった。
+            const key = this.resolveObjectMemberKey(obj, propName);
+            if (key !== undefined) {
+                const val = obj[key];
+                if (typeof val === 'function' && val.length === 0) {
+                    return val.call(obj);
                 }
-                return val;
-            }
-            // Case-insensitive fallback
-            const keys = Object.keys(obj);
-            const match = keys.find(k => k.toLowerCase() === propName);
-            if (match) {
-                const val = obj[match];
                 if (typeof val === 'function') {
                     return val.bind(obj);
                 }
