@@ -10,7 +10,7 @@ import * as path from 'path';
 import { Lexer } from '../../../src/engine/lexer';
 import { Parser } from '../../../src/engine/parser';
 import { Evaluator } from '../../../src/engine/evaluator';
-import { MockApplication } from '../../../src/engine/mock/MockWorksheet';
+import { MockApplication } from '../../../src/engine/mock/MockExcel';
 import { assert } from '../../../test-libs/test-runner';
 
 // ============================================================

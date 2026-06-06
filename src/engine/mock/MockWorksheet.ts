@@ -559,27 +559,3 @@ export class MockWorksheet implements VbaType {
     }
 }
 
-export class MockApplication {
-    private sheets: Map<string, MockWorksheet> = new Map();
-
-    /**
-     * Sheets('SheetName') でワークシートを取得
-     * 存在しない場合は自動作成
-     */
-    Sheets(nameOrIndex: string | number): MockWorksheet {
-        const name =
-            typeof nameOrIndex === 'string' ? nameOrIndex : `Sheet${nameOrIndex}`;
-        if (!this.sheets.has(name)) {
-            this.sheets.set(name, new MockWorksheet(name));
-        }
-        return this.sheets.get(name)!;
-    }
-
-    listSheets(): string[] {
-        return Array.from(this.sheets.keys());
-    }
-
-    clear(): void {
-        this.sheets.clear();
-    }
-}

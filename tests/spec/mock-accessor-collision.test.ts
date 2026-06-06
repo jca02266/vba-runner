@@ -19,7 +19,7 @@
  *     拾っても返る値が同じため無害。よってフラグしない。
  *     ※ ただし将来そのプロパティに setter を足すと、本ガードが衝突を検出するようになる。
  */
-import { MockRange, MockWorksheet, MockApplication } from '../../src/engine/mock/MockWorksheet';
+import { MockRange, MockWorksheet, MockApplication } from '../../src/engine/mock/MockExcel';
 import { assert } from '../../test-libs/test-runner';
 
 /**
