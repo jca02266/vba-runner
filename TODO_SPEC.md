@@ -775,6 +775,20 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 実装: `Evaluator.setSourceModule()` でモジュール名長をチェック、超過時にエラー発生
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
 
+- ❌ **§5.6.10 Tier 6 — 外部型ライブラリのメンバーを修飾なしで解決できない**
+  - **仕様**: MS-VBAL §5.6.10 では修飾なし識別子の名前解決を 6 段階の Tier で定義している。
+    Tier 1（ローカル）→ Tier 2（同モジュール）→ Tier 3（プロジェクト名）→ Tier 4（他モジュール Public）→ Tier 5（参照プロジェクト名）→ **Tier 6（参照プロジェクト内 Public メンバー）**
+  - **Tier 6 の具体例**: Excel VBA では参照設定により Excel 型ライブラリが Tier 6 に入る。
+    `Range("A1")` が修飾なしで呼べるのは Excel 型ライブラリが `Application` の `Range` メンバーを
+    Tier 6 に公開しているため。Default Member 機構により `Range("A1")` → `Application.ActiveSheet.Range.Item("A1")` に解決される
+  - **型文脈との関係**: `Dim r As Range` の `Range`（型名前空間）と `Range("A1")` の `Range`（値名前空間）は
+    同じ Tier 6 で解決されるが、型名前空間と値名前空間は別扱いのため名前衝突は起きない
+  - **エンジンの現状**: Tier 6 未実装。全識別子をフラットなグローバルスコープで解決するため、
+    `Range` をクラス名（型名前空間）として定義すると `Range("A1")` の呼び出し（値名前空間）と衝突する。
+    これは VBA 仕様の制限でなくエンジン固有の制限
+  - **影響**: `__mocks__.bas` で `Range` クラスを定義できない（→ `USE_MOCKS.md` 参照）
+  - 優先度: **低**（`__mocks__` の `.js`/`.ts` 形式で回避可能）
+
 - ❌ **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
   - 優先度: **低** （Option Explicit あり時は問題なし）
   - 実VBA動作の違い：
