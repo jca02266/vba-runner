@@ -14,7 +14,7 @@
  *   Documents.Open "C:\path\file.docx"
  */
 
-import { VbaType } from '../vba-types';
+import { VbaType, VbaExternalObject } from '../vba-types';
 
 // ========== フォント・書式スタブ ==========
 
@@ -442,8 +442,7 @@ class MockDocumentsCollection {
 
 // ========== Word Application ==========
 
-export class MockWordApplication {
-    /** CreateObject("Word.Application") の別名登録に使われる */
+export class MockWordApplication implements VbaExternalObject {
     readonly __className__ = 'Word.Application';
 
     private _activeDoc: MockDocument;
