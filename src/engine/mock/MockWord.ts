@@ -443,6 +443,9 @@ class MockDocumentsCollection {
 // ========== Word Application ==========
 
 export class MockWordApplication {
+    /** CreateObject("Word.Application") の別名登録に使われる */
+    readonly __className__ = 'Word.Application';
+
     private _activeDoc: MockDocument;
     private _documents: MockDocumentsCollection;
     private _selection: MockSelection;
