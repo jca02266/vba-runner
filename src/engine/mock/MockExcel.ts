@@ -20,10 +20,10 @@
  */
 
 import { MockWorksheet, MockRange, MockRows, MockColumns } from './MockWorksheet';
-import { VbaType, VbaDefaultProperty, VbaIterable, VbaExternalObject } from '../vba-types';
+import { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../vba-types';
 
 export { MockWorksheet, MockRange, MockRows, MockColumns };
-export type { VbaType, VbaDefaultProperty, VbaIterable, VbaExternalObject };
+export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
 
 /** ActiveWorkbook / ThisWorkbook の最小スタブ */
 export class MockWorkbook implements VbaType {

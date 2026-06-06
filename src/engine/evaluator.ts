@@ -3923,22 +3923,24 @@ export class Evaluator {
      * CreateObject(progId) で返されるオブジェクトのファクトリを登録する。
      * 既存の組み込みスタブ（Scripting.Dictionary 等）よりも優先して使われる。
      *
-     * 加えて、factory() が返すオブジェクトに `__className__` が含まれていれば、
-     * その名前でも別名登録する。これにより VBA の「参照設定」相当の構文
-     * （`Dim re As RegExp` / `Set re = New RegExp`）からも同じ factory が
-     * 呼ばれる。
+     * 加えて、factory() が返すオブジェクトに `__progId__`（推奨）または `__className__`
+     * が含まれていれば、その値でも別名登録する。これにより VBA の「参照設定」相当の構文
+     * （`Dim app As Word.Application` / `Set app = New Word.Application`）からも
+     * 同じ factory が呼ばれる。
      *
      * 主にテスト用途でモックを差し込むために使用する。
      */
     public registerExternalObject(progId: string, factory: () => any): void {
         this.externalObjectFactories.set(progId.toLowerCase(), factory);
-        // factory を 1 度呼んで __className__ を取り出し、別名としても登録
+        // factory を 1 度呼んで __progId__ / __className__ を取り出し、別名としても登録。
+        // __progId__ (VbaComObject) を優先し、なければ旧来の __className__ にフォールバック。
         try {
             const sample = factory();
-            if (sample && sample.__className__) {
-                const alias = String(sample.__className__).toLowerCase();
-                if (!this.externalObjectFactories.has(alias)) {
-                    this.externalObjectFactories.set(alias, factory);
+            const alias = sample?.__progId__ ?? sample?.__className__;
+            if (alias) {
+                const aliasKey = String(alias).toLowerCase();
+                if (!this.externalObjectFactories.has(aliasKey)) {
+                    this.externalObjectFactories.set(aliasKey, factory);
                 }
             }
         } catch { /* sample 取得時のエラーは無視 */ }

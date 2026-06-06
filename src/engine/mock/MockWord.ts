@@ -14,7 +14,7 @@
  *   Documents.Open "C:\path\file.docx"
  */
 
-import { VbaType, VbaExternalObject } from '../vba-types';
+import { VbaType, VbaComObject } from '../vba-types';
 
 // ========== フォント・書式スタブ ==========
 
@@ -442,8 +442,8 @@ class MockDocumentsCollection {
 
 // ========== Word Application ==========
 
-export class MockWordApplication implements VbaExternalObject {
-    readonly __className__ = 'Word.Application';
+export class MockWordApplication implements VbaComObject {
+    readonly __progId__ = 'Word.Application';
 
     private _activeDoc: MockDocument;
     private _documents: MockDocumentsCollection;
