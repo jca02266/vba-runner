@@ -373,9 +373,10 @@ End Sub
 
 // ============================================================
 // 12. Option Explicit と Tier 6 の共存
-//    Option Explicit は「変数」の宣言漏れを検出するもの。
-//    Tier 6 メンバー (Range / Cells 等) は変数ではなく型ライブラリのメンバーであり、
-//    そもそも Option Explicit の管轄外（実 VBA の型ライブラリと同じ扱い）。
+//    Option Explicit が禁じるのは「どの Tier でも解決できなかった名前を暗黙変数として作ること」。
+//    Tier 6 (defaultBindingObject) で解決できた名前は解決済みなので暗黙変数にはならず、
+//    Option Explicit エラーは発生しない。
+//    実 VBA で型ライブラリメンバーが宣言なしで使えるのも同じ理由。
 // ============================================================
 {
     const userCode = `
@@ -395,7 +396,7 @@ End Sub
     (ev as any).onPrint = (s: string) => { printed = s; };
     ev.callProcedure('TestOptionExplicitWithTier6', []);
     assert.strictEqual(Number(printed), 30, 'Range + Cells via Tier 6 should work with Option Explicit');
-    console.log('[PASS] 12. Option Explicit と Tier 6 の共存：型ライブラリメンバーは変数宣言不要');
+    console.log('[PASS] 12. Option Explicit と Tier 6 の共存：Tier 6 で解決済みなので暗黙変数にならない');
 }
 
 // ============================================================

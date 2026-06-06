@@ -106,7 +106,15 @@ Const の右辺に書ける識別子は以下の通り：
 
 ### 仕様
 
-§5.6.10 より：名前解決で全階層にマッチしない場合、`explicit-mode`（`Option Explicit` あり）なら「simple name expression is invalid」。
+§5.6.10 より：名前解決で**全 Tier にマッチしない**場合にのみ、`explicit-mode`（`Option Explicit` あり）なら「simple name expression is invalid」。
+
+言い換えると、Option Explicit が禁じるのは「どの Tier でも解決できなかった名前を**暗黙変数として作ること**」であり、
+パーサーが識別子を変数か関数か判別できない段階では Option Explicit 違反は確定しない。
+名前解決の末尾（Tier 6 まで）を経て初めて「暗黙変数になるか否か」が決まる。
+
+> **Tier 6 との関係**: `defaultBindingObject`（MockApplication 等）で解決できた名前は Tier 6 で「解決済み」とみなされる。
+> 暗黙変数の作成は起きないため、`Option Explicit` があっても `Range`・`ActiveSheet` 等が使える。
+> 実 VBA で型ライブラリメンバーが宣言なしで使えるのも同じ理由（Tier 6 で解決済み）。
 
 ### 実装
 
