@@ -5356,6 +5356,7 @@ export class Evaluator {
                 // すべてシングルトン (vbaTrue / vbaFalse) であることが invariant。
                 if (argument === vbaTrue) return vbaFalse;
                 if (argument === vbaFalse) return vbaTrue;
+                if (typeof argument === 'boolean') return argument ? vbaFalse : vbaTrue;
                 return ~argument;
             case '-':
                 return -argument;
