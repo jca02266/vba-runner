@@ -180,13 +180,43 @@ Debug.Print ws.Cells(1, 1).Value  ' => 100
 `Range` はグローバル関数ではなく `Worksheet` のプロパティです。また `Dim r As Range` の `Range` は
 型名前空間に属し、プロパティアクセスの名前空間とは別物なので、実 VBA では名前の衝突は起きません。
 
-しかし現状のエンジンは `Range("A1")` をグローバル関数呼び出しとして解決しており、
+現状のエンジンは `Range("A1")` をグローバル関数呼び出しとして解決しており、
 「デフォルトオブジェクト（`ActiveSheet`）経由のプロパティアクセス」は未実装です。
-そのため `.bas` モックでクラス `Range` を定義すると、グローバル関数としての `Range("A1")` 呼び出しと
-クラス定義が同一名前空間で衝突してしまいます。これは VBA 仕様の制限ではなくエンジン固有の制限です。
 
-この問題が解消されるまでは `.bas` での `Range` クラス定義を避け、
-`.js` / `.ts` モックでビルトインを拡張することを推奨します
+**部分改善（§5.6.10 Tier 6 対応）**: クラスモジュール名が値名前空間に登録されることで
+`Range("A1")` の呼び出しが `OBJECT_REQUIRED` で失敗していた問題を修正しました。
+現在は以下のパターンが可能です:
+
+```javascript
+// TypeScript テストコード
+const ev = evalVBAModules([
+    { name: 'Range', code: rangeMockCode },   // Class Range の定義
+    { name: 'UserModule', code: userCode }
+]);
+// Range ファクトリ関数を後から登録
+ev.set('Range', (addr) => {
+    const r = ev.instantiateClass('Range');
+    r.__instanceEnv__.set('value', addr);
+    return r;
+});
+```
+
+または `.bas` ファイル内で `Class Range` と `Function Range` を同居させる方法もあります:
+
+```vba
+' ExcelMocks.bas（モジュール名は 'ExcelMocks' など、'Range' 以外）
+Class Range
+    Public Value As Variant
+End Class
+
+Function Range(address As String) As Range
+    Dim r As New Range
+    r.Value = address
+    Set Range = r
+End Function
+```
+
+より複雑な用途には `.js` / `.ts` モックでのビルトイン拡張を推奨します
 （→ [3. ビルトインをラップする](#3-ビルトインをラップする構想)）。
 
 ***

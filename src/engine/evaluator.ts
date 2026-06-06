@@ -5063,6 +5063,12 @@ export class Evaluator {
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
                     this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                } else if (variable instanceof VbaNamespaceRef) {
+                    // §5.6.10: Class/procedural module names are in the type namespace, not the
+                    // value namespace for unqualified calls. Calling `Range("A1")` when `Range`
+                    // is only known as a module/class name should give SUB_OR_FUNCTION_NOT_DEFINED,
+                    // not OBJECT_REQUIRED. This allows mock functions registered via ev.set() to
+                    // coexist with a class definition of the same name.
                 } else if (expr.args.length > 0 && wasExplicitlyDeclared) {
                     // Variable is declared but not callable (e.g. Long used as function)
                     this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');

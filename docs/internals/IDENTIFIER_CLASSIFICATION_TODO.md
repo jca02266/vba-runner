@@ -133,11 +133,13 @@ private isIdentifier(token: Token): boolean {
 
 全97テスト + 新規テスト通過。回帰なし。
 
-### ☐ 残課題
+### ✅ 残課題（完了）
 
 - `parseEnumDeclaration`・`parseTypeDeclaration`・`parseForStatement` の変数名チェックも
-  `isIdentifier()` に統一する（現状は range check のみで contextual keyword が通っている
-  ケースがあり、統一性のためにリファクタリングが望ましい）
+  `isIdentifier()` に統一する → **commit `fd98345` で対応済み**
+  - `parseTypeDeclaration`: `isIdentifier(nameToken)` に統一
+  - `parseEnumDeclaration`: `isIdentifier(nameToken)` に統一
+  - `parseForStatement`: `isIdentifier(idToken)` に統一
 
 ---
 

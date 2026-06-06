@@ -17,18 +17,21 @@ JavaScript のプリミティブ `number` を維持しつつ、`Environment` ク
 変数の宣言型を `Environment` クラス内の別マップに保持する。
 
 ```typescript
-type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong';
-type VbaType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
+// src/engine/vba-types.ts（実装済み）
+type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong' | 'LongPtr';
+type VbaVarType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
 
+// src/engine/evaluator.ts（実装済み）
 interface VbaTypeInfo {
-    vbaType: VbaType;
+    vbaType: VbaVarType;
 }
 ```
 
 ```typescript
+// 実装済み
 class Environment {
     private variables: Map<string, any> = new Map();
-    private variableTypes: Map<string, VbaTypeInfo> = new Map();  // 追加
+    private variableTypes: Map<string, VbaTypeInfo> = new Map();
     // ...
 }
 ```
@@ -105,15 +108,25 @@ x = 40000  ' → Runtime Error 6: Overflow
 - **String 型への数値代入**: `CStr()` 相当の暗黙変換
 - **Boolean 型**: 0 は False(-1以外の数値は True)、数値以外は Type Mismatch
 
-## パラメーターの型情報
+## パラメーターの型情報（実装済み）
 
 `Function Foo(x As Integer)` のように、パラメーターに型注釈がある場合、呼び出し時のローカル環境にも型情報を登録する。
 これにより、パラメーターへの代入時にもオーバーフローチェックが有効になる。
 
-### Parser の変更
+`Parameter` インターフェースの `paramType?: string` フィールドにパーサーが型名を保持し、
+`callProcedure` 時に `localEnv.setVariableType(paramName, { vbaType: mapped })` で登録する（実装済み）。
 
-`Parameter` インターフェースに `paramType?: string` フィールドを追加する。
-現在 `parseParameter()` では `As` の後のトークンを `this.advance()` で読み捨てているが、これを保持するように変更する。
+## 実装状況
+
+本仕様はすべて実装済み（`src/engine/evaluator.ts`・`src/engine/vba-types.ts`）。
+
+| 機能 | 状態 |
+|---|---|
+| `VbaTypeInfo` / `VbaVarType` 型定義 | ✅ `vba-types.ts` |
+| `Environment.variableTypes` / `setVariableType` / `getVariableType` | ✅ |
+| `coerceToType()` による代入時オーバーフローチェック | ✅ |
+| `TypeName()` / `VarType()` の特殊フォーム評価（`evaluateTypeIntrinsic`） | ✅ |
+| パラメーター型情報の登録（`paramType` → `localEnv.setVariableType`） | ✅ |
 
 ## 将来の拡張パス
 
