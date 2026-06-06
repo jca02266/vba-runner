@@ -4,9 +4,10 @@
  * VBA では `x = Range("A1")` と書いたとき Range オブジェクトの既定プロパティ
  * (Value) が暗黙的に呼ばれ、値が抽出される。
  *
- * __vbaClass__ インスタンス（VBA クラス）の場合は Value getter を呼ぶ既存パスで処理する。
+ * __vbaClass__ インスタンス（VBA クラス）の場合は既存パスで処理する。
  * TypeScript から注入したモックオブジェクト（MockRange など）については
- * __vbaDefault__ = true を宣言し valueOf() を実装することで同等の抽出を行う。
+ * __vbaDefault__ = true を宣言し Value getter/setter を実装することで同等の抽出を行う。
+ * evaluator は resolveObjectMemberKey(obj, 'value') で Value プロパティを解決する（読み書き対称）。
  *
  * opt-in マーカー方式の利点:
  *   - 除外リスト（VbaDate, VbaBoolean, VbaErrorValue …）が不要
@@ -14,7 +15,7 @@
  *   - モックオブジェクト側が明示的に「既定プロパティあり」と宣言する
  *
  * このファイルは以下を検証する:
- *   1. __vbaDefault__ = true のモックオブジェクト → Let 代入時に valueOf() が呼ばれる
+ *   1. __vbaDefault__ = true のモックオブジェクト → Let 代入時に Value getter が呼ばれる
  *   2. __vbaDefault__ のないオブジェクト → そのまま代入される
  *   3. CVErr() (VbaErrorValue) → 抽出されない (opt-in していないため)
  *   4. VbaDate / VbaBoolean → 抽出されない
@@ -36,10 +37,10 @@ function run(ev: Evaluator, code: string, proc: string, args: any[] = []): any {
     return ev.callProcedure(proc, args);
 }
 
-// 1. __vbaDefault__ = true のモックオブジェクト → 値が抽出される
+// 1. __vbaDefault__ = true のモックオブジェクト → Value getter の値が抽出される
 {
     const ev = makeEv();
-    const mockCell = { __vbaDefault__: true, Value: 42, valueOf() { return (this as any).Value; } };
+    const mockCell = { __vbaDefault__: true as const, Value: 42 };
     ev.set('mockCell', mockCell);
 
     const result = run(ev, `
@@ -56,7 +57,7 @@ End Function
 // 2. __vbaDefault__ のないオブジェクト → オブジェクトのまま代入される
 {
     const ev = makeEv();
-    const mockObj = { Value: 99, valueOf() { return (this as any).Value; } }; // __vbaDefault__ なし
+    const mockObj = { Value: 99 }; // __vbaDefault__ なし
     ev.set('mockObj', mockObj);
 
     const result = run(ev, `

@@ -387,7 +387,7 @@ import type { VbaType, VbaDefaultProperty, VbaIterable } from '../src/engine/moc
 | インターフェース | マーカー | 用途 | 例 |
 |---|---|---|---|
 | `VbaType` | `__vbaTypeName__: string` | `TypeOf x Is Range` / `TypeName(x)` | `MockRange`, `MockWorksheet` |
-| `VbaDefaultProperty` | `__vbaDefault__: true` + `valueOf()` | Let 代入で暗黙的に `.Value` を返す | `MockRange` |
+| `VbaDefaultProperty` | `__vbaDefault__: true` + `Value` getter/setter | 読み書き両方で `.Value` を経由する | `MockRange` |
 | `VbaIterable` | `[Symbol.iterator]()` | `For Each item In col` | カスタムコレクション |
 
 ### VbaType — TypeOf / TypeName 対応
@@ -401,13 +401,16 @@ class MockRange implements VbaType {
 
 ### VbaDefaultProperty — 暗黙 .Value アクセス
 
+evaluator は読み書き両方で `Value` プロパティを経由する（getter/setter 対称）。
+
 ```typescript
 class MockRange implements VbaDefaultProperty {
     readonly __vbaDefault__ = true as const;
-    private _value: any;
-    valueOf() { return this._value; }
-    // VBA: x = Range("A1")  → セル値が x に入る（Range オブジェクトではない）
-    // VBA: Range("A1") + 1  → valueOf() の戻り値に 1 を足す
+    private _v: any = 0;
+    get Value() { return this._v; }
+    set Value(v: any) { this._v = v; }
+    // VBA: x = Range("A1")   → Value getter の値が x に入る
+    // VBA: Range("A1") = 100 → Value setter が呼ばれる
 }
 ```
 

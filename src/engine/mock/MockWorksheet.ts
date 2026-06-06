@@ -43,6 +43,7 @@ export class MockRange implements VbaType, VbaDefaultProperty {
         this._value = val;
     }
 
+    // JS 数値コンテキスト（+mockRange 等）用。VBA evaluator は Value getter を使うため呼ばれない。
     valueOf(): any {
         return this._value;
     }

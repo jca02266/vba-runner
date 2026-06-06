@@ -475,9 +475,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - ✅ 実装完了: (3) result = obj -> obj.Value (Test 15パス) - 値コンテキストでの暗黙 Value getter
   - ✅ 修正: Test 7 ByRef パラメーター - implicit Value getter の実装で副次的に修正
   - ✅ **非 `__vbaClass__` モックオブジェクトのデフォルトプロパティ**: `x = ws.Range("A1")` で MockRange の `.Value` が自動抽出される
-    - opt-in 方式: モックオブジェクトに `__vbaDefault__ = true` と `valueOf()` を実装することで有効化
+    - opt-in 方式: モックオブジェクトに `__vbaDefault__ = true` と `Value` getter/setter を実装することで有効化
+    - 読み書き両方 `Value` プロパティ経由（対称）。evaluator は `resolveObjectMemberKey(obj, 'value')` で解決
     - `VbaDate` / `VbaBoolean` / `VbaErrorValue` 等の内部型は `__vbaDefault__` を持たないため誤抽出しない
-    - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `valueOf()` 実装)
+    - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `Value` getter/setter 実装)
     - テスト: `default-property-noncls.test.ts`
 - ⚠️ **WithEvents 変数の生存期間**: 親オブジェクト破棄時のイベントハンドラー解除 (制限事項: RaiseEventコア存在; ハンドラー自動登録・検出機構未実装、イベントパラメーター解析未対応) | `withevents-lifecycle.test.ts`
   - 実装しても**同期呼び出しのみ対応**（`src.Fire` → `src_TestEvent` が即時実行される形）
