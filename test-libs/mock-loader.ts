@@ -33,7 +33,7 @@
  *
  * `.js` / `.ts`: createRequire で読み込み、エクスポートを evaluator に適用:
  *   - 通常の関数エクスポート → `setBuiltinOverride` (env を上書き)
- *   - `__addCreateObject__` キー → `registerExternalObject` (CreateObject ファクトリ登録)
+ *   - `__addCreateObject__` キー → `registerComObject` (CreateObject ファクトリ登録)
  *
  * `.bas` / `.cls`: VBA として評価:
  *   - トップレベル関数 → 評価後に env へ自動登録（後から定義したもので上書き）

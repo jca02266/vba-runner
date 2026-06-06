@@ -420,7 +420,7 @@ import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../
 
 ### VbaComObject — CreateObject 自動別名登録
 
-`registerExternalObject(progId, factory)` は factory() を一度呼び出し、
+`registerComObject(factory)` は factory() を一度呼び出し、
 返り値の `__className__` を読んで同じ factory をその名前でも登録する。
 これにより `CreateObject("Word.Application")` と `New Word.Application` の両方が動く。
 
@@ -428,7 +428,7 @@ import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../
 class MockWordApplication implements VbaComObject {
     readonly __progId__ = 'Word.Application';
 }
-evaluator.registerExternalObject('Word.Application', () => new MockWordApplication());
+evaluator.registerComObject(() => new MockWordApplication());
 // VBA: Set app = CreateObject("Word.Application")  → MockWordApplication
 // VBA: Dim app As New Word.Application             → MockWordApplication（自動別名）
 ```

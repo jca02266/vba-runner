@@ -8,7 +8,7 @@
  *   import { createRegExpMock } from '../../test-libs/regexp-mock';
  *
  *   const vbaRunner = new VBARunner('source.bas');
- *   vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
+ *   vbaRunner.registerComObject(createRegExpMock);
  *
  * 対応している API:
  *   プロパティ:
@@ -37,7 +37,7 @@ function isTruthy(v: any): boolean {
 export function createRegExpMock(): any {
     const state: any = {
         __isVbaRegExp__: true,
-        // VbaComObject: registerExternalObject が __progId__ の末尾（"RegExp"）を
+        // VbaComObject: registerComObject が __progId__ の末尾（"RegExp"）を
         // 短縮エイリアスとして自動登録する → New RegExp / Dim re As RegExp が動く
         __progId__: 'VBScript.RegExp',
         pattern: '',
