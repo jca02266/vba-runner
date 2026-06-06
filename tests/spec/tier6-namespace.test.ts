@@ -51,7 +51,10 @@ Sub Test()
 End Sub
 `;
     const ev = evalVBASingle(code);
+    let out1 = '';
+    (ev as any).onPrint = (s: string) => { out1 = s; };
     ev.callProcedure('Test', []);
+    assert.strictEqual(out1, 'A1', 'r.Value should be "A1"');
     console.log('[PASS] 1. クラスと関数が同一モジュールで共存できる');
 }
 
@@ -89,6 +92,7 @@ End Sub
     let output = '';
     (ev as any).onPrint = (s: string) => { output = s; };
     ev.callProcedure('TestRange', []);
+    assert.strictEqual(output, 'A1', 'Range("A1").Value should be "A1"');
     console.log('[PASS] 2. クラス名と同名の関数が同一モジュールで共存できる');
 }
 
@@ -166,7 +170,10 @@ End Sub
         return { Value: addr };
     });
 
+    let out4 = '';
+    (ev as any).onPrint = (s: string) => { out4 = s; };
     ev.callProcedure('TestRangeWithMock', []);
+    assert.strictEqual(out4, 'Range', 'TypeName(r) should be "Range"');
     console.log('[PASS] 4. クラスモジュール名と同名のモック関数を登録後 Range("A1") が動作する');
 }
 
@@ -217,7 +224,11 @@ End Sub
         { name: 'ExcelMocks', code: mockCode },
         { name: 'UserModule', code: userCode }
     ]);
+    const out5: string[] = [];
+    (ev as any).onPrint = (s: string) => { out5.push(s); };
     ev.callProcedure('TestMultiClass', []);
+    assert.strictEqual(out5[0], 'hello', 'ws.Value should be "hello"');
+    assert.strictEqual(Number(out5[1]), 42, 'r.Value should be 42');
     console.log('[PASS] 5. 複数クラスを含む .bas ファイルではモジュール名とクラス名が非衝突');
 }
 
@@ -244,8 +255,10 @@ End Function
         { name: 'Range', code: mockCode },
         { name: 'UserModule', code: userCode }
     ]);
-    const result = ev.callProcedure('TestDimAsRange', []);
-    // r should be vbaNothing after declaration
+    let out6 = '';
+    (ev as any).onPrint = (s: string) => { out6 = s; };
+    ev.callProcedure('TestDimAsRange', []);
+    assert.strictEqual(out6, 'True', 'Dim r As Range → r Is Nothing should be True');
     console.log('[PASS] 6. Dim r As Range → 型名前空間から解決されて vbaNothing に初期化される');
 }
 

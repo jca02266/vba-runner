@@ -20,11 +20,13 @@
  */
 
 import { MockWorksheet, MockRange } from './MockWorksheet';
+import { VbaType } from '../vba-types';
 
 export { MockWorksheet, MockRange };
+export type { VbaType };
 
 /** ActiveWorkbook / ThisWorkbook の最小スタブ */
-export class MockWorkbook {
+export class MockWorkbook implements VbaType {
     /** TypeName(wb) → "Workbook"、TypeOf wb Is Workbook → True になるための型メタデータ */
     readonly __vbaTypeName__ = 'Workbook';
 

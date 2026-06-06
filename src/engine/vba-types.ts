@@ -115,6 +115,16 @@ export type VbaBooleanType = VbaBoolean;
 export type VbaNumericType = 'Byte' | 'Integer' | 'Long' | 'Single' | 'Double' | 'Currency' | 'LongLong' | 'LongPtr';
 export type VbaVarType = VbaNumericType | 'String' | 'Boolean' | 'Date' | 'Variant' | 'Object';
 
+/**
+ * VBA の型名を宣言するオブジェクトのインターフェース。
+ * evaluator は obj.__vbaTypeName__ を参照して TypeOf / TypeName の型を決定する（§5.6.10）。
+ * クラス・モックオブジェクト・外部 COM スタブなど、VBA 側から型判定されうるオブジェクトが実装する。
+ * TypeScript がコンパイル時に __vbaTypeName__ の定義漏れを検出できる。
+ */
+export interface VbaType {
+    readonly __vbaTypeName__: string;
+}
+
 export interface AutoInstancePlaceholder {
     readonly __isAutoInstance__: true;
     readonly __className__: string;
