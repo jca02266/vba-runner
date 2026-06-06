@@ -1750,9 +1750,15 @@ export class Evaluator {
 
         // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
         // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
+        // §5.6.10 Tier 6: defaultBindingObject（MockApplication 等）で解決できる名前も違反対象外。
         if (this.optionExplicitViolations.has(procName)) {
             const violations = this.optionExplicitViolations.get(procName)!;
-            const stillMissing = [...violations.entries()].filter(([n]) => !this.env.hasVariable(n));
+            const stillMissing = [...violations.entries()].filter(([n]) => {
+                if (this.env.hasVariable(n)) return false;
+                if (this.defaultBindingObject &&
+                        this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+                return true;
+            });
             if (stillMissing.length > 0) {
                 const names = stillMissing.map(([n]) => n).join(', ');
                 const firstLine = stillMissing[0][1] || undefined;
@@ -4824,7 +4830,12 @@ export class Evaluator {
                 // Option Explicit check (mirrors callProcedure)
                 const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
                 if (oeViolations) {
-                    const stillMissing = [...oeViolations.entries()].filter(([n]) => !this.env.hasVariable(n));
+                    const stillMissing = [...oeViolations.entries()].filter(([n]) => {
+                        if (this.env.hasVariable(n)) return false;
+                        if (this.defaultBindingObject &&
+                                this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+                        return true;
+                    });
                     if (stillMissing.length > 0) {
                         const names = stillMissing.map(([n]) => n).join(', ');
                         const firstLine = stillMissing[0][1] || undefined;

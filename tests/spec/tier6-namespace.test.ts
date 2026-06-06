@@ -301,10 +301,12 @@ End Sub
 
 // ============================================================
 // 9. ActiveSheet プロパティが Tier 6 で解決される
-// Note: ActiveSheet は宣言なしの識別子なので Option Explicit なしが前提
+//    Option Explicit があっても defaultBindingObject のメンバーは違反対象外
 // ============================================================
 {
     const userCode = `
+Option Explicit
+
 Sub TestTier6ActiveSheet()
     Debug.Print ActiveSheet.Name
 End Sub
@@ -350,6 +352,8 @@ End Sub
 // ============================================================
 {
     const userCode = `
+Option Explicit
+
 Sub TestActiveSheetSwitch()
     Debug.Print ActiveSheet.Name
 End Sub
@@ -368,7 +372,33 @@ End Sub
 }
 
 // ============================================================
-// 12. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
+// 12. Option Explicit + Tier 6 の共存：Tier 6 メンバーは違反対象外
+// ============================================================
+{
+    // Option Explicit があっても、defaultBindingObject が Range / Cells / ActiveSheet を
+    // 提供していれば Option Explicit 違反にならない（実 VBA の型ライブラリと同じ挙動）
+    const userCode = `
+Option Explicit
+
+Sub TestOptionExplicitWithTier6()
+    Range("A1").Value = 10
+    Cells(1, 2).Value = 20
+    Debug.Print Range("A1").Value + Cells(1, 2).Value
+End Sub
+`;
+    const app = new MockApplication();
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    let printed = '';
+    (ev as any).onPrint = (s: string) => { printed = s; };
+    ev.callProcedure('TestOptionExplicitWithTier6', []);
+    assert.strictEqual(Number(printed), 30, 'Range + Cells via Tier 6 should work with Option Explicit');
+    console.log('[PASS] 12. Option Explicit + Tier 6 共存：Tier 6 メンバーは違反対象外');
+}
+
+// ============================================================
+// 13. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
 // ============================================================
 {
     const userCode = `
@@ -389,7 +419,7 @@ End Sub
         if (!isSubNotDefined) {
             throw new Error(`Expected error 35 (Sub or Function not defined), got: ${msg}`);
         }
-        console.log('[PASS] 12. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
+        console.log('[PASS] 13. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
     }
 }
 
