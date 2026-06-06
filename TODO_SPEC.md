@@ -607,6 +607,18 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `With` ブロック内でキーワード名プロパティを使うと、含む Sub/Function 全体がエラーリカバリで消滅する
   - 修正: `isNameToken()` を使い、`Identifier` またはキーワード範囲のトークンを許可
 
+### Evaluator バグ修正
+
+- ✅ **Fix: `With` ブロック内で JS prototype 上の getter/メソッドが解決できない** | `with-statement.test.ts`
+  - 原因: `evaluateImplicitWithObjectExpression` が `Object.keys()`（own enumerable プロパティのみ）と `hasOwnProperty()` で検索していたため、TypeScript class の `get accessor` やメソッドといった prototype チェーン上のメンバーを `.Prop` 構文で発見できなかった
+  - 症状: `With obj: .Replacement.Text = "bar"` のように、`.Replacement` が prototype 上の `get accessor` として定義されている JS オブジェクトに対して "Object required (424)" が発生する。`obj.Replacement.Text = "bar"` は `evaluateMemberExpression` 経由で prototype を辿るため正常に動く（非対称）
+  - 修正: `evaluateImplicitWithObjectExpression` を `resolveObjectMemberKey`（prototype チェーンを辿る）に統一。`evaluateMemberExpression` と同じロジックを使うことで非対称が解消された
+
+- ✅ **Fix: `Not` 演算子・`vbaToBoolean` が JS ネイティブ `boolean` を変換できない** | `excel-stub.test.ts`, `access-stub.test.ts`
+  - 原因: `Not` 演算子は `vbaTrue`/`vbaFalse`（VbaBoolean）と数値のみ処理し、JS ネイティブ `true`/`false` に対して `~true = -2`（truthy）を返していた。`vbaToBoolean` も JS boolean を Type mismatch エラーにしていた
+  - 症状: JS モックオブジェクトの boolean ゲッター（例: `MockRecordset.EOF = true`）を VBA で `Do While Not rs.EOF` に使うと無限ループになる。`Dim x As Boolean: x = Application.ScreenUpdating` で Type mismatch が発生する
+  - 修正: `Not` 演算子に `typeof argument === 'boolean'` ケースを追加。`vbaToBoolean` も同様に JS boolean を `vbaTrue`/`vbaFalse` に変換するよう対応
+
 ### Parser の拡張機能
 
 - ✅ **Parser に `parseAsClass` パラメーターを追加**: `.cls` ファイルやプログラム的にクラスとしてパースすべきコードの指定 | `parse-as-class.test.ts`

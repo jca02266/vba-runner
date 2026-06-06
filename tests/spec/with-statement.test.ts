@@ -91,4 +91,73 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] With with Expression');
 }
 
+// 5. With ブロック内で JS prototype 上の getter/メソッドが解決できること
+// 旧実装は Object.keys()（own プロパティのみ）を使っていたため、
+// TypeScript class の get accessor（prototype 上に定義）を .Prop 構文で解決できなかった。
+{
+    // prototype に getter を持つ JS クラスを外部オブジェクトとして登録
+    class MockFindLike {
+        _text: string = '';
+        _replacement = { Text: '' };
+
+        get Text(): string { return this._text; }
+        set Text(v: any) { this._text = String(v); }
+
+        /** prototype getter — 旧実装では With ブロック内から .Replacement でアクセスできなかった */
+        get Replacement(): { Text: string } { return this._replacement; }
+
+        Execute() {}
+    }
+
+    const code = `
+        Function TestWithPrototypeGetter() As String
+            Dim obj As Object
+            Set obj = CreateObject("MockFindLike")
+            With obj
+                .Text = "foo"
+                .Replacement.Text = "bar"
+            End With
+            TestWithPrototypeGetter = obj.Text & "|" & obj.Replacement.Text
+        End Function
+    `;
+    const ev = evalVBA(code);
+    ev.registerExternalObject('MockFindLike', () => new MockFindLike());
+    assert.strictEqual(
+        ev.callProcedure('TestWithPrototypeGetter', []),
+        'foo|bar',
+        'With ブロック内で prototype getter (.Replacement) が解決できること'
+    );
+    console.log('[PASS] With block: prototype getter (.Replacement) resolution');
+}
+
+// 6. With ブロック内で prototype の no-arg メソッドが auto-call されること
+{
+    class MockAutoCall {
+        _count: number = 0;
+        /** no-arg メソッド — With ブロック内で .Count とアクセスすると auto-call される */
+        Count() { return this._count; }
+        Increment() { this._count++; }
+    }
+
+    const code = `
+        Function TestWithAutoCall() As Long
+            Dim obj As Object
+            Set obj = CreateObject("MockAutoCall")
+            obj.Increment
+            obj.Increment
+            With obj
+                TestWithAutoCall = .Count
+            End With
+        End Function
+    `;
+    const ev = evalVBA(code);
+    ev.registerExternalObject('MockAutoCall', () => new MockAutoCall());
+    assert.strictEqual(
+        ev.callProcedure('TestWithAutoCall', []),
+        2,
+        'With ブロック内で prototype の no-arg メソッドが auto-call されること'
+    );
+    console.log('[PASS] With block: prototype no-arg method auto-call');
+}
+
 console.log('\n✅ With Statement: 全テスト通過');
