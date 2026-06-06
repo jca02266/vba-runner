@@ -196,6 +196,70 @@ Identifier ノードとして扱われ、チェッカーの検査対象になる
 
 ---
 
+## 型束縛コンテキスト（§5.6.10 type binding context）
+
+### 仕様
+
+`Dim v As Range` の `Range` は**デフォルト束縛コンテキスト**（値名前空間）ではなく
+**型束縛コンテキスト**で名前解決される。パーサーは `Dim v As <name>` の `<name>` を見た時点では
+変数・定数・関数のどれかを判別できないが、型束縛コンテキストであることは構文上で確定している。
+
+型束縛コンテキストが使われる構文（`<type-expression>` / `<class-type-name>` が現れる位置）:
+
+| 構文 | 例 |
+|---|---|
+| 変数型宣言 `Dim v As <Type>` | `Dim r As Range` |
+| 自動インスタンス化 `Dim v As New <Class>` | `Dim r As New Range` |
+| パラメーター型 `(x As <Type>)` | `Function Foo(r As Range)` |
+| 関数戻り値型 `Function F() As <Type>` | `Function GetRange() As Range` |
+| `New` 式 | `Set r = New Range` |
+| `WithEvents` 変数 `Dim WithEvents ev As <Class>` | `Dim WithEvents btn As CommandButton` |
+| `Implements` ディレクティブ | `Implements IFoo` |
+| `TypeOf` 式 `TypeOf expr Is <Type>` | `If TypeOf r Is Range Then` |
+| `Type` 宣言のメンバー型 | `Type T` / `  x As Range` / `End Type` |
+
+### §5.6.10 型束縛コンテキストの Tier（仕様）
+
+| Tier | 対象 |
+|---|---|
+| 1 | 同モジュールの `Type`（UDT）・`Enum` 定義 |
+| 2 | プロジェクト名・参照プロジェクト名・同プロジェクト内の手続きモジュール/クラスモジュール名 |
+| 3 | 同プロジェクト内の他モジュールにある `Type`・`Enum` 定義 |
+| 4 | 参照プロジェクト内の手続きモジュール/クラスモジュール名 |
+| 5 | 参照プロジェクト内モジュールの `Type`・`Enum` 定義 |
+
+> **デフォルト束縛コンテキストとの違い**: デフォルト束縛コンテキストは変数・定数・関数を対象にし
+> Tier 6 まである。型束縛コンテキストは型（クラス・UDT・Enum）のみを対象にし Tier 5 まで。
+> `Range("A1")` の `Range`（デフォルト）と `Dim r As Range` の `Range`（型）が同名でも衝突しない
+> のはこの二つが独立したコンテキストだから。
+
+### エンジンの実装対応
+
+型束縛コンテキストは `evaluateVariableDeclaration` 内の型判定で実装されており、独立した解決パスを持つ。
+
+```
+Dim v As <name> の <name> 解決順:
+1. 組み込み型キーワード (Integer/Long/String/…) → 型メタデータとして記録
+2. env.getType(name)         → UDT（Type...End Type）
+3. classDefinitions.has(name) → Class 定義
+4. externalObjectFactories.has(name) → CreateObject / New 用ファクトリ
+5. 該当なし → 外部 COM 型とみなして vbaNothing に初期化
+```
+
+`New <Class>` 式（`Set r = New Foo`）も同じ順序を `instantiateClass()` で実装している。
+
+| 構文 | エンジンの解決先 | 対応状況 |
+|---|---|---|
+| `Dim v As Long` 等の組み込み型 | 型メタデータ登録（`setVariableType`）| ✅ |
+| `Dim v As MyType`（UDT） | `env.getType(name)` | ✅ |
+| `Dim v As MyClass`（VBA クラス） | `classDefinitions.get(name)` | ✅ |
+| `Dim v As New MyClass` | `classDefinitions` → Auto-Instantiation | ✅ |
+| `Set r = New MyClass` | `instantiateClass()` | ✅ |
+| `Implements IFoo` | `classDefinitions.get(name)` | ✅ |
+| `TypeOf r Is Range` | `__vbaTypeName__` の比較 | ✅ |
+| 外部 COM 型 (`Worksheet` 等) | `externalObjectFactories` または `vbaNothing` | ⚠️ |
+| 参照プロジェクト Tier 4-5 | 未実装 | ❌ |
+
 ---
 
 ## 内部実装：データ構造と登録 API
