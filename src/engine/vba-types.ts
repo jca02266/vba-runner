@@ -138,19 +138,28 @@ export interface VbaType {
 
 /**
  * デフォルトプロパティを持つオブジェクト。
- * Let 代入（`x = r`）で VBA がオブジェクトを値として評価するとき valueOf() を呼び出す。
  * Excel の Range.Value のように「オブジェクトそのものを値文脈で使う」場合に実装する。
+ *
+ * - **読み取り**（getter）: Let 代入 `x = r` で evaluator が `valueOf()` を呼ぶ。
+ * - **書き込み**（setter）: `ws.Range("A1") = 100` で evaluator が `result.Value = 100` と代入する。
+ *   evaluator は case-insensitive に `value` キーを探して直接代入するため、
+ *   `Value` プロパティ（getter + setter）が必要。
  *
  * @example
  * class MockRange implements VbaDefaultProperty {
  *   readonly __vbaDefault__ = true as const;
- *   valueOf() { return this._value; }  // セルの値を返す
+ *   private _v: any = 0;
+ *   get Value() { return this._v; }
+ *   set Value(v: any) { this._v = v; }
+ *   valueOf() { return this._v; }
  * }
- * // VBA: x = Range("A1")  → Range オブジェクトではなくセルの値が x に入る
+ * // VBA: x = Range("A1")       → valueOf() の値が x に入る（getter）
+ * // VBA: Range("A1") = 100     → Value setter が呼ばれる（setter）
  */
 export interface VbaDefaultProperty {
     readonly __vbaDefault__: true;
     valueOf(): any;
+    Value: any;
 }
 
 /**
