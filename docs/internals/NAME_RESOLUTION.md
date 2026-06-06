@@ -256,8 +256,8 @@ Dim v As <name> の <name> 解決順:
 | `Dim v As New MyClass` | `classDefinitions` → Auto-Instantiation | ✅ |
 | `Set r = New MyClass` | `instantiateClass()` | ✅ |
 | `Implements IFoo` | `classDefinitions.get(name)` | ✅ |
-| `TypeOf r Is Range` | `__vbaTypeName__` の比較 | ✅ |
-| 外部 COM 型 (`Worksheet` 等) | `externalObjectFactories` または `vbaNothing` | ⚠️ |
+| `TypeOf r Is Range` | `__vbaTypeName__` の比較 | ✅ VBA クラス・JS モックオブジェクト両対応 |
+| 外部 COM 型 (`Worksheet` 等) | `externalObjectFactories` または `vbaNothing`（初期値）| ✅ `setDefaultBindingObject` 経由で取得したオブジェクトは `TypeOf` / `TypeName` 対応済み |
 | 参照プロジェクト Tier 4-5 | 未実装 | ❌ |
 
 ---

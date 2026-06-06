@@ -26,6 +26,8 @@ interface CellRect {
 
 export class MockRange {
     readonly __vbaDefault__ = true;
+    /** TypeName(r) → "Range"、TypeOf r Is Range → True になるための型メタデータ */
+    readonly __vbaTypeName__ = 'Range';
 
     // フィールド名は `Value` アクセサと大文字小文字で衝突しないよう `_value` にする
     // （case-insensitive なプロパティ解決がアクセサより先にフィールドを拾うのを防ぐ）
@@ -45,6 +47,9 @@ export class MockRange {
 }
 
 export class MockWorksheet {
+    /** TypeName(ws) → "Worksheet"、TypeOf ws Is Worksheet → True になるための型メタデータ */
+    readonly __vbaTypeName__ = 'Worksheet';
+
     private name: string;
     private cells: Map<string, any> = new Map();
 

@@ -25,6 +25,9 @@ export { MockWorksheet, MockRange };
 
 /** ActiveWorkbook / ThisWorkbook の最小スタブ */
 export class MockWorkbook {
+    /** TypeName(wb) → "Workbook"、TypeOf wb Is Workbook → True になるための型メタデータ */
+    readonly __vbaTypeName__ = 'Workbook';
+
     constructor(
         public readonly Name: string = 'MockWorkbook.xlsx',
         public readonly Path: string = '',

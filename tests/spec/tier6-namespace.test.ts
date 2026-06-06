@@ -400,7 +400,44 @@ End Sub
 }
 
 // ============================================================
-// 13. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
+// 13. TypeOf / TypeName がモックオブジェクトで正しく動作する
+//    型束縛コンテキスト（§5.6.10）の TypeOf...Is / TypeName()
+// ============================================================
+{
+    const userCode = `
+Sub TestTypeOf()
+    Dim r As Object
+    Set r = Range("A1")
+    If TypeOf r Is Range Then
+        Debug.Print "Range:" & TypeName(r)
+    Else
+        Debug.Print "FAIL"
+    End If
+
+    Dim ws As Object
+    Set ws = ActiveSheet
+    If TypeOf ws Is Worksheet Then
+        Debug.Print "Worksheet:" & TypeName(ws)
+    Else
+        Debug.Print "FAIL"
+    End If
+End Sub
+`;
+    const app = new MockApplication();
+    app.ActiveSheet.setCellValue('A1', 42);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
+    ev.setDefaultBindingObject(app);
+
+    const out: string[] = [];
+    (ev as any).onPrint = (s: string) => { out.push(s); };
+    ev.callProcedure('TestTypeOf', []);
+    assert.strictEqual(out[0], 'Range:Range', 'TypeOf r Is Range and TypeName(r) = "Range"');
+    assert.strictEqual(out[1], 'Worksheet:Worksheet', 'TypeOf ws Is Worksheet and TypeName(ws) = "Worksheet"');
+    console.log('[PASS] 13. TypeOf / TypeName がモックオブジェクトで正しく動作する（型束縛コンテキスト）');
+}
+
+// ============================================================
+// 14. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
 // ============================================================
 {
     const userCode = `
@@ -421,7 +458,7 @@ End Sub
         if (!isSubNotDefined) {
             throw new Error(`Expected error 35 (Sub or Function not defined), got: ${msg}`);
         }
-        console.log('[PASS] 13. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
+        console.log('[PASS] 14. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
     }
 }
 
