@@ -437,3 +437,114 @@ export function assertCompileErrorPass2(
         throw new Error('Assertion Failed');
     }
 }
+
+/** [prerun] resolveIdentifiers で検出されるコンパイルエラーのアサーション。
+ * evaluateModule は throw しないことを検証してから resolveIdentifiers の throw を検証する。 */
+export function assertCompileErrorPrerun(
+    src: string,
+    expectedLine: number | undefined,
+    pattern: RegExp,
+    label: string
+): void {
+    const ast = new Parser(new Lexer(src).tokenize()).parse();
+    const ev = new Evaluator(console.log);
+    try {
+        ev.evaluateModule(ast);
+    } catch (e: any) {
+        console.error(`[FAIL] ${label}: Unexpected error in evaluateModule (expected prerun in resolveIdentifiers): ${e?.message ?? e}`);
+        throw new Error('Assertion Failed');
+    }
+    let threw = false, msg = '';
+    try {
+        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    } catch (e: any) {
+        threw = true;
+        msg = e?.message ?? String(e);
+    }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected prerun error (resolveIdentifiers) but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (!pattern.test(msg)) {
+        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+}
+
+/** [preproc] precheckProc（OE チェック）で検出されるコンパイルエラーのアサーション。
+ * evalVBASingle は throw しないことを検証してから callProcedure の throw を検証する。 */
+export function assertCompileErrorPreproc(
+    src: string,
+    procName: string,
+    expectedLine: number | undefined,
+    pattern: RegExp,
+    label: string
+): void {
+    let ev: Evaluator;
+    try {
+        ev = evalVBASingle(src);
+    } catch (e: any) {
+        console.error(`[FAIL] ${label}: Unexpected error before callProcedure (expected preproc): ${e?.message ?? e}`);
+        throw new Error('Assertion Failed');
+    }
+    let threw = false, msg = '';
+    try {
+        ev.callProcedure(procName, []);
+    } catch (e: any) {
+        threw = true;
+        msg = e?.message ?? String(e);
+    }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected preproc error but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (!pattern.test(msg)) {
+        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+}
+
+/** [exec] precheckProc 後の実行中に検出されるコンパイルエラーのアサーション。
+ * evalVBASingle は throw しないことを検証してから callProcedure の throw を検証する。 */
+export function assertCompileErrorExec(
+    src: string,
+    procName: string,
+    expectedLine: number | undefined,
+    pattern: RegExp,
+    label: string
+): void {
+    let ev: Evaluator;
+    try {
+        ev = evalVBASingle(src);
+    } catch (e: any) {
+        console.error(`[FAIL] ${label}: Unexpected error before callProcedure (expected exec): ${e?.message ?? e}`);
+        throw new Error('Assertion Failed');
+    }
+    let threw = false, msg = '';
+    try {
+        ev.callProcedure(procName, []);
+    } catch (e: any) {
+        threw = true;
+        msg = e?.message ?? String(e);
+    }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected exec error but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (!pattern.test(msg)) {
+        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+}
