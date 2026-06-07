@@ -60,8 +60,10 @@ End Sub
     console.log('[PASS] Option Explicit: undeclared variable throws runtime error');
 }
 
-// --- 4. Module with ANY violation fails at Pass 2 (entire module fails to compile) ---
-// 実VBA動作: いずれかのSubにコンパイルエラーがあるとモジュール全体がコンパイル失敗する。
+// --- 4. OE 違反のある Sub を呼ぶとエラーになる（OE は callProcedure 時に検出）---
+// エンジン設計: OE 違反は Pass2 でマップ構築のみ行い、callProcedure 時に throw。
+// これにより「Outer が Inner を呼ばなければエラーにならない」という実行時チェックになる。
+// GoodFunc は OE 違反を持たないので正常に呼び出せる。
 {
     const code = `
 Option Explicit
@@ -76,15 +78,19 @@ Sub BadSub()
     x = 5
 End Sub
 `;
+    const ev = evalVBA(code);
+    // GoodFunc は OE 違反なし → 正常に呼べる
+    assert.strictEqual(ev.callProcedure('GoodFunc', []), 99, 'GoodFunc without violation works');
+    // BadSub は OE 違反あり → callProcedure 時にエラー
     let threw = false;
     try {
-        evalVBA(code);
+        ev.callProcedure('BadSub', []);
     } catch (e: any) {
         threw = true;
         assert.strictEqual(e.message.includes('not declared'), true, 'Error mentions not declared: ' + e.message);
     }
-    assert.strictEqual(threw, true, 'Module with Option Explicit violation fails at Pass 2');
-    console.log('[PASS] Option Explicit: module with violation fails at Pass 2 (entire module)');
+    assert.strictEqual(threw, true, 'BadSub with OE violation throws at callProcedure');
+    console.log('[PASS] Option Explicit: OE violation throws at callProcedure time');
 }
 
 // --- 5. Parameters are implicitly declared ---
@@ -204,32 +210,31 @@ End Sub
     console.log('[PASS] Option Explicit: diagnostics populated for static analysis');
 }
 
-// --- 11. Multi-module: undeclared object in call expression is flagged in 2nd pass ---
-// evalVBAModules を使うことで全モジュール名を持ち、
-// bare identifier が本当に未宣言かどうかを精密に判定できる。
-// Pass 2（resolveIdentifiers）で即時 throw される。
+// --- 11. Multi-module: undeclared object in call expression is flagged at callProcedure ---
+// OE 違反は Pass2 でマップ構築、callProcedure 時に throw する設計。
 {
     const { evalVBAModules } = await import('../../test-libs/test-runner');
-    let threw = false;
-    try {
-        evalVBAModules([
-            {
-                name: 'ModA',
-                code: `
+    const ev = evalVBAModules([
+        {
+            name: 'ModA',
+            code: `
 Option Explicit
 Sub Test()
     undeclaredObj.Method()
 End Sub
 `,
-            },
-        ]);
+        },
+    ]);
+    let threw = false;
+    try {
+        ev.callProcedure('Test', []);
     } catch (e: any) {
         threw = true;
-        assert.strictEqual(e.message.includes('not declared') || e.message.includes('undeclaredObj'), true,
+        assert.strictEqual(e.message.includes('not declared') || e.message.includes('undeclaredobj'), true,
             'Error mentions undeclaredObj: ' + e.message);
     }
-    assert.strictEqual(threw, true, 'undeclaredObj.Method() flagged at Pass 2');
-    console.log('[PASS] Option Explicit: undeclaredObj.Method() detected at Pass 2');
+    assert.strictEqual(threw, true, 'undeclaredObj.Method() flagged at callProcedure');
+    console.log('[PASS] Option Explicit: undeclaredObj.Method() detected at callProcedure');
 }
 
 // --- 12. Multi-module: known module name in call is NOT flagged ---
