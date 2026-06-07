@@ -1836,21 +1836,74 @@ export class Evaluator {
     // §5.6.10 Tier 6: names resolvable via defaultBindingObject are not implicit variables.
     private precheckProc(proc: ProcedureDeclaration): void {
         const procKey = proc.name.name.toLowerCase();
-        if (!this.optionExplicitViolations.has(procKey)) return;
-        const violations = this.optionExplicitViolations.get(procKey)!;
-        const stillMissing = [...violations.entries()].filter(([n]) => {
-            if (this.env.hasVariable(n)) return false;
-            if (this.defaultBindingObject &&
-                    this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-            return true;
-        });
-        if (stillMissing.length > 0) {
-            const names = stillMissing.map(([n]) => n).join(', ');
-            const firstLine = stillMissing[0][1] || undefined;
-            this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
-                firstLine, proc.moduleName ?? undefined);
+        if (this.optionExplicitViolations.has(procKey)) {
+            const violations = this.optionExplicitViolations.get(procKey)!;
+            const stillMissing = [...violations.entries()].filter(([n]) => {
+                if (this.env.hasVariable(n)) return false;
+                if (this.defaultBindingObject &&
+                        this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+                return true;
+            });
+            if (stillMissing.length > 0) {
+                const names = stillMissing.map(([n]) => n).join(', ');
+                const firstLine = stillMissing[0][1] || undefined;
+                this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                    `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+                    firstLine, proc.moduleName ?? undefined);
+            }
         }
+        this.checkSubAsValueInProc(proc);
+    }
+
+    // Walk proc body and throw compile error if a Sub is used in value context (e.g. v = MySub).
+    private checkSubAsValueInProc(proc: ProcedureDeclaration): void {
+        const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
+        const walkStmt = (stmt: Statement) => {
+            switch (stmt.type) {
+                case 'AssignmentStatement': {
+                    const assign = stmt as AssignmentStatement;
+                    const name = this.subNameInValueExpr(assign.right);
+                    if (name !== null) {
+                        const p = this.env.getProcedure(name);
+                        if (p && !p.isFunction && !p.isProperty) {
+                            const line = (assign.right as any).loc?.start.line ?? undefined;
+                            this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                                `Function or variable expected: '${name}'`,
+                                line, proc.moduleName ?? undefined);
+                        }
+                    }
+                    break;
+                }
+                case 'IfStatement': {
+                    const s = stmt as IfStatement;
+                    walkStmts(s.consequent);
+                    if (Array.isArray(s.alternate)) walkStmts(s.alternate);
+                    else if (s.alternate) walkStmt(s.alternate);
+                    break;
+                }
+                case 'ForStatement':     walkStmts((stmt as ForStatement).body); break;
+                case 'ForEachStatement': walkStmts((stmt as ForEachStatement).body); break;
+                case 'DoWhileStatement': walkStmts((stmt as DoWhileStatement).body); break;
+                case 'WhileStatement':   walkStmts((stmt as WhileStatement).body); break;
+                case 'WithStatement':    walkStmts((stmt as WithStatement).body); break;
+                case 'SelectCaseStatement': {
+                    const s = stmt as SelectCaseStatement;
+                    for (const c of s.cases) walkStmts(c.body);
+                    if (s.elseBody) walkStmts(s.elseBody);
+                    break;
+                }
+            }
+        };
+        walkStmts(proc.body);
+    }
+
+    private subNameInValueExpr(expr: Expression): string | null {
+        if (expr.type === 'Identifier') return (expr as Identifier).name;
+        if (expr.type === 'CallExpression') {
+            const ce = expr as CallExpression;
+            if (ce.callee.type === 'Identifier') return (ce.callee as Identifier).name;
+        }
+        return null;
     }
 
     // Shared procedure body execution.
@@ -2655,7 +2708,7 @@ export class Evaluator {
         if (rhsSubName !== null) {
             const proc = this.env.getProcedure(rhsSubName);
             if (proc && !proc.isFunction && !proc.isProperty) {
-                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH,
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     `Function or variable expected: '${rhsSubName}'`);
             }
         }

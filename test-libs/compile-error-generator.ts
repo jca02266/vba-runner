@@ -106,6 +106,14 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 while (moduleCaseLines.length > 0 && moduleCaseLines[moduleCaseLines.length - 1].trim() === '') {
                     moduleCaseLines.pop();
                 }
+                // PROC: 未指定の場合はブロック内の最初の Sub/Function 名を自動検出
+                let resolvedProcName = meta!.procName;
+                if (!resolvedProcName) {
+                    for (const l of moduleCaseLines) {
+                        const m = l.match(/^\s*(?:Public\s+|Private\s+)?(?:Sub|Function)\s+(\w+)\s*\(/i);
+                        if (m) { resolvedProcName = m[1]; break; }
+                    }
+                }
                 cases.push({
                     name: meta!.name!,
                     type: meta!.type ?? 'prerun',
@@ -114,7 +122,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                     runnerPattern: meta!.runnerPattern ?? '/.+/',
                     code: moduleCaseLines,
                     isModuleLevel: true,
-                    procName: meta!.procName,
+                    procName: resolvedProcName,
                 });
                 inModuleLevelCase = false;
                 meta = null;
