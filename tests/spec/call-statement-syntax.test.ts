@@ -215,18 +215,19 @@ End Sub
 
 // ─── 5. 返値を捨てる関数呼び出し ────────────────────────────────────────────
 
-// CS13: 関数の戻り値を捨てる（括弧あり）
+// CS13: 関数の戻り値を捨てる（Call キーワード + 括弧あり）
+// GetVal()  は構文エラー。括弧を使いたい場合は Call が必要。
 {
     const code = `
 Function GetVal() As Integer
     GetVal = 42
 End Function
 Sub Test()
-    GetVal()
+    Call GetVal()
 End Sub
 `;
     assertNoThrow('CS13', () => run(code, 'Test'));
-    console.log('[PASS] CS13: GetVal() — 返値を捨てる関数呼び出し（括弧あり）');
+    console.log('[PASS] CS13: Call GetVal() — Call キーワードで戻り値を捨てる（括弧あり）');
 }
 
 // CS14: 引数なしの関数を Call なし・括弧なしで呼び出す
