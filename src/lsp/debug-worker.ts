@@ -151,7 +151,10 @@ const hook: DebugHook = {
 
 try {
     const tokens = new Lexer(source).tokenize();
-    const ast = new Parser(tokens).parse();
+    const ast = new Parser(tokens, { errorRecovery: true }).parse();
+    for (const d of ast.diagnostics) {
+        parentPort!.postMessage({ type: 'output', text: `[parse warning] Line ${d.loc.start.line}: ${d.message}` });
+    }
 
     const evaluator = new Evaluator(
         (text) => parentPort!.postMessage({ type: 'output', text }),

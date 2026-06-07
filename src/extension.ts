@@ -454,7 +454,10 @@ End Class`;
                         ev.evaluate(ast);
                     } else {
                         ev.setSourceModule(moduleName);
-                        ast = new Parser(tokens).parse();
+                        ast = new Parser(tokens, { errorRecovery: true }).parse();
+                        for (const d of ast.diagnostics) {
+                            outputChannel.appendLine(`[parse warning] ${moduleName} line ${d.loc.start.line}: ${d.message}`);
+                        }
                         ev.evaluate(ast);
                     }
                     asts.push({ ast, moduleName });
