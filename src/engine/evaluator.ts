@@ -450,6 +450,11 @@ export class Environment {
         return false;
     }
 
+    /** チェーンを辿らず現在スコープのみを確認する */
+    hasOwnVariable(name: string): boolean {
+        return this.variables.has(name.toLowerCase());
+    }
+
     setProcedure(name: string, proc: ProcedureDeclaration) {
         const key = name.toLowerCase();
         if (proc.isProperty && proc.propertyType) {
@@ -3109,7 +3114,7 @@ export class Evaluator {
             // At module level (no currentProcedureName), use set() so the value lands in the global env.
             // Detect duplicate Dim in same scope (VBA compile error).
             // Same Dim stmt re-executed in a loop is NOT a duplicate — check by AST node identity.
-            if (this.currentProcedureName && this.env.variables.has(varKey)) {
+            if (this.currentProcedureName && this.env.hasOwnVariable(varKey)) {
                 const prevNode = this.env.getRegisteredDimStmt(varKey);
                 if (prevNode !== stmt) {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
