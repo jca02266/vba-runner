@@ -36,9 +36,9 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 **VBA ランタイム挙動の場合**:
 以下の両方を作成する：
 - TypeScript テスト: `tests/spec/<機能名>.test.ts` （基本的な動作確認用）
-- VBA ソーステスト: `tests/spec/vba/<機能名>_test.bas` （実際のVBAコードの挙動確認用）
-  - ファイル名例: `byref_arrays_test.bas`, `default_property_test.bas`, `auto_instantiation_test.bas`
-  - テストプロシージャは `Test_` で始まる名前で記述（`Test_BasicBehavior` など）
+- VBA ソーステスト: `tests/vba/<機能名>Test.bas` （実際のVBAコードの挙動確認用）
+  - ファイル名例: `ByrefArraysTest.bas`, `DefaultPropertyTest.bas`, `AutoInstantiationTest.bas`
+  - テストプロシージャは `Test` で始まる名前で記述（`TestBasicBehavior` など）
   - TODO_SPEC.md の「VBA ランタイム挙動」セクションに両テストファイル名を記載
 
 #### tests/spec/ のテスト記述ルール
@@ -90,7 +90,7 @@ ev.callProcedure('TestProc', []);
   - 例: `Dim As New X` の Auto-Instantiation、Default Property 経由の暗黙呼び出し、`Variant` の型推移、`On Error` ハンドラー内での再帰エラー など
   - 「仕様書のリストにある関数を呼んでみた」だけでは VBA の "癖" を見落とすため、ユーザーの実際の書き方を想定する
 
-#### tests/spec/vba/ の VBA ソーステスト構成ルール
+#### tests/vba/ の VBA ソーステスト構成ルール
 
 **ファイル命名規則**:
 
@@ -105,7 +105,7 @@ ev.callProcedure('TestProc', []);
 - テストに複数のファイル（`.bas` + 複数の `.cls`）が必要な場合は、**サブディレクトリを作成**してファイル名を短くする
 
 ```
-tests/spec/vba/
+tests/vba/
 ├── Circular/               ← 複数ファイルが必要なテストはサブディレクトリに
 │   ├── TerminateTest.bas  ← テストプロシージャを含む（"Test"サフィックス）
 │   ├── RefA.cls            ← テスト専用クラス（短い名前）

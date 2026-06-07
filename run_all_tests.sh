@@ -122,11 +122,11 @@ for i in $(seq 1 "$IDX"); do
 done
 
 # VBA テスト（run_vba_tests.sh）を追加実行
-if [ -f "./tests/spec/vba/run_vba_tests.sh" ]; then
+if [ -f "./tests/vba/run_vba_tests.sh" ]; then
   if [ "$VERBOSE" -eq 1 ]; then
-    ./tests/spec/vba/run_vba_tests.sh -v
+    ./tests/vba/run_vba_tests.sh -v
   else
-    ./tests/spec/vba/run_vba_tests.sh
+    ./tests/vba/run_vba_tests.sh
   fi
   [ $? -ne 0 ] && TESTS_FAILED=1
 fi

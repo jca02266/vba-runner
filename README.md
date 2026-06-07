@@ -62,6 +62,7 @@ vba-runner/
 ├── src/App.tsx          Web UI（React）
 ├── test-libs/           VBARunner クラス・CLI ツール（vba-analyzer 等）の実装
 ├── tests/spec/          VBA言語仕様テスト群
+├── tests/vba/           実VBAと動作比較するためのテスト
 ├── sample/              リファクタリング事例（TaskScheduler）
 │   ├── src/vba/         プロダクションコード（VBA）
 │   └── tests/ts/        サンプルのユニットテスト（TypeScript）

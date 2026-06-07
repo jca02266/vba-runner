@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # VBA テスト自動実行スクリプト
-# tests/spec/vba/ ディレクトリにある *_Test.{cls,vba} ファイルを自動検出して実行する
+# tests/vba/ ディレクトリにある *_Test.{cls,vba} ファイルを自動検出して実行する
 #
 # このスクリプトは run-all-vba-tests.test.ts テストランナーを実行する
 # _Test で終わるすべてのVBAファイルが自動的に検出・実行される
@@ -15,8 +15,8 @@ if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
   VERBOSE=1
 fi
 
-RUNNER_FILE="tests/spec/vba/run-all-vba-tests.ts"
-VBA_DIR="tests/spec/vba"
+RUNNER_FILE="tests/vba/run-all-vba-tests.ts"
+VBA_DIR="tests/vba"
 
 if [ ! -f "$RUNNER_FILE" ]; then
   echo "❌ VBA test runner not found: $RUNNER_FILE"

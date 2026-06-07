@@ -25,7 +25,7 @@ Function CalcBaseStartIdx(currentLevel As Long, parentFinishIdx As Long, parentF
 End Function
 ```
 
-**対象**: `tests/spec/TaskScheduler_Core.test.ts` （既存）
+**対象**: `sample/tests/ts/TaskScheduler_Core.test.ts` （既存）
 
 ### 統合テスト（Excel I/O を含む）
 
@@ -298,7 +298,7 @@ console.log('[DEBUG] ...');
 
 - **`docs/MOCK_GUIDE.md`** — MockWorksheet の使い方と設計原則
 - **`docs/TESTING_STRATEGY.md`** — テスト戦略の原則
-- **`tests/spec/TaskScheduler_Core.test.ts`** — ドメインロジック単体テスト（既存）
+- **`sample/tests/ts/TaskScheduler_Core.test.ts`** — ドメインロジック単体テスト（既存）
 
 ---
 
