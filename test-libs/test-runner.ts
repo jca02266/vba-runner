@@ -358,57 +358,66 @@ export const assert = {
     },
 };
 
-/**
- * コンパイルエラー（parse / prerun）専用アサーション。
- * src を受け取り、phase に応じた箇所に try/catch を仕込んで正しいフェーズでエラーを検出する。
- *   parse  : Parser.parse() のみを try で囲み ParseError を検証
- *   prerun : parse() は try の外で実行（parse エラーはテスト設計ミス）。
- *            evaluateModule + resolveIdentifiers のみを try で囲む。
- */
-export function assertCompileError(
+/** Pass 1 (parse) コンパイルエラー専用アサーション。Parser.parse() のみを try で囲み ParseError を検証する。 */
+export function assertCompileErrorPass1(
     src: string,
     expectedLine: number,
     pattern: RegExp,
-    label: string,
-    phase: 'parse' | 'prerun'
+    label: string
 ): void {
     let msg = '';
     let threw = false;
-
-    if (phase === 'parse') {
-        let caughtError: unknown;
-        try {
-            new Parser(new Lexer(src).tokenize()).parse();
-        } catch (e) {
-            threw = true;
-            caughtError = e;
-            msg = (e as any)?.message ?? String(e);
-        }
-        if (!threw) {
-            console.error(`[FAIL] ${label}: Expected parse error (pass 1) but none was thrown`);
-            throw new Error('Assertion Failed');
-        }
-        if (!(caughtError instanceof ParseError)) {
-            console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
-            throw new Error('Assertion Failed');
-        }
-    } else {
-        // parse は try の外 — parse エラーはテスト設計ミスとして即座に伝播させる
-        const ast = new Parser(new Lexer(src).tokenize()).parse();
-        const ev = new Evaluator(console.log);
-        try {
-            ev.evaluateModule(ast);
-            ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-        } catch (e) {
-            threw = true;
-            msg = (e as any)?.message ?? String(e);
-        }
-        if (!threw) {
-            console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but none was thrown`);
-            throw new Error('Assertion Failed');
-        }
+    let caughtError: unknown;
+    try {
+        new Parser(new Lexer(src).tokenize()).parse();
+    } catch (e) {
+        threw = true;
+        caughtError = e;
+        msg = (e as any)?.message ?? String(e);
     }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected parse error (pass 1) but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (!(caughtError instanceof ParseError)) {
+        console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (!pattern.test(msg)) {
+        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (!new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+}
 
+/** Pass 2 (prerun) コンパイルエラー専用アサーション。
+ * parse() は try の外で実行（ParseError はテスト設計ミスとして即伝播）。
+ * evaluateModule + resolveIdentifiers のみを try で囲み、prerun エラーを検証する。 */
+export function assertCompileErrorPass2(
+    src: string,
+    expectedLine: number,
+    pattern: RegExp,
+    label: string
+): void {
+    // parse は try の外 — ParseError はテスト設計ミスとして即座に伝播させる
+    const ast = new Parser(new Lexer(src).tokenize()).parse();
+    const ev = new Evaluator(console.log);
+    let msg = '';
+    let threw = false;
+    try {
+        ev.evaluateModule(ast);
+        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    } catch (e) {
+        threw = true;
+        msg = (e as any)?.message ?? String(e);
+    }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
     if (!pattern.test(msg)) {
         console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
         throw new Error('Assertion Failed');

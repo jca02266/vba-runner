@@ -237,7 +237,7 @@ ${inner}
             return [tryWrap(
 `        // RUNNER: TBD — 実際のエラーを表示して CompileError.bas を更新してください
         let _tbd_msg = '';
-        try { assertCompileError(\`${src}\`, 0, /.+/i, '${c.name}', '${phase}'); }
+        try { ${phase === 'parse' ? 'assertCompileErrorPass1' : 'assertCompileErrorPass2'}(\`${src}\`, 0, /.+/i, '${c.name}'); }
         catch (e: any) { _tbd_msg = e?.message ?? String(e); }
         throw new Error('[${c.name}] RUNNER: TBD — fill in CompileError.bas. Actual error seen: ' + _tbd_msg);`
             )];
@@ -248,19 +248,19 @@ ${inner}
             const src = buildParseSrc(c);
             const expectedLine = c.errorLine ?? 1;
             return tryWrap(
-`        assertCompileError(\`${src}\`, ${expectedLine}, ${pattern}, '${c.name}', 'parse');`
+`        assertCompileErrorPass1(\`${src}\`, ${expectedLine}, ${pattern}, '${c.name}');`
             );
         } else if (c.isModuleLevel) {
             const absLine = c.errorLine != null ? 1 + preamble.length + c.errorLine : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined as any';
             return tryWrap(
-`        assertCompileError(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}', '${c.type}');`
+`        assertCompileErrorPass2(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}');`
             );
         } else {
             const absLine = c.errorLine != null ? prerunLineOffset + c.errorLine : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined as any';
             return tryWrap(
-`        assertCompileError(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}', 'prerun');`
+`        assertCompileErrorPass2(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}');`
             );
         }
     });
@@ -274,7 +274,7 @@ ${inner}
  * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
-import { assertCompileError } from '${rel('test-libs/test-runner')}';
+import { assertCompileErrorPass1, assertCompileErrorPass2 } from '${rel('test-libs/test-runner')}';
 
 let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
