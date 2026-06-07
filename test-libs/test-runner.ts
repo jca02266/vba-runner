@@ -369,182 +369,104 @@ export const assert = {
 };
 
 /** Pass 1 (parse) コンパイルエラー専用アサーション。Parser.parse() のみを try で囲み ParseError を検証する。 */
-export function assertCompileErrorPass1(
-    src: string,
-    expectedLine: number,
-    pattern: RegExp,
-    label: string
-): void {
-    let msg = '';
-    let threw = false;
+function assertCompileErrorImpl(opts: {
+    label: string;
+    phaseName: string;
+    pattern: RegExp;
+    expectedLine: number | undefined;
+    okAction?: () => void;
+    throwAction: () => void;
+    extraCheck?: (e: unknown) => string | null;
+}): void {
+    const { label, phaseName, pattern, expectedLine, okAction, throwAction, extraCheck } = opts;
+    if (okAction) {
+        try {
+            okAction();
+        } catch (e: any) {
+            console.error(`[FAIL] ${label}: Unexpected error before ${phaseName}: ${e?.message ?? e}`);
+            throw new Error('Assertion Failed');
+        }
+    }
+    let threw = false, msg = '';
     let caughtError: unknown;
     try {
-        new Parser(new Lexer(src).tokenize()).parse();
-    } catch (e) {
+        throwAction();
+    } catch (e: any) {
         threw = true;
         caughtError = e;
-        msg = (e as any)?.message ?? String(e);
+        msg = e?.message ?? String(e);
     }
     if (!threw) {
-        console.error(`[FAIL] ${label}: Expected parse error (pass 1) but none was thrown`);
+        console.error(`[FAIL] ${label}: Expected ${phaseName} error but none was thrown`);
         throw new Error('Assertion Failed');
     }
-    if (!(caughtError instanceof ParseError)) {
-        console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
-        throw new Error('Assertion Failed');
+    if (extraCheck) {
+        const extraMsg = extraCheck(caughtError);
+        if (extraMsg) {
+            console.error(`[FAIL] ${label}: ${extraMsg}`);
+            throw new Error('Assertion Failed');
+        }
     }
     if (!pattern.test(msg)) {
         console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
         throw new Error('Assertion Failed');
     }
-    if (!new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
         console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
         throw new Error('Assertion Failed');
     }
 }
 
-/** Pass 2 (prerun) コンパイルエラー専用アサーション。
- * parse() は try の外で実行（ParseError はテスト設計ミスとして即伝播）。
- * evaluateModule + resolveIdentifiers のみを try で囲み、prerun エラーを検証する。 */
-export function assertCompileErrorPass2(
-    src: string,
-    expectedLine: number,
-    pattern: RegExp,
-    label: string
-): void {
-    // parse は try の外 — ParseError はテスト設計ミスとして即座に伝播させる
+export function assertCompileErrorPass1(src: string, expectedLine: number, pattern: RegExp, label: string): void {
+    assertCompileErrorImpl({
+        label, phaseName: 'parse',
+        pattern, expectedLine,
+        throwAction: () => new Parser(new Lexer(src).tokenize()).parse(),
+        extraCheck: e => e instanceof ParseError ? null : `Expected ParseError (parse) but got: "${(e as any)?.message ?? e}"`,
+    });
+}
+
+/** Pass 2 (prerun) コンパイルエラー専用アサーション。evaluateModule + resolveIdentifiers で throw を検証。 */
+export function assertCompileErrorPass2(src: string, expectedLine: number, pattern: RegExp, label: string): void {
     const ast = new Parser(new Lexer(src).tokenize()).parse();
     const ev = new Evaluator(console.log);
-    let msg = '';
-    let threw = false;
-    try {
-        ev.evaluateModule(ast);
-        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    } catch (e) {
-        threw = true;
-        msg = (e as any)?.message ?? String(e);
-    }
-    if (!threw) {
-        console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but none was thrown`);
-        throw new Error('Assertion Failed');
-    }
-    if (!pattern.test(msg)) {
-        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
-    if (!new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
-        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
+    assertCompileErrorImpl({
+        label, phaseName: 'prerun (pass 2)',
+        pattern, expectedLine,
+        throwAction: () => { ev.evaluateModule(ast); ev.resolveIdentifiers([{ ast, moduleName: '' }]); },
+    });
 }
 
-/** [prerun] resolveIdentifiers で検出されるコンパイルエラーのアサーション。
- * evaluateModule は throw しないことを検証してから resolveIdentifiers の throw を検証する。 */
-export function assertCompileErrorPrerun(
-    src: string,
-    expectedLine: number | undefined,
-    pattern: RegExp,
-    label: string
-): void {
+/** [prerun] evaluateModule OK → resolveIdentifiers で throw を検証。 */
+export function assertCompileErrorPrerun(src: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
     const ast = new Parser(new Lexer(src).tokenize()).parse();
     const ev = new Evaluator(console.log);
-    try {
-        ev.evaluateModule(ast);
-    } catch (e: any) {
-        console.error(`[FAIL] ${label}: Unexpected error in evaluateModule (expected prerun in resolveIdentifiers): ${e?.message ?? e}`);
-        throw new Error('Assertion Failed');
-    }
-    let threw = false, msg = '';
-    try {
-        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    } catch (e: any) {
-        threw = true;
-        msg = e?.message ?? String(e);
-    }
-    if (!threw) {
-        console.error(`[FAIL] ${label}: Expected prerun error (resolveIdentifiers) but none was thrown`);
-        throw new Error('Assertion Failed');
-    }
-    if (!pattern.test(msg)) {
-        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
-    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
-        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
+    assertCompileErrorImpl({
+        label, phaseName: 'prerun',
+        pattern, expectedLine,
+        okAction: () => ev.evaluateModule(ast),
+        throwAction: () => ev.resolveIdentifiers([{ ast, moduleName: '' }]),
+    });
 }
 
-/** [preproc] precheckProc（OE チェック）で検出されるコンパイルエラーのアサーション。
- * evalVBASingle は throw しないことを検証してから callProcedure の throw を検証する。 */
-export function assertCompileErrorPreproc(
-    src: string,
-    procName: string,
-    expectedLine: number | undefined,
-    pattern: RegExp,
-    label: string
-): void {
-    let ev: Evaluator;
-    try {
-        ev = evalVBASingle(src);
-    } catch (e: any) {
-        console.error(`[FAIL] ${label}: Unexpected error before callProcedure (expected preproc): ${e?.message ?? e}`);
-        throw new Error('Assertion Failed');
-    }
-    let threw = false, msg = '';
-    try {
-        ev.callProcedure(procName, []);
-    } catch (e: any) {
-        threw = true;
-        msg = e?.message ?? String(e);
-    }
-    if (!threw) {
-        console.error(`[FAIL] ${label}: Expected preproc error but none was thrown`);
-        throw new Error('Assertion Failed');
-    }
-    if (!pattern.test(msg)) {
-        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
-    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
-        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
+/** [preproc] evalVBASingle OK → precheckProc（OE チェック）で throw を検証。 */
+export function assertCompileErrorPreproc(src: string, procName: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
+    let ev!: Evaluator;
+    assertCompileErrorImpl({
+        label, phaseName: 'preproc',
+        pattern, expectedLine,
+        okAction: () => { ev = evalVBASingle(src); },
+        throwAction: () => ev.callProcedure(procName, []),
+    });
 }
 
-/** [exec] precheckProc 後の実行中に検出されるコンパイルエラーのアサーション。
- * evalVBASingle は throw しないことを検証してから callProcedure の throw を検証する。 */
-export function assertCompileErrorExec(
-    src: string,
-    procName: string,
-    expectedLine: number | undefined,
-    pattern: RegExp,
-    label: string
-): void {
-    let ev: Evaluator;
-    try {
-        ev = evalVBASingle(src);
-    } catch (e: any) {
-        console.error(`[FAIL] ${label}: Unexpected error before callProcedure (expected exec): ${e?.message ?? e}`);
-        throw new Error('Assertion Failed');
-    }
-    let threw = false, msg = '';
-    try {
-        ev.callProcedure(procName, []);
-    } catch (e: any) {
-        threw = true;
-        msg = e?.message ?? String(e);
-    }
-    if (!threw) {
-        console.error(`[FAIL] ${label}: Expected exec error but none was thrown`);
-        throw new Error('Assertion Failed');
-    }
-    if (!pattern.test(msg)) {
-        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
-    if (expectedLine !== undefined && !new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
-        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
+/** [exec] evalVBASingle OK → precheckProc 後の実行中の throw を検証。 */
+export function assertCompileErrorExec(src: string, procName: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
+    let ev!: Evaluator;
+    assertCompileErrorImpl({
+        label, phaseName: 'exec',
+        pattern, expectedLine,
+        okAction: () => { ev = evalVBASingle(src); },
+        throwAction: () => ev.callProcedure(procName, []),
+    });
 }
