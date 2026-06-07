@@ -431,8 +431,6 @@ export interface AssignmentStatement extends Statement {
 export interface CallStatement extends Statement {
     type: 'CallStatement';
     expression: CallExpression;
-    /** true when written as Foo() without the Call keyword (parens were explicit) */
-    hasExplicitParens?: boolean;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -1502,8 +1500,8 @@ export class Parser {
                 if (args.length > 0) {
                     return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
                 } else if (expr.type === 'CallExpression') {
-                    // Call matched via parens e.g. `MainLoop()` — parens were explicit (no Call keyword)
-                    return { type: 'CallStatement', expression: expr, hasExplicitParens: true } as CallStatement;
+                    // Call matched via parens e.g. `MainLoop()`
+                    return { type: 'CallStatement', expression: expr } as CallStatement;
                 } else {
                     // Call matched without parens e.g. `MainLoop`
                     return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;

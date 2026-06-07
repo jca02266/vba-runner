@@ -3269,18 +3269,6 @@ export class Evaluator {
     }
 
     private evaluateCallStatement(stmt: CallStatement) {
-        // Detect: Sub called with explicit empty parens without Call keyword (e.g. MySub())
-        // VBA compile error: "Expected: end of statement"
-        if (stmt.hasExplicitParens && stmt.expression.type === 'CallExpression') {
-            const callExpr = stmt.expression as CallExpression;
-            if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier') {
-                const proc = this.env.getProcedure((callExpr.callee as Identifier).name);
-                if (proc && !proc.isFunction && !proc.isProperty) {
-                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
-                        `Expected: end of statement`);
-                }
-            }
-        }
         this.evaluateExpression(stmt.expression);
     }
 

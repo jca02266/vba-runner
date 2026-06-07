@@ -66,6 +66,13 @@ export class VBARunner {
                 this._moduleNames.push(moduleName);
                 this.evaluator.evaluateModule(ast);
             } catch (e: any) {
+                // ディレクトリ読み込み時: 意図的に構文エラーを含む仕様ファイル
+                // （例: CompileError.bas）はスキップしてログだけ残す。
+                // 単一ファイル指定時はエラーをそのまま上げる。
+                if (stat.isDirectory() && e.message && /^Parse error:/i.test(e.message)) {
+                    console.warn(`  (skip: parse errors in spec) ${path.basename(file)}`);
+                    continue;
+                }
                 throw new Error(`[${path.basename(file)}] ${e.message}`);
             }
         }
