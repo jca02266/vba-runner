@@ -4,12 +4,10 @@
  * 再生成: npx tsx test-libs/compile-error-generator.ts tests/vba/CompileError.bas --output <このファイルのパス>
  *
  * [parse]  Parser.parse() 時に例外が発生するケース（行番号も検証）
- * [prerun] resolveIdentifiers で例外が発生するケース（実行なし）
- * [preproc] precheckProc（OE チェック）で例外が発生するケース
- * [exec]  precheckProc 後の実行中に例外が発生するケース
+ * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
-import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec } from '../../test-libs/test-runner';
+import { assertCompileErrorPass1, assertCompileErrorPass2 } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
@@ -126,12 +124,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [exec] assign_from_sub
+// [prerun] assign_from_sub
 // VBA: コンパイルエラー: FunctionまたはVariableが必要です
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileErrorExec(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -142,7 +140,8 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
         Dim v
         v = MySub
       End Sub
-    `, '__test__', 10, /function or variable/i, 'assign_from_sub');
+      __test__
+    `, 10, /function or variable/i, 'assign_from_sub');
         console.log('[PASS] assign_from_sub');
         __pass__++;
     } catch (e: any) {
@@ -151,12 +150,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [exec] assign_from_sub_with_parens
+// [prerun] assign_from_sub_with_parens
 // VBA: コンパイルエラー: FunctionまたはVariableが必要です
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileErrorExec(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -167,7 +166,8 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
         Dim v
         v = MySub()
       End Sub
-    `, '__test__', 10, /function or variable/i, 'assign_from_sub_with_parens');
+      __test__
+    `, 10, /function or variable/i, 'assign_from_sub_with_parens');
         console.log('[PASS] assign_from_sub_with_parens');
         __pass__++;
     } catch (e: any) {
@@ -176,12 +176,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [exec] duplicate_dim
+// [prerun] duplicate_dim
 // VBA: コンパイルエラー: 同じ適用範囲内で宣言が重複しています
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileErrorExec(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -192,7 +192,8 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
         Dim v
         Dim v
       End Sub
-    `, '__test__', 10, /duplicate/i, 'duplicate_dim');
+      __test__
+    `, 10, /duplicate/i, 'duplicate_dim');
         console.log('[PASS] duplicate_dim');
         __pass__++;
     } catch (e: any) {
@@ -201,12 +202,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [exec] goto_undefined_label
+// [prerun] goto_undefined_label
 // VBA: コンパイルエラー: 行ラベルが定義されていません
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileErrorExec(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -216,7 +217,8 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub __test__()
         GoTo NoSuchLabel
       End Sub
-    `, '__test__', 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label');
+      __test__
+    `, 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label');
         console.log('[PASS] goto_undefined_label');
         __pass__++;
     } catch (e: any) {
@@ -230,7 +232,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -240,6 +242,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub __test__()
         UnknownProc
       End Sub
+      __test__
     `, 9, /sub or function not defined/i, 'undefined_sub_call');
         console.log('[PASS] undefined_sub_call');
         __pass__++;
@@ -249,12 +252,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [preproc] qualified_undeclared_obj
+// [prerun] qualified_undeclared_obj
 // VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPreproc(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -265,7 +268,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub Case_qualified_undeclared_obj()
           UnknownModule.UnknownProc
       End Sub
-    `, 'Case_qualified_undeclared_obj', 10, /variable not declared|not declared/i, 'qualified_undeclared_obj');
+    `, 10, /variable not declared|not declared/i, 'qualified_undeclared_obj');
         console.log('[PASS] qualified_undeclared_obj');
         __pass__++;
     } catch (e: any) {
@@ -279,7 +282,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -289,6 +292,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub __test__()
         UnknownProc
       End Sub
+      __test__
     `, 9, /sub or function not defined/i, 'undefined_sub_call_no_oe');
         console.log('[PASS] undefined_sub_call_no_oe');
         __pass__++;
@@ -303,7 +307,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -323,12 +327,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [exec] sub_call_arg_count_mismatch
+// [prerun] sub_call_arg_count_mismatch
 // VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileErrorExec(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       
@@ -338,7 +342,8 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub __test__()
         MySub (42)
       End Sub
-    `, '__test__', 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
+      __test__
+    `, 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
         console.log('[PASS] sub_call_arg_count_mismatch');
         __pass__++;
     } catch (e: any) {
@@ -352,7 +357,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 // VBA error line (within Sub body): 4
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
       

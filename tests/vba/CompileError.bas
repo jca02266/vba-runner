@@ -102,7 +102,7 @@ End Sub
 ' ================================================================
 
 ' CASE: assign_from_sub
-' TYPE: exec
+' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
 Sub Case_assign_from_sub()
@@ -111,7 +111,7 @@ Sub Case_assign_from_sub()
 End Sub
 
 ' CASE: assign_from_sub_with_parens
-' TYPE: exec
+' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
 Sub Case_assign_from_sub_with_parens()
@@ -120,7 +120,7 @@ Sub Case_assign_from_sub_with_parens()
 End Sub
 
 ' CASE: duplicate_dim
-' TYPE: exec
+' TYPE: prerun
 ' VBA: コンパイルエラー: 同じ適用範囲内で宣言が重複しています
 ' RUNNER: /duplicate/i
 Sub Case_duplicate_dim()
@@ -129,7 +129,7 @@ Sub Case_duplicate_dim()
 End Sub
 
 ' CASE: goto_undefined_label
-' TYPE: exec
+' TYPE: prerun
 ' VBA: コンパイルエラー: 行ラベルが定義されていません
 ' RUNNER: /not defined.*label|label.*not defined/i
 Sub Case_goto_undefined_label()
@@ -155,19 +155,18 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 ' RUNNER: /sub or function not defined/i
-' NOTE: 非修飾の未定義プロシージャ呼び出しは resolveIdentifiers（静的検証）でエラー。
+' NOTE: 非修飾の未定義プロシージャ呼び出しは静的検証（コンパイル時）でエラー。
 '   修飾付き（UnknownModule.UnknownProc）は実行時エラー 424（動的解決）のためここに含めない。
 Sub Case_undefined_sub_call()
     UnknownProc ' @error
 End Sub
 
 ' CASE: qualified_undeclared_obj
-' TYPE: preproc
+' TYPE: prerun
 ' VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
 ' RUNNER: /variable not declared|not declared/i
-' PROC: Case_qualified_undeclared_obj
 ' NOTE: Option Explicit 有効時、修飾付き呼び出し UnknownModule.Method の
-'   オブジェクト部分 UnknownModule が未宣言変数として precheckProc で検出される。
+'   オブジェクト部分 UnknownModule が未宣言変数として検出される。
 '   Option Explicit がない場合は Dim が暗黙挿入されて実行時エラー 424 になる。
 '@case-begin
 Option Explicit
@@ -189,7 +188,7 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 ' RUNNER: /sub or function not defined/i
-' NOTE: Option Explicit あり。未定義プロシージャは OE 違反ではなく Sub or Function not defined エラー（prerun）。
+' NOTE: Option Explicit あり。未定義プロシージャは OE 違反ではなく Sub or Function not defined エラー。
 '@case-begin
 Option Explicit
 Sub Case_undefined_sub_call_with_oe()
@@ -198,11 +197,10 @@ End Sub
 '@case-end
 
 ' CASE: sub_call_arg_count_mismatch
-' TYPE: exec
+' TYPE: prerun
 ' VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
 ' RUNNER: /wrong number of arguments/i
-' NOTE: checkArgCount は precheckProc の後で呼ばれるため exec。
-'   MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され
+' NOTE: MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され
 '   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
 Sub Case_sub_call_arg_count_mismatch()
     MySub (42)  ' @error
@@ -212,8 +210,8 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
 ' RUNNER: /duplicate.*procedure|duplicate.*name/i
-' NOTE: 同一モジュール内のプロシージャ名重複は resolveIdentifiers（Pass2）で検出される。
-'   このエラーがあると他のエラーの前に引っかかるためコメントアウトしている。
+' NOTE: 同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）
+'   prerun だが、このエラーがあると他のエラーの前にこのエラーに引っかかるためコメントアウトしている
 '@case-begin
 Sub duplicate_sub_name()
 
