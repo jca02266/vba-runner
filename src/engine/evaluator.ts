@@ -229,6 +229,20 @@ export interface DebugHook {
     ): void;
 }
 
+interface ExecProcBodyOptions {
+    byRefArgs: { paramName: string; originalExpr: Expression }[];
+    paramArrayParamName: string | null;
+    paramArrayByRefExprs: Expression[];
+    /** null in callProcedure, -1 in evaluateCallExpression */
+    initialLastErrorIndex: number | null;
+    /** callProcedure accepts Exit Property, evaluateCallExpression does not */
+    acceptExitProperty: boolean;
+    /** callProcedure returns property value, evaluateCallExpression does not */
+    returnOnProperty: boolean;
+    /** vbaEmpty for callProcedure, undefined for evaluateCallExpression */
+    subReturnValue: any;
+}
+
 export class Environment {
     private variables: Map<string, any> = new Map();
     private variableTypes: Map<string, VbaTypeInfo> = new Map();
@@ -1759,27 +1773,7 @@ export class Evaluator {
         this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '', line: this.currentLine });
         try {
 
-        // Option Explicit: プロシージャ呼び出し直前に静的解析結果を確認する。
-        // 未宣言として記録された名前がその時点の env に存在すれば（別モジュールや runner.set() 経由）解決済みとみなす。
-        // §5.6.10 Tier 6: Option Explicit が禁じるのは「どの Tier でも解決できなかった名前を暗黙変数として作ること」。
-        // defaultBindingObject（Tier 6）で解決できた名前は解決済みなので暗黙変数の作成は起きず、
-        // Option Explicit エラーにはならない（実 VBA で型ライブラリメンバーが宣言なしで使えるのと同じ理由）。
-        if (this.optionExplicitViolations.has(procName)) {
-            const violations = this.optionExplicitViolations.get(procName)!;
-            const stillMissing = [...violations.entries()].filter(([n]) => {
-                if (this.env.hasVariable(n)) return false;
-                if (this.defaultBindingObject &&
-                        this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-                return true;
-            });
-            if (stillMissing.length > 0) {
-                const names = stillMissing.map(([n]) => n).join(', ');
-                const firstLine = stillMissing[0][1] || undefined;
-                this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                    `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
-                    firstLine, proc.moduleName ?? undefined);
-            }
-        }
+        this.precheckProc(proc);
 
         // Validate argument count
         this.checkArgCount(proc, args);
@@ -1823,23 +1817,50 @@ export class Evaluator {
             localEnv.setLocally(paramName, argValue);
         }
 
-        // Save current env and error handler state, swap to local
-        const previousEnv = this.env;
-        const previousErrorHandler = this.errorHandlerLabel;
-        const previousErrorHandlingMode = this.errorHandlingMode;
-        const previousIsInErrorHandler = this.isInErrorHandler;
-        const previousLastErrorIndex = this.lastErrorIndex;
+        return this.execProcBody(proc, localEnv, {
+            byRefArgs: [],
+            paramArrayParamName: null,
+            paramArrayByRefExprs: [],
+            initialLastErrorIndex: null,
+            acceptExitProperty: true,
+            returnOnProperty: true,
+            subReturnValue: vbaEmpty,
+        });
 
-        const previousProcBody = this.currentProcBody;
-        const previousProcedureName = this.currentProcedureName;
-        const previousProcedureType = this.currentProcedureType;
-        const previousExecutingModule = this.executingModuleName;
-        const previousProcIsStatic = this.currentProcIsStatic;
-        const previousStaticVars = this.staticVarsInCurrentProc;
+        } finally {
+            this.vbaCallStack.pop();
+        }
+    }
 
+    // OE check shared between callProcedure and evaluateCallExpression.
+    // §5.6.10 Tier 6: names resolvable via defaultBindingObject are not implicit variables.
+    private precheckProc(proc: ProcedureDeclaration): void {
+        const procKey = proc.name.name.toLowerCase();
+        if (!this.optionExplicitViolations.has(procKey)) return;
+        const violations = this.optionExplicitViolations.get(procKey)!;
+        const stillMissing = [...violations.entries()].filter(([n]) => {
+            if (this.env.hasVariable(n)) return false;
+            if (this.defaultBindingObject &&
+                    this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+            return true;
+        });
+        if (stillMissing.length > 0) {
+            const names = stillMissing.map(([n]) => n).join(', ');
+            const firstLine = stillMissing[0][1] || undefined;
+            this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+                firstLine, proc.moduleName ?? undefined);
+        }
+    }
+
+    // Shared procedure body execution.
+    // Caller must push vbaCallStack before calling and pop in its own finally.
+    private execProcBody(proc: ProcedureDeclaration, localEnv: Environment, opts: ExecProcBodyOptions): any {
+        const procNameKey = proc.name.name.toLowerCase();
+
+        // Initialize return variable for function/property
         if (proc.isFunction || proc.isProperty) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
-            // 戻り値の Let-coercion に使うため戻り型を変数型として登録する
             if (proc.returnType) {
                 const retTypeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
@@ -1852,12 +1873,23 @@ export class Evaluator {
             }
         }
 
+        const previousEnv = this.env;
+        const previousErrorHandler = this.errorHandlerLabel;
+        const previousErrorHandlingMode = this.errorHandlingMode;
+        const previousIsInErrorHandler = this.isInErrorHandler;
+        const previousLastErrorIndex = this.lastErrorIndex;
+        const previousProcBody = this.currentProcBody;
+        const previousProcedureName = this.currentProcedureName;
+        const previousProcedureType = this.currentProcedureType;
+        const previousExecutingModule = this.executingModuleName;
+        const previousProcIsStatic = this.currentProcIsStatic;
+        const previousStaticVars = this.staticVarsInCurrentProc;
+
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
         this.isInErrorHandler = false;
-        this.lastErrorIndex = null;
-
+        this.lastErrorIndex = opts.initialLastErrorIndex;
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
@@ -1866,35 +1898,49 @@ export class Evaluator {
         this.staticVarsInCurrentProc = new Set();
 
         try {
-            // Execute procedure body with error handling support
             this.executeStatements(proc.body, 0);
         } catch (e: any) {
-            if (e && e.type === 'Exit') {
-                if (
-                    (e.target === 'Function' && proc.isFunction) ||
-                    (e.target === 'Sub' && !proc.isFunction && !proc.isProperty) ||
-                    (e.target === 'Property' && proc.isProperty)
-                ) {
-                    // Valid exit, caught and swallowed
-                } else {
-                    throw e; // Unhandled exit type
-                }
+            if (e && e.type === 'Exit' && (
+                e.target === 'Sub' ||
+                e.target === 'Function' ||
+                (opts.acceptExitProperty && e.target === 'Property')
+            )) {
+                // valid exit, swallowed
             } else {
-                throw e; // Real error
+                throw e;
             }
         } finally {
-            // Persist static variable values
+            this.env = previousEnv;
+
+            // ByRef writeback (evaluateCallExpression only; empty for callProcedure)
+            for (const ref of opts.byRefArgs) {
+                const updatedVal = localEnv.get(ref.paramName);
+                try {
+                    this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
+                } catch {
+                    // r-value: silently ignored
+                }
+            }
+            if (opts.paramArrayParamName !== null) {
+                const updatedArray = localEnv.get(opts.paramArrayParamName) as any[];
+                if (Array.isArray(updatedArray)) {
+                    for (let j = 0; j < opts.paramArrayByRefExprs.length; j++) {
+                        try {
+                            this.evaluateAssignmentToVariable(opts.paramArrayByRefExprs[j], updatedArray[j]);
+                        } catch { }
+                    }
+                }
+            }
+
             for (const varName of this.staticVarsInCurrentProc) {
-                const key = `${procName}:${varName}`;
+                const key = `${procNameKey}:${varName}`;
                 this.staticVarStore.set(key, localEnv.get(varName));
             }
-            // Restore previous environment and error handler state
-            this.env = previousEnv;
+
             this.errorHandlerLabel = previousErrorHandler;
             this.errorHandlingMode = previousErrorHandlingMode;
             this.isInErrorHandler = previousIsInErrorHandler;
             this.lastErrorIndex = previousLastErrorIndex;
-
             this.currentProcBody = previousProcBody;
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
@@ -1903,15 +1949,10 @@ export class Evaluator {
             this.staticVarsInCurrentProc = previousStaticVars;
         }
 
-        // Return the function or property value
-        if (proc.isFunction || proc.isProperty) {
-            return localEnv.get(procName);
+        if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
+            return localEnv.get(proc.name.name);
         }
-        return vbaEmpty;
-
-        } finally {
-            this.vbaCallStack.pop();
-        }
+        return opts.subReturnValue;
     }
 
     public setSourceModule(moduleName: string) {
@@ -5015,24 +5056,7 @@ export class Evaluator {
                 this.vbaCallStack.push({ name: proc.name.name, moduleName: proc.moduleName ?? '', line: this.currentLine });
                 try {
 
-                // Option Explicit check (mirrors callProcedure)
-                // §5.6.10 Tier 6: Tier 6 で解決できた名前は解決済みなので暗黙変数にならない。
-                const oeViolations = this.optionExplicitViolations.get(proc.name.name.toLowerCase());
-                if (oeViolations) {
-                    const stillMissing = [...oeViolations.entries()].filter(([n]) => {
-                        if (this.env.hasVariable(n)) return false;
-                        if (this.defaultBindingObject &&
-                                this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-                        return true;
-                    });
-                    if (stillMissing.length > 0) {
-                        const names = stillMissing.map(([n]) => n).join(', ');
-                        const firstLine = stillMissing[0][1] || undefined;
-                        this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                            `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
-                            firstLine, proc.moduleName ?? undefined);
-                    }
-                }
+                this.precheckProc(proc);
 
                 // Procedure call (Function/Sub)
                 const localEnv = new Environment(this.env);
@@ -5130,108 +5154,15 @@ export class Evaluator {
                     }
                 }
 
-                if (proc.isFunction) {
-                    // Implicit variable for function return value
-                    localEnv.setLocally(proc.name.name, vbaEmpty);
-                    // 戻り値の Let-coercion に使うため戻り型を変数型として登録する
-                    if (proc.returnType) {
-                        const retTypeMap: Record<string, VbaVarType> = {
-                            'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
-                            'single': 'Single', 'double': 'Double', 'currency': 'Currency',
-                            'longlong': 'LongLong', 'longptr': 'LongPtr',
-                            'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
-                        };
-                        const mapped = retTypeMap[proc.returnType.toLowerCase()];
-                        if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
-                    }
-                }
-
-                const previousEnv = this.env;
-                const previousErrorHandler = this.errorHandlerLabel;
-                const previousErrorHandlingMode = this.errorHandlingMode;
-                const previousIsInErrorHandler = this.isInErrorHandler;
-                const previousLastErrorIndex = this.lastErrorIndex;
-
-                const previousProcBody = this.currentProcBody;
-                const previousExecutingModule = this.executingModuleName;
-                // proc コンテキストも退避する。これを設定しないと、呼び出された
-                // 関数本体の Dim 文が currentProcedureName 未設定のため set()
-                // （enclosing を辿る代入）になり、呼び出し元の同名変数を破壊する。
-                const previousProcedureName = this.currentProcedureName;
-                const previousProcedureType = this.currentProcedureType;
-                const previousProcIsStatic = this.currentProcIsStatic;
-                const previousStaticVars = this.staticVarsInCurrentProc;
-                const procNameKey = proc.name.name.toLowerCase();
-                this.env = localEnv;
-                this.errorHandlerLabel = null;
-                this.errorHandlingMode = 'None';
-                this.isInErrorHandler = false;
-                this.lastErrorIndex = -1;
-                this.currentProcBody = proc.body;
-                this.executingModuleName = proc.moduleName ?? '';
-                this.currentProcedureName = proc.name.name;
-                this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
-                this.currentProcIsStatic = proc.isStatic ?? false;
-                this.staticVarsInCurrentProc = new Set();
-
-                try {
-                    this.executeStatements(proc.body, 0);
-                } catch (e: any) {
-                    if (e && e.type === 'Exit' && (e.target === 'Sub' || e.target === 'Function')) {
-                        // Exit the procedure cleanly
-                    } else {
-                        throw e;
-                    }
-                } finally {
-                    this.env = previousEnv; // Restore scope
-
-                    // Synchronize ByRef arguments back to caller scope (even if an error occurred)
-                    for (const ref of byRefArgs) {
-                        const updatedVal = localEnv.get(ref.paramName);
-                        try {
-                            this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
-                        } catch {
-                            // If it's an r-value (like a function call, literal, or expression), VBA silently discards the ByRef update
-                        }
-                    }
-
-                    // Synchronize ParamArray elements back (spec §5.3.1.5: elements behave as ByRef)
-                    if (paramArrayParamName !== null) {
-                        const updatedArray = localEnv.get(paramArrayParamName) as any[];
-                        if (Array.isArray(updatedArray)) {
-                            for (let j = 0; j < paramArrayByRefExprs.length; j++) {
-                                try {
-                                    this.evaluateAssignmentToVariable(paramArrayByRefExprs[j], updatedArray[j]);
-                                } catch {
-                                    // r-values (literals, expressions) silently ignored
-                                }
-                            }
-                        }
-                    }
-
-                    // Persist static variable values
-                    for (const varName of this.staticVarsInCurrentProc) {
-                        const key = `${procNameKey}:${varName}`;
-                        this.staticVarStore.set(key, localEnv.get(varName));
-                    }
-
-                    this.errorHandlerLabel = previousErrorHandler;
-                    this.errorHandlingMode = previousErrorHandlingMode;
-                    this.isInErrorHandler = previousIsInErrorHandler;
-                    this.lastErrorIndex = previousLastErrorIndex;
-
-                    this.currentProcBody = previousProcBody;
-                    this.executingModuleName = previousExecutingModule;
-                    this.currentProcedureName = previousProcedureName;
-                    this.currentProcedureType = previousProcedureType;
-                    this.currentProcIsStatic = previousProcIsStatic;
-                    this.staticVarsInCurrentProc = previousStaticVars;
-                }
-
-                if (proc.isFunction) {
-                    return localEnv.get(proc.name.name);
-                }
-                return undefined;
+                return this.execProcBody(proc, localEnv, {
+                    byRefArgs,
+                    paramArrayParamName,
+                    paramArrayByRefExprs,
+                    initialLastErrorIndex: -1,
+                    acceptExitProperty: false,
+                    returnOnProperty: false,
+                    subReturnValue: undefined,
+                });
 
                 } finally {
                     this.vbaCallStack.pop();
