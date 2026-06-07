@@ -130,7 +130,7 @@ End Sub
 
 ' CASE: goto_undefined_label
 ' TYPE: prerun
-' VBA: コンパイルエラー: ラベルが定義されていません
+' VBA: コンパイルエラー: 行ラベルが定義されていません
 ' RUNNER: /not defined.*label|label.*not defined/i
 Sub Case_goto_undefined_label()
     GoTo NoSuchLabel ' @error
@@ -148,3 +148,28 @@ End Sub
 ' 未実装（VBARunner が未検出）:
 '   同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）→ VBE では prerun エラー
 ' ----------------------------------------------------------------
+' CASE: sub_call_arg_count_mismatch
+' TYPE: prerun
+' VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
+' RUNNER: TBD
+' NOTE: MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され
+'   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
+Sub Case_sub_call_arg_count_mismatch()
+    MySub (42)  ' @error
+End Sub
+
+' CASE: duplicate_sub_name
+' TYPE: prerun
+' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
+' RUNNER: TBD
+' NOTE: 同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）
+'   prerun だが、このエラーがあると他のエラーの前にこのエラーに引っかかるためコメントアウトしている
+'@case-begin
+Sub duplicate_sub_name()
+
+End Sub
+''Sub duplicate_sub_name()  ' @error
+''
+''End Sub
+'@case-end
+

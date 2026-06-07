@@ -3,6 +3,8 @@
  *
  * CompileError.bas の構造:
  *   - Private Sub/Function ... End Sub/Function  → PREAMBLE（ヘルパー定義）として扱う
+ *
+ *   通常ケース（Sub Case_<name>() でラップ）:
  *   - ' CASE: name
  *     ' TYPE: parse | prerun
  *     ' VBA: <VBE のエラーメッセージ>
@@ -13,6 +15,16 @@
  *                              ジェネレーターが行番号を自動計算し、マーカーを除去する
  *       ...body...
  *     End Sub
+ *
+ *   モジュールレベルケース（'@case-begin / '@case-end でラップ）:
+ *   - ' CASE: name
+ *     ...メタ行...
+ *     '@case-begin
+ *     Sub Foo()         ← モジュールレベルのコードをそのまま記述
+ *     End Sub
+ *     ''Sub Foo()  ' @error   ← VBE でのコンパイルエラーを避けるため '' でコメントアウト
+ *     ''End Sub          ← ジェネレーターが '' を除去して実コードとして展開
+ *     '@case-end
  *
  * Usage:
  *   npx tsx test-libs/compile-error-generator.ts tests/vba/CompileError.bas
@@ -29,6 +41,7 @@ interface CompileErrorCase {
     errorLine: number | null;  // Sub ボディ内のエラー行（1 始まり）。' @error マーカーから自動計算。
     runnerPattern: string;
     code: string[];  // ' @error マーカーを除去済みのコード行
+    isModuleLevel?: boolean;  // true のとき code はモジュールレベルに展開（Sub __test__() でラップしない）
 }
 
 // ' @error マーカーを除去する正規表現
@@ -46,6 +59,10 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
     let caseErrorLine: number | null = null;
     let inPreambleSub = false;
     let preambleBuffer: string[] = [];
+    // '@case-begin / '@case-end で囲まれたモジュールレベルケースの収集状態
+    let inModuleLevelCase = false;
+    let moduleCaseLines: string[] = [];
+    let moduleCaseErrorLine: number | null = null;
 
     for (const raw of lines) {
         const trimmed = raw.trim();
@@ -69,6 +86,42 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
         }
         // NOTE: は読み飛ばす（テストには不要）
         if (meta && trimmed.startsWith("' NOTE:")) continue;
+
+        // '@case-begin: モジュールレベルケースの開始
+        if (trimmed === "'@case-begin") {
+            inModuleLevelCase = true;
+            moduleCaseLines = [];
+            moduleCaseErrorLine = null;
+            continue;
+        }
+
+        // '@case-begin ～ '@case-end の間: '' を除去してコードを収集
+        if (inModuleLevelCase) {
+            if (trimmed === "'@case-end") {
+                while (moduleCaseLines.length > 0 && moduleCaseLines[moduleCaseLines.length - 1].trim() === '') {
+                    moduleCaseLines.pop();
+                }
+                cases.push({
+                    name: meta!.name!,
+                    type: meta!.type ?? 'prerun',
+                    vbaError: meta!.vbaError ?? '',
+                    errorLine: moduleCaseErrorLine,
+                    runnerPattern: meta!.runnerPattern ?? '/.+/',
+                    code: moduleCaseLines,
+                    isModuleLevel: true,
+                });
+                inModuleLevelCase = false;
+                meta = null;
+            } else {
+                let codeLine = raw.startsWith("''") ? raw.slice(2) : raw;
+                if (ERROR_MARKER.test(codeLine)) {
+                    moduleCaseErrorLine = moduleCaseLines.length + 1;
+                    codeLine = codeLine.replace(ERROR_MARKER, '');
+                }
+                moduleCaseLines.push(codeLine);
+            }
+            continue;
+        }
 
         // Case_* Sub の開始（メタがある場合）
         // Sub 名全体（Case_ 以降）をテストケース名として使う。
@@ -182,6 +235,18 @@ ${inner}
             () => { new Parser(new Lexer(src).tokenize()).parse(); },
             ${expectedLine}, ${pattern}, '${c.name}'
         );`
+            );
+        } else if (c.isModuleLevel) {
+            // モジュールレベルケース: '' を除去したコードをそのままモジュールに展開
+            //   行番号オフセット = 1 (テンプレート先頭の空行) + preamble.length
+            const absLine = c.errorLine != null ? 1 + preamble.length + c.errorLine : null;
+            const codeLines = c.code.map(l => `      ${l}`).join('\n');
+            const lineArg = absLine != null ? String(absLine) : 'undefined as any';
+            return tryWrap(
+`        assertCompileError(() => evalVBASingle(\`
+${preamble.map(l => `      ${l}`).join('\n')}
+${codeLines}
+    \`), ${lineArg}, ${pattern}, '${c.name}');`
             );
         } else {
             // prerun: 行番号は preamble + wrapper Sub のオフセット込みで計算
