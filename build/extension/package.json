@@ -166,8 +166,8 @@
     }
   },
   "scripts": {
-    "build": "esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname && esbuild ../../src/lsp/debug-worker.ts --bundle --outfile=dist/debug-worker.cjs --platform=node --define:import.meta.dirname=__dirname",
-    "package": "npm run build && vsce package --no-dependencies",
+    "build": "esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname --define:import.meta.url=__filename && esbuild ../../src/lsp/debug-worker.ts --bundle --outfile=dist/debug-worker.cjs --platform=node --define:import.meta.dirname=__dirname --define:import.meta.url=__filename",
+    "package": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && vsce package --no-dependencies",
     "publish": "vsce publish --no-dependencies"
   },
   "devDependencies": {
