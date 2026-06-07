@@ -817,10 +817,15 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 - ✅ **静的 vs 動的名前解決の区別**: プロシージャ呼び出し時のエラー検出タイミング
   - 実VBA動作の違い：
-    - `unknownProc()` → **コンパイルエラー**（Sub/Function が定義されていません）
-    - `unknownModule.unknownProc()` → **実行時エラー 424**（オブジェクトが必要です）
-  - 実装: `option-explicit-checker.ts` の `collectUndefinedProcCalls` を `resolveIdentifiers`（Pass 2）から呼び出し、非修飾 bare Identifier callee を静的検証。`MemberExpression` callee は動的解決のため Pass 2 対象外
-  - テスト: `tests/vba/CompileError.bas` の `Case_undefined_sub_call`（TYPE: prerun）
+    - `unknownProc()` → **Pass2 コンパイルエラー**（Sub/Function が定義されていません）
+    - `unknownModule.unknownProc()` with Option Explicit → **Pass2 コンパイルエラー**（変数が定義されていません: unknownModule）
+    - `unknownModule.unknownProc()` without Option Explicit → **実行時エラー 424**（Dim が暗黙挿入されオブジェクト未設定）
+  - 実装:
+    - `collectUndefinedProcCalls`（`option-explicit-checker.ts`）: 非修飾 bare Identifier callee を Pass2 で静的検証
+    - Option Explicit 違反を `callProcedure` 実行時エラー（遅延）→ `resolveIdentifiers`（Pass2）で即時 throw に変更
+    - `defaultBindingObject`（Tier 6）設定済みならメンバーを既知として除外（Excel 互換維持）
+    - `evalVBAModules` に `defaultBindingObject` オプション追加（resolveIdentifiers 前に設定が必要）
+  - テスト: `tests/vba/CompileError.bas` の `Case_undefined_sub_call` / `Case_qualified_undeclared_obj`（TYPE: prerun）
 
 - ❌ **識別子の大文字小文字混同の検出**: 同一スコープ内で大文字小文字だけが異なる識別子（変数名・クラス名・プロシージャ名）の宣言を検出してエラーにする
   - 例: `Dim assert As New Assert` — 変数 `assert` とクラス `Assert` は VBA では同一識別子
