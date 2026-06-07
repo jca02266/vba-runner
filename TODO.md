@@ -1136,9 +1136,8 @@ VBA Runner を使って以下の順で進めてください：
 
 ### TODO: 重複チェックの削除
 
-- [ ] `evaluateAssignmentStatement` の Sub-as-value チェックを削除する
-  - `precheckProc` → `checkSubAsValueInProc` が先に検出するため到達不能
-  - ただし `precheckProc` を経由しない実行経路（モジュールレベル文の直接評価など）が存在する場合は残す必要あり。要調査。
+- [x] `evaluateAssignmentStatement` の Sub-as-value チェックを削除する
+  - `precheckProc` → `checkSubAsValueInProc` が先に検出するため到達不能。削除済み。
 
 ### TODO: preproc への移行候補
 

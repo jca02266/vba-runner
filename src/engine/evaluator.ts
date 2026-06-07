@@ -2698,25 +2698,6 @@ export class Evaluator {
     }
 
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
-        // Detect: Sub used as a value on the RHS (e.g. v = MySub or v = MySub())
-        // VBA compile error: "Function or variable expected"
-        const rhsSubName = (() => {
-            if (stmt.right.type === 'Identifier') {
-                return (stmt.right as Identifier).name;
-            }
-            if (stmt.right.type === 'CallExpression') {
-                const ce = stmt.right as CallExpression;
-                if (ce.callee.type === 'Identifier') return (ce.callee as Identifier).name;
-            }
-            return null;
-        })();
-        if (rhsSubName !== null) {
-            const proc = this.env.getProcedure(rhsSubName);
-            if (proc && !proc.isFunction && !proc.isProperty) {
-                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
-                    `Function or variable expected: '${rhsSubName}'`);
-            }
-        }
 
         let val = this.evaluateExpression(stmt.right);
 
