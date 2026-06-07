@@ -209,11 +209,8 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
     const prerunLineOffset = preamble.length + 2;
 
     const testBlocks = cases.flatMap(c => {
-        // RUNNER: TBD はテスト未定義のプレースホルダー — スキップして警告のみ
-        if (c.runnerPattern === 'TBD') {
-            return [`\n// [${c.type}] ${c.name} — RUNNER: TBD (テスト未定義、スキップ)`];
-        }
-        const pattern = c.runnerPattern;
+        // RUNNER: TBD はエラーメッセージが未確定 — /.+/i でエラー発生自体を確認
+        const pattern = c.runnerPattern === 'TBD' ? '/.+/i' : c.runnerPattern;
 
         const tryWrap = (inner: string) => `
 // [${c.type}] ${c.name}
