@@ -1775,7 +1775,7 @@ export class Evaluator {
             if (stillMissing.length > 0) {
                 const names = stillMissing.map(([n]) => n).join(', ');
                 const firstLine = stillMissing[0][1] || undefined;
-                this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
                     `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
                     firstLine, proc.moduleName ?? undefined);
             }
@@ -2328,6 +2328,19 @@ export class Evaluator {
         const line = overrideLine ?? (this.currentLine || undefined);
         const mod = overrideModule ?? (this.executingModuleName || this.currentSourceModule || null);
         const msg = line !== undefined ? `Run-time error '${number}': ${message} (line ${line})` : `Run-time error '${number}': ${message}`;
+        const err: any = new Error(msg);
+        err.type = 'VbaError';
+        err.number = number;
+        err.vbaLine = line;
+        err.vbaModule = mod;
+        err.vbaStack = [...this.vbaCallStack].reverse();
+        throw err;
+    }
+
+    private throwCompileError(number: number, message: string, overrideLine?: number, overrideModule?: string): never {
+        const line = overrideLine ?? (this.currentLine || undefined);
+        const mod = overrideModule ?? (this.executingModuleName || this.currentSourceModule || null);
+        const msg = line !== undefined ? `Compile error: ${message} (line ${line})` : `Compile error: ${message}`;
         const err: any = new Error(msg);
         err.type = 'VbaError';
         err.number = number;
@@ -3427,7 +3440,7 @@ export class Evaluator {
             const undefinedCalls = collectUndefinedProcCalls(ast, knownProcNames);
             if (undefinedCalls.length > 0) {
                 const first = undefinedCalls[0];
-                this.throwVbaError(
+                this.throwCompileError(
                     VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                     `Sub or Function not defined: '${first.name}'`,
                     first.line,
@@ -5015,7 +5028,7 @@ export class Evaluator {
                     if (stillMissing.length > 0) {
                         const names = stillMissing.map(([n]) => n).join(', ');
                         const firstLine = stillMissing[0][1] || undefined;
-                        this.throwVbaError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                        this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
                             `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
                             firstLine, proc.moduleName ?? undefined);
                     }
