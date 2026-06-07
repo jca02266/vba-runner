@@ -88,6 +88,8 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
     'weekday', 'weekdayname', 'year',
     // Special built-in objects (used as identifiers, not called)
     'debug', 'err',
+    // Built-in Sub statements parsed as CallStatement (not functions)
+    'beep', 'chdir', 'mkdir', 'rmdir', 'randomize', 'sleep', 'wait',
 ]);
 
 /**
@@ -458,4 +460,227 @@ function reportUndeclared(name: string, expr: Expression, diagnostics: ParseDiag
         loc,
         severity: 'error',
     });
+}
+
+// -----------------------------------------------------------------------
+// Undefined procedure call detection (prerun compile error)
+// -----------------------------------------------------------------------
+
+export interface UndefinedProcError {
+    name: string;
+    line: number;
+}
+
+/**
+ * Walk all procedure bodies and collect bare-Identifier call-expression callees
+ * that are not resolvable as a known procedure, built-in, or declared variable.
+ * This models VBA's static "Sub or Function not defined" prerun compile error
+ * for unqualified calls. Qualified calls (MemberExpression) are dynamic (runtime
+ * error 424) and are intentionally excluded.
+ *
+ * @param program        - Parsed AST for one module.
+ * @param knownProcNames - All procedure names from every loaded module (lower-cased).
+ */
+export function collectUndefinedProcCalls(
+    program: Program,
+    knownProcNames: ReadonlySet<string>,
+): UndefinedProcError[] {
+    const errors: UndefinedProcError[] = [];
+
+    const moduleLevelNames = new Set<string>();
+    for (const stmt of program.body) {
+        collectModuleLevelDeclaredNames(stmt, moduleLevelNames);
+    }
+
+    for (const stmt of program.body) {
+        if (stmt.type === 'ProcedureDeclaration') {
+            walkProcForUndefinedCalls(
+                stmt as ProcedureDeclaration,
+                moduleLevelNames,
+                knownProcNames,
+                errors,
+            );
+        } else if (stmt.type === 'ClassDeclaration') {
+            const cls = stmt as ClassDeclaration;
+            const classLevel = new Set<string>(moduleLevelNames);
+            for (const field of cls.fields) {
+                for (const decl of field.declarations) {
+                    classLevel.add(decl.name.name.toLowerCase());
+                }
+            }
+            for (const proc of cls.procedures) {
+                walkProcForUndefinedCalls(proc, classLevel, knownProcNames, errors);
+            }
+        }
+    }
+
+    return errors;
+}
+
+function walkProcForUndefinedCalls(
+    proc: ProcedureDeclaration,
+    moduleLevelNames: ReadonlySet<string>,
+    knownProcNames: ReadonlySet<string>,
+    errors: UndefinedProcError[],
+): void {
+    const declared = new Set<string>(moduleLevelNames);
+    declared.add(proc.name.name.toLowerCase());
+    for (const param of proc.parameters) {
+        declared.add(param.name.toLowerCase());
+    }
+
+    const isKnown = (name: string): boolean =>
+        declared.has(name) || VBA_BUILTINS.has(name) || knownProcNames.has(name);
+
+    const visitCall = (ce: CallExpression): void => {
+        if (ce.callee.type === 'Identifier') {
+            const id = ce.callee as Identifier;
+            const lower = id.name.toLowerCase();
+            if (!isKnown(lower)) {
+                const line = (ce.callee as any).loc?.start?.line ?? 0;
+                errors.push({ name: id.name, line });
+            }
+        }
+        for (const arg of ce.args) visitExpr(arg);
+    };
+
+    const visitExpr = (expr: Expression): void => {
+        switch (expr.type) {
+            case 'CallExpression':
+                visitCall(expr as CallExpression);
+                break;
+            case 'MemberExpression':
+                visitExpr((expr as MemberExpression).object);
+                break;
+            case 'BinaryExpression': {
+                const b = expr as BinaryExpression;
+                visitExpr(b.left);
+                visitExpr(b.right);
+                break;
+            }
+            case 'UnaryExpression':
+                visitExpr((expr as UnaryExpression).argument);
+                break;
+            case 'ParenthesizedExpression':
+                visitExpr((expr as ParenthesizedExpression).expression);
+                break;
+            case 'NamedArgument':
+                visitExpr((expr as NamedArgument).value);
+                break;
+        }
+    };
+
+    const visitStmt = (stmt: Statement): void => {
+        switch (stmt.type) {
+            case 'VariableDeclaration':
+                for (const decl of (stmt as VariableDeclaration).declarations) {
+                    declared.add(decl.name.name.toLowerCase());
+                }
+                break;
+            case 'ConstDeclaration':
+                declared.add((stmt as ConstDeclaration).name.name.toLowerCase());
+                break;
+            case 'CallStatement':
+                visitCall((stmt as CallStatement).expression);
+                break;
+            case 'AssignmentStatement': {
+                const a = stmt as AssignmentStatement;
+                visitExpr(a.left);
+                visitExpr(a.right);
+                break;
+            }
+            case 'SetStatement': {
+                const s = stmt as SetStatement;
+                visitExpr(s.left);
+                visitExpr(s.right);
+                break;
+            }
+            case 'ForStatement': {
+                const f = stmt as ForStatement;
+                visitExpr(f.start);
+                visitExpr(f.end);
+                if (f.step) visitExpr(f.step);
+                for (const s of f.body) visitStmt(s);
+                break;
+            }
+            case 'ForEachStatement': {
+                const f = stmt as ForEachStatement;
+                visitExpr(f.collection);
+                for (const s of f.body) visitStmt(s);
+                break;
+            }
+            case 'IfStatement': {
+                const i = stmt as IfStatement;
+                visitExpr(i.condition);
+                for (const s of i.consequent) visitStmt(s);
+                if (i.alternate) {
+                    if (Array.isArray(i.alternate)) {
+                        for (const s of i.alternate) visitStmt(s);
+                    } else {
+                        visitStmt(i.alternate as Statement);
+                    }
+                }
+                break;
+            }
+            case 'DoWhileStatement': {
+                const d = stmt as DoWhileStatement;
+                if (d.condition) visitExpr(d.condition);
+                for (const s of d.body) visitStmt(s);
+                break;
+            }
+            case 'WhileStatement': {
+                const w = stmt as WhileStatement;
+                visitExpr(w.condition);
+                for (const s of w.body) visitStmt(s);
+                break;
+            }
+            case 'WithStatement': {
+                const w = stmt as WithStatement;
+                visitExpr(w.expression);
+                for (const s of w.body) visitStmt(s);
+                break;
+            }
+            case 'SelectCaseStatement': {
+                const sc = stmt as SelectCaseStatement;
+                visitExpr(sc.expression);
+                for (const c of sc.cases) {
+                    for (const range of c.ranges) {
+                        if (range.kind === 'to') {
+                            visitExpr(range.start);
+                            visitExpr(range.end);
+                        } else {
+                            visitExpr(range.value);
+                        }
+                    }
+                    for (const s of c.body) visitStmt(s);
+                }
+                if (sc.elseBody) {
+                    for (const s of sc.elseBody) visitStmt(s);
+                }
+                break;
+            }
+            case 'ReDimStatement': {
+                const r = stmt as ReDimStatement;
+                for (const bound of r.bounds) {
+                    if (bound.lower) visitExpr(bound.lower);
+                    visitExpr(bound.upper);
+                }
+                break;
+            }
+            case 'LSetStatement': {
+                const l = stmt as LSetStatement;
+                visitExpr(l.left);
+                visitExpr(l.right);
+                break;
+            }
+            case 'RSetStatement': {
+                const r = stmt as RSetStatement;
+                visitExpr(r.left);
+                visitExpr(r.right);
+                break;
+            }
+        }
+    };
+
+    for (const stmt of proc.body) visitStmt(stmt);
 }

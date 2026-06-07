@@ -145,9 +145,24 @@ End Sub
 '   MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され、
 '   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
 '
+'   UnknownModule.UnknownProc → コンパイルエラーにならない（実行時エラー 424: Object required）。
+'     VBA では修飾付き呼び出し = 動的解決（実行時）のため、prerun 検出対象外。
+'     ※ 非修飾 UnknownProc はコンパイルエラー（下記 Case_undefined_sub_call 参照）。
+'
 ' 未実装（VBARunner が未検出）:
 '   同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）→ VBE では prerun エラー
 ' ----------------------------------------------------------------
+' CASE: undefined_sub_call
+' TYPE: prerun
+' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+' RUNNER: /sub or function not defined/i
+' NOTE: 非修飾の未定義プロシージャ呼び出しは静的検証（コンパイル時）でエラー。
+'   修飾付き（UnknownModule.UnknownProc）は実行時エラー 424（動的解決）のためここに含めない。
+' STATUS: 未実装 — VBARunner は現在 Pass2 でこのエラーを検出せず、実行時エラー 35 になる
+Sub Case_undefined_sub_call()
+    UnknownProc ' @error
+End Sub
+
 ' CASE: sub_call_arg_count_mismatch
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。

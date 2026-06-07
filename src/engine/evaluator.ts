@@ -79,7 +79,7 @@ import {
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
-import { checkOptionExplicit } from './option-explicit-checker';
+import { checkOptionExplicit, collectUndefinedProcCalls } from './option-explicit-checker';
 import * as path from 'path';
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
@@ -3376,6 +3376,29 @@ export class Evaluator {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
             for (const [name, undeclared] of violatedProcedures) {
                 this.optionExplicitViolations.set(name, new Map(undeclared));
+            }
+        }
+
+        // 未定義プロシージャ呼び出し検出（prerun compile error）。
+        // 全モジュールのプロシージャ名を収集し、非修飾 Identifier callee が
+        // いずれのスコープにも存在しない場合は「Sub or Function not defined」として即時エラー。
+        const knownProcNames = new Set<string>();
+        for (const { ast } of modules) {
+            for (const stmt of ast.body) {
+                if (stmt.type === 'ProcedureDeclaration') {
+                    knownProcNames.add((stmt as import('./parser').ProcedureDeclaration).name.name.toLowerCase());
+                } else if (stmt.type === 'ClassDeclaration') {
+                    for (const proc of (stmt as import('./parser').ClassDeclaration).procedures) {
+                        knownProcNames.add(proc.name.name.toLowerCase());
+                    }
+                }
+            }
+        }
+        for (const { ast } of modules) {
+            const undefinedCalls = collectUndefinedProcCalls(ast, knownProcNames);
+            if (undefinedCalls.length > 0) {
+                const first = undefinedCalls[0];
+                throw new Error(`Compile error: Sub or Function not defined: '${first.name}' (line ${first.line})`);
             }
         }
     }
