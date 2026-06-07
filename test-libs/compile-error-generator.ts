@@ -6,9 +6,11 @@
  *   - ' CASE: name
  *     ' TYPE: parse | prerun
  *     ' VBA: <VBE のエラーメッセージ>
- *     ' LINE: <Sub ボディの何行目でエラーが発生するか（1 始まり）>
  *     ' RUNNER: <正規表現（VBA の意図を包含した VBARunner の期待メッセージ）>
  *     Sub Case_<name>()
+ *       Dim v
+ *       v = MySub ' @error   ← エラー行末尾に ' @error マーカーを付ける
+ *                              ジェネレーターが行番号を自動計算し、マーカーを除去する
  *       ...body...
  *     End Sub
  *
@@ -24,19 +26,23 @@ interface CompileErrorCase {
     name: string;
     type: 'parse' | 'prerun';
     vbaError: string;
-    errorLine: number | null;  // Sub ボディ内のエラー行（1 始まり）
+    errorLine: number | null;  // Sub ボディ内のエラー行（1 始まり）。' @error マーカーから自動計算。
     runnerPattern: string;
-    code: string[];
+    code: string[];  // ' @error マーカーを除去済みのコード行
 }
+
+// ' @error マーカーを除去する正規表現
+const ERROR_MARKER = /\s*'\s*@error\s*$/i;
 
 function parseCompileErrorBas(source: string): { preamble: string[], cases: CompileErrorCase[] } {
     const lines = source.split('\n');
     const preamble: string[] = [];
     const cases: CompileErrorCase[] = [];
 
-    let meta: Partial<CompileErrorCase> & { errorLine?: number | null } | null = null;
+    let meta: Partial<CompileErrorCase> | null = null;
     let inCaseSub = false;
     let caseBody: string[] = [];
+    let caseErrorLine: number | null = null;
     let inPreambleSub = false;
     let preambleBuffer: string[] = [];
 
@@ -45,7 +51,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
 
         // CASE メタコメント
         if (trimmed.startsWith("' CASE:")) {
-            meta = { name: trimmed.slice(7).trim(), errorLine: null };
+            meta = { name: trimmed.slice(7).trim() };
             continue;
         }
         if (meta && trimmed.startsWith("' TYPE:")) {
@@ -54,11 +60,6 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
         }
         if (meta && trimmed.startsWith("' VBA:")) {
             meta.vbaError = trimmed.slice(6).trim();
-            continue;
-        }
-        if (meta && trimmed.startsWith("' LINE:")) {
-            const n = parseInt(trimmed.slice(7).trim(), 10);
-            meta.errorLine = isNaN(n) ? null : n;
             continue;
         }
         if (meta && trimmed.startsWith("' RUNNER:")) {
@@ -72,6 +73,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
         if (meta && /^\s*Sub\s+Case_\w+\s*\(\s*\)/i.test(raw)) {
             inCaseSub = true;
             caseBody = [];
+            caseErrorLine = null;
             continue;
         }
 
@@ -85,19 +87,26 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 name: meta!.name!,
                 type: meta!.type ?? 'parse',
                 vbaError: meta!.vbaError ?? '',
-                errorLine: meta!.errorLine ?? null,
+                errorLine: caseErrorLine,
                 runnerPattern: meta!.runnerPattern ?? '/.+/',
                 code: caseBody,
             });
             meta = null;
             inCaseSub = false;
             caseBody = [];
+            caseErrorLine = null;
             continue;
         }
 
         if (inCaseSub) {
             // Sub ボディの行（先頭インデントを 1 レベル除去）
-            caseBody.push(raw.replace(/^    /, ''));
+            let codeLine = raw.replace(/^    /, '');
+            // ' @error マーカーが付いていたら行番号を記録してマーカーを除去
+            if (ERROR_MARKER.test(codeLine)) {
+                caseErrorLine = caseBody.length + 1;  // 1 始まり
+                codeLine = codeLine.replace(ERROR_MARKER, '');
+            }
+            caseBody.push(codeLine);
             continue;
         }
 
@@ -232,7 +241,7 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('compile-error-g
 
     console.error(`Parsed ${cases.length} case(s) from ${inputPath}`);
     cases.forEach(c => {
-        const lineStr = c.errorLine != null ? ` line=${c.errorLine}` : '';
+        const lineStr = c.errorLine != null ? ` @error=line${c.errorLine}` : ' (no @error marker)';
         console.error(`  [${c.type}]${lineStr} ${c.name}`);
     });
 
