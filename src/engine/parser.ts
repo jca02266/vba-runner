@@ -1231,7 +1231,9 @@ export class Parser {
         const startToken = this.peek();
         const stmt = this.parseStatementInner();
         if (stmt !== null) {
-            if (checkEOS && !this.isAtTerminator()) {
+            // ラベル文（label:）の直後は EOS 不要 — 同一行に次の文が続く
+            const isLabel = (stmt as any).type === 'LabelStatement';
+            if (checkEOS && !isLabel && !this.isAtTerminator()) {
                 this.throwError(`Parse error: unexpected token '${this.peek().value}' after statement at line ${this.peek().line}`);
             }
             const endToken = this.tokens[this.pos - 1];

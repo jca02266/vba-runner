@@ -122,6 +122,42 @@ v = MyFuncHasArg arg`;
     }
 }
 
+// [parse] label_then_sub_call_with_empty_parens1
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        const src = `MySub: MySub()`;
+        assertCompileError(
+            () => { new Parser(new Lexer(src).tokenize()).parse(); },
+            1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens1'
+        );
+        console.log('[PASS] label_then_sub_call_with_empty_parens1');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] label_then_sub_call_with_empty_parens1:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] label_then_sub_call_with_empty_parens2
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        const src = `MySub : MySub()`;
+        assertCompileError(
+            () => { new Parser(new Lexer(src).tokenize()).parse(); },
+            1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens2'
+        );
+        console.log('[PASS] label_then_sub_call_with_empty_parens2');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] label_then_sub_call_with_empty_parens2:', e.message);
+        __fail__++;
+    }
+}
+
 // [prerun] assign_from_sub
 // VBA: コンパイルエラー: FunctionまたはVariableが必要です
 // VBA error line (within Sub body): 2
@@ -196,6 +232,31 @@ v = MyFuncHasArg arg`;
         __pass__++;
     } catch (e: any) {
         console.error('[FAIL] duplicate_dim:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] goto_undefined_label
+// VBA: コンパイルエラー: ラベルが定義されていません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileError(() => evalVBASingle(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        GoTo NoSuchLabel
+      End Sub
+      __test__
+    `), 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label');
+        console.log('[PASS] goto_undefined_label');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] goto_undefined_label:', e.message);
         __fail__++;
     }
 }

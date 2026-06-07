@@ -257,4 +257,20 @@ End Sub
     console.log('[PASS] CS15: Call GetVal() — 返値を捨てる（括弧あり、Call あり）');
 }
 
+// ─── 6. ラベル定義 + 同行の Sub 呼び出し ────────────────────────────────────
+
+// CS16: label: MySub — ラベル定義の後に Sub 呼び出し（エラーにならない）
+// MySub: MySub() は構文エラーだが、MySub: MySub はエラーにならない
+{
+    const code = `
+Sub MySub()
+End Sub
+Sub Test()
+    MySub: MySub
+End Sub
+`;
+    assertNoThrow('CS16', () => run(code, 'Test'));
+    console.log('[PASS] CS16: MySub: MySub — ラベル定義 + Sub 呼び出し（括弧なし、有効）');
+}
+
 console.log('\n✅ Call Statement 構文バリエーション: 全テスト通過');

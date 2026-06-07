@@ -82,6 +82,19 @@ Sub Case_assign_func_arg_no_parens()
     v = MyFuncHasArg arg ' @error
 End Sub
 
+' CASE: label_then_sub_call_with_empty_parens
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: MySub: MySub はエラーにならない（前者ラベル定義、後者 Sub 呼び出し）。
+'       MySub: MySub() は MySub() 部分が空括弧で構文エラー。
+Sub Case_label_then_sub_call_with_empty_parens1()
+    MySub: MySub() ' @error
+End Sub
+Sub Case_label_then_sub_call_with_empty_parens2()
+    MySub : MySub() ' @error
+End Sub
+
 ' ================================================================
 ' [prerun] 実行直前コンパイルエラー
 ' 上記 [parse] の Sub をコメントアウトした状態で、
@@ -92,7 +105,6 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
-' NOTE: VBARunner 未実装 — Sub を右辺値として扱ってもエラーにならない
 Sub Case_assign_from_sub()
     Dim v
     v = MySub ' @error
@@ -102,7 +114,6 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
-' NOTE: VBARunner 未実装 — Sub を右辺値として扱ってもエラーにならない
 Sub Case_assign_from_sub_with_parens()
     Dim v
     v = MySub() ' @error
@@ -112,15 +123,28 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 同じ適用範囲内で宣言が重複しています
 ' RUNNER: /duplicate/i
-' NOTE: VBARunner 未実装 — 同一スコープ内の Dim 重複を検出しない
 Sub Case_duplicate_dim()
     Dim v
     Dim v ' @error
 End Sub
 
+' CASE: goto_undefined_label
+' TYPE: prerun
+' VBA: コンパイルエラー: ラベルが定義されていません
+' RUNNER: /not defined.*label|label.*not defined/i
+Sub Case_goto_undefined_label()
+    GoTo NoSuchLabel ' @error
+End Sub
+
 ' ----------------------------------------------------------------
-' 備考:
+' 備考（コンパイルエラーにならない例）:
+'
+'   MySub: MySub     → エラーにならない。前者はラベル定義、後者は Sub 呼び出し。
+'   MySub : MySub    → 同上（コロン前後のスペースは無関係）。
+'
 '   MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され、
 '   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
-'   VBARunner での扱いは vba_compile_error.test.ts の skip コメントを参照。
+'
+' 未実装（VBARunner が未検出）:
+'   同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）→ VBE では prerun エラー
 ' ----------------------------------------------------------------
