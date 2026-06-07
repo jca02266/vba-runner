@@ -26,9 +26,11 @@ Class MockRange
     Public Value As Variant   ' ← 読み取り値をここで設定
     Public Row As Long
     Public Column As Long
-    ' ※ Range.End(xlUp) は VBA キーワード "End" と名前が衝突するため
-    '   VBA スタブでは定義できません。JS モックが必要な場合は
-    '   __mocks__.js の __addCreateObject__ を使ってください。
+    ' ※ Range.End(xlUp) のような予約語名プロパティは .bas スタブでは定義できません。
+    '   VBA の仕様上、プロシージャ名には IDENTIFIER（予約語を除く）しか使えないためです。
+    '   仕様上の回避策は [End] という FOREIGN-NAME 構文ですが、現エンジンでは未実装です。
+    '   → __mocks__.js / __mocks__.ts で JS クラスとして定義してください。
+    '     JS では End は予約語でなくプロパティ名に使え、VBA 側からの r.End(xlUp) 呼び出しも動作します。
 End Class
 
 Class MockRows
