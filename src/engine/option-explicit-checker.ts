@@ -519,7 +519,7 @@ export function collectUndefinedProcCalls(
     return errors;
 }
 
-function walkProcForUndefinedCalls(
+export function walkProcForUndefinedCalls(
     proc: ProcedureDeclaration,
     moduleLevelNames: ReadonlySet<string>,
     knownProcNames: ReadonlySet<string>,

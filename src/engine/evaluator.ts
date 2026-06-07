@@ -79,7 +79,7 @@ import {
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
-import { checkOptionExplicit, collectUndefinedProcCalls } from './option-explicit-checker';
+import { checkOptionExplicit, collectUndefinedProcCalls, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
@@ -453,6 +453,21 @@ export class Environment {
     /** チェーンを辿らず現在スコープのみを確認する */
     hasOwnVariable(name: string): boolean {
         return this.variables.has(name.toLowerCase());
+    }
+
+    /** env チェーン全体の変数名・プロシージャ名を収集する（undefined call チェック用）。
+     * プロシージャキーは "module:name" または "module:name:get" 形式のため全セグメントを追加する。 */
+    collectAllNames(): Set<string> {
+        const names = new Set<string>();
+        let env: Environment | undefined = this;
+        while (env) {
+            for (const k of env.variables.keys()) names.add(k);
+            for (const k of env.procedures.keys()) {
+                for (const seg of k.split(':')) names.add(seg);
+            }
+            env = env.enclosing;
+        }
+        return names;
     }
 
     setProcedure(name: string, proc: ProcedureDeclaration) {
@@ -1858,6 +1873,19 @@ export class Evaluator {
             }
         }
         this.checkSubAsValueInProc(proc);
+        this.checkUndefinedCallsInProc(proc);
+    }
+
+    private checkUndefinedCallsInProc(proc: ProcedureDeclaration): void {
+        const knownNames = this.env.collectAllNames();
+        const errs: UndefinedProcError[] = [];
+        walkProcForUndefinedCalls(proc, new Set(), knownNames, errs);
+        if (errs.length > 0) {
+            this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                `Sub or Function not defined: '${errs[0].name}'`,
+                errs[0].line || undefined,
+                proc.moduleName ?? undefined);
+        }
     }
 
     // Walk proc body and throw compile error if a Sub is used in value context (e.g. v = MySub).
@@ -3489,45 +3517,6 @@ export class Evaluator {
             }
         }
 
-        // 未定義プロシージャ呼び出し検出（prerun compile error）。
-        // 全モジュールのプロシージャ名・モジュール名を収集し、非修飾 Identifier callee が
-        // いずれのスコープにも存在しない場合は「Sub or Function not defined」として即時エラー。
-        // defaultBindingObject（Tier 6）のメンバーは既知として扱う。
-        const knownProcNames = new Set<string>();
-        // モジュール名自体もコール位置に現れうるため既知として登録する
-        for (const { moduleName } of modules) {
-            if (moduleName) knownProcNames.add(moduleName.toLowerCase());
-        }
-        for (const { ast } of modules) {
-            for (const stmt of ast.body) {
-                if (stmt.type === 'ProcedureDeclaration') {
-                    knownProcNames.add((stmt as import('./parser').ProcedureDeclaration).name.name.toLowerCase());
-                } else if (stmt.type === 'ClassDeclaration') {
-                    for (const proc of (stmt as import('./parser').ClassDeclaration).procedures) {
-                        knownProcNames.add(proc.name.name.toLowerCase());
-                    }
-                }
-            }
-        }
-        if (this.defaultBindingObject) {
-            let cur = this.defaultBindingObject;
-            while (cur && cur !== Object.prototype && cur !== Function.prototype) {
-                for (const k of Object.getOwnPropertyNames(cur)) knownProcNames.add(k.toLowerCase());
-                cur = Object.getPrototypeOf(cur);
-            }
-        }
-        for (const { ast, moduleName: modName } of modules) {
-            const undefinedCalls = collectUndefinedProcCalls(ast, knownProcNames);
-            if (undefinedCalls.length > 0) {
-                const first = undefinedCalls[0];
-                this.throwCompileError(
-                    VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
-                    `Sub or Function not defined: '${first.name}'`,
-                    first.line,
-                    modName || undefined,
-                );
-            }
-        }
     }
 
     /** @deprecated Use {@link resolveIdentifiers} instead. */

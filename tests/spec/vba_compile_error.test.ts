@@ -225,12 +225,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [prerun] undefined_sub_call
+// [preproc] undefined_sub_call
 // VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
       
@@ -240,7 +240,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub __test__()
         UnknownProc
       End Sub
-    `, 9, /sub or function not defined/i, 'undefined_sub_call');
+    `, '__test__', 9, /sub or function not defined/i, 'undefined_sub_call');
         console.log('[PASS] undefined_sub_call');
         __pass__++;
     } catch (e: any) {
@@ -274,22 +274,22 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [prerun] undefined_sub_call_no_oe
+// [preproc] undefined_sub_call_no_oe
 // VBA: コンパイルエラー: SubまたはFunctionが定義されていません
-// VBA error line (within Sub body): 1
+// VBA error line (within Sub body): 2
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
       
       Private Function MyFuncHasArg(x)
       End Function
       
-      Sub __test__()
-        UnknownProc
+      Sub Case_undefined_sub_call_no_oe()
+          UnknownProc
       End Sub
-    `, 9, /sub or function not defined/i, 'undefined_sub_call_no_oe');
+    `, 'Case_undefined_sub_call_no_oe', 9, /sub or function not defined/i, 'undefined_sub_call_no_oe');
         console.log('[PASS] undefined_sub_call_no_oe');
         __pass__++;
     } catch (e: any) {
@@ -298,12 +298,12 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [prerun] undefined_sub_call_with_oe
+// [preproc] undefined_sub_call_with_oe
 // VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
       
@@ -314,7 +314,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       Sub Case_undefined_sub_call_with_oe()
           UnknownProc
       End Sub
-    `, 10, /sub or function not defined/i, 'undefined_sub_call_with_oe');
+    `, 'Case_undefined_sub_call_with_oe', 10, /sub or function not defined/i, 'undefined_sub_call_with_oe');
         console.log('[PASS] undefined_sub_call_with_oe');
         __pass__++;
     } catch (e: any) {
