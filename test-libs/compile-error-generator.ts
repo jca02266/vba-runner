@@ -209,8 +209,28 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
     const prerunLineOffset = preamble.length + 2;
 
     const testBlocks = cases.flatMap(c => {
-        // RUNNER: TBD はエラーメッセージが未確定 — /.+/i でエラー発生自体を確認
-        const pattern = c.runnerPattern === 'TBD' ? '/.+/i' : c.runnerPattern;
+        // RUNNER: TBD — CompileError.bas の RUNNER が未確定。
+        // テストを必ず失敗させ、実際のエラーメッセージを表示して RUNNER 値の決定を促す。
+        if (c.runnerPattern === 'TBD') {
+            const runCode = c.isModuleLevel
+                ? `evalVBASingle(\`\n${preamble.map(l => `      ${l}`).join('\n')}\n${c.code.map(l => `      ${l}`).join('\n')}\n    \`)`
+                : `evalVBASingle(\`\n${preamble.map(l => `      ${l}`).join('\n')}\n      Sub __test__()\n${c.code.map(l => `        ${l}`).join('\n')}\n      End Sub\n      __test__\n    \`)`;
+            return [`
+// [${c.type}] ${c.name} — RUNNER: TBD（CompileError.bas を更新してください）
+{
+    try {
+        let _msg = '';
+        try { ${runCode}; }
+        catch (e: any) { _msg = e?.message ?? String(e); }
+        if (!_msg) throw new Error('[${c.name}] Expected compile error but none was thrown');
+        throw new Error('[${c.name}] RUNNER: TBD — fill in CompileError.bas. Actual error: ' + _msg);
+    } catch (e: any) {
+        console.error('[FAIL] ${c.name}:', e.message);
+        __fail__++;
+    }
+}`];
+        }
+        const pattern = c.runnerPattern;
 
         const tryWrap = (inner: string) => `
 // [${c.type}] ${c.name}

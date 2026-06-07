@@ -151,7 +151,7 @@ End Sub
 ' CASE: sub_call_arg_count_mismatch
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
-' RUNNER: TBD
+' RUNNER: /wrong number of arguments/i
 ' NOTE: MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され
 '   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
 Sub Case_sub_call_arg_count_mismatch()
@@ -161,7 +161,7 @@ End Sub
 ' CASE: duplicate_sub_name
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
-' RUNNER: TBD
+' RUNNER: /duplicate.*procedure|duplicate.*name/i
 ' NOTE: 同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）
 '   prerun だが、このエラーがあると他のエラーの前にこのエラーに引っかかるためコメントアウトしている
 '@case-begin

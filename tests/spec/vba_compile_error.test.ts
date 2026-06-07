@@ -277,7 +277,7 @@ v = MyFuncHasArg arg`;
         MySub (42)
       End Sub
       __test__
-    `), 9, /.+/i, 'sub_call_arg_count_mismatch');
+    `), 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
         console.log('[PASS] sub_call_arg_count_mismatch');
         __pass__++;
     } catch (e: any) {
@@ -304,7 +304,7 @@ v = MyFuncHasArg arg`;
       Sub duplicate_sub_name()
       
       End Sub
-    `), 11, /.+/i, 'duplicate_sub_name');
+    `), 11, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name');
         console.log('[PASS] duplicate_sub_name');
         __pass__++;
     } catch (e: any) {
