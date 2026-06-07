@@ -52,9 +52,17 @@ End Function
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
 ' RUNNER: /syntax error|parse error/i
-' NOTE: VBARunner 未実装 — パーサーが Sub の () 呼び出しを関数呼び出し式として許容してしまう
-Sub Case_sub_call_with_empty_parens()
+Sub Case_sub_call_with_empty_parens1()
     MySub() ' @error
+End Sub
+Sub Case_sub_call_with_empty_parens2()
+    MyFunction() ' @error
+End Sub
+Sub Case_sub_call_with_empty_parens3()
+    MySub () ' @error
+End Sub
+Sub Case_sub_call_with_empty_parens4()
+    UnKnown() ' @error
 End Sub
 
 ' CASE: sub_call_arg_without_call_keyword

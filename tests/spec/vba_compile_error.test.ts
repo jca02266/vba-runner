@@ -13,7 +13,7 @@ import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
-// [parse] sub_call_with_empty_parens
+// [parse] sub_call_with_empty_parens1
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 1
 {
@@ -27,10 +27,76 @@ let __pass__ = 0, __fail__ = 0;
             throw new Error(`Error type mismatch: "${caughtMsg}"`);
         if (!/\bline 1\b/.test(caughtMsg))
             throw new Error(`Line number mismatch (expected line 1): "${caughtMsg}"`);
-        console.log('[PASS] sub_call_with_empty_parens');
+        console.log('[PASS] sub_call_with_empty_parens1');
         __pass__++;
     } catch (e: any) {
-        console.error('[FAIL] sub_call_with_empty_parens:', e.message);
+        console.error('[FAIL] sub_call_with_empty_parens1:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] sub_call_with_empty_parens2
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        const src = `MyFunction()`;
+        let caughtMsg = '';
+        try { new Parser(new Lexer(src).tokenize()).parse(); }
+        catch (e: any) { caughtMsg = e?.message ?? String(e); }
+        if (!caughtMsg) throw new Error('Expected parse error but got none');
+        if (!/syntax error|parse error/i.test(caughtMsg))
+            throw new Error(`Error type mismatch: "${caughtMsg}"`);
+        if (!/\bline 1\b/.test(caughtMsg))
+            throw new Error(`Line number mismatch (expected line 1): "${caughtMsg}"`);
+        console.log('[PASS] sub_call_with_empty_parens2');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] sub_call_with_empty_parens2:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] sub_call_with_empty_parens3
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        const src = `MySub ()`;
+        let caughtMsg = '';
+        try { new Parser(new Lexer(src).tokenize()).parse(); }
+        catch (e: any) { caughtMsg = e?.message ?? String(e); }
+        if (!caughtMsg) throw new Error('Expected parse error but got none');
+        if (!/syntax error|parse error/i.test(caughtMsg))
+            throw new Error(`Error type mismatch: "${caughtMsg}"`);
+        if (!/\bline 1\b/.test(caughtMsg))
+            throw new Error(`Line number mismatch (expected line 1): "${caughtMsg}"`);
+        console.log('[PASS] sub_call_with_empty_parens3');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] sub_call_with_empty_parens3:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] sub_call_with_empty_parens4
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        const src = `UnKnown()`;
+        let caughtMsg = '';
+        try { new Parser(new Lexer(src).tokenize()).parse(); }
+        catch (e: any) { caughtMsg = e?.message ?? String(e); }
+        if (!caughtMsg) throw new Error('Expected parse error but got none');
+        if (!/syntax error|parse error/i.test(caughtMsg))
+            throw new Error(`Error type mismatch: "${caughtMsg}"`);
+        if (!/\bline 1\b/.test(caughtMsg))
+            throw new Error(`Line number mismatch (expected line 1): "${caughtMsg}"`);
+        console.log('[PASS] sub_call_with_empty_parens4');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] sub_call_with_empty_parens4:', e.message);
         __fail__++;
     }
 }

@@ -41,6 +41,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
 
     let meta: Partial<CompileErrorCase> | null = null;
     let inCaseSub = false;
+    let currentSubName: string | null = null;
     let caseBody: string[] = [];
     let caseErrorLine: number | null = null;
     let inPreambleSub = false;
@@ -49,7 +50,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
     for (const raw of lines) {
         const trimmed = raw.trim();
 
-        // CASE メタコメント
+        // CASE メタコメント — 新しい CASE が来たら meta を上書き（前の meta は消去）
         if (trimmed.startsWith("' CASE:")) {
             meta = { name: trimmed.slice(7).trim() };
             continue;
@@ -70,8 +71,13 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
         if (meta && trimmed.startsWith("' NOTE:")) continue;
 
         // Case_* Sub の開始（メタがある場合）
-        if (meta && /^\s*Sub\s+Case_\w+\s*\(\s*\)/i.test(raw)) {
+        // Sub 名全体（Case_ 以降）をテストケース名として使う。
+        // 例: Sub Case_foo1() → name = 'foo1'
+        //     Sub Case_foo()  → name = 'foo'
+        const caseSubMatch = raw.match(/^\s*Sub\s+Case_(\w+)\s*\(\s*\)/i);
+        if (meta && caseSubMatch) {
             inCaseSub = true;
+            currentSubName = caseSubMatch[1];
             caseBody = [];
             caseErrorLine = null;
             continue;
@@ -84,15 +90,16 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 caseBody.pop();
             }
             cases.push({
-                name: meta!.name!,
+                name: currentSubName!,
                 type: meta!.type ?? 'parse',
                 vbaError: meta!.vbaError ?? '',
                 errorLine: caseErrorLine,
                 runnerPattern: meta!.runnerPattern ?? '/.+/',
                 code: caseBody,
             });
-            meta = null;
+            // meta はクリアしない — 同一 CASE コメントに複数 Sub を許容
             inCaseSub = false;
+            currentSubName = null;
             caseBody = [];
             caseErrorLine = null;
             continue;

@@ -1500,8 +1500,15 @@ export class Parser {
                 if (args.length > 0) {
                     return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
                 } else if (expr.type === 'CallExpression') {
-                    // Call matched via parens e.g. `MainLoop()`
-                    return { type: 'CallStatement', expression: expr } as CallStatement;
+                    const callExpr = expr as CallExpression;
+                    // identifier() with empty parens in statement position (no Call keyword)
+                    // is always a syntax error — use `identifier`, `identifier arg`, or
+                    // `Call identifier()` instead.
+                    if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier') {
+                        const line = callExpr.loc?.start.line ?? this.peek().line;
+                        this.throwError(`Parse error: syntax error at line ${line}`);
+                    }
+                    return { type: 'CallStatement', expression: callExpr } as CallStatement;
                 } else {
                     // Call matched without parens e.g. `MainLoop`
                     return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
