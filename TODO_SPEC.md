@@ -815,17 +815,12 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     モック関数を明示的に登録する必要がある。
   - テスト: `tier6-namespace.test.ts`
 
-- ❌ **静的 vs 動的名前解決の区別が不足**: プロシージャ呼び出し時のエラー検出タイミング
-  - 優先度: **低** （Option Explicit あり時は問題なし）
+- ✅ **静的 vs 動的名前解決の区別**: プロシージャ呼び出し時のエラー検出タイミング
   - 実VBA動作の違い：
     - `unknownProc()` → **コンパイルエラー**（Sub/Function が定義されていません）
     - `unknownModule.unknownProc()` → **実行時エラー 424**（オブジェクトが必要です）
-  - 根本原因: VBA仕様では修飾/非修飾で名前解決方式が異なる
-    - 非修飾: 静的検証（コンパイル時）
-    - 修飾: 動的解決（実行時のメンバーアクセス）
-  - 当エンジン問題: 両者を同じレベルで処理している（4199-4203行の try-catch が根本原因）
-  - 注記: **Option Explicit がない場合の未定義変数の動作**に限定される問題。モダンなVBA開発では Option Explicit が標準であるため、この互換性追求の優先度は低い。Option Explicit ありの場合はコンパイル時に検出される。
-  - 修正内容: Parser/Evaluator で修飾/非修飾を区別し、エラーのタイミングを正確に再現
+  - 実装: `option-explicit-checker.ts` の `collectUndefinedProcCalls` を `resolveIdentifiers`（Pass 2）から呼び出し、非修飾 bare Identifier callee を静的検証。`MemberExpression` callee は動的解決のため Pass 2 対象外
+  - テスト: `tests/vba/CompileError.bas` の `Case_undefined_sub_call`（TYPE: prerun）
 
 - ❌ **識別子の大文字小文字混同の検出**: 同一スコープ内で大文字小文字だけが異なる識別子（変数名・クラス名・プロシージャ名）の宣言を検出してエラーにする
   - 例: `Dim assert As New Assert` — 変数 `assert` とクラス `Assert` は VBA では同一識別子
