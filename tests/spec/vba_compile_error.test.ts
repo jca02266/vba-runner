@@ -237,7 +237,7 @@ v = MyFuncHasArg arg`;
 }
 
 // [prerun] goto_undefined_label
-// VBA: コンパイルエラー: ラベルが定義されていません
+// VBA: コンパイルエラー: 行ラベルが定義されていません
 // VBA error line (within Sub body): 1
 {
     try {
@@ -257,6 +257,54 @@ v = MyFuncHasArg arg`;
         __pass__++;
     } catch (e: any) {
         console.error('[FAIL] goto_undefined_label:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] sub_call_arg_count_mismatch
+// VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileError(() => evalVBASingle(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        MySub (42)
+      End Sub
+      __test__
+    `), 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
+        console.log('[PASS] sub_call_arg_count_mismatch');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] sub_call_arg_count_mismatch:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] duplicate_sub_name
+// VBA: コンパイルエラー: 名前が適切ではありません
+// VBA error line (within Sub body): 4
+{
+    try {
+        const src = `Sub duplicate_sub_name()
+
+End Sub
+Sub duplicate_sub_name()
+
+End Sub`;
+        assertCompileError(
+            () => { new Parser(new Lexer(src).tokenize()).parse(); },
+            4, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name'
+        );
+        console.log('[PASS] duplicate_sub_name');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] duplicate_sub_name:', e.message);
         __fail__++;
     }
 }
