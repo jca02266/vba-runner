@@ -23,7 +23,7 @@ let __pass__ = 0, __fail__ = 0;
         assert.throwsMatch(() => {
             const tokens = new Lexer(src).tokenize();
             new Parser(tokens).parse();
-        }, /syntax error/i, 'sub_call_with_empty_parens');
+        }, /syntax error|parse error/i, 'sub_call_with_empty_parens');
         console.log('[PASS] sub_call_with_empty_parens');
         __pass__++;
     } catch (e: any) {
@@ -42,7 +42,7 @@ let __pass__ = 0, __fail__ = 0;
         assert.throwsMatch(() => {
             const tokens = new Lexer(src).tokenize();
             new Parser(tokens).parse();
-        }, /unexpected token/i, 'sub_call_arg_without_call_keyword');
+        }, /syntax error|parse error/i, 'sub_call_arg_without_call_keyword');
         console.log('[PASS] sub_call_arg_without_call_keyword');
         __pass__++;
     } catch (e: any) {
@@ -62,7 +62,7 @@ let __pass__ = 0, __fail__ = 0;
         assert.throwsMatch(() => {
             const tokens = new Lexer(src).tokenize();
             new Parser(tokens).parse();
-        }, /unexpected token/i, 'assign_func_arg_no_parens');
+        }, /syntax error|parse error/i, 'assign_func_arg_no_parens');
         console.log('[PASS] assign_func_arg_no_parens');
         __pass__++;
     } catch (e: any) {

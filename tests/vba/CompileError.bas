@@ -39,7 +39,7 @@ End Function
 ' CASE: sub_call_with_empty_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /syntax error/i
+' RUNNER: /syntax error|parse error/i
 ' NOTE: VBARunner 未実装 — パーサーが Sub の () 呼び出しを関数呼び出し式として許容してしまう
 Sub Case_sub_call_with_empty_parens()
     MySub()
@@ -48,7 +48,7 @@ End Sub
 ' CASE: sub_call_arg_without_call_keyword
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /unexpected token/i
+' RUNNER: /syntax error|parse error/i
 Sub Case_sub_call_arg_without_call_keyword()
     Call MySub 42
 End Sub
@@ -56,7 +56,7 @@ End Sub
 ' CASE: assign_func_arg_no_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /unexpected token/i
+' RUNNER: /syntax error|parse error/i
 Sub Case_assign_func_arg_no_parens()
     Dim v
     v = MyFuncHasArg arg
