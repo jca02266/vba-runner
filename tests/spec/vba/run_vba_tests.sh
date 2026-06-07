@@ -16,16 +16,30 @@ if [ "$1" = "-v" ] || [ "$1" = "--verbose" ]; then
 fi
 
 RUNNER_FILE="tests/spec/vba/run-all-vba-tests.ts"
+VBA_DIR="tests/spec/vba"
 
 if [ ! -f "$RUNNER_FILE" ]; then
   echo "❌ VBA test runner not found: $RUNNER_FILE"
   exit 1
 fi
 
-if [ ! -d "tests/spec/vba" ]; then
-  echo "❌ tests/spec/vba directory not found"
+if [ ! -d "$VBA_DIR" ]; then
+  echo "❌ $VBA_DIR directory not found"
   exit 1
 fi
+
+# --- runner 自動生成 ---
+# 命名規則: *Test.bas（ベース名 ≤ 24 文字）→ *Test_runner.bas（自動生成・手動編集不可）
+# VBA モジュール名上限 31 文字: len(baseName) + len("_runner"=7) ≤ 31 → baseName ≤ 24
+generate_missing_runners() {
+  local dir="$1"
+  ./node_modules/.bin/tsx test-libs/vba-test-generator.ts --missing "$dir" >&2
+}
+
+generate_missing_runners "$VBA_DIR"
+for subdir in "$VBA_DIR"/*/; do
+  [ -d "$subdir" ] && generate_missing_runners "$subdir"
+done
 
 if [ $VERBOSE -eq 0 ]; then
   echo -n "Running VBA tests "

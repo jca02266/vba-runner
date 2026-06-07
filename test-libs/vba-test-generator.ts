@@ -170,6 +170,67 @@ export class VBATestGenerator {
     }
 
     /**
+     * ディレクトリ内の _runner.bas が未生成の VBA テストファイルにのみランナーを生成（冪等）
+     * VBA モジュール名上限 31 文字の制約を検証し、超える場合は警告してスキップする。
+     * ベース名の上限は 24 文字（24 + len("_runner"=7) = 31）。
+     * @param dirPath ディレクトリパス
+     * @param useModuleQualifier モジュール修飾を使用するか（デフォルト: true）
+     * @returns 生成したファイル数
+     */
+    static generateMissingRunners(dirPath: string, useModuleQualifier: boolean = true): number {
+        if (!fs.existsSync(dirPath)) {
+            throw new Error(`Directory not found: ${dirPath}`);
+        }
+
+        const files = fs.readdirSync(dirPath)
+            .filter(f => f.toLowerCase().endsWith('.bas') && !f.toLowerCase().endsWith('_runner.bas'))
+            .sort();
+
+        let generated = 0;
+
+        for (const file of files) {
+            const inputPath = path.join(dirPath, file);
+            const baseName = path.basename(file, '.bas');
+            const runnerModuleName = `${baseName}_runner`;
+            const runnerPath = path.join(dirPath, `${baseName}_runner.bas`);
+
+            if (fs.existsSync(runnerPath)) {
+                continue;
+            }
+
+            if (runnerModuleName.length > 31) {
+                console.error(
+                    `⚠️  Skipped: "${runnerModuleName}" (${runnerModuleName.length} chars) exceeds VBA 31-char module name limit.\n` +
+                    `   Rename the source file to ≤24 chars base name.`
+                );
+                continue;
+            }
+
+            const vbaSource = fs.readFileSync(inputPath, 'utf-8');
+            const { procedures } = this.extractTestProcedures(vbaSource);
+            if (procedures.length === 0) {
+                console.error(`  (skip) No Test_* procedures found in ${file}`);
+                continue;
+            }
+
+            try {
+                this.generateFromFile(inputPath, runnerPath, 'RunAllTests', useModuleQualifier);
+                generated++;
+            } catch (e: any) {
+                console.error(`✗ Error generating runner for ${file}: ${e.message}`);
+            }
+        }
+
+        if (generated > 0) {
+            console.error(`✓ Generated ${generated} missing runner(s) in ${dirPath}`);
+        } else {
+            console.error(`  (ok) No missing runners in ${dirPath}`);
+        }
+
+        return generated;
+    }
+
+    /**
      * ディレクトリ内のすべての VBA テストファイルに対してランナーを生成
      * @param dirPath ディレクトリパス
      * @param outputDir 出力ディレクトリ（指定しない場合は元のファイルの隣に _runner.bas で出力）
@@ -225,6 +286,7 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-genera
         console.error('Usage:');
         console.error('  vba-test-generator.ts <input.bas> [output.bas] [options]');
         console.error('  vba-test-generator.ts --dir <directory> [output-directory] [options]');
+        console.error('  vba-test-generator.ts --missing <directory> [options]');
         console.error('');
         console.error('Options:');
         console.error('  --no-module-qualifier  Do not qualify function calls with module name');
@@ -243,6 +305,9 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-genera
         console.error('  # Generate runners for all VBA files in a directory');
         console.error('  npx tsx test-libs/vba-test-generator.ts --dir tests/spec/vba');
         console.error('');
+        console.error('  # Generate runners only for files that do not have one yet (idempotent)');
+        console.error('  npx tsx test-libs/vba-test-generator.ts --missing tests/spec/vba');
+        console.error('');
         console.error('  # Generate runners in a separate output directory');
         console.error('  npx tsx test-libs/vba-test-generator.ts --dir tests/spec/vba tests/spec/runners');
         process.exit(1);
@@ -259,7 +324,13 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('vba-test-genera
             return true;
         });
 
-        if (optionArgs[0] === '--dir') {
+        if (optionArgs[0] === '--missing') {
+            const dirPath = optionArgs[1];
+            if (!dirPath) {
+                throw new Error('--missing requires a directory path');
+            }
+            VBATestGenerator.generateMissingRunners(dirPath, useModuleQualifier);
+        } else if (optionArgs[0] === '--dir') {
             const dirPath = optionArgs[1];
             const outputDir = optionArgs[2];
             if (!dirPath) {
