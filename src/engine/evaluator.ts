@@ -3375,7 +3375,7 @@ export class Evaluator {
         // defaultBindingObject（§5.6.10 Tier 6）が設定済みの場合はその名前を既解決とみなす。
         // defaultBindingObject は resolveIdentifiers 呼び出し前に設定しておく必要がある。
         this.optionExplicitViolations.clear();
-        for (const { ast } of modules) {
+        for (const { ast, moduleName: modName } of modules) {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
             for (const [procName, undeclared] of violatedProcedures) {
                 // defaultBindingObject または module-level env で解決できる名前は除外する
@@ -3390,7 +3390,12 @@ export class Evaluator {
                 if (stillMissing.size > 0) {
                     const names = [...stillMissing.keys()].join(', ');
                     const firstLine = [...stillMissing.values()][0] ?? 0;
-                    throw new Error(`Compile error: Variable not declared in '${procName}' (Option Explicit): ${names} (line ${firstLine})`);
+                    this.throwVbaError(
+                        VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                        `Variable not declared in '${procName}' (Option Explicit): ${names}`,
+                        firstLine,
+                        modName || undefined,
+                    );
                 }
             }
         }
@@ -3422,11 +3427,16 @@ export class Evaluator {
                 cur = Object.getPrototypeOf(cur);
             }
         }
-        for (const { ast } of modules) {
+        for (const { ast, moduleName: modName } of modules) {
             const undefinedCalls = collectUndefinedProcCalls(ast, knownProcNames);
             if (undefinedCalls.length > 0) {
                 const first = undefinedCalls[0];
-                throw new Error(`Compile error: Sub or Function not defined: '${first.name}' (line ${first.line})`);
+                this.throwVbaError(
+                    VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                    `Sub or Function not defined: '${first.name}'`,
+                    first.line,
+                    modName || undefined,
+                );
             }
         }
     }

@@ -24,7 +24,12 @@ function catchError(
     modules: Array<{ name: string; code: string }>,
     entry: string,
 ): VbaError {
-    const ev = evalVBAModules(modules);
+    let ev: ReturnType<typeof evalVBAModules>;
+    try {
+        ev = evalVBAModules(modules);
+    } catch (e: any) {
+        return e as VbaError; // Option Explicit 等のコンパイルエラーは Pass2 で即時 throw
+    }
     try {
         ev.callProcedure(entry, []);
     } catch (e: any) {

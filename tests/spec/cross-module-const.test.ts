@@ -127,12 +127,10 @@ function makeModules(sources: Record<string, string>) {
     const ast = new Parser(new Lexer(src).tokenize()).parse();
     ev.setSourceModule('Module1');
     ev.evaluate(ast);
-    ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
-
-    // xlUp はどこにも定義されていないので Option Explicit 違反
+    // xlUp はどこにも定義されていないので Option Explicit 違反 (Pass2 で即時 throw)
     let threw = false;
     try {
-        ev.callProcedure('UseXlUp', []);
+        ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
     } catch {
         threw = true;
     }
