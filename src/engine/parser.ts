@@ -514,7 +514,7 @@ export interface UnaryExpression extends Expression {
     argument: Expression;
 }
 
-class ParseError extends Error {
+export class ParseError extends Error {
     constructor(message: string, public readonly line: number, public readonly column: number) {
         super(message);
     }

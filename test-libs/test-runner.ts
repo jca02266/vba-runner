@@ -358,23 +358,35 @@ export const assert = {
     },
 };
 
+import { ParseError } from '../src/engine/parser';
+
 /**
  * コンパイルエラー（parse / prerun）専用アサーション。
- * エラーメッセージのパターンと行番号を両方検証する。
- * parse エラーのメッセージ例: "Parse error: syntax error at line 1"
- * prerun エラーのメッセージ例: "Run-time error '13': ... (line 10)"
+ * phase により Pass 1 (parse) と Pass 2 (prerun) のどちらで発生したかを検証する。
+ *   parse  : ParseError のインスタンスであること
+ *   prerun : ParseError ではない（静的解析・実行直前フェーズ）こと
  */
 export function assertCompileError(
     fn: () => void,
     expectedLine: number,
     pattern: RegExp,
-    label: string
+    label: string,
+    phase: 'parse' | 'prerun'
 ): void {
     let msg = '';
     let threw = false;
-    try { fn(); } catch (e: any) { threw = true; msg = e?.message ?? String(e); }
+    let caughtError: unknown;
+    try { fn(); } catch (e) { threw = true; caughtError = e; msg = (e as any)?.message ?? String(e); }
     if (!threw) {
         console.error(`[FAIL] ${label}: Expected compile error but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (phase === 'parse' && !(caughtError instanceof ParseError)) {
+        console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (phase === 'prerun' && caughtError instanceof ParseError) {
+        console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but got ParseError: "${msg}"`);
         throw new Error('Assertion Failed');
     }
     if (!pattern.test(msg)) {

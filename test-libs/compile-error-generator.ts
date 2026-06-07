@@ -254,7 +254,7 @@ ${inner}
 `        const src = \`${srcLines}\`;
         assertCompileError(
             () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            ${expectedLine}, ${pattern}, '${c.name}'
+            ${expectedLine}, ${pattern}, '${c.name}', 'parse'
         );`
             );
         } else if (c.isModuleLevel) {
@@ -267,7 +267,7 @@ ${inner}
 `        assertCompileError(() => evalVBASingle(\`
 ${preamble.map(l => `      ${l}`).join('\n')}
 ${codeLines}
-    \`), ${lineArg}, ${pattern}, '${c.name}');`
+    \`), ${lineArg}, ${pattern}, '${c.name}', '${c.type}');`
             );
         } else {
             // prerun: 行番号は preamble + wrapper Sub のオフセット込みで計算
@@ -281,7 +281,7 @@ ${preamble.map(l => `      ${l}`).join('\n')}
 ${bodyLines}
       End Sub
       __test__
-    \`), ${lineArg}, ${pattern}, '${c.name}');`
+    \`), ${lineArg}, ${pattern}, '${c.name}', 'prerun');`
             );
         }
     });
