@@ -236,6 +236,8 @@ export class Environment {
     private types: Map<string, TypeMember[]> = new Map();
     private withEventsVariables: Set<string> = new Set();
     private constantVariables: Set<string> = new Set();
+    /** AST node identity tracking for duplicate Dim detection (same stmt re-run in loop is OK) */
+    private dimStmtRegistry: Map<string, object> = new Map(); // varKey → VariableDeclaration AST node
     public enclosing?: Environment;
 
     constructor(enclosing?: Environment) {
@@ -265,6 +267,14 @@ export class Environment {
     setLocally(name: string, value: any) {
         const key = name.toLowerCase();
         this.variables.set(key, this.coerceToType(key, value));
+    }
+
+    registerDimStmt(name: string, stmt: object): void {
+        this.dimStmtRegistry.set(name.toLowerCase(), stmt);
+    }
+
+    getRegisteredDimStmt(name: string): object | undefined {
+        return this.dimStmtRegistry.get(name.toLowerCase());
     }
 
     setVariableType(name: string, typeInfo: VbaTypeInfo) {
@@ -2990,11 +3000,18 @@ export class Evaluator {
             }
             // Inside a procedure, declare locally to avoid corrupting outer scopes in recursive calls.
             // At module level (no currentProcedureName), use set() so the value lands in the global env.
-            // Detect duplicate Dim in same scope (VBA compile error)
+            // Detect duplicate Dim in same scope (VBA compile error).
+            // Same Dim stmt re-executed in a loop is NOT a duplicate — check by AST node identity.
             if (this.currentProcedureName && this.env.variables.has(varKey)) {
-                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
-                    `Variable '${varName}' is already declared in this scope (duplicate declaration)`);
+                const prevNode = this.env.getRegisteredDimStmt(varKey);
+                if (prevNode !== stmt) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        `Variable '${varName}' is already declared in this scope (duplicate declaration)`);
+                }
+                // Same stmt re-executed (loop body) — skip re-initialization
+                continue;
             }
+            this.env.registerDimStmt(varKey, stmt);
             if (this.currentProcedureName) {
                 this.env.setLocally(varName, initialValue);
             } else {
