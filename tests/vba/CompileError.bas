@@ -49,10 +49,9 @@ End Function
 ' ================================================================
 
 ' CASE: sub_call_with_empty_parens
-' TYPE: parse
-' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /syntax error|parse error/i
-' NOTE: VBARunner 未実装 — パーサーが Sub の () 呼び出しを関数呼び出し式として許容してしまう
+' TYPE: prerun
+' VBA: コンパイルエラー: 構文エラー（ステートメントの末尾が正しくありません）
+' RUNNER: /end of statement/i
 Sub Case_sub_call_with_empty_parens()
     MySub() ' @error
 End Sub

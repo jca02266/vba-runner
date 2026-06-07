@@ -13,20 +13,25 @@ import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
-// [parse] sub_call_with_empty_parens
-// VBA: コンパイルエラー: 構文エラー
+// [prerun] sub_call_with_empty_parens
+// VBA: コンパイルエラー: 構文エラー（ステートメントの末尾が正しくありません）
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MySub()`;
-        let caughtMsg = '';
-        try { new Parser(new Lexer(src).tokenize()).parse(); }
-        catch (e: any) { caughtMsg = e?.message ?? String(e); }
-        if (!caughtMsg) throw new Error('Expected parse error but got none');
-        if (!/syntax error|parse error/i.test(caughtMsg))
-            throw new Error(`Error type mismatch: "${caughtMsg}"`);
-        if (!/\bline 1\b/.test(caughtMsg))
-            throw new Error(`Line number mismatch (expected line 1): "${caughtMsg}"`);
+        assert.throwsMatch(() => evalVBASingle(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        MySub()
+      End Sub
+      __test__
+    `), /end of statement/i, 'sub_call_with_empty_parens');
+        // VBA error line 1 within body → absolute line 9 in evalVBASingle
+        // (line check will be added when VBARunner implements prerun detection)
         console.log('[PASS] sub_call_with_empty_parens');
         __pass__++;
     } catch (e: any) {

@@ -2576,6 +2576,26 @@ export class Evaluator {
     }
 
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
+        // Detect: Sub used as a value on the RHS (e.g. v = MySub or v = MySub())
+        // VBA compile error: "Function or variable expected"
+        const rhsSubName = (() => {
+            if (stmt.right.type === 'Identifier') {
+                return (stmt.right as Identifier).name;
+            }
+            if (stmt.right.type === 'CallExpression') {
+                const ce = stmt.right as CallExpression;
+                if (ce.callee.type === 'Identifier') return (ce.callee as Identifier).name;
+            }
+            return null;
+        })();
+        if (rhsSubName !== null) {
+            const proc = this.env.getProcedure(rhsSubName);
+            if (proc && !proc.isFunction && !proc.isProperty) {
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH,
+                    `Function or variable expected: '${rhsSubName}'`);
+            }
+        }
+
         let val = this.evaluateExpression(stmt.right);
 
         // FEATURE: Implicit default Value getter (result = obj -> result = obj.Value)
@@ -2970,6 +2990,11 @@ export class Evaluator {
             }
             // Inside a procedure, declare locally to avoid corrupting outer scopes in recursive calls.
             // At module level (no currentProcedureName), use set() so the value lands in the global env.
+            // Detect duplicate Dim in same scope (VBA compile error)
+            if (this.currentProcedureName && this.env.variables.has(varKey)) {
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                    `Variable '${varName}' is already declared in this scope (duplicate declaration)`);
+            }
             if (this.currentProcedureName) {
                 this.env.setLocally(varName, initialValue);
             } else {
@@ -3227,6 +3252,18 @@ export class Evaluator {
     }
 
     private evaluateCallStatement(stmt: CallStatement) {
+        // Detect: Sub called with explicit empty parens without Call keyword (e.g. MySub())
+        // VBA compile error: "Expected: end of statement"
+        if (stmt.hasExplicitParens && stmt.expression.type === 'CallExpression') {
+            const callExpr = stmt.expression as CallExpression;
+            if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier') {
+                const proc = this.env.getProcedure((callExpr.callee as Identifier).name);
+                if (proc && !proc.isFunction && !proc.isProperty) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        `Expected: end of statement`);
+                }
+            }
+        }
         this.evaluateExpression(stmt.expression);
     }
 
