@@ -1117,6 +1117,40 @@ VBA Runner を使って以下の順で進めてください：
 
 ---
 
+## コンパイルチェックの整理（resolveIdentifiers / precheckProc の重複排除）
+
+### 現状のチェック分類
+
+| フェーズ | 実装箇所 | 検出内容 |
+|---|---|---|
+| **prerun** | `resolveIdentifiers` | モジュール定数評価（依存グラフ順） |
+| **prerun** | `resolveIdentifiers` | 重複プロシージャ名（同一モジュール内） |
+| **prerun** | `resolveIdentifiers` | Option Explicit 違反マップの構築（throw は preproc に委譲） |
+| **prerun** | `resolveIdentifiers` | 未定義プロシージャ呼び出し（非修飾 identifier） |
+| **preproc** | `precheckProc` | Option Explicit 違反の throw（違反マップから） |
+| **preproc** | `precheckProc` → `checkSubAsValueInProc` | Sub を値コンテキストで使用（`v = MySub`） |
+| **exec（重複）** | `evaluateAssignmentStatement` | Sub を値コンテキストで使用（`precheckProc` と重複） |
+| **exec** | `evaluateAssignmentStatement` 実行時 | duplicate Dim（`hasOwnVariable` で検出） |
+| **exec** | `executeStatements` 実行時 | GoTo の未定義ラベル |
+| **exec** | `callProcedure` → `checkArgCount` | 引数の数の不一致 |
+
+### TODO: 重複チェックの削除
+
+- [ ] `evaluateAssignmentStatement` の Sub-as-value チェックを削除する
+  - `precheckProc` → `checkSubAsValueInProc` が先に検出するため到達不能
+  - ただし `precheckProc` を経由しない実行経路（モジュールレベル文の直接評価など）が存在する場合は残す必要あり。要調査。
+
+### TODO: preproc への移行候補
+
+以下は現在 exec フェーズで検出されているが、VBE では prerun/preproc に相当するもの。
+静的解析（`precheckProc` での AST walk）で検出できれば正確なフェーズに移行できる。
+
+- [ ] duplicate Dim — 同一プロシージャ内の重複 `Dim` 宣言を `precheckProc` で静的検出
+- [ ] GoTo 未定義ラベル — プロシージャ内のラベルを収集して `precheckProc` で静的検出
+- [ ] 引数の数の不一致 — `checkArgCount` を `precheckProc` に移動（呼び出し元が確定している場合）
+
+---
+
 ## 保留中・将来課題
 
 ### Excel ⇔ VBA ソースの抽出・書き戻し機能の評価と拡張機能への組み込み
