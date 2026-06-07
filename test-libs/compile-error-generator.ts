@@ -1,6 +1,16 @@
 /**
  * CompileError.bas を解析して vba_compile_error.test.ts を生成するツール。
  *
+ * CompileError.bas の構造:
+ *   - Private Sub/Function ... End Sub/Function  → PREAMBLE（ヘルパー定義）として扱う
+ *   - ' CASE: name
+ *     ' TYPE: parse | prerun
+ *     ' VBA: <VBE のエラーメッセージ>
+ *     ' RUNNER: <正規表現>
+ *     Sub Case_<name>()
+ *       ...body...
+ *     End Sub
+ *
  * Usage:
  *   npx tsx test-libs/compile-error-generator.ts tests/vba/CompileError.bas
  *   npx tsx test-libs/compile-error-generator.ts tests/vba/CompileError.bas --output tests/spec/vba_compile_error.test.ts
@@ -22,64 +32,80 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
     const preamble: string[] = [];
     const cases: CompileErrorCase[] = [];
 
-    let inPreamble = false;
-    let currentCase: Partial<CompileErrorCase> & { code?: string[] } | null = null;
-    let inCode = false;
+    let meta: Partial<CompileErrorCase> | null = null;
+    let inCaseSub = false;
+    let caseBody: string[] = [];
+    let inPreambleSub = false;
+    let preambleBuffer: string[] = [];
 
-    for (let i = 0; i < lines.length; i++) {
-        const raw = lines[i];
+    for (const raw of lines) {
         const trimmed = raw.trim();
 
-        // PREAMBLE block
-        if (trimmed === "' PREAMBLE:") {
-            inPreamble = true;
-            continue;
-        }
-        if (inPreamble) {
-            if (trimmed.startsWith("' ") || trimmed === "'") {
-                const content = trimmed === "'" ? '' : trimmed.slice(2);
-                preamble.push(content);
-                continue;
-            } else {
-                inPreamble = false;
-            }
-        }
-
-        // CASE block start
+        // CASE メタコメント
         if (trimmed.startsWith("' CASE:")) {
-            if (currentCase && currentCase.name) {
-                cases.push(currentCase as CompileErrorCase);
-            }
-            currentCase = { name: trimmed.slice(7).trim(), code: [] };
-            inCode = false;
+            meta = { name: trimmed.slice(7).trim() };
+            continue;
+        }
+        if (meta && trimmed.startsWith("' TYPE:")) {
+            meta.type = trimmed.slice(7).trim() as 'parse' | 'prerun';
+            continue;
+        }
+        if (meta && trimmed.startsWith("' VBA:")) {
+            meta.vbaError = trimmed.slice(6).trim();
+            continue;
+        }
+        if (meta && trimmed.startsWith("' RUNNER:")) {
+            meta.runnerPattern = trimmed.slice(9).trim();
             continue;
         }
 
-        if (!currentCase) continue;
+        // Case_* Sub の開始（メタがある場合）
+        if (meta && /^\s*Sub\s+Case_\w+\s*\(\s*\)/i.test(raw)) {
+            inCaseSub = true;
+            caseBody = [];
+            continue;
+        }
 
-        if (trimmed.startsWith("' TYPE:")) {
-            const t = trimmed.slice(7).trim();
-            currentCase.type = t as 'parse' | 'prerun';
-        } else if (trimmed.startsWith("' VBA:")) {
-            currentCase.vbaError = trimmed.slice(6).trim();
-        } else if (trimmed.startsWith("' RUNNER:")) {
-            currentCase.runnerPattern = trimmed.slice(9).trim();
-        } else if (trimmed === "' CODE:") {
-            inCode = true;
-        } else if (inCode) {
-            if (trimmed.startsWith("' ") || trimmed === "'") {
-                const content = trimmed === "'" ? '' : trimmed.slice(2);
-                currentCase.code!.push(content);
-            } else {
-                inCode = false;
-                cases.push(currentCase as CompileErrorCase);
-                currentCase = null;
+        // Case_* Sub の終了
+        if (inCaseSub && /^\s*End\s+Sub\s*$/i.test(trimmed)) {
+            // 末尾の空行を除去
+            while (caseBody.length > 0 && caseBody[caseBody.length - 1].trim() === '') {
+                caseBody.pop();
+            }
+            cases.push({
+                name: meta!.name!,
+                type: meta!.type ?? 'parse',
+                vbaError: meta!.vbaError ?? '',
+                runnerPattern: meta!.runnerPattern ?? '/.+/',
+                code: caseBody,
+            });
+            meta = null;
+            inCaseSub = false;
+            caseBody = [];
+            continue;
+        }
+
+        if (inCaseSub) {
+            // Sub ボディの行（先頭インデントを 1 レベル除去）
+            caseBody.push(raw.replace(/^    /, ''));
+            continue;
+        }
+
+        // PREAMBLE: Private Sub/Function ... End Sub/Function
+        if (!meta && /^\s*Private\s+(Sub|Function)\s+/i.test(raw)) {
+            inPreambleSub = true;
+            preambleBuffer = [raw];
+            continue;
+        }
+        if (inPreambleSub) {
+            preambleBuffer.push(raw);
+            if (/^\s*End\s+(Sub|Function)\s*$/i.test(trimmed)) {
+                preamble.push(...preambleBuffer);
+                preamble.push('');
+                inPreambleSub = false;
+                preambleBuffer = [];
             }
         }
-    }
-
-    if (currentCase && currentCase.name) {
-        cases.push(currentCase as CompileErrorCase);
     }
 
     return { preamble, cases };
@@ -89,10 +115,10 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
     const preambleCode = preamble.join('\n');
 
     const testBlocks = cases.map(c => {
-        const codeLines = c.code.map(l => `    ${l}`).join('\n');
-        const pattern = c.runnerPattern; // e.g. /syntax error/i
+        const pattern = c.runnerPattern;
 
         if (c.type === 'parse') {
+            const codeLines = c.code.map(l => `    ${l}`).join('\n');
             return `
   test('${c.name} - parse error', () => {
     // VBA: ${c.vbaError}
@@ -105,13 +131,14 @@ ${codeLines}
     }).toThrow(${pattern});
   });`;
         } else {
+            const bodyLines = c.code.map(l => `        ${l}`).join('\n');
             return `
   test('${c.name} - prerun compile error', () => {
     // VBA: ${c.vbaError}
     expect(() => evalVBASingle(\`
 ${preamble.map(l => `      ${l}`).join('\n')}
       Sub __test__()
-${c.code.map(l => `        ${l}`).join('\n')}
+${bodyLines}
       End Sub
       __test__
     \`)).toThrow(${pattern});
@@ -131,10 +158,6 @@ ${c.code.map(l => `        ${l}`).join('\n')}
 import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import { evalVBASingle } from '../test-libs/test-runner';
-
-const _PREAMBLE = \`
-${preamble.map(l => `  ${l}`).join('\n')}
-\`;
 
 describe('VBA compile errors', () => {
 ${testBlocks.join('\n')}
