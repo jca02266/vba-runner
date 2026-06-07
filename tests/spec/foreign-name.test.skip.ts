@@ -67,46 +67,37 @@ End Function
 //   - 該当プロシージャが存在しなくても Option Explicit でエラーにならない
 //   - プロシージャ定義側は Sub [End]() がエラーのため JS 側での登録になる
 // 現状: レキサーが [ を Unknown トークンとして処理するためパースエラー (未実装)
+
+// Test 3a: [End]() が "end" という名前の関数にディスパッチするか
 {
-    // Test 3a: [End]() が "end" という名前の関数にディスパッチするか
-    {
-        const code = `
+    const code = `
 Function TestForeignNameCall()
     [End]()
     TestForeignNameCall = 42
 End Function
 `;
-        let called = false;
-        try {
-            const ev = evalVBASingle(code);
-            ev.env.set('end', () => { called = true; });
-            const result = ev.callProcedure('TestForeignNameCall', []);
-            assert.strictEqual(called, true, '[End]() が end 関数を呼ぶ');
-            assert.strictEqual(result, 42, '[End]() 後も実行が継続する');
-            console.log('[TODO→PASS] [End]() FOREIGN-NAME 呼び出しが動作した');
-        } catch (e: any) {
-            console.log('[TODO/SKIP] [End]() 呼び出しは未実装:', e.message);
-        }
-    }
+    let called = false;
+    const ev = evalVBASingle(code);
+    ev.env.set('end', () => { called = true; });
+    const result = ev.callProcedure('TestForeignNameCall', []);
+    assert.strictEqual(called, true, '[End]() が end 関数を呼ぶ');
+    assert.strictEqual(result, 42, '[End]() 後も実行が継続する');
+    console.log('[PASS] [End]() FOREIGN-NAME 呼び出しが動作した');
+}
 
-    // Test 3b: [End]() は対応するプロシージャが存在しなくてもエラーにならない
-    {
-        const code = `
+// Test 3b: [End]() は対応するプロシージャが存在しなくてもエラーにならない
+{
+    const code = `
 Option Explicit
 Function TestForeignNameNoOp()
     [End]()
     TestForeignNameNoOp = 99
 End Function
 `;
-        try {
-            const ev = evalVBASingle(code);
-            const result = ev.callProcedure('TestForeignNameNoOp', []);
-            assert.strictEqual(result, 99, '[End]() 存在しなくてもエラーなし');
-            console.log('[TODO→PASS] [End]() 未定義でもエラーにならない (Option Explicit でも)');
-        } catch (e: any) {
-            console.log('[TODO/SKIP] [End]() 存在しない場合の挙動は未実装:', e.message);
-        }
-    }
+    const ev = evalVBASingle(code);
+    const result = ev.callProcedure('TestForeignNameNoOp', []);
+    assert.strictEqual(result, 99, '[End]() 存在しなくてもエラーなし');
+    console.log('[PASS] [End]() 未定義でもエラーにならない (Option Explicit でも)');
 }
 
 console.log('foreign-name: 全テスト完了');
