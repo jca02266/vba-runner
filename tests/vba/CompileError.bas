@@ -102,7 +102,7 @@ End Sub
 ' ================================================================
 
 ' CASE: assign_from_sub
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
 Sub Case_assign_from_sub()
@@ -111,7 +111,7 @@ Sub Case_assign_from_sub()
 End Sub
 
 ' CASE: assign_from_sub_with_parens
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
 Sub Case_assign_from_sub_with_parens()
@@ -120,7 +120,7 @@ Sub Case_assign_from_sub_with_parens()
 End Sub
 
 ' CASE: duplicate_dim
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: 同じ適用範囲内で宣言が重複しています
 ' RUNNER: /duplicate/i
 Sub Case_duplicate_dim()
@@ -129,7 +129,7 @@ Sub Case_duplicate_dim()
 End Sub
 
 ' CASE: goto_undefined_label
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: 行ラベルが定義されていません
 ' RUNNER: /not defined.*label|label.*not defined/i
 Sub Case_goto_undefined_label()
@@ -162,7 +162,7 @@ Sub Case_undefined_sub_call()
 End Sub
 
 ' CASE: qualified_undeclared_obj
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
 ' RUNNER: /variable not declared|not declared/i
 ' NOTE: Option Explicit 有効時、修飾付き呼び出し UnknownModule.Method の
@@ -197,7 +197,7 @@ End Sub
 '@case-end
 
 ' CASE: sub_call_arg_count_mismatch
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
 ' RUNNER: /wrong number of arguments/i
 ' NOTE: MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され
