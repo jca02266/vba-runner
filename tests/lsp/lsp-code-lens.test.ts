@@ -51,8 +51,8 @@ function lensesFor(items: any[], procLine: number) {
         'Sub CalcTotal()',
         'End Sub',
         'Sub Main()',
-        '    CalcTotal()',
-        '    CalcTotal()',
+        '    CalcTotal',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
     const items = getCodeLens(src);
@@ -119,7 +119,7 @@ function lensesFor(items: any[], procLine: number) {
         '    CalcTotal = 42',
         'End Function',
         'Sub Main()',
-        '    CalcTotal()',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
     const items = getCodeLens(src);

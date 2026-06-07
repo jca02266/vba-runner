@@ -36,8 +36,8 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         '    Dim x As Long',
         'End Sub',
         'Sub Main()',
-        '    CalcTotal()',
-        '    CalcTotal()',
+        '    CalcTotal',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
 
@@ -54,7 +54,7 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         'Sub CalcTotal()',
         'End Sub',
         'Sub Main()',
-        '    CalcTotal()',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
 
@@ -91,7 +91,7 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         '    s = "CalcTotal result"',
         'End Sub',
         'Sub Main()',
-        '    CalcTotal()',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
 
@@ -109,7 +109,7 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         'Sub CalcTotal()',
         'End Sub',
         'Sub Main()',
-        "    CalcTotal() ' call CalcTotal here",
+        "    CalcTotal ' call CalcTotal here",
         'End Sub',
     ].join('\n');
 
@@ -136,8 +136,8 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         'Sub CalcTotal()',
         'End Sub',
         'Sub Main()',
-        '    CalcTotal()',
-        '    CalcTotal()',
+        '    CalcTotal',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
 
@@ -174,8 +174,8 @@ function posOf(src: string, needle: string, occurrence = 1): { line: number; cha
         'Sub calcTotal()',
         'End Sub',
         'Sub Main()',
-        '    CALCTOTAL()',
-        '    CalcTotal()',
+        '    CALCTOTAL',
+        '    CalcTotal',
         'End Sub',
     ].join('\n');
 
