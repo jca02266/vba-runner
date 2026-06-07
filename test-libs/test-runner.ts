@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
-import { Parser, TypeDeclaration, Program } from '../src/engine/parser';
+import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import type { VbaComObject } from '../src/engine/vba-types';
 import { MemoryFileSystem } from '../src/engine/filesystem';
@@ -358,16 +358,14 @@ export const assert = {
     },
 };
 
-import { ParseError } from '../src/engine/parser';
-
 /**
  * コンパイルエラー（parse / prerun）専用アサーション。
- * phase により Pass 1 (parse) と Pass 2 (prerun) のどちらで発生したかを検証する。
- *   parse  : ParseError のインスタンスであること
- *   prerun : ParseError ではない（静的解析・実行直前フェーズ）こと
+ * src を受け取り、phase に応じた箇所に try/catch を仕込んで正しいフェーズでエラーを検出する。
+ *   parse  : Parser.parse() のみ実行し ParseError を検証
+ *   prerun : parse は成功前提で evalVBASingle を実行し ParseError 以外のエラーを検証
  */
 export function assertCompileError(
-    fn: () => void,
+    src: string,
     expectedLine: number,
     pattern: RegExp,
     label: string,
@@ -376,19 +374,41 @@ export function assertCompileError(
     let msg = '';
     let threw = false;
     let caughtError: unknown;
-    try { fn(); } catch (e) { threw = true; caughtError = e; msg = (e as any)?.message ?? String(e); }
-    if (!threw) {
-        console.error(`[FAIL] ${label}: Expected compile error but none was thrown`);
-        throw new Error('Assertion Failed');
+
+    if (phase === 'parse') {
+        try {
+            new Parser(new Lexer(src).tokenize()).parse();
+        } catch (e) {
+            threw = true;
+            caughtError = e;
+            msg = (e as any)?.message ?? String(e);
+        }
+        if (!threw) {
+            console.error(`[FAIL] ${label}: Expected parse error (pass 1) but none was thrown`);
+            throw new Error('Assertion Failed');
+        }
+        if (!(caughtError instanceof ParseError)) {
+            console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
+            throw new Error('Assertion Failed');
+        }
+    } else {
+        try {
+            evalVBASingle(src);
+        } catch (e) {
+            threw = true;
+            caughtError = e;
+            msg = (e as any)?.message ?? String(e);
+        }
+        if (!threw) {
+            console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but none was thrown`);
+            throw new Error('Assertion Failed');
+        }
+        if (caughtError instanceof ParseError) {
+            console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but got ParseError: "${msg}"`);
+            throw new Error('Assertion Failed');
+        }
     }
-    if (phase === 'parse' && !(caughtError instanceof ParseError)) {
-        console.error(`[FAIL] ${label}: Expected ParseError (pass 1) but got: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
-    if (phase === 'prerun' && caughtError instanceof ParseError) {
-        console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but got ParseError: "${msg}"`);
-        throw new Error('Assertion Failed');
-    }
+
     if (!pattern.test(msg)) {
         console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
         throw new Error('Assertion Failed');

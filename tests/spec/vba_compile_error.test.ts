@@ -7,9 +7,7 @@
  * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { evalVBASingle, assertCompileError } from '../../test-libs/test-runner';
+import { assertCompileError } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
@@ -18,11 +16,7 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MySub()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'sub_call_with_empty_parens1', 'parse'
-        );
+        assertCompileError(`MySub()`, 1, /syntax error|parse error/i, 'sub_call_with_empty_parens1', 'parse');
         console.log('[PASS] sub_call_with_empty_parens1');
         __pass__++;
     } catch (e: any) {
@@ -36,11 +30,7 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MyFunction()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'sub_call_with_empty_parens2', 'parse'
-        );
+        assertCompileError(`MyFunction()`, 1, /syntax error|parse error/i, 'sub_call_with_empty_parens2', 'parse');
         console.log('[PASS] sub_call_with_empty_parens2');
         __pass__++;
     } catch (e: any) {
@@ -54,11 +44,7 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MySub ()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'sub_call_with_empty_parens3', 'parse'
-        );
+        assertCompileError(`MySub ()`, 1, /syntax error|parse error/i, 'sub_call_with_empty_parens3', 'parse');
         console.log('[PASS] sub_call_with_empty_parens3');
         __pass__++;
     } catch (e: any) {
@@ -72,11 +58,7 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `UnKnown()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'sub_call_with_empty_parens4', 'parse'
-        );
+        assertCompileError(`UnKnown()`, 1, /syntax error|parse error/i, 'sub_call_with_empty_parens4', 'parse');
         console.log('[PASS] sub_call_with_empty_parens4');
         __pass__++;
     } catch (e: any) {
@@ -90,11 +72,7 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `Call MySub 42`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'sub_call_arg_without_call_keyword', 'parse'
-        );
+        assertCompileError(`Call MySub 42`, 1, /syntax error|parse error/i, 'sub_call_arg_without_call_keyword', 'parse');
         console.log('[PASS] sub_call_arg_without_call_keyword');
         __pass__++;
     } catch (e: any) {
@@ -108,12 +86,8 @@ let __pass__ = 0, __fail__ = 0;
 // VBA error line (within Sub body): 2
 {
     try {
-        const src = `Dim v
-v = MyFuncHasArg arg`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            2, /syntax error|parse error/i, 'assign_func_arg_no_parens', 'parse'
-        );
+        assertCompileError(`Dim v
+v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_parens', 'parse');
         console.log('[PASS] assign_func_arg_no_parens');
         __pass__++;
     } catch (e: any) {
@@ -127,11 +101,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MySub: MySub()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens1', 'parse'
-        );
+        assertCompileError(`MySub: MySub()`, 1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens1', 'parse');
         console.log('[PASS] label_then_sub_call_with_empty_parens1');
         __pass__++;
     } catch (e: any) {
@@ -145,11 +115,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 1
 {
     try {
-        const src = `MySub : MySub()`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens2', 'parse'
-        );
+        assertCompileError(`MySub : MySub()`, 1, /syntax error|parse error/i, 'label_then_sub_call_with_empty_parens2', 'parse');
         console.log('[PASS] label_then_sub_call_with_empty_parens2');
         __pass__++;
     } catch (e: any) {
@@ -163,7 +129,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -175,7 +141,7 @@ v = MyFuncHasArg arg`;
         v = MySub
       End Sub
       __test__
-    `), 10, /function or variable/i, 'assign_from_sub', 'prerun');
+    `, 10, /function or variable/i, 'assign_from_sub', 'prerun');
         console.log('[PASS] assign_from_sub');
         __pass__++;
     } catch (e: any) {
@@ -189,7 +155,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -201,7 +167,7 @@ v = MyFuncHasArg arg`;
         v = MySub()
       End Sub
       __test__
-    `), 10, /function or variable/i, 'assign_from_sub_with_parens', 'prerun');
+    `, 10, /function or variable/i, 'assign_from_sub_with_parens', 'prerun');
         console.log('[PASS] assign_from_sub_with_parens');
         __pass__++;
     } catch (e: any) {
@@ -215,7 +181,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -227,7 +193,7 @@ v = MyFuncHasArg arg`;
         Dim v
       End Sub
       __test__
-    `), 10, /duplicate/i, 'duplicate_dim', 'prerun');
+    `, 10, /duplicate/i, 'duplicate_dim', 'prerun');
         console.log('[PASS] duplicate_dim');
         __pass__++;
     } catch (e: any) {
@@ -241,7 +207,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -252,7 +218,7 @@ v = MyFuncHasArg arg`;
         GoTo NoSuchLabel
       End Sub
       __test__
-    `), 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label', 'prerun');
+    `, 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label', 'prerun');
         console.log('[PASS] goto_undefined_label');
         __pass__++;
     } catch (e: any) {
@@ -266,7 +232,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 1
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -277,7 +243,7 @@ v = MyFuncHasArg arg`;
         MySub (42)
       End Sub
       __test__
-    `), 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch', 'prerun');
+    `, 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch', 'prerun');
         console.log('[PASS] sub_call_arg_count_mismatch');
         __pass__++;
     } catch (e: any) {
@@ -291,7 +257,7 @@ v = MyFuncHasArg arg`;
 // VBA error line (within Sub body): 4
 {
     try {
-        assertCompileError(() => evalVBASingle(`
+        assertCompileError(`
       Private Sub MySub()
       End Sub
       
@@ -304,7 +270,7 @@ v = MyFuncHasArg arg`;
       Sub duplicate_sub_name()
       
       End Sub
-    `), 11, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name', 'prerun');
+    `, 11, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name', 'prerun');
         console.log('[PASS] duplicate_sub_name');
         __pass__++;
     } catch (e: any) {

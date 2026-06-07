@@ -208,30 +208,13 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
     //   よって body 行 L の絶対行番号 = 1 + preamble.length + 1 + L = preamble.length + L + 2
     const prerunLineOffset = preamble.length + 2;
 
-    const testBlocks = cases.flatMap(c => {
-        // RUNNER: TBD — CompileError.bas の RUNNER が未確定。
-        // テストを必ず失敗させ、実際のエラーメッセージを表示して RUNNER 値の決定を促す。
-        if (c.runnerPattern === 'TBD') {
-            const runCode = c.isModuleLevel
-                ? `evalVBASingle(\`\n${preamble.map(l => `      ${l}`).join('\n')}\n${c.code.map(l => `      ${l}`).join('\n')}\n    \`)`
-                : `evalVBASingle(\`\n${preamble.map(l => `      ${l}`).join('\n')}\n      Sub __test__()\n${c.code.map(l => `        ${l}`).join('\n')}\n      End Sub\n      __test__\n    \`)`;
-            return [`
-// [${c.type}] ${c.name} — RUNNER: TBD（CompileError.bas を更新してください）
-{
-    try {
-        let _msg = '';
-        try { ${runCode}; }
-        catch (e: any) { _msg = e?.message ?? String(e); }
-        if (!_msg) throw new Error('[${c.name}] Expected compile error but none was thrown');
-        throw new Error('[${c.name}] RUNNER: TBD — fill in CompileError.bas. Actual error: ' + _msg);
-    } catch (e: any) {
-        console.error('[FAIL] ${c.name}:', e.message);
-        __fail__++;
-    }
-}`];
-        }
-        const pattern = c.runnerPattern;
+    // ソース文字列を構築するヘルパー
+    const buildParseSrc = (c: CompileErrorCase) => c.code.join('\n');
+    const buildPrerunSrc = (c: CompileErrorCase) => c.isModuleLevel
+        ? `\n${preamble.map(l => `      ${l}`).join('\n')}\n${c.code.map(l => `      ${l}`).join('\n')}\n    `
+        : `\n${preamble.map(l => `      ${l}`).join('\n')}\n      Sub __test__()\n${c.code.map(l => `        ${l}`).join('\n')}\n      End Sub\n      __test__\n    `;
 
+    const testBlocks = cases.flatMap(c => {
         const tryWrap = (inner: string) => `
 // [${c.type}] ${c.name}
 // VBA: ${c.vbaError}${c.errorLine != null ? `\n// VBA error line (within Sub body): ${c.errorLine}` : ''}
@@ -246,42 +229,38 @@ ${inner}
     }
 }`;
 
+        // RUNNER: TBD — CompileError.bas の RUNNER が未確定。
+        // テストを必ず失敗させ、実際のエラーメッセージを表示して RUNNER 値の決定を促す。
+        if (c.runnerPattern === 'TBD') {
+            const src = c.type === 'parse' ? buildParseSrc(c) : buildPrerunSrc(c);
+            const phase = c.type === 'parse' ? 'parse' : 'prerun';
+            return [tryWrap(
+`        // RUNNER: TBD — 実際のエラーを表示して CompileError.bas を更新してください
+        let _tbd_msg = '';
+        try { assertCompileError(\`${src}\`, 0, /.+/i, '${c.name}', '${phase}'); }
+        catch (e: any) { _tbd_msg = e?.message ?? String(e); }
+        throw new Error('[${c.name}] RUNNER: TBD — fill in CompileError.bas. Actual error seen: ' + _tbd_msg);`
+            )];
+        }
+
+        const pattern = c.runnerPattern;
         if (c.type === 'parse') {
-            // src を先頭改行なしで構築 → line 1 = body の 1 行目
-            const srcLines = c.code.join('\n');
+            const src = buildParseSrc(c);
             const expectedLine = c.errorLine ?? 1;
             return tryWrap(
-`        const src = \`${srcLines}\`;
-        assertCompileError(
-            () => { new Parser(new Lexer(src).tokenize()).parse(); },
-            ${expectedLine}, ${pattern}, '${c.name}', 'parse'
-        );`
+`        assertCompileError(\`${src}\`, ${expectedLine}, ${pattern}, '${c.name}', 'parse');`
             );
         } else if (c.isModuleLevel) {
-            // モジュールレベルケース: '' を除去したコードをそのままモジュールに展開
-            //   行番号オフセット = 1 (テンプレート先頭の空行) + preamble.length
             const absLine = c.errorLine != null ? 1 + preamble.length + c.errorLine : null;
-            const codeLines = c.code.map(l => `      ${l}`).join('\n');
             const lineArg = absLine != null ? String(absLine) : 'undefined as any';
             return tryWrap(
-`        assertCompileError(() => evalVBASingle(\`
-${preamble.map(l => `      ${l}`).join('\n')}
-${codeLines}
-    \`), ${lineArg}, ${pattern}, '${c.name}', '${c.type}');`
+`        assertCompileError(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}', '${c.type}');`
             );
         } else {
-            // prerun: 行番号は preamble + wrapper Sub のオフセット込みで計算
             const absLine = c.errorLine != null ? prerunLineOffset + c.errorLine : null;
-            const bodyLines = c.code.map(l => `        ${l}`).join('\n');
             const lineArg = absLine != null ? String(absLine) : 'undefined as any';
             return tryWrap(
-`        assertCompileError(() => evalVBASingle(\`
-${preamble.map(l => `      ${l}`).join('\n')}
-      Sub __test__()
-${bodyLines}
-      End Sub
-      __test__
-    \`), ${lineArg}, ${pattern}, '${c.name}', 'prerun');`
+`        assertCompileError(\`${buildPrerunSrc(c)}\`, ${lineArg}, ${pattern}, '${c.name}', 'prerun');`
             );
         }
     });
@@ -295,9 +274,7 @@ ${bodyLines}
  * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
-import { Lexer } from '${rel('src/engine/lexer')}';
-import { Parser } from '${rel('src/engine/parser')}';
-import { evalVBASingle, assertCompileError } from '${rel('test-libs/test-runner')}';
+import { assertCompileError } from '${rel('test-libs/test-runner')}';
 
 let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
