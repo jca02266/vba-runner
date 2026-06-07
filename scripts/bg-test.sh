@@ -44,13 +44,13 @@ ln -sf "${REPO_ROOT}/node_modules" "${WORKTREE}/node_modules"
 echo "⚡ テスト実行中... (ログ: ${LOG})"
 
 set +e
-(cd "${WORKTREE}" && npm test) > "${LOG}" 2>&1
+(cd "${WORKTREE}" && npm run typecheck && npm test) > "${LOG}" 2>&1
 EXIT_CODE=$?
 set -e
 
 # テスト結果サマリーをログから抜粋して表示
 echo "--- テスト結果 ---"
-grep -E "passed|failed|PASS|FAIL|Tests passed|All [0-9]+" "${LOG}" | tail -10 || true
+grep -E "passed|failed|PASS|FAIL|Tests passed|All [0-9]+|error TS" "${LOG}" | tail -10 || true
 echo "------------------"
 
 if [ ${EXIT_CODE} -eq 0 ]; then
