@@ -168,11 +168,31 @@ End Sub
 ' NOTE: Option Explicit 有効時、修飾付き呼び出し UnknownModule.Method の
 '   オブジェクト部分 UnknownModule が未宣言変数として検出される。
 '   Option Explicit がない場合は Dim が暗黙挿入されて実行時エラー 424 になる。
-'   @case-begin...@case-end を使い、Sub を実行せず Pass 2（resolveIdentifiers）でのみ検出。
 '@case-begin
 Option Explicit
 Sub Case_qualified_undeclared_obj()
     UnknownModule.UnknownProc ' @error
+End Sub
+'@case-end
+
+' CASE: undefined_sub_call_no_oe
+' TYPE: prerun
+' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+' RUNNER: /sub or function not defined/i
+' NOTE: Option Explicit なし。未定義プロシージャは OE の有無に関わらず prerun エラー。
+Sub Case_undefined_sub_call_no_oe()
+    UnknownProc ' @error
+End Sub
+
+' CASE: undefined_sub_call_with_oe
+' TYPE: prerun
+' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+' RUNNER: /sub or function not defined/i
+' NOTE: Option Explicit あり。未定義プロシージャは OE 違反ではなく Sub or Function not defined エラー。
+'@case-begin
+Option Explicit
+Sub Case_undefined_sub_call_with_oe()
+    UnknownProc ' @error
 End Sub
 '@case-end
 

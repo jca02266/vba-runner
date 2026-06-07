@@ -8,9 +8,6 @@
  */
 
 import { assertCompileErrorPass1, assertCompileErrorPass2 } from '../../test-libs/test-runner';
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
 
 let __pass__ = 0, __fail__ = 0;
 
@@ -257,41 +254,75 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 
 // [prerun] qualified_undeclared_obj
 // VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
-// OE 違反は callProcedure 時に throw される設計（Pass2 はマップ構築のみ）
 // VBA error line (within Sub body): 3
 {
     try {
-        const src = `
+        assertCompileErrorPass2(`
       Private Sub MySub()
       End Sub
-
+      
       Private Function MyFuncHasArg(x)
       End Function
-
+      
       Option Explicit
       Sub Case_qualified_undeclared_obj()
           UnknownModule.UnknownProc
       End Sub
-    `;
-        const ast = new Parser(new Lexer(src).tokenize()).parse();
-        const ev = new Evaluator(console.log);
-        ev.evaluateModule(ast);
-        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-        let threw = false;
-        let msg = '';
-        try {
-            ev.callProcedure('Case_qualified_undeclared_obj', []);
-        } catch (e: any) {
-            threw = true;
-            msg = e?.message ?? String(e);
-        }
-        if (!threw) throw new Error('[FAIL] qualified_undeclared_obj: Expected error but none was thrown');
-        if (!/variable not declared|not declared/i.test(msg)) throw new Error(`[FAIL] qualified_undeclared_obj: Message mismatch: "${msg}"`);
-        if (!/\bline 10\b/.test(msg)) throw new Error(`[FAIL] qualified_undeclared_obj: Line mismatch, got: "${msg}"`);
+    `, 10, /variable not declared|not declared/i, 'qualified_undeclared_obj');
         console.log('[PASS] qualified_undeclared_obj');
         __pass__++;
     } catch (e: any) {
         console.error('[FAIL] qualified_undeclared_obj:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] undefined_sub_call_no_oe
+// VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass2(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        UnknownProc
+      End Sub
+      __test__
+    `, 9, /sub or function not defined/i, 'undefined_sub_call_no_oe');
+        console.log('[PASS] undefined_sub_call_no_oe');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] undefined_sub_call_no_oe:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] undefined_sub_call_with_oe
+// VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPass2(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Option Explicit
+      Sub Case_undefined_sub_call_with_oe()
+          UnknownProc
+      End Sub
+    `, 10, /sub or function not defined/i, 'undefined_sub_call_with_oe');
+        console.log('[PASS] undefined_sub_call_with_oe');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] undefined_sub_call_with_oe:', e.message);
         __fail__++;
     }
 }
