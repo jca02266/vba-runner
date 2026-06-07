@@ -454,11 +454,6 @@ export class Environment {
         }
     }
 
-    hasProcedureInModule(name: string, moduleName: string, propertyType?: 'get' | 'let' | 'set'): boolean {
-        const baseKey = `${moduleName.toLowerCase()}:${name.toLowerCase()}`;
-        const key = propertyType ? `${baseKey}:${propertyType}` : baseKey;
-        return this.procedures.has(key);
-    }
 
     getProcedure(name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
         const baseKey = name.toLowerCase();
@@ -2028,11 +2023,6 @@ export class Evaluator {
                 const moduleName = this.currentSourceModule || 'Module1';
                 procDecl.moduleName = moduleName;
                 const procName = procDecl.name.name;
-                // Prerun check: duplicate procedure name in same module
-                if (this.env.hasProcedureInModule(procName, moduleName, procDecl.isProperty ? procDecl.propertyType : undefined)) {
-                    const line = procDecl.name.loc?.start.line ?? 0;
-                    throw new Error(`Compile error: Duplicate procedure name '${procName}' (line ${line})`);
-                }
                 this.env.setProcedureWithModule(procName, procDecl, moduleName);
                 break;
             }
@@ -3354,6 +3344,23 @@ export class Evaluator {
             this.currentSourceModule = moduleName;
             this.evaluateConstDeclaration(stmt);
             this.currentSourceModule = prev;
+        }
+
+        // 同一モジュール内の重複プロシージャ名チェック（Pass 2）
+        for (const { ast, moduleName } of modules) {
+            const seen = new Set<string>();
+            for (const stmt of ast.body) {
+                if (stmt.type !== 'ProcedureDeclaration') continue;
+                const proc = stmt as ProcedureDeclaration;
+                const key = (proc.isProperty && proc.propertyType)
+                    ? `${proc.name.name.toLowerCase()}:${proc.propertyType}`
+                    : proc.name.name.toLowerCase();
+                if (seen.has(key)) {
+                    const line = proc.name.loc?.start.line ?? 0;
+                    throw new Error(`Compile error: Duplicate procedure name '${proc.name.name}' in module '${moduleName}' (line ${line})`);
+                }
+                seen.add(key);
+            }
         }
 
         // Option Explicit チェックはここ（Pass 2）に一本化している。
