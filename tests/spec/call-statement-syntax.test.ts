@@ -215,22 +215,7 @@ End Sub
 
 // ─── 5. 返値を捨てる関数呼び出し ────────────────────────────────────────────
 
-// CS13: 関数の戻り値を捨てる（Call キーワード + 括弧あり）
-// GetVal()  は構文エラー。括弧を使いたい場合は Call が必要。
-{
-    const code = `
-Function GetVal() As Integer
-    GetVal = 42
-End Function
-Sub Test()
-    Call GetVal()
-End Sub
-`;
-    assertNoThrow('CS13', () => run(code, 'Test'));
-    console.log('[PASS] CS13: Call GetVal() — Call キーワードで戻り値を捨てる（括弧あり）');
-}
-
-// CS14: 引数なしの関数を Call なし・括弧なしで呼び出す
+// CS13: 関数の戻り値を捨てる — GetVal（括弧なし・Call なし）
 {
     const code = `
 Function GetVal() As Integer
@@ -240,8 +225,36 @@ Sub Test()
     GetVal
 End Sub
 `;
+    assertNoThrow('CS13', () => run(code, 'Test'));
+    console.log('[PASS] CS13: GetVal — 返値を捨てる（括弧なし、Call なし）');
+}
+
+// CS14: 関数の戻り値を捨てる — Call GetVal（括弧なし・Call あり）
+{
+    const code = `
+Function GetVal() As Integer
+    GetVal = 42
+End Function
+Sub Test()
+    Call GetVal
+End Sub
+`;
     assertNoThrow('CS14', () => run(code, 'Test'));
-    console.log('[PASS] CS14: GetVal — 返値を捨てる関数呼び出し（括弧なし）');
+    console.log('[PASS] CS14: Call GetVal — 返値を捨てる（括弧なし、Call あり）');
+}
+
+// CS15: 関数の戻り値を捨てる — Call GetVal()（括弧あり・Call あり）
+{
+    const code = `
+Function GetVal() As Integer
+    GetVal = 42
+End Function
+Sub Test()
+    Call GetVal()
+End Sub
+`;
+    assertNoThrow('CS15', () => run(code, 'Test'));
+    console.log('[PASS] CS15: Call GetVal() — 返値を捨てる（括弧あり、Call あり）');
 }
 
 console.log('\n✅ Call Statement 構文バリエーション: 全テスト通過');
