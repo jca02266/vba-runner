@@ -454,6 +454,12 @@ export class Environment {
         }
     }
 
+    hasProcedureInModule(name: string, moduleName: string, propertyType?: 'get' | 'let' | 'set'): boolean {
+        const baseKey = `${moduleName.toLowerCase()}:${name.toLowerCase()}`;
+        const key = propertyType ? `${baseKey}:${propertyType}` : baseKey;
+        return this.procedures.has(key);
+    }
+
     getProcedure(name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
         const baseKey = name.toLowerCase();
         // If type is not specified, try baseKey then baseKey:get
@@ -2021,8 +2027,12 @@ export class Evaluator {
                 // Use Module1 as default module name for global scope
                 const moduleName = this.currentSourceModule || 'Module1';
                 procDecl.moduleName = moduleName;
-                // Store procedure with module-qualified key to distinguish same-named procedures in different modules
                 const procName = procDecl.name.name;
+                // Prerun check: duplicate procedure name in same module
+                if (this.env.hasProcedureInModule(procName, moduleName, procDecl.isProperty ? procDecl.propertyType : undefined)) {
+                    const line = procDecl.name.loc?.start.line ?? 0;
+                    throw new Error(`Compile error: Duplicate procedure name '${procName}' (line ${line})`);
+                }
                 this.env.setProcedureWithModule(procName, procDecl, moduleName);
                 break;
             }

@@ -616,7 +616,6 @@ export class Parser {
     ]);
 
     private readonly errorRecovery: boolean;
-    private readonly declaredProcedureNames = new Set<string>();
 
     /** Returns true if token is a valid IDENTIFIER per §3.3.5.2:
      *  either a plain lex-identifier or a contextual keyword that is not reserved. */
@@ -1548,11 +1547,6 @@ export class Parser {
             this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${this.tokenDisplay(idToken.value)})`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
-        const lowerName = name.name.toLowerCase();
-        if (this.declaredProcedureNames.has(lowerName)) {
-            this.throwError(`Parse error: Duplicate procedure name '${name.name}' at line ${idToken.line}`, idToken);
-        }
-        this.declaredProcedureNames.add(lowerName);
         const parameters: Parameter[] = [];
         let paramsEndColumn: number | undefined;
 
