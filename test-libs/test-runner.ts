@@ -357,3 +357,32 @@ export const assert = {
         }
     },
 };
+
+/**
+ * コンパイルエラー（parse / prerun）専用アサーション。
+ * エラーメッセージのパターンと行番号を両方検証する。
+ * parse エラーのメッセージ例: "Parse error: syntax error at line 1"
+ * prerun エラーのメッセージ例: "Run-time error '13': ... (line 10)"
+ */
+export function assertCompileError(
+    fn: () => void,
+    expectedLine: number,
+    pattern: RegExp,
+    label: string
+): void {
+    let msg = '';
+    let threw = false;
+    try { fn(); } catch (e: any) { threw = true; msg = e?.message ?? String(e); }
+    if (!threw) {
+        console.error(`[FAIL] ${label}: Expected compile error but none was thrown`);
+        throw new Error('Assertion Failed');
+    }
+    if (!pattern.test(msg)) {
+        console.error(`[FAIL] ${label}: Message mismatch - pattern: ${pattern}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+    if (!new RegExp(`\\bline ${expectedLine}\\b`).test(msg)) {
+        console.error(`[FAIL] ${label}: Line mismatch - expected line ${expectedLine}, got: "${msg}"`);
+        throw new Error('Assertion Failed');
+    }
+}

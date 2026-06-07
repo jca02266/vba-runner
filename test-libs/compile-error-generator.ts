@@ -175,33 +175,27 @@ ${inner}
         if (c.type === 'parse') {
             // src を先頭改行なしで構築 → line 1 = body の 1 行目
             const srcLines = c.code.join('\n');
-            const lineCheck = c.errorLine != null
-                ? `\n        if (!/\\bline ${c.errorLine}\\b/.test(caughtMsg))\n            throw new Error(\`Line number mismatch (expected line ${c.errorLine}): "\${caughtMsg}"\`);`
-                : '';
+            const expectedLine = c.errorLine ?? 1;
             return tryWrap(
 `        const src = \`${srcLines}\`;
-        let caughtMsg = '';
-        try { new Parser(new Lexer(src).tokenize()).parse(); }
-        catch (e: any) { caughtMsg = e?.message ?? String(e); }
-        if (!caughtMsg) throw new Error('Expected parse error but got none');
-        if (!${pattern}.test(caughtMsg))
-            throw new Error(\`Error type mismatch: "\${caughtMsg}"\`);${lineCheck}`
+        assertCompileError(
+            () => { new Parser(new Lexer(src).tokenize()).parse(); },
+            ${expectedLine}, ${pattern}, '${c.name}'
+        );`
             );
         } else {
             // prerun: 行番号は preamble + wrapper Sub のオフセット込みで計算
             const absLine = c.errorLine != null ? prerunLineOffset + c.errorLine : null;
             const bodyLines = c.code.map(l => `        ${l}`).join('\n');
-            const lineCheck = absLine != null
-                ? `\n        // VBA error line ${c.errorLine} within body → absolute line ${absLine} in evalVBASingle\n        // (line check will be added when VBARunner implements prerun detection)`
-                : '';
+            const lineArg = absLine != null ? String(absLine) : 'undefined as any';
             return tryWrap(
-`        assert.throwsMatch(() => evalVBASingle(\`
+`        assertCompileError(() => evalVBASingle(\`
 ${preamble.map(l => `      ${l}`).join('\n')}
       Sub __test__()
 ${bodyLines}
       End Sub
       __test__
-    \`), ${pattern}, '${c.name}');${lineCheck}`
+    \`), ${lineArg}, ${pattern}, '${c.name}');`
             );
         }
     });
@@ -217,7 +211,7 @@ ${bodyLines}
 
 import { Lexer } from '${rel('src/engine/lexer')}';
 import { Parser } from '${rel('src/engine/parser')}';
-import { evalVBASingle, assert } from '${rel('test-libs/test-runner')}';
+import { evalVBASingle, assertCompileError } from '${rel('test-libs/test-runner')}';
 
 let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
