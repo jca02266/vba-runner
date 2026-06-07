@@ -111,57 +111,70 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
     return { preamble, cases };
 }
 
-function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceFile: string): string {
-    const preambleCode = preamble.join('\n');
+function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceFile: string, outputFile?: string): string {
+    // import パスを出力ファイルの位置から計算する
+    const outDir = outputFile ? path.dirname(path.resolve(outputFile)) : path.resolve('tests/spec');
+    const root = path.resolve('.');
+    const rel = (target: string) => {
+        const r = path.relative(outDir, path.join(root, target));
+        return r.startsWith('.') ? r : './' + r;
+    };
 
     const testBlocks = cases.map(c => {
         const pattern = c.runnerPattern;
 
+        const tryWrap = (inner: string) => `
+// [${c.type}] ${c.name}
+// VBA: ${c.vbaError}
+{
+    try {
+${inner}
+        console.log('[PASS] ${c.name}');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] ${c.name}:', e.message);
+        __fail__++;
+    }
+}`;
+
         if (c.type === 'parse') {
             const codeLines = c.code.map(l => `    ${l}`).join('\n');
-            return `
-  test('${c.name} - parse error', () => {
-    // VBA: ${c.vbaError}
-    const src = \`
+            return tryWrap(`        const src = \`
 ${codeLines}
 \`;
-    expect(() => {
-      const tokens = new Lexer(src).tokenize();
-      new Parser(tokens).parse();
-    }).toThrow(${pattern});
-  });`;
+        assert.throwsMatch(() => {
+            const tokens = new Lexer(src).tokenize();
+            new Parser(tokens).parse();
+        }, ${pattern}, '${c.name}');`);
         } else {
             const bodyLines = c.code.map(l => `        ${l}`).join('\n');
-            return `
-  test('${c.name} - prerun compile error', () => {
-    // VBA: ${c.vbaError}
-    expect(() => evalVBASingle(\`
+            return tryWrap(`        assert.throwsMatch(() => evalVBASingle(\`
 ${preamble.map(l => `      ${l}`).join('\n')}
       Sub __test__()
 ${bodyLines}
       End Sub
       __test__
-    \`)).toThrow(${pattern});
-  });`;
+    \`), ${pattern}, '${c.name}');`);
         }
     });
 
     return `/**
  * VBA コンパイルエラー自動テスト
  * このファイルは ${path.basename(sourceFile)} から自動生成されました。
- * 再生成: npx tsx test-libs/compile-error-generator.ts ${sourceFile}
+ * 再生成: npx tsx test-libs/compile-error-generator.ts ${sourceFile} --output <このファイルのパス>
  *
  * [parse]  Parser.parse() 時に例外が発生するケース
  * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
-import { Lexer } from '../src/engine/lexer';
-import { Parser } from '../src/engine/parser';
-import { evalVBASingle } from '../test-libs/test-runner';
+import { Lexer } from '${rel('src/engine/lexer')}';
+import { Parser } from '${rel('src/engine/parser')}';
+import { evalVBASingle, assert } from '${rel('test-libs/test-runner')}';
 
-describe('VBA compile errors', () => {
+let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
-});
+console.log(\`\\n=== Summary: \${__pass__} passed, \${__fail__} failed ===\`);
+if (__fail__ > 0) process.exit(1);
 `;
 }
 
@@ -188,7 +201,7 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('compile-error-g
     console.error(`Parsed ${cases.length} case(s) from ${inputPath}`);
     cases.forEach(c => console.error(`  [${c.type}] ${c.name}`));
 
-    const output = generateTestFile(preamble, cases, inputPath);
+    const output = generateTestFile(preamble, cases, inputPath, outputPath);
 
     if (outputPath) {
         fs.writeFileSync(outputPath, output, 'utf-8');

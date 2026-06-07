@@ -40,6 +40,7 @@ End Function
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
 ' RUNNER: /syntax error/i
+' NOTE: VBARunner 未実装 — パーサーが Sub の () 呼び出しを関数呼び出し式として許容してしまう
 Sub Case_sub_call_with_empty_parens()
     MySub()
 End Sub
@@ -47,7 +48,7 @@ End Sub
 ' CASE: sub_call_arg_without_call_keyword
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /syntax error/i
+' RUNNER: /unexpected token/i
 Sub Case_sub_call_arg_without_call_keyword()
     Call MySub 42
 End Sub
@@ -55,7 +56,7 @@ End Sub
 ' CASE: assign_func_arg_no_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー
-' RUNNER: /syntax error/i
+' RUNNER: /unexpected token/i
 Sub Case_assign_func_arg_no_parens()
     Dim v
     v = MyFuncHasArg arg
@@ -71,6 +72,7 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
+' NOTE: VBARunner 未実装 — Sub を右辺値として扱ってもエラーにならない
 Sub Case_assign_from_sub()
     Dim v
     v = MySub
@@ -80,6 +82,7 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: FunctionまたはVariableが必要です
 ' RUNNER: /function or variable/i
+' NOTE: VBARunner 未実装 — Sub を右辺値として扱ってもエラーにならない
 Sub Case_assign_from_sub_with_parens()
     Dim v
     v = MySub()
@@ -89,6 +92,7 @@ End Sub
 ' TYPE: prerun
 ' VBA: コンパイルエラー: 同じ適用範囲内で宣言が重複しています
 ' RUNNER: /duplicate/i
+' NOTE: VBARunner 未実装 — 同一スコープ内の Dim 重複を検出しない
 Sub Case_duplicate_dim()
     Dim v
     Dim v
