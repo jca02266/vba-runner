@@ -1126,7 +1126,7 @@ VBA Runner を使って以下の順で進めてください：
 | **prerun** | `resolveIdentifiers` | モジュール定数評価（依存グラフ順） |
 | **prerun** | `resolveIdentifiers` | 重複プロシージャ名（同一モジュール内） |
 | **prerun** | `resolveIdentifiers` | Option Explicit 違反マップの構築（throw は preproc に委譲） |
-| **prerun** | `resolveIdentifiers` | 未定義プロシージャ呼び出し（非修飾 identifier） |
+| ~~**prerun**~~ → **preproc** | ~~`resolveIdentifiers`~~ → `precheckProc` | 未定義プロシージャ呼び出し（非修飾 identifier） |
 | **preproc** | `precheckProc` | Option Explicit 違反の throw（違反マップから） |
 | **preproc** | `precheckProc` → `checkSubAsValueInProc` | Sub を値コンテキストで使用（`v = MySub`） |
 | **exec（重複）** | `evaluateAssignmentStatement` | Sub を値コンテキストで使用（`precheckProc` と重複） |
