@@ -534,7 +534,12 @@ function walkProcForUndefinedCalls(
     const isKnown = (name: string): boolean =>
         declared.has(name) || VBA_BUILTINS.has(name) || knownProcNames.has(name);
 
+    // On Error Resume Next が有効な間は未定義プロシージャ呼び出しを静的エラーにしない
+    // (実行時エラーとして On Error で捕捉される意図の可能性があるため)
+    let inResumeNext = false;
+
     const visitCall = (ce: CallExpression): void => {
+        if (inResumeNext) return; // On Error Resume Next スコープ内はスキップ
         if (ce.callee.type === 'Identifier') {
             const id = ce.callee as Identifier;
             if (!id.foreign) { // FOREIGN-NAME は未定義プロシージャチェック対象外
@@ -584,6 +589,11 @@ function walkProcForUndefinedCalls(
             case 'ConstDeclaration':
                 declared.add((stmt as ConstDeclaration).name.name.toLowerCase());
                 break;
+            case 'OnErrorStatement': {
+                const oe = stmt as { type: string; label: string };
+                inResumeNext = oe.label === 'Resume Next';
+                break;
+            }
             case 'CallStatement':
                 visitCall((stmt as CallStatement).expression);
                 break;
