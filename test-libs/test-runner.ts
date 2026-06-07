@@ -361,8 +361,9 @@ export const assert = {
 /**
  * コンパイルエラー（parse / prerun）専用アサーション。
  * src を受け取り、phase に応じた箇所に try/catch を仕込んで正しいフェーズでエラーを検出する。
- *   parse  : Parser.parse() のみ実行し ParseError を検証
- *   prerun : parse は成功前提で evalVBASingle を実行し ParseError 以外のエラーを検証
+ *   parse  : Parser.parse() のみを try で囲み ParseError を検証
+ *   prerun : parse() は try の外で実行（parse エラーはテスト設計ミス）。
+ *            evaluateModule + resolveIdentifiers のみを try で囲む。
  */
 export function assertCompileError(
     src: string,
@@ -373,9 +374,9 @@ export function assertCompileError(
 ): void {
     let msg = '';
     let threw = false;
-    let caughtError: unknown;
 
     if (phase === 'parse') {
+        let caughtError: unknown;
         try {
             new Parser(new Lexer(src).tokenize()).parse();
         } catch (e) {
@@ -392,19 +393,18 @@ export function assertCompileError(
             throw new Error('Assertion Failed');
         }
     } else {
+        // parse は try の外 — parse エラーはテスト設計ミスとして即座に伝播させる
+        const ast = new Parser(new Lexer(src).tokenize()).parse();
+        const ev = new Evaluator(console.log);
         try {
-            evalVBASingle(src);
+            ev.evaluateModule(ast);
+            ev.resolveIdentifiers([{ ast, moduleName: '' }]);
         } catch (e) {
             threw = true;
-            caughtError = e;
             msg = (e as any)?.message ?? String(e);
         }
         if (!threw) {
             console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but none was thrown`);
-            throw new Error('Assertion Failed');
-        }
-        if (caughtError instanceof ParseError) {
-            console.error(`[FAIL] ${label}: Expected prerun error (pass 2) but got ParseError: "${msg}"`);
             throw new Error('Assertion Failed');
         }
     }
