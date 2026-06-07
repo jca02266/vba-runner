@@ -6,7 +6,8 @@
  *   - ' CASE: name
  *     ' TYPE: parse | prerun
  *     ' VBA: <VBE のエラーメッセージ>
- *     ' RUNNER: <正規表現>
+ *     ' LINE: <Sub ボディの何行目でエラーが発生するか（1 始まり）>
+ *     ' RUNNER: <正規表現（VBA の意図を包含した VBARunner の期待メッセージ）>
  *     Sub Case_<name>()
  *       ...body...
  *     End Sub
@@ -23,6 +24,7 @@ interface CompileErrorCase {
     name: string;
     type: 'parse' | 'prerun';
     vbaError: string;
+    errorLine: number | null;  // Sub ボディ内のエラー行（1 始まり）
     runnerPattern: string;
     code: string[];
 }
@@ -32,7 +34,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
     const preamble: string[] = [];
     const cases: CompileErrorCase[] = [];
 
-    let meta: Partial<CompileErrorCase> | null = null;
+    let meta: Partial<CompileErrorCase> & { errorLine?: number | null } | null = null;
     let inCaseSub = false;
     let caseBody: string[] = [];
     let inPreambleSub = false;
@@ -43,7 +45,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
 
         // CASE メタコメント
         if (trimmed.startsWith("' CASE:")) {
-            meta = { name: trimmed.slice(7).trim() };
+            meta = { name: trimmed.slice(7).trim(), errorLine: null };
             continue;
         }
         if (meta && trimmed.startsWith("' TYPE:")) {
@@ -54,10 +56,17 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
             meta.vbaError = trimmed.slice(6).trim();
             continue;
         }
+        if (meta && trimmed.startsWith("' LINE:")) {
+            const n = parseInt(trimmed.slice(7).trim(), 10);
+            meta.errorLine = isNaN(n) ? null : n;
+            continue;
+        }
         if (meta && trimmed.startsWith("' RUNNER:")) {
             meta.runnerPattern = trimmed.slice(9).trim();
             continue;
         }
+        // NOTE: は読み飛ばす（テストには不要）
+        if (meta && trimmed.startsWith("' NOTE:")) continue;
 
         // Case_* Sub の開始（メタがある場合）
         if (meta && /^\s*Sub\s+Case_\w+\s*\(\s*\)/i.test(raw)) {
@@ -76,6 +85,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 name: meta!.name!,
                 type: meta!.type ?? 'parse',
                 vbaError: meta!.vbaError ?? '',
+                errorLine: meta!.errorLine ?? null,
                 runnerPattern: meta!.runnerPattern ?? '/.+/',
                 code: caseBody,
             });
@@ -120,12 +130,21 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
         return r.startsWith('.') ? r : './' + r;
     };
 
+    // prerun テストでの行番号オフセット:
+    //   テンプレートリテラルの構造:
+    //     line 1: (空行 — テンプレート開始の改行)
+    //     lines 2..N+1: preamble (N 行)
+    //     line N+2: Sub __test__()
+    //     lines N+3..: body
+    //   よって body 行 L の絶対行番号 = 1 + preamble.length + 1 + L = preamble.length + L + 2
+    const prerunLineOffset = preamble.length + 2;
+
     const testBlocks = cases.map(c => {
         const pattern = c.runnerPattern;
 
         const tryWrap = (inner: string) => `
 // [${c.type}] ${c.name}
-// VBA: ${c.vbaError}
+// VBA: ${c.vbaError}${c.errorLine != null ? `\n// VBA error line (within Sub body): ${c.errorLine}` : ''}
 {
     try {
 ${inner}
@@ -138,23 +157,36 @@ ${inner}
 }`;
 
         if (c.type === 'parse') {
-            const codeLines = c.code.map(l => `    ${l}`).join('\n');
-            return tryWrap(`        const src = \`
-${codeLines}
-\`;
-        assert.throwsMatch(() => {
-            const tokens = new Lexer(src).tokenize();
-            new Parser(tokens).parse();
-        }, ${pattern}, '${c.name}');`);
+            // src を先頭改行なしで構築 → line 1 = body の 1 行目
+            const srcLines = c.code.join('\n');
+            const lineCheck = c.errorLine != null
+                ? `\n        if (!/\\bline ${c.errorLine}\\b/.test(caughtMsg))\n            throw new Error(\`Line number mismatch (expected line ${c.errorLine}): "\${caughtMsg}"\`);`
+                : '';
+            return tryWrap(
+`        const src = \`${srcLines}\`;
+        let caughtMsg = '';
+        try { new Parser(new Lexer(src).tokenize()).parse(); }
+        catch (e: any) { caughtMsg = e?.message ?? String(e); }
+        if (!caughtMsg) throw new Error('Expected parse error but got none');
+        if (!${pattern}.test(caughtMsg))
+            throw new Error(\`Error type mismatch: "\${caughtMsg}"\`);${lineCheck}`
+            );
         } else {
+            // prerun: 行番号は preamble + wrapper Sub のオフセット込みで計算
+            const absLine = c.errorLine != null ? prerunLineOffset + c.errorLine : null;
             const bodyLines = c.code.map(l => `        ${l}`).join('\n');
-            return tryWrap(`        assert.throwsMatch(() => evalVBASingle(\`
+            const lineCheck = absLine != null
+                ? `\n        // VBA error line ${c.errorLine} within body → absolute line ${absLine} in evalVBASingle\n        // (line check will be added when VBARunner implements prerun detection)`
+                : '';
+            return tryWrap(
+`        assert.throwsMatch(() => evalVBASingle(\`
 ${preamble.map(l => `      ${l}`).join('\n')}
       Sub __test__()
 ${bodyLines}
       End Sub
       __test__
-    \`), ${pattern}, '${c.name}');`);
+    \`), ${pattern}, '${c.name}');${lineCheck}`
+            );
         }
     });
 
@@ -163,7 +195,7 @@ ${bodyLines}
  * このファイルは ${path.basename(sourceFile)} から自動生成されました。
  * 再生成: npx tsx test-libs/compile-error-generator.ts ${sourceFile} --output <このファイルのパス>
  *
- * [parse]  Parser.parse() 時に例外が発生するケース
+ * [parse]  Parser.parse() 時に例外が発生するケース（行番号も検証）
  * [prerun] プロシージャ呼び出し直前の静的チェックで例外が発生するケース
  */
 
@@ -199,7 +231,10 @@ if (typeof process !== 'undefined' && process.argv[1]?.includes('compile-error-g
     const { preamble, cases } = parseCompileErrorBas(source);
 
     console.error(`Parsed ${cases.length} case(s) from ${inputPath}`);
-    cases.forEach(c => console.error(`  [${c.type}] ${c.name}`));
+    cases.forEach(c => {
+        const lineStr = c.errorLine != null ? ` line=${c.errorLine}` : '';
+        console.error(`  [${c.type}]${lineStr} ${c.name}`);
+    });
 
     const output = generateTestFile(preamble, cases, inputPath, outputPath);
 
