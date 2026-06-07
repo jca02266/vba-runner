@@ -19,14 +19,9 @@ interface VbaError {
     vbaStack?: Array<{ name: string; moduleName: string; line: number }>;
 }
 
-/** evalVBAModules または callProcedure で throw された VbaError を返す（throw されなければ失敗）。 */
+/** callProcedure を実行し、throw された VbaError を返す（throw されなければ失敗）。 */
 function catchError(modules: Array<{ name: string; code: string }>, entry: string): VbaError {
-    let ev: ReturnType<typeof evalVBAModules>;
-    try {
-        ev = evalVBAModules(modules);
-    } catch (e: any) {
-        return e as VbaError; // Option Explicit 等のコンパイルエラーは Pass2 で即時 throw
-    }
+    const ev = evalVBAModules(modules);
     try {
         ev.callProcedure(entry, []);
     } catch (e: any) {
@@ -104,9 +99,9 @@ function catchError(modules: Array<{ name: string; code: string }>, entry: strin
     console.log('[PASS] Test 2: ランタイムエラーのスタックトレース');
 }
 
-// --- Test 3: OE エラーは Pass2 コンパイル時に検出（スタックは空）---
-// OE 違反は Pass2（resolveIdentifiers）で即時 throw するため、
-// まだ callProcedure が実行されておらず vbaCallStack は空になる。
+// --- Test 3: OE エラーにもスタックトレースが付く ---
+// OE 違反は Pass2 でマップ構築、callProcedure 実行時に throw するため
+// コールスタックが積まれた状態でエラーが発生する。
 {
     const code = [
         'Option Explicit',           // 1
@@ -120,11 +115,13 @@ function catchError(modules: Array<{ name: string; code: string }>, entry: strin
 
     const e = catchError([{ name: 'Mod', code }], 'Outer');
     assert.strictEqual(e.number, 1, 'OE 違反は Error 1');
-    assert.strictEqual(e.vbaLine, 6, 'OE エラー行は違反行(6)');
-    assert.strictEqual(e.vbaModule, 'Mod', 'OE エラーのモジュール');
-    // Pass2 コンパイル時検出のためスタックは空
-    assert.strictEqual((e.vbaStack ?? []).length, 0, 'コンパイル時検出なのでスタックは空');
-    console.log('[PASS] Test 3: OE エラーは Pass2 コンパイル時に検出（スタックは空）');
+    const stack = e.vbaStack!;
+    assert.strictEqual(stack.length, 2, 'スタックは 2 フレーム');
+    assert.strictEqual(stack[0].name, 'Inner', 'フレーム0 = Inner');
+    assert.strictEqual(stack[1].name, 'Outer', 'フレーム1 = Outer');
+    assert.strictEqual(stack[0].line, 3, 'Inner は Outer の 3 行目から呼ばれた');
+    assert.strictEqual(stack[1].line, 0, 'Outer はエントリポイント');
+    console.log('[PASS] Test 3: OE エラーにもスタックトレースが付く');
 }
 
 // --- Test 4: クロスモジュール（モジュール修飾）呼び出しのスタックトレース ---

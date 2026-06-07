@@ -28,12 +28,12 @@ function catchError(
     try {
         ev = evalVBAModules(modules);
     } catch (e: any) {
-        return e as VbaError; // Option Explicit 等のコンパイルエラーは Pass2 で即時 throw
+        return e as VbaError; // 未定義プロシージャ等、Pass2 で即時 throw するコンパイルエラー
     }
     try {
         ev.callProcedure(entry, []);
     } catch (e: any) {
-        return e as VbaError;
+        return e as VbaError; // OE 違反・実行時エラー（callProcedure 時に throw）
     }
     assert.fail(`expected ${entry} to throw a runtime error`);
     throw new Error('unreachable');
