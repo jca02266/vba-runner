@@ -41,7 +41,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Function
 
     Function Test2()
-        GetValue()
+        Call GetValue()
         Test2 = 1
     End Function
     `;
