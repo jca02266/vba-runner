@@ -227,6 +227,56 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
+// [prerun] undefined_sub_call
+// VBA: コンパイルエラー: SubまたはFunctionが定義されていません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass2(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        UnknownProc
+      End Sub
+      __test__
+    `, 9, /sub or function not defined/i, 'undefined_sub_call');
+        console.log('[PASS] undefined_sub_call');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] undefined_sub_call:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] qualified_undeclared_obj
+// VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPass2(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Option Explicit
+      Sub Case_qualified_undeclared_obj()
+          UnknownModule.UnknownProc
+      End Sub
+    `, 10, /variable not declared|not declared/i, 'qualified_undeclared_obj');
+        console.log('[PASS] qualified_undeclared_obj');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] qualified_undeclared_obj:', e.message);
+        __fail__++;
+    }
+}
+
 // [prerun] sub_call_arg_count_mismatch
 // VBA: コンパイルエラー: 引数の数が一致していません。または不正なプロパティを指定しています。
 // VBA error line (within Sub body): 1

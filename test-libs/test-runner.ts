@@ -240,9 +240,19 @@ export function evalVBASingle(code: string): Evaluator {
  * Pass 2（resolveIdentifiers）を実行する。
  * クロスモジュール定数参照（ModA.X = ModB.Y + 1 など）を正しく解決するため、
  * resolveIdentifiers は全モジュールのロード後に1回だけ呼ぶ。
+ *
+ * @param options.defaultBindingObject - §5.6.10 Tier 6 オブジェクト（Excel Application 等）。
+ *   Option Explicit 違反チェックは Pass 2 で即時実行されるため、
+ *   defaultBindingObject を使う場合はここで渡す必要がある。
  */
-export function evalVBAModules(modules: Array<{ name: string; code: string }>): Evaluator {
+export function evalVBAModules(
+    modules: Array<{ name: string; code: string }>,
+    options?: { defaultBindingObject?: any },
+): Evaluator {
     const ev = new Evaluator(console.log);
+    if (options?.defaultBindingObject !== undefined) {
+        ev.setDefaultBindingObject(options.defaultBindingObject);
+    }
     const asts = modules.map(({ name, code }) => {
         const ast = new Parser(new Lexer(code).tokenize()).parse();
         ev.setSourceModule(name);

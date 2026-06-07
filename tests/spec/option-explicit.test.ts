@@ -60,7 +60,8 @@ End Sub
     console.log('[PASS] Option Explicit: undeclared variable throws runtime error');
 }
 
-// --- 4. Valid Sub can still run even when another Sub has violations ---
+// --- 4. Module with ANY violation fails at Pass 2 (entire module fails to compile) ---
+// 実VBA動作: いずれかのSubにコンパイルエラーがあるとモジュール全体がコンパイル失敗する。
 {
     const code = `
 Option Explicit
@@ -75,21 +76,15 @@ Sub BadSub()
     x = 5
 End Sub
 `;
-    const ev = evalVBA(code);
-
-    // GoodFunc should work fine
-    const goodResult = ev.callProcedure('GoodFunc', []);
-    assert.strictEqual(goodResult, 99, 'Good function still runs despite BadSub violation');
-
-    // BadSub should throw
     let threw = false;
     try {
-        ev.callProcedure('BadSub', []);
-    } catch {
+        evalVBA(code);
+    } catch (e: any) {
         threw = true;
+        assert.strictEqual(e.message.includes('not declared'), true, 'Error mentions not declared: ' + e.message);
     }
-    assert.strictEqual(threw, true, 'BadSub with undeclared var throws');
-    console.log('[PASS] Option Explicit: good subs run; bad sub throws');
+    assert.strictEqual(threw, true, 'Module with Option Explicit violation fails at Pass 2');
+    console.log('[PASS] Option Explicit: module with violation fails at Pass 2 (entire module)');
 }
 
 // --- 5. Parameters are implicitly declared ---
@@ -185,7 +180,7 @@ End Function
     console.log('[PASS] Option Explicit: module-level Dim accessible in Subs');
 }
 
-// --- 10. Diagnostics are populated for static analysis ---
+// --- 10. Diagnostics are populated even though resolveIdentifiers throws ---
 {
     const tokens = new Lexer(`
 Option Explicit
@@ -195,9 +190,14 @@ End Sub
 `).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(console.log);
-    // Option Explicit の静的解析は Pass 2（resolveIdentifiers）で実行される。
+    // Option Explicit の静的解析は Pass 2（resolveIdentifiers）で実行・即時 throw される。
+    // ただし diagnostics への記録は throw より前に完了している。
     ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    try {
+        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    } catch {
+        // expected: compile error thrown at Pass 2
+    }
     const errors = ast.diagnostics.filter(d => d.message.includes('not declared'));
     assert.strictEqual(errors.length > 0, true, 'Diagnostics contain undeclared variable error');
     assert.strictEqual(errors[0].severity, 'error', 'Diagnostic severity is error');
@@ -205,31 +205,31 @@ End Sub
 }
 
 // --- 11. Multi-module: undeclared object in call expression is flagged in 2nd pass ---
-// evalVBAModules を使うことで reEvaluateModuleConstsAll が全モジュール名を持ち、
+// evalVBAModules を使うことで全モジュール名を持ち、
 // bare identifier が本当に未宣言かどうかを精密に判定できる。
+// Pass 2（resolveIdentifiers）で即時 throw される。
 {
     const { evalVBAModules } = await import('../../test-libs/test-runner');
-    const ev = evalVBAModules([
-        {
-            name: 'ModA',
-            code: `
+    let threw = false;
+    try {
+        evalVBAModules([
+            {
+                name: 'ModA',
+                code: `
 Option Explicit
 Sub Test()
     undeclaredObj.Method()
 End Sub
 `,
-        },
-    ]);
-    let threw = false;
-    try {
-        ev.callProcedure('Test', []);
+            },
+        ]);
     } catch (e: any) {
         threw = true;
         assert.strictEqual(e.message.includes('not declared') || e.message.includes('undeclaredObj'), true,
             'Error mentions undeclaredObj: ' + e.message);
     }
-    assert.strictEqual(threw, true, 'undeclaredObj.Method() flagged when module names are known');
-    console.log('[PASS] Option Explicit: undeclaredObj.Method() detected in multi-module 2nd pass');
+    assert.strictEqual(threw, true, 'undeclaredObj.Method() flagged at Pass 2');
+    console.log('[PASS] Option Explicit: undeclaredObj.Method() detected at Pass 2');
 }
 
 // --- 12. Multi-module: known module name in call is NOT flagged ---

@@ -278,8 +278,7 @@ End Sub
     const app = new MockApplication();
     app.ActiveSheet.setCellValue('A1', 99);
 
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -302,8 +301,7 @@ End Sub
 `;
     const app = new MockApplication();
 
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -326,8 +324,7 @@ End Sub
 `;
     const app = new MockApplication();
 
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -350,8 +347,7 @@ End Sub
 `;
     const app = new MockApplication();
 
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -374,8 +370,7 @@ End Sub
     const app = new MockApplication();
     app.setActiveSheet('Summary');
 
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -402,8 +397,7 @@ Sub TestOptionExplicitWithTier6()
 End Sub
 `;
     const app = new MockApplication();
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     let printed = '';
     (ev as any).onPrint = (s: string) => { printed = s; };
@@ -438,8 +432,7 @@ End Sub
 `;
     const app = new MockApplication();
     app.ActiveSheet.setCellValue('A1', 42);
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    ev.setDefaultBindingObject(app);
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }], { defaultBindingObject: app });
 
     const out: string[] = [];
     (ev as any).onPrint = (s: string) => { out.push(s); };
@@ -450,7 +443,7 @@ End Sub
 }
 
 // ============================================================
-// 14. Tier 6 未設定の場合は従来通り SUB_OR_FUNCTION_NOT_DEFINED
+// 14. Tier 6 未設定の場合は Pass 2 で SUB_OR_FUNCTION_NOT_DEFINED（compile error）
 // ============================================================
 {
     const userCode = `
@@ -459,20 +452,20 @@ Sub TestNoTier6()
     v = Range("A1").Value
 End Sub
 `;
-    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
-    // defaultBindingObject は設定しない
-
+    // defaultBindingObject を設定しないと Pass 2（resolveIdentifiers）で compile error になる
+    let threw = false;
     try {
-        ev.callProcedure('TestNoTier6', []);
-        throw new Error('Expected error but succeeded');
+        evalVBAModules([{ name: 'UserModule', code: userCode }]);
     } catch (e: any) {
+        threw = true;
         const msg = e.message || '';
-        const isSubNotDefined = msg.includes("'35'") || e.vbaErrorCode === 35;
+        const isSubNotDefined = msg.toLowerCase().includes('sub or function not defined') || msg.includes('not defined');
         if (!isSubNotDefined) {
-            throw new Error(`Expected error 35 (Sub or Function not defined), got: ${msg}`);
+            throw new Error(`Expected compile error (Sub or Function not defined), got: ${msg}`);
         }
-        console.log('[PASS] 14. Tier 6 未設定時は SUB_OR_FUNCTION_NOT_DEFINED のまま');
     }
+    assert.strictEqual(threw, true, 'Expected compile error when Tier 6 not configured');
+    console.log('[PASS] 14. Tier 6 未設定時は Pass 2 で SUB_OR_FUNCTION_NOT_DEFINED（compile error）');
 }
 
 console.log('\n✅ Tier 6 型名前空間/値名前空間分離: 全テスト通過');

@@ -3370,19 +3370,40 @@ export class Evaluator {
         const knownModuleNames = new Set<string>(
             modules.map(m => m.moduleName.toLowerCase()).filter(n => n !== '')
         );
+        // Option Explicit チェック（Pass 2 で即時評価）。
         // resolveIdentifiers が複数回呼ばれても冪等になるよう、毎回クリアして再構築する。
+        // defaultBindingObject（§5.6.10 Tier 6）が設定済みの場合はその名前を既解決とみなす。
+        // defaultBindingObject は resolveIdentifiers 呼び出し前に設定しておく必要がある。
         this.optionExplicitViolations.clear();
         for (const { ast } of modules) {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
-            for (const [name, undeclared] of violatedProcedures) {
-                this.optionExplicitViolations.set(name, new Map(undeclared));
+            for (const [procName, undeclared] of violatedProcedures) {
+                // defaultBindingObject または module-level env で解決できる名前は除外する
+                const stillMissing = new Map(
+                    [...undeclared.entries()].filter(([n]) => {
+                        if (this.env.hasVariable(n)) return false;
+                        if (this.defaultBindingObject &&
+                                this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+                        return true;
+                    })
+                );
+                if (stillMissing.size > 0) {
+                    const names = [...stillMissing.keys()].join(', ');
+                    const firstLine = [...stillMissing.values()][0] ?? 0;
+                    throw new Error(`Compile error: Variable not declared in '${procName}' (Option Explicit): ${names} (line ${firstLine})`);
+                }
             }
         }
 
         // 未定義プロシージャ呼び出し検出（prerun compile error）。
-        // 全モジュールのプロシージャ名を収集し、非修飾 Identifier callee が
+        // 全モジュールのプロシージャ名・モジュール名を収集し、非修飾 Identifier callee が
         // いずれのスコープにも存在しない場合は「Sub or Function not defined」として即時エラー。
+        // defaultBindingObject（Tier 6）のメンバーは既知として扱う。
         const knownProcNames = new Set<string>();
+        // モジュール名自体もコール位置に現れうるため既知として登録する
+        for (const { moduleName } of modules) {
+            if (moduleName) knownProcNames.add(moduleName.toLowerCase());
+        }
         for (const { ast } of modules) {
             for (const stmt of ast.body) {
                 if (stmt.type === 'ProcedureDeclaration') {
@@ -3392,6 +3413,13 @@ export class Evaluator {
                         knownProcNames.add(proc.name.name.toLowerCase());
                     }
                 }
+            }
+        }
+        if (this.defaultBindingObject) {
+            let cur = this.defaultBindingObject;
+            while (cur && cur !== Object.prototype && cur !== Function.prototype) {
+                for (const k of Object.getOwnPropertyNames(cur)) knownProcNames.add(k.toLowerCase());
+                cur = Object.getPrototypeOf(cur);
             }
         }
         for (const { ast } of modules) {

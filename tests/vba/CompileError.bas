@@ -145,9 +145,8 @@ End Sub
 '   MySub(42) は VBE 上では自動フォーマットで `MySub (42)` に変換され、
 '   コンパイルエラーにはならない（42 を括弧式として評価し Sub に渡す VBA 仕様）。
 '
-'   UnknownModule.UnknownProc → コンパイルエラーにならない（実行時エラー 424: Object required）。
-'     VBA では修飾付き呼び出し = 動的解決（実行時）のため、prerun 検出対象外。
-'     ※ 非修飾 UnknownProc はコンパイルエラー（下記 Case_undefined_sub_call 参照）。
+'   UnknownModule.UnknownProc（Option Explicit なし）→ 実行時エラー 424（Object required）。
+'     Option Explicit あり の場合は変数未宣言コンパイルエラー（下記 Case_qualified_undeclared 参照）。
 '
 ' 未実装（VBARunner が未検出）:
 '   同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）→ VBE では prerun エラー
@@ -158,10 +157,24 @@ End Sub
 ' RUNNER: /sub or function not defined/i
 ' NOTE: 非修飾の未定義プロシージャ呼び出しは静的検証（コンパイル時）でエラー。
 '   修飾付き（UnknownModule.UnknownProc）は実行時エラー 424（動的解決）のためここに含めない。
-' STATUS: 未実装 — VBARunner は現在 Pass2 でこのエラーを検出せず、実行時エラー 35 になる
 Sub Case_undefined_sub_call()
     UnknownProc ' @error
 End Sub
+
+' CASE: qualified_undeclared_obj
+' TYPE: prerun
+' VBA: コンパイルエラー: 変数が定義されていません（Option Explicit で unknownModule が未宣言）
+' RUNNER: /variable not declared|not declared/i
+' NOTE: Option Explicit 有効時、修飾付き呼び出し UnknownModule.Method の
+'   オブジェクト部分 UnknownModule が未宣言変数として検出される。
+'   Option Explicit がない場合は Dim が暗黙挿入されて実行時エラー 424 になる。
+'   @case-begin...@case-end を使い、Sub を実行せず Pass 2（resolveIdentifiers）でのみ検出。
+'@case-begin
+Option Explicit
+Sub Case_qualified_undeclared_obj()
+    UnknownModule.UnknownProc ' @error
+End Sub
+'@case-end
 
 ' CASE: sub_call_arg_count_mismatch
 ' TYPE: prerun
