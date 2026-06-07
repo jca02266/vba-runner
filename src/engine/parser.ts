@@ -479,6 +479,8 @@ export interface NewExpression extends Expression {
 export interface Identifier extends Expression {
     type: 'Identifier';
     name: string;
+    /** true when parsed from FOREIGN-NAME `[...]` syntax (§3.3.5.2) */
+    foreign?: boolean;
 }
 
 export interface ImplicitWithObjectExpression extends Expression {
@@ -621,6 +623,7 @@ export class Parser {
      *  either a plain lex-identifier or a contextual keyword that is not reserved. */
     private isIdentifier(token: Token): boolean {
         return token.type === TokenType.Identifier
+            || token.type === TokenType.ForeignName
             || Parser.CONTEXTUAL_KW.has(token.type);
     }
 
@@ -633,6 +636,7 @@ export class Parser {
     // Keywords can appear as property/class names in VBA (e.g. obj.Property, New Collection)
     private isNameToken(token: Token): boolean {
         return token.type === TokenType.Identifier
+            || token.type === TokenType.ForeignName
             || (token.type >= TokenType.KeywordFor && token.type <= TokenType.KeywordAddressOf);
     }
 
@@ -1437,7 +1441,8 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
-        } else if (token.type === TokenType.Identifier || token.type === TokenType.OperatorDot ||
+        } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
+                   token.type === TokenType.OperatorDot ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type)) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
@@ -1506,7 +1511,9 @@ export class Parser {
                     // identifier() with empty parens in statement position (no Call keyword)
                     // is always a syntax error — use `identifier`, `identifier arg`, or
                     // `Call identifier()` instead.
-                    if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier') {
+                    // FOREIGN-NAME [identifier]() is exempt: used to call COM methods by reserved names.
+                    if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier' &&
+                            !(callExpr.callee as Identifier).foreign) {
                         const line = callExpr.loc?.start.line ?? this.peek().line;
                         this.throwError(`Parse error: syntax error at line ${line}`);
                     }
@@ -2562,6 +2569,8 @@ export class Parser {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
             expr = { type: 'DateLiteral', value: token.value } as DateLiteral;
+        } else if (token.type === TokenType.ForeignName) {
+            expr = { type: 'Identifier', name: token.value, foreign: true } as Identifier;
         } else if (token.type === TokenType.Identifier ||
                    Parser.CONTEXTUAL_KW.has(token.type) ||
                    Parser.COMPAT_KW_EXPR.has(token.type)) {

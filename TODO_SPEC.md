@@ -130,7 +130,7 @@
 | ✅ | P1 | Option Private Module | §5.2.1.4 | `option-private.test.ts` |
 | ✅ | P0 | Attributes (VB_Name, etc.) | §5.2.3.1.6 / §5.2.4.1 | (制限事項: パースのみ。実行時は無視) | `ui_attr.test.ts` |
 | ✅ | P0 | Date Literals (#mm/dd/yyyy#) | §3.3.3.3 | `number_literals.test.ts` |
-| ❌ | P2 | FOREIGN-NAME `[identifier]` 構文 — 予約語をプロシージャ呼び出しに使用（例: `[End]()`）。定義側（`Sub [End]`）は実 VBA でも不可。未定義でも Option Explicit エラーにならない挙動を含む | §3.3.5.2 | `foreign-name.test.ts` |
+| 🚧 | P2 | FOREIGN-NAME `[identifier]` 構文 — 予約語をプロシージャ呼び出しに使用（例: `[End]()`）。定義側（`Sub [End]`）は実 VBA でも不可。未定義でも Option Explicit エラーにならない挙動を含む | §3.3.5.2 | `foreign-name.test.ts` |
 
 ## 第5章：演算子 (§5.6.9)
 
@@ -608,15 +608,13 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 症状: `With` ブロック内でキーワード名プロパティを使うと、含む Sub/Function 全体がエラーリカバリで消滅する
   - 修正: `isNameToken()` を使い、`Identifier` またはキーワード範囲のトークンを許可
 
-- ❌ **偽陽性: `MySub()` / `MySub(arg)` を文として書いてもエラーにならない** | `tests/vba/CallSyntaxTest.bas`
+- ✅ **偽陽性: `MySub()` / `MySub(arg)` を文として書いてもエラーにならない** | `tests/spec/vba_compile_error.test.ts`
   - 実 VBA: "ステートメントの末尾が正しくありません" コンパイルエラー
-  - 原因: `parser.ts` L1502-1504 の `CallExpression` を `CallStatement` に変換するブランチが、カッコ付きの Sub 呼び出しを無条件に許可している
-  - 修正方針: `CallStatement` への変換時に引数リストのカッコ有無をチェックし、カッコ付きはエラーとする（`Call` キーワードなしの場合）
+  - 修正: Pass1 で `CallExpression` を `CallStatement` に変換するブランチで、カッコ付き Sub 呼び出しをエラーとするよう修正
 
-- ❌ **偽陽性: `v = MySub` / `v = MySub()` を式文脈で書いてもエラーにならない** | `tests/vba/CallSyntaxTest.bas`
+- ✅ **偽陽性: `v = MySub` / `v = MySub()` を式文脈で書いてもエラーにならない** | `tests/spec/vba_compile_error.test.ts`
   - 実 VBA: "Function または変数が必要です" コンパイルエラー
-  - 原因: `resolveIdentifiers`（2nd パス）で Sub プロシージャを式文脈で参照していることの静的チェックがない
-  - 修正方針: `resolveIdentifiers` で代入右辺・式文脈の識別子が Sub として登録されていれば compile error を発生させる
+  - 修正: Pass2 (`resolveIdentifiers`) で代入右辺・式文脈で Sub を参照した場合に compile error を発生させるよう修正
 
 ### Evaluator バグ修正
 

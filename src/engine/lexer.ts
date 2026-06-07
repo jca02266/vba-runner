@@ -136,7 +136,8 @@ export const enum TokenType {
     Date,
     Newline,
     EOF,
-    Unknown
+    Unknown,
+    ForeignName,
 }
 
 export interface Token {
@@ -422,6 +423,17 @@ export class Lexer {
             if (char === ')') {
                 this.advance();
                 return { type: TokenType.OperatorRParen, value: ')', line: startLine, column: startColumn };
+            }
+
+            // FOREIGN-NAME: "[" foreign-identifier "]"  (§3.3.5.2)
+            if (char === '[') {
+                this.advance(); // consume '['
+                let foreignStr = '';
+                while (this.peek() !== ']' && this.peek() !== '\n' && this.peek() !== '\r' && this.peek() !== '\0') {
+                    foreignStr += this.advance();
+                }
+                if (this.peek() === ']') this.advance(); // consume ']'
+                return { type: TokenType.ForeignName, value: foreignStr, line: startLine, column: startColumn };
             }
 
             if (char === '.') {

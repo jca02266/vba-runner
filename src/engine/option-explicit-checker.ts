@@ -360,6 +360,7 @@ function exprLine(expr: Expression): number {
 function checkExprIdents(expr: Expression, declared: Set<string>, diagnostics: ParseDiagnostic[], onViolation: OnViolation): void {
     if (expr.type === 'Identifier') {
         const id = expr as Identifier;
+        if (id.foreign) return; // FOREIGN-NAME [identifier] は Option Explicit チェック対象外 (§3.3.5.2)
         const lower = id.name.toLowerCase();
         if (!declared.has(lower) && !VBA_BUILTINS.has(lower)) {
             reportUndeclared(id.name, expr, diagnostics);
@@ -373,6 +374,7 @@ function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDi
     switch (expr.type) {
         case 'Identifier': {
             const id = expr as Identifier;
+            if (id.foreign) break; // FOREIGN-NAME [identifier] は Option Explicit チェック対象外
             const lower = id.name.toLowerCase();
             if (!declared.has(lower) && !VBA_BUILTINS.has(lower)) {
                 reportUndeclared(id.name, expr, diagnostics);
@@ -535,10 +537,12 @@ function walkProcForUndefinedCalls(
     const visitCall = (ce: CallExpression): void => {
         if (ce.callee.type === 'Identifier') {
             const id = ce.callee as Identifier;
-            const lower = id.name.toLowerCase();
-            if (!isKnown(lower)) {
-                const line = (ce.callee as any).loc?.start?.line ?? 0;
-                errors.push({ name: id.name, line });
+            if (!id.foreign) { // FOREIGN-NAME は未定義プロシージャチェック対象外
+                const lower = id.name.toLowerCase();
+                if (!isKnown(lower)) {
+                    const line = (ce.callee as any).loc?.start?.line ?? 0;
+                    errors.push({ name: id.name, line });
+                }
             }
         }
         for (const arg of ce.args) visitExpr(arg);
