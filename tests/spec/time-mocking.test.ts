@@ -1,27 +1,19 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { VBARunner, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, VBARunner, assert } from '../../test-libs/test-runner';
 
-function makeEv(nowFn: (() => Date) | null = null): Evaluator {
-    const ev = new Evaluator(() => {});
-    if (nowFn) ev.setNowFn(nowFn);
-    return ev;
-}
-
-function run(ev: Evaluator, code: string, proc: string, args: any[] = []): any {
-    const ast = new Parser(new Lexer(code).tokenize()).parse();
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return ev.callProcedure(proc, args);
+function run(nowFn: (() => Date) | null, code: string, proc: string, args: any[] = []): any {
+    return evalVBASingle(code, {
+        onPrint: () => {},
+        setup: ev => { if (nowFn) ev.setNowFn(nowFn); },
+    }).callProcedure(proc, args);
 }
 
 const FIXED = new Date(2024, 2, 15, 10, 30, 45); // 2024-03-15 10:30:45 local
 
 // 1. Now() returns mocked date
 {
-    const ev = makeEv(() => FIXED);
-    const result = run(ev, `
+    const result = run(() => FIXED, `
 Function Test1() As Long
     Test1 = Year(Now())
 End Function
@@ -32,8 +24,7 @@ End Function
 
 // 2. Date returns date-only part
 {
-    const ev = makeEv(() => FIXED);
-    const result = run(ev, `
+    const result = run(() => FIXED, `
 Function Test2() As Long
     Test2 = Month(Date())
 End Function
@@ -44,8 +35,7 @@ End Function
 
 // 3. Day() from mocked Now
 {
-    const ev = makeEv(() => FIXED);
-    const result = run(ev, `
+    const result = run(() => FIXED, `
 Function Test3() As Long
     Test3 = Day(Now())
 End Function
@@ -56,8 +46,7 @@ End Function
 
 // 4. Hour/Minute/Second from mocked Now
 {
-    const ev = makeEv(() => FIXED);
-    const result = run(ev, `
+    const result = run(() => FIXED, `
 Function Test4() As String
     Test4 = Hour(Now()) & ":" & Minute(Now()) & ":" & Second(Now())
 End Function
@@ -68,8 +57,7 @@ End Function
 
 // 5. Time returns fractional day (time-only part)
 {
-    const ev = makeEv(() => FIXED);
-    const result = run(ev, `
+    const result = run(() => FIXED, `
 Function Test5() As Long
     Test5 = Hour(Time())
 End Function
@@ -80,8 +68,7 @@ End Function
 
 // 6. VBA branch based on mocked year
 {
-    const ev = makeEv(() => new Date(2024, 0, 1)); // 2024-01-01 local
-    const result = run(ev, `
+    const result = run(() => new Date(2024, 0, 1), `
 Function Test6() As String
     If Year(Now()) = 2024 Then
         Test6 = "leap year"
@@ -96,15 +83,12 @@ End Function
 
 // 7. mockDate changes result mid-test via setNowFn
 {
-    const ev = new Evaluator(() => {});
     const code = `
 Function GetYear() As Long
     GetYear = Year(Now())
 End Function
 `;
-    const ast = new Parser(new Lexer(code).tokenize()).parse();
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    const ev = evalVBASingle(code, { onPrint: () => {} });
 
     ev.setNowFn(() => new Date(2020, 5, 1)); // 2020-06-01 local
     const r1 = ev.callProcedure('GetYear', []);
@@ -123,13 +107,14 @@ End Function
 // 8. VBARunner.mockDate integration
 {
     const vt = new VBARunner();
-    // Load code directly
-    const ast = new Parser(new Lexer(`
+    const code = `
 Function GetMonth() As Long
     GetMonth = Month(Now())
 End Function
-`).tokenize()).parse();
-    vt.evaluator.evaluate(ast);
+`;
+    const ast = new Parser(new Lexer(code).tokenize()).parse();
+    vt.evaluator.evaluateModule(ast);
+    vt.evaluator.resolveIdentifiers([{ ast, moduleName: '' }]);
 
     vt.mockDate('2024-07-04T12:00:00Z');
     const month = vt.evaluator.callProcedure('GetMonth', []);

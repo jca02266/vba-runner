@@ -235,6 +235,9 @@ export interface EvalOptions {
      *  Option Explicit 違反チェックは Pass 2 で即時実行されるため、
      *  defaultBindingObject を使う場合はここで渡す必要がある。 */
     defaultBindingObject?: any;
+    /** Evaluator 生成直後・evaluateModule 呼び出し前に実行されるコールバック。
+     *  setNowFn / set / setConstant 等の前処理に使う。 */
+    setup?: (ev: Evaluator) => void;
 }
 
 /**
@@ -249,6 +252,7 @@ export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
         sandboxRoot: options?.sandboxRoot,
         env: options?.env,
     });
+    options?.setup?.(ev);
     ev.evaluateModule(ast);
     ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev;
@@ -273,6 +277,7 @@ export function evalVBAModules(
     if (options?.defaultBindingObject !== undefined) {
         ev.setDefaultBindingObject(options.defaultBindingObject);
     }
+    options?.setup?.(ev);
     const asts = modules.map(({ name, code }) => {
         const ast = new Parser(new Lexer(code).tokenize()).parse();
         ev.setSourceModule(name);
