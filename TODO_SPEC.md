@@ -829,14 +829,26 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ---
 
+## リテラル型・演算子型の未実装項目
+
+詳細は [`docs/internals/LITERALS_AND_OPERATORS.md`](../docs/internals/LITERALS_AND_OPERATORS.md) を参照。
+
+| 状態 | 項目 | 概要 |
+|------|------|------|
+| ❌ | **数値リテラルのサフィックス型情報保持** | `NumberLiteral` AST に `typeSuffix` フィールドがなくサフィックスが捨てられる。`TypeName(100&)` → `Long` のはず → `Integer`。`1.5!` → `Single` のはず → `Double` |
+| ❌ | **サフィックス付きリテラルのオーバーフロー検出** | `100000%` は Integer オーバーフロー（Error 6）のはずだがエラーにならない |
+| ❌ | **`1.0` リテラルの型推定誤り** | JavaScript の `Number.isInteger(1.0) === true` のため `TypeName(1.0)` が `"Double"` でなく `"Integer"` になる |
+| ❌ | **算術演算結果の型伝播** | `TypeName(1 + 1)` → `"Integer"` のはず → `"Double"`。`VbaInteger`/`VbaLong`/`VbaSingle` ラッパーが未実装のため全算術結果が `number` 型（= Double 扱い）になる |
+| ⚠️ | **Currency ランタイムラッパー未実装** | `CCur()` は plain `number` を返す。変数に格納後の `TypeName` は `"Double"` になる。`TypeName(CCur(x))` が正しく返るのは AST 推定（`BUILTIN_RETURN_TYPES`）によるもので実値の型ではない |
+| ⚠️ | **Currency 算術演算の型保持なし** | `CCur(1) + CCur(2)` の結果は `"Double"` になる（Currency 型が失われる） |
+| ⚠️ | **Decimal 精度が IEEE 754 止まり** | `VbaDecimal` ラッパーは存在するが内部値は JS `number`（17桁精度）。VBA 仕様の 28 桁固定精度を満たさない |
+| ⚠️ | **Decimal 算術演算の型保持なし** | `CDec(1) + CDec(2)` で `VbaDecimal` がアンラップされ plain `number` になる |
+
+---
+
 ## テストコードのリファクタリング残件
 
-- ⚠️ **`tests/spec/` に `.evaluate(ast)` 形式が残存（33ファイル）**
-  - 変数名が `evaluator` / `ev3` 等、または `new Evaluator(...).evaluate(ast)` のインライン形式
-  - `tests/spec/` 以外（`sample/tests/ts/`, `test-libs/`, `src/` 等）は移行完了済み
-  - `ev.evaluate` の移行（`evalVBASingle` / `evalVBAModules` / `evaluateModule+resolveIdentifiers`）と同様の対応が必要
-  - 主なファイル: `evaluator-scoping.test.ts`, `empty-module-validation.test.ts`, `vb-name-attribute.test.ts`, `environ.test.ts` 他
-  - 特殊パターン: `function-return-coercion.test.ts` の `new Evaluator(s => ...).evaluate(ast)` インライン形式
+- ✅ **`tests/spec/` の `.evaluate(ast)` 形式を `evalVBASingle` / `evalVBAModules` に移行完了（33ファイル）**
 
 ---
 
