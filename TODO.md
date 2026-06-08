@@ -1150,6 +1150,17 @@ VBA Runner を使って以下の順で進めてください：
 
 ---
 
+## 旧 API `ev.evaluate()` の廃止
+
+`Evaluator.evaluate(program)` は Pass 1 のみ実行する旧 API だったが、現在は `resolveIdentifiers` も呼ぶよう修正済み。
+ただし根本的には `evalVBASingle` / `evalVBAModules` に置き換えるべきであり、`evaluate()` は削除対象。
+
+- [ ] `tests/spec/` 配下で `ev.evaluate(ast)` を使っている旧テストを `evalVBASingle` / `evalVBAModules` に移行する
+- [ ] 旧テストで `ev.env.get('varName')` で結果を確認しているものを、関数戻り値で確認するパターンに書き換える
+- [ ] 移行完了後、`Evaluator.evaluate()` を削除する
+
+---
+
 ## 保留中・将来課題
 
 ### Excel ⇔ VBA ソースの抽出・書き戻し機能の評価と拡張機能への組み込み
