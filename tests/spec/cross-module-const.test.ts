@@ -4,40 +4,25 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
-
-function makeModules(sources: Record<string, string>) {
-    const ev = new Evaluator(console.log);
-    const modules: Array<{ ast: any; moduleName: string }> = [];
-
-    for (const [moduleName, src] of Object.entries(sources)) {
-        ev.setSourceModule(moduleName);
-        const ast = new Parser(new Lexer(src).tokenize()).parse();
-        ev.evaluateModule(ast);
-        modules.push({ ast, moduleName });
-    }
-
-    ev.reEvaluateModuleConstsAll(modules);
-    return ev;
-}
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 // --- 1. 非循環: ロード順に依存しない（Public Const はクロスモジュール参照可）---
 {
-    const ev = makeModules({
-        Module2: `Option Explicit\nPublic Const myDir = xlUp`,
-        Module1: `Public Const xlUp As Long = -4162`,
-    });
+    const ev = evalVBAModules([
+        { name: 'Module2', code: 'Option Explicit\nPublic Const myDir = xlUp' },
+        { name: 'Module1', code: 'Public Const xlUp As Long = -4162' },
+    ]);
     assert.strictEqual(ev.get('myDir'), -4162,
         '逆ロード順でもクロスモジュール Public Const が正しく解決される');
 }
 
 // --- 2. チェーン参照 ---
 {
-    const ev = makeModules({
-        ModA: `Public Const BaseVal As Long = 10`,
-        ModB: `Public Const Increment As Long = BaseVal + 5`,
-        ModC: `Public Const Limit As Long = Increment * 2`,
-    });
+    const ev = evalVBAModules([
+        { name: 'ModA', code: 'Public Const BaseVal As Long = 10' },
+        { name: 'ModB', code: 'Public Const Increment As Long = BaseVal + 5' },
+        { name: 'ModC', code: 'Public Const Limit As Long = Increment * 2' },
+    ]);
     assert.strictEqual(ev.get('limit'), 30,
         'チェーン参照: BaseVal=10, Increment=15, Limit=30');
 }
@@ -46,10 +31,10 @@ function makeModules(sources: Record<string, string>) {
 {
     let threw = false;
     try {
-        makeModules({
-            M1: `Public Const ConstAlpha As Long = ConstBeta + 1`,
-            M2: `Public Const ConstBeta As Long = ConstAlpha + 1`,
-        });
+        evalVBAModules([
+            { name: 'M1', code: 'Public Const ConstAlpha As Long = ConstBeta + 1' },
+            { name: 'M2', code: 'Public Const ConstBeta As Long = ConstAlpha + 1' },
+        ]);
     } catch {
         threw = true;
     }
@@ -61,9 +46,9 @@ function makeModules(sources: Record<string, string>) {
     let threw = false;
     let msg = '';
     try {
-        makeModules({
-            M: `Public Const A As Long = B + 1\nPublic Const B As Long = A + 1`,
-        });
+        evalVBAModules([
+            { name: 'M', code: 'Public Const A As Long = B + 1\nPublic Const B As Long = A + 1' },
+        ]);
     } catch (e: any) {
         threw = true;
         msg = e.message;
@@ -76,7 +61,7 @@ function makeModules(sources: Record<string, string>) {
 {
     let threw = false;
     try {
-        makeModules({ M: `Public Const SelfRef As Long = SelfRef + 1` });
+        evalVBAModules([{ name: 'M', code: 'Public Const SelfRef As Long = SelfRef + 1' }]);
     } catch (e: any) {
         threw = true;
     }
@@ -113,8 +98,6 @@ function makeModules(sources: Record<string, string>) {
 // --- 6. 未定義名を手続き内で直接使うと Option Explicit が機能する ---
 // const 右辺経由ではなく、手続き内で直接参照した場合のテスト
 {
-    const ev = new Evaluator(console.log);
-    // xlUp を手続きの引数として渡す（引数位置の識別子はチェッカーが検査する）
     const src = [
         'Option Explicit',
         'Function Identity(x As Long) As Long',
@@ -124,10 +107,7 @@ function makeModules(sources: Record<string, string>) {
         '  UseXlUp = Identity(xlUp)',
         'End Function',
     ].join('\n');
-    const ast = new Parser(new Lexer(src).tokenize()).parse();
-    ev.setSourceModule('Module1');
-    ev.evaluate(ast);
-    ev.reEvaluateModuleConstsAll([{ ast, moduleName: 'Module1' }]);
+    const ev = evalVBASingle(src);
 
     // xlUp はどこにも定義されていないので Option Explicit 違反
     let threw = false;
@@ -144,10 +124,10 @@ function makeModules(sources: Record<string, string>) {
     let threw = false;
     let msg = '';
     try {
-        makeModules({
-            Module1: `Public Const A = B`,
-            Module2: `Private Const B As Long = 42`,
-        });
+        evalVBAModules([
+            { name: 'Module1', code: 'Public Const A = B' },
+            { name: 'Module2', code: 'Private Const B As Long = 42' },
+        ]);
     } catch (e: any) {
         threw = true;
         msg = e.message;
@@ -159,10 +139,10 @@ function makeModules(sources: Record<string, string>) {
 
 // --- 8. Public Const は他モジュールから参照可 ---
 {
-    const ev = makeModules({
-        Module1: `Public Const A = B`,
-        Module2: `Public Const B As Long = 42`,
-    });
+    const ev = evalVBAModules([
+        { name: 'Module1', code: 'Public Const A = B' },
+        { name: 'Module2', code: 'Public Const B As Long = 42' },
+    ]);
     assert.strictEqual(ev.get('a'), 42, '他モジュールの Public Const は参照可');
 }
 
