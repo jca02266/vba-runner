@@ -431,7 +431,7 @@ End Class`;
                     new Lexer(ASSERT_HELPER_SRC).tokenize(),
                     { parseAsClass: 'AssertHelper' }
                 ).parse();
-                ev.evaluate(assertAst);
+                ev.evaluateModule(assertAst);
                 asts.push({ ast: assertAst, moduleName: 'AssertHelper' });
 
                 // __mocks__/ と __mocks__.* からモックを注入（本番モジュールより先）
@@ -451,14 +451,14 @@ End Class`;
                     let ast;
                     if (/\.cls$/i.test(entry)) {
                         ast = new Parser(tokens, { parseAsClass: moduleName }).parse();
-                        ev.evaluate(ast);
+                        ev.evaluateModule(ast);
                     } else {
                         ev.setSourceModule(moduleName);
                         ast = new Parser(tokens, { errorRecovery: true }).parse();
                         for (const d of ast.diagnostics) {
                             outputChannel.appendLine(`[parse warning] ${moduleName} line ${d.loc.start.line}: ${d.message}`);
                         }
-                        ev.evaluate(ast);
+                        ev.evaluateModule(ast);
                     }
                     asts.push({ ast, moduleName });
                 }
@@ -480,7 +480,7 @@ End Class`;
                     ].join('\n');
                     ev.setSourceModule('__VBARunner_wrapper__');
                     const wrapperAst = new Parser(new Lexer(wrapperSrc).tokenize()).parse();
-                    ev.evaluate(wrapperAst);
+                    ev.evaluateModule(wrapperAst);
                     asts.push({ ast: wrapperAst, moduleName: '__VBARunner_wrapper__' });
                     callTarget = wrapperName;
                 }

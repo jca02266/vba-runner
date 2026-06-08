@@ -7,11 +7,8 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Lexer } from '../../../src/engine/lexer';
-import { Parser } from '../../../src/engine/parser';
-import { Evaluator } from '../../../src/engine/evaluator';
 import { MockApplication } from '../../../src/engine/mock/MockExcel';
-import { assert } from '../../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../../test-libs/test-runner';
 
 // ============================================================
 // ユーティリティ：VBA ファイルを読み込む
@@ -26,14 +23,8 @@ function readVbaFile(filename: string): string {
   return fs.readFileSync(filepath, 'utf-8');
 }
 
-function compileVba(code: string): Evaluator {
-  const tokens = new Lexer(code).tokenize();
-  const ast = new Parser(tokens).parse();
-  const ev = new Evaluator((msg: string) => {
-    // デバッグ出力（テスト時は無視）
-  });
-  ev.evaluate(ast);
-  return ev;
+function compileVba(code: string) {
+  return evalVBASingle(code, { onPrint: () => {} });
 }
 
 // ============================================================

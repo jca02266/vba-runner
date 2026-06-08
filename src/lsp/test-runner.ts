@@ -106,7 +106,8 @@ export class TestRunner {
 
             // Evaluate the entire module to set up scope, then call the test
             const ev = new Evaluator(console.log);
-            ev.evaluate(ast);
+            ev.evaluateModule(ast);
+            ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 
             // Call the test procedure
             try {

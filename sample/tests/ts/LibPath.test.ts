@@ -1,7 +1,4 @@
-import { Lexer } from '../../../src/engine/lexer';
-import { Parser } from '../../../src/engine/parser';
-import { Evaluator } from '../../../src/engine/evaluator';
-import { assert } from '../../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../../test-libs/test-runner';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -10,13 +7,7 @@ const libCode = fs.readFileSync(
     'utf-8'
 );
 
-const ev = (() => {
-    const tokens = new Lexer(libCode).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
-})();
+const ev = evalVBASingle(libCode);
 
 function r(name: string, ...args: any[]): any {
     return ev.callProcedure(name, args);

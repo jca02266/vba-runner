@@ -1,7 +1,4 @@
-import { Lexer } from '../../../src/engine/lexer';
-import { Parser } from '../../../src/engine/parser';
-import { Evaluator } from '../../../src/engine/evaluator';
-import { assert, vbaTrue, vbaFalse } from '../../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../../test-libs/test-runner';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -11,15 +8,11 @@ const libCode = fs.readFileSync(
 );
 
 // LibDate.bas + DateSerial ヘルパー付き評価器
-function makeEv(): Evaluator {
+function makeEv() {
     const code = libCode + `
     Function D(y, m, dv): D = DateSerial(y, m, dv): End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 const ev = makeEv();
