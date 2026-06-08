@@ -1,23 +1,11 @@
-import { assert } from '../../test-libs/test-runner';
-import { Evaluator } from '../../src/engine/evaluator';
-import { Parser } from '../../src/engine/parser';
-import { Lexer } from '../../src/engine/lexer';
-
-function evalVBA(code: string) {
-    const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 console.log('[Test Suite] Declare Statement (External Function) の検証');
 
 const code = `
     Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
     Declare Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
-    
+
     Function TestDeclare()
         Dim t
         t = GetTickCount()
@@ -26,7 +14,7 @@ const code = `
     End Function
 `;
 
-const ev = evalVBA(code);
+const ev = evalVBASingle(code);
 
 // Should not throw and should call the stub
 assert.strictEqual(ev.callProcedure('TestDeclare', []), 0, 'Declare function should return 0 (stub default)');

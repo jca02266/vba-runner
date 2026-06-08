@@ -3532,29 +3532,17 @@ export class Evaluator {
         const knownModuleNames = new Set<string>(
             modules.map(m => m.moduleName.toLowerCase()).filter(n => n !== '')
         );
-        // Option Explicit チェック（Pass 2 で即時評価）。
+        // Option Explicit チェック: Pass 2 では純粋な静的 AST 解析結果をキャッシュするだけ。
+        // env（ev.set() 等による実行時注入）との突合せは precheckProc で行うことで責務を分離する。
         // resolveIdentifiers が複数回呼ばれても冪等になるよう、毎回クリアして再構築する。
-        // defaultBindingObject（§5.6.10 Tier 6）が設定済みの場合はその名前を既解決とみなす。
-        // defaultBindingObject は resolveIdentifiers 呼び出し前に設定しておく必要がある。
-        // Option Explicit チェック: Pass2 では違反マップを構築するだけ。
         // 実際の throw は callProcedure（§5.6.10）で行い、
         // コールスタックが積まれた状態でエラーを報告する。
         this.optionExplicitViolations.clear();
         for (const { ast } of modules) {
             const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
             for (const [procName, undeclared] of violatedProcedures) {
-                // defaultBindingObject または module-level env で解決できる名前は除外する
-                const stillMissing = new Map(
-                    [...undeclared.entries()].filter(([n]) => {
-                        if (this.env.hasVariable(n)) return false;
-                        if (this.typeLibraryNamespaces.has(n)) return false;
-                        if (this.defaultBindingObject &&
-                                this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-                        return true;
-                    })
-                );
-                if (stillMissing.size > 0) {
-                    this.optionExplicitViolations.set(procName, stillMissing);
+                if (undeclared.size > 0) {
+                    this.optionExplicitViolations.set(procName, undeclared);
                 }
             }
         }

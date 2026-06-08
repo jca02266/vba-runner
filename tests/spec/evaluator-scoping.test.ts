@@ -12,7 +12,8 @@ function loadAndEvaluate(evaluator: Evaluator, code: string, moduleName: string)
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     evaluator.setSourceModule(moduleName);
-    evaluator.evaluate(ast);
+    evaluator.evaluateModule(ast);
+    evaluator.resolveIdentifiers([{ ast, moduleName }]);
 }
 
 const moduleACode = `

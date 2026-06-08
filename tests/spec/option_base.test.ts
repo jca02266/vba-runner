@@ -1,17 +1,4 @@
-import { assert } from '../../test-libs/test-runner';
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-
-function setupEvaluator(code: string, outputCollector: string[]) {
-    const lexer = new Lexer(code);
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => outputCollector.push(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 console.log('[Test Suite] Option Base and Collection の検証');
 
@@ -30,9 +17,9 @@ console.log('[Test Suite] Option Base and Collection の検証');
         End Sub
     `;
     const output: string[] = [];
-    const ev = setupEvaluator(code, output);
+    const ev = evalVBASingle(code, { onPrint: (s) => output.push(s) });
     ev.callProcedure('TestArray', []);
-    
+
     console.log('Actual output:', output);
     assert.strictEqual(output[0], '10', 'arr(1) should be 10');
     assert.strictEqual(output[1], '50', 'arr(5) should be 50');
@@ -56,7 +43,7 @@ console.log('[Test Suite] Option Base and Collection の検証');
         End Sub
     `;
     const output: string[] = [];
-    const ev = setupEvaluator(code, output);
+    const ev = evalVBASingle(code, { onPrint: (s) => output.push(s) });
     ev.callProcedure('TestCollection', []);
 
     assert.strictEqual(output[0], '2', 'Initial count should be 2');

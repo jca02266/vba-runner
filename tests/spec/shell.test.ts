@@ -1,28 +1,9 @@
-import { Evaluator } from '../../src/engine/evaluator';
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-function testShell() {
-    console.log("Running Shell tests...");
+console.log("Running Shell tests...");
 
-    // Since Shell is async and might depend on environment, we just check if it returns a pid-like number
-    const code = "Debug.Print Shell(\"echo hello\") > 0";
-    
-    let output = "";
-    const lexer = new Lexer(code);
-    const tokens = lexer.tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((o) => { output = o; });
-    evaluator.evaluate(program);
+let output = '';
+evalVBASingle('Debug.Print Shell("echo hello") > 0', { onPrint: (o) => { output = o; } });
 
-    const actual = output.trim();
-    if (actual === "True") {
-        console.log("✅ Shell: テスト通過");
-    } else {
-        console.log(`[FAIL] Shell - Expected True but got ${actual}`);
-        process.exit(1);
-    }
-}
-
-testShell();
+assert.strictEqual(output.trim(), 'True', 'Shell returns True');
+console.log('✅ Shell: テスト通過');

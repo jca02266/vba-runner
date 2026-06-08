@@ -1,16 +1,4 @@
-import { assert } from '../../test-libs/test-runner';
-import { Evaluator } from '../../src/engine/evaluator';
-import { Parser } from '../../src/engine/parser';
-import { Lexer } from '../../src/engine/lexer';
-
-function evalVBA(code: string) {
-    const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 console.log('[Test Suite] Option Compare の検証');
 
@@ -23,7 +11,7 @@ const codeBinary = `
         TestLikeBinary = ("abc" Like "A*")
     End Function
 `;
-const evBinary = evalVBA(codeBinary);
+const evBinary = evalVBASingle(codeBinary);
 assert.strictEqual(evBinary.callProcedure('TestBinary', []).value, 0, 'Default Binary: "abc" = "ABC" should be False');
 assert.strictEqual(evBinary.callProcedure('TestLikeBinary', []).value, 0, 'Default Binary: "abc" Like "A*" should be False');
 
@@ -40,7 +28,7 @@ const codeText = `
         TestInStrText = InStr("abc", "B")
     End Function
 `;
-const evText = evalVBA(codeText);
+const evText = evalVBASingle(codeText);
 assert.strictEqual(evText.callProcedure('TestText', []).value, -1, 'Option Compare Text: "abc" = "ABC" should be True');
 assert.strictEqual(evText.callProcedure('TestLikeText', []).value, -1, 'Option Compare Text: "abc" Like "A*" should be True');
 assert.strictEqual(evText.callProcedure('TestInStrText', []), 2, 'Option Compare Text: InStr("abc", "B") should be 2');

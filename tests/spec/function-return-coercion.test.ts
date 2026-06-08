@@ -4,16 +4,11 @@
  * Function F() As T に対して F = <異なる型の値> を代入したとき、
  * VBA 仕様通りに型変換・丸め・Type Mismatch が発生することを確認する。
  */
-import { Evaluator } from '../../src/engine/evaluator';
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function run(code: string): string {
     let out = '';
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    new Evaluator(s => { out += s + '\n'; }).evaluate(ast);
+    evalVBASingle(code, { onPrint: (s) => { out += s + '\n'; } });
     return out.trim();
 }
 

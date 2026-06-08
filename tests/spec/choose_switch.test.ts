@@ -1,16 +1,5 @@
-import { assert } from '../../test-libs/test-runner';
-import { Evaluator, vbaTrue, vbaFalse, vbaNull } from '../../src/engine/evaluator';
-import { Parser } from '../../src/engine/parser';
-import { Lexer } from '../../src/engine/lexer';
-
-function evalVBA(code: string) {
-    const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { vbaNull } from '../../src/engine/evaluator';
 
 console.log('[Test Suite] Choose and Switch Functions の検証');
 
@@ -24,7 +13,7 @@ const code = `
     End Function
 `;
 
-const ev = evalVBA(code);
+const ev = evalVBASingle(code);
 
 // Choose
 assert.strictEqual(ev.callProcedure('TestChoose', [1]), "A", 'Choose(1) should be "A"');

@@ -11,7 +11,8 @@ function loadAndEvaluate(evaluator: Evaluator, code: string, moduleName: string)
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     evaluator.setSourceModule(moduleName);
-    evaluator.evaluate(ast);
+    evaluator.evaluateModule(ast);
+    evaluator.resolveIdentifiers([{ ast, moduleName }]);
 }
 
 const simpleCode = `
@@ -53,10 +54,10 @@ End Function
 `;
 
 try {
-    // Can pass empty string after Attribute VB_Name is processed
     const tokens = new Lexer(codeWithAttribute).tokenize();
     const ast = new Parser(tokens).parse();
-    ev3.evaluate(ast);  // No setSourceModule call - Attribute VB_Name provides the name
+    ev3.evaluateModule(ast);
+    ev3.resolveIdentifiers([{ ast, moduleName: '' }]);
     const result = ev3.callProcedure('ProperModule.Calculate', []);
     console.log(`✓ Attribute VB_Name module name works: result = ${result}`);
 } catch (e: any) {
@@ -68,7 +69,6 @@ const ev4 = new Evaluator(console.log);
 
 try {
     loadAndEvaluate(ev4, simpleCode, 'Module1');
-    // After setting to Module1, can call setSourceModule('') to keep Module1
     ev4.setSourceModule('');
     const result = ev4.callProcedure('Module1.GetValue', []);
     console.log(`✓ setSourceModule('') preserves previous module: result = ${result}`);

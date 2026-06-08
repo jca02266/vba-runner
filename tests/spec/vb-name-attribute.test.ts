@@ -12,7 +12,8 @@ import { assert } from '../../test-libs/test-runner';
 function loadAndEvaluate(evaluator: Evaluator, code: string): void {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
-    evaluator.evaluate(ast);
+    evaluator.evaluateModule(ast);
+    evaluator.resolveIdentifiers([{ ast, moduleName: '' }]);
 }
 
 // --- Test 1: Attribute VB_Name determines module name ---
@@ -28,7 +29,6 @@ End Function
 
 loadAndEvaluate(ev1, vbaWithAttribute);
 
-// Should be callable via the module name from Attribute VB_Name
 try {
     const result = ev1.callProcedure('MyCustomModule.GetValue', []);
     assert.strictEqual(result, 111, 'Attribute VB_Name module name is recognized');

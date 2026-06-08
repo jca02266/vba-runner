@@ -1,16 +1,5 @@
-import { assert } from '../../test-libs/test-runner';
-import { Evaluator, vbaMissing, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
-import { Parser } from '../../src/engine/parser';
-import { Lexer } from '../../src/engine/lexer';
-
-function evalVBA(code: string) {
-    const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { vbaMissing, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
 
 console.log('[Test Suite] Information Functions (IsMissing, VarType, etc.) の検証');
 
@@ -32,7 +21,7 @@ const code = `
     End Function
 `;
 
-const ev = evalVBA(code);
+const ev = evalVBASingle(code);
 
 // IsMissing
 assert.strictEqual(ev.callProcedure('TestMissing', [vbaMissing]), vbaTrue, 'IsMissing(vbaMissing) should be vbaTrue');

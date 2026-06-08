@@ -1,16 +1,5 @@
-import { assert } from '../../test-libs/test-runner';
-import { Evaluator, VbaDate } from '../../src/engine/evaluator';
-import { Parser } from '../../src/engine/parser';
-import { Lexer } from '../../src/engine/lexer';
-
-function evalVBA(code: string) {
-    const tokens = new Lexer(code).tokenize();
-    const parser = new Parser(tokens);
-    const program = parser.parse();
-    const evaluator = new Evaluator((s) => console.log(s));
-    evaluator.evaluate(program);
-    return evaluator;
-}
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { VbaDate } from '../../src/engine/evaluator';
 
 const code = `
     Function TestCDateString()
@@ -30,7 +19,7 @@ const code = `
     End Function
 `;
 
-const ev = evalVBA(code);
+const ev = evalVBASingle(code);
 
 console.log('[Test Suite] CDate / CVDate の検証');
 
