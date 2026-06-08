@@ -4732,8 +4732,10 @@ export class Evaluator {
         switch (expr.type) {
             case 'MissingArgument':
                 return vbaEmpty;
-            case 'NumberLiteral':
-                return (expr as NumberLiteral).value;
+            case 'NumberLiteral': {
+                const lit = expr as NumberLiteral;
+                return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix);
+            }
             case 'StringLiteral':
                 return (expr as StringLiteral).value;
             case 'AddressOfExpression':
@@ -4976,7 +4978,48 @@ export class Evaluator {
      * - Long if it's a whole number in Long range
      * - Double otherwise (or if it has a fractional part)
      */
-    private inferLiteralTypeName(val: number): string {
+    private applyLiteralTypeSuffix(val: number, suffix: NumberLiteral['typeSuffix']): any {
+        switch (suffix) {
+            case '%': {
+                const n = this.vbaRound(val, 0);
+                if (n < -32768 || n > 32767) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return n;
+            }
+            case '&': {
+                const n = this.vbaRound(val, 0);
+                if (n < -2147483648 || n > 2147483647) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return n;
+            }
+            case '!': {
+                const f32 = Math.fround(val);
+                if (!isFinite(f32) && isFinite(val)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return f32;
+            }
+            case '#': return val;
+            case '@': {
+                const n = this.vbaRound(val, 4);
+                if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return n;
+            }
+            case '^': {
+                const n = Math.trunc(val);
+                if (!isFinite(n)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return BigInt(n);
+            }
+            default: return val;
+        }
+    }
+
+    private inferLiteralTypeName(lit: NumberLiteral): string {
+        if (lit.typeSuffix) {
+            const map: Record<string, string> = {
+                '%': 'Integer', '&': 'Long', '!': 'Single',
+                '#': 'Double', '@': 'Currency', '^': 'LongLong',
+            };
+            return map[lit.typeSuffix];
+        }
+        if (lit.isFloat) return 'Double';
+        const val = lit.value;
         if (Number.isInteger(val)) {
             if (val >= -32768 && val <= 32767) return 'Integer';
             if (val >= -2147483648 && val <= 2147483647) return 'Long';
@@ -4984,7 +5027,15 @@ export class Evaluator {
         return 'Double';
     }
 
-    private inferLiteralVarType(val: number): number {
+    private inferLiteralVarType(lit: NumberLiteral): number {
+        if (lit.typeSuffix) {
+            const map: Record<string, number> = {
+                '%': 2, '&': 3, '!': 4, '#': 5, '@': 6, '^': 20,
+            };
+            return map[lit.typeSuffix];
+        }
+        if (lit.isFloat) return 5; // vbDouble
+        const val = lit.value;
         if (Number.isInteger(val)) {
             if (val >= -32768 && val <= 32767) return 2; // vbInteger
             if (val >= -2147483648 && val <= 2147483647) return 3; // vbLong
@@ -5059,13 +5110,13 @@ export class Evaluator {
 
         if (funcName === 'typename') {
             if (typeof val === 'number') {
-                if (argExpr.type === 'NumberLiteral') return this.inferLiteralTypeName(val);
+                if (argExpr.type === 'NumberLiteral') return this.inferLiteralTypeName(argExpr as NumberLiteral);
                 return 'Double'; // 型情報なしの式は Double
             }
             return this.env.get('typename')(val);
         } else {
             if (typeof val === 'number') {
-                if (argExpr.type === 'NumberLiteral') return this.inferLiteralVarType(val);
+                if (argExpr.type === 'NumberLiteral') return this.inferLiteralVarType(argExpr as NumberLiteral);
                 return 5; // vbDouble
             }
             return this.env.get('vartype')(val);
@@ -5722,6 +5773,7 @@ export class Evaluator {
         // - 変換できない文字列は Type mismatch (Error 13)
         const toVbaNumber = (v: any): number => {
             if (typeof v === 'number') return v;
+            if (typeof v === 'bigint') return Number(v);
             if (v instanceof VbaBoolean) return v.value;
             if (v instanceof VbaDate) return v.value;
             if (typeof v === 'string') {

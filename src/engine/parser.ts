@@ -491,6 +491,10 @@ export interface ImplicitWithObjectExpression extends Expression {
 export interface NumberLiteral extends Expression {
     type: 'NumberLiteral';
     value: number;
+    /** VBA type declaration suffix: % Integer, & Long, ! Single, # Double, @ Currency, ^ LongLong */
+    typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^';
+    /** true when the literal was written with a decimal point or exponent (e.g. 1.0, 1E5) */
+    isFloat?: true;
 }
 
 export interface StringLiteral extends Expression {
@@ -2561,10 +2565,14 @@ export class Parser {
         const token = this.advance();
         let expr: Expression;
         if (token.type === TokenType.Number) {
-            // Remove VBA type suffix (%, &, @, !, #, ^) before parsing into a float/int
+            const m = token.value.match(/[%&@!#^]$/);
+            const typeSuffix = m ? m[0] as NumberLiteral['typeSuffix'] : undefined;
             const cleanVal = token.value.replace(/[%&@!#^]$/, '');
+            // 0x/0o は整数なので isFloat = false。それ以外で . or e/E を含む場合は Double リテラル
+            const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
+                && /[.eE]/.test(cleanVal) ? true as const : undefined;
             // Use Number() to support 0x (Hex) and 0o (Octal) prefixes
-            expr = { type: 'NumberLiteral', value: Number(cleanVal) } as NumberLiteral;
+            expr = { type: 'NumberLiteral', value: Number(cleanVal), typeSuffix, isFloat } as NumberLiteral;
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
