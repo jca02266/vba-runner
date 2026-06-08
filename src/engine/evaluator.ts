@@ -79,7 +79,7 @@ import {
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
-import { checkOptionExplicit, collectUndefinedProcCalls, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
+import { checkOptionExplicit, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
@@ -3659,10 +3659,8 @@ export class Evaluator {
             const modName = this.currentSourceModule;
             const moduleEnv = this.getOrCreateModuleEnv(modName);
             moduleEnv.setConstant(name, value);
-            if (stmt.scope === 'public' || !stmt.scope) {
-                // Public (default): also in Tier 3 for cross-module access
-                this.env.setConstant(name, value);
-            }
+            // Module-level Const is Public by default in VBA → also in Tier 3
+            this.env.setConstant(name, value);
             // Module-qualified key in Tier 3 for disambiguation
             this.env.setConstant(`${modName}:${name}`, value);
             this.registerModuleVar(modName, name);
