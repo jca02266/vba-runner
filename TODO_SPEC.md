@@ -829,6 +829,16 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ---
 
+## テストコードのリファクタリング残件
+
+- ⚠️ **`tests/spec/` に `evaluator.evaluate(ast)` 形式が残存（33ファイル・37件）**
+  - 変数名が `evaluator` / `ev3` 等、または `new Evaluator(...).evaluate(ast)` のインライン形式
+  - `ev.evaluate` の移行（`evalVBASingle` / `evalVBAModules` / `evaluateModule+resolveIdentifiers`）と同様の対応が必要
+  - 主なファイル: `evaluator-scoping.test.ts`, `empty-module-validation.test.ts`, `vb-name-attribute.test.ts`, `environ.test.ts` 他
+  - 特殊パターン: `function-return-coercion.test.ts` の `new Evaluator(s => ...).evaluate(ast)` インライン形式
+
+---
+
 ## VBA エラー番号別の改善項目（Err.Number 対応）
 
 現在のエンジンは多くの場面で `throw new Error(...)` （JavaScript の汎用エラー）を使っており、VBA の `Err.Number` に正しいエラー番号が設定されない。以下は Err.Number 別に整理した改善点。
