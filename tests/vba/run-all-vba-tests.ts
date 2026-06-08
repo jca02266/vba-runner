@@ -46,7 +46,8 @@ function injectFile(vbaRunner: VBARunner, filePath: string): void {
         source = `Class ${moduleName}\n${source}\nEnd Class`;
     }
     const ast = new Parser(new Lexer(source).tokenize()).parse();
-    evaluator.evaluate(ast);
+    evaluator.evaluateModule(ast);
+    evaluator.resolveIdentifiers([{ ast, moduleName }]);
 }
 
 function runSuite(label: string, vbaRunner: VBARunner): void {
@@ -81,7 +82,8 @@ function runSuite(label: string, vbaRunner: VBARunner): void {
                 `End Sub`
             ].join('\n');
             const ast = new Parser(new Lexer(wrapperCode).tokenize()).parse();
-            evaluator.evaluate(ast);
+            evaluator.evaluateModule(ast);
+            evaluator.resolveIdentifiers([{ ast, moduleName: '' }]);
             evaluator.callProcedure('__test_wrapper__', []);
 
             totalPass++;
