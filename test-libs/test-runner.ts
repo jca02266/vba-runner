@@ -270,7 +270,7 @@ export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
  * resolveIdentifiers は全モジュールのロード後に1回だけ呼ぶ。
  */
 export function evalVBAModules(
-    modules: Array<{ name: string; code: string }>,
+    modules: Array<{ name: string; code: string; parseAsClass?: string }>,
     options?: EvalOptions,
 ): Evaluator {
     const ev = new Evaluator(options?.onPrint ?? console.log, {
@@ -282,8 +282,8 @@ export function evalVBAModules(
         ev.setDefaultBindingObject(options.defaultBindingObject);
     }
     options?.setup?.(ev);
-    const asts = modules.map(({ name, code }) => {
-        const ast = new Parser(new Lexer(code).tokenize()).parse();
+    const asts = modules.map(({ name, code, parseAsClass }) => {
+        const ast = new Parser(new Lexer(code).tokenize(), parseAsClass ? { parseAsClass } : undefined).parse();
         ev.setSourceModule(name);
         ev.evaluateModule(ast);
         return { ast, moduleName: name };

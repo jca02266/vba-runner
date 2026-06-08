@@ -1,29 +1,12 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
 import { MemoryFileSystem } from '../../src/engine/filesystem';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-function makeEval(vfs: MemoryFileSystem): Evaluator {
-    return new Evaluator(() => {}, { fs: vfs });
-}
-
-function runVBA(code: string, vfs: MemoryFileSystem): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return ev;
+function runVBA(code: string, vfs: MemoryFileSystem) {
+    return evalVBASingle(code, { onPrint: () => {}, fs: vfs });
 }
 
 function runFunc(code: string, name: string, vfs: MemoryFileSystem): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return ev.callProcedure(name, []);
+    return runVBA(code, vfs).callProcedure(name, []);
 }
 
 // Test 1: CurDir() initially returns the sandbox root

@@ -1,16 +1,7 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-function runVba(source: string): Evaluator {
-    const tokens = new Lexer(source).tokenize();
-    const parser = new Parser(tokens);
-    const ast = parser.parse();
-    const ev = new Evaluator(() => {});
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return ev;
+function runVba(source: string) {
+    return evalVBASingle(source, { onPrint: () => {} });
 }
 
 // 1. Property Get/Let with Module Variable

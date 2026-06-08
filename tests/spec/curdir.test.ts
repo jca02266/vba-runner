@@ -4,20 +4,13 @@
  * VBA のカレントディレクトリ取得関数。
  * VBA Runner では Sandbox ルートを Windows 形式の仮想パスとして返す。
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 console.log('--- Starting CurDir Tests ---');
 
 // --- 1. デフォルト Sandbox での CurDir ---
 {
-    const tokens = new Lexer('').tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    const ev = evalVBASingle('');
 
     // デフォルト sandbox ルート (/sandbox) → 仮想パスは "\"
     assert.strictEqual(ev.evalExpression('CurDir()'), '\\', 'CurDir() はデフォルトで Sandbox ルート');
@@ -30,12 +23,8 @@ console.log('--- Starting CurDir Tests ---');
 
 // --- 2. カスタム Sandbox ルートでの CurDir ---
 {
-    const tokens = new Lexer('').tokenize();
-    const ast = new Parser(tokens).parse();
     // sandboxRoot を "/custom/root" に変更
-    const ev = new Evaluator(console.log, { sandboxRoot: '/custom/root' });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    const ev = evalVBASingle('', { sandboxRoot: '/custom/root' });
 
     // カスタムルートでも、ルート自体は仮想パスでは "\"
     assert.strictEqual(ev.evalExpression('CurDir()'), '\\', 'カスタム Sandbox ルートでも CurDir() = "\\"');

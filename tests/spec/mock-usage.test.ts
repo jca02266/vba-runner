@@ -5,11 +5,8 @@
  * Excel オブジェクトに依存した VBA コードをテストする方法を示します。
  */
 
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
 import { MockApplication } from '../../src/engine/mock/MockExcel';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 // ============================================================
 // テスト 1: 単純な読み書き
@@ -119,13 +116,9 @@ import { assert } from '../../test-libs/test-runner';
   ws.setCellValue('A5', 50);
 
   // VBA をコンパイル
-  const tokens = new Lexer(vbaCode).tokenize();
-  const ast = new Parser(tokens).parse();
-  const ev = new Evaluator((msg: string) => {
-    console.log('[DEBUG] ' + msg);
+  const ev = evalVBASingle(vbaCode, {
+    onPrint: (msg: string) => { console.log('[DEBUG] ' + msg); },
   });
-  ev.evaluateModule(ast);
-  ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 
   // Sheets 関数をモックに指定（モック作成後に指定）
   ev.getGlobalEnv().set('Sheets', (name: string) => {

@@ -1,20 +1,11 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
-function evalWithClass(clsSource: string, className: string, moduleSource: string = ''): Evaluator {
-    const ev = new Evaluator(console.log);
-
-    // Parse .cls content directly via parseAsClass (no string wrapping needed)
-    const clsAst = new Parser(new Lexer(clsSource).tokenize(), { parseAsClass: className }).parse();
-    ev.evaluate(clsAst);
-
-    if (moduleSource) {
-        const modAst = new Parser(new Lexer(moduleSource).tokenize()).parse();
-        ev.evaluate(modAst);
-    }
-    return ev;
+function evalWithClass(clsSource: string, className: string, moduleSource: string = '') {
+    const modules: Array<{ name: string; code: string; parseAsClass?: string }> = [
+        { name: className, code: clsSource, parseAsClass: className },
+    ];
+    if (moduleSource) modules.push({ name: 'Module', code: moduleSource });
+    return evalVBAModules(modules);
 }
 
 // Test 1: parseAsClass produces the same result as explicit Class...End Class wrapping
@@ -37,9 +28,10 @@ End Function
     const r1 = ev1.callProcedure('Test1', []);
 
     // Via explicit Class...End Class syntax
-    const ev2 = new Evaluator(console.log);
-    ev2.evaluate(new Parser(new Lexer(`Class MyClass\n${clsSource}\nEnd Class`).tokenize()).parse());
-    ev2.evaluate(new Parser(new Lexer(modSource).tokenize()).parse());
+    const ev2 = evalVBAModules([
+        { name: 'MyClass', code: `Class MyClass\n${clsSource}\nEnd Class` },
+        { name: 'Module', code: modSource },
+    ]);
     const r2 = ev2.callProcedure('Test1', []);
 
     assert.strictEqual(r1, 42, 'parseAsClass: method call returns correct value');
@@ -89,23 +81,20 @@ End Function
 
 // Test 4: Multiple classes loaded via parseAsClass
 {
-    const dogSrc = `
+    const ev = evalVBAModules([
+        { name: 'Dog', code: `
 Public Name As String
 Function Speak() As String
     Speak = Name & " says Woof"
 End Function
-`;
-    const catSrc = `
+`, parseAsClass: 'Dog' },
+        { name: 'Cat', code: `
 Public Name As String
 Function Speak() As String
     Speak = Name & " says Meow"
 End Function
-`;
-    const ev = new Evaluator(console.log);
-    ev.evaluate(new Parser(new Lexer(dogSrc).tokenize(), { parseAsClass: 'Dog' }).parse());
-    ev.evaluate(new Parser(new Lexer(catSrc).tokenize(), { parseAsClass: 'Cat' }).parse());
-
-    const modAst = new Parser(new Lexer(`
+`, parseAsClass: 'Cat' },
+        { name: 'Module', code: `
 Function Test4() As String
     Dim d As New Dog
     Dim c As New Cat
@@ -113,39 +102,35 @@ Function Test4() As String
     c.Name = "Whiskers"
     Test4 = d.Speak() & "|" & c.Speak()
 End Function
-`).tokenize()).parse();
-    ev.evaluate(modAst);
-
+` },
+    ]);
     assert.strictEqual(ev.callProcedure('Test4', []), 'Rex says Woof|Whiskers says Meow', 'Multiple classes via parseAsClass');
     console.log('[PASS] Multiple classes via parseAsClass');
 }
 
 // Test 5: Implements via parseAsClass
 {
-    const iface = `
+    const ev = evalVBAModules([
+        { name: 'IAnimal', code: `
 Class IAnimal
 Function Speak() As String
 End Function
 End Class
-`;
-    const impl = `
+` },
+        { name: 'Cow', code: `
 Implements IAnimal
 Function IAnimal_Speak() As String
     IAnimal_Speak = "Moo"
 End Function
-`;
-    const ev = new Evaluator(console.log);
-    ev.evaluate(new Parser(new Lexer(iface).tokenize()).parse());
-    ev.evaluate(new Parser(new Lexer(impl).tokenize(), { parseAsClass: 'Cow' }).parse());
-
-    const mod = `
+`, parseAsClass: 'Cow' },
+        { name: 'Module', code: `
 Function Test5() As String
     Dim a As IAnimal
     Set a = New Cow
     Test5 = a.Speak()
 End Function
-`;
-    ev.evaluate(new Parser(new Lexer(mod).tokenize()).parse());
+` },
+    ]);
     assert.strictEqual(ev.callProcedure('Test5', []), 'Moo', 'Implements works via parseAsClass');
     console.log('[PASS] Implements via parseAsClass');
 }
@@ -194,7 +179,7 @@ End Function
 
 // Test 8: Explicit Class...End Class syntax still works (no regression)
 {
-    const code = `
+    const ev = evalVBASingle(`
 Class Rectangle
     Public Width As Double
     Public Height As Double
@@ -209,9 +194,7 @@ Function Test8() As Double
     r.Height = 3
     Test8 = r.Area()
 End Function
-`;
-    const ev = new Evaluator(console.log);
-    ev.evaluate(new Parser(new Lexer(code).tokenize()).parse());
+`);
     assert.strictEqual(ev.callProcedure('Test8', []), 12, 'Explicit Class...End Class unaffected');
     console.log('[PASS] Explicit Class...End Class (no regression)');
 }

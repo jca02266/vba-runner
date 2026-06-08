@@ -1,23 +1,8 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
 import { MemoryFileSystem } from '../../src/engine/filesystem';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-function makeEval(vfs: MemoryFileSystem): { ev: Evaluator; output: string[] } {
-    const output: string[] = [];
-    const ev = new Evaluator((s) => output.push(s), { fs: vfs });
-    return { ev, output };
-}
-
-function runVBA(code: string, vfs: MemoryFileSystem): string[] {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const output: string[] = [];
-    const ev = new Evaluator((s) => output.push(s), { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return output;
+function runVBA(code: string, vfs: MemoryFileSystem) {
+    return evalVBASingle(code, { onPrint: () => {}, fs: vfs });
 }
 
 function seedFiles(vfs: MemoryFileSystem, files: string[]) {
@@ -79,12 +64,7 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
             TestNoMatch = Err.Number
         End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    const errNum = ev.callProcedure('TestNoMatch', []);
+    const errNum = evalVBASingle(code, { onPrint: () => {}, fs: vfs }).callProcedure('TestNoMatch', []);
     assert.strictEqual(errNum, 53, 'Kill no-match raises Error 53');
     // Source file is preserved
     assert.strictEqual(vfs.existsSync('/sandbox/readme.txt'), true, 'readme.txt still exists');
@@ -120,12 +100,7 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
             CollectDir = result
         End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    const result = String(ev.callProcedure('CollectDir', []));
+    const result = String(evalVBASingle(code, { onPrint: () => {}, fs: vfs }).callProcedure('CollectDir', []));
     const parts = result.split(',').filter(s => s !== '');
     assert.strictEqual(parts.includes('alpha.txt'), true, 'Dir *.txt includes alpha.txt');
     assert.strictEqual(parts.includes('beta.txt'), true, 'Dir *.txt includes beta.txt');
@@ -150,12 +125,7 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
             CollectDir = result
         End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    const result = String(ev.callProcedure('CollectDir', []));
+    const result = String(evalVBASingle(code, { onPrint: () => {}, fs: vfs }).callProcedure('CollectDir', []));
     const parts = result.split(',').filter(s => s !== '');
     assert.strictEqual(parts.includes('file1.dat'), true, 'Dir file?.dat includes file1.dat');
     assert.strictEqual(parts.includes('file2.dat'), true, 'Dir file?.dat includes file2.dat');
@@ -212,12 +182,7 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
             CountCsvFiles = count
         End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    const count = ev.callProcedure('CountCsvFiles', []);
+    const count = evalVBASingle(code, { onPrint: () => {}, fs: vfs }).callProcedure('CountCsvFiles', []);
     assert.strictEqual(count, 3, 'Dir loop counts 3 CSV files');
     console.log('[PASS] Real-world: Dir loop counting files');
 }
