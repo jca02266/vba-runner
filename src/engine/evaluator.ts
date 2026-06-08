@@ -1860,6 +1860,7 @@ export class Evaluator {
             const violations = this.optionExplicitViolations.get(procKey)!;
             const stillMissing = [...violations.entries()].filter(([n]) => {
                 if (this.env.hasVariable(n)) return false;
+                if (this.typeLibraryNamespaces.has(n)) return false;
                 if (this.defaultBindingObject &&
                         this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
                 return true;
@@ -3506,6 +3507,7 @@ export class Evaluator {
                 const stillMissing = new Map(
                     [...undeclared.entries()].filter(([n]) => {
                         if (this.env.hasVariable(n)) return false;
+                        if (this.typeLibraryNamespaces.has(n)) return false;
                         if (this.defaultBindingObject &&
                                 this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
                         return true;
@@ -4111,6 +4113,9 @@ export class Evaluator {
     }
 
     private externalObjectFactories: Map<string, () => any> = new Map();
+    /** §5.6.10 Tier 5: COM 型ライブラリの名前空間 sentinel（Scripting, ADODB 等）。
+     * Tier 1-4 で解決できなかった修飾 LHS 識別子にのみ使用する。globalEnv には登録しない。 */
+    private typeLibraryNamespaces: Map<string, VbaNamespaceRef> = new Map();
     /**
      * `Dim x As New ClassName` で宣言された変数の追跡。キーは変数名(小文字)、
      * 値はクラス名。Set x = Nothing 後の再インスタンス化判定で使う。
@@ -4145,12 +4150,12 @@ export class Evaluator {
                 this.externalObjectFactories.set(k, factory);
             }
             // "ProjectName.ClassName" 形式ならプロジェクト名を VbaNamespaceRef として登録。
-            // VarType(Scripting) 等の誤用がエラーになる（VBA 仕様通り）。
+            // COM 型ライブラリ名前空間は Tier 5 へ登録（globalEnv には入れない）。
             const dot = k.indexOf('.');
             if (dot > 0) {
                 const projectName = k.slice(0, dot);
-                if (!this.env.hasVariable(projectName)) {
-                    this.env.set(projectName, new VbaNamespaceRef(k.slice(0, dot), 'project'));
+                if (!this.typeLibraryNamespaces.has(projectName)) {
+                    this.typeLibraryNamespaces.set(projectName, new VbaNamespaceRef(k.slice(0, dot), 'project'));
                 }
             }
         };
@@ -5304,7 +5309,9 @@ export class Evaluator {
                     const possibleModuleName = (member.object as any).name;
                     // env.getConst で auto-initialize せずに変数値を取得。
                     // VBA や未宣言モジュール名は undefined を返す（evaluateExpression だと vbaEmpty に初期化される）。
-                    const potentialObj = this.env.getConst(possibleModuleName);
+                    // Tier 1-4: env chain, Tier 5: typeLibraryNamespaces（COM 型ライブラリ名前空間）
+                    const potentialObj = this.env.getConst(possibleModuleName)
+                        ?? this.typeLibraryNamespaces.get(possibleModuleName.toLowerCase());
 
                     // If evaluating the object gives undefined/null/VbaNamespaceRef, it might be a module/project name
                     if (!potentialObj || potentialObj === vbaEmpty || potentialObj === vbaNull || potentialObj instanceof VbaNamespaceRef) {
