@@ -1,17 +1,10 @@
 /**
  * Err Object (§6.1.3.2) のテスト
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 // --- 1. Err.Raise とプロパティ ---

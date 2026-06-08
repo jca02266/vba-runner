@@ -2,15 +2,10 @@
  * For / ForEach / DoWhile / While ループ本体内のラベルへの GoTo テスト
  * MS-VBAL §5.2.1.2: ラベルのスコープは手続き全体（ループ内外を問わない）
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function run(code: string, name: string, args: any[] = []): any {
-    const ev = new Evaluator(console.log);
-    ev.evaluate(new Parser(new Lexer(code).tokenize()).parse());
-    return ev.callProcedure(name, args);
+    return evalVBASingle(code).callProcedure(name, args);
 }
 
 // --- 1. For ループ内ラベルへの GoTo（スキップ） ---

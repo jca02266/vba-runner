@@ -1,7 +1,6 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 // Bug: `With obj: .Collection = x: End With` failed because the implicit-With
 // member access handler checked `propToken.type !== Identifier`. When the property
@@ -9,11 +8,7 @@ import { assert } from '../../test-libs/test-runner';
 // and error recovery aborted the containing function.
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function parseStatements(src: string) {

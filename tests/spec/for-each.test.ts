@@ -9,17 +9,10 @@
  *   5. Exit For による早期脱出
  *   6. Next に変数名を付けた明示的形式
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {

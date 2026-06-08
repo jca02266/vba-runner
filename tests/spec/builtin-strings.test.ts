@@ -14,17 +14,10 @@
  *   - String / String$            (§6.1.2.11.1.38/39)
  *   - UCase / UCase$              (§6.1.2.11.1.41/42)
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function ev(expr: string): any {

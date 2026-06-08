@@ -1,17 +1,10 @@
 /**
  * Dictionary Access 式（`!` 演算子）のテスト (§5.6.14)
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 console.log('--- Starting Dictionary Bang (!) Access Tests ---');

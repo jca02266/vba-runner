@@ -1,14 +1,7 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {

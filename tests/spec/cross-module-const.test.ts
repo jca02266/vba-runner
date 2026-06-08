@@ -13,7 +13,7 @@ function makeModules(sources: Record<string, string>) {
     for (const [moduleName, src] of Object.entries(sources)) {
         ev.setSourceModule(moduleName);
         const ast = new Parser(new Lexer(src).tokenize()).parse();
-        ev.evaluate(ast);
+        ev.evaluateModule(ast);
         modules.push({ ast, moduleName });
     }
 

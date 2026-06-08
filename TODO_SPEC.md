@@ -797,7 +797,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 実装: `Evaluator.setSourceModule()` でモジュール名長をチェック、超過時にエラー発生
   - テスト: `module-name-length.test.ts`, `module-name-length-integration.test.ts`
 
-- ⚠️ **§5.6.10 Tier 6 — 外部型ライブラリのメンバーを修飾なしで解決できない**（部分修正）
+- ✅ **§5.6.10 Tier 6 — 外部型ライブラリのメンバーを修飾なしで解決できる**
   - **仕様**: MS-VBAL §5.6.10 では修飾なし識別子の名前解決を 6 段階の Tier で定義している。
     Tier 1（ローカル）→ Tier 2（同モジュール）→ Tier 3（プロジェクト名）→ Tier 4（他モジュール Public）→ Tier 5（参照プロジェクト名）→ **Tier 6（参照プロジェクト内 Public メンバー）**
   - **Tier 6 の具体例**: Excel VBA では参照設定により Excel 型ライブラリが Tier 6 に入る。
@@ -805,13 +805,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
     Tier 6 に公開しているため。Default Member 機構により `Range("A1")` → `Application.ActiveSheet.Range.Item("A1")` に解決される
   - **型文脈との関係**: `Dim r As Range` の `Range`（型名前空間）と `Range("A1")` の `Range`（値名前空間）は
     同じ Tier 6 で解決されるが、型名前空間と値名前空間は別扱いのため名前衝突は起きない
-  - **修正済み（部分）**: クラスモジュール名が値名前空間（`VbaNamespaceRef`）として登録されても `Range("A1")` を
-    呼び出す際に `OBJECT_REQUIRED (424)` でなく `SUB_OR_FUNCTION_NOT_DEFINED (35)` を返すように修正。
-    これにより `.bas` モックで `Class Range` を定義しつつ、別途モック関数 `Range` を `ev.set()` で
-    登録して `Range("A1")` を動作させることが可能になった（→ `USE_MOCKS.md` 参照）。
-  - **残存制限**: Tier 6 そのもの（暗黙 Application 経由の解決）は未実装。`Range("A1")` を動作させるには
-    モック関数を明示的に登録する必要がある。
-  - テスト: `tier6-namespace.test.ts`
+  - **実装**: `evalVBAModules` の `defaultBindingObject` オプションに `MockApplication` 等を渡すことで
+    `Range("A1")`、`Cells(row, col)`、`ActiveSheet`、`Sheets("name")` 等を修飾なしで解決できる。
+    `Option Explicit` 環境でも `defaultBindingObject` のメンバーは暗黙変数扱いにならず適切に解決される。
+  - テスト: `tier6-namespace.test.ts` | `tests/spec/tier6-namespace.test.ts`
 
 - ✅ **静的 vs 動的名前解決の区別**: プロシージャ呼び出し時のエラー検出タイミング
   - 実VBA動作の違い：

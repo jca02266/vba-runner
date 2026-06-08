@@ -6,16 +6,10 @@
  * （Error 5 を発生させる）べき。
  */
 import { Evaluator } from '../../src/engine/evaluator';
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function makeEvaluator(code: string): Evaluator {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 // ---------------------------------------------------------------

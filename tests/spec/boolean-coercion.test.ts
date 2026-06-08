@@ -14,17 +14,11 @@
  * これは `assert.isTrue` などのリファレンス比較を前提に、シングルトン
  * `vbaTrue` / `vbaFalse` を返す必要がある。
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { vbaTrue, vbaFalse } from '../../src/engine/evaluator';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {

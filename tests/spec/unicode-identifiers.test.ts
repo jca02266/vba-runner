@@ -2,17 +2,10 @@
  * Unicode 識別子 (MS-VBAL §3.3.5) のテスト
  * 日本語（ひらがな・カタカナ・漢字）の変数名・関数名・UDT 名をサポートする
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 // --- 1. 漢字変数名 ---
