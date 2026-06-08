@@ -33,8 +33,9 @@ dist-ssr
 /sandbox/
 /ideas/
 
-# Claude Code lock files
+# Claude Code lock files and worktrees
 .claude/**/*.lock
+.claude/worktrees/
 
 # mdq index
 .mdq/
