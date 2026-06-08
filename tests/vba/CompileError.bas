@@ -152,7 +152,7 @@ End Sub
 '   同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）→ VBE では prerun エラー
 ' ----------------------------------------------------------------
 ' CASE: undefined_sub_call
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 ' RUNNER: /sub or function not defined/i
 ' NOTE: 非修飾の未定義プロシージャ呼び出しは静的検証（コンパイル時）でエラー。
@@ -176,16 +176,18 @@ End Sub
 '@case-end
 
 ' CASE: undefined_sub_call_no_oe
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 ' RUNNER: /sub or function not defined/i
 ' NOTE: Option Explicit なし。未定義プロシージャは OE の有無に関わらず prerun エラー。
+'@case-begin
 Sub Case_undefined_sub_call_no_oe()
     UnknownProc ' @error
 End Sub
+'@case-end
 
 ' CASE: undefined_sub_call_with_oe
-' TYPE: prerun
+' TYPE: preproc
 ' VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 ' RUNNER: /sub or function not defined/i
 ' NOTE: Option Explicit あり。未定義プロシージャは OE 違反ではなく Sub or Function not defined エラー。
