@@ -64,6 +64,8 @@ const files = fs.readdirSync(dir)
     .sort()
     .map(f => path.join(dir, f));
 
+const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];
+
 for (const file of files) {
     const moduleName = path.basename(file, path.extname(file));
     ev.setSourceModule(moduleName);
@@ -73,8 +75,11 @@ for (const file of files) {
         && !src.trim().toLowerCase().startsWith('class ')
         && !src.toLowerCase().includes('end class');
     const ast = new Parser(new Lexer(src).tokenize(), isRawCls ? { parseAsClass: moduleName } : {}).parse();
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    asts.push({ ast, moduleName });
 }
+
+ev.resolveIdentifiers(asts);
 
 const result = ev.callProcedure(procName, args);
 
