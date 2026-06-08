@@ -2114,7 +2114,10 @@ export class Evaluator {
     }
 
     /** @deprecated Use {@link evaluateModule} instead. */
-    public evaluate(program: Program) { this.evaluateModule(program); }
+    public evaluate(program: Program) {
+        this.evaluateModule(program);
+        this.resolveIdentifiers([{ ast: program, moduleName: this.currentSourceModule }]);
+    }
 
     public evalExpression(exprString: string): any {
         const lexer = new Lexer(exprString);
