@@ -4,7 +4,7 @@ import { Lexer } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import type { VbaComObject } from '../src/engine/vba-types';
-import { MemoryFileSystem } from '../src/engine/filesystem';
+import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, CompilerConstants } from '../src/engine/preprocessor';
 import { loadMocks } from './mock-loader';
 import { injectExcelStub } from './excel-stub';
@@ -221,14 +221,34 @@ export function runVBARunner(filePath: string, procedureName: string, args: any[
     return vbaRunner.run(procedureName, args);
 }
 
+/** evalVBASingle / evalVBAModules 共通オプション */
+export interface EvalOptions {
+    /** Debug.Print の出力先（デフォルト: console.log） */
+    onPrint?: (s: string) => void;
+    /** 仮想ファイルシステム（ファイル I/O テスト用） */
+    fs?: FileSystem;
+    /** Sandbox ルートパス */
+    sandboxRoot?: string;
+    /** Environ() が参照する環境変数 */
+    env?: Record<string, string>;
+    /** §5.6.10 Tier 6 オブジェクト（Excel Application 等）。
+     *  Option Explicit 違反チェックは Pass 2 で即時実行されるため、
+     *  defaultBindingObject を使う場合はここで渡す必要がある。 */
+    defaultBindingObject?: any;
+}
+
 /**
  * 単一モジュールのインライン VBA コードを評価して Evaluator を返す。
  * Pass 1（登録）と Pass 2（定数確定）を両方実行する。
  * tests/spec/ のテストで evalVBASingle をローカル定義する代わりに使う。
  */
-export function evalVBASingle(code: string): Evaluator {
+export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
     const ast = new Parser(new Lexer(code).tokenize()).parse();
-    const ev = new Evaluator(console.log);
+    const ev = new Evaluator(options?.onPrint ?? console.log, {
+        fs: options?.fs,
+        sandboxRoot: options?.sandboxRoot,
+        env: options?.env,
+    });
     ev.evaluateModule(ast);
     ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev;
@@ -240,16 +260,16 @@ export function evalVBASingle(code: string): Evaluator {
  * Pass 2（resolveIdentifiers）を実行する。
  * クロスモジュール定数参照（ModA.X = ModB.Y + 1 など）を正しく解決するため、
  * resolveIdentifiers は全モジュールのロード後に1回だけ呼ぶ。
- *
- * @param options.defaultBindingObject - §5.6.10 Tier 6 オブジェクト（Excel Application 等）。
- *   Option Explicit 違反チェックは Pass 2 で即時実行されるため、
- *   defaultBindingObject を使う場合はここで渡す必要がある。
  */
 export function evalVBAModules(
     modules: Array<{ name: string; code: string }>,
-    options?: { defaultBindingObject?: any },
+    options?: EvalOptions,
 ): Evaluator {
-    const ev = new Evaluator(console.log);
+    const ev = new Evaluator(options?.onPrint ?? console.log, {
+        fs: options?.fs,
+        sandboxRoot: options?.sandboxRoot,
+        env: options?.env,
+    });
     if (options?.defaultBindingObject !== undefined) {
         ev.setDefaultBindingObject(options.defaultBindingObject);
     }
