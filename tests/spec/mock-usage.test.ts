@@ -124,7 +124,8 @@ import { assert } from '../../test-libs/test-runner';
   const ev = new Evaluator((msg: string) => {
     console.log('[DEBUG] ' + msg);
   });
-  ev.evaluate(ast);
+  ev.evaluateModule(ast);
+  ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 
   // Sheets 関数をモックに指定（モック作成後に指定）
   ev.getGlobalEnv().set('Sheets', (name: string) => {

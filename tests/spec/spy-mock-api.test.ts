@@ -8,7 +8,9 @@ function makeEv(): Evaluator {
 }
 
 function load(ev: Evaluator, code: string): Evaluator {
-    ev.evaluate(new Parser(new Lexer(code).tokenize()).parse());
+    const _ast = new Parser(new Lexer(code).tokenize()).parse();
+    ev.evaluateModule(_ast);
+    ev.resolveIdentifiers([{ ast: _ast, moduleName: '' }]);
     return ev;
 }
 

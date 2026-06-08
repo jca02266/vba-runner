@@ -15,7 +15,8 @@ function runVBA(code: string, vfs: MemoryFileSystem): string[] {
     const ast = new Parser(tokens).parse();
     const output: string[] = [];
     const ev = new Evaluator((s) => output.push(s), { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return output;
 }
 
@@ -81,7 +82,8 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     const errNum = ev.callProcedure('TestNoMatch', []);
     assert.strictEqual(errNum, 53, 'Kill no-match raises Error 53');
     // Source file is preserved
@@ -121,7 +123,8 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     const result = String(ev.callProcedure('CollectDir', []));
     const parts = result.split(',').filter(s => s !== '');
     assert.strictEqual(parts.includes('alpha.txt'), true, 'Dir *.txt includes alpha.txt');
@@ -150,7 +153,8 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     const result = String(ev.callProcedure('CollectDir', []));
     const parts = result.split(',').filter(s => s !== '');
     assert.strictEqual(parts.includes('file1.dat'), true, 'Dir file?.dat includes file1.dat');
@@ -211,7 +215,8 @@ function seedFiles(vfs: MemoryFileSystem, files: string[]) {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     const count = ev.callProcedure('CountCsvFiles', []);
     assert.strictEqual(count, 3, 'Dir loop counts 3 CSV files');
     console.log('[PASS] Real-world: Dir loop counting files');

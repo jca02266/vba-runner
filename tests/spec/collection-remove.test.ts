@@ -1,14 +1,10 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
-    return ev;
+    return evalVBASingle(code);
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {
@@ -30,10 +26,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Sub
     `;
     let output = "";
-    const ev = new Evaluator(s => output += s + "\n");
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: s => output += s + "\n" });
     ev.callProcedure("Test", []);
     
     const lines = output.trim().split("\n");
@@ -49,10 +42,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Sub
     `;
     let output2 = "";
-    const ev2 = new Evaluator(s => output2 += s + "\n");
-    const tokens2 = new Lexer(typeNameCode).tokenize();
-    const ast2 = new Parser(tokens2).parse();
-    ev2.evaluate(ast2);
+    const ev2 = evalVBASingle(typeNameCode, { onPrint: s => output2 += s + "\n" });
     ev2.callProcedure("Test", []);
     assert.strictEqual(output2.trim(), "Collection", "TypeName(col) should be 'Collection'");
 
@@ -72,10 +62,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Sub
     `;
     let output = "";
-    const ev = new Evaluator(s => output += s + "\n");
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: s => output += s + "\n" });
     ev.callProcedure("Test", []);
     
     const lines = output.trim().split("\n");
@@ -125,10 +112,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Sub
     `;
     let output = "";
-    const ev = new Evaluator(s => output += s + "\n");
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: s => output += s + "\n" });
     ev.callProcedure("Test", []);
     assert.strictEqual(output.trim(), "ABC", "For Each should work with Collection");
     console.log('[PASS] For Each with Collection');

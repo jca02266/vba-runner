@@ -33,7 +33,8 @@ function makeEv(): Evaluator {
 
 function run(ev: Evaluator, code: string, proc: string, args: any[] = []): any {
     const ast = new Parser(new Lexer(code).tokenize()).parse();
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev.callProcedure(proc, args);
 }
 

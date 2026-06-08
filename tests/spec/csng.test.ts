@@ -1,7 +1,4 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 // CSng tests
 {
@@ -14,10 +11,7 @@ import { assert } from '../../test-libs/test-runner';
     End Sub
     `;
     let output = "";
-    const ev = new Evaluator(s => output += s + "\n");
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: s => output += s + "\n" });
     ev.callProcedure("Test", []);
     
     const lines = output.trim().split("\n");
@@ -42,10 +36,7 @@ import { assert } from '../../test-libs/test-runner';
     End Sub
     `;
     let output = "";
-    const ev = new Evaluator(s => output += s + "\n");
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: s => output += s + "\n" });
     ev.callProcedure("Test", []);
     
     const lines = output.trim().split("\n");

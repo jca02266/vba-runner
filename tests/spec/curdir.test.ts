@@ -16,7 +16,8 @@ console.log('--- Starting CurDir Tests ---');
     const tokens = new Lexer('').tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 
     // デフォルト sandbox ルート (/sandbox) → 仮想パスは "\"
     assert.strictEqual(ev.evalExpression('CurDir()'), '\\', 'CurDir() はデフォルトで Sandbox ルート');
@@ -33,7 +34,8 @@ console.log('--- Starting CurDir Tests ---');
     const ast = new Parser(tokens).parse();
     // sandboxRoot を "/custom/root" に変更
     const ev = new Evaluator(console.log, { sandboxRoot: '/custom/root' });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 
     // カスタムルートでも、ルート自体は仮想パスでは "\"
     assert.strictEqual(ev.evalExpression('CurDir()'), '\\', 'カスタム Sandbox ルートでも CurDir() = "\\"');

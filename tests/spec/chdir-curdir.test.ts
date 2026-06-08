@@ -12,7 +12,8 @@ function runVBA(code: string, vfs: MemoryFileSystem): any {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev;
 }
 
@@ -20,7 +21,8 @@ function runFunc(code: string, name: string, vfs: MemoryFileSystem): any {
     const tokens = new Lexer(code).tokenize();
     const ast = new Parser(tokens).parse();
     const ev = new Evaluator(() => {}, { fs: vfs });
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev.callProcedure(name, []);
 }
 

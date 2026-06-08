@@ -1,20 +1,14 @@
 /**
  * FileSystem Functions (Extra) (§6.1.2.5) のテスト
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 // Use VFS (MemoryFileSystem) for tests
 const vfs = new MemoryFileSystem();
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log, { fs: vfs });
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { fs: vfs });
     return ev;
 }
 

@@ -1,14 +1,9 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { NodeFileSystem } from '../../src/engine/node_filesystem';
 
 function evalVBA(code: string): Evaluator {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log, { fs: new NodeFileSystem() });
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { fs: new NodeFileSystem() });
     return ev;
 }
 

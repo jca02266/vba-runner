@@ -8,7 +8,8 @@ function runVba(source: string): Evaluator {
     const parser = new Parser(tokens);
     const ast = parser.parse();
     const ev = new Evaluator(() => {});
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev;
 }
 

@@ -11,16 +11,11 @@
  *   - Empty (Null JS): False（未初期化 Variant = 0 = False）
  *   - Null: Invalid use of Null (Error 94)
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator, vbaTrue, vbaFalse, vbaNull } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { vbaTrue, vbaFalse, vbaNull } from '../../src/engine/evaluator';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function runFunc(code: string, name: string, args: any[] = []): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code);
     return ev.callProcedure(name, args);
 }
 
@@ -89,19 +84,13 @@ console.log('--- Starting If-Condition Truthy Tests ---');
 
     // 変換不能な文字列 → Type mismatch (Error 13)
     const ev1 = (() => {
-        const tokens = new Lexer(branch('""')).tokenize();
-        const ast = new Parser(tokens).parse();
-        const ev = new Evaluator(console.log);
-        ev.evaluate(ast);
+        const ev = evalVBASingle(branch('""'));
         return ev;
     })();
     expectError(() => ev1.callProcedure('Check', []), 13, '"" → Type mismatch');
 
     const ev2 = (() => {
-        const tokens = new Lexer(branch('"abc"')).tokenize();
-        const ast = new Parser(tokens).parse();
-        const ev = new Evaluator(console.log);
-        ev.evaluate(ast);
+        const ev = evalVBASingle(branch('"abc"'));
         return ev;
     })();
     expectError(() => ev2.callProcedure('Check', []), 13, '"abc" → Type mismatch');
@@ -124,10 +113,7 @@ console.log('--- Starting If-Condition Truthy Tests ---');
             End If
         End Function
     `;
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code);
     expectError(() => ev.callProcedure('CheckNull', []), 94, 'Null → Invalid use of Null');
     console.log('[PASS] Null → Error 94');
 }

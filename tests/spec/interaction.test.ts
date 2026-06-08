@@ -1,7 +1,4 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 let output = "";
 const onPrint = (msg: string) => {
@@ -9,10 +6,7 @@ const onPrint = (msg: string) => {
 };
 
 function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(onPrint);
-    ev.evaluate(ast);
+    const ev = evalVBASingle(code, { onPrint: onPrint });
     return ev;
 }
 

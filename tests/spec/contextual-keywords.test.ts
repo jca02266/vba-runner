@@ -19,7 +19,8 @@ function run(code: string, name: string): any {
         throw new Error(`Parse error: ${ast.diagnostics.map((d: any) => d.message).join(', ')}`);
     }
     const ev = new Evaluator(() => {});
-    ev.evaluate(ast);
+    ev.evaluateModule(ast);
+    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
     return ev.callProcedure(name, []);
 }
 

@@ -7,10 +7,7 @@
  *   3. 別モジュールの VBA ソースから Private プロシージャを呼ぶとエラーになる
  *   4. Public プロシージャはどのモジュールからでも呼べる
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBAModules, assert } from '../../test-libs/test-runner';
 
 const moduleA = `
     Public Function PublicAdd(a, b)
@@ -37,15 +34,10 @@ const moduleB = `
 `;
 
 // 2 つのモジュールを別々にセットして評価
-const ev = new Evaluator(console.log);
-
-ev.setSourceModule('ModuleA.bas');
-ev.evaluate(new Parser(new Lexer(moduleA).tokenize()).parse());
-
-ev.setSourceModule('ModuleB.bas');
-ev.evaluate(new Parser(new Lexer(moduleB).tokenize()).parse());
-
-ev.setSourceModule('');
+const ev = evalVBAModules([
+    { name: 'ModuleA.bas', code: moduleA },
+    { name: 'ModuleB.bas', code: moduleB },
+]);
 
 console.log('--- Starting Private Scope Cross-Module Tests ---');
 
