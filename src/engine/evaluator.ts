@@ -1896,6 +1896,19 @@ export class Evaluator {
 
     private checkUndefinedCallsInProc(proc: ProcedureDeclaration): void {
         const knownNames = this.env.collectAllNames();
+        // moduleEnvs (Tier 2) の名前も既知として追加
+        for (const mEnv of this.moduleEnvs.values()) {
+            for (const n of mEnv.collectAllNames()) knownNames.add(n);
+        }
+        // builtinEnv の名前も追加（collectAllNames は chain を辿るが builtinEnv は enclosing なので含まれる）
+        // defaultBindingObject のメンバーを既知として追加（Sheets, Range 等）
+        if (this.defaultBindingObject) {
+            let cur = this.defaultBindingObject;
+            while (cur && cur !== Object.prototype && cur !== Function.prototype) {
+                for (const k of Object.getOwnPropertyNames(cur)) knownNames.add(k.toLowerCase());
+                cur = Object.getPrototypeOf(cur);
+            }
+        }
         const errs: UndefinedProcError[] = [];
         walkProcForUndefinedCalls(proc, new Set(), knownNames, errs);
         if (errs.length > 0) {
@@ -3155,13 +3168,15 @@ export class Evaluator {
                 // Tier 1: proc-local variable
                 this.env.setLocally(varName, initialValue);
             } else {
-                // Tier 2: module-level variable
+                // Module-level variable — 単一コピーで管理（二重登録しない）
+                // Public/Friend → globalEnv (Tier 3): 全モジュールのチェーンから到達可能
+                // Private/Dim with module name → moduleEnv (Tier 2): 自モジュールのチェーンでのみ発見
+                // Private/Dim without module name → globalEnv (後方互換: setSourceModule なし旧 API)
                 const modName = this.currentSourceModule || 'module1';
-                const moduleEnv = this.getOrCreateModuleEnv(modName);
-                moduleEnv.setLocally(varName, initialValue);
-                if (stmt.scope === 'public' || stmt.scope === 'friend') {
-                    // Public/Friend: also register in Tier 3 for cross-module access
+                if (stmt.scope === 'public' || stmt.scope === 'friend' || !this.currentSourceModule) {
                     this.env.setLocally(varName, initialValue);
+                } else {
+                    this.getOrCreateModuleEnv(this.currentSourceModule).setLocally(varName, initialValue);
                 }
                 this.registerModuleVar(modName, varName);
             }
@@ -3655,13 +3670,9 @@ export class Evaluator {
         const value = this.evaluateConstValue(stmt.value);
         const name = stmt.name.name;
         if (!this.currentProcedureName && this.currentSourceModule) {
-            // Tier 2: module-level constant
+            // モジュールレベル定数は VBA では Public がデフォルト → globalEnv (Tier 3) のみ
             const modName = this.currentSourceModule;
-            const moduleEnv = this.getOrCreateModuleEnv(modName);
-            moduleEnv.setConstant(name, value);
-            // Module-level Const is Public by default in VBA → also in Tier 3
             this.env.setConstant(name, value);
-            // Module-qualified key in Tier 3 for disambiguation
             this.env.setConstant(`${modName}:${name}`, value);
             this.registerModuleVar(modName, name);
         } else {
@@ -4178,8 +4189,9 @@ export class Evaluator {
             if (!this.externalObjectFactories.has(k)) {
                 this.externalObjectFactories.set(k, factory);
             }
-            // "ProjectName.ClassName" 形式ならプロジェクト名を VbaNamespaceRef として登録。
-            // COM 型ライブラリ名前空間は Tier 5 へ登録（globalEnv には入れない）。
+            // "ProjectName.ClassName" 形式ならプロジェクト名を Tier 5 に登録。
+            // globalEnv には登録しない（Tier 3 と Tier 5 を混在させない）。
+            // 値コンテキストでの検出は evaluateExpression の Identifier ケースで行う。
             const dot = k.indexOf('.');
             if (dot > 0) {
                 const projectName = k.slice(0, dot);
@@ -4751,6 +4763,16 @@ export class Evaluator {
                             return (tier6Val as (...a: any[]) => any).apply(this.defaultBindingObject, []);
                         }
                         return tier6Val;
+                    }
+                }
+                // §5.6.10 Tier 5: COM 型ライブラリ名前空間（Scripting 等）を値として使う場合はエラー。
+                // env.get より先にチェックしないと暗黙初期化（vbaEmpty）で上書きされてしまう。
+                // Tier 1-4 に同名の宣言がある場合は Tier 5 より優先（env.hasVariable が true）。
+                if (!this.inConstEval && !this.env.hasVariable(idName)) {
+                    const tier5 = this.typeLibraryNamespaces.get(idName.toLowerCase());
+                    if (tier5) {
+                        this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                            `Compile error: Expected variable or procedure, not project ('${tier5.name}')`);
                     }
                 }
                 // VbaNamespaceRef（プロジェクト名・モジュール名）を値として使う場合はコンパイルエラー。

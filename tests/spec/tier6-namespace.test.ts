@@ -443,7 +443,8 @@ End Sub
 }
 
 // ============================================================
-// 14. Tier 6 未設定の場合は Pass 2 で SUB_OR_FUNCTION_NOT_DEFINED（compile error）
+// 14. Tier 6 未設定の場合は callProcedure で SUB_OR_FUNCTION_NOT_DEFINED（compile error）
+//     ※ undefined proc 検出は precheckProc（preproc）で行われるため callProcedure 時に throw
 // ============================================================
 {
     const userCode = `
@@ -452,10 +453,10 @@ Sub TestNoTier6()
     v = Range("A1").Value
 End Sub
 `;
-    // defaultBindingObject を設定しないと Pass 2（resolveIdentifiers）で compile error になる
+    const ev = evalVBAModules([{ name: 'UserModule', code: userCode }]);
     let threw = false;
     try {
-        evalVBAModules([{ name: 'UserModule', code: userCode }]);
+        ev.callProcedure('TestNoTier6', []);
     } catch (e: any) {
         threw = true;
         const msg = e.message || '';
@@ -465,7 +466,7 @@ End Sub
         }
     }
     assert.strictEqual(threw, true, 'Expected compile error when Tier 6 not configured');
-    console.log('[PASS] 14. Tier 6 未設定時は Pass 2 で SUB_OR_FUNCTION_NOT_DEFINED（compile error）');
+    console.log('[PASS] 14. Tier 6 未設定時は callProcedure で SUB_OR_FUNCTION_NOT_DEFINED（compile error）');
 }
 
 console.log('\n✅ Tier 6 型名前空間/値名前空間分離: 全テスト通過');
