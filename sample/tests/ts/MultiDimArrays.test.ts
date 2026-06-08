@@ -45,7 +45,8 @@ async function testMultiDimArrays() {
     const parser = new Parser(tokens);
     const program = parser.parse();
     
-    evaluator.evaluate(program);
+    evaluator.evaluateModule(program);
+    evaluator.resolveIdentifiers([{ ast: program, moduleName: '' }]);
     evaluator.callProcedure('TestMultiDim', []);
     
     assert(logs.includes("arr(1, 2): 10"), "Basic 2D assignment (1,2)");

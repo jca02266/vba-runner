@@ -51,7 +51,8 @@ async function testEvents() {
     const modLexer = new Lexer(moduleCode);
     const modParser = new Parser(modLexer.tokenize());
     const modProgram = modParser.parse();
-    evaluator.evaluate(modProgram);
+    evaluator.evaluateModule(modProgram);
+    evaluator.resolveIdentifiers([{ ast: modProgram, moduleName: '' }]);
     
     console.log("Running TestEvents...");
     evaluator.callProcedure('TestEvents', []);

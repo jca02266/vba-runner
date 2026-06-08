@@ -45,7 +45,8 @@ async function testAdvanced() {
     const parser = new Parser(tokens);
     const program = parser.parse();
     
-    evaluator.evaluate(program);
+    evaluator.evaluateModule(program);
+    evaluator.resolveIdentifiers([{ ast: program, moduleName: '' }]);
     evaluator.callProcedure('TestAdvanced', []);
     
     assert(logs.includes("AddressOf: MySub"), "AddressOf should return procedure name");

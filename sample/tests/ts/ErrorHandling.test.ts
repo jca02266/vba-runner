@@ -50,7 +50,8 @@ async function testErrorHandling() {
     const parser = new Parser(lexer.tokenize());
     const program = parser.parse();
     
-    evaluator.evaluate(program);
+    evaluator.evaluateModule(program);
+    evaluator.resolveIdentifiers([{ ast: program, moduleName: '' }]);
     
     console.log("Running TestError...");
     evaluator.callProcedure('TestError', []);
