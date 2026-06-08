@@ -238,6 +238,9 @@ export interface EvalOptions {
     /** Evaluator 生成直後・evaluateModule 呼び出し前に実行されるコールバック。
      *  setNowFn / set / setConstant 等の前処理に使う。 */
     setup?: (ev: Evaluator) => void;
+    /** パース直後・Evaluator 生成前に実行されるコールバック。
+     *  ast.diagnostics のチェック等に使う。throw すれば評価を中断できる。 */
+    afterParse?: (ast: Program) => void;
 }
 
 /**
@@ -247,6 +250,7 @@ export interface EvalOptions {
  */
 export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
     const ast = new Parser(new Lexer(code).tokenize()).parse();
+    options?.afterParse?.(ast);
     const ev = new Evaluator(options?.onPrint ?? console.log, {
         fs: options?.fs,
         sandboxRoot: options?.sandboxRoot,

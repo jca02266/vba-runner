@@ -7,21 +7,17 @@
  * The following words are NOT in the reserved-identifier list and therefore MUST be
  * usable as Dim variable names, assignment targets, and in expressions.
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function run(code: string, name: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    if (ast.diagnostics?.length) {
-        throw new Error(`Parse error: ${ast.diagnostics.map((d: any) => d.message).join(', ')}`);
-    }
-    const ev = new Evaluator(() => {});
-    ev.evaluateModule(ast);
-    ev.resolveIdentifiers([{ ast, moduleName: '' }]);
-    return ev.callProcedure(name, []);
+    return evalVBASingle(code, {
+        onPrint: () => {},
+        afterParse: ast => {
+            if (ast.diagnostics?.length) {
+                throw new Error(`Parse error: ${ast.diagnostics.map((d: any) => d.message).join(', ')}`);
+            }
+        },
+    }).callProcedure(name, []);
 }
 
 // ---------------------------------------------------------------
