@@ -4,19 +4,13 @@
  * test-libs/regexp-mock.ts の `createRegExpMock` を登録し、
  * VBA から `CreateObject("VBScript.RegExp")` を呼んだ際に意図通り動作することを検証する。
  */
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
-import { Evaluator } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { createRegExpMock } from '../../test-libs/regexp-mock';
 
-function evalVBA(code: string): any {
-    const tokens = new Lexer(code).tokenize();
-    const ast = new Parser(tokens).parse();
-    const ev = new Evaluator(console.log);
-    ev.registerComObject(createRegExpMock);
-    ev.evaluate(ast);
-    return ev;
+function evalVBA(code: string) {
+    return evalVBASingle(code, {
+        setup: ev => ev.registerComObject(createRegExpMock),
+    });
 }
 
 function runFunc(code: string, name: string, args: any[] = []): any {
