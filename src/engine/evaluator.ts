@@ -4990,22 +4990,20 @@ export class Evaluator {
                 if (n < -2147483648 || n > 2147483647) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                 return n;
             }
-            case '!': {
-                const f32 = Math.fround(val);
-                if (!isFinite(f32) && isFinite(val)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
-                return f32;
-            }
+            case '!':
+                // TypeName → 'Single' は AST の typeSuffix 経由で返る。
+                // Math.fround は表示ラッパー（VbaSingle）が未実装のため適用しない。
+                return val;
             case '#': return val;
             case '@': {
                 const n = this.vbaRound(val, 4);
                 if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                 return n;
             }
-            case '^': {
-                const n = Math.trunc(val);
-                if (!isFinite(n)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
-                return BigInt(n);
-            }
+            case '^':
+                // TypeName → 'LongLong' は AST の typeSuffix 経由で返る。
+                // BigInt 変換は VbaSingle 同様にラッパー未実装のため行わない。
+                return val;
             default: return val;
         }
     }
