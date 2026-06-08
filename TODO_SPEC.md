@@ -831,8 +831,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ## テストコードのリファクタリング残件
 
-- ⚠️ **`tests/spec/` に `evaluator.evaluate(ast)` 形式が残存（33ファイル・37件）**
+- ⚠️ **`tests/spec/` に `.evaluate(ast)` 形式が残存（33ファイル）**
   - 変数名が `evaluator` / `ev3` 等、または `new Evaluator(...).evaluate(ast)` のインライン形式
+  - `tests/spec/` 以外（`sample/tests/ts/`, `test-libs/`, `src/` 等）は移行完了済み
   - `ev.evaluate` の移行（`evalVBASingle` / `evalVBAModules` / `evaluateModule+resolveIdentifiers`）と同様の対応が必要
   - 主なファイル: `evaluator-scoping.test.ts`, `empty-module-validation.test.ts`, `vb-name-attribute.test.ts`, `environ.test.ts` 他
   - 特殊パターン: `function-return-coercion.test.ts` の `new Evaluator(s => ...).evaluate(ast)` インライン形式
