@@ -22,6 +22,16 @@
 set -euo pipefail
 
 REPO_ROOT="$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)"
+
+# ワークツリーが clean であることを確認（コミット漏れ・未追跡ファイルを防ぐ）
+DIRTY=$(git -C "${REPO_ROOT}" status --porcelain)
+if [ -n "${DIRTY}" ]; then
+    echo "❌ ワークツリーが clean ではありません。コミットまたは stash してから実行してください。"
+    echo ""
+    git -C "${REPO_ROOT}" status --short
+    exit 1
+fi
+
 TIMESTAMP=$(date +%Y%m%d-%H%M%S)
 BRANCH="test/${TIMESTAMP}"
 # /tmp (=/private/tmp) は Claude Code の作業領域と競合して溢れることがある。

@@ -107,15 +107,24 @@ expr = { type: 'NumberLiteral', value: Number(cleanVal) } as NumberLiteral;
 | 式 | VBA 仕様 | 現在の実装 |
 |----|---------|-----------|
 | `TypeName(100%)` | `Integer` | `Integer`（範囲一致で偶然正しい） |
-| `TypeName(100&)` | `Long` | `Integer`（範囲から誤推定） |
-| `TypeName(1.5!)` | `Single` | `Double`（サフィックス無視） |
-| `TypeName(1.5@)` | `Currency` | `Double`（サフィックス無視） |
-| `TypeName(100^)` | `LongLong` | `Integer`（範囲から誤推定） |
-| `100000%` | Error 6 Overflow | エラーにならない |
+| `TypeName(100&)` | `Long` | ✅ `Long`（修正済み） |
+| `TypeName(1.5!)` | `Single` | ✅ `Single`（修正済み） |
+| `TypeName(1.5@)` | `Currency` | ✅ `Currency`（修正済み） |
+| `TypeName(100^)` | `LongLong` | ✅ `LongLong`（修正済み） |
+| `100000%` | Error 6 Overflow | ✅ Error 6（修正済み） |
 
-**修正方針**：`NumberLiteral` に `typeSuffix?: string` を追加し、パーサーでサフィックスを保持。
-評価器でサフィックスに応じた型強制（範囲チェック・精度丸め）を実施する。
-Currency（`@`）はラッパークラスが未実装のため後回し。
+**実装済み**：`NumberLiteral` に `typeSuffix` / `isFloat` を追加し、`inferLiteralTypeName` / `inferLiteralVarType` がサフィックス優先で型を返すよう修正。
+
+**値強制の状態**：
+
+| サフィックス | TypeName/VarType | 値の強制 | 備考 |
+|-------------|-----------------|---------|------|
+| `%` Integer | ✅ 正確 | ✅ 銀行丸め + 範囲チェック | `32768%` → Error 6 |
+| `&` Long    | ✅ 正確 | ✅ 銀行丸め + 範囲チェック | `2147483648&` → Error 6 |
+| `!` Single  | ✅ 正確 | ⚠️ 値はそのまま（Math.fround なし） | VbaSingle ラッパー未実装のため |
+| `#` Double  | ✅ 正確 | ✅ そのまま（no-op） | |
+| `@` Currency| ✅ 正確 | ✅ 4桁丸め + 範囲チェック | ランタイムラッパーは未実装 |
+| `^` LongLong| ✅ 正確 | ⚠️ 値はそのまま（BigInt 変換なし） | VbaLongLong ラッパー未実装のため |
 
 ---
 
