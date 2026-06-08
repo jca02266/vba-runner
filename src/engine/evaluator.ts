@@ -606,7 +606,9 @@ export class Environment {
 export type PrintCallback = (output: string) => void;
 
 export class Evaluator {
-    public env: Environment;
+    public env: Environment;          // Tier 3: Public cross-module names
+    private builtinEnv!: Environment; // Tier 4: standard library
+    private moduleEnvs: Map<string, Environment> = new Map(); // Tier 2: per-module vars
     private fileHandles: Map<number, {
         fd: number,
         mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',
@@ -651,12 +653,16 @@ export class Evaluator {
     private debugHook: DebugHook | null = null;
 
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
-        this.env = new Environment();
+        // Tier 4: builtinEnv — register standard library here first
+        this.builtinEnv = new Environment();
+        this.env = this.builtinEnv;         // temporarily point to builtinEnv
         this.onPrint = onPrint;
         this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         this.fs = config.fs || new MemoryFileSystem();
-        this.registerStandardLibrary();
-        this.registerBuiltinExternalObjects();
+        this.registerStandardLibrary();     // → builtinEnv
+        this.registerBuiltinExternalObjects(); // → typeLibraryNamespaces
+        // Tier 3: globalEnv — cross-module public names, enclosing = builtinEnv
+        this.env = new Environment(this.builtinEnv);
     }
 
     // Public accessor for testing/mocking
@@ -1798,8 +1804,10 @@ export class Evaluator {
         // Validate argument count
         this.checkArgCount(proc, args);
 
-        // Create a new local environment for the procedure call
-        const localEnv = new Environment(this.env);
+        // Create a new local environment: Tier 1, enclosing = Tier 2 (moduleEnv)
+        const procModuleKey = (proc.moduleName ?? '').toLowerCase();
+        const parentEnv = this.moduleEnvs.get(procModuleKey) ?? this.env;
+        const localEnv = new Environment(parentEnv);
 
         // Map arguments to parameter names
         for (let i = 0; i < proc.parameters.length; i++) {
@@ -1850,6 +1858,15 @@ export class Evaluator {
         } finally {
             this.vbaCallStack.pop();
         }
+    }
+
+    /** Tier 2: モジュール専用 Environment を取得または生成する。enclosing = Tier 3 (this.env) */
+    private getOrCreateModuleEnv(moduleName: string): Environment {
+        const key = (moduleName || 'module1').toLowerCase();
+        if (!this.moduleEnvs.has(key)) {
+            this.moduleEnvs.set(key, new Environment(this.env));
+        }
+        return this.moduleEnvs.get(key)!;
     }
 
     // OE check shared between callProcedure and evaluateCallExpression.
@@ -3135,13 +3152,18 @@ export class Evaluator {
             }
             this.env.registerDimStmt(varKey, stmt);
             if (this.currentProcedureName) {
+                // Tier 1: proc-local variable
                 this.env.setLocally(varName, initialValue);
             } else {
-                this.env.set(varName, initialValue);
-            }
-            // Register in module registry for Module1.VarName style access
-            if (!this.currentProcedureName && this.currentSourceModule) {
-                this.registerModuleVar(this.currentSourceModule, varName);
+                // Tier 2: module-level variable
+                const modName = this.currentSourceModule || 'module1';
+                const moduleEnv = this.getOrCreateModuleEnv(modName);
+                moduleEnv.setLocally(varName, initialValue);
+                if (stmt.scope === 'public' || stmt.scope === 'friend') {
+                    // Public/Friend: also register in Tier 3 for cross-module access
+                    this.env.setLocally(varName, initialValue);
+                }
+                this.registerModuleVar(modName, varName);
             }
             if (isStaticDecl) {
                 this.staticVarsInCurrentProc.add(varKey);
@@ -3632,11 +3654,20 @@ export class Evaluator {
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
         const value = this.evaluateConstValue(stmt.value);
         const name = stmt.name.name;
-        this.env.setConstant(name, value);
         if (!this.currentProcedureName && this.currentSourceModule) {
-            // Store module-qualified key for same-name disambiguation (constants are immutable)
-            this.env.setConstant(`${this.currentSourceModule}:${name}`, value);
-            this.registerModuleVar(this.currentSourceModule, name);
+            // Tier 2: module-level constant
+            const modName = this.currentSourceModule;
+            const moduleEnv = this.getOrCreateModuleEnv(modName);
+            moduleEnv.setConstant(name, value);
+            if (stmt.scope === 'public' || !stmt.scope) {
+                // Public (default): also in Tier 3 for cross-module access
+                this.env.setConstant(name, value);
+            }
+            // Module-qualified key in Tier 3 for disambiguation
+            this.env.setConstant(`${modName}:${name}`, value);
+            this.registerModuleVar(modName, name);
+        } else {
+            this.env.setConstant(name, value);
         }
     }
 
@@ -5091,8 +5122,10 @@ export class Evaluator {
 
                 this.precheckProc(proc);
 
-                // Procedure call (Function/Sub)
-                const localEnv = new Environment(this.env);
+                // Procedure call (Function/Sub): Tier 1, enclosing = Tier 2 (moduleEnv)
+                const procModKey = (proc.moduleName ?? '').toLowerCase();
+                const procParentEnv = this.moduleEnvs.get(procModKey) ?? this.env;
+                const localEnv = new Environment(procParentEnv);
 
                 // Map arguments to parameters
                 const byRefArgs: { paramName: string, originalExpr: Expression }[] = [];
