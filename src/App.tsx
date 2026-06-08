@@ -276,7 +276,8 @@ function createBrowserTestRunner(vbaSource: string, outputFn: (msg: string) => v
   };
 
   const evaluator = new Evaluator((out) => { outputFn(out) });
-  evaluator.evaluate(declarationAst);
+  evaluator.evaluateModule(declarationAst);
+  evaluator.resolveIdentifiers([{ ast: declarationAst, moduleName: '' }]);
 
   // vbaRunner object: matches VBARunner class interface
   const vbaRunner = {
@@ -350,7 +351,8 @@ assert.strictEqual(r, 300);`;
       }
       const newOutputs: string[] = []
       const evaluator = new Evaluator((out) => { newOutputs.push(out) })
-      evaluator.evaluate(ast)
+      evaluator.evaluateModule(ast)
+      evaluator.resolveIdentifiers([{ ast, moduleName: '' }])
       setRunOutput(prev => [...prev, ...newOutputs, '> Execution finished.'])
     } catch (err: any) {
       const msg = err.number ? `Error: ${err.number} ${err.message}` : `Error: ${err.message}`;
