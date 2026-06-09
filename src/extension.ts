@@ -446,7 +446,10 @@ End Class`;
                     const moduleName = path.basename(entry, path.extname(entry));
                     const filePath = path.join(dir, entry);
                     moduleFileMap.set(moduleName.toLowerCase(), filePath);
-                    const content = fs.readFileSync(filePath, 'utf8');
+                    // エディター上で開いている場合は未保存変更を含むメモリ上のテキストを優先する
+                    const fileUriStr = vscode.Uri.file(filePath).toString();
+                    const openDoc = documentMap.get(fileUriStr);
+                    const content = openDoc ? openDoc.getText() : fs.readFileSync(filePath, 'utf8');
                     const tokens = new Lexer(content).tokenize();
                     let ast;
                     if (/\.cls$/i.test(entry)) {

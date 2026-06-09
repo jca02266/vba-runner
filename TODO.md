@@ -1320,7 +1320,7 @@ Extension Host
 - [ ] VBA ネイティブ・TypeScript の拡張子自動判別
 - [ ] ワークスペース Open 時に `vba-runner.d.ts` を自動生成
 - [ ] child_process でのプロセス分離（タイムアウト付き）
-- [ ] VS Code Marketplace 公開
+- [x] VS Code Marketplace 公開
 
 ---
 
@@ -1509,7 +1509,7 @@ End Sub
 - 優先度: `@type` → `@lint-disable` → `@param`/`@returns` → `@mock` の順
 
 ### パッケージング（Marketplace 公開）
-- [ ] VS Code Marketplace への公開（アイコン整備、`.vsix` ビルド検証）
+- [x] VS Code Marketplace への公開（アイコン整備、`.vsix` ビルド検証）
 - [ ] Web Extension 化（evaluator が Node.js `path` に依存しており、先にブラウザ対応が必要）
 
 ### Web UI（デモサイト）の改善
