@@ -2,8 +2,8 @@
   "name": "vba-runner",
   "displayName": "VBA Runner",
   "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
-  "version": "0.1.0",
-  "publisher": "vba-runner",
+  "version": "0.1.2",
+  "publisher": "jca02266",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -168,7 +168,7 @@
   "scripts": {
     "build": "esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname --define:import.meta.url=__filename && esbuild ../../src/lsp/debug-worker.ts --bundle --outfile=dist/debug-worker.cjs --platform=node --define:import.meta.dirname=__dirname --define:import.meta.url=__filename",
     "package": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && vsce package --no-dependencies",
-    "publish": "vsce publish --no-dependencies"
+    "publish": "export $(cat .env | grep -v '^#' | xargs) && vsce publish --no-dependencies"
   },
   "devDependencies": {
     "@vscode/vsce": "^2.6.0"

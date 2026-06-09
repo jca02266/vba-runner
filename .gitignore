@@ -53,3 +53,4 @@ dist-ssr
 /pending/
 
 /build/*/LICENSE
+.env

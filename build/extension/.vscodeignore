@@ -1,6 +1,7 @@
 # ソース・ビルド設定は extension.cjs にバンドル済みなので含めない
 **/*.map
 .gitignore
+.env
 
 # パッケージ化に必要なのは以下のみ:
 #   dist/extension.cjs, language-configuration.json, syntaxes/, README.md, package.json

@@ -1,91 +1,82 @@
-# VBA Runner — VS Code 拡張機能
+# VBA Runner — VS Code Extension
 
-VBA Runner の VS Code 拡張機能です。`.bas` / `.cls` / `.frm` ファイルを VS Code で開くと、LSP（言語サーバープロトコル）による豊富な編集支援が有効になります。
+A VS Code extension for VBA development. When you open `.bas` / `.cls` / `.frm` files, rich editing support powered by LSP (Language Server Protocol) becomes available.
 
-## インストール
+> 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
 
-`.vsix` ファイルをダウンロードして以下のいずれかの方法でインストールします。
+## Installation
+
+Install from the VS Code Marketplace by searching for **VBA Runner**, or run:
 
 ```bash
-# コマンドラインからインストール
-code --install-extension vba-runner-0.1.0.vsix
+code --install-extension jca02266.vba-runner
 ```
 
-または VS Code の「拡張機能」ビューで「...」メニュー → 「VSIXからインストール」を選択します。
+**For development (when cloning the repository)**:
 
-**開発用（リポジトリを clone した場合）**:
+1. Open this repository in VS Code
+2. Press `F5` to launch the Extension Development Host
+3. Open a `.bas` / `.cls` / `.frm` file in the new window
 
-1. このリポジトリを VS Code で開く
-2. `F5` キーで「Extension Development Host」を起動する
-3. 新しいウィンドウで `.bas` / `.cls` / `.frm` ファイルを開く
+## Supported File Types
 
-## 対応ファイル
-
-| 拡張子 | 種別 |
+| Extension | Type |
 |---|---|
-| `.bas` | 標準モジュール |
-| `.cls` | クラスモジュール |
-| `.frm` | フォームモジュール |
+| `.bas` | Standard Module |
+| `.cls` | Class Module |
+| `.frm` | Form Module |
 
-## 実装済みLSP機能
+## Features
 
-### ホバー (Hover)
+### Hover
 
-シンボル（Sub/Function/変数/定数/クラス/イベント）にマウスカーソルを合わせると、シグネチャをポップアップ表示します。
+Hovering over a symbol (Sub / Function / variable / constant / class / event) shows its signature in a popup.
 
 ```vb
 Sub CalcSum(a As Integer, b As Integer)
-'         ↑ ここにホバー → "Sub CalcSum(a As Integer, b As Integer)" が表示される
+'         ↑ Hover here → "Sub CalcSum(a As Integer, b As Integer)"
 ```
 
-### 定義へ移動 (Go to Definition)
+### Go to Definition
 
-シンボルにカーソルを置いて `F12` を押すと、そのシンボルの宣言位置にジャンプします。
+Place the cursor on a symbol and press `F12` to jump to its declaration.
 
-| 対応シンボル | 例 |
+| Symbol | Example |
 |---|---|
 | Sub / Function / Property | `Sub Foo()`, `Function Bar() As Long` |
-| 変数宣言 | `Dim x As Integer`, `Public count As Long` |
-| 定数 | `Const MAX As Long = 100` |
-| クラス | `Class MyClass` |
-| イベント | `Event DataChanged(newVal As Variant)` |
+| Variable | `Dim x As Integer`, `Public count As Long` |
+| Constant | `Const MAX As Long = 100` |
+| Class | `Class MyClass` |
+| Event | `Event DataChanged(newVal As Variant)` |
 
-### コード補完 (Completion)
+### Code Completion
 
-入力中に VBA キーワード・組み込み関数・ソース内で定義されたプロシージャの候補を表示します。`.` を入力したときにもトリガーされます。
+Suggestions for VBA keywords, built-in functions, and procedures defined in your source files appear as you type. Also triggered by `.`.
 
-### コール階層（Call Graph）
+### Call Graph
 
-コマンドパレット（`Ctrl+Shift+P`）から以下のコマンドを実行します。
+Open the Command Palette (`Ctrl+Shift+P`) and run:
 
-- **VBA: Show Call Graph** — カーソル位置のプロシージャを起点にした呼び出しグラフを表示
-- **VBA: Show in Call Graph** — カーソル位置のプロシージャを全体のグラフ中でハイライト
+- **VBA: Show Call Graph** — Display the call graph starting from the procedure at the cursor
+- **VBA: Show in Call Graph** — Highlight the procedure at the cursor in the full graph
 
-### 変数の導入リファクタリング (Introduce Variable)
+### Introduce Variable Refactoring
 
-コマンドパレットから **Refactor: Introduce Variable** を実行すると、選択した式を変数に抽出するリファクタリングを実行します。
+Run **Refactor: Introduce Variable** from the Command Palette to extract a selected expression into a variable.
 
-### VBA デバッガー統合
+### VBA Debugger Integration
 
-`.bas` ファイルを開いた状態で `F5` を押すと、VBA Runner のデバッガーでファイルを起動できます（`launch.json` の設定不要）。
+With a `.bas` file open, press `F5` to launch the file with the VBA Runner debugger (no `launch.json` required).
 
-## 設定オプション
+## Settings
 
-| 設定 | デフォルト | 説明 |
+| Setting | Default | Description |
 |---|---|---|
-| `vba-runner.lint.enabled` | `false` | lint 警告（VBA001〜 等のコード付き診断）をすべて有効にする |
-| `vba-runner.lint.enabledCodes` | `[]` | 有効にする lint コードを個別指定する（例: `["VBA009"]`） |
-| `vba-runner.editor.autoLineContinuation` | `true` | 式の途中で Enter を押したとき行継続文字 `_` を自動挿入する |
+| `vba-runner.lint.enabled` | `false` | Enable all lint diagnostics (VBA001, etc.) |
+| `vba-runner.lint.enabledCodes` | `[]` | Enable specific lint codes (e.g. `["VBA009"]`) |
+| `vba-runner.editor.autoLineContinuation` | `true` | Auto-insert line continuation `_` when pressing Enter mid-expression |
+| `vba-runner.editor.autoKeywordCasing` | `true` | Auto-correct keyword casing on confirm (like VBE behavior) |
 
-## ビルド
+## Repository
 
-```bash
-npm run build:extension   # dist/extension.cjs を生成
-npm run package:extension # .vsix パッケージを生成
-```
-
-## 詳細ドキュメント
-
-- [LSP.md](../../LSP.md) — LSP の設計・実装方針
-- [REFERENCE.md](../../REFERENCE.md) — 詳細仕様
-- [README.md](../../README.md) — プロジェクト概要
+[github.com/jca02266/vba-runner](https://github.com/jca02266/vba-runner)
