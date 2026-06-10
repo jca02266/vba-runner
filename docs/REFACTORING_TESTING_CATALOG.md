@@ -849,9 +849,9 @@ assert.ok(spy.calledWith('確認しますか？'));
 
 ### T-09: 外部オブジェクトスタブ
 
-`vbaRunner.registerExternalObject()` で `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える手法。`VBScript.RegExp` などのランタイム依存を排除できる。
+`vbaRunner.registerComObject()` で `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える手法。`VBScript.RegExp` などのランタイム依存を排除できる。
 
-* [TEST\_FRAMEWORK\_GUIDE.md — registerExternalObject()](TEST_FRAMEWORK_GUIDE.md#registerexternalobjectprogid-factory--void)
+* [TEST\_FRAMEWORK\_GUIDE.md — registerComObject()](TEST_FRAMEWORK_GUIDE.md#registercomobjectfactory--void)
 
 * [MOCK\_GUIDE.md](MOCK_GUIDE.md)
 

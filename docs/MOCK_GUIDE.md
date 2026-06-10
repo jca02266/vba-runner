@@ -1559,7 +1559,7 @@ assert.strictEqual(vbaRunner.run('IsTimeout', [9000]), false, '5000 < 9000 → n
 | 依存の種類 | 対応方法 |
 |---|---|
 | `Declare Function` / DLL 直呼び出し | 同名 VBA 関数を後ろに追記して差し替え（本節） |
-| `CreateObject("Foo.Bar")` | `vbaRunner.registerExternalObject(...)` で TypeScript ファクトリを登録（README.md 参照） |
+| `CreateObject("Foo.Bar")` | `vbaRunner.registerComObject(factory)` で TypeScript ファクトリを登録（REFERENCE.md 参照） |
 
 ---
 

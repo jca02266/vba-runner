@@ -405,8 +405,9 @@ ev.getGlobalEnv().set('ActiveSheet', ws);
 
 ```typescript
 import { createRegExpMock } from '../../test-libs/regexp-mock';
-ev.registerExternalObject('VBScript.RegExp', createRegExpMock);
-// factory() の戻り値に __className__ = "RegExp" があれば New RegExp にも自動対応
+ev.registerComObject(createRegExpMock);
+// factory() の戻り値の __progId__ = "VBScript.RegExp" が照合キー
+// __className__ = "RegExp" があれば New RegExp にも自動対応
 ```
 
 ### スパイ（呼び出し記録）
@@ -427,7 +428,7 @@ ev.spy('MsgBox', () => 6);     // vbYes を固定返却してスパイ
 | **関数差し替え**（JS クロージャ） | `MsgBox`, `Shell`, `InputBox` など副作用を持つ組み込み | `ev.set(name, fn)` |
 | **グローバルオブジェクト注入** | `ActiveSheet`, `ThisWorkbook` など VBA コードが直接参照するオブジェクト | `ev.getGlobalEnv().set(name, obj)` |
 | **VBA クラスモック**（`.bas` 拡張構文） | `Worksheet`, `CellRef` など型定義と実装を VBA で書きたい場合 | `setSourceModule` + `evaluateModule` |
-| **外部オブジェクトファクトリ** | `CreateObject("VBScript.RegExp")`, `New RegExp` など COM 相当 | `ev.registerExternalObject(progId, factory)` |
+| **外部オブジェクトファクトリ** | `CreateObject("VBScript.RegExp")`, `New RegExp` など COM 相当 | `ev.registerComObject(factory)` |
 | **Tier 6 デフォルト束縛オブジェクト**（未実装） | `Range("A1")` のような修飾なし Excel グローバル関数 | `ev.setDefaultBindingObject(app)`（予定） |
 
 ### `.bas` クラスモックの注意点
@@ -488,7 +489,7 @@ ev.setDefaultBindingObject(app);
 |---|:---:|:---:|:---:|
 | `ev.set(name, fn)` | ✅ | ✅ | ✅ |
 | `ev.setConstant(name, val)` | ✅ | ✅ | ✅ |
-| `ev.registerExternalObject(...)` | ✅ | ✅ | ✅ |
+| `ev.registerComObject(...)` | ✅ | ✅ | ✅ |
 | `ev.getGlobalEnv().set('ActiveSheet', ws)` | ✅ | ✅ | ✅ |
 | `ev.spy(name)` | ⚠️（元の実装がまだない） | ✅ | ✅ |
 

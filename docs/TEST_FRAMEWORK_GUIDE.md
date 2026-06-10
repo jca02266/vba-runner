@@ -563,17 +563,21 @@ describe('Fiscal Year Logic', () => {
 ### コンストラクター
 
 ```typescript
-new VBARunner(pathOrDir: string, config?: {
-    sandboxRoot?: string,    // ファイル操作のサンドボックスルート
-    env?: Record<string, string>,  // VBA の Environ() が返す環境変数
+new VBARunner(pathOrDir?: string | null, config?: {
+    sandboxRoot?: string,           // ファイル操作のサンドボックスルート
+    env?: Record<string, string>,   // VBA の Environ() が返す環境変数
+    compilerConstants?: Record<string, boolean | number | string>,  // #If 定数
+    excelStub?: boolean,            // Excel スタブ（MockApplication）を自動注入
 })
 ```
 
 ファイルシステムは常に `MemoryFileSystem` (VFS) を使用します。
 
-- `pathOrDir` にファイルパスを渡すと単一ファイルを読み込む
+- `pathOrDir` に `null` または省略すると空の環境を作成する（`eval()` のみの用途に便利）
+- ファイルパスを渡すと単一ファイルを読み込む
 - ディレクトリパスを渡すと `.bas` / `.cls` / `.frm` を**名前順**に全ロード
 - `.cls` ファイルは自動的にクラスモジュールとして解釈される（`Class ... End Class` ラッパー不要）
+- `excelStub: true` にすると `MockApplication` が注入され、`vbaRunner.excelStub` からアクセスできる
 
 ### メソッド
 
@@ -604,6 +608,14 @@ const v = vbaRunner.eval('2 + 3')      // 式の評価 → 5
 ```typescript
 vbaRunner.set('ExchangeRate', 150.5)
 vbaRunner.set('TargetSheet', mockWorksheet)
+```
+
+#### `setConstants(constants)` → `void`
+
+VBA の定数（`Const` 宣言相当）を TypeScript 側から一括注入する。`#If` プリプロセッサ定数とは別に、実行時定数として登録される。
+
+```typescript
+vbaRunner.setConstants({ TAX_RATE: 0.1, APP_VERSION: '2.0' })
 ```
 
 #### `mockDate(dateStr | null)` → `void`
@@ -660,13 +672,13 @@ it('should show error when input is invalid', () => {
 });
 ```
 
-#### `registerExternalObject(progId, factory)` → `void` [[→ T-09](REFACTORING_TESTING_CATALOG.md#t-09)]
+#### `registerComObject(factory)` → `void` [[→ T-09](REFACTORING_TESTING_CATALOG.md#t-09)]
 
-`CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える。
+`CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える。`factory()` が返すオブジェクトの `__progId__` プロパティが照合キーになる。
 
 ```typescript
 import { createRegExpMock } from '../../test-libs/regexp-mock';
-vbaRunner.registerExternalObject('VBScript.RegExp', createRegExpMock);
+vbaRunner.registerComObject(createRegExpMock);
 ```
 
 #### `getTypeDefinitions()` → `Record<string, Record<string, string>>`
@@ -904,7 +916,7 @@ it('CalculateTotalFromArray([100, 200]) = 300', () => {
 | ケース | 対応方法 |
 |-------|---------|
 | 時間に依存する処理（`Now()`） | `vbaRunner.mockDate('2024-01-01')` — **パターン7**参照 |
-| 外部オブジェクト（`CreateObject`） | `vbaRunner.registerExternalObject(progId, factory)` |
+| 外部オブジェクト（`CreateObject`） | `vbaRunner.registerComObject(factory)` |
 | ランダム値（`Rnd()`） | テスト前に `Randomize 固定シード` を VBA 側で呼ぶ |
 
 Domain Logic が適切に分離されていれば、通常は mock 不要です。
@@ -949,7 +961,7 @@ try {
 | **入力データ** | 配列、スカラー値（シンプル） |
 | **日時モック** | `vbaRunner.mockDate('2024-01-01T00:00:00Z')` |
 | **副作用スパイ** | `vbaRunner.spy('MsgBox')` → `SpyRecord` |
-| **外部オブジェクト** | `vbaRunner.registerExternalObject(progId, factory)` |
+| **外部オブジェクト** | `vbaRunner.registerComObject(factory)` |
 | **エラーデバッグ** | `e.basLine` / `e.number` / `e.message` |
 | **テスト実行** | npm scripts から |
 
