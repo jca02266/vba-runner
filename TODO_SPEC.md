@@ -130,7 +130,7 @@
 | ✅ | P1 | Option Private Module | §5.2.1.4 | `option-private.test.ts` |
 | ✅ | P0 | Attributes (VB_Name, etc.) | §5.2.3.1.6 / §5.2.4.1 | (制限事項: パースのみ。実行時は無視) | `ui_attr.test.ts` |
 | ✅ | P0 | Date Literals (#mm/dd/yyyy#) | §3.3.3.3 | `number_literals.test.ts` |
-| 🚧 | P2 | FOREIGN-NAME `[identifier]` 構文 — 予約語をプロシージャ呼び出しに使用（例: `[End]()`）。定義側（`Sub [End]`）は実 VBA でも不可。未定義でも Option Explicit エラーにならない挙動を含む | §3.3.5.2 | `foreign-name.test.ts` |
+| ✅ | P2 | FOREIGN-NAME `[identifier]` 構文 — 予約語をプロシージャ呼び出しに使用（例: `[End]()`）。定義側（`Sub [End]`）は実 VBA でも不可。未定義でも Option Explicit エラーにならない挙動を含む | §3.3.5.2 | `foreign-name.test.ts` |
 
 ## 第5章：演算子 (§5.6.9)
 
@@ -835,9 +835,9 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 | 状態 | 項目 | 概要 |
 |------|------|------|
-| ❌ | **数値リテラルのサフィックス型情報保持** | `NumberLiteral` AST に `typeSuffix` フィールドがなくサフィックスが捨てられる。`TypeName(100&)` → `Long` のはず → `Integer`。`1.5!` → `Single` のはず → `Double` |
-| ❌ | **サフィックス付きリテラルのオーバーフロー検出** | `100000%` は Integer オーバーフロー（Error 6）のはずだがエラーにならない |
-| ❌ | **`1.0` リテラルの型推定誤り** | JavaScript の `Number.isInteger(1.0) === true` のため `TypeName(1.0)` が `"Double"` でなく `"Integer"` になる |
+| ✅ | **数値リテラルのサフィックス型情報保持** | `NumberLiteral` AST の `typeSuffix` フィールドで `TypeName(100&)` → `Long`、`TypeName(1.5!)` → `Single` など正しく返る | `typename.test.ts` |
+| ✅ | **サフィックス付きリテラルのオーバーフロー検出** | `100000%` → Overflow (Error 6)、`3000000000&` → Overflow (Error 6) | `typename.test.ts` |
+| ✅ | **`1.0` リテラルの型推定誤り** | `isFloat` フラグにより `TypeName(1.0)` → `"Double"` を正しく返す | `typename.test.ts` |
 | ❌ | **算術演算結果の型伝播** | `TypeName(1 + 1)` → `"Integer"` のはず → `"Double"`。`VbaInteger`/`VbaLong`/`VbaSingle` ラッパーが未実装のため全算術結果が `number` 型（= Double 扱い）になる |
 | ⚠️ | **Currency ランタイムラッパー未実装** | `CCur()` は plain `number` を返す。変数に格納後の `TypeName` は `"Double"` になる。`TypeName(CCur(x))` が正しく返るのは AST 推定（`BUILTIN_RETURN_TYPES`）によるもので実値の型ではない |
 | ⚠️ | **Currency 算術演算の型保持なし** | `CCur(1) + CCur(2)` の結果は `"Double"` になる（Currency 型が失われる） |
