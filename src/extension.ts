@@ -578,10 +578,105 @@ End Class`;
         })
     );
 
-    // vba-runner.generateTest: stub（将来実装）
+    // vba-runner.generateTest: Code Lens「未テスト」から呼ばれる
     context.subscriptions.push(
-        vscode.commands.registerCommand('vba-runner.generateTest', () => {
-            vscode.window.showInformationMessage('Test generation: coming soon');
+        vscode.commands.registerCommand('vba-runner.generateTest', async (uri: string, procName: string) => {
+            if (!uri || !procName) {
+                vscode.window.showErrorMessage('VBA ファイルを開き、プロシージャの Code Lens から実行してください');
+                return;
+            }
+
+            const docUri = vscode.Uri.parse(uri);
+            const sourceFilePath = docUri.fsPath;
+            const sourceDir = path.dirname(sourceFilePath);
+            const sourceBase = path.basename(sourceFilePath, path.extname(sourceFilePath));
+
+            // --- テスト配置設定の読み込み or 初回選択 ---
+            type TestLocation = 'sameFile' | 'separateFile';
+            const config = vscode.workspace.getConfiguration('vba-runner');
+            let testLocation = config.get<TestLocation>('test.location');
+            if (!testLocation) {
+                const choice = await vscode.window.showQuickPick(
+                    [
+                        { label: '同じファイルに追加', description: 'Test_メソッド名 を同じ .bas ファイル末尾に追記', value: 'sameFile' as TestLocation },
+                        { label: '別ファイルに追加', description: `${sourceBase}Test.bas を作成してテストを追記`, value: 'separateFile' as TestLocation },
+                    ],
+                    { placeHolder: 'テストの配置場所を選択してください（ワークスペース設定に保存されます）' }
+                );
+                if (!choice) return;
+                testLocation = choice.value;
+                await config.update('test.location', testLocation, vscode.ConfigurationTarget.Workspace);
+            }
+
+            // --- テストスタブ文字列の生成 ---
+            const buildStub = (targetUri: string): string => {
+                const src = fs.readFileSync(vscode.Uri.parse(targetUri).fsPath, 'utf-8');
+                const ast = lspServer.parseDocument(src);
+                let paramNames: string[] = [];
+                let isFunction = false;
+                if (ast?.body) {
+                    const procDecl = (ast.body as any[]).find(
+                        (s: any) => s.type === 'ProcedureDeclaration' &&
+                            s.name?.name?.toLowerCase() === procName.toLowerCase()
+                    );
+                    if (procDecl) {
+                        paramNames = (procDecl.parameters ?? []).map((p: any) => String(p.name));
+                        isFunction = procDecl.isFunction ?? false;
+                    }
+                }
+                const callArgs = paramNames.join(', ');
+                const callExpr = isFunction
+                    ? `result = ${procName}(${callArgs})`
+                    : `${procName}${callArgs ? ' ' + callArgs : ''}`;
+                const lines = ['', `Sub Test_${procName}(assert)`, `    ' TODO: テストを実装してください`];
+                if (isFunction) {
+                    lines.push(`    ' Dim result`, `    ' ${callExpr}`, `    ' assert.IsTrue result = expected, "説明"`);
+                } else {
+                    lines.push(`    ' ${callExpr}`, `    ' assert.IsTrue condition, "説明"`);
+                }
+                lines.push('End Sub');
+                return lines.join('\n');
+            };
+
+            // テスト済みかチェックしてカーソル移動、未テストならスタブを追記
+            const navigateOrInsert = async (targetDocUri: vscode.Uri) => {
+                const testName = `Test_${procName}`;
+                const targetUriStr = targetDocUri.toString();
+                const symbols = lspServer.getDocumentSymbols(targetUriStr);
+                const existing = symbols.find((s: any) => s.name?.toLowerCase() === testName.toLowerCase());
+                if (existing) {
+                    const pos = new vscode.Position(existing.location.range.start.line, 0);
+                    await vscode.window.showTextDocument(targetDocUri, { selection: new vscode.Range(pos, pos) });
+                    return;
+                }
+                const doc = await vscode.workspace.openTextDocument(targetDocUri);
+                const lastLine = doc.lineCount - 1;
+                const lastChar = doc.lineAt(lastLine).text.length;
+                const edit = new vscode.WorkspaceEdit();
+                edit.insert(targetDocUri, new vscode.Position(lastLine, lastChar), buildStub(uri));
+                await vscode.workspace.applyEdit(edit);
+                await vscode.workspace.openTextDocument(targetDocUri);
+                const newSymbols = lspServer.getDocumentSymbols(targetUriStr);
+                const newSym = newSymbols.find((s: any) => s.name?.toLowerCase() === testName.toLowerCase());
+                const targetLine = newSym ? newSym.location.range.start.line : lastLine + 2;
+                const pos = new vscode.Position(targetLine, 0);
+                await vscode.window.showTextDocument(targetDocUri, { selection: new vscode.Range(pos, pos) });
+                vscode.window.showInformationMessage(`'${testName}' のスタブを生成しました`);
+            };
+
+            if (testLocation === 'sameFile') {
+                await navigateOrInsert(docUri);
+            } else {
+                const testFilePath = path.join(sourceDir, `${sourceBase}Test.bas`);
+                const testFileUri = vscode.Uri.file(testFilePath);
+                if (!fs.existsSync(testFilePath)) {
+                    fs.writeFileSync(testFilePath, 'Option Explicit\n', 'utf-8');
+                    // LSP に新ファイルを認識させる
+                    const newDoc = await vscode.workspace.openTextDocument(testFileUri);
+                    lspServer.didOpen(testFileUri.toString(), newDoc.getText());
+                }
+                await navigateOrInsert(testFileUri);
+            }
         })
     );
 

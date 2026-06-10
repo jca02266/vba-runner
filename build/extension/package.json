@@ -155,6 +155,15 @@
           "type": "boolean",
           "default": true,
           "description": "キーワードをスペース・Tab・Enter で確定したとき正規のケース（If, WithEvents 等）に自動補正する（VBE と同じ挙動。editor.formatOnType が有効な場合のみ動作）"
+        },
+        "vba-runner.test.location": {
+          "type": "string",
+          "enum": ["sameFile", "separateFile"],
+          "enumDescriptions": [
+            "Test_メソッド名 を同じ .bas ファイル末尾に追記する",
+            "<ファイル名>Test.bas を作成してテストを追記する"
+          ],
+          "description": "generateTest コマンドでテストスタブを追加する場所。未設定の場合は初回実行時に選択を求めます。"
         }
       }
     },

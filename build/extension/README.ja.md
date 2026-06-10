@@ -27,7 +27,7 @@ code --install-extension vba-runner-0.1.0.vsix
 | `.cls` | クラスモジュール |
 | `.frm` | フォームモジュール |
 
-## 実装済みLSP機能
+## 編集支援（LSP）
 
 ### ホバー (Hover)
 
@@ -50,22 +50,63 @@ Sub CalcSum(a As Integer, b As Integer)
 | クラス | `Class MyClass` |
 | イベント | `Event DataChanged(newVal As Variant)` |
 
+### 参照の検索 (Find References)
+
+シンボルにカーソルを置いて `Shift+F12` を押すと、そのシンボルが参照されているすべての箇所をリスト表示します。
+
 ### コード補完 (Completion)
 
 入力中に VBA キーワード・組み込み関数・ソース内で定義されたプロシージャの候補を表示します。`.` を入力したときにもトリガーされます。
 
-### コール階層（Call Graph）
+## Code Lens
 
-コマンドパレット（`Ctrl+Shift+P`）から以下のコマンドを実行します。
+各プロシージャの宣言行にインラインボタンが表示されます。
+
+| ボタン | 動作 |
+|---|---|
+| `▶ Run` | そのプロシージャを VBA Runner で実行 |
+| `🐛 Debug` | デバッガーでステップ実行 |
+| `N references` | 参照箇所を一覧表示 |
+| `未テスト` / `✓ テスト済み` | テストスタブを生成 / テスト関数へジャンプ |
+| `📊 Show in Call Graph` | コールグラフ上でハイライト |
+
+## リファクタリング
+
+コマンドパレット（`Ctrl+Shift+P`）または Code Lens から実行できます。
+
+| コマンド | 説明 |
+|---|---|
+| **Refactor: Introduce Variable** | 選択した式を変数に抽出 |
+| **Refactor: Extract Function** | 選択した処理を新しいプロシージャに抽出 |
+| **Refactor: Extract Constant** | 選択したリテラルを定数に抽出 |
+| **Refactor: Inline Variable** | 変数をその使用箇所にインライン展開 |
+| **Refactor: Introduce With** | オブジェクト参照を `With` ブロックにまとめる |
+| **Refactor: Remove Unused Variables** | 未使用変数の宣言を削除 |
+| **Refactor: Organize Declarations** | 変数宣言をプロシージャ先頭にまとめる |
+
+## コール階層（Call Graph）
+
+コマンドパレットから以下のコマンドを実行します。
 
 - **VBA: Show Call Graph** — カーソル位置のプロシージャを起点にした呼び出しグラフを表示
 - **VBA: Show in Call Graph** — カーソル位置のプロシージャを全体のグラフ中でハイライト
 
-### 変数の導入リファクタリング (Introduce Variable)
+## テスト支援
 
-コマンドパレットから **Refactor: Introduce Variable** を実行すると、選択した式を変数に抽出するリファクタリングを実行します。
+### テストスタブ生成
 
-### VBA デバッガー統合
+Code Lens の「未テスト」ボタンを押すと、`Test_<プロシージャ名>` のスタブを生成します。初回実行時にテストの配置場所を選択します。
+
+- **同じファイルに追加** — 同じ `.bas` ファイルの末尾に追記
+- **別ファイルに追加** — `<ファイル名>Test.bas` を作成して追記
+
+選択はワークスペース設定（`vba-runner.test.location`）に保存されます。
+
+### モックひな形生成
+
+コマンドパレットから **VBA: Generate Mocks** を実行すると、ソースファイルの Excel 依存オブジェクト（`Worksheet`・`Range` 等）を解析し、`__mocks__/ExcelObjects.bas` にモックのひな形を生成します。
+
+## VBA デバッガー統合
 
 `.bas` ファイルを開いた状態で `F5` を押すと、VBA Runner のデバッガーでファイルを起動できます（`launch.json` の設定不要）。
 
@@ -76,6 +117,7 @@ Sub CalcSum(a As Integer, b As Integer)
 | `vba-runner.lint.enabled` | `false` | lint 警告（VBA001〜 等のコード付き診断）をすべて有効にする |
 | `vba-runner.lint.enabledCodes` | `[]` | 有効にする lint コードを個別指定する（例: `["VBA009"]`） |
 | `vba-runner.editor.autoLineContinuation` | `true` | 式の途中で Enter を押したとき行継続文字 `_` を自動挿入する |
+| `vba-runner.test.location` | _(未設定)_ | テストスタブの配置先（`sameFile` / `separateFile`）。未設定時は初回実行時に選択 |
 
 ## ビルド
 
