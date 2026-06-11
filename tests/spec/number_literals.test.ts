@@ -9,8 +9,16 @@ const code = `
         TestHex = &HFF
     End Function
 
+    Function TestHexLongSuffix()
+        TestHexLongSuffix = &H1&
+    End Function
+
     Function TestOctal()
         TestOctal = &O10
+    End Function
+
+    Function TestOctalLongSuffix()
+        TestOctalLongSuffix = &O17&
     End Function
 
     Function TestOctalShort()
@@ -42,7 +50,9 @@ const ev = evalVBA(code);
 console.log('[Test Suite] リテラルの検証');
 
 assert.strictEqual(ev.callProcedure('TestHex', []), 255, 'Hex &HFF -> 255');
+assert.strictEqual(ev.callProcedure('TestHexLongSuffix', []), 1, 'Hex &H1& (Long suffix) -> 1');
 assert.strictEqual(ev.callProcedure('TestOctal', []), 8, 'Octal &O10 -> 8');
+assert.strictEqual(ev.callProcedure('TestOctalLongSuffix', []), 15, 'Octal &O17& (Long suffix) -> 15');
 assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
 
 // Hex$() / Oct$() 関数呼び出し（リテラルとは別に関数として動作すること）

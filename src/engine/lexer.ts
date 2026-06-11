@@ -393,6 +393,8 @@ export class Lexer {
                     while (/[0-9a-f]/i.test(this.peek())) {
                         hexStr += this.advance();
                     }
+                    // consume optional Long type suffix '&' (e.g. &H1&)
+                    if (this.peek() === '&') this.advance();
                     return { type: TokenType.Number, value: '0x' + hexStr, line: startLine, column: startColumn };
                 } else if (next === 'o' || this.isDigit(next)) {
                     if (next === 'o') this.advance(); // consume 'o'
@@ -400,6 +402,8 @@ export class Lexer {
                     while (/[0-7]/.test(this.peek())) {
                         octStr += this.advance();
                     }
+                    // consume optional Long type suffix '&' (e.g. &O17&)
+                    if (this.peek() === '&') this.advance();
                     return { type: TokenType.Number, value: '0o' + octStr, line: startLine, column: startColumn };
                 }
                 return { type: TokenType.OperatorAmpersand, value: '&', line: startLine, column: startColumn };
