@@ -13,6 +13,10 @@ const code = `
         TestHexLongSuffix = &H1&
     End Function
 
+    Function TestHexIntSuffix()
+        TestHexIntSuffix = &HFF%
+    End Function
+
     Function TestOctal()
         TestOctal = &O10
     End Function
@@ -51,6 +55,7 @@ console.log('[Test Suite] リテラルの検証');
 
 assert.strictEqual(ev.callProcedure('TestHex', []), 255, 'Hex &HFF -> 255');
 assert.strictEqual(ev.callProcedure('TestHexLongSuffix', []), 1, 'Hex &H1& (Long suffix) -> 1');
+assert.strictEqual(ev.callProcedure('TestHexIntSuffix', []), 255, 'Hex &HFF% (Integer suffix) -> 255');
 assert.strictEqual(ev.callProcedure('TestOctal', []), 8, 'Octal &O10 -> 8');
 assert.strictEqual(ev.callProcedure('TestOctalLongSuffix', []), 15, 'Octal &O17& (Long suffix) -> 15');
 assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
