@@ -160,6 +160,11 @@ export class LexError extends Error {
     }
 }
 
+// VBA type-declaration characters (MS-VBAL §3.3.5.2)
+// Numeric literals and identifiers share the same set except '$' which is identifier-only.
+const NUMERIC_TYPE_SUFFIXES = new Set(['%', '&', '^', '!', '#', '@']);
+const IDENTIFIER_TYPE_SUFFIXES = new Set(['%', '&', '^', '!', '#', '@', '$']);
+
 export class Lexer {
     private input: string = '';
     private pos: number = 0;
@@ -393,7 +398,7 @@ export class Lexer {
                     while (/[0-9a-f]/i.test(this.peek())) {
                         hexStr += this.advance();
                     }
-                    if (['%', '&', '@', '!', '#', '^'].includes(this.peek())) this.advance();
+                    if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) this.advance();
                     return { type: TokenType.Number, value: '0x' + hexStr, line: startLine, column: startColumn };
                 } else if (next === 'o' || this.isDigit(next)) {
                     if (next === 'o') this.advance(); // consume 'o'
@@ -401,7 +406,7 @@ export class Lexer {
                     while (/[0-7]/.test(this.peek())) {
                         octStr += this.advance();
                     }
-                    if (['%', '&', '@', '!', '#', '^'].includes(this.peek())) this.advance();
+                    if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) this.advance();
                     return { type: TokenType.Number, value: '0o' + octStr, line: startLine, column: startColumn };
                 }
                 return { type: TokenType.OperatorAmpersand, value: '&', line: startLine, column: startColumn };
@@ -480,9 +485,8 @@ export class Lexer {
                         numStr += this.advance();
                     }
                 }
-                // Check for VBA Type Declaration Suffixes for numbers (%, &, @, !, #, ^)
-                const peekChar = this.peek();
-                if (['%', '&', '@', '!', '#', '^'].indexOf(peekChar) !== -1) {
+                // Check for VBA Type Declaration Suffixes for numbers (MS-VBAL §3.3.5.2)
+                if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) {
                     numStr += this.advance();
                 }
                 return { type: TokenType.Number, value: numStr, line: startLine, column: startColumn };
@@ -493,9 +497,8 @@ export class Lexer {
                 while (this.isAlphaNumeric(this.peek())) {
                     idStr += this.advance();
                 }
-                // Handle type hint characters at the end of an identifier
-                const typeHints = ['$', '%', '&', '#', '@'];
-                if (typeHints.includes(this.peek())) {
+                // Handle type hint characters at the end of an identifier (MS-VBAL §3.3.5.2)
+                if (IDENTIFIER_TYPE_SUFFIXES.has(this.peek())) {
                     idStr += this.advance();
                 }
 
