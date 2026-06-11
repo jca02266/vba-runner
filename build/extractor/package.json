@@ -1,6 +1,6 @@
 {
   "name": "vba-extractor",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.0",
   "description": "CLI tool to export/import VBA source from Office files (.xlsm, etc.)",
   "type": "module",
   "license": "MIT",
@@ -13,7 +13,8 @@
   },
   "files": [
     "dist/bin/",
-    "README.md"
+    "README.md",
+    "README.ja.md"
   ],
   "dependencies": {},
   "scripts": {

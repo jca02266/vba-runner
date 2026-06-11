@@ -1,64 +1,66 @@
 # vba-extractor
 
-Office ファイル（.xlsm など）から VBA ソースを抽出・書き戻しする CLI ツールです。
-Excel を使わずにコマンドラインで VBA ソースをテキストファイルとして管理できます。
+A CLI tool to export and import VBA source code from Office files (`.xlsm`, etc.) without Excel.
+Manage VBA modules as plain text files under version control.
 
-## インストール
+> 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
+
+## Installation
 
 ```bash
 npm install -g vba-extractor
 ```
 
-## 使い方
+## Usage
 
-### export — VBA ソースをファイルに抽出
+### export — Extract VBA source from an Office file
 
 ```bash
 vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]
 ```
 
-| 引数 | 説明 |
+| Argument | Description |
 |---|---|
-| `<input.xlsm>` | 対象の Office ファイル |
-| `[output-dir]` | 出力先ディレクトリ（省略時は input と同じディレクトリ） |
-| `--encoding <cp>` | コードページを明示指定（例: `cp932`, `cp1252`）。省略時はファイル内の PROJECTCODEPAGE を使用 |
+| `<input.xlsm>` | Target Office file |
+| `[output-dir]` | Output directory (defaults to the same directory as the input file) |
+| `--encoding <cp>` | Explicit code page (e.g. `cp932`, `cp1252`). Defaults to the PROJECTCODEPAGE stored in the file |
 
 ```bash
-# カレントディレクトリに .bas / .cls を出力
+# Export .bas / .cls files to the current directory
 vba-extractor export MyBook.xlsm
 
-# 出力先を指定
+# Export to a specific directory
 vba-extractor export MyBook.xlsm src/vba
 ```
 
-### import — VBA ソースを Office ファイルに書き戻し
+### import — Write VBA source back into an Office file
 
 ```bash
 vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
 ```
 
-| 引数 | 説明 |
+| Argument | Description |
 |---|---|
-| `<input.xlsm>` | 対象の Office ファイル |
-| `<source-dir>` | 書き戻す .bas / .cls を格納したディレクトリ |
-| `[output.xlsm]` | 出力ファイル（省略時は input を上書き） |
-| `--encoding <cp>` | コードページを明示指定。省略時はファイル内の PROJECTCODEPAGE を使用 |
+| `<input.xlsm>` | Target Office file |
+| `<source-dir>` | Directory containing the `.bas` / `.cls` files to write back |
+| `[output.xlsm]` | Output file (overwrites the input file if omitted) |
+| `--encoding <cp>` | Explicit code page. Defaults to the PROJECTCODEPAGE stored in the file |
 
 ```bash
-# 編集した .bas / .cls を xlsm に書き戻す
+# Write edited .bas / .cls files back into the xlsm
 vba-extractor import MyBook.xlsm src/vba
 
-# 元ファイルを残して別ファイルに出力
+# Save to a new file, keeping the original intact
 vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
 ```
 
-## 出力形式
+## Output format
 
-| モジュール種別 | 拡張子 |
+| Module type | Extension |
 |---|---|
-| 標準モジュール | `.bas` |
-| クラスモジュール / フォーム / シートオブジェクト | `.cls` |
+| Standard module | `.bas` |
+| Class module / Form / Sheet object | `.cls` |
 
-## 関連パッケージ
+## Related packages
 
-- [vba-runner](https://www.npmjs.com/package/vba-runner) — Excel 不要で VBA を実行・テストできるエンジン
+- [vba-runner](https://www.npmjs.com/package/vba-runner) — Run and test VBA code without Excel
