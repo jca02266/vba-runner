@@ -1260,6 +1260,17 @@ export class Parser {
     private parseStatementInner(): Statement | null {
         const token = this.peek();
 
+        // Label check must come before keyword-specific dispatches.
+        // Contextual keywords (Error, Class, Property, etc.) are valid label names when followed by ':'.
+        if (Parser.CONTEXTUAL_KW.has(token.type) &&
+                this.pos + 1 < this.tokens.length &&
+                this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
+            const labelName = token.value;
+            this.advance(); // consume keyword
+            this.advance(); // consume ':'
+            return { type: 'LabelStatement', label: labelName } as any;
+        }
+
         if (token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate || token.type === TokenType.KeywordFriend) {
             const scope = this.advance().value.toLowerCase() as 'public' | 'private' | 'friend';
             const next = this.peek();
@@ -1449,7 +1460,8 @@ export class Parser {
                    token.type === TokenType.OperatorDot ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type)) {
             // Check if it's a label "Identifier:" or "Number" (line number)
-            if (token.type === TokenType.Identifier && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
+            // Contextual keywords (Error, Property, Class, etc.) are also valid label names.
+            if ((token.type === TokenType.Identifier || Parser.CONTEXTUAL_KW.has(token.type)) && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
                 const labelName = token.value;
                 this.advance(); // consume Identifier
                 this.advance(); // consume ':'

@@ -65,4 +65,19 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     assert.strictEqual(runFunc(code, 'TestNumericLabel'), 2, 'GoTo should support numeric labels');
 }
 
+// 5. コンテキストキーワードをラベル名に使う（Error:, Property: など）
+{
+    const code = `
+        Function TestContextualKeywordLabel()
+            On Error GoTo Error
+            Err.Raise 1
+            TestContextualKeywordLabel = 1
+            Exit Function
+        Error:
+            TestContextualKeywordLabel = 2
+        End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestContextualKeywordLabel'), 2, 'contextual keyword Error can be used as label name');
+}
+
 console.log('\n✅ GoTo Statement: 全テスト通過');
