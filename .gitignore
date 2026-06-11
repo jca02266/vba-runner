@@ -54,3 +54,4 @@ dist-ssr
 
 /build/*/LICENSE
 .env
+/build/extension/vba-runner-extension.md
