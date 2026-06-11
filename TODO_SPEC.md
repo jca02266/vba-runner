@@ -457,6 +457,29 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 ---
 
+## パーサーの BNF 準拠テスト
+
+MS-VBAL §3.3.5.2 では、識別子が必要な箇所に予約語・コンテキストキーワードを使える場合があります（`unrestricted-name`、`label-name` など）。現在のパーサーでは「識別子チェックが `TokenType.Identifier` のみ」という実装漏れにより、予約語をそれらの位置に置いたときに誤ったパースエラーが発生するケースがあります。
+
+今回の修正例: `Error:` のようにコンテキストキーワードがラベル名に使われた場合、`parseErrorStatement()` に誤って dispatch されて `':'` が expression として解析されていた（`Error:` → `LabelStatement` として正しく認識するよう修正済み）。
+
+### BNF の識別子受け入れ箇所と対応テストの網羅
+
+| 状態 | BNF 位置 | 説明 | 主な対象キーワード | テスト |
+|------|----------|------|--------------------|--------|
+| ✅ | `label-name:` | ラベル定義（`Error:` など） | `Error`, `Property`, `Class`, `Collection`, `Step`, `Line`, `Kill` etc. | `goto-statement.test.ts` |
+| ❌ | `GoTo label-name` | GoTo ターゲット — contextual keyword をラベル名として指定 | 上記同様 | |
+| ❌ | `GoSub label-name` | GoSub ターゲット | 上記同様 | |
+| ❌ | `On Error GoTo label-name` | エラーハンドラーラベル指定（On Error GoTo Error など） | `Error`, `Property` etc. | |
+| ❌ | `On expr GoTo label-list` | On...GoTo の複数ラベルリスト | 上記同様 | |
+| ❌ | `Resume label-name` | Resume ターゲット | 上記同様 | |
+| ❌ | `Dim x As <type-name>` | 型名に予約語を含むケース（例: `As String`、`As Class` などの contextual keyword） | `Class`, `Collection` etc. | |
+| ❌ | `unrestricted-name` 全般 | 変数名・プロシージャ名・パラメーター名に contextual keyword を使用 | 全 contextual keyword | `contextual-keywords.test.ts`（一部あり） |
+
+**実施方針**: BNF で `unrestricted-name` または `label-name` を受け入れる箇所を `parser.ts` 上で列挙し、`CONTEXTUAL_KW` の各トークンを代入したサンプルコードをパースしてエラーが出ないことを確認するテストを `contextual-keywords.test.ts` に追加する。
+
+---
+
 ## VBA ランタイム挙動
 
 仕様書本文には書かれているが、個別セクションを持たないため見落とされやすい **暗黙のランタイム挙動** の実装状況をトラッキングするセクションです。チェックなしの項目は **未実装 または 未検証** を意味します。実装する際は「ロードマップ」の手順に従い、VBA ベテランが書きそうな代表コードをテストに含めてください。

@@ -498,7 +498,12 @@ export class Lexer {
                     idStr += this.advance();
                 }
                 // Handle type hint characters at the end of an identifier (MS-VBAL §3.3.5.2)
-                if (IDENTIFIER_TYPE_SUFFIXES.has(this.peek())) {
+                // '!' is a type suffix only when NOT followed by an identifier start (letter/underscore),
+                // because 'dict!Key' uses '!' as the member-access (bang) operator.
+                const nextCh = this.peek();
+                const charAfterNext = this.pos + 1 < this.input.length ? this.input[this.pos + 1] : '\0';
+                if (IDENTIFIER_TYPE_SUFFIXES.has(nextCh) &&
+                        !(nextCh === '!' && this.isAlpha(charAfterNext))) {
                     idStr += this.advance();
                 }
 
