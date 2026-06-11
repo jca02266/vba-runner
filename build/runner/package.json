@@ -1,6 +1,6 @@
 {
   "name": "vba-runner",
-  "version": "0.1.0",
+  "version": "0.1.0-alpha.0",
   "description": "VBA execution engine with test runner and CLI tools (analyzer, formatter, parse-check)",
   "type": "module",
   "license": "MIT",
@@ -20,7 +20,8 @@
   "files": [
     "dist/lib.cjs",
     "dist/bin/",
-    "README.md"
+    "README.md",
+    "README.ja.md"
   ],
   "dependencies": {},
   "scripts": {

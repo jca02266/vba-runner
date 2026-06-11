@@ -1,94 +1,91 @@
 # vba-runner
 
-Excel 不要で VBA コードを実行・テストできる TypeScript 実装の VBA 実行エンジンです。
-テストランナーとして使う場合は TypeScript からVBAファイルをロードして関数を呼び出せます。
-また、静的解析・整形・構文チェックの CLI ツールも同梱しています。
+A TypeScript-based VBA execution engine that runs and tests VBA code without Excel.
+Load `.bas` files from TypeScript and call VBA procedures directly, or use the bundled CLI tools for static analysis, formatting, and syntax checking.
 
-## インストール
+> 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
+
+## Installation
 
 ```bash
 npm install vba-runner
 ```
 
-## テストの書き方
+## Usage
 
 > [!TIP]
-> 実際にコードを書く前に、ブラウザ上で動作を確認したい場合は [Web UI デモサイト](https://vba-web-runner.netlify.app/) をご利用ください。`Debug.Print` の結果や構文チェックを即座に試すことができます。
+> Try it in the browser before writing any code: [Web UI Demo](https://vba-web-runner.netlify.app/) lets you run VBA snippets and check `Debug.Print` output instantly.
 
-### 1. `eval`: VBAの式やコード断片をその場で評価する
+### 1. `eval`: Evaluate a VBA expression or code fragment inline
 
-VBAの構文をそのまま文字列として渡し、評価結果を取得します。最も手軽にVBAエンジンを試すことができる方法です。
+Pass VBA syntax as a string and get the result back. The quickest way to try the engine.
 
 ```typescript
 import { VBARunner } from 'vba-runner';
-const vbaRunner = new VBARunner(); // 空の環境を作成
+const vbaRunner = new VBARunner(); // create an empty environment
 
-// VBAの計算式を直接評価
+// Evaluate a VBA expression directly
 const sum = vbaRunner.eval("1 + 2 + 3"); // => 6
 
-// 変数宣言や代入を含む、複数行の処理も実行可能
+// Multi-line code with variable declarations works too
 vbaRunner.eval("Dim x : x = 10 : Debug.Print x * 2");
 ```
 
-### 2. `run`: ロードしたソース内の関数を実行する
+### 2. `run`: Call a procedure defined in a loaded VBA file
 
-既存のVBAファイル（`.bas`）をロードし、そこに定義されたプロシージャを引数を指定して呼び出します。複雑なビジネスロジックのユニットテストに最適です。
+Load an existing `.bas` file and call its procedures with arguments. Ideal for unit-testing complex business logic.
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
-// 1. テスト対象のVBAファイルをロード
+// 1. Load the VBA file under test
 const vbaRunner = new VBARunner('src/vba/Sample.bas');
 
-// 2. 関数名を指定して実行（第2引数はJavaScriptの配列として引数を渡す）
+// 2. Call a procedure by name (pass arguments as a JavaScript array)
 const result1 = vbaRunner.run('Add', [1, 2]);
 const result2 = vbaRunner.run('Multiply', [result1, 2]);
 
-// 3. 結果をアサート
+// 3. Assert the results
 assert.strictEqual(result1, 3);
 assert.strictEqual(result2, 6);
 ```
 
-### 3. 複数ソースの一括ロード
+### 3. Load an entire directory
 
-VBAファイル（`.bas`）を格納したディレクトリを指定すれば、配下のソースファイルをすべて読み込みます。
-規模の大きなVBAプロジェクトではこの使い方になります。
+Point `VBARunner` at a directory to load all `.bas` files at once. Use this for larger VBA projects with multiple modules.
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
-// 1. テスト対象のVBAディレクトリをロード
+// 1. Load all VBA files in the directory
 const vbaRunner = new VBARunner('src/vba');
 
-// 2. 関数名を指定して実行
+// 2. Call any procedure defined across those files
 const result = vbaRunner.run('CalcTotal', [100, 200, 300]);
 assert.strictEqual(result, 600);
 ```
 
-## CLI ツール
+## CLI Tools
 
-`vba-runner` パッケージは以下の CLI ツールを提供します。
-
-| コマンド | 説明 |
+| Command | Description |
 |---|---|
-| `vba-run <file.bas>` | VBAファイルを実行し、Debug.Print の出力を表示する |
-| `vba-analyzer <file.bas>` | VBAコードの静的解析（アウトライン・参照数・重複検出など） |
-| `vba-formatter <file.bas>` | VBAコードの整形（インデント・スペースの統一） |
-| `vba-parse-check <file.bas>` | VBAコードの構文チェック（パースエラーの検出） |
+| `vba-run <file.bas>` | Execute a VBA file and print `Debug.Print` output |
+| `vba-analyzer <file.bas>` | Static analysis: outline, reference counts, duplicate detection |
+| `vba-formatter <file.bas>` | Format VBA code (indentation, spacing) |
+| `vba-parse-check <file.bas>` | Syntax check (detect parse errors) |
 
 ```bash
-# VBAファイルの静的解析（アウトライン表示）
+# Show outline of a VBA file
 vba-analyzer --outline src/vba/Module1.bas
 
-# 重複ブロックの検出
+# Detect duplicate code blocks
 vba-analyzer --diff src/vba/
 
-# 構文チェック
+# Syntax check
 vba-parse-check src/vba/Module1.bas
 ```
 
-## 詳細ドキュメント
+## Documentation
 
-- [REFERENCE.md](../../REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
-- [README.md](../../README.md) — プロジェクト概要・クイックスタート
-- [FOR_AI.md](../../FOR_AI.md) — AIによるリファクタリング支援ガイド
+- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — Type system, mock registration, Sandbox policy, VFS details
+- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — Project overview and quick start
