@@ -161,12 +161,12 @@ export class LexError extends Error {
 }
 
 // VBA type-declaration characters (MS-VBAL §3.3.5.2)
-// Numeric literals accept all six suffix chars including '!' (Single) and '^' (LongLong).
-// Identifiers exclude '!' and '^': these also serve as the bang member-access operator and
-// the exponentiation operator respectively, so consuming them as suffixes would break
-// 'dict!Key' and 'x^2'.  Identifier-only addition: '$' (String).
+// '!' (Single) and '^' (LongLong) are also operators (bang member-access / exponentiation).
+// They are consumed as identifier type suffixes only when NOT immediately followed by an
+// alphanumeric character or '_' — e.g. 'x!' and 'x^' are type suffixes, but 'dict!Key'
+// and 'x^2' keep '!' and '^' as operators.  '$' is identifier-only (String).
 const NUMERIC_TYPE_SUFFIXES = new Set(['%', '&', '^', '!', '#', '@']);
-const IDENTIFIER_TYPE_SUFFIXES = new Set(['%', '&', '#', '@', '$']);
+const IDENTIFIER_TYPE_SUFFIXES = new Set(['%', '&', '^', '!', '#', '@', '$']);
 
 export class Lexer {
     private input: string = '';
@@ -501,8 +501,16 @@ export class Lexer {
                     idStr += this.advance();
                 }
                 // Handle type hint characters at the end of an identifier (MS-VBAL §3.3.5.2)
-                if (IDENTIFIER_TYPE_SUFFIXES.has(this.peek())) {
-                    idStr += this.advance();
+                // '!' and '^' are also operators (bang member-access / exponentiation).
+                // Only consume as type suffix when the next character is NOT alphanumeric or '_',
+                // so 'dict!Key' and 'x^2' keep them as operators.
+                {
+                    const nextCh = this.peek();
+                    const charAfterNext = this.pos + 1 < this.input.length ? this.input[this.pos + 1] : '\0';
+                    if (IDENTIFIER_TYPE_SUFFIXES.has(nextCh) &&
+                            !((nextCh === '!' || nextCh === '^') && (this.isAlphaNumeric(charAfterNext) || charAfterNext === '_'))) {
+                        idStr += this.advance();
+                    }
                 }
 
                 const lowerId = idStr.toLowerCase();
