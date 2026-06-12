@@ -1761,7 +1761,7 @@ export class Parser {
     private parseGoToStatement(): GoToStatement {
         this.advance(); // consume 'GoTo'
         const labelToken = this.advance();
-        if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+        if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
             this.throwError(`Parse error: Expected identifier or number after 'GoTo' at line ${labelToken.line}`);
         }
         return { type: 'GoToStatement', label: labelToken.value };
@@ -2738,7 +2738,7 @@ export class Parser {
         const labels: string[] = [];
         while (true) {
             const labelToken = this.advance();
-            if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+            if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
                 this.throwError(`Parse error: Expected label (identifier or number) in On...GoTo/GoSub at line ${labelToken.line}`);
             }
             labels.push(labelToken.value);
@@ -2754,7 +2754,7 @@ export class Parser {
     private parseGoSubStatement(): GoSubStatement {
         this.advance(); // 'GoSub'
         const labelToken = this.advance();
-        if (labelToken.type !== TokenType.Identifier && labelToken.type !== TokenType.Number) {
+        if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
             this.throwError(`Parse error: Expected label after GoSub at line ${labelToken.line}`);
         }
         return { type: 'GoSubStatement', label: labelToken.value };
@@ -2788,7 +2788,8 @@ export class Parser {
 
     private parseEventDeclaration(scope?: 'public' | 'private' | 'friend'): EventDeclaration {
         this.advance(); // 'Event'
-        const idToken = this.consume(TokenType.Identifier, "Expected identifier after 'Event'");
+        const idToken = this.advance();
+        if (!this.isIdentifier(idToken)) this.throwError(`Expected identifier after 'Event' at line ${idToken.line}`);
         const name: Identifier = { type: 'Identifier', name: idToken.value };
         const parameters: Parameter[] = [];
         
@@ -2807,7 +2808,8 @@ export class Parser {
 
     private parseRaiseEventStatement(): RaiseEventStatement {
         this.advance(); // 'RaiseEvent'
-        const idToken = this.consume(TokenType.Identifier, "Expected identifier after 'RaiseEvent'");
+        const idToken = this.advance();
+        if (!this.isIdentifier(idToken)) this.throwError(`Expected identifier after 'RaiseEvent' at line ${idToken.line}`);
         const eventName: Identifier = { type: 'Identifier', name: idToken.value };
         const args: Expression[] = [];
         
