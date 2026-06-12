@@ -1297,6 +1297,9 @@ export class Parser {
                 (stmt as any).scope = scope;
                 return stmt;
             }
+            if (next.type === TokenType.KeywordEvent) {
+                return this.parseEventDeclaration(scope as 'public' | 'private' | 'friend');
+            }
             // Public/Private on Dim/Const — handle as variable declaration
             const stmt = this.parseDimStatement(false, true);
             if (stmt) {
