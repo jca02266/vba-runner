@@ -2,6 +2,13 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.1.7] - 2026-06-12
+
+### Added
+
+- **Cross-file Go to Definition (F12)** — Jumping to a Sub/Function definition now searches all `.bas`, `.cls`, and `.frm` files in the same directory, not just the currently open file. Files are scanned lazily on the first F12 press so there is no startup overhead.
+- **Cross-file Find All References (Shift+F12)** — Reference search now spans the entire directory. Module-level procedures and variables are searched across all VBA files; local variables remain scoped to their own file.
+
 ## [0.1.6] - 2026-06-12
 
 ### Fixed
