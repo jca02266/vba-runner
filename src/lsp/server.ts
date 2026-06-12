@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
@@ -11,7 +13,8 @@ import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
 import { CompletionProvider } from './completion-provider';
-import { ReferencesProvider } from './references-provider';
+import { findAllReferences, LocationInfo } from './references-provider';
+import { buildScopedSymbolTable, getWordAtPosition } from './symbol-table';
 import { RenameProvider } from './rename-provider';
 import { CodeLensProvider } from './code-lens-provider';
 import { CallGraphProvider, CallGraph } from './call-graph-provider';
@@ -39,11 +42,14 @@ export interface LSPServerConfig {
 export class LSPServer {
     private documents: Map<string, TextDocument> = new Map();
     private documentVersions: Map<string, number> = new Map();
+    /** ディスク上の VBA ファイルのキャッシュ（遅延スキャンで追加） */
+    private workspaceDocuments: Map<string, TextDocument> = new Map();
+    /** スキャン済みディレクトリ（同じディレクトリを2回読まないため） */
+    private scannedDirectories: Set<string> = new Set();
     private symbolProvider: SymbolProvider;
     private hoverProvider: HoverProvider;
     private definitionProvider: DefinitionProvider;
     private completionProvider: CompletionProvider;
-    private referencesProvider: ReferencesProvider;
     private renameProvider: RenameProvider;
     private codeLensProvider: CodeLensProvider;
     private callGraphProvider: CallGraphProvider;
@@ -57,7 +63,6 @@ export class LSPServer {
         this.hoverProvider = new HoverProvider();
         this.definitionProvider = new DefinitionProvider();
         this.completionProvider = new CompletionProvider();
-        this.referencesProvider = new ReferencesProvider();
         this.renameProvider = new RenameProvider();
         this.codeLensProvider = new CodeLensProvider();
         this.callGraphProvider = new CallGraphProvider();
@@ -92,12 +97,86 @@ export class LSPServer {
     }
 
     /**
+     * ワークスペース初期スキャンでディスク上のファイルを登録する。
+     * エディターで開いているファイルより優先度は低い。
+     */
+    loadWorkspaceFile(uri: string, content: string): void {
+        this.workspaceDocuments.set(uri, { uri, content, version: 0 });
+    }
+
+    /**
+     * ワークスペースからファイルが削除されたときに呼ぶ。
+     * ディレクトリのスキャン済みフラグも無効化し、次回 F12 時に再スキャンされるようにする。
+     */
+    unloadWorkspaceFile(uri: string): void {
+        this.workspaceDocuments.delete(uri);
+        try {
+            const dir = path.dirname(uriToPath(uri));
+            this.scannedDirectories.delete(dir);
+        } catch { /* file URI 以外は無視 */ }
+    }
+
+    /**
+     * F12/Shift+F12 の先頭で呼ぶ。uri と同じディレクトリを初回のみスキャンして
+     * workspaceDocuments に追加する。同じディレクトリは2回スキャンしない。
+     */
+    private ensureDirectoryScanned(uri: string): void {
+        let dir: string;
+        try {
+            dir = path.dirname(uriToPath(uri));
+        } catch {
+            return; // file:// 以外の URI（テスト環境等）は無視
+        }
+
+        if (this.scannedDirectories.has(dir)) return;
+        this.scannedDirectories.add(dir);
+
+        let entries: string[];
+        try {
+            entries = fs.readdirSync(dir);
+        } catch {
+            return; // ディレクトリが存在しない場合は無視
+        }
+
+        for (const entry of entries) {
+            const ext = path.extname(entry).toLowerCase();
+            if (ext !== '.bas' && ext !== '.cls' && ext !== '.frm') continue;
+
+            const fullPath = path.join(dir, entry);
+            const entryUri = pathToUri(fullPath);
+
+            if (this.workspaceDocuments.has(entryUri) || this.documents.has(entryUri)) continue;
+
+            try {
+                const content = fs.readFileSync(fullPath, 'utf-8');
+                this.workspaceDocuments.set(entryUri, { uri: entryUri, content, version: 0 });
+            } catch { /* 読み取り不可は無視 */ }
+        }
+    }
+
+    /**
+     * クロスファイル検索に使う全ドキュメントのビュー。
+     * エディターで開いているファイル（documents）がディスクキャッシュ（workspaceDocuments）を上書きする。
+     */
+    private allDocuments(): Map<string, TextDocument> {
+        const merged = new Map(this.workspaceDocuments);
+        for (const [uri, doc] of this.documents) {
+            merged.set(uri, doc);
+        }
+        return merged;
+    }
+
+    /**
      * Open a document
      */
     didOpen(uri: string, content: string): void {
         const version = (this.documentVersions.get(uri) ?? 0) + 1;
         this.documents.set(uri, { uri, content, version });
         this.documentVersions.set(uri, version);
+        // workspaceDocuments にない新規ファイル（ワークスペース外や新規作成）も登録しておく
+        if (!this.workspaceDocuments.has(uri)) {
+            this.workspaceDocuments.set(uri, { uri, content, version });
+        }
     }
 
     /**
@@ -107,6 +186,8 @@ export class LSPServer {
         const version = (this.documentVersions.get(uri) ?? 0) + 1;
         this.documents.set(uri, { uri, content, version });
         this.documentVersions.set(uri, version);
+        // ワークスペースキャッシュも最新の編集内容に追随させる
+        this.workspaceDocuments.set(uri, { uri, content, version });
     }
 
     /**
@@ -115,6 +196,7 @@ export class LSPServer {
     didClose(uri: string): void {
         this.documents.delete(uri);
         this.debugAdapters.delete(uri);
+        // workspaceDocuments は残す（ディスク上のファイルは存在し続ける）
     }
 
     /**
@@ -168,12 +250,34 @@ export class LSPServer {
         const labelDef = findLabelDefinition(ast.body, line, character, uri);
         if (labelDef) return labelDef;
 
+        // クロスファイル検索の前に同ディレクトリを遅延スキャン
+        this.ensureDirectoryScanned(uri);
+
         this.definitionProvider.setDocumentUri(uri);
         try {
-            return this.definitionProvider.getDefinition(ast.body, doc.content, line, character);
+            const result = this.definitionProvider.getDefinition(ast.body, doc.content, line, character);
+            if (result) return result;
         } catch {
             return null;
         }
+
+        // 現在ファイルで見つからなければ他のドキュメントのモジュールレベルシンボルを検索
+        const word = getWordAtPosition(doc.content, line, character);
+        if (!word) return null;
+        const wordLower = word.toLowerCase();
+
+        for (const [otherUri, otherDoc] of this.allDocuments()) {
+            if (otherUri === uri) continue;
+            const otherAst = this.parseDocument(otherDoc.content);
+            if (!otherAst) continue;
+            const otherTable = buildScopedSymbolTable(otherAst.body);
+            const entry = otherTable.moduleSymbols.get(wordLower);
+            if (entry) {
+                return { uri: otherUri, range: entry.range };
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -191,8 +295,31 @@ export class LSPServer {
             return findGoToReferences(ast.body, line, character, uri, includeDeclaration);
         }
 
-        this.referencesProvider.setDocumentUri(uri);
-        return this.referencesProvider.getReferences(ast.body, doc.content, line, character, includeDeclaration);
+        // クロスファイル検索の前に同ディレクトリを遅延スキャン
+        this.ensureDirectoryScanned(uri);
+
+        const word = getWordAtPosition(doc.content, line, character);
+        if (!word) return [];
+
+        // ローカルシンボル（プロシージャ内ローカル変数）は現在ファイルのみ検索
+        const table = buildScopedSymbolTable(ast.body);
+        const wordLower = word.toLowerCase();
+        const isOnlyLocal = !table.moduleSymbols.has(wordLower)
+            && table.procedures.some(p => p.localSymbols.has(wordLower));
+
+        if (isOnlyLocal) {
+            return findAllReferences(doc.content, word, uri, ast.body, includeDeclaration, line);
+        }
+
+        // モジュールレベルシンボルはワークスペース全体を横断検索
+        const allRefs: LocationInfo[] = [];
+        for (const [docUri, docDoc] of this.allDocuments()) {
+            const docAst = this.parseDocument(docDoc.content);
+            if (!docAst) continue;
+            const refs = findAllReferences(docDoc.content, word, docUri, docAst.body, includeDeclaration);
+            allRefs.push(...refs);
+        }
+        return allRefs;
     }
 
     /**
@@ -535,4 +662,19 @@ function collectGoToContinueHints(
             if (body.length) collectGoToContinueHints(body, continueLabels, out);
         }
     }
+}
+
+// ─── URI / パス変換ユーティリティ ───────────────────────────────────────────
+
+function uriToPath(uri: string): string {
+    const url = new URL(uri);
+    let p = decodeURIComponent(url.pathname);
+    // Windows: /C:/path → C:/path
+    if (/^\/[A-Za-z]:/.test(p)) p = p.slice(1);
+    return p;
+}
+
+function pathToUri(filePath: string): string {
+    const normalized = filePath.replace(/\\/g, '/');
+    return normalized.startsWith('/') ? `file://${normalized}` : `file:///${normalized}`;
 }

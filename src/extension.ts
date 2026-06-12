@@ -19,17 +19,51 @@ import { injectExcelStub } from '../test-libs/excel-stub';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
+// extension host リロード時に同一 ID での createTestController 二重呼び出しを防ぐ
+let _testController: vscode.TestController | undefined;
+// activate() の2重呼び出し時に旧プロバイダーを破棄するためモジュールレベルで管理
+let _diagnosticCollection: vscode.DiagnosticCollection | undefined;
+let _hoverProviderReg: vscode.Disposable | undefined;
+let _definitionProviderReg: vscode.Disposable | undefined;
+let _referencesProviderReg: vscode.Disposable | undefined;
 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🚀 VBA Runner extension activated');
+
+    // 前回の activate() で登録した主要プロバイダーを破棄してから再登録する。
+    // これにより dev + installed 共存や extension host 不完全リロード時の2重登録を防ぐ。
+    _hoverProviderReg?.dispose();
+    _definitionProviderReg?.dispose();
+    _referencesProviderReg?.dispose();
+    _diagnosticCollection?.dispose();
+
     const outputChannel = vscode.window.createOutputChannel('VBA Runner');
+    context.subscriptions.push(outputChannel);
     outputChannel.appendLine('Extension initialization started...');
 
     lspServer = new LSPServer();
     outputChannel.appendLine('LSP Server initialized');
 
+    // ファイル削除・リネーム時にワークスペースキャッシュから除去する
+    // （新規ファイルは F12 押下時の遅延スキャンで自動的に取得される）
+    context.subscriptions.push(
+        vscode.workspace.onDidDeleteFiles((event) => {
+            for (const fileUri of event.files) {
+                lspServer.unloadWorkspaceFile(fileUri.toString());
+            }
+        })
+    );
+    context.subscriptions.push(
+        vscode.workspace.onDidRenameFiles((event) => {
+            for (const { oldUri } of event.files) {
+                lspServer.unloadWorkspaceFile(oldUri.toString());
+            }
+        })
+    );
+
     // Create diagnostic collection for VBA parse errors
-    const diagnosticCollection = vscode.languages.createDiagnosticCollection('vba');
+    _diagnosticCollection = vscode.languages.createDiagnosticCollection('vba');
+    const diagnosticCollection = _diagnosticCollection;
     context.subscriptions.push(diagnosticCollection);
 
     // Create diagnostic collection for VBA runtime errors (shown in Problems panel)
@@ -119,55 +153,53 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('✓ Diagnostics collection registered');
 
     // Register hover provider
-    context.subscriptions.push(
-        vscode.languages.registerHoverProvider('vba', {
-            provideHover(document, position) {
-                const hover = lspServer.getHover(
-                    document.uri.toString(),
-                    position.line,
-                    position.character
-                );
-                if (!hover) return null;
+    _hoverProviderReg = vscode.languages.registerHoverProvider('vba', {
+        provideHover(document, position) {
+            const hover = lspServer.getHover(
+                document.uri.toString(),
+                position.line,
+                position.character
+            );
+            if (!hover) return null;
 
-                const markdownString = new vscode.MarkdownString();
-                markdownString.appendMarkdown(`\`\`\`vba\n${hover.contents}\n\`\`\``);
+            const markdownString = new vscode.MarkdownString();
+            markdownString.appendMarkdown(`\`\`\`vba\n${hover.contents}\n\`\`\``);
 
-                return new vscode.Hover(markdownString, hover.range ?
-                    new vscode.Range(
-                        hover.range.start.line,
-                        hover.range.start.character,
-                        hover.range.end.line,
-                        hover.range.end.character
-                    ) : undefined
-                );
-            }
-        })
-    );
+            return new vscode.Hover(markdownString, hover.range ?
+                new vscode.Range(
+                    hover.range.start.line,
+                    hover.range.start.character,
+                    hover.range.end.line,
+                    hover.range.end.character
+                ) : undefined
+            );
+        }
+    });
+    context.subscriptions.push(_hoverProviderReg);
     outputChannel.appendLine('✓ Hover provider registered');
 
     // Register definition provider
-    context.subscriptions.push(
-        vscode.languages.registerDefinitionProvider('vba', {
-            provideDefinition(document, position) {
-                const def = lspServer.getDefinition(
-                    document.uri.toString(),
-                    position.line,
-                    position.character
-                );
-                if (!def) return null;
+    _definitionProviderReg = vscode.languages.registerDefinitionProvider('vba', {
+        provideDefinition(document, position) {
+            const def = lspServer.getDefinition(
+                document.uri.toString(),
+                position.line,
+                position.character
+            );
+            if (!def) return null;
 
-                return new vscode.Location(
-                    vscode.Uri.parse(def.uri),
-                    new vscode.Range(
-                        def.range.start.line,
-                        def.range.start.character,
-                        def.range.end.line,
-                        def.range.end.character
-                    )
-                );
-            }
-        })
-    );
+            return new vscode.Location(
+                vscode.Uri.parse(def.uri),
+                new vscode.Range(
+                    def.range.start.line,
+                    def.range.start.character,
+                    def.range.end.line,
+                    def.range.end.character
+                )
+            );
+        }
+    });
+    context.subscriptions.push(_definitionProviderReg);
     outputChannel.appendLine('✓ Definition provider registered');
 
     // Register document symbol provider (outline)
@@ -198,22 +230,21 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('✓ DocumentSymbol provider registered');
 
     // Register references provider (Shift+F12)
-    context.subscriptions.push(
-        vscode.languages.registerReferenceProvider('vba', {
-            provideReferences(document, position, context) {
-                const refs = lspServer.getReferences(
-                    document.uri.toString(),
-                    position.line,
-                    position.character,
-                    context.includeDeclaration,
-                );
-                return refs.map((r: any) => new vscode.Location(
-                    vscode.Uri.parse(r.uri),
-                    new vscode.Range(r.range.start.line, r.range.start.character, r.range.end.line, r.range.end.character),
-                ));
-            }
-        })
-    );
+    _referencesProviderReg = vscode.languages.registerReferenceProvider('vba', {
+        provideReferences(document, position, context) {
+            const refs = lspServer.getReferences(
+                document.uri.toString(),
+                position.line,
+                position.character,
+                context.includeDeclaration,
+            );
+            return refs.map((r: any) => new vscode.Location(
+                vscode.Uri.parse(r.uri),
+                new vscode.Range(r.range.start.line, r.range.start.character, r.range.end.line, r.range.end.character),
+            ));
+        }
+    });
+    context.subscriptions.push(_referencesProviderReg);
     outputChannel.appendLine('✓ References provider registered');
 
     // Register rename provider (F2)
@@ -272,7 +303,12 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('✓ Completion provider registered');
 
     // Register test discovery
-    const testController = vscode.tests.createTestController('vbaRunner', 'VBA Tests');
+    // モジュールレベルで保持し、リロード時に旧インスタンスを破棄してから再生成する
+    if (_testController) {
+        _testController.dispose();
+    }
+    _testController = vscode.tests.createTestController('vbaRunner', 'VBA Tests');
+    const testController = _testController;
     context.subscriptions.push(testController);
 
     const createTestItems = (document: vscode.TextDocument) => {
@@ -1644,6 +1680,11 @@ End Class`;
 
 export function deactivate() {
     console.log('VBA Runner extension deactivated');
+    _hoverProviderReg?.dispose();
+    _definitionProviderReg?.dispose();
+    _referencesProviderReg?.dispose();
+    _diagnosticCollection?.dispose();
+    _testController?.dispose();
 }
 
 /**
