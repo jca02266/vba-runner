@@ -136,4 +136,39 @@ function run(code: string, name: string): any {
     console.log('[PASS] UDT メンバー名に contextual keyword');
 }
 
+// ── Class <contextual-keyword> ────────────────────────────────────────────────
+
+{
+    parse(`Class Step\nEnd Class`);
+    parse(`Class Error\nEnd Class`);
+    parse(`Class Text\nEnd Class`);
+    console.log('[PASS] Class 名に contextual keyword');
+}
+
+// ── AddressOf <contextual-keyword procedure> ──────────────────────────────────
+
+{
+    parse(`Function Step() As Long: Step = 1: End Function\nSub S(): Dim p As Long: p = AddressOf Step: End Sub`);
+    parse(`Function Error() As Long: Error = 1: End Function\nSub S(): Dim p As Long: p = AddressOf Error: End Sub`);
+    console.log('[PASS] AddressOf <contextual keyword 関数名>');
+}
+
+// ── TypeOf x Is <contextual-keyword type> ────────────────────────────────────
+
+{
+    parse(`Sub S()\nDim x As Object\nIf TypeOf x Is Error Then\nEnd If\nEnd Sub`);
+    parse(`Sub S()\nDim x As Object\nIf TypeOf x Is Text Then\nEnd If\nEnd Sub`);
+    parse(`Sub S()\nDim x As Object\nIf TypeOf x Is Step Then\nEnd If\nEnd Sub`);
+    console.log('[PASS] TypeOf x Is <contextual keyword>');
+}
+
+// ── Implements <contextual-keyword> ──────────────────────────────────────────
+
+{
+    parse(`Implements Step`);
+    parse(`Implements Error`);
+    parse(`Implements Text`);
+    console.log('[PASS] Implements <contextual keyword>');
+}
+
 console.log('\n✅ contextual-kw-labels-goto: 全テスト通過');

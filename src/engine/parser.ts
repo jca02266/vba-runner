@@ -1917,7 +1917,7 @@ export class Parser {
     private parseClassDeclaration(): ClassDeclaration {
         this.advance(); // consume 'Class'
         const nameToken = this.advance();
-        if (nameToken.type !== TokenType.Identifier) {
+        if (!this.isIdentifier(nameToken)) {
             this.throwError(`Parse error: Expected class name after 'Class' at line ${nameToken.line}`);
         }
         return this.parseClassBody(nameToken.value, true);
@@ -2596,7 +2596,8 @@ export class Parser {
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
-            const procName = this.consume(TokenType.Identifier, "Expected procedure name after 'AddressOf'");
+            const procName = this.advance();
+            if (!this.isIdentifier(procName)) this.throwError(`Parse error at line ${procName.line}: Expected procedure name after 'AddressOf'`);
             expr = { type: 'AddressOfExpression', procedureName: { type: 'Identifier', name: procName.value } } as AddressOfExpression;
         } else if (token.type === TokenType.KeywordEmpty) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
@@ -2631,7 +2632,7 @@ export class Parser {
                 this.throwError(`Parse error: Expected 'Is' after 'TypeOf' at line ${this.peek().line}`);
             }
             const typeToken = this.advance();
-            if (typeToken.type !== TokenType.Identifier && typeToken.type !== TokenType.KeywordCollection) {
+            if (!this.isIdentifier(typeToken) && typeToken.type !== TokenType.KeywordCollection) {
                  this.throwError(`Parse error: Expected type name after 'Is' at line ${typeToken.line}`);
             }
             expr = { type: 'TypeOfIsExpression', expression: expr, typeName: typeToken.value } as TypeOfIsExpression;
@@ -2828,7 +2829,8 @@ export class Parser {
 
     private parseImplementsDirective(): ImplementsDirective {
         this.advance(); // 'Implements'
-        const idToken = this.consume(TokenType.Identifier, "Expected interface name after 'Implements'");
+        const idToken = this.advance();
+        if (!this.isIdentifier(idToken)) this.throwError(`Parse error at line ${idToken.line}: Expected interface name after 'Implements'`);
         return { type: 'ImplementsDirective', interfaceName: idToken.value };
     }
 
