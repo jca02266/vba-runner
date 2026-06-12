@@ -2,6 +2,14 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.1.6] - 2026-06-12
+
+### Fixed
+
+- **Contextual keywords as parameter names** — Keywords such as `text`, `binary`, `compare`, `output`, `lib`, `alias` etc. can now be used as Sub/Function parameter names without triggering a "Expected parameter name" diagnostic.
+- **`!` and `^` as type-declaration characters** — `Dim x!` (Single) and `Dim x^` (LongLong) now work correctly. Previously they conflicted with the bang member-access operator (`dict!Key`) and the exponentiation operator (`x^2`). A lookahead disambiguates: `!` and `^` are consumed as type suffixes only when not followed by an alphanumeric character or `_`.
+- **Contextual keyword labels** — Labels such as `Error:` inside procedure bodies no longer produce a spurious "unexpected token in expression ':'" diagnostic.
+
 ## [0.1.5] - 2026-06-11
 
 ### Added
