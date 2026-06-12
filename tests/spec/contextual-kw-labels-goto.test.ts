@@ -171,4 +171,29 @@ function run(code: string, name: string): any {
     console.log('[PASS] Implements <contextual keyword>');
 }
 
+// ── Class body: Public/Private <contextual-keyword> As Type ───────────────────
+// §3.3.5.2: IDENTIFIER は contextual keyword を含む。
+// `Public Step As Long` のようなフィールド宣言（Dim なし）が
+// 無音でドロップされずに正しくパースされることを確認する。
+
+{
+    const { Lexer } = await import('../../src/engine/lexer');
+    const { Parser } = await import('../../src/engine/parser');
+
+    function getFields(code: string): string[] {
+        const tokens = new Lexer(code).tokenize();
+        const ast = new Parser(tokens, { errorRecovery: true }).parse();
+        const cls = ast.body.find((s: any) => s.type === 'ClassDeclaration') as any;
+        if (!cls) return [];
+        return cls.body
+            .filter((s: any) => s.type === 'VariableDeclaration')
+            .flatMap((s: any) => s.declarations.map((d: any) => d.name.name));
+    }
+
+    assert.deepStrictEqual(getFields('Class C\nPublic Step As Long\nEnd Class'), ['Step'], 'Public Step フィールド');
+    assert.deepStrictEqual(getFields('Class C\nPrivate Error As String\nEnd Class'), ['Error'], 'Private Error フィールド');
+    assert.deepStrictEqual(getFields('Class C\nPublic Text As String\nEnd Class'), ['Text'], 'Public Text フィールド');
+    console.log('[PASS] Class body: Public/Private <contextual keyword> As Type');
+}
+
 console.log('\n✅ contextual-kw-labels-goto: 全テスト通過');

@@ -1973,7 +1973,7 @@ export class Parser {
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
-            } else if (scope !== undefined && inner.type === TokenType.Identifier) {
+            } else if (scope !== undefined && this.isIdentifier(inner)) {
                 // Public/Private Name As Type (no Dim keyword)
                 const field = this.parseDimStatement(false, true);
                 field.scope = scope;
