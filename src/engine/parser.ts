@@ -777,7 +777,7 @@ export class Parser {
         }
 
         const token = this.peek();
-        if (token.type !== TokenType.Identifier && (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf)) {
+        if (token.type !== TokenType.Identifier && !Parser.CONTEXTUAL_KW.has(token.type) && (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf)) {
             this.throwError(`Parse error at line ${token.line}: Expected parameter name (Found ${this.tokenDisplay(token.value)})`);
         }
         const nameToken = this.advance();

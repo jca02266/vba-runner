@@ -54,7 +54,24 @@ function run(code: string, name = 'T'): any {
     console.log('[PASS] Function/Sub 名');
 }
 
-// --- 4. 同名の VBA 組み込み文との共存（代入 vs 文ディスパッチ）---
+// --- 4. パラメーター名 ---
+{
+    const ev1 = evalVBASingle(`Function F(ByVal text As String): F = text: End Function`, { onPrint: () => {} });
+    assert.strictEqual(ev1.callProcedure('F', ['hi']), 'hi', 'ByVal text As String');
+
+    const ev2 = evalVBASingle(`Function F(ByVal binary As Long): F = binary: End Function`, { onPrint: () => {} });
+    assert.strictEqual(ev2.callProcedure('F', [3]), 3, 'ByVal binary As Long');
+
+    const ev3 = evalVBASingle(`Function F(ByVal compare As Long): F = compare: End Function`, { onPrint: () => {} });
+    assert.strictEqual(ev3.callProcedure('F', [7]), 7, 'ByVal compare As Long');
+
+    const ev4 = evalVBASingle(`Function F(ByVal output As Long): F = output: End Function`, { onPrint: () => {} });
+    assert.strictEqual(ev4.callProcedure('F', [42]), 42, 'ByVal output As Long');
+
+    console.log('[PASS] パラメーター名に contextual keyword を使える');
+}
+
+// --- 5. 同名の VBA 組み込み文との共存（代入 vs 文ディスパッチ）---
 {
     // Class = value（Class宣言文と区別できる）
     assert.strictEqual(run(`Function T() As Long: Dim Class As Long: Class = 55: T = Class: End Function`), 55, 'Class 代入');
