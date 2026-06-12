@@ -1859,6 +1859,7 @@ interface FileAnalysis {
     callsByProc: Map<string, Set<string>>;  // procName -> called identifiers
     xlVbConstantRefs: Set<string>;          // xl*/vb*/mso* 定数の参照名
     commentedCodeBlocks: CommentedCodeBlock[];
+    withEventsVars: Set<string>;            // WithEvents 宣言変数名（小文字）
 }
 
 function analyzeFile(filePath: string): FileAnalysis {
@@ -1879,6 +1880,7 @@ function analyzeFile(filePath: string): FileAnalysis {
             callsByProc: new Map(),
             xlVbConstantRefs: new Set(),
             commentedCodeBlocks: detectCommentedCode(src, filePath),
+            withEventsVars: new Set(),
         };
     }
 
@@ -1972,6 +1974,16 @@ function analyzeFile(filePath: string): FileAnalysis {
     const gotoGraphs = procs.map((proc: any) => analyzeGotoInProc(proc));
     const loopAnalyses = procs.map((proc: any, i: number) => analyzeLoopsInProc(proc, gotoGraphs[i]));
 
+    // WithEvents 宣言変数名を収集（イベントハンドラー判定に使用）
+    const withEventsVars = new Set<string>();
+    for (const s of ast.body) {
+        if (s.type === 'VariableDeclaration') {
+            for (const decl of s.declarations ?? []) {
+                if (decl.isWithEvents) withEventsVars.add((decl.name?.name ?? '').toLowerCase());
+            }
+        }
+    }
+
     return {
         report: { filePath, totalLines: lines.length, procedureCount: procedures.length, procedures, prefixClusters, warnings, gotoGraphs, loopAnalyses },
         definedProcs,
@@ -1979,6 +1991,7 @@ function analyzeFile(filePath: string): FileAnalysis {
         callsByProc,
         xlVbConstantRefs,
         commentedCodeBlocks: detectCommentedCode(src, filePath),
+        withEventsVars,
     };
 }
 
@@ -2020,6 +2033,16 @@ function buildWorkspaceReport(analyses: FileAnalysis[]): WorkspaceReport {
     for (const a of analyses) {
         for (const p of a.report.procedures) {
             if (p.referenceCount === 0) {
+                // WithEvents イベントハンドラー判定
+                const nameLower = p.name.toLowerCase();
+                const sep = nameLower.indexOf('_');
+                const isEventHandler =
+                    nameLower === 'class_initialize' ||
+                    nameLower === 'class_terminate' ||
+                    (sep > 0 && a.withEventsVars.has(nameLower.slice(0, sep)));
+
+                if (isEventHandler) continue; // イベントハンドラーは dead code でも entry point でもない
+
                 if (p.scope === 'private') {
                     deadCodeCandidates.push({
                         file: a.report.filePath,
