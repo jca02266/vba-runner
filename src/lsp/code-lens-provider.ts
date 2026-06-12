@@ -1,4 +1,4 @@
-import { ProcedureDeclaration, Statement } from '../engine/parser';
+import { ProcedureDeclaration, VariableDeclaration, Statement } from '../engine/parser';
 import { findAllReferences } from './references-provider';
 
 export interface CodeLensItem {
@@ -22,6 +22,7 @@ export interface ProcInfo {
     isTestProc: boolean;    // Test_* with exactly 1 param (the assert helper)
     refCount: number;       // call sites from outside this procedure
     isTested: boolean;      // any Test_* proc references this one
+    isEventHandler: boolean; // WithEvents 変数またはクラスライフサイクルに対応するイベントハンドラー
 }
 
 export class CodeLensProvider {
@@ -56,9 +57,11 @@ export class CodeLensProvider {
             }
 
             // N references
-            const refLabel = proc.refCount === 0
-                ? (proc.isPrivate ? '⚠ 0 references' : '0 references')
-                : `${proc.refCount} reference${proc.refCount !== 1 ? 's' : ''}`;
+            const refLabel = proc.isEventHandler
+                ? '🔔 Event Handler'
+                : proc.refCount === 0
+                    ? (proc.isPrivate ? '⚠ 0 references' : '0 references')
+                    : `${proc.refCount} reference${proc.refCount !== 1 ? 's' : ''}`;
             items.push({
                 range,
                 command: {
@@ -96,7 +99,7 @@ export class CodeLensProvider {
     getDeadCodeWarnings(statements: Statement[], sourceText: string, uri: string): any[] {
         const procs = this.collectProcs(statements, sourceText, uri);
         return procs
-            .filter(p => p.isPrivate && p.refCount === 0)
+            .filter(p => p.isPrivate && p.refCount === 0 && !p.isEventHandler)
             .map(p => ({
                 range: {
                     start: { line: p.line, character: 0 },
@@ -108,8 +111,32 @@ export class CodeLensProvider {
             }));
     }
 
+    /** モジュール内の WithEvents 変数名（小文字）を収集する */
+    private collectWithEventsVarNames(statements: Statement[]): Set<string> {
+        const names = new Set<string>();
+        for (const stmt of statements) {
+            if (stmt.type !== 'VariableDeclaration') continue;
+            for (const decl of (stmt as VariableDeclaration).declarations) {
+                if (decl.isWithEvents) names.add(decl.name.name.toLowerCase());
+            }
+        }
+        return names;
+    }
+
+    /** プロシージャ名がイベントハンドラーかどうかを判定する。
+     *  - Class_Initialize / Class_Terminate はクラスライフサイクルとして無条件に該当
+     *  - <varName>_<anything> で varName が WithEvents 宣言済みの変数名と一致する場合 */
+    private isEventHandlerProc(nameLower: string, withEventsVars: Set<string>): boolean {
+        if (nameLower === 'class_initialize' || nameLower === 'class_terminate') return true;
+        const sep = nameLower.indexOf('_');
+        if (sep <= 0) return false;
+        return withEventsVars.has(nameLower.slice(0, sep));
+    }
+
     private collectProcs(statements: Statement[], sourceText: string, uri: string): ProcInfo[] {
         const result: ProcInfo[] = [];
+
+        const withEventsVars = this.collectWithEventsVarNames(statements);
 
         const testProcNames = new Set<string>();
         for (const stmt of statements) {
@@ -144,13 +171,15 @@ export class CodeLensProvider {
             );
             const refCount = externalRefs.length;
 
+            const isEventHandler = this.isEventHandlerProc(name.toLowerCase(), withEventsVars);
+
             // テスト済み: Test_* プロシージャのソーステキスト中に name が登場するか
             const isTested = [...testProcNames].some(testName =>
                 sourceText.toLowerCase().includes(name.toLowerCase()) &&
                 this.testProcReferences(statements, testName, name.toLowerCase(), sourceText)
             );
 
-            result.push({ name, line, endLine, isPrivate, hasRequiredParams, isTestProc, refCount, isTested });
+            result.push({ name, line, endLine, isPrivate, hasRequiredParams, isTestProc, refCount, isTested, isEventHandler });
         }
 
         return result;
