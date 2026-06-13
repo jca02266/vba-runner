@@ -4,7 +4,7 @@ import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import { Evaluator } from '../src/engine/evaluator';
 import { NodeFileSystem } from '../src/engine/node_filesystem';
-import { preprocess, stripClsFileHeader } from '../src/engine/preprocessor';
+import { preprocess, stripVBAFileHeader } from '../src/engine/preprocessor';
 import { VERSION } from './version';
 
 const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
@@ -65,7 +65,7 @@ export function main(args: string[]): void {
         ev.setSourceModule(moduleName);
         const ext = path.extname(file).toLowerCase();
         let src = fs.readFileSync(file, 'utf-8');
-        if (ext === '.cls') src = stripClsFileHeader(src);
+        src = stripVBAFileHeader(src);
         src = preprocess(src);
         const isRawCls = ext === '.cls'
             && !src.trim().toLowerCase().startsWith('class ')

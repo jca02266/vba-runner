@@ -1,6 +1,6 @@
 import { Lexer, LexError } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
-import { stripClsFileHeader } from '../src/engine/preprocessor';
+import { stripVBAFileHeader } from '../src/engine/preprocessor';
 import * as fs from 'fs';
 import * as path from 'path';
 import { VERSION } from './version';
@@ -17,7 +17,7 @@ interface Diagnostic {
 function checkFile(filePath: string): Diagnostic[] {
     const ext = path.extname(filePath).toLowerCase();
     const raw = fs.readFileSync(filePath, 'utf8');
-    const src = ext === '.cls' ? stripClsFileHeader(raw) : raw;
+    const src = stripVBAFileHeader(raw);
     const diags: Diagnostic[] = [];
 
     const lexer = new Lexer(src);

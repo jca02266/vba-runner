@@ -28,7 +28,7 @@
 
 import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
-import { preprocess, stripClsFileHeader } from '../src/engine/preprocessor';
+import { preprocess, stripVBAFileHeader } from '../src/engine/preprocessor';
 import * as fs from 'fs';
 import * as path from 'path';
 import { VERSION } from './version';
@@ -1885,7 +1885,7 @@ interface FileAnalysis {
 function analyzeFile(filePath: string): FileAnalysis {
     const ext = path.extname(filePath).toLowerCase();
     const raw = fs.readFileSync(filePath, 'utf-8');
-    const src = ext === '.cls' ? stripClsFileHeader(raw) : raw;
+    const src = stripVBAFileHeader(raw);
     const lines = src.split('\n');
     const warnings: string[] = [];
 

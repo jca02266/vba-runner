@@ -244,20 +244,20 @@ function evaluateCCExpr(expr: string, resolve: (name: string) => any): any {
 }
 
 /**
- * Strip the Excel-exported .cls file header from source text.
+ * Strip the Excel-exported VBA file header from source text.
  *
- * Excel exports class modules with a header block:
- *   VERSION 1.0 CLASS
- *   BEGIN
- *     MultiUse = -1  'True
- *   END
- *   Attribute VB_Name = "ClassName"
+ * Excel exports VBA files with a header block that is not valid VBA syntax:
  *
- * The VERSION...END block is not valid VBA syntax and must be removed before
- * parsing. Attribute statements are handled by the parser and are left intact.
- * Blank lines replace the stripped lines to preserve line numbers.
+ *   .cls  — "VERSION 1.0 CLASS / BEGIN...END"
+ *   .frm  — "VERSION 5.00 / Begin {GUID} FormName...End"
+ *   .bas  — no VERSION header (starts with Attribute VB_Name, handled by parser)
+ *
+ * The VERSION...END block is blanked out to preserve line numbers.
+ * Attribute statements that follow are valid VBA and are left intact.
+ * Nested Begin...End blocks inside .frm controls are indented, so their
+ * "End" lines do not match the column-0 "END" that terminates the outer block.
  */
-export function stripClsFileHeader(source: string): string {
+export function stripVBAFileHeader(source: string): string {
     const lines = source.split('\n');
     if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return source;
     const result = [...lines];
