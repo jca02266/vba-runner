@@ -300,6 +300,15 @@ export interface RSetStatement extends Statement {
     right: Expression;
 }
 
+export interface MidStatement extends Statement {
+    type: 'MidStatement';
+    target: Expression;
+    start: Expression;
+    length: Expression | null;
+    value: Expression;
+    isByte: boolean;
+}
+
 export interface EraseStatement extends Statement {
     type: 'EraseStatement';
     name: Identifier;
@@ -1497,6 +1506,8 @@ export class Parser {
         } else if (token.type === TokenType.KeywordReturn) {
             this.advance(); // consume 'Return'
             return { type: 'ReturnStatement' } as ReturnStatement;
+        } else if (token.type === TokenType.KeywordMid && this.hasMidAssignmentAhead()) {
+            return this.parseMidStatement();
         } else if (token.type === TokenType.KeywordLSet) {
             return this.parseLSetStatement();
         } else if (token.type === TokenType.KeywordRSet) {
@@ -2860,6 +2871,42 @@ export class Parser {
         }
         const right = this.parseExpression();
         return { type: 'RSetStatement', left, right };
+    }
+
+    private hasMidAssignmentAhead(): boolean {
+        // Mid ( ... ) =
+        if (this.peek(1).type !== TokenType.OperatorLParen) return false;
+        let depth = 0;
+        let i = 1;
+        while (this.pos + i < this.tokens.length) {
+            const t = this.tokens[this.pos + i];
+            if (t.type === TokenType.OperatorLParen) depth++;
+            else if (t.type === TokenType.OperatorRParen) {
+                depth--;
+                if (depth === 0) {
+                    return this.tokens[this.pos + i + 1]?.type === TokenType.OperatorEquals;
+                }
+            } else if (t.type === TokenType.Newline || t.type === TokenType.EOF) break;
+            i++;
+        }
+        return false;
+    }
+
+    private parseMidStatement(): MidStatement {
+        const midToken = this.advance(); // 'Mid' or 'Mid$' or 'MidB' or 'MidB$'
+        const isByte = midToken.value.toLowerCase().startsWith('midb');
+        this.consume(TokenType.OperatorLParen, "Expected '(' after Mid");
+        const target = this.parseExpression();
+        this.consume(TokenType.OperatorComma, "Expected ',' after Mid target");
+        const start = this.parseExpression();
+        let length: Expression | null = null;
+        if (this.match(TokenType.OperatorComma)) {
+            length = this.parseExpression();
+        }
+        this.consume(TokenType.OperatorRParen, "Expected ')' after Mid arguments");
+        this.consume(TokenType.OperatorEquals, "Expected '=' in Mid statement");
+        const value = this.parseExpression();
+        return { type: 'MidStatement', target, start, length, value, isByte };
     }
 
     private parseErrorStatement(): ErrorStatement {

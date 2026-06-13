@@ -40,6 +40,7 @@ import {
     OnGoToSubStatement,
     LSetStatement,
     RSetStatement,
+    MidStatement,
     ErrorStatement,
     ClassDeclaration,
     NewExpression,
@@ -2313,6 +2314,9 @@ export class Evaluator {
             case 'RSetStatement':
                 this.evaluateRSetStatement(stmt as RSetStatement);
                 break;
+            case 'MidStatement':
+                this.evaluateMidStatement(stmt as MidStatement);
+                break;
             case 'ErrorStatement':
                 this.evaluateErrorStatement(stmt as ErrorStatement);
                 break;
@@ -2698,6 +2702,29 @@ export class Evaluator {
         } else {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
+    }
+
+    private evaluateMidStatement(stmt: MidStatement) {
+        const target = String(this.evaluateExpression(stmt.target) ?? '');
+        let start = Number(this.evaluateExpression(stmt.start));
+        const value = String(this.evaluateExpression(stmt.value) ?? '');
+        let rawLength = stmt.length !== null ? Number(this.evaluateExpression(stmt.length)) : null;
+        // MidB uses UTF-16 byte offsets (2 bytes per char): convert to character positions
+        if (stmt.isByte) {
+            start = Math.ceil(start / 2);
+            if (rawLength !== null) rawLength = Math.ceil(rawLength / 2);
+        }
+        if (start < 1 || start > target.length) {
+            throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL);
+        }
+        const effectiveStart = start - 1;
+        const replaceLen = rawLength !== null
+            ? Math.min(rawLength, target.length - effectiveStart, value.length)
+            : Math.min(value.length, target.length - effectiveStart);
+        const newStr = target.substring(0, effectiveStart)
+            + value.substring(0, replaceLen)
+            + target.substring(effectiveStart + replaceLen);
+        this.evaluateAssignmentToVariable(stmt.target, newStr);
     }
 
     private evaluateErrorStatement(stmt: ErrorStatement) {
