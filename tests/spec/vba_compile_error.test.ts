@@ -126,6 +126,53 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
+// [parse] reserved_word_as_function_name
+// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass1(`Function Open() As Long
+    Open = 1
+End Function`, 1, /reserved word/i, 'reserved_word_as_function_name');
+        console.log('[PASS] reserved_word_as_function_name');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] reserved_word_as_function_name:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] reserved_word_as_sub_name
+// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass1(`Sub Close()
+End Sub`, 1, /reserved word/i, 'reserved_word_as_sub_name');
+        console.log('[PASS] reserved_word_as_sub_name');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] reserved_word_as_sub_name:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] reserved_word_as_function_name_print
+// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass1(`Function Print() As Long
+    Print = 99
+End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
+        console.log('[PASS] reserved_word_as_function_name_print');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] reserved_word_as_function_name_print:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] assign_from_sub
 // VBA: コンパイルエラー: FunctionまたはVariableが必要です
 // VBA error line (within Sub body): 2
