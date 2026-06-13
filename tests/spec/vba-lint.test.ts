@@ -108,7 +108,7 @@ function lint(code: string): LintDiagnostic[] {
     const diags = lint(code);
     const d = diags.filter(d => d.code === 'VBA005');
     assert.strictEqual(d.length, 1, 'VBA005: 1 件検出');
-    assert.strictEqual(d[0].severity, 3, 'VBA005: severity = Information');
+    assert.strictEqual(d[0].severity, 2, 'VBA005: severity = Warning');
     console.log('[PASS] VBA005: Select Case without Case Else');
 }
 
@@ -325,7 +325,7 @@ function lint(code: string): LintDiagnostic[] {
     const diags = lint(code);
     const d = diags.filter(d => d.code === 'VBA010');
     assert.strictEqual(d.length >= 1, true, 'VBA010: Exit Sub 後のコード検出');
-    assert.strictEqual(d[0].severity, 3, 'VBA010: severity = Information');
+    assert.strictEqual(d[0].severity, 2, 'VBA010: severity = Warning');
     console.log('[PASS] VBA010: Exit Sub 後の到達不能コード');
 }
 
@@ -454,6 +454,37 @@ function lint(code: string): LintDiagnostic[] {
     const d = diags.filter(d => d.code === 'VBA012');
     assert.strictEqual(d.length, 1, 'VBA012: Set 代入を検出');
     console.log('[PASS] VBA012: Set 代入');
+}
+
+// ─── VBA013: Option Explicit なし → 検出 ────────────────────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 1',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA013');
+    assert.strictEqual(d.length, 1, 'VBA013: 1 件検出');
+    assert.strictEqual(d[0].severity, 1, 'VBA013: severity = Error');
+    assert.strictEqual(d[0].line, 0, 'VBA013: line = 0');
+    console.log('[PASS] VBA013: Option Explicit なし');
+}
+
+// ─── VBA013: Option Explicit あり → 警告なし ────────────────────────────────
+{
+    const code = [
+        'Option Explicit',
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 1',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA013');
+    assert.strictEqual(d.length, 0, 'VBA013: Option Explicit あり → 警告なし');
+    console.log('[PASS] VBA013: Option Explicit あり → 警告なし');
 }
 
 console.log('\n✅ VBA Lint: 全テスト通過');
