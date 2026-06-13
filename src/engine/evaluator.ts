@@ -2857,7 +2857,8 @@ export class Evaluator {
             }
 
             const oldVal = this.env.get(name);
-            if (oldVal !== val) this.triggerTerminate(oldVal);
+            // B-3: Only on explicit Nothing assignment (see evaluateSetStatement for rationale)
+            if (val === vbaNothing && oldVal !== val) this.triggerTerminate(oldVal);
 
             const procNameLower = name.toLowerCase();
 
@@ -3721,7 +3722,10 @@ export class Evaluator {
             }
 
             const oldVal = this.env.get(name);
-            if (oldVal !== value) this.triggerTerminate(oldVal);
+            // B-3: Only trigger Terminate on explicit Nothing assignment (Set x = Nothing).
+            // Without reference counting we cannot know if the old object is still reachable
+            // elsewhere, so triggering on every reassignment causes premature Terminate.
+            if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
 
             const proc = this.env.getProcedure(name, 'set');
             if (proc) {
@@ -3760,7 +3764,7 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 const oldVal = instanceEnv.get(propName);
-                if (oldVal !== value) this.triggerTerminate(oldVal);
+                if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
@@ -3771,7 +3775,7 @@ export class Evaluator {
                 }
             } else if (obj && typeof obj === 'object') {
                 const oldVal = obj[propName];
-                if (oldVal !== value) this.triggerTerminate(oldVal);
+                if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                 obj[propName] = value;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
@@ -3790,7 +3794,7 @@ export class Evaluator {
                 if (obj && obj.__isVbaDict__) {
                     const key = String(this.evaluateExpression(call.args[0]));
                     const oldVal = obj.__map__.get(key);
-                    if (oldVal !== value) this.triggerTerminate(oldVal);
+                    if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                     obj.__map__.set(key, value);
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
@@ -3815,7 +3819,7 @@ export class Evaluator {
                 if (target && target.__isVbaDict__) {
                     const key = String(this.evaluateExpression(call.args[0]));
                     const oldVal = target.__map__.get(key);
-                    if (oldVal !== value) this.triggerTerminate(oldVal);
+                    if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                     target.__map__.set(key, value);
                 } else if (target && typeof target === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
