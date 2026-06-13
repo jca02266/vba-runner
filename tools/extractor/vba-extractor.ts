@@ -2,14 +2,16 @@ import JSZip from 'jszip';
 import CFB from 'cfb';
 import iconv from 'iconv-lite';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
-import { resolve, dirname, basename, extname } from 'path';
+import { resolve, dirname, basename, extname, join } from 'path';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream } from './dir-parser.js';
 
 function printUsage(): void {
     console.error('Usage:');
     console.error('  vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]');
-    console.error('  vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]');
+    console.error('    output-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.error('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>]');
+    console.error('    source-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
 }
 
 function parseEncoding(args: string[]): { encoding: string | undefined; rest: string[] } {
@@ -55,7 +57,7 @@ async function runExport(args: string[]): Promise<void> {
     if (!xlsmArg) { printUsage(); process.exit(1); }
 
     const absXlsm = resolve(xlsmArg);
-    const outDir  = resolve(outDirArg ?? dirname(absXlsm));
+    const outDir  = resolve(outDirArg ?? join(dirname(absXlsm), 'src'));
     if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
 
     const { cfb, codePage, modules } = await openXlsm(absXlsm);
@@ -82,10 +84,10 @@ async function runExport(args: string[]): Promise<void> {
 async function runImport(args: string[]): Promise<void> {
     const { encoding: encodingOverride, rest } = parseEncoding(args);
     const [xlsmArg, srcDirArg, outPathArg] = rest;
-    if (!xlsmArg || !srcDirArg) { printUsage(); process.exit(1); }
+    if (!xlsmArg) { printUsage(); process.exit(1); }
 
     const absXlsm = resolve(xlsmArg);
-    const absSrc  = resolve(srcDirArg);
+    const absSrc  = resolve(srcDirArg ?? join(dirname(absXlsm), 'src'));
     const outPath = resolve(outPathArg ?? absXlsm);
 
     const sourceMap = new Map<string, string>();
