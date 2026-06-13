@@ -80,6 +80,7 @@ Public Function AddSheet(ByVal sheetName As String) As SimSheet
     Dim ws As SimSheet
     Set ws = New SimSheet
     ws.Name = sheetName
+    ws.SetParentWorkbook Me    ' Workbook_SheetChange バブリングのため親を設定
     m_sheetCount = m_sheetCount + 1
     m_sheets.Add LCase(sheetName), ws
     m_sheetOrder.Add m_sheetCount, sheetName

@@ -4,10 +4,20 @@ Option Explicit
 ' ════════════════════════════════════════════════════════════
 ' ExcelMain — Excel ワークブックのデモ実行エントリーポイント
 '
-' RunWorkbookDemo: ワークブック/シートイベントのデモ
-' RunDataDemo:     データ操作・集計・レポートのデモ
+' Auto_Open:         ワークブックオープン時の旧式自動実行マクロ (標準モジュール方式)
+' RunWorkbookDemo:   ワークブック/シートイベントのデモ
+' RunDataDemo:       データ操作・集計・レポートのデモ
 ' RunValidationDemo: 入力検証イベントのデモ
 ' ════════════════════════════════════════════════════════════
+
+' ─────────────────────────────────────────────────────────
+' Auto_Open — 標準モジュールに書く旧式の起動マクロ
+' 実際の Excel では ThisWorkbook の Workbook_Open より先に呼ばれる
+' ─────────────────────────────────────────────────────────
+Public Sub Auto_Open()
+    Debug.Print "[Auto_Open] ワークブックが開かれました"
+    Debug.Print "[Auto_Open] 標準モジュールの Auto_Open は Excel VBA の旧式自動実行方式"
+End Sub
 
 ' ─────────────────────────────────────────────────────────
 ' RunWorkbookDemo
@@ -31,17 +41,24 @@ Public Sub RunWorkbookDemo()
     Set ws2 = wb.AddSheet("集計")
 
     ' ── ThisWorkbook (ワークブックイベントハンドラー) ──────
+    ' 実際の Excel では ThisWorkbook モジュールへの参照を持つが、
+    ' ここではクラスとしてインスタンス化して接続する
     Dim twb As ThisWorkbook
     Set twb = New ThisWorkbook
     twb.AttachWorkbook wb
-    twb.AttachSheet1 ws1
 
     ' ── Sheet1 (シートイベントハンドラー) ─────────────────
+    ' Worksheet_Change / Worksheet_Activate 等を受信する
     Dim sh1 As Sheet1
     Set sh1 = New Sheet1
     sh1.AttachSheet ws1
 
-    ' ── ワークブックを開く (Workbook_Open イベント) ────────
+    ' ── Auto_Open 相当の起動処理 ─────────────────────────
+    ' (実際の Excel では Workbook.Open で自動発火)
+    Debug.Print ""
+    Auto_Open
+
+    ' ── Workbook_Open イベント発火 ────────────────────────
     Debug.Print ""
     wb.OpenWorkbook
 
@@ -49,28 +66,29 @@ Public Sub RunWorkbookDemo()
     Debug.Print ""
     ws1.Activate
 
-    ' ── データ入力 (Worksheet_Change イベントが連鎖して発火) ─
+    ' ── データ入力 (シートの Change イベントが連鎖して発火) ──
     Debug.Print ""
     Debug.Print "--- データ入力 ---"
 
-    ' SetValue 経由で入力すると Change イベントが発火する
-    ' ThisWorkbook の m_ws1_Change が金額を自動計算する
+    ' SetValue 経由で入力すると Change イベントが発火する。
+    ' ThisWorkbook の Workbook_SheetChange が金額を自動計算する。
+    ' Sheet1 の Worksheet_Change が入力検証を行う。
     ws1.SetValue 2, 1, "2024/01/15"
     ws1.SetValue 2, 2, "緑茶"
-    ws1.SetValue 2, 3, 10        ' 数量 → 金額自動計算が走る
-    ws1.SetValue 2, 4, 120       ' 単価 → 金額自動計算が走る
+    ws1.SetValue 2, 3, 10        ' 数量 → Workbook_SheetChange で金額計算
+    ws1.SetValue 2, 4, 120       ' 単価 → 金額 = 10×120 = 1200
 
     ws1.SetValue 3, 1, "2024/01/15"
     ws1.SetValue 3, 2, "クッキー"
     ws1.SetValue 3, 3, 5
-    ws1.SetValue 3, 4, 250
+    ws1.SetValue 3, 4, 250       ' 金額 = 5×250 = 1250
 
     ws1.SetValue 4, 1, "2024/01/16"
     ws1.SetValue 4, 2, "コーヒー"
     ws1.SetValue 4, 3, 8
-    ws1.SetValue 4, 4, 180
+    ws1.SetValue 4, 4, 180       ' 金額 = 8×180 = 1440
 
-    ' ── シート切り替え ────────────────────────────────────
+    ' ── シート切り替え (Worksheet_Deactivate/Activate) ────
     Debug.Print ""
     ws1.Deactivate
     ws2.Activate
@@ -93,7 +111,7 @@ Public Sub RunWorkbookDemo()
     closed = wb.CloseWorkbook
     Debug.Print "ワークブックのクローズ: " & IIf(closed, "成功", "キャンセル")
 
-    ' ── 検証 ──────────────────────────────────────────────
+    ' ── 結果確認 ──────────────────────────────────────────
     Debug.Print ""
     Debug.Print "--- 結果確認 ---"
     Debug.Print "監査ログ件数: " & twb.ChangeCount
@@ -119,15 +137,14 @@ Public Sub RunDataDemo()
     Set ws = New SimSheet
     ws.Name = "売上データ"
 
-    ' ヘッダー (SetValue は Change イベントを発火するが、ここは
-    ' イベントハンドラーなしで直接 SimSheet を操作)
+    ' ヘッダー (Cells 経由で直接セット = Change イベントなし)
     ws.Cells(1, 1).Value = "日付"
     ws.Cells(1, 2).Value = "商品名"
     ws.Cells(1, 3).Value = "数量"
     ws.Cells(1, 4).Value = "単価"
     ws.Cells(1, 5).Value = "金額"
 
-    ' データを直接入力 (Cells プロパティ経由で Change イベントなし)
+    ' データ行を 2D 配列で準備してループ設定
     Dim salesData(1 To 8, 1 To 5) As Variant
     salesData(1, 1) = "2024/01/15": salesData(1, 2) = "緑茶":    salesData(1, 3) = 10: salesData(1, 4) = 120
     salesData(2, 1) = "2024/01/15": salesData(2, 2) = "クッキー": salesData(2, 3) = 5:  salesData(2, 4) = 250
@@ -143,7 +160,6 @@ Public Sub RunDataDemo()
         For c = 1 To 4
             ws.Cells(r + 1, c).Value = salesData(r, c)
         Next c
-        ' 金額列 = 数量 × 単価
         ws.Cells(r + 1, 5).Value = CDbl(salesData(r, 3)) * CDbl(salesData(r, 4))
     Next r
 
@@ -201,7 +217,7 @@ Public Sub RunDataDemo()
     Dim badSheet As SimSheet
     Set badSheet = Nothing
     Dim v As Variant
-    v = badSheet.GetValue(1, 1)     ' Nothing なので Error 91 が発生するはず
+    v = badSheet.GetValue(1, 1)
     If Err.Number <> 0 Then
         Debug.Print "エラー捕捉: " & Err.Number & " - " & Err.Description
         Err.Clear
@@ -220,12 +236,12 @@ End Sub
 
 ' ─────────────────────────────────────────────────────────
 ' RunValidationDemo
-' Sheet1 のワークシート入力検証デモ
+' Sheet1 の Worksheet_Change 入力検証デモ
 ' ─────────────────────────────────────────────────────────
 Public Sub RunValidationDemo()
     Debug.Print ""
     Debug.Print "=========================================="
-    Debug.Print " 入力検証デモ"
+    Debug.Print " 入力検証デモ (Worksheet_Change)"
     Debug.Print "=========================================="
 
     Dim wb As SimWorkbook
@@ -242,7 +258,7 @@ Public Sub RunValidationDemo()
     ws.Cells(1, 4).Value = "単価"
     ws.Cells(1, 5).Value = "金額"
 
-    ' Sheet1 を接続
+    ' Sheet1 を接続 (Worksheet_Change が有効になる)
     Dim sh1 As Sheet1
     Set sh1 = New Sheet1
     sh1.AttachSheet ws
@@ -263,7 +279,7 @@ Public Sub RunValidationDemo()
 
     Debug.Print ""
     Debug.Print "--- 前後空白の自動除去 ---"
-    ws.SetValue 6, 2, "  コーヒー  "    ' 前後に空白
+    ws.SetValue 6, 2, "  コーヒー  "
 
     Debug.Print ""
     Debug.Print "検証エラー件数: " & sh1.ValidationErrors

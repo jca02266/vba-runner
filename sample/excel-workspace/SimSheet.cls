@@ -25,18 +25,28 @@ Private m_maxRow      As Long
 Private m_maxCol      As Long
 Private m_isActive    As Boolean
 Private m_calcCount   As Long
+Private m_parentWb    As Object      ' 親 SimWorkbook (Nothing なら通知しない)
 
 ' ─── 初期化 ─────────────────────────────────────────────────
 Private Sub Class_Initialize()
-    Set m_cells  = CreateObject("Scripting.Dictionary")
-    m_maxRow     = 0
-    m_maxCol     = 0
-    m_isActive   = False
-    m_calcCount  = 0
+    Set m_cells    = CreateObject("Scripting.Dictionary")
+    Set m_parentWb = Nothing
+    m_maxRow       = 0
+    m_maxCol       = 0
+    m_isActive     = False
+    m_calcCount    = 0
 End Sub
 
 Private Sub Class_Terminate()
-    Set m_cells = Nothing
+    Set m_cells    = Nothing
+    Set m_parentWb = Nothing
+End Sub
+
+' ─── 親ワークブック設定 ─────────────────────────────────────
+' Excel では Worksheet は常にWorkbook に属する。
+' ここでは AddSheet 時に呼ばれる。
+Public Sub SetParentWorkbook(ByVal wb As Object)
+    Set m_parentWb = wb
 End Sub
 
 ' ─── シート名 ───────────────────────────────────────────────
@@ -65,11 +75,16 @@ Public Function Cells(ByVal r As Long, ByVal c As Long) As SimCell
 End Function
 
 ' ─── セルへの値書き込み (イベントを発火) ─────────────────────
+' Worksheet_Change → Workbook_SheetChange の順にバブリング
+' (実際の Excel と同じ伝播順)
 Public Sub SetValue(ByVal r As Long, ByVal c As Long, ByVal v As Variant)
     Dim cell As SimCell
     Set cell = Me.Cells(r, c)
     cell.Value = v
-    RaiseEvent Change(cell)
+    RaiseEvent Change(cell)                     ' Worksheet_Change 相当
+    If Not m_parentWb Is Nothing Then
+        m_parentWb.NotifySheetChange Me, cell   ' Workbook_SheetChange 相当
+    End If
 End Sub
 
 ' ─── セル値の読み取り ────────────────────────────────────────
