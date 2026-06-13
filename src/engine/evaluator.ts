@@ -4836,8 +4836,10 @@ export class Evaluator {
             }
             case 'StringLiteral':
                 return (expr as StringLiteral).value;
-            case 'AddressOfExpression':
-                return (expr as AddressOfExpression).procedureName.name;
+            case 'AddressOfExpression': {
+                const ao = expr as AddressOfExpression;
+                return ao.moduleName ? `${ao.moduleName}.${ao.procedureName.name}` : ao.procedureName.name;
+            }
             case 'DateLiteral':
                 return this.evaluateDateLiteral(expr as DateLiteral);
             case 'Identifier':

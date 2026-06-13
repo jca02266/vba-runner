@@ -372,6 +372,7 @@ export interface ReDimStatement extends Statement {
 export interface AddressOfExpression extends Expression {
     type: 'AddressOfExpression';
     procedureName: Identifier;
+    moduleName?: string;  // set when AddressOf Module.Proc form (§5.6.16.8)
 }
 
 export interface ErrorStatement extends Statement {
@@ -2736,9 +2737,17 @@ export class Parser {
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
-            const procName = this.advance();
-            if (!this.isIdentifier(procName)) this.throwError(`Parse error at line ${procName.line}: Expected procedure name after 'AddressOf'`);
-            expr = { type: 'AddressOfExpression', procedureName: { type: 'Identifier', name: procName.value } } as AddressOfExpression;
+            const firstTok = this.advance();
+            if (!this.isIdentifier(firstTok)) this.throwError(`Parse error at line ${firstTok.line}: Expected procedure name after 'AddressOf'`);
+            let moduleName: string | undefined;
+            let procTok = firstTok;
+            if (this.peek().type === TokenType.OperatorDot) {
+                this.advance(); // consume '.'
+                moduleName = firstTok.value;
+                procTok = this.advance();
+                if (!this.isIdentifier(procTok)) this.throwError(`Parse error at line ${procTok.line}: Expected procedure name after 'AddressOf ${moduleName}.'`);
+            }
+            expr = { type: 'AddressOfExpression', procedureName: { type: 'Identifier', name: procTok.value }, moduleName } as AddressOfExpression;
         } else if (token.type === TokenType.KeywordEmpty) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordNothing) {
