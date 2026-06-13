@@ -2796,7 +2796,7 @@ export class Parser {
     private parseEventDeclaration(scope?: 'public' | 'private' | 'friend'): EventDeclaration {
         this.advance(); // 'Event'
         const idToken = this.advance();
-        if (!this.isIdentifier(idToken)) this.throwError(`Expected identifier after 'Event' at line ${idToken.line}`);
+        if (!this.isIdentifier(idToken) && !this.isNameToken(idToken)) this.throwError(`Expected identifier after 'Event' at line ${idToken.line}`);
         const name: Identifier = { type: 'Identifier', name: idToken.value };
         const parameters: Parameter[] = [];
         
@@ -2816,7 +2816,7 @@ export class Parser {
     private parseRaiseEventStatement(): RaiseEventStatement {
         this.advance(); // 'RaiseEvent'
         const idToken = this.advance();
-        if (!this.isIdentifier(idToken)) this.throwError(`Expected identifier after 'RaiseEvent' at line ${idToken.line}`);
+        if (!this.isIdentifier(idToken) && !this.isNameToken(idToken)) this.throwError(`Expected identifier after 'RaiseEvent' at line ${idToken.line}`);
         const eventName: Identifier = { type: 'Identifier', name: idToken.value };
         const args: Expression[] = [];
         

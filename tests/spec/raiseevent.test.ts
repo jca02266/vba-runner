@@ -71,4 +71,49 @@ ev2.callProcedure('Test', []);
 assert.strictEqual(ev2.env.get('firecount'), 2, 'イベントが2回発火');
 console.log('[PASS] 引数なしイベント');
 
+// --- 3. B-7: VBA キーワードをイベント名として使える ---
+// Excel の Workbook クラスは "Open" / "BeforeClose" 等のイベントを持つ。
+// "Open" は VBA の file I/O キーワードだが、Event/RaiseEvent では使用可能。
+{
+    const code = `
+    Class WorkbookSim
+        Public Event Open()
+        Public Event BeforeClose(ByRef Cancel As Boolean)
+        Public Sub OpenWorkbook()
+            RaiseEvent Open
+        End Sub
+        Public Sub CloseWorkbook()
+            Dim cancelFlag As Boolean
+            cancelFlag = False
+            RaiseEvent BeforeClose(cancelFlag)
+        End Sub
+    End Class
+
+    Dim WithEvents wb As WorkbookSim
+    Dim openCount As Integer
+    Dim closeCount As Integer
+
+    Private Sub wb_Open()
+        openCount = openCount + 1
+    End Sub
+
+    Private Sub wb_BeforeClose(ByRef Cancel As Boolean)
+        closeCount = closeCount + 1
+        Cancel = False
+    End Sub
+
+    Sub TestKeywordEvents()
+        Set wb = New WorkbookSim
+        wb.OpenWorkbook
+        wb.CloseWorkbook
+        wb.OpenWorkbook
+    End Sub
+    `;
+    const ev3 = evalVBA(code);
+    ev3.callProcedure('TestKeywordEvents', []);
+    assert.strictEqual(ev3.env.get('opencount'), 2, 'Open イベントが 2 回発火');
+    assert.strictEqual(ev3.env.get('closecount'), 1, 'BeforeClose イベントが 1 回発火');
+    console.log('[PASS] B-7: キーワード名 (Open/BeforeClose) をイベント名として使用できる');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');
