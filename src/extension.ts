@@ -13,6 +13,7 @@ import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webvi
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
+import { autoParensEdit } from './lsp/auto-parens';
 import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
@@ -865,14 +866,26 @@ End Class`;
                 const config = vscode.workspace.getConfiguration('vba-runner');
                 const edits: vscode.TextEdit[] = [];
 
-                // Auto line continuation: insert ' _' at the end of the previous line.
-                if (ch === '\n' && config.get('editor.autoLineContinuation', true) && position.line > 0) {
+                if (ch === '\n' && position.line > 0) {
                     const prevLine = document.lineAt(position.line - 1);
                     const trimmed = prevLine.text.trimEnd();
-                    if (needsLineContinuation(trimmed)) {
-                        const insertPos = new vscode.Position(position.line - 1, trimmed.length);
-                        const lineEnd = new vscode.Position(position.line - 1, prevLine.text.length);
-                        edits.push(vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _'));
+
+                    // Auto line continuation: insert ' _' at the end of the previous line.
+                    if (config.get('editor.autoLineContinuation', true)) {
+                        if (needsLineContinuation(trimmed)) {
+                            const insertPos = new vscode.Position(position.line - 1, trimmed.length);
+                            const lineEnd = new vscode.Position(position.line - 1, prevLine.text.length);
+                            edits.push(vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _'));
+                        }
+                    }
+
+                    // Auto parentheses: insert "()" after Sub/Function/Property name if missing.
+                    if (config.get('editor.autoParentheses', true)) {
+                        const ap = autoParensEdit(prevLine.text);
+                        if (ap) {
+                            const pos = new vscode.Position(position.line - 1, ap.insertCol);
+                            edits.push(vscode.TextEdit.insert(pos, '()'));
+                        }
                     }
                 }
 

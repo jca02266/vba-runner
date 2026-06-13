@@ -156,6 +156,11 @@
           "default": true,
           "description": "キーワードをスペース・Tab・Enter で確定したとき正規のケース（If, WithEvents 等）に自動補正する（VBE と同じ挙動。editor.formatOnType が有効な場合のみ動作）"
         },
+        "vba-runner.editor.autoParentheses": {
+          "type": "boolean",
+          "default": true,
+          "description": "Sub/Function/Property の宣言行で Enter を押したとき、括弧がなければ () を自動挿入する（VBE と同じ挙動。editor.formatOnType が有効な場合のみ動作）"
+        },
         "vba-runner.test.location": {
           "type": "string",
           "enum": [
