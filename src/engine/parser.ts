@@ -622,14 +622,19 @@ export class Parser {
         TokenType.KeywordLock,
         TokenType.KeywordSeek,
         TokenType.KeywordUnlock,
+        TokenType.KeywordKill,
+        TokenType.KeywordReset,
+        TokenType.KeywordWidth,
         TokenType.KeywordEvent,
         TokenType.KeywordRaiseEvent,
         TokenType.KeywordImplements,
     ]);
 
-    /** <statement-keyword> tokens additionally permitted as IDENTIFIERs in
-     *  expression context (parsePrimary) for member access (obj.Print, ws.Get, obj.Open).
-     *  These remain <reserved-identifier> per §3.3.5.2 and cannot be module-level proc names. */
+    /** <statement-keyword> tokens permitted as member names in parsePrimary (obj.Print, ws.Get,
+     *  obj.Open, etc.) per §3.3.5.2 "unrestricted-name" rule.
+     *  In parseStatementInner these keywords are all dispatched unconditionally before the
+     *  identifier branch, so the COMPAT_KW_EXPR entries there are never reached — they exist
+     *  solely for parsePrimary dot-member-access context. */
     private static readonly COMPAT_KW_EXPR = new Set<TokenType>([
         TokenType.KeywordSeek,
         TokenType.KeywordInput,
@@ -1549,35 +1554,31 @@ export class Parser {
             return this.parseCloseStatement();
         } else if (token.type === TokenType.KeywordLine && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseLineInputStatement();
-        } else if (token.type === TokenType.KeywordPrint &&
-                   this.peek(1).type === TokenType.OperatorHash) {
-            // print-statement requires marked-file-number ("#" expr) per §5.4.5.9.
-            // "Print" without "#" is parsed as identifier (user-defined procedure or return assignment).
+        } else if (token.type === TokenType.KeywordPrint) {
+            // Print is reserved-identifier (§3.3.5.2) — always file I/O. Requires "#" per §5.4.5.9.
             return this.parsePrintStatement();
-        } else if (token.type === TokenType.KeywordPut &&
-                   this.peek(1).type === TokenType.OperatorHash) {
-            // Our impl requires "#" in Put (parsePutStatement uses consume). Same principle.
+        } else if (token.type === TokenType.KeywordPut) {
+            // Put is reserved-identifier — always file I/O Put statement.
             return this.parsePutStatement();
         } else if (token.type === TokenType.KeywordGet &&
                    this.peek(1).type === TokenType.OperatorHash) {
-            // KeywordGet enum < KeywordBase so Get cannot be a procedure name, but
-            // "#" check keeps the pattern consistent and avoids ambiguity.
+            // Get (enum < KeywordBase) is reserved by range check. "#" guard kept because Get
+            // also appears in "Property Get" header which is parsed before reaching this branch.
             return this.parseGetStatement();
-        } else if (token.type === TokenType.KeywordInput &&
-                   this.peek(1).type === TokenType.OperatorHash) {
-            // input-statement requires marked-file-number per §5.4.5.7.
+        } else if (token.type === TokenType.KeywordInput) {
+            // Input is reserved-identifier — always file I/O. Requires "#" per §5.4.5.7.
             return this.parseInputStatement();
-        } else if (token.type === TokenType.KeywordWrite &&
-                   this.peek(1).type === TokenType.OperatorHash) {
-            // write-statement requires marked-file-number per §5.4.5.10.
+        } else if (token.type === TokenType.KeywordWrite) {
+            // Write is reserved-identifier — always file I/O. Requires "#" per §5.4.5.10.
             return this.parseWriteStatement();
-        } else if (token.type === TokenType.KeywordSeek &&
-                   this.peek(1).type === TokenType.OperatorHash) {
-            // Our impl requires "#" in Seek. Same principle.
+        } else if (token.type === TokenType.KeywordSeek) {
+            // Seek is reserved-identifier — always file I/O Seek statement.
             return this.parseSeekStatement();
-        } else if (token.type === TokenType.KeywordReset && this.peek(1).type !== TokenType.OperatorEquals) {
+        } else if (token.type === TokenType.KeywordReset) {
+            // Reset is reserved-identifier — always file I/O Reset statement.
             return this.parseResetStatement();
-        } else if (token.type === TokenType.KeywordKill && this.peek(1).type !== TokenType.OperatorEquals) {
+        } else if (token.type === TokenType.KeywordKill) {
+            // Kill is reserved-identifier — always file I/O Kill statement.
             return this.parseKillStatement();
         } else if (token.type === TokenType.KeywordEvent) {
             return this.parseEventDeclaration();
@@ -1587,7 +1588,8 @@ export class Parser {
             return this.parseLockStatement();
         } else if (token.type === TokenType.KeywordUnlock) {
             return this.parseUnlockStatement();
-        } else if (token.type === TokenType.KeywordWidth && this.peek(1).type !== TokenType.OperatorEquals) {
+        } else if (token.type === TokenType.KeywordWidth) {
+            // Width is reserved-identifier — always file I/O Width statement.
             return this.parseWidthStatement();
         } else if (token.type === TokenType.KeywordClass && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseClassDeclaration();
