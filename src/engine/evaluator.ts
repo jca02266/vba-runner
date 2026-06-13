@@ -3122,6 +3122,10 @@ export class Evaluator {
                 // UDT 型配列: ReDim 時に要素を初期化できるよう型名を保持する
                 if (decl.objectType && this.env.getType(decl.objectType)) {
                     (initialValue as any).__vbaElementTypeName__ = decl.objectType;
+                    // B-4: For fixed-size UDT arrays, initialize each element with a proper UDT instance
+                    if ((initialValue as any).vbaFixed) {
+                        this.fillArrayWithUdtInstances(initialValue, decl.objectType);
+                    }
                 }
             } else if (decl.isNew && decl.objectType === 'Collection') {
                 initialValue = new VbaCollection();
@@ -3266,6 +3270,30 @@ export class Evaluator {
 
         // Set Me in instance env pointing to the instance itself
         instanceEnv.setLocally('Me', instance);
+
+        // B-1: Evaluate class-level Const declarations into instanceEnv
+        {
+            const prevEnv = this.env;
+            this.env = instanceEnv;
+            for (const stmt of classDef.body) {
+                if (stmt.type === 'ConstDeclaration') {
+                    const constVal = this.evaluateConstValue((stmt as ConstDeclaration).value);
+                    instanceEnv.setConstant((stmt as ConstDeclaration).name.name, constVal);
+                }
+            }
+            this.env = prevEnv;
+        }
+
+        // B-2: Register class procedures as native wrappers in instanceEnv
+        // so that private methods called by name within a class body can be resolved
+        for (const proc of classDef.procedures) {
+            const procRef = proc;
+            const self = instance;
+            const procNameLower = proc.name.name.toLowerCase();
+            instanceEnv.setLocally(procNameLower, (...args: any[]) => {
+                return this.callClassMethod(self, procRef, args);
+            });
+        }
 
         // Call Class_Initialize if defined
         const initProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_initialize');
@@ -4585,6 +4613,24 @@ export class Evaluator {
                 arr[i] = defaultValue;
             }
         }
+    }
+
+    private fillArrayWithUdtInstances(arr: any[], typeName: string) {
+        const dims = (arr as any).__vbaDimensions__;
+        if (!dims) return;
+        const fillDim = (a: any[], dimIdx: number) => {
+            const { lower, upper } = dims[dimIdx];
+            if (dimIdx < dims.length - 1) {
+                for (let i = lower; i <= upper; i++) {
+                    if (Array.isArray(a[i])) fillDim(a[i], dimIdx + 1);
+                }
+            } else {
+                for (let i = lower; i <= upper; i++) {
+                    a[i] = this.instantiateType(typeName);
+                }
+            }
+        };
+        fillDim(arr, 0);
     }
 
     private createMultiDimArray(bounds: ArrayBound[], initialValue: any): any[] {

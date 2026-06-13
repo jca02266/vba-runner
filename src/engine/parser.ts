@@ -1970,6 +1970,9 @@ export class Parser {
             } else if (inner.type === TokenType.KeywordEvent) {
                 const event = this.parseEventDeclaration(scope);
                 body.push(event);
+            } else if (inner.type === TokenType.KeywordConst) {
+                const constDecl = this.parseConstDeclaration();
+                body.push(constDecl);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'
                 const field = this.parseDimStatement(true, true);
