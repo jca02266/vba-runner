@@ -531,10 +531,6 @@ export class Parser {
     private pos: number = 0;
     private readonly parseAsClass: string | undefined;
     private readonly _diagnostics: ParseDiagnostic[] = [];
-    // ARCH-1: user-defined procedure names collected by pre-scan (Pass 1 pre-pass)
-    private userProcNames: Set<string> = new Set();
-    // ARCH-1: procedure names from other modules (for multi-module scenarios)
-    private readonly externalProcNames: Set<string>;
 
     // ---------------------------------------------------------------
     // §3.3.5.2 contextual keyword Sets
@@ -640,13 +636,10 @@ export class Parser {
     constructor(tokens: Token[], options: {
         parseAsClass?: string;
         errorRecovery?: boolean;
-        /** ARCH-1: procedure names from other modules, for multi-module name resolution */
-        externalProcNames?: Set<string>;
     } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
         this.errorRecovery = options.errorRecovery ?? false;
-        this.externalProcNames = options.externalProcNames ?? new Set();
     }
 
     // Keywords can appear as property/class names in VBA (e.g. obj.Property, New Collection)
@@ -657,50 +650,25 @@ export class Parser {
     }
 
     /**
-     * ARCH-1: Pre-scan Pass — collect all user-defined procedure names from the token stream.
-     * Called once at the start of parse() before any statement parsing begins.
-     * Implements VBA name resolution order §3.3.5.3: user procedures (priority 2) take
-     * precedence over built-in statement keywords (priority 3).
+     * Returns true if the current token stream contains a file-I/O Open statement pattern
+     * ("For <file-mode>") on the current logical line.
+     * Open "path" For Input|Output|Append|Random|Binary ... As #n  →  true
+     * Open()  /  Open = value  /  Open x  (user-defined call)       →  false
+     *
+     * This syntactic check lets the parser disambiguate without a pre-scan:
+     * VBA §3.3.5.3 — user-defined procedures (priority 2) > built-in statement keywords (priority 3).
      */
-    private collectUserProcNames(): void {
-        this.userProcNames = new Set();
-        for (let i = 0; i + 1 < this.tokens.length; i++) {
+    private hasFileOpenSyntaxAhead(): boolean {
+        for (let i = this.pos + 1; i < this.tokens.length; i++) {
             const t = this.tokens[i];
-            if (t.type === TokenType.KeywordSub || t.type === TokenType.KeywordFunction) {
-                const nameToken = this.tokens[i + 1];
-                // Guard: name must be a word-like token (not EOF, newline, or '(')
-                if (nameToken &&
-                    nameToken.type !== TokenType.Newline &&
-                    nameToken.type !== TokenType.EOF &&
-                    nameToken.type !== TokenType.OperatorLParen) {
-                    this.userProcNames.add(nameToken.value.toLowerCase());
-                }
-            } else if (t.type === TokenType.KeywordProperty) {
-                // Property Get/Let/Set name — skip the Get/Let/Set token
-                let j = i + 1;
-                if (j < this.tokens.length && (
-                    this.tokens[j].type === TokenType.KeywordGet ||
-                    this.tokens[j].type === TokenType.KeywordLet ||
-                    this.tokens[j].type === TokenType.KeywordSet
-                )) j++;
-                const nameToken = this.tokens[j];
-                if (nameToken &&
-                    nameToken.type !== TokenType.Newline &&
-                    nameToken.type !== TokenType.EOF) {
-                    this.userProcNames.add(nameToken.value.toLowerCase());
-                }
+            if (t.type === TokenType.Newline || t.type === TokenType.EOF) break;
+            if (t.type === TokenType.KeywordFor) {
+                const next = this.tokens[i + 1];
+                return !!next && (next.type === TokenType.KeywordInput ||
+                                  Parser.CONTEXTUAL_KW_FILE_MODE.has(next.type));
             }
         }
-    }
-
-    /** ARCH-1: Returns true if this keyword token is user-defined AND can be overridden.
-     *  Only tokens in [KeywordBase, KeywordAddressOf] range can be valid procedure names
-     *  (per parseProcedureDeclaration). Structural keywords (For/If/While etc.) are below
-     *  KeywordBase and are never overridden. */
-    private isUserProcOverride(token: Token): boolean {
-        if (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf) return false;
-        const name = token.value.toLowerCase();
-        return this.userProcNames.has(name) || this.externalProcNames.has(name);
+        return false;
     }
 
     private recordError(message: string, token: Token): void {
@@ -1237,8 +1205,6 @@ export class Parser {
     }
 
     public parse(): Program {
-        // ARCH-1 Pass 1 pre-scan: collect user-defined procedure names before parsing bodies
-        this.collectUserProcNames();
 
         if (this.parseAsClass) {
             const classDecl = this.parseClassBody(this.parseAsClass, false);
@@ -1569,29 +1535,46 @@ export class Parser {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordEnum) {
             return this.parseEnumDeclaration();
-        } else if (this.isUserProcOverride(token)) {
-            // ARCH-1: VBA name resolution §3.3.5.3 — user-defined procedure (priority 2) takes
-            // precedence over built-in statement keyword (priority 3). Any keyword in
-            // [KeywordBase, KeywordAddressOf] that matches a user-defined procedure name is
-            // parsed as an identifier/call/assignment, bypassing file I/O and other built-in dispatches.
-            return this.parseIdentifierOrCallStatement();
-        } else if (token.type === TokenType.KeywordOpen && this.peek(1).type !== TokenType.OperatorEquals) {
+        } else if (token.type === TokenType.KeywordOpen &&
+                   this.peek(1).type !== TokenType.OperatorEquals &&
+                   this.hasFileOpenSyntaxAhead()) {
+            // File I/O Open: requires "For <mode>" syntax on this line (§5.4.5.1).
+            // Without "For <mode>", Open is treated as a user-defined procedure call.
             return this.parseOpenStatement();
-        } else if (token.type === TokenType.KeywordClose && this.peek(1).type !== TokenType.OperatorEquals) {
+        } else if (token.type === TokenType.KeywordClose &&
+                   this.peek(1).type !== TokenType.OperatorEquals &&
+                   this.peek(1).type !== TokenType.OperatorLParen) {
+            // File I/O Close: "Close [#n, ...]" — explicit "(" means user-defined call.
+            // "Close" alone (no file numbers) remains a CloseStatement; the evaluator resolves
+            // the ambiguity using user-defined procedure names from resolveIdentifiers.
             return this.parseCloseStatement();
         } else if (token.type === TokenType.KeywordLine && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseLineInputStatement();
-        } else if (token.type === TokenType.KeywordPrint) {
+        } else if (token.type === TokenType.KeywordPrint &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // print-statement requires marked-file-number ("#" expr) per §5.4.5.9.
+            // "Print" without "#" is parsed as identifier (user-defined procedure or return assignment).
             return this.parsePrintStatement();
-        } else if (token.type === TokenType.KeywordPut) {
+        } else if (token.type === TokenType.KeywordPut &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // Our impl requires "#" in Put (parsePutStatement uses consume). Same principle.
             return this.parsePutStatement();
-        } else if (token.type === TokenType.KeywordGet) {
+        } else if (token.type === TokenType.KeywordGet &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // KeywordGet enum < KeywordBase so Get cannot be a procedure name, but
+            // "#" check keeps the pattern consistent and avoids ambiguity.
             return this.parseGetStatement();
-        } else if (token.type === TokenType.KeywordInput) {
+        } else if (token.type === TokenType.KeywordInput &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // input-statement requires marked-file-number per §5.4.5.7.
             return this.parseInputStatement();
-        } else if (token.type === TokenType.KeywordWrite) {
+        } else if (token.type === TokenType.KeywordWrite &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // write-statement requires marked-file-number per §5.4.5.10.
             return this.parseWriteStatement();
-        } else if (token.type === TokenType.KeywordSeek) {
+        } else if (token.type === TokenType.KeywordSeek &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // Our impl requires "#" in Seek. Same principle.
             return this.parseSeekStatement();
         } else if (token.type === TokenType.KeywordReset && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseResetStatement();
@@ -1622,7 +1605,7 @@ export class Parser {
         } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
                    token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||
-                   token.type === TokenType.KeywordOpen || token.type === TokenType.KeywordClose) {
+                   Parser.COMPAT_KW_EXPR.has(token.type)) {
             return this.parseIdentifierOrCallStatement();
         } else if (token.type === TokenType.Unknown) {
             this.throwError(`Parse error: Unknown token '${this.tokenDisplay(token.value)}' at line ${token.line}`);
@@ -2681,10 +2664,7 @@ export class Parser {
             expr = { type: 'Identifier', name: token.value, foreign: true } as Identifier;
         } else if (token.type === TokenType.Identifier ||
                    Parser.CONTEXTUAL_KW.has(token.type) ||
-                   Parser.COMPAT_KW_EXPR.has(token.type) ||
-                   // ARCH-1: in expression context, any keyword that is user-defined as a procedure
-                   // is treated as an identifier (e.g. `x = Open()` where `Function Open()` exists)
-                   this.isUserProcOverride(token)) {
+                   Parser.COMPAT_KW_EXPR.has(token.type)) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const procName = this.advance();

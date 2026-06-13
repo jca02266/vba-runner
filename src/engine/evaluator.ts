@@ -647,6 +647,10 @@ export class Evaluator {
     private currentLine: number = 0;
     private nowOverride: (() => Date) | null = null;
     private optionExplicitViolations: Map<string, Map<string, number>> = new Map();
+    /** User-defined procedure names collected by resolveIdentifiers (Pass 2).
+     *  Used at runtime to disambiguate "Close" (file I/O vs user procedure call)
+     *  per VBA §3.3.5.3: user procedures take priority over built-in statement keywords. */
+    private userDefinedProcNames: Set<string> = new Set();
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
@@ -3566,6 +3570,23 @@ export class Evaluator {
             }
         }
 
+        // Collect user-defined procedure names for runtime keyword disambiguation (§3.3.5.3).
+        // Rebuilt on each call so resolveIdentifiers remains idempotent.
+        this.userDefinedProcNames = new Set();
+        for (const { ast } of modules) {
+            for (const stmt of ast.body) {
+                if (stmt.type === 'ProcedureDeclaration') {
+                    this.userDefinedProcNames.add((stmt as ProcedureDeclaration).name.name.toLowerCase());
+                } else if (stmt.type === 'ClassDeclaration') {
+                    for (const member of (stmt as ClassDeclaration).body) {
+                        if (member.type === 'ProcedureDeclaration') {
+                            this.userDefinedProcNames.add((member as ProcedureDeclaration).name.name.toLowerCase());
+                        }
+                    }
+                }
+            }
+        }
+
     }
 
     /** @deprecated Use {@link resolveIdentifiers} instead. */
@@ -3928,6 +3949,14 @@ export class Evaluator {
     }
 
     private evaluateCloseStatement(stmt: CloseStatement) {
+        // "Close" alone (no file numbers) is syntactically ambiguous: it could be
+        // "close all open files" or a call to a user-defined Sub/Function named Close.
+        // Per VBA §3.3.5.3, user-defined procedures take priority over built-in keywords.
+        if (stmt.fileNumbers.length === 0 && this.userDefinedProcNames.has('close')) {
+            this.callProcedure('close', []);
+            return;
+        }
+
         const nums = stmt.fileNumbers.length > 0
             ? stmt.fileNumbers.map(n => Number(this.evaluateExpression(n)))
             : Array.from(this.fileHandles.keys());
