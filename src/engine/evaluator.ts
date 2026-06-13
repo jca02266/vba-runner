@@ -637,6 +637,9 @@ export class Evaluator {
     private defTypeMap: Map<string, string> = new Map();
     /** VarPtr/StrPtr/ObjPtr: dummy address counter (non-zero unique integers) */
     private _ptrCounter: number = 0x10000;
+    /** Scope exit tracking: VBA class instances created with `New` in the current proc scope.
+     *  Only these are eligible for auto-Terminate on scope exit. null outside any proc. */
+    private _currentNewOwned: Set<any> | null = null;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
@@ -2014,6 +2017,7 @@ export class Evaluator {
         const previousExecutingModule = this.executingModuleName;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
+        const previousNewOwned = this._currentNewOwned;
 
         this.env = localEnv;
         this.errorHandlerLabel = null;
@@ -2026,6 +2030,7 @@ export class Evaluator {
         this.executingModuleName = proc.moduleName ?? '';
         this.currentProcIsStatic = proc.isStatic ?? false;
         this.staticVarsInCurrentProc = new Set();
+        this._currentNewOwned = new Set();
 
         try {
             this.executeStatements(proc.body, 0);
@@ -2067,17 +2072,23 @@ export class Evaluator {
                 this.staticVarStore.set(key, localEnv.get(varName));
             }
 
-            // Scope exit: fire Class_Terminate for local VBA objects that weren't explicitly
-            // set to Nothing. Skip params (caller still holds them), the return-value variable,
-            // and Static variables (they survive across calls).
+            // Scope exit: fire Class_Terminate for local VBA objects that were created with
+            // `New` in this scope and not returned. Objects fetched from outer scopes, dicts,
+            // or function calls are NOT tracked here and are safe from premature termination.
             {
-                const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
-                const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
-                for (const [name, val] of localEnv.getLocalVariables()) {
-                    if (paramNames.has(name)) continue;
-                    if (returnVarName !== null && name === returnVarName) continue;
-                    if (this.staticVarsInCurrentProc.has(name)) continue;
-                    this.triggerTerminate(val);
+                const owned = this._currentNewOwned;
+                if (owned && owned.size > 0) {
+                    const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
+                    const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                    const returnVal = returnVarName !== null ? localEnv.get(returnVarName) : undefined;
+                    for (const [name, val] of localEnv.getLocalVariables()) {
+                        if (paramNames.has(name)) continue;
+                        if (returnVarName !== null && name === returnVarName) continue;
+                        if (this.staticVarsInCurrentProc.has(name)) continue;
+                        if (val !== null && val !== undefined && val === returnVal) continue;
+                        if (!owned.has(val)) continue;
+                        this.triggerTerminate(val);
+                    }
                 }
             }
 
@@ -2091,6 +2102,7 @@ export class Evaluator {
             this.executingModuleName = previousExecutingModule;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
+            this._currentNewOwned = previousNewOwned;
         }
 
         if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
@@ -3462,12 +3474,14 @@ export class Evaluator {
         const previousProcedureType = this.currentProcedureType;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
+        const previousNewOwnedCM = this._currentNewOwned;
         this.env = localEnv;
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
         this.currentProcIsStatic = false;
         this.staticVarsInCurrentProc = new Set();
+        this._currentNewOwned = new Set();
 
         try {
             this.executeStatements(proc.body, 0);
@@ -3488,16 +3502,22 @@ export class Evaluator {
         } finally {
             this.env = previousEnv;
 
-            // Scope exit: fire Class_Terminate for local VBA objects that weren't explicitly
-            // set to Nothing. Skip params, Me, and the return-value variable.
+            // Scope exit: fire Class_Terminate for local VBA objects created with `New` in
+            // this scope that were not returned to the caller.
             {
-                const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
-                paramNames.add('me');
-                const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
-                for (const [name, val] of localEnv.getLocalVariables()) {
-                    if (paramNames.has(name)) continue;
-                    if (returnVarName !== null && name === returnVarName) continue;
-                    this.triggerTerminate(val);
+                const owned = this._currentNewOwned;
+                if (owned && owned.size > 0) {
+                    const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
+                    paramNames.add('me');
+                    const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                    const returnVal = returnVarName !== null ? localEnv.get(returnVarName) : undefined;
+                    for (const [name, val] of localEnv.getLocalVariables()) {
+                        if (paramNames.has(name)) continue;
+                        if (returnVarName !== null && name === returnVarName) continue;
+                        if (val !== null && val !== undefined && val === returnVal) continue;
+                        if (!owned.has(val)) continue;
+                        this.triggerTerminate(val);
+                    }
                 }
             }
 
@@ -3506,6 +3526,7 @@ export class Evaluator {
             this.currentProcedureType = previousProcedureType;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
+            this._currentNewOwned = previousNewOwnedCM;
         }
 
         if (proc.isFunction || proc.isProperty) {
@@ -3783,6 +3804,11 @@ export class Evaluator {
 
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
+
+        // Track objects created with `New` in the current proc scope for scope exit cleanup.
+        if (stmt.right.type === 'NewExpression' && value && value.__vbaClass__ && this._currentNewOwned) {
+            this._currentNewOwned.add(value);
+        }
 
         // VBA requires Set target to be an object (or Nothing)
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
