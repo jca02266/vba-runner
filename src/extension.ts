@@ -13,7 +13,7 @@ import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webvi
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
-import { autoParensEdit } from './lsp/auto-parens';
+import { autoParensEdit, getEndKeyword, needsEndBlock } from './lsp/auto-parens';
 import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
@@ -885,6 +885,21 @@ End Class`;
                         if (ap) {
                             const pos = new vscode.Position(position.line - 1, ap.insertCol);
                             edits.push(vscode.TextEdit.insert(pos, '()'));
+                        }
+                    }
+
+                    // Auto end-block: insert "End Sub" / "End Function" / "End Property"
+                    // after the current (auto-indented) line if no matching end block exists.
+                    if (config.get('editor.autoEndBlock', true)) {
+                        const endKeyword = getEndKeyword(prevLine.text);
+                        if (endKeyword) {
+                            const getLine = (n: number) =>
+                                n < document.lineCount ? document.lineAt(n).text : undefined;
+                            if (needsEndBlock(getLine, position.line + 1, endKeyword)) {
+                                const baseIndent = prevLine.text.match(/^(\s*)/)?.[1] ?? '';
+                                const currentLineEnd = document.lineAt(position.line).range.end;
+                                edits.push(vscode.TextEdit.insert(currentLineEnd, '\n' + baseIndent + endKeyword));
+                            }
                         }
                     }
                 }
