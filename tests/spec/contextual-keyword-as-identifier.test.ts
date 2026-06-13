@@ -82,4 +82,43 @@ function run(code: string, name = 'T'): any {
     console.log('[PASS] 組み込み文との共存');
 }
 
+// --- 6. Open / Close を Function 名に使い戻り値代入できる（B-8）---
+// VBA では Open / Close はファイル I/O キーワードだが、クラスメソッド名にも使われる。
+// `Open = value` / `Close = value` の形は、ファイル I/O 文ではなく戻り値代入として解釈する。
+{
+    // Function Open() As Boolean — 戻り値代入 Open = True が機能する
+    const evOpenFn = evalVBASingle(`
+Function Open() As Boolean
+    Open = True
+End Function
+Function T() As Long
+    If Open() Then T = 1 Else T = 0
+End Function`, { onPrint: () => {} });
+    assert.strictEqual(evOpenFn.callProcedure('T', []), 1, 'Function Open() 戻り値代入');
+
+    // Function Close() As Boolean — 戻り値代入 Close = True が機能する
+    const evCloseFn = evalVBASingle(`
+Function Close() As Boolean
+    Close = True
+End Function
+Function T() As Long
+    If Close() Then T = 1 Else T = 0
+End Function`, { onPrint: () => {} });
+    assert.strictEqual(evCloseFn.callProcedure('T', []), 1, 'Function Close() 戻り値代入');
+
+    // Close = Not flag パターン（Excel VBA クラスモジュールで使われるパターン）
+    const evCloseNot = evalVBASingle(`
+Function Close() As Boolean
+    Dim flag As Boolean
+    flag = False
+    Close = Not flag
+End Function
+Function T() As Long
+    If Close() Then T = 1 Else T = 0
+End Function`, { onPrint: () => {} });
+    assert.strictEqual(evCloseNot.callProcedure('T', []), 1, 'Close = Not flag パターン');
+
+    console.log('[PASS] Open/Close を Function 名・戻り値代入に使える (B-8)');
+}
+
 console.log('\n✅ contextual-keyword-as-identifier: 全テスト通過');

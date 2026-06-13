@@ -619,6 +619,8 @@ export class Parser {
         TokenType.KeywordGet,     // <statement-keyword>
         TokenType.KeywordLock,    // <statement-keyword>
         TokenType.KeywordUnlock,  // <statement-keyword>
+        TokenType.KeywordOpen,    // file I/O, but also valid as Function name / return-value assignment
+        TokenType.KeywordClose,   // file I/O, but also valid as Function name / return-value assignment
     ]);
 
     private readonly errorRecovery: boolean;
@@ -1415,9 +1417,9 @@ export class Parser {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordEnum) {
             return this.parseEnumDeclaration();
-        } else if (token.type === TokenType.KeywordOpen) {
+        } else if (token.type === TokenType.KeywordOpen && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseOpenStatement();
-        } else if (token.type === TokenType.KeywordClose) {
+        } else if (token.type === TokenType.KeywordClose && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseCloseStatement();
         } else if (token.type === TokenType.KeywordLine && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseLineInputStatement();
@@ -1461,7 +1463,8 @@ export class Parser {
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
         } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
                    token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
-                   token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type)) {
+                   token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||
+                   token.type === TokenType.KeywordOpen || token.type === TokenType.KeywordClose) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             // Contextual keywords (Error, Property, Class, etc.) are also valid label names.
             if ((token.type === TokenType.Identifier || Parser.CONTEXTUAL_KW.has(token.type)) && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
