@@ -3249,6 +3249,7 @@ export class Evaluator {
                 if (mt === 'string') defaultVal = '';
                 else if (mt === 'integer' || mt === 'long' || mt === 'double' || mt === 'single') defaultVal = 0;
                 instanceEnv.setLocally(decl.name.name, defaultVal);
+                if (decl.isWithEvents) instanceEnv.setWithEvents(decl.name.name);
             }
         }
 
@@ -3744,15 +3745,27 @@ export class Evaluator {
 
             // Check for WithEvents binding
             if (this.env.isWithEvents(name) && value && value.__events__) {
-                // Binding: look for VarName_EventName subs in the current environment
+                // Binding: look for VarName_EventName subs — first in class scope, then global
+                const me = this.env.get('me');
+                const classDef = me?.__classDef__ as ClassDeclaration | undefined;
                 for (const eventName of value.__events__.keys()) {
                     const handlerName = `${name}_${eventName}`;
+                    const handlerNameLower = handlerName.toLowerCase();
+                    const handlers = value.__events__.get(eventName);
+                    if (classDef) {
+                        const classProc = classDef.procedures.find(
+                            p => p.name.name.toLowerCase() === handlerNameLower
+                        );
+                        if (classProc) {
+                            const capturedMe = me;
+                            const capturedProc = classProc;
+                            handlers.push((...args: any[]) => this.callClassMethod(capturedMe, capturedProc, args));
+                            continue;
+                        }
+                    }
                     const handler = this.env.getProcedure(handlerName);
                     if (handler) {
-                        const handlers = value.__events__.get(eventName);
-                        handlers.push((...args: any[]) => {
-                            this.callProcedure(handlerName, args);
-                        });
+                        handlers.push((...args: any[]) => this.callProcedure(handlerName, args));
                     }
                 }
             }

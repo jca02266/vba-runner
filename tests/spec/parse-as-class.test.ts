@@ -274,4 +274,82 @@ End Function
     console.log('[PASS] parseAsClass: B-2 — クラス自身のスコープがグローバルより優先');
 }
 
+// Test 12: B-5 — Me.Property 代入がクラス内で動作する
+{
+    const clsSource = `
+Option Explicit
+Private m_val As Long
+
+Public Sub SetValue(ByVal n As Long)
+    Me.m_val = n
+End Sub
+
+Public Function GetValue() As Long
+    GetValue = m_val
+End Function
+`;
+    const modSource = `
+Function Test12() As Long
+    Dim obj As New Counter
+    obj.SetValue 42
+    Test12 = obj.GetValue()
+End Function
+`;
+    const ev = evalWithClass(clsSource, 'Counter', modSource);
+    assert.strictEqual(ev.callProcedure('Test12', []), 42, 'Me.Property assignment works inside class method');
+    console.log('[PASS] parseAsClass: B-5 — Me.Property 代入がクラス内で動作する');
+}
+
+// Test 13: B-6 — Private WithEvents フィールドが Class_Initialize で初期化される
+{
+    const helperCls = `
+Option Explicit
+Public Value As Long
+Public Event Changed(ByVal newVal As Long)
+
+Public Sub SetValue(ByVal n As Long)
+    Value = n
+    RaiseEvent Changed(n)
+End Sub
+`;
+    const clsSource = `
+Option Explicit
+Private WithEvents m_helper As Helper
+Private m_log As String
+
+Private Sub Class_Initialize()
+    Set m_helper = New Helper
+    m_log = ""
+End Sub
+
+Private Sub m_helper_Changed(ByVal newVal As Long)
+    m_log = m_log & "changed:" & newVal & ";"
+End Sub
+
+Public Sub Run()
+    m_helper.SetValue 10
+    m_helper.SetValue 20
+End Sub
+
+Public Function Log() As String
+    Log = m_log
+End Function
+`;
+    const modSource = `
+Function Test13() As String
+    Dim obj As New Watcher
+    obj.Run
+    Test13 = obj.Log()
+End Function
+`;
+    const modules = [
+        { name: 'Helper', code: helperCls, parseAsClass: 'Helper' },
+        { name: 'Watcher', code: clsSource, parseAsClass: 'Watcher' },
+        { name: 'Module', code: modSource },
+    ];
+    const ev = evalVBAModules(modules);
+    assert.strictEqual(ev.callProcedure('Test13', []), 'changed:10;changed:20;', 'Private WithEvents field initialized in Class_Initialize and events received');
+    console.log('[PASS] parseAsClass: B-6 — Private WithEvents フィールドが Class_Initialize で初期化される');
+}
+
 console.log('\n✅ parseAsClass: 全テスト通過');

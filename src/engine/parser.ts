@@ -1460,7 +1460,7 @@ export class Parser {
             }
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
         } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
-                   token.type === TokenType.OperatorDot ||
+                   token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type)) {
             // Check if it's a label "Identifier:" or "Number" (line number)
             // Contextual keywords (Error, Property, Class, etc.) are also valid label names.
@@ -1979,8 +1979,8 @@ export class Parser {
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
-            } else if (scope !== undefined && this.isIdentifier(inner)) {
-                // Public/Private Name As Type (no Dim keyword)
+            } else if (scope !== undefined && (this.isIdentifier(inner) || inner.type === TokenType.KeywordWithEvents)) {
+                // Public/Private [WithEvents] Name As Type (no Dim keyword)
                 const field = this.parseDimStatement(false, true);
                 field.scope = scope;
                 fields.push(field);
