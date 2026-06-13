@@ -97,7 +97,7 @@ End Sub
 
 ' CASE: reserved_word_as_function_name
 ' TYPE: parse
-' VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+' VBA: コンパイルエラー: 修正候補: 識別子
 ' RUNNER: /reserved word/i
 ' NOTE: statement-keyword (Open/Close/Print/Input/Write/Put/Seek/Lock/Unlock 等) は
 '   §3.3.5.2 で reserved-identifier のためモジュールレベルのプロシージャ名として使用不可。
@@ -110,7 +110,7 @@ End Function
 
 ' CASE: reserved_word_as_sub_name
 ' TYPE: parse
-' VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+' VBA: コンパイルエラー: 修正候補: 識別子
 ' RUNNER: /reserved word/i
 ' NOTE: Sub 宣言でも同様。
 '@case-begin
@@ -120,7 +120,7 @@ End Sub
 
 ' CASE: reserved_word_as_function_name_print
 ' TYPE: parse
-' VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+' VBA: コンパイルエラー: 修正候補: 識別子
 ' RUNNER: /reserved word/i
 '@case-begin
 Function Print() As Long ' @error

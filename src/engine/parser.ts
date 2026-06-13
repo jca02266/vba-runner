@@ -677,19 +677,6 @@ export class Parser {
      * This syntactic check lets the parser disambiguate without a pre-scan:
      * VBA §3.3.5.3 — user-defined procedures (priority 2) > built-in statement keywords (priority 3).
      */
-    private hasFileOpenSyntaxAhead(): boolean {
-        for (let i = this.pos + 1; i < this.tokens.length; i++) {
-            const t = this.tokens[i];
-            if (t.type === TokenType.Newline || t.type === TokenType.EOF) break;
-            if (t.type === TokenType.KeywordFor) {
-                const next = this.tokens[i + 1];
-                return !!next && (next.type === TokenType.KeywordInput ||
-                                  Parser.CONTEXTUAL_KW_FILE_MODE.has(next.type));
-            }
-        }
-        return false;
-    }
-
     private recordError(message: string, token: Token): void {
         const pos: Position = { line: token.line, column: token.column };
         this._diagnostics.push({ message, loc: { start: pos, end: pos }, severity: 'error' });
@@ -1554,18 +1541,11 @@ export class Parser {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordEnum) {
             return this.parseEnumDeclaration();
-        } else if (token.type === TokenType.KeywordOpen &&
-                   this.peek(1).type !== TokenType.OperatorEquals &&
-                   this.hasFileOpenSyntaxAhead()) {
-            // File I/O Open: requires "For <mode>" syntax on this line (§5.4.5.1).
-            // Without "For <mode>", Open is treated as a user-defined procedure call.
+        } else if (token.type === TokenType.KeywordOpen) {
+            // Open is reserved-identifier (§3.3.5.2) — always file I/O Open statement.
             return this.parseOpenStatement();
-        } else if (token.type === TokenType.KeywordClose &&
-                   this.peek(1).type !== TokenType.OperatorEquals &&
-                   this.peek(1).type !== TokenType.OperatorLParen) {
-            // File I/O Close: "Close [#n, ...]" — explicit "(" means user-defined call.
-            // "Close" alone (no file numbers) remains a CloseStatement; the evaluator resolves
-            // the ambiguity using user-defined procedure names from resolveIdentifiers.
+        } else if (token.type === TokenType.KeywordClose) {
+            // Close is reserved-identifier (§3.3.5.2) — always file I/O Close statement.
             return this.parseCloseStatement();
         } else if (token.type === TokenType.KeywordLine && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseLineInputStatement();
