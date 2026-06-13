@@ -13,6 +13,7 @@ import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webvi
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
+import { autoParensEdit, getBlockEnd, needsBodyIndent, needsEndBlock } from './lsp/auto-parens';
 import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
@@ -865,14 +866,78 @@ End Class`;
                 const config = vscode.workspace.getConfiguration('vba-runner');
                 const edits: vscode.TextEdit[] = [];
 
-                // Auto line continuation: insert ' _' at the end of the previous line.
-                if (ch === '\n' && config.get('editor.autoLineContinuation', true) && position.line > 0) {
+                if (ch === '\n' && position.line > 0) {
                     const prevLine = document.lineAt(position.line - 1);
                     const trimmed = prevLine.text.trimEnd();
-                    if (needsLineContinuation(trimmed)) {
-                        const insertPos = new vscode.Position(position.line - 1, trimmed.length);
-                        const lineEnd = new vscode.Position(position.line - 1, prevLine.text.length);
-                        edits.push(vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _'));
+
+                    // Auto line continuation: insert ' _' at the end of the previous line.
+                    if (config.get('editor.autoLineContinuation', true)) {
+                        if (needsLineContinuation(trimmed)) {
+                            const insertPos = new vscode.Position(position.line - 1, trimmed.length);
+                            const lineEnd = new vscode.Position(position.line - 1, prevLine.text.length);
+                            edits.push(vscode.TextEdit.replace(new vscode.Range(insertPos, lineEnd), ' _'));
+                        }
+                    }
+
+                    // Auto parentheses and auto end-block are computed together so they can
+                    // share a single editor.edit call when both apply. Mixing TextEdit (from
+                    // the provider return value) with a concurrent editor.edit (setTimeout)
+                    // causes VS Code to reject the deferred edit, making the two features
+                    // mutually exclusive. One editor.edit handles both atomically.
+                    const ap = config.get('editor.autoParentheses', true)
+                        ? autoParensEdit(prevLine.text) : null;
+
+                    const autoEndBlock = config.get('editor.autoEndBlock', true);
+                    const blockEnd = autoEndBlock ? getBlockEnd(prevLine.text) : null;
+                    let shouldInsertEnd = false;
+                    if (blockEnd) {
+                        const getLine = (n: number) =>
+                            n < document.lineCount ? document.lineAt(n).text : undefined;
+                        shouldInsertEnd = needsEndBlock(
+                            getLine, position.line + 1,
+                            blockEnd.closePattern, blockEnd.openPattern);
+                    }
+                    // Else / ElseIf / Case: indent body without inserting a new end keyword.
+                    const indentOnly = autoEndBlock && !shouldInsertEnd
+                        && needsBodyIndent(prevLine.text);
+
+                    if (ap && !shouldInsertEnd && !indentOnly) {
+                        // Only parens needed: fast path via TextEdit (single atomic edit).
+                        edits.push(vscode.TextEdit.insert(
+                            new vscode.Position(position.line - 1, ap.insertCol), '()'));
+                    } else if (shouldInsertEnd || indentOnly) {
+                        // End block / indent-only (+ possibly parens): combine into one
+                        // editor.edit to avoid conflicts with concurrent TextEdits.
+                        const insertKeyword = shouldInsertEnd ? blockEnd!.insertKeyword : null;
+                        const parenCol = (ap && shouldInsertEnd) ? ap.insertCol : -1;
+                        const prevLineIdx = position.line - 1;
+                        const baseIndent = prevLine.text.match(/^(\s*)/)?.[1] ?? '';
+                        const docUri = document.uri.toString();
+                        setTimeout(() => {
+                            const editor = vscode.window.activeTextEditor;
+                            if (!editor) return;
+                            if (editor.document.uri.toString() !== docUri) return;
+                            const cursorLine = editor.selection.active.line;
+                            const lineRange = editor.document.lineAt(cursorLine).range;
+                            const tabSize = typeof editor.options.tabSize === 'number'
+                                ? editor.options.tabSize : 4;
+                            const indentUnit = editor.options.insertSpaces !== false
+                                ? ' '.repeat(tabSize) : '\t';
+                            const bodyIndent = baseIndent + indentUnit;
+                            editor.edit(eb => {
+                                if (parenCol >= 0) {
+                                    eb.insert(new vscode.Position(prevLineIdx, parenCol), '()');
+                                }
+                                if (insertKeyword) {
+                                    eb.replace(lineRange, bodyIndent + '\n' + baseIndent + insertKeyword);
+                                } else {
+                                    eb.replace(lineRange, bodyIndent);
+                                }
+                            }).then(() => {
+                                const newPos = new vscode.Position(cursorLine, bodyIndent.length);
+                                editor.selection = new vscode.Selection(newPos, newPos);
+                            });
+                        }, 0);
                     }
                 }
 
