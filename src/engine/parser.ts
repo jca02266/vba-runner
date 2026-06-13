@@ -607,20 +607,39 @@ export class Parser {
         ...Parser.CONTEXTUAL_KW_STRUCTURAL,
     ]);
 
+    /** <statement-keyword> tokens that are <reserved-identifier> per §3.3.5.2 but whose
+     *  enum values fall in [KeywordBase, KeywordAddressOf].
+     *  These CANNOT be used as module-level procedure names (parseProcedureDeclaration rejects them).
+     *  They ARE permitted as member names in expression context (obj.Print, ws.Get, obj.Open) via
+     *  parsePrimary, which is why they appear in COMPAT_KW_EXPR. */
+    private static readonly STATEMENT_KW_RESERVED = new Set<TokenType>([
+        TokenType.KeywordOpen,
+        TokenType.KeywordClose,
+        TokenType.KeywordInput,
+        TokenType.KeywordPrint,
+        TokenType.KeywordPut,
+        TokenType.KeywordWrite,
+        TokenType.KeywordLock,
+        TokenType.KeywordSeek,
+        TokenType.KeywordUnlock,
+        TokenType.KeywordEvent,
+        TokenType.KeywordRaiseEvent,
+        TokenType.KeywordImplements,
+    ]);
+
     /** <statement-keyword> tokens additionally permitted as IDENTIFIERs in
-     *  expression context (parsePrimary) for practical VBA compatibility —
-     *  e.g. as method names (obj.Print, ws.Get) or file I/O targets.
-     *  These remain <reserved-identifier> per §3.3.5.2. */
+     *  expression context (parsePrimary) for member access (obj.Print, ws.Get, obj.Open).
+     *  These remain <reserved-identifier> per §3.3.5.2 and cannot be module-level proc names. */
     private static readonly COMPAT_KW_EXPR = new Set<TokenType>([
-        TokenType.KeywordSeek,    // <statement-keyword>
-        TokenType.KeywordInput,   // <statement-keyword> / <special-form>
-        TokenType.KeywordPrint,   // <statement-keyword>
-        TokenType.KeywordPut,     // <statement-keyword>
-        TokenType.KeywordGet,     // <statement-keyword>
-        TokenType.KeywordLock,    // <statement-keyword>
-        TokenType.KeywordUnlock,  // <statement-keyword>
-        TokenType.KeywordOpen,    // file I/O, but also valid as Function name / return-value assignment
-        TokenType.KeywordClose,   // file I/O, but also valid as Function name / return-value assignment
+        TokenType.KeywordSeek,
+        TokenType.KeywordInput,
+        TokenType.KeywordPrint,
+        TokenType.KeywordPut,
+        TokenType.KeywordGet,    // enum < KeywordBase so also rejected by range check in parseProcedureDeclaration
+        TokenType.KeywordLock,
+        TokenType.KeywordUnlock,
+        TokenType.KeywordOpen,
+        TokenType.KeywordClose,
     ]);
 
     private readonly errorRecovery: boolean;
@@ -1636,6 +1655,10 @@ export class Parser {
         const idToken = this.advance();
         if (!this.isIdentifier(idToken) && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
             this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${this.tokenDisplay(idToken.value)})`);
+        }
+        // §3.3.5.2: statement-keyword is reserved-identifier and cannot be used as a procedure name.
+        if (Parser.STATEMENT_KW_RESERVED.has(idToken.type)) {
+            this.throwError(`Compile error at line ${idToken.line}: '${idToken.value}' is a reserved word and cannot be used as a procedure name`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
         const parameters: Parameter[] = [];

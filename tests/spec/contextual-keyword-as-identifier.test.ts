@@ -5,7 +5,7 @@
  * Lexer が専用トークン型を持つ場合でも、宣言名・変数名・定数名・プロシージャ名に
  * 使用できることを確認する。
  */
-import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert, assertCompileErrorPass1 } from '../../test-libs/test-runner';
 
 function run(code: string, name = 'T'): any {
     return evalVBASingle(code).callProcedure(name, []);
@@ -82,95 +82,43 @@ function run(code: string, name = 'T'): any {
     console.log('[PASS] 組み込み文との共存');
 }
 
-// --- 6. Open / Close を Function 名に使い戻り値代入できる（B-8）---
-// VBA では Open / Close はファイル I/O キーワードだが、クラスメソッド名にも使われる。
-// `Open = value` / `Close = value` の形は、ファイル I/O 文ではなく戻り値代入として解釈する。
+// --- 6. statement-keyword はモジュールレベルのプロシージャ名に使えない（§3.3.5.2）---
+// Open / Close / Print / Input 等は reserved-identifier であるため
+// Function/Sub 宣言名として使うとコンパイルエラーになる。
 {
-    // Function Open() As Boolean — 戻り値代入 Open = True が機能する
-    const evOpenFn = evalVBASingle(`
-Function Open() As Boolean
-    Open = True
-End Function
-Function T() As Long
-    If Open() Then T = 1 Else T = 0
-End Function`, { onPrint: () => {} });
-    assert.strictEqual(evOpenFn.callProcedure('T', []), 1, 'Function Open() 戻り値代入');
+    assertCompileErrorPass1(
+        `Function Open() As Boolean\n    Open = True\nEnd Function`,
+        1, /reserved word/, 'Function Open() はコンパイルエラー');
 
-    // Function Close() As Boolean — 戻り値代入 Close = True が機能する
-    const evCloseFn = evalVBASingle(`
-Function Close() As Boolean
-    Close = True
-End Function
-Function T() As Long
-    If Close() Then T = 1 Else T = 0
-End Function`, { onPrint: () => {} });
-    assert.strictEqual(evCloseFn.callProcedure('T', []), 1, 'Function Close() 戻り値代入');
+    assertCompileErrorPass1(
+        `Function Close() As Boolean\n    Close = True\nEnd Function`,
+        1, /reserved word/, 'Function Close() はコンパイルエラー');
 
-    // Close = Not flag パターン（Excel VBA クラスモジュールで使われるパターン）
-    const evCloseNot = evalVBASingle(`
-Function Close() As Boolean
-    Dim flag As Boolean
-    flag = False
-    Close = Not flag
-End Function
-Function T() As Long
-    If Close() Then T = 1 Else T = 0
-End Function`, { onPrint: () => {} });
-    assert.strictEqual(evCloseNot.callProcedure('T', []), 1, 'Close = Not flag パターン');
+    assertCompileErrorPass1(
+        `Function Print() As Long\n    Print = 99\nEnd Function`,
+        1, /reserved word/, 'Function Print() はコンパイルエラー');
 
-    console.log('[PASS] Open/Close を Function 名・戻り値代入に使える (B-8)');
+    assertCompileErrorPass1(
+        `Function Input() As Long\n    Input = 55\nEnd Function`,
+        1, /reserved word/, 'Function Input() はコンパイルエラー');
+
+    assertCompileErrorPass1(
+        `Function Write() As Long\n    Write = 1\nEnd Function`,
+        1, /reserved word/, 'Function Write() はコンパイルエラー');
+
+    assertCompileErrorPass1(
+        `Function Seek() As Long\n    Seek = 1\nEnd Function`,
+        1, /reserved word/, 'Function Seek() はコンパイルエラー');
+
+    assertCompileErrorPass1(
+        `Function Lock() As Long\n    Lock = 1\nEnd Function`,
+        1, /reserved word/, 'Function Lock() はコンパイルエラー');
+
+    assertCompileErrorPass1(
+        `Function Unlock() As Long\n    Unlock = 1\nEnd Function`,
+        1, /reserved word/, 'Function Unlock() はコンパイルエラー');
+
+    console.log('[PASS] statement-keyword をプロシージャ名に使うとコンパイルエラー');
 }
 
-// --- 7. ARCH-1: マルチモジュールで Open/Close を Function 名として使える ---
-// 別モジュールで定義された Function Open() を別モジュールから呼び出すケース
-{
-    const ev = evalVBAModules([
-        {
-            name: 'LibModule',
-            code: `
-Function Open() As Boolean
-    Open = True
-End Function
-Function Close() As Long
-    Close = 42
-End Function`,
-        },
-        {
-            name: 'MainModule',
-            code: `
-Function T() As Long
-    If Open() Then
-        T = Close()
-    End If
-End Function`,
-        },
-    ], { onPrint: () => {} });
-    assert.strictEqual(ev.callProcedure('T', []), 42, 'マルチモジュールで Open/Close を Function 名として使える');
-    console.log('[PASS] ARCH-1: マルチモジュールで Open/Close を Function 名として使える');
-}
-
-// --- 8. ARCH-1: [KeywordBase, KeywordAddressOf] 範囲の他のキーワードも上書きできる ---
-// Print(85), Input(84), Write(92), Lock(93) 等は KeywordBase(79) 以降なのでプロシージャ名として有効
-{
-    const evPrint = evalVBASingle(`
-Function Print() As Long
-    Print = 99
-End Function
-Function T() As Long
-    T = Print()
-End Function`, { onPrint: () => {} });
-    assert.strictEqual(evPrint.callProcedure('T', []), 99, 'Function Print() 戻り値代入');
-
-    const evInput = evalVBASingle(`
-Function Input() As Long
-    Input = 55
-End Function
-Function T() As Long
-    T = Input()
-End Function`, { onPrint: () => {} });
-    assert.strictEqual(evInput.callProcedure('T', []), 55, 'Function Input() 戻り値代入');
-
-    console.log('[PASS] ARCH-1: Print/Input 等のファイル I/O キーワードも Function 名として使える');
-}
-
-console.log('\n✅ contextual-keyword-as-identifier: 全テスト通過');
+console.log('\n[PASS] contextual-keyword-as-identifier: 全テスト通過');
