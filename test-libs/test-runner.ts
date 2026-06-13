@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { Lexer } from '../src/engine/lexer';
+import { Lexer, TokenType } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import type { VbaComObject } from '../src/engine/vba-types';
@@ -282,8 +282,37 @@ export function evalVBAModules(
         ev.setDefaultBindingObject(options.defaultBindingObject);
     }
     options?.setup?.(ev);
+
+    // ARCH-1: pre-scan all modules to collect user-defined procedure names for cross-module
+    // name resolution (VBA §3.3.5.3: user procedures > built-in statement keywords)
+    const allProcNames = new Set<string>();
+    for (const { code } of modules) {
+        const tokens = new Lexer(code).tokenize();
+        for (let i = 0; i + 1 < tokens.length; i++) {
+            const t = tokens[i];
+            if (t.type === TokenType.KeywordSub || t.type === TokenType.KeywordFunction) {
+                const n = tokens[i + 1];
+                if (n && n.type !== TokenType.Newline && n.type !== TokenType.EOF &&
+                    n.type !== TokenType.OperatorLParen) {
+                    allProcNames.add(n.value.toLowerCase());
+                }
+            } else if (t.type === TokenType.KeywordProperty) {
+                let j = i + 1;
+                if (j < tokens.length && (tokens[j].type === TokenType.KeywordGet ||
+                    tokens[j].type === TokenType.KeywordLet || tokens[j].type === TokenType.KeywordSet)) j++;
+                const n = tokens[j];
+                if (n && n.type !== TokenType.Newline && n.type !== TokenType.EOF) {
+                    allProcNames.add(n.value.toLowerCase());
+                }
+            }
+        }
+    }
+
     const asts = modules.map(({ name, code, parseAsClass }) => {
-        const ast = new Parser(new Lexer(code).tokenize(), parseAsClass ? { parseAsClass } : undefined).parse();
+        const ast = new Parser(new Lexer(code).tokenize(), {
+            parseAsClass,
+            externalProcNames: allProcNames,
+        }).parse();
         ev.setSourceModule(name);
         ev.evaluateModule(ast);
         return { ast, moduleName: name };

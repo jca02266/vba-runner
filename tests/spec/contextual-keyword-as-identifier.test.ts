@@ -5,7 +5,7 @@
  * Lexer が専用トークン型を持つ場合でも、宣言名・変数名・定数名・プロシージャ名に
  * 使用できることを確認する。
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function run(code: string, name = 'T'): any {
     return evalVBASingle(code).callProcedure(name, []);
@@ -119,6 +119,58 @@ End Function`, { onPrint: () => {} });
     assert.strictEqual(evCloseNot.callProcedure('T', []), 1, 'Close = Not flag パターン');
 
     console.log('[PASS] Open/Close を Function 名・戻り値代入に使える (B-8)');
+}
+
+// --- 7. ARCH-1: マルチモジュールで Open/Close を Function 名として使える ---
+// 別モジュールで定義された Function Open() を別モジュールから呼び出すケース
+{
+    const ev = evalVBAModules([
+        {
+            name: 'LibModule',
+            code: `
+Function Open() As Boolean
+    Open = True
+End Function
+Function Close() As Long
+    Close = 42
+End Function`,
+        },
+        {
+            name: 'MainModule',
+            code: `
+Function T() As Long
+    If Open() Then
+        T = Close()
+    End If
+End Function`,
+        },
+    ], { onPrint: () => {} });
+    assert.strictEqual(ev.callProcedure('T', []), 42, 'マルチモジュールで Open/Close を Function 名として使える');
+    console.log('[PASS] ARCH-1: マルチモジュールで Open/Close を Function 名として使える');
+}
+
+// --- 8. ARCH-1: [KeywordBase, KeywordAddressOf] 範囲の他のキーワードも上書きできる ---
+// Print(85), Input(84), Write(92), Lock(93) 等は KeywordBase(79) 以降なのでプロシージャ名として有効
+{
+    const evPrint = evalVBASingle(`
+Function Print() As Long
+    Print = 99
+End Function
+Function T() As Long
+    T = Print()
+End Function`, { onPrint: () => {} });
+    assert.strictEqual(evPrint.callProcedure('T', []), 99, 'Function Print() 戻り値代入');
+
+    const evInput = evalVBASingle(`
+Function Input() As Long
+    Input = 55
+End Function
+Function T() As Long
+    T = Input()
+End Function`, { onPrint: () => {} });
+    assert.strictEqual(evInput.callProcedure('T', []), 55, 'Function Input() 戻り値代入');
+
+    console.log('[PASS] ARCH-1: Print/Input 等のファイル I/O キーワードも Function 名として使える');
 }
 
 console.log('\n✅ contextual-keyword-as-identifier: 全テスト通過');
