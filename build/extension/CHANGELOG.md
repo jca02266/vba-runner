@@ -2,6 +2,23 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.1.9] - 2026-06-13
+
+### Added
+
+- **VBA013 lint rule: missing `Option Explicit`** — Files without `Option Explicit` are now flagged as an Error (red icon) since undeclared variable names silently become `Variant` and typos go undetected until runtime.
+- **Lint severity tiers** — Lint diagnostics are now classified into three tiers: Error (severity 1, red), Warning (severity 2, yellow), and Information (severity 3, blue). `Select Case` without `Case Else` (VBA005) and unreachable code (VBA010) have been reclassified from Information to Warning.
+- **`Class_Terminate` fires on scope exit** — Local objects created with `Set x = New ClassName` now automatically trigger `Class_Terminate` when the enclosing Sub/Function returns, without requiring an explicit `Set x = Nothing`.
+- **`VarPtr` / `StrPtr` / `ObjPtr`** — These memory-address functions now return a unique non-zero `Long` value (stub implementation sufficient for code that only checks IsNull/non-zero).
+- **`AddressOf` with module member syntax** — `AddressOf Module.Procedure` (§5.6.16.8) is now parsed correctly.
+- **`Mid` assignment statement** — `Mid(str, start, length) = value` (§5.4.3.8), including `MidB`, `Mid$`, and `MidB$` variants, is now fully implemented.
+- **`Def`-Directives** — `DefInt`, `DefStr`, `DefDbl`, `DefBool`, `DefLng`, `DefCur`, `DefSng`, `DefDate`, `DefObj`, `DefVar` (§5.2.2) are now parsed and applied as implicit type declarations for variables whose names begin with the specified letters.
+- **`Optional` parameter order check** — A compile error (§5.3.1.5) is now raised when a non-optional parameter follows an optional one in the same parameter list.
+
+### Fixed
+
+- **Code Lens "n references"** — Clicking the reference count in the Code Lens no longer searches for the `Function`/`Sub` keyword. The cursor position is now placed on the procedure name, so the correct references are found.
+
 ## [0.1.8] - 2026-06-13
 
 ### Fixed
