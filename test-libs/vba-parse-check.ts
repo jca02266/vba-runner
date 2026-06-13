@@ -1,17 +1,8 @@
-// VBA Parse Checker
-//
-// VBA ファイルの字句・構文エラーをレポートするツール。
-// 単一ファイルまたはディレクトリを引数に取り、lexer/parser の診断を出力する。
-//
-// Usage:
-//   npx tsx test-libs/vba-parse-check.ts
-//   npx tsx test-libs/vba-parse-check.ts <path>         # テキスト形式
-//   npx tsx test-libs/vba-parse-check.ts <path> --json  # JSON 形式
-
 import { Lexer, LexError } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import * as fs from 'fs';
 import * as path from 'path';
+import { VERSION } from './version';
 
 interface Diagnostic {
     file: string;
@@ -78,33 +69,41 @@ function collectFiles(target: string): string[] {
         .map(f => path.join(target, f));
 }
 
-const args = process.argv.slice(2);
-const jsonMode = args.includes('--json');
-const targets = args.filter(a => !a.startsWith('--'));
-
-if (targets.length === 0) {
-    process.stderr.write('Usage: vba-parse-check <file|dir> [--json]\n');
-    process.exit(1);
-}
-
-const allDiags: Diagnostic[] = [];
-for (const target of targets) {
-    for (const file of collectFiles(target)) {
-        allDiags.push(...checkFile(file));
+export function main(args: string[]): void {
+    if (args.includes('--version') || args.includes('-v')) {
+        console.log(VERSION);
+        process.exit(0);
     }
-}
 
-if (jsonMode) {
-    process.stdout.write(JSON.stringify(allDiags, null, 2) + '\n');
-} else {
-    if (allDiags.length === 0) {
-        process.stdout.write('No errors found.\n');
-    } else {
-        for (const d of allDiags) {
-            process.stdout.write(
-                `${d.file}:${d.line}:${d.column}: ${d.severity} [${d.source}] ${d.message}\n`
-            );
-        }
+    const jsonMode = args.includes('--json');
+    const targets = args.filter(a => !a.startsWith('--'));
+
+    if (targets.length === 0) {
+        process.stderr.write('Usage: vba-runner parse-check <file|dir> [--json] [--version]\n');
         process.exit(1);
     }
+
+    const allDiags: Diagnostic[] = [];
+    for (const target of targets) {
+        for (const file of collectFiles(target)) {
+            allDiags.push(...checkFile(file));
+        }
+    }
+
+    if (jsonMode) {
+        process.stdout.write(JSON.stringify(allDiags, null, 2) + '\n');
+    } else {
+        if (allDiags.length === 0) {
+            process.stdout.write('No errors found.\n');
+        } else {
+            for (const d of allDiags) {
+                process.stdout.write(
+                    `${d.file}:${d.line}:${d.column}: ${d.severity} [${d.source}] ${d.message}\n`
+                );
+            }
+            process.exit(1);
+        }
+    }
 }
+
+if (process.argv[1]?.includes('vba-parse-check')) main(process.argv.slice(2));

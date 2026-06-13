@@ -31,6 +31,7 @@ import { Parser } from '../src/engine/parser';
 import { preprocess } from '../src/engine/preprocessor';
 import * as fs from 'fs';
 import * as path from 'path';
+import { VERSION } from './version';
 
 interface ProcedureMetrics {
     name: string;
@@ -2838,10 +2839,13 @@ function buildDiffJson(baseline: WorkspaceReport, current: WorkspaceReport): obj
 
 // ─── main ────────────────────────────────────────────────────────────────────
 
-function main() {
-    const args = process.argv.slice(2);
+export function main(args: string[]): void {
+    if (args.includes('--version') || args.includes('-v')) {
+        console.log(VERSION);
+        process.exit(0);
+    }
     if (args.length === 0 || args.includes('--help')) {
-        console.log('Usage: npx tsx test-libs/vba-analyzer.ts <file-or-dir> [options]');
+        console.log('Usage: vba-runner analyze <file-or-dir> [options]');
         console.log('');
         console.log('  --json                JSON 形式で出力（プログラム連携用）');
         console.log('  --diff <baseline>     baseline JSON との差分を表示（--json と併用可）');
@@ -2851,6 +2855,7 @@ function main() {
         console.log('  --goto-graph          GoTo 文の制御フローグラフとリファクタリング提案を表示');
         console.log('  --cross-iter          クロスイテレーション変数（ByRef 必要変数）の一覧を表示');
         console.log('  --gen-test-dir <dir>  テスト用ソースを指定ディレクトリに生成（const.ts 等）');
+        console.log('  --version             バージョンを表示');
         process.exit(args.length === 0 ? 1 : 0);
     }
     const wantJson = args.includes('--json');
@@ -2938,7 +2943,7 @@ function main() {
     if (hasParseErrors) process.exit(1);
 }
 
-if (process.argv[1]?.includes('vba-analyzer')) main();
+if (process.argv[1]?.includes('vba-analyzer')) main(process.argv.slice(2));
 
 // MCP サーバー向け export
 export {

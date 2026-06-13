@@ -1,20 +1,7 @@
-// VBA Formatter CLI
-//
-// VBAコードを AST ベースで整形する CLI ツール。
-// vba-analyzer と同様に、中核ロジック（src/lsp/formatter.ts）と CLI を分離した設計にしており、
-// VS Code 拡張機能からも利用できる。
-//
-// Build:
-//   npx tsx test-libs/vba-formatter.ts
-//
-// Usage:
-//   npx tsx test-libs/vba-formatter.ts <file-or-dir>          # フォーマット後のコードを stdout に出力
-//   npx tsx test-libs/vba-formatter.ts <file-or-dir> --check  # 差分があれば表示して exit 1
-//   npx tsx test-libs/vba-formatter.ts <file-or-dir> --write  # ファイルを上書き
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { format, applyEdits, FormatterOptions } from '../src/lsp/formatter';
+import { VERSION } from './version';
 
 const VBA_EXTENSIONS = /\.(bas|cls|frm)$/i;
 
@@ -55,21 +42,25 @@ function buildDiff(original: string, formatted: string, filePath: string): strin
     return hasDiff ? diffLines.join('\n') : '';
 }
 
-function main() {
-    const args = process.argv.slice(2);
+export function main(args: string[]): void {
+    if (args.includes('--version') || args.includes('-v')) {
+        console.log(VERSION);
+        process.exit(0);
+    }
     if (args.length === 0 || args[0] === '--help' || args[0] === '-h') {
-        console.log(`Usage: vba-formatter <file-or-dir> [--check | --write] [options]
+        console.log(`Usage: vba-runner format <file-or-dir> [--check | --write] [options]
 
 Options:
   --check            差分があれば表示して exit code 1 で終了
   --write            ファイルを上書き（指定しない場合は stdout に出力）
   --indent-size=N    インデント幅（デフォルト: 4）
   --no-keyword-case  キーワードの大文字化を無効化
+  --version          バージョンを表示
 
 Example:
-  npx tsx test-libs/vba-formatter.ts src/vba/Main.bas
-  npx tsx test-libs/vba-formatter.ts src/vba/ --check
-  npx tsx test-libs/vba-formatter.ts src/vba/Main.bas --write --indent-size=2`);
+  vba-runner format src/vba/Main.bas
+  vba-runner format src/vba/ --check
+  vba-runner format src/vba/Main.bas --write --indent-size=2`);
         process.exit(0);
     }
 
@@ -133,4 +124,4 @@ Example:
     }
 }
 
-main();
+if (process.argv[1]?.includes('vba-formatter')) main(process.argv.slice(2));
