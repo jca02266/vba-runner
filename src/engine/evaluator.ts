@@ -3284,17 +3284,6 @@ export class Evaluator {
             this.env = prevEnv;
         }
 
-        // B-2: Register class procedures as native wrappers in instanceEnv
-        // so that private methods called by name within a class body can be resolved
-        for (const proc of classDef.procedures) {
-            const procRef = proc;
-            const self = instance;
-            const procNameLower = proc.name.name.toLowerCase();
-            instanceEnv.setLocally(procNameLower, (...args: any[]) => {
-                return this.callClassMethod(self, procRef, args);
-            });
-        }
-
         // Call Class_Initialize if defined
         const initProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_initialize');
         if (initProc) {
@@ -5207,6 +5196,26 @@ export class Evaluator {
             }
 
             const proc = this.env.getProcedure(name);
+
+            // B-2: When inside a class method (Me is in env), unqualified calls also search
+            // the class's own procedures — covering private helper calls within the same class.
+            if (!proc) {
+                const me = this.env.getConst('me');
+                if (me && me.__vbaClass__ && me.__classDef__) {
+                    const classProc = (me.__classDef__ as ClassDeclaration).procedures.find(
+                        p => p.name.name.toLowerCase() === nameLower
+                    );
+                    if (classProc) {
+                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                        this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
+                        try {
+                            return this.callClassMethod(me, classProc, argsVals);
+                        } finally {
+                            this.vbaCallStack.pop();
+                        }
+                    }
+                }
+            }
 
             if (proc) {
                 // Cross-module Private access check
