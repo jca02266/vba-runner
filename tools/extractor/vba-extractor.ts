@@ -6,7 +6,7 @@ import { resolve, dirname, basename, extname, join } from 'path';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream } from './dir-parser.js';
 
-const VERSION = '0.1.0-alpha.0';
+const VERSION = '0.1.0-alpha.1';
 
 function printUsage(): void {
     console.log('Usage:');
