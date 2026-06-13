@@ -812,6 +812,19 @@ export class Parser {
         return { type: 'OptionCompareStatement', mode };
     }
 
+    private validateParameterOrder(params: Parameter[]): void {
+        let seenOptional = false;
+        for (const p of params) {
+            if (p.isParamArray) break; // ParamArray is always last; no check needed after it
+            if (p.isOptional) {
+                seenOptional = true;
+            } else if (seenOptional) {
+                const line = (p as any).loc?.start?.line ?? this.peek().line;
+                this.throwError(`Compile error at line ${line}: Non-optional parameter '${p.name}' cannot follow an Optional parameter`);
+            }
+        }
+    }
+
     private parseParameter(): Parameter {
         let isByVal = false;
         let isOptional = false;
@@ -1137,6 +1150,7 @@ export class Parser {
                 }
             }
             this.consume(TokenType.OperatorRParen, "Expected ')' after declare parameters");
+            this.validateParameterOrder(parameters);
         }
 
         let returnType: string | undefined;
@@ -1705,6 +1719,7 @@ export class Parser {
             }
             const rParen = this.consume(TokenType.OperatorRParen, "Expected ')' after procedure parameters");
             paramsEndColumn = rParen.column + 1; // 1-based column immediately after ')'
+            this.validateParameterOrder(parameters);
         }
 
         // Optional Function return type (e.g. 'As Long', 'As Scripting.Dictionary')
@@ -2963,8 +2978,9 @@ export class Parser {
                 }
             }
             this.consume(TokenType.OperatorRParen, "Expected ')' after event parameters");
+            this.validateParameterOrder(parameters);
         }
-        
+
         return { type: 'EventDeclaration', name, parameters, scope };
     }
 
