@@ -110,8 +110,8 @@ Public Property Get SheetCount() As Long
 End Property
 
 ' ─── ワークブックを開く (イベント発火) ──────────────────────
-' ※ Open / Close はVBAキーワードのため、メソッド名は OpenWorkbook / CloseWorkbook とする
-Public Sub OpenWorkbook()
+' Open はVBAキーワードだが、コンテキストキーワードとしてメソッド名に使用可能
+Public Sub Open()
     RaiseEvent Open
 End Sub
 

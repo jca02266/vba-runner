@@ -60,7 +60,7 @@ Public Sub RunWorkbookDemo()
 
     ' ── Workbook_Open イベント発火 ────────────────────────
     Debug.Print ""
-    wb.OpenWorkbook
+    wb.Open
 
     ' ── シートをアクティブ化 (Worksheet_Activate) ─────────
     Debug.Print ""
