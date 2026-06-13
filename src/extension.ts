@@ -13,7 +13,7 @@ import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webvi
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
 import { canonicalKeyword, isInStringOrComment } from './lsp/keyword-casing';
-import { autoParensEdit, getEndKeyword, needsEndBlock } from './lsp/auto-parens';
+import { autoParensEdit, getBlockEnd, needsBodyIndent, needsEndBlock } from './lsp/auto-parens';
 import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
@@ -887,22 +887,29 @@ End Class`;
                     const ap = config.get('editor.autoParentheses', true)
                         ? autoParensEdit(prevLine.text) : null;
 
-                    const endKeyword = config.get('editor.autoEndBlock', true)
-                        ? getEndKeyword(prevLine.text) : null;
-                    const shouldInsertEnd = endKeyword !== null && (() => {
+                    const autoEndBlock = config.get('editor.autoEndBlock', true);
+                    const blockEnd = autoEndBlock ? getBlockEnd(prevLine.text) : null;
+                    let shouldInsertEnd = false;
+                    if (blockEnd) {
                         const getLine = (n: number) =>
                             n < document.lineCount ? document.lineAt(n).text : undefined;
-                        return needsEndBlock(getLine, position.line + 1, endKeyword);
-                    })();
+                        shouldInsertEnd = needsEndBlock(
+                            getLine, position.line + 1,
+                            blockEnd.closePattern, blockEnd.openPattern);
+                    }
+                    // Else / ElseIf / Case: indent body without inserting a new end keyword.
+                    const indentOnly = autoEndBlock && !shouldInsertEnd
+                        && needsBodyIndent(prevLine.text);
 
-                    if (ap && !shouldInsertEnd) {
+                    if (ap && !shouldInsertEnd && !indentOnly) {
                         // Only parens needed: fast path via TextEdit (single atomic edit).
                         edits.push(vscode.TextEdit.insert(
                             new vscode.Position(position.line - 1, ap.insertCol), '()'));
-                    } else if (shouldInsertEnd) {
-                        // End block (+ possibly parens): combine into one editor.edit to
-                        // avoid conflicts with concurrent TextEdits.
-                        const parenCol = ap?.insertCol ?? -1;
+                    } else if (shouldInsertEnd || indentOnly) {
+                        // End block / indent-only (+ possibly parens): combine into one
+                        // editor.edit to avoid conflicts with concurrent TextEdits.
+                        const insertKeyword = shouldInsertEnd ? blockEnd!.insertKeyword : null;
+                        const parenCol = (ap && shouldInsertEnd) ? ap.insertCol : -1;
                         const prevLineIdx = position.line - 1;
                         const baseIndent = prevLine.text.match(/^(\s*)/)?.[1] ?? '';
                         const docUri = document.uri.toString();
@@ -921,7 +928,11 @@ End Class`;
                                 if (parenCol >= 0) {
                                     eb.insert(new vscode.Position(prevLineIdx, parenCol), '()');
                                 }
-                                eb.replace(lineRange, bodyIndent + '\n' + baseIndent + endKeyword);
+                                if (insertKeyword) {
+                                    eb.replace(lineRange, bodyIndent + '\n' + baseIndent + insertKeyword);
+                                } else {
+                                    eb.replace(lineRange, bodyIndent);
+                                }
                             }).then(() => {
                                 const newPos = new vscode.Position(cursorLine, bodyIndent.length);
                                 editor.selection = new vscode.Selection(newPos, newPos);
