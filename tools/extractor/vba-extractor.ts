@@ -6,12 +6,18 @@ import { resolve, dirname, basename, extname, join } from 'path';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream } from './dir-parser.js';
 
+const VERSION = '0.1.0-alpha.0';
+
 function printUsage(): void {
-    console.error('Usage:');
-    console.error('  vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]');
-    console.error('    output-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
-    console.error('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>]');
-    console.error('    source-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.log('Usage:');
+    console.log('  vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]');
+    console.log('    output-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.log('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>]');
+    console.log('    source-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.log('');
+    console.log('Options:');
+    console.log('  --version    バージョンを表示');
+    console.log('  --help       このヘルプを表示');
 }
 
 function parseEncoding(args: string[]): { encoding: string | undefined; rest: string[] } {
@@ -135,7 +141,18 @@ async function runImport(args: string[]): Promise<void> {
 async function main(): Promise<void> {
     const [,, mode, ...rest] = process.argv;
 
+    if (mode === '--version' || mode === '-v') {
+        console.log(VERSION);
+        process.exit(0);
+    }
+
+    if (!mode || mode === '--help' || mode === '-h') {
+        printUsage();
+        process.exit(mode ? 0 : 1);
+    }
+
     if (mode !== 'export' && mode !== 'import') {
+        console.error(`vba-extractor: unknown command '${mode}'`);
         printUsage();
         process.exit(1);
     }
