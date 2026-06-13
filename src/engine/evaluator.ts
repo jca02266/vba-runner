@@ -635,6 +635,8 @@ export class Evaluator {
     private arrayBase: number = 0;
     /** §5.2.2 Def-Directive: letter (a-z) → VBA type name */
     private defTypeMap: Map<string, string> = new Map();
+    /** VarPtr/StrPtr/ObjPtr: dummy address counter (non-zero unique integers) */
+    private _ptrCounter: number = 0x10000;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
@@ -1630,6 +1632,13 @@ export class Evaluator {
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
 
         this.envSet('environ', (k: any) => this.sandbox.getEnv(k), ['$']);
+
+        // VarPtr / StrPtr / ObjPtr — dummy pointer functions (non-zero unique Long per call)
+        // Real addresses have no meaning in this engine; return stable non-zero integers.
+        const ptrFn = () => (this._ptrCounter += 4);
+        this.env.set('varptr', ptrFn);
+        this.env.set('strptr', ptrFn);
+        this.env.set('objptr', ptrFn);
         this.env.set('createobject', (id: string) => this.createExternalObject(id));
         this.env.set('getobject', (pathname?: string, classId?: string) => {
             if (pathname) {
