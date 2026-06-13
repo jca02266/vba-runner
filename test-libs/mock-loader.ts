@@ -46,7 +46,7 @@ import { createRequire } from 'node:module';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, Program } from '../src/engine/parser';
 import { Evaluator } from '../src/engine/evaluator';
-import { preprocess } from '../src/engine/preprocessor';
+import { preprocess, stripClsFileHeader } from '../src/engine/preprocessor';
 
 // ESM 環境でも require() を使えるようにする
 const _require = createRequire(import.meta.url);
@@ -137,7 +137,8 @@ function loadVbaMock(file: string, evaluator: Evaluator): MockModule | null {
         const ext = path.extname(file).toLowerCase();
         const moduleName = path.basename(file, ext);
 
-        const processed = preprocess(source);
+        const stripped = ext === '.cls' ? stripClsFileHeader(source) : source;
+        const processed = preprocess(stripped);
 
         const isRawCls = ext === '.cls'
             && !processed.trim().toLowerCase().startsWith('class ')

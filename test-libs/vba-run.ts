@@ -4,7 +4,7 @@ import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import { Evaluator } from '../src/engine/evaluator';
 import { NodeFileSystem } from '../src/engine/node_filesystem';
-import { preprocess } from '../src/engine/preprocessor';
+import { preprocess, stripClsFileHeader } from '../src/engine/preprocessor';
 import { VERSION } from './version';
 
 const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
@@ -63,8 +63,10 @@ export function main(args: string[]): void {
     for (const file of files) {
         const moduleName = path.basename(file, path.extname(file));
         ev.setSourceModule(moduleName);
-        const src = preprocess(fs.readFileSync(file, 'utf-8'));
         const ext = path.extname(file).toLowerCase();
+        let src = fs.readFileSync(file, 'utf-8');
+        if (ext === '.cls') src = stripClsFileHeader(src);
+        src = preprocess(src);
         const isRawCls = ext === '.cls'
             && !src.trim().toLowerCase().startsWith('class ')
             && !src.toLowerCase().includes('end class');

@@ -242,3 +242,33 @@ function evaluateCCExpr(expr: string, resolve: (name: string) => any): any {
 
     return parseOr();
 }
+
+/**
+ * Strip the Excel-exported .cls file header from source text.
+ *
+ * Excel exports class modules with a header block:
+ *   VERSION 1.0 CLASS
+ *   BEGIN
+ *     MultiUse = -1  'True
+ *   END
+ *   Attribute VB_Name = "ClassName"
+ *
+ * The VERSION...END block is not valid VBA syntax and must be removed before
+ * parsing. Attribute statements are handled by the parser and are left intact.
+ * Blank lines replace the stripped lines to preserve line numbers.
+ */
+export function stripClsFileHeader(source: string): string {
+    const lines = source.split('\n');
+    if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return source;
+    const result = [...lines];
+    let i = 0;
+    result[i] = '';
+    i++;
+    while (i < result.length) {
+        const trimmed = result[i].trimEnd().toUpperCase();
+        result[i] = '';
+        i++;
+        if (trimmed === 'END') break;
+    }
+    return result.join('\n');
+}

@@ -5,7 +5,7 @@ import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/pars
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
 import type { VbaComObject } from '../src/engine/vba-types';
 import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
-import { preprocess, CompilerConstants } from '../src/engine/preprocessor';
+import { preprocess, stripClsFileHeader, CompilerConstants } from '../src/engine/preprocessor';
 import { loadMocks } from './mock-loader';
 import { injectExcelStub } from './excel-stub';
 import { MockApplication } from '../src/engine/mock/MockExcel';
@@ -53,9 +53,10 @@ export class VBARunner {
                 const moduleName = path.basename(file, path.extname(file));
                 this.evaluator.setSourceModule(moduleName);
 
+                const ext = path.extname(file).toLowerCase();
+                if (ext === '.cls') source = stripClsFileHeader(source);
                 source = preprocess(source, config.compilerConstants);
 
-                const ext = path.extname(file).toLowerCase();
                 const isRawCls = ext === '.cls'
                     && !source.trim().toLowerCase().startsWith('class ')
                     && !source.toLowerCase().includes('end class');

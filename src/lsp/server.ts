@@ -4,6 +4,7 @@ import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
+import { stripClsFileHeader } from '../engine/preprocessor';
 import { Statement, GoToStatement } from '../engine/parser';
 import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
 import { inferProcedureHints, buildProcMap } from './variant-type-inferencer';
@@ -396,7 +397,7 @@ export class LSPServer {
         if (!doc) return [];
 
         try {
-            const lexer = new Lexer(this.stripClsHeader(doc.content));
+            const lexer = new Lexer(stripClsFileHeader(doc.content));
             const tokens = lexer.tokenize();
             const lexerDiags = lexer.diagnostics.map(d => ({
                 range: {
@@ -509,7 +510,7 @@ export class LSPServer {
         if (!doc) return [];
 
         try {
-            const tokens    = new Lexer(this.stripClsHeader(doc.content)).tokenize();
+            const tokens    = new Lexer(stripClsFileHeader(doc.content)).tokenize();
             const ast       = new Parser(tokens, { errorRecovery: true }).parse();
             const startLine = range.start.line + 1;  // 0-based → 1-based
             const endLine   = range.end.line   + 1;
@@ -554,22 +555,6 @@ export class LSPServer {
         }
     }
 
-    private stripClsHeader(content: string): string {
-        const lines = content.split('\n');
-        if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return content;
-        const result = [...lines];
-        let i = 0;
-        result[i] = '';
-        i++;
-        while (i < result.length) {
-            const trimmed = result[i].trimEnd().toUpperCase();
-            result[i] = '';
-            i++;
-            if (trimmed === 'END') break;
-        }
-        return result.join('\n');
-    }
-
     /**
      * Get inlay hints for Variant-typed variables in all procedures of the document.
      * A single shared memo prevents redundant function-return-type resolution.
@@ -612,7 +597,7 @@ export class LSPServer {
      */
     parseDocument(content: string): any {
         try {
-            const tokens = new Lexer(this.stripClsHeader(content)).tokenize();
+            const tokens = new Lexer(stripClsFileHeader(content)).tokenize();
             return new Parser(tokens, { errorRecovery: true }).parse();
         } catch (error) {
             return null;
