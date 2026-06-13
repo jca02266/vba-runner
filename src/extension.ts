@@ -879,28 +879,54 @@ End Class`;
                         }
                     }
 
-                    // Auto parentheses: insert "()" after Sub/Function/Property name if missing.
-                    if (config.get('editor.autoParentheses', true)) {
-                        const ap = autoParensEdit(prevLine.text);
-                        if (ap) {
-                            const pos = new vscode.Position(position.line - 1, ap.insertCol);
-                            edits.push(vscode.TextEdit.insert(pos, '()'));
-                        }
-                    }
+                    // Auto parentheses and auto end-block are computed together so they can
+                    // share a single editor.edit call when both apply. Mixing TextEdit (from
+                    // the provider return value) with a concurrent editor.edit (setTimeout)
+                    // causes VS Code to reject the deferred edit, making the two features
+                    // mutually exclusive. One editor.edit handles both atomically.
+                    const ap = config.get('editor.autoParentheses', true)
+                        ? autoParensEdit(prevLine.text) : null;
 
-                    // Auto end-block: insert "End Sub" / "End Function" / "End Property"
-                    // after the current (auto-indented) line if no matching end block exists.
-                    if (config.get('editor.autoEndBlock', true)) {
-                        const endKeyword = getEndKeyword(prevLine.text);
-                        if (endKeyword) {
-                            const getLine = (n: number) =>
-                                n < document.lineCount ? document.lineAt(n).text : undefined;
-                            if (needsEndBlock(getLine, position.line + 1, endKeyword)) {
-                                const baseIndent = prevLine.text.match(/^(\s*)/)?.[1] ?? '';
-                                const currentLineEnd = document.lineAt(position.line).range.end;
-                                edits.push(vscode.TextEdit.insert(currentLineEnd, '\n' + baseIndent + endKeyword));
-                            }
-                        }
+                    const endKeyword = config.get('editor.autoEndBlock', true)
+                        ? getEndKeyword(prevLine.text) : null;
+                    const shouldInsertEnd = endKeyword !== null && (() => {
+                        const getLine = (n: number) =>
+                            n < document.lineCount ? document.lineAt(n).text : undefined;
+                        return needsEndBlock(getLine, position.line + 1, endKeyword);
+                    })();
+
+                    if (ap && !shouldInsertEnd) {
+                        // Only parens needed: fast path via TextEdit (single atomic edit).
+                        edits.push(vscode.TextEdit.insert(
+                            new vscode.Position(position.line - 1, ap.insertCol), '()'));
+                    } else if (shouldInsertEnd) {
+                        // End block (+ possibly parens): combine into one editor.edit to
+                        // avoid conflicts with concurrent TextEdits.
+                        const parenCol = ap?.insertCol ?? -1;
+                        const prevLineIdx = position.line - 1;
+                        const baseIndent = prevLine.text.match(/^(\s*)/)?.[1] ?? '';
+                        const docUri = document.uri.toString();
+                        setTimeout(() => {
+                            const editor = vscode.window.activeTextEditor;
+                            if (!editor) return;
+                            if (editor.document.uri.toString() !== docUri) return;
+                            const cursorLine = editor.selection.active.line;
+                            const lineRange = editor.document.lineAt(cursorLine).range;
+                            const tabSize = typeof editor.options.tabSize === 'number'
+                                ? editor.options.tabSize : 4;
+                            const indentUnit = editor.options.insertSpaces !== false
+                                ? ' '.repeat(tabSize) : '\t';
+                            const bodyIndent = baseIndent + indentUnit;
+                            editor.edit(eb => {
+                                if (parenCol >= 0) {
+                                    eb.insert(new vscode.Position(prevLineIdx, parenCol), '()');
+                                }
+                                eb.replace(lineRange, bodyIndent + '\n' + baseIndent + endKeyword);
+                            }).then(() => {
+                                const newPos = new vscode.Position(cursorLine, bodyIndent.length);
+                                editor.selection = new vscode.Selection(newPos, newPos);
+                            });
+                        }, 0);
                     }
                 }
 
