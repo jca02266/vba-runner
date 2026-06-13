@@ -3,19 +3,25 @@
  *
  * VBA 初心者・移行者が踏みやすい言語仕様の罠を静的解析で検出する。
  *
+ * 重大度（LSP severity）3段階:
+ *   1 = 重要 (Error)   — バグや実行時エラーに直結する問題 / VS Code: 赤いエラーアイコン
+ *   2 = 警告 (Warning) — 意図しない動作を引き起こしやすいコード / VS Code: 黄色い警告アイコン
+ *   3 = 情報 (Info)    — スタイル・保守性の改善提案 / VS Code: 青い情報アイコン
+ *
  * ルール一覧:
- *   VBA001 - Dim 複数宣言で途中の変数に型指定なし → Variant になる罠
- *   VBA002 - Integer 型の使用 → Long を推奨
- *   VBA003 - パラメーターに ByVal/ByRef なし → デフォルト ByRef の罠
- *   VBA004 - While...Wend → Do While...Loop を推奨
- *   VBA005 - Select Case に Case Else なし → 想定外の値をサイレントスルー
- *   VBA006 - Sheets(n) / Worksheets(n) 数値インデックス → シート順変更で壊れる
- *   VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
- *   VBA008 - GoTo（エラーハンドラー以外） → スパゲッティ化の原因
- *   VBA009 - デッドストア → 代入値が上書きまたは未使用
- *   VBA010 - 到達不能コード → Exit Sub / GoTo などで実行されないコード
- *   VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
- *   VBA012 - ByRef 明示なしのパラメーターへ代入 → 呼び出し元を意図せず書き換える罠
+ *   [重要] VBA013 - Option Explicit なし → 変数名のタイポが実行時まで検出されない
+ *   [警告] VBA001 - Dim 複数宣言で途中の変数に型指定なし → Variant になる罠
+ *   [警告] VBA003 - パラメーターに ByVal/ByRef なし → デフォルト ByRef の罠
+ *   [警告] VBA005 - Select Case に Case Else なし → 想定外の値をサイレントスルー
+ *   [警告] VBA006 - Sheets(n) / Worksheets(n) 数値インデックス → シート順変更で壊れる
+ *   [警告] VBA008 - GoTo（エラーハンドラー以外） → スパゲッティ化の原因
+ *   [警告] VBA009 - デッドストア → 代入値が上書きまたは未使用
+ *   [警告] VBA010 - 到達不能コード → Exit Sub / GoTo などで実行されないコード
+ *   [警告] VBA012 - ByRef 明示なしのパラメーターへ代入 → 呼び出し元を意図せず書き換える罠
+ *   [情報] VBA002 - Integer 型の使用 → Long を推奨
+ *   [情報] VBA004 - While...Wend → Do While...Loop を推奨
+ *   [情報] VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
+ *   [情報] VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
  */
 
 import {
@@ -34,6 +40,7 @@ import {
     Identifier,
     NumberLiteral,
     MemberExpression,
+    OptionExplicitStatement,
 } from './parser';
 import { findDeadStores } from './dead-store';
 import { buildCFG, findUnreachableBlocks } from './cfg';
@@ -95,6 +102,8 @@ export function findLoopContinueLabels(stmts: Statement[]): Set<string> {
 
 export function lintProgram(program: Program): LintDiagnostic[] {
     const diags: LintDiagnostic[] = [];
+
+    checkOptionExplicit(program, diags);
 
     for (const stmt of program.body) {
         lintStatement(stmt, diags);
@@ -396,7 +405,7 @@ function checkSelectCaseElse(sc: SelectCaseStatement, out: LintDiagnostic[]): vo
         const col  = (loc?.start.column ?? 1) - 1;
         out.push({
             code: 'VBA005',
-            severity: 3,
+            severity: 2,
             message: '\'Select Case\' に \'Case Else\' がありません。想定外の値がサイレントにスルーされます',
             line, column: col, endLine: line, endColumn: col + 11,
         });
@@ -472,7 +481,7 @@ function checkUnreachableCode(proc: ProcedureDeclaration, out: LintDiagnostic[])
             if (!startLoc) continue;
             out.push({
                 code: 'VBA010',
-                severity: 3,
+                severity: 2,
                 message: 'このコードには到達できません（到達不能コード）',
                 line:      startLoc.line   - 1,
                 column:    startLoc.column - 1,
@@ -506,6 +515,21 @@ function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
             severity: 2,
             message: `'${ds.varName}' への代入はデッドストア（使用されない代入値）`,
             line, column: col, endLine: line, endColumn: endCol,
+        });
+    }
+}
+
+/** VBA013: Option Explicit なし → 変数名のタイポが実行時まで検出されない */
+function checkOptionExplicit(program: Program, out: LintDiagnostic[]): void {
+    const hasExplicit = program.body.some(
+        (s): s is OptionExplicitStatement => s.type === 'OptionExplicitStatement'
+    );
+    if (!hasExplicit) {
+        out.push({
+            code: 'VBA013',
+            severity: 1,
+            message: 'Option Explicit が宣言されていません。変数名のタイポが実行時まで検出されなくなります',
+            line: 0, column: 0, endLine: 0, endColumn: 0,
         });
     }
 }
