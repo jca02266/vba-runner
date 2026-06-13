@@ -47,6 +47,9 @@ dist-ssr
 # vba-analyzer baseline snapshots
 .vba-baseline.json
 
+# AI agent report files (auto-generated, not for version control)
+REPORT.md
+
 # Claude Code auto-memory (local only)
 /memory/
 
