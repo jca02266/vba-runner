@@ -1635,7 +1635,7 @@ export class Parser {
         return null;
     }
 
-    private parseProcedureDeclaration(scope?: 'public' | 'private' | 'friend', isStatic?: boolean): ProcedureDeclaration {
+    private parseProcedureDeclaration(scope?: 'public' | 'private' | 'friend', isStatic?: boolean, isClassMember = false): ProcedureDeclaration {
         const isFunction = this.peek().type === TokenType.KeywordFunction;
         const isProperty = this.peek().type === TokenType.KeywordProperty;
         this.advance(); // consume Sub, Function, or Property
@@ -1656,8 +1656,9 @@ export class Parser {
         if (!this.isIdentifier(idToken) && (idToken.type < TokenType.KeywordBase || idToken.type > TokenType.KeywordAddressOf)) {
             this.throwError(`Parse error at line ${idToken.line}: Expected procedure name (Found ${this.tokenDisplay(idToken.value)})`);
         }
-        // §3.3.5.2: statement-keyword is reserved-identifier and cannot be used as a procedure name.
-        if (Parser.STATEMENT_KW_RESERVED.has(idToken.type)) {
+        // §3.3.5.2: statement-keyword is reserved-identifier and cannot be used as a module-level
+        // procedure name. Class members are accessed via unrestricted-name (obj.Open is valid).
+        if (!isClassMember && Parser.STATEMENT_KW_RESERVED.has(idToken.type)) {
             this.throwError(`Compile error at line ${idToken.line}: '${idToken.value}' is a reserved word and cannot be used as a procedure name`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
@@ -2042,7 +2043,7 @@ export class Parser {
 
             const inner = this.peek();
             if (inner.type === TokenType.KeywordSub || inner.type === TokenType.KeywordFunction || inner.type === TokenType.KeywordProperty) {
-                const proc = this.parseProcedureDeclaration(scope);
+                const proc = this.parseProcedureDeclaration(scope, undefined, true);
                 proc.moduleName = className;
                 procedures.push(proc);
                 body.push(proc);
