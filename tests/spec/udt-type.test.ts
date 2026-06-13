@@ -176,4 +176,43 @@ assert.strictEqual(arr7[0].s, '',  'arr(0).S は "" (String の既定値)');
 assert.strictEqual(arr7[0].i, 0,   'arr(0).I は 0 (Integer の既定値)');
 console.log('[PASS] UDT 配列: 初期値が UDT の既定値');
 
+// Test 8: B-4 — 固定サイズ UDT 配列の各要素が独立した UDT インスタンスとして初期化される
+{
+    const code = `
+Option Explicit
+Public Type Point
+    X As Long
+    Y As Long
+End Type
+Function Test8() As String
+    Dim pts(2) As Point
+    pts(0).X = 10
+    pts(0).Y = 20
+    pts(1).X = 30
+    Test8 = pts(0).X & "," & pts(0).Y & "," & pts(1).X & "," & pts(1).Y
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test8', []);
+    assert.strictEqual(result, '10,20,30,0', 'Fixed-size UDT array elements are independent instances');
+    console.log('[PASS] UDT 固定サイズ配列: B-4 — 各要素が独立したインスタンス');
+}
+
+// Test 9: B-4 — 固定サイズ UDT 配列の要素が共有されていない（変更が波及しない）
+{
+    const code = `
+Option Explicit
+Public Type Counter
+    N As Long
+End Type
+Function Test9() As Long
+    Dim arr(1) As Counter
+    arr(0).N = 99
+    Test9 = arr(1).N
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test9', []);
+    assert.strictEqual(result, 0, 'arr(1).N is unaffected by arr(0).N change (no shared reference)');
+    console.log('[PASS] UDT 固定サイズ配列: B-4 — 要素間で参照が共有されていない');
+}
+
 console.log('\n✅ User Defined Type: 全テスト通過');

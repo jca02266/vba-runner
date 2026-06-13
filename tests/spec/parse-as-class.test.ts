@@ -199,4 +199,79 @@ End Function
     console.log('[PASS] Explicit Class...End Class (no regression)');
 }
 
+// Test 9: B-1 — クラス内 Private Const がメソッドから参照できる
+{
+    const clsSource = `
+Option Explicit
+Private Const LOW As Long = 1
+Private Const HIGH As Long = 100
+Public Function InRange(ByVal v As Long) As Boolean
+    InRange = (v >= LOW And v <= HIGH)
+End Function
+`;
+    const modSource = `
+Function Test9() As String
+    Dim obj As New Validator
+    If obj.InRange(50) Then
+        Test9 = "ok"
+    Else
+        Test9 = "fail"
+    End If
+End Function
+`;
+    const ev = evalWithClass(clsSource, 'Validator', modSource);
+    assert.strictEqual(ev.callProcedure('Test9', []), 'ok', 'Private Const accessible inside class method');
+    console.log('[PASS] parseAsClass: B-1 — Private Const クラス内参照');
+}
+
+// Test 10: B-2 — クラス内プライベートメソッドを同クラスの公開メソッドから呼べる
+{
+    const clsSource = `
+Option Explicit
+Public Function Compute(ByVal n As Long) As Long
+    Compute = Double(n) + Triple(n)
+End Function
+Private Function Double(ByVal n As Long) As Long
+    Double = n * 2
+End Function
+Private Function Triple(ByVal n As Long) As Long
+    Triple = n * 3
+End Function
+`;
+    const modSource = `
+Function Test10() As Long
+    Dim obj As New Calculator
+    Test10 = obj.Compute(4)
+End Function
+`;
+    const ev = evalWithClass(clsSource, 'Calculator', modSource);
+    assert.strictEqual(ev.callProcedure('Test10', []), 20, 'Private helpers callable from public method (4*2 + 4*3 = 20)');
+    console.log('[PASS] parseAsClass: B-2 — クラス内プライベートメソッド呼び出し');
+}
+
+// Test 11: B-2 — クラス自身のスコープがグローバルより優先される
+{
+    const clsSource = `
+Option Explicit
+Public Function GetName() As String
+    GetName = MyName()
+End Function
+Private Function MyName() As String
+    MyName = "class"
+End Function
+`;
+    const modSource = `
+Function MyName() As String
+    MyName = "global"
+End Function
+Function Test11() As String
+    Dim obj As New Named
+    Test11 = obj.GetName()
+End Function
+`;
+    const ev = evalWithClass(clsSource, 'Named', modSource);
+    assert.strictEqual(ev.callProcedure('Test11', []), 'class', 'Class scope takes priority over global scope');
+    console.log('[PASS] parseAsClass: B-2 — クラス自身のスコープがグローバルより優先');
+}
+
 console.log('\n✅ parseAsClass: 全テスト通過');

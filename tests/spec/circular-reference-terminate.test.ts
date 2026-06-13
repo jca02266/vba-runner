@@ -330,4 +330,47 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 10: Nested circular references with explicit cleanup');
 }
 
+// Test 11: B-3 — オブジェクトを Dictionary に格納後、変数を別インスタンスに切り替えても
+//             Dictionary 内のオブジェクトの Class_Terminate は呼ばれない
+{
+    const code = `
+    Dim terminateLog As String
+
+    Class Tracked
+        Public Name As String
+        Private Sub Class_Terminate()
+            terminateLog = terminateLog & Name & " terminated;"
+        End Sub
+    End Class
+
+    Function Test11() As String
+        Dim dict As Object
+        Set dict = CreateObject("Scripting.Dictionary")
+        terminateLog = ""
+
+        Dim p As Tracked
+        Set p = New Tracked
+        p.Name = "A"
+        dict.Add "a", p
+
+        ' 別インスタンスに切り替え: dict 内の "A" の Terminate は呼ばれない
+        Set p = New Tracked
+        p.Name = "B"
+        dict.Add "b", p
+
+        ' この時点では terminateLog は空のはず
+        Dim midLog As String
+        midLog = terminateLog
+
+        ' 明示的に Nothing にすることで "B" の Terminate が呼ばれる
+        Set p = Nothing
+
+        Test11 = midLog & "|" & terminateLog
+    End Function
+    `;
+    const result = runFunc(code, 'Test11');
+    assert.strictEqual(result, '|B terminated;', 'B-3: Dictionary 内オブジェクトの早期 Terminate が起きない');
+    console.log('[PASS] B-3: Dictionary に格納済みオブジェクトの早期 Terminate が発生しない');
+}
+
 console.log('\n✅ Circular Reference & Class_Terminate: 全テスト通過');
