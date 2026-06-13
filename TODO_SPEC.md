@@ -43,7 +43,7 @@
 | 状態 | 優先度 | 機能 | 概要 | テスト |
 |------|--------|------|------|--------|
 | ✅ | P2 | 日本語識別子対応 | MS-VBAL §3.3.5 に従い `isAlpha()` を Unicode プロパティエスケープ (`\p{L}`) で拡張。パーサーの `isWordToken()` も同様に対応。`Dim 氏名 As String` 等の識別子・UDT・関数名で使用可能に | `unicode-identifiers.test.ts` |
-| ✅ | P2 | VarPtr / StrPtr / ObjPtr | ダミー実装済み。呼び出しごとに +4 増加する非ゼロ Long を返す（`_ptrCounter` フィールド）。実アドレスに意味はないため、パースエラーにならずコードが動作する用途に対応。 | `varptr.test.ts` |
+| ⚠️ | P2 | VarPtr / StrPtr / ObjPtr | **制限実装**（ダミーポインター）。呼び出しごとに +4 増加する非ゼロ Long を返す（`_ptrCounter`、初期値 `0x10000`）。<br>**仕様**: `VarPtr(var)` は変数のメモリーアドレス、`StrPtr(str)` は BSTR バッファーのアドレス、`ObjPtr(obj)` は IUnknown ポインターを Long で返す（MS-VBAL 仕様外・Office VBA 非公式拡張）。<br>**制限**: 実アドレスを返せないため、同一変数への複数回呼び出しで値が変わる。`CopyMemory`・`RtlMoveMemory` 等の Win32 API 連携は機能しない。コードのパース・実行が通ることのみ保証。 | `varptr.test.ts` |
 
 ---
 
