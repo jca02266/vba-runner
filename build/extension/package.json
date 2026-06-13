@@ -2,7 +2,7 @@
   "name": "vba-runner",
   "displayName": "VBA Runner",
   "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "publisher": "jca02266",
   "icon": "icon.png",
   "license": "MIT",
@@ -158,7 +158,10 @@
         },
         "vba-runner.test.location": {
           "type": "string",
-          "enum": ["sameFile", "separateFile"],
+          "enum": [
+            "sameFile",
+            "separateFile"
+          ],
           "enumDescriptions": [
             "Test_メソッド名 を同じ .bas ファイル末尾に追記する",
             "<ファイル名>Test.bas を作成してテストを追記する"

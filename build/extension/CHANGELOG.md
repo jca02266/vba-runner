@@ -2,6 +2,14 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.1.8] - 2026-06-13
+
+### Fixed
+
+- **Parser: `statement-keyword` correctly rejected as module-level procedure names** — `Function Open()`, `Sub Close()`, `Function Print()` etc. now produce a compile error per §3.3.5.2 of the VBA Language Specification. Class member methods with reserved-word names (e.g. `obj.Open`, `ws.Close`) continue to work correctly via `unrestricted-name` rules.
+- **Parser: dead-code lookahead removed** — The `hasFileOpenSyntaxAhead()` pre-scan that guarded `Open`/`Close` dispatch was replaced with direct unconditional dispatch, since `Open` and `Close` are reserved-identifiers and cannot appear as identifiers at statement position.
+- **Parser: file I/O statement dispatch cleaned up** — `Print`, `Write`, `Input`, `Put`, `Seek` are reserved-identifiers and are now dispatched unconditionally to their file I/O parse functions. Previously a missing `#` would silently fall through to the identifier branch.
+
 ## [0.1.7] - 2026-06-12
 
 ### Added
