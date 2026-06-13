@@ -76,6 +76,7 @@ import {
     WidthStatement,
     OptionCompareStatement,
     OptionBaseStatement,
+    DefDirective,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
@@ -632,6 +633,8 @@ export class Evaluator {
     private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
     private currentProcIsStatic: boolean = false;
     private arrayBase: number = 0;
+    /** §5.2.2 Def-Directive: letter (a-z) → VBA type name */
+    private defTypeMap: Map<string, string> = new Map();
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
@@ -2299,6 +2302,9 @@ export class Evaluator {
             case 'OptionBaseStatement':
                 this.evaluateOptionBaseStatement(stmt as OptionBaseStatement);
                 break;
+            case 'DefDirective':
+                this.evaluateDefDirective(stmt as DefDirective);
+                break;
             case 'OptionPrivateModuleStatement':
                 this.evaluateOptionPrivateModuleStatement(stmt as OptionPrivateModuleStatement);
                 break;
@@ -3105,7 +3111,10 @@ export class Evaluator {
             const staticKey = `${this.currentProcedureName?.toLowerCase()}:${varKey}`;
 
             // Register type metadata for typed declarations
-            if (decl.objectType && !decl.isArray) {
+            // If no explicit type, apply Def-Directive mapping by first letter (§5.2.2)
+            const effectiveType = decl.objectType
+                ?? this.defTypeMap.get(varName.charAt(0).toLowerCase()) ?? null;
+            if (effectiveType && !decl.isArray) {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
@@ -3113,7 +3122,7 @@ export class Evaluator {
                     'longptr': 'LongPtr',
                     'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
                 };
-                const mapped = typeMap[decl.objectType.toLowerCase()];
+                const mapped = typeMap[effectiveType.toLowerCase()];
                 if (mapped) {
                     this.env.setVariableType(varName, { vbaType: mapped });
                 }
@@ -3127,9 +3136,9 @@ export class Evaluator {
             }
 
             let initialValue: any = vbaEmpty;
-            // Typed numeric/string variables get VBA-spec default values
-            if (decl.objectType) {
-                const t = decl.objectType.toLowerCase();
+            // Typed numeric/string variables get VBA-spec default values (also applies Def-Directive type)
+            if (effectiveType) {
+                const t = effectiveType.toLowerCase();
                 if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(t)) {
                     initialValue = 0;
                 } else if (t === 'string') {
@@ -3235,6 +3244,16 @@ export class Evaluator {
 
     private evaluateOptionBaseStatement(stmt: OptionBaseStatement) {
         this.arrayBase = stmt.base;
+    }
+
+    private evaluateDefDirective(stmt: DefDirective) {
+        for (const { from, to } of stmt.ranges) {
+            const fromCode = from.charCodeAt(0);
+            const toCode   = to.charCodeAt(0);
+            for (let c = fromCode; c <= toCode; c++) {
+                this.defTypeMap.set(String.fromCharCode(c), stmt.vbaType);
+            }
+        }
     }
 
     private evaluateOptionPrivateModuleStatement(_stmt: OptionPrivateModuleStatement) {

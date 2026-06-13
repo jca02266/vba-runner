@@ -110,6 +110,7 @@ export const enum TokenType {
     KeywordMid,
     KeywordWidth,
     KeywordAddressOf,
+    KeywordDef,
     OperatorHash,
     OperatorPlus,
     OperatorMinus,
@@ -635,6 +636,9 @@ export class Lexer {
                 if (lowerBase === 'midb') return { type: TokenType.KeywordMid, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'width') return { type: TokenType.KeywordWidth, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'addressof') return { type: TokenType.KeywordAddressOf, value: idStr, line: startLine, column: startColumn };
+                if (['defbool','defbyte','defint','deflng','deflnglng','deflngptr',
+                     'defsng','defdbl','defcur','defdate','defstr','defobj','defvar'].includes(lowerBase))
+                    return { type: TokenType.KeywordDef, value: idStr, line: startLine, column: startColumn };
 
                 return { type: TokenType.Identifier, value: idStr, line: startLine, column: startColumn };
             }

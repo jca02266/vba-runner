@@ -203,6 +203,12 @@ export interface AttributeStatement extends Statement {
     value: Expression;
 }
 
+export interface DefDirective extends Statement {
+    type: 'DefDirective';
+    vbaType: string;         // e.g. "Integer", "String"
+    ranges: { from: string; to: string }[];  // letter ranges (lowercased)
+}
+
 export interface OpenStatement extends Statement {
     type: 'OpenStatement';
     path: Expression;
@@ -857,6 +863,31 @@ export class Parser {
             type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, defaultValue,
             loc: { start: { line: nameToken.line, column: nameToken.column }, end: { line: nameToken.line, column: nameToken.column + nameToken.value.length } },
         };
+    }
+
+    private parseDefDirective(): DefDirective {
+        const defToken = this.advance(); // e.g. 'DefInt'
+        const keyword = defToken.value.toLowerCase().replace(/[$%&#@!^]$/, '');
+        const typeMap: Record<string, string> = {
+            defbool: 'Boolean', defbyte: 'Byte', defint: 'Integer',
+            deflng: 'Long', deflnglng: 'LongLong', deflngptr: 'LongPtr',
+            defsng: 'Single', defdbl: 'Double', defcur: 'Currency',
+            defdate: 'Date', defstr: 'String', defobj: 'Object', defvar: 'Variant',
+        };
+        const vbaType = typeMap[keyword] ?? 'Variant';
+        const ranges: { from: string; to: string }[] = [];
+        do {
+            const fromTok = this.advance();
+            const from = fromTok.value.charAt(0).toLowerCase();
+            let to = from;
+            if (this.peek().type === TokenType.OperatorMinus) {
+                this.advance(); // '-'
+                const toTok = this.advance();
+                to = toTok.value.charAt(0).toLowerCase();
+            }
+            ranges.push({ from, to });
+        } while (this.match(TokenType.OperatorComma));
+        return { type: 'DefDirective', vbaType, ranges };
     }
 
     private parseAttributeStatement(): AttributeStatement {
@@ -1547,6 +1578,8 @@ export class Parser {
                 return { type: 'OptionPrivateModuleStatement' } as OptionPrivateModuleStatement;
             }
             return null;
+        } else if (token.type === TokenType.KeywordDef) {
+            return this.parseDefDirective();
         } else if (token.type === TokenType.KeywordAttribute) {
             return this.parseAttributeStatement();
         } else if (token.type === TokenType.KeywordDeclare) {
