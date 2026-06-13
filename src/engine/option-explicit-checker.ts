@@ -24,6 +24,7 @@ import {
     ReDimStatement,
     LSetStatement,
     RSetStatement,
+    MidStatement,
     NamedArgument,
     ClassDeclaration,
     EnumDeclaration,
@@ -329,6 +330,14 @@ function checkProcedure(
                 const r = stmt as RSetStatement;
                 chkExpr(r.left);
                 chkExpr(r.right);
+                break;
+            }
+            case 'MidStatement': {
+                const m = stmt as MidStatement;
+                chkExpr(m.target);
+                chkExpr(m.start);
+                if (m.length) chkExpr(m.length);
+                chkExpr(m.value);
                 break;
             }
             // Statements with no variable references to check:
@@ -691,6 +700,14 @@ export function walkProcForUndefinedCalls(
                 const r = stmt as RSetStatement;
                 visitExpr(r.left);
                 visitExpr(r.right);
+                break;
+            }
+            case 'MidStatement': {
+                const m = stmt as MidStatement;
+                visitExpr(m.target);
+                visitExpr(m.start);
+                if (m.length) visitExpr(m.length);
+                visitExpr(m.value);
                 break;
             }
         }

@@ -1315,6 +1315,19 @@ function collectVarRefsInBody(
                 collectReadsInExpr(stmt.right, reads);
                 break;
             }
+            case 'MidStatement': {
+                // Mid(target, ...) = value — target is written in-place; start/length/value are reads
+                const w = extractWriteName(stmt.target);
+                if (w && !skipVars.has(w)) {
+                    if (!writes.has(w)) writes.set(w, []);
+                    writes.get(w)!.push(line);
+                }
+                collectReadsInExpr(stmt.target, reads);
+                collectReadsInExpr(stmt.start, reads);
+                if (stmt.length) collectReadsInExpr(stmt.length, reads);
+                collectReadsInExpr(stmt.value, reads);
+                break;
+            }
             case 'ReDimStatement': {
                 const w = (stmt.name?.name as string | undefined)?.toLowerCase() ?? null;
                 if (w && !skipVars.has(w)) {
@@ -1478,6 +1491,12 @@ function collectWriteAttrs(
                 if (!selfRefs.has(w) && boolOnly.get(w) !== false)
                     boolOnly.set(w, isBoolLikeExpr(stmt.right) ? true : false);
                 if (stmt.left?.type === 'CallExpression') arrayWrites.add(w);
+            }
+        }
+        if (stmt.type === 'MidStatement') {
+            const w = extractWriteName(stmt.target);
+            if (w && targets.has(w)) {
+                selfRefs.add(w); // Mid always reads then writes the target
             }
         }
         const sub = (s: any) => collectWriteAttrs(Array.isArray(s) ? s : [s], targets, selfRefs, boolOnly, arrayWrites);
