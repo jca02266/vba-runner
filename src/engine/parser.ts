@@ -622,9 +622,6 @@ export class Parser {
         TokenType.KeywordLock,
         TokenType.KeywordSeek,
         TokenType.KeywordUnlock,
-        TokenType.KeywordKill,
-        TokenType.KeywordReset,
-        TokenType.KeywordWidth,
         TokenType.KeywordEvent,
         TokenType.KeywordRaiseEvent,
         TokenType.KeywordImplements,
@@ -645,6 +642,11 @@ export class Parser {
         TokenType.KeywordUnlock,
         TokenType.KeywordOpen,
         TokenType.KeywordClose,
+        // Non-reserved statement keywords: can be user-defined proc names (e.g. Function Kill()).
+        // Included here so "Kill = v", "Reset = v", "Width = v" fall through to identifier branch.
+        TokenType.KeywordKill,
+        TokenType.KeywordReset,
+        TokenType.KeywordWidth,
     ]);
 
     private readonly errorRecovery: boolean;
@@ -1574,11 +1576,11 @@ export class Parser {
         } else if (token.type === TokenType.KeywordSeek) {
             // Seek is reserved-identifier — always file I/O Seek statement.
             return this.parseSeekStatement();
-        } else if (token.type === TokenType.KeywordReset) {
-            // Reset is reserved-identifier — always file I/O Reset statement.
+        } else if (token.type === TokenType.KeywordReset && this.peek(1).type !== TokenType.OperatorEquals) {
+            // Reset is NOT reserved-identifier — "Reset = v" falls to identifier branch.
             return this.parseResetStatement();
-        } else if (token.type === TokenType.KeywordKill) {
-            // Kill is reserved-identifier — always file I/O Kill statement.
+        } else if (token.type === TokenType.KeywordKill && this.peek(1).type !== TokenType.OperatorEquals) {
+            // Kill is NOT reserved-identifier — "Kill = v" falls to identifier branch.
             return this.parseKillStatement();
         } else if (token.type === TokenType.KeywordEvent) {
             return this.parseEventDeclaration();
@@ -1588,8 +1590,10 @@ export class Parser {
             return this.parseLockStatement();
         } else if (token.type === TokenType.KeywordUnlock) {
             return this.parseUnlockStatement();
-        } else if (token.type === TokenType.KeywordWidth) {
-            // Width is reserved-identifier — always file I/O Width statement.
+        } else if (token.type === TokenType.KeywordWidth &&
+                   this.peek(1).type === TokenType.OperatorHash) {
+            // Width is NOT reserved-identifier. width-statement requires "#" per §5.4.5.
+            // Without "#", Width falls to identifier branch (user-defined proc or assignment).
             return this.parseWidthStatement();
         } else if (token.type === TokenType.KeywordClass && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseClassDeclaration();
