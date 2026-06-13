@@ -5195,27 +5195,26 @@ export class Evaluator {
                 return this.evaluateTypeIntrinsic(nameLower, expr.args[0]);
             }
 
-            const proc = this.env.getProcedure(name);
-
-            // B-2: When inside a class method (Me is in env), unqualified calls also search
-            // the class's own procedures — covering private helper calls within the same class.
-            if (!proc) {
-                const me = this.env.getConst('me');
-                if (me && me.__vbaClass__ && me.__classDef__) {
-                    const classProc = (me.__classDef__ as ClassDeclaration).procedures.find(
-                        p => p.name.name.toLowerCase() === nameLower
-                    );
-                    if (classProc) {
-                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                        this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
-                        try {
-                            return this.callClassMethod(me, classProc, argsVals);
-                        } finally {
-                            this.vbaCallStack.pop();
-                        }
+            // B-2: When inside a class method (Me is in env), the class's own procedures
+            // take priority over global procedures — matching VBA's name resolution order
+            // (class scope → global scope).
+            const me = this.env.getConst('me');
+            if (me && me.__vbaClass__ && me.__classDef__) {
+                const classProc = (me.__classDef__ as ClassDeclaration).procedures.find(
+                    p => p.name.name.toLowerCase() === nameLower
+                );
+                if (classProc) {
+                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                    this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
+                    try {
+                        return this.callClassMethod(me, classProc, argsVals);
+                    } finally {
+                        this.vbaCallStack.pop();
                     }
                 }
             }
+
+            const proc = this.env.getProcedure(name);
 
             if (proc) {
                 // Cross-module Private access check
