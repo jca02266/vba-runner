@@ -373,4 +373,90 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] B-3: Dictionary に格納済みオブジェクトの早期 Terminate が発生しない');
 }
 
+// Test 12: Scope exit triggers Class_Terminate (no explicit Set = Nothing needed)
+{
+    const code = `
+    Dim count As Integer
+
+    Class AutoClose
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Sub CreateAndForget()
+        Dim obj As AutoClose
+        Set obj = New AutoClose
+        ' No explicit Set obj = Nothing — scope exit should trigger Terminate
+    End Sub
+
+    Function GetCount() As Integer
+        GetCount = count
+    End Function
+    `;
+    const runner = evalVBA(code);
+    runner.callProcedure('CreateAndForget', []);
+    const result = runner.callProcedure('GetCount', []);
+    assert.strictEqual(result, 1, 'Scope exit should trigger Class_Terminate for local VBA objects');
+    console.log('[PASS] Test 12: Scope exit triggers Class_Terminate');
+}
+
+// Test 13: Scope exit does NOT terminate params (caller still holds them)
+{
+    const code = `
+    Dim count As Integer
+
+    Class BorrowedObj
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Sub BorrowObject(obj As BorrowedObj)
+        ' param — scope exit must NOT terminate
+    End Sub
+
+    Function Test13() As Integer
+        Dim obj As BorrowedObj
+        Set obj = New BorrowedObj
+        BorrowObject obj
+        Test13 = count  ' must be 0 — obj still alive
+        Set obj = Nothing
+        ' count = 1 here, but Test13 already captured 0
+    End Function
+    `;
+    const result = runFunc(code, 'Test13');
+    assert.strictEqual(result, 0, 'Params must not be terminated at callee scope exit');
+    console.log('[PASS] Test 13: Params are not terminated at callee scope exit');
+}
+
+// Test 14: Two local vars pointing to same instance — Terminate fires exactly once
+{
+    const code = `
+    Dim count As Integer
+
+    Class Counted
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Sub Test14Sub()
+        Dim a As Counted
+        Dim b As Counted
+        Set a = New Counted
+        Set b = a   ' same instance
+        ' scope exit: a → Terminate (count=1), b → already terminated, skip
+    End Sub
+
+    Function Test14() As Integer
+        Test14Sub
+        Test14 = count
+    End Function
+    `;
+    const result = runFunc(code, 'Test14');
+    assert.strictEqual(result, 1, 'Two local vars to same instance should Terminate exactly once');
+    console.log('[PASS] Test 14: Same instance via two local vars terminates exactly once');
+}
+
 console.log('\n✅ Circular Reference & Class_Terminate: 全テスト通過');

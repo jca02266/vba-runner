@@ -2067,6 +2067,20 @@ export class Evaluator {
                 this.staticVarStore.set(key, localEnv.get(varName));
             }
 
+            // Scope exit: fire Class_Terminate for local VBA objects that weren't explicitly
+            // set to Nothing. Skip params (caller still holds them), the return-value variable,
+            // and Static variables (they survive across calls).
+            {
+                const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
+                const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                for (const [name, val] of localEnv.getLocalVariables()) {
+                    if (paramNames.has(name)) continue;
+                    if (returnVarName !== null && name === returnVarName) continue;
+                    if (this.staticVarsInCurrentProc.has(name)) continue;
+                    this.triggerTerminate(val);
+                }
+            }
+
             this.errorHandlerLabel = previousErrorHandler;
             this.errorHandlingMode = previousErrorHandlingMode;
             this.isInErrorHandler = previousIsInErrorHandler;
@@ -3473,6 +3487,20 @@ export class Evaluator {
             }
         } finally {
             this.env = previousEnv;
+
+            // Scope exit: fire Class_Terminate for local VBA objects that weren't explicitly
+            // set to Nothing. Skip params, Me, and the return-value variable.
+            {
+                const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
+                paramNames.add('me');
+                const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                for (const [name, val] of localEnv.getLocalVariables()) {
+                    if (paramNames.has(name)) continue;
+                    if (returnVarName !== null && name === returnVarName) continue;
+                    this.triggerTerminate(val);
+                }
+            }
+
             this.currentProcBody = previousProcBody;
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
