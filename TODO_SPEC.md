@@ -26,27 +26,15 @@
 
 ---
 
-## 🔴 最優先アーキテクチャ課題
+## ✅ ARCH-1: パーサー Pass 1 プリスキャン + 名前解決優先度チェック（実装済み）
 
-### ARCH-1: パーサーの 2 パス化 — キーワードと識別子の名前解決をセマンティクスパスへ移行
+**実装**: `parse()` の先頭でトークン列を全スキャンしてユーザー定義プロシージャ名を収集（`collectUserProcNames()`）し、`parseStatementInner` に `isUserProcOverride()` ガードを挿入。`[KeywordBase, KeywordAddressOf]` 範囲のキーワードがユーザー定義プロシージャ名と一致する場合、ファイル I/O 等の組み込み文ディスパッチを飛ばして識別子/代入/呼び出しとして処理する（VBA §3.3.5.3 名前解決順序）。マルチモジュールは `evalVBAModules` で全モジュールをプリスキャンし `externalProcNames` として渡す。
 
-**背景**: 現在のパーサーはキーワードトークン型でステートメントをディスパッチしている（`KeywordOpen` → `parseOpenStatement`）。しかし VBA では `Open`・`Close` 等のファイル I/O キーワードをユーザー定義プロシージャ名にも使えるため、「キーワードか識別子か」の判断を構文解析時に行うことができない。現状は `CONTEXTUAL_KW`、`COMPAT_KW_EXPR`、個別ガード（`peek(1) !== OperatorEquals` 等）という対症療法の積み重ねになっている。
+**残る設計上の制限（将来課題）**:
+- `CONTEXTUAL_KW` / `COMPAT_KW_EXPR` はまだ残存（完全廃止は段階的に）
+- `[KeywordBase, KeywordAddressOf]` 以外の範囲（`KeywordGet`=20 等）のキーワードはプロシージャ名として使えない（`parseProcedureDeclaration` の制約）
 
-**あるべき設計**:
-
-- **Pass 1（構文解析）**: ステートメントの「形」だけを確定させる。`Open path For Binary As #1`、`Open = v`、`Open()` はすべて「識別子 + 後続トークン列」として AST に乗せる。キーワードをトークン値として保存するだけで、意味は確定させない。
-- **Pass 2（名前解決）**: シンボルテーブル（宣言済みプロシージャ・変数・組み込み関数）と VBA の名前解決順序（MS-VBAL §3.3.5.3）に従ってバインドする。
-  ```
-  1. ローカル変数 / パラメーター
-  2. モジュールレベル変数 / 定義済みプロシージャ
-  3. 組み込み関数 / ステートメントキーワード
-  ```
-  `Function Close()` が定義されていれば `Close = v` は 2 で捕捉され、3 のファイル I/O 文より優先される。
-
-**影響範囲**:
-- `parseStatementInner` のキーワード別ディスパッチを全面改修
-- `CONTEXTUAL_KW` / `COMPAT_KW_EXPR` を廃止し、より単純な「識別子として有効なトークン集合」に統合
-- evaluator または新規セマンティクスパスでシンボルテーブル参照後にノード型を確定
+- | `contextual-keyword-as-identifier.test.ts` (Section 6–8: B-8 テスト + ARCH-1 マルチモジュールテスト)
 
 ---
 

@@ -531,6 +531,10 @@ export class Parser {
     private pos: number = 0;
     private readonly parseAsClass: string | undefined;
     private readonly _diagnostics: ParseDiagnostic[] = [];
+    // ARCH-1: user-defined procedure names collected by pre-scan (Pass 1 pre-pass)
+    private userProcNames: Set<string> = new Set();
+    // ARCH-1: procedure names from other modules (for multi-module scenarios)
+    private readonly externalProcNames: Set<string>;
 
     // ---------------------------------------------------------------
     // §3.3.5.2 contextual keyword Sets
@@ -633,10 +637,16 @@ export class Parser {
             || Parser.CONTEXTUAL_KW.has(token.type);
     }
 
-    constructor(tokens: Token[], options: { parseAsClass?: string; errorRecovery?: boolean } = {}) {
+    constructor(tokens: Token[], options: {
+        parseAsClass?: string;
+        errorRecovery?: boolean;
+        /** ARCH-1: procedure names from other modules, for multi-module name resolution */
+        externalProcNames?: Set<string>;
+    } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
         this.errorRecovery = options.errorRecovery ?? false;
+        this.externalProcNames = options.externalProcNames ?? new Set();
     }
 
     // Keywords can appear as property/class names in VBA (e.g. obj.Property, New Collection)
@@ -644,6 +654,53 @@ export class Parser {
         return token.type === TokenType.Identifier
             || token.type === TokenType.ForeignName
             || (token.type >= TokenType.KeywordFor && token.type <= TokenType.KeywordAddressOf);
+    }
+
+    /**
+     * ARCH-1: Pre-scan Pass — collect all user-defined procedure names from the token stream.
+     * Called once at the start of parse() before any statement parsing begins.
+     * Implements VBA name resolution order §3.3.5.3: user procedures (priority 2) take
+     * precedence over built-in statement keywords (priority 3).
+     */
+    private collectUserProcNames(): void {
+        this.userProcNames = new Set();
+        for (let i = 0; i + 1 < this.tokens.length; i++) {
+            const t = this.tokens[i];
+            if (t.type === TokenType.KeywordSub || t.type === TokenType.KeywordFunction) {
+                const nameToken = this.tokens[i + 1];
+                // Guard: name must be a word-like token (not EOF, newline, or '(')
+                if (nameToken &&
+                    nameToken.type !== TokenType.Newline &&
+                    nameToken.type !== TokenType.EOF &&
+                    nameToken.type !== TokenType.OperatorLParen) {
+                    this.userProcNames.add(nameToken.value.toLowerCase());
+                }
+            } else if (t.type === TokenType.KeywordProperty) {
+                // Property Get/Let/Set name — skip the Get/Let/Set token
+                let j = i + 1;
+                if (j < this.tokens.length && (
+                    this.tokens[j].type === TokenType.KeywordGet ||
+                    this.tokens[j].type === TokenType.KeywordLet ||
+                    this.tokens[j].type === TokenType.KeywordSet
+                )) j++;
+                const nameToken = this.tokens[j];
+                if (nameToken &&
+                    nameToken.type !== TokenType.Newline &&
+                    nameToken.type !== TokenType.EOF) {
+                    this.userProcNames.add(nameToken.value.toLowerCase());
+                }
+            }
+        }
+    }
+
+    /** ARCH-1: Returns true if this keyword token is user-defined AND can be overridden.
+     *  Only tokens in [KeywordBase, KeywordAddressOf] range can be valid procedure names
+     *  (per parseProcedureDeclaration). Structural keywords (For/If/While etc.) are below
+     *  KeywordBase and are never overridden. */
+    private isUserProcOverride(token: Token): boolean {
+        if (token.type < TokenType.KeywordBase || token.type > TokenType.KeywordAddressOf) return false;
+        const name = token.value.toLowerCase();
+        return this.userProcNames.has(name) || this.externalProcNames.has(name);
     }
 
     private recordError(message: string, token: Token): void {
@@ -1180,6 +1237,9 @@ export class Parser {
     }
 
     public parse(): Program {
+        // ARCH-1 Pass 1 pre-scan: collect user-defined procedure names before parsing bodies
+        this.collectUserProcNames();
+
         if (this.parseAsClass) {
             const classDecl = this.parseClassBody(this.parseAsClass, false);
             return { type: 'Program', body: [classDecl], diagnostics: this._diagnostics };
@@ -1257,6 +1317,98 @@ export class Parser {
             }
         }
         return stmt;
+    }
+
+    /**
+     * Parse an identifier, method call, or assignment statement.
+     * Called from the identifier branch of parseStatementInner AND from the ARCH-1
+     * user-proc override path (when a built-in keyword is user-defined as a procedure).
+     */
+    private parseIdentifierOrCallStatement(): Statement {
+        const token = this.peek();
+
+        // Label check: "Identifier:" or contextual-keyword ":"
+        if ((token.type === TokenType.Identifier || Parser.CONTEXTUAL_KW.has(token.type)) &&
+                this.pos + 1 < this.tokens.length &&
+                this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
+            const labelName = token.value;
+            this.advance(); // consume Identifier / keyword
+            this.advance(); // consume ':'
+            return { type: 'LabelStatement', label: labelName } as any;
+        }
+
+        // Line number label: "42" or "42:"
+        if (token.type === TokenType.Number) {
+            const labelName = token.value;
+            this.advance(); // consume Number
+            this.match(TokenType.OperatorColon); // optional colon
+            return { type: 'LabelStatement', label: labelName } as any;
+        }
+
+        // Unify assignment, array access, method call
+        const savedPos = this.pos;
+        const expr = this.parsePrimary(); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
+
+        if (this.match(TokenType.OperatorEquals)) {
+            return {
+                type: 'AssignmentStatement',
+                left: expr,
+                right: this.parseExpression()
+            } as AssignmentStatement;
+        } else {
+            // If parsePrimary() greedily consumed `(args)` as a function call postfix but the
+            // next token is a binary-only operator (cannot start an argument expression), the
+            // `(...)` was actually the start of the argument expression, not a call argument list.
+            // Example: `Debug.Print (1+2)*3` — `(1+2)` was mis-parsed as the argument; `*3` is
+            // the continuation. Backtrack and re-parse with stopBeforeSpacedLParen=true so that
+            // `(1+2)*3` is parsed as a single expression argument.
+            if (expr.type === 'CallExpression' && this.isBinaryOnlyOperator(this.peek().type)) {
+                this.pos = savedPos;
+                const callee = this.parsePrimary(/* stopBeforeSpacedLParen= */ true);
+                const args: Expression[] = [this.parseCallArgument()];
+                while (this.match(TokenType.OperatorComma)) {
+                    args.push(this.parseCallArgument());
+                }
+                return { type: 'CallStatement', expression: { type: 'CallExpression', callee, args } } as CallStatement;
+            }
+
+            // If it's not an assignment, maybe it's a CallStatement with arguments separated by comma
+            const args: Expression[] = [];
+            // Check if there are args on the same line
+            if (
+                this.peek().type !== TokenType.Newline &&
+                this.peek().type !== TokenType.EOF &&
+                this.peek().type !== TokenType.KeywordElse &&
+                this.peek().type !== TokenType.KeywordElseIf &&
+                this.peek().type !== TokenType.KeywordEnd &&
+                this.peek().type !== TokenType.KeywordNext &&
+                this.peek().type !== TokenType.KeywordLoop
+            ) {
+                args.push(this.parseCallArgument());
+                while (this.match(TokenType.OperatorComma)) {
+                    args.push(this.parseCallArgument());
+                }
+            }
+
+            if (args.length > 0) {
+                return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
+            } else if (expr.type === 'CallExpression') {
+                const callExpr = expr as CallExpression;
+                // identifier() with empty parens in statement position (no Call keyword)
+                // is always a syntax error — use `identifier`, `identifier arg`, or
+                // `Call identifier()` instead.
+                // FOREIGN-NAME [identifier]() is exempt: used to call COM methods by reserved names.
+                if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier' &&
+                        !(callExpr.callee as Identifier).foreign) {
+                    const line = callExpr.loc?.start.line ?? this.peek().line;
+                    this.throwError(`Parse error: syntax error at line ${line}`);
+                }
+                return { type: 'CallStatement', expression: callExpr } as CallStatement;
+            } else {
+                // Call matched without parens e.g. `MainLoop`
+                return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
+            }
+        }
     }
 
     private parseStatementInner(): Statement | null {
@@ -1417,6 +1569,12 @@ export class Parser {
             return this.parseTypeDeclaration();
         } else if (token.type === TokenType.KeywordEnum) {
             return this.parseEnumDeclaration();
+        } else if (this.isUserProcOverride(token)) {
+            // ARCH-1: VBA name resolution §3.3.5.3 — user-defined procedure (priority 2) takes
+            // precedence over built-in statement keyword (priority 3). Any keyword in
+            // [KeywordBase, KeywordAddressOf] that matches a user-defined procedure name is
+            // parsed as an identifier/call/assignment, bypassing file I/O and other built-in dispatches.
+            return this.parseIdentifierOrCallStatement();
         } else if (token.type === TokenType.KeywordOpen && this.peek(1).type !== TokenType.OperatorEquals) {
             return this.parseOpenStatement();
         } else if (token.type === TokenType.KeywordClose && this.peek(1).type !== TokenType.OperatorEquals) {
@@ -1465,86 +1623,7 @@ export class Parser {
                    token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||
                    token.type === TokenType.KeywordOpen || token.type === TokenType.KeywordClose) {
-            // Check if it's a label "Identifier:" or "Number" (line number)
-            // Contextual keywords (Error, Property, Class, etc.) are also valid label names.
-            if ((token.type === TokenType.Identifier || Parser.CONTEXTUAL_KW.has(token.type)) && this.pos + 1 < this.tokens.length && this.tokens[this.pos + 1].type === TokenType.OperatorColon) {
-                const labelName = token.value;
-                this.advance(); // consume Identifier
-                this.advance(); // consume ':'
-                return { type: 'LabelStatement', label: labelName } as any;
-            } else if (token.type === TokenType.Number) {
-                // Line number label.
-                const labelName = token.value;
-                this.advance(); // consume Number
-                // Optional colon after line number
-                this.match(TokenType.OperatorColon);
-                return { type: 'LabelStatement', label: labelName } as any;
-            }
-
-            // Unify assignment, array access, method call
-            const savedPos = this.pos;
-            const expr = this.parsePrimary(); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
-
-            if (this.match(TokenType.OperatorEquals)) {
-                return {
-                    type: 'AssignmentStatement',
-                    left: expr,
-                    right: this.parseExpression()
-                } as AssignmentStatement;
-            } else {
-                // If parsePrimary() greedily consumed `(args)` as a function call postfix but the
-                // next token is a binary-only operator (cannot start an argument expression), the
-                // `(...)` was actually the start of the argument expression, not a call argument list.
-                // Example: `Debug.Print (1+2)*3` — `(1+2)` was mis-parsed as the argument; `*3` is
-                // the continuation. Backtrack and re-parse with stopBeforeSpacedLParen=true so that
-                // `(1+2)*3` is parsed as a single expression argument.
-                if (expr.type === 'CallExpression' && this.isBinaryOnlyOperator(this.peek().type)) {
-                    this.pos = savedPos;
-                    const callee = this.parsePrimary(/* stopBeforeSpacedLParen= */ true);
-                    const args: Expression[] = [this.parseCallArgument()];
-                    while (this.match(TokenType.OperatorComma)) {
-                        args.push(this.parseCallArgument());
-                    }
-                    return { type: 'CallStatement', expression: { type: 'CallExpression', callee, args } } as CallStatement;
-                }
-
-                // If it's not an assignment, maybe it's a CallStatement with arguments separated by comma
-                const args: Expression[] = [];
-                // Check if there are args on the same line
-                if (
-                    this.peek().type !== TokenType.Newline &&
-                    this.peek().type !== TokenType.EOF &&
-                    this.peek().type !== TokenType.KeywordElse &&
-                    this.peek().type !== TokenType.KeywordElseIf &&
-                    this.peek().type !== TokenType.KeywordEnd &&
-                    this.peek().type !== TokenType.KeywordNext &&
-                    this.peek().type !== TokenType.KeywordLoop
-                ) {
-                    args.push(this.parseCallArgument());
-                    while (this.match(TokenType.OperatorComma)) {
-                        args.push(this.parseCallArgument());
-                    }
-                }
-
-                if (args.length > 0) {
-                    return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
-                } else if (expr.type === 'CallExpression') {
-                    const callExpr = expr as CallExpression;
-                    // identifier() with empty parens in statement position (no Call keyword)
-                    // is always a syntax error — use `identifier`, `identifier arg`, or
-                    // `Call identifier()` instead.
-                    // FOREIGN-NAME [identifier]() is exempt: used to call COM methods by reserved names.
-                    if (callExpr.args.length === 0 && callExpr.callee.type === 'Identifier' &&
-                            !(callExpr.callee as Identifier).foreign) {
-                        const line = callExpr.loc?.start.line ?? this.peek().line;
-                        this.throwError(`Parse error: syntax error at line ${line}`);
-                    }
-                    return { type: 'CallStatement', expression: callExpr } as CallStatement;
-                } else {
-                    // Call matched without parens e.g. `MainLoop`
-                    return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
-                }
-            }
+            return this.parseIdentifierOrCallStatement();
         } else if (token.type === TokenType.Unknown) {
             this.throwError(`Parse error: Unknown token '${this.tokenDisplay(token.value)}' at line ${token.line}`);
         } else {
@@ -2602,7 +2681,10 @@ export class Parser {
             expr = { type: 'Identifier', name: token.value, foreign: true } as Identifier;
         } else if (token.type === TokenType.Identifier ||
                    Parser.CONTEXTUAL_KW.has(token.type) ||
-                   Parser.COMPAT_KW_EXPR.has(token.type)) {
+                   Parser.COMPAT_KW_EXPR.has(token.type) ||
+                   // ARCH-1: in expression context, any keyword that is user-defined as a procedure
+                   // is treated as an identifier (e.g. `x = Open()` where `Function Open()` exists)
+                   this.isUserProcOverride(token)) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const procName = this.advance();
