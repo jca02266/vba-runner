@@ -1,12 +1,23 @@
 import JSZip from 'jszip';
 import CFB from 'cfb';
 import iconv from 'iconv-lite';
-import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { createInterface } from 'readline';
 import { resolve, dirname, basename, extname, join } from 'path';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream } from './dir-parser.js';
 
-const VERSION = '0.1.0-alpha.1';
+const VERSION = '0.1.1-alpha.1';
+
+async function promptYesNo(question: string): Promise<boolean> {
+    const rl = createInterface({ input: process.stdin, output: process.stdout });
+    return new Promise(resolve => {
+        rl.question(question, answer => {
+            rl.close();
+            resolve(answer.trim().toLowerCase() === 'y');
+        });
+    });
+}
 
 function printUsage(): void {
     console.log('Usage:');
@@ -95,6 +106,33 @@ async function runImport(args: string[]): Promise<void> {
     const absXlsm = resolve(xlsmArg);
     const absSrc  = resolve(srcDirArg ?? join(dirname(absXlsm), 'src'));
     const outPath = resolve(outPathArg ?? absXlsm);
+    const backupPath = absXlsm + '.bak';
+    const willOverwrite = outPath === absXlsm;
+
+    console.log('');
+    console.log('⚠️  警告: import は Excel ファイルを直接書き換えます。');
+    console.log('   ファイル構造が壊れる可能性があります。実行前にバックアップを取ることを強く推奨します。');
+    console.log(`   対象ファイル : ${absXlsm}`);
+    console.log(`   出力先       : ${outPath}`);
+    if (willOverwrite) {
+        console.log(`   バックアップ : ${backupPath}`);
+    }
+    console.log('');
+
+    const question = willOverwrite
+        ? 'バックアップを作成してから import を実行しますか？ [y/N]: '
+        : 'import を実行しますか？ [y/N]: ';
+    const confirmed = await promptYesNo(question);
+
+    if (!confirmed) {
+        console.log('キャンセルしました。');
+        process.exit(0);
+    }
+
+    if (willOverwrite) {
+        copyFileSync(absXlsm, backupPath);
+        console.log(`バックアップ作成: ${backupPath}`);
+    }
 
     const sourceMap = new Map<string, string>();
     for (const f of readdirSync(absSrc)) {
