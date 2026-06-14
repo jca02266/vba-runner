@@ -426,11 +426,19 @@ export class LSPServer {
                 },
                 severity: 4, // Hint
                 code: 'VBA011',
-                message: hit.kind === 'index-call'
-                    ? `Excel依存：Range 変数 '${hit.varName}' への添字アクセス（${hit.varName}(...) は ${hit.varName}.Item(...) と等価）`
-                    : hit.kind === 'member-call'
-                        ? `Excel依存：Range 変数 '${hit.varName}' へのメソッド呼び出し: .${hit.property}()`
-                        : `Excel依存：Range 変数 '${hit.varName}' へのプロパティアクセス: .${hit.property}`,
+                ...(hit.kind === 'index-call' ? {
+                    message: `Excel dependency: subscript access on Range variable '${hit.varName}' (${hit.varName}(...) is equivalent to ${hit.varName}.Item(...))`,
+                    l10nKey: "Excel dependency: subscript access on Range variable '{0}' ({0}(...) is equivalent to {0}.Item(...))",
+                    l10nArgs: [hit.varName, hit.varName, hit.varName],
+                } : hit.kind === 'member-call' ? {
+                    message: `Excel dependency: method call on Range variable '${hit.varName}': .${hit.property ?? ''}()`,
+                    l10nKey: "Excel dependency: method call on Range variable '{0}': .{1}()",
+                    l10nArgs: [hit.varName, hit.property ?? ''],
+                } : {
+                    message: `Excel dependency: property access on Range variable '${hit.varName}': .${hit.property ?? ''}`,
+                    l10nKey: "Excel dependency: property access on Range variable '{0}': .{1}",
+                    l10nArgs: [hit.varName, hit.property ?? ''],
+                }),
                 source: 'vba-dataflow',
             }));
             const vbaLintDiags = lintProgram(ast).map(d => ({
@@ -441,6 +449,8 @@ export class LSPServer {
                 severity: d.severity,
                 code: d.code,
                 message: d.message,
+                l10nKey: d.l10nKey,
+                l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
             return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags];
@@ -537,7 +547,8 @@ export class LSPServer {
             const localDecls   = result.locals.map(v => `    Dim ${v} As Variant`).join('\n');
             const callArgs     = [...result.inputs, ...result.outputs].join(', ');
             const newProcName  = 'ExtractedSub';
-            const procBody     = localDecls ? `${localDecls}\n    ' TODO: 抽出したコードをここに移動` : `    ' TODO: 抽出したコードをここに移動`;
+            const todoComment  = `    ' TODO: Move extracted code here`;
+            const procBody     = localDecls ? `${localDecls}\n${todoComment}` : todoComment;
             const procSignature = `Private Sub ${newProcName}(${allParams})\n${procBody}\nEnd Sub`;
             const callStatement = `${newProcName}(${callArgs})`;
 

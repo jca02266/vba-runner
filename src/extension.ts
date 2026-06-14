@@ -89,7 +89,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 d.range.end.character
             );
             const sev = d.severity === 1 ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
-            const diag = new vscode.Diagnostic(range, d.message, sev);
+            const msg = d.l10nKey != null
+                ? vscode.l10n.t(d.l10nKey, ...(d.l10nArgs ?? []))
+                : d.message;
+            const diag = new vscode.Diagnostic(range, msg, sev);
             diag.source = d.source;
             return diag;
         });
@@ -619,7 +622,7 @@ End Class`;
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.generateTest', async (uri: string, procName: string) => {
             if (!uri || !procName) {
-                vscode.window.showErrorMessage('VBA ファイルを開き、プロシージャの Code Lens から実行してください');
+                vscode.window.showErrorMessage(vscode.l10n.t('Open a VBA file and run from the procedure Code Lens'));
                 return;
             }
 
@@ -635,10 +638,10 @@ End Class`;
             if (!testLocation) {
                 const choice = await vscode.window.showQuickPick(
                     [
-                        { label: '同じファイルに追加', description: 'Test_メソッド名 を同じ .bas ファイル末尾に追記', value: 'sameFile' as TestLocation },
-                        { label: '別ファイルに追加', description: `${sourceBase}Test.bas を作成してテストを追記`, value: 'separateFile' as TestLocation },
+                        { label: vscode.l10n.t('Add to same file'), description: vscode.l10n.t('Append Test_MethodName at the end of the same .bas file'), value: 'sameFile' as TestLocation },
+                        { label: vscode.l10n.t('Add to separate file'), description: vscode.l10n.t('Create {0}Test.bas and append the test', sourceBase), value: 'separateFile' as TestLocation },
                     ],
-                    { placeHolder: 'テストの配置場所を選択してください（ワークスペース設定に保存されます）' }
+                    { placeHolder: vscode.l10n.t('Select test location (saved to workspace settings)') }
                 );
                 if (!choice) return;
                 testLocation = choice.value;
@@ -665,11 +668,11 @@ End Class`;
                 const callExpr = isFunction
                     ? `result = ${procName}(${callArgs})`
                     : `${procName}${callArgs ? ' ' + callArgs : ''}`;
-                const lines = ['', `Sub Test_${procName}(assert)`, `    ' TODO: テストを実装してください`];
+                const lines = ['', `Sub Test_${procName}(assert)`, `    ' TODO: ${vscode.l10n.t('Implement the test')}`];
                 if (isFunction) {
-                    lines.push(`    ' Dim result`, `    ' ${callExpr}`, `    ' assert.IsTrue result = expected, "説明"`);
+                    lines.push(`    ' Dim result`, `    ' ${callExpr}`, `    ' assert.IsTrue result = expected, "${vscode.l10n.t('description')}"`);
                 } else {
-                    lines.push(`    ' ${callExpr}`, `    ' assert.IsTrue condition, "説明"`);
+                    lines.push(`    ' ${callExpr}`, `    ' assert.IsTrue condition, "${vscode.l10n.t('description')}"`);
                 }
                 lines.push('End Sub');
                 return lines.join('\n');
@@ -698,7 +701,7 @@ End Class`;
                 const targetLine = newSym ? newSym.location.range.start.line : lastLine + 2;
                 const pos = new vscode.Position(targetLine, 0);
                 await vscode.window.showTextDocument(targetDocUri, { selection: new vscode.Range(pos, pos) });
-                vscode.window.showInformationMessage(`'${testName}' のスタブを生成しました`);
+                vscode.window.showInformationMessage(vscode.l10n.t("Generated stub for '{0}'", testName));
             };
 
             if (testLocation === 'sameFile') {
@@ -722,7 +725,7 @@ End Class`;
         vscode.commands.registerCommand('vba-runner.generateMocks', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
-                vscode.window.showErrorMessage('VBA ファイルを開いた状態で実行してください');
+                vscode.window.showErrorMessage(vscode.l10n.t('Open a VBA file before running this command'));
                 return;
             }
 
@@ -743,17 +746,18 @@ End Class`;
                 const objects = extractObjectsFromAnalyzerJson(json);
 
                 if (objects.length === 0) {
-                    vscode.window.showInformationMessage('Excel 依存オブジェクトが検出されませんでした。');
+                    vscode.window.showInformationMessage(vscode.l10n.t('No Excel-dependent objects detected.'));
                     return;
                 }
 
                 // 既存ファイルのチェック
                 if (fs.existsSync(outPath)) {
+                    const overwrite = vscode.l10n.t('Overwrite');
                     const answer = await vscode.window.showWarningMessage(
-                        `__mocks__/ExcelObjects.bas は既に存在します。上書きしますか？`,
-                        '上書き', 'キャンセル'
+                        vscode.l10n.t('__mocks__/ExcelObjects.bas already exists. Overwrite?'),
+                        overwrite, vscode.l10n.t('Cancel')
                     );
-                    if (answer !== '上書き') return;
+                    if (answer !== overwrite) return;
                 }
 
                 // ひな形生成・書き出し
@@ -768,10 +772,10 @@ End Class`;
                 const doc = await vscode.workspace.openTextDocument(outPath);
                 await vscode.window.showTextDocument(doc);
                 vscode.window.showInformationMessage(
-                    `検出: ${objects.join(', ')}\n__mocks__/ExcelObjects.bas を生成しました。`
+                    vscode.l10n.t('Detected: {0}\nGenerated __mocks__/ExcelObjects.bas.', objects.join(', '))
                 );
             } catch (e: any) {
-                vscode.window.showErrorMessage(`generateMocks エラー: ${e.message}`);
+                vscode.window.showErrorMessage(vscode.l10n.t('generateMocks error: {0}', e.message));
                 outputChannel.appendLine(`[generateMocks] ${e.message}`);
             }
         })
@@ -793,7 +797,7 @@ End Class`;
                 );
                 await vscode.window.showTextDocument(docUri, { selection: new vscode.Range(pos, pos) });
             } else {
-                vscode.window.showInformationMessage(`テスト関数 '${testName}' が見つかりません`);
+                vscode.window.showInformationMessage(vscode.l10n.t("Test function '{0}' not found", testName));
             }
         })
     );
@@ -1301,12 +1305,14 @@ End Class`;
 
             // Ask user about other replacements after multi-cursor is set
             if (otherReplacements.length > 0) {
+                const REPLACE_ALL = vscode.l10n.t('Replace all');
+                const REVIEW_ONE = vscode.l10n.t('Review one by one');
                 const choice = await vscode.window.showQuickPick(
-                    ['全て置換', '一つずつ確認', '置換しない'],
-                    { placeHolder: `他に ${otherReplacements.length} 箇所見つかりました` }
+                    [REPLACE_ALL, REVIEW_ONE, vscode.l10n.t('Keep as is')],
+                    { placeHolder: vscode.l10n.t('{0} more occurrence(s) found', String(otherReplacements.length)) }
                 );
 
-                if (choice === '全て置換') {
+                if (choice === REPLACE_ALL) {
                     // Apply all replacements from back to front to avoid offset changes
                     otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
                     for (const repl of otherReplacements) {
@@ -1314,22 +1320,23 @@ End Class`;
                         replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
                         await vscode.workspace.applyEdit(replaceEdit);
                     }
-                } else if (choice === '一つずつ確認') {
+                } else if (choice === REVIEW_ONE) {
                     // Apply replacements one by one, asking for each
                     otherReplacements.sort((a, b) => b.line - a.line || b.start - a.start);
                     for (const repl of otherReplacements) {
                         const lineText = editor.document.lineAt(repl.line).text;
                         const exprText = lineText.substring(repl.start, repl.end);
 
+                        const REPLACE = vscode.l10n.t('Replace');
                         const userChoice = await vscode.window.showQuickPick(
-                            ['置換', 'スキップ'],
+                            [REPLACE, vscode.l10n.t('Skip')],
                             {
-                                placeHolder: `行 ${repl.line + 1}: "${exprText}" を置換しますか？`,
+                                placeHolder: vscode.l10n.t('Line {0}: Replace "{1}"?', String(repl.line + 1), exprText),
                                 canPickMany: false
                             }
                         );
 
-                        if (userChoice === '置換') {
+                        if (userChoice === REPLACE) {
                             const replaceEdit = new vscode.WorkspaceEdit();
                             replaceEdit.replace(uri, new vscode.Range(repl.line, repl.start, repl.line, repl.end), varName);
                             await vscode.workspace.applyEdit(replaceEdit);
@@ -1351,17 +1358,17 @@ End Class`;
                 const vsUri = vscode.Uri.parse(uri);
                 const editor = vscode.window.activeTextEditor;
                 if (!editor || editor.document.uri.toString() !== vsUri.toString()) {
-                    vscode.window.showWarningMessage('ドキュメントのコンテキストが失われました');
+                    vscode.window.showWarningMessage(vscode.l10n.t('Document context has been lost'));
                     return;
                 }
 
                 const defaultName = callStatement.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/)?.[1] ?? 'ExtractedSub';
                 const procName = await vscode.window.showInputBox({
-                    prompt: '新しいプロシージャ名:',
+                    prompt: vscode.l10n.t('New procedure name:'),
                     value: defaultName,
                     validateInput: (input) => {
-                        if (!input) return 'プロシージャ名は必須です';
-                        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) return '無効なプロシージャ名';
+                        if (!input) return vscode.l10n.t('Procedure name is required');
+                        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) return vscode.l10n.t('Invalid procedure name');
                         return '';
                     },
                 });
@@ -1435,7 +1442,7 @@ End Class`;
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.extractFunction',
             (_uri: string, _procName: string, _startLine: number, _endLine: number) => {
-                vscode.window.showInformationMessage('Extract Function は未実装です。');
+                vscode.window.showInformationMessage(vscode.l10n.t('Extract Function is not yet implemented.'));
             }
         )
     );
@@ -1458,9 +1465,9 @@ End Class`;
             }
 
             const constName = await vscode.window.showInputBox({
-                prompt: '定数名:',
+                prompt: vscode.l10n.t('Constant name:'),
                 value: defaultName,
-                validateInput: v => !v ? '定数名は必須です' : !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? '無効な定数名' : '',
+                validateInput: v => !v ? vscode.l10n.t('Constant name is required') : !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? vscode.l10n.t('Invalid constant name') : '',
             });
             if (!constName) return;
 
@@ -1471,7 +1478,7 @@ End Class`;
             );
 
             if (!proc) {
-                vscode.window.showWarningMessage('カーソルはプロシージャ内にある必要があります');
+                vscode.window.showWarningMessage(vscode.l10n.t('The cursor must be inside a procedure'));
                 return;
             }
 
@@ -1524,7 +1531,7 @@ End Class`;
                 s.type === 'ProcedureDeclaration' && s.loc?.start.line <= lineNum1 && s.loc?.end.line >= lineNum1
             );
             if (!proc) {
-                vscode.window.showWarningMessage('変数がプロシージャ内にありません');
+                vscode.window.showWarningMessage(vscode.l10n.t('Variable is not inside a procedure'));
                 return;
             }
 
@@ -1550,15 +1557,15 @@ End Class`;
             }
 
             if (dimLine < 0) {
-                vscode.window.showWarningMessage(`'${varName}' の Dim 宣言が見つかりません`);
+                vscode.window.showWarningMessage(vscode.l10n.t("No Dim declaration found for '{0}'", varName));
                 return;
             }
             if (assignLine < 0) {
-                vscode.window.showWarningMessage(`'${varName}' の代入文が見つかりません`);
+                vscode.window.showWarningMessage(vscode.l10n.t("No assignment found for '{0}'", varName));
                 return;
             }
             if (assignCount > 1) {
-                vscode.window.showWarningMessage(`'${varName}' に複数の代入があるためインライン化できません`);
+                vscode.window.showWarningMessage(vscode.l10n.t("Cannot inline '{0}': multiple assignments found", varName));
                 return;
             }
 
@@ -1669,7 +1676,7 @@ End Class`;
             }
 
             if (toDeleteLines.size === 0) {
-                vscode.window.showInformationMessage('未使用の変数はありません');
+                vscode.window.showInformationMessage(vscode.l10n.t('No unused variables found'));
                 return;
             }
 
@@ -1678,7 +1685,7 @@ End Class`;
                 edit.delete(uri, new vscode.Range(ln, 0, ln + 1, 0));
             }
             await vscode.workspace.applyEdit(edit);
-            vscode.window.showInformationMessage(`${toDeleteLines.size} 個の未使用変数宣言を削除しました`);
+            vscode.window.showInformationMessage(vscode.l10n.t('Deleted {0} unused variable declaration(s)', String(toDeleteLines.size)));
         })
     );
 
@@ -1729,10 +1736,13 @@ End Class`;
             await vscode.workspace.applyEdit(edit);
 
             const parts: string[] = [];
-            if (!hasOptionExplicit) parts.push('Option Explicit を追加');
-            if (dimCount > 0) parts.push(`${dimCount} 個の Dim 宣言を追加`);
-            if (parts.length === 0) parts.push('変更なし');
-            vscode.window.showInformationMessage(parts.join('、') + 'しました');
+            if (!hasOptionExplicit) parts.push(vscode.l10n.t('Added Option Explicit'));
+            if (dimCount > 0) parts.push(vscode.l10n.t('Added {0} Dim declaration(s)', String(dimCount)));
+            if (parts.length === 0) {
+                vscode.window.showInformationMessage(vscode.l10n.t('No changes'));
+            } else {
+                vscode.window.showInformationMessage(parts.join(', '));
+            }
         })
     );
 

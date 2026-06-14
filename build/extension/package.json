@@ -14,6 +14,7 @@
     "vscode": "^1.90.0"
   },
   "main": "./dist/extension.cjs",
+  "l10n": "./l10n/bundle.l10n.json",
   "activationEvents": [
     "onStartupFinished"
   ],

@@ -52,13 +52,23 @@ export interface LintDiagnostic {
     code: string;
     /** LSP severity: 1=Error 2=Warning 3=Information 4=Hint */
     severity: 1 | 2 | 3 | 4;
+    /** English message (pre-formatted, used in non-extension contexts) */
     message: string;
+    /** l10n key template (e.g. "Parameter '{0}' has no explicit ByVal/ByRef") */
+    l10nKey: string;
+    /** Substitution args for {0}, {1}, ... */
+    l10nArgs: string[];
     /** 0-based */
     line: number;
     /** 0-based */
     column: number;
     endLine: number;
     endColumn: number;
+}
+
+/** {0}, {1}, … を args で置換して英語プレビュー文字列を生成する */
+function fmt(key: string, args: string[]): string {
+    return args.reduce((s, a, i) => s.split(`{${i}}`).join(a), key);
 }
 
 // ─── ループ continue ラベル収集 ───────────────────────────────────────────────
@@ -243,10 +253,11 @@ function checkDimMultiDecl(vd: VariableDeclaration, out: LintDiagnostic[]): void
             const line   = (loc?.start.line   ?? 1) - 1;
             const col    = (loc?.start.column ?? 1) - 1;
             const endCol = (loc?.end?.column  ?? col + decl.name.name.length + 1) - 1;
+            const k001 = "'{0}' has no type specifier and becomes Variant. Specify a type for each variable (e.g., Dim {0} As Long)";
+            const a001 = [decl.name.name, decl.name.name];
             out.push({
-                code: 'VBA001',
-                severity: 2,
-                message: `'${decl.name.name}' は型指定がなく Variant になります。各変数に型を明示してください（例: Dim ${decl.name.name} As Long）`,
+                code: 'VBA001', severity: 2,
+                message: fmt(k001, a001), l10nKey: k001, l10nArgs: a001,
                 line, column: col, endLine: line, endColumn: endCol,
             });
         }
@@ -260,10 +271,11 @@ function checkIntegerType(vd: VariableDeclaration, out: LintDiagnostic[]): void 
             const loc  = decl.name.loc;
             const line = (loc?.start.line   ?? 1) - 1;
             const col  = (loc?.start.column ?? 1) - 1;
+            const k002v = "'{0}' is declared as Integer. In VBA, Long is faster and recommended";
+            const a002v = [decl.name.name];
             out.push({
-                code: 'VBA002',
-                severity: 3,
-                message: `'${decl.name.name}' は Integer 型です。VBA では Long の方が高速で推奨されます`,
+                code: 'VBA002', severity: 3,
+                message: fmt(k002v, a002v), l10nKey: k002v, l10nArgs: a002v,
                 line, column: col, endLine: line, endColumn: col + decl.name.name.length,
             });
         }
@@ -276,10 +288,11 @@ function checkIntegerTypeParam(param: Parameter, out: LintDiagnostic[]): void {
         const loc  = (param as any).loc;
         const line = (loc?.start.line   ?? 1) - 1;
         const col  = (loc?.start.column ?? 1) - 1;
+        const k002p = "Parameter '{0}' is declared as Integer. Long is recommended";
+        const a002p = [param.name];
         out.push({
-            code: 'VBA002',
-            severity: 3,
-            message: `パラメーター '${param.name}' は Integer 型です。Long を推奨します`,
+            code: 'VBA002', severity: 3,
+            message: fmt(k002p, a002p), l10nKey: k002p, l10nArgs: a002p,
             line, column: col, endLine: line, endColumn: col + param.name.length,
         });
     }
@@ -294,10 +307,11 @@ function checkParameters(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
             const loc  = (param as any).loc;
             const line = (loc?.start.line   ?? 1) - 1;
             const col  = (loc?.start.column ?? 1) - 1;
+            const k003 = "Parameter '{0}' has no explicit ByVal/ByRef. VBA defaults to ByRef";
+            const a003 = [param.name];
             out.push({
-                code: 'VBA003',
-                severity: 2,
-                message: `パラメーター '${param.name}' に ByVal/ByRef が明示されていません。VBA のデフォルトは ByRef です`,
+                code: 'VBA003', severity: 2,
+                message: fmt(k003, a003), l10nKey: k003, l10nArgs: a003,
                 line, column: col, endLine: line, endColumn: col + param.name.length,
             });
         }
@@ -372,13 +386,14 @@ function checkParamAssignWithoutByRef(proc: ProcedureDeclaration, out: LintDiagn
         if (param.isParamArray) continue;
         if (!assigned.has(param.name.toLowerCase())) continue;
 
+        const k012 = "Parameter '{0}' is assigned without explicit ByRef, which may unintentionally modify the caller's variable (specify ByRef or ByVal explicitly)";
+        const a012 = [param.name];
         const loc  = (param as any).loc;
         const line = (loc?.start.line   ?? 1) - 1;
         const col  = (loc?.start.column ?? 1) - 1;
         out.push({
-            code: 'VBA012',
-            severity: 2,
-            message: `パラメーター '${param.name}' は ByRef の指定がないのに代入されています。呼び出し元の変数を意図せず書き換える可能性があります（明示的に ByRef または ByVal を指定してください）`,
+            code: 'VBA012', severity: 2,
+            message: fmt(k012, a012), l10nKey: k012, l10nArgs: a012,
             line, column: col, endLine: line, endColumn: col + param.name.length,
         });
     }
@@ -389,10 +404,10 @@ function checkWhileWend(stmt: WhileStatement, out: LintDiagnostic[]): void {
     const loc  = (stmt as any).loc;
     const line = (loc?.start.line   ?? 1) - 1;
     const col  = (loc?.start.column ?? 1) - 1;
+    const k004 = "'While...Wend' is obsolete. Use 'Do While...Loop' instead";
     out.push({
-        code: 'VBA004',
-        severity: 3,
-        message: '\'While...Wend\' は古い構文です。\'Do While...Loop\' を推奨します',
+        code: 'VBA004', severity: 3,
+        message: k004, l10nKey: k004, l10nArgs: [],
         line, column: col, endLine: line, endColumn: col + 5,
     });
 }
@@ -400,13 +415,13 @@ function checkWhileWend(stmt: WhileStatement, out: LintDiagnostic[]): void {
 /** VBA005: Select Case に Case Else なし */
 function checkSelectCaseElse(sc: SelectCaseStatement, out: LintDiagnostic[]): void {
     if (!sc.elseBody || sc.elseBody.length === 0) {
+        const k005 = "'Select Case' has no 'Case Else'. Unexpected values will be silently ignored";
         const loc  = (sc as any).loc;
         const line = (loc?.start.line   ?? 1) - 1;
         const col  = (loc?.start.column ?? 1) - 1;
         out.push({
-            code: 'VBA005',
-            severity: 2,
-            message: '\'Select Case\' に \'Case Else\' がありません。想定外の値がサイレントにスルーされます',
+            code: 'VBA005', severity: 2,
+            message: k005, l10nKey: k005, l10nArgs: [],
             line, column: col, endLine: line, endColumn: col + 11,
         });
     }
@@ -422,13 +437,14 @@ function checkSheetsNumericIndex(ce: CallExpression, out: LintDiagnostic[]): voi
     const arg0 = ce.args[0];
     if (arg0.type !== 'NumberLiteral') return;
 
+    const k006 = "Numeric index ({0}) for Sheets/Worksheets breaks when sheet order changes. Use a sheet name instead";
+    const a006 = [String((arg0 as NumberLiteral).value)];
     const loc  = ce.callee.loc;
     const line = (loc?.start.line   ?? 1) - 1;
     const col  = (loc?.start.column ?? 1) - 1;
     out.push({
-        code: 'VBA006',
-        severity: 2,
-        message: `Sheets/Worksheets の数値インデックス (${(arg0 as NumberLiteral).value}) はシート順変更で壊れます。シート名（文字列）での指定を推奨します`,
+        code: 'VBA006', severity: 2,
+        message: fmt(k006, a006), l10nKey: k006, l10nArgs: a006,
         line, column: col, endLine: line, endColumn: col + (ce.callee as Identifier).name.length,
     });
 }
@@ -441,10 +457,11 @@ function checkActiveObject(id: Identifier, out: LintDiagnostic[]): void {
     const loc  = id.loc;
     const line = (loc?.start.line   ?? 1) - 1;
     const col  = (loc?.start.column ?? 1) - 1;
+    const k007 = "'{0}' depends on the currently selected object. Use an explicit reference instead";
+    const a007 = [id.name];
     out.push({
-        code: 'VBA007',
-        severity: 3,
-        message: `'${id.name}' は現在選択されているオブジェクトに依存します。明示的な参照（変数またはシート名）を推奨します`,
+        code: 'VBA007', severity: 3,
+        message: fmt(k007, a007), l10nKey: k007, l10nArgs: a007,
         line, column: col, endLine: line, endColumn: col + id.name.length,
     });
 }
@@ -458,13 +475,14 @@ function checkGoTo(stmt: GoToStatement, out: LintDiagnostic[], continueLabels: S
     // ループ末尾に定義されたラベルはcontinueとして除外
     if (continueLabels.has(lower)) return;
 
+    const k008 = "'GoTo {0}' leads to spaghetti code. Consider using loops or conditionals instead";
+    const a008 = [label];
     const loc  = (stmt as any).loc;
     const line = (loc?.start.line   ?? 1) - 1;
     const col  = (loc?.start.column ?? 1) - 1;
     out.push({
-        code: 'VBA008',
-        severity: 2,
-        message: `'GoTo ${label}' はスパゲッティコードの原因になります。ループや条件分岐での代替を検討してください`,
+        code: 'VBA008', severity: 2,
+        message: fmt(k008, a008), l10nKey: k008, l10nArgs: a008,
         line, column: col, endLine: line, endColumn: col + 4,
     });
 }
@@ -482,7 +500,7 @@ function checkUnreachableCode(proc: ProcedureDeclaration, out: LintDiagnostic[])
             out.push({
                 code: 'VBA010',
                 severity: 2,
-                message: 'このコードには到達できません（到達不能コード）',
+                message: 'This code is unreachable', l10nKey: 'This code is unreachable', l10nArgs: [],
                 line:      startLoc.line   - 1,
                 column:    startLoc.column - 1,
                 endLine:   (endLoc?.line   ?? startLoc.line)   - 1,
@@ -507,13 +525,14 @@ function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
         // 対象: 単純代入のみ（For/ForEach ループカウンターは除外）
         if (ds.stmtType !== 'AssignmentStatement' && ds.stmtType !== 'SetStatement') continue;
 
+        const k009 = "Assignment to '{0}' is a dead store (value is never used)";
+        const a009 = [ds.varName];
         const line      = ds.line      > 0 ? ds.line      - 1 : 0;
         const col       = ds.column    > 0 ? ds.column    - 1 : 0;
         const endCol    = ds.endColumn > 0 ? ds.endColumn - 1 : col + ds.varName.length;
         out.push({
-            code: 'VBA009',
-            severity: 2,
-            message: `'${ds.varName}' への代入はデッドストア（使用されない代入値）`,
+            code: 'VBA009', severity: 2,
+            message: fmt(k009, a009), l10nKey: k009, l10nArgs: a009,
             line, column: col, endLine: line, endColumn: endCol,
         });
     }
@@ -528,7 +547,8 @@ function checkOptionExplicit(program: Program, out: LintDiagnostic[]): void {
         out.push({
             code: 'VBA013',
             severity: 1,
-            message: 'Option Explicit が宣言されていません。変数名のタイポが実行時まで検出されなくなります',
+            message: 'Option Explicit is missing. Typos in variable names will not be detected until runtime',
+            l10nKey: 'Option Explicit is missing. Typos in variable names will not be detected until runtime', l10nArgs: [],
             line: 0, column: 0, endLine: 0, endColumn: 0,
         });
     }

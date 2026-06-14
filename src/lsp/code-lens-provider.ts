@@ -76,7 +76,7 @@ export class CodeLensProvider {
             items.push({
                 range,
                 command: {
-                    title: proc.isTested ? '✓ テスト済み' : '未テスト',
+                    title: proc.isTested ? '✓ Tested' : 'Untested',
                     command: proc.isTested ? 'vba-runner.goToTest' : 'vba-runner.generateTest',
                     arguments: [uri, proc.name],
                 },
@@ -107,7 +107,9 @@ export class CodeLensProvider {
                     end:   { line: p.line, character: 0 },
                 },
                 severity: 2, // warning
-                message: `'${p.name}' は参照されていません (Private Dead code 候補)`,
+                message: `'${p.name}' is not referenced (Private dead code candidate)`,
+                l10nKey: "'{0}' is not referenced (Private dead code candidate)",
+                l10nArgs: [p.name],
                 source: 'vba-runner',
             }));
     }
