@@ -2,6 +2,24 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.0] - 2026-06-14
+
+### Added
+
+- **Auto-insert `()` on Enter** — When pressing Enter after `Sub Foo`, `Function Bar`, or `Property Get/Let/Set` declarations that are missing their parentheses, the parentheses are automatically inserted (VBE-compatible behavior).
+- **Auto-insert `End Sub/Function/Property` on Enter** — Pressing Enter on a `Sub`/`Function`/`Property` header line automatically appends the matching `End` statement on the next line (experimental, VBE-compatible).
+- **Auto-insert `End If/For/With/Do/While/Select Case` on Enter** — Pressing Enter on `If`, `For`, `For Each`, `With`, `Do`, `Do While`, `Do Until`, `While`, and `Select Case` header lines automatically inserts the corresponding `End` or `Loop`/`Wend` statement.
+- **Auto-indent `Else`/`ElseIf`/`Case`** — Pressing Enter on these mid-block keywords correctly adjusts indentation to match the enclosing block.
+- **Internationalization (l10n)** — All user-visible messages in the extension are now localizable via `@vscode/l10n`. The Japanese locale bundle (`bundle.l10n.ja.json`) is included. Bundles are loaded at activation for both packaged and F5 dev-mode runs.
+
+### Fixed
+
+- **F5 dev mode l10n bundle not loaded** — When running the extension via F5 (Extension Development Host), `vscode.l10n.bundle` is `undefined`. The extension now manually loads the locale bundle via `@vscode/l10n`'s `l10n.config()` at activation time.
+- **Dead store false positive: class module fields** — Module-level variables (fields) assigned inside one procedure and read inside another were incorrectly flagged as dead stores. Fields are now treated as always-live across all procedures in a module.
+- **Dead store false positive: `Set var = Nothing`** — COM object release (`Set x = Nothing`) was incorrectly flagged as a dead store. These assignments are now recognized as side-effecting operations and excluded from dead store analysis.
+- **Parser: `Event` declaration rejects reserved-identifier names** — `Public Event Open()` now correctly produces a compile error per MS-VBAL §3.3.5.2. Previously, the permissive `isNameToken` check allowed any keyword as an event name.
+- **Auto-format on Enter: `autoParentheses` and `autoEndBlock` are now mutually exclusive** — Previously, both handlers could fire on the same keystroke, resulting in double edits.
+
 ## [0.1.9] - 2026-06-13
 
 ### Added

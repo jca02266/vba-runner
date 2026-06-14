@@ -2,6 +2,15 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.3] - 2026-06-14
+
+### Fixed
+
+- **Dead store false positive: class module fields** — Module-level variables assigned in one procedure and read in another were incorrectly flagged as dead stores. Fields are now treated as always-live.
+- **Dead store false positive: `Set var = Nothing`** — COM object release was incorrectly flagged as a dead store. These assignments are now excluded from dead store analysis.
+- **Parser: `Event` declaration rejects reserved-identifier names** — `Public Event Open()` now correctly produces a compile error per MS-VBAL §3.3.5.2.
+- **`.cls` file header stripping** — `vba-analyzer` and `vba-formatter` now correctly strip the `VERSION 1.0 CLASS` / `BEGIN` / `END` header block from Excel-exported `.cls` files before parsing.
+
 ## [0.1.1-alpha.2] - 2026-06-13
 
 ### Added
