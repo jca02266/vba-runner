@@ -13,7 +13,7 @@ Option Explicit
 ' ════════════════════════════════════════════════════════════
 
 ' ─── イベント宣言 ────────────────────────────────────────────
-Public Event Open()
+Public Event WorkbookOpen()
 Public Event BeforeClose(ByRef Cancel As Boolean)
 Public Event SheetChange(ByVal Sh As SimSheet, ByVal Target As SimCell)
 Public Event SheetActivate(ByVal Sh As SimSheet)
@@ -110,9 +110,8 @@ Public Property Get SheetCount() As Long
 End Property
 
 ' ─── ワークブックを開く (イベント発火) ──────────────────────
-' Open はVBAキーワードだが、コンテキストキーワードとしてメソッド名に使用可能
-Public Sub Open()
-    RaiseEvent Open
+Public Sub FireOpenEvent()
+    RaiseEvent WorkbookOpen
 End Sub
 
 ' ─── ワークブックを閉じる (イベント発火) ────────────────────

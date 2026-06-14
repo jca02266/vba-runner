@@ -42,7 +42,7 @@ End Sub
 
 ' ─── Workbook_Open ──────────────────────────────────────────
 ' Excel の ThisWorkbook モジュールで Workbook_Open を書く際の実装パターン
-Private Sub Workbook_Open()
+Private Sub Workbook_WorkbookOpen()
     Debug.Print "=== Workbook_Open: " & Workbook.Name & " ==="
 
     ' ヘッダー行のセットアップ (Excel でよくある起動時初期化)
