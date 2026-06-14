@@ -42,6 +42,12 @@ export interface RangeAccessHit {
     line: number;
     /** ソース上の列番号 (0-based) */
     column: number;
+    /** 英語フォーマット済みメッセージ（テスト/CLI 用） */
+    message: string;
+    /** l10n テンプレートキー */
+    l10nKey: string;
+    /** l10n 置換引数 */
+    l10nArgs: string[];
 }
 
 // ─── コア実装 ─────────────────────────────────────────────────────────────────
@@ -151,12 +157,18 @@ function scanExpr(
                     const varName = (me.object as Identifier).name;
                     const t = resolveVarType(varName, typeEnv, flowEnv, procName);
                     if (isRangeType(t)) {
+                        const prop = me.property.name;
+                        const k = "Excel dependency: method call on Range variable '{0}': .{1}()";
+                        const a = [varName, prop];
                         hits.push({
                             varName,
                             kind: 'member-call',
-                            property: me.property.name,
+                            property: prop,
                             line: (me.object.loc?.start.line ?? 1) - 1,
                             column: (me.object.loc?.start.column ?? 1) - 1,
+                            message: `Excel dependency: method call on Range variable '${varName}': .${prop}()`,
+                            l10nKey: k,
+                            l10nArgs: a,
                         });
                     }
                 }
@@ -165,11 +177,16 @@ function scanExpr(
                 const varName = (ce.callee as Identifier).name;
                 const t = resolveVarType(varName, typeEnv, flowEnv, procName);
                 if (isRangeType(t) && ce.args.length > 0) {
+                    const k = "Excel dependency: subscript access on Range variable '{0}' ({0}(...) is equivalent to {0}.Item(...))";
+                    const a = [varName, varName, varName];
                     hits.push({
                         varName,
                         kind: 'index-call',
                         line: (ce.callee.loc?.start.line ?? 1) - 1,
                         column: (ce.callee.loc?.start.column ?? 1) - 1,
+                        message: `Excel dependency: subscript access on Range variable '${varName}' (${varName}(...) is equivalent to ${varName}.Item(...))`,
+                        l10nKey: k,
+                        l10nArgs: a,
                     });
                 }
             }
@@ -186,12 +203,18 @@ function scanExpr(
                 const varName = (me.object as Identifier).name;
                 const t = resolveVarType(varName, typeEnv, flowEnv, procName);
                 if (isRangeType(t)) {
+                    const prop = me.property.name;
+                    const k = "Excel dependency: property access on Range variable '{0}': .{1}";
+                    const a = [varName, prop];
                     hits.push({
                         varName,
                         kind: 'member-access',
-                        property: me.property.name,
+                        property: prop,
                         line: (me.object.loc?.start.line ?? 1) - 1,
                         column: (me.object.loc?.start.column ?? 1) - 1,
+                        message: `Excel dependency: property access on Range variable '${varName}': .${prop}`,
+                        l10nKey: k,
+                        l10nArgs: a,
                     });
                 }
             }

@@ -426,19 +426,9 @@ export class LSPServer {
                 },
                 severity: 4, // Hint
                 code: 'VBA011',
-                ...(hit.kind === 'index-call' ? {
-                    message: `Excel dependency: subscript access on Range variable '${hit.varName}' (${hit.varName}(...) is equivalent to ${hit.varName}.Item(...))`,
-                    l10nKey: "Excel dependency: subscript access on Range variable '{0}' ({0}(...) is equivalent to {0}.Item(...))",
-                    l10nArgs: [hit.varName, hit.varName, hit.varName],
-                } : hit.kind === 'member-call' ? {
-                    message: `Excel dependency: method call on Range variable '${hit.varName}': .${hit.property ?? ''}()`,
-                    l10nKey: "Excel dependency: method call on Range variable '{0}': .{1}()",
-                    l10nArgs: [hit.varName, hit.property ?? ''],
-                } : {
-                    message: `Excel dependency: property access on Range variable '${hit.varName}': .${hit.property ?? ''}`,
-                    l10nKey: "Excel dependency: property access on Range variable '{0}': .{1}",
-                    l10nArgs: [hit.varName, hit.property ?? ''],
-                }),
+                message: hit.message,
+                l10nKey: hit.l10nKey,
+                l10nArgs: hit.l10nArgs,
                 source: 'vba-dataflow',
             }));
             const vbaLintDiags = lintProgram(ast).map(d => ({
