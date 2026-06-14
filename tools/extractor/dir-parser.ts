@@ -62,11 +62,17 @@ export function parseDirStream(buf: Buffer): DirStreamResult {
                 case 0x0019:
                     name = readStr(sz);
                     break;
+                case 0x0047:
+                    // MODULENAMEUNICODE -- Unicode version of module name
+                    name = buf.subarray(i, i + sz).toString('utf16le');
+                    skip(sz);
+                    break;
                 case 0x001A:
-                    streamName = readStr(sz);
+                    skip(sz); // codepage version -- prefer Unicode below
                     if (i + 6 <= buf.length && buf.readUInt16LE(i) === 0x0032) {
                         i += 2;
                         const usz = readU32();
+                        streamName = buf.subarray(i, i + usz).toString('utf16le');
                         skip(usz);
                     }
                     break;
