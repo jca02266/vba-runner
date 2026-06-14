@@ -22,13 +22,13 @@ async function promptYesNo(question: string): Promise<boolean> {
 function printUsage(): void {
     console.log('Usage:');
     console.log('  vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]');
-    console.log('    output-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.log('    output-dir defaults to: <input.xlsm directory>/src');
     console.log('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>]');
-    console.log('    source-dir のデフォルト: <input.xlsm と同じディレクトリ>/src');
+    console.log('    source-dir defaults to: <input.xlsm directory>/src');
     console.log('');
     console.log('Options:');
-    console.log('  --version    バージョンを表示');
-    console.log('  --help       このヘルプを表示');
+    console.log('  --version    Show version');
+    console.log('  --help       Show this help');
 }
 
 function parseEncoding(args: string[]): { encoding: string | undefined; rest: string[] } {
@@ -48,13 +48,13 @@ async function openXlsm(xlsmPath: string) {
     const zip = await JSZip.loadAsync(readFileSync(xlsmPath));
     const entry = zip.file('xl/vbaProject.bin');
     if (!entry) {
-        console.error('xl/vbaProject.bin が見つかりません（マクロなし xlsm？）');
+        console.error('xl/vbaProject.bin not found (macro-free xlsm?)');
         process.exit(1);
     }
     const vbaBuf = Buffer.from(await entry.async('nodebuffer'));
     const cfb = CFB.read(vbaBuf, { type: 'buffer' });
     const dirEntry = CFB.find(cfb, '/VBA/dir');
-    if (!dirEntry) throw new Error('/VBA/dir が見つかりません');
+    if (!dirEntry) throw new Error('/VBA/dir not found');
     const dirDecompressed = decompress(Buffer.from(dirEntry.content as unknown as ArrayBuffer));
     const { codePage, modules } = parseDirStream(dirDecompressed);
     return { zip, cfb, codePage, modules };
@@ -62,7 +62,7 @@ async function openXlsm(xlsmPath: string) {
 
 function resolveEncoding(encodingOverride: string | undefined, codePage: number | null): string {
     if (!encodingOverride && codePage === null) {
-        console.error('警告: PROJECTCODEPAGE が見つかりませんでした。--encoding で指定してください。');
+        console.error('Error: PROJECTCODEPAGE not found. Specify encoding with --encoding.');
         process.exit(1);
     }
     return encodingOverride ?? `cp${codePage}`;
@@ -79,12 +79,12 @@ async function runExport(args: string[]): Promise<void> {
 
     const { cfb, codePage, modules } = await openXlsm(absXlsm);
     const encoding = resolveEncoding(encodingOverride, codePage);
-    console.log(`モジュール数: ${modules.length}`);
-    console.log(`エンコーディング: ${encoding}`);
+    console.log(`Modules  : ${modules.length}`);
+    console.log(`Encoding : ${encoding}`);
 
     for (const mod of modules) {
         const entry = CFB.find(cfb, `/VBA/${mod.streamName}`);
-        if (!entry) { console.warn(`  [skip] ${mod.name}: ストリームなし`); continue; }
+        if (!entry) { console.warn(`  [skip] ${mod.name}: stream not found`); continue; }
 
         const raw        = Buffer.from(entry.content as unknown as ArrayBuffer);
         const compressed = raw.subarray(mod.offset);
@@ -95,7 +95,7 @@ async function runExport(args: string[]): Promise<void> {
         writeFileSync(outPath, source, 'utf8');
         console.log(`  → ${basename(outPath)} (${source.length} chars)`);
     }
-    console.log('完了');
+    console.log('Done.');
 }
 
 async function runImport(args: string[]): Promise<void> {
@@ -110,28 +110,28 @@ async function runImport(args: string[]): Promise<void> {
     const willOverwrite = outPath === absXlsm;
 
     console.log('');
-    console.log('⚠️  警告: import は Excel ファイルを直接書き換えます。');
-    console.log('   ファイル構造が壊れる可能性があります。実行前にバックアップを取ることを強く推奨します。');
-    console.log(`   対象ファイル : ${absXlsm}`);
-    console.log(`   出力先       : ${outPath}`);
+    console.log('⚠️  Warning: import directly modifies the Excel file.');
+    console.log('   The file may become corrupted. It is strongly recommended to back up before proceeding.');
+    console.log(`   Input  : ${absXlsm}`);
+    console.log(`   Output : ${outPath}`);
     if (willOverwrite) {
-        console.log(`   バックアップ : ${backupPath}`);
+        console.log(`   Backup : ${backupPath}`);
     }
     console.log('');
 
     const question = willOverwrite
-        ? 'バックアップを作成してから import を実行しますか？ [y/N]: '
-        : 'import を実行しますか？ [y/N]: ';
+        ? 'Create a backup and run import? [y/N]: '
+        : 'Run import? [y/N]: ';
     const confirmed = await promptYesNo(question);
 
     if (!confirmed) {
-        console.log('キャンセルしました。');
+        console.log('Cancelled.');
         process.exit(0);
     }
 
     if (willOverwrite) {
         copyFileSync(absXlsm, backupPath);
-        console.log(`バックアップ作成: ${backupPath}`);
+        console.log(`Backup created: ${backupPath}`);
     }
 
     const sourceMap = new Map<string, string>();
@@ -140,20 +140,20 @@ async function runImport(args: string[]): Promise<void> {
         if (ext !== '.bas' && ext !== '.cls') continue;
         sourceMap.set(basename(f, ext).toLowerCase(), readFileSync(`${absSrc}/${f}`, 'utf8'));
     }
-    console.log(`ソースファイル: ${sourceMap.size} 件`);
+    console.log(`Source files : ${sourceMap.size}`);
 
     const { zip, cfb, codePage, modules } = await openXlsm(absXlsm);
     const encoding = resolveEncoding(encodingOverride, codePage);
-    console.log(`VBAモジュール: ${modules.length} 件`);
-    console.log(`エンコーディング: ${encoding}`);
+    console.log(`VBA modules  : ${modules.length}`);
+    console.log(`Encoding     : ${encoding}`);
 
     let updated = 0;
     for (const mod of modules) {
         const src = sourceMap.get(mod.name.toLowerCase());
-        if (src === undefined) { console.log(`  [skip] ${mod.name}: ソースファイルなし`); continue; }
+        if (src === undefined) { console.log(`  [skip] ${mod.name}: no source file`); continue; }
 
         const entry = CFB.find(cfb, `/VBA/${mod.streamName}`);
-        if (!entry) { console.warn(`  [warn] ${mod.name}: ストリームなし`); continue; }
+        if (!entry) { console.warn(`  [warn] ${mod.name}: stream not found`); continue; }
 
         const raw       = Buffer.from(entry.content as unknown as ArrayBuffer);
         const srcBytes  = iconv.encode(src, encoding);
@@ -167,13 +167,13 @@ async function runImport(args: string[]): Promise<void> {
         updated++;
     }
 
-    if (updated === 0) { console.error('更新するモジュールがありませんでした。'); process.exit(1); }
+    if (updated === 0) { console.error('Error: no modules were updated.'); process.exit(1); }
 
     const newVbaBin = CFB.write(cfb, { type: 'buffer' });
     zip.file('xl/vbaProject.bin', newVbaBin as unknown as Buffer, { createFolders: false });
     const newXlsm = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
     writeFileSync(outPath, newXlsm);
-    console.log(`保存: ${outPath}`);
+    console.log(`Saved: ${outPath}`);
 }
 
 async function main(): Promise<void> {
