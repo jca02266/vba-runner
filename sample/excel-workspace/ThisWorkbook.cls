@@ -40,8 +40,11 @@ Public Sub AttachWorkbook(ByVal wb As SimWorkbook)
     m_lastActiveSheet = ""
 End Sub
 
-' ─── Workbook_Open ──────────────────────────────────────────
-' Excel の ThisWorkbook モジュールで Workbook_Open を書く際の実装パターン
+' ─── Workbook_WorkbookOpen ──────────────────────────────────
+' 注意: 実際の Excel VBA では "Private Sub Workbook_Open()" と書く。
+'       Open はVBAの予約語のため SimWorkbook でイベント名に使えず、
+'       やむなく "WorkbookOpen" というイベント名にしている。
+'       本来の動作を再現するには JS レベルのモックが必要。
 Private Sub Workbook_WorkbookOpen()
     Debug.Print "=== Workbook_Open: " & Workbook.Name & " ==="
 
