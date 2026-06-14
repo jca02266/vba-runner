@@ -51,6 +51,20 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
         if (!param.isByVal) alwaysLive.add(name); // ByRef
     }
 
+    // モジュールレベル変数（プロシージャ内でローカル宣言されていない変数）は
+    // 他のプロシージャ/プロパティから読まれる可能性があるため常に生存扱いにする。
+    // これにより、クラスモジュールのフィールドへの代入を誤ってデッドストアと判定しない。
+    const localDecls = collectLocalDecls(proc.body);
+    for (const block of cfg.blocks) {
+        for (const stmt of block.stmts) {
+            for (const v of getStmtDefs(stmt)) {
+                if (!localDecls.has(v) && !paramNames.has(v)) {
+                    alwaysLive.add(v);
+                }
+            }
+        }
+    }
+
     const { blockOut } = computeLiveVars(cfg, alwaysLive);
 
     const results: DeadStore[] = [];
@@ -93,6 +107,30 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
 }
 
 // ─── 内部ユーティリティ ───────────────────────────────────────────────────────
+
+/** プロシージャ本体内でローカル宣言された変数名（小文字）を再帰的に収集する */
+function collectLocalDecls(stmts: any[]): Set<string> {
+    const locals = new Set<string>();
+    for (const stmt of stmts) {
+        if (stmt.type === 'VariableDeclaration') {
+            for (const decl of stmt.declarations ?? []) {
+                if (decl.name?.name) locals.add(decl.name.name.toLowerCase());
+            }
+        }
+        for (const key of ['body', 'consequent', 'alternate']) {
+            if (Array.isArray(stmt[key])) {
+                for (const n of collectLocalDecls(stmt[key])) locals.add(n);
+            }
+        }
+        for (const clause of stmt.cases ?? []) {
+            for (const n of collectLocalDecls(clause.body ?? [])) locals.add(n);
+        }
+        if (Array.isArray(stmt.elseBody)) {
+            for (const n of collectLocalDecls(stmt.elseBody)) locals.add(n);
+        }
+    }
+    return locals;
+}
 
 function lhsLoc(stmt: any, varName: string): { line: number; column: number; endColumn: number } {
     // AssignmentStatement / SetStatement: LHS Identifier の loc を優先

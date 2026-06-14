@@ -216,4 +216,36 @@ End Sub
     console.log('[PASS] Select Case: デッドストアなし');
 }
 
+// ─── モジュールレベル変数（クラスフィールド） ─────────────────────────────────────
+
+// Init でクラスフィールドに代入 → Property Get で参照 → デッドストアなし
+{
+    // findDeadStores は ProcedureDeclaration 単体を受け取るため、
+    // Init 内の m_row 代入が「プロシージャ内で参照されない = デッドストア」と
+    // 誤判定されないことを確認する。
+    const code = `
+Private m_row As Long
+Private m_value As String
+
+Public Sub Init(ByVal r As Long)
+    m_row   = r
+    m_value = ""
+End Sub
+
+Public Property Get Row() As Long
+    Row = m_row
+End Property
+`;
+    const tokens = new Lexer(code).tokenize();
+    const ast = new Parser(tokens).parse();
+    const initProc = ast.body.find(
+        (s): s is ProcedureDeclaration =>
+            s.type === 'ProcedureDeclaration' && (s as ProcedureDeclaration).name.name.toLowerCase() === 'init',
+    );
+    if (!initProc) throw new Error('Init not found');
+    const ds = findDeadStores(initProc);
+    assert.strictEqual(ds.length, 0, 'クラスフィールドへの代入はデッドストアなし');
+    console.log('[PASS] クラスフィールド代入: デッドストアなし');
+}
+
 console.log('\n✅ デッドストア検出: 全テスト通過');
