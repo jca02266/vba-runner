@@ -1,6 +1,58 @@
 import { ProcedureDeclaration, VariableDeclaration, Statement } from '../engine/parser';
 import { findAllReferences } from './references-provider';
 
+/**
+ * VBA/Excel/Access/MSForms の組み込みイベント名（すべて小文字）のホワイトリスト。
+ * プロシージャ名が "<prefix>_<suffix>" の形式で suffix がこのセットに一致する場合、
+ * イベントハンドラーとみなし Dead Code 警告を抑制する。
+ */
+const KNOWN_VBA_EVENT_NAMES = new Set([
+    // --- Worksheet ---
+    'activate', 'beforedoubleclick', 'beforerightclick', 'calculate', 'change',
+    'deactivate', 'followhyperlink', 'pivottableaftervaluechange',
+    'pivottablebeforeallocatechanges', 'pivottablebeforecommitchanges',
+    'pivottablebeforediscardchanges', 'pivottablechangesync', 'pivottableupdate',
+    'selectionchange', 'tableupdate',
+    // --- Workbook ---
+    'addininstall', 'addinuninstall', 'afterremotechange', 'aftersave',
+    'afterxmlexport', 'afterxmlimport', 'beforeclose', 'beforeprint',
+    'beforeremotechange', 'beforesave', 'beforexmlexport', 'beforexmlimport',
+    'modelchange', 'newchart', 'newsheet', 'open', 'pivottablecloseconnection',
+    'pivottableopenconnection', 'rowsetcomplete', 'sheetactivate', 'sheetbeforedelete',
+    'sheetbeforedoubleclick', 'sheetbeforerightclick', 'sheetcalculate', 'sheetchange',
+    'sheetdeactivate', 'sheetfollowhyperlink', 'sheetlensgalleryrendercomplete',
+    'sheetpivottableaftervaluechange', 'sheetpivottablebeforeallocatechanges',
+    'sheetpivottablebeforecommitchanges', 'sheetpivottablebeforediscardchanges',
+    'sheetpivottablechangesync', 'sheetpivottableupdate', 'sheetselectionchange',
+    'sheettableupdate', 'syncevent', 'windowactivate', 'windowdeactivate', 'windowresize',
+    // --- Chart ---
+    'dragover', 'dragplot', 'mousedown', 'mousemove', 'mouseup', 'resize', 'select',
+    'serieschange',
+    // --- Application ---
+    'aftercalculate', 'newworkbook', 'protectedviewwindowactivate',
+    'protectedviewwindowbeforeclose', 'protectedviewwindowbeforeedit',
+    'protectedviewwindowdeactivate', 'protectedviewwindowopen', 'protectedviewwindowresize',
+    'workbookactivate', 'workbookaddininstall', 'workbookaddinuninstall',
+    'workbookafterremotechange', 'workbookaftersave', 'workbookafterxmlexport',
+    'workbookafterxmlimport', 'workbookbeforeclose', 'workbookbeforeprint',
+    'workbookbeforeremotechange', 'workbookbeforesave', 'workbookbeforexmlexport',
+    'workbookbeforexmlimport', 'workbookdeactivate', 'workbookmodelchange',
+    'workbooknewchart', 'workbooknewsheet', 'workbookopen',
+    'workbookpivottablecloseconnection', 'workbookpivottableopenconnection',
+    'workbookrowsetcomplete', 'workbooksync',
+    // --- UserForm ---
+    'addcontrol', 'beforedragover', 'beforedroportpaste', 'click', 'dblclick', 'error',
+    'initialize', 'keydown', 'keypress', 'keyup', 'layout', 'queryclose', 'removecontrol',
+    'scroll', 'spindown', 'spinup', 'terminate', 'zoom',
+    // --- MSForms controls (UserForm 上のコントロールイベント) ---
+    'afterupdate', 'beforeupdate', 'dropbuttonclick', 'additem', 'removeitem',
+    'enter', 'exit', 'gotfocus', 'lostfocus',
+    // --- Access Form/Report ---
+    'applyfilter', 'beforedelconfirm', 'afterdelconfirm', 'beforeinsert', 'afterinsert',
+    'current', 'delete', 'dirty', 'filter', 'load', 'page', 'print', 'recordexit',
+    'timer', 'undo', 'unload',
+]);
+
 export interface CodeLensItem {
     range: {
         start: { line: number; character: number };
@@ -23,7 +75,7 @@ export interface ProcInfo {
     isTestProc: boolean;    // Test_* with exactly 1 param (the assert helper)
     refCount: number;       // call sites from outside this procedure
     isTested: boolean;      // any Test_* proc references this one
-    isEventHandler: boolean; // WithEvents 変数またはクラスライフサイクルに対応するイベントハンドラー
+    isEventHandler: boolean; // WithEvents 変数・クラスライフサイクル・既知イベント名サフィックスに該当するイベントハンドラー
 }
 
 export class CodeLensProvider {
@@ -127,13 +179,17 @@ export class CodeLensProvider {
     }
 
     /** プロシージャ名がイベントハンドラーかどうかを判定する。
-     *  - Class_Initialize / Class_Terminate はクラスライフサイクルとして無条件に該当
-     *  - <varName>_<anything> で varName が WithEvents 宣言済みの変数名と一致する場合 */
+     *  1. Class_Initialize / Class_Terminate はクラスライフサイクルとして無条件に該当
+     *  2. <varName>_<anything> で varName が WithEvents 宣言済みの変数名と一致する場合
+     *  3. <anything>_<eventName> で eventName が KNOWN_VBA_EVENT_NAMES に一致する場合 */
     private isEventHandlerProc(nameLower: string, withEventsVars: Set<string>): boolean {
         if (nameLower === 'class_initialize' || nameLower === 'class_terminate') return true;
         const sep = nameLower.indexOf('_');
         if (sep <= 0) return false;
-        return withEventsVars.has(nameLower.slice(0, sep));
+        const prefix = nameLower.slice(0, sep);
+        const suffix = nameLower.slice(sep + 1);
+        if (withEventsVars.has(prefix)) return true;
+        return KNOWN_VBA_EVENT_NAMES.has(suffix);
     }
 
     private collectProcs(statements: Statement[], sourceText: string, uri: string): ProcInfo[] {
