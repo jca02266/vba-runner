@@ -80,6 +80,12 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
             const defs = getStmtDefs(stmt);
             const uses = getStmtUses(stmt);
 
+            // Set var = Nothing は COM 参照の解放で副作用あり → デッドストアとしない
+            if (isNothingAssignment(stmt)) {
+                for (const v of uses) live.add(v);
+                continue;
+            }
+
             for (const v of defs) {
                 if (!live.has(v) && !paramNames.has(v)) {
                     const loc = lhsLoc(stmt, v);
@@ -107,6 +113,13 @@ export function findDeadStores(proc: ProcedureDeclaration): DeadStore[] {
 }
 
 // ─── 内部ユーティリティ ───────────────────────────────────────────────────────
+
+/** Set var = Nothing — COM 参照解放は副作用ありの操作でデッドストアではない */
+function isNothingAssignment(stmt: any): boolean {
+    if (stmt.type !== 'SetStatement') return false;
+    const rhs = stmt.right;
+    return rhs?.type === 'Identifier' && rhs.name.toLowerCase() === 'nothing';
+}
 
 /** プロシージャ本体内でローカル宣言された変数名（小文字）を再帰的に収集する */
 function collectLocalDecls(stmts: any[]): Set<string> {

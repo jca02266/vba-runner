@@ -248,4 +248,39 @@ End Property
     console.log('[PASS] クラスフィールド代入: デッドストアなし');
 }
 
+// ─── Set var = Nothing（COM 解放） ────────────────────────────────────────────
+
+{
+    const ds = analyze(`
+Sub Test()
+    Dim wb As Object
+    Set wb = Workbooks.Open("test.xlsx")
+    wb.Save
+    Set wb = Nothing
+End Sub
+`);
+    assert.strictEqual(ds.length, 0, 'Set var = Nothing はデッドストアなし');
+    console.log('[PASS] Set var = Nothing: デッドストアなし');
+}
+
+// Nothing 解放が複数あっても誤検知しない
+{
+    const ds = analyze(`
+Sub Test()
+    Dim sh1 As Object
+    Dim twb As Object
+    Dim wb  As Object
+    Set wb  = Workbooks.Open("test.xlsx")
+    Set sh1 = wb.Sheets(1)
+    Set twb = Workbooks.Add
+    sh1.Copy twb.Sheets(1)
+    Set sh1 = Nothing
+    Set twb = Nothing
+    Set wb  = Nothing
+End Sub
+`);
+    assert.strictEqual(ds.length, 0, '複数の Set var = Nothing はデッドストアなし');
+    console.log('[PASS] 複数の Set var = Nothing: デッドストアなし');
+}
+
 console.log('\n✅ デッドストア検出: 全テスト通過');
