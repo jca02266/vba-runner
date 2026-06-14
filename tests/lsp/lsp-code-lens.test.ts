@@ -105,11 +105,11 @@ function lensesFor(items: any[], procLine: number) {
     const items = getCodeLens(src);
     const line0lenses = lensesFor(items, 0);
     const testLens = line0lenses.find((i: any) =>
-        i.command.title === '✓ テスト済み' || i.command.title === '未テスト'
+        i.command.title === '✓ Tested' || i.command.title === 'Untested'
     );
     assert.ok(testLens, 'テスト状態レンズが存在する');
-    assert.strictEqual(testLens.command.title, '✓ テスト済み', 'Test_ から参照されると テスト済み');
-    console.log('[PASS] Test_ から参照 → テスト済み');
+    assert.strictEqual(testLens.command.title, '✓ Tested', 'Test_ から参照されると Tested');
+    console.log('[PASS] Test_ から参照 → Tested');
 }
 
 // 8. Test_ から参照されなければ「未テスト」
@@ -125,10 +125,10 @@ function lensesFor(items: any[], procLine: number) {
     const items = getCodeLens(src);
     const line0lenses = lensesFor(items, 0);
     const testLens = line0lenses.find((i: any) =>
-        i.command.title === '✓ テスト済み' || i.command.title === '未テスト'
+        i.command.title === '✓ Tested' || i.command.title === 'Untested'
     );
-    assert.strictEqual(testLens?.command.title, '未テスト', 'Test_ なし → 未テスト');
-    console.log('[PASS] Test_ なし → 未テスト');
+    assert.strictEqual(testLens?.command.title, 'Untested', 'Test_ なし → Untested');
+    console.log('[PASS] Test_ なし → Untested');
 }
 
 // 9. 複数プロシージャにそれぞれレンズが付く

@@ -1,7 +1,7 @@
 /**
  * Event Declaration (§5.2.4.3) & RaiseEvent (§5.4.2.20) のテスト
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertCompileErrorPass1 } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -71,16 +71,18 @@ ev2.callProcedure('Test', []);
 assert.strictEqual(ev2.env.get('firecount'), 2, 'イベントが2回発火');
 console.log('[PASS] 引数なしイベント');
 
-// --- 3. B-7: VBA キーワードをイベント名として使える ---
-// Excel の Workbook クラスは "Open" / "BeforeClose" 等のイベントを持つ。
-// "Open" は VBA の file I/O キーワードだが、Event/RaiseEvent では使用可能。
+// --- 3. MS-VBAL §5.2.4.3: イベント名は IDENTIFIER (予約語不可) ---
+// Excel の Workbook クラスは "Open" というイベントを持つが、VBA の BNF では
+// event-declaration の名前に reserved-identifier は使えない。
+// 実際に "Public Event Open()" はコンパイルエラーになる。
+// ここでは非予約語の識別子でイベントを宣言・発火できることを確認する。
 {
     const code = `
     Class WorkbookSim
-        Public Event Open()
+        Public Event WorkbookOpen()
         Public Event BeforeClose(ByRef Cancel As Boolean)
         Public Sub OpenWorkbook()
-            RaiseEvent Open
+            RaiseEvent WorkbookOpen
         End Sub
         Public Sub CloseWorkbook()
             Dim cancelFlag As Boolean
@@ -93,7 +95,7 @@ console.log('[PASS] 引数なしイベント');
     Dim openCount As Integer
     Dim closeCount As Integer
 
-    Private Sub wb_Open()
+    Private Sub wb_WorkbookOpen()
         openCount = openCount + 1
     End Sub
 
@@ -102,7 +104,7 @@ console.log('[PASS] 引数なしイベント');
         Cancel = False
     End Sub
 
-    Sub TestKeywordEvents()
+    Sub TestEvents()
         Set wb = New WorkbookSim
         wb.OpenWorkbook
         wb.CloseWorkbook
@@ -110,10 +112,22 @@ console.log('[PASS] 引数なしイベント');
     End Sub
     `;
     const ev3 = evalVBA(code);
-    ev3.callProcedure('TestKeywordEvents', []);
-    assert.strictEqual(ev3.env.get('opencount'), 2, 'Open イベントが 2 回発火');
+    ev3.callProcedure('TestEvents', []);
+    assert.strictEqual(ev3.env.get('opencount'), 2, 'WorkbookOpen イベントが 2 回発火');
     assert.strictEqual(ev3.env.get('closecount'), 1, 'BeforeClose イベントが 1 回発火');
-    console.log('[PASS] B-7: キーワード名 (Open/BeforeClose) をイベント名として使用できる');
+    console.log('[PASS] 非予約語識別子のイベント名 (WorkbookOpen/BeforeClose) が使用できる');
+}
+
+// --- 4. キーワード (Open) をイベント名にするとコンパイルエラー ---
+{
+    const code = `
+Class Bad
+    Public Event Open()
+End Class
+`;
+    assertCompileErrorPass1(code, 3, /expected identifier after 'event'/i, 'Open をイベント名に使うとコンパイルエラー');
+    console.log('[PASS] キーワード Open をイベント名にするとコンパイルエラー');
 }
 
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');
+
