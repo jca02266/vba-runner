@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as l10n from '@vscode/l10n';
 
 import * as path from 'path';
 import * as fs from 'fs';
@@ -37,6 +38,15 @@ export async function activate(context: vscode.ExtensionContext) {
     _definitionProviderReg?.dispose();
     _referencesProviderReg?.dispose();
     _diagnosticCollection?.dispose();
+
+    // Load l10n bundle for the current VS Code language (handles F5 dev mode where vscode.l10n.bundle is undefined)
+    const lang = vscode.env.language;
+    const bundleFsPath = vscode.Uri.joinPath(context.extensionUri, 'l10n', `bundle.l10n.${lang}.json`).fsPath;
+    try {
+        l10n.config({ fsPath: bundleFsPath });
+    } catch {
+        // No bundle for this locale; English strings will be used as-is
+    }
 
     const outputChannel = vscode.window.createOutputChannel('VBA Runner');
     context.subscriptions.push(outputChannel);
@@ -90,7 +100,7 @@ export async function activate(context: vscode.ExtensionContext) {
             );
             const sev = d.severity === 1 ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
             const msg = d.l10nKey != null
-                ? vscode.l10n.t(d.l10nKey, ...(d.l10nArgs ?? []))
+                ? l10n.t(d.l10nKey, ...(d.l10nArgs ?? []))
                 : d.message;
             const diag = new vscode.Diagnostic(range, msg, sev);
             diag.source = d.source;
@@ -622,7 +632,7 @@ End Class`;
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.generateTest', async (uri: string, procName: string) => {
             if (!uri || !procName) {
-                vscode.window.showErrorMessage(vscode.l10n.t('Open a VBA file and run from the procedure Code Lens'));
+                vscode.window.showErrorMessage(l10n.t('Open a VBA file and run from the procedure Code Lens'));
                 return;
             }
 
@@ -638,10 +648,10 @@ End Class`;
             if (!testLocation) {
                 const choice = await vscode.window.showQuickPick(
                     [
-                        { label: vscode.l10n.t('Add to same file'), description: vscode.l10n.t('Append Test_MethodName at the end of the same .bas file'), value: 'sameFile' as TestLocation },
-                        { label: vscode.l10n.t('Add to separate file'), description: vscode.l10n.t('Create {0}Test.bas and append the test', sourceBase), value: 'separateFile' as TestLocation },
+                        { label: l10n.t('Add to same file'), description: l10n.t('Append Test_MethodName at the end of the same .bas file'), value: 'sameFile' as TestLocation },
+                        { label: l10n.t('Add to separate file'), description: l10n.t('Create {0}Test.bas and append the test', sourceBase), value: 'separateFile' as TestLocation },
                     ],
-                    { placeHolder: vscode.l10n.t('Select test location (saved to workspace settings)') }
+                    { placeHolder: l10n.t('Select test location (saved to workspace settings)') }
                 );
                 if (!choice) return;
                 testLocation = choice.value;
@@ -668,11 +678,11 @@ End Class`;
                 const callExpr = isFunction
                     ? `result = ${procName}(${callArgs})`
                     : `${procName}${callArgs ? ' ' + callArgs : ''}`;
-                const lines = ['', `Sub Test_${procName}(assert)`, `    ' TODO: ${vscode.l10n.t('Implement the test')}`];
+                const lines = ['', `Sub Test_${procName}(assert)`, `    ' TODO: ${l10n.t('Implement the test')}`];
                 if (isFunction) {
-                    lines.push(`    ' Dim result`, `    ' ${callExpr}`, `    ' assert.IsTrue result = expected, "${vscode.l10n.t('description')}"`);
+                    lines.push(`    ' Dim result`, `    ' ${callExpr}`, `    ' assert.IsTrue result = expected, "${l10n.t('description')}"`);
                 } else {
-                    lines.push(`    ' ${callExpr}`, `    ' assert.IsTrue condition, "${vscode.l10n.t('description')}"`);
+                    lines.push(`    ' ${callExpr}`, `    ' assert.IsTrue condition, "${l10n.t('description')}"`);
                 }
                 lines.push('End Sub');
                 return lines.join('\n');
@@ -701,7 +711,7 @@ End Class`;
                 const targetLine = newSym ? newSym.location.range.start.line : lastLine + 2;
                 const pos = new vscode.Position(targetLine, 0);
                 await vscode.window.showTextDocument(targetDocUri, { selection: new vscode.Range(pos, pos) });
-                vscode.window.showInformationMessage(vscode.l10n.t("Generated stub for '{0}'", testName));
+                vscode.window.showInformationMessage(l10n.t("Generated stub for '{0}'", testName));
             };
 
             if (testLocation === 'sameFile') {
@@ -725,7 +735,7 @@ End Class`;
         vscode.commands.registerCommand('vba-runner.generateMocks', async () => {
             const editor = vscode.window.activeTextEditor;
             if (!editor) {
-                vscode.window.showErrorMessage(vscode.l10n.t('Open a VBA file before running this command'));
+                vscode.window.showErrorMessage(l10n.t('Open a VBA file before running this command'));
                 return;
             }
 
@@ -746,16 +756,16 @@ End Class`;
                 const objects = extractObjectsFromAnalyzerJson(json);
 
                 if (objects.length === 0) {
-                    vscode.window.showInformationMessage(vscode.l10n.t('No Excel-dependent objects detected.'));
+                    vscode.window.showInformationMessage(l10n.t('No Excel-dependent objects detected.'));
                     return;
                 }
 
                 // 既存ファイルのチェック
                 if (fs.existsSync(outPath)) {
-                    const overwrite = vscode.l10n.t('Overwrite');
+                    const overwrite = l10n.t('Overwrite');
                     const answer = await vscode.window.showWarningMessage(
-                        vscode.l10n.t('__mocks__/ExcelObjects.bas already exists. Overwrite?'),
-                        overwrite, vscode.l10n.t('Cancel')
+                        l10n.t('__mocks__/ExcelObjects.bas already exists. Overwrite?'),
+                        overwrite, l10n.t('Cancel')
                     );
                     if (answer !== overwrite) return;
                 }
@@ -772,10 +782,10 @@ End Class`;
                 const doc = await vscode.workspace.openTextDocument(outPath);
                 await vscode.window.showTextDocument(doc);
                 vscode.window.showInformationMessage(
-                    vscode.l10n.t('Detected: {0}\nGenerated __mocks__/ExcelObjects.bas.', objects.join(', '))
+                    l10n.t('Detected: {0}\nGenerated __mocks__/ExcelObjects.bas.', objects.join(', '))
                 );
             } catch (e: any) {
-                vscode.window.showErrorMessage(vscode.l10n.t('generateMocks error: {0}', e.message));
+                vscode.window.showErrorMessage(l10n.t('generateMocks error: {0}', e.message));
                 outputChannel.appendLine(`[generateMocks] ${e.message}`);
             }
         })
@@ -797,7 +807,7 @@ End Class`;
                 );
                 await vscode.window.showTextDocument(docUri, { selection: new vscode.Range(pos, pos) });
             } else {
-                vscode.window.showInformationMessage(vscode.l10n.t("Test function '{0}' not found", testName));
+                vscode.window.showInformationMessage(l10n.t("Test function '{0}' not found", testName));
             }
         })
     );
@@ -1305,11 +1315,11 @@ End Class`;
 
             // Ask user about other replacements after multi-cursor is set
             if (otherReplacements.length > 0) {
-                const REPLACE_ALL = vscode.l10n.t('Replace all');
-                const REVIEW_ONE = vscode.l10n.t('Review one by one');
+                const REPLACE_ALL = l10n.t('Replace all');
+                const REVIEW_ONE = l10n.t('Review one by one');
                 const choice = await vscode.window.showQuickPick(
-                    [REPLACE_ALL, REVIEW_ONE, vscode.l10n.t('Keep as is')],
-                    { placeHolder: vscode.l10n.t('{0} more occurrence(s) found', String(otherReplacements.length)) }
+                    [REPLACE_ALL, REVIEW_ONE, l10n.t('Keep as is')],
+                    { placeHolder: l10n.t('{0} more occurrence(s) found', String(otherReplacements.length)) }
                 );
 
                 if (choice === REPLACE_ALL) {
@@ -1327,11 +1337,11 @@ End Class`;
                         const lineText = editor.document.lineAt(repl.line).text;
                         const exprText = lineText.substring(repl.start, repl.end);
 
-                        const REPLACE = vscode.l10n.t('Replace');
+                        const REPLACE = l10n.t('Replace');
                         const userChoice = await vscode.window.showQuickPick(
-                            [REPLACE, vscode.l10n.t('Skip')],
+                            [REPLACE, l10n.t('Skip')],
                             {
-                                placeHolder: vscode.l10n.t('Line {0}: Replace "{1}"?', String(repl.line + 1), exprText),
+                                placeHolder: l10n.t('Line {0}: Replace "{1}"?', String(repl.line + 1), exprText),
                                 canPickMany: false
                             }
                         );
@@ -1358,17 +1368,17 @@ End Class`;
                 const vsUri = vscode.Uri.parse(uri);
                 const editor = vscode.window.activeTextEditor;
                 if (!editor || editor.document.uri.toString() !== vsUri.toString()) {
-                    vscode.window.showWarningMessage(vscode.l10n.t('Document context has been lost'));
+                    vscode.window.showWarningMessage(l10n.t('Document context has been lost'));
                     return;
                 }
 
                 const defaultName = callStatement.match(/^([a-zA-Z_][a-zA-Z0-9_]*)/)?.[1] ?? 'ExtractedSub';
                 const procName = await vscode.window.showInputBox({
-                    prompt: vscode.l10n.t('New procedure name:'),
+                    prompt: l10n.t('New procedure name:'),
                     value: defaultName,
                     validateInput: (input) => {
-                        if (!input) return vscode.l10n.t('Procedure name is required');
-                        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) return vscode.l10n.t('Invalid procedure name');
+                        if (!input) return l10n.t('Procedure name is required');
+                        if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(input)) return l10n.t('Invalid procedure name');
                         return '';
                     },
                 });
@@ -1442,7 +1452,7 @@ End Class`;
     context.subscriptions.push(
         vscode.commands.registerCommand('vba-runner.extractFunction',
             (_uri: string, _procName: string, _startLine: number, _endLine: number) => {
-                vscode.window.showInformationMessage(vscode.l10n.t('Extract Function is not yet implemented.'));
+                vscode.window.showInformationMessage(l10n.t('Extract Function is not yet implemented.'));
             }
         )
     );
@@ -1465,9 +1475,9 @@ End Class`;
             }
 
             const constName = await vscode.window.showInputBox({
-                prompt: vscode.l10n.t('Constant name:'),
+                prompt: l10n.t('Constant name:'),
                 value: defaultName,
-                validateInput: v => !v ? vscode.l10n.t('Constant name is required') : !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? vscode.l10n.t('Invalid constant name') : '',
+                validateInput: v => !v ? l10n.t('Constant name is required') : !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v) ? l10n.t('Invalid constant name') : '',
             });
             if (!constName) return;
 
@@ -1478,7 +1488,7 @@ End Class`;
             );
 
             if (!proc) {
-                vscode.window.showWarningMessage(vscode.l10n.t('The cursor must be inside a procedure'));
+                vscode.window.showWarningMessage(l10n.t('The cursor must be inside a procedure'));
                 return;
             }
 
@@ -1531,7 +1541,7 @@ End Class`;
                 s.type === 'ProcedureDeclaration' && s.loc?.start.line <= lineNum1 && s.loc?.end.line >= lineNum1
             );
             if (!proc) {
-                vscode.window.showWarningMessage(vscode.l10n.t('Variable is not inside a procedure'));
+                vscode.window.showWarningMessage(l10n.t('Variable is not inside a procedure'));
                 return;
             }
 
@@ -1557,15 +1567,15 @@ End Class`;
             }
 
             if (dimLine < 0) {
-                vscode.window.showWarningMessage(vscode.l10n.t("No Dim declaration found for '{0}'", varName));
+                vscode.window.showWarningMessage(l10n.t("No Dim declaration found for '{0}'", varName));
                 return;
             }
             if (assignLine < 0) {
-                vscode.window.showWarningMessage(vscode.l10n.t("No assignment found for '{0}'", varName));
+                vscode.window.showWarningMessage(l10n.t("No assignment found for '{0}'", varName));
                 return;
             }
             if (assignCount > 1) {
-                vscode.window.showWarningMessage(vscode.l10n.t("Cannot inline '{0}': multiple assignments found", varName));
+                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': multiple assignments found", varName));
                 return;
             }
 
@@ -1676,7 +1686,7 @@ End Class`;
             }
 
             if (toDeleteLines.size === 0) {
-                vscode.window.showInformationMessage(vscode.l10n.t('No unused variables found'));
+                vscode.window.showInformationMessage(l10n.t('No unused variables found'));
                 return;
             }
 
@@ -1685,7 +1695,7 @@ End Class`;
                 edit.delete(uri, new vscode.Range(ln, 0, ln + 1, 0));
             }
             await vscode.workspace.applyEdit(edit);
-            vscode.window.showInformationMessage(vscode.l10n.t('Deleted {0} unused variable declaration(s)', String(toDeleteLines.size)));
+            vscode.window.showInformationMessage(l10n.t('Deleted {0} unused variable declaration(s)', String(toDeleteLines.size)));
         })
     );
 
@@ -1736,10 +1746,10 @@ End Class`;
             await vscode.workspace.applyEdit(edit);
 
             const parts: string[] = [];
-            if (!hasOptionExplicit) parts.push(vscode.l10n.t('Added Option Explicit'));
-            if (dimCount > 0) parts.push(vscode.l10n.t('Added {0} Dim declaration(s)', String(dimCount)));
+            if (!hasOptionExplicit) parts.push(l10n.t('Added Option Explicit'));
+            if (dimCount > 0) parts.push(l10n.t('Added {0} Dim declaration(s)', String(dimCount)));
             if (parts.length === 0) {
-                vscode.window.showInformationMessage(vscode.l10n.t('No changes'));
+                vscode.window.showInformationMessage(l10n.t('No changes'));
             } else {
                 vscode.window.showInformationMessage(parts.join(', '));
             }
