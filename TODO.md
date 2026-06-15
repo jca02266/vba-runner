@@ -1175,6 +1175,17 @@ Node.js スクリプトを実装済み（`extract-vba.mjs` / `import-vba.mjs`、
 - ラウンドトリップだけでなく、書き戻した xlsm を実際の Excel で開けるか検証
 - PerformanceCache（バイトコード）とソースの不整合時に Excel が再コンパイルするかの確認
 - 既知課題: 型ライブラリ修飾やフォーム（`.frm`）のバイナリ部分の扱い
+- ✅ PerformanceCache（`_VBA_PROJECT` / `__SRP_*`）の無効化: サイズ保持・先頭2バイト保持・残りゼロ埋め
+- ✅ モジュール追加（標準モジュール）・削除（クラス、UserForm）の完全実装（test1〜5 pass、test6 reject）
+- ✅ dir stream 再構築（`dir-builder.ts`）、PROJECT / PROJECTwm 更新の実装
+- 技術メモ: `docs/internal/VBA_EXPORT_IMPORT.md` 参照
+
+**(1a) UserForm バイナリレイアウト対応**（現在 UserForm 追加は拒否中）
+
+- [ ] `UserForm1/f`, `UserForm1/o`, `UserForm1/VBFrame`, `UserForm1/CompObj` ストリームの
+  バイナリ形式を解析し、`.frm` + `.frx` 相当のテキスト/バイナリ表現へのエクスポートを実装する
+- [ ] テキスト/バイナリ表現からストリームを再構築し、`import` による新規 UserForm 追加を可能にする
+  （現在は `Attribute VB_Base` を持つ `.cls` の追加をエラーで拒否している）
 
 **(2) パッケージ化**
 - `sample/excel/lib/`（`ovba.mjs` / `dir-parser.mjs`）を再利用可能なライブラリとして整理
