@@ -8,7 +8,16 @@ import { decompress, compress } from './ovba.js';
 import { parseDirStream, parseDirStreamFull, VbaModuleFull } from './dir-parser.js';
 import { buildDirStream, patchModuleOffset } from './dir-builder.js';
 
-const VERSION = '0.1.1-alpha.1';
+// tsx from tools/extractor/: ../../../build/extractor/package.json
+// built CJS in build/extractor/dist/bin/: ../../package.json
+const VERSION = (() => {
+    for (const rel of ['../../build/extractor/package.json', '../../package.json']) {
+        try {
+            return JSON.parse(readFileSync(join(import.meta.dirname, rel), 'utf8')).version as string;
+        } catch { /* try next */ }
+    }
+    return 'unknown';
+})();
 
 /**
  * Remove deleted modules from the PROJECT text stream and add new module lines.
