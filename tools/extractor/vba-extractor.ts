@@ -6,9 +6,9 @@ import { createInterface } from 'readline';
 import { resolve, dirname, basename, extname, join } from 'path';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream, parseDirStreamFull, VbaModuleFull } from './dir-parser.js';
-import { buildDirStream, patchModuleOffset } from './dir-builder.js';
+import { buildDirStream } from './dir-builder.js';
 
-// tsx from tools/extractor/: ../../../build/extractor/package.json
+// tsx from tools/extractor/: ../../build/extractor/package.json
 // built CJS in build/extractor/dist/bin/: ../../package.json
 const VERSION = (() => {
     for (const rel of ['../../build/extractor/package.json', '../../package.json']) {
@@ -144,6 +144,12 @@ function parseEncoding(args: string[]): { encoding: string | undefined; rest: st
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--encoding') {
             encoding = args[++i];
+        } else if (args[i].startsWith('-') && args[i] !== '-') {
+            // Any other token that looks like a flag is an unknown option.
+            // (Positional paths are not expected to start with '-'.)
+            console.error(`vba-extractor: unknown option '${args[i]}'`);
+            printUsage();
+            process.exit(1);
         } else {
             rest.push(args[i]);
         }
@@ -276,17 +282,22 @@ async function runImport(args: string[]): Promise<void> {
         }
     }
 
-    // Refuse to add a brand-new UserForm. A UserForm needs its binary form-layout
-    // storage (the <name>/f, <name>/o, <name>/VBFrame streams), which a .cls source
-    // file does not contain. Adding one as code-behind only crashes Excel when it
-    // tries to load the designer. Detect it via the designer-only VB_Base attribute.
+    // Refuse to add a brand-new designer/document module: UserForms, worksheets
+    // (Sheet*), and ThisWorkbook. These are bound to a host object that lives
+    // outside vbaProject.bin — a UserForm needs its binary form-layout storage
+    // (<name>/f, <name>/o, <name>/VBFrame), and a Sheet/Workbook module must map to
+    // a real sheet/workbook declared in the xlsx parts (workbook.xml codeName, the
+    // worksheet XML). Their .cls source alone cannot reconstruct that, so adding one
+    // crashes or corrupts Excel. All of them carry the designer-only VB_Base
+    // attribute, which a normal class/standard module never has — use it to detect.
     for (const k of newModuleNames) {
         const origName = sourceFileNames.get(k)!;
         if (/^\s*Attribute\s+VB_Base\s*=/im.test(sourceMap.get(k)!)) {
             console.error(
-                `Error: cannot add UserForm '${origName}' — UserForms require a binary form ` +
-                `layout that is not present in the .cls source. Add the form in Excel first, ` +
-                `then use import to update its code-behind.`,
+                `Error: cannot add document/designer module '${origName}' (UserForm, ` +
+                `worksheet, or ThisWorkbook). These are bound to a host object that a .cls ` +
+                `source cannot recreate. Add the form/sheet in Excel first, then use import ` +
+                `to update its code-behind.`,
             );
             process.exit(1);
         }
@@ -328,21 +339,24 @@ async function runImport(args: string[]): Promise<void> {
             continue;
         }
 
-        // Update existing module stream: no preamble, compressed source only
         const entry = CFB.find(cfb, `/VBA/${mod.streamName}`);
         if (!entry) { console.warn(`  [warn] ${mod.name}: stream not found`); continue; }
 
         const srcBytes = iconv.encode(src, encoding);
         const compressed = compress(srcBytes);
+
+        // Decompile the module: the stream becomes compressed source only and
+        // MODULEOFFSET is set to 0 (no p-code preamble). _VBA_PROJECT (rewritten below)
+        // forces Excel to recompile from source on open, so any stale preamble would be
+        // ignored anyway. This is the clean source-only project EPPlus produces; Excel
+        // opens it, recompiles, and supports all operations including sheet copy.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (entry as any).content = compressed;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (entry as any).size = compressed.length;
         console.log(`  ✓ ${mod.name} (${srcBytes.length} bytes as ${encoding})`);
+        updatedModules.push({ ...mod, offset: 0 });
         updated++;
-
-        // Patch MODULEOFFSET to 0 (no preamble) in the dir stream block
-        updatedModules.push({ ...mod, offset: 0, rawBlock: patchModuleOffset(mod.rawBlock, 0) });
     }
 
     // Add new modules
@@ -408,30 +422,35 @@ async function runImport(args: string[]): Promise<void> {
         (projWmEntry as any).size = newWm.length;
     }
 
-    // Invalidate the compiled p-code cache so Excel rebuilds it from source.
-    // Proven approach: keep the stream SIZE unchanged and keep the first 2 magic bytes,
-    // but zero every byte from offset 2 onward. Same size → no FAT/miniSAT boundary change
-    // and no "repair" prompt; magic preserved → the VBE can still load the project;
-    // zeroed body → Excel discards the stale cache and recompiles (no macro crash).
-    // The same treatment applies to every __SRP_* performance-cache stream.
+    // Replace _VBA_PROJECT with the canonical 7-byte source-only header so Excel
+    // discards any compiled p-code and recompiles from the module source. This is
+    // exactly what EPPlus (a production library whose generated .xlsm files open,
+    // run, and support sheet operations in Excel) writes [MS-OVBA 2.3.4.1]:
+    //   CC 61  — Reserved1 (0x61CC)
+    //   FF FF  — Version (0xFFFF: matches no real VBA version → forces recompile)
+    //   00     — Reserved3
+    //   00 00  — Reserved4
+    // The stream length is exactly 7, so PerformanceCache is empty (len = size - 7 = 0).
+    // (A full-size zero-filled _VBA_PROJECT or a 0x0000 version is what previously
+    //  caused Excel's "sheet cannot be copied" failure.)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const zeroCacheBody = (entry: any) => {
-        const buf = Buffer.from(entry.content);
-        buf.fill(0, 2);
-        entry.content = buf;
-        entry.size = buf.length;
-    };
-    const vbaProjectEntry = CFB.find(cfb, '/VBA/_VBA_PROJECT');
-    if (vbaProjectEntry) zeroCacheBody(vbaProjectEntry);
+    const vbaProjectEntry = CFB.find(cfb, '/VBA/_VBA_PROJECT') as any;
+    if (vbaProjectEntry) {
+        vbaProjectEntry.content = Buffer.from([0xCC, 0x61, 0xFF, 0xFF, 0x00, 0x00, 0x00]);
+        vbaProjectEntry.size = 7;
+    }
+    // Delete every __SRP_* performance-cache stream. EPPlus never writes these;
+    // leaving stale per-module caches behind corrupts Excel's project operations.
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const cfbAnySrp = cfb as any;
     for (let i = 0; i < cfbAnySrp.FullPaths.length; i++) {
         if ((cfbAnySrp.FullPaths[i] as string).includes('/__SRP_')) {
-            zeroCacheBody(cfbAnySrp.FileIndex[i]);
+            cfbAnySrp.FileIndex[i].type = 0; // STGTY_INVALID → cfb.js skips on write
         }
     }
 
-    // Rebuild dir stream
+    // Rebuild the dir stream: every module is now decompiled (MODULEOFFSET = 0) and the
+    // module list may have changed (add/delete), so the dir is regenerated from scratch.
     const newDirUncompressed = buildDirStream(dirData, updatedModules, encoding);
     const newDirCompressed = compress(newDirUncompressed);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -439,8 +458,13 @@ async function runImport(args: string[]): Promise<void> {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (dirEntry as any).size = newDirCompressed.length;
 
-    const newVbaBin = CFB.write(cfb, { type: 'buffer' });
-    zip.file('xl/vbaProject.bin', newVbaBin as unknown as Buffer, { createFolders: false });
+    // Note: cfb.js always seeds a harmless 'Sh33tJ5' signature stream during
+    // write (it cannot be suppressed — every rebuild re-adds it). Leave it as a valid
+    // stream; Office ignores unknown CFB streams. Do NOT try to "remove" it by zeroing
+    // its directory entry type — that leaves dangling red-black tree pointers and makes
+    // Excel reject the whole vbaProject.bin ("unreadable content" / cannot copy sheet).
+    const newVbaBin = Buffer.from(CFB.write(cfb, { type: 'buffer' }) as unknown as ArrayBuffer);
+    zip.file('xl/vbaProject.bin', newVbaBin, { createFolders: false });
     const newXlsm = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
     writeFileSync(outPath, newXlsm);
     console.log(`Saved: ${outPath}`);

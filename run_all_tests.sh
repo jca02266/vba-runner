@@ -38,7 +38,7 @@ for i in $(seq 1 "$PARALLEL"); do printf '\n' >&3; done
 # *.test.skip.ts は収集対象外（glob *.test.ts にマッチしないため自動的に除外される）
 FILES=()
 for f in tests/engine/*.test.ts tests/lsp/*.test.ts tests/spec/*.test.ts \
-          tests/test-libs-tests/*.test.ts sample/tests/ts/*.test.ts; do
+          tests/test-libs-tests/*.test.ts tests/extractor/*.test.ts sample/tests/ts/*.test.ts; do
   [[ "$f" == *"run-all-vba-tests"* ]] && continue
   [[ -f "$f" ]] && FILES+=("$f")
 done

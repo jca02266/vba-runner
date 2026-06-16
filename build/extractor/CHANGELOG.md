@@ -2,6 +2,19 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
+## [0.1.1-alpha.4] - 2026-06-16
+
+### Fixed
+
+- **`import` output now opens, recompiles, and supports sheet copy in Excel.** Earlier alpha builds could produce a `vbaProject.bin` that Excel rejected ("unreadable content") or that triggered "Sheet1 cannot be copied", especially after adding or deleting modules. Two root causes were fixed:
+  - The cfb.js signature stream (`Sh33tJ5`) was being "removed" by zeroing its CFB directory-entry type after write. That left dangling red-black tree pointers, corrupting the directory. It is now left as a valid stream — Office ignores unknown CFB streams.
+  - `_VBA_PROJECT` is now replaced with the canonical 7-byte source-only header (`CC 61 FF FF 00 00 00`, Version `0xFFFF`) and every `__SRP_*` performance-cache stream is deleted, instead of zero-filling the cache at its original size. This matches the EPPlus approach and makes Excel cleanly recompile from source. Module edits — including document modules such as worksheets and `ThisWorkbook` — are reflected correctly.
+
+### Changed
+
+- Adding a brand-new **document/designer module** (UserForm, worksheet, or `ThisWorkbook`) is now rejected, not just UserForms. These are bound to host objects that a `.cls` source cannot recreate; updating their existing code-behind remains supported.
+- **Unknown command-line options now error** instead of being silently treated as a positional argument (e.g. `--output foo.xlsm` previously wrote a file literally named `--output`).
+
 ## [0.1.1-alpha.3] - 2026-06-15
 
 ### Added

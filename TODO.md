@@ -1175,10 +1175,15 @@ Node.js スクリプトを実装済み（`extract-vba.mjs` / `import-vba.mjs`、
 - ラウンドトリップだけでなく、書き戻した xlsm を実際の Excel で開けるか検証
 - PerformanceCache（バイトコード）とソースの不整合時に Excel が再コンパイルするかの確認
 - 既知課題: 型ライブラリ修飾やフォーム（`.frm`）のバイナリ部分の扱い
-- ✅ PerformanceCache（`_VBA_PROJECT` / `__SRP_*`）の無効化: サイズ保持・先頭2バイト保持・残りゼロ埋め
-- ✅ モジュール追加（標準モジュール）・削除（クラス、UserForm）の完全実装（test1〜5 pass、test6 reject）
+- ✅ ソースのみ（デコンパイル）方式の確立: 全モジュール MODULEOFFSET=0（プリアンブル除去）、
+  `_VBA_PROJECT` を 7バイト正規ヘッダー（Version=0xFFFF）に置換、`__SRP_*` 全削除。EPPlus 準拠。
+  Excel で開く・編集反映（標準＋ドキュメントモジュール）・**シートコピー**まで実機確認済み | `tests/extractor/import-structure.test.ts`
+- ✅ `Sh33tJ5` 署名ストリームは有効ストリームのまま残す（type=0 への書き換えは赤黒木破損＝
+  「シートをコピーできません」の原因。やってはいけない） | `tests/extractor/import-structure.test.ts`
+- ✅ モジュール追加（標準/通常クラス）・削除（クラス、UserForm、シート）の実装。
+  UserForm/シート/ThisWorkbook 系（`VB_Base` 付き）の新規追加は拒否
 - ✅ dir stream 再構築（`dir-builder.ts`）、PROJECT / PROJECTwm 更新の実装
-- 技術メモ: `docs/internal/VBA_EXPORT_IMPORT.md` 参照
+- 技術メモ: `docs/internals/VBA_EXPORT_IMPORT.md` 参照
 
 **(1a) UserForm バイナリレイアウト対応**（現在 UserForm 追加は拒否中）
 
