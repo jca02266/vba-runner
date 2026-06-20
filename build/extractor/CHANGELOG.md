@@ -2,6 +2,12 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
+## [Unreleased]
+
+### Added
+
+- **`scripts/Build-Xlsm.ps1`** — Bundled PowerShell script to bootstrap a brand-new `.xlsm` from a directory of `.bas` files via Excel COM automation, since `import` requires an existing `.xlsm` and can't create one from scratch. Documented in the README under "Creating a new .xlsm from scratch".
+
 ## [0.1.1-alpha.5] - 2026-06-20
 
 ### Changed

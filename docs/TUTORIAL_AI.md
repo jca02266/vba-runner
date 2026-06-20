@@ -12,6 +12,12 @@
 
 - 本リポジトリ（vba-runner）を使える AI コーディングエージェント（Claude Code 等）が動いていること
 - リファクタリング・機能追加したい `.xlsm` ファイルがあること
+  - `.xlsm` がまだ無く `.bas`/`.cls` ファイルしか無い場合は、AI に次のように指示してください:
+    > `src/vba` の `.bas` ファイルから新規に `MyBook.xlsm` を作ってください（`vba-extractor` 同梱の
+    > `scripts/Build-Xlsm.ps1` を使ってください）。
+    AIが [vba-extractor README](../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
+    の手順（Excel COM自動化での新規作成 → `vba-extractor import` での同期）を実行します。
+    Windows + ローカルにインストールされたExcelが必要です。
 
 ---
 

@@ -52,6 +52,24 @@ vba-extractor import MyBook.xlsm src/vba
 vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
 ```
 
+### 新規 .xlsm をゼロから作る (Windows + Excel)
+
+`import` は既存の `.xlsm` が前提で、新規に `.xlsm` を作ることはできません。`.bas` ファイルしか
+無い状態(AIが生成した、または手書きで、まだExcelワークブックが無い場合)から始めるときは、
+同梱のPowerShellスクリプトでExcelのCOM自動化を使って最初の `.xlsm` を作成し、その後
+`import` でクラスモジュール等の残りを同期します:
+
+```powershell
+# Windows + ローカルにインストールされたExcel、かつExcelの
+# 「VBAプロジェクトオブジェクトモデルへのアクセスを信頼する」(AccessVBOM) 設定が有効である必要があります。
+powershell -File node_modules/vba-extractor/scripts/Build-Xlsm.ps1 -SourceDir src/vba -OutputPath MyBook.xlsm
+
+# .cls ファイル(と .bas の再同期)を、作成したワークブックに同期する
+vba-extractor import MyBook.xlsm src/vba
+```
+
+詳細・注意点はスクリプト自身の `Get-Help -Full`(またはヘッダーコメント)を参照してください。
+
 ## 出力形式
 
 | モジュール種別 | 拡張子 |

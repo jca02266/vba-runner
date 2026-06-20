@@ -56,6 +56,24 @@ vba-extractor import MyBook.xlsm src/vba
 vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
 ```
 
+### Creating a new .xlsm from scratch (Windows + Excel)
+
+`import` requires an existing `.xlsm` file - it cannot create one from nothing. If you're
+starting from `.bas` files only (e.g. AI-generated or written by hand, with no Excel
+workbook yet), use the bundled PowerShell script to bootstrap the first `.xlsm` via Excel
+COM automation, then `import` to sync in everything else (class modules, sheet code, etc.):
+
+```powershell
+# Requires Windows + a locally installed Excel, and Excel's "Trust access to the
+# VBA project object model" (AccessVBOM) setting enabled.
+powershell -File node_modules/vba-extractor/scripts/Build-Xlsm.ps1 -SourceDir src/vba -OutputPath MyBook.xlsm
+
+# Sync .cls files (and re-sync .bas) into the newly created workbook
+vba-extractor import MyBook.xlsm src/vba
+```
+
+See the script's own `Get-Help -Full` (or its header comment) for details and caveats.
+
 ## Output format
 
 | Module type | Extension |

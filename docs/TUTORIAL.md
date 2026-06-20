@@ -10,6 +10,11 @@ Excel で作成された VBA マクロ（`.xlsm`）を持っていて、
 
 という人向けのチュートリアルです。最終的に変更結果を `.xlsm` に書き戻すところまでをひととおり体験します。
 
+> 手元に `.xlsm` がなく `.bas`/`.cls` ファイルしかない場合は、まず
+> [vba-extractor README](../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
+> の手順で最初の `.xlsm` を作成してから本チュートリアルを始めてください
+> (Windows + ローカルにインストールされたExcelが必要です)。
+
 ---
 
 ## 全体の流れ
