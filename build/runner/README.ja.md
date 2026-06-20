@@ -174,6 +174,6 @@ vba-parse-check src/vba/Module1.bas
 
 ## 詳細ドキュメント
 
-- [REFERENCE.md](../../REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
-- [README.md](../../README.md) — プロジェクト概要・クイックスタート
-- [FOR_AI.md](../../FOR_AI.md) — AIによるリファクタリング支援ガイド
+- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
+- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — プロジェクト概要・クイックスタート
+- [FOR_AI.md](https://github.com/jca02266/vba-runner/blob/main/FOR_AI.md) — AIによるリファクタリング支援ガイド
