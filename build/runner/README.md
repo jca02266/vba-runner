@@ -5,6 +5,8 @@ Load `.bas` files from TypeScript and call VBA procedures directly, or use the b
 
 > 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
 
+[CHANGELOG](https://github.com/jca02266/vba-runner/blob/main/build/runner/CHANGELOG.md)
+
 ## Installation
 
 ```bash

@@ -5,6 +5,8 @@ Manage VBA modules as plain text files under version control.
 
 > 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
 
+[CHANGELOG](https://github.com/jca02266/vba-runner/blob/main/build/extractor/CHANGELOG.md)
+
 ## Installation
 
 ```bash

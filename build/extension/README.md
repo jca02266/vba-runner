@@ -4,6 +4,8 @@ A VS Code extension for VBA development. When you open `.bas` / `.cls` / `.frm` 
 
 > 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
 
+[CHANGELOG](https://github.com/jca02266/vba-runner/blob/main/build/extension/CHANGELOG.md)
+
 ## Installation
 
 Install from the VS Code Marketplace by searching for **VBA Runner**, or run:
