@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.1] - 2026-06-20
+
+### Fixed
+
+- **Module-level array bounds referencing `Const` now resolve correctly** — `Dim a(0 To W - 1)` where `W` is a `Const` previously caused `UBound = -1` and a `Subscript out of range` error at runtime. Pass 1 now defers array-bound declarations to Pass 2 (after all constants are resolved), eliminating the incorrect empty-array creation.
+
 ## [0.2.0] - 2026-06-14
 
 ### Added
