@@ -25,10 +25,12 @@ import { MockApplication } from '../src/engine/mock/MockExcel';
  * - `setDefaultBindingObject(app)` → Tier 6 で Range / Cells / ActiveSheet / Sheets 等を解決
  * - `setBuiltinOverride('Application', app)` → `Application.ScreenUpdating` 等のプロパティアクセスを有効化
  *
+ * @param app 注入するインスタンス（省略時は `new MockApplication()`）。`MockApplication` を
+ *   サブクラス化して `OnKey`/`OnTime` 等の未対応メンバーを追加したインスタンスを渡すこともできる。
+ *   置き換えではなく拡張なので、`ActiveSheet`/`Sheets`/`Range` は変わらず動作し続ける。
  * @returns 注入した MockApplication（セルに事前データを設定したい場合に使う）
  */
-export function injectExcelStub(evaluator: Evaluator): MockApplication {
-    const app = new MockApplication();
+export function injectExcelStub(evaluator: Evaluator, app: MockApplication = new MockApplication()): MockApplication {
     evaluator.setDefaultBindingObject(app);
     evaluator.setBuiltinOverride('Application', app);
     return app;

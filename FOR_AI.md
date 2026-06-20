@@ -168,7 +168,8 @@ assert.strictEqual(vbaRunner.run('TargetFunction', [input1, input2]), expected, 
 ```
 
 `excelObjectsUsed` に列挙されたオブジェクトがある場合はモックが必要。
-→ `docs/MOCK_GUIDE.md` の冒頭「Step 1: 対応表」でオブジェクト名を引く。
+→ まず `docs/MOCK_GUIDE.md` の Part 0(`__mocks__` 規約)が使えないか検討する。
+  内部APIで個別注入したい場合は「Step 1: 対応表」でオブジェクト名を引く。
 
 **5-c. 抽出した関数の単体テストを追加する（抽出直後に必須）**
 
@@ -360,7 +361,8 @@ npx tsx sample/tests/ts/MyFeature.test.ts
 ```
 
 Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）はモック注入が必要。
-→ `docs/MOCK_GUIDE.md` の冒頭「Step 1: 対応表」でオブジェクト名を引く。
+→ まず `docs/MOCK_GUIDE.md` の Part 0(`__mocks__` 規約)が使えないか検討する。
+  内部APIで個別注入したい場合は「Step 1: 対応表」でオブジェクト名を引く。
 
 **既知の制約:**
 - Excel オブジェクトは自動でモック化されない

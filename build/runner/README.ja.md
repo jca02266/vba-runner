@@ -103,21 +103,48 @@ assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
 組み込みモックは `Value` の読み書きのみサポートしています。`Interior.Color` などの
 書式設定は値を保持しない no-op、`Application.OnKey` / `Application.OnTime` は未実装です
 (呼び出すとエラーになります)。これらに依存するコードをテストしたい場合は、
-`vbaRunner.evaluator.setBuiltinOverride(name, value)` で `Application` などの
-組み込みオブジェクト自体を独自のモックに丸ごと差し替えてください。
+**`Application` を丸ごと差し替えるのではなく、モックを拡張してください**。
+丸ごと差し替えると、対象コードが同時に使う`ActiveSheet`/`Sheets`/`Range`が失われます。
+
+最もきれいな方法は、`MockApplication`(このパッケージからexportされている)をサブクラス化し、
+`excelStub`に`true`の代わりにインスタンスを渡すことです:
 
 ```typescript
-const vbaRunner = new VBARunner('src/vba/KeyHandler.bas');
+import { VBARunner, MockApplication, assert } from 'vba-runner';
+
+class AppWithOnKey extends MockApplication {
+  onKeyLog: string[] = [];
+  OnKey(key: string, procedureName?: string) {
+    this.onKeyLog.push(`${key}=${procedureName ?? ''}`);
+  }
+}
+
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas', { excelStub: new AppWithOnKey() });
+
+vbaRunner.run('SetupKeyHandlers', []);
+assert.ok(vbaRunner.excelStub.onKeyLog.length > 0);
+```
+
+再利用可能なクラスが不要なら、構築後に`excelStub`インスタンスへ直接メソッドを
+追加する方法もあります。`vbaRunner.excelStub`は`Application`/`ActiveSheet`として
+登録済みのオブジェクトそのものなので、これを拡張する形でも動きます:
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas', { excelStub: true });
 
 let registered: [string, string] | null = null;
-const customApplication = {
-  OnKey: (key: string, procedureName: string) => { registered = [key, procedureName]; },
+(vbaRunner.excelStub as any).OnKey = (key: string, procedureName: string) => {
+  registered = [key, procedureName];
 };
-vbaRunner.evaluator.setBuiltinOverride('Application', customApplication);
 
 vbaRunner.run('SetupKeyHandlers', []);
 assert.ok(registered !== null);
 ```
+
+`vbaRunner.evaluator.setBuiltinOverride(name, value)` は、`Application` などの
+組み込みオブジェクト自体を別物に丸ごと差し替えたい場合にのみ使ってください。
+この方法は(対象コードがその名前経由で `ActiveSheet` 等に一切アクセスしない場合を除き)
+デフォルトの Excel スタブが提供する残りの機能を失わせる点に注意してください。
 
 任意の名前の変数・定数を直接注入したい場合は `vbaRunner.set(name, value)` も使えます。
 

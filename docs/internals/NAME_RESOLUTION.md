@@ -503,4 +503,4 @@ ev.setDefaultBindingObject(app);
 - `test-libs/test-runner.ts` — `VBARunner` の遅延 `resolveIdentifiers`、`evalVBASingle`/`evalVBAModules`
 - `tests/spec/cross-module-const.test.ts` — クロスモジュール定数・循環参照のテスト
 - `tests/spec/tier6-namespace.test.ts` — 型名前空間/値名前空間の分離テスト
-- `USE_MOCKS.md` — モック実装パターンのユーザー向けガイド
+- `docs/MOCK_GUIDE.md`（Part 0）— モック実装パターンのユーザー向けガイド

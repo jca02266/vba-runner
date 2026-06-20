@@ -52,6 +52,12 @@ Function ReadA1() As Variant
     ReadA1 = ActiveSheet.Cells(1, 1).Value
 End Function
 
+' Application.OnKey の呼び出し（標準の MockApplication には未実装。
+' excelStub にサブクラスを渡して拡張するテスト用）
+Sub TestCallOnKey()
+    Application.OnKey "{LEFT}", "SomeHandler"
+End Sub
+
 ' ノーオプが例外を投げないことを確認
 Function TestNoOps() As String
     ActiveSheet.Activate

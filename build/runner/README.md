@@ -105,21 +105,49 @@ assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
 The built-in mock only persists `Value` reads/writes. Formatting properties like
 `Interior.Color` are no-ops that don't retain state, and `Application.OnKey` /
 `Application.OnTime` aren't implemented (calling them throws). To test code that
-depends on these, replace `Application` (or any other builtin) entirely with your
-own mock object via `vbaRunner.evaluator.setBuiltinOverride(name, value)`.
+depends on these, **extend the mock rather than replacing `Application` wholesale**
+— a full replacement discards `ActiveSheet`/`Sheets`/`Range` for any code that also
+needs those.
+
+The cleanest way is to subclass `MockApplication` (also exported by this package)
+and pass an instance to `excelStub` instead of `true`:
 
 ```typescript
-const vbaRunner = new VBARunner('src/vba/KeyHandler.bas');
+import { VBARunner, MockApplication, assert } from 'vba-runner';
+
+class AppWithOnKey extends MockApplication {
+  onKeyLog: string[] = [];
+  OnKey(key: string, procedureName?: string) {
+    this.onKeyLog.push(`${key}=${procedureName ?? ''}`);
+  }
+}
+
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas', { excelStub: new AppWithOnKey() });
+
+vbaRunner.run('SetupKeyHandlers', []);
+assert.ok(vbaRunner.excelStub.onKeyLog.length > 0);
+```
+
+If you don't need a reusable class, you can instead add the missing method directly
+onto the `excelStub` instance after construction — it's the exact object already
+wired up as `Application`/`ActiveSheet`, so extending it in place works too:
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas', { excelStub: true });
 
 let registered: [string, string] | null = null;
-const customApplication = {
-  OnKey: (key: string, procedureName: string) => { registered = [key, procedureName]; },
+(vbaRunner.excelStub as any).OnKey = (key: string, procedureName: string) => {
+  registered = [key, procedureName];
 };
-vbaRunner.evaluator.setBuiltinOverride('Application', customApplication);
 
 vbaRunner.run('SetupKeyHandlers', []);
 assert.ok(registered !== null);
 ```
+
+Only reach for `vbaRunner.evaluator.setBuiltinOverride(name, value)` when you want to
+replace a builtin (e.g. `Application`) entirely with a different object — note that
+this discards the rest of the default Excel stub (`ActiveSheet`, `Sheets`, etc.)
+unless your VBA code never touches them through that same name.
 
 To inject any other named variable or constant directly, `vbaRunner.set(name, value)` is also available.
 

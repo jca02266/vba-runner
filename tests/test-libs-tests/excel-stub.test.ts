@@ -5,7 +5,7 @@
  * Range / Cells / ActiveSheet / Application.ScreenUpdating 等が
  * 追加のモック設定なしで動作することを検証する。
  */
-import { VBARunner, assert } from '../../test-libs/test-runner';
+import { VBARunner, assert, MockApplication } from '../../test-libs/test-runner';
 
 const suite = new VBARunner('tests/fixtures/excel-stub', { excelStub: true });
 
@@ -41,5 +41,22 @@ suite2.excelStub!.ActiveSheet.setCellValue('A1', 99);
 const val = suite2.run('ReadA1', []);
 assert.strictEqual(val, 99, 'excelStub.ActiveSheet.setCellValue で事前データ設定');
 console.log('[PASS] excelStub.ActiveSheet.setCellValue() で事前セルデータ');
+
+// --- excelStub に MockApplication のサブクラスを渡すと、ActiveSheet 等を保ったまま拡張できる ---
+class AppWithOnKey extends MockApplication {
+    onKeyLog: string[] = [];
+    OnKey(key: string, procName?: string) {
+        this.onKeyLog.push(`${key}=${procName ?? ''}`);
+    }
+}
+const customApp = new AppWithOnKey();
+const suite3 = new VBARunner('tests/fixtures/excel-stub', { excelStub: customApp });
+assert.strictEqual(suite3.excelStub, customApp, 'excelStub に渡したインスタンスがそのまま使われる');
+// 拡張前から実装済みの ActiveSheet 系は変わらず動く
+assert.strictEqual(suite3.run('TestCellReadWrite', []), 42, 'サブクラス使用時も Cells(1,1).Value = 42');
+// 追加した OnKey も、標準の MockApplication が持つ ActiveSheet 系を壊さずに呼べる
+suite3.run('TestCallOnKey', []);
+assert.deepStrictEqual(customApp.onKeyLog, ['{LEFT}=SomeHandler'], 'サブクラスに追加した OnKey が呼ばれる');
+console.log('[PASS] excelStub にカスタム MockApplication サブクラスを渡して拡張できる');
 
 console.log('\n✅ excel-stub: 全テスト通過');

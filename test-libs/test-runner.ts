@@ -3,13 +3,15 @@ import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
-import type { VbaComObject } from '../src/engine/vba-types';
+import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../src/engine/vba-types';
 import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, stripVBAFileHeader, CompilerConstants } from '../src/engine/preprocessor';
 import { loadMocks } from './mock-loader';
 import { injectExcelStub } from './excel-stub';
-import { MockApplication } from '../src/engine/mock/MockExcel';
+import { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockWorkbook } from '../src/engine/mock/MockExcel';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
+export { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockWorkbook };
+export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
 
 const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
 
@@ -22,10 +24,11 @@ export class VBARunner {
     /** `excelStub: true` のとき注入された MockApplication。セル初期値の設定に使う。 */
     public readonly excelStub: MockApplication | null = null;
 
-    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants, excelStub?: boolean } = {}) {
+    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants, excelStub?: boolean | MockApplication } = {}) {
         this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
         if (config.excelStub) {
-            (this as any).excelStub = injectExcelStub(this.evaluator);
+            const app = config.excelStub === true ? undefined : config.excelStub;
+            (this as any).excelStub = injectExcelStub(this.evaluator, app);
         }
 
         if (!pathOrDir) return;
