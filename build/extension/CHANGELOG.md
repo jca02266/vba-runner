@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.2] - 2026-06-20
+
+### Changed
+
+- **README**: Added a link to the CHANGELOG on GitHub.
+
 ## [0.2.1] - 2026-06-20
 
 ### Fixed
