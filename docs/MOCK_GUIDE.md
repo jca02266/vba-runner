@@ -1,5 +1,23 @@
 # VBA モック実装ガイド
 
+> **npm パッケージ(`vba-runner`)利用者へ**: このガイドのコード例は `import { MockApplication }
+> from '../../src/engine/mock/MockWorksheet'` のようにリポジトリ内部のソースパスを前提としており、
+> npmでインストールしたパッケージからは直接importできません。npm経由で同等のことを行うには、
+> 代わりに以下の公開APIを使ってください:
+>
+> - `new VBARunner(path, { excelStub: true })` → `runner.excelStub.ActiveSheet.setCellValue(...)` /
+>   `getCellValue(...)` でセルの初期値設定・検証(このガイドの `MockApplication`/`MockWorksheet` と
+>   ほぼ同じ機能が組み込みで使える)
+> - `runner.set(name, value)` で任意の名前のグローバル変数・定数を注入
+> - `runner.evaluator.setBuiltinOverride(name, value)` で `Application` 等の組み込みオブジェクトを
+>   丸ごと独自オブジェクトに差し替え(`MockApplication` を継承する代わりに、必要なメソッドだけを
+>   持つ素のオブジェクトを自作して渡せばよい)
+>
+> 詳しくは [`README.md`](https://github.com/jca02266/vba-runner/blob/main/build/runner/README.md)
+> の「Mocking Excel-dependent objects」を参照してください。
+> 以降の内容(リポジトリ内部のソースパスを使う例)は、vba-runner本体の開発に参加する場合や、
+> リポジトリをcloneして拡張する場合に有用です。
+
 ---
 
 ## Step 0: モックが必要かどうかを確認する [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
@@ -431,13 +449,15 @@ npx tsx tests/spec/your-test.ts
 
 | 機能 | 状態 | 説明 |
 |------|------|------|
-| `Interior.Color` | ❌ | 書式設定（セルの背景色） |
+| `Interior.Color` | ❌ | 書式設定（セルの背景色）。getter/setterはあるが値を保持しないno-op |
 | `Font` | ❌ | フォント設定 |
 | `Offset()` | ❌ | 相対位置参照 |
 | `Select()` | ❌ | セル選択 |
 | `Copy()` | ❌ | コピー操作 |
 | `Paste()` | ❌ | ペースト操作 |
 | `UsedRange` | ❌ | 使用範囲 |
+| `Application.OnKey` | ❌ | キー入力ハンドラの登録。呼び出すとエラーになる |
+| `Application.OnTime` | ❌ | タイマー実行の登録。呼び出すとエラーになる |
 
 ### §B: Application プロパティ（ScreenUpdating 等）
 

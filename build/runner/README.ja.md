@@ -65,6 +65,64 @@ const result = vbaRunner.run('CalcTotal', [100, 200, 300]);
 assert.strictEqual(result, 600);
 ```
 
+### 4. Boolean値を比較する
+
+VBAの `Boolean` を返す関数の結果は、`assert.strictEqual(result, true)` のように素のJSの
+`true`/`false` と直接比較すると失敗します(VBAの`Boolean`値はラッパーオブジェクトとして
+返るため)。専用の `assert.isTrue` / `assert.isFalse` を使ってください。
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas');
+const result = vbaRunner.run('IsPositive', [5]);
+
+assert.isTrue(result);                  // OK
+// assert.strictEqual(result, true);    // NG: 失敗する
+```
+
+### 5. Excel依存オブジェクト(Application / ActiveSheet など)をモックする
+
+`ActiveSheet.Range(...)` や `Cells(...)` を使うVBAコードは、`excelStub` オプションを
+有効にすると組み込みのモックでテストできます。
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sheet1Logic.bas', { excelStub: true });
+
+// テスト前にセルの初期値を設定
+vbaRunner.excelStub.ActiveSheet.setCellValue('A1', 100);
+
+vbaRunner.run('DoubleA1ToB1', []);
+
+// セルの値を検証
+assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
+```
+
+組み込みモックは `Value` の読み書きのみサポートしています。`Interior.Color` などの
+書式設定は値を保持しない no-op、`Application.OnKey` / `Application.OnTime` は未実装です
+(呼び出すとエラーになります)。これらに依存するコードをテストしたい場合は、
+`vbaRunner.evaluator.setBuiltinOverride(name, value)` で `Application` などの
+組み込みオブジェクト自体を独自のモックに丸ごと差し替えてください。
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas');
+
+let registered: [string, string] | null = null;
+const customApplication = {
+  OnKey: (key: string, procedureName: string) => { registered = [key, procedureName]; },
+};
+vbaRunner.evaluator.setBuiltinOverride('Application', customApplication);
+
+vbaRunner.run('SetupKeyHandlers', []);
+assert.ok(registered !== null);
+```
+
+任意の名前の変数・定数を直接注入したい場合は `vbaRunner.set(name, value)` も使えます。
+
+詳細なモック実装パターンは [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) を参照してください。
+
 ## CLI ツール
 
 `vba-runner` パッケージは以下の CLI ツールを提供します。

@@ -67,6 +67,64 @@ const result = vbaRunner.run('CalcTotal', [100, 200, 300]);
 assert.strictEqual(result, 600);
 ```
 
+### 4. Comparing Boolean values
+
+Comparing a VBA `Boolean` result directly against a plain JS `true`/`false` via
+`assert.strictEqual(result, true)` fails (VBA `Boolean` values are returned as a
+wrapper object). Use the dedicated `assert.isTrue` / `assert.isFalse` instead.
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas');
+const result = vbaRunner.run('IsPositive', [5]);
+
+assert.isTrue(result);                  // OK
+// assert.strictEqual(result, true);    // fails
+```
+
+### 5. Mocking Excel-dependent objects (Application / ActiveSheet, etc.)
+
+VBA code that uses `ActiveSheet.Range(...)` or `Cells(...)` can be tested with the
+built-in mock by enabling the `excelStub` option.
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sheet1Logic.bas', { excelStub: true });
+
+// Seed a cell value before running
+vbaRunner.excelStub.ActiveSheet.setCellValue('A1', 100);
+
+vbaRunner.run('DoubleA1ToB1', []);
+
+// Check the resulting cell value
+assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
+```
+
+The built-in mock only persists `Value` reads/writes. Formatting properties like
+`Interior.Color` are no-ops that don't retain state, and `Application.OnKey` /
+`Application.OnTime` aren't implemented (calling them throws). To test code that
+depends on these, replace `Application` (or any other builtin) entirely with your
+own mock object via `vbaRunner.evaluator.setBuiltinOverride(name, value)`.
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/KeyHandler.bas');
+
+let registered: [string, string] | null = null;
+const customApplication = {
+  OnKey: (key: string, procedureName: string) => { registered = [key, procedureName]; },
+};
+vbaRunner.evaluator.setBuiltinOverride('Application', customApplication);
+
+vbaRunner.run('SetupKeyHandlers', []);
+assert.ok(registered !== null);
+```
+
+To inject any other named variable or constant directly, `vbaRunner.set(name, value)` is also available.
+
+See [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) for more advanced mocking patterns.
+
 ## CLI Tools
 
 | Command | Description |
