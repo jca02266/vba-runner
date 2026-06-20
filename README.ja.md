@@ -30,6 +30,8 @@ AI は VBA コードを読んでリファクタリング案を提案できます
 | VBA 関数を TypeScript からテストしたい | [build/runner/README.md](build/runner/README.md) |
 | Excel の VBA ソースをファイルに書き出したい | [build/extractor/README.md](build/extractor/README.md) |
 | レガシー VBA のリファクタリングを AI に依頼したい | [FOR_AI.md](FOR_AI.md) |
+| 抽出 → VS Code で確認 → AI でリファクタリング/機能追加 → 書き戻しの一連の流れを体験したい | [docs/TUTORIAL.md](docs/TUTORIAL.md) |
+| 同じ流れを、コマンドの詳細を知らずに AI への指示だけで進めたい | [docs/TUTORIAL_AI.md](docs/TUTORIAL_AI.md) |
 | 自分でリファクタリング手法を学びたい | [docs/REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) → [docs/INDEX.md](docs/INDEX.md) |
 | VS Code で VBA を快適に編集したい | [build/extension/README.md](build/extension/README.md) |
 
@@ -72,7 +74,7 @@ vba-runner/
 │   ├── extractor/       vba-extractor npm パッケージ配布物
 │   ├── extension/       VS Code 拡張機能配布物（.vsix）
 │   └── playground/      VBA Web Runner 配布物（Vite）
-└── docs/                詳細設計ガイド・実践例（12本）
+└── docs/                チュートリアル・詳細設計ガイド・実践例（14本）
 ```
 
 VBA ソースとテストを並べて配置する場合の例:
@@ -95,5 +97,5 @@ project-dir/
 | [REFERENCE.md](REFERENCE.md) | 利用者・開発者 | 詳細仕様（サンドボックス方針・型システム・モック・拡張機能など） |
 | [FOR_AI.md](FOR_AI.md) | VBAリファクタリングをAIに依頼する場合 | AI向け操作手順・リファクタリングサイクル（Phase 1-7） |
 | [LSP.md](LSP.md) | VS Code拡張開発者 | LSP の設計・実装仕様 |
-| [docs/](docs/) | VBAテスト・リファクタリング実践者 | テスト設計原則・リファクタリング手法・モックガイド（12本） |
+| [docs/](docs/) | VBAテスト・リファクタリング実践者 | 一連の流れを学べるチュートリアル・テスト設計原則・リファクタリング手法・モックガイド（14本） |
 | [INDEX.md](INDEX.md) | — | 全ドキュメント一覧・評価・再編提案 |

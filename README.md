@@ -32,6 +32,8 @@ AI can read VBA code and suggest refactoring improvements, but without VBA Runne
 | Test VBA functions from TypeScript | [build/runner/README.md](build/runner/README.md) |
 | Export VBA source from an Excel file | [build/extractor/README.md](build/extractor/README.md) |
 | Ask AI to refactor legacy VBA | [FOR_AI.md](FOR_AI.md) |
+| Walk through the full flow: extract → review in VS Code → AI refactor/feature add → write back | [docs/TUTORIAL.md](docs/TUTORIAL.md) |
+| Do the same, but by only giving instructions to an AI agent (no command details) | [docs/TUTORIAL_AI.md](docs/TUTORIAL_AI.md) |
 | Learn refactoring techniques yourself | [docs/REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) → [docs/INDEX.md](docs/INDEX.md) |
 | Edit VBA comfortably in VS Code | [build/extension/README.md](build/extension/README.md) |
 
@@ -74,7 +76,7 @@ vba-runner/
 │   ├── extractor/       vba-extractor npm package distribution
 │   ├── extension/       VS Code extension distribution (.vsix)
 │   └── playground/      VBA Web Runner distribution (Vite)
-└── docs/                Design guides and practical examples (12 docs)
+└── docs/                Tutorials, design guides, and practical examples (14 docs)
 ```
 
 Example layout when placing VBA source alongside the engine:
@@ -97,5 +99,5 @@ project-dir/
 | [REFERENCE.md](REFERENCE.md) | Users / developers | Detailed specs: sandbox policy, type system, mocks, extension |
 | [FOR_AI.md](FOR_AI.md) | AI-assisted VBA refactoring | AI operation guide, refactoring cycle (Phases 1–7) |
 | [LSP.md](LSP.md) | VS Code extension developers | LSP design and implementation spec |
-| [docs/](docs/) | VBA testing / refactoring practitioners | Test design principles, refactoring techniques, mock guide (12 docs) |
+| [docs/](docs/) | VBA testing / refactoring practitioners | End-to-end tutorials, test design principles, refactoring techniques, mock guide (14 docs) |
 | [INDEX.md](INDEX.md) | — | Full document index |

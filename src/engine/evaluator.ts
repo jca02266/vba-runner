@@ -661,6 +661,17 @@ export class Evaluator {
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
     private debugHook: DebugHook | null = null;
 
+    /**
+     * resolveIdentifiers 完了後に true になる。
+     * evaluateModule はこのフラグを見て、バッチロード中（false）はモジュールレベル
+     * 実行文を pendingTopLevel に退避し、インタラクティブ呼び出し（true）では即時実行する。
+     */
+    private resolveIdentifiersDone = false;
+    /** Pass 1 で配列境界を評価できなかった VariableDeclaration。Pass 2 で再評価。 */
+    private pendingArrayDecls: Array<{ stmt: VariableDeclaration; moduleName: string }> = [];
+    /** Pass 1 でシンボルテーブルに退避したモジュールレベル実行文。Pass 2 後に実行。 */
+    private pendingTopLevel: Array<{ moduleName: string; stmts: Statement[] }> = [];
+
     constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
         // Tier 4: builtinEnv — register standard library here first
         this.builtinEnv = new Environment();
@@ -2130,25 +2141,81 @@ export class Evaluator {
     }
 
     /**
-     * Pass 1: 1モジュール分の AST を登録する。
-     * 手続き・変数を env に登録する。
-     * モジュールレベル ConstDeclaration はスキップし、Pass 2（resolveIdentifiers）で評価する。
+     * モジュールレベルでシンボルテーブルに登録すべき宣言文かどうかを返す。
+     * false の場合はモジュールレベル実行文として pendingTopLevel に退避する。
+     */
+    private isModuleLevelDeclaration(stmt: Statement): boolean {
+        switch (stmt.type) {
+            case 'ProcedureDeclaration':
+            case 'VariableDeclaration':
+            case 'ConstDeclaration':
+            case 'TypeDeclaration':
+            case 'ClassDeclaration':
+            case 'EnumDeclaration':
+            case 'OptionExplicitStatement':
+            case 'OptionBaseStatement':
+            case 'OptionCompareStatement':
+            case 'OptionPrivateModuleStatement':
+            case 'DefDirective':
+            case 'AttributeStatement':
+            case 'DeclareStatement':
+            case 'EventDeclaration':
+            case 'ImplementsDirective':
+            case 'LabelStatement':
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /**
+     * Pass 1: 1モジュール分の AST を登録する（シンボルテーブル構築）。
      *
-     * Option Explicit チェックは Pass 2（resolveIdentifiers）に一本化している。
-     * Pass 2 は全モジュール名を知った精密モードで実行され、Pass 1 の保守的チェックの
-     * 厳密な上位集合なので、ここでは行わない。
+     * - ConstDeclaration      → スキップ。Pass 2（resolveIdentifiers）で依存順に評価。
+     * - VariableDeclaration   → 配列境界なしは即時登録。配列境界ありは pendingArrayDecls
+     *                           に退避し Pass 2 で Const 解決後に評価。
+     * - モジュールレベル実行文 → resolveIdentifiers 完了前（バッチロード中）は
+     *                           pendingTopLevel に退避。Pass 2 後に実行。
+     *                           resolveIdentifiers 完了後（インタラクティブ呼び出し）は
+     *                           即時実行（evalExpression や追加モジュールロード等）。
      */
     public evaluateModule(program: Program) {
         if (this.currentSourceModule && !this.env.hasVariable(this.currentSourceModule.toLowerCase())) {
             this.env.set(this.currentSourceModule.toLowerCase(), new VbaNamespaceRef(this.currentSourceModule, 'module'));
         }
+
+        const batchMode = !this.resolveIdentifiersDone;
+        const topLevelStmts: Statement[] = [];
+
         for (const stmt of program.body) {
-            // モジュールレベルの ConstDeclaration は Pass 2（resolveIdentifiers）で評価する。
-            // ここで評価すると参照先が未定義の場合に env.get() の暗黙初期化が起き、
-            // 誤った値が env に登録されてしまう。
-            // 全モジュールのロード完了後に呼び出し側が resolveIdentifiers() を実行すること。
-            if (stmt.type === 'ConstDeclaration') continue;
+            // ConstDeclaration は常に Pass 2 に委ねる。
+            // バッチロード後のインタラクティブ呼び出しでは即時評価する。
+            if (stmt.type === 'ConstDeclaration') {
+                if (!batchMode) this.evaluateConstDeclaration(stmt as ConstDeclaration);
+                continue;
+            }
+
+            // VariableDeclaration: 配列境界あり → Pass 2 まで評価を延期してシンボル登録のみ。
+            // 境界なし → 即時登録（初期値は型デフォルトのみで Const 参照なし）。
+            if (batchMode && stmt.type === 'VariableDeclaration') {
+                const varDecl = stmt as VariableDeclaration;
+                if (varDecl.declarations.some(d => d.isArray && d.arrayBounds && d.arrayBounds.length > 0)) {
+                    this.pendingArrayDecls.push({ stmt: varDecl, moduleName: this.currentSourceModule || '' });
+                    continue;
+                }
+            }
+
+            // 宣言文でないモジュールレベル実行文はバッチ中は退避し、Pass 2 後にまとめて実行。
+            if (batchMode && !this.isModuleLevelDeclaration(stmt)) {
+                topLevelStmts.push(stmt);
+                continue;
+            }
+
             this.evaluateStatement(stmt);
+        }
+
+        if (batchMode && topLevelStmts.length > 0) {
+            this.pendingTopLevel.push({ moduleName: this.currentSourceModule || '', stmts: topLevelStmts });
         }
     }
 
@@ -3631,6 +3698,16 @@ export class Evaluator {
             this.currentSourceModule = prev;
         }
 
+        // Pass 1 で延期した配列境界付き VariableDeclaration を Const 解決後に評価する。
+        // evaluateModule はバッチ中は配列境界付き Dim を pendingArrayDecls に退避している。
+        for (const { stmt, moduleName } of this.pendingArrayDecls) {
+            const prev = this.currentSourceModule;
+            this.currentSourceModule = moduleName;
+            this.evaluateVariableDeclaration(stmt);
+            this.currentSourceModule = prev;
+        }
+        this.pendingArrayDecls = [];
+
         // 同一モジュール内の重複プロシージャ名チェック（Pass 2）
         for (const { ast, moduleName } of modules) {
             const seen = new Set<string>();
@@ -3669,6 +3746,21 @@ export class Evaluator {
                 }
             }
         }
+
+        // バッチロード完了。以降の evaluateModule 呼び出し（evalExpression 等）は即時実行する。
+        this.resolveIdentifiersDone = true;
+
+        // Pass 1 でシンボルテーブルに退避したモジュールレベル実行文を順番に実行する。
+        // Const・配列 Dim がすべて確定した状態で実行されるため定数参照が正しく解決される。
+        for (const { moduleName, stmts } of this.pendingTopLevel) {
+            const prev = this.currentSourceModule;
+            this.currentSourceModule = moduleName;
+            for (const stmt of stmts) {
+                this.evaluateStatement(stmt);
+            }
+            this.currentSourceModule = prev;
+        }
+        this.pendingTopLevel = [];
 
     }
 

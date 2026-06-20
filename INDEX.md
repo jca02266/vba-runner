@@ -32,6 +32,8 @@
 | ファイル | 区分 | 概要 | 規模 |
 |---|---|---|---|
 | [docs/INDEX.md](docs/INDEX.md) | ナビゲーション | docs/ 内ドキュメントの索引・読む順序・用途別ガイド | 中 |
+| [docs/TUTORIAL.md](docs/TUTORIAL.md) | 入門 | vba-extractor 抽出 → VS Code 確認 → AI リファクタリング/機能追加 → 書き戻しの一連の流れを実例で体験するチュートリアル | 中 |
+| [docs/TUTORIAL_AI.md](docs/TUTORIAL_AI.md) | 入門 | 同じ流れを、コマンドの詳細に触れず AI への指示文だけで完結させるチュートリアル | 小 |
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | 基礎 | VBA テスト設計 6 原則（Domain Logic と I/O の分離） | 大 |
 | [docs/REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) | 基礎 | テスト可能化のためのリファクタリング 4 パターン | 大 |
 | [docs/TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) | 実践 | JS テストフレームワークで VBA をテスト（VBARunner API リファレンス含む） | 大 |

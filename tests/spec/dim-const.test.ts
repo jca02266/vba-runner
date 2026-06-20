@@ -84,4 +84,48 @@ const gObj = ev5.env.get('gobj');
 assert.strictEqual(gObj.__instanceEnv__.get('value'), "Modified", 'Set による参照代入とプロパティ更新');
 console.log('[PASS] Set (オブジェクト代入)');
 
+// --- 5. 配列境界式に Const を参照する ---
+// モジュールレベル 1D 配列
+{
+    const ev = evalVBASingle(`
+Const W As Integer = 3
+Dim a(0 To W - 1) As Integer
+Sub Test()
+    a(2) = 5
+End Sub`);
+    ev.callProcedure('Test', []);
+    const arr = ev.env.get('a');
+    assert.strictEqual((arr as any).__vbaDimensions__[0].upper, 2, 'モジュールレベル 1D: UBound = W-1 = 2');
+    assert.strictEqual(arr[2], 5, 'モジュールレベル 1D: a(2) = 5 が読み書きできる');
+    console.log('[PASS] 配列境界に Const を参照: モジュールレベル 1D');
+}
+
+// モジュールレベル 2D 配列
+{
+    const ev = evalVBASingle(`
+Const W As Integer = 3
+Dim a(0 To W - 1, 0 To 3) As Integer
+Sub Test()
+    a(2, 3) = 7
+End Sub`);
+    ev.callProcedure('Test', []);
+    const arr = ev.env.get('a');
+    assert.strictEqual((arr as any).__vbaDimensions__[0].upper, 2, 'モジュールレベル 2D: dim1 UBound = 2');
+    assert.strictEqual((arr as any).__vbaDimensions__[1].upper, 3, 'モジュールレベル 2D: dim2 UBound = 3');
+    assert.strictEqual(arr[2][3], 7, 'モジュールレベル 2D: a(2,3) = 7 が読み書きできる');
+    console.log('[PASS] 配列境界に Const を参照: モジュールレベル 2D');
+}
+
+// Sub 内 Dim で Public Const を参照
+{
+    const ev = evalVBASingle(`
+Public Const W As Integer = 3
+Sub Test()
+    Dim a(0 To W - 1) As Integer
+    a(2) = 9
+End Sub`);
+    ev.callProcedure('Test', []);
+    console.log('[PASS] 配列境界に Const を参照: Sub 内 Dim');
+}
+
 console.log('\n✅ Dim, Const, Let, Set: 全テスト通過');
