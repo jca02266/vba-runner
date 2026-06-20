@@ -671,14 +671,18 @@ export class Evaluator {
     private pendingArrayDecls: Array<{ stmt: VariableDeclaration; moduleName: string }> = [];
     /** Pass 1 でシンボルテーブルに退避したモジュールレベル実行文。Pass 2 後に実行。 */
     private pendingTopLevel: Array<{ moduleName: string; stmts: Statement[] }> = [];
+    /** vba-runner 拡張: モジュールレベル実行文（代入・For 等）をプロシージャの後にも書けるようにするか。
+     *  false にすると標準 VBA 仕様どおり、プロシージャ後の実行文もコンパイルエラーになる。 */
+    private allowTopLevelStatements: boolean = true;
 
-    constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem } = {}) {
+    constructor(onPrint: PrintCallback, config: { sandboxRoot?: string, env?: Record<string, string>, fs?: FileSystem, allowTopLevelStatements?: boolean } = {}) {
         // Tier 4: builtinEnv — register standard library here first
         this.builtinEnv = new Environment();
         this.env = this.builtinEnv;         // temporarily point to builtinEnv
         this.onPrint = onPrint;
         this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         this.fs = config.fs || new MemoryFileSystem();
+        if (config.allowTopLevelStatements !== undefined) this.allowTopLevelStatements = config.allowTopLevelStatements;
         this.registerStandardLibrary();     // → builtinEnv
         this.registerBuiltinExternalObjects(); // → typeLibraryNamespaces
         // Tier 3: globalEnv — cross-module public names, enclosing = builtinEnv
@@ -3722,6 +3726,31 @@ export class Evaluator {
                     throw new Error(`Compile error: Duplicate procedure name '${proc.name.name}' in module '${moduleName}' (line ${line})`);
                 }
                 seen.add(key);
+            }
+        }
+
+        // モジュールレベル宣言の位置チェック（Pass 2）
+        // 標準 VBA 仕様: Dim/Const/Type/Enum 等のモジュールレベル宣言も含め、プロシージャ
+        // （End Sub/End Function/End Property）の後に書けるのはコメントのみ。それ以外を
+        // 書くと「End Sub、End Function または End Property 以降には、コメントのみが
+        // 記述できます」というコンパイルエラーになる。
+        // vba-runner 拡張: evalVBASingle/evalVBAModules 等は allowTopLevelStatements が
+        // true（デフォルト）になっており、REPL・テストスクリプト用に Dim も含めた
+        // モジュールレベル文をプロシージャの前後どこに書いても許容する
+        // （先頭にない Dim もモジュールレベル実行文と同様に扱う）。
+        // allowTopLevelStatements: false を指定したときのみ標準 VBA 相当の挙動になる。
+        for (const { ast } of modules) {
+            let seenProcedure = false;
+            for (const stmt of ast.body) {
+                if (stmt.type === 'ProcedureDeclaration') {
+                    seenProcedure = true;
+                    continue;
+                }
+                if (!seenProcedure) continue;
+                if (!this.allowTopLevelStatements) {
+                    const line = stmt.loc?.start.line ?? stmt.line ?? 0;
+                    throw new Error(`Compile error: Only comments may appear after End Sub, End Function, or End Property (line ${line})`);
+                }
             }
         }
 

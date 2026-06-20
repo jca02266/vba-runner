@@ -245,6 +245,9 @@ export interface EvalOptions {
     /** パース直後・Evaluator 生成前に実行されるコールバック。
      *  ast.diagnostics のチェック等に使う。throw すれば評価を中断できる。 */
     afterParse?: (ast: Program) => void;
+    /** vba-runner 拡張: モジュールレベル実行文をプロシージャの後にも書けるようにするか（デフォルト true）。
+     *  false にすると標準 VBA 仕様どおりコンパイルエラーになる。 */
+    allowTopLevelStatements?: boolean;
 }
 
 /**
@@ -259,6 +262,7 @@ export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
         fs: options?.fs,
         sandboxRoot: options?.sandboxRoot,
         env: options?.env,
+        allowTopLevelStatements: options?.allowTopLevelStatements,
     });
     options?.setup?.(ev);
     ev.evaluateModule(ast);
@@ -281,6 +285,7 @@ export function evalVBAModules(
         fs: options?.fs,
         sandboxRoot: options?.sandboxRoot,
         env: options?.env,
+        allowTopLevelStatements: options?.allowTopLevelStatements,
     });
     if (options?.defaultBindingObject !== undefined) {
         ev.setDefaultBindingObject(options.defaultBindingObject);
@@ -471,10 +476,17 @@ export function assertCompileErrorPass2(src: string, expectedLine: number, patte
     });
 }
 
-/** [prerun] evaluateModule OK → resolveIdentifiers で throw を検証。 */
-export function assertCompileErrorPrerun(src: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
+/** [prerun] evaluateModule OK → resolveIdentifiers で throw を検証。
+ *  evalOptions: Evaluator のコンストラクター設定（allowTopLevelStatements 等）を上書きする場合に指定。 */
+export function assertCompileErrorPrerun(
+    src: string,
+    expectedLine: number | undefined,
+    pattern: RegExp,
+    label: string,
+    evalOptions?: { allowTopLevelStatements?: boolean },
+): void {
     const ast = new Parser(new Lexer(src).tokenize()).parse();
-    const ev = new Evaluator(console.log);
+    const ev = new Evaluator(console.log, evalOptions);
     assertCompileErrorImpl({
         label, phaseName: 'prerun',
         pattern, expectedLine,
@@ -503,4 +515,35 @@ export function assertCompileErrorExec(src: string, procName: string, expectedLi
         okAction: () => { ev = evalVBASingle(src); },
         throwAction: () => ev.callProcedure(procName, []),
     });
+}
+
+/**
+ * RUNNER: TBD ケース調査用: 各フェーズで実際にスローされるエラーメッセージをそのまま返す。
+ * assertCompileError* は pattern にマッチした時点で正常終了してしまうため、
+ * 実際のメッセージを観察する目的には使えない（pattern: /.+/i は常にマッチしてしまう）。
+ */
+export function captureCompileErrorMessage(
+    phase: 'parse' | 'prerun' | 'preproc' | 'exec',
+    src: string,
+    procName?: string,
+    evalOptions?: { allowTopLevelStatements?: boolean },
+): string {
+    try {
+        if (phase === 'parse') {
+            new Parser(new Lexer(src).tokenize()).parse();
+            return '(no error thrown)';
+        }
+        const ast = new Parser(new Lexer(src).tokenize()).parse();
+        const ev = new Evaluator(console.log, evalOptions);
+        ev.evaluateModule(ast);
+        if (phase === 'prerun') {
+            ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+            return '(no error thrown)';
+        }
+        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+        ev.callProcedure(procName ?? '__test__', []);
+        return '(no error thrown)';
+    } catch (e: any) {
+        return e?.message ?? String(e);
+    }
 }

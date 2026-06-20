@@ -9,7 +9,7 @@
  * [exec]  precheckProc 後の実行中に例外が発生するケース
  */
 
-import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec } from '../../test-libs/test-runner';
+import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
@@ -127,7 +127,7 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
 }
 
 // [parse] reserved_word_as_function_name
-// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA: コンパイルエラー: 修正候補: 識別子
 // VBA error line (within Sub body): 1
 {
     try {
@@ -143,7 +143,7 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name');
 }
 
 // [parse] reserved_word_as_sub_name
-// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA: コンパイルエラー: 修正候補: 識別子
 // VBA error line (within Sub body): 1
 {
     try {
@@ -158,7 +158,7 @@ End Sub`, 1, /reserved word/i, 'reserved_word_as_sub_name');
 }
 
 // [parse] reserved_word_as_function_name_print
-// VBA: コンパイルエラー: 予約語はプロシージャ名として使用できません
+// VBA: コンパイルエラー: 修正候補: 識別子
 // VBA error line (within Sub body): 1
 {
     try {
@@ -417,6 +417,155 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         __pass__++;
     } catch (e: any) {
         console.error('[FAIL] duplicate_sub_name:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_dim_after_procedure
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelDimAfterProcedure()
+      End Sub
+      Dim moduleLevelVar As Integer
+    `, 10, /only comments may appear after end sub/i, 'module_level_dim_after_procedure', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_dim_after_procedure');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_dim_after_procedure:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_const_after_procedure
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelConstAfterProcedure()
+      End Sub
+      Const ModuleLevelConst As Integer = 1
+    `, 10, /only comments may appear after end sub/i, 'module_level_const_after_procedure', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_const_after_procedure');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_const_after_procedure:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_public_after_procedure
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelPublicAfterProcedure()
+      End Sub
+      Public ModuleLevelPublicVar As Integer
+    `, 10, /only comments may appear after end sub/i, 'module_level_public_after_procedure', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_public_after_procedure');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_public_after_procedure:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_type_after_procedure
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelTypeAfterProcedure()
+      End Sub
+      Type ModuleLevelType
+          Field As Integer
+      End Type
+    `, 10, /only comments may appear after end sub/i, 'module_level_type_after_procedure', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_type_after_procedure');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_type_after_procedure:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_enum_after_procedure
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelEnumAfterProcedure()
+      End Sub
+      Enum ModuleLevelEnum
+          ModuleLevelEnumValue
+      End Enum
+    `, 10, /only comments may appear after end sub/i, 'module_level_enum_after_procedure', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_enum_after_procedure');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_enum_after_procedure:', e.message);
+        __fail__++;
+    }
+}
+
+// [prerun] module_level_toplevel_stmt_after_procedure_strict
+// VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPrerun(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub ModuleLevelToplevelStmtAfterProcedureStrict()
+      End Sub
+      For moduleLevelIdx = 0 To 10
+      Next moduleLevelIdx
+    `, 10, /only comments may appear after end sub/i, 'module_level_toplevel_stmt_after_procedure_strict', { allowTopLevelStatements: false });
+        console.log('[PASS] module_level_toplevel_stmt_after_procedure_strict');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] module_level_toplevel_stmt_after_procedure_strict:', e.message);
         __fail__++;
     }
 }

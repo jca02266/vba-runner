@@ -256,3 +256,96 @@ End Sub
 ''End Sub
 '@case-end
 
+' CASE: module_level_dim_after_procedure
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: 標準 VBA ではモジュールレベルの Dim もすべてのプロシージャより前に書く必要があり、
+'   プロシージャ（End Sub 等）の後に書くとコンパイルエラーになる。
+'   vba-runner は evalVBASingle/evalVBAModules 用の拡張（allowTopLevelStatements: true が
+'   デフォルト）として、先頭にない Dim もモジュールレベル実行文と同様に許容している。
+'   このケースは allowTopLevelStatements: false でその拡張を無効化し、標準 VBA 相当の
+'   挙動（コンパイルエラー）を検証する。
+'@case-begin
+Sub ModuleLevelDimAfterProcedure()
+End Sub
+Dim moduleLevelVar As Integer ' @error
+'@case-end
+
+' CASE: module_level_const_after_procedure
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: モジュールレベルの Const も Dim と同様。allowTopLevelStatements については
+'   module_level_dim_after_procedure の NOTE を参照。
+'@case-begin
+Sub ModuleLevelConstAfterProcedure()
+End Sub
+Const ModuleLevelConst As Integer = 1 ' @error
+'@case-end
+
+' CASE: module_level_public_after_procedure
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: Public 変数宣言も Dim と同じ VariableDeclaration として扱われ、同様にエラーになる。
+'   allowTopLevelStatements については module_level_dim_after_procedure の NOTE を参照。
+'@case-begin
+Sub ModuleLevelPublicAfterProcedure()
+End Sub
+Public ModuleLevelPublicVar As Integer ' @error
+'@case-end
+
+' CASE: module_level_type_after_procedure
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: ユーザー定義型（Type ... End Type）も同様。allowTopLevelStatements については
+'   module_level_dim_after_procedure の NOTE を参照。
+'@case-begin
+Sub ModuleLevelTypeAfterProcedure()
+End Sub
+Type ModuleLevelType ' @error
+    Field As Integer
+End Type
+'@case-end
+
+' CASE: module_level_enum_after_procedure
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: Enum も同様。allowTopLevelStatements については module_level_dim_after_procedure の
+'   NOTE を参照。
+'@case-begin
+Sub ModuleLevelEnumAfterProcedure()
+End Sub
+Enum ModuleLevelEnum ' @error
+    ModuleLevelEnumValue
+End Enum
+'@case-end
+
+' CASE: module_level_toplevel_stmt_after_procedure_strict
+' TYPE: prerun
+' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
+' RUNNER: /only comments may appear after end sub/i
+' EVAL_OPTIONS: { allowTopLevelStatements: false }
+' NOTE: For/Next・代入などの「モジュールレベル実行文」は標準 VBA では宣言文と同様に扱われ、
+'   プロシージャの後に書くと本来コンパイルエラーになる。
+'   vba-runner は REPL・テストスクリプト用の拡張として、このような実行文をプロシージャの
+'   有無や位置に関係なく許容している（allowTopLevelStatements: true がデフォルト）。
+'   このケースは allowTopLevelStatements: false を明示してその拡張を無効化し、
+'   標準 VBA 相当の挙動（コンパイルエラー）を検証する。
+'   拡張が有効な既定動作（エラーにならないこと）は
+'   tests/spec/module-level-toplevel-after-procedure.test.ts で検証する。
+'@case-begin
+Sub ModuleLevelToplevelStmtAfterProcedureStrict()
+End Sub
+For moduleLevelIdx = 0 To 10 ' @error
+Next moduleLevelIdx
+'@case-end
+

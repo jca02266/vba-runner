@@ -43,6 +43,7 @@ interface CompileErrorCase {
     code: string[];  // ' @error マーカーを除去済みのコード行
     isModuleLevel?: boolean;  // true のとき code はモジュールレベルに展開（Sub __test__() でラップしない）
     procName?: string;        // preproc/exec: callProcedure に渡すプロシージャ名（PROC: メタから取得）
+    evalOptions?: string;     // prerun: Evaluator 設定の上書き（EVAL_OPTIONS: メタから取得。例: { allowTopLevelStatements: false }）
 }
 
 // ' @error マーカーを除去する正規表現
@@ -89,6 +90,10 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
             meta.procName = trimmed.slice(7).trim();
             continue;
         }
+        if (meta && trimmed.startsWith("' EVAL_OPTIONS:")) {
+            meta.evalOptions = trimmed.slice(15).trim();
+            continue;
+        }
         // NOTE: は読み飛ばす（テストには不要）
         if (meta && trimmed.startsWith("' NOTE:")) continue;
 
@@ -123,6 +128,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                     code: moduleCaseLines,
                     isModuleLevel: true,
                     procName: resolvedProcName,
+                    evalOptions: meta!.evalOptions,
                 });
                 inModuleLevelCase = false;
                 meta = null;
@@ -164,6 +170,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 runnerPattern: meta!.runnerPattern ?? '/.+/',
                 code: caseBody,
                 procName: meta!.procName,
+                evalOptions: meta!.evalOptions,
             });
             // meta はクリアしない — 同一 CASE コメントに複数 Sub を許容
             inCaseSub = false;
@@ -250,13 +257,12 @@ ${inner}
         // RUNNER: TBD — CompileError.bas の RUNNER が未確定。
         // テストを必ず失敗させ、実際のエラーメッセージを表示して RUNNER 値の決定を促す。
         if (c.runnerPattern === 'TBD') {
-            const src = c.type === 'parse' ? buildParseSrc(c) : buildSubWrappedSrc(c);
-            const assertFn = c.type === 'parse' ? 'assertCompileErrorPass1' : 'assertCompileErrorPrerun';
+            const src = c.isModuleLevel ? buildModuleLevelSrc(c) : (c.type === 'parse' ? buildParseSrc(c) : buildSubWrappedSrc(c));
+            const procArg = c.procName ?? (c.isModuleLevel ? '' : '__test__');
+            const optsArg = c.evalOptions ? `, ${c.evalOptions}` : '';
             return [tryWrap(
 `        // RUNNER: TBD — 実際のエラーを表示して CompileError.bas を更新してください
-        let _tbd_msg = '';
-        try { ${assertFn}(\`${src}\`, undefined, /.+/i, '${c.name}'); }
-        catch (e: any) { _tbd_msg = e?.message ?? String(e); }
+        const _tbd_msg = captureCompileErrorMessage('${c.type}', \`${src}\`, '${procArg}'${optsArg});
         throw new Error('[${c.name}] RUNNER: TBD — fill in CompileError.bas. Actual error seen: ' + _tbd_msg);`
             )];
         }
@@ -277,8 +283,9 @@ ${inner}
                 ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : prerunLineOffset + c.errorLine)
                 : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined';
+            const optsArg = c.evalOptions ? `, ${c.evalOptions}` : '';
             return tryWrap(
-`        assertCompileErrorPrerun(\`${src}\`, ${lineArg}, ${pattern}, '${c.name}');`
+`        assertCompileErrorPrerun(\`${src}\`, ${lineArg}, ${pattern}, '${c.name}'${optsArg});`
             );
         }
 
@@ -319,7 +326,7 @@ ${inner}
  * [exec]  precheckProc 後の実行中に例外が発生するケース
  */
 
-import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec } from '${rel('test-libs/test-runner')}';
+import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '${rel('test-libs/test-runner')}';
 
 let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
