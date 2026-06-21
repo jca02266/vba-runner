@@ -133,4 +133,48 @@ End Function
     console.log('[PASS] Round の引数数エラー (449/450)');
 }
 
+// --- 11. Batch 3: Mid/Left/Right/Format の名前付き引数（順序非依存） ---
+{
+    const mid1 = evalVBA(`Function F()\n F = Mid("Hello World", 2, 3)\nEnd Function`).callProcedure('F', []);
+    const mid2 = evalVBA(`Function F()\n F = Mid(Length:=3, String:="Hello World", Start:=2)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(mid2, mid1, 'Mid の名前付き引数（順序を変えても同じ結果）');
+
+    const left1 = evalVBA(`Function F()\n F = Left("Hello", 3)\nEnd Function`).callProcedure('F', []);
+    const left2 = evalVBA(`Function F()\n F = Left(Length:=3, String:="Hello")\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(left2, left1, 'Left の名前付き引数（順序を変えても同じ結果）');
+
+    const fmt1 = evalVBA(`Function F()\n F = Format(3.14159, "0.00")\nEnd Function`).callProcedure('F', []);
+    const fmt2 = evalVBA(`Function F()\n F = Format(Format:="0.00", Expression:=3.14159)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(fmt2, fmt1, 'Format の名前付き引数（順序を変えても同じ結果）');
+
+    console.log('[PASS] Batch 3: Mid/Left/Format 名前付き引数（順序非依存）');
+}
+
+// --- 12. Batch 3: FV の名前付き引数（順序非依存・Optional 省略） ---
+{
+    const fv1 = evalVBA(`Function F()\n F = FV(0.01, 12, -100)\nEnd Function`).callProcedure('F', []);
+    const fv2 = evalVBA(`Function F()\n F = FV(Pmt:=-100, Rate:=0.01, NPer:=12)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(fv2, fv1, 'FV の名前付き引数（PV/Type 省略・順序非依存）');
+    console.log('[PASS] Batch 3: FV 名前付き引数');
+}
+
+// --- 13. Batch 3: 引数数エラー（代表サンプル） ---
+{
+    expectVbaError(`Debug.Print Left()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Left() (引数なし)');
+    expectVbaError(`Debug.Print Left("a", 1, 2)`, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Left(引数過多)');
+    expectVbaError(`Debug.Print Mid("a")`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Mid(引数不足)');
+    expectVbaError(`Debug.Print Format()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Format() (引数なし)');
+    expectVbaError(`Debug.Print MsgBox()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'MsgBox() (引数なし)');
+    expectVbaError(`Debug.Print FV(1, 2)`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'FV(引数不足)');
+    console.log('[PASS] Batch 3: 引数数エラー (449/450)');
+}
+
+// --- 14. Batch 3: 既存の位置引数呼び出しは無変化（代表サンプル） ---
+{
+    assert.strictEqual(evalVBA(`Function F()\n F = MsgBox("hi")\nEnd Function`).callProcedure('F', []), 1, 'MsgBox("hi") は今までどおり 1 を返す');
+    assert.strictEqual(evalVBA(`Function F()\n F = Right("Hello", 3)\nEnd Function`).callProcedure('F', []), 'llo', 'Right("Hello", 3) = "llo"');
+    assert.strictEqual(evalVBA(`Function F()\n F = StrComp("a", "b")\nEnd Function`).callProcedure('F', []), -1, 'StrComp("a", "b") = -1');
+    console.log('[PASS] Batch 3: 既存の位置引数呼び出しは無変化');
+}
+
 console.log('\n=== builtin-arg-metadata: 全テスト通過 ===');

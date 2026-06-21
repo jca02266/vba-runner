@@ -1269,7 +1269,7 @@ export class Evaluator {
             { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
             { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
         ]);
-        this.env.set('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
+        this.registerBuiltin('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? ''), find = String(s2 ?? '');
             if (find === "") return (start === -1) ? str.length : Number(start);
@@ -1281,7 +1281,12 @@ export class Evaluator {
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
             return idx === -1 ? 0 : idx + 1;
-        });
+        }, [
+            { name: 'StringCheck' },
+            { name: 'StringMatch' },
+            { name: 'Start', optional: true },
+            { name: 'Compare', optional: true },
+        ]);
         const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
         this.registerBuiltin('lcase', lcaseFunc, [{ name: 'String' }], ['$']);
         const strFunc = (val: any) => {
@@ -1294,17 +1299,21 @@ export class Evaluator {
         const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
         this.registerBuiltin('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
         const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
-        this.envSet('left', leftFunc, ['$']);
+        this.registerBuiltin('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
         const rightFunc = (val: any, len: any) => {
             const s = String(val ?? ''), l = Number(len);
             return s.substring(s.length - l);
         };
-        this.envSet('right', rightFunc, ['$']);
+        this.registerBuiltin('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
         const midFunc = (val: any, start: any, len?: any) => {
             const s = String(val ?? ''), st = Number(start);
             return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
         };
-        this.envSet('mid', midFunc, ['$']);
+        this.registerBuiltin('mid', midFunc, [
+            { name: 'String' },
+            { name: 'Start' },
+            { name: 'Length', optional: true },
+        ], ['$']);
         this.registerBuiltin('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length, [{ name: 'String' }]);
         const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart();
         this.registerBuiltin('ltrim', ltrimFunc, [{ name: 'String' }], ['$']);
@@ -1325,18 +1334,32 @@ export class Evaluator {
             }
             return c.repeat(Number(n));
         };
-        this.envSet('string', stringFunc, ['$']);
-        this.env.set('split', (s: any, del: string = ' ') => String(s ?? '').split(del));
-        this.env.set('join', (arr: any, del: string = ' ') => Array.isArray(arr) ? arr.join(del) : String(arr));
-        this.env.set('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')));
-        this.env.set('strcomp', (s1: any, s2: any, comp?: number) => {
+        this.registerBuiltin('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
+        this.registerBuiltin('split', (s: any, del: string = ' ') => String(s ?? '').split(del), [
+            { name: 'Expression' },
+            { name: 'Delimiter', optional: true },
+        ]);
+        this.registerBuiltin('join', (arr: any, del: string = ' ') => Array.isArray(arr) ? arr.join(del) : String(arr), [
+            { name: 'SourceArray' },
+            { name: 'Delimiter', optional: true },
+        ]);
+        this.registerBuiltin('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')), [
+            { name: 'Expression' },
+            { name: 'Find' },
+            { name: 'Replace' },
+        ]);
+        this.registerBuiltin('strcomp', (s1: any, s2: any, comp?: number) => {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             let str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             if (isText) { str1 = str1.toLowerCase(); str2 = str2.toLowerCase(); }
             return str1 < str2 ? -1 : (str1 > str2 ? 1 : 0);
-        });
-        this.env.set('strconv', (s: any, conv: any) => {
+        }, [
+            { name: 'String1' },
+            { name: 'String2' },
+            { name: 'Compare', optional: true },
+        ]);
+        this.registerBuiltin('strconv', (s: any, conv: any) => {
             if (s === vbaNull) return vbaNull;
             let str = String(s ?? '');
             const c = Number(conv);
@@ -1357,9 +1380,9 @@ export class Evaluator {
                 str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
             }
             return str;
-        });
+        }, [{ name: 'String' }, { name: 'Conversion' }]);
         this.registerBuiltin('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
-        this.env.set('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
+        this.registerBuiltin('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
             if (!Array.isArray(source)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const find = String(match ?? '');
             const isInclude = this.isTrue(include);
@@ -1371,18 +1394,23 @@ export class Evaluator {
             });
             (result as any).vbaBase = 0;
             return result;
-        });
-        this.env.set('leftb', (val: any, len: any) => {
+        }, [
+            { name: 'SourceArray' },
+            { name: 'Match' },
+            { name: 'Include', optional: true },
+            { name: 'Compare', optional: true },
+        ]);
+        this.registerBuiltin('leftb', (val: any, len: any) => {
             const s = String(val ?? '');
             // In VBA, strings are UTF-16, so each char is 2 bytes.
             // LeftB(s, 2) returns first char.
             return s.substring(0, Math.floor(Number(len) / 2));
-        });
-        this.env.set('rightb', (val: any, len: any) => {
+        }, [{ name: 'String' }, { name: 'Length' }]);
+        this.registerBuiltin('rightb', (val: any, len: any) => {
             const s = String(val ?? '');
             const charLen = Math.floor(Number(len) / 2);
             return s.substring(s.length - charLen);
-        });
+        }, [{ name: 'String' }, { name: 'Length' }]);
         const midbFunc = (val: any, start: any, len?: any) => {
             const s = String(val ?? '');
             const charStart = Math.floor((Number(start) + 1) / 2);
@@ -1390,7 +1418,11 @@ export class Evaluator {
             const charLen = Math.floor(Number(len) / 2);
             return s.substring(charStart - 1, charStart - 1 + charLen);
         };
-        this.envSet('midb', midbFunc, ['$']);
+        this.registerBuiltin('midb', midbFunc, [
+            { name: 'String' },
+            { name: 'Start' },
+            { name: 'Length', optional: true },
+        ], ['$']);
         const formatFunc = (val: any, pattern?: string) => {
             if (val === null || val === vbaNull || val === vbaEmpty) return "";
             const fmt = pattern ? String(pattern) : "";
@@ -1414,7 +1446,10 @@ export class Evaluator {
             }
             return String(val);
         };
-        this.envSet('format', formatFunc, ['$']);
+        this.registerBuiltin('format', formatFunc, [
+            { name: 'Expression' },
+            { name: 'Format', optional: true },
+        ], ['$']);
     }
 
     private registerStdlibDateTimeFunctions() {
@@ -1603,15 +1638,32 @@ export class Evaluator {
     }
 
     private registerInteractionFunctions() {
-        this.env.set('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; });
-        this.env.set('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => {
+        this.registerBuiltin('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; }, [
+            { name: 'PathName' },
+            { name: 'WindowStyle', optional: true },
+        ]);
+        this.registerBuiltin('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => {
             const title = _title ? ` ${_title}:` : '';
             this.onPrint(`[MSGBOX]${title} ${msg}`);
             return 1;
-        });
-        this.env.set('inputbox', (prompt: any, _title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; });
-        this.env.set('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
-        this.env.set('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
+        }, [
+            { name: 'Prompt' },
+            { name: 'Buttons', optional: true },
+            { name: 'Title', optional: true },
+        ]);
+        this.registerBuiltin('inputbox', (prompt: any, _title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; }, [
+            { name: 'Prompt' },
+            { name: 'Title', optional: true },
+            { name: 'Default', optional: true },
+        ]);
+        this.registerBuiltin('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); }, [
+            { name: 'Title' },
+            { name: 'Wait', optional: true },
+        ]);
+        this.registerBuiltin('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); }, [
+            { name: 'String' },
+            { name: 'Wait', optional: true },
+        ]);
         const doEventsFunc = () => 0;
         this.registerBuiltin('doevents', doEventsFunc, []);
     }
@@ -1621,34 +1673,46 @@ export class Evaluator {
             if (rate === 0) return nper;
             return (Math.pow(1 + rate, nper) - 1) / rate;
         };
-        this.env.set('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
+        this.registerBuiltin('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
             const r = Number(rate), n = Number(nper), p = Number(pmt), v = Number(pv), t = Number(type);
             const factor = getRateFactor(r, n);
             const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
             return result;
-        });
-        this.env.set('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
+        }, [
+            { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
+            { name: 'PV', optional: true }, { name: 'Type', optional: true },
+        ]);
+        this.registerBuiltin('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
             const r = Number(rate), n = Number(nper), p = Number(pmt), f = Number(fv), t = Number(type);
             if (r === 0) return -(f + p * n);
             const p1 = Math.pow(1 + r, n);
             const result = -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
             return result;
-        });
-        this.env.set('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+        }, [
+            { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true },
+        ]);
+        this.registerBuiltin('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
             const r = Number(rate), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
             if (r === 0) return -(v + f) / n;
             const p1 = Math.pow(1 + r, n);
             const result = -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));
             return result;
-        });
-        this.env.set('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
+        }, [
+            { name: 'Rate' }, { name: 'NPer' }, { name: 'PV' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true },
+        ]);
+        this.registerBuiltin('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
             const r = Number(rate), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
             if (r === 0) return -(v + f) / p;
             const num = p * (1 + r * t) - f * r;
             const den = p * (1 + r * t) + v * r;
             return Math.log(num / den) / Math.log(1 + r);
-        });
-        this.env.set('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
+        }, [
+            { name: 'Rate' }, { name: 'Pmt' }, { name: 'PV' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true },
+        ]);
+        this.registerBuiltin('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
             // Newton-Raphson approximation for Rate
             let r = Number(guess);
             const n = Number(nper), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
@@ -1661,15 +1725,18 @@ export class Evaluator {
                 r = newR;
             }
             return r;
-        });
-        this.env.set('sln', (cost: any, salvage: any, life: any) => {
+        }, [
+            { name: 'NPer' }, { name: 'Pmt' }, { name: 'PV' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true }, { name: 'Guess', optional: true },
+        ]);
+        this.registerBuiltin('sln', (cost: any, salvage: any, life: any) => {
             return (Number(cost) - Number(salvage)) / Number(life);
-        });
-        this.env.set('syd', (cost: any, salvage: any, life: any, period: any) => {
+        }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
+        this.registerBuiltin('syd', (cost: any, salvage: any, life: any, period: any) => {
             const c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period);
             return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
-        });
-        this.env.set('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
+        }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
+        this.registerBuiltin('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
             let c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period), f = Number(factor);
             if (p <= 0 || p > l) return 0;
             let book = c;
@@ -1679,8 +1746,11 @@ export class Evaluator {
                 book -= dep;
             }
             return dep;
-        });
-        this.env.set('irr', (values: any, guess: any = 0.1) => {
+        }, [
+            { name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' },
+            { name: 'Factor', optional: true },
+        ]);
+        this.registerBuiltin('irr', (values: any, guess: any = 0.1) => {
             if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const v = values.map(Number);
             let r = Number(guess);
@@ -1697,8 +1767,8 @@ export class Evaluator {
                 r = newR;
             }
             return r;
-        });
-        this.env.set('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
+        }, [{ name: 'ValueArray' }, { name: 'Guess', optional: true }]);
+        this.registerBuiltin('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
             if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const v = values.map(Number);
             const fr = Number(finance_rate), rr = Number(reinvest_rate);
@@ -1711,8 +1781,8 @@ export class Evaluator {
             }
             const tv = npv_pos * Math.pow(1 + rr, n);
             return Math.pow(-tv / npv_neg, 1 / n) - 1;
-        });
-        this.env.set('npv', (rate: any, values: any) => {
+        }, [{ name: 'ValueArray' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
+        this.registerBuiltin('npv', (rate: any, values: any) => {
             if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const r = Number(rate);
             const v = values.map(Number);
@@ -1721,8 +1791,8 @@ export class Evaluator {
                 result += v[i] / Math.pow(1 + r, i + 1);
             }
             return result;
-        });
-        this.env.set('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+        }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
+        this.registerBuiltin('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
             const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
             const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
             let ipmt: number;
@@ -1733,13 +1803,19 @@ export class Evaluator {
                 ipmt = -fv_prev * r;
             }
             return ipmt;
-        });
-        this.env.set('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
+        }, [
+            { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true },
+        ]);
+        this.registerBuiltin('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
             const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
             const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
             const ipmt = Number(this.env.get('ipmt')(r, p, n, v, f, t));
             return pmt - ipmt;
-        });
+        }, [
+            { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
+            { name: 'FV', optional: true }, { name: 'Type', optional: true },
+        ]);
     }
 
     private registerConstants() {
