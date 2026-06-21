@@ -504,10 +504,17 @@ export class LSPServer {
      */
     getCodeActions(
         uri: string,
-        range: { start: { line: number; character: number }; end: { line: number; character: number } },
+        rawRange: { start: { line: number; character: number }; end: { line: number; character: number } },
     ): any[] {
         const doc = this.documents.get(uri);
         if (!doc) return [];
+
+        // VS Code の行ドラッグ選択では range.end が「選択した最後の行の次の行・
+        // character 0」になることが多い。この場合、実質的な選択末尾は1行前。
+        // 正規化した range を以降の解析・呼び出し元への返却双方で一貫して使う。
+        const range = (rawRange.end.character === 0 && rawRange.end.line > rawRange.start.line)
+            ? { start: rawRange.start, end: { line: rawRange.end.line - 1, character: 0 } }
+            : rawRange;
 
         try {
             const tokens    = new Lexer(stripVBAFileHeader(doc.content)).tokenize();

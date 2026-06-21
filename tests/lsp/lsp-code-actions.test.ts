@@ -172,3 +172,30 @@ End Sub`;
     assert.ok(typeof args[4] === 'string', 'args[4] は callStatement 文字列');
     console.log('[PASS] arguments の構成');
 }
+
+// 9. 行ドラッグ選択（end が次行の character 0）で End Sub 行を取り込まない
+{
+    const code = `Sub ResetBoard()
+    Dim x As Integer
+    Dim y As Integer
+    For x = 0 To BOARD_WIDTH - 1
+        For y = 0 To BOARD_HEIGHT - 1
+            board(x, y) = 0
+        Next y
+    Next x
+End Sub`;
+    const srv = setup(code);
+    // VS Code の行ドラッグ選択では「Next x」行末までのつもりでも
+    // end が次の行（End Sub）の character 0 になることが多い
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 3, character: 0 },
+        end:   { line: 8, character: 0 },
+    });
+    assert.ok(actions.length > 0, 'アクションあり');
+    const args = actions[0].command.arguments;
+    const normalizedRange = args[1];
+    assert.strictEqual(normalizedRange.end.line, 7, 'end.line は Next x の行（End Sub の手前）に正規化される');
+    const sig: string = args[3];
+    assert.ok(!sig.includes('End Sub\nEnd Sub'), 'procSignature に End Sub が二重出現しない');
+    console.log('[PASS] 行ドラッグ選択で End Sub 行を取り込まない');
+}
