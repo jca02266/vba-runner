@@ -100,11 +100,22 @@ vbaRunner.run('DoubleA1ToB1', []);
 assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
 ```
 
+> **注意1: `Cells(row, col)` も `Range(アドレス)` と同じストレージを共有する。**
+> VBAコード側で`Cells(13, 1)`のように数値アドレッシングを使った場合も、内部的には`Range("A13")`相当に
+> 変換されて`setCellValue`/`getCellValue`と同じセルを指す。テストの初期値設定は`setCellValue('A1', ...)`
+> のような文字列アドレスで行えば、`Cells`・`Range`どちらでアクセスするコードでも一致する。
+
 組み込みモックは `Value` の読み書きのみサポートしています。`Interior.Color` などの
 書式設定は値を保持しない no-op、`Application.OnKey` / `Application.OnTime` は未実装です
 (呼び出すとエラーになります)。これらに依存するコードをテストしたい場合は、
 **`Application` を丸ごと差し替えるのではなく、モックを拡張してください**。
 丸ごと差し替えると、対象コードが同時に使う`ActiveSheet`/`Sheets`/`Range`が失われます。
+
+> **注意2: `Application.OnTime`に1秒未満のオフセットを渡すコード(`Now + 0.4/86400`等)は実機で
+> 無限ループに陥る場合がある。** `Now()`は秒未満を切り捨てるため、計算した目標時刻が既に過去になる
+> ことがあり、`OnTime`は過去の時刻だと即座に発火する。タイマー処理が自己再スケジュールする実装だと、
+> これが延々と繰り返されてUIスレッドを埋め尽くす(CPU使用率は低いまま「応答なし」になるため気づきにくい)。
+> オフセットは必ず1秒以上にすること。
 
 最もきれいな方法は、`MockApplication`(このパッケージからexportされている)をサブクラス化し、
 `excelStub`に`true`の代わりにインスタンスを渡すことです:

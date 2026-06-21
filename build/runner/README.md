@@ -100,12 +100,26 @@ vbaRunner.run('DoubleA1ToB1', []);
 assert.strictEqual(vbaRunner.excelStub.ActiveSheet.getCellValue('B1'), 200);
 ```
 
+> **Note 1: `Cells(row, col)` shares the same storage as `Range(address)`.**
+> Numeric addressing like `Cells(13, 1)` is converted internally to the equivalent of
+> `Range("A13")`, so it reads/writes the same cell as `setCellValue`/`getCellValue`. Seed test
+> data with string addresses (`setCellValue('A1', ...)`) and it works whether the VBA code
+> under test uses `Cells` or `Range`.
+
 The built-in mock only persists `Value` reads/writes. Formatting properties like
 `Interior.Color` are no-ops that don't retain state, and `Application.OnKey` /
 `Application.OnTime` aren't implemented (calling them throws). To test code that
 depends on these, **extend the mock rather than replacing `Application` wholesale**
 — a full replacement discards `ActiveSheet`/`Sheets`/`Range` for any code that also
 needs those.
+
+> **Note 2: code that passes a sub-second offset to `Application.OnTime` (e.g.
+> `Now + 0.4/86400`) can fall into an infinite loop on a real Excel session.** VBA's `Now()`
+> truncates to whole seconds, so the computed target time can already be in the past by the
+> time `Now()` is evaluated — and `Application.OnTime` fires immediately when given a past
+> time. If the timer handler reschedules itself the same way, this repeats endlessly and pegs
+> the UI thread (CPU usage stays low, so it looks like a hang rather than a busy loop — easy to
+> miss). Always use an offset of at least one second.
 
 The cleanest way is to subclass `MockApplication` (also exported by this package)
 and pass an instance to `excelStub` instead of `true`:
