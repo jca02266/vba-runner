@@ -3746,6 +3746,9 @@ export class Evaluator {
                     seenProcedure = true;
                     continue;
                 }
+                // vba-runner 拡張: 1つの .bas 内に複数 Class をインライン定義できる
+                // （__mocks__.bas 等）。標準 VBA に存在しない構文のため位置チェック対象外。
+                if (stmt.type === 'ClassDeclaration') continue;
                 if (!seenProcedure) continue;
                 if (!this.allowTopLevelStatements) {
                     const line = stmt.loc?.start.line ?? stmt.line ?? 0;

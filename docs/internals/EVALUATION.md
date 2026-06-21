@@ -256,19 +256,28 @@ vba-runner は §「トップレベル文の評価」で説明した拡張（モ
 
 ### 呼び出し元ごとの `allowTopLevelStatements` の既定値
 
+「VBA の再現・評価」が目的の経路（`VBARunner`・VS Code 拡張・Playground のテストペイン）は
+すべて `false`（標準 VBA 相当の厳密チェック）に統一している。一方、`evalVBASingle`/`evalVBAModules`
+（テストスクリプト用の簡易実行）と Playground の「ソースコードを実行する」機能は、モジュール
+トップレベルの実行文をそのまま動かすことが目的のため `true`（拡張あり）のままにしている。
+
 | 呼び出し元 | 既定値 | 切り替え可否 | 備考 |
 |---|---|---|---|
-| `evalVBASingle` / `evalVBAModules`（`test-libs/test-runner.ts`） | `true` | `options.allowTopLevelStatements` で呼び出しごとに上書き可能 | `tests/spec/` のテストはこれを使う。`CompileError.bas` の strict 系ケースは `EVAL_OPTIONS: { allowTopLevelStatements: false }` で明示的に上書きしている |
-| `VBARunner`（ファイルベース、`sample/tests/ts/` 用） | `true` 固定 | 不可（コンストラクター設定に該当フィールドがない） | 常に拡張あり。strict モードに切り替える経路は現状ない |
-| VS Code 拡張の実行コマンド（`vba-runner.runProcedure`、`src/extension.ts`） | `true` 固定 | 不可（`Evaluator` をオプションなしで生成） | `ev.reEvaluateModuleConstsAll(asts)`（`resolveIdentifiers` の旧名エイリアス）経由で Pass 2 に到達するため、このチェック自体は通るが既定値が常に許容側 |
+| `evalVBASingle` / `evalVBAModules`（`test-libs/test-runner.ts`） | `true` | `options.allowTopLevelStatements` で呼び出しごとに上書き可能 | `tests/spec/` の簡易テストスクリプト用。`Function F() ... End Function` の後に `Dim`/代入を書く書き方を許容する。`CompileError.bas` の strict 系ケースは `EVAL_OPTIONS: { allowTopLevelStatements: false }` で明示的に上書きしている |
+| `VBARunner`（ファイルベース、`sample/tests/ts/` 用、`test-libs/test-runner.ts` のコンストラクター） | `false` 固定 | 不可（ハードコード） | 実 `.bas`/`.cls` ファイルの VBA 再現・評価が目的のため、標準 VBA 仕様に違反するコードは検出する |
+| VS Code 拡張の実行コマンド（`vba-runner.runProcedure`、`src/extension.ts`） | `false` 固定 | 不可 | `ev.reEvaluateModuleConstsAll(asts)`（`resolveIdentifiers` の旧名エイリアス）経由で Pass 2 に到達する |
+| VS Code 拡張のテスト実行（`src/lsp/test-runner.ts`）・デバッグ実行（`src/lsp/debug-worker.ts`） | `false` 固定 | 不可 | いずれも実ファイルを評価して実行するため `VBARunner`/実行コマンドと同じ方針 |
 | LSP 診断（エディター上の赤波線、`src/lsp/server.ts` の `getDiagnostics`） | 該当なし | — | 診断は `Lexer`/`Parser.parse()` のみで行われ、`Evaluator`/Pass 2 にまったく到達しない。つまりこのチェック（`TYPE: prerun`）はエディター上の波線としては**絶対に表示されない**。波線になるのは構文エラー（`TYPE: parse`）のみ |
-| Playground ソースコードペイン（`src/App.tsx`） | `true` 固定 | 不可 | 加えて AST を宣言文（`ProcedureDeclaration`/`TypeDeclaration`/`VariableDeclaration`/`ConstDeclaration`）のみにフィルターしてから `evaluateModule` へ渡すため、実行文自体はそもそも届かない。`Dim`/`Const` はフィルターを通過するので、プロシージャの後に書いてもエラーにならない |
-| Playground テストスクリプトペイン（`evalExpression` 経由） | `true` 固定 | 不可 | インタラクティブモードで即時実行されるため、この静的チェックの対象外 |
+| Playground の「ソースコードを実行する」機能（`handleRun`、`src/App.tsx`） | `true` 固定 | 不可 | これはスクリプトランナー機能であり、モジュールトップレベルの `Sub` 呼び出し（デフォルトスニペットの末尾の `MainLoop` 等）を実行することが目的のため、意図的に拡張を有効にしている |
+| Playground のテストペイン（`createBrowserTestRunner` が作る `vbaRunner.run`/`vbaRunner.eval`、`src/App.tsx`） | `false` 固定 | 不可 | `VBARunner` と同じ「VBA の再現・評価」用途のため strict 化した。ソースコード側 AST を宣言文（`ProcedureDeclaration`/`TypeDeclaration`/`VariableDeclaration`/`ConstDeclaration`）のみにフィルターしてから `evaluateModule` に渡す点は変更していないが、`Dim`/`Const` はこのフィルターを通過するため、プロシージャの後に書くと `allowTopLevelStatements: false` により正しくコンパイルエラーになる |
 
 実用上のまとめ:
 
-- **`allowTopLevelStatements: false` で標準 VBA 相当の厳密な検証を試したい場合は、`evalVBASingle`/`evalVBAModules` を直接使うしかない**（他の呼び出し元は固定で拡張が有効）。
-- VS Code 拡張・Playground・`VBARunner` はいずれも「テスト・実行のしやすさ」を優先し、常に拡張を有効にしている。これらの経路で標準 VBA 仕様違反を検出したい場合は、別途 `evalVBASingle({ allowTopLevelStatements: false })` などで明示的にチェックする必要がある。
+- VBA コードの実行・テスト・デバッグを担う経路（`VBARunner`・VS Code 拡張・Playground テストペイン）は
+  すべて標準 VBA 相当の厳密チェックが既定で有効。プロシージャの後に `Dim`/`Const`/実行文を書くと
+  これらの経路ではコンパイルエラーになる。
+- `evalVBASingle`/`evalVBAModules` と Playground の「ソースコードを実行する」機能だけは、
+  簡易テストスクリプト・REPL 的な用途のため拡張を有効のままにしている。
 
 ---
 
