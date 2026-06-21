@@ -21,6 +21,7 @@
 
 import { MockWorksheet, MockRange, MockRows, MockColumns } from './MockWorksheet';
 import { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../vba-types';
+import type { BuiltinOverload } from '../evaluator';
 
 export { MockWorksheet, MockRange, MockRows, MockColumns };
 export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
@@ -84,10 +85,10 @@ export class MockApplication {
 
     /**
      * アクティブシートのセル範囲を返す。
-     * VBA: `Range("A1:B5").Value` / `Set r = Range("A1")`
+     * VBA: `Range("A1:B5").Value` / `Set r = Range("A1")` / `Range(Cells(1,1), Cells(3,3))`
      */
-    Range(address: string): MockRange {
-        return this.ActiveSheet.Range(address);
+    Range(cell1: string, cell2?: string | MockRange): MockRange {
+        return this.ActiveSheet.Range(cell1, cell2);
     }
 
     /**
@@ -227,3 +228,10 @@ export class MockApplication {
         this._activeSheetName = 'Sheet1';
     }
 }
+
+// MockWorksheet.Range と同じオーバーロード機構（`resolveCallArgs` 参照）を、
+// Tier 6 defaultBindingObject 経由で呼ばれる `Range(...)` にも適用する。
+(MockApplication.prototype.Range as any).__vbaOverloads__ = [
+    { params: [{ name: 'Cell1' }] },
+    { params: [{ name: 'Cell1' }, { name: 'Cell2' }] },
+] satisfies BuiltinOverload[];

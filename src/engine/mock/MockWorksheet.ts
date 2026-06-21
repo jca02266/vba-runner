@@ -18,6 +18,7 @@
  */
 
 import { VbaType, VbaDefaultProperty, vbaEmpty } from '../vba-types';
+import type { BuiltinOverload } from '../evaluator';
 
 interface CellRect {
     startCol: number;
@@ -247,35 +248,34 @@ export class MockWorksheet implements VbaType {
     }
 
     /**
-     * Range メソッド：Address で指定したセル/範囲を返す
+     * Range メソッド：
+     * - 1引数（Address）: Address 文字列で指定したセル/範囲を返す
+     * - 2引数（Cell1, Cell2）: 2つの角セル（Address 文字列または Range オブジェクト）を
+     *   結ぶ矩形を返す（VBA の `Range(Cell1, Cell2)` 形式）。VBA 自体には2引数固有の
+     *   引数名はないが、ここでは Cell1/Cell2 という名前で `__vbaOverloads__` に登録する。
      */
-    Range(address: string): MockRange {
-        const areas = this.resolveAddress(address);
+    Range(cell1: string, cell2?: string | MockRange): MockRange {
+        if (cell2 !== undefined) {
+            const r1 = this.cellRectFromRangeArg(cell1);
+            const r2 = this.cellRectFromRangeArg(cell2);
+            if (!r1 || !r2) return new MockRange(0);
+            const area: CellRect = {
+                startCol: Math.min(r1.startCol, r2.startCol),
+                startRow: Math.min(r1.startRow, r2.startRow),
+                endCol: Math.max(r1.endCol, r2.endCol),
+                endRow: Math.max(r1.endRow, r2.endRow),
+            };
+            return this.rangeFromArea(area);
+        }
+
+        const areas = this.resolveAddress(cell1);
 
         if (areas.length === 0) {
             return new MockRange(0);
         }
 
         if (areas.length === 1) {
-            const area = areas[0];
-            const self = this;
-            if (area.startCol === area.endCol && area.startRow === area.endRow) {
-                // 単一セル — setter で cells を同期
-                const cellAddr = this.cellAddress(area.startCol, area.startRow);
-                const range = new MockRange(this.cells.get(cellAddr) ?? vbaEmpty);
-                Object.defineProperty(range, 'Value', {
-                    get: () => self.cells.get(cellAddr) ?? vbaEmpty,
-                    set: (val: any) => { self.cells.set(cellAddr, val); },
-                });
-                return range;
-            }
-            // 複数セル範囲 — setter で cells に書き戻す
-            const range = new MockRange(this.getRectValues(area));
-            Object.defineProperty(range, 'Value', {
-                get: () => self.getRectValues(area),
-                set: (val: any) => { self.setRectValue(area, val); },
-            });
-            return range;
+            return this.rangeFromArea(areas[0]);
         }
 
         // 複数エリア（Union）: 全エリアの行を縦に結合して返す
@@ -300,6 +300,41 @@ export class MockWorksheet implements VbaType {
             },
         });
         return unionRange;
+    }
+
+    /** `CellRect` から `Value` の get/set を `cells` と同期させた `MockRange` を作る */
+    private rangeFromArea(area: CellRect): MockRange {
+        const self = this;
+        if (area.startCol === area.endCol && area.startRow === area.endRow) {
+            // 単一セル — setter で cells を同期
+            const cellAddr = this.cellAddress(area.startCol, area.startRow);
+            const range = new MockRange(this.cells.get(cellAddr) ?? vbaEmpty);
+            range.Row = area.startRow;
+            range.Column = area.startCol;
+            Object.defineProperty(range, 'Value', {
+                get: () => self.cells.get(cellAddr) ?? vbaEmpty,
+                set: (val: any) => { self.cells.set(cellAddr, val); },
+            });
+            return range;
+        }
+        // 複数セル範囲 — setter で cells に書き戻す
+        const range = new MockRange(this.getRectValues(area));
+        range.Row = area.startRow;
+        range.Column = area.startCol;
+        Object.defineProperty(range, 'Value', {
+            get: () => self.getRectValues(area),
+            set: (val: any) => { self.setRectValue(area, val); },
+        });
+        return range;
+    }
+
+    /** `Range(Cell1, Cell2)` の角セル引数（Address 文字列 or Range オブジェクト）を `CellRect` に解決する */
+    private cellRectFromRangeArg(arg: string | MockRange): CellRect | null {
+        if (arg instanceof MockRange) {
+            return { startCol: arg.Column, startRow: arg.Row, endCol: arg.Column, endRow: arg.Row };
+        }
+        const normalized = String(arg).toUpperCase().replace(/\$/g, '').trim();
+        return this.parseSingleRange(normalized);
     }
 
     /**
@@ -558,4 +593,13 @@ export class MockWorksheet implements VbaType {
         return `${colStr}${row}`;
     }
 }
+
+// VBA 自体にはない「引数の個数で意味が変わる」組み込み関数専用のオーバーロード機構
+// （`Evaluator.registerOverloadedBuiltin` 参照）を、モックオブジェクトのメソッドにも適用する。
+// `obj.Range(...)` 呼び出し（Tier 6 の defaultBindingObject 経由も含む）は `resolveCallArgs`
+// がこのプロパティを見て引数数検証・名前付き引数解決を行う。本体（Range 自身）は変更しない。
+(MockWorksheet.prototype.Range as any).__vbaOverloads__ = [
+    { params: [{ name: 'Cell1' }] },
+    { params: [{ name: 'Cell1' }, { name: 'Cell2' }] },
+] satisfies BuiltinOverload[];
 

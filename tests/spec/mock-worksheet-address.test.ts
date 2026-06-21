@@ -1,6 +1,9 @@
 import { MockWorksheet } from '../../src/engine/mock/MockWorksheet';
+import { MockApplication } from '../../src/engine/mock/MockExcel';
 import { vbaEmpty } from '../../src/engine/vba-types';
-import { assert } from '../../test-libs/test-runner';
+import { assert, evalVBASingle } from '../../test-libs/test-runner';
+import { injectExcelStub } from '../../test-libs/excel-stub';
+import { VbaErrorCode } from '../../src/engine/evaluator';
 
 function ws(): MockWorksheet {
     return new MockWorksheet('Sheet1');
@@ -238,6 +241,105 @@ function ws(): MockWorksheet {
     assert.strictEqual(m.getCellValue('C2'), 77, 'Union 書き戻し: C2');
     assert.strictEqual(m.getCellValue('B1'), vbaEmpty, 'Union 書き戻し: B1 は未設定（実Excelと同じくEmpty）');
     console.log('[PASS] Union 書き戻し');
+}
+
+// ---- Range(Cell1, Cell2) 2引数形式 ----
+
+{
+    // 文字列アドレス2つ → 角セルを結ぶ矩形
+    const m = ws();
+    m.setCellValue('A1:C3', [[1, 2, 3], [4, 5, 6], [7, 8, 9]]);
+    const v = m.Range('A1', 'C3').Value as any[][];
+    assert.strictEqual(v.length, 3, 'Range("A1","C3"): 行数3');
+    assert.strictEqual(v[0].length, 3, 'Range("A1","C3"): 列数3');
+    assert.strictEqual(v[0][0], 1, 'Range("A1","C3"): A1');
+    assert.strictEqual(v[2][2], 9, 'Range("A1","C3"): C3');
+    console.log('[PASS] Range(Cell1, Cell2): 文字列アドレス2つ');
+}
+
+{
+    // Range オブジェクト2つ（Cells() の結果）→ 角セルを結ぶ矩形
+    const m = ws();
+    m.setCellValue('B2:D4', 1);
+    const r = m.Range(m.Cells(2, 2) as any, m.Cells(4, 4) as any);
+    const v = r.Value as any[][];
+    assert.strictEqual(v.length, 3, 'Range(Cells,Cells): 行数3 (B2:D4)');
+    assert.strictEqual(v[0].length, 3, 'Range(Cells,Cells): 列数3 (B2:D4)');
+    console.log('[PASS] Range(Cell1, Cell2): Range オブジェクト2つ（Cells の結果）');
+}
+
+{
+    // 角の順序が逆（右下→左上）でも矩形は正規化される
+    const m = ws();
+    m.setCellValue('A1:B2', [[1, 2], [3, 4]]);
+    const v1 = m.Range('A1', 'B2').Value as any[][];
+    const v2 = m.Range('B2', 'A1').Value as any[][];
+    assert.strictEqual(v2[0][0], v1[0][0], 'Range(右下,左上) でも矩形は正規化される: A1');
+    assert.strictEqual(v2[1][1], v1[1][1], 'Range(右下,左上) でも矩形は正規化される: B2');
+    console.log('[PASS] Range(Cell1, Cell2): 角の順序が逆でも正規化される');
+}
+
+{
+    // Range(Cell1, Cell2).Value = 書き戻し
+    const m = ws();
+    m.Range('A1', 'B2').Value = [[10, 20], [30, 40]];
+    assert.strictEqual(m.getCellValue('A1'), 10, 'Range(Cell1,Cell2) 書き戻し: A1');
+    assert.strictEqual(m.getCellValue('B2'), 40, 'Range(Cell1,Cell2) 書き戻し: B2');
+    console.log('[PASS] Range(Cell1, Cell2): 書き戻し');
+}
+
+{
+    // MockApplication.Range も同じく2引数対応（ActiveSheet.Range への委譲）
+    const app = new MockApplication();
+    app.ActiveSheet.setCellValue('A1:B2', [[1, 2], [3, 4]]);
+    const v = app.Range('A1', 'B2').Value as any[][];
+    assert.strictEqual(v[1][1], 4, 'MockApplication.Range(Cell1,Cell2) も同じ動作');
+    console.log('[PASS] MockApplication.Range(Cell1, Cell2)');
+}
+
+// ---- Range(Cell1, Cell2) — VBA 経由（resolveCallArgs のオーバーロード機構を通す） ----
+
+{
+    const ev = evalVBASingle(`
+Function F()
+    Range(Cells(1, 1), Cells(3, 3)).Value = 5
+    F = Cells(1, 1).Value + Cells(3, 3).Value
+End Function
+`, { setup: (e) => injectExcelStub(e) });
+    const r = ev.callProcedure('F', []);
+    assert.strictEqual(r, 10, 'VBA: Range(Cells(1,1), Cells(3,3)) で矩形書き込み');
+    console.log('[PASS] VBA: Range(Cells, Cells) 2引数（Tier 6 経由）');
+}
+
+{
+    // 名前付き引数（順序を変えても同じ矩形になる）
+    const ev1 = evalVBASingle(`
+Function F()
+    Range(Cell1:="A1", Cell2:="B2").Value = 9
+    F = Range("B2").Value
+End Function
+`, { setup: (e) => injectExcelStub(e) });
+    const ev2 = evalVBASingle(`
+Function F()
+    Range(Cell2:="B2", Cell1:="A1").Value = 9
+    F = Range("B2").Value
+End Function
+`, { setup: (e) => injectExcelStub(e) });
+    assert.strictEqual(ev1.callProcedure('F', []), 9, 'Range の名前付き引数（正順）');
+    assert.strictEqual(ev2.callProcedure('F', []), 9, 'Range の名前付き引数（逆順）');
+    console.log('[PASS] VBA: Range(Cell1:=, Cell2:=) 名前付き引数（順序非依存）');
+}
+
+{
+    // 引数過多（3引数）はエラー
+    let caught: any = null;
+    try {
+        evalVBASingle(`Sub S()\n Range("A1", "B2", "C3").Value = 1\nEnd Sub`, { setup: (e) => injectExcelStub(e) }).callProcedure('S', []);
+    } catch (e: any) {
+        caught = e;
+    }
+    assert.strictEqual(caught?.number, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Range(3引数) は 450 エラー');
+    console.log('[PASS] VBA: Range(引数過多) は引数数エラー (450)');
 }
 
 console.log('\n✅ mock-worksheet-address: 全テスト通過');
