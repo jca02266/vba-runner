@@ -2,7 +2,7 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
-## [Unreleased]
+## [0.1.1-alpha.6] - 2026-06-21
 
 ### Added
 
