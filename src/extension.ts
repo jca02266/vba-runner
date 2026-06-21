@@ -1175,6 +1175,16 @@ End Class`;
                 };
                 actions.push(organizeAction);
 
+                const generateMocksAction = new vscode.CodeAction(
+                    'Generate Mock Stubs',
+                    vscode.CodeActionKind.Source
+                );
+                generateMocksAction.command = {
+                    title: 'Generate Mock Stubs',
+                    command: 'vba-runner.generateMocks',
+                };
+                actions.push(generateMocksAction);
+
                 return actions;
             }
         }, {
