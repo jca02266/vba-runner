@@ -2,6 +2,12 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [Unreleased]
+
+### Changed
+
+- **`docs/MOCK_GUIDE.md` Part 0 now covers missing built-in functions, not just Excel/Windows-dependent ones** — broadened the intro and added a "0-5. Stubbing an unimplemented built-in function (RGB example)" section, since `__mocks__/` works just as well for plain unimplemented builtins (e.g. `RGB`) as it does for environment-dependent ones (`MsgBox`, `Range`, etc.).
+
 ## [0.1.1-alpha.6] - 2026-06-21
 
 ### Added
