@@ -2,6 +2,17 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
+## [0.1.1-alpha.7] - 2026-06-21
+
+### Added
+
+- **`import --yes`/`-y` flag** — skips the "Create a backup and run import?" confirmation prompt, so scripts and AI agents can call `import` repeatedly without piping `echo y`.
+
+### Fixed
+
+- **`Build-Xlsm.ps1` saved the new `.xlsm` to the wrong folder when `-OutputPath` was relative** — a relative `-OutputPath` was resolved against Excel's own default working folder (e.g. Documents) via COM, not the script's working directory. The path is now converted to an absolute path before `SaveAs`.
+- **README relative links broken on the npm package page** — added the missing `repository.directory` field so npm stops rewriting relative links against the repo root.
+
 ## [0.1.1-alpha.6] - 2026-06-21
 
 ### Added

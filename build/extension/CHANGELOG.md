@@ -2,6 +2,14 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.4] - 2026-06-21
+
+### Fixed
+
+- **`Rnd`/`DoEvents`/`FreeFile`/`GetObject` couldn't be called without parentheses** — `Int(Rnd * 4) + 1` and similar bare references returned the function object instead of invoking it (`Type mismatch`). These builtins are now auto-invoked like `Now`/`Date`/`Time`/`Timer`.
+- **Mocked unset cells returned `0` instead of `Empty`** — `MockWorksheet`'s `.Value` getter (and related cell-read paths) now return `Empty` for unset cells, matching real Excel. `IsEmpty()` and string-context coercion (`""` vs `"0"`) now behave correctly against mocked sheets.
+- **README relative links broken on the Marketplace page** — added the missing `repository.directory` field so npm/vsce stop rewriting relative links against the repo root.
+
 ## [0.2.3] - 2026-06-21
 
 ### Added
