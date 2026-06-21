@@ -77,6 +77,7 @@ import {
     OptionCompareStatement,
     OptionBaseStatement,
     DefDirective,
+    Parameter,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
@@ -760,9 +761,6 @@ export class Evaluator {
             return ret;
         };
 
-        if (original && (original as any).__vbaAutoCall__) {
-            (spyFn as any).__vbaAutoCall__ = true;
-        }
         if (original && (original as any).__vbaParamSpec__) {
             (spyFn as any).__vbaParamSpec__ = (original as any).__vbaParamSpec__;
         }
@@ -790,8 +788,8 @@ export class Evaluator {
      * （`resolveCallArgs` 参照）。関数本体は今までどおり通常の位置引数として呼ばれる
      * （JS のデフォルト引数構文で Optional のデフォルト値を表現する）。
      *
-     * `__vbaAutoCall__`（括弧無し参照時の自動呼び出し）は手動フラグをやめて、
-     * 「ParamArray を持たず必須引数が0個」から自動算出する。
+     * 括弧無し参照時の自動呼び出し可否（`isAutoCallable`）はこの `params` から
+     * その場で算出するため、別フラグとして持たない。
      */
     private registerBuiltin(name: string, fn: any, params: BuiltinParamSpec[], variants: string[] = []) {
         let seenOptional = false;
@@ -809,11 +807,6 @@ export class Evaluator {
             }
         }
         (fn as any).__vbaParamSpec__ = params;
-        const hasParamArray = params.some(p => p.isParamArray);
-        const requiredCount = params.filter(p => !p.optional && !p.isParamArray).length;
-        if (!hasParamArray && requiredCount === 0) {
-            (fn as any).__vbaAutoCall__ = true;
-        }
         this.envSet(name, fn, variants);
     }
 
@@ -838,9 +831,6 @@ export class Evaluator {
             seenShapes.add(shapeKey);
         }
         (fn as any).__vbaOverloads__ = overloads;
-        if (overloads.some(o => o.params.length === 0)) {
-            (fn as any).__vbaAutoCall__ = true;
-        }
         this.envSet(name, fn, variants);
     }
 
@@ -2087,7 +2077,9 @@ export class Evaluator {
             } else if (param.defaultValue) {
                 argValue = this.evaluateExpression(param.defaultValue);
             } else {
-                argValue = (param.isOptional ? vbaMissing : vbaEmpty);
+                // checkArgCount済みかつパラメーター順序（必須が先・Optionalが後）が保証されているため、
+                // ここに来る時点で param は必ず Optional（defaultValue なし）。
+                argValue = vbaMissing;
             }
             // Register parameter type metadata (but not for array parameters)
             if (param.paramType && !param.isArray) {
@@ -3737,6 +3729,24 @@ export class Evaluator {
         this.checkArgCountGeneric(params, args.length);
     }
 
+    /**
+     * 省略スロット（`Foo(1, , 3)` の中間カンマで作られる `MissingArgument` ノード）が、
+     * Optional でも defaultValue もない必須パラメーターの位置に来ている場合に検出する。
+     * VBA 本来はコンパイルエラーだが、本インタープリターでは他の引数数エラーと同様
+     * 実行時エラー（449 Argument not optional）として扱う。
+     * 名前付き引数は gap の対象外のため、`argExprs[i]` を `params[i]` に素直に対応させてよい
+     * （gap は常に純粋な位置引数の文脈でのみ発生する）。
+     */
+    private checkNoGapOnRequiredParam(params: Parameter[], argExprs: Expression[]): void {
+        for (let i = 0; i < argExprs.length && i < params.length; i++) {
+            if (argExprs[i].type !== 'MissingArgument') continue;
+            const p = params[i];
+            if (!p.isOptional && p.defaultValue == null && !p.isParamArray) {
+                this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+            }
+        }
+    }
+
     /** `argExprs` を名前付き/位置引数に振り分けて評価する（組み込み関数バインダー2種の共通処理）。 */
     private splitCallArgs(argExprs: Expression[]): { namedArgs: Map<string, any>; positionalArgs: any[] } {
         const namedArgs = new Map<string, any>();
@@ -3866,6 +3876,23 @@ export class Evaluator {
         return argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
     }
 
+    /**
+     * 括弧無し参照（`Now`、`Rnd` など）時に自動呼び出ししてよいか
+     * （= 必須引数が0個か）を `__vbaParamSpec__`/`__vbaOverloads__` から判定する。
+     * どちらも付いていない（未移行の組み込み関数）場合は対象外。
+     */
+    private isAutoCallable(fn: Function): boolean {
+        const overloads = (fn as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
+        if (overloads) {
+            return overloads.some(o => o.params.length === 0);
+        }
+        const spec = (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
+        if (spec) {
+            return !spec.some(p => p.isParamArray) && spec.every(p => p.optional);
+        }
+        return false;
+    }
+
     private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[]): any {
         const instanceEnv = instance.__instanceEnv__ as Environment;
         const localEnv = new Environment(instanceEnv);
@@ -3894,7 +3921,9 @@ export class Evaluator {
             } else if (param.defaultValue) {
                 argValue = this.evaluateExpression(param.defaultValue);
             } else {
-                argValue = (param.isOptional ? vbaMissing : vbaEmpty);
+                // checkArgCount済みかつパラメーター順序（必須が先・Optionalが後）が保証されているため、
+                // ここに来る時点で param は必ず Optional（defaultValue なし）。
+                argValue = vbaMissing;
             }
             localEnv.setLocally(paramName, argValue);
         }
@@ -5438,7 +5467,7 @@ export class Evaluator {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                         `Compile error: Expected variable or procedure, not ${label} ('${v.name}')`);
                 }
-                if (typeof v === 'function' && (v as any).__vbaAutoCall__) {
+                if (typeof v === 'function' && this.isAutoCallable(v)) {
                     return v();
                 }
                 const p = this.env.getProcedure(idName);
@@ -5830,6 +5859,7 @@ export class Evaluator {
                     p => p.name.name.toLowerCase() === nameLower
                 );
                 if (classProc) {
+                    this.checkNoGapOnRequiredParam(classProc.parameters, expr.args);
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
                     try {
@@ -5895,6 +5925,7 @@ export class Evaluator {
                     }));
                     this.checkArgCountGeneric(argBinderParams, positionalArgs.length + namedArgs.size);
                 }
+                this.checkNoGapOnRequiredParam(proc.parameters, positionalArgExpressions);
 
                 for (let i = 0; i < proc.parameters.length; i++) {
                     const param = proc.parameters[i];
@@ -5920,7 +5951,9 @@ export class Evaluator {
                     } else if (param.defaultValue) {
                         argVal = this.evaluateExpression(param.defaultValue);
                     } else {
-                        argVal = param.isOptional ? vbaMissing : 0;
+                        // checkNoGapOnRequiredParam済みのため、未指定または省略スロットで
+                        // ここに来る時点で param は必ず Optional（defaultValue なし）。
+                        argVal = vbaMissing;
                     }
                     // Register parameter type metadata (but not for array parameters)
                     if (param.paramType && !param.isArray) {
@@ -6031,6 +6064,7 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === 'item'
                     );
                     if (defaultProperty) {
+                        this.checkNoGapOnRequiredParam(defaultProperty.parameters, expr.args);
                         const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                         return this.callClassMethod(variable, defaultProperty, argsVals);
                     }
@@ -6098,6 +6132,7 @@ export class Evaluator {
                         const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
                             ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
                         if (qualifiedProc) {
+                            this.checkNoGapOnRequiredParam(qualifiedProc.parameters, expr.args);
                             const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                             return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
                         }
@@ -6127,12 +6162,14 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const proc = classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
                 if (proc) {
+                    this.checkNoGapOnRequiredParam(proc.parameters, expr.args);
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, proc, argsVals);
                 }
                 // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
                 const ifaceProc = this.findInterfaceDispatch(obj, methodNameOriginal);
                 if (ifaceProc) {
+                    this.checkNoGapOnRequiredParam(ifaceProc.parameters, expr.args);
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, ifaceProc, argsVals);
                 }
