@@ -135,6 +135,72 @@ g = INIT   ' ← pendingTopLevel に退避 → Pass 2 末尾で実行 → g = 42
 
 ---
 
+## Class 宣言の評価（インライン `Class...End Class` と `.cls` の関係）
+
+### Pass 1 では「クラス名の登録」しかしない
+
+`ClassDeclaration` は `isModuleLevelDeclaration`（`src/engine/evaluator.ts:2151`）で
+モジュールレベル宣言と判定されるため、Pass 1 中に即時評価される。だが
+`evaluateClassDeclaration`（`evaluator.ts:3373`）の実体はこれだけである。
+
+```ts
+private evaluateClassDeclaration(stmt: ClassDeclaration) {
+    this.registerClass(stmt.name, stmt);
+}
+```
+
+`registerClass`（`evaluator.ts:3369`）は AST ノード（`stmt` そのもの、つまり
+`fields`/`procedures`/`body` を含む全体）を `classDefinitions` マップにクラス名（小文字）
+キーで保存するだけ。**フィールドの既定値設定・Property Get/Let/Set の対応付け・
+クラス内 Const の評価・Sub/Function 本体の検証は、Pass 1 では一切行われない。**
+これらはすべて `New ClassName` によるインスタンス化時まで遅延される。
+
+### インスタンス化時（`New`）にクラス本体を評価する
+
+`instantiateClass`（`evaluator.ts:3377`）が `classDefinitions` から AST を取り出し、
+`createInstanceFromDef`（`evaluator.ts:3392`）が実質的に「クラス本体に対する
+Pass 1 + Pass 2」をこの時点でまとめて行う。
+
+1. `instanceEnv = new Environment(this.env)` でインスタンス専用の環境を作成
+2. `classDef.fields` を走査し、型に応じた既定値（`""`/`0`/`vbaEmpty`）を `instanceEnv` に設定。`WithEvents` フィールドはここでマーキング
+3. `__classDef__`/`__instanceEnv__`/`__events__` を持つインスタンスオブジェクトを構築
+4. `classDef.body` から `EventDeclaration` を走査し、イベントスロットを初期化
+5. `Me` を `instanceEnv` にセット
+6. **「クラス本体の Pass 2」**: `classDef.body` 内の `ConstDeclaration` を `evaluateConstValue` で評価し `instanceEnv` に定数として設定（コード上のコメントは `B-1: Evaluate class-level Const declarations into instanceEnv`）
+7. `classDef.procedures` に `Class_Initialize` があれば呼び出す
+
+モジュールレベルの `pendingArrayDecls`（§Pass 2 の 2-2）に相当する仕組みはクラスの
+フィールドには存在しない。フィールドの既定値設定（手順 2）は配列境界の有無に関わらず
+スカラーの既定値しか設定しないため、配列境界付きフィールド（`Dim a(0 To N) As Integer`
+のようなクラスフィールド）の境界式評価は別経路になっている（本書では未調査）。
+Sub/Function/Property 本体そのものは、メソッド呼び出し時に `classDef.procedures` から
+都度引き当てられるだけで、インスタンス化時に事前評価されることはない。
+
+### インライン `Class...End Class` と `.cls` ファイルは完全に同じ経路
+
+どちらも同じ `parseClassBody(className, untilEndClass)`（`src/engine/parser.ts:2064`）
+が返す `ClassDeclaration` ノードを使う。
+
+| 形式 | 呼び出し元 | `untilEndClass` | 結果 |
+|---|---|---|---|
+| インライン `Class Foo ... End Class`（`__mocks__.bas` 等） | 通常の文パース中に `KeywordClass` を検出（`parser.ts:1657`） | `true`（`End Class` まで読む） | `Program.body` の中の 1 要素としての `ClassDeclaration` |
+| `.cls` ファイル | `new Parser(tokens, { parseAsClass: moduleName })`（`VBARunner`: `test-libs/test-runner.ts:296`、VS Code 拡張: `src/extension.ts:506`） | `false`（EOF まで読む） | `parse()`（`parser.ts:1276`）が `{ type: 'Program', body: [classDecl], diagnostics }` を返す。つまり `Program.body` がその `ClassDeclaration` 1 個だけの配列 |
+
+`ClassDeclaration` 自体のノード形状（`fields`/`procedures`/`body`）はどちらも同一であり、
+`parseAsClass` は「`Program.body` の包み方」と「終端条件（`End Class` か EOF か）」だけを
+変える。`evaluateModule` 以降は `program.body` を順に見るだけなので、`ClassDeclaration` の
+出自（インラインか `.cls` か）を区別するコードはどこにもない。**つまりインライン Class と
+`.cls` の評価は完全に同じ経路であり、上記の「Pass 1 ではクラス名のみ登録・インスタンス化時に
+本体を評価」という挙動はどちらにも同様に当てはまる。**
+
+なお、`ClassDeclaration` は標準 VBA の `.bas` ファイル構文には存在しない（`.cls` は
+別ファイル種別）。インラインの `Class...End Class` は vba-runner 独自拡張であり、
+§「プロシージャの後に書いた宣言・実行文のチェック」の位置チェックでも対象外にしている
+（`evaluator.ts` の `resolveIdentifiers` 内、`stmt.type === 'ClassDeclaration'` は
+スキップ）。
+
+---
+
 ## 呼び出し元ごとのフロー
 
 ### `evalVBASingle(code)` — 単一モジュールテスト
