@@ -25,7 +25,7 @@ export class VBARunner {
     public readonly excelStub: MockApplication | null = null;
 
     constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants, excelStub?: boolean | MockApplication } = {}) {
-        this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem() });
+        this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem(), allowTopLevelStatements: false });
         if (config.excelStub) {
             const app = config.excelStub === true ? undefined : config.excelStub;
             (this as any).excelStub = injectExcelStub(this.evaluator, app);

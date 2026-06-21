@@ -275,7 +275,9 @@ function createBrowserTestRunner(vbaSource: string, outputFn: (msg: string) => v
     )
   };
 
-  const evaluator = new Evaluator((out) => { outputFn(out) });
+  // VBARunner と同じ「VBA の再現・評価」用途のため、プロシージャ後の宣言・実行文は
+  // 標準 VBA 同様コンパイルエラーにする（allowTopLevelStatements: false）。
+  const evaluator = new Evaluator((out) => { outputFn(out) }, { allowTopLevelStatements: false });
   evaluator.evaluateModule(declarationAst);
   evaluator.resolveIdentifiers([{ ast: declarationAst, moduleName: '' }]);
 

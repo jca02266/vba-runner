@@ -471,7 +471,7 @@ End Class`;
                 const dir = path.dirname(doc.uri.fsPath);
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
 
-                const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg));
+                const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg), { allowTopLevelStatements: false });
                 // Excel API スタブを自動注入（Range / Cells / ActiveSheet 等をノーオプで動かす）
                 injectExcelStub(ev);
                 const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];

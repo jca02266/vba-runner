@@ -158,7 +158,7 @@ try {
 
     const evaluator = new Evaluator(
         (text) => parentPort!.postMessage({ type: 'output', text }),
-        { fs: new MemoryFileSystem() }
+        { fs: new MemoryFileSystem(), allowTopLevelStatements: false }
     );
     evaluator.setDebugHook(hook);
     evaluator.setSourceModule(moduleName || 'Module1');
