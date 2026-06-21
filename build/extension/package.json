@@ -192,8 +192,8 @@
   },
   "scripts": {
     "build": "esbuild ../../src/extension.ts --bundle --outfile=dist/extension.cjs --platform=node --external:vscode --define:import.meta.dirname=__dirname --define:import.meta.url=__filename && esbuild ../../src/lsp/debug-worker.ts --bundle --outfile=dist/debug-worker.cjs --platform=node --define:import.meta.dirname=__dirname --define:import.meta.url=__filename",
-    "package": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && vsce package --no-dependencies",
-    "publish": "export $(cat .env | grep -v '^#' | xargs) && vsce publish --no-dependencies"
+    "package": "node -e \"require('fs').copyFileSync('../../LICENSE', 'LICENSE')\" && npm run build && vsce package --no-dependencies --baseContentUrl https://github.com/jca02266/vba-runner/blob/main/build/extension --baseImagesUrl https://github.com/jca02266/vba-runner/raw/main/build/extension",
+    "publish": "export $(cat .env | grep -v '^#' | xargs) && vsce publish --no-dependencies --baseContentUrl https://github.com/jca02266/vba-runner/blob/main/build/extension --baseImagesUrl https://github.com/jca02266/vba-runner/raw/main/build/extension"
   },
   "devDependencies": {
     "@vscode/vsce": "^2.6.0"
