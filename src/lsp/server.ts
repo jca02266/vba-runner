@@ -564,6 +564,86 @@ export class LSPServer {
     }
 
     /**
+     * Build the text edits for extracting a selected range (already normalized by
+     * getCodeActions) into a new procedure. Pure text computation — no vscode
+     * dependency — so extension.ts only needs to apply the returned edits.
+     */
+    buildExtractFunctionEdit(
+        uri: string,
+        range: { start: { line: number; character: number }; end: { line: number; character: number } },
+        procName: string,
+        result: { inputs: string[]; outputs: string[]; locals: string[] },
+        procSignature: string,
+        callStatement: string,
+    ): {
+        replaceRange: { startLine: number; endLine: number; endCharacter: number };
+        replaceText: string;
+        insertLine: number;
+        insertText: string;
+    } | null {
+        const doc = this.documents.get(uri);
+        if (!doc) return null;
+
+        const lines     = doc.content.split('\n');
+        const startLine = range.start.line;
+        const endLine   = range.end.line;
+
+        const selectedLines = lines.slice(startLine, endLine + 1);
+
+        // Re-indent: strip common leading whitespace, add 4-space indent
+        const nonBlank = selectedLines.filter(l => l.trim().length > 0);
+        const minIndentLen = nonBlank.length > 0
+            ? Math.min(...nonBlank.map(l => (l.match(/^(\s*)/)?.[1].length) ?? 0))
+            : 0;
+        const reindented = selectedLines.map(l =>
+            l.trim().length > 0 ? '    ' + l.slice(minIndentLen) : ''
+        );
+
+        // Apply user-provided name to signature/call
+        const finalSigLine = procSignature.split('\n')[0].replace(/\bExtractedSub\b/, procName);
+        const finalCall    = callStatement.replace(/^ExtractedSub\b/, procName);
+
+        // Add Dim declarations for locals not already declared within selected lines
+        const dimmedInSelection = new Set(
+            selectedLines
+                .map(l => l.match(/^\s*Dim\s+(\w+)/i)?.[1]?.toLowerCase())
+                .filter((v): v is string => v !== undefined)
+        );
+        const extraDims = result.locals
+            .filter(v => !dimmedInSelection.has(v.toLowerCase()))
+            .map(v => `    Dim ${v} As Variant`);
+
+        const newProcText = [finalSigLine, ...extraDims, ...reindented, 'End Sub'].join('\n');
+
+        // Find containing procedure's last line (0-based) for insertion point
+        const ast = this.parseDocument(doc.content);
+        let procEndLine = endLine;
+        if (ast?.body) {
+            for (const stmt of ast.body as any[]) {
+                if (
+                    stmt.type === 'ProcedureDeclaration' &&
+                    stmt.loc != null &&
+                    stmt.loc.start.line - 1 <= startLine &&
+                    stmt.loc.end.line   - 1 >= endLine
+                ) {
+                    procEndLine = stmt.loc.end.line - 1;
+                    break;
+                }
+            }
+        }
+
+        const callIndent  = selectedLines[0]?.match(/^\s*/)?.[0] ?? '';
+        const endLineText = lines[endLine] ?? '';
+
+        return {
+            replaceRange: { startLine, endLine, endCharacter: endLineText.length },
+            replaceText: callIndent + finalCall,
+            insertLine: procEndLine + 1,
+            insertText: '\n' + newProcText + '\n',
+        };
+    }
+
+    /**
      * Get inlay hints for Variant-typed variables in all procedures of the document.
      * A single shared memo prevents redundant function-return-type resolution.
      */

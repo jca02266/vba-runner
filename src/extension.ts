@@ -1393,67 +1393,19 @@ End Class`;
                 });
                 if (!procName) return;
 
-                const startLine = lspRange.start.line;
-                const endLine   = lspRange.end.line;
-
-                // Collect selected lines
-                const selectedLines: string[] = [];
-                for (let i = startLine; i <= endLine; i++) {
-                    selectedLines.push(editor.document.lineAt(i).text);
-                }
-
-                // Re-indent: strip common leading whitespace, add 4-space indent
-                const nonBlank = selectedLines.filter(l => l.trim().length > 0);
-                const minIndentLen = nonBlank.length > 0
-                    ? Math.min(...nonBlank.map(l => (l.match(/^(\s*)/)?.[1].length) ?? 0))
-                    : 0;
-                const reindented = selectedLines.map(l =>
-                    l.trim().length > 0 ? '    ' + l.slice(minIndentLen) : ''
-                );
-
-                // Apply user-provided name to signature/call
-                const finalSigLine = procSignature.split('\n')[0].replace(/\bExtractedSub\b/, procName);
-                const finalCall    = callStatement.replace(/^ExtractedSub\b/, procName);
-
-                // Add Dim declarations for locals not already declared within selected lines
-                const dimmedInSelection = new Set(
-                    selectedLines
-                        .map(l => l.match(/^\s*Dim\s+(\w+)/i)?.[1]?.toLowerCase())
-                        .filter((v): v is string => v !== undefined)
-                );
-                const extraDims = result.locals
-                    .filter(v => !dimmedInSelection.has(v.toLowerCase()))
-                    .map(v => `    Dim ${v} As Variant`);
-
-                // Build new Sub text
-                const newProcText = [finalSigLine, ...extraDims, ...reindented, 'End Sub'].join('\n');
-
-                // Find containing procedure's last line (0-based) for insertion point
-                const ast = lspServer.parseDocument(editor.document.getText());
-                let procEndLine = endLine;
-                if (ast?.body) {
-                    for (const stmt of ast.body) {
-                        if (
-                            stmt.type === 'ProcedureDeclaration' &&
-                            stmt.loc != null &&
-                            stmt.loc.start.line - 1 <= startLine &&
-                            stmt.loc.end.line   - 1 >= endLine
-                        ) {
-                            procEndLine = stmt.loc.end.line - 1;
-                            break;
-                        }
-                    }
-                }
-
-                const callIndent = selectedLines[0]?.match(/^\s*/)?.[0] ?? '';
+                const editResult = lspServer.buildExtractFunctionEdit(uri, lspRange, procName, result, procSignature, callStatement);
+                if (!editResult) return;
 
                 const edit = new vscode.WorkspaceEdit();
                 edit.replace(
                     vsUri,
-                    new vscode.Range(startLine, 0, endLine, editor.document.lineAt(endLine).text.length),
-                    callIndent + finalCall,
+                    new vscode.Range(
+                        editResult.replaceRange.startLine, 0,
+                        editResult.replaceRange.endLine, editResult.replaceRange.endCharacter,
+                    ),
+                    editResult.replaceText,
                 );
-                edit.insert(vsUri, new vscode.Position(procEndLine + 1, 0), '\n' + newProcText + '\n');
+                edit.insert(vsUri, new vscode.Position(editResult.insertLine, 0), editResult.insertText);
                 await vscode.workspace.applyEdit(edit);
             }
         )

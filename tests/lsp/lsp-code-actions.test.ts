@@ -199,3 +199,162 @@ End Sub`;
     assert.ok(!sig.includes('End Sub\nEnd Sub'), 'procSignature に End Sub が二重出現しない');
     console.log('[PASS] 行ドラッグ選択で End Sub 行を取り込まない');
 }
+
+// 10. 正確な選択（オーバーシュートなし）では正規化が発生しない
+{
+    // Test 9 と同じコードを、行末まで character を正確に指定して選択（drag-select ではない通常の選択）
+    const code = `Sub ResetBoard()
+    Dim x As Integer
+    Dim y As Integer
+    For x = 0 To BOARD_WIDTH - 1
+        For y = 0 To BOARD_HEIGHT - 1
+            board(x, y) = 0
+        Next y
+    Next x
+End Sub`;
+    const srv = setup(code);
+    const range = { start: { line: 3, character: 0 }, end: { line: 7, character: '    Next x'.length } };
+    const actions = srv.getCodeActions(URI, range);
+    assert.ok(actions.length > 0, 'アクションあり');
+    const normalizedRange = actions[0].command.arguments[1];
+    assert.deepStrictEqual(normalizedRange, range, 'character が0でない正確な選択は変更されない');
+    console.log('[PASS] 正確な選択では正規化が発生しない');
+}
+
+// 11. Function でも行ドラッグ選択の End 行混入が防がれる（Sub 限定の修正ではないことの確認）
+{
+    const code = `Function SumBoard() As Long
+    Dim x As Integer
+    Dim total As Long
+    For x = 0 To BOARD_WIDTH - 1
+        total = total + board(x, 0)
+    Next x
+    SumBoard = total
+End Function`;
+    const srv = setup(code);
+    // For ループ4行（For ... Next x）をドラッグ選択し、end が「End Function」直前の
+    // 「SumBoard = total」行の次（character 0）になったケースを想定
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 2, character: 0 },
+        end:   { line: 6, character: 0 },
+    });
+    assert.ok(actions.length > 0, 'アクションあり');
+    const args = actions[0].command.arguments;
+    assert.strictEqual(args[1].end.line, 5, 'end.line は Next x の行に正規化される');
+    const sig: string = args[3];
+    assert.ok(!sig.includes('SumBoard = total'), 'procSignature に End Function 直前の文が混入しない');
+    console.log('[PASS] Function でも行ドラッグ選択が正しく正規化される');
+}
+
+// buildExtractFunctionEdit が返す edit を実際に適用するヘルパー
+// （vscode の WorkspaceEdit.replace + .insert と同じ意味で文字列を組み立てる）
+function applyEditResult(code: string, editResult: {
+    replaceRange: { startLine: number; endLine: number; endCharacter: number };
+    replaceText: string;
+    insertLine: number;
+    insertText: string;
+}): string {
+    const lines = code.split('\n');
+    const { replaceRange, replaceText, insertLine, insertText } = editResult;
+    const before = lines.slice(0, replaceRange.startLine);
+    const after  = lines.slice(replaceRange.endLine + 1);
+    const offsetInAfter = insertLine - (replaceRange.endLine + 1);
+    const afterHead = after.slice(0, offsetInAfter);
+    const afterTail = after.slice(offsetInAfter);
+    return [...before, replaceText, ...afterHead, ...insertText.split('\n'), ...afterTail].join('\n');
+}
+
+// 12. buildExtractFunctionEdit: 行ドラッグ選択（Test 9 と同じ正規化ケース）でも
+//     For/Next の対応が壊れず、インデント・呼び出し文・End Sub の位置が正しい
+{
+    const code = `Sub ResetBoard()
+    Dim x As Integer
+    Dim y As Integer
+    For x = 0 To BOARD_WIDTH - 1
+        For y = 0 To BOARD_HEIGHT - 1
+            board(x, y) = 0
+        Next y
+    Next x
+End Sub`;
+    const srv = setup(code);
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 3, character: 0 },
+        end:   { line: 8, character: 0 },
+    });
+    assert.ok(actions.length > 0, 'アクションあり');
+    const [, range, result, procSignature, callStatement] = actions[0].command.arguments;
+    const editResult = srv.buildExtractFunctionEdit(URI, range, 'ExtractedSub', result, procSignature, callStatement);
+    assert.ok(editResult !== null, 'editResult が得られる');
+    const finalText = applyEditResult(code, editResult!);
+    assert.strictEqual(
+        finalText,
+        `Sub ResetBoard()
+    Dim x As Integer
+    Dim y As Integer
+    ExtractedSub()
+End Sub
+
+Private Sub ExtractedSub()
+    Dim x As Variant
+    Dim y As Variant
+    For x = 0 To BOARD_WIDTH - 1
+        For y = 0 To BOARD_HEIGHT - 1
+            board(x, y) = 0
+        Next y
+    Next x
+End Sub
+`,
+        '抽出後のフォーマットが正しい（For/Next 対応・インデント・呼び出し文）',
+    );
+    console.log('[PASS] buildExtractFunctionEdit: 行ドラッグ選択でフォーマットが正しい');
+}
+
+// 13. buildExtractFunctionEdit: 選択範囲外で定義済みの変数には Dim を重複挿入しない、
+//     かつ ByRef 出力（total）が引数として正しく扱われる
+{
+    const code = `Sub Calc()
+    Dim total As Long
+    Dim i As Integer
+    Dim tmp As Long
+    total = 0
+    For i = 1 To 10
+        tmp = i * 2
+        total = total + tmp
+    Next i
+    MsgBox total
+End Sub`;
+    const srv = setup(code);
+    // For ブロック全体（total=0 〜 Next i）を選択
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 4, character: 0 },
+        end:   { line: 9, character: 0 },
+    });
+    assert.ok(actions.length > 0, 'アクションあり');
+    const [, range, result, procSignature, callStatement] = actions[0].command.arguments;
+    const editResult = srv.buildExtractFunctionEdit(URI, range, 'ExtractedSub', result, procSignature, callStatement);
+    assert.ok(editResult !== null, 'editResult が得られる');
+    const finalText = applyEditResult(code, editResult!);
+    assert.strictEqual(
+        finalText,
+        `Sub Calc()
+    Dim total As Long
+    Dim i As Integer
+    Dim tmp As Long
+    ExtractedSub(total)
+    MsgBox total
+End Sub
+
+Private Sub ExtractedSub(ByRef total As Variant)
+    Dim i As Variant
+    Dim tmp As Variant
+    total = 0
+    For i = 1 To 10
+        tmp = i * 2
+        total = total + tmp
+    Next i
+End Sub
+`,
+        '抽出後のフォーマットが正しい（ByRef 引数・ローカル変数の Dim 挿入）',
+    );
+    console.log('[PASS] buildExtractFunctionEdit: ByRef 引数とローカル変数の Dim 挿入が正しい');
+}
