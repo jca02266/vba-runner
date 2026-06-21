@@ -6,7 +6,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jca02266/vba-runner"
+    "url": "https://github.com/jca02266/vba-runner",
+    "directory": "build/extractor"
   },
   "bin": {
     "vba-extractor": "./dist/bin/vba-extractor.cjs"

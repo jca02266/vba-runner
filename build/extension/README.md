@@ -2,9 +2,7 @@
 
 A VS Code extension for VBA development. When you open `.bas` / `.cls` / `.frm` files, rich editing support powered by LSP (Language Server Protocol) becomes available.
 
-> 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
-
-[CHANGELOG](https://github.com/jca02266/vba-runner/blob/main/build/extension/CHANGELOG.md)
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)**
 
 ## Installation
 

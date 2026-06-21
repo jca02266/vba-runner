@@ -8,7 +8,8 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jca02266/vba-runner"
+    "url": "https://github.com/jca02266/vba-runner",
+    "directory": "build/extension"
   },
   "engines": {
     "vscode": "^1.90.0"

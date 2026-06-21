@@ -3,9 +3,7 @@
 A CLI tool to export and import VBA source code from Office files (`.xlsm`, etc.) without Excel.
 Manage VBA modules as plain text files under version control.
 
-> 日本語ドキュメントは [README.ja.md](./README.ja.md) をご覧ください。
-
-[CHANGELOG](https://github.com/jca02266/vba-runner/blob/main/build/extractor/CHANGELOG.md)
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)**
 
 ## Installation
 
