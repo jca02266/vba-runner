@@ -970,7 +970,7 @@ export class Evaluator {
 
         // CallByName(object, procName, callType, args...)
         // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
-        this.env.set('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
+        this.registerBuiltin('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
             if (obj === null || obj === undefined || obj === vbaNothing) {
                 this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
             }
@@ -997,7 +997,12 @@ export class Evaluator {
                 }
             }
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
-        });
+        }, [
+            { name: 'Object' },
+            { name: 'ProcName' },
+            { name: 'CallType' },
+            { name: 'Args', isParamArray: true },
+        ]);
     }
 
     private registerConversionFunctions() {
@@ -1453,16 +1458,20 @@ export class Evaluator {
     }
 
     private registerStdlibDateTimeFunctions() {
-        this.env.set('year',   (d: any) => parseVbaDate(d).getFullYear());
-        this.env.set('month',  (d: any) => parseVbaDate(d).getMonth() + 1);
-        this.env.set('day',    (d: any) => parseVbaDate(d).getDate());
-        this.env.set('hour',   (d: any) => parseVbaDate(d).getHours());
-        this.env.set('minute', (d: any) => parseVbaDate(d).getMinutes());
-        this.env.set('second', (d: any) => parseVbaDate(d).getSeconds());
-        this.env.set('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))));
-        this.env.set('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))));
-        this.env.set('weekday', (d: any) => parseVbaDate(d).getDay() + 1);
-        this.env.set('dateadd', (interval: any, number: any, date: any) => {
+        this.registerBuiltin('year',   (d: any) => parseVbaDate(d).getFullYear(), [{ name: 'Date' }]);
+        this.registerBuiltin('month',  (d: any) => parseVbaDate(d).getMonth() + 1, [{ name: 'Date' }]);
+        this.registerBuiltin('day',    (d: any) => parseVbaDate(d).getDate(), [{ name: 'Date' }]);
+        this.registerBuiltin('hour',   (d: any) => parseVbaDate(d).getHours(), [{ name: 'Time' }]);
+        this.registerBuiltin('minute', (d: any) => parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
+        this.registerBuiltin('second', (d: any) => parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
+        this.registerBuiltin('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))), [
+            { name: 'Year' }, { name: 'Month' }, { name: 'Day' },
+        ]);
+        this.registerBuiltin('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))), [
+            { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' },
+        ]);
+        this.registerBuiltin('weekday', (d: any) => parseVbaDate(d).getDay() + 1, [{ name: 'Date' }]);
+        this.registerBuiltin('dateadd', (interval: any, number: any, date: any) => {
             const d = parseVbaDate(date);
             const n = Number(number);
             const intv = String(interval).toLowerCase();
@@ -1490,8 +1499,8 @@ export class Evaluator {
                 d.setSeconds(d.getSeconds() + n);
             }
             return new VbaDate(toVbaDate(d));
-        });
-        this.env.set('datediff', (interval: any, date1: any, date2: any) => {
+        }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
+        this.registerBuiltin('datediff', (interval: any, date1: any, date2: any) => {
             const d1 = parseVbaDate(date1);
             const d2 = parseVbaDate(date2);
             const intv = String(interval).toLowerCase();
@@ -1505,8 +1514,8 @@ export class Evaluator {
             else if (intv === 'n') return Math.round(diffMs / 60000);
             else if (intv === 's') return Math.round(diffMs / 1000);
             return 0;
-        });
-        this.env.set('datepart', (interval: any, date: any) => {
+        }, [{ name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' }]);
+        this.registerBuiltin('datepart', (interval: any, date: any) => {
             const d = parseVbaDate(date);
             const intv = String(interval).toLowerCase();
             if (intv === 'yyyy') return d.getFullYear();
@@ -1528,24 +1537,24 @@ export class Evaluator {
             else if (intv === 'n') return d.getMinutes();
             else if (intv === 's') return d.getSeconds();
             return 0;
-        });
-        this.env.set('datevalue', (val: any) => {
+        }, [{ name: 'Interval' }, { name: 'Date' }]);
+        this.registerBuiltin('datevalue', (val: any) => {
             const d = parseVbaDate(val);
             return new VbaDate(Math.floor(toVbaDate(d)));
-        });
-        this.env.set('timevalue', (val: any) => {
+        }, [{ name: 'Date' }]);
+        this.registerBuiltin('timevalue', (val: any) => {
             const d = parseVbaDate(val);
             const serial = toVbaDate(d);
             return new VbaDate(serial - Math.floor(serial));
-        });
-        this.env.set('monthname', (month: any, abbreviate: any = vbaFalse) => {
+        }, [{ name: 'Time' }]);
+        this.registerBuiltin('monthname', (month: any, abbreviate: any = vbaFalse) => {
             const m = Number(month);
             if (m < 1 || m > 12) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
             const abbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
             return this.isTrue(abbreviate) ? abbrs[m - 1] : names[m - 1];
-        });
-        this.env.set('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
+        }, [{ name: 'Month' }, { name: 'Abbreviate', optional: true }]);
+        this.registerBuiltin('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
             const w = Number(weekday);
             let first = Number(firstdayofweek);
             if (first === 0) first = 1;
@@ -1554,7 +1563,11 @@ export class Evaluator {
             const abbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
             const idx = (w + first - 2) % 7;
             return this.isTrue(abbreviate) ? abbrs[idx] : names[idx];
-        });
+        }, [
+            { name: 'Weekday' },
+            { name: 'Abbreviate', optional: true },
+            { name: 'FirstDayOfWeek', optional: true },
+        ]);
     }
 
     private registerFileSystemFunctions() {
@@ -1565,44 +1578,44 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.TOO_MANY_FILES, "Too many files");
         };
         this.registerBuiltin('freefile', freeFileFunc, [{ name: 'RangeNumber', optional: true }]);
-        this.env.set('eof', (fn: any) => {
+        this.registerBuiltin('eof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos! >= this.fs.statSync(h.path).size ? vbaTrue : vbaFalse;
-        });
-        this.env.set('lof', (fn: any) => {
+        }, [{ name: 'FileNumber' }]);
+        this.registerBuiltin('lof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return this.fs.statSync(h.path).size;
-        });
-        this.env.set('loc', (fn: any) => {
+        }, [{ name: 'FileNumber' }]);
+        this.registerBuiltin('loc', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos;
-        });
-        this.env.set('seek', (fn: any) => {
+        }, [{ name: 'FileNumber' }]);
+        this.registerBuiltin('seek', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return (h.pos || 0) + 1;
-        });
-        this.env.set('fileattr', (fn: any, info: any = 1) => {
+        }, [{ name: 'FileNumber' }]);
+        this.registerBuiltin('fileattr', (fn: any, info: any = 1) => {
             console.log(`[STUB] FileAttr #${fn}, ${info}`);
             return 1; // Default to Normal
-        });
-        this.env.set('chdrive', (drive: any) => {
+        }, [{ name: 'FileNumber' }, { name: 'ReturnType', optional: true }]);
+        this.registerBuiltin('chdrive', (drive: any) => {
             console.log(`[STUB] ChDrive "${drive}"`);
-        });
-        this.env.set('setattr', (path: any, attr: any) => {
+        }, [{ name: 'Drive' }]);
+        this.registerBuiltin('setattr', (path: any, attr: any) => {
             console.log(`[STUB] SetAttr "${path}", ${attr}`);
-        });
-        this.env.set('filedatetime', (path: any) => {
+        }, [{ name: 'PathName' }, { name: 'Attributes' }]);
+        this.registerBuiltin('filedatetime', (path: any) => {
             const realPath = this.sandbox.toRealPath(String(path));
             const stats = this.fs.statSync(realPath);
             return new VbaDate(toVbaDate(stats.mtime));
-        });
+        }, [{ name: 'PathName' }]);
 
-        this.envSet('curdir', (_drive?: string) => this.sandbox.getCwd(), ['$']);
-        this.envSet('dir', (pathName?: string, _attributes?: number) => {
+        this.registerBuiltin('curdir', (_drive?: string) => this.sandbox.getCwd(), [{ name: 'Drive', optional: true }], ['$']);
+        this.registerBuiltin('dir', (pathName?: string, _attributes?: number) => {
             if (pathName !== undefined && pathName !== null && pathName !== "") {
                 try {
                     const realPath = this.sandbox.toRealPath(pathName);
@@ -1622,19 +1635,24 @@ export class Evaluator {
             }
             if (!this.dirIterator || this.dirIndex >= this.dirIterator.length) return "";
             return this.dirIterator[this.dirIndex++];
-        }, ['$']);
-        this.env.set('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)));
-        this.env.set('kill', (p: string) => this.executeKill(p));
-        this.env.set('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }));
-        this.env.set('rmdir', (p: string) => this.fs.rmdirSync?.(this.sandbox.toRealPath(p)));
-        this.env.set('chdir', (p: string) => {
+        }, [
+            { name: 'PathName', optional: true },
+            { name: 'Attributes', optional: true },
+        ], ['$']);
+        this.registerBuiltin('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)), [
+            { name: 'Source' }, { name: 'Destination' },
+        ]);
+        this.registerBuiltin('kill', (p: string) => this.executeKill(p), [{ name: 'PathName' }]);
+        this.registerBuiltin('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }), [{ name: 'Path' }]);
+        this.registerBuiltin('rmdir', (p: string) => this.fs.rmdirSync?.(this.sandbox.toRealPath(p)), [{ name: 'Path' }]);
+        this.registerBuiltin('chdir', (p: string) => {
             try {
                 this.sandbox.setCwd(p);
             } catch {
                 this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
             }
-        });
-        this.env.set('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size);
+        }, [{ name: 'Path' }]);
+        this.registerBuiltin('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size, [{ name: 'PathName' }]);
     }
 
     private registerInteractionFunctions() {
@@ -1836,15 +1854,15 @@ export class Evaluator {
         this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0'); this.env.set('vbback', "\b"); this.env.set('vbformfeed', "\f");
         this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
 
-        this.envSet('environ', (k: any) => this.sandbox.getEnv(k), ['$']);
+        this.registerBuiltin('environ', (k: any) => this.sandbox.getEnv(k), [{ name: 'EnvString' }], ['$']);
 
         // VarPtr / StrPtr / ObjPtr — dummy pointer functions (non-zero unique Long per call)
         // Real addresses have no meaning in this engine; return stable non-zero integers.
         const ptrFn = () => (this._ptrCounter += 4);
-        this.env.set('varptr', ptrFn);
-        this.env.set('strptr', ptrFn);
-        this.env.set('objptr', ptrFn);
-        this.env.set('createobject', (id: string) => this.createExternalObject(id));
+        this.registerBuiltin('varptr', ptrFn, [{ name: 'VarName' }]);
+        this.registerBuiltin('strptr', ptrFn, [{ name: 'VarName' }]);
+        this.registerBuiltin('objptr', ptrFn, [{ name: 'VarName' }]);
+        this.registerBuiltin('createobject', (id: string) => this.createExternalObject(id), [{ name: 'Class' }]);
         const getObjectFunc = (pathname?: string, classId?: string) => {
             if (pathname) {
                 return {
@@ -1862,11 +1880,22 @@ export class Evaluator {
             { name: 'PathName', optional: true },
             { name: 'Class', optional: true },
         ]);
-        this.env.set('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f);
-        this.env.set('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; });
-        this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
-        this.env.set('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; });
-        this.env.set('lbound', (a: any, dim: any = 1) => {
+        this.registerBuiltin('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f, [
+            { name: 'Expr' }, { name: 'TruePart' }, { name: 'FalsePart' },
+        ]);
+        this.registerBuiltin('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; }, [
+            { name: 'Index' },
+            { name: 'Choice', isParamArray: true },
+        ]);
+        // Switch(Expr1, Value1, [Expr2, Value2]...) はペア単位の ParamArray のため、
+        // 個数検証は行わず今までどおり可変長で受け取る（isParamArray で checkArgCountGeneric をスキップ）。
+        this.registerBuiltin('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; }, [
+            { name: 'VarExpr', isParamArray: true },
+        ]);
+        this.registerBuiltin('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; }, [
+            { name: 'Arglist', isParamArray: true },
+        ]);
+        this.registerBuiltin('lbound', (a: any, dim: any = 1) => {
             if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
             if ((a as any).__vbaDimensions__) {
@@ -1877,8 +1906,8 @@ export class Evaluator {
             }
             if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             return (a as any).vbaBase || 0;
-        });
-        this.env.set('ubound', (a: any, dim: any = 1) => {
+        }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
+        this.registerBuiltin('ubound', (a: any, dim: any = 1) => {
             if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             const dimIndex = Number(dim) - 1;
             if ((a as any).__vbaDimensions__) {
@@ -1889,30 +1918,38 @@ export class Evaluator {
             }
             if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
             return ((a as any).vbaBase || 0) + a.length - 1;
-        });
+        }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
     }
 
     private registerRegistryFunctions() {
-        this.env.set('savesetting', (app: string, sec: string, key: string, val: any) => {
+        this.registerBuiltin('savesetting', (app: string, sec: string, key: string, val: any) => {
             if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
             if (!this.virtualRegistry[app][sec]) this.virtualRegistry[app][sec] = {};
             this.virtualRegistry[app][sec][key] = String(val);
-        });
-        this.env.set('getsetting', (app: string, sec: string, key: string, def: any = "") => {
+        }, [
+            { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Setting' },
+        ]);
+        this.registerBuiltin('getsetting', (app: string, sec: string, key: string, def: any = "") => {
             return (this.virtualRegistry[app]?.[sec]?.[key]) ?? String(def);
-        });
-        this.env.set('getallsettings', (app: string, sec: string) => {
+        }, [
+            { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Default', optional: true },
+        ]);
+        this.registerBuiltin('getallsettings', (app: string, sec: string) => {
             const s = this.virtualRegistry[app]?.[sec];
             if (!s) return vbaEmpty;
             const res = Object.entries(s).map(([k, v]) => [k, v]);
             (res as any).vbaBase = 0;
             return res;
-        });
-        this.env.set('deletesetting', (app: string, sec?: string, key?: string) => {
+        }, [{ name: 'AppName' }, { name: 'Section' }]);
+        this.registerBuiltin('deletesetting', (app: string, sec?: string, key?: string) => {
             if (!sec) delete this.virtualRegistry[app];
             else if (!key) delete this.virtualRegistry[app]?.[sec];
             else delete this.virtualRegistry[app]?.[sec]?.[key];
-        });
+        }, [
+            { name: 'AppName' },
+            { name: 'Section', optional: true },
+            { name: 'Key', optional: true },
+        ]);
     }
 
 

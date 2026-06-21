@@ -177,4 +177,47 @@ End Function
     console.log('[PASS] Batch 3: 既存の位置引数呼び出しは無変化');
 }
 
+// --- 15. Batch 4: DateSerial/GetSetting の名前付き引数（順序非依存） ---
+{
+    const ds1 = evalVBA(`Function F()\n F = DateSerial(2024, 3, 15)\nEnd Function`).callProcedure('F', []);
+    const ds2 = evalVBA(`Function F()\n F = DateSerial(Day:=15, Year:=2024, Month:=3)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(ds2.value, ds1.value, 'DateSerial の名前付き引数（順序を変えても同じ結果）');
+
+    const gs1 = evalVBA(`Function F()\n F = GetSetting("App", "Sec", "Key", "default")\nEnd Function`).callProcedure('F', []);
+    const gs2 = evalVBA(`Function F()\n F = GetSetting(Default:="default", Key:="Key", Section:="Sec", AppName:="App")\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(gs2, gs1, 'GetSetting の名前付き引数（順序を変えても同じ結果）');
+    console.log('[PASS] Batch 4: DateSerial/GetSetting 名前付き引数（順序非依存）');
+}
+
+// --- 16. Batch 4: 引数数エラー（日時・ファイル・レジストリ・misc 代表サンプル） ---
+{
+    expectVbaError(`Debug.Print Year()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Year() (引数なし)');
+    expectVbaError(`Debug.Print Year(Date, 1)`, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Year(引数過多)');
+    expectVbaError(`Debug.Print DateSerial(2024, 3)`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'DateSerial(引数不足)');
+    expectVbaError(`Debug.Print SaveSetting("A", "S", "K")`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'SaveSetting(引数不足)');
+    expectVbaError(`Debug.Print GetSetting()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'GetSetting() (引数なし)');
+    expectVbaError(`Debug.Print IIf(True)`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'IIf(引数不足)');
+    expectVbaError(`Debug.Print IIf(True, 1, 2, 3)`, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'IIf(引数過多)');
+    expectVbaError(`Debug.Print LBound()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'LBound() (引数なし)');
+    console.log('[PASS] Batch 4: 引数数エラー (449/450)');
+}
+
+// --- 17. Batch 4: ParamArray 系（Choose/Switch/Array/CallByName）の既存挙動は無変化 ---
+{
+    assert.strictEqual(evalVBA(`Function F()\n F = Choose(2, "a", "b", "c")\nEnd Function`).callProcedure('F', []), 'b', 'Choose(2, "a","b","c") = "b"');
+    assert.strictEqual(evalVBA(`Function F()\n F = Switch(False, 1, True, 2)\nEnd Function`).callProcedure('F', []), 2, 'Switch(False,1,True,2) = 2');
+    const arr = evalVBA(`Function F()\n F = Array(1, 2, 3)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(arr.length, 3, 'Array(1,2,3) の要素数は3');
+    const arrEmpty = evalVBA(`Function F()\n F = Array()\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(arrEmpty.length, 0, 'Array() は引数なしでも呼べる（ParamArray）');
+    console.log('[PASS] Batch 4: ParamArray 系の既存挙動は無変化');
+}
+
+// --- 18. Batch 4: LBound/UBound（必須+末尾Optional）は無変化 ---
+{
+    const r = evalVBA(`Function F()\n Dim a(1 To 5) As Integer\n F = LBound(a) & "-" & UBound(a)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(r, '1-5', 'LBound/UBound(a) は今までどおり 1-5');
+    console.log('[PASS] Batch 4: LBound/UBound 既存挙動は無変化');
+}
+
 console.log('\n=== builtin-arg-metadata: 全テスト通過 ===');
