@@ -130,20 +130,25 @@ function printUsage(): void {
     console.log('Usage:');
     console.log('  vba-extractor export <input.xlsm> [output-dir] [--encoding <cp>]');
     console.log('    output-dir defaults to: <input.xlsm directory>/src');
-    console.log('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>]');
+    console.log('  vba-extractor import <input.xlsm> [source-dir] [output.xlsm] [--encoding <cp>] [--yes]');
     console.log('    source-dir defaults to: <input.xlsm directory>/src');
     console.log('');
     console.log('Options:');
-    console.log('  --version    Show version');
-    console.log('  --help       Show this help');
+    console.log('  --encoding <cp>   Override the source encoding (e.g. cp932)');
+    console.log('  --yes, -y         Skip the confirmation prompt before import (for scripts/CI)');
+    console.log('  --version         Show version');
+    console.log('  --help            Show this help');
 }
 
-function parseEncoding(args: string[]): { encoding: string | undefined; rest: string[] } {
+function parseEncoding(args: string[]): { encoding: string | undefined; yes: boolean; rest: string[] } {
     const rest: string[] = [];
     let encoding: string | undefined;
+    let yes = false;
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--encoding') {
             encoding = args[++i];
+        } else if (args[i] === '--yes' || args[i] === '-y') {
+            yes = true;
         } else if (args[i].startsWith('-') && args[i] !== '-') {
             // Any other token that looks like a flag is an unknown option.
             // (Positional paths are not expected to start with '-'.)
@@ -154,7 +159,7 @@ function parseEncoding(args: string[]): { encoding: string | undefined; rest: st
             rest.push(args[i]);
         }
     }
-    return { encoding, rest };
+    return { encoding, yes, rest };
 }
 
 async function openXlsm(xlsmPath: string) {
@@ -212,7 +217,7 @@ async function runExport(args: string[]): Promise<void> {
 }
 
 async function runImport(args: string[]): Promise<void> {
-    const { encoding: encodingOverride, rest } = parseEncoding(args);
+    const { encoding: encodingOverride, yes, rest } = parseEncoding(args);
     const [xlsmArg, srcDirArg, outPathArg] = rest;
     if (!xlsmArg) { printUsage(); process.exit(1); }
 
@@ -232,14 +237,18 @@ async function runImport(args: string[]): Promise<void> {
     }
     console.log('');
 
-    const question = willOverwrite
-        ? 'Create a backup and run import? [y/N]: '
-        : 'Run import? [y/N]: ';
-    const confirmed = await promptYesNo(question);
+    if (yes) {
+        console.log('--yes specified, skipping confirmation prompt.');
+    } else {
+        const question = willOverwrite
+            ? 'Create a backup and run import? [y/N]: '
+            : 'Run import? [y/N]: ';
+        const confirmed = await promptYesNo(question);
 
-    if (!confirmed) {
-        console.log('Cancelled.');
-        process.exit(0);
+        if (!confirmed) {
+            console.log('Cancelled.');
+            process.exit(0);
+        }
     }
 
     if (willOverwrite) {

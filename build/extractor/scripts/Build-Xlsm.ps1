@@ -30,7 +30,9 @@
     Directory containing the .bas files to import.
 
 .PARAMETER OutputPath
-    Path of the .xlsm file to create.
+    Path of the .xlsm file to create. Relative paths are resolved against this
+    script's current working directory (not Excel's own default folder) before
+    being passed to Workbook.SaveAs.
 
 .EXAMPLE
     powershell -File Build-Xlsm.ps1 -SourceDir src\vba -OutputPath MyBook.xlsm
@@ -47,6 +49,16 @@ $xlOpenXMLWorkbookMacroEnabled = 52
 if (-not (Test-Path $SourceDir)) {
     throw "SourceDir not found: $SourceDir"
 }
+
+# Workbook.SaveAs resolves relative paths against Excel's own default working
+# folder (e.g. Documents), not this script's working directory, because Excel
+# runs as a separate COM-automated process. Resolve to an absolute path here
+# so $OutputPath always lands where the caller expects.
+if (-not [System.IO.Path]::IsPathRooted($OutputPath)) {
+    $OutputPath = Join-Path (Get-Location).Path $OutputPath
+}
+$OutputPath = [System.IO.Path]::GetFullPath($OutputPath)
+
 if (Test-Path $OutputPath) {
     Remove-Item $OutputPath -Force
 }

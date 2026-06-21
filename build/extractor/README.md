@@ -36,7 +36,7 @@ vba-extractor export MyBook.xlsm src/vba
 ### import — Write VBA source back into an Office file
 
 ```bash
-vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
+vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>] [--yes]
 ```
 
 | Argument | Description |
@@ -45,6 +45,7 @@ vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
 | `<source-dir>` | Directory containing the `.bas` / `.cls` files to write back |
 | `[output.xlsm]` | Output file (overwrites the input file if omitted) |
 | `--encoding <cp>` | Explicit code page. Defaults to the PROJECTCODEPAGE stored in the file |
+| `--yes`, `-y` | Skip the confirmation prompt (`Create a backup and run import? [y/N]`). Useful for scripts/AI agents calling `import` repeatedly |
 
 ```bash
 # Write edited .bas / .cls files back into the xlsm
@@ -52,6 +53,9 @@ vba-extractor import MyBook.xlsm src/vba
 
 # Save to a new file, keeping the original intact
 vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
+
+# Skip the confirmation prompt (for automation)
+vba-extractor import MyBook.xlsm src/vba --yes
 ```
 
 ### Creating a new .xlsm from scratch (Windows + Excel)
@@ -69,6 +73,10 @@ powershell -File node_modules/vba-extractor/scripts/Build-Xlsm.ps1 -SourceDir sr
 # Sync .cls files (and re-sync .bas) into the newly created workbook
 vba-extractor import MyBook.xlsm src/vba
 ```
+
+> If `-OutputPath` is relative, the script resolves it to an absolute path (based on its own
+> working directory) before calling `Workbook.SaveAs` — this avoids it being resolved against
+> Excel's own default working folder instead, since Excel runs as a separate COM-automated process.
 
 See the script's own `Get-Help -Full` (or its header comment) for details and caveats.
 

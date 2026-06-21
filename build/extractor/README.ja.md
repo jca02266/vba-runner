@@ -34,7 +34,7 @@ vba-extractor export MyBook.xlsm src/vba
 ### import — VBA ソースを Office ファイルに書き戻し
 
 ```bash
-vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
+vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>] [--yes]
 ```
 
 | 引数 | 説明 |
@@ -43,6 +43,7 @@ vba-extractor import <input.xlsm> <source-dir> [output.xlsm] [--encoding <cp>]
 | `<source-dir>` | 書き戻す .bas / .cls を格納したディレクトリ |
 | `[output.xlsm]` | 出力ファイル（省略時は input を上書き） |
 | `--encoding <cp>` | コードページを明示指定。省略時はファイル内の PROJECTCODEPAGE を使用 |
+| `--yes`, `-y` | 確認プロンプト（`Create a backup and run import? [y/N]`）をスキップ。スクリプト・AIエージェントから繰り返し実行する場合に使う |
 
 ```bash
 # 編集した .bas / .cls を xlsm に書き戻す
@@ -50,6 +51,9 @@ vba-extractor import MyBook.xlsm src/vba
 
 # 元ファイルを残して別ファイルに出力
 vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
+
+# 確認プロンプト無しで実行（自動化スクリプト向け）
+vba-extractor import MyBook.xlsm src/vba --yes
 ```
 
 ### 新規 .xlsm をゼロから作る (Windows + Excel)
@@ -67,6 +71,10 @@ powershell -File node_modules/vba-extractor/scripts/Build-Xlsm.ps1 -SourceDir sr
 # .cls ファイル(と .bas の再同期)を、作成したワークブックに同期する
 vba-extractor import MyBook.xlsm src/vba
 ```
+
+> `-OutputPath` に相対パスを渡した場合、内部で `Workbook.SaveAs` を呼ぶ前にスクリプト実行時の
+> カレントディレクトリ基準の絶対パスへ変換する（COM経由で起動したExcel自身の既定の作業フォルダ
+> 基準で解決されてしまうのを防ぐため）。
 
 詳細・注意点はスクリプト自身の `Get-Help -Full`(またはヘッダーコメント)を参照してください。
 
