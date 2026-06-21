@@ -125,6 +125,23 @@ Function GetRndZero() As Double: GetRndZero = Rnd(0): End Function
     console.log('[PASS] Rnd');
 }
 
+// --- Rnd（括弧無し呼び出し） ---
+{
+    // 括弧を付けずに `Rnd` と書いた場合も自動的に呼び出されて数値を返す（関数オブジェクトを返してはいけない）
+    const code = `
+Function GetBareRnd() As Double: GetBareRnd = Rnd: End Function
+Function UseBareRndInExpr() As Long: UseBareRndInExpr = Int(Rnd * 4) + 1: End Function
+`;
+    const ev = evalVBA(code);
+    const v1 = ev.callProcedure('GetBareRnd', []) as number;
+    assert.strictEqual(typeof v1 === 'number', true, 'Rnd（括弧無し）は数値を返す');
+    assert.strictEqual(v1 >= 0 && v1 < 1, true, 'Rnd（括弧無し）も [0, 1) 範囲');
+
+    const v2 = ev.callProcedure('UseBareRndInExpr', []) as number;
+    assert.strictEqual(v2 >= 1 && v2 <= 4, true, 'Int(Rnd * 4) + 1 は 1〜4 の範囲');
+    console.log('[PASS] Rnd（括弧無し）');
+}
+
 // --- Randomize / Rnd の組み合わせ ---
 {
     const code = `

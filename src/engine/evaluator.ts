@@ -1104,7 +1104,7 @@ export class Evaluator {
         let rndSeed = 0.5;
         let lastRnd = 0.5;
         let rndInitialized = false;
-        this.env.set('rnd', (val?: any) => {
+        const rndFunc = (val?: any) => {
             if (!rndInitialized) { rndSeed = 0.5; rndInitialized = true; }
             if (val === undefined || (typeof val === 'number' && val > 0)) {
                 rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
@@ -1118,7 +1118,9 @@ export class Evaluator {
                 return lastRnd;
             }
             return lastRnd;
-        });
+        };
+        (rndFunc as any).__vbaAutoCall__ = true;
+        this.env.set('rnd', rndFunc);
         this.env.set('randomize', (val?: any) => {
             rndInitialized = true;
             rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
@@ -1413,12 +1415,14 @@ export class Evaluator {
     }
 
     private registerFileSystemFunctions() {
-        this.env.set('freefile', (range?: number) => {
+        const freeFileFunc = (range?: number) => {
             const start = (range === 1) ? 256 : 1;
             const end = (range === 1) ? 511 : 255;
             for (let i = start; i <= end; i++) if (!this.fileHandles.has(i)) return i;
             this.throwVbaError(VbaErrorCode.TOO_MANY_FILES, "Too many files");
-        });
+        };
+        (freeFileFunc as any).__vbaAutoCall__ = true;
+        this.env.set('freefile', freeFileFunc);
         this.env.set('eof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
@@ -1501,7 +1505,9 @@ export class Evaluator {
         this.env.set('inputbox', (prompt: any, _title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; });
         this.env.set('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
         this.env.set('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
-        this.env.set('doevents', () => 0);
+        const doEventsFunc = () => 0;
+        (doEventsFunc as any).__vbaAutoCall__ = true;
+        this.env.set('doevents', doEventsFunc);
     }
 
     private registerFinancialFunctions() {
@@ -1658,7 +1664,7 @@ export class Evaluator {
         this.env.set('strptr', ptrFn);
         this.env.set('objptr', ptrFn);
         this.env.set('createobject', (id: string) => this.createExternalObject(id));
-        this.env.set('getobject', (pathname?: string, classId?: string) => {
+        const getObjectFunc = (pathname?: string, classId?: string) => {
             if (pathname) {
                 return {
                     __vbaTypeName__: 'Object',
@@ -1670,7 +1676,9 @@ export class Evaluator {
                 return this.createExternalObject(classId);
             }
             return vbaNothing;
-        });
+        };
+        (getObjectFunc as any).__vbaAutoCall__ = true;
+        this.env.set('getobject', getObjectFunc);
         this.env.set('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f);
         this.env.set('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; });
         this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
