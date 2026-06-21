@@ -744,14 +744,13 @@ End Class`;
             const outPath = path.join(dir, '__mocks__', 'ExcelObjects.bas');
 
             try {
-                // vba-analyzer --json でオブジェクト依存を解析
-                const { execSync } = await import('child_process');
-                const analyzerPath = path.join(import.meta.dirname, '../../test-libs/vba-analyzer.ts');
-                const raw = execSync(
-                    `npx tsx "${analyzerPath}" "${dir}" --json`,
-                    { encoding: 'utf-8', cwd: path.dirname(analyzerPath) }
-                );
-                const json = JSON.parse(raw);
+                // vba-analyzer の解析ロジックをプロセス内で直接呼び出す
+                // （execSync + npx tsx での子プロセス起動は、配布後の .vsix に test-libs/ が
+                //   同梱されないため動作しない。esbuild が静的 import を extension.cjs に
+                //   バンドルするため、この形なら配布後も動作する）
+                const { collectVbaFilesForMcp, analyzeWorkspaceForMcpFromFiles } = await import('../test-libs/vba-analyzer');
+                const files = collectVbaFilesForMcp(dir);
+                const json = analyzeWorkspaceForMcpFromFiles(files);
                 const { extractObjectsFromAnalyzerJson, generateExcelMockBas } = await import('../test-libs/mock-generator');
                 const objects = extractObjectsFromAnalyzerJson(json);
 

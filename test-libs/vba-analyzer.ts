@@ -1883,7 +1883,6 @@ interface FileAnalysis {
 }
 
 function analyzeFile(filePath: string): FileAnalysis {
-    const ext = path.extname(filePath).toLowerCase();
     const raw = fs.readFileSync(filePath, 'utf-8');
     const src = stripVBAFileHeader(raw);
     const lines = src.split('\n');
