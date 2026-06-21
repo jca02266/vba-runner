@@ -904,9 +904,9 @@ export class Evaluator {
     }
 
     private registerInformationFunctions() {
-        this.env.set('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse);
-        this.env.set('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse);
-        this.env.set('isnumeric', (val: any) => {
+        this.registerBuiltin('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
+        this.registerBuiltin('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse, [{ name: 'ArgName' }]);
+        this.registerBuiltin('isnumeric', (val: any) => {
             if (val === vbaNull) return vbaFalse;
             if (val === vbaEmpty || val === undefined) return vbaTrue;
             if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaBoolean || val instanceof VbaDate) return vbaTrue;
@@ -917,21 +917,21 @@ export class Evaluator {
                 return (!isNaN(Number(cleaned)) && isFinite(Number(cleaned))) ? vbaTrue : vbaFalse;
             }
             return vbaFalse;
-        });
-        this.env.set('isdate', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('isdate', (val: any) => {
             if (val instanceof VbaDate) return vbaTrue;
             if (typeof val === 'string') {
                 const d = Date.parse(val);
                 return !isNaN(d) ? vbaTrue : vbaFalse;
             }
             return vbaFalse;
-        });
-        this.env.set('isobject', (val: any) => (val === vbaNothing || (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull)) ? vbaTrue : vbaFalse);
-        this.env.set('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse);
-        this.env.set('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse);
-        this.env.set('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse);
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('isobject', (val: any) => (val === vbaNothing || (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull)) ? vbaTrue : vbaFalse, [{ name: 'Identifier' }]);
+        this.registerBuiltin('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
+        this.registerBuiltin('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
+        this.registerBuiltin('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse, [{ name: 'VarName' }]);
 
-        this.env.set('vartype', (val: any) => {
+        this.registerBuiltin('vartype', (val: any) => {
             if (val === vbaEmpty || val === undefined) return 0; // vbEmpty
             if (val === vbaNull) return 1; // vbNull
             if (val === vbaNothing) return 9; // vbObject
@@ -947,9 +947,9 @@ export class Evaluator {
             if (val && (val.__vbaClass__ || val.__isVbaDict__ || val.__isVbaCollection__)) return 9; // vbObject
             if (typeof val === 'object' && val !== null) return 9; // vbObject
             return 12; // vbVariant
-        });
+        }, [{ name: 'VarName' }]);
 
-        this.env.set('typename', (val: any) => {
+        this.registerBuiltin('typename', (val: any) => {
             if (val === vbaEmpty || val === undefined) return 'Empty';
             if (val === vbaNull) return 'Null';
             if (val === vbaNothing) return 'Nothing';
@@ -966,7 +966,7 @@ export class Evaluator {
             if (val instanceof VbaDecimal) return 'Decimal';
             if (typeof val === 'bigint') return 'LongLong';
             return 'Object';
-        });
+        }, [{ name: 'VarName' }]);
 
         // CallByName(object, procName, callType, args...)
         // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
@@ -1001,50 +1001,50 @@ export class Evaluator {
     }
 
     private registerConversionFunctions() {
-        this.env.set('cbyte', (val: any) => {
+        this.registerBuiltin('cbyte', (val: any) => {
             if (val instanceof VbaBoolean) {
                 return val.valueOf() ? 255 : 0;
             }
             const n = this.vbaRound(this.toVbaNumber(val));
             if (n < 0 || n > 255) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
-        });
-        this.env.set('cint', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cint', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val));
             if (n < -32768 || n > 32767) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
-        });
-        this.env.set('clng', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('clng', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val));
             if (n < -2147483648 || n > 2147483647) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
-        });
-        this.env.set('csng', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('csng', (val: any) => {
             const n = this.toVbaNumber(val);
             const f32 = Math.fround(n);
             if (!isFinite(f32) && isFinite(n)) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return f32;
-        });
-        this.env.set('cdbl', (val: any) => this.toVbaNumber(val));
-        this.env.set('cdate', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cdbl', (val: any) => this.toVbaNumber(val), [{ name: 'Expression' }]);
+        this.registerBuiltin('cdate', (val: any) => {
             if (val === null || val === vbaNull || val === vbaEmpty) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             if (val instanceof VbaDate) return val;
             if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
                 return new VbaDate(toVbaDate(parseVbaDate(val)));
             }
             return new VbaDate(this.toVbaNumber(val));
-        });
-        this.env.set('cvdate', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cvdate', (val: any) => {
             if (val === vbaNull) return vbaNull;
             return (this.env.get('cdate') as Function)(val);
-        });
-        this.env.set('cdec', (val: any) => new VbaDecimal(this.toVbaNumber(val)));
-        this.env.set('ccur', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cdec', (val: any) => new VbaDecimal(this.toVbaNumber(val)), [{ name: 'Expression' }]);
+        this.registerBuiltin('ccur', (val: any) => {
             const n = this.vbaRound(this.toVbaNumber(val), 4);
             if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
-        });
-        this.env.set('clnglng', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        const clnglngFunc = (val: any) => {
             if (val === vbaNull || val === null) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             if (typeof val === 'bigint') return val;
             if (typeof val === 'string') {
@@ -1073,44 +1073,45 @@ export class Evaluator {
             const n = BigInt(this.vbaRound(num));
             if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return n;
-        });
-        this.env.set('clngptr', this.env.get('clnglng'));
-        this.env.set('cstr', (val: any) => {
+        };
+        this.registerBuiltin('clnglng', clnglngFunc, [{ name: 'Expression' }]);
+        this.envSet('clngptr', this.env.get('clnglng')); // clnglng と同じ関数オブジェクトのため __vbaParamSpec__ も引き継ぐ
+        this.registerBuiltin('cstr', (val: any) => {
             try { return vbaToString(val); } catch (e: any) {
                 if (e?.type === 'VbaError') this.throwVbaError(e.number, e.message);
                 throw e;
             }
-        });
-        this.env.set('cbool', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cbool', (val: any) => {
             if (val === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
             return this.coerceToBoolean(val);
-        });
-        this.env.set('cvar', (val: any) => val);
-        this.env.set('cverr', (val: any) => {
+        }, [{ name: 'Expression' }]);
+        this.registerBuiltin('cvar', (val: any) => val, [{ name: 'Expression' }]);
+        this.registerBuiltin('cverr', (val: any) => {
             if (val instanceof VbaErrorValue) return val;
             const code = this.toVbaNumber(val);
             if (code < 0 || code > 65535) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return new VbaErrorValue(code);
-        });
+        }, [{ name: 'ErrorNumber' }]);
 
         const hexFn = (n: any) => {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(16).toUpperCase();
         };
-        this.envSet('hex', hexFn, ['$']);
+        this.registerBuiltin('hex', hexFn, [{ name: 'Number' }], ['$']);
         const octFn = (n: any) => {
             if (n === vbaNull) return vbaNull;
             return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(8);
         };
-        this.envSet('oct', octFn, ['$']);
-        this.env.set('val', (s: any) => {
+        this.registerBuiltin('oct', octFn, [{ name: 'Number' }], ['$']);
+        this.registerBuiltin('val', (s: any) => {
             if (typeof s !== 'string') return 0;
             const cleaned = s.trim().replace(/ /g, '');
             if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
             if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
             const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
             return match ? parseFloat(match[0]) || 0 : 0;
-        });
+        }, [{ name: 'String' }]);
 
         // Constants
         this.env.set('vbcrlf', "\r\n");
@@ -1158,41 +1159,44 @@ export class Evaluator {
     }
 
     private registerMathFunctions() {
-        this.env.set('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(this.toVbaNumber(val)));
-        this.env.set('atn', (val: any) => val === vbaNull ? vbaNull : Math.atan(this.toVbaNumber(val)));
-        this.env.set('cos', (val: any) => val === vbaNull ? vbaNull : Math.cos(this.toVbaNumber(val)));
-        this.env.set('exp', (val: any) => {
+        this.registerBuiltin('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(this.toVbaNumber(val)), [{ name: 'Number' }]);
+        this.registerBuiltin('atn', (val: any) => val === vbaNull ? vbaNull : Math.atan(this.toVbaNumber(val)), [{ name: 'Number' }]);
+        this.registerBuiltin('cos', (val: any) => val === vbaNull ? vbaNull : Math.cos(this.toVbaNumber(val)), [{ name: 'Number' }]);
+        this.registerBuiltin('exp', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             if (n > 709.782712893) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
             return Math.exp(n);
-        });
-        this.env.set('int', (val: any) => val === vbaNull ? vbaNull : Math.floor(this.toVbaNumber(val)));
-        this.env.set('fix', (val: any) => {
+        }, [{ name: 'Number' }]);
+        this.registerBuiltin('int', (val: any) => val === vbaNull ? vbaNull : Math.floor(this.toVbaNumber(val)), [{ name: 'Number' }]);
+        this.registerBuiltin('fix', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             return n >= 0 ? Math.floor(n) : Math.ceil(n);
-        });
-        this.env.set('log', (val: any) => {
+        }, [{ name: 'Number' }]);
+        this.registerBuiltin('log', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             if (n <= 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return Math.log(n);
-        });
-        this.env.set('round', (val: any, digits: any = 0) => val === vbaNull ? vbaNull : this.vbaRound(this.toVbaNumber(val), Number(digits)));
-        this.env.set('sgn', (val: any) => {
+        }, [{ name: 'Number' }]);
+        this.registerBuiltin('round', (val: any, digits: any = 0) => val === vbaNull ? vbaNull : this.vbaRound(this.toVbaNumber(val), Number(digits)), [
+            { name: 'Number' },
+            { name: 'NumDigitsAfterDecimal', optional: true },
+        ]);
+        this.registerBuiltin('sgn', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             return n > 0 ? 1 : n < 0 ? -1 : 0;
-        });
-        this.env.set('sin', (val: any) => val === vbaNull ? vbaNull : Math.sin(this.toVbaNumber(val)));
-        this.env.set('sqr', (val: any) => {
+        }, [{ name: 'Number' }]);
+        this.registerBuiltin('sin', (val: any) => val === vbaNull ? vbaNull : Math.sin(this.toVbaNumber(val)), [{ name: 'Number' }]);
+        this.registerBuiltin('sqr', (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             if (n < 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
             return Math.sqrt(n);
-        });
-        this.env.set('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(this.toVbaNumber(val)));
+        }, [{ name: 'Number' }]);
+        this.registerBuiltin('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(this.toVbaNumber(val)), [{ name: 'Number' }]);
 
         let rndSeed = 0.5;
         let lastRnd = 0.5;
@@ -1213,20 +1217,20 @@ export class Evaluator {
             return lastRnd;
         };
         this.registerBuiltin('rnd', rndFunc, [{ name: 'Number', optional: true }]);
-        this.env.set('randomize', (val?: any) => {
+        this.registerBuiltin('randomize', (val?: any) => {
             rndInitialized = true;
             rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
             lastRnd = rndSeed / 4294967296;
-        });
+        }, [{ name: 'Number', optional: true }]);
     }
 
     private registerStringFunctions() {
         const ascFunc = (s: any) => String(s || '').charCodeAt(0);
-        this.env.set('asc', ascFunc);
-        this.env.set('ascw', ascFunc);
+        this.registerBuiltin('asc', ascFunc, [{ name: 'String' }]);
+        this.registerBuiltin('ascw', ascFunc, [{ name: 'String' }]);
         const chrFunc = (n: any) => String.fromCharCode(Number(n));
-        this.envSet('chr', chrFunc, ['$']);
-        this.envSet('chrw', chrFunc, ['$']);
+        this.registerBuiltin('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
+        this.registerBuiltin('chrw', chrFunc, [{ name: 'CharCode' }], ['$']);
         // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
         // （registerOverloadedBuiltin — 本体のこの個数判定ロジックは変更しない）。
         const instrFunc = (...args: any[]) => {
@@ -1279,16 +1283,16 @@ export class Evaluator {
             return idx === -1 ? 0 : idx + 1;
         });
         const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
-        this.envSet('lcase', lcaseFunc, ['$']);
+        this.registerBuiltin('lcase', lcaseFunc, [{ name: 'String' }], ['$']);
         const strFunc = (val: any) => {
             if (val === vbaNull) return vbaNull;
             const n = this.toVbaNumber(val);
             return n >= 0 ? " " + n : String(n);
         };
-        this.envSet('str', strFunc, ['$']);
+        this.registerBuiltin('str', strFunc, [{ name: 'Number' }], ['$']);
 
         const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
-        this.envSet('ucase', ucaseFunc, ['$']);
+        this.registerBuiltin('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
         const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
         this.envSet('left', leftFunc, ['$']);
         const rightFunc = (val: any, len: any) => {
@@ -1301,15 +1305,15 @@ export class Evaluator {
             return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
         };
         this.envSet('mid', midFunc, ['$']);
-        this.env.set('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length);
+        this.registerBuiltin('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length, [{ name: 'String' }]);
         const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart();
-        this.envSet('ltrim', ltrimFunc, ['$']);
+        this.registerBuiltin('ltrim', ltrimFunc, [{ name: 'String' }], ['$']);
         const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimEnd();
-        this.envSet('rtrim', rtrimFunc, ['$']);
+        this.registerBuiltin('rtrim', rtrimFunc, [{ name: 'String' }], ['$']);
         const trimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim();
-        this.envSet('trim', trimFunc, ['$']);
+        this.registerBuiltin('trim', trimFunc, [{ name: 'String' }], ['$']);
         const spaceFunc = (n: any) => ' '.repeat(Number(n));
-        this.envSet('space', spaceFunc, ['$']);
+        this.registerBuiltin('space', spaceFunc, [{ name: 'Number' }], ['$']);
         const stringFunc = (n: any, char: any) => {
             // VBA 仕様: 数値が渡された場合は文字コードとして扱う、文字列の場合は先頭文字を使う
             let c: string;
@@ -1354,7 +1358,7 @@ export class Evaluator {
             }
             return str;
         });
-        this.env.set('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''));
+        this.registerBuiltin('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
         this.env.set('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
             if (!Array.isArray(source)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
             const find = String(match ?? '');

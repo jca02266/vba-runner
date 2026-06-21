@@ -91,4 +91,46 @@ End Function
     console.log('[PASS] InStr 既存の位置引数呼び出しは無変化');
 }
 
+// --- 8. Batch 2: 単純な1必須引数系の組み込み関数（テーブル駆動） ---
+// 引数なし → 449 (ARGUMENT_NOT_OPTIONAL)、引数過多 → 450 (WRONG_NUMBER_OF_ARGUMENTS)
+{
+    const singleArgFns = [
+        // 型変換
+        'CByte(1)', 'CInt(1)', 'CLng(1)', 'CSng(1)', 'CDbl(1)', 'CDate(1)', 'CVDate(1)',
+        'CDec(1)', 'CCur(1)', 'CLngLng(1)', 'CStr(1)', 'CBool(1)', 'CVar(1)', 'CVErr(1)',
+        'Hex(1)', 'Oct(1)', 'Val("1")',
+        // 情報関数
+        'IsEmpty(1)', 'IsMissing(1)', 'IsNumeric(1)', 'IsDate(1)', 'IsObject(1)',
+        'IsError(1)', 'IsNull(1)', 'IsArray(1)', 'VarType(1)', 'TypeName(1)',
+        // 数学関数
+        'Abs(1)', 'Atn(1)', 'Cos(1)', 'Exp(1)', 'Int(1)', 'Fix(1)', 'Log(1)',
+        'Sgn(1)', 'Sin(1)', 'Sqr(1)', 'Tan(1)',
+        // 文字列関数
+        'Asc("a")', 'AscW("a")', 'Chr(65)', 'ChrW(65)', 'LCase("A")', 'Str(1)', 'UCase("a")',
+        'Len("a")', 'LTrim("a")', 'RTrim("a")', 'Trim("a")', 'Space(1)', 'StrReverse("a")',
+    ];
+    for (const callWithArg of singleArgFns) {
+        const fnName = callWithArg.slice(0, callWithArg.indexOf('('));
+        expectVbaError(`Debug.Print ${fnName}()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, `${fnName}() (引数なし)`);
+        expectVbaError(`Debug.Print ${callWithArg.slice(0, -1)}, "extra")`, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, `${fnName}(引数過多)`);
+    }
+    console.log(`[PASS] Batch 2: ${singleArgFns.length} 個の単純1必須引数系関数の引数数検証`);
+}
+
+// --- 9. Batch 2: 既存の単純呼び出しは無変化（代表サンプル） ---
+{
+    assert.strictEqual(evalVBA(`Function F()\n F = Abs(-5)\nEnd Function`).callProcedure('F', []), 5, 'Abs(-5) = 5');
+    assert.strictEqual(evalVBA(`Function F()\n F = UCase("abc")\nEnd Function`).callProcedure('F', []), 'ABC', 'UCase("abc")');
+    assert.strictEqual(evalVBA(`Function F()\n F = IsNumeric("123")\nEnd Function`).callProcedure('F', []), -1, 'IsNumeric("123")');
+    assert.strictEqual(evalVBA(`Function F()\n F = Round(3.14159, 2)\nEnd Function`).callProcedure('F', []), 3.14, 'Round(3.14159, 2)（必須+末尾Optional）');
+    console.log('[PASS] Batch 2: 既存呼び出しの結果は無変化');
+}
+
+// --- 10. Batch 2: Round（必須1 + 末尾Optional1）の引数数エラー ---
+{
+    expectVbaError(`Debug.Print Round()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Round() (引数なし)');
+    expectVbaError(`Debug.Print Round(1, 2, 3)`, VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Round(1,2,3) (引数過多)');
+    console.log('[PASS] Round の引数数エラー (449/450)');
+}
+
 console.log('\n=== builtin-arg-metadata: 全テスト通過 ===');
