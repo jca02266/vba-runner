@@ -8,7 +8,7 @@ Excel で作成された VBA マクロ（`.xlsm`）を持っていて、
 - AI（Claude Code など）にリファクタリングや機能追加を手伝ってもらいたい
 - 変更が既存の動作を壊していないことをテストで保証したい
 
-という人向けのチュートリアルです。最終的に変更結果を `.xlsm` に書き戻すところまでを一通り体験します。
+という人向けのチュートリアルです。最終的に変更結果を `.xlsm` に書き戻すところまでをひととおり体験します。
 
 ---
 
@@ -97,7 +97,7 @@ Done.
 
 ## ③ AI にリファクタリング・機能追加を依頼する準備
 
-AI（Claude Code 等）にこのソースを触ってもらう前に、**[FOR_AI.md](../FOR_AI.md) を読ませます**。これは人間向けではなく AI 向けに書かれたガイドで、以下のサイクルに従って自律的に作業を進めるためのルールが書かれています。
+AI（Claude Code 等）にこのソースを触ってもらう前に、**[FOR_AI.md](../FOR_AI.md) を読ませます**。これは人間向けではなく AI 向けに書かれたガイドで、以下のサイクルにしたがって自律的に作業を進めるためのルールが書かれています。
 
 ```
 Phase 1: 解析 → Phase 2: 計画 → Phase 3: 提案 → [ユーザー承認]
@@ -126,7 +126,7 @@ Excel オブジェクト（`ActiveSheet`、`Range`、`Cells`、`Application` な
 
 `Module1.bas` の `SummarizeByCategory` はカテゴリ別の件数・売上合計・平均売上を計算して書き出す関数です。Excel に依存しているため、テストには `MockWorksheet` 相当のモックが必要です。
 
-`SummarizeByCategory` は内部で `LastRow`（`ws.Cells(ws.Rows.Count, 1).End(xlUp).Row` で最終行を取得）を使っていますが、組み込みの `MockWorksheet` の `End()` は固定値しか返さないスタブのため、[MOCK_GUIDE.md §C](MOCK_GUIDE.md#c-未対応オブジェクトの拡張rowscount--columnscount--vba定数) の方針に従って、セルの実データを走査する簡易モックを自作します。
+`SummarizeByCategory` は内部で `LastRow`（`ws.Cells(ws.Rows.Count, 1).End(xlUp).Row` で最終行を取得）を使っていますが、組み込みの `MockWorksheet` の `End()` は固定値しか返さないスタブのため、[MOCK_GUIDE.md §C](MOCK_GUIDE.md#c-未対応オブジェクトの拡張rowscount--columnscount--vba定数) の方針にしたがって、セルの実データを走査する簡易モックを自作します。
 
 ```typescript
 // src/vba/Module1.test.ts

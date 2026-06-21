@@ -110,7 +110,7 @@ Const の右辺に書ける識別子は以下の通り：
 
 言い換えると、Option Explicit が禁じるのは「どの Tier でも解決できなかった名前を**暗黙変数として作ること**」であり、
 パーサーが識別子を変数か関数か判別できない段階では Option Explicit 違反は確定しない。
-名前解決の末尾（Tier 6 まで）を経て初めて「暗黙変数になるか否か」が決まる。
+名前解決の末尾（Tier 6 まで）を経てはじめて「暗黙変数になるか否か」が決まる。
 
 > **Tier 6 との関係**: `defaultBindingObject`（MockApplication 等）で解決できた名前は Tier 6 で「解決済み」とみなされる。
 > 暗黙変数の作成は起きないため、`Option Explicit` があっても `Range`・`ActiveSheet` 等が使える。
@@ -332,7 +332,7 @@ Evaluator
 9. → SUB_OR_FUNCTION_NOT_DEFINED (error 35)
 ```
 
-### コンストラクタで自動登録されるもの
+### コンストラクターで自動登録されるもの
 
 #### 標準ライブラリ（`registerStandardLibrary`）
 
@@ -478,7 +478,7 @@ ev.setDefaultBindingObject(app);
 |---|---|
 | 1（最高）| VBA Sub/Function/Property（`env.procedures`） |
 | 2 | `ev.set()` または `ev.getGlobalEnv().set()` で注入した JS 関数・オブジェクト |
-| 3 | `registerStandardLibrary()` が登録したビルトイン（コンストラクタ時） |
+| 3 | `registerStandardLibrary()` が登録したビルトイン（コンストラクター時） |
 | 4 | VBA ローカル変数 / モジュール変数（`env.variables`） |
 | — | `classDefinitions`（型名前空間。値名前空間の検索対象外） |
 | — | `externalObjectFactories`（`New`/`CreateObject` 時のみ参照） |

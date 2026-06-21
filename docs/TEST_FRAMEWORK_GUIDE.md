@@ -38,7 +38,7 @@ Domain Logic の単体テスト（配列等）
 
 ### 既存環境（推奨）
 
-VBA Runner は既に以下を備えています：
+VBA Runner はすでに以下を備えています：
 
 ```bash
 # TypeScript チェック

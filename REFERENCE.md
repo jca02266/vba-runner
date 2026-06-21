@@ -360,7 +360,7 @@ vbaRunner.registerComObject(createRegExpMock);
 ### Auto-Instantiation 仕様（`Dim x As New ClassName`）
 
 - **遅延インスタンス化**: 宣言時点では実際のインスタンスは作成されず、最初のメンバー参照やメソッド呼び出しで自動生成される
-- **`Nothing` 後の自動再生成**: `Set x = Nothing` した後でも、再度参照すると新しいインスタンスが自動生成される
+- **`Nothing` 後の自動再生成**: `Set x = Nothing` したあとでも、再度参照すると新しいインスタンスが自動生成される
 - **`x Is Nothing` は常に False**: auto-instance 変数は参照前でも `Nothing` ではないと判定される
 
 ---

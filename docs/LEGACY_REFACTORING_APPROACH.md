@@ -2,7 +2,7 @@
 
 ## このドキュメントの目的
 
-テストのないレガシー VBA コードに初めて向き合うとき、「どこから手を付けるか」「何の手法を使えばよいか」の判断を助けるガイドです。
+テストのないレガシー VBA コードにはじめて向き合うとき、「どこから手を付けるか」「何の手法を使えばよいか」の判断を助けるガイドです。
 
 *Working Effectively with Legacy Code*（Michael Feathers）の考え方を VBA に適用した概要版です。
 各手法の詳細は [`REFACTORING_TESTING_CATALOG.md`](REFACTORING_TESTING_CATALOG.md) を参照してください。

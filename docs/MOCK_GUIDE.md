@@ -1088,7 +1088,7 @@ npx tsx tests/spec/your-test.ts
 | `Copy()` | ❌ | コピー操作 |
 | `Paste()` | ❌ | ペースト操作 |
 | `UsedRange` | ❌ | 使用範囲 |
-| `Application.OnKey` | ❌ | キー入力ハンドラの登録。呼び出すとエラーになる |
+| `Application.OnKey` | ❌ | キー入力ハンドラーの登録。呼び出すとエラーになる |
 | `Application.OnTime` | ❌ | タイマー実行の登録。呼び出すとエラーになる |
 
 > **`OnKey`/`OnTime` は自前で実装できるが、`Application` を丸ごと差し替える方法は避けること**:
