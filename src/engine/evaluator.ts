@@ -607,6 +607,37 @@ export class Environment {
 
 export type PrintCallback = (output: string) => void;
 
+/**
+ * 組み込み関数（JS関数として登録される）の引数メタデータ。
+ * VBA のユーザー定義 Sub/Function における `Parameter`（isOptional/isParamArray）に相当する
+ * 情報を、組み込み関数にも持たせるための型。
+ *
+ * - 「必須引数のあとに Optional 引数が続く」通常の形は `registerBuiltin` + この型を使う。
+ * - `InStr` のように引数の個数で意味が変わる（先頭の Optional 引数が個数によって有無する）
+ *   不規則な組み込み関数は `BuiltinOverload`（VBA 自体にはないオーバーロード機構。
+ *   組み込み関数専用のエンジン内部の仕組み）を使う。
+ */
+export interface BuiltinParamSpec {
+    /** VBA 上のパラメーター名（大文字小文字無視で `:=` 名前付き引数とマッチングする） */
+    name: string;
+    optional?: boolean;
+    isParamArray?: boolean;
+}
+
+/** `BuiltinParamSpec` と最小限の形を共有する抽象（ProcedureDeclaration.parameters も満たす） */
+interface ArgBinderParam {
+    isOptional: boolean;
+    isParamArray: boolean;
+}
+
+/**
+ * オーバーロードされた組み込み関数の1つの「形」。この中では全パラメーターが実質必須
+ * （形をまたいだ Optional 表現は、より短いオーバーロードを別途登録することで行う）。
+ */
+export interface BuiltinOverload {
+    params: BuiltinParamSpec[];
+}
+
 export class Evaluator {
     public env: Environment;          // Tier 3: Public cross-module names
     private builtinEnv!: Environment; // Tier 4: standard library
@@ -732,6 +763,12 @@ export class Evaluator {
         if (original && (original as any).__vbaAutoCall__) {
             (spyFn as any).__vbaAutoCall__ = true;
         }
+        if (original && (original as any).__vbaParamSpec__) {
+            (spyFn as any).__vbaParamSpec__ = (original as any).__vbaParamSpec__;
+        }
+        if (original && (original as any).__vbaOverloads__) {
+            (spyFn as any).__vbaOverloads__ = (original as any).__vbaOverloads__;
+        }
 
         this.env.set(key, spyFn);
         return record;
@@ -747,29 +784,85 @@ export class Evaluator {
         for (const v of variants) this.env.set(name + v, fn);
     }
 
+    /**
+     * `envSet` の上位互換: VBA パラメーターメタデータ（`BuiltinParamSpec[]`）を渡すと、
+     * 呼び出し時に引数の数の検証・名前付き引数（`:=`）の解決ができるようになる
+     * （`resolveCallArgs` 参照）。関数本体は今までどおり通常の位置引数として呼ばれる
+     * （JS のデフォルト引数構文で Optional のデフォルト値を表現する）。
+     *
+     * `__vbaAutoCall__`（括弧無し参照時の自動呼び出し）は手動フラグをやめて、
+     * 「ParamArray を持たず必須引数が0個」から自動算出する。
+     */
+    private registerBuiltin(name: string, fn: any, params: BuiltinParamSpec[], variants: string[] = []) {
+        let seenOptional = false;
+        const seenNames = new Set<string>();
+        for (const p of params) {
+            const lower = p.name.toLowerCase();
+            if (seenNames.has(lower)) {
+                throw new Error(`registerBuiltin('${name}'): duplicate parameter name '${p.name}'`);
+            }
+            seenNames.add(lower);
+            if (p.optional) {
+                seenOptional = true;
+            } else if (seenOptional && !p.isParamArray) {
+                throw new Error(`registerBuiltin('${name}'): required parameter '${p.name}' follows an optional parameter — use registerOverloadedBuiltin for irregular shapes`);
+            }
+        }
+        (fn as any).__vbaParamSpec__ = params;
+        const hasParamArray = params.some(p => p.isParamArray);
+        const requiredCount = params.filter(p => !p.optional && !p.isParamArray).length;
+        if (!hasParamArray && requiredCount === 0) {
+            (fn as any).__vbaAutoCall__ = true;
+        }
+        this.envSet(name, fn, variants);
+    }
+
+    /**
+     * VBA 自体にはないオーバーロード機構を、組み込み関数専用にエンジン内部で提供するための
+     * 登録ヘルパー。`InStr`（`Start` が先頭にある Optional 引数）のように、引数の個数で
+     * 意味が変わる不規則な組み込み関数に使う。関数本体は変更不要（位置引数のみの呼び出しは
+     * 今までどおり本体の内部ロジックがそのまま処理する。名前付き引数を使った場合のみ、
+     * 該当オーバーロードの順序で位置引数を再構築して渡す。`resolveCallArgs` 参照）。
+     */
+    private registerOverloadedBuiltin(name: string, fn: any, overloads: BuiltinOverload[], variants: string[] = []) {
+        const seenShapes = new Set<string>();
+        for (const overload of overloads) {
+            const names = overload.params.map(p => p.name.toLowerCase());
+            if (new Set(names).size !== names.length) {
+                throw new Error(`registerOverloadedBuiltin('${name}'): duplicate parameter name within one overload`);
+            }
+            const shapeKey = `${names.length}:${[...names].sort().join(',')}`;
+            if (seenShapes.has(shapeKey)) {
+                throw new Error(`registerOverloadedBuiltin('${name}'): two overloads share both arity and parameter-name set — ambiguous spec`);
+            }
+            seenShapes.add(shapeKey);
+        }
+        (fn as any).__vbaOverloads__ = overloads;
+        if (overloads.some(o => o.params.length === 0)) {
+            (fn as any).__vbaAutoCall__ = true;
+        }
+        this.envSet(name, fn, variants);
+    }
+
     private registerDateTimeFunctions() {
         const nowFunc = () => new VbaDate(toVbaDate(this.getNow()));
-        (nowFunc as any).__vbaAutoCall__ = true;
-        this.env.set('now', nowFunc);
+        this.registerBuiltin('now', nowFunc, []);
 
         const dateFunc = () => new VbaDate(Math.floor(toVbaDate(this.getNow())));
-        (dateFunc as any).__vbaAutoCall__ = true;
-        this.env.set('date', dateFunc);
+        this.registerBuiltin('date', dateFunc, []);
 
         const timeFunc = () => {
             const serial = toVbaDate(this.getNow());
             return new VbaDate(serial - Math.floor(serial));
         };
-        (timeFunc as any).__vbaAutoCall__ = true;
-        this.env.set('time', timeFunc);
+        this.registerBuiltin('time', timeFunc, []);
 
         const timerFunc = () => {
             const now = this.getNow();
             const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             return (now.getTime() - midnight.getTime()) / 1000;
         };
-        (timerFunc as any).__vbaAutoCall__ = true;
-        this.env.set('timer', timerFunc);
+        this.registerBuiltin('timer', timerFunc, []);
     }
 
     private registerStandardLibrary() {
@@ -1119,8 +1212,7 @@ export class Evaluator {
             }
             return lastRnd;
         };
-        (rndFunc as any).__vbaAutoCall__ = true;
-        this.env.set('rnd', rndFunc);
+        this.registerBuiltin('rnd', rndFunc, [{ name: 'Number', optional: true }]);
         this.env.set('randomize', (val?: any) => {
             rndInitialized = true;
             rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
@@ -1135,7 +1227,9 @@ export class Evaluator {
         const chrFunc = (n: any) => String.fromCharCode(Number(n));
         this.envSet('chr', chrFunc, ['$']);
         this.envSet('chrw', chrFunc, ['$']);
-        this.env.set('instr', (...args: any[]) => {
+        // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
+        // （registerOverloadedBuiltin — 本体のこの個数判定ロジックは変更しない）。
+        const instrFunc = (...args: any[]) => {
             let start = 1, s1, s2, comp;
             if (args.length >= 4) [start, s1, s2, comp] = args;
             else if (args.length === 3 && typeof args[0] === 'number') [start, s1, s2] = args;
@@ -1145,10 +1239,15 @@ export class Evaluator {
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), start - 1) : str1.indexOf(str2, start - 1);
             return idx === -1 ? 0 : idx + 1;
-        });
+        };
+        this.registerOverloadedBuiltin('instr', instrFunc, [
+            { params: [{ name: 'String1' }, { name: 'String2' }] },
+            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
+            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        ]);
         // InStrB: バイト単位での検索（VBA では文字列を UTF-16 として扱うため 1 文字 = 2 バイト）
-        // start もバイト位置、戻り値もバイト位置（1-based）
-        this.env.set('instrb', (...args: any[]) => {
+        // start もバイト位置、戻り値もバイト位置（1-based）。InStr と同じく Start が先頭の Optional。
+        const instrbFunc = (...args: any[]) => {
             let startByte = 1, s1, s2, comp;
             if (args.length >= 4) [startByte, s1, s2, comp] = args;
             else if (args.length === 3 && typeof args[0] === 'number') [startByte, s1, s2] = args;
@@ -1160,7 +1259,12 @@ export class Evaluator {
             const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
             const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startChar - 1) : str1.indexOf(str2, startChar - 1);
             return idx === -1 ? 0 : idx * 2 + 1;
-        });
+        };
+        this.registerOverloadedBuiltin('instrb', instrbFunc, [
+            { params: [{ name: 'String1' }, { name: 'String2' }] },
+            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
+            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        ]);
         this.env.set('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
             if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
             const str = String(s1 ?? ''), find = String(s2 ?? '');
@@ -1421,8 +1525,7 @@ export class Evaluator {
             for (let i = start; i <= end; i++) if (!this.fileHandles.has(i)) return i;
             this.throwVbaError(VbaErrorCode.TOO_MANY_FILES, "Too many files");
         };
-        (freeFileFunc as any).__vbaAutoCall__ = true;
-        this.env.set('freefile', freeFileFunc);
+        this.registerBuiltin('freefile', freeFileFunc, [{ name: 'RangeNumber', optional: true }]);
         this.env.set('eof', (fn: any) => {
             const h = this.fileHandles.get(Number(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
@@ -1506,8 +1609,7 @@ export class Evaluator {
         this.env.set('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); });
         this.env.set('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); });
         const doEventsFunc = () => 0;
-        (doEventsFunc as any).__vbaAutoCall__ = true;
-        this.env.set('doevents', doEventsFunc);
+        this.registerBuiltin('doevents', doEventsFunc, []);
     }
 
     private registerFinancialFunctions() {
@@ -1639,8 +1741,7 @@ export class Evaluator {
     private registerConstants() {
         const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
         const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Application-defined or object-defined error";
-        (errFunc as any).__vbaAutoCall__ = true;
-        this.envSet('error', errFunc, ['$']);
+        this.registerBuiltin('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
         this.env.set('vbsunday', 1);
         this.env.set('vbmonday', 2);
         this.env.set('vbtuesday', 3);
@@ -1677,8 +1778,10 @@ export class Evaluator {
             }
             return vbaNothing;
         };
-        (getObjectFunc as any).__vbaAutoCall__ = true;
-        this.env.set('getobject', getObjectFunc);
+        this.registerBuiltin('getobject', getObjectFunc, [
+            { name: 'PathName', optional: true },
+            { name: 'Class', optional: true },
+        ]);
         this.env.set('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f);
         this.env.set('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; });
         this.env.set('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; });
@@ -3485,19 +3588,165 @@ export class Evaluator {
         this.env.set(name.toLowerCase(), fn);
     }
 
-    private checkArgCount(proc: ProcedureDeclaration, args: any[]): void {
-        const hasParamArray = proc.parameters.some(p => p.isParamArray);
+    /**
+     * 引数の数を検証する汎用ロジック。`ProcedureDeclaration.parameters`（ユーザー定義 Proc）と
+     * `BuiltinParamSpec[]`（組み込み関数）の両方をこの最小形（`ArgBinderParam[]`）に変換して
+     * 共有する。VBA の `Optional` 引数の判定基準は、ユーザー定義 Proc では
+     * `!isOptional && defaultValue == null`、組み込み関数では `!optional` であり、
+     * その違いは呼び出し側で吸収する（このメソッド自体は判定済みの `isOptional` を見るだけ）。
+     */
+    private checkArgCountGeneric(params: ArgBinderParam[], providedCount: number): void {
+        const hasParamArray = params.some(p => p.isParamArray);
         if (hasParamArray) return;
 
-        const maxParams = proc.parameters.length;
-        const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
+        const maxParams = params.length;
+        const minParams = params.filter(p => !p.isOptional).length;
 
-        if (args.length > maxParams) {
+        if (providedCount > maxParams) {
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
         }
-        if (args.length < minParams) {
+        if (providedCount < minParams) {
             this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
+    }
+
+    private checkArgCount(proc: ProcedureDeclaration, args: any[]): void {
+        // 「required」とみなされない（= minParams に数えない）のは isOptional または
+        // defaultValue を持つパラメーター。checkArgCountGeneric 側の isOptional フラグに変換する。
+        const params: ArgBinderParam[] = proc.parameters.map(p => ({
+            isOptional: !!p.isOptional || p.defaultValue != null,
+            isParamArray: !!p.isParamArray,
+        }));
+        this.checkArgCountGeneric(params, args.length);
+    }
+
+    /** `argExprs` を名前付き/位置引数に振り分けて評価する（組み込み関数バインダー2種の共通処理）。 */
+    private splitCallArgs(argExprs: Expression[]): { namedArgs: Map<string, any>; positionalArgs: any[] } {
+        const namedArgs = new Map<string, any>();
+        const positionalArgs: any[] = [];
+        for (const argExpr of argExprs) {
+            if (argExpr.type === 'NamedArgument') {
+                const namedArg = argExpr as NamedArgument;
+                namedArgs.set(namedArg.name.toLowerCase(), this.evaluateExpression(namedArg.value));
+            } else if (argExpr.type === 'MissingArgument') {
+                positionalArgs.push(undefined);
+            } else {
+                positionalArgs.push(this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+            }
+        }
+        return { namedArgs, positionalArgs };
+    }
+
+    /**
+     * `BuiltinParamSpec[]`（必須引数のあとに Optional 引数が続く通常形）を使って、
+     * 組み込み関数呼び出しの引数を検証・解決する。ByRef・localEnv は組み込み関数には
+     * 存在しないため、ユーザー定義 Proc 用のバインドループより意図的に単純にしている。
+     */
+    private bindCallArguments(spec: BuiltinParamSpec[], argExprs: Expression[]): any[] {
+        const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        const params: ArgBinderParam[] = spec.map(p => ({ isOptional: !!p.optional, isParamArray: !!p.isParamArray }));
+        this.checkArgCountGeneric(params, positionalArgs.length + namedArgs.size);
+
+        const result: any[] = [];
+        for (let i = 0; i < spec.length; i++) {
+            const p = spec[i];
+            if (p.isParamArray) {
+                result.push(...positionalArgs.slice(i));
+                break;
+            }
+            const nameLower = p.name.toLowerCase();
+            if (namedArgs.has(nameLower)) {
+                result.push(namedArgs.get(nameLower));
+            } else if (i < positionalArgs.length) {
+                result.push(positionalArgs[i]);
+            } else {
+                result.push(undefined); // JS 側のデフォルト引数構文に委ねる
+            }
+        }
+        return result;
+    }
+
+    /**
+     * `BuiltinOverload[]`（VBA にはない、組み込み関数専用のオーバーロード機構）を使って、
+     * 引数の数・名前から該当する1つの「形」を選び、その順序で位置引数配列を再構築する。
+     *
+     * 名前付き引数を使わない（= 全て位置引数の）呼び出しは、個数の整合性チェックのみ行い、
+     * 引数配列はそのまま無加工で返す — 関数本体（例: InStr の `typeof args[0]==='number'`
+     * 判定）が今までどおり実際の解釈を行う。名前付き引数が1つでもある場合のみ、該当する
+     * オーバーロードを選んで引数を並べ替える。
+     */
+    private bindOverloadedCallArguments(name: string, overloads: BuiltinOverload[], argExprs: Expression[]): any[] {
+        const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        const totalCount = positionalArgs.length + namedArgs.size;
+        const arities = overloads.map(o => o.params.length);
+
+        if (namedArgs.size === 0) {
+            if (!arities.includes(totalCount)) {
+                if (totalCount < Math.min(...arities)) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
+                this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
+            }
+            return positionalArgs;
+        }
+
+        const candidates = overloads.filter(o => {
+            if (o.params.length !== totalCount) return false;
+            const paramNames = o.params.map(p => p.name.toLowerCase());
+            for (const namedKey of namedArgs.keys()) {
+                if (!paramNames.includes(namedKey)) return false;
+            }
+            // 位置引数が占める先頭スロットの名前が、名前付き引数と重複していないこと
+            for (let i = 0; i < positionalArgs.length; i++) {
+                if (namedArgs.has(paramNames[i])) return false;
+            }
+            // 残り（位置引数で埋まらないスロット）が全て名前付き引数で埋まること
+            for (let i = positionalArgs.length; i < o.params.length; i++) {
+                if (!namedArgs.has(paramNames[i])) return false;
+            }
+            return true;
+        });
+
+        if (candidates.length === 0) {
+            if (totalCount < Math.min(...arities)) {
+                this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+            }
+            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
+        }
+        if (candidates.length > 1) {
+            // registerOverloadedBuiltin の登録時チェックで弾かれるはずなので、ここに来るのは
+            // スペックの作成ミス（開発時バグ）。VBA エラーではなく内部エラーとして投げる。
+            throw new Error(`Ambiguous overload for built-in '${name}' with ${totalCount} argument(s)`);
+        }
+
+        const overload = candidates[0];
+        const result: any[] = [];
+        for (let i = 0; i < overload.params.length; i++) {
+            if (i < positionalArgs.length) {
+                result.push(positionalArgs[i]);
+            } else {
+                result.push(namedArgs.get(overload.params[i].name.toLowerCase()));
+            }
+        }
+        return result;
+    }
+
+    /**
+     * VBA 構文から JS 関数を呼ぶすべての箇所（グローバル組み込み関数・`VBA.Func(...)` 修飾呼び出し・
+     * `obj.Method(...)` メソッド呼び出し・式の結果を呼ぶ汎用フォールバック）で共有する引数解決。
+     * `fn` に `__vbaOverloads__`/`__vbaParamSpec__` が付いていれば新しい検証・名前解決を行い、
+     * 付いていなければ（未移行の組み込み関数）今までどおり単純な位置引数評価のみを行う。
+     */
+    private resolveCallArgs(fn: Function, argExprs: Expression[], nameForError: string): any[] {
+        const overloads = (fn as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
+        if (overloads) {
+            return this.bindOverloadedCallArguments(nameForError, overloads, argExprs);
+        }
+        const spec = (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
+        if (spec) {
+            return this.bindCallArguments(spec, argExprs);
+        }
+        return argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
     }
 
     private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[]): any {
@@ -5523,18 +5772,11 @@ export class Evaluator {
 
                 // Validate argument count
                 {
-                    const hasParamArray = proc.parameters.some(p => p.isParamArray);
-                    if (!hasParamArray) {
-                        const maxParams = proc.parameters.length;
-                        const minParams = proc.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
-                        const totalProvided = positionalArgs.length + namedArgs.size;
-                        if (totalProvided > maxParams) {
-                            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
-                        }
-                        if (totalProvided < minParams) {
-                            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-                        }
-                    }
+                    const argBinderParams: ArgBinderParam[] = proc.parameters.map(p => ({
+                        isOptional: !!p.isOptional || p.defaultValue != null,
+                        isParamArray: !!p.isParamArray,
+                    }));
+                    this.checkArgCountGeneric(argBinderParams, positionalArgs.length + namedArgs.size);
                 }
 
                 for (let i = 0; i < proc.parameters.length; i++) {
@@ -5621,7 +5863,7 @@ export class Evaluator {
                     if (tier6Key !== undefined) {
                         const tier6Member = this.defaultBindingObject[tier6Key];
                         if (typeof tier6Member === 'function') {
-                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                            const argsVals = this.resolveCallArgs(tier6Member, expr.args, name);
                             return (tier6Member as (...a: any[]) => any).apply(this.defaultBindingObject, argsVals);
                         }
                         if (expr.args.length === 0) return tier6Member;
@@ -5637,8 +5879,7 @@ export class Evaluator {
                     return variable;
                 }
                 if (typeof variable === 'function') {
-                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                    return variable(...argsVals);
+                    return variable(...this.resolveCallArgs(variable, expr.args, name));
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     const dims = (variable as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
@@ -5728,8 +5969,7 @@ export class Evaluator {
                         if (possibleModuleName.toLowerCase() === 'vba' || (potentialObj instanceof VbaNamespaceRef && potentialObj.kind === 'project')) {
                             const builtin = this.env.getConst(member.property.name);
                             if (typeof builtin === 'function') {
-                                const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                                return builtin(...argsVals);
+                                return builtin(...this.resolveCallArgs(builtin, expr.args, member.property.name));
                             }
                             // 組み込みでない（想定外）場合は従来の経路でエラーを出す
                             return this.evaluateCallExpression({ ...expr, callee: member.property });
@@ -5799,8 +6039,7 @@ export class Evaluator {
                 }
 
                 if (typeof targetMethod === 'function') {
-                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                    return targetMethod.apply(obj, argsVals);
+                    return targetMethod.apply(obj, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal));
                 }
             }
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
@@ -5824,8 +6063,7 @@ export class Evaluator {
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
-            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-            return target(...argsVals);
+            return target(...this.resolveCallArgs(target, expr.args, expr.callee.type));
         }
 
         this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
