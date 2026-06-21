@@ -2,7 +2,7 @@
   "name": "vba-runner",
   "displayName": "VBA Runner",
   "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "publisher": "jca02266",
   "icon": "icon.png",
   "license": "MIT",

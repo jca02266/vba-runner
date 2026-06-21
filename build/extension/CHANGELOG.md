@@ -2,6 +2,17 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.5] - 2026-06-21
+
+### Added
+
+- **Built-in functions now validate argument count and support named arguments (`:=`)** — around 200 built-in functions (string/math/conversion/date-time/file-system/registry functions, `MsgBox`, `InputBox`, `Shell`, `InStr`/`InStrB`, etc.) now raise VBA's standard "Argument not optional" / "Wrong number of arguments" errors when called with too few or too many arguments, and accept named arguments the same way user-defined `Sub`/`Function` procedures do (e.g. `InStr(Start:=1, String1:="abc", String2:="a")`).
+- **`MockWorksheet.Range` / `MockApplication.Range` now support the 2-argument form `Range(Cell1, Cell2)`** — returns the bounding rectangle between two corner cells (accepting address strings or `Range`/`Cells()` results), normalizing the corners regardless of which order they're passed in.
+
+### Fixed
+
+- **A positional argument gap landing on a required parameter was silently treated as `0`/`Empty`** — `Foo(1, , 3)` where the skipped slot corresponds to a required (non-`Optional`) parameter now raises "Argument not optional" instead of silently passing `0`/`Empty`, matching real VBA. This applies to all call forms: standalone procedures, class methods, interface methods, default properties, and module-qualified calls (`Module1.Foo(1, , 3)`).
+
 ## [0.2.4] - 2026-06-21
 
 ### Fixed
