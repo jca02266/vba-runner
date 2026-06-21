@@ -17,7 +17,7 @@
  * - '@A1:A10'        implicit intersection operator（Excel 365）— @ を除去して通常参照として扱う
  */
 
-import { VbaType, VbaDefaultProperty } from '../vba-types';
+import { VbaType, VbaDefaultProperty, vbaEmpty } from '../vba-types';
 
 interface CellRect {
     startCol: number;
@@ -262,9 +262,9 @@ export class MockWorksheet implements VbaType {
             if (area.startCol === area.endCol && area.startRow === area.endRow) {
                 // 単一セル — setter で cells を同期
                 const cellAddr = this.cellAddress(area.startCol, area.startRow);
-                const range = new MockRange(this.cells.get(cellAddr) ?? 0);
+                const range = new MockRange(this.cells.get(cellAddr) ?? vbaEmpty);
                 Object.defineProperty(range, 'Value', {
-                    get: () => self.cells.get(cellAddr) ?? 0,
+                    get: () => self.cells.get(cellAddr) ?? vbaEmpty,
                     set: (val: any) => { self.cells.set(cellAddr, val); },
                 });
                 return range;
@@ -343,7 +343,7 @@ export class MockWorksheet implements VbaType {
      * セルから値を取得
      */
     getCellValue(address: string): any {
-        return this.cells.get(address.toUpperCase().replace(/\$/g, '')) ?? 0;
+        return this.cells.get(address.toUpperCase().replace(/\$/g, '')) ?? vbaEmpty;
     }
 
     /**
@@ -488,7 +488,7 @@ export class MockWorksheet implements VbaType {
         for (let r = area.startRow; r <= area.endRow; r++) {
             const row: any[] = [];
             for (let c = area.startCol; c <= area.endCol; c++) {
-                row.push(this.cells.get(this.cellAddress(c, r)) ?? 0);
+                row.push(this.cells.get(this.cellAddress(c, r)) ?? vbaEmpty);
             }
             result.push(row);
         }

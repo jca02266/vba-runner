@@ -1,4 +1,5 @@
 import { MockWorksheet } from '../../src/engine/mock/MockWorksheet';
+import { vbaEmpty } from '../../src/engine/vba-types';
 import { assert } from '../../test-libs/test-runner';
 
 function ws(): MockWorksheet {
@@ -106,7 +107,7 @@ function ws(): MockWorksheet {
     assert.strictEqual(m.getCellValue('A2'), 99, 'Union set: A2');
     assert.strictEqual(m.getCellValue('C1'), 99, 'Union set: C1');
     assert.strictEqual(m.getCellValue('C2'), 99, 'Union set: C2');
-    assert.strictEqual(m.getCellValue('B1'), 0, 'Union set: B1 は未設定');
+    assert.strictEqual(m.getCellValue('B1'), vbaEmpty, 'Union set: B1 は未設定（実Excelと同じくEmpty）');
     console.log('[PASS] Union setCellValue');
 }
 
@@ -235,7 +236,7 @@ function ws(): MockWorksheet {
     assert.strictEqual(m.getCellValue('A2'), 77, 'Union 書き戻し: A2');
     assert.strictEqual(m.getCellValue('C1'), 77, 'Union 書き戻し: C1');
     assert.strictEqual(m.getCellValue('C2'), 77, 'Union 書き戻し: C2');
-    assert.strictEqual(m.getCellValue('B1'), 0, 'Union 書き戻し: B1 は未設定');
+    assert.strictEqual(m.getCellValue('B1'), vbaEmpty, 'Union 書き戻し: B1 は未設定（実Excelと同じくEmpty）');
     console.log('[PASS] Union 書き戻し');
 }
 
