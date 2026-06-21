@@ -1359,11 +1359,11 @@ npx vba-analyzer ./src/vba/ --json
 - run: npx vba-runner ./tests/
 ```
 
-- [ ] 公開 API 整理（`test-libs/test-runner.ts` → `src/index.ts` に移動）
-- [ ] `package.json` の `exports` / `bin` フィールド整備
-- [ ] CLI 実装（拡張子判別・VBA ネイティブ + TS テスト実行）
-- [ ] `vba-analyzer` の `bin` フィールド追加・独立パッケージ化
-- [ ] `npm publish`
+- [x] 公開 API 整理（`test-libs/test-runner.ts` → `src/index.ts` に移動）
+- [x] `package.json` の `exports` / `bin` フィールド整備
+- [x] CLI 実装（拡張子判別・VBA ネイティブ + TS テスト実行）
+- [x] `vba-analyzer` の `bin` フィールド追加・独立パッケージ化
+- [x] `npm publish`
 
 ### VBA フォーマッター（`vba-formatter`）
 
