@@ -2,6 +2,18 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.6] - 2026-06-21
+
+### Added
+
+- **`excelStub` now accepts a `MockApplication` subclass instance** — `new VBARunner(path, { excelStub: myCustomApp })` lets you extend the built-in mock (e.g. to add `Application.OnKey`/`OnTime`) without losing the built-in `ActiveSheet`/`Sheets`/`Range` behavior.
+- **`MockApplication`, `MockWorksheet`, `MockRange`, `MockRows`, `MockColumns`, `MockWorkbook` are now exported** from the package, along with the `VbaType`, `VbaDefaultProperty`, `VbaIterable`, `VbaComObject` types.
+- **New `allowTopLevelStatements` option** for `evalVBASingle`/`evalVBAModules` (default `true`) to toggle the module-level-statement extension on or off.
+
+### Changed
+
+- **`VBARunner` now enforces standard VBA's module-level declaration ordering** — `Dim`/`Const`/`Type`/`Enum` (and other statements) placed after a `Sub`/`Function`/`Property` now raise a compile error matching real VBA ("Only comments may appear after End Sub, End Function, or End Property") instead of being silently tolerated. If an existing `.bas`/`.cls` file relies on the previous permissive ordering, move module-level declarations above all procedures.
+
 ## [0.1.1-alpha.5] - 2026-06-20
 
 ### Changed

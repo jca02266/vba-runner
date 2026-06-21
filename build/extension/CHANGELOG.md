@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.3] - 2026-06-21
+
+### Added
+
+- **New compile error: module-level declarations after a procedure** — `Dim`/`Const`/`Type`/`Enum` (and other module-level statements) placed after a `Sub`/`Function`/`Property` are now flagged when running, testing, or debugging a procedure, matching standard VBA's "Only comments may appear after End Sub, End Function, or End Property" rule.
+
 ## [0.2.2] - 2026-06-20
 
 ### Changed
