@@ -3,7 +3,7 @@
 A TypeScript-based VBA execution engine that runs and tests VBA code without Excel.
 Load `.bas` files from TypeScript and call VBA procedures directly, or use the bundled CLI tools for static analysis, formatting, and syntax checking.
 
-**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)**
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)**
 
 ## Installation
 
