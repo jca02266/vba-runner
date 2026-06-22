@@ -2,6 +2,18 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.6] - 2026-06-22
+
+### Added
+
+- **Generate Mock Stubs** is now available directly from the Source Actions menu (right-click → Source Action → Generate Mock Stubs), in addition to the existing command palette entry.
+
+### Fixed
+
+- **Generate Mock Stubs command failed after packaging** — the command was launching `npx tsx test-libs/vba-analyzer.ts` as a child process, which is not bundled in the `.vsix`. It now imports the analyzer functions directly so they are included in the esbuild bundle.
+- **Extract Method included `End Sub` in the extracted range** — VS Code's line-drag selection sets `range.end` to the next line at character 0, causing `End Sub` to be incorporated into the extracted body. The range is now normalized before processing.
+- **README relative links were rewritten incorrectly by vsce** — added `--baseContentUrl` / `--baseImagesUrl` flags to the `vsce package` / `vsce publish` commands so relative links resolve to the correct GitHub paths on the Marketplace page.
+
 ## [0.2.5] - 2026-06-21
 
 ### Added
