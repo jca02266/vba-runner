@@ -1,7 +1,7 @@
 /**
  * Dim, Const, Let, Set (§5.4.2.1, §5.4.2.2, §5.4.3.8, §5.4.3.2) のテスト
  */
-import { evalVBASingle, assert, assertCompileErrorPrerun, assertCompileErrorPreproc } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertCompileErrorResolve, assertCompileErrorPreproc } from '../../test-libs/test-runner';
 
 // --- 1. Dim と初期値 ---
 const dimCode = `
@@ -130,7 +130,7 @@ End Sub`);
 
 // --- 6. Dim の配列サイズに変数を指定するとコンパイルエラー ---
 // モジュールレベル: n は Dim 変数 → "Compile error: Constant expression required"
-assertCompileErrorPrerun(
+assertCompileErrorResolve(
     `Dim n As Integer\nDim a(n) As Integer\nSub Test()\nEnd Sub`,
     undefined,
     /Compile error: Constant expression required/i,

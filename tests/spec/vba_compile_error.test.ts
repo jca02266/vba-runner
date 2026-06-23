@@ -4,12 +4,12 @@
  * 再生成: npx tsx test-libs/compile-error-generator.ts tests/vba/CompileError.bas --output <このファイルのパス>
  *
  * [parse]  Parser.parse() 時に例外が発生するケース（行番号も検証）
- * [prerun] resolveIdentifiers で例外が発生するケース（実行なし）
+ * [resolve] resolveIdentifiers で例外が発生するケース（実行なし）
  * [preproc] precheckProc（OE チェック）で例外が発生するケース
  * [exec]  precheckProc 後の実行中に例外が発生するケース
  */
 
-import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '../../test-libs/test-runner';
+import { assertCompileErrorPass1, assertCompileErrorResolve, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '../../test-libs/test-runner';
 
 let __pass__ = 0, __fail__ = 0;
 
@@ -394,12 +394,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] duplicate_sub_name
+// [resolve] duplicate_sub_name
 // VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
 // VBA error line (within Sub body): 4
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -421,12 +421,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_dim_after_procedure
+// [resolve] module_level_dim_after_procedure
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -445,12 +445,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_const_after_procedure
+// [resolve] module_level_const_after_procedure
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -469,12 +469,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_public_after_procedure
+// [resolve] module_level_public_after_procedure
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -493,12 +493,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_type_after_procedure
+// [resolve] module_level_type_after_procedure
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -519,12 +519,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_enum_after_procedure
+// [resolve] module_level_enum_after_procedure
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       
@@ -545,12 +545,12 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [prerun] module_level_toplevel_stmt_after_procedure_strict
+// [resolve] module_level_toplevel_stmt_after_procedure_strict
 // VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 // VBA error line (within Sub body): 3
 {
     try {
-        assertCompileErrorPrerun(`
+        assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
       

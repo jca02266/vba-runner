@@ -465,20 +465,20 @@ export function assertCompileErrorPass1(src: string, expectedLine: number, patte
     });
 }
 
-/** Pass 2 (prerun) コンパイルエラー専用アサーション。evaluateModule + resolveIdentifiers で throw を検証。 */
+/** Pass 2 (resolve) コンパイルエラー専用アサーション。evaluateModule + resolveIdentifiers で throw を検証。 */
 export function assertCompileErrorPass2(src: string, expectedLine: number, pattern: RegExp, label: string): void {
     const ast = new Parser(new Lexer(src).tokenize()).parse();
     const ev = new Evaluator(console.log);
     assertCompileErrorImpl({
-        label, phaseName: 'prerun (pass 2)',
+        label, phaseName: 'resolve (pass 2)',
         pattern, expectedLine,
         throwAction: () => { ev.evaluateModule(ast); ev.resolveIdentifiers([{ ast, moduleName: '' }]); },
     });
 }
 
-/** [prerun] evaluateModule OK → resolveIdentifiers で throw を検証。
+/** [resolve] evaluateModule OK → resolveIdentifiers で throw を検証。
  *  evalOptions: Evaluator のコンストラクター設定（allowTopLevelStatements 等）を上書きする場合に指定。 */
-export function assertCompileErrorPrerun(
+export function assertCompileErrorResolve(
     src: string,
     expectedLine: number | undefined,
     pattern: RegExp,
@@ -488,12 +488,13 @@ export function assertCompileErrorPrerun(
     const ast = new Parser(new Lexer(src).tokenize()).parse();
     const ev = new Evaluator(console.log, evalOptions);
     assertCompileErrorImpl({
-        label, phaseName: 'prerun',
+        label, phaseName: 'resolve',
         pattern, expectedLine,
         okAction: () => ev.evaluateModule(ast),
         throwAction: () => ev.resolveIdentifiers([{ ast, moduleName: '' }]),
     });
 }
+
 
 /** [preproc] evalVBASingle OK → precheckProc のみ（本体実行なし）で throw を検証。 */
 export function assertCompileErrorPreproc(src: string, procName: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
@@ -523,7 +524,7 @@ export function assertCompileErrorExec(src: string, procName: string, expectedLi
  * 実際のメッセージを観察する目的には使えない（pattern: /.+/i は常にマッチしてしまう）。
  */
 export function captureCompileErrorMessage(
-    phase: 'parse' | 'prerun' | 'preproc' | 'exec',
+    phase: 'parse' | 'resolve' | 'preproc' | 'exec',
     src: string,
     procName?: string,
     evalOptions?: { allowTopLevelStatements?: boolean },
@@ -536,7 +537,7 @@ export function captureCompileErrorMessage(
         const ast = new Parser(new Lexer(src).tokenize()).parse();
         const ev = new Evaluator(console.log, evalOptions);
         ev.evaluateModule(ast);
-        if (phase === 'prerun') {
+        if (phase === 'resolve') {
             ev.resolveIdentifiers([{ ast, moduleName: '' }]);
             return '(no error thrown)';
         }

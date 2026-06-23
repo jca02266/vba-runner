@@ -13,7 +13,9 @@ Option Explicit
 '   実行ボタンを押すと VBE カーソルが該当箇所に移動し、実行直前に
 '   コンパイルエラーダイアログが表示される。On Error では捕捉できない。
 '   → [parse] の Sub をコメントアウトした上で各 Sub にカーソルを置き F5 で確認。
-'   VBARunner 対応: プロシージャ呼び出し直前の静的チェックで例外が発生。
+'   VBARunner 対応: VBA の [prerun] は VBARunner では 2 種類に分かれる。
+'     resolve : Pass 2（resolveIdentifiers）でモジュールロード時に検出。
+'     preproc : Pass 3（precheckProc）で各 Proc 実行直前に AST 静的チェックで検出。
 '
 ' 【自動テスト生成】
 '   各 Case_* Sub の直前コメント（CASE/TYPE/VBA/RUNNER）と
@@ -22,7 +24,7 @@ Option Explicit
 '
 ' 【CASE ブロックのフィールド】
 '   CASE    : スネークケースのテスト名
-'   TYPE    : parse（VBE で行が赤くなる）または prerun（実行直前に検出）
+'   TYPE    : parse（VBE で行が赤くなる）、preproc（Pass 3: 各 Proc 実行直前）、または resolve（Pass 2: モジュールロード時）
 '   VBA     : 実 VBA が表示するエラーメッセージ（仕様。変更不可）
 '   RUNNER  : VBARunner が投げる例外の正規表現（VBA の意味を包含し拡張可）
 '   NOTE    : 実装状況などの補足（省略可）
@@ -242,11 +244,11 @@ Sub Case_sub_call_arg_count_mismatch()
 End Sub
 
 ' CASE: duplicate_sub_name
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
 ' RUNNER: /duplicate.*procedure|duplicate.*name/i
 ' NOTE: 同一モジュール内のプロシージャ名重複（Sub Foo / Sub Foo）
-'   prerun だが、このエラーがあると他のエラーの前にこのエラーに引っかかるためコメントアウトしている
+'   resolve だが、このエラーがあると他のエラーの前にこのエラーに引っかかるためコメントアウトしている
 '@case-begin
 Sub duplicate_sub_name()
 
@@ -257,7 +259,7 @@ End Sub
 '@case-end
 
 ' CASE: module_level_dim_after_procedure
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }
@@ -274,7 +276,7 @@ Dim moduleLevelVar As Integer ' @error
 '@case-end
 
 ' CASE: module_level_const_after_procedure
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }
@@ -287,7 +289,7 @@ Const ModuleLevelConst As Integer = 1 ' @error
 '@case-end
 
 ' CASE: module_level_public_after_procedure
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }
@@ -300,7 +302,7 @@ Public ModuleLevelPublicVar As Integer ' @error
 '@case-end
 
 ' CASE: module_level_type_after_procedure
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }
@@ -315,7 +317,7 @@ End Type
 '@case-end
 
 ' CASE: module_level_enum_after_procedure
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }
@@ -330,7 +332,7 @@ End Enum
 '@case-end
 
 ' CASE: module_level_toplevel_stmt_after_procedure_strict
-' TYPE: prerun
+' TYPE: resolve
 ' VBA: コンパイル エラー: End Sub、End Function または End Property 以降には、コメントのみが記述できます。
 ' RUNNER: /only comments may appear after end sub/i
 ' EVAL_OPTIONS: { allowTopLevelStatements: false }

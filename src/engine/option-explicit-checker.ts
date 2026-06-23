@@ -474,7 +474,7 @@ function reportUndeclared(name: string, expr: Expression, diagnostics: ParseDiag
 }
 
 // -----------------------------------------------------------------------
-// Undefined procedure call detection (prerun compile error)
+// Undefined procedure call detection (preproc compile error)
 // -----------------------------------------------------------------------
 
 export interface UndefinedProcError {
@@ -485,7 +485,7 @@ export interface UndefinedProcError {
 /**
  * Walk all procedure bodies and collect bare-Identifier call-expression callees
  * that are not resolvable as a known procedure, built-in, or declared variable.
- * This models VBA's static "Sub or Function not defined" prerun compile error
+ * This models VBA's static "Sub or Function not defined" preproc compile error
  * for unqualified calls. Qualified calls (MemberExpression) are dynamic (runtime
  * error 424) and are intentionally excluded.
  *

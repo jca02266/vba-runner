@@ -6,7 +6,7 @@
  *
  *   通常ケース（Sub Case_<name>() でラップ）:
  *   - ' CASE: name
- *     ' TYPE: parse | prerun
+ *     ' TYPE: parse | resolve
  *     ' VBA: <VBE のエラーメッセージ>
  *     ' RUNNER: <正規表現（VBA の意図を包含した VBARunner の期待メッセージ）>
  *     Sub Case_<name>()
@@ -36,14 +36,14 @@ import * as path from 'path';
 
 interface CompileErrorCase {
     name: string;
-    type: 'parse' | 'prerun' | 'preproc' | 'exec';
+    type: 'parse' | 'resolve' | 'preproc' | 'exec';
     vbaError: string;
     errorLine: number | null;  // Sub ボディ内のエラー行（1 始まり）。' @error マーカーから自動計算。
     runnerPattern: string;
     code: string[];  // ' @error マーカーを除去済みのコード行
     isModuleLevel?: boolean;  // true のとき code はモジュールレベルに展開（Sub __test__() でラップしない）
     procName?: string;        // preproc/exec: callProcedure に渡すプロシージャ名（PROC: メタから取得）
-    evalOptions?: string;     // prerun: Evaluator 設定の上書き（EVAL_OPTIONS: メタから取得。例: { allowTopLevelStatements: false }）
+    evalOptions?: string;     // resolve: Evaluator 設定の上書き（EVAL_OPTIONS: メタから取得。例: { allowTopLevelStatements: false }）
 }
 
 // ' @error マーカーを除去する正規表現
@@ -75,7 +75,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
             continue;
         }
         if (meta && trimmed.startsWith("' TYPE:")) {
-            meta.type = trimmed.slice(7).trim() as 'parse' | 'prerun' | 'preproc' | 'exec';
+            meta.type = trimmed.slice(7).trim() as 'parse' | 'resolve' | 'preproc' | 'exec';
             continue;
         }
         if (meta && trimmed.startsWith("' VBA:")) {
@@ -121,7 +121,7 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
                 }
                 cases.push({
                     name: meta!.name!,
-                    type: meta!.type ?? 'prerun',
+                    type: meta!.type ?? 'resolve',
                     vbaError: meta!.vbaError ?? '',
                     errorLine: moduleCaseErrorLine,
                     runnerPattern: meta!.runnerPattern ?? '/.+/',
@@ -221,18 +221,18 @@ function generateTestFile(preamble: string[], cases: CompileErrorCase[], sourceF
         return r.startsWith('.') ? r : './' + r;
     };
 
-    // prerun テストでの行番号オフセット:
+    // resolve テストでの行番号オフセット:
     //   テンプレートリテラルの構造:
     //     line 1: (空行 — テンプレート開始の改行)
     //     lines 2..N+1: preamble (N 行)
     //     line N+2: Sub __test__()
     //     lines N+3..: body
     //   よって body 行 L の絶対行番号 = 1 + preamble.length + 1 + L = preamble.length + L + 2
-    const prerunLineOffset = preamble.length + 2;
+    const resolveLineOffset = preamble.length + 2;
 
     // ソース文字列を構築するヘルパー
     const buildParseSrc = (c: CompileErrorCase) => c.code.join('\n');
-    // prerun: Sub __test__() でラップするが呼び出しなし（resolveIdentifiers が静的検出する）
+    // resolve: Sub __test__() でラップするが呼び出しなし（resolveIdentifiers が静的検出する）
     // preproc/exec: 同じテンプレートだが呼び出しは assertCompileErrorPreproc/Exec が行う
     const buildSubWrappedSrc = (c: CompileErrorCase) =>
         `\n${preamble.map(l => `      ${l}`).join('\n')}\n      Sub __test__()\n${c.code.map(l => `        ${l}`).join('\n')}\n      End Sub\n    `;
@@ -277,15 +277,15 @@ ${inner}
             );
         }
 
-        if (c.type === 'prerun') {
+        if (c.type === 'resolve') {
             const src = c.isModuleLevel ? buildModuleLevelSrc(c) : buildSubWrappedSrc(c);
             const absLine = c.errorLine != null
-                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : prerunLineOffset + c.errorLine)
+                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : resolveLineOffset + c.errorLine)
                 : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined';
             const optsArg = c.evalOptions ? `, ${c.evalOptions}` : '';
             return tryWrap(
-`        assertCompileErrorPrerun(\`${src}\`, ${lineArg}, ${pattern}, '${c.name}'${optsArg});`
+`        assertCompileErrorResolve(\`${src}\`, ${lineArg}, ${pattern}, '${c.name}'${optsArg});`
             );
         }
 
@@ -293,7 +293,7 @@ ${inner}
             const src = c.isModuleLevel ? buildModuleLevelSrc(c) : buildSubWrappedSrc(c);
             const procArg = c.procName ?? (c.isModuleLevel ? '' : '__test__');
             const absLine = c.errorLine != null
-                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : prerunLineOffset + c.errorLine)
+                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : resolveLineOffset + c.errorLine)
                 : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined';
             return tryWrap(
@@ -306,7 +306,7 @@ ${inner}
             const src = c.isModuleLevel ? buildModuleLevelSrc(c) : buildSubWrappedSrc(c);
             const procArg = c.procName ?? (c.isModuleLevel ? '' : '__test__');
             const absLine = c.errorLine != null
-                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : prerunLineOffset + c.errorLine)
+                ? (c.isModuleLevel ? 1 + preamble.length + c.errorLine : resolveLineOffset + c.errorLine)
                 : null;
             const lineArg = absLine != null ? String(absLine) : 'undefined';
             return tryWrap(
@@ -321,12 +321,12 @@ ${inner}
  * 再生成: npx tsx test-libs/compile-error-generator.ts ${sourceFile} --output <このファイルのパス>
  *
  * [parse]  Parser.parse() 時に例外が発生するケース（行番号も検証）
- * [prerun] resolveIdentifiers で例外が発生するケース（実行なし）
+ * [resolve] resolveIdentifiers で例外が発生するケース（実行なし）
  * [preproc] precheckProc（OE チェック）で例外が発生するケース
  * [exec]  precheckProc 後の実行中に例外が発生するケース
  */
 
-import { assertCompileErrorPass1, assertCompileErrorPrerun, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '${rel('test-libs/test-runner')}';
+import { assertCompileErrorPass1, assertCompileErrorResolve, assertCompileErrorPreproc, assertCompileErrorExec, captureCompileErrorMessage } from '${rel('test-libs/test-runner')}';
 
 let __pass__ = 0, __fail__ = 0;
 ${testBlocks.join('\n')}
