@@ -2131,30 +2131,46 @@ export class Evaluator {
     // OE check shared between callProcedure and evaluateCallExpression.
     // §5.6.10 Tier 6: names resolvable via defaultBindingObject are not implicit variables.
     private precheckProc(proc: ProcedureDeclaration): void {
-        const procKey = proc.name.name.toLowerCase();
-        if (this.optionExplicitViolations.has(procKey)) {
-            const violations = this.optionExplicitViolations.get(procKey)!;
-            const stillMissing = [...violations.entries()].filter(([n]) => {
-                if (this.env.hasVariable(n)) return false;
-                if (this.typeLibraryNamespaces.has(n)) return false;
-                if (this.defaultBindingObject &&
-                        this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-                return true;
-            });
-            if (stillMissing.length > 0) {
-                const names = stillMissing.map(([n]) => n).join(', ');
-                const firstLine = stillMissing[0][1] || undefined;
-                this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                    `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
-                    firstLine, proc.moduleName ?? undefined);
+        try {
+            const procKey = proc.name.name.toLowerCase();
+            if (this.optionExplicitViolations.has(procKey)) {
+                const violations = this.optionExplicitViolations.get(procKey)!;
+                const stillMissing = [...violations.entries()].filter(([n]) => {
+                    if (this.env.hasVariable(n)) return false;
+                    if (this.typeLibraryNamespaces.has(n)) return false;
+                    if (this.defaultBindingObject &&
+                            this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+                    return true;
+                });
+                if (stillMissing.length > 0) {
+                    const names = stillMissing.map(([n]) => n).join(', ');
+                    const firstLine = stillMissing[0][1] || undefined;
+                    this.throwPrecheckError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                        `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+                        firstLine, proc.moduleName ?? undefined);
+                }
             }
+            this.checkSubAsValueInProc(proc);
+            this.checkUndefinedCallsInProc(proc);
+            this.checkConstantArrayBoundsInProc(proc);
+            this.checkDuplicateDimInProc(proc);
+            this.checkGoToLabelsInProc(proc);
+            this.checkCallArgCountsInProc(proc);
+        } catch (e: any) {
+            if (e._precheckRaw) {
+                const line = e.vbaLine;
+                const mod = e.vbaModule ?? this.executingModuleName ?? this.currentSourceModule ?? null;
+                const msg = line !== undefined ? `Compile error: ${e.message} (line ${line})` : `Compile error: ${e.message}`;
+                const formatted: any = new Error(msg);
+                formatted.type = 'VbaError';
+                formatted.number = e.number;
+                formatted.vbaLine = line;
+                formatted.vbaModule = mod;
+                formatted.vbaStack = [...this.vbaCallStack].reverse();
+                throw formatted;
+            }
+            throw e;
         }
-        this.checkSubAsValueInProc(proc);
-        this.checkUndefinedCallsInProc(proc);
-        this.checkConstantArrayBoundsInProc(proc);
-        this.checkDuplicateDimInProc(proc);
-        this.checkGoToLabelsInProc(proc);
-        this.checkCallArgCountsInProc(proc);
     }
 
     private checkUndefinedCallsInProc(proc: ProcedureDeclaration): void {
@@ -2175,7 +2191,7 @@ export class Evaluator {
         const errs: UndefinedProcError[] = [];
         walkProcForUndefinedCalls(proc, new Set(), knownNames, errs);
         if (errs.length > 0) {
-            this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+            this.throwPrecheckError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                 `Sub or Function not defined: '${errs[0].name}'`,
                 errs[0].line || undefined,
                 proc.moduleName ?? undefined);
@@ -2194,7 +2210,7 @@ export class Evaluator {
                         const p = this.env.getProcedure(name);
                         if (p && !p.isFunction && !p.isProperty) {
                             const line = (assign.right as any).loc?.start.line ?? undefined;
-                            this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                            this.throwPrecheckError(VbaErrorCode.TYPE_MISMATCH,
                                 `Function or variable expected: '${name}'`,
                                 line, proc.moduleName ?? undefined);
                         }
@@ -2235,7 +2251,7 @@ export class Evaluator {
                         const key = d.name.name.toLowerCase();
                         if (seen.has(key)) {
                             const line = d.name.loc?.start.line;
-                            this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                            this.throwPrecheckError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                                 `Variable '${d.name.name}' is already declared in this scope (duplicate declaration)`,
                                 line, proc.moduleName ?? undefined);
                         }
@@ -2310,7 +2326,7 @@ export class Evaluator {
 
         for (const g of gotos) {
             if (!labels.has(g.label.toLowerCase())) {
-                this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                this.throwPrecheckError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                     `Label not defined: '${g.label}'`,
                     g.line || undefined, proc.moduleName ?? undefined);
             }
@@ -2330,12 +2346,12 @@ export class Evaluator {
             const argCount = ce.args.length;
             const line = ce.loc?.start.line;
             if (argCount > maxParams) {
-                this.throwCompileError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                this.throwPrecheckError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                     'Wrong number of arguments or invalid property assignment',
                     line, proc.moduleName ?? undefined);
             }
             if (argCount < minParams) {
-                this.throwCompileError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                this.throwPrecheckError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                     'Argument not optional',
                     line, proc.moduleName ?? undefined);
             }
@@ -3095,6 +3111,17 @@ export class Evaluator {
         err.vbaLine = line;
         err.vbaModule = mod;
         err.vbaStack = [...this.vbaCallStack].reverse();
+        throw err;
+    }
+
+    /** precheckProc 内のチェックメソッド専用。プレフィックスなしで throw し、
+     *  precheckProc の catch ブロックで "Compile error:" を一元付与する。 */
+    private throwPrecheckError(number: number, message: string, line?: number, module?: string): never {
+        const err: any = new Error(message);
+        err._precheckRaw = true;
+        err.number = number;
+        err.vbaLine = line;
+        err.vbaModule = module;
         throw err;
     }
 
