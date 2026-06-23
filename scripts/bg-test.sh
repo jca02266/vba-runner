@@ -68,11 +68,11 @@ if [ ${EXIT_CODE} -eq 0 ]; then
     git -C "${REPO_ROOT}" branch -d "${BRANCH}"
 else
     COMMIT=$(git -C "${WORKTREE}" rev-parse HEAD)
-    git -C "${REPO_ROOT}" worktree remove "${WORKTREE}" --force
-    git -C "${REPO_ROOT}" branch -D "${BRANCH}"
     echo "❌ テスト失敗 (exit: ${EXIT_CODE})"
-    echo "   ログ: ${LOG}"
-    echo "   コミット: ${COMMIT}"
+    echo "   ログ:      ${LOG}"
+    echo "   worktree:  ${WORKTREE}"
+    echo "   ブランチ:  ${BRANCH}"
+    echo "   コミット:  ${COMMIT}"
     echo ""
     echo "   修正手順:"
     echo "     git stash"
@@ -83,5 +83,9 @@ else
     echo "     git rebase fix-branch"
     echo "     git branch -d fix-branch"
     echo "     git stash pop"
+    echo ""
+    echo "   対処後のクリーンアップ:"
+    echo "     git worktree remove ${WORKTREE} --force"
+    echo "     git branch -D ${BRANCH}"
     exit ${EXIT_CODE}
 fi
