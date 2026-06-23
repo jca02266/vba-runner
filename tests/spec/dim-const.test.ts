@@ -1,7 +1,7 @@
 /**
  * Dim, Const, Let, Set (§5.4.2.1, §5.4.2.2, §5.4.3.8, §5.4.3.2) のテスト
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertCompileErrorPrerun, assertCompileErrorPreproc } from '../../test-libs/test-runner';
 
 // --- 1. Dim と初期値 ---
 const dimCode = `
@@ -126,6 +126,68 @@ Sub Test()
 End Sub`);
     ev.callProcedure('Test', []);
     console.log('[PASS] 配列境界に Const を参照: Sub 内 Dim');
+}
+
+// --- 6. Dim の配列サイズに変数を指定するとコンパイルエラー ---
+// モジュールレベル: n は Dim 変数 → "Compile error: Constant expression required"
+assertCompileErrorPrerun(
+    `Dim n As Integer\nDim a(n) As Integer\nSub Test()\nEnd Sub`,
+    undefined,
+    /Compile error: Constant expression required/i,
+    'モジュールレベル Dim 配列サイズに変数を使うとコンパイルエラー'
+);
+
+// プロシージャレベル: n は Dim 変数 → "Compile error: Constant expression required"
+assertCompileErrorPreproc(
+    `Sub Test()\n    Dim n As Integer\n    n = 5\n    Dim a(n) As Integer\nEnd Sub`,
+    'Test',
+    undefined,
+    /Compile error: Constant expression required/i,
+    'プロシージャ内 Dim 配列サイズに変数を使うとコンパイルエラー'
+);
+
+// 2次元配列の lower bound に変数を使ってもエラー
+assertCompileErrorPreproc(
+    `Sub Test()\n    Dim n As Integer\n    n = 1\n    Dim a(n To 5) As Integer\nEnd Sub`,
+    'Test',
+    undefined,
+    /Compile error: Constant expression required/i,
+    'Dim 配列 lower bound に変数を使うとコンパイルエラー'
+);
+
+// Const を使う場合は OK（既存の挙動を回帰チェック）
+{
+    const ev = evalVBASingle(`
+        Const MAX As Integer = 3
+        Dim a(MAX) As Integer
+        Sub Test()
+            a(1) = 10
+            a(MAX) = 30
+        End Sub
+    `);
+    ev.callProcedure('Test', []);
+    const arr = ev.env.get('a');
+    assert.strictEqual(arr[1], 10, 'Const を使った Dim 配列: a(1) = 10');
+    assert.strictEqual(arr[3], 30, 'Const を使った Dim 配列: a(MAX) = 30');
+    console.log('[PASS] Dim 配列サイズに Const を使う（回帰）');
+}
+
+// 式（Const を含む計算）も OK
+{
+    const ev = evalVBASingle(`
+        Const LO As Integer = 1
+        Const HI As Integer = 5
+        Dim a(LO To HI) As Integer
+        Sub Test()
+            a(LO) = 11
+            a(HI) = 55
+        End Sub
+    `);
+    ev.callProcedure('Test', []);
+    const arr = ev.env.get('a');
+    assert.strictEqual(arr[1], 11, 'Const 式の Dim 配列 a(1)');
+    assert.strictEqual(arr[5], 55, 'Const 式の Dim 配列 a(5)');
+    console.log('[PASS] Dim 配列サイズに Const 式を使う（回帰）');
 }
 
 console.log('\n✅ Dim, Const, Let, Set: 全テスト通過');

@@ -8,6 +8,7 @@
 export const VbaErrorCode = {
     // --- Custom engine errors ---
     OPTION_EXPLICIT_VIOLATION:           1,
+    CONSTANT_EXPRESSION_REQUIRED:        2,
 
     // --- Control flow ---
     RETURN_WITHOUT_GOSUB:                3,

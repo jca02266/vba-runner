@@ -1830,19 +1830,19 @@ export class Evaluator {
         const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
         const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Application-defined or object-defined error";
         this.registerBuiltin('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
-        this.env.set('vbsunday', 1);
-        this.env.set('vbmonday', 2);
-        this.env.set('vbtuesday', 3);
-        this.env.set('vbwednesday', 4);
-        this.env.set('vbthursday', 5);
-        this.env.set('vbfriday', 6);
-        this.env.set('vbsaturday', 7);
-        this.env.set('vbusesystem', 0);
-        this.env.set('vbbinarycompare', 0);
-        this.env.set('vbtextcompare', 1);
-        this.env.set('vbempty', 0); this.env.set('vbnull', 1); this.env.set('vbinteger', 2); this.env.set('vblong', 3); this.env.set('vbsingle', 4); this.env.set('vbdouble', 5); this.env.set('vbcurrency', 6); this.env.set('vbdate', 7); this.env.set('vbstring', 8); this.env.set('vbobject', 9); this.env.set('vberror', 10); this.env.set('vbboolean', 11); this.env.set('vbvariant', 12); this.env.set('vbbyte', 17); this.env.set('vblonglong', 20); this.env.set('vbarray', 8192);
-        this.env.set('vbcrlf', "\r\n"); this.env.set('vbtab', "\t"); this.env.set('vbcr', "\r"); this.env.set('vblf', "\n"); this.env.set('vbnewline', "\n"); this.env.set('vbnullstring', ''); this.env.set('vbnullchar', '\0'); this.env.set('vbback', "\b"); this.env.set('vbformfeed', "\f");
-        this.env.set('true', vbaTrue); this.env.set('false', vbaFalse); this.env.set('empty', vbaEmpty); this.env.set('nothing', vbaNothing); this.env.set('null', vbaNull);
+        this.env.setConstant('vbsunday', 1);
+        this.env.setConstant('vbmonday', 2);
+        this.env.setConstant('vbtuesday', 3);
+        this.env.setConstant('vbwednesday', 4);
+        this.env.setConstant('vbthursday', 5);
+        this.env.setConstant('vbfriday', 6);
+        this.env.setConstant('vbsaturday', 7);
+        this.env.setConstant('vbusesystem', 0);
+        this.env.setConstant('vbbinarycompare', 0);
+        this.env.setConstant('vbtextcompare', 1);
+        this.env.setConstant('vbempty', 0); this.env.setConstant('vbnull', 1); this.env.setConstant('vbinteger', 2); this.env.setConstant('vblong', 3); this.env.setConstant('vbsingle', 4); this.env.setConstant('vbdouble', 5); this.env.setConstant('vbcurrency', 6); this.env.setConstant('vbdate', 7); this.env.setConstant('vbstring', 8); this.env.setConstant('vbobject', 9); this.env.setConstant('vberror', 10); this.env.setConstant('vbboolean', 11); this.env.setConstant('vbvariant', 12); this.env.setConstant('vbbyte', 17); this.env.setConstant('vblonglong', 20); this.env.setConstant('vbarray', 8192);
+        this.env.setConstant('vbcrlf', "\r\n"); this.env.setConstant('vbtab', "\t"); this.env.setConstant('vbcr', "\r"); this.env.setConstant('vblf', "\n"); this.env.setConstant('vbnewline', "\n"); this.env.setConstant('vbnullstring', ''); this.env.setConstant('vbnullchar', '\0'); this.env.setConstant('vbback', "\b"); this.env.setConstant('vbformfeed', "\f");
+        this.env.setConstant('true', vbaTrue); this.env.setConstant('false', vbaFalse); this.env.setConstant('empty', vbaEmpty); this.env.setConstant('nothing', vbaNothing); this.env.setConstant('null', vbaNull);
 
         this.registerBuiltin('environ', (k: any) => this.sandbox.getEnv(k), [{ name: 'EnvString' }], ['$']);
 
@@ -2143,6 +2143,7 @@ export class Evaluator {
         }
         this.checkSubAsValueInProc(proc);
         this.checkUndefinedCallsInProc(proc);
+        this.checkConstantArrayBoundsInProc(proc);
     }
 
     private checkUndefinedCallsInProc(proc: ProcedureDeclaration): void {
@@ -2201,6 +2202,44 @@ export class Evaluator {
                 case 'DoWhileStatement': walkStmts((stmt as DoWhileStatement).body); break;
                 case 'WhileStatement':   walkStmts((stmt as WhileStatement).body); break;
                 case 'WithStatement':    walkStmts((stmt as WithStatement).body); break;
+                case 'SelectCaseStatement': {
+                    const s = stmt as SelectCaseStatement;
+                    for (const c of s.cases) walkStmts(c.body);
+                    if (s.elseBody) walkStmts(s.elseBody);
+                    break;
+                }
+            }
+        };
+        walkStmts(proc.body);
+    }
+
+    private checkConstantArrayBoundsInProc(proc: ProcedureDeclaration): void {
+        const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
+        const walkStmt = (stmt: Statement) => {
+            switch (stmt.type) {
+                case 'VariableDeclaration': {
+                    const decl = stmt as VariableDeclaration;
+                    for (const d of decl.declarations) {
+                        if (!d.isArray || !d.arrayBounds || d.arrayBounds.length === 0) continue;
+                        for (const bound of d.arrayBounds) {
+                            this.validateConstantExpr(bound.upper);
+                            if (bound.lower) this.validateConstantExpr(bound.lower);
+                        }
+                    }
+                    break;
+                }
+                case 'IfStatement': {
+                    const s = stmt as IfStatement;
+                    walkStmts(s.consequent);
+                    if (Array.isArray(s.alternate)) walkStmts(s.alternate);
+                    else if (s.alternate) walkStmt(s.alternate);
+                    break;
+                }
+                case 'ForStatement':        walkStmts((stmt as ForStatement).body); break;
+                case 'ForEachStatement':    walkStmts((stmt as ForEachStatement).body); break;
+                case 'DoWhileStatement':    walkStmts((stmt as DoWhileStatement).body); break;
+                case 'WhileStatement':      walkStmts((stmt as WhileStatement).body); break;
+                case 'WithStatement':       walkStmts((stmt as WithStatement).body); break;
                 case 'SelectCaseStatement': {
                     const s = stmt as SelectCaseStatement;
                     for (const c of s.cases) walkStmts(c.body);
@@ -3475,6 +3514,10 @@ export class Evaluator {
             }
             if (decl.isArray) {
                 if (decl.arrayBounds && decl.arrayBounds.length > 0) {
+                    for (const bound of decl.arrayBounds) {
+                        this.validateConstantExpr(bound.upper);
+                        if (bound.lower) this.validateConstantExpr(bound.lower);
+                    }
                     initialValue = this.createMultiDimArray(decl.arrayBounds, initialValue);
                     (initialValue as any).vbaFixed = true;
                 } else {
@@ -5273,6 +5316,35 @@ export class Evaluator {
             }
         };
         fillDim(arr, 0);
+    }
+
+    /** Dim 文の配列境界式が定数式であることを検証する。変数参照を含む場合はコンパイルエラー。 */
+    private validateConstantExpr(expr: Expression): void {
+        switch (expr.type) {
+            case 'NumberLiteral':
+            case 'StringLiteral':
+            case 'DateLiteral':
+                return;
+            case 'Identifier': {
+                const name = (expr as Identifier).name;
+                if (!this.env.isConstant(name.toLowerCase())) {
+                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+                }
+                return;
+            }
+            case 'UnaryExpression':
+                this.validateConstantExpr((expr as UnaryExpression).argument);
+                return;
+            case 'BinaryExpression':
+                this.validateConstantExpr((expr as BinaryExpression).left);
+                this.validateConstantExpr((expr as BinaryExpression).right);
+                return;
+            case 'ParenthesizedExpression':
+                this.validateConstantExpr((expr as ParenthesizedExpression).expression);
+                return;
+            default:
+                this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+        }
     }
 
     private createMultiDimArray(bounds: ArrayBound[], initialValue: any): any[] {
