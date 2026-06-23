@@ -2013,7 +2013,7 @@ export class Evaluator {
     }
 
     /** precheckProc のみを実行し、本体は実行しない（assertCompileErrorPreproc 用）。 */
-    public checkProcedure(name: string, moduleName?: string): void {
+    public checkProcedure(name: string): void {
         const procName = name.toLowerCase();
         const proc = this.env.getProcedure(procName);
         if (!proc) throw new Error(`Procedure '${name}' not found`);
