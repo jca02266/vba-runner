@@ -9,15 +9,14 @@
 #   スクリプト自体は同期実行（exit code がテスト結果を表す）。
 #
 # テスト失敗時の修正手順:
-#   git stash                          # 現在の作業を退避
-#   cd <WORKTREE>                      # ログに表示されたパスへ移動
+#   git stash                                   # 現在の作業を退避
+#   git checkout -b fix-branch <COMMIT>         # 失敗したコミットからブランチ作成
 #   # ... 修正 ...
-#   git add . && git commit --amend    # または新規コミット
-#   cd <REPO_ROOT>
-#   git cherry-pick <BRANCH>           # 修正をメインブランチに適用
-#   git worktree remove <WORKTREE> --force
-#   git branch -d <BRANCH>
-#   git stash pop                      # 作業を復元
+#   git add . && git commit                     # 修正をコミット
+#   git checkout main
+#   git rebase fix-branch                       # main を fix-branch の先端に積み直す
+#   git branch -d fix-branch
+#   git stash pop                               # 作業を復元
 
 set -euo pipefail
 
@@ -79,8 +78,9 @@ else
     echo "     git stash"
     echo "     git checkout -b fix-branch ${COMMIT}"
     echo "     # ... 修正 ..."
-    echo "     cd ${REPO_ROOT}"
-    echo "     git cherry-pick fix-branch"
+    echo "     git add . && git commit"
+    echo "     git checkout main"
+    echo "     git rebase fix-branch"
     echo "     git branch -d fix-branch"
     echo "     git stash pop"
     exit ${EXIT_CODE}
