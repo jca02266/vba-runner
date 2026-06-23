@@ -2145,7 +2145,7 @@ export class Evaluator {
                 if (stillMissing.length > 0) {
                     const names = stillMissing.map(([n]) => n).join(', ');
                     const firstLine = stillMissing[0][1] || undefined;
-                    this.throwPrecheckError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+                    this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
                         `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
                         firstLine, proc.moduleName ?? undefined);
                 }
@@ -2191,7 +2191,7 @@ export class Evaluator {
         const errs: UndefinedProcError[] = [];
         walkProcForUndefinedCalls(proc, new Set(), knownNames, errs);
         if (errs.length > 0) {
-            this.throwPrecheckError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+            this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                 `Sub or Function not defined: '${errs[0].name}'`,
                 errs[0].line || undefined,
                 proc.moduleName ?? undefined);
@@ -2210,7 +2210,7 @@ export class Evaluator {
                         const p = this.env.getProcedure(name);
                         if (p && !p.isFunction && !p.isProperty) {
                             const line = (assign.right as any).loc?.start.line ?? undefined;
-                            this.throwPrecheckError(VbaErrorCode.TYPE_MISMATCH,
+                            this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                                 `Function or variable expected: '${name}'`,
                                 line, proc.moduleName ?? undefined);
                         }
@@ -2251,7 +2251,7 @@ export class Evaluator {
                         const key = d.name.name.toLowerCase();
                         if (seen.has(key)) {
                             const line = d.name.loc?.start.line;
-                            this.throwPrecheckError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                            this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                                 `Variable '${d.name.name}' is already declared in this scope (duplicate declaration)`,
                                 line, proc.moduleName ?? undefined);
                         }
@@ -2326,7 +2326,7 @@ export class Evaluator {
 
         for (const g of gotos) {
             if (!labels.has(g.label.toLowerCase())) {
-                this.throwPrecheckError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                     `Label not defined: '${g.label}'`,
                     g.line || undefined, proc.moduleName ?? undefined);
             }
@@ -2346,12 +2346,12 @@ export class Evaluator {
             const argCount = ce.args.length;
             const line = ce.loc?.start.line;
             if (argCount > maxParams) {
-                this.throwPrecheckError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                this.throwCompileError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                     'Wrong number of arguments or invalid property assignment',
                     line, proc.moduleName ?? undefined);
             }
             if (argCount < minParams) {
-                this.throwPrecheckError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                this.throwCompileError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                     'Argument not optional',
                     line, proc.moduleName ?? undefined);
             }
@@ -3101,22 +3101,9 @@ export class Evaluator {
         throw err;
     }
 
-    private throwCompileError(number: number, message: string, overrideLine?: number, overrideModule?: string): never {
-        const line = overrideLine ?? (this.currentLine || undefined);
-        const mod = overrideModule ?? (this.executingModuleName || this.currentSourceModule || null);
-        const msg = line !== undefined ? `Compile error: ${message} (line ${line})` : `Compile error: ${message}`;
-        const err: any = new Error(msg);
-        err.type = 'VbaError';
-        err.number = number;
-        err.vbaLine = line;
-        err.vbaModule = mod;
-        err.vbaStack = [...this.vbaCallStack].reverse();
-        throw err;
-    }
-
-    /** precheckProc 内のチェックメソッド専用。プレフィックスなしで throw し、
-     *  precheckProc の catch ブロックで "Compile error:" を一元付与する。 */
-    private throwPrecheckError(number: number, message: string, line?: number, module?: string): never {
+    /** コンパイルエラーをプレフィックスなしで throw する。呼び出し元の catch ブロックで
+     *  "Compile error:" を一元付与する（precheckProc / resolveIdentifiers / evaluateVariableDeclaration）。 */
+    private throwCompileError(number: number, message: string, line?: number, module?: string): never {
         const err: any = new Error(message);
         err._precheckRaw = true;
         err.number = number;
@@ -3760,7 +3747,16 @@ export class Evaluator {
                         }
                     } catch (e: any) {
                         if (e._precheckRaw) {
-                            this.throwCompileError(e.number, e.message, e.vbaLine, e.vbaModule);
+                            const line = e.vbaLine ?? (this.currentLine || undefined);
+                            const mod = e.vbaModule ?? (this.executingModuleName || this.currentSourceModule || null);
+                            const msg = line !== undefined ? `Compile error: ${e.message} (line ${line})` : `Compile error: ${e.message}`;
+                            const formatted: any = new Error(msg);
+                            formatted.type = 'VbaError';
+                            formatted.number = e.number;
+                            formatted.vbaLine = line;
+                            formatted.vbaModule = mod;
+                            formatted.vbaStack = [...this.vbaCallStack].reverse();
+                            throw formatted;
                         }
                         throw e;
                     }
@@ -4331,6 +4327,7 @@ export class Evaluator {
      * evalVBASingle / evalVBAModules から必ず1回だけ呼ぶこと。
      */
     public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
+        try {
         // 全モジュールレベル定数を「module:name」修飾キーで収集する。
         const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string; name: string }>();
         const collect = (stmt: ConstDeclaration, moduleName: string) => {
@@ -4415,7 +4412,7 @@ export class Evaluator {
                     : proc.name.name.toLowerCase();
                 if (seen.has(key)) {
                     const line = proc.name.loc?.start.line ?? 0;
-                    throw new Error(`Compile error: Duplicate procedure name '${proc.name.name}' in module '${moduleName}' (line ${line})`);
+                    this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Duplicate procedure name '${proc.name.name}' in module '${moduleName}'`, line);
                 }
                 seen.add(key);
             }
@@ -4444,7 +4441,7 @@ export class Evaluator {
                 if (!seenProcedure) continue;
                 if (!this.allowTopLevelStatements) {
                     const line = stmt.loc?.start.line ?? stmt.line ?? 0;
-                    throw new Error(`Compile error: Only comments may appear after End Sub, End Function, or End Property (line ${line})`);
+                    this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Only comments may appear after End Sub, End Function, or End Property`, line);
                 }
             }
         }
@@ -4486,6 +4483,21 @@ export class Evaluator {
         }
         this.pendingTopLevel = [];
 
+        } catch (e: any) {
+            if (e._precheckRaw) {
+                const line = e.vbaLine;
+                const mod = e.vbaModule ?? this.executingModuleName ?? this.currentSourceModule ?? null;
+                const msg = line !== undefined ? `Compile error: ${e.message} (line ${line})` : `Compile error: ${e.message}`;
+                const formatted: any = new Error(msg);
+                formatted.type = 'VbaError';
+                formatted.number = e.number;
+                formatted.vbaLine = line;
+                formatted.vbaModule = mod;
+                formatted.vbaStack = [...this.vbaCallStack].reverse();
+                throw formatted;
+            }
+            throw e;
+        }
     }
 
     /** @deprecated Use {@link resolveIdentifiers} instead. */
@@ -5574,7 +5586,7 @@ export class Evaluator {
             case 'Identifier': {
                 const name = (expr as Identifier).name;
                 if (!this.env.isConstant(name.toLowerCase())) {
-                    this.throwPrecheckError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
                 }
                 return;
             }
@@ -5589,7 +5601,7 @@ export class Evaluator {
                 this.validateConstantExpr((expr as ParenthesizedExpression).expression);
                 return;
             default:
-                this.throwPrecheckError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+                this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
         }
     }
 
