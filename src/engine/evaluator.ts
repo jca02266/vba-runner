@@ -3753,9 +3753,16 @@ export class Evaluator {
             }
             if (decl.isArray) {
                 if (decl.arrayBounds && decl.arrayBounds.length > 0) {
-                    for (const bound of decl.arrayBounds) {
-                        this.validateConstantExpr(bound.upper);
-                        if (bound.lower) this.validateConstantExpr(bound.lower);
+                    try {
+                        for (const bound of decl.arrayBounds) {
+                            this.validateConstantExpr(bound.upper);
+                            if (bound.lower) this.validateConstantExpr(bound.lower);
+                        }
+                    } catch (e: any) {
+                        if (e._precheckRaw) {
+                            this.throwCompileError(e.number, e.message, e.vbaLine, e.vbaModule);
+                        }
+                        throw e;
                     }
                     initialValue = this.createMultiDimArray(decl.arrayBounds, initialValue);
                     (initialValue as any).vbaFixed = true;
@@ -5567,7 +5574,7 @@ export class Evaluator {
             case 'Identifier': {
                 const name = (expr as Identifier).name;
                 if (!this.env.isConstant(name.toLowerCase())) {
-                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+                    this.throwPrecheckError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
                 }
                 return;
             }
@@ -5582,7 +5589,7 @@ export class Evaluator {
                 this.validateConstantExpr((expr as ParenthesizedExpression).expression);
                 return;
             default:
-                this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
+                this.throwPrecheckError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
         }
     }
 
