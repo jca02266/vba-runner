@@ -2012,6 +2012,14 @@ export class Evaluator {
         this.env.setConstant(name, value);
     }
 
+    /** precheckProc のみを実行し、本体は実行しない（assertCompileErrorPreproc 用）。 */
+    public checkProcedure(name: string, moduleName?: string): void {
+        const procName = name.toLowerCase();
+        const proc = this.env.getProcedure(procName);
+        if (!proc) throw new Error(`Procedure '${name}' not found`);
+        this.precheckProc(proc);
+    }
+
     public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string): any {
         let procName = name.toLowerCase();
         let extractedModuleName = moduleName;
@@ -2144,6 +2152,9 @@ export class Evaluator {
         this.checkSubAsValueInProc(proc);
         this.checkUndefinedCallsInProc(proc);
         this.checkConstantArrayBoundsInProc(proc);
+        this.checkDuplicateDimInProc(proc);
+        this.checkGoToLabelsInProc(proc);
+        this.checkCallArgCountsInProc(proc);
     }
 
     private checkUndefinedCallsInProc(proc: ProcedureDeclaration): void {
@@ -2205,6 +2216,207 @@ export class Evaluator {
                 case 'SelectCaseStatement': {
                     const s = stmt as SelectCaseStatement;
                     for (const c of s.cases) walkStmts(c.body);
+                    if (s.elseBody) walkStmts(s.elseBody);
+                    break;
+                }
+            }
+        };
+        walkStmts(proc.body);
+    }
+
+    private checkDuplicateDimInProc(proc: ProcedureDeclaration): void {
+        const seen = new Map<string, number>(); // varKey → first-occurrence line
+        const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
+        const walkStmt = (stmt: Statement) => {
+            switch (stmt.type) {
+                case 'VariableDeclaration': {
+                    const decl = stmt as VariableDeclaration;
+                    for (const d of decl.declarations) {
+                        const key = d.name.name.toLowerCase();
+                        if (seen.has(key)) {
+                            const line = d.name.loc?.start.line;
+                            this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                                `Variable '${d.name.name}' is already declared in this scope (duplicate declaration)`,
+                                line, proc.moduleName ?? undefined);
+                        }
+                        seen.set(key, d.name.loc?.start.line ?? 0);
+                    }
+                    break;
+                }
+                case 'IfStatement': {
+                    const s = stmt as IfStatement;
+                    walkStmts(s.consequent);
+                    if (Array.isArray(s.alternate)) walkStmts(s.alternate);
+                    else if (s.alternate) walkStmt(s.alternate);
+                    break;
+                }
+                case 'ForStatement':        walkStmts((stmt as ForStatement).body); break;
+                case 'ForEachStatement':    walkStmts((stmt as ForEachStatement).body); break;
+                case 'DoWhileStatement':    walkStmts((stmt as DoWhileStatement).body); break;
+                case 'WhileStatement':      walkStmts((stmt as WhileStatement).body); break;
+                case 'WithStatement':       walkStmts((stmt as WithStatement).body); break;
+                case 'SelectCaseStatement': {
+                    const s = stmt as SelectCaseStatement;
+                    for (const c of s.cases) walkStmts(c.body);
+                    if (s.elseBody) walkStmts(s.elseBody);
+                    break;
+                }
+            }
+        };
+        walkStmts(proc.body);
+    }
+
+    private checkGoToLabelsInProc(proc: ProcedureDeclaration): void {
+        const labels = new Set<string>();
+        const gotos: Array<{ label: string; line: number }> = [];
+
+        const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
+        const walkStmt = (stmt: Statement) => {
+            switch (stmt.type) {
+                case 'LabelStatement':
+                    labels.add((stmt as any).label.toLowerCase());
+                    break;
+                case 'GoToStatement':
+                    gotos.push({ label: (stmt as GoToStatement).label, line: stmt.loc?.start.line ?? 0 });
+                    break;
+                case 'GoSubStatement':
+                    gotos.push({ label: (stmt as GoSubStatement).label, line: stmt.loc?.start.line ?? 0 });
+                    break;
+                case 'OnGoToSubStatement':
+                    for (const lbl of (stmt as OnGoToSubStatement).labels)
+                        gotos.push({ label: lbl, line: stmt.loc?.start.line ?? 0 });
+                    break;
+                case 'IfStatement': {
+                    const s = stmt as IfStatement;
+                    walkStmts(s.consequent);
+                    if (Array.isArray(s.alternate)) walkStmts(s.alternate);
+                    else if (s.alternate) walkStmt(s.alternate);
+                    break;
+                }
+                case 'ForStatement':        walkStmts((stmt as ForStatement).body); break;
+                case 'ForEachStatement':    walkStmts((stmt as ForEachStatement).body); break;
+                case 'DoWhileStatement':    walkStmts((stmt as DoWhileStatement).body); break;
+                case 'WhileStatement':      walkStmts((stmt as WhileStatement).body); break;
+                case 'WithStatement':       walkStmts((stmt as WithStatement).body); break;
+                case 'SelectCaseStatement': {
+                    const s = stmt as SelectCaseStatement;
+                    for (const c of s.cases) walkStmts(c.body);
+                    if (s.elseBody) walkStmts(s.elseBody);
+                    break;
+                }
+            }
+        };
+        walkStmts(proc.body);
+
+        for (const g of gotos) {
+            if (!labels.has(g.label.toLowerCase())) {
+                this.throwCompileError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                    `Label not defined: '${g.label}'`,
+                    g.line || undefined, proc.moduleName ?? undefined);
+            }
+        }
+    }
+
+    private checkCallArgCountsInProc(proc: ProcedureDeclaration): void {
+        const checkCall = (ce: CallExpression): void => {
+            if (ce.callee.type !== 'Identifier') return;
+            const name = (ce.callee as Identifier).name.toLowerCase();
+            const target = this.env.getProcedure(name);
+            if (!target) return;
+            const hasParamArray = target.parameters.some(p => p.isParamArray);
+            if (hasParamArray) return;
+            const maxParams = target.parameters.length;
+            const minParams = target.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
+            const argCount = ce.args.length;
+            const line = ce.loc?.start.line;
+            if (argCount > maxParams) {
+                this.throwCompileError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    'Wrong number of arguments or invalid property assignment',
+                    line, proc.moduleName ?? undefined);
+            }
+            if (argCount < minParams) {
+                this.throwCompileError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                    'Argument not optional',
+                    line, proc.moduleName ?? undefined);
+            }
+        };
+
+        const visitExpr = (expr: Expression): void => {
+            switch (expr.type) {
+                case 'CallExpression': {
+                    const ce = expr as CallExpression;
+                    checkCall(ce);
+                    for (const a of ce.args) visitExpr(a);
+                    break;
+                }
+                case 'BinaryExpression': {
+                    const b = expr as BinaryExpression;
+                    visitExpr(b.left); visitExpr(b.right);
+                    break;
+                }
+                case 'UnaryExpression': visitExpr((expr as UnaryExpression).argument); break;
+                case 'ParenthesizedExpression': visitExpr((expr as ParenthesizedExpression).expression); break;
+                case 'MemberExpression': visitExpr((expr as MemberExpression).object); break;
+            }
+        };
+
+        const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
+        const walkStmt = (stmt: Statement) => {
+            switch (stmt.type) {
+                case 'CallStatement':      visitExpr((stmt as CallStatement).expression); break;
+                case 'AssignmentStatement': {
+                    const a = stmt as AssignmentStatement;
+                    visitExpr(a.left); visitExpr(a.right);
+                    break;
+                }
+                case 'SetStatement': {
+                    const s = stmt as SetStatement;
+                    visitExpr(s.left); visitExpr(s.right);
+                    break;
+                }
+                case 'IfStatement': {
+                    const s = stmt as IfStatement;
+                    visitExpr(s.condition);
+                    walkStmts(s.consequent);
+                    if (Array.isArray(s.alternate)) walkStmts(s.alternate);
+                    else if (s.alternate) walkStmt(s.alternate);
+                    break;
+                }
+                case 'ForStatement': {
+                    const f = stmt as ForStatement;
+                    visitExpr(f.start); visitExpr(f.end);
+                    if (f.step) visitExpr(f.step);
+                    walkStmts(f.body);
+                    break;
+                }
+                case 'ForEachStatement': {
+                    const f = stmt as ForEachStatement;
+                    visitExpr(f.collection); walkStmts(f.body);
+                    break;
+                }
+                case 'DoWhileStatement': {
+                    const d = stmt as DoWhileStatement;
+                    if (d.condition) visitExpr(d.condition);
+                    walkStmts(d.body);
+                    break;
+                }
+                case 'WhileStatement': {
+                    const w = stmt as WhileStatement;
+                    visitExpr(w.condition); walkStmts(w.body);
+                    break;
+                }
+                case 'WithStatement': {
+                    const w = stmt as WithStatement;
+                    visitExpr(w.expression); walkStmts(w.body);
+                    break;
+                }
+                case 'SelectCaseStatement': {
+                    const s = stmt as SelectCaseStatement;
+                    visitExpr(s.expression);
+                    for (const c of s.cases) {
+                        for (const r of c.ranges) visitExpr('value' in r ? (r as any).value : ((r as any).start));
+                        walkStmts(c.body);
+                    }
                     if (s.elseBody) walkStmts(s.elseBody);
                     break;
                 }

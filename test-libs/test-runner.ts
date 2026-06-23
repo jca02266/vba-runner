@@ -495,14 +495,14 @@ export function assertCompileErrorPrerun(
     });
 }
 
-/** [preproc] evalVBASingle OK → precheckProc（OE チェック）で throw を検証。 */
+/** [preproc] evalVBASingle OK → precheckProc のみ（本体実行なし）で throw を検証。 */
 export function assertCompileErrorPreproc(src: string, procName: string, expectedLine: number | undefined, pattern: RegExp, label: string): void {
     let ev!: Evaluator;
     assertCompileErrorImpl({
         label, phaseName: 'preproc',
         pattern, expectedLine,
         okAction: () => { ev = evalVBASingle(src); },
-        throwAction: () => ev.callProcedure(procName, []),
+        throwAction: () => ev.checkProcedure(procName),
     });
 }
 
