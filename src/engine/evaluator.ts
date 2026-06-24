@@ -3740,26 +3740,6 @@ export class Evaluator {
             }
             if (decl.isArray) {
                 if (decl.arrayBounds && decl.arrayBounds.length > 0) {
-                    try {
-                        for (const bound of decl.arrayBounds) {
-                            this.validateConstantExpr(bound.upper);
-                            if (bound.lower) this.validateConstantExpr(bound.lower);
-                        }
-                    } catch (e: any) {
-                        if (e._precheckRaw) {
-                            const line = e.vbaLine ?? (this.currentLine || undefined);
-                            const mod = e.vbaModule ?? (this.executingModuleName || this.currentSourceModule || null);
-                            const msg = line !== undefined ? `Compile error: ${e.message} (line ${line})` : `Compile error: ${e.message}`;
-                            const formatted: any = new Error(msg);
-                            formatted.type = 'VbaError';
-                            formatted.number = e.number;
-                            formatted.vbaLine = line;
-                            formatted.vbaModule = mod;
-                            formatted.vbaStack = [...this.vbaCallStack].reverse();
-                            throw formatted;
-                        }
-                        throw e;
-                    }
                     initialValue = this.createMultiDimArray(decl.arrayBounds, initialValue);
                     (initialValue as any).vbaFixed = true;
                 } else {
@@ -4396,6 +4376,13 @@ export class Evaluator {
         for (const { stmt, moduleName } of this.pendingArrayDecls) {
             const prev = this.currentSourceModule;
             this.currentSourceModule = moduleName;
+            for (const decl of stmt.declarations) {
+                if (!decl.arrayBounds) continue;
+                for (const bound of decl.arrayBounds) {
+                    this.validateConstantExpr(bound.upper);
+                    if (bound.lower) this.validateConstantExpr(bound.lower);
+                }
+            }
             this.evaluateVariableDeclaration(stmt);
             this.currentSourceModule = prev;
         }
