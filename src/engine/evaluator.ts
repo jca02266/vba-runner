@@ -2496,7 +2496,9 @@ export class Evaluator {
         // Initialize return variable for function/property
         if (proc.isFunction || proc.isProperty) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
-            if (proc.returnType) {
+            // 配列を返す関数（As String() 等）は戻り値変数をスカラー型として
+            // coerce してはいけない（CStr() 等が配列に適用され壊れるため）
+            if (proc.returnType && !proc.returnsArray) {
                 const retTypeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
@@ -2768,6 +2770,16 @@ export class Evaluator {
             //  完了後に実行されるため、Pass 1 バッチロード用の分岐は経由しない）
             const stmtParser = new Parser(tokens);
             const program = stmtParser.parse();
+            // resolveIdentifiers（Pass 2）は最初の _ensureResolved() 時点のモジュール群しか
+            // 解析しないため、eval() でその後に定義したプロシージャは Option Explicit の
+            // 静的チェック対象に一度も載らない。ここで都度チェックし、違反があれば
+            // optionExplicitViolations に追加登録する（既存の登録は維持）。
+            const { violatedProcedures } = checkOptionExplicit(program);
+            for (const [procName, undeclared] of violatedProcedures) {
+                if (undeclared.size > 0) {
+                    this.optionExplicitViolations.set(procName, undeclared);
+                }
+            }
             this.executeStatements(program.body, 0);
             return undefined;
         } finally {
@@ -4225,7 +4237,9 @@ export class Evaluator {
 
         if (proc.isFunction || proc.isProperty) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
-            if (proc.returnType) {
+            // 配列を返す関数（As String() 等）は戻り値変数をスカラー型として
+            // coerce してはいけない（CStr() 等が配列に適用され壊れるため）
+            if (proc.returnType && !proc.returnsArray) {
                 const retTypeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
@@ -4238,6 +4252,10 @@ export class Evaluator {
         }
 
         const previousEnv = this.env;
+        const previousErrorHandler = this.errorHandlerLabel;
+        const previousErrorHandlingMode = this.errorHandlingMode;
+        const previousIsInErrorHandler = this.isInErrorHandler;
+        const previousLastErrorIndex = this.lastErrorIndex;
         const previousProcBody = this.currentProcBody;
         const previousProcedureName = this.currentProcedureName;
         const previousProcedureType = this.currentProcedureType;
@@ -4245,6 +4263,10 @@ export class Evaluator {
         const previousStaticVars = this.staticVarsInCurrentProc;
         const previousNewOwnedCM = this._currentNewOwned;
         this.env = localEnv;
+        this.errorHandlerLabel = null;
+        this.errorHandlingMode = 'None';
+        this.isInErrorHandler = false;
+        this.lastErrorIndex = null;
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
@@ -4270,6 +4292,10 @@ export class Evaluator {
             }
         } finally {
             this.env = previousEnv;
+            this.errorHandlerLabel = previousErrorHandler;
+            this.errorHandlingMode = previousErrorHandlingMode;
+            this.isInErrorHandler = previousIsInErrorHandler;
+            this.lastErrorIndex = previousLastErrorIndex;
 
             // Scope exit: fire Class_Terminate for local VBA objects created with `New` in
             // this scope that were not returned to the caller.

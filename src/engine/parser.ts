@@ -131,6 +131,8 @@ export interface ProcedureDeclaration extends Statement {
     name: Identifier;
     parameters: Parameter[];
     returnType?: string;
+    /** true when the return type is written as an array (e.g. `As String()`) */
+    returnsArray?: boolean;
     body: Statement[];
     scope?: 'public' | 'private' | 'friend';
     isStatic?: boolean;
@@ -1728,13 +1730,19 @@ export class Parser {
             this.validateParameterOrder(parameters);
         }
 
-        // Optional Function return type (e.g. 'As Long', 'As Scripting.Dictionary')
+        // Optional Function return type (e.g. 'As Long', 'As Scripting.Dictionary', 'As String()')
         let returnType: string | undefined;
+        let returnsArray = false;
         if (this.match(TokenType.KeywordAs)) {
             returnType = this.advance().value;
             if (this.peek().type === TokenType.OperatorDot) {
                 this.advance(); // consume '.'
                 returnType += '.' + this.advance().value;
+            }
+            if (this.peek().type === TokenType.OperatorLParen && this.peek(1).type === TokenType.OperatorRParen) {
+                this.advance(); // '('
+                this.advance(); // ')'
+                returnsArray = true;
             }
         }
 
@@ -1763,7 +1771,7 @@ export class Parser {
             this.throwError(`Parse error: Expected 'End ${expectedEndStr}'`);
         }
 
-        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, body, scope: scope || 'public', isStatic, paramsEndColumn };
+        return { type: 'ProcedureDeclaration', isFunction, isProperty, propertyType, name, parameters, returnType, returnsArray, body, scope: scope || 'public', isStatic, paramsEndColumn };
     }
 
     private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
