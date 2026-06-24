@@ -11,6 +11,7 @@
 | ファイル | 区分 | 概要 | 規模 |
 |---|---|---|---|
 | [README.md](README.md) | ユーザー向け | プロジェクト概要・クイックスタート・ディレクトリ構造 | 小 |
+| [README.ja.md](README.ja.md) | ユーザー向け | README.md の日本語版 | 小 |
 | [REFERENCE.md](REFERENCE.md) | ユーザー向け | 詳細仕様（型システム・モック・Sandbox・VFS・スコープ・制限事項） | 大 |
 | [CLAUDE.md](CLAUDE.md) | AI エージェント向け | Claude Code 向け開発ガイド（コマンド・アーキテクチャ・テストパターン） | 小 |
 | [FOR_AI.md](FOR_AI.md) | AI エージェント向け | リファクタリング支援 AI 向けガイド（禁止事項・サイクル手順） | 中 |
@@ -26,6 +27,7 @@
 | [build/runner/README.md](build/runner/README.md) | ユーザー向け | npm パッケージ `vba-runner` の使い方・CLI ツール | 小 |
 | [build/extension/README.md](build/extension/README.md) | ユーザー向け | VS Code 拡張機能のインストール・LSP 機能・設定 | 小 |
 | [build/playground/README.md](build/playground/README.md) | ユーザー向け | VBA Web Runner（Web UI デモ）の使い方・ローカル起動手順 | 小 |
+| [build/extractor/README.md](build/extractor/README.md) | ユーザー向け | CLI ツール `vba-extractor` の使い方（Office ファイルから VBA ソースを入出力） | 小 |
 
 ### docs/ — リファクタリング・テスト支援
 
@@ -51,8 +53,13 @@
 
 | ファイル | 区分 | 概要 | 規模 |
 |---|---|---|---|
+| [docs/internals/BNF.md](docs/internals/BNF.md) | 設計仕様 | MS-VBAL BNF 文法（spec/MS-VBAL.txt から抽出） | 中 |
 | [docs/internals/TYPE_SYSTEM_SPEC.md](docs/internals/TYPE_SYSTEM_SPEC.md) | 設計仕様 | VBA 型システム仕様（TypeName/VarType/オーバーフロー検査） | 小 |
+| [docs/internals/LITERALS_AND_OPERATORS.md](docs/internals/LITERALS_AND_OPERATORS.md) | 設計仕様 | リテラル・型・演算子の優先順位と実装 | 小 |
 | [docs/internals/NAME_RESOLUTION.md](docs/internals/NAME_RESOLUTION.md) | 設計仕様 | 名前解決の仕様と実装（MS-VBAL §5.6.10） | 中 |
+| [docs/internals/EVALUATION.md](docs/internals/EVALUATION.md) | 設計仕様 | 評価パイプラインの詳細（3 パス + 実行フェーズ） | 大 |
+| [docs/internals/FUNCTION_CALL.md](docs/internals/FUNCTION_CALL.md) | 設計仕様 | 関数コールと引数処理（CallExpression の解決と ByRef/ByVal） | 中 |
+| [docs/internals/VBA_EXPORT_IMPORT.md](docs/internals/VBA_EXPORT_IMPORT.md) | 補足 | VBA エクスポート/インポートの内部技術メモ | 小 |
 | [docs/internals/DATAFLOW_ANALYSIS_TODO.md](docs/internals/DATAFLOW_ANALYSIS_TODO.md) | 計画 | データフロー解析の実装計画 | 中 |
 | [docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md](docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md) | 計画 | 識別子分類の正規化 TODO | 小 |
 
