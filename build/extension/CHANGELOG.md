@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.7] - 2026-06-24
+
+### Fixed
+
+- **Running/debugging a `Dim` array sized by a variable (e.g. `Dim arr(n)`) silently executed instead of raising the compile error real VBA produces** — both module-level and procedure-level `Dim` declarations now report `Compile error: Constant expression required` before execution. `ReDim` is unaffected, since variable bounds are valid there.
+
 ## [0.2.6] - 2026-06-22
 
 ### Added

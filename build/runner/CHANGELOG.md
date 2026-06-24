@@ -2,6 +2,12 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.9] - 2026-06-24
+
+### Fixed
+
+- **`Dim` array bounds accepted a variable without raising VBA's compile error** — real VBA requires `Dim arr(n)` bounds to be a constant expression; passing a variable previously executed without error instead of failing at compile time. Both module-level and procedure-level `Dim` declarations now raise `Compile error: Constant expression required` when the bound isn't constant. `ReDim` is unaffected, since variable bounds are valid there.
+
 ## [0.1.1-alpha.8] - 2026-06-21
 
 ### Added
