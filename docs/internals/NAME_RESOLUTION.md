@@ -328,7 +328,7 @@ Evaluator
 5. env.get(name) → __isVbaCollection__ → Collection(key) アクセス
 6. env.get(name) → __vbaClass__    → デフォルトプロパティ (.Item) アクセス
 7. env.get(name) → VbaNamespaceRef → SUB_OR_FUNCTION_NOT_DEFINED へフォールスルー（§5.6.10 修正済み）
-8. [Tier 6・未実装] defaultBindingObject[name]  → Application 等のグローバルオブジェクト
+8. [Tier 6] defaultBindingObject[name]  → Application 等のグローバルオブジェクト
 9. → SUB_OR_FUNCTION_NOT_DEFINED (error 35)
 ```
 
@@ -429,7 +429,7 @@ ev.spy('MsgBox', () => 6);     // vbYes を固定返却してスパイ
 | **グローバルオブジェクト注入** | `ActiveSheet`, `ThisWorkbook` など VBA コードが直接参照するオブジェクト | `ev.getGlobalEnv().set(name, obj)` |
 | **VBA クラスモック**（`.bas` 拡張構文） | `Worksheet`, `CellRef` など型定義と実装を VBA で書きたい場合 | `setSourceModule` + `evaluateModule` |
 | **外部オブジェクトファクトリ** | `CreateObject("VBScript.RegExp")`, `New RegExp` など COM 相当 | `ev.registerComObject(factory)` |
-| **Tier 6 デフォルト束縛オブジェクト**（未実装） | `Range("A1")` のような修飾なし Excel グローバル関数 | `ev.setDefaultBindingObject(app)`（予定） |
+| **Tier 6 デフォルト束縛オブジェクト** | `Range("A1")` のような修飾なし Excel グローバル関数 | `ev.setDefaultBindingObject(app)` |
 
 ### `.bas` クラスモックの注意点
 
