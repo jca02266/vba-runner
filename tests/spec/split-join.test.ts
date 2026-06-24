@@ -65,6 +65,22 @@ console.log('--- Starting Split / Join Tests ---');
     // 区切り省略時はスペース
     assert.strictEqual(ev(`Join(Array("a", "b", "c"))`), 'a b c', '区切り省略 = スペース');
 
+    // 仕様バグ修正: 下限付き固定配列（Dim a(1 To n)）は物理ストレージに
+    // LBound 分の隠し要素（添字0）を含むため、Join がそのまま arr.join() すると
+    // 先頭に余分な空要素が混入していた。vbaBase を見てスキップするよう修正。
+    {
+        const code = `
+            Dim parts(1 To 3) As String
+            parts(1) = "a"
+            parts(2) = "b"
+            parts(3) = "c"
+            Dim result As String
+            result = Join(parts, "; ")
+        `;
+        const ev2 = evalVBA(code);
+        assert.strictEqual(ev2.env.get('result'), 'a; b; c', 'Dim a(1 To n) の Join に余分な空要素が混入しない');
+    }
+
     console.log('[PASS] Join');
 }
 

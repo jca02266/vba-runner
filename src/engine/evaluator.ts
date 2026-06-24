@@ -1334,7 +1334,13 @@ export class Evaluator {
             { name: 'Expression' },
             { name: 'Delimiter', optional: true },
         ]);
-        this.registerBuiltin('join', (arr: any, del: string = ' ') => Array.isArray(arr) ? arr.join(del) : String(arr), [
+        this.registerBuiltin('join', (arr: any, del: string = ' ') => {
+            if (!Array.isArray(arr)) return String(arr);
+            // 配列の物理ストレージは LBound 分のオフセット（隠し要素）を含むため、
+            // UBound/LBound と同じ vbaBase を見てスキップしないと先頭に余分な空要素が混入する
+            const base = (arr as any).vbaBase || 0;
+            return arr.slice(base).join(del);
+        }, [
             { name: 'SourceArray' },
             { name: 'Delimiter', optional: true },
         ]);
@@ -2745,8 +2751,19 @@ export class Evaluator {
                 const expr = exprParser.parseExpressionPublic();
                 const nextToken = (exprParser as any).peek();
 
-                // If the expression consumed the entire line (or stopped at EOF)
-                if (!nextToken || nextToken.type === TokenType.EOF || nextToken.type === TokenType.Newline) {
+                // 単一式として全体を消費したか判定する。直後が Newline の場合は
+                // 「末尾の改行のみ（その後は EOF）」であることまで確認する。
+                // そうしないと複数行コードの1行目だけを式として誤評価し、残りの行を
+                // 黒く無視してしまう（例: "x = 10\nDebug.Print 1" の "x = 10" を
+                // 等価比較式として評価して返し、Debug.Print 以降を実行しない）。
+                let fullyConsumed = !nextToken || nextToken.type === TokenType.EOF;
+                if (!fullyConsumed && nextToken.type === TokenType.Newline) {
+                    let aheadOffset = 0;
+                    while ((exprParser as any).peek(aheadOffset).type === TokenType.Newline) aheadOffset++;
+                    fullyConsumed = (exprParser as any).peek(aheadOffset).type === TokenType.EOF;
+                }
+
+                if (fullyConsumed) {
                     // If it is just an Identifier matching a Procedure, run it as a CallStatement
                     if (expr.type === 'Identifier') {
                         const name = (expr as Identifier).name;
