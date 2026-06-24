@@ -2717,12 +2717,23 @@ export class Evaluator {
     }
 
     public evalExpression(exprString: string): any {
-        // eval() はどのファイルにも属さない専用のトップレベルとして評価する。
-        // setSourceModule() でロード済みファイルの currentSourceModule が残っていると、
-        // module-level Dim の書き込み先（moduleEnv）と式評価時の読み込み元（this.env）が
-        // ズレて変数が見つからなくなるため、評価中だけ無所属（''）に退避する。
+        // eval() はどのファイルにも属さない専用のトップレベル（独立した呼び出しフレーム）として
+        // 評価する。callProcedure が手続き呼び出しごとに退避・復元している状態と同様に、
+        // currentSourceModule（module-level Dim の書き込み先解決に使う）と On Error 関連の状態
+        // （errorHandlerLabel 等）を退避することで、
+        //   - ロード済みファイルの currentSourceModule が残っていることによる変数スコープのズレ
+        //   - 直前の eval() 呼び出しで設定した On Error 状態が後続の eval() に漏れ残る問題
+        // の両方を防ぐ。
         const savedSourceModule = this.currentSourceModule;
+        const savedErrorHandlerLabel = this.errorHandlerLabel;
+        const savedErrorHandlingMode = this.errorHandlingMode;
+        const savedIsInErrorHandler = this.isInErrorHandler;
+        const savedLastErrorIndex = this.lastErrorIndex;
         this.currentSourceModule = '';
+        this.errorHandlerLabel = null;
+        this.errorHandlingMode = 'None';
+        this.isInErrorHandler = false;
+        this.lastErrorIndex = null;
         try {
             const lexer = new Lexer(exprString);
             const tokens = lexer.tokenize();
@@ -2749,13 +2760,22 @@ export class Evaluator {
                 // Ignored: fallback to full statement parsing
             }
 
-            // Fallback: parse and evaluate as a Statement (returns undefined)
+            // Fallback: parse and evaluate as a statement sequence.
+            // executeStatements()（手続き本体の実行に使う、On Error Resume Next/GoTo・GoTo・
+            // Resume に対応した実行ループ）を経由することで、eval() 内の複数文でも実際の
+            // Sub/Function 呼び出しと同じ On Error セマンティクスが働くようにする。
+            // （evalExpression は VBARunner.eval() からしか呼ばれず、常に resolveIdentifiers
+            //  完了後に実行されるため、Pass 1 バッチロード用の分岐は経由しない）
             const stmtParser = new Parser(tokens);
             const program = stmtParser.parse();
-            this.evaluateModule(program);
+            this.executeStatements(program.body, 0);
             return undefined;
         } finally {
             this.currentSourceModule = savedSourceModule;
+            this.errorHandlerLabel = savedErrorHandlerLabel;
+            this.errorHandlingMode = savedErrorHandlingMode;
+            this.isInErrorHandler = savedIsInErrorHandler;
+            this.lastErrorIndex = savedLastErrorIndex;
         }
     }
 

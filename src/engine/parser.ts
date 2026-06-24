@@ -1872,7 +1872,7 @@ export class Parser {
             label = labelToken.value;
         } else {
             // "Resume Next" fallback
-            while (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF) {
+            while (!this.isAtTerminator()) {
                 label += this.advance().value + ' ';
             }
             label = label.trim();
