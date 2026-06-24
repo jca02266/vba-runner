@@ -1123,10 +1123,10 @@ VBA Runner を使って以下の順で進めてください：
 
 | フェーズ | 実装箇所 | 検出内容 |
 |---|---|---|
-| **prerun** | `resolveIdentifiers` | モジュール定数評価（依存グラフ順） |
-| **prerun** | `resolveIdentifiers` | 重複プロシージャ名（同一モジュール内） |
-| **prerun** | `resolveIdentifiers` | Option Explicit 違反マップの構築（throw は preproc に委譲） |
-| ~~**prerun**~~ → **preproc** | ~~`resolveIdentifiers`~~ → `precheckProc` | 未定義プロシージャ呼び出し（非修飾 identifier） |
+| **resolve** | `resolveIdentifiers` | モジュール定数評価（依存グラフ順） |
+| **resolve** | `resolveIdentifiers` | 重複プロシージャ名（同一モジュール内） |
+| **resolve** | `resolveIdentifiers` | Option Explicit 違反マップの構築（throw は preproc に委譲） |
+| ~~**resolve**~~ → **preproc** | ~~`resolveIdentifiers`~~ → `precheckProc` | 未定義プロシージャ呼び出し（非修飾 identifier） |
 | **preproc** | `precheckProc` | Option Explicit 違反の throw（違反マップから） |
 | **preproc** | `precheckProc` → `checkSubAsValueInProc` | Sub を値コンテキストで使用（`v = MySub`） |
 | **exec（重複）** | `evaluateAssignmentStatement` | Sub を値コンテキストで使用（`precheckProc` と重複） |
@@ -1141,7 +1141,7 @@ VBA Runner を使って以下の順で進めてください：
 
 ### TODO: preproc への移行候補
 
-以下は現在 exec フェーズで検出されているが、VBE では prerun/preproc に相当するもの。
+以下は現在 exec フェーズで検出されているが、VBE では resolve/preproc に相当するもの。
 静的解析（`precheckProc` での AST walk）で検出できれば正確なフェーズに移行できる。
 
 - [ ] duplicate Dim — 同一プロシージャ内の重複 `Dim` 宣言を `precheckProc` で静的検出

@@ -332,7 +332,7 @@ vba-runner は §「トップレベル文の評価」で説明した拡張（モ
 | `VBARunner`（ファイルベース、`sample/tests/ts/` 用、`test-libs/test-runner.ts` のコンストラクター） | `false` 固定 | 不可（ハードコード） | 実 `.bas`/`.cls` ファイルの VBA 再現・評価が目的のため、標準 VBA 仕様に違反するコードは検出する |
 | VS Code 拡張の実行コマンド（`vba-runner.runProcedure`、`src/extension.ts`） | `false` 固定 | 不可 | `ev.reEvaluateModuleConstsAll(asts)`（`resolveIdentifiers` の旧名エイリアス）経由で Pass 2 に到達する |
 | VS Code 拡張のテスト実行（`src/lsp/test-runner.ts`）・デバッグ実行（`src/lsp/debug-worker.ts`） | `false` 固定 | 不可 | いずれも実ファイルを評価して実行するため `VBARunner`/実行コマンドと同じ方針 |
-| LSP 診断（エディター上の赤波線、`src/lsp/server.ts` の `getDiagnostics`） | 該当なし | — | 診断は `Lexer`/`Parser.parse()` のみで行われ、`Evaluator`/Pass 2 にまったく到達しない。つまりこのチェック（`TYPE: prerun`）はエディター上の波線としては**絶対に表示されない**。波線になるのは構文エラー（`TYPE: parse`）のみ |
+| LSP 診断（エディター上の赤波線、`src/lsp/server.ts` の `getDiagnostics`） | 該当なし | — | 診断は `Lexer`/`Parser.parse()` のみで行われ、`Evaluator`/Pass 2 にまったく到達しない。つまりこのチェック（`TYPE: resolve`）はエディター上の波線としては**絶対に表示されない**。波線になるのは構文エラー（`TYPE: parse`）のみ |
 | Playground の「ソースコードを実行する」機能（`handleRun`、`src/App.tsx`） | `true` 固定 | 不可 | これはスクリプトランナー機能であり、モジュールトップレベルの `Sub` 呼び出し（デフォルトスニペットの末尾の `MainLoop` 等）を実行することが目的のため、意図的に拡張を有効にしている |
 | Playground のテストペイン（`createBrowserTestRunner` が作る `vbaRunner.run`/`vbaRunner.eval`、`src/App.tsx`） | `false` 固定 | 不可 | `VBARunner` と同じ「VBA の再現・評価」用途のため strict 化した。ソースコード側 AST を宣言文（`ProcedureDeclaration`/`TypeDeclaration`/`VariableDeclaration`/`ConstDeclaration`）のみにフィルターしてから `evaluateModule` に渡す点は変更していないが、`Dim`/`Const` はこのフィルターを通過するため、プロシージャの後に書くと `allowTopLevelStatements: false` により正しくコンパイルエラーになる |
 
