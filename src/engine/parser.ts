@@ -666,6 +666,7 @@ export class Parser {
     ]);
 
     private readonly errorRecovery: boolean;
+    private readonly sourceLines: string[] | undefined;
 
     /** Returns true if token is a valid IDENTIFIER per §3.3.5.2:
      *  either a plain lex-identifier or a contextual keyword that is not reserved. */
@@ -678,10 +679,12 @@ export class Parser {
     constructor(tokens: Token[], options: {
         parseAsClass?: string;
         errorRecovery?: boolean;
+        sourceLines?: string[];
     } = {}) {
         this.tokens = tokens;
         this.parseAsClass = options.parseAsClass;
         this.errorRecovery = options.errorRecovery ?? false;
+        this.sourceLines = options.sourceLines;
     }
 
     // Keywords can appear as property/class names in VBA (e.g. obj.Property, New Collection)
@@ -756,7 +759,9 @@ export class Parser {
     private throwError(message: string, token?: Token): never {
         const peek = this.peek();
         const t = token ?? (peek.type !== TokenType.EOF ? peek : this.tokens[Math.max(0, this.pos - 1)]);
-        throw new ParseError(message, t.line, t.column);
+        const snippet = this.sourceLines?.[t.line - 1];
+        const fullMessage = snippet !== undefined ? `${message}\n  > ${snippet}` : message;
+        throw new ParseError(fullMessage, t.line, t.column);
     }
 
     private syncToNextTopLevelStatement(): void {

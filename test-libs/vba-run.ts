@@ -70,7 +70,8 @@ export function main(args: string[]): void {
         const isRawCls = ext === '.cls'
             && !src.trim().toLowerCase().startsWith('class ')
             && !src.toLowerCase().includes('end class');
-        const ast = new Parser(new Lexer(src).tokenize(), isRawCls ? { parseAsClass: moduleName } : {}).parse();
+        const parseOpts = isRawCls ? { parseAsClass: moduleName, sourceLines: src.split('\n') } : { sourceLines: src.split('\n') };
+        const ast = new Parser(new Lexer(src).tokenize(), parseOpts).parse();
         ev.evaluateModule(ast);
         asts.push({ ast, moduleName });
     }

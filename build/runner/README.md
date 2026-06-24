@@ -165,6 +165,24 @@ To inject any other named variable or constant directly, `vbaRunner.set(name, va
 
 See [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) for more advanced mocking patterns.
 
+### 6. Quiet mode / routing `Debug.Print` output separately
+
+By default, `run()` logs every call (`[PASS] ProcName(...) -> result (Nms)`) and
+`Debug.Print` goes to `console.log`, so both end up interleaved on stdout. Pass
+`quiet: true` to suppress the `[PASS]` logs, and `onPrint` to redirect
+`Debug.Print` output independently (e.g. to `stderr`, or to a collector array):
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas', {
+  quiet: true,                                    // suppress [PASS] logs
+  onPrint: (s) => process.stderr.write(s + '\n'),  // Debug.Print -> stderr
+});
+
+vbaRunner.run('SeedGlider', [1, 1]); // no [PASS] log printed
+```
+
 ## CLI Tools
 
 | Command | Description |

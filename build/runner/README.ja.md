@@ -161,6 +161,24 @@ assert.ok(registered !== null);
 
 詳細なモック実装パターンは [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) を参照してください。
 
+### 6. 静かなモード / `Debug.Print` 出力の分離
+
+デフォルトでは `run()` は呼び出しごとに `[PASS] ProcName(...) -> result (Nms)` を
+ログ出力し、`Debug.Print` も `console.log` に出力されるため、両者が同じ標準出力に
+混在します。`quiet: true` を渡すと `[PASS]` ログを抑制でき、`onPrint` を渡すと
+`Debug.Print` の出力先を独立して切り替えられます（例: stderr や配列への収集）。
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas', {
+  quiet: true,                                    // [PASS] ログを抑制
+  onPrint: (s) => process.stderr.write(s + '\n'),  // Debug.Print → stderr
+});
+
+vbaRunner.run('SeedGlider', [1, 1]); // [PASS] ログは出力されない
+```
+
 ## CLI ツール
 
 `vba-runner` パッケージは以下の CLI ツールを提供します。

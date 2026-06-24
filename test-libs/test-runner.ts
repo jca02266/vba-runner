@@ -20,12 +20,23 @@ export class VBARunner {
     private _asts: Program[] = [];
     private _moduleNames: string[] = [];
     private _resolved = false;
+    private readonly _quiet: boolean;
 
     /** `excelStub: true` のとき注入された MockApplication。セル初期値の設定に使う。 */
     public readonly excelStub: MockApplication | null = null;
 
-    constructor(pathOrDir: string | null = null, config: { sandboxRoot?: string, env?: Record<string, string>, compilerConstants?: CompilerConstants, excelStub?: boolean | MockApplication } = {}) {
-        this.evaluator = new Evaluator(console.log, { ...config, fs: new MemoryFileSystem(), allowTopLevelStatements: false });
+    constructor(pathOrDir: string | null = null, config: {
+        sandboxRoot?: string,
+        env?: Record<string, string>,
+        compilerConstants?: CompilerConstants,
+        excelStub?: boolean | MockApplication,
+        /** true にすると run() の `[PASS] ...` ログを抑制する */
+        quiet?: boolean,
+        /** Debug.Print の出力先（既定: console.log） */
+        onPrint?: (s: string) => void,
+    } = {}) {
+        this._quiet = config.quiet ?? false;
+        this.evaluator = new Evaluator(config.onPrint ?? console.log, { ...config, fs: new MemoryFileSystem(), allowTopLevelStatements: false });
         if (config.excelStub) {
             const app = config.excelStub === true ? undefined : config.excelStub;
             (this as any).excelStub = injectExcelStub(this.evaluator, app);
@@ -63,7 +74,7 @@ export class VBARunner {
                 const isRawCls = ext === '.cls'
                     && !source.trim().toLowerCase().startsWith('class ')
                     && !source.toLowerCase().includes('end class');
-                const parseOpts = isRawCls ? { parseAsClass: moduleName } : {};
+                const parseOpts = isRawCls ? { parseAsClass: moduleName, sourceLines: source.split('\n') } : { sourceLines: source.split('\n') };
 
                 const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
                 this._asts.push(ast);
@@ -100,7 +111,9 @@ export class VBARunner {
         const duration = Date.now() - start;
         const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : '[Object]') : String(a)).join(', ');
         const typeStr = type ? `:${type}` : '';
-        console.log(`[PASS] ${procedureName}${typeStr}(${formatArgs}) -> ${result} (${duration}ms)`);
+        if (!this._quiet) {
+            console.log(`[PASS] ${procedureName}${typeStr}(${formatArgs}) -> ${result} (${duration}ms)`);
+        }
         return result;
     }
 
@@ -256,7 +269,7 @@ export interface EvalOptions {
  * tests/spec/ のテストで evalVBASingle をローカル定義する代わりに使う。
  */
 export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
-    const ast = new Parser(new Lexer(code).tokenize()).parse();
+    const ast = new Parser(new Lexer(code).tokenize(), { sourceLines: code.split('\n') }).parse();
     options?.afterParse?.(ast);
     const ev = new Evaluator(options?.onPrint ?? console.log, {
         fs: options?.fs,
@@ -293,7 +306,7 @@ export function evalVBAModules(
     options?.setup?.(ev);
 
     const asts = modules.map(({ name, code, parseAsClass }) => {
-        const ast = new Parser(new Lexer(code).tokenize(), { parseAsClass }).parse();
+        const ast = new Parser(new Lexer(code).tokenize(), { parseAsClass, sourceLines: code.split('\n') }).parse();
         ev.setSourceModule(name);
         ev.evaluateModule(ast);
         return { ast, moduleName: name };
