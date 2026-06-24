@@ -2717,36 +2717,46 @@ export class Evaluator {
     }
 
     public evalExpression(exprString: string): any {
-        const lexer = new Lexer(exprString);
-        const tokens = lexer.tokenize();
-
+        // eval() はどのファイルにも属さない専用のトップレベルとして評価する。
+        // setSourceModule() でロード済みファイルの currentSourceModule が残っていると、
+        // module-level Dim の書き込み先（moduleEnv）と式評価時の読み込み元（this.env）が
+        // ズレて変数が見つからなくなるため、評価中だけ無所属（''）に退避する。
+        const savedSourceModule = this.currentSourceModule;
+        this.currentSourceModule = '';
         try {
-            const exprParser = new Parser(tokens);
-            const expr = exprParser.parseExpressionPublic();
-            const nextToken = (exprParser as any).peek();
+            const lexer = new Lexer(exprString);
+            const tokens = lexer.tokenize();
 
-            // If the expression consumed the entire line (or stopped at EOF)
-            if (!nextToken || nextToken.type === TokenType.EOF || nextToken.type === TokenType.Newline) {
-                // If it is just an Identifier matching a Procedure, run it as a CallStatement
-                if (expr.type === 'Identifier') {
-                    const name = (expr as Identifier).name;
-                    if (this.env.getProcedure(name)) {
-                        this.callProcedure(name, []);
-                        return undefined;
+            try {
+                const exprParser = new Parser(tokens);
+                const expr = exprParser.parseExpressionPublic();
+                const nextToken = (exprParser as any).peek();
+
+                // If the expression consumed the entire line (or stopped at EOF)
+                if (!nextToken || nextToken.type === TokenType.EOF || nextToken.type === TokenType.Newline) {
+                    // If it is just an Identifier matching a Procedure, run it as a CallStatement
+                    if (expr.type === 'Identifier') {
+                        const name = (expr as Identifier).name;
+                        if (this.env.getProcedure(name)) {
+                            this.callProcedure(name, []);
+                            return undefined;
+                        }
                     }
+                    // Otherwise evaluate as a typical expression returning a value
+                    return this.evaluateExpression(expr);
                 }
-                // Otherwise evaluate as a typical expression returning a value
-                return this.evaluateExpression(expr);
+            } catch {
+                // Ignored: fallback to full statement parsing
             }
-        } catch {
-            // Ignored: fallback to full statement parsing
-        }
 
-        // Fallback: parse and evaluate as a Statement (returns undefined)
-        const stmtParser = new Parser(tokens);
-        const program = stmtParser.parse();
-        this.evaluateModule(program);
-        return undefined;
+            // Fallback: parse and evaluate as a Statement (returns undefined)
+            const stmtParser = new Parser(tokens);
+            const program = stmtParser.parse();
+            this.evaluateModule(program);
+            return undefined;
+        } finally {
+            this.currentSourceModule = savedSourceModule;
+        }
     }
 
     private evaluateStatement(stmt: Statement) {

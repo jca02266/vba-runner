@@ -43,7 +43,7 @@ console.log('[PASS] quiet: true で [PASS] ログが抑制される');
     const printed: string[] = [];
     const origLog = console.log;
     let consoleLogCalled = false;
-    console.log = (..._args: any[]) => { consoleLogCalled = true; };
+    console.log = () => { consoleLogCalled = true; };
     try {
         const runner = new VBARunner(null, { onPrint: (s: string) => printed.push(s) });
         runner.eval('Debug.Print "hello"');
