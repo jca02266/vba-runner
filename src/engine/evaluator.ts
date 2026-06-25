@@ -4000,8 +4000,14 @@ export class Evaluator {
             for (const decl of fieldDecl.declarations) {
                 let defaultVal: any = vbaEmpty;
                 const mt = (decl.objectType || '').toLowerCase();
+                // Dim 変数の既定値判定（evaluateVariableDeclaration）と同じ型集合に揃える。
+                // 元々は string/integer/long/double/single の数種類しか見ておらず、
+                // currency/byte/longlong/longptr は 0 にならず、boolean も False(0) では
+                // なく Empty のままになっていた（Date/Variant は Dim 側でも Empty のままが
+                // 既定の挙動のため対象外）。
                 if (mt === 'string') defaultVal = '';
-                else if (mt === 'integer' || mt === 'long' || mt === 'double' || mt === 'single') defaultVal = 0;
+                else if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(mt)) defaultVal = 0;
+                else if (mt === 'boolean') defaultVal = 0; // vbaFalse
                 else if (decl.objectType && this.env.getType(decl.objectType)) {
                     // UDT (Type ... End Type) フィールド: 既定値では Empty のままになり、
                     // Class_Initialize 等でのメンバー代入が Error 91 になっていた。

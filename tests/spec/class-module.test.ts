@@ -234,4 +234,29 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] 再帰メソッド呼び出し');
 }
 
+// --- 仕様バグ修正: Boolean/Currency/Byte/LongLong/LongPtr フィールドの既定値が
+// Empty のままで、True/False 判定や算術に使うと Error 438 等になっていた ---
+{
+    const code = `
+    Class Flags
+        Public IsActive As Boolean
+        Public Balance As Currency
+        Public Level As Byte
+    End Class
+
+    Function TestDefaults() As String
+        Dim f As New Flags
+        Dim result As String
+        If f.IsActive Then
+            result = "true"
+        Else
+            result = "false"
+        End If
+        TestDefaults = result & "," & f.Balance & "," & f.Level
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestDefaults'), 'false,0,0', 'Boolean は False、Currency/Byte は 0 で既定初期化される');
+    console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');
