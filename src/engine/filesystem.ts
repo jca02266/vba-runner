@@ -167,8 +167,19 @@ export class MemoryFileSystem implements FileSystem {
                 this.writeFileSync(norm, new Uint8Array(0));
             }
         }
+        // Append モードは既存データの末尾から書き込みを始める。pos を常に 0 にすると
+        // writeSync が先頭から上書きしてしまい、追記のたびにファイル内容が消える。
+        let pos = 0;
+        if (flags === 'a') {
+            const entry = this.files.get(norm);
+            if (entry) {
+                pos = typeof entry.data === 'string'
+                    ? new TextEncoder().encode(entry.data).length
+                    : entry.data.length;
+            }
+        }
         const fd = this.nextFd++;
-        this.fileHandles.set(fd, { path: norm, flags, pos: 0 });
+        this.fileHandles.set(fd, { path: norm, flags, pos });
         return fd;
     }
 

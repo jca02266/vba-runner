@@ -41,4 +41,37 @@ expected.forEach((exp, i) => {
     assert.strictEqual(lines[i], exp, `FileSystem line ${i + 1}`);
 });
 
+// 仕様バグ修正: Open ... For Append が書き込み開始位置を常に 0 にしていたため、
+// 2回目以降の Append が先頭から上書きしてしまい、追記のたびにファイル内容が
+// 消えていた（MemoryFileSystem.openSync）。
+{
+    const vfs2 = new MemoryFileSystem();
+    const appendCode = `
+        Sub AppendLine(line As String)
+            Dim fn As Integer
+            fn = FreeFile()
+            Open "append.txt" For Append As #fn
+            Print #fn, line
+            Close #fn
+        End Sub
+        AppendLine "line1"
+        AppendLine "line2"
+        AppendLine "line3"
+
+        Dim fn2 As Integer, s As String, result As String
+        fn2 = FreeFile()
+        Open "append.txt" For Input As #fn2
+        Do While Not EOF(fn2)
+            Line Input #fn2, s
+            result = result & s & "|"
+        Loop
+        Close #fn2
+        Debug.Print result
+    `;
+    const appendLines: string[] = [];
+    evalVBASingle(appendCode, { onPrint: (o) => appendLines.push(o.trim()), fs: vfs2 });
+    assert.strictEqual(appendLines[0], 'line1|line2|line3|', 'For Append は毎回末尾に追記される（先頭上書きしない)');
+}
+console.log('[PASS] Open For Append は毎回末尾に追記される');
+
 console.log('✅ FileSystem: 全テスト通過');

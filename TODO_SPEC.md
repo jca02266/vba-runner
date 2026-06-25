@@ -435,7 +435,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 | 状態 | 機能カテゴリ | 項目 | 説明 |
 | :---: | :--- | :--- | :--- |
 | ✅ | **基本 I/O** | `readSync` / `writeSync` | バッファー/文字列の同期読み書き。ハンドル位置の自動更新対応。 |
-| ✅ | | `openSync` / `closeSync` | ファイルオープン。`w` フラグ時の truncation (切り詰め) 対応済み。 |
+| ✅ | | `openSync` / `closeSync` | ファイルオープン。`w` フラグ時の truncation (切り詰め)、`a` フラグ時の末尾追記（2026-06-25 修正、後述）対応済み。 |
 | ✅ | **ファイル管理** | `unlinkSync` | `Kill` ステートメントの基盤。現状は完全一致のみ。 |
 | ✅ | | `copyFileSync` | `FileCopy` ステートメントの基盤。 |
 | ✅ | **ディレクトリ** | `mkdirSync` | ディレクトリ作成。`recursive: true` 対応。 |
@@ -452,6 +452,10 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 ### VFS 開発ロードマップ (TODO)
 
 #### 1. コア機能の強化
+- ✅ **仕様バグ修正（2026-06-25）: `Open ... For Append` が追記ではなく上書きになる（サイレントなデータ消失）**
+  - 原因: `MemoryFileSystem.openSync()` がファイルハンドルの書き込み開始位置 `pos` を `flags` に関係なく常に `0` で初期化していたため、`writeSync` が `Append` モードでも常にファイル先頭から上書きしていた。2回目以降の `Open ... For Append` のたびに、それまでの追記内容が消える
+  - 症状: 例外は発生せず、ログファイル追記のような典型的な用途でデータが静かに失われる。`NodeFileSystem`（実ファイル版、`vba-run` CLI 等で使用）は Node 標準の `fs.openSync` に委譲しているため影響を受けず、`VBARunner` が使う `MemoryFileSystem` のみの問題
+  - 修正: `flags === 'a'` の場合、既存ファイルが存在すればその長さを `pos` の初期値にするよう変更 | `filesystem.test.ts`
 - ✅ `MemoryFileSystem` にワイルドカードマッチングロジックの実装（`Kill` への統合）。 | `wildcard-kill-dir.test.ts`
 - ✅ `MemoryFileSystem` 内部での `cwd` (Current Working Directory) の保持と `ChDir` 対応。 | `chdir-curdir.test.ts`
 - ❌ `statSync` における VBA 属性（Read-only, Hidden 等）のシミュレーション。
