@@ -1848,6 +1848,8 @@ export class Evaluator {
         this.env.setConstant('vbtextcompare', 1);
         this.env.setConstant('vbempty', 0); this.env.setConstant('vbnull', 1); this.env.setConstant('vbinteger', 2); this.env.setConstant('vblong', 3); this.env.setConstant('vbsingle', 4); this.env.setConstant('vbdouble', 5); this.env.setConstant('vbcurrency', 6); this.env.setConstant('vbdate', 7); this.env.setConstant('vbstring', 8); this.env.setConstant('vbobject', 9); this.env.setConstant('vberror', 10); this.env.setConstant('vbboolean', 11); this.env.setConstant('vbvariant', 12); this.env.setConstant('vbbyte', 17); this.env.setConstant('vblonglong', 20); this.env.setConstant('vbarray', 8192);
         this.env.setConstant('vbcrlf', "\r\n"); this.env.setConstant('vbtab', "\t"); this.env.setConstant('vbcr', "\r"); this.env.setConstant('vblf', "\n"); this.env.setConstant('vbnewline', "\n"); this.env.setConstant('vbnullstring', ''); this.env.setConstant('vbnullchar', '\0'); this.env.setConstant('vbback', "\b"); this.env.setConstant('vbformfeed', "\f");
+        // カスタムエラー番号の基準値（MS-VBAL §6.1.2.10）。Err.Raise vbObjectError + n の慣用句で使う。
+        this.env.setConstant('vbobjecterror', -2147221504);
         this.env.setConstant('true', vbaTrue); this.env.setConstant('false', vbaFalse); this.env.setConstant('empty', vbaEmpty); this.env.setConstant('nothing', vbaNothing); this.env.setConstant('null', vbaNull);
 
         this.registerBuiltin('environ', (k: any) => this.sandbox.getEnv(k), [{ name: 'EnvString' }], ['$']);
@@ -3215,6 +3217,11 @@ export class Evaluator {
         err.vbaLine = line;
         err.vbaModule = mod;
         err.vbaStack = [...this.vbaCallStack].reverse();
+        // Err.Description は "Run-time error 'N': ..." の枠組みテキストを含まず、
+        // 生のメッセージ（例: "Type mismatch"）だけを保持する（実 VBA 仕様）。
+        // TypeScript 側に投げる例外の message には引き続き枠組み付きの文字列を使う
+        // （eval()/run() 呼び出し元向けの分かりやすさのため、既存の挙動を維持）。
+        err.vbaBareMessage = message;
         throw err;
     }
 
@@ -5624,7 +5631,11 @@ export class Evaluator {
                 // Handle VbaError or standard JS Error
                 if (!this.isInErrorHandler) {
                     const errorNumber = e.type === 'VbaError' ? e.number : 1000;
-                    const errorMessage = e.message || String(e);
+                    // vbaBareMessage があれば "Run-time error 'N': ... (line X)" の枠組みを
+                    // 含まない生のメッセージを使う（throwVbaError 経由のエラー）。
+                    // Err.Raise（ErrObject.raise）は元々 message に生のメッセージを
+                    // 直接渡しているため vbaBareMessage は持たない。
+                    const errorMessage = e.vbaBareMessage ?? e.message ?? String(e);
 
                     this.errObj.number = errorNumber;
                     this.errObj.description = errorMessage;
