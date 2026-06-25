@@ -4002,6 +4002,12 @@ export class Evaluator {
                 const mt = (decl.objectType || '').toLowerCase();
                 if (mt === 'string') defaultVal = '';
                 else if (mt === 'integer' || mt === 'long' || mt === 'double' || mt === 'single') defaultVal = 0;
+                else if (decl.objectType && this.env.getType(decl.objectType)) {
+                    // UDT (Type ... End Type) フィールド: 既定値では Empty のままになり、
+                    // Class_Initialize 等でのメンバー代入が Error 91 になっていた。
+                    // Dim 変数の UDT 初期化と同じ instantiateType() を使う。
+                    defaultVal = this.instantiateType(decl.objectType);
+                }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
                 if (decl.isWithEvents) instanceEnv.setWithEvents(decl.name.name);
             }

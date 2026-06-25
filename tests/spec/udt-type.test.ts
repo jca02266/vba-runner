@@ -215,4 +215,80 @@ End Function
     console.log('[PASS] UDT 固定サイズ配列: B-4 — 要素間で参照が共有されていない');
 }
 
+// Test 10: 仕様バグ修正 — クラスの Private/Public フィールドが UDT 型の場合、
+// 既定値が Empty のままになり Class_Initialize 内のメンバー代入が Error 91 になっていた
+{
+    const code = `
+Type StatBlock
+    Strength As Integer
+End Type
+
+Class Character
+    Private mStats As StatBlock
+    Public Sub Class_Initialize()
+        mStats.Strength = 5
+    End Sub
+    Public Function GetStrength() As Integer
+        GetStrength = mStats.Strength
+    End Function
+End Class
+
+Function Test10() As Integer
+    Dim ch As New Character
+    Test10 = ch.GetStrength()
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test10', []);
+    assert.strictEqual(result, 5, 'クラスの UDT 型フィールドが instantiateType() で正しく初期化され、Class_Initialize 内のメンバー代入が機能する');
+    console.log('[PASS] クラスの UDT 型フィールドが正しく初期化される（Class_Initialize 内のメンバー代入が機能）');
+}
+
+// Test 11: クラスの UDT 型フィールドは Class_Initialize がなくても既定値（0/""）で初期化される
+{
+    const code = `
+Type Inner
+    Value As Integer
+End Type
+Type Outer
+    Name As String
+    Nested As Inner
+End Type
+
+Class Widget
+    Public Info As Outer
+End Class
+
+Function Test11() As String
+    Dim w As New Widget
+    Test11 = "[" & w.Info.Name & "][" & w.Info.Nested.Value & "]"
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test11', []);
+    assert.strictEqual(result, '[][0]', 'ネストした UDT フィールドも既定値（文字列は空、数値は0）で初期化される');
+    console.log('[PASS] ネストした UDT フィールドも既定値で初期化される');
+}
+
+// Test 12: クラスの UDT 型フィールドは複数インスタンス間で参照を共有しない
+{
+    const code = `
+Type Inner
+    Value As Integer
+End Type
+
+Class Widget
+    Public Info As Inner
+End Class
+
+Function Test12() As String
+    Dim w1 As New Widget, w2 As New Widget
+    w1.Info.Value = 100
+    w2.Info.Value = 200
+    Test12 = w1.Info.Value & "," & w2.Info.Value
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test12', []);
+    assert.strictEqual(result, '100,200', '複数インスタンスの UDT フィールドは独立している（参照共有なし）');
+    console.log('[PASS] クラスの UDT 型フィールドは複数インスタンス間で参照を共有しない');
+}
+
 console.log('\n✅ User Defined Type: 全テスト通過');
