@@ -2110,7 +2110,7 @@ export class Evaluator {
             localEnv.setLocally(paramName, argValue);
         }
 
-        return this.execProcBody(proc, localEnv, {
+        const result = this.execProcBody(proc, localEnv, {
             byRefArgs: [],
             paramArrayParamName: null,
             paramArrayByRefExprs: [],
@@ -2119,6 +2119,21 @@ export class Evaluator {
             returnOnProperty: true,
             subReturnValue: vbaEmpty,
         });
+
+        // ByRef パラメーターの値を呼び出し元の args 配列へ書き戻す。
+        // VBARunner.run() のように TypeScript から直接 callProcedure を呼ぶ場合、
+        // JS の数値・文字列・Boolean はプリミティブで参照を共有しないため、
+        // ByRef パラメーターへの代入（Sub 内の `n = n + 1` 等）が呼び出し元の
+        // args 配列に反映されない問題があった。VBA の既定の引数渡しは ByRef
+        // （明示的な ByVal がない限り）なので、ByVal 以外のパラメーターは
+        // 呼び出し後の最終値を args[i] に書き戻す。
+        for (let i = 0; i < proc.parameters.length; i++) {
+            const param = proc.parameters[i];
+            if (param.isParamArray || param.isByVal || i >= args.length) continue;
+            args[i] = localEnv.get(param.name.toLowerCase());
+        }
+
+        return result;
 
         } finally {
             this.vbaCallStack.pop();

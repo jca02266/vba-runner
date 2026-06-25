@@ -183,6 +183,24 @@ const vbaRunner = new VBARunner('src/vba/Sample.bas', {
 vbaRunner.run('SeedGlider', [1, 1]); // no [PASS] log printed
 ```
 
+### 7. `ByRef` out-parameters
+
+VBA's default argument-passing mode is `ByRef`. When a called `Sub`/`Function`
+assigns to a `ByRef` parameter, `run()` writes the final value back into the
+JS array you passed in — useful for the common "status + message" pattern:
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas');
+
+const args: any[] = [/* plate */ 'ABC-123', /* outMessage */ ''];
+vbaRunner.run('ParkCar', args);
+console.log(args[1]); // the Sub's ByRef outMessage parameter, after the call
+```
+
+`ByVal` parameters are left untouched (the caller's original value is kept).
+
 ## CLI Tools
 
 | Command | Description |

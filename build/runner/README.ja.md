@@ -179,6 +179,24 @@ const vbaRunner = new VBARunner('src/vba/Sample.bas', {
 vbaRunner.run('SeedGlider', [1, 1]); // [PASS] ログは出力されない
 ```
 
+### 7. `ByRef` の出力パラメーター
+
+VBA の既定の引数渡しは `ByRef` です。呼び出した `Sub`/`Function` が `ByRef`
+パラメーターに代入した場合、`run()` は呼び出し元が渡した JS 配列にその最終値を
+書き戻します。「ステータス + メッセージ」パターンによく使われます。
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Sample.bas');
+
+const args: any[] = [/* plate */ 'ABC-123', /* outMessage */ ''];
+vbaRunner.run('ParkCar', args);
+console.log(args[1]); // 呼び出し後、Sub の ByRef outMessage パラメーターの値が入る
+```
+
+`ByVal` パラメーターは書き戻されません（呼び出し元の元の値が維持されます）。
+
 ## CLI ツール
 
 `vba-runner` パッケージは以下の CLI ツールを提供します。
