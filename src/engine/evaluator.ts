@@ -2718,6 +2718,33 @@ export class Evaluator {
         }
     }
 
+    /**
+     * `+`/`-` の連鎖を再帰的に左へ辿り、最終的な葉が呼び出し可能な形
+     * （`Identifier`/`CallExpression`/`MemberExpression`）かどうかを判定する。
+     * `evalExpression()` の高速パスで、`x + 1` のような裸の式が VBA の
+     * 暗黙 Call 文と曖昧な形になっていないかを検出するために使う。
+     * 括弧で明示的に囲まれた場合（`(x) + 1`）は曖昧性が解消されるため false。
+     */
+    private isCallableLeftmostLeaf(expr: Expression): boolean {
+        let node: Expression = expr;
+        while (true) {
+            switch (node.type) {
+                case 'Identifier':
+                case 'CallExpression':
+                case 'MemberExpression':
+                    return true;
+                case 'BinaryExpression': {
+                    const op = (node as BinaryExpression).operator;
+                    if (op !== '+' && op !== '-') return false;
+                    node = (node as BinaryExpression).left;
+                    continue;
+                }
+                default:
+                    return false;
+            }
+        }
+    }
+
     /** @deprecated Use {@link evaluateModule} instead. */
     public evaluate(program: Program) {
         this.evaluateModule(program);
@@ -2763,17 +2790,23 @@ export class Evaluator {
                     fullyConsumed = (exprParser as any).peek(aheadOffset).type === TokenType.EOF;
                 }
 
-                // VBA の `=` は代入文（statement）の先頭にも、比較式（expression）の中にも
-                // 現れる。`x = 10` や `arr(1) = "a"` のように `=` が式全体のトップレベル
-                // 演算子のまま入力全体を消費した場合、それは「等価比較の結果を返す式」では
-                // なく「代入文」の意図である可能性が高い（実 VBA でも裸の `lhs = rhs` 文は
-                // 常に代入として解釈され、比較式として読まれることはない）。
-                // ここで式として確定させず、下のフォールバック（文として解析・実行）に
-                // 委ねないと、代入が一切実行されず比較結果の真偽値だけが返ってしまう。
-                const isTopLevelEqualityLookingLikeAssignment =
-                    expr.type === 'BinaryExpression' && (expr as BinaryExpression).operator === '=';
+                // VBA の statement 文法では、識別子（や `obj.Member`・`arr(i)` などの呼び出し
+                // 可能な形）で始まり `=`/`+`/`-` が続く裸の文は、単独行でも複数文中でも常に
+                // 「代入文」または「暗黙の Call 文」として解釈される（`x = 10` は代入、
+                // `x + 1` は `x` を引数 `+1` で呼ぶ Call 文。`<`/`&`/`And` 等はこの曖昧性を
+                // 持たず、statement としては Parse error になるため対象外）。
+                // ここで式として確定させてしまうと、代入が一切実行されなかったり
+                // （`x = 10` を比較式として評価）、呼び出し可能な手続きが暗黙的に
+                // Empty(0) 扱いされて誤った算術結果を返したりする
+                // （`Helper + 1` で `Helper` が必須引数を持つ場合など）。
+                // 括弧で明示的に囲った場合（`(x) + 1`）は曖昧性が解消されるため対象外。
+                const isStatementAmbiguous = expr.type === 'BinaryExpression' && (
+                    (expr as BinaryExpression).operator === '=' ||
+                    (((expr as BinaryExpression).operator === '+' || (expr as BinaryExpression).operator === '-')
+                        && this.isCallableLeftmostLeaf((expr as BinaryExpression).left))
+                );
 
-                if (fullyConsumed && !isTopLevelEqualityLookingLikeAssignment) {
+                if (fullyConsumed && !isStatementAmbiguous) {
                     // If it is just an Identifier matching a Procedure, run it as a CallStatement
                     if (expr.type === 'Identifier') {
                         const name = (expr as Identifier).name;
