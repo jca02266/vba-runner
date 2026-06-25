@@ -52,6 +52,7 @@
 | **[internals/NAME_RESOLUTION.md](internals/NAME_RESOLUTION.md)** | 名前解決の仕様と実装（MS-VBAL §5.6.10） | 名前解決・スコープ関連のバグ修正時に参照 |
 | **[internals/DATAFLOW_ANALYSIS_TODO.md](internals/DATAFLOW_ANALYSIS_TODO.md)** | データフロー解析の実装計画 | データフロー解析を実装する際に参照 |
 | **[internals/IDENTIFIER_CLASSIFICATION_TODO.md](internals/IDENTIFIER_CLASSIFICATION_TODO.md)** | 識別子分類の正規化 TODO | 識別子解決の改善を行う際に参照 |
+| **[internals/AMBIGUOUS_SYNTAX.md](internals/AMBIGUOUS_SYNTAX.md)** | VBA の構文的曖昧性（ラベル vs `:`、`=` 代入/比較、`x + 1` 算術/暗黙Call文）と `eval()` での対処 | `eval()` 周辺のバグ修正・パーサー変更時に参照 |
 
 ---
 
