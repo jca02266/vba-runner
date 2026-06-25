@@ -2790,6 +2790,13 @@ export class Evaluator {
             const lexer = new Lexer(exprString);
             const tokens = lexer.tokenize();
 
+            // 単一式としてパースできるか試す（パース段階のみを try/catch で囲む）。
+            // 実行（callProcedure/evaluateExpression）はこの外側で行うことで、
+            // 実行中に発生した本物のランタイムエラーが catch に飲み込まれて
+            // 「Parse error: syntax error」のような無関係なフォールバックエラーに
+            // 化けてしまう問題を防ぐ（例: 式の中で呼んだ関数が Error 91 を投げても
+            // 黒く握りつぶされ、文として再解析した際の無関係な構文エラーだけが見える）。
+            let fastPathExpr: Expression | null = null;
             try {
                 const exprParser = new Parser(tokens);
                 const expr = exprParser.parseExpressionPublic();
@@ -2824,19 +2831,23 @@ export class Evaluator {
                 );
 
                 if (fullyConsumed && !isStatementAmbiguous) {
-                    // If it is just an Identifier matching a Procedure, run it as a CallStatement
-                    if (expr.type === 'Identifier') {
-                        const name = (expr as Identifier).name;
-                        if (this.env.getProcedure(name)) {
-                            this.callProcedure(name, []);
-                            return undefined;
-                        }
-                    }
-                    // Otherwise evaluate as a typical expression returning a value
-                    return this.evaluateExpression(expr);
+                    fastPathExpr = expr;
                 }
             } catch {
-                // Ignored: fallback to full statement parsing
+                // パース失敗。フォールバック（文として解析）に委ねる。
+            }
+
+            if (fastPathExpr) {
+                // If it is just an Identifier matching a Procedure, run it as a CallStatement
+                if (fastPathExpr.type === 'Identifier') {
+                    const name = (fastPathExpr as Identifier).name;
+                    if (this.env.getProcedure(name)) {
+                        this.callProcedure(name, []);
+                        return undefined;
+                    }
+                }
+                // Otherwise evaluate as a typical expression returning a value
+                return this.evaluateExpression(fastPathExpr);
             }
 
             // Fallback: parse and evaluate as a statement sequence.
@@ -4020,6 +4031,16 @@ export class Evaluator {
                     // Class_Initialize 等でのメンバー代入が Error 91 になっていた。
                     // Dim 変数の UDT 初期化と同じ instantiateType() を使う。
                     defaultVal = this.instantiateType(decl.objectType);
+                } else if (decl.objectType && (
+                    this.classDefinitions.has(mt) || this.externalObjectFactories.has(mt) ||
+                    mt === 'object' || mt === 'collection'
+                )) {
+                    // オブジェクト型（クラス名・Object・Collection・WithEvents 含む）フィールドは
+                    // New を伴わない宣言の既定値が Empty のままになっていた。実 VBA では
+                    // オブジェクト参照型は未代入時 Nothing になる（Empty ではない）ため、
+                    // `Is Nothing` 判定や WithEvents バインディングの前提が崩れていた。
+                    // Dim 変数の既定値判定（evaluateVariableDeclaration）と同じ扱いに揃える。
+                    defaultVal = vbaNothing;
                 }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
                 if (decl.isWithEvents) instanceEnv.setWithEvents(decl.name.name);
@@ -4767,6 +4788,36 @@ export class Evaluator {
         this.moduleVarRegistry.get(key)!.add(varName.toLowerCase());
     }
 
+    /**
+     * `Set <fieldName> = obj`（WithEvents フィールドへの代入）で `<fieldName>_<EventName>`
+     * ハンドラーを配線する。bare identifier 代入（`Set Source = New Pub`）・
+     * member access 経由の代入（`Set s.Source = New Pub`）の両方から呼ばれる。
+     * `classDef`/`instance` はハンドラーの検索先・実行時の `Me` に使う
+     * （bare identifier の場合は呼び出し元の `Me`、member access の場合は代入先オブジェクト自身）。
+     */
+    private bindWithEventsHandlers(fieldName: string, value: any, classDef: ClassDeclaration | undefined, instance: any) {
+        for (const eventName of value.__events__.keys()) {
+            const handlerName = `${fieldName}_${eventName}`;
+            const handlerNameLower = handlerName.toLowerCase();
+            const handlers = value.__events__.get(eventName);
+            if (classDef) {
+                const classProc = classDef.procedures.find(
+                    p => p.name.name.toLowerCase() === handlerNameLower
+                );
+                if (classProc) {
+                    const capturedInstance = instance;
+                    const capturedProc = classProc;
+                    handlers.push((...args: any[]) => this.callClassMethod(capturedInstance, capturedProc, args));
+                    continue;
+                }
+            }
+            const handler = this.env.getProcedure(handlerName);
+            if (handler) {
+                handlers.push((...args: any[]) => this.callProcedure(handlerName, args));
+            }
+        }
+    }
+
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
 
@@ -4821,27 +4872,7 @@ export class Evaluator {
             if (this.env.isWithEvents(name) && value && value.__events__) {
                 // Binding: look for VarName_EventName subs — first in class scope, then global
                 const me = this.env.get('me');
-                const classDef = me?.__classDef__ as ClassDeclaration | undefined;
-                for (const eventName of value.__events__.keys()) {
-                    const handlerName = `${name}_${eventName}`;
-                    const handlerNameLower = handlerName.toLowerCase();
-                    const handlers = value.__events__.get(eventName);
-                    if (classDef) {
-                        const classProc = classDef.procedures.find(
-                            p => p.name.name.toLowerCase() === handlerNameLower
-                        );
-                        if (classProc) {
-                            const capturedMe = me;
-                            const capturedProc = classProc;
-                            handlers.push((...args: any[]) => this.callClassMethod(capturedMe, capturedProc, args));
-                            continue;
-                        }
-                    }
-                    const handler = this.env.getProcedure(handlerName);
-                    if (handler) {
-                        handlers.push((...args: any[]) => this.callProcedure(handlerName, args));
-                    }
-                }
+                this.bindWithEventsHandlers(name, value, me?.__classDef__, me);
             }
         } else if (stmt.left.type === 'MemberExpression') {
             const member = stmt.left as MemberExpression;
@@ -4859,6 +4890,13 @@ export class Evaluator {
                     this.callClassMethod(obj, setter, [value]);
                 } else {
                     instanceEnv.set(propName, value);
+                    // obj.Field = New X 形式（外部からの WithEvents フィールド代入）でも
+                    // バインドが行われるようにする。bare identifier 代入のみを見ていたため、
+                    // member access 経由の代入では handler が一切ワイヤリングされず
+                    // イベントが静かに発火しなかった。
+                    if (instanceEnv.isWithEvents(propName) && value && value.__events__) {
+                        this.bindWithEventsHandlers(propName, value, classDef, obj);
+                    }
                 }
             } else if (obj && typeof obj === 'object') {
                 const oldVal = obj[propName];

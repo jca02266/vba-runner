@@ -129,5 +129,39 @@ End Class
     console.log('[PASS] キーワード Open をイベント名にするとコンパイルエラー');
 }
 
+// --- 5. 仕様バグ修正: クラス外部から `Set obj.Field = New X`（member access 経由）で
+// WithEvents フィールドに代入した場合も、ハンドラーが正しく配線される。
+// 修正前は bare identifier 代入（`Set Field = New X`）のみハンドラーを配線しており、
+// member access 経由の代入では参照は格納されるが（Is Nothing は False になる）
+// イベントハンドラーが一切ワイヤリングされず、イベントが静かに発火しなかった。
+{
+    const code = `
+Class Pub
+    Public Event Ping()
+    Sub Fire()
+        RaiseEvent Ping
+    End Sub
+End Class
+
+Class Sub1
+    Public WithEvents Source As Pub
+    Public handledCount As Integer
+    Private Sub Source_Ping()
+        handledCount = handledCount + 1
+    End Sub
+End Class
+
+Function Test5() As Integer
+    Dim s As New Sub1
+    Set s.Source = New Pub
+    s.Source.Fire
+    Test5 = s.handledCount
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test5', []);
+    assert.strictEqual(result, 1, 'member access 経由の WithEvents フィールド代入でもイベントハンドラーが配線される');
+    console.log('[PASS] member access 経由の WithEvents フィールド代入でもハンドラーが配線される');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');
 
