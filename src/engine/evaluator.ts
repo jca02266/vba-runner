@@ -2763,7 +2763,17 @@ export class Evaluator {
                     fullyConsumed = (exprParser as any).peek(aheadOffset).type === TokenType.EOF;
                 }
 
-                if (fullyConsumed) {
+                // VBA の `=` は代入文（statement）の先頭にも、比較式（expression）の中にも
+                // 現れる。`x = 10` や `arr(1) = "a"` のように `=` が式全体のトップレベル
+                // 演算子のまま入力全体を消費した場合、それは「等価比較の結果を返す式」では
+                // なく「代入文」の意図である可能性が高い（実 VBA でも裸の `lhs = rhs` 文は
+                // 常に代入として解釈され、比較式として読まれることはない）。
+                // ここで式として確定させず、下のフォールバック（文として解析・実行）に
+                // 委ねないと、代入が一切実行されず比較結果の真偽値だけが返ってしまう。
+                const isTopLevelEqualityLookingLikeAssignment =
+                    expr.type === 'BinaryExpression' && (expr as BinaryExpression).operator === '=';
+
+                if (fullyConsumed && !isTopLevelEqualityLookingLikeAssignment) {
                     // If it is just an Identifier matching a Procedure, run it as a CallStatement
                     if (expr.type === 'Identifier') {
                         const name = (expr as Identifier).name;
