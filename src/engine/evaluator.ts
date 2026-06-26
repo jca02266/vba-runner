@@ -3742,7 +3742,32 @@ export class Evaluator {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         this.callClassMethod(obj, setter, [...argsVals, val]);
                     } else {
-                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                        // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
+                        // 例: obj.Items(0) = val
+                        const instanceEnvForArr = obj.__instanceEnv__ as Environment;
+                        const fieldArr = instanceEnvForArr.get(methodName);
+                        if (Array.isArray(fieldArr)) {
+                            const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                            if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            let current = fieldArr;
+                            for (let i = 0; i < call.args.length - 1; i++) {
+                                const d = this.evaluateExpression(call.args[i]) as number;
+                                if (dims) {
+                                    const { lower, upper } = dims[i];
+                                    if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                                }
+                                if (!current[d]) current[d] = [];
+                                current = current[d];
+                            }
+                            const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                            if (dims) {
+                                const { lower, upper } = dims[call.args.length - 1];
+                                if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current[lastIdx] = val;
+                        } else {
+                            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                        }
                     }
                 } else if (obj && typeof obj === 'object') {
                     // obj.Method(args) = val: Method を呼び出し、結果が __vbaDefault__ を持つ場合は
@@ -4041,6 +4066,22 @@ export class Evaluator {
                     // `Is Nothing` 判定や WithEvents バインディングの前提が崩れていた。
                     // Dim 変数の既定値判定（evaluateVariableDeclaration）と同じ扱いに揃える。
                     defaultVal = vbaNothing;
+                }
+                if (decl.isArray) {
+                    if (decl.arrayBounds && decl.arrayBounds.length > 0) {
+                        defaultVal = this.createMultiDimArray(decl.arrayBounds, defaultVal);
+                        (defaultVal as any).vbaFixed = true;
+                    } else {
+                        defaultVal = [];
+                        (defaultVal as any).vbaBase = this.arrayBase;
+                        (defaultVal as any).vbaFixed = false;
+                    }
+                    if (decl.objectType && this.env.getType(decl.objectType)) {
+                        (defaultVal as any).__vbaElementTypeName__ = decl.objectType;
+                        if ((defaultVal as any).vbaFixed) {
+                            this.fillArrayWithUdtInstances(defaultVal, decl.objectType);
+                        }
+                    }
                 }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
                 if (decl.isWithEvents) instanceEnv.setWithEvents(decl.name.name);
@@ -6681,6 +6722,31 @@ export class Evaluator {
                     this.checkNoGapOnRequiredParam(ifaceProc.parameters, expr.args);
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, ifaceProc, argsVals);
+                }
+                // プロシージャが見つからない場合、配列フィールドへの外部インデックスアクセスを試みる
+                // 例: obj.Items(0)
+                {
+                    const instanceEnvForRead = obj.__instanceEnv__ as Environment;
+                    const fieldArrRead = instanceEnvForRead.get(methodNameLower);
+                    if (Array.isArray(fieldArrRead)) {
+                        const dims = (fieldArrRead as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        let current: any = fieldArrRead;
+                        for (let i = 0; i < expr.args.length - 1; i++) {
+                            const d = this.evaluateExpression(expr.args[i]) as number;
+                            if (dims) {
+                                const { lower, upper } = dims[i];
+                                if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current = current[d];
+                            if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        const lastIdx = this.evaluateExpression(expr.args[expr.args.length - 1]) as number;
+                        if (dims) {
+                            const { lower, upper } = dims[expr.args.length - 1];
+                            if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        return current[lastIdx];
+                    }
                 }
                 this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
             }

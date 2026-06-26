@@ -259,4 +259,60 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
 }
 
+// --- 仕様バグ修正: クラスフィールドの固定長配列が Empty のままで Subscript out of range になっていた ---
+{
+    const code = `
+    Class FixedArrayHolder
+        Public Items(4) As Long
+        Public Names(2) As String
+
+        Sub Init()
+            Items(0) = 10
+            Items(4) = 99
+            Names(0) = "hello"
+            Names(2) = "world"
+        End Sub
+
+        Function SumItems() As Long
+            Dim i As Long, s As Long
+            For i = 0 To 4
+                s = s + Items(i)
+            Next i
+            SumItems = s
+        End Function
+    End Class
+
+    Function TestFixedArray() As String
+        Dim obj As New FixedArrayHolder
+        obj.Init
+        TestFixedArray = obj.Items(0) & "," & obj.Items(4) & "," & obj.Names(0) & "," & obj.Names(2) & "," & obj.SumItems()
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestFixedArray'), '10,99,hello,world,109', 'クラスフィールドの固定長配列が正しく初期化される');
+    console.log('[PASS] クラスフィールドの固定長配列');
+}
+
+// 動的配列フィールド（ReDim）は以前から動作していたが、回帰確認
+{
+    const code = `
+    Class DynArrayHolder
+        Public Items() As Long
+
+        Sub Init(ByVal n As Long)
+            ReDim Items(n - 1)
+        End Sub
+    End Class
+
+    Function TestDynArray() As Long
+        Dim obj As New DynArrayHolder
+        obj.Init 3
+        obj.Items(0) = 5
+        obj.Items(2) = 7
+        TestDynArray = obj.Items(0) + obj.Items(2)
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestDynArray'), 12, 'クラスフィールドの動的配列（ReDim）が正しく動作する');
+    console.log('[PASS] クラスフィールドの動的配列（ReDim）');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');
