@@ -2,6 +2,41 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.10] - 2026-06-26
+
+### Added
+
+- **`quiet` and `onPrint` options for `VBARunner`** — pass `{ quiet: true }` to suppress the `[PASS]` log lines that `run()` emits, and `{ onPrint: (s) => ... }` to redirect `Debug.Print` output to a custom handler (e.g. `stderr` or a collector array) instead of `console.log`.
+
+### Changed
+
+- **`run()` and `eval()` now return plain JS `boolean` for VBA `Boolean` results** — previously a `VbaBoolean` wrapper object was returned, which failed `assert.strictEqual(result, true)` and caused JS truthiness bugs (`if (vbaFalse)` was truthy). Both methods now convert `VbaBoolean` to `true`/`false` automatically. The engine internally still uses `VbaBoolean` so VBA arithmetic (`True + 1 = 0`) is unaffected.
+
+### Removed
+
+- **`assert.isTrue` and `assert.isFalse` have been removed** — they were the workaround for the `VbaBoolean` wrapper. Use `assert.strictEqual(result, true)` / `assert.strictEqual(result, false)` or any standard assertion library directly.
+
+### Fixed
+
+- **`eval()` with multi-line code only executed the first line** — subsequent lines were silently dropped when input contained newlines. All lines are now executed in order.
+- **`eval()` with a bare assignment statement (`x = 10`, `arr(1) = "a"`) performed no assignment** — the statement was parsed as an expression and the value was discarded. Bare assignments at the top level are now correctly executed.
+- **`eval('x + 1')` returned a different result than `eval('... : x + 1')` (trailing expression in multi-statement input)** — the two evaluation paths now agree.
+- **`eval()` did not process `On Error` directives and leaked `On Error` state from class methods** — each `eval()` call now runs in a clean error-handler context, and class method calls no longer leave behind a stale `On Error` handler in the caller's frame.
+- **`eval()` did not enforce `Option Explicit`** — undeclared variable references in `eval()` code were silently treated as `Empty` even when `Option Explicit` was declared in the loaded module.
+- **`eval()` lost module-level `Dim` declarations after a file was loaded** — variables declared with `Dim` at module scope were invisible to `eval()` calls made after constructing `VBARunner` from a file or directory.
+- **`run()` did not write `ByRef` parameter changes back to the caller's `args` array** — mutations to `ByRef` parameters inside a called `Sub`/`Function` are now reflected in the JS array passed as `args`, consistent with VBA semantics.
+- **`Function` declared `As Type()` (array return type) was treated as a scalar** — the trailing `()` was silently discarded, causing `IsArray()` to return `False` for the result and array-element access to fail.
+- **Class method `On Error` state leaked into the caller** — an `On Error GoTo` inside a class method that was never triggered left the handler active when control returned to the caller.
+- **`Join()` on an array with a non-zero lower bound raised an error** — `Join(Array(1, 2), ",")` where `Array()` produces a 0-based array worked, but arrays declared with `Dim arr(1 To 3)` caused `Subscript out of range`. `Join` now handles any lower bound.
+- **`Open ... For Append` silently overwrote the file** — opening an existing file in Append mode now correctly positions writes at the end of the file instead of truncating it.
+- **Class fields of type `Boolean`, `Currency`, `Byte`, `LongLong`, `LongPtr` defaulted to `Empty` instead of `0`/`False`** — these fields now match real VBA's default-initialization rules.
+- **Class fields of UDT type defaulted to `Empty`** — member assignment inside `Class_Initialize` raised Error 91. UDT fields are now initialized to a proper UDT instance on construction.
+- **Class fields with object types defaulted to `Empty` instead of `Nothing`** — `Is Nothing` checks and `WithEvents` wiring that depend on the Nothing default now work correctly.
+- **`WithEvents` field member-access event wiring was not connected** — event handlers declared with `WithEvents` were not hooked up to the source object's event sink, so raising an event on the source object never called the handler.
+- **Class fields declared as fixed-size arrays (`Dim arr(N) As T`) were not initialized** — accessing `obj.Items(0)` inside a class method raised Error 9 (Subscript out of range), and `obj.Items(0) = val` from outside raised Error 438. Fixed-size array fields are now initialized to a properly-dimensioned array on construction, and external indexed access (`obj.Field(i)`) is now supported for both reads and writes.
+- **`Err.Description` was populated with internal framework text instead of the user's message** — `Err.Raise vbObjectError + 1, , "my message"` set `Err.Description` to the error-construction code path's label instead of `"my message"`. `vbObjectError` (−2147221504) was also unrecognized and reported as an unknown error number.
+- **`eval()` fast-path silently swallowed runtime errors as syntax errors** — a runtime error thrown during expression evaluation (e.g. division by zero, type mismatch) was caught by the expression-parser fallback and re-reported as `Compile error: Expected expression`, hiding the real error.
+
 ## [0.1.1-alpha.9] - 2026-06-24
 
 ### Fixed

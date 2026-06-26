@@ -2,6 +2,19 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.8] - 2026-06-26
+
+### Fixed
+
+- **Class fields of fixed-size array type (`Dim arr(N) As T`) were not initialized** — accessing `Items(0)` inside a class method raised Error 9, and external access `obj.Items(0)` raised Error 438. Fixed-size array fields are now correctly initialized on construction.
+- **Class fields of `Boolean`, `Currency`, `Byte`, `LongLong`, `LongPtr` type defaulted to `Empty`** — these fields now initialize to `False`/`0` as real VBA does.
+- **Class fields of UDT type defaulted to `Empty`** — member assignment in `Class_Initialize` raised Error 91. UDT fields are now initialized to a proper UDT instance.
+- **Class fields with object/class types defaulted to `Empty` instead of `Nothing`** — `Is Nothing` checks now work correctly on unset object fields.
+- **`WithEvents` field member-access event wiring was not connected** — event handlers were not hooked up to the source object, so raising an event never triggered the handler.
+- **`Open ... For Append` silently overwrote the file** — writes now correctly append to the end of an existing file.
+- **`Err.Raise` with `vbObjectError` offset put internal framework text in `Err.Description`** — the user-supplied description is now preserved. `vbObjectError` (−2147221504) is now a recognized constant.
+- **`eval()` fast-path swallowed runtime errors as syntax errors** — runtime errors (division by zero, type mismatch, etc.) are now reported correctly instead of being relabelled as `Compile error: Expected expression`.
+
 ## [0.2.7] - 2026-06-24
 
 ### Fixed
