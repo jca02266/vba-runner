@@ -7,7 +7,7 @@
  *   - Nothing: オブジェクト参照のみ。算術演算では Type mismatch エラー
  *   - Missing: 未指定の Optional 引数（IsMissing で検出）
  */
-import { vbaNull, vbaEmpty } from '../../src/engine/evaluator';
+import { vbaNull, vbaEmpty, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
@@ -135,10 +135,10 @@ console.log('--- Starting Null/Empty Propagation Tests ---');
         Function EmptyEqEmpty() : EmptyEqEmpty = (Empty = Empty) : End Function
         Function EmptyLt5() : EmptyLt5 = (Empty < 5) : End Function
     `;
-    assert.isTrue(runFunc(code, 'EmptyEq0'), 'Empty = 0 → True');
-    assert.isTrue(runFunc(code, 'EmptyEqStr'), 'Empty = "" → True');
-    assert.isTrue(runFunc(code, 'EmptyEqEmpty'), 'Empty = Empty → True');
-    assert.isTrue(runFunc(code, 'EmptyLt5'), 'Empty < 5 → True (Empty を 0 として比較)');
+    assert.strictEqual(runFunc(code, 'EmptyEq0'), vbaTrue, 'Empty = 0 → True');
+    assert.strictEqual(runFunc(code, 'EmptyEqStr'), vbaTrue, 'Empty = "" → True');
+    assert.strictEqual(runFunc(code, 'EmptyEqEmpty'), vbaTrue, 'Empty = Empty → True');
+    assert.strictEqual(runFunc(code, 'EmptyLt5'), vbaTrue, 'Empty < 5 → True (Empty を 0 として比較)');
     console.log('[PASS] Empty 比較演算');
 }
 
@@ -239,8 +239,8 @@ console.log('--- Starting Null/Empty Propagation Tests ---');
             NothingAfterSet = (o Is Nothing)
         End Function
     `;
-    assert.isTrue(runFunc(code, 'IsObjNothing'), 'Dim o As Object → o Is Nothing = True');
-    assert.isTrue(runFunc(code, 'NothingAfterSet'), 'Set o = Nothing → o Is Nothing = True');
+    assert.strictEqual(runFunc(code, 'IsObjNothing'), vbaTrue, 'Dim o As Object → o Is Nothing = True');
+    assert.strictEqual(runFunc(code, 'NothingAfterSet'), vbaTrue, 'Set o = Nothing → o Is Nothing = True');
     console.log('[PASS] Nothing オブジェクト参照');
 }
 

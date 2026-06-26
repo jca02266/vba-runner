@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -43,13 +43,13 @@ const code = `
 
 const ev = evalVBA(code);
 
-assert.isTrue(ev.callProcedure('TestDateLiteral', []), 'IsDate(#2025/01/01#) -> True');
+assert.strictEqual(ev.callProcedure('TestDateLiteral', []), vbaTrue, 'IsDate(#2025/01/01#) -> True');
 assert.strictEqual(ev.callProcedure('GetDateTypeName', []), 'Date', 'TypeName(#2025/01/01#) -> Date');
 assert.strictEqual(ev.callProcedure('TestDateArithmetic', []), 'Date', 'TypeName(#2025/01/01# + 1) -> Date');
-assert.isTrue(ev.callProcedure('TestDateString', []), 'IsDate("2025/01/01") -> True');
-assert.isFalse(ev.callProcedure('TestInvalidString', []), 'IsDate("not a date") -> False');
-assert.isFalse(ev.callProcedure('TestEmpty', []), 'IsDate(Empty) -> False');
-assert.isFalse(ev.callProcedure('TestNull', []), 'IsDate(Null) -> False');
+assert.strictEqual(ev.callProcedure('TestDateString', []), vbaTrue, 'IsDate("2025/01/01") -> True');
+assert.strictEqual(ev.callProcedure('TestInvalidString', []), vbaFalse, 'IsDate("not a date") -> False');
+assert.strictEqual(ev.callProcedure('TestEmpty', []), vbaFalse, 'IsDate(Empty) -> False');
+assert.strictEqual(ev.callProcedure('TestNull', []), vbaFalse, 'IsDate(Null) -> False');
 
 console.log('[PASS] IsDate の基本動作');
 

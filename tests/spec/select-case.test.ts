@@ -6,7 +6,7 @@
  *   2. start To end      : Case 1 To 5
  *   3. [Is] comparison   : Case Is > 10
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -48,9 +48,9 @@ Function IsWeekend(day)
     End Select
 End Function
 `;
-assert.isTrue(runFunc(multiCode, 'IsWeekend', [1]),  'day=1 is weekend');
-assert.isTrue(runFunc(multiCode, 'IsWeekend', [7]),  'day=7 is weekend');
-assert.isFalse(runFunc(multiCode, 'IsWeekend', [3]), 'day=3 is not weekend');
+assert.strictEqual(runFunc(multiCode, 'IsWeekend', [1]), vbaTrue, 'day=1 is weekend');
+assert.strictEqual(runFunc(multiCode, 'IsWeekend', [7]), vbaTrue, 'day=7 is weekend');
+assert.strictEqual(runFunc(multiCode, 'IsWeekend', [3]), vbaFalse, 'day=3 is not weekend');
 console.log('[PASS] カンマ区切り複数値');
 
 // --- 3. To による範囲マッチ ---

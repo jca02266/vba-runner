@@ -107,7 +107,8 @@ export class VBARunner {
     run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {
         this._ensureResolved();
         const start = Date.now();
-        const result = this.evaluator.callProcedure(procedureName, args, type);
+        const raw = this.evaluator.callProcedure(procedureName, args, type);
+        const result = raw instanceof VbaBoolean ? raw.value !== 0 : raw;
         const duration = Date.now() - start;
         const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : '[Object]') : String(a)).join(', ');
         const typeStr = type ? `:${type}` : '';
@@ -119,7 +120,8 @@ export class VBARunner {
 
     eval(exprString: string): any {
         this._ensureResolved();
-        return this.evaluator.evalExpression(exprString);
+        const raw = this.evaluator.evalExpression(exprString);
+        return raw instanceof VbaBoolean ? raw.value !== 0 : raw;
     }
 
     set(name: string, value: any): void {
@@ -359,18 +361,6 @@ export const assert = {
     ok: (value: any, message?: string) => {
         if (!value) {
             console.error(`[FAIL] ${message || 'Assertion failed'} - Expected truthy value but got ${String(value)}`);
-            throw new Error(`Assertion Failed`);
-        }
-    },
-    isTrue: (actual: VbaBoolean, message?: string) => {
-        if (actual !== vbaTrue) {
-            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected vbaTrue (${String(vbaTrue)}) but got ${String(actual)}`);
-            throw new Error(`Assertion Failed`);
-        }
-    },
-    isFalse: (actual: VbaBoolean, message?: string) => {
-        if (actual !== vbaFalse) {
-            console.error(`[FAIL] ${message || 'Assertion failed'} - Expected vbaFalse (${String(vbaFalse)}) but got ${String(actual)}`);
             throw new Error(`Assertion Failed`);
         }
     },

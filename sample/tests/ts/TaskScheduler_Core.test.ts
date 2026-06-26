@@ -88,7 +88,7 @@ async function main() {
     assert.strictEqual(resultDict.__map__.get("Alice"), 0.5, "Alice config matches");
     assert.strictEqual(resultDict.__map__.get("Bob"), 1.0, "Bob config defaults to 1.0");
     assert.strictEqual(resultDict.__map__.get("Dan"), 1.25, "Dan config matches");
-    assert.isFalse(resultDict.exists("   ") || resultDict.exists(""), "Empty name skipped");
+    assert.strictEqual(resultDict.exists("   ", false) || resultDict.exists(""), "Empty name skipped");
     assert.strictEqual(resultDict.__map__.size, 3, "Only Alice, Bob, and Dan were added");
 
     console.log("\n[Test Suite] ScanLockedRows");

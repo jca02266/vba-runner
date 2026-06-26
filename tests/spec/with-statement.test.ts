@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 import type { VbaComObject } from '../../src/engine/vba-types';
 
 function evalVBA(code: string): any {
@@ -22,7 +22,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             TestWith = obj.Exists("key1")
         End Function
     `;
-    assert.isTrue(runFunc(code, 'TestWith'), 'With block should call methods on the object');
+    assert.strictEqual(runFunc(code, 'TestWith'), vbaTrue, 'With block should call methods on the object');
     console.log('[PASS] Basic With (Object)');
 }
 
@@ -42,7 +42,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             TestNestedWith = obj1.Exists("name") And obj2.Exists("name")
         End Function
     `;
-    assert.isTrue(runFunc(code, 'TestNestedWith'), 'Nested With blocks should work correctly');
+    assert.strictEqual(runFunc(code, 'TestNestedWith'), vbaTrue, 'Nested With blocks should work correctly');
     console.log('[PASS] Nested With');
 }
 
@@ -81,7 +81,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             End With
         End Function
     `;
-    assert.isTrue(runFunc(code, 'TestWithExpr'), 'With block should work with expressions');
+    assert.strictEqual(runFunc(code, 'TestWithExpr'), vbaTrue, 'With block should work with expressions');
     console.log('[PASS] With with Expression');
 }
 

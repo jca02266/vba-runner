@@ -57,12 +57,12 @@ console.log('--- Starting Boolean Coercion Tests ---');
             FromDouble = b
         End Function
     `;
-    assert.isTrue(runFunc(code, 'FromInt', [5]),     '数値 5 → True');
-    assert.isFalse(runFunc(code, 'FromInt', [0]),    '数値 0 → False');
-    assert.isTrue(runFunc(code, 'FromInt', [-1]),    '数値 -1 → True');
-    assert.isTrue(runFunc(code, 'FromInt', [-100]),  '負の数値 → True');
-    assert.isTrue(runFunc(code, 'FromDouble', [0.5]),  '小数 0.5 → True');
-    assert.isFalse(runFunc(code, 'FromDouble', [0.0]), '小数 0.0 → False');
+    assert.strictEqual(runFunc(code, 'FromInt', [5]), vbaTrue, '数値 5 → True');
+    assert.strictEqual(runFunc(code, 'FromInt', [0]), vbaFalse, '数値 0 → False');
+    assert.strictEqual(runFunc(code, 'FromInt', [-1]), vbaTrue, '数値 -1 → True');
+    assert.strictEqual(runFunc(code, 'FromInt', [-100]), vbaTrue, '負の数値 → True');
+    assert.strictEqual(runFunc(code, 'FromDouble', [0.5]), vbaTrue, '小数 0.5 → True');
+    assert.strictEqual(runFunc(code, 'FromDouble', [0.0]), vbaFalse, '小数 0.0 → False');
     console.log('[PASS] 数値からの Boolean 変換');
 }
 
@@ -77,11 +77,11 @@ console.log('--- Starting Boolean Coercion Tests ---');
             FromStr = b
         End Function
     `;
-    assert.isTrue(runFunc(code, 'FromStr', ['True']),    '"True" → True');
-    assert.isFalse(runFunc(code, 'FromStr', ['False']),  '"False" → False');
-    assert.isTrue(runFunc(code, 'FromStr', ['true']),    '"true" → True');
-    assert.isFalse(runFunc(code, 'FromStr', ['FALSE']),  '"FALSE" → False');
-    assert.isTrue(runFunc(code, 'FromStr', ['TRUE']),    '"TRUE" → True');
+    assert.strictEqual(runFunc(code, 'FromStr', ['True']), vbaTrue, '"True" → True');
+    assert.strictEqual(runFunc(code, 'FromStr', ['False']), vbaFalse, '"False" → False');
+    assert.strictEqual(runFunc(code, 'FromStr', ['true']), vbaTrue, '"true" → True');
+    assert.strictEqual(runFunc(code, 'FromStr', ['FALSE']), vbaFalse, '"FALSE" → False');
+    assert.strictEqual(runFunc(code, 'FromStr', ['TRUE']), vbaTrue, '"TRUE" → True');
     console.log('[PASS] 文字列 "True"/"False" からの変換');
 }
 
@@ -96,10 +96,10 @@ console.log('--- Starting Boolean Coercion Tests ---');
             FromNumStr = b
         End Function
     `;
-    assert.isTrue(runFunc(code, 'FromNumStr', ['1']),    '"1" → True');
-    assert.isFalse(runFunc(code, 'FromNumStr', ['0']),   '"0" → False');
-    assert.isTrue(runFunc(code, 'FromNumStr', ['-1']),   '"-1" → True');
-    assert.isTrue(runFunc(code, 'FromNumStr', ['100']),  '"100" → True');
+    assert.strictEqual(runFunc(code, 'FromNumStr', ['1']), vbaTrue, '"1" → True');
+    assert.strictEqual(runFunc(code, 'FromNumStr', ['0']), vbaFalse, '"0" → False');
+    assert.strictEqual(runFunc(code, 'FromNumStr', ['-1']), vbaTrue, '"-1" → True');
+    assert.strictEqual(runFunc(code, 'FromNumStr', ['100']), vbaTrue, '"100" → True');
     console.log('[PASS] 数値文字列からの変換');
 }
 
@@ -115,7 +115,7 @@ console.log('--- Starting Boolean Coercion Tests ---');
             FromEmpty = b
         End Function
     `;
-    assert.isFalse(runFunc(code, 'FromEmpty'), 'Empty → False');
+    assert.strictEqual(runFunc(code, 'FromEmpty'), vbaFalse, 'Empty → False');
     console.log('[PASS] Empty からの Boolean 変換');
 }
 
@@ -168,12 +168,12 @@ console.log('--- Starting Boolean Coercion Tests ---');
             Threshold = pass
         End Function
     `;
-    assert.isTrue(runFunc(code, 'ParseSetting', ['True']),    '設定 "True" → 有効');
-    assert.isFalse(runFunc(code, 'ParseSetting', ['False']),  '設定 "False" → 無効');
-    assert.isTrue(runFunc(code, 'IsEnabled', [1]),    'フラグ 1 → 有効');
-    assert.isFalse(runFunc(code, 'IsEnabled', [0]),   'フラグ 0 → 無効');
-    assert.isTrue(runFunc(code, 'Threshold', [80, 70]),   '80 >= 70 → True');
-    assert.isFalse(runFunc(code, 'Threshold', [60, 70]),  '60 < 70 → False');
+    assert.strictEqual(runFunc(code, 'ParseSetting', ['True']), vbaTrue, '設定 "True" → 有効');
+    assert.strictEqual(runFunc(code, 'ParseSetting', ['False']), vbaFalse, '設定 "False" → 無効');
+    assert.strictEqual(runFunc(code, 'IsEnabled', [1]), vbaTrue, 'フラグ 1 → 有効');
+    assert.strictEqual(runFunc(code, 'IsEnabled', [0]), vbaFalse, 'フラグ 0 → 無効');
+    assert.strictEqual(runFunc(code, 'Threshold', [80, 70]), vbaTrue, '80 >= 70 → True');
+    assert.strictEqual(runFunc(code, 'Threshold', [60, 70]), vbaFalse, '60 < 70 → False');
     console.log('[PASS] VBA ベテランパターン: フラグ管理');
 }
 

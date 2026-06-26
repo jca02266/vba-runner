@@ -13,7 +13,7 @@
  * ファイル操作は VFS (MemoryFileSystem) を使用して、ホスト OS に副作用を
  * 与えずに検証する。
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 import { MemoryFileSystem } from '../../src/engine/filesystem';
 
 console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェクト検証');
@@ -109,11 +109,11 @@ console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェ�
         End Function
     `;
     const ev = evalVBASingle(code, { fs: vfs });
-    assert.isTrue(ev.callProcedure('TestFSOCreateText', []), 'FSO: CreateTextFile + FileExists');
+    assert.strictEqual(ev.callProcedure('TestFSOCreateText', []), vbaTrue, 'FSO: CreateTextFile + FileExists');
     const content = ev.callProcedure('TestFSOReadAll', []) as string;
     assert.strictEqual(content.includes('Hello') && content.includes('World'), true, 'FSO: OpenTextFile + ReadAll');
-    assert.isTrue(ev.callProcedure('TestFSOFolderOps', []), 'FSO: CreateFolder + FolderExists');
-    assert.isTrue(ev.callProcedure('TestFSODeleteFile', []), 'FSO: DeleteFile');
+    assert.strictEqual(ev.callProcedure('TestFSOFolderOps', []), vbaTrue, 'FSO: CreateFolder + FolderExists');
+    assert.strictEqual(ev.callProcedure('TestFSODeleteFile', []), vbaTrue, 'FSO: DeleteFile');
     assert.strictEqual(
         ev.callProcedure('TestFSOPathOps', ['C:\\path\\to\\report.xlsx']),
         'report|xlsx|C:\\path\\to',
@@ -233,10 +233,10 @@ console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェ�
         End Function
     `;
     const ev = evalVBASingle(code);
-    assert.isFalse(ev.callProcedure('TestIsNothingFresh', []), 'Auto-instance: 直後の Is Nothing は False');
-    assert.isTrue(ev.callProcedure('TestIsNothingPlain', []), '通常 Dim: Is Nothing は True');
+    assert.strictEqual(ev.callProcedure('TestIsNothingFresh', []), vbaFalse, 'Auto-instance: 直後の Is Nothing は False');
+    assert.strictEqual(ev.callProcedure('TestIsNothingPlain', []), vbaTrue, '通常 Dim: Is Nothing は True');
     assert.strictEqual(ev.callProcedure('TestReinstantiation', []), 1, 'Auto-instance: Set Nothing 後の再インスタンス化');
-    assert.isFalse(ev.callProcedure('TestIsNothingAfterSetNothing', []), 'Auto-instance: Set Nothing 後も Is Nothing は False');
+    assert.strictEqual(ev.callProcedure('TestIsNothingAfterSetNothing', []), vbaFalse, 'Auto-instance: Set Nothing 後も Is Nothing は False');
     assert.strictEqual(ev.callProcedure('TestTypeName', []), 'Dictionary', 'Auto-instance: TypeName は class 名');
     console.log('[PASS] Auto-Instantiation (Dim As New)');
 }

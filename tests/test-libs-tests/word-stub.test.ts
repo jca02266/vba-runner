@@ -34,7 +34,7 @@ assert.strictEqual(runner.run('TestAppName', []), 'Microsoft Word', 'Application
 console.log('[PASS] Application.ScreenUpdating / Name');
 
 // --- Find.Execute（スタブ: Found = False）---
-assert.isFalse(runner.run('TestFind', []), 'Find.Found = False');
+assert.strictEqual(runner.run('TestFind', []), false, 'Find.Found = False');
 console.log('[PASS] Selection.Find.Execute (スタブ: Found = False)');
 
 // --- Documents.Open ---

@@ -12,7 +12,7 @@ assert.strictEqual(runner.run('TestDoCmd', []), 'ok', 'DoCmd ノーオプ');
 console.log('[PASS] DoCmd.SetWarnings / RunSQL / OpenForm / Close');
 
 // --- 空 Recordset の EOF = True ---
-assert.isTrue(runner.run('TestEmptyRecordset', []), '空 Recordset.EOF = True');
+assert.strictEqual(runner.run('TestEmptyRecordset', []), true, '空 Recordset.EOF = True');
 console.log('[PASS] 空 Recordset EOF');
 
 // --- Recordset にデータを注入して読む ---

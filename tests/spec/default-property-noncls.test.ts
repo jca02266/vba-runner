@@ -23,7 +23,7 @@
  */
 import { VbaErrorValue } from '../../src/engine/evaluator';
 import { MockWorksheet } from '../../src/engine/mock/MockWorksheet';
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 const VOID: EvalOptions = { onPrint: () => {} };
 import type { EvalOptions } from '../../test-libs/test-runner';
@@ -56,7 +56,7 @@ Function Test2()
     Test2 = IsObject(x)
 End Function
 `, 'Test2', ev => ev.set('mockObj', mockObj));
-    assert.isTrue(result, '__vbaDefault__ なしのオブジェクトはオブジェクトのまま');
+    assert.strictEqual(result, vbaTrue, '__vbaDefault__ なしのオブジェクトはオブジェクトのまま');
     console.log('[PASS] No __vbaDefault__: object stays as object');
 }
 
@@ -69,7 +69,7 @@ Function Test3()
     Test3 = IsError(x)
 End Function
 `, 'Test3');
-    assert.isTrue(result, 'CVErr() の代入後も IsError() = True');
+    assert.strictEqual(result, vbaTrue, 'CVErr() の代入後も IsError() = True');
     console.log('[PASS] CVErr() is not unwrapped');
 }
 
@@ -82,7 +82,7 @@ Function Test4()
     Test4 = IsError(x)
 End Function
 `, 'Test4', ev => ev.set('myErr', new VbaErrorValue(13)));
-    assert.isTrue(result, '注入した VbaErrorValue も IsError() = True のまま');
+    assert.strictEqual(result, vbaTrue, '注入した VbaErrorValue も IsError() = True のまま');
     console.log('[PASS] Injected VbaErrorValue is not unwrapped');
 }
 

@@ -6,7 +6,7 @@
  * 見ておらず、オブジェクト型フィールドは Empty のままになっていた。Is Nothing 判定が
  * 常に False を返し、WithEvents バインディングの前提（未代入時は Nothing）も崩れていた。
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -26,7 +26,7 @@ Function Test1() As Boolean
 End Function
 `;
     const result = evalVBA(code).callProcedure('Test1', []);
-    assert.isTrue(result, 'クラス名型フィールドの既定値は Nothing');
+    assert.strictEqual(result, vbaTrue, 'クラス名型フィールドの既定値は Nothing');
 }
 console.log('[PASS] クラス名型フィールドは Nothing で初期化される');
 
@@ -45,7 +45,7 @@ Function Test2() As Boolean
 End Function
 `;
     const result = evalVBA(code).callProcedure('Test2', []);
-    assert.isTrue(result, 'WithEvents フィールドの既定値も Nothing');
+    assert.strictEqual(result, vbaTrue, 'WithEvents フィールドの既定値も Nothing');
 }
 console.log('[PASS] WithEvents フィールドも Nothing で初期化される');
 
@@ -64,7 +64,7 @@ Function Test3() As Boolean
 End Function
 `;
     const result = evalVBA(code).callProcedure('Test3', []);
-    assert.isFalse(result, 'New で代入した後は Is Nothing が False になる');
+    assert.strictEqual(result, vbaFalse, 'New で代入した後は Is Nothing が False になる');
 }
 console.log('[PASS] New で代入した後は Is Nothing が False になる（既存挙動の維持）');
 

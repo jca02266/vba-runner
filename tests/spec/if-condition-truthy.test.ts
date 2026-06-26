@@ -150,8 +150,8 @@ console.log('--- Starting If-Condition Truthy Tests ---');
     assert.strictEqual(runFunc('Function F() As Long: F = True * 2:  End Function', 'F'), -2, 'True * 2 = -2（-1*2）');
 
     // Not はビット反転
-    assert.isTrue( runFunc('Function F() As Boolean: F = Not False: End Function', 'F'), 'Not False → True');
-    assert.isFalse(runFunc('Function F() As Boolean: F = Not True:  End Function', 'F'), 'Not True → False');
+    assert.strictEqual( runFunc('Function F() As Boolean: F = Not False: End Function', 'F'), vbaTrue, 'Not False → True');
+    assert.strictEqual(runFunc('Function F() As Boolean: F = Not True:  End Function', 'F'), vbaFalse, 'Not True → False');
     assert.strictEqual(runFunc('Function F() As Long: F = Not 0: End Function', 'F'), -1, 'Not 0 = -1（ビット反転）');
     assert.strictEqual(runFunc('Function F() As Long: F = Not 1: End Function', 'F'), -2, 'Not 1 = -2（ビット反転）');
 
@@ -166,8 +166,8 @@ console.log('--- Starting If-Condition Truthy Tests ---');
 // 7. 比較演算子の結果は vbaTrue(-1) / vbaFalse(0)
 // =============================================================================
 {
-    assert.isTrue( runFunc('Function F() As Boolean: F = (1 > 0): End Function',  'F'), '1 > 0 → vbaTrue');
-    assert.isFalse(runFunc('Function F() As Boolean: F = (1 < 0): End Function',  'F'), '1 < 0 → vbaFalse');
+    assert.strictEqual( runFunc('Function F() As Boolean: F = (1 > 0): End Function',  'F'), vbaTrue, '1 > 0 → vbaTrue');
+    assert.strictEqual(runFunc('Function F() As Boolean: F = (1 < 0): End Function',  'F'), vbaFalse, '1 < 0 → vbaFalse');
     assert.strictEqual(
         runFunc('Function F() As Long: F = (1 > 0): End Function', 'F'), -1,
         '(1 > 0) を Long に代入 = -1'

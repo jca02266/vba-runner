@@ -6,7 +6,7 @@
  * evaluator.ts の関数戻り値代入（`GetArr = r`）処理が戻り値変数をスカラー String 型と
  * 誤認し、`coerceToDeclaredType` 経由で配列に `CStr()` を適用して配列が壊れていた。
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 const code = `
     Public Function GetArr() As String()
@@ -28,7 +28,7 @@ const code = `
 `;
 const ev = evalVBASingle(code);
 
-assert.isTrue(ev.callProcedure('CheckIsArray', []), 'GetArr() の戻り値は配列である（IsArray が True）');
+assert.strictEqual(ev.callProcedure('CheckIsArray', []), vbaTrue, 'GetArr() の戻り値は配列である（IsArray が True）');
 assert.strictEqual(ev.callProcedure('ReadFirst', []), 'Cola', '配列戻り値を呼び出し元の配列変数で受け取り要素を読める');
 
 console.log('[PASS] Function As String() の戻り値が配列として保持される');

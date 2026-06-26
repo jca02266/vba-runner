@@ -4,7 +4,7 @@
  * test-libs/regexp-mock.ts の `createRegExpMock` を登録し、
  * VBA から `CreateObject("VBScript.RegExp")` を呼んだ際に意図通り動作することを検証する。
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 import { createRegExpMock } from '../../test-libs/regexp-mock';
 
 function evalVBA(code: string) {
@@ -37,8 +37,8 @@ console.log('--- Starting VBScript.RegExp Mock Tests ---');
             TestMatch = NewRe(p).Test(s)
         End Function
     `;
-    assert.isTrue(runFunc(code, 'TestMatch', ['\\d+', 'abc 123']), 'Test: 数字を含む → True');
-    assert.isFalse(runFunc(code, 'TestMatch', ['\\d+', 'abc']), 'Test: 数字なし → False');
+    assert.strictEqual(runFunc(code, 'TestMatch', ['\\d+', 'abc 123']), vbaTrue, 'Test: 数字を含む → True');
+    assert.strictEqual(runFunc(code, 'TestMatch', ['\\d+', 'abc']), vbaFalse, 'Test: 数字なし → False');
     console.log('[PASS] Test メソッド');
 }
 
