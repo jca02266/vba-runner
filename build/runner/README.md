@@ -85,18 +85,14 @@ assert.strictEqual(vbaRunner.eval('acct.Balance'), 1000);
 
 ### 4. Comparing Boolean values
 
-Comparing a VBA `Boolean` result directly against a plain JS `true`/`false` via
-`assert.strictEqual(result, true)` fails (VBA `Boolean` values are returned as a
-wrapper object). Use the dedicated `assert.isTrue` / `assert.isFalse` instead.
+`run()` and `eval()` automatically convert VBA `Boolean` results to plain JS `true`/`false`,
+so standard assertions work directly:
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
 const vbaRunner = new VBARunner('src/vba/Sample.bas');
-const result = vbaRunner.run('IsPositive', [5]);
-
-assert.isTrue(result);                  // OK
-// assert.strictEqual(result, true);    // fails
+assert.strictEqual(vbaRunner.run('IsPositive', [5]), true);  // OK
 ```
 
 ### 5. Mocking Excel-dependent objects (Application / ActiveSheet, etc.)

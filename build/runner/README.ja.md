@@ -88,18 +88,14 @@ assert.strictEqual(vbaRunner.eval('acct.Balance'), 1000);
 
 ### 4. Boolean値を比較する
 
-VBAの `Boolean` を返す関数の結果は、`assert.strictEqual(result, true)` のように素のJSの
-`true`/`false` と直接比較すると失敗します(VBAの`Boolean`値はラッパーオブジェクトとして
-返るため)。専用の `assert.isTrue` / `assert.isFalse` を使ってください。
+`run()` と `eval()` は VBA の `Boolean` 戻り値を自動的に JS の `true`/`false` に変換します。
+標準の assert がそのまま使えます。
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
 const vbaRunner = new VBARunner('src/vba/Sample.bas');
-const result = vbaRunner.run('IsPositive', [5]);
-
-assert.isTrue(result);                  // OK
-// assert.strictEqual(result, true);    // NG: 失敗する
+assert.strictEqual(vbaRunner.run('IsPositive', [5]), true);  // OK
 ```
 
 ### 5. Excel依存オブジェクト(Application / ActiveSheet など)をモックする
