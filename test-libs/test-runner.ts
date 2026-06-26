@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
-import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty } from '../src/engine/evaluator';
+import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty, vbaNothing } from '../src/engine/evaluator';
 import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../src/engine/vba-types';
 import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, stripVBAFileHeader, CompilerConstants } from '../src/engine/preprocessor';
@@ -108,7 +108,7 @@ export class VBARunner {
         this._ensureResolved();
         const start = Date.now();
         const raw = this.evaluator.callProcedure(procedureName, args, type);
-        const result = raw instanceof VbaBoolean ? raw.value !== 0 : raw;
+        const result = raw instanceof VbaBoolean ? raw.value !== 0 : raw === vbaNothing ? null : raw;
         const duration = Date.now() - start;
         const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : '[Object]') : String(a)).join(', ');
         const typeStr = type ? `:${type}` : '';
@@ -121,7 +121,7 @@ export class VBARunner {
     eval(exprString: string): any {
         this._ensureResolved();
         const raw = this.evaluator.evalExpression(exprString);
-        return raw instanceof VbaBoolean ? raw.value !== 0 : raw;
+        return raw instanceof VbaBoolean ? raw.value !== 0 : raw === vbaNothing ? null : raw;
     }
 
     set(name: string, value: any): void {

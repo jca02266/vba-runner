@@ -4888,10 +4888,18 @@ export class Evaluator {
                 }
             }
 
-            const oldVal = this.env.get(name);
+            let oldVal = this.env.get(name);
             // B-3: Only trigger Terminate on explicit Nothing assignment (Set x = Nothing).
             // Without reference counting we cannot know if the old object is still reachable
             // elsewhere, so triggering on every reassignment causes premature Terminate.
+            //
+            // `Dim w As New T` + `Set w = Nothing` without any prior access: real VBA still
+            // instantiates the object (Class_Initialize) before destroying it (Class_Terminate).
+            // Resolve the placeholder first so both lifecycle hooks fire correctly.
+            if (value === vbaNothing && isAutoInstancePlaceholder(oldVal)) {
+                oldVal = this.instantiateClass(oldVal.__className__);
+                this.env.set(name, oldVal);
+            }
             if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
 
             const proc = this.env.getProcedure(name, 'set');

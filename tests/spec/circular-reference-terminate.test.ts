@@ -459,4 +459,40 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 14: Same instance via two local vars terminates exactly once');
 }
 
+// --- 仕様バグ修正: Dim w As New T を一度もアクセスせず Set w = Nothing すると
+// Class_Initialize/Terminate が呼ばれなかった ---
+{
+    const code = `
+    Dim log As String
+    Class Widget
+        Public Tag As String
+        Public Sub Class_Initialize()
+            log = log & "init;"
+        End Sub
+        Public Sub Class_Terminate()
+            log = log & "term;"
+        End Sub
+    End Class
+    Function TestNeverAccessed() As String
+        log = ""
+        Dim w As New Widget
+        Set w = Nothing
+        TestNeverAccessed = log
+    End Function
+    Function TestAccessedFirst() As String
+        log = ""
+        Dim w As New Widget
+        w.Tag = "x"
+        Set w = Nothing
+        TestAccessedFirst = log
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestNeverAccessed'), 'init;term;',
+        'Dim As New + Set Nothing without any access: Class_Initialize then Class_Terminate must fire');
+    console.log('[PASS] Test 15: Dim As New + Set Nothing without prior access fires lifecycle hooks');
+    assert.strictEqual(runFunc(code, 'TestAccessedFirst'), 'init;term;',
+        'Dim As New + access + Set Nothing: still fires exactly once');
+    console.log('[PASS] Test 16: Dim As New + access + Set Nothing fires lifecycle hooks once');
+}
+
 console.log('\n✅ Circular Reference & Class_Terminate: 全テスト通過');
