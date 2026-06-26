@@ -52,18 +52,36 @@ assert.strictEqual(result2, 6);
 
 ### 3. Load an entire directory
 
-Point `VBARunner` at a directory to load all `.bas` files at once. Use this for larger VBA projects with multiple modules.
+Point `VBARunner` at a directory to load all `.bas` and `.cls` files at once. Use this for larger VBA projects with multiple modules, including **Class modules** (`.cls`).
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
-// 1. Load all VBA files in the directory
+// 1. Load all VBA files in the directory (.bas and .cls)
 const vbaRunner = new VBARunner('src/vba');
 
 // 2. Call any procedure defined across those files
 const result = vbaRunner.run('CalcTotal', [100, 200, 300]);
 assert.strictEqual(result, 600);
 ```
+
+Class modules work out of the box — VBA standard `.cls` headers are stripped automatically. `Class_Initialize` / `Class_Terminate`, `Property Get/Let/Set`, and `Private`/`Public` members are all supported.
+
+```typescript
+// src/vba/BankAccount.cls
+// VERSION 1.0 CLASS
+// ...
+// Attribute VB_Name = "BankAccount"
+// Private m_balance As Double
+// ...
+
+const vbaRunner = new VBARunner('src/vba');
+vbaRunner.eval('Dim acct As New BankAccount');
+vbaRunner.eval('acct.Deposit 1000');
+assert.strictEqual(vbaRunner.eval('acct.Balance'), 1000);
+```
+
+> **State persists across `eval()` and `run()` calls** within the same `VBARunner` instance. Variables and objects declared with `eval()` remain accessible in subsequent `eval()` or `run()` calls — useful for setting up test fixtures step by step.
 
 ### 4. Comparing Boolean values
 

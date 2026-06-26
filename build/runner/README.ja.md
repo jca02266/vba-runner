@@ -51,19 +51,40 @@ assert.strictEqual(result2, 6);
 
 ### 3. 複数ソースの一括ロード
 
-VBAファイル（`.bas`）を格納したディレクトリを指定すれば、配下のソースファイルをすべて読み込みます。
-規模の大きなVBAプロジェクトではこの使い方になります。
+VBAファイル（`.bas`）およびクラスモジュール（`.cls`）を格納したディレクトリを指定すれば、
+配下のソースファイルをすべて読み込みます。規模の大きなVBAプロジェクトではこの使い方になります。
 
 ```typescript
 import { VBARunner, assert } from 'vba-runner';
 
-// 1. テスト対象のVBAディレクトリをロード
+// 1. テスト対象のVBAディレクトリをロード（.bas と .cls を自動検出）
 const vbaRunner = new VBARunner('src/vba');
 
 // 2. 関数名を指定して実行
 const result = vbaRunner.run('CalcTotal', [100, 200, 300]);
 assert.strictEqual(result, 600);
 ```
+
+クラスモジュール（`.cls`）はそのまま使えます。VBA標準の `.cls` ヘッダーは自動的に除去されます。
+`Class_Initialize` / `Class_Terminate`、`Property Get/Let/Set`、`Private`/`Public` メンバーも動作します。
+
+```typescript
+// src/vba/BankAccount.cls
+// VERSION 1.0 CLASS
+// ...
+// Attribute VB_Name = "BankAccount"
+// Private m_balance As Double
+// ...
+
+const vbaRunner = new VBARunner('src/vba');
+vbaRunner.eval('Dim acct As New BankAccount');
+vbaRunner.eval('acct.Deposit 1000');
+assert.strictEqual(vbaRunner.eval('acct.Balance'), 1000);
+```
+
+> **`eval()` と `run()` の呼び出し間で状態は持続します。** 同じ `VBARunner` インスタンス内では、
+> `eval()` で宣言した変数やオブジェクトが後続の `eval()` / `run()` でも参照できます。
+> テストのセットアップをステップごとに分けて記述するのに便利です。
 
 ### 4. Boolean値を比較する
 
