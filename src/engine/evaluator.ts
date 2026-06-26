@@ -2747,9 +2747,12 @@ export class Evaluator {
         while (true) {
             switch (node.type) {
                 case 'Identifier':
-                case 'CallExpression':
                 case 'MemberExpression':
                     return true;
+                case 'CallExpression':
+                    // foo(args) + 1 は括弧で引数リストが確定しており、
+                    // 暗黙 Call 文との曖昧性はない。
+                    return false;
                 case 'BinaryExpression': {
                     const op = (node as BinaryExpression).operator;
                     if (op !== '+' && op !== '-') return false;

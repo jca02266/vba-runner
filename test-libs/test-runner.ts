@@ -110,7 +110,7 @@ export class VBARunner {
         const raw = this.evaluator.callProcedure(procedureName, args, type);
         const result = raw instanceof VbaBoolean ? raw.value !== 0 : raw === vbaNothing ? null : raw;
         const duration = Date.now() - start;
-        const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : '[Object]') : String(a)).join(', ');
+        const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : JSON.stringify(a)) : String(a)).join(', ');
         const typeStr = type ? `:${type}` : '';
         if (!this._quiet) {
             console.log(`[PASS] ${procedureName}${typeStr}(${formatArgs}) -> ${result} (${duration}ms)`);
