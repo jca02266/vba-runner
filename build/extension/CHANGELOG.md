@@ -2,6 +2,24 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.2.9] - 2026-06-28
+
+### Added
+
+- **`Format()` full implementation** — numeric sections (`;` delimiter), `#`/`0` placeholders with zero-suppression, literal characters, percent, thousands separator, scientific notation (`E+`/`E-`). String formatting: `>`/`<`/`@`/`&`/`!`. Date tokens: `q` (quarter), `y` (day of year), `w`/`ww` (weekday/week), `ddddd`/`ttttt` (short date/long time).
+
+### Fixed
+
+- **`eval()` with `Exit Sub`/`Exit Function` at the top level crashed with an unhandled JS exception** — the signal is now caught and suppressed when `eval()` runs outside a procedure body.
+- **Opening the same file twice with `Open` did not raise Error 55 (File already open)** — duplicate `Open` on the same path now correctly raises `Error 55`.
+- **`FSO TextStream.AtEndOfStream` raised Error 438 (not implemented)** — now returns `True` when all content has been read.
+- **`Write #` wrote `True`/`False` for `Boolean` instead of `#TRUE#`/`#FALSE#`** — booleans are now formatted in VBA's canonical CSV representation.
+- **`FSO TextStream.ReadAll()` returned the full file after `ReadLine()` advanced the position** — now returns only the remaining unread content.
+- **`Scripting.Dictionary.Item` on a non-existent key silently created an empty entry** — missing key access now logs a warning and returns `Empty` without mutating the dictionary.
+- **`eval()` raised Error 424 when using arithmetic on a built-in function's return value** — expressions like `UBound(arr) + 1` in `eval()` now evaluate correctly.
+- **`Nothing`-typed variables were not correctly converted in some assignment paths** — `Is Nothing` checks now work consistently.
+- **`Dim As New` objects did not call `Class_Terminate` when going out of scope** — auto-instantiated class instances now invoke `Class_Terminate` on cleanup.
+
 ## [0.2.8] - 2026-06-26
 
 ### Fixed

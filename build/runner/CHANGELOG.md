@@ -2,6 +2,26 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.11] - 2026-06-28
+
+### Added
+
+- **`Format()` full implementation** — numeric sections (`;` delimiter for positive/negative/zero), `#`/`0` placeholders with proper zero-suppression, literal characters (`\x`, `"text"`), percent (`%`), thousands separator, scientific notation (`E+`/`E-`). String formatting: `>` (uppercase), `<` (lowercase), `@`/`&` (character placeholders), `!` (left-align). Date formatting: `q` (quarter), `y` (day of year), `w` (weekday number), `ww` (week of year), `ddddd`/`dddddd` (short/long date), `ttttt` (long time), `\x`/`"text"` escape/literal tokens.
+- **`vbaRunner.fs` — typed VFS access** — the `fs` property on `VBARunner` is now typed as `VfsHandle`, providing `read(path)`, `write(path, content)`, `exists(path)`, `ls(path)`, and `sandboxRoot` for pre-populating or inspecting the virtual file system in test code.
+- **`VBARunner` constructor accepts glob patterns** — pass glob strings (e.g. `"src/**/*.bas"`) directly to the constructor instead of explicit file arrays; matched files are loaded in sort order.
+
+### Fixed
+
+- **`eval()` with `Exit Sub`/`Exit Function` at the top level crashed with an unhandled JS exception** — the `Exit` signal is now caught and silently suppressed when `eval()` is called outside a procedure body.
+- **Opening the same file path twice with `Open` did not raise Error 55 (File already open)** — duplicate `Open` statements on the same path now correctly raise `Error 55`.
+- **`FSO TextStream.AtEndOfStream` raised Error 438 (not implemented)** — the property is now implemented and returns `True` after all content has been read.
+- **`Write #` wrote `True`/`False` for `Boolean` values instead of `#TRUE#`/`#FALSE#`** — `Write #` now formats booleans in VBA's canonical CSV representation.
+- **`FSO TextStream.ReadAll()` returned the full file content even after `ReadLine()` had advanced the position** — `ReadAll()` now returns only the remaining unread content.
+- **`Scripting.Dictionary.Item` on a non-existent key silently created an empty entry** — accessing a missing key via `.Item` now logs a warning and returns `Empty` without mutating the dictionary, matching real VBA behavior.
+- **`eval()` raised Error 424 when using arithmetic on a built-in function's return value** — expressions like `UBound(arr) + 1` in `eval()` now evaluate correctly.
+- **`Nothing`-typed variables were not correctly converted to `null` in some assignment paths** — `Set obj = Nothing` now consistently stores `vbaNothing` rather than `null`, fixing `Is Nothing` checks.
+- **`Dim As New` objects did not call `Class_Terminate` when going out of scope** — auto-instantiated class instances now have their `Class_Terminate` invoked on cleanup.
+
 ## [0.1.1-alpha.10] - 2026-06-26
 
 ### Added
