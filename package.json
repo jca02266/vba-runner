@@ -36,6 +36,7 @@
     "eslint": "^9.13.0",
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.14",
+    "exceljs": "^4.4.0",
     "globals": "^15.11.0",
     "iconv-lite": "^0.6.3",
     "jszip": "^3.10.1",

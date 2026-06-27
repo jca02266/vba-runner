@@ -56,6 +56,8 @@ REPORT.md
 /pending/
 
 /build/*/LICENSE
+/tools/exceljs-adapter/input.xlsx
+/tools/exceljs-adapter/output.xlsx
 .env
 .npmrc
 /build/extension/vba-runner-extension.md
