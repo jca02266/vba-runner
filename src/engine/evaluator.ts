@@ -5445,6 +5445,10 @@ export class Evaluator {
                 item: (k: any, v?: any) => {
                     if (v !== undefined) {
                         dict.set(k, v);
+                    } else if (!dict.has(k)) {
+                        // VBA auto-creates the key with Empty when reading a missing key
+                        console.warn(`[vba-runner] Dictionary.Item("${k}"): key not found, auto-creating with Empty (VBA compatible)`);
+                        dict.set(k, undefined);
                     }
                     return dict.get(k);
                 }
