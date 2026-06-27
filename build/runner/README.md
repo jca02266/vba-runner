@@ -50,7 +50,45 @@ assert.strictEqual(result1, 3);
 assert.strictEqual(result2, 6);
 ```
 
-### 3. Load an entire directory
+### 3. Load files with glob patterns
+
+Pass a glob pattern string (or an array of patterns) to select files. Supports `*`, `**`, and `{a,b}` brace expansion — same as bash glob.
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+// Single glob pattern
+const vbaRunner = new VBARunner('src/vba/*.{bas,cls}');
+
+// Recursive glob
+const vbaRunner2 = new VBARunner('src/**/*.bas');
+
+// Mix of patterns and literal paths in an array
+const vbaRunner3 = new VBARunner([
+    'src/vba/core/*.bas',
+    'src/vba/models/Account.cls',
+]);
+```
+
+Glob patterns are resolved relative to `process.cwd()`. No mock directory scanning is performed (mocks are a directory-load feature).
+
+### 4. Load specific files by array
+
+Pass an array of literal file paths to load exactly the files you want:
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner([
+    'src/vba/Calc.cls',
+    'src/vba/Utils.bas',
+]);
+
+const result = vbaRunner.run('DoubleIt', [21]);
+assert.strictEqual(result, 42);
+```
+
+### 5. Load an entire directory
 
 Point `VBARunner` at a directory to load all `.bas` and `.cls` files at once. Use this for larger VBA projects with multiple modules, including **Class modules** (`.cls`).
 

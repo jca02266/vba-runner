@@ -49,7 +49,46 @@ assert.strictEqual(result1, 3);
 assert.strictEqual(result2, 6);
 ```
 
-### 3. 複数ソースの一括ロード
+### 3. glob パターンでファイルを選択
+
+glob パターン文字列（またはパターンの配列）を渡すと、マッチするファイルをロードします。
+bash と同様に `*`、`**`（再帰）、`{a,b}`（ブレース展開）が使えます。
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+// 単一 glob パターン
+const vbaRunner = new VBARunner('src/vba/*.{bas,cls}');
+
+// サブディレクトリを再帰的に検索
+const vbaRunner2 = new VBARunner('src/**/*.bas');
+
+// パターンとリテラルパスの混在配列
+const vbaRunner3 = new VBARunner([
+    'src/vba/core/*.bas',
+    'src/vba/models/Account.cls',
+]);
+```
+
+パターンは `process.cwd()` 基準で解決されます。mock ディレクトリスキャンは行われません（mock はディレクトリ読み込み時の機能）。
+
+### 4. ファイルを配列で個別指定
+
+ロードするファイルを個別に選択したい場合は、リテラルパスの配列を渡します。
+
+```typescript
+import { VBARunner, assert } from 'vba-runner';
+
+const vbaRunner = new VBARunner([
+    'src/vba/Calc.cls',
+    'src/vba/Utils.bas',
+]);
+
+const result = vbaRunner.run('DoubleIt', [21]);
+assert.strictEqual(result, 42);
+```
+
+### 5. 複数ソースの一括ロード
 
 VBAファイル（`.bas`）およびクラスモジュール（`.cls`）を格納したディレクトリを指定すれば、
 配下のソースファイルをすべて読み込みます。規模の大きなVBAプロジェクトではこの使い方になります。

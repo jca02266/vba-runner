@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { globSync, isDynamicPattern } from 'tinyglobby';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty, vbaNothing } from '../src/engine/evaluator';
@@ -25,7 +26,7 @@ export class VBARunner {
     /** `excelStub: true` のとき注入された MockApplication。セル初期値の設定に使う。 */
     public readonly excelStub: MockApplication | null = null;
 
-    constructor(pathOrDir: string | null = null, config: {
+    constructor(pathOrDir: string | string[] | null = null, config: {
         sandboxRoot?: string,
         env?: Record<string, string>,
         compilerConstants?: CompilerConstants,
@@ -43,6 +44,20 @@ export class VBARunner {
         }
 
         if (!pathOrDir) return;
+
+        // glob パターンまたはファイルパス配列の場合: mock スキャンなしで順番にロード
+        if (Array.isArray(pathOrDir) || isDynamicPattern(pathOrDir)) {
+            const patterns = Array.isArray(pathOrDir) ? pathOrDir : [pathOrDir];
+            const files = patterns.flatMap(p =>
+                isDynamicPattern(p)
+                    ? globSync(p, { cwd: process.cwd(), absolute: true }).sort()
+                    : [path.resolve(p)]
+            );
+            for (const file of files) {
+                this._loadSingleFile(file, config.compilerConstants);
+            }
+            return;
+        }
 
         const stat = fs.statSync(pathOrDir);
         const dir = stat.isDirectory() ? pathOrDir : path.dirname(pathOrDir);
@@ -62,38 +77,43 @@ export class VBARunner {
 
         // Pass 1: 全モジュールをロードして手続き・変数を登録する
         for (const file of files) {
-            let source = fs.readFileSync(file, 'utf-8');
             try {
-                const moduleName = path.basename(file, path.extname(file));
-                this.evaluator.setSourceModule(moduleName);
-
-                const ext = path.extname(file).toLowerCase();
-                source = stripVBAFileHeader(source);
-                source = preprocess(source, config.compilerConstants);
-
-                const isRawCls = ext === '.cls'
-                    && !source.trim().toLowerCase().startsWith('class ')
-                    && !source.toLowerCase().includes('end class');
-                const parseOpts = isRawCls ? { parseAsClass: moduleName, sourceLines: source.split('\n') } : { sourceLines: source.split('\n') };
-
-                const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
-                this._asts.push(ast);
-                this._moduleNames.push(moduleName);
-                this.evaluator.evaluateModule(ast);
+                this._loadSingleFile(file, config.compilerConstants);
             } catch (e: any) {
                 // ディレクトリ読み込み時: 意図的に構文エラーを含む仕様ファイル
                 // （例: CompileError.bas）はスキップしてログだけ残す。
                 // 単一ファイル指定時はエラーをそのまま上げる。
-                if (stat.isDirectory() && e.message && /^Parse error:/i.test(e.message)) {
+                if (stat.isDirectory() && e.message && /^\[.*\] Parse error:/i.test(e.message)) {
                     console.warn(`  (skip: parse errors in spec) ${path.basename(file)}`);
                     continue;
                 }
-                throw new Error(`[${path.basename(file)}] ${e.message}`);
+                throw e;
             }
         }
 
         // Pass 2（resolveIdentifiers）は set() による定数注入を可能にするため
         // 初回 run()/eval() 呼び出し時まで遅延する。
+    }
+
+    private _loadSingleFile(file: string, compilerConstants?: CompilerConstants): void {
+        let source = fs.readFileSync(file, 'utf-8');
+        try {
+            const moduleName = path.basename(file, path.extname(file));
+            this.evaluator.setSourceModule(moduleName);
+            const ext = path.extname(file).toLowerCase();
+            source = stripVBAFileHeader(source);
+            source = preprocess(source, compilerConstants);
+            const isRawCls = ext === '.cls'
+                && !source.trim().toLowerCase().startsWith('class ')
+                && !source.toLowerCase().includes('end class');
+            const parseOpts = isRawCls ? { parseAsClass: moduleName, sourceLines: source.split('\n') } : { sourceLines: source.split('\n') };
+            const ast = new Parser(new Lexer(source).tokenize(), parseOpts).parse();
+            this._asts.push(ast);
+            this._moduleNames.push(moduleName);
+            this.evaluator.evaluateModule(ast);
+        } catch (e: any) {
+            throw new Error(`[${path.basename(file)}] ${e.message}`);
+        }
     }
 
     private _ensureResolved(): void {
