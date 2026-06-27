@@ -14,6 +14,7 @@
 | 2 | ローマ数字コンバーター | `.cls` / `Property Get` / `ByRef` writeback / Boolean 変換 / JS 配列→VBA 配列 | 2026-06-27 |
 | 3 | テキスト統計アナライザー | `Function As Double` 精度 / ディレクトリ読み込み / `eval()` 括弧あり・なし呼び出し / `Err.Raise` | 2026-06-27 |
 | 4 | 図書館蔵書管理システム | `Scripting.Dictionary`（Add/Item/Exists/Count/Keys/Items/For Each/ネスト） / `VBA Collection`（Add/Item(1-based)/Item(key)/Count/Remove/For Each） / Dictionary+Collection 組み合わせ / クラス (`Book.cls`) / `On Error GoTo` | 2026-06-27 |
+| 5 | CSV ログ書き込み・読み込みシステム | `Open For Output/Append/Input` / `Print #` / `Write #` / `Line Input #` / `Input #`（CSV）/ `Close` / `EOF()` / `FreeFile()` / `LOF()` / `LOC()` / Windows パス→VFS マッピング（C:\, D:\ ドライブ）/ 相対パス / `sandboxRoot` オプション / Error 53 / `Scripting.FileSystemObject`（CreateTextFile, OpenTextFile, FileExists, TextStream.ReadLine/ReadAll/WriteLine/Close）/ `Tab()` / VFS 事前配置 | 2026-06-27 |
 
 ---
 
@@ -42,6 +43,12 @@
 | `eval()` の行番号が常に "line 1" | マルチライン eval でエラーが出ても行情報が `(line 1)` のみ |
 | README に `eval()` の「式 vs 文」の注意書きがない | `eval('m + 1')` がエラーになる理由・`(m) + 1` の回避策が未記載 |
 | `Dictionary.Add` へ Object をキーとして渡してもエラーなし | 実 VBA では非文字列キーの挙動は Object の hash になるが、引数順序ミス（Collection をキーに渡す）を検出できない。エラーなく格納されるが文字列で取り出せないため診断が困難 |
+| `Exit Sub` を `eval()` トップレベルで使うと JS 例外が漏れる | `r.eval("Exit Sub")` が `{ type: 'Exit', target: 'Sub' }` を JS 例外として throw する。`evalExpression` が `executeStatements` を直接呼び Exit シグナルをキャッチしないのが原因 |
+| `Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる | 実 VBA では `Write #fn, True` → `#TRUE#` だが vba-runner は `True` を書く。vba-runner 内での round-trip は動く |
+| `FSO TextStream.AtEndOfStream` 未実装 | Error 438。`Do While Not ts.AtEndOfStream` パターンが使えない |
+| `FSO TextStream` 位置追跡バグ | `ReadLine()` 後に `ReadAll()` を呼ぶと残りではなく全ファイルを返す |
+| 同一ファイルへの二重 `Open` が Error 55 を出さない | 実 VBA では Error 55（File already open）。vba-runner は両方成功し、二番目の `For Output` がファイルを切り詰める |
+| `ev.sandboxRoot` プロパティが存在しない | README/REFERENCE に `ev.sandboxRoot` と書いてあるが実際は `ev.sandbox.root`。また「sandbox/ (リポジトリルートからの相対パス)」は誤解を招く（VFS 内の絶対パス `/sandbox`） |
 
 ---
 
@@ -51,9 +58,9 @@
 
 ### ファイル入出力
 
-- `Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`
-- Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認
-- 存在しないファイルの `Open For Input` → Error 53 (File not found)
+- ~~`Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`~~ **評価済み（評価#5）**
+- ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
+- ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
 
 ### Scripting.Dictionary
 
@@ -117,3 +124,7 @@
 5. **`eval()` 末尾の裸の識別子は値を返さない**: マルチステートメント中の最後の `x` は `undefined`。値読み出しは独立した `eval('x')` で行う
 6. **`Dictionary.Add(key, item)` vs `Collection.Add(item [, key])`**: 引数順序が逆。Dictionary はキーが先、Collection はアイテムが先。間違えると Error 91 が出るが「何を間違えたか」のヒントがない
 7. **`Dictionary.Item("nonexistent")` はキーを自動生成する（VBA 互換）**: 読み取り時に存在しないキーがあると Empty でエントリを生成しコンソール警告を出力する
+8. **VFS パスは絶対パス `/sandbox/c/...` を使う**: `ev.sandboxRoot` は存在しないプロパティ。正しくは `ev.sandbox.root`（デフォルト: `"/sandbox"`）。JS から VFS へアクセスする際は先頭スラッシュが必須（`fs.readFileSync('/sandbox/c/test.txt', 'utf-8')`）
+9. **`Print #` は CRLF（`\r\n`）を書く**: JS 側で `readFileSync` したときは `split('\r\n')` でパースすること。`split('\n')` では行末に `\r` が残る
+10. **`Exit Sub` を `eval()` トップレベルで呼ばない**: `{ type: 'Exit', target: 'Sub' }` が JS 例外として漏れてスクリプトがクラッシュする。回避策: `Sub` ラッパーに入れて `run()` で呼ぶ
+11. **FSO `AtEndOfStream` は未実装（Error 438）**: `Do While Not ts.AtEndOfStream` パターンは使えない。ネイティブの `Open For Input` + `EOF()` を代わりに使う
