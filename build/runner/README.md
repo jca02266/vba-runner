@@ -235,7 +235,50 @@ const vbaRunner = new VBARunner('src/vba/Sample.bas', {
 vbaRunner.run('SeedGlider', [1, 1]); // no [PASS] log printed
 ```
 
-### 7. `ByRef` out-parameters
+### 8. Virtual filesystem (`vbaRunner.fs`)
+
+VBA file I/O (`Open`, `Print #`, `Line Input #`, `Close`, `Scripting.FileSystemObject`, etc.)
+runs against an **in-memory virtual filesystem** — nothing touches your real disk.
+Every `VBARunner` instance gets its own independent VFS.
+
+Windows-style paths used inside VBA code are automatically mapped into the VFS:
+
+| VBA path | VFS path (default `sandboxRoot: '/sandbox'`) |
+|---|---|
+| `C:\data\input.txt` | `/sandbox/c/data/input.txt` |
+| `D:\report.csv` | `/sandbox/d/report.csv` |
+| `relative\path.txt` | `/sandbox/relative/path.txt` |
+
+Use `vbaRunner.fs` to pre-populate input files or read back output files from TypeScript:
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Report.bas');
+
+// Pre-populate an input file the VBA code will read
+vbaRunner.fs.mkdirSync('/sandbox/c/data', { recursive: true });
+vbaRunner.fs.writeFileSync('/sandbox/c/data/input.csv', 'Alice,100\nBob,200\n');
+
+// Run the VBA procedure that reads the file and writes a summary
+vbaRunner.run('GenerateSummary', []);
+
+// Read back the output file produced by VBA
+const output = vbaRunner.fs.readFileSync('/sandbox/c/data/summary.txt', 'utf8');
+console.log(output);
+```
+
+To use a different VFS root, pass `sandboxRoot` to the constructor:
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/Report.bas', { sandboxRoot: '/myapp' });
+// Now C:\file.txt maps to /myapp/c/file.txt
+vbaRunner.fs.writeFileSync('/myapp/c/file.txt', 'data');
+```
+
+> File I/O done with `Do While Not ts.AtEndOfStream` (FSO TextStream) or `Do While Not EOF(n)` (native `Open`) both work correctly in the VFS.
+
+### 9. `ByRef` out-parameters
 
 VBA's default argument-passing mode is `ByRef`. When a called `Sub`/`Function`
 assigns to a `ByRef` parameter, `run()` writes the final value back into the

@@ -235,7 +235,51 @@ const vbaRunner = new VBARunner('src/vba/Sample.bas', {
 vbaRunner.run('SeedGlider', [1, 1]); // [PASS] ログは出力されない
 ```
 
-### 7. `ByRef` の出力パラメーター
+### 8. 仮想ファイルシステム（`vbaRunner.fs`）
+
+VBA のファイル入出力（`Open`、`Print #`、`Line Input #`、`Close`、`Scripting.FileSystemObject` など）は
+**インメモリの仮想ファイルシステム（VFS）**上で動作します。実際のディスクには何も書き込まれません。
+`VBARunner` インスタンスごとに独立した VFS が作成されます。
+
+VBA コード内で使用する Windows 形式のパスは自動的に VFS 上のパスに変換されます。
+
+| VBA パス | VFS パス（デフォルト `sandboxRoot: '/sandbox'`） |
+|---|---|
+| `C:\data\input.txt` | `/sandbox/c/data/input.txt` |
+| `D:\report.csv` | `/sandbox/d/report.csv` |
+| `relative\path.txt` | `/sandbox/relative/path.txt` |
+
+`vbaRunner.fs` を使って、TypeScript 側からテスト用の入力ファイルを事前配置したり、VBA が書き出したファイルを読み取ったりできます。
+
+```typescript
+import { VBARunner } from 'vba-runner';
+
+const vbaRunner = new VBARunner('src/vba/Report.bas');
+
+// VBA コードが読み込む入力ファイルを事前配置
+vbaRunner.fs.mkdirSync('/sandbox/c/data', { recursive: true });
+vbaRunner.fs.writeFileSync('/sandbox/c/data/input.csv', 'Alice,100\nBob,200\n');
+
+// ファイルを読み込んでサマリーを書き出す VBA プロシージャを実行
+vbaRunner.run('GenerateSummary', []);
+
+// VBA が書き出したファイルを TypeScript 側で読み取る
+const output = vbaRunner.fs.readFileSync('/sandbox/c/data/summary.txt', 'utf8');
+console.log(output);
+```
+
+VFS のルートパスを変更したい場合は、コンストラクタに `sandboxRoot` を指定します。
+
+```typescript
+const vbaRunner = new VBARunner('src/vba/Report.bas', { sandboxRoot: '/myapp' });
+// C:\file.txt が /myapp/c/file.txt にマッピングされる
+vbaRunner.fs.writeFileSync('/myapp/c/file.txt', 'データ');
+```
+
+> `Do While Not ts.AtEndOfStream`（FSO TextStream）、`Do While Not EOF(n)`（ネイティブ `Open`）の
+> いずれのパターンも VFS 上で正しく動作します。
+
+### 9. `ByRef` の出力パラメーター
 
 VBA の既定の引数渡しは `ByRef` です。呼び出した `Sub`/`Function` が `ByRef`
 パラメーターに代入した場合、`run()` は呼び出し元が渡した JS 配列にその最終値を
