@@ -85,31 +85,42 @@ import { FileSystem, MemoryFileSystem } from './filesystem';
 import { checkOptionExplicit, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
 import {
-    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
+    VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
-    toVbaDate, fromVbaDate, parseVbaDate,
+    toVbaDate,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
 export {
-    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef,
+    VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
-    toVbaDate, fromVbaDate, parseVbaDate,
+    toVbaDate,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
 export type { AutoInstancePlaceholder, VbaBooleanType, VbaNumericType, VbaVarType } from './vba-types';
 import {
     vbaToNumber as _vbaToNumber,
     vbaToBoolean,
-    vbaToString,
     vbaToDisplayString,
     vbaRound as _vbaRound,
 } from './coerce';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
-import { formatDate, formatNumber, formatString } from './format';
 export { VbaErrorCode } from './vba-errors';
+import {
+    type StdlibCtx, type BuiltinParamSpec, type BuiltinOverload,
+    registerInformationFunctions,
+    registerConversionFunctions,
+    registerMathFunctions,
+    registerStringFunctions,
+    registerStdlibDateTimeFunctions,
+    registerInteractionFunctions,
+    registerFinancialFunctions,
+    registerConstants,
+    registerRegistryFunctions,
+} from './builtins';
+export type { BuiltinParamSpec, BuiltinOverload } from './builtins';
 
 /**
  * VBARunner.spy() / Evaluator.spy() が返す呼び出し記録オブジェクト。
@@ -609,35 +620,10 @@ export class Environment {
 
 export type PrintCallback = (output: string) => void;
 
-/**
- * 組み込み関数（JS関数として登録される）の引数メタデータ。
- * VBA のユーザー定義 Sub/Function における `Parameter`（isOptional/isParamArray）に相当する
- * 情報を、組み込み関数にも持たせるための型。
- *
- * - 「必須引数のあとに Optional 引数が続く」通常の形は `registerBuiltin` + この型を使う。
- * - `InStr` のように引数の個数で意味が変わる（先頭の Optional 引数が個数によって有無する）
- *   不規則な組み込み関数は `BuiltinOverload`（VBA 自体にはないオーバーロード機構。
- *   組み込み関数専用のエンジン内部の仕組み）を使う。
- */
-export interface BuiltinParamSpec {
-    /** VBA 上のパラメーター名（大文字小文字無視で `:=` 名前付き引数とマッチングする） */
-    name: string;
-    optional?: boolean;
-    isParamArray?: boolean;
-}
-
 /** `BuiltinParamSpec` と最小限の形を共有する抽象（ProcedureDeclaration.parameters も満たす） */
 interface ArgBinderParam {
     isOptional: boolean;
     isParamArray: boolean;
-}
-
-/**
- * オーバーロードされた組み込み関数の1つの「形」。この中では全パラメーターが実質必須
- * （形をまたいだ Optional 表現は、より短いオーバーロードを別途登録することで行う）。
- */
-export interface BuiltinOverload {
-    params: BuiltinParamSpec[];
 }
 
 export class Evaluator {
@@ -860,17 +846,41 @@ export class Evaluator {
         // VBA プロジェクト名前空間を事前定義。bare 使用（VarType(VBA) 等）を検出するためのセンチネル。
         this.env.set('vba', new VbaNamespaceRef('VBA', 'project'));
         this.registerCoreObjects();
-        this.registerInformationFunctions();
-        this.registerConversionFunctions();
-        this.registerMathFunctions();
-        this.registerStringFunctions();
+        const ctx = this.makeStdlibCtx();
+        registerInformationFunctions(ctx);
+        registerConversionFunctions(ctx);
+        registerMathFunctions(ctx);
+        registerStringFunctions(ctx);
         this.registerDateTimeFunctions();
-        this.registerStdlibDateTimeFunctions();
+        registerStdlibDateTimeFunctions(ctx);
         this.registerFileSystemFunctions();
-        this.registerInteractionFunctions();
-        this.registerFinancialFunctions();
-        this.registerConstants();
-        this.registerRegistryFunctions();
+        registerInteractionFunctions(ctx);
+        registerFinancialFunctions(ctx);
+        registerConstants(ctx);
+        registerRegistryFunctions(ctx);
+    }
+
+    private makeStdlibCtx(): StdlibCtx {
+        const self = this;
+        return {
+            reg: (n, f, p, v) => this.registerBuiltin(n, f, p, v),
+            regOvl: (n, f, o, v) => this.registerOverloadedBuiltin(n, f, o, v),
+            envSet: (n, v, vars) => this.envSet(n, v, vars),
+            envSetConst: (n, v) => this.env.setConstant(n, v),
+            envGet: (n) => this.env.get(n),
+            toVbaNumber: (v) => this.toVbaNumber(v),
+            throwError: (c, m) => this.throwVbaError(c, m),
+            isTrue: (v) => this.isTrue(v),
+            round: (n, d = 0) => this.vbaRound(n, d),
+            callMethod: (o, p, a) => this.callClassMethod(o, p, a),
+            get compMode() { return self.comparisonMode; },
+            print: (m) => this.onPrint(m),
+            errNum: () => this.errObj.number,
+            getEnv: (k) => this.sandbox.getEnv(k),
+            ptrNext: () => (this._ptrCounter += 4),
+            createObj: (id) => this.createExternalObject(id),
+            registry: this.virtualRegistry,
+        };
     }
 
     private registerCoreObjects() {
@@ -892,680 +902,6 @@ export class Evaluator {
             displayalerts: true,
             screenupdating: true,
         });
-    }
-
-    private registerInformationFunctions() {
-        this.registerBuiltin('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
-        this.registerBuiltin('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse, [{ name: 'ArgName' }]);
-        this.registerBuiltin('isnumeric', (val: any) => {
-            if (val === vbaNull) return vbaFalse;
-            if (val === vbaEmpty || val === undefined) return vbaTrue;
-            if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaBoolean || val instanceof VbaDate) return vbaTrue;
-            if (typeof val === 'string') {
-                const s = val.trim();
-                if (s === "") return vbaFalse;
-                const cleaned = s.replace(/[$,]/g, '');
-                return (!isNaN(Number(cleaned)) && isFinite(Number(cleaned))) ? vbaTrue : vbaFalse;
-            }
-            return vbaFalse;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('isdate', (val: any) => {
-            if (val instanceof VbaDate) return vbaTrue;
-            if (typeof val === 'string') {
-                const d = Date.parse(val);
-                return !isNaN(d) ? vbaTrue : vbaFalse;
-            }
-            return vbaFalse;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('isobject', (val: any) => (val === vbaNothing || (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull)) ? vbaTrue : vbaFalse, [{ name: 'Identifier' }]);
-        this.registerBuiltin('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
-        this.registerBuiltin('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
-        this.registerBuiltin('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse, [{ name: 'VarName' }]);
-
-        this.registerBuiltin('vartype', (val: any) => {
-            if (val === vbaEmpty || val === undefined) return 0; // vbEmpty
-            if (val === vbaNull) return 1; // vbNull
-            if (val === vbaNothing) return 9; // vbObject
-            if (val instanceof VbaBoolean) return 11; // vbBoolean
-            if (val instanceof VbaDate) return 7; // vbDate
-            if (val === vbaMissing || val instanceof VbaErrorValue) return 10; // vbError
-            if (Array.isArray(val)) return 8192 + 12; // vbArray + vbVariant
-            if (typeof val === 'number') return 5; // vbDouble
-            if (typeof val === 'string') return 8; // vbString
-            if (val instanceof VbaDecimal) return 14; // vbDecimal
-            if (typeof val === 'bigint') return 20; // vbLongLong
-            if (val && val.__vbaTypeName__) return 36; // vbUserDefinedType
-            if (val && (val.__vbaClass__ || val.__isVbaDict__ || val.__isVbaCollection__)) return 9; // vbObject
-            if (typeof val === 'object' && val !== null) return 9; // vbObject
-            return 12; // vbVariant
-        }, [{ name: 'VarName' }]);
-
-        this.registerBuiltin('typename', (val: any) => {
-            if (val === vbaEmpty || val === undefined) return 'Empty';
-            if (val === vbaNull) return 'Null';
-            if (val === vbaNothing) return 'Nothing';
-            if (val === vbaMissing || val instanceof VbaErrorValue) return 'Error';
-            if (val instanceof VbaBoolean) return 'Boolean';
-            if (val instanceof VbaDate) return 'Date';
-            if (typeof val === 'number') return 'Double';
-            if (typeof val === 'string') return 'String';
-            if (Array.isArray(val)) return 'Variant()';
-            if (val && val.__vbaTypeName__) return val.__vbaTypeName__;
-            if (val && val.__isVbaDict__) return 'Dictionary';
-            if (val && val.__isVbaCollection__) return 'Collection';
-            if (val && val.__vbaClass__) return val.__className__;
-            if (val instanceof VbaDecimal) return 'Decimal';
-            if (typeof val === 'bigint') return 'LongLong';
-            return 'Object';
-        }, [{ name: 'VarName' }]);
-
-        // CallByName(object, procName, callType, args...)
-        // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
-        this.registerBuiltin('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
-            if (obj === null || obj === undefined || obj === vbaNothing) {
-                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
-            }
-            const name = String(procName).toLowerCase();
-            if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
-                if (obj.__vbaClass__) {
-                    const classDef = obj.__classDef__ as ClassDeclaration;
-                    const getter = classDef.procedures.find(
-                        p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === name
-                    );
-                    if (getter) return this.callClassMethod(obj, getter, args);
-                    const method = classDef.procedures.find(
-                        p => !p.isProperty && p.name.name.toLowerCase() === name
-                    );
-                    if (method) return this.callClassMethod(obj, method, args);
-                    return obj.__instanceEnv__.get(name);
-                }
-                if (typeof obj === 'object' && obj !== null) {
-                    const keys = Object.keys(obj);
-                    const match = keys.find(k => k.toLowerCase() === name) ?? name;
-                    const val = obj[match];
-                    if (typeof val === 'function') return val.apply(obj, args);
-                    return val;
-                }
-            }
-            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
-        }, [
-            { name: 'Object' },
-            { name: 'ProcName' },
-            { name: 'CallType' },
-            { name: 'Args', isParamArray: true },
-        ]);
-    }
-
-    private registerConversionFunctions() {
-        this.registerBuiltin('cbyte', (val: any) => {
-            if (val instanceof VbaBoolean) {
-                return val.valueOf() ? 255 : 0;
-            }
-            const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < 0 || n > 255) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return n;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cint', (val: any) => {
-            const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < -32768 || n > 32767) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return n;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('clng', (val: any) => {
-            const n = this.vbaRound(this.toVbaNumber(val));
-            if (n < -2147483648 || n > 2147483647) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return n;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('csng', (val: any) => {
-            const n = this.toVbaNumber(val);
-            const f32 = Math.fround(n);
-            if (!isFinite(f32) && isFinite(n)) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return f32;
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cdbl', (val: any) => this.toVbaNumber(val), [{ name: 'Expression' }]);
-        this.registerBuiltin('cdate', (val: any) => {
-            if (val === null || val === vbaNull || val === vbaEmpty) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            if (val instanceof VbaDate) return val;
-            if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
-                return new VbaDate(toVbaDate(parseVbaDate(val)));
-            }
-            return new VbaDate(this.toVbaNumber(val));
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cvdate', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            return (this.env.get('cdate') as Function)(val);
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cdec', (val: any) => new VbaDecimal(this.toVbaNumber(val)), [{ name: 'Expression' }]);
-        this.registerBuiltin('ccur', (val: any) => {
-            const n = this.vbaRound(this.toVbaNumber(val), 4);
-            if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return n;
-        }, [{ name: 'Expression' }]);
-        const clnglngFunc = (val: any) => {
-            if (val === vbaNull || val === null) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            if (typeof val === 'bigint') return val;
-            if (typeof val === 'string') {
-                const trimmed = val.trim();
-                if (/^-?\d+$/.test(trimmed)) {
-                    try {
-                        const n = BigInt(trimmed);
-                        if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-                        return n;
-                    } catch {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-                    }
-                }
-            }
-            const num = this.toVbaNumber(val);
-            // Check range using number (approximate but necessary for large floats)
-            // Note: 9223372036854775807 is exactly represented as a double but the next double is 9223372036854775807 + 1024
-            if (num < -9223372036854775808 || num > 9223372036854775807) {
-                // If it's very close to the edge, it might be a precision issue
-                if (Math.abs(num - 9223372036854775807) < 1025 || Math.abs(num + 9223372036854775808) < 1025) {
-                    // Keep going and let BigInt conversion handle it if it was a float that rounded to the edge
-                } else {
-                    this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-                }
-            }
-            const n = BigInt(this.vbaRound(num));
-            if (n < -9223372036854775808n || n > 9223372036854775807n) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return n;
-        };
-        this.registerBuiltin('clnglng', clnglngFunc, [{ name: 'Expression' }]);
-        this.envSet('clngptr', this.env.get('clnglng')); // clnglng と同じ関数オブジェクトのため __vbaParamSpec__ も引き継ぐ
-        this.registerBuiltin('cstr', (val: any) => {
-            try { return vbaToString(val); } catch (e: any) {
-                if (e?.type === 'VbaError') this.throwVbaError(e.number, e.message);
-                throw e;
-            }
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cbool', (val: any) => {
-            if (val === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-            return this.coerceToBoolean(val);
-        }, [{ name: 'Expression' }]);
-        this.registerBuiltin('cvar', (val: any) => val, [{ name: 'Expression' }]);
-        this.registerBuiltin('cverr', (val: any) => {
-            if (val instanceof VbaErrorValue) return val;
-            const code = this.toVbaNumber(val);
-            if (code < 0 || code > 65535) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-            return new VbaErrorValue(code);
-        }, [{ name: 'ErrorNumber' }]);
-
-        const hexFn = (n: any) => {
-            if (n === vbaNull) return vbaNull;
-            return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(16).toUpperCase();
-        };
-        this.registerBuiltin('hex', hexFn, [{ name: 'Number' }], ['$']);
-        const octFn = (n: any) => {
-            if (n === vbaNull) return vbaNull;
-            return (Math.floor(this.toVbaNumber(n)) >>> 0).toString(8);
-        };
-        this.registerBuiltin('oct', octFn, [{ name: 'Number' }], ['$']);
-        this.registerBuiltin('val', (s: any) => {
-            if (typeof s !== 'string') return 0;
-            const cleaned = s.trim().replace(/ /g, '');
-            if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
-            if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
-            const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
-            return match ? parseFloat(match[0]) || 0 : 0;
-        }, [{ name: 'String' }]);
-
-        // Constants
-        this.env.set('vbcrlf', "\r\n");
-        this.env.set('vbcr', "\r");
-        this.env.set('vblf', "\n");
-        this.env.set('vbtab', "\t");
-        this.env.set('vbnullstring', "");
-        this.env.set('vbnullchar', "\0");
-        this.env.set('vbok', 1);
-        this.env.set('vbcancel', 2);
-        this.env.set('vbabort', 3);
-        this.env.set('vbretry', 4);
-        this.env.set('vbignore', 5);
-        this.env.set('vbyes', 6);
-        this.env.set('vbno', 7);
-        // CallByName callType constants
-        this.env.set('vbmethod', 1);
-        this.env.set('vbget', 2);
-        this.env.set('vblet', 4);
-        this.env.set('vbset', 8);
-
-        this.env.set('vbokonly', 0);
-        this.env.set('vbokcancel', 1);
-        this.env.set('vbabortretryignore', 2);
-        this.env.set('vbyesnocancel', 3);
-        this.env.set('vbyesno', 4);
-        this.env.set('vbretrycancel', 5);
-        this.env.set('vbcritical', 16);
-        this.env.set('vbquestion', 32);
-        this.env.set('vbexclamation', 48);
-        this.env.set('vbinformation', 64);
-        this.env.set('vbdefaultbutton1', 0);
-        this.env.set('vbdefaultbutton2', 256);
-        this.env.set('vbdefaultbutton3', 512);
-        this.env.set('vbdefaultbutton4', 768);
-        this.env.set('vbtextcompare', 1);
-        this.env.set('vbbinarycompare', 0);
-        this.env.set('vbuppercase', 1);
-        this.env.set('vblowercase', 2);
-        this.env.set('vbpropercase', 3);
-        this.env.set('vbwide', 4);
-        this.env.set('vbnarrow', 8);
-        this.env.set('vbkatakana', 16);
-        this.env.set('vbhiragana', 32);
-    }
-
-    private registerMathFunctions() {
-        this.registerBuiltin('abs', (val: any) => val === vbaNull ? vbaNull : Math.abs(this.toVbaNumber(val)), [{ name: 'Number' }]);
-        this.registerBuiltin('atn', (val: any) => val === vbaNull ? vbaNull : Math.atan(this.toVbaNumber(val)), [{ name: 'Number' }]);
-        this.registerBuiltin('cos', (val: any) => val === vbaNull ? vbaNull : Math.cos(this.toVbaNumber(val)), [{ name: 'Number' }]);
-        this.registerBuiltin('exp', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            if (n > 709.782712893) this.throwVbaError(VbaErrorCode.OVERFLOW, "Overflow");
-            return Math.exp(n);
-        }, [{ name: 'Number' }]);
-        this.registerBuiltin('int', (val: any) => val === vbaNull ? vbaNull : Math.floor(this.toVbaNumber(val)), [{ name: 'Number' }]);
-        this.registerBuiltin('fix', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            return n >= 0 ? Math.floor(n) : Math.ceil(n);
-        }, [{ name: 'Number' }]);
-        this.registerBuiltin('log', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            if (n <= 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-            return Math.log(n);
-        }, [{ name: 'Number' }]);
-        this.registerBuiltin('round', (val: any, digits: any = 0) => val === vbaNull ? vbaNull : this.vbaRound(this.toVbaNumber(val), Number(digits)), [
-            { name: 'Number' },
-            { name: 'NumDigitsAfterDecimal', optional: true },
-        ]);
-        this.registerBuiltin('sgn', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            return n > 0 ? 1 : n < 0 ? -1 : 0;
-        }, [{ name: 'Number' }]);
-        this.registerBuiltin('sin', (val: any) => val === vbaNull ? vbaNull : Math.sin(this.toVbaNumber(val)), [{ name: 'Number' }]);
-        this.registerBuiltin('sqr', (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            if (n < 0) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-            return Math.sqrt(n);
-        }, [{ name: 'Number' }]);
-        this.registerBuiltin('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(this.toVbaNumber(val)), [{ name: 'Number' }]);
-
-        let rndSeed = 0.5;
-        let lastRnd = 0.5;
-        let rndInitialized = false;
-        const rndFunc = (val?: any) => {
-            if (!rndInitialized) { rndSeed = 0.5; rndInitialized = true; }
-            if (val === undefined || (typeof val === 'number' && val > 0)) {
-                rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
-                lastRnd = rndSeed / 4294967296;
-                return lastRnd;
-            } else if (val === 0) {
-                return lastRnd;
-            } else if (val < 0) {
-                const s = Math.abs(Number(val)) * 9301 + 49297;
-                lastRnd = (s % 233280) / 233280;
-                return lastRnd;
-            }
-            return lastRnd;
-        };
-        this.registerBuiltin('rnd', rndFunc, [{ name: 'Number', optional: true }]);
-        this.registerBuiltin('randomize', (val?: any) => {
-            rndInitialized = true;
-            rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
-            lastRnd = rndSeed / 4294967296;
-        }, [{ name: 'Number', optional: true }]);
-    }
-
-    private registerStringFunctions() {
-        const ascFunc = (s: any) => String(s || '').charCodeAt(0);
-        this.registerBuiltin('asc', ascFunc, [{ name: 'String' }]);
-        this.registerBuiltin('ascw', ascFunc, [{ name: 'String' }]);
-        const chrFunc = (n: any) => String.fromCharCode(Number(n));
-        this.registerBuiltin('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
-        this.registerBuiltin('chrw', chrFunc, [{ name: 'CharCode' }], ['$']);
-        // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
-        // （registerOverloadedBuiltin — 本体のこの個数判定ロジックは変更しない）。
-        const instrFunc = (...args: any[]) => {
-            let start = 1, s1, s2, comp;
-            if (args.length >= 4) [start, s1, s2, comp] = args;
-            else if (args.length === 3 && typeof args[0] === 'number') [start, s1, s2] = args;
-            else [s1, s2] = args;
-            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
-            const str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
-            const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
-            const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), start - 1) : str1.indexOf(str2, start - 1);
-            return idx === -1 ? 0 : idx + 1;
-        };
-        this.registerOverloadedBuiltin('instr', instrFunc, [
-            { params: [{ name: 'String1' }, { name: 'String2' }] },
-            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
-            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
-        ]);
-        // InStrB: バイト単位での検索（VBA では文字列を UTF-16 として扱うため 1 文字 = 2 バイト）
-        // start もバイト位置、戻り値もバイト位置（1-based）。InStr と同じく Start が先頭の Optional。
-        const instrbFunc = (...args: any[]) => {
-            let startByte = 1, s1, s2, comp;
-            if (args.length >= 4) [startByte, s1, s2, comp] = args;
-            else if (args.length === 3 && typeof args[0] === 'number') [startByte, s1, s2] = args;
-            else [s1, s2] = args;
-            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
-            const str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
-            // バイト位置 → 文字位置に変換（1-based のまま）
-            const startChar = Math.floor((Number(startByte) - 1) / 2) + 1;
-            const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
-            const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startChar - 1) : str1.indexOf(str2, startChar - 1);
-            return idx === -1 ? 0 : idx * 2 + 1;
-        };
-        this.registerOverloadedBuiltin('instrb', instrbFunc, [
-            { params: [{ name: 'String1' }, { name: 'String2' }] },
-            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
-            { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
-        ]);
-        this.registerBuiltin('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
-            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
-            const str = String(s1 ?? ''), find = String(s2 ?? '');
-            if (find === "") return (start === -1) ? str.length : Number(start);
-
-            const startNum = Number(start);
-            if (startNum !== -1 && startNum > str.length) return 0;
-
-            const effStart = (start === -1) ? str.length : startNum;
-            const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
-            const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
-            return idx === -1 ? 0 : idx + 1;
-        }, [
-            { name: 'StringCheck' },
-            { name: 'StringMatch' },
-            { name: 'Start', optional: true },
-            { name: 'Compare', optional: true },
-        ]);
-        const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
-        this.registerBuiltin('lcase', lcaseFunc, [{ name: 'String' }], ['$']);
-        const strFunc = (val: any) => {
-            if (val === vbaNull) return vbaNull;
-            const n = this.toVbaNumber(val);
-            return n >= 0 ? " " + n : String(n);
-        };
-        this.registerBuiltin('str', strFunc, [{ name: 'Number' }], ['$']);
-
-        const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
-        this.registerBuiltin('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
-        const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
-        this.registerBuiltin('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
-        const rightFunc = (val: any, len: any) => {
-            const s = String(val ?? ''), l = Number(len);
-            return s.substring(s.length - l);
-        };
-        this.registerBuiltin('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
-        const midFunc = (val: any, start: any, len?: any) => {
-            const s = String(val ?? ''), st = Number(start);
-            return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
-        };
-        this.registerBuiltin('mid', midFunc, [
-            { name: 'String' },
-            { name: 'Start' },
-            { name: 'Length', optional: true },
-        ], ['$']);
-        this.registerBuiltin('len', (val: any) => val === vbaNull ? vbaNull : String(val ?? '').length, [{ name: 'String' }]);
-        const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimStart();
-        this.registerBuiltin('ltrim', ltrimFunc, [{ name: 'String' }], ['$']);
-        const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trimEnd();
-        this.registerBuiltin('rtrim', rtrimFunc, [{ name: 'String' }], ['$']);
-        const trimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim();
-        this.registerBuiltin('trim', trimFunc, [{ name: 'String' }], ['$']);
-        const spaceFunc = (n: any) => ' '.repeat(Number(n));
-        this.registerBuiltin('space', spaceFunc, [{ name: 'Number' }], ['$']);
-        const stringFunc = (n: any, char: any) => {
-            // VBA 仕様: 数値が渡された場合は文字コードとして扱う、文字列の場合は先頭文字を使う
-            let c: string;
-            if (typeof char === 'number') {
-                c = String.fromCharCode(char);
-            } else {
-                const s = String(char ?? '');
-                c = s.length > 0 ? s[0] : '';
-            }
-            return c.repeat(Number(n));
-        };
-        this.registerBuiltin('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
-        this.registerBuiltin('split', (s: any, del: string = ' ') => String(s ?? '').split(del), [
-            { name: 'Expression' },
-            { name: 'Delimiter', optional: true },
-        ]);
-        this.registerBuiltin('join', (arr: any, del: string = ' ') => {
-            if (!Array.isArray(arr)) return String(arr);
-            // 配列の物理ストレージは LBound 分のオフセット（隠し要素）を含むため、
-            // UBound/LBound と同じ vbaBase を見てスキップしないと先頭に余分な空要素が混入する
-            const base = (arr as any).vbaBase || 0;
-            return arr.slice(base).join(del);
-        }, [
-            { name: 'SourceArray' },
-            { name: 'Delimiter', optional: true },
-        ]);
-        this.registerBuiltin('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')), [
-            { name: 'Expression' },
-            { name: 'Find' },
-            { name: 'Replace' },
-        ]);
-        this.registerBuiltin('strcomp', (s1: any, s2: any, comp?: number) => {
-            if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
-            let str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
-            const isText = (comp === 1) || (comp === undefined && this.comparisonMode === 'Text');
-            if (isText) { str1 = str1.toLowerCase(); str2 = str2.toLowerCase(); }
-            return str1 < str2 ? -1 : (str1 > str2 ? 1 : 0);
-        }, [
-            { name: 'String1' },
-            { name: 'String2' },
-            { name: 'Compare', optional: true },
-        ]);
-        this.registerBuiltin('strconv', (s: any, conv: any) => {
-            if (s === vbaNull) return vbaNull;
-            let str = String(s ?? '');
-            const c = Number(conv);
-            const caseConv = c & 3;
-            if (caseConv === 1) str = str.toUpperCase();
-            else if (caseConv === 2) str = str.toLowerCase();
-            else if (caseConv === 3) str = str.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
-
-            if (c & 16) {
-                str = str.replace(/[\u3041-\u3096]/g, m => String.fromCharCode(m.charCodeAt(0) + 0x60));
-            } else if (c & 32) {
-                str = str.replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
-            }
-
-            if (c & 4) {
-                str = str.replace(/[!-~]/g, m => String.fromCharCode(m.charCodeAt(0) + 0xFEE0)).replace(/ /g, '　');
-            } else if (c & 8) {
-                str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
-            }
-            return str;
-        }, [{ name: 'String' }, { name: 'Conversion' }]);
-        this.registerBuiltin('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
-        this.registerBuiltin('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
-            if (!Array.isArray(source)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            const find = String(match ?? '');
-            const isInclude = this.isTrue(include);
-            const isText = (compare === 1) || (compare === undefined && this.comparisonMode === 'Text');
-            const result = source.filter(s => {
-                const str = String(s ?? '');
-                const found = isText ? str.toLowerCase().includes(find.toLowerCase()) : str.includes(find);
-                return isInclude ? found : !found;
-            });
-            (result as any).vbaBase = 0;
-            return result;
-        }, [
-            { name: 'SourceArray' },
-            { name: 'Match' },
-            { name: 'Include', optional: true },
-            { name: 'Compare', optional: true },
-        ]);
-        this.registerBuiltin('leftb', (val: any, len: any) => {
-            const s = String(val ?? '');
-            // In VBA, strings are UTF-16, so each char is 2 bytes.
-            // LeftB(s, 2) returns first char.
-            return s.substring(0, Math.floor(Number(len) / 2));
-        }, [{ name: 'String' }, { name: 'Length' }]);
-        this.registerBuiltin('rightb', (val: any, len: any) => {
-            const s = String(val ?? '');
-            const charLen = Math.floor(Number(len) / 2);
-            return s.substring(s.length - charLen);
-        }, [{ name: 'String' }, { name: 'Length' }]);
-        const midbFunc = (val: any, start: any, len?: any) => {
-            const s = String(val ?? '');
-            const charStart = Math.floor((Number(start) + 1) / 2);
-            if (len === undefined) return s.substring(charStart - 1);
-            const charLen = Math.floor(Number(len) / 2);
-            return s.substring(charStart - 1, charStart - 1 + charLen);
-        };
-        this.registerBuiltin('midb', midbFunc, [
-            { name: 'String' },
-            { name: 'Start' },
-            { name: 'Length', optional: true },
-        ], ['$']);
-        const formatFunc = (val: any, pattern?: string) => {
-            if (val === null || val === vbaNull || val === vbaEmpty) return "";
-            const fmt = pattern ? String(pattern) : "";
-            if (fmt === "") return String(val);
-            const fmtLower = fmt.toLowerCase();
-            const namedFormats = ['general number', 'currency', 'fixed', 'standard', 'percent', 'scientific', 'true/false', 'yes/no', 'on/off'];
-            const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
-            if (namedFormats.includes(fmtLower)) {
-                if (typeof val === 'number') return formatNumber(val, fmt);
-                return String(val);
-            }
-            if (dateNamedFormats.includes(fmtLower)) {
-                const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(String(val)));
-                return formatDate(dateVal, fmt);
-            }
-            if (typeof val === 'string') return formatString(val, fmt);
-            const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(fmt);
-            if (val instanceof VbaDate) return formatDate(fromVbaDate(val.value), fmt);
-            if (typeof val === 'number') {
-                if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(val), fmt);
-                return formatNumber(val, fmt);
-            }
-            return String(val);
-        };
-        this.registerBuiltin('format', formatFunc, [
-            { name: 'Expression' },
-            { name: 'Format', optional: true },
-        ], ['$']);
-    }
-
-    private registerStdlibDateTimeFunctions() {
-        this.registerBuiltin('year',   (d: any) => parseVbaDate(d).getFullYear(), [{ name: 'Date' }]);
-        this.registerBuiltin('month',  (d: any) => parseVbaDate(d).getMonth() + 1, [{ name: 'Date' }]);
-        this.registerBuiltin('day',    (d: any) => parseVbaDate(d).getDate(), [{ name: 'Date' }]);
-        this.registerBuiltin('hour',   (d: any) => parseVbaDate(d).getHours(), [{ name: 'Time' }]);
-        this.registerBuiltin('minute', (d: any) => parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
-        this.registerBuiltin('second', (d: any) => parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
-        this.registerBuiltin('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))), [
-            { name: 'Year' }, { name: 'Month' }, { name: 'Day' },
-        ]);
-        this.registerBuiltin('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))), [
-            { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' },
-        ]);
-        this.registerBuiltin('weekday', (d: any) => parseVbaDate(d).getDay() + 1, [{ name: 'Date' }]);
-        this.registerBuiltin('dateadd', (interval: any, number: any, date: any) => {
-            const d = parseVbaDate(date);
-            const n = Number(number);
-            const intv = String(interval).toLowerCase();
-
-            if (intv === 'yyyy' || intv === 'q' || intv === 'm') {
-                const oldDay = d.getDate();
-                if (intv === 'yyyy') d.setFullYear(d.getFullYear() + n);
-                else if (intv === 'q') d.setMonth(d.getMonth() + n * 3);
-                else if (intv === 'm') d.setMonth(d.getMonth() + n);
-
-                // VBA behavior: if the day exceeds the last day of the month,
-                // it is set to the last day of that month.
-                if (d.getDate() !== oldDay) {
-                    d.setDate(0);
-                }
-            } else if (intv === 'y' || intv === 'd' || intv === 'w') {
-                d.setDate(d.getDate() + n);
-            } else if (intv === 'ww') {
-                d.setDate(d.getDate() + n * 7);
-            } else if (intv === 'h') {
-                d.setHours(d.getHours() + n);
-            } else if (intv === 'n') {
-                d.setMinutes(d.getMinutes() + n);
-            } else if (intv === 's') {
-                d.setSeconds(d.getSeconds() + n);
-            }
-            return new VbaDate(toVbaDate(d));
-        }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
-        this.registerBuiltin('datediff', (interval: any, date1: any, date2: any) => {
-            const d1 = parseVbaDate(date1);
-            const d2 = parseVbaDate(date2);
-            const intv = String(interval).toLowerCase();
-            const diffMs = d2.getTime() - d1.getTime();
-            if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
-            else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
-            else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
-            else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
-            else if (intv === 'ww') return Math.round(diffMs / 604800000);
-            else if (intv === 'h') return Math.round(diffMs / 3600000);
-            else if (intv === 'n') return Math.round(diffMs / 60000);
-            else if (intv === 's') return Math.round(diffMs / 1000);
-            return 0;
-        }, [{ name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' }]);
-        this.registerBuiltin('datepart', (interval: any, date: any) => {
-            const d = parseVbaDate(date);
-            const intv = String(interval).toLowerCase();
-            if (intv === 'yyyy') return d.getFullYear();
-            else if (intv === 'q') return Math.floor(d.getMonth() / 3) + 1;
-            else if (intv === 'm') return d.getMonth() + 1;
-            else if (intv === 'y') {
-                const start = new Date(d.getFullYear(), 0, 0);
-                const diff = d.getTime() - start.getTime();
-                return Math.floor(diff / 86400000);
-            }
-            else if (intv === 'd') return d.getDate();
-            else if (intv === 'w') return d.getDay() + 1;
-            else if (intv === 'ww') {
-                const start = new Date(d.getFullYear(), 0, 1);
-                const diff = d.getTime() - start.getTime();
-                return Math.floor((diff / 86400000 + start.getDay() + 6) / 7);
-            }
-            else if (intv === 'h') return d.getHours();
-            else if (intv === 'n') return d.getMinutes();
-            else if (intv === 's') return d.getSeconds();
-            return 0;
-        }, [{ name: 'Interval' }, { name: 'Date' }]);
-        this.registerBuiltin('datevalue', (val: any) => {
-            const d = parseVbaDate(val);
-            return new VbaDate(Math.floor(toVbaDate(d)));
-        }, [{ name: 'Date' }]);
-        this.registerBuiltin('timevalue', (val: any) => {
-            const d = parseVbaDate(val);
-            const serial = toVbaDate(d);
-            return new VbaDate(serial - Math.floor(serial));
-        }, [{ name: 'Time' }]);
-        this.registerBuiltin('monthname', (month: any, abbreviate: any = vbaFalse) => {
-            const m = Number(month);
-            if (m < 1 || m > 12) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-            const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-            const abbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-            return this.isTrue(abbreviate) ? abbrs[m - 1] : names[m - 1];
-        }, [{ name: 'Month' }, { name: 'Abbreviate', optional: true }]);
-        this.registerBuiltin('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
-            const w = Number(weekday);
-            let first = Number(firstdayofweek);
-            if (first === 0) first = 1;
-            if (w < 1 || w > 7) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-            const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-            const abbrs = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-            const idx = (w + first - 2) % 7;
-            return this.isTrue(abbreviate) ? abbrs[idx] : names[idx];
-        }, [
-            { name: 'Weekday' },
-            { name: 'Abbreviate', optional: true },
-            { name: 'FirstDayOfWeek', optional: true },
-        ]);
     }
 
     private registerFileSystemFunctions() {
@@ -1598,7 +934,7 @@ export class Evaluator {
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('fileattr', (fn: any, info: any = 1) => {
             console.log(`[STUB] FileAttr #${fn}, ${info}`);
-            return 1; // Default to Normal
+            return 1;
         }, [{ name: 'FileNumber' }, { name: 'ReturnType', optional: true }]);
         this.registerBuiltin('chdrive', (drive: any) => {
             console.log(`[STUB] ChDrive "${drive}"`);
@@ -1611,7 +947,6 @@ export class Evaluator {
             const stats = this.fs.statSync(realPath);
             return new VbaDate(toVbaDate(stats.mtime));
         }, [{ name: 'PathName' }]);
-
         this.registerBuiltin('curdir', (_drive?: string) => this.sandbox.getCwd(), [{ name: 'Drive', optional: true }], ['$']);
         this.registerBuiltin('dir', (pathName?: string, _attributes?: number) => {
             if (pathName !== undefined && pathName !== null && pathName !== "") {
@@ -1652,307 +987,6 @@ export class Evaluator {
         }, [{ name: 'Path' }]);
         this.registerBuiltin('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size, [{ name: 'PathName' }]);
     }
-
-    private registerInteractionFunctions() {
-        this.registerBuiltin('shell', (cmd: any, style: any = 1) => { this.onPrint(`[SHELL] ${cmd} (Style: ${style})`); return 1; }, [
-            { name: 'PathName' },
-            { name: 'WindowStyle', optional: true },
-        ]);
-        this.registerBuiltin('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => {
-            const title = _title ? ` ${_title}:` : '';
-            this.onPrint(`[MSGBOX]${title} ${msg}`);
-            return 1;
-        }, [
-            { name: 'Prompt' },
-            { name: 'Buttons', optional: true },
-            { name: 'Title', optional: true },
-        ]);
-        this.registerBuiltin('inputbox', (prompt: any, _title: any = "", def: any = "") => { this.onPrint(`[INPUTBOX] ${prompt}`); return def; }, [
-            { name: 'Prompt' },
-            { name: 'Title', optional: true },
-            { name: 'Default', optional: true },
-        ]);
-        this.registerBuiltin('appactivate', (title: string, _wait?: boolean) => { this.onPrint(`[APPACTIVATE] ${title}`); }, [
-            { name: 'Title' },
-            { name: 'Wait', optional: true },
-        ]);
-        this.registerBuiltin('sendkeys', (keys: string, _wait?: boolean) => { this.onPrint(`[SENDKEYS] ${keys}`); }, [
-            { name: 'String' },
-            { name: 'Wait', optional: true },
-        ]);
-        const doEventsFunc = () => 0;
-        this.registerBuiltin('doevents', doEventsFunc, []);
-    }
-
-    private registerFinancialFunctions() {
-        const getRateFactor = (rate: number, nper: number) => {
-            if (rate === 0) return nper;
-            return (Math.pow(1 + rate, nper) - 1) / rate;
-        };
-        this.registerBuiltin('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
-            const r = Number(rate), n = Number(nper), p = Number(pmt), v = Number(pv), t = Number(type);
-            const factor = getRateFactor(r, n);
-            const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
-            return result;
-        }, [
-            { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
-            { name: 'PV', optional: true }, { name: 'Type', optional: true },
-        ]);
-        this.registerBuiltin('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
-            const r = Number(rate), n = Number(nper), p = Number(pmt), f = Number(fv), t = Number(type);
-            if (r === 0) return -(f + p * n);
-            const p1 = Math.pow(1 + r, n);
-            const result = -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
-            return result;
-        }, [
-            { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true },
-        ]);
-        this.registerBuiltin('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-            const r = Number(rate), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
-            if (r === 0) return -(v + f) / n;
-            const p1 = Math.pow(1 + r, n);
-            const result = -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));
-            return result;
-        }, [
-            { name: 'Rate' }, { name: 'NPer' }, { name: 'PV' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true },
-        ]);
-        this.registerBuiltin('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
-            const r = Number(rate), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
-            if (r === 0) return -(v + f) / p;
-            const num = p * (1 + r * t) - f * r;
-            const den = p * (1 + r * t) + v * r;
-            return Math.log(num / den) / Math.log(1 + r);
-        }, [
-            { name: 'Rate' }, { name: 'Pmt' }, { name: 'PV' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true },
-        ]);
-        this.registerBuiltin('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
-            // Newton-Raphson approximation for Rate
-            let r = Number(guess);
-            const n = Number(nper), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
-            for (let i = 0; i < 20; i++) {
-                const p1 = Math.pow(1 + r, n);
-                const f_r = v * p1 + p * (1 + r * t) * ((p1 - 1) / r) + f;
-                const df_r = v * n * Math.pow(1 + r, n - 1) + p * (t * ((p1 - 1) / r) + (1 + r * t) * (n * Math.pow(1 + r, n - 1) * r - (p1 - 1)) / (r * r));
-                const newR = r - f_r / df_r;
-                if (Math.abs(newR - r) < 1e-10) return newR;
-                r = newR;
-            }
-            return r;
-        }, [
-            { name: 'NPer' }, { name: 'Pmt' }, { name: 'PV' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true }, { name: 'Guess', optional: true },
-        ]);
-        this.registerBuiltin('sln', (cost: any, salvage: any, life: any) => {
-            return (Number(cost) - Number(salvage)) / Number(life);
-        }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
-        this.registerBuiltin('syd', (cost: any, salvage: any, life: any, period: any) => {
-            const c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period);
-            return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
-        }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
-        this.registerBuiltin('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
-            let c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period), f = Number(factor);
-            if (p <= 0 || p > l) return 0;
-            let book = c;
-            let dep = 0;
-            for (let i = 1; i <= p; i++) {
-                dep = Math.min(book * (f / l), Math.max(0, book - s));
-                book -= dep;
-            }
-            return dep;
-        }, [
-            { name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' },
-            { name: 'Factor', optional: true },
-        ]);
-        this.registerBuiltin('irr', (values: any, guess: any = 0.1) => {
-            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            const v = values.map(Number);
-            let r = Number(guess);
-            for (let i = 0; i < 100; i++) {
-                let npv = 0;
-                let dnpv = 0;
-                for (let t = 0; t < v.length; t++) {
-                    const p1 = Math.pow(1 + r, t);
-                    npv += v[t] / p1;
-                    if (t > 0) dnpv -= t * v[t] / (p1 * (1 + r));
-                }
-                const newR = r - npv / dnpv;
-                if (Math.abs(newR - r) < 1e-10) return newR;
-                r = newR;
-            }
-            return r;
-        }, [{ name: 'ValueArray' }, { name: 'Guess', optional: true }]);
-        this.registerBuiltin('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
-            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            const v = values.map(Number);
-            const fr = Number(finance_rate), rr = Number(reinvest_rate);
-            const n = v.length - 1;
-            let npv_neg = 0;
-            let npv_pos = 0;
-            for (let t = 0; t < v.length; t++) {
-                if (v[t] < 0) npv_neg += v[t] / Math.pow(1 + fr, t);
-                else npv_pos += v[t] / Math.pow(1 + rr, t);
-            }
-            const tv = npv_pos * Math.pow(1 + rr, n);
-            return Math.pow(-tv / npv_neg, 1 / n) - 1;
-        }, [{ name: 'ValueArray' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
-        this.registerBuiltin('npv', (rate: any, values: any) => {
-            if (!Array.isArray(values)) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-            const r = Number(rate);
-            const v = values.map(Number);
-            let result = 0;
-            for (let i = 0; i < v.length; i++) {
-                result += v[i] / Math.pow(1 + r, i + 1);
-            }
-            return result;
-        }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
-        this.registerBuiltin('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-            const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
-            const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
-            let ipmt: number;
-            if (p === 1) {
-                ipmt = t === 1 ? 0 : -v * r;
-            } else {
-                const fv_prev = Number(this.env.get('fv')(r, p - 1, pmt, v, t));
-                ipmt = -fv_prev * r;
-            }
-            return ipmt;
-        }, [
-            { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true },
-        ]);
-        this.registerBuiltin('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-            const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
-            const pmt = Number(this.env.get('pmt')(r, n, v, f, t));
-            const ipmt = Number(this.env.get('ipmt')(r, p, n, v, f, t));
-            return pmt - ipmt;
-        }, [
-            { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
-            { name: 'FV', optional: true }, { name: 'Type', optional: true },
-        ]);
-    }
-
-    private registerConstants() {
-        const errorMessages: Record<number, string> = { 5: "Invalid procedure call or argument", 6: "Overflow", 9: "Subscript out of range", 11: "Division by zero", 13: "Type mismatch", 52: "Bad file name or number", 53: "File not found", 58: "File already exists", 62: "Input past end of file", 70: "Permission denied", 76: "Path not found", 91: "Object variable not set", 94: "Invalid use of Null" };
-        const errFunc = (n?: any) => errorMessages[n === undefined ? this.errObj.number : Number(n)] || "Application-defined or object-defined error";
-        this.registerBuiltin('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
-        this.env.setConstant('vbsunday', 1);
-        this.env.setConstant('vbmonday', 2);
-        this.env.setConstant('vbtuesday', 3);
-        this.env.setConstant('vbwednesday', 4);
-        this.env.setConstant('vbthursday', 5);
-        this.env.setConstant('vbfriday', 6);
-        this.env.setConstant('vbsaturday', 7);
-        this.env.setConstant('vbusesystem', 0);
-        this.env.setConstant('vbbinarycompare', 0);
-        this.env.setConstant('vbtextcompare', 1);
-        this.env.setConstant('vbempty', 0); this.env.setConstant('vbnull', 1); this.env.setConstant('vbinteger', 2); this.env.setConstant('vblong', 3); this.env.setConstant('vbsingle', 4); this.env.setConstant('vbdouble', 5); this.env.setConstant('vbcurrency', 6); this.env.setConstant('vbdate', 7); this.env.setConstant('vbstring', 8); this.env.setConstant('vbobject', 9); this.env.setConstant('vberror', 10); this.env.setConstant('vbboolean', 11); this.env.setConstant('vbvariant', 12); this.env.setConstant('vbbyte', 17); this.env.setConstant('vblonglong', 20); this.env.setConstant('vbarray', 8192);
-        this.env.setConstant('vbcrlf', "\r\n"); this.env.setConstant('vbtab', "\t"); this.env.setConstant('vbcr', "\r"); this.env.setConstant('vblf', "\n"); this.env.setConstant('vbnewline', "\n"); this.env.setConstant('vbnullstring', ''); this.env.setConstant('vbnullchar', '\0'); this.env.setConstant('vbback', "\b"); this.env.setConstant('vbformfeed', "\f");
-        // カスタムエラー番号の基準値（MS-VBAL §6.1.2.10）。Err.Raise vbObjectError + n の慣用句で使う。
-        this.env.setConstant('vbobjecterror', -2147221504);
-        this.env.setConstant('true', vbaTrue); this.env.setConstant('false', vbaFalse); this.env.setConstant('empty', vbaEmpty); this.env.setConstant('nothing', vbaNothing); this.env.setConstant('null', vbaNull);
-
-        this.registerBuiltin('environ', (k: any) => this.sandbox.getEnv(k), [{ name: 'EnvString' }], ['$']);
-
-        // VarPtr / StrPtr / ObjPtr — dummy pointer functions (non-zero unique Long per call)
-        // Real addresses have no meaning in this engine; return stable non-zero integers.
-        const ptrFn = () => (this._ptrCounter += 4);
-        this.registerBuiltin('varptr', ptrFn, [{ name: 'VarName' }]);
-        this.registerBuiltin('strptr', ptrFn, [{ name: 'VarName' }]);
-        this.registerBuiltin('objptr', ptrFn, [{ name: 'VarName' }]);
-        this.registerBuiltin('createobject', (id: string) => this.createExternalObject(id), [{ name: 'Class' }]);
-        const getObjectFunc = (pathname?: string, classId?: string) => {
-            if (pathname) {
-                return {
-                    __vbaTypeName__: 'Object',
-                    Path: pathname,
-                    Name: pathname.split(/[\\\/]/).pop()
-                };
-            }
-            if (classId) {
-                return this.createExternalObject(classId);
-            }
-            return vbaNothing;
-        };
-        this.registerBuiltin('getobject', getObjectFunc, [
-            { name: 'PathName', optional: true },
-            { name: 'Class', optional: true },
-        ]);
-        this.registerBuiltin('iif', (c: any, t: any, f: any) => this.isTrue(c) ? t : f, [
-            { name: 'Expr' }, { name: 'TruePart' }, { name: 'FalsePart' },
-        ]);
-        this.registerBuiltin('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; }, [
-            { name: 'Index' },
-            { name: 'Choice', isParamArray: true },
-        ]);
-        // Switch(Expr1, Value1, [Expr2, Value2]...) はペア単位の ParamArray のため、
-        // 個数検証は行わず今までどおり可変長で受け取る（isParamArray で checkArgCountGeneric をスキップ）。
-        this.registerBuiltin('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (this.isTrue(args[i])) return args[i + 1]; return vbaNull; }, [
-            { name: 'VarExpr', isParamArray: true },
-        ]);
-        this.registerBuiltin('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; }, [
-            { name: 'Arglist', isParamArray: true },
-        ]);
-        this.registerBuiltin('lbound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-            const dimIndex = Number(dim) - 1;
-            if ((a as any).__vbaDimensions__) {
-                if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
-                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-                }
-                return (a as any).__vbaDimensions__[dimIndex].lower;
-            }
-            if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-            return (a as any).vbaBase || 0;
-        }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
-        this.registerBuiltin('ubound', (a: any, dim: any = 1) => {
-            if (!Array.isArray(a)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-            const dimIndex = Number(dim) - 1;
-            if ((a as any).__vbaDimensions__) {
-                if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
-                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-                }
-                return (a as any).__vbaDimensions__[dimIndex].upper;
-            }
-            if (dimIndex > 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-            return ((a as any).vbaBase || 0) + a.length - 1;
-        }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
-    }
-
-    private registerRegistryFunctions() {
-        this.registerBuiltin('savesetting', (app: string, sec: string, key: string, val: any) => {
-            if (!this.virtualRegistry[app]) this.virtualRegistry[app] = {};
-            if (!this.virtualRegistry[app][sec]) this.virtualRegistry[app][sec] = {};
-            this.virtualRegistry[app][sec][key] = String(val);
-        }, [
-            { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Setting' },
-        ]);
-        this.registerBuiltin('getsetting', (app: string, sec: string, key: string, def: any = "") => {
-            return (this.virtualRegistry[app]?.[sec]?.[key]) ?? String(def);
-        }, [
-            { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Default', optional: true },
-        ]);
-        this.registerBuiltin('getallsettings', (app: string, sec: string) => {
-            const s = this.virtualRegistry[app]?.[sec];
-            if (!s) return vbaEmpty;
-            const res = Object.entries(s).map(([k, v]) => [k, v]);
-            (res as any).vbaBase = 0;
-            return res;
-        }, [{ name: 'AppName' }, { name: 'Section' }]);
-        this.registerBuiltin('deletesetting', (app: string, sec?: string, key?: string) => {
-            if (!sec) delete this.virtualRegistry[app];
-            else if (!key) delete this.virtualRegistry[app]?.[sec];
-            else delete this.virtualRegistry[app]?.[sec]?.[key];
-        }, [
-            { name: 'AppName' },
-            { name: 'Section', optional: true },
-            { name: 'Key', optional: true },
-        ]);
-    }
-
-
 
     private triggerTerminate(obj: any) {
         if (obj && obj.__vbaClass__) {
