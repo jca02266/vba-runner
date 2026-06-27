@@ -57,4 +57,5 @@ REPORT.md
 
 /build/*/LICENSE
 .env
+.npmrc
 /build/extension/vba-runner-extension.md
