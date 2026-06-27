@@ -651,7 +651,7 @@ export class Evaluator {
         pos?: number
     }> = new Map();
     private sandbox: SandboxPath;
-    private fs: FileSystem;
+    public fs: FileSystem;
     private onPrint: PrintCallback;
     private currentProcBody: Statement[] | null = null;
     private currentProcedureName: string | null = null;

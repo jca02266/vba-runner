@@ -26,6 +26,9 @@ export class VBARunner {
     /** `excelStub: true` のとき注入された MockApplication。セル初期値の設定に使う。 */
     public readonly excelStub: MockApplication | null = null;
 
+    /** VBA コードが使う仮想ファイルシステム。テスト用入力ファイルの事前配置などに使う。 */
+    get fs(): FileSystem { return this.evaluator.fs; }
+
     constructor(pathOrDir: string | string[] | null = null, config: {
         sandboxRoot?: string,
         env?: Record<string, string>,
