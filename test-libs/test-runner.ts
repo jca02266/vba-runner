@@ -127,7 +127,7 @@ export class VBARunner {
         );
     }
 
-    run(procedureName: string, args: any[], type?: 'get' | 'let' | 'set'): any {
+    run(procedureName: string, args: any[] = [], type?: 'get' | 'let' | 'set'): any {
         this._ensureResolved();
         const start = Date.now();
         const raw = this.evaluator.callProcedure(procedureName, args, type);

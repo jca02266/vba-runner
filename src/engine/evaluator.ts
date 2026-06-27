@@ -108,6 +108,7 @@ import {
     vbaRound as _vbaRound,
 } from './coerce';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
+import { formatDate, formatNumber, formatString } from './format';
 export { VbaErrorCode } from './vba-errors';
 
 /**
@@ -1432,18 +1433,19 @@ export class Evaluator {
             const namedFormats = ['general number', 'currency', 'fixed', 'standard', 'percent', 'scientific', 'true/false', 'yes/no', 'on/off'];
             const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
             if (namedFormats.includes(fmtLower)) {
-                if (typeof val === 'number') return this.formatNumber(val, fmt);
+                if (typeof val === 'number') return formatNumber(val, fmt);
                 return String(val);
             }
             if (dateNamedFormats.includes(fmtLower)) {
                 const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(String(val)));
-                return this.formatDate(dateVal, fmt);
+                return formatDate(dateVal, fmt);
             }
+            if (typeof val === 'string') return formatString(val, fmt);
             const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(fmt);
-            if (val instanceof VbaDate) return this.formatDate(fromVbaDate(val.value), fmt);
+            if (val instanceof VbaDate) return formatDate(fromVbaDate(val.value), fmt);
             if (typeof val === 'number') {
-                if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return this.formatDate(fromVbaDate(val), fmt);
-                return this.formatNumber(val, fmt);
+                if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(val), fmt);
+                return formatNumber(val, fmt);
             }
             return String(val);
         };
@@ -7301,128 +7303,4 @@ export class Evaluator {
         return !!val;
     }
 
-    private formatDate(d: Date, pattern: string): string {
-        const pLower = pattern.toLowerCase();
-
-        const pad2 = (n: number) => String(n).padStart(2, '0');
-        const yyyy = String(d.getFullYear());
-        const MM   = pad2(d.getMonth() + 1);
-        const dd   = pad2(d.getDate());
-        const HH   = pad2(d.getHours());
-        const mm   = pad2(d.getMinutes());
-        const ss   = pad2(d.getSeconds());
-
-        const months      = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-        const monthsShort = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-        const days        = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-        const daysShort   = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-
-        const h12  = d.getHours() % 12 || 12;
-        const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
-
-        // Named formats — fixed English format strings (VBA named formats are locale-dependent in real VBA,
-        // but we use fixed format strings to ensure consistent output regardless of OS locale settings)
-        if (pLower === 'general date') {
-            const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
-            return hasTime ? `${yyyy}/${MM}/${dd} ${HH}:${mm}:${ss}` : `${yyyy}/${MM}/${dd}`;
-        }
-        if (pLower === 'long date')   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${yyyy}`;
-        if (pLower === 'medium date') return `${dd}-${monthsShort[d.getMonth()]}-${yyyy.slice(-2)}`;
-        if (pLower === 'short date')  return `${yyyy}/${MM}/${dd}`;
-        if (pLower === 'long time')   return `${HH}:${mm}:${ss}`;
-        if (pLower === 'medium time') return `${h12}:${mm} ${ampm}`;
-        if (pLower === 'short time')  return `${HH}:${mm}`;
-
-        // VBA Format: mm/m is context-sensitive — minutes if immediately after h/hh, otherwise month
-        // prevTokenWasHour tracks whether the previous format token was an hour (h/hh),
-        // so the next mm/m is interpreted as minutes rather than month.
-        const tokens = pattern.match(/yyyy|yy|mmmm|mmm|mm|m|dddd|ddd|dd|d|hh|h|nn|n|ss|s|AM\/PM|am\/pm|[^a-zA-Z]+|[a-zA-Z]/gi) || [];
-        let prevTokenWasHour = false;
-        return tokens.map(tok => {
-            const tl = tok.toLowerCase();
-            switch (tl) {
-                case 'yyyy': prevTokenWasHour = false; return yyyy;
-                case 'yy':   prevTokenWasHour = false; return yyyy.slice(-2);
-                case 'mmmm': prevTokenWasHour = false; return months[d.getMonth()];
-                case 'mmm':  prevTokenWasHour = false; return monthsShort[d.getMonth()];
-                case 'mm': {
-                    const isMinutes = prevTokenWasHour;
-                    prevTokenWasHour = false;
-                    return isMinutes ? mm : pad2(d.getMonth() + 1);
-                }
-                case 'm': {
-                    const isMinutes = prevTokenWasHour;
-                    prevTokenWasHour = false;
-                    return isMinutes ? String(d.getMinutes()) : String(d.getMonth() + 1);
-                }
-                case 'dddd': prevTokenWasHour = false; return days[d.getDay()];
-                case 'ddd':  prevTokenWasHour = false; return daysShort[d.getDay()];
-                case 'dd':   prevTokenWasHour = false; return pad2(d.getDate());
-                case 'd':    prevTokenWasHour = false; return String(d.getDate());
-                case 'hh':   prevTokenWasHour = true;  return HH;
-                case 'h':    prevTokenWasHour = true;  return String(d.getHours());
-                case 'nn':   prevTokenWasHour = false; return mm;
-                case 'n':    prevTokenWasHour = false; return String(d.getMinutes());
-                case 'ss':   prevTokenWasHour = false; return ss;
-                case 's':    prevTokenWasHour = false; return String(d.getSeconds());
-                case 'am/pm': prevTokenWasHour = false; return tok === 'AM/PM' ? ampm : ampm.toLowerCase();
-                default:     return tok;
-            }
-        }).join('');
-    }
-
-    private formatNumber(n: number, pattern: string): string {
-        const pLower = pattern.toLowerCase();
-        // locale-independent thousands separator helper
-        const withThousands = (num: number, decimals: number): string => {
-            const fixed = Math.abs(num).toFixed(decimals);
-            const [intPart, decPart] = fixed.split('.');
-            const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            const sign = num < 0 ? '-' : '';
-            return decPart !== undefined ? `${sign}${grouped}.${decPart}` : `${sign}${grouped}`;
-        };
-
-        // Handle named formats
-        switch (pLower) {
-            case 'general number': return String(n);
-            case 'currency': return (n < 0 ? '-$' : '$') + withThousands(n, 2).replace(/^-/, '');
-            case 'fixed':    return n.toFixed(2);
-            case 'standard': return withThousands(n, 2);
-            case 'percent':  return (n * 100).toFixed(2) + '%';
-            case 'scientific': return n.toExponential(2);
-            case 'true/false': return n !== 0 ? 'True' : 'False';
-            case 'yes/no':   return n !== 0 ? 'Yes' : 'No';
-            case 'on/off':   return n !== 0 ? 'On' : 'Off';
-        }
-
-        // Custom patterns: #, 0, ., ,, %
-        let fmt = pattern;
-        let isPercent = false;
-        if (fmt.includes('%')) {
-            isPercent = true;
-            n *= 100;
-            fmt = fmt.replace('%', '');
-        }
-
-        const hasThousands = fmt.includes(',');
-        const parts = fmt.split('.');
-        const decimalPart = parts.length > 1 ? parts[1] : '';
-
-        // Determine decimal places
-        const minDecimals = (decimalPart.match(/0/g) || []).length;
-        const maxDecimals = decimalPart.length;
-
-        const absFixed = Math.abs(n).toFixed(maxDecimals);
-        const [intPart, decPart] = absFixed.split('.');
-        const intFormatted = hasThousands
-            ? intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',')
-            : intPart;
-        const decFormatted = decPart !== undefined
-            ? decPart.replace(/0+$/, '').padEnd(minDecimals, '0') || (minDecimals > 0 ? '0'.repeat(minDecimals) : '')
-            : '';
-        let result = (n < 0 ? '-' : '') + intFormatted + (decFormatted ? '.' + decFormatted : '');
-
-        if (isPercent) result += '%';
-        return result;
-    }
 }

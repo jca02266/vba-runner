@@ -56,4 +56,156 @@ assert.strictEqual(evTime.callProcedure('TestMmIsMinute', []), '09:07:05',
 
 console.log('[PASS] Format 時刻: HH大文字・文脈依存mm・UTC整合性');
 
+// --- 数値フォーマット: 零埋め・# プレースホルダー ---
+const numCode = `
+    Function TestZeroPad()
+        TestZeroPad = Format(42, "000")
+    End Function
+    Function TestZeroPadZero()
+        TestZeroPadZero = Format(0, "000")
+    End Function
+    Function TestHashZero()
+        TestHashZero = Format(0, "#")
+    End Function
+    Function TestHashDecimalZero()
+        TestHashDecimalZero = Format(0, "#.##")
+    End Function
+    Function TestHashLeadingZero()
+        TestHashLeadingZero = Format(0.5, "#.#")
+    End Function
+    Function TestHashWithValue()
+        TestHashWithValue = Format(42, "#")
+    End Function
+    Function TestNegativeZeroPad()
+        TestNegativeZeroPad = Format(-42, "000")
+    End Function
+    Function TestPercent()
+        TestPercent = Format(0.155, "0.00%")
+    End Function
+    Function TestThousands()
+        TestThousands = Format(1234567, "#,##0")
+    End Function
+`;
+const evNum = evalVBASingle(numCode);
+
+assert.strictEqual(evNum.callProcedure('TestZeroPad', []), '042', 'Format(42, "000") → "042"');
+assert.strictEqual(evNum.callProcedure('TestZeroPadZero', []), '000', 'Format(0, "000") → "000"');
+assert.strictEqual(evNum.callProcedure('TestHashZero', []), '', 'Format(0, "#") → "" (# suppresses zero)');
+assert.strictEqual(evNum.callProcedure('TestHashDecimalZero', []), '', 'Format(0, "#.##") → "" (# suppresses zero)');
+assert.strictEqual(evNum.callProcedure('TestHashLeadingZero', []), '.5', 'Format(0.5, "#.#") → ".5" (# suppresses leading zero)');
+assert.strictEqual(evNum.callProcedure('TestHashWithValue', []), '42', 'Format(42, "#") → "42"');
+assert.strictEqual(evNum.callProcedure('TestNegativeZeroPad', []), '-042', 'Format(-42, "000") → "-042"');
+assert.strictEqual(evNum.callProcedure('TestPercent', []), '15.50%', 'Format(0.155, "0.00%") → "15.50%"');
+assert.strictEqual(evNum.callProcedure('TestThousands', []), '1,234,567', 'Format(1234567, "#,##0") → "1,234,567"');
+
+console.log('[PASS] Format 数値: 零埋め・# プレースホルダー・パーセント・千の位');
+
+// --- 数値フォーマット: リテラル文字・複数セクション・科学記数法 ---
+const numCode2 = `
+    Function TestLiteralPrefix()
+        TestLiteralPrefix = Format(42, "$#,##0.00")
+    End Function
+    Function TestLiteralSuffix()
+        TestLiteralSuffix = Format(42, "#,##0 円")
+    End Function
+    Function TestSectionPos()
+        TestSectionPos = Format(5, "#;(#);Zero")
+    End Function
+    Function TestSectionNeg()
+        TestSectionNeg = Format(-5, "#;(#);Zero")
+    End Function
+    Function TestSectionZero()
+        TestSectionZero = Format(0, "#;(#);Zero")
+    End Function
+    Function TestSectionNeg2()
+        TestSectionNeg2 = Format(-5, "#;(#)")
+    End Function
+    Function TestSciLarge()
+        TestSciLarge = Format(12345.6, "0.00E+00")
+    End Function
+    Function TestSciSmall()
+        TestSciSmall = Format(0.00123, "0.00E+00")
+    End Function
+    Function TestSciZero()
+        TestSciZero = Format(0, "0.00E+00")
+    End Function
+    Function TestEscape()
+        TestEscape = Format(0, "$#,##0;;\\Z\\e\\r\\o")
+    End Function
+`;
+const evNum2 = evalVBASingle(numCode2);
+
+assert.strictEqual(evNum2.callProcedure('TestLiteralPrefix', []), '$42.00',   'Format(42, "$#,##0.00") → "$42.00"');
+assert.strictEqual(evNum2.callProcedure('TestLiteralSuffix', []), '42 円',    'Format(42, "#,##0 円") → "42 円"');
+assert.strictEqual(evNum2.callProcedure('TestSectionPos',    []), '5',        'Format(5, "#;(#);Zero") → "5"');
+assert.strictEqual(evNum2.callProcedure('TestSectionNeg',    []), '(5)',      'Format(-5, "#;(#);Zero") → "(5)"');
+assert.strictEqual(evNum2.callProcedure('TestSectionZero',   []), 'Zero',     'Format(0, "#;(#);Zero") → "Zero"');
+assert.strictEqual(evNum2.callProcedure('TestSectionNeg2',   []), '(5)',      'Format(-5, "#;(#)") → "(5)"');
+assert.strictEqual(evNum2.callProcedure('TestSciLarge',      []), '1.23E+04', 'Format(12345.6, "0.00E+00") → "1.23E+04"');
+assert.strictEqual(evNum2.callProcedure('TestSciSmall',      []), '1.23E-03', 'Format(0.00123, "0.00E+00") → "1.23E-03"');
+assert.strictEqual(evNum2.callProcedure('TestSciZero',       []), '0.00E+00', 'Format(0, "0.00E+00") → "0.00E+00"');
+assert.strictEqual(evNum2.callProcedure('TestEscape',        []), 'Zero',     'Format(0, "$#,##0;;\\Z\\e\\r\\o") → "Zero"');
+
+console.log('[PASS] Format 数値: リテラル・複数セクション・科学記数法・\\エスケープ');
+
+// --- 文字列フォーマット ---
+const strCode = `
+    Function TestUpper()
+        TestUpper = Format("hello", ">")
+    End Function
+    Function TestLower()
+        TestLower = Format("HELLO", "<")
+    End Function
+    Function TestAtRight()
+        TestAtRight = Format("hi", "@@@@@")
+    End Function
+    Function TestAtLeft()
+        TestAtLeft = Format("hi", "!@@@@@")
+    End Function
+    Function TestAmpersand()
+        TestAmpersand = Format("hi", "&&&&&")
+    End Function
+`;
+const evStr = evalVBASingle(strCode);
+
+assert.strictEqual(evStr.callProcedure('TestUpper',     []), 'HELLO', 'Format("hello", ">") → "HELLO"');
+assert.strictEqual(evStr.callProcedure('TestLower',     []), 'hello', 'Format("HELLO", "<") → "hello"');
+assert.strictEqual(evStr.callProcedure('TestAtRight',   []), '   hi', 'Format("hi", "@@@@@") → "   hi"');
+assert.strictEqual(evStr.callProcedure('TestAtLeft',    []), 'hi   ', 'Format("hi", "!@@@@@") → "hi   "');
+assert.strictEqual(evStr.callProcedure('TestAmpersand', []), 'hi',    'Format("hi", "&&&&&") → "hi"');
+
+console.log('[PASS] Format 文字列: >, <, @, &, !');
+
+// --- 日付フォーマット: 新トークン ---
+const dateCode2 = String.raw`
+    Function TestQ()
+        TestQ = Format(#2025/05/10#, "q")
+    End Function
+    Function TestW()
+        TestW = Format(#2025/01/01#, "w")
+    End Function
+    Function TestY()
+        TestY = Format(#2025/01/31#, "y")
+    End Function
+    Function TestDdddd()
+        TestDdddd = Format(#2025/05/10#, "ddddd")
+    End Function
+    Function TestTtttt()
+        TestTtttt = Format(#2025/05/10 09:30:45#, "ttttt")
+    End Function
+    Function TestEscapeDate()
+        TestEscapeDate = Format(#2025/05/10#, "\Y""Year""yyyy")
+    End Function
+`;
+const evDate2 = evalVBASingle(dateCode2);
+
+assert.strictEqual(evDate2.callProcedure('TestQ',          []), '2',         'Format(#2025/05/10#, "q") → "2"');
+assert.strictEqual(evDate2.callProcedure('TestW',          []), '4',         'Format(#2025/01/01#, "w") → "4" (水曜=4)');
+assert.strictEqual(evDate2.callProcedure('TestY',          []), '31',        'Format(#2025/01/31#, "y") → "31"');
+assert.strictEqual(evDate2.callProcedure('TestDdddd',      []), '5/10/25',   'Format(#2025/05/10#, "ddddd") → "5/10/25"');
+assert.strictEqual(evDate2.callProcedure('TestTtttt',      []), '9:30:45',   'Format(#... 09:30:45#, "ttttt") → "9:30:45"');
+assert.strictEqual(evDate2.callProcedure('TestEscapeDate', []), 'YYear2025', 'Format(date, "\\Y\\"Year\\"yyyy") → "YYear2025"');
+
+console.log('[PASS] Format 日付: q, w, y, ddddd, ttttt, \\エスケープ・"text"リテラル');
+
 console.log('\n✅ Format: 全テスト通過');
