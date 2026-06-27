@@ -2871,7 +2871,13 @@ export class Evaluator {
                     this.optionExplicitViolations.set(procName, undeclared);
                 }
             }
-            this.executeStatements(program.body, 0);
+            try {
+                this.executeStatements(program.body, 0);
+            } catch (e: any) {
+                if (!(e && e.type === 'Exit' && (e.target === 'Sub' || e.target === 'Function' || e.target === 'Property'))) {
+                    throw e;
+                }
+            }
             return undefined;
         } finally {
             this.currentSourceModule = savedSourceModule;
@@ -5052,6 +5058,9 @@ export class Evaluator {
         if (this.fileHandles.has(fileNum)) {
             this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
         }
+        for (const h of this.fileHandles.values()) {
+            if (h.path === realPath) this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
+        }
 
         let flags = '';
         switch (stmt.mode) {
@@ -5541,8 +5550,13 @@ export class Evaluator {
                 const full = this.sandbox.toRealPath(p);
                 const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
                 const fd = this.fs.openSync(full, mode);
+                const evalFs = this.fs;
                 let pos = 0;
                 return {
+                    get atendofstream() {
+                        const content = evalFs.readFileSync(full, 'utf8');
+                        return pos >= content.length ? vbaTrue : vbaFalse;
+                    },
                     readall: () => {
                         const content = this.fs.readFileSync(full, 'utf8');
                         const result = content.slice(pos);
