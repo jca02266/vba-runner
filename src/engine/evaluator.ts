@@ -5247,6 +5247,7 @@ export class Evaluator {
             const val = this.evaluateExpression(item);
             if (typeof val === 'string') return `"${val}"`;
             if (val instanceof VbaDate) return `#${val.toString()}#`;
+            if (val instanceof VbaBoolean) return val.value !== 0 ? '#TRUE#' : '#FALSE#';
             if (val === null) return "#NULL#";
             return String(val);
         }).join(",");
@@ -5544,7 +5545,9 @@ export class Evaluator {
                 return {
                     readall: () => {
                         const content = this.fs.readFileSync(full, 'utf8');
-                        return content;
+                        const result = content.slice(pos);
+                        pos = content.length;
+                        return result;
                     },
                     readline: () => {
                         const content = this.fs.readFileSync(full, 'utf8');
