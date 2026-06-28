@@ -5167,6 +5167,10 @@ export class Evaluator {
 
         // Extract date components (up to 3 parts separated by /, -, or whitespace+comma)
         const parts = dateComponent.split(/[\/\-,\s]+/).filter(p => p.length > 0);
+        // Time-only literal (e.g. #12:30:45#): VBA uses the zero date 1899/12/30
+        if (parts.length === 0 && timeMatch !== null) {
+            return { year: 1899, month: 12, day: 30, hour, minute, second };
+        }
         if (parts.length === 0 || parts.length > 3) return null;
 
         // Parse each part (number or month name)
