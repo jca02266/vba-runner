@@ -656,9 +656,6 @@ export class Evaluator {
     private defTypeMap: Map<string, string> = new Map();
     /** VarPtr/StrPtr/ObjPtr: dummy address counter (non-zero unique integers) */
     private _ptrCounter: number = 0x10000;
-    /** Scope exit tracking: VBA class instances created with `New` in the current proc scope.
-     *  Only these are eligible for auto-Terminate on scope exit. null outside any proc. */
-    private _currentNewOwned: Set<any> | null = null;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
@@ -1010,6 +1007,22 @@ export class Evaluator {
         }
     }
 
+    private addRef(obj: any): void {
+        if (obj && obj.__vbaClass__) {
+            obj.__refCount__ = (obj.__refCount__ ?? 0) + 1;
+        }
+    }
+
+    // Decrement refcount; call triggerTerminate when count reaches 0.
+    private releaseRef(obj: any): void {
+        if (obj && obj.__vbaClass__) {
+            obj.__refCount__ = (obj.__refCount__ ?? 0) - 1;
+            if (obj.__refCount__ <= 0) {
+                this.triggerTerminate(obj);
+            }
+        }
+    }
+
     private instantiateType(typeName: string): any {
         const typeMembers = this.env.getType(typeName);
         if (!typeMembers) return 0;
@@ -1146,6 +1159,7 @@ export class Evaluator {
                 }
             }
             localEnv.setLocally(paramName, argValue);
+            this.addRef(argValue);
         }
 
         const result = this.execProcBody(proc, localEnv, {
@@ -1580,7 +1594,6 @@ export class Evaluator {
         const previousExecutingModule = this.executingModuleName;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
-        const previousNewOwned = this._currentNewOwned;
 
         this.env = localEnv;
         this.errorHandlerLabel = null;
@@ -1593,7 +1606,6 @@ export class Evaluator {
         this.executingModuleName = proc.moduleName ?? '';
         this.currentProcIsStatic = proc.isStatic ?? false;
         this.staticVarsInCurrentProc = new Set();
-        this._currentNewOwned = new Set();
 
         try {
             this.executeStatements(proc.body, 0);
@@ -1635,23 +1647,23 @@ export class Evaluator {
                 this.staticVarStore.set(key, localEnv.get(varName));
             }
 
-            // Scope exit: fire Class_Terminate for local VBA objects that were created with
-            // `New` in this scope and not returned. Objects fetched from outer scopes, dicts,
-            // or function calls are NOT tracked here and are safe from premature termination.
+            // Scope exit: release references held by local variables (including params).
+            // The return value gets a clean refcount=0 handoff so the caller's Set addRef's to 1.
             {
-                const owned = this._currentNewOwned;
-                if (owned && owned.size > 0) {
-                    const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
-                    const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
-                    const returnVal = returnVarName !== null ? localEnv.get(returnVarName) : undefined;
-                    for (const [name, val] of localEnv.getLocalVariables()) {
-                        if (paramNames.has(name)) continue;
-                        if (returnVarName !== null && name === returnVarName) continue;
-                        if (this.staticVarsInCurrentProc.has(name)) continue;
-                        if (val !== null && val !== undefined && val === returnVal) continue;
-                        if (!owned.has(val)) continue;
-                        this.triggerTerminate(val);
+                const retVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                const retCapture = retVarName !== null ? localEnv.getLocalVariables().get(retVarName) : undefined;
+                for (const [name, val] of localEnv.getLocalVariables()) {
+                    if (retVarName !== null && name === retVarName) continue;
+                    if (this.staticVarsInCurrentProc.has(name)) continue;
+                    if (val && val.__vbaClass__) {
+                        val.__refCount__ = (val.__refCount__ ?? 0) - 1;
+                        if (val.__refCount__ <= 0 && val !== retCapture) {
+                            this.triggerTerminate(val);
+                        }
                     }
+                }
+                if (retCapture && retCapture.__vbaClass__) {
+                    retCapture.__refCount__ = 0;
                 }
             }
 
@@ -1665,7 +1677,6 @@ export class Evaluator {
             this.executingModuleName = previousExecutingModule;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
-            this._currentNewOwned = previousNewOwned;
         }
 
         if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
@@ -2661,8 +2672,7 @@ export class Evaluator {
             }
 
             const oldVal = this.env.get(name);
-            // B-3: Only on explicit Nothing assignment (see evaluateSetStatement for rationale)
-            if (val === vbaNothing && oldVal !== val) this.triggerTerminate(oldVal);
+            if (val === vbaNothing && oldVal !== val) this.releaseRef(oldVal);
 
             const procNameLower = name.toLowerCase();
 
@@ -3135,6 +3145,7 @@ export class Evaluator {
 
         const instance: any = {
             __vbaClass__: true,
+            __refCount__: 0,
             __className__: classDef.name,
             __vbaTypeName__: classDef.name,
             __classDef__: classDef,
@@ -3434,6 +3445,7 @@ export class Evaluator {
                 argValue = vbaMissing;
             }
             localEnv.setLocally(paramName, argValue);
+            this.addRef(argValue);
         }
 
         if (proc.isFunction || proc.isProperty) {
@@ -3462,7 +3474,6 @@ export class Evaluator {
         const previousProcedureType = this.currentProcedureType;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
-        const previousNewOwnedCM = this._currentNewOwned;
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
@@ -3473,7 +3484,6 @@ export class Evaluator {
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
         this.currentProcIsStatic = false;
         this.staticVarsInCurrentProc = new Set();
-        this._currentNewOwned = new Set();
 
         try {
             this.executeStatements(proc.body, 0);
@@ -3498,22 +3508,23 @@ export class Evaluator {
             this.isInErrorHandler = previousIsInErrorHandler;
             this.lastErrorIndex = previousLastErrorIndex;
 
-            // Scope exit: fire Class_Terminate for local VBA objects created with `New` in
-            // this scope that were not returned to the caller.
+            // Scope exit: release references held by local variables (including params).
+            // Skip `me` (not addRef'd on entry). Return value gets clean refcount=0 handoff.
             {
-                const owned = this._currentNewOwned;
-                if (owned && owned.size > 0) {
-                    const paramNames = new Set(proc.parameters.map(p => p.name.toLowerCase()));
-                    paramNames.add('me');
-                    const returnVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
-                    const returnVal = returnVarName !== null ? localEnv.get(returnVarName) : undefined;
-                    for (const [name, val] of localEnv.getLocalVariables()) {
-                        if (paramNames.has(name)) continue;
-                        if (returnVarName !== null && name === returnVarName) continue;
-                        if (val !== null && val !== undefined && val === returnVal) continue;
-                        if (!owned.has(val)) continue;
-                        this.triggerTerminate(val);
+                const retVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                const retCapture = retVarName !== null ? localEnv.getLocalVariables().get(retVarName) : undefined;
+                for (const [name, val] of localEnv.getLocalVariables()) {
+                    if (name === 'me') continue;
+                    if (retVarName !== null && name === retVarName) continue;
+                    if (val && val.__vbaClass__) {
+                        val.__refCount__ = (val.__refCount__ ?? 0) - 1;
+                        if (val.__refCount__ <= 0 && val !== retCapture) {
+                            this.triggerTerminate(val);
+                        }
                     }
+                }
+                if (retCapture && retCapture.__vbaClass__) {
+                    retCapture.__refCount__ = 0;
                 }
             }
 
@@ -3522,7 +3533,6 @@ export class Evaluator {
             this.currentProcedureType = previousProcedureType;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
-            this._currentNewOwned = previousNewOwnedCM;
         }
 
         if (proc.isFunction || proc.isProperty) {
@@ -3907,11 +3917,6 @@ export class Evaluator {
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
 
-        // Track objects created with `New` in the current proc scope for scope exit cleanup.
-        if (stmt.right.type === 'NewExpression' && value && value.__vbaClass__ && this._currentNewOwned) {
-            this._currentNewOwned.add(value);
-        }
-
         // VBA requires Set target to be an object (or Nothing)
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
             this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
@@ -3925,7 +3930,8 @@ export class Evaluator {
             const name = (stmt.left as Identifier).name;
             const procNameLower = name.toLowerCase();
 
-            // Special case: assigning to current function/property name (return value)
+            // Special case: assigning to current function/property name (return value).
+            // The return var does not addRef — the caller's Set statement will addRef to 1.
             if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
                 if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
                     this.env.setLocally(name, value);
@@ -3934,10 +3940,6 @@ export class Evaluator {
             }
 
             let oldVal = this.env.get(name);
-            // B-3: Only trigger Terminate on explicit Nothing assignment (Set x = Nothing).
-            // Without reference counting we cannot know if the old object is still reachable
-            // elsewhere, so triggering on every reassignment causes premature Terminate.
-            //
             // `Dim w As New T` + `Set w = Nothing` without any prior access: real VBA still
             // instantiates the object (Class_Initialize) before destroying it (Class_Terminate).
             // Resolve the placeholder first so both lifecycle hooks fire correctly.
@@ -3945,7 +3947,10 @@ export class Evaluator {
                 oldVal = this.instantiateClass(oldVal.__className__);
                 this.env.set(name, oldVal);
             }
-            if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
+            // addRef new value; releaseRef old value only on explicit Nothing (B-3: don't
+            // release on reassignment because containers like Dictionary may still hold the ref).
+            this.addRef(value);
+            if (value === vbaNothing && oldVal !== value) this.releaseRef(oldVal);
 
             const proc = this.env.getProcedure(name, 'set');
             if (proc) {
@@ -5591,6 +5596,7 @@ export class Evaluator {
                         }
                     }
                     localEnv.setLocally(param.name, argVal);
+                    this.addRef(argVal);
 
                     // ByRef handling
                     if (!param.isByVal) {

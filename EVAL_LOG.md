@@ -16,6 +16,7 @@
 | 4 | 図書館蔵書管理システム | `Scripting.Dictionary`（Add/Item/Exists/Count/Keys/Items/For Each/ネスト） / `VBA Collection`（Add/Item(1-based)/Item(key)/Count/Remove/For Each） / Dictionary+Collection 組み合わせ / クラス (`Book.cls`) / `On Error GoTo` | 2026-06-27 |
 | 5 | CSV ログ書き込み・読み込みシステム | `Open For Output/Append/Input` / `Print #` / `Write #` / `Line Input #` / `Input #`（CSV）/ `Close` / `EOF()` / `FreeFile()` / `LOF()` / `LOC()` / Windows パス→VFS マッピング（C:\, D:\ ドライブ）/ 相対パス / `sandboxRoot` オプション / Error 53 / `Scripting.FileSystemObject`（CreateTextFile, OpenTextFile, FileExists, TextStream.ReadLine/ReadAll/WriteLine/Close）/ `Tab()` / VFS 事前配置 | 2026-06-27 |
 | 6 | 家計簿・収支管理システム | `Integer`/`Long` オーバーフロー（Error 6）/ `Currency` 型の精度（浮動小数点のまま・要注意）/ `CInt`/`CLng`/`CCur` 変換関数・バンカーズ丸め / `Format()` `"#,##0.00"`・`"0.00%"` 正常・**`"000"` 零埋めバグ** / `InStr`/`InStrRev`（境界・開始位置・大文字小文字）/ `Split`/`Join`（空文字列・デリミタ）/ 全角文字の `Len`/`Mid`/`Left`/`Right`（文字数カウント正常）/ `On Error GoTo` / `Collection` + `Property Get/Let` クラス / `Debug.Print` 出力 | 2026-06-27 |
+| 7 | 診療予約管理システム | 複数クラス連携（`Patient.cls` + `Appointment.cls`）/ `Set` 代入 / `Is Nothing` / `Class_Terminate` タイミング / 日付リテラル `#yyyy/mm/dd#` / `Format()` 日付パターン全般 / `DateSerial` / `DateAdd` / `DateDiff` / `Year`/`Month`/`Day` / `Now()` / `Date()` / `CDate` / `DateValue` / `IsDate` / `Weekday` / 日付+時刻リテラル `#yyyy/mm/dd HH:MM:SS#` | 2026-06-28 |
 
 ---
 
@@ -58,6 +59,8 @@
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
 | `Dim empty As String` がパースエラー | `empty` は VBA 仕様上の予約語のため変数名に使えない。VBA 仕様準拠の正しい動作。 |
+| ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
+| ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
 
 ---
 
@@ -82,7 +85,7 @@
 - ~~`Format()` 関数（数値フォーマット `"#,##0.00"` / `"0.00%"`）~~ **評価済み（評価#6）: `"#,##0.00"` / `"0.00%"` は正常。`"000"` 零埋めはバグあり**
 - ~~`InStr` / `InStrRev` / `Split` / `Join` の境界ケース~~ **評価済み（評価#6）: 正常動作**
 - ~~全角・マルチバイト文字の `Len` / `Mid` / `Left` / `Right`~~ **評価済み（評価#6）: 文字数カウントで正常動作**
-- `Format()` 日付フォーマット（`"yyyy/mm/dd"` 等）— 日付リテラル `#2024/01/15#` の扱い未確認
+- ~~`Format()` 日付フォーマット（`"yyyy/mm/dd"` 等）— 日付リテラル `#2024/01/15#` の扱い未確認~~ **評価済み（評価#7）: 日付リテラル / Format 日付パターン / DateAdd / DateDiff / Now / DateSerial 等すべて正常動作。時刻のみリテラル `#HH:MM:SS#` は未対応（バグ）**
 
 ### 数値型の境界
 
@@ -99,9 +102,9 @@
 
 ### 複数クラスの連携
 
-- クラス間の相互参照（A が B のインスタンスを持つ）
-- `Set` 代入 / `Is Nothing` 判定
-- `Class_Terminate` の呼ばれるタイミング
+- ~~クラス間の相互参照（A が B のインスタンスを持つ）~~ **評価済み（評価#7）: 正常動作**
+- ~~`Set` 代入 / `Is Nothing` 判定~~ **評価済み（評価#7）: 正常動作**
+- ~~`Class_Terminate` の呼ばれるタイミング~~ **評価済み（評価#7）＋修正済み: 参照カウント実装により最後の参照が解放されたときに発動するよう修正**
 
 ### モック機能
 
@@ -144,3 +147,7 @@
 13. **`Currency` は固定小数点ではなく浮動小数点**: `Dim c As Currency: c = 0.1 + 0.2` は `Double` と同じ誤差が出る。精度が必要な場合は JS 側で計算するか `Round()` を使う。
 14. **`empty` / `Empty` は変数名に使えない**: `Dim empty() As String` は「Expected variable name (Found empty)」でパースエラー。`emptyArr` 等の代替名を使う。
 15. **`run()` の第2引数は省略可能**（修正済み）: 引数なし Sub は `r.run('Sub名')` と省略できる。`args` のデフォルト値を `[]` に修正済み。
+16. **時刻のみリテラル `#HH:MM:SS#` は使えない**: `#12:30:45#` や `#8:30:00 AM#` は Error 13 Type mismatch。日付+時刻 `#2024/01/15 12:30:45#` はOK。
+17. **`Class_Terminate` は参照カウントなしで早期発動する**: `Set p1 = Nothing` で他に参照があっても `Class_Terminate` が呼ばれる。ただしオブジェクト自体は破棄されず残存する。VBA の COM 参照カウント完全再現ではない（evaluator.ts に既知制限として明記）。
+18. **`Format()` 日付パターンは豊富に動作する**: `yyyy/mm/dd` / `yyyy年mm月dd日` / `d-mmm-yyyy` / `dddd` / `ddd` / `Long Date` / `Short Date` / `yy/mm/dd` / `hh:mm:ss` / `h:mm AM/PM` すべて正常。
+19. **`.cls` ファイルのクラス名はファイル名（拡張子なし）で決まる**: `Attribute VB_Name = "MyObj"` の値ではなく、`MyObj.cls` のようにファイル名がクラス名になる。ファイルを `TerminateTest.cls` と名付けると VBA 側で `New TerminateTest` と書かないと Error 429 になる。実際の VBA エクスポートではファイル名と `VB_Name` は通常一致しているが、ファイルをリネームした場合に落とし穴になる。
