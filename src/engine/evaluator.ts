@@ -1648,12 +1648,12 @@ export class Evaluator {
             }
 
             // Scope exit: release references held by local variables (including params).
-            // The return value gets a clean refcount=0 handoff so the caller's Set addRef's to 1.
+            // The retVar object (retCapture) is released like any local, but Terminate is
+            // suppressed for it — even when another local var points to the same object.
             {
                 const retVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
                 const retCapture = retVarName !== null ? localEnv.getLocalVariables().get(retVarName) : undefined;
                 for (const [name, val] of localEnv.getLocalVariables()) {
-                    if (retVarName !== null && name === retVarName) continue;
                     if (this.staticVarsInCurrentProc.has(name)) continue;
                     if (val && val.__vbaClass__) {
                         val.__refCount__ = (val.__refCount__ ?? 0) - 1;
@@ -1661,9 +1661,6 @@ export class Evaluator {
                             this.triggerTerminate(val);
                         }
                     }
-                }
-                if (retCapture && retCapture.__vbaClass__) {
-                    retCapture.__refCount__ = 0;
                 }
             }
 
@@ -3509,22 +3506,20 @@ export class Evaluator {
             this.lastErrorIndex = previousLastErrorIndex;
 
             // Scope exit: release references held by local variables (including params).
-            // Skip `me` (not addRef'd on entry). Return value gets clean refcount=0 handoff.
+            // Skip `me` (not addRef'd on entry). The retVar object (retCapture) is released
+            // like any local, but Terminate is suppressed — even if a sibling local var holds
+            // the same object and its release brings refCount to 0.
             {
                 const retVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
                 const retCapture = retVarName !== null ? localEnv.getLocalVariables().get(retVarName) : undefined;
                 for (const [name, val] of localEnv.getLocalVariables()) {
                     if (name === 'me') continue;
-                    if (retVarName !== null && name === retVarName) continue;
                     if (val && val.__vbaClass__) {
                         val.__refCount__ = (val.__refCount__ ?? 0) - 1;
                         if (val.__refCount__ <= 0 && val !== retCapture) {
                             this.triggerTerminate(val);
                         }
                     }
-                }
-                if (retCapture && retCapture.__vbaClass__) {
-                    retCapture.__refCount__ = 0;
                 }
             }
 
@@ -3931,9 +3926,14 @@ export class Evaluator {
             const procNameLower = name.toLowerCase();
 
             // Special case: assigning to current function/property name (return value).
-            // The return var does not addRef — the caller's Set statement will addRef to 1.
+            // Unlike B-3 for regular vars, the retVar slot owns exactly one ref at a time:
+            // addRef the new value, releaseRef the old. The scope exit releases this ref
+            // without calling Terminate (it's the handoff to the caller's Set statement).
             if (this.currentProcedureName && this.currentProcedureName.toLowerCase() === procNameLower) {
                 if (this.currentProcedureType === 'function' || this.currentProcedureType === 'get') {
+                    const oldRetVal = this.env.get(name);
+                    this.addRef(value);
+                    this.releaseRef(oldRetVal);
                     this.env.setLocally(name, value);
                     return;
                 }
