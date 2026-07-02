@@ -495,4 +495,117 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 16: Dim As New + access + Set Nothing fires lifecycle hooks once');
 }
 
+// Test 17: 共有参照 — 2 変数が同一インスタンスを持つとき、片方を Nothing にしても
+//           もう片方が保持している間は Class_Terminate が呼ばれない
+{
+    const code = `
+    Dim count As Integer
+
+    Class SharedObj
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Function Test17() As Integer
+        Dim p1 As SharedObj
+        Dim p2 As SharedObj
+        Set p1 = New SharedObj
+        Set p2 = p1             ' p2 も同じインスタンスを保持
+        Set p1 = Nothing        ' p2 が保持しているので Terminate してはいけない
+        Dim midCount As Integer
+        midCount = count        ' ここでは 0 のはず
+        Set p2 = Nothing        ' 最後の参照を解放 → Terminate
+        Test17 = midCount * 10 + count   ' 0*10 + 1 = 1
+    End Function
+    `;
+    const result = runFunc(code, 'Test17');
+    assert.strictEqual(result, 1, '共有参照: Set p1=Nothing は Terminate しない、Set p2=Nothing で Terminate する');
+    console.log('[PASS] Test 17: 共有参照 — 最後の参照解放まで Terminate しない');
+}
+
+// Test 18: Function がローカル変数と戻り値変数で同じインスタンスを共有する場合、
+//          スコープ終了時に Class_Terminate が呼ばれない
+{
+    const code = `
+    Dim count As Integer
+
+    Class Widget
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Function MakeWidget() As Widget
+        Dim w As Widget
+        Set w = New Widget
+        Set MakeWidget = w   ' w と MakeWidget が同じインスタンスを指す
+        ' スコープ終了: w を解放するが MakeWidget(retCapture) が同じなので Terminate しない
+    End Function
+
+    Function Test18() As Integer
+        count = 0
+        Dim obj As Widget
+        Set obj = MakeWidget()   ' 呼び出し後も Terminate されていないはず
+        Dim midCount As Integer
+        midCount = count         ' 0 のはず
+        Set obj = Nothing        ' ここで初めて Terminate
+        Test18 = midCount * 10 + count   ' 0*10 + 1 = 1
+    End Function
+    `;
+    const result = runFunc(code, 'Test18');
+    assert.strictEqual(result, 1, 'Function 戻り値: スコープ終了時に Terminate せず、呼び出し元で解放時に Terminate する');
+    console.log('[PASS] Test 18: Function 戻り値 — スコープ終了時に Terminate しない');
+}
+
+// Test 19: Dictionary に格納したオブジェクトを Function 経由で返す場合、
+//          Function スコープ終了時に Class_Terminate が呼ばれない
+{
+    const code = `
+    Dim count As Integer
+
+    Class Item
+        Public Sub Class_Terminate()
+            count = count + 1
+        End Sub
+    End Class
+
+    Class Store
+        Private m_dict As Object
+        Public Sub Class_Initialize()
+            Set m_dict = CreateObject("Scripting.Dictionary")
+        End Sub
+        Public Sub Put(ByVal key As String, ByVal item As Item)
+            m_dict.Add key, item
+        End Sub
+        Public Function Get_(ByVal key As String) As Item
+            Set Get_ = m_dict(key)   ' Dictionary から取得して返す
+        End Function
+    End Class
+
+    Function Test19() As Integer
+        count = 0
+        Dim store As Store
+        Set store = New Store
+
+        Dim item As Item
+        Set item = New Item
+        store.Put "x", item
+
+        ' Dictionary 経由で取得: Function スコープ終了後も Terminate しないはず
+        Dim got As Item
+        Set got = store.Get_("x")
+        Dim midCount As Integer
+        midCount = count             ' 0 のはず
+
+        Set got = Nothing
+        Set item = Nothing
+        Test19 = midCount * 10 + count   ' 0*10 + 1 = 1
+    End Function
+    `;
+    const result = runFunc(code, 'Test19');
+    assert.strictEqual(result, 1, 'Dictionary 経由の Function 戻り値: スコープ終了時に Terminate しない');
+    console.log('[PASS] Test 19: Dictionary 格納オブジェクトの Function 戻り — スコープ終了時に Terminate しない');
+}
+
 console.log('\n✅ Circular Reference & Class_Terminate: 全テスト通過');
