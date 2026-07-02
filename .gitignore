@@ -55,6 +55,9 @@ REPORT.md
 
 /pending/
 
+# exceljs adapter scratch files
+/tools/exceljs-adapter/
+
 /build/*/LICENSE
 .env
 .npmrc
