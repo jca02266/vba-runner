@@ -2,6 +2,14 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.12] - 2026-07-03
+
+### Fixed
+
+- **Time-only date literals (`#HH:MM:SS#`) raised Error 13 (Type mismatch)** — these literals are now parsed correctly without error.
+- **`Class_Terminate` fired prematurely when an object was still referenced by a Dictionary or another variable** — reference counting (`__refCount__`) is now used so `Class_Terminate` is only invoked when the last reference is released.
+- **`Class_Terminate` fired prematurely on the return value of a `Function` at scope exit** — the returned object is now protected from early termination when the function's local scope is cleaned up.
+
 ## [0.1.1-alpha.11] - 2026-06-28
 
 ### Added

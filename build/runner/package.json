@@ -1,6 +1,6 @@
 {
   "name": "vba-runner",
-  "version": "0.1.1-alpha.11",
+  "version": "0.1.1-alpha.12",
   "description": "VBA execution engine with test runner and CLI tools (analyzer, formatter, parse-check)",
   "type": "module",
   "license": "MIT",
