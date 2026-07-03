@@ -104,6 +104,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 : d.message;
             const diag = new vscode.Diagnostic(range, msg, sev);
             diag.source = d.source;
+            if (d.code != null) diag.code = d.code;
             return diag;
         });
         diagnosticCollection.set(uri, diags);
@@ -1171,6 +1172,31 @@ End Class`;
             ]
         })
     );
+
+    // QuickFix: VBA013 (Option Explicit missing) → Add 'Option Explicit' at top of file
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider('vba', {
+            provideCodeActions(document, _range, context) {
+                const hasVba013 = context.diagnostics.some(
+                    d => d.source === 'vba-lint(VBA013)'
+                );
+                if (!hasVba013) return [];
+
+                const action = new vscode.CodeAction(
+                    l10n.t("Add 'Option Explicit'"),
+                    vscode.CodeActionKind.QuickFix
+                );
+                action.isPreferred = true;
+                const edit = new vscode.WorkspaceEdit();
+                edit.insert(document.uri, new vscode.Position(0, 0), 'Option Explicit\n');
+                action.edit = edit;
+                return [action];
+            }
+        }, {
+            providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+        })
+    );
+    outputChannel.appendLine("✓ QuickFix provider (VBA013 Option Explicit) registered");
 
     // Register Source Actions (Source Actions menu)
     context.subscriptions.push(
