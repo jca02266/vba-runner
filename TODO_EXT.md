@@ -13,10 +13,21 @@
 - **現状**: 補完はスコープ内シンボル＋組み込み関数のフラットリストのみ。オブジェクト型を意識していない。
 - **課題**: 型推論が必要で実装コストが高い。
 
-### A-3: スニペット ❌ 未着手（優先度：中）
-`For Each` / `Select Case` / `On Error GoTo` / `With` ブロックなど定型構造を `fe` / `sc` 等で展開。
-- **現状**: 未実装。
-- **価値**: VBE の補完と違い Tab ストップで変数名・型を順に埋められる。VBE ユーザーの移行コストを下げる。
+### A-3: スニペット ✅ 完了
+`build/extension/snippets/vba.json` を新規作成し `package.json` に登録。
+
+| prefix | 展開内容 |
+|--------|---------|
+| `fe` | For Each ... In ... Next |
+| `for` | For ... To ... Next |
+| `sc` | Select Case ... Case Else ... End Select |
+| `if` | If ... Then ... Else ... End If |
+| `oeg` | On Error GoTo ... ErrHandler パターン |
+| `wi` | With ... End With |
+| `sub` | Sub ... End Sub |
+| `fn` | Function ... End Function |
+| `do` | Do While ... Loop |
+| `dim` | Dim 変数宣言 |
 
 ---
 
@@ -83,7 +94,7 @@
 | 優先 | ID | 状態 | 理由 |
 |------|----|----|------|
 | ✅ | C-1 未使用変数の診断表示 | 完了 | VBA014 ルールを vba-lint.ts に追加 |
-| 中 | A-3 スニペット | ❌ | 実装コスト低・VBE ユーザー移行コスト削減 |
+| ✅ | A-3 スニペット | 完了 | snippets/vba.json + package.json 登録 |
 | 中 | C-2 Option Explicit クイックフィックス | ❌ | VBA ベストプラクティス促進 |
 | 中 | D-1 ワークスペースシンボル | ❌ | 複数ファイル構成で便利 |
 | 低 | A-2 メンバー補完 | ❌ | 型推論が必要で実装コスト大 |

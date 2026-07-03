@@ -1,0 +1,100 @@
+{
+  "For Each Loop": {
+    "prefix": "fe",
+    "body": [
+      "For Each ${1:item} In ${2:collection}",
+      "\t$0",
+      "Next ${1:item}"
+    ],
+    "description": "For Each ... In ... Next"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "For ${1:i} = ${2:1} To ${3:10}",
+      "\t$0",
+      "Next ${1:i}"
+    ],
+    "description": "For ... To ... Next"
+  },
+  "Select Case": {
+    "prefix": "sc",
+    "body": [
+      "Select Case ${1:expression}",
+      "Case ${2:value}",
+      "\t$0",
+      "Case Else",
+      "\t",
+      "End Select"
+    ],
+    "description": "Select Case ... End Select"
+  },
+  "If Then Else": {
+    "prefix": "if",
+    "body": [
+      "If ${1:condition} Then",
+      "\t$0",
+      "Else",
+      "\t",
+      "End If"
+    ],
+    "description": "If ... Then ... Else ... End If"
+  },
+  "On Error GoTo": {
+    "prefix": "oeg",
+    "body": [
+      "On Error GoTo ${1:ErrHandler}",
+      "$0",
+      "Exit ${2:Sub}",
+      "",
+      "${1:ErrHandler}:",
+      "\tErr.Clear",
+      "End ${2:Sub}"
+    ],
+    "description": "On Error GoTo ... ErrHandler パターン"
+  },
+  "With Block": {
+    "prefix": "wi",
+    "body": [
+      "With ${1:object}",
+      "\t$0",
+      "End With"
+    ],
+    "description": "With ... End With"
+  },
+  "Sub": {
+    "prefix": "sub",
+    "body": [
+      "Sub ${1:ProcName}(${2})",
+      "\t$0",
+      "End Sub"
+    ],
+    "description": "Sub ... End Sub"
+  },
+  "Function": {
+    "prefix": "fn",
+    "body": [
+      "Function ${1:FuncName}(${2}) As ${3:Long}",
+      "\t$0",
+      "\t${1:FuncName} = ",
+      "End Function"
+    ],
+    "description": "Function ... End Function"
+  },
+  "Do While Loop": {
+    "prefix": "do",
+    "body": [
+      "Do While ${1:condition}",
+      "\t$0",
+      "Loop"
+    ],
+    "description": "Do While ... Loop"
+  },
+  "Dim As": {
+    "prefix": "dim",
+    "body": [
+      "Dim ${1:name} As ${2:Long}"
+    ],
+    "description": "Dim 変数宣言"
+  }
+}

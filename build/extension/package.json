@@ -42,6 +42,12 @@
         "path": "./syntaxes/vba.tmLanguage.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "vba",
+        "path": "./snippets/vba.json"
+      }
+    ],
     "commands": [
       {
         "command": "vba-runner.showCallGraph",
