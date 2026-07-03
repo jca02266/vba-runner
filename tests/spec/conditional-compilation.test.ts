@@ -60,7 +60,7 @@ End Function
     console.log('[PASS] #If False keeps else branch');
 }
 
-// Test 4: Default VBA7 = 0 (disabled) - #Else branch is used
+// Test 4: Default VBA7 = -1 (enabled) - #If VBA7 branch is used
 {
     const src = `
 Function F()
@@ -72,8 +72,8 @@ Function F()
 End Function
 `;
     const ev = evalAfterPreprocess(src);
-    assert.strictEqual(ev.callProcedure('F', []), 'legacy', 'VBA7=0 -> legacy branch');
-    console.log('[PASS] Default VBA7=0 selects legacy branch');
+    assert.strictEqual(ev.callProcedure('F', []), 'vba7', 'VBA7=-1 (default) -> vba7 branch');
+    console.log('[PASS] Default VBA7=-1 selects vba7 branch');
 }
 
 // Test 5: Override VBA7=True to use VBA7 branch
@@ -215,9 +215,9 @@ End Function
 }
 
 // Test 13: DEFAULT_COMPILER_CONSTANTS check
-assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['VBA7'], 0, 'VBA7 default is 0');
+assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['VBA7'], -1, 'VBA7 default is -1 (true)');
 assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['Win32'], -1, 'Win32 default is -1 (true)');
-assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['Win64'], 0, 'Win64 default is 0');
+assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['Win64'], -1, 'Win64 default is -1 (true)');
 assert.strictEqual(DEFAULT_COMPILER_CONSTANTS['Mac'], 0, 'Mac default is 0');
 console.log('[PASS] DEFAULT_COMPILER_CONSTANTS values are correct');
 
@@ -239,7 +239,7 @@ End Function
     console.log('[PASS] Win32=-1 selects win32 branch');
 }
 
-// Test 15: Typical VBA7 PtrSafe pattern - PtrSafe keyword excluded when VBA7=0
+// Test 15: Typical VBA7 PtrSafe pattern - PtrSafe branch included when VBA7=-1 (default)
 {
     const src = `
 #If VBA7 Then
@@ -252,10 +252,10 @@ Function F()
 End Function
 `;
     const ev = evalAfterPreprocess(src);
-    // Should not throw - PtrSafe line is excluded, legacy Declare is included
-    // But our engine doesn't support Declare, so we just test F()
+    // Should not throw - PtrSafe branch is included (VBA7=-1 by default)
+    // Our engine ignores Declare statements, so we just test F()
     assert.strictEqual(ev.callProcedure('F', []), 42, 'PtrSafe pattern: function body works');
-    console.log('[PASS] VBA7 PtrSafe pattern: legacy branch included when VBA7=0');
+    console.log('[PASS] VBA7 PtrSafe pattern: PtrSafe branch included when VBA7=-1 (default)');
 }
 
 console.log('\n✅ conditional-compilation: 全テスト通過');

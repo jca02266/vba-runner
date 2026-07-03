@@ -297,6 +297,39 @@ console.log(args[1]); // 呼び出し後、Sub の ByRef outMessage パラメー
 
 `ByVal` パラメーターは書き戻されません（呼び出し元の元の値が維持されます）。
 
+### 10. 条件付きコンパイル（`#If` / `#Const`）
+
+vba-runner は VBA の条件付きコンパイルディレクティブ（`#If`、`#Else`、`#ElseIf`、`#End If`、`#Const`）をサポートしています。
+
+**デフォルトのコンパイラー定数**は、現代的な 64bit Windows VBA 環境（Office 2010+）を模擬します。
+
+| 定数 | デフォルト | 意味 |
+|---|---|---|
+| `VBA7` | `True` (-1) | VBA バージョン 7（Office 2010+） |
+| `Win64` | `True` (-1) | 64bit プロセス |
+| `Win32` | `True` (-1) | Windows プラットフォーム（64bit 環境でも常に True） |
+| `Mac` | `False` (0) | Mac プラットフォーム |
+
+これらのデフォルトにより、`#If VBA7 Then` や `#If Win64 Then` で囲まれたコードがデフォルトで**有効**になり、最新の Office 環境に合わせた動作になります。
+
+**コンパイラー定数の上書き** — コンストラクターに `compilerConstants` を渡すことで、別の環境をシミュレートできます。
+
+```typescript
+// 32bit Office（Office 2010 以前、または 64bit Windows 上の 32bit Office）をシミュレート
+const vbaRunner = new VBARunner('src/vba/Module.bas', {
+  compilerConstants: { VBA7: 0, Win64: 0 },
+});
+```
+
+```typescript
+// Mac VBA をシミュレート
+const vbaRunner = new VBARunner('src/vba/Module.bas', {
+  compilerConstants: { Mac: -1, Win32: 0, Win64: 0 },
+});
+```
+
+**注意:** VBA ソースファイル内の `#Const` ディレクティブは、コンストラクターに渡した `compilerConstants` より優先されます（VBA 仕様準拠）。
+
 ## CLI ツール
 
 `vba-runner` パッケージは以下の CLI ツールを提供します。

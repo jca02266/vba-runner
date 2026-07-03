@@ -1,8 +1,8 @@
 export type CompilerConstants = Record<string, number | string | boolean>;
 
 export const DEFAULT_COMPILER_CONSTANTS: CompilerConstants = {
-    VBA7: 0,
-    Win64: 0,
+    VBA7: -1,
+    Win64: -1,
     Win32: -1,
     Mac: 0,
 };

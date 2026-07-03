@@ -296,6 +296,39 @@ console.log(args[1]); // the Sub's ByRef outMessage parameter, after the call
 
 `ByVal` parameters are left untouched (the caller's original value is kept).
 
+### 10. Conditional compilation (`#If` / `#Const`)
+
+vba-runner supports VBA conditional compilation directives (`#If`, `#Else`, `#ElseIf`, `#End If`, `#Const`).
+
+**Default compiler constants** mirror a modern 64-bit Windows VBA environment (Office 2010+, 64-bit):
+
+| Constant | Default | Meaning |
+|---|---|---|
+| `VBA7` | `True` (-1) | VBA version 7 (Office 2010+) |
+| `Win64` | `True` (-1) | 64-bit process |
+| `Win32` | `True` (-1) | Windows platform (always True on Windows, even in 64-bit) |
+| `Mac` | `False` (0) | Mac platform |
+
+These defaults mean that code guarded by `#If VBA7 Then` or `#If Win64 Then` is **included** by default, which matches the most common modern Office environment.
+
+**Overriding compiler constants** — pass `compilerConstants` to the constructor to simulate a different environment:
+
+```typescript
+// Simulate 32-bit Office (pre-2010 or 32-bit Office on 64-bit Windows)
+const vbaRunner = new VBARunner('src/vba/Module.bas', {
+  compilerConstants: { VBA7: 0, Win64: 0 },
+});
+```
+
+```typescript
+// Simulate Mac VBA
+const vbaRunner = new VBARunner('src/vba/Module.bas', {
+  compilerConstants: { Mac: -1, Win32: 0, Win64: 0 },
+});
+```
+
+**Note:** `#Const` directives inside the VBA source file take priority over `compilerConstants` passed to the constructor, which is consistent with VBA specification.
+
 ## CLI Tools
 
 | Command | Description |
