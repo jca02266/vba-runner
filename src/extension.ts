@@ -244,6 +244,40 @@ export async function activate(context: vscode.ExtensionContext) {
     );
     outputChannel.appendLine('✓ DocumentSymbol provider registered');
 
+    // Register workspace symbol provider (Ctrl+T: cross-file symbol search)
+    context.subscriptions.push(
+        vscode.languages.registerWorkspaceSymbolProvider({
+            provideWorkspaceSymbols(query) {
+                const results: vscode.SymbolInformation[] = [];
+                const queryLower = query.toLowerCase();
+
+                const addSymbol = (sym: any, containerName: string, docUri: vscode.Uri) => {
+                    if (queryLower && !sym.name.toLowerCase().includes(queryLower)) return;
+                    const kind = (sym.kind - 1) as vscode.SymbolKind;
+                    const range = new vscode.Range(
+                        sym.location.range.start.line, sym.location.range.start.character,
+                        sym.location.range.end.line,   sym.location.range.end.character
+                    );
+                    results.push(new vscode.SymbolInformation(
+                        sym.name, kind, containerName, new vscode.Location(docUri, range)
+                    ));
+                };
+
+                for (const [uriStr, doc] of documentMap) {
+                    const symbols = lspServer.getDocumentSymbols(uriStr);
+                    for (const sym of symbols) {
+                        addSymbol(sym, sym.containerName ?? '', doc.uri);
+                        for (const child of sym.children ?? []) {
+                            addSymbol(child, sym.name, doc.uri);
+                        }
+                    }
+                }
+                return results;
+            }
+        })
+    );
+    outputChannel.appendLine('✓ WorkspaceSymbol provider registered (Ctrl+T)');
+
     // Register references provider (Shift+F12)
     _referencesProviderReg = vscode.languages.registerReferenceProvider('vba', {
         provideReferences(document, position, context) {

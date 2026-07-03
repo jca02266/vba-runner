@@ -66,9 +66,8 @@
 
 ## D. ナビゲーション
 
-### D-1: ワークスペースシンボル（`Ctrl+T`） ❌ 未着手（優先度：中）
-複数 `.bas`/`.cls` をまたいだシンボル検索。
-- **現状**: ドキュメントシンボルはファイル内のみ。大きなプロジェクトで `Sub FindMe` を探す際に不便。
+### D-1: ワークスペースシンボル（`Ctrl+T`） ✅ 完了
+`registerWorkspaceSymbolProvider` を登録。`documentMap` の全 VBA ファイルを走査し、`getDocumentSymbols` の結果を `SymbolInformation` に変換して返す。クラスメンバーも `containerName` 付きで表示。
 
 ### D-2: アウトラインのセクション区切り認識 ❌ 未着手（優先度：低）
 `'===========` や `' --- Region ---` 形式のコメントをアウトラインに折り畳み可能なセクションとして表示。
@@ -95,7 +94,7 @@
 | ✅ | C-1 未使用変数の診断表示 | 完了 | VBA014 ルールを vba-lint.ts に追加 |
 | ✅ | A-3 スニペット | 完了 | snippets/vba.json + package.json 登録 |
 | ✅ | C-2 Option Explicit クイックフィックス | 完了 | VBA013 診断 + QuickFix 自動挿入 |
-| 中 | D-1 ワークスペースシンボル | ❌ | 複数ファイル構成で便利 |
+| ✅ | D-1 ワークスペースシンボル | 完了 | registerWorkspaceSymbolProvider 登録 |
 | 低 | A-2 メンバー補完 | ❌ | 型推論が必要で実装コスト大 |
 | 低 | C-3 宣言前使用の警告 | ❌ | C-2 が前提 |
 | 低 | D-2 アウトライン区切り | ❌ | 特定スタイル限定で恩恵が限られる |
