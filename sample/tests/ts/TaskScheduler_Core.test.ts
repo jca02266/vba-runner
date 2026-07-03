@@ -88,7 +88,7 @@ async function main() {
     assert.strictEqual(resultDict.__map__.get("Alice"), 0.5, "Alice config matches");
     assert.strictEqual(resultDict.__map__.get("Bob"), 1.0, "Bob config defaults to 1.0");
     assert.strictEqual(resultDict.__map__.get("Dan"), 1.25, "Dan config matches");
-    assert.strictEqual(resultDict.exists("   ", false) || resultDict.exists(""), "Empty name skipped");
+    assert.ok(!resultDict.__map__.has("   ") && !resultDict.__map__.has(""), "Empty name skipped");
     assert.strictEqual(resultDict.__map__.size, 3, "Only Alice, Bob, and Dan were added");
 
     console.log("\n[Test Suite] ScanLockedRows");
@@ -229,8 +229,8 @@ async function main() {
     row2[8] = "";         // empty level
     mockMetaRow.push(row2);
 
-    assert.strictEqual(vbaRunner.run('IsRowLocked', [mockMetaRow, 1, taskCfg]).valueOf(), -1, "Row 1 is locked");
-    assert.strictEqual(vbaRunner.run('IsRowLocked', [mockMetaRow, 2, taskCfg]).valueOf(), 0, "Row 2 is not locked");
+    assert.strictEqual(vbaRunner.run('IsRowLocked', [mockMetaRow, 1, taskCfg]), true, "Row 1 is locked");
+    assert.strictEqual(vbaRunner.run('IsRowLocked', [mockMetaRow, 2, taskCfg]), false, "Row 2 is not locked");
     assert.strictEqual(vbaRunner.run('GetAssigneeName', [mockMetaRow, 1, taskCfg]), "Alice", "Row 1 assignee trimmed");
     assert.strictEqual(vbaRunner.run('GetAssigneeName', [mockMetaRow, 2, taskCfg]), "Bob", "Row 2 assignee");
     assert.strictEqual(vbaRunner.run('GetTaskLevel', [mockMetaRow, 1, taskCfg]), 2, "Row 1 level = 2");
