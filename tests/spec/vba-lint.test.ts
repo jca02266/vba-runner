@@ -487,4 +487,67 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA013: Option Explicit あり → 警告なし');
 }
 
+// ─── VBA014: 未使用ローカル変数 ──────────────────────────────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    Dim y As Long',
+        '    y = 1',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA014');
+    assert.strictEqual(d.length, 1, 'VBA014: 1 件検出（x は未使用、y は代入あり）');
+    assert.ok(d[0].message.includes('x'), 'VBA014: 変数名 x を含む');
+    assert.strictEqual(d[0].severity, 2, 'VBA014: severity = Warning');
+    console.log('[PASS] VBA014: 未使用ローカル変数');
+}
+
+// ─── VBA014: 変数が使われている → 警告なし ───────────────────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    x = 1',
+        '    MsgBox x',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA014');
+    assert.strictEqual(d.length, 0, 'VBA014: 使用あり → 警告なし');
+    console.log('[PASS] VBA014: 使用済み変数 → 警告なし');
+}
+
+// ─── VBA014: For ループ変数は「使用」とみなす ────────────────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim i As Long',
+        '    For i = 1 To 10',
+        '    Next i',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA014');
+    assert.strictEqual(d.length, 0, 'VBA014: For ループ変数 → 警告なし');
+    console.log('[PASS] VBA014: For ループ変数 → 警告なし');
+}
+
+// ─── VBA014: If / With / Select Case ネスト内の使用も検出 ────────────────────
+{
+    const code = [
+        'Sub Test()',
+        '    Dim x As Long',
+        '    If True Then',
+        '        x = 1',
+        '    End If',
+        'End Sub',
+    ].join('\n');
+    const diags = lint(code);
+    const d = diags.filter(d => d.code === 'VBA014');
+    assert.strictEqual(d.length, 0, 'VBA014: ネスト内代入 → 警告なし');
+    console.log('[PASS] VBA014: ネスト内代入 → 警告なし');
+}
+
 console.log('\n✅ VBA Lint: 全テスト通過');

@@ -22,6 +22,7 @@
  *   [情報] VBA004 - While...Wend → Do While...Loop を推奨
  *   [情報] VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
  *   [情報] VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
+ *   [警告] VBA014 - 未使用ローカル変数（宣言後に一切参照されない）
  */
 
 import {
@@ -137,6 +138,7 @@ function lintStatement(stmt: Statement, out: LintDiagnostic[], continueLabels: S
             checkParamAssignWithoutByRef(proc, out);
             checkDeadStores(proc, out);
             checkUnreachableCode(proc, out);
+            checkUnusedVariables(proc, out);
             const procContinueLabels = findLoopContinueLabels(proc.body);
             for (const s of proc.body) lintStatement(s, out, procContinueLabels);
             break;
@@ -536,6 +538,130 @@ function checkDeadStores(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
             line, column: col, endLine: line, endColumn: endCol,
         });
     }
+}
+
+/** VBA014: 未使用ローカル変数（宣言後に一切参照されない） */
+function checkUnusedVariables(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
+    type DeclInfo = { name: string; loc: any };
+    const locals = new Map<string, DeclInfo>();
+
+    // 手続き本体内の Dim/Const/Static 宣言を収集（scope なし = ローカル）
+    const gatherDecls = (stmts: Statement[]) => {
+        for (const stmt of stmts) {
+            if (stmt.type === 'VariableDeclaration' && !(stmt as VariableDeclaration).scope) {
+                for (const d of (stmt as VariableDeclaration).declarations) {
+                    const lower = d.name.name.toLowerCase();
+                    if (!locals.has(lower)) locals.set(lower, { name: d.name.name, loc: d.name.loc });
+                }
+            }
+            recurseBlock(stmt, gatherDecls);
+        }
+    };
+    gatherDecls(proc.body);
+    if (locals.size === 0) return;
+
+    // 本体中に現れる識別子をすべて収集（読み取り・代入いずれも「参照」とみなす）
+    const mentioned = new Set<string>();
+
+    const scanExpr = (e: Expression | null | undefined): void => {
+        if (!e) return;
+        switch (e.type) {
+            case 'Identifier':
+                mentioned.add((e as Identifier).name.toLowerCase());
+                break;
+            case 'MemberExpression':
+                scanExpr((e as MemberExpression).object);
+                break;
+            case 'CallExpression': {
+                const ce = e as CallExpression;
+                scanExpr(ce.callee);
+                ce.args.forEach(scanExpr);
+                break;
+            }
+            case 'BinaryExpression':
+            case 'LogicalExpression': {
+                const be = e as any;
+                scanExpr(be.left); scanExpr(be.right);
+                break;
+            }
+            case 'UnaryExpression':
+                scanExpr((e as any).argument);
+                break;
+            case 'ParenthesizedExpression':
+                scanExpr((e as any).expression);
+                break;
+        }
+    };
+
+    const scanStmt = (s: Statement): void => {
+        const a = s as any;
+        switch (s.type) {
+            case 'AssignmentStatement':
+            case 'SetStatement':
+                // 単純代入の左辺識別子も「参照あり」として扱う（dead store は VBA009 が担当）
+                if (a.left?.type === 'Identifier') mentioned.add(a.left.name.toLowerCase());
+                else scanExpr(a.left);
+                scanExpr(a.right);
+                break;
+            case 'CallStatement': scanExpr(a.expression); break;
+            case 'IfStatement':
+                scanExpr(a.condition);
+                (Array.isArray(a.consequent) ? a.consequent : a.consequent ? [a.consequent] : []).forEach(scanStmt);
+                (Array.isArray(a.alternate)  ? a.alternate  : a.alternate  ? [a.alternate]  : []).forEach(scanStmt);
+                break;
+            case 'ForStatement':
+                if (a.identifier?.type === 'Identifier') mentioned.add(a.identifier.name.toLowerCase());
+                scanExpr(a.start); scanExpr(a.end); scanExpr(a.step);
+                (a.body ?? []).forEach(scanStmt);
+                break;
+            case 'ForEachStatement':
+                if (a.variable?.type === 'Identifier') mentioned.add(a.variable.name.toLowerCase());
+                scanExpr(a.iterable);
+                (a.body ?? []).forEach(scanStmt);
+                break;
+            case 'WhileStatement':
+            case 'DoWhileStatement':
+                scanExpr(a.condition); (a.body ?? []).forEach(scanStmt); break;
+            case 'WithStatement':
+                scanExpr(a.object); (a.body ?? []).forEach(scanStmt); break;
+            case 'SelectCaseStatement':
+                scanExpr(a.discriminant);
+                for (const clause of a.cases ?? []) {
+                    (clause.tests ?? []).forEach(scanExpr);
+                    (clause.body ?? []).forEach(scanStmt);
+                }
+                (a.elseBody ?? []).forEach(scanStmt);
+                break;
+            case 'ReturnStatement': scanExpr(a.value); break;
+        }
+    };
+
+    proc.body.forEach(scanStmt);
+
+    // 宣言されたが一度も言及されていない変数を報告
+    for (const [lower, info] of locals) {
+        if (mentioned.has(lower)) continue;
+        const loc  = info.loc;
+        const line = (loc?.start.line   ?? 1) - 1;
+        const col  = (loc?.start.column ?? 1) - 1;
+        const k014 = "Variable '{0}' is declared but never used";
+        const a014 = [info.name];
+        out.push({
+            code: 'VBA014', severity: 2,
+            message: fmt(k014, a014), l10nKey: k014, l10nArgs: a014,
+            line, column: col, endLine: line, endColumn: col + info.name.length,
+        });
+    }
+}
+
+/** ブロック文の子 body を再帰的に走査するユーティリティ */
+function recurseBlock(stmt: Statement, visitor: (stmts: Statement[]) => void): void {
+    const a = stmt as any;
+    if (a.body)       visitor(a.body);
+    if (a.consequent) visitor(Array.isArray(a.consequent) ? a.consequent : [a.consequent]);
+    if (a.alternate)  visitor(Array.isArray(a.alternate)  ? a.alternate  : [a.alternate]);
+    if (a.cases)      for (const c of a.cases) visitor(c.body ?? []);
+    if (a.elseBody)   visitor(a.elseBody);
 }
 
 /** VBA013: Option Explicit なし → 変数名のタイポが実行時まで検出されない */
