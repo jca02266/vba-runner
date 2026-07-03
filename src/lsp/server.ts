@@ -23,6 +23,7 @@ import { TestDiscovery } from './test-discovery';
 import { TestRunner } from './test-runner';
 import { DebugAdapter } from './debug-adapter';
 import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
+import { SignatureHelpProvider, SignatureHelpResult } from './signature-help-provider';
 
 export interface TextDocument {
     uri: string;
@@ -37,6 +38,7 @@ export interface LSPServerConfig {
         hoverProvider: boolean;
         definitionProvider: boolean;
         documentSymbolProvider: boolean;
+        signatureHelpProvider?: { triggerCharacters: string[] };
     };
 }
 
@@ -57,6 +59,7 @@ export class LSPServer {
     private foldingRangeProvider: FoldingRangeProvider;
     private testDiscovery: TestDiscovery;
     private testRunner: TestRunner;
+    private signatureHelpProvider: SignatureHelpProvider;
     private debugAdapters: Map<string, DebugAdapter> = new Map();
 
     constructor() {
@@ -70,6 +73,7 @@ export class LSPServer {
         this.foldingRangeProvider = new FoldingRangeProvider();
         this.testDiscovery = new TestDiscovery();
         this.testRunner = new TestRunner();
+        this.signatureHelpProvider = new SignatureHelpProvider();
     }
 
     /**
@@ -86,6 +90,9 @@ export class LSPServer {
                 hoverProvider: true,
                 definitionProvider: true,
                 documentSymbolProvider: true,
+                signatureHelpProvider: {
+                    triggerCharacters: ['(', ','],
+                },
             },
         };
     }
@@ -361,6 +368,19 @@ export class LSPServer {
         if (!ast) return [];
 
         return this.completionProvider.getCompletions(ast.body, doc.content, line, character);
+    }
+
+    /**
+     * Get signature help for a function call at the given position
+     */
+    getSignatureHelp(uri: string, line: number, character: number): SignatureHelpResult | null {
+        const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
+        if (!doc) return null;
+
+        const ast = this.parseDocument(doc.content);
+        if (!ast) return null;
+
+        return this.signatureHelpProvider.getSignatureHelp(ast.body, doc.content, line, character);
     }
 
     /**

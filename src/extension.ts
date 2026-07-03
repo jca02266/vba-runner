@@ -316,6 +316,31 @@ export async function activate(context: vscode.ExtensionContext) {
         }, '.', ' ')); // Trigger on dot and space (for "End ", "Next ", etc.)
     outputChannel.appendLine('✓ Completion provider registered');
 
+    // Register signature help provider
+    context.subscriptions.push(
+        vscode.languages.registerSignatureHelpProvider('vba', {
+            provideSignatureHelp(document, position) {
+                const result = lspServer.getSignatureHelp(
+                    document.uri.toString(),
+                    position.line,
+                    position.character,
+                );
+                if (!result) return null;
+
+                const sigInfo = new vscode.SignatureInformation(result.signature.label);
+                sigInfo.parameters = result.signature.parameters.map(
+                    p => new vscode.ParameterInformation(p)
+                );
+
+                const help = new vscode.SignatureHelp();
+                help.signatures = [sigInfo];
+                help.activeSignature = 0;
+                help.activeParameter = result.activeParameter;
+                return help;
+            }
+        }, '(', ','));
+    outputChannel.appendLine('✓ Signature help provider registered');
+
     // Register test discovery
     // モジュールレベルで保持し、リロード時に旧インスタンスを破棄してから再生成する
     if (_testController) {
