@@ -54,10 +54,9 @@
 - **有効化方法**: `vba-runner.lint.enabled: true` または `vba-runner.lint.enabledCodes: ["VBA014"]` を設定。
 - **VBA009との役割分担**: VBA014 は「一切言及なし」、VBA009 は「代入のみで未読取り（dead store）」。
 
-### C-2: `Option Explicit` なし警告 ＋ クイックフィックス ❌ 未着手（優先度：中）
-`Option Explicit` が先頭にない `.bas`/`.cls` に警告を出し、クイックフィックスで自動追加。
-- **現状**: 未実装。
-- **価値**: VBA のベストプラクティス促進。VBE ではデフォルト設定だが VS Code では明示が必要。
+### C-2: `Option Explicit` なし警告 ＋ クイックフィックス ✅ 完了
+- **警告**: VBA013 ルール（`vba-lint.ts`）が既に実装済み。`lint.enabled: true` で有効化。
+- **クイックフィックス**: VBA013 診断がある行の電球アイコンから「Add 'Option Explicit'」を選択するとファイル先頭に自動挿入。`isPreferred = true` のため Enter で即適用可能。
 
 ### C-3: 宣言前使用の警告 ❌ 未着手（優先度：低）
 `Option Explicit` あり環境で未宣言変数を使ったときの診断表示。C-2 が前提。
@@ -95,7 +94,7 @@
 |------|----|----|------|
 | ✅ | C-1 未使用変数の診断表示 | 完了 | VBA014 ルールを vba-lint.ts に追加 |
 | ✅ | A-3 スニペット | 完了 | snippets/vba.json + package.json 登録 |
-| 中 | C-2 Option Explicit クイックフィックス | ❌ | VBA ベストプラクティス促進 |
+| ✅ | C-2 Option Explicit クイックフィックス | 完了 | VBA013 診断 + QuickFix 自動挿入 |
 | 中 | D-1 ワークスペースシンボル | ❌ | 複数ファイル構成で便利 |
 | 低 | A-2 メンバー補完 | ❌ | 型推論が必要で実装コスト大 |
 | 低 | C-3 宣言前使用の警告 | ❌ | C-2 が前提 |
