@@ -52,7 +52,14 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(outputChannel);
     outputChannel.appendLine('Extension initialization started...');
 
+    const debugOutputChannel = vscode.window.createOutputChannel('VBA Debug');
+    context.subscriptions.push(debugOutputChannel);
+
     lspServer = new LSPServer();
+    lspServer.setDebugPrintHandler((msg) => {
+        debugOutputChannel.appendLine(msg);
+        debugOutputChannel.show(true);
+    });
     outputChannel.appendLine('LSP Server initialized');
 
     // ファイル削除・リネーム時にワークスペースキャッシュから除去する
@@ -531,7 +538,10 @@ End Class`;
                 const dir = path.dirname(doc.uri.fsPath);
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
 
-                const ev = new Evaluator((msg: string) => outputChannel.appendLine(msg), { allowTopLevelStatements: false });
+                const ev = new Evaluator((msg: string) => {
+                    debugOutputChannel.appendLine(msg);
+                    debugOutputChannel.show(true);
+                }, { allowTopLevelStatements: false });
                 // Excel API スタブを自動注入（Range / Cells / ActiveSheet 等をノーオプで動かす）
                 injectExcelStub(ev);
                 const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];

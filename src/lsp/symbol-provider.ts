@@ -57,8 +57,38 @@ export class SymbolProvider {
         this.uri = uri;
     }
 
-    extractSymbols(statements: Statement[]): DocumentSymbol[] {
-        return statements.flatMap((stmt) => this.symbolFromStatement(stmt));
+    extractSymbols(statements: Statement[], source?: string): DocumentSymbol[] {
+        const astSymbols = statements.flatMap((stmt) => this.symbolFromStatement(stmt));
+        if (!source) return astSymbols;
+        const sectionSymbols = this.extractSectionSymbols(source);
+        return [...astSymbols, ...sectionSymbols].sort(
+            (a, b) => a.location.range.start.line - b.location.range.start.line,
+        );
+    }
+
+    /** Detect `' --- Name ---` or `' === Name ===` style section headers. */
+    private extractSectionSymbols(source: string): DocumentSymbol[] {
+        const SECTION_RE = /^[ \t]*'[ \t]*[=\-*#]{2,}[ \t]+(.+?)[ \t]+[=\-*#]{2,}[ \t]*$/;
+        const symbols: DocumentSymbol[] = [];
+        const lines = source.split('\n');
+        for (let i = 0; i < lines.length; i++) {
+            const m = lines[i].match(SECTION_RE);
+            if (m) {
+                const name = m[1].trim();
+                symbols.push({
+                    name,
+                    kind: SymbolKind.Namespace,
+                    location: {
+                        uri: this.uri,
+                        range: {
+                            start: { line: i, character: 0 },
+                            end:   { line: i, character: lines[i].length },
+                        },
+                    },
+                });
+            }
+        }
+        return symbols;
     }
 
     private symbolFromStatement(stmt: Statement): DocumentSymbol[] {

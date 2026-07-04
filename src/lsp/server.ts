@@ -4,6 +4,7 @@ import { Lexer } from '../engine/lexer';
 import { Parser } from '../engine/parser';
 import { detectRangeAccess } from '../engine/range-access-detector';
 import { lintProgram, findLoopContinueLabels } from '../engine/vba-lint';
+import { checkOptionExplicit } from '../engine/option-explicit-checker';
 import { stripVBAFileHeader } from '../engine/preprocessor';
 import { Statement, GoToStatement } from '../engine/parser';
 import { findLabelDefinition, findGoToReferences, isOnLabel } from './label-navigator';
@@ -74,6 +75,10 @@ export class LSPServer {
         this.testDiscovery = new TestDiscovery();
         this.testRunner = new TestRunner();
         this.signatureHelpProvider = new SignatureHelpProvider();
+    }
+
+    setDebugPrintHandler(onPrint: (s: string) => void): void {
+        this.testRunner = new TestRunner(onPrint);
     }
 
     /**
@@ -218,7 +223,7 @@ export class LSPServer {
         if (!ast) return [];
 
         this.symbolProvider.setDocumentUri(uri);
-        return this.symbolProvider.extractSymbols(ast.body);
+        return this.symbolProvider.extractSymbols(ast.body, doc.content);
     }
 
     getFoldingRanges(uri: string): FoldingRange[] {
@@ -429,6 +434,7 @@ export class LSPServer {
                 source: 'vba-runner',
             }));
             const ast = new Parser(tokens, { errorRecovery: true }).parse();
+            checkOptionExplicit(ast); // populate ast.diagnostics with undeclared variable errors
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
                     start: { line: d.loc.start.line - 1, character: d.loc.start.column - 1 },

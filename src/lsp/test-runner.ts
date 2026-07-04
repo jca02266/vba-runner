@@ -13,6 +13,8 @@ export interface TestResult {
 }
 
 export class TestRunner {
+    constructor(private onPrint: (s: string) => void = console.log) {}
+
     runTests(statements: Statement[]): TestResult[] {
         const results: TestResult[] = [];
 
@@ -105,7 +107,7 @@ export class TestRunner {
             }
 
             // Evaluate the entire module to set up scope, then call the test
-            const ev = new Evaluator(console.log, { allowTopLevelStatements: false });
+            const ev = new Evaluator(this.onPrint, { allowTopLevelStatements: false });
             ev.evaluateModule(ast);
             ev.resolveIdentifiers([{ ast, moduleName: '' }]);
 

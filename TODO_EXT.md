@@ -58,9 +58,10 @@
 - **警告**: VBA013 ルール（`vba-lint.ts`）が既に実装済み。`lint.enabled: true` で有効化。
 - **クイックフィックス**: VBA013 診断がある行の電球アイコンから「Add 'Option Explicit'」を選択するとファイル先頭に自動挿入。`isPreferred = true` のため Enter で即適用可能。
 
-### C-3: 宣言前使用の警告 ❌ 未着手（優先度：低）
-`Option Explicit` あり環境で未宣言変数を使ったときの診断表示。C-2 が前提。
-- **現状**: コンパイルエラーとして実行時に検出されるが、診断として常時表示されているか要確認。
+### C-3: 宣言前使用の警告 ✅ 完了
+`Option Explicit` あり環境で未宣言変数を使ったときの診断表示。
+- **実装**: `server.ts` の `getDiagnostics()` で `checkOptionExplicit(ast)` を呼び出し。`option-explicit-checker.ts` の既存ロジックを再利用。
+- **動作**: `Option Explicit` があるファイルで未宣言変数を使うと赤い波線 (Error) がリアルタイム表示。`Option Explicit` がなければ何も表示しない。
 
 ---
 
@@ -69,9 +70,9 @@
 ### D-1: ワークスペースシンボル（`Ctrl+T`） ✅ 完了
 `registerWorkspaceSymbolProvider` を登録。`documentMap` の全 VBA ファイルを走査し、`getDocumentSymbols` の結果を `SymbolInformation` に変換して返す。クラスメンバーも `containerName` 付きで表示。
 
-### D-2: アウトラインのセクション区切り認識 ❌ 未着手（優先度：低）
-`'===========` や `' --- Region ---` 形式のコメントをアウトラインに折り畳み可能なセクションとして表示。
-- VBE でよく使われるコーディング慣習に対応。
+### D-2: アウトラインのセクション区切り認識 ✅ 完了
+`' --- Region ---` や `' === Name ===` 形式のコメントをアウトラインに Namespace シンボルとして表示。
+- **実装**: `symbol-provider.ts` の `extractSymbols` がオプションでソース文字列を受け取り、行スキャンでセクションヘッダーを検出。純粋なセパレータ行 (`'==========`) はアウトラインに出ない。
 
 ---
 
@@ -81,9 +82,10 @@
 テストが PASS/FAIL したときコードレンズの表示を変える（例: `✓ Tested (last: 3ms)` / `✗ FAILED`）。
 - **現状**: 実行後にターミナルを見る必要がある。
 
-### E-2: `Debug.Print` の Output Channel 分離 ❌ 未着手（優先度：低）
-`Debug.Print` 出力を専用 Output Channel に分けてフィルタリングしやすくする。
-- **現状**: `console.log` に混在。`onPrint` API はあるが拡張機能 UI として露出しているか要確認。
+### E-2: `Debug.Print` の Output Channel 分離 ✅ 完了
+`Debug.Print` 出力を専用 Output Channel "VBA Debug" に分離。
+- **実装**: `extension.ts` で `vscode.window.createOutputChannel('VBA Debug')` を作成。`debugProcedure` コマンドと `TestRunner` 両方の `Evaluator` を "VBA Debug" チャンネルへ接続。出力時に `show(true)` で自動表示（フォーカスは奪わない）。
+- **TestRunner の変更**: コンストラクターに `onPrint` を追加、`server.ts` に `setDebugPrintHandler()` を追加。
 
 ---
 
@@ -96,11 +98,11 @@
 | ✅ | C-2 Option Explicit クイックフィックス | 完了 | VBA013 診断 + QuickFix 自動挿入 |
 | ✅ | D-1 ワークスペースシンボル | 完了 | registerWorkspaceSymbolProvider 登録 |
 | 低 | A-2 メンバー補完 | ❌ | 型推論が必要で実装コスト大 |
-| 低 | C-3 宣言前使用の警告 | ❌ | C-2 が前提 |
-| 低 | D-2 アウトライン区切り | ❌ | 特定スタイル限定で恩恵が限られる |
+| ✅ | C-3 宣言前使用の警告 | 完了 | checkOptionExplicit を getDiagnostics に接続 |
+| ✅ | D-2 アウトライン区切り | 完了 | symbol-provider でコメント行スキャン |
 | 低 | B-2 With 内補完 | ❌ | A-2 が前提 |
 | 低 | E-1 テスト結果インライン | ❌ | UI polish |
-| 低 | E-2 Debug.Print 分離 | ❌ | 影響範囲が小さい |
+| ✅ | E-2 Debug.Print 分離 | 完了 | VBA Debug Output Channel に接続 |
 | ✅ | A-1 シグネチャヘルプ | 完了 | — |
 | ✅ | B-1 Select Case インデント | 完了 | — |
 | ✅ | B-3 Format Document 公開 | 完了 | — |
