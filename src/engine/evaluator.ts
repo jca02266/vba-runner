@@ -503,6 +503,14 @@ export class Environment {
         }
     }
 
+    promoteProceduresFromModule(moduleName: string): void {
+        const prefix = moduleName.toLowerCase() + ':';
+        for (const [key, proc] of this.procedures.entries()) {
+            if (key.startsWith(prefix)) {
+                this.procedures.set(key.slice(prefix.length), proc);
+            }
+        }
+    }
 
     getProcedure(name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined {
         const baseKey = name.toLowerCase();
@@ -3203,6 +3211,14 @@ export class Evaluator {
     /** classDefinitions に登録済みのクラス名一覧（小文字）を返す。 */
     public getRegisteredClassNames(): Set<string> {
         return new Set(this.classDefinitions.keys());
+    }
+
+    /**
+     * 指定モジュールの手続きをモジュール修飾なし（グローバル）に昇格させる（後勝ち）。
+     * VBA モックで複数ファイルが同名手続きを定義した場合に最後ロードされたものを有効にする。
+     */
+    public promoteProcedures(moduleName: string): void {
+        this.env.promoteProceduresFromModule(moduleName);
     }
 
     /**

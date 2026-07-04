@@ -74,6 +74,7 @@ export async function activate(context: vscode.ExtensionContext) {
             typeStubsWatcher,
             typeStubsWatcher.onDidCreate(() => lspServer.reloadTypeStubs(workspaceRoot)),
             typeStubsWatcher.onDidChange(() => lspServer.reloadTypeStubs(workspaceRoot)),
+            typeStubsWatcher.onDidDelete(() => lspServer.clearTypeStubs()),
         );
     }
 

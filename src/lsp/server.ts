@@ -433,6 +433,11 @@ export class LSPServer {
         this.loadTypeStubs(workspaceRoot);
     }
 
+    /** 外部型定義をクリアする（vba-types.json 削除時）。 */
+    clearTypeStubs(): void {
+        this.completionProvider.setTypeStubs(new Map());
+    }
+
     /** BUILTIN_MEMBERS の内容を vba-types.json 形式の JSON 文字列として返す。 */
     generateDefaultTypeStubsJson(): string {
         return generateDefaultTypeStubsJson();

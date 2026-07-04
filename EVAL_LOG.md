@@ -22,6 +22,7 @@
 | 9 | VS Code 拡張 LSP 機能（初回評価） | `CompletionProvider.getCompletions` / `detectMemberAccess` / `resolveExprType` / `getMemberHoverInfo` / `checkUnknownTypes` / `collectUserDefinedTypeNames` / 単純メンバー補完（`dict.`/`ws.`）/ チェーン補完（`ws.Cells.` → Range）/ 引数付きチェーン `ws.Cells(1,1).`（バグ）/ ユーザー定義クラス補完 / `createObject` ProgID 型推論 / VBA016 未知型診断（column ずれバグ）/ mid-word ホバー（正常） | 2026-07-04 |
 | 10 | VS Code 拡張 LSP 機能（評価 #9 修正確認 + 新規テーマ） | 引数付きチェーン補完の修正確認（OK）/ VBA016 波下線位置の修正確認（OK）/ With ブロック内引数付きチェーン補完（新バグ）/ クロスモジュール補完（`parseAsClass` 必須と判明）/ `generateDefaultTypeStubsJson` JSON valid 性確認 / `setTypeStubs(Map)` API 非対称設計の発見 / カスタム型上書き優先（正常動作） | 2026-07-04 |
 | 11 | VS Code 拡張 LSP 機能（評価 #10 修正確認 + シグネチャヘルプ + Quick Fix） | With ブロック内引数付きチェーン補完修正確認（OK・48 件）/ `parseTypeStubsJson` API 非対称解消確認（OK）/ `SignatureHelpProvider` 組み込み 60 件超・ユーザー定義 Function・ネスト呼び出し（内側優先）正常動作 / **文字列リテラル入力中にシグネチャが消えるバグ発見 → Lexer ベース修正済み** / VBA016 Quick Fix 実装確認（`extension.ts` に `initTypeStubs`・`addToTypeStubs` コマンド実装済み）/ `parse()` は `Program` を返す（`getCompletions` には `.body` を渡す必要あり） | 2026-07-04 |
+| 12 | `__mocks__` 注入・`setBuiltinOverride`・FileSystemWatcher（評価 #12） | JS `__addCreateObject__` による `CreateObject` 置換（Excel.Application）/ VBA `.cls` クラスモック差し込み（Logger.cls）/ `__mocks__.bas` 単一ファイル形式 / `setBuiltinOverride` で MsgBox 戻り値固定（vbOK/vbCancel 再現確認済み）/ `spy()` API 呼び出し引数記録 / 配列渡し時モックスキャンなし確認 / `.ts` モック動作確認 / `__progId__` なし factory のキー補完 / `__mocks__/Class.cls` が本番 `.cls` を上書き（正常）/ **バグ発見・再現確認済み: 複数 VBA `.bas` モックが同名 Public 関数を持つと Ambiguous procedure エラー** / FileSystemWatcher 実装確認（`extension.ts:70-77`）/ `onDidDelete` 未実装 | 2026-07-04 |
 
 ---
 
@@ -55,6 +56,12 @@
 | 引数付きチェーン補完が効かない | `ws.Cells(1, 1).` で Range でなくグローバル関数 29 件が返る | `detectMemberAccess` の正規表現が `)` 終端の式にマッチしない（`completion-provider.ts:454`） |
 | VBA016 波下線が変数名を指す | `Dim x As UnknownType` で `x` に波下線（`UnknownType` であるべき） | `unknown-type-checker.ts:79` で `d.name.loc`（変数名位置）を渡している。パーサーの `VariableDeclarator` に型名の loc フィールドなし |
 
+### 未修正バグ（評価 #12 で発見）
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`__mocks__` 内の複数 VBA ファイルに同名関数があると "Ambiguous procedure" になる~~ | **修正済み**: `Environment.promoteProceduresFromModule` を追加し `loadVbaMock` で呼び出すことで後勝ち動作を実現。`A.bas` → `B.bas` の順でロードすると `B.bas` の定義が有効になる。 | |
+
 ### 未対応の機能制限（改善候補）
 
 | 制限 | 詳細 |
@@ -70,6 +77,7 @@
 | ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
+| ~~`vba-types.json` 削除時に型スタブがリセットされない~~ | **修正済み**: `server.ts` に `clearTypeStubs()` を追加し、`extension.ts` の `typeStubsWatcher.onDidDelete` でフック。`vba-types.json` 削除時に補完プロバイダーの型スタブが即座にクリアされる。 |
 | ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
 | ~~LSP: シグネチャヘルプが文字列リテラル入力中に消える~~ | **修正済み**: `findCallContext` の文字列境界判定を Lexer トークンベースに変更。右→左スキャンの誤判定を解消。`findCallContext('Format(x, "', 11)` → `{ name: 'Format', activeParameter: 1 }` が正しく返る。 |
 | ~~LSP: VBA016 診断の range が型名でなく変数名を指す~~ | **修正済み（評価 #10 で確認）**: `Dim x As UnknownType` で `column: 9, endColumn: 20`（UnknownType の位置）が返るようになった。`unknown-type-checker.ts:79` で `d.objectTypeLoc ?? d.name.loc` の優先順位が機能している。パーサーが `objectTypeLoc` を AST に格納するよう修正済み。 |
@@ -124,9 +132,9 @@
 
 ### 拡張機能 LSP（未テスト・要評価）
 
-- `__mocks__` ディレクトリによる VBA/JS/TS モック注入
-- `setBuiltinOverride` で組み込み関数を上書き
-- vba-types.json の自動リロード（FileSystemWatcher）
+- ~~`__mocks__` ディレクトリによる VBA/JS/TS モック注入~~ **評価済み（評価 #12）: JS `__addCreateObject__` / VBA `.cls` クラスモック / `__mocks__.bas` 単一形式 / `.ts` モック すべて正常動作。同名 Public Function を複数 VBA モックが持つ場合は Ambiguous procedure バグあり**
+- ~~`setBuiltinOverride` で組み込み関数を上書き~~ **評価済み（評価 #12）: MsgBox を vbOK/vbCancel に固定 → 正常動作。`spy()` API も動作確認**
+- ~~vba-types.json の自動リロード（FileSystemWatcher）~~ **評価済み（評価 #12 ソース確認のみ）: `extension.ts:70-77` に `createFileSystemWatcher` 実装あり。`onDidCreate` / `onDidChange` でリロード。`onDidDelete` は未実装（型スタブが残存する小欠陥）**
 - ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10, #11）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は評価 #10 でバグ検出 → コミット `3300dcb` で修正 → 評価 #11 で修正確認（48 件返るようになった）**
 - ~~クロスモジュール補完（複数ファイル展開時）~~ **評価済み（評価 #10）: `parseAsClass` オプションを使えば動作する。単純な statements マージだけでは不十分**
 - ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10, #11）: コミット `9e41d0c` で `parseTypeStubsJson` 追加により API 非対称が解消。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結**
@@ -190,3 +198,8 @@
 29. **`parse()` フリー関数は存在しない**: `parser.ts` はフリー関数の `parse()` をエクスポートしていない。`Lexer` でトークナイズ後に `new Parser(tokens, { errorRecovery: true }).parse()` という形で呼ぶこと。
 30. **クロスモジュール補完にはクラスモジュールのパースに `parseAsClass` オプションが必要**: `.cls` ファイルを `new Parser(tokens, { parseAsClass: 'ClassName' })` で解析しないと `ClassDeclaration` として AST に格納されない。単純に `statements` をマージするだけでは不十分で、クラスのメンバーが補完候補に出ない。
 31. **~~With ブロック内の引数付きメソッドチェーン後の補完は未対応（新バグ）~~（コミット `3300dcb` で修正・評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。
+35. **JS `__addCreateObject__` モックは `CreateObject(progId)` 呼び出し全体を置換する**: `factory()` が返すオブジェクトに `__progId__` がない場合は `mock-loader.ts:181` でキーを `__progId__` として補完する。`evaluator.registerComObject` に渡される。既存の組み込みスタブ（Scripting.Dictionary など）よりも優先される。
+36. **`.ts` モックは `tsx` 環境下では `createRequire` で直接 require できる**: `mock-loader.ts` は `createRequire(import.meta.url)` で生成した `_require` を使って `.ts` モックを読み込む。`tsx` 実行環境では `.ts` ファイルを直接 require できるため、TypeScript でモックを書ける。
+37. **複数の VBA モックが同名 `Public Function` を持つと Ambiguous procedure エラー**（評価 #12 で発見・未修正）: `__mocks__/A.bas` と `__mocks__.bas` が同名関数を定義すると `Ambiguous procedure` エラー。`mock-loader.ts` のドキュメントは "後勝ち" と書いているが、これは JS/TS モック（`setBuiltinOverride` で `env.set` 上書き）にのみ適用される。VBA モックは別モジュールとして `procedures` マップに追記されるため曖昧さエラーになる。ワークアラウンド: 同名関数を持つ VBA モックは1ファイルにまとめること。
+38. **`__mocks__/ClassName.cls` は本番 `ClassName.cls` を上書きする**: `promoteMockVbaClasses` が mock の `.cls` を `externalObjectFactories` に昇格させ、`instantiateClass` で `classDefinitions` より優先されるため、本番クラスは実質上書きされる。VBA クラスモックは期待通り動作する。
+39. **`vba-types.json` の FileSystemWatcher は削除（`onDidDelete`）を監視しない**: `extension.ts:70-77` では `onDidCreate` と `onDidChange` のみフックしている。`vba-types.json` を削除した場合は型スタブがメモリに残ったまま（拡張機能再起動まで消えない）。

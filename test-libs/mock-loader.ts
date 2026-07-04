@@ -150,6 +150,7 @@ function loadVbaMock(file: string, evaluator: Evaluator): MockModule | null {
         const ast = new Parser(new Lexer(processed).tokenize(), parseOpts).parse();
         evaluator.evaluateModule(ast);
         evaluator.promoteMockVbaClasses(classesBefore);
+        evaluator.promoteProcedures(moduleName);
 
         return { ast, moduleName };
     } catch (e: any) {
