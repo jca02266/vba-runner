@@ -45,6 +45,109 @@ export enum CompletionItemKind {
     TypeParameter = 25,
 }
 
+// ─── 組み込み COM オブジェクトのメンバー定義 ───────────────────────────────────
+
+function m(label: string, kind: CompletionItemKind, detail: string): CompletionItem {
+    return { label, kind, detail };
+}
+const M = CompletionItemKind.Method;
+const P = CompletionItemKind.Property;
+const F = CompletionItemKind.Function;
+
+const BUILTIN_MEMBERS: ReadonlyMap<string, CompletionItem[]> = new Map([
+    ['scripting.dictionary', [
+        m('Add',         M, 'Add(key, item)'),
+        m('Exists',      F, 'Exists(key) As Boolean'),
+        m('Item',        P, 'Item(key) As Variant'),
+        m('Items',       F, 'Items() As Variant()'),
+        m('Keys',        F, 'Keys() As Variant()'),
+        m('Count',       P, 'Count As Long'),
+        m('Remove',      M, 'Remove(key)'),
+        m('RemoveAll',   M, 'RemoveAll()'),
+        m('CompareMode', P, 'CompareMode As Integer'),
+    ]],
+    ['scripting.filesystemobject', [
+        m('FileExists',      F, 'FileExists(filespec) As Boolean'),
+        m('FolderExists',    F, 'FolderExists(folderspec) As Boolean'),
+        m('DriveExists',     F, 'DriveExists(drivespec) As Boolean'),
+        m('GetFile',         F, 'GetFile(filespec) As File'),
+        m('GetFolder',       F, 'GetFolder(folderspec) As Folder'),
+        m('GetDrive',        F, 'GetDrive(drivespec) As Drive'),
+        m('GetFileName',     F, 'GetFileName(path) As String'),
+        m('GetBaseName',     F, 'GetBaseName(path) As String'),
+        m('GetExtensionName',F, 'GetExtensionName(path) As String'),
+        m('GetParentFolderName', F, 'GetParentFolderName(path) As String'),
+        m('BuildPath',       F, 'BuildPath(path, name) As String'),
+        m('CreateTextFile',  F, 'CreateTextFile(filename, [overwrite], [unicode]) As TextStream'),
+        m('OpenTextFile',    F, 'OpenTextFile(filename, [iomode], [create], [format]) As TextStream'),
+        m('CopyFile',        M, 'CopyFile(source, destination, [overwrite])'),
+        m('MoveFile',        M, 'MoveFile(source, destination)'),
+        m('DeleteFile',      M, 'DeleteFile(filespec, [force])'),
+        m('CreateFolder',    M, 'CreateFolder(folderspec)'),
+        m('CopyFolder',      M, 'CopyFolder(source, destination, [overwrite])'),
+        m('MoveFolder',      M, 'MoveFolder(source, destination)'),
+        m('DeleteFolder',    M, 'DeleteFolder(folderspec, [force])'),
+        m('GetSpecialFolder',F, 'GetSpecialFolder(folderspec) As Folder'),
+        m('GetTempName',     F, 'GetTempName() As String'),
+        m('Drives',          P, 'Drives As Drives'),
+    ]],
+    ['collection', [
+        m('Add',    M, 'Add(item, [key], [before], [after])'),
+        m('Remove', M, 'Remove(index)'),
+        m('Item',   F, 'Item(index) As Variant'),
+        m('Count',  P, 'Count As Long'),
+    ]],
+    ['adodb.recordset', [
+        m('Open',       M, 'Open([source], [activeconnection], [cursortype], [locktype], [options])'),
+        m('Close',      M, 'Close()'),
+        m('MoveNext',   M, 'MoveNext()'),
+        m('MovePrevious',M,'MovePrevious()'),
+        m('MoveFirst',  M, 'MoveFirst()'),
+        m('MoveLast',   M, 'MoveLast()'),
+        m('AddNew',     M, 'AddNew([fieldlist], [values])'),
+        m('Update',     M, 'Update([fieldlist], [values])'),
+        m('Delete',     M, 'Delete([affectrecords])'),
+        m('Find',       M, 'Find(criteria, [skiprows], [searchdirection], [start])'),
+        m('EOF',        P, 'EOF As Boolean'),
+        m('BOF',        P, 'BOF As Boolean'),
+        m('Fields',     P, 'Fields As Fields'),
+        m('RecordCount',P, 'RecordCount As Long'),
+        m('Filter',     P, 'Filter As Variant'),
+        m('Sort',       P, 'Sort As String'),
+        m('GetRows',    F, 'GetRows([rows], [start], [fields]) As Variant()'),
+        m('GetString',  F, 'GetString([stringformat], [rows], [columndelimeter], [rowdelimeter], [nullexpr]) As String'),
+    ]],
+    ['adodb.connection', [
+        m('Open',           M, 'Open([connectionstring], [userid], [password], [options])'),
+        m('Close',          M, 'Close()'),
+        m('Execute',        F, 'Execute(commandtext, [recordsaffected], [options]) As Recordset'),
+        m('BeginTrans',     F, 'BeginTrans() As Long'),
+        m('CommitTrans',    M, 'CommitTrans()'),
+        m('RollbackTrans',  M, 'RollbackTrans()'),
+        m('ConnectionString',P,'ConnectionString As String'),
+        m('State',          P, 'State As Long'),
+        m('Errors',         P, 'Errors As Errors'),
+    ]],
+    ['regexp', [
+        m('Execute',    F, 'Execute(string) As MatchCollection'),
+        m('Test',       F, 'Test(string) As Boolean'),
+        m('Replace',    F, 'Replace(string, replacement) As String'),
+        m('Pattern',    P, 'Pattern As String'),
+        m('Global',     P, 'Global As Boolean'),
+        m('IgnoreCase', P, 'IgnoreCase As Boolean'),
+        m('MultiLine',  P, 'MultiLine As Boolean'),
+    ]],
+    ['vbscript.regexp', [
+        m('Execute',    F, 'Execute(string) As MatchCollection'),
+        m('Test',       F, 'Test(string) As Boolean'),
+        m('Replace',    F, 'Replace(string, replacement) As String'),
+        m('Pattern',    P, 'Pattern As String'),
+        m('Global',     P, 'Global As Boolean'),
+        m('IgnoreCase', P, 'IgnoreCase As Boolean'),
+        m('MultiLine',  P, 'MultiLine As Boolean'),
+    ]],
+]);
+
 export class CompletionProvider {
     private standardFunctions: CompletionItem[] = [
         // String functions
@@ -84,12 +187,24 @@ export class CompletionProvider {
     ];
 
     getCompletions(statements: Statement[], source: string, line: number, character: number): CompletionItem[] {
-        const completions: CompletionItem[] = [];
-
         // Block-closer completions take priority when at line start
         const blockClosers = this.getBlockClosers(source, line, character);
         if (blockClosers.length > 0) return blockClosers;
 
+        // Member access: "obj." or "obj.prefix"
+        const memberAccess = this.detectMemberAccess(source, line, character);
+        if (memberAccess) {
+            // AST walk first; fallback to source text scan when AST is incomplete (e.g. mid-type error recovery)
+            const typeName = this.findVariableType(statements, memberAccess.objectName, line)
+                          ?? this.findVariableTypeFromSource(source, memberAccess.objectName);
+            if (typeName) {
+                const members = this.getMembersForType(typeName, statements);
+                return members.filter(m => this.matchesPrefix(m.label, memberAccess.memberPrefix));
+            }
+            return [];
+        }
+
+        const completions: CompletionItem[] = [];
         // Get prefix at cursor position
         const prefix = this.extractPrefix(source, line, character);
 
@@ -105,6 +220,120 @@ export class CompletionProvider {
         );
 
         return completions;
+    }
+
+    /** カーソル直前が `ident.` または `ident.prefix` の形なら検出する。 */
+    private detectMemberAccess(source: string, line: number, char: number): { objectName: string; memberPrefix: string } | null {
+        const lines = source.split('\n');
+        const beforeCursor = (lines[line] ?? '').substring(0, char);
+        const match = beforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)?$/);
+        if (!match) return null;
+        return { objectName: match[1], memberPrefix: match[2] ?? '' };
+    }
+
+    /** AST を走査して varName の型を返す（手続き内ローカル優先、次にモジュールレベル）。 */
+    private findVariableType(statements: Statement[], varName: string, lineNum: number): string | null {
+        const lowerVar = varName.toLowerCase();
+
+        // 現在のカーソル行を含むプロシージャを探す
+        for (const stmt of statements) {
+            if (stmt.type === 'ProcedureDeclaration') {
+                const proc = stmt as ProcedureDeclaration;
+                const startLine = (proc.loc?.start.line ?? 1) - 1;
+                const endLine   = (proc.loc?.end.line   ?? 0) - 1;
+                if (lineNum < startLine || lineNum > endLine) continue;
+
+                // パラメーター
+                for (const param of proc.parameters) {
+                    if (param.name.toLowerCase() === lowerVar && param.paramType) {
+                        return param.paramType.toLowerCase();
+                    }
+                }
+                // ローカル Dim
+                for (const s of proc.body) {
+                    if (s.type === 'VariableDeclaration') {
+                        for (const d of (s as VariableDeclaration).declarations) {
+                            if (d.name.name.toLowerCase() === lowerVar && d.objectType) {
+                                return d.objectType.toLowerCase();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // モジュールレベル Dim / Public / Private
+        for (const stmt of statements) {
+            if (stmt.type === 'VariableDeclaration') {
+                for (const d of (stmt as VariableDeclaration).declarations) {
+                    if (d.name.name.toLowerCase() === lowerVar && d.objectType) {
+                        return d.objectType.toLowerCase();
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** AST が不完全なときのフォールバック: ソーステキストから Dim varName As Type を正規表現で探す。 */
+    private findVariableTypeFromSource(source: string, varName: string): string | null {
+        const escaped = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const dimRe = new RegExp(
+            `(?:Dim|Private|Public|Friend|Static)\\s+${escaped}\\s+As(?:\\s+New)?\\s+([a-zA-Z_][a-zA-Z0-9_.]*)`,
+            'i',
+        );
+        const m = source.match(dimRe);
+        if (m) return m[1].toLowerCase();
+        // Set x = New TypeName または Set x = CreateObject("Type.Name")
+        const setRe = new RegExp(`Set\\s+${escaped}\\s*=\\s*(?:New\\s+)?([a-zA-Z_][a-zA-Z0-9_.]*)`, 'i');
+        const m2 = source.match(setRe);
+        return m2 ? m2[1].toLowerCase() : null;
+    }
+
+    /** 型名に対応するメンバー一覧を返す（組み込み型 + ユーザー定義クラス）。 */
+    private getMembersForType(typeName: string, statements: Statement[]): CompletionItem[] {
+        const lowerType = typeName.replace(/^new\s+/i, '').toLowerCase();
+        const builtins = BUILTIN_MEMBERS.get(lowerType);
+        if (builtins) return builtins;
+
+        // ユーザー定義クラス
+        for (const stmt of statements) {
+            if (stmt.type === 'ClassDeclaration') {
+                const cls = stmt as ClassDeclaration;
+                if (cls.name.toLowerCase() === lowerType) {
+                    return this.getPublicClassMembers(cls);
+                }
+            }
+        }
+        return [];
+    }
+
+    /** クラスの Public メンバーを CompletionItem に変換する。 */
+    private getPublicClassMembers(cls: ClassDeclaration): CompletionItem[] {
+        const items: CompletionItem[] = [];
+        for (const member of cls.body) {
+            if (member.type === 'VariableDeclaration') {
+                const decl = member as VariableDeclaration;
+                if ((decl.scope ?? 'private') === 'private') continue;
+                for (const d of decl.declarations) {
+                    items.push({
+                        label: d.name.name,
+                        kind: CompletionItemKind.Property,
+                        detail: `${d.objectType ?? 'Variant'}`,
+                    });
+                }
+            } else if (member.type === 'ProcedureDeclaration') {
+                const proc = member as ProcedureDeclaration;
+                if ((proc.scope ?? 'public') === 'private') continue;
+                items.push({
+                    label: proc.name.name,
+                    kind: proc.isProperty ? CompletionItemKind.Property : proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
+                    detail: proc.isProperty ? 'Property' : proc.isFunction ? 'Function' : 'Sub',
+                });
+            }
+        }
+        return items;
     }
 
     /**

@@ -8,10 +8,12 @@
 `(` / `,` でパラメーター名をポップアップ表示。MsgBox・Format・自前 Sub/Function 対象。
 - Hover でシグネチャは見えていたが、入力中に自動表示されなかった問題を解消済み。
 
-### A-2: `.` 後のメンバー補完 ❌ 未着手（優先度：低）
+### A-2: `.` 後のメンバー補完 ✅ 完了
 `Scripting.Dictionary` / FSO / 自前クラスに `.` を打ったときメンバー一覧を出す。
-- **現状**: 補完はスコープ内シンボル＋組み込み関数のフラットリストのみ。オブジェクト型を意識していない。
-- **課題**: 型推論が必要で実装コストが高い。
+- **実装**: `completion-provider.ts` に `detectMemberAccess` / `findVariableType` / `getMembersForType` を追加。`Dim x As Scripting.Dictionary` のような型宣言を AST またはソーステキストスキャンで検出し、対応メンバーを返す。
+- **対応組み込み型**: `Scripting.Dictionary`・`Scripting.FileSystemObject`・`Collection`・`ADODB.Recordset`・`ADODB.Connection`・`RegExp`。
+- **ユーザー定義クラス**: 同モジュール内の `ClassDeclaration` のパブリックメンバーも対象。
+- **制限**: 型推論はなく `Dim x As TypeName` の静的宣言のみ参照。`Set x = CreateObject(...)` は限定的なサポート。
 
 ### A-3: スニペット ✅ 完了
 `build/extension/snippets/vba.json` を新規作成し `package.json` に登録。
@@ -98,7 +100,7 @@
 | ✅ | A-3 スニペット | 完了 | snippets/vba.json + package.json 登録 |
 | ✅ | C-2 Option Explicit クイックフィックス | 完了 | VBA013 診断 + QuickFix 自動挿入 |
 | ✅ | D-1 ワークスペースシンボル | 完了 | registerWorkspaceSymbolProvider 登録 |
-| 低 | A-2 メンバー補完 | ❌ | 型推論が必要で実装コスト大 |
+| ✅ | A-2 メンバー補完 | 完了 | Dim 宣言スキャンで Scripting.Dictionary 等に対応 |
 | ✅ | C-3 宣言前使用の警告 | 完了 | checkOptionExplicit を getDiagnostics に接続 |
 | ✅ | D-2 アウトライン区切り | 完了 | symbol-provider でコメント行スキャン |
 | 低 | B-2 With 内補完 | ❌ | A-2 が前提 |
