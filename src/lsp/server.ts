@@ -250,13 +250,34 @@ export class LSPServer {
      * Get hover information
      */
     getHover(uri: string, line: number, character: number): any {
-        const doc = this.documents.get(uri);
+        const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
         if (!doc) return null;
 
         const ast = this.parseDocument(doc.content);
         if (!ast) return null;
 
-        return this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character);
+        // メンバーホバー: obj.Member にカーソルがある場合はシグネチャを表示する
+        const memberInfo = this.completionProvider.getMemberHoverInfo(doc.content, line, character, ast.body);
+        const symbolHover = this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character);
+
+        if (memberInfo) {
+            const memberContents = `\`\`\`vb\n${memberInfo.detail}\n\`\`\``;
+            if (symbolHover) {
+                return { ...symbolHover, contents: `${memberContents}\n\n${symbolHover.contents}` };
+            }
+            const lines = doc.content.split('\n');
+            const currentLine = lines[line] ?? '';
+            const col = currentLine.substring(0, character).match(/([a-zA-Z_][a-zA-Z0-9_]*)$/)?.[1].length ?? 0;
+            return {
+                contents: memberContents,
+                range: {
+                    start: { line, character: character - col },
+                    end:   { line, character: character - col + memberInfo.label.length },
+                },
+            };
+        }
+
+        return symbolHover;
     }
 
     /**

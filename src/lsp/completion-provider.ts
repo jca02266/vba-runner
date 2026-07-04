@@ -309,6 +309,46 @@ export class CompletionProvider {
         this.typeStubs = stubs;
     }
 
+    /**
+     * カーソル位置が `obj.Member` の Member 上にある場合、そのメンバーの detail 文字列を返す。
+     * ホバー情報の提供に使用する。
+     */
+    getMemberHoverInfo(
+        source: string,
+        line: number,
+        char: number,
+        statements: Statement[],
+    ): { detail: string; label: string } | null {
+        const lines = source.split('\n');
+        const currentLine = lines[line] ?? '';
+
+        // カーソル位置の単語を前後から合成する
+        const beforeCursor = currentLine.substring(0, char);
+        const afterCursor  = currentLine.substring(char);
+        const wordBefore   = beforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)$/)?.[1] ?? '';
+        const wordAfter    = afterCursor.match(/^([a-zA-Z0-9_]*)/)?.[1] ?? '';
+        const memberName   = wordBefore + wordAfter;
+        if (!memberName) return null;
+
+        // 直前が `.` であるか確認し、オブジェクト式を取り出す
+        const beforeMember = beforeCursor.substring(0, beforeCursor.length - wordBefore.length);
+        if (!beforeMember.endsWith('.')) return null;
+        const exprBeforeDot = beforeMember.slice(0, -1).trimEnd();
+
+        // 型を解決
+        const typeName = this.resolveExprType(exprBeforeDot, statements, source, line)
+                      ?? this.findVariableType(statements, exprBeforeDot, line)
+                      ?? this.findVariableTypeFromSource(source, exprBeforeDot);
+        if (!typeName) return null;
+
+        // メンバーを検索
+        const members = this.getMembersForType(typeName, statements);
+        const member  = members.find(m => m.label.toLowerCase() === memberName.toLowerCase());
+        if (!member?.detail) return null;
+
+        return { label: member.label, detail: member.detail };
+    }
+
     private standardFunctions: CompletionItem[] = [
         // String functions
         { label: 'Len', kind: CompletionItemKind.Function, detail: 'Len(string) As Long' },
