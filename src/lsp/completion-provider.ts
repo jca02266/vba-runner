@@ -535,15 +535,23 @@ export class CompletionProvider {
     /** AST が不完全なときのフォールバック: ソーステキストから Dim varName As Type を正規表現で探す。 */
     private findVariableTypeFromSource(source: string, varName: string): string | null {
         const escaped = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        // Set x = CreateObject("ProgID") — ProgID を最優先（"object" などの汎用型宣言より具体的）
+        const createObjRe = new RegExp(
+            `Set\\s+${escaped}\\s*=\\s*CreateObject\\s*\\(\\s*"([^"]+)"\\s*\\)`,
+            'i',
+        );
+        const mc = source.match(createObjRe);
+        if (mc) return mc[1].toLowerCase();
+        // Dim x As TypeName
         const dimRe = new RegExp(
             `(?:Dim|Private|Public|Friend|Static)\\s+${escaped}\\s+As(?:\\s+New)?\\s+([a-zA-Z_][a-zA-Z0-9_.]*)`,
             'i',
         );
         const m = source.match(dimRe);
         if (m) return m[1].toLowerCase();
-        // Set x = New TypeName または Set x = CreateObject("Type.Name")
-        const setRe = new RegExp(`Set\\s+${escaped}\\s*=\\s*(?:New\\s+)?([a-zA-Z_][a-zA-Z0-9_.]*)`, 'i');
-        const m2 = source.match(setRe);
+        // Set x = New TypeName
+        const setNewRe = new RegExp(`Set\\s+${escaped}\\s*=\\s*New\\s+([a-zA-Z_][a-zA-Z0-9_.]*)`, 'i');
+        const m2 = source.match(setNewRe);
         return m2 ? m2[1].toLowerCase() : null;
     }
 
@@ -599,8 +607,18 @@ export class CompletionProvider {
 
         // 単純識別子
         if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
-            return this.findVariableType(statements, trimmed, line)
-                ?? this.findVariableTypeFromSource(source, trimmed);
+            const astType = this.findVariableType(statements, trimmed, line);
+            const srcType = this.findVariableTypeFromSource(source, trimmed);
+            // AST が object/variant などの汎用型を返すが、ソース側に CreateObject で具体的な型が
+            // 判明している場合（e.g. Dim x As Object + Set x = CreateObject("Scripting.Dictionary")）
+            // はソース側の型を優先する
+            const GENERIC_TYPES = new Set(['object', 'variant']);
+            if (astType && srcType && astType !== srcType
+                && GENERIC_TYPES.has(astType)
+                && this.getMembersForType(srcType, statements).length > 0) {
+                return srcType;
+            }
+            return astType ?? srcType;
         }
 
         // チェーン: greedy で最後の .member を切り出す
