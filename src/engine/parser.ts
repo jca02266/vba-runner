@@ -2089,6 +2089,9 @@ export class Parser {
 
         this.skipNewlines();
 
+        let clsStartTok: Token | undefined;
+        let clsEndTok: Token | undefined;
+
         while (this.peek().type !== TokenType.EOF) {
             if (untilEndClass && this.peek().type === TokenType.KeywordEnd && this.peek(1).type === TokenType.KeywordClass) {
                 break;
@@ -2101,6 +2104,8 @@ export class Parser {
                 continue;
             }
 
+            if (!clsStartTok && tok.line !== undefined) clsStartTok = tok;
+
             // Scope modifiers before fields/procedures
             let scope: 'public' | 'private' | 'friend' | undefined;
             if (tok.type === TokenType.KeywordPublic || tok.type === TokenType.KeywordPrivate || tok.type === TokenType.KeywordFriend) {
@@ -2111,33 +2116,68 @@ export class Parser {
             const inner = this.peek();
             if (inner.type === TokenType.KeywordSub || inner.type === TokenType.KeywordFunction || inner.type === TokenType.KeywordProperty) {
                 const proc = this.parseProcedureDeclaration(scope, undefined, true);
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    proc.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 proc.moduleName = className;
                 procedures.push(proc);
                 body.push(proc);
             } else if (inner.type === TokenType.KeywordDim) {
                 this.advance(); // consume 'Dim'
                 const field = this.parseDimStatement(false, true);
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    field.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
             } else if (inner.type === TokenType.KeywordImplements) {
                 const impl = this.parseImplementsDirective();
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    impl.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 body.push(impl);
             } else if (inner.type === TokenType.KeywordEvent) {
                 const event = this.parseEventDeclaration(scope);
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    event.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 body.push(event);
             } else if (inner.type === TokenType.KeywordConst) {
                 const constDecl = this.parseConstDeclaration();
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    constDecl.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 body.push(constDecl);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'
                 const field = this.parseDimStatement(true, true);
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    field.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 field.scope = scope ?? 'public';
                 fields.push(field);
                 body.push(field);
             } else if (scope !== undefined && (this.isIdentifier(inner) || inner.type === TokenType.KeywordWithEvents)) {
                 // Public/Private [WithEvents] Name As Type (no Dim keyword)
                 const field = this.parseDimStatement(false, true);
+                if (tok.line !== undefined) {
+                    const endTok = this.tokens[this.pos - 1];
+                    field.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
+                    clsEndTok = this.tokens[this.pos - 1];
+                }
                 field.scope = scope;
                 fields.push(field);
                 body.push(field);
@@ -2153,9 +2193,17 @@ export class Parser {
             if (!this.match(TokenType.KeywordClass)) {
                 this.throwError(`Parse error: Expected 'Class' after 'End' at line ${this.peek().line}`);
             }
+            clsEndTok = this.tokens[this.pos - 1];
         }
 
-        return { type: 'ClassDeclaration', name: className, fields, procedures, body } as ClassDeclaration;
+        const clsNode = { type: 'ClassDeclaration', name: className, fields, procedures, body } as ClassDeclaration;
+        if (clsStartTok && clsEndTok) {
+            clsNode.loc = {
+                start: { line: clsStartTok.line, column: clsStartTok.column },
+                end: { line: clsEndTok.line, column: clsEndTok.column + clsEndTok.value.length },
+            };
+        }
+        return clsNode;
     }
 
     private parseForStatement(): ForStatement | ForEachStatement {

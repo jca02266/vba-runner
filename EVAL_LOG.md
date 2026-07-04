@@ -23,6 +23,7 @@
 | 10 | VS Code 拡張 LSP 機能（評価 #9 修正確認 + 新規テーマ） | 引数付きチェーン補完の修正確認（OK）/ VBA016 波下線位置の修正確認（OK）/ With ブロック内引数付きチェーン補完（新バグ）/ クロスモジュール補完（`parseAsClass` 必須と判明）/ `generateDefaultTypeStubsJson` JSON valid 性確認 / `setTypeStubs(Map)` API 非対称設計の発見 / カスタム型上書き優先（正常動作） | 2026-07-04 |
 | 11 | VS Code 拡張 LSP 機能（評価 #10 修正確認 + シグネチャヘルプ + Quick Fix） | With ブロック内引数付きチェーン補完修正確認（OK・48 件）/ `parseTypeStubsJson` API 非対称解消確認（OK）/ `SignatureHelpProvider` 組み込み 60 件超・ユーザー定義 Function・ネスト呼び出し（内側優先）正常動作 / **文字列リテラル入力中にシグネチャが消えるバグ発見 → Lexer ベース修正済み** / VBA016 Quick Fix 実装確認（`extension.ts` に `initTypeStubs`・`addToTypeStubs` コマンド実装済み）/ `parse()` は `Program` を返す（`getCompletions` には `.body` を渡す必要あり） | 2026-07-04 |
 | 12 | `__mocks__` 注入・`setBuiltinOverride`・FileSystemWatcher（評価 #12） | JS `__addCreateObject__` による `CreateObject` 置換（Excel.Application）/ VBA `.cls` クラスモック差し込み（Logger.cls）/ `__mocks__.bas` 単一ファイル形式 / `setBuiltinOverride` で MsgBox 戻り値固定（vbOK/vbCancel 再現確認済み）/ `spy()` API 呼び出し引数記録 / 配列渡し時モックスキャンなし確認 / `.ts` モック動作確認 / `__progId__` なし factory のキー補完 / `__mocks__/Class.cls` が本番 `.cls` を上書き（正常）/ **バグ発見・再現確認済み: 複数 VBA `.bas` モックが同名 Public 関数を持つと Ambiguous procedure エラー** / FileSystemWatcher 実装確認（`extension.ts:70-77`）/ `onDidDelete` 未実装 | 2026-07-04 |
+| 13 | VS Code 拡張 LSP ナビゲーション（definition / references / rename / symbol）（評価 #13） | `DefinitionProvider.getDefinition` / `ReferencesProvider.getReferences` / `RenameProvider.getRename` / `SymbolProvider.extractSymbols` / `.bas` 全機能正常動作 / セクションヘッダー `' --- Name ---` → SymbolKind.Namespace 抽出 / ローカル変数スコープ絞り込み正常 / クロスモジュールは `null` 返却（設計通り）/ **Bug B 発見・再現確認・修正済み: `parseAsClass` で生成した `ClassDeclaration`/`ProcedureDeclaration` の `loc` が `undefined`（`parseClassBody` が `parseStatement` を経由せず直接パース関数を呼ぶため）→ `parseClassBody` 内で各文パース後に `loc` を設定するよう修正。`tsc -b` / `class-module.test.ts` 全通過確認済み** / Bug A（仕様準拠）: `FuncName = value` の戻り値代入行が refs に含まれる（正規表現全出現検索の仕様。Rename では正しい動作） | 2026-07-05 |
 
 ---
 
@@ -61,6 +62,12 @@
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
 | ~~`__mocks__` 内の複数 VBA ファイルに同名関数があると "Ambiguous procedure" になる~~ | **修正済み**: `Environment.promoteProceduresFromModule` を追加し `loadVbaMock` で呼び出すことで後勝ち動作を実現。`A.bas` → `B.bas` の順でロードすると `B.bas` の定義が有効になる。 | |
+
+### ~~未修正バグ（評価 #13 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`parseAsClass` で生成した AST の `loc` が `undefined` → `.cls` ファイルで DefinitionProvider/ReferencesProvider/RenameProvider が機能しない~~ | **修正済み（評価 #13）**: `parseClassBody()` 内で各文パース後に `tok`（ブランチ開始前のトークン）と `this.tokens[this.pos-1]`（パース後の最終トークン）から `loc` を設定するよう修正。`ClassDeclaration` 本体の `loc` も最初・最後の文トークンから設定。`tsc -b` / `class-module.test.ts` 全通過。 | `parser.ts:parseClassBody()` が `parseProcedureDeclaration()` を直接呼ぶため `parseStatement()` の `stmt.loc = { start, end }` 設定（line 1358）が実行されない。`ClassDeclaration` 本体も `{ type, name, fields, procedures, body }` のみで `loc` なし。`buildScopedSymbolTable` 内の `if (!proc.loc) continue;` ガードで全シンボルがスキップされる。影響: DefinitionProvider は常に `null`、ReferencesProvider はスコープ絞り込みと `includeDeclaration` 除外が無効、RenameProvider は全ファイル無差別テキスト置換。`SymbolProvider` は別の fallback を持ち動作するが位置情報がすべて `(0,0)` になる。 |
 
 ### 未対応の機能制限（改善候補）
 
@@ -141,6 +148,10 @@
 - ~~カスタム型上書き優先~~ **評価済み（評価 #10）: BUILTIN_MEMBERS よりカスタム定義が優先される。正常動作**
 - ~~VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）~~ **評価済み（評価 #11）: `extension.ts` に完全実装。`vba-runner.initTypeStubs`（デフォルト vba-types.json 生成）と `vba-runner.addToTypeStubs`（型名追記）が CodeAction として登録済み。VS Code なしの動作確認は不可**
 - ~~シグネチャヘルプの深掘り（ネスト呼び出し・Optional 引数・ParamArray）~~ **評価済み（評価 #11）: 組み込み 60 件超・ユーザー定義 Function・ネスト優先すべて正常。文字列リテラル入力中に消えるバグあり**
+- ~~DefinitionProvider（F12 定義ジャンプ）~~ **評価済み（評価 #13）: `.bas` は正常。`.cls` は `parseAsClass` 使用時に `loc` 未設定バグにより常に `null`（Bug B）**
+- ~~ReferencesProvider（Find All References）~~ **評価済み（評価 #13）: `.bas` は概ね正常。`FuncName = value` 戻り値代入行が refs に含まれる（仕様準拠）。ローカル変数スコープ絞り込み正常。`.cls` は Bug B によりスコープ・includeDeclaration 除外が無効**
+- ~~RenameProvider（F2 リネーム）~~ **評価済み（評価 #13）: `.bas` 正常（戻り値代入行も含む TextEdit は正しい）。`.cls` は Bug B によりスコープ無視のテキスト置換**
+- ~~SymbolProvider（ドキュメントシンボル / アウトライン）~~ **評価済み（評価 #13）: `.bas` 完全動作。`source` 引数なし→Sub/Function のみ、あり→セクションヘッダー `' --- Name ---` も SymbolKind.Namespace で追加。`.cls` は動作するが全シンボルの loc が `(0,0)`（Bug B の影響・fallback 動作）**
 
 ### ~~条件付きコンパイル~~ **評価済み（評価#8）**
 
@@ -203,3 +214,7 @@
 37. **複数の VBA モックが同名 `Public Function` を持つと Ambiguous procedure エラー**（評価 #12 で発見・未修正）: `__mocks__/A.bas` と `__mocks__.bas` が同名関数を定義すると `Ambiguous procedure` エラー。`mock-loader.ts` のドキュメントは "後勝ち" と書いているが、これは JS/TS モック（`setBuiltinOverride` で `env.set` 上書き）にのみ適用される。VBA モックは別モジュールとして `procedures` マップに追記されるため曖昧さエラーになる。ワークアラウンド: 同名関数を持つ VBA モックは1ファイルにまとめること。
 38. **`__mocks__/ClassName.cls` は本番 `ClassName.cls` を上書きする**: `promoteMockVbaClasses` が mock の `.cls` を `externalObjectFactories` に昇格させ、`instantiateClass` で `classDefinitions` より優先されるため、本番クラスは実質上書きされる。VBA クラスモックは期待通り動作する。
 39. **`vba-types.json` の FileSystemWatcher は削除（`onDidDelete`）を監視しない**: `extension.ts:70-77` では `onDidCreate` と `onDidChange` のみフックしている。`vba-types.json` を削除した場合は型スタブがメモリに残ったまま（拡張機能再起動まで消えない）。
+40. **LSP ナビゲーション 4 プロバイダーの API パターン**（評価 #13）: 全プロバイダーとも `setDocumentUri(uri)` + 1 メソッド呼び出しのシンプルな設計。`stmts` には `new Parser(tokens, { errorRecovery: true }).parse().body` を渡す（`Program` オブジェクトをそのまま渡すと動かない）。`DefinitionProvider.getDefinition(stmts, source, line, char)` / `ReferencesProvider.getReferences(stmts, source, line, char, includeDeclaration)` / `RenameProvider.getRename(stmts, source, line, char, newName)` / `SymbolProvider.extractSymbols(stmts, source?)` の 4 メソッド。`line` / `character` はすべて 0-based。
+41. **`SymbolProvider.extractSymbols(stmts, source)` は `source` あり時にセクションヘッダーを抽出する**（評価 #13）: `' --- Section Name ---` / `' === Section Name ===` スタイルの VBA コメントを `SymbolKind.Namespace` として返す。`.bas` の機能として有用。`source` 省略時は Sub/Function/Property のみ。
+42. ~~**`parseAsClass` 使用時は DefinitionProvider / ReferencesProvider / RenameProvider が `.cls` シンボルを認識しない**（評価 #13・Bug B・修正済み）~~: 修正: `parseClassBody()` 内で `tok`（ブランチ開始前トークン）を startTok として記録し、各パース呼び出し後に `stmt.loc = { start: tok.line/col, end: endTok.line/col }` を設定。`ClassDeclaration` 本体の `loc` も最初・最後の有効トークンから設定。これにより `DefinitionProvider.getDefinition` が `.cls` ファイルで正しく位置を返す・`SymbolProvider` 子シンボルの位置が正確になる。`tsc -b` / `class-module.test.ts` 全通過確認済み。
+43. **`ReferencesProvider` は `FuncName = value` の戻り値代入行を参照として返す**（評価 #13）: テキスト正規表現による全出現検索の仕様。`includeDeclaration: false` は宣言行の正確な position のみを除外する。戻り値代入 `CalcTax = price * rate` は宣言行 (line 0) とは別の行 (line 1) のため除外されない。**RenameProvider の観点では正しい動作**（関数リネーム時に戻り値代入も書き換え必須）。「Find All References」の「呼び出し一覧」として使う場合はユーザーが驚く可能性あり。
