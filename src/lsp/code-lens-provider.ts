@@ -78,8 +78,14 @@ export interface ProcInfo {
     isEventHandler: boolean; // WithEvents 変数・クラスライフサイクル・既知イベント名サフィックスに該当するイベントハンドラー
 }
 
+export interface TestRunResult {
+    state: 'passed' | 'failed' | 'errored' | 'skipped';
+    duration: number;
+    message?: string;
+}
+
 export class CodeLensProvider {
-    getCodeLens(statements: Statement[], sourceText: string, uri: string): CodeLensItem[] {
+    getCodeLens(statements: Statement[], sourceText: string, uri: string, testResults?: Map<string, TestRunResult>): CodeLensItem[] {
         const procs = this.collectProcs(statements, sourceText, uri);
         const items: CodeLensItem[] = [];
 
@@ -107,6 +113,24 @@ export class CodeLensProvider {
                         arguments: [uri, proc.name],
                     },
                 });
+            }
+
+            // テスト実行結果（Test_* プロシージャのみ）
+            if (proc.isTestProc && testResults) {
+                const result = testResults.get(proc.name.toLowerCase());
+                if (result) {
+                    const label = result.state === 'passed'
+                        ? `✓ ${result.duration}ms`
+                        : `✗ ${result.message?.split('\n')[0] ?? 'FAILED'}`;
+                    items.push({
+                        range,
+                        command: {
+                            title: label,
+                            command: 'vba-runner.runProcedure',
+                            arguments: [uri, proc.name, true],
+                        },
+                    });
+                }
             }
 
             // N references

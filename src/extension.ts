@@ -440,13 +440,16 @@ export async function activate(context: vscode.ExtensionContext) {
             const uri = item.uri?.toString();
             if (uri) {
                 const results = lspServer.runTests(uri);
+                lspServer.setTestResults(uri, results);
+                codeLensChangeEmitter.fire();
                 for (const result of results) {
-                    const test = testController.items.get(result.id);
+                    const testId = result.name.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+                    const test = testController.items.get(testId);
                     if (!test) continue;
                     if (result.state === 'passed') {
-                        run.passed(test);
+                        run.passed(test, result.duration);
                     } else {
-                        run.failed(test, new vscode.TestMessage(result.error ?? 'Test failed'));
+                        run.failed(test, new vscode.TestMessage(result.message ?? 'Test failed'), result.duration);
                     }
                 }
             }
@@ -461,8 +464,11 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('✓ Debug adapter factory registered');
 
     // Register code lens provider
+    const codeLensChangeEmitter = new vscode.EventEmitter<void>();
+    context.subscriptions.push(codeLensChangeEmitter);
     context.subscriptions.push(
         vscode.languages.registerCodeLensProvider('vba', {
+            onDidChangeCodeLenses: codeLensChangeEmitter.event,
             provideCodeLenses(document) {
                 const items = lspServer.getCodeLens(document.uri.toString());
                 return items.map((item: any) => {

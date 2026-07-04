@@ -78,9 +78,10 @@
 
 ## E. テスト・デバッグ体験
 
-### E-1: テスト実行結果のインライン表示 ❌ 未着手（優先度：低）
-テストが PASS/FAIL したときコードレンズの表示を変える（例: `✓ Tested (last: 3ms)` / `✗ FAILED`）。
-- **現状**: 実行後にターミナルを見る必要がある。
+### E-1: テスト実行結果のインライン表示 ✅ 完了
+テスト実行後にコードレンズが結果（`✓ 3ms` / `✗ FAILED: ...`）を表示。
+- **実装**: `code-lens-provider.ts` に `TestRunResult` 型を追加。`server.ts` に `testResultCache` と `setTestResults()` を追加。`extension.ts` でテスト実行後にキャッシュ更新＆ `codeLensChangeEmitter.fire()` で再描画。
+- **バグ修正**: `result.id`（未定義）→ `result.name` ベースの ID 計算、`result.error`→ `result.message` に修正。
 
 ### E-2: `Debug.Print` の Output Channel 分離 ✅ 完了
 `Debug.Print` 出力を専用 Output Channel "VBA Debug" に分離。
@@ -101,7 +102,7 @@
 | ✅ | C-3 宣言前使用の警告 | 完了 | checkOptionExplicit を getDiagnostics に接続 |
 | ✅ | D-2 アウトライン区切り | 完了 | symbol-provider でコメント行スキャン |
 | 低 | B-2 With 内補完 | ❌ | A-2 が前提 |
-| 低 | E-1 テスト結果インライン | ❌ | UI polish |
+| ✅ | E-1 テスト結果インライン | 完了 | CodeLens にテスト結果を表示 |
 | ✅ | E-2 Debug.Print 分離 | 完了 | VBA Debug Output Channel に接続 |
 | ✅ | A-1 シグネチャヘルプ | 完了 | — |
 | ✅ | B-1 Select Case インデント | 完了 | — |

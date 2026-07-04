@@ -18,7 +18,7 @@ import { CompletionProvider } from './completion-provider';
 import { findAllReferences, LocationInfo } from './references-provider';
 import { buildScopedSymbolTable, getWordAtPosition } from './symbol-table';
 import { RenameProvider } from './rename-provider';
-import { CodeLensProvider } from './code-lens-provider';
+import { CodeLensProvider, TestRunResult } from './code-lens-provider';
 import { CallGraphProvider, CallGraph } from './call-graph-provider';
 import { TestDiscovery } from './test-discovery';
 import { TestRunner } from './test-runner';
@@ -62,6 +62,7 @@ export class LSPServer {
     private testRunner: TestRunner;
     private signatureHelpProvider: SignatureHelpProvider;
     private debugAdapters: Map<string, DebugAdapter> = new Map();
+    private testResultCache = new Map<string, Map<string, TestRunResult>>();
 
     constructor() {
         this.symbolProvider = new SymbolProvider();
@@ -79,6 +80,14 @@ export class LSPServer {
 
     setDebugPrintHandler(onPrint: (s: string) => void): void {
         this.testRunner = new TestRunner(onPrint);
+    }
+
+    setTestResults(uri: string, results: Array<{name: string; state: string; duration: number; message?: string}>): void {
+        const map = new Map<string, TestRunResult>();
+        for (const r of results) {
+            map.set(r.name.toLowerCase(), { state: r.state as TestRunResult['state'], duration: r.duration, message: r.message });
+        }
+        this.testResultCache.set(uri, map);
     }
 
     /**
@@ -359,7 +368,7 @@ export class LSPServer {
         const ast = this.parseDocument(doc.content);
         if (!ast) return [];
 
-        return this.codeLensProvider.getCodeLens(ast.body, doc.content, uri);
+        return this.codeLensProvider.getCodeLens(ast.body, doc.content, uri, this.testResultCache.get(uri));
     }
 
     /**
