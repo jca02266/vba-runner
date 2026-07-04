@@ -37,6 +37,10 @@ Sub CalcSum(a As Integer, b As Integer)
 '         ↑ Hover here → "Sub CalcSum(a As Integer, b As Integer)"
 ```
 
+### Signature Help
+
+When you type `(` or `,` inside a function call, a popup shows the parameter names and the current parameter position. Works for built-in VBA functions (`MsgBox`, `Format`, etc.) as well as your own Sub / Function declarations.
+
 ### Go to Definition
 
 Place the cursor on a symbol and press `F12` to jump to its declaration.
@@ -55,7 +59,147 @@ Place the cursor on a symbol and press `Shift+F12` to list all locations where i
 
 ### Code Completion
 
-Suggestions for VBA keywords, built-in functions, and procedures defined in your source files appear as you type. Also triggered by `.`.
+Suggestions for VBA keywords, built-in functions, and procedures defined in your source files appear as you type.
+
+#### Member Completion (`.`)
+
+Typing `.` after a variable shows members specific to its declared type. Supports:
+
+| Type | Trigger |
+|---|---|
+| `Scripting.Dictionary` | `Dim d As Scripting.Dictionary` → `d.` |
+| `Scripting.FileSystemObject` | `Dim fso As Scripting.FileSystemObject` → `fso.` |
+| `ADODB.Recordset` / `ADODB.Connection` | `Dim rs As ADODB.Recordset` → `rs.` |
+| `RegExp` / `VBScript.RegExp` | `Dim re As RegExp` → `re.` |
+| `Collection` | `Dim col As Collection` → `col.` |
+| `Range` / `Worksheet` / `Workbook` | `Dim ws As Worksheet` → `ws.` |
+| `Sheets` / `Application` | `Dim app As Application` → `app.` |
+| User-defined classes | `Dim obj As MyClass` → `obj.` |
+
+Cross-module completion is also supported: classes declared in other open `.bas` / `.cls` files in the workspace are recognized automatically.
+
+#### Chain Access Resolution
+
+Member completion works across chained accesses. The return type of each member is tracked, so subsequent `.` completions resolve correctly:
+
+```vb
+Dim ws As Worksheet
+ws.Cells.         ' → Range members (Cells returns Range)
+ws.Range("A1").Offset(1, 0).  ' → Range members (Offset returns Range)
+ws.Parent.        ' → Workbook members (Parent returns Workbook)
+```
+
+#### With Block Completion
+
+Inside a `With` block, typing `.` at the start of a line shows the members of the `With` object:
+
+```vb
+With ws
+    .Cells.       ' → Range members
+    .Name         ' → "Name" property of Worksheet
+End With
+```
+
+#### Snippets
+
+| Prefix | Expands to |
+|---|---|
+| `fe` | `For Each ... In ... Next` |
+| `for` | `For ... To ... Next` |
+| `sc` | `Select Case ... Case Else ... End Select` |
+| `if` | `If ... Then ... Else ... End If` |
+| `oeg` | `On Error GoTo ... ErrHandler` pattern |
+| `wi` | `With ... End With` |
+| `sub` | `Sub ... End Sub` |
+| `fn` | `Function ... End Function` |
+| `do` | `Do While ... Loop` |
+| `dim` | `Dim` variable declaration |
+
+### Document Symbols (Outline)
+
+The outline panel (`Ctrl+Shift+O`) and the workspace symbol search (`Ctrl+T`) list all Sub / Function / Property / class members defined in your VBA files.
+
+Section divider comments using `' --- Name ---` or `' === Name ===` are also recognized as Namespace symbols in the outline, making large modules easier to navigate.
+
+```vb
+' ─── Initialization ───────────────────────────────
+Public Sub Initialize()
+    ...
+End Sub
+
+' === Data Processing ===
+Public Function Process(data) As Long
+    ...
+End Function
+```
+
+## Diagnostics
+
+The following diagnostic rules are reported as you type:
+
+| Code | Severity | Rule | Condition |
+|---|---|---|---|
+| — | Error | Parse error | Syntax error detected by the parser |
+| VBA001 | Warning | `ByVal`/`ByRef` missing | Parameter has no explicit passing modifier |
+| VBA009 | Warning | Dead store | Variable is assigned but never read |
+| VBA011 | Hint | Range access | `Sheets("name")` should use a typed variable |
+| VBA013 | Warning | `Option Explicit` missing | File lacks `Option Explicit` |
+| VBA014 | Warning | Unused variable | Variable declared but never referenced |
+| VBA016 | Warning | Unknown type | `Dim x As UnknownType` — type is not recognized |
+
+**Quick Fixes** are provided for:
+
+- **VBA013** — *Add 'Option Explicit'*: inserts `Option Explicit` at the top of the file
+- **VBA016** — *Add 'TypeName' to vba-types.json*: appends a placeholder entry for the type
+- **VBA016** — *Initialize vba-types.json with all COM type definitions*: creates `vba-types.json` pre-populated with all built-in COM types (shown when the file does not yet exist)
+
+Lint rules (VBA001, VBA009, VBA014, etc.) are off by default. Enable them via settings:
+
+```json
+{ "vba-runner.lint.enabled": true }
+```
+
+or selectively:
+
+```json
+{ "vba-runner.lint.enabledCodes": ["VBA009", "VBA014"] }
+```
+
+## External Type Definitions (`vba-types.json`)
+
+To add member completion for types not built into the extension — such as custom COM objects, mock classes, or Excel types not yet listed — create `vba-types.json` in your workspace root:
+
+```json
+{
+  "MyComObject": [
+    { "label": "DoWork",  "kind": "Method",   "detail": "DoWork(arg As String) As Boolean" },
+    { "label": "Status",  "kind": "Property", "detail": "Status As Long" }
+  ],
+  "MyHelper": [
+    { "label": "Compute", "kind": "Function", "detail": "Compute(x As Long) As Double", "returnType": "myresult" }
+  ]
+}
+```
+
+**Fields:**
+
+| Field | Values | Description |
+|---|---|---|
+| `label` | string | Member name |
+| `kind` | `"Method"` / `"Function"` / `"Property"` / `"Variable"` / `"Constant"` | Icon and category |
+| `detail` | string | Signature shown in the completion popup |
+| `returnType` | string (lowercase type name) | Return type for chain access resolution |
+
+**Initialization via Quick Fix:**
+
+When a VBA016 diagnostic appears for an unknown type, the Quick Fix menu offers:
+
+- *Add 'TypeName' to vba-types.json* — adds a placeholder entry for that type
+- *Initialize vba-types.json with all COM type definitions* — creates the file pre-populated with all built-in types (Scripting.Dictionary, Range, Worksheet, etc.)
+
+`vba-types.json` entries take **priority over** the built-in definitions, so you can override any built-in type's member list.
+
+The file is reloaded automatically whenever it changes.
 
 ## Code Lens
 
@@ -68,6 +212,17 @@ Inline action buttons appear above each procedure declaration.
 | `N references` | List all reference sites |
 | `Untested` / `✓ Tested` | Generate a test stub / Jump to the test function |
 | `📊 Show in Call Graph` | Highlight in the call graph |
+| `✓ Nms` | Test passed (shown after running tests, e.g. `✓ 3ms`) |
+| `✗ message` | Test failed with the first line of the error message |
+
+## Formatting
+
+Press `Shift+Alt+F` (or right-click → **Format Document**) to auto-format the file. Also works with `"editor.formatOnSave": true` in VS Code settings.
+
+Formatting rules include:
+- Consistent indentation for `Sub` / `Function` / `If` / `For` / `With` / `Select Case`
+- `Case` labels are aligned with the `Select Case` keyword
+- Keyword casing is normalized to the standard VBA style
 
 ## Refactoring
 
@@ -101,6 +256,13 @@ Click the **Untested** Code Lens button to generate a `Test_<ProcedureName>` stu
 
 The choice is saved to workspace settings (`vba-runner.test.location`).
 
+### Inline Test Results
+
+After running tests with the **▶ Run** Code Lens on a test procedure, the result is shown inline:
+
+- `✓ 3ms` — test passed in 3 ms
+- `✗ Expected 1 but got 2` — test failed with the first line of the assertion message
+
 ### Mock Skeleton Generation
 
 Run **VBA: Generate Mocks** from the Command Palette to analyze Excel object dependencies (`Worksheet`, `Range`, etc.) in the source file and generate a mock skeleton at `__mocks__/ExcelObjects.bas`.
@@ -108,6 +270,10 @@ Run **VBA: Generate Mocks** from the Command Palette to analyze Excel object dep
 ## VBA Debugger Integration
 
 With a `.bas` file open, press `F5` to launch the file with the VBA Runner debugger (no `launch.json` required).
+
+### `Debug.Print` Output
+
+`Debug.Print` output is directed to a dedicated **VBA Debug** Output Channel (separate from the VBA Runner log), which opens automatically when output is produced.
 
 ## Settings
 
