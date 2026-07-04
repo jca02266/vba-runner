@@ -116,6 +116,12 @@ End With
 | `fn` | `Function ... End Function` |
 | `do` | `Do While ... Loop` |
 | `dim` | `Dim` 変数宣言 |
+| `dict` | `Dim … As Object` + `Set … = CreateObject("Scripting.Dictionary")` |
+| `fso` | `Dim … As Object` + `Set … = CreateObject("Scripting.FileSystemObject")` |
+| `regex` | `Dim … As Object` + `Set … = CreateObject("VBScript.RegExp")` + Pattern / Global |
+| `adors` | `Dim … As Object` + `Set … = CreateObject("ADODB.Recordset")` |
+| `adocn` | `Dim … As Object` + `Set … = CreateObject("ADODB.Connection")` + ConnectionString |
+| `cobj` | `Dim … As Object` + `Set … = CreateObject("ProgID")` (汎用) |
 
 ### ドキュメントシンボル（アウトライン）
 

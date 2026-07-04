@@ -96,5 +96,56 @@
       "Dim ${1:name} As ${2:Long}"
     ],
     "description": "Dim 変数宣言"
+  },
+  "CreateObject Scripting.Dictionary": {
+    "prefix": "dict",
+    "body": [
+      "Dim ${1:dict} As Object",
+      "Set ${1:dict} = CreateObject(\"Scripting.Dictionary\")"
+    ],
+    "description": "Scripting.Dictionary を生成"
+  },
+  "CreateObject Scripting.FileSystemObject": {
+    "prefix": "fso",
+    "body": [
+      "Dim ${1:fso} As Object",
+      "Set ${1:fso} = CreateObject(\"Scripting.FileSystemObject\")"
+    ],
+    "description": "Scripting.FileSystemObject を生成"
+  },
+  "CreateObject VBScript.RegExp": {
+    "prefix": "regex",
+    "body": [
+      "Dim ${1:re} As Object",
+      "Set ${1:re} = CreateObject(\"VBScript.RegExp\")",
+      "${1:re}.Pattern = \"${2}\"",
+      "${1:re}.Global = ${3:True}"
+    ],
+    "description": "VBScript.RegExp を生成"
+  },
+  "CreateObject ADODB.Recordset": {
+    "prefix": "adors",
+    "body": [
+      "Dim ${1:rs} As Object",
+      "Set ${1:rs} = CreateObject(\"ADODB.Recordset\")"
+    ],
+    "description": "ADODB.Recordset を生成"
+  },
+  "CreateObject ADODB.Connection": {
+    "prefix": "adocn",
+    "body": [
+      "Dim ${1:cn} As Object",
+      "Set ${1:cn} = CreateObject(\"ADODB.Connection\")",
+      "${1:cn}.ConnectionString = \"${2}\""
+    ],
+    "description": "ADODB.Connection を生成"
+  },
+  "CreateObject (generic)": {
+    "prefix": "cobj",
+    "body": [
+      "Dim ${1:obj} As Object",
+      "Set ${1:obj} = CreateObject(\"${2:ProgID}\")"
+    ],
+    "description": "CreateObject で任意の COM オブジェクトを生成"
   }
 }
