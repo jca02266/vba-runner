@@ -18,6 +18,8 @@
 | 6 | 家計簿・収支管理システム | `Integer`/`Long` オーバーフロー（Error 6）/ `Currency` 型の精度（浮動小数点のまま・要注意）/ `CInt`/`CLng`/`CCur` 変換関数・バンカーズ丸め / `Format()` `"#,##0.00"`・`"0.00%"` 正常・**`"000"` 零埋めバグ** / `InStr`/`InStrRev`（境界・開始位置・大文字小文字）/ `Split`/`Join`（空文字列・デリミタ）/ 全角文字の `Len`/`Mid`/`Left`/`Right`（文字数カウント正常）/ `On Error GoTo` / `Collection` + `Property Get/Let` クラス / `Debug.Print` 出力 | 2026-06-27 |
 | 7 | 診療予約管理システム | 複数クラス連携（`Patient.cls` + `Appointment.cls`）/ `Set` 代入 / `Is Nothing` / `Class_Terminate` タイミング / 日付リテラル `#yyyy/mm/dd#` / `Format()` 日付パターン全般 / `DateSerial` / `DateAdd` / `DateDiff` / `Year`/`Month`/`Day` / `Now()` / `Date()` / `CDate` / `DateValue` / `IsDate` / `Weekday` / 日付+時刻リテラル `#yyyy/mm/dd HH:MM:SS#` | 2026-06-28 |
 | 8 | バリデーション付き設定ファイルローダー | `Resume` / `Resume Next` / `Resume Label`（ラベルジャンプ）/ 複数スタックフレームを超えたエラー伝搬 / `Err.Clear` / `Err.Number` / `run()` type:'get','let','set' / JS モックオブジェクト Property Set 注入 / `config.env` + `Environ()` 注入 / `config.sandboxRoot` カスタム VFS ルート / `ByRef` 複数パラメーター writeback / `#If`/`#Const`/`#Else`/`#End If` 条件付きコンパイル / `config.compilerConstants` 外部定数注入 | 2026-07-03 |
+| 9 | VS Code 拡張 LSP 機能（直接インポートによる評価） | メンバー補完（Dictionary/Worksheet/ユーザー定義クラス）/ チェーンアクセス引数なし `ws.Cells.` → Range / CreateObject 型推論 / VBA016 診断 / ホバー情報 `getMemberHoverInfo` | 2026-07-04 |
+| 9 | VS Code 拡張 LSP 機能（初回評価） | `CompletionProvider.getCompletions` / `detectMemberAccess` / `resolveExprType` / `getMemberHoverInfo` / `checkUnknownTypes` / `collectUserDefinedTypeNames` / 単純メンバー補完（`dict.`/`ws.`）/ チェーン補完（`ws.Cells.` → Range）/ 引数付きチェーン `ws.Cells(1,1).`（バグ）/ ユーザー定義クラス補完 / `createObject` ProgID 型推論 / VBA016 未知型診断（column ずれバグ）/ mid-word ホバー（正常） | 2026-07-04 |
 
 ---
 
@@ -44,6 +46,13 @@
 | `eval('Dim x : x = 42 : x')` → `undefined` | マルチステートメント末尾の裸の識別子は Call 文扱い。値を得るには別の `eval('x')` で |
 | `eval()` で他モジュールの `Dim`/`Private` 変数が読めない | `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private` 変数にはアクセスできない（VBA のクロスモジュール非公開変数と同じ意味論）。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計。 |
 
+### 拡張機能 LSP のバグ（評価 #9 で発見・未修正）
+
+| 問題 | 再現コード | 根本原因 |
+|---|---|---|
+| 引数付きチェーン補完が効かない | `ws.Cells(1, 1).` で Range でなくグローバル関数 29 件が返る | `detectMemberAccess` の正規表現が `)` 終端の式にマッチしない（`completion-provider.ts:454`） |
+| VBA016 波下線が変数名を指す | `Dim x As UnknownType` で `x` に波下線（`UnknownType` であるべき） | `unknown-type-checker.ts:79` で `d.name.loc`（変数名位置）を渡している。パーサーの `VariableDeclarator` に型名の loc フィールドなし |
+
 ### 未対応の機能制限（改善候補）
 
 | 制限 | 詳細 |
@@ -59,6 +68,8 @@
 | ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
+| LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない | `detectMemberAccess` の正規表現 `/([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)?$/` は末尾が識別子の場合のみマッチし、`ws.Cells(1,1).` のように `)` で終わる式はスキップする。その結果チェーン解決コードが実行されず、標準関数一覧が返る。`ws.Cells.`（引数なし）は正常動作（48件 Range メンバー）。`src/lsp/completion-provider.ts` line 454 の正規表現を `[a-zA-Z_][a-zA-Z0-9_]*|\([^)]*\)` のような形式に拡張が必要。 |
+| LSP: VBA016 診断の range が型名でなく変数名を指す | `unknown-type-checker.ts` line 79: `warn(d.objectType, d.name.loc ?? stmt.loc)` で `d.name.loc` は変数名（`x`）の位置を渡している。型名（`UnknownType`）の位置ではないため、エディター上の波下線が変数名に表示される（col 4、期待は col 9）。パーサー側に `objectTypeLoc` フィールドを追加するか、warn 内でオフセット補正が必要。最小再現: `Dim x As UnknownType` で診断 range が col=4 (変数名 `x`) を指す。 |
 | `Dim empty As String` がパースエラー | `empty` は VBA 仕様上の予約語のため変数名に使えない。VBA 仕様準拠の正しい動作。 |
 | ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
 | ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
@@ -107,10 +118,14 @@
 - ~~`Set` 代入 / `Is Nothing` 判定~~ **評価済み（評価#7）: 正常動作**
 - ~~`Class_Terminate` の呼ばれるタイミング~~ **評価済み（評価#7）＋修正済み: 参照カウント実装により最後の参照が解放されたときに発動するよう修正**
 
-### モック機能
+### 拡張機能 LSP（未テスト）
 
 - `__mocks__` ディレクトリによる VBA/JS/TS モック注入
 - `setBuiltinOverride` で組み込み関数を上書き
+- vba-types.json の自動リロード（FileSystemWatcher）
+- With ブロック内のチェーン補完（`.Cells.` など）
+- クロスモジュール補完（複数ファイル展開時）
+- VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）
 
 ### ~~条件付きコンパイル~~ **評価済み（評価#8）**
 
@@ -154,6 +169,10 @@
 19. **`.cls` ファイルのクラス名はファイル名（拡張子なし）で決まる**: `Attribute VB_Name = "MyObj"` の値ではなく、`MyObj.cls` のようにファイル名がクラス名になる。ファイルを `TerminateTest.cls` と名付けると VBA 側で `New TerminateTest` と書かないと Error 429 になる。実際の VBA エクスポートではファイル名と `VB_Name` は通常一致しているが、ファイルをリネームした場合に落とし穴になる。
 20. **コンパイラ定数のデフォルトは現代的な 64bit Windows 環境**: `DEFAULT_COMPILER_CONSTANTS: { VBA7: -1, Win64: -1, Win32: -1, Mac: 0 }`（Office 2010+ / 64bit）。32bit 環境をシミュレートするには `compilerConstants: { VBA7: 0, Win64: 0 }` を渡す。README のセクション10に記載。
 21. **ファイル内 `#Const` は外部 `compilerConstants` より優先**: `preprocess()` は `localConsts`（`#Const` で定義）を `merged`（`compilerConstants`）より先に参照する。外部から定数を注入しても、ファイル内で `#Const FOO = X` が定義されていれば上書きされる。VBA 仕様準拠。README のセクション10に記載。
-22. **`Dim entry As New Type` をループ内で使うと同一オブジェクトを共有する**: VBA の `Dim` はプロシージャスコープのため、ループ内に書いてもループ変数はイテレーション間で共有される。新しいオブジェクトが必要なら `Set entry = New Type` をループ内に書くこと（`Dim` はプロシージャ先頭で1回だけ宣言する）。
+22. **`Dim entry As New Type` をループ内で使うと同一オブジェクトを共有する**:
+ VBA の `Dim` はプロシージャスコープのため、ループ内に書いてもループ変数はイテレーション間で共有される。新しいオブジェクトが必要なら `Set entry = New Type` をループ内に書くこと（`Dim` はプロシージャ先頭で1回だけ宣言する）。
 23. **`run()` の `type:'set'` でJS モックオブジェクトを Property Set へ注入できる**: `r.run('PropName', [mockObj], 'set')` でフラットな JS オブジェクトを VBA の Property Set 経由でモジュール変数に代入できる。その後 VBA 側のコードで `Is Nothing` 判定や、プロパティアクセスが可能。依存性注入パターンとして有用。
 24. **`eval()` で読めるのは `Public` モジュール変数のみ（`Dim`/`Private` は不可）**: `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private`/`Dim` 変数は見えない。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計（モジュールコンテキスト内でのデバッグ評価とは別概念）。
+25. **`CompletionProvider` を LSP 外部から使うには `Parser` を `errorRecovery: true` で呼ぶこと**: `new Parser(tokens).parse()` は不完全な VBA（補完トリガー時の途中入力）でスローする。LSP サーバーが内部で使っているように `new Parser(tokens, { errorRecovery: true }).parse()` とする必要がある。公開ドキュメントに記載なし。
+26. **`CompletionProvider.getCompletions` の第1引数は `Program.body`（`Statement[]`）**: `parser.parse()` が返す `Program` オブジェクトをそのまま渡すと TypeError。`.body` を取り出して渡すこと。
+27. **`checkUnknownTypes` の第2引数は `Set<string>`（オブジェクトリテラル `{}` は不可）**: 誤って `{}` を渡すと `knownTypeNames.has is not a function` で実行時エラー。`new Set<string>()` か `collectUserDefinedTypeNames(stmts)` の戻り値を渡すこと。

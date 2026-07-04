@@ -451,7 +451,7 @@ export class CompletionProvider {
     private detectMemberAccess(source: string, line: number, char: number): { objectName: string; memberPrefix: string } | null {
         const lines = source.split('\n');
         const beforeCursor = (lines[line] ?? '').substring(0, char);
-        const match = beforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)?$/);
+        const match = beforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)(?:\([^)]*\))?\.([a-zA-Z_][a-zA-Z0-9_]*)?$/);
         if (!match) return null;
         return { objectName: match[1], memberPrefix: match[2] ?? '' };
     }

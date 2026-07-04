@@ -76,7 +76,7 @@ export function checkUnknownTypes(
                 const vd = stmt as VariableDeclaration;
                 for (const d of vd.declarations) {
                     if (d.objectType && !isKnown(d.objectType)) {
-                        warn(d.objectType, d.name.loc ?? stmt.loc);
+                        warn(d.objectType, d.objectTypeLoc ?? d.name.loc ?? stmt.loc);
                     }
                 }
             } else if (stmt.type === 'ProcedureDeclaration') {

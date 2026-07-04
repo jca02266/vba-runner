@@ -153,6 +153,7 @@ export interface VariableDeclarator {
     isNew: boolean;
     isWithEvents: boolean;
     objectType?: string;
+    objectTypeLoc?: SourceLocation;
     /** 1-based column immediately after the closing ')' of the array bounds, when isArray is true */
     arrayEndColumn?: number;
 }
@@ -1794,6 +1795,7 @@ export class Parser {
             let arrayBounds: ArrayBound[] | undefined;
             let isNew = false;
             let objectType: string | undefined;
+            let objectTypeLoc: SourceLocation | undefined;
 
             let arrayEndColumn: number | undefined;
             if (this.match(TokenType.OperatorLParen)) {
@@ -1826,14 +1828,20 @@ export class Parser {
                 const typeToken = this.peek();
                 if (this.isNameToken(typeToken)) {
                     objectType = this.advance().value;
+                    let lastTypeTok = typeToken;
                     if (this.peek().type === TokenType.OperatorDot) {
                         this.advance(); // consume '.'
+                        lastTypeTok = this.peek();
                         objectType += '.' + this.advance().value;
                     }
+                    objectTypeLoc = {
+                        start: { line: typeToken.line, column: typeToken.column },
+                        end: { line: lastTypeTok.line, column: lastTypeTok.column + lastTypeTok.value.length },
+                    };
                 }
             }
 
-            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, arrayEndColumn });
+            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn });
 
             if (this.match(TokenType.OperatorComma)) {
                 continue;
