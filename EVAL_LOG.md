@@ -20,6 +20,7 @@
 | 8 | バリデーション付き設定ファイルローダー | `Resume` / `Resume Next` / `Resume Label`（ラベルジャンプ）/ 複数スタックフレームを超えたエラー伝搬 / `Err.Clear` / `Err.Number` / `run()` type:'get','let','set' / JS モックオブジェクト Property Set 注入 / `config.env` + `Environ()` 注入 / `config.sandboxRoot` カスタム VFS ルート / `ByRef` 複数パラメーター writeback / `#If`/`#Const`/`#Else`/`#End If` 条件付きコンパイル / `config.compilerConstants` 外部定数注入 | 2026-07-03 |
 | 9 | VS Code 拡張 LSP 機能（直接インポートによる評価） | メンバー補完（Dictionary/Worksheet/ユーザー定義クラス）/ チェーンアクセス引数なし `ws.Cells.` → Range / CreateObject 型推論 / VBA016 診断 / ホバー情報 `getMemberHoverInfo` | 2026-07-04 |
 | 9 | VS Code 拡張 LSP 機能（初回評価） | `CompletionProvider.getCompletions` / `detectMemberAccess` / `resolveExprType` / `getMemberHoverInfo` / `checkUnknownTypes` / `collectUserDefinedTypeNames` / 単純メンバー補完（`dict.`/`ws.`）/ チェーン補完（`ws.Cells.` → Range）/ 引数付きチェーン `ws.Cells(1,1).`（バグ）/ ユーザー定義クラス補完 / `createObject` ProgID 型推論 / VBA016 未知型診断（column ずれバグ）/ mid-word ホバー（正常） | 2026-07-04 |
+| 10 | VS Code 拡張 LSP 機能（評価 #9 修正確認 + 新規テーマ） | 引数付きチェーン補完の修正確認（OK）/ VBA016 波下線位置の修正確認（OK）/ With ブロック内引数付きチェーン補完（新バグ）/ クロスモジュール補完（`parseAsClass` 必須と判明）/ `generateDefaultTypeStubsJson` JSON valid 性確認 / `setTypeStubs(Map)` API 非対称設計の発見 / カスタム型上書き優先（正常動作） | 2026-07-04 |
 
 ---
 
@@ -68,9 +69,10 @@
 | ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
-| LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない | `detectMemberAccess` の正規表現 `/([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)?$/` は末尾が識別子の場合のみマッチし、`ws.Cells(1,1).` のように `)` で終わる式はスキップする。その結果チェーン解決コードが実行されず、標準関数一覧が返る。`ws.Cells.`（引数なし）は正常動作（48件 Range メンバー）。`src/lsp/completion-provider.ts` line 454 の正規表現を `[a-zA-Z_][a-zA-Z0-9_]*|\([^)]*\)` のような形式に拡張が必要。 |
-| LSP: VBA016 診断の range が型名でなく変数名を指す | `unknown-type-checker.ts` line 79: `warn(d.objectType, d.name.loc ?? stmt.loc)` で `d.name.loc` は変数名（`x`）の位置を渡している。型名（`UnknownType`）の位置ではないため、エディター上の波下線が変数名に表示される（col 4、期待は col 9）。パーサー側に `objectTypeLoc` フィールドを追加するか、warn 内でオフセット補正が必要。最小再現: `Dim x As UnknownType` で診断 range が col=4 (変数名 `x`) を指す。 |
+| ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
+| ~~LSP: VBA016 診断の range が型名でなく変数名を指す~~ | **修正済み（評価 #10 で確認）**: `Dim x As UnknownType` で `column: 9, endColumn: 20`（UnknownType の位置）が返るようになった。`unknown-type-checker.ts:79` で `d.objectTypeLoc ?? d.name.loc` の優先順位が機能している。パーサーが `objectTypeLoc` を AST に格納するよう修正済み。 |
 | `Dim empty As String` がパースエラー | `empty` は VBA 仕様上の予約語のため変数名に使えない。VBA 仕様準拠の正しい動作。 |
+| LSP: With ブロック内で引数付きメソッドチェーン後の補完が 0 件 | `    .Cells(1, 1).` という行でトリガーすると補完候補が 0 件になる。`detectWithMemberAccess` の正規表現 `/^\s*\.([a-zA-Z_][a-zA-Z0-9_]*)?$/` が `.Cells(1, 1).` にマッチしない。`detectMemberAccess` は `Cells` を拾うが With 暗黙コンテキストを持たないため型解決できない。修正には With 内のチェーン式に暗黙 With オブジェクト型を補って `resolveExprType` に渡す処理が必要。最小再現: `Dim ws As Worksheet / With ws / .Cells(1, 1).` で 0 件（期待: Range メンバー 48 件）。 |
 | ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
 | ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
 
@@ -118,14 +120,17 @@
 - ~~`Set` 代入 / `Is Nothing` 判定~~ **評価済み（評価#7）: 正常動作**
 - ~~`Class_Terminate` の呼ばれるタイミング~~ **評価済み（評価#7）＋修正済み: 参照カウント実装により最後の参照が解放されたときに発動するよう修正**
 
-### 拡張機能 LSP（未テスト）
+### 拡張機能 LSP（未テスト・要評価）
 
 - `__mocks__` ディレクトリによる VBA/JS/TS モック注入
 - `setBuiltinOverride` で組み込み関数を上書き
 - vba-types.json の自動リロード（FileSystemWatcher）
-- With ブロック内のチェーン補完（`.Cells.` など）
-- クロスモジュール補完（複数ファイル展開時）
+- ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は 0 件（新バグ）**
+- ~~クロスモジュール補完（複数ファイル展開時）~~ **評価済み（評価 #10）: `parseAsClass` オプションを使えば動作する。単純な statements マージだけでは不十分**
+- ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10）: JSON は valid、主要エントリ含む。ただし `setTypeStubs(Map)` vs `generateDefaultTypeStubsJson()` の API 非対称に注意**
+- ~~カスタム型上書き優先~~ **評価済み（評価 #10）: BUILTIN_MEMBERS よりカスタム定義が優先される。正常動作**
 - VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）
+- シグネチャヘルプの深掘り（ネスト呼び出し・Optional 引数・ParamArray）
 
 ### ~~条件付きコンパイル~~ **評価済み（評価#8）**
 
@@ -174,5 +179,9 @@
 23. **`run()` の `type:'set'` でJS モックオブジェクトを Property Set へ注入できる**: `r.run('PropName', [mockObj], 'set')` でフラットな JS オブジェクトを VBA の Property Set 経由でモジュール変数に代入できる。その後 VBA 側のコードで `Is Nothing` 判定や、プロパティアクセスが可能。依存性注入パターンとして有用。
 24. **`eval()` で読めるのは `Public` モジュール変数のみ（`Dim`/`Private` は不可）**: `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private`/`Dim` 変数は見えない。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計（モジュールコンテキスト内でのデバッグ評価とは別概念）。
 25. **`CompletionProvider` を LSP 外部から使うには `Parser` を `errorRecovery: true` で呼ぶこと**: `new Parser(tokens).parse()` は不完全な VBA（補完トリガー時の途中入力）でスローする。LSP サーバーが内部で使っているように `new Parser(tokens, { errorRecovery: true }).parse()` とする必要がある。公開ドキュメントに記載なし。
-26. **`CompletionProvider.getCompletions` の第1引数は `Program.body`（`Statement[]`）**: `parser.parse()` が返す `Program` オブジェクトをそのまま渡すと TypeError。`.body` を取り出して渡すこと。
+26. **`CompletionProvider.getCompletions` の引数順は `(statements, source, line, character)`**: `statements` が第1引数、`source` が第2引数の順。ドキュメントや過去の記述で逆順に書かれていた例があるため注意。
 27. **`checkUnknownTypes` の第2引数は `Set<string>`（オブジェクトリテラル `{}` は不可）**: 誤って `{}` を渡すと `knownTypeNames.has is not a function` で実行時エラー。`new Set<string>()` か `collectUserDefinedTypeNames(stmts)` の戻り値を渡すこと。
+28. **`setTypeStubs()` の引数は `Map<string, CompletionItem[]>`（JSON 文字列ではない）**: `generateDefaultTypeStubsJson()` は JSON 文字列を返すが、`setTypeStubs()` が受け取るのは Map オブジェクト。使う際は `JSON.parse(json)` → lowercase キー変換 → `Map` への変換が必要。非対称な設計のため誤用しやすい。
+29. **`parse()` フリー関数は存在しない**: `parser.ts` はフリー関数の `parse()` をエクスポートしていない。`Lexer` でトークナイズ後に `new Parser(tokens, { errorRecovery: true }).parse()` という形で呼ぶこと。
+30. **クロスモジュール補完にはクラスモジュールのパースに `parseAsClass` オプションが必要**: `.cls` ファイルを `new Parser(tokens, { parseAsClass: 'ClassName' })` で解析しないと `ClassDeclaration` として AST に格納されない。単純に `statements` をマージするだけでは不十分で、クラスのメンバーが補完候補に出ない。
+31. **With ブロック内の引数付きメソッドチェーン後の補完は未対応（新バグ）**: `    .Cells(1, 1).` という形式は `detectWithMemberAccess` にもチェーン解決にもヒットせず 0 件になる。`ws.Cells.`（引数なし）は正常動作。With 内で引数付き呼び出しチェーンを使う場合は、外に `Dim rng As Range: Set rng = ws.Cells(1,1)` として変数に切り出し `rng.` でトリガーするワークアラウンドが有効。

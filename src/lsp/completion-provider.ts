@@ -403,7 +403,12 @@ export class CompletionProvider {
                 const lines = source.split('\n');
                 const beforeCursor = (lines[line] ?? '').substring(0, character);
                 // memberPrefix と末尾の '.' を取り除いた式を解決する
-                const chainExpr = beforeCursor.replace(/\.([a-zA-Z_][a-zA-Z0-9_]*)?$/, '').trimEnd();
+                let chainExpr = beforeCursor.replace(/\.([a-zA-Z_][a-zA-Z0-9_]*)?$/, '').trimEnd();
+                // With ブロック内で行が '.' で始まる場合は With オブジェクトを補完して解決する
+                if (/^\s*\./.test(chainExpr)) {
+                    const withObj = this.findEnclosingWithObject(source, line);
+                    if (withObj) chainExpr = withObj + chainExpr.trim();
+                }
                 typeName = this.resolveExprType(chainExpr, statements, source, line);
             }
 
