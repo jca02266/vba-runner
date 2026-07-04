@@ -149,4 +149,45 @@ function lensesFor(items: any[], procLine: number) {
     console.log('[PASS] 複数プロシージャにそれぞれレンズ');
 }
 
+// 10. [回帰] isTested false positive: Test_ 宣言行にターゲット名が含まれても本体に呼び出しがなければ Untested
+// 修正: testProcReferences で宣言行をスキップするようにした (commit 68d944f)
+{
+    const src = [
+        'Function CalcTotal()',
+        '    CalcTotal = 42',
+        'End Function',
+        'Sub Test_CalcTotal(assert As Object)',  // 宣言行に "CalcTotal" が含まれるが本体では呼ばない
+        'End Sub',
+    ].join('\n');
+    const items = getCodeLens(src);
+    const line0lenses = lensesFor(items, 0);
+    const testLens = line0lenses.find((i: any) =>
+        i.command.title === '✓ Tested' || i.command.title === 'Untested'
+    );
+    assert.strictEqual(testLens?.command.title, 'Untested',
+        'Test_ の宣言行のみに名前が含まれる場合は Untested（本体で呼んでいない）');
+    console.log('[PASS] Test_ 宣言行のみ一致 → Untested（false positive 回帰）');
+}
+
+// 11. [回帰] isTested true positive: Test_ の本体でターゲットを呼んでいれば Tested
+{
+    const src = [
+        'Function CalcTotal()',
+        '    CalcTotal = 42',
+        'End Function',
+        'Sub Test_CalcTotal(assert As Object)',
+        '    Dim r',
+        '    r = CalcTotal()',
+        'End Sub',
+    ].join('\n');
+    const items = getCodeLens(src);
+    const line0lenses = lensesFor(items, 0);
+    const testLens = line0lenses.find((i: any) =>
+        i.command.title === '✓ Tested' || i.command.title === 'Untested'
+    );
+    assert.strictEqual(testLens?.command.title, '✓ Tested',
+        'Test_ の本体で呼ばれている → Tested（true positive 確認）');
+    console.log('[PASS] Test_ 本体で参照 → Tested（true positive 確認）');
+}
+
 console.log('\n✅ Code Lens: 全テスト通過');

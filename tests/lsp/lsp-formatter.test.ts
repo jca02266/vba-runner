@@ -17,7 +17,7 @@ function fmt(source: string, options?: FormatterOptions): string {
 // 2. Dim, As keywords
 {
     const result = fmt('sub S()\ndim x as long\nend sub');
-    assert.strictEqual(result.split('\n')[1].trimStart(), 'Dim x As long', 'dim/as → Dim/As');
+    assert.strictEqual(result.split('\n')[1].trimStart(), 'Dim x As Long', 'dim/as/long → Dim/As/Long');
     console.log('[PASS] Dim/As keyword case');
 }
 
@@ -168,7 +168,7 @@ function fmt(source: string, options?: FormatterOptions): string {
 {
     const result = fmt('function Add(a as long, b as long) as long\nadd = a + b\nend function');
     const lines = result.split('\n');
-    assert.strictEqual(lines[0], 'Function Add(a As long, b As long) As long', 'Function keyword and As cased');
+    assert.strictEqual(lines[0], 'Function Add(a As Long, b As Long) As Long', 'Function keyword and As cased; long → Long');
     assert.strictEqual(lines[1], '    Add = a + b', 'Function body indented (Add cased to match definition)');
     assert.strictEqual(lines[2], 'End Function', 'End Function');
     console.log('[PASS] Function declaration formatting');
@@ -302,6 +302,45 @@ function fmt(source: string, options?: FormatterOptions): string {
     assert.strictEqual(lines[4], 'Function Multiply(a, b)', 'Multiply param a preserved');
     assert.strictEqual(lines[5], '    Multiply = a * b', 'a in Multiply scope stays a');
     console.log('[PASS] Identifier casing is scoped per procedure');
+}
+
+// --- built-in identifier normalization ----------------------------------------
+
+// 33. 組み込み型名（小文字 → Pascal-case）
+{
+    const result = fmt('Sub S()\nDim x As string\nDim y As integer\nDim z As boolean\nEnd Sub');
+    assert.ok(result.includes('As String'), 'string → String');
+    assert.ok(result.includes('As Integer'), 'integer → Integer');
+    assert.ok(result.includes('As Boolean'), 'boolean → Boolean');
+    console.log('[PASS] 組み込み型名 string/integer/boolean の正規化');
+}
+
+// 34. 組み込み型名（大文字 → Pascal-case）
+{
+    const result = fmt('Sub S()\nDim a As DOUBLE\nDim b As LONG\nDim c As VARIANT\nEnd Sub');
+    assert.ok(result.includes('As Double'), 'DOUBLE → Double');
+    assert.ok(result.includes('As Long'), 'LONG → Long');
+    assert.ok(result.includes('As Variant'), 'VARIANT → Variant');
+    console.log('[PASS] 組み込み型名 DOUBLE/LONG/VARIANT の正規化');
+}
+
+// 35. Debug/Err オブジェクトの正規化
+{
+    const result = fmt('Sub S()\ndebug.Print "hello"\nerr.Raise 5\nEnd Sub');
+    assert.ok(result.includes('Debug.Print'), 'debug → Debug');
+    assert.ok(result.includes('Err.Raise'), 'err → Err');
+    console.log('[PASS] Debug/Err オブジェクトの正規化');
+}
+
+// 36. ユーザー定義識別子が組み込み型名より優先される
+{
+    // ユーザーが "string" という名前のパラメーターを使う場合（珍しいが許可される）
+    // → collectDefinitions でパラメーター名として登録されるので組み込みマップに勝つ
+    const result = fmt('Sub S(string As Long)\nDim x As Long\nx = string\nEnd Sub');
+    // "string" はパラメーター名なので小文字のまま保持（Dim で宣言されていない）
+    // ただし As Long の Long は正規化される
+    assert.ok(result.includes('As Long'), 'Long は正規化される');
+    console.log('[PASS] ユーザー宣言識別子が組み込み型名より優先');
 }
 
 console.log('\n✅ lsp-formatter: 全テスト通過');

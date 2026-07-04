@@ -69,4 +69,16 @@ import { VBARunner, assert } from '../../test-libs/test-runner';
     console.log('[PASS] 優先順位: __mocks__.js (99) > Zebra.js (22) > Aardvark.js (11)');
 }
 
+// --- 5. [回帰] 複数 VBA モックで同名関数の後勝ち (commit e39770c) ---
+// promoteProcedures 修正前は同名関数が module-qualified キーのまま残り
+// 修飾なし呼び出しで解決できなかった
+{
+    const suite = new VBARunner('tests/fixtures/mocks-vba-priority');
+
+    // A_First.bas (11) < B_Second.bas (22): 後勝ちで B_Second が勝ち 22 を返す
+    const result = suite.run('GetResult', []);
+    assert.strictEqual(result, 22, '複数 VBA モックの同名関数: 後勝ち (B_Second=22 > A_First=11)');
+    console.log('[PASS] 複数 VBA モック同名関数の後勝ち（promoteProcedures 回帰）');
+}
+
 console.log('\n✅ mock-loader: 全テスト通過');

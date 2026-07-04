@@ -3,6 +3,14 @@ import { Parser } from '../../src/engine/parser';
 import { DefinitionProvider } from '../../src/lsp/definition-provider';
 import { assert } from '../../test-libs/test-runner';
 
+function getDefinitionInCls(src: string, className: string, line: number, character: number): any {
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens, { parseAsClass: className }).parse();
+    const provider = new DefinitionProvider();
+    provider.setDocumentUri('file:///MyClass.cls');
+    return provider.getDefinition(ast.body, src, line, character);
+}
+
 function getDefinitionAt(src: string, line: number, character: number): any {
     const tokens = new Lexer(src).tokenize();
     const ast = new Parser(tokens).parse();
@@ -101,6 +109,22 @@ function getDefinitionAt(src: string, line: number, character: number): any {
     assert.ok(def, 'definition returned');
     assert.strictEqual(def.uri, 'file:///test.bas', 'uri matches');
     console.log('[PASS] URI set correctly');
+}
+
+// 11. [回帰] .cls ファイル（parseAsClass）内のメソッド定義がジャンプできる
+// 修正: parseClassBody で子ノードに loc を設定するようにした (commit 4bf6f90)
+{
+    const clsSrc = [
+        'Public Sub SetPrice(price As Double)',
+        '    Dim p As Double',
+        '    p = price',
+        'End Sub',
+    ].join('\n');
+    const def = getDefinitionInCls(clsSrc, 'Product', 0, 11); // 'SetPrice' の先頭文字位置
+    assert.ok(def, '.cls の Sub 定義が返る');
+    assert.ok(def.range, 'range が存在する');
+    assert.strictEqual(def.range.start.line, 0, 'SetPrice は 0 行目');
+    console.log('[PASS] .cls ファイル内 Sub 定義ジャンプ（parseAsClass + loc 設定 回帰）');
 }
 
 console.log('\n✅ LSP Definition: 全テスト通過');

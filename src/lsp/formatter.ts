@@ -121,6 +121,28 @@ const KEYWORD_CANONICAL = new Map<TokenType, string>([
     [TokenType.KeywordText, 'Text'],
 ]);
 
+// Canonical casing for built-in VBA identifier names (type names and well-known objects).
+// These are tokenized as TokenType.Identifier and never appear in user declarations,
+// so they fall through KEYWORD_CANONICAL and collectDefinitions without this map.
+// User-declared identifiers still take priority: collectDefinitions runs first.
+const BUILTIN_IDENTIFIER_CANONICAL = new Map<string, string>([
+    ['string',   'String'],
+    ['integer',  'Integer'],
+    ['boolean',  'Boolean'],
+    ['double',   'Double'],
+    ['long',     'Long'],
+    ['single',   'Single'],
+    ['date',     'Date'],
+    ['object',   'Object'],
+    ['variant',  'Variant'],
+    ['byte',     'Byte'],
+    ['currency', 'Currency'],
+    ['longlong', 'LongLong'],
+    ['longptr',  'LongPtr'],
+    ['debug',    'Debug'],
+    ['err',      'Err'],
+]);
+
 interface TokenChange {
     startCol: number; // 0-based column in original line
     endCol: number;
@@ -312,6 +334,9 @@ export function format(source: string, options: FormatterOptions = {}): TextEdit
                 canonical = proc
                     ? (proc.defs.get(lv) ?? scopedDefs.moduleDefs.get(lv))
                     : scopedDefs.moduleDefs.get(lv);
+                // Fall back to built-in identifier map (type names, Debug, Err, etc.)
+                // Gated by doKeywordCase so that keywordCase:false disables this too.
+                if (!canonical && doKeywordCase) canonical = BUILTIN_IDENTIFIER_CANONICAL.get(lv);
             }
             if (!canonical) continue;
             const value = token.value as string;
