@@ -98,7 +98,7 @@
     "description": "Dim 変数宣言"
   },
   "CreateObject Scripting.Dictionary": {
-    "prefix": "dict",
+    "prefix": ["dict", "credict"],
     "body": [
       "Dim ${1:dict} As Object",
       "Set ${1:dict} = CreateObject(\"Scripting.Dictionary\")"
@@ -106,7 +106,7 @@
     "description": "Scripting.Dictionary を生成"
   },
   "CreateObject Scripting.FileSystemObject": {
-    "prefix": "fso",
+    "prefix": ["fso", "crefso"],
     "body": [
       "Dim ${1:fso} As Object",
       "Set ${1:fso} = CreateObject(\"Scripting.FileSystemObject\")"
@@ -114,7 +114,7 @@
     "description": "Scripting.FileSystemObject を生成"
   },
   "CreateObject VBScript.RegExp": {
-    "prefix": "regex",
+    "prefix": ["regex", "creregex"],
     "body": [
       "Dim ${1:re} As Object",
       "Set ${1:re} = CreateObject(\"VBScript.RegExp\")",
@@ -124,7 +124,7 @@
     "description": "VBScript.RegExp を生成"
   },
   "CreateObject ADODB.Recordset": {
-    "prefix": "adors",
+    "prefix": ["adors", "creadors"],
     "body": [
       "Dim ${1:rs} As Object",
       "Set ${1:rs} = CreateObject(\"ADODB.Recordset\")"
@@ -132,7 +132,7 @@
     "description": "ADODB.Recordset を生成"
   },
   "CreateObject ADODB.Connection": {
-    "prefix": "adocn",
+    "prefix": ["adocn", "creadocn"],
     "body": [
       "Dim ${1:cn} As Object",
       "Set ${1:cn} = CreateObject(\"ADODB.Connection\")",
@@ -141,7 +141,7 @@
     "description": "ADODB.Connection を生成"
   },
   "CreateObject (generic)": {
-    "prefix": "cobj",
+    "prefix": ["cobj", "cre"],
     "body": [
       "Dim ${1:obj} As Object",
       "Set ${1:obj} = CreateObject(\"${2:ProgID}\")"
