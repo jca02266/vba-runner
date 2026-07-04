@@ -879,9 +879,39 @@ export class CompletionProvider {
     }
 }
 
+/** vba-types.json の kind 文字列から LSP CompletionItemKind 数値へのマッピング */
+const KIND_STRING_TO_NUMBER: Record<string, number> = {
+    Method: 2, Function: 3, Property: 10,
+    Variable: 6, Class: 7, Constant: 21,
+};
+
+/**
+ * vba-types.json 形式の JSON 文字列を `setTypeStubs()` が受け取る Map に変換する。
+ * ファイル読み込み・デフォルト生成どちらの JSON にも使える。
+ */
+export function parseTypeStubsJson(json: string): Map<string, CompletionItem[]> {
+    const data = JSON.parse(json) as Record<string, Array<{
+        label: string;
+        kind: string;
+        detail?: string;
+        returnType?: string;
+    }>>;
+    const stubs = new Map<string, CompletionItem[]>();
+    for (const [typeName, members] of Object.entries(data)) {
+        stubs.set(typeName.toLowerCase(), members.map(mi => ({
+            label: mi.label,
+            kind: KIND_STRING_TO_NUMBER[mi.kind] ?? 2,
+            detail: mi.detail,
+            returnType: mi.returnType?.toLowerCase(),
+        })));
+    }
+    return stubs;
+}
+
 /**
  * BUILTIN_MEMBERS の内容を vba-types.json 形式の JSON 文字列として返す。
  * Quick Fix "Initialize vba-types.json" でワークスペースに書き出す際に使用する。
+ * JSON → Map への変換は `parseTypeStubsJson()` を使う。
  */
 export function generateDefaultTypeStubsJson(): string {
     const obj: Record<string, Array<{ label: string; kind: string; detail?: string; returnType?: string }>> = {};

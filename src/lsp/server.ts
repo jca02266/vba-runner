@@ -14,7 +14,7 @@ import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
-import { CompletionProvider, generateDefaultTypeStubsJson } from './completion-provider';
+import { CompletionProvider, generateDefaultTypeStubsJson, parseTypeStubsJson } from './completion-provider';
 import { checkUnknownTypes, collectUserDefinedTypeNames } from './unknown-type-checker';
 import { findAllReferences, LocationInfo } from './references-provider';
 import { buildScopedSymbolTable, getWordAtPosition } from './symbol-table';
@@ -422,26 +422,7 @@ export class LSPServer {
         if (!fs.existsSync(stubPath)) return;
         try {
             const raw = fs.readFileSync(stubPath, 'utf-8');
-            const data = JSON.parse(raw) as Record<string, Array<{
-                label: string;
-                kind: string;
-                detail?: string;
-                returnType?: string;
-            }>>;
-            const kindMap: Record<string, number> = {
-                Method: 2, Function: 3, Property: 10,
-                Variable: 6, Class: 7, Constant: 21,
-            };
-            const stubs = new Map<string, any[]>();
-            for (const [typeName, members] of Object.entries(data)) {
-                stubs.set(typeName.toLowerCase(), members.map(mi => ({
-                    label: mi.label,
-                    kind: kindMap[mi.kind] ?? 2,
-                    detail: mi.detail,
-                    returnType: mi.returnType?.toLowerCase(),
-                })));
-            }
-            this.completionProvider.setTypeStubs(stubs);
+            this.completionProvider.setTypeStubs(parseTypeStubsJson(raw));
         } catch (e) {
             console.error('[VBA] Failed to load vba-types.json:', e);
         }
