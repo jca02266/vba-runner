@@ -57,6 +57,10 @@ Place the cursor on a symbol and press `F12` to jump to its declaration.
 
 Place the cursor on a symbol and press `Shift+F12` to list all locations where it is referenced.
 
+### Rename Symbol
+
+Place the cursor on a symbol and press `F2` to rename it across the file. All references are updated at once.
+
 ### Code Completion
 
 Suggestions for VBA keywords, built-in functions, and procedures defined in your source files appear as you type.
