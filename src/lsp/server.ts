@@ -14,7 +14,8 @@ import { ProcedureDeclaration } from '../engine/parser';
 import { SymbolProvider } from './symbol-provider';
 import { HoverProvider } from './hover-provider';
 import { DefinitionProvider } from './definition-provider';
-import { CompletionProvider } from './completion-provider';
+import { CompletionProvider, generateDefaultTypeStubsJson } from './completion-provider';
+import { checkUnknownTypes, collectUserDefinedTypeNames } from './unknown-type-checker';
 import { findAllReferences, LocationInfo } from './references-provider';
 import { buildScopedSymbolTable, getWordAtPosition } from './symbol-table';
 import { RenameProvider } from './rename-provider';
@@ -430,6 +431,25 @@ export class LSPServer {
         this.loadTypeStubs(workspaceRoot);
     }
 
+    /** BUILTIN_MEMBERS の内容を vba-types.json 形式の JSON 文字列として返す。 */
+    generateDefaultTypeStubsJson(): string {
+        return generateDefaultTypeStubsJson();
+    }
+
+    /** 全ワークスペースドキュメントから Class / Type / Enum の型名を収集する。 */
+    private collectAllUserDefinedTypeNames(): Set<string> {
+        const names = new Set<string>();
+        for (const [, doc] of this.allDocuments()) {
+            try {
+                const ast = this.parseDocument(doc.content);
+                if (ast?.body) {
+                    for (const name of collectUserDefinedTypeNames(ast.body)) names.add(name);
+                }
+            } catch { /* ignore */ }
+        }
+        return names;
+    }
+
     /**
      * Get signature help for a function call at the given position
      */
@@ -524,7 +544,23 @@ export class LSPServer {
                 l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
-            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags];
+            // VBA016: 未知の型名チェック
+            const knownTypes = this.completionProvider.getKnownTypeNamesForDiagnostics();
+            for (const name of this.collectAllUserDefinedTypeNames()) knownTypes.add(name);
+            const unknownTypeDiags = checkUnknownTypes(ast.body, knownTypes).map(d => ({
+                range: {
+                    start: { line: d.line, character: d.column },
+                    end:   { line: d.endLine, character: d.endColumn },
+                },
+                severity: d.severity,
+                code: d.code,
+                message: d.message,
+                l10nKey: d.l10nKey,
+                l10nArgs: d.l10nArgs,
+                source: `vba-lint(${d.code})`,
+            }));
+
+            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags];
         } catch {
             return [];
         }

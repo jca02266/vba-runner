@@ -56,6 +56,31 @@ const M = CompletionItemKind.Method;
 const P = CompletionItemKind.Property;
 const F = CompletionItemKind.Function;
 
+// vba-types.json に出力する際の表示名マッピング (lowercase key → 正式名称)
+const TYPE_DISPLAY_NAMES: Record<string, string> = {
+    'scripting.dictionary':    'Scripting.Dictionary',
+    'scripting.filesystemobject': 'Scripting.FileSystemObject',
+    'collection':              'Collection',
+    'adodb.recordset':         'ADODB.Recordset',
+    'adodb.connection':        'ADODB.Connection',
+    'regexp':                  'RegExp',
+    'vbscript.regexp':         'VBScript.RegExp',
+    'range':                   'Range',
+    'worksheet':               'Worksheet',
+    'workbook':                'Workbook',
+    'sheets':                  'Sheets',
+    'application':             'Application',
+};
+
+const KIND_NAMES: Record<number, string> = {
+    [CompletionItemKind.Method]:    'Method',
+    [CompletionItemKind.Function]:  'Function',
+    [CompletionItemKind.Property]:  'Property',
+    [CompletionItemKind.Variable]:  'Variable',
+    [CompletionItemKind.Class]:     'Class',
+    [CompletionItemKind.Constant]:  'Constant',
+};
+
 const BUILTIN_MEMBERS: ReadonlyMap<string, CompletionItem[]> = new Map([
     ['scripting.dictionary', [
         m('Add',         M, 'Add(key, item)'),
@@ -482,18 +507,19 @@ export class CompletionProvider {
         return m2 ? m2[1].toLowerCase() : null;
     }
 
-    /** 型名に対応するメンバー一覧を返す（組み込み型 + 外部型定義 + ユーザー定義クラス）。 */
+    /** 型名に対応するメンバー一覧を返す（外部型定義 → 組み込み型 → ユーザー定義クラス の優先順）。 */
     private getMembersForType(typeName: string, statements: Statement[]): CompletionItem[] {
         const lowerType = typeName.replace(/^new\s+/i, '').toLowerCase();
         // "excel.range" → "range" などのモジュール修飾を除いた短縮型名
         const shortType = lowerType.replace(/^[a-z_][a-z0-9_]*\./, '');
 
-        const builtins = BUILTIN_MEMBERS.get(lowerType) ?? BUILTIN_MEMBERS.get(shortType);
-        if (builtins && builtins.length > 0) return builtins;
-
-        // 外部型定義 (vba-types.json)
+        // 外部型定義 (vba-types.json) が最優先 — ユーザーが上書き可能
         const stubMembers = this.typeStubs.get(lowerType) ?? this.typeStubs.get(shortType);
         if (stubMembers && stubMembers.length > 0) return stubMembers;
+
+        // 組み込み型定義
+        const builtins = BUILTIN_MEMBERS.get(lowerType) ?? BUILTIN_MEMBERS.get(shortType);
+        if (builtins && builtins.length > 0) return builtins;
 
         // ユーザー定義クラス（複数モジュール全体の statements から探す）
         for (const stmt of statements) {
@@ -505,6 +531,25 @@ export class CompletionProvider {
             }
         }
         return [];
+    }
+
+    /**
+     * VBA016 診断用: BUILTIN_MEMBERS と typeStubs の全型名（lowercase）を返す。
+     * サーバー側でユーザー定義クラス名を追加して使う。
+     */
+    getKnownTypeNamesForDiagnostics(): Set<string> {
+        const known = new Set<string>();
+        for (const [key] of BUILTIN_MEMBERS) {
+            known.add(key);
+            const short = key.replace(/^[a-z_][a-z0-9_]*\./, '');
+            if (short !== key) known.add(short);
+        }
+        for (const [key] of this.typeStubs) {
+            known.add(key);
+            const short = key.replace(/^[a-z_][a-z0-9_]*\./, '');
+            if (short !== key) known.add(short);
+        }
+        return known;
     }
 
     /** 式の型を再帰的に解決する（チェーンアクセス: `ws.Cells` → 'range'）。 */
@@ -769,4 +814,25 @@ export class CompletionProvider {
 
         return symbols;
     }
+}
+
+/**
+ * BUILTIN_MEMBERS の内容を vba-types.json 形式の JSON 文字列として返す。
+ * Quick Fix "Initialize vba-types.json" でワークスペースに書き出す際に使用する。
+ */
+export function generateDefaultTypeStubsJson(): string {
+    const obj: Record<string, Array<{ label: string; kind: string; detail?: string; returnType?: string }>> = {};
+    for (const [key, members] of BUILTIN_MEMBERS) {
+        const displayName = TYPE_DISPLAY_NAMES[key] ?? key;
+        obj[displayName] = members.map(item => {
+            const entry: { label: string; kind: string; detail?: string; returnType?: string } = {
+                label: item.label,
+                kind:  KIND_NAMES[item.kind] ?? 'Method',
+            };
+            if (item.detail)     entry.detail     = item.detail;
+            if (item.returnType) entry.returnType  = item.returnType;
+            return entry;
+        });
+    }
+    return JSON.stringify(obj, null, 2);
 }

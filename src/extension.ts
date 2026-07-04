@@ -1263,6 +1263,103 @@ End Class`;
     );
     outputChannel.appendLine("✓ QuickFix provider (VBA013 Option Explicit) registered");
 
+    // QuickFix: VBA016 (Unknown type) → Add to vba-types.json / Initialize vba-types.json
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider('vba', {
+            provideCodeActions(_document, _range, context) {
+                const vba016 = context.diagnostics.filter(d => d.source === 'vba-lint(VBA016)');
+                if (vba016.length === 0) return [];
+
+                const actions: vscode.CodeAction[] = [];
+                const wsRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+                if (!wsRoot) return [];
+
+                const stubPath = path.join(wsRoot, 'vba-types.json');
+                const stubExists = fs.existsSync(stubPath);
+
+                // 診断 1 件につき "Add 'TypeName' to vba-types.json" を生成
+                for (const diag of vba016) {
+                    const typeMatch = diag.message.match(/Unknown type '(.+)'/);
+                    if (!typeMatch) continue;
+                    const typeName = typeMatch[1];
+
+                    const addAction = new vscode.CodeAction(
+                        `Add '${typeName}' to vba-types.json`,
+                        vscode.CodeActionKind.QuickFix,
+                    );
+                    addAction.diagnostics = [diag];
+                    addAction.command = {
+                        title: 'Add to vba-types.json',
+                        command: 'vba-runner.addToTypeStubs',
+                        arguments: [wsRoot, typeName],
+                    };
+                    actions.push(addAction);
+                }
+
+                // vba-types.json が存在しない場合は "Initialize" アクションも提供
+                if (!stubExists) {
+                    const initAction = new vscode.CodeAction(
+                        'Initialize vba-types.json with all COM type definitions',
+                        vscode.CodeActionKind.QuickFix,
+                    );
+                    initAction.command = {
+                        title: 'Initialize vba-types.json',
+                        command: 'vba-runner.initTypeStubs',
+                        arguments: [wsRoot],
+                    };
+                    actions.push(initAction);
+                }
+
+                return actions;
+            }
+        }, {
+            providedCodeActionKinds: [vscode.CodeActionKind.QuickFix]
+        })
+    );
+    outputChannel.appendLine("✓ QuickFix provider (VBA016 Unknown type) registered");
+
+    // vba-runner.initTypeStubs: BUILTIN_MEMBERS からデフォルト vba-types.json を生成する
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.initTypeStubs', async (wsRoot: string) => {
+            const stubPath = path.join(wsRoot, 'vba-types.json');
+            const json = lspServer.generateDefaultTypeStubsJson();
+            fs.writeFileSync(stubPath, json, 'utf-8');
+            lspServer.reloadTypeStubs(wsRoot);
+            const doc = await vscode.workspace.openTextDocument(stubPath);
+            await vscode.window.showTextDocument(doc);
+            vscode.window.showInformationMessage('vba-types.json initialized with COM type definitions.');
+        })
+    );
+
+    // vba-runner.addToTypeStubs: 特定の型名を vba-types.json に追記する
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vba-runner.addToTypeStubs', async (wsRoot: string, typeName: string) => {
+            const stubPath = path.join(wsRoot, 'vba-types.json');
+            let data: Record<string, unknown[]> = {};
+            if (fs.existsSync(stubPath)) {
+                try { data = JSON.parse(fs.readFileSync(stubPath, 'utf-8')); } catch { /* ignore */ }
+            }
+            if (!data[typeName]) {
+                data[typeName] = [
+                    { label: 'TODO', kind: 'Method', detail: 'TODO() As Variant' },
+                ];
+                fs.writeFileSync(stubPath, JSON.stringify(data, null, 2), 'utf-8');
+                lspServer.reloadTypeStubs(wsRoot);
+            }
+            const doc = await vscode.workspace.openTextDocument(stubPath);
+            const editor = await vscode.window.showTextDocument(doc);
+            // カーソルを追記した型名の行に移動
+            const text = doc.getText();
+            const idx  = text.indexOf(`"${typeName}"`);
+            if (idx >= 0) {
+                const pos = doc.positionAt(idx);
+                editor.selection = new vscode.Selection(pos, pos);
+                editor.revealRange(new vscode.Range(pos, pos));
+            }
+        })
+    );
+    outputChannel.appendLine("✓ Type stub commands (initTypeStubs / addToTypeStubs) registered");
+
     // Register Source Actions (Source Actions menu)
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider('vba', {
