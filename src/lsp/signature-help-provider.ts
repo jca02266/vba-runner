@@ -1,4 +1,5 @@
 import { Statement, ProcedureDeclaration } from '../engine/parser';
+import { Lexer, TokenType } from '../engine/lexer';
 import { buildScopedSymbolTable } from './symbol-table';
 
 export interface SignatureInfo {
@@ -134,30 +135,35 @@ const BUILTIN_SIGNATURES = buildBuiltinSignatures();
 /** カーソル左のテキストを走査し、現在の関数呼び出しの名前と activeParameter を返す。
  *  ネストした括弧を考慮し、最も外側の未閉じ `(` を対象の呼び出しとみなす。
  *  文字列リテラル内の `(`, `,` は無視する。
+ *  文字列境界は Lexer のトークン情報から確定する（右→左スキャンの誤判定を避けるため）。
  */
 export function findCallContext(lineText: string, character: number): { name: string; activeParameter: number } | null {
     const text = lineText.slice(0, character);
 
+    // Lexer でトークン化して文字列リテラルの範囲（0-indexed）を確定する
+    const tokens = new Lexer(text).tokenize();
+    const stringRanges: Array<[number, number]> = tokens
+        .filter(t => t.type === TokenType.String)
+        .map(t => {
+            const start = t.column - 1; // column は 1-indexed
+            // 閉じ " を含む end 位置: 開き " + content + 閉じ "
+            const end = start + t.value.length + 1;
+            return [start, end] as [number, number];
+        });
+
+    const isInString = (i: number) => stringRanges.some(([s, e]) => i > s && i <= e);
+
     let depth = 0;
     let activeParameter = 0;
-    let inString = false;
 
     for (let i = text.length - 1; i >= 0; i--) {
+        if (isInString(i)) continue;
+
         const ch = text[i];
-
-        // 文字列リテラルの境界（簡易判定: " を数えて偶奇で判定）
-        if (ch === '"') {
-            // 直前のバックスラッシュエスケープは VBA にないので単純に反転
-            inString = !inString;
-            continue;
-        }
-        if (inString) continue;
-
         if (ch === ')') {
             depth++;
         } else if (ch === '(') {
             if (depth === 0) {
-                // この `(` が対象の呼び出し
                 const name = extractFunctionName(text, i);
                 if (!name) return null;
                 return { name, activeParameter };

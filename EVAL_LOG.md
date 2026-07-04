@@ -21,6 +21,7 @@
 | 9 | VS Code 拡張 LSP 機能（直接インポートによる評価） | メンバー補完（Dictionary/Worksheet/ユーザー定義クラス）/ チェーンアクセス引数なし `ws.Cells.` → Range / CreateObject 型推論 / VBA016 診断 / ホバー情報 `getMemberHoverInfo` | 2026-07-04 |
 | 9 | VS Code 拡張 LSP 機能（初回評価） | `CompletionProvider.getCompletions` / `detectMemberAccess` / `resolveExprType` / `getMemberHoverInfo` / `checkUnknownTypes` / `collectUserDefinedTypeNames` / 単純メンバー補完（`dict.`/`ws.`）/ チェーン補完（`ws.Cells.` → Range）/ 引数付きチェーン `ws.Cells(1,1).`（バグ）/ ユーザー定義クラス補完 / `createObject` ProgID 型推論 / VBA016 未知型診断（column ずれバグ）/ mid-word ホバー（正常） | 2026-07-04 |
 | 10 | VS Code 拡張 LSP 機能（評価 #9 修正確認 + 新規テーマ） | 引数付きチェーン補完の修正確認（OK）/ VBA016 波下線位置の修正確認（OK）/ With ブロック内引数付きチェーン補完（新バグ）/ クロスモジュール補完（`parseAsClass` 必須と判明）/ `generateDefaultTypeStubsJson` JSON valid 性確認 / `setTypeStubs(Map)` API 非対称設計の発見 / カスタム型上書き優先（正常動作） | 2026-07-04 |
+| 11 | VS Code 拡張 LSP 機能（評価 #10 修正確認 + シグネチャヘルプ + Quick Fix） | With ブロック内引数付きチェーン補完修正確認（OK・48 件）/ `parseTypeStubsJson` API 非対称解消確認（OK）/ `SignatureHelpProvider` 組み込み 60 件超・ユーザー定義 Function・ネスト呼び出し（内側優先）正常動作 / **文字列リテラル入力中にシグネチャが消えるバグ発見 → Lexer ベース修正済み** / VBA016 Quick Fix 実装確認（`extension.ts` に `initTypeStubs`・`addToTypeStubs` コマンド実装済み）/ `parse()` は `Program` を返す（`getCompletions` には `.body` を渡す必要あり） | 2026-07-04 |
 
 ---
 
@@ -70,9 +71,10 @@
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
 | ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
+| ~~LSP: シグネチャヘルプが文字列リテラル入力中に消える~~ | **修正済み**: `findCallContext` の文字列境界判定を Lexer トークンベースに変更。右→左スキャンの誤判定を解消。`findCallContext('Format(x, "', 11)` → `{ name: 'Format', activeParameter: 1 }` が正しく返る。 |
 | ~~LSP: VBA016 診断の range が型名でなく変数名を指す~~ | **修正済み（評価 #10 で確認）**: `Dim x As UnknownType` で `column: 9, endColumn: 20`（UnknownType の位置）が返るようになった。`unknown-type-checker.ts:79` で `d.objectTypeLoc ?? d.name.loc` の優先順位が機能している。パーサーが `objectTypeLoc` を AST に格納するよう修正済み。 |
 | `Dim empty As String` がパースエラー | `empty` は VBA 仕様上の予約語のため変数名に使えない。VBA 仕様準拠の正しい動作。 |
-| LSP: With ブロック内で引数付きメソッドチェーン後の補完が 0 件 | `    .Cells(1, 1).` という行でトリガーすると補完候補が 0 件になる。`detectWithMemberAccess` の正規表現 `/^\s*\.([a-zA-Z_][a-zA-Z0-9_]*)?$/` が `.Cells(1, 1).` にマッチしない。`detectMemberAccess` は `Cells` を拾うが With 暗黙コンテキストを持たないため型解決できない。修正には With 内のチェーン式に暗黙 With オブジェクト型を補って `resolveExprType` に渡す処理が必要。最小再現: `Dim ws As Worksheet / With ws / .Cells(1, 1).` で 0 件（期待: Range メンバー 48 件）。 |
+| ~~LSP: With ブロック内で引数付きメソッドチェーン後の補完が 0 件~~ | **修正済み（評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。コミット `3300dcb`。 |
 | ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
 | ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
 
@@ -125,12 +127,12 @@
 - `__mocks__` ディレクトリによる VBA/JS/TS モック注入
 - `setBuiltinOverride` で組み込み関数を上書き
 - vba-types.json の自動リロード（FileSystemWatcher）
-- ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は 0 件（新バグ）**
+- ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10, #11）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は評価 #10 でバグ検出 → コミット `3300dcb` で修正 → 評価 #11 で修正確認（48 件返るようになった）**
 - ~~クロスモジュール補完（複数ファイル展開時）~~ **評価済み（評価 #10）: `parseAsClass` オプションを使えば動作する。単純な statements マージだけでは不十分**
-- ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10）: JSON は valid、主要エントリ含む。ただし `setTypeStubs(Map)` vs `generateDefaultTypeStubsJson()` の API 非対称に注意**
+- ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10, #11）: コミット `9e41d0c` で `parseTypeStubsJson` 追加により API 非対称が解消。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結**
 - ~~カスタム型上書き優先~~ **評価済み（評価 #10）: BUILTIN_MEMBERS よりカスタム定義が優先される。正常動作**
-- VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）
-- シグネチャヘルプの深掘り（ネスト呼び出し・Optional 引数・ParamArray）
+- ~~VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）~~ **評価済み（評価 #11）: `extension.ts` に完全実装。`vba-runner.initTypeStubs`（デフォルト vba-types.json 生成）と `vba-runner.addToTypeStubs`（型名追記）が CodeAction として登録済み。VS Code なしの動作確認は不可**
+- ~~シグネチャヘルプの深掘り（ネスト呼び出し・Optional 引数・ParamArray）~~ **評価済み（評価 #11）: 組み込み 60 件超・ユーザー定義 Function・ネスト優先すべて正常。文字列リテラル入力中に消えるバグあり**
 
 ### ~~条件付きコンパイル~~ **評価済み（評価#8）**
 
@@ -179,9 +181,12 @@
 23. **`run()` の `type:'set'` でJS モックオブジェクトを Property Set へ注入できる**: `r.run('PropName', [mockObj], 'set')` でフラットな JS オブジェクトを VBA の Property Set 経由でモジュール変数に代入できる。その後 VBA 側のコードで `Is Nothing` 判定や、プロパティアクセスが可能。依存性注入パターンとして有用。
 24. **`eval()` で読めるのは `Public` モジュール変数のみ（`Dim`/`Private` は不可）**: `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private`/`Dim` 変数は見えない。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計（モジュールコンテキスト内でのデバッグ評価とは別概念）。
 25. **`CompletionProvider` を LSP 外部から使うには `Parser` を `errorRecovery: true` で呼ぶこと**: `new Parser(tokens).parse()` は不完全な VBA（補完トリガー時の途中入力）でスローする。LSP サーバーが内部で使っているように `new Parser(tokens, { errorRecovery: true }).parse()` とする必要がある。公開ドキュメントに記載なし。
+32. **`getCompletions` に渡すのは `parse().body`（`Statement[]`）であり `Program` オブジェクトではない**: `parse()` は `{ type: 'Program', body: Statement[], diagnostics: [] }` を返す。`getCompletions(parsed, ...)` と渡すと `statements is not iterable` エラー。`getCompletions(parsed.body, ...)` が正しい。（ただしサブエージェントは `stmts` を `parse()` の返り値から `.body` で取り出して正常動作した）
+33. **`parseTypeStubsJson` 関数を使えば `setTypeStubs` の前処理が不要になった（評価 #11 で確認）**: コミット `9e41d0c` で `parseTypeStubsJson` が `completion-provider.ts` に追加された。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結。旧評価 #10 で必要だった手動 JSON.parse + lowercase 変換 + Map 構築は不要。
+34. **`SignatureHelpProvider.getSignatureHelp(stmts, source, line, char)` が使える**: 組み込み関数 60 件超・ユーザー定義 Function・ネスト呼び出し（内側を優先）が動作する。ただし文字列リテラルを入力し始めると `findCallContext` が `null` を返してシグネチャが消える（`signature-help-provider.ts:145` の右→左スキャンバグ）。
 26. **`CompletionProvider.getCompletions` の引数順は `(statements, source, line, character)`**: `statements` が第1引数、`source` が第2引数の順。ドキュメントや過去の記述で逆順に書かれていた例があるため注意。
 27. **`checkUnknownTypes` の第2引数は `Set<string>`（オブジェクトリテラル `{}` は不可）**: 誤って `{}` を渡すと `knownTypeNames.has is not a function` で実行時エラー。`new Set<string>()` か `collectUserDefinedTypeNames(stmts)` の戻り値を渡すこと。
-28. **`setTypeStubs()` の引数は `Map<string, CompletionItem[]>`（JSON 文字列ではない）**: `generateDefaultTypeStubsJson()` は JSON 文字列を返すが、`setTypeStubs()` が受け取るのは Map オブジェクト。使う際は `JSON.parse(json)` → lowercase キー変換 → `Map` への変換が必要。非対称な設計のため誤用しやすい。
+28. **~~`setTypeStubs()` の引数は `Map<string, CompletionItem[]>`（JSON 文字列ではない）~~（評価 #11 で解消確認）**: コミット `9e41d0c` で `parseTypeStubsJson(json)` が追加された。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結。手動変換は不要。
 29. **`parse()` フリー関数は存在しない**: `parser.ts` はフリー関数の `parse()` をエクスポートしていない。`Lexer` でトークナイズ後に `new Parser(tokens, { errorRecovery: true }).parse()` という形で呼ぶこと。
 30. **クロスモジュール補完にはクラスモジュールのパースに `parseAsClass` オプションが必要**: `.cls` ファイルを `new Parser(tokens, { parseAsClass: 'ClassName' })` で解析しないと `ClassDeclaration` として AST に格納されない。単純に `statements` をマージするだけでは不十分で、クラスのメンバーが補完候補に出ない。
-31. **With ブロック内の引数付きメソッドチェーン後の補完は未対応（新バグ）**: `    .Cells(1, 1).` という形式は `detectWithMemberAccess` にもチェーン解決にもヒットせず 0 件になる。`ws.Cells.`（引数なし）は正常動作。With 内で引数付き呼び出しチェーンを使う場合は、外に `Dim rng As Range: Set rng = ws.Cells(1,1)` として変数に切り出し `rng.` でトリガーするワークアラウンドが有効。
+31. **~~With ブロック内の引数付きメソッドチェーン後の補完は未対応（新バグ）~~（コミット `3300dcb` で修正・評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。
