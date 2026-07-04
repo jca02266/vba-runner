@@ -62,6 +62,21 @@ export async function activate(context: vscode.ExtensionContext) {
     });
     outputChannel.appendLine('LSP Server initialized');
 
+    // ワークスペースの vba-types.json から外部型定義を読み込む
+    const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (workspaceRoot) {
+        lspServer.loadTypeStubs(workspaceRoot);
+        // ファイルの作成・変更時にリロード
+        const typeStubsWatcher = vscode.workspace.createFileSystemWatcher(
+            new vscode.RelativePattern(workspaceRoot, 'vba-types.json')
+        );
+        context.subscriptions.push(
+            typeStubsWatcher,
+            typeStubsWatcher.onDidCreate(() => lspServer.reloadTypeStubs(workspaceRoot)),
+            typeStubsWatcher.onDidChange(() => lspServer.reloadTypeStubs(workspaceRoot)),
+        );
+    }
+
     // ファイル削除・リネーム時にワークスペースキャッシュから除去する
     // （新規ファイルは F12 押下時の遅延スキャンで自動的に取得される）
     context.subscriptions.push(

@@ -15,6 +15,8 @@ export interface CompletionItem {
     sortText?: string;
     /** 行内でこの文字位置から cursor までを insertText で置換する */
     replaceStartCharacter?: number;
+    /** チェーンアクセス解決用: このメンバーの戻り値の型名 (lowercase) */
+    returnType?: string;
 }
 
 export enum CompletionItemKind {
@@ -47,8 +49,8 @@ export enum CompletionItemKind {
 
 // ─── 組み込み COM オブジェクトのメンバー定義 ───────────────────────────────────
 
-function m(label: string, kind: CompletionItemKind, detail: string): CompletionItem {
-    return { label, kind, detail };
+function m(label: string, kind: CompletionItemKind, detail: string, returnType?: string): CompletionItem {
+    return returnType ? { label, kind, detail, returnType } : { label, kind, detail };
 }
 const M = CompletionItemKind.Method;
 const P = CompletionItemKind.Property;
@@ -146,9 +148,142 @@ const BUILTIN_MEMBERS: ReadonlyMap<string, CompletionItem[]> = new Map([
         m('IgnoreCase', P, 'IgnoreCase As Boolean'),
         m('MultiLine',  P, 'MultiLine As Boolean'),
     ]],
+    // ─── Excel Object Model ──────────────────────────────────────────────────
+    ['range', [
+        m('Value',          P, 'Value As Variant'),
+        m('Value2',         P, 'Value2 As Variant'),
+        m('Text',           P, 'Text As String'),
+        m('Formula',        P, 'Formula As String'),
+        m('FormulaR1C1',    P, 'FormulaR1C1 As String'),
+        m('Address',        F, 'Address([RowAbsolute], [ColumnAbsolute], [ReferenceStyle], [External], [RelativeTo]) As String'),
+        m('Row',            P, 'Row As Long'),
+        m('Column',         P, 'Column As Long'),
+        m('Rows',           P, 'Rows As Range', 'range'),
+        m('Columns',        P, 'Columns As Range', 'range'),
+        m('Cells',          P, 'Cells As Range', 'range'),
+        m('Count',          P, 'Count As Long'),
+        m('CountLarge',     P, 'CountLarge As Double'),
+        m('EntireRow',      P, 'EntireRow As Range', 'range'),
+        m('EntireColumn',   P, 'EntireColumn As Range', 'range'),
+        m('CurrentRegion',  P, 'CurrentRegion As Range', 'range'),
+        m('MergeArea',      P, 'MergeArea As Range', 'range'),
+        m('Interior',       P, 'Interior As Interior'),
+        m('Font',           P, 'Font As Font'),
+        m('Borders',        P, 'Borders As Borders'),
+        m('NumberFormat',   P, 'NumberFormat As String'),
+        m('HorizontalAlignment', P, 'HorizontalAlignment As XlHAlign'),
+        m('VerticalAlignment',   P, 'VerticalAlignment As XlVAlign'),
+        m('WrapText',       P, 'WrapText As Boolean'),
+        m('MergeCells',     P, 'MergeCells As Boolean'),
+        m('Locked',         P, 'Locked As Boolean'),
+        m('Hidden',         P, 'Hidden As Boolean'),
+        m('Select',         M, 'Select()'),
+        m('Activate',       M, 'Activate()'),
+        m('Clear',          M, 'Clear()'),
+        m('ClearContents',  M, 'ClearContents()'),
+        m('ClearFormats',   M, 'ClearFormats()'),
+        m('Copy',           M, 'Copy([destination])'),
+        m('Cut',            M, 'Cut([destination])'),
+        m('Delete',         M, 'Delete([shift])'),
+        m('Insert',         M, 'Insert([shift], [copyorigin])'),
+        m('Merge',          M, 'Merge([across])'),
+        m('UnMerge',        M, 'UnMerge()'),
+        m('Sort',           M, 'Sort(...)'),
+        m('AutoFit',        M, 'AutoFit()'),
+        m('Offset',         F, 'Offset(RowOffset, ColumnOffset) As Range', 'range'),
+        m('Resize',         F, 'Resize([RowSize], [ColumnSize]) As Range', 'range'),
+        m('End',            F, 'End(direction) As Range', 'range'),
+        m('Find',           F, 'Find(what, [after], ...) As Range', 'range'),
+        m('FindNext',       F, 'FindNext([after]) As Range', 'range'),
+        m('FindPrevious',   F, 'FindPrevious([after]) As Range', 'range'),
+        m('SpecialCells',   F, 'SpecialCells(type, [value]) As Range', 'range'),
+        m('Cells',          F, 'Cells(row, column) As Range', 'range'),
+    ]],
+    ['worksheet', [
+        m('Name',           P, 'Name As String'),
+        m('Index',          P, 'Index As Long'),
+        m('CodeName',       P, 'CodeName As String'),
+        m('Visible',        P, 'Visible As XlSheetVisibility'),
+        m('Cells',          P, 'Cells As Range', 'range'),
+        m('Rows',           P, 'Rows As Range', 'range'),
+        m('Columns',        P, 'Columns As Range', 'range'),
+        m('UsedRange',      P, 'UsedRange As Range', 'range'),
+        m('AutoFilter',     P, 'AutoFilter As AutoFilter'),
+        m('PageSetup',      P, 'PageSetup As PageSetup'),
+        m('Shapes',         P, 'Shapes As Shapes'),
+        m('Tab',            P, 'Tab As Tab'),
+        m('Parent',         P, 'Parent As Workbook', 'workbook'),
+        m('Range',          F, 'Range(cell1, [cell2]) As Range', 'range'),
+        m('Activate',       M, 'Activate()'),
+        m('Select',         M, 'Select([replace])'),
+        m('Delete',         M, 'Delete()'),
+        m('Copy',           M, 'Copy([before], [after])'),
+        m('Move',           M, 'Move([before], [after])'),
+        m('Protect',        M, 'Protect([password], ...)'),
+        m('Unprotect',      M, 'Unprotect([password])'),
+        m('Calculate',      M, 'Calculate()'),
+        m('SetBackgroundPicture', M, 'SetBackgroundPicture(filename)'),
+    ]],
+    ['workbook', [
+        m('Name',           P, 'Name As String'),
+        m('FullName',       P, 'FullName As String'),
+        m('Path',           P, 'Path As String'),
+        m('Saved',          P, 'Saved As Boolean'),
+        m('ReadOnly',       P, 'ReadOnly As Boolean'),
+        m('Worksheets',     P, 'Worksheets As Sheets', 'sheets'),
+        m('Sheets',         P, 'Sheets As Sheets', 'sheets'),
+        m('ActiveSheet',    P, 'ActiveSheet As Worksheet', 'worksheet'),
+        m('Names',          P, 'Names As Names'),
+        m('Connections',    P, 'Connections As Connections'),
+        m('Save',           M, 'Save()'),
+        m('SaveAs',         M, 'SaveAs([filename], ...)'),
+        m('Close',          M, 'Close([savechanges], [filename])'),
+        m('Activate',       M, 'Activate()'),
+        m('Protect',        M, 'Protect([password], ...)'),
+        m('Unprotect',      M, 'Unprotect([password])'),
+        m('RefreshAll',     M, 'RefreshAll()'),
+        m('PrintOut',       M, 'PrintOut([from], [to], ...)'),
+    ]],
+    ['sheets', [
+        m('Count',  P, 'Count As Long'),
+        m('Add',    F, 'Add([before], [after], [count], [type]) As Worksheet', 'worksheet'),
+        m('Item',   F, 'Item(index) As Worksheet', 'worksheet'),
+        m('Copy',   M, 'Copy([before], [after])'),
+        m('Delete', M, 'Delete()'),
+        m('Move',   M, 'Move([before], [after])'),
+    ]],
+    ['application', [
+        m('ActiveWorkbook',      P, 'ActiveWorkbook As Workbook', 'workbook'),
+        m('ActiveSheet',         P, 'ActiveSheet As Worksheet', 'worksheet'),
+        m('ActiveCell',          P, 'ActiveCell As Range', 'range'),
+        m('Selection',           P, 'Selection As Object'),
+        m('Workbooks',           P, 'Workbooks As Workbooks'),
+        m('Worksheets',          P, 'Worksheets As Sheets', 'sheets'),
+        m('Sheets',              P, 'Sheets As Sheets', 'sheets'),
+        m('Cells',               P, 'Cells As Range', 'range'),
+        m('ScreenUpdating',      P, 'ScreenUpdating As Boolean'),
+        m('DisplayAlerts',       P, 'DisplayAlerts As Boolean'),
+        m('EnableEvents',        P, 'EnableEvents As Boolean'),
+        m('Calculation',         P, 'Calculation As XlCalculation'),
+        m('StatusBar',           P, 'StatusBar As Variant'),
+        m('Caption',             P, 'Caption As String'),
+        m('WorksheetFunction',   P, 'WorksheetFunction As WorksheetFunction'),
+        m('Range',               F, 'Range(cell1, [cell2]) As Range', 'range'),
+        m('Run',                 F, 'Run(macro, ...) As Variant'),
+        m('Wait',                M, 'Wait(time)'),
+        m('Calculate',           M, 'Calculate()'),
+        m('Quit',                M, 'Quit()'),
+    ]],
 ]);
 
 export class CompletionProvider {
+    /** workspace の vba-types.json から動的にロードされる外部型定義 */
+    private typeStubs = new Map<string, CompletionItem[]>();
+
+    setTypeStubs(stubs: Map<string, CompletionItem[]>): void {
+        this.typeStubs = stubs;
+    }
+
     private standardFunctions: CompletionItem[] = [
         // String functions
         { label: 'Len', kind: CompletionItemKind.Function, detail: 'Len(string) As Long' },
@@ -195,8 +330,18 @@ export class CompletionProvider {
         const memberAccess = this.detectMemberAccess(source, line, character);
         if (memberAccess) {
             // AST walk first; fallback to source text scan when AST is incomplete (e.g. mid-type error recovery)
-            const typeName = this.findVariableType(statements, memberAccess.objectName, line)
-                          ?? this.findVariableTypeFromSource(source, memberAccess.objectName);
+            let typeName = this.findVariableType(statements, memberAccess.objectName, line)
+                        ?? this.findVariableTypeFromSource(source, memberAccess.objectName);
+
+            // チェーンアクセス解決: "objectName" 自体が変数でない場合、カーソル前の式全体を評価
+            if (!typeName) {
+                const lines = source.split('\n');
+                const beforeCursor = (lines[line] ?? '').substring(0, character);
+                // memberPrefix と末尾の '.' を取り除いた式を解決する
+                const chainExpr = beforeCursor.replace(/\.([a-zA-Z_][a-zA-Z0-9_]*)?$/, '').trimEnd();
+                typeName = this.resolveExprType(chainExpr, statements, source, line);
+            }
+
             if (typeName) {
                 const members = this.getMembersForType(typeName, statements);
                 return members.filter(m => this.matchesPrefix(m.label, memberAccess.memberPrefix));
@@ -337,22 +482,58 @@ export class CompletionProvider {
         return m2 ? m2[1].toLowerCase() : null;
     }
 
-    /** 型名に対応するメンバー一覧を返す（組み込み型 + ユーザー定義クラス）。 */
+    /** 型名に対応するメンバー一覧を返す（組み込み型 + 外部型定義 + ユーザー定義クラス）。 */
     private getMembersForType(typeName: string, statements: Statement[]): CompletionItem[] {
         const lowerType = typeName.replace(/^new\s+/i, '').toLowerCase();
-        const builtins = BUILTIN_MEMBERS.get(lowerType);
-        if (builtins) return builtins;
+        // "excel.range" → "range" などのモジュール修飾を除いた短縮型名
+        const shortType = lowerType.replace(/^[a-z_][a-z0-9_]*\./, '');
 
-        // ユーザー定義クラス
+        const builtins = BUILTIN_MEMBERS.get(lowerType) ?? BUILTIN_MEMBERS.get(shortType);
+        if (builtins && builtins.length > 0) return builtins;
+
+        // 外部型定義 (vba-types.json)
+        const stubMembers = this.typeStubs.get(lowerType) ?? this.typeStubs.get(shortType);
+        if (stubMembers && stubMembers.length > 0) return stubMembers;
+
+        // ユーザー定義クラス（複数モジュール全体の statements から探す）
         for (const stmt of statements) {
             if (stmt.type === 'ClassDeclaration') {
                 const cls = stmt as ClassDeclaration;
-                if (cls.name.toLowerCase() === lowerType) {
+                if (cls.name.toLowerCase() === lowerType || cls.name.toLowerCase() === shortType) {
                     return this.getPublicClassMembers(cls);
                 }
             }
         }
         return [];
+    }
+
+    /** 式の型を再帰的に解決する（チェーンアクセス: `ws.Cells` → 'range'）。 */
+    private resolveExprType(expr: string, statements: Statement[], source: string, line: number): string | null {
+        const trimmed = expr.trim();
+        if (!trimmed) return null;
+
+        // 単純識別子
+        if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed)) {
+            return this.findVariableType(statements, trimmed, line)
+                ?? this.findVariableTypeFromSource(source, trimmed);
+        }
+
+        // チェーン: greedy で最後の .member を切り出す
+        // 例: "ws.Cells(1,1)" → base="ws", member="Cells"
+        //     "dict.Items(0).Value" → base="dict.Items(0)", member="Value"
+        const chainMatch = trimmed.match(/^(.+)\.([a-zA-Z_][a-zA-Z0-9_]*)(?:\([^)]*\))?$/);
+        if (chainMatch) {
+            const baseExpr   = chainMatch[1];
+            const memberName = chainMatch[2];
+            const baseType   = this.resolveExprType(baseExpr, statements, source, line);
+            if (baseType) {
+                const members = this.getMembersForType(baseType, statements);
+                const found   = members.find(mi => mi.label.toLowerCase() === memberName.toLowerCase());
+                return found?.returnType ?? null;
+            }
+        }
+
+        return null;
     }
 
     /** クラスの Public メンバーを CompletionItem に変換する。 */

@@ -381,7 +381,53 @@ export class LSPServer {
         const ast = this.parseDocument(doc.content);
         if (!ast) return [];
 
-        return this.completionProvider.getCompletions(ast.body, doc.content, line, character);
+        // 複数モジュールの AST を統合してクロスモジュール補完を実現する
+        const allStatements: Statement[] = [...ast.body];
+        for (const [otherUri, otherDoc] of this.allDocuments()) {
+            if (otherUri === uri) continue;
+            try {
+                const otherAst = this.parseDocument(otherDoc.content);
+                if (otherAst?.body) allStatements.push(...otherAst.body);
+            } catch { /* 壊れたドキュメントはスキップ */ }
+        }
+
+        return this.completionProvider.getCompletions(allStatements, doc.content, line, character);
+    }
+
+    /** 外部型定義ファイル (vba-types.json) を読み込んで補完プロバイダーに設定する。 */
+    loadTypeStubs(workspaceRoot: string): void {
+        const stubPath = path.join(workspaceRoot, 'vba-types.json');
+        if (!fs.existsSync(stubPath)) return;
+        try {
+            const raw = fs.readFileSync(stubPath, 'utf-8');
+            const data = JSON.parse(raw) as Record<string, Array<{
+                label: string;
+                kind: string;
+                detail?: string;
+                returnType?: string;
+            }>>;
+            const kindMap: Record<string, number> = {
+                Method: 2, Function: 3, Property: 10,
+                Variable: 6, Class: 7, Constant: 21,
+            };
+            const stubs = new Map<string, any[]>();
+            for (const [typeName, members] of Object.entries(data)) {
+                stubs.set(typeName.toLowerCase(), members.map(mi => ({
+                    label: mi.label,
+                    kind: kindMap[mi.kind] ?? 2,
+                    detail: mi.detail,
+                    returnType: mi.returnType?.toLowerCase(),
+                })));
+            }
+            this.completionProvider.setTypeStubs(stubs);
+        } catch (e) {
+            console.error('[VBA] Failed to load vba-types.json:', e);
+        }
+    }
+
+    /** 外部型定義の更新（ファイルウォッチャー用）。 */
+    reloadTypeStubs(workspaceRoot: string): void {
+        this.loadTypeStubs(workspaceRoot);
     }
 
     /**
