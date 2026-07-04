@@ -24,6 +24,7 @@
 | 11 | VS Code 拡張 LSP 機能（評価 #10 修正確認 + シグネチャヘルプ + Quick Fix） | With ブロック内引数付きチェーン補完修正確認（OK・48 件）/ `parseTypeStubsJson` API 非対称解消確認（OK）/ `SignatureHelpProvider` 組み込み 60 件超・ユーザー定義 Function・ネスト呼び出し（内側優先）正常動作 / **文字列リテラル入力中にシグネチャが消えるバグ発見 → Lexer ベース修正済み** / VBA016 Quick Fix 実装確認（`extension.ts` に `initTypeStubs`・`addToTypeStubs` コマンド実装済み）/ `parse()` は `Program` を返す（`getCompletions` には `.body` を渡す必要あり） | 2026-07-04 |
 | 12 | `__mocks__` 注入・`setBuiltinOverride`・FileSystemWatcher（評価 #12） | JS `__addCreateObject__` による `CreateObject` 置換（Excel.Application）/ VBA `.cls` クラスモック差し込み（Logger.cls）/ `__mocks__.bas` 単一ファイル形式 / `setBuiltinOverride` で MsgBox 戻り値固定（vbOK/vbCancel 再現確認済み）/ `spy()` API 呼び出し引数記録 / 配列渡し時モックスキャンなし確認 / `.ts` モック動作確認 / `__progId__` なし factory のキー補完 / `__mocks__/Class.cls` が本番 `.cls` を上書き（正常）/ **バグ発見・再現確認済み: 複数 VBA `.bas` モックが同名 Public 関数を持つと Ambiguous procedure エラー** / FileSystemWatcher 実装確認（`extension.ts:70-77`）/ `onDidDelete` 未実装 | 2026-07-04 |
 | 13 | VS Code 拡張 LSP ナビゲーション（definition / references / rename / symbol）（評価 #13） | `DefinitionProvider.getDefinition` / `ReferencesProvider.getReferences` / `RenameProvider.getRename` / `SymbolProvider.extractSymbols` / `.bas` 全機能正常動作 / セクションヘッダー `' --- Name ---` → SymbolKind.Namespace 抽出 / ローカル変数スコープ絞り込み正常 / クロスモジュールは `null` 返却（設計通り）/ **Bug B 発見・再現確認・修正済み: `parseAsClass` で生成した `ClassDeclaration`/`ProcedureDeclaration` の `loc` が `undefined`（`parseClassBody` が `parseStatement` を経由せず直接パース関数を呼ぶため）→ `parseClassBody` 内で各文パース後に `loc` を設定するよう修正。`tsc -b` / `class-module.test.ts` 全通過確認済み** / Bug A（仕様準拠）: `FuncName = value` の戻り値代入行が refs に含まれる（正規表現全出現検索の仕様。Rename では正しい動作） | 2026-07-05 |
+| 14 | VS Code 拡張 LSP（Formatter / CodeLens / FoldingRange / CallGraph）（評価 #14） | `format(source, opts)` + `applyEdits` / キーワード大文字小文字正規化 / ブロックインデント正規化 / Select Case・ElseIf・With・GoTo ラベル・行継続 / ユーザー定義識別子ケーシング / `CodeLensProvider.getCodeLens` + `getDeadCodeWarnings` / `Test_*` 検出・`isEventHandler` / テスト結果注入 / `FoldingRangeProvider.getFoldingRanges` / 全ブロック型対応・単行 If 除外 / `CallGraphProvider.buildCallGraph` / マルチファイル / 相互再帰・自己再帰 / Excel 依存検出 / **Bug: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）** / 設計ギャップ: 組み込み型名（`String`/`Integer` 等）と組み込みオブジェクト（`Debug`/`Err` 等）は大文字小文字を正規化しない | 2026-07-05 |
 
 ---
 
@@ -68,6 +69,12 @@
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
 | ~~`parseAsClass` で生成した AST の `loc` が `undefined` → `.cls` ファイルで DefinitionProvider/ReferencesProvider/RenameProvider が機能しない~~ | **修正済み（評価 #13）**: `parseClassBody()` 内で各文パース後に `tok`（ブランチ開始前のトークン）と `this.tokens[this.pos-1]`（パース後の最終トークン）から `loc` を設定するよう修正。`ClassDeclaration` 本体の `loc` も最初・最後の文トークンから設定。`tsc -b` / `class-module.test.ts` 全通過。 | `parser.ts:parseClassBody()` が `parseProcedureDeclaration()` を直接呼ぶため `parseStatement()` の `stmt.loc = { start, end }` 設定（line 1358）が実行されない。`ClassDeclaration` 本体も `{ type, name, fields, procedures, body }` のみで `loc` なし。`buildScopedSymbolTable` 内の `if (!proc.loc) continue;` ガードで全シンボルがスキップされる。影響: DefinitionProvider は常に `null`、ReferencesProvider はスコープ絞り込みと `includeDeclaration` 除外が無効、RenameProvider は全ファイル無差別テキスト置換。`SymbolProvider` は別の fallback を持ち動作するが位置情報がすべて `(0,0)` になる。 |
+
+### 未修正バグ（評価 #14 で発見）
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`CodeLensProvider`: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）~~ | **修正済み**: `testProcReferences` の `start` を `proc.loc.start.line - 1`（宣言行含む）から `proc.loc.start.line`（宣言行スキップ）に変更。 | |
 
 ### 未対応の機能制限（改善候補）
 
@@ -142,6 +149,10 @@
 - ~~`__mocks__` ディレクトリによる VBA/JS/TS モック注入~~ **評価済み（評価 #12）: JS `__addCreateObject__` / VBA `.cls` クラスモック / `__mocks__.bas` 単一形式 / `.ts` モック すべて正常動作。同名 Public Function を複数 VBA モックが持つ場合は Ambiguous procedure バグあり**
 - ~~`setBuiltinOverride` で組み込み関数を上書き~~ **評価済み（評価 #12）: MsgBox を vbOK/vbCancel に固定 → 正常動作。`spy()` API も動作確認**
 - ~~vba-types.json の自動リロード（FileSystemWatcher）~~ **評価済み（評価 #12 ソース確認のみ）: `extension.ts:70-77` に `createFileSystemWatcher` 実装あり。`onDidCreate` / `onDidChange` でリロード。`onDidDelete` は未実装（型スタブが残存する小欠陥）**
+- ~~Formatter（コード整形）~~ **評価済み（評価 #14）: キーワード大文字小文字 / インデント / 識別子ケーシング 全正常。組み込み型名（String/Integer 等）は正規化しない（設計ギャップ）**
+- ~~CodeLensProvider（▶ Run / 🐛 Debug / 参照数 / テスト状態）~~ **評価済み（評価 #14）: 基本動作正常。`Test_*` が常に `✓ Tested`（疑似陽性バグ）**
+- ~~FoldingRangeProvider（コード折りたたみ）~~ **評価済み（評価 #14）: 全主要ブロック対応・正常動作**
+- ~~CallGraphProvider（コールグラフ構築）~~ **評価済み（評価 #14）: マルチファイル・相互再帰・自己再帰・Excel依存検出すべて正常**
 - ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10, #11）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は評価 #10 でバグ検出 → コミット `3300dcb` で修正 → 評価 #11 で修正確認（48 件返るようになった）**
 - ~~クロスモジュール補完（複数ファイル展開時）~~ **評価済み（評価 #10）: `parseAsClass` オプションを使えば動作する。単純な statements マージだけでは不十分**
 - ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10, #11）: コミット `9e41d0c` で `parseTypeStubsJson` 追加により API 非対称が解消。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結**
@@ -152,6 +163,20 @@
 - ~~ReferencesProvider（Find All References）~~ **評価済み（評価 #13）: `.bas` は概ね正常。`FuncName = value` 戻り値代入行が refs に含まれる（仕様準拠）。ローカル変数スコープ絞り込み正常。`.cls` は Bug B によりスコープ・includeDeclaration 除外が無効**
 - ~~RenameProvider（F2 リネーム）~~ **評価済み（評価 #13）: `.bas` 正常（戻り値代入行も含む TextEdit は正しい）。`.cls` は Bug B によりスコープ無視のテキスト置換**
 - ~~SymbolProvider（ドキュメントシンボル / アウトライン）~~ **評価済み（評価 #13）: `.bas` 完全動作。`source` 引数なし→Sub/Function のみ、あり→セクションヘッダー `' --- Name ---` も SymbolKind.Namespace で追加。`.cls` は動作するが全シンボルの loc が `(0,0)`（Bug B の影響・fallback 動作）**
+- `formatter.ts` — VBA コード整形（インデント・キーワード大文字化・空行）**（評価 #14 進行中）**
+- `code-lens-provider.ts` — ▶ Run / ▶ Test CodeLens 生成**（評価 #14 進行中）**
+- `folding-range-provider.ts` — Sub/If/For 等の折りたたみ範囲**（評価 #14 進行中）**
+- `call-graph-provider.ts` — コールグラフ（呼び出し関係・再帰検出）**（評価 #14 進行中）**
+- `auto-parens.ts` — 自動括弧補完（`(` 入力時に `)` を挿入する挙動など）
+- `keyword-casing.ts` — VBA キーワードの大文字小文字正規化（formatter とは別の OnType 系機能？）
+- `label-navigator.ts` — GoTo ラベルナビゲーション（ラベル一覧・ジャンプ）
+- `line-continuation-checker.ts` — 行継続（`_`）の検証・診断
+- `variant-type-inferencer.ts` — Variant 型の型推論（補完精度向上？）
+- `test-discovery.ts` / `test-runner.ts` — LSP 側のテスト探索・実行（Code Lens "Run Test" との連携）
+- `ast-comparison.ts` — AST 比較（リファクタリング前後の差分検出？）
+- `hover-provider.ts` — ホバープロバイダー（getMemberHoverInfo は評価済みだが HoverProvider クラス自体は未評価）
+- デバッガー系（VS Code なしでは動作確認不可・ソース確認のみ）: `debugger.ts` / `debug-adapter.ts` / `debug-session.ts` / `debug-worker.ts` / `vscode-debug-adapter.ts`
+- `call-graph-webview.ts` — コールグラフの WebView 表示（VS Code なしでは動作確認不可）
 
 ### ~~条件付きコンパイル~~ **評価済み（評価#8）**
 
@@ -218,3 +243,10 @@
 41. **`SymbolProvider.extractSymbols(stmts, source)` は `source` あり時にセクションヘッダーを抽出する**（評価 #13）: `' --- Section Name ---` / `' === Section Name ===` スタイルの VBA コメントを `SymbolKind.Namespace` として返す。`.bas` の機能として有用。`source` 省略時は Sub/Function/Property のみ。
 42. ~~**`parseAsClass` 使用時は DefinitionProvider / ReferencesProvider / RenameProvider が `.cls` シンボルを認識しない**（評価 #13・Bug B・修正済み）~~: 修正: `parseClassBody()` 内で `tok`（ブランチ開始前トークン）を startTok として記録し、各パース呼び出し後に `stmt.loc = { start: tok.line/col, end: endTok.line/col }` を設定。`ClassDeclaration` 本体の `loc` も最初・最後の有効トークンから設定。これにより `DefinitionProvider.getDefinition` が `.cls` ファイルで正しく位置を返す・`SymbolProvider` 子シンボルの位置が正確になる。`tsc -b` / `class-module.test.ts` 全通過確認済み。
 43. **`ReferencesProvider` は `FuncName = value` の戻り値代入行を参照として返す**（評価 #13）: テキスト正規表現による全出現検索の仕様。`includeDeclaration: false` は宣言行の正確な position のみを除外する。戻り値代入 `CalcTax = price * rate` は宣言行 (line 0) とは別の行 (line 1) のため除外されない。**RenameProvider の観点では正しい動作**（関数リネーム時に戻り値代入も書き換え必須）。「Find All References」の「呼び出し一覧」として使う場合はユーザーが驚く可能性あり。
+44. **`format(source, options)` + `applyEdits(source, edits)` の使い方**（評価 #14）: `format()` は `TextEdit[]` を返すだけ。実際に文字列を得るには `applyEdits(source, format(source, opts))` とする。`FormatterOptions` は `indentSize`（デフォルト 4）/ `indentChar`（デフォルト `' '`）/ `keywordCase`（`'pascal'` or `false`）。
+45. **Formatter が正規化しないもの**（評価 #14）: 組み込み型名（`String`/`Integer`/`Boolean`/`Long`/`Double`/`Date`/`Variant`/`Object` など `As` 後に使う型名）と組み込みオブジェクト（`Debug`/`Err`/`ActiveSheet` など）は `TokenType.Identifier` として扱われ、ユーザー宣言もないため正規化されない。`Dim s As string` → `Dim s As string`（変化なし）。
+46. **Formatter の行継続インデント方針**（評価 #14）: 行継続（`_` 終端）行の後続行は `actualIndent`（既存の先頭空白）を保持するだけで、新たなインデントを付与しない。継続行が列 0 に書かれていれば列 0 のまま。意図的保存動作（フォーマッター非制御領域）。
+47. **`CodeLensProvider.getCodeLens` の lens 構成**（評価 #14）: プロシージャごとに最大 5 種類の lens が付く: `▶ Run` + `🐛 Debug`（必須パラメーターなし or `Test_*` 1param のみ）/ 参照数 or `🔔 Event Handler`（常時）/ `✓ Tested` or `Untested`（常時）/ `📊 Show in Call Graph`（常時）。テスト結果を渡した場合は `Test_*` にさらに結果 lens（`✓ Xms` or `✗ message`）が追加。
+48. **`CodeLensProvider.getDeadCodeWarnings` で Private 0参照プロシージャを検出できる**（評価 #14）: `isPrivate && refCount === 0 && !isEventHandler` の条件でデッド候補を列挙。イベントハンドラー（`KNOWN_VBA_EVENT_NAMES` 照合）は除外される。
+49. **`FoldingRangeProvider.getFoldingRanges` は全主要ブロックをカバー**（評価 #14）: Sub/Function/If/For/ForEach/DoWhile/While/With/SelectCase/Type/Enum/Class が対象。単行 `If x Then Debug.Print y`（Then 後に実体がある場合）は折りたたみ対象外。`FoldingRange` は `{ startLine, endLine }` の 0-based ペア。
+50. **`CallGraphProvider.buildCallGraph` はマルチファイル対応・再帰検出あり**（評価 #14）: `fileMap: Map<uri, { statements, uri }>` を渡す。戻り値は `{ nodes: Map<nameLower, ProcNode>, edges: CallEdge[] }`。自己再帰（`factorial → factorial`）・相互再帰（`funca ↔ funcb`）ともにエッジとして正しく検出。メンバーアクセス呼び出し（`obj.Method()`）は追跡しない（設計上の仕様）。`ProcNode.isExcelDependent` は EXCEL_ROOT_OBJECTS 定数セット（`sheets`/`range`/`cells`/`application` 等）への直接参照で判定。

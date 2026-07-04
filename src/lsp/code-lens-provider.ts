@@ -278,7 +278,7 @@ export class CodeLensProvider {
         if (!testProc?.loc) return false;
 
         const lines = sourceText.split('\n');
-        const start = testProc.loc.start.line - 1;
+        const start = testProc.loc.start.line; // 宣言行をスキップして本体のみ検索
         const end = testProc.loc.end.line - 1;
         const procBody = lines.slice(start, end + 1).join('\n');
         return new RegExp(`(?<![a-zA-Z0-9_])${targetLower}(?![a-zA-Z0-9_])`, 'i').test(procBody);
