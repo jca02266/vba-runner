@@ -40,8 +40,9 @@
 - **タイピング中の自動デデント**: `language-configuration.json` の `decreaseIndentPattern` に `Case\b` が欠けていたため `Case` を入力しても行が戻らなかった → 追加済み。
 - **`Case X:` 後のボディインデント**: `auto-parens.ts` の `needsBodyIndent` が `/^Case\b/i` にマッチ（コロンの有無は無関係）し、Enter 後に次行を1レベル深くインデントする。実装済み。
 
-### B-2: `With` ブロック内の `.` 補完連動 ❌ 未着手（優先度：低）
-`With obj` の中で `.` を打ったとき `obj` のメンバーを補完（A-2 の With 版）。A-2 の実装が前提。
+### B-2: `With` ブロック内の `.` 補完連動 ✅ 完了
+`With obj` の中で `.` を打ったとき `obj` のメンバーを補完。
+- **実装**: `detectWithMemberAccess` が行頭 `.prefix` パターンを検出、`findEnclosingWithObject` が上方スキャンで最も近い未閉じ `With <ident>` を検出。A-2 の型解決ロジックをそのまま流用。
 
 ### B-3: Format Document コマンドの公開 ✅ 完了
 `formatter.ts` 実装済み、`registerDocumentFormattingEditProvider` で `Shift+Alt+F` および右クリック「ドキュメントのフォーマット」として登録済み。
@@ -103,7 +104,7 @@
 | ✅ | A-2 メンバー補完 | 完了 | Dim 宣言スキャンで Scripting.Dictionary 等に対応 |
 | ✅ | C-3 宣言前使用の警告 | 完了 | checkOptionExplicit を getDiagnostics に接続 |
 | ✅ | D-2 アウトライン区切り | 完了 | symbol-provider でコメント行スキャン |
-| 低 | B-2 With 内補完 | ❌ | A-2 が前提 |
+| ✅ | B-2 With 内補完 | 完了 | detectWithMemberAccess + findEnclosingWithObject で対応 |
 | ✅ | E-1 テスト結果インライン | 完了 | CodeLens にテスト結果を表示 |
 | ✅ | E-2 Debug.Print 分離 | 完了 | VBA Debug Output Channel に接続 |
 | ✅ | A-1 シグネチャヘルプ | 完了 | — |

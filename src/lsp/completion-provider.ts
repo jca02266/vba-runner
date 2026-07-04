@@ -204,6 +204,21 @@ export class CompletionProvider {
             return [];
         }
 
+        // With ブロック内の暗黙メンバーアクセス: 行頭が `.prefix` の形
+        const withMember = this.detectWithMemberAccess(source, line, character);
+        if (withMember !== null) {
+            const withObj = this.findEnclosingWithObject(source, line);
+            if (withObj) {
+                const typeName = this.findVariableType(statements, withObj, line)
+                              ?? this.findVariableTypeFromSource(source, withObj);
+                if (typeName) {
+                    const members = this.getMembersForType(typeName, statements);
+                    return members.filter(m => this.matchesPrefix(m.label, withMember));
+                }
+            }
+            return [];
+        }
+
         const completions: CompletionItem[] = [];
         // Get prefix at cursor position
         const prefix = this.extractPrefix(source, line, character);
@@ -229,6 +244,37 @@ export class CompletionProvider {
         const match = beforeCursor.match(/([a-zA-Z_][a-zA-Z0-9_]*)\.([a-zA-Z_][a-zA-Z0-9_]*)?$/);
         if (!match) return null;
         return { objectName: match[1], memberPrefix: match[2] ?? '' };
+    }
+
+    /** With ブロック内の暗黙アクセス: 行がスペースのみ + `.` + 任意の識別子前置詞 の形なら memberPrefix を返す。 */
+    private detectWithMemberAccess(source: string, line: number, char: number): string | null {
+        const lines = source.split('\n');
+        const beforeCursor = (lines[line] ?? '').substring(0, char);
+        // 行頭（インデント可）から `.` のみ、または `.identifier_prefix`
+        const match = beforeCursor.match(/^\s*\.([a-zA-Z_][a-zA-Z0-9_]*)?$/);
+        if (!match) return null;
+        return match[1] ?? '';
+    }
+
+    /** source の lineNum 行より上を走査し、最も近い未閉じ With の対象識別子を返す。 */
+    private findEnclosingWithObject(source: string, lineNum: number): string | null {
+        const lines = source.split('\n');
+        let depth = 0;
+        for (let i = lineNum - 1; i >= 0; i--) {
+            const stripped = lines[i]
+                .replace(/"[^"]*"/g, '""')   // 文字列を除去
+                .replace(/'.*$/, '')           // コメントを除去
+                .trim();
+            const upper = stripped.toUpperCase();
+            if (/^END\s+WITH\b/.test(upper)) { depth++; continue; }
+            if (/^WITH\b/.test(upper)) {
+                if (depth > 0) { depth--; continue; }
+                // 最も近い未閉じ With に到達
+                const m = stripped.match(/^With\s+([a-zA-Z_][a-zA-Z0-9_]*)/i);
+                return m ? m[1] : null;
+            }
+        }
+        return null;
     }
 
     /** AST を走査して varName の型を返す（手続き内ローカル優先、次にモジュールレベル）。 */
