@@ -475,4 +475,49 @@ import { join } from 'node:path';
     console.log('[PASS] プロシージャ内ローカル変数を持つファイルもクロスファイル参照から除外');
 }
 
+// 16. 予約語（Set/And/Not 等）はシンボルテーブルに存在しないため参照検索で空を返す
+{
+    const src = [
+        'Sub Foo()',
+        '    Dim obj As Object',
+        '    Set obj = New Object',
+        'End Sub',
+    ].join('\n');
+
+    const server = makeServer([{ uri: URI_A, content: src }]);
+
+    // "Set" キーワードの位置
+    const line = lineOf(src, 'Set obj');
+    const col = colOf(src, 'Set', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    assert.strictEqual(refs.length, 0, '予約語 Set は参照検索で空を返す');
+    console.log('[PASS] 予約語（Set）は参照検索で空を返す');
+}
+
+// 17. 同名の識別子（ユーザー定義 Sub）がある場合は正常に参照検索できる
+{
+    const srcA = [
+        'Sub SetValue()',
+        'End Sub',
+    ].join('\n');
+    const srcB = [
+        'Sub Main()',
+        '    SetValue',
+        'End Sub',
+    ].join('\n');
+
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+    ]);
+
+    const line = lineOf(srcA, 'SetValue');
+    const col = colOf(srcA, 'SetValue', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    assert.strictEqual(refs.length, 2, 'ユーザー定義 SetValue は宣言+呼び出しで2件');
+    console.log('[PASS] ユーザー定義識別子は正常に参照検索できる');
+}
+
 console.log('\n✅ LSP Cross-file Definition / References: 全テスト通過');

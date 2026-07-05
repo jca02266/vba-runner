@@ -415,9 +415,24 @@ export class LSPServer {
         const word = getWordAtPosition(doc.content, line, character);
         if (!word) return [];
 
-        // ローカルシンボル（プロシージャ内ローカル変数）は現在ファイルのみ検索
         const table = buildScopedSymbolTable(ast.body);
         const wordLower = word.toLowerCase();
+
+        // 識別子コンテキスト確認: シンボルテーブルに定義が存在する場合のみ参照検索を行う。
+        // どのファイルにも定義が見つからない単語はキーワードや演算子として使われているとみなし空を返す。
+        const isDefinedInCurrentFile = table.moduleSymbols.has(wordLower)
+            || table.procedures.some(p => p.localSymbols.has(wordLower));
+        if (!isDefinedInCurrentFile) {
+            const isDefinedInWorkspace = [...this.allDocuments()].some(([docUri, docDoc]) => {
+                if (docUri === uri) return false;
+                const docAst = this.parseDocument(docDoc.content, docUri);
+                if (!docAst) return false;
+                return buildScopedSymbolTable(docAst.body).moduleSymbols.has(wordLower);
+            });
+            if (!isDefinedInWorkspace) return [];
+        }
+
+        // ローカルシンボル（プロシージャ内ローカル変数）は現在ファイルのみ検索
         const isOnlyLocal = !table.moduleSymbols.has(wordLower)
             && table.procedures.some(p => p.localSymbols.has(wordLower));
 
