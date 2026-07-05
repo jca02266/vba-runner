@@ -258,7 +258,8 @@ export class LSPServer {
 
         // メンバーホバー: obj.Member にカーソルがある場合はシグネチャを表示する
         const memberInfo = this.completionProvider.getMemberHoverInfo(doc.content, line, character, ast.body);
-        const symbolHover = this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character);
+        const fileName = this.uriBasename(uri);
+        const symbolHover = this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character, fileName);
 
         if (memberInfo) {
             const memberContents = `\`\`\`vb\n${memberInfo.detail}\n\`\`\``;
@@ -277,7 +278,72 @@ export class LSPServer {
             };
         }
 
+        // 型名ホバー: 変数宣言で見つからなかった場合、組み込み型またはワークスペースのクラスを検索
+        if (!symbolHover) {
+            const typeHover = this.getTypeNameHover(uri, doc.content, line, character);
+            if (typeHover) return typeHover;
+        }
+
         return symbolHover;
+    }
+
+    /** ファイル名だけ返す（ディレクトリなし） */
+    private uriBasename(uri: string): string | undefined {
+        try {
+            return path.basename(uriToPath(uri));
+        } catch {
+            return undefined;
+        }
+    }
+
+    /**
+     * 型名（As Long, As SimSheet 等）にカーソルがあるときの補助ホバー。
+     * 組み込み型・ワークスペースのクラス・モックを区別して表示する。
+     */
+    private getTypeNameHover(uri: string, text: string, line: number, character: number): any {
+        const word = getWordAtPosition(text, line, character);
+        if (!word) return null;
+
+        const wordLower = word.toLowerCase();
+
+        // ─ 組み込み型 ─
+        if (VBA_BUILTIN_TYPES.has(wordLower)) {
+            return {
+                contents: `\`\`\`vb\n${word}\n\`\`\`\n\nBuilt-in VBA type`,
+                range: {
+                    start: { line, character: character - word.length / 2 | 0 },
+                    end:   { line, character },
+                },
+            };
+        }
+
+        // ─ ワークスペースのクラス定義を検索 ─
+        for (const [docUri, docDoc] of this.allDocuments()) {
+            const docAst = this.parseDocument(docDoc.content, docUri);
+            if (!docAst) continue;
+            const table = buildScopedSymbolTable(docAst.body);
+            const entry = table.moduleSymbols.get(wordLower);
+            if (!entry || entry.kind !== 'class') continue;
+
+            const isMock = docUri.includes('/__mocks__/') || docUri.includes('\\__mocks__\\');
+            const isSameFile = docUri === uri;
+            const docFile = this.uriBasename(docUri);
+            const kindLabel = isMock ? 'Mock class' : 'User-defined class';
+            const fileLabel = isSameFile
+                ? `\`${docFile}\` (this module)`
+                : docFile ? `\`${docFile}\`` : '';
+
+            const contextParts = [kindLabel, fileLabel].filter(Boolean).join(' · ');
+            return {
+                contents: `\`\`\`vb\n${entry.displayText}\n\`\`\`\n\n${contextParts}`,
+                range: {
+                    start: { line, character: character - word.length / 2 | 0 },
+                    end:   { line, character },
+                },
+            };
+        }
+
+        return null;
     }
 
     /**
@@ -871,6 +937,13 @@ function collectGoToContinueHints(
         }
     }
 }
+
+// ─── 型名ホバー ───────────────────────────────────────────────────────────────
+
+const VBA_BUILTIN_TYPES = new Set([
+    'long', 'longlong', 'longptr', 'integer', 'byte', 'single', 'double',
+    'currency', 'decimal', 'string', 'boolean', 'date', 'object', 'variant',
+]);
 
 // ─── URI / パス変換ユーティリティ ───────────────────────────────────────────
 

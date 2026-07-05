@@ -7,13 +7,24 @@ import {
     Statement,
 } from '../engine/parser';
 
+export type SymbolKind =
+    | 'module-var' | 'local-var' | 'param' | 'for' | 'for-each'
+    | 'procedure' | 'class' | 'const' | 'event';
+
 export interface SymbolEntry {
     name: string;
     displayText: string;
+    kind: SymbolKind;
     range: {
         start: { line: number; character: number };
         end: { line: number; character: number };
     };
+}
+
+export interface SymbolLookupResult {
+    entry: SymbolEntry;
+    /** Enclosing procedure name; null when symbol is at module level */
+    procName: string | null;
 }
 
 export interface ProcedureScope {
@@ -78,11 +89,13 @@ function collectScopedSymbols(
                 const pname = param.name as unknown as string;
                 if (!pname) continue;
                 const ptype = param.paramType || 'Variant';
+                const modifier = param.isByVal ? 'ByVal ' : '';
                 // param has no loc in AST; best-effort: position them at the procedure header line
                 const procLine = proc.loc.start.line - 1;
                 localSymbols.set(pname.toLowerCase(), {
                     name: pname,
-                    displayText: `(parameter) ${pname} As ${ptype}`,
+                    displayText: `${modifier}${pname} As ${ptype}`,
+                    kind: 'param',
                     range: {
                         start: { line: procLine, character: 0 },
                         end: { line: procLine, character: pname.length },
@@ -117,6 +130,7 @@ function collectScopedSymbols(
             moduleSymbols.set(cls.name.toLowerCase(), {
                 name: cls.name,
                 displayText: `Class ${cls.name}`,
+                kind: 'class',
                 range: { start: { line: clsLine, character: nameStart }, end: { line: clsLine, character: nameStart + cls.name.length } },
             });
             collectScopedSymbols(cls.body, moduleSymbols, procedures);
@@ -133,6 +147,7 @@ function collectScopedSymbols(
             moduleSymbols.set(evtName.toLowerCase(), {
                 name: evtName,
                 displayText: `Event ${evtName}(${params})`,
+                kind: 'event',
                 range: { start: { line: evtLine, character: nameStart }, end: { line: evtLine, character: nameStart + evtName.length } },
             });
         }
@@ -155,7 +170,8 @@ function collectLocalDeclarations(body: Statement[], out: Map<string, SymbolEntr
                 const col = id.loc.start.column - 1;
                 out.set(id.name.toLowerCase(), {
                     name: id.name,
-                    displayText: `(for) ${id.name}`,
+                    displayText: id.name,
+                    kind: 'for',
                     range: { start: { line: ln, character: col }, end: { line: ln, character: col + id.name.length } },
                 });
             }
@@ -168,7 +184,8 @@ function collectLocalDeclarations(body: Statement[], out: Map<string, SymbolEntr
                 const col = id.loc.start.column - 1;
                 out.set(id.name.toLowerCase(), {
                     name: id.name,
-                    displayText: `(for each) ${id.name}`,
+                    displayText: id.name,
+                    kind: 'for-each',
                     range: { start: { line: ln, character: col }, end: { line: ln, character: col + id.name.length } },
                 });
             }
@@ -188,8 +205,15 @@ function collectLocalDeclarations(body: Statement[], out: Map<string, SymbolEntr
     }
 }
 
-function addVariableDeclaration(decl: VariableDeclaration, out: Map<string, SymbolEntry>): void {
+function addVariableDeclaration(
+    decl: VariableDeclaration,
+    out: Map<string, SymbolEntry>,
+    kind: SymbolKind = 'local-var',
+): void {
     if (!decl.loc) return;
+    // Module-level keywords indicate a module-level variable
+    const isModuleLevel = decl.scope === 'private' || decl.scope === 'public' || decl.scope === 'friend';
+    const effectiveKind: SymbolKind = isModuleLevel ? 'module-var' : kind;
     for (const d of decl.declarations) {
         if (d.name.loc) {
             const ln = d.name.loc.start.line - 1;
@@ -199,6 +223,7 @@ function addVariableDeclaration(decl: VariableDeclaration, out: Map<string, Symb
             out.set(d.name.name.toLowerCase(), {
                 name: d.name.name,
                 displayText: `${keyword} ${d.name.name} As ${varType}`,
+                kind: effectiveKind,
                 range: { start: { line: ln, character: col }, end: { line: ln, character: col + d.name.name.length } },
             });
         } else {
@@ -211,13 +236,18 @@ function addVariableDeclaration(decl: VariableDeclaration, out: Map<string, Symb
             out.set(d.name.name.toLowerCase(), {
                 name: d.name.name,
                 displayText: `${keyword} ${d.name.name} As ${varType}`,
+                kind: effectiveKind,
                 range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + d.name.name.length } },
             });
         }
     }
 }
 
-function addConstDeclaration(decl: ConstDeclaration, out: Map<string, SymbolEntry>): void {
+function addConstDeclaration(
+    decl: ConstDeclaration,
+    out: Map<string, SymbolEntry>,
+    kind: SymbolKind = 'const',
+): void {
     if (!decl.loc) return;
     const constName = decl.name.name;
     if (decl.name.loc) {
@@ -226,6 +256,7 @@ function addConstDeclaration(decl: ConstDeclaration, out: Map<string, SymbolEntr
         out.set(constName.toLowerCase(), {
             name: constName,
             displayText: `Const ${constName}`,
+            kind,
             range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
         });
     } else {
@@ -235,6 +266,7 @@ function addConstDeclaration(decl: ConstDeclaration, out: Map<string, SymbolEntr
         out.set(constName.toLowerCase(), {
             name: constName,
             displayText: `Const ${constName}`,
+            kind,
             range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
         });
     }
@@ -273,7 +305,7 @@ function makeProcEntry(proc: ProcedureDeclaration): SymbolEntry {
     let sig = `${keyword} ${proc.name.name}(${params})`;
     if (proc.isFunction || proc.isProperty) sig += ` As ${proc.returnType || 'Variant'}`;
 
-    return { name: proc.name.name, displayText: sig, range: nameRange };
+    return { name: proc.name.name, displayText: sig, kind: 'procedure', range: nameRange };
 }
 
 // ─── legacy flat builder (kept for any remaining callers) ────────────────────
@@ -312,11 +344,25 @@ export function lookupSymbol(
     cursorLine: number,
     table: ScopedSymbolTable,
 ): SymbolEntry | null {
+    return lookupSymbolWithContext(name, cursorLine, table)?.entry ?? null;
+}
+
+/**
+ * Look up a symbol with scope context (for rich hover display).
+ * Returns the entry plus the enclosing procedure name (null = module level).
+ */
+export function lookupSymbolWithContext(
+    name: string,
+    cursorLine: number,
+    table: ScopedSymbolTable,
+): SymbolLookupResult | null {
     const lower = name.toLowerCase();
     const enclosing = findEnclosingScope(table.procedures, cursorLine);
     if (enclosing) {
         const local = enclosing.localSymbols.get(lower);
-        if (local) return local;
+        if (local) return { entry: local, procName: enclosing.name };
     }
-    return table.moduleSymbols.get(lower) ?? null;
+    const mod = table.moduleSymbols.get(lower);
+    if (mod) return { entry: mod, procName: null };
+    return null;
 }

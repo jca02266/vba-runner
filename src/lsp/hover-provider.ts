@@ -1,7 +1,13 @@
 import { Statement, ProcedureDeclaration } from '../engine/parser';
 import { buildCFG, BasicBlock } from '../engine/cfg';
 import { computeReachingDefs, buildDefUseChains, usePointKey } from '../engine/reaching-defs';
-import { buildScopedSymbolTable, getWordAtPosition, lookupSymbol } from './symbol-table';
+import {
+    buildScopedSymbolTable,
+    getWordAtPosition,
+    lookupSymbolWithContext,
+    SymbolKind,
+    SymbolLookupResult,
+} from './symbol-table';
 
 export interface Hover {
     contents: string;
@@ -12,23 +18,39 @@ export interface Hover {
 }
 
 export class HoverProvider {
-    getHoverInfo(statements: Statement[], sourceText: string, line: number, character: number): Hover | null {
+    /**
+     * @param fileName basename of the current file (e.g. "Sheet1.bas"), shown in context line
+     */
+    getHoverInfo(
+        statements: Statement[],
+        sourceText: string,
+        line: number,
+        character: number,
+        fileName?: string,
+    ): Hover | null {
         const word = getWordAtPosition(sourceText, line, character);
         if (!word) return null;
 
         const table = buildScopedSymbolTable(statements);
-        const entry = lookupSymbol(word, line, table);
+        const ctx = lookupSymbolWithContext(word, line, table);
 
         const reachingInfo = this.getReachingDefsInfo(statements, word, line);
+
+        if (!ctx && !reachingInfo) return null;
+
         const parts: string[] = [];
-        if (entry?.displayText) parts.push(entry.displayText);
-        if (reachingInfo)        parts.push(reachingInfo);
 
-        if (parts.length === 0) return null;
+        if (ctx) {
+            parts.push(`\`\`\`vb\n${ctx.entry.displayText}\n\`\`\``);
+            const ctxLine = buildContextLine(ctx, fileName);
+            if (ctxLine) parts.push(ctxLine);
+        }
 
-        const range = entry?.range ?? {
+        if (reachingInfo) parts.push(reachingInfo);
+
+        const range = ctx?.entry.range ?? {
             start: { line, character },
-            end:   { line, character: character + word.length },
+            end: { line, character: character + word.length },
         };
         return { contents: parts.join('\n\n'), range };
     }
@@ -81,5 +103,27 @@ export class HoverProvider {
         } catch {
             return null;
         }
+    }
+}
+
+// ─── context line builder ─────────────────────────────────────────────────────
+
+function buildContextLine(ctx: SymbolLookupResult, fileName?: string): string {
+    const kindLabel = kindContextLabel(ctx.entry.kind, ctx.procName);
+    const filePart = fileName ? `\`${fileName}\`` : null;
+    return [kindLabel, filePart].filter(Boolean).join(' · ');
+}
+
+function kindContextLabel(kind: SymbolKind, procName: string | null): string {
+    switch (kind) {
+        case 'module-var':  return 'Module variable';
+        case 'local-var':   return procName ? `Local variable in \`${procName}\`` : 'Local variable';
+        case 'param':       return procName ? `Parameter of \`${procName}\`` : 'Parameter';
+        case 'for':
+        case 'for-each':    return procName ? `Loop variable in \`${procName}\`` : 'Loop variable';
+        case 'const':       return procName ? `Constant in \`${procName}\`` : 'Module constant';
+        case 'event':       return 'Event';
+        case 'class':       return 'Class';
+        case 'procedure':   return '';
     }
 }

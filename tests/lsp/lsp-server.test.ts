@@ -84,19 +84,94 @@ End Class
     console.log('[PASS] getDocumentSymbols extracts symbols');
 }
 
-// 7. getHover returns hover info
+// 7. getHover — ローカル変数に種別・関数名・ファイル名を表示
 {
     const server = createServer();
-    const uri = 'file:///test.bas';
-    const code = `
-Sub Test()
-    Dim x As Integer
-End Sub
-`;
+    const uri = 'file:///proj/Sheet1.bas';
+    const code = [
+        'Sub MyProc()',
+        '    Dim x As Integer',
+        'End Sub',
+    ].join('\n');
     server.didOpen(uri, code);
-    const hover = server.getHover(uri, 2, 8); // Line 2, character 8 (the 'x')
-    assert.ok(hover === null || typeof hover === 'object', 'hover returns object or null');
-    console.log('[PASS] getHover returns hover info');
+    const hover = server.getHover(uri, 1, 8); // Line 1, character 8 (the 'x')
+    assert.ok(hover !== null, 'hover returned');
+    assert.ok(hover.contents.includes('Local variable'), 'shows Local variable');
+    assert.ok(hover.contents.includes('MyProc'),          'shows enclosing proc name');
+    assert.ok(hover.contents.includes('Sheet1.bas'),      'shows filename');
+    console.log('[PASS] getHover: ローカル変数に種別・関数名・ファイル名を表示');
+}
+
+// 7b. getHover — モジュール変数
+{
+    const server = createServer();
+    const uri = 'file:///proj/Sheet1.bas';
+    const code = [
+        'Private m_count As Long',
+        'Sub Test()',
+        '    m_count = 1',
+        'End Sub',
+    ].join('\n');
+    server.didOpen(uri, code);
+    const hover = server.getHover(uri, 2, 6); // 'm_count' in body
+    assert.ok(hover !== null, 'hover returned');
+    assert.ok(hover.contents.includes('Module variable'), 'shows Module variable');
+    assert.ok(hover.contents.includes('Sheet1.bas'),      'shows filename');
+    console.log('[PASS] getHover: モジュール変数の種別表示');
+}
+
+// 7c. getHover — パラメーター
+{
+    const server = createServer();
+    const uri = 'file:///proj/Sheet1.bas';
+    const code = [
+        'Sub DoWork(ByVal count As Long)',
+        '    Dim x As Long',
+        '    x = count',
+        'End Sub',
+    ].join('\n');
+    server.didOpen(uri, code);
+    const hover = server.getHover(uri, 2, 8); // 'count' in body
+    assert.ok(hover !== null, 'hover returned');
+    assert.ok(hover.contents.includes('Parameter'), 'shows Parameter');
+    assert.ok(hover.contents.includes('DoWork'),    'shows enclosing proc name');
+    assert.ok(hover.contents.includes('ByVal'),     'shows ByVal modifier');
+    console.log('[PASS] getHover: パラメーターの種別・修飾子表示');
+}
+
+// 7d. getHover — 組み込み型名
+{
+    const server = createServer();
+    const uri = 'file:///proj/Sheet1.bas';
+    server.didOpen(uri, 'Sub Test()\n    Dim x As Long\nEnd Sub');
+    // hover over 'Long' in 'Dim x As Long' (line 1, col ~14)
+    const hover = server.getHover(uri, 1, 14);
+    assert.ok(hover !== null, 'hover returned for built-in type');
+    assert.ok(hover.contents.includes('Built-in VBA type'), 'shows Built-in VBA type');
+    console.log('[PASS] getHover: 組み込み型名 (Long) のホバー');
+}
+
+// 7e. getHover — ユーザー定義クラス型名
+{
+    const server = createServer();
+    const helperUri = 'file:///proj/Helper.cls';
+    const mainUri   = 'file:///proj/Main.bas';
+    server.loadWorkspaceFile(helperUri, [
+        'Attribute VB_Name = "Helper"',
+        'Public Sub DoWork()',
+        'End Sub',
+    ].join('\n'));
+    server.didOpen(mainUri, [
+        'Sub UseHelper()',
+        '    Dim h As Helper',
+        'End Sub',
+    ].join('\n'));
+    // hover over 'Helper' in 'Dim h As Helper' (line 1, col ~13)
+    const hover = server.getHover(mainUri, 1, 14);
+    assert.ok(hover !== null, 'hover returned for user class');
+    assert.ok(hover.contents.includes('User-defined class'), 'shows User-defined class');
+    assert.ok(hover.contents.includes('Helper.cls'),         'shows class filename');
+    console.log('[PASS] getHover: ユーザー定義クラス型名のホバー');
 }
 
 // 8. getDefinition returns definition location
