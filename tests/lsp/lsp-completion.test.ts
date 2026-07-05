@@ -97,4 +97,73 @@ function getCompletionsAt(src: string, line: number, character: number): any[] {
     console.log('[PASS] Class member completion');
 }
 
+// ─── ユーザー定義クラスのチェーン補完 ───────────────────────────────────────────
+// [回帰] getPublicClassMembers が Function の returnType を設定しなかったためチェーン解決が
+// 失敗し、`x.` でゴミ候補が出ていた問題 (getPublicClassMembers returnType fix)
+
+// 11. 直接チェーン: ws.Cells(1, 4). → SimCell のメンバーが出る
+{
+    // ws は SimSheet 型、Cells() は As SimCell を返す → ws.Cells(1,4). で SimCell メンバーが補完される
+    const code = [
+        'Class SimCell',
+        '  Public CellValue As String',
+        '  Public CellRow As Long',
+        'End Class',
+        'Class SimSheet',
+        '  Public Function Cells(r As Long, c As Long) As SimCell',
+        '  End Function',
+        'End Class',
+        'Sub Test()',
+        '  Dim ws As SimSheet',
+        '  ws.Cells(1, 4).',   // line 10, character 18
+        'End Sub',
+    ].join('\n');
+    // line 10: "  ws.Cells(1, 4)." → len=18
+    const completions = getCompletionsAt(code, 10, 18);
+    assert.ok(completions.some((c: any) => c.label === 'CellValue'), 'ws.Cells(1,4). → CellValue');
+    assert.ok(completions.some((c: any) => c.label === 'CellRow'),   'ws.Cells(1,4). → CellRow');
+    console.log('[PASS] 直接チェーン補完: ws.Cells(1,4). → SimCell メンバー');
+}
+
+// 12. Set 代入後の変数 `x.` → resolveSetAssignmentType でチェーン解決される
+{
+    // [回帰] Set x = ws.Cells(1,4) のあと x. で SimCell メンバーが出る
+    // resolveSetAssignmentType が RHS をチェーン解決できることを確認
+    const code = [
+        'Class SimCell',
+        '  Public CellValue As String',
+        '  Public CellRow As Long',
+        'End Class',
+        'Class SimSheet',
+        '  Public Function Cells(r As Long, c As Long) As SimCell',
+        '  End Function',
+        'End Class',
+        'Sub Test()',
+        '  Dim ws As SimSheet',
+        '  Dim x As Object',
+        '  Set x = ws.Cells(1, 4)',
+        '  x.',                    // line 12, character 4
+        'End Sub',
+    ].join('\n');
+    const completions = getCompletionsAt(code, 12, 4);
+    assert.ok(completions.some((c: any) => c.label === 'CellValue'), 'x. → CellValue (Set代入チェーン)');
+    assert.ok(completions.some((c: any) => c.label === 'CellRow'),   'x. → CellRow (Set代入チェーン)');
+    console.log('[PASS] Set代入チェーン補完: Set x = ws.Cells(1,4) → x. → SimCell メンバー');
+}
+
+// 13. 型不明の Object 変数は空補完になる（ゴミ候補を出さない）
+{
+    // [回帰] Dim x As Object で Set 代入も CreateObject もない場合、
+    //        型が解決できず補完は空になる（ドキュメントワード補完のゴミを返さない）
+    const code = [
+        'Sub Test()',
+        '  Dim x As Object',
+        '  x.',                // line 2, character 4
+        'End Sub',
+    ].join('\n');
+    const completions = getCompletionsAt(code, 2, 4);
+    assert.strictEqual(completions.length, 0, '型不明 Object の x. → 補完空');
+    console.log('[PASS] 型不明 Object 変数の x. → 空補完（ゴミ候補なし）');
+}
+
 console.log('\n✅ LSP Completion: 全テスト通過');

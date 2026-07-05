@@ -351,4 +351,33 @@ function infer(src: string, procName?: string) {
     console.log('[PASS] CreateObject("Scripting.FileSystemObject") → FileSystemObject');
 }
 
+// ─── 多重 CreateObject 代入の曖昧型 ─────────────────────────────────────────────
+// [回帰] 異なる ProgID が複数あるときはヒント表示しない (commit f23c27b)
+
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim dict As Object',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        '    Set dict = CreateObject("VBScript.RegExp")',
+        'End Sub',
+    ].join('\n'));
+    const h = hints.find(h => h.varName === 'dict');
+    assert.strictEqual(h, undefined, '異なる ProgID が複数ある場合はヒントなし');
+    console.log('[PASS] 多重 CreateObject (異なる型) → ヒントなし');
+}
+
+{
+    const hints = infer([
+        'Sub Test()',
+        '    Dim dict As Object',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        '    Set dict = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n'));
+    const h = hints.find(h => h.varName === 'dict');
+    assert.strictEqual(h?.inferredType, 'Dictionary', '同じ ProgID が複数 → Dictionary ヒント');
+    console.log('[PASS] 多重 CreateObject (同じ型) → ヒントあり');
+}
+
 console.log('\n✅ Variant 型推論: 全テスト通過');
