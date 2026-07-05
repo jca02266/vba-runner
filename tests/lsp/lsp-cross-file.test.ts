@@ -373,4 +373,69 @@ import { join } from 'node:path';
     console.log('[PASS] 遅延ディレクトリスキャンで別ファイルの参照検索');
 }
 
+// 13. 別ファイルが同名シンボルを独自宣言している場合、そのファイルは参照候補に含めない
+//     (Private/Public 問わず、別ファイルの同名 Dim は別定義)
+{
+    const srcA = [
+        'Private m_cells As Object',
+        'Sub UseIt()',
+        '    m_cells.Add 1',
+        'End Sub',
+    ].join('\n');
+    const srcB = [
+        'Dim m_cells As Object',   // 全く別の変数
+        'Sub Bar()',
+        '    m_cells.Clear',
+        'End Sub',
+    ].join('\n');
+
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+    ]);
+
+    const line = lineOf(srcA, 'm_cells As Object');
+    const col = colOf(srcA, 'm_cells', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    const uris = refs.map((r: any) => r.uri);
+    assert.ok(!uris.includes(URI_B), '別ファイルが同名を独自宣言している場合、そのファイルの参照を含めない');
+    assert.ok(uris.includes(URI_A), '現在ファイルの参照は含まれる');
+    console.log('[PASS] 同名独自宣言ファイルはクロスファイル参照から除外される');
+}
+
+// 14. Public シンボルでも別ファイルが同名を独自宣言していれば除外
+{
+    const srcA = [
+        'Public SharedName As Long',
+    ].join('\n');
+    const srcB = [
+        'Public SharedName As String',  // 別の定義
+        'Sub Use()',
+        '    SharedName = "x"',
+        'End Sub',
+    ].join('\n');
+    const srcC = [
+        'Sub CallIt()',
+        '    SharedName = 42',          // A の SharedName を参照
+        'End Sub',
+    ].join('\n');
+
+    const URI_C = 'file:///C.bas';
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+        { uri: URI_C, content: srcC },
+    ]);
+
+    const line = lineOf(srcA, 'SharedName');
+    const col = colOf(srcA, 'SharedName', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    const uris = refs.map((r: any) => r.uri);
+    assert.ok(!uris.includes(URI_B), 'B は独自に SharedName を宣言 → 除外');
+    assert.ok(uris.includes(URI_C), 'C は独自宣言なし → A の SharedName を参照 → 含まれる');
+    console.log('[PASS] Public シンボルでも同名独自宣言ファイルを除外し、非宣言ファイルは含める');
+}
+
 console.log('\n✅ LSP Cross-file Definition / References: 全テスト通過');

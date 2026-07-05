@@ -425,11 +425,28 @@ export class LSPServer {
             return findAllReferences(doc.content, word, uri, ast.body, includeDeclaration, line);
         }
 
-        // モジュールレベルシンボルはワークスペース全体を横断検索
+        // Private/Friend シンボルはモジュール内スコープ → 他ファイルを検索しない
+        const modEntry = table.moduleSymbols.get(wordLower);
+        const isFilePrivate = modEntry != null && /^(private|friend)\b/i.test(modEntry.displayText);
+        if (isFilePrivate) {
+            return findAllReferences(doc.content, word, uri, ast.body, includeDeclaration, line);
+        }
+
+        // Public モジュールレベルシンボルはワークスペース全体を横断検索
+        // ただし、他ファイルが同名シンボルをモジュールレベルで独自宣言している場合は
+        // そのファイル内の参照は自身の定義を指す（別物）→ そのファイルを除外する
         const allRefs: LocationInfo[] = [];
         for (const [docUri, docDoc] of this.allDocuments()) {
             const docAst = this.parseDocument(docDoc.content, docUri);
             if (!docAst) continue;
+            if (docUri !== uri) {
+                const docTable = buildScopedSymbolTable(docAst.body);
+                const docEntry = docTable.moduleSymbols.get(wordLower);
+                // 他ファイルが同名の変数または定数を独自に宣言している場合、
+                // そのファイル内の参照は自身の定義を指す（別物）→ 除外する。
+                // プロシージャ（procedure）は除外しない（定義元ファイルとして含める）。
+                if (docEntry && (docEntry.kind === 'module-var' || docEntry.kind === 'const')) continue;
+            }
             const refs = findAllReferences(docDoc.content, word, docUri, docAst.body, includeDeclaration);
             allRefs.push(...refs);
         }
