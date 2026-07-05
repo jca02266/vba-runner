@@ -15,72 +15,35 @@ export interface TestResult {
 export class TestRunner {
     constructor(private onPrint: (s: string) => void = console.log) {}
 
-    runTests(statements: Statement[]): TestResult[] {
+    /**
+     * Parse `src`, discover all Test_* procedures, evaluate the module once,
+     * then call each test procedure and collect results.
+     */
+    runTests(src: string): TestResult[] {
+        const tokens = new Lexer(src).tokenize();
+        const ast = new Parser(tokens).parse();
+
+        const testProcs: ProcedureDeclaration[] = [];
+        this.collectTestProcs(ast.body, testProcs);
+        if (testProcs.length === 0) return [];
+
+        const ev = new Evaluator(this.onPrint, { allowTopLevelStatements: false });
+        ev.evaluateModule(ast);
+        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+
         const results: TestResult[] = [];
-
-        for (const stmt of statements) {
-            const testResults = this.runStatement(stmt);
-            results.push(...testResults);
-        }
-
-        return results;
-    }
-
-    private runStatement(stmt: Statement): TestResult[] {
-        if (stmt.type === 'ProcedureDeclaration') {
-            const proc = stmt as ProcedureDeclaration;
+        for (const proc of testProcs) {
             const name = proc.name.name;
-
-            // Check if this is a test procedure (Test_ prefix)
-            if (name.toLowerCase().startsWith('test_')) {
-                return [this.runTest(proc)];
+            const startTime = Date.now();
+            try {
+                ev.callProcedure(name, []);
+                results.push({ name, state: 'passed', duration: Date.now() - startTime });
+            } catch (error) {
+                const message = (error as any)?.message ?? String(error);
+                results.push({ name, state: 'failed', duration: Date.now() - startTime, message });
             }
-        } else if (stmt.type === 'ClassDeclaration') {
-            const cls = stmt as ClassDeclaration;
-            const results: TestResult[] = [];
-
-            // Look for Test_ methods in the class
-            for (const member of cls.body) {
-                if (member.type === 'ProcedureDeclaration') {
-                    const proc = member as ProcedureDeclaration;
-                    if (proc.name.name.toLowerCase().startsWith('test_')) {
-                        results.push(this.runTest(proc));
-                    }
-                }
-            }
-
-            return results;
         }
-
-        return [];
-    }
-
-    private runTest(proc: ProcedureDeclaration): TestResult {
-        const name = proc.name.name;
-        const startTime = Date.now();
-
-        try {
-            // Create a minimal evaluator to run the test
-            // We'd normally parse and evaluate the full AST with the procedure
-            // For now, we mark as passed if no error occurs
-            const duration = Date.now() - startTime;
-
-            return {
-                name,
-                state: 'passed',
-                duration,
-            };
-        } catch (error) {
-            const duration = Date.now() - startTime;
-            const message = error instanceof Error ? error.message : String(error);
-
-            return {
-                name,
-                state: 'errored',
-                duration,
-                message,
-            };
-        }
+        return results;
     }
 
     /**
@@ -123,7 +86,7 @@ export class TestRunner {
                 };
             } catch (testError) {
                 const duration = Date.now() - startTime;
-                const message = testError instanceof Error ? testError.message : String(testError);
+                const message = (testError as any)?.message ?? String(testError);
 
                 return {
                     name: testName,
@@ -142,6 +105,27 @@ export class TestRunner {
                 duration,
                 message,
             };
+        }
+    }
+
+    private collectTestProcs(statements: Statement[], out: ProcedureDeclaration[]): void {
+        for (const stmt of statements) {
+            if (stmt.type === 'ProcedureDeclaration') {
+                const proc = stmt as ProcedureDeclaration;
+                if (proc.name.name.toLowerCase().startsWith('test_')) {
+                    out.push(proc);
+                }
+            } else if (stmt.type === 'ClassDeclaration') {
+                const cls = stmt as ClassDeclaration;
+                for (const member of cls.body) {
+                    if (member.type === 'ProcedureDeclaration') {
+                        const proc = member as ProcedureDeclaration;
+                        if (proc.name.name.toLowerCase().startsWith('test_')) {
+                            out.push(proc);
+                        }
+                    }
+                }
+            }
         }
     }
 

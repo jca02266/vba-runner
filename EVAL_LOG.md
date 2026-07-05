@@ -25,6 +25,7 @@
 | 12 | `__mocks__` 注入・`setBuiltinOverride`・FileSystemWatcher（評価 #12） | JS `__addCreateObject__` による `CreateObject` 置換（Excel.Application）/ VBA `.cls` クラスモック差し込み（Logger.cls）/ `__mocks__.bas` 単一ファイル形式 / `setBuiltinOverride` で MsgBox 戻り値固定（vbOK/vbCancel 再現確認済み）/ `spy()` API 呼び出し引数記録 / 配列渡し時モックスキャンなし確認 / `.ts` モック動作確認 / `__progId__` なし factory のキー補完 / `__mocks__/Class.cls` が本番 `.cls` を上書き（正常）/ **バグ発見・再現確認済み: 複数 VBA `.bas` モックが同名 Public 関数を持つと Ambiguous procedure エラー** / FileSystemWatcher 実装確認（`extension.ts:70-77`）/ `onDidDelete` 未実装 | 2026-07-04 |
 | 13 | VS Code 拡張 LSP ナビゲーション（definition / references / rename / symbol）（評価 #13） | `DefinitionProvider.getDefinition` / `ReferencesProvider.getReferences` / `RenameProvider.getRename` / `SymbolProvider.extractSymbols` / `.bas` 全機能正常動作 / セクションヘッダー `' --- Name ---` → SymbolKind.Namespace 抽出 / ローカル変数スコープ絞り込み正常 / クロスモジュールは `null` 返却（設計通り）/ **Bug B 発見・再現確認・修正済み: `parseAsClass` で生成した `ClassDeclaration`/`ProcedureDeclaration` の `loc` が `undefined`（`parseClassBody` が `parseStatement` を経由せず直接パース関数を呼ぶため）→ `parseClassBody` 内で各文パース後に `loc` を設定するよう修正。`tsc -b` / `class-module.test.ts` 全通過確認済み** / Bug A（仕様準拠）: `FuncName = value` の戻り値代入行が refs に含まれる（正規表現全出現検索の仕様。Rename では正しい動作） | 2026-07-05 |
 | 14 | VS Code 拡張 LSP（Formatter / CodeLens / FoldingRange / CallGraph）（評価 #14） | `format(source, opts)` + `applyEdits` / キーワード大文字小文字正規化 / ブロックインデント正規化 / Select Case・ElseIf・With・GoTo ラベル・行継続 / ユーザー定義識別子ケーシング / `CodeLensProvider.getCodeLens` + `getDeadCodeWarnings` / `Test_*` 検出・`isEventHandler` / テスト結果注入 / `FoldingRangeProvider.getFoldingRanges` / 全ブロック型対応・単行 If 除外 / `CallGraphProvider.buildCallGraph` / マルチファイル / 相互再帰・自己再帰 / Excel 依存検出 / **Bug: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）** / 設計ギャップ: 組み込み型名（`String`/`Integer` 等）と組み込みオブジェクト（`Debug`/`Err` 等）は大文字小文字を正規化しない | 2026-07-05 |
+| 15 | VS Code 拡張 LSP（auto-parens / keyword-casing / line-continuation / label-navigator / ast-comparison / test-discovery / test-runner / hover-provider / variant-type-inferencer）（評価 #15） | `autoParensEdit`/`getBlockEnd`/`needsBodyIndent`/`needsEndBlock` 各動作確認 / `canonicalKeyword`/`isInStringOrComment` 正常動作 / `needsLineContinuation`/`stripInlineComment` 正常動作 / `LabelNavigator` GoTo定義・参照両方向ナビゲーション正常 / `astEqual`/`serializeAst`/`findMatchingExpressions` 正常動作 / `TestDiscovery.discoverTests` 正常動作 / `TestRunner.runTests` スタブ（常に passed）バグ / `TestRunner.runTestWithEvaluation` エラーメッセージ `"[object Object]"` バグ / `HoverProvider.getHoverInfo` 変数宣言・パラメーター・到達定義情報 正常動作（パラメーター range は col 0 固定・設計上の制限）/ `inferVariantTypes` String/Long/Double/Boolean/ProgID推論 正常動作 / **Bug: `autoParensEdit` が戻り型付き Function（`Function GetValue As Long`）を検出しない** / **Bug: `TestRunner.runTests()` スタブ実装・常に passed** / **Bug: `runTestWithEvaluation` の catch で VBA エラーオブジェクトが `"[object Object]"` になる** | 2026-07-05 |
 
 ---
 
@@ -75,6 +76,14 @@
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
 | ~~`CodeLensProvider`: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）~~ | **修正済み**: `testProcReferences` の `start` を `proc.loc.start.line - 1`（宣言行含む）から `proc.loc.start.line`（宣言行スキップ）に変更。 | |
+
+### 未修正バグ（評価 #15 で発見）
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| `autoParensEdit` が戻り型付き Function を検出しない | `autoParensEdit('Function GetValue As Long')` → `null`（期待: `{ insertCol: 18 }`） | `PROC_NO_PARENS` 正規表現が `\w+\s*$` でプロシージャ名後に `As Type` を許可していない。VBE では自動で `()` が挿入される |
+| `TestRunner.runTests()` がスタブ実装（常に `passed` を返す） | `tr.runTests(stmts)` が Err.Raise する手続きでも `{ state: 'passed' }` を返す | `runTest(proc)` 内部が評価を行わずタイマーだけ計測して `passed` を返す未実装コード（コメント "For now, we mark as passed if no error occurs" が残る） |
+| `runTestWithEvaluation` のエラーメッセージが `"[object Object]"` | `Err.Raise 1, , "Intentional failure"` を実行 → `result.message === "[object Object]"` | `catch` 節の `testError instanceof Error` が false になる（VBA エラーは plain object）。`String(testError)` にフォールバックして `"[object Object]"` になる。`src/lsp/test-runner.ts:126` |
 
 ### 未対応の機能制限（改善候補）
 
@@ -167,14 +176,15 @@
 - `code-lens-provider.ts` — ▶ Run / ▶ Test CodeLens 生成**（評価 #14 進行中）**
 - `folding-range-provider.ts` — Sub/If/For 等の折りたたみ範囲**（評価 #14 進行中）**
 - `call-graph-provider.ts` — コールグラフ（呼び出し関係・再帰検出）**（評価 #14 進行中）**
-- `auto-parens.ts` — 自動括弧補完（`(` 入力時に `)` を挿入する挙動など）
-- `keyword-casing.ts` — VBA キーワードの大文字小文字正規化（formatter とは別の OnType 系機能？）
-- `label-navigator.ts` — GoTo ラベルナビゲーション（ラベル一覧・ジャンプ）
-- `line-continuation-checker.ts` — 行継続（`_`）の検証・診断
-- `variant-type-inferencer.ts` — Variant 型の型推論（補完精度向上？）
-- `test-discovery.ts` / `test-runner.ts` — LSP 側のテスト探索・実行（Code Lens "Run Test" との連携）
-- `ast-comparison.ts` — AST 比較（リファクタリング前後の差分検出？）
-- `hover-provider.ts` — ホバープロバイダー（getMemberHoverInfo は評価済みだが HoverProvider クラス自体は未評価）
+- ~~`auto-parens.ts`~~ **評価済み（評価 #15）: `autoParensEdit`/`getBlockEnd`/`needsBodyIndent`/`needsEndBlock` 正常動作。戻り型付き Function 未検出バグあり**
+- ~~`keyword-casing.ts`~~ **評価済み（評価 #15）: `canonicalKeyword`/`isInStringOrComment` 正常動作**
+- ~~`label-navigator.ts`~~ **評価済み（評価 #15）: GoTo←→LabelStatement 双方向ナビゲーション正常動作**
+- ~~`line-continuation-checker.ts`~~ **評価済み（評価 #15）: `needsLineContinuation`/`stripInlineComment` 正常動作**
+- ~~`variant-type-inferencer.ts`~~ **評価済み（評価 #15）: `inferVariantTypes` 正常動作。ProgID推論・再帰型推論も機能**
+- ~~`test-discovery.ts`~~ **評価済み（評価 #15）: `TestDiscovery.discoverTests` 正常動作**
+- ~~`test-runner.ts`~~ **評価済み（評価 #15）: `runTests()` はスタブ（常に passed バグ）。`runTestWithEvaluation()` は実装済みだがエラーメッセージが `"[object Object]"` になるバグ**
+- ~~`ast-comparison.ts`~~ **評価済み（評価 #15）: `astEqual`/`serializeAst`/`findMatchingExpressions` 正常動作**
+- ~~`hover-provider.ts`~~ **評価済み（評価 #15）: `HoverProvider.getHoverInfo` 変数宣言・パラメーター・到達定義情報 正常動作。パラメーター range が col 0 固定（設計上の制限）**
 - デバッガー系（VS Code なしでは動作確認不可・ソース確認のみ）: `debugger.ts` / `debug-adapter.ts` / `debug-session.ts` / `debug-worker.ts` / `vscode-debug-adapter.ts`
 - `call-graph-webview.ts` — コールグラフの WebView 表示（VS Code なしでは動作確認不可）
 
@@ -249,4 +259,10 @@
 47. **`CodeLensProvider.getCodeLens` の lens 構成**（評価 #14）: プロシージャごとに最大 5 種類の lens が付く: `▶ Run` + `🐛 Debug`（必須パラメーターなし or `Test_*` 1param のみ）/ 参照数 or `🔔 Event Handler`（常時）/ `✓ Tested` or `Untested`（常時）/ `📊 Show in Call Graph`（常時）。テスト結果を渡した場合は `Test_*` にさらに結果 lens（`✓ Xms` or `✗ message`）が追加。
 48. **`CodeLensProvider.getDeadCodeWarnings` で Private 0参照プロシージャを検出できる**（評価 #14）: `isPrivate && refCount === 0 && !isEventHandler` の条件でデッド候補を列挙。イベントハンドラー（`KNOWN_VBA_EVENT_NAMES` 照合）は除外される。
 49. **`FoldingRangeProvider.getFoldingRanges` は全主要ブロックをカバー**（評価 #14）: Sub/Function/If/For/ForEach/DoWhile/While/With/SelectCase/Type/Enum/Class が対象。単行 `If x Then Debug.Print y`（Then 後に実体がある場合）は折りたたみ対象外。`FoldingRange` は `{ startLine, endLine }` の 0-based ペア。
+51. **`autoParensEdit` は戻り型なしの Sub/Function/Property のみ対応**（評価 #15）: `Function GetValue As Long` のように `As Type` が続く行は `null` を返す。VBE では自動で `()` が挿入されるが vba-runner では未対応。`PROC_NO_PARENS` 正規表現（`auto-parens.ts:11`）を `\w+(?:\s+As\s+\w+)?\s*$` に拡張すれば対応可能。
+52. **`TestRunner.runTests(statements)` はスタブ実装**（評価 #15）: 評価を実行せず常に `{ state: 'passed' }` を返す。実際にテストを実行するには `runTestWithEvaluation(src, testName)` を使うこと。ただし後者もエラーメッセージに問題あり（注意53）。
+53. **`TestRunner.runTestWithEvaluation` のエラーメッセージが `"[object Object]"` になる**（評価 #15）: VBA の `Err.Raise` は plain object を throw するため `instanceof Error` が false になる。`catch` 節の `String(testError)` が `"[object Object]"` になる。`src/lsp/test-runner.ts:126` を `(testError as any)?.message ?? String(testError)` に変更で修正可能。
+54. **`HoverProvider.getHoverInfo` のパラメーター hover range は列 0 固定**（評価 #15）: パーサーがパラメーターの loc を AST に記録しないため、`symbol-table.ts` がパラメーターの位置を手続きヘッダー行・列 0 からの推定値として記録する。ホバー時の下線範囲が列 0 から始まる（設計上の既知の制限）。
+55. **`inferVariantTypes` は `buildProcMap` の返す `Map` を渡すと再帰型推論が効く**（評価 #15）: `allProcs: Map<string, ProcedureDeclaration>` を渡さないと関数呼び出し経由の型推論が行われない。同ファイルの全手続きマップを作って渡すこと。同じ型推論を繰り返す場合は `memo: Map<string, InferredType>` を共有すれば高速化できる。
+
 50. **`CallGraphProvider.buildCallGraph` はマルチファイル対応・再帰検出あり**（評価 #14）: `fileMap: Map<uri, { statements, uri }>` を渡す。戻り値は `{ nodes: Map<nameLower, ProcNode>, edges: CallEdge[] }`。自己再帰（`factorial → factorial`）・相互再帰（`funca ↔ funcb`）ともにエッジとして正しく検出。メンバーアクセス呼び出し（`obj.Method()`）は追跡しない（設計上の仕様）。`ProcNode.isExcelDependent` は EXCEL_ROOT_OBJECTS 定数セット（`sheets`/`range`/`cells`/`application` 等）への直接参照で判定。

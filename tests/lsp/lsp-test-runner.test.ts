@@ -1,132 +1,122 @@
-import { Lexer } from '../../src/engine/lexer';
-import { Parser } from '../../src/engine/parser';
 import { TestRunner, TestResult } from '../../src/lsp/test-runner';
 import { assert } from '../../test-libs/test-runner';
 
-function runTests(src: string): TestResult[] {
-    const tokens = new Lexer(src).tokenize();
-    const ast = new Parser(tokens).parse();
-    const runner = new TestRunner();
-    return runner.runTests(ast.body);
-}
+const runner = new TestRunner(() => {});
 
 // 1. Passing test is marked PASSED
 {
     const code = `
     Sub Test_Simple()
-        ' Test that does nothing should pass
+        Dim x As Long
+        x = 1 + 1
     End Sub
     `;
-    const results = runTests(code);
+    const results = runner.runTests(code);
     assert.strictEqual(results.length, 1, 'one result');
     assert.strictEqual(results[0].state, 'passed', 'test passed');
     console.log('[PASS] Simple test passes');
 }
 
-// 2. Test with assertion that fails
+// 2. Failing test (Err.Raise) is marked FAILED with correct message
 {
     const code = `
-    Sub Test_AssertFalse()
-        x = 1 + 1
-        if x <> 3 then
-            ' Simulate test pass (in real testing, would use assertions)
-        end if
+    Sub Test_WillFail()
+        On Error GoTo ErrHandler
+        Err.Raise 1, , "Intentional failure"
+        Exit Sub
+    ErrHandler:
+        Err.Raise Err.Number, , Err.Description
     End Sub
     `;
-    const results = runTests(code);
+    const results = runner.runTests(code);
     assert.strictEqual(results.length, 1, 'one result');
-    assert.ok(results[0].state === 'passed' || results[0].state === 'failed', 'has state');
-    console.log('[PASS] Test with logic handled');
+    assert.strictEqual(results[0].state, 'failed', 'test failed');
+    assert.strictEqual(results[0].message, 'Intentional failure', 'error message is correct');
+    console.log('[PASS] Failing test: state=failed, message correct');
 }
 
-// 3. Multiple tests
+// 3. Multiple tests — each is evaluated independently via shared module scope
 {
     const code = `
     Sub Test_First()
+        Dim x As Long
+        x = 1
     End Sub
     Sub Test_Second()
+        Dim y As Long
+        y = 2
     End Sub
     `;
-    const results = runTests(code);
+    const results = runner.runTests(code);
     assert.strictEqual(results.length, 2, 'two results');
     assert.strictEqual(results[0].name, 'Test_First', 'first test name');
     assert.strictEqual(results[1].name, 'Test_Second', 'second test name');
+    assert.strictEqual(results[0].state, 'passed', 'first passed');
+    assert.strictEqual(results[1].state, 'passed', 'second passed');
     console.log('[PASS] Multiple tests executed');
 }
 
-// 4. Test error is captured
-{
-    const code = `
-    Sub Test_WithError()
-        y = z 'undefined variable should cause error in strict mode
-    End Sub
-    `;
-    const results = runTests(code);
-    assert.strictEqual(results.length, 1, 'one result');
-    assert.ok(results[0].state, 'test executed');
-    // Error may be caught depending on evaluator strictness
-    console.log('[PASS] Error handling in test');
-}
-
-// 5. Test result has required fields
-{
-    const code = 'Sub Test_Check()\nEnd Sub';
-    const results = runTests(code);
-    const result = results[0];
-    assert.ok(result.name, 'name present');
-    assert.ok(result.state, 'state present');
-    assert.ok(typeof result.duration === 'number', 'duration is number');
-    console.log('[PASS] Test result fields complete');
-}
-
-// 6. Test duration measured
-{
-    const code = 'Sub Test_Timing()\nEnd Sub';
-    const results = runTests(code);
-    assert.ok(results[0].duration >= 0, 'duration >= 0');
-    console.log('[PASS] Test duration measured');
-}
-
-// 7. Non-Test_ procedures are not run
+// 4. Non-Test_ procedures are not run
 {
     const code = `
     Sub Test_Real()
+        Dim x As Long
+        x = 1
     End Sub
     Sub Helper()
     End Sub
     `;
-    const results = runTests(code);
+    const results = runner.runTests(code);
     assert.strictEqual(results.length, 1, 'only Test_ executed');
+    assert.strictEqual(results[0].name, 'Test_Real', 'correct name');
     console.log('[PASS] Only Test_ procedures executed');
 }
 
-// 8. Test with custom message
+// 5. Empty source returns no results
 {
-    const code = `
-    Sub Test_WithMessage()
-        x = 5 + 5
-    End Sub
-    `;
-    const results = runTests(code);
-    assert.ok(results[0], 'test executed');
-    assert.ok(results[0].message === undefined || typeof results[0].message === 'string', 'message optional or string');
-    console.log('[PASS] Test with optional message');
-}
-
-// 9. Empty test source
-{
-    const results = runTests('');
+    const results = runner.runTests('');
     assert.strictEqual(results.length, 0, 'no tests');
     console.log('[PASS] Empty source: no test results');
 }
 
-// 10. Test state values are valid
+// 6. Test result has required fields with valid duration
 {
     const code = 'Sub Test_Check()\nEnd Sub';
-    const results = runTests(code);
+    const results = runner.runTests(code);
+    const result = results[0];
+    assert.ok(result.name, 'name present');
+    assert.ok(result.state, 'state present');
+    assert.ok(typeof result.duration === 'number', 'duration is number');
+    assert.ok(result.duration >= 0, 'duration >= 0');
     const validStates = ['passed', 'failed', 'errored', 'skipped'];
-    assert.ok(validStates.includes(results[0].state), 'state is valid');
-    console.log('[PASS] Test state is valid value');
+    assert.ok(validStates.includes(result.state), 'state is valid');
+    console.log('[PASS] Test result fields complete');
+}
+
+// 7. runTestWithEvaluation — error message is the VBA error message, not "[object Object]"
+{
+    const code = `
+    Sub Test_WillFail()
+        On Error GoTo ErrHandler
+        Err.Raise 1, , "Intentional failure"
+        Exit Sub
+    ErrHandler:
+        Err.Raise Err.Number, , Err.Description
+    End Sub
+    `;
+    const result = runner.runTestWithEvaluation(code, 'Test_WillFail');
+    assert.strictEqual(result.state, 'failed', 'state is failed');
+    assert.strictEqual(result.message, 'Intentional failure', 'error message is VBA message, not [object Object]');
+    console.log('[PASS] runTestWithEvaluation: error message is correct');
+}
+
+// 8. runTestWithEvaluation — not found returns failed with message
+{
+    const code = 'Sub Test_Other()\nEnd Sub';
+    const result = runner.runTestWithEvaluation(code, 'Test_Missing');
+    assert.strictEqual(result.state, 'failed', 'state is failed');
+    assert.ok(result.message?.includes('Test_Missing'), 'message mentions procedure name');
+    console.log('[PASS] runTestWithEvaluation: not-found handled');
 }
 
 console.log('\n✅ LSP Test Runner: 全テスト通過');

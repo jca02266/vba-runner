@@ -8,7 +8,7 @@
  */
 
 /** Pattern for a proc declaration line that is missing its parameter list. */
-const PROC_NO_PARENS = /^(\s*(?:(?:Public|Private|Friend|Static|Global)\s+)*(?:Sub|Function|Property\s+(?:Get|Let|Set))\s+\w+)\s*$/i;
+const PROC_NO_PARENS = /^(\s*(?:(?:Public|Private|Friend|Static|Global)\s+)*(?:Sub|Function|Property\s+(?:Get|Let|Set))\s+\w+)(?:\s+As\s+\w+)?\s*$/i;
 
 /** Pattern to detect any proc declaration (with or without parens). */
 const PROC_DECL = /^\s*(?:(?:Public|Private|Friend|Static|Global)\s+)*(?:Sub|Function|Property\s+(?:Get|Let|Set))\s+\w+/i;

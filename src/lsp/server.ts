@@ -490,10 +490,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
-        if (!ast) return [];
-
-        return this.testRunner.runTests(ast.body);
+        return this.testRunner.runTests(doc.content);
     }
 
     /**
