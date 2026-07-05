@@ -116,7 +116,7 @@ function collectScopedSymbols(
             });
 
         } else if (stmt.type === 'VariableDeclaration') {
-            addVariableDeclaration(stmt as VariableDeclaration, moduleSymbols);
+            addVariableDeclaration(stmt as VariableDeclaration, moduleSymbols, 'module-var');
 
         } else if (stmt.type === 'ConstDeclaration') {
             addConstDeclaration(stmt as ConstDeclaration, moduleSymbols);
@@ -250,22 +250,24 @@ function addConstDeclaration(
 ): void {
     if (!decl.loc) return;
     const constName = decl.name.name;
+    const constScope: string | undefined = (decl as any).scope;
+    const scopePrefix = constScope ? `${constScope} ` : '';
     if (decl.name.loc) {
         const ln = decl.name.loc.start.line - 1;
         const col = decl.name.loc.start.column - 1;
         out.set(constName.toLowerCase(), {
             name: constName,
-            displayText: `Const ${constName}`,
+            displayText: `${scopePrefix}Const ${constName}`,
             kind,
             range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
         });
     } else {
         const declLine = decl.loc.start.line - 1;
         const declCol  = decl.loc.start.column - 1;
-        const nameStart = declCol + 6; // 'Const '
+        const nameStart = declCol + (scopePrefix.length + 6); // 'Const '
         out.set(constName.toLowerCase(), {
             name: constName,
-            displayText: `Const ${constName}`,
+            displayText: `${scopePrefix}Const ${constName}`,
             kind,
             range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
         });
@@ -302,7 +304,8 @@ function makeProcEntry(proc: ProcedureDeclaration): SymbolEntry {
     let keyword = 'Sub';
     if (proc.isFunction) keyword = 'Function';
     if (proc.isProperty) keyword = `Property ${proc.propertyType ?? 'Get'}`;
-    let sig = `${keyword} ${proc.name.name}(${params})`;
+    const scopePrefix = proc.scope ? `${proc.scope} ` : '';
+    let sig = `${scopePrefix}${keyword} ${proc.name.name}(${params})`;
     if (proc.isFunction || proc.isProperty) sig += ` As ${proc.returnType || 'Variant'}`;
 
     return { name: proc.name.name, displayText: sig, kind: 'procedure', range: nameRange };

@@ -520,4 +520,64 @@ import { join } from 'node:path';
     console.log('[PASS] ユーザー定義識別子は正常に参照検索できる');
 }
 
+// 18. Private Sub はクロスファイル検索されない
+{
+    const srcA = [
+        'Private Sub PrivFoo()',
+        'End Sub',
+        'Sub CallIt()',
+        '    PrivFoo',
+        'End Sub',
+    ].join('\n');
+    const srcB = [
+        'Sub Bar()',
+        '    PrivFoo',   // 別の文脈（モジュール外から呼べないはずだが名前一致）
+        'End Sub',
+    ].join('\n');
+
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+    ]);
+
+    const line = lineOf(srcA, 'PrivFoo()');
+    const col = colOf(srcA, 'PrivFoo', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    const uris = refs.map((r: any) => r.uri);
+    assert.ok(!uris.includes(URI_B), 'Private Sub はクロスファイル検索しない');
+    assert.ok(uris.includes(URI_A), '現在ファイル内の参照は含まれる');
+    console.log('[PASS] Private Sub はクロスファイル参照検索されない');
+}
+
+// 19. モジュールレベルの Dim（スコープなし）でも別ファイルの同名 Dim は除外される
+{
+    const srcA = [
+        'Dim counter As Long',
+        'Sub Inc()',
+        '    counter = counter + 1',
+        'End Sub',
+    ].join('\n');
+    const srcB = [
+        'Dim counter As Long',   // 全く別の変数
+        'Sub Reset()',
+        '    counter = 0',
+        'End Sub',
+    ].join('\n');
+
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+    ]);
+
+    const line = lineOf(srcA, 'counter As Long');
+    const col = colOf(srcA, 'counter', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    const uris = refs.map((r: any) => r.uri);
+    assert.ok(!uris.includes(URI_B), 'スコープなし Dim でも別ファイルの同名宣言は除外');
+    assert.ok(uris.includes(URI_A), '現在ファイルの参照は含まれる');
+    console.log('[PASS] モジュールレベル Dim（スコープなし）でも別ファイルの同名宣言を除外');
+}
+
 console.log('\n✅ LSP Cross-file Definition / References: 全テスト通過');
