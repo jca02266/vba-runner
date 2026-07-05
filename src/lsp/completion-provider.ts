@@ -548,10 +548,17 @@ export class CompletionProvider {
         // Set x = CreateObject("ProgID") — ProgID を最優先（"object" などの汎用型宣言より具体的）
         const createObjRe = new RegExp(
             `Set\\s+${escaped}\\s*=\\s*CreateObject\\s*\\(\\s*"([^"]+)"\\s*\\)`,
-            'i',
+            'gi',
         );
-        const mc = source.match(createObjRe);
-        if (mc) return mc[1].toLowerCase();
+        const progIds: string[] = [];
+        let cm: RegExpExecArray | null;
+        while ((cm = createObjRe.exec(source)) !== null) progIds.push(cm[1].toLowerCase());
+        if (progIds.length > 0) {
+            // 複数の異なる ProgID が存在する場合は曖昧なので null
+            const uniq = new Set(progIds);
+            if (uniq.size === 1) return progIds[0];
+            return null;
+        }
         // Dim x As TypeName
         const dimRe = new RegExp(
             `(?:Dim|Private|Public|Friend|Static)\\s+${escaped}\\s+As(?:\\s+New)?\\s+([a-zA-Z_][a-zA-Z0-9_.]*)`,

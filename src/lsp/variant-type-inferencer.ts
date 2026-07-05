@@ -464,7 +464,8 @@ export function inferModuleVarType(varName: string, statements: Statement[]): In
     return null;
 }
 
-function searchCreateObjectAssignment(stmts: Statement[], varName: string): InferredType {
+function collectCreateObjectProgIds(stmts: Statement[], varName: string): string[] {
+    const results: string[] = [];
     for (const stmt of stmts) {
         if (stmt.type === 'SetStatement') {
             const s = stmt as any;
@@ -473,29 +474,31 @@ function searchCreateObjectAssignment(stmts: Statement[], varName: string): Infe
                     const callee = s.right.callee;
                     if (callee?.type === 'Identifier' && callee.name.toLowerCase() === 'createobject') {
                         const args = s.right.args ?? [];
-                        if (args.length > 0 && args[0].type === 'StringLiteral') {
-                            return resolveProgIdType(args[0].value);
-                        }
-                        return 'Object';
+                        const t = args.length > 0 && args[0].type === 'StringLiteral'
+                            ? resolveProgIdType(args[0].value)
+                            : 'Object';
+                        if (t) results.push(t);
                     }
                 }
             }
         }
         const s = stmt as any;
         for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
-            if (Array.isArray(s[key])) {
-                const found = searchCreateObjectAssignment(s[key], varName);
-                if (found) return found;
-            }
+            if (Array.isArray(s[key])) results.push(...collectCreateObjectProgIds(s[key], varName));
         }
         if (s.cases) {
-            for (const c of s.cases) {
-                const found = searchCreateObjectAssignment(c.body ?? [], varName);
-                if (found) return found;
-            }
+            for (const c of s.cases) results.push(...collectCreateObjectProgIds(c.body ?? [], varName));
         }
     }
-    return null;
+    return results;
+}
+
+function searchCreateObjectAssignment(stmts: Statement[], varName: string): InferredType {
+    const types = collectCreateObjectProgIds(stmts, varName);
+    if (types.length === 0) return null;
+    // 複数の異なる型が存在する場合は曖昧なので null
+    const uniq = new Set(types);
+    return uniq.size === 1 ? types[0] : null;
 }
 
 /** AST のトップレベル手続きリストから名前→宣言のマップを作る */

@@ -15,7 +15,7 @@
     ["\"", "\""]
   ],
   "indentationRules": {
-    "increaseIndentPattern": { "pattern": "^\\s*(If\\b.*\\bThen\\s*$|For\\b|While\\b|Do\\b|With\\b|Sub\\b|Function\\b|Property\\b|Class\\b|Type\\b|Select\\s+Case\\b|Enum\\b)", "flags": "i" },
-    "decreaseIndentPattern": { "pattern": "^\\s*(End\\s+(If|Sub|Function|Property|With|Select|Type|Enum|Class)\\b|Else\\b|ElseIf\\b|Loop\\b|Next\\b|Wend\\b|Case\\b)", "flags": "i" }
+    "increaseIndentPattern": { "pattern": "^\\s*(If\\b.*\\bThen\\s*$|ElseIf\\b.*\\bThen\\b|Else\\b|For\\b|While\\b|Do\\b|With\\b|Sub\\b|Function\\b|Property\\b|Class\\b|Type\\b|Select\\s+Case\\b|Enum\\b|Case\\b)", "flags": "i" },
+    "decreaseIndentPattern": { "pattern": "^\\s*(End\\b|Else\\b|ElseIf\\b|Loop\\b|Next\\b|Wend\\b|Case\\b)", "flags": "i" }
   }
 }
