@@ -105,4 +105,41 @@ function getSignatureHelp(src: string, line: number, character: number) {
     console.log('[PASS] getSignatureHelp: 未定義関数 → null');
 }
 
+// 11. VBA space-call スタイル: "MySub arg1" でシグネチャヘルプ
+{
+    const ctx = findCallContext('MySub arg1', 10);
+    assert.ok(ctx, 'MySub arg1 → context あり');
+    assert.strictEqual(ctx!.name, 'MySub', 'name = MySub');
+    assert.strictEqual(ctx!.activeParameter, 0, 'activeParameter = 0');
+    console.log('[PASS] findCallContext: space-call スタイル (第1引数)');
+}
+
+// 12. VBA space-call: カンマ後は activeParameter=1
+{
+    const ctx = findCallContext('MySub arg1, arg2', 16);
+    assert.ok(ctx, 'MySub arg1, arg2 → context あり');
+    assert.strictEqual(ctx!.name, 'MySub', 'name = MySub');
+    assert.strictEqual(ctx!.activeParameter, 1, 'カンマ後は activeParameter=1');
+    console.log('[PASS] findCallContext: space-call スタイル (第2引数)');
+}
+
+// 13. Call キーワード付き space-call
+{
+    const ctx = findCallContext('    Call MySub arg1', 19);
+    assert.ok(ctx, 'Call MySub arg1 → context あり');
+    assert.strictEqual(ctx!.name, 'MySub', 'name = MySub');
+    assert.strictEqual(ctx!.activeParameter, 0, 'activeParameter = 0');
+    console.log('[PASS] findCallContext: Call キーワード付き space-call');
+}
+
+// 14. space-call でも GetSignatureHelp が全体的に動作する
+{
+    const src = 'Sub Greet(name As String, count As Integer)\nEnd Sub\nSub Main()\n    Greet "hello", 1\nEnd Sub';
+    // 行 3: '    Greet "hello", 1' — cursor at end (space-call style)
+    const result = getSignatureHelp(src, 3, 19);
+    assert.ok(result, 'Greet "hello", 1 → シグネチャヘルプあり');
+    assert.strictEqual(result!.activeParameter, 1, '2番目の引数でアクティブパラメーター=1');
+    console.log('[PASS] getSignatureHelp: space-call スタイル');
+}
+
 console.log('\n✅ lsp-signature-help: 全テスト通過');

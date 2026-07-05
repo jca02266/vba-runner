@@ -59,7 +59,7 @@
       "patterns": [
         {
           "name": "keyword.control.bas",
-          "match": "\\b(If|Then|Else|ElseIf|End If|Select|Case|For|Each|In|To|Step|Next|While|Wend|Do|Loop|Until|With|End With|Sub|End Sub|Function|End Function|Property|Get|End Property|Class|End Class|Type|End Type|Enum|End Enum|Public|Private|Friend|Protected|Static|Dim|Const|ReDim|Preserve|Erase|Set|Let|Call|Exit|Return|GoTo|GoSub|On Error|Resume|Implements|Option|Explicit|Declare|Event|RaiseEvent|WithEvents|ByVal|ByRef|Optional|ParamArray|New|Me)\\b"
+          "match": "\\b(If|Then|Else|ElseIf|End If|Select|Case|For|Each|In|To|Step|Next|While|Wend|Do|Loop|Until|With|End With|Sub|End Sub|Function|End Function|Property|Get|End Property|Class|End Class|Type|End Type|Enum|End Enum|End Select|Public|Private|Friend|Protected|Static|Dim|Const|ReDim|Preserve|Erase|Set|Let|Call|Exit|Return|GoTo|GoSub|On Error|Resume|Implements|Option|Explicit|Declare|Event|RaiseEvent|WithEvents|ByVal|ByRef|Optional|ParamArray|New|Me)|End)\\b"
         },
         {
           "name": "keyword.type.bas",

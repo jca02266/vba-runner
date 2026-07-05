@@ -174,6 +174,18 @@ export function findCallContext(lineText: string, character: number): { name: st
         }
     }
 
+    // VBA space-call style: "MySub arg1, arg2" or "Call MySub arg1"
+    // activeParameter is already correct from comma-counting above.
+    if (depth === 0) {
+        const m = text.match(/^\s*(?:Call\s+)?([A-Za-z_][A-Za-z0-9_]*)\s/);
+        if (m) {
+            // Reject assignments like "x = expr" (= not followed by another =)
+            const afterName = text.slice(m[0].length).trimStart();
+            if (/^=(?!=)/.test(afterName)) return null;
+            return { name: m[1], activeParameter };
+        }
+    }
+
     return null;
 }
 

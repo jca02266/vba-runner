@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 16 | VS Code 拡張機能 評価 #15 バグ修正確認 + 新規 edge case | **全3件修正確認**: `autoParensEdit` 戻り型付き Function 対応済み / `TestRunner.runTests(src)` 本実装済み（`Err.Raise` → `failed` を返す）/ `runTestWithEvaluation` エラーメッセージ正常化済み / **新規**: VBA キーワード（`Set`/`If`）参照は正しく空を返す（問題なし）/ `Dim x As`（型名欠落）はパーサーが黙って回復し構文エラーを出さない（改善候補）/ `ByRef/ByVal` 省略への VBA003 警告が severity:Warning（新規ユーザーには noisy） | 2026-07-05 |
 | 1 | 在庫管理システム | `.cls` クラス / `ReDim Preserve` / `On Error GoTo`・`Resume Next` / `Err.Raise` / 動的配列 | 2026-06-26 |
 | 2 | ローマ数字コンバーター | `.cls` / `Property Get` / `ByRef` writeback / Boolean 変換 / JS 配列→VBA 配列 | 2026-06-27 |
 | 3 | テキスト統計アナライザー | `Function As Double` 精度 / ディレクトリ読み込み / `eval()` 括弧あり・なし呼び出し / `Err.Raise` | 2026-06-27 |
@@ -77,13 +78,13 @@
 |---|---|---|
 | ~~`CodeLensProvider`: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）~~ | **修正済み**: `testProcReferences` の `start` を `proc.loc.start.line - 1`（宣言行含む）から `proc.loc.start.line`（宣言行スキップ）に変更。 | |
 
-### 未修正バグ（評価 #15 で発見）
+### ~~未修正バグ（評価 #15 で発見・評価 #16 で修正確認）~~
 
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
-| `autoParensEdit` が戻り型付き Function を検出しない | `autoParensEdit('Function GetValue As Long')` → `null`（期待: `{ insertCol: 18 }`） | `PROC_NO_PARENS` 正規表現が `\w+\s*$` でプロシージャ名後に `As Type` を許可していない。VBE では自動で `()` が挿入される |
-| `TestRunner.runTests()` がスタブ実装（常に `passed` を返す） | `tr.runTests(stmts)` が Err.Raise する手続きでも `{ state: 'passed' }` を返す | `runTest(proc)` 内部が評価を行わずタイマーだけ計測して `passed` を返す未実装コード（コメント "For now, we mark as passed if no error occurs" が残る） |
-| `runTestWithEvaluation` のエラーメッセージが `"[object Object]"` | `Err.Raise 1, , "Intentional failure"` を実行 → `result.message === "[object Object]"` | `catch` 節の `testError instanceof Error` が false になる（VBA エラーは plain object）。`String(testError)` にフォールバックして `"[object Object]"` になる。`src/lsp/test-runner.ts:126` |
+| ~~`autoParensEdit` が戻り型付き Function を検出しない~~ | **修正済み（評価 #16 で確認）**: `PROC_NO_PARENS` 正規表現に `(?:\s+As\s+\w+)?` が追加されており `autoParensEdit('Function GetValue As Long')` → `{ insertCol: 17 }` が正常に返る。 | |
+| ~~`TestRunner.runTests()` がスタブ実装（常に `passed` を返す）~~ | **修正済み（評価 #16 で確認）**: `runTests` の引数は `stmts` から `src: string` に変更され、内部で `Evaluator` が実際に評価を行う本実装になっている。`Err.Raise` → `{ state: 'failed', message: 'Intentional failure' }` が正しく返る。 | |
+| ~~`runTestWithEvaluation` のエラーメッセージが `"[object Object]"`~~ | **修正済み（評価 #16 で確認）**: `catch` 節が `(testError as any)?.message ?? String(testError)` になっており、VBA エラー plain object の `.message` プロパティが正しく取り出される。`Err.Raise 1, , "Intentional failure"` → `result.message === "Intentional failure"` が確認できた。 | |
 
 ### 未対応の機能制限（改善候補）
 
@@ -100,6 +101,8 @@
 | ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
+| `Dim x As`（型名欠落）が構文エラーにならない | `Dim x As\n` と書くと parser の error recovery が黙って回復し、`VBA014` 未使用変数警告のみが出る。構文ミスを新規ユーザーが気付けない可能性がある。 |
+| VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy | `Function Add(a As Long, b As Long)` のような標準的な宣言でも `VBA003` が severity 2（Warning）で出る。VBA の慣習では省略が普通のため、初回ロード時に「いきなり Warning が多い」印象を与えやすい。Hint（severity 4）への変更か設定で off 可能にすると親切。 |
 | ~~`vba-types.json` 削除時に型スタブがリセットされない~~ | **修正済み**: `server.ts` に `clearTypeStubs()` を追加し、`extension.ts` の `typeStubsWatcher.onDidDelete` でフック。`vba-types.json` 削除時に補完プロバイダーの型スタブが即座にクリアされる。 |
 | ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
 | ~~LSP: シグネチャヘルプが文字列リテラル入力中に消える~~ | **修正済み**: `findCallContext` の文字列境界判定を Lexer トークンベースに変更。右→左スキャンの誤判定を解消。`findCallContext('Format(x, "', 11)` → `{ name: 'Format', activeParameter: 1 }` が正しく返る。 |
@@ -271,9 +274,10 @@
 47. **`CodeLensProvider.getCodeLens` の lens 構成**（評価 #14）: プロシージャごとに最大 5 種類の lens が付く: `▶ Run` + `🐛 Debug`（必須パラメーターなし or `Test_*` 1param のみ）/ 参照数 or `🔔 Event Handler`（常時）/ `✓ Tested` or `Untested`（常時）/ `📊 Show in Call Graph`（常時）。テスト結果を渡した場合は `Test_*` にさらに結果 lens（`✓ Xms` or `✗ message`）が追加。
 48. **`CodeLensProvider.getDeadCodeWarnings` で Private 0参照プロシージャを検出できる**（評価 #14）: `isPrivate && refCount === 0 && !isEventHandler` の条件でデッド候補を列挙。イベントハンドラー（`KNOWN_VBA_EVENT_NAMES` 照合）は除外される。
 49. **`FoldingRangeProvider.getFoldingRanges` は全主要ブロックをカバー**（評価 #14）: Sub/Function/If/For/ForEach/DoWhile/While/With/SelectCase/Type/Enum/Class が対象。単行 `If x Then Debug.Print y`（Then 後に実体がある場合）は折りたたみ対象外。`FoldingRange` は `{ startLine, endLine }` の 0-based ペア。
-51. **`autoParensEdit` は戻り型なしの Sub/Function/Property のみ対応**（評価 #15）: `Function GetValue As Long` のように `As Type` が続く行は `null` を返す。VBE では自動で `()` が挿入されるが vba-runner では未対応。`PROC_NO_PARENS` 正規表現（`auto-parens.ts:11`）を `\w+(?:\s+As\s+\w+)?\s*$` に拡張すれば対応可能。
-52. **`TestRunner.runTests(statements)` はスタブ実装**（評価 #15）: 評価を実行せず常に `{ state: 'passed' }` を返す。実際にテストを実行するには `runTestWithEvaluation(src, testName)` を使うこと。ただし後者もエラーメッセージに問題あり（注意53）。
-53. **`TestRunner.runTestWithEvaluation` のエラーメッセージが `"[object Object]"` になる**（評価 #15）: VBA の `Err.Raise` は plain object を throw するため `instanceof Error` が false になる。`catch` 節の `String(testError)` が `"[object Object]"` になる。`src/lsp/test-runner.ts:126` を `(testError as any)?.message ?? String(testError)` に変更で修正可能。
+51. ~~**`autoParensEdit` は戻り型なしの Sub/Function/Property のみ対応**（評価 #15）~~（評価 #16 で修正確認済み）: `PROC_NO_PARENS` 正規表現に `(?:\s+As\s+\w+)?` が追加され、`Function GetValue As Long` → `{ insertCol: 17 }` が正常に返る。
+52. ~~**`TestRunner.runTests(statements)` はスタブ実装**（評価 #15）~~（評価 #16 で修正確認済み）: `runTests` の引数は `src: string`（VBA ソース文字列）に変更され、内部で実際に評価を行う本実装になっている。`Err.Raise` するテストは `{ state: 'failed' }` を返す。
+53. ~~**`TestRunner.runTestWithEvaluation` のエラーメッセージが `"[object Object]"` になる**（評価 #15）~~（評価 #16 で修正確認済み）: `catch` 節が `(testError as any)?.message ?? String(testError)` になっており、VBA エラー plain object の `.message` が正しく取り出される。
+56. **`TestRunner.runTests(src)` の正しい引数は VBA ソース文字列**（評価 #16）: 評価 #15 では `stmts`（Statement[]）が引数と記録されていたが、現行は `src: string` が正しい。`runTests(parsed.body)` のように Statement[] を渡すと `char.codePointAt is not a function` で TypeError になる。正しくは `runTests(vbaSourceCode)` とすること。
 54. **`HoverProvider.getHoverInfo` のパラメーター hover range は列 0 固定**（評価 #15）: パーサーがパラメーターの loc を AST に記録しないため、`symbol-table.ts` がパラメーターの位置を手続きヘッダー行・列 0 からの推定値として記録する。ホバー時の下線範囲が列 0 から始まる（設計上の既知の制限）。
 55. **`inferVariantTypes` は `buildProcMap` の返す `Map` を渡すと再帰型推論が効く**（評価 #15）: `allProcs: Map<string, ProcedureDeclaration>` を渡さないと関数呼び出し経由の型推論が行われない。同ファイルの全手続きマップを作って渡すこと。同じ型推論を繰り返す場合は `memo: Map<string, InferredType>` を共有すれば高速化できる。
 

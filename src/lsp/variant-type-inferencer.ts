@@ -81,13 +81,23 @@ export function inferVariantTypes(
     const resolved = new Map<string, InferredType>();
     collectAssignmentTypes(proc.body, variantVars, resolved, allProcs, memo, 0);
 
-    // 3. VarHint に変換
+    // 3. VarHint に変換（宣言型と同じ型は冗長なのでスキップ）
     const hints: VarHint[] = [];
+    // 変数ごとの宣言型を逆引きするマップを構築
+    const declaredTypeMap = new Map<string, string>();
+    for (const stmt of proc.body) {
+        if (stmt.type !== 'VariableDeclaration') continue;
+        for (const decl of (stmt as VariableDeclaration).declarations) {
+            const t = decl.objectType?.toLowerCase();
+            if (t) declaredTypeMap.set(decl.name.name.toLowerCase(), t);
+        }
+    }
     for (const [varName, pos] of variantVars) {
         const inferred = resolved.get(varName) ?? null;
-        if (inferred) {
-            hints.push({ varName, inferredType: inferred, ...pos, kind: 'var' });
-        }
+        if (!inferred) continue;
+        const declared = declaredTypeMap.get(varName) ?? '';
+        if (inferred.toLowerCase() === declared) continue; // 宣言型と同じは冗長
+        hints.push({ varName, inferredType: inferred, ...pos, kind: 'var' });
     }
     return hints;
 }
@@ -409,7 +419,7 @@ function resolveProgIdType(progId: string): string {
     if (lower.includes('range'))       return 'Range';
     if (lower.includes('worksheet'))   return 'Worksheet';
     if (lower.includes('workbook'))    return 'Workbook';
-    return 'Object';
+    return progId; // 未知 ProgID はそのまま返す（"As Excel.Application" 等で表示）
 }
 
 function normalizeType(t: string): string {
@@ -420,6 +430,23 @@ function normalizeType(t: string): string {
         currency: 'Currency', variant: 'Variant', decimal: 'Decimal',
     };
     return map[t.toLowerCase()] ?? t;
+}
+
+/**
+ * ローカル変数の `As Object` 宣言について、その変数が宣言されているプロシージャ内の
+ * `Set varName = CreateObject(...)` 代入から型を推論する。
+ */
+export function inferLocalVarType(varName: string, procName: string | null, statements: Statement[]): InferredType {
+    if (!procName) return null;
+    const lower = varName.toLowerCase();
+    const procLower = procName.toLowerCase();
+    for (const stmt of statements) {
+        if (stmt.type !== 'ProcedureDeclaration') continue;
+        const proc = stmt as ProcedureDeclaration;
+        if (proc.name.name.toLowerCase() !== procLower) continue;
+        return searchCreateObjectAssignment(proc.body, lower);
+    }
+    return null;
 }
 
 /**

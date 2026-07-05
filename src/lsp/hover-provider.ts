@@ -8,7 +8,7 @@ import {
     SymbolKind,
     SymbolLookupResult,
 } from './symbol-table';
-import { inferModuleVarType } from './variant-type-inferencer';
+import { inferModuleVarType, inferLocalVarType } from './variant-type-inferencer';
 
 export interface Hover {
     contents: string;
@@ -39,10 +39,17 @@ export class HoverProvider {
 
         if (ctx) {
             let displayText = ctx.entry.displayText;
-            // モジュール変数が As Object の場合、全プロシージャを走査して CreateObject 代入から型を推論
-            if (ctx.entry.kind === 'module-var' && /\bAs Object\b/i.test(displayText)) {
-                const inferred = inferModuleVarType(ctx.entry.name, statements);
-                if (inferred) displayText = displayText.replace(/\bAs Object\b/i, `As ${inferred}`);
+            // As Object 変数: CreateObject 代入から ProgID を推論して表示
+            if (/\bAs Object\b/i.test(displayText)) {
+                let inferred: string | null = null;
+                if (ctx.entry.kind === 'module-var') {
+                    inferred = inferModuleVarType(ctx.entry.name, statements);
+                } else if (ctx.entry.kind === 'local-var') {
+                    inferred = inferLocalVarType(ctx.entry.name, ctx.procName, statements);
+                }
+                if (inferred && inferred.toLowerCase() !== 'object') {
+                    displayText = displayText.replace(/\bAs Object\b/i, `As ${inferred}`);
+                }
             }
             parts.push(`\`\`\`vba\n${displayText}\n\`\`\``);
             const ctxLine = buildContextLine(ctx);

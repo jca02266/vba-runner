@@ -312,7 +312,7 @@ function checkParameters(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
             const k003 = "Parameter '{0}' has no explicit ByVal/ByRef. VBA defaults to ByRef";
             const a003 = [param.name];
             out.push({
-                code: 'VBA003', severity: 2,
+                code: 'VBA003', severity: 4,
                 message: fmt(k003, a003), l10nKey: k003, l10nArgs: a003,
                 line, column: col, endLine: line, endColumn: col + param.name.length,
             });

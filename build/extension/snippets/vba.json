@@ -48,8 +48,7 @@
       "Exit ${2:Sub}",
       "",
       "${1:ErrHandler}:",
-      "\tErr.Clear",
-      "End ${2:Sub}"
+      "\tErr.Clear"
     ],
     "description": "On Error GoTo ... ErrHandler パターン"
   },
@@ -82,7 +81,7 @@
     "description": "Function ... End Function"
   },
   "Do While Loop": {
-    "prefix": "do",
+    "prefix": ["do", "wh"],
     "body": [
       "Do While ${1:condition}",
       "\t$0",

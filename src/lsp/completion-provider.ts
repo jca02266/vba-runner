@@ -397,6 +397,11 @@ export class CompletionProvider {
             // AST walk first; fallback to source text scan when AST is incomplete (e.g. mid-type error recovery)
             let typeName = this.findVariableType(statements, memberAccess.objectName, line)
                         ?? this.findVariableTypeFromSource(source, memberAccess.objectName);
+            // object/variant は汎用型: ソース側に CreateObject で具体型が判明する場合は昇格
+            if (typeName === 'object' || typeName === 'variant') {
+                const specific = this.findVariableTypeFromSource(source, memberAccess.objectName);
+                if (specific && specific !== 'object' && specific !== 'variant') typeName = specific;
+            }
 
             // チェーンアクセス解決: "objectName" 自体が変数でない場合、カーソル前の式全体を評価
             if (!typeName) {

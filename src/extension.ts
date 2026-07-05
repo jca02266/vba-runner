@@ -440,7 +440,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 help.activeParameter = result.activeParameter;
                 return help;
             }
-        }, '(', ','));
+        }, '(', ',', ' '));
     outputChannel.appendLine('✓ Signature help provider registered');
 
     // Register test discovery
