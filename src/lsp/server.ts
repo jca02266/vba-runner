@@ -446,7 +446,16 @@ export class LSPServer {
     /** 全ワークスペースドキュメントから Class / Type / Enum の型名を収集する。 */
     private collectAllUserDefinedTypeNames(): Set<string> {
         const names = new Set<string>();
-        for (const [, doc] of this.allDocuments()) {
+        for (const [uri, doc] of this.allDocuments()) {
+            // .cls ファイルはファイル名（拡張子なし）がクラス名になる。
+            // parseDocument は parseAsClass を使わないため ClassDeclaration を生成しないので
+            // AST に頼らずファイル名から直接クラス名を登録する。
+            if (uri.toLowerCase().endsWith('.cls')) {
+                try {
+                    names.add(path.basename(uriToPath(uri), '.cls').toLowerCase());
+                } catch { /* file:// 以外の URI は無視 */ }
+            }
+            // Type / Enum 宣言は AST から収集する
             try {
                 const ast = this.parseDocument(doc.content);
                 if (ast?.body) {
@@ -499,6 +508,8 @@ export class LSPServer {
     getDiagnostics(uri: string): any[] {
         const doc = this.documents.get(uri);
         if (!doc) return [];
+
+        this.ensureDirectoryScanned(uri);
 
         try {
             const lexer = new Lexer(stripVBAFileHeader(doc.content));

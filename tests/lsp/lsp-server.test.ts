@@ -345,4 +345,32 @@ End Sub
     console.log('[PASS] getVariantTypeHints: CreateObject("Scripting.FileSystemObject") → As FileSystemObject');
 }
 
+// VBA016: 他の .cls ファイルで定義されたクラスが未知型とみなされないこと
+// (loadWorkspaceFile で隣接ファイルを登録した場合)
+{
+    const server = createServer();
+    const mainUri = 'file:///proj/Main.bas';
+    const helperUri = 'file:///proj/Helper.cls';
+
+    // Helper.cls をワークスペースファイルとして登録
+    server.loadWorkspaceFile(helperUri, [
+        'Attribute VB_Name = "Helper"',
+        'Public Function GetValue() As Long',
+        '    GetValue = 42',
+        'End Function',
+    ].join('\n'));
+
+    // Main.bas で Helper 型を使う（As Helper）
+    server.didOpen(mainUri, [
+        'Sub UseHelper()',
+        '    Dim h As Helper',
+        'End Sub',
+    ].join('\n'));
+
+    const diags = server.getDiagnostics(mainUri);
+    const vba016 = diags.filter((d: any) => d.code === 'VBA016');
+    assert.strictEqual(vba016.length, 0, 'Helper が .cls ファイルとして登録されていれば VBA016 は出ない');
+    console.log('[PASS] VBA016: 隣接 .cls ファイルの型を認識する');
+}
+
 console.log('\n✅ LSPServer: 全テスト通過');
