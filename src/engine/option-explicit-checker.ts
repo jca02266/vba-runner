@@ -89,6 +89,8 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
     'weekday', 'weekdayname', 'year',
     // Special built-in objects (used as identifiers, not called)
     'debug', 'err',
+    // Class instance reference — valid in any .cls procedure context
+    'me',
     // Built-in Sub statements parsed as CallStatement (not functions)
     'beep', 'chdir', 'mkdir', 'rmdir', 'randomize', 'sleep', 'wait',
 ]);

@@ -8,6 +8,7 @@ import {
     SymbolKind,
     SymbolLookupResult,
 } from './symbol-table';
+import { inferModuleVarType } from './variant-type-inferencer';
 
 export interface Hover {
     contents: string;
@@ -18,15 +19,11 @@ export interface Hover {
 }
 
 export class HoverProvider {
-    /**
-     * @param fileName basename of the current file (e.g. "Sheet1.bas"), shown in context line
-     */
     getHoverInfo(
         statements: Statement[],
         sourceText: string,
         line: number,
         character: number,
-        fileName?: string,
     ): Hover | null {
         const word = getWordAtPosition(sourceText, line, character);
         if (!word) return null;
@@ -41,8 +38,14 @@ export class HoverProvider {
         const parts: string[] = [];
 
         if (ctx) {
-            parts.push(`\`\`\`vb\n${ctx.entry.displayText}\n\`\`\``);
-            const ctxLine = buildContextLine(ctx, fileName);
+            let displayText = ctx.entry.displayText;
+            // モジュール変数が As Object の場合、全プロシージャを走査して CreateObject 代入から型を推論
+            if (ctx.entry.kind === 'module-var' && /\bAs Object\b/i.test(displayText)) {
+                const inferred = inferModuleVarType(ctx.entry.name, statements);
+                if (inferred) displayText = displayText.replace(/\bAs Object\b/i, `As ${inferred}`);
+            }
+            parts.push(`\`\`\`vba\n${displayText}\n\`\`\``);
+            const ctxLine = buildContextLine(ctx);
             if (ctxLine) parts.push(ctxLine);
         }
 
@@ -108,10 +111,10 @@ export class HoverProvider {
 
 // ─── context line builder ─────────────────────────────────────────────────────
 
-function buildContextLine(ctx: SymbolLookupResult, fileName?: string): string {
+function buildContextLine(ctx: SymbolLookupResult): string {
     const kindLabel = kindContextLabel(ctx.entry.kind, ctx.procName);
-    const filePart = fileName ? `\`${fileName}\`` : null;
-    return [kindLabel, filePart].filter(Boolean).join(' · ');
+    // HoverProvider は常に現在ファイルの AST のみを検索するため "this module" で固定
+    return [kindLabel, 'this module'].filter(Boolean).join(' · ');
 }
 
 function kindContextLabel(kind: SymbolKind, procName: string | null): string {

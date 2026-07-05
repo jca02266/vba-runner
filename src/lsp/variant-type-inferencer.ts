@@ -210,7 +210,7 @@ function inferReturnTypeHint(
 ): VarHint | null {
     if (!proc.isFunction && !proc.isProperty) return null;
     const declaredType = proc.returnType?.toLowerCase();
-    if (declaredType && declaredType !== 'variant') return null; // 明示型あり → スキップ
+    if (declaredType) return null; // 型が明示されていれば（As Variant を含む）スキップ
 
     const inferred = inferFunctionReturnType(proc, allProcs, memo, 0);
     if (!inferred) return null;
@@ -420,6 +420,55 @@ function normalizeType(t: string): string {
         currency: 'Currency', variant: 'Variant', decimal: 'Decimal',
     };
     return map[t.toLowerCase()] ?? t;
+}
+
+/**
+ * モジュールレベルの `As Object` 変数について、全プロシージャボディを走査して
+ * `Set varName = CreateObject(...)` 代入から型を推論する。
+ */
+export function inferModuleVarType(varName: string, statements: Statement[]): InferredType {
+    const lower = varName.toLowerCase();
+    for (const stmt of statements) {
+        if (stmt.type !== 'ProcedureDeclaration') continue;
+        const proc = stmt as ProcedureDeclaration;
+        const t = searchCreateObjectAssignment(proc.body, lower);
+        if (t) return t;
+    }
+    return null;
+}
+
+function searchCreateObjectAssignment(stmts: Statement[], varName: string): InferredType {
+    for (const stmt of stmts) {
+        if (stmt.type === 'SetStatement') {
+            const s = stmt as any;
+            if (s.left?.type === 'Identifier' && s.left.name.toLowerCase() === varName) {
+                if (s.right?.type === 'CallExpression') {
+                    const callee = s.right.callee;
+                    if (callee?.type === 'Identifier' && callee.name.toLowerCase() === 'createobject') {
+                        const args = s.right.args ?? [];
+                        if (args.length > 0 && args[0].type === 'StringLiteral') {
+                            return resolveProgIdType(args[0].value);
+                        }
+                        return 'Object';
+                    }
+                }
+            }
+        }
+        const s = stmt as any;
+        for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
+            if (Array.isArray(s[key])) {
+                const found = searchCreateObjectAssignment(s[key], varName);
+                if (found) return found;
+            }
+        }
+        if (s.cases) {
+            for (const c of s.cases) {
+                const found = searchCreateObjectAssignment(c.body ?? [], varName);
+                if (found) return found;
+            }
+        }
+    }
+    return null;
 }
 
 /** AST のトップレベル手続きリストから名前→宣言のマップを作る */

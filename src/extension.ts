@@ -201,7 +201,7 @@ export async function activate(context: vscode.ExtensionContext) {
             if (!hover) return null;
 
             const markdownString = new vscode.MarkdownString();
-            markdownString.appendMarkdown(`\`\`\`vba\n${hover.contents}\n\`\`\``);
+            markdownString.appendMarkdown(hover.contents);
 
             return new vscode.Hover(markdownString, hover.range ?
                 new vscode.Range(

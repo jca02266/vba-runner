@@ -258,11 +258,10 @@ export class LSPServer {
 
         // メンバーホバー: obj.Member にカーソルがある場合はシグネチャを表示する
         const memberInfo = this.completionProvider.getMemberHoverInfo(doc.content, line, character, ast.body);
-        const fileName = this.uriBasename(uri);
-        const symbolHover = this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character, fileName);
+        const symbolHover = this.hoverProvider.getHoverInfo(ast.body, doc.content, line, character);
 
         if (memberInfo) {
-            const memberContents = `\`\`\`vb\n${memberInfo.detail}\n\`\`\``;
+            const memberContents = `\`\`\`vba\n${memberInfo.detail}\n\`\`\``;
             if (symbolHover) {
                 return { ...symbolHover, contents: `${memberContents}\n\n${symbolHover.contents}` };
             }
@@ -309,7 +308,7 @@ export class LSPServer {
         // ─ 組み込み型 ─
         if (VBA_BUILTIN_TYPES.has(wordLower)) {
             return {
-                contents: `\`\`\`vb\n${word}\n\`\`\`\n\nBuilt-in VBA type`,
+                contents: `\`\`\`vba\n${word}\n\`\`\`\n\nBuilt-in VBA type`,
                 range: {
                     start: { line, character: character - word.length / 2 | 0 },
                     end:   { line, character },
@@ -330,12 +329,12 @@ export class LSPServer {
             const docFile = this.uriBasename(docUri);
             const kindLabel = isMock ? 'Mock class' : 'User-defined class';
             const fileLabel = isSameFile
-                ? `\`${docFile}\` (this module)`
+                ? 'this module'
                 : docFile ? `\`${docFile}\`` : '';
 
             const contextParts = [kindLabel, fileLabel].filter(Boolean).join(' · ');
             return {
-                contents: `\`\`\`vb\n${entry.displayText}\n\`\`\`\n\n${contextParts}`,
+                contents: `\`\`\`vba\n${entry.displayText}\n\`\`\`\n\n${contextParts}`,
                 range: {
                     start: { line, character: character - word.length / 2 | 0 },
                     end:   { line, character },

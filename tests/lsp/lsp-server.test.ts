@@ -84,7 +84,7 @@ End Class
     console.log('[PASS] getDocumentSymbols extracts symbols');
 }
 
-// 7. getHover — ローカル変数に種別・関数名・ファイル名を表示
+// 7. getHover — ローカル変数に種別・関数名を表示
 {
     const server = createServer();
     const uri = 'file:///proj/Sheet1.bas';
@@ -98,8 +98,8 @@ End Class
     assert.ok(hover !== null, 'hover returned');
     assert.ok(hover.contents.includes('Local variable'), 'shows Local variable');
     assert.ok(hover.contents.includes('MyProc'),          'shows enclosing proc name');
-    assert.ok(hover.contents.includes('Sheet1.bas'),      'shows filename');
-    console.log('[PASS] getHover: ローカル変数に種別・関数名・ファイル名を表示');
+    assert.ok(hover.contents.includes('this module'),     'shows this module');
+    console.log('[PASS] getHover: ローカル変数に種別・関数名・this module を表示');
 }
 
 // 7b. getHover — モジュール変数
@@ -116,7 +116,7 @@ End Class
     const hover = server.getHover(uri, 2, 6); // 'm_count' in body
     assert.ok(hover !== null, 'hover returned');
     assert.ok(hover.contents.includes('Module variable'), 'shows Module variable');
-    assert.ok(hover.contents.includes('Sheet1.bas'),      'shows filename');
+    assert.ok(hover.contents.includes('this module'),     'shows this module');
     console.log('[PASS] getHover: モジュール変数の種別表示');
 }
 
@@ -172,6 +172,42 @@ End Class
     assert.ok(hover.contents.includes('User-defined class'), 'shows User-defined class');
     assert.ok(hover.contents.includes('Helper.cls'),         'shows class filename');
     console.log('[PASS] getHover: ユーザー定義クラス型名のホバー');
+}
+
+// 7f. getHover — モジュール変数 As Object の CreateObject 推論
+{
+    const server = createServer();
+    const uri = 'file:///proj/Sheet1.bas';
+    const code = [
+        'Private m_dict As Object',
+        'Sub Init()',
+        '    Set m_dict = CreateObject("Scripting.Dictionary")',
+        'End Sub',
+    ].join('\n');
+    server.didOpen(uri, code);
+    const hover = server.getHover(uri, 2, 8); // 'm_dict' in body
+    assert.ok(hover !== null, 'hover returned');
+    assert.ok(hover.contents.includes('Dictionary'), 'inferred Dictionary from CreateObject');
+    console.log('[PASS] getHover: As Object + CreateObject → Dictionary 推論');
+}
+
+// 7g. Me は宣言不要（クラスモジュール組み込み）— getDiagnostics で VBA001 が出ないこと
+{
+    const server = createServer();
+    const uri = 'file:///proj/MyClass.cls';
+    const code = [
+        'Option Explicit',
+        'Attribute VB_Name = "MyClass"',
+        'Private m_val As Long',
+        'Public Sub SetValue(ByVal v As Long)',
+        '    Me.m_val = v',
+        'End Sub',
+    ].join('\n');
+    server.loadWorkspaceFile(uri, code);
+    const diags = server.getDiagnostics(uri);
+    const meError = diags.filter((d: any) => d.message?.includes("'Me'"));
+    assert.strictEqual(meError.length, 0, 'Me は組み込みとして扱われ未宣言エラーにならない');
+    console.log('[PASS] Me は組み込み識別子として認識される');
 }
 
 // 8. getDefinition returns definition location
