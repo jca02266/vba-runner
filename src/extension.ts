@@ -1753,6 +1753,18 @@ End Class`;
                 vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': multiple assignments found", varName));
                 return;
             }
+            // 自己参照代入: 右辺に変数自身が現れる場合はインライン不可
+            // 例: colLetter = Chr(65 + colRem) & colLetter
+            const selfRefRe = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
+            if (selfRefRe.test(assignExpr)) {
+                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment references itself", varName));
+                return;
+            }
+            // ループ内代入: 同じ行が実行時に複数回実行されるためインライン不可
+            if (inlineVarIsInsideLoop(proc.body, assignLine + 1)) {
+                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment is inside a loop", varName));
+                return;
+            }
 
             // Collect reference positions (exclude Dim and assignment lines)
             const refPattern = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
@@ -1958,6 +1970,30 @@ export function deactivate() {
  * Words inside strings/comments, and member accesses (`obj.Type`) or bracketed
  * identifiers (`[Type]`), are left untouched.
  */
+/**
+ * Inline Variable ガード: AST ボディを再帰的に走査し、
+ * targetLine1（1-based）がループ構文内に含まれるか判定する。
+ * ループ内の代入は実行時に複数回走るためインライン不可。
+ */
+function inlineVarIsInsideLoop(stmts: any[], targetLine1: number): boolean {
+    const loopTypes = new Set(['ForStatement', 'ForEachStatement', 'DoWhileStatement', 'WhileStatement']);
+    for (const s of stmts ?? []) {
+        if (loopTypes.has(s.type) && s.loc &&
+            s.loc.start.line <= targetLine1 && s.loc.end.line >= targetLine1) {
+            return true;
+        }
+        for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
+            if (Array.isArray(s[key]) && inlineVarIsInsideLoop(s[key], targetLine1)) return true;
+        }
+        if (s.cases) {
+            for (const c of s.cases) {
+                if (inlineVarIsInsideLoop(c.body ?? [], targetLine1)) return true;
+            }
+        }
+    }
+    return false;
+}
+
 function keywordCasingEdit(
     document: vscode.TextDocument,
     position: vscode.Position,
