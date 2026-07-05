@@ -1749,14 +1749,8 @@ End Class`;
                 vscode.window.showWarningMessage(l10n.t("No assignment found for '{0}'", varName));
                 return;
             }
-            // AST-based: 実効代入回数を計算（ループ内の代入は実行時に複数回 → 2以上として計上）
-            // → const宣言可能（effective assignment count === 1）のときのみインライン可
-            const effectiveAssignCount = countEffectiveAssignments(proc.body, varName.toLowerCase(), false);
-            if (effectiveAssignCount > 1) {
-                vscode.window.showWarningMessage(l10n.t(
-                    "Cannot inline '{0}': not effectively const (re-assigned or assigned inside a loop)",
-                    varName
-                ));
+            if (assignCount > 1) {
+                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': multiple assignments found", varName));
                 return;
             }
             // 自己参照代入: 右辺に変数自身が現れる場合はインライン不可
@@ -1765,6 +1759,24 @@ End Class`;
             if (selfRefRe.test(assignExpr)) {
                 vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment references itself", varName));
                 return;
+            }
+            // ループ内代入の場合: 代入行より前にループ内で変数が参照されていないか確認
+            // 前で参照されている = 前イテレーションの値を使う「クロスイテレーション依存」→ インライン不可
+            // 代入の後のみ参照される = 反復定数（colRem 等）→ インライン可
+            const loopRange = getInnermostLoopRange(proc.body, assignLine + 1);
+            if (loopRange) {
+                const crossRefRe = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
+                for (let i = loopRange.start - 1; i < assignLine; i++) {
+                    if (i === dimLine) continue;
+                    crossRefRe.lastIndex = 0;
+                    if (crossRefRe.test(editor.document.lineAt(i).text)) {
+                        vscode.window.showWarningMessage(l10n.t(
+                            "Cannot inline '{0}': cross-iteration dependency in loop",
+                            varName
+                        ));
+                        return;
+                    }
+                }
             }
 
             // Collect reference positions (exclude Dim and assignment lines)
@@ -1973,31 +1985,32 @@ export function deactivate() {
  */
 /**
  * Inline Variable ガード: AST ボディを再帰的に走査し、
- * varLower への代入の「実効回数」を返す。
- * ループ内の代入は実行時に複数回実行されるため 2 として計上し、
- * 戻り値 > 1 なら「const 宣言不可」= インライン不可と判定する。
+ * targetLine1（1-based）を含む最内ループの行範囲を返す。
+ * ループ内代入でも「クロスイテレーション依存がない」ならインライン可のため、
+ * ループ範囲を返してその中の参照位置をチェックする用途に使う。
  */
-function countEffectiveAssignments(stmts: any[], varLower: string, inLoop: boolean): number {
+function getInnermostLoopRange(stmts: any[], targetLine1: number): { start: number; end: number } | null {
     const loopTypes = new Set(['ForStatement', 'ForEachStatement', 'DoWhileStatement', 'WhileStatement']);
-    let count = 0;
     for (const s of stmts ?? []) {
-        if (s.type === 'AssignmentStatement' || s.type === 'SetStatement') {
-            const lhs = s.left;
-            if (lhs?.type === 'Identifier' && lhs.name?.toLowerCase() === varLower) {
-                count += inLoop ? 2 : 1;
-            }
+        if (loopTypes.has(s.type) && s.loc &&
+            s.loc.start.line <= targetLine1 && s.loc.end.line >= targetLine1) {
+            const inner = getInnermostLoopRange(s.body ?? [], targetLine1);
+            return inner ?? { start: s.loc.start.line, end: s.loc.end.line };
         }
-        const isLoop = loopTypes.has(s.type);
         for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
-            if (Array.isArray(s[key])) count += countEffectiveAssignments(s[key], varLower, inLoop || isLoop);
+            if (Array.isArray(s[key])) {
+                const r = getInnermostLoopRange(s[key], targetLine1);
+                if (r) return r;
+            }
         }
         if (s.cases) {
             for (const c of s.cases) {
-                count += countEffectiveAssignments(c.body ?? [], varLower, inLoop || isLoop);
+                const r = getInnermostLoopRange(c.body ?? [], targetLine1);
+                if (r) return r;
             }
         }
     }
-    return count;
+    return null;
 }
 
 function keywordCasingEdit(
