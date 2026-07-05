@@ -1,13 +1,15 @@
 #!/usr/bin/env bash
 # npm publish wrapper — writes auth token to .npmrc instead of CLI args.
-# Run from the npm package directory (CWD must contain .env and package.json).
+# Usage: publish-npm.sh [path/to/.env]
+#   Default .env location: .env in CWD (i.e. the npm package directory).
+#   Pass an explicit path when the .env lives elsewhere (e.g. a sibling package).
 set -euo pipefail
 
-ENV_FILE=".env"
+ENV_FILE="${1:-.env}"
 NPMRC=".npmrc"
 
 if [[ ! -f "$ENV_FILE" ]]; then
-  echo "Error: $ENV_FILE not found in $(pwd)" >&2
+  echo "Error: $ENV_FILE not found" >&2
   exit 1
 fi
 
