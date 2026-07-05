@@ -397,10 +397,16 @@ export class CompletionProvider {
             // AST walk first; fallback to source text scan when AST is incomplete (e.g. mid-type error recovery)
             let typeName = this.findVariableType(statements, memberAccess.objectName, line)
                         ?? this.findVariableTypeFromSource(source, memberAccess.objectName);
-            // object/variant は汎用型: ソース側に CreateObject で具体型が判明する場合は昇格
-            if (typeName === 'object' || typeName === 'variant') {
+            // object/variant は汎用型: より具体的な型へ昇格を試みる
+            if (!typeName || typeName === 'object' || typeName === 'variant') {
+                // 1. CreateObject("ProgID") から昇格
                 const specific = this.findVariableTypeFromSource(source, memberAccess.objectName);
                 if (specific && specific !== 'object' && specific !== 'variant') typeName = specific;
+            }
+            if (!typeName || typeName === 'object' || typeName === 'variant') {
+                // 2. Set x = expr のチェーン解決で昇格（例: Set x = ws.Cells(1,4)）
+                const setType = this.resolveSetAssignmentType(source, memberAccess.objectName, statements, line);
+                if (setType && setType !== 'object' && setType !== 'variant') typeName = setType;
             }
 
             // チェーンアクセス解決: "objectName" 自体が変数でない場合、カーソル前の式全体を評価
@@ -572,6 +578,18 @@ export class CompletionProvider {
         return m2 ? m2[1].toLowerCase() : null;
     }
 
+    /** `Set varName = expr` のチェーン式 expr の型を解決する（CreateObject/New は除く）。 */
+    private resolveSetAssignmentType(source: string, varName: string, statements: Statement[], line: number): string | null {
+        const escaped = varName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const setRe = new RegExp(`\\bSet\\s+${escaped}\\s*=\\s*(.+)$`, 'im');
+        const m = source.match(setRe);
+        if (!m) return null;
+        const rhs = m[1].trim();
+        if (/^CreateObject\s*\(/i.test(rhs)) return null;
+        if (/^New\s+/i.test(rhs)) return null;
+        return this.resolveExprType(rhs, statements, source, line);
+    }
+
     /** 型名に対応するメンバー一覧を返す（外部型定義 → 組み込み型 → ユーザー定義クラス の優先順）。 */
     private getMembersForType(typeName: string, statements: Statement[]): CompletionItem[] {
         const lowerType = typeName.replace(/^new\s+/i, '').toLowerCase();
@@ -673,11 +691,13 @@ export class CompletionProvider {
             } else if (member.type === 'ProcedureDeclaration') {
                 const proc = member as ProcedureDeclaration;
                 if ((proc.scope ?? 'public') === 'private') continue;
-                items.push({
+                const item: CompletionItem = {
                     label: proc.name.name,
                     kind: proc.isProperty ? CompletionItemKind.Property : proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
                     detail: proc.isProperty ? 'Property' : proc.isFunction ? 'Function' : 'Sub',
-                });
+                };
+                if (proc.returnType) item.returnType = proc.returnType.toLowerCase();
+                items.push(item);
             }
         }
         return items;

@@ -143,9 +143,16 @@ function collectAssignmentTypes(
             const lhs: any = s.left;
             if (lhs?.type === 'Identifier') {
                 const name = (lhs as Identifier).name.toLowerCase();
-                if (targets.has(name) && !resolved.has(name)) {
+                if (targets.has(name)) {
                     const t = inferExprType(s.right, allProcs, memo, depth);
-                    if (t) resolved.set(name, t);
+                    if (t) {
+                        if (!resolved.has(name)) {
+                            resolved.set(name, t);
+                        } else {
+                            const prev = resolved.get(name);
+                            if (prev !== null && prev !== t) resolved.set(name, null); // 複数異型は曖昧
+                        }
+                    }
                 }
             }
         }
@@ -154,9 +161,16 @@ function collectAssignmentTypes(
         if (stmt.type === 'ForEachStatement') {
             const fe = stmt as any;
             const varName = fe.variable?.name?.toLowerCase?.();
-            if (varName && targets.has(varName) && !resolved.has(varName)) {
+            if (varName && targets.has(varName)) {
                 const t = inferCollectionElementType(fe.collection, allProcs, memo, depth);
-                if (t) resolved.set(varName, t);
+                if (t) {
+                    if (!resolved.has(varName)) {
+                        resolved.set(varName, t);
+                    } else {
+                        const prev = resolved.get(varName);
+                        if (prev !== null && prev !== t) resolved.set(varName, null);
+                    }
+                }
             }
         }
 
