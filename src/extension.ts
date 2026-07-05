@@ -1723,7 +1723,9 @@ End Class`;
             const procStart0 = (proc.loc.start.line as number) - 1;
             const procEnd0 = (proc.loc.end.line as number) - 1;
 
-            const dimRe = new RegExp(`^\\s*(?:Static\\s+)?Dim\\s+${varName}\\b`, 'i');
+            // 複数変数宣言（Dim r As Long, c As Long）にも対応するため、
+            // Dim キーワードの後に varName が任意の位置で出現する行をマッチする
+            const dimRe = new RegExp(`^\\s*(?:(?:Static|Private|Public|Friend)\\s+)?(?:Dim|ReDim)\\b[^']*\\b${varName}\\b`, 'i');
             const assignRe = new RegExp(`^(\\s*)${varName}\\s*=\\s*(.+)$`, 'i');
 
             let dimLine = -1;
@@ -1758,6 +1760,12 @@ End Class`;
             const selfRefRe = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
             if (selfRefRe.test(assignExpr)) {
                 vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment references itself", varName));
+                return;
+            }
+            // For/For Each ループ変数として使われている場合はインライン不可
+            // 例: For r = c1 To c2 → r は暗黙的に再代入される
+            if (isForLoopVar(proc.body, varName.toLowerCase())) {
+                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': used as a For loop variable", varName));
                 return;
             }
             // ループ内代入の場合: 代入行より前にループ内で変数が参照されていないか確認
@@ -1802,9 +1810,15 @@ End Class`;
             for (const r of [...replacements].reverse()) {
                 edit.replace(uri, r, inlined);
             }
-            // Delete lines from bottom to top
-            for (const ln of [dimLine, assignLine].sort((a, b) => b - a)) {
-                edit.delete(uri, new vscode.Range(ln, 0, ln + 1, 0));
+            // assignLine を削除
+            edit.delete(uri, new vscode.Range(assignLine, 0, assignLine + 1, 0));
+            // dimLine: 単一変数宣言なら行ごと削除、複数変数なら varName 部分だけ除去
+            const dimText = editor.document.lineAt(dimLine).text;
+            const singleVarRe = new RegExp(`^\\s*(?:(?:Static|Private|Public|Friend)\\s+)?(?:Dim|ReDim)\\s+${varName}\\b`, 'i');
+            if (singleVarRe.test(dimText)) {
+                edit.delete(uri, new vscode.Range(dimLine, 0, dimLine + 1, 0));
+            } else {
+                edit.replace(uri, editor.document.lineAt(dimLine).range, removeVarFromDimLine(dimText, varName));
             }
             await vscode.workspace.applyEdit(edit);
         })
@@ -1983,6 +1997,41 @@ export function deactivate() {
  * Words inside strings/comments, and member accesses (`obj.Type`) or bracketed
  * identifiers (`[Type]`), are left untouched.
  */
+/**
+ * Inline Variable ガード: For/For Each のループ変数として使われているか判定する。
+ * ループ変数は暗黙的に繰り返し代入されるためインライン不可。
+ */
+function isForLoopVar(stmts: any[], varLower: string): boolean {
+    for (const s of stmts ?? []) {
+        if (s.type === 'ForStatement' && s.identifier?.name?.toLowerCase() === varLower) return true;
+        if (s.type === 'ForEachStatement' && s.variable?.name?.toLowerCase() === varLower) return true;
+        for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
+            if (Array.isArray(s[key]) && isForLoopVar(s[key], varLower)) return true;
+        }
+        if (s.cases) {
+            for (const c of s.cases) {
+                if (isForLoopVar(c.body ?? [], varLower)) return true;
+            }
+        }
+    }
+    return false;
+}
+
+/**
+ * Inline Variable: 複数変数 Dim 行から varName 部分のみを除去した行テキストを返す。
+ * 例: "    Dim r As Long, c As Long" で varName="c" → "    Dim r As Long"
+ */
+function removeVarFromDimLine(dimLineText: string, varName: string): string {
+    const prefixMatch = dimLineText.match(/^(\s*(?:(?:Static|Private|Public|Friend)\s+)?(?:Dim|ReDim)\s+)/i);
+    if (!prefixMatch) return dimLineText;
+    const prefix = prefixMatch[1];
+    const rest = dimLineText.slice(prefix.length);
+    const varLower = varName.toLowerCase();
+    const parts = rest.split(/\s*,\s*/);
+    const newParts = parts.filter(part => part.trim().split(/[\s(]/)[0].toLowerCase() !== varLower);
+    return prefix + newParts.join(', ');
+}
+
 /**
  * Inline Variable ガード: AST ボディを再帰的に走査し、
  * targetLine1（1-based）を含む最内ループの行範囲を返す。
