@@ -1749,8 +1749,14 @@ End Class`;
                 vscode.window.showWarningMessage(l10n.t("No assignment found for '{0}'", varName));
                 return;
             }
-            if (assignCount > 1) {
-                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': multiple assignments found", varName));
+            // AST-based: 実効代入回数を計算（ループ内の代入は実行時に複数回 → 2以上として計上）
+            // → const宣言可能（effective assignment count === 1）のときのみインライン可
+            const effectiveAssignCount = countEffectiveAssignments(proc.body, varName.toLowerCase(), false);
+            if (effectiveAssignCount > 1) {
+                vscode.window.showWarningMessage(l10n.t(
+                    "Cannot inline '{0}': not effectively const (re-assigned or assigned inside a loop)",
+                    varName
+                ));
                 return;
             }
             // 自己参照代入: 右辺に変数自身が現れる場合はインライン不可
@@ -1758,11 +1764,6 @@ End Class`;
             const selfRefRe = new RegExp(`(?<![A-Za-z0-9_.])${varName}(?![A-Za-z0-9_])`, 'gi');
             if (selfRefRe.test(assignExpr)) {
                 vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment references itself", varName));
-                return;
-            }
-            // ループ内代入: 同じ行が実行時に複数回実行されるためインライン不可
-            if (inlineVarIsInsideLoop(proc.body, assignLine + 1)) {
-                vscode.window.showWarningMessage(l10n.t("Cannot inline '{0}': assignment is inside a loop", varName));
                 return;
             }
 
@@ -1972,26 +1973,31 @@ export function deactivate() {
  */
 /**
  * Inline Variable ガード: AST ボディを再帰的に走査し、
- * targetLine1（1-based）がループ構文内に含まれるか判定する。
- * ループ内の代入は実行時に複数回走るためインライン不可。
+ * varLower への代入の「実効回数」を返す。
+ * ループ内の代入は実行時に複数回実行されるため 2 として計上し、
+ * 戻り値 > 1 なら「const 宣言不可」= インライン不可と判定する。
  */
-function inlineVarIsInsideLoop(stmts: any[], targetLine1: number): boolean {
+function countEffectiveAssignments(stmts: any[], varLower: string, inLoop: boolean): number {
     const loopTypes = new Set(['ForStatement', 'ForEachStatement', 'DoWhileStatement', 'WhileStatement']);
+    let count = 0;
     for (const s of stmts ?? []) {
-        if (loopTypes.has(s.type) && s.loc &&
-            s.loc.start.line <= targetLine1 && s.loc.end.line >= targetLine1) {
-            return true;
+        if (s.type === 'AssignmentStatement' || s.type === 'SetStatement') {
+            const lhs = s.left;
+            if (lhs?.type === 'Identifier' && lhs.name?.toLowerCase() === varLower) {
+                count += inLoop ? 2 : 1;
+            }
         }
+        const isLoop = loopTypes.has(s.type);
         for (const key of ['body', 'consequent', 'alternate', 'elseBody']) {
-            if (Array.isArray(s[key]) && inlineVarIsInsideLoop(s[key], targetLine1)) return true;
+            if (Array.isArray(s[key])) count += countEffectiveAssignments(s[key], varLower, inLoop || isLoop);
         }
         if (s.cases) {
             for (const c of s.cases) {
-                if (inlineVarIsInsideLoop(c.body ?? [], targetLine1)) return true;
+                count += countEffectiveAssignments(c.body ?? [], varLower, inLoop || isLoop);
             }
         }
     }
-    return false;
+    return count;
 }
 
 function keywordCasingEdit(
