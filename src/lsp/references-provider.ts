@@ -53,29 +53,29 @@ export function findAllReferences(
     const declEntry = lookupSymbol(targetWord, resolvedLine, table);
     const enclosingScope = findEnclosingScope(table.procedures, resolvedLine);
 
-    // If the symbol is declared locally, find which procedure owns it
+    // カーソルあり（同ファイル検索）: カーソル位置のプロシージャ内でローカル宣言があれば
+    // そのプロシージャに検索を限定する。
+    // カーソルなし（クロスファイル検索）: ownerScope は設定しない。
+    // 代わりに行ループ内でプロシージャ単位の shadowing を処理する。
     let ownerScope: ProcedureScope | null = null;
-    if (enclosingScope) {
+    if (cursorLine !== undefined && enclosingScope) {
         const local = enclosingScope.localSymbols.get(targetLower);
         if (local) ownerScope = enclosingScope;
-    }
-    // Fall back: check all procedure scopes for a local that matches
-    if (!ownerScope) {
-        for (const scope of table.procedures) {
-            if (scope.localSymbols.has(targetLower)) {
-                ownerScope = scope;
-                break;
-            }
-        }
     }
 
     const lines = sourceText.split('\n');
     const pattern = new RegExp(`(?<![a-zA-Z0-9_])${escapeRegex(targetWord)}(?![a-zA-Z0-9_])`, 'gi');
 
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-        // If this is a local symbol, restrict search to the owning procedure's line range
-        if (ownerScope && (lineIdx < ownerScope.range.start.line || lineIdx > ownerScope.range.end.line)) {
-            continue;
+        if (ownerScope) {
+            // ローカルシンボル: 所有プロシージャの範囲のみ
+            if (lineIdx < ownerScope.range.start.line || lineIdx > ownerScope.range.end.line) continue;
+        } else {
+            // モジュールレベルシンボル（クロスファイル含む）:
+            // 各行が属するプロシージャがそのシンボルをローカル宣言していれば
+            // shadowing されているため除外する（プロシージャ単位）
+            const scope = findEnclosingScope(table.procedures, lineIdx);
+            if (scope && scope.localSymbols.has(targetLower)) continue;
         }
 
         const lineText = lines[lineIdx];
