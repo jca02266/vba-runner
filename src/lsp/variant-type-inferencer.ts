@@ -183,7 +183,7 @@ function collectParameterHints(proc: ProcedureDeclaration): VarHint[] {
     for (const param of proc.parameters) {
         if (param.isParamArray) continue; // ParamArray はスキップ
         const t = param.paramType?.toLowerCase();
-        if (t && t !== 'variant') continue; // 明示的な非 Variant 型はスキップ
+        if (t) continue; // 型あり（As Variant を含む）はスキップ — 型なしのみヒント対象
 
         const loc = (param as any).loc;
         if (!loc) continue;

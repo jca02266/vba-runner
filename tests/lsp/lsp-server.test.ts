@@ -300,6 +300,21 @@ End Sub
     console.log('[PASS] getVariantTypeHints: 型なしパラメーター → As Variant');
 }
 
+// 20b. As Variant 明示パラメーター → ヒントなし（重複防止）
+{
+    const server = createServer();
+    const uri = 'file:///test.bas';
+    server.didOpen(uri, [
+        'Private Function ValidatePrice(ByVal v As Variant) As Boolean',
+        '    ValidatePrice = True',
+        'End Function',
+    ].join('\n'));
+    const hints = server.getVariantTypeHints(uri);
+    const variantHints = hints.filter(h => h.label === ' As Variant');
+    assert.strictEqual(variantHints.length, 0, 'As Variant 明示済みパラメーターには重複ヒントを出さない');
+    console.log('[PASS] getVariantTypeHints: As Variant 明示パラメーター → ヒントなし');
+}
+
 // 21. 型なし Function → 戻り型ヒント
 {
     const server = createServer();
