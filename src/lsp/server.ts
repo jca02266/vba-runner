@@ -321,6 +321,18 @@ export class LSPServer {
             }
         }
 
+        // クラス名として .cls ファイル名と照合する（As SimSheet → SimSheet.cls へジャンプ）
+        for (const [otherUri] of this.allDocuments()) {
+            if (!otherUri.toLowerCase().endsWith('.cls')) continue;
+            try {
+                const baseName = path.basename(uriToPath(otherUri), '.cls');
+                if (baseName.toLowerCase() === wordLower) {
+                    const zeroRange = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
+                    return { uri: otherUri, range: zeroRange };
+                }
+            } catch { /* ignore */ }
+        }
+
         return null;
     }
 

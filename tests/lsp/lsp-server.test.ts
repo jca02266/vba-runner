@@ -373,4 +373,30 @@ End Sub
     console.log('[PASS] VBA016: 隣接 .cls ファイルの型を認識する');
 }
 
+// getDefinition: 型名（As ClassName）でF12 → 対応する .cls ファイルへジャンプ
+{
+    const server = createServer();
+    const helperUri = 'file:///proj/Helper.cls';
+    const mainUri   = 'file:///proj/Main.bas';
+
+    server.loadWorkspaceFile(helperUri, [
+        'Attribute VB_Name = "Helper"',
+        'Public Sub DoWork()',
+        'End Sub',
+    ].join('\n'));
+
+    server.didOpen(mainUri, [
+        'Sub UseHelper()',
+        '    Dim h As Helper',
+        'End Sub',
+    ].join('\n'));
+
+    // "Helper" は line 1 (0-based), col 13 あたり ("    Dim h As Helper")
+    const result = server.getDefinition(mainUri, 1, 15);
+    assert.ok(result !== null, 'getDefinition on class name returns result');
+    assert.strictEqual(result.uri, helperUri, 'jumps to Helper.cls');
+    assert.strictEqual(result.range.start.line, 0, 'starts at line 0');
+    console.log('[PASS] getDefinition: 型名 (As ClassName) で .cls ファイルへジャンプ');
+}
+
 console.log('\n✅ LSPServer: 全テスト通過');
