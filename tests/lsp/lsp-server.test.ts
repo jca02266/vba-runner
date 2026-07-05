@@ -98,8 +98,8 @@ End Class
     assert.ok(hover !== null, 'hover returned');
     assert.ok(hover.contents.includes('Local variable'), 'shows Local variable');
     assert.ok(hover.contents.includes('MyProc'),          'shows enclosing proc name');
-    assert.ok(hover.contents.includes('this module'),     'shows this module');
-    console.log('[PASS] getHover: ローカル変数に種別・関数名・this module を表示');
+    assert.ok(!hover.contents.includes('this module'),    'this module は不要（ノイズ）');
+    console.log('[PASS] getHover: ローカル変数に種別・関数名を表示（this module なし）');
 }
 
 // 7b. getHover — モジュール変数

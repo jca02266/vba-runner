@@ -113,8 +113,9 @@ export class HoverProvider {
 
 function buildContextLine(ctx: SymbolLookupResult): string {
     const kindLabel = kindContextLabel(ctx.entry.kind, ctx.procName);
-    // HoverProvider は常に現在ファイルの AST のみを検索するため "this module" で固定
-    return [kindLabel, 'this module'].filter(Boolean).join(' · ');
+    // プロシージャ内シンボル（ローカル変数・パラメーター等）はスコープが自明なので "this module" 省略
+    const filePart = ctx.procName ? null : 'this module';
+    return [kindLabel, filePart].filter(Boolean).join(' · ');
 }
 
 function kindContextLabel(kind: SymbolKind, procName: string | null): string {
