@@ -2,6 +2,42 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.0] - 2026-07-05
+
+### Added
+
+- **Project-wide diagnostics** — VBA warnings and errors are now shown for all `.bas`/`.cls` files in the workspace folder, not just the currently open document.
+- **Enhanced hover info** — hovering over a variable now shows its kind (local variable / parameter / constant), scope, declaring file, and inferred type.
+- **ByRef / ByVal inlay hints** — Sub/Function parameter declarations display `ByRef` or `ByVal` labels inline to make pass-by-reference explicit.
+- **Object variable member completion** — `Dim x As Object` followed by `Set x = ws.Cells(1, 1)` (or another chain expression) now resolves to the actual return type and shows correct member completions.
+- **CreateObject inlay hint** — variables assigned via `CreateObject("Scripting.Dictionary")` etc. show the concrete type (e.g. `As Dictionary`) as an inlay hint.
+
+### Fixed
+
+- **Syntax highlighting stopped working** — a regex parenthesis mismatch in the TextMate grammar (`Me)|End)` → `Me|End)`) broke all keyword highlighting.
+- **VBA003 diagnostic severity** was incorrectly reported as Warning; it is now shown as a Hint.
+- **Indentation: `End` no longer triggered dedent in `Select Case`** — the `decreaseIndentPattern` was changed to require a full keyword (`End If`, `End Sub`, …) which prevented immediate dedent when typing `End`. Restored to `End\b`.
+- **Indentation: `End If` over-dedented when an `Else` block was present** — `Else` and `ElseIf` are now in the `increaseIndentPattern` as well, so the code inside them is properly indented.
+- **Indentation: `Case` and `Else` are now "double-duty"** — they dedent their own line and indent the code that follows.
+- **Inlay hint showed wrong type when a variable had two different `CreateObject` assignments** — the first assignment's type was always used; now returns no hint when types differ.
+- **Signature help disappeared while typing inside a string literal argument.**
+- **`.cls` files in the same workspace directory were flagged as VBA016 (unknown type)** — the extension now parses co-located `.cls` files and recognises their class names.
+- **F12 on a type name (`As MyClass`) now jumps to the `.cls` file definition** — previously opened the wrong file or did nothing.
+- **`.cls` file features broken** — definition jump, hover, and Find References did not work because `parseClassBody` did not set location info; fixed.
+- **`Test_*` Code Lens always showed "✓ Tested"** — any procedure starting with `Test_` was counted as tested even when it had never run; fixed by requiring an actual test result.
+- **VBA mock last-wins** — when multiple `__mocks__` files define the same class, the last-loaded file now correctly replaces earlier stubs.
+- **`vba-types.json` stub cache not cleared on deletion** — cached type stubs are now evicted when the file is deleted.
+- **Duplicate inlay hints for `As Variant` parameters** — explicitly typed `As Variant` parameters no longer receive a redundant hint.
+- **`this module` appeared in hover for local variables and parameters** — removed; only shown for module-level symbols.
+- **Multiple additional hover display issues** fixed (scope labels, type name capitalisation, etc.).
+- **Inline Variable incorrectly inlined assignments with side effects** (e.g., function calls with observable effects).
+- **Reference search scope fixes** — Private Sub/Const/Dim, local variable shadowing per procedure, and cross-file candidate filtering.
+
+### Changed
+
+- Snippets reorganised: `oeg` and `oes` triggers no longer emit a trailing `End Sub` (was redundant when the block closer is auto-inserted by indentation rules).
+- `Do … Loop` snippet now also expands on the `wh` trigger.
+
 ## [0.2.10] - 2026-07-03
 
 ### Fixed

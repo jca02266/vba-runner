@@ -2,6 +2,17 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.13] - 2026-07-05
+
+### Added
+
+- **`TestRunner` assert helpers** — `assert.match(value, /pattern/)`, `assert.notMatch`, and `assert.throws` are now available in the test runner; error messages include the failing value and pattern for easier debugging.
+
+### Fixed
+
+- **Built-in identifier normalisation** — built-in functions and constants (e.g. `True`, `False`, `Empty`, `Nothing`, `Null`) are now normalised to their canonical capitalisation in the symbol table, fixing case-sensitive lookup failures.
+- **Auto-parenthesised call return type** — calling a zero-argument function with parentheses (e.g. `x = MyFunc()`) now correctly infers the return type for chained member access.
+
 ## [0.1.1-alpha.12] - 2026-07-03
 
 ### Fixed
