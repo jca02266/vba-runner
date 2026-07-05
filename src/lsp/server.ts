@@ -229,7 +229,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         this.symbolProvider.setDocumentUri(uri);
@@ -240,7 +240,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         return this.foldingRangeProvider.getFoldingRanges(ast.body);
@@ -253,7 +253,7 @@ export class LSPServer {
         const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
         if (!doc) return null;
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return null;
 
         // メンバーホバー: obj.Member にカーソルがある場合はシグネチャを表示する
@@ -287,7 +287,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return null;
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return null;
 
         // ラベル定義ジャンプ（GoTo のラベル名 → LabelStatement）
@@ -312,25 +312,18 @@ export class LSPServer {
 
         for (const [otherUri, otherDoc] of this.allDocuments()) {
             if (otherUri === uri) continue;
-            const otherAst = this.parseDocument(otherDoc.content);
+            const otherAst = this.parseDocument(otherDoc.content, otherUri);
             if (!otherAst) continue;
             const otherTable = buildScopedSymbolTable(otherAst.body);
             const entry = otherTable.moduleSymbols.get(wordLower);
             if (entry) {
-                return { uri: otherUri, range: entry.range };
+                // .cls ファイルのクラス名自体へのジャンプはファイル先頭が適切
+                const isCls = otherUri.toLowerCase().endsWith('.cls');
+                const range = isCls && entry.displayText.startsWith('Class ')
+                    ? { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } }
+                    : entry.range;
+                return { uri: otherUri, range };
             }
-        }
-
-        // クラス名として .cls ファイル名と照合する（As SimSheet → SimSheet.cls へジャンプ）
-        for (const [otherUri] of this.allDocuments()) {
-            if (!otherUri.toLowerCase().endsWith('.cls')) continue;
-            try {
-                const baseName = path.basename(uriToPath(otherUri), '.cls');
-                if (baseName.toLowerCase() === wordLower) {
-                    const zeroRange = { start: { line: 0, character: 0 }, end: { line: 0, character: 0 } };
-                    return { uri: otherUri, range: zeroRange };
-                }
-            } catch { /* ignore */ }
         }
 
         return null;
@@ -343,7 +336,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         // ラベル参照ジャンプ（LabelStatement → GoTo 一覧）
@@ -370,7 +363,7 @@ export class LSPServer {
         // モジュールレベルシンボルはワークスペース全体を横断検索
         const allRefs: LocationInfo[] = [];
         for (const [docUri, docDoc] of this.allDocuments()) {
-            const docAst = this.parseDocument(docDoc.content);
+            const docAst = this.parseDocument(docDoc.content, docUri);
             if (!docAst) continue;
             const refs = findAllReferences(docDoc.content, word, docUri, docAst.body, includeDeclaration);
             allRefs.push(...refs);
@@ -385,7 +378,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return null;
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return null;
 
         this.renameProvider.setDocumentUri(uri);
@@ -399,7 +392,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         return this.codeLensProvider.getCodeLens(ast.body, doc.content, uri, this.testResultCache.get(uri));
@@ -412,7 +405,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         // 複数モジュールの AST を統合してクロスモジュール補完を実現する
@@ -420,7 +413,7 @@ export class LSPServer {
         for (const [otherUri, otherDoc] of this.allDocuments()) {
             if (otherUri === uri) continue;
             try {
-                const otherAst = this.parseDocument(otherDoc.content);
+                const otherAst = this.parseDocument(otherDoc.content, otherUri);
                 if (otherAst?.body) allStatements.push(...otherAst.body);
             } catch { /* 壊れたドキュメントはスキップ */ }
         }
@@ -458,18 +451,9 @@ export class LSPServer {
     /** 全ワークスペースドキュメントから Class / Type / Enum の型名を収集する。 */
     private collectAllUserDefinedTypeNames(): Set<string> {
         const names = new Set<string>();
-        for (const [uri, doc] of this.allDocuments()) {
-            // .cls ファイルはファイル名（拡張子なし）がクラス名になる。
-            // parseDocument は parseAsClass を使わないため ClassDeclaration を生成しないので
-            // AST に頼らずファイル名から直接クラス名を登録する。
-            if (uri.toLowerCase().endsWith('.cls')) {
-                try {
-                    names.add(path.basename(uriToPath(uri), '.cls').toLowerCase());
-                } catch { /* file:// 以外の URI は無視 */ }
-            }
-            // Type / Enum 宣言は AST から収集する
+        for (const [, doc] of this.allDocuments()) {
             try {
-                const ast = this.parseDocument(doc.content);
+                const ast = this.parseDocument(doc.content, doc.uri);
                 if (ast?.body) {
                     for (const name of collectUserDefinedTypeNames(ast.body)) names.add(name);
                 }
@@ -485,7 +469,7 @@ export class LSPServer {
         const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
         if (!doc) return null;
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return null;
 
         return this.signatureHelpProvider.getSignatureHelp(ast.body, doc.content, line, character);
@@ -498,7 +482,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         return this.testDiscovery.discoverTests(ast.body);
@@ -623,7 +607,7 @@ export class LSPServer {
     getCallGraph(_currentUri: string): CallGraph {
         const fileMap = new Map<string, { statements: any[], uri: string }>();
         for (const [uri, doc] of this.documents) {
-            const ast = this.parseDocument(doc.content);
+            const ast = this.parseDocument(doc.content, doc.uri);
             if (ast?.body) {
                 fileMap.set(uri, { statements: ast.body, uri });
             }
@@ -634,7 +618,7 @@ export class LSPServer {
     buildCallGraphFromFiles(fileContents: Map<string, string>): CallGraph {
         const fileMap = new Map<string, { statements: any[], uri: string }>();
         for (const [uri, content] of fileContents) {
-            const ast = this.parseDocument(content);
+            const ast = this.parseDocument(content, uri);
             if (ast?.body) {
                 fileMap.set(uri, { statements: ast.body, uri });
             }
@@ -760,7 +744,7 @@ export class LSPServer {
         const newProcText = [finalSigLine, ...extraDims, ...reindented, 'End Sub'].join('\n');
 
         // Find containing procedure's last line (0-based) for insertion point
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         let procEndLine = endLine;
         if (ast?.body) {
             for (const stmt of ast.body as any[]) {
@@ -794,7 +778,7 @@ export class LSPServer {
     getVariantTypeHints(uri: string): Array<{ line: number; character: number; label: string }> {
         const doc = this.documents.get(uri);
         if (!doc) return [];
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         const allProcs = buildProcMap(ast.body);
@@ -816,7 +800,7 @@ export class LSPServer {
         const doc = this.documents.get(uri);
         if (!doc) return [];
 
-        const ast = this.parseDocument(doc.content);
+        const ast = this.parseDocument(doc.content, doc.uri);
         if (!ast) return [];
 
         const hints: Array<{ line: number; character: number; label: string }> = [];
@@ -827,10 +811,17 @@ export class LSPServer {
     /**
      * Parse document content
      */
-    parseDocument(content: string): any {
+    parseDocument(content: string, uri?: string): any {
         try {
             const tokens = new Lexer(stripVBAFileHeader(content)).tokenize();
-            return new Parser(tokens, { errorRecovery: true }).parse();
+            let opts: any = { errorRecovery: true };
+            if (uri?.toLowerCase().endsWith('.cls')) {
+                try {
+                    const className = path.basename(uriToPath(uri), '.cls');
+                    opts = { ...opts, parseAsClass: className };
+                } catch { /* file:// 以外の URI は無視 */ }
+            }
+            return new Parser(tokens, opts).parse();
         } catch (error) {
             return null;
         }
