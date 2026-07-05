@@ -442,10 +442,12 @@ export class LSPServer {
             if (docUri !== uri) {
                 const docTable = buildScopedSymbolTable(docAst.body);
                 const docEntry = docTable.moduleSymbols.get(wordLower);
-                // 他ファイルが同名の変数または定数を独自に宣言している場合、
+                // 他ファイルが同名シンボルを独自に宣言している場合、
                 // そのファイル内の参照は自身の定義を指す（別物）→ 除外する。
-                // プロシージャ（procedure）は除外しない（定義元ファイルとして含める）。
+                // プロシージャ宣言は除外しない（定義元ファイルとして含める）。
                 if (docEntry && (docEntry.kind === 'module-var' || docEntry.kind === 'const')) continue;
+                // プロシージャ内ローカル変数も同様に除外する
+                if (docTable.procedures.some(p => p.localSymbols.has(wordLower))) continue;
             }
             const refs = findAllReferences(docDoc.content, word, docUri, docAst.body, includeDeclaration);
             allRefs.push(...refs);

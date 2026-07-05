@@ -438,4 +438,41 @@ import { join } from 'node:path';
     console.log('[PASS] Public シンボルでも同名独自宣言ファイルを除外し、非宣言ファイルは含める');
 }
 
+// 15. 別ファイルのプロシージャ内ローカル変数も除外される
+{
+    const srcA = [
+        'Public Total As Long',
+        'Sub SetTotal()',
+        '    Total = 100',
+        'End Sub',
+    ].join('\n');
+    const srcB = [
+        'Sub Calc()',
+        '    Dim Total As Long',   // ローカル変数（別物）
+        '    Total = 50',
+        'End Sub',
+    ].join('\n');
+    const srcC = [
+        'Sub Print()',
+        '    Debug.Print Total',   // A の Total を参照
+        'End Sub',
+    ].join('\n');
+
+    const URI_C = 'file:///C.bas';
+    const server = makeServer([
+        { uri: URI_A, content: srcA },
+        { uri: URI_B, content: srcB },
+        { uri: URI_C, content: srcC },
+    ]);
+
+    const line = lineOf(srcA, 'Total As Long');
+    const col = colOf(srcA, 'Total', line);
+    const refs = server.getReferences(URI_A, line, col, true);
+
+    const uris = refs.map((r: any) => r.uri);
+    assert.ok(!uris.includes(URI_B), 'B はローカル変数 Total を持つ → 除外');
+    assert.ok(uris.includes(URI_C), 'C は独自宣言なし → A の Total を参照 → 含まれる');
+    console.log('[PASS] プロシージャ内ローカル変数を持つファイルもクロスファイル参照から除外');
+}
+
 console.log('\n✅ LSP Cross-file Definition / References: 全テスト通過');
