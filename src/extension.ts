@@ -143,6 +143,47 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }
 
+    // プロジェクト全体の VBA ファイルをスキャンして診断を表示
+    // （エディターで開いていないファイルも対象）
+    vscode.workspace.findFiles('**/*.{bas,cls,frm}').then(async (uris) => {
+        for (const uri of uris) {
+            const uriStr = uri.toString();
+            if (documentMap.has(uriStr)) continue; // already handled via didOpen
+            try {
+                const bytes = await vscode.workspace.fs.readFile(uri);
+                const content = new TextDecoder().decode(bytes);
+                lspServer.loadWorkspaceFile(uriStr, content);
+                updateDiagnostics(uri);
+            } catch { /* 読み取り失敗は無視 */ }
+        }
+    });
+
+    // ファイルシステム監視: ディスク上で変更・作成・削除されたVBAファイルの診断を更新
+    const fileWatcher = vscode.workspace.createFileSystemWatcher('**/*.{bas,cls,frm}');
+    context.subscriptions.push(fileWatcher);
+    fileWatcher.onDidChange(async (uri) => {
+        if (documentMap.has(uri.toString())) return; // エディター開いていれば onDidChangeTextDocument が担当
+        try {
+            const bytes = await vscode.workspace.fs.readFile(uri);
+            const content = new TextDecoder().decode(bytes);
+            lspServer.loadWorkspaceFile(uri.toString(), content);
+            updateDiagnostics(uri);
+        } catch { /* 無視 */ }
+    });
+    fileWatcher.onDidCreate(async (uri) => {
+        if (documentMap.has(uri.toString())) return;
+        try {
+            const bytes = await vscode.workspace.fs.readFile(uri);
+            const content = new TextDecoder().decode(bytes);
+            lspServer.loadWorkspaceFile(uri.toString(), content);
+            updateDiagnostics(uri);
+        } catch { /* 無視 */ }
+    });
+    fileWatcher.onDidDelete((uri) => {
+        lspServer.unloadWorkspaceFile(uri.toString());
+        diagnosticCollection.delete(uri);
+    });
+
     // Register document open listener
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument((doc) => {
@@ -168,12 +209,15 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     // Register document close listener
+    // ファイルを閉じても診断は残す（workspaceDocuments に退避して維持）
     context.subscriptions.push(
         vscode.workspace.onDidCloseTextDocument((doc) => {
             if (doc.languageId === 'vba') {
                 documentMap.delete(doc.uri.toString());
+                // 閉じる前のコンテンツを workspaceDocuments に退避（診断の維持のため）
+                lspServer.loadWorkspaceFile(doc.uri.toString(), doc.getText());
                 lspServer.didClose(doc.uri.toString());
-                diagnosticCollection.delete(doc.uri);
+                // diagnostics はそのまま残す（delete しない）
             }
         })
     );

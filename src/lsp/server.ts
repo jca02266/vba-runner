@@ -600,7 +600,7 @@ export class LSPServer {
      * Get diagnostics (parse errors/warnings) for document
      */
     getDiagnostics(uri: string): any[] {
-        const doc = this.documents.get(uri);
+        const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
         if (!doc) return [];
 
         this.ensureDirectoryScanned(uri);
