@@ -64,7 +64,7 @@ function lint(code: string): LintDiagnostic[] {
     const d = diags.filter(d => d.code === 'VBA003');
     assert.strictEqual(d.length, 1, 'VBA003: 1 件検出');
     assert.strictEqual(d[0].message.includes('x'), true, 'VBA003: パラメーター名 x を含む');
-    assert.strictEqual(d[0].severity, 2, 'VBA003: severity = Warning');
+    assert.strictEqual(d[0].severity, 4, 'VBA003: severity = Hint');
     console.log('[PASS] VBA003: ByVal/ByRef なし');
 }
 
