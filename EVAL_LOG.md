@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 17 | VS Code 拡張機能 評価 #17: InlayHint / Diagnostics / Completion / Hover 全面評価 | **InlayHint（inferVariantTypes/inferProcedureHints）**: A1-A7 全正常。CreateObject型推論・曖昧型ヒントなし・数値代入→Long・型なしパラメーター→Variant・モジュールレベルObject推論・戻り型ヒント 全動作確認。`Dim x As Variant`+数値代入→Long ヒントが出る（設計通り）/ **CompletionProvider**: ユーザー定義クラスチェーン(SimSheet→Cells→SimCell.Value)・CreateObject Dictionary補完・型不明Object/Variant空補完 全正常 / **DiagnosticProvider（lintProgram+checkUnknownTypes）**: VBA001〜VBA014 全lint コード確認済み（VBA011除く・Excel依存のみ）。severity: VBA013=Error(1)・VBA003=Hint(4)・VBA002/VBA004=Info(3)・他Warning(2) / **HoverProvider**: ローカル変数・パラメーター・モジュールレベル変数・定数・プロシージャ・As Object→CreateObject型推論表示・到達定義情報 全正常動作 / **Bug E1**: `Const MAX As Long = 100` のホバーが `Const MAX` のみ（型・値を表示しない）`symbol-table.ts:addConstDeclaration` の `displayText` が `Const 名前` のみ / **Bug E2**: `Public`/`Private` キーワードが hover で lowercase 表示（`public count As Long`）パーサーが scope を lowercase 格納するため / VBA003(ByRef/ByVal省略)・VBA012(ByRef明示なし代入)も確認済み | 2026-07-07 |
 | 16 | VS Code 拡張機能 評価 #15 バグ修正確認 + 新規 edge case | **全3件修正確認**: `autoParensEdit` 戻り型付き Function 対応済み / `TestRunner.runTests(src)` 本実装済み（`Err.Raise` → `failed` を返す）/ `runTestWithEvaluation` エラーメッセージ正常化済み / **新規**: VBA キーワード（`Set`/`If`）参照は正しく空を返す（問題なし）/ `Dim x As`（型名欠落）はパーサーが黙って回復し構文エラーを出さない（改善候補）/ `ByRef/ByVal` 省略への VBA003 警告が severity:Warning（新規ユーザーには noisy） | 2026-07-05 |
 | 1 | 在庫管理システム | `.cls` クラス / `ReDim Preserve` / `On Error GoTo`・`Resume Next` / `Err.Raise` / 動的配列 | 2026-06-26 |
 | 2 | ローマ数字コンバーター | `.cls` / `Property Get` / `ByRef` writeback / Boolean 変換 / JS 配列→VBA 配列 | 2026-06-27 |
@@ -85,6 +86,13 @@
 | ~~`autoParensEdit` が戻り型付き Function を検出しない~~ | **修正済み（評価 #16 で確認）**: `PROC_NO_PARENS` 正規表現に `(?:\s+As\s+\w+)?` が追加されており `autoParensEdit('Function GetValue As Long')` → `{ insertCol: 17 }` が正常に返る。 | |
 | ~~`TestRunner.runTests()` がスタブ実装（常に `passed` を返す）~~ | **修正済み（評価 #16 で確認）**: `runTests` の引数は `stmts` から `src: string` に変更され、内部で `Evaluator` が実際に評価を行う本実装になっている。`Err.Raise` → `{ state: 'failed', message: 'Intentional failure' }` が正しく返る。 | |
 | ~~`runTestWithEvaluation` のエラーメッセージが `"[object Object]"`~~ | **修正済み（評価 #16 で確認）**: `catch` 節が `(testError as any)?.message ?? String(testError)` になっており、VBA エラー plain object の `.message` プロパティが正しく取り出される。`Err.Raise 1, , "Intentional failure"` → `result.message === "Intentional failure"` が確認できた。 | |
+
+### ~~未修正バグ（評価 #17 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 修正コミット |
+|---|---|---|
+| ~~`Const` ホバーで型と値が表示されない~~ | **修正済み（`03f2b23`）**: `parser.ts` で `objectType` を `ConstDeclaration` に保持し、`symbol-table.ts` の `constLiteralText()` ヘルパーで値を文字列化。`Const MAX As Long = 100` と表示されるようになった。 | `03f2b23` |
+| ~~`Public`/`Private` キーワードが hover で lowercase 表示~~ | **修正済み（`03f2b23`）**: `symbol-table.ts` に `cap()` ヘルパーを追加し、変数・定数・プロシージャの scope 表示を capitalize するよう修正。`Public count As Long` と正しく表示されるようになった。 | `03f2b23` |
 
 ### 未対応の機能制限（改善候補）
 
@@ -183,11 +191,11 @@
 - ~~`keyword-casing.ts`~~ **評価済み（評価 #15）: `canonicalKeyword`/`isInStringOrComment` 正常動作**
 - ~~`label-navigator.ts`~~ **評価済み（評価 #15）: GoTo←→LabelStatement 双方向ナビゲーション正常動作**
 - ~~`line-continuation-checker.ts`~~ **評価済み（評価 #15）: `needsLineContinuation`/`stripInlineComment` 正常動作**
-- ~~`variant-type-inferencer.ts`~~ **評価済み（評価 #15）: `inferVariantTypes` 正常動作。ProgID推論・再帰型推論も機能**
+- ~~`variant-type-inferencer.ts`~~ **評価済み（評価 #15・#17）: `inferVariantTypes`・`inferProcedureHints`・`inferModuleVarType`・`inferLocalVarType`・`buildProcMap`・`findProcAtLine` 全関数確認。CreateObject ProgID型推論（Dictionary/FSO/Worksheet等）・曖昧型抑制・パラメーター Variant ヒント・戻り型ヒント・モジュールレベル変数推論すべて正常。`Dim x As Variant` + 数値代入 → Long ヒントが出る（設計通り）**
 - ~~`test-discovery.ts`~~ **評価済み（評価 #15）: `TestDiscovery.discoverTests` 正常動作**
 - ~~`test-runner.ts`~~ **評価済み（評価 #15）: `runTests()` はスタブ（常に passed バグ）。`runTestWithEvaluation()` は実装済みだがエラーメッセージが `"[object Object]"` になるバグ**
 - ~~`ast-comparison.ts`~~ **評価済み（評価 #15）: `astEqual`/`serializeAst`/`findMatchingExpressions` 正常動作**
-- ~~`hover-provider.ts`~~ **評価済み（評価 #15）: `HoverProvider.getHoverInfo` 変数宣言・パラメーター・到達定義情報 正常動作。パラメーター range が col 0 固定（設計上の制限）**
+- ~~`hover-provider.ts`~~ **評価済み（評価 #15・#17）: `HoverProvider.getHoverInfo` ローカル変数・パラメーター・モジュールレベル変数・定数・プロシージャ・As Object→CreateObject型推論表示・到達定義情報 全正常動作。`Const MAX As Long = 100` のホバーが `Const MAX` のみ（型・値なし）バグあり。`Public`/`Private` が lowercase で表示されるバグあり**
 - デバッガー系（VS Code なしでは動作確認不可・ソース確認のみ）: `debugger.ts` / `debug-adapter.ts` / `debug-session.ts` / `debug-worker.ts` / `vscode-debug-adapter.ts`
 - `call-graph-webview.ts` — コールグラフの WebView 表示（VS Code なしでは動作確認不可）
 
@@ -282,3 +290,9 @@
 55. **`inferVariantTypes` は `buildProcMap` の返す `Map` を渡すと再帰型推論が効く**（評価 #15）: `allProcs: Map<string, ProcedureDeclaration>` を渡さないと関数呼び出し経由の型推論が行われない。同ファイルの全手続きマップを作って渡すこと。同じ型推論を繰り返す場合は `memo: Map<string, InferredType>` を共有すれば高速化できる。
 
 50. **`CallGraphProvider.buildCallGraph` はマルチファイル対応・再帰検出あり**（評価 #14）: `fileMap: Map<uri, { statements, uri }>` を渡す。戻り値は `{ nodes: Map<nameLower, ProcNode>, edges: CallEdge[] }`。自己再帰（`factorial → factorial`）・相互再帰（`funca ↔ funcb`）ともにエッジとして正しく検出。メンバーアクセス呼び出し（`obj.Method()`）は追跡しない（設計上の仕様）。`ProcNode.isExcelDependent` は EXCEL_ROOT_OBJECTS 定数セット（`sheets`/`range`/`cells`/`application` 等）への直接参照で判定。
+57. **`inferProcedureHints` は `inferVariantTypes`（変数）+ パラメーターヒント + 戻り型ヒントの上位 API**（評価 #17）: 変数・パラメーター・戻り型の3種類のヒントを一括取得するには `inferProcedureHints` を使う。`inferVariantTypes` は変数のみ。戻り型ヒントは `kind: 'return'` で区別できる。
+58. **`Dim x As Variant` に数値を代入すると `As Long` ヒントが出る（設計通り）**（評価 #17）: `variant` 宣言済みでも代入から推論された型が異なれば（'long' ≠ 'variant'）ヒントが表示される。ユーザーにとっては「Variant で宣言しているのにヒントが出る」と驚く可能性がある。意図的な動作。
+59. **`lintProgram(program)` に渡すのは `Program`（`parse()` の戻り値そのもの）**（評価 #17）: `checkUnknownTypes` と異なり `lintProgram` は `program.body` ではなく `Program` オブジェクト全体を受け取る。`Program.body` を渡すと `checkOptionExplicit` が機能しない（`OptionExplicitStatement` を走査できないため）。
+60. **診断コード VBA001〜VBA014 の severity 一覧**（評価 #17）: VBA013=Error(1)、VBA001/VBA005/VBA006/VBA008/VBA009/VBA010/VBA012/VBA014=Warning(2)、VBA002/VBA004/VBA007=Info(3)、VBA003=Hint(4)。VBA011（Range変数アクセス）と VBA016（未知型・別モジュール）は `lintProgram` には含まれない（`checkUnknownTypes` で別途取得）。
+61. ~~**`Const` の hover displayText にはすべての情報が含まれていない**（評価 #17 で発見）~~: **修正済み（`03f2b23`）**: `parser.ts` で `ConstDeclaration.objectType` を保持し、`symbol-table.ts` に `constLiteralText()` ヘルパーを追加。`Const MAX As Long = 100` と型・値つきで表示されるようになった。
+62. ~~**`Public`/`Private` が hover で lowercase 表示される**（評価 #17 で発見）~~: **修正済み（`03f2b23`）**: `symbol-table.ts` に `cap()` ヘルパーを追加し、scope 文字列を capitalize するよう修正。
