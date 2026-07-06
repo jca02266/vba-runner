@@ -168,6 +168,7 @@ export interface VariableDeclaration extends Statement {
 export interface ConstDeclaration extends Statement {
     type: 'ConstDeclaration';
     name: Identifier;
+    objectType?: string;
     value: Expression;
 }
 
@@ -1860,14 +1861,20 @@ export class Parser {
         const name = this.makeIdentifier(idToken);
 
         // Optional 'As Type'
+        let objectType: string | undefined;
         if (this.match(TokenType.KeywordAs)) {
-            this.advance(); // Ignore Type for now
+            objectType = this.advance().value;
+            // dotted type (e.g. Scripting.Dictionary)
+            while (this.match(TokenType.OperatorDot)) {
+                this.advance();
+                objectType += '.' + this.advance().value;
+            }
         }
 
         if (!this.match(TokenType.OperatorEquals)) this.throwError(`Parse error: Expected '=' in Const at line ${this.peek().line}`);
         const value = this.parseExpression();
 
-        return { type: 'ConstDeclaration', name, value };
+        return { type: 'ConstDeclaration', name, objectType, value };
     }
 
     private parseSetStatement(): SetStatement {

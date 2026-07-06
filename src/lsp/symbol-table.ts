@@ -7,6 +7,23 @@ import {
     Statement,
 } from '../engine/parser';
 
+/** 'public' → 'Public'、'private' → 'Private' など先頭大文字化 */
+function cap(s: string): string { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+/** 定数値の AST ノードを表示用テキストに変換（リテラル以外は空文字を返す） */
+function constLiteralText(expr: any): string {
+    if (!expr) return '';
+    if (expr.type === 'NumberLiteral')  return String(expr.value);
+    if (expr.type === 'StringLiteral')  return `"${expr.value}"`;
+    if (expr.type === 'BooleanLiteral') return expr.value ? 'True' : 'False';
+    if (expr.type === 'Identifier')     return expr.name; // True / False / Nothing
+    if (expr.type === 'UnaryExpression' && expr.operator === '-') {
+        const inner = constLiteralText(expr.operand ?? expr.right);
+        return inner ? `-${inner}` : '';
+    }
+    return '';
+}
+
 export type SymbolKind =
     | 'module-var' | 'local-var' | 'param' | 'for' | 'for-each'
     | 'procedure' | 'class' | 'const' | 'event';
@@ -219,7 +236,7 @@ function addVariableDeclaration(
             const ln = d.name.loc.start.line - 1;
             const col = d.name.loc.start.column - 1;
             const varType = d.objectType || 'Variant';
-            const keyword = decl.scope ?? 'Dim';
+            const keyword = decl.scope ? cap(decl.scope) : 'Dim';
             out.set(d.name.name.toLowerCase(), {
                 name: d.name.name,
                 displayText: `${keyword} ${d.name.name} As ${varType}`,
@@ -230,7 +247,7 @@ function addVariableDeclaration(
             // fallback: compute from statement loc + keyword offset
             const declLine = decl.loc!.start.line - 1;
             const declCol  = decl.loc!.start.column - 1;
-            const keyword = decl.scope ?? 'Dim';
+            const keyword = decl.scope ? cap(decl.scope) : 'Dim';
             const nameStart = declCol + keyword.length + 1;
             const varType = d.objectType || 'Variant';
             out.set(d.name.name.toLowerCase(), {
@@ -251,13 +268,16 @@ function addConstDeclaration(
     if (!decl.loc) return;
     const constName = decl.name.name;
     const constScope: string | undefined = (decl as any).scope;
-    const scopePrefix = constScope ? `${constScope} ` : '';
+    const scopePrefix = constScope ? `${cap(constScope)} ` : '';
+    const typeStr = decl.objectType ? ` As ${decl.objectType}` : '';
+    const valStr  = constLiteralText(decl.value);
+    const displayText = `${scopePrefix}Const ${constName}${typeStr}${valStr ? ` = ${valStr}` : ''}`;
     if (decl.name.loc) {
         const ln = decl.name.loc.start.line - 1;
         const col = decl.name.loc.start.column - 1;
         out.set(constName.toLowerCase(), {
             name: constName,
-            displayText: `${scopePrefix}Const ${constName}`,
+            displayText,
             kind,
             range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
         });
@@ -267,7 +287,7 @@ function addConstDeclaration(
         const nameStart = declCol + (scopePrefix.length + 6); // 'Const '
         out.set(constName.toLowerCase(), {
             name: constName,
-            displayText: `${scopePrefix}Const ${constName}`,
+            displayText,
             kind,
             range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
         });
@@ -304,7 +324,7 @@ function makeProcEntry(proc: ProcedureDeclaration): SymbolEntry {
     let keyword = 'Sub';
     if (proc.isFunction) keyword = 'Function';
     if (proc.isProperty) keyword = `Property ${proc.propertyType ?? 'Get'}`;
-    const scopePrefix = proc.scope ? `${proc.scope} ` : '';
+    const scopePrefix = proc.scope ? `${cap(proc.scope)} ` : '';
     let sig = `${scopePrefix}${keyword} ${proc.name.name}(${params})`;
     if (proc.isFunction || proc.isProperty) sig += ` As ${proc.returnType || 'Variant'}`;
 

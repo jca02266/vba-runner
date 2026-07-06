@@ -99,4 +99,40 @@ function getHoverAt(src: string, line: number, character: number): any {
     console.log('[PASS] Empty source: no hover');
 }
 
+// ─── scope / Const 表示のレグレッション ────────────────────────────────────────
+// [回帰] Bug E2: scope が小文字で表示されていた
+// [回帰] Bug E1: Const に型・値が表示されなかった
+
+{
+    // Public 変数は "Public" と大文字で表示される
+    const code = ['Public count As Long', 'Sub Test()', '  count = 1', 'End Sub'].join('\n');
+    const info = getHoverAt(code, 2, 3); // 'count' on usage line
+    assert.ok(info?.contents.includes('Public count As Long'), `Public scope capitalized: ${info?.contents}`);
+    console.log('[PASS] Public変数 hover: scope 大文字');
+}
+
+{
+    // Private Function は "Private Function" と表示される
+    const code = ['Private Function Calc() As Long', '  Calc = 1', 'End Function'].join('\n');
+    const info = getHoverAt(code, 0, 18); // 'Calc'
+    assert.ok(info?.contents.includes('Private Function Calc'), `Private scope capitalized: ${info?.contents}`);
+    console.log('[PASS] Private Function hover: scope 大文字');
+}
+
+{
+    // Const は型名と値を含んで表示される
+    const code = ['Const MAX As Long = 100', 'Sub Test()', '  Debug.Print MAX', 'End Sub'].join('\n');
+    const info = getHoverAt(code, 2, 14); // 'MAX' on usage line
+    assert.ok(info?.contents.includes('Const MAX As Long = 100'), `Const type+value: ${info?.contents}`);
+    console.log('[PASS] Const hover: 型と値を表示');
+}
+
+{
+    // 型なし Const は値のみ表示される
+    const code = ['Const PI = 3.14', 'Sub Test()', '  Debug.Print PI', 'End Sub'].join('\n');
+    const info = getHoverAt(code, 2, 14); // 'PI' on usage line
+    assert.ok(info?.contents.includes('Const PI = 3.14'), `Const no-type value: ${info?.contents}`);
+    console.log('[PASS] Const hover: 型なしでも値を表示');
+}
+
 console.log('\n✅ LSP Hover: 全テスト通過');
