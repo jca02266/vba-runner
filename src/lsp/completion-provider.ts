@@ -1,6 +1,7 @@
 import {
     ClassDeclaration,
     ProcedureDeclaration,
+    TypeDeclaration,
     VariableDeclaration,
     Statement,
 } from '../engine/parser';
@@ -604,12 +605,22 @@ export class CompletionProvider {
         const builtins = BUILTIN_MEMBERS.get(lowerType) ?? BUILTIN_MEMBERS.get(shortType);
         if (builtins && builtins.length > 0) return builtins;
 
-        // ユーザー定義クラス（複数モジュール全体の statements から探す）
+        // ユーザー定義クラス・UDT（複数モジュール全体の statements から探す）
         for (const stmt of statements) {
             if (stmt.type === 'ClassDeclaration') {
                 const cls = stmt as ClassDeclaration;
                 if (cls.name.toLowerCase() === lowerType || cls.name.toLowerCase() === shortType) {
                     return this.getPublicClassMembers(cls);
+                }
+            }
+            if (stmt.type === 'TypeDeclaration') {
+                const td = stmt as TypeDeclaration;
+                if (td.name.toLowerCase() === lowerType || td.name.toLowerCase() === shortType) {
+                    return td.members.map(m => ({
+                        label: m.name,
+                        kind: CompletionItemKind.Field,
+                        detail: `${m.name} As ${m.memberType}`,
+                    }));
                 }
             }
         }

@@ -135,4 +135,38 @@ function getHoverAt(src: string, line: number, character: number): any {
     console.log('[PASS] Const hover: 型なしでも値を表示');
 }
 
+// ─── UDT (Type) / Enum member ホバーのレグレッション ──────────────────────────
+// [回帰] Bug LSP-2: Enum 定数のホバーが null だった
+// [回帰] Bug LSP-3: UDT (Type) 名のホバーが null だった
+
+{
+    const code = [
+        'Type Point',
+        '    X As Long',
+        '    Y As Long',
+        'End Type',
+        'Enum Direction',
+        '    North = 1',
+        '    South = 2',
+        'End Enum',
+        'Sub Test()',
+        '    Dim pt As Point',
+        '    Dim d As Direction',
+        '    d = North',
+        'End Sub',
+    ].join('\n');
+
+    // UDT 型名ホバー (line 0 col 5 → "Point")
+    const hoverPoint = getHoverAt(code, 0, 5);
+    assert.ok(hoverPoint !== null, 'UDT Type名 hover は null でない');
+    assert.ok(hoverPoint?.contents.includes('Type Point'), `UDT hover に Type Point を含む: ${hoverPoint?.contents}`);
+    console.log('[PASS] UDT (Type) 名 hover: Type Point を表示（Bug LSP-3）');
+
+    // Enum 定数ホバー (line 11 col 8 → "North")
+    const hoverNorth = getHoverAt(code, 11, 8);
+    assert.ok(hoverNorth !== null, 'Enum定数 hover は null でない');
+    assert.ok(hoverNorth?.contents.includes('Direction.North'), `Enum hover に Direction.North を含む: ${hoverNorth?.contents}`);
+    console.log('[PASS] Enum 定数 hover: Direction.North = 1 を表示（Bug LSP-2）');
+}
+
 console.log('\n✅ LSP Hover: 全テスト通過');

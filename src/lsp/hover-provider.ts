@@ -133,8 +133,10 @@ function kindContextLabel(kind: SymbolKind, procName: string | null): string {
         case 'for':
         case 'for-each':    return procName ? `Loop variable in \`${procName}\`` : 'Loop variable';
         case 'const':       return procName ? `Constant in \`${procName}\`` : 'Module constant';
-        case 'event':       return 'Event';
-        case 'class':       return 'Class';
-        case 'procedure':   return '';
+        case 'event':        return 'Event';
+        case 'class':        return 'Class';
+        case 'udt':          return 'User-Defined Type';
+        case 'enum-member':  return 'Enum member';
+        case 'procedure':    return '';
     }
 }

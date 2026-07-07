@@ -1,7 +1,9 @@
 import {
     ClassDeclaration,
+    EnumDeclaration,
     EventDeclaration,
     ProcedureDeclaration,
+    TypeDeclaration,
     VariableDeclaration,
     ConstDeclaration,
     Statement,
@@ -26,7 +28,7 @@ function constLiteralText(expr: any): string {
 
 export type SymbolKind =
     | 'module-var' | 'local-var' | 'param' | 'for' | 'for-each'
-    | 'procedure' | 'class' | 'const' | 'event';
+    | 'procedure' | 'class' | 'const' | 'event' | 'udt' | 'enum-member';
 
 export interface SymbolEntry {
     name: string;
@@ -167,6 +169,37 @@ function collectScopedSymbols(
                 kind: 'event',
                 range: { start: { line: evtLine, character: nameStart }, end: { line: evtLine, character: nameStart + evtName.length } },
             });
+
+        } else if (stmt.type === 'TypeDeclaration') {
+            const td = stmt as TypeDeclaration;
+            if (!td.loc) continue;
+            const tdLine = td.loc.start.line - 1;
+            const nameStart = (td.loc.start.column - 1) + 5; // 'Type '
+            const memberDesc = td.members.map(m => `${m.name} As ${m.memberType}`).join(', ');
+            moduleSymbols.set(td.name.toLowerCase(), {
+                name: td.name,
+                displayText: `Type ${td.name} (${memberDesc})`,
+                kind: 'udt',
+                range: { start: { line: tdLine, character: nameStart }, end: { line: tdLine, character: nameStart + td.name.length } },
+            });
+
+        } else if (stmt.type === 'EnumDeclaration') {
+            const ed = stmt as EnumDeclaration;
+            if (!ed.loc) continue;
+            const enumName = ed.name.name;
+            for (const member of ed.members) {
+                const mname = member.name.name;
+                const loc = member.name.loc;
+                const mLine = loc ? loc.start.line - 1 : ed.loc.start.line - 1;
+                const mCol = loc ? loc.start.column - 1 : 0;
+                const valText = member.value ? ` = ${constLiteralText(member.value)}` : '';
+                moduleSymbols.set(mname.toLowerCase(), {
+                    name: mname,
+                    displayText: `${enumName}.${mname}${valText}`,
+                    kind: 'enum-member',
+                    range: { start: { line: mLine, character: mCol }, end: { line: mLine, character: mCol + mname.length } },
+                });
+            }
         }
     }
 }

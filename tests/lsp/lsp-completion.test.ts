@@ -166,4 +166,24 @@ function getCompletionsAt(src: string, line: number, character: number): any[] {
     console.log('[PASS] 型不明 Object 変数の x. → 空補完（ゴミ候補なし）');
 }
 
+// 14. UDT (Type) メンバー補完 — Bug LSP-1 regression
+// [回帰] getMembersForType が TypeDeclaration を未対応で pt. が 0件だった
+{
+    const code = [
+        'Type Point',
+        '    X As Long',
+        '    Y As Long',
+        'End Type',
+        'Sub Test()',
+        '    Dim pt As Point',
+        '    pt.',             // line 6, character 7
+        'End Sub',
+    ].join('\n');
+    const completions = getCompletionsAt(code, 6, 7);
+    assert.ok(completions.some((c: any) => c.label === 'X'), 'UDT pt. → X を含む');
+    assert.ok(completions.some((c: any) => c.label === 'Y'), 'UDT pt. → Y を含む');
+    assert.strictEqual(completions.length, 2, 'UDT pt. → メンバー数は 2');
+    console.log('[PASS] UDT (Type) メンバー補完: pt. → X, Y（Bug LSP-1）');
+}
+
 console.log('\n✅ LSP Completion: 全テスト通過');
