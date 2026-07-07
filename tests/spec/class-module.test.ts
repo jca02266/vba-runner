@@ -315,4 +315,51 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] クラスフィールドの動的配列（ReDim）');
 }
 
+// [回帰] Bug W1: With ブロック内でユーザー定義クラスの Property Get にアクセスできない
+// `evaluateImplicitWithObjectExpression` に `__vbaClass__` ブランチが欠けていた
+{
+    const code = `
+    Class Scorer
+        Private mScore As Double
+
+        Public Property Get Score() As Double
+            Score = mScore
+        End Property
+
+        Public Property Let Score(ByVal v As Double)
+            mScore = v
+        End Property
+
+        Public Function Summary() As String
+            Summary = "Score:" & mScore
+        End Function
+    End Class
+
+    Function TestWithPropertyGet() As Double
+        Dim s As Scorer
+        Set s = New Scorer
+        s.Score = 42
+        Dim result As Double
+        With s
+            result = .Score
+        End With
+        TestWithPropertyGet = result
+    End Function
+
+    Function TestWithFunction() As String
+        Dim s As Scorer
+        Set s = New Scorer
+        s.Score = 42
+        Dim txt As String
+        With s
+            txt = .Summary()
+        End With
+        TestWithFunction = txt
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestWithPropertyGet'), 42, 'With ブロック内で Property Get が動作する');
+    assert.strictEqual(runFunc(code, 'TestWithFunction'), 'Score:42', 'With ブロック内で Function 呼び出しが動作する');
+    console.log('[PASS] With ブロック内 Property Get + Function（Bug W1）');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

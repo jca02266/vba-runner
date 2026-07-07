@@ -6271,6 +6271,24 @@ export class Evaluator {
         }
         const obj = this.withObjectStack[this.withObjectStack.length - 1];
         const propName = expr.property.name.toLowerCase();
+
+        // VBA class instance: same logic as evaluateMemberExpression
+        if (obj && obj.__vbaClass__) {
+            const classDef = obj.__classDef__ as ClassDeclaration;
+            const instanceEnv = obj.__instanceEnv__ as Environment;
+            const getter = classDef.procedures.find(
+                p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === propName
+            );
+            if (getter) return this.callClassMethod(obj, getter, []);
+            const method = classDef.procedures.find(
+                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.parameters.length === 0 && p.isFunction
+            );
+            if (method) return this.callClassMethod(obj, method, []);
+            const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
+            if (ifaceProc) return this.callClassMethod(obj, ifaceProc, []);
+            return instanceEnv.get(propName);
+        }
+
         if (obj && (typeof obj === 'object' || typeof obj === 'function')) {
             // resolveObjectMemberKey でプロトタイプチェーン（getter/メソッド含む）を辿る。
             // 旧実装は Object.keys() のみで own property しか探さなかったため、
