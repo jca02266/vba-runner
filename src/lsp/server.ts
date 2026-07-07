@@ -816,14 +816,22 @@ export class LSPServer {
 
         const selectedLines = lines.slice(startLine, endLine + 1);
 
-        // Re-indent: strip common leading whitespace, add 4-space indent
+        // Re-indent: strip common leading whitespace, add 4-space indent.
+        // Dim declarations for variables that become parameters (inputs/outputs) are
+        // removed — keeping them would cause a VBA duplicate-declaration compile error.
+        const paramVarNames = new Set(
+            [...result.inputs, ...result.outputs].map(v => v.toLowerCase()),
+        );
         const nonBlank = selectedLines.filter(l => l.trim().length > 0);
         const minIndentLen = nonBlank.length > 0
             ? Math.min(...nonBlank.map(l => (l.match(/^(\s*)/)?.[1].length) ?? 0))
             : 0;
-        const reindented = selectedLines.map(l =>
-            l.trim().length > 0 ? '    ' + l.slice(minIndentLen) : ''
-        );
+        const reindented = selectedLines
+            .filter(l => {
+                const m = l.match(/^\s*Dim\s+(\w+)/i);
+                return !(m && paramVarNames.has(m[1].toLowerCase()));
+            })
+            .map(l => l.trim().length > 0 ? '    ' + l.slice(minIndentLen) : '');
 
         // Apply user-provided name to signature/call
         const finalSigLine = procSignature.split('\n')[0].replace(/\bExtractedSub\b/, procName);

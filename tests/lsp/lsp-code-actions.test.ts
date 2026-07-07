@@ -309,7 +309,37 @@ End Sub
     console.log('[PASS] buildExtractFunctionEdit: 行ドラッグ選択でフォーマットが正しい');
 }
 
-// 13. buildExtractFunctionEdit: 選択範囲外で定義済みの変数には Dim を重複挿入しない、
+// 13. buildExtractFunctionEdit: 選択範囲に含まれる Dim 宣言がパラメーターと衝突しない
+//     Bug R1 regression: 選択行に "Dim x" が含まれ、かつ x が ByRef 出力パラメーターになる場合、
+//     生成コードに "Dim x" と "ByRef x As Variant" が共存して VBA コンパイルエラーになっていた
+{
+    const code = `Sub ProcessData()
+    Dim result As Long
+    Dim x As Long
+    x = 0
+    x = x + 100
+    result = x * 2
+    Debug.Print result
+End Sub`;
+    const srv = setup(code);
+    // "Dim x", "x = 0", "x = x + 100" を選択（0-based lines 2-4）
+    // x は選択後の "result = x * 2" で使われるため ByRef 出力パラメーターになる
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 2, character: 0 },
+        end:   { line: 4, character: 20 },
+    });
+    assert.ok(actions.length > 0, 'アクションあり');
+    const [, range, result2, procSignature, callStatement] = actions[0].command.arguments;
+    assert.ok(result2.outputs.includes('x'), 'x は ByRef 出力候補');
+    const editResult = srv.buildExtractFunctionEdit(URI, range, 'ProcessX', result2, procSignature, callStatement);
+    assert.ok(editResult !== null, 'editResult が得られる');
+    // 生成された新プロシージャに "Dim x" が重複しないこと（ByRef x はパラメーターで定義済み）
+    assert.ok(!editResult!.insertText.toLowerCase().includes('dim x'), 'ByRef パラメーターの Dim 行が重複しない');
+    assert.ok(editResult!.insertText.includes('ByRef x As Variant'), 'ByRef x は正しく引数として出力される');
+    console.log('[PASS] buildExtractFunctionEdit: 選択内の Dim がパラメーターと衝突しない（Bug R1）');
+}
+
+// 14. buildExtractFunctionEdit: 選択範囲外で定義済みの変数には Dim を重複挿入しない、
 //     かつ ByRef 出力（total）が引数として正しく扱われる
 {
     const code = `Sub Calc()
