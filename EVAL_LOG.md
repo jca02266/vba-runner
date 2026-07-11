@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 21 | エンジン評価 #21: Static 変数 / Single 型 / 固定長文字列 / Select Case 範囲 / Do Until（シリアルナンバー生成システムドメイン） | **Static 変数**: 複数回の `run()` をまたいで `seqCounter` が正確にインクリメント。完全正常動作。**Single 型・型変換**: `CSng(1)/CSng(3)` → `0.3333333432674408`（32bit 精度）、`CDbl(1)/CDbl(3)` → `0.3333333333333333`（64bit 精度）。実 VBA と同様の精度差を正しく再現。**Select Case 範囲パターン**: `Case Is <= 10` / `Case 11 To 30` / `Case 56 To 80` / `Case Is >= 100` の全パターン正常動作。**Do Until / Loop Until**: `Do Until cond` はゼロ回実行・`Do ... Loop Until cond` は条件成立時でも最低1回実行を確認。両形式正常動作。**固定長文字列 `Dim s As String * N`**: **Bug 21-1 発見**（未修正）: パーサーが `*` をステートメント後の予期しないトークンとして扱い Parse error。`VariableDeclarator` AST インターフェース・`parseDimStatement`・エバリュエーターのいずれも `* N` に未対応。完全未実装。 | 2026-07-11 |
 | 20 | VS Code 拡張機能 評価 #20: UDT/Enum/GoSub/Implements エンジン + LSP 統合（地図座標管理ドメイン） | **テーマA（UDT/Enum）**: UDT フィールドアクセス・ByRef 引数渡し・戻り値返却・固定長配列・ネスト UDT（`ln.Start.X`）・Enum 定数（修飾あり/なし）・Select Case での Enum 使用 全正常動作。**テーマB（GoSub/Return）**: 基本実行・複数回呼び出し・複数ラベルシーケンス・ネスト GoSub・`Return without GoSub` エラー 全正常動作。戻りアドレスのスタック管理が正しく動作。**テーマC（Implements）**: 構文エラーなし・直接呼び出し・インターフェース経由ディスパッチ・ポリモーフィズム（Circle/Rectangle 切り替え）全正常動作。**テーマD（LSP 統合）**: 診断（UDT/Enum で誤 VBA016 なし）正常。補完/ホバー/フォーマット に Bug LSP-1/2/3 発見・修正済み。フォーマッターの `=` 前後スペース未整形は設計上の制限（Bug LSP-4）。 | 2026-07-07 |
 | 19 | VS Code 拡張機能 評価 #19: buildExtractFunctionEdit edge case / Dead Store 精度 / analyzeDefUse 複雑制御フロー（学力テスト結果管理ドメイン） | **テーマA（buildExtractFunctionEdit edge case）**: 複数出力パラメーター正常（ByRef x/y/z 生成）・純粋ローカル変数のみ選択で空引数呼び出し正常・Function 内抽出は常に Sub 生成（型推論不可）。**パラメーター名小文字化**: analyzeDefUse が返す変数名が小文字正規化済みのためシグネチャの `inputVal` → `inputval` になる（改善候補）。**テーマB（Dead Store 精度）**: ループカウンター変数・集計変数・条件分岐内代入・関数戻り値変数 すべて誤検出なし ✓ 実際のデッドストア正しく検出 ✓ CFG ベース生変数解析が高精度。**テーマC（analyzeDefUse 複雑制御フロー）**: With ブロック内変数 inputs/outputs/locals 正しく分類 ✓ ByRef 引数渡し後の後続使用を outputs に正しく分類 ✓ **テーマD（コード品質）**: 全パラメーターが As Variant（型推論なし）は設計制限。選択外 Dim の extraDims も As Variant になる。**Bug W1 発見・修正済み**: With ブロック内でユーザー定義クラスの Property Get（`.Score`）が Error 424 になる。Function 呼び出し（`.Summary()`）は正常。`evaluateImplicitWithObjectExpression`（`evaluator.ts:6268`）に `__vbaClass__` ブランチが欠如。`evaluateMemberExpression` と同じ Property Get → callClassMethod パターンを追加して修正。レグレッションテスト: `class-module.test.ts` 末尾 Bug W1 ブロック。 | 2026-07-07 |
 | 18 | VS Code 拡張機能 評価 #18: LSP リファクタリングプロバイダー群 | **`analyzeDefUse(proc, startLine, endLine)`**（`src/engine/def-use-analyzer.ts`）: inputs/outputs/locals 分類正常。ループ・条件分岐ケースも正確。**`findDeadStores(proc)`**（`src/engine/dead-store.ts`）: デッドストア検出正常。ByRef パラメーター除外・関数戻り値変数の alwaysLive 扱い正しい。**`LspServer.getCodeActions(uri, range)`**: range 正規化（ドラッグ選択の end.character===0）・プロシージャ外選択で [] を返す 正常動作。**`LspServer.buildExtractFunctionEdit(...)`**: **Bug R1 発見・修正済み**: 選択範囲に `Dim x` が含まれ `x` が ByRef 出力パラメーターになる場合、`Dim x` と `ByRef x As Variant` が共存して VBA コンパイルエラーになる不正コードを生成していた。`reindented` 生成時に inputs/outputs 変数の `Dim` 行をフィルタリングする修正を適用。レグレッションテスト追加（`lsp-code-actions.test.ts` Test 13）。**未実装機能**: Introduce Variable / Extract Constant / Inline Variable / Introduce With / Organize Declarations は `src/lsp/` に存在しない。 | 2026-07-07 |
@@ -64,6 +65,12 @@
 | 引数付きチェーン補完が効かない | `ws.Cells(1, 1).` で Range でなくグローバル関数 29 件が返る | `detectMemberAccess` の正規表現が `)` 終端の式にマッチしない（`completion-provider.ts:454`） |
 | VBA016 波下線が変数名を指す | `Dim x As UnknownType` で `x` に波下線（`UnknownType` であるべき） | `unknown-type-checker.ts:79` で `d.name.loc`（変数名位置）を渡している。パーサーの `VariableDeclarator` に型名の loc フィールドなし |
 
+### ~~未修正バグ（評価 #21 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 21-1: `Dim s As String * N` がパースエラー**~~ | **修正済み**: `VariableDeclarator` に `fixedLength?: number` を追加。`parseDimStatement` が `As String * <整数>` の `* N` を消費して記録。`Environment.coerceToType` の `'String'` ブランチで `fixedLength` がある場合にパディング・切り捨てを適用。初期値は `'\0'.repeat(N)`（VBA 仕様準拠）。UDT `TypeMember` にも `fixedLength` を追加し `instantiateType` と MemberExpression 代入で同様の処理を実装。レグレッションテスト: `tests/spec/fixed-length-string.test.ts`（12 テスト）。 | |
+
 ### 未修正バグ（評価 #12 で発見）
 
 | 問題 | 最小再現コード | 根本原因 |
@@ -115,6 +122,7 @@
 | ~~`FSO TextStream` 位置追跡バグ~~ | **修正済み** (`9e25adc`): `readall` が `pos` を参照するよう修正 |
 | ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
+| ~~`Dim s As String * N`（固定長文字列）が未実装~~（Bug 21-1）~~ | **修正済み**: `VariableDeclarator.fixedLength` と `TypeMember.fixedLength` を追加。`parseDimStatement` / Type ブロックパーサーで `As String * N` の `* N` を消費・記録。`Environment.coerceToType` でパディング・切り捨てを適用。UDT メンバー代入も `__fixedLengths__` で対応。`tests/spec/fixed-length-string.test.ts`（12 テスト）。 |
 | `Currency` 型が固定小数点演算でない | 実 VBA では `Currency` は 4 桁固定小数点（0.1+0.2 = 0.3 厳密）。vba-runner では `Double` と同じ浮動小数点演算になる（0.1+0.2 = 0.30000000000000004）。 |
 | `Dim x As`（型名欠落）が構文エラーにならない | `Dim x As\n` と書くと parser の error recovery が黙って回復し、`VBA014` 未使用変数警告のみが出る。構文ミスを新規ユーザーが気付けない可能性がある。 |
 | VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy | `Function Add(a As Long, b As Long)` のような標準的な宣言でも `VBA003` が severity 2（Warning）で出る。VBA の慣習では省略が普通のため、初回ロード時に「いきなり Warning が多い」印象を与えやすい。Hint（severity 4）への変更か設定で off 可能にすると親切。 |
@@ -158,7 +166,7 @@
 - ~~`Long`（-2147483648〜2147483647）のオーバーフロー → Error 6~~ **評価済み（評価#6）: 正常動作**
 - ~~`CInt` / `CLng` / `CCur` などの変換関数~~ **評価済み（評価#6）: バンカーズ丸めも正常**
 - ~~`Currency` 型の精度~~ **評価済み（評価#6）: 浮動小数点扱いのため 0.1+0.2≠0.3（バグ）**
-- `CDbl` / `CSng` の精度と `Single` 型の動作
+- ~~`CDbl` / `CSng` の精度と `Single` 型の動作~~ **評価済み（評価 #21）: `CSng(1)/CSng(3)` → `0.3333333432674408`（32bit 精度）、`CDbl(1)/CDbl(3)` → `0.3333333333333333`（64bit 精度）。実 VBA と同様の精度差を正しく再現。正常動作。**
 
 ### コレクション
 
@@ -255,6 +263,7 @@
 14. **`empty` / `Empty` は変数名に使えない**: `Dim empty() As String` は「Expected variable name (Found empty)」でパースエラー。`emptyArr` 等の代替名を使う。
 15. **`run()` の第2引数は省略可能**（修正済み）: 引数なし Sub は `r.run('Sub名')` と省略できる。`args` のデフォルト値を `[]` に修正済み。
 16. **時刻のみリテラル `#HH:MM:SS#` は使えない**: `#12:30:45#` や `#8:30:00 AM#` は Error 13 Type mismatch。日付+時刻 `#2024/01/15 12:30:45#` はOK。
+41. ~~**`Dim s As String * N`（固定長文字列）は未実装**（Bug 21-1）~~: **修正済み**。`Dim s As String * 10` が正常に動作する。短い文字列はスペースでパディング、長い文字列は切り捨て、`Len(s)` は常に N を返す。UDT の `Name As String * 30` メンバーも対応。初期値は NUL 文字 × N（VBA 仕様準拠）。
 17. **`Class_Terminate` は参照カウントなしで早期発動する**: `Set p1 = Nothing` で他に参照があっても `Class_Terminate` が呼ばれる。ただしオブジェクト自体は破棄されず残存する。VBA の COM 参照カウント完全再現ではない（evaluator.ts に既知制限として明記）。
 18. **`Format()` 日付パターンは豊富に動作する**: `yyyy/mm/dd` / `yyyy年mm月dd日` / `d-mmm-yyyy` / `dddd` / `ddd` / `Long Date` / `Short Date` / `yy/mm/dd` / `hh:mm:ss` / `h:mm AM/PM` すべて正常。
 19. **`.cls` ファイルのクラス名はファイル名（拡張子なし）で決まる**: `Attribute VB_Name = "MyObj"` の値ではなく、`MyObj.cls` のようにファイル名がクラス名になる。ファイルを `TerminateTest.cls` と名付けると VBA 側で `New TerminateTest` と書かないと Error 429 になる。実際の VBA エクスポートではファイル名と `VB_Name` は通常一致しているが、ファイルをリネームした場合に落とし穴になる。

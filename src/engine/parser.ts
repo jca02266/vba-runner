@@ -156,6 +156,8 @@ export interface VariableDeclarator {
     objectTypeLoc?: SourceLocation;
     /** 1-based column immediately after the closing ')' of the array bounds, when isArray is true */
     arrayEndColumn?: number;
+    /** fixed-length string length: `Dim s As String * N` → fixedLength = N */
+    fixedLength?: number;
 }
 
 export interface VariableDeclaration extends Statement {
@@ -409,6 +411,7 @@ export interface EnumDeclaration extends Statement {
 export interface TypeMember {
     name: string;
     memberType: string;
+    fixedLength?: number;
 }
 
 export interface TypeDeclaration extends Statement {
@@ -1822,6 +1825,7 @@ export class Parser {
                 }
             }
 
+            let fixedLength: number | undefined;
             if (this.match(TokenType.KeywordAs)) {
                 if (this.match(TokenType.KeywordNew)) {
                     isNew = true;
@@ -1839,10 +1843,22 @@ export class Parser {
                         start: { line: typeToken.line, column: typeToken.column },
                         end: { line: lastTypeTok.line, column: lastTypeTok.column + lastTypeTok.value.length },
                     };
+                    // fixed-length-string-spec: "String" "*" string-length (§5.2.3.1.4)
+                    if (objectType.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
+                        this.advance(); // consume '*'
+                        const lenTok = this.peek();
+                        if (lenTok.type === TokenType.Number) {
+                            fixedLength = parseInt(this.advance().value, 10);
+                        } else if (this.isNameToken(lenTok)) {
+                            // constant-name: evaluate at parse time is not possible; store as undefined
+                            // and resolve in evaluator (defer like array bounds)
+                            this.advance(); // consume the constant name — fixedLength stays undefined
+                        }
+                    }
                 }
             }
 
-            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn });
+            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn, fixedLength });
 
             if (this.match(TokenType.OperatorComma)) {
                 continue;
@@ -2026,7 +2042,17 @@ export class Parser {
             }
 
             const memberTypeToken = this.advance();
-            members.push({ name: memberNameToken.value, memberType: memberTypeToken.value });
+            let memberFixedLength: number | undefined;
+            if (memberTypeToken.value.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
+                this.advance(); // consume '*'
+                const lenTok = this.peek();
+                if (lenTok.type === TokenType.Number) {
+                    memberFixedLength = parseInt(this.advance().value, 10);
+                } else if (this.isNameToken(lenTok)) {
+                    this.advance(); // consume constant name; fixedLength stays undefined
+                }
+            }
+            members.push({ name: memberNameToken.value, memberType: memberTypeToken.value, fixedLength: memberFixedLength });
 
             this.skipNewlines();
         }

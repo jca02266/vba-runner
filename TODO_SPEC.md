@@ -127,6 +127,7 @@
 | ✅ | P0 | Property Get / Let / Set 宣言 | §5.3.1.7 | `property.test.ts` |
 | ✅ | P2 | Event Handler 宣言 | §5.3.1.8 | `raiseevent.test.ts` |
 | ✅ | P0 | Variable Declarations（`Dim`） | §5.2.3.1 | `dim-const.test.ts` |
+| ✅ | P1 | Fixed-Length String Declaration（`Dim s As String * N`） | §5.2.3.1.4 | `fixed-length-string.test.ts` （初期値 NUL×N・代入時スペースパディング・切り捨て・UDT メンバー対応）|
 | ✅ | P1 | Public / Private / Friend スコープ制御（パースのみ、アクセス制御なし） | §5.2.3.1 / §5.3.1.1 | `scope-private.test.ts` |
 | ✅ | P1 | Static キーワード（変数・プロシージャ） | §5.3.1.2 | `static.test.ts` |
 | ✅ | P0 | Const Declarations | §5.2.3.2 | `dim-const.test.ts` |

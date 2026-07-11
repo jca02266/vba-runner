@@ -233,6 +233,8 @@ export class VbaErrObject {
 }
 export interface VbaTypeInfo {
     vbaType: VbaVarType;
+    /** Fixed-length string: Dim s As String * N */
+    fixedLength?: number;
 }
 
 export interface DebugHook {
@@ -363,11 +365,20 @@ export class Environment {
                 if (n < -922337203685477.5808 || n > 922337203685477.5807) Environment.throwOverflow();
                 return n;
             }
-            case 'String':
+            case 'String': {
+                let s: string;
                 if (typeof value === 'number' || value instanceof VbaBoolean || value instanceof VbaDate) {
-                    return String(value);
+                    s = String(value);
+                } else {
+                    s = typeof value === 'string' ? value : String(value);
                 }
-                return value;
+                if (typeInfo.fixedLength !== undefined) {
+                    const n = typeInfo.fixedLength;
+                    if (s.length > n) return s.slice(0, n);
+                    if (s.length < n) return s + ' '.repeat(n - s.length);
+                }
+                return s;
+            }
             case 'Boolean':
                 if (typeof value === 'number') {
                     return value !== 0 ? vbaTrue : vbaFalse;
@@ -1042,7 +1053,14 @@ export class Evaluator {
             const mt = member.memberType;
             const mtLower = mt.toLowerCase();
             if (mtLower === 'string') {
-                instance[member.name.toLowerCase()] = '';
+                instance[member.name.toLowerCase()] = member.fixedLength !== undefined
+                    ? '\0'.repeat(member.fixedLength)
+                    : '';
+                if (member.fixedLength !== undefined) {
+                    // Tag instance so UDT member assignment can apply fixed-length coercion
+                    if (!instance.__fixedLengths__) instance.__fixedLengths__ = {};
+                    instance.__fixedLengths__[member.name.toLowerCase()] = member.fixedLength;
+                }
             } else if (mtLower === 'boolean') {
                 instance[member.name.toLowerCase()] = 0; // vbaFalse
             } else if (this.env.getType(mt)) {
@@ -2882,6 +2900,12 @@ export class Evaluator {
             } else if (obj && typeof obj === 'object') {
                 // VBA は大文字小文字不問: アクセサ(setter)・プロトタイプも辿って実キーを解決する
                 const resolvedProp = this.resolveObjectMemberKey(obj, propName) ?? propName;
+                // UDT fixed-length string member coercion
+                const fl = obj.__fixedLengths__?.[propName];
+                if (fl !== undefined && typeof val === 'string') {
+                    if (val.length > fl) val = val.slice(0, fl);
+                    else if (val.length < fl) val = val + ' '.repeat(fl - val.length);
+                }
                 obj[resolvedProp] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
@@ -2935,7 +2959,7 @@ export class Evaluator {
                 };
                 const mapped = typeMap[effectiveType.toLowerCase()];
                 if (mapped) {
-                    this.env.setVariableType(varName, { vbaType: mapped });
+                    this.env.setVariableType(varName, { vbaType: mapped, fixedLength: decl.fixedLength });
                 }
             }
 
@@ -2953,7 +2977,8 @@ export class Evaluator {
                 if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(t)) {
                     initialValue = 0;
                 } else if (t === 'string') {
-                    initialValue = '';
+                    // Fixed-length strings initialize with null characters (VBA spec)
+                    initialValue = decl.fixedLength !== undefined ? '\0'.repeat(decl.fixedLength) : '';
                 } else if (t === 'boolean') {
                     initialValue = 0; // vbaFalse
                 }
