@@ -4,6 +4,7 @@ import { globSync, isDynamicPattern } from 'tinyglobby';
 import { Lexer } from '../src/engine/lexer';
 import { Parser, ParseError, TypeDeclaration, Program } from '../src/engine/parser';
 import { Evaluator, SpyRecord, vbaTrue, vbaFalse, VbaBoolean, vbaNull, vbaEmpty, vbaNothing } from '../src/engine/evaluator';
+import { VbaCurrency, VbaDecimal } from '../src/engine/vba-types';
 import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../src/engine/vba-types';
 import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, stripVBAFileHeader, CompilerConstants } from '../src/engine/preprocessor';
@@ -15,6 +16,40 @@ export { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockW
 export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
 
 const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
+
+/**
+ * VBA 内部値を JS ネイティブ値に正規化する。
+ * - VbaBoolean → boolean
+ * - vbaNothing → null
+ * - VbaCurrency → number (内部 BigInt を 4 桁固定小数点 number へ変換)
+ * - VbaDecimal → number (精度損失の可能性あり; 28桁超は近似値)
+ * それ以外はそのまま返す。
+ */
+function normalizeVbaValue(raw: any): any {
+    if (raw instanceof VbaBoolean) return raw.value !== 0;
+    if (raw === vbaNothing) return null;
+    if (raw instanceof VbaCurrency) return Number(raw.toString());
+    if (raw instanceof VbaDecimal) return Number(raw.toString());
+    return raw;
+}
+
+/**
+ * run() のログ出力用に引数を文字列化する。
+ * VbaCurrency / VbaDecimal が BigInt を含むため JSON.stringify が失敗するケースを回避する。
+ */
+function formatVbaArg(a: any): string {
+    if (a === null) return 'Nothing';
+    if (a instanceof VbaCurrency) return `CCur(${a.toString()})`;
+    if (a instanceof VbaDecimal) return `CDec(${a.toString()})`;
+    if (typeof a === 'object') {
+        try {
+            return JSON.stringify(a);
+        } catch {
+            return String(a);
+        }
+    }
+    return String(a);
+}
 
 export class VBARunner {
     public evaluator: Evaluator;
@@ -131,9 +166,9 @@ export class VBARunner {
         this._ensureResolved();
         const start = Date.now();
         const raw = this.evaluator.callProcedure(procedureName, args, type);
-        const result = raw instanceof VbaBoolean ? raw.value !== 0 : raw === vbaNothing ? null : raw;
+        const result = normalizeVbaValue(raw);
         const duration = Date.now() - start;
-        const formatArgs = args.map(a => typeof a === 'object' ? (a === null ? 'Nothing' : JSON.stringify(a)) : String(a)).join(', ');
+        const formatArgs = args.map(a => formatVbaArg(a)).join(', ');
         const typeStr = type ? `:${type}` : '';
         if (!this._quiet) {
             console.log(`[PASS] ${procedureName}${typeStr}(${formatArgs}) -> ${result} (${duration}ms)`);
@@ -144,7 +179,7 @@ export class VBARunner {
     eval(exprString: string): any {
         this._ensureResolved();
         const raw = this.evaluator.evalExpression(exprString);
-        return raw instanceof VbaBoolean ? raw.value !== 0 : raw === vbaNothing ? null : raw;
+        return normalizeVbaValue(raw);
     }
 
     set(name: string, value: any): void {
