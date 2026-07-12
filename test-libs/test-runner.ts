@@ -21,15 +21,12 @@ const VBA_EXTENSIONS = new Set(['.bas', '.cls', '.frm']);
  * VBA 内部値を JS ネイティブ値に正規化する。
  * - VbaBoolean → boolean
  * - vbaNothing → null
- * - VbaCurrency → number (内部 BigInt を 4 桁固定小数点 number へ変換)
- * - VbaDecimal → number (精度損失の可能性あり; 28桁超は近似値)
+ * - VbaCurrency / VbaDecimal → そのまま返す（精度損失を避けるため number に変換しない）
  * それ以外はそのまま返す。
  */
 function normalizeVbaValue(raw: any): any {
     if (raw instanceof VbaBoolean) return raw.value !== 0;
     if (raw === vbaNothing) return null;
-    if (raw instanceof VbaCurrency) return Number(raw.toString());
-    if (raw instanceof VbaDecimal) return Number(raw.toString());
     return raw;
 }
 

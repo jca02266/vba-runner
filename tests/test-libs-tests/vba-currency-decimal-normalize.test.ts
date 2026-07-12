@@ -1,15 +1,18 @@
 /**
- * VBARunner.run() / .eval() が VbaCurrency / VbaDecimal を JS number に正規化することを確認する
- * レグレッションテスト（Bug C-1 / C-2）
+ * VBARunner.run() / .eval() が VbaCurrency / VbaDecimal をオブジェクトのまま返すことを確認する
+ * レグレッションテスト（Bug C-2 修正確認含む）
  *
- * Bug C-1: run() / eval() が VbaCurrency を VbaCurrency オブジェクトのまま返し、
- *          JS number との比較が失敗していた。
  * Bug C-2: run() が Currency 型 ByRef パラメーターへの書き戻し後に
  *          JSON.stringify(BigInt) でクラッシュしていた。
+ *          → formatVbaArg() で BigInt 含む型を JSON.stringify 回避
+ *
+ * 注: VbaCurrency / VbaDecimal は精度損失を避けるため number に変換せずオブジェクトのまま返す。
+ *     呼び出し側は .toString() または .value で値を取り出す。
  */
 import { VBARunner, assert } from '../../test-libs/test-runner';
+import { VbaCurrency, VbaDecimal } from '../../src/engine/vba-types';
 
-// --- Bug C-1: Currency 戻り値が JS number に変換される ---
+// --- Currency 戻り値は VbaCurrency オブジェクトのまま返る ---
 {
     const r = new VBARunner([], { quiet: true });
     r.eval(`
@@ -18,10 +21,10 @@ Function GetCur() As Currency
 End Function
 `);
     const result = r.run('GetCur', []);
-    assert.strictEqual(typeof result, 'number', 'Bug C-1: Currency 戻り値の typeof は number');
-    assert.strictEqual(result, 0.3, 'Bug C-1: CCur(0.3) の戻り値は JS number 0.3');
+    assert.ok(result instanceof VbaCurrency, 'Currency 戻り値は VbaCurrency インスタンス');
+    assert.strictEqual(result.toString(), '0.3', 'VbaCurrency.toString() = "0.3"');
 }
-console.log('[PASS] Bug C-1: Currency 戻り値が JS number に変換される');
+console.log('[PASS] Currency 戻り値は VbaCurrency オブジェクトのまま返る');
 
 // --- Bug C-2: Currency 型パラメーター ByRef 書き戻し後にクラッシュしない ---
 {
@@ -39,12 +42,12 @@ End Function
         threw = true;
     }
     assert.ok(!threw, 'Bug C-2: Currency ByRef 書き戻しでクラッシュしない');
-    assert.strictEqual(typeof result, 'number', 'Bug C-2: 戻り値の typeof は number');
-    assert.strictEqual(result, 1100, 'Bug C-2: 1000 * 1.1 = 1100');
+    assert.ok(result instanceof VbaCurrency, 'Bug C-2: 戻り値は VbaCurrency インスタンス');
+    assert.strictEqual(result.toString(), '1100', 'Bug C-2: 1000 * 1.1 = 1100');
 }
 console.log('[PASS] Bug C-2: Currency ByRef 書き戻し後にクラッシュしない');
 
-// --- eval() も VbaCurrency を number に変換する ---
+// --- Currency の精度: 0.1 + 0.2 = 0.3 (VBA 内で固定小数点演算) ---
 {
     const r = new VBARunner([], { quiet: true });
     r.eval(`
@@ -53,12 +56,12 @@ Function SumCur(a As Currency, b As Currency) As Currency
 End Function
 `);
     const result = r.run('SumCur', [0.1, 0.2]);
-    assert.strictEqual(typeof result, 'number', 'Currency 和の typeof は number');
-    assert.strictEqual(result, 0.3, 'CCur(0.1) + CCur(0.2) = 0.3 (厳密一致)');
+    assert.ok(result instanceof VbaCurrency, 'Currency 和は VbaCurrency インスタンス');
+    assert.strictEqual(result.toString(), '0.3', 'CCur(0.1) + CCur(0.2) = "0.3" (精度損失なし)');
 }
-console.log('[PASS] CCur(0.1) + CCur(0.2) = 0.3 (JS number として厳密一致)');
+console.log('[PASS] CCur(0.1) + CCur(0.2) の toString は "0.3" (固定小数点精度)');
 
-// --- Decimal 戻り値も JS number に変換される ---
+// --- Decimal 戻り値は VbaDecimal オブジェクトのまま返る ---
 {
     const r = new VBARunner([], { quiet: true });
     r.eval(`
@@ -67,40 +70,37 @@ Function GetDec() As Variant
 End Function
 `);
     const result = r.run('GetDec', []);
-    assert.strictEqual(typeof result, 'number', 'Decimal 戻り値の typeof は number');
-    assert.strictEqual(result, 1.5, 'CDec(1.5) の戻り値は JS number 1.5');
+    assert.ok(result instanceof VbaDecimal, 'Decimal 戻り値は VbaDecimal インスタンス');
+    assert.strictEqual(result.toString(), '1.5', 'VbaDecimal.toString() = "1.5"');
 }
-console.log('[PASS] Decimal 戻り値が JS number に変換される');
+console.log('[PASS] Decimal 戻り値は VbaDecimal オブジェクトのまま返る');
 
-// --- Currency の精度: 0.1 + 0.2 = 0.3 (VBA 内で CStr して検証) ---
+// --- Decimal の高精度: 28桁文字列が保持される ---
 {
     const r = new VBARunner([], { quiet: true });
     r.eval(`
-Function CurrencyPrecision() As String
-    Dim a As Currency, b As Currency
-    a = CCur(0.1)
-    b = CCur(0.2)
-    CurrencyPrecision = CStr(a + b)
+Function GetHiPrec() As Variant
+    GetHiPrec = CDec("0.1000000000000000000000000001")
 End Function
 `);
-    const result = r.run('CurrencyPrecision', []);
-    assert.strictEqual(result, '0.3', 'Currency: CStr(CCur(0.1) + CCur(0.2)) = "0.3"');
+    const result = r.run('GetHiPrec', []);
+    assert.ok(result instanceof VbaDecimal, 'VbaDecimal インスタンス');
+    assert.strictEqual(result.toString(), '0.1000000000000000000000000001', '28桁精度が保持される');
 }
-console.log('[PASS] Currency 精度: CCur(0.1) + CCur(0.2) の CStr は "0.3"');
+console.log('[PASS] Decimal 28桁精度: toString() が完全な文字列を返す');
 
-// --- Decimal の精度: 1/3 が 28桁の文字列になるか ---
+// --- Decimal の高精度: CDec(1)/CDec(3) が 28桁 ---
 {
     const r = new VBARunner([], { quiet: true });
     r.eval(`
-Function DecimalDivision() As String
-    Dim d As Variant
-    d = CDec(1) / CDec(3)
-    DecimalDivision = CStr(d)
+Function DecimalDivision() As Variant
+    DecimalDivision = CDec(1) / CDec(3)
 End Function
 `);
     const result = r.run('DecimalDivision', []);
-    assert.ok(result.startsWith('0.3333333333333333333'), 'Decimal: CDec(1)/CDec(3) が 19桁以上の精度');
+    assert.ok(result instanceof VbaDecimal, 'VbaDecimal インスタンス');
+    assert.ok(result.toString().startsWith('0.3333333333333333333'), 'CDec(1)/CDec(3) が 19桁以上の精度');
 }
-console.log('[PASS] Decimal 精度: CDec(1)/CDec(3) が高精度文字列を返す');
+console.log('[PASS] Decimal 精度: CDec(1)/CDec(3) が高精度 VbaDecimal を返す');
 
-console.log('\n✅ VbaCurrency/VbaDecimal 正規化 (Bug C-1/C-2): 全テスト通過');
+console.log('\n✅ VbaCurrency/VbaDecimal オブジェクト保持 (Bug C-2): 全テスト通過');
