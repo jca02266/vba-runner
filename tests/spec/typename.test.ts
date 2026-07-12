@@ -98,4 +98,78 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] サフィックス付きリテラルのオーバーフロー検出');
 }
 
+// Bug 22-1 レグレッション: Variant 変数へのサブタイプ追跡（代入時点の RHS 型を保持）
+{
+    const code = `
+        Function GetIntLiteral() As String
+            Dim v As Variant
+            v = 42
+            GetIntLiteral = TypeName(v)
+        End Function
+
+        Function GetVarType42() As Integer
+            Dim v As Variant
+            v = 42
+            GetVarType42 = VarType(v)
+        End Function
+
+        Function GetLongLiteral() As String
+            Dim v As Variant
+            v = 40000
+            GetLongLiteral = TypeName(v)
+        End Function
+
+        Function GetDoubleLiteral() As String
+            Dim v As Variant
+            v = 3.14
+            GetDoubleLiteral = TypeName(v)
+        End Function
+
+        Function GetDoubleDiv() As String
+            ' 6.0 / 2.0 は Double 除算 → JS では 3 (Number.isInteger=true) だが型は Double であるべき
+            Dim v As Variant
+            v = 6.0 / 2.0
+            GetDoubleDiv = TypeName(v)
+        End Function
+
+        Function GetCLngResult() As String
+            Dim v As Variant
+            v = CLng(42.9)
+            GetCLngResult = TypeName(v)
+        End Function
+
+        Function GetPropagated() As String
+            ' Variant から Variant への代入でサブタイプが伝播する
+            Dim src As Variant, dst As Variant
+            src = 42
+            dst = src
+            GetPropagated = TypeName(dst)
+        End Function
+    `;
+
+    const ev = evalVBASingle(code);
+    // Integer リテラル → "Integer"
+    assert.strictEqual(ev.callProcedure('GetIntLiteral', []), 'Integer',
+        'v = 42: TypeName(v) -> Integer');
+    assert.strictEqual(ev.callProcedure('GetVarType42', []), 2,
+        'v = 42: VarType(v) -> 2 (vbInteger)');
+    // Integer 範囲外の整数リテラル → "Long"
+    assert.strictEqual(ev.callProcedure('GetLongLiteral', []), 'Long',
+        'v = 40000: TypeName(v) -> Long');
+    // Double リテラル → "Double"
+    assert.strictEqual(ev.callProcedure('GetDoubleLiteral', []), 'Double',
+        'v = 3.14: TypeName(v) -> Double');
+    // Double 演算の結果（JS では整数値だが型は Double） → "Double"
+    assert.strictEqual(ev.callProcedure('GetDoubleDiv', []), 'Double',
+        'v = 6.0/2.0: TypeName(v) -> Double (not Integer)');
+    // CLng() の戻り型 → "Long"
+    assert.strictEqual(ev.callProcedure('GetCLngResult', []), 'Long',
+        'v = CLng(42.9): TypeName(v) -> Long');
+    // Variant→Variant 代入でサブタイプが伝播 → "Integer"
+    assert.strictEqual(ev.callProcedure('GetPropagated', []), 'Integer',
+        'dst = src (src=42): TypeName(dst) -> Integer');
+
+    console.log('[PASS] Bug 22-1: Variant 変数の TypeName/VarType サブタイプ追跡（代入時点の型を保持）');
+}
+
 console.log('\n✅ TypeName: 全テスト通過');

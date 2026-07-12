@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 22 | エンジン評価 #22: 数学・数値関数 / 型チェック / Like / Optional+ParamArray / 名前付き引数 / IIf・Choose・Switch / Null / 文字列変換（暗号・エンコーディング+数値解析ドメイン） | **Hex/Oct**: `Hex(65)="41"`, `Oct(65)="101"` 全正常。**Like演算子**: `"*@*.*"` メールバリデーション / `?` 単一文字 / `[a-c]` 文字クラス / `[!acd]` 否定クラス / `#` 数字 すべて正常動作。**StrReverse/Space/String**: `StrReverse("Hello")="olleH"` / `Space(3)="   "` / `String(5,"-")="-----"` 正常。**数学関数**: `Sqr`, `Abs`, `Log`, `Exp`, `Sin`, `Cos`, `Atn`（Pi計算: `4*Atn(1)`）, `Sgn`, `Fix` すべて正常。Fix(-2.7)=-2, Int(-2.7)=-3 の違いも正確。**ParamArray**: `CalcMean(1,2,3,4,5)=3`, `CalcStdDev(2,4,4,4,5,5,7,9)≈2.138` 正常。**Rnd/Randomize**: `Randomize seed` でシード固定 → 同一シードで同一乱数列を確認。**TypeName/VarType**: `TypeName(42)="Integer"`, `TypeName(32768)="Long"`, `TypeName(3.14)="Double"` リテラル引数は正常。VarType constants (0=Empty, 1=Null, 2=Integer, 3=Long, 5=Double, 8=String, 11=Boolean) も正確。IsNull/IsEmpty/IsArray/IsObject/IsError/CVErr すべて正常。**Null**: `Null` リテラル代入 / `IsNull(Null)=True` / `IsEmpty(Null)=False` / `Null+1=Null`（伝播）/ `TypeName(Null)="Null"` すべて正常。**IIf/Choose/Switch**: 全正常。`Choose(1,"Mon","Tue",...)`, `Switch(score>=90,"A", ...)` も正常。**Optional/Named Args**: `FormatNum(value:=3.14159, decimals:=3)` 名前付き引数・引数順序逆転・部分指定のみ すべて正常（今回初確認）。**StrConv**: `StrConv("hello",1)="HELLO"` / `StrConv("HELLO",2)="hello"` 正常。**Bug 22-1 発見・修正済み**: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）。`evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加して修正。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。 | 2026-07-12 |
 | 21 | エンジン評価 #21: Static 変数 / Single 型 / 固定長文字列 / Select Case 範囲 / Do Until（シリアルナンバー生成システムドメイン） | **Static 変数**: 複数回の `run()` をまたいで `seqCounter` が正確にインクリメント。完全正常動作。**Single 型・型変換**: `CSng(1)/CSng(3)` → `0.3333333432674408`（32bit 精度）、`CDbl(1)/CDbl(3)` → `0.3333333333333333`（64bit 精度）。実 VBA と同様の精度差を正しく再現。**Select Case 範囲パターン**: `Case Is <= 10` / `Case 11 To 30` / `Case 56 To 80` / `Case Is >= 100` の全パターン正常動作。**Do Until / Loop Until**: `Do Until cond` はゼロ回実行・`Do ... Loop Until cond` は条件成立時でも最低1回実行を確認。両形式正常動作。**固定長文字列 `Dim s As String * N`**: **Bug 21-1 発見**（未修正）: パーサーが `*` をステートメント後の予期しないトークンとして扱い Parse error。`VariableDeclarator` AST インターフェース・`parseDimStatement`・エバリュエーターのいずれも `* N` に未対応。完全未実装。 | 2026-07-11 |
 | 20 | VS Code 拡張機能 評価 #20: UDT/Enum/GoSub/Implements エンジン + LSP 統合（地図座標管理ドメイン） | **テーマA（UDT/Enum）**: UDT フィールドアクセス・ByRef 引数渡し・戻り値返却・固定長配列・ネスト UDT（`ln.Start.X`）・Enum 定数（修飾あり/なし）・Select Case での Enum 使用 全正常動作。**テーマB（GoSub/Return）**: 基本実行・複数回呼び出し・複数ラベルシーケンス・ネスト GoSub・`Return without GoSub` エラー 全正常動作。戻りアドレスのスタック管理が正しく動作。**テーマC（Implements）**: 構文エラーなし・直接呼び出し・インターフェース経由ディスパッチ・ポリモーフィズム（Circle/Rectangle 切り替え）全正常動作。**テーマD（LSP 統合）**: 診断（UDT/Enum で誤 VBA016 なし）正常。補完/ホバー/フォーマット に Bug LSP-1/2/3 発見・修正済み。フォーマッターの `=` 前後スペース未整形は設計上の制限（Bug LSP-4）。 | 2026-07-07 |
 | 19 | VS Code 拡張機能 評価 #19: buildExtractFunctionEdit edge case / Dead Store 精度 / analyzeDefUse 複雑制御フロー（学力テスト結果管理ドメイン） | **テーマA（buildExtractFunctionEdit edge case）**: 複数出力パラメーター正常（ByRef x/y/z 生成）・純粋ローカル変数のみ選択で空引数呼び出し正常・Function 内抽出は常に Sub 生成（型推論不可）。**パラメーター名小文字化**: analyzeDefUse が返す変数名が小文字正規化済みのためシグネチャの `inputVal` → `inputval` になる（改善候補）。**テーマB（Dead Store 精度）**: ループカウンター変数・集計変数・条件分岐内代入・関数戻り値変数 すべて誤検出なし ✓ 実際のデッドストア正しく検出 ✓ CFG ベース生変数解析が高精度。**テーマC（analyzeDefUse 複雑制御フロー）**: With ブロック内変数 inputs/outputs/locals 正しく分類 ✓ ByRef 引数渡し後の後続使用を outputs に正しく分類 ✓ **テーマD（コード品質）**: 全パラメーターが As Variant（型推論なし）は設計制限。選択外 Dim の extraDims も As Variant になる。**Bug W1 発見・修正済み**: With ブロック内でユーザー定義クラスの Property Get（`.Score`）が Error 424 になる。Function 呼び出し（`.Summary()`）は正常。`evaluateImplicitWithObjectExpression`（`evaluator.ts:6268`）に `__vbaClass__` ブランチが欠如。`evaluateMemberExpression` と同じ Property Get → callClassMethod パターンを追加して修正。レグレッションテスト: `class-module.test.ts` 末尾 Bug W1 ブロック。 | 2026-07-07 |
@@ -45,6 +46,7 @@
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |
 | `Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる | `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 | `9e25adc` |
+| **Bug 22-1: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）** | `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`tests/spec/typename.test.ts` Bug 22-1 ブロックにレグレッションテスト追加 | 評価 #22 |
 | FSO `TextStream.ReadAll()` が `ReadLine()` 後も全体を返す | `readall` が `pos` を参照するよう修正 | `9e25adc` |
 | `eval("Exit Sub")` が JS 例外を漏らしてクラッシュ | `executeStatements` を try/catch でラップして Exit シグナルを飲み込む | `0ca97d8` |
 | 同一ファイルへの二重 `Open` が Error 55 を出さない | `fileHandles` を走査して同一パスの重複チェックを追加 | `0ca97d8` |
@@ -70,6 +72,12 @@
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
 | ~~**Bug 21-1: `Dim s As String * N` がパースエラー**~~ | **修正済み**: `VariableDeclarator` に `fixedLength?: number` を追加。`parseDimStatement` が `As String * <整数>` の `* N` を消費して記録。`Environment.coerceToType` の `'String'` ブランチで `fixedLength` がある場合にパディング・切り捨てを適用。初期値は `'\0'.repeat(N)`（VBA 仕様準拠）。UDT `TypeMember` にも `fixedLength` を追加し `instantiateType` と MemberExpression 代入で同様の処理を実装。レグレッションテスト: `tests/spec/fixed-length-string.test.ts`（12 テスト）。 | |
+
+### ~~未修正バグ（評価 #22 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 22-1: Variant 変数に整数を代入すると TypeName/VarType が subtype を失い Double を返す**~~ | **修正済み（評価 #22）**: `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer 範囲（-32768..32767）/Long 範囲チェックを追加。`Dim v As Variant : v = 42 : TypeName(v)` → "Integer" が正しく返るようになった。`VarType(v)` → 2（vbInteger）も正常。浮動小数点 `v = 3.14` → "Double" は変わらず正しい。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。 | `evaluator.ts:5471`: TypeName/VarType の数値分岐が `argExpr.type === 'NumberLiteral'` のときだけ `inferLiteralTypeName` を呼び、それ以外（Variant 変数・引数など）は `return 'Double'` にフォールバックしていた。内部では JS `number`（64bit float）として格納されるため subtype タグが消える。 |
 
 ### 未修正バグ（評価 #12 で発見）
 
@@ -140,6 +148,18 @@
 ## 未テスト・未探索の領域（今後の評価で優先すること）
 
 評価済みドメインでカバーしたものを除いた、まだ十分に試されていない機能。
+
+### 数学・数値関数・型チェック・文字列変換（評価 #22 で確認済み）
+
+- ~~`Sqr()`, `Abs()`, `Log()`, `Exp()`, `Sin()`, `Cos()`, `Atn()`, `Sgn()`, `Fix()`, `Rnd()`/`Randomize`~~ **評価済み（評価#22）: 全正常動作。`Atn(1)*4` で Pi 計算も正常。`Fix(-2.7)=-2` / `Int(-2.7)=-3` の違い正確。`Randomize seed` で同一シード → 同一乱数列を確認。**
+- ~~`TypeName()`, `VarType()`, `IsNull()`, `IsArray()`, `IsObject()`, `IsError()`, `IsEmpty()`~~ **評価済み（評価#22）: `TypeName(42)="Integer"` など VBA リテラル引数は正常。`IsNull`/`IsEmpty`/`IsArray`/`IsObject`/`IsError`/`CVErr` すべて正常。ただし **Bug 22-1**: Variant 変数経由の TypeName/VarType が subtype を失い常に Double を返す。**
+- ~~`Like` 演算子~~ **評価済み（評価#22）: `*`/`?`/`[a-z]`/`[!x]`/`#` すべて正常動作。メールバリデーションパターン `"*@*.*"` も正常。**
+- ~~`Optional ByVal x As Long = 0` デフォルト値付き Optional パラメーター~~ **評価済み（評価#22）: 正常動作。部分指定（一部の Optional のみ渡す）も正常。**
+- ~~`ParamArray args()` 可変引数~~ **評価済み（評価#22）: `CalcMean(ParamArray vals())` / `CalcStdDev(ParamArray vals())` 正常動作。`eval()` から `CalcMean(1,2,3,4,5)` で呼び出し可能。**
+- ~~名前付き引数 `Func(argB:=2, argA:=1)`~~ **評価済み（評価#22）: `FormatNum(value:=3.14, decimals:=3, prefix:="PI=")` 正常。引数順序逆転（`decimals:=4, value:=2.71`）も正常。部分指定（`value:=99.9` のみ）も正常。**
+- ~~`IIf()`, `Choose()`, `Switch()` 条件関数~~ **評価済み（評価#22）: 全正常。`Choose(dayNum,"Mon","Tue",...)` 1-based index / `Switch(score>=90,"A", True,"F")` フォールバック True も正常。**
+- ~~`Null` の扱い: `IsNull()`, `Null` リテラル, `Null` と `Empty` の区別~~ **評価済み（評価#22）: `IsNull(Null)=True` / `IsEmpty(Null)=False` / `Null+1=Null`（伝播）/ `TypeName(Null)="Null"` / `VarType(Null)=1` すべて正常。VarType 0=Empty, 1=Null の区別も正確。**
+- ~~`Asc()`, `Chr()`, `Hex()`, `Oct()`, `StrReverse()`, `Space()`, `String()`, `StrConv()`~~ **評価済み（評価#22）: 全正常。`Hex(65)="41"`, `Oct(65)="101"`, `StrReverse("Hello")="olleH"`, `String(5,"-")="-----"`, `Space(3)="   "`, `StrConv("hello",1)="HELLO"` / `StrConv("HELLO",2)="hello"` すべて正常。**
 
 ### ファイル入出力
 
@@ -320,3 +340,5 @@
 68. **`buildExtractFunctionEdit` は抽出先を常に `Private Sub` にする**（評価 #19）: 元のコードが Function 内であっても、戻り型の推論が困難なため抽出先は常に `Private Sub` になる。設計上の制限。
 69. **`findDeadStores` はループカウンター・集計変数・条件分岐内代入・関数戻り値変数を誤検出しない**（評価 #19）: CFG ベースの生変数解析が高精度で動作することを確認。ByRef パラメーターと Function 戻り値変数は `alwaysLive` 扱いで適切に除外。
 70. ~~**With ブロック内でユーザー定義クラスの Property Get が Error 424（Bug W1）**（評価 #19 で発見）~~: **修正済み（評価 #19）**: `evaluateImplicitWithObjectExpression` に `__vbaClass__` ブランチを追加。`With classInstance: .PropertyGet` が正常動作するようになった。`class-module.test.ts` Bug W1 テスト追加。
+71. ~~**Variant 変数経由の TypeName/VarType は subtype を失い常に Double を返す（Bug 22-1）**（評価 #22）~~: **修正済み（評価 #22）**: `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`Dim v As Variant : v = 42 : TypeName(v)` → "Integer"、`VarType(v)` → 2（vbInteger）が正しく返るようになった。`v = 3.14` の浮動小数点は引き続き "Double"。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。
+72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。

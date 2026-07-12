@@ -263,6 +263,8 @@ interface ExecProcBodyOptions {
 export class Environment {
     private variables: Map<string, any> = new Map();
     private variableTypes: Map<string, VbaTypeInfo> = new Map();
+    /** Dynamic numeric subtype for Variant variables (e.g. after `v = 42`, tracks "Integer") */
+    private variantNumericSubtypes: Map<string, VbaVarType> = new Map();
     private procedures: Map<string, ProcedureDeclaration> = new Map();
     private types: Map<string, TypeMember[]> = new Map();
     private withEventsVariables: Set<string> = new Set();
@@ -325,6 +327,38 @@ export class Environment {
             env = env.enclosing;
         }
         return undefined;
+    }
+
+    setVariantSubtype(name: string, subtype: VbaVarType): void {
+        const key = name.toLowerCase();
+        if (this.variables.has(key)) { this.variantNumericSubtypes.set(key, subtype); return; }
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            if (env.variables.has(key)) { env.variantNumericSubtypes.set(key, subtype); return; }
+            env = env.enclosing;
+        }
+        this.variantNumericSubtypes.set(key, subtype);
+    }
+
+    getVariantSubtype(name: string): VbaVarType | undefined {
+        const key = name.toLowerCase();
+        if (this.variantNumericSubtypes.has(key)) return this.variantNumericSubtypes.get(key);
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            if (env.variantNumericSubtypes.has(key)) return env.variantNumericSubtypes.get(key);
+            env = env.enclosing;
+        }
+        return undefined;
+    }
+
+    clearVariantSubtype(name: string): void {
+        const key = name.toLowerCase();
+        if (this.variantNumericSubtypes.has(key)) { this.variantNumericSubtypes.delete(key); return; }
+        let env: Environment | undefined = this.enclosing;
+        while (env) {
+            if (env.variantNumericSubtypes.has(key)) { env.variantNumericSubtypes.delete(key); return; }
+            env = env.enclosing;
+        }
     }
 
     private coerceToType(key: string, value: any): any {
@@ -2626,6 +2660,20 @@ export class Evaluator {
         }
 
         this.evaluateAssignmentToVariable(stmt.left, val);
+
+        // Track numeric subtype for Variant variables so TypeName/VarType reflect the assigned type
+        if (stmt.left.type === 'Identifier' && typeof val === 'number') {
+            const name = (stmt.left as Identifier).name;
+            const typeInfo = this.env.getVariableType(name);
+            if (!typeInfo || typeInfo.vbaType === 'Variant') {
+                const subtype = this.resolveNumericSubtype(stmt.right);
+                if (subtype) {
+                    this.env.setVariantSubtype(name, subtype);
+                } else {
+                    this.env.clearVariantSubtype(name);
+                }
+            }
+        }
     }
 
     /**
@@ -5468,12 +5516,20 @@ export class Evaluator {
         if (funcName === 'typename') {
             if (typeof val === 'number') {
                 if (argExpr.type === 'NumberLiteral') return this.inferLiteralTypeName(argExpr as NumberLiteral);
-                return 'Double'; // 型情報なしの式は Double
+                if (argExpr.type === 'Identifier') {
+                    const subtype = this.env.getVariantSubtype((argExpr as Identifier).name);
+                    if (subtype) return subtype;
+                }
+                return 'Double';
             }
             return this.env.get('typename')(val);
         } else {
             if (typeof val === 'number') {
                 if (argExpr.type === 'NumberLiteral') return this.inferLiteralVarType(argExpr as NumberLiteral);
+                if (argExpr.type === 'Identifier') {
+                    const subtype = this.env.getVariantSubtype((argExpr as Identifier).name);
+                    if (subtype) return vtMap[subtype] ?? 5;
+                }
                 return 5; // vbDouble
             }
             return this.env.get('vartype')(val);
@@ -5505,6 +5561,24 @@ export class Evaluator {
                     return typeMap[proc.returnType.toLowerCase()];
                 }
             }
+        }
+        return undefined;
+    }
+
+    /**
+     * Determines the VBA numeric subtype of an expression at the AST level.
+     * Used to track the dynamic subtype of Variant variables at assignment time.
+     * Returns undefined when the subtype cannot be determined statically.
+     */
+    private resolveNumericSubtype(expr: Expression): VbaVarType | undefined {
+        if (expr.type === 'NumberLiteral') {
+            return this.inferLiteralTypeName(expr as NumberLiteral) as VbaVarType;
+        }
+        const declared = this.resolveDeclaredReturnType(expr);
+        if (declared && declared !== 'Variant' && declared !== 'Object') return declared;
+        // Propagate subtype from another Variant variable
+        if (expr.type === 'Identifier') {
+            return this.env.getVariantSubtype((expr as Identifier).name);
         }
         return undefined;
     }
