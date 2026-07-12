@@ -5574,12 +5574,84 @@ export class Evaluator {
         if (expr.type === 'NumberLiteral') {
             return this.inferLiteralTypeName(expr as NumberLiteral) as VbaVarType;
         }
+        if (expr.type === 'BinaryExpression') {
+            return this.resolveBinaryExprNumericSubtype(expr as BinaryExpression);
+        }
+        if (expr.type === 'UnaryExpression') {
+            const ue = expr as UnaryExpression;
+            if (ue.operator === '-' || ue.operator === '+') {
+                return this.resolveNumericSubtype(ue.argument);
+            }
+        }
         const declared = this.resolveDeclaredReturnType(expr);
         if (declared && declared !== 'Variant' && declared !== 'Object') return declared;
         // Propagate subtype from another Variant variable
         if (expr.type === 'Identifier') {
             return this.env.getVariantSubtype((expr as Identifier).name);
         }
+        return undefined;
+    }
+
+    /**
+     * VBA 型昇格規則に従って BinaryExpression の数値サブタイプを解決する。
+     *
+     * 昇格階層（+, -, * の場合）: Byte < Integer < Long < LongLong < Single < Currency < Double
+     * / は常に Double（両辺 Single のみ Single）
+     * \ と Mod は整数除算結果（Integer または Long）
+     * ^ は常に Double
+     */
+    private resolveBinaryExprNumericSubtype(expr: BinaryExpression): VbaVarType | undefined {
+        const op = expr.operator.toLowerCase();
+
+        if (op === '^') return 'Double';
+
+        const lt = this.resolveNumericSubtype(expr.left);
+        const rt = this.resolveNumericSubtype(expr.right);
+
+        if (op === '/') {
+            // / は常に Double（両辺が Single のときのみ Single）
+            const singleCompatible = new Set<VbaVarType | undefined>(['Single', 'Byte', 'Integer']);
+            if (singleCompatible.has(lt) && singleCompatible.has(rt) && (lt === 'Single' || rt === 'Single')) return 'Single';
+            return 'Double';
+        }
+
+        if (op === '\\' || op === 'mod') {
+            // 整数除算: 非整数型は Long に丸めてから演算される
+            const toIntType = (t: VbaVarType | undefined): 'Integer' | 'Long' | 'LongLong' | undefined => {
+                if (t === 'Byte' || t === 'Integer') return 'Integer';
+                if (t === 'Long') return 'Long';
+                if (t === 'LongLong') return 'LongLong';
+                if (t === 'Single' || t === 'Double' || t === 'Currency') return 'Long'; // 丸め後 Long
+                return undefined;
+            };
+            const nl = toIntType(lt), nr = toIntType(rt);
+            if (!nl || !nr) return undefined;
+            if (nl === 'LongLong' || nr === 'LongLong') return 'LongLong';
+            if (nl === 'Long' || nr === 'Long') return 'Long';
+            return 'Integer';
+        }
+
+        // +, -, * の型昇格
+        if (op === '+' || op === '-' || op === '*') {
+            // どちらかが Double → Double
+            if (lt === 'Double' || rt === 'Double') return 'Double';
+            // どちらかが Currency → Currency（ただし Double との組み合わせは上で処理済み）
+            if (lt === 'Currency' || rt === 'Currency') return 'Currency';
+            // Long + Single / LongLong + Single は Double（Single の精度不足）
+            const isLongish = (t: VbaVarType | undefined) => t === 'Long' || t === 'LongLong';
+            if ((isLongish(lt) && rt === 'Single') || (lt === 'Single' && isLongish(rt))) return 'Double';
+            // どちらかが Single → Single
+            if (lt === 'Single' || rt === 'Single') return 'Single';
+            // どちらかが LongLong → LongLong
+            if (lt === 'LongLong' || rt === 'LongLong') return 'LongLong';
+            // どちらかが Long → Long
+            if (lt === 'Long' || rt === 'Long') return 'Long';
+            // Byte + Byte → Integer（オーバーフロー防止のため VBA 仕様上 Integer に昇格）
+            if (lt === 'Integer' || rt === 'Integer' || lt === 'Byte' || rt === 'Byte') return 'Integer';
+            // 両辺が不明 → 不明
+            return undefined;
+        }
+
         return undefined;
     }
 

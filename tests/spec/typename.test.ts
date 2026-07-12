@@ -172,4 +172,34 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Bug 22-1: Variant 変数の TypeName/VarType サブタイプ追跡（代入時点の型を保持）');
 }
 
+// BinaryExpression の VBA 型昇格規則
+{
+    const ev = evalVBASingle(`
+        Function T(v As Variant) As String: T = TypeName(v): End Function
+        Function FSlash():    Dim v As Variant: v = 6 / 2:        FSlash    = T(v): End Function
+        Function FBSlash():   Dim v As Variant: v = 6 \\ 2:       FBSlash   = T(v): End Function
+        Function FAdd():      Dim v As Variant: v = 3 + 4:        FAdd      = T(v): End Function
+        Function FSub():      Dim v As Variant: v = 5 - 2:        FSub      = T(v): End Function
+        Function FMul():      Dim v As Variant: v = 3 * 4:        FMul      = T(v): End Function
+        Function FMod():      Dim v As Variant: v = 7 Mod 3:      FMod      = T(v): End Function
+        Function FPow():      Dim v As Variant: v = 2 ^ 3:        FPow      = T(v): End Function
+        Function FLongAdd():  Dim v As Variant: v = 40000 + 1:    FLongAdd  = T(v): End Function
+        Function FDblDiv():   Dim v As Variant: v = 6.0 / 2.0:    FDblDiv   = T(v): End Function
+        Function FSngDiv():   Dim v As Variant: v = CSng(6) / CSng(2): FSngDiv = T(v): End Function
+        Function FNeg():      Dim v As Variant: v = -42:           FNeg      = T(v): End Function
+    `);
+    assert.strictEqual(ev.callProcedure('FSlash',   []), 'Double',  '6 / 2   -> Double (/ は常に Double)');
+    assert.strictEqual(ev.callProcedure('FBSlash',  []), 'Integer', '6 \\ 2  -> Integer (整数除算)');
+    assert.strictEqual(ev.callProcedure('FAdd',     []), 'Integer', '3 + 4   -> Integer');
+    assert.strictEqual(ev.callProcedure('FSub',     []), 'Integer', '5 - 2   -> Integer');
+    assert.strictEqual(ev.callProcedure('FMul',     []), 'Integer', '3 * 4   -> Integer');
+    assert.strictEqual(ev.callProcedure('FMod',     []), 'Integer', '7 Mod 3 -> Integer');
+    assert.strictEqual(ev.callProcedure('FPow',     []), 'Double',  '2 ^ 3   -> Double (^ は常に Double)');
+    assert.strictEqual(ev.callProcedure('FLongAdd', []), 'Long',    '40000+1 -> Long');
+    assert.strictEqual(ev.callProcedure('FDblDiv',  []), 'Double',  '6.0/2.0 -> Double');
+    assert.strictEqual(ev.callProcedure('FSngDiv',  []), 'Single',  'CSng/CSng -> Single');
+    assert.strictEqual(ev.callProcedure('FNeg',     []), 'Integer', '-42     -> Integer (単項マイナス)');
+    console.log('[PASS] BinaryExpression の VBA 型昇格規則');
+}
+
 console.log('\n✅ TypeName: 全テスト通過');
