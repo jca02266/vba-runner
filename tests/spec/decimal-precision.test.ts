@@ -35,13 +35,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test2 = d
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test2');
-        assert.strictEqual(result, 987.654321, 'Decimal with CDec()');
-        console.log('[PASS] Test 2: CDec() conversion');
-    } catch (e: any) {
-        console.log('[INFO] Test 2: ' + e.message);
-    }
+    const result = runFunc(code, 'Test2');
+    assert.strictEqual(String(result), '987.654321', 'Decimal with CDec()');
+    console.log('[PASS] Test 2: CDec() conversion');
 }
 
 // Test 3: Decimal arithmetic - addition
@@ -172,13 +168,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test9 = d(1) + d(2) + d(3)
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test9');
-        assert.strictEqual(result, 60.6, 'Decimal in array');
-        console.log('[PASS] Test 9: Decimal in array');
-    } catch (e: any) {
-        console.log('[INFO] Test 9: ' + e.message);
-    }
+    const result = runFunc(code, 'Test9');
+    // 型付き配列要素は coerceToDeclaredType を通るため VbaDecimal として格納される
+    assert.strictEqual(String(result), '60.6', 'Decimal in array');
+    console.log('[PASS] Test 9: Decimal in array');
 }
 
 // Test 10: Decimal comparison

@@ -8,6 +8,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     return evalVBA(code).callProcedure(name, args);
 }
 
+// Helper: compare Currency result as string (VbaCurrency.toString() or Number.toString())
+function cur(v: any): string { return String(v); }
+
 // Test 1: Basic Currency assignment
 {
     const code = `
@@ -17,13 +20,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test1 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test1');
-        assert.strictEqual(result, 100.50, 'Currency basic assignment');
-        console.log('[PASS] Test 1: Basic Currency assignment');
-    } catch (e: any) {
-        console.log('[INFO] Test 1: ' + e.message);
-    }
+    const result = runFunc(code, 'Test1');
+    assert.strictEqual(cur(result), '100.5', 'Currency basic assignment');
+    console.log('[PASS] Test 1: Basic Currency assignment');
 }
 
 // Test 2: Currency with CCur() function
@@ -35,13 +34,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test2 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test2');
-        assert.strictEqual(result, 250.75, 'Currency with CCur()');
-        console.log('[PASS] Test 2: CCur() conversion');
-    } catch (e: any) {
-        console.log('[INFO] Test 2: ' + e.message);
-    }
+    const result = runFunc(code, 'Test2');
+    assert.strictEqual(cur(result), '250.75', 'Currency with CCur()');
+    console.log('[PASS] Test 2: CCur() conversion');
 }
 
 // Test 3: Currency arithmetic - addition
@@ -55,13 +50,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test3 = c1 + c2
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test3');
-        assert.strictEqual(result, 400, 'Currency addition');
-        console.log('[PASS] Test 3: Currency addition');
-    } catch (e: any) {
-        console.log('[INFO] Test 3: ' + e.message);
-    }
+    const result = runFunc(code, 'Test3');
+    assert.strictEqual(cur(result), '400', 'Currency addition');
+    console.log('[PASS] Test 3: Currency addition');
 }
 
 // Test 4: Currency arithmetic - subtraction
@@ -75,13 +66,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test4 = c1 - c2
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test4');
-        assert.strictEqual(result, 376.55, 'Currency subtraction');
-        console.log('[PASS] Test 4: Currency subtraction');
-    } catch (e: any) {
-        console.log('[INFO] Test 4: ' + e.message);
-    }
+    const result = runFunc(code, 'Test4');
+    assert.strictEqual(cur(result), '376.55', 'Currency subtraction');
+    console.log('[PASS] Test 4: Currency subtraction');
 }
 
 // Test 5: Currency arithmetic - multiplication
@@ -95,16 +82,12 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test5 = c1 * c2
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test5');
-        assert.strictEqual(result, 125, 'Currency multiplication');
-        console.log('[PASS] Test 5: Currency multiplication');
-    } catch (e: any) {
-        console.log('[INFO] Test 5: ' + e.message);
-    }
+    const result = runFunc(code, 'Test5');
+    assert.strictEqual(cur(result), '125', 'Currency multiplication');
+    console.log('[PASS] Test 5: Currency multiplication');
 }
 
-// Test 6: Currency arithmetic - division
+// Test 6: Currency arithmetic - division returns Double
 {
     const code = `
     Function Test6()
@@ -115,13 +98,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test6 = c1 / c2
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test6');
-        assert.strictEqual(result, 25, 'Currency division');
-        console.log('[PASS] Test 6: Currency division');
-    } catch (e: any) {
-        console.log('[INFO] Test 6: ' + e.message);
-    }
+    const result = runFunc(code, 'Test6');
+    assert.strictEqual(result, 25, 'Currency division (Double result)');
+    console.log('[PASS] Test 6: Currency division');
 }
 
 // Test 7: Currency with 4 decimal places precision
@@ -133,13 +112,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test7 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test7');
-        assert.strictEqual(result, 10.1234, 'Currency 4 decimal places');
-        console.log('[PASS] Test 7: Currency 4 decimal places');
-    } catch (e: any) {
-        console.log('[INFO] Test 7: ' + e.message);
-    }
+    const result = runFunc(code, 'Test7');
+    assert.strictEqual(cur(result), '10.1234', 'Currency 4 decimal places');
+    console.log('[PASS] Test 7: Currency 4 decimal places');
 }
 
 // Test 8: Currency with negative numbers
@@ -151,16 +126,12 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test8 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test8');
-        assert.strictEqual(result, -299.99, 'Currency negative');
-        console.log('[PASS] Test 8: Currency with negative numbers');
-    } catch (e: any) {
-        console.log('[INFO] Test 8: ' + e.message);
-    }
+    const result = runFunc(code, 'Test8');
+    assert.strictEqual(cur(result), '-299.99', 'Currency negative');
+    console.log('[PASS] Test 8: Currency with negative numbers');
 }
 
-// Test 9: Currency in array
+// Test 9: Currency in array (array elements not typed, comparison as-is)
 {
     const code = `
     Function Test9()
@@ -171,13 +142,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test9 = c(1) + c(2) + c(3)
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test9');
-        assert.strictEqual(result, 61.5, 'Currency in array');
-        console.log('[PASS] Test 9: Currency in array');
-    } catch (e: any) {
-        console.log('[INFO] Test 9: ' + e.message);
-    }
+    const result = runFunc(code, 'Test9');
+    assert.strictEqual(cur(result), '61.5', 'Currency in array');
+    console.log('[PASS] Test 9: Currency in array');
 }
 
 // Test 10: Currency comparison
@@ -195,13 +162,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         End If
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test10');
-        assert.strictEqual(result, 1, 'Currency comparison');
-        console.log('[PASS] Test 10: Currency comparison');
-    } catch (e: any) {
-        console.log('[INFO] Test 10: ' + e.message);
-    }
+    const result = runFunc(code, 'Test10');
+    assert.strictEqual(result, 1, 'Currency comparison');
+    console.log('[PASS] Test 10: Currency comparison');
 }
 
 // Test 11: Currency type detection
@@ -215,14 +178,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test11 = t
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test11');
-        // VarType returns 6 for Currency
-        assert.strictEqual(result, 6, 'Currency VarType');
-        console.log('[PASS] Test 11: Currency type detection');
-    } catch (e: any) {
-        console.log('[INFO] Test 11: ' + e.message);
-    }
+    const result = runFunc(code, 'Test11');
+    assert.strictEqual(result, 6, 'Currency VarType');
+    console.log('[PASS] Test 11: Currency type detection');
 }
 
 // Test 12: Currency conversion from Integer
@@ -236,13 +194,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test12 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test12');
-        assert.strictEqual(result, 1000, 'Currency from Integer');
-        console.log('[PASS] Test 12: Currency from Integer');
-    } catch (e: any) {
-        console.log('[INFO] Test 12: ' + e.message);
-    }
+    const result = runFunc(code, 'Test12');
+    assert.strictEqual(cur(result), '1000', 'Currency from Integer');
+    console.log('[PASS] Test 12: Currency from Integer');
 }
 
 // Test 13: Currency in function parameter
@@ -260,13 +214,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test13 = ApplyDiscount(originalPrice, discount)
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test13');
-        assert.strictEqual(result, 90, 'Currency in function parameter');
-        console.log('[PASS] Test 13: Currency in function parameter');
-    } catch (e: any) {
-        console.log('[INFO] Test 13: ' + e.message);
-    }
+    const result = runFunc(code, 'Test13');
+    assert.strictEqual(cur(result), '90', 'Currency in function parameter');
+    console.log('[PASS] Test 13: Currency in function parameter');
 }
 
 // Test 14: Currency with fractional cents
@@ -278,14 +228,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test14 = c
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test14');
-        // Should maintain 4 decimal places
-        assert.strictEqual(result, 19.9999, 'Currency fractional cents');
-        console.log('[PASS] Test 14: Currency with fractional cents');
-    } catch (e: any) {
-        console.log('[INFO] Test 14: ' + e.message);
-    }
+    const result = runFunc(code, 'Test14');
+    assert.strictEqual(cur(result), '19.9999', 'Currency fractional cents');
+    console.log('[PASS] Test 14: Currency with fractional cents');
 }
 
 // Test 15: VBA veteran pattern - invoice calculation with Currency
@@ -306,16 +251,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         Test15 = total
     End Function
     `;
-    try {
-        const result = runFunc(code, 'Test15');
-        // 1000 * (1 - 10/100) = 1000 * 0.9 = 900
-        // 900 * 0.08 = 72
-        // 900 + 72 = 972
-        assert.strictEqual(result, 972, 'Currency invoice calculation');
-        console.log('[PASS] Test 15: VBA veteran pattern - invoice calculation');
-    } catch (e: any) {
-        console.log('[INFO] Test 15: ' + e.message);
-    }
+    const result = runFunc(code, 'Test15');
+    // 1000 * (1 - 10/100) = 900; 900 * 0.08 = 72; 900 + 72 = 972
+    assert.strictEqual(cur(result), '972', 'Currency invoice calculation');
+    console.log('[PASS] Test 15: VBA veteran pattern - invoice calculation');
 }
 
-console.log('\n✅ Currency Precision: Testing complete');
+console.log('\n✅ Currency Precision: 全テスト通過');

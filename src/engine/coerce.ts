@@ -13,7 +13,7 @@
 import {
     VbaBoolean, vbaTrue, vbaFalse,
     vbaEmpty, vbaNull, vbaNothing,
-    VbaDate, VbaDecimal, VbaErrorValue,
+    VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
 } from './vba-types';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
 
@@ -36,6 +36,7 @@ export function vbaToNumber(val: any): number {
     if (val instanceof VbaBoolean) return val.value;
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
+    if (val instanceof VbaCurrency) return Number(val.internal) / 10000;
     if (typeof val === 'number') return val;
     if (typeof val === 'bigint') return Number(val);
     if (typeof val === 'string') {
@@ -145,6 +146,7 @@ export function vbaToDisplayString(val: any): string {
     if (val instanceof VbaDate) return val.toString();
     if (val instanceof VbaErrorValue) return val.toString();
     if (val instanceof VbaDecimal) return val.toString();
+    if (val instanceof VbaCurrency) return val.toString();
     if (typeof val === 'bigint') return val.toString();
     return String(val);
 }

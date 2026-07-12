@@ -85,15 +85,16 @@ import { FileSystem, MemoryFileSystem } from './filesystem';
 import { checkOptionExplicit, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
 import {
-    VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef,
+    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef, VbaCurrency,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate,
+    parseFixedPointString, bankersDivide,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
 export {
-    VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef,
+    VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef, VbaCurrency,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate,
@@ -395,9 +396,15 @@ export class Environment {
             case 'Double':
                 return Environment.toNumeric(value);
             case 'Currency': {
-                const n = Environment.vbaRoundStatic(Environment.toNumeric(value), 4);
-                if (n < -922337203685477.5808 || n > 922337203685477.5807) Environment.throwOverflow();
-                return n;
+                if (value instanceof VbaCurrency) return value;
+                if (value instanceof VbaBoolean) return new VbaCurrency(BigInt(value.value) * 10000n);
+                if (typeof value === 'bigint') return new VbaCurrency(value * 10000n);
+                if (typeof value === 'string') {
+                    const trimmed = value.trim();
+                    if (!/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) Environment.throwOverflow();
+                    return new VbaCurrency(parseFixedPointString(trimmed, 4));
+                }
+                return VbaCurrency.fromNumber(Environment.vbaRoundStatic(Environment.toNumeric(value), 4));
             }
             case 'String': {
                 let s: string;
@@ -2707,6 +2714,8 @@ export class Evaluator {
                 return this.env.get('cdbl')(val);
             case 'Currency':
                 return this.env.get('ccur')(val);
+            case 'Decimal':
+                return this.env.get('cdec')(val);
             case 'String':
                 return this.env.get('cstr')(val);
             case 'Date':
@@ -2829,6 +2838,12 @@ export class Evaluator {
                     if (dims) {
                         const { lower, upper } = dims[call.args.length - 1];
                         if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    }
+                    // 型付き配列の要素代入: __vbaElementType__ に従って強制変換
+                    const elemType = (target as any).__vbaElementType__;
+                    if (elemType && elemType !== 'variant') {
+                        val = this.coerceToDeclaredType(val,
+                            elemType.charAt(0).toUpperCase() + elemType.slice(1));
                     }
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
@@ -3039,6 +3054,10 @@ export class Evaluator {
                     initialValue = [];
                     (initialValue as any).vbaBase = this.arrayBase;
                     (initialValue as any).vbaFixed = false;
+                }
+                // 型付き配列: 要素代入時の coerceToDeclaredType に使う型名を保持
+                if (effectiveType) {
+                    (initialValue as any).__vbaElementType__ = effectiveType.toLowerCase();
                 }
                 // UDT 型配列: ReDim 時に要素を初期化できるよう型名を保持する
                 if (decl.objectType && this.env.getType(decl.objectType)) {
@@ -5402,11 +5421,8 @@ export class Evaluator {
                 // Math.fround は表示ラッパー（VbaSingle）が未実装のため適用しない。
                 return val;
             case '#': return val;
-            case '@': {
-                const n = this.vbaRound(val, 4);
-                if (n < -922337203685477.5808 || n > 922337203685477.5807) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
-                return n;
-            }
+            case '@':
+                return VbaCurrency.fromNumber(this.vbaRound(val, 4));
             case '^':
                 // TypeName → 'LongLong' は AST の typeSuffix 経由で返る。
                 // BigInt 変換は VbaSingle 同様にラッパー未実装のため行わない。
@@ -6111,12 +6127,160 @@ export class Evaluator {
                 if (typeof argument === 'boolean') return argument ? vbaFalse : vbaTrue;
                 return ~argument;
             case '-':
+                if (argument instanceof VbaCurrency) return new VbaCurrency(-argument.internal);
+                if (argument instanceof VbaDecimal) return new VbaDecimal(-argument.mantissa, argument.scale);
                 return -argument;
             case '+':
                 return +argument;
             default:
                 throw new Error(`Execution error: Unknown unary operator ${expr.operator}`);
         }
+    }
+
+    /**
+     * Decimal の BigInt 固定小数点演算（96-bit mantissa + scale 0-28）。
+     */
+    private evaluateDecimalOp(op: string, a: any, b: any, toVbaNumber: (v: any) => number): any {
+        const parseVal = (v: any): { m: bigint; scale: number } => {
+            if (v instanceof VbaDecimal) return { m: v.mantissa, scale: v.scale };
+            const d = VbaDecimal.fromNumber(toVbaNumber(v));
+            return { m: d.mantissa, scale: d.scale };
+        };
+
+        const { m: am, scale: as_ } = parseVal(a);
+        const { m: bm, scale: bs_ } = parseVal(b);
+
+        // スケール整列ヘルパー
+        const align = () => {
+            const maxScale = Math.max(as_, bs_);
+            const aam = as_ < maxScale ? am * (10n ** BigInt(maxScale - as_)) : am;
+            const bbm = bs_ < maxScale ? bm * (10n ** BigInt(maxScale - bs_)) : bm;
+            return { aam, bbm, maxScale };
+        };
+
+        const normalizeDecimal = (m: bigint, scale: number): VbaDecimal => {
+            let mAdj = m;
+            let sAdj = scale;
+            const maxM = VbaDecimal.MAX_MANTISSA;
+            while (sAdj > VbaDecimal.MAX_SCALE) {
+                mAdj = bankersDivide(mAdj, 10n);
+                sAdj--;
+            }
+            while ((mAdj < 0n ? -mAdj : mAdj) > maxM && sAdj > 0) {
+                mAdj = bankersDivide(mAdj, 10n);
+                sAdj--;
+            }
+            if ((mAdj < 0n ? -mAdj : mAdj) > maxM) {
+                this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
+            return new VbaDecimal(mAdj, sAdj);
+        };
+
+        switch (op) {
+            case '+': { const { aam, bbm, maxScale } = align(); return normalizeDecimal(aam + bbm, maxScale); }
+            case '-': { const { aam, bbm, maxScale } = align(); return normalizeDecimal(aam - bbm, maxScale); }
+            case '*': return normalizeDecimal(am * bm, as_ + bs_);
+            case '/': {
+                if (bm === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                // result_mantissa = am × 10^(28 - as + bs) / bm, scale = 28
+                const extExp = 28 - as_ + bs_;
+                const extNum = am * (10n ** BigInt(extExp));
+                return normalizeDecimal(bankersDivide(extNum, bm), 28);
+            }
+            case '\\': {
+                const la = bankersDivide(am, 10n ** BigInt(as_));
+                const lb = bankersDivide(bm, 10n ** BigInt(bs_));
+                if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Number(la / lb);
+            }
+            case 'mod': {
+                const la = bankersDivide(am, 10n ** BigInt(as_));
+                const lb = bankersDivide(bm, 10n ** BigInt(bs_));
+                if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Number(la % lb);
+            }
+            // 比較: スケール整列してから大小比較
+            case '=':  { const { aam, bbm } = align(); return aam === bbm ? vbaTrue : vbaFalse; }
+            case '<>': { const { aam, bbm } = align(); return aam !== bbm ? vbaTrue : vbaFalse; }
+            case '<':  { const { aam, bbm } = align(); return aam < bbm ? vbaTrue : vbaFalse; }
+            case '>':  { const { aam, bbm } = align(); return aam > bbm ? vbaTrue : vbaFalse; }
+            case '<=': { const { aam, bbm } = align(); return aam <= bbm ? vbaTrue : vbaFalse; }
+            case '>=': { const { aam, bbm } = align(); return aam >= bbm ? vbaTrue : vbaFalse; }
+        }
+        return undefined;
+    }
+
+    /**
+     * Currency の BigInt 固定小数点演算。
+     * Currency + {Byte/Integer/Long/Boolean/bigint/Currency} → Currency
+     * Currency + Double(non-integer float) → Double
+     * Currency / any → Double
+     */
+    private evaluateCurrencyOp(op: string, a: any, b: any, toVbaNumber: (v: any) => number): any {
+        const toCurrencyInternal = (v: any): bigint | null => {
+            if (v instanceof VbaCurrency) return v.internal;
+            if (v instanceof VbaBoolean) return BigInt(v.value) * 10000n;
+            if (typeof v === 'bigint') return v * 10000n;
+            if (typeof v === 'number') {
+                if (Number.isInteger(v)) return BigInt(v) * 10000n;
+                return null; // non-integer float → Double path
+            }
+            return null;
+        };
+
+        const ai = toCurrencyInternal(a);
+        const bi = toCurrencyInternal(b);
+
+        // If either side is a non-integer float (Single/Double), fall through to Double arithmetic
+        if (ai === null || bi === null) {
+            const la = a instanceof VbaCurrency ? Number(a.internal) / 10000 : toVbaNumber(a);
+            const lb = b instanceof VbaCurrency ? Number(b.internal) / 10000 : toVbaNumber(b);
+            switch (op) {
+                case '+': return la + lb;
+                case '-': return la - lb;
+                case '*': return la * lb;
+                case '/':
+                    if (lb === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                    return la / lb;
+                case '\\': return Math.trunc(la / lb);
+                case 'mod': return la % lb;
+                case '=':  return la === lb ? vbaTrue : vbaFalse;
+                case '<>': return la !== lb ? vbaTrue : vbaFalse;
+                case '<':  return la < lb ? vbaTrue : vbaFalse;
+                case '>':  return la > lb ? vbaTrue : vbaFalse;
+                case '<=': return la <= lb ? vbaTrue : vbaFalse;
+                case '>=': return la >= lb ? vbaTrue : vbaFalse;
+            }
+        }
+
+        switch (op) {
+            case '+': return new VbaCurrency(ai! + bi!);
+            case '-': return new VbaCurrency(ai! - bi!);
+            case '*':
+                // (a×10^4)(b×10^4) = real×10^8 → divide by 10^4 with banker's rounding
+                return new VbaCurrency(bankersDivide(ai! * bi!, 10000n));
+            case '/': {
+                // Currency / Currency always yields Double per VBA spec
+                if (bi === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Number(ai!) / Number(bi!);
+            }
+            case '\\': {
+                if (bi === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Number(bankersDivide(ai!, bi!));
+            }
+            case 'mod': {
+                if (bi === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                const q = bankersDivide(ai!, bi!);
+                return Number(ai! - q * bi!);
+            }
+            case '=':  return ai! === bi! ? vbaTrue : vbaFalse;
+            case '<>': return ai! !== bi! ? vbaTrue : vbaFalse;
+            case '<':  return ai! < bi! ? vbaTrue : vbaFalse;
+            case '>':  return ai! > bi! ? vbaTrue : vbaFalse;
+            case '<=': return ai! <= bi! ? vbaTrue : vbaFalse;
+            case '>=': return ai! >= bi! ? vbaTrue : vbaFalse;
+        }
+        return undefined;
     }
 
     /**
@@ -6326,6 +6490,20 @@ export class Evaluator {
             }
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         };
+
+        // Decimal: BigInt-backed string arithmetic for precision
+        if (leftVal instanceof VbaDecimal || rightVal instanceof VbaDecimal) {
+            if (arithmeticOps.has(op) || comparisonOps.has(op)) {
+                return this.evaluateDecimalOp(op, leftVal, rightVal, toVbaNumber);
+            }
+        }
+
+        // Currency: BigInt fixed-point arithmetic (before VbaBoolean normalisation for comparisons)
+        if (leftVal instanceof VbaCurrency || rightVal instanceof VbaCurrency) {
+            if (arithmeticOps.has(op) || comparisonOps.has(op)) {
+                return this.evaluateCurrencyOp(op, leftVal, rightVal, toVbaNumber);
+            }
+        }
 
         // 比較演算子では VbaBoolean を数値として扱う（True=-1, False=0）
         if (comparisonOps.has(op)) {

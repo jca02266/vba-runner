@@ -1,7 +1,8 @@
 import {
-    VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue,
+    VbaBoolean, VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate,
+    parseFixedPointString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString } from './coerce';
@@ -63,7 +64,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
     ctx.reg('isnumeric', (val: any) => {
         if (val === vbaNull) return vbaFalse;
         if (val === vbaEmpty || val === undefined) return vbaTrue;
-        if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaBoolean || val instanceof VbaDate) return vbaTrue;
+        if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaBoolean || val instanceof VbaDate) return vbaTrue;
         if (typeof val === 'string') {
             const s = val.trim();
             if (s === "") return vbaFalse;
@@ -93,6 +94,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val instanceof VbaDate) return 7;
         if (val === vbaMissing || val instanceof VbaErrorValue) return 10;
         if (Array.isArray(val)) return 8192 + 12;
+        if (val instanceof VbaCurrency) return 6;
         if (typeof val === 'number') return 5;
         if (typeof val === 'string') return 8;
         if (val instanceof VbaDecimal) return 14;
@@ -110,6 +112,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val === vbaMissing || val instanceof VbaErrorValue) return 'Error';
         if (val instanceof VbaBoolean) return 'Boolean';
         if (val instanceof VbaDate) return 'Date';
+        if (val instanceof VbaCurrency) return 'Currency';
         if (typeof val === 'number') return 'Double';
         if (typeof val === 'string') return 'String';
         if (Array.isArray(val)) return 'Variant()';
@@ -199,11 +202,26 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (val === vbaNull) return vbaNull;
         return (ctx.envGet('cdate') as Function)(val);
     }, [{ name: 'Expression' }]);
-    ctx.reg('cdec', (val: any) => new VbaDecimal(ctx.toVbaNumber(val)), [{ name: 'Expression' }]);
+    ctx.reg('cdec', (val: any) => {
+        if (val instanceof VbaDecimal) return val;
+        if (val instanceof VbaCurrency) return new VbaDecimal(val.internal, 4);
+        if (val instanceof VbaBoolean) return new VbaDecimal(BigInt(val.value), 0);
+        if (typeof val === 'bigint') return new VbaDecimal(val, 0);
+        if (typeof val === 'string') return VbaDecimal.fromString(val.trim());
+        return VbaDecimal.fromNumber(ctx.toVbaNumber(val));
+    }, [{ name: 'Expression' }]);
     ctx.reg('ccur', (val: any) => {
-        const n = ctx.round(ctx.toVbaNumber(val), 4);
-        if (n < -922337203685477.5808 || n > 922337203685477.5807) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
-        return n;
+        if (val instanceof VbaCurrency) return val;
+        if (val instanceof VbaBoolean) return new VbaCurrency(BigInt(val.value) * 10000n);
+        if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
+        if (typeof val === 'string') {
+            const trimmed = val.trim();
+            if (!/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+                ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            }
+            return new VbaCurrency(parseFixedPointString(trimmed, 4));
+        }
+        return VbaCurrency.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     const clnglngFunc = (val: any) => {
         if (val === vbaNull || val === null) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");

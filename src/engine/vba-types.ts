@@ -73,9 +73,207 @@ export class VbaDate {
     }
 }
 
+/** Expand JS exponential notation "1e-7" to plain decimal "0.0000001". */
+function expandExponential(s: string): string {
+    const match = s.match(/^(-?)(\d+)(?:\.(\d*))?[eE]([+-]?\d+)$/);
+    if (!match) return s;
+    const sign = match[1];
+    const integer = match[2];
+    const frac = match[3] ?? '';
+    const exp = parseInt(match[4]);
+    const digits = integer + frac;
+    const decimalPos = integer.length + exp;
+    if (decimalPos >= digits.length) {
+        return sign + digits.padEnd(decimalPos, '0');
+    } else if (decimalPos <= 0) {
+        return sign + '0.' + '0'.repeat(-decimalPos) + digits;
+    } else {
+        return sign + digits.slice(0, decimalPos) + '.' + digits.slice(decimalPos);
+    }
+}
+
+/**
+ * VBA Decimal: 96-bit fixed-point, scale 0-28.
+ * Internal: mantissa (signed bigint, |mantissa| ≤ 2^96-1) × 10^(-scale).
+ */
 export class VbaDecimal {
-    constructor(public value: number) {}
-    toString() { return String(this.value); }
+    readonly mantissa: bigint;
+    readonly scale: number;
+
+    static readonly MAX_MANTISSA = 79228162514264337593543950335n; // 2^96 - 1
+    static readonly MAX_SCALE = 28;
+
+    constructor(mantissa: bigint, scale: number) {
+        if (scale < 0 || scale > VbaDecimal.MAX_SCALE) {
+            throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        const abs = mantissa < 0n ? -mantissa : mantissa;
+        if (abs > VbaDecimal.MAX_MANTISSA) {
+            throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        this.mantissa = mantissa;
+        this.scale = scale;
+    }
+
+    /** Approximate float value — backward compat; loses precision for >15-digit values. */
+    get value(): number {
+        return Number(this.mantissa) / Math.pow(10, this.scale);
+    }
+
+    toString(): string {
+        const neg = this.mantissa < 0n;
+        const abs = neg ? -this.mantissa : this.mantissa;
+        if (this.scale === 0) return (neg ? '-' : '') + String(abs);
+        const factor = 10n ** BigInt(this.scale);
+        const intPart = abs / factor;
+        const fracStr = String(abs % factor).padStart(this.scale, '0').replace(/0+$/, '');
+        return (neg ? '-' : '') + String(intPart) + (fracStr ? '.' + fracStr : '');
+    }
+
+    /** Create from a JS number using its shortest string representation. */
+    static fromNumber(val: number): VbaDecimal {
+        if (!isFinite(val)) throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        return VbaDecimal._parse(String(val));
+    }
+
+    /** Create from a decimal string, preserving up to 28 decimal digits. */
+    static fromString(s: string): VbaDecimal {
+        return VbaDecimal._parse(s);
+    }
+
+    private static _parse(s: string): VbaDecimal {
+        let ns = s.trim();
+        if (/[eE]/.test(ns)) ns = expandExponential(ns);
+        if (!/^-?(\d+\.?\d*|\.\d+)$/.test(ns)) {
+            throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: '${s}'`);
+        }
+        const neg = ns.startsWith('-');
+        const abs = neg ? ns.slice(1) : ns;
+        const dotIdx = abs.indexOf('.');
+        const intStr = dotIdx === -1 ? abs : abs.slice(0, dotIdx);
+        const rawFrac = dotIdx === -1 ? '' : abs.slice(dotIdx + 1);
+
+        let scale: number;
+        let absMantissa: bigint;
+
+        if (rawFrac.length <= VbaDecimal.MAX_SCALE) {
+            scale = rawFrac.length;
+            absMantissa = BigInt(intStr || '0') * (10n ** BigInt(scale)) + BigInt(rawFrac || '0');
+        } else {
+            scale = VbaDecimal.MAX_SCALE;
+            const truncFrac = rawFrac.slice(0, scale);
+            const nextDigit = parseInt(rawFrac[scale], 10);
+            const base = BigInt(intStr || '0') * (10n ** BigInt(scale)) + BigInt(truncFrac);
+            if (nextDigit > 5) {
+                absMantissa = base + 1n;
+            } else if (nextDigit < 5) {
+                absMantissa = base;
+            } else {
+                const hasMore = rawFrac.slice(scale + 1).split('').some(d => d !== '0');
+                absMantissa = hasMore ? base + 1n : (base % 2n === 0n ? base : base + 1n);
+            }
+        }
+
+        if (absMantissa > VbaDecimal.MAX_MANTISSA) {
+            throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        return new VbaDecimal(neg ? -absMantissa : absMantissa, scale);
+    }
+}
+
+/**
+ * Parse a decimal string to a BigInt scaled by 10^scale (with banker's rounding on excess digits).
+ * Does not use float arithmetic internally.
+ */
+export function parseFixedPointString(s: string, scale: number): bigint {
+    const neg = s.startsWith('-');
+    const abs = neg ? s.slice(1) : s;
+    const dotIdx = abs.indexOf('.');
+    const intStr = dotIdx === -1 ? abs : abs.slice(0, dotIdx);
+    const rawFrac = dotIdx === -1 ? '' : abs.slice(dotIdx + 1);
+
+    let mantissa: bigint;
+    if (rawFrac.length <= scale) {
+        const frac = rawFrac.padEnd(scale, '0');
+        mantissa = BigInt(intStr || '0') * (10n ** BigInt(scale)) + BigInt(frac || '0');
+    } else {
+        const truncFrac = rawFrac.slice(0, scale);
+        const nextDigit = parseInt(rawFrac[scale], 10);
+        const base = BigInt(intStr || '0') * (10n ** BigInt(scale)) + BigInt(truncFrac);
+        if (nextDigit > 5) {
+            mantissa = base + 1n;
+        } else if (nextDigit < 5) {
+            mantissa = base;
+        } else {
+            const hasMore = rawFrac.slice(scale + 1).split('').some(d => d !== '0');
+            if (hasMore) {
+                mantissa = base + 1n;
+            } else {
+                // Exactly half: banker's round to even (check the last kept digit)
+                mantissa = base % 2n === 0n ? base : base + 1n;
+            }
+        }
+    }
+    return neg ? -mantissa : mantissa;
+}
+
+/**
+ * BigInt integer division with banker's rounding (round half to even).
+ */
+export function bankersDivide(n: bigint, d: bigint): bigint {
+    const q = n / d;
+    const r = n - q * d;
+    const absR2 = (r < 0n ? -r : r) * 2n;
+    const absD = d < 0n ? -d : d;
+    if (absR2 < absD) return q;
+    if (absR2 > absD) return r < 0n ? q - 1n : q + 1n;
+    // Exactly half: round to even
+    if (q % 2n === 0n) return q;
+    return r < 0n ? q - 1n : q + 1n;
+}
+
+/**
+ * VBA Currency: 64-bit fixed-point, scale 10^-4.
+ * Internal representation: integer × 10^-4 (e.g., 1.5 → 15000n).
+ * No valueOf() to avoid silent float coercion.
+ */
+export class VbaCurrency {
+    readonly internal: bigint;
+
+    static readonly MIN = -9223372036854775808n;
+    static readonly MAX =  9223372036854775807n;
+
+    constructor(internal: bigint) {
+        if (internal < VbaCurrency.MIN || internal > VbaCurrency.MAX) {
+            throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        this.internal = internal;
+    }
+
+    static fromNumber(val: number): VbaCurrency {
+        // Apply banker's round to 4 decimal places via float, then stringify to avoid float mantissa errors
+        const factor = 10000;
+        const scaled = val * factor;
+        const i = Math.floor(scaled);
+        const f = scaled - i;
+        let rounded: number;
+        if (Math.abs(f - 0.5) < 1e-10) {
+            rounded = (i % 2 === 0 ? i : i + 1) / factor;
+        } else {
+            rounded = Math.round(scaled) / factor;
+        }
+        // Use toFixed to get exact 4-decimal string, bypassing any remaining float representation issues
+        const s = rounded.toFixed(4);
+        return new VbaCurrency(parseFixedPointString(s, 4));
+    }
+
+    toString(): string {
+        const neg = this.internal < 0n;
+        const abs = neg ? -this.internal : this.internal;
+        const intPart = abs / 10000n;
+        const frac = String(abs % 10000n).padStart(4, '0').replace(/0+$/, '');
+        return frac === '' ? `${neg ? '-' : ''}${intPart}` : `${neg ? '-' : ''}${intPart}.${frac}`;
+    }
 }
 
 export class VbaErrorValue {
