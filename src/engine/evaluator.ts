@@ -5516,20 +5516,16 @@ export class Evaluator {
         if (funcName === 'typename') {
             if (typeof val === 'number') {
                 if (argExpr.type === 'NumberLiteral') return this.inferLiteralTypeName(argExpr as NumberLiteral);
-                if (argExpr.type === 'Identifier') {
-                    const subtype = this.env.getVariantSubtype((argExpr as Identifier).name);
-                    if (subtype) return subtype;
-                }
+                const subtype = this.resolveNumericSubtype(argExpr);
+                if (subtype) return subtype;
                 return 'Double';
             }
             return this.env.get('typename')(val);
         } else {
             if (typeof val === 'number') {
                 if (argExpr.type === 'NumberLiteral') return this.inferLiteralVarType(argExpr as NumberLiteral);
-                if (argExpr.type === 'Identifier') {
-                    const subtype = this.env.getVariantSubtype((argExpr as Identifier).name);
-                    if (subtype) return vtMap[subtype] ?? 5;
-                }
+                const subtype = this.resolveNumericSubtype(argExpr);
+                if (subtype) return vtMap[subtype] ?? 5;
                 return 5; // vbDouble
             }
             return this.env.get('vartype')(val);
