@@ -413,6 +413,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const chrFunc = (n: any) => String.fromCharCode(Number(n));
     ctx.reg('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
     ctx.reg('chrw', chrFunc, [{ name: 'CharCode' }], ['$']);
+    // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
+    ctx.reg('lenb', (s: any) => String(s ?? '').length * 2, [{ name: 'String' }]);
+    ctx.reg('ascb', (s: any) => String(s ?? '').charCodeAt(0) & 0xFF, [{ name: 'String' }], ['$']);
+    ctx.reg('chrb', (n: any) => String.fromCharCode(Number(n) & 0xFF), [{ name: 'CharCode' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
         let start = 1, s1, s2, comp;
@@ -510,9 +514,26 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return c.repeat(Number(n));
     };
     ctx.reg('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
-    ctx.reg('split', (s: any, del: string = ' ') => String(s ?? '').split(del), [
+    ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, _compare: any = 0) => {
+        const str = String(s ?? '');
+        const delimiter = del === null || del === undefined ? ' ' : String(del);
+        const n = (limit === null || limit === undefined) ? -1 : Number(limit);
+        const parts = str.split(delimiter);
+        let result: string[];
+        if (n === 0) {
+            result = [];
+        } else if (n < 0 || parts.length <= n) {
+            result = parts;
+        } else {
+            result = [...parts.slice(0, n - 1), parts.slice(n - 1).join(delimiter)];
+        }
+        (result as any).vbaBase = 0;
+        return result;
+    }, [
         { name: 'Expression' },
         { name: 'Delimiter', optional: true },
+        { name: 'Limit', optional: true },
+        { name: 'Compare', optional: true },
     ]);
     ctx.reg('join', (arr: any, del: string = ' ') => {
         if (!Array.isArray(arr)) return String(arr);
@@ -684,9 +705,12 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         else if (intv === 's') return Math.round(diffMs / 1000);
         return 0;
     }, [{ name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' }]);
-    ctx.reg('datepart', (interval: any, date: any) => {
+    ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
+        // firstdayofweek: 1=Sunday(default), 2=Monday, ..., 7=Saturday; 0=system default(treat as 1)
+        const fdow = Math.max(0, Number(firstdayofweek ?? 1));
+        const weekStart = fdow <= 1 ? 0 : fdow - 1; // JS: 0=Sun,1=Mon,...,6=Sat
         if (intv === 'yyyy') return d.getFullYear();
         else if (intv === 'q') return Math.floor(d.getMonth() / 3) + 1;
         else if (intv === 'm') return d.getMonth() + 1;
@@ -696,17 +720,28 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             return Math.floor(diff / 86400000);
         }
         else if (intv === 'd') return d.getDate();
-        else if (intv === 'w') return d.getDay() + 1;
+        else if (intv === 'w') {
+            // 'w' returns weekday number relative to firstdayofweek
+            const dayOfWeek = d.getDay(); // 0=Sun
+            return ((dayOfWeek - weekStart + 7) % 7) + 1;
+        }
         else if (intv === 'ww') {
-            const start = new Date(d.getFullYear(), 0, 1);
-            const diff = d.getTime() - start.getTime();
-            return Math.floor((diff / 86400000 + start.getDay() + 6) / 7);
+            const jan1 = new Date(d.getFullYear(), 0, 1);
+            const jan1Day = jan1.getDay(); // 0=Sun
+            const dayOfYear = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
+            const offset = (jan1Day - weekStart + 7) % 7;
+            return Math.floor((dayOfYear + offset) / 7) + 1;
         }
         else if (intv === 'h') return d.getHours();
         else if (intv === 'n') return d.getMinutes();
         else if (intv === 's') return d.getSeconds();
         return 0;
-    }, [{ name: 'Interval' }, { name: 'Date' }]);
+    }, [
+        { name: 'Interval' },
+        { name: 'Date' },
+        { name: 'FirstDayOfWeek', optional: true },
+        { name: 'FirstWeekOfYear', optional: true },
+    ]);
     ctx.reg('datevalue', (val: any) => {
         const d = parseVbaDate(val);
         return new VbaDate(Math.floor(toVbaDate(d)));

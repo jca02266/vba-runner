@@ -149,4 +149,17 @@ function ev(expr: string): any {
     console.log('[PASS] vbBack / vbFormFeed');
 }
 
+// --- Bug #25-1〜3: LenB / AscB / ChrB (UTF-16LE モデル) ---
+{
+    assert.strictEqual(ev('LenB("ABC")'), 6, 'LenB("ABC") = 6 (3文字×2バイト)');
+    assert.strictEqual(ev('LenB("")'), 0, 'LenB("") = 0');
+    assert.strictEqual(ev('LenB("A")'), 2, 'LenB("A") = 2');
+    assert.strictEqual(ev('AscB("A")'), 65, 'AscB("A") = 65');
+    assert.strictEqual(ev('AscB("Z")'), 90, 'AscB("Z") = 90');
+    assert.strictEqual(ev('ChrB(65)'), 'A', 'ChrB(65) = "A"');
+    assert.strictEqual(ev('ChrB(90)'), 'Z', 'ChrB(90) = "Z"');
+    assert.strictEqual(ev('AscB(ChrB(65))'), 65, 'AscB(ChrB(65)) = 65 (往復)');
+    console.log('[PASS] Bug #25-1〜3: LenB / AscB / ChrB');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

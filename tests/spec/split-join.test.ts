@@ -91,4 +91,36 @@ console.log('--- Starting Split / Join Tests ---');
     console.log('[PASS] Split と Join の往復');
 }
 
+// --- Bug #25-5: Split の limit 引数 ---
+{
+    const runFunc = (code: string, name: string, args: any[] = []) =>
+        evalVBASingle(code).callProcedure(name, args);
+
+    const r2 = runFunc(`
+    Function T()
+        Dim a() As String
+        a = Split("A B C D", " ", 2)
+        T = a(0) & "|" & a(1)
+    End Function`, 'T');
+    assert.strictEqual(r2, 'A|B C D', 'Split limit=2: 最後の要素に残り全体が入る');
+
+    const r1 = runFunc(`
+    Function T()
+        Dim a() As String
+        a = Split("A B C", " ", 1)
+        T = a(0)
+    End Function`, 'T');
+    assert.strictEqual(r1, 'A B C', 'Split limit=1: 全体が1要素');
+
+    const r0 = runFunc(`
+    Function T()
+        Dim a() As String
+        a = Split("A B C", " ", -1)
+        T = UBound(a)
+    End Function`, 'T');
+    assert.strictEqual(r0, 2, 'Split limit=-1: 全分割（デフォルト同様）');
+
+    console.log('[PASS] Bug #25-5: Split limit 引数');
+}
+
 console.log('\n✅ Split / Join: 全テスト通過');

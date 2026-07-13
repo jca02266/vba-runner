@@ -157,4 +157,24 @@ End Function
     console.log('[PASS] Now / Date / Timer');
 }
 
+// --- Bug #25-6: DatePart 第3引数 firstdayofweek ---
+{
+    const runDP = (expr: string) => {
+        const ev2 = evalVBASingle(`Function T(): T = ${expr}: End Function`);
+        return ev2.callProcedure('T', []);
+    };
+    // 2024/01/01 は月曜日
+    // 'w': 日曜始まり(fdow=1)なら月曜=2、月曜始まり(fdow=2)なら月曜=1
+    assert.strictEqual(runDP('DatePart("w", #2024/01/01#, 1)'), 2, 'DatePart w 日曜始まり: 月曜=2');
+    assert.strictEqual(runDP('DatePart("w", #2024/01/01#, 2)'), 1, 'DatePart w 月曜始まり: 月曜=1');
+    assert.strictEqual(runDP('DatePart("w", #2024/01/07#, 1)'), 1, 'DatePart w 日曜始まり: 日曜=1');
+    assert.strictEqual(runDP('DatePart("w", #2024/01/07#, 2)'), 7, 'DatePart w 月曜始まり: 日曜=7');
+    // 'ww': 週番号も firstdayofweek に従う
+    const ww_sun = runDP('DatePart("ww", #2024/01/01#, 1)') as number;
+    const ww_mon = runDP('DatePart("ww", #2024/01/01#, 2)') as number;
+    assert.strictEqual(ww_mon, 1, 'DatePart ww 月曜始まり: 2024/01/01 は第1週');
+    assert.ok(typeof ww_sun === 'number', 'DatePart ww 日曜始まりが数値');
+    console.log('[PASS] Bug #25-6: DatePart firstdayofweek');
+}
+
 console.log('\n✅ DateTime Module: 全テスト通過');
