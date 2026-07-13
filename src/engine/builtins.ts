@@ -888,9 +888,12 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const r = Number(rate);
-        const v = values.map(Number);
+        const base: number = (values as any).vbaBase ?? 0;
         let result = 0;
-        for (let i = 0; i < v.length; i++) result += v[i] / Math.pow(1 + r, i + 1);
+        let period = 1;
+        for (let idx = base; idx < values.length; idx++, period++) {
+            result += Number(values[idx]) / Math.pow(1 + r, period);
+        }
         return result;
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {

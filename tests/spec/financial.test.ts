@@ -62,4 +62,29 @@ assert.ok(Math.abs(ev3.env.get('resirr') - 0.16) < 0.05, 'IRR');
 assert.ok(Math.abs(ev3.env.get('resnpv') - 1188) < 100, 'NPV');
 console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
 
+// --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
+// Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため
+// values.map(Number) がインデックス 0 (undefined → NaN) を含んでいた
+{
+    const ev = evalVBASingle(`
+    Public resNpv1, resNpv0
+    Sub Test()
+        Dim flows1(1 To 3) As Double
+        flows1(1) = 30000 : flows1(2) = 40000 : flows1(3) = 50000
+        resNpv1 = NPV(0.1, flows1)
+
+        Dim flows0(2) As Double
+        flows0(0) = 30000 : flows0(1) = 40000 : flows0(2) = 50000
+        resNpv0 = NPV(0.1, flows0)
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    const npv1 = ev.env.get('resnpv1') as number;
+    const npv0 = ev.env.get('resnpv0') as number;
+    assert.ok(!isNaN(npv1), `Bug 24-1: NPV 1-based should not be NaN (got ${npv1})`);
+    assert.ok(Math.abs(npv1 - npv0) < 0.01, `NPV 1-based should equal 0-based (${npv1} vs ${npv0})`);
+    assert.ok(Math.abs(npv1 - 97896.32) < 1, `NPV(0.1,[30000,40000,50000]) ≈ 97896.32 (got ${npv1.toFixed(2)})`);
+}
+console.log('[PASS] Bug 24-1: NPV 1-based 配列で正常動作');
+
 console.log('\n✅ Financial Functions: 全テスト通過');
