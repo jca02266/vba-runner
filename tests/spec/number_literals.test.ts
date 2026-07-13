@@ -1,4 +1,5 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { VbaCurrency } from '../../src/engine/vba-types';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -79,7 +80,7 @@ assert.strictEqual(sfx[0], 123, 'Suffix % -> 123');
 assert.strictEqual(sfx[1], 123, 'Suffix & -> 123');
 assert.strictEqual(sfx[2], 123.4, 'Suffix ! -> 123.4');
 assert.strictEqual(sfx[3], 123.4, 'Suffix # -> 123.4');
-assert.strictEqual(sfx[4], 123.4, 'Suffix @ -> 123.4');
+assert.ok(sfx[4] instanceof VbaCurrency && sfx[4].toString() === '123.4', 'Suffix @ -> Currency 123.4');
 assert.strictEqual(sfx[5], 123, 'Suffix ^ -> 123');
 
 console.log('[PASS] 数値リテラルの検証');
