@@ -20,9 +20,11 @@ import {
     MemberExpression,
     ParenthesizedExpression,
     ConstDeclaration,
+    ConstDeclaratorItem,
     SetStatement,
     EraseStatement,
     ReDimStatement,
+    ReDimDeclarator,
     ArrayBound,
     ExitStatement,
     OnErrorStatement,
@@ -3270,8 +3272,10 @@ export class Evaluator {
             this.env = instanceEnv;
             for (const stmt of classDef.body) {
                 if (stmt.type === 'ConstDeclaration') {
-                    const constVal = this.evaluateConstValue((stmt as ConstDeclaration).value);
-                    instanceEnv.setConstant((stmt as ConstDeclaration).name.name, constVal);
+                    for (const decl of (stmt as ConstDeclaration).declarations) {
+                        const constVal = this.evaluateConstValue(decl.value);
+                        instanceEnv.setConstant(decl.name.name, constVal);
+                    }
                 }
             }
             this.env = prevEnv;
@@ -3682,10 +3686,13 @@ export class Evaluator {
     public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
         try {
         // 全モジュールレベル定数を「module:name」修飾キーで収集する。
-        const allConsts = new Map<string, { stmt: ConstDeclaration; moduleName: string; name: string }>();
+        // 1 ConstDeclaration に複数の declarator が含まれる場合も個別にエントリを作る。
+        const allConsts = new Map<string, { stmt: ConstDeclaration; decl: ConstDeclaratorItem; moduleName: string; name: string }>();
         const collect = (stmt: ConstDeclaration, moduleName: string) => {
-            const name = stmt.name.name.toLowerCase();
-            allConsts.set(`${moduleName.toLowerCase()}:${name}`, { stmt, moduleName, name });
+            for (const decl of stmt.declarations) {
+                const name = decl.name.name.toLowerCase();
+                allConsts.set(`${moduleName.toLowerCase()}:${name}`, { stmt, decl, moduleName, name });
+            }
         };
         for (const { ast, moduleName } of modules) {
             for (const stmt of ast.body) {
@@ -3712,18 +3719,18 @@ export class Evaluator {
             return undefined;
         };
         const deps = new Map<string, Set<string>>();
-        for (const [qkey, { stmt, moduleName }] of allConsts) {
-            const exprDeps = this.collectConstExprDeps(stmt.value);
+        for (const [qkey, { decl, moduleName }] of allConsts) {
+            const exprDeps = this.collectConstExprDeps(decl.value);
             const resolved = new Set<string>();
             for (const d of exprDeps) {
                 const r = resolveDep(d, moduleName);
                 if (r) {
                     // 他モジュールの Private Const への参照はエラー
-                    const { moduleName: depModule, stmt: depStmt } = allConsts.get(r)!;
+                    const { moduleName: depModule, stmt: depStmt, decl: depDecl } = allConsts.get(r)!;
                     if (depModule.toLowerCase() !== moduleName.toLowerCase() &&
                         (depStmt as any).scope === 'private') {
                         throw new Error(
-                            `Constant expression required: '${stmt.name.name}' references private constant '${depStmt.name.name}' in module '${depModule}'`
+                            `Constant expression required: '${decl.name.name}' references private constant '${depDecl.name.name}' in module '${depModule}'`
                         );
                     }
                     resolved.add(r);
@@ -3735,12 +3742,12 @@ export class Evaluator {
         // グローバルトポロジカルソート（循環参照を検出）
         const order = this.topologicalSortConsts(allConsts, deps);
 
-        // 正しい順序で評価（evaluateConstValue が resolveConstIdent を使うため未定義名はエラー）
+        // 正しい順序で評価（各 declarator を個別に評価）
         for (const qkey of order) {
-            const { stmt, moduleName } = allConsts.get(qkey)!;
+            const { decl, moduleName } = allConsts.get(qkey)!;
             const prev = this.currentSourceModule;
             this.currentSourceModule = moduleName;
-            this.evaluateConstDeclaration(stmt);
+            this.evaluateOneConst(decl);
             this.currentSourceModule = prev;
         }
 
@@ -3969,10 +3976,15 @@ export class Evaluator {
     }
 
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
-        const value = this.evaluateConstValue(stmt.value);
-        const name = stmt.name.name;
+        for (const decl of stmt.declarations) {
+            this.evaluateOneConst(decl);
+        }
+    }
+
+    private evaluateOneConst(decl: ConstDeclaratorItem) {
+        const value = this.evaluateConstValue(decl.value);
+        const name = decl.name.name;
         if (!this.currentProcedureName && this.currentSourceModule) {
-            // モジュールレベル定数は VBA では Public がデフォルト → globalEnv (Tier 3) のみ
             const modName = this.currentSourceModule;
             this.env.setConstant(name, value);
             this.env.setConstant(`${modName}:${name}`, value);
@@ -4936,19 +4948,19 @@ export class Evaluator {
     }
 
     private evaluateEraseStatement(stmt: EraseStatement) {
-        const varName = stmt.name.name;
-        const arr = this.env.get(varName);
-        if (Array.isArray(arr)) {
-            if ((arr as any).vbaFixed) {
-                // Fixed array: re-initialize elements
-                const defaultValue = (arr as any).__vbaDefaultValue__ ?? 0;
-                this.reinitializeArray(arr, defaultValue);
-            } else {
-                // Dynamic array: de-allocate
-                const newArr: any[] = [];
-                (newArr as any).vbaBase = (arr as any).vbaBase ?? this.arrayBase;
-                (newArr as any).vbaFixed = false;
-                this.env.set(varName, newArr);
+        for (const ident of stmt.names) {
+            const varName = ident.name;
+            const arr = this.env.get(varName);
+            if (Array.isArray(arr)) {
+                if ((arr as any).vbaFixed) {
+                    const defaultValue = (arr as any).__vbaDefaultValue__ ?? 0;
+                    this.reinitializeArray(arr, defaultValue);
+                } else {
+                    const newArr: any[] = [];
+                    (newArr as any).vbaBase = (arr as any).vbaBase ?? this.arrayBase;
+                    (newArr as any).vbaFixed = false;
+                    this.env.set(varName, newArr);
+                }
             }
         }
     }
@@ -5063,48 +5075,45 @@ export class Evaluator {
     }
 
     private evaluateReDimStatement(stmt: ReDimStatement) {
-        const varName = stmt.name.name;
+        for (const decl of stmt.declarations) {
+            this.evaluateReDimDeclarator(decl, stmt.isPreserve);
+        }
+    }
+
+    private evaluateReDimDeclarator(decl: ReDimDeclarator, isPreserve: boolean) {
+        const varName = decl.name.name;
         const oldArr = this.env.get(varName);
 
         // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ
         const elementTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
-            (stmt.objectType && this.env.getType(stmt.objectType) ? stmt.objectType : undefined);
+            (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined);
 
         let defaultValue: any = 0;
-        if (stmt.objectType) {
-            const t = stmt.objectType.toLowerCase();
+        if (decl.objectType) {
+            const t = decl.objectType.toLowerCase();
             if (t === 'string') defaultValue = '';
             else if (t === 'boolean') defaultValue = 0;
         } else if (Array.isArray(oldArr)) {
             defaultValue = (oldArr as any).__vbaDefaultValue__ ?? 0;
         }
 
-        if (stmt.bounds.length > 0) {
-            // Validate ReDim Preserve constraints for multi-dimensional arrays
-            if (stmt.isPreserve && Array.isArray(oldArr) && (oldArr as any).__vbaDimensions__) {
+        if (decl.bounds.length > 0) {
+            if (isPreserve && Array.isArray(oldArr) && (oldArr as any).__vbaDimensions__) {
                 const oldDims = (oldArr as any).__vbaDimensions__ as { lower: number, upper: number }[];
-
-                // Evaluate new bounds
-                const newDims = stmt.bounds.map(bound => {
+                const newDims = decl.bounds.map(bound => {
                     const lower = bound.lower ? this.evaluateExpression(bound.lower) : 0;
                     const upper = this.evaluateExpression(bound.upper);
                     return { lower, upper };
                 });
-
-                // Check constraint 1: Number of dimensions cannot change
                 if (newDims.length !== oldDims.length) {
                     this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                 }
-
-                // Check constraint 2: Lower bound of any dimension cannot change
                 for (let i = 0; i < newDims.length; i++) {
                     if (newDims[i].lower !== oldDims[i].lower) {
                         this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
                     }
                 }
-
-                // Check constraint 3: Upper bound of any dimension other than the last cannot change
                 for (let i = 0; i < newDims.length - 1; i++) {
                     if (newDims[i].upper !== oldDims[i].upper) {
                         this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
@@ -5112,19 +5121,17 @@ export class Evaluator {
                 }
             }
 
-            const arr = this.createMultiDimArray(stmt.bounds, defaultValue);
+            const arr = this.createMultiDimArray(decl.bounds, defaultValue);
             (arr as any).vbaFixed = false;
 
             if (elementTypeName) {
-                // UDT 配列: 要素ごとに独立したインスタンスを生成する
-                // createMultiDimArray は全要素を同一参照で埋めるため、ここで上書きする
                 (arr as any).__vbaElementTypeName__ = elementTypeName;
-                if (!stmt.isPreserve) {
+                if (!isPreserve) {
                     this.fillArrayWithUDT(arr, (arr as any).__vbaDimensions__, 0, elementTypeName);
                 }
             }
 
-            if (stmt.isPreserve && Array.isArray(oldArr)) {
+            if (isPreserve && Array.isArray(oldArr)) {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);
             }
 

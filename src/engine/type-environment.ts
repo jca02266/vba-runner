@@ -136,13 +136,15 @@ function collectModuleLevel(stmt: Statement, out: Map<string, TypeInfo>): void {
         }
         case 'ConstDeclaration': {
             const cd = stmt as ConstDeclaration;
-            const key = cd.name.name.toLowerCase();
-            out.set(key, {
-                kind: 'const',
-                declaredType: inferConstType(cd.value),
-                constValue: extractConstValue(cd.value),
-                isArray: false,
-            });
+            for (const decl of cd.declarations) {
+                const key = decl.name.name.toLowerCase();
+                out.set(key, {
+                    kind: 'const',
+                    declaredType: inferConstType(decl.value),
+                    constValue: extractConstValue(decl.value),
+                    isArray: false,
+                });
+            }
             break;
         }
         case 'ProcedureDeclaration': {
@@ -244,12 +246,14 @@ function collectLocalDeclarations(stmt: Statement, out: Map<string, TypeInfo>): 
         }
         case 'ConstDeclaration': {
             const cd = stmt as ConstDeclaration;
-            out.set(cd.name.name.toLowerCase(), {
-                kind: 'const',
-                declaredType: inferConstType(cd.value),
-                constValue: extractConstValue(cd.value),
-                isArray: false,
-            });
+            for (const decl of cd.declarations) {
+                out.set(decl.name.name.toLowerCase(), {
+                    kind: 'const',
+                    declaredType: inferConstType(decl.value),
+                    constValue: extractConstValue(decl.value),
+                    isArray: false,
+                });
+            }
             break;
         }
         // ブロック文内の宣言も再帰的に収集

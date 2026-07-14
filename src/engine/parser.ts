@@ -167,11 +167,16 @@ export interface VariableDeclaration extends Statement {
     scope?: 'public' | 'private' | 'friend';
 }
 
-export interface ConstDeclaration extends Statement {
-    type: 'ConstDeclaration';
+export interface ConstDeclaratorItem {
     name: Identifier;
     objectType?: string;
     value: Expression;
+}
+
+export interface ConstDeclaration extends Statement {
+    type: 'ConstDeclaration';
+    declarations: ConstDeclaratorItem[];
+    scope?: 'public' | 'private' | 'friend';
 }
 
 export interface SetStatement extends Statement {
@@ -324,7 +329,7 @@ export interface MidStatement extends Statement {
 
 export interface EraseStatement extends Statement {
     type: 'EraseStatement';
-    name: Identifier;
+    names: Identifier[];
 }
 
 export interface ImplementsDirective extends Statement {
@@ -368,12 +373,16 @@ export interface DeclareStatement extends Statement {
     returnType?: string;
 }
 
+export interface ReDimDeclarator {
+    name: Identifier;
+    bounds: ArrayBound[];
+    objectType?: string;
+}
+
 export interface ReDimStatement extends Statement {
     type: 'ReDimStatement';
-    name: Identifier;
-    bounds: ArrayBound[]; // Multi-dimensional bounds (e.g. 1 To numDays)
+    declarations: ReDimDeclarator[];
     isPreserve: boolean;
-    objectType?: string;
 }
 
 export interface AddressOfExpression extends Expression {
@@ -928,46 +937,47 @@ export class Parser {
     private parseOpenStatement(): OpenStatement {
         this.advance(); // 'Open'
         const path = this.parseExpression();
-        this.consume(TokenType.KeywordFor, "Expected 'For' in Open statement");
-        
         let mode: any = 'Random';
-        const modeToken = this.advance();
-        switch (modeToken.type) {
-            case TokenType.KeywordInput: mode = 'Input'; break;
-            case TokenType.KeywordOutput: mode = 'Output'; break;
-            case TokenType.KeywordAppend: mode = 'Append'; break;
-            case TokenType.KeywordRandom: mode = 'Random'; break;
-            case TokenType.KeywordBinary: mode = 'Binary'; break;
-            default: this.throwError(`Parse error: Invalid Open mode '${modeToken.value}' at line ${modeToken.line}`);
-        }
-
         let access: any = undefined;
-        if (this.match(TokenType.KeywordAccess)) {
-            const first = this.advance();
-            if (first.type === TokenType.KeywordRead) {
-                if (this.match(TokenType.KeywordWrite)) {
-                    access = 'Read Write';
-                } else {
-                    access = 'Read';
-                }
-            } else if (first.type === TokenType.KeywordWrite) {
-                access = 'Write';
-            }
-        }
-
         let lock: any = undefined;
-        if (this.match(TokenType.KeywordLock)) {
-            const first = this.advance();
-            if (first.type === TokenType.KeywordShared) {
-                lock = 'Shared';
-            } else if (first.type === TokenType.KeywordRead) {
-                if (this.match(TokenType.KeywordWrite)) {
-                    lock = 'Lock Read Write';
-                } else {
-                    lock = 'Lock Read';
+
+        if (this.match(TokenType.KeywordFor)) {
+            const modeToken = this.advance();
+            switch (modeToken.type) {
+                case TokenType.KeywordInput: mode = 'Input'; break;
+                case TokenType.KeywordOutput: mode = 'Output'; break;
+                case TokenType.KeywordAppend: mode = 'Append'; break;
+                case TokenType.KeywordRandom: mode = 'Random'; break;
+                case TokenType.KeywordBinary: mode = 'Binary'; break;
+                default: this.throwError(`Parse error: Invalid Open mode '${modeToken.value}' at line ${modeToken.line}`);
+            }
+
+            if (this.match(TokenType.KeywordAccess)) {
+                const first = this.advance();
+                if (first.type === TokenType.KeywordRead) {
+                    if (this.match(TokenType.KeywordWrite)) {
+                        access = 'Read Write';
+                    } else {
+                        access = 'Read';
+                    }
+                } else if (first.type === TokenType.KeywordWrite) {
+                    access = 'Write';
                 }
-            } else if (first.type === TokenType.KeywordWrite) {
-                lock = 'Lock Write';
+            }
+
+            if (this.match(TokenType.KeywordLock)) {
+                const first = this.advance();
+                if (first.type === TokenType.KeywordShared) {
+                    lock = 'Shared';
+                } else if (first.type === TokenType.KeywordRead) {
+                    if (this.match(TokenType.KeywordWrite)) {
+                        lock = 'Lock Read Write';
+                    } else {
+                        lock = 'Lock Read';
+                    }
+                } else if (first.type === TokenType.KeywordWrite) {
+                    lock = 'Lock Write';
+                }
             }
         }
 
@@ -999,7 +1009,7 @@ export class Parser {
 
     private parsePrintStatement(): PrintStatement {
         this.advance(); // 'Print'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Print statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' after file number in Print statement");
 
@@ -1035,7 +1045,7 @@ export class Parser {
     private parseLineInputStatement(): LineInputStatement {
         this.advance(); // 'Line'
         this.consume(TokenType.KeywordInput, "Expected 'Input' after 'Line'");
-        this.consume(TokenType.OperatorHash, "Expected '#' in Line Input statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' after file number");
         const variable = this.parsePrimary();
@@ -1047,7 +1057,7 @@ export class Parser {
 
     private parsePutStatement(): PutStatement {
         this.advance(); // 'Put'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Put statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' after file number");
         
@@ -1069,7 +1079,7 @@ export class Parser {
 
     private parseWriteStatement(): WriteStatement {
         this.advance(); // 'Write'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Write statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         
         const items: Expression[] = [];
@@ -1085,7 +1095,7 @@ export class Parser {
 
     private parseInputStatement(): InputStatement {
         this.advance(); // 'Input'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Input statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' in Input statement");
         
@@ -1100,7 +1110,7 @@ export class Parser {
 
     private parseGetStatement(): GetStatement {
         this.advance(); // 'Get'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Get statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' in Get statement");
         
@@ -1116,7 +1126,7 @@ export class Parser {
 
     private parseSeekStatement(): SeekStatement {
         this.advance(); // 'Seek'
-        this.consume(TokenType.OperatorHash, "Expected '#' in Seek statement");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' in Seek statement");
         const position = this.parseExpression();
@@ -1881,25 +1891,27 @@ export class Parser {
 
     private parseConstDeclaration(): ConstDeclaration {
         this.advance(); // 'Const'
-        const idToken = this.advance();
-        if (!this.isIdentifier(idToken)) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
-        const name = this.makeIdentifier(idToken);
+        const declarations: ConstDeclaratorItem[] = [];
+        do {
+            const idToken = this.advance();
+            if (!this.isIdentifier(idToken)) this.throwError(`Parse error: Expected identifier after Const at line ${idToken.line}`);
+            const name = this.makeIdentifier(idToken);
 
-        // Optional 'As Type'
-        let objectType: string | undefined;
-        if (this.match(TokenType.KeywordAs)) {
-            objectType = this.advance().value;
-            // dotted type (e.g. Scripting.Dictionary)
-            while (this.match(TokenType.OperatorDot)) {
-                this.advance();
-                objectType += '.' + this.advance().value;
+            let objectType: string | undefined;
+            if (this.match(TokenType.KeywordAs)) {
+                objectType = this.advance().value;
+                while (this.match(TokenType.OperatorDot)) {
+                    this.advance();
+                    objectType += '.' + this.advance().value;
+                }
             }
-        }
 
-        if (!this.match(TokenType.OperatorEquals)) this.throwError(`Parse error: Expected '=' in Const at line ${this.peek().line}`);
-        const value = this.parseExpression();
+            if (!this.match(TokenType.OperatorEquals)) this.throwError(`Parse error: Expected '=' in Const at line ${this.peek().line}`);
+            const value = this.parseExpression();
+            declarations.push({ name, objectType, value });
+        } while (this.match(TokenType.OperatorComma));
 
-        return { type: 'ConstDeclaration', name, objectType, value };
+        return { type: 'ConstDeclaration', declarations };
     }
 
     private parseSetStatement(): SetStatement {
@@ -1916,8 +1928,11 @@ export class Parser {
 
         let label = '';
         if (this.match(TokenType.KeywordGoTo)) {
-            const labelToken = this.advance(); // Identifier or 0
-            label = labelToken.value;
+            // Consume all remaining tokens on the line: handles 0, MyLabel, -1, etc.
+            while (!this.isAtTerminator()) {
+                label += this.advance().value;
+            }
+            label = label.trim();
         } else {
             // "Resume Next" fallback
             while (!this.isAtTerminator()) {
@@ -1970,49 +1985,56 @@ export class Parser {
 
     private parseEraseStatement(): EraseStatement {
         this.advance(); // 'Erase'
-        const idToken = this.advance();
-        const name = this.makeIdentifier(idToken);
-        return { type: 'EraseStatement', name };
+        const names: Identifier[] = [];
+        do {
+            const idToken = this.advance();
+            names.push(this.makeIdentifier(idToken));
+        } while (this.match(TokenType.OperatorComma));
+        return { type: 'EraseStatement', names };
     }
 
     private parseReDimStatement(): ReDimStatement {
         this.advance(); // 'ReDim'
 
         let isPreserve = false;
-        // Optional 'Preserve' keyword
         if (this.peek().type === TokenType.Identifier && this.peek().value.toLowerCase() === 'preserve') {
             isPreserve = true;
             this.advance();
         }
 
-        const idToken = this.advance();
-        const name = this.makeIdentifier(idToken);
-        const bounds: ArrayBound[] = [];
+        const declarations: ReDimDeclarator[] = [];
+        do {
+            const idToken = this.advance();
+            const name = this.makeIdentifier(idToken);
+            const bounds: ArrayBound[] = [];
 
-        if (this.match(TokenType.OperatorLParen)) {
-            if (this.peek().type !== TokenType.OperatorRParen) {
-                while (true) {
-                    let lower: Expression | undefined;
-                    let upper = this.parseExpression();
-                    if (this.match(TokenType.KeywordTo)) {
-                        lower = upper;
-                        upper = this.parseExpression();
-                    }
-                    bounds.push({ lower, upper });
-                    if (!this.match(TokenType.OperatorComma)) {
-                        break;
+            if (this.match(TokenType.OperatorLParen)) {
+                if (this.peek().type !== TokenType.OperatorRParen) {
+                    while (true) {
+                        let lower: Expression | undefined;
+                        let upper = this.parseExpression();
+                        if (this.match(TokenType.KeywordTo)) {
+                            lower = upper;
+                            upper = this.parseExpression();
+                        }
+                        bounds.push({ lower, upper });
+                        if (!this.match(TokenType.OperatorComma)) {
+                            break;
+                        }
                     }
                 }
+                this.match(TokenType.OperatorRParen);
             }
-            this.match(TokenType.OperatorRParen);
-        }
 
-        let objectType: string | undefined;
-        if (this.match(TokenType.KeywordAs)) {
-            objectType = this.advance().value;
-        }
+            let objectType: string | undefined;
+            if (this.match(TokenType.KeywordAs)) {
+                objectType = this.advance().value;
+            }
 
-        return { type: 'ReDimStatement', name, bounds, isPreserve, objectType };
+            declarations.push({ name, bounds, objectType });
+        } while (this.match(TokenType.OperatorComma));
+
+        return { type: 'ReDimStatement', declarations, isPreserve };
     }
 
     private parseTypeDeclaration(): TypeDeclaration {
@@ -3185,7 +3207,7 @@ export class Parser {
 
     private parseWidthStatement(): WidthStatement {
         this.advance(); // 'Width'
-        this.consume(TokenType.OperatorHash, "Expected '#' after Width");
+        this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' after file number");
         const width = this.parseExpression();

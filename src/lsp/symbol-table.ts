@@ -294,36 +294,38 @@ function addVariableDeclaration(
 }
 
 function addConstDeclaration(
-    decl: ConstDeclaration,
+    stmt: ConstDeclaration,
     out: Map<string, SymbolEntry>,
     kind: SymbolKind = 'const',
 ): void {
-    if (!decl.loc) return;
-    const constName = decl.name.name;
-    const constScope: string | undefined = (decl as any).scope;
+    if (!stmt.loc) return;
+    const constScope: string | undefined = (stmt as any).scope;
     const scopePrefix = constScope ? `${cap(constScope)} ` : '';
-    const typeStr = decl.objectType ? ` As ${decl.objectType}` : '';
-    const valStr  = constLiteralText(decl.value);
-    const displayText = `${scopePrefix}Const ${constName}${typeStr}${valStr ? ` = ${valStr}` : ''}`;
-    if (decl.name.loc) {
-        const ln = decl.name.loc.start.line - 1;
-        const col = decl.name.loc.start.column - 1;
-        out.set(constName.toLowerCase(), {
-            name: constName,
-            displayText,
-            kind,
-            range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
-        });
-    } else {
-        const declLine = decl.loc.start.line - 1;
-        const declCol  = decl.loc.start.column - 1;
-        const nameStart = declCol + (scopePrefix.length + 6); // 'Const '
-        out.set(constName.toLowerCase(), {
-            name: constName,
-            displayText,
-            kind,
-            range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
-        });
+    for (const decl of stmt.declarations) {
+        const constName = decl.name.name;
+        const typeStr = decl.objectType ? ` As ${decl.objectType}` : '';
+        const valStr  = constLiteralText(decl.value);
+        const displayText = `${scopePrefix}Const ${constName}${typeStr}${valStr ? ` = ${valStr}` : ''}`;
+        if (decl.name.loc) {
+            const ln = decl.name.loc.start.line - 1;
+            const col = decl.name.loc.start.column - 1;
+            out.set(constName.toLowerCase(), {
+                name: constName,
+                displayText,
+                kind,
+                range: { start: { line: ln, character: col }, end: { line: ln, character: col + constName.length } },
+            });
+        } else {
+            const declLine = stmt.loc.start.line - 1;
+            const declCol  = stmt.loc.start.column - 1;
+            const nameStart = declCol + (scopePrefix.length + 6); // 'Const '
+            out.set(constName.toLowerCase(), {
+                name: constName,
+                displayText,
+                kind,
+                range: { start: { line: declLine, character: nameStart }, end: { line: declLine, character: nameStart + constName.length } },
+            });
+        }
     }
 }
 

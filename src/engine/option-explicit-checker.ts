@@ -162,7 +162,9 @@ function collectModuleLevelDeclaredNames(stmt: Statement, names: Set<string>): v
         }
         case 'ConstDeclaration': {
             const c = stmt as ConstDeclaration;
-            names.add(c.name.name.toLowerCase());
+            for (const decl of c.declarations) {
+                names.add(decl.name.name.toLowerCase());
+            }
             break;
         }
         case 'ProcedureDeclaration': {
@@ -223,16 +225,20 @@ function checkProcedure(
             }
             case 'ConstDeclaration': {
                 const c = stmt as ConstDeclaration;
-                declared.add(c.name.name.toLowerCase());
+                for (const decl of c.declarations) {
+                    declared.add(decl.name.name.toLowerCase());
+                }
                 break;
             }
             case 'ReDimStatement': {
                 const r = stmt as ReDimStatement;
                 // ReDim does NOT declare — it requires prior Dim
-                chkIdents(r.name);
-                for (const bound of r.bounds) {
-                    if (bound.lower) chkExpr(bound.lower);
-                    chkExpr(bound.upper);
+                for (const d of r.declarations) {
+                    chkIdents(d.name);
+                    for (const bound of d.bounds) {
+                        if (bound.lower) chkExpr(bound.lower);
+                        chkExpr(bound.upper);
+                    }
                 }
                 break;
             }
@@ -598,7 +604,9 @@ export function walkProcForUndefinedCalls(
                 }
                 break;
             case 'ConstDeclaration':
-                declared.add((stmt as ConstDeclaration).name.name.toLowerCase());
+                for (const decl of (stmt as ConstDeclaration).declarations) {
+                    declared.add(decl.name.name.toLowerCase());
+                }
                 break;
             case 'OnErrorStatement': {
                 const oe = stmt as { type: string; label: string };
@@ -686,9 +694,11 @@ export function walkProcForUndefinedCalls(
             }
             case 'ReDimStatement': {
                 const r = stmt as ReDimStatement;
-                for (const bound of r.bounds) {
-                    if (bound.lower) visitExpr(bound.lower);
-                    visitExpr(bound.upper);
+                for (const d of r.declarations) {
+                    for (const bound of d.bounds) {
+                        if (bound.lower) visitExpr(bound.lower);
+                        visitExpr(bound.upper);
+                    }
                 }
                 break;
             }

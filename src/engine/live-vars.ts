@@ -127,7 +127,7 @@ export function getStmtDefs(stmt: Statement): string[] {
         case 'ForEachStatement':
             return [(stmt as ForEachStatement).variable.name.toLowerCase()];
         case 'ReDimStatement':
-            return [(stmt as any).name.name.toLowerCase()];
+            return (stmt as any).declarations.map((d: any) => d.name.name.toLowerCase());
         default:
             return [];
     }
@@ -188,9 +188,11 @@ export function getStmtUses(stmt: Statement): string[] {
             collectExprUses((stmt as any).object, uses);
             break;
         case 'ReDimStatement':
-            for (const b of ((stmt as any).bounds ?? [])) {
-                if (b.lower) collectExprUses(b.lower, uses);
-                if (b.upper) collectExprUses(b.upper, uses);
+            for (const d of ((stmt as any).declarations ?? [])) {
+                for (const b of (d.bounds ?? [])) {
+                    if (b.lower) collectExprUses(b.lower, uses);
+                    if (b.upper) collectExprUses(b.upper, uses);
+                }
             }
             break;
     }
