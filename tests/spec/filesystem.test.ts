@@ -74,4 +74,36 @@ expected.forEach((exp, i) => {
 }
 console.log('[PASS] Open For Append は毎回末尾に追記される');
 
+// --- Bug 26-3: Open For Random Len = N が Parse エラーにならないこと ---
+{
+    const vfs3 = new MemoryFileSystem();
+    const code = `
+        Sub Test()
+            Open "rec.dat" For Random As #1 Len = 20
+            Close #1
+        End Sub
+    `;
+    let threw = false;
+    try {
+        evalVBASingle(code, { fs: vfs3 }).callProcedure('Test', []);
+    } catch {
+        threw = true;
+    }
+    assert.strictEqual(threw, false, 'Open For Random Len = 20 は Parse エラーにならない');
+}
+console.log('[PASS] Bug 26-3: Open For Random Len = N');
+
+// --- Bug 26-7: GetAttr / SetAttr スタブ, vbNormal/vbReadOnly/vbDirectory 定数 ---
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('GetAttr("dummy")'), 0, 'GetAttr は 0 (vbNormal) を返す');
+    assert.strictEqual(ev.evalExpression('vbNormal'), 0, 'vbNormal = 0');
+    assert.strictEqual(ev.evalExpression('vbReadOnly'), 1, 'vbReadOnly = 1');
+    assert.strictEqual(ev.evalExpression('vbHidden'), 2, 'vbHidden = 2');
+    assert.strictEqual(ev.evalExpression('vbSystem'), 4, 'vbSystem = 4');
+    assert.strictEqual(ev.evalExpression('vbDirectory'), 16, 'vbDirectory = 16');
+    assert.strictEqual(ev.evalExpression('vbArchive'), 32, 'vbArchive = 32');
+}
+console.log('[PASS] Bug 26-7: GetAttr/SetAttr スタブ + ファイル属性定数');
+
 console.log('✅ FileSystem: 全テスト通過');

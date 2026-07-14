@@ -222,6 +222,7 @@ export interface OpenStatement extends Statement {
     access?: 'Read' | 'Write' | 'Read Write';
     lock?: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write';
     fileNumber: Expression;
+    recordLen?: Expression;
 }
 
 export interface LockStatement extends Statement {
@@ -974,7 +975,15 @@ export class Parser {
         this.match(TokenType.OperatorHash); // optional #
         const fileNumber = this.parseExpression();
 
-        return { type: 'OpenStatement', path, mode, access, lock, fileNumber };
+        // Optional: Len = <recordLength>  (used with Open For Random)
+        let recordLen: Expression | undefined;
+        if (this.peek().type === TokenType.Identifier && this.peek().value.toLowerCase() === 'len') {
+            this.advance(); // consume 'Len'
+            this.consume(TokenType.OperatorEquals, "Expected '=' after 'Len' in Open statement");
+            recordLen = this.parseExpression();
+        }
+
+        return { type: 'OpenStatement', path, mode, access, lock, fileNumber, recordLen };
     }
 
     private parseCloseStatement(): CloseStatement {

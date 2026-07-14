@@ -1043,6 +1043,9 @@ export class Evaluator {
             }
         }, [{ name: 'Path' }]);
         this.registerBuiltin('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size, [{ name: 'PathName' }]);
+        // GetAttr/SetAttr: return vbNormal(0) stub; sandbox has no real file attribute model
+        this.registerBuiltin('getattr', (_p: any) => 0, [{ name: 'PathName' }]);
+        this.registerBuiltin('setattr', (_p: any, _attr: any) => undefined, [{ name: 'PathName' }, { name: 'Attributes' }]);
     }
 
     private triggerTerminate(obj: any) {

@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 26 | エンジン評価 #26: バイナリファイル I/O / ランダムアクセスファイル / ファイルシステム関数 / Error(n)（バイナリファイル処理ドメイン） | **Open For Binary**: オープン・Close 自体は正常。`Put #n,,var`/`Get #n,,var` の実装が完全テキストベース（String(data)→UTF-8→書き込み、1024バイト一括読み込み）のため、型サイズに基づくバイナリ I/O が機能しない（**Bug 26-1/26-2**）。**Open For Random Len=**: `Len = recLen` 節が parser に未実装→Parse error（**Bug 26-3**）。**UDT Put/Get**: `String(udtObj)="[object Object]"` を書き込む / `Get` は UDT に文字列を代入しようとして Error 424（**Bug 26-4/26-5**）。**FileLen**: 正常動作。**FileDateTime**: 正常動作（`fs.statSync().mtime` から VbaDate を生成）。**Kill**: ステートメント形式で正常動作。**GetAttr**: Error 35 未実装（`setattr` は登録済みだが `getattr` 未登録）（**Bug 26-7**）。**Error(n)**: 主要エラーコード（5/6/9/11/13/53/91）は正しいメッセージを返す。未登録番号（7=Out of memory、14、0、999）はすべて "Application-defined or object-defined error" にフォールバック。 | 2026-07-14 |
 | 25 | エンジン評価 #25: Dir() / DatePart・MonthName・WeekdayName / Byte関数（ログファイル解析ドメイン） | **Dir()**: `Dir("C:\logs\*.log")` → VFS 上の `.log` ファイル3件を列挙。引数なし繰り返し呼び出し（`Do While f <> ""`）パターン正常動作。存在しないパターンは `""` を返す（エラーなし）。ネスト Dir() はグローバル状態リセットで元のポインターが失われる（実 VBA 仕様準拠）。**DatePart**: `DatePart("yyyy"/"m"/"d"/"ww"/"h"/"n"/"s"/"q", d)` 全インターバル正常動作。ただし第3引数（firstdayofweek）は Error 450（未対応）。**MonthName**: `MonthName(3)="March"` / `MonthName(3, True)="Mar"` 正常。**WeekdayName**: `WeekdayName(1)="Sunday"` / `WeekdayName(1, True)="Sun"` / 第3引数も正常動作（DatePart との非対称あり）。**MidB**: `MidB("Hello", 1, 2)="H"` 正常（UTF-16LE で 1文字=2バイト仕様通り）。**Bug #25-1〜#25-4 発見**（未修正）: `LenB` / `AscB` / `ChrB` が Error 35 未実装。`Dim b() As Byte : b = str` が Error 424 未実装。**Bug #25-5 発見**（未修正）: `Split(str, delim, limit)` 第3引数が Error 450。**Bug #25-6 発見**（未修正）: `DatePart` 第3引数（firstdayofweek）が Error 450。 | 2026-07-13 |
 | 24 | エンジン評価 #24: 財務関数 / Mid代入 / LSet・RSet（住宅ローン計算・投資シミュレーションドメイン） | **財務関数**: `Pmt`（99,379円≒期待値99,378円）/ `IPmt`（利息50,000円）/ `PPmt`（元金49,379円、`IPmt+PPmt=Pmt` 確認）/ `NPer`（323.7ヶ月）/ `FV`（139万円≒期待値139万円）/ `SLN`（1,800円）/ `SYD`（year1=3,000円、year5=600円）/ `DDB`（year1=4,000円、year2=2,400円）/ `Rate`（収束にはguessRateが重要、初期値が遠いと別の根に収束する点は仕様通り）— 全関数が実装済みで正常動作。**Mid 代入形式（`Mid(s, i, n) = val`）**: 正常動作。`Mid(s, 7, 5) = "VBA!!"` → "Hello VBA!!" / `Mid(s, 2, 2) = "XY"` → "AXYDE" / `eval()` 直接呼び出しも正常。**LSet / RSet**: 固定長文字列に対して正常動作。`LSet fixedStr = "ABC"` → "ABC       "（10文字）/ `RSet fixedStr2 = "XYZ"` → "       XYZ"（10文字）。`FormatReportLine` 関数での LSet（ラベル）+ RSet（金額右詰め）パターンも正常動作。**Collection + string処理**: `SummarizeLoans` でコレクション + `Pmt` 関数の組み合わせが正常動作。**Bug 24-1 発見・修正済み**: `NPV(rate, flows)` に VBA 1-based 配列（`Dim flows(1 To 3)`）を渡すと NaN を返す。`builtins.ts` の NPV 実装が `values.map(Number)` でインデックス 0 から反復するため、`vbaBase=1` の配列ではインデックス 0（undefined）が NaN になっていた。`(values as any).vbaBase ?? 0` で基底インデックスを取得し正しく反復するよう修正。レグレッションテスト: `tests/spec/financial.test.ts` Bug 24-1 ブロック。 | 2026-07-13 |
 | 23 | エンジン評価 #23: 多次元配列 / Currency・Decimal BigInt 精度（売上管理・収益分析ドメイン） | **テーマA（多次元配列）**: `Dim arr(3,4) As Currency` 2D配列宣言正常。`UBound(arr,1)` / `UBound(arr,2)` 各次元の上限取得正常。`ReDim Preserve` による最終次元（2次元目）拡張正常・既存データ保持確認。クラスメンバーとしての 2D 配列（`SalesMatrix.cls`）正常動作。配列を Function 戻り値として返す（`GetDataCopy`）正常動作。**テーマB（Currency/Decimal 精度）**: `CCur(0.1) + CCur(0.2) = "0.3"`（CStr で厳密一致）確認。`CDec(1)/CDec(3) = "0.3333333333333333333333333333"`（28桁）確認。`TypeName(CDec(x)) = "Decimal"` / `VarType(CDec(x)) = 14`（vbDecimal）正常。`Err.Raise` カスタムメッセージが JS 側に正しく伝わる。**Bug C-1 発見・修正済み**: `run()` / `eval()` が `VbaCurrency` を JS `number` に変換せず `VbaCurrency { internal: BigInt }` オブジェクトのまま返す。`test-runner.ts` に `normalizeVbaValue` ヘルパーを追加し `VbaCurrency` / `VbaDecimal` を `Number(v.toString())` で変換するよう修正。**Bug C-2 発見・修正済み**: Currency 型 ByRef パラメーターへの書き戻し後に `JSON.stringify(BigInt)` でクラッシュ。`formatVbaArg` ヘルパーで `VbaCurrency` / `VbaDecimal` を `JSON.stringify` 経由せずに文字列化するよう修正。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts`（6テスト）。 | 2026-07-13 |
@@ -50,13 +51,18 @@
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |
 | `Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる | `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 | `9e25adc` |
 | **Bug 22-1: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）** | `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`tests/spec/typename.test.ts` Bug 22-1 ブロックにレグレッションテスト追加 | 評価 #22 |
-| **Bug #25-1〜3: `LenB` / `AscB` / `ChrB` 未実装** | `LenB("ABC")` → Error 35 | `builtins.ts` に登録なし | 未修正 |
+| ~~**Bug #25-1〜3: `LenB` / `AscB` / `ChrB` 未実装**~~ | **修正済み**: `builtins.ts` に `lenb`（文字数×2）/`ascb`（先頭バイト & 0xFF）/`chrb`（charCode & 0xFF → 文字）を登録。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug #25-1〜3 ブロック。 | |
 | **Bug #25-4: `Dim b() As Byte : b = str` 未実装** | `Dim b() As Byte : b = "ABC" : Debug.Print b(0)` → Error 424 | 文字列→Byte配列の暗黙変換が未実装 | 未修正 |
-| **Bug #25-5: `Split(str, delim, limit)` 第3引数未対応** | `Split("A B C", " ", 2)` → Error 450 | `builtins.ts` の `split` 登録が引数2個のみ | 未修正 |
-| **Bug #25-6: `DatePart` 第3引数（firstdayofweek）未対応** | `DatePart("ww", d, 2)` → Error 450 | `builtins.ts` の `datepart` 登録が引数2個のみ | 未修正 |
+| ~~**Bug #25-5: `Split(str, delim, limit)` 第3引数未対応**~~ | **修正済み**: `builtins.ts` の `split` 登録に `limit`（省略可、デフォルト -1）と `compare`（省略可）を追加。`limit=0` は空配列、`limit<0` は全分割、`limit>0` は最大要素数（最後の要素に残り全体）。レグレッションテスト: `tests/spec/split-join.test.ts` Bug #25-5 ブロック。 | |
+| ~~**Bug #25-6: `DatePart` 第3引数（firstdayofweek）未対応**~~ | **修正済み**: `builtins.ts` の `datepart` 登録に `firstdayofweek`（省略可、デフォルト 1=日曜）と `firstweekofyear`（省略可）を追加。`'w'` は `(weekday - weekStart + 7) % 7 + 1`、`'ww'` は Jan1 からの日数オフセットで週番号計算。レグレッションテスト: `tests/spec/datetime.test.ts` Bug #25-6 ブロック。 | |
 | **Bug 24-1: `NPV(rate, flows)` に VBA 1-based 配列を渡すと NaN** | `Dim flows(1 To 3) As Double : flows(1)=30000 : ... : NPV(0.1, flows)` → NaN | `builtins.ts` の NPV が `values.map(Number)` でインデックス 0 から反復するため `vbaBase=1` の配列でインデックス 0（undefined）が NaN になった。`(values as any).vbaBase ?? 0` で基底インデックスを取得して修正。レグレッションテスト: `tests/spec/financial.test.ts` Bug 24-1 ブロック | 評価 #24 |
 | **Bug C-1: `run()` / `eval()` が `VbaCurrency` を `number` に変換しない** | `test-runner.ts` に `normalizeVbaValue` ヘルパーを追加し、`VbaCurrency` は `Number(v.toString())`、`VbaDecimal` は `Number(v.toString())` で変換。`run()` と `eval()` の両メソッドで適用。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts` | 評価 #23 |
 | **Bug C-2: Currency 型 ByRef パラメーター書き戻し後に `JSON.stringify(BigInt)` でクラッシュ** | `test-runner.ts` に `formatVbaArg` ヘルパーを追加し、`VbaCurrency` / `VbaDecimal` を `JSON.stringify` 経由せずに文字列化。`run()` の `formatArgs` 生成で使用。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts` | 評価 #23 |
+| **Bug #25-1〜3: `LenB`/`AscB`/`ChrB` 未実装** | `builtins.ts` に UTF-16LE バイトモデルで実装（`LenB`=文字数×2, `AscB`=先頭バイト, `ChrB`=バイト→文字）。レグレッションテスト: `tests/spec/builtin-strings.test.ts` | 評価 #25 修正 |
+| **Bug #25-5: `Split` の `limit` 引数未対応** | `builtins.ts` の split 登録に `limit`/`compare` を追加。VBA 仕様通り（limit=0→空配列、limit>0→最大N要素）。レグレッションテスト: `tests/spec/split-join.test.ts` | 評価 #25 修正 |
+| **Bug #25-6: `DatePart` の `firstdayofweek` 引数未対応** | `builtins.ts` の datepart に `firstdayofweek`/`firstweekofyear` を追加。`'w'`/`'ww'` の曜日計算で weekStart オフセットを反映。レグレッションテスト: `tests/spec/datetime.test.ts` | 評価 #25 修正 |
+| **Bug 26-3: `Open For Random Len=N` パースエラー** | `parser.ts:parseOpenStatement` でファイル番号後に `Len = <expr>` をオプション消費するよう修正（`peek().type===Identifier && value.toLowerCase()==='len'`）。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
+| **Bug 26-7: `GetAttr` 未実装 + ファイル属性定数未登録** | `evaluator.ts` に `getattr`（0 返却）/`setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`〜`vbAlias` 8定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
 | FSO `TextStream.ReadAll()` が `ReadLine()` 後も全体を返す | `readall` が `pos` を参照するよう修正 | `9e25adc` |
 | `eval("Exit Sub")` が JS 例外を漏らしてクラッシュ | `executeStatements` を try/catch でラップして Exit シグナルを飲み込む | `0ca97d8` |
 | 同一ファイルへの二重 `Open` が Error 55 を出さない | `fileHandles` を走査して同一パスの重複チェックを追加 | `0ca97d8` |
@@ -126,6 +132,17 @@
 | ~~UDT 変数（`Dim pt As Point`）の `pt.` 補完が 0件（Bug LSP-1）~~ | **修正済み（評価 #20）**: `completion-provider.ts` の `getMembersForType()` が `ClassDeclaration` のみ探索し `TypeDeclaration` を未対応だった。`TypeDeclaration` ブランチを追加し、メンバーを `CompletionItemKind.Field` で返すよう修正。レグレッションテスト: `lsp-completion.test.ts` Test 14。 | 評価 #20 |
 | ~~Enum 定数のホバーが null（Bug LSP-2）・Type 名のホバーが null（Bug LSP-3）~~ | **修正済み（評価 #20）**: `symbol-table.ts` の `collectScopedSymbols()` が `TypeDeclaration` / `EnumDeclaration` を未対応だった。`SymbolKind` に `'udt'` / `'enum-member'` を追加し、`TypeDeclaration` は型名を `Type Point (X As Long, Y As Long)` 形式で、`EnumDeclaration` は各メンバーを `Direction.North = 1` 形式でシンボルテーブルに登録。`hover-provider.ts` の `kindContextLabel()` にも対応 case を追加。レグレッションテスト: `lsp-hover.test.ts` 末尾 Bug LSP-2/3 ブロック。 | 評価 #20 |
 
+### 未修正バグ（評価 #26 で発見）
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| **Bug 26-1: `Put #n,,var` はバイナリでなくテキスト書き込み** | `Open p For Binary As #1 : Dim lv As Long : lv=1234567 : Put #1,,lv : Close #1` → ファイルに "1234567"（7バイト）が書かれる（期待: 4バイト） | `evaluator.ts:evaluatePutStatement`（行 4332）が `String(data)` → `TextEncoder.encode()` でテキスト変換。型サイズに基づくバイナリシリアライズが未実装 |
+| **Bug 26-2: `Get #n,,var` は常に1024バイト一括読み込み（型サイズ無視）** | `Get #1,,byteVar` の後 `Get #1,,byteVar2` が Type mismatch | `evaluator.ts:evaluateGetStatement`（行 4462）が `readSync(fd, buffer, 0, 1024, pos)` で常に最大1024バイト読む。Byte=1, Integer=2, Long=4 などの型サイズ考慮が未実装 |
+| ~~**Bug 26-3: `Open path For Random As #n Len = recLen` がパースエラー**~~ | **修正済み**: `parser.ts:parseOpenStatement` でファイル番号消費後に `peek().type === Identifier && value.toLowerCase() === 'len'` + `OperatorEquals` を消費して `recordLen` を記録するよう修正。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-3 ブロック。 | |
+| **Bug 26-4: UDT変数を `Put` すると "[object Object]" を書き込む** | `Put #1, 1, udtVar` → ファイル内容 "[object Object]"（15バイト） | Bug 26-1 と同根。UDT インスタンスを `String(data)` で文字列化する |
+| **Bug 26-5: UDT変数への `Get` で Error 424** | `Get #1, 1, udtVar` → Error 424 Object required | `evaluateGetStatement` が文字列を UDT 変数に代入しようとしてオブジェクト型不一致 |
+| ~~**Bug 26-7: `GetAttr(path)` が Error 35（未実装）**~~ | **修正済み**: `evaluator.ts` に `getattr`（常に 0 を返すスタブ）と `setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`/`vbReadOnly`/`vbHidden`/`vbSystem`/`vbVolume`/`vbDirectory`/`vbArchive`/`vbAlias` 定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-7 ブロック。 | |
+
 ### 未対応の機能制限（改善候補）
 
 | 制限 | 詳細 |
@@ -176,6 +193,11 @@
 - ~~`Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`~~ **評価済み（評価#5）**
 - ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
 - ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
+- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#26）: `Open For Binary` は構文OK。ただし `Put #`/`Get #` がテキストベースで型サイズ無視（Bug 26-1/26-2）**
+- ~~`Open For Random As #n Len = recLen`~~ **評価済み（評価#26）: `Len =` 節がパースエラー（Bug 26-3）。未実装**
+- ~~`FileLen(path)` / `FileDateTime(path)` / `Kill path`~~ **評価済み（評価#26）: 全正常動作**
+- ~~`GetAttr(path)`~~ **評価済み（評価#26）: Error 35 未実装（Bug 26-7）**
+- ~~`Error(n)` 関数~~ **評価済み（評価#26）: 主要コード（5/6/9/11/13/53/91）は正確。未登録は汎用フォールバック**
 
 ### Scripting.Dictionary
 
@@ -361,3 +383,8 @@
 75. **`Mid(s, i, n) = val`（代入形式）は実装済み**: 関数形式と同様に正常動作する。`s` の長さは変わらず、指定位置から `len(val)` 文字が上書きされる。
 76. **`LSet` / `RSet` は固定長文字列に対して正常動作**: `Dim s As String * 10: LSet s = "ABC"` → `"ABC       "`（左詰め）、`RSet s = "XYZ"` → `"       XYZ"`（右詰め）。
 72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。
+82. **`Put #` / `Get #` はテキストベース実装（バイナリ非対応）**（評価 #26・Bug 26-1/26-2）: `Put #fNum,,longVar` は `String(data)` → UTF-8 テキストとして書き込む。`Long 1234567` を書くと "1234567"（7バイト）になる（期待値: 4バイト）。`Get #fNum,,byteVar` は常に1024バイト一括読み込みで型サイズを無視。シーケンシャル Get が機能しない。`Open For Binary` は使えるが実質テキスト I/O。
+83. **`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）: `Len = <expr>` 節が `parser.ts:parseOpenStatement`（行 977）で未消費。`As #n` の直後にリターンするため `Len` が「ステートメントの後の予期しないトークン」になる。
+84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
+85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
+86. **`Error(n)` 関数の主要コードは正しいメッセージを返す**（評価 #26）: Error(5)="Invalid procedure call or argument" / Error(6)="Overflow" / Error(9)="Subscript out of range" / Error(11)="Division by zero" / Error(13)="Type mismatch" / Error(53)="File not found" / Error(91)="Object variable not set" はすべて正確。未登録番号（Error(0)/Error(7)/Error(14)/Error(999) など）は "Application-defined or object-defined error" にフォールバック。
