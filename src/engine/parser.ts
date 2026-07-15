@@ -626,6 +626,7 @@ export class Parser {
         TokenType.KeywordCollection,  // Built-in object type name (not in reserved-identifier list)
         TokenType.KeywordError,       // On Error construct element (not standalone reserved)
         TokenType.KeywordProperty,    // Property Get/Set/Let keyword (not in spec's statement-keyword list)
+        TokenType.KeywordGlobal,      // Module-level scope modifier (alias for Public); valid as variable name in Dim context
     ]);
 
     /** Union of all contextual keyword groups above.
