@@ -741,8 +741,17 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
             : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? Number(val.toString())
             : val;
-        if (typeof effectiveVal === 'string') return formatString(effectiveVal, fmt);
         const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(fmt);
+        if (typeof effectiveVal === 'string') {
+            // If the format contains date/time symbols, try to parse the string as a date first
+            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
+                try {
+                    const parsed = parseVbaDate(effectiveVal);
+                    return formatDate(parsed, fmt);
+                } catch { /* fall through to string formatting */ }
+            }
+            return formatString(effectiveVal, fmt);
+        }
         if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt);
         if (typeof effectiveVal === 'number') {
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt);

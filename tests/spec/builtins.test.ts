@@ -128,4 +128,23 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug G: IsDate(数値) = True');
 }
 
+// Bug Y: Format(文字列, 日付パターン) が文字列フォーマットとして処理される問題
+{
+    // Format with date-string input + date format pattern should parse string as date
+    const ev = new Evaluator(() => {});
+    const callFormat = (d: any, fmt: string) => {
+        const tokens = new Lexer(`Format(CDate("${d}"), "${fmt}")`).tokenize();
+        const ast = new Parser(tokens).parseExpression();
+        return (ev as any).evaluateExpression(ast);
+    };
+    assert.strictEqual(callFormat('2024/03/15', 'yyyy'), '2024', 'Format(CDate, "yyyy") = "2024"');
+    assert.strictEqual(callFormat('2024/03/15', 'mm'), '03',   'Format(CDate, "mm") = "03"');
+    assert.strictEqual(callFormat('2024/03/15', 'dd'), '15',   'Format(CDate, "dd") = "15"');
+    assert.strictEqual(callFormat('2024/03/15', 'mmmm'), 'March', 'Format(CDate, "mmmm") = "March"');
+    // String input with date pattern should also work
+    assert.strictEqual(evalExpr('Format("2024/03/15", "yyyy")'), '2024', 'Format(string, "yyyy") = "2024"');
+    assert.strictEqual(evalExpr('Format("2024/03/15", "mm")'),   '03',   'Format(string, "mm") = "03"');
+    console.log('[PASS] Bug Y: Format(文字列, 日付パターン)');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
