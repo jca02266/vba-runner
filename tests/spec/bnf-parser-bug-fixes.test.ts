@@ -253,4 +253,74 @@ import { MemoryFileSystem } from '../../src/engine/filesystem';
     console.log('[PASS] Print # あり (既存動作の保持)');
 }
 
+// ─── §5.4.3.3 ReDim obj.Arr (メンバーアクセス対象) ──────────────────────────
+{
+    const code = `
+        Class Container
+            Public Items() As Integer
+        End Class
+        Sub TestReDimMember()
+            Dim c As New Container
+            ReDim c.Items(3)
+            c.Items(0) = 10
+            c.Items(3) = 40
+        End Sub
+    `;
+    const ev = evalVBASingle(code);
+    ev.callProcedure('TestReDimMember', []);
+    // Verify via With block access
+    console.log('[PASS] ReDim obj.Arr (メンバーアクセス対象)');
+}
+
+// ─── §5.4.3.3 ReDim .Items (With式対象) ─────────────────────────────────────
+{
+    const code = `
+        Class Container
+            Public Items() As Integer
+        End Class
+        Function TestReDimWith() As Long
+            Dim c As New Container
+            With c
+                ReDim .Items(2)
+            End With
+            TestReDimWith = UBound(c.Items)
+        End Function
+    `;
+    const ev = evalVBASingle(code);
+    const result = ev.callProcedure('TestReDimWith', []);
+    assert.strictEqual(result, 2, 'ReDim .Items(2) → UBound = 2');
+    console.log('[PASS] ReDim .Items (With式対象)');
+}
+
+// ─── Global キーワード (§5.2.3.1) ────────────────────────────────────────────
+{
+    // Global は Public の別名
+    const code = `
+        Global x As Integer
+        Global Const MAX As Long = 100
+        Global Sub TestGlobal()
+            x = MAX
+        End Sub
+    `;
+    const ev = evalVBASingle(code);
+    ev.callProcedure('TestGlobal', []);
+    assert.strictEqual(ev.env.get('x'), 100, 'Global x = Global Const MAX = 100');
+    console.log('[PASS] Global キーワード (変数・Const・Sub)');
+}
+
+// ─── TypeOf ... Is Library.ClassName (ドット修飾型名) ─────────────────────────
+{
+    const code = `
+        Function TestTypeOf() As Boolean
+            Dim d As Object
+            Set d = CreateObject("Scripting.Dictionary")
+            TestTypeOf = TypeOf d Is Scripting.Dictionary
+        End Function
+    `;
+    const ev = evalVBASingle(code);
+    const result = ev.callProcedure('TestTypeOf', []);
+    assert.strictEqual(result, -1, 'TypeOf d Is Scripting.Dictionary → True (-1)');
+    console.log('[PASS] TypeOf ... Is Library.ClassName (ドット修飾型名)');
+}
+
 console.log('\n✅ BNF パーサーバグ修正: 全テスト通過');

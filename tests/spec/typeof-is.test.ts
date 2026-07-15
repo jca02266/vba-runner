@@ -53,4 +53,21 @@ ev.set('myObj', mockUserObj);
     console.log('[PASS] TypeOf ... Is <UserClass>');
 }
 
+// --- TypeOf ... Is <Library.ClassName> (ドット修飾型名) ---
+{
+    // パース自体が通ることを確認（以前はパースエラー）
+    const mockAdoRs = { __vbaTypeName__: 'ADODB.Recordset' };
+    ev.set('rs', mockAdoRs);
+    assert.strictEqual(ev.evalExpression('TypeOf rs Is ADODB.Recordset'), -1, 'ドット修飾型名の判定');
+    assert.strictEqual(ev.evalExpression('TypeOf rs Is ADODB.Connection'), 0, '異なるドット修飾型は False');
+    assert.strictEqual(ev.evalExpression('TypeOf rs Is Object'), -1, 'ドット修飾型も Object として認識');
+
+    // 3段階ドットもパースできること
+    const ev2 = evalVBASingle('');
+    const mockDeep = { __vbaTypeName__: 'A.B.C' };
+    ev2.set('x', mockDeep);
+    assert.strictEqual(ev2.evalExpression('TypeOf x Is A.B.C'), -1, '3段階ドット修飾型名');
+    console.log('[PASS] TypeOf ... Is <Library.ClassName> (ドット修飾)');
+}
+
 console.log('\n✅ TypeOf...Is: 全テスト通過');

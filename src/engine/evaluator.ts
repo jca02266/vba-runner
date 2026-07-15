@@ -2484,7 +2484,7 @@ export class Evaluator {
     }
 
     private evaluateWithStatement(stmt: WithStatement) {
-        const obj = this.evaluateExpression(stmt.expression);
+        const obj = this.resolveAutoInstance(stmt.expression, this.evaluateExpression(stmt.expression));
         this.withObjectStack.push(obj);
         try {
             this.executeStatements(stmt.body, 0, false);
@@ -2989,7 +2989,18 @@ export class Evaluator {
             const obj = this.withObjectStack[this.withObjectStack.length - 1];
             const member = left as ImplicitWithObjectExpression;
             const propName = member.property.name.toLowerCase();
-            if (obj && typeof obj === 'object') {
+            if (obj && obj.__vbaClass__) {
+                const classDef = obj.__classDef__ as ClassDeclaration;
+                const instanceEnv = obj.__instanceEnv__ as Environment;
+                const setter = classDef.procedures.find(
+                    p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
+                );
+                if (setter) {
+                    this.callClassMethod(obj, setter, [val]);
+                } else {
+                    instanceEnv.set(propName, val);
+                }
+            } else if (obj && typeof obj === 'object') {
                 obj[propName] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
@@ -5081,8 +5092,40 @@ export class Evaluator {
     }
 
     private evaluateReDimDeclarator(decl: ReDimDeclarator, isPreserve: boolean) {
-        const varName = decl.name.name;
-        const oldArr = this.env.get(varName);
+        // Resolve get/set accessors for the three target forms
+        let oldArr: any;
+        let setNewArr: (arr: any[]) => void;
+        if (decl.name.type === 'Identifier') {
+            const varName = (decl.name as Identifier).name;
+            oldArr = this.env.get(varName);
+            setNewArr = (arr) => this.env.set(varName, arr);
+        } else if (decl.name.type === 'MemberExpression') {
+            const mem = decl.name as MemberExpression;
+            const obj = this.resolveAutoInstance(mem.object, this.evaluateExpression(mem.object));
+            const propName = (mem.property as Identifier).name.toLowerCase();
+            if (obj?.__vbaClass__) {
+                const instanceEnv = obj.__instanceEnv__ as Environment;
+                oldArr = instanceEnv.get(propName);
+                setNewArr = (arr) => instanceEnv.set(propName, arr);
+            } else {
+                oldArr = obj?.[propName];
+                setNewArr = (arr) => { obj[propName] = arr; };
+            }
+        } else {
+            // ImplicitWithObjectExpression: .Items inside With block
+            const prop = (decl.name as ImplicitWithObjectExpression).property as Identifier;
+            if (this.withObjectStack.length === 0) this.throwVbaError(91, 'Object variable or With block variable not set');
+            const obj = this.withObjectStack[this.withObjectStack.length - 1];
+            const propName = prop.name.toLowerCase();
+            if (obj?.__vbaClass__) {
+                const instanceEnv = obj.__instanceEnv__ as Environment;
+                oldArr = instanceEnv.get(propName);
+                setNewArr = (arr) => instanceEnv.set(propName, arr);
+            } else {
+                oldArr = obj?.[propName];
+                setNewArr = (arr) => { obj[propName] = arr; };
+            }
+        }
 
         // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ
         const elementTypeName: string | undefined =
@@ -5135,7 +5178,7 @@ export class Evaluator {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);
             }
 
-            this.env.set(varName, arr);
+            setNewArr(arr);
         }
     }
 
@@ -6109,6 +6152,9 @@ export class Evaluator {
         if (typeName === 'object') return vbaTrue; // Everything that reaches here is an object
         if (typeName === 'dictionary' && obj.__isVbaDict__) return vbaTrue;
         if (typeName === 'collection' && obj.__isVbaCollection__) return vbaTrue;
+
+        // COM ProgID 照合 (e.g. "Scripting.Dictionary")
+        if (obj.__progId__ && obj.__progId__.toLowerCase() === typeName) return vbaTrue;
 
         // User defined types or classes (if we store metadata)
         if (obj.__vbaTypeName__ && obj.__vbaTypeName__.toLowerCase() === typeName) return vbaTrue;

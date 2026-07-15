@@ -127,7 +127,9 @@ export function getStmtDefs(stmt: Statement): string[] {
         case 'ForEachStatement':
             return [(stmt as ForEachStatement).variable.name.toLowerCase()];
         case 'ReDimStatement':
-            return (stmt as any).declarations.map((d: any) => d.name.name.toLowerCase());
+            return (stmt as any).declarations
+                .filter((d: any) => d.name.type === 'Identifier')
+                .map((d: any) => d.name.name.toLowerCase());
         default:
             return [];
     }

@@ -58,6 +58,7 @@ export const enum TokenType {
     KeywordIn,
     KeywordPublic,
     KeywordPrivate,
+    KeywordGlobal,
     KeywordEnum,
     KeywordFriend,
     KeywordWith,
@@ -587,6 +588,7 @@ export class Lexer {
                 if (lowerBase === 'in') return { type: TokenType.KeywordIn, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'public') return { type: TokenType.KeywordPublic, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'private') return { type: TokenType.KeywordPrivate, value: idStr, line: startLine, column: startColumn };
+                if (lowerBase === 'global') return { type: TokenType.KeywordGlobal, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'enum') return { type: TokenType.KeywordEnum, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'typeof') return { type: TokenType.KeywordTypeOf, value: idStr, line: startLine, column: startColumn };
                 if (lowerBase === 'friend') return { type: TokenType.KeywordFriend, value: idStr, line: startLine, column: startColumn };

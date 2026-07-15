@@ -374,7 +374,7 @@ export interface DeclareStatement extends Statement {
 }
 
 export interface ReDimDeclarator {
-    name: Identifier;
+    name: Expression; // Identifier | MemberExpression | ImplicitWithObjectExpression
     bounds: ArrayBound[];
     objectType?: string;
 }
@@ -1490,8 +1490,9 @@ export class Parser {
             return { type: 'LabelStatement', label: labelName } as any;
         }
 
-        if (token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate || token.type === TokenType.KeywordFriend) {
-            const scope = this.advance().value.toLowerCase() as 'public' | 'private' | 'friend';
+        if (token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate || token.type === TokenType.KeywordFriend || token.type === TokenType.KeywordGlobal) {
+            const raw = this.advance().value.toLowerCase();
+            const scope = (raw === 'global' ? 'public' : raw) as 'public' | 'private' | 'friend';
             const next = this.peek();
             if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
                 return this.parseProcedureDeclaration(scope, false);
@@ -2004,8 +2005,22 @@ export class Parser {
 
         const declarations: ReDimDeclarator[] = [];
         do {
-            const idToken = this.advance();
-            const name = this.makeIdentifier(idToken);
+            // target は Identifier / obj.Arr / .Items の3形式
+            let name: Expression;
+            if (this.peek().type === TokenType.OperatorDot) {
+                this.advance(); // consume '.'
+                const propToken = this.advance();
+                name = { type: 'ImplicitWithObjectExpression', property: { type: 'Identifier', name: propToken.value } as Identifier } as ImplicitWithObjectExpression;
+            } else {
+                const idToken = this.advance();
+                name = this.makeIdentifier(idToken) as Expression;
+                while (this.peek().type === TokenType.OperatorDot) {
+                    this.advance(); // consume '.'
+                    const propToken = this.advance();
+                    const property = { type: 'Identifier', name: propToken.value } as Identifier;
+                    name = { type: 'MemberExpression', object: name, property } as MemberExpression;
+                }
+            }
             const bounds: ArrayBound[] = [];
 
             if (this.match(TokenType.OperatorLParen)) {
@@ -2172,8 +2187,9 @@ export class Parser {
 
             // Scope modifiers before fields/procedures
             let scope: 'public' | 'private' | 'friend' | undefined;
-            if (tok.type === TokenType.KeywordPublic || tok.type === TokenType.KeywordPrivate || tok.type === TokenType.KeywordFriend) {
-                scope = tok.value.toLowerCase() as 'public' | 'private' | 'friend';
+            if (tok.type === TokenType.KeywordPublic || tok.type === TokenType.KeywordPrivate || tok.type === TokenType.KeywordFriend || tok.type === TokenType.KeywordGlobal) {
+                const raw = tok.value.toLowerCase();
+                scope = (raw === 'global' ? 'public' : raw) as 'public' | 'private' | 'friend';
                 this.advance(); // consume scope keyword
             }
 
@@ -2917,7 +2933,16 @@ export class Parser {
             if (!this.isIdentifier(typeToken) && typeToken.type !== TokenType.KeywordCollection) {
                  this.throwError(`Parse error: Expected type name after 'Is' at line ${typeToken.line}`);
             }
-            expr = { type: 'TypeOfIsExpression', expression: expr, typeName: typeToken.value } as TypeOfIsExpression;
+            let typeName = typeToken.value;
+            while (this.peek().type === TokenType.OperatorDot) {
+                this.advance(); // consume '.'
+                const part = this.advance();
+                if (!this.isNameToken(part)) {
+                    this.throwError(`Parse error: Expected identifier after '.' in type name at line ${part.line}`);
+                }
+                typeName += '.' + part.value;
+            }
+            expr = { type: 'TypeOfIsExpression', expression: expr, typeName } as TypeOfIsExpression;
         } else if (token.type === TokenType.OperatorDot) {
             const propToken = this.advance();
             if (!this.isNameToken(propToken)) {
