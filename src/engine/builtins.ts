@@ -1190,7 +1190,7 @@ export function registerConstants(ctx: StdlibCtx): void {
         { name: 'Expr' }, { name: 'TruePart' }, { name: 'FalsePart' },
     ]);
     ctx.reg('choose', (i: any, ...c: any[]) => {
-        if (i === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        if (i === vbaNull) return vbaNull;
         const idx = Math.floor(Number(i));
         return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull;
     }, [

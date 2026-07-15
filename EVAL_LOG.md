@@ -232,6 +232,7 @@
 | ~~**Bug AK: `Year/Month/Day/Hour/Minute/Second/Weekday(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `d === vbaNull ? vbaNull :` チェックを追加。`parseVbaDate(Symbol)` → `String(Symbol)` で JS TypeError が発生していた。 | TBD |
 | ~~**Bug AL: `WeekdayName(Null)` / `MonthName(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (weekday/month === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | TBD |
 | ~~**Bug AM/AN: `Split(Null, ",")` が Null でなく `["Symbol(vbaNull)"]` を返す / `Join(arr, Null)` がクラッシュ**~~ | **修正済み**: `split` 先頭に `if (s === vbaNull) return vbaNull;`、`join` に `if (del === vbaNull) return vbaNull;` を追加。 | TBD |
+| ~~**Bug AO: `Choose(Null, ...)` が Type mismatch エラー（VBA 仕様では Null を返す）**~~ | **修正済み**: `choose` の先頭の `ctx.throwError(TYPE_MISMATCH)` を `return vbaNull` に変更。VBA ドキュメント「index が Null の場合 Null を返す」に準拠。 | TBD |
 
 ---
 

@@ -157,6 +157,13 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
 }
 
+// Bug AO: Choose(Null, ...) が Type mismatch エラーを返す（VBA 仕様では Null を返す）
+{
+    assert.strictEqual(evalExpr('Choose(Null, "a", "b")') === vbaNull, true, 'Choose(Null, ...) = Null');
+    assert.strictEqual(evalExpr('Choose(1, "a", "b")'), 'a', 'Choose(1, ...) = first choice');
+    console.log('[PASS] Bug AO: Choose(Null) = Null');
+}
+
 // Bug AC/AD: Replace/Like の Null 伝播
 {
     assert.strictEqual(evalExpr('Replace("abc", Null, "x")') === vbaNull, true, 'Replace(str,Null,repl) = Null');
