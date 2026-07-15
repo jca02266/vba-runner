@@ -45,6 +45,9 @@ export const parseVbaDate = (val: any): Date => {
     if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(str)) {
         str = "1899/12/30 " + str;
     }
+    // ISO date-only "YYYY-MM-DD" is parsed as UTC midnight by the JS spec.
+    // Convert to slash format so it's treated as local midnight instead.
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) str = str.replace(/-/g, '/');
     const d = new Date(str);
     if (isNaN(d.getTime())) throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: '${val}'`);
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(),
