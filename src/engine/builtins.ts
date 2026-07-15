@@ -451,7 +451,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('chrw', chrwFunc, [{ name: 'CharCode' }], ['$']);
     // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
     ctx.reg('lenb', (s: any) => String(s ?? '').length * 2, [{ name: 'String' }]);
-    ctx.reg('ascb', (s: any) => String(s ?? '').charCodeAt(0) & 0xFF, [{ name: 'String' }], ['$']);
+    ctx.reg('ascb', (s: any) => {
+        const str = String(s ?? '');
+        if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return str.charCodeAt(0) & 0xFF;
+    }, [{ name: 'String' }], ['$']);
     ctx.reg('chrb', (n: any) => String.fromCharCode(Number(n) & 0xFF), [{ name: 'CharCode' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
