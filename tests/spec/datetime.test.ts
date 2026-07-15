@@ -177,4 +177,41 @@ End Function
     console.log('[PASS] Bug #25-6: DatePart firstdayofweek');
 }
 
+// --- Bug B: Weekday — firstdayofweek 引数 ---
+{
+    const runWD = (expr: string) => {
+        const ev2 = evalVBASingle(`Function T(): T = ${expr}: End Function`);
+        return ev2.callProcedure('T', []);
+    };
+    // 2026/07/15 は水曜日 (JS getDay=3)
+    // vbSunday(1)基準: 日=1,月=2,火=3,水=4,木=5,金=6,土=7
+    assert.strictEqual(runWD('Weekday(#2026/07/15#)'),    4, 'Weekday デフォルト(vbSunday): 水=4');
+    assert.strictEqual(runWD('Weekday(#2026/07/15#, 1)'), 4, 'Weekday vbSunday(1): 水=4');
+    // vbMonday(2)基準: 月=1,火=2,水=3
+    assert.strictEqual(runWD('Weekday(#2026/07/15#, 2)'), 3, 'Weekday vbMonday(2): 水=3');
+    // vbSaturday(7)基準: 土=1,日=2,月=3,火=4,水=5
+    assert.strictEqual(runWD('Weekday(#2026/07/15#, 7)'), 5, 'Weekday vbSaturday(7): 水=5');
+    // vbUseSystemDayOfWeek(0) → vbSunday として扱う
+    assert.strictEqual(runWD('Weekday(#2026/07/15#, 0)'), 4, 'Weekday vbUseSystem(0): 水=4');
+    console.log('[PASS] Bug B: Weekday firstdayofweek');
+}
+
+// --- Bug C: DateDiff — firstdayofweek 引数 ---
+{
+    const runDD = (expr: string) => {
+        const ev2 = evalVBASingle(`Function T(): T = ${expr}: End Function`);
+        return ev2.callProcedure('T', []);
+    };
+    // 非 "ww" インターバルは firstdayofweek 無関係
+    assert.strictEqual(runDD('DateDiff("d", #2026/01/01#, #2026/01/31#, 2)'), 30, 'DateDiff d: firstdayofweek 無関係');
+    // "ww": 2026/01/01(木) → 2026/01/31(土)
+    // vbSunday(1): 01/01の週始=12/28(日), 01/31の週始=01/25(日) → 4週
+    assert.strictEqual(runDD('DateDiff("ww", #2026/01/01#, #2026/01/31#, 1)'), 4, 'DateDiff ww vbSunday: 4週');
+    // vbMonday(2): 01/01の週始=12/29(月), 01/31の週始=01/26(月) → 4週
+    assert.strictEqual(runDD('DateDiff("ww", #2026/01/01#, #2026/01/31#, 2)'), 4, 'DateDiff ww vbMonday: 4週');
+    // デフォルト(1引数省略)も正常動作
+    assert.strictEqual(runDD('DateDiff("ww", #2026/01/01#, #2026/01/31#)'), 4, 'DateDiff ww デフォルト: 4週');
+    console.log('[PASS] Bug C: DateDiff firstdayofweek');
+}
+
 console.log('\n✅ DateTime Module: 全テスト通過');

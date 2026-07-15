@@ -162,4 +162,21 @@ function ev(expr: string): any {
     console.log('[PASS] Bug #25-1〜3: LenB / AscB / ChrB');
 }
 
+// --- Bug A: Replace — start / count / compare 引数 ---
+{
+    // start: 返り値は start 位置以降のみ（prefix は含まれない）
+    assert.strictEqual(ev('Replace("Hello Hello Hello", "Hello", "Hi", 7)'), 'Hi Hi', 'Replace start=7: 7文字目以降で全置換');
+    assert.strictEqual(ev('Replace("Hello Hello Hello", "Hello", "Hi", 7, 1)'), 'Hi Hello', 'Replace start=7 count=1: 1件のみ置換');
+    // count
+    assert.strictEqual(ev('Replace("Hello Hello Hello", "Hello", "Hi", 1, 1)'), 'Hi Hello Hello', 'Replace count=1: 最初の1件のみ');
+    assert.strictEqual(ev('Replace("Hello Hello Hello", "Hello", "Hi", 1, 2)'), 'Hi Hi Hello', 'Replace count=2: 2件のみ');
+    assert.strictEqual(ev('Replace("Hello Hello Hello", "Hello", "Hi", 1, 0)'), 'Hello Hello Hello', 'Replace count=0: 置換なし');
+    // compare (vbTextCompare=1)
+    assert.strictEqual(ev('Replace("Hello hello", "HELLO", "Hi", 1, -1, 1)'), 'Hi Hi', 'Replace vbTextCompare: 大文字小文字無視');
+    assert.strictEqual(ev('Replace("Hello hello", "HELLO", "Hi", 1, -1, 0)'), 'Hello hello', 'Replace vbBinaryCompare: 大文字小文字区別');
+    // find が空文字列 → working をそのまま返す
+    assert.strictEqual(ev('Replace("Hello", "", "x", 1)'), 'Hello', 'Replace find="" → そのまま返す');
+    console.log('[PASS] Bug A: Replace start/count/compare');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

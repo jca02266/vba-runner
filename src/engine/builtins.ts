@@ -565,10 +565,42 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'SourceArray' },
         { name: 'Delimiter', optional: true },
     ]);
-    ctx.reg('replace', (s: any, f: any, r: any) => String(s ?? '').split(String(f ?? '')).join(String(r ?? '')), [
+    ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
+        const str = String(s ?? '');
+        const find = String(f ?? '');
+        const repl = String(r ?? '');
+        const startNum = Number(start ?? 1);
+        const countNum = Number(count ?? -1);
+        const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
+        // Slice from start position (1-based), operate, then return from that offset
+        const prefix = str.substring(0, startNum - 1);
+        const working = str.substring(startNum - 1);
+        if (find === '') return working;
+        const findLower = isText ? find.toLowerCase() : find;
+        let result = '';
+        let remaining = working;
+        let replacements = 0;
+        while (remaining.length > 0) {
+            const searchIn = isText ? remaining.toLowerCase() : remaining;
+            const idx = searchIn.indexOf(findLower);
+            if (idx === -1 || (countNum >= 0 && replacements >= countNum)) {
+                result += remaining;
+                break;
+            }
+            result += remaining.substring(0, idx) + repl;
+            remaining = remaining.substring(idx + find.length);
+            replacements++;
+        }
+        // VBA Replace returns from start position (prefix is NOT included)
+        void prefix;
+        return result;
+    }, [
         { name: 'Expression' },
         { name: 'Find' },
         { name: 'Replace' },
+        { name: 'Start', optional: true },
+        { name: 'Count', optional: true },
+        { name: 'Compare', optional: true },
     ]);
     ctx.reg('strcomp', (s1: any, s2: any, comp?: number) => {
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
@@ -688,7 +720,13 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))), [
         { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' },
     ]);
-    ctx.reg('weekday', (d: any) => parseVbaDate(d).getDay() + 1, [{ name: 'Date' }]);
+    ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
+        const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
+        let fdow = Number(firstdayofweek ?? 1);
+        if (fdow === 0) fdow = 1; // vbUseSystemDayOfWeek → treat as vbSunday
+        const weekStart = fdow <= 1 ? 0 : fdow - 1; // convert VBA 1-based to JS 0-based
+        return ((dayOfWeek - weekStart + 7) % 7) + 1;
+    }, [{ name: 'Date' }, { name: 'FirstDayOfWeek', optional: true }]);
     ctx.reg('dateadd', (interval: any, number: any, date: any) => {
         const d = parseVbaDate(date);
         const n = Number(number);
@@ -712,7 +750,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         }
         return new VbaDate(toVbaDate(d));
     }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
-    ctx.reg('datediff', (interval: any, date1: any, date2: any) => {
+    ctx.reg('datediff', (interval: any, date1: any, date2: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
         const d1 = parseVbaDate(date1);
         const d2 = parseVbaDate(date2);
         const intv = String(interval).toLowerCase();
@@ -721,12 +759,29 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
         else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
         else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
-        else if (intv === 'ww') return Math.round(diffMs / 604800000);
+        else if (intv === 'ww') {
+            // Week count depends on firstdayofweek
+            let fdow = Number(firstdayofweek ?? 1);
+            if (fdow === 0) fdow = 1;
+            const weekStart = fdow <= 1 ? 0 : fdow - 1;
+            const day1 = new Date(d1); day1.setHours(0, 0, 0, 0);
+            const day2 = new Date(d2); day2.setHours(0, 0, 0, 0);
+            // Align both dates to their week boundary
+            const offset1 = (day1.getDay() - weekStart + 7) % 7;
+            const offset2 = (day2.getDay() - weekStart + 7) % 7;
+            const week1Start = new Date(day1); week1Start.setDate(day1.getDate() - offset1);
+            const week2Start = new Date(day2); week2Start.setDate(day2.getDate() - offset2);
+            return Math.round((week2Start.getTime() - week1Start.getTime()) / 604800000);
+        }
         else if (intv === 'h') return Math.round(diffMs / 3600000);
         else if (intv === 'n') return Math.round(diffMs / 60000);
         else if (intv === 's') return Math.round(diffMs / 1000);
         return 0;
-    }, [{ name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' }]);
+    }, [
+        { name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' },
+        { name: 'FirstDayOfWeek', optional: true },
+        { name: 'FirstWeekOfYear', optional: true },
+    ]);
     ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
