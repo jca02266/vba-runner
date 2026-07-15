@@ -214,6 +214,15 @@
 | ~~LSP: With ブロック内で引数付きメソッドチェーン後の補完が 0 件~~ | **修正済み（評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。コミット `3300dcb`。 |
 | ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
 | ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
+| ~~**Bug R: ISO 日付文字列 "YYYY-MM-DD" のタイムゾーンオフセット混入**~~ | **修正済み**: `vba-types.ts:parseVbaDate` で ISO 形式（`/^\d{4}-\d{2}-\d{2}$/`）を検出し、`-` を `/` に置換してから `new Date()` に渡すよう修正。JS の ISO 形式は UTC midnight として解析されるため、UTC+9 環境では `getHours()=9` → VBA シリアル値に 0.375 が混入していた。スラッシュ形式は LOCAL midnight として解析されるため修正される。レグレッションテスト: `tests/spec/cdate.test.ts` Bug R ブロック。 | `f4c3856` |
+| ~~**Bug S: `LenB(Null)` が 30 を返す（vbaNull Symbol を文字列化した長さ）**~~ | **修正済み**: `builtins.ts:lenb` に `if (s === vbaNull) return vbaNull;` を追加。`Len(Null)` は既に修正済みだったが `LenB` が未対応だった。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug S ブロック。 | `c6544f7` |
+| ~~**Bug T/U: `LeftB/RightB/MidB(Null)` が Null でなく文字列を返す**~~ | **修正済み**: 各関数の先頭に `if (val === vbaNull) return vbaNull;` を追加。`Left/Right/Mid` と同様の Null 伝播を実装。`tests/spec/builtin-strings.test.ts` Bug S ブロックで検証。 | `c6544f7` |
+| ~~**Bug V/W: `Asc/AscW/AscB(Null)` が 83 を返す（vbaNull Symbol の先頭バイト）**~~ | **修正済み**: `ascFunc`/`ascb` の先頭に `if (s === vbaNull) return vbaNull;` を追加。`String(vbaNull ?? '')` が `"Symbol(vbaNull)"` を生成して `charCodeAt(0)=83` を返していた。 | `4f2172a` |
+| ~~**Bug X: `Replace(Null, find, repl)` が "Symbol(vbaNull)" を返す**~~ | **修正済み**: `replace` の先頭に `if (s === vbaNull) return vbaNull;` を追加。VBA 仕様通り第1引数 Null → Null 伝播。 | `4f2172a` |
+| ~~**Bug AA: `Space(Null)` が TypeError（Symbol→数値変換エラー）**~~ | **修正済み**: `spaceFunc` の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(vbaNull)` が JS TypeError を投げていた。 | `2221d61` |
+| ~~**Bug AB: `String(n, Null)` / `String(Null, char)` が誤った文字列を返す**~~ | **修正済み**: `stringFunc` の先頭に `if (n === vbaNull \|\| char === vbaNull) return vbaNull;` を追加。 | `2221d61` |
+| ~~**Bug Y: `Format(文字列, 日付パターン)` が文字列フォーマットとして処理される**~~ | **修正済み**: `formatFunc` で `typeof effectiveVal === 'string'` 分岐に `isDatePattern` チェックを移動。`isDatePattern && !/^[0#,.%]+$/.test(fmt)` のとき `parseVbaDate` で変換してから `formatDate` を呼ぶよう修正。`Format("2024/03/15", "yyyy")` → "2024" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Y ブロック。 | `02a682d` |
+| ~~**Bug Z: `Format(time, "hh:nn AM/PM")` が 24 時間制のままになる**~~ | **修正済み**: `format.ts:formatDate` でトークン列を事前スキャンして `am/pm`/`ampm`/`a/p` マーカーがある場合は `use12Hour=true` にし、`hh`/`h` トークンを `h12`（12 時間制）で返すよう修正。`Format(CDate("14:30:00"), "hh:nn AM/PM")` → "02:30 PM" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Z ブロック。 | `f34b9b0` |
 
 ---
 
