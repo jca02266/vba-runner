@@ -15,6 +15,7 @@
  *   - UCase / UCase$              (§6.1.2.11.1.41/42)
  */
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { vbaNull } from '../../src/engine/evaluator';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -240,6 +241,14 @@ function ev(expr: string): any {
     assert.strictEqual(ev('ChrW(12354)'), 'あ', 'ChrW(12354) = "あ"');
     assert.throwsMatch(() => ev('ChrW(65536)'), /error '5'/, 'ChrW(65536) → Error 5');
     console.log('[PASS] Bug M: Chr(>255) / ChrW(>65535) → Error 5');
+}
+
+// --- Bug S: LenB(Null) が Null を返さずゴミ値を返す ---
+{
+    assert.strictEqual(ev('LenB(Null)') === vbaNull, true, 'LenB(Null) = Null');
+    assert.strictEqual(ev('Len(Null)') === vbaNull, true, 'Len(Null) = Null');
+    assert.strictEqual(ev('LenB("hello")'), 10, 'LenB("hello") = 10');
+    console.log('[PASS] Bug S: LenB(Null) = Null');
 }
 
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

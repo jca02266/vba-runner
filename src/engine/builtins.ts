@@ -450,7 +450,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('chrw', chrwFunc, [{ name: 'CharCode' }], ['$']);
     // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
-    ctx.reg('lenb', (s: any) => String(s ?? '').length * 2, [{ name: 'String' }]);
+    ctx.reg('lenb', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').length * 2, [{ name: 'String' }]);
     ctx.reg('ascb', (s: any) => {
         const str = String(s ?? '');
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
@@ -688,15 +688,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Compare', optional: true },
     ]);
     ctx.reg('leftb', (val: any, len: any) => {
+        if (val === vbaNull) return vbaNull;
         const s = String(val ?? '');
         return s.substring(0, Math.floor(Number(len) / 2));
     }, [{ name: 'String' }, { name: 'Length' }]);
     ctx.reg('rightb', (val: any, len: any) => {
+        if (val === vbaNull) return vbaNull;
         const s = String(val ?? '');
         const charLen = Math.floor(Number(len) / 2);
         return s.substring(s.length - charLen);
     }, [{ name: 'String' }, { name: 'Length' }]);
     const midbFunc = (val: any, start: any, len?: any) => {
+        if (val === vbaNull) return vbaNull;
         const s = String(val ?? '');
         const charStart = Math.floor((Number(start) + 1) / 2);
         if (len === undefined) return s.substring(charStart - 1);
