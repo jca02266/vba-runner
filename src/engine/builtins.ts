@@ -5,7 +5,7 @@ import {
     parseFixedPointString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
-import { vbaToBoolean, vbaToString } from './coerce';
+import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { formatDate, formatNumber, formatString } from './format';
@@ -295,12 +295,12 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
 
     const hexFn = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        return (Math.floor(ctx.toVbaNumber(n)) >>> 0).toString(16).toUpperCase();
+        return (vbaRound(ctx.toVbaNumber(n), 0) >>> 0).toString(16).toUpperCase();
     };
     ctx.reg('hex', hexFn, [{ name: 'Number' }], ['$']);
     const octFn = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        return (Math.floor(ctx.toVbaNumber(n)) >>> 0).toString(8);
+        return (vbaRound(ctx.toVbaNumber(n), 0) >>> 0).toString(8);
     };
     ctx.reg('oct', octFn, [{ name: 'Number' }], ['$']);
     ctx.reg('val', (s: any) => {
@@ -439,12 +439,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('asc', ascFunc, [{ name: 'String' }]);
     ctx.reg('ascw', ascFunc, [{ name: 'String' }]);
     const chrFunc = (n: any) => {
+        if (n === vbaNull) return vbaNull;
         const code = Number(n);
         if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code);
     };
     ctx.reg('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
     const chrwFunc = (n: any) => {
+        if (n === vbaNull) return vbaNull;
         const code = Number(n);
         if (code < -32768 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code < 0 ? code + 65536 : code);

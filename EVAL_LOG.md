@@ -225,6 +225,8 @@
 | ~~**Bug Z: `Format(time, "hh:nn AM/PM")` が 24 時間制のままになる**~~ | **修正済み**: `format.ts:formatDate` でトークン列を事前スキャンして `am/pm`/`ampm`/`a/p` マーカーがある場合は `use12Hour=true` にし、`hh`/`h` トークンを `h12`（12 時間制）で返すよう修正。`Format(CDate("14:30:00"), "hh:nn AM/PM")` → "02:30 PM" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Z ブロック。 | `f34b9b0` |
 | ~~**Bug AC: `Replace(str, Null, repl)` / `Replace(str, find, Null)` が Null でなく文字列を返す**~~ | **修正済み**: `builtins.ts:replace` の先頭条件を `if (s === vbaNull \|\| f === vbaNull \|\| r === vbaNull) return vbaNull;` に拡張。find が Null だと `String(vbaNull)="Symbol(vbaNull)"` に変換されて検索対象が見つからず元文字列がそのまま返っていた。repl が Null だと "Symbol(vbaNull)bc" が返っていた。 | TBD |
 | ~~**Bug AD: `Null Like pattern` / `str Like Null` が Null でなく True/False を返す**~~ | **修正済み**: `evaluator.ts` の `case 'like':` に `if (leftVal === vbaNull \|\| rightVal === vbaNull) return vbaNull;` を追加。VBA の Like 演算子はいずれかのオペランドが Null なら Null を返す。 | TBD |
+| ~~**Bug AE: `Chr(Null)` / `ChrW(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrFunc`/`chrwFunc` の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` が JS TypeError を投げていた。 | TBD |
+| ~~**Bug AF: `Hex(3.7)` / `Oct(3.7)` が切り捨てではなく四捨五入されない**~~ | **修正済み**: `hexFn`/`octFn` で `Math.floor` を `vbaRound(..., 0)` に変更。VBA は整数変換にバンカーズ丸め（偶数丸め）を使うため `Math.floor` では不正確。`Hex(3.7)` = "4", `Hex(2.5)` = "2", `Hex(3.5)` = "4" が正しく返る。 | TBD |
 
 ---
 

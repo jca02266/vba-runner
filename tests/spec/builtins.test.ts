@@ -1,6 +1,6 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
-import { Evaluator, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
+import { Evaluator, vbaTrue, vbaFalse, vbaNull } from '../../src/engine/evaluator';
 import { assert, evalVBASingle } from '../../test-libs/test-runner';
 
 function evalExpr(expr: string): any {
@@ -157,21 +157,29 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
 }
 
-// Bug AC: Replace の find/repl 引数が Null のとき Null を返す
+// Bug AC/AD: Replace/Like の Null 伝播
 {
-    const { Evaluator, vbaNull } = await import('../../src/engine/evaluator');
-    const { Lexer } = await import('../../src/engine/lexer');
-    const { Parser } = await import('../../src/engine/parser');
-    const ev = (expr: string): any => {
-        const toks = new Lexer(expr).tokenize();
-        const ast = (new Parser(toks) as any).parseExpression();
-        return (new Evaluator(() => {}) as any).evaluateExpression(ast);
-    };
-    assert.strictEqual(ev('Replace("abc", Null, "x")') === vbaNull, true, 'Replace(str,Null,repl) = Null');
-    assert.strictEqual(ev('Replace("abc", "a", Null)') === vbaNull, true, 'Replace(str,find,Null) = Null');
-    assert.strictEqual(ev('Null Like "*"') === vbaNull, true, 'Null Like pattern = Null');
-    assert.strictEqual(ev('"abc" Like Null') === vbaNull, true, 'str Like Null = Null');
-    console.log('[PASS] Bug AC: Replace/Like の Null 伝播');
+    assert.strictEqual(evalExpr('Replace("abc", Null, "x")') === vbaNull, true, 'Replace(str,Null,repl) = Null');
+    assert.strictEqual(evalExpr('Replace("abc", "a", Null)') === vbaNull, true, 'Replace(str,find,Null) = Null');
+    assert.strictEqual(evalExpr('Null Like "*"') === vbaNull, true, 'Null Like pattern = Null');
+    assert.strictEqual(evalExpr('"abc" Like Null') === vbaNull, true, 'str Like Null = Null');
+    console.log('[PASS] Bug AC/AD: Replace/Like の Null 伝播');
+}
+
+// Bug AE: Chr(Null) / ChrW(Null) が TypeError でクラッシュする
+{
+    assert.strictEqual(evalExpr('Chr(Null)') === vbaNull, true, 'Chr(Null) = Null');
+    assert.strictEqual(evalExpr('ChrW(Null)') === vbaNull, true, 'ChrW(Null) = Null');
+    console.log('[PASS] Bug AE: Chr/ChrW の Null 伝播');
+}
+
+// Bug AF: Hex/Oct が Math.floor で切り捨てていた（VBA では四捨五入）
+{
+    assert.strictEqual(evalExpr('Hex(3.7)'), '4',  'Hex(3.7) = "4" (rounded)');
+    assert.strictEqual(evalExpr('Hex(2.5)'), '2',  'Hex(2.5) = "2" (banker round)');
+    assert.strictEqual(evalExpr('Hex(3.5)'), '4',  'Hex(3.5) = "4" (banker round)');
+    assert.strictEqual(evalExpr('Oct(3.7)'), '4',  'Oct(3.7) = "4" (rounded)');
+    console.log('[PASS] Bug AF: Hex/Oct の四捨五入');
 }
 
 console.log('\n✅ Built-in Functions: 全テスト通過');
