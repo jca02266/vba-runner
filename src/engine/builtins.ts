@@ -599,11 +599,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Limit', optional: true },
         { name: 'Compare', optional: true },
     ]);
-    ctx.reg('join', (arr: any, del: string = ' ') => {
+    ctx.reg('join', (arr: any, del: any = ' ') => {
         if (del === vbaNull) return vbaNull;
         if (!Array.isArray(arr)) return String(arr);
         const base = (arr as any).vbaBase || 0;
-        return arr.slice(base).join(del);
+        return arr.slice(base).join(String(del));
     }, [
         { name: 'SourceArray' },
         { name: 'Delimiter', optional: true },
