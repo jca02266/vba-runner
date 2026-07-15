@@ -144,4 +144,17 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Y: Format(文字列, 日付パターン)');
 }
 
+// Bug Z: AM/PM 書式指定時に時刻が 24 時間制のままになる問題
+{
+    const fmtDate = (code: string) =>
+        evalVBASingle(`Function F(): F = ${code} : End Function`).callProcedure('F', []);
+    assert.strictEqual(fmtDate('Format(CDate("14:30:00"), "hh:nn AM/PM")'), '02:30 PM', 'hh:nn AM/PM 14:30 → 02:30 PM');
+    assert.strictEqual(fmtDate('Format(CDate("09:30:00"), "hh:nn am/pm")'), '09:30 am', 'hh:nn am/pm 09:30 → 09:30 am');
+    assert.strictEqual(fmtDate('Format(CDate("00:30:00"), "h:nn AM/PM")'),  '12:30 AM', 'h:nn AM/PM 00:30 → 12:30 AM');
+    assert.strictEqual(fmtDate('Format(CDate("12:00:00"), "h:nn AM/PM")'),  '12:00 PM', 'h:nn AM/PM 12:00 → 12:00 PM');
+    assert.strictEqual(fmtDate('Format(CDate("23:59:59"), "hh:nn:ss AM/PM")'), '11:59:59 PM', 'hh:nn:ss AM/PM 23:59:59 → 11:59:59 PM');
+    assert.strictEqual(fmtDate('Format(CDate("14:30:00"), "hh:nn")'), '14:30', 'hh:nn without AM/PM → 24h 14:30');
+    console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

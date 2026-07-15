@@ -133,6 +133,12 @@ export function formatDate(d: Date, pattern: string): string {
     // トークン化（\x / "text" エスケープ対応、長いトークンを先に）
     const tokenRe = /\\.|"[^"]*"|ampm|am\/pm|a\/p|ttttt|dddddd|ddddd|dddd|ddd|dd|d|yyyy|yy|mmmm|mmm|mm|m|ww|w|q|y|hh|h|nn|n|ss|s|c|[^a-zA-Z\\"]+|[a-zA-Z]/gi;
     const toks = pattern.match(tokenRe) || [];
+
+    // AM/PM 指定がある場合は 12 時間制を使う
+    const use12Hour = toks.some(t => /^(am\/pm|ampm|a\/p)$/i.test(t));
+    const hourPad  = use12Hour ? pad2(h12) : HH;
+    const hourNoP  = use12Hour ? String(h12) : String(d.getHours());
+
     let prevHour = false;
 
     return toks.map(tok => {
@@ -165,8 +171,8 @@ export function formatDate(d: Date, pattern: string): string {
             case 'ww':     prevHour = false; return String(weekOfYear());
             case 'w':      prevHour = false; return String(d.getDay() + 1); // 日曜=1
             case 'q':      prevHour = false; return String(Math.ceil((d.getMonth() + 1) / 3));
-            case 'hh':     prevHour = true;  return HH;
-            case 'h':      prevHour = true;  return String(d.getHours());
+            case 'hh':     prevHour = true;  return hourPad;
+            case 'h':      prevHour = true;  return hourNoP;
             case 'nn':     prevHour = false; return mm;
             case 'n':      prevHour = false; return String(d.getMinutes());
             case 'ss':     prevHour = false; return ss;
