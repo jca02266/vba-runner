@@ -215,6 +215,22 @@ End Function
     console.log('[PASS] Bug C: DateDiff firstdayofweek');
 }
 
+// Bug AK: Year/Month/Day/Hour/Minute/Second/Weekday の Null 伝播 (Null 引数でクラッシュしていた)
+{
+    const Lexer2 = (await import('../../src/engine/lexer')).Lexer;
+    const Parser2 = (await import('../../src/engine/parser')).Parser;
+    const Evaluator2 = (await import('../../src/engine/evaluator')).Evaluator;
+    const ev2 = (expr: string): any => {
+        const toks = new Lexer2(expr).tokenize();
+        const ast = (new Parser2(toks) as any).parseExpression();
+        return (new Evaluator2(() => {}) as any).evaluateExpression(ast);
+    };
+    for (const fn of ['Year', 'Month', 'Day', 'Hour', 'Minute', 'Second', 'Weekday']) {
+        assert.strictEqual(ev2(`${fn}(Null)`) === vbaNull, true, `${fn}(Null) = Null`);
+    }
+    console.log('[PASS] Bug AK: Year/Month/Day/Hour/Minute/Second/Weekday の Null 伝播');
+}
+
 // Bug AG/AH/AI: DateAdd/DateDiff/DatePart の Null 伝播 (Null 引数でクラッシュしていた)
 {
     const Lexer = (await import('../../src/engine/lexer')).Lexer;

@@ -776,12 +776,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
-    ctx.reg('year',   (d: any) => parseVbaDate(d).getFullYear(), [{ name: 'Date' }]);
-    ctx.reg('month',  (d: any) => parseVbaDate(d).getMonth() + 1, [{ name: 'Date' }]);
-    ctx.reg('day',    (d: any) => parseVbaDate(d).getDate(), [{ name: 'Date' }]);
-    ctx.reg('hour',   (d: any) => parseVbaDate(d).getHours(), [{ name: 'Time' }]);
-    ctx.reg('minute', (d: any) => parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
-    ctx.reg('second', (d: any) => parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
+    ctx.reg('year',   (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(), [{ name: 'Date' }]);
+    ctx.reg('month',  (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1, [{ name: 'Date' }]);
+    ctx.reg('day',    (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getDate(), [{ name: 'Date' }]);
+    ctx.reg('hour',   (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getHours(), [{ name: 'Time' }]);
+    ctx.reg('minute', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
+    ctx.reg('second', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))), [
         { name: 'Year' }, { name: 'Month' }, { name: 'Day' },
     ]);
@@ -789,6 +789,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' },
     ]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
+        if (d === vbaNull) return vbaNull;
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
         let fdow = Number(firstdayofweek ?? 1);
         if (fdow === 0) fdow = 1; // vbUseSystemDayOfWeek → treat as vbSunday
