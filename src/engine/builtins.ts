@@ -709,7 +709,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                 if (fmtLower === 'on/off') return isTrue ? 'On' : 'Off';
                 return isTrue ? 'True' : 'False';
             }
-            const numVal = val instanceof VbaBoolean ? val.value : val;
+            const numVal = (val instanceof VbaBoolean) ? val.value
+                : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? Number(val.toString())
+                : val;
             if (typeof numVal === 'number') return formatNumber(numVal, fmt);
             return String(val);
         }
@@ -717,7 +719,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(String(val)));
             return formatDate(dateVal, fmt);
         }
-        const effectiveVal = val instanceof VbaBoolean ? val.value : val;
+        const effectiveVal = (val instanceof VbaBoolean) ? val.value
+            : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? Number(val.toString())
+            : val;
         if (typeof effectiveVal === 'string') return formatString(effectiveVal, fmt);
         const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(fmt);
         if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt);

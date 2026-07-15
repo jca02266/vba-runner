@@ -95,6 +95,13 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Format named boolean / StrConv LCID');
 }
 
+// Bug L: Format(VbaCurrency/VbaDecimal, 数値パターン) が書式適用されない
+{
+    assert.strictEqual(evalExpr('Format(CCur(1234.5), "#,##0.00")'), '1,234.50', 'Format(CCur, "#,##0.00")');
+    assert.strictEqual(evalExpr('Format(CCur(0), "0.00")'), '0.00', 'Format(CCur(0), "0.00")');
+    console.log('[PASS] Bug L: Format(Currency/Decimal, 数値パターン)');
+}
+
 // Bug F: Format(VbaBoolean, 数値パターン)
 {
     assert.strictEqual(evalExpr('Format(True, "0")'), '-1', 'Format(True, "0") = "-1"');
