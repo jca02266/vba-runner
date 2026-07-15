@@ -151,6 +151,11 @@
 | ~~**Bug E: `RGB(r, g, b)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `rgb` を登録。COLORREF 形式 `r + g*256 + b*65536`。各チャネルは 0-255 にクランプ。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | 定数テーブルは vbRed 等のエイリアスを持たず、`RGB` 関数自体が `builtins.ts` に未登録だった。 |
 | ~~**Bug F: `QBColor(n)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `qbcolor` を登録。16色テーブルで 0〜15 を COLORREF に変換。範囲外は Error 5。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | `builtins.ts` に `qbcolor` の登録が存在しなかった。 |
 | ~~**Bug G: `Nz(value, valueifnull)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `nz` を登録。`Null`/`Empty`/`null`/`undefined` なら `valueifnull`（省略時は `0`）を返す。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | Access VBA の組み込み関数で Excel VBA には存在しないため未登録だった。 |
+| ~~**Bug H: `StrConv(s, conv, LCID)` 第3引数が Error 450**~~ | **修正済み**: `strconv` 登録に `{ name: 'LCID', optional: true }` を追加（LCID は無視するが引数を受け取るようになった）。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `ctx.reg` の params 配列が `String`/`Conversion` の2要素固定だった。 |
+| ~~**Bug I: `InputBox(prompt, title, default, XPos, YPos, ...)` 第4引数以降が Error 450**~~ | **修正済み**: `inputbox` 登録に `XPos`/`YPos`/`HelpFile`/`Context`（すべて省略可）を追加（スタブ実装・無視）。 | params 配列が3要素固定だった。 |
+| ~~**Bug J: `MsgBox(prompt, buttons, title, HelpFile, Context)` 第4引数以降が Error 450**~~ | **修正済み**: `msgbox` 登録に `HelpFile`/`Context`（省略可）を追加（スタブ実装・無視）。 | params 配列が3要素固定だった。 |
+| ~~**Bug K: `CreateObject(class, ServerName)` 第2引数が Error 450**~~ | **修正済み**: `createobject` 登録に `{ name: 'ServerName', optional: true }` を追加（無視）。 | params 配列が1要素固定だった。 |
+| ~~**Bug L: `Format(True, "Yes/No")` が "Yes" でなく "True" を返す**~~ | **修正済み**: `formatFunc` の named format ブランチで `VbaBoolean` を検出して `yes/no`→"Yes"/"No"、`on/off`→"On"/"Off"、`true/false`→"True"/"False" を返すよう修正。VbaBoolean 以外の数値型は `val.value` を `formatNumber` に渡す。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `VbaBoolean` は `typeof 'object'` のため `typeof val === 'number'` が false になり `String(val)` → "True"/"False" へフォールバックしていた。 |
 
 ### 未修正バグ（評価 #26 で発見）
 

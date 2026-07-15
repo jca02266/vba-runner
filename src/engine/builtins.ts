@@ -632,7 +632,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
         }
         return str;
-    }, [{ name: 'String' }, { name: 'Conversion' }]);
+    }, [{ name: 'String' }, { name: 'Conversion' }, { name: 'LCID', optional: true }]);
     ctx.reg('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
     ctx.reg('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
         if (!Array.isArray(source)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
@@ -681,7 +681,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const namedFormats = ['general number', 'currency', 'fixed', 'standard', 'percent', 'scientific', 'true/false', 'yes/no', 'on/off'];
         const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
         if (namedFormats.includes(fmtLower)) {
-            if (typeof val === 'number') return formatNumber(val, fmt);
+            if (fmtLower === 'yes/no' || fmtLower === 'on/off' || fmtLower === 'true/false') {
+                const isTrue = val instanceof VbaBoolean ? val.value !== 0 : (Number(val) !== 0);
+                if (fmtLower === 'yes/no') return isTrue ? 'Yes' : 'No';
+                if (fmtLower === 'on/off') return isTrue ? 'On' : 'Off';
+                return isTrue ? 'True' : 'False';
+            }
+            const numVal = val instanceof VbaBoolean ? val.value : val;
+            if (typeof numVal === 'number') return formatNumber(numVal, fmt);
             return String(val);
         }
         if (dateNamedFormats.includes(fmtLower)) {
@@ -862,7 +869,7 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
         { name: 'PathName' },
         { name: 'WindowStyle', optional: true },
     ]);
-    ctx.reg('msgbox', (msg: any, _buttons: any = 0, _title: any = "") => {
+    ctx.reg('msgbox', (msg: any, _buttons: any = 0, _title: any = "", _helpFile?: string, _context?: number) => {
         const title = _title ? ` ${_title}:` : '';
         ctx.print(`[MSGBOX]${title} ${msg}`);
         return 1;
@@ -870,11 +877,20 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
         { name: 'Prompt' },
         { name: 'Buttons', optional: true },
         { name: 'Title', optional: true },
+        { name: 'HelpFile', optional: true },
+        { name: 'Context', optional: true },
     ]);
-    ctx.reg('inputbox', (prompt: any, _title: any = "", def: any = "") => { ctx.print(`[INPUTBOX] ${prompt}`); return def; }, [
+    ctx.reg('inputbox', (prompt: any, _title: any = "", def: any = "", _xpos?: number, _ypos?: number, _helpFile?: string, _context?: number) => {
+        ctx.print(`[INPUTBOX] ${prompt}`);
+        return def;
+    }, [
         { name: 'Prompt' },
         { name: 'Title', optional: true },
         { name: 'Default', optional: true },
+        { name: 'XPos', optional: true },
+        { name: 'YPos', optional: true },
+        { name: 'HelpFile', optional: true },
+        { name: 'Context', optional: true },
     ]);
     ctx.reg('appactivate', (title: string, _wait?: boolean) => { ctx.print(`[APPACTIVATE] ${title}`); }, [
         { name: 'Title' },
@@ -1087,7 +1103,10 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('varptr', ptrFn, [{ name: 'VarName' }]);
     ctx.reg('strptr', ptrFn, [{ name: 'VarName' }]);
     ctx.reg('objptr', ptrFn, [{ name: 'VarName' }]);
-    ctx.reg('createobject', (id: string) => ctx.createObj(id), [{ name: 'Class' }]);
+    ctx.reg('createobject', (id: string, _serverName?: string) => ctx.createObj(id), [
+        { name: 'Class' },
+        { name: 'ServerName', optional: true },
+    ]);
     const getObjectFunc = (pathname?: string, classId?: string) => {
         if (pathname) {
             return { __vbaTypeName__: 'Object', Path: pathname, Name: pathname.split(/[\\\/]/).pop() };

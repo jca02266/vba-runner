@@ -81,4 +81,18 @@ function evalExpr(expr: string): any {
     console.log('[PASS] RGB / QBColor / Nz');
 }
 
+// Format named boolean formats / StrConv LCID / CreateObject ServerName / InputBox+MsgBox extra params
+{
+    // Format "Yes/No", "On/Off", "True/False" with VbaBoolean
+    assert.strictEqual(evalExpr('Format(True, "Yes/No")'), 'Yes', 'Format True Yes/No');
+    assert.strictEqual(evalExpr('Format(False, "Yes/No")'), 'No', 'Format False Yes/No');
+    assert.strictEqual(evalExpr('Format(True, "On/Off")'), 'On', 'Format True On/Off');
+    assert.strictEqual(evalExpr('Format(False, "On/Off")'), 'Off', 'Format False On/Off');
+    assert.strictEqual(evalExpr('Format(True, "True/False")'), 'True', 'Format True True/False');
+    assert.strictEqual(evalExpr('Format(False, "True/False")'), 'False', 'Format False True/False');
+    // StrConv with LCID (3rd arg)
+    assert.strictEqual(evalExpr('StrConv("hello", 1, 1033)'), 'HELLO', 'StrConv 3-arg LCID');
+    console.log('[PASS] Format named boolean / StrConv LCID');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
