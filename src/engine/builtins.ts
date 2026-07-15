@@ -460,7 +460,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return str.charCodeAt(0) & 0xFF;
     }, [{ name: 'String' }], ['$']);
-    ctx.reg('chrb', (n: any) => String.fromCharCode(Number(n) & 0xFF), [{ name: 'CharCode' }], ['$']);
+    ctx.reg('chrb', (n: any) => { if (n === vbaNull) return vbaNull; return String.fromCharCode(Number(n) & 0xFF); }, [{ name: 'CharCode' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
         let start = 1, s1, s2, comp;
@@ -796,6 +796,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return ((dayOfWeek - weekStart + 7) % 7) + 1;
     }, [{ name: 'Date' }, { name: 'FirstDayOfWeek', optional: true }]);
     ctx.reg('dateadd', (interval: any, number: any, date: any) => {
+        if (date === vbaNull || number === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
         const n = Number(number);
         const intv = String(interval).toLowerCase();
@@ -819,6 +820,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return new VbaDate(toVbaDate(d));
     }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
     ctx.reg('datediff', (interval: any, date1: any, date2: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
+        if (date1 === vbaNull || date2 === vbaNull) return vbaNull;
         const d1 = parseVbaDate(date1);
         const d2 = parseVbaDate(date2);
         const intv = String(interval).toLowerCase();
@@ -851,6 +853,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'FirstWeekOfYear', optional: true },
     ]);
     ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
+        if (date === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
         // firstdayofweek: 1=Sunday(default), 2=Monday, ..., 7=Saturday; 0=system default(treat as 1)

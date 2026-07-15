@@ -227,6 +227,8 @@
 | ~~**Bug AD: `Null Like pattern` / `str Like Null` が Null でなく True/False を返す**~~ | **修正済み**: `evaluator.ts` の `case 'like':` に `if (leftVal === vbaNull \|\| rightVal === vbaNull) return vbaNull;` を追加。VBA の Like 演算子はいずれかのオペランドが Null なら Null を返す。 | TBD |
 | ~~**Bug AE: `Chr(Null)` / `ChrW(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrFunc`/`chrwFunc` の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` が JS TypeError を投げていた。 | TBD |
 | ~~**Bug AF: `Hex(3.7)` / `Oct(3.7)` が切り捨てではなく四捨五入されない**~~ | **修正済み**: `hexFn`/`octFn` で `Math.floor` を `vbaRound(..., 0)` に変更。VBA は整数変換にバンカーズ丸め（偶数丸め）を使うため `Math.floor` では不正確。`Hex(3.7)` = "4", `Hex(2.5)` = "2", `Hex(3.5)` = "4" が正しく返る。 | TBD |
+| ~~**Bug AG/AH/AI: `DateAdd/DateDiff/DatePart` の date 引数が Null のとき TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (date === vbaNull) return vbaNull;`（DateDiff は date1/date2 両方）を追加。`parseVbaDate(Symbol)` → `String(Symbol)` → `Number(Symbol)` で JS TypeError が発生していた。 | TBD |
+| ~~**Bug AJ: `ChrB(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrb` 関数の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | TBD |
 
 ---
 

@@ -251,4 +251,11 @@ function ev(expr: string): any {
     console.log('[PASS] Bug S: LenB(Null) = Null');
 }
 
+// --- Bug AJ: ChrB(Null) が TypeError でクラッシュする ---
+{
+    assert.strictEqual(ev('ChrB(Null)') === vbaNull, true, 'ChrB(Null) = Null');
+    assert.strictEqual(ev('ChrB(65)'), 'A', 'ChrB(65) = "A"');
+    console.log('[PASS] Bug AJ: ChrB(Null) = Null');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

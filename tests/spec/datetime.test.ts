@@ -1,4 +1,5 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { vbaNull } from '../../src/engine/evaluator';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -212,6 +213,22 @@ End Function
     // デフォルト(1引数省略)も正常動作
     assert.strictEqual(runDD('DateDiff("ww", #2026/01/01#, #2026/01/31#)'), 4, 'DateDiff ww デフォルト: 4週');
     console.log('[PASS] Bug C: DateDiff firstdayofweek');
+}
+
+// Bug AG/AH/AI: DateAdd/DateDiff/DatePart の Null 伝播 (Null 引数でクラッシュしていた)
+{
+    const Lexer = (await import('../../src/engine/lexer')).Lexer;
+    const Parser = (await import('../../src/engine/parser')).Parser;
+    const Evaluator = (await import('../../src/engine/evaluator')).Evaluator;
+    const ev = (expr: string): any => {
+        const toks = new Lexer(expr).tokenize();
+        const ast = (new Parser(toks) as any).parseExpression();
+        return (new Evaluator(() => {}) as any).evaluateExpression(ast);
+    };
+    assert.strictEqual(ev('DateAdd("d", 1, Null)') === vbaNull, true, 'DateAdd(d,1,Null) = Null');
+    assert.strictEqual(ev('DateDiff("d", Null, Now())') === vbaNull, true, 'DateDiff(d,Null,Now()) = Null');
+    assert.strictEqual(ev('DatePart("d", Null)') === vbaNull, true, 'DatePart(d,Null) = Null');
+    console.log('[PASS] Bug AG/AH/AI: DateAdd/DateDiff/DatePart の Null 伝播');
 }
 
 console.log('\n✅ DateTime Module: 全テスト通過');
