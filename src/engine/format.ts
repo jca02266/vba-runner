@@ -204,7 +204,7 @@ export function formatNumber(n: number, pattern: string): string {
         case 'fixed':      return n.toFixed(2);
         case 'standard':   return withThousands(n, 2);
         case 'percent':    return (n * 100).toFixed(2) + '%';
-        case 'scientific': return n.toExponential(2);
+        case 'scientific': return n.toExponential(2).replace(/e([+-])(\d+)$/, (_, sign, d) => 'E' + sign + d.padStart(2, '0'));
         case 'true/false': return n !== 0 ? 'True' : 'False';
         case 'yes/no':     return n !== 0 ? 'Yes' : 'No';
         case 'on/off':     return n !== 0 ? 'On' : 'Off';

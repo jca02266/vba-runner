@@ -95,6 +95,14 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Format named boolean / StrConv LCID');
 }
 
+// Bug N2: Format("Scientific") が小文字 e・1桁指数を返す
+{
+    assert.strictEqual(evalExpr('Format(1234567, "Scientific")'), '1.23E+06', 'Format Scientific 大文字E・2桁指数');
+    assert.strictEqual(evalExpr('Format(0.00123, "Scientific")'), '1.23E-03', 'Format Scientific 負指数');
+    assert.strictEqual(evalExpr('Format(1, "Scientific")'), '1.00E+00', 'Format Scientific 指数0');
+    console.log('[PASS] Bug N2: Format("Scientific") E+NN 形式');
+}
+
 // Bug L: Format(VbaCurrency/VbaDecimal, 数値パターン) が書式適用されない
 {
     assert.strictEqual(evalExpr('Format(CCur(1234.5), "#,##0.00")'), '1,234.50', 'Format(CCur, "#,##0.00")');
