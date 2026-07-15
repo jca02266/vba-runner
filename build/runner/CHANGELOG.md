@@ -2,6 +2,34 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.14] - 2026-07-15
+
+### Added
+
+- **`Next i, j` multi-variable support** — nested `For` / `For Each` loops can close multiple variables with a single `Next` statement.
+- **Fixed-length string declarations** — `Dim s As String * N` is now parsed and evaluated correctly.
+- **`LenB` / `AscB` / `ChrB`** built-in functions for byte-oriented string operations.
+- **`Split` limit argument** — third argument of `Split(expr, delim, limit)` is now respected.
+- **`DatePart` firstdayofweek** — optional `firstdayofweek` parameter is now handled.
+- **`Global` keyword** — `Global x`, `Global Const`, `Global Sub`, `Global Enum` recognised as `Public` aliases.
+
+### Fixed
+
+- **`TypeOf x Is ADODB.Recordset`** — dotted library type names now parse correctly.
+- **`On Error GoTo -1`** — `-1` label now parsed as a single token.
+- **`Erase arr1, arr2`** — multiple variables in one `Erase` now supported.
+- **`ReDim arr1(5), arr2(10)`** — multiple variables in one `ReDim` now supported.
+- **`ReDim obj.Arr(n)` / `ReDim .Items(n)`** — member-access and With-expression targets now accepted.
+- **`Const A = 1, B = 2`** — multiple constants in one declaration now supported.
+- **`Open "f.txt" As #1`** — `For mode` clause is now optional.
+- **File I/O `#` optional** — `Print`, `Write`, `Input`, `Put`, `Get`, `Seek`, `Line Input`, `Width` accept file numbers without `#`.
+- **`Open "f.txt" For Random Len = N`** — `Len` clause with spaces around `=` now accepted.
+- **`Currency` / `Decimal` type overhaul** — internal representation switched to `BigInt` fixed-point arithmetic.
+- **`NPV` function** — returned `NaN` with 1-based VBA arrays; fixed.
+- **`TypeName` / `VarType`** — subtype lost for `Variant` variables; type-promotion rules now applied to binary expressions.
+- **`With` block `Property Get`** — calling a class `Property Get` inside `With` raised Error 424; fixed.
+- **`VBARunner.run()` / `eval()` return type** — `Currency` and `Decimal` results are now normalised to JS `number`.
+
 ## [0.1.1-alpha.13] - 2026-07-05
 
 ### Added

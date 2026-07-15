@@ -2,6 +2,36 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.1] - 2026-07-15
+
+### Added
+
+- **`Next i, j` multi-variable support** — nested `For` loops can now share a single `Next` statement listing multiple loop variables (e.g. `Next j, i`). Works for both `For…Next` and `For Each…Next`.
+- **Fixed-length string declarations** — `Dim s As String * N` is now parsed and evaluated correctly per §5.2.3.1.4.
+- **`LenB` / `AscB` / `ChrB`** built-in functions added for byte-oriented string operations.
+- **`Split` limit argument** — the optional third argument of `Split(expr, delim, limit)` is now respected.
+- **`DatePart` firstdayofweek argument** — the optional `firstdayofweek` parameter is now handled.
+- **`Global` keyword** — `Global x As Integer` / `Global Const` / `Global Sub` / `Global Enum` are now recognised as aliases for `Public` (§5.2.3.1).
+- **UDT / Enum LSP support** — user-defined `Type` and `Enum` members now appear in completion lists and hover tooltips.
+
+### Fixed
+
+- **`TypeOf x Is ADODB.Recordset`** — dotted library type names in `TypeOf … Is` expressions now parse correctly.
+- **`On Error GoTo -1`** — the `-1` label was split into two tokens; now parsed as a single token.
+- **`Erase arr1, arr2`** — multiple variables in a single `Erase` statement now work correctly.
+- **`ReDim arr1(5), arr2(10)`** — multiple variables in a single `ReDim` statement now supported.
+- **`ReDim obj.Arr(n)` / `ReDim .Items(n)`** — member-access and With-expression targets are now accepted.
+- **`Const A = 1, B = 2`** — multiple constants in a single `Const` declaration now supported.
+- **`Open "f.txt" As #1`** — the `For mode` clause is now optional (defaults to Random).
+- **File I/O `#` optional** — `Print`, `Write`, `Input`, `Put`, `Get`, `Seek`, `Line Input`, and `Width` now accept file numbers without the `#` prefix.
+- **`Open "f.txt" For Random Len = N`** — `Len` clause with spaces around `=` was rejected; now handled correctly.
+- **`Currency` / `Decimal` type overhaul** — internal representation switched to `BigInt` fixed-point arithmetic, fixing rounding errors and comparison bugs.
+- **`NPV` function** — returned `NaN` when the values array used 1-based VBA indexing; now fixed.
+- **`TypeName` / `VarType`** — subtype information was lost for `Variant` variables; type-promotion rules now applied correctly to binary expressions.
+- **With block `Property Get`** — calling a user-defined class `Property Get` from inside a `With` block raised Error 424; fixed.
+- **Extract Function** — the refactoring tool generated duplicate `Dim` lines, causing VBA compile errors; fixed.
+- **Hover display** — scope labels were incorrectly uppercased; `Const` hover showed wrong type/value; both fixed.
+
 ## [0.3.0] - 2026-07-05
 
 ### Added
