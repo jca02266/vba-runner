@@ -431,6 +431,7 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
 
 export function registerStringFunctions(ctx: StdlibCtx): void {
     const ascFunc = (s: any) => {
+        if (s === vbaNull) return vbaNull;
         const str = String(s ?? '');
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return str.charCodeAt(0);
@@ -452,6 +453,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
     ctx.reg('lenb', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').length * 2, [{ name: 'String' }]);
     ctx.reg('ascb', (s: any) => {
+        if (s === vbaNull) return vbaNull;
         const str = String(s ?? '');
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return str.charCodeAt(0) & 0xFF;
@@ -601,6 +603,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Delimiter', optional: true },
     ]);
     ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
+        if (s === vbaNull) return vbaNull;
         const str = String(s ?? '');
         const find = String(f ?? '');
         const repl = String(r ?? '');
