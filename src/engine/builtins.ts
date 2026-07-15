@@ -524,21 +524,21 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
     ctx.reg('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
     const leftFunc = (val: any, len: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || len === vbaNull) return vbaNull;
         const l = Number(len);
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String(val ?? '').substring(0, l);
     };
     ctx.reg('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const rightFunc = (val: any, len: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? ''), l = Number(len);
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return s.substring(s.length - l);
     };
     ctx.reg('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const midFunc = (val: any, start: any, len?: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? ''), st = Number(start);
         if (st < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (len !== undefined && Number(len) < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
@@ -894,10 +894,12 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'FirstWeekOfYear', optional: true },
     ]);
     ctx.reg('datevalue', (val: any) => {
+        if (val === vbaNull) return vbaNull;
         const d = parseVbaDate(val);
         return new VbaDate(Math.floor(toVbaDate(d)));
     }, [{ name: 'Date' }]);
     ctx.reg('timevalue', (val: any) => {
+        if (val === vbaNull) return vbaNull;
         const d = parseVbaDate(val);
         const serial = toVbaDate(d);
         return new VbaDate(serial - Math.floor(serial));

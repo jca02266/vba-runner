@@ -258,6 +258,15 @@ function ev(expr: string): any {
     console.log('[PASS] Bug AJ: ChrB(Null) = Null');
 }
 
+// --- Bug AP/AQ/AR: Left/Right/Mid の len/start 引数が Null のとき Null を返す ---
+{
+    assert.strictEqual(ev('Left("abc", Null)') === vbaNull, true, 'Left(str, Null) = Null');
+    assert.strictEqual(ev('Right("abc", Null)') === vbaNull, true, 'Right(str, Null) = Null');
+    assert.strictEqual(ev('Mid("abc", 1, Null)') === vbaNull, true, 'Mid(str, start, Null) = Null');
+    assert.strictEqual(ev('Mid("abc", Null, 1)') === vbaNull, true, 'Mid(str, Null, len) = Null');
+    console.log('[PASS] Bug AP/AQ/AR: Left/Right/Mid の Null len/start 伝播');
+}
+
 // --- Bug AM/AN: Split(Null) / Join(arr, Null) の Null 伝播 ---
 {
     assert.strictEqual(ev('Split(Null, ",")') === vbaNull, true, 'Split(Null, ",") = Null');
