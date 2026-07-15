@@ -230,4 +230,16 @@ function ev(expr: string): any {
     console.log('[PASS] Bug K: InStr start<1 → Error 5');
 }
 
+// --- Bug M: Chr の引数範囲は 0-255、ChrW は 0-65535 ---
+{
+    assert.strictEqual(ev('Chr(65)'), 'A', 'Chr(65) = "A"');
+    assert.strictEqual(ev('Chr(255)'), 'ÿ', 'Chr(255) = "ÿ"');
+    assert.throwsMatch(() => ev('Chr(256)'), /error '5'/, 'Chr(256) → Error 5');
+    assert.throwsMatch(() => ev('Chr(-1)'), /error '5'/, 'Chr(-1) → Error 5');
+    assert.strictEqual(ev('ChrW(256)'), 'Ā', 'ChrW(256) = "Ā"');
+    assert.strictEqual(ev('ChrW(12354)'), 'あ', 'ChrW(12354) = "あ"');
+    assert.throwsMatch(() => ev('ChrW(65536)'), /error '5'/, 'ChrW(65536) → Error 5');
+    console.log('[PASS] Bug M: Chr(>255) / ChrW(>65535) → Error 5');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

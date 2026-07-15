@@ -437,9 +437,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('asc', ascFunc, [{ name: 'String' }]);
     ctx.reg('ascw', ascFunc, [{ name: 'String' }]);
-    const chrFunc = (n: any) => String.fromCharCode(Number(n));
+    const chrFunc = (n: any) => {
+        const code = Number(n);
+        if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return String.fromCharCode(code);
+    };
     ctx.reg('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
-    ctx.reg('chrw', chrFunc, [{ name: 'CharCode' }], ['$']);
+    const chrwFunc = (n: any) => {
+        const code = Number(n);
+        if (code < -32768 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return String.fromCharCode(code < 0 ? code + 65536 : code);
+    };
+    ctx.reg('chrw', chrwFunc, [{ name: 'CharCode' }], ['$']);
     // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
     ctx.reg('lenb', (s: any) => String(s ?? '').length * 2, [{ name: 'String' }]);
     ctx.reg('ascb', (s: any) => String(s ?? '').charCodeAt(0) & 0xFF, [{ name: 'String' }], ['$']);
