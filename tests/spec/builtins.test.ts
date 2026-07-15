@@ -1,7 +1,7 @@
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator, vbaTrue, vbaFalse } from '../../src/engine/evaluator';
-import { assert } from '../../test-libs/test-runner';
+import { assert, evalVBASingle } from '../../test-libs/test-runner';
 
 function evalExpr(expr: string): any {
     const tokens = new Lexer(expr).tokenize();
@@ -130,17 +130,14 @@ function evalExpr(expr: string): any {
 
 // Bug Y: Format(文字列, 日付パターン) が文字列フォーマットとして処理される問題
 {
-    // Format with date-string input + date format pattern should parse string as date
-    const ev = new Evaluator(() => {});
-    const callFormat = (d: any, fmt: string) => {
-        const tokens = new Lexer(`Format(CDate("${d}"), "${fmt}")`).tokenize();
-        const ast = new Parser(tokens).parseExpression();
-        return (ev as any).evaluateExpression(ast);
+    const runFmt = (d: string, fmt: string) => {
+        const r = evalVBASingle(`Function F() : F = Format(CDate("${d}"), "${fmt}") : End Function`);
+        return r.callProcedure('F', []);
     };
-    assert.strictEqual(callFormat('2024/03/15', 'yyyy'), '2024', 'Format(CDate, "yyyy") = "2024"');
-    assert.strictEqual(callFormat('2024/03/15', 'mm'), '03',   'Format(CDate, "mm") = "03"');
-    assert.strictEqual(callFormat('2024/03/15', 'dd'), '15',   'Format(CDate, "dd") = "15"');
-    assert.strictEqual(callFormat('2024/03/15', 'mmmm'), 'March', 'Format(CDate, "mmmm") = "March"');
+    assert.strictEqual(runFmt('2024/03/15', 'yyyy'), '2024',  'Format(CDate, "yyyy") = "2024"');
+    assert.strictEqual(runFmt('2024/03/15', 'mm'),   '03',    'Format(CDate, "mm") = "03"');
+    assert.strictEqual(runFmt('2024/03/15', 'dd'),   '15',    'Format(CDate, "dd") = "15"');
+    assert.strictEqual(runFmt('2024/03/15', 'mmmm'), 'March', 'Format(CDate, "mmmm") = "March"');
     // String input with date pattern should also work
     assert.strictEqual(evalExpr('Format("2024/03/15", "yyyy")'), '2024', 'Format(string, "yyyy") = "2024"');
     assert.strictEqual(evalExpr('Format("2024/03/15", "mm")'),   '03',   'Format(string, "mm") = "03"');
