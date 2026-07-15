@@ -194,4 +194,40 @@ function ev(expr: string): any {
     console.log('[PASS] Bug N: Left/Right/Mid Null 伝播');
 }
 
+// --- Bug H: Asc("") は Error 5 ---
+{
+    assert.throwsMatch(() => ev('Asc("")'), /error '5'/, 'Asc("") → Error 5');
+    assert.strictEqual(ev('Asc("A")'), 65, 'Asc 通常動作');
+    console.log('[PASS] Bug H: Asc("") → Error 5');
+}
+
+// --- Bug I: Left/Right/Mid の負値引数は Error 5 ---
+{
+    assert.throwsMatch(() => ev('Left("abc", -1)'), /error '5'/, 'Left 負長さ → Error 5');
+    assert.throwsMatch(() => ev('Right("abc", -1)'), /error '5'/, 'Right 負長さ → Error 5');
+    assert.throwsMatch(() => ev('Mid("abc", 0)'), /error '5'/, 'Mid start=0 → Error 5');
+    assert.throwsMatch(() => ev('Mid("abc", 1, -1)'), /error '5'/, 'Mid 負長さ → Error 5');
+    assert.strictEqual(ev('Left("abc", 0)'), '', 'Left 長さ0 → ""');
+    assert.strictEqual(ev('Mid("abc", 1, 0)'), '', 'Mid 長さ0 → ""');
+    console.log('[PASS] Bug I: Left/Right/Mid 負値引数 → Error 5');
+}
+
+// --- Bug J: Space/String の負値引数は Error 5 ---
+{
+    assert.throwsMatch(() => ev('Space(-1)'), /error '5'/, 'Space(-1) → Error 5');
+    assert.throwsMatch(() => ev('String(-1, "x")'), /error '5'/, 'String(-1) → Error 5');
+    assert.strictEqual(ev('Space(0)'), '', 'Space(0) = ""');
+    assert.strictEqual(ev('String(0, "x")'), '', 'String(0) = ""');
+    console.log('[PASS] Bug J: Space/String 負値引数 → Error 5');
+}
+
+// --- Bug K: InStr の start < 1 は Error 5 ---
+{
+    assert.throwsMatch(() => ev('InStr(0, "abc", "b")'), /error '5'/, 'InStr(0) → Error 5');
+    assert.throwsMatch(() => ev('InStr(-1, "abc", "b")'), /error '5'/, 'InStr(-1) → Error 5');
+    assert.strictEqual(ev('InStr(1, "abc", "b")'), 2, 'InStr(1) 通常動作');
+    assert.strictEqual(ev('InStr("abc", "b")'), 2, 'InStr 2引数版 通常動作');
+    console.log('[PASS] Bug K: InStr start<1 → Error 5');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

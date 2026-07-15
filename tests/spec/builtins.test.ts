@@ -95,4 +95,22 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Format named boolean / StrConv LCID');
 }
 
+// Bug F: Format(VbaBoolean, 数値パターン)
+{
+    assert.strictEqual(evalExpr('Format(True, "0")'), '-1', 'Format(True, "0") = "-1"');
+    assert.strictEqual(evalExpr('Format(False, "0")'), '0', 'Format(False, "0") = "0"');
+    assert.strictEqual(evalExpr('Format(True, "#")'), '-1', 'Format(True, "#")');
+    assert.strictEqual(evalExpr('Format(True)'), 'True', 'Format(True) 書式なし = "True"');
+    console.log('[PASS] Bug F: Format(Boolean, 数値パターン)');
+}
+
+// Bug G: IsDate(数値) = True
+{
+    assert.strictEqual(evalExpr('IsDate(1)'), vbaTrue, 'IsDate(1) = True');
+    assert.strictEqual(evalExpr('IsDate(0)'), vbaTrue, 'IsDate(0) = True');
+    assert.strictEqual(evalExpr('IsDate(-1)'), vbaTrue, 'IsDate(-1) = True');
+    assert.strictEqual(evalExpr('IsDate("abc")'), vbaFalse, 'IsDate("abc") = False');
+    console.log('[PASS] Bug G: IsDate(数値) = True');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
