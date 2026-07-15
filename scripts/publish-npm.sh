@@ -5,6 +5,10 @@
 #   Pass an explicit path when the .env lives elsewhere (e.g. a sibling package).
 set -euo pipefail
 
+# npm run --prefix sets npm_config_prefix in the environment, which causes
+# child npm commands to double-apply the prefix. Unset it to avoid the issue.
+unset npm_config_prefix
+
 ENV_FILE="${1:-.env}"
 NPMRC=".npmrc"
 
