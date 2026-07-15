@@ -235,6 +235,7 @@
 | ~~**Bug AO: `Choose(Null, ...)` が Type mismatch エラー（VBA 仕様では Null を返す）**~~ | **修正済み**: `choose` の先頭の `ctx.throwError(TYPE_MISMATCH)` を `return vbaNull` に変更。VBA ドキュメント「index が Null の場合 Null を返す」に準拠。 | TBD |
 | ~~**Bug AP/AQ/AR: `Left(str, Null)` / `Right(str, Null)` / `Mid(str, Null, n)` / `Mid(str, n, Null)` が TypeError でクラッシュ**~~ | **修正済み**: `leftFunc`/`rightFunc`/`midFunc` の Null チェックを `val === vbaNull \|\| len/start === vbaNull` に拡張。 | TBD |
 | ~~**Bug AS/AT: `DateValue(Null)` / `TimeValue(Null)` が TypeError でクラッシュ**~~ | **修正済み**: `datevalue`/`timevalue` の先頭に `if (val === vbaNull) return vbaNull;` を追加。 | TBD |
+| ~~**Bug AU/AV/AW: `LeftB(str, Null)` / `RightB(str, Null)` / `MidB` の Null 引数でクラッシュ**~~ | **修正済み**: `leftb`/`rightb`/`midbFunc` の Null チェックを `val \|\| len/start` に拡張。 | TBD |
 
 ---
 

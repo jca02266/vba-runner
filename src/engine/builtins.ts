@@ -697,18 +697,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Compare', optional: true },
     ]);
     ctx.reg('leftb', (val: any, len: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? '');
         return s.substring(0, Math.floor(Number(len) / 2));
     }, [{ name: 'String' }, { name: 'Length' }]);
     ctx.reg('rightb', (val: any, len: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? '');
         const charLen = Math.floor(Number(len) / 2);
         return s.substring(s.length - charLen);
     }, [{ name: 'String' }, { name: 'Length' }]);
     const midbFunc = (val: any, start: any, len?: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? '');
         const charStart = Math.floor((Number(start) + 1) / 2);
         if (len === undefined) return s.substring(charStart - 1);
