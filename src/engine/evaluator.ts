@@ -5176,21 +5176,26 @@ export class Evaluator {
 
             if (isPreserve && Array.isArray(oldArr)) {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);
+                if (elementTypeName) {
+                    this.fillArrayWithUDT(arr, (arr as any).__vbaDimensions__, 0, elementTypeName, true);
+                }
             }
 
             setNewArr(arr);
         }
     }
 
-    private fillArrayWithUDT(arr: any[], dimensions: { lower: number, upper: number }[], dimIdx: number, typeName: string) {
+    private fillArrayWithUDT(arr: any[], dimensions: { lower: number, upper: number }[], dimIdx: number, typeName: string, skipExisting = false) {
         const { lower, upper } = dimensions[dimIdx];
         if (dimIdx < dimensions.length - 1) {
             for (let i = lower; i <= upper; i++) {
-                this.fillArrayWithUDT(arr[i], dimensions, dimIdx + 1, typeName);
+                this.fillArrayWithUDT(arr[i], dimensions, dimIdx + 1, typeName, skipExisting);
             }
         } else {
             for (let i = lower; i <= upper; i++) {
-                arr[i] = this.instantiateType(typeName);
+                if (!skipExisting || arr[i] === undefined || arr[i] === 0) {
+                    arr[i] = this.instantiateType(typeName);
+                }
             }
         }
     }

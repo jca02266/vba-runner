@@ -56,4 +56,30 @@ assert.strictEqual(v3.length, 3, '要素数は 3');
 assert.strictEqual(v3[0], "A", 'v(0) は "A"');
 console.log('[PASS] Array 関数');
 
+// --- Bug 28-1: ReDim Preserve で UDT 配列を拡張後、新インデックス要素が Error 424 ---
+{
+    const udtPreserveCode = `
+Type Point
+    X As Long
+    Y As Long
+End Type
+
+Function TestReDimPreserveUDT() As String
+    Dim pts() As Point
+    ReDim pts(0 To 0)
+    pts(0).X = 10
+    pts(0).Y = 20
+    ReDim Preserve pts(0 To 2)
+    pts(1).X = 30
+    pts(1).Y = 40
+    pts(2).X = 50
+    pts(2).Y = 60
+    TestReDimPreserveUDT = pts(0).X & "," & pts(1).X & "," & pts(2).X
+End Function
+`;
+    const ev4 = evalVBA(udtPreserveCode);
+    assert.strictEqual(ev4.callProcedure('TestReDimPreserveUDT', []), '10,30,50', 'ReDim Preserve UDT: 既存要素保持 + 新要素初期化');
+    console.log('[PASS] Bug 28-1: ReDim Preserve UDT 配列');
+}
+
 console.log('\n✅ Array Functions: 全テスト通過');
