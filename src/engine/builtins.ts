@@ -153,6 +153,28 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                 return val;
             }
         }
+        if (callType === 4 /* VbLet */ || callType === 8 /* VbSet */) {
+            const propType = callType === 4 ? 'let' : 'set';
+            const fallbackType = callType === 4 ? 'set' : 'let';
+            if (obj.__vbaClass__) {
+                const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
+                const setter = (classDef as any).procedures.find(
+                    (p: any) => p.isProperty && p.propertyType === propType && p.name.name.toLowerCase() === name
+                ) ?? (classDef as any).procedures.find(
+                    (p: any) => p.isProperty && p.propertyType === fallbackType && p.name.name.toLowerCase() === name
+                );
+                if (setter) return ctx.callMethod(obj, setter, args);
+                obj.__instanceEnv__.set(name, args[0]);
+                return;
+            }
+            if (typeof obj === 'object' && obj !== null) {
+                const keys = Object.keys(obj);
+                const match = keys.find(k => k.toLowerCase() === name) ?? name;
+                const val = obj[match];
+                if (typeof val === 'function') { val.apply(obj, args); } else { obj[match] = args[0]; }
+                return;
+            }
+        }
         ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
     }, [
         { name: 'Object' },
