@@ -578,6 +578,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
     ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, _compare: any = 0) => {
+        if (s === vbaNull) return vbaNull;
         const str = String(s ?? '');
         const delimiter = del === null || del === undefined ? ' ' : String(del);
         const n = (limit === null || limit === undefined) ? -1 : Number(limit);
@@ -599,6 +600,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Compare', optional: true },
     ]);
     ctx.reg('join', (arr: any, del: string = ' ') => {
+        if (del === vbaNull) return vbaNull;
         if (!Array.isArray(arr)) return String(arr);
         const base = (arr as any).vbaBase || 0;
         return arr.slice(base).join(del);
@@ -901,6 +903,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return new VbaDate(serial - Math.floor(serial));
     }, [{ name: 'Time' }]);
     ctx.reg('monthname', (month: any, abbreviate: any = vbaFalse) => {
+        if (month === vbaNull) return vbaNull;
         const m = Number(month);
         if (m < 1 || m > 12) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -908,6 +911,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return ctx.isTrue(abbreviate) ? abbrs[m - 1] : names[m - 1];
     }, [{ name: 'Month' }, { name: 'Abbreviate', optional: true }]);
     ctx.reg('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
+        if (weekday === vbaNull) return vbaNull;
         const w = Number(weekday);
         let first = Number(firstdayofweek);
         if (first === 0) first = 1;

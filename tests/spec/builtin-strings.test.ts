@@ -258,4 +258,11 @@ function ev(expr: string): any {
     console.log('[PASS] Bug AJ: ChrB(Null) = Null');
 }
 
+// --- Bug AM/AN: Split(Null) / Join(arr, Null) の Null 伝播 ---
+{
+    assert.strictEqual(ev('Split(Null, ",")') === vbaNull, true, 'Split(Null, ",") = Null');
+    assert.strictEqual(ev('Join(Array("a", "b"), Null)') === vbaNull, true, 'Join(arr, Null) = Null');
+    console.log('[PASS] Bug AM/AN: Split/Join の Null 伝播');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

@@ -215,6 +215,21 @@ End Function
     console.log('[PASS] Bug C: DateDiff firstdayofweek');
 }
 
+// Bug AL: WeekdayName/MonthName の Null 伝播 (Null 引数でクラッシュしていた)
+{
+    const Lexer3 = (await import('../../src/engine/lexer')).Lexer;
+    const Parser3 = (await import('../../src/engine/parser')).Parser;
+    const Evaluator3 = (await import('../../src/engine/evaluator')).Evaluator;
+    const ev3 = (expr: string): any => {
+        const toks = new Lexer3(expr).tokenize();
+        const ast = (new Parser3(toks) as any).parseExpression();
+        return (new Evaluator3(() => {}) as any).evaluateExpression(ast);
+    };
+    assert.strictEqual(ev3('WeekdayName(Null)') === vbaNull, true, 'WeekdayName(Null) = Null');
+    assert.strictEqual(ev3('MonthName(Null)') === vbaNull, true, 'MonthName(Null) = Null');
+    console.log('[PASS] Bug AL: WeekdayName/MonthName の Null 伝播');
+}
+
 // Bug AK: Year/Month/Day/Hour/Minute/Second/Weekday の Null 伝播 (Null 引数でクラッシュしていた)
 {
     const Lexer2 = (await import('../../src/engine/lexer')).Lexer;

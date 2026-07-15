@@ -230,6 +230,8 @@
 | ~~**Bug AG/AH/AI: `DateAdd/DateDiff/DatePart` の date 引数が Null のとき TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (date === vbaNull) return vbaNull;`（DateDiff は date1/date2 両方）を追加。`parseVbaDate(Symbol)` → `String(Symbol)` → `Number(Symbol)` で JS TypeError が発生していた。 | TBD |
 | ~~**Bug AJ: `ChrB(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrb` 関数の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | TBD |
 | ~~**Bug AK: `Year/Month/Day/Hour/Minute/Second/Weekday(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `d === vbaNull ? vbaNull :` チェックを追加。`parseVbaDate(Symbol)` → `String(Symbol)` で JS TypeError が発生していた。 | TBD |
+| ~~**Bug AL: `WeekdayName(Null)` / `MonthName(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (weekday/month === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | TBD |
+| ~~**Bug AM/AN: `Split(Null, ",")` が Null でなく `["Symbol(vbaNull)"]` を返す / `Join(arr, Null)` がクラッシュ**~~ | **修正済み**: `split` 先頭に `if (s === vbaNull) return vbaNull;`、`join` に `if (del === vbaNull) return vbaNull;` を追加。 | TBD |
 
 ---
 
