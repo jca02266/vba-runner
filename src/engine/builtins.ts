@@ -605,7 +605,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Delimiter', optional: true },
     ]);
     ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
-        if (s === vbaNull) return vbaNull;
+        if (s === vbaNull || f === vbaNull || r === vbaNull) return vbaNull;
         const str = String(s ?? '');
         const find = String(f ?? '');
         const repl = String(r ?? '');

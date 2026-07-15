@@ -157,4 +157,21 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
 }
 
+// Bug AC: Replace の find/repl 引数が Null のとき Null を返す
+{
+    const { Evaluator, vbaNull } = await import('../../src/engine/evaluator');
+    const { Lexer } = await import('../../src/engine/lexer');
+    const { Parser } = await import('../../src/engine/parser');
+    const ev = (expr: string): any => {
+        const toks = new Lexer(expr).tokenize();
+        const ast = (new Parser(toks) as any).parseExpression();
+        return (new Evaluator(() => {}) as any).evaluateExpression(ast);
+    };
+    assert.strictEqual(ev('Replace("abc", Null, "x")') === vbaNull, true, 'Replace(str,Null,repl) = Null');
+    assert.strictEqual(ev('Replace("abc", "a", Null)') === vbaNull, true, 'Replace(str,find,Null) = Null');
+    assert.strictEqual(ev('Null Like "*"') === vbaNull, true, 'Null Like pattern = Null');
+    assert.strictEqual(ev('"abc" Like Null') === vbaNull, true, 'str Like Null = Null');
+    console.log('[PASS] Bug AC: Replace/Like の Null 伝播');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

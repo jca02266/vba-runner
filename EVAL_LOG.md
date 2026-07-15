@@ -223,6 +223,8 @@
 | ~~**Bug AB: `String(n, Null)` / `String(Null, char)` が誤った文字列を返す**~~ | **修正済み**: `stringFunc` の先頭に `if (n === vbaNull \|\| char === vbaNull) return vbaNull;` を追加。 | `2221d61` |
 | ~~**Bug Y: `Format(文字列, 日付パターン)` が文字列フォーマットとして処理される**~~ | **修正済み**: `formatFunc` で `typeof effectiveVal === 'string'` 分岐に `isDatePattern` チェックを移動。`isDatePattern && !/^[0#,.%]+$/.test(fmt)` のとき `parseVbaDate` で変換してから `formatDate` を呼ぶよう修正。`Format("2024/03/15", "yyyy")` → "2024" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Y ブロック。 | `02a682d` |
 | ~~**Bug Z: `Format(time, "hh:nn AM/PM")` が 24 時間制のままになる**~~ | **修正済み**: `format.ts:formatDate` でトークン列を事前スキャンして `am/pm`/`ampm`/`a/p` マーカーがある場合は `use12Hour=true` にし、`hh`/`h` トークンを `h12`（12 時間制）で返すよう修正。`Format(CDate("14:30:00"), "hh:nn AM/PM")` → "02:30 PM" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Z ブロック。 | `f34b9b0` |
+| ~~**Bug AC: `Replace(str, Null, repl)` / `Replace(str, find, Null)` が Null でなく文字列を返す**~~ | **修正済み**: `builtins.ts:replace` の先頭条件を `if (s === vbaNull \|\| f === vbaNull \|\| r === vbaNull) return vbaNull;` に拡張。find が Null だと `String(vbaNull)="Symbol(vbaNull)"` に変換されて検索対象が見つからず元文字列がそのまま返っていた。repl が Null だと "Symbol(vbaNull)bc" が返っていた。 | TBD |
+| ~~**Bug AD: `Null Like pattern` / `str Like Null` が Null でなく True/False を返す**~~ | **修正済み**: `evaluator.ts` の `case 'like':` に `if (leftVal === vbaNull \|\| rightVal === vbaNull) return vbaNull;` を追加。VBA の Like 演算子はいずれかのオペランドが Null なら Null を返す。 | TBD |
 
 ---
 

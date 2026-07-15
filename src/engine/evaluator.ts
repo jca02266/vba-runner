@@ -6650,7 +6650,9 @@ export class Evaluator {
                 }
                 return leftVal >= rightVal ? vbaTrue : vbaFalse;
             case 'is': return leftVal === rightVal ? vbaTrue : vbaFalse;
-            case 'like': return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
+            case 'like':
+                if (leftVal === vbaNull || rightVal === vbaNull) return vbaNull;
+                return this.evaluateLike(leftVal, rightVal) ? vbaTrue : vbaFalse;
             case 'and':
                 const andRes = leftVal & rightVal;
                 return (leftVal instanceof VbaBoolean && rightVal instanceof VbaBoolean) ? (andRes === -1 ? vbaTrue : vbaFalse) : andRes;
