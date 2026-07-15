@@ -179,4 +179,21 @@ function ev(expr: string): any {
     console.log('[PASS] Bug A: Replace start/count/compare');
 }
 
+// --- Bug N: Left/Right/Mid の Null 伝播 ---
+{
+    // IsNull() が True(-1) を返すことで Null 伝播を確認する
+    const checkIsNull = (expr: string) => {
+        const env2 = evalVBA(`Function T(): If IsNull(${expr}) Then T = 1 Else T = 0: End Function`);
+        return env2.callProcedure('T', []);
+    };
+    assert.strictEqual(checkIsNull('Left(Null, 2)'), 1, 'Left(Null) → IsNull=True');
+    assert.strictEqual(checkIsNull('Right(Null, 2)'), 1, 'Right(Null) → IsNull=True');
+    assert.strictEqual(checkIsNull('Mid(Null, 1)'), 1, 'Mid(Null) → IsNull=True');
+    // 通常動作は変わらないことを確認
+    assert.strictEqual(ev('Left("hello", 2)'), 'he', 'Left 通常動作');
+    assert.strictEqual(ev('Right("hello", 2)'), 'lo', 'Right 通常動作');
+    assert.strictEqual(ev('Mid("hello", 2, 3)'), 'ell', 'Mid 通常動作');
+    console.log('[PASS] Bug N: Left/Right/Mid Null 伝播');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

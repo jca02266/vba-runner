@@ -500,14 +500,19 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('str', strFunc, [{ name: 'Number' }], ['$']);
     const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toUpperCase();
     ctx.reg('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
-    const leftFunc = (val: any, len: any) => String(val ?? '').substring(0, Number(len));
+    const leftFunc = (val: any, len: any) => {
+        if (val === vbaNull) return vbaNull;
+        return String(val ?? '').substring(0, Number(len));
+    };
     ctx.reg('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const rightFunc = (val: any, len: any) => {
+        if (val === vbaNull) return vbaNull;
         const s = String(val ?? ''), l = Number(len);
         return s.substring(s.length - l);
     };
     ctx.reg('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const midFunc = (val: any, start: any, len?: any) => {
+        if (val === vbaNull) return vbaNull;
         const s = String(val ?? ''), st = Number(start);
         return len !== undefined ? s.substring(st - 1, st - 1 + Number(len)) : s.substring(st - 1);
     };
