@@ -67,6 +67,16 @@
 | **Bug 26-3: `Open For Random Len=N` パースエラー** | `parser.ts:parseOpenStatement` でファイル番号後に `Len = <expr>` をオプション消費するよう修正（`peek().type===Identifier && value.toLowerCase()==='len'`）。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
 | **Bug 26-7: `GetAttr` 未実装 + ファイル属性定数未登録** | `evaluator.ts` に `getattr`（0 返却）/`setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`〜`vbAlias` 8定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
 | FSO `TextStream.ReadAll()` が `ReadLine()` 後も全体を返す | `readall` が `pos` を参照するよう修正 | `9e25adc` |
+| **Bug F: `Format(True, "0")` が "-1" でなく "True" を返す** | `formatFunc` の非 named フォーマット分岐で `VbaBoolean` を `val.value`（数値）に unwrap してから `formatNumber` に渡すよう修正。`Format(True, "0")` → "-1"、`Format(False, "0")` → "0" が正しく返るようになった。レグレッションテスト: `tests/spec/builtins.test.ts` Bug F ブロック。 | `8562e4f` |
+| **Bug G: `IsDate(1)` が False を返す（数値シリアル日付を認識しない）** | `isdate` 関数に `typeof val === 'number' && isFinite(val)` → `vbaTrue` 分岐を追加。VBA では数値は日付シリアルとして有効な日付。レグレッションテスト: `tests/spec/builtins.test.ts` Bug G ブロック。 | `8562e4f` |
+| **Bug H: `Asc("")` が null/NaN を返す（Error 5 にならない）** | `ascFunc` に `str.length === 0` チェックを追加して Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug H ブロック。 | `8562e4f` |
+| **Bug I: `Left/Right` の負値長さ、`Mid` の start<1 や負値長さが Error 5 にならない** | `leftFunc`/`rightFunc` に `l < 0` チェック、`midFunc` に `st < 1` と `len < 0` チェックを追加して Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug I ブロック。 | `8562e4f` |
+| **Bug J: `Space(-1)` / `String(-1, "x")` が JS RangeError（VBA Error 5 にならない）** | `spaceFunc`/`stringFunc` に `count < 0` チェックを追加して VBA Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug J ブロック。 | `8562e4f` |
+| **Bug K: `InStr(0, "abc", "b")` が Error 5 にならずに検索成功する** | `instrFunc` に `Number(start) < 1` チェックを追加して Error 5 を投げるよう修正（2引数形式（start なし）は start=1 扱いのため影響なし）。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug K ブロック。 | `8562e4f` |
+| **Bug L: `Format(CCur/CDec, 数値パターン)` が書式未適用で文字列化される** | `formatFunc` の namedFormats 分岐と非 named 分岐の両方で `VbaCurrency`/`VbaDecimal` を `Number(val.toString())` に変換してから `formatNumber` に渡すよう修正。`Format(CCur(1234.5), "#,##0.00")` → "1,234.50" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug L ブロック。 | `5f7abcb` |
+| **Bug M: `Chr(256)` が Error 5 にならず Unicode 文字を返す** | `Chr`/`Chr$` は ANSI 範囲 0-255 のみ受け付ける VBA 仕様に従い、範囲外で Error 5 を投げるよう修正。`ChrW`/`ChrW$` は別実装に分離し 0-65535 範囲を適用。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug M ブロック。 | `a611127` |
+| **Bug N2: `Format(n, "Scientific")` が小文字 e・1桁指数を返す** | `format.ts` で `toExponential(2)` の出力を VBA 仕様の大文字 E・最低2桁指数（"1.23E+06"）に変換するよう修正。レグレッションテスト: `tests/spec/builtins.test.ts` Bug N2 ブロック。 | `a3fd929` |
+| **Bug P: `AscB("")` が Error 5 にならず 0 を返す** | `AscB` に空文字列チェックを追加して Error 5 を投げるよう修正（`Asc`/`AscW` と同様）。 | `01c079a` |
 | `eval("Exit Sub")` が JS 例外を漏らしてクラッシュ | `executeStatements` を try/catch でラップして Exit シグナルを飲み込む | `0ca97d8` |
 | 同一ファイルへの二重 `Open` が Error 55 を出さない | `fileHandles` を走査して同一パスの重複チェックを追加 | `0ca97d8` |
 | FSO `TextStream.AtEndOfStream` 未実装（Error 438） | `pos >= content.length` を返す getter を実装 | `0ca97d8` |
@@ -160,12 +170,6 @@
 | ~~**Bug L: `Format(True, "Yes/No")` が "Yes" でなく "True" を返す**~~ | **修正済み**: `formatFunc` の named format ブランチで `VbaBoolean` を検出して `yes/no`→"Yes"/"No"、`on/off`→"On"/"Off"、`true/false`→"True"/"False" を返すよう修正。VbaBoolean 以外の数値型は `val.value` を `formatNumber` に渡す。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `VbaBoolean` は `typeof 'object'` のため `typeof val === 'number'` が false になり `String(val)` → "True"/"False" へフォールバックしていた。 |
 | ~~**Bug M: `vbFirstJan1`/`vbFirstFourDays`/`vbFirstFullWeek`/`vbDecimal`/`vbDataObject`/`vbUserDefinedType` が未登録（`Null` を返す）**~~ | **修正済み**: `registerConstants` に 6 定数を追加（`vbFirstJan1=1`/`vbFirstFourDays=2`/`vbFirstFullWeek=3`/`vbDecimal=14`/`vbDataObject=13`/`vbUserDefinedType=36`）。未登録定数を参照すると暗黙的に `Empty` が返り、`firstweekofyear` 引数として渡すと 0 扱いで誤動作する。 | VarType 定数ラインに `vbDataObject`/`vbDecimal`/`vbUserDefinedType` が含まれておらず、firstweekofyear 定数ライン自体が存在しなかった。 |
 | ~~**Bug N: `Left(Null, n)` / `Right(Null, n)` / `Mid(Null, n)` が Null でなく文字列を返す**~~ | **修正済み**: 各関数の先頭に `if (val === vbaNull) return vbaNull;` を追加。`Left(Null, 2)` → `Null`（`IsNull=True`）が正しく返るようになった。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug N ブロック。 | `leftFunc`/`rightFunc`/`midFunc` で `String(val ?? '')` を先に評価しており、`vbaNull` は Symbol のため `??` で素通りして `String(Symbol(vbaNull))` → `"Symbol(vbaNull)"` になっていた。 |
-
-### 未修正バグ（評価 #28 で発見）
-
-| 問題 | 最小再現コード | 根本原因 |
-|---|---|---|
-| **Bug 28-1: `ReDim Preserve` で UDT 配列を拡張した後、新インデックス要素のメンバーアクセスが Error 424** | `Type TreeNode`<br>`    Value As Long`<br>`End Type`<br>`Dim n() As TreeNode`<br>`ReDim n(0 To 0)`<br>`n(0).Value = 1`<br>`ReDim Preserve n(0 To 1)` ← OK<br>`n(1).Value = 2` ← Error 424 | `evaluator.ts:evaluateReDimDeclarator`（行 5170-5174）で `elementTypeName` がある場合に `fillArrayWithUDT` を呼ぶが、`isPreserve=true` のとき `if (!isPreserve)` ガードでスキップされる。`copyPreservedData` は既存インデックスのデータのみコピーするため、新たに追加されたインデックス（旧 upperBound+1 以降）の要素が `undefined` のまま残る。回避策: `ReDim Preserve` の代わりに一時配列に手動コピーして置き換える。 |
 
 ### ~~未修正バグ（評価 #28 で発見・修正済み）~~
 
