@@ -16,6 +16,13 @@
 
 **全バッチ完了**（すべての BNF セクションの調査が終了）
 
+## ステータス更新履歴
+
+- 2026-07-15: 全5バッチ完了・修正ラウンド実施
+  - 修正済み: §5.4.4.3 On Error GoTo -1, §5.4.3.2 Const複数, §5.4.3.3 ReDim複数/obj.Arr/.Items, §5.4.3.4 Erase複数, §5.4.5.1 Open For省略, §5.4.5.1.1 #なし8文, §5.6.7 TypeOf dotted, §5.2.3.1/§5.3.1.1 Global keyword, §5.4.2.3/4 Next複数変数
+  - 調査漏れ訂正: §3.4.1/2 #Const/#If は preprocessor.ts で実装済みだった（❌→✅）
+  - 現在の未修正残件: 🟡低優先度のみ 18件（🔴高・🟠中 = 0件）
+
 ## 調査結果ファイル
 
 `docs/internals/PARSER_BNF_GAPS.md`
