@@ -156,6 +156,7 @@
 | ~~**Bug J: `MsgBox(prompt, buttons, title, HelpFile, Context)` 第4引数以降が Error 450**~~ | **修正済み**: `msgbox` 登録に `HelpFile`/`Context`（省略可）を追加（スタブ実装・無視）。 | params 配列が3要素固定だった。 |
 | ~~**Bug K: `CreateObject(class, ServerName)` 第2引数が Error 450**~~ | **修正済み**: `createobject` 登録に `{ name: 'ServerName', optional: true }` を追加（無視）。 | params 配列が1要素固定だった。 |
 | ~~**Bug L: `Format(True, "Yes/No")` が "Yes" でなく "True" を返す**~~ | **修正済み**: `formatFunc` の named format ブランチで `VbaBoolean` を検出して `yes/no`→"Yes"/"No"、`on/off`→"On"/"Off"、`true/false`→"True"/"False" を返すよう修正。VbaBoolean 以外の数値型は `val.value` を `formatNumber` に渡す。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `VbaBoolean` は `typeof 'object'` のため `typeof val === 'number'` が false になり `String(val)` → "True"/"False" へフォールバックしていた。 |
+| ~~**Bug M: `vbFirstJan1`/`vbFirstFourDays`/`vbFirstFullWeek`/`vbDecimal`/`vbDataObject`/`vbUserDefinedType` が未登録（`Null` を返す）**~~ | **修正済み**: `registerConstants` に 6 定数を追加（`vbFirstJan1=1`/`vbFirstFourDays=2`/`vbFirstFullWeek=3`/`vbDecimal=14`/`vbDataObject=13`/`vbUserDefinedType=36`）。未登録定数を参照すると暗黙的に `Empty` が返り、`firstweekofyear` 引数として渡すと 0 扱いで誤動作する。 | VarType 定数ラインに `vbDataObject`/`vbDecimal`/`vbUserDefinedType` が含まれておらず、firstweekofyear 定数ライン自体が存在しなかった。 |
 
 ### 未修正バグ（評価 #26 で発見）
 
