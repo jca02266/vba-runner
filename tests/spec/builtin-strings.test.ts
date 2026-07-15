@@ -181,15 +181,13 @@ function ev(expr: string): any {
 
 // --- Bug N: Left/Right/Mid の Null 伝播 ---
 {
-    // IsNull() が True(-1) を返すことで Null 伝播を確認する
     const checkIsNull = (expr: string) => {
-        const env2 = evalVBA(`Function T(): If IsNull(${expr}) Then T = 1 Else T = 0: End Function`);
+        const env2 = evalVBA(`\nFunction T()\n    If IsNull(${expr}) Then\n        T = 1\n    Else\n        T = 0\n    End If\nEnd Function\n`);
         return env2.callProcedure('T', []);
     };
     assert.strictEqual(checkIsNull('Left(Null, 2)'), 1, 'Left(Null) → IsNull=True');
     assert.strictEqual(checkIsNull('Right(Null, 2)'), 1, 'Right(Null) → IsNull=True');
     assert.strictEqual(checkIsNull('Mid(Null, 1)'), 1, 'Mid(Null) → IsNull=True');
-    // 通常動作は変わらないことを確認
     assert.strictEqual(ev('Left("hello", 2)'), 'he', 'Left 通常動作');
     assert.strictEqual(ev('Right("hello", 2)'), 'lo', 'Right 通常動作');
     assert.strictEqual(ev('Mid("hello", 2, 3)'), 'ell', 'Mid 通常動作');
