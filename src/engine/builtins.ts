@@ -555,12 +555,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const trimFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').trim();
     ctx.reg('trim', trimFunc, [{ name: 'String' }], ['$']);
     const spaceFunc = (n: any) => {
+        if (n === vbaNull) return vbaNull;
         const count = Number(n);
         if (count < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return ' '.repeat(count);
     };
     ctx.reg('space', spaceFunc, [{ name: 'Number' }], ['$']);
     const stringFunc = (n: any, char: any) => {
+        if (n === vbaNull || char === vbaNull) return vbaNull;
         const count = Number(n);
         if (count < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         let c: string;
