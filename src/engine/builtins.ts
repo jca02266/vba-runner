@@ -1162,7 +1162,11 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('iif', (c: any, t: any, f: any) => ctx.isTrue(c) ? t : f, [
         { name: 'Expr' }, { name: 'TruePart' }, { name: 'FalsePart' },
     ]);
-    ctx.reg('choose', (i: any, ...c: any[]) => { const idx = Math.floor(Number(i)); return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull; }, [
+    ctx.reg('choose', (i: any, ...c: any[]) => {
+        if (i === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const idx = Math.floor(Number(i));
+        return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull;
+    }, [
         { name: 'Index' },
         { name: 'Choice', isParamArray: true },
     ]);
