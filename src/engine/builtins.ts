@@ -700,6 +700,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('format', formatFunc, [
         { name: 'Expression' },
         { name: 'Format', optional: true },
+        { name: 'FirstDayOfWeek', optional: true },
+        { name: 'FirstWeekOfYear', optional: true },
     ], ['$']);
 }
 
@@ -1065,6 +1067,21 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.envSetConst('true', vbaTrue); ctx.envSetConst('false', vbaFalse); ctx.envSetConst('empty', vbaEmpty); ctx.envSetConst('nothing', vbaNothing); ctx.envSetConst('null', vbaNull);
 
     ctx.reg('environ', (k: any) => ctx.getEnv(k), [{ name: 'EnvString' }], ['$']);
+    ctx.reg('rgb', (r: any, g: any, b: any) => {
+        const clamp = (n: number) => Math.min(255, Math.max(0, Math.round(n)));
+        return clamp(Number(r)) + clamp(Number(g)) * 256 + clamp(Number(b)) * 65536;
+    }, [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]);
+    const qbColorTable = [0, 8388608, 32768, 8421376, 128, 8388736, 32896, 12632256,
+                          8421504, 16711680, 65280, 16776960, 255, 16711935, 65535, 16777215];
+    ctx.reg('qbcolor', (c: any) => {
+        const idx = Math.round(Number(c));
+        if (idx < 0 || idx > 15) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return qbColorTable[idx];
+    }, [{ name: 'Color' }]);
+    ctx.reg('nz', (val: any, valueifnull: any = 0) => {
+        if (val === vbaNull || val === vbaEmpty || val === null || val === undefined) return valueifnull;
+        return val;
+    }, [{ name: 'Value' }, { name: 'ValueIfNull', optional: true }]);
 
     const ptrFn = () => ctx.ptrNext();
     ctx.reg('varptr', ptrFn, [{ name: 'VarName' }]);

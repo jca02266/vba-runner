@@ -140,6 +140,18 @@
 |---|---|---|
 | ~~**Bug 27-1: `CallByName` の `VbLet(4)` / `VbSet(8)` 未実装**~~ | **修正済み**: `builtins.ts` の `callbyname` に VbLet(4)/VbSet(8) ブランチを追加。`classDef.procedures` から `propertyType === 'let'`/`'set'` の手続きを検索して `ctx.callMethod` で呼び出す。fallback として逆タイプ（Let→Set/Set→Let）も試みる。レグレッションテスト: `tests/spec/callbyname.test.ts`（4テスト）。 | `builtins.ts:155-156` の `callbyname` が `VbGet(2)`/`VbMethod(1)` しかハンドルせず、それ以外は即 `throwError`。VBA クラスの Property Let を検索・呼び出すブランチが未実装。 |
 
+### ~~未修正バグ（仕様調査 #27-続 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug A: `Replace(s, find, repl, start, count, compare)` — start/count/compare 引数が Error 450**~~ | **修正済み**: `builtins.ts` の `replace` を完全再実装。`start` は結果が prefix を除いたスライス、`count=-1` で無制限、`compare=1`（vbTextCompare）で大文字小文字無視。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug A ブロック（8テスト）。 | 旧実装は `(s: any, f: any, r: any)` の3引数固定登録。`start`/`count`/`compare` のパラメーター登録がなく Error 450 になっていた。 |
+| ~~**Bug B: `Weekday(date, firstdayofweek)` — firstdayofweek 引数が Error 450**~~ | **修正済み**: `builtins.ts` の `weekday` 登録に `FirstDayOfWeek`（省略可）を追加。`fdow=0` は仕様通り `1`（vbSunday）扱い、`weekStart = fdow <= 1 ? 0 : fdow - 1` で JS 0-based 曜日にマッピング。レグレッションテスト: `tests/spec/datetime.test.ts` Bug B ブロック（5テスト）。 | 旧実装は `(d: any)` 単引数固定登録。 |
+| ~~**Bug C: `DateDiff(interval, d1, d2, firstdayofweek, firstweekofyear)` — 第4/5引数が Error 450**~~ | **修正済み**: `builtins.ts` の `datediff` 登録に `FirstDayOfWeek`/`FirstWeekOfYear`（省略可）を追加。`"ww"` インターバルは両日付を週境界に丸めてから差を計算（`weekStart` オフセット反映）。レグレッションテスト: `tests/spec/datetime.test.ts` Bug C ブロック（4テスト）。 | 旧実装は `(interval, date1, date2)` の3引数固定登録。 |
+| ~~**Bug D: `Format(expr, fmt, firstdayofweek, firstweekofyear)` — 第3/4引数が Error 450**~~ | **修正済み**: `builtins.ts` の `format` 登録パラメーター配列に `FirstDayOfWeek`/`FirstWeekOfYear`（省略可）を追加（実装本体は変更なし・引数は受けるが無視）。`Format(Now(), "dddd", 2)` が Error 450 なく動作するようになった。 | `format` の `ctx.reg` 呼び出しのパラメーター配列が2要素固定（`Expression`/`Format`）だった。 |
+| ~~**Bug E: `RGB(r, g, b)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `rgb` を登録。COLORREF 形式 `r + g*256 + b*65536`。各チャネルは 0-255 にクランプ。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | 定数テーブルは vbRed 等のエイリアスを持たず、`RGB` 関数自体が `builtins.ts` に未登録だった。 |
+| ~~**Bug F: `QBColor(n)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `qbcolor` を登録。16色テーブルで 0〜15 を COLORREF に変換。範囲外は Error 5。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | `builtins.ts` に `qbcolor` の登録が存在しなかった。 |
+| ~~**Bug G: `Nz(value, valueifnull)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `nz` を登録。`Null`/`Empty`/`null`/`undefined` なら `valueifnull`（省略時は `0`）を返す。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | Access VBA の組み込み関数で Excel VBA には存在しないため未登録だった。 |
+
 ### 未修正バグ（評価 #26 で発見）
 
 | 問題 | 最小再現コード | 根本原因 |

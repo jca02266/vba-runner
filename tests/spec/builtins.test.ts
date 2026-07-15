@@ -65,4 +65,20 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('IIf(False, "A", "B")'), 'B', 'IIf False');
 }
 
+// RGB / QBColor / Nz
+{
+    assert.strictEqual(evalExpr('RGB(255, 0, 0)'), 255, 'RGB red');
+    assert.strictEqual(evalExpr('RGB(0, 255, 0)'), 65280, 'RGB green');
+    assert.strictEqual(evalExpr('RGB(0, 0, 255)'), 16711680, 'RGB blue');
+    assert.strictEqual(evalExpr('RGB(0, 0, 0)'), 0, 'RGB black');
+    assert.strictEqual(evalExpr('RGB(255, 255, 255)'), 16777215, 'RGB white');
+    assert.strictEqual(evalExpr('QBColor(0)'), 0, 'QBColor(0) = black');
+    assert.strictEqual(evalExpr('QBColor(15)'), 16777215, 'QBColor(15) = white');
+    assert.strictEqual(evalExpr('QBColor(4)'), 128, 'QBColor(4) = dark red');
+    assert.strictEqual(evalExpr('Nz(Null, 99)'), 99, 'Nz(Null, 99) = 99');
+    assert.strictEqual(evalExpr('Nz(42, 99)'), 42, 'Nz(42, 99) = 42');
+    assert.strictEqual(evalExpr('Nz(Null)'), 0, 'Nz(Null) default = 0');
+    console.log('[PASS] RGB / QBColor / Nz');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
