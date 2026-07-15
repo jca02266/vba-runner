@@ -564,6 +564,8 @@ export class Parser {
     private pos: number = 0;
     private readonly parseAsClass: string | undefined;
     private readonly _diagnostics: ParseDiagnostic[] = [];
+    /** Queue of identifiers from `Next a, b, c` — outer loops consume from here instead of matching a new `Next` token. */
+    private pendingNextVars: Identifier[] = [];
 
     // ---------------------------------------------------------------
     // §3.3.5.2 contextual keyword Sets
@@ -2320,25 +2322,44 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
+        while (this.pendingNextVars.length === 0 && this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
-            this.skipNewlines();
-        }
-
-        if (!this.match(TokenType.KeywordNext)) {
-            this.throwError(`Parse error: Expected 'Next' at line ${this.peek().line} `);
+            // Only skip newlines when continuing the body; if an inner `Next a, b`
+            // populated pendingNextVars, leave the trailing newline for the EOS check.
+            if (this.pendingNextVars.length === 0) this.skipNewlines();
         }
 
         let nextIdentifier: Identifier | undefined;
-        if (this.isIdentifier(this.peek())) {
-            const nextIdToken = this.advance();
-            nextIdentifier = this.makeIdentifier(nextIdToken);
-            if (nextIdentifier.name.toLowerCase() !== identifier.name.toLowerCase()) {
+        if (this.pendingNextVars.length > 0) {
+            // Outer loops: consume from the queue populated by an inner `Next a, b, c`
+            const pending = this.pendingNextVars.shift()!;
+            if (pending.name.toLowerCase() !== identifier.name.toLowerCase()) {
                 this.throwError(
-                    `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${nextIdentifier.name}')`,
-                    nextIdToken
+                    `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${pending.name}')`,
                 );
+            }
+            nextIdentifier = pending;
+        } else {
+            if (!this.match(TokenType.KeywordNext)) {
+                this.throwError(`Parse error: Expected 'Next' at line ${this.peek().line} `);
+            }
+
+            if (this.isIdentifier(this.peek())) {
+                const nextIdToken = this.advance();
+                nextIdentifier = this.makeIdentifier(nextIdToken);
+                if (nextIdentifier.name.toLowerCase() !== identifier.name.toLowerCase()) {
+                    this.throwError(
+                        `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${nextIdentifier.name}')`,
+                        nextIdToken
+                    );
+                }
+                // Collect remaining variables for outer loops: `Next j, i, k`
+                while (this.match(TokenType.OperatorComma)) {
+                    if (this.isIdentifier(this.peek())) {
+                        this.pendingNextVars.push(this.makeIdentifier(this.advance()));
+                    }
+                }
             }
         }
 
@@ -2373,25 +2394,41 @@ export class Parser {
         this.skipNewlines();
 
         const body: Statement[] = [];
-        while (this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
+        while (this.pendingNextVars.length === 0 && this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
             const stmt = this.parseStatement();
             if (stmt) body.push(stmt);
-            this.skipNewlines();
-        }
-
-        if (!this.match(TokenType.KeywordNext)) {
-            this.throwError(`Parse error: Expected 'Next' at line ${this.peek().line}`);
+            if (this.pendingNextVars.length === 0) this.skipNewlines();
         }
 
         let nextIdentifier: Identifier | undefined;
-        if (this.isIdentifier(this.peek())) {
-            const nextIdToken = this.advance();
-            nextIdentifier = this.makeIdentifier(nextIdToken);
-            if (nextIdentifier.name.toLowerCase() !== variable.name.toLowerCase()) {
+        if (this.pendingNextVars.length > 0) {
+            const pending = this.pendingNextVars.shift()!;
+            if (pending.name.toLowerCase() !== variable.name.toLowerCase()) {
                 this.throwError(
-                    `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${nextIdentifier.name}')`,
-                    nextIdToken
+                    `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${pending.name}')`,
                 );
+            }
+            nextIdentifier = pending;
+        } else {
+            if (!this.match(TokenType.KeywordNext)) {
+                this.throwError(`Parse error: Expected 'Next' at line ${this.peek().line}`);
+            }
+
+            if (this.isIdentifier(this.peek())) {
+                const nextIdToken = this.advance();
+                nextIdentifier = this.makeIdentifier(nextIdToken);
+                if (nextIdentifier.name.toLowerCase() !== variable.name.toLowerCase()) {
+                    this.throwError(
+                        `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${nextIdentifier.name}')`,
+                        nextIdToken
+                    );
+                }
+                // Collect remaining variables for outer loops: `Next x, i, k`
+                while (this.match(TokenType.OperatorComma)) {
+                    if (this.isIdentifier(this.peek())) {
+                        this.pendingNextVars.push(this.makeIdentifier(this.advance()));
+                    }
+                }
             }
         }
 
