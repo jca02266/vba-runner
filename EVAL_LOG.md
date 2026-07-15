@@ -236,6 +236,8 @@
 | ~~**Bug AP/AQ/AR: `Left(str, Null)` / `Right(str, Null)` / `Mid(str, Null, n)` / `Mid(str, n, Null)` が TypeError でクラッシュ**~~ | **修正済み**: `leftFunc`/`rightFunc`/`midFunc` の Null チェックを `val === vbaNull \|\| len/start === vbaNull` に拡張。 | TBD |
 | ~~**Bug AS/AT: `DateValue(Null)` / `TimeValue(Null)` が TypeError でクラッシュ**~~ | **修正済み**: `datevalue`/`timevalue` の先頭に `if (val === vbaNull) return vbaNull;` を追加。 | TBD |
 | ~~**Bug AU/AV/AW: `LeftB(str, Null)` / `RightB(str, Null)` / `MidB` の Null 引数でクラッシュ**~~ | **修正済み**: `leftb`/`rightb`/`midbFunc` の Null チェックを `val \|\| len/start` に拡張。 | TBD |
+| ~~**Bug AX/AY: `DateSerial(Null,...)` / `TimeSerial(Null,...)` が TypeError でクラッシュ**~~ | **修正済み**: 各関数の先頭に Null チェックを追加。`Number(Symbol)` で JS TypeError が発生していた。 | TBD |
+| ~~**Bug AZ/BA/BB: `And`/`Or`/`Imp` が Null を含む場合に単純 Null 伝播を行い、三値論理の特例を無視**~~ | **修正済み**: `evaluateBinaryExpression` で Null チェック前に And/Or/Imp の特例を処理。`False And Null`=False、`True Or Null`=True、`False Imp Null`=True、`Null Imp True`=True。 | TBD |
 
 ---
 

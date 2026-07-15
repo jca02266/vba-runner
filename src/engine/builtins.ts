@@ -784,12 +784,14 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('hour',   (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getHours(), [{ name: 'Time' }]);
     ctx.reg('minute', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
     ctx.reg('second', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
-    ctx.reg('dateserial', (y: any, m: any, d: any) => new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d)))), [
-        { name: 'Year' }, { name: 'Month' }, { name: 'Day' },
-    ]);
-    ctx.reg('timeserial', (h: any, n: any, s: any) => new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s)))), [
-        { name: 'Hour' }, { name: 'Minute' }, { name: 'Second' },
-    ]);
+    ctx.reg('dateserial', (y: any, m: any, d: any) => {
+        if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
+        return new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d))));
+    }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
+    ctx.reg('timeserial', (h: any, n: any, s: any) => {
+        if (h === vbaNull || n === vbaNull || s === vbaNull) return vbaNull;
+        return new VbaDate(toVbaDate(new Date(1899, 11, 30, Number(h), Number(n), Number(s))));
+    }, [{ name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
         if (d === vbaNull) return vbaNull;
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun

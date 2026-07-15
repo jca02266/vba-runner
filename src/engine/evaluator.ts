@@ -6522,8 +6522,25 @@ export class Evaluator {
             if (leftVal === vbaNull || leftVal === vbaEmpty) leftVal = '';
             if (rightVal === vbaNull || rightVal === vbaEmpty) rightVal = '';
         } else if (arithmeticOps.has(op) || comparisonOps.has(op) || logicalOps.has(op)) {
-            // Null 伝播: どちらかが Null なら Null
-            if (leftVal === vbaNull || rightVal === vbaNull) return vbaNull;
+            // Null 伝播: どちらかが Null なら Null（ただし And/Or/Imp には吸収元例外あり）
+            if (leftVal === vbaNull || rightVal === vbaNull) {
+                // VBA 三値論理の特例:
+                //   False And Null = False  (False は And の吸収元)
+                //   True  Or  Null = True   (True は Or の吸収元)
+                //   False Imp Null = True   (左が False なら Imp は常に True)
+                //   Null  Imp True = True   (右が True なら Imp は常に True)
+                if (logicalOps.has(op)) {
+                    const toNum = (v: any): number => v instanceof VbaBoolean ? v.value : (typeof v === 'number' ? v : Number(v));
+                    const nonNull = leftVal === vbaNull ? rightVal : leftVal;
+                    if (op === 'and' && toNum(nonNull) === 0) return vbaFalse;
+                    if (op === 'or'  && toNum(nonNull) !== 0) return vbaTrue;
+                    if (op === 'imp') {
+                        if (leftVal !== vbaNull  && toNum(leftVal)  === 0) return vbaTrue;
+                        if (rightVal !== vbaNull && toNum(rightVal) !== 0) return vbaTrue;
+                    }
+                }
+                return vbaNull;
+            }
             // Empty を数値文脈では 0、文字列文脈では "" に正規化
             if (leftVal === vbaEmpty) {
                 leftVal = typeof rightVal === 'string' ? '' : 0;

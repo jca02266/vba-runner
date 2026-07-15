@@ -157,6 +157,23 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
 }
 
+// Bug AZ/BA/BB: VBA 三値論理 — And/Or/Imp が Null を含む場合の短絡評価
+{
+    // And: False が吸収元 → False And Null = False
+    assert.strictEqual(evalExpr('False And Null') === vbaFalse, true, 'False And Null = False');
+    assert.strictEqual(evalExpr('Null And False') === vbaFalse, true, 'Null And False = False');
+    assert.strictEqual(evalExpr('True And Null') === vbaNull, true,  'True And Null = Null');
+    // Or: True が吸収元 → True Or Null = True
+    assert.strictEqual(evalExpr('True Or Null') === vbaTrue, true,   'True Or Null = True');
+    assert.strictEqual(evalExpr('Null Or True') === vbaTrue, true,   'Null Or True = True');
+    assert.strictEqual(evalExpr('False Or Null') === vbaNull, true,  'False Or Null = Null');
+    // Imp: False→True, *→True、それ以外は Null
+    assert.strictEqual(evalExpr('False Imp Null') === vbaTrue, true, 'False Imp Null = True');
+    assert.strictEqual(evalExpr('Null Imp True') === vbaTrue, true,  'Null Imp True = True');
+    assert.strictEqual(evalExpr('True Imp Null') === vbaNull, true,  'True Imp Null = Null');
+    console.log('[PASS] Bug AZ/BA/BB: And/Or/Imp の三値論理 Null 伝播');
+}
+
 // Bug AO: Choose(Null, ...) が Type mismatch エラーを返す（VBA 仕様では Null を返す）
 {
     assert.strictEqual(evalExpr('Choose(Null, "a", "b")') === vbaNull, true, 'Choose(Null, ...) = Null');

@@ -215,6 +215,22 @@ End Function
     console.log('[PASS] Bug C: DateDiff firstdayofweek');
 }
 
+// Bug AX/AY: DateSerial(Null,...) / TimeSerial(Null,...) が TypeError でクラッシュしていた
+{
+    const Lexer5 = (await import('../../src/engine/lexer')).Lexer;
+    const Parser5 = (await import('../../src/engine/parser')).Parser;
+    const Evaluator5 = (await import('../../src/engine/evaluator')).Evaluator;
+    const ev5 = (expr: string): any => {
+        const toks = new Lexer5(expr).tokenize();
+        const ast = (new Parser5(toks) as any).parseExpression();
+        return (new Evaluator5(() => {}) as any).evaluateExpression(ast);
+    };
+    assert.strictEqual(ev5('DateSerial(Null, 1, 1)') === vbaNull, true, 'DateSerial(Null,1,1) = Null');
+    assert.strictEqual(ev5('DateSerial(2024, Null, 1)') === vbaNull, true, 'DateSerial(y,Null,1) = Null');
+    assert.strictEqual(ev5('TimeSerial(Null, 0, 0)') === vbaNull, true, 'TimeSerial(Null,0,0) = Null');
+    console.log('[PASS] Bug AX/AY: DateSerial/TimeSerial の Null 伝播');
+}
+
 // Bug AS/AT: DateValue(Null) / TimeValue(Null) が TypeError でクラッシュしていた
 {
     const Lexer4 = (await import('../../src/engine/lexer')).Lexer;
