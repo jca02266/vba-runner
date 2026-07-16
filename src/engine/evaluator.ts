@@ -4465,10 +4465,20 @@ export class Evaluator {
             // handle CRLF
         }
 
-        const values = line.trim().split(",").map(v => v.trim().replace(/^"|"$/g, ''));
+        const rawValues = line.trim().split(",");
+        const parseInputValue = (raw: string): any => {
+            const t = raw.trim();
+            if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);
+            const lower = t.toLowerCase();
+            if (lower === '#true#') return vbaTrue;
+            if (lower === '#false#') return vbaFalse;
+            if (lower === '#null#') return vbaNull;
+            const n = Number(t);
+            return isNaN(n) ? t : n;
+        };
         for (let i = 0; i < stmt.variables.length; i++) {
-            if (i < values.length) {
-                this.evaluateAssignmentToVariable(stmt.variables[i], values[i]);
+            if (i < rawValues.length) {
+                this.evaluateAssignmentToVariable(stmt.variables[i], parseInputValue(rawValues[i]));
             }
         }
     }

@@ -106,4 +106,27 @@ console.log('[PASS] Bug 26-3: Open For Random Len = N');
 }
 console.log('[PASS] Bug 26-7: GetAttr/SetAttr スタブ + ファイル属性定数');
 
+// --- Bug BL: Input # が #TRUE#/#FALSE# を Boolean として読み込めない ---
+{
+    const ev = evalVBASingle(`
+        Public ws, wi, wb1, wb2
+        Sub Test()
+            Open "C:\\\\test\\\\bl.txt" For Output As #1
+            Write #1, "hello", 42, True, False
+            Close #1
+            Open "C:\\\\test\\\\bl.txt" For Input As #1
+            Dim s As String, n As Long, b1 As Boolean, b2 As Boolean
+            Input #1, s, n, b1, b2
+            ws = s : wi = n : wb1 = b1 : wb2 = b2
+            Close #1
+        End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('ws'), 'hello', 'Input# string');
+    assert.strictEqual(ev.env.get('wi'), 42, 'Input# number');
+    assert.strictEqual((ev.env.get('wb1') as any).value, -1, 'Input# #TRUE# → Boolean True');
+    assert.strictEqual((ev.env.get('wb2') as any).value, 0, 'Input# #FALSE# → Boolean False');
+}
+console.log('[PASS] Bug BL: Input# #TRUE#/#FALSE# Boolean パース');
+
 console.log('✅ FileSystem: 全テスト通過');
