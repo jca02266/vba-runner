@@ -120,6 +120,7 @@ export interface Parameter extends ASTNode {
     isParamArray?: boolean;
     isArray?: boolean;
     paramType?: string;
+    fixedLength?: number;
     defaultValue?: Expression;
 }
 
@@ -891,12 +892,22 @@ export class Parser {
         }
 
         let paramType: string | undefined;
+        let paramFixedLength: number | undefined;
         if (this.match(TokenType.KeywordAs)) {
             paramType = this.advance().value; // capture type name (first token)
             // Handle qualified type names: MSForms.ReturnInteger, Module.TypeName, etc.
             if (this.peek().type === TokenType.OperatorDot) {
                 this.advance(); // consume '.'
                 paramType += '.' + this.advance().value;
+            }
+            // fixed-length-string-spec: `As String * N` (§5.2.3.1.4)
+            if (paramType.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
+                this.advance(); // consume '*'
+                if (this.peek().type === TokenType.Number) {
+                    paramFixedLength = parseInt(this.advance().value, 10);
+                } else {
+                    this.advance(); // consume constant name; fixedLength stays undefined
+                }
             }
         }
 
@@ -906,7 +917,7 @@ export class Parser {
         }
 
         return {
-            type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, defaultValue,
+            type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, fixedLength: paramFixedLength, defaultValue,
             loc: { start: { line: nameToken.line, column: nameToken.column }, end: { line: nameToken.line, column: nameToken.column + nameToken.value.length } },
         };
     }

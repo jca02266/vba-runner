@@ -187,4 +187,20 @@ End Function
     console.log('[PASS] Trim() でパディングを除去');
 }
 
+// --- Bug BW: パラメーターに `String * N` を使うと ParseError になっていた ---
+{
+    const ev = evalVBASingle(`
+Sub FillFixed(ByRef s As String * 5)
+    s = "Hi"
+End Sub
+Function TestBW() As String
+    Dim s As String * 5
+    FillFixed s
+    TestBW = "|" & s & "|"
+End Function
+`);
+    assert.strictEqual(ev.callProcedure('TestBW', []), '|Hi   |', 'Bug BW: String * N parameter declaration parses and executes correctly');
+    console.log('[PASS] Bug BW: パラメーター As String * N が正常にパース・実行される');
+}
+
 console.log('\n✅ 固定長文字列（String * N）: 全テスト通過');
