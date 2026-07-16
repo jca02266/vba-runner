@@ -283,4 +283,20 @@ function ev(expr: string): any {
     console.log('[PASS] Bug AM/AN: Split/Join の Null 伝播');
 }
 
+// --- Bug BE: Filter(arr, Null) が空配列を返す（VBA では Type mismatch Error 13）---
+{
+    let errNum = 0;
+    try { ev('Filter(Array("a","b"), Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 13, 'Filter(arr, Null) should throw Error 13');
+    console.log('[PASS] Bug BE: Filter(arr, Null) = Error 13');
+}
+
+// --- Bug BF: Nz(Null) が 0 を返す（VBA では "" を返す）---
+{
+    assert.strictEqual(ev('Nz(Null)'), '', 'Nz(Null) = ""');
+    assert.strictEqual(ev('Nz(Null, 42)'), 42, 'Nz(Null, 42) = 42');
+    assert.strictEqual(ev('Nz("hello")'), 'hello', 'Nz("hello") = "hello"');
+    console.log('[PASS] Bug BF: Nz(Null) = ""');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

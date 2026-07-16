@@ -77,7 +77,7 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('QBColor(4)'), 128, 'QBColor(4) = dark red');
     assert.strictEqual(evalExpr('Nz(Null, 99)'), 99, 'Nz(Null, 99) = 99');
     assert.strictEqual(evalExpr('Nz(42, 99)'), 42, 'Nz(42, 99) = 42');
-    assert.strictEqual(evalExpr('Nz(Null)'), 0, 'Nz(Null) default = 0');
+    assert.strictEqual(evalExpr('Nz(Null)'), '', 'Nz(Null) default = "" (VBA default is empty string, not 0)');
     console.log('[PASS] RGB / QBColor / Nz');
 }
 
@@ -222,6 +222,23 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('Hex(3.5)'), '4',  'Hex(3.5) = "4" (banker round)');
     assert.strictEqual(evalExpr('Oct(3.7)'), '4',  'Oct(3.7) = "4" (rounded)');
     console.log('[PASS] Bug AF: Hex/Oct の四捨五入');
+}
+
+// Bug BD: CByte/CInt/CLng/CSng/CDbl/CDec/CCur/CLngLng(Null) が Error 13 を返す（VBA では Error 94）
+{
+    const assertNull94 = (expr: string) => {
+        let errNum = 0;
+        try { evalExpr(expr); } catch (e: any) { errNum = e?.number ?? e?.errorCode ?? 0; }
+        assert.strictEqual(errNum, 94, `${expr} should throw Error 94`);
+    };
+    assertNull94('CByte(Null)');
+    assertNull94('CInt(Null)');
+    assertNull94('CLng(Null)');
+    assertNull94('CSng(Null)');
+    assertNull94('CDbl(Null)');
+    assertNull94('CDec(Null)');
+    assertNull94('CCur(Null)');
+    console.log('[PASS] Bug BD: CByte/CInt/CLng/CSng/CDbl/CDec/CCur(Null) = Error 94');
 }
 
 console.log('\n✅ Built-in Functions: 全テスト通過');

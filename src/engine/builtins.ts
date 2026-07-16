@@ -191,28 +191,35 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
 
 export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('cbyte', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (val instanceof VbaBoolean) return val.valueOf() ? 255 : 0;
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < 0 || n > 255) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('cint', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < -32768 || n > 32767) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('clng', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < -2147483648 || n > 2147483647) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('csng', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = ctx.toVbaNumber(val);
         const f32 = Math.fround(n);
         if (!isFinite(f32) && isFinite(n)) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return f32;
     }, [{ name: 'Expression' }]);
-    ctx.reg('cdbl', (val: any) => ctx.toVbaNumber(val), [{ name: 'Expression' }]);
+    ctx.reg('cdbl', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        return ctx.toVbaNumber(val);
+    }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
         if (val === null || val === vbaNull || val === vbaEmpty) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (val instanceof VbaDate) return val;
@@ -226,6 +233,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return (ctx.envGet('cdate') as Function)(val);
     }, [{ name: 'Expression' }]);
     ctx.reg('cdec', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (val instanceof VbaDecimal) return val;
         if (val instanceof VbaCurrency) return new VbaDecimal(val.internal, 4);
         if (val instanceof VbaBoolean) return new VbaDecimal(BigInt(val.value), 0);
@@ -234,6 +242,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return VbaDecimal.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     ctx.reg('ccur', (val: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (val instanceof VbaCurrency) return val;
         if (val instanceof VbaBoolean) return new VbaCurrency(BigInt(val.value) * 10000n);
         if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
@@ -247,7 +256,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return VbaCurrency.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     const clnglngFunc = (val: any) => {
-        if (val === vbaNull || val === null) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (val === null) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (typeof val === 'bigint') return val;
         if (typeof val === 'string') {
             const trimmed = val.trim();
@@ -680,6 +690,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
     ctx.reg('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
         if (!Array.isArray(source)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        if (match === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const find = String(match ?? '');
         const isInclude = ctx.isTrue(include);
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
@@ -1227,8 +1238,10 @@ export function registerConstants(ctx: StdlibCtx): void {
         if (idx < 0 || idx > 15) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return qbColorTable[idx];
     }, [{ name: 'Color' }]);
-    ctx.reg('nz', (val: any, valueifnull: any = 0) => {
-        if (val === vbaNull || val === vbaEmpty || val === null || val === undefined) return valueifnull;
+    ctx.reg('nz', (val: any, valueifnull: any = vbaMissing) => {
+        if (val === vbaNull || val === vbaEmpty || val === null || val === undefined) {
+            return valueifnull === vbaMissing ? '' : valueifnull;
+        }
         return val;
     }, [{ name: 'Value' }, { name: 'ValueIfNull', optional: true }]);
 

@@ -238,7 +238,10 @@
 | ~~**Bug AU/AV/AW: `LeftB(str, Null)` / `RightB(str, Null)` / `MidB` の Null 引数でクラッシュ**~~ | **修正済み**: `leftb`/`rightb`/`midbFunc` の Null チェックを `val \|\| len/start` に拡張。 | `51b32af`〜 |
 | ~~**Bug AX/AY: `DateSerial(Null,...)` / `TimeSerial(Null,...)` が TypeError でクラッシュ**~~ | **修正済み**: 各関数の先頭に Null チェックを追加。`Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
 | ~~**Bug AZ/BA/BB: `And`/`Or`/`Imp` が Null を含む場合に単純 Null 伝播を行い、三値論理の特例を無視**~~ | **修正済み**: `evaluateBinaryExpression` で Null チェック前に And/Or/Imp の特例を処理。`False And Null`=False、`True Or Null`=True、`False Imp Null`=True、`Null Imp True`=True。 | `51b32af`〜 |
-| ~~**Bug BC: `FormatCurrency` / `FormatNumber` / `FormatPercent` / `FormatDateTime` が未実装**~~ | **修正済み**: 4関数を `builtins.ts` に追加。`FormatCurrency(1234.5)` = "$1,234.50"、`FormatPercent(0.5)` = "50.00%"、`FormatDateTime(date, namedFmt)` で vbGeneralDate(0)/vbLongDate(1)/vbShortDate(2)/vbLongTime(3)/vbShortTime(4) に対応。 | TBD |
+| ~~**Bug BC: `FormatCurrency` / `FormatNumber` / `FormatPercent` / `FormatDateTime` が未実装**~~ | **修正済み**: 4関数を `builtins.ts` に追加。`FormatCurrency(1234.5)` = "$1,234.50"、`FormatPercent(0.5)` = "50.00%"、`FormatDateTime(date, namedFmt)` で vbGeneralDate(0)/vbLongDate(1)/vbShortDate(2)/vbLongTime(3)/vbShortTime(4) に対応。 | `077a26e`〜 |
+| ~~**Bug BD: `CByte`/`CInt`/`CLng`/`CSng`/`CDbl`/`CDec`/`CCur`/`CLngLng`(Null) が Error 13 を返す（VBA では Error 94）**~~ | **修正済み**: 各変換関数の先頭に `if (val === vbaNull) ctx.throwError(INVALID_USE_OF_NULL, ...)` を追加。`CLngLng` は `TYPE_MISMATCH` から `INVALID_USE_OF_NULL` に変更。 | TBD |
+| ~~**Bug BE: `Filter(arr, Null)` が空配列を返す（VBA では Error 13 Type mismatch）**~~ | **修正済み**: `filter` 関数に `if (match === vbaNull) ctx.throwError(TYPE_MISMATCH, ...)` を追加。`String(Symbol)` が `"Symbol(vbaNull)"` になる問題を回避。 | TBD |
+| ~~**Bug BF: `Nz(Null)` が `0` を返す（VBA では `""` を返す）**~~ | **修正済み**: `nz` のデフォルト引数を `vbaMissing` に変更し、未指定時は `''` を返すよう修正。`Nz(Null, 42)` は引き続き `42` を返す。 | TBD |
 
 ---
 
