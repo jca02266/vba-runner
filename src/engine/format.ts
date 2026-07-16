@@ -2,6 +2,7 @@
  * VBA Format() 関数の実装
  * MS-VBAL §6.1.2.11.1.8 / VBA Language Reference: Format Function
  */
+import { vbaRound } from './coerce';
 
 // ------------------------------------------------------------------ //
 // セクション分割（; 区切り、\x / "text" エスケープを考慮）
@@ -354,7 +355,7 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
     const minDecimals  = (decimalPart.match(/0/g) || []).length;
     const maxDecimals  = decimalPart.length;
 
-    const absFixed = n.toFixed(maxDecimals);
+    const absFixed = vbaRound(n, maxDecimals).toFixed(maxDecimals);
     const [intPart, decPart] = absFixed.split('.');
     const intPadded   = intPart.padStart(minIntegers, '0');
     const intDisplay  = hashOnlyInt && intPadded === '0' ? '' : intPadded;
