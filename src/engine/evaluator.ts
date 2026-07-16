@@ -4346,7 +4346,7 @@ export class Evaluator {
             if (char !== '\r') line += char;
         }
 
-        this.env.setLocally(stmt.variable.name, line);
+        this.evaluateAssignmentToVariable(stmt.variable, line);
     }
 
     private evaluatePutStatement(stmt: PutStatement) {
@@ -4432,7 +4432,8 @@ export class Evaluator {
             if (typeof val === 'string') return `"${val}"`;
             if (val instanceof VbaDate) return `#${val.toString()}#`;
             if (val instanceof VbaBoolean) return val.value !== 0 ? '#TRUE#' : '#FALSE#';
-            if (val === null) return "#NULL#";
+            if (val === vbaEmpty || val === undefined) return '""';
+            if (val === vbaNull) return '#NULL#';
             return String(val);
         }).join(",");
 
@@ -4977,10 +4978,9 @@ export class Evaluator {
                     const defaultValue = (arr as any).__vbaDefaultValue__ ?? 0;
                     this.reinitializeArray(arr, defaultValue);
                 } else {
-                    const newArr: any[] = [];
-                    (newArr as any).vbaBase = (arr as any).vbaBase ?? this.arrayBase;
-                    (newArr as any).vbaFixed = false;
-                    this.env.set(varName, newArr);
+                    // Dynamic array: Erase deallocates (uninitialized). Null signals this
+                    // so UBound/LBound/access throw Error 9 until ReDim is called again.
+                    this.env.set(varName, null);
                 }
             }
         }

@@ -82,4 +82,28 @@ End Function
     console.log('[PASS] Bug 28-1: ReDim Preserve UDT 配列');
 }
 
+// --- Bug BN: Erase 後の動的配列に UBound を呼ぶと Error 9 ---
+{
+    const ev = evalVBASingle(`
+        Public r1, r2, r3 As String
+        Sub Test()
+            Dim d() As Long
+            ReDim d(2)
+            d(0) = 10 : d(1) = 20 : d(2) = 30
+            Erase d
+            On Error Resume Next
+            r1 = UBound(d)
+            r3 = Err.Number & ": " & Err.Description
+            On Error GoTo 0
+            ReDim d(1)
+            d(0) = 99
+            r2 = d(0)
+        End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('r3'), '9: Subscript out of range', 'Erase後のUBoundはError 9');
+    assert.strictEqual(ev.env.get('r2'), 99, 'Erase後にReDimすれば再利用可能');
+}
+console.log('[PASS] Bug BN: Erase 後の動的配列は Error 9 (UBound/LBound)');
+
 console.log('\n✅ Array Functions: 全テスト通過');
