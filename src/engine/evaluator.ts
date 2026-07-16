@@ -1949,7 +1949,10 @@ export class Evaluator {
                 // （`Helper + 1` で `Helper` が必須引数を持つ場合など）。
                 // 括弧で明示的に囲った場合（`(x) + 1`）は曖昧性が解消されるため対象外。
                 const isStatementAmbiguous = expr.type === 'BinaryExpression' && (
-                    (expr as BinaryExpression).operator === '=' ||
+                    // `=` is ambiguous only when the left side can be an assignment target
+                    // (Identifier/MemberExpression/CallExpression). String/number literals
+                    // on the left can only be comparisons, so they are unambiguous.
+                    ((expr as BinaryExpression).operator === '=' && this.isCallableLeftmostLeaf((expr as BinaryExpression).left)) ||
                     (((expr as BinaryExpression).operator === '+' || (expr as BinaryExpression).operator === '-')
                         && this.isCallableLeftmostLeaf((expr as BinaryExpression).left))
                 );

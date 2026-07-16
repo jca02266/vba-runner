@@ -209,4 +209,24 @@ console.log('--- Starting Boolean Coercion Tests ---');
     console.log('[PASS] Bug BO: True/False/Null in evalExpression arithmetic');
 }
 
+// --- Bug BP: evalExpression("\"abc\" = \"ABC\"") が undefined を返していた ---
+// isStatementAmbiguous の = チェックが左辺の型に関係なくトリガーされ、
+// 文字列リテラル = 文字列リテラルの比較が statement fallback に飛んで結果が捨てられていた。
+// 修正: = が statement-ambiguous なのは左辺が代入可能 (Identifier 等) の場合のみ。
+{
+    const ev = evalVBASingle('');
+    const isFalse = (v: any) => v && typeof v === 'object' && v.value === 0;
+    const isTrue = (v: any) => v && typeof v === 'object' && v.value === -1;
+    assert.ok(isFalse(ev.evalExpression('"abc" = "ABC"')), '"abc" = "ABC" → false');
+    assert.ok(isTrue(ev.evalExpression('"abc" = "abc"')), '"abc" = "abc" → true');
+    assert.ok(isTrue(ev.evalExpression('1 = 1')), '1 = 1 → true');
+    assert.ok(isFalse(ev.evalExpression('1 = 2')), '1 = 2 → false');
+    assert.strictEqual(ev.evalExpression('Null = 1'), vbaNull, 'Null = 1 → Null (propagation)');
+    // Assignment still works (x is identifier → still ambiguous → statement path)
+    const ev2 = evalVBASingle('Public x');
+    ev2.evalExpression('x = 42');
+    assert.strictEqual(ev2.env.get('x'), 42, 'x = 42 still executes as assignment');
+    console.log('[PASS] Bug BP: literal comparison in evalExpression');
+}
+
 console.log('\n✅ Boolean 代入時の型強制: 全テスト通過');
