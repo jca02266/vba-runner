@@ -6452,6 +6452,18 @@ export class Evaluator {
         // User defined types or classes (if we store metadata)
         if (obj.__vbaTypeName__ && obj.__vbaTypeName__.toLowerCase() === typeName) return vbaTrue;
 
+        // Bug CF: `TypeOf obj Is InterfaceName` when obj's class Implements the interface.
+        // The object's __vbaTypeName__ is the concrete class (e.g. "Dog"), not the interface
+        // ("Animal"). Check the class body for ImplementsDirective nodes.
+        if (obj.__vbaClass__ && obj.__classDef__) {
+            const classDef = obj.__classDef__ as ClassDeclaration;
+            const implementsIt = classDef.body.some(
+                stmt => stmt.type === 'ImplementsDirective' &&
+                    (stmt as any).interfaceName.toLowerCase() === typeName
+            );
+            if (implementsIt) return vbaTrue;
+        }
+
         return vbaFalse;
     }
 
