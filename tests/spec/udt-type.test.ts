@@ -291,4 +291,50 @@ End Function
     console.log('[PASS] クラスの UDT 型フィールドは複数インスタンス間で参照を共有しない');
 }
 
+// --- Bug BT: Type メンバーに配列を持つ UDT の読み書きが Error 438 になっていた ---
+{
+    const code = `
+Type Item
+    Val As Long
+    Name As String
+End Type
+
+Type Container
+    Items(9) As Item
+    Count As Long
+End Type
+
+Function Test13() As String
+    Dim c As Container
+    c.Items(0).Val = 42
+    c.Items(0).Name = "First"
+    c.Items(3).Val = 99
+    c.Count = 2
+    Test13 = c.Items(0).Val & "," & c.Items(0).Name & "," & c.Items(3).Val & "," & c.Count
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test13', []);
+    assert.strictEqual(result, '42,First,99,2', 'UDT 配列メンバーの読み書きが正常動作する');
+    console.log('[PASS] Bug BT: UDT 内配列メンバー (Items(9) As Item) の読み書き');
+}
+
+// --- Bug BT: 境界を明示した Type 配列メンバー (1 To 5) ---
+{
+    const code = `
+Type Row
+    cells(1 To 5) As Long
+End Type
+
+Function Test14() As String
+    Dim r As Row
+    r.cells(1) = 10
+    r.cells(5) = 50
+    Test14 = r.cells(1) & "," & r.cells(5)
+End Function
+`;
+    const result = evalVBA(code).callProcedure('Test14', []);
+    assert.strictEqual(result, '10,50', 'Type 配列メンバーの明示的な 1 To 5 境界が正常動作する');
+    console.log('[PASS] Bug BT: Type 配列メンバー 1 To N 境界の読み書き');
+}
+
 console.log('\n✅ User Defined Type: 全テスト通過');

@@ -427,6 +427,8 @@ export interface TypeMember {
     name: string;
     memberType: string;
     fixedLength?: number;
+    isArray?: boolean;
+    arrayBounds?: { lower: number; upper: number }[];
 }
 
 export interface TypeDeclaration extends Statement {
@@ -2115,15 +2117,32 @@ export class Parser {
                 this.throwError(`Parse error: Expected member name in Type at line ${memberNameToken.line}`);
             }
 
-            // Skip optional array bounds: (0 To 31), (), etc.
+            // Parse optional array bounds: (0 To 31), (9), (), etc.
+            let memberIsArray = false;
+            let memberArrayBounds: { lower: number; upper: number }[] | undefined;
             if (this.peek().type === TokenType.OperatorLParen) {
+                memberIsArray = true;
                 this.advance(); // consume '('
-                let depth = 1;
-                while (depth > 0 && this.peek().type !== TokenType.EOF && this.peek().type !== TokenType.Newline) {
-                    const t = this.advance();
-                    if (t.type === TokenType.OperatorLParen) depth++;
-                    else if (t.type === TokenType.OperatorRParen) depth--;
+                if (this.peek().type !== TokenType.OperatorRParen) {
+                    memberArrayBounds = [];
+                    do {
+                        let lower = 0; // default; option base handled at runtime
+                        let upper = 0;
+                        const first = this.peek();
+                        if (first.type === TokenType.Number) {
+                            const firstVal = parseInt(this.advance().value, 10);
+                            if (this.peek().type === TokenType.KeywordTo) {
+                                this.advance(); // consume 'To'
+                                lower = firstVal;
+                                upper = parseInt(this.advance().value, 10);
+                            } else {
+                                upper = firstVal;
+                            }
+                        }
+                        memberArrayBounds.push({ lower, upper });
+                    } while (this.match(TokenType.OperatorComma));
                 }
+                this.match(TokenType.OperatorRParen); // consume ')'
             }
 
             if (!this.match(TokenType.KeywordAs)) {
@@ -2141,7 +2160,12 @@ export class Parser {
                     this.advance(); // consume constant name; fixedLength stays undefined
                 }
             }
-            members.push({ name: memberNameToken.value, memberType: memberTypeToken.value, fixedLength: memberFixedLength });
+            const memberEntry: TypeMember = { name: memberNameToken.value, memberType: memberTypeToken.value, fixedLength: memberFixedLength };
+            if (memberIsArray) {
+                memberEntry.isArray = true;
+                if (memberArrayBounds && memberArrayBounds.length > 0) memberEntry.arrayBounds = memberArrayBounds;
+            }
+            members.push(memberEntry);
 
             this.skipNewlines();
         }

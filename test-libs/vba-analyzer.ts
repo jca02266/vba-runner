@@ -964,6 +964,10 @@ export function findIoSideEffects(body: any[]): number {
     let count = 0;
     function visit(node: any): void {
         if (!node || typeof node !== 'object') return;
+        if (node.type === 'DebugPrintStatement') {
+            count++;
+            return;
+        }
         if (node.type === 'CallExpression') {
             const callee = node.callee;
             if (callee?.type === 'Identifier' && IO_NAMES.has(callee.name.toLowerCase())) {

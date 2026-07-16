@@ -1099,24 +1099,62 @@ export class Evaluator {
         for (const member of typeMembers) {
             const mt = member.memberType;
             const mtLower = mt.toLowerCase();
-            if (mtLower === 'string') {
-                instance[member.name.toLowerCase()] = member.fixedLength !== undefined
+            const memberKey = member.name.toLowerCase();
+
+            if (member.isArray) {
+                if (member.arrayBounds && member.arrayBounds.length > 0) {
+                    const dims = member.arrayBounds;
+                    const buildArr = (dimIdx: number): any[] => {
+                        const { lower, upper } = dims[dimIdx];
+                        const a = new Array(upper + 1);
+                        if (dimIdx < dims.length - 1) {
+                            for (let i = lower; i <= upper; i++) a[i] = buildArr(dimIdx + 1);
+                        } else if (this.env.getType(mt)) {
+                            for (let i = lower; i <= upper; i++) a[i] = this.instantiateType(mt);
+                        } else {
+                            const def = this.makeUdtMemberDefault(mt, mtLower, member.fixedLength);
+                            for (let i = lower; i <= upper; i++) a[i] = def;
+                        }
+                        return a;
+                    };
+                    const arr = buildArr(0);
+                    (arr as any).__vbaDimensions__ = dims.map(b => ({ lower: b.lower, upper: b.upper }));
+                    (arr as any).vbaFixed = true;
+                    (arr as any).vbaBase = dims[0].lower;
+                    if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    instance[memberKey] = arr;
+                } else {
+                    const arr: any[] = [];
+                    (arr as any).vbaBase = this.arrayBase;
+                    (arr as any).vbaFixed = false;
+                    if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    instance[memberKey] = arr;
+                }
+            } else if (mtLower === 'string') {
+                instance[memberKey] = member.fixedLength !== undefined
                     ? '\0'.repeat(member.fixedLength)
                     : '';
                 if (member.fixedLength !== undefined) {
                     // Tag instance so UDT member assignment can apply fixed-length coercion
                     if (!instance.__fixedLengths__) instance.__fixedLengths__ = {};
-                    instance.__fixedLengths__[member.name.toLowerCase()] = member.fixedLength;
+                    instance.__fixedLengths__[memberKey] = member.fixedLength;
                 }
             } else if (mtLower === 'boolean') {
-                instance[member.name.toLowerCase()] = 0; // vbaFalse
+                instance[memberKey] = 0; // vbaFalse
             } else if (this.env.getType(mt)) {
-                instance[member.name.toLowerCase()] = this.instantiateType(mt);
+                instance[memberKey] = this.instantiateType(mt);
             } else {
-                instance[member.name.toLowerCase()] = 0;
+                instance[memberKey] = 0;
             }
         }
         return instance;
+    }
+
+    private makeUdtMemberDefault(mt: string, mtLower: string, fixedLength?: number): any {
+        if (mtLower === 'string') return fixedLength !== undefined ? '\0'.repeat(fixedLength) : '';
+        if (mtLower === 'boolean') return 0;
+        if (this.env.getType(mt)) return this.instantiateType(mt);
+        return 0;
     }
 
     public get(name: string): any {
@@ -1887,6 +1925,26 @@ export class Evaluator {
         }
     }
 
+    /**
+     * Returns true if `expr` can appear as the left-hand side of a VBA assignment (`=`).
+     * Valid LValues: Identifier (not constant keyword), MemberExpression, CallExpression (subscript/property).
+     * Literals, parenthesized expressions, and constant keywords are never assignable.
+     */
+    private isAssignableTarget(expr: Expression): boolean {
+        switch (expr.type) {
+            case 'Identifier': {
+                const lower = (expr as Identifier).name.toLowerCase();
+                return !['true', 'false', 'null', 'empty', 'nothing'].includes(lower);
+            }
+            case 'MemberExpression':
+            case 'CallExpression':
+            case 'DictionaryAccessExpression':
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /** @deprecated Use {@link evaluateModule} instead. */
     public evaluate(program: Program) {
         this.evaluateModule(program);
@@ -1950,10 +2008,10 @@ export class Evaluator {
                 // （`Helper + 1` で `Helper` が必須引数を持つ場合など）。
                 // 括弧で明示的に囲った場合（`(x) + 1`）は曖昧性が解消されるため対象外。
                 const isStatementAmbiguous = expr.type === 'BinaryExpression' && (
-                    // `=` is ambiguous only when the left side can be an assignment target
-                    // (Identifier/MemberExpression/CallExpression). String/number literals
-                    // on the left can only be comparisons, so they are unambiguous.
-                    ((expr as BinaryExpression).operator === '=' && this.isCallableLeftmostLeaf((expr as BinaryExpression).left)) ||
+                    // `=` is ambiguous when left side is a valid assignment target:
+                    // identifier (not constant), member access, or subscript/call expression.
+                    // String/number literals on the left are always comparisons.
+                    ((expr as BinaryExpression).operator === '=' && this.isAssignableTarget((expr as BinaryExpression).left)) ||
                     (((expr as BinaryExpression).operator === '+' || (expr as BinaryExpression).operator === '-')
                         && this.isCallableLeftmostLeaf((expr as BinaryExpression).left))
                 );
@@ -2933,6 +2991,27 @@ export class Evaluator {
                     // メソッドは case-insensitive で解決する（VBA は大文字小文字不問）
                     const methodKey = this.resolveObjectMemberKey(obj, methodName);
                     const method = methodKey !== undefined ? (obj as any)[methodKey] : undefined;
+                    // UDT array member subscript assignment: udt.Items(i) = val
+                    if (Array.isArray(method) && call.args.length > 0) {
+                        const dims = (method as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        let current: any = method;
+                        for (let i = 0; i < call.args.length - 1; i++) {
+                            const d = Number(this.evaluateExpression(call.args[i]));
+                            if (dims) {
+                                const { lower, upper } = dims[i];
+                                if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current = current[d];
+                            if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        const lastIdx = Number(this.evaluateExpression(call.args[call.args.length - 1]));
+                        if (dims) {
+                            const { lower, upper } = dims[call.args.length - 1];
+                            if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        current[lastIdx] = val;
+                        return;
+                    }
                     if (typeof method === 'function') {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
                         const result = method.call(obj, ...argsVals);
@@ -6133,6 +6212,31 @@ export class Evaluator {
                     }
                 }
                 this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
+            }
+
+            // UDT array member subscript access: obj.Items(0) where obj is a UDT instance
+            if (obj && obj.__vbaTypeName__) {
+                const memberKey = this.resolveObjectMemberKey(obj, methodNameLower);
+                const fieldArr = memberKey !== undefined ? obj[memberKey] : undefined;
+                if (Array.isArray(fieldArr) && expr.args.length > 0) {
+                    const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                    let current: any = fieldArr;
+                    for (let i = 0; i < expr.args.length - 1; i++) {
+                        const d = Number(this.evaluateExpression(expr.args[i]));
+                        if (dims) {
+                            const { lower, upper } = dims[i];
+                            if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        current = current[d];
+                        if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    }
+                    const lastIdx = Number(this.evaluateExpression(expr.args[expr.args.length - 1]));
+                    if (dims) {
+                        const { lower, upper } = dims[expr.args.length - 1];
+                        if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    }
+                    return current[lastIdx];
+                }
             }
 
             if (obj) {
