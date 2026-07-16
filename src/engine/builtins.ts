@@ -797,7 +797,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const group = groupDigits === vbaMissing || Number(groupDigits) < 0 ? true : Number(groupDigits) !== 0;
         const neg = n < 0;
         const abs = Math.abs(n);
-        let formatted = abs.toFixed(dec);
+        let formatted = vbaRound(abs, dec).toFixed(dec);
         if (group) {
             const [intPart, fracPart] = formatted.split('.');
             const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');

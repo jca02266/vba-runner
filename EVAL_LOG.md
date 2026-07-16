@@ -242,7 +242,7 @@
 | ~~**Bug BD: `CByte`/`CInt`/`CLng`/`CSng`/`CDbl`/`CDec`/`CCur`/`CLngLng`(Null) が Error 13 を返す（VBA では Error 94）**~~ | **修正済み**: 各変換関数の先頭に `if (val === vbaNull) ctx.throwError(INVALID_USE_OF_NULL, ...)` を追加。`CLngLng` は `TYPE_MISMATCH` から `INVALID_USE_OF_NULL` に変更。 | TBD |
 | ~~**Bug BE: `Filter(arr, Null)` が空配列を返す（VBA では Error 13 Type mismatch）**~~ | **修正済み**: `filter` 関数に `if (match === vbaNull) ctx.throwError(TYPE_MISMATCH, ...)` を追加。`String(Symbol)` が `"Symbol(vbaNull)"` になる問題を回避。 | TBD |
 | ~~**Bug BF: `Nz(Null)` が `0` を返す（VBA では `""` を返す）**~~ | **修正済み**: `nz` のデフォルト引数を `vbaMissing` に変更し、未指定時は `''` を返すよう修正。`Nz(Null, 42)` は引き続き `42` を返す。 | TBD |
-| ~~**Bug BG: `Format(2.5, "0")` が `"3"` を返す（VBA では `"2"` — 銀行家丸め）**~~ | **修正済み**: `format.ts` の `formatSection` で `n.toFixed(maxDecimals)` を `vbaRound(n, maxDecimals).toFixed(maxDecimals)` に変更。`Format(2.5, "0")`="2"、`Format(3.5, "0")`="4"、`Format(1234.5, "0")`="1234"。 | TBD |
+| ~~**Bug BG: `Format(2.5, "0")` が `"3"` を返す（VBA では `"2"` — 銀行家丸め）**~~ | **修正済み**: `format.ts` の `formatSection` で `n.toFixed(maxDecimals)` を `vbaRound(n, maxDecimals).toFixed(maxDecimals)` に変更。`builtins.ts` の `fmtNumeric` (FormatCurrency/FormatNumber/FormatPercent) も同様に修正。`Format(2.5, "0")`="2"、`Format(3.5, "0")`="4"、`Format(1234.5, "0")`="1234"。 | `1a93ea9`〜 |
 
 ---
 

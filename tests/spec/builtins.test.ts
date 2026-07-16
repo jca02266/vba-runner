@@ -161,7 +161,7 @@ function evalExpr(expr: string): any {
 {
     assert.strictEqual(evalExpr('FormatCurrency(1234.5)'), '$1,234.50', 'FormatCurrency(1234.5)');
     assert.strictEqual(evalExpr('FormatCurrency(-1234.5)'), '-$1,234.50', 'FormatCurrency(-1234.5)');
-    assert.strictEqual(evalExpr('FormatCurrency(1234.5, 0)'), '$1,235', 'FormatCurrency(n, 0 digits)');
+    assert.strictEqual(evalExpr('FormatCurrency(1234.5, 0)'), '$1,234', 'FormatCurrency(n, 0 digits) — 銀行家丸め: 1234.5→1234');
     assert.strictEqual(evalExpr('FormatNumber(1234.5)'), '1,234.50', 'FormatNumber(1234.5)');
     assert.strictEqual(evalExpr('FormatNumber(0.123, 4)'), '0.1230', 'FormatNumber(n, 4 digits)');
     assert.strictEqual(evalExpr('FormatPercent(0.5)'), '50.00%', 'FormatPercent(0.5)');
