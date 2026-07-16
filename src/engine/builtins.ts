@@ -221,7 +221,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return ctx.toVbaNumber(val);
     }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
-        if (val === null || val === vbaNull || val === vbaEmpty) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (val === null || val === vbaEmpty) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (val instanceof VbaDate) return val;
         if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
             return new VbaDate(toVbaDate(parseVbaDate(val)));
@@ -286,6 +287,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('clnglng', clnglngFunc, [{ name: 'Expression' }]);
     ctx.envSet('clngptr', ctx.envGet('clnglng')); // clnglng と同じ関数オブジェクトのため __vbaParamSpec__ も引き継ぐ
     ctx.reg('cstr', (val: any) => {
+        if (val === vbaNull) return '';
         try { return vbaToString(val); } catch (e: any) {
             if (e?.type === 'VbaError') ctx.throwError(e.number, e.message);
             throw e;
@@ -314,6 +316,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('oct', octFn, [{ name: 'Number' }], ['$']);
     ctx.reg('val', (s: any) => {
+        if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (typeof s !== 'string') return 0;
         const cleaned = s.trim().replace(/ /g, '');
         if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
@@ -526,7 +529,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : String(val ?? '').toLowerCase();
     ctx.reg('lcase', lcaseFunc, [{ name: 'String' }], ['$']);
     const strFunc = (val: any) => {
-        if (val === vbaNull) return vbaNull;
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = ctx.toVbaNumber(val);
         return n >= 0 ? " " + n : String(n);
     };

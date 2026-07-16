@@ -241,4 +241,18 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug BD: CByte/CInt/CLng/CSng/CDbl/CDec/CCur(Null) = Error 94');
 }
 
+// Bug BK: CDate(Null) が Error 13、CStr(Null) が Error 94、Str/Val(Null) が Error なし
+{
+    const assertNull94 = (expr: string) => {
+        let errNum = 0;
+        try { evalExpr(expr); } catch (e: any) { errNum = e?.number ?? e?.errorCode ?? 0; }
+        assert.strictEqual(errNum, 94, `${expr} should throw Error 94`);
+    };
+    assertNull94('CDate(Null)');
+    assertNull94('Str(Null)');
+    assertNull94('Val(Null)');
+    assert.strictEqual(evalExpr('CStr(Null)'), '', 'CStr(Null) = "" (空文字列)');
+    console.log('[PASS] Bug BK: CDate/Str/Val(Null)=Error 94, CStr(Null)=""');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
