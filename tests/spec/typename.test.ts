@@ -202,4 +202,37 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] BinaryExpression の VBA 型昇格規則');
 }
 
+// Bug CG: TypeName/VarType on Variant array elements lost the numeric subtype (always returned Double).
+// Assignment to arr(i) = 42 now tracks the subtype in arr.__vbaSubtypes__[key].
+{
+    const code = `
+Function TestCG_DirectLiterals() As String
+    Dim arr(4) As Variant
+    arr(0) = 42
+    arr(1) = 100000
+    arr(2) = 3.14
+    arr(3) = True
+    arr(4) = "hello"
+    TestCG_DirectLiterals = TypeName(arr(0)) & "," & TypeName(arr(1)) & "," & TypeName(arr(2)) & "," & TypeName(arr(3)) & "," & TypeName(arr(4))
+End Function
+Function TestCG_VarType() As String
+    Dim arr(1) As Variant
+    arr(0) = 42
+    arr(1) = 40000
+    TestCG_VarType = VarType(arr(0)) & "," & VarType(arr(1))
+End Function
+`;
+    assert.strictEqual(
+        evalVBASingle(code).callProcedure('TestCG_DirectLiterals', []),
+        'Integer,Long,Double,Boolean,String',
+        'Bug CG: TypeName on Variant array elements preserves numeric subtype'
+    );
+    assert.strictEqual(
+        evalVBASingle(code).callProcedure('TestCG_VarType', []),
+        '2,3',
+        'Bug CG: VarType on Variant array elements: Integer=2, Long=3'
+    );
+    console.log('[PASS] Bug CG: Variant 配列要素の TypeName/VarType が正しいサブタイプを返す');
+}
+
 console.log('\n✅ TypeName: 全テスト通過');

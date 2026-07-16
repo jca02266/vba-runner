@@ -2744,15 +2744,38 @@ export class Evaluator {
         this.evaluateAssignmentToVariable(stmt.left, val);
 
         // Track numeric subtype for Variant variables so TypeName/VarType reflect the assigned type
-        if (stmt.left.type === 'Identifier' && typeof val === 'number') {
-            const name = (stmt.left as Identifier).name;
-            const typeInfo = this.env.getVariableType(name);
-            if (!typeInfo || typeInfo.vbaType === 'Variant') {
-                const subtype = this.resolveNumericSubtype(stmt.right);
-                if (subtype) {
-                    this.env.setVariantSubtype(name, subtype);
-                } else {
-                    this.env.clearVariantSubtype(name);
+        if (typeof val === 'number') {
+            if (stmt.left.type === 'Identifier') {
+                const name = (stmt.left as Identifier).name;
+                const typeInfo = this.env.getVariableType(name);
+                if (!typeInfo || typeInfo.vbaType === 'Variant') {
+                    const subtype = this.resolveNumericSubtype(stmt.right);
+                    if (subtype) {
+                        this.env.setVariantSubtype(name, subtype);
+                    } else {
+                        this.env.clearVariantSubtype(name);
+                    }
+                }
+            } else if (stmt.left.type === 'CallExpression') {
+                // Bug CG: Track numeric subtype for Variant array element assignments (arr(i) = 42)
+                // so that TypeName/VarType on the element returns the correct subtype (not 'Double').
+                // Index args are re-evaluated here; this is safe since index expressions in VBA
+                // are almost universally side-effect-free (literals, simple variables).
+                const call = stmt.left as CallExpression;
+                if (call.callee.type === 'Identifier') {
+                    const arrName = (call.callee as Identifier).name;
+                    const arr = this.env.get(arrName);
+                    if (Array.isArray(arr)) {
+                        const elemType = (arr as any).__vbaElementType__;
+                        if (!elemType || elemType === 'variant') {
+                            const idxs = call.args.map(a => this.evaluateExpression(a) as number);
+                            const key = idxs.join(',');
+                            const subtype = this.resolveNumericSubtype(stmt.right);
+                            if (!(arr as any).__vbaSubtypes__) (arr as any).__vbaSubtypes__ = Object.create(null);
+                            if (subtype) (arr as any).__vbaSubtypes__[key] = subtype;
+                            else delete (arr as any).__vbaSubtypes__[key];
+                        }
+                    }
                 }
             }
         }
@@ -5883,6 +5906,18 @@ export class Evaluator {
         // Propagate subtype from another Variant variable
         if (expr.type === 'Identifier') {
             return this.env.getVariantSubtype((expr as Identifier).name);
+        }
+        // Bug CG: Look up subtype from Variant array element (arr(i))
+        if (expr.type === 'CallExpression') {
+            const ce = expr as CallExpression;
+            if (ce.callee.type === 'Identifier') {
+                const arrName = (ce.callee as Identifier).name;
+                const arr = this.env.get(arrName);
+                if (Array.isArray(arr) && (arr as any).__vbaSubtypes__) {
+                    const idxs = ce.args.map(a => this.evaluateExpression(a) as number);
+                    return (arr as any).__vbaSubtypes__[idxs.join(',')];
+                }
+            }
         }
         return undefined;
     }
