@@ -1862,7 +1862,12 @@ export class Evaluator {
         let node: Expression = expr;
         while (true) {
             switch (node.type) {
-                case 'Identifier':
+                case 'Identifier': {
+                    // VBA keyword constants are not callable procedures
+                    const lower = (node as Identifier).name.toLowerCase();
+                    if (lower === 'true' || lower === 'false' || lower === 'null' || lower === 'empty' || lower === 'nothing') return false;
+                    return true;
+                }
                 case 'MemberExpression':
                     return true;
                 case 'CallExpression':

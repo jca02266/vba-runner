@@ -14,7 +14,7 @@
  * これは `assert.isTrue` などのリファレンス比較を前提に、シングルトン
  * `vbaTrue` / `vbaFalse` を返す必要がある。
  */
-import { vbaTrue, vbaFalse } from '../../src/engine/evaluator';
+import { vbaTrue, vbaFalse, vbaNull } from '../../src/engine/evaluator';
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
@@ -194,6 +194,19 @@ console.log('--- Starting Boolean Coercion Tests ---');
     assert.strictEqual(t, vbaTrue, 'vbaTrue 入出力でシングルトン同一');
     assert.strictEqual(f, vbaFalse, 'vbaFalse 入出力でシングルトン同一');
     console.log('[PASS] Boolean シングルトン保持');
+}
+
+// --- Bug BO: evalExpression("True + True") が Error 424 になっていた ---
+// isCallableLeftmostLeaf が True/False 等の定数 Identifier も callable とみなし、
+// statement fallback に飛ばしていたため Object required エラーになっていた。
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('True + True'), -2, 'True + True = -2');
+    assert.strictEqual(ev.evalExpression('True + False'), -1, 'True + False = -1');
+    assert.strictEqual(ev.evalExpression('False + 1'), 1, 'False + 1 = 1');
+    assert.strictEqual(ev.evalExpression('True + 1'), 0, 'True + 1 = 0');
+    assert.strictEqual(ev.evalExpression('Null + 1'), vbaNull, 'Null + 1 = Null (propagation)');
+    console.log('[PASS] Bug BO: True/False/Null in evalExpression arithmetic');
 }
 
 console.log('\n✅ Boolean 代入時の型強制: 全テスト通過');
