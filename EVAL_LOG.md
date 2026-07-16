@@ -246,6 +246,11 @@
 | ~~**Bug BH: `7.5 \\ 2` が `3` を返す（VBA では `4` — 被演算子を事前に整数化してから除算）**~~ | **修正済み**: `evaluator.ts` の `\\` と `Mod` 演算子に `_vbaRound(x, 0)` で各引数を整数化してから演算するよう修正。`7.5 \\ 2`=4、`7.5 Mod 2`=0。 | `f047068`〜 |
 | ~~**Bug BI: `2 ^ -1` がパースエラーになる（VBA では 0.5）**~~ | **修正済み**: `parser.ts` の `parseExponentiation` で右辺の `parsePrimary()` を `parseUnary()` に変更し、単項 `-` が `^` の右辺に出現できるようにした。 | `f047068`〜 |
 | ~~**Bug BJ: Currency混在の `\\`/`Mod` が事前丸めと 0 除算チェックを欠いていた**~~ | **修正済み**: `evaluateCurrencyOp` の整数パス（`bankersDivide` ベース）と浮動小数点フォールバックパスの両方で `_vbaRound(x / 10000, 0)` による事前丸めと `ri === 0` 判定を追加。`CCur(6.5) Mod 3`=0（旧: 5000）、`CCur(5.5) \\ CCur(3.5)`=1（旧: 2）が正しく返る。 | `04838c3`〜 |
+| ~~**Bug BK: `CDate(Null)`/`Str(Null)`/`Val(Null)` が Error 94 の代わりに異常動作**~~ | **修正済み**: `builtins.ts` の各変換関数で `vbaNull` チェックを追加して `INVALID_USE_OF_NULL` を投げるよう修正。`CStr(Null)` は例外ではなく `""` を返すよう修正。 | `95e1840`〜 |
+| ~~**Bug BL: `Input#` が `#TRUE#`/`#FALSE#`/`#NULL#` トークンを解析できなかった**~~ | **修正済み**: `evaluateInputStatement` に `parseInputValue` ヘルパーを追加し、`#TRUE#`→`vbaTrue`、`#FALSE#`→`vbaFalse`、`#NULL#`→`vbaNull`に変換。 | `a4b229c`〜 |
+| ~~**Bug BM-1: `Write#` で `Empty` が `#NULL#` と書き出されていた**~~ | **修正済み**: `vbaEmpty===null`（JavaScript null）のため、`val===null` チェックが `vbaNull`（Symbol）より先に `vbaEmpty` も捕捉していた。チェック順を入れ替え `vbaEmpty` を先にチェックし `""`、`vbaNull` を後にチェックし `#NULL#` を返すよう修正。 | `2748e2a` |
+| ~~**Bug BM-2: `Line Input#` がモジュールレベル変数に書き込めなかった**~~ | **修正済み**: `evaluateLineInputStatement` が `env.setLocally()` を使っていたため、プロシージャ終了後に変数が破棄されていた。`evaluateAssignmentToVariable()` に変更しスコープチェーンを正しく辿るよう修正。 | `2748e2a` |
+| ~~**Bug BN: `Erase` 後の動的配列への `UBound`/`LBound` が Error 9 を投げなかった**~~ | **修正済み**: `evaluateEraseStatement` の動的配列パスで `d=[]` と空配列を代入していたが、`UBound([])=-1` で誤動作。`d=null` に変更し既存の `!Array.isArray` チェックで Error 9 が投げられるよう修正。`ReDim` は引き続き正常動作。 | `2748e2a` |
 
 ---
 
