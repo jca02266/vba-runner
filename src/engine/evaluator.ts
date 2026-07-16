@@ -3182,6 +3182,13 @@ export class Evaluator {
                 const mapped = typeMap[effectiveType.toLowerCase()];
                 if (mapped) {
                     this.env.setVariableType(varName, { vbaType: mapped, fixedLength: decl.fixedLength });
+                } else {
+                    // Bug CB: Enum-typed variable (e.g. `Dim c As Color`) — map to 'Long'
+                    // so TypeName/VarType reflects the underlying numeric type instead of "Double"
+                    const enumObj = this.env.getConst(effectiveType);
+                    if (enumObj && typeof enumObj === 'object' && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__) {
+                        this.env.setVariableType(varName, { vbaType: 'Long' });
+                    }
                 }
             }
 

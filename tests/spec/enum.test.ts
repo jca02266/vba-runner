@@ -44,4 +44,29 @@ const ev = evalVBA(enumCode);
     console.log('[PASS] Enum 名経由のアクセス');
 }
 
+// Bug CB: `Dim c As Color` — TypeName(c) が "Double" を返していた（Enum型変数のタイプ追跡が未対応）
+{
+    const code = `
+Enum Priority
+    Low = 1
+    Medium = 5
+    High = 10
+End Enum
+Function TestCB_TypeName() As String
+    Dim p As Priority
+    p = Medium
+    TestCB_TypeName = TypeName(p) & "," & VarType(p)
+End Function
+Function TestCB_VarType() As Long
+    Dim p As Priority
+    p = High
+    TestCB_VarType = VarType(p)
+End Function
+`;
+    const ev2 = evalVBASingle(code);
+    assert.strictEqual(ev2.callProcedure('TestCB_TypeName', []), 'Long,3', 'Bug CB: Dim p As Priority → TypeName(p)="Long", VarType(p)=3');
+    assert.strictEqual(ev2.callProcedure('TestCB_VarType', []), 3, 'Bug CB: VarType(p)=3 (vbLong) for Enum-typed variable');
+    console.log('[PASS] Bug CB: Enum 型変数の TypeName/VarType が "Long"/3 を返す');
+}
+
 console.log('\n✅ Enum 宣言: 全テスト通過');
