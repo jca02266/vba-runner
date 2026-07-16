@@ -6275,7 +6275,13 @@ export class Evaluator {
             // VBA class instance method call
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
-                const proc = classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
+                // Bug CE: In a read/call context, Property Get must take priority over Property Set/Let
+                // when both share the same name. `classDef.procedures.find()` returns whichever was
+                // declared first, so if Property Set precedes Property Get, the setter is incorrectly
+                // invoked on a call like `w.Inner("key")`.
+                const proc = classDef.procedures.find(
+                    p => p.name.name.toLowerCase() === methodNameLower && p.isProperty && p.propertyType === 'get'
+                ) ?? classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
                 if (proc) {
                     // Bug BZ: Property Get with 0 params but called with args → get the object first,
                     // then subscript/index the returned value with the given args.

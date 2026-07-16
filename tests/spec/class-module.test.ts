@@ -521,4 +521,37 @@ End Function
     console.log('[PASS] Bug CD: VBA キーワード "Next" をクラスフィールド名として使用可能');
 }
 
+// Bug CE: When Property Set is declared before Property Get with the same name,
+// a call/read expression like `w.Inner("key")` incorrectly invoked the setter
+{
+    const code = `
+Class Wrapper
+    Private m_obj As Object
+    Property Set Inner(obj As Object)
+        Set m_obj = obj
+    End Property
+    Property Get Inner() As Object
+        Set Inner = m_obj
+    End Property
+    Property Get HasInner() As Boolean
+        HasInner = Not (m_obj Is Nothing)
+    End Property
+End Class
+Function TestCE_GetOverSet() As String
+    Dim w As New Wrapper
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "key", 42
+    Set w.Inner = d
+    Dim result As String
+    If w.HasInner Then result = "has:" & w.Inner("key") Else result = "empty"
+    Set w.Inner = Nothing
+    If w.HasInner Then result = result & ",still-has" Else result = result & ",cleared"
+    TestCE_GetOverSet = result
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestCE_GetOverSet'), 'has:42,cleared', 'Bug CE: Property Get takes priority over Property Set in read context');
+    console.log('[PASS] Bug CE: 読み取りコンテキストでは Property Get が Property Set より優先される');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');
