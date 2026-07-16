@@ -222,4 +222,17 @@ assert.strictEqual(evRound.callProcedure('TestHalfEven', []), '2,4,1234,0', 'For
 assert.strictEqual(evRound.callProcedure('TestHalfEvenDec', []), '2.2,2.4', 'Format 銀行家丸め 小数: 2.25→2.2, 2.35→2.4');
 console.log('[PASS] Bug BG: Format() 銀行家丸め');
 
+// --- Bug BQ: Format(time, "Long Time") が 24 時間表記になっていた、
+//             Format(date, "Short Date") が ISO 形式 (yyyy/MM/dd) になっていた ---
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('Format(TimeSerial(10, 30, 45), "Long Time")'), '10:30:45 AM', 'Long Time 午前');
+    assert.strictEqual(ev.evalExpression('Format(TimeSerial(22, 30, 0), "Long Time")'), '10:30:00 PM', 'Long Time 午後');
+    assert.strictEqual(ev.evalExpression('Format(TimeSerial(12, 0, 0), "Long Time")'), '12:00:00 PM', 'Long Time 正午');
+    assert.strictEqual(ev.evalExpression('Format(TimeSerial(0, 0, 0), "Long Time")'), '12:00:00 AM', 'Long Time 深夜0時');
+    assert.strictEqual(ev.evalExpression('Format(DateSerial(2024, 1, 5), "Short Date")'), '1/5/2024', 'Short Date: M/D/YYYY');
+    assert.strictEqual(ev.evalExpression('Format(DateSerial(2024, 12, 31), "Short Date")'), '12/31/2024', 'Short Date: 12桁月');
+    console.log('[PASS] Bug BQ: Long Time AM/PM と Short Date M/D/YYYY');
+}
+
 console.log('\n✅ Format: 全テスト通過');

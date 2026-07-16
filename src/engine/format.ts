@@ -102,8 +102,8 @@ export function formatDate(d: Date, pattern: string): string {
     }
     if (pLower === 'long date')   return `${days[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${yyyy}`;
     if (pLower === 'medium date') return `${dd}-${monthsShort[d.getMonth()]}-${yyyy.slice(-2)}`;
-    if (pLower === 'short date')  return `${yyyy}/${MM}/${dd}`;
-    if (pLower === 'long time')   return `${HH}:${mm}:${ss}`;
+    if (pLower === 'short date')  return `${d.getMonth() + 1}/${d.getDate()}/${yyyy}`;
+    if (pLower === 'long time')   return `${h12}:${mm}:${ss} ${ampm}`;
     if (pLower === 'medium time') return `${h12}:${mm} ${ampm}`;
     if (pLower === 'short time')  return `${HH}:${mm}`;
 
