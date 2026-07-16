@@ -3315,6 +3315,19 @@ export class Evaluator {
                     // Class_Initialize 等でのメンバー代入が Error 91 になっていた。
                     // Dim 変数の UDT 初期化と同じ instantiateType() を使う。
                     defaultVal = this.instantiateType(decl.objectType);
+                } else if (decl.isNew && decl.objectType && (
+                    this.classDefinitions.has(mt) || this.externalObjectFactories.has(mt) ||
+                    mt === 'collection'
+                )) {
+                    // Bug BY: `Public P As New ClassName` — As New フィールドをすぐにインスタンス化する
+                    if (mt === 'collection') {
+                        defaultVal = new VbaCollection();
+                    } else if (this.externalObjectFactories.has(mt)) {
+                        defaultVal = this.externalObjectFactories.get(mt)!();
+                    } else {
+                        const nestedDef = this.classDefinitions.get(mt);
+                        if (nestedDef) defaultVal = this.createInstanceFromDef(nestedDef);
+                    }
                 } else if (decl.objectType && (
                     this.classDefinitions.has(mt) || this.externalObjectFactories.has(mt) ||
                     mt === 'object' || mt === 'collection'

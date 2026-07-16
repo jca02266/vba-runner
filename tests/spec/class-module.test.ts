@@ -362,4 +362,33 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] With ブロック内 Property Get + Function（Bug W1）');
 }
 
+// Bug BY: `Public P As New ClassName` class field — not initialized (returned Nothing instead of instance)
+{
+    const code = `
+Class Point
+    Public X As Long
+End Class
+Class Container
+    Public P As New Point
+End Class
+Function TestBY_Direct() As String
+    Dim c As New Container
+    c.P.X = 42
+    TestBY_Direct = CStr(c.P.X)
+End Function
+Function TestBY_With() As String
+    Dim c As New Container
+    With c
+        With .P
+            .X = 99
+        End With
+    End With
+    TestBY_With = CStr(c.P.X)
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestBY_Direct'), '42', 'Bug BY: Public P As New Point — direct chain access c.P.X');
+    assert.strictEqual(runFunc(code, 'TestBY_With'), '99', 'Bug BY: Public P As New Point — nested With .P block');
+    console.log('[PASS] Bug BY: Public P As New ClassName — クラスフィールドの As New 初期化');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');
