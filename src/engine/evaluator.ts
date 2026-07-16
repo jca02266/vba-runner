@@ -6300,7 +6300,10 @@ export class Evaluator {
     }
 
     private evaluateTypeOfIsExpression(expr: TypeOfIsExpression): any {
-        const obj = this.evaluateExpression(expr.expression);
+        const raw = this.evaluateExpression(expr.expression);
+        // `Dim x As New ClassName` creates an auto-instance placeholder until first member access.
+        // Force materialization so TypeOf can inspect the real instance.
+        const obj = this.resolveAutoInstance(expr.expression as any, raw);
         const typeName = expr.typeName.toLowerCase();
 
         if (obj === null || obj === undefined || typeof obj !== 'object') return vbaFalse;

@@ -179,8 +179,8 @@ End Sub
     const normal = cfg.blocks.filter(b => b.kind === 'normal')[0];
     // stmts[0] = Dim x, stmts[1] = x=42, stmts[2] = Debug.Print x
     // Debug.Print x は x を USE → use point は (blockId, 2, 'x')
-    const printIdx = normal.stmts.findIndex(s => s.type === 'CallStatement');
-    assert.strictEqual(printIdx >= 0, true, 'Def-Use: CallStatement 存在');
+    const printIdx = normal.stmts.findIndex(s => s.type === 'DebugPrintStatement' || s.type === 'CallStatement');
+    assert.strictEqual(printIdx >= 0, true, 'Def-Use: Debug.Print ステートメント存在');
 
     const uses: UsePoint[] = [{ blockId: normal.id, stmtIdx: printIdx, varName: 'x' }];
     const chains = buildDefUseChains(cfg, result, uses);
@@ -208,7 +208,7 @@ End Sub
     const mergeBlock = cfg.blocks.find(b =>
         b.kind === 'normal' && b.preds.length === 2 && b.stmts.length > 0,
     )!;
-    const printIdx = mergeBlock.stmts.findIndex(s => s.type === 'CallStatement');
+    const printIdx = mergeBlock.stmts.findIndex(s => s.type === 'DebugPrintStatement' || s.type === 'CallStatement');
     const uses: UsePoint[] = [{ blockId: mergeBlock.id, stmtIdx: printIdx, varName: 'x' }];
     const chains = buildDefUseChains(cfg, result, uses);
     const key = usePointKey(uses[0]);

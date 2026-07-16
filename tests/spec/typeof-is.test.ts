@@ -70,4 +70,39 @@ ev.set('myObj', mockUserObj);
     console.log('[PASS] TypeOf ... Is <Library.ClassName> (ドット修飾)');
 }
 
+// --- Bug BV: `Dim a As New ClassName` → `TypeOf a Is ClassName` が False になっていた ---
+// Auto-instance placeholder が解決されずに TypeOf チェックに渡っていたため
+{
+    const code = `
+Class Animal
+    Public Name As String
+End Class
+Function Test1() As Boolean
+    Dim a As New Animal
+    Test1 = TypeOf a Is Animal
+End Function
+Function Test2() As String
+    Dim a As New Animal
+    If TypeOf a Is Animal Then
+        Test2 = "yes"
+    Else
+        Test2 = "no"
+    End If
+End Function
+Function Test3() As String
+    Dim a As New Animal
+    If TypeOf a Is Object Then
+        Test3 = "object-yes"
+    Else
+        Test3 = "object-no"
+    End If
+End Function
+`;
+    const ev = evalVBASingle(code);
+    assert.strictEqual(ev.callProcedure('Test1', []).value, -1, 'Bug BV: TypeOf a Is ClassName が True を返す');
+    assert.strictEqual(ev.callProcedure('Test2', []), 'yes', 'Bug BV: If TypeOf a Is ClassName Then が正常動作');
+    assert.strictEqual(ev.callProcedure('Test3', []), 'object-yes', 'Bug BV: TypeOf ... Is Object も正常動作');
+    console.log('[PASS] Bug BV: Dim a As New ClassName で TypeOf a Is ClassName が True を返す');
+}
+
 console.log('\n✅ TypeOf...Is: 全テスト通過');
