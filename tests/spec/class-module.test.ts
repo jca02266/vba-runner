@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -552,6 +552,32 @@ End Function
 `;
     assert.strictEqual(runFunc(code, 'TestCE_GetOverSet'), 'has:42,cleared', 'Bug CE: Property Get takes priority over Property Set in read context');
     console.log('[PASS] Bug CE: 読み取りコンテキストでは Property Get が Property Set より優先される');
+}
+
+// --- Bug CI: 複数モジュールで Dim obj As New ClassName が Long 0 に化けていた ---
+// evalVBAModules でクラス名と同名のモジュールキーが VbaNamespaceRef として env に入ると、
+// evaluateVariableDeclaration の Enum チェックがそれを enum と誤判定して
+// setVariableType('Long') を呼んでしまい、obj が 0 になっていた。
+{
+    const ev = evalVBAModules([
+        { name: 'MyClass', code: 'Class MyClass\nPublic Value As Integer\nEnd Class' },
+        { name: 'Module', code: `
+Function TestCI_TypeName() As String
+    Dim obj As New MyClass
+    TestCI_TypeName = TypeName(obj)
+End Function
+Function TestCI_Member() As Integer
+    Dim obj As New MyClass
+    obj.Value = 21
+    TestCI_Member = obj.Value
+End Function
+` },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestCI_TypeName', []), 'MyClass',
+        'Bug CI: Dim obj As New MyClass in multi-module — TypeName is MyClass, not Long');
+    assert.strictEqual(ev.callProcedure('TestCI_Member', []), 21,
+        'Bug CI: Dim obj As New MyClass in multi-module — member assignment works');
+    console.log('[PASS] Bug CI: 複数モジュールで Dim obj As New ClassName が正しくインスタンス化される');
 }
 
 console.log('\n✅ Class Module: 全テスト通過');

@@ -3225,7 +3225,10 @@ export class Evaluator {
                     // Bug CB: Enum-typed variable (e.g. `Dim c As Color`) — map to 'Long'
                     // so TypeName/VarType reflects the underlying numeric type instead of "Double"
                     const enumObj = this.env.getConst(effectiveType);
-                    if (enumObj && typeof enumObj === 'object' && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__) {
+                    // Bug CI: Exclude VbaNamespaceRef (module/class names stored in env) to prevent
+                    // treating class types like MyClass as enums when they share an env key.
+                    if (enumObj && typeof enumObj === 'object' && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__
+                            && !(enumObj instanceof VbaNamespaceRef)) {
                         this.env.setVariableType(varName, { vbaType: 'Long' });
                     }
                 }
