@@ -391,4 +391,40 @@ End Function
     console.log('[PASS] Bug BY: Public P As New ClassName — クラスフィールドの As New 初期化');
 }
 
+// Bug BZ: c.PropGet("key") — Property Get (no params) returns Object; args should subscript the returned value
+{
+    const code = `
+Class Bag
+    Private m_dict As Object
+    Property Get Dict() As Object
+        Set Dict = m_dict
+    End Property
+    Property Set Dict(d As Object)
+        Set m_dict = d
+    End Property
+    Property Get Items() As Collection
+        Dim col As New Collection
+        col.Add "a"
+        col.Add "b"
+        Set Items = col
+    End Property
+End Class
+Function TestBZ_Dict() As String
+    Dim b As New Bag
+    Dim d As Object
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "x", 99
+    Set b.Dict = d
+    TestBZ_Dict = CStr(b.Dict("x"))
+End Function
+Function TestBZ_Col() As String
+    Dim b As New Bag
+    TestBZ_Col = b.Items(1) & "," & b.Items(2)
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestBZ_Dict'), '99', 'Bug BZ: c.Dict("x") — Property Get returns Dictionary; subscript with key');
+    assert.strictEqual(runFunc(code, 'TestBZ_Col'), 'a,b', 'Bug BZ: c.Items(n) — Property Get returns Collection; subscript with index');
+    console.log('[PASS] Bug BZ: Property Get 返却オブジェクトへの添字アクセス (c.Prop("key") / c.Prop(n))');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

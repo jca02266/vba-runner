@@ -6192,6 +6192,31 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const proc = classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
                 if (proc) {
+                    // Bug BZ: Property Get with 0 params but called with args → get the object first,
+                    // then subscript/index the returned value with the given args.
+                    // e.g. c.TheObj("k") where Property Get TheObj() As Object returns a Dictionary.
+                    if (proc.isProperty && proc.propertyType === 'get' &&
+                        proc.parameters.length === 0 && expr.args.length > 0) {
+                        const returned = this.callClassMethod(obj, proc, []);
+                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                        if (returned && returned.__isVbaDict__) {
+                            return returned.__map__.get(argsVals[0]);
+                        }
+                        if (returned && returned.__isVbaCollection__) {
+                            return (returned as VbaCollection).item(argsVals[0]);
+                        }
+                        if (Array.isArray(returned)) {
+                            return returned[argsVals[0] as number];
+                        }
+                        if (returned && returned.__vbaClass__) {
+                            const retClassDef = returned.__classDef__ as ClassDeclaration;
+                            const itemProp = retClassDef.procedures.find(
+                                p2 => p2.isProperty && p2.propertyType === 'get' && p2.name.name.toLowerCase() === 'item'
+                            );
+                            if (itemProp) return this.callClassMethod(returned, itemProp, argsVals);
+                        }
+                        // fallthrough: let checkNoGapOnRequiredParam produce Error 450
+                    }
                     this.checkNoGapOnRequiredParam(proc.parameters, expr.args);
                     const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     return this.callClassMethod(obj, proc, argsVals);
