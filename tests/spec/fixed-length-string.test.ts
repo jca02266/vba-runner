@@ -203,4 +203,36 @@ End Function
     console.log('[PASS] Bug BW: パラメーター As String * N が正常にパース・実行される');
 }
 
+// --- Bug CH: Function/Sub パラメーターが String * N の場合、呼び出し側の値が切り詰め・パディングされなかった ---
+// setVariableType に fixedLength を渡さなかったため setLocally が coerceToType でスキップしていた。
+{
+    const code = `
+Function LenOf(s As String * 5) As Long
+    LenOf = Len(s)
+End Function
+Function ContentOf(s As String * 5) As String
+    ContentOf = "|" & s & "|"
+End Function
+Function TestCH_Short() As String
+    TestCH_Short = ContentOf("Hi") & Len(ContentOf("Hi") )
+End Function
+Function TestCH_Len() As Long
+    TestCH_Len = LenOf("Hi")
+End Function
+Function TestCH_Trunc() As Long
+    TestCH_Trunc = LenOf("TooLongString")
+End Function
+Function TestCH_TruncContent() As String
+    TestCH_TruncContent = ContentOf("TooLo")
+End Function
+`;
+    assert.strictEqual(evalVBASingle(code).callProcedure('TestCH_Len', []), 5,
+        'Bug CH: String * 5 param receives short string, Len is 5 (padded)');
+    assert.strictEqual(evalVBASingle(code).callProcedure('TestCH_Trunc', []), 5,
+        'Bug CH: String * 5 param receives long string, Len is 5 (truncated)');
+    assert.strictEqual(evalVBASingle(code).callProcedure('TestCH_TruncContent', []), '|TooLo|',
+        'Bug CH: String * 5 param with exact-length string passes through unchanged');
+    console.log('[PASS] Bug CH: String * N パラメーターが切り詰め・パディングを正しく適用する');
+}
+
 console.log('\n✅ 固定長文字列（String * N）: 全テスト通過');

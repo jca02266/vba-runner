@@ -1266,7 +1266,11 @@ export class Evaluator {
                 };
                 const mapped = typeMap[param.paramType.toLowerCase()];
                 if (mapped) {
-                    localEnv.setVariableType(paramName, { vbaType: mapped });
+                    // Bug CH: include fixedLength so setLocally coerces String * N parameters
+                    localEnv.setVariableType(paramName, {
+                        vbaType: mapped,
+                        fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                    });
                 }
             }
             localEnv.setLocally(paramName, argValue);
@@ -3779,6 +3783,21 @@ export class Evaluator {
                 // ここに来る時点で param は必ず Optional（defaultValue なし）。
                 argValue = vbaMissing;
             }
+            // Bug CH: Register parameter type so setLocally coerces String * N parameters
+            if (param.paramType && !param.isArray) {
+                const typeMap: Record<string, VbaVarType> = {
+                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                };
+                const mapped = typeMap[param.paramType.toLowerCase()];
+                if (mapped) {
+                    localEnv.setVariableType(paramName, {
+                        vbaType: mapped,
+                        fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                    });
+                }
+            }
             localEnv.setLocally(paramName, argValue);
             this.addRef(argValue);
         }
@@ -6109,7 +6128,11 @@ export class Evaluator {
                         };
                         const mapped = typeMap[param.paramType.toLowerCase()];
                         if (mapped) {
-                            localEnv.setVariableType(param.name, { vbaType: mapped });
+                            // Bug CH: include fixedLength so setLocally coerces String * N parameters
+                            localEnv.setVariableType(param.name, {
+                                vbaType: mapped,
+                                fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                            });
                         }
                     }
                     // ByVal UDT: VBA の値型セマンティクスに従い、UDT インスタンスのコピーを作る
