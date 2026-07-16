@@ -362,6 +362,37 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] With ブロック内 Property Get + Function（Bug W1）');
 }
 
+// Bug CA: `.Data(0,0) = val` inside With block — CallExpression with ImplicitWithObjectExpression callee was unhandled
+{
+    const code = `
+Class Matrix
+    Public Data(2, 2) As Long
+    Public Tags(3) As String
+End Class
+Function TestCA_2D() As Long
+    Dim m As New Matrix
+    With m
+        .Data(0, 0) = 1
+        .Data(1, 1) = 5
+        .Data(2, 2) = 9
+    End With
+    TestCA_2D = m.Data(0, 0) + m.Data(1, 1) + m.Data(2, 2)
+End Function
+Function TestCA_1D() As String
+    Dim m As New Matrix
+    With m
+        .Tags(0) = "a"
+        .Tags(1) = "b"
+        .Tags(2) = "c"
+    End With
+    TestCA_1D = m.Tags(0) & m.Tags(1) & m.Tags(2)
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestCA_2D'), 15, 'Bug CA: With ブロック内 .Data(i,j) = val (2D 配列フィールド)');
+    assert.strictEqual(runFunc(code, 'TestCA_1D'), 'abc', 'Bug CA: With ブロック内 .Tags(i) = val (1D 配列フィールド)');
+    console.log('[PASS] Bug CA: With ブロック内 .ArrayField(i[,j]) = val');
+}
+
 // Bug BY: `Public P As New ClassName` class field — not initialized (returned Nothing instead of instance)
 {
     const code = `

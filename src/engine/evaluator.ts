@@ -3026,6 +3026,58 @@ export class Evaluator {
                 } else {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
+            } else if (call.callee.type === 'ImplicitWithObjectExpression') {
+                // Bug CA: `.Data(0,0) = val` inside With block
+                // Same logic as MemberExpression case but obj comes from withObjectStack
+                if (this.withObjectStack.length === 0) {
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+                }
+                const implicitObj = this.withObjectStack[this.withObjectStack.length - 1];
+                const implicitProp = (call.callee as ImplicitWithObjectExpression).property.name.toLowerCase();
+                if (implicitObj && implicitObj.__vbaClass__) {
+                    const implicitClassDef = implicitObj.__classDef__ as ClassDeclaration;
+                    const implicitSetter = implicitClassDef.procedures.find(
+                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === implicitProp
+                    );
+                    if (implicitSetter) {
+                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        this.callClassMethod(implicitObj, implicitSetter, [...argsVals, val]);
+                    } else {
+                        const implicitInstanceEnv = implicitObj.__instanceEnv__ as Environment;
+                        const implicitFieldArr = implicitInstanceEnv.get(implicitProp);
+                        if (Array.isArray(implicitFieldArr)) {
+                            const dims = (implicitFieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                            if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            let current: any = implicitFieldArr;
+                            for (let i = 0; i < call.args.length - 1; i++) {
+                                const d = this.evaluateExpression(call.args[i]) as number;
+                                if (dims) {
+                                    const { lower, upper } = dims[i];
+                                    if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                                }
+                                if (!current[d]) current[d] = [];
+                                current = current[d];
+                            }
+                            const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                            if (dims) {
+                                const { lower, upper } = dims[call.args.length - 1];
+                                if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current[lastIdx] = val;
+                        } else {
+                            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                        }
+                    }
+                } else if (implicitObj && typeof implicitObj === 'object') {
+                    const resolvedKey = this.resolveObjectMemberKey(implicitObj, implicitProp) ?? implicitProp;
+                    const fieldArr = implicitObj[resolvedKey];
+                    if (Array.isArray(fieldArr)) {
+                        const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                        fieldArr[lastIdx] = val;
+                    } else {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
+                }
             } else if (call.callee.type === 'CallExpression') {
                 // outer("sub")("x") = val  →  evaluate outer("sub") to get inner dict, then assign
                 const innerObj = this.evaluateExpression(call.callee);
