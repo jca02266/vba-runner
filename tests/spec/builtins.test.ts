@@ -157,6 +157,24 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug Z: AM/PM 書式指定時の 12 時間制変換');
 }
 
+// Bug BC: FormatCurrency / FormatNumber / FormatPercent / FormatDateTime が未実装
+{
+    assert.strictEqual(evalExpr('FormatCurrency(1234.5)'), '$1,234.50', 'FormatCurrency(1234.5)');
+    assert.strictEqual(evalExpr('FormatCurrency(-1234.5)'), '-$1,234.50', 'FormatCurrency(-1234.5)');
+    assert.strictEqual(evalExpr('FormatCurrency(1234.5, 0)'), '$1,235', 'FormatCurrency(n, 0 digits)');
+    assert.strictEqual(evalExpr('FormatNumber(1234.5)'), '1,234.50', 'FormatNumber(1234.5)');
+    assert.strictEqual(evalExpr('FormatNumber(0.123, 4)'), '0.1230', 'FormatNumber(n, 4 digits)');
+    assert.strictEqual(evalExpr('FormatPercent(0.5)'), '50.00%', 'FormatPercent(0.5)');
+    assert.strictEqual(evalExpr('FormatPercent(0.1234, 1)'), '12.3%', 'FormatPercent(0.1234, 1)');
+    assert.strictEqual(evalExpr('FormatCurrency(Null)'), '', 'FormatCurrency(Null) = ""');
+    const fmtDt = (code: string) =>
+        evalVBASingle(`Function F(): F = ${code}: End Function`).callProcedure('F', []);
+    assert.strictEqual(fmtDt('FormatDateTime(CDate("2024/3/15"))'), '3/15/2024', 'FormatDateTime date-only');
+    assert.strictEqual(fmtDt('FormatDateTime(CDate("2024/3/15"), 2)'), '3/15/2024', 'FormatDateTime vbShortDate');
+    assert.strictEqual(fmtDt('FormatDateTime(CDate("14:30:00"), 4)'), '14:30', 'FormatDateTime vbShortTime');
+    console.log('[PASS] Bug BC: FormatCurrency/FormatNumber/FormatPercent/FormatDateTime 実装');
+}
+
 // Bug AZ/BA/BB: VBA 三値論理 — And/Or/Imp が Null を含む場合の短絡評価
 {
     // And: False が吸収元 → False And Null = False

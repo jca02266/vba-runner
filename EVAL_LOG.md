@@ -238,6 +238,7 @@
 | ~~**Bug AU/AV/AW: `LeftB(str, Null)` / `RightB(str, Null)` / `MidB` の Null 引数でクラッシュ**~~ | **修正済み**: `leftb`/`rightb`/`midbFunc` の Null チェックを `val \|\| len/start` に拡張。 | `51b32af`〜 |
 | ~~**Bug AX/AY: `DateSerial(Null,...)` / `TimeSerial(Null,...)` が TypeError でクラッシュ**~~ | **修正済み**: 各関数の先頭に Null チェックを追加。`Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
 | ~~**Bug AZ/BA/BB: `And`/`Or`/`Imp` が Null を含む場合に単純 Null 伝播を行い、三値論理の特例を無視**~~ | **修正済み**: `evaluateBinaryExpression` で Null チェック前に And/Or/Imp の特例を処理。`False And Null`=False、`True Or Null`=True、`False Imp Null`=True、`Null Imp True`=True。 | `51b32af`〜 |
+| ~~**Bug BC: `FormatCurrency` / `FormatNumber` / `FormatPercent` / `FormatDateTime` が未実装**~~ | **修正済み**: 4関数を `builtins.ts` に追加。`FormatCurrency(1234.5)` = "$1,234.50"、`FormatPercent(0.5)` = "50.00%"、`FormatDateTime(date, namedFmt)` で vbGeneralDate(0)/vbLongDate(1)/vbShortDate(2)/vbLongTime(3)/vbShortTime(4) に対応。 | TBD |
 
 ---
 

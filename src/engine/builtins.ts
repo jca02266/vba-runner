@@ -771,6 +771,67 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'FirstDayOfWeek', optional: true },
         { name: 'FirstWeekOfYear', optional: true },
     ], ['$']);
+
+    // Helper shared by FormatCurrency / FormatNumber / FormatPercent
+    const fmtNumeric = (val: any, digits: any, _leadingDigit: any, _parens: any, groupDigits: any,
+                        prefix: string, suffix: string, scale: number): string => {
+        if (val === vbaNull) return '';
+        let n: number;
+        if (val instanceof VbaDate) n = val.value;
+        else if (val instanceof VbaCurrency) n = Number(val.internal) / 10000;
+        else if (val instanceof VbaDecimal) n = Number(val.mantissa) / Math.pow(10, val.scale);
+        else n = ctx.toVbaNumber(val);
+        n *= scale;
+        const dec = digits === vbaMissing || Number(digits) < 0 ? 2 : Number(digits);
+        const group = groupDigits === vbaMissing || Number(groupDigits) < 0 ? true : Number(groupDigits) !== 0;
+        const neg = n < 0;
+        const abs = Math.abs(n);
+        let formatted = abs.toFixed(dec);
+        if (group) {
+            const [intPart, fracPart] = formatted.split('.');
+            const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            formatted = fracPart !== undefined ? `${grouped}.${fracPart}` : grouped;
+        }
+        const result = `${prefix}${formatted}${suffix}`;
+        return neg ? `-${result}` : result;
+    };
+    ctx.reg('formatcurrency', (val: any, digits: any = vbaMissing, lead: any = vbaMissing, parens: any = vbaMissing, group: any = vbaMissing) =>
+        fmtNumeric(val, digits, lead, parens, group, '$', '', 1), [
+        { name: 'Expression' }, { name: 'NumDigitsAfterDecimal', optional: true },
+        { name: 'IncludeLeadingDigit', optional: true }, { name: 'UseParensForNegativeNumbers', optional: true },
+        { name: 'GroupDigits', optional: true },
+    ], ['$']);
+    ctx.reg('formatnumber', (val: any, digits: any = vbaMissing, lead: any = vbaMissing, parens: any = vbaMissing, group: any = vbaMissing) =>
+        fmtNumeric(val, digits, lead, parens, group, '', '', 1), [
+        { name: 'Expression' }, { name: 'NumDigitsAfterDecimal', optional: true },
+        { name: 'IncludeLeadingDigit', optional: true }, { name: 'UseParensForNegativeNumbers', optional: true },
+        { name: 'GroupDigits', optional: true },
+    ], ['$']);
+    ctx.reg('formatpercent', (val: any, digits: any = vbaMissing, lead: any = vbaMissing, parens: any = vbaMissing, group: any = vbaMissing) =>
+        fmtNumeric(val, digits, lead, parens, group, '', '%', 100), [
+        { name: 'Expression' }, { name: 'NumDigitsAfterDecimal', optional: true },
+        { name: 'IncludeLeadingDigit', optional: true }, { name: 'UseParensForNegativeNumbers', optional: true },
+        { name: 'GroupDigits', optional: true },
+    ], ['$']);
+    ctx.reg('formatdatetime', (val: any, namedFmt: any = 0) => {
+        if (val === vbaNull) return '';
+        const d = (val instanceof VbaDate) ? fromVbaDate(val.value) : parseVbaDate(val);
+        const fmt = Number(namedFmt ?? 0);
+        const pad2 = (n: number) => String(n).padStart(2, '0');
+        const mo = d.getMonth() + 1, dy = d.getDate(), yr = d.getFullYear();
+        const hh = d.getHours(), mm = d.getMinutes(), ss = d.getSeconds();
+        const h12 = hh % 12 || 12, ampm = hh < 12 ? 'AM' : 'PM';
+        const dayNames = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const monNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        if (fmt === 1) return `${dayNames[d.getDay()]}, ${monNames[mo-1]} ${dy}, ${yr}`;
+        if (fmt === 2) return `${mo}/${dy}/${yr}`;
+        if (fmt === 3) return `${h12}:${pad2(mm)}:${pad2(ss)} ${ampm}`;
+        if (fmt === 4) return `${pad2(hh)}:${pad2(mm)}`;
+        // fmt === 0: general date — date only if time=0, else date+time
+        const hasTime = hh !== 0 || mm !== 0 || ss !== 0;
+        const datePart = `${mo}/${dy}/${yr}`;
+        return hasTime ? `${datePart} ${h12}:${pad2(mm)}:${pad2(ss)} ${ampm}` : datePart;
+    }, [{ name: 'Date' }, { name: 'NamedFormat', optional: true }], ['$']);
 }
 
 // ---------------------------------------------------------------------------
