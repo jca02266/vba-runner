@@ -126,4 +126,21 @@ console.log('[PASS] Like 演算子');
     console.log('[PASS] Bug BJ: Currency混在の \\ / Mod 事前丸め');
 }
 
+// --- Bug BU: 文字列と数値の混在比較 "7" = 7 が False になっていた ---
+{
+    const code = `
+Function Test() As String
+    Dim r1 As Boolean, r2 As Boolean, r3 As Boolean, r4 As Boolean
+    r1 = ("7" = 7)
+    r2 = ("7" <> 7)
+    r3 = (7 = "7")
+    r4 = (7 <> "7")
+    Test = r1 & "," & r2 & "," & r3 & "," & r4
+End Function
+`;
+    const result = evalVBASingle(code).callProcedure('Test', []);
+    assert.strictEqual(result, 'True,False,True,False', 'Bug BU: 文字列と数値の混在比較 = と <> が VBA 自動型変換を行う');
+    console.log('[PASS] Bug BU: 文字列/数値混在の = と <> 比較');
+}
+
 console.log('\n✅ Operators (Extra): 全テスト通過');

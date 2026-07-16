@@ -6801,6 +6801,13 @@ export class Evaluator {
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() === rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
+                // Mixed string/number: coerce string to number (VBA auto-coercion)
+                if (typeof leftVal === 'string' && typeof rightVal === 'number') {
+                    return toVbaNumber(leftVal) === rightVal ? vbaTrue : vbaFalse;
+                }
+                if (typeof leftVal === 'number' && typeof rightVal === 'string') {
+                    return leftVal === toVbaNumber(rightVal) ? vbaTrue : vbaFalse;
+                }
                 return leftVal === rightVal ? vbaTrue : vbaFalse;
             case '<>':
                 if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
@@ -6811,6 +6818,13 @@ export class Evaluator {
                 }
                 if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
                     return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
+                }
+                // Mixed string/number: coerce string to number (VBA auto-coercion)
+                if (typeof leftVal === 'string' && typeof rightVal === 'number') {
+                    return toVbaNumber(leftVal) !== rightVal ? vbaTrue : vbaFalse;
+                }
+                if (typeof leftVal === 'number' && typeof rightVal === 'string') {
+                    return leftVal !== toVbaNumber(rightVal) ? vbaTrue : vbaFalse;
                 }
                 return leftVal !== rightVal ? vbaTrue : vbaFalse;
             case '<':

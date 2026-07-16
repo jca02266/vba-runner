@@ -186,6 +186,14 @@ export function getStmtUses(stmt: Statement): string[] {
         case 'CallStatement':
             collectExprUses((stmt as any).expression, uses);
             break;
+        case 'DebugPrintStatement':
+            for (const expr of ((stmt as any).expressions ?? [])) {
+                if (typeof expr === 'object' && expr !== null && 'type' in expr
+                    && expr.type !== 'Spc' && expr.type !== 'Tab') {
+                    collectExprUses(expr, uses);
+                }
+            }
+            break;
         case 'WithStatement':
             collectExprUses((stmt as any).object, uses);
             break;
