@@ -99,4 +99,32 @@ End Sub
     console.log("✅ ByRef for module level variables");
 }
 
+// Bug BX: ByVal UDT パラメーターがコピーを作らず参照として渡されていた
+{
+    const code = `
+Type Point
+    X As Long
+    Y As Long
+End Type
+Sub MoveByRef(p As Point, dx As Long)
+    p.X = p.X + dx
+End Sub
+Sub MoveByVal(ByVal p As Point, dx As Long)
+    p.X = p.X + dx
+End Sub
+Function TestBX() As String
+    Dim pt As Point
+    pt.X = 10
+    MoveByRef pt, 3
+    Dim x1 As Long : x1 = pt.X  ' 13 (ByRef: caller's pt modified)
+    MoveByVal pt, 10
+    Dim x2 As Long : x2 = pt.X  ' 13 (ByVal: copy, caller's pt unchanged)
+    TestBX = x1 & "," & x2
+End Function
+`;
+    const result = evalVBA(code).callProcedure('TestBX', []);
+    assert.strictEqual(result, '13,13', 'Bug BX: ByVal UDT creates a copy; caller is not affected');
+    console.log('✅ Bug BX: ByVal UDT パラメーターのコピーセマンティクス');
+}
+
 console.log("--- All ByRef tests passed! ---");

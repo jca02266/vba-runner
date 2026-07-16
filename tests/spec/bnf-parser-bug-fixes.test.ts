@@ -37,8 +37,8 @@ import { MemoryFileSystem } from '../../src/engine/filesystem';
     ev.callProcedure('TestEraseMultiple', []);
     const a1 = ev.env.get('arr1');
     const a2 = ev.env.get('arr2');
-    assert.strictEqual(a1.length, 0, 'Erase arr1, arr2 — arr1 が解放される');
-    assert.strictEqual(a2.length, 0, 'Erase arr1, arr2 — arr2 が解放される');
+    assert.strictEqual(a1, null, 'Erase arr1, arr2 — arr1 が解放される (null = 未割り当て)');
+    assert.strictEqual(a2, null, 'Erase arr1, arr2 — arr2 が解放される (null = 未割り当て)');
     console.log('[PASS] Erase 複数要素');
 }
 
@@ -56,9 +56,9 @@ import { MemoryFileSystem } from '../../src/engine/filesystem';
     `;
     const ev = evalVBASingle(code);
     ev.callProcedure('TestEraseThree', []);
-    assert.strictEqual(ev.env.get('a').length, 0, 'Erase 3要素 — a が解放される');
-    assert.strictEqual(ev.env.get('b').length, 0, 'Erase 3要素 — b が解放される');
-    assert.strictEqual(ev.env.get('c').length, 0, 'Erase 3要素 — c が解放される');
+    assert.strictEqual(ev.env.get('a'), null, 'Erase 3要素 — a が解放される (null = 未割り当て)');
+    assert.strictEqual(ev.env.get('b'), null, 'Erase 3要素 — b が解放される (null = 未割り当て)');
+    assert.strictEqual(ev.env.get('c'), null, 'Erase 3要素 — c が解放される (null = 未割り当て)');
     console.log('[PASS] Erase 3要素');
 }
 

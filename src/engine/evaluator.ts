@@ -5979,6 +5979,10 @@ export class Evaluator {
                             localEnv.setVariableType(param.name, { vbaType: mapped });
                         }
                     }
+                    // ByVal UDT: VBA の値型セマンティクスに従い、UDT インスタンスのコピーを作る
+                    if (param.isByVal && argVal && typeof argVal === 'object' && argVal.__vbaTypeName__ && !argVal.__vbaClass__) {
+                        argVal = this.deepCopyUdtValue(argVal);
+                    }
                     localEnv.setLocally(param.name, argVal);
                     this.addRef(argVal);
 
@@ -6516,6 +6520,21 @@ export class Evaluator {
      * 直接使えるようにする（毎回 instantiate するコストを避ける）。
      * Placeholder でない値はそのまま返す。
      */
+    /** UDT 値型の ByVal コピーを作成する。ネストした UDT メンバーも再帰コピーする。 */
+    private deepCopyUdtValue(obj: any): any {
+        if (!obj || typeof obj !== 'object' || obj.__vbaClass__) return obj;
+        const copy: any = {};
+        for (const key of Object.keys(obj)) {
+            const val = obj[key];
+            if (val && typeof val === 'object' && !val.__vbaClass__ && val.__vbaTypeName__) {
+                copy[key] = this.deepCopyUdtValue(val);
+            } else {
+                copy[key] = val;
+            }
+        }
+        return copy;
+    }
+
     private resolveAutoInstance(sourceExpr: Expression | null, value: any): any {
         if (!isAutoInstancePlaceholder(value)) return value;
         const instance = this.instantiateClass(value.__className__);
