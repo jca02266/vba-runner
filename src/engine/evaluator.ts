@@ -6617,12 +6617,16 @@ export class Evaluator {
             case '/':
                 if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return leftVal / rightVal;
-            case '\\':
-                if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return Math.trunc(leftVal / rightVal);
-            case 'mod':
-                if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return leftVal % rightVal;
+            case '\\': {
+                const li = _vbaRound(leftVal, 0), ri = _vbaRound(rightVal, 0);
+                if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Math.trunc(li / ri);
+            }
+            case 'mod': {
+                const lm = _vbaRound(leftVal, 0), rm = _vbaRound(rightVal, 0);
+                if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return lm % rm;
+            }
             case '^': return Math.pow(leftVal, rightVal);
             case '=':
                 if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {

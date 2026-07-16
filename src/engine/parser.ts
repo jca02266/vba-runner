@@ -2894,7 +2894,7 @@ export class Parser {
         let left = this.parsePrimary();
         while (this.peek().type === TokenType.OperatorPower) {
             const operator = this.advance().value;
-            const right = this.parsePrimary();
+            const right = this.parseUnary();
             left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;

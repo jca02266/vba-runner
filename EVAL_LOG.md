@@ -243,6 +243,8 @@
 | ~~**Bug BE: `Filter(arr, Null)` が空配列を返す（VBA では Error 13 Type mismatch）**~~ | **修正済み**: `filter` 関数に `if (match === vbaNull) ctx.throwError(TYPE_MISMATCH, ...)` を追加。`String(Symbol)` が `"Symbol(vbaNull)"` になる問題を回避。 | `c490d76`〜 |
 | ~~**Bug BF: `Nz(Null)` が `0` を返す（VBA では `""` を返す）**~~ | **修正済み**: `nz` のデフォルト引数を `vbaMissing` に変更し、未指定時は `''` を返すよう修正。`Nz(Null, 42)` は引き続き `42` を返す。 | `c490d76`〜 |
 | ~~**Bug BG: `Format(2.5, "0")` が `"3"` を返す（VBA では `"2"` — 銀行家丸め）**~~ | **修正済み**: `format.ts` の `formatSection` で `n.toFixed(maxDecimals)` を `vbaRound(n, maxDecimals).toFixed(maxDecimals)` に変更。`builtins.ts` の `fmtNumeric` (FormatCurrency/FormatNumber/FormatPercent) も同様に修正。`Format(2.5, "0")`="2"、`Format(3.5, "0")`="4"、`Format(1234.5, "0")`="1234"。 | `1a93ea9`〜 |
+| ~~**Bug BH: `7.5 \\ 2` が `3` を返す（VBA では `4` — 被演算子を事前に整数化してから除算）**~~ | **修正済み**: `evaluator.ts` の `\\` と `Mod` 演算子に `_vbaRound(x, 0)` で各引数を整数化してから演算するよう修正。`7.5 \\ 2`=4、`7.5 Mod 2`=0。 | TBD |
+| ~~**Bug BI: `2 ^ -1` がパースエラーになる（VBA では 0.5）**~~ | **修正済み**: `parser.ts` の `parseExponentiation` で右辺の `parsePrimary()` を `parseUnary()` に変更し、単項 `-` が `^` の右辺に出現できるようにした。 | TBD |
 
 ---
 

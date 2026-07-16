@@ -59,4 +59,46 @@ assert.strictEqual(ev3.env.get('res3').value, 0, '"abcde" Like "a#cde" (False)')
 assert.strictEqual(ev3.env.get('res4').value, -1, '"abcde" Like "[a-z]bcde"');
 console.log('[PASS] Like 演算子');
 
+// --- Bug BH: `\` と Mod が浮動小数点の被演算子を事前丸めしていなかった ---
+{
+    const intDivCode = `
+        Public res1, res2, res3, res4, res5, res6
+        Sub Test()
+            res1 = 7.5 \\ 2        ' 8 \\ 2 = 4 (7.5 → 銀行家丸め→8)
+            res2 = 6.5 \\ 2        ' 6 \\ 2 = 3 (6.5 → 銀行家丸め→6)
+            res3 = -7.5 \\ 2       ' -8 \\ 2 = -4
+            res4 = 7.5 Mod 2       ' 8 Mod 2 = 0
+            res5 = 6.5 Mod 3       ' 6 Mod 3 = 0
+            res6 = 7.3 \\ 2        ' 7 \\ 2 = 3 (7.3 → 7)
+        End Sub
+    `;
+    const evIntDiv = evalVBA(intDivCode);
+    evIntDiv.callProcedure('Test', []);
+    assert.strictEqual(evIntDiv.env.get('res1'), 4, '7.5 \\ 2 = 4 (銀行家丸め後)');
+    assert.strictEqual(evIntDiv.env.get('res2'), 3, '6.5 \\ 2 = 3 (銀行家丸め後)');
+    assert.strictEqual(evIntDiv.env.get('res3'), -4, '-7.5 \\ 2 = -4');
+    assert.strictEqual(evIntDiv.env.get('res4'), 0, '7.5 Mod 2 = 0 (8 Mod 2)');
+    assert.strictEqual(evIntDiv.env.get('res5'), 0, '6.5 Mod 3 = 0 (6 Mod 3)');
+    assert.strictEqual(evIntDiv.env.get('res6'), 3, '7.3 \\ 2 = 3 (7.3→7, 7\\2)');
+    console.log('[PASS] Bug BH: \\ と Mod の浮動小数点事前丸め');
+}
+
+// --- Bug BI: `2 ^ -1` が parse error になる（VBA では 0.5）---
+{
+    const powerCode = `
+        Public res1, res2, res3
+        Sub Test()
+            res1 = 2 ^ -1
+            res2 = 4 ^ -0.5
+            res3 = 2 ^ -2
+        End Sub
+    `;
+    const evPow = evalVBA(powerCode);
+    evPow.callProcedure('Test', []);
+    assert.strictEqual(evPow.env.get('res1'), 0.5, '2 ^ -1 = 0.5');
+    assert.strictEqual(evPow.env.get('res2'), 0.5, '4 ^ -0.5 = 0.5');
+    assert.strictEqual(evPow.env.get('res3'), 0.25, '2 ^ -2 = 0.25');
+    console.log('[PASS] Bug BI: ^ 演算子の負の指数');
+}
+
 console.log('\n✅ Operators (Extra): 全テスト通過');
