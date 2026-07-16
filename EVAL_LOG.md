@@ -251,6 +251,8 @@
 | ~~**Bug BM-1: `Write#` で `Empty` が `#NULL#` と書き出されていた**~~ | **修正済み**: `vbaEmpty===null`（JavaScript null）のため、`val===null` チェックが `vbaNull`（Symbol）より先に `vbaEmpty` も捕捉していた。チェック順を入れ替え `vbaEmpty` を先にチェックし `""`、`vbaNull` を後にチェックし `#NULL#` を返すよう修正。 | `2748e2a` |
 | ~~**Bug BM-2: `Line Input#` がモジュールレベル変数に書き込めなかった**~~ | **修正済み**: `evaluateLineInputStatement` が `env.setLocally()` を使っていたため、プロシージャ終了後に変数が破棄されていた。`evaluateAssignmentToVariable()` に変更しスコープチェーンを正しく辿るよう修正。 | `2748e2a` |
 | ~~**Bug BN: `Erase` 後の動的配列への `UBound`/`LBound` が Error 9 を投げなかった**~~ | **修正済み**: `evaluateEraseStatement` の動的配列パスで `d=[]` と空配列を代入していたが、`UBound([])=-1` で誤動作。`d=null` に変更し既存の `!Array.isArray` チェックで Error 9 が投げられるよう修正。`ReDim` は引き続き正常動作。 | `2748e2a` |
+| ~~**Bug BO: `evalExpression("True + True")` が Error 424 になっていた**~~ | **修正済み**: `isCallableLeftmostLeaf` が VBA キーワード定数（`True`/`False`/`Null`/`Empty`/`Nothing`）の `Identifier` も callable とみなし statement fallback に飛ばしていた。定数名を除外する分岐を追加。`evalExpression('True + True')=-2`, `'False + 1'=1`, `'Null + 1'=Null` が正しく動作するようになった。 | `c987947` |
+| ~~**Bug BP: `evalExpression("\"abc\" = \"ABC\"")` が `undefined` を返していた**~~ | **修正済み**: `isStatementAmbiguous` の `=` 演算子チェックが左辺の型に関係なくトリガーされ、文字列/数値リテラル同士の等値比較が statement fallback に飛んで結果が捨てられていた。修正: `=` も `+`/`-` と同様に `isCallableLeftmostLeaf` チェックを追加し、左辺が代入可能なノードの場合のみ ambiguous とみなすよう変更。代入セマンティクス（`x = 42`）は変わらず動作。 | `06a3ded` |
 
 ---
 
