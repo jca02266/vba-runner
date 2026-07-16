@@ -637,6 +637,11 @@ export class Parser {
         TokenType.KeywordError,       // On Error construct element (not standalone reserved)
         TokenType.KeywordProperty,    // Property Get/Set/Let keyword (not in spec's statement-keyword list)
         TokenType.KeywordGlobal,      // Module-level scope modifier (alias for Public); valid as variable name in Dim context
+        // Bug CD: `Next` used as a class field name (e.g. `Public Next As Object` for linked lists).
+        // Token type 7 is below the KeywordBase..KeywordAddressOf range so it was not accepted
+        // as an identifier in class-body field parsing or Dim declarations. The For-loop parser
+        // checks peek().type === KeywordNext directly, so adding it here does not interfere.
+        TokenType.KeywordNext,
     ]);
 
     /** Union of all contextual keyword groups above.

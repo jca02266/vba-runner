@@ -3106,6 +3106,12 @@ export class Evaluator {
                 if (setter) {
                     this.callClassMethod(obj, setter, [val]);
                 } else {
+                    // Bug CC: enforce fixed-length string truncation/padding for class fields
+                    const fl = obj.__fixedLengths__?.[propName];
+                    if (fl !== undefined && typeof val === 'string') {
+                        if (val.length > fl) val = val.slice(0, fl);
+                        else if (val.length < fl) val = val + ' '.repeat(fl - val.length);
+                    }
                     instanceEnv.set(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
@@ -3141,6 +3147,12 @@ export class Evaluator {
                 if (setter) {
                     this.callClassMethod(obj, setter, [val]);
                 } else {
+                    // Bug CC: enforce fixed-length string for With-block class field assignment
+                    const fl = obj.__fixedLengths__?.[propName];
+                    if (fl !== undefined && typeof val === 'string') {
+                        if (val.length > fl) val = val.slice(0, fl);
+                        else if (val.length < fl) val = val + ' '.repeat(fl - val.length);
+                    }
                     instanceEnv.set(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
@@ -3356,6 +3368,9 @@ export class Evaluator {
         // Create instance environment rooted at the global env
         const instanceEnv = new Environment(this.env);
 
+        // Bug CC: Track fixed-length string fields for enforcement on assignment
+        const classFixedLengths: Record<string, number> = {};
+
         // Initialize public/private fields with default values
         for (const fieldDecl of classDef.fields) {
             for (const decl of fieldDecl.declarations) {
@@ -3366,7 +3381,14 @@ export class Evaluator {
                 // currency/byte/longlong/longptr は 0 にならず、boolean も False(0) では
                 // なく Empty のままになっていた（Date/Variant は Dim 側でも Empty のままが
                 // 既定の挙動のため対象外）。
-                if (mt === 'string') defaultVal = '';
+                if (mt === 'string') {
+                    if (decl.fixedLength !== undefined) {
+                        defaultVal = ' '.repeat(decl.fixedLength);
+                        classFixedLengths[decl.name.name.toLowerCase()] = decl.fixedLength;
+                    } else {
+                        defaultVal = '';
+                    }
+                }
                 else if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(mt)) defaultVal = 0;
                 else if (mt === 'boolean') defaultVal = 0; // vbaFalse
                 else if (decl.objectType && this.env.getType(decl.objectType)) {
@@ -3428,6 +3450,10 @@ export class Evaluator {
             __instanceEnv__: instanceEnv,
             __events__: new Map<string, ((...args: any[]) => void)[]>(),
         };
+        // Bug CC: attach fixed-length info so assignment can truncate/pad
+        if (Object.keys(classFixedLengths).length > 0) {
+            instance.__fixedLengths__ = classFixedLengths;
+        }
 
         // Initialize Events
         for (const stmt of classDef.body) {

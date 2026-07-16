@@ -458,4 +458,67 @@ End Function
     console.log('[PASS] Bug BZ: Property Get 返却オブジェクトへの添字アクセス (c.Prop("key") / c.Prop(n))');
 }
 
+// Bug CC: `Public Code As String * 5` class field — fixed-length not enforced on assignment
+{
+    const code = `
+Class Record
+    Public Code As String * 5
+    Public Name As String * 10
+End Class
+Function TestCC_Assign() As String
+    Dim r As New Record
+    r.Code = "AB"
+    r.Name = "Hello World Extra"
+    TestCC_Assign = "|" & r.Code & "|" & Len(r.Code) & "|" & r.Name & "|" & Len(r.Name)
+End Function
+Function TestCC_Default() As String
+    Dim r As New Record
+    TestCC_Default = "|" & Len(r.Code) & "|" & Len(r.Name)
+End Function
+Function TestCC_With() As String
+    Dim r As New Record
+    With r
+        .Code = "XY"
+        .Name = "Short"
+    End With
+    TestCC_With = "|" & r.Code & "|" & Len(r.Code) & "|" & r.Name & "|" & Len(r.Name)
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestCC_Assign'), '|AB   |5|Hello Worl|10', 'Bug CC: fixed-length string truncated/padded on assign');
+    assert.strictEqual(runFunc(code, 'TestCC_Default'), '|5|10', 'Bug CC: fixed-length string field defaults to spaces');
+    assert.strictEqual(runFunc(code, 'TestCC_With'), '|XY   |5|Short     |10', 'Bug CC: fixed-length string enforced in With block');
+    console.log('[PASS] Bug CC: クラスフィールド固定長文字列の切り詰め・空白パディング');
+}
+
+// Bug CD: `Public Next As Object` — VBA keyword "Next" not accepted as class field name
+{
+    const code = `
+Class Node
+    Public Value As Long
+    Public Next As Object
+End Class
+Function TestCD_List() As String
+    Dim n1 As New Node, n2 As New Node, n3 As New Node
+    n1.Value = 1 : n2.Value = 2 : n3.Value = 3
+    Set n1.Next = n2
+    Set n2.Next = n3
+    Dim cur As Object
+    Set cur = n1
+    Dim s As String
+    Do While Not cur Is Nothing
+        s = s & cur.Value & ","
+        Set cur = cur.Next
+    Loop
+    TestCD_List = s
+End Function
+Function TestCD_IsNothing() As String
+    Dim n As New Node
+    If n.Next Is Nothing Then TestCD_IsNothing = "nothing" Else TestCD_IsNothing = "not-nothing"
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestCD_List'), '1,2,3,', 'Bug CD: linked list traversal with Public Next As Object');
+    assert.strictEqual(runFunc(code, 'TestCD_IsNothing'), 'nothing', 'Bug CD: unset Public Next As Object Is Nothing');
+    console.log('[PASS] Bug CD: VBA キーワード "Next" をクラスフィールド名として使用可能');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');
