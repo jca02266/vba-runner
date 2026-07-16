@@ -241,6 +241,7 @@
 | ✅ | P1 | Chr / Chr$ / ChrW | §6.1.2.11.1.4/6 | `builtin-strings.test.ts` |
 | ✅ | P1 | Filter | §6.1.2.11.1.7 | `filter.test.ts` |
 | ✅ | P0 | Format / Format$ | §6.1.2.11.1.8/9 | `format.test.ts` |
+| ✅ | P1 | FormatCurrency / FormatNumber / FormatPercent / FormatDateTime | — | `builtins.test.ts` |
 | ✅ | P0 | InStr / InStrB | §6.1.2.11.1.14 | `builtin-strings.test.ts` |
 | ✅ | P1 | InStrRev | §6.1.2.11.1.15 | `instrrev.test.ts` |
 | ✅ | P1 | Join | §6.1.2.11.1.16 | `split-join.test.ts` |
