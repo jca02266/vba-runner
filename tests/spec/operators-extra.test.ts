@@ -101,4 +101,29 @@ console.log('[PASS] Like 演算子');
     console.log('[PASS] Bug BI: ^ 演算子の負の指数');
 }
 
+// --- Bug BJ: Currency混在の \\ / Mod が事前丸めと0除算チェックを欠いていた ---
+{
+    const curCode = `
+        Public res1, res2, res3, res4, res5
+        Sub Test()
+            Dim c As Currency
+            c = CCur(7.5)
+            res1 = c \\ 2        ' 8 \\ 2 = 4 (7.5 → 銀行家丸め→8)
+            res2 = c \\ 2.1      ' 8 \\ 2 = 4 (7.5→8, 2.1→2)
+            c = CCur(6.5)
+            res3 = c Mod 3       ' 6 Mod 3 = 0 (6.5→6)
+            res4 = c Mod 3.1     ' 6 Mod 3 = 0 (6.5→6, 3.1→3)
+            res5 = CCur(5.5) \\ CCur(3.5)  ' round(5.5)=6, round(3.5)=4, 6\\4=1
+        End Sub
+    `;
+    const evCur = evalVBA(curCode);
+    evCur.callProcedure('Test', []);
+    assert.strictEqual(evCur.env.get('res1'), 4, 'CCur(7.5) \\ 2 = 4');
+    assert.strictEqual(evCur.env.get('res2'), 4, 'CCur(7.5) \\ 2.1 = 4');
+    assert.strictEqual(evCur.env.get('res3'), 0, 'CCur(6.5) Mod 3 = 0');
+    assert.strictEqual(evCur.env.get('res4'), 0, 'CCur(6.5) Mod 3.1 = 0');
+    assert.strictEqual(evCur.env.get('res5'), 1, 'CCur(5.5) \\ CCur(3.5) = 1');
+    console.log('[PASS] Bug BJ: Currency混在の \\ / Mod 事前丸め');
+}
+
 console.log('\n✅ Operators (Extra): 全テスト通過');

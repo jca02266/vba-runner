@@ -6303,8 +6303,16 @@ export class Evaluator {
                 case '/':
                     if (lb === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                     return la / lb;
-                case '\\': return Math.trunc(la / lb);
-                case 'mod': return la % lb;
+                case '\\': {
+                    const li = _vbaRound(la, 0), ri = _vbaRound(lb, 0);
+                    if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                    return Math.trunc(li / ri);
+                }
+                case 'mod': {
+                    const lm = _vbaRound(la, 0), rm = _vbaRound(lb, 0);
+                    if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                    return lm % rm;
+                }
                 case '=':  return la === lb ? vbaTrue : vbaFalse;
                 case '<>': return la !== lb ? vbaTrue : vbaFalse;
                 case '<':  return la < lb ? vbaTrue : vbaFalse;
@@ -6326,13 +6334,16 @@ export class Evaluator {
                 return Number(ai!) / Number(bi!);
             }
             case '\\': {
-                if (bi === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return Number(bankersDivide(ai!, bi!));
+                const li = _vbaRound(Number(ai!) / 10000, 0);
+                const ri = _vbaRound(Number(bi!) / 10000, 0);
+                if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return Math.trunc(li / ri);
             }
             case 'mod': {
-                if (bi === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                const q = bankersDivide(ai!, bi!);
-                return Number(ai! - q * bi!);
+                const lm = _vbaRound(Number(ai!) / 10000, 0);
+                const rm = _vbaRound(Number(bi!) / 10000, 0);
+                if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                return lm % rm;
             }
             case '=':  return ai! === bi! ? vbaTrue : vbaFalse;
             case '<>': return ai! !== bi! ? vbaTrue : vbaFalse;
