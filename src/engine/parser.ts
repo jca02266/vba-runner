@@ -259,6 +259,11 @@ export interface PrintStatement extends Statement {
     expressions: (Expression | 'Spc' | 'Tab' | 'Comma' | 'Semicolon')[];
 }
 
+export interface DebugPrintStatement extends Statement {
+    type: 'DebugPrintStatement';
+    expressions: (Expression | 'Spc' | 'Tab' | 'Comma' | 'Semicolon')[];
+}
+
 export interface LineInputStatement extends Statement {
     type: 'LineInputStatement';
     fileNumber: Expression;
@@ -1045,6 +1050,37 @@ export class Parser {
         return { type: 'PrintStatement', fileNumber, expressions };
     }
 
+    private parseDebugPrintStatement(): DebugPrintStatement {
+        this.advance(); // 'Debug'
+        this.advance(); // '.'
+        this.advance(); // 'Print'
+        const expressions: any[] = [];
+        while (!this.isAtTerminator()) {
+            if (this.match(TokenType.KeywordSpc)) {
+                this.consume(TokenType.OperatorLParen, "Expected '(' after Spc");
+                expressions.push({ type: 'Spc', val: this.parseExpression() });
+                this.consume(TokenType.OperatorRParen, "Expected ')' after Spc");
+            } else if (this.match(TokenType.KeywordTab)) {
+                if (this.match(TokenType.OperatorLParen)) {
+                    expressions.push({ type: 'Tab', val: this.parseExpression() });
+                    this.consume(TokenType.OperatorRParen, "Expected ')' after Tab");
+                } else {
+                    expressions.push('Tab');
+                }
+            } else if (this.peek().type === TokenType.OperatorComma) {
+                this.advance();
+                expressions.push('Comma');
+            } else if (this.peek().type === TokenType.OperatorSemicolon) {
+                this.advance();
+                expressions.push('Semicolon');
+            } else {
+                expressions.push(this.parseExpression());
+            }
+            if (this.isAtTerminator()) break;
+        }
+        return { type: 'DebugPrintStatement', expressions };
+    }
+
     private parseLineInputStatement(): LineInputStatement {
         this.advance(); // 'Line'
         this.consume(TokenType.KeywordInput, "Expected 'Input' after 'Line'");
@@ -1701,6 +1737,10 @@ export class Parser {
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
+        } else if (token.type === TokenType.Identifier && token.value.toLowerCase() === 'debug' &&
+                   this.peek(1).type === TokenType.OperatorDot &&
+                   this.peek(2).type === TokenType.KeywordPrint) {
+            return this.parseDebugPrintStatement();
         } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
                    token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||

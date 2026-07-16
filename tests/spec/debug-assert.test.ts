@@ -35,4 +35,23 @@ import { evalVBASingle, assert as specAssert } from '../../test-libs/test-runner
     console.log('[PASS] Debug.Assert False');
 }
 
+// --- Bug BR: Debug.Print で `;` セパレーターが ParseError になっていた ---
+{
+    const outputs: string[] = [];
+    const ev = evalVBASingle(`
+        Sub Test()
+            Debug.Print "Hello"; "World"
+            Debug.Print "A", "B"
+            Debug.Print 1; 2; 3
+            Debug.Print Spc(3); "Y"
+        End Sub
+    `, { onPrint: (s: string) => outputs.push(s) });
+    ev.callProcedure('Test', []);
+    specAssert.strictEqual(outputs[0], 'HelloWorld', 'Debug.Print "; " セミコロンは連結');
+    specAssert.ok(outputs[1].startsWith('A') && outputs[1].includes('B'), 'Debug.Print "," コンマはタブ区切り');
+    specAssert.strictEqual(outputs[2], '123', 'Debug.Print 数値 "; "');
+    specAssert.strictEqual(outputs[3], '   Y', 'Debug.Print Spc(3); "Y"');
+    console.log('[PASS] Bug BR: Debug.Print "; " セミコロンセパレーター');
+}
+
 console.log('\n✅ Debug.Assert: 全テスト通過');

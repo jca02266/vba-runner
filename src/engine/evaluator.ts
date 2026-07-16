@@ -51,6 +51,7 @@ import {
     OpenStatement,
     CloseStatement,
     PrintStatement,
+    DebugPrintStatement,
     LineInputStatement,
     PutStatement,
     KillStatement,
@@ -2100,6 +2101,9 @@ export class Evaluator {
                 break;
             case 'PrintStatement':
                 this.evaluatePrintStatement(stmt as PrintStatement);
+                break;
+            case 'DebugPrintStatement':
+                this.evaluateDebugPrintStatement(stmt as DebugPrintStatement);
                 break;
             case 'LineInputStatement':
                 this.evaluateLineInputStatement(stmt as LineInputStatement);
@@ -4334,6 +4338,32 @@ export class Evaluator {
 
         this.fs.writeSync(handle.fd, output);
         handle.pos! += output.length;
+    }
+
+    private evaluateDebugPrintStatement(stmt: DebugPrintStatement) {
+        let output = "";
+        for (const expr of stmt.expressions) {
+            if (expr === 'Comma') {
+                const currentLen = output.length;
+                const target = Math.ceil((currentLen + 1) / 14) * 14;
+                output += " ".repeat(target - currentLen);
+            } else if (expr === 'Semicolon') {
+                // no separator
+            } else if (typeof expr === 'object' && expr !== null && 'type' in expr) {
+                if (expr.type === 'Spc') {
+                    const n = Number(this.evaluateExpression((expr as any).val));
+                    output += " ".repeat(Math.max(0, n));
+                } else if (expr.type === 'Tab') {
+                    const n = Number(this.evaluateExpression((expr as any).val));
+                    output += " ".repeat(Math.max(0, n - output.length));
+                } else {
+                    output += this.toDisplayString(this.evaluateExpression(expr as any));
+                }
+            } else {
+                output += this.toDisplayString(this.evaluateExpression(expr as any));
+            }
+        }
+        this.onPrint(output);
     }
 
     private evaluateLineInputStatement(stmt: LineInputStatement) {

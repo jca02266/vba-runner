@@ -253,6 +253,8 @@
 | ~~**Bug BN: `Erase` 後の動的配列への `UBound`/`LBound` が Error 9 を投げなかった**~~ | **修正済み**: `evaluateEraseStatement` の動的配列パスで `d=[]` と空配列を代入していたが、`UBound([])=-1` で誤動作。`d=null` に変更し既存の `!Array.isArray` チェックで Error 9 が投げられるよう修正。`ReDim` は引き続き正常動作。 | `2748e2a` |
 | ~~**Bug BO: `evalExpression("True + True")` が Error 424 になっていた**~~ | **修正済み**: `isCallableLeftmostLeaf` が VBA キーワード定数（`True`/`False`/`Null`/`Empty`/`Nothing`）の `Identifier` も callable とみなし statement fallback に飛ばしていた。定数名を除外する分岐を追加。`evalExpression('True + True')=-2`, `'False + 1'=1`, `'Null + 1'=Null` が正しく動作するようになった。 | `c987947` |
 | ~~**Bug BP: `evalExpression("\"abc\" = \"ABC\"")` が `undefined` を返していた**~~ | **修正済み**: `isStatementAmbiguous` の `=` 演算子チェックが左辺の型に関係なくトリガーされ、文字列/数値リテラル同士の等値比較が statement fallback に飛んで結果が捨てられていた。修正: `=` も `+`/`-` と同様に `isCallableLeftmostLeaf` チェックを追加し、左辺が代入可能なノードの場合のみ ambiguous とみなすよう変更。代入セマンティクス（`x = 42`）は変わらず動作。 | `06a3ded` |
+| ~~**Bug BQ: `Format(time, "Long Time")` が 24 時間表記で返っていた / `Format(date, "Short Date")` が `yyyy/MM/dd` 形式だった**~~ | **修正済み**: `format.ts` の named format テーブルで `"long time"` が `HH:mm:ss`（24h）、`"short date"` が `yyyy/MM/dd` になっていた。`"long time"` → `h:mm:ss AM/PM`（12h）、`"short date"` → `M/D/YYYY`（米国形式）に修正。 | *(このセッション)* |
+| ~~**Bug BR: `Debug.Print "a"; "b"` が `ParseError: unexpected token ';'` で失敗していた**~~ | **修正済み**: `Debug.Print` は `CallStatement` として解析されていたため `;` セパレーターが不正なトークンとなっていた。パーサーに `DebugPrintStatement` 型を追加し、`Debug.Print` を `parsePrintStatement` と同等の print-list 構文（`;` / `,` / `Spc()` / `Tab()` 対応）で解析するよう変更。評価器に `evaluateDebugPrintStatement` を追加し `onPrint` コールバックに出力。 | *(このセッション)* |
 
 ---
 
