@@ -328,4 +328,13 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DN/DO: Format/FormatDateTime with Null format → VBA error');
 }
 
+// Bug DP: LeftB/RightB/MidB missing boundary checks (negative length, start < 1)
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('LeftB("abc", -2)'), /error '5'/, 'LeftB(s, -2) → Error 5');
+    assert.throwsMatch(() => ev.evalExpression('RightB("abc", -2)'), /error '5'/, 'RightB(s, -2) → Error 5');
+    assert.throwsMatch(() => ev.evalExpression('MidB("abc", 0)'), /error '5'/, 'MidB(s, 0) → Error 5');
+    console.log('[PASS] Bug DP: LeftB/RightB(neg)/MidB(0) → Error 5');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

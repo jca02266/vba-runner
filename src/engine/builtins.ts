@@ -766,19 +766,26 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('leftb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
+        const byteLen = Number(len);
+        if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = String(val ?? '');
-        return s.substring(0, Math.floor(Number(len) / 2));
+        return s.substring(0, Math.floor(byteLen / 2));
     }, [{ name: 'String' }, { name: 'Length' }]);
     ctx.reg('rightb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
+        const byteLen = Number(len);
+        if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = String(val ?? '');
-        const charLen = Math.floor(Number(len) / 2);
+        const charLen = Math.floor(byteLen / 2);
         return s.substring(s.length - charLen);
     }, [{ name: 'String' }, { name: 'Length' }]);
     const midbFunc = (val: any, start: any, len?: any) => {
         if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
         const s = String(val ?? '');
-        const charStart = Math.floor((Number(start) + 1) / 2);
+        const byteStart = Number(start);
+        if (byteStart < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        if (len !== undefined && Number(len) < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        const charStart = Math.floor((byteStart + 1) / 2);
         if (len === undefined) return s.substring(charStart - 1);
         const charLen = Math.floor(Number(len) / 2);
         return s.substring(charStart - 1, charStart - 1 + charLen);
