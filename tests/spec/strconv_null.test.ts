@@ -13,4 +13,11 @@ for (const t of tests) {
     console.log(`[PASS] ${t.code}`);
 }
 
+// Bug DG: StrConv("abc", Null) は VBA error (Conversion は VbStrConv 型、Null 不可)
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('StrConv("abc", Null)'), /error '/, 'StrConv("abc", Null) → VBA error');
+    console.log('[PASS] Bug DG: StrConv(s, Null) は VBA error');
+}
+
 console.log('✅ StrConv Null: 全テスト通過');

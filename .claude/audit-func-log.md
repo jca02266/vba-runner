@@ -80,6 +80,11 @@
 | Hour | 2026-07-17 | ✅ OK | §6.1.2.4.1.7。Null→Null、小数部→時間変換 正常 |
 | Minute | 2026-07-17 | ✅ OK | §6.1.2.4.1.8。Null→Null 正常 |
 | Second | 2026-07-17 | ✅ OK | §6.1.2.4.1.10。Null→Null 正常 |
+| StrConv | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.37。conv=Null で JS TypeError クラッシュ → Error 94 に修正。s=Null→Null 伝播は正常 |
+| Environ | 2026-07-17 | ✅ OK | §6.1.2.8.1.6。Sandbox経由でOS環境変数を隔離。文字列返却 正常 |
+| DateValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.5。Null→Null、日付文字列→VbaDate（時刻部分なし）正常 |
+| TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
+| TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
 | LCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.17。Null→Null、大文字 → 小文字変換正常 |
 | UCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.41。Null→Null、小文字 → 大文字変換正常 |
@@ -95,3 +100,4 @@
 | UBound | dim=Null で JS TypeError クラッシュ（仕様: VBA Error） | `builtins.test.ts` (Bug DD) | ✅ 修正済み |
 | LBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |
 | UBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |
+| StrConv | conv=Null で JS TypeError クラッシュ（仕様: VbStrConv 型のため Null 不可 → Error 94）| `strconv_null.test.ts` (Bug DG) | ✅ 修正済み |

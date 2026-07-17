@@ -713,6 +713,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('strconv', (s: any, conv: any) => {
         if (s === vbaNull) return vbaNull;
+        if (conv === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         let str = String(s ?? '');
         const c = Number(conv);
         const caseConv = c & 3;
