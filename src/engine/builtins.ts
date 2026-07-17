@@ -134,10 +134,12 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
 
     // CallByName(object, procName, callType, args...)
     // callType: 1=VbMethod, 2=VbGet, 4=VbLet, 8=VbSet
-    ctx.reg('callbyname', (obj: any, procName: string, callType: number, ...args: any[]) => {
+    ctx.reg('callbyname', (obj: any, procName: any, callType: any, ...args: any[]) => {
         if (obj === null || obj === undefined || obj === vbaNothing) {
             ctx.throwError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
         }
+        if (procName === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (callType === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const name = String(procName).toLowerCase();
         if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
             if (obj.__vbaClass__) {
@@ -1426,13 +1428,16 @@ export function registerRegistryFunctions(ctx: StdlibCtx): void {
         const s = ctx.registry[app]?.[sec];
         if (!s) return vbaEmpty;
         const res = Object.entries(s).map(([k, v]) => [k, v]);
-        (res as any).vbaBase = 0;
+        (res as any).vbaBase = 1;
         return res;
     }, [{ name: 'AppName' }, { name: 'Section' }]);
     ctx.reg('deletesetting', (app: string, sec?: string, key?: string) => {
-        if (!sec) delete ctx.registry[app];
-        else if (!key) delete ctx.registry[app]?.[sec];
-        else delete ctx.registry[app]?.[sec]?.[key];
+        if (!ctx.registry[app]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        if (!sec) { delete ctx.registry[app]; return; }
+        if (!ctx.registry[app][sec]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        if (!key) { delete ctx.registry[app][sec]; return; }
+        if (!(key in ctx.registry[app][sec])) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        delete ctx.registry[app][sec][key];
     }, [
         { name: 'AppName' },
         { name: 'Section', optional: true },

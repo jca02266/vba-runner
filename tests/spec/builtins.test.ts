@@ -347,4 +347,29 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DQ: Financial functions with Null → VBA error');
 }
 
+// Bug DR: CallByName with Null procName/callType → should be Error 94, not Error 438
+{
+    const ev = evalVBASingle(`
+Class TestClass
+    Public Value As String
+End Class
+Sub Main()
+End Sub
+`);
+    const obj = ev.evalExpression('New TestClass');
+    assert.throwsMatch(() => ev.callProcedure('callbyname', [obj, vbaNull, 2]), /error '94'/, 'CallByName(obj, Null, Get) → Error 94');
+    assert.throwsMatch(() => ev.callProcedure('callbyname', [obj, 'Value', vbaNull]), /error '94'/, 'CallByName(obj, name, Null) → Error 94');
+    console.log('[PASS] Bug DR: CallByName with Null procName/callType → Error 94');
+}
+
+// Bug DS: DeleteSetting on non-existent entries should throw runtime error (spec §6.1.2.8.2.3)
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('DeleteSetting "NoApp"'), /error '/, 'DeleteSetting(NoApp) → error');
+    ev.evalExpression('SaveSetting "App", "Sec", "Key", "Val"');
+    assert.throwsMatch(() => ev.evalExpression('DeleteSetting "App", "NoSec"'), /error '/, 'DeleteSetting(app,NoSec) → error');
+    assert.throwsMatch(() => ev.evalExpression('DeleteSetting "App", "Sec", "NoKey"'), /error '/, 'DeleteSetting(app,sec,NoKey) → error');
+    console.log('[PASS] Bug DS: DeleteSetting non-existent → runtime error');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
