@@ -54,4 +54,15 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] エッジケース');
 }
 
+// Compare=Null → error (spec §6.1.2.11.1.36: "If Compare is Null, an error occurs")
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(
+        () => ev.evalExpression('StrComp("a", "b", Null)'),
+        /Invalid use of Null|Null/,
+        'StrComp with Compare=Null should error',
+    );
+    console.log('[PASS] Compare=Null はエラー');
+}
+
 console.log('\n✅ StrComp: 全テスト通過');

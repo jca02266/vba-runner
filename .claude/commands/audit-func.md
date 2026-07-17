@@ -1,7 +1,10 @@
 # VBA 組み込み関数 仕様・実装統合監査スキル
 
-`src/engine/builtins.ts` および `src/engine/evaluator.ts` に実装されている VBA 組み込み関数を1件選び、
-MS-VBAL 仕様書と実装・テストを照合してバグを探す。試した関数は `.claude/audit-func-log.md` に記録し、同じ評価を繰り返さない。
+`src/engine/builtins.ts` および `src/engine/evaluator.ts` に実装されている VBA 組み込み関数を
+**バッチで複数件（デフォルト 5 件）** 選び、MS-VBAL 仕様書と実装・テストを照合してバグを探す。
+試した関数は `.claude/audit-func-log.md` に記録し、同じ評価を繰り返さない。
+
+引数に関数名が指定された場合（例: `audit-func Val StrComp`）はそれを優先して選ぶ。
 
 ---
 
@@ -15,7 +18,7 @@ MS-VBAL 仕様書と実装・テストを照合してバグを探す。試した
 grep -n "ctx\.reg(" src/engine/builtins.ts | sed "s/.*ctx\.reg('\([^']*\)'.*/\1/" | sort -u
 ```
 
-ログにない関数の中から **1件** を選ぶ。選定の優先順位：
+ログにない関数の中から **5 件程度** をまとめて選ぶ。選定の優先順位：
 
 1. 過去に類似バグが出たカテゴリ（文字列・日付・型変換）
 2. 引数が複雑（Optional / ParamArray / オーバーロード）な関数
@@ -23,9 +26,9 @@ grep -n "ctx\.reg(" src/engine/builtins.ts | sed "s/.*ctx\.reg('\([^']*\)'.*/\1/
 
 ---
 
-## Step 2: 実装を読む
+## Step 2: 各関数の実装を読む
 
-選んだ関数の実装を `builtins.ts` で読む：
+選んだ関数それぞれの実装を `builtins.ts` で読む（複数 grep を並列実行してよい）：
 
 ```bash
 grep -n "'<関数名>'" src/engine/builtins.ts
@@ -35,7 +38,7 @@ grep -n "'<関数名>'" src/engine/builtins.ts
 
 ---
 
-## Step 3: MS-VBAL 仕様書で該当セクションを確認
+## Step 3: MS-VBAL 仕様書で各関数のセクションを確認
 
 `spec/MS-VBAL-index.txt` で仕様書のセクション番号を調べ、本文を読む：
 
@@ -45,7 +48,7 @@ grep -i "<関数名>" spec/MS-VBAL-index.txt
 sed -n '<LINE>,+120p' spec/MS-VBAL.txt
 ```
 
-確認観点：
+確認観点（全関数共通）：
 - **引数の型・数・Optional の扱い**
 - **戻り値の型・値の範囲**
 - **Null / Empty / Missing の扱い**
@@ -68,7 +71,7 @@ grep -rn "<関数名>" tests/spec/ | head -20
 
 ## Step 5: 差分を分析してバグを特定
 
-仕様書・実装・テストの三者を比較し、以下を確認する：
+関数ごとに仕様書・実装・テストの三者を比較し、以下を確認する：
 
 | チェック項目 | 詳細 |
 |---|---|
@@ -80,7 +83,7 @@ grep -rn "<関数名>" tests/spec/ | head -20
 | 文字列バリアント | `$`付き変種（`Left$`等）の挙動が正しいか |
 | エラーコード | 不正入力で正しいエラー番号（5, 6, 13 等）が出るか |
 
-バグが見つかった場合は **Step 6** へ。見つからなかった場合は **Step 7** へ。
+バグが見つかった関数は **Step 6** へ。問題なしの関数は **Step 7** に記録するだけでよい。
 
 ---
 
@@ -88,7 +91,7 @@ grep -rn "<関数名>" tests/spec/ | head -20
 
 ### 6a. テストを作成する
 
-`tests/spec/<関数名>-audit.test.ts` にテストを追加（既存ファイルがあればそこに追記）：
+`tests/spec/<カテゴリ>-audit.test.ts` にテストを追加（既存ファイルがあればそこに追記）：
 
 ```typescript
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
@@ -120,15 +123,16 @@ npx tsx tests/spec/<テストファイル>.test.ts
 npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 ```
 
-### 6d. コミット（明示的な指示がある場合のみ）
+### 6d. コミット
 
-コミットは **ユーザーが明示的に指示した場合のみ** 行う。
+テストと型チェックが通ったら **ユーザーへの確認なしに自動でコミットしてよい**。
+コミットメッセージ形式: `Fix: Bug <ID> — <関数名> <バグ概要>`
 
 ---
 
 ## Step 7: 監査ログを更新する
 
-`.claude/audit-func-log.md` を更新する：
+`.claude/audit-func-log.md` を更新する（今回監査した全関数を一括追記）：
 
 **監査済みテーブルに行を追加**：
 
@@ -146,10 +150,9 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 
 ## Step 8: 結果を報告する
 
-ユーザーに以下を報告する：
+ユーザーに以下を表形式でまとめて報告する：
 
-1. 監査した関数名
-2. 仕様書のセクション番号
-3. バグの有無と内容（あれば）
-4. 追加したテストファイル名（あれば）
-5. 次に監査すべき候補（ログにない関数から上位3件）
+1. 監査した関数名一覧と仕様書セクション番号
+2. バグ有無と内容（あれば）
+3. 追加したテストファイル名
+4. 次回バッチ候補（ログにない関数から上位 5 件）

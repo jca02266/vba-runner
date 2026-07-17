@@ -25,4 +25,16 @@ assert.strictEqual(ev.callProcedure('TestSwitch', [1]), "One", 'Switch(1) should
 assert.strictEqual(ev.callProcedure('TestSwitch', [2]), "Two", 'Switch(2) should be "Two"');
 assert.strictEqual(ev.callProcedure('TestSwitch', [5]), "Many", 'Switch(5) should be "Many"');
 
+// Switch: 奇数個引数（不対ペア）は実行時エラー
+// spec §6.1.2.8.1.16: "If the parts aren't properly paired, a run-time error occurs."
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(
+        () => ev.evalExpression('Switch(False, "A", True)'),
+        /Invalid procedure call|argument/i,
+        'Switch with odd args should error',
+    );
+    console.log('[PASS] Switch 奇数引数はエラー');
+}
+
 console.log('✅ Choose and Switch: 全テスト通過');

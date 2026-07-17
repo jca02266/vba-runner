@@ -318,7 +318,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('oct', octFn, [{ name: 'Number' }], ['$']);
     ctx.reg('val', (s: any) => {
         if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (typeof s !== 'string') return 0;
+        // Non-string values are Let-coerced to String before parsing (VBA spec).
+        if (typeof s !== 'string') s = vbaToString(s);
         const cleaned = s.trim().replace(/ /g, '');
         if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
         if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
@@ -681,6 +682,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('strcomp', (s1: any, s2: any, comp?: number) => {
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
+        if (comp !== undefined && (comp as any) === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         let str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         if (isText) { str1 = str1.toLowerCase(); str2 = str2.toLowerCase(); }
@@ -1300,7 +1302,11 @@ export function registerConstants(ctx: StdlibCtx): void {
         { name: 'Index' },
         { name: 'Choice', isParamArray: true },
     ]);
-    ctx.reg('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (ctx.isTrue(args[i])) return args[i + 1]; return vbaNull; }, [
+    ctx.reg('switch', (...args: any[]) => {
+        if (args.length % 2 !== 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        for (let i = 0; i < args.length; i += 2) if (ctx.isTrue(args[i])) return args[i + 1];
+        return vbaNull;
+    }, [
         { name: 'VarExpr', isParamArray: true },
     ]);
     ctx.reg('array', (...args: any[]) => {
