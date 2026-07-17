@@ -1301,6 +1301,7 @@ export function registerConstants(ctx: StdlibCtx): void {
     const qbColorTable = [0, 8388608, 32768, 8421376, 128, 8388736, 32896, 12632256,
                           8421504, 16711680, 65280, 16776960, 255, 16711935, 65535, 16777215];
     ctx.reg('qbcolor', (c: any) => {
+        if (c === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const idx = Math.round(Number(c));
         if (idx < 0 || idx > 15) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return qbColorTable[idx];

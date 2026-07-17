@@ -301,4 +301,11 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DI: Error(Null) → VBA Error 94');
 }
 
+// Bug DJ: QBColor(Null) should throw VBA Error (not JS crash from Number(Symbol))
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('QBColor(Null)'), /error '/, 'QBColor(Null) → VBA error');
+    console.log('[PASS] Bug DJ: QBColor(Null) → VBA error');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
