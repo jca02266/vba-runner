@@ -86,6 +86,12 @@
 | TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
 | TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| LenB | 2026-07-17 | ✅ OK | §6.1.2.11.1.21。Null→Null、長さ×2返却 正常 |
+| AscB | 2026-07-17 | ✅ OK | §6.1.2.11.1.1。Null→Null、空文字→Error 5、先頭バイト返却 正常 |
+| ChrB | 2026-07-17 | ✅ OK | §6.1.2.11.1.4。Null→Null、&0xFF マスク 正常 |
+| LeftB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.19準拠。負の Length でエラーなし（Bug DP）|
+| RightB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.30準拠。負の Length でエラーなし（Bug DP）|
+| MidB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.25準拠。Start=0 でエラーなし（Bug DP）|
 | CLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.8。Null→Error 94、-2147483648〜2147483647 Overflow検出 正常 |
 | CLngLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.9。Null→Error 94、BigInt範囲チェック 正常 |
 | Format | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.8。format=Null でゴミ文字列返却（Bug DN）|
@@ -141,3 +147,6 @@
 | RGB | 各引数が Null のとき Number(Symbol) JS TypeError クラッシュ（Null チェック欠如）| `builtins.test.ts` (Bug DM) | ✅ 修正済み |
 | Format | format=Null でゴミ文字列返却（String(Symbol)="Symbol(vbaNull)"を書式として使用）| `builtins.test.ts` (Bug DN) | ✅ 修正済み |
 | FormatDateTime | namedFmt=Null で Number(Symbol) JS TypeError クラッシュ| `builtins.test.ts` (Bug DO) | ✅ 修正済み |
+| LeftB | 負の Length でエラーなし（Left は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
+| RightB | 負の Length でエラーなし（Right は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
+| MidB | Start=0 でエラーなし（Mid は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
