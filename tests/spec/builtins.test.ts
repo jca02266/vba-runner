@@ -285,4 +285,20 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Round: digits=Null でVBAエラー');
 }
 
+// Bug DH: IsObject should return False for value types (Date, Boolean, Decimal, Currency, ErrorValue)
+{
+    assert.strictEqual(evalExpr('IsObject(#1/1/2000#)'), vbaFalse, 'IsObject(Date) = False');
+    assert.strictEqual(evalExpr('IsObject(True)'), vbaFalse, 'IsObject(Boolean) = False');
+    assert.strictEqual(evalExpr('IsObject(CVErr(5))'), vbaFalse, 'IsObject(ErrorValue) = False');
+    assert.strictEqual(evalExpr('IsObject(Nothing)'), vbaTrue, 'IsObject(Nothing) = True');
+    console.log('[PASS] Bug DH: IsObject(Date/Boolean/Error) = False, IsObject(Nothing) = True');
+}
+
+// Bug DI: Error(Null) should throw VBA Error 94 (Invalid use of Null), not JS crash
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('Error(Null)'), /error '94'/, 'Error(Null) → Error 94');
+    console.log('[PASS] Bug DI: Error(Null) → VBA Error 94');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

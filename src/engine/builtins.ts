@@ -83,7 +83,12 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         }
         return vbaFalse;
     }, [{ name: 'Expression' }]);
-    ctx.reg('isobject', (val: any) => (val === vbaNothing || (val && typeof val === 'object' && !Array.isArray(val) && val !== vbaNull)) ? vbaTrue : vbaFalse, [{ name: 'Identifier' }]);
+    ctx.reg('isobject', (val: any) => {
+        if (val === vbaNothing) return vbaTrue;
+        if (!val || typeof val !== 'object' || Array.isArray(val)) return vbaFalse;
+        if (val instanceof VbaDate || val instanceof VbaBoolean || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaErrorValue) return vbaFalse;
+        return vbaTrue;
+    }, [{ name: 'Identifier' }]);
     ctx.reg('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
     ctx.reg('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
     ctx.reg('isarray', (val: any) => Array.isArray(val) ? vbaTrue : vbaFalse, [{ name: 'VarName' }]);
@@ -1266,7 +1271,10 @@ export function registerConstants(ctx: StdlibCtx): void {
         70: "Permission denied", 76: "Path not found", 91: "Object variable not set",
         94: "Invalid use of Null",
     };
-    const errFunc = (n?: any) => errorMessages[n === undefined ? ctx.errNum() : Number(n)] || "Application-defined or object-defined error";
+    const errFunc = (n?: any) => {
+        if (n === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        return errorMessages[n === undefined ? ctx.errNum() : Number(n)] || "Application-defined or object-defined error";
+    };
     ctx.reg('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
     ctx.envSetConst('vbsunday', 1);
     ctx.envSetConst('vbmonday', 2);
