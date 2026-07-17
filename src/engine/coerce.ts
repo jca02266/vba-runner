@@ -26,6 +26,7 @@ import { VbaErrorCode, throwVbaError } from './vba-errors';
  *
  * - Empty → 0
  * - Null  → Type mismatch (Error 13)
+ * - Nothing → Object variable not set (Error 91)
  * - Boolean → -1 or 0
  * - numeric string → parsed value; non-numeric → Error 13
  * - ErrorValue → Error 13
@@ -33,6 +34,7 @@ import { VbaErrorCode, throwVbaError } from './vba-errors';
 export function vbaToNumber(val: any): number {
     if (val === vbaEmpty) return 0;                          // null === null
     if (val === vbaNull) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (val instanceof VbaBoolean) return val.value;
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
@@ -58,7 +60,11 @@ export function vbaToNumber(val: any): number {
         return n;
     }
     if (val instanceof VbaErrorValue) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
-    return Number(val);
+    if (val === undefined) return 0;                         // Empty 相当（IsEmpty と同じ扱い）
+    if (Array.isArray(val)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    const n = Number(val);
+    if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    return n;
 }
 
 // ---------------------------------------------------------------------------
@@ -98,6 +104,7 @@ export function vbaRound(val: number, decimals: number = 0): number {
 export function vbaToBoolean(val: any): VbaBoolean {
     if (val instanceof VbaBoolean) return val;
     if (val === vbaEmpty) return vbaFalse;
+    if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
     if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
     if (typeof val === 'string') {
@@ -122,11 +129,13 @@ export function vbaToBoolean(val: any): VbaBoolean {
  *
  * - Null  → Invalid use of Null (Error 94)
  * - Empty → ""
+ * - Nothing → Object variable not set (Error 91)
  * - Others → String representation (delegates to toString())
  */
 export function vbaToString(val: any): string {
     if (val === vbaNull) throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL);
     if (val === vbaEmpty) return '';
+    if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     return String(val);
 }
 

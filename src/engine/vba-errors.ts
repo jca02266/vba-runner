@@ -19,6 +19,7 @@ export const VbaErrorCode = {
     INVALID_PROCEDURE_CALL:              5,
     OVERFLOW:                            6,
     TYPE_MISMATCH:                      13,
+    OUT_OF_STRING_SPACE:                14,
     DIVISION_BY_ZERO:                   11,
 
     // --- Collection / array ---
@@ -53,6 +54,7 @@ export const VBA_ERROR_MESSAGES: Readonly<Record<number, string>> = {
     [VbaErrorCode.INVALID_PROCEDURE_CALL]:           'Invalid procedure call or argument',
     [VbaErrorCode.OVERFLOW]:                         'Overflow',
     [VbaErrorCode.TYPE_MISMATCH]:                    'Type mismatch',
+    [VbaErrorCode.OUT_OF_STRING_SPACE]:              'Out of string space',
     [VbaErrorCode.DIVISION_BY_ZERO]:                 'Division by zero',
     [VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE]:           'Subscript out of range',
     [VbaErrorCode.KEY_ALREADY_EXISTS]:               'This key is already associated with an element of this collection',

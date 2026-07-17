@@ -108,6 +108,7 @@ import {
     vbaToNumber as _vbaToNumber,
     vbaToBoolean,
     vbaToDisplayString,
+    vbaToString,
     vbaRound as _vbaRound,
 } from './coerce';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
@@ -974,39 +975,42 @@ export class Evaluator {
         };
         this.registerBuiltin('freefile', freeFileFunc, [{ name: 'RangeNumber', optional: true }]);
         this.registerBuiltin('eof', (fn: any) => {
-            const h = this.fileHandles.get(Number(fn));
+            const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos! >= this.fs.statSync(h.path).size ? vbaTrue : vbaFalse;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('lof', (fn: any) => {
-            const h = this.fileHandles.get(Number(fn));
+            const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return this.fs.statSync(h.path).size;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('loc', (fn: any) => {
-            const h = this.fileHandles.get(Number(fn));
+            const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return h.pos;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('seek', (fn: any) => {
-            const h = this.fileHandles.get(Number(fn));
+            const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return (h.pos || 0) + 1;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('fileattr', (fn: any, info: any = 1) => {
-            console.log(`[STUB] FileAttr #${fn}, ${info}`);
+            console.log(`[STUB] FileAttr #${this.toVbaNumber(fn)}, ${this.toVbaNumber(info)}`);
             return 1;
         }, [{ name: 'FileNumber' }, { name: 'ReturnType', optional: true }]);
         this.registerBuiltin('chdrive', (drive: any) => {
-            console.log(`[STUB] ChDrive "${drive}"`);
+            console.log(`[STUB] ChDrive "${vbaToString(drive ?? '')}"`);
         }, [{ name: 'Drive' }]);
         this.registerBuiltin('setattr', (path: any, attr: any) => {
-            console.log(`[STUB] SetAttr "${path}", ${attr}`);
+            console.log(`[STUB] SetAttr "${vbaToString(path ?? '')}", ${this.toVbaNumber(attr)}`);
         }, [{ name: 'PathName' }, { name: 'Attributes' }]);
         this.registerBuiltin('filedatetime', (path: any) => {
-            const realPath = this.sandbox.toRealPath(String(path));
-            const stats = this.fs.statSync(realPath);
-            return new VbaDate(toVbaDate(stats.mtime));
+            const realPath = this.sandbox.toRealPath(vbaToString(path ?? ''));
+            try {
+                return new VbaDate(toVbaDate(this.fs.statSync(realPath).mtime));
+            } catch {
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
         }, [{ name: 'PathName' }]);
         this.registerBuiltin('curdir', (_drive?: string) => this.sandbox.getCwd(), [{ name: 'Drive', optional: true }], ['$']);
         this.registerBuiltin('dir', (pathName?: string, _attributes?: number) => {
@@ -1033,12 +1037,20 @@ export class Evaluator {
             { name: 'PathName', optional: true },
             { name: 'Attributes', optional: true },
         ], ['$']);
-        this.registerBuiltin('filecopy', (src: string, dest: string) => this.fs.copyFileSync?.(this.sandbox.toRealPath(src), this.sandbox.toRealPath(dest)), [
+        this.registerBuiltin('filecopy', (src: any, dest: any) => {
+            const srcPath = this.sandbox.toRealPath(vbaToString(src ?? ''));
+            const destPath = this.sandbox.toRealPath(vbaToString(dest ?? ''));
+            try {
+                this.fs.copyFileSync?.(srcPath, destPath);
+            } catch {
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
+        }, [
             { name: 'Source' }, { name: 'Destination' },
         ]);
-        this.registerBuiltin('kill', (p: string) => this.executeKill(p), [{ name: 'PathName' }]);
-        this.registerBuiltin('mkdir', (p: string) => this.fs.mkdirSync(this.sandbox.toRealPath(p), { recursive: true }), [{ name: 'Path' }]);
-        this.registerBuiltin('rmdir', (p: string) => this.fs.rmdirSync?.(this.sandbox.toRealPath(p)), [{ name: 'Path' }]);
+        this.registerBuiltin('kill', (p: any) => this.executeKill(vbaToString(p ?? '')), [{ name: 'PathName' }]);
+        this.registerBuiltin('mkdir', (p: any) => this.fs.mkdirSync(this.sandbox.toRealPath(vbaToString(p ?? '')), { recursive: true }), [{ name: 'Path' }]);
+        this.registerBuiltin('rmdir', (p: any) => this.fs.rmdirSync?.(this.sandbox.toRealPath(vbaToString(p ?? ''))), [{ name: 'Path' }]);
         this.registerBuiltin('chdir', (p: string) => {
             try {
                 this.sandbox.setCwd(p);
@@ -1046,7 +1058,14 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
             }
         }, [{ name: 'Path' }]);
-        this.registerBuiltin('filelen', (p: string) => this.fs.statSync(this.sandbox.toRealPath(p)).size, [{ name: 'PathName' }]);
+        this.registerBuiltin('filelen', (p: any) => {
+            const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
+            try {
+                return this.fs.statSync(realPath).size;
+            } catch {
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
+        }, [{ name: 'PathName' }]);
         // GetAttr/SetAttr: return vbNormal(0) stub; sandbox has no real file attribute model
         this.registerBuiltin('getattr', (_p: any) => 0, [{ name: 'PathName' }]);
         this.registerBuiltin('setattr', (_p: any, _attr: any) => undefined, [{ name: 'PathName' }, { name: 'Attributes' }]);
@@ -2416,6 +2435,15 @@ export class Evaluator {
         }
     }
 
+    private toVbaString(val: any): string {
+        try {
+            return vbaToString(val);
+        } catch (e: any) {
+            if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message);
+            throw e;
+        }
+    }
+
     private vbaRound(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
     private throwVbaError(number: number, message: string, overrideLine?: number, overrideModule?: string): never {
@@ -3726,6 +3754,16 @@ export class Evaluator {
      * `fn` に `__vbaOverloads__`/`__vbaParamSpec__` が付いていれば新しい検証・名前解決を行い、
      * 付いていなければ（未移行の組み込み関数）今までどおり単純な位置引数評価のみを行う。
      */
+    /** 組み込み関数を呼び出し、素の VbaError オブジェクトを枠組み付き Error に包み直す */
+    private invokeBuiltin(fn: Function, args: any[]): any {
+        try {
+            return fn(...args);
+        } catch (e: any) {
+            if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message);
+            throw e;
+        }
+    }
+
     private resolveCallArgs(fn: Function, argExprs: Expression[], nameForError: string): any[] {
         const overloads = (fn as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
         if (overloads) {
@@ -4679,7 +4717,7 @@ export class Evaluator {
     }
 
     private evaluateKillStatement(stmt: KillStatement) {
-        const vbaPath = String(this.evaluateExpression(stmt.path));
+        const vbaPath = this.toVbaString(this.evaluateExpression(stmt.path) ?? '');
         this.executeKill(vbaPath);
     }
 
@@ -6206,7 +6244,7 @@ export class Evaluator {
                     return variable;
                 }
                 if (typeof variable === 'function') {
-                    return variable(...this.resolveCallArgs(variable, expr.args, name));
+                    return this.invokeBuiltin(variable, this.resolveCallArgs(variable, expr.args, name));
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     const dims = (variable as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
@@ -6297,7 +6335,7 @@ export class Evaluator {
                         if (possibleModuleName.toLowerCase() === 'vba' || (potentialObj instanceof VbaNamespaceRef && potentialObj.kind === 'project')) {
                             const builtin = this.env.getConst(member.property.name);
                             if (typeof builtin === 'function') {
-                                return builtin(...this.resolveCallArgs(builtin, expr.args, member.property.name));
+                                return this.invokeBuiltin(builtin, this.resolveCallArgs(builtin, expr.args, member.property.name));
                             }
                             // 組み込みでない（想定外）場合は従来の経路でエラーを出す
                             return this.evaluateCallExpression({ ...expr, callee: member.property });
@@ -6475,7 +6513,7 @@ export class Evaluator {
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
-            return target(...this.resolveCallArgs(target, expr.args, expr.callee.type));
+            return this.invokeBuiltin(target, this.resolveCallArgs(target, expr.args, expr.callee.type));
         }
 
         this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');

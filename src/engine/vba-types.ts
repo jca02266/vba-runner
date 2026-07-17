@@ -38,6 +38,8 @@ export const fromVbaDate = (serial: number): Date => {
 
 export const parseVbaDate = (val: any): Date => {
     if (val === null || val === undefined) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
+    if (typeof val === 'symbol') throwVbaError(VbaErrorCode.TYPE_MISMATCH); // vbaNull 等の番兵
     if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
     if (typeof val === 'number') return fromVbaDate(val);
 
@@ -254,6 +256,12 @@ export class VbaCurrency {
     }
 
     static fromNumber(val: number): VbaCurrency {
+        // 非有限値と明確な範囲外を先に弾く（Infinity は toFixed/BigInt 変換が JS 例外になる。
+        // このしきい値は Currency 最大値より大きい最小の整数なので、境界付近の値は
+        // ここを素通りして下の正確な文字列→BigInt 経路とコンストラクターの範囲チェックで判定される）
+        if (!Number.isFinite(val) || Math.abs(val) >= 922337203685478) {
+            throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
         // Apply banker's round to 4 decimal places via float, then stringify to avoid float mantissa errors
         const factor = 10000;
         const scaled = val * factor;
