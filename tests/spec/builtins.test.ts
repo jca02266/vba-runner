@@ -255,4 +255,11 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug BK: CDate/Str/Val(Null)=Error 94, CStr(Null)=""');
 }
 
+// Round: NumDigitsAfterDecimal=Null → 型エラー (JS内部TypeErrorではなくVBAエラーになるべき)
+{
+    const errOf = (expr: string) => { try { evalExpr(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.ok(errOf('Round(1.5, Null)') !== null, 'Round(1.5, Null) → VBAエラーになること（JS TypeErrorでクラッシュしない）');
+    console.log('[PASS] Round: digits=Null でVBAエラー');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

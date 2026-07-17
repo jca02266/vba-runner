@@ -151,4 +151,18 @@ console.log('--- Starting Split / Join Tests ---');
     console.log('[PASS] Bug CK: Split 空文字列・Compare・Null 引数');
 }
 
+// Join: 非配列引数 → Type Mismatch 13 (spec: SourceArray must be array)
+{
+    const errOf = (expr: string) => { try { ev(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.strictEqual(errOf('Join("notanarray", ",")'), 13, 'Join: 非配列引数 → Type Mismatch 13');
+    console.log('[PASS] Join: 非配列引数はエラー');
+}
+
+// Join: 配列に Null 要素が含まれる → Type Mismatch 13（JS内部TypeErrorではなくVBAエラー）
+{
+    const errOf = (expr: string) => { try { ev(expr); return null; } catch(e: any) { return e.number ?? -1; } };
+    assert.strictEqual(errOf('Join(Array(1, Null, 3), ",")'), 13, 'Join: Null要素 → Type Mismatch 13');
+    console.log('[PASS] Join: Null要素はType Mismatch 13');
+}
+
 console.log('\n✅ Split / Join: 全テスト通過');

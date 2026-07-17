@@ -396,7 +396,11 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
         if (n <= 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return Math.log(n);
     }, [{ name: 'Number' }]);
-    ctx.reg('round', (val: any, digits: any = 0) => val === vbaNull ? vbaNull : ctx.round(ctx.toVbaNumber(val), Number(digits)), [
+    ctx.reg('round', (val: any, digits: any = 0) => {
+        if (val === vbaNull) return vbaNull;
+        if (digits !== undefined && digits === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        return ctx.round(ctx.toVbaNumber(val), Number(digits));
+    }, [
         { name: 'Number' },
         { name: 'NumDigitsAfterDecimal', optional: true },
     ]);
@@ -633,9 +637,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('join', (arr: any, del: any = ' ') => {
         if (del === vbaNull) return vbaNull;
-        if (!Array.isArray(arr)) return String(arr);
+        if (!Array.isArray(arr)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         const base = (arr as any).vbaBase || 0;
-        return arr.slice(base).join(String(del));
+        const elems = arr.slice(base).map((el: any) => {
+            if (el === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            return el === undefined || el === vbaEmpty ? '' : String(el);
+        });
+        return elems.join(String(del));
     }, [
         { name: 'SourceArray' },
         { name: 'Delimiter', optional: true },
@@ -920,6 +928,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             d.setMinutes(d.getMinutes() + n);
         } else if (intv === 's') {
             d.setSeconds(d.getSeconds() + n);
+        } else {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return new VbaDate(toVbaDate(d));
     }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);

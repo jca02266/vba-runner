@@ -218,4 +218,12 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 15: Mar 31 + 2 months = May 31');
 }
 
+// DateAdd: 無効な Interval 文字列 → Error 5 (spec §6.1.2.4.1.1 §6118)
+{
+    const errOf = (expr: string) => { try { evalVBA('').evalExpression(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.strictEqual(errOf('DateAdd("zz", 1, "2025-01-01")'), 5, 'DateAdd: 無効なInterval → Error 5');
+    assert.strictEqual(errOf('DateAdd("", 1, "2025-01-01")'), 5, 'DateAdd: 空Interval → Error 5');
+    console.log('[PASS] DateAdd: 無効Interval はError 5');
+}
+
 console.log('\n✅ DateAdd Month-End Rollover: 全テスト通過');

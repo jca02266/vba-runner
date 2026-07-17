@@ -17,6 +17,11 @@
 | Switch | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.8.1.16。奇数個引数（不対ペア）で undefined 返却→error 5 に修正 |
 | Choose | 2026-07-17 | ✅ OK | §6.1.2.8.1.2。Null/範囲外→Null は正常。Index型丸め(Single→Integer変換)は許容範囲 |
 | IIf | 2026-07-17 | ✅ OK | §6.1.2.8.1.11。両辺評価はJS関数呼び出しで自動実現。Null条件→error 94 は適切 |
+| Round | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.10.1.7。digits=Null で JS TypeError クラッシュ→Error 13 に修正 |
+| Str | 2026-07-17 | ✅ OK | §6.1.2.3.1.20。Str(Null)→error 94 は実VBA準拠（spec誤り）。正値に空白プレフィックスあり |
+| Join | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.16。非配列→String化/Null要素→JS TypeError を Error 13 に修正 |
+| DateAdd | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.1。無効Interval文字列でエラーなし→Error 5 を throw |
+| Nz | 2026-07-17 | ✅ OK | MS-VBAL外（Access固有）。Null/Empty→valueifnull の動作は適切 |
 
 ## バグ発見リスト
 
@@ -30,3 +35,6 @@
 | Val | 非文字列引数（42, 3.14 等）を常に 0 返却（仕様: String 強制変換してから解析） | `conversion-int-val.test.ts` | ✅ 修正済み |
 | StrComp | `StrComp(s1, s2, Null)` でエラーにならず binary 比較結果を返却（仕様: error 94） | `strcomp.test.ts` | ✅ 修正済み |
 | Switch | 奇数個引数（不対ペア）で undefined を返却（仕様: 実行時エラー Error 5） | `choose_switch.test.ts` | ✅ 修正済み |
+| Round | digits=Null で JS TypeError クラッシュ（仕様: Type Mismatch Error 13） | `builtins.test.ts` | ✅ 修正済み |
+| Join | 非配列引数で String 化・Null要素で JS TypeError クラッシュ（仕様: Error 13） | `split-join.test.ts` | ✅ 修正済み |
+| DateAdd | 無効 Interval 文字列でエラーなし（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` | ✅ 修正済み |
