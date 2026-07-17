@@ -960,7 +960,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         else if (intv === 'h') return Math.round(diffMs / 3600000);
         else if (intv === 'n') return Math.round(diffMs / 60000);
         else if (intv === 's') return Math.round(diffMs / 1000);
-        return 0;
+        else ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
     }, [
         { name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' },
         { name: 'FirstDayOfWeek', optional: true },
@@ -997,7 +997,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         else if (intv === 'h') return d.getHours();
         else if (intv === 'n') return d.getMinutes();
         else if (intv === 's') return d.getSeconds();
-        return 0;
+        else ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
     }, [
         { name: 'Interval' },
         { name: 'Date' },

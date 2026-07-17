@@ -226,4 +226,20 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] DateAdd: 無効Interval はError 5');
 }
 
+// Bug CS: DateDiff 無効 Interval → Error 5 (§6.1.2.4.1.2)
+{
+    const errOf = (expr: string) => { try { evalVBA('').evalExpression(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.strictEqual(errOf('DateDiff("zz", "2025-01-01", "2025-12-31")'), 5, 'DateDiff: 無効Interval → Error 5');
+    assert.strictEqual(errOf('DateDiff("", "2025-01-01", "2025-12-31")'), 5, 'DateDiff: 空Interval → Error 5');
+    console.log('[PASS] Bug CS: DateDiff 無効Interval は Error 5');
+}
+
+// Bug CT: DatePart 無効 Interval → Error 5 (§6.1.2.4.1.3)
+{
+    const errOf = (expr: string) => { try { evalVBA('').evalExpression(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.strictEqual(errOf('DatePart("zz", "2025-01-01")'), 5, 'DatePart: 無効Interval → Error 5');
+    assert.strictEqual(errOf('DatePart("", "2025-01-01")'), 5, 'DatePart: 空Interval → Error 5');
+    console.log('[PASS] Bug CT: DatePart 無効Interval は Error 5');
+}
+
 console.log('\n✅ DateAdd Month-End Rollover: 全テスト通過');
