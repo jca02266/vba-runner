@@ -436,14 +436,15 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     let rndInitialized = false;
     const rndFunc = (val?: any) => {
         if (!rndInitialized) { rndSeed = 0.5; rndInitialized = true; }
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (val === undefined || (typeof val === 'number' && val > 0)) {
             rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
             lastRnd = rndSeed / 4294967296;
             return lastRnd;
         } else if (val === 0) {
             return lastRnd;
-        } else if (val < 0) {
-            const s = Math.abs(Number(val)) * 9301 + 49297;
+        } else if (typeof val === 'number' && val < 0) {
+            const s = Math.abs(val) * 9301 + 49297;
             lastRnd = (s % 233280) / 233280;
             return lastRnd;
         }
@@ -451,6 +452,7 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('rnd', rndFunc, [{ name: 'Number', optional: true }]);
     ctx.reg('randomize', (val?: any) => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         rndInitialized = true;
         rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(Number(val)) * 1000) % 4294967296);
         lastRnd = rndSeed / 4294967296;
@@ -1295,6 +1297,7 @@ export function registerConstants(ctx: StdlibCtx): void {
 
     ctx.reg('environ', (k: any) => ctx.getEnv(k), [{ name: 'EnvString' }], ['$']);
     ctx.reg('rgb', (r: any, g: any, b: any) => {
+        if (r === vbaNull || g === vbaNull || b === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const clamp = (n: number) => Math.min(255, Math.max(0, Math.round(n)));
         return clamp(Number(r)) + clamp(Number(g)) * 256 + clamp(Number(b)) * 65536;
     }, [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]);

@@ -308,4 +308,15 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DJ: QBColor(Null) → VBA error');
 }
 
+// Bug DK: Rnd(Null) should throw VBA error, not JS crash (Symbol comparison throws TypeError)
+// Bug DL: Randomize(Null) should throw VBA error, not JS crash (Number(Symbol) crashes)
+// Bug DM: RGB(Null, 0, 0) should throw VBA error, not JS crash (Number(Symbol) crashes)
+{
+    const ev = evalVBASingle('Sub T() : Randomize Null : End Sub');
+    assert.throwsMatch(() => evalVBASingle('').evalExpression('Rnd(Null)'), /error '/, 'Rnd(Null) → VBA error');
+    assert.throwsMatch(() => ev.callProcedure('T', []), /error '/, 'Randomize(Null) → VBA error');
+    assert.throwsMatch(() => evalVBASingle('').evalExpression('RGB(Null, 0, 0)'), /error '/, 'RGB(Null, 0, 0) → VBA error');
+    console.log('[PASS] Bug DK/DL/DM: Rnd/Randomize/RGB(Null) → VBA error');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
