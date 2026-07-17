@@ -86,6 +86,14 @@
 | TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
 | TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| CVar | 2026-07-17 | ✅ OK | §6.1.2.3.1.13。引数をそのまま返す（identity）。Null→Null 正常 |
+| CVDate | 2026-07-17 | ✅ OK | §6.1.2.3.1（MS-VBAL に詳細節なし）。Null→Null、それ以外CDate委譲 正常 |
+| CVErr | 2026-07-17 | ✅ OK | §6.1.2.3.1.14。既存ErrorValue→そのまま返却、0-65535範囲チェックあり。Null→toVbaNumber→Error 13（Let-coerce TYPE_MISMATCH相当） |
+| IsEmpty | 2026-07-17 | ✅ OK | §6.1.2.7.1.4。val===null（vbaEmpty）→True 正常。val===undefined の防衛的チェックは問題なし |
+| IsError | 2026-07-17 | ✅ OK | §6.1.2.7.1.5。VbaErrorValue instanceof チェックのみ。正常 |
+| IsMissing | 2026-07-17 | ✅ OK | §6.1.2.7.1.6。vbaMissing Symbol との一致チェック。ParamArray→False は仕様通り |
+| IsObject | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.7.1.9。値型（VbaDate等）で True 返却（Bug DH）|
+| Error | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.3.1.15。Null で JS TypeError クラッシュ（Bug DI）|
 | LCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.17。Null→Null、大文字 → 小文字変換正常 |
 | UCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.41。Null→Null、小文字 → 大文字変換正常 |
 | LTrim | 2026-07-17 | ✅ OK | §6.1.2.11.1.23。Null→Null、前後空白削除正常 |
@@ -101,3 +109,5 @@
 | LBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |
 | UBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |
 | StrConv | conv=Null で JS TypeError クラッシュ（仕様: VbStrConv 型のため Null 不可 → Error 94）| `strconv_null.test.ts` (Bug DG) | ✅ 修正済み |
+| IsObject | VbaDate/VbaBoolean/VbaDecimal/VbaCurrency/VbaErrorValue で True 返却（仕様: 値型は Object Reference ではない → False）| `builtins.test.ts` (Bug DH) | ✅ 修正済み |
+| Error | Error(Null) で JS TypeError クラッシュ（Number(Symbol)。仕様: Let-coerce to Long → Null → Error 94）| `builtins.test.ts` (Bug DI) | ✅ 修正済み |
