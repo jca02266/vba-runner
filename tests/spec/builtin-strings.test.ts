@@ -231,6 +231,26 @@ function ev(expr: string): any {
     console.log('[PASS] Bug K: InStr start<1 → Error 5');
 }
 
+// --- Bug BH: InStr の Null/Boolean Start・Null Compare の誤判定 ---
+{
+    // Start=Null → error 94 (§6.1.2.11.1.14: "If start contains Null, an error occurs.")
+    let errNum = 0;
+    try { ev('InStr(Null, "hello", "l")'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'InStr(Null, "hello", "l") → error 94');
+
+    // Start=True (VbaBoolean = -1) → error 5（typeof チェックが VbaBoolean を誤分類していた）
+    errNum = 0;
+    try { ev('InStr(True, "hello", "l")'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 5, 'InStr(True, "hello", "l") → error 5 (Start=-1 < 1)');
+
+    // Compare=Null → error 94 (§6.1.2.11.1.14: "If compare is Null, an error occurs.")
+    errNum = 0;
+    try { ev('InStr(1, "hello", "l", Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'InStr(1, "hello", "l", Null) → error 94');
+
+    console.log('[PASS] Bug BH: InStr Null/Boolean Start, Null Compare');
+}
+
 // --- Bug M: Chr の引数範囲は 0-255、ChrW は 0-65535 ---
 {
     assert.strictEqual(ev('Chr(65)'), 'A', 'Chr(65) = "A"');
@@ -297,6 +317,25 @@ function ev(expr: string): any {
     assert.strictEqual(ev('Nz(Null, 42)'), 42, 'Nz(Null, 42) = 42');
     assert.strictEqual(ev('Nz("hello")'), 'hello', 'Nz("hello") = "hello"');
     console.log('[PASS] Bug BF: Nz(Null) = ""');
+}
+
+// --- Bug BG: Replace(Null, ...) が Null を返す（仕様では error 94、Start<1 は error 5）---
+{
+    // §6.1.2.11.1.29: "Expression is Null → An error."
+    let errNum = 0;
+    try { ev('Replace(Null, "a", "b")'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'Replace(Null, "a", "b") → error 94 (Invalid use of Null)');
+
+    // Start < 1 → error 5 (Invalid procedure call or argument)
+    errNum = 0;
+    try { ev('Replace("hello", "l", "x", 0)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 5, 'Replace(..., Start=0) → error 5');
+
+    errNum = 0;
+    try { ev('Replace("hello", "l", "x", -1)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 5, 'Replace(..., Start=-1) → error 5');
+
+    console.log('[PASS] Bug BG: Replace(Null)/Start<1 エラー検証');
 }
 
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

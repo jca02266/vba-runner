@@ -580,4 +580,36 @@ End Function
     console.log('[PASS] Bug CI: 複数モジュールで Dim obj As New ClassName が正しくインスタンス化される');
 }
 
+// --- Bug 29-F/G: Sub メソッドを eval() 経由で呼べる ---
+{
+    const counterCode = 'Class Counter\nPrivate mVal As Long\nPublic Sub Increment()\n    mVal = mVal + 1\nEnd Sub\nPublic Property Get Value() As Long\n    Value = mVal\nEnd Property\nEnd Class';
+
+    // 29-F: eval("a.Increment") → fast path (expression) → calls Sub
+    {
+        const ev = evalVBAModules([
+            { name: 'Counter', code: counterCode },
+            { name: 'Module1', code: 'Sub Setup()\nDim a As New Counter\nSet gA = a\nEnd Sub\nDim gA As Counter' },
+        ]);
+        // Use Dim/Set to create instance without touching private API
+        ev.evalExpression('Dim a As New Counter');
+        ev.evalExpression('a.Increment');
+        ev.evalExpression('a.Increment');
+        assert.strictEqual(ev.evalExpression('a.Value'), 2, 'Bug 29-F: eval("a.Increment") は Sub を呼び出す（戻り値0で黙殺しない）');
+        console.log('[PASS] Bug 29-F: eval("a.Increment") で Sub が実行される');
+    }
+
+    // 29-G: multi-statement eval with Dim → slow path → no Error 450
+    {
+        const ev = evalVBAModules([
+            { name: 'Counter', code: counterCode },
+            { name: 'Module1', code: '' },
+        ]);
+        let out = '';
+        (ev as any).onPrint = (s: string) => { out += s; };
+        ev.evalExpression('Dim g As New Counter : g.Increment : Debug.Print g.Value');
+        assert.strictEqual(out.trim(), '1', 'Bug 29-G: Dim g As New Counter : g.Increment が Error 450 を出さず Sub を呼ぶ');
+        console.log('[PASS] Bug 29-G: multi-statement eval で Sub コールが正常動作する');
+    }
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

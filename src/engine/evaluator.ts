@@ -934,6 +934,7 @@ export class Evaluator {
             round: (n, d = 0) => this.vbaRound(n, d),
             callMethod: (o, p, a) => this.callClassMethod(o, p, a),
             get compMode() { return self.comparisonMode; },
+            get arrayBase() { return self.arrayBase; },
             print: (m) => this.onPrint(m),
             errNum: () => this.errObj.number,
             getEnv: (k) => this.sandbox.getEnv(k),
@@ -6819,9 +6820,9 @@ export class Evaluator {
                 return this.callClassMethod(obj, getter, []);
             }
 
-            // No-arg Sub/Function access without parens (rare, treat as property-like call)
+            // No-arg Sub/Function access without parens: call it (Sub or Function).
             const method = classDef.procedures.find(
-                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.parameters.length === 0 && p.isFunction
+                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.parameters.length === 0
             );
             if (method) {
                 return this.callClassMethod(obj, method, []);
@@ -6905,7 +6906,9 @@ export class Evaluator {
         const logicalOps = new Set(['and', 'or', 'xor', 'eqv', 'imp']);
 
         if (op === '&') {
-            // 文字列連結: Null も Empty も "" 扱い
+            // 文字列連結: Empty は "" 扱い。Null は両辺とも Null のときのみ Null を返し、
+            // 片方のみ Null のときは "" として連結する（VBA 仕様）。
+            if (leftVal === vbaNull && rightVal === vbaNull) return vbaNull;
             if (leftVal === vbaNull || leftVal === vbaEmpty) leftVal = '';
             if (rightVal === vbaNull || rightVal === vbaEmpty) rightVal = '';
         } else if (arithmeticOps.has(op) || comparisonOps.has(op) || logicalOps.has(op)) {
@@ -7014,7 +7017,11 @@ export class Evaluator {
                 if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return lm % rm;
             }
-            case '^': return Math.pow(leftVal, rightVal);
+            case '^': {
+                const powResult = Math.pow(leftVal, rightVal);
+                if (isNaN(powResult)) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                return powResult;
+            }
             case '=':
                 if (leftVal instanceof VbaErrorValue && rightVal instanceof VbaErrorValue) {
                     return leftVal.code === rightVal.code ? vbaTrue : vbaFalse;

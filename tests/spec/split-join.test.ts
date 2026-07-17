@@ -123,4 +123,32 @@ console.log('--- Starting Split / Join Tests ---');
     console.log('[PASS] Bug #25-5: Split limit 引数');
 }
 
+// --- Bug CK: 空 Expression / 空 Delimiter / Compare 無視 / Null 引数 (§6.1.2.11.1.35) ---
+{
+    const errOf = (expr: string) => {
+        try { ev(expr); return 0; } catch (e: any) { return e?.number ?? -1; }
+    };
+
+    // 仕様: Expression が zero-length string → 要素なしの空配列
+    assert.strictEqual(ev('UBound(Split("", ","))'), -1, 'Split("", ","): 空配列 (UBound = -1)');
+    assert.strictEqual(ev('LBound(Split("", ","))'), 0, 'Split("", ","): LBound = 0');
+
+    // 仕様: Delimiter が zero-length string → expression 全体を含む1要素配列
+    assert.strictEqual(ev('UBound(Split("abc", ""))'), 0, 'Split("abc", ""): 1要素');
+    assert.strictEqual(ev('Join(Split("abc", ""), "|")'), 'abc', 'Split("abc", ""): 全体が1要素');
+
+    // 仕様: Compare = vbTextCompare → 区切り文字を大文字小文字無視で照合
+    assert.strictEqual(ev('Join(Split("aXbXc", "x", -1, 1), "|")'), 'a|b|c', 'Split vbTextCompare: 大文字区切りにマッチ');
+    assert.strictEqual(ev('Join(Split("aXbxc", "X", 2, 1), "|")'), 'a|bxc', 'Split vbTextCompare + limit: 残余は元の文字列を保持');
+    // 省略時は binary（既定）
+    assert.strictEqual(ev('UBound(Split("aXbXc", "x"))'), 0, 'Split binary: 大文字区切りにマッチしない');
+
+    // Delimiter / Limit / Compare に Null → error 94
+    assert.strictEqual(errOf('Split("a b", Null)'), 94, 'Split: Delimiter=Null -> error 94');
+    assert.strictEqual(errOf('Split("a b", " ", Null)'), 94, 'Split: Limit=Null -> error 94');
+    assert.strictEqual(errOf('Split("a b", " ", -1, Null)'), 94, 'Split: Compare=Null -> error 94');
+
+    console.log('[PASS] Bug CK: Split 空文字列・Compare・Null 引数');
+}
+
 console.log('\n✅ Split / Join: 全テスト通過');

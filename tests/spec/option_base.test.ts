@@ -53,4 +53,19 @@ console.log('[Test Suite] Option Base and Collection の検証');
     console.log('✅ Collection: 通過');
 }
 
+// --- Bug 29-E: Array() が Option Base 1 を反映する ---
+{
+    const code = `
+Option Base 1
+Function TestArrayBase()
+    Dim a As Variant
+    a = Array(10, 20, 30)
+    TestArrayBase = LBound(a) & "," & UBound(a) & "," & a(1) & "," & a(3)
+End Function
+`;
+    const result = evalVBASingle(code).callProcedure('TestArrayBase', []);
+    assert.strictEqual(result, '1,3,10,30', 'Bug 29-E: Array() は Option Base 1 のとき LBound=1 になる');
+    console.log('[PASS] Bug 29-E: Array() が Option Base 1 を反映する');
+}
+
 console.log('✅ すべてのテストを通過しました');

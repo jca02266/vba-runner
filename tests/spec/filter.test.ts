@@ -93,4 +93,18 @@ function evalVBA(code: string): any {
     console.log('[PASS] Edge case tests');
 }
 
+// --- Bug CL: 多次元配列 → error 13 (§6.1.2.11.1.7: "not a one-dimensional array" はエラー) ---
+{
+    const code = `
+    Function TestMultiDim()
+        Dim a(1 To 2, 1 To 2) As String
+        a(1, 1) = "a"
+        TestMultiDim = UBound(Filter(a, "a"))
+    End Function`;
+    let errNum = 0;
+    try { evalVBASingle(code).callProcedure('TestMultiDim', []); } catch (e: any) { errNum = e?.number ?? -1; }
+    assert.strictEqual(errNum, 13, 'Filter(2D array, ...) -> error 13');
+    console.log('[PASS] Bug CL: Filter 多次元配列は error 13');
+}
+
 console.log('\n✅ Filter: 全テスト通過');

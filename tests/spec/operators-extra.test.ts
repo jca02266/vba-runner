@@ -143,4 +143,37 @@ End Function
     console.log('[PASS] Bug BU: 文字列/数値混在の = と <> 比較');
 }
 
+// --- Bug 29-B: ^ は左結合 (2^3^2 = 64、右結合では 512) ---
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('2 ^ 3 ^ 2'), 64, 'Bug 29-B: 2^3^2 = (2^3)^2 = 64 (左結合)');
+    assert.strictEqual(ev.evalExpression('2 ^ 3'), 8, 'Bug 29-B: 2^3 = 8');
+    console.log('[PASS] Bug 29-B: ^ 演算子は左結合');
+}
+
+// --- Bug 29-C: 虚数乗算 (-8)^0.5 は Error 5 ---
+{
+    let errNum = 0;
+    try { evalVBASingle('').evalExpression('(-8) ^ 0.5'); } catch (e: any) { errNum = e?.number ?? -1; }
+    assert.strictEqual(errNum, 5, 'Bug 29-C: (-8)^0.5 → Error 5 (NaN は Invalid procedure call)');
+    console.log('[PASS] Bug 29-C: (-8)^0.5 → Error 5');
+}
+
+// --- Bug 29-D: Null & Null は Null を返す ---
+{
+    const code = `
+Function TestNullConcat()
+    Dim r1, r2, r3, r4
+    r1 = IsNull(Null & Null)
+    r2 = (Null & "")
+    r3 = ("" & Null)
+    r4 = (Null & "a")
+    TestNullConcat = r1 & "," & r2 & "," & r3 & "," & r4
+End Function
+`;
+    const result = evalVBASingle(code).callProcedure('TestNullConcat', []);
+    assert.strictEqual(result, 'True,,,a', 'Bug 29-D: Null & Null → Null; Null & "" → ""; "" & Null → ""; Null & "a" → "a"');
+    console.log('[PASS] Bug 29-D: Null & Null → Null');
+}
+
 console.log('\n✅ Operators (Extra): 全テスト通過');

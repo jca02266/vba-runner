@@ -186,4 +186,28 @@ function evalVBA(code: string): Evaluator {
     console.log('✅ TypeName for parameter inside function');
 }
 
+// --- Bug 29-A: 型宣言サフィックス (Dim n&, s$, d#, f!, c@, i%) ---
+{
+    const code = `
+Function TestTypeSuffix()
+    Dim n&
+    Dim s$
+    Dim d#
+    Dim f!
+    Dim c@
+    Dim i%
+    n& = 100000
+    s$ = "hello"
+    d# = 3.14
+    f! = 2.5
+    c@ = 1.23
+    i% = 42
+    TestTypeSuffix = n& & "," & s$ & "," & d# & "," & f! & "," & c@ & "," & i%
+End Function
+`;
+    const result = evalVBASingle(code).callProcedure('TestTypeSuffix', []);
+    assert.strictEqual(result, '100000,hello,3.14,2.5,1.23,42', 'Bug 29-A: 型宣言サフィックス Dim n& / s$ / d# / f! / c@ / i% が正しく動作する');
+    console.log('[PASS] Bug 29-A: 型宣言サフィックス (Dim n&, s$, d#, f!, c@, i%)');
+}
+
 console.log('--- All Type System tests passed! ---');

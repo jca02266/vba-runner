@@ -46,6 +46,7 @@ export interface StdlibCtx {
     round(n: number, digits?: number): number;
     callMethod(obj: any, proc: ProcedureDeclaration, args: any[]): any;
     readonly compMode: 'Binary' | 'Text';
+    readonly arrayBase: number;
     print(msg: string): void;
     errNum(): number;
     getEnv(k: any): string;
@@ -476,10 +477,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('chrb', (n: any) => { if (n === vbaNull) return vbaNull; return String.fromCharCode(Number(n) & 0xFF); }, [{ name: 'CharCode' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
-        let start = 1, s1, s2, comp;
+        let start: any = 1, s1: any, s2: any, comp: any;
         if (args.length >= 4) [start, s1, s2, comp] = args;
-        else if (args.length === 3 && typeof args[0] === 'number') [start, s1, s2] = args;
+        else if (args.length === 3) [start, s1, s2] = args;  // arg count determines form, not type
         else [s1, s2] = args;
+        if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (comp === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (Number(start) < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = String(s1 ?? ''), str2 = String(s2 ?? '');
@@ -511,12 +514,16 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
     ]);
     ctx.reg('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
+        if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (comp === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        const startNum = Number(start);
+        if (startNum !== -1 && startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str = String(s1 ?? ''), find = String(s2 ?? '');
-        if (find === "") return (start === -1) ? str.length : Number(start);
-        const startNum = Number(start);
+        if (str === "") return 0;
         if (startNum !== -1 && startNum > str.length) return 0;
-        const effStart = (start === -1) ? str.length : startNum;
+        const effStart = (startNum === -1) ? str.length : startNum;
+        if (find === "") return effStart;
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         const idx = isText ? str.toLowerCase().lastIndexOf(find.toLowerCase(), effStart - 1) : str.lastIndexOf(find, effStart - 1);
         return idx === -1 ? 0 : idx + 1;
@@ -590,19 +597,30 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return c.repeat(count);
     };
     ctx.reg('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
-    ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, _compare: any = 0) => {
+    ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, compare: any = undefined) => {
         if (s === vbaNull) return vbaNull;
+        if (del === vbaNull || limit === vbaNull || compare === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const str = String(s ?? '');
         const delimiter = del === null || del === undefined ? ' ' : String(del);
         const n = (limit === null || limit === undefined) ? -1 : Number(limit);
-        const parts = str.split(delimiter);
         let result: string[];
-        if (n === 0) {
+        if (str === '' || n === 0) {
             result = [];
-        } else if (n < 0 || parts.length <= n) {
-            result = parts;
+        } else if (delimiter === '') {
+            result = [str];
         } else {
-            result = [...parts.slice(0, n - 1), parts.slice(n - 1).join(delimiter)];
+            const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
+            const cmpStr = isText ? str.toLowerCase() : str;
+            const cmpDel = isText ? delimiter.toLowerCase() : delimiter;
+            result = [];
+            let pos = 0;
+            for (;;) {
+                if (n > 0 && result.length === n - 1) { result.push(str.substring(pos)); break; }
+                const idx = cmpStr.indexOf(cmpDel, pos);
+                if (idx === -1) { result.push(str.substring(pos)); break; }
+                result.push(str.substring(pos, idx));
+                pos = idx + delimiter.length;
+            }
         }
         (result as any).vbaBase = 0;
         return result;
@@ -622,11 +640,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Delimiter', optional: true },
     ]);
     ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
-        if (s === vbaNull || f === vbaNull || r === vbaNull) return vbaNull;
+        if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (f === vbaNull || r === vbaNull) return vbaNull;
         const str = String(s ?? '');
         const find = String(f ?? '');
         const repl = String(r ?? '');
         const startNum = Number(start ?? 1);
+        if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const countNum = Number(count ?? -1);
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
         // Slice from start position (1-based), operate, then return from that offset
@@ -693,6 +713,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
     ctx.reg('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
         if (!Array.isArray(source)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const srcDims = (source as any).__vbaDimensions__;
+        if (srcDims && srcDims.length > 1) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (match === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const find = String(match ?? '');
         const isInclude = ctx.isTrue(include);
@@ -1281,7 +1303,13 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('switch', (...args: any[]) => { for (let i = 0; i < args.length; i += 2) if (ctx.isTrue(args[i])) return args[i + 1]; return vbaNull; }, [
         { name: 'VarExpr', isParamArray: true },
     ]);
-    ctx.reg('array', (...args: any[]) => { const a = [...args]; (a as any).vbaBase = 0; return a; }, [
+    ctx.reg('array', (...args: any[]) => {
+        // Pre-fill base slots so element i maps to JS index (base + i), matching Option Base.
+        const base = ctx.arrayBase;
+        const a: any[] = new Array(base).fill(undefined).concat(args);
+        (a as any).vbaBase = base;
+        return a;
+    }, [
         { name: 'Arglist', isParamArray: true },
     ]);
     ctx.reg('lbound', (a: any, dim: any = 1) => {
@@ -1306,7 +1334,9 @@ export function registerConstants(ctx: StdlibCtx): void {
             return (a as any).__vbaDimensions__[dimIndex].upper;
         }
         if (dimIndex > 0) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
-        return ((a as any).vbaBase || 0) + a.length - 1;
+        // a.length already includes vbaBase filler slots (added by Array() for Option Base 1),
+        // so UBound = a.length - 1 (not vbaBase + a.length - 1).
+        return a.length - 1;
     }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
 }
 

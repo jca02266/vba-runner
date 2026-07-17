@@ -1500,6 +1500,7 @@ export class Parser {
             if (
                 this.peek().type !== TokenType.Newline &&
                 this.peek().type !== TokenType.EOF &&
+                this.peek().type !== TokenType.OperatorColon &&
                 this.peek().type !== TokenType.KeywordElse &&
                 this.peek().type !== TokenType.KeywordElseIf &&
                 this.peek().type !== TokenType.KeywordEnd &&
@@ -1876,6 +1877,19 @@ export class Parser {
             }
             const name: Identifier = this.makeIdentifier(idToken);
 
+            // Strip type-declaration suffix from identifier name and derive objectType.
+            // VBA allows e.g. `Dim n&` (Long), `Dim s$` (String), `Dim d#` (Double).
+            const TYPE_SUFFIX_MAP: Record<string, string> = {
+                '%': 'Integer', '&': 'Long', '!': 'Single',
+                '#': 'Double', '@': 'Currency', '$': 'String', '^': 'LongLong',
+            };
+            let suffixDerivedType: string | undefined;
+            const lastChar = name.name[name.name.length - 1];
+            if (lastChar && TYPE_SUFFIX_MAP[lastChar]) {
+                suffixDerivedType = TYPE_SUFFIX_MAP[lastChar];
+                name.name = name.name.slice(0, -1);
+            }
+
             let isArray = false;
             let arrayBounds: ArrayBound[] | undefined;
             let isNew = false;
@@ -1938,6 +1952,9 @@ export class Parser {
                     }
                 }
             }
+
+            // Apply suffix-derived type only when no explicit As clause was given.
+            if (!objectType && suffixDerivedType) objectType = suffixDerivedType;
 
             declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn, fixedLength });
 
@@ -2974,7 +2991,18 @@ export class Parser {
         let left = this.parsePrimary();
         while (this.peek().type === TokenType.OperatorPower) {
             const operator = this.advance().value;
-            const right = this.parseUnary();
+            // Right side: handle unary +/- but do NOT recurse into another ^.
+            // VBA `^` is left-associative: 2^3^2 = (2^3)^2 = 64, not 2^(3^2) = 512.
+            let right: Expression;
+            if (this.peek().type === TokenType.OperatorMinus || this.peek().type === TokenType.OperatorPlus) {
+                const opTok = this.tokens[this.pos];
+                const unaryOp = this.advance().value;
+                const argument = this.parsePrimary();
+                right = { type: 'UnaryExpression', operator: unaryOp, argument } as UnaryExpression;
+                (right as UnaryExpression).loc = { start: { line: opTok.line, column: opTok.column }, end: argument.loc?.end ?? { line: opTok.line, column: opTok.column } };
+            } else {
+                right = this.parsePrimary();
+            }
             left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
@@ -3002,7 +3030,8 @@ export class Parser {
         } else if (token.type === TokenType.Identifier ||
                    Parser.CONTEXTUAL_KW.has(token.type) ||
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
-            expr = { type: 'Identifier', name: token.value } as Identifier;
+            // Strip type-declaration suffix from identifier references (e.g. `n&`, `s$`).
+            expr = { type: 'Identifier', name: token.value.replace(/[$%&!#@^]$/, '') } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const firstTok = this.advance();
             if (!this.isIdentifier(firstTok)) this.throwError(`Parse error at line ${firstTok.line}: Expected procedure name after 'AddressOf'`);

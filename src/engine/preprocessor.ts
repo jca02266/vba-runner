@@ -261,14 +261,20 @@ export function stripVBAFileHeader(source: string): string {
     const lines = source.split('\n');
     if (!lines[0]?.trimEnd().toUpperCase().startsWith('VERSION')) return source;
     const result = [...lines];
-    let i = 0;
-    result[i] = '';
-    i++;
-    while (i < result.length) {
-        const trimmed = result[i].trimEnd().toUpperCase();
+    result[0] = '';
+    let i = 1;
+    // Skip blank lines between VERSION and BEGIN.
+    while (i < result.length && result[i].trim() === '') i++;
+    // Only strip the BEGIN/END attribute block when it is present.
+    if (i < result.length && result[i].trimEnd().toUpperCase() === 'BEGIN') {
         result[i] = '';
         i++;
-        if (trimmed === 'END') break;
+        while (i < result.length) {
+            const trimmed = result[i].trimEnd().toUpperCase();
+            result[i] = '';
+            i++;
+            if (trimmed === 'END') break;
+        }
     }
     return result.join('\n');
 }

@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 29 | エンジン評価 #29: 演算子セマンティクス / Option Base 1・Option Compare Text / クラスイベント（Event/RaiseEvent/WithEvents） / Erase・IsMissing・型サフィックス・While Wend（音楽理論ドメイン: 移調・スケール・コード進行・メトロノーム） | **`\`/`Mod`**: 事前銀行家丸め・負数・ゼロ除算 12 ケース全て実 VBA と一致。**`&` vs `+`**: `"1"+1`=2、`"a"+1`=Error 13、`"a" & Null`="a" 正常（`Null & Null` のみ Bug 29-D）。**比較型強制**: `"10">9`・Empty 比較 全一致。**`Xor`/`Eqv`/`Imp`**: ビット演算として正確（`5 Eqv 3`=-7、`5 Imp 3`=-5）。**クラスイベント**: `Public Event`/`RaiseEvent`/`Dim WithEvents`/`Private Sub obj_Event()` ハンドラー **完全動作**（4拍子6拍のイベント列正確）。**Option Base 1**: `Dim a(3)` の LBound=1 正常（`Array()` のみ Bug 29-E）。**Option Compare Text**: `=`/`<`/`Like`/`InStr` のモジュールスコープ既定まで正常。**Erase**: 動的配列解放後 UBound=Error 9 正常。**IsMissing**: 正常。**サフィックスリテラル**（`123&`/`1.5#`/`1.5!`/`123@`）: TypeName 全正確（サフィックス付き `Dim n&` は Bug 29-A）。**While Wend**: 正常。**Bug 29-A〜29-H 発見**（下記セクション参照・全件メイン再現確認済み） | 2026-07-17 |
 | 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / ReDim Preserve / StrConv日本語変換 / Nz / RGB・QBColor / Format Yes/No（アルゴリズムライブラリ+テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST 走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換**: `vbKatakana(16)` / `vbHiragana(32)` / `vbWide(4)` / `vbNarrow(8)` すべて期待通り動作。**Nz**: `Nz(Null, 0)` / `Nz(Empty, 42)` / `Nz(有値, default)` の3パターン正常。**RGB / QBColor**: 評価 #27 修正済みで正常動作を確認。**Format("Yes/No"/"On/Off"/"True/False")**: 評価 #27 修正済みで正常動作を確認。**TextAnalyzer.cls**: Class_Initialize・On Error GoTo・Property Get・Scripting.Dictionary 組み合わせ正常動作。**Bug 28-1 発見**: `ReDim Preserve` で UDT 配列を拡張した後、新インデックス要素のメンバーアクセスが Error 424。 | 2026-07-16 |
 | 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / StrConv日本語変換 / Nz・RGB・Format（アルゴリズムライブラリ + テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換（vbKatakana=16/vbHiragana=32/vbWide=4/vbNarrow=8）**: すべて期待通り動作。**Nz / RGB / QBColor / Format "Yes/No"**: 評価直前のバグ修正（Bug A〜N）によりすべて正常動作。**TextAnalyzer.cls（Class_Initialize + Dictionary + On Error GoTo + Property Get）**: 完全正常動作。**Bug 28-1 発見・修正済み**: `ReDim Preserve n(0 To 1)` で UDT 配列を拡張後、`n(1).Value = 2` が Error 424。旧 `fillArrayWithUDT` の `!isPreserve` ガードにより新インデックスが未初期化のまま残っていた。 | 2026-07-16 |
 | 27 | エンジン評価 #27: Registry スタブ / 時刻関数 / Filter・Array・CallByName / Shell・DoEvents（人事・勤怠管理システムドメイン） | **SaveSetting/GetSetting/DeleteSetting/GetAllSettings**: すべて正常動作。仮想レジストリに設定を保存・取得・削除・全取得できる。`GetAllSettings` は `Array[row][0=key, 1=val]` の2次元配列を返す。**TimeSerial/TimeValue/Hour/Minute/Second**: すべて正常動作。`TimeSerial(8,30,0)` → `Hour()=8, Minute()=30, Second()=0` 正確。`TimeValue("16:20:05")` も正常。`#HH:MM:SS#` 時刻リテラル（修正済み）も動作。日付+時刻リテラル `#2024/01/15 08:30:00#` も正常。**Filter()**: 正常動作。`Filter(arr, keyword)` デフォルト大文字小文字区別あり。`vbTextCompare(1)` で区別なし。`Filter(arr, keyword, False)` 非一致フィルタも正常。一致なしで空配列（`UBound=-1`）も正常。**Array() 関数**: `Dim v As Variant : v = Array(1, "x", 3.14)` で混合型配列格納が正常動作。**CallByName**: `VbGet(2)`（プロパティ GET）・`VbMethod(1)`（メソッド呼び出し）は正常動作。`VbLet(4)`（プロパティ SET）は **Bug 27-1** として Error 438 が発生（未実装）。**Shell**: `Shell("notepad.exe")` → `[SHELL]` ログを出力しタスク ID `1` を返すスタブ。正常動作。**DoEvents**: `DoEvents` → `0` を返す no-op。正常動作。**Bug 27-2 発見**: `On Error GoTo label` ハンドラー内で `Exit Function/Sub` で抜けると呼び出し元の `Err.Number` に エラー番号が残留する。`Resume` 経由の場合のみ `errObj.clear()` が呼ばれるため、`Exit Function` での正常リターン後も `Err.Number` がリセットされない。 | 2026-07-15 |
@@ -176,6 +177,19 @@
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
 | ~~**Bug 28-1: `ReDim Preserve` で UDT 配列を拡張後、新インデックス要素のメンバーアクセスが Error 424**~~ | **修正済み**: `evaluateReDimDeclarator` の Preserve パス内に `fillArrayWithUDT(arr, dims, 0, typeName, true)` 呼び出しを追加。`skipExisting=true` のとき既存要素をスキップし、`undefined`/`0` のスロットのみ `instantiateType` で初期化する。レグレッションテスト: `tests/spec/array-functions.test.ts` Bug 28-1 ブロック。 | `evaluator.ts:5172-5174` の `if (!isPreserve)` ガードにより `fillArrayWithUDT` が Preserve 時にスキップされ、`copyPreservedData` は旧インデックスのみコピーするため新インデックスの UDT 要素が `0` のまま残っていた。Long/String の通常配列では `0`/`""` を直接メンバーアクセスせず代入で済むため問題が顕在化しなかった。 |
+
+### ~~未修正バグ（評価 #29 で発見・全件メイン再現確認済み）~~ → 全件修正済み
+
+| 問題 | 修正ファイル | テスト |
+|---|---|---|
+| **Bug 29-A: 型サフィックス付き宣言 `Dim n&` が機能しない** | `parser.ts: parseDimStatement / parsePrimary` | `tests/spec/type-system.test.ts` |
+| **Bug 29-B: `^` が右結合（VBA は左結合）** | `parser.ts: parseExponentiation` | `tests/spec/operators-extra.test.ts` |
+| **Bug 29-C: 負の底の非整数べき乗が Error 5 にならない** | `evaluator.ts: case '^'` | `tests/spec/operators-extra.test.ts` |
+| **Bug 29-D: `Null & Null` が Null にならない** | `evaluator.ts: op === '&'` | `tests/spec/operators-extra.test.ts` |
+| **Bug 29-E: `Array()` が `Option Base 1` を無視する** | `builtins.ts: array 登録 / UBound` | `tests/spec/option_base.test.ts` |
+| **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
+| **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
+| **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
 
 ### 未修正バグ（評価 #26 で発見）
 
@@ -497,3 +511,6 @@
 84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
 86. **`Error(n)` 関数の主要コードは正しいメッセージを返す**（評価 #26）: Error(5)="Invalid procedure call or argument" / Error(6)="Overflow" / Error(9)="Subscript out of range" / Error(11)="Division by zero" / Error(13)="Type mismatch" / Error(53)="File not found" / Error(91)="Object variable not set" はすべて正確。未登録番号（Error(0)/Error(7)/Error(14)/Error(999) など）は "Application-defined or object-defined error" にフォールバック。
+94. **クラスイベント（`Public Event`/`RaiseEvent`/`Dim WithEvents obj As Class`/`Private Sub obj_EventName()`）は完全動作する**（評価 #29）: イベント引数付き・複数イベント・複数拍のイベント列まで正確。未実装と思われがちだが実装済み。
+95. ~~**`eval()` で引数なしクラスメソッドを呼ぶときは `()` を付けること**（評価 #29・Bug 29-F）~~ → **修正済み**（Bug 29-F/G）: `eval('a.Increment')` / `eval('Dim g As New Counter : g.Increment')` どちらも正常に Sub を呼ぶようになった。
+96. ~~**手書き `.cls` のヘッダーは「完全」か「なし」のどちらかにすること**（評価 #29・Bug 29-H）~~ → **修正済み**（Bug 29-H）: `VERSION 1.0 CLASS` 行だけ（BEGIN/END なし）でも本体が正しくロードされる。

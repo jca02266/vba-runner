@@ -76,4 +76,27 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] エッジケース');
 }
 
+// --- Bug CJ: Start/Compare の Null・不正値、空文字列の優先順位 (§6.1.2.11.1.15) ---
+{
+    const ev = (expr: string) => evalVBA('').evalExpression(expr);
+    const errOf = (expr: string) => {
+        try { ev(expr); return 0; } catch (e: any) { return e?.number ?? -1; }
+    };
+
+    // 仕様: "If Start contains the data value Null, an error occurs" → error 94
+    assert.strictEqual(errOf('InStrRev("abc", "b", Null)'), 94, 'InStrRev: Start=Null -> error 94');
+    // Compare=Null もエラー（InStr Bug BH と同様）
+    assert.strictEqual(errOf('InStrRev("abc", "b", -1, Null)'), 94, 'InStrRev: Compare=Null -> error 94');
+    // Start が 0 または -1 以外の負数 → error 5
+    assert.strictEqual(errOf('InStrRev("abc", "a", 0)'), 5, 'InStrRev: Start=0 -> error 5');
+    assert.strictEqual(errOf('InStrRev("abc", "a", -2)'), 5, 'InStrRev: Start=-2 -> error 5');
+    // 仕様テーブル: StringCheck zero-length → 0（StringMatch zero-length → Start より優先）
+    assert.strictEqual(ev('InStrRev("", "", 5)'), 0, 'InStrRev("", "", 5) -> 0');
+    // 仕様テーブル: Start > Len(StringCheck) → 0（StringMatch zero-length でも同様）
+    assert.strictEqual(ev('InStrRev("abc", "", 5)'), 0, 'InStrRev("abc", "", 5) -> 0');
+    // Start <= Len のときは StringMatch zero-length → Start
+    assert.strictEqual(ev('InStrRev("abc", "", 2)'), 2, 'InStrRev("abc", "", 2) -> 2');
+    console.log('[PASS] Bug CJ: InStrRev Null/不正 Start・空文字列優先順位');
+}
+
 console.log('\n✅ InStrRev: 全テスト通過');
