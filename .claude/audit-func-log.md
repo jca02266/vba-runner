@@ -70,4 +70,14 @@
 | Hex | -32767〜-1 の範囲で32ビット（8文字）を返却（仕様: 16ビット4文字）| `conversion-int-val.test.ts` (Bug CX) | ✅ 修正済み |
 | Oct | -32767〜-1 の範囲で32ビット（11文字）を返却（仕様: 16ビット6文字）| `conversion-int-val.test.ts` (Bug CY) | ✅ 修正済み |
 | StrReverse | Null 入力で vbaNull 返却（仕様: エラー発生）→ Error 94 に修正 | `strreverse.test.ts` (Bug CZ) | ✅ 修正済み |
+| Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| LCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.17。Null→Null、大文字 → 小文字変換正常 |
+| UCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.41。Null→Null、小文字 → 大文字変換正常 |
+| LTrim | 2026-07-17 | ✅ OK | §6.1.2.11.1.23。Null→Null、前後空白削除正常 |
+| RTrim | 2026-07-17 | ✅ OK | §6.1.2.11.1.23。Null→Null、後空白削除正常 |
+| Trim | 2026-07-17 | ✅ OK | §6.1.2.11.1.23。Null→Null、前後空白削除正常 |
+| Space | 2026-07-17 | ✅ OK | §6.1.2.11.1.33。負数→Error 5、Null→Null（spec 明記なし）、0→"" 正常 |
+| String | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.38。数値 > 255 で Mod 256 未適用（Bug DB）、空文字 Character で Error 5 未発生（Bug DC）|
 | IsNumeric | VbaDate を数値型と誤判定 → True 返却（仕様: §6.1.2.7.1.8 に Date なし → False） | `builtins.test.ts` (Bug DA) | ✅ 修正済み |
+| String | 数値 > 255 で Mod 256 未適用（例: String(3,257)→"āāā"、仕様: chr(1)*3） | `builtin-strings.test.ts` (Bug DB) | ✅ 修正済み |
+| String | 空文字 Character で Error 5 未発生（String(3,"")→""、仕様: Error 5） | `builtin-strings.test.ts` (Bug DC) | ✅ 修正済み |

@@ -602,10 +602,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (count < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         let c: string;
         if (typeof char === 'number') {
-            c = String.fromCharCode(char);
+            // §6.1.2.11.1.38: numbers > 255 use character Mod 256
+            c = String.fromCharCode(Math.trunc(char) % 256);
         } else {
             const s = String(char ?? '');
-            c = s.length > 0 ? s[0] : '';
+            // Empty string character is invalid per spec
+            if (s.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+            c = s[0];
         }
         return c.repeat(count);
     };

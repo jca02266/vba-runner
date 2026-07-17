@@ -130,6 +130,13 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`String(3, "ABC")`), 'AAA', 'String 文字列の先頭のみ使用');
     assert.strictEqual(ev(`String(0, "*")`), '', 'String(0, "*") = ""');
     assert.strictEqual(ev(`String$(4, "X")`), 'XXXX', 'String$ は String と同じ');
+    // Bug DB: 数値が255超の場合は Mod 256 を適用 (§6.1.2.11.1.38)
+    assert.strictEqual(ev(`String(3, 257)`), String.fromCharCode(1).repeat(3), 'String(3, 257): 257 Mod 256 = 1 → chr(1) * 3');
+    assert.strictEqual(ev(`String(3, 321)`), 'AAA', 'String(3, 321): 321 Mod 256 = 65 = "A"');
+    console.log('[PASS] Bug DB: String 数値 > 255 は Mod 256');
+    // Bug DC: 空文字列 Character は Error 5 (§6.1.2.11.1.38)
+    assert.throwsMatch(() => ev(`String(3, "")`), /error '5'/, 'String(3, "") → Error 5');
+    console.log('[PASS] Bug DC: String(n, "") → Error 5');
     console.log('[PASS] String / String$');
 }
 
