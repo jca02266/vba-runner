@@ -94,4 +94,14 @@ const ev = evalVBASingle('');
     console.log('[PASS] Interaction/Registry/COM 系の Null・Nothing → VBA エラー');
 }
 
+// --- 8. 判定関数は変換失敗でも throw しない（Bug DT 修正時のレグレッション） ---
+{
+    // IsNumeric は内部で数値変換を試みるが、失敗は False であり Error 13 ではない
+    assert.strictEqual(String(ev.evalExpression('IsNumeric("abc")')), 'False', 'IsNumeric("abc") → False（throw しない）');
+    assert.strictEqual(String(ev.evalExpression('IsNumeric("2024/01/15")')), 'False', 'IsNumeric(日付文字列) → False');
+    assert.strictEqual(String(ev.evalExpression('IsNumeric("123")')), 'True', 'IsNumeric("123") → True');
+    assert.strictEqual(String(ev.evalExpression('IsNumeric("&H1F")')), 'True', 'IsNumeric(&H リテラル文字列) → True');
+    console.log('[PASS] 判定関数（IsNumeric）は変換失敗でも throw しない');
+}
+
 console.log('\n✅ fuzz-regressions: 全テスト通過');

@@ -70,7 +70,11 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
             const s = val.trim();
             if (s === "") return vbaFalse;
             const cleaned = s.replace(/[$,]/g, '');
-            return (!isNaN(ctx.toVbaNumber(cleaned)) && isFinite(ctx.toVbaNumber(cleaned))) ? vbaTrue : vbaFalse;
+            // 判定が目的なので throw しない。toVbaNumber(parseFloat) は "2024/01/15" の先頭
+            // 数値を受理してしまうため、ここでは全体が数値の場合のみ通す厳密な Number() を使う
+            if (/^&[hH][0-9a-fA-F]+$/.test(cleaned) || /^&[oO][0-7]+$/.test(cleaned)) return vbaTrue;
+            const n = Number(cleaned);
+            return (!isNaN(n) && isFinite(n)) ? vbaTrue : vbaFalse;
         }
         return vbaFalse;
     }, [{ name: 'Expression' }]);
