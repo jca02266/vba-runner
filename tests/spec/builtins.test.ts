@@ -319,4 +319,13 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DK/DL/DM: Rnd/Randomize/RGB(Null) → VBA error');
 }
 
+// Bug DN: Format(123, Null) should throw VBA error (format arg can't be Null), not return garbage
+// Bug DO: FormatDateTime(date, Null) should throw VBA error, not JS crash
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('Format(123, Null)'), /error '/, 'Format(123, Null) → VBA error');
+    assert.throwsMatch(() => ev.evalExpression('FormatDateTime(#1/1/2000#, Null)'), /error '/, 'FormatDateTime(date, Null) → VBA error');
+    console.log('[PASS] Bug DN/DO: Format/FormatDateTime with Null format → VBA error');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

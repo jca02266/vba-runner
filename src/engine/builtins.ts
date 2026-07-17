@@ -788,8 +788,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Start' },
         { name: 'Length', optional: true },
     ], ['$']);
-    const formatFunc = (val: any, pattern?: string) => {
+    const formatFunc = (val: any, pattern?: any) => {
         if (val === null || val === vbaNull || val === vbaEmpty) return "";
+        if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern ? String(pattern) : "";
         if (fmt === "") return String(val);
         const fmtLower = fmt.toLowerCase();
@@ -883,6 +884,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ], ['$']);
     ctx.reg('formatdatetime', (val: any, namedFmt: any = 0) => {
         if (val === vbaNull) return '';
+        if (namedFmt === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const d = (val instanceof VbaDate) ? fromVbaDate(val.value) : parseVbaDate(val);
         const fmt = Number(namedFmt ?? 0);
         const pad2 = (n: number) => String(n).padStart(2, '0');
