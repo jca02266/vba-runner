@@ -109,6 +109,21 @@
 | NPV | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (NPV節)。同上（Bug DQ）|
 | IPMT | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (IPMT節)。同上（Bug DQ）|
 | PPMT | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (PPMT節)。同上（Bug DQ）|
+| CallByName | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.8.1.1。Null procName/callType → Error 438（仕様: Error 94）（Bug DR）|
+| CreateObject | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.1.4。ctx.createObj 委譲。Null Class はスタブなので許容 |
+| GetObject | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.1.9。PathName/Class 省略→Nothing、PathName指定→ダミーObj返却 |
+| SaveSetting | 2026-07-17 | ✅ OK | §6.1.2.8.2.4。仮想レジストリに String(val) を保存。Null は String化されるが許容 |
+| GetSetting | 2026-07-17 | ✅ OK | §6.1.2.8.1.10。不在時は Default を返却。Null Default の String化は許容 |
+| GetAllSettings | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.8.1.7。vbaBase=0（仕様: 下限=1）→ vbaBase=1 に修正（Bug DR 同コミット）|
+| DeleteSetting | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.8.2.3。非存在 App/Section/Key を削除しても無エラー（仕様: 実行時エラー）→ Error 5 を throw（Bug DS）|
+| VarPtr | 2026-07-17 | ✅ OK (スタブ) | MS-VBAL外。ptrNext() でダミーポインタを返却。Null チェック省略は許容（スタブ方針）|
+| StrPtr | 2026-07-17 | ✅ OK (スタブ) | MS-VBAL外。VarPtr と同じスタブ |
+| ObjPtr | 2026-07-17 | ✅ OK (スタブ) | MS-VBAL外。VarPtr と同じスタブ |
+| Shell | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.2.5。ログ出力のみ、タスクID=1 返却。スタブ方針通り |
+| MsgBox | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.1.13。ログ出力のみ、vbOK(1) 返却。スタブ方針通り |
+| InputBox | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.1.11。ログ出力+Default値返却。スタブ方針通り |
+| AppActivate | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.2.1。ログ出力のみ。スタブ方針通り |
+| SendKeys | 2026-07-17 | ✅ OK (スタブ) | §6.1.2.8.2.2。ログ出力のみ。スタブ方針通り |
 | CLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.8。Null→Error 94、-2147483648〜2147483647 Overflow検出 正常 |
 | CLngLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.9。Null→Error 94、BigInt範囲チェック 正常 |
 | Format | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.8。format=Null でゴミ文字列返却（Bug DN）|
@@ -168,3 +183,6 @@
 | RightB | 負の Length でエラーなし（Right は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
 | MidB | Start=0 でエラーなし（Mid は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
 | FV/PV/PMT/NPER/RATE/SLN/SYD/DDB/IRR/MIRR/NPV/IPMT/PPMT | 全財務関数で Null 引数が Number(Symbol) JS TypeError クラッシュ（toNum ヘルパーで一括修正）| `builtins.test.ts` (Bug DQ) | ✅ 修正済み |
+| CallByName | Null procName/callType → Error 438 (仕様: Error 94 Let-coerce失敗) | `builtins.test.ts` (Bug DR) | ✅ 修正済み |
+| DeleteSetting | 非存在 App/Section/Key 削除でエラーなし（仕様: 実行時エラー）| `builtins.test.ts` (Bug DS) | ✅ 修正済み |
+| GetAllSettings | vbaBase=0（仕様: 下限=1）| `builtins.test.ts` (Bug DR 同コミット) | ✅ 修正済み |
