@@ -86,6 +86,11 @@
 | TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
 | TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| IsNull | 2026-07-17 | ✅ OK | §6.1.2.7.1.7。val===vbaNull→True。シンプルで正常 |
+| CByte | 2026-07-17 | ✅ OK (仕様逸脱あり) | §6.1.2.3.1.2。Null→Error 94。True→255（VBA実動作と一致。仕様: Bool→Long(-1)→Byte→Overflow だが実VBAは255）|
+| CDbl | 2026-07-17 | ✅ OK | §6.1.2.3.1.5。Null→Error 94、toVbaNumber 委譲 正常 |
+| CSng | 2026-07-17 | ✅ OK | §6.1.2.3.1.11。Null→Error 94、Math.fround+Overflow検出 正常 |
+| QBColor | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.7.1.10。Null で Number(Symbol) JS TypeError クラッシュ（Bug DJ）|
 | CVar | 2026-07-17 | ✅ OK | §6.1.2.3.1.13。引数をそのまま返す（identity）。Null→Null 正常 |
 | CVDate | 2026-07-17 | ✅ OK | §6.1.2.3.1（MS-VBAL に詳細節なし）。Null→Null、それ以外CDate委譲 正常 |
 | CVErr | 2026-07-17 | ✅ OK | §6.1.2.3.1.14。既存ErrorValue→そのまま返却、0-65535範囲チェックあり。Null→toVbaNumber→Error 13（Let-coerce TYPE_MISMATCH相当） |
@@ -111,3 +116,4 @@
 | StrConv | conv=Null で JS TypeError クラッシュ（仕様: VbStrConv 型のため Null 不可 → Error 94）| `strconv_null.test.ts` (Bug DG) | ✅ 修正済み |
 | IsObject | VbaDate/VbaBoolean/VbaDecimal/VbaCurrency/VbaErrorValue で True 返却（仕様: 値型は Object Reference ではない → False）| `builtins.test.ts` (Bug DH) | ✅ 修正済み |
 | Error | Error(Null) で JS TypeError クラッシュ（Number(Symbol)。仕様: Let-coerce to Long → Null → Error 94）| `builtins.test.ts` (Bug DI) | ✅ 修正済み |
+| QBColor | QBColor(Null) で Number(Symbol) JS TypeError クラッシュ（仕様: Let-coerce to Integer → Null → Error 94）| `builtins.test.ts` (Bug DJ) | ✅ 修正済み |
