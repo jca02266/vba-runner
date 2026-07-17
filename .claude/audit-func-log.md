@@ -92,6 +92,23 @@
 | LeftB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.19準拠。負の Length でエラーなし（Bug DP）|
 | RightB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.30準拠。負の Length でエラーなし（Bug DP）|
 | MidB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.25準拠。Start=0 でエラーなし（Bug DP）|
+| AscW | 2026-07-17 | ✅ OK | §6.1.2.11.1.3。Asc と同じ実装、Null→Null、空文字→Error 5 正常 |
+| ChrW | 2026-07-17 | ✅ OK | §6.1.2.11.1.6。-32768〜65535 対応。Null→Null 正常 |
+| CCur | 2026-07-17 | ✅ OK | §6.1.2.3.1.3。Null→Error 94、VbaCurrency に変換 正常 |
+| CDec | 2026-07-17 | ✅ OK | §6.1.2.3.1.6。Null→Error 94、VbaDecimal に変換 正常 |
+| FV | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.2。全財務関数で Null 引数が Number(Symbol) JS TypeError → toNum ヘルパーで一括修正（Bug DQ）|
+| PV | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.5。同上（Bug DQ）|
+| PMT | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.4。同上（Bug DQ）|
+| NPER | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.3。同上（Bug DQ）|
+| RATE | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.6。同上（Bug DQ）|
+| SLN | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.8。同上（Bug DQ）|
+| SYD | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.9。同上（Bug DQ）|
+| DDB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1.1。同上（Bug DQ）|
+| IRR | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (IRR節)。同上（Bug DQ）|
+| MIRR | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (MIRR節)。同上（Bug DQ）|
+| NPV | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (NPV節)。同上（Bug DQ）|
+| IPMT | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (IPMT節)。同上（Bug DQ）|
+| PPMT | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.9.1 (PPMT節)。同上（Bug DQ）|
 | CLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.8。Null→Error 94、-2147483648〜2147483647 Overflow検出 正常 |
 | CLngLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.9。Null→Error 94、BigInt範囲チェック 正常 |
 | Format | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.8。format=Null でゴミ文字列返却（Bug DN）|
@@ -150,3 +167,4 @@
 | LeftB | 負の Length でエラーなし（Left は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
 | RightB | 負の Length でエラーなし（Right は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
 | MidB | Start=0 でエラーなし（Mid は Error 5）| `builtins.test.ts` (Bug DP) | ✅ 修正済み |
+| FV/PV/PMT/NPER/RATE/SLN/SYD/DDB/IRR/MIRR/NPV/IPMT/PPMT | 全財務関数で Null 引数が Number(Symbol) JS TypeError クラッシュ（toNum ヘルパーで一括修正）| `builtins.test.ts` (Bug DQ) | ✅ 修正済み |
