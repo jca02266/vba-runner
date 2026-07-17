@@ -1,5 +1,5 @@
 import { vbaMissing } from '../../src/engine/evaluator';
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -233,6 +233,29 @@ End Function
         'Bug CG: VarType on Variant array elements: Integer=2, Long=3'
     );
     console.log('[PASS] Bug CG: Variant 配列要素の TypeName/VarType が正しいサブタイプを返す');
+}
+
+// Bug 30-A: VarType(classInstance) が 36 (vbUserDefinedType) を返す
+// Class インスタンスは vbObject = 9 を返すべき
+{
+    const clsCode = `Public Value As Long\n`;
+    const mainCode = `
+Function GetVarType() As Long
+    Dim obj As New MyClass30A
+    GetVarType = VarType(obj)
+End Function
+Function GetTypeName() As String
+    Dim obj As New MyClass30A
+    GetTypeName = TypeName(obj)
+End Function
+`;
+    const ev = evalVBAModules([
+        { name: 'MyClass30A', code: clsCode, parseAsClass: 'MyClass30A' },
+        { name: 'Main', code: mainCode },
+    ]);
+    assert.strictEqual(ev.callProcedure('GetVarType', []), 9, 'Bug 30-A: VarType(classInstance) = 9 (vbObject)');
+    assert.strictEqual(ev.callProcedure('GetTypeName', []), 'MyClass30A', 'Bug 30-A: TypeName(classInstance) = class name');
+    console.log('[PASS] Bug 30-A: VarType(class instance) = 9 (vbObject)');
 }
 
 console.log('\n✅ TypeName: 全テスト通過');
