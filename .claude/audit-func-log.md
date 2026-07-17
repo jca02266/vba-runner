@@ -86,6 +86,16 @@
 | TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
 | TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| Atn | 2026-07-17 | ✅ OK | §6.1.2.10.1.2。Null→Null、Math.atan 委譲 正常 |
+| Cos | 2026-07-17 | ✅ OK | §6.1.2.10.1.3。Null→Null、Math.cos 委譲 正常 |
+| Sin | 2026-07-17 | ✅ OK | §6.1.2.10.1.9。Null→Null、Math.sin 委譲 正常 |
+| Tan | 2026-07-17 | ✅ OK | §6.1.2.10.1.11。Null→Null、Math.tan 委譲 正常 |
+| Sqr | 2026-07-17 | ✅ OK | §6.1.2.10.1.10。Null→Null、負数→Error 5 正常 |
+| Exp | 2026-07-17 | ✅ OK | §6.1.2.10.1.4。Null→Null、n>709.78→Overflow 正常 |
+| Log | 2026-07-17 | ✅ OK | §6.1.2.10.1.5。Null→Null、n<=0→Error 5 正常 |
+| Rnd | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.10.1.6。Null で Symbol 比較 TypeError クラッシュ（Bug DK）|
+| Randomize | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.10.2.1。Null で Number(Symbol) TypeError クラッシュ（Bug DL）|
+| RGB | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.7.1.11。Null で Number(Symbol) TypeError クラッシュ（Bug DM）|
 | IsNull | 2026-07-17 | ✅ OK | §6.1.2.7.1.7。val===vbaNull→True。シンプルで正常 |
 | CByte | 2026-07-17 | ✅ OK (仕様逸脱あり) | §6.1.2.3.1.2。Null→Error 94。True→255（VBA実動作と一致。仕様: Bool→Long(-1)→Byte→Overflow だが実VBAは255）|
 | CDbl | 2026-07-17 | ✅ OK | §6.1.2.3.1.5。Null→Error 94、toVbaNumber 委譲 正常 |
@@ -117,3 +127,6 @@
 | IsObject | VbaDate/VbaBoolean/VbaDecimal/VbaCurrency/VbaErrorValue で True 返却（仕様: 値型は Object Reference ではない → False）| `builtins.test.ts` (Bug DH) | ✅ 修正済み |
 | Error | Error(Null) で JS TypeError クラッシュ（Number(Symbol)。仕様: Let-coerce to Long → Null → Error 94）| `builtins.test.ts` (Bug DI) | ✅ 修正済み |
 | QBColor | QBColor(Null) で Number(Symbol) JS TypeError クラッシュ（仕様: Let-coerce to Integer → Null → Error 94）| `builtins.test.ts` (Bug DJ) | ✅ 修正済み |
+| Rnd | Null で Symbol 比較 `val < 0` が JS TypeError クラッシュ（仕様: Error 94）| `builtins.test.ts` (Bug DK) | ✅ 修正済み |
+| Randomize | Null で Number(Symbol) JS TypeError クラッシュ（vbaNull ≠ null の見落とし）| `builtins.test.ts` (Bug DL) | ✅ 修正済み |
+| RGB | 各引数が Null のとき Number(Symbol) JS TypeError クラッシュ（Null チェック欠如）| `builtins.test.ts` (Bug DM) | ✅ 修正済み |
