@@ -32,6 +32,11 @@
 | MonthName | 2026-07-17 | ✅ OK | §6.1.2.11.1.28。範囲外→Error 5、Null→Null、Abbreviate 正常 |
 | WeekdayName | 2026-07-17 | ✅ OK | §6.1.2.11.1.43。範囲外→Error 5、fdow 変換ロジック正常 |
 | CInt | 2026-07-17 | ✅ OK | §6.1.2.3.1.7。Null→error 94、overflow→error 6、Banker's round 正常 |
+| CDate | 2026-07-17 | ✅ OK | §6.1.2.3.1.4。Null→error 94、Empty→error 13、VbaDate→as-is、数値/文字列→変換 正常 |
+| CBool | 2026-07-17 | ✅ OK | §6.1.2.3.1.1。Null→error 94、0→False/非0→True、"True"/"False"文字列→正常 |
+| CStr | 2026-07-17 | ✅ OK (意図的逸脱) | §6.1.2.3.1.12。CStr(Null)→"" は Bug BK での意図的設計決定（仕様はerror 94だが使い勝手優先）。その他正常 |
+| Asc | 2026-07-17 | ✅ OK | §6.1.2.11.1.2。Null→Null、空文字→error 5、AscW と同じ実装 |
+| Chr | 2026-07-17 | ✅ OK | §6.1.2.11.1.5。Null→Null、0-255範囲外→error 5、ChrW は-32768〜65535対応 |
 
 ## バグ発見リスト
 
