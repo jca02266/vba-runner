@@ -37,6 +37,11 @@
 | CStr | 2026-07-17 | ✅ OK (意図的逸脱) | §6.1.2.3.1.12。CStr(Null)→"" は Bug BK での意図的設計決定（仕様はerror 94だが使い勝手優先）。その他正常 |
 | Asc | 2026-07-17 | ✅ OK | §6.1.2.11.1.2。Null→Null、空文字→error 5、AscW と同じ実装 |
 | Chr | 2026-07-17 | ✅ OK | §6.1.2.11.1.5。Null→Null、0-255範囲外→error 5、ChrW は-32768〜65535対応 |
+| Hex | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.3.1.17。負数 -32767〜-1 が 32ビット（8文字）を返す（仕様: 16ビット4文字）|
+| Oct | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.3.1.19。負数 -32767〜-1 が 32ビット（11文字）を返す（仕様: 16ビット6文字）|
+| StrReverse | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.40。Null→vbaNull返却（仕様: エラーを発生）→Error 94 に修正 |
+| Fix | 2026-07-17 | ✅ OK | §6.1.2.3.1.16。Null→Null、n≥0→floor、n<0→ceil（ゼロ方向への丸め）正常 |
+| Int | 2026-07-17 | ✅ OK | §6.1.2.3.1.18。Null→Null、Math.floor（負の無限大方向への丸め）正常 |
 
 ## バグ発見リスト
 
@@ -57,3 +62,6 @@
 | Weekday | firstdayofweek=Null で Number(Symbol) JS TypeError クラッシュ（仕様: VBA Error）| `datetime.test.ts` (Bug CV) | ✅ 修正済み |
 | DateDiff | 無効 Interval 文字列で 0 返却（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` (Bug CS) | ✅ 修正済み |
 | DatePart | 無効 Interval 文字列で 0 返却（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` (Bug CT) | ✅ 修正済み |
+| Hex | -32767〜-1 の範囲で32ビット（8文字）を返却（仕様: 16ビット4文字）| `conversion-int-val.test.ts` (Bug CX) | ✅ 修正済み |
+| Oct | -32767〜-1 の範囲で32ビット（11文字）を返却（仕様: 16ビット6文字）| `conversion-int-val.test.ts` (Bug CY) | ✅ 修正済み |
+| StrReverse | Null 入力で vbaNull 返却（仕様: エラー発生）→ Error 94 に修正 | `strreverse.test.ts` (Bug CZ) | ✅ 修正済み |
