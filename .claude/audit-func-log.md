@@ -86,6 +86,15 @@
 | TimeValue | 2026-07-17 | ✅ OK | §6.1.2.4.1.12。Null→Null、日付文字列→VbaDate（日付部分なし）正常 |
 | TimeSerial | 2026-07-17 | ✅ OK | §6.1.2.4.1.11。Null→Null（Bug AX/AY 意図的決定）、時刻オーバーフロー正常（JSのDate巻き上げ活用）|
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
+| CLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.8。Null→Error 94、-2147483648〜2147483647 Overflow検出 正常 |
+| CLngLng | 2026-07-17 | ✅ OK | §6.1.2.3.1.9。Null→Error 94、BigInt範囲チェック 正常 |
+| Format | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.8。format=Null でゴミ文字列返却（Bug DN）|
+| FormatCurrency | 2026-07-17 | ✅ OK | MS-VBAL外。val=Null→"" 正常。fmtNumeric で digits/group Null は vbaMissing 扱い |
+| FormatNumber | 2026-07-17 | ✅ OK | MS-VBAL外。FormatCurrency と同様 正常 |
+| FormatPercent | 2026-07-17 | ✅ OK | MS-VBAL外。FormatCurrency と同様 正常 |
+| FormatDateTime | 2026-07-17 | 🐛 バグあり (修正済み) | MS-VBAL外。namedFmt=Null で Number(Symbol) クラッシュ（Bug DO）|
+| Array | 2026-07-17 | ✅ OK | §6.1.2.2.1.1。ParamArray でそのまま配列化。Option Base を反映 正常 |
+| DoEvents | 2026-07-17 | ✅ OK | §6.1.2.8.1.5。no-op、0 返却（環境依存操作スタブ方針）正常 |
 | Atn | 2026-07-17 | ✅ OK | §6.1.2.10.1.2。Null→Null、Math.atan 委譲 正常 |
 | Cos | 2026-07-17 | ✅ OK | §6.1.2.10.1.3。Null→Null、Math.cos 委譲 正常 |
 | Sin | 2026-07-17 | ✅ OK | §6.1.2.10.1.9。Null→Null、Math.sin 委譲 正常 |
@@ -130,3 +139,5 @@
 | Rnd | Null で Symbol 比較 `val < 0` が JS TypeError クラッシュ（仕様: Error 94）| `builtins.test.ts` (Bug DK) | ✅ 修正済み |
 | Randomize | Null で Number(Symbol) JS TypeError クラッシュ（vbaNull ≠ null の見落とし）| `builtins.test.ts` (Bug DL) | ✅ 修正済み |
 | RGB | 各引数が Null のとき Number(Symbol) JS TypeError クラッシュ（Null チェック欠如）| `builtins.test.ts` (Bug DM) | ✅ 修正済み |
+| Format | format=Null でゴミ文字列返却（String(Symbol)="Symbol(vbaNull)"を書式として使用）| `builtins.test.ts` (Bug DN) | ✅ 修正済み |
+| FormatDateTime | namedFmt=Null で Number(Symbol) JS TypeError クラッシュ| `builtins.test.ts` (Bug DO) | ✅ 修正済み |
