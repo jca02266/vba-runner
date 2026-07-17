@@ -1801,6 +1801,17 @@ export class Parser {
             this.throwError(`Compile error at line ${idToken.line}: '${idToken.value}' is a reserved word and cannot be used as a procedure name`);
         }
         const name: Identifier = this.makeIdentifier(idToken);
+        // Strip type-declaration suffix from function/sub name (e.g., GetVal! → GetVal, Single).
+        const PROC_SUFFIX_MAP: Record<string, string> = {
+            '%': 'Integer', '&': 'Long', '!': 'Single',
+            '#': 'Double', '@': 'Currency', '$': 'String', '^': 'LongLong',
+        };
+        let nameSuffixType: string | undefined;
+        const lastNameChar = name.name[name.name.length - 1];
+        if (lastNameChar && PROC_SUFFIX_MAP[lastNameChar]) {
+            nameSuffixType = PROC_SUFFIX_MAP[lastNameChar];
+            name.name = name.name.slice(0, -1);
+        }
         const parameters: Parameter[] = [];
         let paramsEndColumn: number | undefined;
 
@@ -1832,6 +1843,9 @@ export class Parser {
                 returnsArray = true;
             }
         }
+
+        // Apply suffix-derived return type when no explicit 'As Type' was given.
+        if (!returnType && nameSuffixType) returnType = nameSuffixType;
 
         // Trailing Static: Sub Foo() Static
         if (this.peek().type === TokenType.KeywordStatic) {

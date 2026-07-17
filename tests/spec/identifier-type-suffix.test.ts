@@ -68,7 +68,7 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
             TestLongLong = x
         End Function
     `, 'TestLongLong');
-    assert.strictEqual(r, 42, 'x^ declares LongLong');
+    assert.strictEqual(r, 42n, 'x^ declares LongLong (BigInt value)');
     console.log('[PASS] ^ as LongLong type suffix');
 }
 
@@ -103,9 +103,9 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
 {
     const r = runFunc(`
         Function GetVal!()
-            GetVal! = 2.5
+            GetVal = 2.5
         End Function
-    `, 'GetVal!');
+    `, 'GetVal');
     assert.strictEqual(r, 2.5, 'Function GetVal! returns Single');
     console.log('[PASS] ! as function return type suffix');
 }

@@ -52,7 +52,7 @@ console.log('--- Starting Null/Empty Propagation Tests ---');
 // =============================================================================
 {
     const code = `
-        ' & は VBA 仕様の特例: Null を "" として扱う
+        ' & は VBA 仕様の特例: 片側のみ Null なら "" として扱う。両側 Null は Null を返す
         Function NullConcatStr() : NullConcatStr = Null & "abc" : End Function
         Function StrConcatNull() : StrConcatNull = "abc" & Null : End Function
         Function NullConcatNull() : NullConcatNull = Null & Null : End Function
@@ -62,7 +62,7 @@ console.log('--- Starting Null/Empty Propagation Tests ---');
     `;
     assert.strictEqual(runFunc(code, 'NullConcatStr'), 'abc', 'Null & "abc" = "abc"');
     assert.strictEqual(runFunc(code, 'StrConcatNull'), 'abc', '"abc" & Null = "abc"');
-    assert.strictEqual(runFunc(code, 'NullConcatNull'), '', 'Null & Null = ""');
+    assert.strictEqual(runFunc(code, 'NullConcatNull'), vbaNull, 'Null & Null = Null (both-Null case returns Null per VBA spec)');
     assert.strictEqual(runFunc(code, 'NullPlusStr'), vbaNull, 'Null + "abc" = Null');
     console.log('[PASS] Null と文字列演算');
 }
