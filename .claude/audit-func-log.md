@@ -22,11 +22,16 @@
 | Join | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.16。非配列→String化/Null要素→JS TypeError を Error 13 に修正 |
 | DateAdd | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.1。無効Interval文字列でエラーなし→Error 5 を throw |
 | Nz | 2026-07-17 | ✅ OK | MS-VBAL外（Access固有）。Null/Empty→valueifnull の動作は適切 |
+| DateSerial | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.4。2桁年 0-29 が 2000-2029 でなく 1900-1929 になる（JS legacy behavior）|
 | DateDiff | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.2。無効Interval文字列で 0 返却→Error 5 を throw |
 | DatePart | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.3。無効Interval文字列で 0 返却→Error 5 を throw |
 | Left | 2026-07-17 | ✅ OK | §6.1.2.11.1.19。Null→Null, 負値→Error 5, 超過→全体返却 すべて正常 |
 | Right | 2026-07-17 | ✅ OK | §6.1.2.11.1.30。Left と同様、すべて正常 |
 | Mid | 2026-07-17 | ✅ OK | §6.1.2.11.1.25。Null→Null, Start<1→Error 5, Length省略→末尾まで すべて正常 |
+| Weekday | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.4.1.13。firstdayofweek=Null で Number(Symbol) JS TypeError→Error 5 に修正 |
+| MonthName | 2026-07-17 | ✅ OK | §6.1.2.11.1.28。範囲外→Error 5、Null→Null、Abbreviate 正常 |
+| WeekdayName | 2026-07-17 | ✅ OK | §6.1.2.11.1.43。範囲外→Error 5、fdow 変換ロジック正常 |
+| CInt | 2026-07-17 | ✅ OK | §6.1.2.3.1.7。Null→error 94、overflow→error 6、Banker's round 正常 |
 
 ## バグ発見リスト
 
@@ -43,5 +48,7 @@
 | Round | digits=Null で JS TypeError クラッシュ（仕様: Type Mismatch Error 13） | `builtins.test.ts` | ✅ 修正済み |
 | Join | 非配列引数で String 化・Null要素で JS TypeError クラッシュ（仕様: Error 13） | `split-join.test.ts` | ✅ 修正済み |
 | DateAdd | 無効 Interval 文字列でエラーなし（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` | ✅ 修正済み |
+| DateSerial | 2桁年 0-29 が 2000-2029 でなく 1900-1929（JS legacy behavior: new Date(10,...) → 1910）| `datetime.test.ts` (Bug CU) | ✅ 修正済み |
+| Weekday | firstdayofweek=Null で Number(Symbol) JS TypeError クラッシュ（仕様: VBA Error）| `datetime.test.ts` (Bug CV) | ✅ 修正済み |
 | DateDiff | 無効 Interval 文字列で 0 返却（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` (Bug CS) | ✅ 修正済み |
 | DatePart | 無効 Interval 文字列で 0 返却（仕様: Error 5 を raise） | `dateadd-monthend-rollover.test.ts` (Bug CT) | ✅ 修正済み |
