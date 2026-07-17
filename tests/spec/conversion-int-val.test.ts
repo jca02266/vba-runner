@@ -33,4 +33,25 @@ assert.strictEqual(evalExpr('Val(3.14)'), 3.14, 'Val(3.14) coerces to "3.14"');
 assert.strictEqual(evalExpr('Val(True)'), 0, 'Val(True) coerces to "True" → 0');
 assert.strictEqual(evalExpr('Val(False)'), 0, 'Val(False) coerces to "False" → 0');
 
+// Bug CX: Hex 負数の桁数 (§6.1.2.3.1.17)
+// 仕様: -32767〜-1 → 4文字（16ビット2の補数）、-2147483648〜-32768 → 8文字（32ビット）
+{
+    assert.strictEqual(evalExpr('Hex(-1)'), 'FFFF', 'Hex(-1) → FFFF (16ビット4文字)');
+    assert.strictEqual(evalExpr('Hex(-32767)'), '8001', 'Hex(-32767) → 8001 (16ビット4文字)');
+    assert.strictEqual(evalExpr('Hex(-32768)'), 'FFFF8000', 'Hex(-32768) → FFFF8000 (32ビット8文字)');
+    assert.strictEqual(evalExpr('Hex(-2147483648)'), '80000000', 'Hex(-2147483648) → 80000000 (32ビット8文字)');
+    assert.strictEqual(evalExpr('Hex(255)'), 'FF', 'Hex(255) 正数は先頭ゼロなし');
+    console.log('[PASS] Bug CX: Hex 負数 16ビット範囲は4文字');
+}
+
+// Bug CY: Oct 負数の桁数 (§6.1.2.3.1.19)
+// 仕様: -32767〜-1 → 6文字（16ビット2の補数8進）、-2147483648〜-32768 → 11文字
+{
+    assert.strictEqual(evalExpr('Oct(-1)'), '177777', 'Oct(-1) → 177777 (16ビット6文字)');
+    assert.strictEqual(evalExpr('Oct(-32767)'), '100001', 'Oct(-32767) → 100001 (16ビット6文字)');
+    assert.strictEqual(evalExpr('Oct(-32768)'), '37777700000', 'Oct(-32768) → 37777700000 (32ビット11文字)');
+    assert.strictEqual(evalExpr('Oct(8)'), '10', 'Oct(8) 正数は先頭ゼロなし');
+    console.log('[PASS] Bug CY: Oct 負数 16ビット範囲は6文字');
+}
+
 console.log("✅ Int & Val: All tests passed!");

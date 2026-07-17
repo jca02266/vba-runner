@@ -27,20 +27,14 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] 基本動作');
 }
 
-// エラー系のテスト
+// Bug CZ: StrReverse(Null) → エラー (§6.1.2.11.1.40)
 {
-    const code = `
-        Function TestError()
-            TestError = StrReverse(Null)
-        End Function
-    `;
-    try {
-        runFunc(code, 'TestError');
-        assert.fail('StrReverse(Null) should throw an error');
-    } catch (e: any) {
-        // Error is expected
-        console.log('[PASS] StrReverse(Null) throws error');
-    }
+    const errOf = (expr: string) => {
+        try { evalVBASingle('').evalExpression(expr); return null; } catch(e: any) { return e.number ?? -1; }
+    };
+    const errNum = errOf('StrReverse(Null)');
+    assert.strictEqual(errNum !== null, true, 'StrReverse(Null) は VBA エラーを投げる');
+    console.log('[PASS] Bug CZ: StrReverse(Null) はエラー (Error', errNum, ')');
 }
 
 console.log('\n✅ StrReverse: 全テスト通過');

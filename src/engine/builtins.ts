@@ -308,12 +308,20 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
 
     const hexFn = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        return (vbaRound(ctx.toVbaNumber(n), 0) >>> 0).toString(16).toUpperCase();
+        const rounded = vbaRound(ctx.toVbaNumber(n), 0);
+        if (rounded >= 0) return rounded.toString(16).toUpperCase();
+        // §6.1.2.3.1.17: -32767〜-1 → 16-bit (4 chars), -2147483648〜-32768 → 32-bit (8 chars)
+        if (rounded >= -32767) return (rounded & 0xFFFF).toString(16).toUpperCase().padStart(4, '0');
+        return (rounded >>> 0).toString(16).toUpperCase().padStart(8, '0');
     };
     ctx.reg('hex', hexFn, [{ name: 'Number' }], ['$']);
     const octFn = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        return (vbaRound(ctx.toVbaNumber(n), 0) >>> 0).toString(8);
+        const rounded = vbaRound(ctx.toVbaNumber(n), 0);
+        if (rounded >= 0) return rounded.toString(8);
+        // §6.1.2.3.1.19: -32767〜-1 → 16-bit octal (6 chars), -2147483648〜-32768 → 32-bit (11 chars)
+        if (rounded >= -32767) return (rounded & 0xFFFF).toString(8).padStart(6, '0');
+        return (rounded >>> 0).toString(8).padStart(11, '0');
     };
     ctx.reg('oct', octFn, [{ name: 'Number' }], ['$']);
     ctx.reg('val', (s: any) => {
@@ -720,7 +728,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         }
         return str;
     }, [{ name: 'String' }, { name: 'Conversion' }, { name: 'LCID', optional: true }]);
-    ctx.reg('strreverse', (s: any) => s === vbaNull ? vbaNull : String(s ?? '').split('').reverse().join(''), [{ name: 'Expression' }]);
+    ctx.reg('strreverse', (s: any) => {
+        if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        return String(s ?? '').split('').reverse().join('');
+    }, [{ name: 'Expression' }]);
     ctx.reg('filter', (source: any, match: any, include: any = vbaTrue, compare: any = undefined) => {
         if (!Array.isArray(source)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const srcDims = (source as any).__vbaDimensions__;
