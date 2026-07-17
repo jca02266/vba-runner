@@ -42,6 +42,11 @@
 | StrReverse | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.11.1.40。Null→vbaNull返却（仕様: エラーを発生）→Error 94 に修正 |
 | Fix | 2026-07-17 | ✅ OK | §6.1.2.3.1.16。Null→Null、n≥0→floor、n<0→ceil（ゼロ方向への丸め）正常 |
 | Int | 2026-07-17 | ✅ OK | §6.1.2.3.1.18。Null→Null、Math.floor（負の無限大方向への丸め）正常 |
+| IsArray | 2026-07-17 | ✅ OK | §6.1.2.7.1.2。Array.isArray で正常判定。型付き配列も JS Array なので True ✓ |
+| IsNumeric | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.7.1.8。VbaDate を数値型と誤判定（True）→ False に修正。Boolean/数値/Decimal/Currency は True、文字列は数値変換試行 |
+| IsDate | 2026-07-17 | ⚠️ 制限あり | §6.1.2.7.1.3。ISO 8601 形式 "2023-01-01" を True と返す（VBA は False）。Date.parse() の過剰受容。VBA日付パーサー実装は複雑のため注記のみ |
+| VarType | 2026-07-17 | ⚠️ 制限あり | §6.1.1.16。型付き配列は要素型不明のため常に 8204 (Variant()) を返す（例: Dim a() As String → 8200 が正確）。アーキテクチャ的制限 |
+| TypeName | 2026-07-17 | ✅ OK | §6.1.2.7.1.12。VarType と同じ特殊評価パスを使いASTレベルで宣言型を解決。型付き変数は正確に返す |
 
 ## バグ発見リスト
 
@@ -65,3 +70,4 @@
 | Hex | -32767〜-1 の範囲で32ビット（8文字）を返却（仕様: 16ビット4文字）| `conversion-int-val.test.ts` (Bug CX) | ✅ 修正済み |
 | Oct | -32767〜-1 の範囲で32ビット（11文字）を返却（仕様: 16ビット6文字）| `conversion-int-val.test.ts` (Bug CY) | ✅ 修正済み |
 | StrReverse | Null 入力で vbaNull 返却（仕様: エラー発生）→ Error 94 に修正 | `strreverse.test.ts` (Bug CZ) | ✅ 修正済み |
+| IsNumeric | VbaDate を数値型と誤判定 → True 返却（仕様: §6.1.2.7.1.8 に Date なし → False） | `builtins.test.ts` (Bug DA) | ✅ 修正済み |

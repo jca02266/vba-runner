@@ -52,6 +52,15 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('IsObject(123)'), vbaFalse, 'IsObject(123)');
 }
 
+// Bug DA: IsNumeric(Date) は False (§6.1.2.7.1.8: Date は数値型リストに含まれない)
+{
+    assert.strictEqual(evalExpr('IsNumeric(#1/1/2000#)'), vbaFalse, 'IsNumeric(Date literal) = False');
+    assert.strictEqual(evalExpr('IsNumeric(True)'), vbaTrue, 'IsNumeric(True) = True (Boolean is numeric)');
+    assert.strictEqual(evalExpr('IsNumeric(42)'), vbaTrue, 'IsNumeric(42) = True');
+    assert.strictEqual(evalExpr('IsNumeric(Null)'), vbaFalse, 'IsNumeric(Null) = False');
+    console.log('[PASS] Bug DA: IsNumeric(Date) は False');
+}
+
 // 5. Array Functions
 {
     assert.strictEqual(evalExpr('LBound(Array(1, 2, 3))'), 0, 'LBound');

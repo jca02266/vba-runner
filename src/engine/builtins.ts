@@ -65,7 +65,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
     ctx.reg('isnumeric', (val: any) => {
         if (val === vbaNull) return vbaFalse;
         if (val === vbaEmpty || val === undefined) return vbaTrue;
-        if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaBoolean || val instanceof VbaDate) return vbaTrue;
+        if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaBoolean) return vbaTrue;
         if (typeof val === 'string') {
             const s = val.trim();
             if (s === "") return vbaFalse;
