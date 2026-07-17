@@ -293,4 +293,27 @@ End Function
     console.log('[PASS] Bug AG/AH/AI: DateAdd/DateDiff/DatePart の Null 伝播');
 }
 
+// Bug CU: DateSerial 2桁年の変換 (§6.1.2.4.1.4: 0-29→2000-2029, 30-99→1930-1999)
+{
+    const ev2 = evalVBASingle('');
+    assert.strictEqual(ev2.evalExpression('Year(DateSerial(10, 1, 1))'), 2010, 'DateSerial(10,...) → year 2010');
+    assert.strictEqual(ev2.evalExpression('Year(DateSerial(29, 1, 1))'), 2029, 'DateSerial(29,...) → year 2029');
+    assert.strictEqual(ev2.evalExpression('Year(DateSerial(30, 1, 1))'), 1930, 'DateSerial(30,...) → year 1930');
+    assert.strictEqual(ev2.evalExpression('Year(DateSerial(99, 1, 1))'), 1999, 'DateSerial(99,...) → year 1999');
+    assert.strictEqual(ev2.evalExpression('Year(DateSerial(2024, 6, 15))'), 2024, 'DateSerial(2024,...) → year 2024');
+    console.log('[PASS] Bug CU: DateSerial 2桁年 0-29→2000-2029');
+}
+
+// Bug CV: Weekday(date, Null) が JS TypeError でクラッシュ → VBA Error (§6.1.2.4.1.13)
+{
+    const errOf = (expr: string) => {
+        try { evalVBASingle('').evalExpression(expr); return null; } catch (e: any) { return e.number ?? -1; }
+    };
+    // firstdayofweek=Null → Type mismatch or Invalid procedure call
+    assert.notStrictEqual(errOf('Weekday("2025-01-01", Null)'), null, 'Weekday(date, Null) は VBA エラーを投げる（JSクラッシュしない）');
+    const errNum = errOf('Weekday("2025-01-01", Null)');
+    assert.strictEqual(errNum === 5 || errNum === 13, true, `Weekday(date, Null) → Error 5 or 13 (got ${errNum})`);
+    console.log('[PASS] Bug CV: Weekday(date, Null) は JS クラッシュでなく VBA Error');
+}
+
 console.log('\n✅ DateTime Module: 全テスト通過');

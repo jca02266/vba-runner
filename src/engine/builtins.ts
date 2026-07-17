@@ -893,7 +893,13 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('second', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => {
         if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
-        return new VbaDate(toVbaDate(new Date(Number(y), Number(m) - 1, Number(d))));
+        let year = Number(y);
+        // VBA spec §6.1.2.4.1.4: 0-29 → 2000-2029, 30-99 → 1930-1999
+        if (year >= 0 && year <= 29) year += 2000;
+        else if (year >= 30 && year <= 99) year += 1900;
+        const date = new Date(year, Number(m) - 1, Number(d));
+        date.setFullYear(year); // prevent JS legacy year offset for 0-99
+        return new VbaDate(toVbaDate(date));
     }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
     ctx.reg('timeserial', (h: any, n: any, s: any) => {
         if (h === vbaNull || n === vbaNull || s === vbaNull) return vbaNull;
@@ -901,6 +907,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
         if (d === vbaNull) return vbaNull;
+        if (firstdayofweek === vbaNull) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
         let fdow = Number(firstdayofweek ?? 1);
         if (fdow === 0) fdow = 1; // vbUseSystemDayOfWeek → treat as vbSunday
