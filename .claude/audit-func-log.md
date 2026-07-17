@@ -70,6 +70,16 @@
 | Hex | -32767〜-1 の範囲で32ビット（8文字）を返却（仕様: 16ビット4文字）| `conversion-int-val.test.ts` (Bug CX) | ✅ 修正済み |
 | Oct | -32767〜-1 の範囲で32ビット（11文字）を返却（仕様: 16ビット6文字）| `conversion-int-val.test.ts` (Bug CY) | ✅ 修正済み |
 | StrReverse | Null 入力で vbaNull 返却（仕様: エラー発生）→ Error 94 に修正 | `strreverse.test.ts` (Bug CZ) | ✅ 修正済み |
+| Abs | 2026-07-17 | ✅ OK | §6.1.2.10.1.1。Null→Null、負→正 正常 |
+| Len | 2026-07-17 | ✅ OK | §6.1.2.11.1.22。Null→Null、数値→String 変換後カウント、Empty→0 正常 |
+| LBound | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.2.1.2。dim=Null で JS TypeError クラッシュ（Bug DD）、dim=0 で Error 9 未発生（Bug DE）|
+| UBound | 2026-07-17 | 🐛 バグあり (修正済み) | §6.1.2.2.1.3。LBound と同じく dim=Null/dim=0 でバグ (Bug DD/DE)  |
+| Year | 2026-07-17 | ✅ OK | §6.1.2.4.1.14。Null→Null、日付文字列→変換 正常 |
+| Month | 2026-07-17 | ✅ OK | §6.1.2.4.1.9。Null→Null 正常 |
+| Day | 2026-07-17 | ✅ OK | §6.1.2.4.1.6。Null→Null 正常 |
+| Hour | 2026-07-17 | ✅ OK | §6.1.2.4.1.7。Null→Null、小数部→時間変換 正常 |
+| Minute | 2026-07-17 | ✅ OK | §6.1.2.4.1.8。Null→Null 正常 |
+| Second | 2026-07-17 | ✅ OK | §6.1.2.4.1.10。Null→Null 正常 |
 | Sgn | 2026-07-17 | ✅ OK | §6.1.2.10.1.8。Null→Null（Variant引数）、正/負/0 → 1/-1/0 正常 |
 | LCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.17。Null→Null、大文字 → 小文字変換正常 |
 | UCase | 2026-07-17 | ✅ OK | §6.1.2.11.1.41。Null→Null、小文字 → 大文字変換正常 |
@@ -81,3 +91,7 @@
 | IsNumeric | VbaDate を数値型と誤判定 → True 返却（仕様: §6.1.2.7.1.8 に Date なし → False） | `builtins.test.ts` (Bug DA) | ✅ 修正済み |
 | String | 数値 > 255 で Mod 256 未適用（例: String(3,257)→"āāā"、仕様: chr(1)*3） | `builtin-strings.test.ts` (Bug DB) | ✅ 修正済み |
 | String | 空文字 Character で Error 5 未発生（String(3,"")→""、仕様: Error 5） | `builtin-strings.test.ts` (Bug DC) | ✅ 修正済み |
+| LBound | dim=Null で JS TypeError クラッシュ（仕様: VBA Error） | `builtins.test.ts` (Bug DD) | ✅ 修正済み |
+| UBound | dim=Null で JS TypeError クラッシュ（仕様: VBA Error） | `builtins.test.ts` (Bug DD) | ✅ 修正済み |
+| LBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |
+| UBound | dim=0 で Error 9 未発生（次元は1ベース、dim<1 は無効） | `builtins.test.ts` (Bug DE) | ✅ 修正済み |

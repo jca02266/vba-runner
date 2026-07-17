@@ -68,6 +68,20 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('Array(1, 2, 3)(2)'), 3, 'Array index 2');
 }
 
+// Bug DD: LBound/UBound(arr, Null) は JS TypeError (VBA Error に変換すべき)
+{
+    assert.throwsMatch(() => evalExpr('LBound(Array(1,2,3), Null)'), /error '/, 'LBound(arr, Null) → VBA error');
+    assert.throwsMatch(() => evalExpr('UBound(Array(1,2,3), Null)'), /error '/, 'UBound(arr, Null) → VBA error');
+    console.log('[PASS] Bug DD: LBound/UBound(arr, Null) は VBA error');
+}
+
+// Bug DE: LBound/UBound(arr, 0) は Error 9 (次元は1ベース)
+{
+    assert.throwsMatch(() => evalExpr('LBound(Array(1,2,3), 0)'), /error '9'/, 'LBound(arr, 0) → Error 9');
+    assert.throwsMatch(() => evalExpr('UBound(Array(1,2,3), 0)'), /error '9'/, 'UBound(arr, 0) → Error 9');
+    console.log('[PASS] Bug DE: LBound/UBound(arr, 0) → Error 9');
+}
+
 // 6. IIf
 {
     assert.strictEqual(evalExpr('IIf(True, "A", "B")'), 'A', 'IIf True');

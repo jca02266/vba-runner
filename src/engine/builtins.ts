@@ -1351,6 +1351,7 @@ export function registerConstants(ctx: StdlibCtx): void {
     ]);
     ctx.reg('lbound', (a: any, dim: any = 1) => {
         if (!Array.isArray(a)) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
+        if (dim === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
         const dimIndex = Number(dim) - 1;
         if ((a as any).__vbaDimensions__) {
             if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
@@ -1358,11 +1359,12 @@ export function registerConstants(ctx: StdlibCtx): void {
             }
             return (a as any).__vbaDimensions__[dimIndex].lower;
         }
-        if (dimIndex > 0) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
+        if (dimIndex < 0 || dimIndex > 0) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
         return (a as any).vbaBase || 0;
     }, [{ name: 'ArrayName' }, { name: 'Dimension', optional: true }]);
     ctx.reg('ubound', (a: any, dim: any = 1) => {
         if (!Array.isArray(a)) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
+        if (dim === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
         const dimIndex = Number(dim) - 1;
         if ((a as any).__vbaDimensions__) {
             if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
@@ -1370,7 +1372,7 @@ export function registerConstants(ctx: StdlibCtx): void {
             }
             return (a as any).__vbaDimensions__[dimIndex].upper;
         }
-        if (dimIndex > 0) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
+        if (dimIndex < 0 || dimIndex > 0) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
         // a.length already includes vbaBase filler slots (added by Array() for Option Base 1),
         // so UBound = a.length - 1 (not vbaBase + a.length - 1).
         return a.length - 1;
