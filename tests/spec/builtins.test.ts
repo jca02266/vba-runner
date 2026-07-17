@@ -337,4 +337,14 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug DP: LeftB/RightB(neg)/MidB(0) → Error 5');
 }
 
+// Bug DQ: Financial functions (SLN/SYD/DDB/FV/PV/PMT/NPER/RATE/NPV/IRR/MIRR/IPMT/PPMT)
+// crash with JS TypeError on Null input
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('SLN(Null, 0, 5)'), /error '/, 'SLN(Null,...) → VBA error');
+    assert.throwsMatch(() => ev.evalExpression('FV(Null, 10, -200)'), /error '/, 'FV(Null,...) → VBA error');
+    assert.throwsMatch(() => ev.evalExpression('PMT(0.1, Null, 1000)'), /error '/, 'PMT(n,Null,...) → VBA error');
+    console.log('[PASS] Bug DQ: Financial functions with Null → VBA error');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');

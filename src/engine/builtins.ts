@@ -1126,12 +1126,16 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerFinancialFunctions(ctx: StdlibCtx): void {
+    const toNum = (val: any): number => {
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        return Number(val);
+    };
     const getRateFactor = (rate: number, nper: number) => {
         if (rate === 0) return nper;
         return (Math.pow(1 + rate, nper) - 1) / rate;
     };
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
-        const r = Number(rate), n = Number(nper), p = Number(pmt), v = Number(pv), t = Number(type);
+        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toNum(type);
         const factor = getRateFactor(r, n);
         return -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
     }, [
@@ -1139,7 +1143,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'PV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
-        const r = Number(rate), n = Number(nper), p = Number(pmt), f = Number(fv), t = Number(type);
+        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), f = toNum(fv), t = toNum(type);
         if (r === 0) return -(f + p * n);
         const p1 = Math.pow(1 + r, n);
         return -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
@@ -1148,7 +1152,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = Number(rate), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+        const r = toNum(rate), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
         if (r === 0) return -(v + f) / n;
         const p1 = Math.pow(1 + r, n);
         return -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));
@@ -1157,18 +1161,18 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = Number(rate), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
+        const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
         if (r === 0) return -(v + f) / p;
-        const num = p * (1 + r * t) - f * r;
-        const den = p * (1 + r * t) + v * r;
-        return Math.log(num / den) / Math.log(1 + r);
+        const numerator = p * (1 + r * t) - f * r;
+        const denominator = p * (1 + r * t) + v * r;
+        return Math.log(numerator / denominator) / Math.log(1 + r);
     }, [
         { name: 'Rate' }, { name: 'Pmt' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
-        let r = Number(guess);
-        const n = Number(nper), p = Number(pmt), v = Number(pv), f = Number(fv), t = Number(type);
+        let r = toNum(guess);
+        const n = toNum(nper), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
         for (let i = 0; i < 20; i++) {
             const p1 = Math.pow(1 + r, n);
             const f_r = v * p1 + p * (1 + r * t) * ((p1 - 1) / r) + f;
@@ -1183,14 +1187,14 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true }, { name: 'Guess', optional: true },
     ]);
     ctx.reg('sln', (cost: any, salvage: any, life: any) => {
-        return (Number(cost) - Number(salvage)) / Number(life);
+        return (toNum(cost) - toNum(salvage)) / toNum(life);
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
     ctx.reg('syd', (cost: any, salvage: any, life: any, period: any) => {
-        const c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period);
+        const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period);
         return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
     ctx.reg('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
-        const c = Number(cost), s = Number(salvage), l = Number(life), p = Number(period), f = Number(factor);
+        const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period), f = toNum(factor);
         if (p <= 0 || p > l) return 0;
         let book = c;
         let dep = 0;
@@ -1206,7 +1210,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('irr', (values: any, guess: any = 0.1) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const v = values.map(Number);
-        let r = Number(guess);
+        let r = toNum(guess);
         for (let i = 0; i < 100; i++) {
             let npv = 0, dnpv = 0;
             for (let t = 0; t < v.length; t++) {
@@ -1223,7 +1227,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const v = values.map(Number);
-        const fr = Number(finance_rate), rr = Number(reinvest_rate);
+        const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
         const n = v.length - 1;
         let npv_neg = 0, npv_pos = 0;
         for (let t = 0; t < v.length; t++) {
@@ -1235,7 +1239,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'ValueArray' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        const r = Number(rate);
+        const r = toNum(rate);
         const base: number = (values as any).vbaBase ?? 0;
         let result = 0;
         let period = 1;
@@ -1245,7 +1249,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         return result;
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
         const pmt = Number(ctx.envGet('pmt')(r, n, v, f, t));
         let ipmt: number;
         if (p === 1) {
@@ -1260,7 +1264,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = Number(rate), p = Number(per), n = Number(nper), v = Number(pv), f = Number(fv), t = Number(type);
+        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
         const pmt = Number(ctx.envGet('pmt')(r, n, v, f, t));
         const ipmt = Number(ctx.envGet('ipmt')(r, p, n, v, f, t));
         return pmt - ipmt;
