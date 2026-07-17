@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 30 | エンジン評価 #30: 状態機械 / ワークフローエンジン（注文処理ドメイン） | **複数クラス連携（State.cls + WorkflowEngine.cls）**: `Class_Initialize` で `Scripting.Dictionary` をフィールド初期化・複数クラス間の Set 代入・メソッド呼び出し 正常動作。**Collection による履歴記録**: `myCol.Add` / `For Each` による全件走査 正常動作。**On Error GoTo + Err.Raise**: 無効遷移（存在しない状態・イベント）の Error 5 送出・呼び出し元での捕捉 正常動作。**For Each で Dictionary Keys 走査**: `For Each key In dict.Keys` パターン正常動作。**`new VBARunner(optionsObj)` 誤用で ERR_INVALID_ARG_TYPE**: Node.js 内部エラーになりわかりにくい（改善提案）。**Bug 30-A 発見・修正済み**: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）。`builtins.ts` の `__vbaClass__` チェックが `__vbaTypeName__` チェックより後にあったため。チェック順を入れ替えて修正。`TypeName()` は正常動作していた。 | 2026-07-17 |
 | 29 | エンジン評価 #29: 演算子セマンティクス / Option Base 1・Option Compare Text / クラスイベント（Event/RaiseEvent/WithEvents） / Erase・IsMissing・型サフィックス・While Wend（音楽理論ドメイン: 移調・スケール・コード進行・メトロノーム） | **`\`/`Mod`**: 事前銀行家丸め・負数・ゼロ除算 12 ケース全て実 VBA と一致。**`&` vs `+`**: `"1"+1`=2、`"a"+1`=Error 13、`"a" & Null`="a" 正常（`Null & Null` のみ Bug 29-D）。**比較型強制**: `"10">9`・Empty 比較 全一致。**`Xor`/`Eqv`/`Imp`**: ビット演算として正確（`5 Eqv 3`=-7、`5 Imp 3`=-5）。**クラスイベント**: `Public Event`/`RaiseEvent`/`Dim WithEvents`/`Private Sub obj_Event()` ハンドラー **完全動作**（4拍子6拍のイベント列正確）。**Option Base 1**: `Dim a(3)` の LBound=1 正常（`Array()` のみ Bug 29-E）。**Option Compare Text**: `=`/`<`/`Like`/`InStr` のモジュールスコープ既定まで正常。**Erase**: 動的配列解放後 UBound=Error 9 正常。**IsMissing**: 正常。**サフィックスリテラル**（`123&`/`1.5#`/`1.5!`/`123@`）: TypeName 全正確（サフィックス付き `Dim n&` は Bug 29-A）。**While Wend**: 正常。**Bug 29-A〜29-H 発見**（下記セクション参照・全件メイン再現確認済み） | 2026-07-17 |
 | 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / ReDim Preserve / StrConv日本語変換 / Nz / RGB・QBColor / Format Yes/No（アルゴリズムライブラリ+テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST 走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換**: `vbKatakana(16)` / `vbHiragana(32)` / `vbWide(4)` / `vbNarrow(8)` すべて期待通り動作。**Nz**: `Nz(Null, 0)` / `Nz(Empty, 42)` / `Nz(有値, default)` の3パターン正常。**RGB / QBColor**: 評価 #27 修正済みで正常動作を確認。**Format("Yes/No"/"On/Off"/"True/False")**: 評価 #27 修正済みで正常動作を確認。**TextAnalyzer.cls**: Class_Initialize・On Error GoTo・Property Get・Scripting.Dictionary 組み合わせ正常動作。**Bug 28-1 発見**: `ReDim Preserve` で UDT 配列を拡張した後、新インデックス要素のメンバーアクセスが Error 424。 | 2026-07-16 |
 | 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / StrConv日本語変換 / Nz・RGB・Format（アルゴリズムライブラリ + テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換（vbKatakana=16/vbHiragana=32/vbWide=4/vbNarrow=8）**: すべて期待通り動作。**Nz / RGB / QBColor / Format "Yes/No"**: 評価直前のバグ修正（Bug A〜N）によりすべて正常動作。**TextAnalyzer.cls（Class_Initialize + Dictionary + On Error GoTo + Property Get）**: 完全正常動作。**Bug 28-1 発見・修正済み**: `ReDim Preserve n(0 To 1)` で UDT 配列を拡張後、`n(1).Value = 2` が Error 424。旧 `fillArrayWithUDT` の `!isPreserve` ガードにより新インデックスが未初期化のまま残っていた。 | 2026-07-16 |
@@ -190,6 +191,12 @@
 | **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
 | **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
 | **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+
+### ~~未修正バグ（評価 #30 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 30-A: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）**~~ | `Dim obj As New MyClass : VarType(obj)` → 36 | `builtins.ts` の `vartype` 登録で `if (val.__vbaTypeName__) return 36` が `if (val.__vbaClass__) return 9` より先に実行されていた。クラスインスタンスは両方のプロパティを持つため UDT 扱いになっていた。チェック順を入れ替えて修正。`TypeName(obj)` は正常動作していた。レグレッションテスト: `tests/spec/typename.test.ts` Bug 30-A ブロック。 | `builtins.ts:109-110` の順序を入れ替え |
 
 ### 未修正バグ（評価 #26 で発見）
 
