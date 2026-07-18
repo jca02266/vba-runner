@@ -62,3 +62,8 @@ REPORT.md
 .env
 .npmrc
 /build/extension/vba-runner-extension.md
+
+# カバレッジ計測の出力（scripts/coverage.sh）
+coverage
+coverage-v8
+coverage-chunks

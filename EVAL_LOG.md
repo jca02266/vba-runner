@@ -327,6 +327,23 @@
 
 評価済みドメインでカバーしたものを除いた、まだ十分に試されていない機能。
 
+### カバレッジ計測で特定した暗部（2026-07-18、`./scripts/coverage.sh` 全 913 プロセスのユニオン集計）
+
+行カバレッジ: `evaluator.ts` 92.1% / `parser.ts` 92.6% / `builtins.ts` 94.8% / `coerce.ts` 93.8% / `lexer.ts` 98.4%。
+テストスイートが一度も通していない主な分岐（= 監査もされていない挙動。今後の評価ドメイン選定・テスト追加の優先候補）:
+
+- **日付リテラルの 2 要素形式**（`#3/15#` のような mm/dd vs dd/mm 曖昧解釈、evaluator `parseDateLiteral` の大部分）
+- **`&H`/`&O` 文字列の数値強制**（`CDbl("&H10")` 等、coerce `vbaToNumber` の 16 進・8 進分岐）
+- **`Lock` / `Unlock` 文**（parser に実装はあるが全経路未実行）
+- **`Open` 文のバリエーション**（parser `parseOpenStatement` の Access/Lock 節など 2 経路）
+- **AppActivate / SendKeys の文形式**（parser 専用文パスが未実行。関数形式は評価済み）
+- **財務関数の一部経路**（IRR/MIRR の反復、IPmt/PPmt の一部分岐）
+- **Decimal 除算経路**（evaluator `evaluateDecimalOp` の `bankersDivide` 側）
+- **`Set obj.Prop = x` のチェーン経路**（evaluator `evaluateSetStatement` の複数分岐、Dictionary キー付き Set 含む）
+- **`DateAdd "ww"`・`DatePart` の年始基準系**（builtins 日付関数の一部分岐）
+- **クラス本体直下の `Dim`/`Static` 宣言**（parser `parseClassBody` の分岐 — `Private x` 形式は評価済みだが `Dim x` / `Static x` 形式が未実行）
+- **パーサーのエラー回復**（`syncToNextTopLevelStatement`）と `Declare` 文の一部形式
+
 ### 数学・数値関数・型チェック・文字列変換（評価 #22 で確認済み）
 
 - ~~`Sqr()`, `Abs()`, `Log()`, `Exp()`, `Sin()`, `Cos()`, `Atn()`, `Sgn()`, `Fix()`, `Rnd()`/`Randomize`~~ **評価済み（評価#22）: 全正常動作。`Atn(1)*4` で Pi 計算も正常。`Fix(-2.7)=-2` / `Int(-2.7)=-3` の違い正確。`Randomize seed` で同一シード → 同一乱数列を確認。**
