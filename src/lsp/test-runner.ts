@@ -39,7 +39,7 @@ export class TestRunner {
                 ev.callProcedure(name, []);
                 results.push({ name, state: 'passed', duration: Date.now() - startTime });
             } catch (error) {
-                const message = (error as any)?.message ?? String(error);
+                const message = (error as any)?.vbaBareMessage ?? (error as any)?.message ?? String(error);
                 results.push({ name, state: 'failed', duration: Date.now() - startTime, message });
             }
         }
@@ -86,7 +86,7 @@ export class TestRunner {
                 };
             } catch (testError) {
                 const duration = Date.now() - startTime;
-                const message = (testError as any)?.message ?? String(testError);
+                const message = (testError as any)?.vbaBareMessage ?? (testError as any)?.message ?? String(testError);
 
                 return {
                     name: testName,
