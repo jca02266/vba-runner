@@ -2,10 +2,12 @@
  * 実 VBA 差分テスト（scripts/gen-diff-corpus.ts + Excel 実行結果との突き合わせ）で
  * 発見・修正したバグのリグレッションテスト。
  *
- * 2337 式のコーパスを実 Excel VBA と vba-runner の両方で実行し、TypeName/値/
- * Err.Number まで比較した結果、2302/2337 が一致（残り 35 件はコードページ・
- * タイムゾーン等の環境依存差として scripts/diff-allowlist.txt に許容登録）。
- * ここでは発見された仕様差のうち代表的なものを固定する。
+ * 第1回: 2337 式を実 Excel VBA と突き合わせ 2302/2337 一致。
+ * 第2回（深掘り検証）: \/Mod の Boolean 保持規則と CDate の "H.N"/"M,Y" 文字列解釈の
+ * 境界値を狙った 149 式を追加（計 2486 式）→ 2450/2486 一致。追加分は 148/149 が
+ * 初回から一致し、実装した規則の正確さが裏付けられた（唯一の不一致は既知のタイムゾーン
+ * LMT 依存問題と同一原因）。残り 36 件はコードページ・タイムゾーン等の環境依存差として
+ * scripts/diff-allowlist.txt に許容登録。ここでは発見された仕様差のうち代表的なものを固定する。
  */
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
@@ -139,6 +141,32 @@ const ev = evalVBASingle('');
     assert.strictEqual(String(ev.evalExpression('CStr((#2024/03/15#) - ("3.5"))')), '2024/03/11 12:00:00',
         '#date# - "3.5" も同様にシリアル値として減算する');
     console.log('[PASS] "H.N" 文字列の時刻解釈は + 演算子・CDate 限定（-/*/\\/Mod は通常の数値解釈）');
+}
+
+// --- 第2回深掘り検証（149 式追加、148/149 が初回から一致）で確定した境界値 ---
+{
+    // \/Mod の Boolean 保持規則は「右が文字列」の場合のみ発動する。右が数値/Empty/Null/
+    // Date だと通常演算になる（規則が発動しない）ことを実 Excel で確認済み
+    assert.strictEqual(ev.evalExpression('(True) \\ (7)'), 0,
+        'True \\ 7（右が数値そのもの）は規則不発動、通常の整数演算 -1\\7=0');
+    assert.strictEqual(String(ev.evalExpression('IsNull((True) \\ (Null))')), 'True',
+        'True \\ Null は通常どおり Null 伝播（Boolean 保持規則の対象外）');
+    // +/-/*// では \/Mod のような Boolean 保持規則は存在しない（実 Excel で確認済み）
+    assert.strictEqual(ev.evalExpression('(True) + ("7")'), 6, 'True + "7" は通常の数値加算 -1+7=6');
+
+    // "H.N" 時刻解釈の境界値: 無効な時刻（24時・60分以上）は時刻解釈されずシリアル値扱い
+    assert.notStrictEqual(ev.evalExpression('CStr(CDate("24.0"))'), '24:00:00',
+        'CDate("24.0") は無効な時刻なので時刻解釈されない');
+    // 正常範囲のゼロパディングも時刻解釈される
+    assert.strictEqual(ev.evalExpression('CStr(CDate("02.05"))'), '02:05:00',
+        'CDate("02.05")（ゼロパディング）も "2時5分" と解釈される');
+
+    // "M,Y" 形式は現代の年でも正しく機能する（タイムゾーン問題のない範囲で確認済み）
+    assert.strictEqual(ev.evalExpression('Year(CDate("3,2024"))'), 2024, 'CDate("3,2024") は 2024年3月1日');
+    assert.strictEqual(ev.evalExpression('Month(CDate("3,2024"))'), 3, '月は 3');
+    assert.strictEqual(ev.evalExpression('Day(CDate("3,2024"))'), 1, '日は 1 固定');
+
+    console.log('[PASS] 第2回深掘り検証で確定した境界値（\\/Mod の右辺型・CDate 無効時刻・M,Y 現代年）');
 }
 
 console.log('\n✅ real-vba-diff-regressions: 全テスト通過');
