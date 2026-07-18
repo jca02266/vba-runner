@@ -217,6 +217,9 @@ export class VbaErrObject {
     public helpcontext: number = 0;
     public lastdllerror: number = 0;
 
+    /** Erl: エラー発生時点で最後に通過した数値行ラベル（行番号なしなら 0） */
+    public erl: number = 0;
+
     public clear() {
         this.number = 0;
         this.source = "";
@@ -224,6 +227,7 @@ export class VbaErrObject {
         this.helpfile = "";
         this.helpcontext = 0;
         this.lastdllerror = 0;
+        this.erl = 0;
     }
 
     public raise(number: number, source?: any, description?: any, helpfile?: any, helpcontext?: any) {
@@ -728,6 +732,8 @@ export class Evaluator {
     private _ptrCounter: number = 0x10000;
     private staticVarsInCurrentProc: Set<string> = new Set();
     private errObj: VbaErrObject = new VbaErrObject();
+    /** 最後に実行した数値行ラベル（Erl 用）。数値ラベルの LabelStatement 通過時に更新 */
+    private lastLineNumberLabel: number = 0;
     private classDefinitions: Map<string, ClassDeclaration> = new Map();
     /** §5.6.10 Tier 6: 修飾なし識別子の最終フォールバック先オブジェクト（MockApplication 等） */
     private defaultBindingObject: any = null;
@@ -961,6 +967,7 @@ export class Evaluator {
             }
         });
         this.env.set('err', this.errObj);
+        this.registerBuiltin('erl', () => this.errObj.erl, []);
         this.env.set('application', {
             wait: (time: any) => {
                 this.onPrint(`[APPLICATION.WAIT] ${time}`);
@@ -2217,9 +2224,12 @@ export class Evaluator {
             case 'ResetStatement':
                 this.evaluateResetStatement(stmt as ResetStatement);
                 break;
-            case 'LabelStatement':
-                // No-op for now. Label execution just passes through.
+            case 'LabelStatement': {
+                // 数値行ラベル（レガシー行番号）は Erl のために記録する
+                const labelText = (stmt as any).label as string;
+                if (/^\d+$/.test(labelText)) this.lastLineNumberLabel = Number(labelText);
                 break;
+            }
             case 'SelectCaseStatement':
                 this.evaluateSelectCaseStatement(stmt as SelectCaseStatement);
                 break;
@@ -5249,6 +5259,7 @@ export class Evaluator {
 
                     this.errObj.number = errorNumber;
                     this.errObj.description = errorMessage;
+                    this.errObj.erl = this.lastLineNumberLabel;
 
                     if (this.errorHandlingMode === 'ResumeNext') {
                         this.lastErrorIndex = i;

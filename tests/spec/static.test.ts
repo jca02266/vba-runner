@@ -100,4 +100,28 @@ function runFunc(ev: Evaluator, name: string, args: any[] = []): any {
     console.log('[PASS] 異なるプロシージャ間でStatic変数は独立');
 }
 
+// --- Bug 31-A（評価 #31）: Public/Private Static Sub|Function がパースエラーだった ---
+{
+    const code = `
+    Public Static Function Counter() As Long
+        Dim n As Long
+        n = n + 1
+        Counter = n
+    End Function
+    Private Static Sub Accum(ByVal v As Long)
+        Dim total As Long
+        total = total + v
+        LastTotal = total
+    End Sub
+    Public LastTotal As Long
+    `;
+    const ev = makeEvaluator(code);
+    assert.strictEqual(runFunc(ev, 'Counter'), 1, 'Bug 31-A: Public Static Function 1回目');
+    assert.strictEqual(runFunc(ev, 'Counter'), 2, 'Bug 31-A: Public Static Function 2回目（変数が保持される）');
+    runFunc(ev, 'Accum', [5]);
+    runFunc(ev, 'Accum', [7]);
+    assert.strictEqual(ev.evalExpression('LastTotal'), 12, 'Bug 31-A: Private Static Sub のローカル変数も保持される');
+    console.log('[PASS] Bug 31-A: Public/Private Static Sub|Function');
+}
+
 console.log('\n✅ Static キーワード: 全テスト通過');

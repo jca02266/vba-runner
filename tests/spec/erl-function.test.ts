@@ -117,4 +117,33 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     }
 }
 
+// --- Bug 31-B（評価 #31）: Erl が未実装で常に 0 を返していた ---
+// 実装: 数値行ラベル通過時に記録し、エラー捕捉時に Err 状態へ確定。
+// Err.Clear / Resume / On Error 文 / Exit 系で Err とともにリセットされる。
+{
+    // ハンドラー内で Erl がエラー行番号を返す（Err.Raise 起点）
+    const code = `
+    Function G() As Long
+        On Error GoTo H
+10      Dim a
+20      Err.Raise 5
+30      Exit Function
+    H:
+        G = Erl
+    End Function
+    Function NoNumbers() As Long
+        On Error Resume Next
+        Err.Raise 5
+        NoNumbers = Erl
+    End Function
+    `;
+    const ev = evalVBA(code);
+    // 行番号なしプロシージャを先に実行 → 0（グローバル状態が汚れていない状態で）
+    assert.strictEqual(ev.callProcedure('NoNumbers', []), 0,
+        'Bug 31-B: 行番号のないプロシージャでは Erl = 0');
+    assert.strictEqual(ev.callProcedure('G', []), 20,
+        'Bug 31-B: ハンドラー内の Erl はエラー発生行の行番号を返す');
+    console.log('[PASS] Bug 31-B: Erl がエラー行番号を返す');
+}
+
 console.log('\n✅ Erl Function: Testing complete');

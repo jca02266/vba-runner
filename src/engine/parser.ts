@@ -1555,6 +1555,15 @@ export class Parser {
             if (next.type === TokenType.KeywordSub || next.type === TokenType.KeywordFunction || next.type === TokenType.KeywordProperty) {
                 return this.parseProcedureDeclaration(scope, false);
             }
+            // Public/Private Static Sub|Function|Property — プロシージャ全体 Static
+            if (next.type === TokenType.KeywordStatic) {
+                const after = this.peek(1);
+                if (after.type === TokenType.KeywordSub || after.type === TokenType.KeywordFunction || after.type === TokenType.KeywordProperty) {
+                    this.advance(); // consume 'Static'
+                    return this.parseProcedureDeclaration(scope, true);
+                }
+                // Public Static x As Long のような変数宣言はそのまま下の Dim 処理へ
+            }
             if (next.type === TokenType.KeywordConst) {
                 const stmt = this.parseConstDeclaration();
                 (stmt as any).scope = scope;

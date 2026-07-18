@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 31 | エンジン評価 #31: 再帰下降式パーサー（電卓インタープリター・ドメイン） | **クラス 3 つ + 標準モジュール連携（Token.cls / Tokenizer.cls / ExprParser.cls）**: クラス内から別クラス New・Collection へのオブジェクト格納・`Item(i)`/`For Each` 取り出し 完全動作。**オブジェクト配列**: `Dim tokens() As Token` + `ReDim Preserve` + `Set tokens(i) = New Token` + `For Each` 走査 完全動作。**後置 `Do...Loop While` / `Do...Loop Until`**: 完全動作。**`Err.Raise vbObjectError + n` → `Err.Number - vbObjectError` 往復**: 完全動作（`vbObjectError` = -2147221504 正確）。**Dictionary 暗黙 Let 代入 `m_vars(key) = v`**: 追加・更新とも正常。**文字列連結 20000 回**: 176ms で完走。**行番号付きレガシー構文**: `10 x = 1` 形式のパース・`GoTo 30`・`On Error GoTo 99`（数値ターゲット）すべて動作。**Bug 31-A 発見・修正済み**: `Public/Private Static Sub|Function` がパースエラー。**Bug 31-B 発見・修正済み**: `Erl` が未実装で常に 0（識別子として暗黙解決）。実装追加でハンドラー内 `Erl` がエラー行番号を返すように。 | 2026-07-18 |
 | 30 | エンジン評価 #30: 状態機械 / ワークフローエンジン（注文処理ドメイン） | **複数クラス連携（State.cls + WorkflowEngine.cls）**: `Class_Initialize` で `Scripting.Dictionary` をフィールド初期化・複数クラス間の Set 代入・メソッド呼び出し 正常動作。**Collection による履歴記録**: `myCol.Add` / `For Each` による全件走査 正常動作。**On Error GoTo + Err.Raise**: 無効遷移（存在しない状態・イベント）の Error 5 送出・呼び出し元での捕捉 正常動作。**For Each で Dictionary Keys 走査**: `For Each key In dict.Keys` パターン正常動作。**`new VBARunner(optionsObj)` 誤用で ERR_INVALID_ARG_TYPE**: Node.js 内部エラーになりわかりにくい（改善提案）。**Bug 30-A 発見・修正済み**: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）。`builtins.ts` の `__vbaClass__` チェックが `__vbaTypeName__` チェックより後にあったため。チェック順を入れ替えて修正。`TypeName()` は正常動作していた。 | 2026-07-17 |
 | 29 | エンジン評価 #29: 演算子セマンティクス / Option Base 1・Option Compare Text / クラスイベント（Event/RaiseEvent/WithEvents） / Erase・IsMissing・型サフィックス・While Wend（音楽理論ドメイン: 移調・スケール・コード進行・メトロノーム） | **`\`/`Mod`**: 事前銀行家丸め・負数・ゼロ除算 12 ケース全て実 VBA と一致。**`&` vs `+`**: `"1"+1`=2、`"a"+1`=Error 13、`"a" & Null`="a" 正常（`Null & Null` のみ Bug 29-D）。**比較型強制**: `"10">9`・Empty 比較 全一致。**`Xor`/`Eqv`/`Imp`**: ビット演算として正確（`5 Eqv 3`=-7、`5 Imp 3`=-5）。**クラスイベント**: `Public Event`/`RaiseEvent`/`Dim WithEvents`/`Private Sub obj_Event()` ハンドラー **完全動作**（4拍子6拍のイベント列正確）。**Option Base 1**: `Dim a(3)` の LBound=1 正常（`Array()` のみ Bug 29-E）。**Option Compare Text**: `=`/`<`/`Like`/`InStr` のモジュールスコープ既定まで正常。**Erase**: 動的配列解放後 UBound=Error 9 正常。**IsMissing**: 正常。**サフィックスリテラル**（`123&`/`1.5#`/`1.5!`/`123@`）: TypeName 全正確（サフィックス付き `Dim n&` は Bug 29-A）。**While Wend**: 正常。**Bug 29-A〜29-H 発見**（下記セクション参照・全件メイン再現確認済み） | 2026-07-17 |
 | 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / ReDim Preserve / StrConv日本語変換 / Nz / RGB・QBColor / Format Yes/No（アルゴリズムライブラリ+テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST 走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換**: `vbKatakana(16)` / `vbHiragana(32)` / `vbWide(4)` / `vbNarrow(8)` すべて期待通り動作。**Nz**: `Nz(Null, 0)` / `Nz(Empty, 42)` / `Nz(有値, default)` の3パターン正常。**RGB / QBColor**: 評価 #27 修正済みで正常動作を確認。**Format("Yes/No"/"On/Off"/"True/False")**: 評価 #27 修正済みで正常動作を確認。**TextAnalyzer.cls**: Class_Initialize・On Error GoTo・Property Get・Scripting.Dictionary 組み合わせ正常動作。**Bug 28-1 発見**: `ReDim Preserve` で UDT 配列を拡張した後、新インデックス要素のメンバーアクセスが Error 424。 | 2026-07-16 |
@@ -191,6 +192,13 @@
 | **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
 | **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
 | **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+
+### ~~未修正バグ（評価 #31 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 31-A: `Public/Private Static Sub|Function` がパースエラー**~~ | `Public Static Function F() As Long` → `Parse error: Expected variable name (Found Static)` | `parser.ts` の `KeywordPublic/Private` 分岐が `Static` をチェックせず `parseDimStatement` にフォールスルーしていた。`Static` + `Sub|Function|Property` の先読み分岐を追加して修正。レグレッションテスト: `tests/spec/static.test.ts` Bug 31-A ブロック。 |
+| ~~**Bug 31-B: `Erl` が未実装で常に 0 を返す（黙って識別子暗黙解決）**~~ | `On Error GoTo H` + `20 Err.Raise 5` + ハンドラー内 `Erl` → 0（期待 20） | `erl` の登録がどこにもなく、未定義識別子として暗黙 0 に解決されていた。数値行ラベル通過時に `lastLineNumberLabel` へ記録し、エラー捕捉時に `Err` 状態へ確定する実装を追加。`Err.Clear`/`Resume`/`On Error` 文でリセット。レグレッションテスト: `tests/spec/erl-function.test.ts` Bug 31-B ブロック（既存の INFO-only テスト 1・2 もハードパスに）。 |
 
 ### ~~未修正バグ（評価 #30 で発見・修正済み）~~
 
