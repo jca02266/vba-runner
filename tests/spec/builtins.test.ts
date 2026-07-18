@@ -264,7 +264,9 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug BD: CByte/CInt/CLng/CSng/CDbl/CDec/CCur(Null) = Error 94');
 }
 
-// Bug BK: CDate(Null) が Error 13、CStr(Null) が Error 94、Str/Val(Null) が Error なし
+// Bug BK: CDate/Str/Val/CStr(Null) はすべて Error 94。
+// 旧テストは CStr(Null)="" と誤って理解していたが、実 VBA との差分テスト
+// （CONV_0251 / ERRP_0011、実 Excel で CStr(Null) → Error 94 を確認）で訂正した。
 {
     const assertNull94 = (expr: string) => {
         let errNum = 0;
@@ -274,8 +276,8 @@ function evalExpr(expr: string): any {
     assertNull94('CDate(Null)');
     assertNull94('Str(Null)');
     assertNull94('Val(Null)');
-    assert.strictEqual(evalExpr('CStr(Null)'), '', 'CStr(Null) = "" (空文字列)');
-    console.log('[PASS] Bug BK: CDate/Str/Val(Null)=Error 94, CStr(Null)=""');
+    assertNull94('CStr(Null)');
+    console.log('[PASS] Bug BK: CDate/Str/Val/CStr(Null) = Error 94（実 VBA 差分で裁定）');
 }
 
 // Round: NumDigitsAfterDecimal=Null → 型エラー (JS内部TypeErrorではなくVBAエラーになるべき)

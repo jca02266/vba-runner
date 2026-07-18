@@ -1233,7 +1233,7 @@ export class Evaluator {
         this.precheckProc(proc);
     }
 
-    public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string): any {
+    public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string, argSubtypes?: (VbaVarType | undefined)[]): any {
         let procName = name.toLowerCase();
         let extractedModuleName = moduleName;
 
@@ -1319,6 +1319,11 @@ export class Evaluator {
                 }
             }
             localEnv.setLocally(paramName, argValue);
+            // Variant（型なし）パラメーターへ数値サブタイプを伝播
+            if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
+                    && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
+                localEnv.setVariantSubtype(paramName, argSubtypes[i]!);
+            }
             this.addRef(argValue);
         }
 
@@ -6009,9 +6014,14 @@ export class Evaluator {
         'ubound': 'Long', 'lbound': 'Long',
         'len': 'Long', 'lenb': 'Long',
         'instr': 'Long', 'instrb': 'Long', 'instrrev': 'Long',
+        'datediff': 'Long',
         // Integer を返す関数
         'asc': 'Integer', 'ascb': 'Integer', 'ascw': 'Integer',
         'vartype': 'Integer',
+        'year': 'Integer', 'month': 'Integer', 'day': 'Integer',
+        'hour': 'Integer', 'minute': 'Integer', 'second': 'Integer',
+        'weekday': 'Integer',
+        'sgn': 'Integer', 'strcomp': 'Integer', 'datepart': 'Integer',
         // Double を返す関数
         'sqr': 'Double', 'sin': 'Double', 'cos': 'Double',
         'tan': 'Double', 'atn': 'Double', 'exp': 'Double', 'log': 'Double',
@@ -6120,6 +6130,24 @@ export class Evaluator {
         if (expr.type === 'NumberLiteral') {
             return this.inferLiteralTypeName(expr as NumberLiteral) as VbaVarType;
         }
+        // True/False/Empty リテラルと日付リテラルの静的な型（実 VBA 差分で裁定）
+        if (expr.type === 'Identifier') {
+            const n0 = (expr as Identifier).name.toLowerCase();
+            if (n0 === 'true' || n0 === 'false' || n0 === 'empty') return 'Integer';
+        }
+        if (expr.type === 'DateLiteral') return 'Date';
+        // Int/Fix は引数の数値型を保存する（Int(256)→Integer、Int(1E10)→Double。実 VBA 差分で裁定）
+        if (expr.type === 'CallExpression') {
+            const ce0 = expr as CallExpression;
+            if (ce0.callee.type === 'Identifier' && ce0.args.length === 1) {
+                const fn = (ce0.callee as Identifier).name.toLowerCase();
+                if (fn === 'int' || fn === 'fix') {
+                    const inner = this.resolveNumericSubtype(ce0.args[0]);
+                    if (inner) return inner;
+                    return 'Double';  // 文字列等、静的に型が分からない引数は Double
+                }
+            }
+        }
         if (expr.type === 'BinaryExpression') {
             return this.resolveBinaryExprNumericSubtype(expr as BinaryExpression);
         }
@@ -6166,6 +6194,21 @@ export class Evaluator {
         const lt = this.resolveNumericSubtype(expr.left);
         const rt = this.resolveNumericSubtype(expr.right);
 
+        // 数値文字列オペランドは Double として演算される（実 VBA 差分で裁定）:
+        // (2) + ("7") → Double。\ と Mod は丸め後の整数演算なので Long
+        const isStringOperand = (e: Expression): boolean => {
+            if (e.type === 'ParenthesizedExpression') return isStringOperand((e as ParenthesizedExpression).expression);
+            if (e.type === 'StringLiteral') return true;
+            if (e.type === 'Identifier') {
+                const ti = this.env.getVariableType((e as Identifier).name);
+                return ti?.vbaType === 'String';
+            }
+            return false;
+        };
+        if (['+', '-', '*', '/', '\\', 'mod'].includes(op) && (isStringOperand(expr.left) || isStringOperand(expr.right))) {
+            return (op === '\\' || op === 'mod') ? 'Long' : 'Double';
+        }
+
         if (op === '/') {
             // / は常に Double（両辺が Single のときのみ Single）
             const singleCompatible = new Set<VbaVarType | undefined>(['Single', 'Byte', 'Integer']);
@@ -6179,7 +6222,7 @@ export class Evaluator {
                 if (t === 'Byte' || t === 'Integer') return 'Integer';
                 if (t === 'Long') return 'Long';
                 if (t === 'LongLong') return 'LongLong';
-                if (t === 'Single' || t === 'Double' || t === 'Currency') return 'Long'; // 丸め後 Long
+                if (t === 'Single' || t === 'Double' || t === 'Currency' || t === 'Date') return 'Long'; // 丸め後 Long
                 return undefined;
             };
             const nl = toIntType(lt), nr = toIntType(rt);
@@ -6191,6 +6234,11 @@ export class Evaluator {
 
         // +, -, * の型昇格
         if (op === '+' || op === '-' || op === '*') {
+            // Date は + / - では評価結果側で Date 型が維持されるが、* では数値（Double）になる。
+            // ただし Date - Date は数値（Double）を返す
+            if (op === '-' && lt === 'Date' && rt === 'Date') return 'Double';
+            if ((op === '+' || op === '-') && (lt === 'Date' || rt === 'Date')) return 'Date';
+            if (op === '*' && (lt === 'Date' || rt === 'Date')) return 'Double';
             // どちらかが Double → Double
             if (lt === 'Double' || rt === 'Double') return 'Double';
             // どちらかが Currency → Currency（ただし Double との組み合わせは上で処理済み）
@@ -6204,9 +6252,13 @@ export class Evaluator {
             if (lt === 'LongLong' || rt === 'LongLong') return 'LongLong';
             // どちらかが Long → Long
             if (lt === 'Long' || rt === 'Long') return 'Long';
-            // Byte + Byte → Integer（オーバーフロー防止のため VBA 仕様上 Integer に昇格）
-            if (lt === 'Integer' || rt === 'Integer' || lt === 'Byte' || rt === 'Byte') return 'Integer';
-            // 両辺が不明 → 不明
+            // Byte + Byte → Integer（オーバーフロー防止のため VBA 仕様上 Integer に昇格）。
+            // 片方の型が静的に不明な場合は Integer と断定しない（安全側に倒す。
+            // 例: Sgn(x)（Integer 確定）* Abs(x)（型不明）を誤って Integer 扱いすると
+            // オーバーフロー判定が過検出になる）
+            const isIntegerish = (t: VbaVarType | undefined) => t === 'Integer' || t === 'Byte';
+            if (isIntegerish(lt) && isIntegerish(rt)) return 'Integer';
+            // 両辺が不明、または片方だけ不明 → 不明
             return undefined;
         }
 
@@ -6292,6 +6344,15 @@ export class Evaluator {
                         positionalArgExpressions.push(argExpr);
                     }
                 }
+                // Variant サブタイプは呼び出し元 env で引数式から解決しておき、
+                // パラメーターへ伝播する（実 VBA 差分: TypeName(引数) が Double に化けるのを防ぐ）
+                const positionalSubtypes = positionalArgs.map((v, i) =>
+                    typeof v === 'number' ? this.resolveNumericSubtype(positionalArgExpressions[i]) : undefined);
+                const namedSubtypes = new Map<string, VbaVarType | undefined>();
+                for (const [k, e] of namedArgExpressions) {
+                    const v = namedArgs.get(k);
+                    namedSubtypes.set(k, typeof v === 'number' ? this.resolveNumericSubtype(e) : undefined);
+                }
 
                 // Validate argument count
                 {
@@ -6352,6 +6413,13 @@ export class Evaluator {
                         argVal = this.deepCopyUdtValue(argVal);
                     }
                     localEnv.setLocally(param.name, argVal);
+                    // Variant（型なし）パラメーターへ数値サブタイプを伝播
+                    if (!param.paramType || param.paramType.toLowerCase() === 'variant') {
+                        const st = namedArgs.has(paramNameLower)
+                            ? namedSubtypes.get(paramNameLower)
+                            : (i < positionalSubtypes.length && !isMissingSlot ? positionalSubtypes[i] : undefined);
+                        if (st) localEnv.setVariantSubtype(param.name, st);
+                    }
                     this.addRef(argVal);
 
                     // ByRef handling
@@ -6519,7 +6587,10 @@ export class Evaluator {
                         if (qualifiedProc) {
                             this.checkNoGapOnRequiredParam(qualifiedProc.parameters, expr.args);
                             const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName);
+                            // Variant サブタイプを呼び出し元 env で解決して伝播
+                            const subtypes = argsVals.map((v, i) =>
+                                typeof v === 'number' ? this.resolveNumericSubtype(expr.args[i]) : undefined);
+                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName, subtypes);
                         }
                     }
                 }
@@ -6871,6 +6942,8 @@ export class Evaluator {
                 case '-': return la - lb;
                 case '*': return la * lb;
                 case '/':
+                    // 0/0 は Error 6 (Overflow)、x/0 (x≠0) は Error 11（実 VBA 差分で裁定）
+                    if (lb === 0 && la === 0) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                     if (lb === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                     return la / lb;
                 case '\\': {
@@ -7095,6 +7168,27 @@ export class Evaluator {
     }
 
     private evaluateBinaryExpression(expr: BinaryExpression): any {
+        const result = this.evaluateBinaryExpressionInner(expr);
+        // Integer/Long 型どうしの算術はその型のまま演算され、範囲超過は Error 6 になる
+        // （実 VBA 差分で裁定: (2)+(32767) は Long へ昇格せず Overflow）。
+        // サブタイプ解決は範囲超過の疑いがあるときだけ行う
+        if (typeof result === 'number' && Number.isFinite(result)
+                && (result > 32767 || result < -32768)) {
+            const op = expr.operator.toLowerCase();
+            if (op === '+' || op === '-' || op === '*') {
+                const st = this.resolveBinaryExprNumericSubtype(expr);
+                if (st === 'Integer' || st === 'Byte') {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+                if (st === 'Long' && (result > 2147483647 || result < -2147483648)) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+            }
+        }
+        return result;
+    }
+
+    private evaluateBinaryExpressionInner(expr: BinaryExpression): any {
         let leftVal = this.evaluateExpression(expr.left);
         let rightVal = this.evaluateExpression(expr.right);
 
@@ -7120,6 +7214,13 @@ export class Evaluator {
             if (leftVal === vbaNull || leftVal === vbaEmpty) leftVal = '';
             if (rightVal === vbaNull || rightVal === vbaEmpty) rightVal = '';
         } else if (arithmeticOps.has(op) || comparisonOps.has(op) || logicalOps.has(op)) {
+            // Null 伝播より先に、非 Null 側が数値変換不能な文字列なら Type Mismatch。
+            // ただし "+" だけは例外（Null 伝播を優先）。実 VBA 差分で裁定:
+            // ("abc") - (Null) は Error 13 だが ("abc") + (Null) は Null のまま
+            if (op !== '+' && arithmeticOps.has(op) && (leftVal === vbaNull || rightVal === vbaNull)) {
+                const nonNullSide = leftVal === vbaNull ? rightVal : leftVal;
+                if (typeof nonNullSide === 'string') this.toVbaNumber(nonNullSide);
+            }
             // Null 伝播: どちらかが Null なら Null（ただし And/Or/Imp には吸収元例外あり）
             if (leftVal === vbaNull || rightVal === vbaNull) {
                 // VBA 三値論理の特例:
@@ -7183,8 +7284,29 @@ export class Evaluator {
 
         // 比較演算子では VbaBoolean を数値として扱う（True=-1, False=0）
         if (comparisonOps.has(op)) {
-            if (leftVal instanceof VbaBoolean) leftVal = leftVal.value;
-            if (rightVal instanceof VbaBoolean) rightVal = rightVal.value;
+            // 片方が Boolean でもう片方が文字列なら、文字列側を CBool 変換して比較する
+            // （数値変換ではない。実 VBA 差分で裁定: "7" = True は True。CBool("7")=True のため）
+            const leftWasBoolean = leftVal instanceof VbaBoolean;
+            const rightWasBoolean = rightVal instanceof VbaBoolean;
+            if (leftWasBoolean) leftVal = leftVal.value;
+            if (rightWasBoolean) rightVal = rightVal.value;
+            if (leftWasBoolean && typeof rightVal === 'string') {
+                rightVal = vbaToBoolean(rightVal).value;
+            } else if (rightWasBoolean && typeof leftVal === 'string') {
+                leftVal = vbaToBoolean(leftVal).value;
+            } else {
+                // 片方が文字列でもう片方が数値/日付なら、文字列側を数値変換して比較する
+                // （変換失敗は Type Mismatch。実 VBA 差分で裁定: "abc" = #date# は Error 13）。
+                // 文字列同士の比較（Text 比較モード含む）はここでは変換しない。
+                const isNumericLike = (v: any) => typeof v === 'number' || v instanceof VbaDate;
+                if (typeof leftVal === 'string' && isNumericLike(rightVal)) {
+                    leftVal = toVbaNumber(leftVal);
+                    if (rightVal instanceof VbaDate) rightVal = rightVal.value;
+                } else if (isNumericLike(leftVal) && typeof rightVal === 'string') {
+                    rightVal = toVbaNumber(rightVal);
+                    if (leftVal instanceof VbaDate) leftVal = leftVal.value;
+                }
+            }
         }
 
         const isPlusConcatenation = op === '+' && typeof leftVal === 'string' && typeof rightVal === 'string';
@@ -7201,6 +7323,10 @@ export class Evaluator {
                 const l = leftVal instanceof VbaDate ? leftVal.value : leftVal;
                 const r = rightVal instanceof VbaDate ? rightVal.value : rightVal;
                 const sum = l + r;
+                if ((leftVal instanceof VbaDate || rightVal instanceof VbaDate)
+                        && (sum < -657434 || sum >= 2958466)) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
                 return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(sum) : sum;
             }
             case '&': return this.toDisplayString(leftVal) + this.toDisplayString(rightVal);
@@ -7209,10 +7335,17 @@ export class Evaluator {
                 const r = rightVal instanceof VbaDate ? rightVal.value : rightVal;
                 const diff = l - r;
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) return diff; // Date - Date = Number
-                return (leftVal instanceof VbaDate) ? new VbaDate(diff) : diff;
+                // 数値 - Date、Date - 数値 のどちらも Date 型結果になる（実 VBA 差分で裁定）
+                if ((leftVal instanceof VbaDate || rightVal instanceof VbaDate)
+                        && (diff < -657434 || diff >= 2958466)) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+                return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(diff) : diff;
             }
             case '*': return leftVal * rightVal;
             case '/':
+                // 0/0 は Error 6 (Overflow)、x/0 (x≠0) は Error 11（実 VBA 差分で裁定）
+                if (rightVal === 0 && leftVal === 0) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                 if (rightVal === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return leftVal / rightVal;
             case '\\': {

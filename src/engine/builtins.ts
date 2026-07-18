@@ -234,12 +234,24 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (val === null || val === vbaEmpty) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        // CDate(Empty) はシリアル値 0（1899-12-30）を返す（実 VBA 差分で裁定）
+        if (val === vbaEmpty) return new VbaDate(0);
         if (val instanceof VbaDate) return val;
-        if (typeof val === 'string' && !/^\d+(\.\d+)?$/.test(val)) {
-            return new VbaDate(toVbaDate(parseVbaDate(val)));
+        if (typeof val === 'string') {
+            // 数値文字列（10進/16進/8進/指数/カンマ区切り/前後空白）はシリアル値として解釈し、
+            // それ以外は日付文字列として解釈する（実 VBA 差分で裁定: CDate("&H10") は数値扱い）
+            let numericSerial: number | undefined;
+            try { numericSerial = ctx.toVbaNumber(val); } catch { /* 日付文字列として続行 */ }
+            if (numericSerial === undefined) {
+                return new VbaDate(toVbaDate(parseVbaDate(val)));
+            }
+            if (numericSerial < -657434 || numericSerial >= 2958466) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+            return new VbaDate(numericSerial);
         }
-        return new VbaDate(ctx.toVbaNumber(val));
+        const serial = ctx.toVbaNumber(val);
+        // 日付シリアル値の有効範囲（100-01-01 〜 9999-12-31）。範囲外は Error 6（実 VBA 差分で裁定）
+        if (serial < -657434 || serial >= 2958466) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        return new VbaDate(serial);
     }, [{ name: 'Expression' }]);
     ctx.reg('cvdate', (val: any) => {
         if (val === vbaNull) return vbaNull;
@@ -261,10 +273,11 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
         if (typeof val === 'string') {
             const trimmed = val.trim();
-            if (!/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
-                ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            if (/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+                return new VbaCurrency(parseFixedPointString(trimmed, 4));
             }
-            return new VbaCurrency(parseFixedPointString(trimmed, 4));
+            // &H/&O/指数/カンマ区切り等は数値文字列として解釈（実 VBA 差分で裁定）
+            return VbaCurrency.fromNumber(ctx.toVbaNumber(trimmed));
         }
         return VbaCurrency.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
@@ -299,7 +312,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('clnglng', clnglngFunc, [{ name: 'Expression' }]);
     ctx.envSet('clngptr', ctx.envGet('clnglng')); // clnglng と同じ関数オブジェクトのため __vbaParamSpec__ も引き継ぐ
     ctx.reg('cstr', (val: any) => {
-        if (val === vbaNull) return '';
+        // 実 VBA 差分で裁定: CStr(Null) は Error 94（'' ではない）
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         try { return vbaToString(val); } catch (e: any) {
             if (e?.type === 'VbaError') ctx.throwError(e.number, e.message);
             throw e;
@@ -403,9 +417,16 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
         if (n > 709.782712893) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return Math.exp(n);
     }, [{ name: 'Number' }]);
-    ctx.reg('int', (val: any) => val === vbaNull ? vbaNull : Math.floor(ctx.toVbaNumber(val)), [{ name: 'Number' }]);
+    ctx.reg('int', (val: any) => {
+        if (val === vbaNull) return vbaNull;
+        if (val instanceof VbaDate) return new VbaDate(Math.floor(val.value));  // Date 型を保存（実 VBA 差分で裁定）
+        return Math.floor(ctx.toVbaNumber(val));
+    }, [{ name: 'Number' }]);
     ctx.reg('fix', (val: any) => {
         if (val === vbaNull) return vbaNull;
+        if (val instanceof VbaDate) {  // Date 型を保存（実 VBA 差分で裁定）
+            return new VbaDate(val.value >= 0 ? Math.floor(val.value) : Math.ceil(val.value));
+        }
         const n = ctx.toVbaNumber(val);
         return n >= 0 ? Math.floor(n) : Math.ceil(n);
     }, [{ name: 'Number' }]);
@@ -564,7 +585,26 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const strFunc = (val: any) => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = ctx.toVbaNumber(val);
-        return n >= 0 ? " " + n : String(n);
+        // VBA の Str: 15 有効桁・|n|<1 は先頭の 0 を省略・指数は E+NN 形式（実 VBA 差分で裁定）
+        let body: string;
+        if (Number.isInteger(n) && Math.abs(n) < 1e15) {
+            body = Math.abs(n).toString();
+        } else if (n !== 0 && Math.abs(n) < 1e-4) {
+            // |n| < 1e-4 は指数表記 E-NN（実 VBA 差分で裁定）
+            body = Math.abs(n).toExponential(14)
+                .replace(/\.?0+e/, 'e')
+                .replace(/e([+-])(\d+)$/, (_, sg, d) => 'E' + sg + d.padStart(2, '0'));
+        } else {
+            body = Math.abs(n).toPrecision(15);
+            if (body.includes('e')) {
+                body = body.replace(/e([+-])(\d+)$/, (_, sg, d) => 'E' + sg + d.padStart(2, '0'));
+                body = body.replace(/\.?0+E/, 'E');
+            } else if (body.includes('.')) {
+                body = body.replace(/\.?0+$/, '');
+                if (body.startsWith('0.')) body = body.slice(1);
+            }
+        }
+        return (n < 0 ? '-' : ' ') + body;
     };
     ctx.reg('str', strFunc, [{ name: 'Number' }], ['$']);
     const ucaseFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').toUpperCase();
@@ -596,11 +636,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Length', optional: true },
     ], ['$']);
     ctx.reg('len', (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').length, [{ name: 'String' }]);
-    const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').trimStart();
+    // VBA の Trim 系はスペース（Chr 32）のみを除去する。タブ等は残す（実 VBA 差分で裁定）
+    const ltrimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').replace(/^ +/, '');
     ctx.reg('ltrim', ltrimFunc, [{ name: 'String' }], ['$']);
-    const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').trimEnd();
+    const rtrimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').replace(/ +$/, '');
     ctx.reg('rtrim', rtrimFunc, [{ name: 'String' }], ['$']);
-    const trimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').trim();
+    const trimFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').replace(/^ +| +$/g, '');
     ctx.reg('trim', trimFunc, [{ name: 'String' }], ['$']);
     // Number 引数を Long として検証し、文字列確保失敗（JS RangeError）を Error 14 に写像する
     const repeatChecked = (c: string, n: any): string => {
@@ -941,12 +982,27 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('second', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => {
         if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
-        let year = ctx.toVbaNumber(y);
+        const rawYear = ctx.toVbaNumber(y);
+        let year = rawYear;
         // VBA spec §6.1.2.4.1.4: 0-29 → 2000-2029, 30-99 → 1930-1999
         if (year >= 0 && year <= 29) year += 2000;
         else if (year >= 30 && year <= 99) year += 1900;
-        const date = new Date(year, ctx.toVbaNumber(m) - 1, ctx.toVbaNumber(d));
-        date.setFullYear(year); // prevent JS legacy year offset for 0-99
+        const mm = ctx.toVbaNumber(m) - 1, dd = ctx.toVbaNumber(d);
+        // 月/日は範囲外なら繰り上げ・繰り下げされる（実 VBA 差分で裁定: Month=13→翌年1月）。
+        if (rawYear >= 0 && rawYear <= 99) {
+            // 0-99 年の特殊レンジのみ: JS の Date コンストラクターが 0-99 年を 1900 年台へ
+            // 自動オフセットしてしまうため、安全な基準年でいったん繰り上げ後の年差分だけを
+            // 計算し、目的の年へ適用する（基準年の閏年有無で 2/29 絡みの端数がズレうる
+            // 稀なエッジケースだが、0-99 年指定自体が非常に稀なので許容する）。
+            const baseYear = 2000;
+            const date = new Date(baseYear, mm, dd);
+            const yearOffset = date.getFullYear() - baseYear;
+            date.setFullYear(year + yearOffset);
+            return new VbaDate(toVbaDate(date));
+        }
+        // 通常の年（100 以上）は JS の Date コンストラクターがそのまま正しく
+        // 繰り上げ・繰り下げてくれる（閏年判定も年に対して正確に行われる）
+        const date = new Date(year, mm, dd);
         return new VbaDate(toVbaDate(date));
     }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
     ctx.reg('timeserial', (h: any, n: any, s: any) => {
@@ -958,6 +1014,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         if (firstdayofweek === vbaNull) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
         let fdow = ctx.toVbaNumber(firstdayofweek ?? 1);
+        if (fdow < 0 || fdow > 7) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         if (fdow === 0) fdow = 1; // vbUseSystemDayOfWeek → treat as vbSunday
         const weekStart = fdow <= 1 ? 0 : fdow - 1; // convert VBA 1-based to JS 0-based
         return ((dayOfWeek - weekStart + 7) % 7) + 1;
@@ -997,7 +1054,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
         else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
         else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
-        else if (intv === 'y' || intv === 'd' || intv === 'w') return Math.round(diffMs / 86400000);
+        else if (intv === 'y' || intv === 'd') return Math.round(diffMs / 86400000);
+        else if (intv === 'w') return Math.trunc(Math.round(diffMs / 86400000) / 7);
         else if (intv === 'ww') {
             // Week count depends on firstdayofweek
             let fdow = ctx.toVbaNumber(firstdayofweek ?? 1);

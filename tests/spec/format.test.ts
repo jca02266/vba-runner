@@ -208,19 +208,23 @@ assert.strictEqual(evDate2.callProcedure('TestEscapeDate', []), 'YYear2025', 'Fo
 
 console.log('[PASS] Format 日付: q, w, y, ddddd, ttttt, \\エスケープ・"text"リテラル');
 
-// --- Bug BG: Format() が Math.round を使い、銀行家丸め（VBA 仕様）ではなかった ---
+// --- Format() の丸めは通常の四捨五入（銀行家丸めではない） ---
+// 旧 Bug BG は「Format は銀行家丸め」という誤った理解に基づく修正だった。
+// 実 VBA との差分テスト（scripts/gen-diff-corpus.ts、Format(0.5,"0")=1 / Format(-0.5,"0")=-1
+// を実 Excel で確認）により、Format() は Round()（銀行家丸め）とは異なり通常の
+// 四捨五入（round half away from zero）を使うことが判明したため期待値を訂正した。
 const roundCode = `
-    Function TestHalfEven() As String
-        TestHalfEven = Format(2.5, "0") & "," & Format(3.5, "0") & "," & Format(1234.5, "0") & "," & Format(0.5, "0")
+    Function TestHalfAway() As String
+        TestHalfAway = Format(2.5, "0") & "," & Format(3.5, "0") & "," & Format(1234.5, "0") & "," & Format(0.5, "0")
     End Function
-    Function TestHalfEvenDec() As String
-        TestHalfEvenDec = Format(2.25, "0.0") & "," & Format(2.35, "0.0")
+    Function TestHalfAwayDec() As String
+        TestHalfAwayDec = Format(2.25, "0.0") & "," & Format(2.35, "0.0")
     End Function
 `;
 const evRound = evalVBASingle(roundCode);
-assert.strictEqual(evRound.callProcedure('TestHalfEven', []), '2,4,1234,0', 'Format 銀行家丸め: 2.5→2, 3.5→4, 1234.5→1234, 0.5→0');
-assert.strictEqual(evRound.callProcedure('TestHalfEvenDec', []), '2.2,2.4', 'Format 銀行家丸め 小数: 2.25→2.2, 2.35→2.4');
-console.log('[PASS] Bug BG: Format() 銀行家丸め');
+assert.strictEqual(evRound.callProcedure('TestHalfAway', []), '3,4,1235,1', 'Format 四捨五入: 2.5→3, 3.5→4, 1234.5→1235, 0.5→1');
+assert.strictEqual(evRound.callProcedure('TestHalfAwayDec', []), '2.3,2.4', 'Format 四捨五入 小数: 2.25→2.3, 2.35→2.4');
+console.log('[PASS] Format() は通常の四捨五入（実 VBA 差分で裁定）');
 
 // --- Bug BQ: Format(time, "Long Time") が 24 時間表記になっていた、
 //             Format(date, "Short Date") が ISO 形式 (yyyy/MM/dd) になっていた ---

@@ -32,7 +32,12 @@ export const toVbaDate = (d: Date): number =>
     (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
 
 export const fromVbaDate = (serial: number): Date => {
-    const ms = Math.round(serial * MS_PER_DAY);
+    // VBA の日付シリアル値: 整数部（0 方向切り捨て）が日数、絶対値の小数部が時刻。
+    // 例: -2.5 → 日数部分 -2（エポックの 2 日前）+ 時刻部分 12:00（実 VBA 差分で裁定）。
+    // 正の値では従来の Math.round(serial * MS_PER_DAY) と同じ結果になる。
+    const dayInt = Math.trunc(serial);
+    const frac = Math.abs(serial - dayInt);
+    const ms = dayInt * MS_PER_DAY + Math.round(frac * MS_PER_DAY);
     return new Date(VBA_EPOCH.getTime() + ms);
 };
 

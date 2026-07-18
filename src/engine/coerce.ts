@@ -55,8 +55,13 @@ export function vbaToNumber(val: any): number {
             if (!/^[0-7]+$/.test(octPart)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
             return parseInt(octPart, 8);
         }
-        const n = parseFloat(trimmed);
-        if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+        // カンマ桁区切り（"1,234"）は区切りを除去して解釈（実 VBA 差分で裁定）
+        const grouped = /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(trimmed)
+            ? trimmed.replace(/,/g, '') : trimmed;
+        const n = parseFloat(grouped);
+        if (isNaN(n) || !/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(grouped)) {
+            throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+        }
         return n;
     }
     if (val instanceof VbaErrorValue) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
@@ -107,14 +112,15 @@ export function vbaToBoolean(val: any): VbaBoolean {
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
     if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
+    if (val instanceof VbaDate) return val.value !== 0 ? vbaTrue : vbaFalse;
     if (typeof val === 'string') {
         const trimmed = val.trim();
         const lc = trimmed.toLowerCase();
         if (lc === 'true') return vbaTrue;
         if (lc === 'false') return vbaFalse;
         if (trimmed === '') throwVbaError(VbaErrorCode.TYPE_MISMATCH);
-        const n = Number(trimmed);
-        if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+        // &H/&O/指数/カンマ区切りも数値文字列として解釈（実 VBA 差分で裁定）
+        const n = vbaToNumber(trimmed);
         return n !== 0 ? vbaTrue : vbaFalse;
     }
     throwVbaError(VbaErrorCode.TYPE_MISMATCH);

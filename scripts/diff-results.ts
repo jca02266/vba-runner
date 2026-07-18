@@ -36,9 +36,12 @@ const manifest = fs.existsSync('diff-vba/manifest.json')
 
 const allowlist = new Set<string>();
 if (fs.existsSync('scripts/diff-allowlist.txt')) {
-    for (const line of fs.readFileSync('scripts/diff-allowlist.txt', 'utf8').split('\n')) {
-        const t = line.trim();
-        if (t && !t.startsWith('#')) allowlist.add(t);
+    for (const rawLine of fs.readFileSync('scripts/diff-allowlist.txt', 'utf8').split('\n')) {
+        // 行頭コメント行はスキップ。行内の "  # ..." 以降は行末コメントとして切り捨てる
+        const line = rawLine.trim();
+        if (!line || line.startsWith('#')) continue;
+        const id = line.split(/\s+#/)[0].trim();
+        if (id) allowlist.add(id);
     }
 }
 
@@ -65,9 +68,39 @@ for (const id of ids) {
 }
 
 console.log(`比較 ${ids.length} 件: 一致 ${match} / 不一致 ${mismatches.length} / 許容済み ${allowed.length}\n`);
+
+// 不一致をパターン分類して要約（--full で全件一覧も出す）
 if (mismatches.length > 0) {
-    console.log('■ 不一致（要仕様裁定）');
-    for (const m of mismatches) console.log(`  ${m}`);
+    const categorize = (id: string): string => {
+        const ra = a.get(id), rb = b.get(id);
+        if (!ra || !rb) return 'MISSING(片側にのみ存在)';
+        if (ra.status !== rb.status) return `STATUS(${ra.status} vs ${rb.status})`;
+        if (ra.status === 'ERR') return `ERRNUM(${ra.payload} vs ${rb.payload})`;
+        const [ta, ...vaRest] = ra.payload.split(':');
+        const [tb, ...vbRest] = rb.payload.split(':');
+        const va = vaRest.join(':'), vb = vbRest.join(':');
+        if (ta !== tb && va === vb) return `TYPETAG-ONLY(${ta} vs ${tb})`;
+        if (ta !== tb) return `TYPE+VALUE(${ta} vs ${tb})`;
+        return `VALUE(${ta})`;
+    };
+    const byCat = new Map<string, string[]>();
+    for (const m of mismatches) {
+        const id = m.split(':')[0];
+        const cat = categorize(id);
+        (byCat.get(cat) ?? byCat.set(cat, []).get(cat)!).push(m);
+    }
+    console.log('■ 不一致のパターン分類（要仕様裁定）');
+    for (const [cat, list] of [...byCat.entries()].sort((x, y) => y[1].length - x[1].length)) {
+        console.log(`\n  [${list.length} 件] ${cat}`);
+        for (const m of list.slice(0, 5)) console.log(`    ${m}`);
+        if (list.length > 5) console.log(`    ... 他 ${list.length - 5} 件`);
+    }
+    if (process.argv.includes('--full')) {
+        console.log('\n■ 全件一覧');
+        for (const m of mismatches) console.log(`  ${m}`);
+    } else {
+        console.log('\n（全件一覧は --full を付けて実行）');
+    }
     process.exitCode = 1;
 } else {
     console.log('✅ 許容外の不一致なし');
