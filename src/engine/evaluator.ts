@@ -6113,6 +6113,10 @@ export class Evaluator {
      * Returns undefined when the subtype cannot be determined statically.
      */
     private resolveNumericSubtype(expr: Expression): VbaVarType | undefined {
+        // 括弧は型に影響しない: (2) は Integer のまま（実 VBA 差分コーパスで発見）
+        if (expr.type === 'ParenthesizedExpression') {
+            return this.resolveNumericSubtype((expr as ParenthesizedExpression).expression);
+        }
         if (expr.type === 'NumberLiteral') {
             return this.inferLiteralTypeName(expr as NumberLiteral) as VbaVarType;
         }

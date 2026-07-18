@@ -258,4 +258,23 @@ End Function
     console.log('[PASS] Bug 30-A: VarType(class instance) = 9 (vbObject)');
 }
 
+// 括弧付きリテラルのサブタイプ保持（実 VBA 差分コーパスの整備で発見）
+{
+    const ev = evalVBASingle(`
+Function TParen1() As String
+    Dim v As Variant
+    v = (2)
+    TParen1 = TypeName(v)
+End Function
+Function TParen2() As String
+    Dim v As Variant
+    v = (2) + (2)
+    TParen2 = TypeName(v)
+End Function
+`);
+    assert.strictEqual(ev.callProcedure('TParen1', []), 'Integer', '(2) は Integer（括弧は型に影響しない）');
+    assert.strictEqual(ev.callProcedure('TParen2', []), 'Integer', '(2) + (2) は Integer');
+    console.log('[PASS] 括弧付きリテラルのサブタイプ保持');
+}
+
 console.log('\n✅ TypeName: 全テスト通過');
