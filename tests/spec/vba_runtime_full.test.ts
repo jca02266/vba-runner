@@ -95,7 +95,7 @@ console.log("Output lines:", lines);
 const expected = [
     "Opt1: 123",
     "Opt2: 999",
-    "LOF: 29",
+    "LOF: 30",  // Write # も CRLF で終端する（Bug 32-D 修正で LF → CRLF、実 VBA 準拠）
     "Read1: Line1",
     "Read2: Line2Cont",
     "EOF before end: False",

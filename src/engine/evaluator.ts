@@ -92,6 +92,8 @@ import {
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
     vbaTrue, vbaFalse,
     toVbaDate,
+    fromVbaDate,
+    parseVbaDate,
     parseFixedPointString, bankersDivide,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
@@ -2662,6 +2664,29 @@ export class Evaluator {
     }
 
     private evaluateLSetStatement(stmt: LSetStatement) {
+        // UDT 間コピー（LSet b = a）: 実 VBA はメモリコピー。ここでは同一レイアウト
+        // （フィールド数が一致）の場合に位置ベースでフィールド値をコピーする（Bug 32-E）
+        if (stmt.left.type === 'Identifier') {
+            const name = (stmt.left as Identifier).name;
+            const target = this.env.get(name);
+            if (target && typeof target === 'object' && (target as any).__vbaTypeName__ && !(target as any).__vbaClass__) {
+                const source = this.evaluateExpression(stmt.right);
+                if (!(source && typeof source === 'object' && (source as any).__vbaTypeName__)) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch: LSet target is a user-defined type but source is not');
+                }
+                const fieldNames = (obj: any) => Object.keys(obj).filter(k => !k.startsWith('__'));
+                const tFields = fieldNames(target);
+                const sFields = fieldNames(source);
+                if (tFields.length !== sFields.length) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        'LSet between user-defined types with different layouts is not supported');
+                }
+                for (let i = 0; i < tFields.length; i++) {
+                    (target as any)[tFields[i]] = (source as any)[sFields[i]];
+                }
+                return;
+            }
+        }
         const val = String(this.evaluateExpression(stmt.right) || '');
         if (stmt.left.type === 'Identifier') {
             const name = (stmt.left as Identifier).name;
@@ -4602,8 +4627,9 @@ export class Evaluator {
                      const n = Number(this.evaluateExpression((expr as any).val));
                      output += " ".repeat(Math.max(0, n));
                  } else if (expr.type === 'Tab') {
+                     // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
                      const n = Number(this.evaluateExpression((expr as any).val));
-                     output += " ".repeat(Math.max(0, n - output.length));
+                     output += " ".repeat(Math.max(0, n - 1 - output.length));
                  } else {
                      output += String(this.evaluateExpression(expr as any));
                  }
@@ -4636,8 +4662,9 @@ export class Evaluator {
                     const n = Number(this.evaluateExpression((expr as any).val));
                     output += " ".repeat(Math.max(0, n));
                 } else if (expr.type === 'Tab') {
+                    // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
                     const n = Number(this.evaluateExpression((expr as any).val));
-                    output += " ".repeat(Math.max(0, n - output.length));
+                    output += " ".repeat(Math.max(0, n - 1 - output.length));
                 } else {
                     output += this.toDisplayString(this.evaluateExpression(expr as any));
                 }
@@ -4750,14 +4777,23 @@ export class Evaluator {
         const output = stmt.items.map(item => {
             const val = this.evaluateExpression(item);
             if (typeof val === 'string') return `"${val}"`;
-            if (val instanceof VbaDate) return `#${val.toString()}#`;
+            if (val instanceof VbaDate) {
+                // Write # の日付は universal date format（#yyyy-mm-dd hh:nn:ss#）
+                const d = fromVbaDate(val.value);
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const datePart = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+                const hasFraction = Math.abs(val.value - Math.round(val.value)) > 1e-10;
+                const timePart = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                if (!hasFraction) return `#${datePart}#`;
+                return Math.round(val.value) === 0 ? `#${timePart}#` : `#${datePart} ${timePart}#`;
+            }
             if (val instanceof VbaBoolean) return val.value !== 0 ? '#TRUE#' : '#FALSE#';
             if (val === vbaEmpty || val === undefined) return '""';
             if (val === vbaNull) return '#NULL#';
             return String(val);
         }).join(",");
 
-        const lineOutput = output + "\n";
+        const lineOutput = output + "\r\n";  // Print # と同じく CRLF（Bug 32-D）
         this.fs.writeSync(handle.fd, lineOutput);
         handle.pos! += lineOutput.length;
     }
@@ -4786,7 +4822,29 @@ export class Evaluator {
             // handle CRLF
         }
 
-        const rawValues = line.trim().split(",");
+        // 引用符内のカンマで分割しないフィールド分割（Bug 32-C）
+        const splitInputFields = (src: string): string[] => {
+            const fields: string[] = [];
+            let cur = '';
+            let inQuotes = false;
+            for (const ch of src) {
+                if (inQuotes) {
+                    if (ch === '"') inQuotes = false;
+                    cur += ch;
+                } else if (ch === '"') {
+                    inQuotes = true;
+                    cur += ch;
+                } else if (ch === ',') {
+                    fields.push(cur);
+                    cur = '';
+                } else {
+                    cur += ch;
+                }
+            }
+            fields.push(cur);
+            return fields;
+        };
+        const rawValues = splitInputFields(line.trim());
         const parseInputValue = (raw: string): any => {
             const t = raw.trim();
             if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);
@@ -4794,6 +4852,10 @@ export class Evaluator {
             if (lower === '#true#') return vbaTrue;
             if (lower === '#false#') return vbaFalse;
             if (lower === '#null#') return vbaNull;
+            // Write # が出力した日付 #yyyy-mm-dd [hh:nn:ss]# を VbaDate に復元
+            if (t.length > 2 && t.startsWith('#') && t.endsWith('#')) {
+                try { return new VbaDate(toVbaDate(parseVbaDate(t.slice(1, -1)))); } catch { /* fall through */ }
+            }
             const n = Number(t);
             return isNaN(n) ? t : n;
         };

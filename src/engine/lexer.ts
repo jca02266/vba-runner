@@ -267,8 +267,11 @@ export class Lexer {
                     const dateRegex = /^[0-9\/\-\s:apm,]+$/i;
                     // Month names are also allowed: Jan, Feb, etc.
                     const monthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
-                    
-                    if (dateRegex.test(potentialDate) || monthsRegex.test(potentialDate)) {
+                    // 日付・時刻の区切り（/ - :）を必須にする。これがないと
+                    // `Write #1, #2024/03/15#` の先頭 `#1, #` を日付と誤認する（Bug 32-B）
+                    const hasDateSeparator = /[\/\-:]/.test(potentialDate);
+
+                    if ((dateRegex.test(potentialDate) && hasDateSeparator) || monthsRegex.test(potentialDate)) {
                         this.advance(); // consume opening #
                         let dateValue = '';
                         while (this.peek() !== '#' && this.peek() !== '\n' && this.peek() !== '\0') {

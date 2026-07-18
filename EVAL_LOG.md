@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 32 | エンジン評価 #32: 差し込みテンプレートエンジン + 帳票出力ドメイン | **ジャグ配列 `rows(i)(j)`**: クラス内・ローカルとも完全動作。**クラスメソッドから配列返却 + `UBound`/添字**: `ReDim Preserve` 後の返却も正常。**配列の ByRef 渡し**: VBA 内書き戻し・TS `run()` args 経由の書き戻しとも動作。**インデックス付き Property Let/Get `obj.Item(3) = "x"`**: 一発動作。**`Err.Raise vbObjectError+n` の Description 伝播**: 正確。**`Print #` ゾーン**: セミコロン連結・カンマ 14 桁ゾーン・`Spc(n)`・数値書式は正確。**Bug 32-A〜32-E 発見・全件修正済み**: Tab(n) オフバイワン / `#1, #日付#` レクサー誤認 / `Input #` 引用符内カンマ分割 / `Write #` 日付書式・改行コード / `LSet` UDT 間コピー Error 424。仕様準拠確認: `Write #` が埋め込み引用符を二重化しないのは実 VBA と同じ。 | 2026-07-18 |
 | 31 | エンジン評価 #31: 再帰下降式パーサー（電卓インタープリター・ドメイン） | **クラス 3 つ + 標準モジュール連携（Token.cls / Tokenizer.cls / ExprParser.cls）**: クラス内から別クラス New・Collection へのオブジェクト格納・`Item(i)`/`For Each` 取り出し 完全動作。**オブジェクト配列**: `Dim tokens() As Token` + `ReDim Preserve` + `Set tokens(i) = New Token` + `For Each` 走査 完全動作。**後置 `Do...Loop While` / `Do...Loop Until`**: 完全動作。**`Err.Raise vbObjectError + n` → `Err.Number - vbObjectError` 往復**: 完全動作（`vbObjectError` = -2147221504 正確）。**Dictionary 暗黙 Let 代入 `m_vars(key) = v`**: 追加・更新とも正常。**文字列連結 20000 回**: 176ms で完走。**行番号付きレガシー構文**: `10 x = 1` 形式のパース・`GoTo 30`・`On Error GoTo 99`（数値ターゲット）すべて動作。**Bug 31-A 発見・修正済み**: `Public/Private Static Sub|Function` がパースエラー。**Bug 31-B 発見・修正済み**: `Erl` が未実装で常に 0（識別子として暗黙解決）。実装追加でハンドラー内 `Erl` がエラー行番号を返すように。 | 2026-07-18 |
 | 30 | エンジン評価 #30: 状態機械 / ワークフローエンジン（注文処理ドメイン） | **複数クラス連携（State.cls + WorkflowEngine.cls）**: `Class_Initialize` で `Scripting.Dictionary` をフィールド初期化・複数クラス間の Set 代入・メソッド呼び出し 正常動作。**Collection による履歴記録**: `myCol.Add` / `For Each` による全件走査 正常動作。**On Error GoTo + Err.Raise**: 無効遷移（存在しない状態・イベント）の Error 5 送出・呼び出し元での捕捉 正常動作。**For Each で Dictionary Keys 走査**: `For Each key In dict.Keys` パターン正常動作。**`new VBARunner(optionsObj)` 誤用で ERR_INVALID_ARG_TYPE**: Node.js 内部エラーになりわかりにくい（改善提案）。**Bug 30-A 発見・修正済み**: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）。`builtins.ts` の `__vbaClass__` チェックが `__vbaTypeName__` チェックより後にあったため。チェック順を入れ替えて修正。`TypeName()` は正常動作していた。 | 2026-07-17 |
 | 29 | エンジン評価 #29: 演算子セマンティクス / Option Base 1・Option Compare Text / クラスイベント（Event/RaiseEvent/WithEvents） / Erase・IsMissing・型サフィックス・While Wend（音楽理論ドメイン: 移調・スケール・コード進行・メトロノーム） | **`\`/`Mod`**: 事前銀行家丸め・負数・ゼロ除算 12 ケース全て実 VBA と一致。**`&` vs `+`**: `"1"+1`=2、`"a"+1`=Error 13、`"a" & Null`="a" 正常（`Null & Null` のみ Bug 29-D）。**比較型強制**: `"10">9`・Empty 比較 全一致。**`Xor`/`Eqv`/`Imp`**: ビット演算として正確（`5 Eqv 3`=-7、`5 Imp 3`=-5）。**クラスイベント**: `Public Event`/`RaiseEvent`/`Dim WithEvents`/`Private Sub obj_Event()` ハンドラー **完全動作**（4拍子6拍のイベント列正確）。**Option Base 1**: `Dim a(3)` の LBound=1 正常（`Array()` のみ Bug 29-E）。**Option Compare Text**: `=`/`<`/`Like`/`InStr` のモジュールスコープ既定まで正常。**Erase**: 動的配列解放後 UBound=Error 9 正常。**IsMissing**: 正常。**サフィックスリテラル**（`123&`/`1.5#`/`1.5!`/`123@`）: TypeName 全正確（サフィックス付き `Dim n&` は Bug 29-A）。**While Wend**: 正常。**Bug 29-A〜29-H 発見**（下記セクション参照・全件メイン再現確認済み） | 2026-07-17 |
@@ -192,6 +193,16 @@
 | **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
 | **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
 | **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+
+### ~~未修正バグ（評価 #32 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 32-A: `Tab(n)` が n+1 桁目に出力（オフバイワン）**~~ | `Debug.Print "X"; Tab(10); "Y"` → Y が 11 桁目 | Print #/Debug.Print の Tab 処理が `n - output.length` でパディングしていた（正しくは `n - 1 - output.length`）。両経路とも修正。`tests/spec/write-input-print-zones.test.ts` |
+| ~~**Bug 32-B: `Write #1, #2024/03/15#` がパースエラー**~~ | 同左 → `Parse error: unexpected token '2024'` | レクサーの日付リテラル判定がカンマ許容の緩い正規表現で `#1, #` を日付と誤認。日付・時刻区切り（`/` `-` `:`）の存在を必須化して修正。`lexer.ts` |
+| ~~**Bug 32-C: `Input #` が引用符内カンマで分割**~~ | `Write #f, "comma, inside", 42` → `Input #f, s, n` が Error 13 | 単純 `split(",")` だった。引用符状態を追跡するフィールド分割に変更。 |
+| ~~**Bug 32-D: `Write #` の日付書式と改行が実 VBA と不一致**~~ | 出力が `#2024/03/15#` + LF（期待: `#2024-03-15#` universal format + CRLF） | 日付を universal format で書き、改行を CRLF に統一（Print # と対称に）。`Input #` にも `#日付#` フィールドの VbaDate 復元を追加。 |
+| ~~**Bug 32-E: `LSet udtB = udtA`（UDT 間コピー）が Error 424**~~ | 同レイアウト Type 2 つで `LSet b = a` | LSet が文字列パスしかなかった。同一レイアウト（フィールド数一致）なら位置ベースでフィールドコピー、不一致なら明示的な Error 5 を実装。`tests/spec/lset-rset.test.ts` Bug 32-E ブロック |
 
 ### ~~未修正バグ（評価 #31 で発見・修正済み）~~
 
