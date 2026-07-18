@@ -94,6 +94,7 @@ import {
     toVbaDate,
     fromVbaDate,
     parseVbaDate,
+    tryParseTimeFractionString,
     parseFixedPointString, bankersDivide,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
@@ -7309,9 +7310,35 @@ export class Evaluator {
             }
         }
 
+        // \ と Mod: 左が Boolean で右が文字列のときだけ、右を CBool 変換し結果も
+        // Boolean 型で返す（実 VBA 差分で裁定した非対称規則。左右逆・両方 Boolean
+        // literal・左が文字列右が Boolean のいずれも該当せず通常の整数演算になる）:
+        //   True \ "7"  → "7" を CBool すると True(-1)。True(-1)\True(-1)=1 → Boolean True
+        //   "7" \ True  → 通常の数値変換。7\(-1) = -7 → Long -7
+        //   True \ True → 両方すでに Boolean（変換不要）→ 通常の整数昇格 → Integer 1
+        let resultAsBoolean = false;
+        if ((op === '\\' || op === 'mod') && leftVal instanceof VbaBoolean && typeof rightVal === 'string') {
+            rightVal = vbaToBoolean(rightVal);
+            resultAsBoolean = true;
+        }
+
         const isPlusConcatenation = op === '+' && typeof leftVal === 'string' && typeof rightVal === 'string';
         const numericArithOps = new Set(['-', '*', '/', '\\', 'mod', '^']);
         if (numericArithOps.has(op) || (op === '+' && !isPlusConcatenation)) {
+            // "+" に限り、Date とペアになる "H.N" 形式の文字列は「H 時 N 分」の時刻として
+            // 解釈される（CDate と同じ規則。実 VBA 差分で裁定: #date# + "3.5" は 03:05:00
+            // を加算する）。"-"/"*"/"/"/"\"/"Mod" では同じ文字列でも通常どおりシリアル値
+            // 3.5 として解釈される（+ 演算子だけの非対称な特殊ルール）
+            if (op === '+') {
+                if (typeof leftVal === 'string' && rightVal instanceof VbaDate) {
+                    const frac = tryParseTimeFractionString(leftVal);
+                    if (frac !== undefined) leftVal = frac;
+                }
+                if (typeof rightVal === 'string' && leftVal instanceof VbaDate) {
+                    const frac = tryParseTimeFractionString(rightVal);
+                    if (frac !== undefined) rightVal = frac;
+                }
+            }
             // Date は VbaDate のままにして、後続の case で処理させる
             if (!(leftVal instanceof VbaDate)) leftVal = toVbaNumber(leftVal);
             if (!(rightVal instanceof VbaDate)) rightVal = toVbaNumber(rightVal);
@@ -7351,12 +7378,14 @@ export class Evaluator {
             case '\\': {
                 const li = _vbaRound(leftVal, 0), ri = _vbaRound(rightVal, 0);
                 if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return Math.trunc(li / ri);
+                const q = Math.trunc(li / ri);
+                return resultAsBoolean ? VbaBoolean.from(q) : q;
             }
             case 'mod': {
                 const lm = _vbaRound(leftVal, 0), rm = _vbaRound(rightVal, 0);
                 if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return lm % rm;
+                const r = lm % rm;
+                return resultAsBoolean ? VbaBoolean.from(r) : r;
             }
             case '^': {
                 const powResult = Math.pow(leftVal, rightVal);

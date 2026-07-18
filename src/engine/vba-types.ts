@@ -41,6 +41,22 @@ export const fromVbaDate = (serial: number): Date => {
     return new Date(VBA_EPOCH.getTime() + ms);
 };
 
+/**
+ * "H.N" 形式（小数点 1 つのみの単純な数値文字列）は、シリアル値の小数ではなく
+ * 「H 時 N 分」の時刻として解釈される、という VBA 文字列パーサー固有の規則
+ * （実 VBA 差分で裁定: `CDate("2.5")` = 02:05:00、`#date# + "3.5"` も同様に
+ * 03:05:00 を加算する。一方 `CDate(2.5)`（文字列でない数値そのもの）は通常どおり
+ * シリアル値 2.5 = 正午として扱われるため、この規則は文字列限定の非対称な挙動）。
+ * マッチしなければ undefined を返す（呼び出し側は通常の数値/日付解釈にフォールバックする）。
+ */
+export const tryParseTimeFractionString = (s: string): number | undefined => {
+    const m = /^(\d{1,2})\.(\d{1,2})$/.exec(s.trim());
+    if (!m) return undefined;
+    const h = Number(m[1]), n = Number(m[2]);
+    if (h > 23 || n > 59) return undefined;
+    return (h * 3600 + n * 60) / 86400;
+};
+
 export const parseVbaDate = (val: any): Date => {
     if (val === null || val === undefined) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);

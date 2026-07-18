@@ -1,7 +1,7 @@
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
-    toVbaDate, fromVbaDate, parseVbaDate,
+    toVbaDate, fromVbaDate, parseVbaDate, tryParseTimeFractionString,
     parseFixedPointString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
@@ -238,10 +238,27 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (val === vbaEmpty) return new VbaDate(0);
         if (val instanceof VbaDate) return val;
         if (typeof val === 'string') {
-            // 数値文字列（10進/16進/8進/指数/カンマ区切り/前後空白）はシリアル値として解釈し、
+            const trimmed = val.trim();
+            // "H.N" 形式は「H 時 N 分」の時刻として解釈される（シリアル値としては解釈
+            // されない。実 VBA 差分で裁定: CDate("2.5") = 02:05:00。CDate(2.5)（文字列
+            // でない数値そのもの）は通常どおりシリアル値 2.5 = 正午なので非対称）
+            const timeFrac = tryParseTimeFractionString(trimmed);
+            if (timeFrac !== undefined) {
+                return new VbaDate(timeFrac);
+            }
+            // "M,Y" 形式（カンマ 1 つのみの単純な数値）は「M 月 Y 年 1 日」として解釈される
+            // （実 VBA 差分で裁定: CDate("1,234") = 西暦234年1月1日）
+            const myMatch = /^(\d{1,2}),(\d+)$/.exec(trimmed);
+            if (myMatch) {
+                const mo = Number(myMatch[1]), yr = Number(myMatch[2]);
+                if (mo >= 1 && mo <= 12) {
+                    return new VbaDate(toVbaDate(new Date(yr, mo - 1, 1)));
+                }
+            }
+            // 数値文字列（10進/16進/8進/指数/前後空白）はシリアル値として解釈し、
             // それ以外は日付文字列として解釈する（実 VBA 差分で裁定: CDate("&H10") は数値扱い）
             let numericSerial: number | undefined;
-            try { numericSerial = ctx.toVbaNumber(val); } catch { /* 日付文字列として続行 */ }
+            try { numericSerial = ctx.toVbaNumber(trimmed); } catch { /* 日付文字列として続行 */ }
             if (numericSerial === undefined) {
                 return new VbaDate(toVbaDate(parseVbaDate(val)));
             }

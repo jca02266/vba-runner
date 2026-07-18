@@ -3,7 +3,7 @@
  * 発見・修正したバグのリグレッションテスト。
  *
  * 2337 式のコーパスを実 Excel VBA と vba-runner の両方で実行し、TypeName/値/
- * Err.Number まで比較した結果、2291/2337 が一致（残り 46 件はコードページ・
+ * Err.Number まで比較した結果、2302/2337 が一致（残り 35 件はコードページ・
  * タイムゾーン等の環境依存差として scripts/diff-allowlist.txt に許容登録）。
  * ここでは発見された仕様差のうち代表的なものを固定する。
  */
@@ -107,6 +107,38 @@ const ev = evalVBASingle('');
     const r = ev.evalExpression('Sgn(-500000.5) * Abs(-500000.5)');
     assert.strictEqual(Math.round(Number(r) * 10) / 10, -500000.5,
         'Sgn(x)*Abs(x) はオーバーフロー誤検出せず x を復元する');
+}
+
+// --- \ / Mod: 左が Boolean で右が文字列のときだけ CBool 変換し結果も Boolean 型になる
+// （左右逆・両方 Boolean literal のときは通常の整数演算。非対称な規則を深掘りで発見） ---
+{
+    assert.strictEqual(String(ev.evalExpression('(True) \\ ("7")')), 'True',
+        'True \\ "7": "7"→CBool True(-1)、True\\True=1→非ゼロで Boolean True');
+    assert.strictEqual(String(ev.evalExpression('(False) \\ ("7")')), 'False',
+        'False \\ "7": 0\\True(-1)=0 → Boolean False');
+    assert.strictEqual(String(ev.evalExpression('(True) Mod ("7")')), 'False',
+        'True Mod "7": -1 Mod -1=0 → Boolean False');
+    assert.strictEqual(ev.evalExpression('("7") \\ (True)'), -7,
+        '"7" \\ True: 左が文字列なので通常の数値変換。7\\(-1) = Long -7（Boolean にならない）');
+    assert.strictEqual(ev.evalExpression('(True) \\ (True)'), 1,
+        'True \\ True: 両方すでに Boolean literal（文字列変換なし）なので通常の整数昇格 Integer 1');
+    console.log('[PASS] \\/Mod の Boolean 型保持は左 Boolean・右文字列のときだけの非対称規則');
+}
+
+// --- CDate/日付演算の "H.N" 文字列は時刻（H時N分）として解釈される（+ 演算子限定） ---
+{
+    assert.strictEqual(ev.evalExpression('CStr(CDate("2.5"))'), '02:05:00',
+        'CDate("2.5") は "2時5分" と解釈される（シリアル値 2.5 ではない）');
+    assert.strictEqual(ev.evalExpression('CStr((#2024/03/15#) + ("3.5"))'), '2024/03/15 03:05:00',
+        '#date# + "3.5" は 03:05:00 を加算する（+ 演算子だけの特殊ルール）');
+    assert.strictEqual(ev.evalExpression('CStr(("3.5") + (#2024/03/15#))'), '2024/03/15 03:05:00',
+        'オペランドの順序を入れ替えても同じ（左右対称）');
+    // - / * / \ / Mod では同じ文字列でも通常どおりシリアル値として解釈される（+ の非対称ルール）
+    assert.strictEqual(ev.evalExpression('CLng((#2024/03/15#) * ("3.5"))'), 158781,
+        '#date# * "3.5" は "3.5" をシリアル値として掛ける（時刻解釈はしない）');
+    assert.strictEqual(String(ev.evalExpression('CStr((#2024/03/15#) - ("3.5"))')), '2024/03/11 12:00:00',
+        '#date# - "3.5" も同様にシリアル値として減算する');
+    console.log('[PASS] "H.N" 文字列の時刻解釈は + 演算子・CDate 限定（-/*/\\/Mod は通常の数値解釈）');
 }
 
 console.log('\n✅ real-vba-diff-regressions: 全テスト通過');
