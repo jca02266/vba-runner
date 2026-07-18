@@ -111,7 +111,7 @@ import {
     vbaToString,
     vbaRound as _vbaRound,
 } from './coerce';
-import { VbaErrorCode, throwVbaError } from './vba-errors';
+import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
 export { VbaErrorCode } from './vba-errors';
 import {
     type StdlibCtx, type BuiltinParamSpec, type BuiltinOverload,
@@ -229,7 +229,13 @@ export class VbaErrObject {
     public raise(number: number, source?: any, description?: any, helpfile?: any, helpcontext?: any) {
         this.number = number;
         if (source !== undefined && source !== vbaEmpty && source !== null) this.source = String(source);
-        if (description !== undefined && description !== vbaEmpty && description !== null) this.description = String(description);
+        if (description !== undefined && description !== vbaEmpty && description !== null) {
+            this.description = String(description);
+        } else {
+            // §6.1.3.2 Raise: Description 未指定時は Number に対応する Error 関数の文字列、
+            // 対応する VBA エラーがなければ "Application-defined or object-defined error"
+            this.description = VBA_ERROR_MESSAGES[number] ?? 'Application-defined or object-defined error';
+        }
         if (helpfile !== undefined && helpfile !== vbaEmpty && helpfile !== null) this.helpfile = String(helpfile);
         if (helpcontext !== undefined && helpcontext !== vbaEmpty && helpcontext !== null) this.helpcontext = Number(helpcontext);
 
@@ -2477,11 +2483,16 @@ export class Evaluator {
 
     private evaluateIfStatement(stmt: IfStatement) {
         const conditionVal = this.evaluateExpression(stmt.condition);
+        // 単一行 If（If x Then a / If x Then a Else b）の節は If 文と同じ行にある。
+        // この場合、節内のエラーは If 文の粒度で扱う（Resume が If 全体を再実行できるように）
+        const isInline = (clause: Statement[]) =>
+            clause.length > 0 && (clause[0] as any).line === (stmt as any).line;
         if (this.isTrue(conditionVal)) {
-            this.executeStatements(stmt.consequent, 0, false);
+            this.executeStatements(stmt.consequent, 0, false, isInline(stmt.consequent));
         } else if (stmt.alternate) {
             if (Array.isArray(stmt.alternate)) {
-                this.executeStatements(stmt.alternate as Statement[], 0, false);
+                const alt = stmt.alternate as Statement[];
+                this.executeStatements(alt, 0, false, isInline(alt));
             } else {
                 this.evaluateIfStatement(stmt.alternate as IfStatement);
             }
@@ -2691,7 +2702,7 @@ export class Evaluator {
         const errNum = this.evaluateExpression(stmt.errorNumber);
         const errObj = this.env.get('err');
         if (errObj) {
-            errObj.raise(errNum);
+            this.invokeBuiltin(errObj.raise.bind(errObj), [errNum]);
         } else {
             this.throwVbaError(Number(errNum), String(errNum));
         }
@@ -3754,10 +3765,10 @@ export class Evaluator {
      * `fn` に `__vbaOverloads__`/`__vbaParamSpec__` が付いていれば新しい検証・名前解決を行い、
      * 付いていなければ（未移行の組み込み関数）今までどおり単純な位置引数評価のみを行う。
      */
-    /** 組み込み関数を呼び出し、素の VbaError オブジェクトを枠組み付き Error に包み直す */
-    private invokeBuiltin(fn: Function, args: any[]): any {
+    /** 組み込み関数・メソッドを呼び出し、素の VbaError オブジェクトを枠組み付き Error に包み直す */
+    private invokeBuiltin(fn: Function, args: any[], thisArg: any = null): any {
         try {
-            return fn(...args);
+            return fn.apply(thisArg, args);
         } catch (e: any) {
             if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message);
             throw e;
@@ -5151,7 +5162,9 @@ export class Evaluator {
     // Execute a sequence of statements starting from startIndex, with error handling support.
     // isTopLevel=true (default): full handling for procedure bodies (GoTo, GoSub, Return, Resume).
     // isTopLevel=false: only handle On Error Resume Next; all control flow re-throws to outer scope.
-    private executeStatements(body: Statement[], startIndex: number, isTopLevel: boolean = true) {
+    // inlineClause=true: 単一行 If の Then/Else 節。節内の文は「If 文の一部」なので、
+    // GoTo ハンドラー処理を行わず外側へバブルさせる（Resume は If 文全体を再実行する）。
+    private executeStatements(body: Statement[], startIndex: number, isTopLevel: boolean = true, inlineClause: boolean = false) {
         let i = startIndex;
         while (i < body.length) {
             const stmt = body[i];
@@ -5230,8 +5243,8 @@ export class Evaluator {
                     const errorNumber = e.type === 'VbaError' ? e.number : 1000;
                     // vbaBareMessage があれば "Run-time error 'N': ... (line X)" の枠組みを
                     // 含まない生のメッセージを使う（throwVbaError 経由のエラー）。
-                    // Err.Raise（ErrObject.raise）は元々 message に生のメッセージを
-                    // 直接渡しているため vbaBareMessage は持たない。
+                    // Err.Raise も invokeBuiltin で枠組み付き Error に包み直されるため
+                    // vbaBareMessage を持つ（Err.Description には生メッセージが入る）。
                     const errorMessage = e.vbaBareMessage ?? e.message ?? String(e);
 
                     this.errObj.number = errorNumber;
@@ -5254,6 +5267,38 @@ export class Evaluator {
                             this.isInErrorHandler = true;
                             i = labelIndex;
                             continue;
+                        }
+                        // ラベルがこのブロックにない = ネストブロック（For/If 等）内のエラー。
+                        // ループフレームを巻き戻すと Resume Next が失敗文の次ではなく
+                        // ブロック全体の次に飛んでしまうため、フレームを保ったまま
+                        // プロシージャ本体のハンドラーをここから実行し、Resume を受け取る。
+                        const procBody = inlineClause ? null : this.currentProcBody;
+                        const topIndex = procBody && procBody !== body ? procBody.findIndex(s =>
+                            s.type === 'LabelStatement' &&
+                            (s as any).label.toLowerCase() === labelName
+                        ) : -1;
+                        if (procBody && topIndex >= 0) {
+                            this.isInErrorHandler = true;
+                            let resumeInfo: any = null;
+                            let fellOffEnd = false;
+                            try {
+                                // isTopLevel=false: ハンドラー内の Resume/GoTo をこの catch まで伝播させる
+                                this.executeStatements(procBody, topIndex, false);
+                                fellOffEnd = true;
+                            } catch (r: any) {
+                                if (r && r.type === 'Resume') resumeInfo = r;
+                                else throw r; // Exit / 再エラー / GoTo はそのまま上位へ
+                            }
+                            if (fellOffEnd) {
+                                // ハンドラーが End Sub に到達 → プロシージャを正常終了させる
+                                throw { type: 'Exit', target: 'Sub' };
+                            }
+                            this.isInErrorHandler = false;
+                            this.errObj.clear();
+                            if (resumeInfo.mode === 'Current') continue;      // 失敗文を再実行
+                            if (resumeInfo.mode === 'Next') { i++; continue; } // 失敗文の次へ
+                            // Resume <label>: ラベルはプロシージャレベルにあるため GoTo として伝播
+                            throw { type: 'GoTo', label: resumeInfo.label };
                         }
                     }
                 }
@@ -6489,7 +6534,7 @@ export class Evaluator {
                 }
 
                 if (typeof targetMethod === 'function') {
-                    return targetMethod.apply(obj, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal));
+                    return this.invokeBuiltin(targetMethod, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal), obj);
                 }
             }
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);

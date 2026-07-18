@@ -50,7 +50,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         errMsg = e.message;
     }
     assert.strictEqual(threw, true, 'Err.Raise inside handler If block propagates to caller');
-    assert.strictEqual(errMsg, 'forced error', 'Error message is preserved through re-raise');
+    // Err.Raise も他の実行時エラーと同じ "Run-time error 'N': ..." 形式で escape する
+    // （On Error ストレス対応で統一。生のメッセージは Err.Description / vbaBareMessage が保持）
+    assert.strictEqual(/Run-time error '5': forced error/.test(errMsg), true,
+        `Error message is preserved through re-raise (got: ${errMsg})`);
     console.log('[PASS] Err.Raise inside handler If block propagates to caller (no infinite loop)');
 }
 
