@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -149,6 +149,42 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     `;
     assert.strictEqual(runFunc(code, 'TestDictValueArg'), 77, 'Dictionary.Add 値引数: AutoInstance が解決される');
     console.log('[PASS] JS オブジェクトメソッドの値引数に AutoInstance');
+}
+
+// Bug 33-C（評価 #33）: 未使用の Dim x As New Class を ByVal で渡すと、プレースホルダーが
+// callee 側で実体化され呼び出し元に反映されなかった。引数として渡す時点で
+// 呼び出し元の変数に実体化するよう修正。
+{
+    const code = `
+Public Sub PokeVal(ByVal b As Counter33C)
+    b.Bump
+End Sub
+Public Sub PokeRef(ByRef b As Counter33C)
+    b.Bump
+End Sub
+Public Function TestByValNew() As Long
+    Dim b As New Counter33C
+    PokeVal b
+    PokeRef b
+    TestByValNew = b.Value
+End Function
+`;
+    const cls = `
+Private m_n As Long
+Public Sub Bump()
+    m_n = m_n + 1
+End Sub
+Public Property Get Value() As Long
+    Value = m_n
+End Property
+`;
+    const ev = evalVBAModules([
+        { name: 'Counter33C', code: cls, parseAsClass: 'Counter33C' },
+        { name: 'Main', code },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestByValNew', []), 2,
+        'Bug 33-C: As New 変数の ByVal/ByRef 渡しで同一インスタンスが見える');
+    console.log('[PASS] Bug 33-C: As New 変数の ByVal 渡し');
 }
 
 console.log('\n✅ auto-instance-args: 全テスト通過');

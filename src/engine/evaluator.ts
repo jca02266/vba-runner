@@ -210,6 +210,16 @@ class VbaCollection {
         this._items.splice(idx - 1, 1);
     }
 }
+// 名前付き引数（Key:= / Before:= / After:=）を resolveCallArgs で解決できるように
+// パラメーター仕様を付与する（Bug 33-B: 仕様がないと名前付き引数が位置引数に化けていた）
+(VbaCollection.prototype.add as any).__vbaParamSpec__ = [
+    { name: 'Item' },
+    { name: 'Key', optional: true },
+    { name: 'Before', optional: true },
+    { name: 'After', optional: true },
+];
+(VbaCollection.prototype.item as any).__vbaParamSpec__ = [{ name: 'Index' }];
+(VbaCollection.prototype.remove as any).__vbaParamSpec__ = [{ name: 'Index' }];
 
 export class VbaErrObject {
     public number: number = 0;
@@ -3707,6 +3717,12 @@ export class Evaluator {
      */
     private bindCallArguments(spec: BuiltinParamSpec[], argExprs: Expression[]): any[] {
         const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        // 仕様に存在しない名前付き引数は Error 448（Named argument not found）
+        for (const nameLower of namedArgs.keys()) {
+            if (!spec.some(p => p.name.toLowerCase() === nameLower)) {
+                this.throwVbaError(448, `Named argument not found: '${nameLower}'`);
+            }
+        }
         const params: ArgBinderParam[] = spec.map(p => ({ isOptional: !!p.optional, isParamArray: !!p.isParamArray }));
         this.checkArgCountGeneric(params, positionalArgs.length + namedArgs.size);
 
@@ -3818,6 +3834,12 @@ export class Evaluator {
         const spec = (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
         if (spec) {
             return this.bindCallArguments(spec, argExprs);
+        }
+        // 仕様のない関数に名前付き引数は解決できない。黙って位置引数化すると
+        // 呼び出しの意味が変わるため Error 448 で明示的に失敗させる（Bug 33-B）
+        const named = argExprs.find(a => a.type === 'NamedArgument');
+        if (named) {
+            this.throwVbaError(448, `Named argument not found: '${(named as NamedArgument).name}'`);
         }
         return argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
     }
@@ -5678,6 +5700,8 @@ export class Evaluator {
                 // VbaNamespaceRef（プロジェクト名・モジュール名）を値として使う場合はコンパイルエラー。
                 // Dim VBA As Long のように明示宣言済みの場合は env.set で上書きされているため
                 // VbaNamespaceRef ではなく実際の変数値が返る。
+                // env.get() は暗黙初期化で変数を作るため、存在チェックは先に取る
+                const hadVariable = this.env.hasVariable(idName);
                 const v = this.inConstEval ? this.resolveConstIdent(idName) : this.env.get(idName);
                 if (v instanceof VbaNamespaceRef) {
                     const label = v.kind === 'project' ? 'project' : 'module';
@@ -5697,6 +5721,27 @@ export class Evaluator {
                         const requiredCount = p.parameters.filter(param => !param.isOptional && !param.isParamArray).length;
                         if (requiredCount === 0) {
                             return this.callProcedure(idName, []);
+                        }
+                    }
+                }
+                // クラスメソッド内の非修飾自メンバー参照（Bug 33-A）:
+                // 変数にもプロシージャにも解決できない場合、Me のクラスメンバー
+                // （Property Get / Function、必須引数 0）を暗黙の Me.<name> として呼ぶ
+                if (!p && !this.inConstEval && !hadVariable) {
+                    const me = this.env.getConst('me');  // getConst: 暗黙初期化なし
+                    if (me && me.__vbaClass__ && me.__classDef__) {
+                        const isCurrentProcReturn = this.currentProcedureName &&
+                            idName.toLowerCase() === this.currentProcedureName.toLowerCase();
+                        if (!isCurrentProcReturn) {
+                            const lower = idName.toLowerCase();
+                            const member = (me.__classDef__ as ClassDeclaration).procedures.find(cp =>
+                                cp.name.name.toLowerCase() === lower &&
+                                (cp.isFunction || (cp.isProperty && cp.propertyType === 'get')) &&
+                                cp.parameters.filter(pp => !pp.isOptional && !pp.isParamArray).length === 0
+                            );
+                            if (member) {
+                                return this.callClassMethod(me, member, []);
+                            }
                         }
                     }
                 }
@@ -6233,10 +6278,13 @@ export class Evaluator {
                 for (const argExpr of expr.args) {
                     if (argExpr.type === 'NamedArgument') {
                         const namedArg = argExpr as NamedArgument;
-                        namedArgs.set(namedArg.name.toLowerCase(), this.evaluateExpression(namedArg.value));
+                        // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
+                        // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
+                        namedArgs.set(namedArg.name.toLowerCase(),
+                            this.resolveAutoInstance(namedArg.value, this.evaluateExpression(namedArg.value)));
                         namedArgExpressions.set(namedArg.name.toLowerCase(), namedArg.value);
                     } else {
-                        positionalArgs.push(this.evaluateExpression(argExpr));
+                        positionalArgs.push(this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
                         positionalArgExpressions.push(argExpr);
                     }
                 }

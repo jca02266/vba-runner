@@ -166,4 +166,39 @@ End Function
     console.log('[PASS] Set col = New Collection: explicit Set works');
 }
 
+// Bug 33-B（評価 #33）: Collection.Add の名前付き Before:=/After:= が黙って無視され、
+// 名前付き引数の値が位置引数（Key）に化けていた
+{
+    const code = `
+Function TestNamedInsert() As String
+    Dim c As New Collection
+    c.Add "A"
+    c.Add "B"
+    c.Add "C", After:=1
+    c.Add "Z", Before:=1
+    Dim s As String, v As Variant
+    For Each v In c
+        s = s & v
+    Next
+    TestNamedInsert = s
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestNamedInsert'), 'ZACB',
+        'Bug 33-B: Collection.Add の Before:=/After:= 名前付き引数で挿入位置が効く');
+    console.log('[PASS] Bug 33-B: Collection.Add の名前付き Before/After');
+}
+
+// Bug 33-B 続: パラメーター仕様のない関数への名前付き引数は Error 448 で明示的に失敗する
+{
+    const code = `
+Sub TestUnknownNamed()
+    Dim c As New Collection
+    c.Add "A", Bogus:=1
+End Sub
+`;
+    assert.throwsMatch(() => runFunc(code, 'TestUnknownNamed'), /error '448'/,
+        'Bug 33-B: 未知の名前付き引数は Error 448');
+    console.log('[PASS] Bug 33-B: 未知の名前付き引数は Error 448');
+}
+
 console.log('\n✅ collection: 全テスト通過');

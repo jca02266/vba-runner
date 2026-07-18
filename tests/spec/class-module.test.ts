@@ -612,4 +612,34 @@ End Function
     }
 }
 
+// Bug 33-A（評価 #33）: クラス内の非修飾・括弧なし自メンバー参照（Property Get / Function）
+// が未定義変数扱いで Empty になっていた（Option Explicit でも検出されない silent bug）
+{
+    const cls = `
+Option Explicit
+Public Property Get PropX() As String
+    PropX = "P"
+End Property
+Public Function FnY() As String
+    FnY = "F"
+End Function
+Public Function CallsBoth() As String
+    CallsBoth = PropX & FnY & "!"
+End Function
+`;
+    const main = `
+Function T33A() As String
+    Dim w As New SelfRef33A
+    T33A = w.CallsBoth
+End Function
+`;
+    const ev = evalVBAModules([
+        { name: 'SelfRef33A', code: cls, parseAsClass: 'SelfRef33A' },
+        { name: 'Main', code: main },
+    ]);
+    assert.strictEqual(ev.callProcedure('T33A', []), 'PF!',
+        'Bug 33-A: クラス内の括弧なし自 Property Get / Function 参照が暗黙の Me.<name> に解決される');
+    console.log('[PASS] Bug 33-A: クラス内の括弧なし自メンバー参照');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

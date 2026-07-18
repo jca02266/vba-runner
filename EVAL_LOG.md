@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 33 | エンジン評価 #33: カードゲーム（ブラックジャック風）シミュレーション・ドメイン | **定数からの定数定義・畳み込み**（`DECK_SIZE = SUIT_COUNT * RANK_COUNT`）: 一発動作。**行継続 `_`（引数リスト内・演算子後）/ コロン複文 / REM 行**: 一発動作。**`ChrW`/`AscW` 往復・非 ASCII の `Len`**: 正確（♠=9824）。**With のネスト（`With .TopCard` = Property Get 返却オブジェクト）**: 内側 `.` 解決正常。**`Do While`+`Exit Do` / Randomize シード再現性**: 正常。**Bug 33-A 発見・修正済み**: クラス内の括弧なし自メンバー参照が silent Empty。**Bug 33-B 発見・修正済み**: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド。**Bug 33-C 発見・修正済み**: 未使用 `As New` 変数の ByVal 渡しで実体が呼び出し元に反映されない。leniency 記録: `x = 1 REM comment`（コロンなし）を受理（実 VBA は構文エラー、低優先）。 | 2026-07-18 |
 | 32 | エンジン評価 #32: 差し込みテンプレートエンジン + 帳票出力ドメイン | **ジャグ配列 `rows(i)(j)`**: クラス内・ローカルとも完全動作。**クラスメソッドから配列返却 + `UBound`/添字**: `ReDim Preserve` 後の返却も正常。**配列の ByRef 渡し**: VBA 内書き戻し・TS `run()` args 経由の書き戻しとも動作。**インデックス付き Property Let/Get `obj.Item(3) = "x"`**: 一発動作。**`Err.Raise vbObjectError+n` の Description 伝播**: 正確。**`Print #` ゾーン**: セミコロン連結・カンマ 14 桁ゾーン・`Spc(n)`・数値書式は正確。**Bug 32-A〜32-E 発見・全件修正済み**: Tab(n) オフバイワン / `#1, #日付#` レクサー誤認 / `Input #` 引用符内カンマ分割 / `Write #` 日付書式・改行コード / `LSet` UDT 間コピー Error 424。仕様準拠確認: `Write #` が埋め込み引用符を二重化しないのは実 VBA と同じ。 | 2026-07-18 |
 | 31 | エンジン評価 #31: 再帰下降式パーサー（電卓インタープリター・ドメイン） | **クラス 3 つ + 標準モジュール連携（Token.cls / Tokenizer.cls / ExprParser.cls）**: クラス内から別クラス New・Collection へのオブジェクト格納・`Item(i)`/`For Each` 取り出し 完全動作。**オブジェクト配列**: `Dim tokens() As Token` + `ReDim Preserve` + `Set tokens(i) = New Token` + `For Each` 走査 完全動作。**後置 `Do...Loop While` / `Do...Loop Until`**: 完全動作。**`Err.Raise vbObjectError + n` → `Err.Number - vbObjectError` 往復**: 完全動作（`vbObjectError` = -2147221504 正確）。**Dictionary 暗黙 Let 代入 `m_vars(key) = v`**: 追加・更新とも正常。**文字列連結 20000 回**: 176ms で完走。**行番号付きレガシー構文**: `10 x = 1` 形式のパース・`GoTo 30`・`On Error GoTo 99`（数値ターゲット）すべて動作。**Bug 31-A 発見・修正済み**: `Public/Private Static Sub|Function` がパースエラー。**Bug 31-B 発見・修正済み**: `Erl` が未実装で常に 0（識別子として暗黙解決）。実装追加でハンドラー内 `Erl` がエラー行番号を返すように。 | 2026-07-18 |
 | 30 | エンジン評価 #30: 状態機械 / ワークフローエンジン（注文処理ドメイン） | **複数クラス連携（State.cls + WorkflowEngine.cls）**: `Class_Initialize` で `Scripting.Dictionary` をフィールド初期化・複数クラス間の Set 代入・メソッド呼び出し 正常動作。**Collection による履歴記録**: `myCol.Add` / `For Each` による全件走査 正常動作。**On Error GoTo + Err.Raise**: 無効遷移（存在しない状態・イベント）の Error 5 送出・呼び出し元での捕捉 正常動作。**For Each で Dictionary Keys 走査**: `For Each key In dict.Keys` パターン正常動作。**`new VBARunner(optionsObj)` 誤用で ERR_INVALID_ARG_TYPE**: Node.js 内部エラーになりわかりにくい（改善提案）。**Bug 30-A 発見・修正済み**: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）。`builtins.ts` の `__vbaClass__` チェックが `__vbaTypeName__` チェックより後にあったため。チェック順を入れ替えて修正。`TypeName()` は正常動作していた。 | 2026-07-17 |
@@ -193,6 +194,14 @@
 | **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
 | **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
 | **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+
+### ~~未修正バグ（評価 #33 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 33-A: クラス内の非修飾・括弧なし自メンバー参照（Property Get / Function）が silent Empty**~~ | クラス内 `CallsProp = PropX & "!"` → `"!"`（Option Explicit でも検出されない） | クラスメンバーは env のプロシージャマップに載らず、未定義変数の暗黙 Empty に解決されていた。Identifier 評価に「変数にもプロシージャにも解決できない場合、Me のクラスメンバー（Function/Property Get、必須引数 0）を暗黙の Me.<name> として呼ぶ」フォールバックを追加。`env.get()` の暗黙初期化より先に `hasVariable` を取るのが要点。`class-module.test.ts` Bug 33-A ブロック |
+| ~~**Bug 33-B: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド**~~ | `c.Add "C", After:=1` → 末尾追加（値が Key 位置に化ける） | `VbaCollection.add` に `__vbaParamSpec__` がなく、名前付き引数の値が位置引数に落ちていた。仕様を付与し、さらに仕様にない名前付き引数・仕様なし関数への名前付き引数は Error 448 で明示的に失敗させるように。`collection.test.ts` Bug 33-B ブロック |
+| ~~**Bug 33-C: 未使用の `Dim x As New Class` を ByVal で渡すとメンバー変更が呼び出し元に見えない**~~ | `Dim b As New Widget : Poke b : b.Cnt` → 0（期待 1） | auto-instance プレースホルダーが callee 側で実体化され、caller の変数に書き戻されなかった。ユーザープロシージャ呼び出しの引数評価（位置・名前付きとも）で `resolveAutoInstance` を通し、渡す時点で caller 側に実体化するよう修正。`auto-instance-args.test.ts` Bug 33-C ブロック |
 
 ### ~~未修正バグ（評価 #32 で発見・修正済み）~~
 
