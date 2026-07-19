@@ -186,6 +186,20 @@ function resolveEncoding(encodingOverride: string | undefined, codePage: number 
     return encodingOverride ?? `cp${codePage}`;
 }
 
+// The VBA project's internal module source stream (what `export` writes and what
+// `import` expects) starts directly with `Attribute VB_Name = "..."`. The VBE's
+// own "Export File..." menu command, by contrast, prepends a class-header block
+// (`VERSION 1.0 CLASS` / `BEGIN ... END`) that holds component properties like
+// MultiUse — this block lives in the PROJECT stream's component records, not in
+// the module source stream itself. Feeding a VBE-exported .cls straight into
+// `import` would write that header text as if it were VBA code and corrupt the
+// module. Detect and strip it so both .cls flavors work as import input.
+const CLASS_HEADER_RE = /^﻿?VERSION\s+[\d.]+\s+CLASS\r?\nBEGIN\r?\n(?:.*\r?\n)*?END\r?\n/i;
+
+function stripClassHeader(source: string): string {
+    return source.replace(CLASS_HEADER_RE, '');
+}
+
 async function runExport(args: string[]): Promise<void> {
     const { encoding: encodingOverride, rest } = parseEncoding(args);
     const [xlsmArg, outDirArg] = rest;
@@ -259,14 +273,23 @@ async function runImport(args: string[]): Promise<void> {
     // Build a map of source files: lowercase name → source text
     const sourceFileNames = new Map<string, string>(); // lowercase name → original filename (no ext)
     const sourceMap = new Map<string, string>();        // lowercase name → source text
+    let headerStrippedCount = 0;
     for (const f of readdirSync(absSrc)) {
         const ext = extname(f).toLowerCase();
         if (ext !== '.bas' && ext !== '.cls') continue;
         const baseName = basename(f, ext);
-        sourceMap.set(baseName.toLowerCase(), readFileSync(`${absSrc}/${f}`, 'utf8'));
+        let text = readFileSync(`${absSrc}/${f}`, 'utf8');
+        if (ext === '.cls' && CLASS_HEADER_RE.test(text)) {
+            text = stripClassHeader(text);
+            headerStrippedCount++;
+        }
+        sourceMap.set(baseName.toLowerCase(), text);
         sourceFileNames.set(baseName.toLowerCase(), baseName);
     }
     console.log(`Source files : ${sourceMap.size}`);
+    if (headerStrippedCount > 0) {
+        console.log(`  (stripped VBE-style class header from ${headerStrippedCount} .cls file(s))`);
+    }
 
     const { zip, cfb, codePage, dirEntry, dirDecompressed } = await openXlsm(absXlsm);
     const encoding = resolveEncoding(encodingOverride, codePage);

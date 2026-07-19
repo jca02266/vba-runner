@@ -56,6 +56,12 @@ vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
 vba-extractor import MyBook.xlsm src/vba --yes
 ```
 
+VBE の「ファイルのエクスポート」メニューで出力した `.cls` ファイルには `VERSION 1.0 CLASS` /
+`BEGIN ... END`（`MultiUse` 等のコンポーネント属性を保持するブロック）というヘッダーが付いています。
+これは `export` コマンドの出力には含まれず、モジュールソース自体にも本来含まれるべきではありません。
+`import` はこのヘッダーを自動検出して取り除くため、どちらの形式の `.cls` ファイルも手動編集なしで
+そのまま入力として使えます。
+
 ### 新規 .xlsm をゼロから作る (Windows + Excel)
 
 `import` は既存の `.xlsm` が前提で、新規に `.xlsm` を作ることはできません。`.bas` ファイルしか

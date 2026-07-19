@@ -58,6 +58,12 @@ vba-extractor import MyBook.xlsm src/vba MyBook_updated.xlsm
 vba-extractor import MyBook.xlsm src/vba --yes
 ```
 
+`.cls` files exported by the VBE's own "Export File..." menu carry a `VERSION 1.0 CLASS` /
+`BEGIN ... END` header block (holding component properties like `MultiUse`) that `export`
+does not produce and `import` does not expect in the module source itself. `import`
+automatically detects and strips this header, so `.cls` files from either source work
+as input without manual editing.
+
 ### Creating a new .xlsm from scratch (Windows + Excel)
 
 `import` requires an existing `.xlsm` file - it cannot create one from nothing. If you're
