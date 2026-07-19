@@ -12,8 +12,26 @@ sample/excel/
 │   ├── ovba.mjs         # MS-OVBA 圧縮・伸長ライブラリ
 │   └── dir-parser.mjs   # VBA Project dir ストリームパーサー
 ├── package.json
-└── test.xlsm            # サンプル Excel マクロブック
+├── test.xlsm            # サンプル Excel マクロブック
+├── empty.xlsm           # マクロ有効形式だが VBA プロジェクト未作成のブック
+└── empty_with_macro.xlsm # VBA プロジェクトを持つ最小ブック
 ```
+
+### Excel テスト用ブック
+
+- `empty.xlsm` は、Excel で「Excel マクロ有効ブック」として保存しただけの空ブックである。
+  `xl/vbaProject.bin` を持たないため、`vba-extractor import` の入力には使用できない。
+- `empty_with_macro.xlsm` は、空ブックに VBA モジュールを1件追加してから保存した最小ブックである。
+  `vba-extractor import` の完全同期（モジュールの追加・削除）と、VBE で開いて未編集のまま保存できることを確認するための回帰用入力として使う。
+
+例えば、VBA ソースを `src/vba` に置いた場合は次のように別ファイルへ出力して確認する。
+
+```bash
+npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
+```
+
+出力した `output.xlsm` を Excel で開き、Alt+F11 で VBE を表示して何も編集せず保存する。
+保存できることが、新規クラスモジュールを含む import 出力の互換性確認になる。
 
 ## セットアップ
 
