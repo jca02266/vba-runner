@@ -6206,8 +6206,11 @@ export class Evaluator {
             }
             return false;
         };
-        if (['+', '-', '*', '/', '\\', 'mod'].includes(op) && (isStringOperand(expr.left) || isStringOperand(expr.right))) {
-            return (op === '\\' || op === 'mod') ? 'Long' : 'Double';
+        const logicOps = ['and', 'or', 'xor', 'eqv', 'imp'];
+        if (['+', '-', '*', '/', '\\', 'mod', ...logicOps].includes(op) && (isStringOperand(expr.left) || isStringOperand(expr.right))) {
+            // 論理演算子も \/Mod と同様、整数（Long）へ丸めてからビット演算される
+            // （実 VBA 差分で裁定: True And "7" は Double ではなく Long）
+            return (op === '\\' || op === 'mod' || logicOps.includes(op)) ? 'Long' : 'Double';
         }
 
         if (op === '/') {
@@ -6217,15 +6220,15 @@ export class Evaluator {
             return 'Double';
         }
 
-        if (op === '\\' || op === 'mod') {
-            // 整数除算: 非整数型は Long に丸めてから演算される
-            const toIntType = (t: VbaVarType | undefined): 'Integer' | 'Long' | 'LongLong' | undefined => {
-                if (t === 'Byte' || t === 'Integer') return 'Integer';
-                if (t === 'Long') return 'Long';
-                if (t === 'LongLong') return 'LongLong';
-                if (t === 'Single' || t === 'Double' || t === 'Currency' || t === 'Date') return 'Long'; // 丸め後 Long
-                return undefined;
-            };
+        // \/Mod/論理演算子共通: 非整数型は Long に丸めてから演算される
+        const toIntType = (t: VbaVarType | undefined): 'Integer' | 'Long' | 'LongLong' | undefined => {
+            if (t === 'Byte' || t === 'Integer') return 'Integer';
+            if (t === 'Long') return 'Long';
+            if (t === 'LongLong') return 'LongLong';
+            if (t === 'Single' || t === 'Double' || t === 'Currency' || t === 'Date') return 'Long'; // 丸め後 Long
+            return undefined;
+        };
+        if (op === '\\' || op === 'mod' || logicOps.includes(op)) {
             const nl = toIntType(lt), nr = toIntType(rt);
             if (!nl || !nr) return undefined;
             if (nl === 'LongLong' || nr === 'LongLong') return 'LongLong';

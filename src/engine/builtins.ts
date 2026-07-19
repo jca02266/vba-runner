@@ -507,6 +507,31 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
 // String functions — Asc, Chr, InStr, LCase, Left, Len, Mid, Right, etc.
 // ---------------------------------------------------------------------------
 
+// StrConv vbNarrow(8) 用: 全角カタカナ → 半角カナ。濁点/半濁点付き文字は
+// 基底文字 + 結合文字（ﾞ/ﾟ）の2文字表現になる（実 VBA 差分で裁定・実装）。
+// 逆方向（半角→全角）は String.prototype.normalize('NFKC') で正確に変換できる。
+const FULL_TO_HALF_KANA: Record<string, string> = {
+    '。': '｡', '「': '｢', '」': '｣', '、': '､', '・': '･',
+    'ヲ': 'ｦ', 'ァ': 'ｧ', 'ィ': 'ｨ', 'ゥ': 'ｩ', 'ェ': 'ｪ', 'ォ': 'ｫ',
+    'ャ': 'ｬ', 'ュ': 'ｭ', 'ョ': 'ｮ', 'ッ': 'ｯ', 'ー': 'ｰ',
+    'ア': 'ｱ', 'イ': 'ｲ', 'ウ': 'ｳ', 'エ': 'ｴ', 'オ': 'ｵ',
+    'カ': 'ｶ', 'キ': 'ｷ', 'ク': 'ｸ', 'ケ': 'ｹ', 'コ': 'ｺ',
+    'サ': 'ｻ', 'シ': 'ｼ', 'ス': 'ｽ', 'セ': 'ｾ', 'ソ': 'ｿ',
+    'タ': 'ﾀ', 'チ': 'ﾁ', 'ツ': 'ﾂ', 'テ': 'ﾃ', 'ト': 'ﾄ',
+    'ナ': 'ﾅ', 'ニ': 'ﾆ', 'ヌ': 'ﾇ', 'ネ': 'ﾈ', 'ノ': 'ﾉ',
+    'ハ': 'ﾊ', 'ヒ': 'ﾋ', 'フ': 'ﾌ', 'ヘ': 'ﾍ', 'ホ': 'ﾎ',
+    'マ': 'ﾏ', 'ミ': 'ﾐ', 'ム': 'ﾑ', 'メ': 'ﾒ', 'モ': 'ﾓ',
+    'ヤ': 'ﾔ', 'ユ': 'ﾕ', 'ヨ': 'ﾖ',
+    'ラ': 'ﾗ', 'リ': 'ﾘ', 'ル': 'ﾙ', 'レ': 'ﾚ', 'ロ': 'ﾛ',
+    'ワ': 'ﾜ', 'ン': 'ﾝ',
+    'ガ': 'ｶﾞ', 'ギ': 'ｷﾞ', 'グ': 'ｸﾞ', 'ゲ': 'ｹﾞ', 'ゴ': 'ｺﾞ',
+    'ザ': 'ｻﾞ', 'ジ': 'ｼﾞ', 'ズ': 'ｽﾞ', 'ゼ': 'ｾﾞ', 'ゾ': 'ｿﾞ',
+    'ダ': 'ﾀﾞ', 'ヂ': 'ﾁﾞ', 'ヅ': 'ﾂﾞ', 'デ': 'ﾃﾞ', 'ド': 'ﾄﾞ',
+    'バ': 'ﾊﾞ', 'ビ': 'ﾋﾞ', 'ブ': 'ﾌﾞ', 'ベ': 'ﾍﾞ', 'ボ': 'ﾎﾞ',
+    'パ': 'ﾊﾟ', 'ピ': 'ﾋﾟ', 'プ': 'ﾌﾟ', 'ペ': 'ﾍﾟ', 'ポ': 'ﾎﾟ',
+    'ヴ': 'ｳﾞ',
+};
+
 export function registerStringFunctions(ctx: StdlibCtx): void {
     const ascFunc = (s: any) => {
         if (s === vbaNull) return vbaNull;
@@ -806,8 +831,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         }
         if (c & 4) {
             str = str.replace(/[!-~]/g, m => String.fromCharCode(m.charCodeAt(0) + 0xFEE0)).replace(/ /g, '　');
+            // 半角カナ → 全角カタカナ。濁点/半濁点付き（ｶﾞ→ガ 等）を含め NFKC 正規化で正確に変換できる
+            str = str.replace(/[｡-ﾟ]+/g, m => m.normalize('NFKC'));
         } else if (c & 8) {
             str = str.replace(/[！-～]/g, m => String.fromCharCode(m.charCodeAt(0) - 0xFEE0)).replace(/　/g, ' ');
+            // 全角カタカナ → 半角カナ。濁点/半濁点付き文字は基底文字 + 結合文字の2文字表現になる
+            str = str.replace(/[ァ-ヴー。「」、・]/g, m => FULL_TO_HALF_KANA[m] ?? m);
         }
         return str;
     }, [{ name: 'String' }, { name: 'Conversion' }, { name: 'LCID', optional: true }]);

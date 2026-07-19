@@ -169,4 +169,33 @@ const ev = evalVBASingle('');
     console.log('[PASS] 第2回深掘り検証で確定した境界値（\\/Mod の右辺型・CDate 無効時刻・M,Y 現代年）');
 }
 
+// --- 第3回（論理演算子・StrConv 拡張、2656式）で発見した2バグ ---
+{
+    // And/Or/Xor/Eqv/Imp: 片方が Boolean のとき、結果の数値サブタイプが Double に
+    // フォールバックしていた（実 VBA は \/Mod と同様の整数昇格: 文字列絡み→Long、
+    // それ以外→Integer/Long/LongLong）。値自体は正しく、TypeName だけがズレていた
+    assert.strictEqual(ev.evalExpression('TypeName((True) And ("7"))'), 'Long',
+        'True And "7" は文字列が絡むため Long（値は 7）');
+    assert.strictEqual(ev.evalExpression('(True) And ("7")'), 7, '値自体は元から正しかった');
+    assert.strictEqual(ev.evalExpression('TypeName((True) And (5))'), 'Integer',
+        'True And 5（数値リテラル）は Integer');
+    assert.strictEqual(ev.evalExpression('TypeName((True) Xor ("7"))'), 'Long', 'Xor も同様');
+    assert.strictEqual(ev.evalExpression('TypeName((False) Or (Empty))'), 'Integer',
+        'Or + Empty は Integer（Empty は Integer 扱い）');
+
+    // StrConv vbWide(4)/vbNarrow(8) が半角カナ⇔全角カタカナを変換していなかった
+    // （英数字・記号のみ対応で、カナが素通りしていた）
+    assert.strictEqual(ev.evalExpression('StrConv(ChrW(65393) & ChrW(65394), 4)'), 'アイ',
+        '半角カナ ｱｲ → vbWide で全角カタカナ アイ');
+    assert.strictEqual(ev.evalExpression('StrConv(ChrW(12450) & ChrW(12452), 8)'), 'ｱｲ',
+        '全角カタカナ アイ → vbNarrow で半角カナ ｱｲ');
+    // 濁点・半濁点付き文字（基底 + 結合文字の2文字表現になる）
+    assert.strictEqual(ev.evalExpression('StrConv(StrConv(ChrW(12460), 8), 4)'), 'ガ',
+        '濁点付き「ガ」の半角⇔全角往復');
+    assert.strictEqual(ev.evalExpression('StrConv(StrConv(ChrW(12497), 8), 4)'), 'パ',
+        '半濁点付き「パ」の半角⇔全角往復');
+
+    console.log('[PASS] 第3回: And/Or/Xor/Eqv/Imp の型サブタイプ、StrConv カナ変換');
+}
+
 console.log('\n✅ real-vba-diff-regressions: 全テスト通過');
