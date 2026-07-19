@@ -272,6 +272,55 @@ function add(cat: string, expr: string): void {
 }
 
 // ---------------------------------------------------------------------------
+// 12. 深掘り第3弾: 論理演算子（And/Or/Xor/Eqv/Imp）の型強制
+//     \/Mod で発見した「Boolean が絡む二項演算は型変換の優先順位が特殊」という
+//     パターンが論理演算子でも再現するかを確認する
+// ---------------------------------------------------------------------------
+{
+    const logicOps = ['And', 'Or', 'Xor', 'Eqv', 'Imp'];
+    const logicVals = ['True', 'False', '"7"', '"0"', '"-1"', '5', '0', 'Null', 'Empty'];
+    for (const op of logicOps) {
+        for (const a of logicVals) {
+            for (const b of logicVals) {
+                // 全組み合わせは爆発するので、片方は必ず True/False literal に絞る
+                if (a === 'True' || a === 'False' || b === 'True' || b === 'False') {
+                    add('LOGIC', `(${a}) ${op} (${b})`);
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// 13. 深掘り第3弾: StrConv の日本語変換モードの往復・複合フラグ
+// ---------------------------------------------------------------------------
+{
+    // ChrW でひらがな・カタカナ・全角英数・半角カナを組み立てる
+    const hiragana = 'ChrW(12354) & ChrW(12356)';           // "あい"
+    const katakanaFull = 'ChrW(12450) & ChrW(12452)';        // "アイ"
+    const katakanaHalf = 'ChrW(65393) & ChrW(65394)';        // "ｱｲ"（半角カナ）
+    const zenkakuAlnum = 'ChrW(65313) & ChrW(65314)';        // "ＡＢ"（全角英字）
+    const hankakuAlnum = '"AB"';
+
+    // vbHiragana=32, vbKatakana=16, vbWide=4, vbNarrow=8,
+    // vbUpperCase=1, vbLowerCase=2, vbProperCase=3
+    add('STRCONV', `StrConv(${hiragana}, 16)`);              // ひらがな→カタカナ
+    add('STRCONV', `StrConv(${katakanaFull}, 32)`);          // カタカナ→ひらがな
+    add('STRCONV', `StrConv(${katakanaHalf}, 4)`);           // 半角カナ→全角
+    add('STRCONV', `StrConv(${zenkakuAlnum}, 8)`);           // 全角英字→半角
+    add('STRCONV', `StrConv(${hankakuAlnum}, 4)`);           // 半角英字→全角（英字も対象か確認）
+    add('STRCONV', `StrConv(${katakanaFull}, 8)`);           // 全角カタカナ→半角（カナも半角化されるか）
+    // 複合フラグ: vbKatakana(16) + vbNarrow(8) = 24 → ひらがなを半角カタカナに
+    add('STRCONV', `StrConv(${hiragana}, 24)`);
+    // 複合フラグ: vbWide(4) + vbUpperCase(1) = 5
+    add('STRCONV', `StrConv("ab", 5)`);
+    // 往復: ひらがな→カタカナ→ひらがな で元に戻るか
+    add('STRCONV', `StrConv(StrConv(${hiragana}, 16), 32)`);
+    // 記号・数字はひらがな/カタカナ変換の対象外のはず
+    add('STRCONV', `StrConv("123" & ${hiragana} & "abc", 16)`);
+}
+
+// ---------------------------------------------------------------------------
 // .bas 生成
 // ---------------------------------------------------------------------------
 fs.rmSync(OUT_DIR, { recursive: true, force: true });
