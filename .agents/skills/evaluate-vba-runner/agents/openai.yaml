@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evaluate VBA Runner"
+  short_description: "Evaluate, fix, test, and commit VBA runner bugs"
+  default_prompt: "Use $evaluate-vba-runner to evaluate vba-runner and fix verified bugs."
