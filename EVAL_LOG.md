@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 34 | エンジン評価 #34: 年次締切・休業日判定ドメイン | `HolidayCalendar.cls` と標準モジュールで **日付リテラル**・`DateValue`/`TimeValue`・`DateSerial`・`Weekday`・年末日時を評価。Collection、文字列正規化、`On Error GoTo`、ループ、条件分岐を含むサンプルで通常・不正入力を確認。`#3/15#`・`#15/3#`・うるう日・日時併記を調査。**Bug 34-A 発見・修正済み**: 2桁年の日付リテラルが常に 20xx と解釈され、Excel の既定 2029 ルールおよび `DateSerial` と不一致だった。 | 2026-07-19 |
 | 33 | エンジン評価 #33: カードゲーム（ブラックジャック風）シミュレーション・ドメイン | **定数からの定数定義・畳み込み**（`DECK_SIZE = SUIT_COUNT * RANK_COUNT`）: 一発動作。**行継続 `_`（引数リスト内・演算子後）/ コロン複文 / REM 行**: 一発動作。**`ChrW`/`AscW` 往復・非 ASCII の `Len`**: 正確（♠=9824）。**With のネスト（`With .TopCard` = Property Get 返却オブジェクト）**: 内側 `.` 解決正常。**`Do While`+`Exit Do` / Randomize シード再現性**: 正常。**Bug 33-A 発見・修正済み**: クラス内の括弧なし自メンバー参照が silent Empty。**Bug 33-B 発見・修正済み**: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド。**Bug 33-C 発見・修正済み**: 未使用 `As New` 変数の ByVal 渡しで実体が呼び出し元に反映されない。leniency 記録: `x = 1 REM comment`（コロンなし）を受理（実 VBA は構文エラー、低優先）。 | 2026-07-18 |
 | 32 | エンジン評価 #32: 差し込みテンプレートエンジン + 帳票出力ドメイン | **ジャグ配列 `rows(i)(j)`**: クラス内・ローカルとも完全動作。**クラスメソッドから配列返却 + `UBound`/添字**: `ReDim Preserve` 後の返却も正常。**配列の ByRef 渡し**: VBA 内書き戻し・TS `run()` args 経由の書き戻しとも動作。**インデックス付き Property Let/Get `obj.Item(3) = "x"`**: 一発動作。**`Err.Raise vbObjectError+n` の Description 伝播**: 正確。**`Print #` ゾーン**: セミコロン連結・カンマ 14 桁ゾーン・`Spc(n)`・数値書式は正確。**Bug 32-A〜32-E 発見・全件修正済み**: Tab(n) オフバイワン / `#1, #日付#` レクサー誤認 / `Input #` 引用符内カンマ分割 / `Write #` 日付書式・改行コード / `LSet` UDT 間コピー Error 424。仕様準拠確認: `Write #` が埋め込み引用符を二重化しないのは実 VBA と同じ。 | 2026-07-18 |
 | 31 | エンジン評価 #31: 再帰下降式パーサー（電卓インタープリター・ドメイン） | **クラス 3 つ + 標準モジュール連携（Token.cls / Tokenizer.cls / ExprParser.cls）**: クラス内から別クラス New・Collection へのオブジェクト格納・`Item(i)`/`For Each` 取り出し 完全動作。**オブジェクト配列**: `Dim tokens() As Token` + `ReDim Preserve` + `Set tokens(i) = New Token` + `For Each` 走査 完全動作。**後置 `Do...Loop While` / `Do...Loop Until`**: 完全動作。**`Err.Raise vbObjectError + n` → `Err.Number - vbObjectError` 往復**: 完全動作（`vbObjectError` = -2147221504 正確）。**Dictionary 暗黙 Let 代入 `m_vars(key) = v`**: 追加・更新とも正常。**文字列連結 20000 回**: 176ms で完走。**行番号付きレガシー構文**: `10 x = 1` 形式のパース・`GoTo 30`・`On Error GoTo 99`（数値ターゲット）すべて動作。**Bug 31-A 発見・修正済み**: `Public/Private Static Sub|Function` がパースエラー。**Bug 31-B 発見・修正済み**: `Erl` が未実装で常に 0（識別子として暗黙解決）。実装追加でハンドラー内 `Erl` がエラー行番号を返すように。 | 2026-07-18 |
@@ -320,6 +321,12 @@
 | ~~**Bug BV: `Dim a As New ClassName` 後の `TypeOf a Is ClassName` が `False` を返していた**~~ | **修正済み**: `evaluateTypeOfIsExpression()` で `evaluateExpression()` の後に `resolveAutoInstance()` を呼ばずプレースホルダーを渡していた。auto-instance placeholder は `__vbaTypeName__` を持たないため常に `vbaFalse` を返していた。修正: TypeOf 評価の先頭で `resolveAutoInstance(expr.expression, raw)` を呼ぶよう変更。`TypeOf a Is Object` は元から動作していた（プレースホルダーも `typeof obj === 'object'` を満たすため）。 | `aea8a33` |
 | ~~**Bug BT: `Type` メンバーに配列 `Items(9) As Item` を持つ UDT で `c.Items(0)` が Error 438 になっていた**~~ | **修正済み（複合修正）**: (1) パーサーの `TypeMember` インターフェースに `isArray/arrayBounds` を追加し、配列境界（`(n)` / `(m To n)`）をパース・保持するよう変更（従来はスキップして捨てていた）。(2) `instantiateType()` で配列メンバーを初期化するよう修正。(3) 評価器の `evaluateCallExpression` に UDT 配列メンバーの読み取り、`evaluateAssignmentToVariable` に UDT 配列メンバーへの書き込みパスを追加。`isStatementAmbiguous` の `=` チェックも `isAssignableTarget` に変更（`parts(1) = "a"` の回帰を修正）。 | `671edd3` |
 | ~~**Bug BU: `"7" = 7` が `False` を返していた（文字列/数値混在の `=` / `<>` 比較）**~~ | **修正済み**: JS の `===` は型変換しないため `"7" === 7` は `false`。`<`/`>`/`<=`/`>=` は JS が暗黙変換するので機能していたが `=` / `<>` は動いていなかった。`evaluateBinaryExpression()` の `case '='` と `case '<>'` に `typeof leftVal === 'string' && typeof rightVal === 'number'`（逆も）の条件を追加し、`toVbaNumber()` で文字列を数値に変換してから比較するよう修正。副作用として `live-vars.ts` の `getStmtUses()` に `DebugPrintStatement` ケースを追加（`Debug.Print x` の `x` がデッドストア検出の「使用」として計上されない回帰を修正）。 | `b049cd4` |
+
+### ~~未修正バグ（評価 #34 で発見）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 34-A: 2桁年の日付リテラルが常に 20xx になる**~~ | **修正済み**: `Format(#3/15/30#, "yyyy-mm-dd")` → `1930-03-15`、`#3/15/99#` → `1999-03-15`。`parseDateLiteral()` を DateSerial と同じ既定 2029 ルール（00–29 は 20xx、30–99 は 19xx）へ修正し、`tests/spec/date-literal-parsing.test.ts` に回帰テストを追加。 | 旧実装は `year < 100` のとき常に `year += 2000` としていた。 |
 
 ---
 

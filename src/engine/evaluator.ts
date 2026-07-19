@@ -5912,9 +5912,9 @@ export class Evaluator {
             return null;
         }
 
-        // Handle two-digit years (sliding window: 00-99 -> 2000-2099 for now)
+        // VBA's two-digit-year rule: 00-29 -> 2000-2029; 30-99 -> 1930-1999.
         if (year < 100) {
-            year += 2000;
+            year += year <= 29 ? 2000 : 1900;
         }
 
         return { year, month, day, hour, minute, second };

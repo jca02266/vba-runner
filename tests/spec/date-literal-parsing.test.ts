@@ -79,12 +79,25 @@ function getYear(dateValue: any): number {
     try {
         const result = runFunc(code, 'Test3');
         const year = getYear(result);
-        // Two-digit year should be interpreted as 2024 (current year sliding window)
-        assert.strictEqual(year >= 2000, true, 'Date #1/2/24# has valid year');
-        console.log('[PASS] Date with two-digit year');
+        assert.strictEqual(year, 2024, 'Date #1/2/24# has year 2024');
+        console.log('[PASS] Date with two-digit year 00-29 -> 20xx');
     } catch (e: any) {
         console.log('[FAIL] Date with two-digit year:', e.message);
     }
+}
+
+// Bug 34-A: Date literals use the same 2029 two-digit-year rule as DateSerial.
+{
+    const code = `
+        Function TestTwoDigitYearCutoff() As String
+            TestTwoDigitYearCutoff = Format(#3/15/30#, "yyyy-mm-dd") & "," & _
+                                     Format(#3/15/99#, "yyyy-mm-dd")
+        End Function
+    `;
+
+    assert.strictEqual(runFunc(code, 'TestTwoDigitYearCutoff'), '1930-03-15,1999-03-15',
+        'date literals map 30-99 to 1930-1999');
+    console.log('[PASS] Bug 34-A: Date literal two-digit-year cutoff');
 }
 
 // Test 4: Date with English month name (#January 2, 2024#)
