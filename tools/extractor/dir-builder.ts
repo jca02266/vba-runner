@@ -74,6 +74,10 @@ function buildNewModuleBlock(name: string, streamName: string, isClass: boolean,
     writeRecord(buf, 0x002C, [0xFF, 0xFF]);
     // MODULETYPE: 0x0021 = procedural, 0x0022 = class/document
     writeRecord(buf, isClass ? 0x0022 : 0x0021, []);
+    // MODULEPRIVATE is required for a class module. Excel's VBE writes it after
+    // MODULETYPE even when it has no payload; omitting it produces a dir stream
+    // that opens but fails VBE validation when the workbook is saved.
+    if (isClass) writeRecord(buf, 0x0028, []);
     // MODULETERMINATOR (0x002B)
     writeRecord(buf, 0x002B, []);
 

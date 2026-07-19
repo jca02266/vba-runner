@@ -152,6 +152,38 @@ for (let i = 0; i < (cfb as any).FullPaths.length; i++) {
 CFB.utils.cfb_add(cfb, `/VBA/${streamName}`, compressedContent);
 ```
 
+### 新規クラスモジュールの内部属性
+
+VBE の「ファイルのエクスポート」で得られる通常の `.cls` には、ブック内部で
+Excel が保存するクラスモジュールに含まれる属性の一部がない場合がある。新規クラスを
+source-only 形式で追加した後に VBE で保存できるよう、`import` は不足している場合だけ
+次の属性を補う。
+
+```vb
+Attribute VB_Base = "0{FCFB3D2A-A0FA-1068-A738-08002B3371B5}"
+Attribute VB_TemplateDerived = False
+Attribute VB_Customizable = False
+```
+
+既に source に同名の属性がある場合は、その値を変更しない。改行形式も source のまま保持する。
+
+#### `VB_Base` の扱いと根拠の範囲
+
+`0{FCFB3D2A-A0FA-1068-A738-08002B3371B5}` は UUID を都度生成する値ではない。また、
+MS-OVBA がこの値を固定値として規定しているわけでもない。通常クラス互換のための
+**実測済み既定値**としてのみ扱う。根拠は次のとおり。
+
+1. 手作業で作成し Excel で保存できた `book.xlsm` の通常クラス2件がこの値を持つ。
+2. 同じ再現条件で、属性を欠く新規クラスは VBE 保存に失敗し、上記3属性を補うと成功した。
+3. 独立した VBA 抽出例にも、通常クラスで同じ値が現れる。
+
+この根拠は Excel の全バージョン・すべての Office ホストアプリに一般化できるものではない。
+今後は別バージョンおよび別ホストで検証を追加する。
+
+`VB_Base` 単独では UserForm の判定に使えない。Excel が生成した通常クラスにも含まれるため、
+新規追加を拒否するデザイナー／ドキュメントモジュールは `VB_Base` **かつ**
+`VB_PredeclaredId = True` を持つ場合として判定する。
+
 ## CFB ストリームの削除（モジュール削除時）
 
 type を 0（STGTY_INVALID）に設定する。`cfb.js` の `rebuild_cfb` が書き込み時にスキップする。
@@ -228,8 +260,10 @@ UserForm のバイナリレイアウトは `Root Entry/<formName>/` 配下に格
 このバイナリデータは `vba-extractor export` で `.cls` ファイルにエクスポートされない。
 したがって、`import` による新規 UserForm の追加は現在サポートしていない。
 
-**UserForm の検出**: `.cls` ソースに `Attribute VB_Base = "..."` が含まれる場合は UserForm。
-標準クラスモジュールやドキュメントモジュールにはこの属性がない。
+**UserForm / ドキュメントモジュールの新規追加検出**: `Attribute VB_Base = "..."` **かつ**
+`Attribute VB_PredeclaredId = True` を含む場合は、ホストまたはデザイナーに紐付く
+モジュールとして扱う。`VB_Base` は Excel が生成した通常のクラスモジュールにも存在するため、
+それだけで UserForm と判定してはいけない。
 
 `import` は UserForm の追加を明確なエラーで拒否する（Excel で先にフォームを作成してから
 コード部分のみ import で更新すること）。
@@ -237,3 +271,31 @@ UserForm のバイナリレイアウトは `Root Entry/<formName>/` 配下に格
 **既存 UserForm のコード更新**: バイナリレイアウトストレージはそのまま保持し、VBA ソースストリームのみ差し替える。
 
 **UserForm の削除**: VBA ソースストリームとフォームレイアウトストレージ（`Root Entry/<名前>/` 以下）を両方削除する。
+
+---
+
+## 検証記録: 新規クラス追加後の VBE 保存エラー（2026-07-19）
+
+入力は `empty_with_macro.xlsm` と `rare-features-check` source directory。完全同期により
+`ThisWorkbook`、`Sheet1`、`Module1` を削除する条件で検証した。
+
+| 出力 | source モジュール | Alt+F11 を開き未編集で保存 |
+|---|---|---|
+| `bas-only.xlsm` | 標準モジュール2件 | 成功 |
+| `one-class.xlsm` | 標準モジュール2件 + `EventSrcCheck.cls` | 失敗 |
+| `two-class.xlsm` | 標準モジュール2件 + `.cls` 2件 | 失敗 |
+
+したがって再現境界はクラス数ではなく、**新規クラスを1件以上追加すること**だった。
+手作業で保存できる `book.xlsm` と DIR / PROJECT / PROJECTwm / クラスソースを比較した結果は以下。
+
+| 項目 | 手作業クラス | import した新規クラス（修正前） |
+|---|---|---|
+| `MODULETYPE` | クラス（`0x0022`） | 同じ |
+| `MODULEPRIVATE` | `0x0028` あり | なし |
+| クラスソース属性 | `VB_Base`、`VB_TemplateDerived`、`VB_Customizable` あり | なし |
+| `MODULECOOKIE` | Excel 生成値 | `0xFFFF`（仕様どおり） |
+| document 関連の `PROJECT` / `PROJECTwm` | 完全同期後に差異あり | `bas-only` でも成功するため直接原因とは扱わない |
+
+`MODULEPRIVATE` は「当該 VBA プロジェクト内でのみ使用可能」を表すレコードであり、通常クラスの
+参照ファイルに合わせて新規クラスにも出力する。一方、保存エラーの解消を確認できた決定的な差分は
+上記のクラスソース属性である。

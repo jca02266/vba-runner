@@ -10,7 +10,7 @@
  * Excel の「シートをコピーできません」破損を起こしたことがある（その回帰を防ぐ）。
  */
 import { execFileSync } from 'child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import CFB from 'cfb';
@@ -82,6 +82,37 @@ try {
     const reachableInvalid = [...reachable].filter(i => fi[i] && fi[i].type === 0);
     assert.strictEqual(reachableInvalid.length, 0, '木に到達可能な type=0 ノードが無い');
     console.log('[PASS] 赤黒木に無効ノードなし（Sh33tJ5 破損の回帰ガード）');
+
+    // --- 新規クラスの MODULEPRIVATE (0x0028) ---
+    // この空レコードを欠く dir stream は Excel で開けても VBE 保存時の検証に失敗する。
+    writeFileSync(join(srcDir, 'NewClass.cls'), [
+        'Attribute VB_Name = "NewClass"',
+        'Attribute VB_PredeclaredId = False',
+        'Option Explicit',
+    ].join('\r\n'));
+    const classOut = join(tmp, 'new-class.xlsm');
+    execFileSync('npx', ['tsx', CLI, 'import', XLSM, srcDir, classOut], { input: 'y\n', stdio: 'pipe' });
+    const classBin = await JSZip.loadAsync(readFileSync(classOut))
+        .then(z => z.file('xl/vbaProject.bin')!.async('nodebuffer'));
+    const classCfb = CFB.read(classBin, { type: 'buffer' });
+    const classDir = parseDirStreamFull(
+        decompress(Buffer.from(CFB.find(classCfb, '/VBA/dir')!.content as unknown as ArrayBuffer)),
+    );
+    const newClass = classDir.modules.find(m => m.name === 'NewClass')!;
+    assert.ok(newClass, '新規クラスが dir stream に存在する');
+    assert.ok(newClass.rawBlock.includes(Buffer.from([0x28, 0x00, 0x00, 0x00, 0x00, 0x00])),
+        '新規クラスに MODULEPRIVATE (0x0028) がある');
+    const newClassSource = iconv.decode(
+        decompress(Buffer.from(CFB.find(classCfb, '/VBA/NewClass')!.content as unknown as ArrayBuffer)), 'cp932',
+    );
+    assert.ok(/Attribute VB_Base = "0\{FCFB3D2A-A0FA-1068-A738-08002B3371B5\}"/i.test(newClassSource),
+        '新規クラスに Excel の VB_Base 属性を補う');
+    assert.ok(/Attribute VB_TemplateDerived = False/i.test(newClassSource),
+        '新規クラスに VB_TemplateDerived 属性を補う');
+    assert.ok(/Attribute VB_Customizable = False/i.test(newClassSource),
+        '新規クラスに VB_Customizable 属性を補う');
+    console.log('[PASS] 新規クラス MODULEPRIVATE');
+
 
     console.log('\n✅ import-structure: 全テスト通過');
 } finally {

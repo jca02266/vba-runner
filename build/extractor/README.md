@@ -66,7 +66,7 @@ as input without manual editing.
 
 ### Creating a new .xlsm from scratch (Windows + Excel)
 
-`import` requires an existing `.xlsm` file - it cannot create one from nothing. If you're
+`import` requires an existing `.xlsm` with an existing VBA project (`xl/vbaProject.bin`) - it cannot create one from nothing. An `.xlsm` merely saved as macro-enabled but with no VBA project yet does not contain that part. If you're
 starting from `.bas` files only (e.g. AI-generated or written by hand, with no Excel
 workbook yet), use the bundled PowerShell script to bootstrap the first `.xlsm` via Excel
 COM automation, then `import` to sync in everything else (class modules, sheet code, etc.):

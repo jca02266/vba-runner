@@ -29,8 +29,12 @@ try {
     const original = readFileSync(join(srcDir, 'Class1.cls'), 'utf8');
     assert.ok(!/^VERSION\s/i.test(original), 'export 直後の .cls はヘッダーなし（前提確認）');
 
-    // 2. VBE 標準エクスポート形式を模して、先頭にヘッダーブロックを人工的に付加
-    const withHeader = 'VERSION 1.0 CLASS\r\nBEGIN\r\n  MultiUse = -1  \'True\r\nEND\r\n' + original;
+    // 2. VBE 標準エクスポート形式を模す。Excel は Attribute 群の後にヘッダーを
+    //    置くことがあるため、その実ファイル形式を使う。
+    const attributes = original.match(/^(?:Attribute[^\r\n]*(?:\r?\n|$))+/i)![0];
+    const withHeader = attributes
+        + 'VERSION 1.0 CLASS\r\nBEGIN\r\n  MultiUse = -1  \'True\r\nEND\r\n'
+        + original.slice(attributes.length);
     writeFileSync(join(srcDir, 'Class1.cls'), withHeader);
 
     // 3. import（確認プロンプトに 'y' を渡す）

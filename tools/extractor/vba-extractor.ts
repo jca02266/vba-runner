@@ -166,7 +166,9 @@ async function openXlsm(xlsmPath: string) {
     const zip = await JSZip.loadAsync(readFileSync(xlsmPath));
     const entry = zip.file('xl/vbaProject.bin');
     if (!entry) {
-        console.error('xl/vbaProject.bin not found (macro-free xlsm?)');
+        console.error('xl/vbaProject.bin not found: this file has no VBA project yet.');
+        console.error('Saving a workbook as .xlsm alone does not create one; add a VBA module in Excel first,');
+        console.error('or use the bundled Build-Xlsm.ps1 script on Windows to create the initial workbook.');
         process.exit(1);
     }
     const vbaBuf = Buffer.from(await entry.async('nodebuffer'));
@@ -193,11 +195,48 @@ function resolveEncoding(encodingOverride: string | undefined, codePage: number 
 // MultiUse — this block lives in the PROJECT stream's component records, not in
 // the module source stream itself. Feeding a VBE-exported .cls straight into
 // `import` would write that header text as if it were VBA code and corrupt the
-// module. Detect and strip it so both .cls flavors work as import input.
-const CLASS_HEADER_RE = /^﻿?VERSION\s+[\d.]+\s+CLASS\r?\nBEGIN\r?\n(?:.*\r?\n)*?END\r?\n/i;
+// module. Excel can place this block either before or after the initial Attribute
+// lines, so locate it as a group of whole lines rather than assuming it is at byte 0.
+function classHeaderRange(source: string): { start: number; end: number } | null {
+    const startMatch = /(?:^﻿?|\r?\n)VERSION\s+[\d.]+\s+CLASS\r?\nBEGIN\r?\n/im.exec(source);
+    if (!startMatch || startMatch.index === undefined) return null;
+
+    // Keep the preceding newline (when present) and remove from VERSION onward.
+    const leadingBreakLength = startMatch[0].startsWith('\r\n') ? 2 : startMatch[0].startsWith('\n') ? 1 : 0;
+    const start = startMatch.index + leadingBreakLength;
+    const afterBegin = start + startMatch[0].length - leadingBreakLength;
+    const terminator = /^END\r?\n/im.exec(source.slice(afterBegin));
+    if (!terminator || terminator.index === undefined) return null;
+
+    return { start, end: afterBegin + terminator.index + terminator[0].length };
+}
 
 function stripClassHeader(source: string): string {
-    return source.replace(CLASS_HEADER_RE, '');
+    const range = classHeaderRange(source);
+    return range ? source.slice(0, range.start) + source.slice(range.end) : source;
+}
+
+// A VBE-exported .cls omits several attributes that Excel writes into the
+// decompressed stream for a newly created ordinary class module. Preserve the
+// user's line-ending style while adding only attributes that are absent.
+function completeNewClassAttributes(source: string): string {
+    const eol = source.includes('\r\n') ? '\r\n' : '\n';
+    const hadFinalEol = /\r?\n$/.test(source);
+    const lines = source.split(/\r\n|\r|\n/);
+    if (hadFinalEol) lines.pop();
+
+    const has = (name: string) => lines.some(line => new RegExp(`^\\s*Attribute\\s+${name}\\s*=`, 'i').test(line));
+    const insertAfter = (name: string, line: string) => {
+        const index = lines.findIndex(item => new RegExp(`^\\s*Attribute\\s+${name}\\s*=`, 'i').test(item));
+        if (index >= 0) lines.splice(index + 1, 0, line);
+        else lines.unshift(line);
+    };
+
+    if (!has('VB_Base')) insertAfter('VB_Name', 'Attribute VB_Base = "0{FCFB3D2A-A0FA-1068-A738-08002B3371B5}"');
+    if (!has('VB_TemplateDerived')) insertAfter('VB_Exposed', 'Attribute VB_TemplateDerived = False');
+    if (!has('VB_Customizable')) insertAfter('VB_TemplateDerived', 'Attribute VB_Customizable = False');
+
+    return lines.join(eol) + (hadFinalEol ? eol : '');
 }
 
 async function runExport(args: string[]): Promise<void> {
@@ -282,7 +321,7 @@ async function runImport(args: string[]): Promise<void> {
         if (ext !== '.bas' && ext !== '.cls') continue;
         const baseName = basename(f, ext);
         let text = readFileSync(`${absSrc}/${f}`, 'utf8');
-        if (ext === '.cls' && CLASS_HEADER_RE.test(text)) {
+        if (ext === '.cls' && classHeaderRange(text)) {
             text = stripClassHeader(text);
             headerStrippedCount++;
         }
@@ -323,11 +362,14 @@ async function runImport(args: string[]): Promise<void> {
     // (<name>/f, <name>/o, <name>/VBFrame), and a Sheet/Workbook module must map to
     // a real sheet/workbook declared in the xlsx parts (workbook.xml codeName, the
     // worksheet XML). Their .cls source alone cannot reconstruct that, so adding one
-    // crashes or corrupts Excel. All of them carry the designer-only VB_Base
-    // attribute, which a normal class/standard module never has — use it to detect.
+    // crashes or corrupts Excel. VB_Base alone is not sufficient for detection:
+    // Excel-generated ordinary class modules can have it too. Designer/document
+    // modules additionally have a predeclared instance, so require both attributes.
     for (const k of newModuleNames) {
         const origName = sourceFileNames.get(k)!;
-        if (/^\s*Attribute\s+VB_Base\s*=/im.test(sourceMap.get(k)!)) {
+        const newSource = sourceMap.get(k)!;
+        if (/^\s*Attribute\s+VB_Base\s*=/im.test(newSource)
+            && /^\s*Attribute\s+VB_PredeclaredId\s*=\s*True\s*$/im.test(newSource)) {
             console.error(
                 `Error: cannot add document/designer module '${origName}' (UserForm, ` +
                 `worksheet, or ThisWorkbook). These are bound to a host object that a .cls ` +
@@ -395,15 +437,18 @@ async function runImport(args: string[]): Promise<void> {
     }
 
     // Add new modules
+    let completedClassAttributeCount = 0;
     for (const k of newModuleNames) {
         const origName = sourceFileNames.get(k)!;
-        const src = sourceMap.get(k)!;
-        const srcBytes = iconv.encode(src, encoding);
-        const compressed = compress(srcBytes);
 
         // Determine if class module by checking file extension
         const f = readdirSync(absSrc).find(file => basename(file, extname(file)).toLowerCase() === k);
         const isClass = f ? extname(f).toLowerCase() === '.cls' : false;
+        const source = sourceMap.get(k)!;
+        const src = isClass ? completeNewClassAttributes(source) : source;
+        if (isClass && src !== source) completedClassAttributeCount++;
+        const srcBytes = iconv.encode(src, encoding);
+        const compressed = compress(srcBytes);
 
         // Use cfb_add so cfb.js builds a valid red-black directory tree (cfb_gc).
         // Manually pushing FileIndex/FullPaths leaves the tree inconsistent → Excel "repair".
@@ -420,6 +465,9 @@ async function runImport(args: string[]): Promise<void> {
             isClass,
             rawBlock: Buffer.alloc(0),
         });
+    }
+    if (completedClassAttributeCount > 0) {
+        console.log(`  (added Excel class attributes to ${completedClassAttributeCount} new .cls file(s))`);
     }
 
     if (updated === 0 && deleted === 0) {
