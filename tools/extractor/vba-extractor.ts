@@ -244,7 +244,10 @@ async function runImport(args: string[]): Promise<void> {
     console.log('');
     console.log('⚠️  Warning: import directly modifies the Excel file.');
     console.log('   The file may become corrupted. It is strongly recommended to back up before proceeding.');
+    console.log('   Modules are SYNCED to exactly match <source-dir>: any .bas/.cls module that');
+    console.log('   exists in the file but has NO matching file in <source-dir> will be DELETED.');
     console.log(`   Input  : ${absXlsm}`);
+    console.log(`   Source : ${absSrc}`);
     console.log(`   Output : ${outPath}`);
     if (willOverwrite) {
         console.log(`   Backup : ${backupPath}`);
