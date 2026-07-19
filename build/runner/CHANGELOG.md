@@ -2,6 +2,15 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.15] - 2026-07-19
+
+### Fixed
+
+- **Real-VBA compatibility sweep** — corrected a large set of evaluator and built-in edge cases found by differential tests against real VBA, including `Null` argument handling, VBA error-number behavior, date/time parsing and arithmetic, numeric subtype propagation, and `Currency`/`Decimal` overflow and rounding boundaries.
+- **Class, UDT, and type semantics** — fixed auto-instantiated class members, `TypeOf` with implemented interfaces, `Property Get` dispatch, fixed-length strings, UDT copy/array behavior, and `TypeName`/`VarType` subtype preservation.
+- **Language and runtime edge cases** — fixed parsing and execution of `Static` procedure declarations, `Erl`, `Debug.Print` semicolon separators, `On Error` resume behavior, `Next`/field-name ambiguities, file I/O formatting, and dynamic-array deallocation.
+- **Built-in behavior** — fixed `StrConv` kana conversion, Boolean-side numeric subtype handling in logical operators and integer division/modulo, and numerous boundary cases in string, conversion, date, formatting, financial, and collection functions.
+
 ## [0.1.1-alpha.14] - 2026-07-15
 
 ### Added

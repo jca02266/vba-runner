@@ -2,6 +2,13 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.2] - 2026-07-19
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — the bundled evaluator now includes the latest fixes for `Null`/error handling, date and numeric type behavior, class and UDT semantics, file I/O edge cases, and built-in function compatibility.
+- **VBA language edge cases** — logical operators now preserve Boolean-side numeric subtypes, and `StrConv` now handles kana conversion consistently with real VBA.
+
 ## [0.3.1] - 2026-07-15
 
 ### Added

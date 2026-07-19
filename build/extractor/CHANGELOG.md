@@ -2,6 +2,18 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
+## [0.1.1-alpha.8] - 2026-07-19
+
+### Fixed
+
+- **New class-module imports can now be saved by Excel/VBE** — new `.cls` modules now include the class metadata Excel writes internally, including `VB_Base`, `VB_TemplateDerived`, `VB_Customizable`, and the `MODULEPRIVATE` DIR record. This fixes the VBE save error that occurred after importing one or more new class modules.
+- **VBE-exported `.cls` headers are stripped wherever Excel places them** — the `VERSION 1.0 CLASS` / `BEGIN ... END` block is now removed whether it appears at the start of the file or after initial `Attribute` lines.
+- **Ordinary class modules with `VB_Base` are accepted** — `VB_Base` alone no longer misidentifies an ordinary class as a UserForm or document module. New designer/document modules remain rejected when they also declare `VB_PredeclaredId = True`.
+
+### Changed
+
+- **Import diagnostics** — the confirmation warning now makes the full-sync deletion behavior and resolved source directory explicit.
+
 ## [0.1.1-alpha.7] - 2026-06-21
 
 ### Added
