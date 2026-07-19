@@ -16,16 +16,23 @@ import { join } from 'path';
 import { assert } from '../../test-libs/test-runner';
 
 const XLSM = 'sample/excel/test.xlsm';
-const CLI = 'tools/extractor/vba-extractor.ts';
 
 const tmp = mkdtempSync(join(tmpdir(), 'vba-extractor-header-test-'));
+const CLI = join(tmp, 'vba-extractor.cjs');
 const srcDir = join(tmp, 'src');
 const outXlsm = join(tmp, 'out.xlsm');
 const reexportDir = join(tmp, 'reexported');
 
 try {
+    // Bundle once, then run with node. Spawning `npx tsx` for each CLI invocation
+    // exceeds the all-tests runner's per-test timeout on a cold process.
+    execFileSync('./node_modules/.bin/esbuild', [
+        'tools/extractor/vba-extractor.ts', '--bundle', `--outfile=${CLI}`, '--platform=node',
+        '--define:import.meta.dirname=__dirname',
+    ], { stdio: 'pipe' });
+
     // 1. export で内部形式（ヘッダーなし）の Class1.cls を取得
-    execFileSync('npx', ['tsx', CLI, 'export', XLSM, srcDir], { stdio: 'pipe' });
+    execFileSync('node', [CLI, 'export', XLSM, srcDir], { stdio: 'pipe' });
     const original = readFileSync(join(srcDir, 'Class1.cls'), 'utf8');
     assert.ok(!/^VERSION\s/i.test(original), 'export 直後の .cls はヘッダーなし（前提確認）');
 
@@ -39,7 +46,7 @@ try {
 
     // 3. import（確認プロンプトに 'y' を渡す）
     const importOutput = execFileSync(
-        'npx', ['tsx', CLI, 'import', XLSM, srcDir, outXlsm],
+        'node', [CLI, 'import', XLSM, srcDir, outXlsm],
         { input: 'y\n', stdio: 'pipe' },
     ).toString();
     assert.ok(/stripped VBE-style class header from 1 \.cls file/.test(importOutput),
@@ -47,7 +54,7 @@ try {
 
     // 4. 生成された xlsm を再 export し、モジュールソースにヘッダー文字列が
     //    混入しておらず、元の内容と完全に一致することを確認する
-    execFileSync('npx', ['tsx', CLI, 'export', outXlsm, reexportDir], { stdio: 'pipe' });
+    execFileSync('node', [CLI, 'export', outXlsm, reexportDir], { stdio: 'pipe' });
     const reexported = readFileSync(join(reexportDir, 'Class1.cls'), 'utf8');
     assert.strictEqual(reexported, original, '再 export した .cls が元の内部形式ソースと完全一致（ヘッダー混入なし）');
     assert.ok(!/VERSION\s+1\.0\s+CLASS/i.test(reexported), 'モジュールストリームに VERSION ヘッダー文字列が残っていない');

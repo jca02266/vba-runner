@@ -21,16 +21,23 @@ import { decompress } from '../../tools/extractor/ovba';
 import { parseDirStreamFull } from '../../tools/extractor/dir-parser';
 
 const XLSM = 'sample/excel/test.xlsm';
-const CLI = 'tools/extractor/vba-extractor.ts';
 
 const tmp = mkdtempSync(join(tmpdir(), 'vba-extractor-test-'));
+const CLI = join(tmp, 'vba-extractor.cjs');
 const srcDir = join(tmp, 'src');
 const outXlsm = join(tmp, 'out.xlsm');
 
 try {
+    // Bundle once, then run with node. This keeps the multi-invocation CLI test
+    // within the all-tests runner's per-test timeout.
+    execFileSync('./node_modules/.bin/esbuild', [
+        'tools/extractor/vba-extractor.ts', '--bundle', `--outfile=${CLI}`, '--platform=node',
+        '--define:import.meta.dirname=__dirname',
+    ], { stdio: 'pipe' });
+
     // 1. export → 2. import（確認プロンプトに 'y' を渡す）
-    execFileSync('npx', ['tsx', CLI, 'export', XLSM, srcDir], { stdio: 'pipe' });
-    execFileSync('npx', ['tsx', CLI, 'import', XLSM, srcDir, outXlsm], { input: 'y\n', stdio: 'pipe' });
+    execFileSync('node', [CLI, 'export', XLSM, srcDir], { stdio: 'pipe' });
+    execFileSync('node', [CLI, 'import', XLSM, srcDir, outXlsm], { input: 'y\n', stdio: 'pipe' });
 
     // 生成された vbaProject.bin を解析
     const bin = await JSZip.loadAsync(readFileSync(outXlsm))
@@ -91,7 +98,7 @@ try {
         'Option Explicit',
     ].join('\r\n'));
     const classOut = join(tmp, 'new-class.xlsm');
-    execFileSync('npx', ['tsx', CLI, 'import', XLSM, srcDir, classOut], { input: 'y\n', stdio: 'pipe' });
+    execFileSync('node', [CLI, 'import', XLSM, srcDir, classOut], { input: 'y\n', stdio: 'pipe' });
     const classBin = await JSZip.loadAsync(readFileSync(classOut))
         .then(z => z.file('xl/vbaProject.bin')!.async('nodebuffer'));
     const classCfb = CFB.read(classBin, { type: 'buffer' });
