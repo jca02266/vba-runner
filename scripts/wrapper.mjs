@@ -14,8 +14,7 @@ if (!entryFile) {
   process.exit(1);
 }
 
-// path.joinではなくpath.resolveを使う。
-// その後でリポジトリ外への ../ による脱出を拒否する。
+// 実行対象をリポジトリルートからの相対パスとして解決する。
 const cliPath = path.resolve(repoRoot, entryFile);
 const repoPrefix = `${repoRoot}${path.sep}`;
 
@@ -24,12 +23,24 @@ if (!cliPath.startsWith(repoPrefix)) {
   process.exit(1);
 }
 
+// npmはスクリプトをpackage.jsonのあるディレクトリで実行するため、process.cwd()はリポジトリルートになる。
+// INIT_CWDは、ユーザーがnpmコマンドを実行した元のディレクトリをnpmが自動設定する環境変数。
+// 相対パスをユーザーの作業ディレクトリ基準で解決するため、CLIプロセスのcwdとしてINIT_CWDを使用する。
 const invocationCwd = process.env.INIT_CWD || process.cwd();
-const tsx = process.platform === 'win32' ? 'tsx.cmd' : 'tsx';
 
-const child = spawn(tsx, [cliPath, ...args], {
-  cwd: invocationCwd,
-  stdio: 'inherit',
+// Node自身からtsxをロードすることで、tsx / tsx.cmdのOS差異をなくす。
+const child = spawn(
+  process.execPath,
+  ['--import', 'tsx', cliPath, ...args],
+  {
+    cwd: invocationCwd,
+    stdio: 'inherit',
+  },
+);
+
+child.on('error', (error) => {
+  console.error(`CLIの起動に失敗しました: ${error.message}`);
+  process.exit(1);
 });
 
 child.on('exit', (code, signal) => {
