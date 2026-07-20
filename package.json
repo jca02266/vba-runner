@@ -18,7 +18,9 @@
     "build:extension": "npm run build --prefix build/extension",
     "build:playground": "npm run build --prefix build/playground",
     "build:extractor": "npm run build --prefix build/extractor",
-    "package:extension": "npm run package --prefix build/extension"
+    "package:extension": "npm run package --prefix build/extension",
+    "vba-runner": "node scripts/wrapper.mjs test-libs/vba-runner-cli.ts",
+    "vba-extractor": "node scripts/wrapper.mjs tools/extractor/vba-extractor.ts"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
