@@ -1,5 +1,11 @@
 # TUTORIAL.md — Excel VBA を抽出し、AI と一緒にテスト・機能追加するチュートリアル
 
+> 対象: Excel VBA を AI と安全に改善したい利用者
+>
+> 前提: [vba-extractor](../build/extractor/README.ja.md) と [vba-runner](../build/runner/README.ja.md)（または本リポジトリの clone）
+>
+> 次に読む: [FOR_AI.md](../FOR_AI.md)、[MOCK_GUIDE.md](MOCK_GUIDE.md)、目的別ハブは [README.md](README.md)
+
 ## 対象読者
 
 Excel で作成された VBA マクロ（`.xlsm`）を持っていて、
@@ -302,4 +308,5 @@ Saved: sample/excel/test_updated.xlsm
 | テストが書けないコードをどう分離するか学びたい | [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) |
 | 大きなリファクタリングの実例を見たい | [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) |
 | VS Code 拡張機能の全機能を確認したい | [build/extension/README.md](../build/extension/README.md) |
-| ドキュメント全体の地図を見たい | [docs/INDEX.md](INDEX.md) |
+| ドキュメント全体の地図を見たい | [docs/README.md](README.md) |
+| 読み順・問題別検索が欲しい | [docs/INDEX.md](INDEX.md)（任意） |

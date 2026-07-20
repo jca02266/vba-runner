@@ -1,5 +1,11 @@
 # VBA リファクタリングガイド：Excel オブジェクトとドメインロジックの分離
 
+> 対象: テストが書けないレガシー VBA を改善したい利用者
+>
+> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+>
+> 次に読む: [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)
+
 ## はじめに
 
 このドキュメントは、**巨大な Excel オブジェクト依存のレガシー VBA マクロを、テスト可能で保守性の高いコードに段階的にリファクタリングするための実践ガイド**です。

@@ -3,6 +3,10 @@
 Office ファイル（.xlsm など）から VBA ソースを抽出・書き戻しする CLI ツールです。
 Excel を使わずにコマンドラインで VBA ソースをテキストファイルとして管理できます。
 
+> 対象: パッケージ利用者
+>
+> 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+
 ## インストール
 
 ```bash
@@ -93,4 +97,5 @@ vba-extractor import MyBook.xlsm src/vba
 
 ## 関連パッケージ
 
+- [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
 - [vba-runner](https://www.npmjs.com/package/vba-runner) — Excel 不要で VBA を実行・テストできるエンジン

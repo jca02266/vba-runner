@@ -3,6 +3,10 @@
 ブラウザ上で VBA コードを実行・確認できる Web UI デモです。
 インストール不要で、VBA Runner の動作をすぐに試すことができます。
 
+> 対象: パッケージ利用者
+>
+> 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+
 ## オンラインデモ
 
 👉 https://vba-web-runner.netlify.app/
@@ -30,5 +34,6 @@ npm run build:playground   # build/playground/dist/ に出力
 
 ## 詳細ドキュメント
 
-- [README.md](../../README.md) — プロジェクト概要・クイックスタート
+- [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
+- [README.md](../../README.md) — プロジェクト概要
 - [REFERENCE.md](../../REFERENCE.md) — 詳細仕様

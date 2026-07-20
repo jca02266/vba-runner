@@ -1,5 +1,11 @@
 # VBA リファクタリング具体例：TaskScheduler マクロ
 
+> 対象: リファクタリング手法を実例で学びたい利用者
+>
+> 前提: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)
+>
+> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)
+
 ## 概要
 
 このドキュメントは、**実際のレガシーコード（TaskScheduler_v1.bas）をリファクタリングして（TaskScheduler.bas + TaskScheduler_Core.bas）どのように改善されたか、具体的に示します**。

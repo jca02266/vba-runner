@@ -1,5 +1,11 @@
 # VBA マクロ単体テスト戦略
 
+> 対象: VBA をテスト可能にしたい利用者
+>
+> 前提: [vba-runner のインストール](../build/runner/README.ja.md)
+>
+> 次に読む: [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)、分離が難しい場合は [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)
+
 ## はじめに
 
 このドキュメントは、**VBA Runner 上で実行可能なマクロの単体テストを効果的に行うための設計原則とパターン**を説明します。

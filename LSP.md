@@ -1,5 +1,11 @@
 # VBA Language Server — 実装済み機能リファレンス
 
+> 対象: VS Code 拡張・LSP を開発・改修する人
+>
+> 前提: [CONTRIBUTING.md](CONTRIBUTING.md)、利用者向け機能一覧は [build/extension/README.ja.md](build/extension/README.ja.md)
+>
+> 次に読む: [REFERENCE.md](REFERENCE.md)、[docs/internals/](docs/internals/)
+
 本ドキュメントは `src/lsp/` 配下に実装された VBA Language Server の機能仕様と使い方を記述します。
 LSP サーバーは **別プロセスを持たないインライン拡張** として動作します（`vscode-languageserver` ライブラリは不使用）。
 

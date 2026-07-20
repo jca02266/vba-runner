@@ -1,5 +1,11 @@
 # CLAUDE.md
 
+> 対象: このリポジトリ自体を開発する AI
+>
+> 前提: 利用者の VBA リファクタリング支援なら先に [FOR_AI.md](FOR_AI.md)
+>
+> 次に読む: [CONTRIBUTING.md](CONTRIBUTING.md)、[REFERENCE.md](REFERENCE.md)、[docs/internals/](docs/internals/)
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 **リファクタリング支援として関与する場合は `FOR_AI.md` を先に読むこと。**

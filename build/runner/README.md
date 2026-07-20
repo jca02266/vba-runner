@@ -3,7 +3,9 @@
 A TypeScript-based VBA execution engine that runs and tests VBA code without Excel.
 Load `.bas` files from TypeScript and call VBA procedures directly, or use the bundled CLI tools for static analysis, formatting, and syntax checking.
 
-**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)**
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)** | **[Documentation hub](../../docs/README.md)**
+
+> Audience: package users. For goal-oriented guides, see the [documentation hub](../../docs/README.md).
 
 ## Installation
 
@@ -351,5 +353,6 @@ vba-parse-check src/vba/Module1.bas
 
 ## Documentation
 
+- [Documentation hub](../../docs/README.md) — Goal-oriented guides (users / developers)
 - [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — Type system, mock registration, Sandbox policy, VFS details
-- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — Project overview and quick start
+- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — Project overview

@@ -1,5 +1,11 @@
 # VBA モック実装ガイド
 
+> 対象: Excel オブジェクト依存を避けられない利用者
+>
+> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)、可能なら先に [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) で分離を検討
+>
+> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md)、API 詳細は [REFERENCE.md](../REFERENCE.md)
+
 > **まずは Part 0 を試してください**: `__mocks__/` ディレクトリ(または `__mocks__.*` 単一ファイル)を
 > 置くだけでビルトインを差し替えられる規約で、npm パッケージ利用者・VS Code 拡張機能利用者のどちらでも
 > リポジトリ内部のソースパスを import せずに使えます。`Application.OnKey` / `OnTime` のように

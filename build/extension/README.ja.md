@@ -2,6 +2,10 @@
 
 VBA Runner の VS Code 拡張機能です。`.bas` / `.cls` / `.frm` ファイルを VS Code で開くと、LSP（言語サーバープロトコル）による豊富な編集支援が有効になります。
 
+> 対象: パッケージ利用者
+>
+> 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+
 ## インストール
 
 VS Code マーケットプレイスで **VBA Runner** を検索するか、以下のコマンドを実行します:
@@ -302,6 +306,7 @@ npm run package:extension # .vsix パッケージを生成
 
 ## 詳細ドキュメント
 
-- [LSP.md](../../LSP.md) — LSP の設計・実装方針
+- [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
+- [LSP.md](../../LSP.md) — LSP の設計・実装方針（開発者向け）
 - [REFERENCE.md](../../REFERENCE.md) — 詳細仕様
 - [README.md](../../README.md) — プロジェクト概要

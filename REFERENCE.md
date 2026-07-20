@@ -1,5 +1,11 @@
 # REFERENCE — VBA Runner 詳細仕様
 
+> 対象: 利用者・開発者（API・制約・Sandbox などの詳細が必要なとき）
+>
+> 前提: 概要は [README.md](README.md)、目的別ハブは [docs/README.md](docs/README.md)
+>
+> 次に読む: LSP 実装は [LSP.md](LSP.md)、エンジン内部は [docs/internals/](docs/internals/)、開発入口は [CONTRIBUTING.md](CONTRIBUTING.md)
+
 詳細な仕様・設計方針・高度な使い方をまとめたリファレンスです。
 概要は [README.md](README.md) を参照してください。
 
@@ -712,32 +718,15 @@ npx tsx test-libs/vba-test-generator.ts --dir tests/vba
 
 ## さらなるドキュメント
 
-詳細な設計ガイド・実践例・内部仕様は `docs/` 配下のドキュメントを参照してください。
+目的別の入口は [docs/README.md](docs/README.md) です。読み順・問題別検索が必要なときだけ [docs/INDEX.md](docs/INDEX.md)（任意）を参照してください。
 
-### テスト設計の原則（基礎）
-
-| ドキュメント | 内容 |
-|------------|------|
-| [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | VBA テスト設計の原則：Domain Logic と Excel I/O の分離、テスト境界の引き方 |
-| [REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) | Excel 依存を含む VBA コードのリファクタリング手法（4 パターン） |
-
-### 実装レベルのテスト（実践）
-
-| ドキュメント | 内容 |
-|------------|------|
-| [TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) | TypeScript テストフレームワークを使った VBA テストの書き方 |
-| [MOCK_GUIDE.md](docs/MOCK_GUIDE.md) | Excel オブジェクト（Sheets / Range / Application）のモック実装ガイド（3 段階：即使える / カスタマイズ / 設計論） |
-
-### 具体例（学習用）
-
-| ドキュメント | 内容 |
-|------------|------|
-| [REFACTORING_EXAMPLE.md](docs/REFACTORING_EXAMPLE.md) | TaskScheduler マクロを題材にしたリファクタリングの実例 |
-| [INTEGRATION_TEST_EXAMPLE.md](docs/INTEGRATION_TEST_EXAMPLE.md) | TaskScheduler の統合テスト実装例 |
-
-### 内部実装の詳細
-
-| ドキュメント | 内容 |
-|------------|------|
-| [TYPE_SYSTEM_SPEC.md](docs/internals/TYPE_SYSTEM_SPEC.md) | VBA 型システムの仕様と VBA Runner での実装方針 |
-| [INDEX.md](docs/INDEX.md) | ドキュメント索引・用途別読み順ガイド |
+| 文書 | 対象 | 内容 |
+|---|---|---|
+| [docs/README.md](docs/README.md) | 全員 | 目的別の共通ハブ |
+| [docs/INDEX.md](docs/INDEX.md) | 利用者 | 読み順・問題別検索（任意） |
+| [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | 利用者 | テスト設計の原則 |
+| [REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) | 利用者 | テスト可能化のリファクタリング |
+| [TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) | 利用者 | JS から VBA をテストする |
+| [MOCK_GUIDE.md](docs/MOCK_GUIDE.md) | 利用者 | Excel オブジェクトのモック |
+| [TYPE_SYSTEM_SPEC.md](docs/internals/TYPE_SYSTEM_SPEC.md) | 開発者 | 型システムの仕様と実装 |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | 開発者 | リポジトリ開発の入口 |

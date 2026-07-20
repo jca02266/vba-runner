@@ -4,6 +4,10 @@ Excel 不要で VBA コードを実行・テストできる TypeScript 実装の
 テストランナーとして使う場合は TypeScript からVBAファイルをロードして関数を呼び出せます。
 また、静的解析・整形・構文チェックの CLI ツールも同梱しています。
 
+> 対象: パッケージ利用者
+>
+> 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+
 ## インストール
 
 ```bash
@@ -354,6 +358,7 @@ vba-parse-check src/vba/Module1.bas
 
 ## 詳細ドキュメント
 
+- [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
 - [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
-- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — プロジェクト概要・クイックスタート
+- [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — プロジェクト概要
 - [FOR_AI.md](https://github.com/jca02266/vba-runner/blob/main/FOR_AI.md) — AIによるリファクタリング支援ガイド

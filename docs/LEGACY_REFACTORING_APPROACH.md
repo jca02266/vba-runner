@@ -1,5 +1,11 @@
 # レガシー VBA リファクタリング：どこから手を付けるか
 
+> 対象: テストのないレガシー VBA に着手したい利用者
+>
+> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+>
+> 次に読む: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)、手法一覧は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)
+
 ## このドキュメントの目的
 
 テストのないレガシー VBA コードにはじめて向き合うとき、「どこから手を付けるか」「何の手法を使えばよいか」の判断を助けるガイドです。

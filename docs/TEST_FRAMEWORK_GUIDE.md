@@ -1,5 +1,11 @@
 # VBA テスト：JS テストフレームワーク活用ガイド
 
+> 対象: TypeScript / Jest などから VBA をテストしたい利用者
+>
+> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)、[vba-runner](../build/runner/README.ja.md)
+>
+> 次に読む: Excel 依存が残る場合は [MOCK_GUIDE.md](MOCK_GUIDE.md)、実例は [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)
+
 ## はじめに
 
 このドキュメントは、**既存の JavaScript テストフレームワーク（Jest など）を活用して、VBA マクロの単体テストを効率的に書く方法**を説明します。

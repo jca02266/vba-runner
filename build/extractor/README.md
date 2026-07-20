@@ -3,7 +3,9 @@
 A CLI tool to export and import VBA source code from Office files (`.xlsm`, etc.) without Excel.
 Manage VBA modules as plain text files under version control.
 
-**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)**
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)** | **[Documentation hub](../../docs/README.md)**
+
+> Audience: package users. For goal-oriented guides, see the [documentation hub](../../docs/README.md).
 
 ## Installation
 
@@ -95,4 +97,5 @@ See the script's own `Get-Help -Full` (or its header comment) for details and ca
 
 ## Related packages
 
+- [Documentation hub](../../docs/README.md) — Goal-oriented guides (users / developers)
 - [vba-runner](https://www.npmjs.com/package/vba-runner) — Run and test VBA code without Excel

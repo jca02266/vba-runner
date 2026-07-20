@@ -2,7 +2,9 @@
 
 A VS Code extension for VBA development. When you open `.bas` / `.cls` / `.frm` files, rich editing support powered by LSP (Language Server Protocol) becomes available.
 
-**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)**
+**[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)** | **[Documentation hub](../../docs/README.md)**
+
+> Audience: package users. For goal-oriented guides, see the [documentation hub](../../docs/README.md).
 
 ## Installation
 
@@ -294,6 +296,13 @@ With a `.bas` file open, press `F5` to launch the file with the VBA Runner debug
 | `vba-runner.editor.autoLineContinuation` | `true` | Auto-insert line continuation `_` when pressing Enter mid-expression |
 | `vba-runner.editor.autoKeywordCasing` | `true` | Auto-correct keyword casing on confirm (like VBE behavior) |
 | `vba-runner.test.location` | _(unset)_ | Where to place test stubs (`sameFile` / `separateFile`). Prompted on first use if unset. |
+
+## Documentation
+
+- [Documentation hub](../../docs/README.md) — Goal-oriented guides (users / developers)
+- [LSP.md](../../LSP.md) — LSP design and implementation (for developers)
+- [REFERENCE.md](../../REFERENCE.md) — Detailed specs
+- [README.md](../../README.md) — Project overview
 
 ## Repository
 
