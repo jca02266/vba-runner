@@ -5,6 +5,8 @@
 > 前提: vba-runner 一式を使える AI コーディングエージェント、対象の `.xlsm`（または `.bas`/`.cls`）
 >
 > 次に読む: [FOR_AI.md](../FOR_AI.md)。手作業の詳細は [TUTORIAL.md](TUTORIAL.md)
+>
+> コマンド表記: AI への指示ではパッケージ利用者形（`vba-runner` / `vba-extractor`）を想定。clone 環境なら [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) に読み替える
 
 ## 対象読者
 

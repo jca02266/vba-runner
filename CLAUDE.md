@@ -40,12 +40,13 @@ npm run lint        # ESLint
 ```
 > ⚠️ `npm test` を Claude が直接呼ぶことは禁止。`bg-test.sh` は clean な git 状態が必要なため、**先に `git commit` してから起動**する。
 
-**CLI ツールのローカル実行**（esbuild ビルド不要）:
+**CLI ツールのローカル実行**（esbuild ビルド不要）。正本は `npm run` 経由:
 ```bash
-npx tsx test-libs/vba-analyzer.ts <path>
-npx tsx test-libs/vba-formatter.ts <path>
+npm run vba-runner -- analyze <path>
+npm run vba-runner -- format <path>
+npm run vba-extractor -- export <input.xlsm> <out-dir>
 ```
-
+パッケージ利用者形との対応は [CONTRIBUTING.md](CONTRIBUTING.md#cli-コマンド対応表) を参照。`npx tsx test-libs/vba-*.ts` は使わない。
 **成果物のビルド**（配布時）:
 ```bash
 npm run build              # 4 成果物すべて（runner → extension → playground → extractor）

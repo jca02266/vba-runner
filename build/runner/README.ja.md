@@ -7,6 +7,8 @@ Excel 不要で VBA コードを実行・テストできる TypeScript 実装の
 > 対象: パッケージ利用者
 >
 > 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+>
+> このリポジトリを clone している場合の CLI 対応: [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表)
 
 ## インストール
 
@@ -336,26 +338,29 @@ const vbaRunner = new VBARunner('src/vba/Module.bas', {
 
 ## CLI ツール
 
-`vba-runner` パッケージは以下の CLI ツールを提供します。
+`vba-runner` パッケージは統合 CLI を提供します。正本は次のサブコマンドです。
 
 | コマンド | 説明 |
 |---|---|
-| `vba-run <file.bas>` | VBAファイルを実行し、Debug.Print の出力を表示する |
-| `vba-analyzer <file.bas>` | VBAコードの静的解析（アウトライン・参照数・重複検出など） |
-| `vba-formatter <file.bas>` | VBAコードの整形（インデント・スペースの統一） |
-| `vba-parse-check <file.bas>` | VBAコードの構文チェック（パースエラーの検出） |
+| `vba-runner run <file.bas>` | VBAファイルを実行し、Debug.Print の出力を表示する |
+| `vba-runner analyze <file.bas>` | VBAコードの静的解析（アウトライン・参照数・重複検出など） |
+| `vba-runner format <file.bas>` | VBAコードの整形（インデント・スペースの統一） |
+| `vba-runner parse-check <file.bas>` | VBAコードの構文チェック（パースエラーの検出） |
 
 ```bash
 # VBAファイルの静的解析（アウトライン表示）
-vba-analyzer --outline src/vba/Module1.bas
+vba-runner analyze --outline src/vba/Module1.bas
 
 # 重複ブロックの検出
-vba-analyzer --diff src/vba/
+vba-runner analyze --diff src/vba/
 
 # 構文チェック
-vba-parse-check src/vba/Module1.bas
+vba-runner parse-check src/vba/Module1.bas
 ```
 
+互換のため、旧単独コマンド（`vba-analyzer` / `vba-formatter` / `vba-parse-check` / `vba-run`）も同梱しています。新規の手順では `vba-runner <subcommand>` を使ってください。
+
+このリポジトリを clone している場合のコマンド対応は [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) を参照してください。
 ## 詳細ドキュメント
 
 - [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）

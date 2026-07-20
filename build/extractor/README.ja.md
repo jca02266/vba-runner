@@ -6,6 +6,8 @@ Excel を使わずにコマンドラインで VBA ソースをテキストファ
 > 対象: パッケージ利用者
 >
 > 目的別のガイド一覧: [ドキュメントガイド](../../docs/README.md)
+>
+> このリポジトリを clone している場合: [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-extractor -- ...`）
 
 ## インストール
 

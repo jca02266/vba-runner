@@ -45,9 +45,29 @@ npm install
 npx tsx tests/spec/<test-file>.test.ts
 ```
 
+## CLI コマンド対応表
+
+ドキュメントと実装で使う CLI の正本は **`vba-runner <subcommand>`** / **`vba-extractor <command>`** です。
+読者によって前置だけが変わります。
+
+| やりたいこと | パッケージ利用者（`npm install`） | リポジトリ開発者（この repo を clone） |
+|---|---|---|
+| 解析 | `vba-runner analyze <path> ...` | `npm run vba-runner -- analyze <path> ...` |
+| 整形 | `vba-runner format <path> ...` | `npm run vba-runner -- format <path> ...` |
+| 構文チェック | `vba-runner parse-check <path>` | `npm run vba-runner -- parse-check <path>` |
+| 実行 | `vba-runner run <path> ...` | `npm run vba-runner -- run <path> ...` |
+| 抽出 | `vba-extractor export ...` | `npm run vba-extractor -- export ...` |
+| 書き戻し | `vba-extractor import ...` | `npm run vba-extractor -- import ...` |
+| テスト用 TS の実行 | `npx tsx path/to/test.ts` | 同じ |
+
+- 利用者向け文書（`docs/`、`FOR_AI.md`、各パッケージ README）の本文は **パッケージ利用者形** で書く
+- このリポジトリを clone している場合は、上表の右列に置き換える
+- 旧単独コマンド（`vba-analyzer` / `vba-formatter` / `vba-parse-check` / `vba-run`）は npm パッケージに残る互換エイリアス。新規の説明では使わない
+- `npx tsx test-libs/vba-analyzer.ts` などの直接実行は非推奨（開発用ドキュメントでも上表の右列を使う）
+
 ## ローカル CLI の実行
 
-リポジトリを clone した開発者は、ビルドせずにソースコード版のCLIを実行できます。
+リポジトリを clone した開発者は、ビルドせずにソースコード版の CLI を実行できます。
 
 ```bash
 npm run vba-runner -- <subcommand> [options]
@@ -69,8 +89,7 @@ npm run vba-extractor -- export input.xlsm src/vba
 
 これらのコマンドでは、相対ファイルパスはリポジトリルートではなく、npm を実行したディレクトリを基準に解決されます。
 
-npmパッケージ利用者向けの CLI 手順は、各パッケージのREADMEを参照してください。
-開発用ドキュメントでは、`npx tsx test-libs/...` を直接実行する代わりに、原則として上記のnpm scriptsを使用します。
+npm パッケージ利用者向けの CLI 手順は、各パッケージの README を参照してください。
 
 ## プロジェクト構成
 

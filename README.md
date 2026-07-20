@@ -14,7 +14,7 @@ VBA Runner addresses the following problems:
 | Problem | Without VBA Runner | With VBA Runner |
 |---|---|---|
 | **Verify proposals** | Manual check in Excel (slow) | Run immediately, verify on the spot |
-| **Navigate large codebases** | Token limits prevent loading everything | Pass `vba-analyzer` outlines to the AI |
+| **Navigate large codebases** | Token limits prevent loading everything | Pass `vba-runner analyze` outlines to the AI |
 | **Safety net for refactoring** | None (gut feeling) | Run before changing → auto-generate snapshot tests |
 | **Iteration speed** | Edit → paste into Excel → run manually | Edit → run tests (seconds) |
 

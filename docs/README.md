@@ -7,6 +7,7 @@
 | プロジェクト全体の入口 | 全員 | [ルート README](../README.ja.md) |
 | npm / CLI / VS Code 拡張の使い方 | 利用者 | 下の「利用者向け: はじめる」 |
 | テスト・リファクタリングの実践 | 利用者 | 下の「利用者向け: AI とレガシー VBA を改善する」 |
+| CLI の npm / clone 対応表 | 全員 | [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) |
 | このリポジトリ自体の開発 | 開発者 | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
 詳細な読み順・問題別検索が必要なときだけ [INDEX.md](INDEX.md)（任意）を参照してください。

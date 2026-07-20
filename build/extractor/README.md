@@ -6,6 +6,7 @@ Manage VBA modules as plain text files under version control.
 **[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)** | **[Documentation hub](../../docs/README.md)**
 
 > Audience: package users. For goal-oriented guides, see the [documentation hub](../../docs/README.md).
+> If you cloned this repository, use the right-hand column in [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) (`npm run vba-extractor -- ...`).
 
 ## Installation
 

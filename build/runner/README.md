@@ -6,6 +6,7 @@ Load `.bas` files from TypeScript and call VBA procedures directly, or use the b
 **[日本語](./README.ja.md)** | **[CHANGELOG](./CHANGELOG.md)** | **[VBA Runner Project](../../README.md)** | **[Documentation hub](../../docs/README.md)**
 
 > Audience: package users. For goal-oriented guides, see the [documentation hub](../../docs/README.md).
+> If you cloned this repository, see the CLI mapping in [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表).
 
 ## Installation
 
@@ -333,23 +334,29 @@ const vbaRunner = new VBARunner('src/vba/Module.bas', {
 
 ## CLI Tools
 
+`vba-runner` provides a unified CLI. The canonical form is the following subcommands:
+
 | Command | Description |
 |---|---|
-| `vba-run <file.bas>` | Execute a VBA file and print `Debug.Print` output |
-| `vba-analyzer <file.bas>` | Static analysis: outline, reference counts, duplicate detection |
-| `vba-formatter <file.bas>` | Format VBA code (indentation, spacing) |
-| `vba-parse-check <file.bas>` | Syntax check (detect parse errors) |
+| `vba-runner run <file.bas>` | Execute a VBA file and print `Debug.Print` output |
+| `vba-runner analyze <file.bas>` | Static analysis: outline, reference counts, duplicate detection |
+| `vba-runner format <file.bas>` | Format VBA code (indentation, spacing) |
+| `vba-runner parse-check <file.bas>` | Syntax check (detect parse errors) |
 
 ```bash
 # Show outline of a VBA file
-vba-analyzer --outline src/vba/Module1.bas
+vba-runner analyze --outline src/vba/Module1.bas
 
 # Detect duplicate code blocks
-vba-analyzer --diff src/vba/
+vba-runner analyze --diff src/vba/
 
 # Syntax check
-vba-parse-check src/vba/Module1.bas
+vba-runner parse-check src/vba/Module1.bas
 ```
+
+Legacy standalone binaries (`vba-analyzer` / `vba-formatter` / `vba-parse-check` / `vba-run`) are still bundled for compatibility. Prefer `vba-runner <subcommand>` in new instructions.
+
+If you cloned this repository, see the command mapping in [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表).
 
 ## Documentation
 

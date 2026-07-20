@@ -5,6 +5,8 @@
 > 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
 >
 > 次に読む: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)、手法一覧は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)
+>
+> コマンド表記: 本文はパッケージ利用者向け（`vba-runner analyze` 等）。clone している場合は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
 
 ## このドキュメントの目的
 
@@ -31,14 +33,14 @@ VBA Runner があることで、Excel を開かずにこの安全網を素早く
 
 ## Step 1: まず分析する（触る前に全体を把握する）
 
-コードを読む前に vba-analyzer で全体像を把握します。
+コードを読む前に `vba-runner analyze` で全体像を把握します。
 
 ```bash
 # ベースラインを保存（リファクタリング効果の比較用）
-npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --json > .vba-baseline.json
+vba-runner analyze <対象ディレクトリ> --json > .vba-baseline.json
 
 # 全体の構造を把握
-npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --outline
+vba-runner analyze <対象ディレクトリ> --outline
 ```
 
 **見るべき指標:**
@@ -282,7 +284,7 @@ If amount <= 0 Then Exit Sub
 
 **手法: 重複ブロックの統合 → [`R-05`](REFACTORING_TESTING_CATALOG.md)**
 
-vba-analyzer の `duplicateBlocks` で検出した重複を統合します。
+`vba-runner analyze` の `duplicateBlocks` で検出した重複を統合します。
 ただし、**統合前に両方の呼び出しをテストで守る**のが前提です。
 
 ---
@@ -291,7 +293,7 @@ vba-analyzer の `duplicateBlocks` で検出した重複を統合します。
 
 ```bash
 # ベースラインとの差分を確認
-npx tsx test-libs/vba-analyzer.ts <対象ディレクトリ> --diff .vba-baseline.json
+vba-runner analyze <対象ディレクトリ> --diff .vba-baseline.json
 ```
 
 改善の目安:

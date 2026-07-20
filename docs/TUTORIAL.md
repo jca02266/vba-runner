@@ -5,6 +5,8 @@
 > 前提: [vba-extractor](../build/extractor/README.ja.md) と [vba-runner](../build/runner/README.ja.md)（または本リポジトリの clone）
 >
 > 次に読む: [FOR_AI.md](../FOR_AI.md)、[MOCK_GUIDE.md](MOCK_GUIDE.md)、目的別ハブは [README.md](README.md)
+>
+> コマンド表記: 本文はパッケージ利用者向け（`vba-runner` / `vba-extractor`）。clone している場合は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
 
 ## 対象読者
 
@@ -60,7 +62,7 @@ npm install -g vba-extractor
 code --install-extension jca02266.vba-runner
 ```
 
-リファクタリング・テストには `vba-runner` の実行エンジンが必要です。本リポジトリを clone して作業する場合は追加インストール不要（`npx tsx` でそのまま使えます）。npm パッケージとして使う場合は [build/runner/README.md](../build/runner/README.md) を参照してください。
+リファクタリング・テストには `vba-runner` の実行エンジンが必要です。npm パッケージとして使う場合は [build/runner/README.md](../build/runner/README.md) を参照してください。本リポジトリを clone して作業する場合は追加のパッケージインストールは不要で、CLI は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-runner --` 等）を使います。
 
 ---
 
@@ -125,7 +127,7 @@ Phase 1: 解析 → Phase 2: 計画 → Phase 3: 提案 → [ユーザー承認]
 
 FOR_AI.md の基本ルールで重要なのは次の 3 点です。
 
-1. **VBA ファイルの全文読み禁止** — `vba-analyzer` が示す行番号の範囲だけ読む（巨大なマクロでもトークンを節約できる）
+1. **VBA ファイルの全文読み禁止** — `vba-runner analyze` が示す行番号の範囲だけ読む（巨大なマクロでもトークンを節約できる）
 2. **計画単位で進める** — 提案された計画に承認を出すまで実装には進まない
 3. **テストなしで変更しない** — 変更前に必ず既存動作をテストで GREEN にする
 
@@ -260,7 +262,7 @@ npx tsx src/vba/Module1.test.ts
 
 既存テスト・新規テストの両方が GREEN になりました。これで `Module1.bas` への機能追加が、Excel を開かずに検証できたことになります（FOR_AI.md Phase 5〜7：テスト → 効果測定 → レポート記録）。
 
-> 機能の規模が大きい場合は、`vba-analyzer` での解析や `--diff` による効果測定など FOR_AI.md のフルサイクルを使ってください。
+> 機能の規模が大きい場合は、`vba-runner analyze` での解析や `--diff` による効果測定など FOR_AI.md のフルサイクルを使ってください。
 
 ---
 
