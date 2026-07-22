@@ -165,6 +165,8 @@ export interface VariableDeclaration extends Statement {
     type: 'VariableDeclaration';
     declarations: VariableDeclarator[];
     isStatic?: boolean;
+    /** Legacy VBA6 Dim modifier. It has no distinct runtime behavior in VBA. */
+    isShared?: boolean;
     scope?: 'public' | 'private' | 'friend';
 }
 
@@ -574,6 +576,8 @@ export class Parser {
     private readonly _diagnostics: ParseDiagnostic[] = [];
     /** Queue of identifiers from `Next a, b, c` — outer loops consume from here instead of matching a new `Next` token. */
     private pendingNextVars: Identifier[] = [];
+    /** Nesting depth while parsing a procedure body. */
+    private procedureDepth = 0;
 
     // ---------------------------------------------------------------
     // §3.3.5.2 contextual keyword Sets
@@ -1892,10 +1896,15 @@ export class Parser {
         this.skipNewlines();
         const body: Statement[] = [];
         const expectedEndStr = isFunction ? 'Function' : (isProperty ? 'Property' : 'Sub');
-        while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
-            const stmt = this.parseStatement();
-            if (stmt) body.push(stmt);
-            this.skipNewlines();
+        this.procedureDepth++;
+        try {
+            while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
+                const stmt = this.parseStatement();
+                if (stmt) body.push(stmt);
+                this.skipNewlines();
+            }
+        } finally {
+            this.procedureDepth--;
         }
 
         if (this.peek().type === TokenType.KeywordEnd) {
@@ -1913,6 +1922,10 @@ export class Parser {
 
     private parseDimStatement(isStatic: boolean = false, keywordConsumed: boolean = false): VariableDeclaration {
         if (!keywordConsumed && !isStatic) this.advance(); // 'Dim' (already consumed for Static or caller)
+        // Shared is permitted on module-level Dim declarations solely for legacy
+        // compatibility. It has no distinct runtime behavior, but is retained in
+        // the AST for consumers.
+        const isShared = this.procedureDepth === 0 && this.match(TokenType.KeywordShared);
         const declarations: VariableDeclarator[] = [];
 
         while (true) {
@@ -2015,7 +2028,7 @@ export class Parser {
             }
         }
 
-        return { type: 'VariableDeclaration', declarations, isStatic };
+        return { type: 'VariableDeclaration', declarations, isStatic, isShared };
     }
 
     private parseConstDeclaration(): ConstDeclaration {
