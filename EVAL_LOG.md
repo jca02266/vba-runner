@@ -10,6 +10,8 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 46 | エンジン評価 #46: `Declare PtrSafe` 構文 | `Private Declare PtrSafe Sub/Function` の `Lib`、`Alias`、`LongPtr`、`ByRef String`、戻り型を含むモジュールを評価。外部 DLL は安全なスタブとして呼ばず、構文解析・ロードと後続のクラス／Collection 処理が正常であることを確認した。 | 2026-07-23 |
+| 45 | エンジン評価 #45: パーサーの手続き単位回復 | `errorRecovery: true`（LSP と同じ経路）で、壊れた `Sub` の後にある `StillUsable` を保持しつつ診断を返すことを確認。通常の実行パーサーは例外を送出するが、LSP 用回復経路の仕様どおりでありバグは再現しなかった。 | 2026-07-23 |
 | 44 | エンジン評価 #44: 財務関数の反復・配列基底 | **Bug 44-A 修正済み**: `IRR` と `MIRR` が1基底の VBA 配列で未使用の添字0を数値化し `NaN` を返した。**Bug 44-B 修正済み**: `IPmt` は第2期以降の符号が逆で期首払いも誤計算、`per > nper` も受理していた。配列基底・通常／期首払い・範囲外 period を回帰テスト化した。 | 2026-07-23 |
 | 43 | エンジン評価 #43: クラス本体の `Dim` / `Static` | クラスフィールドの `Dim`、Collection 初期化・走査、`Static hits As Long` のインスタンス別状態を評価。同一インスタンスは `1:2`、別インスタンスは `1` から開始し、期待どおり `1:2:1` を返した。バグは再現しなかった。 | 2026-07-23 |
 | 42 | エンジン評価 #42: 年始の週番号 | `DateAdd("ww")` は年またぎを含め正常。**Bug 42-A 修正済み**: `DatePart("ww")` が `firstweekofyear` を無視し、`#1/1/2021#` で `vbFirstJan1` / `vbFirstFourDays` / `vbFirstFullWeek` のすべてを週1としていた。各規則に応じた週開始日を計算し、結果を `1,53,52` に修正した。 | 2026-07-23 |
@@ -360,7 +362,8 @@
 - ~~**`Set obj.Prop = x` のチェーン経路**~~ **評価 #40: クラスの `Property Set` と Dictionary の `Item` を組み合わせたキー付き左辺・右辺で、連鎖代入と参照保持が正常。**
 - ~~**`DateAdd "ww"`・`DatePart` の年始基準系**~~ **評価 #42: `DateAdd("ww")` は正常。`DatePart("ww", #1/1/2021#, vbSunday, vbFirstJan1 / vbFirstFourDays / vbFirstFullWeek)` を `1,1,1` から `1,53,52` へ修正。**
 - ~~**クラス本体直下の `Dim`/`Static` 宣言**~~ **評価 #43: `Dim` フィールド・Collection と `Static hits As Long` を評価。同一インスタンスで状態を保持し、別インスタンスは独立する。**
-- **パーサーのエラー回復**（`syncToNextTopLevelStatement`）と `Declare` 文の一部形式
+- ~~**パーサーのエラー回復**~~ **評価 #45: `errorRecovery: true` では不正手続きの診断後に後続手続きを保持する。通常実行時は例外を返す設計。**
+- ~~**`Declare` 文の一部形式**~~ **評価 #46: `Declare PtrSafe` の `Lib` / `Alias` / `LongPtr` / `ByRef String` / 戻り型を含む有効な宣言はロード可能。外部 DLL 呼び出しは安全なスタブ。**
 
 ### 数学・数値関数・型チェック・文字列変換（評価 #22 で確認済み）
 
