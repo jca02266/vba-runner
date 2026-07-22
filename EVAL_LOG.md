@@ -10,6 +10,10 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 42 | エンジン評価 #42: 年始の週番号 | `DateAdd("ww")` は年またぎを含め正常。**Bug 42-A 修正済み**: `DatePart("ww")` が `firstweekofyear` を無視し、`#1/1/2021#` で `vbFirstJan1` / `vbFirstFourDays` / `vbFirstFullWeek` のすべてを週1としていた。各規則に応じた週開始日を計算し、結果を `1,53,52` に修正した。 | 2026-07-23 |
+| 41 | エンジン評価 #41: Decimal 除算と銀行丸め | `CDec` による除算・符号・28桁丸め・銀行丸め境界を、クラス・Collection・`On Error` を含む集計サンプルで評価。`1/6`、`1/7`、負値、`±1.005` / `±1.015`、`CStr` の不要な末尾ゼロ除去はいずれも期待どおりで、バグは再現しなかった。 | 2026-07-23 |
+| 40 | エンジン評価 #40: `Set` 連鎖代入 | クラスの `Property Set`、Dictionary の `Item`、右辺のキー付き取得を組み合わせた配送ルート集計で評価。`Set byCode.Item(key) = obj`、`Set first.NextStop = obj`、`Set byCode.Item("P2").NextStop = byCode.Item("SPARE")` は期待どおり参照を保持し、バグは再現しなかった。 | 2026-07-23 |
+| 39 | エンジン評価 #39: GUI 操作スタブ | `AppActivate "Microsoft Excel"` と `SendKeys "{ESC}", True` の文形式を、クラス・Collection・文字列処理・`On Error`・ループを含むサンプルと最小再現で評価。構文・実行とも正常で、GUI へ実際に副作用を与えない `[STUB]` 出力となる。`Wait:=True` も安全な no-op として扱うため、実 GUI 操作・待機はエミュレートしない。 | 2026-07-22 |
 | 38 | 実 Excel 差分確認 #38: Double `D` 指数表記 | 実機で確認済みの `1.5D+10` / `2D5` は `Double` として正常に実行できる仕様に合わせた。**Bug 38-A 修正済み**: レキサーが `D`/`d` を指数部として扱わずモジュール全体をパースエラーにしていた。`D`/`d` を受理し、数値変換前に `e` へ正規化した。大文字・小文字・正負指数と `TypeName` を回帰テスト化。 | 2026-07-22 |
 | 37 | 実 Excel 差分確認 #37: 文字列から Byte 配列への暗黙変換 | 実機で確認済みの `Dim b() As Byte : b = "Aあ"` を修正。VBA と同じ UTF-16LE コード単位で `41 00 42 30`、下限 0・上限 3 の配列を生成する。 | 2026-07-22 |
 | 36 | 実 Excel 差分確認 #36: 日付リテラル・バイナリファイル I/O | 実機で `#3/15#` / `#15/3#` が実行年の 3 月 15 日、時刻併記が保持されることを確認し回帰テスト化。**Bug 26-1/2/4/5 修正済み**: `Long`、`Integer`、CP932 文字列、固定長文字列のみの UDT を `Put` / `Get` でバイナリ入出力できるようにした。実機の `Long 1234567`=`87 D6 12 00`、UDT=連続9バイト、`"Aあ"`=`41 82 A0` を回帰テストに固定。続けて、準備用 `Put #f,,CByte(1)` が型付き変換式を扱えず Error 13 になる回帰、および `Open ... Shared As #f` を構文エラーにするバグを修正。実機5ケースで確定した `Access` / `Lock` 共有行列（Read/Write の禁止と Shared）を実装し、競合時を Error 70 にした。 | 2026-07-22 |
@@ -348,11 +352,11 @@
 - ~~**`&H`/`&O` 文字列の数値強制**~~ **実装・差分コーパス登録済み**: `vbaToNumber` が `&H`/`&O` を16/8進数として扱い、`CDbl("&H10")=16`、`CLng("&O17")=15` を確認。
 - ~~**`Lock` / `Unlock` 文**~~ **評価 #35 で修正済み**: ハンドルごとの範囲ロックを管理し、閉鎖済み番号・重複範囲・未ロック解除を VBA エラーにする。
 - ~~**`Open` 文の Access/Lock 節**~~ **評価 #36 で実機確認・修正済み**: `Lock Read` は他ハンドルの Read、`Lock Write` は Write を拒否し、`Shared` は両方を許可する。競合は Error 70。
-- **AppActivate / SendKeys の文形式**（parser 専用文パスが未実行。関数形式は評価済み）
+- ~~**AppActivate / SendKeys の文形式**~~ **評価 #39: `AppActivate "Microsoft Excel"` / `SendKeys "{ESC}", True` は構文・実行とも正常。GUI 副作用や `Wait` は安全なスタブとしてエミュレートしない。**
 - **財務関数の一部経路**（IRR/MIRR の反復、IPmt/PPmt の一部分岐）
-- **Decimal 除算経路**（evaluator `evaluateDecimalOp` の `bankersDivide` 側）
-- **`Set obj.Prop = x` のチェーン経路**（evaluator `evaluateSetStatement` の複数分岐、Dictionary キー付き Set 含む）
-- **`DateAdd "ww"`・`DatePart` の年始基準系**（builtins 日付関数の一部分岐）
+- ~~**Decimal 除算経路**~~ **評価 #41: `1/6` / `1/7` の28桁丸め、負値、`±1.005`・`±1.015` の銀行丸め、Collection 集計を確認。期待どおり。**
+- ~~**`Set obj.Prop = x` のチェーン経路**~~ **評価 #40: クラスの `Property Set` と Dictionary の `Item` を組み合わせたキー付き左辺・右辺で、連鎖代入と参照保持が正常。**
+- ~~**`DateAdd "ww"`・`DatePart` の年始基準系**~~ **評価 #42: `DateAdd("ww")` は正常。`DatePart("ww", #1/1/2021#, vbSunday, vbFirstJan1 / vbFirstFourDays / vbFirstFullWeek)` を `1,1,1` から `1,53,52` へ修正。**
 - **クラス本体直下の `Dim`/`Static` 宣言**（parser `parseClassBody` の分岐 — `Private x` 形式は評価済みだが `Dim x` / `Static x` 形式が未実行）
 - **パーサーのエラー回復**（`syncToNextTopLevelStatement`）と `Declare` 文の一部形式
 

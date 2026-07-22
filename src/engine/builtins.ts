@@ -1125,7 +1125,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'FirstDayOfWeek', optional: true },
         { name: 'FirstWeekOfYear', optional: true },
     ]);
-    ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
+    ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, firstweekofyear: any = 1) => {
         if (date === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
@@ -1147,11 +1147,36 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             return ((dayOfWeek - weekStart + 7) % 7) + 1;
         }
         else if (intv === 'ww') {
-            const jan1 = new Date(d.getFullYear(), 0, 1);
-            const jan1Day = jan1.getDay(); // 0=Sun
-            const dayOfYear = Math.floor((d.getTime() - jan1.getTime()) / 86400000);
-            const offset = (jan1Day - weekStart + 7) % 7;
-            return Math.floor((dayOfYear + offset) / 7) + 1;
+            let fwoy = ctx.toVbaNumber(firstweekofyear ?? 1);
+            if (fwoy === 0) fwoy = 1; // vbUseSystem → default to vbFirstJan1
+            if (fwoy < 1 || fwoy > 3) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
+
+            const calendarDaysBetween = (left: Date, right: Date): number =>
+                Math.round((Date.UTC(right.getFullYear(), right.getMonth(), right.getDate()) -
+                    Date.UTC(left.getFullYear(), left.getMonth(), left.getDate())) / 86400000);
+
+            const firstWeekStart = (year: number): Date => {
+                const jan1 = new Date(year, 0, 1);
+                const offset = (jan1.getDay() - weekStart + 7) % 7;
+                const start = new Date(year, 0, 1 - offset);
+                if (fwoy === 1) return start; // vbFirstJan1
+
+                const daysInNewYear = 7 - offset;
+                const requiredDays = fwoy === 2 ? 4 : 7;
+                if (daysInNewYear >= requiredDays) return start;
+                start.setDate(start.getDate() + 7);
+                return start;
+            };
+
+            const weekNumber = (year: number): number => {
+                const start = firstWeekStart(year);
+                if (d < start) return weekNumber(year - 1);
+                return Math.floor(calendarDaysBetween(start, d) / 7) + 1;
+            };
+
+            return weekNumber(d.getFullYear());
         }
         else if (intv === 'h') return d.getHours();
         else if (intv === 'n') return d.getMinutes();

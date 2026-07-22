@@ -178,6 +178,22 @@ End Function
     console.log('[PASS] Bug #25-6: DatePart firstdayofweek');
 }
 
+// DatePart "ww" honors firstweekofyear at New Year boundaries.
+{
+    const runDP = (expr: string) => {
+        const ev2 = evalVBASingle(`Function T(): T = ${expr}: End Function`);
+        return ev2.callProcedure('T', []);
+    };
+    const results = [
+        runDP('DatePart("ww", #1/1/2021#, vbSunday, vbFirstJan1)'),
+        runDP('DatePart("ww", #1/1/2021#, vbSunday, vbFirstFourDays)'),
+        runDP('DatePart("ww", #1/1/2021#, vbSunday, vbFirstFullWeek)'),
+    ];
+    assert.deepStrictEqual(results, [1, 53, 52],
+        'DatePart ww applies each firstweekofyear rule at the 2021 boundary');
+    console.log('[PASS] DatePart ww firstweekofyear');
+}
+
 // --- Bug B: Weekday — firstdayofweek 引数 ---
 {
     const runWD = (expr: string) => {
