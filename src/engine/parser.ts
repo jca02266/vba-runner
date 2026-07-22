@@ -2602,6 +2602,16 @@ export class Parser {
         let alternate: Statement[] | IfStatement | null = null;
 
         if (!isMultiLine) {
+            const parseInlineStatement = (): Statement | null => {
+                // In line-number BASIC syntax, `If condition Then 100` is a
+                // conditional branch, not a label declaration.
+                if (this.peek().type === TokenType.Number &&
+                    (this.peek(1).type === TokenType.Newline || this.peek(1).type === TokenType.EOF ||
+                     this.peek(1).type === TokenType.KeywordElse || this.peek(1).type === TokenType.OperatorColon)) {
+                    return { type: 'GoToStatement', label: this.advance().value } as GoToStatement;
+                }
+                return this.parseStatement(false);
+            };
             // Single-line If: read consequent until Else/Newline/EOF.
             // EOS check disabled: Else terminates the body but is not an EOS token.
             while (
@@ -2609,7 +2619,7 @@ export class Parser {
                 this.peek().type !== TokenType.EOF &&
                 this.peek().type !== TokenType.KeywordElse
             ) {
-                const stmt = this.parseStatement(false);
+                const stmt = parseInlineStatement();
                 if (stmt) consequent.push(stmt);
             }
             // Handle optional inline Else
@@ -2617,7 +2627,7 @@ export class Parser {
                 this.advance(); // consume 'Else'
                 alternate = [];
                 while (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF) {
-                    const stmt = this.parseStatement(false);
+                    const stmt = parseInlineStatement();
                     if (stmt) (alternate as Statement[]).push(stmt);
                 }
             }
