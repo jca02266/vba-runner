@@ -270,7 +270,7 @@ export interface DebugPrintStatement extends Statement {
 export interface LineInputStatement extends Statement {
     type: 'LineInputStatement';
     fileNumber: Expression;
-    variable: Identifier;
+    variable: Expression;
 }
 
 export interface PutStatement extends Statement {
@@ -1110,10 +1110,10 @@ export class Parser {
         const fileNumber = this.parseExpression();
         this.consume(TokenType.OperatorComma, "Expected ',' after file number");
         const variable = this.parsePrimary();
-        if (variable.type !== 'Identifier') {
+        if (variable.type !== 'Identifier' && variable.type !== 'CallExpression' && variable.type !== 'MemberExpression') {
             this.throwError(`Parse error: Expected variable name in Line Input at line ${this.peek().line}`);
         }
-        return { type: 'LineInputStatement', fileNumber, variable: variable as Identifier };
+        return { type: 'LineInputStatement', fileNumber, variable };
     }
 
     private parsePutStatement(): PutStatement {
