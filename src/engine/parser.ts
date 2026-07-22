@@ -1760,9 +1760,18 @@ export class Parser {
             const expr = this.parsePrimary();
             if (expr.type === 'CallExpression') {
                 return { type: 'CallStatement', expression: expr } as CallStatement;
-            } else if (expr.type === 'Identifier' || expr.type === 'MemberExpression') {
-                // Call ProcName  /  Call Module.ProcName  — no arguments
-                return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
+            } else if (expr.type === 'Identifier' || expr.type === 'MemberExpression' ||
+                       expr.type === 'ImplicitWithObjectExpression') {
+                // `Call .Method arg` is valid inside With blocks even without parentheses.
+                const args: Expression[] = [];
+                if (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF &&
+                    this.peek().type !== TokenType.OperatorColon) {
+                    args.push(this.parseCallArgument());
+                    while (this.match(TokenType.OperatorComma)) {
+                        args.push(this.parseCallArgument());
+                    }
+                }
+                return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
             }
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
         } else if (token.type === TokenType.Identifier && token.value.toLowerCase() === 'debug' &&
