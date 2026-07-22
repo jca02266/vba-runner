@@ -69,3 +69,19 @@ function readBytes(fs: MemoryFileSystem, file: string): number[] {
 }
 
 console.log('✅ Binary Put/Get: scalar, fixed-string UDT, and CP932 string round trips pass');
+
+{
+    const fs = new MemoryFileSystem();
+    const ev = evalVBASingle(`
+        Sub WriteConvertedByte()
+            Open "byte.dat" For Binary As #1
+            Put #1, , CByte(127)
+            Close #1
+        End Sub
+    `, { fs, sandboxRoot: '/sandbox' });
+
+    ev.callProcedure('WriteConvertedByte', []);
+    assert.deepStrictEqual(readBytes(fs, '/sandbox/byte.dat'), [0x7f]);
+}
+
+console.log('✅ Binary Put accepts typed conversion expressions');

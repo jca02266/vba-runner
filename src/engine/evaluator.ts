@@ -4788,6 +4788,17 @@ export class Evaluator {
                 return { typeName: typeInfo.vbaType, fixedLength: typeInfo.fixedLength };
             }
         }
+        if (expr.type === 'CallExpression' && (expr as CallExpression).callee.type === 'Identifier') {
+            const name = ((expr as CallExpression).callee as Identifier).name.toLowerCase();
+            const conversionTypes: Record<string, string> = {
+                cbyte: 'Byte', cint: 'Integer', clng: 'Long',
+            };
+            if (conversionTypes[name]) return { typeName: conversionTypes[name] };
+        }
+        if (expr.type === 'NumberLiteral') {
+            const n = Number(value);
+            return { typeName: Number.isInteger(n) && n >= -32768 && n <= 32767 ? 'Integer' : 'Long' };
+        }
         if (value && typeof value === 'object' && value.__vbaTypeName__ && this.env.getType(value.__vbaTypeName__)) {
             return { typeName: value.__vbaTypeName__ };
         }
