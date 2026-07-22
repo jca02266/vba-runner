@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 48 | 実行互換性 #48: 2語形式 `Go To` | **Bug 48-A 修正済み**: `Go To done` が `Go` を識別子として扱いパースエラーだった。2語を `GoToStatement` として受理し、名前・数値ラベルへ正しくジャンプする回帰テストを追加した。 | 2026-07-23 |
 | 47 | 実行互換性 #47: `With` 内の `Call` | **Bug 47-A 修正済み**: `Call .AddItem "A"` が暗黙 `With` メンバーを呼び出し先として認めずパースエラーだった。括弧なし引数と `ImplicitWithObjectExpression` を `CallStatement` として受理し、クラスメソッドの回帰テストを追加した。 | 2026-07-23 |
 | 46 | エンジン評価 #46: `Declare PtrSafe` 構文 | `Private Declare PtrSafe Sub/Function` の `Lib`、`Alias`、`LongPtr`、`ByRef String`、戻り型を含むモジュールを評価。外部 DLL は安全なスタブとして呼ばず、構文解析・ロードと後続のクラス／Collection 処理が正常であることを確認した。 | 2026-07-23 |
 | 45 | エンジン評価 #45: パーサーの手続き単位回復 | `errorRecovery: true`（LSP と同じ経路）で、壊れた `Sub` の後にある `StillUsable` を保持しつつ診断を返すことを確認。通常の実行パーサーは例外を送出するが、LSP 用回復経路の仕様どおりでありバグは再現しなかった。 | 2026-07-23 |
