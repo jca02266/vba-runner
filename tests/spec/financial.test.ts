@@ -87,4 +87,62 @@ console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
 }
 console.log('[PASS] Bug 24-1: NPV 1-based 配列で正常動作');
 
+// IRR/MIRR must also ignore the unused slot before a 1-based VBA array.
+{
+    const ev = evalVBASingle(`
+    Public irr1, irr0, mirr1, mirr0
+    Sub Test()
+        Dim flows1(1 To 4) As Double
+        flows1(1) = -10000 : flows1(2) = 3000
+        flows1(3) = 4200 : flows1(4) = 6800
+        irr1 = IRR(flows1)
+        mirr1 = MIRR(flows1, 0.1, 0.12)
+
+        Dim flows0(3) As Double
+        flows0(0) = -10000 : flows0(1) = 3000
+        flows0(2) = 4200 : flows0(3) = 6800
+        irr0 = IRR(flows0)
+        mirr0 = MIRR(flows0, 0.1, 0.12)
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    const irr1 = ev.env.get('irr1') as number;
+    const irr0 = ev.env.get('irr0') as number;
+    const mirr1 = ev.env.get('mirr1') as number;
+    const mirr0 = ev.env.get('mirr0') as number;
+    assert.ok(Number.isFinite(irr1), `IRR 1-based should be finite (got ${irr1})`);
+    assert.ok(Number.isFinite(mirr1), `MIRR 1-based should be finite (got ${mirr1})`);
+    assert.ok(Math.abs(irr1 - irr0) < 1e-10, `IRR 1-based should equal 0-based (${irr1} vs ${irr0})`);
+    assert.ok(Math.abs(mirr1 - mirr0) < 1e-10, `MIRR 1-based should equal 0-based (${mirr1} vs ${mirr0})`);
+}
+console.log('[PASS] IRR/MIRR 1-based 配列で正常動作');
+
+// IPmt/PPmt retain their signs after period 1 and validate the requested period.
+{
+    const ev = evalVBASingle(`
+    Public ordinaryInterest, ordinaryPrincipal
+    Public dueInterest, duePrincipal, outOfRangeError
+    Sub Test()
+        ordinaryInterest = IPmt(0.01, 12, 12, 1000)
+        ordinaryPrincipal = PPmt(0.01, 12, 12, 1000)
+        dueInterest = IPmt(0.01, 2, 12, 1000, 0, 1)
+        duePrincipal = PPmt(0.01, 2, 12, 1000, 0, 1)
+        On Error GoTo badPeriod
+        ordinaryInterest = IPmt(0.01, 13, 12, 1000)
+        Exit Sub
+    badPeriod:
+        outOfRangeError = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    const closeTo = (actual: number, expected: number, message: string) =>
+        assert.ok(Math.abs(actual - expected) < 1e-6, `${message} (${actual} vs ${expected})`);
+    closeTo(ev.env.get('ordinaryInterest'), -0.8796909770132879, 'IPmt period 12');
+    closeTo(ev.env.get('ordinaryPrincipal'), -87.96909770132839, 'PPmt period 12');
+    closeTo(ev.env.get('dueInterest'), -9.120308677978415, 'IPmt due period 2');
+    closeTo(ev.env.get('duePrincipal'), -78.84878902334997, 'PPmt due period 2');
+    assert.strictEqual(ev.env.get('outOfRangeError'), 5, 'IPmt period > nper is Error 5');
+}
+console.log('[PASS] IPmt/PPmt period and payment timing');
+
 console.log('\n✅ Financial Functions: 全テスト通過');

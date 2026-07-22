@@ -1356,7 +1356,8 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('irr', (values: any, guess: any = 0.1) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        const v = values.map(Number);
+        const base: number = (values as any).vbaBase ?? 0;
+        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
         let r = toNum(guess);
         for (let i = 0; i < 100; i++) {
             let npv = 0, dnpv = 0;
@@ -1373,7 +1374,8 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'ValueArray' }, { name: 'Guess', optional: true }]);
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        const v = values.map(Number);
+        const base: number = (values as any).vbaBase ?? 0;
+        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
         const n = v.length - 1;
         let npv_neg = 0, npv_pos = 0;
@@ -1397,13 +1399,19 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        if (!Number.isInteger(p) || p < 1 || p > n) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
         const pmt = ctx.toVbaNumber(ctx.envGet('pmt')(r, n, v, f, t));
         let ipmt: number;
         if (p === 1) {
             ipmt = t === 1 ? 0 : -v * r;
+        } else if (t === 1) {
+            const fvBeforePreviousPayment = ctx.toVbaNumber(ctx.envGet('fv')(r, p - 2, pmt, v, t));
+            ipmt = (fvBeforePreviousPayment - pmt) * r;
         } else {
             const fv_prev = ctx.toVbaNumber(ctx.envGet('fv')(r, p - 1, pmt, v, t));
-            ipmt = -fv_prev * r;
+            ipmt = fv_prev * r;
         }
         return ipmt;
     }, [
