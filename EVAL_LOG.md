@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 37 | 実 Excel 差分確認 #37: 文字列から Byte 配列への暗黙変換 | 実機で確認済みの `Dim b() As Byte : b = "Aあ"` を修正。VBA と同じ UTF-16LE コード単位で `41 00 42 30`、下限 0・上限 3 の配列を生成する。 | 2026-07-22 |
 | 36 | 実 Excel 差分確認 #36: 日付リテラル・バイナリファイル I/O | 実機で `#3/15#` / `#15/3#` が実行年の 3 月 15 日、時刻併記が保持されることを確認し回帰テスト化。**Bug 26-1/2/4/5 修正済み**: `Long`、`Integer`、CP932 文字列、固定長文字列のみの UDT を `Put` / `Get` でバイナリ入出力できるようにした。実機の `Long 1234567`=`87 D6 12 00`、UDT=連続9バイト、`"Aあ"`=`41 82 A0` を回帰テストに固定。続けて、準備用 `Put #f,,CByte(1)` が型付き変換式を扱えず Error 13 になる回帰、および `Open ... Shared As #f` を構文エラーにするバグを修正。実機5ケースで確定した `Access` / `Lock` 共有行列（Read/Write の禁止と Shared）を実装し、競合時を Error 70 にした。 | 2026-07-22 |
 | 35 | エンジン評価 #35: ファイルロック付き在庫台帳 | `Lock` / `Unlock` の範囲指定・解除、閉鎖済みファイル番号、重複範囲を評価。**Bug 35-A 発見・修正済み**: Lock/Unlock が無条件成功するスタブだった。ハンドルごとの範囲ロック管理を追加し、無効ファイル番号・重複範囲・未ロック解除を VBA エラーにした。 | 2026-07-22 |
 | 34 | エンジン評価 #34: 年次締切・休業日判定ドメイン | `HolidayCalendar.cls` と標準モジュールで **日付リテラル**・`DateValue`/`TimeValue`・`DateSerial`・`Weekday`・年末日時を評価。Collection、文字列正規化、`On Error GoTo`、ループ、条件分岐を含むサンプルで通常・不正入力を確認。`#3/15#`・`#15/3#`・うるう日・日時併記を調査。**Bug 34-A 発見・修正済み**: 2桁年の日付リテラルが常に 20xx と解釈され、Excel の既定 2029 ルールおよび `DateSerial` と不一致だった。 | 2026-07-19 |
@@ -63,7 +64,7 @@
 | `Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる | `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 | `9e25adc` |
 | **Bug 22-1: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）** | `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`tests/spec/typename.test.ts` Bug 22-1 ブロックにレグレッションテスト追加 | 評価 #22 |
 | ~~**Bug #25-1〜3: `LenB` / `AscB` / `ChrB` 未実装**~~ | **修正済み**: `builtins.ts` に `lenb`（文字数×2）/`ascb`（先頭バイト & 0xFF）/`chrb`（charCode & 0xFF → 文字）を登録。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug #25-1〜3 ブロック。 | |
-| **Bug #25-4: `Dim b() As Byte : b = str` 未実装** | `Dim b() As Byte : b = "ABC" : Debug.Print b(0)` → Error 424 | 文字列→Byte配列の暗黙変換が未実装 | 未修正 |
+| ~~**Bug #25-4: `Dim b() As Byte : b = str` 未実装**~~ | **評価 #37 で修正済み**: UTF-16LE のコード単位へ展開し、`"Aあ"` → `41 00 42 30` を返す。 | |
 | ~~**Bug #25-5: `Split(str, delim, limit)` 第3引数未対応**~~ | **修正済み**: `builtins.ts` の `split` 登録に `limit`（省略可、デフォルト -1）と `compare`（省略可）を追加。`limit=0` は空配列、`limit<0` は全分割、`limit>0` は最大要素数（最後の要素に残り全体）。レグレッションテスト: `tests/spec/split-join.test.ts` Bug #25-5 ブロック。 | |
 | ~~**Bug #25-6: `DatePart` 第3引数（firstdayofweek）未対応**~~ | **修正済み**: `builtins.ts` の `datepart` 登録に `firstdayofweek`（省略可、デフォルト 1=日曜）と `firstweekofyear`（省略可）を追加。`'w'` は `(weekday - weekStart + 7) % 7 + 1`、`'ww'` は Jan1 からの日数オフセットで週番号計算。レグレッションテスト: `tests/spec/datetime.test.ts` Bug #25-6 ブロック。 | |
 | **Bug 24-1: `NPV(rate, flows)` に VBA 1-based 配列を渡すと NaN** | `Dim flows(1 To 3) As Double : flows(1)=30000 : ... : NPV(0.1, flows)` → NaN | `builtins.ts` の NPV が `values.map(Number)` でインデックス 0 から反復するため `vbaBase=1` の配列でインデックス 0（undefined）が NaN になった。`(values as any).vbaBase ?? 0` で基底インデックスを取得して修正。レグレッションテスト: `tests/spec/financial.test.ts` Bug 24-1 ブロック | 評価 #24 |
@@ -559,7 +560,7 @@
 77. **`Dir()` はグローバル状態を共有する**: `Dir(pattern)` を呼ぶと内部ポインターがリセットされる。ネストした `Dir(pattern2)` 呼び出しで元の列挙が中断される。実 VBA と同じ仕様準拠の動作。ループ内でサブルーチンを呼ばずに `Dir()` を使うこと。
 78. **`DatePart` の第3・第4引数（firstdayofweek / firstweekofyear）は未対応** (Bug #25-6): `DatePart("ww", d, 2)` → Error 450。第2引数まで動作する。`WeekdayName` は第3引数が動作するため非対称。
 79. **`LenB` / `AscB` / `ChrB` は未実装** (Bug #25-1〜3): `MidB` は実装済みだが、同じバイト関数グループの他の関数が未実装。`LenB("ABC")` → Error 35。
-80. **`Dim b() As Byte : b = str` は未実装** (Bug #25-4): 文字列→Byte配列の暗黙変換が未対応。`Dim b(N) As Byte` + 手動インデックス代入は正常動作する。
+80. **`Dim b() As Byte : b = str` は修正済み**（評価 #37・Bug #25-4）: 文字列を UTF-16LE のコード単位へ展開する。`"Aあ"` は `41 00 42 30`、下限 0・上限 3 になる。
 81. **`Split(str, delim, limit)` の第3引数（limit）は未対応** (Bug #25-5): `Split("A B C", " ", 2)` → Error 450。第2引数まで動作する。
 73. **`NPV` に 1-based VBA 配列を渡す場合は修正済み（Bug 24-1）**: `Dim flows(1 To N)` で宣言した配列も `NPV(rate, flows)` で正常動作する。`vbaBase` プロパティを参照して基底インデックスを取得する実装に修正済み。
 74. **`Rate` は初期推定値（guessRate）が悪いと別の根に収束する**: `Rate(nper, pmt, pv, 0, 0, guessRate)` の最後の引数 `guessRate` には解に近い値を渡すこと。年率 2% のローンなら `guessRate=0.001`（月率 0.1%）が適切。`guessRate=0.1`（月率 10%）のような遠い値では別の根に収束する。これは VBA 仕様通りの動作（Newton-Raphson 収束の性質）。

@@ -2982,6 +2982,22 @@ export class Evaluator {
             const oldVal = this.env.get(name);
             if (val === vbaNothing && oldVal !== val) this.releaseRef(oldVal);
 
+            // VBA coerces a String assigned to a dynamic Byte() into its UTF-16LE
+            // code units. This is distinct from Binary Put/Get, which uses the
+            // active ANSI code page for strings.
+            if (Array.isArray(oldVal) && oldVal.__vbaElementType__ === 'byte' && typeof val === 'string') {
+                const bytes: any[] = [];
+                for (let i = 0; i < val.length; i++) {
+                    const codeUnit = val.charCodeAt(i);
+                    bytes.push(codeUnit & 0xff, codeUnit >>> 8);
+                }
+                (bytes as any).vbaBase = 0;
+                (bytes as any).vbaFixed = true;
+                (bytes as any).__vbaElementType__ = 'byte';
+                this.env.set(name, bytes);
+                return;
+            }
+
             const procNameLower = name.toLowerCase();
 
             // Special case: assigning to current function/property name (return value)
