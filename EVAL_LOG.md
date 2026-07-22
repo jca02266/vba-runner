@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 43 | エンジン評価 #43: クラス本体の `Dim` / `Static` | クラスフィールドの `Dim`、Collection 初期化・走査、`Static hits As Long` のインスタンス別状態を評価。同一インスタンスは `1:2`、別インスタンスは `1` から開始し、期待どおり `1:2:1` を返した。バグは再現しなかった。 | 2026-07-23 |
 | 42 | エンジン評価 #42: 年始の週番号 | `DateAdd("ww")` は年またぎを含め正常。**Bug 42-A 修正済み**: `DatePart("ww")` が `firstweekofyear` を無視し、`#1/1/2021#` で `vbFirstJan1` / `vbFirstFourDays` / `vbFirstFullWeek` のすべてを週1としていた。各規則に応じた週開始日を計算し、結果を `1,53,52` に修正した。 | 2026-07-23 |
 | 41 | エンジン評価 #41: Decimal 除算と銀行丸め | `CDec` による除算・符号・28桁丸め・銀行丸め境界を、クラス・Collection・`On Error` を含む集計サンプルで評価。`1/6`、`1/7`、負値、`±1.005` / `±1.015`、`CStr` の不要な末尾ゼロ除去はいずれも期待どおりで、バグは再現しなかった。 | 2026-07-23 |
 | 40 | エンジン評価 #40: `Set` 連鎖代入 | クラスの `Property Set`、Dictionary の `Item`、右辺のキー付き取得を組み合わせた配送ルート集計で評価。`Set byCode.Item(key) = obj`、`Set first.NextStop = obj`、`Set byCode.Item("P2").NextStop = byCode.Item("SPARE")` は期待どおり参照を保持し、バグは再現しなかった。 | 2026-07-23 |
@@ -357,7 +358,7 @@
 - ~~**Decimal 除算経路**~~ **評価 #41: `1/6` / `1/7` の28桁丸め、負値、`±1.005`・`±1.015` の銀行丸め、Collection 集計を確認。期待どおり。**
 - ~~**`Set obj.Prop = x` のチェーン経路**~~ **評価 #40: クラスの `Property Set` と Dictionary の `Item` を組み合わせたキー付き左辺・右辺で、連鎖代入と参照保持が正常。**
 - ~~**`DateAdd "ww"`・`DatePart` の年始基準系**~~ **評価 #42: `DateAdd("ww")` は正常。`DatePart("ww", #1/1/2021#, vbSunday, vbFirstJan1 / vbFirstFourDays / vbFirstFullWeek)` を `1,1,1` から `1,53,52` へ修正。**
-- **クラス本体直下の `Dim`/`Static` 宣言**（parser `parseClassBody` の分岐 — `Private x` 形式は評価済みだが `Dim x` / `Static x` 形式が未実行）
+- ~~**クラス本体直下の `Dim`/`Static` 宣言**~~ **評価 #43: `Dim` フィールド・Collection と `Static hits As Long` を評価。同一インスタンスで状態を保持し、別インスタンスは独立する。**
 - **パーサーのエラー回復**（`syncToNextTopLevelStatement`）と `Declare` 文の一部形式
 
 ### 数学・数値関数・型チェック・文字列変換（評価 #22 で確認済み）
