@@ -236,13 +236,13 @@ export interface OpenStatement extends Statement {
 export interface LockStatement extends Statement {
     type: 'LockStatement';
     fileNumber: Expression;
-    recordRange?: { start: Expression, end?: Expression };
+    recordRange?: { start?: Expression, end?: Expression };
 }
 
 export interface UnlockStatement extends Statement {
     type: 'UnlockStatement';
     fileNumber: Expression;
-    recordRange?: { start: Expression, end?: Expression };
+    recordRange?: { start?: Expression, end?: Expression };
 }
 
 export interface WidthStatement extends Statement {
@@ -3426,10 +3426,15 @@ export class Parser {
         const fileNumber = this.parseExpression();
         let recordRange: any;
         if (this.match(TokenType.OperatorComma)) {
-            const start = this.parseExpression();
+            let start: Expression | undefined;
             let end: any;
             if (this.match(TokenType.KeywordTo)) {
                 end = this.parseExpression();
+            } else {
+                start = this.parseExpression();
+                if (this.match(TokenType.KeywordTo)) {
+                    end = this.parseExpression();
+                }
             }
             recordRange = { start, end };
         }
@@ -3442,10 +3447,15 @@ export class Parser {
         const fileNumber = this.parseExpression();
         let recordRange: any;
         if (this.match(TokenType.OperatorComma)) {
-            const start = this.parseExpression();
+            let start: Expression | undefined;
             let end: any;
             if (this.match(TokenType.KeywordTo)) {
                 end = this.parseExpression();
+            } else {
+                start = this.parseExpression();
+                if (this.match(TokenType.KeywordTo)) {
+                    end = this.parseExpression();
+                }
             }
             recordRange = { start, end };
         }

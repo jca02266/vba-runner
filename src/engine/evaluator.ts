@@ -2827,9 +2827,9 @@ export class Evaluator {
         locks.splice(index, 1);
     }
 
-    private evaluateLockRange(range?: { start: Expression, end?: Expression }): { start: number, end: number } {
+    private evaluateLockRange(range?: { start?: Expression, end?: Expression }): { start: number, end: number } {
         if (!range) return { start: 0, end: Infinity };
-        const start = Number(this.evaluateExpression(range.start));
+        const start = range.start ? Number(this.evaluateExpression(range.start)) : 1;
         const end = range.end ? Number(this.evaluateExpression(range.end)) : start;
         if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
             this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
