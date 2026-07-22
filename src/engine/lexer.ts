@@ -357,6 +357,14 @@ export class Lexer {
 
             if (char === '=') {
                 this.advance();
+                if (this.peek() === '<') {
+                    this.advance();
+                    return { type: TokenType.OperatorLessThanOrEqual, value: '<=', line: startLine, column: startColumn };
+                }
+                if (this.peek() === '>') {
+                    this.advance();
+                    return { type: TokenType.OperatorGreaterThanOrEqual, value: '>=', line: startLine, column: startColumn };
+                }
                 return { type: TokenType.OperatorEquals, value: '=', line: startLine, column: startColumn };
             }
 
@@ -375,6 +383,10 @@ export class Lexer {
 
             if (char === '>') {
                 this.advance();
+                if (this.peek() === '<') {
+                    this.advance();
+                    return { type: TokenType.OperatorNotEquals, value: '<>', line: startLine, column: startColumn };
+                }
                 if (this.peek() === '=') {
                     this.advance();
                     return { type: TokenType.OperatorGreaterThanOrEqual, value: '>=', line: startLine, column: startColumn };
