@@ -722,7 +722,8 @@ export class Evaluator {
         mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',
         path: string,
         buffer?: Uint8Array,
-        pos?: number
+        pos?: number,
+        locks?: Array<{ start: number, end: number }>
     }> = new Map();
     private sandbox: SandboxPath;
     public fs: FileSystem;
@@ -2794,12 +2795,35 @@ export class Evaluator {
 
     private evaluateLockStatement(stmt: LockStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
-        console.log(`[STUB] Lock #${fileNum}`);
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        const range = this.evaluateLockRange(stmt.recordRange);
+        const locks = handle.locks ?? (handle.locks = []);
+        if (locks.some(lock => lock.start <= range.end && range.start <= lock.end)) {
+            this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
+        }
+        locks.push(range);
     }
 
     private evaluateUnlockStatement(stmt: UnlockStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
-        console.log(`[STUB] Unlock #${fileNum}`);
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        const range = this.evaluateLockRange(stmt.recordRange);
+        const locks = handle.locks ?? [];
+        const index = locks.findIndex(lock => lock.start === range.start && lock.end === range.end);
+        if (index < 0) this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
+        locks.splice(index, 1);
+    }
+
+    private evaluateLockRange(range?: { start: Expression, end?: Expression }): { start: number, end: number } {
+        if (!range) return { start: 0, end: Infinity };
+        const start = Number(this.evaluateExpression(range.start));
+        const end = range.end ? Number(this.evaluateExpression(range.end)) : start;
+        if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        }
+        return { start, end };
     }
 
     private evaluateWidthStatement(stmt: WidthStatement) {
@@ -4613,7 +4637,8 @@ export class Evaluator {
                 fd,
                 mode: stmt.mode,
                 path: realPath,
-                pos: 0
+                pos: 0,
+                locks: []
             });
         } catch (e: any) {
             if (e.code === 'ENOENT') this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, "File not found");
