@@ -87,6 +87,7 @@ import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem } from './filesystem';
 import { checkOptionExplicit, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
+import iconv from 'iconv-lite';
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef, VbaCurrency,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
@@ -263,6 +264,14 @@ export interface VbaTypeInfo {
     vbaType: VbaVarType;
     /** Fixed-length string: Dim s As String * N */
     fixedLength?: number;
+}
+
+interface BinaryValueLayout {
+    typeName: string;
+    fixedLength?: number;
+    /** Compatibility path for an untyped target, where VBA's destination size
+     * is unavailable and the runner must retain its historical whole-field read. */
+    readToEnd?: boolean;
 }
 
 export interface DebugHook {
@@ -4755,8 +4764,8 @@ export class Evaluator {
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
 
         const data = this.evaluateExpression(stmt.data);
-        const s = String(data);
-        const buffer = new TextEncoder().encode(s);
+        const layout = this.getBinaryValueLayout(stmt.data, data);
+        const buffer = this.encodeBinaryValue(data, layout);
 
         let position: number | null = handle.pos ?? null;
         if (stmt.recordNumber) {
@@ -4764,7 +4773,131 @@ export class Evaluator {
         }
 
         this.fs.writeSync(handle.fd, buffer, 0, buffer.length, position);
-        handle.pos! += buffer.length;
+        handle.pos = (position ?? handle.pos ?? 0) + buffer.length;
+    }
+
+    /** VBA binary file strings use the active ANSI code page.  The runner's
+     * supported Windows-compatible code page is CP932, matching the project
+     * fixtures and the Excel differential tests. */
+    private static readonly VBA_BINARY_ENCODING = 'cp932';
+
+    private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
+        if (expr.type === 'Identifier') {
+            const typeInfo = this.env.getVariableType((expr as Identifier).name);
+            if (typeInfo && typeInfo.vbaType !== 'Variant') {
+                return { typeName: typeInfo.vbaType, fixedLength: typeInfo.fixedLength };
+            }
+        }
+        if (value && typeof value === 'object' && value.__vbaTypeName__ && this.env.getType(value.__vbaTypeName__)) {
+            return { typeName: value.__vbaTypeName__ };
+        }
+        if (typeof value === 'string') return { typeName: 'String' };
+        if (value === vbaEmpty) return { typeName: 'String', readToEnd: true };
+        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get requires a declared scalar, String, or UDT');
+    }
+
+    private encodeBinaryValue(value: any, layout: BinaryValueLayout): Uint8Array {
+        const typeName = layout.typeName.toLowerCase();
+        switch (typeName) {
+            case 'byte':
+                return Uint8Array.of(Number(value) & 0xff);
+            case 'integer': {
+                const buffer = new Uint8Array(2);
+                new DataView(buffer.buffer).setInt16(0, Number(value), true);
+                return buffer;
+            }
+            case 'long': {
+                const buffer = new Uint8Array(4);
+                new DataView(buffer.buffer).setInt32(0, Number(value), true);
+                return buffer;
+            }
+            case 'string':
+                return iconv.encode(String(value), Evaluator.VBA_BINARY_ENCODING);
+            default: {
+                const members = this.env.getType(layout.typeName);
+                if (!members || !value || typeof value !== 'object') {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Unsupported binary value type: ${layout.typeName}`);
+                }
+                const fields = members.map(member => {
+                    if (member.isArray) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support UDT array members');
+                    }
+                    if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
+                    }
+                    return this.encodeBinaryValue(value[member.name.toLowerCase()], {
+                        typeName: member.memberType,
+                        fixedLength: member.fixedLength,
+                    });
+                });
+                const length = fields.reduce((total, field) => total + field.length, 0);
+                const buffer = new Uint8Array(length);
+                let offset = 0;
+                for (const field of fields) {
+                    buffer.set(field, offset);
+                    offset += field.length;
+                }
+                return buffer;
+            }
+        }
+    }
+
+    private encodedByteLengthForCharacters(bytes: Uint8Array, offset: number, characters: number): number {
+        let cursor = offset;
+        let count = 0;
+        while (cursor < bytes.length && count < characters) {
+            const first = bytes[cursor++];
+            // CP932 lead-byte ranges. A lead byte without a following byte is
+            // consumed as one byte; the decoder will supply its replacement.
+            if ((first >= 0x81 && first <= 0x9f) || (first >= 0xe0 && first <= 0xfc)) {
+                if (cursor < bytes.length) cursor++;
+            }
+            count++;
+        }
+        return cursor - offset;
+    }
+
+    private decodeBinaryValue(bytes: Uint8Array, offset: number, layout: BinaryValueLayout, currentValue: any): { value: any, length: number } {
+        const typeName = layout.typeName.toLowerCase();
+        switch (typeName) {
+            case 'byte':
+                return { value: bytes[offset], length: 1 };
+            case 'integer':
+                return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true), length: 2 };
+            case 'long':
+                return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0, true), length: 4 };
+            case 'string': {
+                const length = layout.readToEnd
+                    ? bytes.length - offset
+                    : this.encodedByteLengthForCharacters(bytes, offset,
+                        layout.fixedLength ?? String(currentValue ?? '').length);
+                return {
+                    value: iconv.decode(Buffer.from(bytes.subarray(offset, offset + length)), Evaluator.VBA_BINARY_ENCODING),
+                    length,
+                };
+            }
+            default: {
+                const members = this.env.getType(layout.typeName);
+                if (!members) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Unsupported binary value type: ${layout.typeName}`);
+                const value = this.instantiateType(layout.typeName);
+                let length = 0;
+                for (const member of members) {
+                    if (member.isArray) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support UDT array members');
+                    }
+                    if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
+                    }
+                    const field = this.decodeBinaryValue(bytes, offset + length, {
+                        typeName: member.memberType,
+                        fixedLength: member.fixedLength,
+                    }, currentValue?.[member.name.toLowerCase()]);
+                    value[member.name.toLowerCase()] = field.value;
+                    length += field.length;
+                }
+                return { value, length };
+            }
+        }
     }
 
     private vbaWildcardToRegex(pattern: string): RegExp {
@@ -4924,17 +5057,21 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
-        // Basic implementation: read up to 1024 bytes or until EOF
-        const buffer = new Uint8Array(1024);
         let position: number | null = handle.pos ?? null;
         if (stmt.recordNumber) {
             position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
         }
 
+        const currentValue = this.evaluateExpression(stmt.variable);
+        const layout = this.getBinaryValueLayout(stmt.variable, currentValue);
+        // Read the remaining file so a CP932 variable-length string can find
+        // its character boundary. decodeBinaryValue consumes only its field.
+        const remaining = Math.max(0, this.fs.statSync(handle.path).size - (position ?? 0));
+        const buffer = new Uint8Array(remaining);
         const bytesRead = this.fs.readSync(handle.fd, buffer, 0, buffer.length, position);
-        const s = new TextDecoder().decode(buffer.subarray(0, bytesRead));
-        this.evaluateAssignmentToVariable(stmt.variable, s);
-        handle.pos! += bytesRead;
+        const decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
+        this.evaluateAssignmentToVariable(stmt.variable, decoded.value);
+        handle.pos = (position ?? handle.pos ?? 0) + decoded.length;
     }
 
     private evaluateSeekStatement(stmt: SeekStatement) {

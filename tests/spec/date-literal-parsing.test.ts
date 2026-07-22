@@ -100,6 +100,22 @@ function getYear(dateValue: any): number {
     console.log('[PASS] Bug 34-A: Date literal two-digit-year cutoff');
 }
 
+// Two-part literals use the current year and fall back from mm/dd to dd/mm
+// when the first component cannot be a month (verified in Japanese Excel).
+{
+    const code = `
+        Function TestTwoPartLiterals() As String
+            TestTwoPartLiterals = Format(#3/15#, "yyyy-mm-dd hh:nn:ss") & "," & _
+                                  Format(#15/3#, "yyyy-mm-dd hh:nn:ss") & "," & _
+                                  Format(#3/15 12:34#, "yyyy-mm-dd hh:nn:ss")
+        End Function
+    `;
+    const year = new Date().getFullYear();
+    assert.strictEqual(runFunc(code, 'TestTwoPartLiterals'),
+        `${year}-03-15 00:00:00,${year}-03-15 00:00:00,${year}-03-15 12:34:00`);
+    console.log('[PASS] Two-part date literals use current year and dd/mm fallback');
+}
+
 // Test 4: Date with English month name (#January 2, 2024#)
 {
     const code = `

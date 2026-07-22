@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 36 | 実 Excel 差分確認 #36: 日付リテラル・バイナリファイル I/O | 実機で `#3/15#` / `#15/3#` が実行年の 3 月 15 日、時刻併記が保持されることを確認し回帰テスト化。**Bug 26-1/2/4/5 修正済み**: `Long`、`Integer`、CP932 文字列、固定長文字列のみの UDT を `Put` / `Get` でバイナリ入出力できるようにした。実機の `Long 1234567`=`87 D6 12 00`、UDT=連続9バイト、`"Aあ"`=`41 82 A0` を回帰テストに固定。 | 2026-07-22 |
 | 35 | エンジン評価 #35: ファイルロック付き在庫台帳 | `Lock` / `Unlock` の範囲指定・解除、閉鎖済みファイル番号、重複範囲を評価。**Bug 35-A 発見・修正済み**: Lock/Unlock が無条件成功するスタブだった。ハンドルごとの範囲ロック管理を追加し、無効ファイル番号・重複範囲・未ロック解除を VBA エラーにした。 | 2026-07-22 |
 | 34 | エンジン評価 #34: 年次締切・休業日判定ドメイン | `HolidayCalendar.cls` と標準モジュールで **日付リテラル**・`DateValue`/`TimeValue`・`DateSerial`・`Weekday`・年末日時を評価。Collection、文字列正規化、`On Error GoTo`、ループ、条件分岐を含むサンプルで通常・不正入力を確認。`#3/15#`・`#15/3#`・うるう日・日時併記を調査。**Bug 34-A 発見・修正済み**: 2桁年の日付リテラルが常に 20xx と解釈され、Excel の既定 2029 ルールおよび `DateSerial` と不一致だった。 | 2026-07-19 |
 | 33 | エンジン評価 #33: カードゲーム（ブラックジャック風）シミュレーション・ドメイン | **定数からの定数定義・畳み込み**（`DECK_SIZE = SUIT_COUNT * RANK_COUNT`）: 一発動作。**行継続 `_`（引数リスト内・演算子後）/ コロン複文 / REM 行**: 一発動作。**`ChrW`/`AscW` 往復・非 ASCII の `Len`**: 正確（♠=9824）。**With のネスト（`With .TopCard` = Property Get 返却オブジェクト）**: 内側 `.` 解決正常。**`Do While`+`Exit Do` / Randomize シード再現性**: 正常。**Bug 33-A 発見・修正済み**: クラス内の括弧なし自メンバー参照が silent Empty。**Bug 33-B 発見・修正済み**: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド。**Bug 33-C 発見・修正済み**: 未使用 `As New` 変数の ByVal 渡しで実体が呼び出し元に反映されない。leniency 記録: `x = 1 REM comment`（コロンなし）を受理（実 VBA は構文エラー、低優先）。 | 2026-07-18 |
@@ -73,6 +74,7 @@
 | **Bug #25-6: `DatePart` の `firstdayofweek` 引数未対応** | `builtins.ts` の datepart に `firstdayofweek`/`firstweekofyear` を追加。`'w'`/`'ww'` の曜日計算で weekStart オフセットを反映。レグレッションテスト: `tests/spec/datetime.test.ts` | 評価 #25 修正 |
 | **Bug 26-3: `Open For Random Len=N` パースエラー** | `parser.ts:parseOpenStatement` でファイル番号後に `Len = <expr>` をオプション消費するよう修正（`peek().type===Identifier && value.toLowerCase()==='len'`）。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
 | **Bug 26-7: `GetAttr` 未実装 + ファイル属性定数未登録** | `evaluator.ts` に `getattr`（0 返却）/`setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`〜`vbAlias` 8定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
+| **Bug 26-1/2/4/5: `Put` / `Get` が型サイズを無視し、UDT を文字列化する** | `Long 1234567` を `87 D6 12 00`、`Long`/`Integer`/`String * 3` の UDT を9バイト連続、`"Aあ"` を CP932 の `41 82 A0` として入出力する。実機結果を `tests/spec/binary-file-io.test.ts` に固定。 | 評価 #36 修正 |
 | FSO `TextStream.ReadAll()` が `ReadLine()` 後も全体を返す | `readall` が `pos` を参照するよう修正 | `9e25adc` |
 | **Bug F: `Format(True, "0")` が "-1" でなく "True" を返す** | `formatFunc` の非 named フォーマット分岐で `VbaBoolean` を `val.value`（数値）に unwrap してから `formatNumber` に渡すよう修正。`Format(True, "0")` → "-1"、`Format(False, "0")` → "0" が正しく返るようになった。レグレッションテスト: `tests/spec/builtins.test.ts` Bug F ブロック。 | `8562e4f` |
 | **Bug G: `IsDate(1)` が False を返す（数値シリアル日付を認識しない）** | `isdate` 関数に `typeof val === 'number' && isFinite(val)` → `vbaTrue` 分岐を追加。VBA では数値は日付シリアルとして有効な日付。レグレッションテスト: `tests/spec/builtins.test.ts` Bug G ブロック。 | `8562e4f` |
@@ -232,11 +234,11 @@
 
 | 問題 | 最小再現コード | 根本原因 |
 |---|---|---|
-| **Bug 26-1: `Put #n,,var` はバイナリでなくテキスト書き込み** | `Open p For Binary As #1 : Dim lv As Long : lv=1234567 : Put #1,,lv : Close #1` → ファイルに "1234567"（7バイト）が書かれる（期待: 4バイト） | `evaluator.ts:evaluatePutStatement`（行 4332）が `String(data)` → `TextEncoder.encode()` でテキスト変換。型サイズに基づくバイナリシリアライズが未実装 |
-| **Bug 26-2: `Get #n,,var` は常に1024バイト一括読み込み（型サイズ無視）** | `Get #1,,byteVar` の後 `Get #1,,byteVar2` が Type mismatch | `evaluator.ts:evaluateGetStatement`（行 4462）が `readSync(fd, buffer, 0, 1024, pos)` で常に最大1024バイト読む。Byte=1, Integer=2, Long=4 などの型サイズ考慮が未実装 |
+| ~~**Bug 26-1: `Put #n,,var` はバイナリでなくテキスト書き込み**~~ | **評価 #36 で修正済み**: `Byte`/`Integer`/`Long` と CP932 `String` を型サイズ・バイト列で書き込む。 | |
+| ~~**Bug 26-2: `Get #n,,var` は常に1024バイト一括読み込み（型サイズ無視）**~~ | **評価 #36 で修正済み**: 宣言型・固定長文字列長から必要な範囲だけを読み、ハンドル位置を消費バイト数分だけ進める。 | |
 | ~~**Bug 26-3: `Open path For Random As #n Len = recLen` がパースエラー**~~ | **修正済み**: `parser.ts:parseOpenStatement` でファイル番号消費後に `peek().type === Identifier && value.toLowerCase() === 'len'` + `OperatorEquals` を消費して `recordLen` を記録するよう修正。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-3 ブロック。 | |
-| **Bug 26-4: UDT変数を `Put` すると "[object Object]" を書き込む** | `Put #1, 1, udtVar` → ファイル内容 "[object Object]"（15バイト） | Bug 26-1 と同根。UDT インスタンスを `String(data)` で文字列化する |
-| **Bug 26-5: UDT変数への `Get` で Error 424** | `Get #1, 1, udtVar` → Error 424 Object required | `evaluateGetStatement` が文字列を UDT 変数に代入しようとしてオブジェクト型不一致 |
+| ~~**Bug 26-4: UDT変数を `Put` すると "[object Object]" を書き込む**~~ | **評価 #36 で修正済み**: 配列を含まない UDT を宣言順に連続したバイナリフィールドとして書き込む。 | |
+| ~~**Bug 26-5: UDT変数への `Get` で Error 424**~~ | **評価 #36 で修正済み**: 同じ範囲の UDT を復元して代入する。 | |
 | ~~**Bug 26-7: `GetAttr(path)` が Error 35（未実装）**~~ | **修正済み**: `evaluator.ts` に `getattr`（常に 0 を返すスタブ）と `setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`/`vbReadOnly`/`vbHidden`/`vbSystem`/`vbVolume`/`vbDirectory`/`vbArchive`/`vbAlias` 定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-7 ブロック。 | |
 
 ### 未対応の機能制限（改善候補）
@@ -340,7 +342,7 @@
 行カバレッジ: `evaluator.ts` 92.1% / `parser.ts` 92.6% / `builtins.ts` 94.8% / `coerce.ts` 93.8% / `lexer.ts` 98.4%。
 テストスイートが一度も通していない主な分岐（= 監査もされていない挙動。今後の評価ドメイン選定・テスト追加の優先候補）:
 
-- **日付リテラルの 2 要素形式**（`#3/15#` のような mm/dd vs dd/mm 曖昧解釈、evaluator `parseDateLiteral` の大部分）
+- ~~**日付リテラルの 2 要素形式**~~ **評価 #36 で実機確認・回帰テスト追加済み**: 年なしは実行年を使い、`#3/15#` は mm/dd、月として不正な `#15/3#` は dd/mm にフォールバックし、時刻部分を保持する。
 - ~~**`&H`/`&O` 文字列の数値強制**~~ **実装・差分コーパス登録済み**: `vbaToNumber` が `&H`/`&O` を16/8進数として扱い、`CDbl("&H10")=16`、`CLng("&O17")=15` を確認。
 - ~~**`Lock` / `Unlock` 文**~~ **評価 #35 で修正済み**: ハンドルごとの範囲ロックを管理し、閉鎖済み番号・重複範囲・未ロック解除を VBA エラーにする。
 - **`Open` 文のバリエーション**（parser `parseOpenStatement` の Access/Lock 節など 2 経路）
@@ -369,7 +371,7 @@
 - ~~`Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`~~ **評価済み（評価#5）**
 - ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
 - ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
-- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#26）: `Open For Binary` は構文OK。ただし `Put #`/`Get #` がテキストベースで型サイズ無視（Bug 26-1/26-2）**
+- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#36）: `Byte`/`Integer`/`Long`、CP932文字列、配列なしUDTのバイナリ入出力を実機差分で確認。配列・可変長文字列を含むUDT、Date/Currency は未対応。**
 - ~~`Open For Random As #n Len = recLen`~~ **評価済み（評価#26）: `Len =` 節がパースエラー（Bug 26-3）。未実装**
 - ~~`FileLen(path)` / `FileDateTime(path)` / `Kill path`~~ **評価済み（評価#26）: 全正常動作**
 - ~~`GetAttr(path)`~~ **評価済み（評価#26）: Error 35 未実装（Bug 26-7）**
@@ -566,7 +568,7 @@
 72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。
 92. **`ReDim Preserve` で UDT 配列を拡張すると新インデックス要素が未初期化（Bug 28-1）**: `ReDim Preserve n(0 To 1)` で添字 1 の UDT 要素が `undefined` のまま残り `n(1).Value = 2` が Error 424 になる。`Long`/`String` の通常配列では同じ操作が正常動作するため非対称。回避策: Preserve を使わず一時配列に手動コピーして置き換えるか、`ReDim n(0 To N)` 後に手動で各要素を `Set` / 初期化する。
 93. **`Function` の戻り値と ByRef 引数書き戻しの両方を使う場合の注意**: `Function SafeDivide(a, b, ByRef errMsg)` を `r.run('SafeDivide', [10, 0, ''])` で呼ぶと、戻り値は `run()` の返り値に入り、`errMsg` の書き戻しは `args[0]` ではなく `args[2]`（第3引数）のインデックスに入る。ByRef 書き戻しは引数の元の位置（0-based インデックス）に対応する。`r.run()` が返す配列は `[戻り値, arg0書き戻し, arg1書き戻し, ...]` のように見えるが、実際は呼び出し時に渡した args 配列が直接書き換えられる（`args` オブジェクトへの ByRef 書き戻し）。README の ByRef 例が Sub のみのため Function との組み合わせが分かりにくい。
-82. **`Put #` / `Get #` はテキストベース実装（バイナリ非対応）**（評価 #26・Bug 26-1/26-2）: `Put #fNum,,longVar` は `String(data)` → UTF-8 テキストとして書き込む。`Long 1234567` を書くと "1234567"（7バイト）になる（期待値: 4バイト）。`Get #fNum,,byteVar` は常に1024バイト一括読み込みで型サイズを無視。シーケンシャル Get が機能しない。`Open For Binary` は使えるが実質テキスト I/O。
+82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36・Bug 26-1/2/4/5）: `Byte`/`Integer`/`Long` はリトルエンディアン、文字列は CP932、固定長文字列のみを含む UDT は宣言順の連続バイト列で入出力する。未対応: 配列・可変長文字列を含むUDT、Date、Currency、Single/Double、Random レコード長の実行セマンティクス。
 83. **`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）: `Len = <expr>` 節が `parser.ts:parseOpenStatement`（行 977）で未消費。`As #n` の直後にリターンするため `Len` が「ステートメントの後の予期しないトークン」になる。
 84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
