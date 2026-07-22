@@ -730,6 +730,8 @@ export class Evaluator {
         fd: number,
         mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',
         path: string,
+        access: 'Read' | 'Write' | 'Read Write',
+        lock: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write',
         buffer?: Uint8Array,
         pos?: number,
         locks?: Array<{ start: number, end: number }>
@@ -4613,8 +4615,13 @@ export class Evaluator {
         if (this.fileHandles.has(fileNum)) {
             this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
         }
+        const access = stmt.access ?? this.defaultOpenAccess(stmt.mode);
+        const lock = stmt.lock ?? 'Lock Read Write';
         for (const h of this.fileHandles.values()) {
-            if (h.path === realPath) this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
+            if (h.path !== realPath) continue;
+            if (this.openLockDenies(h.lock, access) || this.openLockDenies(lock, h.access)) {
+                this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, "Permission denied");
+            }
         }
 
         let flags = '';
@@ -4646,6 +4653,8 @@ export class Evaluator {
                 fd,
                 mode: stmt.mode,
                 path: realPath,
+                access,
+                lock,
                 pos: 0,
                 locks: []
             });
@@ -4654,6 +4663,20 @@ export class Evaluator {
             if (e.code === 'EACCES') this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
             throw e;
         }
+    }
+
+    private defaultOpenAccess(mode: OpenStatement['mode']): 'Read' | 'Write' | 'Read Write' {
+        if (mode === 'Input') return 'Read';
+        if (mode === 'Output' || mode === 'Append') return 'Write';
+        return 'Read Write';
+    }
+
+    private openLockDenies(lock: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write', access: 'Read' | 'Write' | 'Read Write'): boolean {
+        if (lock === 'Shared') return false;
+        const reads = access === 'Read' || access === 'Read Write';
+        const writes = access === 'Write' || access === 'Read Write';
+        return (reads && (lock === 'Lock Read' || lock === 'Lock Read Write'))
+            || (writes && (lock === 'Lock Write' || lock === 'Lock Read Write'));
     }
 
     private evaluateCloseStatement(stmt: CloseStatement) {

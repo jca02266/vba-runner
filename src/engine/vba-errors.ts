@@ -33,6 +33,7 @@ export const VbaErrorCode = {
     FILE_ALREADY_OPEN:                  55,
     FILE_ALREADY_EXISTS:                58,
     TOO_MANY_FILES:                     67,
+    PERMISSION_DENIED:                  70,
     PATH_FILE_ACCESS_ERROR:             75,
     PATH_NOT_FOUND:                     76,
 
@@ -63,6 +64,7 @@ export const VBA_ERROR_MESSAGES: Readonly<Record<number, string>> = {
     [VbaErrorCode.FILE_ALREADY_OPEN]:                'File already open',
     [VbaErrorCode.FILE_ALREADY_EXISTS]:              'File already exists',
     [VbaErrorCode.TOO_MANY_FILES]:                   'Too many files',
+    [VbaErrorCode.PERMISSION_DENIED]:                'Permission denied',
     [VbaErrorCode.PATH_FILE_ACCESS_ERROR]:           'Path/File access error',
     [VbaErrorCode.PATH_NOT_FOUND]:                   'Path not found',
     [VbaErrorCode.OBJECT_VARIABLE_NOT_SET]:          'Object variable or With block variable not set',
