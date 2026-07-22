@@ -1644,6 +1644,15 @@ export class Parser {
                 this.throwError(`Parse error: Expected identifier or number after 'Go To' at line ${labelToken.line}`);
             }
             return { type: 'GoToStatement', label: labelToken.value } as GoToStatement;
+        } else if (token.type === TokenType.Identifier && token.value.toLowerCase() === 'go' &&
+                   this.peek(1).type === TokenType.KeywordSub) {
+            this.advance(); // consume 'Go'
+            this.advance(); // consume 'Sub'
+            const labelToken = this.advance();
+            if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+                this.throwError(`Parse error: Expected label after 'Go Sub' at line ${labelToken.line}`);
+            }
+            return { type: 'GoSubStatement', label: labelToken.value } as GoSubStatement;
         } else if (token.type === TokenType.KeywordSet) {
             return this.parseSetStatement();
         } else if (token.type === TokenType.KeywordOn) {
