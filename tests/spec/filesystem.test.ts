@@ -93,6 +93,25 @@ console.log('[PASS] Open For Append は毎回末尾に追記される');
 }
 console.log('[PASS] Bug 26-3: Open For Random Len = N');
 
+// `Shared` is a lock clause by itself, not `Lock Shared`.
+{
+    const vfs4 = new MemoryFileSystem();
+    const code = `
+        Sub Test()
+            Open "shared.dat" For Binary Access Read Write Shared As #1
+            Close #1
+        End Sub
+    `;
+    let threw = false;
+    try {
+        evalVBASingle(code, { fs: vfs4 }).callProcedure('Test', []);
+    } catch {
+        threw = true;
+    }
+    assert.strictEqual(threw, false, 'Open ... Access Read Write Shared は Parse エラーにならない');
+}
+console.log('[PASS] Open Shared lock clause');
+
 // --- Bug 26-7: GetAttr / SetAttr スタブ, vbNormal/vbReadOnly/vbDirectory 定数 ---
 {
     const ev = evalVBASingle('');

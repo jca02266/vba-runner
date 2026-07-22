@@ -991,11 +991,11 @@ export class Parser {
                 }
             }
 
-            if (this.match(TokenType.KeywordLock)) {
+            if (this.match(TokenType.KeywordShared)) {
+                lock = 'Shared';
+            } else if (this.match(TokenType.KeywordLock)) {
                 const first = this.advance();
-                if (first.type === TokenType.KeywordShared) {
-                    lock = 'Shared';
-                } else if (first.type === TokenType.KeywordRead) {
+                if (first.type === TokenType.KeywordRead) {
                     if (this.match(TokenType.KeywordWrite)) {
                         lock = 'Lock Read Write';
                     } else {
