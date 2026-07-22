@@ -3039,11 +3039,13 @@ export class Parser {
             const m = token.value.match(/[%&@!#^]$/);
             const typeSuffix = m ? m[0] as NumberLiteral['typeSuffix'] : undefined;
             const cleanVal = token.value.replace(/[%&@!#^]$/, '');
-            // 0x/0o は整数なので isFloat = false。それ以外で . or e/E を含む場合は Double リテラル
+            // JavaScript Number() does not accept VBA's D/d exponent marker.
+            const numericVal = cleanVal.replace(/[dD]/, 'e');
+            // 0x/0o は整数なので isFloat = false。それ以外で . or e/E/D/d を含む場合は Double リテラル
             const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
-                && /[.eE]/.test(cleanVal) ? true as const : undefined;
+                && /[.eEdD]/.test(cleanVal) ? true as const : undefined;
             // Use Number() to support 0x (Hex) and 0o (Octal) prefixes
-            expr = { type: 'NumberLiteral', value: Number(cleanVal), typeSuffix, isFloat } as NumberLiteral;
+            expr = { type: 'NumberLiteral', value: Number(numericVal), typeSuffix, isFloat } as NumberLiteral;
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {

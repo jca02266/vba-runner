@@ -482,10 +482,11 @@ export class Lexer {
                         numStr += this.advance();
                     }
                 }
-                // Handle scientific notation: [eE][+-]?digits
+                // Handle scientific notation: [eEdD][+-]?digits.
+                // VBA accepts D/d as an exponent marker for Double literals.
                 const nextChar = this.peek().toLowerCase();
-                if (nextChar === 'e') {
-                    numStr += this.advance(); // consume 'e'
+                if (nextChar === 'e' || nextChar === 'd') {
+                    numStr += this.advance(); // consume exponent marker
                     if (this.peek() === '+' || this.peek() === '-') {
                         numStr += this.advance();
                     }
