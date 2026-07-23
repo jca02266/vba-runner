@@ -1183,6 +1183,9 @@ export class Evaluator {
                     (arr as any).vbaFixed = true;
                     (arr as any).vbaBase = dims[0].lower;
                     if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    if (mtLower === 'string' && member.fixedLength !== undefined) {
+                        (arr as any).__vbaElementFixedLength__ = member.fixedLength;
+                    }
                     instance[memberKey] = arr;
                 } else {
                     const arr: any[] = [];
@@ -3181,6 +3184,12 @@ export class Evaluator {
                             const { lower, upper } = dims[call.args.length - 1];
                             if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                         }
+                        const fixedLength = (method as any).__vbaElementFixedLength__ as number | undefined;
+                        if (fixedLength !== undefined && typeof val === 'string') {
+                            val = val.length > fixedLength
+                                ? val.slice(0, fixedLength)
+                                : val + ' '.repeat(fixedLength - val.length);
+                        }
                         current[lastIdx] = val;
                         return;
                     }
@@ -4909,7 +4918,7 @@ export class Evaluator {
                 }
                 const fields = members.map(member => {
                     if (member.isArray) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support UDT array members');
+                        return this.encodeBinaryUdtArray(value[member.name.toLowerCase()], member);
                     }
                     if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
                         this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
@@ -4929,6 +4938,40 @@ export class Evaluator {
                 return buffer;
             }
         }
+    }
+
+    /** Serialize a fixed-size UDT member array in VBA's declared index order. */
+    private encodeBinaryUdtArray(value: any, member: TypeMember): Uint8Array {
+        const bounds = member.arrayBounds;
+        if (!bounds || bounds.length === 0) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get requires fixed-size UDT array members');
+        }
+
+        const encodeDimension = (array: any, dimension: number): Uint8Array => {
+            if (!Array.isArray(array)) {
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Invalid UDT array member for Binary Put/Get');
+            }
+            const fields: Uint8Array[] = [];
+            const { lower, upper } = bounds![dimension];
+            for (let index = lower; index <= upper; index++) {
+                fields.push(dimension < bounds!.length - 1
+                    ? encodeDimension(array[index], dimension + 1)
+                    : this.encodeBinaryValue(array[index], {
+                        typeName: member.memberType,
+                        fixedLength: member.fixedLength,
+                    }));
+            }
+            const length = fields.reduce((total, field) => total + field.length, 0);
+            const buffer = new Uint8Array(length);
+            let offset = 0;
+            for (const field of fields) {
+                buffer.set(field, offset);
+                offset += field.length;
+            }
+            return buffer;
+        };
+
+        return encodeDimension(value, 0);
     }
 
     private encodedByteLengthForCharacters(bytes: Uint8Array, offset: number, characters: number): number {
@@ -4980,7 +5023,11 @@ export class Evaluator {
                 let length = 0;
                 for (const member of members) {
                     if (member.isArray) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support UDT array members');
+                        const field = this.decodeBinaryUdtArray(bytes, offset + length, member,
+                            value[member.name.toLowerCase()]);
+                        value[member.name.toLowerCase()] = field.value;
+                        length += field.length;
+                        continue;
                     }
                     if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
                         this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
@@ -4995,6 +5042,37 @@ export class Evaluator {
                 return { value, length };
             }
         }
+    }
+
+    /** Restore a fixed-size UDT member array while retaining its VBA bounds metadata. */
+    private decodeBinaryUdtArray(bytes: Uint8Array, offset: number, member: TypeMember, value: any): { value: any, length: number } {
+        const bounds = member.arrayBounds;
+        if (!bounds || bounds.length === 0) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get requires fixed-size UDT array members');
+        }
+
+        const decodeDimension = (array: any, dimension: number, position: number): number => {
+            if (!Array.isArray(array)) {
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Invalid UDT array member for Binary Get');
+            }
+            const { lower, upper } = bounds![dimension];
+            let length = 0;
+            for (let index = lower; index <= upper; index++) {
+                if (dimension < bounds!.length - 1) {
+                    length += decodeDimension(array[index], dimension + 1, position + length);
+                } else {
+                    const field = this.decodeBinaryValue(bytes, position + length, {
+                        typeName: member.memberType,
+                        fixedLength: member.fixedLength,
+                    }, array[index]);
+                    array[index] = field.value;
+                    length += field.length;
+                }
+            }
+            return length;
+        };
+
+        return { value, length: decodeDimension(value, 0, offset) };
     }
 
     private vbaWildcardToRegex(pattern: string): RegExp {

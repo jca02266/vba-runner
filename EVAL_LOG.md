@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 69 | 実行互換性 #69: UDT 固定長配列バイナリ I/O | **Bug 69-A 修正済み**: 固定長の一次元配列メンバーを持つ UDT を `Put` / `Get` に渡すと Error 13 になった。非ゼロ下限の `Long` 配列・固定長 `String` 配列の12バイト往復を回帰テスト化した。代入時の固定長文字列パディングも配列要素へ適用した。 | 2026-07-24 |
 | 68 | 実行互換性 #68: Currency バイナリ I/O | **Bug 68-A 修正済み**: 宣言済み `Currency` を `Put` / `Get` に渡すと未対応型 Error 13 になった。小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元し、`LOF=8` と負値の往復を回帰テスト化した。 | 2026-07-24 |
 | 67 | 実行互換性 #67: Date バイナリ I/O | **Bug 67-A 修正済み**: 宣言済み `Date` を `Put` / `Get` に渡すと未対応型 Error 13 になった。VBA Date のシリアル値をIEEE 754リトルエンディアン8バイトで直列化・復元し、`LOF=8` と日時の往復を回帰テスト化した。 | 2026-07-24 |
 | 66 | 実行互換性 #66: 浮動小数点バイナリ I/O | **Bug 66-A 修正済み**: `Put` / `Get` に宣言済みの `Single` / `Double` を渡すと未対応型 Error 13 になった。IEEE 754 リトルエンディアンの4 / 8バイトで直列化・復元し、12バイトのファイル長と往復値を回帰テスト化した。 | 2026-07-24 |
@@ -404,7 +405,7 @@
 - ~~`Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`~~ **評価済み（評価#5）**
 - ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
 - ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
-- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#36）: `Byte`/`Integer`/`Long`、CP932文字列、配列なしUDTのバイナリ入出力を実機差分で確認。配列・可変長文字列を含むUDT、Date/Currency は未対応。**
+- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#69）: 数値、CP932文字列、固定長文字列・固定長の一次元配列を含む UDT、Single/Double、Date、Currency を確認。可変長文字列を含む UDT は未対応。**
 - ~~`Open For Random As #n Len = recLen`~~ **評価済み（評価#26）: `Len =` 節がパースエラー（Bug 26-3）。未実装**
 - ~~`FileLen(path)` / `FileDateTime(path)` / `Kill path`~~ **評価済み（評価#26）: 全正常動作**
 - ~~`GetAttr(path)`~~ **評価済み（評価#26）: Error 35 未実装（Bug 26-7）**
@@ -601,7 +602,7 @@
 72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。
 92. **`ReDim Preserve` で UDT 配列を拡張すると新インデックス要素が未初期化（Bug 28-1）**: `ReDim Preserve n(0 To 1)` で添字 1 の UDT 要素が `undefined` のまま残り `n(1).Value = 2` が Error 424 になる。`Long`/`String` の通常配列では同じ操作が正常動作するため非対称。回避策: Preserve を使わず一時配列に手動コピーして置き換えるか、`ReDim n(0 To N)` 後に手動で各要素を `Set` / 初期化する。
 93. **`Function` の戻り値と ByRef 引数書き戻しの両方を使う場合の注意**: `Function SafeDivide(a, b, ByRef errMsg)` を `r.run('SafeDivide', [10, 0, ''])` で呼ぶと、戻り値は `run()` の返り値に入り、`errMsg` の書き戻しは `args[0]` ではなく `args[2]`（第3引数）のインデックスに入る。ByRef 書き戻しは引数の元の位置（0-based インデックス）に対応する。`r.run()` が返す配列は `[戻り値, arg0書き戻し, arg1書き戻し, ...]` のように見えるが、実際は呼び出し時に渡した args 配列が直接書き換えられる（`args` オブジェクトへの ByRef 書き戻し）。README の ByRef 例が Sub のみのため Function との組み合わせが分かりにくい。
-82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36・Bug 26-1/2/4/5）: `Byte`/`Integer`/`Long` はリトルエンディアン、文字列は CP932、固定長文字列のみを含む UDT は宣言順の連続バイト列で入出力する。未対応: 配列・可変長文字列を含むUDT、Date、Currency、Single/Double、Random レコード長の実行セマンティクス。
+82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36〜#69）: 数値はリトルエンディアン、文字列は CP932、固定長文字列・固定長の一次元配列を含む UDT は宣言順の連続バイト列で入出力する。Single/Double、Date、Currency、Random のレコード長も対応。未対応: 可変長文字列を含む UDT、多次元配列の実機レイアウト。
 83. **`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）: `Len = <expr>` 節が `parser.ts:parseOpenStatement`（行 977）で未消費。`As #n` の直後にリターンするため `Len` が「ステートメントの後の予期しないトークン」になる。
 84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。

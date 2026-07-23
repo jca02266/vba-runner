@@ -475,16 +475,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Put` / `Get` の `Single` / `Double`**: IEEE 754 リトルエンディアン 4 / 8 バイトで直列化・復元。 | `binary-floating-point.test.ts`
 - ✅ **`Put` / `Get` の `Date`**: VBA Date シリアル値を IEEE 754 リトルエンディアン 8 バイトで直列化・復元。 | `binary-date.test.ts`
 - ✅ **`Put` / `Get` の `Currency`**: 小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元。 | `binary-currency.test.ts`
-- ❌ **バグ（2026-07-19 実機検証で判明）: `Put`/`Get` の UDT シリアライズが未実装のまま**
-  - 経緯: 下表「ファイル操作ステートメント」の Put/Get Statement は ✅（基本の数値・文字列型は動作）だが、UDT を渡すケースは実装されていない。「未検証」ではなく実際に動かないことを実機比較で確認した
-  - 実 VBA 実機確認（`Type Rec: A As Long: B As Integer: End Type`、6バイト = Long 4 + Integer 2）:
-    - `Put #f, 1, r` 後の `FileLen` = **6**（型サイズどおりの固定バイナリレイアウト）
-    - `Get #f, 1, r2` で `r2.A`/`r2.B` とも正確に読み戻せる
-  - vba-runner の現状:
-    - `Put`: UDT インスタンスを `String(data)` で `"[object Object]"`（15バイト）という文字列として書き込んでしまう（`evaluateFileIO` 相当の実装がテキストベースの `String()` 変換に依存）
-    - `Get`: 書き込まれた文字列を UDT 変数へ代入しようとして **Error 424**（Object required）になる
-  - 対応するには、UDT の各フィールドを宣言型（`Long`=4byte, `Integer`=2byte, `String * N`=Nbyte 等）に基づいて固定長バイナリへ直列化・復元するレイヤーの新規実装が必要。既存の EVAL_LOG.md Bug 26-1/26-2/26-4/26-5 と同一問題
-  - 固定長文字列・多次元配列のバイナリレイアウトは未検証のまま（UDT の実装と合わせて確認する）
+- ✅ **`Put` / `Get` の固定長 UDT**: 宣言順にスカラー、固定長文字列、固定長の一次元配列を連続バイト列として直列化・復元。 | `binary-file-io.test.ts`, `binary-udt-array.test.ts`
+- ⚠️ **残件: 可変長 `String` を含む UDT と多次元配列の実機レイアウト**: 前者はファイルレコードの固定サイズを決められないため Error 13 とする。後者はエンジンが再帰的に処理するが、実 VBA との差分は未検証。
 
 ---
 
