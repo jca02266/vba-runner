@@ -1793,8 +1793,7 @@ export class Parser {
             const expr = this.parsePrimary();
             if (expr.type === 'CallExpression') {
                 return { type: 'CallStatement', expression: expr } as CallStatement;
-            } else if (expr.type === 'Identifier' || expr.type === 'MemberExpression' ||
-                       expr.type === 'ImplicitWithObjectExpression') {
+            } else if (expr.type === 'ImplicitWithObjectExpression') {
                 // `Call .Method arg` is valid inside With blocks even without parentheses.
                 const args: Expression[] = [];
                 if (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF &&
@@ -1805,6 +1804,14 @@ export class Parser {
                     }
                 }
                 return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args } } as CallStatement;
+            } else if (expr.type === 'Identifier' || expr.type === 'MemberExpression') {
+                // Outside With, Call arguments must use parentheses. `Call Foo` is
+                // still valid for an argumentless call.
+                if (this.peek().type !== TokenType.Newline && this.peek().type !== TokenType.EOF &&
+                    this.peek().type !== TokenType.OperatorColon) {
+                    this.throwError(`Parse error: syntax error at line ${this.peek().line}`);
+                }
+                return { type: 'CallStatement', expression: { type: 'CallExpression', callee: expr, args: [] } } as CallStatement;
             }
             this.throwError(`Parse error: Expected procedure call after 'Call'`);
         } else if (token.type === TokenType.Identifier && token.value.toLowerCase() === 'debug' &&
