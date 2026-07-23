@@ -496,6 +496,12 @@ export interface NamedArgument extends Expression {
     value: Expression;
 }
 
+/** Call-site ByVal modifier, which suppresses a callee's ByRef writeback. */
+export interface ByValArgument extends Expression {
+    type: 'ByValArgument';
+    value: Expression;
+}
+
 export interface MemberExpression extends Expression {
     type: 'MemberExpression';
     object: Expression;
@@ -3231,6 +3237,10 @@ export class Parser {
         const next = this.peek().type;
         if (next === TokenType.OperatorComma || next === TokenType.OperatorRParen || this.isAtTerminator()) {
             return { type: 'MissingArgument' } as any;
+        }
+
+        if (this.match(TokenType.KeywordByVal)) {
+            return { type: 'ByValArgument', value: this.parseExpression() } as ByValArgument;
         }
 
         // Check for named argument: name := Expression

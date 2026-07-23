@@ -66,6 +66,7 @@ import {
     DictionaryAccessExpression,
     TypeOfIsExpression,
     NamedArgument,
+    ByValArgument,
     OptionPrivateModuleStatement,
     EventDeclaration,
     EnumDeclaration,
@@ -5985,6 +5986,8 @@ export class Evaluator {
             case 'NamedArgument':
                 // Named arguments should only appear as call arguments, but evaluate the value if encountered
                 return this.evaluateExpression((expr as NamedArgument).value);
+            case 'ByValArgument':
+                return this.evaluateExpression((expr as ByValArgument).value);
             default:
                 throw new Error(`Execution error: Unknown expression type ${expr.type}`);
         }
@@ -6646,7 +6649,7 @@ export class Evaluator {
                         } else if (i < positionalArgExpressions.length) {
                             originalExpr = positionalArgExpressions[i];
                         }
-                        if (originalExpr) {
+                        if (originalExpr && originalExpr.type !== 'ByValArgument') {
                             byRefArgs.push({
                                 paramName: param.name,
                                 originalExpr: originalExpr
