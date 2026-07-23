@@ -3623,6 +3623,9 @@ export class Evaluator {
                         (defaultVal as any).vbaBase = this.arrayBase;
                         (defaultVal as any).vbaFixed = false;
                     }
+                    if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mt)) {
+                        (defaultVal as any).__vbaElementType__ = mt;
+                    }
                     if (decl.objectType && this.env.getType(decl.objectType)) {
                         (defaultVal as any).__vbaElementTypeName__ = decl.objectType;
                         if ((defaultVal as any).vbaFixed) {

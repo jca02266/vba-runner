@@ -642,4 +642,29 @@ End Function
     console.log('[PASS] Bug 33-A: クラス内の括弧なし自メンバー参照');
 }
 
+// Bug 73-A: クラスフィールドの動的型付き配列がReDim後に要素型を失う
+{
+    const code = `
+Class TypedBucket
+    Private values() As Integer
+    Public Sub SetFirst(ByVal value As Double)
+        ReDim values(0 To 0)
+        values(0) = value
+    End Sub
+    Public Function FirstValue() As Double
+        FirstValue = values(0)
+    End Function
+End Class
+
+Function TestTypedClassArray() As Double
+    Dim bucket As New TypedBucket
+    bucket.SetFirst 1.5
+    TestTypedClassArray = bucket.FirstValue
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestTypedClassArray'), 2,
+        'クラスフィールドのInteger配列もReDim後に要素代入を強制変換する');
+    console.log('[PASS] Bug 73-A: クラスフィールドのReDim後も配列要素型を保持する');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

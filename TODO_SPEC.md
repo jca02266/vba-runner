@@ -602,6 +602,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 - ✅ **`ReDim Preserve` の多次元配列での制約**: 最終次元のみ変更可 | `redim-preserve-multidim.test.ts`
 - ✅ **UDT 配列の `ReDim` 時の要素初期化**: `Dim d() As MyType` + `ReDim d(0 To N)` で各要素が UDT インスタンスではなく `0` になるバグを修正 | `udt-type.test.ts`
 - ✅ **`ReDim` 後の型付き配列要素の型強制**: `Dim d() As Integer` の `ReDim` / `ReDim Preserve` 後も、要素代入を Integer として強制変換する。 | `array-functions.test.ts`
+- ✅ **クラスフィールド配列の型強制**: `Private d() As Integer` の `ReDim` 後も、通常のローカル配列と同じく要素代入を宣言型へ強制変換する。 | `class-module.test.ts`
 - ✅ **`Byte` 配列への文字列の暗黙代入**（`Dim b() As Byte : b = "AB"`）
   - 実 VBA 実機確認（2026-07-19）: 代入は合法で、`UBound(b) = 3`（1文字 = 2バイト）。中身は UTF-16LE のリトルエンディアン生バイト列（`"AB"` → `b(0)=&H41('A'下位), b(1)=&H00, b(2)=&H42('B'下位), b(3)=&H00`）
   - 評価 #37 で修正: 文字列代入時に対象が `Byte()` なら UTF-16LE のコード単位へ展開し、下限 0 の動的配列として保持する。`"Aあ"` → `41 00 42 30` を回帰テスト化。
