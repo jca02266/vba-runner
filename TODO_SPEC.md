@@ -540,7 +540,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 | ✅ | §5.4.2.12 | `Go To`（2語形式）: `Go` と `To` を連続キーワードとして受理し、名前・数値ラベルへのジャンプを回帰テスト化 | `go-to-statement.test.ts` |
 | ✅ | §5.4.2.14 | `Go Sub`（2語形式）: `Go` と `Sub` を連続キーワードとして受理し、名前・数値ラベルを回帰テスト化 | `go-sub-statement.test.ts` |
 | ✅ | §5.4.3.1 | `Dim Shared x As Integer`（VBA6 方言）: `Shared` 修飾子を保持して通常の `Dim` として受理 | `dim-shared.test.ts` |
-| ⚠️ | §5.4.5.1 | `Open "f.txt" For Random Access Read Shared As #1`（`Shared` スタンドアロン） | ネットワークファイル |
+| ✅ | §5.4.5.1 | `Open "f.txt" For Random Access Read Shared As #1`（`Shared` スタンドアロン）: Access 指定と併用して受理 | `open-shared-lock.test.ts` |
 | ✅ | §5.4.5.4/5 | `Lock #1, To 100`（start 省略の `To end` 形式）: start を 1 として扱い、対になる `Unlock` も受理 | `lock-omitted-start.test.ts` |
 | ✅ | §5.4.5.6 | `Line Input #1, arr(i)`（variable が配列要素）: 代入先を識別子に限定せず配列要素を受理 | `line-input-array-element.test.ts` |
 | ✅ | §5.2.3.3 | UDT メンバー名として `End`: `End Type` の組だけを終端とし、メンバー名を受理 | `udt-end-member.test.ts` |
