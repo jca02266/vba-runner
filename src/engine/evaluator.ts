@@ -736,6 +736,7 @@ export class Evaluator {
         lock: 'Shared' | 'Lock Read' | 'Lock Write' | 'Lock Read Write',
         buffer?: Uint8Array,
         pos?: number,
+        recordLen?: number,
         locks?: Array<{ start: number, end: number }>
     }> = new Map();
     private sandbox: SandboxPath;
@@ -4677,6 +4678,13 @@ export class Evaluator {
             }
 
             const fd = this.fs.openSync(realPath, flags);
+            let recordLen: number | undefined;
+            if (stmt.mode === 'Random') {
+                recordLen = stmt.recordLen ? Number(this.evaluateExpression(stmt.recordLen)) : 128;
+                if (!Number.isInteger(recordLen) || recordLen < 1) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                }
+            }
             this.fileHandles.set(fileNum, {
                 fd,
                 mode: stmt.mode,
@@ -4684,6 +4692,7 @@ export class Evaluator {
                 access,
                 lock,
                 pos: 0,
+                recordLen,
                 locks: []
             });
         } catch (e: any) {
@@ -4818,10 +4827,7 @@ export class Evaluator {
         const layout = this.getBinaryValueLayout(stmt.data, data);
         const buffer = this.encodeBinaryValue(data, layout);
 
-        let position: number | null = handle.pos ?? null;
-        if (stmt.recordNumber) {
-            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
-        }
+        const position = this.resolveFileRecordPosition(handle, stmt.recordNumber);
 
         this.fs.writeSync(handle.fd, buffer, 0, buffer.length, position);
         handle.pos = (position ?? handle.pos ?? 0) + buffer.length;
@@ -5119,10 +5125,7 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
-        let position: number | null = handle.pos ?? null;
-        if (stmt.recordNumber) {
-            position = (Number(this.evaluateExpression(stmt.recordNumber)) - 1);
-        }
+        const position = this.resolveFileRecordPosition(handle, stmt.recordNumber);
 
         const currentValue = this.evaluateExpression(stmt.variable);
         const layout = this.getBinaryValueLayout(stmt.variable, currentValue);
@@ -5134,6 +5137,20 @@ export class Evaluator {
         const decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
         this.evaluateAssignmentToVariable(stmt.variable, decoded.value);
         handle.pos = (position ?? handle.pos ?? 0) + decoded.length;
+    }
+
+    private resolveFileRecordPosition(
+        handle: { mode: OpenStatement['mode']; pos?: number; recordLen?: number },
+        recordNumber?: Expression,
+    ): number | null {
+        if (!recordNumber) return handle.pos ?? null;
+        const record = Number(this.evaluateExpression(recordNumber));
+        if (!Number.isInteger(record) || record < 1) {
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
+        return handle.mode === 'Random'
+            ? (record - 1) * (handle.recordLen ?? 128)
+            : record - 1;
     }
 
     private evaluateSeekStatement(stmt: SeekStatement) {

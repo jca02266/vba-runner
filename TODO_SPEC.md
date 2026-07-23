@@ -471,6 +471,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ❌ 複数の `Evaluator` インスタンス間で単一の `MemoryFileSystem` を共有するためのテスト用設定の追加。
 
 #### 4. バイナリ操作の極致
+- ✅ **`Open For Random Len = N` のレコード位置**: `Len` をハンドルに保持し、`Put` / `Get` のレコード番号を `(record - 1) * Len` バイト位置へ換算。 | `random-record-length.test.ts`
 - ❌ **バグ（2026-07-19 実機検証で判明）: `Put`/`Get` の UDT シリアライズが未実装のまま**
   - 経緯: 下表「ファイル操作ステートメント」の Put/Get Statement は ✅（基本の数値・文字列型は動作）だが、UDT を渡すケースは実装されていない。「未検証」ではなく実際に動かないことを実機比較で確認した
   - 実 VBA 実機確認（`Type Rec: A As Long: B As Integer: End Type`、6バイト = Long 4 + Integer 2）:
