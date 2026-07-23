@@ -132,4 +132,21 @@ function parse(src: string) {
     console.log('[PASS] 演算子後改行エラーの位置: line=', diag.loc.start.line, 'col=', diag.loc.start.column);
 }
 
+// 13. `Dim value As` は型名欠落を診断し、後続手続きを保持する
+{
+    const src = [
+        'Sub Broken()',
+        '    Dim value As',
+        'End Sub',
+        'Sub StillUsable()',
+        'End Sub',
+    ].join('\n');
+    const ast = parse(src);
+    assert.ok(ast.diagnostics.some(d => /Expected type name after 'As'/.test(d.message)),
+        '型名欠落の診断が記録される');
+    assert.ok(ast.body.some((stmt: any) => stmt.type === 'ProcedureDeclaration' && stmt.name.name === 'StillUsable'),
+        '後続手続きは回復後も保持される');
+    console.log('[PASS] Dim As 型名欠落の診断と回復');
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');

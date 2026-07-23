@@ -2035,6 +2035,8 @@ export class Parser {
                             this.advance(); // consume the constant name — fixedLength stays undefined
                         }
                     }
+                } else {
+                    this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
                 }
             }
 

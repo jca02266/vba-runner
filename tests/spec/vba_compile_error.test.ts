@@ -569,5 +569,18 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         __fail__++;
     }
 }
+
+// [parse] missing_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Dim value As`, 1, /expected type name after 'as'/i, 'missing_type_after_as');
+        console.log('[PASS] missing_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_type_after_as:', e.message);
+        __fail__++;
+    }
+}
 console.log(`\n=== Summary: ${__pass__} passed, ${__fail__} failed ===`);
 if (__fail__ > 0) process.exit(1);

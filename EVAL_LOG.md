@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 71 | 実行互換性 #71: 宣言の型名欠落 | **Bug 71-A 修正済み**: `Dim value As` が型名なしでも黙って Variable 宣言として受理された。通常実行では型名欠落を構文エラーにし、LSP の `errorRecovery` では診断を記録して後続手続きを保持する回帰テストを追加した。 | 2026-07-24 |
 | 70 | 実行互換性 #70: `ReDim` 型付き配列 | **Bug 70-A 修正済み**: `Dim values() As Integer` の `ReDim` 後に要素型情報が失われ、`1.5` が Integer の `2` へ強制変換されずそのまま残った。通常の `ReDim` と `ReDim Preserve` の両方で要素型を継承し、代入時の型強制を回帰テスト化した。 | 2026-07-24 |
 | 69 | 実行互換性 #69: UDT 固定長配列バイナリ I/O | **Bug 69-A 修正済み**: 固定長の一次元配列メンバーを持つ UDT を `Put` / `Get` に渡すと Error 13 になった。非ゼロ下限の `Long` 配列・固定長 `String` 配列の12バイト往復を回帰テスト化した。代入時の固定長文字列パディングも配列要素へ適用した。 | 2026-07-24 |
 | 68 | 実行互換性 #68: Currency バイナリ I/O | **Bug 68-A 修正済み**: 宣言済み `Currency` を `Put` / `Get` に渡すと未対応型 Error 13 になった。小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元し、`LOF=8` と負値の往復を回帰テスト化した。 | 2026-07-24 |
@@ -291,7 +292,7 @@
 | ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
 | ~~`Dim s As String * N`（固定長文字列）が未実装~~（Bug 21-1）~~ | **修正済み**: `VariableDeclarator.fixedLength` と `TypeMember.fixedLength` を追加。`parseDimStatement` / Type ブロックパーサーで `As String * N` の `* N` を消費・記録。`Environment.coerceToType` でパディング・切り捨てを適用。UDT メンバー代入も `__fixedLengths__` で対応。`tests/spec/fixed-length-string.test.ts`（12 テスト）。 |
 | ~~`Currency` 型が固定小数点演算でない~~ | **修正済み（評価 #23 で確認）**: `CCur(0.1) + CCur(0.2) = 0.3` 厳密一致。内部 BigInt ベースの 4桁固定小数点演算に刷新済み。`VBARunner.run()` / `.eval()` の戻り値も `number` に正規化（Bug C-1 修正）。 |
-| `Dim x As`（型名欠落）が構文エラーにならない | `Dim x As\n` と書くと parser の error recovery が黙って回復し、`VBA014` 未使用変数警告のみが出る。構文ミスを新規ユーザーが気付けない可能性がある。 |
+| ~~`Dim x As`（型名欠落）が構文エラーにならない~~ | **修正済み（評価 #71）**: 通常実行では構文エラー、LSP の `errorRecovery` では診断を残して後続手続きを保持する。 |
 | VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy | `Function Add(a As Long, b As Long)` のような標準的な宣言でも `VBA003` が severity 2（Warning）で出る。VBA の慣習では省略が普通のため、初回ロード時に「いきなり Warning が多い」印象を与えやすい。Hint（severity 4）への変更か設定で off 可能にすると親切。 |
 | ~~`vba-types.json` 削除時に型スタブがリセットされない~~ | **修正済み**: `server.ts` に `clearTypeStubs()` を追加し、`extension.ts` の `typeStubsWatcher.onDidDelete` でフック。`vba-types.json` 削除時に補完プロバイダーの型スタブが即座にクリアされる。 |
 | ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
