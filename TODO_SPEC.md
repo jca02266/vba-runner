@@ -548,7 +548,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 | ✅ | §5.3.1.3 | `Function Foo$()` 等 TYPED-NAME サフィックス付き宣言名: 宣言時にサフィックスを戻り型へ反映し、通常名 `Foo()` で呼び出せる | `typed-procedure-name.test.ts` |
 | ✅ | §5.3.1.5 | `ByVal Optional x As Integer`（ByVal が先）: パラメーター修飾子を順不同で受理 | `parameter-modifier-order.test.ts` |
 | ✅ | §5.6.5 | `1.5D10`（VBA Double `D` 指数表記）: **実 VBA 実機確認済み（2026-07-19）**の `x = 1.5D+10` / `y = 2D5`（ともに `Double`）に合わせ、レキサーが `D`/`d` を指数部として受理し、パーサーで JavaScript の `e` へ正規化して数値化するよう修正。`1.5D+10` / `2D5` / `1d-2` と `TypeName` の回帰テストを追加 | 科学技術計算 |
-| ⚠️ | §5.6.9.5 | 連鎖比較演算子の優先度誤り（`a = b < c` → `a = (b < c)` と解析、正しくは `(a = b) < c`） | 極めて稀 |
+| ✅ | §5.6.9.5 | 連鎖比較演算子: 比較演算子を同一優先度・左結合として解析し、`a = b < c` を `(a = b) < c` と評価 | `comparison-operator-precedence.test.ts` |
 | ✅ | §5.6.13.1 | `Foo(ByVal x)`（呼び出し側 ByVal）: 呼び出し引数を値渡しとして受理し、ByRef 書き戻しを抑止 | `call-byval-argument.test.ts` |
 | ✅ | §5.6.15 | `With dict: !Key = v`（行頭 `!`）: With の辞書アクセスを代入・参照とも受理 | `with-dictionary-bang.test.ts` |
 | ✅ | §5.6.16.7 | `Dim x As A.B.C`（type-expression の2段階以上ドット修飾）: 多段の型修飾名を保持して受理 | `multi-qualified-type-name.test.ts` |

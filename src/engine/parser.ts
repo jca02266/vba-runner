@@ -2985,15 +2985,20 @@ export class Parser {
     }
 
     private parseEquality(): Expression {
-        let left = this.parseRelational();
+        // VBA comparison operators have one precedence level and associate left.
+        let left = this.parseConcatenation();
         while (
             this.peek().type === TokenType.OperatorEquals ||
             this.peek().type === TokenType.OperatorNotEquals ||
+            this.peek().type === TokenType.OperatorLessThan ||
+            this.peek().type === TokenType.OperatorGreaterThan ||
+            this.peek().type === TokenType.OperatorLessThanOrEqual ||
+            this.peek().type === TokenType.OperatorGreaterThanOrEqual ||
             this.peek().type === TokenType.KeywordIs ||
             this.peek().type === TokenType.KeywordLike
         ) {
             const operator = this.advance().value;
-            const right = this.parseRelational();
+            const right = this.parseConcatenation();
             left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
         }
         return left;
@@ -3171,7 +3176,7 @@ export class Parser {
             }
             expr = { type: 'ParenthesizedExpression', expression: innerExpr } as any; // Type added implicitly or via cast
         } else if (token.type === TokenType.KeywordTypeOf) {
-            expr = this.parseRelational(); // Stop before 'Is'
+            expr = this.parseConcatenation(); // Stop before 'Is'
             if (!this.match(TokenType.KeywordIs)) {
                 this.throwError(`Parse error: Expected 'Is' after 'TypeOf' at line ${this.peek().line}`);
             }
