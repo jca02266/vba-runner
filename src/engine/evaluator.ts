@@ -3091,6 +3091,9 @@ export class Evaluator {
                     }
                     // 型付き配列の要素代入: __vbaElementType__ に従って強制変換
                     const elemType = (target as any).__vbaElementType__;
+                    if ((target as any).__vbaElementObjectTypeName__) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+                    }
                     if (elemType && elemType !== 'variant') {
                         val = this.coerceToDeclaredType(val,
                             elemType.charAt(0).toUpperCase() + elemType.slice(1));

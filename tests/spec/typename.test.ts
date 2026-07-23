@@ -85,10 +85,31 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 ReDim widgets(0)
                 ClassArrayInfo = CStr(VarType(widgets)) & ":" & TypeName(widgets)
             End Function
+            Function AssignClassArrayWithSet() As String
+                Dim widgets() As Widget
+                ReDim widgets(0)
+                Set widgets(0) = New Widget
+                AssignClassArrayWithSet = TypeName(widgets(0))
+            End Function
+            Sub AssignClassArrayWithoutSet()
+                Dim widgets() As Widget
+                ReDim widgets(0)
+                widgets(0) = 1
+            End Sub
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
         'クラス型配列は vbArray + vbObject と宣言クラス名を返す');
+    assert.strictEqual(ev.callProcedure('AssignClassArrayWithSet', []), 'Widget',
+        'クラス型配列要素へ Set でインスタンスを代入できる');
+    let errorNumber = 0;
+    try {
+        ev.callProcedure('AssignClassArrayWithoutSet', []);
+    } catch (error: any) {
+        errorNumber = error?.number ?? 0;
+    }
+    assert.strictEqual(errorNumber, 424,
+        'クラス型配列要素への Let 代入は Object required になる');
     console.log('[PASS] Bug 77-A: クラス型配列の VarType / TypeName');
 }
 
