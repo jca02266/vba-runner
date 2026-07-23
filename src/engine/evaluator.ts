@@ -4894,6 +4894,12 @@ export class Evaluator {
                 new DataView(buffer.buffer).setFloat64(0, value instanceof VbaDate ? value.value : Number(value), true);
                 return buffer;
             }
+            case 'currency': {
+                const buffer = new Uint8Array(8);
+                const internal = value instanceof VbaCurrency ? value.internal : VbaCurrency.fromNumber(Number(value)).internal;
+                new DataView(buffer.buffer).setBigInt64(0, internal, true);
+                return buffer;
+            }
             case 'string':
                 return iconv.encode(String(value), Evaluator.VBA_BINARY_ENCODING);
             default: {
@@ -4955,6 +4961,8 @@ export class Evaluator {
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getFloat64(0, true), length: 8 };
             case 'date':
                 return { value: new VbaDate(new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getFloat64(0, true)), length: 8 };
+            case 'currency':
+                return { value: new VbaCurrency(new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getBigInt64(0, true)), length: 8 };
             case 'string': {
                 const length = layout.readToEnd
                     ? bytes.length - offset
