@@ -2987,7 +2987,7 @@ export class Evaluator {
             // VBA coerces a String assigned to a dynamic Byte() into its UTF-16LE
             // code units. This is distinct from Binary Put/Get, which uses the
             // active ANSI code page for strings.
-            if (Array.isArray(oldVal) && oldVal.__vbaElementType__ === 'byte' && typeof val === 'string') {
+            if (Array.isArray(oldVal) && (oldVal as any).__vbaElementType__ === 'byte' && typeof val === 'string') {
                 const bytes: any[] = [];
                 for (let i = 0; i < val.length; i++) {
                     const codeUnit = val.charCodeAt(i);
