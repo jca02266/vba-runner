@@ -3397,7 +3397,15 @@ export class Parser {
         this.advance(); // 'Implements'
         const idToken = this.advance();
         if (!this.isIdentifier(idToken)) this.throwError(`Parse error at line ${idToken.line}: Expected interface name after 'Implements'`);
-        return { type: 'ImplementsDirective', interfaceName: idToken.value };
+        let interfaceName = idToken.value;
+        while (this.match(TokenType.OperatorDot)) {
+            const part = this.advance();
+            if (!this.isNameToken(part)) {
+                this.throwError(`Parse error at line ${part.line}: Expected interface name after '.'`);
+            }
+            interfaceName += '.' + part.value;
+        }
+        return { type: 'ImplementsDirective', interfaceName };
     }
 
     private parseAppActivateStatement(): AppActivateStatement {
