@@ -537,6 +537,11 @@ export interface ImplicitWithObjectExpression extends Expression {
     property: Identifier;
 }
 
+export interface ImplicitWithDictionaryAccessExpression extends Expression {
+    type: 'ImplicitWithDictionaryAccessExpression';
+    property: Identifier;
+}
+
 export interface NumberLiteral extends Expression {
     type: 'NumberLiteral';
     value: number;
@@ -1807,7 +1812,7 @@ export class Parser {
                    this.peek(2).type === TokenType.KeywordPrint) {
             return this.parseDebugPrintStatement();
         } else if (token.type === TokenType.Identifier || token.type === TokenType.ForeignName ||
-                   token.type === TokenType.OperatorDot || token.type === TokenType.KeywordMe ||
+                   token.type === TokenType.OperatorDot || token.type === TokenType.OperatorExclamation || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
             return this.parseIdentifierOrCallStatement();
@@ -3178,6 +3183,13 @@ export class Parser {
             }
             const property = { type: 'Identifier', name: propToken.value } as Identifier;
             expr = { type: 'ImplicitWithObjectExpression', property } as ImplicitWithObjectExpression;
+        } else if (token.type === TokenType.OperatorExclamation) {
+            const propToken = this.advance();
+            if (!this.isNameToken(propToken)) {
+                this.throwError(`Parse error: Expected identifier after '!' at line ${propToken.line}`);
+            }
+            const property = { type: 'Identifier', name: propToken.value } as Identifier;
+            expr = { type: 'ImplicitWithDictionaryAccessExpression', property } as ImplicitWithDictionaryAccessExpression;
         } else if (token.type === TokenType.Newline) {
             // Check if the token before the newline suggests a missing line continuation
             const prevToken = this.tokens[Math.max(0, this.pos - 2)];

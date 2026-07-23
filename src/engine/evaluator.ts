@@ -34,6 +34,7 @@ import {
     ForEachStatement,
     WithStatement,
     ImplicitWithObjectExpression,
+    ImplicitWithDictionaryAccessExpression,
     GoToStatement,
     StopStatement,
     EndStatement,
@@ -3263,6 +3264,16 @@ export class Evaluator {
             } else {
                 this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
             }
+        } else if (left.type === 'ImplicitWithDictionaryAccessExpression') {
+            if (this.withObjectStack.length === 0) {
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+            }
+            const obj = this.withObjectStack[this.withObjectStack.length - 1];
+            if (obj && obj.__isVbaDict__) {
+                obj.__map__.set((left as ImplicitWithDictionaryAccessExpression).property.name, val);
+            } else {
+                this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+            }
         } else if (left.type === 'MemberExpression') {
             const member = left as MemberExpression;
             const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
@@ -5979,6 +5990,8 @@ export class Evaluator {
                 return this.evaluateBinaryExpression(expr as BinaryExpression);
             case 'ImplicitWithObjectExpression':
                 return this.evaluateImplicitWithObjectExpression(expr as ImplicitWithObjectExpression);
+            case 'ImplicitWithDictionaryAccessExpression':
+                return this.evaluateImplicitWithDictionaryAccessExpression(expr as ImplicitWithDictionaryAccessExpression);
             case 'ParenthesizedExpression':
                 return this.evaluateExpression((expr as ParenthesizedExpression).expression);
             case 'NewExpression':
@@ -6989,6 +7002,15 @@ export class Evaluator {
         }
 
         // Fallback or error (some objects might support ! besides Dictionary, but we only have Dictionary for now)
+        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+    }
+
+    private evaluateImplicitWithDictionaryAccessExpression(expr: ImplicitWithDictionaryAccessExpression): any {
+        if (this.withObjectStack.length === 0) {
+            this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+        }
+        const obj = this.withObjectStack[this.withObjectStack.length - 1];
+        if (obj && obj.__isVbaDict__) return obj.__map__.get(expr.property.name);
         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
     }
 
