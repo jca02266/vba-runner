@@ -3439,6 +3439,13 @@ export class Evaluator {
                         this.fillArrayWithUdtInstances(initialValue, decl.objectType);
                     }
                 }
+                if (decl.objectType && (
+                    this.classDefinitions.has(decl.objectType.toLowerCase()) ||
+                    this.externalObjectFactories.has(decl.objectType.toLowerCase()) ||
+                    ['object', 'collection'].includes(decl.objectType.toLowerCase())
+                )) {
+                    (initialValue as any).__vbaElementObjectTypeName__ = decl.objectType;
+                }
             } else if (decl.isNew && decl.objectType === 'Collection') {
                 initialValue = new VbaCollection();
             } else if (decl.isNew && decl.objectType && (
@@ -3631,6 +3638,12 @@ export class Evaluator {
                         if ((defaultVal as any).vbaFixed) {
                             this.fillArrayWithUdtInstances(defaultVal, decl.objectType);
                         }
+                    }
+                    if (decl.objectType && (
+                        this.classDefinitions.has(mt) || this.externalObjectFactories.has(mt) ||
+                        ['object', 'collection'].includes(mt)
+                    )) {
+                        (defaultVal as any).__vbaElementObjectTypeName__ = decl.objectType;
                     }
                 }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
@@ -5987,6 +6000,13 @@ export class Evaluator {
         const elementType: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementType__ : undefined) ??
             (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined);
+        const elementObjectTypeName: string | undefined =
+            (Array.isArray(oldArr) ? (oldArr as any).__vbaElementObjectTypeName__ : undefined) ??
+            (decl.objectType && (
+                this.classDefinitions.has(decl.objectType.toLowerCase()) ||
+                this.externalObjectFactories.has(decl.objectType.toLowerCase()) ||
+                ['object', 'collection'].includes(decl.objectType.toLowerCase())
+            ) ? decl.objectType : undefined);
 
         let defaultValue: any = 0;
         if (decl.objectType) {
@@ -6029,6 +6049,9 @@ export class Evaluator {
                 if (!isPreserve) {
                     this.fillArrayWithUDT(arr, (arr as any).__vbaDimensions__, 0, elementTypeName);
                 }
+            }
+            if (elementObjectTypeName) {
+                (arr as any).__vbaElementObjectTypeName__ = elementObjectTypeName;
             }
 
             if (isPreserve && Array.isArray(oldArr)) {

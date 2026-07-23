@@ -75,6 +75,23 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Bug 76-A: 型付き配列の VarType / TypeName');
 }
 
+// Bug 77-A: クラス型配列の VarType / TypeName が Variant() になる
+{
+    const ev = evalVBAModules([
+        { name: 'Widget', code: 'Class Widget\nEnd Class' },
+        { name: 'Module1', code: `
+            Function ClassArrayInfo() As String
+                Dim widgets() As Widget
+                ReDim widgets(0)
+                ClassArrayInfo = CStr(VarType(widgets)) & ":" & TypeName(widgets)
+            End Function
+        ` },
+    ]);
+    assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
+        'クラス型配列は vbArray + vbObject と宣言クラス名を返す');
+    console.log('[PASS] Bug 77-A: クラス型配列の VarType / TypeName');
+}
+
 // 数値リテラルのサフィックス型情報保持
 {
     const ev = evalVBASingle('Function Dummy(): End Function');

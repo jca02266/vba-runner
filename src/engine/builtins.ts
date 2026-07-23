@@ -113,6 +113,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
             };
             if (elementType && varTypes[elementType] !== undefined) return 8192 + varTypes[elementType];
             if ((val as any).__vbaElementTypeName__) return 8192 + 36;
+            if ((val as any).__vbaElementObjectTypeName__) return 8192 + 9;
             return 8192 + 12;
         }
         if (val instanceof VbaCurrency) return 6;
@@ -145,6 +146,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
             };
             if (elementType && typeNames[elementType]) return `${typeNames[elementType]}()`;
             if ((val as any).__vbaElementTypeName__) return `${(val as any).__vbaElementTypeName__}()`;
+            if ((val as any).__vbaElementObjectTypeName__) return `${(val as any).__vbaElementObjectTypeName__}()`;
             return 'Variant()';
         }
         if (val && val.__vbaTypeName__) return val.__vbaTypeName__;
