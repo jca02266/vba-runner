@@ -551,7 +551,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 | ⚠️ | §5.6.9.5 | 連鎖比較演算子の優先度誤り（`a = b < c` → `a = (b < c)` と解析、正しくは `(a = b) < c`） | 極めて稀 |
 | ✅ | §5.6.13.1 | `Foo(ByVal x)`（呼び出し側 ByVal）: 呼び出し引数を値渡しとして受理し、ByRef 書き戻しを抑止 | `call-byval-argument.test.ts` |
 | ✅ | §5.6.15 | `With dict: !Key = v`（行頭 `!`）: With の辞書アクセスを代入・参照とも受理 | `with-dictionary-bang.test.ts` |
-| ⚠️ | §5.6.16.7 | `Dim x As A.B.C`（type-expression の 2 段階以上ドット修飾）未対応 | 稀な書き方 |
+| ✅ | §5.6.16.7 | `Dim x As A.B.C`（type-expression の2段階以上ドット修飾）: 多段の型修飾名を保持して受理 | `multi-qualified-type-name.test.ts` |
 | ⚠️ | §5.6.16.8 | `AddressOf NS.Module.Proc`（多段階ドット）→ 1 段階のみ対応 | 稀な書き方 |
 
 ---

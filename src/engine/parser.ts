@@ -2010,10 +2010,14 @@ export class Parser {
                 if (this.isNameToken(typeToken)) {
                     objectType = this.advance().value;
                     let lastTypeTok = typeToken;
-                    if (this.peek().type === TokenType.OperatorDot) {
+                    while (this.peek().type === TokenType.OperatorDot) {
                         this.advance(); // consume '.'
                         lastTypeTok = this.peek();
-                        objectType += '.' + this.advance().value;
+                        const part = this.advance();
+                        if (!this.isNameToken(part)) {
+                            this.throwError(`Parse error: Expected type name after '.' at line ${part.line}`);
+                        }
+                        objectType += '.' + part.value;
                     }
                     objectTypeLoc = {
                         start: { line: typeToken.line, column: typeToken.column },
