@@ -3132,14 +3132,16 @@ export class Parser {
         } else if (token.type === TokenType.KeywordAddressOf) {
             const firstTok = this.advance();
             if (!this.isIdentifier(firstTok)) this.throwError(`Parse error at line ${firstTok.line}: Expected procedure name after 'AddressOf'`);
-            let moduleName: string | undefined;
-            let procTok = firstTok;
-            if (this.peek().type === TokenType.OperatorDot) {
-                this.advance(); // consume '.'
-                moduleName = firstTok.value;
-                procTok = this.advance();
-                if (!this.isIdentifier(procTok)) this.throwError(`Parse error at line ${procTok.line}: Expected procedure name after 'AddressOf ${moduleName}.'`);
+            const parts = [firstTok];
+            while (this.match(TokenType.OperatorDot)) {
+                const part = this.advance();
+                if (!this.isIdentifier(part)) {
+                    this.throwError(`Parse error: Expected procedure name after 'AddressOf' at line ${part.line}`);
+                }
+                parts.push(part);
             }
+            const procTok = parts[parts.length - 1];
+            const moduleName = parts.length > 1 ? parts.slice(0, -1).map(part => part.value).join('.') : undefined;
             expr = { type: 'AddressOfExpression', procedureName: { type: 'Identifier', name: procTok.value }, moduleName } as AddressOfExpression;
         } else if (token.type === TokenType.KeywordEmpty) {
             expr = { type: 'Identifier', name: token.value } as Identifier;
