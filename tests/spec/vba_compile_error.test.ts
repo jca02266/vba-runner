@@ -582,5 +582,33 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         __fail__++;
     }
 }
+
+// [parse] missing_procedure_return_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Function MissingReturnType() As
+End Function`, 1, /expected type name after 'as'/i, 'missing_procedure_return_type_after_as');
+        console.log('[PASS] missing_procedure_return_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_procedure_return_type_after_as:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] missing_parameter_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Sub MissingParameterType(ByVal value As)
+End Sub`, 1, /expected type name after 'as'/i, 'missing_parameter_type_after_as');
+        console.log('[PASS] missing_parameter_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_parameter_type_after_as:', e.message);
+        __fail__++;
+    }
+}
 console.log(`\n=== Summary: ${__pass__} passed, ${__fail__} failed ===`);
 if (__fail__ > 0) process.exit(1);

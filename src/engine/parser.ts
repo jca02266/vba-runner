@@ -914,10 +914,18 @@ export class Parser {
         let paramType: string | undefined;
         let paramFixedLength: number | undefined;
         if (this.match(TokenType.KeywordAs)) {
+            const typeToken = this.peek();
+            if (!this.isNameToken(typeToken)) {
+                this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
+            }
             paramType = this.advance().value; // capture type name (first token)
             // Handle qualified type names: MSForms.ReturnInteger, Module.TypeName, etc.
             if (this.peek().type === TokenType.OperatorDot) {
                 this.advance(); // consume '.'
+                const part = this.peek();
+                if (!this.isNameToken(part)) {
+                    this.throwError(`Parse error: Expected type name after '.' at line ${part.line}`);
+                }
                 paramType += '.' + this.advance().value;
             }
             // fixed-length-string-spec: `As String * N` (§5.2.3.1.4)
@@ -1890,9 +1898,17 @@ export class Parser {
         let returnType: string | undefined;
         let returnsArray = false;
         if (this.match(TokenType.KeywordAs)) {
+            const typeToken = this.peek();
+            if (!this.isNameToken(typeToken)) {
+                this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
+            }
             returnType = this.advance().value;
             if (this.peek().type === TokenType.OperatorDot) {
                 this.advance(); // consume '.'
+                const part = this.peek();
+                if (!this.isNameToken(part)) {
+                    this.throwError(`Parse error: Expected type name after '.' at line ${part.line}`);
+                }
                 returnType += '.' + this.advance().value;
             }
             if (this.peek().type === TokenType.OperatorLParen && this.peek(1).type === TokenType.OperatorRParen) {
