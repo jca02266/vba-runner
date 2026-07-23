@@ -3007,21 +3007,6 @@ export class Parser {
         return left;
     }
 
-    private parseRelational(): Expression {
-        let left = this.parseConcatenation();
-        while (
-            this.peek().type === TokenType.OperatorLessThan ||
-            this.peek().type === TokenType.OperatorGreaterThan ||
-            this.peek().type === TokenType.OperatorLessThanOrEqual ||
-            this.peek().type === TokenType.OperatorGreaterThanOrEqual
-        ) {
-            const operator = this.advance().value;
-            const right = this.parseConcatenation();
-            left = { type: 'BinaryExpression', operator, left, right, loc: this.makeBinaryLoc(left, right) } as BinaryExpression;
-        }
-        return left;
-    }
-
     private parseConcatenation(): Expression {
         let left = this.parseAdditive();
         while (this.peek().type === TokenType.OperatorAmpersand) {
