@@ -104,7 +104,17 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val instanceof VbaBoolean) return 11;
         if (val instanceof VbaDate) return 7;
         if (val === vbaMissing || val instanceof VbaErrorValue) return 10;
-        if (Array.isArray(val)) return 8192 + 12;
+        if (Array.isArray(val)) {
+            const elementType = (val as any).__vbaElementType__ as string | undefined;
+            const varTypes: Record<string, number> = {
+                byte: 17, integer: 2, long: 3, single: 4, double: 5,
+                currency: 6, date: 7, string: 8, boolean: 11,
+                longlong: 20, longptr: 20,
+            };
+            if (elementType && varTypes[elementType] !== undefined) return 8192 + varTypes[elementType];
+            if ((val as any).__vbaElementTypeName__) return 8192 + 36;
+            return 8192 + 12;
+        }
         if (val instanceof VbaCurrency) return 6;
         if (typeof val === 'number') return 5;
         if (typeof val === 'string') return 8;
@@ -126,7 +136,17 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val instanceof VbaCurrency) return 'Currency';
         if (typeof val === 'number') return 'Double';
         if (typeof val === 'string') return 'String';
-        if (Array.isArray(val)) return 'Variant()';
+        if (Array.isArray(val)) {
+            const elementType = (val as any).__vbaElementType__ as string | undefined;
+            const typeNames: Record<string, string> = {
+                byte: 'Byte', integer: 'Integer', long: 'Long', single: 'Single', double: 'Double',
+                currency: 'Currency', date: 'Date', string: 'String', boolean: 'Boolean',
+                longlong: 'LongLong', longptr: 'LongLong',
+            };
+            if (elementType && typeNames[elementType]) return `${typeNames[elementType]}()`;
+            if ((val as any).__vbaElementTypeName__) return `${(val as any).__vbaElementTypeName__}()`;
+            return 'Variant()';
+        }
         if (val && val.__vbaTypeName__) return val.__vbaTypeName__;
         if (val && val.__isVbaDict__) return 'Dictionary';
         if (val && val.__isVbaCollection__) return 'Collection';

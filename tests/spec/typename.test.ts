@@ -56,6 +56,25 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] TypeName の基本動作');
 }
 
+// Bug 76-A: 型付き配列の VarType / TypeName が常に Variant() になる
+{
+    const ev = evalVBASingle(`
+        Function TypedArrayInfo() As String
+            Dim integers() As Integer
+            Dim names(0) As String
+            Dim variants(0)
+            ReDim integers(0)
+            TypedArrayInfo = CStr(VarType(integers)) & ":" & TypeName(integers) & ":" & _
+                CStr(VarType(names)) & ":" & TypeName(names) & ":" & _
+                CStr(VarType(variants)) & ":" & TypeName(variants)
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TypedArrayInfo', []),
+        '8194:Integer():8200:String():8204:Variant()',
+        '型付き配列は要素型に対応したVarTypeビットとTypeNameを返す');
+    console.log('[PASS] Bug 76-A: 型付き配列の VarType / TypeName');
+}
+
 // 数値リテラルのサフィックス型情報保持
 {
     const ev = evalVBASingle('Function Dummy(): End Function');
