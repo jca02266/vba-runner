@@ -5934,6 +5934,9 @@ export class Evaluator {
         const elementTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
             (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined);
+        const elementType: string | undefined =
+            (Array.isArray(oldArr) ? (oldArr as any).__vbaElementType__ : undefined) ??
+            (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined);
 
         let defaultValue: any = 0;
         if (decl.objectType) {
@@ -5969,6 +5972,7 @@ export class Evaluator {
 
             const arr = this.createMultiDimArray(decl.bounds, defaultValue);
             (arr as any).vbaFixed = false;
+            if (elementType) (arr as any).__vbaElementType__ = elementType;
 
             if (elementTypeName) {
                 (arr as any).__vbaElementTypeName__ = elementTypeName;

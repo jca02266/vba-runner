@@ -79,7 +79,24 @@ End Function
 `;
     const ev4 = evalVBA(udtPreserveCode);
     assert.strictEqual(ev4.callProcedure('TestReDimPreserveUDT', []), '10,30,50', 'ReDim Preserve UDT: 既存要素保持 + 新要素初期化');
-    console.log('[PASS] Bug 28-1: ReDim Preserve UDT 配列');
+console.log('[PASS] Bug 28-1: ReDim Preserve UDT 配列');
+}
+
+// --- Bug 70-A: ReDim が宣言済み要素型を失い、代入時の型強制をしない ---
+{
+    const ev = evalVBASingle(`
+        Function TestReDimTypedArray() As String
+            Dim values() As Integer
+            ReDim values(0 To 0)
+            values(0) = 1.5
+            ReDim Preserve values(0 To 1)
+            values(1) = 2.5
+            TestReDimTypedArray = CStr(values(0)) & ":" & CStr(values(1))
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestReDimTypedArray', []), '2:2',
+        'ReDim後もInteger配列の要素代入をCIntと同様に強制変換する');
+    console.log('[PASS] Bug 70-A: ReDim が型付き配列の要素型を保持する');
 }
 
 // --- Bug BN: Erase 後の動的配列に UBound を呼ぶと Error 9 ---
