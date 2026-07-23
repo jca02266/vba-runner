@@ -163,5 +163,38 @@ End Function
     console.log('[PASS] member access 経由の WithEvents フィールド代入でもハンドラーが配線される');
 }
 
-console.log('\n✅ Event & RaiseEvent: 全テスト通過');
+// --- Bug 72-A: WithEvents を Nothing にするとイベント購読も解除される ---
+{
+    const code = `
+Class Pub
+    Public Event Ping()
+    Sub Fire()
+        RaiseEvent Ping
+    End Sub
+End Class
 
+Class Subscriber
+    Public WithEvents Source As Pub
+    Public handledCount As Integer
+    Private Sub Source_Ping()
+        handledCount = handledCount + 1
+    End Sub
+End Class
+
+Function TestWithEventsUnbind() As Integer
+    Dim subscriber As New Subscriber
+    Dim keep As Pub
+    Set keep = New Pub
+    Set subscriber.Source = keep
+    keep.Fire
+    Set subscriber.Source = Nothing
+    keep.Fire
+    TestWithEventsUnbind = subscriber.handledCount
+End Function
+`;
+    const result = evalVBA(code).callProcedure('TestWithEventsUnbind', []);
+    assert.strictEqual(result, 1, 'WithEventsをNothingにした後は保持中のsourceからイベントを受け取らない');
+    console.log('[PASS] Bug 72-A: WithEventsをNothingにするとイベント購読を解除する');
+}
+
+console.log('\n✅ Event & RaiseEvent: 全テスト通過');

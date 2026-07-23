@@ -4440,11 +4440,32 @@ export class Evaluator {
      * `classDef`/`instance` はハンドラーの検索先・実行時の `Me` に使う
      * （bare identifier の場合は呼び出し元の `Me`、member access の場合は代入先オブジェクト自身）。
      */
+    private detachWithEventsHandlers(fieldName: string, instance: any): void {
+        const bindings = instance?.__withEventsBindings__ as Map<string, { source: any, eventName: string, handler: (...args: any[]) => void }[]> | undefined;
+        const fieldKey = fieldName.toLowerCase();
+        const entries = bindings?.get(fieldKey);
+        if (!entries) return;
+
+        for (const { source, eventName, handler } of entries) {
+            const handlers = source?.__events__?.get(eventName) as ((...args: any[]) => void)[] | undefined;
+            if (!handlers) continue;
+            const index = handlers.indexOf(handler);
+            if (index >= 0) handlers.splice(index, 1);
+        }
+        bindings!.delete(fieldKey);
+    }
+
     private bindWithEventsHandlers(fieldName: string, value: any, classDef: ClassDeclaration | undefined, instance: any) {
+        this.detachWithEventsHandlers(fieldName, instance);
+        const fieldKey = fieldName.toLowerCase();
+        const bindings: Map<string, { source: any, eventName: string, handler: (...args: any[]) => void }[]> | undefined = instance
+            ? (instance.__withEventsBindings__ ??= new Map())
+            : undefined;
         for (const eventName of value.__events__.keys()) {
             const handlerName = `${fieldName}_${eventName}`;
             const handlerNameLower = handlerName.toLowerCase();
             const handlers = value.__events__.get(eventName);
+            let eventHandler: ((...args: any[]) => void) | undefined;
             if (classDef) {
                 const classProc = classDef.procedures.find(
                     p => p.name.name.toLowerCase() === handlerNameLower
@@ -4452,13 +4473,18 @@ export class Evaluator {
                 if (classProc) {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
-                    handlers.push((...args: any[]) => this.callClassMethod(capturedInstance, capturedProc, args));
-                    continue;
+                    eventHandler = (...args: any[]) => this.callClassMethod(capturedInstance, capturedProc, args);
                 }
             }
-            const handler = this.env.getProcedure(handlerName);
-            if (handler) {
-                handlers.push((...args: any[]) => this.callProcedure(handlerName, args));
+            if (!eventHandler) {
+                const handler = this.env.getProcedure(handlerName);
+                if (handler) eventHandler = (...args: any[]) => this.callProcedure(handlerName, args);
+            }
+            if (eventHandler) {
+                handlers.push(eventHandler);
+                const entries = bindings?.get(fieldKey) ?? [];
+                entries.push({ source: value, eventName, handler: eventHandler });
+                bindings?.set(fieldKey, entries);
             }
         }
     }
@@ -4501,10 +4527,23 @@ export class Evaluator {
                 oldVal = this.instantiateClass(oldVal.__className__);
                 this.env.set(name, oldVal);
             }
-            // addRef new value; releaseRef old value only on explicit Nothing (B-3: don't
-            // release on reassignment because containers like Dictionary may still hold the ref).
-            this.addRef(value);
-            if (value === vbaNothing && oldVal !== value) this.releaseRef(oldVal);
+            const isWithEvents = this.env.isWithEvents(name);
+            const me = this.env.get('me');
+            if (isWithEvents) {
+                this.detachWithEventsHandlers(name, me);
+                // A WithEvents field owns its event subscription and its object reference.
+                // Replacing or clearing it must release the old source independently of
+                // any references that other variables retain.
+                if (oldVal !== value) {
+                    this.addRef(value);
+                    this.releaseRef(oldVal);
+                }
+            } else {
+                // addRef new value; releaseRef old value only on explicit Nothing (B-3: don't
+                // release on reassignment because containers like Dictionary may still hold the ref).
+                this.addRef(value);
+                if (value === vbaNothing && oldVal !== value) this.releaseRef(oldVal);
+            }
 
             const proc = this.env.getProcedure(name, 'set');
             if (proc) {
@@ -4522,9 +4561,8 @@ export class Evaluator {
             this.env.set(name, value);
 
             // Check for WithEvents binding
-            if (this.env.isWithEvents(name) && value && value.__events__) {
+            if (isWithEvents && value && value.__events__) {
                 // Binding: look for VarName_EventName subs — first in class scope, then global
-                const me = this.env.get('me');
                 this.bindWithEventsHandlers(name, value, me?.__classDef__, me);
             }
         } else if (stmt.left.type === 'MemberExpression') {
@@ -4535,19 +4573,28 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 const oldVal = instanceEnv.get(propName);
-                if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
+                const isWithEvents = instanceEnv.isWithEvents(propName);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
                     this.callClassMethod(obj, setter, [value]);
                 } else {
+                    if (isWithEvents) {
+                        this.detachWithEventsHandlers(propName, obj);
+                        if (oldVal !== value) {
+                            this.addRef(value);
+                            this.releaseRef(oldVal);
+                        }
+                    } else if (value === vbaNothing && oldVal !== value) {
+                        this.triggerTerminate(oldVal);
+                    }
                     instanceEnv.set(propName, value);
                     // obj.Field = New X 形式（外部からの WithEvents フィールド代入）でも
                     // バインドが行われるようにする。bare identifier 代入のみを見ていたため、
                     // member access 経由の代入では handler が一切ワイヤリングされず
                     // イベントが静かに発火しなかった。
-                    if (instanceEnv.isWithEvents(propName) && value && value.__events__) {
+                    if (isWithEvents && value && value.__events__) {
                         this.bindWithEventsHandlers(propName, value, classDef, obj);
                     }
                 }

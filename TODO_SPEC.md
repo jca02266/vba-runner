@@ -576,12 +576,8 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
     - `VbaDate` / `VbaBoolean` / `VbaErrorValue` 等の内部型は `__vbaDefault__` を持たないため誤抽出しない
     - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `Value` getter/setter 実装)
     - テスト: `default-property-noncls.test.ts`
-- ❌ **バグ（2026-07-19 実機検証で判明）: `WithEvents` 変数への `Set ... = Nothing` がイベント購読を切断しない**
-  - 従来の記載は「ハンドラー自動登録・検出機構未実装」だったが、これは実態と異なる。イベントハンドラー自体（`obj_Event` 形式の自動ディスパッチ）は動作しており、`RaiseEvent` → ハンドラー呼び出しの基本経路は機能している。問題はより具体的で狭い箇所にある
-  - 実 VBA 実機確認（`WithEvents` はクラスモジュール内でのみ許可される点に注意。標準モジュールで宣言すると Error 5）: `WithEvents` 変数 `sink.Src` にイベントソースを代入して `Fire` → ハンドラーが1回呼ばれる（`HitCount=1`）。別変数 `keep` に同じインスタンスを保持した状態で `Set sink.Src = Nothing` → その後 `keep.Fire` を呼んでも**ハンドラーは呼ばれない**（`HitCount=1` のまま）。オブジェクト自体は `keep` 経由でまだ生きているにもかかわらず、`WithEvents` 変数を `Nothing` にした時点でイベント購読そのものが切断される、という仕様
-  - vba-runner の現状: `Set sink.Src = Nothing` 後も `keep.Fire` でハンドラーが呼ばれてしまう（`HitCount=2` になる）。イベント購読が `WithEvents` 変数の生死ではなく、参照先インスタンスの生死だけに紐づいている実装になっていると見られる
-  - 副次的に発見した別バグ: 1回目の `Fire` 呼び出し直後（`Set ... = Nothing` するより前）に対象クラスの `Class_Terminate` が呼ばれてしまう。`sink.Src` と `keep` の両方が同じインスタンスを参照しているため、この時点で参照カウントが 0 になるのはおかしい。参照カウント管理そのものに別途不整合がある疑い（要調査）
-  - `DoEvents` + `Sleep` によるイベント待ちループ（wait/notify パターン）は引き続き不可。evaluator がシングルスレッド同期のため、ループ中に外から RaiseEvent を発火する主体が存在しない | `withevents-lifecycle.test.ts`
+- ✅ **`WithEvents` の再代入・`Set ... = Nothing` による購読解除**: フィールドごとにイベントコールバックを記録し、再代入と Nothing 時に古いイベントソースから解除する。別変数がソースを保持していても、解除後はハンドラーへ通知されない。 | `raiseevent.test.ts`
+- ⚠️ **`DoEvents` + `Sleep` によるイベント待ちループ**: evaluator は同期実行のため、ループ中に外部からイベントを発火する wait/notify パターンは扱わない。
 - ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - ✅ **`Implements` インターフェース呼び出し**: `obj.Speak` → `IAnimal_Speak` のインターフェースディスパッチ | テスト: `implements-dispatch.test.ts`
