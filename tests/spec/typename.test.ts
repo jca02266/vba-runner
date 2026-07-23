@@ -96,6 +96,13 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 ReDim widgets(0)
                 widgets(0) = 1
             End Sub
+            Function ClassArrayElementsStartAsNothing() As Boolean
+                Dim dynamicWidgets() As Widget
+                Dim fixedWidgets(0) As Widget
+                ReDim dynamicWidgets(0)
+                ClassArrayElementsStartAsNothing = _
+                    (dynamicWidgets(0) Is Nothing) And (fixedWidgets(0) Is Nothing)
+            End Function
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -110,6 +117,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     }
     assert.strictEqual(errorNumber, 424,
         'クラス型配列要素への Let 代入は Object required になる');
+    assert.strictEqual(ev.callProcedure('ClassArrayElementsStartAsNothing', []).valueOf(), -1,
+        'クラス型配列の未代入要素は Nothing で初期化される');
     console.log('[PASS] Bug 77-A: クラス型配列の VarType / TypeName');
 }
 

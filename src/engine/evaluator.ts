@@ -3419,6 +3419,11 @@ export class Evaluator {
                     initialValue = decl.fixedLength !== undefined ? '\0'.repeat(decl.fixedLength) : '';
                 } else if (t === 'boolean') {
                     initialValue = 0; // vbaFalse
+                } else if (
+                    this.classDefinitions.has(t) || this.externalObjectFactories.has(t) ||
+                    t === 'object' || t === 'collection'
+                ) {
+                    initialValue = vbaNothing;
                 }
             }
             if (decl.isArray) {
@@ -6016,8 +6021,13 @@ export class Evaluator {
             const t = decl.objectType.toLowerCase();
             if (t === 'string') defaultValue = '';
             else if (t === 'boolean') defaultValue = 0;
+            else if (
+                this.classDefinitions.has(t) || this.externalObjectFactories.has(t) ||
+                t === 'object' || t === 'collection'
+            ) defaultValue = vbaNothing;
         } else if (Array.isArray(oldArr)) {
-            defaultValue = (oldArr as any).__vbaDefaultValue__ ?? 0;
+            defaultValue = (oldArr as any).__vbaDefaultValue__
+                ?? ((oldArr as any).__vbaElementObjectTypeName__ ? vbaNothing : 0);
         }
 
         if (decl.bounds.length > 0) {
