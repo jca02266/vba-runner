@@ -543,7 +543,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 | ⚠️ | §5.4.5.1 | `Open "f.txt" For Random Access Read Shared As #1`（`Shared` スタンドアロン） | ネットワークファイル |
 | ✅ | §5.4.5.4/5 | `Lock #1, To 100`（start 省略の `To end` 形式）: start を 1 として扱い、対になる `Unlock` も受理 | `lock-omitted-start.test.ts` |
 | ✅ | §5.4.5.6 | `Line Input #1, arr(i)`（variable が配列要素）: 代入先を識別子に限定せず配列要素を受理 | `line-input-array-element.test.ts` |
-| ⚠️ | §5.2.3.3 | UDT メンバー名として `End` が使用不可（ループ終端キーワードと衝突） | `Type T: End As Long: End Type` |
+| ✅ | §5.2.3.3 | UDT メンバー名として `End`: `End Type` の組だけを終端とし、メンバー名を受理 | `udt-end-member.test.ts` |
 | ✅ | §5.2.4.1.2 | `Implements SomeLib.IInterface`（ドット修飾名）: ドット区切りのインターフェース名を受理 | `implements-qualified-name.test.ts` |
 | ✅ | §5.3.1.3 | `Function Foo$()` 等 TYPED-NAME サフィックス付き宣言名: 宣言時にサフィックスを戻り型へ反映し、通常名 `Foo()` で呼び出せる | `typed-procedure-name.test.ts` |
 | ✅ | §5.3.1.5 | `ByVal Optional x As Integer`（ByVal が先）: パラメーター修飾子を順不同で受理 | `parameter-modifier-order.test.ts` |

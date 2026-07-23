@@ -2227,7 +2227,8 @@ export class Parser {
         this.skipNewlines();
 
         // Parse members until 'End Type'
-        while (this.peek().type !== TokenType.KeywordEnd && this.peek().type !== TokenType.EOF) {
+        while (!(this.peek().type === TokenType.KeywordEnd && this.peek(1).type === TokenType.KeywordType) &&
+               this.peek().type !== TokenType.EOF) {
             // Each member line: memberName [(bounds)] As memberType
             // VBA §5.2.3.3: reserved words are valid member names (reserved-name-member-dcl)
             const memberNameToken = this.advance();
