@@ -610,5 +610,62 @@ End Sub`, 1, /expected type name after 'as'/i, 'missing_parameter_type_after_as'
         __fail__++;
     }
 }
+
+// [parse] missing_declare_return_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Declare Function MissingDeclareType Lib "kernel32" () As`, 1, /expected type name after 'as'/i, 'missing_declare_return_type_after_as');
+        console.log('[PASS] missing_declare_return_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_declare_return_type_after_as:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] missing_const_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Const MissingConstType As = 1`, 1, /expected type name after 'as'/i, 'missing_const_type_after_as');
+        console.log('[PASS] missing_const_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_const_type_after_as:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] missing_udt_member_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Type MissingMemberType
+    Value As
+End Type`, 2, /expected type name after 'as'/i, 'missing_udt_member_type_after_as');
+        console.log('[PASS] missing_udt_member_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_udt_member_type_after_as:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] missing_redim_type_after_as
+// VBA: コンパイルエラー: 構文エラー
+{
+    try {
+        assertCompileErrorPass1(`Sub MissingReDimType()
+    Dim values()
+    ReDim values(1) As
+End Sub`, 3, /expected type name after 'as'/i, 'missing_redim_type_after_as');
+        console.log('[PASS] missing_redim_type_after_as');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] missing_redim_type_after_as:', e.message);
+        __fail__++;
+    }
+}
 console.log(`\n=== Summary: ${__pass__} passed, ${__fail__} failed ===`);
 if (__fail__ > 0) process.exit(1);

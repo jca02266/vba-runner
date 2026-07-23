@@ -1269,6 +1269,10 @@ export class Parser {
         if (!isSub) {
             if (this.peek().type === TokenType.KeywordAs) {
                 this.advance();
+                const typeToken = this.peek();
+                if (!this.isNameToken(typeToken)) {
+                    this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
+                }
                 returnType = this.advance().value;
             }
         }
@@ -2081,9 +2085,16 @@ export class Parser {
 
             let objectType: string | undefined;
             if (this.match(TokenType.KeywordAs)) {
+                const typeToken = this.peek();
+                if (!this.isNameToken(typeToken)) {
+                    this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
+                }
                 objectType = this.advance().value;
                 while (this.match(TokenType.OperatorDot)) {
-                    this.advance();
+                    const part = this.peek();
+                    if (!this.isNameToken(part)) {
+                        this.throwError(`Parse error: Expected type name after '.' at line ${part.line}`);
+                    }
                     objectType += '.' + this.advance().value;
                 }
             }
@@ -2224,6 +2235,10 @@ export class Parser {
 
             let objectType: string | undefined;
             if (this.match(TokenType.KeywordAs)) {
+                const typeToken = this.peek();
+                if (!this.isNameToken(typeToken)) {
+                    this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
+                }
                 objectType = this.advance().value;
             }
 
@@ -2286,7 +2301,11 @@ export class Parser {
                 this.throwError(`Parse error: Expected 'As' in Type member declaration at line ${this.peek().line}`);
             }
 
-            const memberTypeToken = this.advance();
+            const memberTypeToken = this.peek();
+            if (!this.isNameToken(memberTypeToken)) {
+                this.throwError(`Parse error: Expected type name after 'As' at line ${memberTypeToken.line}`);
+            }
+            this.advance();
             let memberFixedLength: number | undefined;
             if (memberTypeToken.value.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
                 this.advance(); // consume '*'
