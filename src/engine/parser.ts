@@ -871,20 +871,20 @@ export class Parser {
     private parseParameter(): Parameter {
         let isByVal = false;
         let isOptional = false;
-
-        if (this.match(TokenType.KeywordOptional)) {
-            isOptional = true;
-        }
-
         let isParamArray = false;
-        if (this.match(TokenType.KeywordParamArray)) {
-            isParamArray = true;
-        }
-
         let hasPassingModifier = false;
-        if (this.peek().type === TokenType.KeywordByVal || this.peek().type === TokenType.KeywordByRef) {
-            hasPassingModifier = true;
-            isByVal = this.advance().type === TokenType.KeywordByVal;
+        // VBA accepts Optional and the ByVal/ByRef modifier in either order.
+        while (true) {
+            if (this.match(TokenType.KeywordOptional)) {
+                isOptional = true;
+            } else if (this.match(TokenType.KeywordParamArray)) {
+                isParamArray = true;
+            } else if (this.peek().type === TokenType.KeywordByVal || this.peek().type === TokenType.KeywordByRef) {
+                hasPassingModifier = true;
+                isByVal = this.advance().type === TokenType.KeywordByVal;
+            } else {
+                break;
+            }
         }
 
         const token = this.peek();
