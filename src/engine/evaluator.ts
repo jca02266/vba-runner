@@ -5149,6 +5149,9 @@ export class Evaluator {
     private static readonly VBA_BINARY_ENCODING = 'cp932';
 
     private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
+        if (Array.isArray(value) && (value as any).__vbaElementType__ === 'byte') {
+            return { typeName: 'ByteArray' };
+        }
         if (expr.type === 'Identifier') {
             const typeInfo = this.env.getVariableType((expr as Identifier).name);
             if (typeInfo && typeInfo.vbaType !== 'Variant') {
@@ -5177,6 +5180,15 @@ export class Evaluator {
     private encodeBinaryValue(value: any, layout: BinaryValueLayout): Uint8Array {
         const typeName = layout.typeName.toLowerCase();
         switch (typeName) {
+            case 'bytearray': {
+                const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                if (dims && dims.length !== 1) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get supports one-dimensional Byte arrays');
+                }
+                const lower = dims?.[0].lower ?? (value as any).vbaBase ?? 0;
+                const upper = dims?.[0].upper ?? value.length - 1;
+                return Uint8Array.from(Array.from({ length: upper - lower + 1 }, (_, i) => Number(value[lower + i]) & 0xff));
+            }
             case 'byte':
                 return Uint8Array.of(Number(value) & 0xff);
             case 'integer': {
@@ -5305,6 +5317,17 @@ export class Evaluator {
     private decodeBinaryValue(bytes: Uint8Array, offset: number, layout: BinaryValueLayout, currentValue: any): { value: any, length: number } {
         const typeName = layout.typeName.toLowerCase();
         switch (typeName) {
+            case 'bytearray': {
+                const target = Array.isArray(currentValue) ? currentValue : [];
+                const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                if (dims && dims.length !== 1) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get supports one-dimensional Byte arrays');
+                }
+                const lower = dims?.[0].lower ?? (target as any).vbaBase ?? 0;
+                const length = dims ? dims[0].upper - lower + 1 : target.length;
+                for (let i = 0; i < length; i++) target[lower + i] = bytes[offset + i];
+                return { value: target, length };
+            }
             case 'byte':
                 return { value: bytes[offset], length: 1 };
             case 'integer':
