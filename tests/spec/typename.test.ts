@@ -119,6 +119,9 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 Dim widget As New OtherWidget
                 TakeWidget widget
             End Sub
+            Function ReturnWrongClass() As Widget
+                Set ReturnWrongClass = New OtherWidget
+            End Function
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -137,6 +140,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス型配列の未代入要素は Nothing で初期化される');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
+        'ReturnWrongClass',
     ]) {
         errorNumber = 0;
         try {

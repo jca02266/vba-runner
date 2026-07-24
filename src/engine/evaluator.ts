@@ -1778,6 +1778,12 @@ export class Evaluator {
                 };
                 const mapped = retTypeMap[proc.returnType.toLowerCase()];
                 if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
+                else if (this.classDefinitions.has(proc.returnType.toLowerCase())) {
+                    localEnv.setVariableType(proc.name.name, {
+                        vbaType: 'Object',
+                        objectTypeName: proc.returnType,
+                    });
+                }
             }
         }
 
@@ -4052,6 +4058,12 @@ export class Evaluator {
                 };
                 const mapped = retTypeMap[proc.returnType.toLowerCase()];
                 if (mapped) localEnv.setVariableType(proc.name.name, { vbaType: mapped });
+                else if (this.classDefinitions.has(proc.returnType.toLowerCase())) {
+                    localEnv.setVariableType(proc.name.name, {
+                        vbaType: 'Object',
+                        objectTypeName: proc.returnType,
+                    });
+                }
             }
         }
 
