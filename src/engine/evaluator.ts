@@ -266,6 +266,8 @@ export interface VbaTypeInfo {
     vbaType: VbaVarType;
     /** Fixed-length string: Dim s As String * N */
     fixedLength?: number;
+    /** User-defined class required for an object reference. */
+    objectTypeName?: string;
 }
 
 interface BinaryValueLayout {
@@ -407,6 +409,13 @@ export class Environment {
         // Don't coerce special VBA values
         if (value === vbaEmpty || value === undefined || value === vbaNull || value === vbaNothing || value === vbaMissing) {
             return value;
+        }
+
+        if (typeInfo.objectTypeName) {
+            const actualTypeName = (value as any)?.__className__ as string | undefined;
+            if (!actualTypeName || actualTypeName.toLowerCase() !== typeInfo.objectTypeName.toLowerCase()) {
+                throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            }
         }
 
         switch (typeInfo.vbaType) {
@@ -3388,6 +3397,11 @@ export class Evaluator {
                 const mapped = typeMap[effectiveType.toLowerCase()];
                 if (mapped) {
                     this.env.setVariableType(varName, { vbaType: mapped, fixedLength: decl.fixedLength });
+                } else if (this.classDefinitions.has(effectiveType.toLowerCase())) {
+                    this.env.setVariableType(varName, {
+                        vbaType: 'Object',
+                        objectTypeName: effectiveType,
+                    });
                 } else {
                     // Bug CB: Enum-typed variable (e.g. `Dim c As Color`) — map to 'Long'
                     // so TypeName/VarType reflects the underlying numeric type instead of "Double"
@@ -4670,6 +4684,13 @@ export class Evaluator {
                     const oldVal = target.__map__.get(key);
                     if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                     target.__map__.set(key, value);
+                } else if (Array.isArray(target) && (target as any).__vbaElementObjectTypeName__) {
+                    const requiredType = (target as any).__vbaElementObjectTypeName__ as string;
+                    const actualType = (value as any)?.__className__ as string | undefined;
+                    if (value !== vbaNothing && (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                    }
+                    target[this.evaluateExpression(call.args[0]) as number] = value;
                 } else if (target && typeof target === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
                     target[key] = value;
@@ -7195,7 +7216,7 @@ export class Evaluator {
                 current = current[idx];
             }
             return current === undefined ? vbaEmpty : current;
-        } else if (target && target.__isVbaDict__) {
+                } else if (target && target.__isVbaDict__) {
             if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             const key = this.evaluateExpression(expr.args[0]);
             return target.__map__.get(key);

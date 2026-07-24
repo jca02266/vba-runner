@@ -79,6 +79,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 {
     const ev = evalVBAModules([
         { name: 'Widget', code: 'Class Widget\nEnd Class' },
+        { name: 'OtherWidget', code: 'Class OtherWidget\nEnd Class' },
         { name: 'Module1', code: `
             Function ClassArrayInfo() As String
                 Dim widgets() As Widget
@@ -103,6 +104,15 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 ClassArrayElementsStartAsNothing = _
                     (dynamicWidgets(0) Is Nothing) And (fixedWidgets(0) Is Nothing)
             End Function
+            Sub AssignWrongClassToVariable()
+                Dim widget As Widget
+                Set widget = New OtherWidget
+            End Sub
+            Sub AssignWrongClassToArray()
+                Dim widgets() As Widget
+                ReDim widgets(0)
+                Set widgets(0) = New OtherWidget
+            End Sub
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -119,6 +129,15 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス型配列要素への Let 代入は Object required になる');
     assert.strictEqual(ev.callProcedure('ClassArrayElementsStartAsNothing', []).valueOf(), -1,
         'クラス型配列の未代入要素は Nothing で初期化される');
+    for (const procName of ['AssignWrongClassToVariable', 'AssignWrongClassToArray']) {
+        errorNumber = 0;
+        try {
+            ev.callProcedure(procName, []);
+        } catch (error: any) {
+            errorNumber = error?.number ?? 0;
+        }
+        assert.strictEqual(errorNumber, 13, `${procName} は Type mismatch になる`);
+    }
     console.log('[PASS] Bug 77-A: クラス型配列の VarType / TypeName');
 }
 
