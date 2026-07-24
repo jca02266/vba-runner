@@ -5182,12 +5182,17 @@ export class Evaluator {
         switch (typeName) {
             case 'bytearray': {
                 const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                if (dims && dims.length !== 1) {
-                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get supports one-dimensional Byte arrays');
-                }
-                const lower = dims?.[0].lower ?? (value as any).vbaBase ?? 0;
-                const upper = dims?.[0].upper ?? value.length - 1;
-                return Uint8Array.from(Array.from({ length: upper - lower + 1 }, (_, i) => Number(value[lower + i]) & 0xff));
+                const result: number[] = [];
+                const collect = (array: any, dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
+                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                    for (let i = lower; i <= upper; i++) {
+                        if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
+                        else result.push(Number(array[i]) & 0xff);
+                    }
+                };
+                collect(value, 0);
+                return Uint8Array.from(result);
             }
             case 'byte':
                 return Uint8Array.of(Number(value) & 0xff);
@@ -5320,12 +5325,16 @@ export class Evaluator {
             case 'bytearray': {
                 const target = Array.isArray(currentValue) ? currentValue : [];
                 const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                if (dims && dims.length !== 1) {
-                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get supports one-dimensional Byte arrays');
-                }
-                const lower = dims?.[0].lower ?? (target as any).vbaBase ?? 0;
-                const length = dims ? dims[0].upper - lower + 1 : target.length;
-                for (let i = 0; i < length; i++) target[lower + i] = bytes[offset + i];
+                let length = 0;
+                const restore = (array: any, dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
+                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                    for (let i = lower; i <= upper; i++) {
+                        if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
+                        else array[i] = bytes[offset + length++];
+                    }
+                };
+                restore(target, 0);
                 return { value: target, length };
             }
             case 'byte':
