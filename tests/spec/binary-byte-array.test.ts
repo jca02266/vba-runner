@@ -157,3 +157,28 @@ const fixedStringEv = evalVBASingle(`
 `, { fs: fixedStringFs, sandboxRoot: '/sandbox' });
 assert.strictEqual(fixedStringEv.callProcedure('RoundTripFixedStrings', []), '4:A :BC');
 console.log('✅ Binary Put/Get supports fixed-length String arrays');
+
+const udtArrayFs = new MemoryFileSystem();
+const udtArrayEv = evalVBASingle(`
+    Type Point
+        X As Long
+        Y As Integer
+    End Type
+
+    Function RoundTripPoints() As String
+        Dim written(0 To 1) As Point
+        Dim readBack(0 To 1) As Point
+        written(0).X = 1: written(0).Y = 2
+        written(1).X = 3: written(1).Y = 4
+        Open "points.bin" For Binary As #1
+        Put #1, , written
+        RoundTripPoints = CStr(LOF(1))
+        Close #1
+        Open "points.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripPoints = RoundTripPoints & ":" & CStr(readBack(0).X) & ":" & CStr(readBack(0).Y) & ":" & CStr(readBack(1).X) & ":" & CStr(readBack(1).Y)
+    End Function
+`, { fs: udtArrayFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(udtArrayEv.callProcedure('RoundTripPoints', []), '12:1:2:3:4');
+console.log('✅ Binary Put/Get supports UDT arrays');

@@ -5161,6 +5161,10 @@ export class Evaluator {
 
     private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
         const elementType = Array.isArray(value) ? (value as any).__vbaElementType__?.toLowerCase() : undefined;
+        const elementTypeName = Array.isArray(value) ? (value as any).__vbaElementTypeName__ as string | undefined : undefined;
+        if (elementTypeName && this.env.getType(elementTypeName)) {
+            return { typeName: 'Array', elementType: elementTypeName };
+        }
         if (elementType && [
             'byte', 'integer', 'boolean', 'long', 'longlong', 'longptr',
             'single', 'double', 'date', 'currency',
