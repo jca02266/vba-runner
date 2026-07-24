@@ -337,7 +337,7 @@ export interface MidStatement extends Statement {
 
 export interface EraseStatement extends Statement {
     type: 'EraseStatement';
-    names: Identifier[];
+    names: Expression[];
 }
 
 export interface ImplementsDirective extends Statement {
@@ -2178,10 +2178,23 @@ export class Parser {
 
     private parseEraseStatement(): EraseStatement {
         this.advance(); // 'Erase'
-        const names: Identifier[] = [];
+        const names: Expression[] = [];
         do {
-            const idToken = this.advance();
-            names.push(this.makeIdentifier(idToken));
+            let name: Expression;
+            if (this.peek().type === TokenType.OperatorDot) {
+                this.advance();
+                const propToken = this.advance();
+                name = { type: 'ImplicitWithObjectExpression', property: this.makeIdentifier(propToken) } as ImplicitWithObjectExpression;
+            } else {
+                name = this.makeIdentifier(this.advance());
+                while (this.peek().type === TokenType.OperatorDot) {
+                    this.advance();
+                    name = {
+                        type: 'MemberExpression', object: name, property: this.makeIdentifier(this.advance()),
+                    } as MemberExpression;
+                }
+            }
+            names.push(name);
         } while (this.match(TokenType.OperatorComma));
         return { type: 'EraseStatement', names };
     }

@@ -184,6 +184,24 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 ReDimIntegerArrayAfterErase = CStr(VarType(values)) & ":" & _
                     TypeName(values) & ":" & CStr(values(0))
             End Function
+            Function ReDimClassArrayFieldAfterErase() As String
+                Dim holder As New Holder
+                ReDim holder.Values(0)
+                Erase holder.Values
+                ReDim holder.Values(0)
+                ReDimClassArrayFieldAfterErase = CStr(VarType(holder.Values)) & ":" & _
+                    TypeName(holder.Values) & ":" & CStr(holder.Values(0) Is Nothing)
+            End Function
+            Function ReDimClassArrayFieldAfterEraseWithWith() As String
+                Dim holder As New Holder
+                With holder
+                    ReDim .Values(0)
+                    Erase .Values
+                    ReDim .Values(0)
+                End With
+                ReDimClassArrayFieldAfterEraseWithWith = CStr(VarType(holder.Values)) & ":" & _
+                    TypeName(holder.Values) & ":" & CStr(holder.Values(0) Is Nothing)
+            End Function
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -214,6 +232,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'Erase 後の ReDim でもクラス配列の宣言型と Nothing 初期化を維持する');
     assert.strictEqual(ev.callProcedure('ReDimIntegerArrayAfterErase', []), '8194:Integer():2',
         'Erase 後の ReDim でも Integer 配列の型強制を維持する');
+    assert.strictEqual(ev.callProcedure('ReDimClassArrayFieldAfterErase', []), '8201:Widget():True',
+        'クラス配列フィールドも Erase 後の ReDim で宣言型と Nothing 初期化を維持する');
+    assert.strictEqual(ev.callProcedure('ReDimClassArrayFieldAfterEraseWithWith', []), '8201:Widget():True',
+        'With 経由のクラス配列フィールドも Erase 後の ReDim で宣言型を維持する');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
         'ReturnWrongClass', 'AssignWrongClassToField', 'AssignWrongClassToArrayField',

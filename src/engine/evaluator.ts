@@ -6019,18 +6019,56 @@ export class Evaluator {
     }
 
     private evaluateEraseStatement(stmt: EraseStatement) {
-        for (const ident of stmt.names) {
-            const varName = ident.name;
-            const arr = this.env.get(varName);
+        for (const target of stmt.names) {
+            let arr: any;
+            let setValue: (value: any) => void;
+            let typeInfoEnv: Environment | undefined;
+            let typeInfoName: string | undefined;
+            if (target.type === 'Identifier') {
+                const varName = (target as Identifier).name;
+                arr = this.env.get(varName);
+                setValue = (value) => this.env.set(varName, value);
+                typeInfoEnv = this.env;
+                typeInfoName = varName;
+            } else if (target.type === 'MemberExpression') {
+                const member = target as MemberExpression;
+                const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
+                const propName = member.property.name.toLowerCase();
+                if (obj?.__vbaClass__) {
+                    typeInfoEnv = obj.__instanceEnv__ as Environment;
+                    arr = typeInfoEnv.get(propName);
+                    setValue = (value) => typeInfoEnv!.set(propName, value);
+                    typeInfoName = propName;
+                } else {
+                    arr = obj?.[propName];
+                    setValue = (value) => { obj[propName] = value; };
+                }
+            } else if (target.type === 'ImplicitWithObjectExpression') {
+                if (this.withObjectStack.length === 0) this.throwVbaError(91, 'Object variable or With block variable not set');
+                const obj = this.withObjectStack[this.withObjectStack.length - 1];
+                const propName = (target as ImplicitWithObjectExpression).property.name.toLowerCase();
+                if (obj?.__vbaClass__) {
+                    typeInfoEnv = obj.__instanceEnv__ as Environment;
+                    arr = typeInfoEnv.get(propName);
+                    setValue = (value) => typeInfoEnv!.set(propName, value);
+                    typeInfoName = propName;
+                } else {
+                    arr = obj?.[propName];
+                    setValue = (value) => { obj[propName] = value; };
+                }
+            } else {
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
             if (Array.isArray(arr)) {
                 if ((arr as any).vbaFixed) {
-                    const defaultValue = (arr as any).__vbaDefaultValue__ ?? 0;
+                    const defaultValue = (arr as any).__vbaDefaultValue__
+                        ?? ((arr as any).__vbaElementObjectTypeName__ ? vbaNothing : 0);
                     this.reinitializeArray(arr, defaultValue);
                 } else {
                     // Dynamic array: Erase deallocates (uninitialized). Null signals this
                     // so UBound/LBound/access throw Error 9 until ReDim is called again.
-                    this.env.setArrayTypeInfo(varName, arr);
-                    this.env.set(varName, null);
+                    if (typeInfoEnv && typeInfoName) typeInfoEnv.setArrayTypeInfo(typeInfoName, arr);
+                    setValue(null);
                 }
             }
         }
@@ -6169,6 +6207,7 @@ export class Evaluator {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 oldArr = instanceEnv.get(propName);
                 setNewArr = (arr) => instanceEnv.set(propName, arr);
+                storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
             } else {
                 oldArr = obj?.[propName];
                 setNewArr = (arr) => { obj[propName] = arr; };
@@ -6183,6 +6222,7 @@ export class Evaluator {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 oldArr = instanceEnv.get(propName);
                 setNewArr = (arr) => instanceEnv.set(propName, arr);
+                storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
             } else {
                 oldArr = obj?.[propName];
                 setNewArr = (arr) => { obj[propName] = arr; };
@@ -6268,7 +6308,18 @@ export class Evaluator {
             }
 
             setNewArr(arr);
-            if (decl.name.type === 'Identifier') this.env.setArrayTypeInfo((decl.name as Identifier).name, arr);
+            if (decl.name.type === 'Identifier') {
+                this.env.setArrayTypeInfo((decl.name as Identifier).name, arr);
+            } else if (decl.name.type === 'MemberExpression') {
+                const member = decl.name as MemberExpression;
+                const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
+                if (obj?.__vbaClass__) (obj.__instanceEnv__ as Environment).setArrayTypeInfo(member.property.name, arr);
+            } else if (decl.name.type === 'ImplicitWithObjectExpression') {
+                const obj = this.withObjectStack[this.withObjectStack.length - 1];
+                if (obj?.__vbaClass__) {
+                    (obj.__instanceEnv__ as Environment).setArrayTypeInfo((decl.name as ImplicitWithObjectExpression).property.name, arr);
+                }
+            }
         }
     }
 
