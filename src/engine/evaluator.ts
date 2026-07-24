@@ -4688,6 +4688,28 @@ export class Evaluator {
                     this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                 }
             }
+        } else if (stmt.left.type === 'ImplicitWithObjectExpression') {
+            if (this.withObjectStack.length === 0) {
+                this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+            }
+            const obj = this.withObjectStack[this.withObjectStack.length - 1];
+            const propName = (stmt.left as ImplicitWithObjectExpression).property.name.toLowerCase();
+            if (obj && obj.__vbaClass__) {
+                const classDef = obj.__classDef__ as ClassDeclaration;
+                const instanceEnv = obj.__instanceEnv__ as Environment;
+                const setter = classDef.procedures.find(
+                    p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
+                );
+                if (setter) {
+                    this.callClassMethod(obj, setter, [value]);
+                } else {
+                    instanceEnv.set(propName, value);
+                }
+            } else if (obj && typeof obj === 'object') {
+                obj[propName] = value;
+            } else {
+                this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+            }
         } else if (stmt.left.type === 'CallExpression') {
             // Set obj.Item(key) = obj2  or  Set obj(key) = obj2
             const call = stmt.left as CallExpression;
@@ -4766,6 +4788,56 @@ export class Evaluator {
                 } else if (target && typeof target === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
                     target[key] = value;
+                } else {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                }
+            } else if (call.callee.type === 'ImplicitWithObjectExpression') {
+                if (this.withObjectStack.length === 0) {
+                    this.throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET, 'Object variable or With block variable not set');
+                }
+                const obj = this.withObjectStack[this.withObjectStack.length - 1];
+                const propName = (call.callee as ImplicitWithObjectExpression).property.name.toLowerCase();
+                if (obj && obj.__vbaClass__) {
+                    const instanceEnv = obj.__instanceEnv__ as Environment;
+                    const fieldArr = instanceEnv.get(propName);
+                    if (Array.isArray(fieldArr)) {
+                        const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
+                        const actualType = (value as any)?.__className__ as string | undefined;
+                        if (requiredType && value !== vbaNothing &&
+                            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
+                            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                        }
+                        const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        if (dims && call.args.length !== dims.length) {
+                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        let current = fieldArr;
+                        for (let i = 0; i < call.args.length - 1; i++) {
+                            const index = this.evaluateExpression(call.args[i]) as number;
+                            if (dims && (index < dims[i].lower || index > dims[i].upper)) {
+                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current = current[index];
+                        }
+                        const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                        if (dims) {
+                            const lastDim = dims[dims.length - 1];
+                            if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
+                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                        }
+                        current[lastIndex] = value;
+                        return;
+                    }
+                    const classDef = obj.__classDef__ as ClassDeclaration;
+                    const setter = classDef.procedures.find(
+                        p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
+                    );
+                    if (setter) {
+                        this.callClassMethod(obj, setter, [...call.args.map(a => this.evaluateExpression(a)), value]);
+                    } else {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
                 } else {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }

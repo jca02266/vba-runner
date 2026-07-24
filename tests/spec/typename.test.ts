@@ -144,6 +144,29 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 ReDim holder.Values(0)
                 Set holder.Values(0) = New OtherWidget
             End Sub
+            Function AssignClassFieldWithWith() As String
+                Dim holder As New Holder
+                With holder
+                    Set .Value = New Widget
+                End With
+                AssignClassFieldWithWith = TypeName(holder.Value)
+            End Function
+            Function AssignClassArrayFieldWithWith() As String
+                Dim holder As New Holder
+                ReDim holder.Values(0)
+                With holder
+                    Set .Values(0) = New Widget
+                End With
+                AssignClassArrayFieldWithWith = TypeName(holder.Values(0))
+            End Function
+            Function AssignMultiDimensionalClassArrayFieldWithWith() As String
+                Dim holder As New Holder
+                ReDim holder.Values(0 To 1, 0 To 1)
+                With holder
+                    Set .Values(1, 1) = New Widget
+                End With
+                AssignMultiDimensionalClassArrayFieldWithWith = TypeName(holder.Values(1, 1))
+            End Function
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -164,6 +187,12 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス配列フィールドの要素へ Set でインスタンスを代入できる');
     assert.strictEqual(ev.callProcedure('AssignMultiDimensionalClassArrayField', []), 'Widget',
         '多次元クラス配列フィールドの要素へ Set でインスタンスを代入できる');
+    assert.strictEqual(ev.callProcedure('AssignClassFieldWithWith', []), 'Widget',
+        'With ブロック経由でクラスフィールドへ Set 代入できる');
+    assert.strictEqual(ev.callProcedure('AssignClassArrayFieldWithWith', []), 'Widget',
+        'With ブロック経由でクラス配列フィールドへ Set 代入できる');
+    assert.strictEqual(ev.callProcedure('AssignMultiDimensionalClassArrayFieldWithWith', []), 'Widget',
+        'With ブロック経由で多次元クラス配列フィールドへ Set 代入できる');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
         'ReturnWrongClass', 'AssignWrongClassToField', 'AssignWrongClassToArrayField',
