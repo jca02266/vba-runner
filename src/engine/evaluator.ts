@@ -5184,6 +5184,12 @@ export class Evaluator {
                 new DataView(buffer.buffer).setInt16(0, Number(value), true);
                 return buffer;
             }
+            case 'boolean': {
+                const buffer = new Uint8Array(2);
+                const booleanValue = value instanceof VbaBoolean ? value.value : (value ? -1 : 0);
+                new DataView(buffer.buffer).setInt16(0, booleanValue, true);
+                return buffer;
+            }
             case 'long': {
                 const buffer = new Uint8Array(4);
                 new DataView(buffer.buffer).setInt32(0, Number(value), true);
@@ -5303,6 +5309,11 @@ export class Evaluator {
                 return { value: bytes[offset], length: 1 };
             case 'integer':
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true), length: 2 };
+            case 'boolean':
+                return {
+                    value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true) !== 0 ? vbaTrue : vbaFalse,
+                    length: 2,
+                };
             case 'long':
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0, true), length: 4 };
             case 'longlong':
