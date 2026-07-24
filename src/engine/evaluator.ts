@@ -1344,6 +1344,11 @@ export class Evaluator {
                         vbaType: mapped,
                         fixedLength: mapped === 'String' ? param.fixedLength : undefined,
                     });
+                } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
+                    localEnv.setVariableType(paramName, {
+                        vbaType: 'Object',
+                        objectTypeName: param.paramType,
+                    });
                 }
             }
             localEnv.setLocally(paramName, argValue);
@@ -4022,6 +4027,11 @@ export class Evaluator {
                     localEnv.setVariableType(paramName, {
                         vbaType: mapped,
                         fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                    });
+                } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
+                    localEnv.setVariableType(paramName, {
+                        vbaType: 'Object',
+                        objectTypeName: param.paramType,
                     });
                 }
             }
@@ -6872,6 +6882,11 @@ export class Evaluator {
                             localEnv.setVariableType(param.name, {
                                 vbaType: mapped,
                                 fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                            });
+                        } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
+                            localEnv.setVariableType(param.name, {
+                                vbaType: 'Object',
+                                objectTypeName: param.paramType,
                             });
                         }
                     }
