@@ -4711,8 +4711,26 @@ export class Evaluator {
                             (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
                             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
                         }
-                        const index = this.evaluateExpression(call.args[0]) as number;
-                        fieldArr[index] = value;
+                        const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        if (dims && call.args.length !== dims.length) {
+                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        let current = fieldArr;
+                        for (let i = 0; i < call.args.length - 1; i++) {
+                            const index = this.evaluateExpression(call.args[i]) as number;
+                            if (dims && (index < dims[i].lower || index > dims[i].upper)) {
+                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            current = current[index];
+                        }
+                        const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                        if (dims) {
+                            const lastDim = dims[dims.length - 1];
+                            if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
+                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                        }
+                        current[lastIndex] = value;
                         return;
                     }
                     const setter = classDef.procedures.find(

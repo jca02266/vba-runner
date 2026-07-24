@@ -133,6 +133,12 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 Set holder.Values(0) = New Widget
                 AssignClassArrayField = TypeName(holder.Values(0))
             End Function
+            Function AssignMultiDimensionalClassArrayField() As String
+                Dim holder As New Holder
+                ReDim holder.Values(0 To 1, 0 To 1)
+                Set holder.Values(1, 1) = New Widget
+                AssignMultiDimensionalClassArrayField = TypeName(holder.Values(1, 1))
+            End Function
             Sub AssignWrongClassToArrayField()
                 Dim holder As New Holder
                 ReDim holder.Values(0)
@@ -156,6 +162,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス型配列の未代入要素は Nothing で初期化される');
     assert.strictEqual(ev.callProcedure('AssignClassArrayField', []), 'Widget',
         'クラス配列フィールドの要素へ Set でインスタンスを代入できる');
+    assert.strictEqual(ev.callProcedure('AssignMultiDimensionalClassArrayField', []), 'Widget',
+        '多次元クラス配列フィールドの要素へ Set でインスタンスを代入できる');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
         'ReturnWrongClass', 'AssignWrongClassToField', 'AssignWrongClassToArrayField',
