@@ -3149,6 +3149,19 @@ export class Evaluator {
                     obj.__map__.set(key, val);
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
+                    const instanceEnv = obj.__instanceEnv__ as Environment;
+                    const fieldArr = instanceEnv.get(methodName);
+                    if (Array.isArray(fieldArr)) {
+                        const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
+                        const actualType = (val as any)?.__className__ as string | undefined;
+                        if (requiredType && val !== vbaNothing &&
+                            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
+                            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                        }
+                        const index = this.evaluateExpression(call.args[0]) as number;
+                        fieldArr[index] = val;
+                        return;
+                    }
                     const setter = classDef.procedures.find(
                         p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === methodName
                     );
@@ -4689,6 +4702,19 @@ export class Evaluator {
                     obj.__map__.set(key, value);
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
+                    const instanceEnv = obj.__instanceEnv__ as Environment;
+                    const fieldArr = instanceEnv.get(methodName);
+                    if (Array.isArray(fieldArr)) {
+                        const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
+                        const actualType = (value as any)?.__className__ as string | undefined;
+                        if (requiredType && value !== vbaNothing &&
+                            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
+                            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                        }
+                        const index = this.evaluateExpression(call.args[0]) as number;
+                        fieldArr[index] = value;
+                        return;
+                    }
                     const setter = classDef.procedures.find(
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === methodName
                     );

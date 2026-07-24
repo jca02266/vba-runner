@@ -80,7 +80,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     const ev = evalVBAModules([
         { name: 'Widget', code: 'Class Widget\nEnd Class' },
         { name: 'OtherWidget', code: 'Class OtherWidget\nEnd Class' },
-        { name: 'Holder', code: 'Class Holder\nPublic Value As Widget\nEnd Class' },
+        { name: 'Holder', code: 'Class Holder\nPublic Value As Widget\nPublic Values() As Widget\nEnd Class' },
         { name: 'Module1', code: `
             Function ClassArrayInfo() As String
                 Dim widgets() As Widget
@@ -127,6 +127,17 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 Dim holder As New Holder
                 Set holder.Value = New OtherWidget
             End Sub
+            Function AssignClassArrayField() As String
+                Dim holder As New Holder
+                ReDim holder.Values(0)
+                Set holder.Values(0) = New Widget
+                AssignClassArrayField = TypeName(holder.Values(0))
+            End Function
+            Sub AssignWrongClassToArrayField()
+                Dim holder As New Holder
+                ReDim holder.Values(0)
+                Set holder.Values(0) = New OtherWidget
+            End Sub
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -143,9 +154,11 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス型配列要素への Let 代入は Object required になる');
     assert.strictEqual(ev.callProcedure('ClassArrayElementsStartAsNothing', []).valueOf(), -1,
         'クラス型配列の未代入要素は Nothing で初期化される');
+    assert.strictEqual(ev.callProcedure('AssignClassArrayField', []), 'Widget',
+        'クラス配列フィールドの要素へ Set でインスタンスを代入できる');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
-        'ReturnWrongClass', 'AssignWrongClassToField',
+        'ReturnWrongClass', 'AssignWrongClassToField', 'AssignWrongClassToArrayField',
     ]) {
         errorNumber = 0;
         try {
