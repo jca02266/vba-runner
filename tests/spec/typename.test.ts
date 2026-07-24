@@ -80,6 +80,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     const ev = evalVBAModules([
         { name: 'Widget', code: 'Class Widget\nEnd Class' },
         { name: 'OtherWidget', code: 'Class OtherWidget\nEnd Class' },
+        { name: 'Holder', code: 'Class Holder\nPublic Value As Widget\nEnd Class' },
         { name: 'Module1', code: `
             Function ClassArrayInfo() As String
                 Dim widgets() As Widget
@@ -122,6 +123,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
             Function ReturnWrongClass() As Widget
                 Set ReturnWrongClass = New OtherWidget
             End Function
+            Sub AssignWrongClassToField()
+                Dim holder As New Holder
+                Set holder.Value = New OtherWidget
+            End Sub
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -140,7 +145,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'クラス型配列の未代入要素は Nothing で初期化される');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
-        'ReturnWrongClass',
+        'ReturnWrongClass', 'AssignWrongClassToField',
     ]) {
         errorNumber = 0;
         try {

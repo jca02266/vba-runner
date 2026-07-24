@@ -3680,6 +3680,12 @@ export class Evaluator {
                     }
                 }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
+                if (decl.objectType && this.classDefinitions.has(mt) && !decl.isArray) {
+                    instanceEnv.setVariableType(decl.name.name, {
+                        vbaType: 'Object',
+                        objectTypeName: decl.objectType,
+                    });
+                }
                 if (decl.isWithEvents) instanceEnv.setWithEvents(decl.name.name);
             }
         }
