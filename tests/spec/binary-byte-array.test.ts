@@ -80,3 +80,61 @@ const intMatrixEv = evalVBASingle(`
 `, { fs: intMatrixFs, sandboxRoot: '/sandbox' });
 assert.strictEqual(intMatrixEv.callProcedure('RoundTripIntegerMatrix', []), '8:-1:2:300:-400');
 console.log('✅ Binary Put/Get supports multidimensional Integer arrays');
+
+const longFs = new MemoryFileSystem();
+const longEv = evalVBASingle(`
+    Function RoundTripLongs() As String
+        Dim written(0 To 1, 0 To 1) As Long
+        Dim readBack(0 To 1, 0 To 1) As Long
+        written(0, 0) = -1: written(0, 1) = 2
+        written(1, 0) = 300000: written(1, 1) = -400000
+        Open "longs.bin" For Binary As #1
+        Put #1, , written
+        RoundTripLongs = CStr(LOF(1))
+        Close #1
+        Open "longs.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripLongs = RoundTripLongs & ":" & CStr(readBack(0, 0)) & ":" & CStr(readBack(0, 1)) & ":" & CStr(readBack(1, 0)) & ":" & CStr(readBack(1, 1))
+    End Function
+`, { fs: longFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(longEv.callProcedure('RoundTripLongs', []), '16:-1:2:300000:-400000');
+console.log('✅ Binary Put/Get supports multidimensional Long arrays');
+
+const booleanFs = new MemoryFileSystem();
+const booleanEv = evalVBASingle(`
+    Function RoundTripBooleans() As String
+        Dim written(0 To 1) As Boolean
+        Dim readBack(0 To 1) As Boolean
+        written(0) = True: written(1) = False
+        Open "booleans.bin" For Binary As #1
+        Put #1, , written
+        RoundTripBooleans = CStr(LOF(1))
+        Close #1
+        Open "booleans.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripBooleans = RoundTripBooleans & ":" & CStr(readBack(0)) & ":" & CStr(readBack(1))
+    End Function
+`, { fs: booleanFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(booleanEv.callProcedure('RoundTripBooleans', []), '4:True:False');
+console.log('✅ Binary Put/Get supports Boolean arrays');
+
+const doubleFs = new MemoryFileSystem();
+const doubleEv = evalVBASingle(`
+    Function RoundTripDoubles() As String
+        Dim written(0 To 1) As Double
+        Dim readBack(0 To 1) As Double
+        written(0) = 1.25: written(1) = -2.5
+        Open "doubles.bin" For Binary As #1
+        Put #1, , written
+        RoundTripDoubles = CStr(LOF(1))
+        Close #1
+        Open "doubles.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripDoubles = RoundTripDoubles & ":" & CStr(readBack(0)) & ":" & CStr(readBack(1))
+    End Function
+`, { fs: doubleFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(doubleEv.callProcedure('RoundTripDoubles', []), '16:1.25:-2.5');
+console.log('✅ Binary Put/Get supports Double arrays');

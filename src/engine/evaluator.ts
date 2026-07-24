@@ -272,6 +272,8 @@ export interface VbaTypeInfo {
 
 interface BinaryValueLayout {
     typeName: string;
+    /** Element type when serializing a declared primitive array. */
+    elementType?: string;
     fixedLength?: number;
     /** Compatibility path for an untyped target, where VBA's destination size
      * is unavailable and the runner must retain its historical whole-field read. */
@@ -5149,11 +5151,12 @@ export class Evaluator {
     private static readonly VBA_BINARY_ENCODING = 'cp932';
 
     private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
-        if (Array.isArray(value) && (value as any).__vbaElementType__ === 'byte') {
-            return { typeName: 'ByteArray' };
-        }
-        if (Array.isArray(value) && (value as any).__vbaElementType__ === 'integer') {
-            return { typeName: 'IntegerArray' };
+        const elementType = Array.isArray(value) ? (value as any).__vbaElementType__?.toLowerCase() : undefined;
+        if (elementType && [
+            'byte', 'integer', 'boolean', 'long', 'longlong', 'longptr',
+            'single', 'double', 'date', 'currency',
+        ].includes(elementType)) {
+            return { typeName: 'Array', elementType };
         }
         if (expr.type === 'Identifier') {
             const typeInfo = this.env.getVariableType((expr as Identifier).name);
@@ -5183,34 +5186,28 @@ export class Evaluator {
     private encodeBinaryValue(value: any, layout: BinaryValueLayout): Uint8Array {
         const typeName = layout.typeName.toLowerCase();
         switch (typeName) {
-            case 'bytearray': {
+            case 'array': {
+                if (!layout.elementType) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Missing Binary Put/Get array element type');
+                }
                 const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                const result: number[] = [];
+                const fields: Uint8Array[] = [];
                 const collect = (array: any, dimension: number): void => {
                     const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
                     const upper = dims?.[dimension].upper ?? array.length - 1;
                     for (let i = lower; i <= upper; i++) {
                         if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
-                        else result.push(Number(array[i]) & 0xff);
+                        else fields.push(this.encodeBinaryValue(array[i], { typeName: layout.elementType! }));
                     }
                 };
                 collect(value, 0);
-                return Uint8Array.from(result);
-            }
-            case 'integerarray': {
-                const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                const result: number[] = [];
-                const collect = (array: any, dimension: number): void => {
-                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
-                    const upper = dims?.[dimension].upper ?? array.length - 1;
-                    for (let i = lower; i <= upper; i++) {
-                        if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
-                        else result.push(Number(array[i]));
-                    }
-                };
-                collect(value, 0);
-                const buffer = new Uint8Array(result.length * 2);
-                result.forEach((n, i) => new DataView(buffer.buffer).setInt16(i * 2, n, true));
+                const length = fields.reduce((total, field) => total + field.length, 0);
+                const buffer = new Uint8Array(length);
+                let offset = 0;
+                for (const field of fields) {
+                    buffer.set(field, offset);
+                    offset += field.length;
+                }
                 return buffer;
             }
             case 'byte':
@@ -5341,7 +5338,10 @@ export class Evaluator {
     private decodeBinaryValue(bytes: Uint8Array, offset: number, layout: BinaryValueLayout, currentValue: any): { value: any, length: number } {
         const typeName = layout.typeName.toLowerCase();
         switch (typeName) {
-            case 'bytearray': {
+            case 'array': {
+                if (!layout.elementType) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Missing Binary Get array element type');
+                }
                 const target = Array.isArray(currentValue) ? currentValue : [];
                 const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                 let length = 0;
@@ -5350,26 +5350,16 @@ export class Evaluator {
                     const upper = dims?.[dimension].upper ?? array.length - 1;
                     for (let i = lower; i <= upper; i++) {
                         if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
-                        else array[i] = bytes[offset + length++];
+                        else {
+                            const field = this.decodeBinaryValue(bytes, offset + length,
+                                { typeName: layout.elementType! }, array[i]);
+                            array[i] = field.value;
+                            length += field.length;
+                        }
                     }
                 };
                 restore(target, 0);
                 return { value: target, length };
-            }
-            case 'integerarray': {
-                const target = currentValue;
-                const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                let count = 0;
-                const restore = (array: any, dimension: number): void => {
-                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
-                    const upper = dims?.[dimension].upper ?? array.length - 1;
-                    for (let i = lower; i <= upper; i++) {
-                        if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
-                        else array[i] = new DataView(bytes.buffer, bytes.byteOffset + offset + count++ * 2, 2).getInt16(0, true);
-                    }
-                };
-                restore(target, 0);
-                return { value: target, length: count * 2 };
             }
             case 'byte':
                 return { value: bytes[offset], length: 1 };
