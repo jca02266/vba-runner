@@ -1666,6 +1666,21 @@ export class Evaluator {
                 case 'MemberExpression': visitExpr((expr as MemberExpression).object); break;
             }
         };
+        const visitAssignmentTarget = (expr: Expression): void => {
+            if (expr.type === 'CallExpression') {
+                const call = expr as CallExpression;
+                // `result(i) = value` is an array element assignment, not a call
+                // to the procedure named `result`.
+                if (call.callee.type === 'MemberExpression') visitExpr((call.callee as MemberExpression).object);
+                for (const arg of call.args) visitExpr(arg);
+                return;
+            }
+            if (expr.type === 'MemberExpression') {
+                visitAssignmentTarget((expr as MemberExpression).object);
+                return;
+            }
+            visitExpr(expr);
+        };
 
         const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
         const walkStmt = (stmt: Statement) => {
@@ -1673,12 +1688,12 @@ export class Evaluator {
                 case 'CallStatement':      visitExpr((stmt as CallStatement).expression); break;
                 case 'AssignmentStatement': {
                     const a = stmt as AssignmentStatement;
-                    visitExpr(a.left); visitExpr(a.right);
+                    visitAssignmentTarget(a.left); visitExpr(a.right);
                     break;
                 }
                 case 'SetStatement': {
                     const s = stmt as SetStatement;
-                    visitExpr(s.left); visitExpr(s.right);
+                    visitAssignmentTarget(s.left); visitExpr(s.right);
                     break;
                 }
                 case 'IfStatement': {
@@ -3342,7 +3357,23 @@ export class Evaluator {
             }
         } else if (left.type === 'MemberExpression') {
             const member = left as MemberExpression;
-            const obj = this.resolveAutoInstance(member.object, this.evaluateExpression(member.object));
+            let memberObject: any;
+            if (member.object.type === 'CallExpression') {
+                const call = member.object as CallExpression;
+                const isCurrentArrayReturn = call.callee.type === 'Identifier' && this.currentProcedureName &&
+                    (call.callee as Identifier).name.toLowerCase() === this.currentProcedureName.toLowerCase();
+                if (isCurrentArrayReturn) {
+                    memberObject = this.env.get((call.callee as Identifier).name);
+                    for (const indexExpr of call.args) {
+                        memberObject = memberObject?.[this.evaluateExpression(indexExpr) as number];
+                    }
+                } else {
+                    memberObject = this.evaluateExpression(member.object);
+                }
+            } else {
+                memberObject = this.evaluateExpression(member.object);
+            }
+            const obj = this.resolveAutoInstance(member.object, memberObject);
             const propName = member.property.name.toLowerCase();
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
@@ -6229,15 +6260,25 @@ export class Evaluator {
             }
         }
 
+        const returnArrayType = decl.name.type === 'Identifier' && this.currentProcedureName &&
+            (decl.name as Identifier).name.toLowerCase() === this.currentProcedureName.toLowerCase()
+            ? (() => {
+                const proc = this.env.getProcedure(this.currentProcedureName!);
+                return proc?.returnsArray ? proc.returnType : undefined;
+            })()
+            : undefined;
+
         // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ
         const elementTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
             storedArrayTypeInfo?.elementTypeName ??
-            (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined);
+            (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined) ??
+            (returnArrayType && this.env.getType(returnArrayType) ? returnArrayType : undefined);
         const elementType: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementType__ : undefined) ??
             storedArrayTypeInfo?.elementType ??
-            (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined);
+            (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined) ??
+            (returnArrayType && !this.env.getType(returnArrayType) ? returnArrayType.toLowerCase() : undefined);
         const elementObjectTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementObjectTypeName__ : undefined) ??
             storedArrayTypeInfo?.elementObjectTypeName ??
@@ -6245,7 +6286,12 @@ export class Evaluator {
                 this.classDefinitions.has(decl.objectType.toLowerCase()) ||
                 this.externalObjectFactories.has(decl.objectType.toLowerCase()) ||
                 ['object', 'collection'].includes(decl.objectType.toLowerCase())
-            ) ? decl.objectType : undefined);
+            ) ? decl.objectType : undefined) ??
+            (returnArrayType && (
+                this.classDefinitions.has(returnArrayType.toLowerCase()) ||
+                this.externalObjectFactories.has(returnArrayType.toLowerCase()) ||
+                ['object', 'collection'].includes(returnArrayType.toLowerCase())
+            ) ? returnArrayType : undefined);
 
         let defaultValue: any = 0;
         if (decl.objectType) {
@@ -6256,6 +6302,12 @@ export class Evaluator {
                 this.classDefinitions.has(t) || this.externalObjectFactories.has(t) ||
                 t === 'object' || t === 'collection'
             ) defaultValue = vbaNothing;
+        } else if (returnArrayType && (
+            this.classDefinitions.has(returnArrayType.toLowerCase()) ||
+            this.externalObjectFactories.has(returnArrayType.toLowerCase()) ||
+            ['object', 'collection'].includes(returnArrayType.toLowerCase())
+        )) {
+            defaultValue = vbaNothing;
         } else if (Array.isArray(oldArr)) {
             defaultValue = (oldArr as any).__vbaDefaultValue__
                 ?? ((oldArr as any).__vbaElementObjectTypeName__ ? vbaNothing : 0);

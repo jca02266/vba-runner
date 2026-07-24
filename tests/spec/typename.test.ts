@@ -251,6 +251,45 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Bug 77-A: クラス型配列の VarType / TypeName');
 }
 
+// Bug 88-A: 型付き配列を返す Function の戻り値に ReDim できない
+{
+    const ev = evalVBAModules([
+        { name: 'Widget', code: 'Class Widget\nEnd Class' },
+        { name: 'Module1', code: `
+            Type Point
+                X As Long
+            End Type
+            Function MakeIntegers() As Integer()
+                ReDim MakeIntegers(0)
+                MakeIntegers(0) = 1.5
+            End Function
+            Function MakeWidgets() As Widget()
+                ReDim MakeWidgets(0)
+                Set MakeWidgets(0) = New Widget
+            End Function
+            Function MakePoints() As Point()
+                ReDim MakePoints(0)
+                MakePoints(0).X = 42
+            End Function
+            Function ReturnArrayInfo() As String
+                Dim integers() As Integer
+                Dim widgets() As Widget
+                Dim points() As Point
+                integers = MakeIntegers()
+                widgets = MakeWidgets()
+                points = MakePoints()
+                ReturnArrayInfo = CStr(VarType(integers)) & ":" & TypeName(integers) & ":" & _
+                    CStr(integers(0)) & ":" & CStr(VarType(widgets)) & ":" & _
+                    TypeName(widgets) & ":" & TypeName(widgets(0)) & ":" & CStr(points(0).X)
+            End Function
+        ` },
+    ]);
+    assert.strictEqual(ev.callProcedure('ReturnArrayInfo', []),
+        '8194:Integer():2:8201:Widget():Widget:42',
+        '型付き配列を返す Function の戻り値は ReDim 後も要素型を維持する');
+    console.log('[PASS] Bug 88-A: 型付き配列を返す Function の ReDim');
+}
+
 // 数値リテラルのサフィックス型情報保持
 {
     const ev = evalVBASingle('Function Dummy(): End Function');
