@@ -167,6 +167,23 @@ function runFunc(code: string, name: string, args: any[] = []): any {
                 End With
                 AssignMultiDimensionalClassArrayFieldWithWith = TypeName(holder.Values(1, 1))
             End Function
+            Function ReDimClassArrayAfterErase() As String
+                Dim widgets() As Widget
+                ReDim widgets(0)
+                Erase widgets
+                ReDim widgets(0)
+                ReDimClassArrayAfterErase = CStr(VarType(widgets)) & ":" & _
+                    TypeName(widgets) & ":" & CStr(widgets(0) Is Nothing)
+            End Function
+            Function ReDimIntegerArrayAfterErase() As String
+                Dim values() As Integer
+                ReDim values(0)
+                Erase values
+                ReDim values(0)
+                values(0) = 1.5
+                ReDimIntegerArrayAfterErase = CStr(VarType(values)) & ":" & _
+                    TypeName(values) & ":" & CStr(values(0))
+            End Function
         ` },
     ]);
     assert.strictEqual(ev.callProcedure('ClassArrayInfo', []), '8201:Widget()',
@@ -193,6 +210,10 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         'With ブロック経由でクラス配列フィールドへ Set 代入できる');
     assert.strictEqual(ev.callProcedure('AssignMultiDimensionalClassArrayFieldWithWith', []), 'Widget',
         'With ブロック経由で多次元クラス配列フィールドへ Set 代入できる');
+    assert.strictEqual(ev.callProcedure('ReDimClassArrayAfterErase', []), '8201:Widget():True',
+        'Erase 後の ReDim でもクラス配列の宣言型と Nothing 初期化を維持する');
+    assert.strictEqual(ev.callProcedure('ReDimIntegerArrayAfterErase', []), '8194:Integer():2',
+        'Erase 後の ReDim でも Integer 配列の型強制を維持する');
     for (const procName of [
         'AssignWrongClassToVariable', 'AssignWrongClassToArray', 'PassWrongClassToParameter',
         'ReturnWrongClass', 'AssignWrongClassToField', 'AssignWrongClassToArrayField',

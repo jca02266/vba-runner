@@ -304,6 +304,11 @@ interface ExecProcBodyOptions {
 export class Environment {
     private variables: Map<string, any> = new Map();
     private variableTypes: Map<string, VbaTypeInfo> = new Map();
+    private arrayTypeInfo: Map<string, {
+        elementType?: string;
+        elementTypeName?: string;
+        elementObjectTypeName?: string;
+    }> = new Map();
     /** Dynamic numeric subtype for Variant variables (e.g. after `v = 42`, tracks "Integer") */
     private variantNumericSubtypes: Map<string, VbaVarType> = new Map();
     private procedures: Map<string, ProcedureDeclaration> = new Map();
@@ -368,6 +373,21 @@ export class Environment {
             env = env.enclosing;
         }
         return undefined;
+    }
+
+    setArrayTypeInfo(name: string, value: any): void {
+        if (!Array.isArray(value)) return;
+        this.arrayTypeInfo.set(name.toLowerCase(), {
+            elementType: (value as any).__vbaElementType__,
+            elementTypeName: (value as any).__vbaElementTypeName__,
+            elementObjectTypeName: (value as any).__vbaElementObjectTypeName__,
+        });
+    }
+
+    getArrayTypeInfo(name: string): { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string } | undefined {
+        const key = name.toLowerCase();
+        if (this.arrayTypeInfo.has(key)) return this.arrayTypeInfo.get(key);
+        return this.enclosing?.getArrayTypeInfo(name);
     }
 
     setVariantSubtype(name: string, subtype: VbaVarType): void {
@@ -6009,6 +6029,7 @@ export class Evaluator {
                 } else {
                     // Dynamic array: Erase deallocates (uninitialized). Null signals this
                     // so UBound/LBound/access throw Error 9 until ReDim is called again.
+                    this.env.setArrayTypeInfo(varName, arr);
                     this.env.set(varName, null);
                 }
             }
@@ -6134,10 +6155,12 @@ export class Evaluator {
         // Resolve get/set accessors for the three target forms
         let oldArr: any;
         let setNewArr: (arr: any[]) => void;
+        let storedArrayTypeInfo: { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string } | undefined;
         if (decl.name.type === 'Identifier') {
             const varName = (decl.name as Identifier).name;
             oldArr = this.env.get(varName);
             setNewArr = (arr) => this.env.set(varName, arr);
+            storedArrayTypeInfo = this.env.getArrayTypeInfo(varName);
         } else if (decl.name.type === 'MemberExpression') {
             const mem = decl.name as MemberExpression;
             const obj = this.resolveAutoInstance(mem.object, this.evaluateExpression(mem.object));
@@ -6169,12 +6192,15 @@ export class Evaluator {
         // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ
         const elementTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
+            storedArrayTypeInfo?.elementTypeName ??
             (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined);
         const elementType: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementType__ : undefined) ??
+            storedArrayTypeInfo?.elementType ??
             (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined);
         const elementObjectTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementObjectTypeName__ : undefined) ??
+            storedArrayTypeInfo?.elementObjectTypeName ??
             (decl.objectType && (
                 this.classDefinitions.has(decl.objectType.toLowerCase()) ||
                 this.externalObjectFactories.has(decl.objectType.toLowerCase()) ||
@@ -6193,6 +6219,8 @@ export class Evaluator {
         } else if (Array.isArray(oldArr)) {
             defaultValue = (oldArr as any).__vbaDefaultValue__
                 ?? ((oldArr as any).__vbaElementObjectTypeName__ ? vbaNothing : 0);
+        } else if (storedArrayTypeInfo?.elementObjectTypeName) {
+            defaultValue = vbaNothing;
         }
 
         if (decl.bounds.length > 0) {
@@ -6240,6 +6268,7 @@ export class Evaluator {
             }
 
             setNewArr(arr);
+            if (decl.name.type === 'Identifier') this.env.setArrayTypeInfo((decl.name as Identifier).name, arr);
         }
     }
 
