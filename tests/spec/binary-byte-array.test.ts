@@ -138,3 +138,22 @@ const doubleEv = evalVBASingle(`
 `, { fs: doubleFs, sandboxRoot: '/sandbox' });
 assert.strictEqual(doubleEv.callProcedure('RoundTripDoubles', []), '16:1.25:-2.5');
 console.log('✅ Binary Put/Get supports Double arrays');
+
+const fixedStringFs = new MemoryFileSystem();
+const fixedStringEv = evalVBASingle(`
+    Function RoundTripFixedStrings() As String
+        Dim written(0 To 1) As String * 2
+        Dim readBack(0 To 1) As String * 2
+        written(0) = "A": written(1) = "BC"
+        Open "fixed-strings.bin" For Binary As #1
+        Put #1, , written
+        RoundTripFixedStrings = CStr(LOF(1))
+        Close #1
+        Open "fixed-strings.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripFixedStrings = RoundTripFixedStrings & ":" & readBack(0) & ":" & readBack(1)
+    End Function
+`, { fs: fixedStringFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(fixedStringEv.callProcedure('RoundTripFixedStrings', []), '4:A :BC');
+console.log('✅ Binary Put/Get supports fixed-length String arrays');

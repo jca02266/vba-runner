@@ -3163,6 +3163,12 @@ export class Evaluator {
                         val = this.coerceToDeclaredType(val,
                             elemType.charAt(0).toUpperCase() + elemType.slice(1));
                     }
+                    const fixedLength = (target as any).__vbaElementFixedLength__ as number | undefined;
+                    if (elemType === 'string' && fixedLength !== undefined && typeof val === 'string') {
+                        val = val.length > fixedLength
+                            ? val.slice(0, fixedLength)
+                            : val + ' '.repeat(fixedLength - val.length);
+                    }
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
@@ -3537,6 +3543,9 @@ export class Evaluator {
                 // 型付き配列: 要素代入時の coerceToDeclaredType に使う型名を保持
                 if (effectiveType) {
                     (initialValue as any).__vbaElementType__ = effectiveType.toLowerCase();
+                    if (effectiveType.toLowerCase() === 'string' && decl.fixedLength !== undefined) {
+                        (initialValue as any).__vbaElementFixedLength__ = decl.fixedLength;
+                    }
                 }
                 // UDT 型配列: ReDim 時に要素を初期化できるよう型名を保持する
                 if (decl.objectType && this.env.getType(decl.objectType)) {
@@ -5158,6 +5167,13 @@ export class Evaluator {
         ].includes(elementType)) {
             return { typeName: 'Array', elementType };
         }
+        if (elementType === 'string' && (value as any).__vbaElementFixedLength__ !== undefined) {
+            return {
+                typeName: 'Array',
+                elementType,
+                fixedLength: (value as any).__vbaElementFixedLength__,
+            };
+        }
         if (expr.type === 'Identifier') {
             const typeInfo = this.env.getVariableType((expr as Identifier).name);
             if (typeInfo && typeInfo.vbaType !== 'Variant') {
@@ -5197,7 +5213,9 @@ export class Evaluator {
                     const upper = dims?.[dimension].upper ?? array.length - 1;
                     for (let i = lower; i <= upper; i++) {
                         if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
-                        else fields.push(this.encodeBinaryValue(array[i], { typeName: layout.elementType! }));
+                        else fields.push(this.encodeBinaryValue(array[i], {
+                            typeName: layout.elementType!, fixedLength: layout.fixedLength,
+                        }));
                     }
                 };
                 collect(value, 0);
@@ -5352,7 +5370,7 @@ export class Evaluator {
                         if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
                         else {
                             const field = this.decodeBinaryValue(bytes, offset + length,
-                                { typeName: layout.elementType! }, array[i]);
+                                { typeName: layout.elementType!, fixedLength: layout.fixedLength }, array[i]);
                             array[i] = field.value;
                             length += field.length;
                         }
