@@ -293,6 +293,17 @@
 | ~~**Bug 26-5: UDT変数への `Get` で Error 424**~~ | **評価 #36 で修正済み**: 同じ範囲の UDT を復元して代入する。 | |
 | ~~**Bug 26-7: `GetAttr(path)` が Error 35（未実装）**~~ | **修正済み**: `evaluator.ts` に `getattr`（常に 0 を返すスタブ）と `setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`/`vbReadOnly`/`vbHidden`/`vbSystem`/`vbVolume`/`vbDirectory`/`vbArchive`/`vbAlias` 定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-7 ブロック。 | |
 
+### 実機照合キュー
+
+vba-runner 単体では VBA/Excel 固有の実バイト列・UI 挙動を確定できない項目を蓄積する。
+評価中に候補を見つけたら、ここへ再現目的・実行する VBA・比較対象を追加する。
+このキューは個別にユーザー操作を依頼するためではなく、候補が十分に集まった時点で
+Excel 実機上でまとめて実施するための一覧である。照合後は結果・対象 Excel 環境・対応コミットを記録して完了へ移す。
+
+| ID | 照合対象 | Excel で確認する結果 | vba-runner 側の自動テスト | 状態 |
+|---|---|---|---|---|
+| XL-001 | 多次元固定配列を持つ UDT の `Put #` バイト順 | `Values(0,0)=1`, `(0,1)=2`, `(1,0)=3`, `(1,1)=4` を書き込んだ16バイトの順序 | 新規候補。現行実装は `1,2,3,4` の順で往復する | 未照合 |
+
 ### 未対応の機能制限（改善候補）
 
 | 制限 | 詳細 |
