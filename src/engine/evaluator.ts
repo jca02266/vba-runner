@@ -5189,6 +5189,12 @@ export class Evaluator {
                 new DataView(buffer.buffer).setInt32(0, Number(value), true);
                 return buffer;
             }
+            case 'longlong':
+            case 'longptr': {
+                const buffer = new Uint8Array(8);
+                new DataView(buffer.buffer).setBigInt64(0, BigInt(value), true);
+                return buffer;
+            }
             case 'single': {
                 const buffer = new Uint8Array(4);
                 new DataView(buffer.buffer).setFloat32(0, Number(value), true);
@@ -5299,6 +5305,9 @@ export class Evaluator {
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true), length: 2 };
             case 'long':
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0, true), length: 4 };
+            case 'longlong':
+            case 'longptr':
+                return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getBigInt64(0, true), length: 8 };
             case 'single':
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getFloat32(0, true), length: 4 };
             case 'double':
