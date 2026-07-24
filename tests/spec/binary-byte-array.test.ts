@@ -41,3 +41,42 @@ const matrixEv = evalVBASingle(`
 
 assert.strictEqual(matrixEv.callProcedure('RoundTripMatrix', []), '4:1:2:3:4');
 console.log('✅ Binary Put/Get supports multidimensional Byte arrays');
+
+const intFs = new MemoryFileSystem();
+const intEv = evalVBASingle(`
+    Function RoundTripIntegers() As String
+        Dim written(0 To 1) As Integer
+        Dim readBack(0 To 1) As Integer
+        written(0) = -1: written(1) = 300
+        Open "integers.bin" For Binary As #1
+        Put #1, , written
+        RoundTripIntegers = CStr(LOF(1))
+        Close #1
+        Open "integers.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripIntegers = RoundTripIntegers & ":" & CStr(readBack(0)) & ":" & CStr(readBack(1))
+    End Function
+`, { fs: intFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(intEv.callProcedure('RoundTripIntegers', []), '4:-1:300');
+console.log('✅ Binary Put/Get supports Integer arrays');
+
+const intMatrixFs = new MemoryFileSystem();
+const intMatrixEv = evalVBASingle(`
+    Function RoundTripIntegerMatrix() As String
+        Dim written(0 To 1, 0 To 1) As Integer
+        Dim readBack(0 To 1, 0 To 1) As Integer
+        written(0, 0) = -1: written(0, 1) = 2
+        written(1, 0) = 300: written(1, 1) = -400
+        Open "integer-matrix.bin" For Binary As #1
+        Put #1, , written
+        RoundTripIntegerMatrix = CStr(LOF(1))
+        Close #1
+        Open "integer-matrix.bin" For Binary As #1
+        Get #1, , readBack
+        Close #1
+        RoundTripIntegerMatrix = RoundTripIntegerMatrix & ":" & CStr(readBack(0, 0)) & ":" & CStr(readBack(0, 1)) & ":" & CStr(readBack(1, 0)) & ":" & CStr(readBack(1, 1))
+    End Function
+`, { fs: intMatrixFs, sandboxRoot: '/sandbox' });
+assert.strictEqual(intMatrixEv.callProcedure('RoundTripIntegerMatrix', []), '8:-1:2:300:-400');
+console.log('✅ Binary Put/Get supports multidimensional Integer arrays');

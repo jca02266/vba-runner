@@ -5152,6 +5152,9 @@ export class Evaluator {
         if (Array.isArray(value) && (value as any).__vbaElementType__ === 'byte') {
             return { typeName: 'ByteArray' };
         }
+        if (Array.isArray(value) && (value as any).__vbaElementType__ === 'integer') {
+            return { typeName: 'IntegerArray' };
+        }
         if (expr.type === 'Identifier') {
             const typeInfo = this.env.getVariableType((expr as Identifier).name);
             if (typeInfo && typeInfo.vbaType !== 'Variant') {
@@ -5193,6 +5196,22 @@ export class Evaluator {
                 };
                 collect(value, 0);
                 return Uint8Array.from(result);
+            }
+            case 'integerarray': {
+                const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                const result: number[] = [];
+                const collect = (array: any, dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
+                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                    for (let i = lower; i <= upper; i++) {
+                        if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
+                        else result.push(Number(array[i]));
+                    }
+                };
+                collect(value, 0);
+                const buffer = new Uint8Array(result.length * 2);
+                result.forEach((n, i) => new DataView(buffer.buffer).setInt16(i * 2, n, true));
+                return buffer;
             }
             case 'byte':
                 return Uint8Array.of(Number(value) & 0xff);
@@ -5336,6 +5355,21 @@ export class Evaluator {
                 };
                 restore(target, 0);
                 return { value: target, length };
+            }
+            case 'integerarray': {
+                const target = currentValue;
+                const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                let count = 0;
+                const restore = (array: any, dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
+                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                    for (let i = lower; i <= upper; i++) {
+                        if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
+                        else array[i] = new DataView(bytes.buffer, bytes.byteOffset + offset + count++ * 2, 2).getInt16(0, true);
+                    }
+                };
+                restore(target, 0);
+                return { value: target, length: count * 2 };
             }
             case 'byte':
                 return { value: bytes[offset], length: 1 };
