@@ -774,6 +774,8 @@ export class Evaluator {
     private currentProcBody: Statement[] | null = null;
     private currentProcedureName: string | null = null;
     private currentProcedureType: string | null = null;
+    private currentProcedureReturnType: string | undefined;
+    private currentProcedureReturnsArray = false;
     private currentSourceModule: string = '';
     private executingModuleName: string = '';
     // Maps module name (lower) -> set of variable/const names (lower) declared at module level
@@ -1830,6 +1832,8 @@ export class Evaluator {
         const previousProcBody = this.currentProcBody;
         const previousProcedureName = this.currentProcedureName;
         const previousProcedureType = this.currentProcedureType;
+        const previousProcedureReturnType = this.currentProcedureReturnType;
+        const previousProcedureReturnsArray = this.currentProcedureReturnsArray;
         const previousExecutingModule = this.executingModuleName;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
@@ -1842,6 +1846,8 @@ export class Evaluator {
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
+        this.currentProcedureReturnType = proc.returnType;
+        this.currentProcedureReturnsArray = proc.returnsArray ?? false;
         this.executingModuleName = proc.moduleName ?? '';
         this.currentProcIsStatic = proc.isStatic ?? false;
         this.staticVarsInCurrentProc = new Set();
@@ -1910,6 +1916,8 @@ export class Evaluator {
             this.currentProcBody = previousProcBody;
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
+            this.currentProcedureReturnType = previousProcedureReturnType;
+            this.currentProcedureReturnsArray = previousProcedureReturnsArray;
             this.executingModuleName = previousExecutingModule;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
@@ -4145,6 +4153,8 @@ export class Evaluator {
         const previousProcBody = this.currentProcBody;
         const previousProcedureName = this.currentProcedureName;
         const previousProcedureType = this.currentProcedureType;
+        const previousProcedureReturnType = this.currentProcedureReturnType;
+        const previousProcedureReturnsArray = this.currentProcedureReturnsArray;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
         this.env = localEnv;
@@ -4155,6 +4165,8 @@ export class Evaluator {
         this.currentProcBody = proc.body;
         this.currentProcedureName = proc.name.name;
         this.currentProcedureType = proc.propertyType || (proc.isFunction ? 'function' : 'sub');
+        this.currentProcedureReturnType = proc.returnType;
+        this.currentProcedureReturnsArray = proc.returnsArray ?? false;
         this.currentProcIsStatic = false;
         this.staticVarsInCurrentProc = new Set();
 
@@ -4202,6 +4214,8 @@ export class Evaluator {
             this.currentProcBody = previousProcBody;
             this.currentProcedureName = previousProcedureName;
             this.currentProcedureType = previousProcedureType;
+            this.currentProcedureReturnType = previousProcedureReturnType;
+            this.currentProcedureReturnsArray = previousProcedureReturnsArray;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
         }
@@ -6260,12 +6274,9 @@ export class Evaluator {
             }
         }
 
-        const returnArrayType = decl.name.type === 'Identifier' && this.currentProcedureName &&
+        const returnArrayType = decl.name.type === 'Identifier' && this.currentProcedureName && this.currentProcedureReturnsArray &&
             (decl.name as Identifier).name.toLowerCase() === this.currentProcedureName.toLowerCase()
-            ? (() => {
-                const proc = this.env.getProcedure(this.currentProcedureName!);
-                return proc?.returnsArray ? proc.returnType : undefined;
-            })()
+            ? this.currentProcedureReturnType
             : undefined;
 
         // UDT 配列の場合、Dim 時に保存した要素型名を引き継ぐ

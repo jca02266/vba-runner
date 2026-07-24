@@ -290,6 +290,31 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Bug 88-A: 型付き配列を返す Function の ReDim');
 }
 
+// Bug 88-C: 型付き配列を返す Property Get の戻り値に ReDim できない
+{
+    const ev = evalVBAModules([
+        { name: 'Holder', code: `
+            Class Holder
+            Public Property Get Values() As Integer()
+                ReDim Values(0)
+                Values(0) = 1.5
+            End Property
+            End Class
+        ` },
+        { name: 'Module1', code: `
+            Function PropertyArrayInfo() As String
+                Dim holder As New Holder
+                Dim values() As Integer
+                values = holder.Values
+                PropertyArrayInfo = CStr(VarType(values)) & ":" & TypeName(values) & ":" & CStr(values(0))
+            End Function
+        ` },
+    ]);
+    assert.strictEqual(ev.callProcedure('PropertyArrayInfo', []), '8194:Integer():2',
+        '型付き配列を返す Property Get の戻り値は ReDim 後も要素型を維持する');
+    console.log('[PASS] Bug 88-C: 型付き配列を返す Property Get の ReDim');
+}
+
 // 数値リテラルのサフィックス型情報保持
 {
     const ev = evalVBASingle('Function Dummy(): End Function');
