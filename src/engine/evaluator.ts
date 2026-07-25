@@ -3172,7 +3172,7 @@ export class Evaluator {
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
-                    const key = String(this.evaluateExpression(call.args[0]));
+                    const key = target.__resolveKey__(String(this.evaluateExpression(call.args[0])));
                     target.__map__.set(key, val);
                 } else if (target && target.__vbaClass__) {
                     // Default property assignment: obj(args) = val -> obj.Item(args) = val
@@ -3196,7 +3196,7 @@ export class Evaluator {
                 const methodName = memberCallee.property.name.toLowerCase();
                 if (obj && obj.__isVbaDict__) {
                     // dict.Item(key) = val
-                    const key = String(this.evaluateExpression(call.args[0]));
+                    const key = obj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
                     obj.__map__.set(key, val);
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
@@ -3289,7 +3289,7 @@ export class Evaluator {
                             return;
                         }
                     }
-                    const key = String(this.evaluateExpression(call.args[0]));
+                    const key = obj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
                     obj[key] = val;
                 } else {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
@@ -3350,7 +3350,7 @@ export class Evaluator {
                 // outer("sub")("x") = val  →  evaluate outer("sub") to get inner dict, then assign
                 const innerObj = this.evaluateExpression(call.callee);
                 if (innerObj && innerObj.__isVbaDict__) {
-                    const key = String(this.evaluateExpression(call.args[0]));
+                    const key = innerObj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
                     innerObj.__map__.set(key, val);
                 } else if (innerObj && typeof innerObj === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
@@ -5789,32 +5789,46 @@ export class Evaluator {
         // --- Scripting.Dictionary ---
         this.registerComObject( () => {
             const dict = new Map<any, any>();
-            return {
+            let compareMode = 0;
+            const matchingKey = (key: any): any => {
+                if (compareMode !== 1 || typeof key !== 'string') return key;
+                return Array.from(dict.keys()).find(existing =>
+                    typeof existing === 'string' && existing.toLowerCase() === key.toLowerCase()) ?? key;
+            };
+            const dictionary: any = {
                 __isVbaDict__: true,
                 __progId__: 'Scripting.Dictionary',
                 __map__: dict,
+                __resolveKey__: matchingKey,
                 add: (k: any, v: any) => {
-                    if (dict.has(k)) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
+                    if (dict.has(matchingKey(k))) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
                     dict.set(k, v);
                 },
-                exists: (k: any) => dict.has(k) ? vbaTrue : vbaFalse,
-                remove: (k: any) => dict.delete(k),
+                exists: (k: any) => dict.has(matchingKey(k)) ? vbaTrue : vbaFalse,
+                remove: (k: any) => dict.delete(matchingKey(k)),
                 removeall: () => dict.clear(),
                 count: () => dict.size,
                 keys: () => Array.from(dict.keys()),
                 items: () => Array.from(dict.values()),
                 item: (k: any, v?: any) => {
+                    const key = matchingKey(k);
                     if (v !== undefined) {
-                        dict.set(k, v);
-                    } else if (!dict.has(k)) {
+                        dict.set(key, v);
+                    } else if (!dict.has(key)) {
                         // VBA auto-creates the key with Empty when reading a missing key
                         const loc = `${this.executingModuleName || this.currentSourceModule}:${this.currentLine}`;
                         console.warn(`[vba-runner] ${loc}: Dictionary.Item("${k}"): key not found, auto-creating with Empty (VBA compatible)`);
-                        dict.set(k, undefined);
+                        dict.set(key, undefined);
                     }
-                    return dict.get(k);
+                    return dict.get(key);
                 }
             };
+            Object.defineProperty(dictionary, 'comparemode', {
+                get: () => compareMode,
+                set: (value: any) => { compareMode = Number(value); },
+                enumerable: true,
+            });
+            return dictionary;
         });
 
         // --- Collection (§6.1.3.1) ---

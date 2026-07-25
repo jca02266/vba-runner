@@ -58,7 +58,27 @@ console.log('[Test Suite] CreateObject / New 構文の組み込みオブジェ�
     assert.strictEqual(ev.callProcedure('TestDictionary', []), 351, 'Dictionary: CreateObject (100+200+50+1)');
     assert.strictEqual(ev.callProcedure('TestNewDictionary', []), 2, 'Dictionary: Dim As New');
     assert.strictEqual(ev.callProcedure('TestSetNewDictionary', []), 42, 'Dictionary: Set = New');
-    console.log('[PASS] Scripting.Dictionary');
+console.log('[PASS] Scripting.Dictionary');
+
+// CompareMode must apply consistently to duplicate detection as well as Exists.
+{
+    const ev = evalVBASingle(`
+        Function CompareModeDuplicate() As String
+            Dim dict As Object
+            Set dict = CreateObject("Scripting.Dictionary")
+            dict.CompareMode = vbTextCompare
+            dict.Add "ax-1", 1
+            On Error Resume Next
+            dict.Add "AX-1", 2
+            dict("code") = 1
+            dict("CODE") = 2
+            CompareModeDuplicate = CStr(dict.Count) & ":" & CStr(Err.Number) & ":" & CStr(dict("code"))
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('CompareModeDuplicate', []), '2:457:2',
+        'vbTextCompare rejects case-insensitive duplicate keys');
+    console.log('[PASS] Dictionary CompareMode duplicate detection');
+}
 }
 
 // =============================================================================
