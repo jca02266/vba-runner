@@ -4926,8 +4926,9 @@ export class Evaluator {
     }
 
     private evaluateResumeStatement(stmt: ResumeStatement) {
-        // Check if there's an active error
-        if (this.errObj.number === 0) {
+        // Err.Clear resets Err's visible fields, but leaves the active GoTo
+        // handler in place. Resume remains valid until that handler completes.
+        if (!this.isInErrorHandler || this.lastErrorIndex === null) {
             this.throwVbaError(VbaErrorCode.RESUME_WITHOUT_ERROR, 'Resume without error');
         }
 

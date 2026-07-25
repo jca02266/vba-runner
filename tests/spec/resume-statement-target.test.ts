@@ -367,4 +367,23 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 15: VBA veteran pattern - retry with simple increment');
 }
 
+// Test 16: Err.Clear must not invalidate Resume in an active GoTo handler.
+{
+    const code = `
+    Function Test16() As String
+        On Error GoTo Handler
+        Err.Raise 5
+        Exit Function
+    Handler:
+        Err.Clear
+        Resume Done
+    Done:
+        Test16 = "ok"
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'Test16'), 'ok',
+        'Err.Clear in a handler must not make Resume invalid');
+    console.log('[PASS] Test 16: Err.Clear preserves Resume control state');
+}
+
 console.log('\n✅ Resume Statement Target Determination: 全テスト通過');
