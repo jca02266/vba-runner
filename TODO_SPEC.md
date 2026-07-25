@@ -448,8 +448,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 | ✅ | **高度な操作** | **ワイルドカード** | `Kill` および `Dir` における `*`, `?` のサポート。 |
 | ✅ | | **カレントディレクトリ** | `ChDir` / `CurDir` による仮想的な作業ディレクトリの保持。 | `chdir-curdir.test.ts` |
 | N/A | | **永続化** | `localStorage` や `IndexedDB` への保存・復元。（実装予定なし：本エンジンの用途範囲外） |
-| ❌ | | **排他制御** | `Lock` / `Unlock` ステートメントのエミュレーション。 |
-| ⚠️ | **互換性** | **バイナリ/テキスト** | `Binary` / `Random` / `Input` / `Output` 各モードの厳密な挙動。 |
+| ✅ | | **排他制御** | `Lock` / `Unlock` ステートメントのエミュレーション。`Access` / `Lock` 句、範囲指定、省略開始位置、解除、競合時の Error 70 に対応。 | `lock-unlock.test.ts`, `lock-omitted-start.test.ts`, `fs-lock-width.test.ts` |
+| ⚠️ | **互換性** | **バイナリ/テキスト** | `Binary` / `Random` / `Input` / `Output` の主要な入出力に対応。スカラー、型付き配列、固定長 String 配列、UDT 配列、Random レコード長、終端超過 Error 62 を実装済み。実 Excel との多次元配列・CP932 固定長文字列の物理レイアウトは未照合。 |
 
 ### VFS 開発ロードマップ (TODO)
 
@@ -475,8 +475,8 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Put` / `Get` の `Single` / `Double`**: IEEE 754 リトルエンディアン 4 / 8 バイトで直列化・復元。 | `binary-floating-point.test.ts`
 - ✅ **`Put` / `Get` の `Date`**: VBA Date シリアル値を IEEE 754 リトルエンディアン 8 バイトで直列化・復元。 | `binary-date.test.ts`
 - ✅ **`Put` / `Get` の `Currency`**: 小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元。 | `binary-currency.test.ts`
-- ✅ **`Put` / `Get` の固定長 UDT**: 宣言順にスカラー、固定長文字列、固定長の一次元配列を連続バイト列として直列化・復元。 | `binary-file-io.test.ts`, `binary-udt-array.test.ts`
-- ⚠️ **残件: 可変長 `String` を含む UDT と多次元配列の実機レイアウト**: 前者はファイルレコードの固定サイズを決められないため Error 13 とする。後者はエンジンが再帰的に処理するが、実 VBA との差分は未検証。
+- ✅ **`Put` / `Get` の固定長 UDT・配列**: 宣言順にスカラー、固定長文字列、数値/Boolean/固定長 String/UDT 配列を連続バイト列として直列化・復元。 | `binary-file-io.test.ts`, `binary-udt-array.test.ts`, `binary-byte-array.test.ts`
+- ⚠️ **残件: 可変長 `String` を含む UDT と実機レイアウト照合**: 前者はファイルレコードの固定サイズを決められないため Error 13 とする。多次元配列はエンジンで再帰的に処理するが、実 VBA/Excel のバイト順・CP932 固定長文字列の物理レイアウトは未照合（`EVAL_LOG.md` の実機照合キュー）。
 
 ---
 
@@ -630,7 +630,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 - ✅ **`On Error Resume Next` 下の暗黙の `Err.Clear`**: 正常文実行時のクリア（または非クリア）タイミング | `err-clear-timing.test.ts`
 - ✅ **`Resume` の対象決定**: エラー発生点・Resume Next・Resume <label> の正確な制御フロー | `resume-statement-target.test.ts`
 - ✅ **エラーハンドラー内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
-- ⚠️ **`Erl` 関数**: エラー発生行番号の取得（制限事項: MS-VBAL spec未定義、line number tracking未実装）★優先度低: VBA ソース側に数値行ラベル（`10 If ...` 形式）がないと Erl は常に 0 を返すため、実用コードでの使用頻度が低い | `erl-function.test.ts`
+- ✅ **`Erl` 関数**: エラー発生時点で最後に通過した数値行ラベルを返す。数値行ラベルがない VBA ソースでは仕様どおり 0 を返す。 | `erl-function.test.ts`
 
 ### プロシージャ呼び出しの細部
 
@@ -1185,14 +1185,11 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 - **修正**: `evaluateCallExpression` で `getProcedure` より先に `Me.__classDef__.procedures` を検索する。VBA の正しい名前解決順序（クラス自身のスコープ → グローバル）を実装。
 - | `parse-as-class.test.ts` (Test 10: B-2 — クラス内プライベートメソッド呼び出し, Test 11: B-2 — クラス自身のスコープがグローバルより優先)
 
-### ✅ B-3: `Class_Terminate` スコープ終了時の自動発火（`New` 追跡方式）
+### ✅ B-3: `Class_Terminate` の参照カウント制御
 
-- **実装**: `Set x = New ClassName` で作成したインスタンスを `_currentNewOwned` に登録し、スコープ終了時（Sub/Function/クラスメソッドの finally）に `Class_Terminate` を自動発火する。
-- **既知の制限 (⚠️ 真の参照カウントではない)**:
-  - `Set x = New ClassName` で直接作成したインスタンスのみ追跡。ファクトリ関数経由（`Set x = CreateMyClass()`）で取得したオブジェクトは追跡されず、明示的な `Set x = Nothing` が必要。
-  - Dictionary/Collection に格納後もローカル変数に残っているオブジェクトは、スコープ終了時に Terminate が呼ばれる（Dictionary が参照を保持していても）。真の COM 参照カウント方式では Terminate は起きない。
-  - 外部スコープから借用したオブジェクト（`Set ws = Workbook.Sheets("名前")` 等）は `New` 式ではないため追跡されず、早期 Terminate しない（安全）。
-- | `circular-reference-terminate.test.ts` (Test 11: B-3 — Dictionary 格納済みオブジェクトの早期 Terminate が発生しない, Test 12〜14: スコープ終了時の自動 Terminate)
+- **実装**: クラスインスタンスに `__refCount__` を保持し、`Set` 代入・引数渡し・スコープ終了で参照数を加減算する。参照数が 0 になったときだけ `Class_Terminate` を実行する。
+- **保証**: 同じインスタンスを別変数、Dictionary、Collection が保持している間は、いずれかの変数を `Nothing` にしても早期 Terminate しない。
+- | `circular-reference-terminate.test.ts`
 
 ### ✅ B-4: UDT 固定長配列要素へのフィールド代入が Error 91（修正済み）
 
