@@ -2,6 +2,14 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.16] - 2026-07-25
+
+### Fixed
+
+- **Typed binary arrays** — `Put` / `Get` now support numeric, Boolean, fixed-length String, and UDT arrays, including multidimensional arrays and VBA Error 62 for truncated reads.
+- **Dictionary `CompareMode`** — case-insensitive duplicate detection and default `Item` assignment now follow `vbTextCompare`.
+- **Class and error-handler compatibility** — `Implements` interface assignments resolve `As New` instances correctly, and `Err.Clear` no longer invalidates an active `Resume`.
+
 ## [0.1.1-alpha.15] - 2026-07-19
 
 ### Fixed

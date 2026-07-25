@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.3] - 2026-07-25
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — the bundled evaluator now supports typed binary arrays, case-insensitive `Scripting.Dictionary` keys, `Implements` interface assignments from `As New` instances, and `Err.Clear` followed by `Resume`.
+
 ## [0.3.2] - 2026-07-19
 
 ### Fixed
