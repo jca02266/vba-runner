@@ -5640,7 +5640,15 @@ export class Evaluator {
         const remaining = Math.max(0, this.fs.statSync(handle.path).size - (position ?? 0));
         const buffer = new Uint8Array(remaining);
         const bytesRead = this.fs.readSync(handle.fd, buffer, 0, buffer.length, position);
-        const decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
+        let decoded: { value: any, length: number };
+        try {
+            decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
+        } catch (error) {
+            if (error instanceof RangeError) {
+                this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
+            }
+            throw error;
+        }
         this.evaluateAssignmentToVariable(stmt.variable, decoded.value);
         handle.pos = (position ?? handle.pos ?? 0) + decoded.length;
     }

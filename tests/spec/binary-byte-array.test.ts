@@ -182,3 +182,18 @@ const udtArrayEv = evalVBASingle(`
 `, { fs: udtArrayFs, sandboxRoot: '/sandbox' });
 assert.strictEqual(udtArrayEv.callProcedure('RoundTripPoints', []), '12:1:2:3:4');
 console.log('✅ Binary Put/Get supports UDT arrays');
+
+const shortReadFs = new MemoryFileSystem();
+const shortReadEv = evalVBASingle(`
+    Function ReadPastEnd() As String
+        Dim written As Integer
+        Dim readBack(0 To 1) As Integer
+        written = 1
+        Open "short.bin" For Binary As #1
+        Put #1, , written
+        Get #1, 1, readBack
+    End Function
+`, { fs: shortReadFs, sandboxRoot: '/sandbox' });
+assert.throwsMatch(() => shortReadEv.callProcedure('ReadPastEnd', []), /Run-time error '62'/,
+    'Binary Get beyond EOF → Error 62');
+console.log('✅ Binary Get reports Input past end of file');
