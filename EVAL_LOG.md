@@ -10,6 +10,7 @@
 
 | # | ドメイン | 主にテストした機能 | 日付 |
 |---|---|---|---|
+| 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
 | 96 | 実行互換性 #96: `Err.Clear` 後の `Resume` | **Bug 96-A 修正済み**: `On Error GoTo` のハンドラーで `Err.Clear` を呼ぶと、続く `Resume` が Error 20 になった。`Err` の表示状態ではなく、アクティブなハンドラー状態で Resume の有効性を判定する回帰テストを追加した。 | 2026-07-25 |
 | 95 | 実行互換性 #95: Dictionary CompareMode | **Bug 95-A/B 修正済み**: `vbTextCompare` で `Exists` は大文字小文字を無視する一方、`Add` と既定 `Item` 代入は別キーを作れた。全キー操作で比較モードを適用し、重複を Error 457、既定代入を更新とする回帰テストを追加した。 | 2026-07-25 |
 | 94 | 実行互換性 #94: バイナリ Get の終端超過 | **Bug 94-A 修正済み**: 短いファイルから配列を `Get` すると JavaScript の `RangeError` が漏れた。読み取り範囲不足を VBA Error 62 に変換する回帰テストを追加した。 | 2026-07-25 |

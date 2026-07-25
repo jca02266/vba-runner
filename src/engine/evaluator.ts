@@ -435,7 +435,13 @@ export class Environment {
 
         if (typeInfo.objectTypeName) {
             const actualTypeName = (value as any)?.__className__ as string | undefined;
-            if (!actualTypeName || actualTypeName.toLowerCase() !== typeInfo.objectTypeName.toLowerCase()) {
+            const implementsRequiredType = (value as any)?.__classDef__?.body?.some((stmt: any) =>
+                stmt.type === 'ImplementsDirective' &&
+                stmt.interfaceName.toLowerCase() === typeInfo.objectTypeName!.toLowerCase());
+            if (!actualTypeName || (
+                actualTypeName.toLowerCase() !== typeInfo.objectTypeName.toLowerCase() &&
+                !implementsRequiredType
+            )) {
                 throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
             }
         }
@@ -4646,6 +4652,7 @@ export class Evaluator {
 
     private evaluateSetStatement(stmt: SetStatement) {
         let value = this.evaluateExpression(stmt.right);
+        value = this.resolveAutoInstance(stmt.right, value);
 
         // VBA requires Set target to be an object (or Nothing)
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
@@ -4928,7 +4935,7 @@ export class Evaluator {
     private evaluateResumeStatement(stmt: ResumeStatement) {
         // Err.Clear resets Err's visible fields, but leaves the active GoTo
         // handler in place. Resume remains valid until that handler completes.
-        if (!this.isInErrorHandler || this.lastErrorIndex === null) {
+        if (!this.isInErrorHandler) {
             this.throwVbaError(VbaErrorCode.RESUME_WITHOUT_ERROR, 'Resume without error');
         }
 
