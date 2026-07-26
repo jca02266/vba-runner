@@ -19,6 +19,17 @@ Private Type VariableStringRecord
     Name As String
 End Type
 
+Private Type NestedChildRecord
+    Id As Long
+    Name As String
+End Type
+
+Private Type NestedParentRecord
+    Header As NestedChildRecord
+    Values(0 To 1) As Long
+    Tail As String
+End Type
+
 Public Sub RunExcelQueueVerification()
     Dim root As String
     root = Environ$("TEMP") & Application.PathSeparator & "vba-runner-xl-queue"
@@ -34,7 +45,35 @@ Public Sub RunExcelQueueVerification()
     VerifyPointArray root & Application.PathSeparator & "XL-007.bin"
     VerifyVariableStringRecord root & Application.PathSeparator & "XL-008.bin", False
     VerifyVariableStringRecord root & Application.PathSeparator & "XL-008-random.bin", True
+    VerifyTextStream root & Application.PathSeparator & "XL-009-unicode.txt", True
+    VerifyTextStream root & Application.PathSeparator & "XL-009-ansi.txt", False
+    VerifyNestedRecord root & Application.PathSeparator & "XL-010.bin"
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifyTextStream(ByVal path As String, ByVal unicodeMode As Boolean)
+    Dim fso As Object, stream As Object, id As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile(path, True, unicodeMode)
+    stream.Write "Aあ"
+    stream.WriteLine "B"
+    stream.Close
+    id = IIf(unicodeMode, "XL-009-UNICODE", "XL-009-ANSI")
+    PrintBytes id, path
+End Sub
+
+Private Sub VerifyNestedRecord(ByVal path As String)
+    Dim record As NestedParentRecord, f As Integer
+    record.Header.Id = &H1020304
+    record.Header.Name = "Aあ"
+    record.Values(0) = 1
+    record.Values(1) = 2
+    record.Tail = "Z"
+    f = FreeFile
+    Open path For Binary Access Write As #f
+    Put #f, , record
+    Close #f
+    PrintBytes "XL-010", path
 End Sub
 
 Private Sub VerifyVariableStringRecord(ByVal path As String, ByVal randomMode As Boolean)
