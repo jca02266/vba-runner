@@ -923,6 +923,18 @@ export class Parser {
         }
         const nameToken = this.advance();
 
+        // Parameter names may carry VBA type-declaration suffixes (for example
+        // `ByVal count&`). Normalize the name for binding and derive its type
+        // when no explicit `As` clause follows.
+        const TYPE_SUFFIX_MAP: Record<string, string> = {
+            '%': 'Integer', '&': 'Long', '!': 'Single',
+            '#': 'Double', '@': 'Currency', '$': 'String', '^': 'LongLong',
+        };
+        let parameterName = nameToken.value;
+        const suffix = parameterName[parameterName.length - 1];
+        const suffixDerivedType = suffix ? TYPE_SUFFIX_MAP[suffix] : undefined;
+        if (suffixDerivedType) parameterName = parameterName.slice(0, -1);
+
         // Consume optional () for arrays or ParamArray
         let isArray = false;
         if (this.match(TokenType.OperatorLParen)) {
@@ -930,7 +942,7 @@ export class Parser {
             isArray = true;
         }
 
-        let paramType: string | undefined;
+        let paramType: string | undefined = suffixDerivedType;
         let paramFixedLength: number | undefined;
         if (this.match(TokenType.KeywordAs)) {
             const typeToken = this.peek();
@@ -964,7 +976,7 @@ export class Parser {
         }
 
         return {
-            type: 'Parameter', name: nameToken.value, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, fixedLength: paramFixedLength, defaultValue,
+            type: 'Parameter', name: parameterName, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, fixedLength: paramFixedLength, defaultValue,
             loc: { start: { line: nameToken.line, column: nameToken.column }, end: { line: nameToken.line, column: nameToken.column + nameToken.value.length } },
         };
     }

@@ -124,4 +124,15 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
     console.log('[PASS] & concatenation without whitespace');
 }
 
+// --- 8. Type suffix on a procedure parameter is bound to the normalized name ---
+{
+    const r = runFunc(`
+        Function Echo(ByVal value&) As Long
+            Echo = value&
+        End Function
+    `, 'Echo', [123456]);
+    assert.strictEqual(r, 123456, 'ByVal parameter suffix & binds as Long');
+    console.log('[PASS] & suffix on procedure parameter');
+}
+
 console.log('\n✅ Identifier Type Suffix: 全テスト通過');
