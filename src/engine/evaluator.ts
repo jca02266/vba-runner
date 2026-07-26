@@ -7897,7 +7897,22 @@ export class Evaluator {
                             return (returned as VbaCollection).item(argsVals[0]);
                         }
                         if (Array.isArray(returned)) {
-                            return returned[argsVals[0] as number];
+                            const dims = (returned as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                            if (dims && argsVals.length !== dims.length) {
+                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                            }
+                            let current: any = returned;
+                            for (let i = 0; i < argsVals.length; i++) {
+                                if (!Array.isArray(current)) {
+                                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                                }
+                                const index = Number(argsVals[i]);
+                                if (dims && (index < dims[i].lower || index > dims[i].upper)) {
+                                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                                }
+                                current = current[index];
+                            }
+                            return current;
                         }
                         if (returned && returned.__vbaClass__) {
                             const retClassDef = returned.__classDef__ as ClassDeclaration;

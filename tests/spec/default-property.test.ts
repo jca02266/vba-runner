@@ -513,4 +513,27 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Implicit value access via default property');
 }
 
+// Bug 154-A: Property Get が返す2次元配列を全添字で参照する
+{
+    const ev = evalVBA(`
+        Class MatrixHolder
+            Public Property Get Data() As Long()
+                Dim values() As Long
+                ReDim values(2 To 2, 4 To 5)
+                values(2, 4) = 42
+                values(2, 5) = 43
+                Data = values
+            End Property
+        End Class
+
+        Function TestPropertyArray2D() As String
+            Dim holder As New MatrixHolder
+            TestPropertyArray2D = CStr(holder.Data(2, 4)) & ":" & CStr(holder.Data(2, 5))
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestPropertyArray2D', []), '42:43',
+        'Property Getの2次元配列戻り値を全添字で参照する');
+    console.log('[PASS] Bug 154-A: Property Get 2次元配列添字');
+}
+
 console.log('\n✅ Default Property: 全テスト通過');
