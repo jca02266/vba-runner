@@ -1018,16 +1018,11 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
   - 効果: 同名ローカル変数が別 Sub にある場合でも「定義へ移動」「参照検索」「ホバー」「リネーム」が正しいスコープを対象にする
   - `extension.ts` / `code-lens-provider.ts`: `findReferences` コマンドの引数バグ修正（`procName` → `line, character`）
 
-- ❌ **`precheckProc` の AST チェックを 1 パス走査に統合**
-  - 現状: `checkSubAsValueInProc`・`checkUndefinedCallsInProc`・`checkConstantArrayBoundsInProc`・`checkDuplicateDimInProc`・`checkGoToLabelsInProc`・`checkCallArgCountsInProc` の 6 メソッドがそれぞれ独立してプロシージャ本体を走査している
-  - 目的: 手続き本体（`If` / `For` / `For Each` / `Do` / `While` / `With` / `Select Case` のネストを含む）のAST走査を1回にし、検査ロジックの重複と将来のチェック追加コストを減らす。実行時のVBA挙動は変更しない
-  - **Phase 1 — 共通walker**: `walkProcBody(proc.body, visitor)` と `walkExpression(expr, visitor)` を `evaluator.ts` の共通ヘルパーとして追加する。文visitorは各文を1回受け取り、制御文の全分岐・本体を再帰的に訪問する。式walkerはCall/Binary/Unary/Parenthesized/Memberの子式と引数を訪問する
-  - **Phase 2 — 収集コンテキスト**: 1回の走査で `subAsValue`、未定義呼び出し、定数配列境界、重複宣言、ラベル定義/参照、呼び出し引数数を `PrecheckFindings` に収集する。ラベルは定義と参照を同時に集め、走査後に未定義ラベルを検証する。配列境界の定数式検証や引数数検証に必要な式情報もここで保持する
-  - **Phase 3 — 既存チェッカーの移行**: 6メソッドを順にvisitorへ移し、移行済みの旧walkerを削除する。`checkUndefinedCallsInProc` のスコープ追跡（ローカル変数・引数・With対象・既知名）は失わず、共通walkerのスコープ状態として引き継ぐ
-  - **エラー互換性**: 現在の検査順（Sub-as-value → 未定義呼び出し → 配列境界 → 重複宣言 → ラベル → 引数数）を維持する。走査中に即throwせずカテゴリ別に最初の発見位置を保存し、走査後に現在と同じ順序で `_precheckRaw` 付きエラーを発生させる。メッセージ、Error番号、行番号、モジュール名、スタック形式を変更しない
-  - **Option Explicitとの境界**: `optionExplicitViolations` の呼び出し時再評価は既存の責務として残し、AST visitor統合の対象はその後に実行される6検査に限定する
-  - **検証**: `vba_compile_error.test.ts` の全ケース、`goto` / `redim` / 配列境界 / `Option Explicit` / 引数数の回帰テストを通す。さらに全制御構文のネストケースで旧実装とエラー番号・行番号が一致することを確認し、移行前後の走査回数を計測する
-  - **完了条件**: 6メソッドの独立AST走査がなくなり、共通walkerの1回走査だけで同じ検査結果を返すこと。差分が性能改善だけであることをテストとコードレビューで確認してから ✅ に更新する
+- ✅ **`precheckProc` の AST チェックを 1 パス走査に統合**
+  - `collectPrecheckFindings` の共通深さ優先走査で、Sub-as-value、未定義呼び出し、定数配列境界、重複宣言、ラベル、呼び出し引数数を収集する
+  - `If` / `For` / `For Each` / `Do` / `While` / `With` / `Select Case` の全分岐・ネストを走査し、従来のエラー優先順位と行番号を維持して走査後に報告する
+  - `Option Explicit` の呼び出し時再評価は既存の責務として維持する。旧6チェッカーの独立走査は削除した
+  - `vba_compile_error.test.ts`、配列境界、GoTo/GoSub、名前空間、TypeName、および全体テスト（TypeScript 330ファイル / VBA 14ファイル）で回帰確認済み
 
 - ✅ **`precheckProc` のコンパイルエラーメッセージ "Compile error:" プレフィックスをキャッチ側で一元付与**
   - 各チェックメソッドは `throwPrecheckError`（プレフィックスなし・`_precheckRaw` マーカー付き）でスロー
