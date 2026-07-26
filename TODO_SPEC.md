@@ -476,7 +476,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Put` / `Get` の `Date`**: VBA Date シリアル値を IEEE 754 リトルエンディアン 8 バイトで直列化・復元。 | `binary-date.test.ts`
 - ✅ **`Put` / `Get` の `Currency`**: 小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元。 | `binary-currency.test.ts`
 - ✅ **`Put` / `Get` の固定長 UDT・配列**: 宣言順にスカラー、固定長文字列、数値/Boolean/固定長 String/UDT 配列を連続バイト列として直列化・復元。 | `binary-file-io.test.ts`, `binary-udt-array.test.ts`, `binary-byte-array.test.ts`
-- ⚠️ **残件: 可変長 `String` を含む UDT**: ファイルレコードの固定サイズを決められないため Error 13 とする。多次元配列のバイト順とCP932固定長文字列の物理レイアウトは実Excelで照合済み（`EVAL_LOG.md` XL-001〜XL-007）。
+- ⚠️ **残件: 可変長 `String` を含む UDT**: VBAのPut/Get仕様ではUDT要素として長さディスクリプターを伴って処理される。現行エンジンはこのディスクリプターの直列化・復元を未実装で、Error 13 として拒否している。多次元配列のバイト順とCP932固定長文字列の物理レイアウトは実Excelで照合済み（`EVAL_LOG.md` XL-001〜XL-007）。
 
 ---
 
