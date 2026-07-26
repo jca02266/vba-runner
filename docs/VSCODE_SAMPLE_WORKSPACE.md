@@ -1,3 +1,11 @@
+---
+type: Guide
+title: sample/workspace パッケージテストワークスペース
+description: VS Code Extension Development Host で npm パッケージとして動作を検証する方法。
+tags: [vba, vscode, testing, workspace]
+status: stable
+---
+
 # sample/workspace パッケージテストワークスペース
 
 ## 目的

@@ -1,3 +1,11 @@
+---
+type: Tutorial
+title: AI への指示だけで VBA を改善するチュートリアル
+description: コマンド詳細を知らずに AI への指示だけで VBA の改善を進める手順。
+tags: [vba, ai, tutorial, refactoring]
+status: stable
+---
+
 # TUTORIAL_AI.md — AI への指示だけで完結するチュートリアル
 
 > 対象: コマンド詳細を知らずに AI 指示だけで VBA 改善を進めたい利用者

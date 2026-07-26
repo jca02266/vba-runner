@@ -1,3 +1,11 @@
+---
+type: Example
+title: VBA 統合テスト例
+description: MockWorksheet を使って TaskScheduler マクロを統合テストする実例。
+tags: [vba, testing, integration, mocks, example]
+status: stable
+---
+
 # 統合テスト例：TaskScheduler マクロ
 
 > 対象: モックを使った統合テストを書きたい利用者

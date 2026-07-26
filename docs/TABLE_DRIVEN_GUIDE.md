@@ -1,3 +1,11 @@
+---
+type: Guide
+title: テーブル駆動リファクタリング完全ガイド
+description: 分岐ロジックを設定データと統一ルックアップ処理へ置き換える手法。
+tags: [vba, refactoring, table-driven]
+status: stable
+---
+
 # テーブル駆動リファクタリング完全ガイド
 
 ## 概要

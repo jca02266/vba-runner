@@ -1,3 +1,11 @@
+---
+type: Catalog
+title: リファクタリング・テスト手法カタログ
+description: VBA のリファクタリングとテスト手法を名前付きで横断参照するカタログ。
+tags: [vba, refactoring, testing, catalog]
+status: stable
+---
+
 # リファクタリング・テスト手法カタログ
 
 各ドキュメントで繰り返し登場する手法を名前付きでまとめた参照用カタログです。詳細・実装例は各リンク先を参照してください。

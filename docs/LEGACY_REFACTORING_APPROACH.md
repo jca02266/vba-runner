@@ -1,3 +1,11 @@
+---
+type: Guide
+title: レガシー VBA リファクタリングの着手手順
+description: テストのないレガシー VBA で最初に取り組む対象と手法を選ぶための判断フロー。
+tags: [vba, legacy, refactoring, testing]
+status: stable
+---
+
 # レガシー VBA リファクタリング：どこから手を付けるか
 
 > 対象: テストのないレガシー VBA に着手したい利用者

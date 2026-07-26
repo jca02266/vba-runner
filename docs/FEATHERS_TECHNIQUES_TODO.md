@@ -1,3 +1,11 @@
+---
+type: Reference
+title: Working Effectively with Legacy Code 手法リスト
+description: Michael Feathers のレガシーコード改善手法と本プロジェクトでの収録状況。
+tags: [legacy, refactoring, testing, reference]
+status: draft
+---
+
 # Michael Feathers "Working Effectively with Legacy Code" Techniques TODO（レガシーコード改善ガイド 手法リスト）
 
 ## このドキュメントについて

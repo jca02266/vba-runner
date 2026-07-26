@@ -1,3 +1,11 @@
+---
+type: Tutorial
+title: Excel VBA を AI と一緒に改善するチュートリアル
+description: Excel VBA を抽出し、AI とテスト・機能追加・書き戻しを進める手順。
+tags: [vba, ai, tutorial, testing]
+status: stable
+---
+
 # TUTORIAL.md — Excel VBA を抽出し、AI と一緒にテスト・機能追加するチュートリアル
 
 > 対象: Excel VBA を AI と安全に改善したい利用者

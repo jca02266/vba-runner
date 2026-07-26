@@ -1,3 +1,11 @@
+---
+type: Guide
+title: クロージャによるループ抽象化
+description: VBA のクラスを使ってクロージャ相当のループ抽象化を実現する方法。
+tags: [vba, refactoring, abstraction]
+status: stable
+---
+
 # クロージャによるループ抽象化 — VBA での実現
 
 VBA にはクロージャ（関数と状態のセット）がなく、高階関数も持てない。
