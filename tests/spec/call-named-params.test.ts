@@ -3,7 +3,7 @@
  */
 import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -127,3 +127,27 @@ End Sub
 }
 
 console.log('\n✅ Call & Named Parameters: 全テスト通過');
+
+// Bug 152-A: モジュール修飾された名前付きByRef引数を書き戻す
+{
+    const ev = evalVBAModules([
+        { name: 'ModuleA', code: `
+            Public Sub Mutate(ByRef x As Long, ByRef y As Long, Optional ByRef z As Long = 3)
+                x = x + 10
+                y = y + 20
+                z = z + 30
+            End Sub
+        ` },
+        { name: 'ModuleB', code: `
+            Function TestQualifiedNamedByRef() As String
+                Dim a As Long, b As Long, c As Long
+                a = 1: b = 2: c = 3
+                Call ModuleA.Mutate(y:=b, x:=a, z:=c)
+                TestQualifiedNamedByRef = CStr(a) & ":" & CStr(b) & ":" & CStr(c)
+            End Function
+        ` },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestQualifiedNamedByRef', []), '11:22:33',
+        'モジュール修飾呼び出しの名前付きByRefを宣言位置へ再束縛し書き戻す');
+    console.log('[PASS] Bug 152-A: 修飾名前付きByRefの書き戻し');
+}

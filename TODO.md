@@ -1229,7 +1229,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [x] Property Set/Let、イベント、名前付き引数、`ByVal` 強制括弧を共通フレームへ接続する
 - [x] 標準モジュール／クラス／Property／配列・UDTの組み合わせマトリクスを回帰テストとして整備する（`byref-dispatch-matrix.test.ts` と既存回帰群）
 - [x] 段階移行中は既存の `callProcedure` / `callClassMethod` 経路を比較検証し、挙動差を記録する（既存回帰群と新マトリクスで差分なし）
-- [ ] 名前付き引数の束縛を標準モジュール・修飾呼び出しにも共通化する（現状はクラスProperty呼び出しで名前付きByRefを宣言位置へ再束縛するが、`callProcedure` の名前付き引数は一時値経路のため書き戻しが不統一。名前付き引数を宣言パラメーター位置と l-value 参照へ一度だけ正規化する呼び出しフレームへ統合し、Property／標準モジュール／組み込み以外の全経路でByRef結果を保持する）
+- [ ] 名前付き引数の正規化を全呼び出しAPIへ統合する（クラスPropertyと修飾標準モジュール呼び出しは共通ヘルパーで宣言位置・l-value参照へ正規化済み。直接の手続き呼び出しには別の束縛実装が残るため、同じ正規化フレームへ統合し、Property／標準モジュール／外部呼び出しの全経路でByRef結果を一貫して保持する）
 
 これはVBA仕様項目の未実装ではなく、エンジンの保守性・経路一貫性を高めるための
 リファクタリング課題である。仕様準拠の未実装・制限は [TODO_SPEC.md](TODO_SPEC.md) に記録する。

@@ -4199,10 +4199,30 @@ export class Evaluator {
      * their original expressions.
      */
     private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[]): any {
-        // Named arguments need to be reordered to the procedure's parameter
-        // positions before binding.  Keep the underlying value expression so
-        // an implicit-ByRef Property Let/Set parameter can still write back to
-        // the caller (the NamedArgument wrapper itself is not an l-value).
+        const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs);
+        const { args, references } = aligned;
+        const byRefValues: any[] = [];
+        const result = this.callClassMethod(instance, proc, args, byRefValues);
+        for (let i = 0; i < proc.parameters.length && i < args.length; i++) {
+            if (!proc.parameters[i].isByVal && references[i]) {
+                try {
+                    references[i]!.set(byRefValues[i]);
+                } catch {
+                    // Non-assignable expressions are passed as temporary values.
+                }
+            }
+        }
+        return result;
+    }
+
+    /** Normalize positional and named call arguments to declaration order. */
+    private alignProcedureCallExpressions(
+        proc: ProcedureDeclaration,
+        argExprs: (Expression | null)[],
+        evaluatedArgs?: any[],
+    ): { args: any[]; references: Array<VbaLValueReference | null>; expressions: Array<Expression | null> } {
+        // NamedArgument itself is a wrapper, not an assignable expression. Keep
+        // its value node so ByRef writes target the original caller variable.
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
             new Array(proc.parameters.length);
         let nextPositional = 0;
@@ -4214,9 +4234,7 @@ export class Evaluator {
             if (arg.type === 'NamedArgument') {
                 const named = arg as NamedArgument;
                 paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === named.name.toLowerCase());
-                if (paramIndex < 0) {
-                    this.throwVbaError(448, `Named argument not found: '${named.name}'`);
-                }
+                if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${named.name}'`);
                 valueExpr = named.value;
             } else {
                 while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
@@ -4233,22 +4251,12 @@ export class Evaluator {
             if (supplied[i]) { lastProvided = i; break; }
         }
         const aligned = supplied.slice(0, lastProvided + 1);
-        const references = aligned.map(slot => slot?.expr ? this.createLValueReference(slot.expr) : null);
+        const expressions = aligned.map(slot => slot?.expr ?? null);
+        const references = expressions.map(expr => expr ? this.createLValueReference(expr) : null);
         const args = aligned.map((slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
             : vbaMissing);
-        const byRefValues: any[] = [];
-        const result = this.callClassMethod(instance, proc, args, byRefValues);
-        for (let i = 0; i < proc.parameters.length && i < aligned.length; i++) {
-            if (!proc.parameters[i].isByVal && references[i]) {
-                try {
-                    references[i]!.set(byRefValues[i]);
-                } catch {
-                    // Non-assignable expressions are passed as temporary values.
-                }
-            }
-        }
-        return result;
+        return { args, references, expressions };
     }
 
     /** Use the common reference writeback path for already-evaluated values. */
@@ -7809,11 +7817,17 @@ export class Evaluator {
                             ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
                         if (qualifiedProc) {
                             this.checkNoGapOnRequiredParam(qualifiedProc.parameters, expr.args);
-                            const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                            const aligned = this.alignProcedureCallExpressions(qualifiedProc, expr.args);
                             // Variant サブタイプを呼び出し元 env で解決して伝播
-                            const subtypes = argsVals.map((v, i) =>
-                                typeof v === 'number' ? this.resolveNumericSubtype(expr.args[i]) : undefined);
-                            return this.callProcedure(member.property.name, argsVals, undefined, possibleModuleName, subtypes);
+                            const subtypes = aligned.args.map((v, i) =>
+                                typeof v === 'number' ? this.resolveNumericSubtype(aligned.expressions[i] ?? expr.args[i]) : undefined);
+                            const result = this.callProcedure(member.property.name, aligned.args, undefined, possibleModuleName, subtypes);
+                            for (let i = 0; i < qualifiedProc.parameters.length && i < aligned.args.length; i++) {
+                                if (!qualifiedProc.parameters[i].isByVal && aligned.references[i]) {
+                                    aligned.references[i]!.set(aligned.args[i]);
+                                }
+                            }
+                            return result;
                         }
                     }
                 }
