@@ -476,7 +476,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ **`Put` / `Get` の `Date`**: VBA Date シリアル値を IEEE 754 リトルエンディアン 8 バイトで直列化・復元。 | `binary-date.test.ts`
 - ✅ **`Put` / `Get` の `Currency`**: 小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元。 | `binary-currency.test.ts`
 - ✅ **`Put` / `Get` の固定長 UDT・配列**: 宣言順にスカラー、固定長文字列、数値/Boolean/固定長 String/UDT 配列を連続バイト列として直列化・復元。 | `binary-file-io.test.ts`, `binary-udt-array.test.ts`, `binary-byte-array.test.ts`
-- ⚠️ **部分実装: 可変長 `String` を含む UDT**: VBAのPut/Get仕様ではUDT要素として長さディスクリプターを伴って処理される。エンジンは2バイト little-endian のCP932バイト長ディスクリプターを直列化・復元するが、実Excelでのディスクリプター値・Randomレコード境界は未照合（`EVAL_LOG.md` XL-008）。
+- ✅ **可変長 `String` を含む UDT**: UDT要素の2バイト little-endian CP932バイト長ディスクリプターを直列化・復元する。Binary/Randomとも実Excelで `Aあ` → `03 00 41 82 A0`、LOF=9を照合済み（`EVAL_LOG.md` XL-008）。
 
 ---
 

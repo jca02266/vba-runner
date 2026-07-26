@@ -12,6 +12,7 @@
 |---|---|---|---|
 | 100 | 実Excel照合 #100: バイナリ配列の物理レイアウト | **XL-001〜XL-007 照合済み**: Excel実機で多次元配列は左端次元が連続する列優先順（`1,3,2,4`）、固定長文字列はCP932、UDT配列は各レコード連続であることを確認。エンジンの多次元配列Put/Getを同じ順序へ修正し、回帰テストを追加した。 | 2026-07-26 |
 | 101 | 実行互換性 #101: UDT内可変長String | **Bug 101-A 修正済み**: UDT内の可変長 `String` を `Put` / `Get` すると Error 13 になっていた。VBA仕様の長さディスクリプター（2バイト little-endian）とCP932データを処理し、`tests/spec/binary-file-io.test.ts` に回帰テストを追加した。ディスクリプターの実Excel値とRandomレコード境界はXL-008で照合待ち。 | 2026-07-26 |
+| 102 | 実Excel照合 #102: UDT内可変長String | **XL-008 照合済み**: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0`。`03 00` はCP932バイト長3のlittle-endianディスクリプターで、実装・回帰テストと一致した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -322,7 +323,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | XL-005 | 多次元 `Long()` の `Put #` バイト順 | Excel: `01 00 00 00 03 00 00 00 02 00 00 00 04 00 00 00`（LOF=16） | 多次元配列の共通直列化順序を修正 | 照合済み |
 | XL-006 | 固定長 `String()` の `Put #` CP932 バイト列 | Excel: `82 A0 41 20`（LOF=4） | `tests/spec/binary-byte-array.test.ts` の固定長文字列処理で回帰確認 | 照合済み |
 | XL-007 | UDT 配列の `Put #` バイト順 | Excel: `01 00 00 00 02 00 03 00 00 00 04 00`（LOF=12） | `tests/spec/binary-byte-array.test.ts` のUDT配列往復で回帰確認 | 照合済み |
-| XL-008 | UDT内可変長 `String` のディスクリプター | `Type R: Id As Long: Name As String: End Type` をBinary/RandomでPutし、`Name="Aあ"` の長さディスクリプターとレコード境界を確認 | `tests/spec/binary-file-io.test.ts`。現行実装の候補出力は `04 03 02 01 03 00 41 82 A0` | 未照合 |
+| XL-008 | UDT内可変長 `String` のディスクリプター | Excel: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0` | `tests/spec/binary-file-io.test.ts` と一致 | 照合済み |
 
 ### 未対応の機能制限（改善候補）
 
@@ -652,7 +653,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。
 92. **`ReDim Preserve` で UDT 配列を拡張すると新インデックス要素が未初期化（Bug 28-1）**: `ReDim Preserve n(0 To 1)` で添字 1 の UDT 要素が `undefined` のまま残り `n(1).Value = 2` が Error 424 になる。`Long`/`String` の通常配列では同じ操作が正常動作するため非対称。回避策: Preserve を使わず一時配列に手動コピーして置き換えるか、`ReDim n(0 To N)` 後に手動で各要素を `Set` / 初期化する。
 93. **`Function` の戻り値と ByRef 引数書き戻しの両方を使う場合の注意**: `Function SafeDivide(a, b, ByRef errMsg)` を `r.run('SafeDivide', [10, 0, ''])` で呼ぶと、戻り値は `run()` の返り値に入り、`errMsg` の書き戻しは `args[0]` ではなく `args[2]`（第3引数）のインデックスに入る。ByRef 書き戻しは引数の元の位置（0-based インデックス）に対応する。`r.run()` が返す配列は `[戻り値, arg0書き戻し, arg1書き戻し, ...]` のように見えるが、実際は呼び出し時に渡した args 配列が直接書き換えられる（`args` オブジェクトへの ByRef 書き戻し）。README の ByRef 例が Sub のみのため Function との組み合わせが分かりにくい。
-82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36〜#101）: 数値はリトルエンディアン、文字列は CP932、固定長文字列・固定長配列を含む UDT は連続バイト列で入出力する。Single/Double、Date、Currency、Random のレコード長、多次元配列の左端次元連続順も対応。UDT内の可変長文字列は2バイト長ディスクリプターまで実装済み、実Excel照合はXL-008で待ち。
+82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36〜#102）: 数値はリトルエンディアン、文字列は CP932、固定長文字列・固定長配列を含む UDT は連続バイト列で入出力する。Single/Double、Date、Currency、Random のレコード長、多次元配列の左端次元連続順、UDT内可変長文字列のディスクリプターも実Excel照合済み。
 83. **`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）: `Len = <expr>` 節が `parser.ts:parseOpenStatement`（行 977）で未消費。`As #n` の直後にリターンするため `Len` が「ステートメントの後の予期しないトークン」になる。
 84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
