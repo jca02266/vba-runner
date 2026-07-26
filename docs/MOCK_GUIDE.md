@@ -4,6 +4,20 @@ title: VBA モック実装ガイド
 description: Excel オブジェクト依存を持つ VBA を安全にテストするためのモック実装ガイド。
 tags: [vba, testing, mocks, excel]
 status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: runner-reference
+    resource: ../REFERENCE.md
+    title: VBA Runner 詳細仕様
+  - id: testing-strategy
+    resource: TESTING_STRATEGY.md
+    title: VBA マクロ単体テスト戦略
 ---
 
 # VBA モック実装ガイド

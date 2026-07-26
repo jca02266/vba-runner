@@ -4,6 +4,17 @@ title: VBA マクロ単体テスト戦略
 description: VBA Runner 上で実行可能なマクロの単体テスト設計と検証方針。
 tags: [vba, testing, refactoring]
 status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: runner-reference
+    resource: ../REFERENCE.md
+    title: VBA Runner 詳細仕様
 ---
 
 # VBA マクロ単体テスト戦略

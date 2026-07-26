@@ -1,3 +1,25 @@
+---
+type: Hub
+title: VBA Runner Documentation
+description: VBA Runner の利用者向けガイドと開発者向け仕様への目的別入口。
+tags: [vba, documentation, navigation]
+status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: project-readme
+    resource: ../README.ja.md
+    title: VBA Runner プロジェクト入口
+  - id: project-contributing
+    resource: ../CONTRIBUTING.md
+    title: 開発者向けガイド
+---
+
 # VBA Runner Documentation
 
 目的から探す共通ハブです。パッケージの使い方そのものは各配布物の README が正本です。

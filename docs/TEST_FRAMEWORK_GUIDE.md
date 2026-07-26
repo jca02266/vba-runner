@@ -4,6 +4,20 @@ title: VBA テストフレームワーク活用ガイド
 description: TypeScript から VBA マクロを実行し、テストするための API と実践方法。
 tags: [vba, testing, typescript]
 status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: runner-package
+    resource: ../build/runner/README.ja.md
+    title: vba-runner パッケージガイド
+  - id: testing-strategy
+    resource: TESTING_STRATEGY.md
+    title: VBA マクロ単体テスト戦略
 ---
 
 # VBA テスト：JS テストフレームワーク活用ガイド

@@ -19,6 +19,7 @@
     "build:playground": "npm run build --prefix build/playground",
     "build:extractor": "npm run build --prefix build/extractor",
     "package:extension": "npm run package --prefix build/extension",
+    "check:docs": "node scripts/validate-docs-okf.mjs",
     "vba-runner": "node scripts/wrapper.mjs test-libs/vba-runner-cli.ts",
     "vba-extractor": "node scripts/wrapper.mjs tools/extractor/vba-extractor.ts"
   },

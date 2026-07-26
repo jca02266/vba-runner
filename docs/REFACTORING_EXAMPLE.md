@@ -4,6 +4,20 @@ title: VBA リファクタリング具体例
 description: TaskScheduler マクロを題材に、レガシー VBA をリファクタリングして検証する実例。
 tags: [vba, refactoring, example, testing]
 status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: task-scheduler-spec
+    resource: ../sample/src/refactoring/TaskScheduler.md
+    title: TaskScheduler 仕様
+  - id: refactoring-guide
+    resource: REFACTORING_GUIDE.md
+    title: VBA リファクタリングガイド
 ---
 
 # VBA リファクタリング具体例：TaskScheduler マクロ

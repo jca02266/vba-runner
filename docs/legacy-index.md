@@ -1,3 +1,22 @@
+---
+type: Reference
+title: VBA Runner 詳細索引
+description: 利用者向け文書の読み順、問題別検索、文書間依存関係をまとめた索引。
+tags: [vba, documentation, index, navigation]
+status: stable
+generated:
+  by: human:vba-runner-maintainers
+  at: 2026-07-26T00:00:00Z
+verified:
+  - by: human:vba-runner-maintainers
+    at: 2026-07-26T00:00:00Z
+stale_after: 2027-01-26
+sources:
+  - id: documentation-hub
+    resource: README.md
+    title: Documentation hub
+---
+
 # docs/legacy-index.md — 詳細索引（任意）
 
 > 入口は [README.md](README.md) です。
