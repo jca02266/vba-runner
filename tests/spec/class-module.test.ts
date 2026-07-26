@@ -862,4 +862,27 @@ End Function
     console.log('[PASS] Bug 151-A: 名前付きProperty LetのByRef書き戻し');
 }
 
+// Bug 153-A: ローカル2次元クラス配列の要素代入後もReDim Preserveできる
+{
+    const ev = evalVBASingle(`
+        Class PreserveBox
+            Public Value As Long
+        End Class
+
+        Function TestLocalObjectArrayPreserve() As String
+            Dim boxes() As PreserveBox
+            ReDim boxes(1 To 1, 2 To 2)
+            Set boxes(1, 2) = New PreserveBox
+            boxes(1, 2).Value = 12
+            ReDim Preserve boxes(1 To 1, 2 To 3)
+            Set boxes(1, 3) = New PreserveBox
+            boxes(1, 3).Value = 13
+            TestLocalObjectArrayPreserve = CStr(boxes(1, 2).Value) & ":" & CStr(boxes(1, 3).Value)
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestLocalObjectArrayPreserve', []), '12:13',
+        'ローカル2次元クラス配列の要素を保持してPreserve拡張する');
+    console.log('[PASS] Bug 153-A: ローカル2次元クラス配列のPreserve');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

@@ -63,6 +63,7 @@
 | 150 | 実行互換性 #150: CVErr の論理演算・文字列連結 | FZ-BUILTIN の継続評価で `CVErr` の `And`/`Or`/`Xor`/`Not` と `&` を確認した。暗黙変換により Error code の数値化・`"Error 2000-tail"` の生成が起きる Bug 150-A だったため、Error 13 を返す検証と明示 `CStr` の回帰テストを追加した。 | 2026-07-27 |
 | 151 | 実行互換性 #151: 名前付きProperty LetのByRef境界 | FZ-GRAMMAR の未実施境界として、添字付き `Property Let` を名前付き引数で呼び出した。`Call obj.Value(index:=1, text:=text)` では `NamedArgument` ラッパーが l-value として扱われず、Property内の暗黙ByRef書き戻しが失われる Bug 151-A を再現・修正した。クラス呼び出しで名前付き引数を宣言位置へ再束縛し、元の値式へ書き戻す回帰テストを追加した。 | 2026-07-27 |
 | 152 | 実行互換性 #152: 修飾名前付きByRef引数 | FZ-GRAMMAR の継続境界として、標準モジュールを修飾した `Call ModuleA.Mutate(y:=b, x:=a, z:=c)` を評価した。修飾呼び出しが名前付き引数を一時値のまま渡し、スカラー・Optional ByRefの書き戻しを失う Bug 152-A（配列・UDTでも同じ経路）を再現・修正した。クラスと修飾標準モジュールで共有する引数正規化を追加し、逆順・Optionalを含む回帰テストを追加した。 | 2026-07-27 |
+| 153 | 実行互換性 #153: ローカル2次元クラス配列のPreserve | FZ-GRAMMAR の型付き配列境界として、ローカル `Dim boxes() As PreserveBox` の2次元配列を要素メンバー代入後に最終次元へ `ReDim Preserve` した。`Set boxes(i,j)=...` のローカル配列経路が2次元要素メンバー代入を壊し、後続アクセスをError 9にする Bug 153-A を再現・修正した。`Set` の多次元オブジェクト配列要素書き込みと既存のPreserveコピーを接続し、回帰テストを追加した。 | 2026-07-27 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -528,7 +529,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
 | FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否 | 複数 Err.Raise 伝播、Decimal overflow 後の Err 状態、Object/配列を受ける他の既定プロパティ境界、変更後の別入力シード | 継続 |
-| FZ-GRAMMAR | #128、#130、#131、#132、#151、#152 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し（カバレッジ基準 2026-07-18） | 型付き配列の多次元・Preserve組み合わせ、宣言サフィックスと比較・連結の追加組み合わせ、名前付き引数正規化の未統合API経路 | 継続 |
+| FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve（カバレッジ基準 2026-07-18） | 型付き配列の多次元・Preserveの追加シード、宣言サフィックスと比較・連結の追加組み合わせ、名前付き引数正規化の未統合API経路 | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
 各キャンペーンを実施したら、評価済みドメイン表にも回数を追記し、この表の「実施履歴」

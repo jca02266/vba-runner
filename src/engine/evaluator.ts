@@ -5038,7 +5038,29 @@ export class Evaluator {
                     if (value !== vbaNothing && (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
                         this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
                     }
-                    target[this.evaluateExpression(call.args[0]) as number] = value;
+                    const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                    if (dims && call.args.length !== dims.length) {
+                        this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    }
+                    let current: any = target;
+                    for (let i = 0; i < call.args.length - 1; i++) {
+                        const index = this.evaluateExpression(call.args[i]) as number;
+                        if (dims && (index < dims[i].lower || index > dims[i].upper)) {
+                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                        current = current[index];
+                        if (!Array.isArray(current)) {
+                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                    }
+                    const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                    if (dims) {
+                        const lastDim = dims[dims.length - 1];
+                        if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
+                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                        }
+                    }
+                    current[lastIndex] = value;
                 } else if (target && typeof target === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
                     target[key] = value;
