@@ -332,7 +332,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|
 | ~~`VBARunner` が複数ファイルの配列渡しに非対応~~ | **対応済み**（`new VBARunner(['/a/M1.bas', '/b/C1.cls'])` が動作するよう修正） |
 | `eval()` の行番号が常に "line 1" | マルチライン eval でエラーが出ても行情報が `(line 1)` のみ |
-| README に `eval()` の「式 vs 文」の注意書きがない | `eval('m + 1')` がエラーになる理由・`(m) + 1` の回避策が未記載 |
+| ~~README に `eval()` の「式 vs 文」の注意書きがない~~ | **修正済み**: `build/runner/README.md` に、`eval("x + 1")` と `eval("(x) + 1")` の解釈差を追記。 |
 | `Dictionary.Add` へ Object をキーとして渡してもエラーなし | 実 VBA では非文字列キーの挙動は Object の hash になるが、引数順序ミス（Collection をキーに渡す）を検出できない。エラーなく格納されるが文字列で取り出せないため診断が困難 |
 | ~~`Exit Sub` を `eval()` トップレベルで使うと JS 例外が漏れる~~ | **修正済み** (`0ca97d8`): `executeStatements` を try/catch でラップして Exit シグナルを飲み込む |
 | ~~`Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる~~ | **修正済み** (`9e25adc`): `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 |
@@ -343,7 +343,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | ~~`Dim s As String * N`（固定長文字列）が未実装~~（Bug 21-1）~~ | **修正済み**: `VariableDeclarator.fixedLength` と `TypeMember.fixedLength` を追加。`parseDimStatement` / Type ブロックパーサーで `As String * N` の `* N` を消費・記録。`Environment.coerceToType` でパディング・切り捨てを適用。UDT メンバー代入も `__fixedLengths__` で対応。`tests/spec/fixed-length-string.test.ts`（12 テスト）。 |
 | ~~`Currency` 型が固定小数点演算でない~~ | **修正済み（評価 #23 で確認）**: `CCur(0.1) + CCur(0.2) = 0.3` 厳密一致。内部 BigInt ベースの 4桁固定小数点演算に刷新済み。`VBARunner.run()` / `.eval()` の戻り値も `number` に正規化（Bug C-1 修正）。 |
 | ~~`Dim x As`（型名欠落）が構文エラーにならない~~ | **修正済み（評価 #71）**: 通常実行では構文エラー、LSP の `errorRecovery` では診断を残して後続手続きを保持する。 |
-| VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy | `Function Add(a As Long, b As Long)` のような標準的な宣言でも `VBA003` が severity 2（Warning）で出る。VBA の慣習では省略が普通のため、初回ロード時に「いきなり Warning が多い」印象を与えやすい。Hint（severity 4）への変更か設定で off 可能にすると親切。 |
+| ~~VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy~~ | **修正済み**: `VBA003` は severity 4（Hint）として通知される。 |
 | ~~`vba-types.json` 削除時に型スタブがリセットされない~~ | **修正済み**: `server.ts` に `clearTypeStubs()` を追加し、`extension.ts` の `typeStubsWatcher.onDidDelete` でフック。`vba-types.json` 削除時に補完プロバイダーの型スタブが即座にクリアされる。 |
 | ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
 | ~~LSP: シグネチャヘルプが文字列リテラル入力中に消える~~ | **修正済み**: `findCallContext` の文字列境界判定を Lexer トークンベースに変更。右→左スキャンの誤判定を解消。`findCallContext('Format(x, "', 11)` → `{ name: 'Format', activeParameter: 1 }` が正しく返る。 |

@@ -34,6 +34,10 @@ const sum = vbaRunner.eval("1 + 2 + 3"); // => 6
 vbaRunner.eval("Dim x : x = 10 : Debug.Print x * 2");
 ```
 
+`eval()` は式と文の両方を受け付けますが、VBAの曖昧な文法に注意してください。
+変数を算術式で使う場合は括弧で囲みます（`eval("(x) + 1")`）。
+`eval("x + 1")` は、VBAでは括弧なしのプロシージャ呼び出しとして解釈されます。
+
 ### 2. `run`: Call a procedure defined in a loaded VBA file
 
 Load an existing `.bas` file and call its procedures with arguments. Ideal for unit-testing complex business logic.
