@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.4] - 2026-07-27
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — corrected Property Let ByRef dispatch, l-value propagation, numeric/date conversion boundaries, formatting options, financial argument validation, and CVErr coercion behavior in the bundled evaluator.
+
 ## [0.3.3] - 2026-07-25
 
 ### Fixed

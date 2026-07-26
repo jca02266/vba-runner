@@ -2,6 +2,12 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.17] - 2026-07-27
+
+### Fixed
+
+- **Real-VBA compatibility updates** — corrected Property Let ByRef dispatch, l-value propagation, numeric/date conversion boundaries, formatting options, financial argument validation, and CVErr coercion behavior.
+
 ## [0.1.1-alpha.16] - 2026-07-25
 
 ### Fixed
