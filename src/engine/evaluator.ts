@@ -151,7 +151,7 @@ function decodeTextStream(bytes: Uint8Array, unicodeHint: boolean): string {
         unicode = true;
         start = 2;
     }
-    if (!unicode) return iconv.decode(bytes, 'cp932');
+    if (!unicode) return iconv.decode(Buffer.from(bytes), 'cp932');
     let text = '';
     for (let i = start; i + 1 < bytes.length; i += 2) {
         text += String.fromCharCode(bytes[i] | (bytes[i + 1] << 8));
@@ -8205,9 +8205,9 @@ export class Evaluator {
      */
     private deepCopyByValValue(value: any): any {
         if (Array.isArray(value)) {
-            const copy = value.map(item => this.deepCopyByValValue(item));
+            const copy: any = value.map(item => this.deepCopyByValValue(item));
             for (const key of Object.keys(value)) {
-                if (!/^\d+$/.test(key)) copy[key] = value[key];
+                if (!/^\d+$/.test(key)) copy[key] = (value as any)[key];
             }
             return copy;
         }

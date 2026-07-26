@@ -26,7 +26,7 @@ const mismatch = evalVBASingle(`
         OneArg 1, 2
     End Sub
 `);
-assert.throws(() => mismatch.callProcedure('CallWithTooMany', []), /Wrong number of arguments/,
+assert.throwsMatch(() => mismatch.callProcedure('CallWithTooMany', []), /Wrong number of arguments/,
     'Declare stub should reject too many arguments');
 
 console.log('✅ Declare Statement: 全テスト通過');
