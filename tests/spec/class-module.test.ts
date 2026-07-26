@@ -777,4 +777,67 @@ End Function
     console.log('[PASS] Bug 139-A: Property LetのByRef書き戻し');
 }
 
+// Bug 141-A: With内の添字付きProperty Letも右辺へ書き戻す
+{
+    const ev = evalVBASingle(`
+        Class IndexedLedger
+            Public Property Let Label(ByVal index As Long, ByRef value As String)
+                value = UCase(Trim(value))
+            End Property
+        End Class
+
+        Function TestIndexedPropertyLetByRef() As String
+            Dim ledger As New IndexedLedger
+            Dim label As String
+            label = " green "
+            With ledger
+                .Label(0) = label
+            End With
+            TestIndexedPropertyLetByRef = label
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestIndexedPropertyLetByRef', []), 'GREEN',
+        'With内の添字付きProperty Letを書き戻す');
+    console.log('[PASS] Bug 141-A: With内の添字付きProperty Let書き戻し');
+}
+
+// Bug 141-B: 添字付きProperty Setでも右辺オブジェクトを書き戻す
+{
+    const ev = evalVBAModules([
+        { name: 'IndexedChild', code: `
+Class IndexedChild
+    Public Value As Long
+End Class
+` },
+        { name: 'IndexedHolder', code: `
+Class IndexedHolder
+    Private mChild As IndexedChild
+    Public Property Set Ref(ByVal index As Long, ByRef value As IndexedChild)
+        Set mChild = value
+        Set value = Nothing
+    End Property
+    Public Property Get RefValue() As Long
+        RefValue = mChild.Value
+    End Property
+End Class
+` },
+        { name: 'IndexedDriver', code: `
+Function TestIndexedPropertySetByRef() As String
+    Dim holder As New IndexedHolder
+    Dim child As New IndexedChild
+    child.Value = 9
+    Set holder.Ref(1) = child
+    If child Is Nothing Then
+        TestIndexedPropertySetByRef = CStr(holder.RefValue) & ":nothing"
+    Else
+        TestIndexedPropertySetByRef = CStr(holder.RefValue) & ":alive"
+    End If
+End Function
+` },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestIndexedPropertySetByRef', []), '9:nothing',
+        '添字付きProperty SetのByRef valueを書き戻す');
+    console.log('[PASS] Bug 141-B: 添字付きProperty Set書き戻し');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

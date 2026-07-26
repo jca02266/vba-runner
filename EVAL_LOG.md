@@ -52,6 +52,7 @@
 | 139 | 回帰修正 #139: Longサフィックス後の連結演算子 | `n& & ","` の最初の `&` をLong型サフィックス、2つ目を連結演算子としてLexerが分離できず、`type-system.test.ts` が構文エラーになっていた。サフィックス判定で後続の `&` を連結演算子として許可し、型サフィックス回帰・Lexer行位置テストを通過した。 | 2026-07-26 |
 | 140 | 実行互換性 #140: Property Let ByRef書き戻し | 独立評価で、`Property Let(ByRef value As String)` 内の正規化結果が呼出元のスカラー変数・配列要素へ戻らない Bug 140-A を確認した。クラスProperty代入経路が右辺ASTを参照ラッパーへ渡していなかったためで、`evaluateAssignmentToVariable` から右辺式を `callClassMethodWithExpressions` へ渡すよう修正し、`class-module.test.ts` に回帰テストを追加した。 | 2026-07-26 |
 | 141 | リファクタリング強化 #141: Property代入経路の参照伝播 | Bug 140-A の修正を全代入分岐へ広げ、暗黙With経由のProperty LetとProperty Setの添字付き代入でも右辺式を共通参照フレームへ渡すようにした。クラス、Property、配列、イベントの関連回帰テストと型チェックを再通過した。 | 2026-07-26 |
+| 142 | 回帰確認 #142: Property特殊経路テスト追加 | #141で強化した暗黙With内の添字付きProperty Letと添字付きProperty Setについて、呼出元スカラー・オブジェクトへのByRef書き戻しを専用回帰テストとして追加した。クラスモジュール全テストを通過し、特殊経路の未検証状態を解消した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
