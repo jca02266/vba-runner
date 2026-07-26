@@ -695,4 +695,43 @@ End Function
     console.log('[PASS] Bug 130-A: クラスフィールド配列要素のByRef書き戻し');
 }
 
+// Bug 132-A: Property Set の ByRef オブジェクト引数の書き戻しが失われる
+{
+    const ev = evalVBAModules([
+        { name: 'SetChild', code: `
+Class SetChild
+    Public Value As Long
+End Class
+` },
+        { name: 'SetHolder', code: `
+Class SetHolder
+    Private mChild As SetChild
+    Public Property Set Ref(ByRef value As SetChild)
+        Set mChild = value
+        Set value = Nothing
+    End Property
+    Public Property Get RefValue() As Long
+        RefValue = mChild.Value
+    End Property
+End Class
+` },
+        { name: 'SetDriver', code: `
+Function TestPropertySetByRef() As String
+    Dim holder As New SetHolder
+    Dim child As New SetChild
+    child.Value = 77
+    Set holder.Ref = child
+    If child Is Nothing Then
+        TestPropertySetByRef = CStr(holder.RefValue) & ":nothing"
+    Else
+        TestPropertySetByRef = CStr(holder.RefValue) & ":alive"
+    End If
+End Function
+` },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestPropertySetByRef', []), '77:nothing',
+        'Property SetのByRefオブジェクト引数を書き戻す');
+    console.log('[PASS] Bug 132-A: Property SetのByRef書き戻し');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

@@ -4183,8 +4183,8 @@ export class Evaluator {
      * callee's updates, unlike module procedure calls which write back through
      * their original expressions.
      */
-    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[]): any {
-        const args = argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[], evaluatedArgs?: any[]): any {
+        const args = evaluatedArgs ?? argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
@@ -4882,7 +4882,7 @@ export class Evaluator {
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethod(obj, setter, [value]);
+                    this.callClassMethodWithExpressions(obj, setter, [stmt.right], [value]);
                 } else {
                     if (isWithEvents) {
                         this.detachWithEventsHandlers(propName, obj);
@@ -4926,7 +4926,7 @@ export class Evaluator {
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethod(obj, setter, [value]);
+                    this.callClassMethodWithExpressions(obj, setter, [stmt.right], [value]);
                 } else {
                     instanceEnv.set(propName, value);
                 }
