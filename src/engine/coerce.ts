@@ -142,6 +142,16 @@ export function vbaToString(val: any): string {
     if (val === vbaNull) throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL);
     if (val === vbaEmpty) return '';
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
+    if (Array.isArray(val)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    // Date, Boolean, Currency, Decimal, and Error values have VBA string
+    // representations. Other objects require a default property; the runner
+    // cannot infer one, so reject them instead of leaking JS object text.
+    if (typeof val === 'object' &&
+        !(val instanceof VbaBoolean) && !(val instanceof VbaDate) &&
+        !(val instanceof VbaDecimal) && !(val instanceof VbaCurrency) &&
+        !(val instanceof VbaErrorValue)) {
+        throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    }
     return String(val);
 }
 

@@ -41,6 +41,15 @@ const ev = evalVBASingle('');
     console.log('[PASS] 配列の数値強制 → Error 13');
 }
 
+// --- 2a. CStr の配列・既定プロパティなしオブジェクト → Error 13 ---
+{
+    assert.throwsMatch(() => ev.evalExpression('CStr(Array(1, "x"))'), /error '13'/,
+        'CStr(Array) → Error 13');
+    assert.throwsMatch(() => ev.evalExpression('CStr(CreateObject("Scripting.Dictionary"))'), /error '13'/,
+        'CStr(Object) → Error 13');
+    console.log('[PASS] CStr の配列・Object 型エラー');
+}
+
 // --- 3. Space/String の Long 超過・巨大割り当て → Error 6 / 14 ---
 {
     assert.throwsMatch(() => ev.evalExpression('Space(2147483648)'), /error '6'/, 'Space(Long超過) → Error 6');
