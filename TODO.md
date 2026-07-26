@@ -1122,36 +1122,11 @@ VBA Runner を使って以下の順で進めてください：
 
 ---
 
-## コンパイルチェックの整理（resolveIdentifiers / precheckProc の重複排除）
+## コンパイル前チェックの実装状況
 
-### 現状のチェック分類
-
-| フェーズ | 実装箇所 | 検出内容 |
-|---|---|---|
-| **resolve** | `resolveIdentifiers` | モジュール定数評価（依存グラフ順） |
-| **resolve** | `resolveIdentifiers` | 重複プロシージャ名（同一モジュール内） |
-| **resolve** | `resolveIdentifiers` | Option Explicit 違反マップの構築（throw は preproc に委譲） |
-| ~~**resolve**~~ → **preproc** | ~~`resolveIdentifiers`~~ → `precheckProc` | 未定義プロシージャ呼び出し（非修飾 identifier） |
-| **preproc** | `precheckProc` | Option Explicit 違反の throw（違反マップから） |
-| **preproc** | `precheckProc` → `checkSubAsValueInProc` | Sub を値コンテキストで使用（`v = MySub`） |
-| **exec（重複）** | `evaluateAssignmentStatement` | Sub を値コンテキストで使用（`precheckProc` と重複） |
-| **exec** | `evaluateAssignmentStatement` 実行時 | duplicate Dim（`hasOwnVariable` で検出） |
-| **exec** | `executeStatements` 実行時 | GoTo の未定義ラベル |
-| **exec** | `callProcedure` → `checkArgCount` | 引数の数の不一致 |
-
-### TODO: 重複チェックの削除
-
-- [x] `evaluateAssignmentStatement` の Sub-as-value チェックを削除する
-  - `precheckProc` → `checkSubAsValueInProc` が先に検出するため到達不能。削除済み。
-
-### TODO: preproc への移行候補
-
-以下は現在 exec フェーズで検出されているが、VBE では resolve/preproc に相当するもの。
-静的解析（`precheckProc` での AST walk）で検出できれば正確なフェーズに移行できる。
-
-- [ ] duplicate Dim — 同一プロシージャ内の重複 `Dim` 宣言を `precheckProc` で静的検出
-- [ ] GoTo 未定義ラベル — プロシージャ内のラベルを収集して `precheckProc` で静的検出
-- [ ] 引数の数の不一致 — `checkArgCount` を `precheckProc` に移動（呼び出し元が確定している場合）
+`precheckProc` の実装状況や、重複 `Dim`・未定義ラベル・引数数不一致など
+VBA仕様に関わるチェックは [`TODO_SPEC.md`](TODO_SPEC.md) で管理する。
+この文書では同じ仕様準拠項目を重複管理しない。
 
 ---
 
@@ -1534,8 +1509,11 @@ End Sub
 - [ ] Web Extension 化（evaluator が Node.js `path` に依存しており、先にブラウザ対応が必要）
 
 ### Web UI（デモサイト）の改善
-- [ ] `Dir` 関数の完全実装（ディレクトリ列挙）
-- [ ] `Kill` ワイルドカード対応（例: `Kill "*.txt"`）
+エンジン側の `Dir` / `Kill` とワイルドカード処理は実装済み（詳細は
+`TODO_SPEC.md` の FileSystem / VFS 表）であり、ここではデモサイトへの統合を管理する。
+
+- [ ] デモサイトで `Dir` 関数のディレクトリ列挙を提供
+- [ ] デモサイトで `Kill` ワイルドカード操作（例: `Kill "*.txt"`）を提供
 - [ ] コールスタックの出力・`Erl` 関数サポート
 
 ---
