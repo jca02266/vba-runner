@@ -38,20 +38,24 @@ assertCompileErrorPass1(
     assert.strictEqual(ev.callProcedure('Test', []), 3, '全Optional は正常');
 }
 
-// Optional → ParamArray は OK (ParamArray は常に最後)
-{
-    const ev = evalVBASingle(`
-        Function Sum(Optional base As Integer = 0, ParamArray vals())
-            Dim i As Integer, total As Integer
-            total = base
-            For i = 0 To UBound(vals)
-                total = total + vals(i)
-            Next
-            Sum = total
-        End Function
-    `);
-    assert.strictEqual(ev.callProcedure('Sum', [10, 1, 2, 3]), 16, 'Optional → ParamArray は正常');
-}
+// Optional と ParamArray の併用は不可（VBA仕様）
+assertCompileErrorPass1(
+    `Function Sum(Optional base As Integer = 0, ParamArray vals()) As Integer\nEnd Function`,
+    1, /ParamArray cannot be combined with Optional/, 'Optional と ParamArray の併用はエラー');
+
+// ParamArray の宣言制約（末尾・Variant配列・修飾子なし）
+assertCompileErrorPass1(
+    `Sub F(ParamArray vals(), tail As Long)\nEnd Sub`,
+    1, /ParamArray must be the last parameter/, 'ParamArray の後のパラメーターはエラー');
+assertCompileErrorPass1(
+    `Sub F(ByVal ParamArray vals())\nEnd Sub`,
+    1, /ParamArray cannot have ByVal or ByRef/, 'ParamArray のByValはエラー');
+assertCompileErrorPass1(
+    `Sub F(ParamArray vals() As String)\nEnd Sub`,
+    1, /ParamArray must be an array of Variant/, 'ParamArray の型指定はエラー');
+assertCompileErrorPass1(
+    `Sub F(ParamArray vals)\nEnd Sub`,
+    1, /ParamArray must be declared as an array/, 'ParamArray の配列省略はエラー');
 
 // ParamArray のみも OK
 {

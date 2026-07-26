@@ -868,8 +868,27 @@ export class Parser {
 
     private validateParameterOrder(params: Parameter[]): void {
         let seenOptional = false;
-        for (const p of params) {
-            if (p.isParamArray) break; // ParamArray is always last; no check needed after it
+        for (let index = 0; index < params.length; index++) {
+            const p = params[index];
+            if (p.isParamArray) {
+                const line = (p as any).loc?.start?.line ?? this.peek().line;
+                if (seenOptional || p.isOptional) {
+                    this.throwError(`Compile error at line ${line}: ParamArray cannot be combined with Optional parameters`);
+                }
+                if (index !== params.length - 1) {
+                    this.throwError(`Compile error at line ${line}: ParamArray must be the last parameter`);
+                }
+                if (p.hasPassingModifier) {
+                    this.throwError(`Compile error at line ${line}: ParamArray cannot have ByVal or ByRef`);
+                }
+                if (!p.isArray) {
+                    this.throwError(`Compile error at line ${line}: ParamArray must be declared as an array`);
+                }
+                if (p.paramType && p.paramType.toLowerCase() !== 'variant') {
+                    this.throwError(`Compile error at line ${line}: ParamArray must be an array of Variant`);
+                }
+                break;
+            }
             if (p.isOptional) {
                 seenOptional = true;
             } else if (seenOptional) {
