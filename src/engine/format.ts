@@ -191,7 +191,13 @@ export function formatDate(d: Date, pattern: string): string {
 // ------------------------------------------------------------------ //
 // 数値フォーマット（セクション選択 → セクション書式化）
 // ------------------------------------------------------------------ //
+/** 数値書式の色指定は表示色だけを変更するため、文字列整形では除去する。 */
+export function stripFormatColorDirectives(pattern: string): string {
+    return pattern.replace(/\[(?:black|blue|cyan|green|magenta|red|white|yellow)\]/gi, '');
+}
+
 export function formatNumber(n: number, pattern: string): string {
+    pattern = stripFormatColorDirectives(pattern);
     const pLower = pattern.toLowerCase();
 
     // 千の位区切り付き文字列ヘルパー

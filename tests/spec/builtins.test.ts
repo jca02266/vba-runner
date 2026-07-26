@@ -133,6 +133,21 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug L: Format(Currency/Decimal, 数値パターン)');
 }
 
+// Bug 120-A: 数値書式の色指定が日付書式として誤認される
+{
+    assert.strictEqual(
+        evalExpr('Format$(-12.3, "0000.00;[Red]-0000.00")'),
+        '-0012.30',
+        'Format negative section ignores [Red] color directive'
+    );
+    assert.strictEqual(
+        evalExpr('Format$(12.3, "0000.00;[Red]-0000.00")'),
+        '0012.30',
+        'Format positive section ignores [Red] color directive'
+    );
+    console.log('[PASS] Bug 120-A: Format color directives');
+}
+
 // Bug F: Format(VbaBoolean, 数値パターン)
 {
     assert.strictEqual(evalExpr('Format(True, "0")'), '-1', 'Format(True, "0") = "-1"');

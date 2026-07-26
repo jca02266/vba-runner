@@ -8,7 +8,7 @@ import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
-import { formatDate, formatNumber, formatString } from './format';
+import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
 
 // ---------------------------------------------------------------------------
 // Shared type definitions (also re-exported from evaluator.ts)
@@ -946,7 +946,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
             : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
             : val;
-        const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(fmt);
+        const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(stripFormatColorDirectives(fmt));
         if (typeof effectiveVal === 'string') {
             // If the format contains date/time symbols, try to parse the string as a date first
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
