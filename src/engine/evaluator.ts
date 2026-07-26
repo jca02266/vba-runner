@@ -8012,6 +8012,9 @@ export class Evaluator {
         // - 算術系の単項 (-, +): Null は Null、Empty は 0 として扱う
         // - Not: Null は Null
         if (argument === vbaNull) return vbaNull;
+        if (argument instanceof VbaErrorValue) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
         if (argument === vbaEmpty && (op === '-' || op === '+' || op === 'not')) {
             argument = 0;
         }
@@ -8418,6 +8421,14 @@ export class Evaluator {
         const arithmeticOps = new Set(['+', '-', '*', '/', '\\', 'mod', '^']);
         const comparisonOps = new Set(['=', '<>', '<', '>', '<=', '>=']);
         const logicalOps = new Set(['and', 'or', 'xor', 'eqv', 'imp']);
+
+        // CVErr values do not participate in implicit string, numeric, or
+        // logical coercion. They may only be compared for equality or passed
+        // explicitly to a conversion such as CStr.
+        if ((op === '&' || logicalOps.has(op)) &&
+            (leftVal instanceof VbaErrorValue || rightVal instanceof VbaErrorValue)) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
 
         if (op === '&') {
             // 文字列連結: Empty は "" 扱い。Null は両辺とも Null のときのみ Null を返し、

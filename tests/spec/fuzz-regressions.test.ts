@@ -50,6 +50,20 @@ const ev = evalVBASingle('');
     console.log('[PASS] CStr の配列・Object 型エラー');
 }
 
+// --- 2b. CVErr の暗黙論理・連結変換 → Error 13 ---
+{
+    for (const expr of [
+        'CVErr(2000) And True', 'CVErr(2000) Or False',
+        'CVErr(2000) Xor 1', 'Not CVErr(2000)', 'CVErr(2000) & "tail"',
+    ]) {
+        assert.throwsMatch(() => ev.evalExpression(expr), /error '13'/,
+            `${expr} → Error 13`);
+    }
+    assert.strictEqual(ev.evalExpression('CStr(CVErr(2000))'), 'Error 2000',
+        '明示 CStr(CVErr) は許可');
+    console.log('[PASS] CVErr の暗黙論理・連結変換 → Error 13');
+}
+
 // --- 3. Space/String の Long 超過・巨大割り当て → Error 6 / 14 ---
 {
     assert.throwsMatch(() => ev.evalExpression('Space(2147483648)'), /error '6'/, 'Space(Long超過) → Error 6');

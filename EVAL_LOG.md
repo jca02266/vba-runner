@@ -60,6 +60,7 @@
 | 147 | 回帰確認 #147: Currency/Decimal/Boolean 型強制 | FZ-BUILTIN の `coerce.ts` 境界で Currency の負値銀行丸め、Decimal の28桁演算、Boolean文字列変換、CInt/CLng、ByRef書き戻し、Function戻り値、Class/Collection、Variant配列メタデータ、非数値エラーを評価した。結果は期待値と一致し、新規バグは確認されなかった。 | 2026-07-26 |
 | 148 | 実行互換性 #148: CStr の配列・Object 型強制 | FZ-BUILTIN の混在型境界で Currency/Decimal と Null/Empty/ErrorValue、Decimal上限、指数文字列、CBool の配列/Object拒否を評価した。`CStr` だけが Variant配列を文字列化し、既定プロパティのないObjectを `[object Object]` として返す Bug 148-A だったため、Error 13 に統一して回帰テストを追加した。 | 2026-07-26 |
 | 149 | 回帰確認 #149: ErrorValue と Null/Empty 混在演算 | FZ-BUILTIN の `CVErr` と Currency/Decimal/Null/Empty の算術・比較・文字列化、配列内の型識別、`On Error` 伝播を評価した。`CVErr` の型情報、算術・比較 Error 13、`CStr`、Null伝播、Empty変換はいずれも期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
+| 150 | 実行互換性 #150: CVErr の論理演算・文字列連結 | FZ-BUILTIN の継続評価で `CVErr` の `And`/`Or`/`Xor`/`Not` と `&` を確認した。暗黙変換により Error code の数値化・`"Error 2000-tail"` の生成が起きる Bug 150-A だったため、Error 13 を返す検証と明示 `CStr` の回帰テストを追加した。 | 2026-07-27 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -304,6 +305,7 @@
 | ~~**Bug 145-A: `Pmt` の `NPer=0` が `-Infinity` を返す**~~ | `On Error GoTo Handler` 中に `Pmt(0.01, 0, 1000)` を呼ぶと、期待する Error 5 ではなく `-Infinity` が返り、ハンドラーへ分岐しなかった。 | `builtins.ts` の `pmt` が `NPer` の正数検査なしに JavaScript のゼロ除算を返していた。`NPer <= 0` を `INVALID_PROCEDURE_CALL` として検証した。 | このコミット |
 | ~~**Bug 146-A: `DateValue` が無効日付を正規化する**~~ | `DateValue("2024/02/30")` が Error 13 ではなく `2024/03/01` を返していた。 | `parseVbaDate` が JavaScript `Date` の自動繰上げ結果を検証していなかったため、`DateValue` で明示的な `yyyy/mm/dd` の成分一致を検証し、不一致を `TYPE_MISMATCH` とした。 | このコミット |
 | ~~**Bug 148-A: `CStr` が配列・ObjectをJavaScript文字列化する**~~ | `CStr(Array(1, "x"))` が `"1,x"`、既定プロパティのないクラスを `CStr` に渡すと `"[object Object]"` になっていた。 | `coerce.ts` の `vbaToString` が配列・汎用Objectを除外せず `String(val)` にフォールバックしていた。VBA型エラーとして拒否し、組み込み値型の文字列表現は維持した。 | このコミット |
+| ~~**Bug 150-A: `CVErr` が論理演算・連結で暗黙変換される**~~ | `CVErr(2000) And True` が `2000`、`Not CVErr(2000)` が `-2001`、`CVErr(2000) & "tail"` が `"Error 2000-tail"` になっていた。期待値はすべて Error 13。 | `evaluator.ts` の論理演算が `VbaErrorValue` の `valueOf()` を数値化し、`&` が表示文字列へ暗黙変換していた。論理・連結演算の入口で `TYPE_MISMATCH` とし、明示 `CStr` は維持した。 | このコミット |
 | ~~**Bug F: `QBColor(n)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `qbcolor` を登録。16色テーブルで 0〜15 を COLORREF に変換。範囲外は Error 5。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | `builtins.ts` に `qbcolor` の登録が存在しなかった。 |
 | ~~**Bug G: `Nz(value, valueifnull)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `nz` を登録。`Null`/`Empty`/`null`/`undefined` なら `valueifnull`（省略時は `0`）を返す。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | Access VBA の組み込み関数で Excel VBA には存在しないため未登録だった。 |
 | ~~**Bug H: `StrConv(s, conv, LCID)` 第3引数が Error 450**~~ | **修正済み**: `strconv` 登録に `{ name: 'LCID', optional: true }` を追加（LCID は無視するが引数を受け取るようになった）。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `ctx.reg` の params 配列が `String`/`Conversion` の2要素固定だった。 |
@@ -523,7 +525,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
-| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#149 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播 | CVErr の論理演算・文字列連結、複数 Err.Raise 伝播、Decimal overflow 後の Err 状態、Object/配列を受ける他の既定プロパティ境界、変更後の別入力シード | 継続 |
+| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否 | 複数 Err.Raise 伝播、Decimal overflow 後の Err 状態、Object/配列を受ける他の既定プロパティ境界、変更後の別入力シード | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し（カバレッジ基準 2026-07-18） | 別シードでのProperty Let引数のByRef境界、型付き配列の多次元・Preserve組み合わせ、宣言サフィックスと比較・連結の追加組み合わせ | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
