@@ -543,6 +543,15 @@ export class MockWorksheet implements VbaType {
                     }
                 }
             } else {
+                const height = area.endRow - area.startRow + 1;
+                const width = area.endCol - area.startCol + 1;
+                if (value.length !== height || value.some(row => !Array.isArray(row) || row.length !== width)) {
+                    throw {
+                        type: 'VbaError',
+                        number: 1004,
+                        message: 'Application-defined or object-defined error',
+                    };
+                }
                 let ri = 0;
                 for (let r = area.startRow; r <= area.endRow; r++) {
                     const rowData = value[ri];
@@ -602,4 +611,3 @@ export class MockWorksheet implements VbaType {
     { params: [{ name: 'Cell1' }] },
     { params: [{ name: 'Cell1' }, { name: 'Cell2' }] },
 ] satisfies BuiltinOverload[];
-

@@ -222,6 +222,15 @@ function ws(): MockWorksheet {
 }
 
 {
+    const m = ws();
+    assert.throwsMatch(() => { m.Range('A1:B2').Value = [[1, 2, 3], [4, 5, 6]]; }, /1004|Application-defined/,
+        '2D 配列の列数不一致は Error 1004');
+    assert.throwsMatch(() => { m.Range('A1:B2').Value = [[1, 2]]; }, /1004|Application-defined/,
+        '2D 配列の行数不一致は Error 1004');
+    console.log('[PASS] Range 2D 配列サイズ不一致は Error 1004');
+}
+
+{
     // 複数セル範囲 — 書き戻し後に Range().Value で再読み込み
     const m = ws();
     m.Range('A1:B2').Value = [[10, 20], [30, 40]];
