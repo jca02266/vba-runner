@@ -119,6 +119,45 @@ import {
 } from './coerce';
 import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
 export { VbaErrorCode } from './vba-errors';
+
+function textStreamFlagIsUnicode(value: any): boolean {
+    return value === true || value === -1 || value?.value === true || value?.value === -1;
+}
+
+function encodeTextStream(text: string, unicode: boolean): Uint8Array {
+    if (!unicode) return iconv.encode(text, 'cp932');
+    const body = new Uint8Array(text.length * 2);
+    let offset = 0;
+    for (let i = 0; i < text.length; i++) {
+        const code = text.charCodeAt(i);
+        body[offset++] = code & 0xff;
+        body[offset++] = code >>> 8;
+    }
+    const bytes = new Uint8Array(body.length + 2);
+    bytes[0] = 0xff;
+    bytes[1] = 0xfe;
+    bytes.set(body, 2);
+    return bytes;
+}
+
+function decodeTextStream(bytes: Uint8Array, unicodeHint: boolean): string {
+    let start = 0;
+    let unicode = unicodeHint;
+    if (bytes.length >= 2 && bytes[0] === 0xff && bytes[1] === 0xfe) {
+        unicode = true;
+        start = 2;
+    }
+    if (bytes.length >= 2 && bytes[0] === 0xfe && bytes[1] === 0xff) {
+        unicode = true;
+        start = 2;
+    }
+    if (!unicode) return iconv.decode(bytes, 'cp932');
+    let text = '';
+    for (let i = start; i + 1 < bytes.length; i += 2) {
+        text += String.fromCharCode(bytes[i] | (bytes[i + 1] << 8));
+    }
+    return text;
+}
 import {
     type StdlibCtx, type BuiltinParamSpec, type BuiltinOverload,
     registerInformationFunctions,
@@ -6028,47 +6067,75 @@ export class Evaluator {
                     return (this.fs.existsSync(full) && this.fs.statSync(full).isDirectory()) ? vbaTrue : vbaFalse;
                 } catch { return vbaFalse; }
             },
-            createtextfile: (p: string, overwrite: boolean = true) => {
+            createtextfile: (p: string, overwrite: any = true, unicode: any = false) => {
                 const full = this.sandbox.toRealPath(p);
                 if (!overwrite && this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, "File already exists");
                 const fd = this.fs.openSync(full, 'w');
+                const useUnicode = textStreamFlagIsUnicode(unicode);
+                if (useUnicode) this.fs.writeSync(fd, encodeTextStream('', true));
+                const writeText = (s: string) => {
+                    const bytes = encodeTextStream(s, useUnicode);
+                    // encodeTextStream includes a BOM; only the first write owns it.
+                    const payload = useUnicode ? bytes.subarray(2) : bytes;
+                    this.fs.writeSync(fd, payload);
+                };
                 return {
-                    write: (s: string) => this.fs.writeSync(fd, s),
-                    writeline: (s: string) => this.fs.writeSync(fd, s + "\r\n"),
+                    write: writeText,
+                    writeline: (s: string) => writeText(s + "\r\n"),
+                    writeblanklines: (count: number) => writeText("\r\n".repeat(Math.max(0, Math.trunc(Number(count))))),
                     close: () => this.fs.closeSync(fd)
                 };
             },
-            opentextfile: (p: string, iomode: number = 1) => {
+            opentextfile: (p: string, iomode: any = 1, create: any = false, format: any = -2) => {
                 const full = this.sandbox.toRealPath(p);
                 const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
+                const shouldCreate = create === true || create === -1 || create?.value === true || create?.value === -1;
+                if (shouldCreate && !this.fs.existsSync(full)) this.fs.openSync(full, 'w');
                 const fd = this.fs.openSync(full, mode);
                 const evalFs = this.fs;
                 let pos = 0;
+                const useUnicode = textStreamFlagIsUnicode(format);
+                const readContent = () => {
+                    const size = evalFs.statSync(full).size;
+                    const rawFd = evalFs.openSync(full, 'r');
+                    const bytes = new Uint8Array(size);
+                    let read = 0;
+                    try {
+                        while (read < size) {
+                            const n = evalFs.readSync(rawFd, bytes, read, size - read, null);
+                            if (n <= 0) break;
+                            read += n;
+                        }
+                    } finally {
+                        evalFs.closeSync(rawFd);
+                    }
+                    return decodeTextStream(bytes.subarray(0, read), useUnicode);
+                };
                 return {
                     get atendofstream() {
-                        const content = evalFs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         return pos >= content.length ? vbaTrue : vbaFalse;
                     },
                     readall: () => {
-                        const content = this.fs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         const result = content.slice(pos);
                         pos = content.length;
                         return result;
                     },
                     read: (numChars: number) => {
-                        const content = this.fs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         const count = Math.max(0, Math.trunc(Number(numChars)));
                         const result = content.slice(pos, pos + count);
                         pos += result.length;
                         return result;
                     },
                     skip: (numChars: number) => {
-                        const content = this.fs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         const count = Math.max(0, Math.trunc(Number(numChars)));
                         pos = Math.min(content.length, pos + count);
                     },
                     readline: () => {
-                        const content = this.fs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         const lines = content.slice(pos).split(/\r?\n/);
                         if (lines.length > 0) {
                             const line = lines[0];
@@ -6078,11 +6145,25 @@ export class Evaluator {
                         return "";
                     },
                     skipline: () => {
-                        const content = this.fs.readFileSync(full, 'utf8');
+                        const content = readContent();
                         const newline = content.indexOf('\n', pos);
                         pos = newline < 0 ? content.length : newline + 1;
                     },
-                    write: (s: string) => this.fs.writeSync(fd, s),
+                    write: (s: string) => {
+                        const bytes = encodeTextStream(s, useUnicode);
+                        const payload = useUnicode && (evalFs.statSync(full).size === 0)
+                            ? bytes
+                            : (useUnicode ? bytes.subarray(2) : bytes);
+                        this.fs.writeSync(fd, payload);
+                    },
+                    writeline: (s: string) => {
+                        const text = s + "\r\n";
+                        const bytes = encodeTextStream(text, useUnicode);
+                        const payload = useUnicode && (evalFs.statSync(full).size === 0)
+                            ? bytes
+                            : (useUnicode ? bytes.subarray(2) : bytes);
+                        this.fs.writeSync(fd, payload);
+                    },
                     close: () => this.fs.closeSync(fd)
                 };
             },

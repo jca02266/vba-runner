@@ -133,6 +133,36 @@ console.log('[PASS] Scripting.Dictionary');
             ts.Close
         End Function
 
+        Function TestFSOUnicodeWrite() As String
+            Dim fso As New FileSystemObject
+            Dim f, ts
+            Set f = fso.CreateTextFile("C:\\\\unicode.txt", True, True)
+            f.Write "猫-日本語"
+            f.Close
+            Set ts = fso.OpenTextFile("C:\\\\unicode.txt", 1, False, True)
+            TestFSOUnicodeWrite = ts.ReadAll
+            ts.Close
+        End Function
+
+        Function TestFSOUnicodeRead() As String
+            Dim fso As New FileSystemObject
+            Dim ts
+            Set ts = fso.OpenTextFile("C:\\\\preset-unicode.txt", 1, False, True)
+            TestFSOUnicodeRead = ts.ReadAll
+            ts.Close
+        End Function
+
+        Function TestFSOAnsiWrite() As String
+            Dim fso As New FileSystemObject
+            Dim f, ts
+            Set f = fso.CreateTextFile("C:\\\\ansi.txt", True, False)
+            f.Write "あ"
+            f.Close
+            Set ts = fso.OpenTextFile("C:\\\\ansi.txt", 1)
+            TestFSOAnsiWrite = ts.ReadAll
+            ts.Close
+        End Function
+
         Function TestFSOFolderOps() As Boolean
             Dim fso As FileSystemObject
             Set fso = New FileSystemObject
@@ -179,6 +209,22 @@ console.log('[PASS] Scripting.Dictionary');
     assert.strictEqual(content.includes('Hello') && content.includes('World'), true, 'FSO: OpenTextFile + ReadAll');
     assert.strictEqual(ev.callProcedure('TestFSOTextStreamReadSkip', []), 'abde', 'FSO TextStream: Read + Skip');
     assert.strictEqual(ev.callProcedure('TestFSOTextStreamSkipLine', []), 'second', 'FSO TextStream: SkipLine');
+    assert.strictEqual(ev.callProcedure('TestFSOUnicodeWrite', []), '猫-日本語', 'FSO TextStream: UTF-16 write/read');
+    vfs.writeFileSync('/sandbox/c/preset-unicode.txt', new Uint8Array([
+        0xff, 0xfe, 0x2b, 0x00, 0x28, 0x67, 0x0d, 0x00, 0x0a, 0x00,
+    ]));
+    assert.strictEqual(ev.callProcedure('TestFSOUnicodeRead', []), '+木\r\n', 'FSO TextStream: UTF-16 input');
+    assert.strictEqual(ev.callProcedure('TestFSOAnsiWrite', []), 'あ', 'FSO TextStream: CP932 write/read');
+    const unicodeFd = vfs.openSync('/sandbox/c/unicode.txt', 'r');
+    const unicodeBytes = new Uint8Array(4);
+    vfs.readSync(unicodeFd, unicodeBytes, 0, unicodeBytes.length, null);
+    vfs.closeSync(unicodeFd);
+    assert.deepStrictEqual(Array.from(unicodeBytes), [0xff, 0xfe, 0x2b, 0x73], 'FSO TextStream: UTF-16LE BOM');
+    const ansiFd = vfs.openSync('/sandbox/c/ansi.txt', 'r');
+    const ansiBytes = new Uint8Array(2);
+    vfs.readSync(ansiFd, ansiBytes, 0, ansiBytes.length, null);
+    vfs.closeSync(ansiFd);
+    assert.deepStrictEqual(Array.from(ansiBytes), [0x82, 0xa0], 'FSO TextStream: CP932 bytes');
     assert.strictEqual(ev.callProcedure('TestFSOFolderOps', []), vbaTrue, 'FSO: CreateFolder + FolderExists');
     assert.strictEqual(ev.callProcedure('TestFSODeleteFile', []), vbaTrue, 'FSO: DeleteFile');
     assert.strictEqual(ev.callProcedure('TestFSOCopyMove', []), vbaTrue, 'FSO: CopyFile + MoveFile');
