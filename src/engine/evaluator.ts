@@ -330,8 +330,12 @@ export interface DebugHook {
     ): void;
 }
 
+interface VbaLValueReference {
+    set(value: any): void;
+}
+
 interface ExecProcBodyOptions {
-    byRefArgs: { paramName: string; originalExpr: Expression }[];
+    byRefArgs: { paramName: string; reference: VbaLValueReference }[];
     paramArrayParamName: string | null;
     paramArrayByRefExprs: Expression[];
     /** null in callProcedure, -1 in evaluateCallExpression */
@@ -1949,7 +1953,7 @@ export class Evaluator {
             for (const ref of opts.byRefArgs) {
                 const updatedVal = localEnv.get(ref.paramName);
                 try {
-                    this.evaluateAssignmentToVariable(ref.originalExpr, updatedVal);
+                    ref.reference.set(updatedVal);
                 } catch {
                     // r-value: silently ignored
                 }
@@ -2157,6 +2161,12 @@ export class Evaluator {
             default:
                 return false;
         }
+    }
+
+    /** Convert an assignable VBA expression into the common ByRef write target. */
+    private createLValueReference(expr: Expression): VbaLValueReference | null {
+        if (!this.isAssignableTarget(expr)) return null;
+        return { set: (value: any) => this.evaluateAssignmentToVariable(expr, value) };
     }
 
     /** @deprecated Use {@link evaluateModule} instead. */
@@ -4185,12 +4195,13 @@ export class Evaluator {
      */
     private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[], evaluatedArgs?: any[]): any {
         const args = evaluatedArgs ?? argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+        const references = argExprs.map(a => this.createLValueReference(a));
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
-            if (!proc.parameters[i].isByVal) {
+            if (!proc.parameters[i].isByVal && references[i]) {
                 try {
-                    this.evaluateAssignmentToVariable(argExprs[i], byRefValues[i]);
+                    references[i]!.set(byRefValues[i]);
                 } catch {
                     // Non-assignable expressions are passed as temporary values.
                 }
@@ -7460,7 +7471,7 @@ export class Evaluator {
                 const localEnv = new Environment(procParentEnv);
 
                 // Map arguments to parameters
-                const byRefArgs: { paramName: string, originalExpr: Expression }[] = [];
+                const byRefArgs: { paramName: string, reference: VbaLValueReference }[] = [];
                 let paramArrayParamName: string | null = null;
                 let paramArrayByRefExprs: Expression[] = [];
                 const namedArgs = new Map<string, any>();
@@ -7578,10 +7589,13 @@ export class Evaluator {
                         } else if (i < positionalArgExpressions.length) {
                             originalExpr = positionalArgExpressions[i];
                         }
-                        if (originalExpr && !forcedByVal) {
+                        const reference = originalExpr && !forcedByVal
+                            ? this.createLValueReference(originalExpr)
+                            : null;
+                        if (reference) {
                             byRefArgs.push({
                                 paramName: param.name,
-                                originalExpr: originalExpr
+                                reference,
                             });
                         }
                     }
