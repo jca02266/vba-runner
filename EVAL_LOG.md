@@ -333,7 +333,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | ~~`VBARunner` が複数ファイルの配列渡しに非対応~~ | **対応済み**（`new VBARunner(['/a/M1.bas', '/b/C1.cls'])` が動作するよう修正） |
 | ~~`eval()` の行番号が常に "line 1"~~ | **修正済み**: Lexerの行番号をVBAエラーへ伝播し、マルチラインevalでは実際の行番号を表示する。 |
 | ~~README に `eval()` の「式 vs 文」の注意書きがない~~ | **修正済み**: `build/runner/README.md` に、`eval("x + 1")` と `eval("(x) + 1")` の解釈差を追記。 |
-| `Dictionary.Add` へ Object をキーとして渡してもエラーなし | 実 VBA では非文字列キーの挙動は Object の hash になるが、引数順序ミス（Collection をキーに渡す）を検出できない。エラーなく格納されるが文字列で取り出せないため診断が困難 |
+| ~~`Dictionary.Add` へ Object をキーとして渡してもエラーなし~~ | **仕様確認済み**: Dictionaryのキーは配列以外の任意の値を許容するため、オブジェクトキーをMapの参照同一性で保持する。回帰テスト: `tests/spec/dictionary-object-key.test.ts`。 |
 | ~~`Exit Sub` を `eval()` トップレベルで使うと JS 例外が漏れる~~ | **修正済み** (`0ca97d8`): `executeStatements` を try/catch でラップして Exit シグナルを飲み込む |
 | ~~`Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる~~ | **修正済み** (`9e25adc`): `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 |
 | ~~`FSO TextStream.AtEndOfStream` 未実装~~ | **修正済み** (`0ca97d8`): `pos >= content.length` を返す getter を実装 |
