@@ -37,6 +37,7 @@
 | 124 | 回帰修正 #124: カバレッジ検出3件 | カバレッジ計測（TypeScript 331ファイル中328成功・3失敗、VBA 14ファイル/111手続きは全成功）で検出した3件を修正した。FOREIGN-NAME直後の空括弧、空白付き配列添字代入、引数個数コンパイルエラーの行番号欠落を回帰テストで確認した。 | 2026-07-26 |
 | 125 | 実行互換性 #125: ネストUDTの値コピー | UDT内UDT・固定配列・可変長Stringを含むBinary Put/Getの複合シナリオは正常だった。一方、`q = p` 後の `q.Header.A = 2` が `p.Header.A` まで変更する Bug 125-A を発見・修正し、ネストメンバーと配列を含む値コピーの回帰テストを追加した。 | 2026-07-26 |
 | 126 | 仕様確認 #126: Format条件セクション・Declare引数検査 | `[<100]` / `[Red]` はVBAの`Format`関数仕様ではなく、Excelのセル書式・条件付き書式の機能であることを公式仕様と照合した。`Declare` の構文・型は正常だったが、スタブが宣言引数数を検査しない Bug 126-A を修正した。 | 2026-07-26 |
+| 127 | 実Excel照合 #127: FSO・ネストUDT | Excel実機でXL-009/XL-010を照合した。Unicode TextStreamは`FF FE`付きUTF-16LE（LOF=12）、ANSIはCP932（LOF=6）、ネストUDTは可変長Stringディスクリプターと配列を含む20バイトとなり、自動テストと一致した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -359,8 +360,8 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | XL-006 | 固定長 `String()` の `Put #` CP932 バイト列 | Excel: `82 A0 41 20`（LOF=4） | `tests/spec/binary-byte-array.test.ts` の固定長文字列処理で回帰確認 | 照合済み |
 | XL-007 | UDT 配列の `Put #` バイト順 | Excel: `01 00 00 00 02 00 03 00 00 00 04 00`（LOF=12） | `tests/spec/binary-byte-array.test.ts` のUDT配列往復で回帰確認 | 照合済み |
 | XL-008 | UDT内可変長 `String` のディスクリプター | Excel: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0` | `tests/spec/binary-file-io.test.ts` と一致 | 照合済み |
-| XL-009 | FSO TextStream の Unicode/ANSI書き込み | `CreateTextFile(..., unicode:=True/False)` の BOM、UTF-16LE/ANSIバイト列、`OpenTextFile(..., format:=TristateTrue)` の読み取り結果 | VFSでUTF-16LE+BOMとCP932を確認（#123） | 実Excel照合待ち |
-| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを含むレコードのLOF・フィールド境界・往復値 | 単体・配列・2次元・可変長String・ネスト複合を確認（#125） | 実Excel照合待ち |
+| XL-009 | FSO TextStream の Unicode/ANSI書き込み | Excel: Unicode `LOF=12` `FF FE 41 00 42 30 42 00 0D 00 0A 00`、ANSI `LOF=6` `41 82 A0 42 0D 0A` | VFSでUTF-16LE+BOMとCP932を確認（#123） | 照合済み（#127） |
+| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | Excel: `LOF=20` `04 03 02 01 03 00 41 82 A0 01 00 00 00 02 00 00 00 01 00 5A` | 単体・配列・2次元・可変長String・ネスト複合を確認（#125） | 照合済み（#127） |
 | XL-011 | `Format` の条件付きセクション | `[<100]` / `[>=100]` はVBA `Format`関数ではなくExcelのセル書式機能であることを確認 | VBA Formatの評価対象外（Excel側の別機能） |
 | XL-012 | `Declare` 引数型・ByRefスタブ境界 | `LongPtr`、String、配列、UDT、ByRef書き戻し、Alias指定の呼び出し結果 | 構文・ロード・引数個数検査を確認（#46、#126）。外部呼び出しの戻り値0/ByRef無変更は安全なスタブ制限 | 自動テスト済み（実DLL呼び出し対象外） |
 
@@ -462,8 +463,8 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|---|
 | `CDate("M,Y")` の実Excel一致 | **実施済み** | 差分コーパス第2回で現代年を含む境界を再検証。極端に古い年はタイムゾーン依存のため許容差分として扱う。 |
 | `Format` の色指定・条件付き書式 | **VBA Formatの評価対象外** | `[Red]`や`[<100]`はExcelのセル書式・条件付き書式の機能であり、VBA `Format`関数の仕様項目ではない。 |
-| UDT の `Put` / `Get` 複合配列・ネスト | **自動テスト済み（実Excel未照合）** | スカラー、UDT配列、固定長配列、可変長String、2次元配列、ネストしたUDTを含む複合レコードを確認（#100〜#102、#125）。ネスト複合の実Excelバイト照合は未実施。 |
-| FSO TextStream の書き込み・Unicode形式 | **実装・VFS検証済み（実Excel未照合）** | `unicode` / `format` 引数、UTF-16LE BOM、CP932、既存UTF-16入力を #123 で確認。Windows Excelとの実バイト照合は未実施。 |
+| UDT の `Put` / `Get` 複合配列・ネスト | **実Excel照合済み** | スカラー、UDT配列、固定長配列、可変長String、2次元配列、ネストしたUDTを自動テスト・実Excelで確認（#100〜#102、#125、#127）。 |
+| FSO TextStream の書き込み・Unicode形式 | **実Excel照合済み** | `unicode` / `format` 引数、UTF-16LE BOM、CP932、CRLFをVFSと実Excelで確認（#123、#127）。 |
 | `Declare` スタブと引数型・ByRef | **自動テスト済み（外部DLLは恒久的スタブ）** | `PtrSafe`、`Lib`、`Alias`、`LongPtr`、`ByRef String`、配列・UDT宣言と引数個数検査を #46/#126 で確認。外部DLLの実呼び出し・ByRef書き戻しは安全なスタブ設計の対象外。 |
 | `DoEvents` / `Sleep` の外部イベント | **恒久的制限を確認済み** | `DoEvents` は no-op、外部APIはスタブで同期Evaluatorを中断しない（#27）。実装未完了としてではなく、同期設計上の制限として扱う。 |
 | `VarPtr` / `StrPtr` / `ObjPtr` | **恒久的制限を確認済み** | `varptr.test.ts` でダミー値・非アドレス意味論を確認。実メモリーアドレスやWin32連携は対象外。 |
@@ -476,8 +477,6 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | 優先度 | 未実施領域 | 評価の焦点 | 状態 |
 |---|---|---|---|
-| P0 | FSO TextStream の Unicode 入出力 | `CreateTextFile(..., unicode:=True)`、`OpenTextFile(..., format:=TristateTrue)`、UTF-16LE BOM、`Read`/`Write` の文字位置を実Excelと比較 | 実装・VFS検証済み。実Excel照合待ち |
-| P0 | ネスト UDT の Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを組み合わせた複合レコードの境界・LOF・往復値 | 自動テスト済み。実Excel照合待ち |
 | P1 | 文法ベース生成ファザー | 有効なIf/For/Select、On Error、ReDim、クラス、Property、複数モジュールを生成し、JS生例外と結果不整合を検出 | 未実施（手法自体） |
 | P1 | ミューテーションテスト | `format.ts`、`parser.ts`、`evaluator.ts` の比較・分岐・エラー処理を変異させ、既存テストの検出漏れを特定 | 未実施（手法自体） |
 
