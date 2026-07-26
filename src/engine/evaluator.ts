@@ -278,6 +278,8 @@ interface BinaryValueLayout {
     /** Compatibility path for an untyped target, where VBA's destination size
      * is unavailable and the runner must retain its historical whole-field read. */
     readToEnd?: boolean;
+    /** UDT variable-length String members carry a 2-byte byte-length descriptor. */
+    variableLengthDescriptor?: boolean;
 }
 
 export interface DebugHook {
@@ -5295,8 +5297,17 @@ export class Evaluator {
                 new DataView(buffer.buffer).setBigInt64(0, internal, true);
                 return buffer;
             }
-            case 'string':
-                return iconv.encode(String(value), Evaluator.VBA_BINARY_ENCODING);
+            case 'string': {
+                const data = iconv.encode(String(value), Evaluator.VBA_BINARY_ENCODING);
+                if (!layout.variableLengthDescriptor) return data;
+                if (data.length > 0xffff) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Variable-length UDT String is too long');
+                }
+                const buffer = new Uint8Array(2 + data.length);
+                new DataView(buffer.buffer).setUint16(0, data.length, true);
+                buffer.set(data, 2);
+                return buffer;
+            }
             default: {
                 const members = this.env.getType(layout.typeName);
                 if (!members || !value || typeof value !== 'object') {
@@ -5306,12 +5317,10 @@ export class Evaluator {
                     if (member.isArray) {
                         return this.encodeBinaryUdtArray(value[member.name.toLowerCase()], member);
                     }
-                    if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
-                    }
                     return this.encodeBinaryValue(value[member.name.toLowerCase()], {
                         typeName: member.memberType,
                         fixedLength: member.fixedLength,
+                        variableLengthDescriptor: member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined,
                     });
                 });
                 const length = fields.reduce((total, field) => total + field.length, 0);
@@ -5345,6 +5354,7 @@ export class Evaluator {
                     : this.encodeBinaryValue(array[index], {
                         typeName: member.memberType,
                         fixedLength: member.fixedLength,
+                        variableLengthDescriptor: member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined,
                     }));
             }
             const length = fields.reduce((total, field) => total + field.length, 0);
@@ -5437,6 +5447,19 @@ export class Evaluator {
             case 'currency':
                 return { value: new VbaCurrency(new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getBigInt64(0, true)), length: 8 };
             case 'string': {
+                if (layout.variableLengthDescriptor) {
+                    if (offset + 2 > bytes.length) {
+                        this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
+                    }
+                    const byteLength = new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getUint16(0, true);
+                    if (offset + 2 + byteLength > bytes.length) {
+                        this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
+                    }
+                    return {
+                        value: iconv.decode(Buffer.from(bytes.subarray(offset + 2, offset + 2 + byteLength)), Evaluator.VBA_BINARY_ENCODING),
+                        length: 2 + byteLength,
+                    };
+                }
                 const length = layout.readToEnd
                     ? bytes.length - offset
                     : this.encodedByteLengthForCharacters(bytes, offset,
@@ -5459,12 +5482,10 @@ export class Evaluator {
                         length += field.length;
                         continue;
                     }
-                    if (member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Binary Put/Get does not yet support variable-length String UDT members');
-                    }
                     const field = this.decodeBinaryValue(bytes, offset + length, {
                         typeName: member.memberType,
                         fixedLength: member.fixedLength,
+                        variableLengthDescriptor: member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined,
                     }, currentValue?.[member.name.toLowerCase()]);
                     value[member.name.toLowerCase()] = field.value;
                     length += field.length;
@@ -5494,6 +5515,7 @@ export class Evaluator {
                     const field = this.decodeBinaryValue(bytes, position + length, {
                         typeName: member.memberType,
                         fixedLength: member.fixedLength,
+                        variableLengthDescriptor: member.memberType.toLowerCase() === 'string' && member.fixedLength === undefined,
                     }, array[index]);
                     array[index] = field.value;
                     length += field.length;

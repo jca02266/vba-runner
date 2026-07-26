@@ -85,3 +85,36 @@ console.log('✅ Binary Put/Get: scalar, fixed-string UDT, and CP932 string roun
 }
 
 console.log('✅ Binary Put accepts typed conversion expressions');
+
+{
+    const fs = new MemoryFileSystem();
+    const ev = evalVBASingle(`
+        Type VariableRecord
+            Id As Long
+            Name As String
+        End Type
+
+        Public recordRead As VariableRecord
+
+        Sub RoundTripVariableString()
+            Dim record As VariableRecord
+            record.Id = 16909060
+            record.Name = "Aあ"
+            Open "variable-udt.dat" For Binary As #1
+            Put #1, , record
+            Close #1
+            Open "variable-udt.dat" For Binary As #1
+            Get #1, , recordRead
+            Close #1
+        End Sub
+    `, { fs, sandboxRoot: '/sandbox' });
+
+    ev.callProcedure('RoundTripVariableString', []);
+    assert.deepStrictEqual(readBytes(fs, '/sandbox/variable-udt.dat'), [
+        0x04, 0x03, 0x02, 0x01, 0x03, 0x00, 0x41, 0x82, 0xa0,
+    ]);
+    assert.strictEqual(ev.env.get('recordRead').id, 16909060);
+    assert.strictEqual(ev.env.get('recordRead').name, 'Aあ');
+}
+
+console.log('✅ Binary Put/Get supports variable-length String UDT descriptors');
