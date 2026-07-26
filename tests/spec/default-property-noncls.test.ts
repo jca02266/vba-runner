@@ -147,11 +147,23 @@ End Function
     ws.setCellValue('A6', '2024/01/15');
     const result = run(`
 Function TestDateDefault()
-    TestDateDefault = CStr(IsDate(ws.Range("A6"))) & ":" & CStr(Year(CDate(ws.Range("A6")))) & ":" & CStr(Year(DateValue(ws.Range("A6"))))
+    TestDateDefault = CStr(IsDate(ws.Range("A6"))) & ":" & CStr(Year(CDate(ws.Range("A6")))) & ":" & CStr(Year(DateValue(ws.Range("A6")))) & ":" & CStr(Year(ws.Range("A6"))) & ":" & Format(ws.Range("A6"), "yyyy")
 End Function
 `, 'TestDateDefault', ev => ev.set('ws', ws));
-    assert.strictEqual(result, 'True:2024:2024', 'IsDate/CDate/DateValueは既定Valueの日付文字列を処理する');
-    console.log('[PASS] Bug 158-A/159-A: 日付関数の既定Value展開');
+    assert.strictEqual(result, 'True:2024:2024:2024:2024', '日付関数とFormatは既定Valueの日付文字列を処理する');
+    console.log('[PASS] Bug 158-A/159-A/164-A: 日付関数の既定Value展開');
+}
+
+// Bug 164-A: 日付関数群は配列・引数経路でも既定Valueを展開する
+{
+    const defaultDate = { __vbaDefault__: true as const, Value: '2024/01/15 14:30:45' };
+    const result = run(`
+Function TestDateFamily()
+    TestDateFamily = CStr(Month(v)) & ":" & CStr(Day(v)) & ":" & CStr(Hour(v)) & ":" & CStr(Minute(v)) & ":" & CStr(Second(v)) & ":" & CStr(Weekday(v)) & ":" & CStr(DatePart("yyyy", v)) & ":" & CStr(Year(DateAdd("d", 1, v))) & ":" & CStr(DateDiff("d", v, DateAdd("d", 1, v))) & ":" & CStr(Hour(TimeValue(v)))
+End Function
+`, 'TestDateFamily', ev => ev.set('v', defaultDate));
+    assert.strictEqual(result, '1:15:14:30:45:2:2024:2024:1:14', '日付関数群は既定Valueを展開する');
+    console.log('[PASS] Bug 164-A: 日付関数群の既定Value展開');
 }
 
 // 6. MockRange を使った VBA 演算

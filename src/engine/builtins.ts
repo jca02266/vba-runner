@@ -10,6 +10,17 @@ import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
 import type { ProcedureDeclaration } from './parser';
 import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
 
+/** Expand only objects that explicitly expose a VBA-style default Value. */
+function unwrapVbaDefaultValue(value: any): any {
+    const seen = new Set<any>();
+    let current = value;
+    while (current && typeof current === 'object' && current.__vbaDefault__ === true && !seen.has(current)) {
+        seen.add(current);
+        current = current.Value;
+    }
+    return current;
+}
+
 // ---------------------------------------------------------------------------
 // Shared type definitions (also re-exported from evaluator.ts)
 // ---------------------------------------------------------------------------
@@ -83,9 +94,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('isnumeric', isNumericValue, [{ name: 'Expression' }]);
     ctx.reg('isdate', (val: any) => {
-        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-            return (ctx.envGet('isdate') as Function)(val.Value);
-        }
+        val = unwrapVbaDefaultValue(val);
         if (val instanceof VbaDate) return vbaTrue;
         if (typeof val === 'number') return isFinite(val) ? vbaTrue : vbaFalse;
         if (typeof val === 'string') {
@@ -263,9 +272,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-            return (ctx.envGet('cdate') as Function)(val.Value);
-        }
+        val = unwrapVbaDefaultValue(val);
         // CDate(Empty) はシリアル値 0（1899-12-30）を返す（実 VBA 差分で裁定）
         if (val === vbaEmpty) return new VbaDate(0);
         if (val instanceof VbaDate) return val;
@@ -929,6 +936,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Length', optional: true },
     ], ['$']);
     const formatFunc = (val: any, pattern?: any) => {
+        val = unwrapVbaDefaultValue(val);
         if (val === null || val === vbaNull || val === vbaEmpty) return "";
         if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
@@ -1032,6 +1040,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'GroupDigits', optional: true },
     ], ['$']);
     ctx.reg('formatdatetime', (val: any, namedFmt: any = 0) => {
+        val = unwrapVbaDefaultValue(val);
         if (val === vbaNull) return '';
         if (namedFmt === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const d = (val instanceof VbaDate) ? fromVbaDate(val.value) : parseVbaDate(val);
@@ -1058,12 +1067,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
-    ctx.reg('year',   (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(), [{ name: 'Date' }]);
-    ctx.reg('month',  (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1, [{ name: 'Date' }]);
-    ctx.reg('day',    (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getDate(), [{ name: 'Date' }]);
-    ctx.reg('hour',   (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getHours(), [{ name: 'Time' }]);
-    ctx.reg('minute', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getMinutes(), [{ name: 'Time' }]);
-    ctx.reg('second', (d: any) => d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(), [{ name: 'Time' }]);
+    ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
+    ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
+    ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
+    ctx.reg('hour',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getHours(); }, [{ name: 'Time' }]);
+    ctx.reg('minute', (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMinutes(); }, [{ name: 'Time' }]);
+    ctx.reg('second', (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(); }, [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => {
         if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
         const rawYear = ctx.toVbaNumber(y);
@@ -1094,6 +1103,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return new VbaDate(toVbaDate(new Date(1899, 11, 30, ctx.toVbaNumber(h), ctx.toVbaNumber(n), ctx.toVbaNumber(s))));
     }, [{ name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
+        d = unwrapVbaDefaultValue(d);
         if (d === vbaNull) return vbaNull;
         if (firstdayofweek === vbaNull) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
@@ -1104,6 +1114,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return ((dayOfWeek - weekStart + 7) % 7) + 1;
     }, [{ name: 'Date' }, { name: 'FirstDayOfWeek', optional: true }]);
     ctx.reg('dateadd', (interval: any, number: any, date: any) => {
+        date = unwrapVbaDefaultValue(date);
         if (date === vbaNull || number === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
         const n = ctx.toVbaNumber(number);
@@ -1130,6 +1141,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return new VbaDate(toVbaDate(d));
     }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
     ctx.reg('datediff', (interval: any, date1: any, date2: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
+        date1 = unwrapVbaDefaultValue(date1);
+        date2 = unwrapVbaDefaultValue(date2);
         if (date1 === vbaNull || date2 === vbaNull) return vbaNull;
         const d1 = parseVbaDate(date1);
         const d2 = parseVbaDate(date2);
@@ -1164,6 +1177,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'FirstWeekOfYear', optional: true },
     ]);
     ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, firstweekofyear: any = 1) => {
+        date = unwrapVbaDefaultValue(date);
         if (date === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
@@ -1227,10 +1241,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         { name: 'FirstWeekOfYear', optional: true },
     ]);
     ctx.reg('datevalue', (val: any) => {
+        val = unwrapVbaDefaultValue(val);
         if (val === vbaNull) return vbaNull;
-        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-            return (ctx.envGet('datevalue') as Function)(val.Value);
-        }
         const d = parseVbaDate(val);
         if (typeof val === 'string') {
             // JavaScript Date normalizes invalid calendar dates (for example,
@@ -1247,6 +1259,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return new VbaDate(Math.floor(toVbaDate(d)));
     }, [{ name: 'Date' }]);
     ctx.reg('timevalue', (val: any) => {
+        val = unwrapVbaDefaultValue(val);
         if (val === vbaNull) return vbaNull;
         const d = parseVbaDate(val);
         const serial = toVbaDate(d);
