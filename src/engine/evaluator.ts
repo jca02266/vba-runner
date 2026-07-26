@@ -1569,6 +1569,15 @@ export class Evaluator {
 
     private checkDuplicateDimInProc(proc: ProcedureDeclaration): void {
         const seen = new Map<string, number>(); // varKey → first-occurrence line
+        // Parameters, the implicit Function/Property return variable, Const, and
+        // Dim all share a procedure scope in VBA.  Keep the comparison
+        // case-insensitive, just like the runtime name resolver.
+        for (const param of proc.parameters) {
+            seen.set(param.name.toLowerCase(), proc.loc?.start.line ?? 0);
+        }
+        if (proc.isFunction || proc.isProperty) {
+            seen.set(proc.name.name.toLowerCase(), proc.loc?.start.line ?? 0);
+        }
         const walkStmts = (stmts: Statement[]) => { for (const s of stmts) walkStmt(s); };
         const walkStmt = (stmt: Statement) => {
             switch (stmt.type) {
@@ -1580,6 +1589,20 @@ export class Evaluator {
                             const line = d.name.loc?.start.line;
                             this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                                 `Variable '${d.name.name}' is already declared in this scope (duplicate declaration)`,
+                                line, proc.moduleName ?? undefined);
+                        }
+                        seen.set(key, d.name.loc?.start.line ?? 0);
+                    }
+                    break;
+                }
+                case 'ConstDeclaration': {
+                    const decl = stmt as ConstDeclaration;
+                    for (const d of decl.declarations) {
+                        const key = d.name.name.toLowerCase();
+                        if (seen.has(key)) {
+                            const line = d.name.loc?.start.line;
+                            this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                                `Constant '${d.name.name}' is already declared in this scope (duplicate declaration)`,
                                 line, proc.moduleName ?? undefined);
                         }
                         seen.set(key, d.name.loc?.start.line ?? 0);
@@ -1607,6 +1630,67 @@ export class Evaluator {
             }
         };
         walkStmts(proc.body);
+    }
+
+    /** Reject case-insensitive name collisions among declarations in one module/class scope. */
+    private checkDuplicateDeclarationsInScope(stmts: Statement[], scopeName: string): void {
+        const seen = new Map<string, { kind: string; line: number }>();
+        const add = (name: string, kind: string, line: number): void => {
+            const key = name.toLowerCase();
+            const previous = seen.get(key);
+            if (!previous) {
+                seen.set(key, { kind, line });
+                return;
+            }
+            // VBA permits the three Property procedures (Get/Let/Set) to share
+            // one name.  They are distinct accessors, not duplicate declarations.
+            const propertyOverload = previous.kind.startsWith('procedure:') &&
+                kind.startsWith('procedure:') && previous.kind !== kind &&
+                previous.kind !== 'procedure:sub/function' && kind !== 'procedure:sub/function';
+            if (propertyOverload) return;
+            this.throwCompileError(
+                VbaErrorCode.INVALID_PROCEDURE_CALL,
+                `Duplicate declaration '${name}' in scope '${scopeName}'`,
+                line,
+            );
+        };
+
+        for (const stmt of stmts) {
+            switch (stmt.type) {
+                case 'VariableDeclaration':
+                    for (const d of (stmt as VariableDeclaration).declarations) {
+                        add(d.name.name, 'variable', d.name.loc?.start.line ?? stmt.loc?.start.line ?? 0);
+                    }
+                    break;
+                case 'ConstDeclaration':
+                    for (const d of (stmt as ConstDeclaration).declarations) {
+                        add(d.name.name, 'constant', d.name.loc?.start.line ?? stmt.loc?.start.line ?? 0);
+                    }
+                    break;
+                case 'ProcedureDeclaration': {
+                    const proc = stmt as ProcedureDeclaration;
+                    const kind = proc.isProperty && proc.propertyType
+                        ? `procedure:${proc.propertyType}`
+                        : 'procedure:sub/function';
+                    add(proc.name.name, kind, proc.name.loc?.start.line ?? stmt.loc?.start.line ?? 0);
+                    break;
+                }
+                case 'TypeDeclaration':
+                    add((stmt as TypeDeclaration).name, 'type', stmt.loc?.start.line ?? 0);
+                    break;
+                case 'EnumDeclaration': {
+                    const enumDecl = stmt as EnumDeclaration;
+                    add(enumDecl.name.name, 'enum', enumDecl.name.loc?.start.line ?? stmt.loc?.start.line ?? 0);
+                    break;
+                }
+                case 'ClassDeclaration': {
+                    const cls = stmt as ClassDeclaration;
+                    add(cls.name, 'class', stmt.loc?.start.line ?? 0);
+                    this.checkDuplicateDeclarationsInScope(cls.body, cls.name);
+                    break;
+                }
+            }
+        }
     }
 
     private checkGoToLabelsInProc(proc: ProcedureDeclaration): void {
@@ -4303,6 +4387,12 @@ export class Evaluator {
      */
     public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
         try {
+        // VBA identifiers are case-insensitive.  Perform this pass before
+        // resolving constants so collisions are reported as compile errors,
+        // rather than whichever declaration happened to be loaded last.
+        for (const { ast, moduleName } of modules) {
+            this.checkDuplicateDeclarationsInScope(ast.body, moduleName);
+        }
         // 全モジュールレベル定数を「module:name」修飾キーで収集する。
         // 1 ConstDeclaration に複数の declarator が含まれる場合も個別にエントリを作る。
         const allConsts = new Map<string, { stmt: ConstDeclaration; decl: ConstDeclaratorItem; moduleName: string; name: string }>();

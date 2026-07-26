@@ -1058,7 +1058,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
     - `evalVBAModules` に `defaultBindingObject` オプション追加（resolveIdentifiers 前に設定が必要）
   - テスト: `tests/vba/CompileError.bas` の `Case_undefined_sub_call` / `Case_qualified_undeclared_obj`（TYPE: resolve）
 
-- ❌ **識別子の大文字小文字混同の検出**: 同一スコープ内で大文字小文字だけが異なる識別子（変数名・クラス名・プロシージャ名）の宣言を検出してエラーにする
+- ✅ **識別子の大文字小文字混同の検出**: 同一モジュール/クラス/手続きスコープ内の変数・定数・型・クラス・プロシージャ・パラメーターを小文字化して比較し、ケースだけが異なる重複宣言をコンパイルエラーにする。Property Get/Let/Set の同名アクセサーは許可する | `identifier-case-collision.test.ts`
   - 例: `Dim assert As New Assert` — 変数 `assert` とクラス `Assert` は VBA では同一識別子
   - VBA はケースインセンシティブなため、コンパイル時に "識別子が重複しています" とすべきケース
   - 実装案: Lexer/Parser で識別子を正規化（小文字化）した後、同一スコープ内に同名の宣言があれば警告またはエラー
