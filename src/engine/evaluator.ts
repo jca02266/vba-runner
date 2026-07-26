@@ -337,7 +337,7 @@ interface VbaLValueReference {
 interface ExecProcBodyOptions {
     byRefArgs: { paramName: string; reference: VbaLValueReference }[];
     paramArrayParamName: string | null;
-    paramArrayByRefExprs: Expression[];
+    paramArrayReferences: (VbaLValueReference | null)[];
     /** null in callProcedure, -1 in evaluateCallExpression */
     initialLastErrorIndex: number | null;
     /** callProcedure accepts Exit Property, evaluateCallExpression does not */
@@ -1463,7 +1463,7 @@ export class Evaluator {
         const result = this.execProcBody(proc, localEnv, {
             byRefArgs: [],
             paramArrayParamName: null,
-            paramArrayByRefExprs: [],
+            paramArrayReferences: [],
             initialLastErrorIndex: null,
             acceptExitProperty: true,
             returnOnProperty: true,
@@ -1961,9 +1961,9 @@ export class Evaluator {
             if (opts.paramArrayParamName !== null) {
                 const updatedArray = localEnv.get(opts.paramArrayParamName) as any[];
                 if (Array.isArray(updatedArray)) {
-                    for (let j = 0; j < opts.paramArrayByRefExprs.length; j++) {
+                    for (let j = 0; j < opts.paramArrayReferences.length; j++) {
                         try {
-                            this.evaluateAssignmentToVariable(opts.paramArrayByRefExprs[j], updatedArray[j]);
+                            opts.paramArrayReferences[j]?.set(updatedArray[j]);
                         } catch { }
                     }
                 }
@@ -7473,7 +7473,7 @@ export class Evaluator {
                 // Map arguments to parameters
                 const byRefArgs: { paramName: string, reference: VbaLValueReference }[] = [];
                 let paramArrayParamName: string | null = null;
-                let paramArrayByRefExprs: Expression[] = [];
+                let paramArrayReferences: (VbaLValueReference | null)[] = [];
                 const namedArgs = new Map<string, any>();
                 const namedArgExpressions = new Map<string, Expression>();
                 const positionalArgs: any[] = [];
@@ -7522,7 +7522,8 @@ export class Evaluator {
                         localEnv.set(param.name, remainingArgs);
                         // Track for ByRef writeback (spec §5.3.1.5: param array elements behave as ByRef)
                         paramArrayParamName = param.name;
-                        paramArrayByRefExprs = positionalArgExpressions.slice(i);
+                        paramArrayReferences = positionalArgExpressions.slice(i)
+                            .map(expr => this.createLValueReference(expr));
                         break;
                     }
 
@@ -7604,7 +7605,7 @@ export class Evaluator {
                 return this.execProcBody(proc, localEnv, {
                     byRefArgs,
                     paramArrayParamName,
-                    paramArrayByRefExprs,
+                    paramArrayReferences,
                     initialLastErrorIndex: -1,
                     acceptExitProperty: false,
                     returnOnProperty: false,

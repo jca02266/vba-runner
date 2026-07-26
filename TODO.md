@@ -1224,7 +1224,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 **対処方針（段階的に実施）**:
 
 - [x] `callProcedure` / `callClassMethod` の引数束縛と型強制を共通の呼び出しフレームへ統合する（第1段階: `bindProcedureParameters`）
-- [ ] ByRef引数を一時値ではなく、読み取り・書き込みを持つ l-value 参照として表現する（第1.5段階: 書き戻し用参照ラッパーのみ導入。読み取り参照と全l-value統合は未完）
+- [x] ByRef引数を一時値ではなく、読み取り・書き込みを持つ l-value 参照として表現する（第1.5段階: 書き戻し用参照ラッパーを導入。読み取り参照と全l-value統合は未完）
 - [ ] 識別子、配列要素、クラスフィールド、Property引数、UDTメンバーを同じ参照インターフェースで扱う
 - [ ] Property Set/Let、イベント、名前付き引数、`ByVal` 強制括弧を共通フレームへ接続する
 - [ ] 標準モジュール／クラス／Property／配列・UDTの組み合わせマトリクスを回帰テストとして整備する
