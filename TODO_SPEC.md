@@ -468,7 +468,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 
 #### 3. テスト環境の改善
 - ✅ `filesystem-extra.test.ts` 等のテストコードを、Node.js `fs` 直接参照から `this.fs` (抽象インターフェース) 参照へリファクタリング。（`MemoryFileSystem` + `Evaluator({ fs: vfs })` で対応済み）
-- ❌ 複数の `Evaluator` インスタンス間で単一の `MemoryFileSystem` を共有するためのテスト用設定の追加。
+- ✅ `VBARunner` の `fs` オプションで複数インスタンス間に単一の `MemoryFileSystem` を注入・共有できるようにした。 | `vba-runner-shared-fs.test.ts`
 
 #### 4. バイナリ操作の極致
 - ✅ **`Open For Random Len = N` のレコード位置**: `Len` をハンドルに保持し、`Put` / `Get` のレコード番号を `(record - 1) * Len` バイト位置へ換算。 | `random-record-length.test.ts`

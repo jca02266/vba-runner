@@ -65,6 +65,8 @@ export class VBARunner {
         sandboxRoot?: string,
         env?: Record<string, string>,
         compilerConstants?: CompilerConstants,
+        /** 複数 VBARunner インスタンスで共有する仮想ファイルシステム。 */
+        fs?: FileSystem,
         excelStub?: boolean | MockApplication,
         /** true にすると run() の `[PASS] ...` ログを抑制する */
         quiet?: boolean,
@@ -72,7 +74,11 @@ export class VBARunner {
         onPrint?: (s: string) => void,
     } = {}) {
         this._quiet = config.quiet ?? false;
-        this.evaluator = new Evaluator(config.onPrint ?? console.log, { ...config, fs: new MemoryFileSystem(), allowTopLevelStatements: false });
+        this.evaluator = new Evaluator(config.onPrint ?? console.log, {
+            ...config,
+            fs: config.fs ?? new MemoryFileSystem(),
+            allowTopLevelStatements: false,
+        });
         if (config.excelStub) {
             const app = config.excelStub === true ? undefined : config.excelStub;
             (this as any).excelStub = injectExcelStub(this.evaluator, app);
