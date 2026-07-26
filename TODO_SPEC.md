@@ -1,5 +1,9 @@
 # VBA実装 TODOリスト（MS-VBAL仕様書準拠）
 
+この文書は、MS-VBAL仕様に定義されたVBAの構文・標準機能・ランタイム挙動に
+関する実装状況だけを管理する。IDE機能、テスト支援、モック拡張、解析器の
+高度化など仕様準拠以外の開発課題は [TODO.md](TODO.md) に記載する。
+
 **進捗**: MS-VBAL 仕様書で個別セクションに名前が付いた **構文要素 / ステートメント / 式 / 標準ライブラリ関数 / 組み込みクラス** はすべて実装済みです。
 
 ただし、これは「言語仕様書のリストに名前のある機能」の網羅率であって、**VBA のランタイム挙動（仕様書本文に書かれているが個別セクションを持たない暗黙の振る舞い）** までを 100% 満たしているわけではありません。実装が未確認のランタイム挙動については本ドキュメントの「[VBA ランタイム挙動](#vba-ランタイム挙動)」セクションを参照してください。
@@ -22,7 +26,7 @@
 - **バージョン**: 2.4（2025-05-20）
 - **URL**: https://learn.microsoft.com/en-us/openspecs/microsoft_general_purpose_programming_languages/ms-vbal/d5418146-0bd2-45eb-9c7a-fd9502722c74
 
-凡例: ✅ 実装済み / ❌ 未実装 / ⚠️ 部分実装
+凡例: ✅ 実装済み / ❌ 未実装 / ⚠️ 部分実装・恒久的制限 / 🔮 将来検討
 
 ---
 
@@ -43,7 +47,7 @@
 | 状態 | 優先度 | 機能 | 概要 | テスト |
 |------|--------|------|------|--------|
 | ✅ | P2 | 日本語識別子対応 | MS-VBAL §3.3.5 に従い `isAlpha()` を Unicode プロパティエスケープ (`\p{L}`) で拡張。パーサーの `isWordToken()` も同様に対応。`Dim 氏名 As String` 等の識別子・UDT・関数名で使用可能に | `unicode-identifiers.test.ts` |
-| ⚠️ | P2 | VarPtr / StrPtr / ObjPtr | **制限実装**（ダミーポインター）。呼び出しごとに +4 増加する非ゼロ Long を返す（`_ptrCounter`、初期値 `0x10000`）。<br>**仕様**: `VarPtr(var)` は変数のメモリーアドレス、`StrPtr(str)` は BSTR バッファーのアドレス、`ObjPtr(obj)` は IUnknown ポインターを Long で返す（MS-VBAL 仕様外・Office VBA 非公式拡張）。<br>**制限**: 実アドレスを返せないため、同一変数への複数回呼び出しで値が変わる。`CopyMemory`・`RtlMoveMemory` 等の Win32 API 連携は機能しない。コードのパース・実行が通ることのみ保証。 | `varptr.test.ts` |
+| ⚠️ | P2 | VarPtr / StrPtr / ObjPtr | **恒久的制限**。構文と呼び出しは成立し、非ゼロのダミー `Long` を返すが、実メモリーアドレスは取得しない。`VarPtr` は呼び出しごとに異なる値を返し、`StrPtr` / `ObjPtr` も実体のバッファーアドレス・IUnknownポインターとの対応を保証しない。したがって `CopyMemory` / `RtlMoveMemory` 等のポインター演算、アドレス同一性の判定、Win32 API連携はできない。ネイティブメモリモデルを導入しない限り、この制限は解消しない。 | `varptr.test.ts` |
 
 ---
 
@@ -374,59 +378,11 @@
 
 ---
 
-## 実装優先度ガイド
+## 実装優先度ガイド（履歴）
 
-実用上の影響が大きい順に整理した優先実装候補：
+MS-VBAL仕様書に個別セクションを持つ機能の実装優先度は、初期開発時の履歴として管理していた。
+現在の実装状況は各仕様セクションの状態表を正とし、未実装の製品機能ロードマップは `TODO.md` を参照する。
 
-### P0：最優先（基本制御フロー・頻出構文・標準関数）
-
-1.  **Format / Format$** (§6.1.2.11.1.8) — 出力整形に多用
-3.  **MsgBox / InputBox** (§6.1.2.11.1.x) — 対話型スクリプトの維持
-4.  **Option Compare** (§5.2.1.1) — 文字列比較の正確性
-5.  **Attributes** (§5.2.3.1.6) — ソースエクスポートファイルの直接読込
-6.  **CreateObject (拡張)** (§6.1.2.8.1.4) — 外部オブジェクト連携の強化
-7.  **エラーハンドリング** (§5.4.4) — `On Error GoTo`, `Resume` の完全な準拠
-
-### P1：重要（標準ライブラリの拡充）
-
-7.  **文字列関数**: `Filter`, `StrConv`
-8.  **変換関数**: `CByte`, `CCur`, `CDec`, `CSng`
-9.  **数学関数**: `Abs` 等の未実装エッジケース
-10. **制御文**: `Assert` ステートメント
-
-### P2：低優先度（特殊用途・レガシー）
-
-11. 財務関数 (Financial Module) 全般
-12. ファイル操作ステートメント (Open/Print等) — Node.js環境での設計が必要
-13. レガシー構文: `GoSub` 等
-
-## テストダブル（スタブ・モック・仮想化）の実装予定
-
-VBA Runner の性質上、テストの安定性および検証精度の向上のために以下の実装を今後検討します。
-
-- **MockWorksheet の改善**:
-    - ✅ **1D 配列での書き込み**: VBA では `Range("A1:A4").Value = Array(10,20,30,40)` のように 1D 配列を代入すると、配列を1行分の列値として解釈し全行に繰り返し適用する（例: A1〜A4 すべてが 10）。`MockWorksheet.setCellValue` / `Range().Value =` の両方で対応。 | `mock-worksheet-address.test.ts`
-    - ✅ **配列サイズ不一致時のエラー検出**: 2D 配列の行・列数が範囲と合わない場合に VBA Error 1004 を発生させる。1D 配列の既存の列値繰り返し動作は維持。 | `mock-worksheet-address.test.ts`
-    - ✅ **`Range().Value =` の書き戻し**: VBA では `ws.Range("A1:B3").Value = array` でセルに書き込めるが、MockWorksheet では `setCellValue` を使わないとセルに反映されない。 | `mock-worksheet-address.test.ts`
-- **`VBARunner.setConstants()` で注入した値の上書き制限**:
-    - ✅ 現状、`setConstants()` は通常の変数として値を設定するため、VBA コード内で `xlUp = 999` のように上書きできてしまう。`Evaluator.setConstant()` を追加し `VBARunner.setConstants()` から呼ぶよう変更。VBA コード側からの代入は既存の `Environment.setConstant()` / `isConstant()` 機構により Error 5 になる。 | `set-constants-protection.test.ts`
-- **副作用の検証機能 (Spy / Verify)**:
-    - `Shell` や `MsgBox` 等のスタブ・モック関数に対して渡された引数（実行コマンド名やメッセージ内容）を、テストコード側からプログラム的に検証（アサーション）できる仕組み。
-    - 現状：`Debug.Print` 相当のコンソール出力のみ。
-- **日付・時刻の仮想化 (`Date`, `Now`, `Time`)**:
-    - 現状：システムの現在日時を返却。
-    - 検討内容：テスト実行時に特定の固定日時を「現在時刻」として設定・返却できる仕組み（テストの再現性向上のため）。
-    - 優先度：未定。
-- **仮想レジストリ**:
-    - ✅ `GetSetting` / `SaveSetting` / `DeleteSetting` / `GetAllSettings` をメモリ上のマップでエミュレート。
-- **外部COMオブジェクトのスタブ・フェイク拡充**:
-    - `MSXML2.XMLHTTP` 等の頻出オブジェクトのメソッド・プロパティの実装。
-
-## vba-analyzer の既知の制限
-
-### 即値引数検出（`Range`/`Cells`/`Sheets`/`Worksheets`）
-
-- ✅ **Range 変数経由のアクセス**: `rng(3, 5)` / `rng.Item(3, 5)` のように `Dim rng As Range` と宣言された変数を介したアクセスを検出。`findMagicLiteralsInCalls` 内で Dim 宣言を先行走査して型マップを構築し、visit 時に照合する軽量実装で対応（CFG/reaching-defs は不使用）。なお既存の CFG + reaching-defs + live-vars インフラ（`def-use-analyzer.ts`）を活用すれば Dead Store 検出・未初期化変数の精密検出・Const 候補検出なども将来実装可能。 | `magic-literals.test.ts`
 
 ## 仮想ファイルシステム (VFS) の実装状況と課題
 
@@ -463,7 +419,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
 - ✅ `statSync` / `GetAttr` / `SetAttr` のVBA属性（Read-only, Hidden, Directory 等）を `MemoryFileSystem` で保持・更新。NodeFileSystem は ReadOnly とドットファイルの Hidden を実ファイルから推定し、SetAttr のReadOnlyを chmod に反映する。 | `filesystem.test.ts`
 
 #### 2. ブラウザ環境最適化
-- ❌ `FileSystem` インターフェースの非同期版 (`read`, `write` 等) の検討（ブラウザのメインスレッドをブロックしないため）。
+- 🔮 **P3（低優先度）** `FileSystem` インターフェースの非同期版（`read`, `write` 等）の検討。現在のEvaluatorは同期APIを前提にしており、ブラウザのメインスレッドをI/Oでブロックする。実装する場合は、FileSystemだけでなくEvaluator・VBA組み込みI/O・呼び出しAPIを非同期化し、既存の同期APIとの互換方針を定める必要がある。
 - N/A `IndexedDB` をバックエンドとした `PersistentFileSystem` の実装。（実装予定なし：本エンジンの用途範囲外）
 
 #### 3. テスト環境の改善
@@ -577,7 +533,11 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
     - `MockRange` はすでに対応済み (`__vbaDefault__ = true`, `Value` getter/setter 実装)
     - テスト: `default-property-noncls.test.ts`
 - ✅ **`WithEvents` の再代入・`Set ... = Nothing` による購読解除**: フィールドごとにイベントコールバックを記録し、再代入と Nothing 時に古いイベントソースから解除する。別変数がソースを保持していても、解除後はハンドラーへ通知されない。 | `raiseevent.test.ts`
-- ⚠️ **`DoEvents` + `Sleep` によるイベント待ちループ**: evaluator は同期実行のため、ループ中に外部からイベントを発火する wait/notify パターンは扱わない。
+- ⚠️ **恒久的制限: `DoEvents` + `Sleep` による外部イベント待ち**: `DoEvents` 自体は呼び出せるが直ちに戻るだけで、Evaluatorの実行を中断してイベントループへ制御を返さない。`Declare Sub Sleep ...` などの外部APIはスタブとして即時に戻るため、次の動作はできない。
+  - 別スレッド・タイマー・UI操作から実行中のVBAへイベントを届ける
+  - `DoEvents` でイベントを処理し、状態が変わるまで `Sleep` して待つ
+  - `wait/notify`、キャンセル、タイムアウトを伴うイベント待ちを再現する
+  これを解決すると、Evaluatorが実行を一時停止して外部イベントを受信し、イベント処理後に同じVBAスタックを再開する非同期実行モデルが必要になる。現在の同期Evaluatorの設計範囲外であり、恒久的制限として扱う。
 - ✅ **循環参照時の `Set = Nothing` 挙動**: 強制クリアと Class_Terminate の呼び出し順 | テスト: `circular-reference-terminate.test.ts`, `Circular/TerminateTest.bas` (VBA: `Circular/Helper.cls`, `Circular/RefA.cls`, `Circular/RefB.cls`, `Circular/TerminateTest.bas`)
 - ✅ **`Me` キーワードの完全対応**: クラスモジュール内での全コンテキスト | `me-keyword.test.ts`
 - ✅ **`Implements` インターフェース呼び出し**: `obj.Speak` → `IAnimal_Speak` のインターフェースディスパッチ | テスト: `implements-dispatch.test.ts`
