@@ -5220,17 +5220,27 @@ export class Evaluator {
                 }
                 const dims = (value as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                 const fields: Uint8Array[] = [];
-                const collect = (array: any, dimension: number): void => {
-                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
-                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                const dimensions = dims?.length ?? 1;
+                const coordinates: number[] = [];
+                const readAt = (array: any, indexes: number[]): any => {
+                    let current = array;
+                    for (const index of indexes) current = current[index];
+                    return current;
+                };
+                // VBA stores the left-most dimension contiguously: for a(0,0)
+                // ... a(1,1), the physical order is (0,0),(1,0),(0,1),(1,1).
+                const collect = (dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (dimension === 0 ? (value as any).vbaBase ?? 0 : 0);
+                    const upper = dims?.[dimension].upper ?? (dimension === 0 ? value.length - 1 : value[0].length - 1);
                     for (let i = lower; i <= upper; i++) {
-                        if (dims && dimension < dims.length - 1) collect(array[i], dimension + 1);
-                        else fields.push(this.encodeBinaryValue(array[i], {
+                        coordinates[dimension] = i;
+                        if (dimension === 0) fields.push(this.encodeBinaryValue(readAt(value, coordinates), {
                             typeName: layout.elementType!, fixedLength: layout.fixedLength,
                         }));
+                        else collect(dimension - 1);
                     }
                 };
-                collect(value, 0);
+                collect(dimensions - 1);
                 const length = fields.reduce((total, field) => total + field.length, 0);
                 const buffer = new Uint8Array(length);
                 let offset = 0;
@@ -5375,20 +5385,33 @@ export class Evaluator {
                 const target = Array.isArray(currentValue) ? currentValue : [];
                 const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                 let length = 0;
-                const restore = (array: any, dimension: number): void => {
-                    const lower = dims?.[dimension].lower ?? (array as any).vbaBase ?? 0;
-                    const upper = dims?.[dimension].upper ?? array.length - 1;
+                const dimensions = dims?.length ?? 1;
+                const coordinates: number[] = [];
+                const writeAt = (array: any, indexes: number[], nextValue: any): void => {
+                    let current = array;
+                    for (let i = 0; i < indexes.length - 1; i++) current = current[indexes[i]];
+                    current[indexes[indexes.length - 1]] = nextValue;
+                };
+                const restore = (dimension: number): void => {
+                    const lower = dims?.[dimension].lower ?? (dimension === 0 ? (target as any).vbaBase ?? 0 : 0);
+                    const upper = dims?.[dimension].upper ?? (dimension === 0 ? target.length - 1 : target[0].length - 1);
                     for (let i = lower; i <= upper; i++) {
-                        if (dims && dimension < dims.length - 1) restore(array[i], dimension + 1);
-                        else {
+                        coordinates[dimension] = i;
+                        if (dimension === 0) {
+                            const current = readNestedArrayValue(target, coordinates);
                             const field = this.decodeBinaryValue(bytes, offset + length,
-                                { typeName: layout.elementType!, fixedLength: layout.fixedLength }, array[i]);
-                            array[i] = field.value;
+                                { typeName: layout.elementType!, fixedLength: layout.fixedLength }, current);
+                            writeAt(target, coordinates, field.value);
                             length += field.length;
-                        }
+                        } else restore(dimension - 1);
                     }
                 };
-                restore(target, 0);
+                const readNestedArrayValue = (array: any, indexes: number[]): any => {
+                    let current = array;
+                    for (const index of indexes) current = current[index];
+                    return current;
+                };
+                restore(dimensions - 1);
                 return { value: target, length };
             }
             case 'byte':
