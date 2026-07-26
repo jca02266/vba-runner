@@ -1219,6 +1219,18 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('datevalue', (val: any) => {
         if (val === vbaNull) return vbaNull;
         const d = parseVbaDate(val);
+        if (typeof val === 'string') {
+            // JavaScript Date normalizes invalid calendar dates (for example,
+            // 2024/02/30 → 2024/03/01). DateValue must reject that input.
+            const text = val.trim();
+            const parts = /^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})(?:\s|$)/.exec(text);
+            if (parts) {
+                const year = Number(parts[1]), month = Number(parts[2]), day = Number(parts[3]);
+                if (d.getFullYear() !== year || d.getMonth() + 1 !== month || d.getDate() !== day) {
+                    ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch: invalid date');
+                }
+            }
+        }
         return new VbaDate(Math.floor(toVbaDate(d)));
     }, [{ name: 'Date' }]);
     ctx.reg('timevalue', (val: any) => {

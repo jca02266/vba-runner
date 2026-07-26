@@ -259,7 +259,23 @@ End Function
     };
     assert.strictEqual(ev4('DateValue(Null)') === vbaNull, true, 'DateValue(Null) = Null');
     assert.strictEqual(ev4('TimeValue(Null)') === vbaNull, true, 'TimeValue(Null) = Null');
-    console.log('[PASS] Bug AS/AT: DateValue/TimeValue の Null 伝播');
+console.log('[PASS] Bug AS/AT: DateValue/TimeValue の Null 伝播');
+
+// Bug 146-A: DateValue が JavaScript の不正日付繰上げを受理していた
+{
+    const evInvalidDate = evalVBASingle(`
+    Function ParseBoundary() As String
+        On Error GoTo invalid
+        ParseBoundary = CStr(DateValue("2024/02/30"))
+        Exit Function
+    invalid:
+        ParseBoundary = "error:" & CStr(Err.Number)
+    End Function
+    `);
+    assert.strictEqual(evInvalidDate.callProcedure('ParseBoundary', []), 'error:13',
+        'DateValue(2024/02/30) は Error 13');
+    console.log('[PASS] Bug 146-A: DateValue の不正日付を拒否');
+}
 }
 
 // Bug AL: WeekdayName/MonthName の Null 伝播 (Null 引数でクラッシュしていた)
