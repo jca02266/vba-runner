@@ -1648,6 +1648,13 @@ export class Evaluator {
                 kind.startsWith('procedure:') && previous.kind !== kind &&
                 previous.kind !== 'procedure:sub/function' && kind !== 'procedure:sub/function';
             if (propertyOverload) return;
+            // VBA keeps type and value names in separate namespaces.  A class
+            // declaration may therefore share its name with a Function/Sub;
+            // calls resolve the procedure while As/New resolve the class.
+            const typeValueNamespacePair =
+                (previous.kind === 'class' && kind === 'procedure:sub/function') ||
+                (previous.kind === 'procedure:sub/function' && kind === 'class');
+            if (typeValueNamespacePair) return;
             this.throwCompileError(
                 VbaErrorCode.INVALID_PROCEDURE_CALL,
                 `Duplicate declaration '${name}' in scope '${scopeName}'`,
