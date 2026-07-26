@@ -5868,6 +5868,11 @@ export class Evaluator {
     private evaluateDeclareStatement(stmt: DeclareStatement) {
         const name = stmt.name.toLowerCase();
         this.env.set(name, (..._args: any[]) => {
+            const params: ArgBinderParam[] = stmt.parameters.map(param => ({
+                isOptional: !!param.isOptional || param.defaultValue != null,
+                isParamArray: !!param.isParamArray,
+            }));
+            this.checkArgCountGeneric(params, _args.length);
             this.onPrint(`[DECLARE STUB] Calling ${stmt.isSub ? 'Sub' : 'Function'} ${stmt.name} from "${stmt.libName}" (Alias: ${stmt.aliasName || 'N/A'})`);
             return 0; // Dummy return
         });
