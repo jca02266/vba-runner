@@ -97,9 +97,12 @@ Const W As Integer = 3
 Dim a(0 To W - 1) As Integer  ' Pass 1 では退避、Pass 2 で W=3 確定後に評価 → UBound=2
 ```
 
-### 2-3. 重複プロシージャ名チェック
+### 2-3. 宣言名の重複チェック
 
-同一モジュール内で同名の Sub/Function が宣言されていないかを検証する（コンパイルエラー）。
+同一モジュールまたはクラススコープ内の宣言名を大文字小文字を無視して比較し、
+変数・定数・型・Enum・クラス・プロシージャの衝突をコンパイルエラーにする。
+Property Get/Let/Set の同名アクセサーは、VBA の正規オーバーロードとして許可する。
+クラス名と Sub/Function 名は型名前空間と値名前空間が異なるため、同名でも許可する。
 
 ### 2-4. Option Explicit 静的チェック（キャッシュ構築）
 
@@ -126,9 +129,23 @@ g = INIT   ' ← pendingTopLevel に退避 → Pass 2 末尾で実行 → g = 42
 
 ## ④ Pass 3 — `precheckProc` : AST 静的チェック（コンパイルエラー）
 
-`precheckProc` はプロシージャ本体を実行する前に AST を静的に走査するフェーズで、ここで検出されるエラーはコンパイルエラーとして報告される。チェックの例として、Option Explicit 違反、Sub を関数とみなして戻り値を取得しようとしていないか、未定義プロシージャの呼び出し、Dim の配列サイズに非定数式が使われていないか、GoTo/GoSub の未定義ラベル、呼び出し引数の不一致などがある。
+`precheckProc` は `callProcedure` / `evaluateCallExpression` からプロシージャを実行する直前、または
+`checkProcedure` が明示的に呼ばれたときに、本体を実行せず AST を静的検査する。
+検査対象は次の7項目で、エラーはこの順序で報告する。
 
-## ⑤ 実行 — `executeStatements`
+1. `Option Explicit` の未宣言変数（実行時注入名・型ライブラリ・Tier 6 メンバーを除外）
+2. `Sub` を値として使用する式
+3. 未定義の Sub/Function 呼び出し
+4. `Dim` の配列境界における非定数式
+5. プロシージャスコープ内の重複した引数・戻り値変数・`Dim`・`Const`
+6. 未定義の `GoTo` / `GoSub` ラベル
+7. 呼び出し引数個数の不一致
+
+ここではプロシージャ本体を実行せず、引数のローカル環境も作成しない。
+静的検査を通過した後、`callProcedure` が引数個数を検証してローカル環境を作成し、
+`execProcBody` / `executeStatements` で本体を実行する。
+
+## ⑤ 実行 — `execProcBody` / `executeStatements`
 
 静的チェックがすべてパスした後、プロシージャ本体（AST の `body` 文リスト）を `executeStatements` で実行する。
 
@@ -356,4 +373,4 @@ vba-runner は §「トップレベル文の評価」で説明した拡張（モ
 | 2 | Pass 1 | `evaluateModule` | シンボルテーブル構築・モジュールレベル実行文を pendingTopLevel に退避（→ [トップレベル文の評価](#トップレベル文の評価vba-runner-拡張)） |
 | 3 | Pass 2 | `resolveIdentifiers` | 定数解決・配列初期化・静的チェック・実行文実行 |
 | 4 | Pass 3 | `precheckProc` | 各 Proc 実行直前に AST 静的チェック（コンパイルエラー） |
-| 5 | 実行 | `executeStatements` | プロシージャ本体の実行 |
+| 5 | 実行 | `execProcBody` / `executeStatements` | 引数・ローカル環境を準備してプロシージャ本体を実行 |

@@ -315,8 +315,8 @@ Evaluator
 | | | `classDefinitions` | Class 定義 |
 | **resolveIdentifiers** (Pass 2) | 全モジュールロード後 | `globalEnv.variables` (Tier 3) | モジュールレベル定数（依存グラフ順） |
 | | | `optionExplicitViolations` | OE 違反マップ構築（throw は precheckProc に委譲） |
-| **precheckProc** (Pass 3) | callProcedure のたびに | 登録なし（読み取りのみ） | OE チェック・Sub-as-value・未定義プロシージャ検出 |
-| **execProcBody** (Pass 3) | callProcedure のたびに | `localEnv.variables` (Tier 1) | パラメーター・関数戻り値・proc 内 Dim 変数 |
+| **precheckProc** (Pass 3) | callProcedure / evaluateCallExpression / checkProcedure のたびに | 登録なし（読み取りのみ） | OE、Sub-as-value、未定義プロシージャ、配列境界の定数性、プロシージャ内重複宣言、GoTo/GoSub ラベル、呼び出し引数個数を静的検査 |
+| **execProcBody**（実行） | callProcedure のたびに | `localEnv.variables` (Tier 1) | 引数・Function戻り値・proc 内 Dim 変数を登録し、本体を実行 |
 
 ### 値名前空間の解決フロー（`evaluateCallExpression`）
 
