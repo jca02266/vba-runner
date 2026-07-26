@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: Currency / Decimal の BigInt 固定小数点実装
+description: Currency と Decimal を BigInt 固定小数点で表現する内部実装の解説。
+tags: [vba, types, decimal, implementation]
+status: stable
+---
+
 # Currency / Decimal の BigInt 固定小数点実装
 
 `Currency` 型と `Decimal` 型の内部実装解説。両型とも JS `number`（IEEE 754 double）ではなく

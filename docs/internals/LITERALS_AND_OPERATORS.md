@@ -1,3 +1,11 @@
+---
+type: Specification
+title: VBA のリテラル・型・演算子
+description: VBA Runner におけるリテラル、型、演算子の仕様と実装対応。
+tags: [vba, types, operators, specification]
+status: stable
+---
+
 # リテラル・型・演算子：仕様と実装
 
 ## 1. 演算子の優先順位

@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: 評価パイプラインの詳細
+description: VBA ソースがパースされ、名前解決され、実行されるまでの評価パイプライン。
+tags: [vba, evaluator, runtime, design]
+status: stable
+---
+
 # EVALUATION.md — 評価パイプラインの詳細
 
 VBA コードが `callProcedure` で実行されるまでに、3 パス＋実行のフェーズを経る。

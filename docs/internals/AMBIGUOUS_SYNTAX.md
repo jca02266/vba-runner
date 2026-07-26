@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: VBA の構文的曖昧性と VBA Runner の対処
+description: 式評価の高速パスにおける文と式の曖昧性、および実装上の対処。
+tags: [vba, parser, evaluator, design]
+status: stable
+---
+
 # AMBIGUOUS_SYNTAX.md — VBA の構文的曖昧性と VBA Runner の対処
 
 VBA の文法には、見た目だけでは複数の解釈が可能な構文がいくつかある。実 VBA では

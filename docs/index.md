@@ -23,6 +23,10 @@
 * [Feathers 手法リスト](FEATHERS_TECHNIQUES_TODO.md) - 参考手法の収録状況
 * [VS Code サンプルワークスペース](VSCODE_SAMPLE_WORKSPACE.md) - パッケージ動作の検証
 
+## Internal design and specifications
+
+* [内部仕様・設計索引](internals/index.md) - エンジン実装の仕様、設計メモ、計画
+
 ## Navigation
 
 * [Documentation hub](README.md) - 人間向けの目的別入口

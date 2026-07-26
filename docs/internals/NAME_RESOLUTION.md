@@ -1,3 +1,11 @@
+---
+type: Specification
+title: VBA の名前解決
+description: VBA の名前空間階層と識別子解決規則の仕様。
+tags: [vba, names, resolution, specification]
+status: stable
+---
+
 # 名前解決：仕様と実装
 
 ## MS-VBAL §5.6.10 の名前空間階層

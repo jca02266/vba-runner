@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: VBA の関数コールと引数処理
+description: ユーザー定義プロシージャ、組み込み関数、モックメソッドの引数束縛と呼び出し処理。
+tags: [vba, evaluator, functions, arguments, design]
+status: stable
+---
+
 # FUNCTION_CALL.md — 関数コールと引数処理
 
 このドキュメントは `src/engine/evaluator.ts` における「VBA の呼び出し式（`CallExpression`）をどう解決し、

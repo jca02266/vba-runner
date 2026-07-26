@@ -1,3 +1,11 @@
+---
+type: Implementation Plan
+title: データフロー解析 実装計画
+description: VBA 静的解析で型と値の流れを追跡するための実装計画。
+tags: [vba, static-analysis, dataflow, roadmap]
+status: draft
+---
+
 # データフロー解析 実装計画
 
 ## 1. 目的・背景

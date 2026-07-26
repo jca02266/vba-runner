@@ -1,3 +1,11 @@
+---
+type: Specification
+title: VBA 型システム厳密化仕様
+description: Environment の型メタデータによる VBA 型情報、変換、オーバーフローの仕様。
+tags: [vba, types, runtime, specification]
+status: stable
+---
+
 # VBA型システム厳密化 仕様書（方式B: 環境メタデータ方式）
 
 ## 概要

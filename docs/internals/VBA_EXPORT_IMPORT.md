@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: VBA エクスポート・インポート内部技術メモ
+description: Office ファイル内の vbaProject.bin を読み書きする実装とバイナリ構造。
+tags: [vba, extractor, office, implementation]
+status: stable
+---
+
 # VBA エクスポート/インポート — 内部技術メモ
 
 ## 概要

@@ -1,3 +1,11 @@
+---
+type: Specification
+title: MS-VBAL BNF Grammar
+description: VBA のモジュール・ソース構造を定義する MS-VBAL BNF の抜粋。
+tags: [vba, grammar, specification]
+status: stable
+---
+
 # MS-VBAL BNF Grammar
 
 Extracted from `spec/MS-VBAL.txt`.

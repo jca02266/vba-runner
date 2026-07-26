@@ -1,3 +1,11 @@
+---
+type: Design Note
+title: VBA 識別子分類の実装
+description: Lexer と Parser が文脈に応じて VBA 識別子とキーワードを分類する実装方針。
+tags: [vba, lexer, parser, identifiers, design]
+status: stable
+---
+
 # VBA識別子分類の実装
 
 ## 目的
