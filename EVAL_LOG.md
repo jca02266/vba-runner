@@ -57,6 +57,7 @@
 | 144 | 回帰確認 #144: Null/Empty Variant配列境界 | FZ-BUILTIN の別入力で、Variant配列要素の `Null`/`Empty`、`TypeName`/`VarType`/`IsNull`/`IsEmpty`、`CInt` の型強制、Variant配列のFunction戻りとByRef再渡しを評価した。VBA内の値の区別と変換は期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
 | 145 | 実行互換性 #145: Pmt のゼロ期間エラー | FZ-BUILTIN の日付・財務境界で `Pmt` の `Type`/`FV` optional 引数と期末・期首払いを確認した。`NPer=0` だけは JavaScript の `-Infinity` を返して `On Error` を発火しない Bug 145-A だったため、VBA Error 5 の事前検証と回帰テストを追加した。 | 2026-07-26 |
 | 146 | 実行互換性 #146: DateValue の不正日付 | FZ-BUILTIN の日付境界で `DateDiff` の `FirstWeekOfYear` と `DateSerial` の月日繰上げを確認し、両方は仕様どおりだった。一方 `DateValue("2024/02/30")` が JavaScript の自動正規化で `2024/03/01` になる Bug 146-A を修正し、無効日付を Error 13 とする回帰テストを追加した。 | 2026-07-26 |
+| 147 | 回帰確認 #147: Currency/Decimal/Boolean 型強制 | FZ-BUILTIN の `coerce.ts` 境界で Currency の負値銀行丸め、Decimal の28桁演算、Boolean文字列変換、CInt/CLng、ByRef書き戻し、Function戻り値、Class/Collection、Variant配列メタデータ、非数値エラーを評価した。結果は期待値と一致し、新規バグは確認されなかった。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -519,7 +520,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
-| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143、#144、#145、#146 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付 | `builtins.ts` / `coerce.ts` の別の型強制・戻り値境界、日付・財務関数の異常入力、変更後の別入力シード | 継続 |
+| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#147 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ | Currency/Decimal と Null/Empty/ErrorValue の混在演算、Decimal上限超過、Object/配列の型強制エラー、変更後の別入力シード | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し（カバレッジ基準 2026-07-18） | 別シードでのProperty Let引数のByRef境界、型付き配列の多次元・Preserve組み合わせ、宣言サフィックスと比較・連結の追加組み合わせ | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
