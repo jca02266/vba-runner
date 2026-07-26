@@ -260,14 +260,14 @@
 
 | 問題 | 修正ファイル | テスト |
 |---|---|---|
-| **Bug 29-A: 型サフィックス付き宣言 `Dim n&` が機能しない** | `parser.ts: parseDimStatement / parsePrimary` | `tests/spec/type-system.test.ts` |
-| **Bug 29-B: `^` が右結合（VBA は左結合）** | `parser.ts: parseExponentiation` | `tests/spec/operators-extra.test.ts` |
-| **Bug 29-C: 負の底の非整数べき乗が Error 5 にならない** | `evaluator.ts: case '^'` | `tests/spec/operators-extra.test.ts` |
-| **Bug 29-D: `Null & Null` が Null にならない** | `evaluator.ts: op === '&'` | `tests/spec/operators-extra.test.ts` |
-| **Bug 29-E: `Array()` が `Option Base 1` を無視する** | `builtins.ts: array 登録 / UBound` | `tests/spec/option_base.test.ts` |
-| **Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op** | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
-| **Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450** | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
-| **Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438** | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+| ~~**Bug 29-A: 型サフィックス付き宣言 `Dim n&` が機能しない**~~ | `parser.ts: parseDimStatement / parsePrimary` | `tests/spec/type-system.test.ts` |
+| ~~**Bug 29-B: `^` が右結合（VBA は左結合）**~~ | `parser.ts: parseExponentiation` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-C: 負の底の非整数べき乗が Error 5 にならない**~~ | `evaluator.ts: case '^'` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-D: `Null & Null` が Null にならない**~~ | `evaluator.ts: op === '&'` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-E: `Array()` が `Option Base 1` を無視する**~~ | `builtins.ts: array 登録 / UBound` | `tests/spec/option_base.test.ts` |
+| ~~**Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op**~~ | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
+| ~~**Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450**~~ | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
+| ~~**Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438**~~ | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
 
 ### ~~未修正バグ（評価 #33 で発見・修正済み）~~
 
