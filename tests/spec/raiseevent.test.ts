@@ -197,4 +197,36 @@ End Function
     console.log('[PASS] Bug 72-A: WithEventsをNothingにするとイベント購読を解除する');
 }
 
+// --- Bug 73-A: RaiseEvent の ByRef 引数を WithEvents ハンドラーから書き戻す ---
+{
+    const code = `
+Class ByRefSource
+    Public Event Change(ByRef text As String)
+    Public Function Fire() As String
+        Dim value As String
+        value = "original"
+        RaiseEvent Change(value)
+        Fire = value
+    End Function
+End Class
+
+Class ByRefSink
+    Public WithEvents Source As ByRefSource
+    Private Sub Source_Change(ByRef text As String)
+        text = "changed"
+    End Sub
+End Class
+
+Function TestByRefEvent() As String
+    Dim source As New ByRefSource
+    Dim sink As New ByRefSink
+    Set sink.Source = source
+    TestByRefEvent = source.Fire
+End Function
+`;
+    const result = evalVBA(code).callProcedure('TestByRefEvent', []);
+    assert.strictEqual(result, 'changed', 'RaiseEvent の ByRef 引数をハンドラーから発行元へ書き戻す');
+    console.log('[PASS] Bug 73-A: RaiseEvent の ByRef 引数を書き戻す');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');

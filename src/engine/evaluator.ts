@@ -2889,9 +2889,27 @@ export class Evaluator {
         if (me && me.__events__) {
             const handlers = me.__events__.get(eventName);
             if (handlers) {
-                const args = stmt.args.map((a: any) => this.evaluateExpression(a));
+                let args = stmt.args.map((a: any) => this.evaluateExpression(a));
                 for (const handler of handlers) {
-                    handler(...args);
+                    const updatedArgs = handler(...args);
+                    if ((handler as any).__vbaEventByRef__ && Array.isArray(updatedArgs)) {
+                        args = updatedArgs;
+                    }
+                }
+                const eventDecl = (me.__classDef__ as ClassDeclaration | undefined)?.body
+                    .find((s: any) => s.type === 'EventDeclaration' &&
+                        s.name.name.toLowerCase() === eventName) as EventDeclaration | undefined;
+                if (eventDecl) {
+                    for (let i = 0; i < eventDecl.parameters.length && i < stmt.args.length; i++) {
+                        if (!eventDecl.parameters[i].isByVal) {
+                            try {
+                                this.evaluateAssignmentToVariable(stmt.args[i], args[i]);
+                            } catch {
+                                // Invalid ByRef targets are diagnosed by the normal
+                                // call/precheck path; keep event dispatch compatible.
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -4114,7 +4132,7 @@ export class Evaluator {
         return false;
     }
 
-    private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[]): any {
+    private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[], byRefWriteback?: any[]): any {
         const instanceEnv = instance.__instanceEnv__ as Environment;
         const localEnv = new Environment(instanceEnv);
 
@@ -4234,6 +4252,16 @@ export class Evaluator {
                 throw e;
             }
         } finally {
+            // Event handlers pass a mutable argument array so ByRef changes can
+            // propagate back through RaiseEvent.
+            if (byRefWriteback) {
+                for (let i = 0; i < proc.parameters.length; i++) {
+                    const param = proc.parameters[i];
+                    if (!param.isByVal && i < byRefWriteback.length) {
+                        byRefWriteback[i] = localEnv.get(param.name);
+                    }
+                }
+            }
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
             this.errorHandlingMode = previousErrorHandlingMode;
@@ -4670,12 +4698,22 @@ export class Evaluator {
                 if (classProc) {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
-                    eventHandler = (...args: any[]) => this.callClassMethod(capturedInstance, capturedProc, args);
+                    eventHandler = (...args: any[]) => {
+                        this.callClassMethod(capturedInstance, capturedProc, args, args);
+                        return args;
+                    };
+                    (eventHandler as any).__vbaEventByRef__ = true;
                 }
             }
             if (!eventHandler) {
                 const handler = this.env.getProcedure(handlerName);
-                if (handler) eventHandler = (...args: any[]) => this.callProcedure(handlerName, args);
+                if (handler) {
+                    eventHandler = (...args: any[]) => {
+                        this.callProcedure(handlerName, args);
+                        return args;
+                    };
+                    (eventHandler as any).__vbaEventByRef__ = true;
+                }
             }
             if (eventHandler) {
                 handlers.push(eventHandler);

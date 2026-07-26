@@ -23,6 +23,7 @@
 | 110 | 回帰確認 #110: Tier 6 名前空間分離 | **Bug 110-A 修正済み**: ケース無視の宣言衝突検出が、VBAで許可されるクラス名と同名のFunctionを重複扱いしていた。型名前空間と値名前空間の組み合わせを許可し、`tier6-namespace.test.ts` と衝突検出テストを再通過させた。 | 2026-07-26 |
 | 111 | リファクタリング確認 #111: precheckProc一括走査 | `precheckProc` の6つの独立AST走査を `collectPrecheckFindings` の1回走査へ統合した。エラー優先順位を維持し、メンバー代入の配列アクセスを誤って引数個数検査する回帰（Bug 111-A）を修正。TypeScript 330ファイル、VBA 14ファイル、VBA手続き111件が全通過した。 | 2026-07-26 |
 | 112 | Lexer分類確認 #112: 識別子カテゴリメタデータ | `VBA_KEYWORD_CATEGORIES` に MS-VBAL §3.3.5.2 のキーワードカテゴリを追加した。既存の `Keyword*` トークン、`CONTEXTUAL_KW`、`COMPAT_KW_EXPR` の動作は維持し、代表的な予約語・contextual keywordの分類とトークン安定性を回帰確認した。 | 2026-07-26 |
+| 113 | 実行互換性 #113: WithEvents の ByRef イベント引数 | 複数の WithEvents 購読・再代入・解除と `On Error` / `Resume Next` を評価し、購読の独立性とエラー復帰は正常だった。追加の境界検証で、イベントハンドラーが変更した `RaiseEvent` の `ByRef` 引数が発行元へ戻らない Bug 73-A を発見・修正し、`tests/spec/raiseevent.test.ts` に回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -133,6 +134,7 @@
 
 | 問題 | 最小再現コード | 修正コミット |
 |---|---|---|
+| **Bug 73-A: `RaiseEvent` の `ByRef` 引数がイベント発行元へ書き戻されない** | `Public Event Change(ByRef text As String)` を宣言し、WithEvents ハンドラーで `text = "changed"` とすると、修正前はハンドラーが呼ばれても発行元の値が `"original"` のまま残った。イベント経路に ByRef 引数配列の伝播・発行元式への書き戻しを追加し、`tests/spec/raiseevent.test.ts` に回帰テストを追加。 | このコミット |
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |
@@ -668,6 +670,6 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 84. ~~**`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）~~: **修正済み**。`getattr` とファイル属性定数を登録する。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
 86. **`Error(n)` 関数の主要コードは正しいメッセージを返す**（評価 #26）: Error(5)="Invalid procedure call or argument" / Error(6)="Overflow" / Error(9)="Subscript out of range" / Error(11)="Division by zero" / Error(13)="Type mismatch" / Error(53)="File not found" / Error(91)="Object variable not set" はすべて正確。未登録番号（Error(0)/Error(7)/Error(14)/Error(999) など）は "Application-defined or object-defined error" にフォールバック。
-94. **クラスイベント（`Public Event`/`RaiseEvent`/`Dim WithEvents obj As Class`/`Private Sub obj_EventName()`）は完全動作する**（評価 #29）: イベント引数付き・複数イベント・複数拍のイベント列まで正確。未実装と思われがちだが実装済み。
+94. **クラスイベント（`Public Event`/`RaiseEvent`/`Dim WithEvents obj As Class`/`Private Sub obj_EventName()`）は完全動作する**（評価 #29、#113）: イベント引数付き・複数イベント・複数拍のイベント列、`ByRef` 引数のハンドラーから発行元への書き戻しまで正確。未実装と思われがちだが実装済み。
 95. ~~**`eval()` で引数なしクラスメソッドを呼ぶときは `()` を付けること**（評価 #29・Bug 29-F）~~ → **修正済み**（Bug 29-F/G）: `eval('a.Increment')` / `eval('Dim g As New Counter : g.Increment')` どちらも正常に Sub を呼ぶようになった。
 96. ~~**手書き `.cls` のヘッダーは「完全」か「なし」のどちらかにすること**（評価 #29・Bug 29-H）~~ → **修正済み**（Bug 29-H）: `VERSION 1.0 CLASS` 行だけ（BEGIN/END なし）でも本体が正しくロードされる。
