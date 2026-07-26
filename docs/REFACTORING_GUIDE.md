@@ -1,3 +1,11 @@
+---
+type: Guide
+title: VBA リファクタリングガイド
+description: Excel オブジェクト依存とドメインロジックを分離し、VBA をテスト可能にする実践ガイド。
+tags: [vba, refactoring, testing]
+status: stable
+---
+
 # VBA リファクタリングガイド：Excel オブジェクトとドメインロジックの分離
 
 > 対象: テストが書けないレガシー VBA を改善したい利用者

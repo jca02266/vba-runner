@@ -36,7 +36,7 @@
 | ファイル | 対象 | 概要 |
 |---|---|---|
 | [docs/README.md](docs/README.md) | 全員 | 目的別の共通ハブ（正本の地図） |
-| [docs/INDEX.md](docs/INDEX.md) | 利用者 | 読み順・問題別検索（任意の詳細索引） |
+| [docs/legacy-index.md](docs/legacy-index.md) | 利用者 | 読み順・問題別検索（任意の詳細索引） |
 | [docs/TUTORIAL.md](docs/TUTORIAL.md) | 利用者 | 抽出 → 編集 → 書き戻しの一連体験 |
 | [docs/TUTORIAL_AI.md](docs/TUTORIAL_AI.md) | 利用者 | AI 指示だけで同じ流れを進める |
 | [docs/TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | 利用者 | テスト設計 6 原則 |

@@ -311,4 +311,4 @@ Saved: sample/excel/test_updated.xlsm
 | 大きなリファクタリングの実例を見たい | [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) |
 | VS Code 拡張機能の全機能を確認したい | [build/extension/README.md](../build/extension/README.md) |
 | ドキュメント全体の地図を見たい | [docs/README.md](README.md) |
-| 読み順・問題別検索が欲しい | [docs/INDEX.md](INDEX.md)（任意） |
+| 読み順・問題別検索が欲しい | [docs/legacy-index.md](legacy-index.md)（任意） |

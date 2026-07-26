@@ -1,3 +1,11 @@
+---
+type: Guide
+title: VBA テストフレームワーク活用ガイド
+description: TypeScript から VBA マクロを実行し、テストするための API と実践方法。
+tags: [vba, testing, typescript]
+status: stable
+---
+
 # VBA テスト：JS テストフレームワーク活用ガイド
 
 > 対象: TypeScript / Jest などから VBA をテストしたい利用者
@@ -978,4 +986,3 @@ try {
 - `docs/TESTING_STRATEGY.md` で VBA 設計原則を理解
 - このドキュメントで JavaScript 実装を学ぶ
 - 2つを合わせて、効率的で保守性の高いテストを実現
-

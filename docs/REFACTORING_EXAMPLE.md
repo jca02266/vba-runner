@@ -1,3 +1,11 @@
+---
+type: Example
+title: VBA リファクタリング具体例
+description: TaskScheduler マクロを題材に、レガシー VBA をリファクタリングして検証する実例。
+tags: [vba, refactoring, example, testing]
+status: stable
+---
+
 # VBA リファクタリング具体例：TaskScheduler マクロ
 
 > 対象: リファクタリング手法を実例で学びたい利用者

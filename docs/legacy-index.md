@@ -1,4 +1,4 @@
-# docs/INDEX.md — 詳細索引（任意）
+# docs/legacy-index.md — 詳細索引（任意）
 
 > 入口は [README.md](README.md) です。
 >

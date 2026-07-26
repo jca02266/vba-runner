@@ -1,3 +1,11 @@
+---
+type: Guide
+title: VBA マクロ単体テスト戦略
+description: VBA Runner 上で実行可能なマクロの単体テスト設計と検証方針。
+tags: [vba, testing, refactoring]
+status: stable
+---
+
 # VBA マクロ単体テスト戦略
 
 > 対象: VBA をテスト可能にしたい利用者
@@ -678,4 +686,3 @@ vbaRunner.run('ProcessRecords', [[
 
 **黄金則**: 
 > **Domain Logic をシンプルに、Excel I/O を最小限に。単体テストは Domain Logic のみ対象。**
-

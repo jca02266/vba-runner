@@ -1,3 +1,11 @@
+---
+type: Guide
+title: VBA モック実装ガイド
+description: Excel オブジェクト依存を持つ VBA を安全にテストするためのモック実装ガイド。
+tags: [vba, testing, mocks, excel]
+status: stable
+---
+
 # VBA モック実装ガイド
 
 > 対象: Excel オブジェクト依存を避けられない利用者

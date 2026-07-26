@@ -718,12 +718,12 @@ npx tsx test-libs/vba-test-generator.ts --dir tests/vba
 
 ## さらなるドキュメント
 
-目的別の入口は [docs/README.md](docs/README.md) です。読み順・問題別検索が必要なときだけ [docs/INDEX.md](docs/INDEX.md)（任意）を参照してください。
+目的別の入口は [docs/README.md](docs/README.md) です。読み順・問題別検索が必要なときだけ [docs/legacy-index.md](docs/legacy-index.md)（任意）を参照してください。
 
 | 文書 | 対象 | 内容 |
 |---|---|---|
 | [docs/README.md](docs/README.md) | 全員 | 目的別の共通ハブ |
-| [docs/INDEX.md](docs/INDEX.md) | 利用者 | 読み順・問題別検索（任意） |
+| [docs/legacy-index.md](docs/legacy-index.md) | 利用者 | 読み順・問題別検索（任意） |
 | [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | 利用者 | テスト設計の原則 |
 | [REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) | 利用者 | テスト可能化のリファクタリング |
 | [TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) | 利用者 | JS から VBA をテストする |
