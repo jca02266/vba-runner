@@ -6076,7 +6076,59 @@ export class Evaluator {
             },
             deletefile: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
-                this.fs.unlinkSync(full);
+                try {
+                    this.fs.unlinkSync(full);
+                } catch (e: any) {
+                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    throw e;
+                }
+            },
+            copyfile: (source: string, destination: string, overwrite: boolean = false) => {
+                const sourcePath = this.sandbox.toRealPath(source);
+                const destinationPath = this.sandbox.toRealPath(destination);
+                try {
+                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    if (this.fs.existsSync(destinationPath) && !overwrite) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    }
+                    if (!this.fs.copyFileSync) {
+                        this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File copy is not supported');
+                    }
+                    this.fs.copyFileSync(sourcePath, destinationPath);
+                } catch (e: any) {
+                    if (e?.type === 'VbaError') throw e;
+                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    throw e;
+                }
+            },
+            movefile: (source: string, destination: string) => {
+                const sourcePath = this.sandbox.toRealPath(source);
+                const destinationPath = this.sandbox.toRealPath(destination);
+                try {
+                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    if (this.fs.existsSync(destinationPath)) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    }
+                    if (!this.fs.copyFileSync) {
+                        this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File move is not supported');
+                    }
+                    this.fs.copyFileSync(sourcePath, destinationPath);
+                    this.fs.unlinkSync(sourcePath);
+                } catch (e: any) {
+                    if (e?.type === 'VbaError') throw e;
+                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    throw e;
+                }
             },
             deletefolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);

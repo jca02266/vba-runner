@@ -12,7 +12,7 @@ Make the summary name the affected behavior and outcome; avoid vague messages
 that require reading the diff to understand it.
 
 Keep the summary to 50 characters or fewer when practical (never more than 72).
-When a body is needed, use actual newline characters and separate it from the
-summary with exactly one blank line. Wrap body paragraphs at about 72
-characters; never encode line breaks as literal `\\n` text. Omit the body when
-the summary alone is sufficient.
+When a body is needed, enter it as real separate lines and separate it from
+the summary with exactly one blank line. Wrap body paragraphs at about 72
+characters. Do not represent paragraph breaks with escape notation. Omit the
+body when the summary alone is sufficient.

@@ -123,6 +123,25 @@ console.log('[PASS] Scripting.Dictionary');
             TestFSODeleteFile = Not fso.FileExists("C:\\\\delme.txt")
         End Function
 
+        Function TestFSOCopyMove() As Boolean
+            Dim fso As New FileSystemObject
+            Dim f
+            Set f = fso.CreateTextFile("C:\\\\copy-source.txt")
+            f.Write "payload"
+            f.Close
+            fso.CopyFile "C:\\\\copy-source.txt", "C:\\\\copy-dest.txt"
+            If Not fso.FileExists("C:\\\\copy-dest.txt") Then TestFSOCopyMove = False: Exit Function
+            fso.MoveFile "C:\\\\copy-dest.txt", "C:\\\\move-dest.txt"
+            TestFSOCopyMove = fso.FileExists("C:\\\\move-dest.txt") And Not fso.FileExists("C:\\\\copy-dest.txt")
+        End Function
+
+        Function TestFSODeleteMissing() As Long
+            Dim fso As New FileSystemObject
+            On Error Resume Next
+            fso.DeleteFile "C:\\\\missing.txt"
+            TestFSODeleteMissing = Err.Number
+        End Function
+
         Function TestFSOPathOps(p As String) As String
             Dim fso As New FileSystemObject
             TestFSOPathOps = fso.GetBaseName(p) & "|" & fso.GetExtensionName(p) & "|" & fso.GetParentFolderName(p)
@@ -134,6 +153,8 @@ console.log('[PASS] Scripting.Dictionary');
     assert.strictEqual(content.includes('Hello') && content.includes('World'), true, 'FSO: OpenTextFile + ReadAll');
     assert.strictEqual(ev.callProcedure('TestFSOFolderOps', []), vbaTrue, 'FSO: CreateFolder + FolderExists');
     assert.strictEqual(ev.callProcedure('TestFSODeleteFile', []), vbaTrue, 'FSO: DeleteFile');
+    assert.strictEqual(ev.callProcedure('TestFSOCopyMove', []), vbaTrue, 'FSO: CopyFile + MoveFile');
+    assert.strictEqual(ev.callProcedure('TestFSODeleteMissing', []), 53, 'FSO: missing DeleteFile is Error 53');
     assert.strictEqual(
         ev.callProcedure('TestFSOPathOps', ['C:\\path\\to\\report.xlsx']),
         'report|xlsx|C:\\path\\to',
