@@ -958,7 +958,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 - ✅ **Lexer のキーワード分類を仕様書 §3.3.5.2 のカテゴリに整理する**（可読性・保守性）
   - 現状: 全キーワードが `Keyword*` トークンのフラットな羅列で、仕様上の種別（`statement-keyword` / `marker-keyword` / `operator-identifier` / contextual）が区別されていない
   - contextual キーワードの誤予約語化（`Append`・`Output` 等が変数名に使えない問題）は Parser の `CONTEXTUAL_KW` Set 化により軽減済み。新規追加も Set に1行追加するだけ
-  - 2025-05-30: `Class / Collection / Error / Property` の未登録を修正、`isIdentifier()` ヘルパー導入、`parseVarDeclaration` / `parseConstDeclaration` / `parseProcedureDeclaration` のチェックを統一。詳細は `docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md` を参照
+  - 2025-05-30: `Class / Collection / Error / Property` の未登録を修正、`isIdentifier()` ヘルパー導入、`parseVarDeclaration` / `parseConstDeclaration` / `parseProcedureDeclaration` のチェックを統一。詳細は `docs/internals/IDENTIFIER_CLASSIFICATION.md` を参照
   - 2026-06-06: `parseEnumDeclaration` / `parseTypeDeclaration` / `parseForStatement` / `parseForEachStatementBody` の変数名・型名チェックを `isIdentifier()` に統一。`Next <var>` のチェックも同様に修正 | `contextual-kw-for-enum-type.test.ts`
   - 将来検討: キーワード補完実装時に contextual keyword を候補から除外する仕組みを補完側へ追加する
   - `VBA_KEYWORD_CATEGORIES` に仕様カテゴリをメタデータとして追加。`TokenType` と既存のParser動作は変更せず、`COMPAT_KW_EXPR` とも分離した

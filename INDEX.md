@@ -66,7 +66,7 @@
 | [docs/internals/VBA_EXPORT_IMPORT.md](docs/internals/VBA_EXPORT_IMPORT.md) | 開発者 | export/import 技術メモ |
 | [docs/internals/DECIMAL_IMPLEMENTATION.md](docs/internals/DECIMAL_IMPLEMENTATION.md) | 開発者 | Decimal 実装メモ |
 | [docs/internals/DATAFLOW_ANALYSIS_TODO.md](docs/internals/DATAFLOW_ANALYSIS_TODO.md) | 開発者 | データフロー解析計画 |
-| [docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md](docs/internals/IDENTIFIER_CLASSIFICATION_TODO.md) | 開発者 | 識別子分類 TODO |
+| [docs/internals/IDENTIFIER_CLASSIFICATION.md](docs/internals/IDENTIFIER_CLASSIFICATION.md) | 開発者 | VBA識別子分類の実装説明 |
 
 ## sample/ / .claude/
 
