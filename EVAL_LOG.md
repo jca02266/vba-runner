@@ -54,6 +54,7 @@
 | 141 | リファクタリング強化 #141: Property代入経路の参照伝播 | Bug 140-A の修正を全代入分岐へ広げ、暗黙With経由のProperty LetとProperty Setの添字付き代入でも右辺式を共通参照フレームへ渡すようにした。クラス、Property、配列、イベントの関連回帰テストと型チェックを再通過した。 | 2026-07-26 |
 | 142 | 回帰確認 #142: Property特殊経路テスト追加 | #141で強化した暗黙With内の添字付きProperty Letと添字付きProperty Setについて、呼出元スカラー・オブジェクトへのByRef書き戻しを専用回帰テストとして追加した。クラスモジュール全テストを通過し、特殊経路の未検証状態を解消した。 | 2026-07-26 |
 | 143 | 実行互換性 #143: FormatPercent の表示オプション | FZ-BUILTIN の独立評価で、`FormatPercent` の `UseParensForNegativeNumbers` と `IncludeLeadingDigit` が位置・名前付き引数のいずれでも無視される Bug 143-A を確認した。共有 `fmtNumeric` が両引数を未使用だったため、負数の括弧表示と先頭ゼロ抑制を実装し、`FormatNumber` を含む回帰テストを追加した。 | 2026-07-26 |
+| 144 | 回帰確認 #144: Null/Empty Variant配列境界 | FZ-BUILTIN の別入力で、Variant配列要素の `Null`/`Empty`、`TypeName`/`VarType`/`IsNull`/`IsEmpty`、`CInt` の型強制、Variant配列のFunction戻りとByRef再渡しを評価した。VBA内の値の区別と変換は期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -514,7 +515,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
-| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路 | `builtins.ts` / `coerce.ts` の日付・財務・Null/配列型強制境界、変更後の別入力シード | 継続 |
+| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143、#144 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制 | `builtins.ts` / `coerce.ts` の日付・財務関数、配列戻り値のJS境界、変更後の別入力シード | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し（カバレッジ基準 2026-07-18） | 別シードでのProperty Let引数のByRef境界、型付き配列の多次元・Preserve組み合わせ、宣言サフィックスと比較・連結の追加組み合わせ | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
