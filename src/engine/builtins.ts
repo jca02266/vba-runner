@@ -972,7 +972,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ], ['$']);
 
     // Helper shared by FormatCurrency / FormatNumber / FormatPercent
-    const fmtNumeric = (val: any, digits: any, _leadingDigit: any, _parens: any, groupDigits: any,
+    const fmtNumeric = (val: any, digits: any, leadingDigit: any, parens: any, groupDigits: any,
                         prefix: string, suffix: string, scale: number): string => {
         if (val === vbaNull) return '';
         let n: number;
@@ -985,17 +985,23 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // VBA の NumDigitsAfterDecimal 上限は 255（JS toFixed は 100 までなので超過分は 0 埋め）
         if (dec > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const group = groupDigits === vbaMissing || ctx.toVbaNumber(groupDigits) < 0 ? true : ctx.toVbaNumber(groupDigits) !== 0;
+        // vbUseDefault (-2) and vbTrue (-1) include the leading zero.  vbFalse
+        // suppresses it for values whose formatted magnitude is below one.
+        const includeLeadingDigit = leadingDigit === vbaMissing || ctx.toVbaNumber(leadingDigit) !== 0;
+        const useParensForNegative = parens !== vbaMissing && ctx.toVbaNumber(parens) !== 0;
         const neg = n < 0;
         const abs = Math.abs(n);
         const decFixed = Math.min(dec, 100);
         let formatted = vbaRound(abs, decFixed).toFixed(decFixed) + '0'.repeat(dec - decFixed);
+        if (!includeLeadingDigit && abs < 1) formatted = formatted.substring(1);
         if (group) {
             const [intPart, fracPart] = formatted.split('.');
             const grouped = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
             formatted = fracPart !== undefined ? `${grouped}.${fracPart}` : grouped;
         }
         const result = `${prefix}${formatted}${suffix}`;
-        return neg ? `-${result}` : result;
+        if (!neg) return result;
+        return useParensForNegative ? `(${result})` : `-${result}`;
     };
     ctx.reg('formatcurrency', (val: any, digits: any = vbaMissing, lead: any = vbaMissing, parens: any = vbaMissing, group: any = vbaMissing) =>
         fmtNumeric(val, digits, lead, parens, group, '$', '', 1), [

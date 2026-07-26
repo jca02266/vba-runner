@@ -204,6 +204,14 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('FormatNumber(0.123, 4)'), '0.1230', 'FormatNumber(n, 4 digits)');
     assert.strictEqual(evalExpr('FormatPercent(0.5)'), '50.00%', 'FormatPercent(0.5)');
     assert.strictEqual(evalExpr('FormatPercent(0.1234, 1)'), '12.3%', 'FormatPercent(0.1234, 1)');
+    assert.strictEqual(evalExpr('FormatPercent(-0.125, 1, True, True, False)'), '(12.5%)',
+        'FormatPercent: UseParensForNegativeNumbers=True');
+    assert.strictEqual(evalExpr('FormatPercent(0.005, 1, False, False, False)'), '.5%',
+        'FormatPercent: IncludeLeadingDigit=False');
+    assert.strictEqual(evalExpr('FormatNumber(-0.5, 1, True, True, False)'), '(0.5)',
+        'FormatNumber: UseParensForNegativeNumbers=True');
+    assert.strictEqual(evalExpr('FormatNumber(0.5, 1, False, False, False)'), '.5',
+        'FormatNumber: IncludeLeadingDigit=False');
     assert.strictEqual(evalExpr('FormatCurrency(Null)'), '', 'FormatCurrency(Null) = ""');
     const fmtDt = (code: string) =>
         evalVBASingle(`Function F(): F = ${code}: End Function`).callProcedure('F', []);
