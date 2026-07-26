@@ -33,6 +33,21 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 出力した `output.xlsm` を Excel で開き、Alt+F11 で VBE を表示して何も編集せず保存する。
 保存できることが、新規クラスモジュールを含む import 出力の互換性確認になる。
 
+### Excel実機照合キューの一括検証
+
+`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-007 を
+1回のExcel操作で検証するためのマクロである。
+
+1. `ExcelQueueVerification.bas` を検証用ブックへインポートする。
+2. `RunExcelQueueVerification` を実行する。
+3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-007` の
+   `LOF` と `BYTES` を保存する。
+4. その出力を `EVAL_LOG.md` の照合結果へ反映する。
+
+マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
+日本語文字列のバイト列はExcelのシステムロケールに依存するため、
+出力された値をそのまま記録する。
+
 ## セットアップ
 
 ```bash
