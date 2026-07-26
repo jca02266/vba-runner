@@ -117,6 +117,30 @@ End Function
     console.log('[PASS] Bug 155-A: CStr(Range) は既定Valueを使う');
 }
 
+// Bug 156-A: 既定ValueオブジェクトをBoolean/数値型強制へ渡す
+{
+    const defaultNumber = { __vbaDefault__: true as const, Value: 12 };
+    const result = run(`
+Function TestDefaultCoercions()
+    TestDefaultCoercions = CStr(CBool(v)) & ":" & CStr(CInt(v))
+End Function
+`, 'TestDefaultCoercions', ev => ev.set('v', defaultNumber));
+    assert.strictEqual(result, 'True:12', '既定ValueオブジェクトをCBool/CIntで値へ変換する');
+    console.log('[PASS] Bug 156-A: 既定ValueのBoolean/数値型強制');
+}
+
+// Bug 157-A: IsNumericも既定Valueを判定対象にする
+{
+    const defaultNumber = { __vbaDefault__: true as const, Value: 42 };
+    const result = run(`
+Function TestIsNumericDefault()
+    TestIsNumericDefault = CStr(IsNumeric(v))
+End Function
+`, 'TestIsNumericDefault', ev => ev.set('v', defaultNumber));
+    assert.strictEqual(result, 'True', 'IsNumericは既定Valueオブジェクトの値を判定する');
+    console.log('[PASS] Bug 157-A: IsNumericの既定Value展開');
+}
+
 // 6. MockRange を使った VBA 演算
 {
     const ws = new MockWorksheet('Sheet1');

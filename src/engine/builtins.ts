@@ -62,9 +62,12 @@ export interface StdlibCtx {
 export function registerInformationFunctions(ctx: StdlibCtx): void {
     ctx.reg('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
     ctx.reg('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse, [{ name: 'ArgName' }]);
-    ctx.reg('isnumeric', (val: any) => {
+    const isNumericValue = (val: any): VbaBoolean => {
         if (val === vbaNull) return vbaFalse;
         if (val === vbaEmpty || val === undefined) return vbaTrue;
+        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+            return isNumericValue(val.Value);
+        }
         if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaBoolean) return vbaTrue;
         if (typeof val === 'string') {
             const s = val.trim();
@@ -77,7 +80,8 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
             return (!isNaN(n) && isFinite(n)) ? vbaTrue : vbaFalse;
         }
         return vbaFalse;
-    }, [{ name: 'Expression' }]);
+    };
+    ctx.reg('isnumeric', isNumericValue, [{ name: 'Expression' }]);
     ctx.reg('isdate', (val: any) => {
         if (val instanceof VbaDate) return vbaTrue;
         if (typeof val === 'number') return isFinite(val) ? vbaTrue : vbaFalse;
