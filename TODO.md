@@ -1226,9 +1226,9 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [x] `callProcedure` / `callClassMethod` の引数束縛と型強制を共通の呼び出しフレームへ統合する（第1段階: `bindProcedureParameters`）
 - [x] ByRef引数を一時値ではなく、読み取り・書き込みを持つ l-value 参照として表現する（第2段階: 呼び出し引数の読み取り・書き戻しを共通参照へ統合）
 - [x] 識別子、配列要素、クラスフィールド、Property引数、UDTメンバーを同じ参照インターフェースで扱う（代入可能な式の共通評価・書き戻し）
-- [ ] Property Set/Let、イベント、名前付き引数、`ByVal` 強制括弧を共通フレームへ接続する
-- [ ] 標準モジュール／クラス／Property／配列・UDTの組み合わせマトリクスを回帰テストとして整備する
-- [ ] 段階移行中は既存の `callProcedure` / `callClassMethod` 経路を比較検証し、挙動差を記録する
+- [x] Property Set/Let、イベント、名前付き引数、`ByVal` 強制括弧を共通フレームへ接続する
+- [x] 標準モジュール／クラス／Property／配列・UDTの組み合わせマトリクスを回帰テストとして整備する（`byref-dispatch-matrix.test.ts` と既存回帰群）
+- [x] 段階移行中は既存の `callProcedure` / `callClassMethod` 経路を比較検証し、挙動差を記録する（既存回帰群と新マトリクスで差分なし）
 
 これはVBA仕様項目の未実装ではなく、エンジンの保守性・経路一貫性を高めるための
 リファクタリング課題である。仕様準拠の未実装・制限は [TODO_SPEC.md](TODO_SPEC.md) に記録する。

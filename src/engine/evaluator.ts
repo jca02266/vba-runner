@@ -3295,7 +3295,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethod(target, setter, [...argsVals, val]);
+                        this.callClassMethodWithExpressions(target, setter, [...call.args, null], [...argsVals, val]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -3331,7 +3331,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethod(obj, setter, [...argsVals, val]);
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null], [...argsVals, val]);
                     } else {
                         // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
                         // 例: obj.Items(0) = val
@@ -3511,7 +3511,7 @@ export class Evaluator {
                     p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethod(obj, setter, [val]);
+                    this.callClassMethodWithExpressions(obj, setter, [null], [val]);
                 } else {
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
                     const fl = obj.__fixedLengths__?.[propName];
@@ -3552,7 +3552,7 @@ export class Evaluator {
                     p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethod(obj, setter, [val]);
+                    this.callClassMethodWithExpressions(obj, setter, [null], [val]);
                 } else {
                     // Bug CC: enforce fixed-length string for With-block class field assignment
                     const fl = obj.__fixedLengths__?.[propName];
@@ -4197,11 +4197,11 @@ export class Evaluator {
      * callee's updates, unlike module procedure calls which write back through
      * their original expressions.
      */
-    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[], evaluatedArgs?: any[]): any {
-        const references = argExprs.map(a => this.createLValueReference(a));
+    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[]): any {
+        const references = argExprs.map(a => a ? this.createLValueReference(a) : null);
         const args = evaluatedArgs ?? argExprs.map((a, i) => references[i]
             ? references[i]!.get()
-            : this.resolveAutoInstance(a, this.evaluateExpression(a)));
+            : a ? this.resolveAutoInstance(a, this.evaluateExpression(a)) : vbaEmpty);
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
@@ -4212,6 +4212,20 @@ export class Evaluator {
                     // Non-assignable expressions are passed as temporary values.
                 }
             }
+        }
+        return result;
+    }
+
+    /** Use the common reference writeback path for already-evaluated values. */
+    private callClassMethodWithValueReferences(instance: any, proc: ProcedureDeclaration, values: any[]): any {
+        const references: VbaLValueReference[] = values.map((_, i) => ({
+            get: () => values[i],
+            set: (value: any) => { values[i] = value; },
+        }));
+        const byRefValues: any[] = [];
+        const result = this.callClassMethod(instance, proc, values, byRefValues);
+        for (let i = 0; i < proc.parameters.length && i < references.length; i++) {
+            if (!proc.parameters[i].isByVal) references[i].set(byRefValues[i]);
         }
         return result;
     }
@@ -4739,7 +4753,7 @@ export class Evaluator {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
                     eventHandler = (...args: any[]) => {
-                        this.callClassMethod(capturedInstance, capturedProc, args, args);
+                        this.callClassMethodWithValueReferences(capturedInstance, capturedProc, args);
                         return args;
                     };
                     (eventHandler as any).__vbaEventByRef__ = true;
@@ -4957,7 +4971,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethod(obj, setter, [...argsVals, value]);
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null], [...argsVals, value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -5031,7 +5045,8 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                     );
                     if (setter) {
-                        this.callClassMethod(obj, setter, [...call.args.map(a => this.evaluateExpression(a)), value]);
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null],
+                            [...call.args.map(a => this.evaluateExpression(a)), value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
