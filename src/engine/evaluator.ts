@@ -331,6 +331,7 @@ export interface DebugHook {
 }
 
 interface VbaLValueReference {
+    get(): any;
     set(value: any): void;
 }
 
@@ -2166,7 +2167,10 @@ export class Evaluator {
     /** Convert an assignable VBA expression into the common ByRef write target. */
     private createLValueReference(expr: Expression): VbaLValueReference | null {
         if (!this.isAssignableTarget(expr)) return null;
-        return { set: (value: any) => this.evaluateAssignmentToVariable(expr, value) };
+        return {
+            get: () => this.resolveAutoInstance(expr, this.evaluateExpression(expr)),
+            set: (value: any) => this.evaluateAssignmentToVariable(expr, value),
+        };
     }
 
     /** @deprecated Use {@link evaluateModule} instead. */
@@ -4194,8 +4198,10 @@ export class Evaluator {
      * their original expressions.
      */
     private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[], evaluatedArgs?: any[]): any {
-        const args = evaluatedArgs ?? argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
         const references = argExprs.map(a => this.createLValueReference(a));
+        const args = evaluatedArgs ?? argExprs.map((a, i) => references[i]
+            ? references[i]!.get()
+            : this.resolveAutoInstance(a, this.evaluateExpression(a)));
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
@@ -7484,11 +7490,16 @@ export class Evaluator {
                         const namedArg = argExpr as NamedArgument;
                         // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
                         // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
-                        namedArgs.set(namedArg.name.toLowerCase(),
-                            this.resolveAutoInstance(namedArg.value, this.evaluateExpression(namedArg.value)));
+                        const reference = this.createLValueReference(namedArg.value);
+                        namedArgs.set(namedArg.name.toLowerCase(), reference
+                            ? reference.get()
+                            : this.resolveAutoInstance(namedArg.value, this.evaluateExpression(namedArg.value)));
                         namedArgExpressions.set(namedArg.name.toLowerCase(), namedArg.value);
                     } else {
-                        positionalArgs.push(this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+                        const reference = this.createLValueReference(argExpr);
+                        positionalArgs.push(reference
+                            ? reference.get()
+                            : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
                         positionalArgExpressions.push(argExpr);
                     }
                 }

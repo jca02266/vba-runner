@@ -46,6 +46,7 @@
 | 133 | リファクタリング確認 #133: 引数束縛経路の共通化 | `callProcedure` と `callClassMethod` に重複していた引数型登録・ByValコピー・既定値・ParamArray処理を `bindProcedureParameters` へ統合した。クラス、Property、配列、ByVal、イベントの既存回帰テストと型チェックを通過し、挙動差は確認されなかった。 | 2026-07-26 |
 | 134 | リファクタリング確認 #134: ByRef書き戻し参照の共通化 | 標準モジュールとクラスメソッドで分かれていた ByRef 書き戻しを `VbaLValueReference` に統合し、元の代入可能式へ同じ setter を適用するようにした。クラス、Property、配列、ByVal、イベントの関連回帰テストと型チェックを通過した。読み取り参照を含む全 l-value 統合は引き続き未完了である。 | 2026-07-26 |
 | 135 | リファクタリング確認 #135: ParamArray書き戻し参照の共通化 | ParamArray要素のByRef書き戻しも `VbaLValueReference` の配列へ統合し、通常引数と同じsetter経路で代入可能式へ反映するようにした。ParamArray・ByVal配列の回帰テストを通過した。参照の読み取り統合と全l-value対応は引き続き未完了である。 | 2026-07-26 |
+| 136 | リファクタリング確認 #136: l-value読み取り・書き戻しの共通化 | `VbaLValueReference` に getter を追加し、標準モジュール・クラスメソッドの引数評価、ParamArray要素の書き戻しを同じ参照へ接続した。識別子、配列要素、Property/UDTメンバーなど代入可能な式の評価・書き戻し経路を統合し、関連回帰テストを通過した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
