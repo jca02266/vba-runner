@@ -840,4 +840,26 @@ End Function
     console.log('[PASS] Bug 141-B: 添字付きProperty Set書き戻し');
 }
 
+// Bug 151-A: 名前付きProperty Let引数でも暗黙ByRefを書き戻す
+{
+    const ev = evalVBASingle(`
+        Class NamedLet
+            Public Property Let Value(ByVal index As Long, ByRef text As String)
+                text = UCase(text)
+            End Property
+        End Class
+
+        Function TestNamedPropertyLetByRef() As String
+            Dim obj As New NamedLet
+            Dim text As String
+            text = "named"
+            Call obj.Value(index:=1, text:=text)
+            TestNamedPropertyLetByRef = text
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestNamedPropertyLetByRef', []), 'NAMED',
+        '名前付きProperty Let引数のByRef書き戻しを保持する');
+    console.log('[PASS] Bug 151-A: 名前付きProperty LetのByRef書き戻し');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

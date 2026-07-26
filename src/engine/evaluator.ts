@@ -4199,13 +4199,47 @@ export class Evaluator {
      * their original expressions.
      */
     private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[]): any {
-        const references = argExprs.map(a => a ? this.createLValueReference(a) : null);
-        const args = evaluatedArgs ?? argExprs.map((a, i) => references[i]
-            ? references[i]!.get()
-            : a ? this.resolveAutoInstance(a, this.evaluateExpression(a)) : vbaEmpty);
+        // Named arguments need to be reordered to the procedure's parameter
+        // positions before binding.  Keep the underlying value expression so
+        // an implicit-ByRef Property Let/Set parameter can still write back to
+        // the caller (the NamedArgument wrapper itself is not an l-value).
+        const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
+            new Array(proc.parameters.length);
+        let nextPositional = 0;
+        for (let i = 0; i < argExprs.length; i++) {
+            const arg = argExprs[i];
+            if (!arg) continue;
+            let paramIndex: number;
+            let valueExpr: Expression = arg;
+            if (arg.type === 'NamedArgument') {
+                const named = arg as NamedArgument;
+                paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === named.name.toLowerCase());
+                if (paramIndex < 0) {
+                    this.throwVbaError(448, `Named argument not found: '${named.name}'`);
+                }
+                valueExpr = named.value;
+            } else {
+                while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
+                paramIndex = nextPositional++;
+            }
+            if (paramIndex >= supplied.length) {
+                this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
+            }
+            const value = evaluatedArgs?.[i] ?? this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
+            supplied[paramIndex] = { expr: valueExpr, value };
+        }
+        let lastProvided = -1;
+        for (let i = supplied.length - 1; i >= 0; i--) {
+            if (supplied[i]) { lastProvided = i; break; }
+        }
+        const aligned = supplied.slice(0, lastProvided + 1);
+        const references = aligned.map(slot => slot?.expr ? this.createLValueReference(slot.expr) : null);
+        const args = aligned.map((slot, i) => slot
+            ? (references[i] ? references[i]!.get() : slot.value)
+            : vbaMissing);
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
-        for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
+        for (let i = 0; i < proc.parameters.length && i < aligned.length; i++) {
             if (!proc.parameters[i].isByVal && references[i]) {
                 try {
                     references[i]!.set(byRefValues[i]);
