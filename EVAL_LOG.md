@@ -72,6 +72,7 @@
 | 159 | 実行互換性 #159: DateValueの既定Value判定 | 同じ日付既定プロパティ境界で `DateValue` を評価したところ、`parseVbaDate` がラッパーオブジェクトを直接処理して Error 13 になる Bug 159-A を確認した。`Value` を展開して既存の日付検証へ渡す処理と回帰テストを追加した。 | 2026-07-27 |
 | 160 | 回帰確認 #160: Err.Raise伝播とDecimal overflow後のErr状態 | FZ-BUILTINの継続評価で、Class・Collection・Variant配列・ループ・`On Error` を組み合わせた複数 `Err.Raise` の再送出と、Currency/Decimal overflow後の `Err` の保持・`Err.Clear`・成功後のリセットを確認した。期待値と実値は一致し、新規バグは確認されなかった。 | 2026-07-27 |
 | 161 | 回帰確認 #161: 型付き多次元配列のPreserve追加シード | FZ-GRAMMARの未実施境界として、UDT（固定配列・固定長文字列）2次元配列、3次元Long配列、ByRefで拡張する2次元配列、3次元クラス配列を `ReDim Preserve`・境界エラー・Collection・ループ・`On Error` と組み合わせて評価した。全ケースで期待値と実値が一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 162 | 回帰確認 #162: 宣言型サフィックスの比較・連結 | FZ-GRAMMARの未実施境界として、Integer/Long/Single/Double/Currency/String の宣言型サフィックスを比較演算・`TypeName`・空白なしの文字列連結と組み合わせて評価した。期待値と実値は一致し、新規バグは確認されなかった。 | 2026-07-27 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -537,7 +538,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
 | FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150、#155〜#160 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否、`__vbaDefault__` ValueのCStr/CBool/数値型強制/IsNumeric/IsDate/CDate/DateValue、複数Err.Raise伝播とDecimal overflow後のErr状態 | 既定Valueを受ける追加判定・別日付入力、変更後の別入力シード | 継続 |
-| FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153、#154、#161 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve、Property Getの2次元配列戻り値、UDT/Long/クラスの多次元配列Preserve追加シード（カバレッジ基準 2026-07-18） | 宣言サフィックスと比較・連結の追加組み合わせ、名前付き引数正規化の未統合API経路 | 継続 |
+| FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153、#154、#161〜#162 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve、Property Getの2次元配列戻り値、UDT/Long/クラスの多次元配列Preserve追加シード、宣言型サフィックスの比較・連結（カバレッジ基準 2026-07-18） | 名前付き引数正規化の未統合API経路、追加の型サフィックス境界 | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
 各キャンペーンを実施したら、評価済みドメイン表にも回数を追記し、この表の「実施履歴」
