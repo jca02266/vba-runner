@@ -23,6 +23,7 @@
  *   [情報] VBA007 - ActiveSheet / ActiveWorkbook 直接参照 → 何が選択されているか依存
  *   [情報] VBA011 - Range 変数経由の Excel プロパティ/メソッドアクセス（Excel依存箇所の可視化）
  *   [警告] VBA014 - 未使用ローカル変数（宣言後に一切参照されない）
+ *   [警告] VBA015 - Property Let の値引数が暗黙の ByRef
  */
 
 import {
@@ -302,10 +303,14 @@ function checkIntegerTypeParam(param: Parameter, out: LintDiagnostic[]): void {
 
 /** VBA003: パラメーターに ByVal/ByRef なし → デフォルトは ByRef */
 function checkParameters(proc: ProcedureDeclaration, out: LintDiagnostic[]): void {
-    for (const param of proc.parameters) {
+    for (let i = 0; i < proc.parameters.length; i++) {
+        const param = proc.parameters[i];
         checkIntegerTypeParam(param, out);
 
-        if (!param.hasPassingModifier && !param.isParamArray && !param.isOptional) {
+        // Property Let の最後の値引数は VBA015 で ByRef の影響を説明するため、
+        // 一般的な VBA003 (Hint) を重ねて表示しない。
+        const isPropertyLetValue = proc.propertyType === 'let' && i === proc.parameters.length - 1;
+        if (!isPropertyLetValue && !param.hasPassingModifier && !param.isParamArray && !param.isOptional) {
             const loc  = (param as any).loc;
             const line = (loc?.start.line   ?? 1) - 1;
             const col  = (loc?.start.column ?? 1) - 1;
@@ -315,6 +320,25 @@ function checkParameters(proc: ProcedureDeclaration, out: LintDiagnostic[]): voi
                 code: 'VBA003', severity: 4,
                 message: fmt(k003, a003), l10nKey: k003, l10nArgs: a003,
                 line, column: col, endLine: line, endColumn: col + param.name.length,
+            });
+        }
+    }
+
+    // Property Let の最後の引数は値引数であり、修飾子を省略すると
+    // VBA の既定値である ByRef になる。呼び出し元の値を書き換え得る
+    // 特殊な引数なので、通常の VBA003 (Hint) より強い警告を出す。
+    if (proc.propertyType === 'let' && proc.parameters.length > 0) {
+        const valueParam = proc.parameters[proc.parameters.length - 1];
+        if (!valueParam.hasPassingModifier && !valueParam.isParamArray) {
+            const k015 = "Property Let value parameter '{0}' is implicitly ByRef; specify ByVal or ByRef explicitly";
+            const a015 = [valueParam.name];
+            const loc = (valueParam as any).loc;
+            const line = (loc?.start.line ?? 1) - 1;
+            const col = (loc?.start.column ?? 1) - 1;
+            out.push({
+                code: 'VBA015', severity: 2,
+                message: fmt(k015, a015), l10nKey: k015, l10nArgs: a015,
+                line, column: col, endLine: line, endColumn: col + valueParam.name.length,
             });
         }
     }

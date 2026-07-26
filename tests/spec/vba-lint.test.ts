@@ -84,6 +84,36 @@ function lint(code: string): LintDiagnostic[] {
     console.log('[PASS] VBA003: ByRef 明示 → 警告なし');
 }
 
+// ─── VBA015: Property Let の値引数は暗黙 ByRef → Warning ────────────────────
+{
+    const diags = lint([
+        'Property Let Value(index As Long, value As String)',
+        'End Property',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA015');
+    assert.strictEqual(d.length, 1, 'VBA015: 暗黙 ByRef の値引数を1件検出');
+    assert.strictEqual(d[0].severity, 2, 'VBA015: severity = Warning');
+    assert.strictEqual(d[0].message.includes('value'), true, 'VBA015: 値引数名を含む');
+    assert.strictEqual(d[0].line, 0, 'VBA015: 値引数の行を指す');
+    console.log('[PASS] VBA015: Property Let の暗黙 ByRef');
+}
+
+// ─── VBA015: ByVal / ByRef 明示、および他のProperty → 警告なし ─────────────
+{
+    const diags = lint([
+        'Property Let ByValValue(ByVal value As String)',
+        'End Property',
+        'Property Let ByRefValue(ByRef value As String)',
+        'End Property',
+        'Property Get ReadValue(value As String) As String',
+        '    ReadValue = value',
+        'End Property',
+    ].join('\n'));
+    const d = diags.filter(d => d.code === 'VBA015');
+    assert.strictEqual(d.length, 0, 'VBA015: 明示修飾子・Property Get は警告なし');
+    console.log('[PASS] VBA015: 明示修飾子・Property Get');
+}
+
 // ─── VBA004: While...Wend ────────────────────────────────────────────────────
 {
     const diags = lint('Sub Test()\n    While True\n    Wend\nEnd Sub');

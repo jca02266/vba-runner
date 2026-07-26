@@ -60,4 +60,15 @@ const noRangeHints = d7.filter((d: any) => d.source === 'vba-dataflow');
 console.assert(noRangeHints.length === 0, `Expected 0 Range hints, got ${noRangeHints.length}`);
 console.log('[PASS] 非 Range コードには vba-dataflow Hint が出ない');
 
+// Test 8: Property Let の暗黙 ByRef 値引数は VS Code Warning になる
+server.didOpen('file:///property-let.bas', [
+    'Property Let Value(index As Long, value As String)',
+    'End Property',
+].join('\n'));
+const d8 = server.getDiagnostics('file:///property-let.bas');
+const propertyWarnings = d8.filter((d: any) => d.code === 'VBA015');
+console.assert(propertyWarnings.length === 1, `Expected 1 VBA015 warning, got ${propertyWarnings.length}`);
+console.assert(propertyWarnings[0].severity === 2, 'VBA015 severity should be Warning (2)');
+console.log('[PASS] Property Let 暗黙 ByRef: VS Code Warning');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');
