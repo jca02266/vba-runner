@@ -7393,6 +7393,13 @@ export class Evaluator {
                         // ここに来る時点で param は必ず Optional（defaultValue なし）。
                         argVal = vbaMissing;
                     }
+                    const originalArgExpr = namedArgExpressions.has(paramNameLower)
+                        ? namedArgExpressions.get(paramNameLower)
+                        : (i < positionalArgExpressions.length ? positionalArgExpressions[i] : undefined);
+                    // Parenthesizing an argument forces a ByVal temporary in VBA,
+                    // even when the procedure declares the parameter ByRef.
+                    const forcedByVal = originalArgExpr?.type === 'ParenthesizedExpression' ||
+                        originalArgExpr?.type === 'ByValArgument';
                     // Register parameter type metadata (but not for array parameters)
                     if (param.paramType && !param.isArray) {
                         const typeMap: Record<string, VbaVarType> = {
@@ -7416,7 +7423,7 @@ export class Evaluator {
                     }
                     // ByVal values must not share mutable VBA arrays or UDTs with
                     // the caller. Class instances remain references, as in VBA.
-                    if (param.isByVal) argVal = this.deepCopyByValValue(argVal);
+                    if (param.isByVal || forcedByVal) argVal = this.deepCopyByValValue(argVal);
                     localEnv.setLocally(param.name, argVal);
                     // Variant（型なし）パラメーターへ数値サブタイプを伝播
                     if (!param.paramType || param.paramType.toLowerCase() === 'variant') {
@@ -7435,7 +7442,7 @@ export class Evaluator {
                         } else if (i < positionalArgExpressions.length) {
                             originalExpr = positionalArgExpressions[i];
                         }
-                        if (originalExpr && originalExpr.type !== 'ByValArgument') {
+                        if (originalExpr && !forcedByVal) {
                             byRefArgs.push({
                                 paramName: param.name,
                                 originalExpr: originalExpr

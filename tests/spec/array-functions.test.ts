@@ -158,6 +158,21 @@ console.log('[PASS] Bug BN: Erase 後の動的配列は Error 9 (UBound/LBound)'
     assert.strictEqual(classEv.callProcedure('TestClassByValVariantArray', []), 'old',
         'クラスメソッドのByVal Variant配列もコピーして渡す');
     console.log('[PASS] Bug 114-A: クラスメソッドのByVal Variant配列をコピーする');
+
+    const parenthesizedEv = evalVBASingle(`
+        Function TestParenthesizedByRefArray() As Long
+            Dim values(2 To 2, -1 To -1) As Long
+            values(2, -1) = 7
+            ChangeFirst (values)
+            TestParenthesizedByRefArray = values(2, -1)
+        End Function
+        Private Sub ChangeFirst(ByRef values() As Long)
+            values(2, -1) = 99
+        End Sub
+    `);
+    assert.strictEqual(parenthesizedEv.callProcedure('TestParenthesizedByRefArray', []), 7,
+        '括弧付きByRef配列引数は一時コピーとして渡す');
+    console.log('[PASS] Bug 115-A: 括弧付きByRef配列引数をByVal化する');
 }
 
 console.log('\n✅ Array Functions: 全テスト通過');

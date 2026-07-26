@@ -1496,7 +1496,10 @@ export class Parser {
 
         // Unify assignment, array access, method call
         const savedPos = this.pos;
-        const expr = this.parsePrimary(); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
+        const spacedCallArgument = this.tokens[this.pos + 1]?.type === TokenType.OperatorLParen &&
+            this.tokens[this.pos + 1].line === token.line &&
+            this.tokens[this.pos + 1].column > token.column + String(token.value).length;
+        const expr = this.parsePrimary(spacedCallArgument); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
 
         if (this.match(TokenType.OperatorEquals)) {
             return {
@@ -1534,7 +1537,12 @@ export class Parser {
                 this.peek().type !== TokenType.KeywordNext &&
                 this.peek().type !== TokenType.KeywordLoop
             ) {
-                args.push(this.parseCallArgument());
+                // In `Proc (arg)` syntax the space before the parenthesis is
+                // significant: VBA forces this argument to be passed ByVal.
+                const arg = this.parseCallArgument();
+                args.push(spacedCallArgument
+                    ? { type: 'ParenthesizedExpression', expression: arg } as ParenthesizedExpression
+                    : arg);
                 while (this.match(TokenType.OperatorComma)) {
                     args.push(this.parseCallArgument());
                 }
