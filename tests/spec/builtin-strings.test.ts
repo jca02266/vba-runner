@@ -89,6 +89,19 @@ function ev(expr: string): any {
     console.log('[PASS] Len');
 }
 
+// --- LenB / AscB / ChrB ---
+{
+    assert.strictEqual(ev(`LenB("ABC")`), 6, 'LenB は UTF-16LE のバイト長');
+    assert.strictEqual(ev(`LenB("あ")`), 2, 'LenB("あ") = 2');
+    assert.strictEqual(ev(`AscB("あ")`), 0x42, 'AscB は先頭 UTF-16LE バイト');
+    assert.strictEqual(ev(`ChrB(65)`), 'A', 'ChrB(65) = "A"');
+    assert.strictEqual(ev(`ChrB(130)`), String.fromCharCode(130), 'ChrB は下位8ビットを返す');
+    assert.strictEqual(ev(`LenB(Null)`), vbaNull, 'LenB(Null) = Null');
+    assert.strictEqual(ev(`AscB(Null)`), vbaNull, 'AscB(Null) = Null');
+    assert.strictEqual(ev(`ChrB(Null)`), vbaNull, 'ChrB(Null) = Null');
+    console.log('[PASS] LenB / AscB / ChrB');
+}
+
 // --- Mid / Mid$ ---
 {
     // 3引数版: Mid(string, start, length)
