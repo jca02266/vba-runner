@@ -148,3 +148,12 @@ private isIdentifier(token: Token): boolean {
 - Lexer のトークン型は変更しない（`KeywordStep` → `Identifier` にしない）。Parser 側で吸収する。
 - `COMPAT_KW_EXPR` は `CONTEXTUAL_KW` と混ぜない。仕様外拡張として明示的に分離したまま管理する。
 - `KeywordShared` は marker-keyword（reserved-identifier）なので `CONTEXTUAL_KW` に入れてはいけない。
+
+## Lexer分類メタデータ（完了）
+
+`src/engine/lexer.ts` の `VBA_KEYWORD_CATEGORIES` に、仕様上のカテゴリを
+スペリング単位で記録し、カテゴリ外の `VBA_CONTEXTUAL_KEYWORDS` も導出する。
+Lexerが生成する既存の `Keyword*` トークンは変更せず、Parserの `isIdentifier()` による
+contextual keyword 判定も維持する。
+`COMPAT_KW_EXPR` は仕様上の予約語をメンバー名として許容する互換拡張であり、
+仕様準拠の `CONTEXTUAL_KW` とは別管理する。

@@ -22,6 +22,7 @@
 | 109 | テスト基盤 #109: VBARunner共有VFS | `VBARunner` の `fs` オプションを追加し、複数インスタンスへ同一 `MemoryFileSystem` を注入できるようにした。相互の書き込みが可視になることを回帰テストで確認した。 | 2026-07-26 |
 | 110 | 回帰確認 #110: Tier 6 名前空間分離 | **Bug 110-A 修正済み**: ケース無視の宣言衝突検出が、VBAで許可されるクラス名と同名のFunctionを重複扱いしていた。型名前空間と値名前空間の組み合わせを許可し、`tier6-namespace.test.ts` と衝突検出テストを再通過させた。 | 2026-07-26 |
 | 111 | リファクタリング確認 #111: precheckProc一括走査 | `precheckProc` の6つの独立AST走査を `collectPrecheckFindings` の1回走査へ統合した。エラー優先順位を維持し、メンバー代入の配列アクセスを誤って引数個数検査する回帰（Bug 111-A）を修正。TypeScript 330ファイル、VBA 14ファイル、VBA手続き111件が全通過した。 | 2026-07-26 |
+| 112 | Lexer分類確認 #112: 識別子カテゴリメタデータ | `VBA_KEYWORD_CATEGORIES` に MS-VBAL §3.3.5.2 のキーワードカテゴリを追加した。既存の `Keyword*` トークン、`CONTEXTUAL_KW`、`COMPAT_KW_EXPR` の動作は維持し、代表的な予約語・contextual keywordの分類とトークン安定性を回帰確認した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |

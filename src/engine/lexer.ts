@@ -142,6 +142,101 @@ export const enum TokenType {
     ForeignName,
 }
 
+/** MS-VBAL §3.3.5.2 lexical identifier categories. */
+export type VbaKeywordCategory =
+    | 'statement-keyword'
+    | 'marker-keyword'
+    | 'operator-identifier'
+    | 'special-form'
+    | 'reserved-type-identifier'
+    | 'reserved-name'
+    | 'literal-identifier'
+    | 'rem-keyword'
+    | 'reserved-for-implementation-use'
+    | 'future-reserved';
+
+/**
+ * Spelling-level classification used by tooling and tests.  The lexer still
+ * emits the existing Keyword* token types; this table is deliberately
+ * separate from tokenization so contextual/parser compatibility is unchanged.
+ */
+export const VBA_KEYWORD_CATEGORIES: Readonly<Record<string, readonly VbaKeywordCategory[]>> = {
+    // §3.3.5.2 statement-keyword
+    call: ['statement-keyword'], case: ['statement-keyword', 'marker-keyword'],
+    close: ['statement-keyword'], const: ['statement-keyword'], declare: ['statement-keyword'],
+    dim: ['statement-keyword'], do: ['statement-keyword'], else: ['statement-keyword', 'marker-keyword'],
+    elseif: ['statement-keyword'], end: ['statement-keyword'], enum: ['statement-keyword'],
+    erase: ['statement-keyword'], event: ['statement-keyword'], exit: ['statement-keyword'],
+    for: ['statement-keyword'], friend: ['statement-keyword'], function: ['statement-keyword'],
+    get: ['statement-keyword'], gosub: ['statement-keyword'], goto: ['statement-keyword'],
+    if: ['statement-keyword'], implements: ['statement-keyword'], input: ['statement-keyword', 'special-form'],
+    let: ['statement-keyword'], lock: ['statement-keyword'], loop: ['statement-keyword'],
+    lset: ['statement-keyword'], next: ['statement-keyword'], on: ['statement-keyword'],
+    open: ['statement-keyword'], option: ['statement-keyword'], print: ['statement-keyword'],
+    private: ['statement-keyword'], public: ['statement-keyword'], put: ['statement-keyword'],
+    raiseevent: ['statement-keyword'], redim: ['statement-keyword'], resume: ['statement-keyword'],
+    return: ['statement-keyword'], rset: ['statement-keyword'], seek: ['statement-keyword'],
+    select: ['statement-keyword'], set: ['statement-keyword'], static: ['statement-keyword'],
+    stop: ['statement-keyword'], sub: ['statement-keyword'], type: ['statement-keyword'],
+    unlock: ['statement-keyword'], wend: ['statement-keyword'], while: ['statement-keyword'],
+    with: ['statement-keyword'], write: ['statement-keyword', 'marker-keyword'],
+
+    // marker-keyword
+    any: ['marker-keyword'], as: ['marker-keyword'], byref: ['marker-keyword'],
+    byval: ['marker-keyword'], each: ['marker-keyword'], in: ['marker-keyword'],
+    new: ['marker-keyword', 'operator-identifier'], optional: ['marker-keyword'],
+    paramarray: ['marker-keyword'], preserve: ['marker-keyword'], shared: ['marker-keyword'],
+    spc: ['marker-keyword'], tab: ['marker-keyword'], then: ['marker-keyword'],
+    to: ['marker-keyword'], until: ['marker-keyword'], withevents: ['marker-keyword'],
+
+    // operator-identifier
+    addressof: ['operator-identifier'], and: ['operator-identifier'], eqv: ['operator-identifier'],
+    imp: ['operator-identifier'], is: ['operator-identifier'], like: ['operator-identifier'],
+    mod: ['operator-identifier'], not: ['operator-identifier'], or: ['operator-identifier'],
+    typeof: ['operator-identifier'], xor: ['operator-identifier'],
+
+    // special-form
+    array: ['special-form'], circle: ['special-form'], inputb: ['special-form'],
+    lbound: ['special-form'], scale: ['special-form', 'reserved-name'],
+    ubound: ['special-form'],
+
+    // reserved-type-identifier
+    boolean: ['reserved-type-identifier'], byte: ['reserved-type-identifier'],
+    currency: ['reserved-type-identifier'], date: ['reserved-type-identifier', 'reserved-name'],
+    double: ['reserved-type-identifier'], integer: ['reserved-type-identifier'],
+    long: ['reserved-type-identifier'], longlong: ['reserved-type-identifier'],
+    longptr: ['reserved-type-identifier'], single: ['reserved-type-identifier'],
+    string: ['reserved-type-identifier', 'reserved-name'], variant: ['reserved-type-identifier'],
+
+    // reserved-name
+    abs: ['reserved-name'], cbool: ['reserved-name'], cbyte: ['reserved-name'],
+    ccur: ['reserved-name'], cdate: ['reserved-name'], cdbl: ['reserved-name'],
+    cdec: ['reserved-name'], cint: ['reserved-name'], clng: ['reserved-name'],
+    clnglng: ['reserved-name'], clngptr: ['reserved-name'], csng: ['reserved-name'],
+    cstr: ['reserved-name'], cvar: ['reserved-name'], cverr: ['reserved-name'],
+    debug: ['reserved-name'], doevents: ['reserved-name'], fix: ['reserved-name'],
+    int: ['reserved-name'], len: ['reserved-name'], lenb: ['reserved-name'],
+    me: ['reserved-name'], pset: ['reserved-name'], sgn: ['reserved-name'],
+
+    // literal-identifier / rem-keyword
+    true: ['literal-identifier'], false: ['literal-identifier'], nothing: ['literal-identifier'],
+    empty: ['literal-identifier'], null: ['literal-identifier'], rem: ['rem-keyword'],
+
+    // Dedicated lexer tokens which are contextual in the parser.
+    access: [], alias: [], appactivate: [], append: [], attribute: [], base: [],
+    binary: [], class: [], collection: [], compare: [], error: [], explicit: [],
+    kill: [], lib: [], line: [], mid: [], module: [], output: [], property: [],
+    ptrsafe: [], random: [], read: [], reset: [], sendkeys: [], step: [], text: [],
+    width: [],
+};
+
+/** Spellings accepted as identifiers by Parser.isIdentifier(). */
+export const VBA_CONTEXTUAL_KEYWORDS: ReadonlySet<string> = new Set(
+    Object.entries(VBA_KEYWORD_CATEGORIES)
+        .filter(([, categories]) => categories.length === 0)
+        .map(([spelling]) => spelling),
+);
+
 export interface Token {
     type: TokenType;
     value: string;
