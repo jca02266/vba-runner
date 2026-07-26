@@ -1231,7 +1231,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [x] 段階移行中は既存の `callProcedure` / `callClassMethod` 経路を比較検証し、挙動差を記録する（既存回帰群と新マトリクスで差分なし）
 - [ ] 名前付き引数の正規化を全呼び出しAPIへ統合する（クラスPropertyと修飾標準モジュール呼び出しは共通ヘルパーで宣言位置・l-value参照へ正規化済み。直接の手続き呼び出しには別の束縛実装が残るため、同じ正規化フレームへ統合し、Property／標準モジュール／外部呼び出しの全経路でByRef結果を一貫して保持する）
 - [ ] 多次元配列の添字解決を `Let` / `Set` / `Member` / `With` / Property Get戻り値の共通ヘルパーへ統合する（ローカル配列の `Set a(i,j)` とProperty Get戻り値の添字参照で経路差が見つかった。添字数・各次元境界の検証と最終要素への参照取得を一箇所に集約し、宣言場所・戻り値経路に依存しない配列要素操作へ段階移行する）
-- [ ] 既定Valueオブジェクトの型強制を共通化する（`CStr` は `__vbaDefault__` のValue展開を実装済みだが、`CBool`/数値変換など各組み込みのcoerce経路は個別判定のまま。明示的な既定プロパティだけを一度展開する共通ヘルパーを設け、Object拒否とExcel互換のValue文脈を両立する）
+- [ ] 既定Valueオブジェクトの型強制を共通化する（`CStr`/`CBool`/数値変換/`IsNumeric`/`IsDate`/`CDate`/`DateValue` は `__vbaDefault__` のValue展開を実装済みだが、各関数に個別判定が残る。明示的な既定プロパティだけを一度展開する共通ヘルパーを設け、Object拒否とExcel互換のValue文脈を両立する）
 
 これはVBA仕様項目の未実装ではなく、エンジンの保守性・経路一貫性を高めるための
 リファクタリング課題である。仕様準拠の未実装・制限は [TODO_SPEC.md](TODO_SPEC.md) に記録する。

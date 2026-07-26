@@ -39,6 +39,9 @@ export function vbaToNumber(val: any): number {
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
     if (val instanceof VbaCurrency) return Number(val.internal) / 10000;
+    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+        return vbaToNumber(val.Value);
+    }
     if (typeof val === 'number') return val;
     if (typeof val === 'bigint') return Number(val);
     if (typeof val === 'string') {
@@ -113,6 +116,9 @@ export function vbaToBoolean(val: any): VbaBoolean {
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
     if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
     if (val instanceof VbaDate) return val.value !== 0 ? vbaTrue : vbaFalse;
+    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+        return vbaToBoolean(val.Value);
+    }
     if (typeof val === 'string') {
         const trimmed = val.trim();
         const lc = trimmed.toLowerCase();

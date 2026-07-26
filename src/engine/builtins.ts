@@ -83,6 +83,9 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('isnumeric', isNumericValue, [{ name: 'Expression' }]);
     ctx.reg('isdate', (val: any) => {
+        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+            return (ctx.envGet('isdate') as Function)(val.Value);
+        }
         if (val instanceof VbaDate) return vbaTrue;
         if (typeof val === 'number') return isFinite(val) ? vbaTrue : vbaFalse;
         if (typeof val === 'string') {
@@ -260,6 +263,9 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+            return (ctx.envGet('cdate') as Function)(val.Value);
+        }
         // CDate(Empty) はシリアル値 0（1899-12-30）を返す（実 VBA 差分で裁定）
         if (val === vbaEmpty) return new VbaDate(0);
         if (val instanceof VbaDate) return val;
@@ -1222,6 +1228,9 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('datevalue', (val: any) => {
         if (val === vbaNull) return vbaNull;
+        if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+            return (ctx.envGet('datevalue') as Function)(val.Value);
+        }
         const d = parseVbaDate(val);
         if (typeof val === 'string') {
             // JavaScript Date normalizes invalid calendar dates (for example,

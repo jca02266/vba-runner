@@ -141,6 +141,19 @@ End Function
     console.log('[PASS] Bug 157-A: IsNumericの既定Value展開');
 }
 
+// Bug 158-A: 日付判定・CDateも既定Valueを展開する
+{
+    const ws = new MockWorksheet('Sheet1');
+    ws.setCellValue('A6', '2024/01/15');
+    const result = run(`
+Function TestDateDefault()
+    TestDateDefault = CStr(IsDate(ws.Range("A6"))) & ":" & CStr(Year(CDate(ws.Range("A6")))) & ":" & CStr(Year(DateValue(ws.Range("A6"))))
+End Function
+`, 'TestDateDefault', ev => ev.set('ws', ws));
+    assert.strictEqual(result, 'True:2024:2024', 'IsDate/CDate/DateValueは既定Valueの日付文字列を処理する');
+    console.log('[PASS] Bug 158-A/159-A: 日付関数の既定Value展開');
+}
+
 // 6. MockRange を使った VBA 演算
 {
     const ws = new MockWorksheet('Sheet1');
