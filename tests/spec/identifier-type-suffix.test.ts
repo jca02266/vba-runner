@@ -110,4 +110,18 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
     console.log('[PASS] ! as function return type suffix');
 }
 
+// --- 7. `&` concatenation does not require surrounding whitespace ---
+{
+    const r = runFunc(`
+        Function TestNoSpaceConcat() As String
+            Dim s As String
+            s = "x"
+            s=s&"a"
+            TestNoSpaceConcat = s
+        End Function
+    `, 'TestNoSpaceConcat');
+    assert.strictEqual(r, 'xa', 'concatenation operator without whitespace');
+    console.log('[PASS] & concatenation without whitespace');
+}
+
 console.log('\n✅ Identifier Type Suffix: 全テスト通過');

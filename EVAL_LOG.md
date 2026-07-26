@@ -38,6 +38,7 @@
 | 125 | 実行互換性 #125: ネストUDTの値コピー | UDT内UDT・固定配列・可変長Stringを含むBinary Put/Getの複合シナリオは正常だった。一方、`q = p` 後の `q.Header.A = 2` が `p.Header.A` まで変更する Bug 125-A を発見・修正し、ネストメンバーと配列を含む値コピーの回帰テストを追加した。 | 2026-07-26 |
 | 126 | 仕様確認 #126: Format条件セクション・Declare引数検査 | `[<100]` / `[Red]` はVBAの`Format`関数仕様ではなく、Excelのセル書式・条件付き書式の機能であることを公式仕様と照合した。`Declare` の構文・型は正常だったが、スタブが宣言引数数を検査しない Bug 126-A を修正した。 | 2026-07-26 |
 | 127 | 実Excel照合 #127: FSO・ネストUDT | Excel実機でXL-009/XL-010を照合した。Unicode TextStreamは`FF FE`付きUTF-16LE（LOF=12）、ANSIはCP932（LOF=6）、ネストUDTは可変長Stringディスクリプターと配列を含む20バイトとなり、自動テストと一致した。 | 2026-07-26 |
+| 128 | 文法評価 #128: 生成ケースと演算子境界 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュールの生成ケースは正常だった。空白なしの文字列連結（`s=s&"a"`）だけがLexerのLong型サフィックス判定に吸収される Bug 128-A を発見・修正し、回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -158,6 +159,7 @@
 | **Bug 123-A〜C: FSO TextStream の Unicode/ANSI指定を無視する** | `CreateTextFile(..., True, True)` がUTF-16LE BOMを出さずUTF-8を書き、`unicode=False` もUTF-8を出力していた。`OpenTextFile(..., format=True)` はUTF-16LE BOM入力をUTF-8として誤読していた。UnicodeはUTF-16LE+BOM、ANSIはCP932、format指定とBOM検出を実装。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
 | **Bug 125-A: UDT代入がネスト値を共有する** | `Type Parent: Header As Child: End Type` で `q = p` 後に `q.Header.A = 2` を実行すると、値型である `p.Header.A` まで `2` になっていた。UDT代入時に `deepCopyByValValue` を適用し、ネストUDTと配列を再帰コピー。回帰テスト: `tests/spec/binary-file-io.test.ts`。 | このコミット |
 | **Bug 126-A: Declareスタブが引数個数を検査しない** | 必須1引数の`Declare Function`を0個または2個の引数で呼び出しても成功していた。宣言パラメーターをスタブの引数検査へ渡し、VBA Error 450を返すよう修正。回帰テスト: `tests/spec/declare.test.ts`。 | このコミット |
+| **Bug 128-A: 空白なしの`&`連結をLong型サフィックスと誤認する** | `s=s&"a"` の`&`を識別子サフィックスとしてLexerが`s&`に結合し、構文エラーになっていた。連結演算子の文脈では`&`を演算子としてトークン化し、`Dim n&`等の宣言サフィックスは維持。回帰テスト: `tests/spec/identifier-type-suffix.test.ts`。 | このコミット |
 
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
@@ -477,7 +479,6 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | 優先度 | 未実施領域 | 評価の焦点 | 状態 |
 |---|---|---|---|
-| P1 | 文法ベース生成ファザー | 有効なIf/For/Select、On Error、ReDim、クラス、Property、複数モジュールを生成し、JS生例外と結果不整合を検出 | 未実施（手法自体） |
 | P1 | ミューテーションテスト | `format.ts`、`parser.ts`、`evaluator.ts` の比較・分岐・エラー処理を変異させ、既存テストの検出漏れを特定 | 未実施（手法自体） |
 
 `CDate("M,Y")`、基本 UDT 配列物理レイアウト、基本 TextStream

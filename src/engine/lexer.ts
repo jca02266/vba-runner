@@ -319,6 +319,16 @@ export class Lexer {
         return char >= '0' && char <= '9';
     }
 
+    /** `&` is both the Long type suffix and the concatenation operator. */
+    private canConsumeLongSuffix(): boolean {
+        let i = this.pos + 1;
+        while (i < this.input.length && (this.input[i] === ' ' || this.input[i] === '\t' || this.input[i] === '\r')) i++;
+        const next = i < this.input.length ? this.input[i] : '\0';
+        if (next === '\0' || next === '\n' || ',):=:'.includes(next)) return true;
+        return this.input.slice(i, i + 2).toLowerCase() === 'as'
+            && !this.isAlphaNumeric(this.input[i + 2] ?? '\0');
+    }
+
     private skipWhitespace() {
         while (this.isWhitespace(this.peek())) {
             this.advance();
@@ -621,6 +631,7 @@ export class Lexer {
                     const nextCh = this.peek();
                     const charAfterNext = this.pos + 1 < this.input.length ? this.input[this.pos + 1] : '\0';
                     if (IDENTIFIER_TYPE_SUFFIXES.has(nextCh) &&
+                            (nextCh !== '&' || this.canConsumeLongSuffix()) &&
                             !((nextCh === '!' || nextCh === '^') && (this.isAlphaNumeric(charAfterNext) || charAfterNext === '_'))) {
                         idStr += this.advance();
                     }
