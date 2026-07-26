@@ -667,4 +667,32 @@ End Function
     console.log('[PASS] Bug 73-A: クラスフィールドのReDim後も配列要素型を保持する');
 }
 
+// Bug 130-A: クラスフィールド配列要素をByRef引数へ渡した書き戻しが失われる
+{
+    const code = `
+Class ByRefArrayStore
+    Private values() As Long
+    Public Function Repro() As Long
+        Dim amount As Long
+        ReDim values(0 To 0)
+        values(0) = 10
+        amount = 5
+        AddTo values(0), amount
+        Repro = values(0)
+    End Function
+    Private Sub AddTo(ByRef target As Long, ByRef amount As Long)
+        target = target + amount
+    End Sub
+End Class
+
+Function TestClassArrayByRef() As Long
+    Dim store As New ByRefArrayStore
+    TestClassArrayByRef = store.Repro
+End Function
+`;
+    assert.strictEqual(runFunc(code, 'TestClassArrayByRef'), 15,
+        'クラスフィールド配列要素へのByRef書き戻しを保持する');
+    console.log('[PASS] Bug 130-A: クラスフィールド配列要素のByRef書き戻し');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

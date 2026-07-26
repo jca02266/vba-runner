@@ -4177,6 +4177,28 @@ export class Evaluator {
         return false;
     }
 
+    /**
+     * Call a class procedure from an expression and preserve ByRef arguments.
+     * Class calls historically evaluated arguments to values and discarded the
+     * callee's updates, unlike module procedure calls which write back through
+     * their original expressions.
+     */
+    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: Expression[]): any {
+        const args = argExprs.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+        const byRefValues: any[] = [];
+        const result = this.callClassMethod(instance, proc, args, byRefValues);
+        for (let i = 0; i < proc.parameters.length && i < argExprs.length; i++) {
+            if (!proc.parameters[i].isByVal) {
+                try {
+                    this.evaluateAssignmentToVariable(argExprs[i], byRefValues[i]);
+                } catch {
+                    // Non-assignable expressions are passed as temporary values.
+                }
+            }
+        }
+        return result;
+    }
+
     private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[], byRefWriteback?: any[]): any {
         const instanceEnv = instance.__instanceEnv__ as Environment;
         const localEnv = new Environment(instanceEnv);
@@ -4303,7 +4325,7 @@ export class Evaluator {
             if (byRefWriteback) {
                 for (let i = 0; i < proc.parameters.length; i++) {
                     const param = proc.parameters[i];
-                    if (!param.isByVal && i < byRefWriteback.length) {
+                    if (!param.isByVal) {
                         byRefWriteback[i] = localEnv.get(param.name);
                     }
                 }
@@ -7446,10 +7468,9 @@ export class Evaluator {
                 );
                 if (classProc) {
                     this.checkNoGapOnRequiredParam(classProc.parameters, expr.args);
-                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
                     this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
                     try {
-                        return this.callClassMethod(me, classProc, argsVals);
+                        return this.callClassMethodWithExpressions(me, classProc, expr.args);
                     } finally {
                         this.vbaCallStack.pop();
                     }
@@ -7690,8 +7711,7 @@ export class Evaluator {
                     );
                     if (defaultProperty) {
                         this.checkNoGapOnRequiredParam(defaultProperty.parameters, expr.args);
-                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                        return this.callClassMethod(variable, defaultProperty, argsVals);
+                        return this.callClassMethodWithExpressions(variable, defaultProperty, expr.args);
                     }
                     this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                 } else if (variable instanceof VbaNamespaceRef) {
@@ -7822,15 +7842,13 @@ export class Evaluator {
                         // fallthrough: let checkNoGapOnRequiredParam produce Error 450
                     }
                     this.checkNoGapOnRequiredParam(proc.parameters, expr.args);
-                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                    return this.callClassMethod(obj, proc, argsVals);
+                    return this.callClassMethodWithExpressions(obj, proc, expr.args);
                 }
                 // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
                 const ifaceProc = this.findInterfaceDispatch(obj, methodNameOriginal);
                 if (ifaceProc) {
                     this.checkNoGapOnRequiredParam(ifaceProc.parameters, expr.args);
-                    const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
-                    return this.callClassMethod(obj, ifaceProc, argsVals);
+                    return this.callClassMethodWithExpressions(obj, ifaceProc, expr.args);
                 }
                 // プロシージャが見つからない場合、配列フィールドへの外部インデックスアクセスを試みる
                 // 例: obj.Items(0)
