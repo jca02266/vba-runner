@@ -14,6 +14,11 @@ Private Type PointRecord
     Y As Integer
 End Type
 
+Private Type VariableStringRecord
+    Id As Long
+    Name As String
+End Type
+
 Public Sub RunExcelQueueVerification()
     Dim root As String
     root = Environ$("TEMP") & Application.PathSeparator & "vba-runner-xl-queue"
@@ -27,7 +32,25 @@ Public Sub RunExcelQueueVerification()
     VerifyLongArray root & Application.PathSeparator & "XL-005.bin"
     VerifyFixedStringArray root & Application.PathSeparator & "XL-006.bin"
     VerifyPointArray root & Application.PathSeparator & "XL-007.bin"
+    VerifyVariableStringRecord root & Application.PathSeparator & "XL-008.bin", False
+    VerifyVariableStringRecord root & Application.PathSeparator & "XL-008-random.bin", True
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifyVariableStringRecord(ByVal path As String, ByVal randomMode As Boolean)
+    Dim record As VariableStringRecord, f As Integer
+    record.Id = &H1020304
+    record.Name = "Aあ"
+    f = FreeFile
+    If randomMode Then
+        Open path For Random Access Write As #f Len = 16
+        Put #f, 1, record
+    Else
+        Open path For Binary Access Write As #f
+        Put #f, , record
+    End If
+    Close #f
+    PrintBytes IIf(randomMode, "XL-008-RANDOM", "XL-008"), path
 End Sub
 
 Private Sub VerifyMatrix(ByVal path As String)
