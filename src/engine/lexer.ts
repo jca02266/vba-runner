@@ -324,7 +324,10 @@ export class Lexer {
         let i = this.pos + 1;
         while (i < this.input.length && (this.input[i] === ' ' || this.input[i] === '\t' || this.input[i] === '\r')) i++;
         const next = i < this.input.length ? this.input[i] : '\0';
-        if (next === '\0' || next === '\n' || ',):=:'.includes(next)) return true;
+        // After a Long suffix, a second ampersand may be the concatenation
+        // operator (`n& & ","`).  Treat the first ampersand as the suffix;
+        // an operator-only expression (`n & &H10`) never enters this helper.
+        if (next === '\0' || next === '\n' || next === '&' || ',):=:'.includes(next)) return true;
         return this.input.slice(i, i + 2).toLowerCase() === 'as'
             && !this.isAlphaNumeric(this.input[i + 2] ?? '\0');
     }
