@@ -861,6 +861,58 @@ export class Evaluator {
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
     private debugHook: DebugHook | null = null;
 
+    /** Bind positional values to a procedure frame for module and class calls. */
+    private bindProcedureParameters(
+        proc: ProcedureDeclaration,
+        args: any[],
+        localEnv: Environment,
+        argSubtypes?: (VbaVarType | undefined)[],
+    ): string | null {
+        for (let i = 0; i < proc.parameters.length; i++) {
+            const param = proc.parameters[i];
+            const paramName = param.name;
+            if (param.isParamArray) {
+                const remainingArgs = args.slice(i);
+                (remainingArgs as any).vbaBase = 0;
+                localEnv.setLocally(paramName, remainingArgs);
+                return paramName;
+            }
+
+            let argValue: any;
+            if (i < args.length) argValue = args[i];
+            else if (param.defaultValue) argValue = this.evaluateExpression(param.defaultValue);
+            else argValue = vbaMissing;
+
+            if (param.paramType && !param.isArray) {
+                const typeMap: Record<string, VbaVarType> = {
+                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
+                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
+                };
+                const mapped = typeMap[param.paramType.toLowerCase()];
+                if (mapped) {
+                    localEnv.setVariableType(paramName, {
+                        vbaType: mapped,
+                        fixedLength: mapped === 'String' ? param.fixedLength : undefined,
+                    });
+                } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
+                    localEnv.setVariableType(paramName, {
+                        vbaType: 'Object',
+                        objectTypeName: param.paramType,
+                    });
+                }
+            }
+            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
+            localEnv.setLocally(paramName, argValue);
+            if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
+                    && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
+                localEnv.setVariantSubtype(paramName, argSubtypes[i]!);
+            }
+            this.addRef(argValue);
+        }
+        return null;
+    }
+
     /**
      * resolveIdentifiers 完了後に true になる。
      * evaluateModule はこのフラグを見て、バッチロード中（false）はモジュールレベル
@@ -1402,59 +1454,7 @@ export class Evaluator {
         const parentEnv = this.moduleEnvs.get(procModuleKey) ?? this.env;
         const localEnv = new Environment(parentEnv);
 
-        // Map arguments to parameter names
-        for (let i = 0; i < proc.parameters.length; i++) {
-            const param = proc.parameters[i];
-            const paramName = param.name;
-
-            if (param.isParamArray) {
-                // Capture all remaining arguments into a Variant array
-                const remainingArgs = args.slice(i);
-                (remainingArgs as any).vbaBase = 0; // ParamArray is always 0-based
-                localEnv.setLocally(paramName, remainingArgs);
-                break;
-            }
-
-            let argValue: any;
-            if (i < args.length) {
-                argValue = args[i];
-            } else if (param.defaultValue) {
-                argValue = this.evaluateExpression(param.defaultValue);
-            } else {
-                // checkArgCount済みかつパラメーター順序（必須が先・Optionalが後）が保証されているため、
-                // ここに来る時点で param は必ず Optional（defaultValue なし）。
-                argValue = vbaMissing;
-            }
-            // Register parameter type metadata (but not for array parameters)
-            if (param.paramType && !param.isArray) {
-                const typeMap: Record<string, VbaVarType> = {
-                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
-                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
-                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
-                };
-                const mapped = typeMap[param.paramType.toLowerCase()];
-                if (mapped) {
-                    // Bug CH: include fixedLength so setLocally coerces String * N parameters
-                    localEnv.setVariableType(paramName, {
-                        vbaType: mapped,
-                        fixedLength: mapped === 'String' ? param.fixedLength : undefined,
-                    });
-                } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
-                    localEnv.setVariableType(paramName, {
-                        vbaType: 'Object',
-                        objectTypeName: param.paramType,
-                    });
-                }
-            }
-            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
-            localEnv.setLocally(paramName, argValue);
-            // Variant（型なし）パラメーターへ数値サブタイプを伝播
-            if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
-                    && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
-                localEnv.setVariantSubtype(paramName, argSubtypes[i]!);
-            }
-            this.addRef(argValue);
-        }
+        this.bindProcedureParameters(proc, args, localEnv, argSubtypes);
 
         const result = this.execProcBody(proc, localEnv, {
             byRefArgs: [],
@@ -4209,52 +4209,7 @@ export class Evaluator {
         // Validate argument count
         this.checkArgCount(proc, args);
 
-        // Map arguments to parameters
-        for (let i = 0; i < proc.parameters.length; i++) {
-            const param = proc.parameters[i];
-            const paramName = param.name;
-
-            if (param.isParamArray) {
-                const remainingArgs = args.slice(i);
-                (remainingArgs as any).vbaBase = 0;
-                localEnv.setLocally(paramName, remainingArgs);
-                break;
-            }
-
-            let argValue: any;
-            if (i < args.length) {
-                argValue = args[i];
-            } else if (param.defaultValue) {
-                argValue = this.evaluateExpression(param.defaultValue);
-            } else {
-                // checkArgCount済みかつパラメーター順序（必須が先・Optionalが後）が保証されているため、
-                // ここに来る時点で param は必ず Optional（defaultValue なし）。
-                argValue = vbaMissing;
-            }
-            // Bug CH: Register parameter type so setLocally coerces String * N parameters
-            if (param.paramType && !param.isArray) {
-                const typeMap: Record<string, VbaVarType> = {
-                    'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
-                    'single': 'Single', 'double': 'Double', 'currency': 'Currency',
-                    'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
-                };
-                const mapped = typeMap[param.paramType.toLowerCase()];
-                if (mapped) {
-                    localEnv.setVariableType(paramName, {
-                        vbaType: mapped,
-                        fixedLength: mapped === 'String' ? param.fixedLength : undefined,
-                    });
-                } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
-                    localEnv.setVariableType(paramName, {
-                        vbaType: 'Object',
-                        objectTypeName: param.paramType,
-                    });
-                }
-            }
-            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
-            localEnv.setLocally(paramName, argValue);
-            this.addRef(argValue);
-        }
+        this.bindProcedureParameters(proc, args, localEnv);
 
         if (proc.isFunction || proc.isProperty) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
