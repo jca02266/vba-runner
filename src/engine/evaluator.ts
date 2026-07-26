@@ -1633,13 +1633,13 @@ export class Evaluator {
                                 findings.argumentError = {
                                     code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                                     message: 'Wrong number of arguments or invalid property assignment',
-                                    line: call.loc?.start.line,
+                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
                             } else if (call.args.length < min) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                                     message: 'Argument not optional',
-                                    line: call.loc?.start.line,
+                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
                             }
                         }

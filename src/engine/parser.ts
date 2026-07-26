@@ -1515,9 +1515,25 @@ export class Parser {
 
         // Unify assignment, array access, method call
         const savedPos = this.pos;
-        const spacedCallArgument = this.tokens[this.pos + 1]?.type === TokenType.OperatorLParen &&
+        let spacedCallArgument = token.type !== TokenType.ForeignName &&
+            this.tokens[this.pos + 1]?.type === TokenType.OperatorLParen &&
             this.tokens[this.pos + 1].line === token.line &&
             this.tokens[this.pos + 1].column > token.column + String(token.value).length;
+        // A space before an index expression is still an indexed assignment:
+        // `arr (0) = value` must not be treated as a ByVal procedure call.
+        if (spacedCallArgument) {
+            let depth = 0;
+            for (let i = this.pos + 1; i < this.tokens.length; i++) {
+                if (this.tokens[i].type === TokenType.OperatorLParen) depth++;
+                else if (this.tokens[i].type === TokenType.OperatorRParen) {
+                    depth--;
+                    if (depth === 0) {
+                        spacedCallArgument = this.tokens[i + 1]?.type !== TokenType.OperatorEquals;
+                        break;
+                    }
+                }
+            }
+        }
         const expr = this.parsePrimary(spacedCallArgument); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
 
         if (this.match(TokenType.OperatorEquals)) {
