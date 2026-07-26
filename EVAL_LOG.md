@@ -166,12 +166,12 @@
 | `eval()` で他モジュールの `Dim`/`Private` 変数が読めない | `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private` 変数にはアクセスできない（VBA のクロスモジュール非公開変数と同じ意味論）。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計。 |
 | `On Error GoTo` ハンドラー内で `Exit Function` 後も `Err.Number` が残留 | `Function DivSafe(a,b): On Error GoTo H: DivSafe=a/b: Exit Function: H: DivSafe=0: End Function` → 呼出後 `Err.Number=11` | 実 VBA の仕様通り。VBA の `Err` はグローバルオブジェクトであり、`Resume` / `Resume Next` / `Err.Clear` / `On Error` 文の実行でのみリセットされる。`Exit Function` は `Err` をクリアしない。ワークアラウンド: エラーハンドラー内で明示的に `Err.Clear` を呼ぶ。 |
 
-### 拡張機能 LSP のバグ（評価 #9 で発見・未修正）
+### ~~拡張機能 LSP のバグ（評価 #9 で発見・修正済み）~~
 
 | 問題 | 再現コード | 根本原因 |
 |---|---|---|
-| 引数付きチェーン補完が効かない | `ws.Cells(1, 1).` で Range でなくグローバル関数 29 件が返る | `detectMemberAccess` の正規表現が `)` 終端の式にマッチしない（`completion-provider.ts:454`） |
-| VBA016 波下線が変数名を指す | `Dim x As UnknownType` で `x` に波下線（`UnknownType` であるべき） | `unknown-type-checker.ts:79` で `d.name.loc`（変数名位置）を渡している。パーサーの `VariableDeclarator` に型名の loc フィールドなし |
+| ~~引数付きチェーン補完が効かない~~ | **修正済み**（評価 #10/#11）: `ws.Cells(1, 1).` でRangeメンバーを返す。 | `detectMemberAccess` の `)` 終端対応を追加 |
+| ~~VBA016 波下線が変数名を指す~~ | **修正済み**（評価 #10）: 型名の範囲を診断する。 | `objectTypeLoc` を優先して使用 |
 
 ### ~~未修正バグ（評価 #21 で発見・修正済み）~~
 
@@ -331,7 +331,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | 制限 | 詳細 |
 |---|---|
 | ~~`VBARunner` が複数ファイルの配列渡しに非対応~~ | **対応済み**（`new VBARunner(['/a/M1.bas', '/b/C1.cls'])` が動作するよう修正） |
-| `eval()` の行番号が常に "line 1" | マルチライン eval でエラーが出ても行情報が `(line 1)` のみ |
+| ~~`eval()` の行番号が常に "line 1"~~ | **修正済み**: Lexerの行番号をVBAエラーへ伝播し、マルチラインevalでは実際の行番号を表示する。 |
 | ~~README に `eval()` の「式 vs 文」の注意書きがない~~ | **修正済み**: `build/runner/README.md` に、`eval("x + 1")` と `eval("(x) + 1")` の解釈差を追記。 |
 | `Dictionary.Add` へ Object をキーとして渡してもエラーなし | 実 VBA では非文字列キーの挙動は Object の hash になるが、引数順序ミス（Collection をキーに渡す）を検出できない。エラーなく格納されるが文字列で取り出せないため診断が困難 |
 | ~~`Exit Sub` を `eval()` トップレベルで使うと JS 例外が漏れる~~ | **修正済み** (`0ca97d8`): `executeStatements` を try/catch でラップして Exit シグナルを飲み込む |
