@@ -29,6 +29,7 @@
 | 116 | 言語仕様 #116: ParamArray 宣言制約 | `Optional` との併用、末尾以外への配置、ByVal/ByRef 修飾、Variant 配列以外の型、配列表記省略を評価した。VBAではすべてコンパイルエラーになる宣言を受理していた Bug 116-A〜D を修正し、回帰テストを追加した。 | 2026-07-26 |
 | 117 | 実行互換性 #117: FileSystemObject のファイル移動・コピー | `CopyFile` と `MoveFile` が標準メソッド一覧にあるにもかかわらず Error 438 になっていた Bug 117-A を修正した。存在しないファイルを `DeleteFile` した際に Node の ENOENT が漏れる Bug 117-B も VBA Error 53 へ正規化し、回帰テストを追加した。 | 2026-07-26 |
 | 118 | 実行互換性 #118: FileSystemObject TextStream の読み取り境界 | `TextStream.Read` と `Skip`、`SkipLine` が Error 438 になっていた Bug 118-A を修正した。現在位置を進める文字数読み取り・スキップを実装し、既存の `ReadAll` / `ReadLine` と合わせて回帰テストを追加した。 | 2026-07-26 |
+| 119 | 回帰確認 #119: Property・Binary・ファイルモード境界 | インデックス付きProperty Get/Let/Set、Property経由のオブジェクト格納、配列境界、Binaryの連続Put/Getと空文字、Inputハンドルへの書き込みを評価した。いずれも期待値またはVBA Error 9/54と一致し、新規バグは確認されなかった。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
