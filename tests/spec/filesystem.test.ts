@@ -112,10 +112,12 @@ console.log('[PASS] Bug 26-3: Open For Random Len = N');
 }
 console.log('[PASS] Open Shared lock clause');
 
-// --- Bug 26-7: GetAttr / SetAttr スタブ, vbNormal/vbReadOnly/vbDirectory 定数 ---
+// --- Bug 26-7: GetAttr / SetAttr, vbNormal/vbReadOnly/vbDirectory 定数 ---
 {
-    const ev = evalVBASingle('');
-    assert.strictEqual(ev.evalExpression('GetAttr("dummy")'), 0, 'GetAttr は 0 (vbNormal) を返す');
+    const attrVfs = new MemoryFileSystem();
+    attrVfs.writeFileSync('/sandbox/dummy', '');
+    const ev = evalVBASingle('', { fs: attrVfs });
+    assert.strictEqual(ev.evalExpression('GetAttr("dummy")'), 0, '通常ファイルは vbNormal');
     assert.strictEqual(ev.evalExpression('vbNormal'), 0, 'vbNormal = 0');
     assert.strictEqual(ev.evalExpression('vbReadOnly'), 1, 'vbReadOnly = 1');
     assert.strictEqual(ev.evalExpression('vbHidden'), 2, 'vbHidden = 2');
@@ -123,7 +125,28 @@ console.log('[PASS] Open Shared lock clause');
     assert.strictEqual(ev.evalExpression('vbDirectory'), 16, 'vbDirectory = 16');
     assert.strictEqual(ev.evalExpression('vbArchive'), 32, 'vbArchive = 32');
 }
-console.log('[PASS] Bug 26-7: GetAttr/SetAttr スタブ + ファイル属性定数');
+console.log('[PASS] Bug 26-7: GetAttr/SetAttr + ファイル属性定数');
+
+// GetAttr / SetAttr のVFS属性ビットを実体化し、ファイルとディレクトリを区別する。
+{
+    const attrsVfs = new MemoryFileSystem();
+    attrsVfs.writeFileSync('/sandbox/attrs.txt', 'x');
+    attrsVfs.mkdirSync('/sandbox/attrs-dir', { recursive: true });
+    const attrsEv = evalVBASingle(`
+        Public beforeAttrs, afterAttrs, directoryAttrs
+        Sub TestAttrs()
+            beforeAttrs = GetAttr("attrs.txt")
+            SetAttr "attrs.txt", vbReadOnly Or vbHidden
+            afterAttrs = GetAttr("attrs.txt")
+            directoryAttrs = GetAttr("attrs-dir")
+        End Sub
+    `, { fs: attrsVfs });
+    attrsEv.callProcedure('TestAttrs', []);
+    assert.strictEqual(attrsEv.env.get('beforeattrs'), 0, '通常ファイルは vbNormal');
+    assert.strictEqual(attrsEv.env.get('afterattrs'), 3, 'SetAttr は ReadOnly と Hidden を保持');
+    assert.strictEqual(attrsEv.env.get('directoryattrs'), 16, 'ディレクトリは vbDirectory');
+}
+console.log('[PASS] GetAttr/SetAttr: VFS属性ビット');
 
 // --- Bug BL: Input # が #TRUE#/#FALSE# を Boolean として読み込めない ---
 {

@@ -86,7 +86,7 @@ import {
 } from './parser';
 import { Lexer, TokenType } from './lexer';
 import { SandboxPath } from './sandbox';
-import { FileSystem, MemoryFileSystem } from './filesystem';
+import { FileSystem, MemoryFileSystem, VBA_FILE_ATTRIBUTE } from './filesystem';
 import { checkOptionExplicit, walkProcForUndefinedCalls, UndefinedProcError } from './option-explicit-checker';
 import * as path from 'path';
 import iconv from 'iconv-lite';
@@ -1083,9 +1083,6 @@ export class Evaluator {
         this.registerBuiltin('chdrive', (drive: any) => {
             console.log(`[STUB] ChDrive "${vbaToString(drive ?? '')}"`);
         }, [{ name: 'Drive' }]);
-        this.registerBuiltin('setattr', (path: any, attr: any) => {
-            console.log(`[STUB] SetAttr "${vbaToString(path ?? '')}", ${this.toVbaNumber(attr)}`);
-        }, [{ name: 'PathName' }, { name: 'Attributes' }]);
         this.registerBuiltin('filedatetime', (path: any) => {
             const realPath = this.sandbox.toRealPath(vbaToString(path ?? ''));
             try {
@@ -1148,9 +1145,36 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
             }
         }, [{ name: 'PathName' }]);
-        // GetAttr/SetAttr: return vbNormal(0) stub; sandbox has no real file attribute model
-        this.registerBuiltin('getattr', (_p: any) => 0, [{ name: 'PathName' }]);
-        this.registerBuiltin('setattr', (_p: any, _attr: any) => undefined, [{ name: 'PathName' }, { name: 'Attributes' }]);
+        this.registerBuiltin('getattr', (p: any) => {
+            const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
+            try {
+                if (this.fs.getAttributes) return this.fs.getAttributes(realPath);
+                const stat = this.fs.statSync(realPath);
+                let attributes = stat.isDirectory() ? VBA_FILE_ATTRIBUTE.DIRECTORY : VBA_FILE_ATTRIBUTE.NORMAL;
+                if (stat.mode !== undefined && (stat.mode & 0o222) === 0) {
+                    attributes |= VBA_FILE_ATTRIBUTE.READ_ONLY;
+                }
+                return attributes;
+            } catch {
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
+        }, [{ name: 'PathName' }]);
+        this.registerBuiltin('setattr', (p: any, attr: any) => {
+            const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
+            const attributes = this.toVbaNumber(attr);
+            try {
+                if (!this.fs.setAttributes) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File attributes are not supported');
+                }
+                this.fs.setAttributes(realPath, attributes);
+            } catch (e: any) {
+                if (e?.type === 'VbaError') throw e;
+                if (e?.message?.startsWith('Invalid file attributes')) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, e.message);
+                }
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
+        }, [{ name: 'PathName' }, { name: 'Attributes' }]);
     }
 
     private triggerTerminate(obj: any) {

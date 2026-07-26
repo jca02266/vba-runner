@@ -17,6 +17,7 @@
 | 104 | 回帰確認 #104: LSP Introduce Variable | **Introduce Variable 実装済み**: 単一行の式選択に対する Code Action と、`Dim ... As Variant`・代入を挿入して選択式を置換するテキスト編集を追加した。プロシージャ外・空選択・文形式は対象外とし、LSP 回帰テストで Code Action と編集内容を確認した。 | 2026-07-26 |
 | 105 | 回帰確認 #105: 拡張機能LSPリファクタリング群 | 拡張機能のCode Actionとコマンド実装を再確認し、Extract Constant、Inline Variable、Introduce With、Organize Declarations が `src/extension.ts` に実装済みであることを確認した。評価 #18 の古い未実装記載を訂正した。 | 2026-07-26 |
 | 106 | 回帰確認 #106: LSP CodeLens・Hover・TestRunner | 評価 #14/#15/#17 の古い問題記載を回帰テストで再確認した。`Test_*` の宣言行だけを参照する疑似陽性、Constの型・値表示、Public/Privateの大文字表示、戻り型付きFunctionの括弧補完、TestRunnerの失敗メッセージはいずれも修正済みで、関連テストが通過した。 | 2026-07-26 |
+| 107 | 実行互換性 #107: VFSファイル属性 | **Bug 107-A 修正済み**: `GetAttr` / `SetAttr` が常に `vbNormal` / no-op だった。`MemoryFileSystem` に属性ビットを保持し、ReadOnly・Hidden・Directory 等を取得・更新できるようにした。NodeFileSystem は ReadOnly とドットファイルの Hidden を推定し、ReadOnly変更を chmod に反映する。回帰テストで通常ファイル、属性変更、ディレクトリを確認した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |

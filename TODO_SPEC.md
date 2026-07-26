@@ -460,7 +460,7 @@ Webブラウザおよびテスト環境向けの仮想ファイルシステム (
   - 修正: `flags === 'a'` の場合、既存ファイルが存在すればその長さを `pos` の初期値にするよう変更 | `filesystem.test.ts`
 - ✅ `MemoryFileSystem` にワイルドカードマッチングロジックの実装（`Kill` への統合）。 | `wildcard-kill-dir.test.ts`
 - ✅ `MemoryFileSystem` 内部での `cwd` (Current Working Directory) の保持と `ChDir` 対応。 | `chdir-curdir.test.ts`
-- ❌ `statSync` における VBA 属性（Read-only, Hidden 等）のシミュレーション。
+- ✅ `statSync` / `GetAttr` / `SetAttr` のVBA属性（Read-only, Hidden, Directory 等）を `MemoryFileSystem` で保持・更新。NodeFileSystem は ReadOnly とドットファイルの Hidden を実ファイルから推定し、SetAttr のReadOnlyを chmod に反映する。 | `filesystem.test.ts`
 
 #### 2. ブラウザ環境最適化
 - ❌ `FileSystem` インターフェースの非同期版 (`read`, `write` 等) の検討（ブラウザのメインスレッドをブロックしないため）。

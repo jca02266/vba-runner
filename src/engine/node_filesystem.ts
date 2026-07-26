@@ -1,10 +1,13 @@
 import * as fs from 'fs';
+import * as path from 'path';
 import { FileSystem } from './filesystem';
+import { VBA_FILE_ATTRIBUTE } from './filesystem';
 
 /**
  * Node.js based file system.
  */
 export class NodeFileSystem implements FileSystem {
+    private readonly attributeOverrides = new Map<string, number>();
     existsSync(p: string) { return fs.existsSync(p); }
     readFileSync(p: string, encoding: 'utf-8' | 'utf8') { return fs.readFileSync(p, encoding); }
     writeFileSync(p: string, content: string) { fs.writeFileSync(p, content); }
@@ -22,6 +25,36 @@ export class NodeFileSystem implements FileSystem {
             isDirectory: () => s.isDirectory(),
             mtime: s.mtime
         };
+    }
+    getAttributes(p: string): number {
+        const normalized = path.resolve(p);
+        const s = fs.statSync(normalized);
+        const override = this.attributeOverrides.get(normalized);
+        if (override !== undefined) {
+            return s.isDirectory()
+                ? override | VBA_FILE_ATTRIBUTE.DIRECTORY
+                : override & ~VBA_FILE_ATTRIBUTE.DIRECTORY;
+        }
+        let attributes = s.isDirectory() ? VBA_FILE_ATTRIBUTE.DIRECTORY : VBA_FILE_ATTRIBUTE.NORMAL;
+        if ((s.mode & 0o222) === 0) attributes |= VBA_FILE_ATTRIBUTE.READ_ONLY;
+        if (path.basename(normalized).startsWith('.')) attributes |= VBA_FILE_ATTRIBUTE.HIDDEN;
+        return attributes;
+    }
+    setAttributes(p: string, attributes: number): void {
+        const normalized = path.resolve(p);
+        const s = fs.statSync(normalized);
+        if (!Number.isInteger(attributes) || attributes < 0 || attributes > 127) {
+            throw new Error(`Invalid file attributes: ${attributes}`);
+        }
+        const normalizedAttributes = s.isDirectory()
+            ? attributes | VBA_FILE_ATTRIBUTE.DIRECTORY
+            : attributes & ~VBA_FILE_ATTRIBUTE.DIRECTORY;
+        this.attributeOverrides.set(normalized, normalizedAttributes);
+        // Read-only is the only VBA attribute with a portable POSIX analogue.
+        const mode = s.mode & 0o777;
+        fs.chmodSync(normalized, (normalizedAttributes & VBA_FILE_ATTRIBUTE.READ_ONLY)
+            ? mode & ~0o222
+            : mode | 0o200);
     }
     openSync(p: string, flags: string) { return fs.openSync(p, flags); }
     closeSync(fd: number) { fs.closeSync(fd); }

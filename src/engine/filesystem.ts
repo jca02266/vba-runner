@@ -1,5 +1,17 @@
 import * as path from 'path';
 
+/** VBA GetAttr/SetAttr bit flags. */
+export const VBA_FILE_ATTRIBUTE = {
+    NORMAL: 0,
+    READ_ONLY: 1,
+    HIDDEN: 2,
+    SYSTEM: 4,
+    VOLUME: 8,
+    DIRECTORY: 16,
+    ARCHIVE: 32,
+    ALIAS: 64,
+} as const;
+
 export interface FileSystem {
     existsSync(path: string): boolean;
     readFileSync(path: string, encoding: 'utf-8' | 'utf8'): string;
@@ -19,6 +31,10 @@ export interface FileSystem {
         birthtime?: Date;
         mode?: number;
     };
+    /** Return VBA GetAttr-compatible flags when the backend supports them. */
+    getAttributes?(path: string): number;
+    /** Set VBA SetAttr-compatible flags when the backend supports them. */
+    setAttributes?(path: string, attributes: number): void;
     openSync(path: string, flags: string): number;
     closeSync(fd: number): void;
     readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number | null): number;
@@ -29,8 +45,8 @@ export interface FileSystem {
  * Memory-based file system for browser environments.
  */
 export class MemoryFileSystem implements FileSystem {
-    private files: Map<string, { data: Uint8Array | string, birthtime: Date, mtime: Date }> = new Map();
-    private dirs: Map<string, { birthtime: Date, mtime: Date }> = new Map([['/', { birthtime: new Date(), mtime: new Date() }]]);
+    private files: Map<string, { data: Uint8Array | string, birthtime: Date, mtime: Date, attributes?: number }> = new Map();
+    private dirs: Map<string, { birthtime: Date, mtime: Date, attributes?: number }> = new Map([['/', { birthtime: new Date(), mtime: new Date(), attributes: VBA_FILE_ATTRIBUTE.DIRECTORY }]]);
     private fileHandles: Map<number, { path: string, flags: string, pos: number }> = new Map();
     private nextFd = 1;
 
@@ -56,7 +72,8 @@ export class MemoryFileSystem implements FileSystem {
         this.files.set(norm, { 
             data: content, 
             birthtime: existing ? existing.birthtime : now,
-            mtime: now
+            mtime: now,
+            attributes: existing?.attributes ?? VBA_FILE_ATTRIBUTE.NORMAL,
         });
     }
 
@@ -69,11 +86,11 @@ export class MemoryFileSystem implements FileSystem {
             for (const part of parts) {
                 current += '/' + part;
                 if (!this.dirs.has(current)) {
-                    this.dirs.set(current, { birthtime: now, mtime: now });
+                    this.dirs.set(current, { birthtime: now, mtime: now, attributes: VBA_FILE_ATTRIBUTE.DIRECTORY });
                 }
             }
         } else {
-            this.dirs.set(norm, { birthtime: now, mtime: now });
+            this.dirs.set(norm, { birthtime: now, mtime: now, attributes: VBA_FILE_ATTRIBUTE.DIRECTORY });
         }
     }
 
@@ -159,6 +176,27 @@ export class MemoryFileSystem implements FileSystem {
         };
     }
 
+    getAttributes(p: string): number {
+        const norm = this.normalize(p);
+        const fileEntry = this.files.get(norm);
+        const dirEntry = this.dirs.get(norm);
+        if (!fileEntry && !dirEntry) throw new Error(`Not found: ${p}`);
+        const attributes = (fileEntry ?? dirEntry)!.attributes ?? VBA_FILE_ATTRIBUTE.NORMAL;
+        return dirEntry ? attributes | VBA_FILE_ATTRIBUTE.DIRECTORY : attributes & ~VBA_FILE_ATTRIBUTE.DIRECTORY;
+    }
+
+    setAttributes(p: string, attributes: number): void {
+        const norm = this.normalize(p);
+        const fileEntry = this.files.get(norm);
+        const dirEntry = this.dirs.get(norm);
+        if (!fileEntry && !dirEntry) throw new Error(`Not found: ${p}`);
+        if (!Number.isInteger(attributes) || attributes < 0 || attributes > 127) {
+            throw new Error(`Invalid file attributes: ${attributes}`);
+        }
+        if (fileEntry) fileEntry.attributes = attributes & ~VBA_FILE_ATTRIBUTE.DIRECTORY;
+        if (dirEntry) dirEntry.attributes = attributes | VBA_FILE_ATTRIBUTE.DIRECTORY;
+    }
+
     openSync(p: string, flags: string): number {
         const norm = this.normalize(p);
         if (flags === 'r' && !this.existsSync(norm)) throw new Error(`File not found: ${p}`);
@@ -222,7 +260,8 @@ export class MemoryFileSystem implements FileSystem {
         this.files.set(h.path, {
             data: combined,
             birthtime: entry ? entry.birthtime : now,
-            mtime: now
+            mtime: now,
+            attributes: entry?.attributes ?? VBA_FILE_ATTRIBUTE.NORMAL,
         });
         if (position === null || position === undefined) h.pos += newData.length;
         return newData.length;
