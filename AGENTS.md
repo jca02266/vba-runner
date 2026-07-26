@@ -16,3 +16,11 @@ When a body is needed, enter it as real separate lines and separate it from
 the summary with exactly one blank line. Wrap body paragraphs at about 72
 characters. Do not represent paragraph breaks with escape notation. Omit the
 body when the summary alone is sufficient.
+
+## バグ原因の報告
+
+バグの原因を説明するときは、原因や再現経路だけで終わらせず、現在の
+対処状況も必ず併記する。少なくとも、修正済みか未修正か、修正済みなら
+対象コード・回帰テスト・検証結果、未修正なら残る影響範囲と次の対処を
+明記する。リファクタリングで一部経路だけ解消した場合は、解消範囲と
+未検証・未解消の経路を区別して報告する。

@@ -3422,7 +3422,8 @@ export class Evaluator {
                     );
                     if (implicitSetter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethod(implicitObj, implicitSetter, [...argsVals, val]);
+                        this.callClassMethodWithExpressions(implicitObj, implicitSetter,
+                            [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
                         const implicitInstanceEnv = implicitObj.__instanceEnv__ as Environment;
                         const implicitFieldArr = implicitInstanceEnv.get(implicitProp);
@@ -4971,7 +4972,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null], [...argsVals, value]);
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right], [...argsVals, value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -5045,7 +5046,7 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                     );
                     if (setter) {
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null],
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right],
                             [...call.args.map(a => this.evaluateExpression(a)), value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
