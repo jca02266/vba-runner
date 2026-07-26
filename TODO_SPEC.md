@@ -119,8 +119,8 @@
 | ✅ | P2 | Print Statement（`Print #n`） | §5.4.5.8 | `filesystem.test.ts` |
 | ✅ | P2 | Write Statement | §5.4.5.9 | `filesystem.test.ts` |
 | ✅ | P2 | Input Statement | §5.4.5.10 | `filesystem.test.ts` |
-| ✅ | P2 | Put Statement | §5.4.5.11 | (制限事項: UDT はバグ。§「バイナリ操作の極致」参照) | `filesystem-extra.test.ts` |
-| ✅ | P2 | Get Statement | §5.4.5.12 | (制限事項: 同上、UDT で Error 424) | `filesystem-extra.test.ts` |
+| ✅ | P2 | Put Statement | §5.4.5.11 | 基本型・型付き配列・UDT配列を実装。物理レイアウトの実Excel照合は `EVAL_LOG.md` #100〜#102 参照 | `filesystem-extra.test.ts` |
+| ✅ | P2 | Get Statement | §5.4.5.12 | 基本型・型付き配列・UDT配列を実装。物理レイアウトの実Excel照合は `EVAL_LOG.md` #100〜#102 参照 | `filesystem-extra.test.ts` |
 
 ## 第5章：宣言 (§5.2, §5.3)
 
@@ -1428,7 +1428,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
   - **`\`/`Mod` の Boolean 型保持は「左が Boolean かつ右が文字列」のときだけの非対称規則**と判明: `True \ "7"` は `"7"` が `CBool` 変換され `True(-1)\True(-1)=1`→非ゼロで Boolean True。しかし `"7" \ True`（左右逆）は通常の数値変換で Long -7、`True \ True`（両方 literal で文字列変換なし）は通常の整数昇格で Integer 1。片方向・文字列変換が絡む場合のみ発動する規則
   - **CDate の "H.N" 形式の文字列は「H時N分」の時刻として解釈される**（シリアル値の小数としてではない）と判明: `CDate("2.5")` = 02:05:00。共通ヘルパー `tryParseTimeFractionString`（`vba-types.ts`）として実装し、CDate と `+` 演算子（Date とのペア限定）の両方から利用
   - この時刻解釈規則は **`+` 演算子だけの特殊ルール**: `#date# + "3.5"` は 03:05:00 を加算するが、`-`/`*`/`/`/`\`/`Mod` では同じ `"3.5"` を通常どおりシリアル値 3.5 として解釈する（非対称）。実装時に一度全演算子に広げてリグレッションし、`+` 限定に絞って解決
-  - `"M,Y"` 形式（`CDate("1,234")` → 西暦234年1月1日）も発見したが、極端に古い年でのタイムゾーン LMT 依存問題と絡むため実装のみ行い、一致確認は未検証のまま許容リストに残置
+  - `"M,Y"` 形式（`CDate("1,234")` → 西暦234年1月1日）は差分コーパス第2回で現代年を含む境界を実Excel再検証済み。極端に古い年のタイムゾーン LMT 依存差分のみ許容リストに残置（詳細: `EVAL_LOG.md` #122）
   - | `real-vba-diff-regressions.test.ts`
 
 - ✅ **実 VBA 差分テスト第2回（境界値の追加検証、149 式）**

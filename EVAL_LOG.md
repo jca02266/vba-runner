@@ -32,6 +32,7 @@
 | 119 | 回帰確認 #119: Property・Binary・ファイルモード境界 | インデックス付きProperty Get/Let/Set、Property経由のオブジェクト格納、配列境界、Binaryの連続Put/Getと空文字、Inputハンドルへの書き込みを評価した。いずれも期待値またはVBA Error 9/54と一致し、新規バグは確認されなかった。 | 2026-07-26 |
 | 120 | 実行互換性 #120: Format 数値書式の色指定 | `Format$(-12.3, "0000.00;[Red]-0000.00")` が `[Red]` 内の `d` を日付書式として誤認し、書式文字列を壊していた Bug 120-A を修正した。色指定を表示色に限定して除去し、正負セクションのゼロ埋めを回帰テストで確認した。 | 2026-07-26 |
 | 121 | 回帰確認 #121: 引数束縛とネストしたエラー伝播 | Optional既定値、名前付き引数、空の位置引数、`On Error GoTo` / `Resume Next` をまたぐ `Err.Raise` と内側で処理済みの Err.Number を評価した。結果はVBAの期待値と一致し、新規バグは確認されなかった。 | 2026-07-26 |
+| 122 | 記録整合確認 #122: 重点候補の実施状況 | `CDate("M,Y")` の実Excel差分、`Format` の `[Red]` 色指定、UDT配列の基本物理レイアウト、FSO TextStreamの基本読み書き、`Declare` 構文、`DoEvents` のスタブ、ポインター関数の恒久制限を既存記録と照合した。実施済みと未検証の境界を下記の一覧へ集約した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -149,6 +150,7 @@
 | **Bug 117-A/B: FSO のファイル操作が未実装・Nodeエラー漏れ** | `fso.CopyFile source, destination` と `fso.MoveFile source, destination` が Error 438 になり、存在しないファイルへの `fso.DeleteFile` は Node の ENOENT をそのまま返していた。FSOへコピー・移動を実装し、ファイル未存在を VBA Error 53、上書きなしの既存先を Error 58 として処理。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
 | **Bug 118-A: TextStream の Read/Skip 系メソッドが未実装** | `OpenTextFile` の戻り値に対する `Read(2)` と `Skip(1)` が Error 438 になり、`SkipLine` も未実装だった。TextStream の現在位置を文字単位で進める `Read` / `Skip` / `SkipLine` を追加。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
 | **Bug 120-A: Format の色指定が日付書式として誤認される** | `Format$(-12.3, "0000.00;[Red]-0000.00")` が `0000.00;[Re18]-0000.00` を返していた。`[Red]` の `d` を日付書式判定が拾っていたため、既知の色ディレクティブを数値書式から除去して正負セクションを選択。回帰テスト: `tests/spec/builtins.test.ts`。 | このコミット |
+
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |
@@ -442,6 +444,18 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | ~~**Bug 34-A: 2桁年の日付リテラルが常に 20xx になる**~~ | **修正済み**: `Format(#3/15/30#, "yyyy-mm-dd")` → `1930-03-15`、`#3/15/99#` → `1999-03-15`。`parseDateLiteral()` を DateSerial と同じ既定 2029 ルール（00–29 は 20xx、30–99 は 19xx）へ修正し、`tests/spec/date-literal-parsing.test.ts` に回帰テストを追加。 | 旧実装は `year < 100` のとき常に `year += 2000` としていた。 |
 
 ---
+
+### 重点候補の実施状況（評価ログを正とする）
+
+| 項目 | 現状 | 根拠・残る境界 |
+|---|---|---|
+| `CDate("M,Y")` の実Excel一致 | **実施済み** | 差分コーパス第2回で現代年を含む境界を再検証。極端に古い年はタイムゾーン依存のため許容差分として扱う。 |
+| `Format` の色指定・条件付き書式 | **部分実施** | `[Red]` 色指定は Bug 120-A として修正・回帰確認済み。`[<100]` など条件付きセクションは未検証。 |
+| UDT の `Put` / `Get` 複合配列・ネスト | **部分実施** | スカラー、UDT配列、固定長配列、可変長String、2次元配列の物理レイアウトは実Excel照合済み（#100〜#102）。ネストしたUDTを含む複合レコードは未検証。 |
+| FSO TextStream の書き込み・Unicode形式 | **部分実施** | `CreateTextFile`、`Write`、`WriteLine`、`OpenTextFile`、`Read` 系はテスト済み（#117〜#118）。`unicode` 引数、`format` 引数、UTF-16の実Excel一致は未検証。 |
+| `Declare` スタブと引数型・ByRef | **部分実施** | `PtrSafe`、`Lib`、`Alias`、`LongPtr`、`ByRef String` の構文・ロードは #46 で確認。スタブ呼び出し時の全引数型・ByRef書き戻しは未検証。 |
+| `DoEvents` / `Sleep` の外部イベント | **恒久的制限を確認済み** | `DoEvents` は no-op、外部APIはスタブで同期Evaluatorを中断しない（#27）。実装未完了としてではなく、同期設計上の制限として扱う。 |
+| `VarPtr` / `StrPtr` / `ObjPtr` | **恒久的制限を確認済み** | `varptr.test.ts` でダミー値・非アドレス意味論を確認。実メモリーアドレスやWin32連携は対象外。 |
 
 ## 監査済み領域と追加評価候補
 
