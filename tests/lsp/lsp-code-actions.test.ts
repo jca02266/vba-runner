@@ -24,6 +24,30 @@ End Sub`;
     console.log('[PASS] 選択範囲がプロシージャ外');
 }
 
+// Introduce Variable: 単一行の式をVariant変数へ抽出する。
+{
+    const code = `Sub Foo()
+    Dim x As Long
+    Dim y As Long
+    y = x + 1
+End Sub`;
+    const srv = setup(code);
+    const edit = srv.buildIntroduceVariableEdit(URI, {
+        start: { line: 3, character: 8 },
+        end: { line: 3, character: 13 },
+    });
+    assert.ok(edit !== null, 'Introduce Variable edit is created');
+    assert.strictEqual(edit!.replaceText, 'introducedValue');
+    assert.strictEqual(edit!.insertText, '    Dim introducedValue As Variant\n    introducedValue = x + 1\n');
+    const actions = srv.getCodeActions(URI, {
+        start: { line: 3, character: 8 },
+        end: { line: 3, character: 13 },
+    });
+    assert.ok(actions.some((action: any) => action.command?.command === 'vba-runner.introduceVariable'),
+        'Introduce Variable code action is offered');
+    console.log('[PASS] Introduce Variable');
+}
+
 // 2. 変数ゼロの選択 → コードアクションなし
 {
     const code = `Sub Foo()

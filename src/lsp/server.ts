@@ -757,12 +757,26 @@ export class LSPServer {
             ) as ProcedureDeclaration | undefined;
             if (!proc) return [];
 
+            const actions: any[] = [];
+            const selected = this.getSelectedText(doc.content, range);
+            const introduceVariableAction = selected && selected.indexOf('\n') === -1 && this.isIntroduceVariableExpression(selected)
+                ? {
+                    title: '⚡ Introduce Variable',
+                    kind: 'refactor.extract',
+                    command: {
+                        title: 'Introduce Variable',
+                        command: 'vba-runner.introduceVariable',
+                        arguments: [uri, range],
+                    },
+                }
+                : null;
+
             const result = analyzeDefUse(proc, startLine, endLine);
             if (
                 result.inputs.length  === 0 &&
                 result.outputs.length === 0 &&
                 result.locals.length  === 0
-            ) return [];
+            ) return introduceVariableAction ? [introduceVariableAction] : actions;
 
             const inputParams  = result.inputs.map(v  => `ByVal ${v} As Variant`);
             const outputParams = result.outputs.map(v => `ByRef ${v} As Variant`);
@@ -775,7 +789,7 @@ export class LSPServer {
             const procSignature = `Private Sub ${newProcName}(${allParams})\n${procBody}\nEnd Sub`;
             const callStatement = `${newProcName}(${callArgs})`;
 
-            return [{
+            actions.push({
                 title: `⚡ Extract Function: ${callStatement}`,
                 kind: 'refactor.extract.function',
                 command: {
@@ -783,10 +797,45 @@ export class LSPServer {
                     command: 'vba-runner.doExtractFunction',
                     arguments: [uri, range, result, procSignature, callStatement],
                 },
-            }];
+            });
+            if (introduceVariableAction) actions.push(introduceVariableAction);
+            return actions;
         } catch {
             return [];
         }
+    }
+
+    private getSelectedText(content: string, range: { start: { line: number; character: number }; end: { line: number; character: number } }): string {
+        if (range.start.line !== range.end.line) return '';
+        const line = content.split('\n')[range.start.line] ?? '';
+        return line.slice(range.start.character, range.end.character);
+    }
+
+    private isIntroduceVariableExpression(text: string): boolean {
+        const value = text.trim();
+        if (!value || /^(Dim|Set|If|For|Do|Call|MsgBox|Debug)\b/i.test(value)) return false;
+        return /[+\-*\/&(=<>]|\d|"|#/.test(value);
+    }
+
+    /** Build a text edit for extracting a single-line expression into a Variant. */
+    buildIntroduceVariableEdit(
+        uri: string,
+        range: { start: { line: number; character: number }; end: { line: number; character: number } },
+        variableName = 'introducedValue',
+    ): { replaceRange: typeof range; replaceText: string; insertLine: number; insertText: string } | null {
+        const doc = this.documents.get(uri);
+        if (!doc || range.start.line !== range.end.line) return null;
+        const expression = this.getSelectedText(doc.content, range).trim();
+        if (!this.isIntroduceVariableExpression(expression)) return null;
+        const lines = doc.content.split('\n');
+        const line = lines[range.start.line] ?? '';
+        const indent = line.match(/^\s*/)?.[0] ?? '';
+        return {
+            replaceRange: range,
+            replaceText: variableName,
+            insertLine: range.start.line,
+            insertText: `${indent}Dim ${variableName} As Variant\n${indent}${variableName} = ${expression}\n`,
+        };
     }
 
     /**

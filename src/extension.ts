@@ -1486,7 +1486,7 @@ End Class`;
             const indent = currentLineText.match(/^\s*/)?.[0] || '';
 
             const insertPosition = new vscode.Position(insertLine, 0);
-            const dimAndAssign = `${indent}Dim ${varName}\n${indent}${varName} = ${selectedText}\n`;
+            const dimAndAssign = `${indent}Dim ${varName} As Variant\n${indent}${varName} = ${selectedText}\n`;
 
             // First, insert Dim and assignment
             const insertEdit = new vscode.WorkspaceEdit();
@@ -2143,4 +2143,3 @@ function keywordCasingEdit(
 
     return vscode.TextEdit.replace(new vscode.Range(lineNum, startCol, lineNum, endCol), canonical);
 }
-
