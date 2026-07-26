@@ -457,6 +457,25 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | `DoEvents` / `Sleep` の外部イベント | **恒久的制限を確認済み** | `DoEvents` は no-op、外部APIはスタブで同期Evaluatorを中断しない（#27）。実装未完了としてではなく、同期設計上の制限として扱う。 |
 | `VarPtr` / `StrPtr` / `ObjPtr` | **恒久的制限を確認済み** | `varptr.test.ts` でダミー値・非アドレス意味論を確認。実メモリーアドレスやWin32連携は対象外。 |
 
+### 次回 `evaluate-vba-runner` の未実施領域
+
+次回以降の独立評価エージェントは、以下からまだ評価されていない領域を
+1つ選び、実用的な複合サンプルで検証すること。検証後はこの一覧の状態を
+更新し、実機差分が必要な項目は候補として残す。
+
+| 優先度 | 未実施領域 | 評価の焦点 | 状態 |
+|---|---|---|---|
+| P0 | FSO TextStream の Unicode 入出力 | `CreateTextFile(..., unicode:=True)`、`OpenTextFile(..., format:=TristateTrue)`、UTF-16LE BOM、`Read`/`Write` の文字位置を実Excelと比較 | 未実施 |
+| P0 | ネスト UDT の Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを組み合わせた複合レコードの境界・LOF・往復値 | 未実施 |
+| P1 | `Format` 条件付きセクション | `[<100]`、`[>=100]`、正負ゼロの複数セクション、色指定との併用 | 未実施 |
+| P1 | `Declare` スタブの型・ByRef | `LongPtr`、`String`、配列、UDT、ByRef書き戻し、Alias付き宣言の呼び出し結果 | 未実施 |
+| P1 | 文法ベース生成ファザー | 有効なIf/For/Select、On Error、ReDim、クラス、Property、複数モジュールを生成し、JS生例外と結果不整合を検出 | 未実施（手法自体） |
+| P1 | ミューテーションテスト | `format.ts`、`parser.ts`、`evaluator.ts` の比較・分岐・エラー処理を変異させ、既存テストの検出漏れを特定 | 未実施（手法自体） |
+
+`CDate("M,Y")`、基本 UDT 配列物理レイアウト、`[Red]` 色指定、基本 TextStream
+読み書き、`Declare` 構文、`DoEvents` の制限、ポインター関数の制限は上の
+「重点候補の実施状況」で確定済みであり、次回評価で重複させない。
+
 ## 監査済み領域と追加評価候補
 
 評価済みドメインでカバーしたものを除いた、まだ十分に試されていない機能。
