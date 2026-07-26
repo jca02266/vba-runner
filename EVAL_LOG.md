@@ -458,9 +458,9 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 - ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
 - ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
 - ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#69）: 数値、CP932文字列、固定長文字列・固定長の一次元配列を含む UDT、Single/Double、Date、Currency を確認。可変長文字列を含む UDT は未対応。**
-- ~~`Open For Random As #n Len = recLen`~~ **評価済み（評価#26）: `Len =` 節がパースエラー（Bug 26-3）。未実装**
+- ~~`Open For Random As #n Len = recLen`~~ **修正済み（評価#26）: `Len =` 節を解析し、レコード位置計算へ反映。**
 - ~~`FileLen(path)` / `FileDateTime(path)` / `Kill path`~~ **評価済み（評価#26）: 全正常動作**
-- ~~`GetAttr(path)`~~ **評価済み（評価#26）: Error 35 未実装（Bug 26-7）**
+- ~~`GetAttr(path)`~~ **修正済み（評価#26）: `getattr` と属性定数を登録。**
 - ~~`Error(n)` 関数~~ **評価済み（評価#26）: 主要コード（5/6/9/11/13/53/91）は正確。未登録は汎用フォールバック**
 
 ### Scripting.Dictionary
@@ -499,7 +499,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 - ~~`__mocks__` ディレクトリによる VBA/JS/TS モック注入~~ **評価済み（評価 #12）: JS `__addCreateObject__` / VBA `.cls` クラスモック / `__mocks__.bas` 単一形式 / `.ts` モック すべて正常動作。同名 Public Function を複数 VBA モックが持つ場合は Ambiguous procedure バグあり**
 - ~~`setBuiltinOverride` で組み込み関数を上書き~~ **評価済み（評価 #12）: MsgBox を vbOK/vbCancel に固定 → 正常動作。`spy()` API も動作確認**
-- ~~vba-types.json の自動リロード（FileSystemWatcher）~~ **評価済み（評価 #12 ソース確認のみ）: `extension.ts:70-77` に `createFileSystemWatcher` 実装あり。`onDidCreate` / `onDidChange` でリロード。`onDidDelete` は未実装（型スタブが残存する小欠陥）**
+- ~~vba-types.json の自動リロード（FileSystemWatcher）~~ **修正済み（評価 #12）: `onDidCreate` / `onDidChange` / `onDidDelete` で読み込み・更新・削除を反映。**
 - ~~Formatter（コード整形）~~ **評価済み（評価 #14）: キーワード大文字小文字 / インデント / 識別子ケーシング 全正常。組み込み型名（String/Integer 等）は正規化しない（設計ギャップ）**
 - ~~CodeLensProvider（▶ Run / 🐛 Debug / 参照数 / テスト状態）~~ **評価済み（評価 #14）: 基本動作正常。`Test_*` が常に `✓ Tested`（疑似陽性バグ）**
 - ~~FoldingRangeProvider（コード折りたたみ）~~ **評価済み（評価 #14）: 全主要ブロック対応・正常動作**
@@ -655,8 +655,8 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 92. **`ReDim Preserve` で UDT 配列を拡張すると新インデックス要素が未初期化（Bug 28-1）**: `ReDim Preserve n(0 To 1)` で添字 1 の UDT 要素が `undefined` のまま残り `n(1).Value = 2` が Error 424 になる。`Long`/`String` の通常配列では同じ操作が正常動作するため非対称。回避策: Preserve を使わず一時配列に手動コピーして置き換えるか、`ReDim n(0 To N)` 後に手動で各要素を `Set` / 初期化する。
 93. **`Function` の戻り値と ByRef 引数書き戻しの両方を使う場合の注意**: `Function SafeDivide(a, b, ByRef errMsg)` を `r.run('SafeDivide', [10, 0, ''])` で呼ぶと、戻り値は `run()` の返り値に入り、`errMsg` の書き戻しは `args[0]` ではなく `args[2]`（第3引数）のインデックスに入る。ByRef 書き戻しは引数の元の位置（0-based インデックス）に対応する。`r.run()` が返す配列は `[戻り値, arg0書き戻し, arg1書き戻し, ...]` のように見えるが、実際は呼び出し時に渡した args 配列が直接書き換えられる（`args` オブジェクトへの ByRef 書き戻し）。README の ByRef 例が Sub のみのため Function との組み合わせが分かりにくい。
 82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36〜#102）: 数値はリトルエンディアン、文字列は CP932、固定長文字列・固定長配列を含む UDT は連続バイト列で入出力する。Single/Double、Date、Currency、Random のレコード長、多次元配列の左端次元連続順、UDT内可変長文字列のディスクリプターも実Excel照合済み。
-83. **`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）: `Len = <expr>` 節が `parser.ts:parseOpenStatement`（行 977）で未消費。`As #n` の直後にリターンするため `Len` が「ステートメントの後の予期しないトークン」になる。
-84. **`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）: `evaluator.ts` に `setattr`（行 999）は stub 登録済みだが `getattr` は未登録。`option-explicit-checker.ts`（行 78）には登録済みのため Option Explicit 違反にはならないが実行時 Error 35。
+83. ~~**`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）~~: **修正済み**。`Len = <expr>` 節を解析する。
+84. ~~**`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）~~: **修正済み**。`getattr` とファイル属性定数を登録する。
 85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
 86. **`Error(n)` 関数の主要コードは正しいメッセージを返す**（評価 #26）: Error(5)="Invalid procedure call or argument" / Error(6)="Overflow" / Error(9)="Subscript out of range" / Error(11)="Division by zero" / Error(13)="Type mismatch" / Error(53)="File not found" / Error(91)="Object variable not set" はすべて正確。未登録番号（Error(0)/Error(7)/Error(14)/Error(999) など）は "Application-defined or object-defined error" にフォールバック。
 94. **クラスイベント（`Public Event`/`RaiseEvent`/`Dim WithEvents obj As Class`/`Private Sub obj_EventName()`）は完全動作する**（評価 #29）: イベント引数付き・複数イベント・複数拍のイベント列まで正確。未実装と思われがちだが実装済み。
