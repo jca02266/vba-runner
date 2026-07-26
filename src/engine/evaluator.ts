@@ -7510,6 +7510,31 @@ export class Evaluator {
                 return this.evaluateTypeIntrinsic(nameLower, expr.args[0]);
             }
 
+            // CallByName receives its argument expressions through a ParamArray. For
+            // VBA class procedures, preserve those expressions so ByRef updates are
+            // written back to the caller instead of being lost in evaluated values.
+            if (nameLower === 'callbyname' && expr.args.length >= 3) {
+                const target = this.resolveAutoInstance(expr.args[0], this.evaluateExpression(expr.args[0]));
+                if (target?.__vbaClass__) {
+                    const procName = vbaToString(this.evaluateExpression(expr.args[1])).toLowerCase();
+                    const callType = this.evaluateExpression(expr.args[2]);
+                    if (callType === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                    const procedures = (target.__classDef__ as ClassDeclaration).procedures;
+                    const propertyType = callType === 4 ? 'let' : callType === 8 ? 'set' : undefined;
+                    const proc = propertyType
+                        ? procedures.find(p => p.isProperty && p.propertyType === propertyType && p.name.name.toLowerCase() === procName)
+                            ?? procedures.find(p => p.isProperty && p.propertyType === (propertyType === 'let' ? 'set' : 'let') && p.name.name.toLowerCase() === procName)
+                        : (callType === 2
+                            ? procedures.find(p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === procName)
+                            : procedures.find(p => !p.isProperty && p.name.name.toLowerCase() === procName));
+                    if (proc) {
+                        this.checkNoGapOnRequiredParam(proc.parameters, expr.args.slice(3));
+                        return this.callClassMethodWithExpressions(target, proc, expr.args.slice(3));
+                    }
+                    this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
+                }
+            }
+
             // B-2: When inside a class method (Me is in env), the class's own procedures
             // take priority over global procedures — matching VBA's name resolution order
             // (class scope → global scope).

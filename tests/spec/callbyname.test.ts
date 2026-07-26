@@ -138,3 +138,27 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     assert.strictEqual(runFunc(code, 'TestRoundTrip'), 'dark-mode', 'CallByName VbLet→VbGet ラウンドトリップ');
     console.log('[PASS] CallByName VbLet→VbGet ラウンドトリップ');
 }
+
+// Bug 167-A: CallByNameのクラス手続きByRef書き戻し
+{
+    const code = `
+    Class Mutator
+        Public Sub Apply(ByRef n As Long, ByRef label As String)
+            n = n + 5
+            label = label & "!"
+        End Sub
+    End Class
+
+    Function TestCallByNameByRef() As String
+        Dim m As New Mutator
+        Dim n As Long
+        Dim label As String
+        n = 7
+        label = "tag"
+        CallByName m, "Apply", 1, n, label
+        TestCallByNameByRef = CStr(n) & ":" & label
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestCallByNameByRef'), '12:tag!', 'CallByNameのByRef書き戻し');
+    console.log('[PASS] Bug 167-A: CallByName class ByRef writeback');
+}
