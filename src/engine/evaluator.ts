@@ -6055,6 +6055,18 @@ export class Evaluator {
                         pos = content.length;
                         return result;
                     },
+                    read: (numChars: number) => {
+                        const content = this.fs.readFileSync(full, 'utf8');
+                        const count = Math.max(0, Math.trunc(Number(numChars)));
+                        const result = content.slice(pos, pos + count);
+                        pos += result.length;
+                        return result;
+                    },
+                    skip: (numChars: number) => {
+                        const content = this.fs.readFileSync(full, 'utf8');
+                        const count = Math.max(0, Math.trunc(Number(numChars)));
+                        pos = Math.min(content.length, pos + count);
+                    },
                     readline: () => {
                         const content = this.fs.readFileSync(full, 'utf8');
                         const lines = content.slice(pos).split(/\r?\n/);
@@ -6064,6 +6076,11 @@ export class Evaluator {
                             return line;
                         }
                         return "";
+                    },
+                    skipline: () => {
+                        const content = this.fs.readFileSync(full, 'utf8');
+                        const newline = content.indexOf('\n', pos);
+                        pos = newline < 0 ? content.length : newline + 1;
                     },
                     write: (s: string) => this.fs.writeSync(fd, s),
                     close: () => this.fs.closeSync(fd)

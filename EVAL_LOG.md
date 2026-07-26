@@ -28,6 +28,7 @@
 | 115 | 実行互換性 #115: 括弧付きByRef配列引数と非ゼロ下限 | 非ゼロ下限の2次元 `Long` 配列を `ChangeFirst (values)` として渡す境界を評価した。括弧付き引数がByRefのまま書き戻される Bug 115-A を発見・修正し、通常のByVal配列コピーとクラスメソッド経路を含む回帰テストを追加した。 | 2026-07-26 |
 | 116 | 言語仕様 #116: ParamArray 宣言制約 | `Optional` との併用、末尾以外への配置、ByVal/ByRef 修飾、Variant 配列以外の型、配列表記省略を評価した。VBAではすべてコンパイルエラーになる宣言を受理していた Bug 116-A〜D を修正し、回帰テストを追加した。 | 2026-07-26 |
 | 117 | 実行互換性 #117: FileSystemObject のファイル移動・コピー | `CopyFile` と `MoveFile` が標準メソッド一覧にあるにもかかわらず Error 438 になっていた Bug 117-A を修正した。存在しないファイルを `DeleteFile` した際に Node の ENOENT が漏れる Bug 117-B も VBA Error 53 へ正規化し、回帰テストを追加した。 | 2026-07-26 |
+| 118 | 実行互換性 #118: FileSystemObject TextStream の読み取り境界 | `TextStream.Read` と `Skip`、`SkipLine` が Error 438 になっていた Bug 118-A を修正した。現在位置を進める文字数読み取り・スキップを実装し、既存の `ReadAll` / `ReadLine` と合わせて回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -143,6 +144,7 @@
 | **Bug 115-A: 括弧付きByRef配列がByVal化されない** | 非ゼロ下限配列を `ChangeFirst (values)` で `ByRef values() As Long` へ渡すと、修正前は `99` が呼び出し元へ書き戻された。括弧付き引数を強制ByValとして扱い、ByRef書き戻し対象から除外。回帰テスト: `tests/spec/array-functions.test.ts`。 | このコミット |
 | **Bug 116-A〜D: ParamArray の宣言制約を受理する** | `Optional` との併用、末尾以外への配置、`ByVal`/`ByRef` 修飾、Variant 配列以外の型、`()` 省略を修正前は受理していた。`validateParameterOrder` で ParamArray を最後の Variant 配列・修飾子なしに限定し、Optional との併用を拒否。回帰テスト: `tests/spec/optional-param-order.test.ts`。 | このコミット |
 | **Bug 117-A/B: FSO のファイル操作が未実装・Nodeエラー漏れ** | `fso.CopyFile source, destination` と `fso.MoveFile source, destination` が Error 438 になり、存在しないファイルへの `fso.DeleteFile` は Node の ENOENT をそのまま返していた。FSOへコピー・移動を実装し、ファイル未存在を VBA Error 53、上書きなしの既存先を Error 58 として処理。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
+| **Bug 118-A: TextStream の Read/Skip 系メソッドが未実装** | `OpenTextFile` の戻り値に対する `Read(2)` と `Skip(1)` が Error 438 になり、`SkipLine` も未実装だった。TextStream の現在位置を文字単位で進める `Read` / `Skip` / `SkipLine` を追加。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |

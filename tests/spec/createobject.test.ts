@@ -107,6 +107,32 @@ console.log('[PASS] Scripting.Dictionary');
             f.Close
         End Function
 
+        Function TestFSOTextStreamReadSkip() As String
+            Dim fso As New FileSystemObject
+            Dim f, ts
+            Set f = fso.CreateTextFile("C:\\\\stream.txt")
+            f.Write "abcdef"
+            f.Close
+            Set ts = fso.OpenTextFile("C:\\\\stream.txt", 1)
+            TestFSOTextStreamReadSkip = ts.Read(2)
+            ts.Skip 1
+            TestFSOTextStreamReadSkip = TestFSOTextStreamReadSkip & ts.Read(2)
+            ts.Close
+        End Function
+
+        Function TestFSOTextStreamSkipLine() As String
+            Dim fso As New FileSystemObject
+            Dim f, ts
+            Set f = fso.CreateTextFile("C:\\\\lines.txt")
+            f.WriteLine "first"
+            f.WriteLine "second"
+            f.Close
+            Set ts = fso.OpenTextFile("C:\\\\lines.txt", 1)
+            ts.SkipLine
+            TestFSOTextStreamSkipLine = ts.ReadLine
+            ts.Close
+        End Function
+
         Function TestFSOFolderOps() As Boolean
             Dim fso As FileSystemObject
             Set fso = New FileSystemObject
@@ -151,6 +177,8 @@ console.log('[PASS] Scripting.Dictionary');
     assert.strictEqual(ev.callProcedure('TestFSOCreateText', []), vbaTrue, 'FSO: CreateTextFile + FileExists');
     const content = ev.callProcedure('TestFSOReadAll', []) as string;
     assert.strictEqual(content.includes('Hello') && content.includes('World'), true, 'FSO: OpenTextFile + ReadAll');
+    assert.strictEqual(ev.callProcedure('TestFSOTextStreamReadSkip', []), 'abde', 'FSO TextStream: Read + Skip');
+    assert.strictEqual(ev.callProcedure('TestFSOTextStreamSkipLine', []), 'second', 'FSO TextStream: SkipLine');
     assert.strictEqual(ev.callProcedure('TestFSOFolderOps', []), vbaTrue, 'FSO: CreateFolder + FolderExists');
     assert.strictEqual(ev.callProcedure('TestFSODeleteFile', []), vbaTrue, 'FSO: DeleteFile');
     assert.strictEqual(ev.callProcedure('TestFSOCopyMove', []), vbaTrue, 'FSO: CopyFile + MoveFile');
