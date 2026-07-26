@@ -1407,6 +1407,7 @@ export class Evaluator {
                     });
                 }
             }
+            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
             localEnv.setLocally(paramName, argValue);
             // Variant（型なし）パラメーターへ数値サブタイプを伝播
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
@@ -4184,6 +4185,7 @@ export class Evaluator {
                     });
                 }
             }
+            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
             localEnv.setLocally(paramName, argValue);
             this.addRef(argValue);
         }
@@ -7412,10 +7414,9 @@ export class Evaluator {
                             });
                         }
                     }
-                    // ByVal UDT: VBA の値型セマンティクスに従い、UDT インスタンスのコピーを作る
-                    if (param.isByVal && argVal && typeof argVal === 'object' && argVal.__vbaTypeName__ && !argVal.__vbaClass__) {
-                        argVal = this.deepCopyUdtValue(argVal);
-                    }
+                    // ByVal values must not share mutable VBA arrays or UDTs with
+                    // the caller. Class instances remain references, as in VBA.
+                    if (param.isByVal) argVal = this.deepCopyByValValue(argVal);
                     localEnv.setLocally(param.name, argVal);
                     // Variant（型なし）パラメーターへ数値サブタイプを伝播
                     if (!param.paramType || param.paramType.toLowerCase() === 'variant') {
@@ -8017,6 +8018,20 @@ export class Evaluator {
      * 直接使えるようにする（毎回 instantiate するコストを避ける）。
      * Placeholder でない値はそのまま返す。
      */
+    private deepCopyByValValue(value: any): any {
+        if (Array.isArray(value)) {
+            const copy = value.map(item => this.deepCopyByValValue(item));
+            for (const key of Object.keys(value)) {
+                if (!/^\d+$/.test(key)) copy[key] = value[key];
+            }
+            return copy;
+        }
+        if (value && typeof value === 'object' && value.__vbaTypeName__ && !value.__vbaClass__) {
+            return this.deepCopyUdtValue(value);
+        }
+        return value;
+    }
+
     /** UDT 値型の ByVal コピーを作成する。ネストした UDT メンバーも再帰コピーする。 */
     private deepCopyUdtValue(obj: any): any {
         if (!obj || typeof obj !== 'object' || obj.__vbaClass__) return obj;

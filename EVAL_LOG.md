@@ -24,6 +24,7 @@
 | 111 | リファクタリング確認 #111: precheckProc一括走査 | `precheckProc` の6つの独立AST走査を `collectPrecheckFindings` の1回走査へ統合した。エラー優先順位を維持し、メンバー代入の配列アクセスを誤って引数個数検査する回帰（Bug 111-A）を修正。TypeScript 330ファイル、VBA 14ファイル、VBA手続き111件が全通過した。 | 2026-07-26 |
 | 112 | Lexer分類確認 #112: 識別子カテゴリメタデータ | `VBA_KEYWORD_CATEGORIES` に MS-VBAL §3.3.5.2 のキーワードカテゴリを追加した。既存の `Keyword*` トークン、`CONTEXTUAL_KW`、`COMPAT_KW_EXPR` の動作は維持し、代表的な予約語・contextual keywordの分類とトークン安定性を回帰確認した。 | 2026-07-26 |
 | 113 | 実行互換性 #113: WithEvents の ByRef イベント引数 | 複数の WithEvents 購読・再代入・解除と `On Error` / `Resume Next` を評価し、購読の独立性とエラー復帰は正常だった。追加の境界検証で、イベントハンドラーが変更した `RaiseEvent` の `ByRef` 引数が発行元へ戻らない Bug 73-A を発見・修正し、`tests/spec/raiseevent.test.ts` に回帰テストを追加した。 | 2026-07-26 |
+| 114 | 実行互換性 #114: ByVal Variant 配列のコピー境界 | クラス状態、Collection、文字列処理、ループ、`On Error` / `Resume` を含むバッチ処理を評価した。`ByVal values As Variant` に配列を渡した場合、callee の `values(0) = "new"` が caller の配列へ伝播する Bug 114-A を発見・修正し、`tests/spec/array-functions.test.ts` に回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -135,6 +136,7 @@
 | 問題 | 最小再現コード | 修正コミット |
 |---|---|---|
 | **Bug 73-A: `RaiseEvent` の `ByRef` 引数がイベント発行元へ書き戻されない** | `Public Event Change(ByRef text As String)` を宣言し、WithEvents ハンドラーで `text = "changed"` とすると、修正前はハンドラーが呼ばれても発行元の値が `"original"` のまま残った。イベント経路に ByRef 引数配列の伝播・発行元式への書き戻しを追加し、`tests/spec/raiseevent.test.ts` に回帰テストを追加。 | このコミット |
+| **Bug 114-A: `ByVal Variant` 配列の変更が呼び出し元へ伝播する** | `values = Array("old")` を `MutateCopy(ByVal values As Variant)` に渡し、callee で `values(0) = "new"`。修正前は caller の値が `"new"` になった。ByVal の配列を要素コピーし、配列メタデータを保持するよう修正。回帰テスト: `tests/spec/array-functions.test.ts`。 | このコミット |
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
 | `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |

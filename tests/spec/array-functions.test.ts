@@ -123,4 +123,41 @@ console.log('[PASS] Bug 28-1: ReDim Preserve UDT 配列');
 }
 console.log('[PASS] Bug BN: Erase 後の動的配列は Error 9 (UBound/LBound)');
 
+// --- Bug 114-A: ByVal Variant 配列が呼び出し元の配列を変更する ---
+{
+    const ev = evalVBASingle(`
+        Function TestByValVariantArray() As String
+            Dim values As Variant
+            values = Array("old")
+            MutateCopy values
+            TestByValVariantArray = values(0)
+        End Function
+
+        Private Sub MutateCopy(ByVal values As Variant)
+            values(0) = "new"
+        End Sub
+    `);
+    assert.strictEqual(ev.callProcedure('TestByValVariantArray', []), 'old',
+        'ByVal Variant配列の要素変更は呼び出し元へ伝播しない');
+    console.log('[PASS] Bug 114-A: ByVal Variant配列をコピーして渡す');
+
+    const classEv = evalVBASingle(`
+        Class ArrayMutator
+            Public Sub Mutate(ByVal values As Variant)
+                values(0) = "new"
+            End Sub
+        End Class
+        Function TestClassByValVariantArray() As String
+            Dim values As Variant
+            Dim mutator As New ArrayMutator
+            values = Array("old")
+            mutator.Mutate values
+            TestClassByValVariantArray = values(0)
+        End Function
+    `);
+    assert.strictEqual(classEv.callProcedure('TestClassByValVariantArray', []), 'old',
+        'クラスメソッドのByVal Variant配列もコピーして渡す');
+    console.log('[PASS] Bug 114-A: クラスメソッドのByVal Variant配列をコピーする');
+}
+
 console.log('\n✅ Array Functions: 全テスト通過');
