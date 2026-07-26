@@ -734,4 +734,47 @@ End Function
     console.log('[PASS] Bug 132-A: Property SetのByRef書き戻し');
 }
 
+// Bug 139-A: Property Let の ByRef value 引数を呼出元へ書き戻す
+{
+    const ev = evalVBAModules([
+        { name: 'LetLedger', code: `
+Class LetLedger
+    Private mEntries As Collection
+    Private Sub Class_Initialize()
+        Set mEntries = New Collection
+    End Sub
+    Public Property Let Label(ByRef value As String)
+        value = UCase(Trim(value))
+        If Len(value) = 0 Then value = "INVALID"
+        mEntries.Add value
+    End Property
+    Public Property Get Summary() As String
+        Dim item As Variant
+        For Each item In mEntries
+            If Summary <> "" Then Summary = Summary & ","
+            Summary = Summary & item
+        Next item
+    End Property
+End Class
+` },
+        { name: 'LetDriver', code: `
+Function TestPropertyLetByRef() As String
+    Dim ledger As New LetLedger
+    Dim label As String
+    Dim labels(0 To 1) As String
+    label = " green "
+    labels(0) = " red "
+    labels(1) = "  "
+    ledger.Label = label
+    ledger.Label = labels(0)
+    ledger.Label = labels(1)
+    TestPropertyLetByRef = label & "|" & labels(0) & "|" & labels(1) & "|" & ledger.Summary
+End Function
+` },
+    ]);
+    assert.strictEqual(ev.callProcedure('TestPropertyLetByRef', []), 'GREEN|RED|INVALID|GREEN,RED,INVALID',
+        'Property LetのByRef value引数を書き戻す');
+    console.log('[PASS] Bug 139-A: Property LetのByRef書き戻し');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

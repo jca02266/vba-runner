@@ -3050,7 +3050,7 @@ export class Evaluator {
             if (valueKey !== undefined) val = (val as any)[valueKey];
         }
 
-        this.evaluateAssignmentToVariable(stmt.left, val);
+        this.evaluateAssignmentToVariable(stmt.left, val, stmt.right);
 
         // Track numeric subtype for Variant variables so TypeName/VarType reflect the assigned type
         if (typeof val === 'number') {
@@ -3134,7 +3134,7 @@ export class Evaluator {
 
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
-    private evaluateAssignmentToVariable(left: Expression, val: any) {
+    private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
             let variable = this.env.get(name);
@@ -3152,7 +3152,7 @@ export class Evaluator {
                     );
                     if (valueSetter) {
                         // Call the Value property setter with the assigned value
-                        this.callClassMethod(variable, valueSetter, [val]);
+                        this.callClassMethodWithExpressions(variable, valueSetter, [sourceExpr ?? null], [val]);
                         return;
                     }
                 }
@@ -3295,7 +3295,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethodWithExpressions(target, setter, [...call.args, null], [...argsVals, val]);
+                        this.callClassMethodWithExpressions(target, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -3331,7 +3331,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = call.args.map(a => this.evaluateExpression(a));
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, null], [...argsVals, val]);
+                        this.callClassMethodWithExpressions(obj, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
                         // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
                         // 例: obj.Items(0) = val
@@ -3511,7 +3511,7 @@ export class Evaluator {
                     p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [null], [val]);
+                    this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
                 } else {
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
                     const fl = obj.__fixedLengths__?.[propName];
@@ -3552,7 +3552,7 @@ export class Evaluator {
                     p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [null], [val]);
+                    this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
                 } else {
                     // Bug CC: enforce fixed-length string for With-block class field assignment
                     const fl = obj.__fixedLengths__?.[propName];
