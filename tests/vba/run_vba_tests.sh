@@ -60,8 +60,8 @@ TEST_STATUS=$?
 if [ $VERBOSE -eq 1 ]; then
   echo "$TEST_OUTPUT"
 elif [ $TEST_STATUS -eq 0 ]; then
-  # サマリー行のみ抽出
-  echo "$TEST_OUTPUT" | tail -3
+  # ファイル単位・プロシージャ単位のサマリー行を抽出
+  echo "$TEST_OUTPUT" | tail -4
 else
   # エラー時は全出力
   echo "$TEST_OUTPUT"

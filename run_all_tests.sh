@@ -102,6 +102,8 @@ echo "" >&2
 
 # 結果を投入順に集約（出力のシリアライズ）
 TESTS_FAILED=0
+TS_TESTS_PASSED=0
+TS_TESTS_FAILED=0
 FAILED_OUTPUT=""
 
 for i in $(seq 1 "$IDX"); do
@@ -114,12 +116,19 @@ for i in $(seq 1 "$IDX"); do
 
   if [ "$status" = "FAIL" ]; then
     TESTS_FAILED=1
+    TS_TESTS_FAILED=$((TS_TESTS_FAILED + 1))
     FAILED_OUTPUT="${FAILED_OUTPUT}${body}\n"
-  elif [ "$VERBOSE" -eq 1 ]; then
-    echo "--- $fname ---"
-    echo "$body"
+  else
+    TS_TESTS_PASSED=$((TS_TESTS_PASSED + 1))
+    if [ "$VERBOSE" -eq 1 ]; then
+      echo "--- $fname ---"
+      echo "$body"
+    fi
   fi
 done
+
+TS_TESTS_UNEXECUTED=$((IDX - TS_TESTS_PASSED - TS_TESTS_FAILED))
+echo "TypeScript test files: ${IDX} total, ${TS_TESTS_PASSED} passed, ${TS_TESTS_FAILED} failed, ${TS_TESTS_UNEXECUTED} unexecuted"
 
 # VBA テスト（run_vba_tests.sh）を追加実行
 if [ -f "./tests/vba/run_vba_tests.sh" ]; then

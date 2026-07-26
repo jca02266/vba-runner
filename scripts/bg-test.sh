@@ -59,7 +59,7 @@ set -e
 
 # テスト結果サマリーをログから抜粋して表示
 echo "--- テスト結果 ---"
-grep -E "passed|failed|PASS|FAIL|Tests passed|All [0-9]+|error TS" "${LOG}" | tail -10 || true
+grep -E "TypeScript test files:|VBA test files:|VBA test procedures:|Tests passed:|Tests failed:|All [0-9]+ test|passed|failed|PASS|FAIL|error TS" "${LOG}" | tail -14 || true
 echo "------------------"
 
 if [ ${EXIT_CODE} -eq 0 ]; then

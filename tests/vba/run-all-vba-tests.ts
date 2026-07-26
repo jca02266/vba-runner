@@ -19,6 +19,8 @@ let totalFiles = 0;
 let totalTests = 0;
 let totalPass = 0;
 const allFailed: string[] = [];
+const testFiles = new Set<string>();
+const failedFiles = new Set<string>();
 
 function collectProcedures(environment: any): Map<string, any> {
     const procs = new Map();
@@ -62,6 +64,8 @@ function runSuite(label: string, vbaRunner: VBARunner): void {
 
         if (!baseProcName.startsWith('test')) continue;
 
+        const fileKey = `${label}/${moduleName || '(top-level)'}`;
+        testFiles.add(fileKey);
         totalTests++;
         console.log(`[Test] ${label} / ${procName}`);
 
@@ -95,6 +99,7 @@ function runSuite(label: string, vbaRunner: VBARunner): void {
         } catch (e: any) {
             console.error(`  ❌ FAILED: ${e.message}\n`);
             allFailed.push(`${label} / ${procName}`);
+            failedFiles.add(fileKey);
         }
     }
 }
@@ -145,8 +150,8 @@ for (const subdir of subdirs) {
 // --- Summary ---
 console.log('=== Summary ===');
 console.log(`Files loaded: ${totalFiles}`);
-console.log(`Tests run: ${totalTests}`);
-console.log(`Tests passed: ${totalPass}`);
+console.log(`VBA test files: ${testFiles.size} total, ${testFiles.size - failedFiles.size} passed, ${failedFiles.size} failed, 0 unexecuted`);
+console.log(`VBA test procedures: ${totalTests} total, ${totalPass} passed, ${allFailed.length} failed`);
 
 if (allFailed.length > 0) {
     console.log(`Tests failed: ${allFailed.length}`);
