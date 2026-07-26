@@ -354,6 +354,10 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | XL-006 | 固定長 `String()` の `Put #` CP932 バイト列 | Excel: `82 A0 41 20`（LOF=4） | `tests/spec/binary-byte-array.test.ts` の固定長文字列処理で回帰確認 | 照合済み |
 | XL-007 | UDT 配列の `Put #` バイト順 | Excel: `01 00 00 00 02 00 03 00 00 00 04 00`（LOF=12） | `tests/spec/binary-byte-array.test.ts` のUDT配列往復で回帰確認 | 照合済み |
 | XL-008 | UDT内可変長 `String` のディスクリプター | Excel: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0` | `tests/spec/binary-file-io.test.ts` と一致 | 照合済み |
+| XL-009 | FSO TextStream の Unicode/ANSI書き込み | `CreateTextFile(..., unicode:=True/False)` の BOM、UTF-16LE/ANSIバイト列、`OpenTextFile(..., format:=TristateTrue)` の読み取り結果 | VFSでUTF-16LE+BOMとCP932を確認（#123） | 実Excel照合待ち |
+| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを含むレコードのLOF・フィールド境界・往復値 | 単体・配列・2次元・可変長Stringまで確認。ネスト複合は未検証 | 未実施 |
+| XL-011 | `Format` の条件付きセクション | `[<100]` / `[>=100]` と正負ゼロセクション、色指定併用時の出力 | `[Red]` 色指定は #120 で修正・回帰確認。条件付きセクションは未検証 | 未実施 |
+| XL-012 | `Declare` 引数型・ByRefスタブ境界 | `LongPtr`、String、配列、UDT、ByRef書き戻し、Alias指定の呼び出し結果 | 構文・ロードのみ #46 で確認。外部呼び出しはスタブ | 未実施 |
 
 ### 未対応の機能制限（改善候補）
 
