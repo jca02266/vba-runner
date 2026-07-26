@@ -35,6 +35,7 @@
 | 122 | 記録整合確認 #122: 重点候補の実施状況 | `CDate("M,Y")` の実Excel差分、`Format` の `[Red]` 色指定、UDT配列の基本物理レイアウト、FSO TextStreamの基本読み書き、`Declare` 構文、`DoEvents` のスタブ、ポインター関数の恒久制限を既存記録と照合した。実施済みと未検証の境界を下記の一覧へ集約した。 | 2026-07-26 |
 | 123 | 実行互換性 #123: FSO TextStream Unicode入出力 | `CreateTextFile` / `OpenTextFile` の Unicode・ANSI指定、UTF-16LE BOM、CP932バイト列、既存UTF-16ファイルの読み取りを評価した。Unicode/ANSI引数を無視してUTF-8で読み書きしていた Bug 123-A〜C を修正し、VFSの生バイトと文字列往復を回帰テストで確認した。 | 2026-07-26 |
 | 124 | 回帰修正 #124: カバレッジ検出3件 | カバレッジ計測（TypeScript 331ファイル中328成功・3失敗、VBA 14ファイル/111手続きは全成功）で検出した3件を修正した。FOREIGN-NAME直後の空括弧、空白付き配列添字代入、引数個数コンパイルエラーの行番号欠落を回帰テストで確認した。 | 2026-07-26 |
+| 125 | 実行互換性 #125: ネストUDTの値コピー | UDT内UDT・固定配列・可変長Stringを含むBinary Put/Getの複合シナリオは正常だった。一方、`q = p` 後の `q.Header.A = 2` が `p.Header.A` まで変更する Bug 125-A を発見・修正し、ネストメンバーと配列を含む値コピーの回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -153,6 +154,7 @@
 | **Bug 118-A: TextStream の Read/Skip 系メソッドが未実装** | `OpenTextFile` の戻り値に対する `Read(2)` と `Skip(1)` が Error 438 になり、`SkipLine` も未実装だった。TextStream の現在位置を文字単位で進める `Read` / `Skip` / `SkipLine` を追加。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
 | **Bug 120-A: Format の色指定が日付書式として誤認される** | `Format$(-12.3, "0000.00;[Red]-0000.00")` が `0000.00;[Re18]-0000.00` を返していた。`[Red]` の `d` を日付書式判定が拾っていたため、既知の色ディレクティブを数値書式から除去して正負セクションを選択。回帰テスト: `tests/spec/builtins.test.ts`。 | このコミット |
 | **Bug 123-A〜C: FSO TextStream の Unicode/ANSI指定を無視する** | `CreateTextFile(..., True, True)` がUTF-16LE BOMを出さずUTF-8を書き、`unicode=False` もUTF-8を出力していた。`OpenTextFile(..., format=True)` はUTF-16LE BOM入力をUTF-8として誤読していた。UnicodeはUTF-16LE+BOM、ANSIはCP932、format指定とBOM検出を実装。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
+| **Bug 125-A: UDT代入がネスト値を共有する** | `Type Parent: Header As Child: End Type` で `q = p` 後に `q.Header.A = 2` を実行すると、値型である `p.Header.A` まで `2` になっていた。UDT代入時に `deepCopyByValValue` を適用し、ネストUDTと配列を再帰コピー。回帰テスト: `tests/spec/binary-file-io.test.ts`。 | このコミット |
 
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
@@ -356,7 +358,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | XL-007 | UDT 配列の `Put #` バイト順 | Excel: `01 00 00 00 02 00 03 00 00 00 04 00`（LOF=12） | `tests/spec/binary-byte-array.test.ts` のUDT配列往復で回帰確認 | 照合済み |
 | XL-008 | UDT内可変長 `String` のディスクリプター | Excel: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0` | `tests/spec/binary-file-io.test.ts` と一致 | 照合済み |
 | XL-009 | FSO TextStream の Unicode/ANSI書き込み | `CreateTextFile(..., unicode:=True/False)` の BOM、UTF-16LE/ANSIバイト列、`OpenTextFile(..., format:=TristateTrue)` の読み取り結果 | VFSでUTF-16LE+BOMとCP932を確認（#123） | 実Excel照合待ち |
-| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを含むレコードのLOF・フィールド境界・往復値 | 単体・配列・2次元・可変長Stringまで確認。ネスト複合は未検証 | 未実施 |
+| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを含むレコードのLOF・フィールド境界・往復値 | 単体・配列・2次元・可変長String・ネスト複合を確認（#125） | 実Excel照合待ち |
 | XL-011 | `Format` の条件付きセクション | `[<100]` / `[>=100]` と正負ゼロセクション、色指定併用時の出力 | `[Red]` 色指定は #120 で修正・回帰確認。条件付きセクションは未検証 | 未実施 |
 | XL-012 | `Declare` 引数型・ByRefスタブ境界 | `LongPtr`、String、配列、UDT、ByRef書き戻し、Alias指定の呼び出し結果 | 構文・ロードのみ #46 で確認。外部呼び出しはスタブ | 未実施 |
 
@@ -473,7 +475,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | 優先度 | 未実施領域 | 評価の焦点 | 状態 |
 |---|---|---|---|
 | P0 | FSO TextStream の Unicode 入出力 | `CreateTextFile(..., unicode:=True)`、`OpenTextFile(..., format:=TristateTrue)`、UTF-16LE BOM、`Read`/`Write` の文字位置を実Excelと比較 | 実装・VFS検証済み。実Excel照合待ち |
-| P0 | ネスト UDT の Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを組み合わせた複合レコードの境界・LOF・往復値 | 未実施 |
+| P0 | ネスト UDT の Binary `Put` / `Get` | UDT内UDT、UDT配列、可変長Stringを組み合わせた複合レコードの境界・LOF・往復値 | 自動テスト済み。実Excel照合待ち |
 | P1 | `Format` 条件付きセクション | `[<100]`、`[>=100]`、正負ゼロの複数セクション、色指定との併用 | 未実施 |
 | P1 | `Declare` スタブの型・ByRef | `LongPtr`、`String`、配列、UDT、ByRef書き戻し、Alias付き宣言の呼び出し結果 | 未実施 |
 | P1 | 文法ベース生成ファザー | 有効なIf/For/Select、On Error、ReDim、クラス、Property、複数モジュールを生成し、JS生例外と結果不整合を検出 | 未実施（手法自体） |

@@ -118,3 +118,43 @@ console.log('✅ Binary Put accepts typed conversion expressions');
 }
 
 console.log('✅ Binary Put/Get supports variable-length String UDT descriptors');
+
+// UDT assignment is a value copy, including nested UDT members and arrays.
+{
+    const ev = evalVBASingle(`
+        Type ChildValue
+            Number As Long
+            Label As String
+        End Type
+        Type ParentValue
+            Header As ChildValue
+            Values(0 To 1) As Long
+        End Type
+
+        Public originalNumber As Long
+        Public copiedNumber As Long
+        Public originalValue As Long
+
+        Sub CopyNestedUdt()
+            Dim source As ParentValue
+            Dim copied As ParentValue
+            source.Header.Number = 1
+            source.Header.Label = "source"
+            source.Values(0) = 10
+            copied = source
+            copied.Header.Number = 2
+            copied.Header.Label = "copied"
+            copied.Values(0) = 20
+            originalNumber = source.Header.Number
+            copiedNumber = copied.Header.Number
+            originalValue = source.Values(0)
+        End Sub
+    `);
+
+    ev.callProcedure('CopyNestedUdt', []);
+    assert.strictEqual(ev.env.get('originalNumber'), 1);
+    assert.strictEqual(ev.env.get('copiedNumber'), 2);
+    assert.strictEqual(ev.env.get('originalValue'), 10);
+}
+
+console.log('✅ UDT assignment deep-copies nested members and arrays');

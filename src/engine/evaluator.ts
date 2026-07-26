@@ -3189,6 +3189,11 @@ export class Evaluator {
             if (typeInfo) {
                 val = this.coerceToDeclaredType(val, typeInfo.vbaType);
             }
+            // UDTs are value types in VBA.  Assignment must not make the
+            // destination share nested UDTs or arrays with the source.
+            if (val && typeof val === 'object' && val.__vbaTypeName__ && !val.__vbaClass__) {
+                val = this.deepCopyByValValue(val);
+            }
             this.env.set(name, val);
         } else if (left.type === 'CallExpression') {
             // Array/Dictionary assignment: arr(0) = val OR dict("key") = val
@@ -8195,7 +8200,9 @@ export class Evaluator {
         const copy: any = {};
         for (const key of Object.keys(obj)) {
             const val = obj[key];
-            if (val && typeof val === 'object' && !val.__vbaClass__ && val.__vbaTypeName__) {
+            if (Array.isArray(val)) {
+                copy[key] = this.deepCopyByValValue(val);
+            } else if (val && typeof val === 'object' && !val.__vbaClass__ && val.__vbaTypeName__) {
                 copy[key] = this.deepCopyUdtValue(val);
             } else {
                 copy[key] = val;
