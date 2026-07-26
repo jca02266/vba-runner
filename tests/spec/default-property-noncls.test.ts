@@ -104,6 +104,19 @@ End Function
     console.log('[PASS] MockRange.Value extracted via Let assignment →', result);
 }
 
+// Bug 155-A: 既定Valueを持つRangeをCStrへ直接渡す
+{
+    const ws = new MockWorksheet('Sheet1');
+    ws.setCellValue('A5', 11);
+    const result = run(`
+Function TestCStrDefault()
+    TestCStrDefault = CStr(ws.Range("A5"))
+End Function
+`, 'TestCStrDefault', ev => ev.set('ws', ws));
+    assert.strictEqual(result, '11', '既定Valueを持つRangeはCStrで値へ変換される');
+    console.log('[PASS] Bug 155-A: CStr(Range) は既定Valueを使う');
+}
+
 // 6. MockRange を使った VBA 演算
 {
     const ws = new MockWorksheet('Sheet1');

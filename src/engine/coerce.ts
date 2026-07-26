@@ -143,6 +143,12 @@ export function vbaToString(val: any): string {
     if (val === vbaEmpty) return '';
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (Array.isArray(val)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    // Excel-like objects explicitly opt in to a default Value property.  In
+    // VBA value contexts such as CStr(Range("A1")), the property's value is
+    // coerced rather than the JavaScript object identity.
+    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
+        return vbaToString(val.Value);
+    }
     // Date, Boolean, Currency, Decimal, and Error values have VBA string
     // representations. Other objects require a default property; the runner
     // cannot infer one, so reject them instead of leaking JS object text.
