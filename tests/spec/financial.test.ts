@@ -145,4 +145,22 @@ console.log('[PASS] IRR/MIRR 1-based 配列で正常動作');
 }
 console.log('[PASS] IPmt/PPmt period and payment timing');
 
+// Bug 145-A: Pmt の NPer=0 が JavaScript の Infinity を返していた
+{
+    const ev = evalVBASingle(`
+    Public pmtError
+    Sub Test()
+        On Error GoTo badNPer
+        Dim ignored As Double
+        ignored = Pmt(0.01, 0, 1000)
+        Exit Sub
+    badNPer:
+        pmtError = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('pmterror'), 5, 'Pmt NPer=0 is Error 5, not Infinity');
+}
+console.log('[PASS] Bug 145-A: Pmt のゼロ期間をエラー化');
+
 console.log('\n✅ Financial Functions: 全テスト通過');

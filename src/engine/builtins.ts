@@ -1328,6 +1328,9 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        if (!Number.isFinite(n) || n <= 0) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
         if (r === 0) return -(v + f) / n;
         const p1 = Math.pow(1 + r, n);
         return -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));

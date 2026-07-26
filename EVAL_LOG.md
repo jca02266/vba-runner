@@ -55,6 +55,7 @@
 | 142 | 回帰確認 #142: Property特殊経路テスト追加 | #141で強化した暗黙With内の添字付きProperty Letと添字付きProperty Setについて、呼出元スカラー・オブジェクトへのByRef書き戻しを専用回帰テストとして追加した。クラスモジュール全テストを通過し、特殊経路の未検証状態を解消した。 | 2026-07-26 |
 | 143 | 実行互換性 #143: FormatPercent の表示オプション | FZ-BUILTIN の独立評価で、`FormatPercent` の `UseParensForNegativeNumbers` と `IncludeLeadingDigit` が位置・名前付き引数のいずれでも無視される Bug 143-A を確認した。共有 `fmtNumeric` が両引数を未使用だったため、負数の括弧表示と先頭ゼロ抑制を実装し、`FormatNumber` を含む回帰テストを追加した。 | 2026-07-26 |
 | 144 | 回帰確認 #144: Null/Empty Variant配列境界 | FZ-BUILTIN の別入力で、Variant配列要素の `Null`/`Empty`、`TypeName`/`VarType`/`IsNull`/`IsEmpty`、`CInt` の型強制、Variant配列のFunction戻りとByRef再渡しを評価した。VBA内の値の区別と変換は期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
+| 145 | 実行互換性 #145: Pmt のゼロ期間エラー | FZ-BUILTIN の日付・財務境界で `Pmt` の `Type`/`FV` optional 引数と期末・期首払いを確認した。`NPer=0` だけは JavaScript の `-Infinity` を返して `On Error` を発火しない Bug 145-A だったため、VBA Error 5 の事前検証と回帰テストを追加した。 | 2026-07-26 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -296,6 +297,7 @@
 | 問題 | 最小再現コード | 根本原因 | 修正コミット |
 |---|---|---|---|
 | ~~**Bug 143-A: `FormatPercent` の `IncludeLeadingDigit` / `UseParensForNegativeNumbers` が無視される**~~ | `FormatPercent(-0.125, 1, True, True, False)` が `-12.5%`、`FormatPercent(0.005, 1, False, False, False)` が `0.5%` になっていた。期待値はそれぞれ `(12.5%)`、`.5%`。`FormatNumber` の同じ共有経路も回帰確認した。 | `builtins.ts` の共有 `fmtNumeric` が optional 引数を `_leadingDigit` / `_parens` として受け取るだけで表示処理に使っていなかった。 | このコミット |
+| ~~**Bug 145-A: `Pmt` の `NPer=0` が `-Infinity` を返す**~~ | `On Error GoTo Handler` 中に `Pmt(0.01, 0, 1000)` を呼ぶと、期待する Error 5 ではなく `-Infinity` が返り、ハンドラーへ分岐しなかった。 | `builtins.ts` の `pmt` が `NPer` の正数検査なしに JavaScript のゼロ除算を返していた。`NPer <= 0` を `INVALID_PROCEDURE_CALL` として検証した。 | このコミット |
 | ~~**Bug F: `QBColor(n)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `qbcolor` を登録。16色テーブルで 0〜15 を COLORREF に変換。範囲外は Error 5。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | `builtins.ts` に `qbcolor` の登録が存在しなかった。 |
 | ~~**Bug G: `Nz(value, valueifnull)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `nz` を登録。`Null`/`Empty`/`null`/`undefined` なら `valueifnull`（省略時は `0`）を返す。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | Access VBA の組み込み関数で Excel VBA には存在しないため未登録だった。 |
 | ~~**Bug H: `StrConv(s, conv, LCID)` 第3引数が Error 450**~~ | **修正済み**: `strconv` 登録に `{ name: 'LCID', optional: true }` を追加（LCID は無視するが引数を受け取るようになった）。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `ctx.reg` の params 配列が `String`/`Conversion` の2要素固定だった。 |
@@ -515,7 +517,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 
 | キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
 |---|---|---|---|---|
-| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143、#144 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制 | `builtins.ts` / `coerce.ts` の日付・財務関数、配列戻り値のJS境界、変更後の別入力シード | 継続 |
+| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143、#144、#145 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界 | `builtins.ts` / `coerce.ts` の日付・財務関数の別境界、配列戻り値のJS境界、変更後の別入力シード | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し（カバレッジ基準 2026-07-18） | 別シードでのProperty Let引数のByRef境界、型付き配列の多次元・Preserve組み合わせ、宣言サフィックスと比較・連結の追加組み合わせ | 継続 |
 | MUT-ENGINE | #129 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・UDT・ファイルI/Oの境界変異、別テスト単位での検出確認 | 継続 |
 
