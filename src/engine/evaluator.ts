@@ -5812,52 +5812,53 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
-        // Simple line-based implementation for now.
-        // Real VBA Input # parses delimiters even across lines.
+        // Input # consumes comma-separated Write # values across line boundaries.
+        // Read the remaining bytes as one CP932 stream so multibyte characters and
+        // records split across CRLF are not truncated at the first line.
         const contentBytes: number[] = [];
         const buf = new Uint8Array(1024);
         let bytesRead = 0;
         let readPos = handle.pos || 0;
         while ((bytesRead = this.fs.readSync(handle.fd, buf, 0, 1024, readPos)) > 0) {
             for (let i = 0; i < bytesRead; i++) contentBytes.push(buf[i]);
-            if (contentBytes.includes(0x0a)) break;
             readPos += bytesRead;
         }
 
         const content = iconv.decode(Buffer.from(contentBytes), Evaluator.VBA_BINARY_ENCODING);
-        const lineEnd = content.indexOf('\n');
-        const line = lineEnd === -1 ? content : content.slice(0, lineEnd);
-        const consumedBytes = lineEnd === -1
-            ? contentBytes.length
-            : contentBytes.indexOf(0x0a) + 1;
-        handle.pos = (handle.pos || 0) + consumedBytes;
-        if (content[lineEnd - 1] === '\r') {
-            // handle CRLF
-        }
-
-        // 引用符内のカンマで分割しないフィールド分割（Bug 32-C）
-        const splitInputFields = (src: string): string[] => {
-            const fields: string[] = [];
+        // 引用符内のカンマ・改行で分割しないフィールド分割（Bug 32-C）
+        const splitInputFields = (src: string): Array<{ raw: string; end: number }> => {
+            const fields: Array<{ raw: string; end: number }> = [];
             let cur = '';
             let inQuotes = false;
-            for (const ch of src) {
+            for (let i = 0; i < src.length; i++) {
+                const ch = src[i];
                 if (inQuotes) {
-                    if (ch === '"') inQuotes = false;
+                    if (ch === '"') {
+                        if (src[i + 1] === '"') { cur += '"'; i++; continue; }
+                        inQuotes = false;
+                    }
                     cur += ch;
                 } else if (ch === '"') {
                     inQuotes = true;
                     cur += ch;
-                } else if (ch === ',') {
-                    fields.push(cur);
+                } else if (ch === ',' || ch === '\r' || ch === '\n') {
+                    let end = i + 1;
+                    if (ch === '\r' && src[i + 1] === '\n') { end++; i++; }
+                    fields.push({ raw: cur, end });
                     cur = '';
                 } else {
                     cur += ch;
                 }
             }
-            fields.push(cur);
+            if (cur.length > 0 || fields.length === 0) fields.push({ raw: cur, end: src.length });
             return fields;
         };
-        const rawValues = splitInputFields(line.trim());
+        const fields = splitInputFields(content);
+        const rawValues = fields.slice(0, stmt.variables.length).map(field => field.raw.trim());
+        if (fields.length > 0 && stmt.variables.length > 0) {
+            const consumedEnd = fields[Math.min(stmt.variables.length, fields.length) - 1].end;
+            handle.pos = (handle.pos || 0) + iconv.encode(content.slice(0, consumedEnd), Evaluator.VBA_BINARY_ENCODING).length;
+        }
         const parseInputValue = (raw: string): any => {
             const t = raw.trim();
             if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);

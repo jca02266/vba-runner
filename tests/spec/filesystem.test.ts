@@ -221,4 +221,26 @@ console.log('[PASS] Bug BM: Write# Null/Empty encoding');
     console.log('[PASS] Bug 168-A: CP932 text I/O preserves multibyte characters');
 }
 
+// Bug 169-A: Input # は Write # の行境界を跨いで値を消費する
+{
+    const vfs7 = new MemoryFileSystem();
+    const ev = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Open "records.txt" For Output As #1
+            Write #1, "Aあ", 101
+            Write #1, "B漢", 202
+            Close #1
+            Dim first As String, second As String, n1 As Long, n2 As Long
+            Open "records.txt" For Input As #1
+            Input #1, first, n1, second, n2
+            result = first & "|" & n1 & "|" & second & "|" & n2 & "|" & CStr(EOF(1))
+            Close #1
+        End Sub
+    `, { fs: vfs7 });
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 'Aあ|101|B漢|202|True', 'Input# は複数行のWrite#値を順に読む');
+    console.log('[PASS] Bug 169-A: Input# consumes values across line boundaries');
+}
+
 console.log('✅ FileSystem: 全テスト通過');
