@@ -2702,12 +2702,20 @@ export class Evaluator {
 
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
+        const selectCaseEquals = (left: any, right: any): boolean => {
+            if (left instanceof VbaDate && right instanceof VbaDate) return left.value === right.value;
+            if (left instanceof VbaCurrency || left instanceof VbaDecimal ||
+                right instanceof VbaCurrency || right instanceof VbaDecimal) {
+                try { return this.toVbaNumber(left) === this.toVbaNumber(right); } catch { return false; }
+            }
+            return left === right;
+        };
 
         for (const caseClause of stmt.cases) {
             let matched = false;
             for (const range of caseClause.ranges) {
                 if (range.kind === 'expression') {
-                    matched = selectVal === this.evaluateExpression(range.value);
+                    matched = selectCaseEquals(selectVal, this.evaluateExpression(range.value));
                 } else if (range.kind === 'to') {
                     const start = this.evaluateExpression(range.start);
                     const end = this.evaluateExpression(range.end);
@@ -2716,8 +2724,8 @@ export class Evaluator {
                     // comparison: selectVal <op> value
                     const val = this.evaluateExpression(range.value);
                     switch (range.operator) {
-                        case '=':  matched = selectVal === val; break;
-                        case '<>': matched = selectVal !== val; break;
+                        case '=':  matched = selectCaseEquals(selectVal, val); break;
+                        case '<>': matched = !selectCaseEquals(selectVal, val); break;
                         case '<':  matched = selectVal < val;   break;
                         case '>':  matched = selectVal > val;   break;
                         case '<=': matched = selectVal <= val;  break;

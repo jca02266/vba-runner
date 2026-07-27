@@ -83,6 +83,7 @@
 | 170 | 実行互換性 #170: EOF後のLine Inputエラー | MUT-ENGINEの `On Error Resume Next` ファイル境界として、1行読了後のEOFで `Line Input #` を再実行した。実装が0バイトを無操作で終了し `Err.Number=0` のままにする Bug 170-A を再現・修正し、Error 62と成功後の `Err.Clear` を確認する回帰テストを追加した。 | 2026-07-27 |
 | 171 | 実行互換性 #171: Currency/Decimalの型強制・日付シリアル | FZ-BUILTINの既定Value別入力として、Currency/Decimalを直接および `__vbaDefault__` Value経由で `CBool`/`IsDate`/`CDate`/`DateValue`へ渡した。数値オブジェクトをType mismatchにし、日付シリアルを文字列日付へ誤変換する Bug 171-A を修正し、数値型のBoolean・日付変換回帰を追加した。 | 2026-07-27 |
 | 172 | 実行互換性 #172: 循環既定Valueの安全な拒否 | 同じ別入力シードで、`__vbaDefault__` の `Value` が自身を参照する循環オブジェクトを `CStr` へ渡した。再帰展開がJSのスタックオーバーフローになる Bug 172-A を再現・修正し、循環をError 13として処理する回帰テストを追加した。 | 2026-07-27 |
+| 173 | 実行互換性 #173: Select Caseの日付値比較 | MUT-ENGINEの比較・分岐変異として、`DateSerial` で生成した別インスタンスを `Select Case` の `Case` 式へ渡した。通常の比較演算と異なり厳密なオブジェクト参照比較でCase Elseへ進む Bug 173-A を再現・修正し、Dateシリアル値比較の回帰テストを追加した。 | 2026-07-27 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -549,7 +550,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|---|---|---|
 | FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150、#155〜#165、#171〜#172 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否、`__vbaDefault__` ValueのCStr/CBool/数値型強制/IsNumeric/IsDate/CDate/DateValue/日付関数/Format、Currency/Decimalの日付シリアル、循環既定Value、複数Err.Raise伝播とDecimal overflow後のErr状態 | 既定Valueを受ける別入力シード、変更後の別日付入力 | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153、#154、#161〜#162、#166〜#167 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve、Property Getの2次元配列戻り値、UDT/Long/クラスの多次元配列Preserve追加シード、宣言型サフィックスの比較・連結、直接手続きの名前付きByRef複合呼び出し、CallByNameクラス手続きのByRef書き戻し（カバレッジ基準 2026-07-18） | 追加の型サフィックス境界、CallByNameの外部Object/COM経路 | 継続 |
-| MUT-ENGINE | #129、#163、#168〜#170 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異、UDT Binary Put/Get の配列・EOF境界変異、標準ファイルI/OのCP932テキスト・Binary混在境界、Input # の複数行消費、EOF後Line InputのError 62。全体テストで検出 | `On Error Resume Next` の単独テスト強化、ファイルI/OのUnicode/Append/Input追加境界、別テスト単位での検出確認 | 継続 |
+| MUT-ENGINE | #129、#163、#168〜#170、#173 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異、UDT Binary Put/Get の配列・EOF境界変異、標準ファイルI/OのCP932テキスト・Binary混在境界、Input # の複数行消費、EOF後Line InputのError 62、Select Caseの日付値比較。全体テストで検出 | `On Error Resume Next` の単独テスト強化、ファイルI/OのUnicode/Append/Input追加境界、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
 
 各キャンペーンを実施したら、評価済みドメイン表にも回数を追記し、この表の「実施履歴」
 「今回までに確認した範囲」「次回の未実施対象」を同じコミットで更新する。製品バグを

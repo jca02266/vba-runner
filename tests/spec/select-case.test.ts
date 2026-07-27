@@ -141,3 +141,21 @@ assert.strictEqual(runFunc(strCode, 'DayType', ['xyz']), 'unknown', 'unknown day
 console.log('[PASS] 文字列マッチ');
 
 console.log('\n✅ Select Case: 全テスト通過');
+
+// Bug 173-A: Select Case の Date 式比較は値で一致判定する
+{
+    const result = runFunc(`
+Function TestDateCase() As String
+    Dim d As Date
+    d = DateSerial(2024, 1, 2)
+    Select Case d
+        Case DateSerial(2024, 1, 2)
+            TestDateCase = "D"
+        Case Else
+            TestDateCase = "X"
+    End Select
+End Function
+`, 'TestDateCase');
+    assert.strictEqual(result, 'D', 'Select Case はDateオブジェクトをシリアル値で比較する');
+    console.log('[PASS] Bug 173-A: Select Case Date equality');
+}
