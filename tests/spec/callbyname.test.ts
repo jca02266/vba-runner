@@ -162,3 +162,32 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     assert.strictEqual(runFunc(code, 'TestCallByNameByRef'), '12:tag!', 'CallByNameのByRef書き戻し');
     console.log('[PASS] Bug 167-A: CallByName class ByRef writeback');
 }
+
+// Bug 174-A: 外部COM風オブジェクトのprototypeメンバーと未定義メンバー
+{
+    class ExternalCom {
+        private value = 'proto';
+        get Value() { return this.value; }
+        set Value(v: any) { this.value = String(v); }
+        Add(a: any, b: any) { return Number(a) + Number(b); }
+    }
+    const com = new ExternalCom();
+    const ev = evalVBASingle(`
+Function Probe() As String
+    CallByName com, "VALUE", 4, "changed"
+    Probe = CStr(CallByName(com, "value", 2)) & ":" & CStr(CallByName(com, "ADD", 1, 3, 4))
+End Function
+`, { onPrint: () => {}, setup: e => e.set('com', com) });
+    assert.strictEqual(ev.callProcedure('Probe', []), 'changed:7', '外部prototypeのGet/Let/Methodを解決する');
+
+    const missing = evalVBASingle(`
+Function Missing() As Long
+    On Error Resume Next
+    Dim x As Variant
+    x = CallByName(com, "NoSuchProperty", 2)
+    Missing = Err.Number
+End Function
+`, { onPrint: () => {}, setup: e => e.set('com', com) });
+    assert.strictEqual(missing.callProcedure('Missing', []), 438, '未定義の外部CallByNameはError 438');
+    console.log('[PASS] Bug 174-A: external CallByName prototype/missing members');
+}

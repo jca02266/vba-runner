@@ -187,6 +187,17 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (procName === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (callType === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const name = vbaToString(procName).toLowerCase();
+        const findExternalKey = (): string | undefined => {
+            let current = obj;
+            while (current && current !== Object.prototype) {
+                const key = Reflect.ownKeys(current).find(
+                    k => typeof k === 'string' && k.toLowerCase() === name
+                );
+                if (typeof key === 'string') return key;
+                current = Object.getPrototypeOf(current);
+            }
+            return undefined;
+        };
         if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
             if (obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
@@ -201,8 +212,10 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                 return obj.__instanceEnv__.get(name);
             }
             if (typeof obj === 'object' && obj !== null) {
-                const keys = Object.keys(obj);
-                const match = keys.find(k => k.toLowerCase() === name) ?? name;
+                const match = findExternalKey();
+                if (match === undefined) {
+                    ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
+                }
                 const val = obj[match];
                 if (typeof val === 'function') return val.apply(obj, args);
                 return val;
@@ -223,8 +236,10 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                 return;
             }
             if (typeof obj === 'object' && obj !== null) {
-                const keys = Object.keys(obj);
-                const match = keys.find(k => k.toLowerCase() === name) ?? name;
+                const match = findExternalKey();
+                if (match === undefined) {
+                    ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
+                }
                 const val = obj[match];
                 if (typeof val === 'function') { val.apply(obj, args); } else { obj[match] = args[0]; }
                 return;
