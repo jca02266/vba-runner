@@ -73,11 +73,13 @@ export interface StdlibCtx {
 export function registerInformationFunctions(ctx: StdlibCtx): void {
     ctx.reg('isempty', (val: any) => (val === undefined || val === null || val === vbaEmpty) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
     ctx.reg('ismissing', (val: any) => val === vbaMissing ? vbaTrue : vbaFalse, [{ name: 'ArgName' }]);
-    const isNumericValue = (val: any): VbaBoolean => {
+    const isNumericValue = (val: any, seen = new Set<any>()): VbaBoolean => {
         if (val === vbaNull) return vbaFalse;
         if (val === vbaEmpty || val === undefined) return vbaTrue;
         if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-            return isNumericValue(val.Value);
+            if (seen.has(val)) return vbaFalse;
+            seen.add(val);
+            return isNumericValue(val.Value, seen);
         }
         if (typeof val === 'number' || typeof val === 'bigint' || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaBoolean) return vbaTrue;
         if (typeof val === 'string') {
@@ -96,6 +98,8 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
     ctx.reg('isdate', (val: any) => {
         val = unwrapVbaDefaultValue(val);
         if (val instanceof VbaDate) return vbaTrue;
+        if (val instanceof VbaDecimal) return isFinite(val.value) ? vbaTrue : vbaFalse;
+        if (val instanceof VbaCurrency) return isFinite(Number(val.internal)) ? vbaTrue : vbaFalse;
         if (typeof val === 'number') return isFinite(val) ? vbaTrue : vbaFalse;
         if (typeof val === 'string') {
             const d = Date.parse(val);

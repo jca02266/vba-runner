@@ -62,6 +62,8 @@ export const parseVbaDate = (val: any): Date => {
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'symbol') throwVbaError(VbaErrorCode.TYPE_MISMATCH); // vbaNull 等の番兵
     if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
+    if (val instanceof VbaDecimal) return fromVbaDate(val.value);
+    if (val instanceof VbaCurrency) return fromVbaDate(Number(val.internal) / 10000);
     if (typeof val === 'number') return fromVbaDate(val);
 
     let str = String(val);

@@ -23,6 +23,7 @@
  */
 import { VbaErrorValue } from '../../src/engine/evaluator';
 import { MockWorksheet } from '../../src/engine/mock/MockWorksheet';
+import { VbaCurrency, VbaDecimal } from '../../src/engine/vba-types';
 import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 
 const VOID: EvalOptions = { onPrint: () => {} };
@@ -164,6 +165,35 @@ End Function
 `, 'TestDateFamily', ev => ev.set('v', defaultDate));
     assert.strictEqual(result, '1:15:14:30:45:2:2024:2024:1:14', '日付関数群は既定Valueを展開する');
     console.log('[PASS] Bug 164-A: 日付関数群の既定Value展開');
+}
+
+// Bug 171-A: Currency/Decimalも数値式としてBoolean・日付へ変換する
+{
+    const currency = new VbaCurrency(10000n);
+    const decimal = new VbaDecimal(15n, 1);
+    const result = run(`
+Function TestNumericObjects()
+    TestNumericObjects = CStr(CBool(c)) & ":" & CStr(CBool(d)) & ":" & CStr(IsDate(c)) & ":" & CStr(Year(CDate(c))) & ":" & CStr(Year(DateValue(d)))
+End Function
+`, 'TestNumericObjects', ev => { ev.set('c', currency); ev.set('d', decimal); });
+    assert.strictEqual(result, 'True:True:True:1899:1899', 'Currency/Decimalは数値式として型変換される');
+    console.log('[PASS] Bug 171-A: Currency/Decimal boolean/date coercion');
+}
+
+// Bug 172-A: 循環する既定ValueはJSのスタックオーバーフローにならない
+{
+    const cyclic: any = { __vbaDefault__: true };
+    cyclic.Value = cyclic;
+    const result = run(`
+Function TestCyclicDefault()
+    On Error Resume Next
+    Dim s As String
+    s = CStr(v)
+    TestCyclicDefault = CStr(Err.Number)
+End Function
+`, 'TestCyclicDefault', ev => ev.set('v', cyclic));
+    assert.strictEqual(result, '13', '循環する既定ValueはError 13として処理する');
+    console.log('[PASS] Bug 172-A: cyclic default Value is rejected safely');
 }
 
 // 6. MockRange を使った VBA 演算

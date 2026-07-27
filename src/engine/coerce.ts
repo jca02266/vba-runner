@@ -17,6 +17,17 @@ import {
 } from './vba-types';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
 
+function unwrapDefaultValue(value: any): any {
+    const seen = new Set<any>();
+    let current = value;
+    while (current && typeof current === 'object' && current.__vbaDefault__ === true) {
+        if (seen.has(current)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+        seen.add(current);
+        current = current.Value;
+    }
+    return current;
+}
+
 // ---------------------------------------------------------------------------
 // §6.1.2.2 Numeric value coercion
 // ---------------------------------------------------------------------------
@@ -32,6 +43,7 @@ import { VbaErrorCode, throwVbaError } from './vba-errors';
  * - ErrorValue → Error 13
  */
 export function vbaToNumber(val: any): number {
+    val = unwrapDefaultValue(val);
     if (val === vbaEmpty) return 0;                          // null === null
     if (val === vbaNull) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
@@ -39,9 +51,6 @@ export function vbaToNumber(val: any): number {
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
     if (val instanceof VbaCurrency) return Number(val.internal) / 10000;
-    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-        return vbaToNumber(val.Value);
-    }
     if (typeof val === 'number') return val;
     if (typeof val === 'bigint') return Number(val);
     if (typeof val === 'string') {
@@ -110,15 +119,15 @@ export function vbaRound(val: number, decimals: number = 0): number {
  * - Null → caller must check (Error 94 per §5.6.9); this function throws Error 13
  */
 export function vbaToBoolean(val: any): VbaBoolean {
+    val = unwrapDefaultValue(val);
     if (val instanceof VbaBoolean) return val;
     if (val === vbaEmpty) return vbaFalse;
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
     if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
+    if (val instanceof VbaDecimal) return val.value !== 0 ? vbaTrue : vbaFalse;
+    if (val instanceof VbaCurrency) return val.internal !== 0n ? vbaTrue : vbaFalse;
     if (val instanceof VbaDate) return val.value !== 0 ? vbaTrue : vbaFalse;
-    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-        return vbaToBoolean(val.Value);
-    }
     if (typeof val === 'string') {
         const trimmed = val.trim();
         const lc = trimmed.toLowerCase();
@@ -145,6 +154,7 @@ export function vbaToBoolean(val: any): VbaBoolean {
  * - Others → String representation (delegates to toString())
  */
 export function vbaToString(val: any): string {
+    val = unwrapDefaultValue(val);
     if (val === vbaNull) throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL);
     if (val === vbaEmpty) return '';
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
@@ -152,9 +162,6 @@ export function vbaToString(val: any): string {
     // Excel-like objects explicitly opt in to a default Value property.  In
     // VBA value contexts such as CStr(Range("A1")), the property's value is
     // coerced rather than the JavaScript object identity.
-    if (val && typeof val === 'object' && val.__vbaDefault__ === true) {
-        return vbaToString(val.Value);
-    }
     // Date, Boolean, Currency, Decimal, and Error values have VBA string
     // representations. Other objects require a default property; the runner
     // cannot infer one, so reject them instead of leaking JS object text.
