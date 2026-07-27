@@ -78,6 +78,7 @@
 | 165 | 実行互換性 #165: Formatの既定Value展開 | 同じ既定日付オブジェクトを `Format(..., "yyyy")` へ渡したところ、Valueを展開せず文字列表現へ落ちる Bug 165-A を確認した。Format系の入力でも既定Valueを共通展開し、日付書式の回帰を追加した。 | 2026-07-27 |
 | 166 | 回帰確認 #166: 直接手続きの名前付きByRef引数 | FZ-GRAMMARの未統合API経路として、モジュール修飾なしの直接 `Sub` を逆順名前付き・位置+名前混在・Optional ByRef・UDT/配列要素・Call/非Call・括弧付きで呼び出した。スカラー・String・UDT・Collectionを含む複合ケースで期待値と実値が一致し、新規バグは確認されなかった。 | 2026-07-27 |
 | 167 | 実行互換性 #167: CallByNameのクラスByRef書き戻し | FZ-GRAMMARの外部呼び出し経路として、`CallByName` でクラスのByRefメソッドをスカラー・配列要素・UDT・Collection・Property Let/Setへ渡した。組み込み実装が評価済みの値だけを `callMethod` へ渡し、呼び出し元の更新を失う Bug 167-A を再現・修正した。AST式を保持するクラス専用経路を追加し、ByRef書き戻しの回帰テストを追加した。 | 2026-07-27 |
+| 168 | 実行互換性 #168: 標準ファイルI/OのCP932文字列 | MUT-ENGINEのファイルI/O追加境界として、Collection・配列・ループ・`On Error` と `Print`/`Line Input`/Binary `Seek`/`Get`/`Put` を組み合わせた。ANSIテキストのCP932マルチバイト文字が1バイトごとのUTF-8 `TextDecoder` で `�` になる Bug 168-A、`Print` がUTF-8バイトを書き込む不一致を再現・修正し、CP932の入出力とバイト位置更新の回帰テストを追加した。 | 2026-07-27 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -544,7 +545,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|---|---|---|
 | FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150、#155〜#165 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否、`__vbaDefault__` ValueのCStr/CBool/数値型強制/IsNumeric/IsDate/CDate/DateValue/日付関数/Format、複数Err.Raise伝播とDecimal overflow後のErr状態 | 既定Valueを受ける別入力シード、変更後の別日付入力 | 継続 |
 | FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153、#154、#161〜#162、#166〜#167 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve、Property Getの2次元配列戻り値、UDT/Long/クラスの多次元配列Preserve追加シード、宣言型サフィックスの比較・連結、直接手続きの名前付きByRef複合呼び出し、CallByNameクラス手続きのByRef書き戻し（カバレッジ基準 2026-07-18） | 追加の型サフィックス境界、CallByNameの外部Object/COM経路 | 継続 |
-| MUT-ENGINE | #129、#163 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異、UDT Binary Put/Get の配列・EOF境界変異。全体テストで検出 | `On Error Resume Next` の単独テスト強化、配列・ファイルI/Oの追加境界変異、別テスト単位での検出確認 | 継続 |
+| MUT-ENGINE | #129、#163、#168 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異、UDT Binary Put/Get の配列・EOF境界変異、標準ファイルI/OのCP932テキスト・Binary混在境界。全体テストで検出 | `On Error Resume Next` の単独テスト強化、ファイルI/OのUnicode/Append/Input追加境界変異、別テスト単位での検出確認 | 継続 |
 
 各キャンペーンを実施したら、評価済みドメイン表にも回数を追記し、この表の「実施履歴」
 「今回までに確認した範囲」「次回の未実施対象」を同じコミットで更新する。製品バグを

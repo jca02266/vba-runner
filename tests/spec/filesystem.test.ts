@@ -189,4 +189,36 @@ console.log('[PASS] Bug BL: Input# #TRUE#/#FALSE# Boolean パース');
 }
 console.log('[PASS] Bug BM: Write# Null/Empty encoding');
 
+// Bug 168-A: ANSIテキストI/OはCP932のマルチバイト文字を保持する
+{
+    const vfs5 = new MemoryFileSystem();
+    vfs5.writeFileSync('/sandbox/cp932.txt', Uint8Array.from([0x41, 0x82, 0xa0, 0x0d, 0x0a]) as any);
+    const ev = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Open "cp932.txt" For Input As #1
+            Line Input #1, result
+            Close #1
+        End Sub
+    `, { fs: vfs5 });
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 'Aあ', 'Line Input はCP932を正しくデコードする');
+
+    const vfs6 = new MemoryFileSystem();
+    const writer = evalVBASingle(`
+        Sub Test()
+            Open "cp932-out.txt" For Output As #1
+            Print #1, "Aあ"
+            Close #1
+        End Sub
+    `, { fs: vfs6 });
+    writer.callProcedure('Test', []);
+    const fd = vfs6.openSync('/sandbox/cp932-out.txt', 'r');
+    const bytes = new Uint8Array(5);
+    const read = vfs6.readSync(fd, bytes, 0, bytes.length, 0);
+    vfs6.closeSync(fd);
+    assert.deepStrictEqual(Array.from(bytes.subarray(0, read)), [0x41, 0x82, 0xa0, 0x0d, 0x0a], 'Print はCP932で書き込む');
+    console.log('[PASS] Bug 168-A: CP932 text I/O preserves multibyte characters');
+}
+
 console.log('✅ FileSystem: 全テスト通過');

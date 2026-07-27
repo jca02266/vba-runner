@@ -5289,8 +5289,10 @@ export class Evaluator {
             output += "\r\n";
         }
 
-        this.fs.writeSync(handle.fd, output);
-        handle.pos! += output.length;
+        const outputBytes = iconv.encode(output, Evaluator.VBA_BINARY_ENCODING);
+        const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
+        this.fs.writeSync(handle.fd, outputBytes, 0, outputBytes.length, writePosition);
+        handle.pos! += outputBytes.length;
     }
 
     private evaluateDebugPrintStatement(stmt: DebugPrintStatement) {
@@ -5326,18 +5328,19 @@ export class Evaluator {
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
 
         const buffer = new Uint8Array(1);
-        let line = "";
+        const lineBytes: number[] = [];
         let bytesRead = 0;
 
         while (true) {
             bytesRead = this.fs.readSync(handle.fd, buffer, 0, 1, handle.pos ?? null);
             if (bytesRead === 0) break;
-            const char = new TextDecoder().decode(buffer.subarray(0, 1));
+            const byte = buffer[0];
             handle.pos!++;
-            if (char === '\n') break;
-            if (char !== '\r') line += char;
+            if (byte === 0x0a) break;
+            if (byte !== 0x0d) lineBytes.push(byte);
         }
 
+        const line = iconv.decode(Buffer.from(lineBytes), Evaluator.VBA_BINARY_ENCODING);
         this.evaluateAssignmentToVariable(stmt.variable, line);
     }
 
@@ -5798,8 +5801,9 @@ export class Evaluator {
             return String(val);
         }).join(",");
 
-        const lineOutput = output + "\r\n";  // Print # と同じく CRLF（Bug 32-D）
-        this.fs.writeSync(handle.fd, lineOutput);
+        const lineOutput = iconv.encode(output + "\r\n", Evaluator.VBA_BINARY_ENCODING);  // Print # と同じく CP932/CRLF
+        const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
+        this.fs.writeSync(handle.fd, lineOutput, 0, lineOutput.length, writePosition);
         handle.pos! += lineOutput.length;
     }
 
@@ -5810,19 +5814,23 @@ export class Evaluator {
 
         // Simple line-based implementation for now.
         // Real VBA Input # parses delimiters even across lines.
-        let content = "";
+        const contentBytes: number[] = [];
         const buf = new Uint8Array(1024);
         let bytesRead = 0;
         let readPos = handle.pos || 0;
         while ((bytesRead = this.fs.readSync(handle.fd, buf, 0, 1024, readPos)) > 0) {
-            content += new TextDecoder().decode(buf.subarray(0, bytesRead));
-            if (content.includes('\n')) break;
+            for (let i = 0; i < bytesRead; i++) contentBytes.push(buf[i]);
+            if (contentBytes.includes(0x0a)) break;
             readPos += bytesRead;
         }
 
+        const content = iconv.decode(Buffer.from(contentBytes), Evaluator.VBA_BINARY_ENCODING);
         const lineEnd = content.indexOf('\n');
         const line = lineEnd === -1 ? content : content.slice(0, lineEnd);
-        handle.pos = (handle.pos || 0) + line.length + (lineEnd === -1 ? 0 : 1);
+        const consumedBytes = lineEnd === -1
+            ? contentBytes.length
+            : contentBytes.indexOf(0x0a) + 1;
+        handle.pos = (handle.pos || 0) + consumedBytes;
         if (content[lineEnd - 1] === '\r') {
             // handle CRLF
         }
