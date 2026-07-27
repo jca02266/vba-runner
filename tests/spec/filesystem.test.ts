@@ -269,4 +269,26 @@ console.log('[PASS] Bug BM: Write# Null/Empty encoding');
     console.log('[PASS] Bug 170-A: Line Input at EOF raises Error 62');
 }
 
+// Bug 176-A: Input # が要求変数数より短いレコードで Error 62 を返す
+{
+    const vfs9 = new MemoryFileSystem();
+    vfs9.writeFileSync('/sandbox/short-input.txt', '"only-one"\r\n');
+    const ev = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Dim first As String, second As String
+            first = "initial": second = "initial"
+            Open "short-input.txt" For Input As #1
+            On Error Resume Next
+            Input #1, first, second
+            result = first & "|" & second & "|" & CStr(Err.Number)
+            Close #1
+        End Sub
+    `, { fs: vfs9 });
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 'only-one|initial|62',
+        'Input# の不足フィールドは Error 62 を返す');
+    console.log('[PASS] Bug 176-A: Input# short record raises Error 62');
+}
+
 console.log('✅ FileSystem: 全テスト通過');

@@ -5887,9 +5887,10 @@ export class Evaluator {
             return isNaN(n) ? t : n;
         };
         for (let i = 0; i < stmt.variables.length; i++) {
-            if (i < rawValues.length) {
-                this.evaluateAssignmentToVariable(stmt.variables[i], parseInputValue(rawValues[i]));
+            if (i >= rawValues.length) {
+                this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
             }
+            this.evaluateAssignmentToVariable(stmt.variables[i], parseInputValue(rawValues[i]));
         }
     }
 
