@@ -243,4 +243,30 @@ console.log('[PASS] Bug BM: Write# Null/Empty encoding');
     console.log('[PASS] Bug 169-A: Input# consumes values across line boundaries');
 }
 
+// Bug 170-A: EOF後のLine InputはError 62を設定する
+{
+    const vfs8 = new MemoryFileSystem();
+    const ev = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Open "eof.txt" For Output As #1
+            Print #1, "one"
+            Close #1
+            Open "eof.txt" For Input As #1
+            Dim line As String
+            Line Input #1, line
+            result = line & ":" & CStr(EOF(1))
+            On Error Resume Next
+            Line Input #1, line
+            result = result & ":" & CStr(Err.Number)
+            Err.Clear
+            Close #1
+            result = result & ":" & CStr(Err.Number)
+        End Sub
+    `, { fs: vfs8 });
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 'one:True:62:0', 'EOF後のLine InputはError 62');
+    console.log('[PASS] Bug 170-A: Line Input at EOF raises Error 62');
+}
+
 console.log('✅ FileSystem: 全テスト通過');

@@ -5333,7 +5333,12 @@ export class Evaluator {
 
         while (true) {
             bytesRead = this.fs.readSync(handle.fd, buffer, 0, 1, handle.pos ?? null);
-            if (bytesRead === 0) break;
+            if (bytesRead === 0) {
+                if (lineBytes.length === 0) {
+                    this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
+                }
+                break;
+            }
             const byte = buffer[0];
             handle.pos!++;
             if (byte === 0x0a) break;
