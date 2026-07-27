@@ -1229,7 +1229,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [x] Property Set/Let、イベント、名前付き引数、`ByVal` 強制括弧を共通フレームへ接続する
 - [x] 標準モジュール／クラス／Property／配列・UDTの組み合わせマトリクスを回帰テストとして整備する（`byref-dispatch-matrix.test.ts` と既存回帰群）
 - [x] 段階移行中は既存の `callProcedure` / `callClassMethod` 経路を比較検証し、挙動差を記録する（既存回帰群と新マトリクスで差分なし）
-- [ ] 名前付き引数の正規化を全呼び出しAPIへ統合する（クラスProperty・修飾標準モジュール・CallByNameのクラス手続きは共通の式／l-value保持へ段階移行済み。CallByName外部Object/COMのprototypeメンバー解決は実装済みだが、外部スカラーByRefと引数正規化には別の束縛実装が残るため、同じ正規化フレームへ統合し、Property／標準モジュール／外部呼び出しの全経路でByRef結果を一貫して保持する）
+- [ ] 名前付き引数の正規化を全呼び出しAPIへ統合する（クラスProperty・修飾標準モジュール・CallByNameのクラス手続きは共通の式／l-value保持へ段階移行済み。外部Object/COMのprototypeメンバー解決と位置・Optional・添字・オブジェクト引数は確認済みだが、外部スカラーByRefは値渡し制限として残る。外部CallByNameの名前付き引数はParamArrayに外部引数名がないためError 448となる仕様境界を維持しつつ、可能な外部呼び出しの束縛を共通化する）
 - [ ] 多次元配列の添字解決を `Let` / `Set` / `Member` / `With` / Property Get戻り値の共通ヘルパーへ統合する（ローカル配列の `Set a(i,j)` とProperty Get戻り値の添字参照で経路差が見つかった。添字数・各次元境界の検証と最終要素への参照取得を一箇所に集約し、宣言場所・戻り値経路に依存しない配列要素操作へ段階移行する）
 - [ ] 既定Valueオブジェクトの型強制を共通化する（`CStr`/`CBool`/数値変換/`IsNumeric`/`IsDate`/`CDate`/`DateValue`/日付関数/`Format` は `__vbaDefault__` のValue展開と循環拒否を実装済みだが、coerce経路と組み込み登録に個別判定が残る。既定Valueだけを一度展開する共通ヘルパーを全経路へ統合し、Object拒否とExcel互換のValue文脈を両立する）
 - [ ] 標準ファイルI/Oの文字コード・レコード・EOF処理を共通化する（`Print`/`Write`/`Line Input`/`Input` がそれぞれ独自にバイト変換・デコード・EOF判定していたため、評価 #168〜#170、#176 でCP932マルチバイト文字、Inputの行境界・不足フィールド、EOF後Error 62に分岐が見つかった。TextStreamと同じエンコード境界を共有し、モード別のANSI/Unicode・レコード消費・EOF/位置更新を一箇所で管理する）
