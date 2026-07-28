@@ -8456,13 +8456,13 @@ export class Evaluator {
             case '\\': {
                 const li = bankersDivide(ai!, 10000n);
                 const ri = bankersDivide(bi!, 10000n);
-                if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                if (ri === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return Number(li / ri);
             }
             case 'mod': {
                 const lm = bankersDivide(ai!, 10000n);
                 const rm = bankersDivide(bi!, 10000n);
-                if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                if (rm === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
                 return Number(lm % rm);
             }
             case '=':  return ai! === bi! ? vbaTrue : vbaFalse;
