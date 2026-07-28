@@ -399,3 +399,55 @@ End Function
     assert.strictEqual(result, 'number', 'Select Case compares LongLong with integral numbers');
     console.log('[PASS] Bug 184-A: Select Case LongLong equality');
 }
+
+// Bug 198-A: LongLong comparisons preserve digits beyond JavaScript's safe
+// integer range when the other operand is a numeric String.
+{
+    const result = runFunc(`
+Function TestLongLongStringBoundary() As String
+    Dim value As LongLong
+    Dim text As Variant
+    value = CLngLng("9007199254740993")
+    text = "9007199254740993"
+    Select Case value
+        Case text
+            TestLongLongStringBoundary = "equal"
+        Case Is > text
+            TestLongLongStringBoundary = "greater"
+        Case Is < text
+            TestLongLongStringBoundary = "less"
+        Case Else
+            TestLongLongStringBoundary = "else"
+    End Select
+End Function
+`, 'TestLongLongStringBoundary');
+    const range = runFunc(`
+Function TestLongLongStringRange() As String
+    Dim value As LongLong
+    value = CLngLng("9007199254740993")
+    Select Case value
+        Case "9007199254740992" To "9007199254740994"
+            TestLongLongStringRange = "in"
+        Case Else
+            TestLongLongStringRange = "out"
+    End Select
+End Function
+`, 'TestLongLongStringRange');
+    const ordinary = runFunc(`
+Function TestLongLongStringEquality() As String
+    Dim value As LongLong
+    Dim text As String
+    value = CLngLng("9007199254740993")
+    text = "9007199254740993"
+    If value = text Then
+        TestLongLongStringEquality = "equal"
+    Else
+        TestLongLongStringEquality = "else"
+    End If
+End Function
+`, 'TestLongLongStringEquality');
+    assert.strictEqual(result, 'equal', 'LongLong Select Case equality preserves 64-bit String digits');
+    assert.strictEqual(range, 'in', 'LongLong Select Case range preserves 64-bit String digits');
+    assert.strictEqual(ordinary, 'equal', 'LongLong ordinary equality preserves 64-bit String digits');
+    console.log('[PASS] Bug 198-A: LongLong numeric String precision');
+}

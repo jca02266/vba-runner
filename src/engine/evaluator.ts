@@ -2720,6 +2720,14 @@ export class Evaluator {
             if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
             return [left, right];
         };
+        const toExactBigInt = (value: any): bigint => {
+            if (typeof value === 'bigint') return value;
+            if (typeof value === 'string') {
+                const trimmed = value.trim();
+                if (/^[+-]?\d+$/.test(trimmed)) return BigInt(trimmed);
+            }
+            return BigInt(this.toVbaNumber(value));
+        };
         const selectCaseCompare = (rawLeft: any, rawRight: any): number | undefined => {
             let [left, right] = normalizeEmpty(rawLeft, rawRight);
             if (left instanceof VbaDate && right instanceof VbaDate) {
@@ -2742,8 +2750,8 @@ export class Evaluator {
                 return leftMantissa === rightMantissa ? 0 : (leftMantissa < rightMantissa ? -1 : 1);
             }
             if (typeof left === 'bigint' || typeof right === 'bigint') {
-                const leftBig = typeof left === 'bigint' ? left : BigInt(this.toVbaNumber(left));
-                const rightBig = typeof right === 'bigint' ? right : BigInt(this.toVbaNumber(right));
+                const leftBig = toExactBigInt(left);
+                const rightBig = toExactBigInt(right);
                 return leftBig === rightBig ? 0 : (leftBig < rightBig ? -1 : 1);
             }
             if (typeof left === 'number' && typeof right === 'number') {
@@ -8746,6 +8754,14 @@ export class Evaluator {
             }
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         };
+        const toExactBigInt = (v: any): bigint => {
+            if (typeof v === 'bigint') return v;
+            if (typeof v === 'string') {
+                const trimmed = v.trim();
+                if (/^[+-]?\d+$/.test(trimmed)) return BigInt(trimmed);
+            }
+            return BigInt(toVbaNumber(v));
+        };
 
         // Decimal: BigInt-backed string arithmetic for precision
         if (leftVal instanceof VbaDecimal || rightVal instanceof VbaDecimal) {
@@ -8777,12 +8793,12 @@ export class Evaluator {
                 // 片方が文字列でもう片方が数値/日付なら、文字列側を数値変換して比較する
                 // （変換失敗は Type Mismatch。実 VBA 差分で裁定: "abc" = #date# は Error 13）。
                 // 文字列同士の比較（Text 比較モード含む）はここでは変換しない。
-                const isNumericLike = (v: any) => typeof v === 'number' || v instanceof VbaDate;
+                const isNumericLike = (v: any) => typeof v === 'number' || typeof v === 'bigint' || v instanceof VbaDate;
                 if (typeof leftVal === 'string' && isNumericLike(rightVal)) {
-                    leftVal = toVbaNumber(leftVal);
+                    leftVal = typeof rightVal === 'bigint' ? toExactBigInt(leftVal) : toVbaNumber(leftVal);
                     if (rightVal instanceof VbaDate) rightVal = rightVal.value;
                 } else if (isNumericLike(leftVal) && typeof rightVal === 'string') {
-                    rightVal = toVbaNumber(rightVal);
+                    rightVal = typeof leftVal === 'bigint' ? toExactBigInt(rightVal) : toVbaNumber(rightVal);
                     if (leftVal instanceof VbaDate) leftVal = leftVal.value;
                 }
             }
