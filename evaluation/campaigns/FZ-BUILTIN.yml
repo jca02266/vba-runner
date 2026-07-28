@@ -8,3 +8,11 @@ items:
     focus: 別ロケール・日付境界
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-002
+    title: 固定小数点値の高精度Format
+    status: queued
+    priority: 2
+    focus: Decimal/Currencyの大値書式化
+    priorCauseKey: binary-fixed-point-string-rounding
+    coverageTargets:
+      - src/engine/builtins.ts

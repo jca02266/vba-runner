@@ -48,3 +48,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
+  - id: MUT-ENGINE-007
+    title: Currencyの高値整数除算・Mod
+    status: queued
+    priority: 1
+    focus: Currencyの\\・Modでの固定小数点丸め
+    priorCauseKey: binary-fixed-point-string-rounding
+    coverageTargets:
+      - src/engine/evaluator.ts
