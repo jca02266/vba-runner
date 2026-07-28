@@ -135,7 +135,35 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
     console.log('[PASS] & suffix on procedure parameter');
 }
 
-// --- 9. LongLong/LongPtr literals preserve 64-bit integer digits ---
+// --- 9. Long suffix remains distinct from concat after an identifier ---
+{
+    const code = `
+        Function TestLongSuffixOps(ByRef n&) As Long
+            TestLongSuffixOps = n& + 1
+        End Function
+        Function TestLongSuffixMultiply(ByRef n&) As Long
+            TestLongSuffixMultiply = n& * 2
+        End Function
+        Function TestLongSuffixDivide(ByRef n&) As Long
+            TestLongSuffixDivide = n& / 2
+        End Function
+        Function TestLongSuffixMod(ByRef n&) As Long
+            TestLongSuffixMod = n& Mod 3
+        End Function
+    `;
+    const ev = evalVBASingle(code, { onPrint: () => {} });
+    assert.strictEqual(ev.callProcedure('TestLongSuffixOps', [4]), 5,
+        'n& + 1 treats & as Long suffix');
+    assert.strictEqual(ev.callProcedure('TestLongSuffixMultiply', [4]), 8,
+        'n& * 2 treats & as Long suffix');
+    assert.strictEqual(ev.callProcedure('TestLongSuffixDivide', [4]), 2,
+        'n& / 2 treats & as Long suffix');
+    assert.strictEqual(ev.callProcedure('TestLongSuffixMod', [4]), 1,
+        'n& Mod 3 treats & as Long suffix');
+    console.log('[PASS] Long suffix and operators');
+}
+
+// --- 10. LongLong/LongPtr literals preserve 64-bit integer digits ---
 {
     const r = runFunc(`
         Function TestWideLiteral() As String

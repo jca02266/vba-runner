@@ -321,15 +321,21 @@ export class Lexer {
 
     /** `&` is both the Long type suffix and the concatenation operator. */
     private canConsumeLongSuffix(): boolean {
+        // The ampersand is a suffix only when it immediately follows the
+        // identifier.  In `n & 1`, whitespace makes it the concat operator.
+        const previous = this.pos > 0 ? this.input[this.pos - 1] : '\0';
+        if (!this.isAlphaNumeric(previous)) return false;
         let i = this.pos + 1;
         while (i < this.input.length && (this.input[i] === ' ' || this.input[i] === '\t' || this.input[i] === '\r')) i++;
         const next = i < this.input.length ? this.input[i] : '\0';
         // After a Long suffix, a second ampersand may be the concatenation
         // operator (`n& & ","`).  Treat the first ampersand as the suffix;
         // an operator-only expression (`n & &H10`) never enters this helper.
-        if (next === '\0' || next === '\n' || next === '&' || ',):=:'.includes(next)) return true;
-        return this.input.slice(i, i + 2).toLowerCase() === 'as'
-            && !this.isAlphaNumeric(this.input[i + 2] ?? '\0');
+        if (next === '\0' || next === '\n' || next === '&' || ',):=:'.includes(next)
+            || '+-*/\\<>'.includes(next)) return true;
+        const word = this.input.slice(i).match(/^[A-Za-z]+/i)?.[0].toLowerCase();
+        if (word && ['and', 'or', 'xor', 'eqv', 'imp', 'mod'].includes(word)) return true;
+        return word === 'as' && !this.isAlphaNumeric(this.input[i + word.length] ?? '\0');
     }
 
     private skipWhitespace() {
