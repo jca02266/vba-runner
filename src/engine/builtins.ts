@@ -1011,6 +1011,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     // Helper shared by FormatCurrency / FormatNumber / FormatPercent
     const fmtNumeric = (val: any, digits: any, leadingDigit: any, parens: any, groupDigits: any,
                         prefix: string, suffix: string, scale: number): string => {
+        val = unwrapVbaDefaultValue(val);
         if (val === vbaNull) return '';
         let n: number;
         if (val instanceof VbaDate) n = val.value;

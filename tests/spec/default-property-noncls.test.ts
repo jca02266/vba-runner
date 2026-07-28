@@ -24,7 +24,7 @@
 import { VbaErrorValue } from '../../src/engine/evaluator';
 import { MockWorksheet } from '../../src/engine/mock/MockWorksheet';
 import { VbaCurrency, VbaDecimal } from '../../src/engine/vba-types';
-import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, vbaTrue, vbaFalse, vbaNull } from '../../test-libs/test-runner';
 
 const VOID: EvalOptions = { onPrint: () => {} };
 import type { EvalOptions } from '../../test-libs/test-runner';
@@ -194,6 +194,26 @@ End Function
 `, 'TestCyclicDefault', ev => ev.set('v', cyclic));
     assert.strictEqual(result, '13', '循環する既定ValueはError 13として処理する');
     console.log('[PASS] Bug 172-A: cyclic default Value is rejected safely');
+}
+
+// Bug 178-A: 数値書式関数も既定Valueが返すNullを直接のNullと同じ扱いにする
+{
+    const inner: any = { __vbaDefault__: true as const, Value: vbaNull };
+    const outer: any = { __vbaDefault__: true as const, Value: inner };
+    const result = run(`
+Function TestNullDefault()
+    TestNullDefault = FormatNumber(v) & "|" & FormatCurrency(v) & "|" & FormatPercent(v)
+End Function
+`, 'TestNullDefault', ev => ev.set('v', outer));
+    assert.strictEqual(result, '||', '既定Valueが返すNullは数値書式関数で空文字列になる');
+
+    const arrayResult = run(`
+Function TestNullDefaultArray()
+    TestNullDefaultArray = FormatNumber(values(0))
+End Function
+`, 'TestNullDefaultArray', ev => ev.set('values', [inner]));
+    assert.strictEqual(arrayResult, '', '配列要素の既定Valueが返すNullも空文字列になる');
+    console.log('[PASS] Bug 178-A: numeric format functions unwrap Null defaults');
 }
 
 // 6. MockRange を使った VBA 演算
