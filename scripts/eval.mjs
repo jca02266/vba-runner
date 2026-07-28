@@ -137,6 +137,29 @@ function release(id) {
   console.log(`released ${id}`);
 }
 
+function record(file) {
+  const parsed = readRecord(path.resolve(file));
+  validate([parsed]);
+  const target = path.join(recordsDir, `${parsed.data.id}.md`);
+  if (fs.existsSync(target) && path.resolve(file) !== target) {
+    throw new Error(`${parsed.data.id} already exists`);
+  }
+  fs.mkdirSync(recordsDir, { recursive: true });
+  if (path.resolve(file) !== target) fs.copyFileSync(path.resolve(file), target);
+  console.log(target);
+}
+
+function migrate(dryRun) {
+  const legacy = path.join(root, 'EVAL_LOG.md');
+  if (!fs.existsSync(legacy)) throw new Error('EVAL_LOG.md not found');
+  const rows = fs.readFileSync(legacy, 'utf8').split(/\r?\n/)
+    .map((line) => line.match(/^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$/))
+    .filter(Boolean);
+  const candidates = rows.filter((row) => Number(row[1]) >= 100 && Number(row[1]) <= 188);
+  if (!dryRun) throw new Error(`migration is intentionally dry-run only; found ${candidates.length} rows`);
+  console.log(JSON.stringify({ source: legacy, candidates: candidates.length }, null, 2));
+}
+
 function hash(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
@@ -162,6 +185,10 @@ try {
     claim(process.argv[3]);
   } else if (command === 'release' && process.argv[3]) {
     release(process.argv[3]);
+  } else if (command === 'record' && process.argv[3]) {
+    record(process.argv[3]);
+  } else if (command === 'migrate' && process.argv[3] === '--dry-run') {
+    migrate(true);
   } else if (command === 'hash' && process.argv[3]) {
     console.log(hash(path.resolve(process.argv[3])));
   } else {
