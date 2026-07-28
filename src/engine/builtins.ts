@@ -1030,6 +1030,41 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return formatted;
     };
 
+    const exactScientificFormat = (raw: string, pattern: string): string | undefined => {
+        const clean = stripFormatColorDirectives(pattern);
+        const match = clean.match(/^(.*?)([Ee][+-])(0+|#+)(.*?)$/);
+        if (!match || !/[0#]/.test(match[1])) return undefined;
+        const mantissaFmt = match[1].replace(/%/g, '').replace(/,/g, '');
+        const parts = mantissaFmt.split('.');
+        const intFmt = parts[0] || '0';
+        const decFmt = parts[1] || '';
+        if (!/^0[#]*$/.test(intFmt) || /[^0#]/.test(decFmt)) return undefined;
+        let text = raw.trim();
+        const negative = text.startsWith('-');
+        if (negative || text.startsWith('+')) text = text.slice(1);
+        let [intPart, fracPart = ''] = text.split('.');
+        intPart = intPart || '0';
+        const digits = (intPart + fracPart).replace(/^0+/, '');
+        if (!digits) return `${negative ? '-' : ''}0.${'0'.repeat(decFmt.length)}${match[2]}+${'0'.repeat(match[3].length)}${match[4]}`;
+        const firstNonzero = (intPart + fracPart).search(/[1-9]/);
+        let exponent = intPart.length - firstNonzero - 1;
+        const maxDecimals = decFmt.length;
+        let significant = digits.slice(0, maxDecimals + 1).padEnd(maxDecimals + 1, '0');
+        const next = digits[maxDecimals + 1];
+        if (next !== undefined && next >= '5') {
+            significant = (BigInt(significant) + 1n).toString().padStart(maxDecimals + 1, '0');
+        }
+        if (significant.length > maxDecimals + 1) {
+            significant = significant.slice(0, maxDecimals + 1);
+            exponent++;
+        }
+        const mantissa = significant[0] + (maxDecimals ? `.${significant.slice(1)}` : '');
+        const eLetter = match[2][0];
+        const expSign = exponent < 0 ? '-' : (match[2][1] === '+' ? '+' : '');
+        const expDigits = String(Math.abs(exponent)).padStart(match[3].length, '0');
+        return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${match[4]}`;
+    };
+
     const formatFunc = (val: any, pattern?: any) => {
         val = unwrapVbaDefaultValue(val);
         if (val === null || val === vbaNull || val === vbaEmpty) return "";
@@ -1037,6 +1072,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
         if (fmt === "") return vbaToString(val);
         if (typeof val === 'bigint') {
+            const exactScientific = exactScientificFormat(val.toString(), fmt);
+            if (exactScientific !== undefined) return exactScientific;
             const namedExact: Record<string, [number, boolean, number, string, string]> = {
                 'general number': [0, false, 1, '', ''],
                 'currency': [2, true, 1, '$', ''],
@@ -1050,6 +1087,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (exact !== undefined) return exact;
         }
         if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+            const exactScientific = exactScientificFormat(val.toString(), fmt === 'Scientific' ? '0.00E+00' : fmt);
+            if (exactScientific !== undefined) return exactScientific;
             if (fmt.toLowerCase() === 'general number') return val.toString();
             const namedExact: Record<string, [number, boolean, number, string, string]> = {
                 'general number': [0, false, 1, '', ''],

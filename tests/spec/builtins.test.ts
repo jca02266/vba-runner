@@ -156,6 +156,14 @@ function evalExpr(expr: string): any {
         evalExpr('Format(CDec("123456789012345678.9012"), "Currency")'),
         '$123,456,789,012,345,678.90',
         'Format Currency keeps Decimal digits');
+    assert.strictEqual(
+        evalExpr('Format(CDec("123499999999999999"), "Scientific")'),
+        '1.23E+17',
+        'Format Scientific keeps Decimal rounding exact');
+    assert.strictEqual(
+        evalExpr('Format(CDec("123499999999999999"), "0.00E+00")'),
+        '1.23E+17',
+        'Format custom Scientific keeps Decimal rounding exact');
     console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
 }
 
