@@ -15,6 +15,7 @@
 * [識別子分類](IDENTIFIER_CLASSIFICATION.md) - Lexer / Parser の分類
 * [Currency / Decimal 実装](DECIMAL_IMPLEMENTATION.md) - BigInt 固定小数点
 * [VBA エクスポート・インポート](VBA_EXPORT_IMPORT.md) - Office バイナリ処理
+* [評価記録とバグ探索状態](EVALUATION_STORAGE.md) - 評価履歴・探索キュー・横展開調査の永続化
 
 ## Plans
 

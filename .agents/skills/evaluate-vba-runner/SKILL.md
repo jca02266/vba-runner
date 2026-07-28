@@ -5,15 +5,40 @@ description: Evaluate vba-runner from a fresh user perspective, investigate a ve
 
 # Evaluate vba-runner
 
-Use the project-owned Claude command and log as the single source of truth; do not duplicate their content in this skill.
+Use the project-owned Claude command and the evaluation-storage design as the
+single source of truth; do not duplicate their content in this skill.
 
-1. Read `.claude/commands/evaluate-vba-runner.md` in full, then read `EVAL_LOG.md` in full before selecting a theme.
+The storage migration and steady-state rules are defined in
+`docs/internals/EVALUATION_STORAGE.md`. Read it before changing the evaluation
+state. During migration, preserve `EVAL_LOG.md` as a read-only legacy source;
+after migration, use the structured records and the generated Markdown view.
+
+1. Read `.claude/commands/evaluate-vba-runner.md` and
+   `docs/internals/EVALUATION_STORAGE.md` in full. Run the storage audit and
+   obtain one compact candidate context before selecting a theme; do not load
+   the entire historical log into every evaluator prompt.
 2. Follow the command's evaluation procedure. It explicitly calls for an independent evaluation agent, so use one. Keep its files outside the repository and do not let it read TODO files or git history.
-3. Pick an untested, high-risk branch from `EVAL_LOG.md`, not a previously confirmed happy path. Give the evaluator a concrete domain and focus area. If the first pass finds no defect, make one further targeted pass against a different untested boundary; never invent a defect merely to satisfy the workflow. When the ordinary unimplemented queue is empty, select the next boundary from the `EVAL_LOG.md` "継続評価キャンペーン" table; a single fuzzer or mutation run never marks the method complete.
+3. Claim one queued, high-risk branch selected by the evaluation-state CLI,
+   using coverage gaps, prior cause keys, and unresolved boundaries. Give the
+   evaluator only the candidate and its linked findings/audit context. If the
+   first pass finds no defect, make one further targeted pass against a
+   different queued boundary; never invent a defect merely to satisfy the
+   workflow. A single fuzzer or mutation run never marks the method complete.
 4. Independently reproduce every reported defect with the smallest practical command or scratch program. Do not change tracked files for unverified reports. Identify the responsible parser, evaluator, builtin, or LSP code before editing.
 5. After a defect is independently reproduced, run a horizontal-expansion investigation before editing. Delegate a bounded subtask to a second independent sub-agent: inspect the source for every analogous dispatch/evaluation path and report suspicious sites, without changing tracked files or reading TODO files/git history. Have the sub-agent add a scratch driver outside the repository only when source inspection identifies a plausible analogue; use focused tests for those candidates rather than broad test-suite runs. Record each confirmed analogue, ruled-out path, or unresolved real-Excel semantic question in the evaluation notes, and do not treat an unverified suspicion as a product bug.
-6. For every evaluation run, update `EVAL_LOG.md` before staging a commit. Record the evaluated behavior and outcome, including the horizontal-expansion scope and results, and update the relevant coverage or known-issue entry so it accurately reflects the verified result. For a verified defect, implement the smallest compatible fix, add a regression test in the suite named by the Claude command, and run that focused test and relevant typecheck/lint checks. Also assess whether the defect exposes duplicated dispatch, environment-specific behavior, or another structural weakness. If so, add or update a concrete refactoring item in `TODO.md` with the problem, target design, and staged follow-up; keep VBA specification gaps and runtime limitations in `TODO_SPEC.md` instead. Commit the implementation, regression test, evaluation log, and any justified TODO update together.
-7. Treat the evaluation log as a commit gate: before committing, review `git diff -- EVAL_LOG.md`, confirm that it describes the actual result, and stage it. Do not commit the implementation or regression test until this update is complete. Review the remaining diff, ensure only task-scoped files changed, and commit the fix, test, and log entry together. Use a concise conventional commit message such as `Fix: ...`.
-8. Report the evaluated scenario, independently verified behavior, horizontal-expansion investigation (including ruled-out paths), root cause, tests run, and commit hash. If no defect was verified, say so plainly and do not commit an invented fix.
+6. For every evaluation run, write the structured evaluation record before
+   staging a commit. Record the behavior, horizontal-expansion scope, cause
+   key, confirmed/rule-out/unresolved paths, coverage reference, and next
+   action. For a verified defect, implement the smallest compatible fix, add
+   a regression test, and run focused checks. Also assess structural
+   weaknesses and update `TODO.md` or `TODO_SPEC.md` only when justified.
+7. Treat `validate` and deterministic `render` as commit gates. Do not commit
+   a fix, test, or state transition until the structured record is valid and
+   the generated `EVAL_LOG.md` is up to date. Commit the implementation,
+   regression test, structured record, and generated view together.
+8. Report the evaluated scenario, independently verified behavior,
+   horizontal-expansion investigation (including ruled-out paths), root cause,
+   tests run, state transition, and commit hash. If no defect was verified,
+   say so plainly and record the appropriate no-bug or limitation state.
 
 Preserve existing user changes. Do not publish packages, tag releases, or broaden the task unless separately requested.
