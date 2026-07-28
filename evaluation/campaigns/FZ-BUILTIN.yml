@@ -56,3 +56,11 @@ items:
     priorCauseKey: format-named-fixed-point-rounding
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-008
+    title: Scientificゼロ・LongLong境界
+    status: queued
+    priority: 1
+    focus: Scientificのゼロ表示とLongLong仮数
+    priorCauseKey: format-scientific-number-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
