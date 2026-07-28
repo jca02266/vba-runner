@@ -304,6 +304,66 @@ End Function
     console.log('[PASS] Bug 195-A: Select Case Null comparison');
 }
 
+// Bug 197-A: a nonnumeric Variant String must propagate Type mismatch when
+// compared with a numeric Select Case value, including inverted Is clauses.
+{
+    const result = runFunc(`
+Function TestInvalidStringCase(value As Variant, mode As Integer) As String
+    On Error GoTo EH
+    If mode = 0 Then
+        Select Case value
+            Case 1
+                TestInvalidStringCase = "wrong"
+            Case Else
+                TestInvalidStringCase = "else"
+        End Select
+    Else
+        Select Case 1
+            Case Is <> value
+                TestInvalidStringCase = "wrong"
+            Case Else
+                TestInvalidStringCase = "else"
+        End Select
+    End If
+    Exit Function
+EH:
+    TestInvalidStringCase = "err:" & CStr(Err.Number)
+End Function
+`, 'TestInvalidStringCase', ['abc', 0]);
+    const emptyResult = runFunc(`
+Function TestInvalidEmptyCase(value As Variant) As String
+    On Error GoTo EH
+    Select Case value
+        Case Is <> 1
+            TestInvalidEmptyCase = "wrong"
+        Case Else
+            TestInvalidEmptyCase = "else"
+    End Select
+    Exit Function
+EH:
+    TestInvalidEmptyCase = "err:" & CStr(Err.Number)
+End Function
+`, 'TestInvalidEmptyCase', ['']);
+    const invertedResult = runFunc(`
+Function TestInvalidInvertedCase() As String
+    On Error GoTo EH
+    Select Case 1
+        Case Is <> "abc"
+            TestInvalidInvertedCase = "wrong"
+        Case Else
+            TestInvalidInvertedCase = "else"
+    End Select
+    Exit Function
+EH:
+    TestInvalidInvertedCase = "err:" & CStr(Err.Number)
+End Function
+`, 'TestInvalidInvertedCase');
+    assert.strictEqual(result, 'err:13', 'Nonnumeric Variant String propagates Type mismatch');
+    assert.strictEqual(emptyResult, 'err:13', 'Empty String propagates Type mismatch');
+    assert.strictEqual(invertedResult, 'err:13', 'Case Is <> propagates Type mismatch');
+    console.log('[PASS] Bug 197-A: Select Case invalid String errors');
+}
+
 // Bug 173-A: Select Case の Date 式比較は値で一致判定する
 {
     const result = runFunc(`

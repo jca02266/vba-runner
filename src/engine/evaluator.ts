@@ -2727,28 +2727,24 @@ export class Evaluator {
             }
             if (left instanceof VbaDecimal || right instanceof VbaDecimal ||
                 left instanceof VbaCurrency || right instanceof VbaCurrency) {
-                try {
-                    const asDecimal = (value: any): VbaDecimal => {
-                        if (value instanceof VbaDecimal) return value;
-                        if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
-                        if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
-                        if (typeof value === 'string') return VbaDecimal.fromString(value.trim());
-                        return VbaDecimal.fromNumber(this.toVbaNumber(value));
-                    };
-                    const leftDecimal = asDecimal(left);
-                    const rightDecimal = asDecimal(right);
-                    const scale = Math.max(leftDecimal.scale, rightDecimal.scale);
-                    const leftMantissa = leftDecimal.mantissa * (10n ** BigInt(scale - leftDecimal.scale));
-                    const rightMantissa = rightDecimal.mantissa * (10n ** BigInt(scale - rightDecimal.scale));
-                    return leftMantissa === rightMantissa ? 0 : (leftMantissa < rightMantissa ? -1 : 1);
-                } catch { return undefined; }
+                const asDecimal = (value: any): VbaDecimal => {
+                    if (value instanceof VbaDecimal) return value;
+                    if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
+                    if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
+                    if (typeof value === 'string') return VbaDecimal.fromString(value.trim());
+                    return VbaDecimal.fromNumber(this.toVbaNumber(value));
+                };
+                const leftDecimal = asDecimal(left);
+                const rightDecimal = asDecimal(right);
+                const scale = Math.max(leftDecimal.scale, rightDecimal.scale);
+                const leftMantissa = leftDecimal.mantissa * (10n ** BigInt(scale - leftDecimal.scale));
+                const rightMantissa = rightDecimal.mantissa * (10n ** BigInt(scale - rightDecimal.scale));
+                return leftMantissa === rightMantissa ? 0 : (leftMantissa < rightMantissa ? -1 : 1);
             }
             if (typeof left === 'bigint' || typeof right === 'bigint') {
-                try {
-                    const leftBig = typeof left === 'bigint' ? left : BigInt(this.toVbaNumber(left));
-                    const rightBig = typeof right === 'bigint' ? right : BigInt(this.toVbaNumber(right));
-                    return leftBig === rightBig ? 0 : (leftBig < rightBig ? -1 : 1);
-                } catch { return undefined; }
+                const leftBig = typeof left === 'bigint' ? left : BigInt(this.toVbaNumber(left));
+                const rightBig = typeof right === 'bigint' ? right : BigInt(this.toVbaNumber(right));
+                return leftBig === rightBig ? 0 : (leftBig < rightBig ? -1 : 1);
             }
             if (typeof left === 'number' && typeof right === 'number') {
                 return left === right ? 0 : (left < right ? -1 : 1);
@@ -2758,10 +2754,10 @@ export class Evaluator {
                 value instanceof VbaBoolean || value instanceof VbaDate ||
                 value instanceof VbaDecimal || value instanceof VbaCurrency;
             if (typeof left === 'string' && isNumericValue(right)) {
-                try { return selectCaseCompare(this.toVbaNumber(left), right); } catch { return undefined; }
+                return selectCaseCompare(this.toVbaNumber(left), right);
             }
             if (typeof right === 'string' && isNumericValue(left)) {
-                try { return selectCaseCompare(left, this.toVbaNumber(right)); } catch { return undefined; }
+                return selectCaseCompare(left, this.toVbaNumber(right));
             }
             return undefined;
         };
