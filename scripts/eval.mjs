@@ -9,8 +9,10 @@ import * as yaml from 'js-yaml';
 const root = process.cwd();
 const evalRoot = path.join(root, 'evaluation');
 const recordsDir = path.join(evalRoot, 'evaluations');
+const findingsDir = path.join(evalRoot, 'findings');
 const campaignsDir = path.join(evalRoot, 'campaigns');
 const statesDir = path.join(evalRoot, 'states');
+const schemaFile = path.join(evalRoot, 'schema.yml');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'retired',
@@ -41,9 +43,46 @@ function readRecords() {
   return files(recordsDir, '.md').map((name) => readRecord(path.join(recordsDir, name)));
 }
 
+function readFindings() {
+  return new Map(files(findingsDir, '.md').map((name) => {
+    const record = readRecord(path.join(findingsDir, name));
+    return [record.data.id, record];
+  }));
+}
+
+function readSchema() {
+  return yaml.load(fs.readFileSync(schemaFile, 'utf8'), { json: true });
+}
+
+function readCampaignItems() {
+  const items = new Map();
+  for (const name of files(campaignsDir, '.yml')) {
+    const doc = yaml.load(fs.readFileSync(path.join(campaignsDir, name), 'utf8'), { json: true });
+    for (const item of doc?.items ?? []) {
+      if (items.has(item.id)) throw new Error(`duplicate campaign item ${item.id}`);
+      items.set(item.id, { ...item, campaign: doc.id });
+    }
+  }
+  return items;
+}
+
+function readClaims({ includeStale = false } = {}) {
+  const now = Date.now();
+  const claims = new Map();
+  for (const name of files(statesDir, '.claim.yml')) {
+    const file = path.join(statesDir, name);
+    const state = yaml.load(fs.readFileSync(file, 'utf8'), { json: true });
+    const stale = !state?.expiresAt || Date.parse(state.expiresAt) <= now;
+    if (includeStale || !stale) claims.set(state.id, { ...state, file, stale });
+  }
+  return claims;
+}
+
 function validate(records = readRecords()) {
+  const schema = readSchema();
+  const findings = readFindings();
   const seen = new Set();
-  const required = ['id', 'campaign', 'status', 'priority', 'focus'];
+  const required = schema.record.required;
   for (const record of records) {
     const { file, data } = record;
     for (const key of required) {
@@ -53,14 +92,30 @@ function validate(records = readRecords()) {
     }
     if (seen.has(data.id)) throw new Error(`${file}: duplicate id ${data.id}`);
     seen.add(data.id);
-    if (!statuses.has(data.status)) throw new Error(`${file}: invalid status ${data.status}`);
-    if (typeof data.id !== 'string' || typeof data.campaign !== 'string') {
-      throw new Error(`${file}: id and campaign must be strings`);
+    if (!schema.record.statuses.includes(data.status)) throw new Error(`${file}: invalid status ${data.status}`);
+    for (const key of schema.record.stringFields ?? []) {
+      if (data[key] !== undefined && data[key] !== null && typeof data[key] !== 'string') {
+        throw new Error(`${file}: ${key} must be a string`);
+      }
     }
-    if (data.findings !== undefined && !Array.isArray(data.findings)) {
-      throw new Error(`${file}: findings must be an array`);
+    for (const key of schema.record.arrays ?? []) {
+      if (data[key] !== undefined && !Array.isArray(data[key])) {
+        throw new Error(`${file}: ${key} must be an array`);
+      }
+    }
+    for (const findingId of data.findings ?? []) {
+      const finding = findings.get(findingId);
+      if (!finding) throw new Error(`${file}: missing finding ${findingId}`);
+      if (finding.data.evaluation !== data.id) {
+        throw new Error(`${file}: finding ${findingId} points to ${finding.data.evaluation}`);
+      }
+    }
+    const audit = data.horizontalAudit;
+    for (const key of schema.horizontalAudit.required) {
+      if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
     }
   }
+  readCampaignItems();
   return records;
 }
 
@@ -68,6 +123,13 @@ function render(records, output) {
   const rows = records
     .sort((a, b) => String(a.data.id).localeCompare(String(b.data.id), undefined, { numeric: true }))
     .map(({ data }) => `| ${data.id} | ${data.campaign} | ${data.status} | ${data.focus} |`)
+    .join('\n');
+  const items = [...readCampaignItems().values()];
+  const claims = readClaims();
+  const queue = items
+    .filter((item) => item.status === 'queued' && !claims.has(item.id))
+    .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99) || String(a.id).localeCompare(String(b.id)))
+    .map((item) => `| ${item.id} | ${item.priority ?? ''} | ${item.focus ?? item.title} |`)
     .join('\n');
   const body = [
     '# 評価状態サマリー',
@@ -78,6 +140,12 @@ function render(records, output) {
     '|---|---|---|---|',
     rows,
     '',
+    '## 次の候補',
+    '',
+    '| ID | 優先度 | 対象 |',
+    '|---|---:|---|',
+    queue || '| (none) | | |',
+    '',
   ].join('\n');
   fs.mkdirSync(path.dirname(output), { recursive: true });
   fs.writeFileSync(output, body);
@@ -85,21 +153,24 @@ function render(records, output) {
 
 function nextCandidate() {
   const candidates = [];
-  for (const name of files(campaignsDir, '.yml')) {
-    const doc = yaml.load(fs.readFileSync(path.join(campaignsDir, name), 'utf8'), { json: true });
-    for (const item of doc?.items ?? []) {
-      if (item.status === 'queued') candidates.push(item);
-    }
-  }
+  const claims = readClaims();
+  readCampaignItems().forEach((item) => {
+    if (item.status === 'queued' && !claims.has(item.id)) candidates.push(item);
+  });
   candidates.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99) || String(a.id).localeCompare(String(b.id)));
   if (!candidates[0]) throw new Error('no queued candidate');
   console.log(JSON.stringify(candidates[0], null, 2));
 }
 
 function claim(id) {
+  const item = readCampaignItems().get(id);
+  if (!item) throw new Error(`unknown campaign item ${id}`);
+  if (item.status !== 'queued') throw new Error(`${id} is not queued (${item.status})`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
-  if (fs.existsSync(target)) throw new Error(`${id} is already claimed`);
+  const existing = readClaims({ includeStale: true }).get(id);
+  if (existing && !existing.stale) throw new Error(`${id} is already claimed`);
+  if (existing?.stale) fs.rmSync(existing.file);
   const state = {
     id,
     status: 'claimed',
@@ -120,14 +191,9 @@ function claim(id) {
 
 function audit() {
   const records = validate();
-  const now = Date.now();
-  const stale = [];
-  for (const name of files(statesDir, '.claim.yml')) {
-    const state = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
-    if (state?.expiresAt && Date.parse(state.expiresAt) < now) stale.push(name);
-  }
-  if (stale.length) throw new Error(`stale claims require release: ${stale.join(', ')}`);
-  console.log(`audit passed: ${records.length} records, ${files(statesDir, '.claim.yml').length} active claims`);
+  const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
+  const active = readClaims();
+  console.log(`audit passed: ${records.length} records, ${active.size} active claims, ${stale.length} stale claims`);
 }
 
 function release(id) {
