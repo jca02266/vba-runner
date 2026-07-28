@@ -13,6 +13,7 @@ const findingsDir = path.join(evalRoot, 'findings');
 const campaignsDir = path.join(evalRoot, 'campaigns');
 const statesDir = path.join(evalRoot, 'states');
 const schemaFile = path.join(evalRoot, 'schema.yml');
+const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'retired',
@@ -78,6 +79,29 @@ function readClaims({ includeStale = false } = {}) {
   return claims;
 }
 
+function readResults() {
+  const results = new Map();
+  for (const name of files(statesDir, '.result.yml')) {
+    const result = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
+    if (result?.candidateId) results.set(result.candidateId, result);
+  }
+  return results;
+}
+
+function readCoverageTargets() {
+  if (!fs.existsSync(coverageIndexFile)) return [];
+  const index = yaml.load(fs.readFileSync(coverageIndexFile, 'utf8'), { json: true });
+  const snapshots = index?.snapshots ?? [];
+  const latest = snapshots[snapshots.length - 1];
+  return latest?.uncovered ?? [];
+}
+
+function candidateScore(item, uncovered) {
+  const targets = item.coverageTargets ?? [];
+  const matched = targets.filter((target) => uncovered.some((entry) => String(entry).includes(target)));
+  return { score: (item.priority ?? 99) - (matched.length ? 0.5 : 0), coverageMatched: matched };
+}
+
 function validate(records = readRecords()) {
   const schema = readSchema();
   const findings = readFindings();
@@ -126,11 +150,16 @@ function render(records, output) {
     .join('\n');
   const items = [...readCampaignItems().values()];
   const claims = readClaims();
+  const results = readResults();
+  const uncovered = readCoverageTargets();
   const queue = items
-    .filter((item) => item.status === 'queued' && !claims.has(item.id))
-    .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99) || String(a.id).localeCompare(String(b.id)))
-    .map((item) => `| ${item.id} | ${item.priority ?? ''} | ${item.focus ?? item.title} |`)
+    .filter((item) => item.status === 'queued' && !claims.has(item.id) && !results.has(item.id))
+    .map((item) => ({ item, ...candidateScore(item, uncovered) }))
+    .sort((a, b) => a.score - b.score || String(a.item.id).localeCompare(String(b.item.id)))
+    .map(({ item, coverageMatched }) => `| ${item.id} | ${item.priority ?? ''} | ${item.focus ?? item.title} | ${coverageMatched.length ? 'yes' : ''} |`)
     .join('\n');
+  const counts = [...new Set(records.map(({ data }) => data.status))]
+    .sort().map((status) => `| ${status} | ${records.filter(({ data }) => data.status === status).length} |`).join('\n');
   const body = [
     '# 評価状態サマリー',
     '',
@@ -140,10 +169,16 @@ function render(records, output) {
     '|---|---|---|---|',
     rows,
     '',
+    '## 状態集計',
+    '',
+    '| 状態 | 件数 |',
+    '|---|---:|',
+    counts,
+    '',
     '## 次の候補',
     '',
-    '| ID | 優先度 | 対象 |',
-    '|---|---:|---|',
+    '| ID | 優先度 | 対象 | coverage一致 |',
+    '|---|---:|---|---|',
     queue || '| (none) | | |',
     '',
   ].join('\n');
@@ -154,18 +189,23 @@ function render(records, output) {
 function nextCandidate() {
   const candidates = [];
   const claims = readClaims();
+  const results = readResults();
+  const uncovered = readCoverageTargets();
   readCampaignItems().forEach((item) => {
-    if (item.status === 'queued' && !claims.has(item.id)) candidates.push(item);
+    if (item.status === 'queued' && !claims.has(item.id) && !results.has(item.id)) {
+      candidates.push({ item, ...candidateScore(item, uncovered) });
+    }
   });
-  candidates.sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99) || String(a.id).localeCompare(String(b.id)));
+  candidates.sort((a, b) => a.score - b.score || String(a.item.id).localeCompare(String(b.item.id)));
   if (!candidates[0]) throw new Error('no queued candidate');
-  console.log(JSON.stringify(candidates[0], null, 2));
+  console.log(JSON.stringify({ ...candidates[0].item, coverageMatched: candidates[0].coverageMatched }, null, 2));
 }
 
 function claim(id) {
   const item = readCampaignItems().get(id);
   if (!item) throw new Error(`unknown campaign item ${id}`);
   if (item.status !== 'queued') throw new Error(`${id} is not queued (${item.status})`);
+  if (readResults().has(id)) throw new Error(`${id} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
   const existing = readClaims({ includeStale: true }).get(id);
@@ -192,8 +232,9 @@ function claim(id) {
 function audit() {
   const records = validate();
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
+  for (const state of stale) fs.rmSync(state.file, { force: true });
   const active = readClaims();
-  console.log(`audit passed: ${records.length} records, ${active.size} active claims, ${stale.length} stale claims`);
+  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
 }
 
 function release(id) {
@@ -201,6 +242,27 @@ function release(id) {
   if (!fs.existsSync(target)) throw new Error(`${id} is not claimed`);
   fs.rmSync(target);
   console.log(`released ${id}`);
+}
+
+function complete(candidateId, evaluationId, status) {
+  if (!readCampaignItems().has(candidateId)) throw new Error(`unknown campaign item ${candidateId}`);
+  if (!readRecords().some(({ data }) => data.id === evaluationId)) throw new Error(`unknown evaluation ${evaluationId}`);
+  if (!statuses.has(status) || status === 'queued' || status === 'claimed') throw new Error(`invalid completion status ${status}`);
+  const target = path.join(statesDir, `${candidateId}.result.yml`);
+  if (fs.existsSync(target)) throw new Error(`${candidateId} already has a result`);
+  fs.mkdirSync(statesDir, { recursive: true });
+  fs.writeFileSync(target, yaml.dump({ candidateId, evaluationId, status, completedAt: new Date().toISOString() }, { noRefs: true }));
+  const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
+  if (fs.existsSync(claimFile)) fs.rmSync(claimFile);
+  console.log(target);
+}
+
+function context(candidateId) {
+  const item = readCampaignItems().get(candidateId);
+  if (!item) throw new Error(`unknown campaign item ${candidateId}`);
+  const records = validate();
+  const related = records.filter(({ data }) => data.campaign === item.campaign || (item.causeKey && data.causeKey === item.causeKey));
+  console.log(JSON.stringify({ candidate: item, relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets() }, null, 2));
 }
 
 function record(file) {
@@ -231,7 +293,7 @@ function hash(file) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|claim|release> [id]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete> [args]');
 }
 
 try {
@@ -251,6 +313,10 @@ try {
     claim(process.argv[3]);
   } else if (command === 'release' && process.argv[3]) {
     release(process.argv[3]);
+  } else if (command === 'complete' && process.argv[3] && process.argv[4] && process.argv[5]) {
+    complete(process.argv[3], process.argv[4], process.argv[5]);
+  } else if (command === 'context' && process.argv[3]) {
+    context(process.argv[3]);
   } else if (command === 'record' && process.argv[3]) {
     record(process.argv[3]);
   } else if (command === 'migrate' && process.argv[3] === '--dry-run') {

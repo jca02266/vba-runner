@@ -19,7 +19,8 @@
 
 `evaluation` の監査を先に実行し、staleなclaimや参照切れを解消する。
 その後、カバレッジ未通過箇所、既知の原因キー、実機未照合境界を考慮して
-`eval next --limit 1` で候補を1件選び、`eval claim` で予約する。
+`eval next --limit 1` で候補を1件選び、`eval claim` で予約する。サブエージェントには
+`eval context <candidate-id>` の出力だけを渡す。
 
 移行前の一時運用では、従来どおり `EVAL_LOG.md` を読み取り専用で参照する。
 ただし、候補選定に不要な全履歴をサブエージェントへ渡さない。
@@ -114,6 +115,7 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 - 本文に再現手順、結果、原因、横展開のconfirmed/ruled-out/unresolvedを記録
 - バグがあれば原因キー、回帰テスト、修正コミットを関連付ける
 - 実Excel待ち、恒久制限、未実施を別状態として保存する
+- `eval complete` で候補と評価結果を関連付ける
 - `eval validate` と `eval render` を実行し、生成された `EVAL_LOG.md` を更新する
 
 ### 4. ユーザーに報告する

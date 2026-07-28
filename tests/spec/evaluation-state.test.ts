@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
+import { existsSync, unlinkSync } from 'node:fs';
 
 const root = process.cwd();
 const cli = 'scripts/eval.mjs';
@@ -31,9 +32,19 @@ try {
     const duplicate = run('claim', candidate.id);
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /already claimed/);
+
+    const completed = run('complete', candidate.id, 'EV-00180', 'verified-no-bug');
+    assert.equal(completed.status, 0, completed.stderr);
+    const afterComplete = run('next');
+    assert.equal(afterComplete.status, 0, afterComplete.stderr);
+    assert.notEqual(JSON.parse(afterComplete.stdout).id, candidate.id);
 } finally {
+    const result = `${root}/evaluation/states/${candidate.id}.result.yml`;
+    if (existsSync(result)) unlinkSync(result);
     const released = run('release', candidate.id);
-    assert.equal(released.status, 0, released.stderr);
+    if (released.status !== 0 && !/not claimed/.test(released.stderr)) {
+        assert.equal(released.status, 0, released.stderr);
+    }
 }
 
 console.log('[PASS] evaluation state CLI claim/next/release');
