@@ -6,6 +6,7 @@ items:
     status: queued
     priority: 1
     focus: 宣言型サフィックスと複合式
+    causeKey: literal-precision-loss
   - id: FZ-GRAMMAR-002
     title: Select Case数値文字列の実Excel照合
     status: queued

@@ -23,6 +23,9 @@ assert.equal(candidate.status, 'queued');
 
 const claimed = run('claim', candidate.id);
 assert.equal(claimed.status, 0, claimed.stderr);
+const claimState = JSON.parse(claimed.stdout);
+assert.equal(claimState.id, candidate.id);
+assert.match(claimState.token, /^[0-9a-f]+$/);
 
 try {
     const whileClaimed = run('next');
@@ -33,7 +36,11 @@ try {
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /already claimed/);
 
-    const completed = run('complete', candidate.id, 'EV-00180', 'verified-no-bug');
+    const unauthorized = run('complete', candidate.id, 'EV-00180', 'fixed', 'wrong-token');
+    assert.notEqual(unauthorized.status, 0);
+    assert.match(unauthorized.stderr, /token is invalid/);
+
+    const completed = run('complete', candidate.id, 'EV-00180', 'fixed', claimState.token);
     assert.equal(completed.status, 0, completed.stderr);
     const afterComplete = run('next');
     assert.equal(afterComplete.status, 0, afterComplete.stderr);
@@ -41,7 +48,7 @@ try {
 } finally {
     const result = `${root}/evaluation/states/${candidate.id}.result.yml`;
     if (existsSync(result)) unlinkSync(result);
-    const released = run('release', candidate.id);
+    const released = run('release', candidate.id, claimState.token);
     if (released.status !== 0 && !/not claimed/.test(released.stderr)) {
         assert.equal(released.status, 0, released.stderr);
     }

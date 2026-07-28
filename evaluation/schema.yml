@@ -1,5 +1,18 @@
 version: 1
 record:
+  allowed:
+    - id
+    - legacyNumber
+    - campaign
+    - status
+    - priority
+    - focus
+    - causeKey
+    - coverageSnapshot
+    - findings
+    - tests
+    - commit
+    - horizontalAudit
   required:
     - id
     - campaign
@@ -11,7 +24,6 @@ record:
     - legacyNumber
     - campaign
     - status
-    - priority
     - focus
     - causeKey
     - coverageSnapshot

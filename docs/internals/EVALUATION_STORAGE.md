@@ -77,9 +77,9 @@ eval audit
 eval next --limit 1
 eval context <candidate-id>
 eval claim <candidate-id>
-eval release <evaluation-id>
+eval release <candidate-id> <claim-token>
 eval record <evaluation-file>
-eval complete <candidate-id> <evaluation-id> <status>
+eval complete <candidate-id> <evaluation-id> <status> <claim-token>
 eval validate
 eval render
 eval migrate
@@ -88,8 +88,8 @@ eval migrate
 - `audit`: ID重複、参照切れ、stale状態、coverage欠損を検査し、期限切れclaimを回収する。
 - `next`: カバレッジ未通過、優先度、未実施状態、既知原因との近接度から候補を1件選ぶ。
 - `context`: 候補、関連評価、原因キー、横展開結果、カバレッジだけを出力する。
-- `claim`: atomic createと所有者・時刻・TTLで二重取得を防ぐ。
-- `release`: 中断・期限切れの候補を再キューする。
+- `claim`: atomic createと秘密token・所有者・時刻・TTLで二重取得を防ぐ。
+- `release`: claim tokenを検証して中断・期限切れの候補を再キューする。
 - `record`: 同じIDを再記録しても壊れない冪等更新を行う。
 - `complete`: 評価結果を候補へ関連付け、完了候補を次回選定から除外する。
 - `validate`: frontmatter、列挙値、必須項目、参照関係を検証する。

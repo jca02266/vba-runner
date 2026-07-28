@@ -59,7 +59,15 @@ function readCampaignItems() {
   const items = new Map();
   for (const name of files(campaignsDir, '.yml')) {
     const doc = yaml.load(fs.readFileSync(path.join(campaignsDir, name), 'utf8'), { json: true });
-    for (const item of doc?.items ?? []) {
+    if (typeof doc?.id !== 'string' || !Array.isArray(doc.items)) throw new Error(`${name}: invalid campaign file`);
+    for (const item of doc.items) {
+      if (typeof item.id !== 'string' || typeof item.status !== 'string' || !Number.isFinite(item.priority)) {
+        throw new Error(`${name}: invalid campaign item`);
+      }
+      if (!statuses.has(item.status)) throw new Error(`${name}: invalid campaign status ${item.status}`);
+      if (item.coverageTargets !== undefined && !Array.isArray(item.coverageTargets)) {
+        throw new Error(`${name}: coverageTargets must be an array`);
+      }
       if (items.has(item.id)) throw new Error(`duplicate campaign item ${item.id}`);
       items.set(item.id, { ...item, campaign: doc.id });
     }
@@ -73,6 +81,9 @@ function readClaims({ includeStale = false } = {}) {
   for (const name of files(statesDir, '.claim.yml')) {
     const file = path.join(statesDir, name);
     const state = yaml.load(fs.readFileSync(file, 'utf8'), { json: true });
+    if (!state?.id || state.status !== 'claimed' || !state.token || !state.owner || !state.expiresAt) {
+      throw new Error(`${file}: invalid claim state`);
+    }
     const stale = !state?.expiresAt || Date.parse(state.expiresAt) <= now;
     if (includeStale || !stale) claims.set(state.id, { ...state, file, stale });
   }
@@ -83,7 +94,9 @@ function readResults() {
   const results = new Map();
   for (const name of files(statesDir, '.result.yml')) {
     const result = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
-    if (result?.candidateId) results.set(result.candidateId, result);
+    if (!result?.candidateId || results.has(result.candidateId)) throw new Error(`duplicate result ${result?.candidateId ?? name}`);
+    if (!statuses.has(result.status) || !result.evaluationId) throw new Error(`invalid result ${name}`);
+    results.set(result.candidateId, result);
   }
   return results;
 }
@@ -92,8 +105,27 @@ function readCoverageTargets() {
   if (!fs.existsSync(coverageIndexFile)) return [];
   const index = yaml.load(fs.readFileSync(coverageIndexFile, 'utf8'), { json: true });
   const snapshots = index?.snapshots ?? [];
-  const latest = snapshots[snapshots.length - 1];
-  return latest?.uncovered ?? [];
+  const latest = [...snapshots].sort((a, b) => String(b.generatedAt ?? b.commit ?? '').localeCompare(String(a.generatedAt ?? a.commit ?? '')))[0];
+  return (latest?.uncovered ?? []).map((entry) => typeof entry === 'string' ? entry : `${entry.file ?? ''}:${entry.line ?? ''}`);
+}
+
+function validateCoverageIndex() {
+  if (!fs.existsSync(coverageIndexFile)) return;
+  const index = yaml.load(fs.readFileSync(coverageIndexFile, 'utf8'), { json: true });
+  if (!Array.isArray(index?.snapshots)) throw new Error('coverage-index.yml: snapshots must be an array');
+  for (const snapshot of index.snapshots) {
+    if (typeof snapshot.id !== 'string' || typeof snapshot.generatedAt !== 'string') {
+      throw new Error('coverage snapshot requires id and generatedAt');
+    }
+    if (snapshot.uncovered !== undefined && !Array.isArray(snapshot.uncovered)) {
+      throw new Error(`${snapshot.id}: uncovered must be an array`);
+    }
+    if (snapshot.report) {
+      const report = path.resolve(root, snapshot.report);
+      if (!fs.existsSync(report)) throw new Error(`${snapshot.id}: missing coverage report ${snapshot.report}`);
+      if (snapshot.sha256 && hash(report) !== snapshot.sha256) throw new Error(`${snapshot.id}: coverage hash mismatch`);
+    }
+  }
 }
 
 function candidateScore(item, uncovered) {
@@ -116,6 +148,12 @@ function validate(records = readRecords()) {
     }
     if (seen.has(data.id)) throw new Error(`${file}: duplicate id ${data.id}`);
     seen.add(data.id);
+    for (const key of Object.keys(data)) {
+      if (!(schema.record.allowed ?? []).includes(key)) throw new Error(`${file}: unknown field ${key}`);
+    }
+    if (!(Number.isFinite(data.priority) || ['critical', 'high', 'medium', 'low'].includes(data.priority))) {
+      throw new Error(`${file}: priority must be numeric or a known level`);
+    }
     if (!schema.record.statuses.includes(data.status)) throw new Error(`${file}: invalid status ${data.status}`);
     for (const key of schema.record.stringFields ?? []) {
       if (data[key] !== undefined && data[key] !== null && typeof data[key] !== 'string') {
@@ -140,6 +178,7 @@ function validate(records = readRecords()) {
     }
   }
   readCampaignItems();
+  validateCoverageIndex();
   return records;
 }
 
@@ -160,6 +199,8 @@ function render(records, output) {
     .join('\n');
   const counts = [...new Set(records.map(({ data }) => data.status))]
     .sort().map((status) => `| ${status} | ${records.filter(({ data }) => data.status === status).length} |`).join('\n');
+  const unresolved = records.reduce((sum, { data }) => sum + (data.horizontalAudit?.unresolved?.length ?? 0), 0);
+  const excelPending = records.filter(({ data }) => data.status === 'needs-excel').length;
   const body = [
     '# 評価状態サマリー',
     '',
@@ -175,6 +216,8 @@ function render(records, output) {
     '|---|---:|',
     counts,
     '',
+    `横展開未解決経路: ${unresolved}、実Excel待ち評価: ${excelPending}`,
+    '',
     '## 次の候補',
     '',
     '| ID | 優先度 | 対象 | coverage一致 |',
@@ -186,7 +229,7 @@ function render(records, output) {
   fs.writeFileSync(output, body);
 }
 
-function nextCandidate() {
+function nextCandidate(limit = 1) {
   const candidates = [];
   const claims = readClaims();
   const results = readResults();
@@ -198,7 +241,9 @@ function nextCandidate() {
   });
   candidates.sort((a, b) => a.score - b.score || String(a.item.id).localeCompare(String(b.item.id)));
   if (!candidates[0]) throw new Error('no queued candidate');
-  console.log(JSON.stringify({ ...candidates[0].item, coverageMatched: candidates[0].coverageMatched }, null, 2));
+  const selected = candidates.slice(0, Math.max(1, Math.min(limit, 20)))
+    .map(({ item, coverageMatched }) => ({ ...item, coverageMatched }));
+  console.log(JSON.stringify(selected.length === 1 ? selected[0] : selected, null, 2));
 }
 
 function claim(id) {
@@ -214,6 +259,7 @@ function claim(id) {
   const state = {
     id,
     status: 'claimed',
+    token: crypto.randomBytes(18).toString('hex'),
     owner: process.env.USER ?? 'unknown',
     claimedAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
@@ -226,43 +272,67 @@ function claim(id) {
   } catch (error) {
     throw new Error(`${id} claim raced with another process: ${error.message}`);
   }
-  console.log(target);
+  console.log(JSON.stringify({ id, token: state.token, expiresAt: state.expiresAt }, null, 2));
+}
+
+function ownedClaim(id, token) {
+  const claim = readClaims({ includeStale: true }).get(id);
+  if (!claim) throw new Error(`${id} is not claimed`);
+  if (claim.stale) throw new Error(`${id} claim has expired`);
+  if (!token || token !== claim.token) throw new Error(`${id} claim token is invalid`);
+  return claim;
 }
 
 function audit() {
   const records = validate();
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
-  for (const state of stale) fs.rmSync(state.file, { force: true });
+  const archiveDir = path.join(statesDir, 'archive');
+  if (stale.length) fs.mkdirSync(archiveDir, { recursive: true });
+  for (const state of stale) {
+    const archive = path.join(archiveDir, `${path.basename(state.file, '.claim.yml')}.${Date.now()}.claim.yml`);
+    fs.renameSync(state.file, archive);
+  }
   const active = readClaims();
   console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
 }
 
-function release(id) {
+function release(id, token) {
   const target = path.join(statesDir, `${id}.claim.yml`);
-  if (!fs.existsSync(target)) throw new Error(`${id} is not claimed`);
+  ownedClaim(id, token);
   fs.rmSync(target);
   console.log(`released ${id}`);
 }
 
-function complete(candidateId, evaluationId, status) {
-  if (!readCampaignItems().has(candidateId)) throw new Error(`unknown campaign item ${candidateId}`);
-  if (!readRecords().some(({ data }) => data.id === evaluationId)) throw new Error(`unknown evaluation ${evaluationId}`);
+function complete(candidateId, evaluationId, status, token) {
+  const item = readCampaignItems().get(candidateId);
+  if (!item) throw new Error(`unknown campaign item ${candidateId}`);
+  ownedClaim(candidateId, token);
+  const evaluation = readRecords().find(({ data }) => data.id === evaluationId)?.data;
+  if (!evaluation) throw new Error(`unknown evaluation ${evaluationId}`);
+  if (evaluation.campaign !== item.campaign) throw new Error(`${candidateId} and ${evaluationId} have different campaigns`);
   if (!statuses.has(status) || status === 'queued' || status === 'claimed') throw new Error(`invalid completion status ${status}`);
+  if (evaluation.status !== status) throw new Error(`${evaluationId} status ${evaluation.status} cannot complete as ${status}`);
+  if (status === 'fixed' && (!evaluation.commit || !Array.isArray(evaluation.tests) || evaluation.tests.length === 0)) {
+    throw new Error(`${evaluationId} fixed result requires commit and regression tests`);
+  }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
   if (fs.existsSync(target)) throw new Error(`${candidateId} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   fs.writeFileSync(target, yaml.dump({ candidateId, evaluationId, status, completedAt: new Date().toISOString() }, { noRefs: true }));
   const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
-  if (fs.existsSync(claimFile)) fs.rmSync(claimFile);
+  fs.rmSync(claimFile, { force: true });
   console.log(target);
 }
 
-function context(candidateId) {
+function context(candidateId, limit = 5) {
   const item = readCampaignItems().get(candidateId);
   if (!item) throw new Error(`unknown campaign item ${candidateId}`);
   const records = validate();
-  const related = records.filter(({ data }) => data.campaign === item.campaign || (item.causeKey && data.causeKey === item.causeKey));
-  console.log(JSON.stringify({ candidate: item, relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets() }, null, 2));
+  const related = records
+    .filter(({ data }) => data.campaign === item.campaign || (item.causeKey && data.causeKey === item.causeKey))
+    .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
+    .slice(0, Math.max(1, Math.min(limit, 10)));
+  console.log(JSON.stringify({ candidate: item, relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
 }
 
 function record(file) {
@@ -308,15 +378,15 @@ try {
     render(validate(), output);
     console.log(output);
   } else if (command === 'next') {
-    nextCandidate();
+    nextCandidate(process.argv[3] === '--limit' ? Number(process.argv[4]) || 1 : 1);
   } else if (command === 'claim' && process.argv[3]) {
     claim(process.argv[3]);
-  } else if (command === 'release' && process.argv[3]) {
-    release(process.argv[3]);
-  } else if (command === 'complete' && process.argv[3] && process.argv[4] && process.argv[5]) {
-    complete(process.argv[3], process.argv[4], process.argv[5]);
+  } else if (command === 'release' && process.argv[3] && process.argv[4]) {
+    release(process.argv[3], process.argv[4]);
+  } else if (command === 'complete' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6]) {
+    complete(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
   } else if (command === 'context' && process.argv[3]) {
-    context(process.argv[3]);
+    context(process.argv[3], Number(process.argv[4]) || 5);
   } else if (command === 'record' && process.argv[3]) {
     record(process.argv[3]);
   } else if (command === 'migrate' && process.argv[3] === '--dry-run') {
