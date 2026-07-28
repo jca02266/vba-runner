@@ -1,193 +1,213 @@
 ---
 type: concept
 title: 評価記録とバグ探索状態の永続化
-description: evaluate-vba-runnerの評価履歴、探索キュー、横展開結果、カバレッジ参照を長期管理する方式
+description: evaluate-vba-runnerの評価履歴、探索キュー、横展開結果、カバレッジ参照を長期管理する現行方式
 tags:
   - evaluation
   - bug-hunting
   - workflow
 status: active
-generated: 2026-07-28
+generated: 2026-07-29
 ---
 
 # 評価記録とバグ探索状態の永続化
 
-## 現在の導入状況
+## この文書の範囲
 
-- 評価#100〜#190を `evaluation/evaluations/` へ移行済み（91件）。
-- 旧ログは `evaluation/legacy/EVAL_LOG.md` に保全済み。
-- rootの `EVAL_LOG.md` は構造化記録から生成するサマリーへ切り替え済み。
-- Phase 3（評価スキル統合）とカバレッジ参照の導入は完了している。
-  現在は構造化された候補キューを消化し、評価結果を蓄積する段階である。
+この文書は、`evaluate-vba-runner` の評価履歴と候補キューを、現在どのように
+保存・選定・完了管理するかを説明する。VBAの仕様準拠TODOは
+[`TODO_SPEC.md`](../../TODO_SPEC.md)、仕様準拠外の開発課題は
+[`TODO.md`](../../TODO.md)で管理する。
 
-## 目的
+## 当初の問題
 
-`EVAL_LOG.md` に混在している評価履歴、次の探索候補、横展開調査、実Excel照合待ち、
-カバレッジメモを分離し、次の4点を同時に満たす。
+当初は、評価結果を1つの `EVAL_LOG.md` に自由記述で追記していた。この方式では、
+次の情報が同じMarkdownに混在していた。
 
-1. サブエージェントへ渡す情報を絞り、トークンを節約する。
-2. 未探索で影響の大きい経路を優先し、1回の評価で得られるバグ発見量を高める。
-3. 1つのバグの原因・類似経路・除外経路を次の評価で再利用する。
-4. 評価を繰り返しても、未確認候補が減り、確認済み境界が蓄積される状態にする。
+- 評価の実施結果とバグ修正履歴
+- 次に試す候補、実施中の候補、実機照合待ち
+- バグの原因と、同じ原因を調査した経路
+- カバレッジの未通過箇所と、次の重点領域
 
-## 正本の構成
+その結果、次の問題が発生していた。
+
+1. 毎回全文を読み込む必要があり、評価プロンプトのトークンを消費した。
+2. 「未実施」「実機待ち」「恒久的制限」が文章表現になり、状態を機械的に判定できなかった。
+3. 同じ候補を複数エージェントが取得したり、完了済み候補を再評価したりしやすかった。
+4. バグの横展開結果が次の評価に再利用されず、同じソース経路を繰り返し調査した。
+5. coverageのメモと評価結果の対応が曖昧で、低カバレッジ領域を優先できなかった。
+
+## 見直しで行った改善
+
+自由記述ログを置き換えるにあたり、1評価1ファイルのYAML frontmatter付きMarkdownを
+正本とした。カバレッジJSON自体は既存形式を維持し、参照情報だけを別ファイルに置いた。
+
+### 記録と状態を分離
+
+- `evaluation/evaluations/EV-xxxxx.md` に評価内容を保存する。
+- `evaluation/campaigns/*.yml` に探索候補を定義する。
+- `evaluation/states/*.yml` にclaimと完了結果を保存する。
+- `evaluation/coverage-index.yml` にcoverageスナップショットを参照する。
+- `evaluation/schema.yml` で必須項目と状態を検証する。
+
+### 状態遷移をCLI化
+
+`scripts/eval.mjs` に監査、候補選定、claim、解放、記録、完了、検証、描画を実装した。
+claimは秘密token・所有者・TTL付きのatomic createで二重取得を防ぐ。完了時は、評価の
+`candidateId` と候補ID、campaign、状態、評価IDを照合するため、同一campaign内の
+別評価を誤って完了登録できない。
+
+resultについても、次を `validate` / `audit` で検証する。
+
+- resultファイル名と内部 `candidateId` の一致
+- candidate、evaluation、campaignの存在と対応
+- resultの状態と評価の状態の一致
+
+### 原因と横展開を再利用
+
+候補の仮説は `priorCauseKey`、評価で確認した原因は `causeKey` として分ける。
+横展開調査は `confirmed`、`ruledOut`、`unresolved` の3分類で記録する。
+`unresolved` はバグ件数に含めず、実Excel照合などの待ち状態として扱う。
+
+### coverageで候補を優先
+
+`next` は優先度だけでなく、最新coverageスナップショットの未通過対象と候補の
+`coverageTargets` を照合する。候補選定は、低カバレッジの高影響経路、直近の原因と
+共通化された経路、実Excel差分、未到達の組み合わせの順に考える。
+
+### 履歴を移行
+
+- 評価#100〜#190を移行し、その後EV-00191を追加した（現在92件）。
+- 旧ログは `evaluation/legacy/EVAL_LOG.md` に保全した。
+- ルートの `EVAL_LOG.md` は正本ではなく、構造化記録から生成するレビュー用ビューにした。
+- 移行した履歴にも安定した `candidateId` を付与し、新規記録と同じスキーマで検証できるようにした。
+
+## 現在の正本構成
 
 ```text
 evaluation/
   evaluations/EV-xxxxx.md   # 1評価1ファイル。YAML + 詳細本文
-  campaigns/*.yml           # 探索候補の静的定義
-  states/*.yml              # claim、実行中、中断、回収の状態
-  coverage-index.yml         # 既存coverage JSONへの参照だけを保持
-  schema.yml                # frontmatterと状態の検証規則
-  legacy/EVAL_LOG.md        # 移行前ログの保全コピー
+  findings/BUG-xxxxx.md      # 評価で確認したバグ
+  campaigns/*.yml            # 探索候補と優先度・coverage対象
+  states/*.claim.yml         # 実行中claim（TTL付き）
+  states/*.result.yml        # 完了した候補と評価ID・状態
+  coverage-index.yml         # 既存coverage JSONへの参照
+  schema.yml                 # frontmatterと状態の検証規則
+  legacy/EVAL_LOG.md         # 移行前ログの保全コピー
 ```
 
-`EVAL_LOG.md` は正本ではなく、上記のデータから生成するレビュー用サマリーとする。
-既存の `coverage-v8/` と `coverage-chunks/` のJSONは形式を変更しない。
+`EVAL_LOG.md` は手編集しない。必要な場合は次を実行して再生成する。
 
-### 評価ファイル
+```bash
+npm run eval -- render EVAL_LOG.md
+```
 
-frontmatterには状態管理に必要な値だけを置く。再現コード、実行結果、根本原因、
-横展開の詳細は本文に記録する。
+coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力をそのまま使い、
+`coverage-index.yml` にはスナップショットID、生成日時、コミット、対象レポート、
+未通過ファイルを記録する。
 
-必須メタデータ:
+## 評価記録の要件
 
-- `id`, `legacyNumber`, `campaign`, `status`, `priority`, `focus`
+frontmatterには機械的に扱う情報を置き、再現コード、実行結果、原因、横展開の詳細は
+本文に置く。全評価で次の項目を記録する。
+
+- `id`, `candidateId`, `campaign`, `status`, `priority`, `focus`
 - `coverageSnapshot`, `findings`, `tests`, `commit`
 - `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
   `horizontalAudit.unresolved`
 
-日付、ID、コミットは文字列として扱い、YAMLの暗黙型変換に依存しない。
-重複キー、未知の状態、必須項目欠落は検証エラーにする。
+バグを修正した評価は、原因キー、回帰テスト、修正コミットを必ず記録する。
+バグがない場合も `verified-no-bug`、実機照合待ちは `needs-excel`、恒久的制限は
+`known-limit`、中断は `abandoned` または `blocked` として記録する。
 
-### 状態
-
-評価と候補の状態は次の列挙値に限定する。
+使用可能な状態は次のとおりである。
 
 `queued`、`claimed`、`in-progress`、`verified-no-bug`、`bug-found`、`fixed`、
 `blocked`、`abandoned`、`known-limit`、`needs-excel`、`retired`
 
-`queued`（未実施）、`needs-excel`（実機待ち）、`known-limit`（恒久制限）、
-`blocked`（外部条件待ち）を文章で代用しない。
-
-### カバレッジ
-
-カバレッジJSONは既存ツールの出力をそのまま使い、`coverage-index.yml` には
-パス、コミット、生成日時、SHA-256、生成コマンド、長期保存先だけを記録する。
-JSONが存在しない場合は `audit` が警告またはエラーにする。
-
-## CLIと状態遷移
-
-`scripts/eval.mjs` に次の操作を実装する。
+## 現行CLIと役割
 
 ```text
-eval audit
-eval next --limit 1
-eval context <candidate-id>
-eval claim <candidate-id>
-eval release <candidate-id> <claim-token>
-eval record <evaluation-file>
-eval complete <candidate-id> <evaluation-id> <status> <claim-token>
-eval validate
-eval render
-eval migrate
+npm run eval -- audit
+npm run eval -- next --limit 1
+npm run eval -- context <candidate-id>
+npm run eval -- claim <candidate-id>
+npm run eval -- release <candidate-id> <claim-token>
+npm run eval -- record <evaluation-file>
+npm run eval -- complete <candidate-id> <evaluation-id> <status> <claim-token>
+npm run eval -- validate
+npm run eval -- render EVAL_LOG.md
 ```
 
-- `audit`: ID重複、参照切れ、stale状態、coverage欠損を検査し、期限切れclaimを回収する。
-- `next`: カバレッジ未通過、優先度、未実施状態、既知原因との近接度から候補を1件選ぶ。
-- `context`: 候補、関連評価、原因キー、横展開結果、カバレッジだけを出力する。
-- `claim`: atomic createと秘密token・所有者・時刻・TTLで二重取得を防ぐ。
-- `release`: claim tokenを検証して中断・期限切れの候補を再キューする。
-- `record`: 同じIDを再記録しても壊れない冪等更新を行う。
-- `complete`: 評価結果を候補へ関連付け、完了候補を次回選定から除外する。
-- `validate`: frontmatter、列挙値、必須項目、参照関係を検証する。
-- `render`: 決定的な順序で `EVAL_LOG.md` を生成する。
-- `migrate`: 旧ログから構造化記録を作る。
+- `audit`: 記録、campaign、result、coverage参照を検証し、期限切れclaimを回収する。
+- `next`: 実施可能な候補から、優先度とcoverage一致を考慮して選ぶ。
+- `context`: 候補、関連評価、原因キー、横展開結果、coverageだけを出力する。
+- `claim`: 候補を予約し、tokenを発行する。
+- `release`: tokenを検証してclaimを解放する。
+- `record`: 評価記録を冪等に保存する。同じIDの異なる内容は拒否する。
+- `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
+- `validate`: frontmatter、必須項目、参照関係、result整合性を検証する。
+- `render`: 構造化記録から決定的なMarkdownビューを生成する。
 
-評価に失敗して停止した場合も記録を消さず、`abandoned` または `blocked` に遷移させる。
-TTL切れの `claimed` / `in-progress` は `release` で回収できる。
+## 現行の評価手順
 
-## トークン節約と発見効率
+### 1. 候補を選ぶ
 
-通常の評価でサブエージェントへ渡すのは、全履歴ではなく次の最小コンテキストとする。
+```bash
+npm run eval -- audit
+npm run eval -- next --limit 1
+npm run eval -- context <candidate-id>
+npm run eval -- claim <candidate-id>
+```
 
-1. `eval next` が返す候補1件。
-2. その候補に紐づく既知バグ、横展開結果、除外経路。
-3. 対象ソースと最新カバレッジの未通過箇所。
-4. 同じキャンペーンの直近評価だけ。
+サブエージェントには全履歴を渡さず、`next` と `context` の出力、対象ソース、
+最新coverage、同じcampaignの直近評価だけを渡す。評価対象のVBAとドライバーは
+リポジトリ外（通常は `/tmp/vba-runner-eval/`）に置く。
 
-全履歴が必要なのは移行、監査、重複確認、収束判定のときだけとする。
-これにより毎回900行超のMarkdownを読み込むことを避ける。
+### 2. 独立評価と再現
 
-候補選定では、単なる未実施数ではなく次を優先する。
+独立評価エージェントに、公式READMEを読んだ新規利用者としてサンプルVBAを実行させる。
+バグ報告はそのまま採用せず、最小再現を自分で実行して確認する。
 
-1. 最新カバレッジで未通過の高影響経路。
-2. 直近のバグ原因と同じ共通処理を通る未監査経路。
-3. 実Excelとの差分が未確認で、入力を自動生成できる境界。
-4. 既存回帰テストでは到達しない組み合わせ。
+バグが再現した場合は、修正前に別エージェントで同種のdispatch・評価経路を横展開する。
+確認済み、除外済み、実Excelなどで未確定の経路を評価本文に記録する。
 
-## 横展開調査の再利用
+### 3. 修正または結果記録
 
-バグ記録には、原因を抽象化した `causeKey` を付ける。
-次回は同じ `causeKey` を持つ未監査のソース経路を自動的に候補化する。
+- バグあり: 原因を特定し、最小修正、回帰テスト、評価記録を作る。
+- バグなし: `verified-no-bug` として、試した境界と除外経路を記録する。
+- 実機待ち: `needs-excel` として、照合内容を `unresolved` に記録する。
+- 恒久制限: `known-limit` として、現状の制限と解決時の効果を記録する。
 
-横展開結果は必ず次の3分類で記録する。
+修正した場合は、評価記録の保存後に次を実行する。
 
-- `confirmed`: 同じ原因を確認した経路
-- `ruledOut`: 集中テストで問題なしと確認した経路
-- `unresolved`: 実Excel確認など、まだ結論を出せない経路
+```bash
+npm run eval -- validate
+npm run eval -- render EVAL_LOG.md
+git add <implementation> <tests> evaluation EVAL_LOG.md
+git commit
+```
 
-`unresolved` をバグ件数へ加えず、実機照合キューへ送る。
+評価が中断した場合はファイルを削除せず、claimを解放するか、`abandoned` / `blocked`
+として次回の `audit` で回収できるようにする。
 
-候補に設定した原因仮説は `priorCauseKey`、評価で確定した原因は
-`causeKey`（発見原因）として分離する。候補の静的statusと結果ファイルの実効statusは
-別に保持し、`context` と `render` では実効statusと関連評価IDを表示する。
+### 4. 次の候補へ進む
 
-## 移行計画
+完了後に `complete` で候補と評価を関連付ける。結果ファイルが作成されると、
+`next` はその候補を自動的に除外する。次の評価では、直近の `causeKey` と横展開結果を
+再利用し、同じテストを理由なく繰り返さない。
 
-### Phase 1: CLIと試験移行
+## トークン節約と収束
 
-1. YAMLパーサーと固定スキーマを追加する。
-2. `validate`、`audit`、`next`、`claim`、`render` の最小実装を作る。
-3. 評価#180〜#188のみを試験移行する。
-4. 生成した `EVAL_LOG.md` と旧ログを比較する。
-5. 壊れたfrontmatter、重複ID、競合claim、stale回収、coverage欠損のテストを追加する。
+全履歴が必要なのは移行、重複確認、監査、収束判定だけである。通常の評価では候補の
+compact contextだけを渡すため、旧ログ全文を毎回読み込まない。
 
-### Phase 2: 全履歴移行
+評価ループを終了できるのは、次の条件をすべて満たした場合である。
 
-1. 評価#100以降を `legacyNumber` を保持したまま移行する。
-2. 自由記述は本文または `legacy/notes` に保存する。
-3. 旧 `EVAL_LOG.md` は移行前の保全コピーとして残す。
-4. 生成ビューの内容をレビューしてから正本を切り替える。
+- 高優先度の `queued` 候補がない
+- 直近の `causeKey` に属する未監査経路がない
+- `needs-excel` の照合結果が記録済み、または恒久制限に分類済み
+- 最新coverageの高影響未通過箇所に候補が登録されている
+- `blocked` / `abandoned` / stale claim が放置されていない
 
-### Phase 3: 評価スキル統合
-
-評価ループは必ず次の順序で実行する。
-
-1. `eval audit`
-2. `eval next`
-3. `eval claim`
-4. 独立評価
-5. バグの独立再現
-6. 横展開調査
-7. 修正・回帰テスト
-8. 構造化評価記録の保存
-9. `eval validate`
-10. `eval render`
-11. コミット
-
-構造化記録が保存されていない評価、横展開結果がない修正、回帰テストのない修正は
-コミット不可とする。修正なしの場合も `verified-no-bug`、`known-limit`、
-`needs-excel` のいずれかを明示して記録する。
-
-## 収束判定
-
-評価ループを終了できるのは、次の条件を満たした場合だけとする。
-
-- `queued` の高優先度候補がない
-- 同じ `causeKey` の未監査経路がない
-- `needs-excel` の実機照合結果が記録済み、または恒久制限へ分類済み
-- 最新カバレッジの高影響未通過箇所に評価候補が登録されている
-- `blocked` / `abandoned` が放置されていない
-
-単一のファザー、ミューテーション、カバレッジ実行だけでは収束と判定しない。
+単一のファザー、ミューテーション、coverage実行だけでは収束と判定しない。
