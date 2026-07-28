@@ -233,6 +233,35 @@ End Function
 `, 'TestCurrencyRange');
     assert.strictEqual(currencyRange, 'range', 'Select Case preserves Currency range comparison');
     console.log('[PASS] Bug 193-A: Select Case Decimal/Currency ranges');
+
+    const decimalString = runFunc(`
+Function TestDecimalStringCompare() As String
+    Dim value As Variant
+    value = CDec("12345678901234567.1")
+    Select Case value
+        Case Is = "12345678901234567.1"
+            TestDecimalStringCompare = "equal"
+        Case Else
+            TestDecimalStringCompare = "wrong"
+    End Select
+End Function
+`, 'TestDecimalStringCompare');
+    assert.strictEqual(decimalString, 'equal', 'Decimal compares exactly with numeric String');
+
+    const currencyString = runFunc(`
+Function TestCurrencyStringCompare() As String
+    Dim value As Currency
+    value = CCur("900719925474.0993")
+    Select Case value
+        Case Is > "900719925474.0992"
+            TestCurrencyStringCompare = "greater"
+        Case Else
+            TestCurrencyStringCompare = "wrong"
+    End Select
+End Function
+`, 'TestCurrencyStringCompare');
+    assert.strictEqual(currencyString, 'greater', 'Currency compares exactly with numeric String');
+    console.log('[PASS] Bug 196-A: Select Case fixed-point String comparison');
 }
 
 // Bug 194-A: numeric Variant strings use numeric equality in Select Case.

@@ -2732,6 +2732,7 @@ export class Evaluator {
                         if (value instanceof VbaDecimal) return value;
                         if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
                         if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
+                        if (typeof value === 'string') return VbaDecimal.fromString(value.trim());
                         return VbaDecimal.fromNumber(this.toVbaNumber(value));
                     };
                     const leftDecimal = asDecimal(left);
