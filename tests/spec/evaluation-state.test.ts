@@ -14,7 +14,7 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 10 evaluation records/);
+assert.match(validated.stdout, /validated 90 evaluation records/);
 
 const first = run('next');
 assert.equal(first.status, 0, first.stderr);

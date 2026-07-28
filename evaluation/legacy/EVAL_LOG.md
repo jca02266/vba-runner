@@ -1,0 +1,906 @@
+# vba-runner 評価ログ
+
+サブエージェントによる「新規ユーザー視点での使い勝手評価」の累積記録。
+**今後の評価を担当するサブエージェントはこのファイルを先に読み、過去に実施済みの
+テストケースと発見済みの問題を把握した上で、新しい観点から評価を行うこと。**
+
+---
+
+## 評価済みドメイン・機能
+
+| # | ドメイン | 主にテストした機能 | 日付 |
+|---|---|---|---|
+| 100 | 実Excel照合 #100: バイナリ配列の物理レイアウト | **XL-001〜XL-007 照合済み**: Excel実機で多次元配列は左端次元が連続する列優先順（`1,3,2,4`）、固定長文字列はCP932、UDT配列は各レコード連続であることを確認。エンジンの多次元配列Put/Getを同じ順序へ修正し、回帰テストを追加した。 | 2026-07-26 |
+| 101 | 実行互換性 #101: UDT内可変長String | **Bug 101-A 修正済み**: UDT内の可変長 `String` を `Put` / `Get` すると Error 13 になっていた。VBA仕様の長さディスクリプター（2バイト little-endian）とCP932データを処理し、`tests/spec/binary-file-io.test.ts` に回帰テストを追加した。実Excel値とRandomレコード境界は評価 #102（XL-008）で一致を確認した。 | 2026-07-26 |
+| 102 | 実Excel照合 #102: UDT内可変長String | **XL-008 照合済み**: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0`。`03 00` はCP932バイト長3のlittle-endianディスクリプターで、実装・回帰テストと一致した。 | 2026-07-26 |
+| 103 | 回帰確認 #103: EVAL_LOG既知項目の現状整合 | `eval()`行番号、固定長文字列、CallByName、GetAttr、FileSystemWatcher削除通知など、既に実装済みの項目に残っていた古い未修正記載を確認し整理した。 | 2026-07-26 |
+| 104 | 回帰確認 #104: LSP Introduce Variable | **Introduce Variable 実装済み**: 単一行の式選択に対する Code Action と、`Dim ... As Variant`・代入を挿入して選択式を置換するテキスト編集を追加した。プロシージャ外・空選択・文形式は対象外とし、LSP 回帰テストで Code Action と編集内容を確認した。 | 2026-07-26 |
+| 105 | 回帰確認 #105: 拡張機能LSPリファクタリング群 | 拡張機能のCode Actionとコマンド実装を再確認し、Extract Constant、Inline Variable、Introduce With、Organize Declarations が `src/extension.ts` に実装済みであることを確認した。評価 #18 の古い未実装記載を訂正した。 | 2026-07-26 |
+| 106 | 回帰確認 #106: LSP CodeLens・Hover・TestRunner | 評価 #14/#15/#17 の古い問題記載を回帰テストで再確認した。`Test_*` の宣言行だけを参照する疑似陽性、Constの型・値表示、Public/Privateの大文字表示、戻り型付きFunctionの括弧補完、TestRunnerの失敗メッセージはいずれも修正済みで、関連テストが通過した。 | 2026-07-26 |
+| 107 | 実行互換性 #107: VFSファイル属性 | **Bug 107-A 修正済み**: `GetAttr` / `SetAttr` が常に `vbNormal` / no-op だった。`MemoryFileSystem` に属性ビットを保持し、ReadOnly・Hidden・Directory 等を取得・更新できるようにした。NodeFileSystem は ReadOnly とドットファイルの Hidden を推定し、ReadOnly変更を chmod に反映する。回帰テストで通常ファイル、属性変更、ディレクトリを確認した。 | 2026-07-26 |
+| 108 | 実行互換性 #108: ケースインセンシティブな宣言重複 | **Bug 108-A 修正済み**: 同一スコープの `Value` / `value` 等を別名として受理していた。モジュール・クラス・手続きスコープの宣言を小文字化して比較し、変数・定数・型・プロシージャ・パラメーターの衝突をコンパイルエラーにした。Property Get/Let/Set の正規オーバーロードは維持し、回帰テストを追加した。 | 2026-07-26 |
+| 109 | テスト基盤 #109: VBARunner共有VFS | `VBARunner` の `fs` オプションを追加し、複数インスタンスへ同一 `MemoryFileSystem` を注入できるようにした。相互の書き込みが可視になることを回帰テストで確認した。 | 2026-07-26 |
+| 110 | 回帰確認 #110: Tier 6 名前空間分離 | **Bug 110-A 修正済み**: ケース無視の宣言衝突検出が、VBAで許可されるクラス名と同名のFunctionを重複扱いしていた。型名前空間と値名前空間の組み合わせを許可し、`tier6-namespace.test.ts` と衝突検出テストを再通過させた。 | 2026-07-26 |
+| 111 | リファクタリング確認 #111: precheckProc一括走査 | `precheckProc` の6つの独立AST走査を `collectPrecheckFindings` の1回走査へ統合した。エラー優先順位を維持し、メンバー代入の配列アクセスを誤って引数個数検査する回帰（Bug 111-A）を修正。TypeScript 330ファイル、VBA 14ファイル、VBA手続き111件が全通過した。 | 2026-07-26 |
+| 112 | Lexer分類確認 #112: 識別子カテゴリメタデータ | `VBA_KEYWORD_CATEGORIES` に MS-VBAL §3.3.5.2 のキーワードカテゴリを追加した。既存の `Keyword*` トークン、`CONTEXTUAL_KW`、`COMPAT_KW_EXPR` の動作は維持し、代表的な予約語・contextual keywordの分類とトークン安定性を回帰確認した。 | 2026-07-26 |
+| 113 | 実行互換性 #113: WithEvents の ByRef イベント引数 | 複数の WithEvents 購読・再代入・解除と `On Error` / `Resume Next` を評価し、購読の独立性とエラー復帰は正常だった。追加の境界検証で、イベントハンドラーが変更した `RaiseEvent` の `ByRef` 引数が発行元へ戻らない Bug 73-A を発見・修正し、`tests/spec/raiseevent.test.ts` に回帰テストを追加した。 | 2026-07-26 |
+| 114 | 実行互換性 #114: ByVal Variant 配列のコピー境界 | クラス状態、Collection、文字列処理、ループ、`On Error` / `Resume` を含むバッチ処理を評価した。`ByVal values As Variant` に配列を渡した場合、callee の `values(0) = "new"` が caller の配列へ伝播する Bug 114-A を発見・修正し、`tests/spec/array-functions.test.ts` に回帰テストを追加した。 | 2026-07-26 |
+| 115 | 実行互換性 #115: 括弧付きByRef配列引数と非ゼロ下限 | 非ゼロ下限の2次元 `Long` 配列を `ChangeFirst (values)` として渡す境界を評価した。括弧付き引数がByRefのまま書き戻される Bug 115-A を発見・修正し、通常のByVal配列コピーとクラスメソッド経路を含む回帰テストを追加した。 | 2026-07-26 |
+| 116 | 言語仕様 #116: ParamArray 宣言制約 | `Optional` との併用、末尾以外への配置、ByVal/ByRef 修飾、Variant 配列以外の型、配列表記省略を評価した。VBAではすべてコンパイルエラーになる宣言を受理していた Bug 116-A〜D を修正し、回帰テストを追加した。 | 2026-07-26 |
+| 117 | 実行互換性 #117: FileSystemObject のファイル移動・コピー | `CopyFile` と `MoveFile` が標準メソッド一覧にあるにもかかわらず Error 438 になっていた Bug 117-A を修正した。存在しないファイルを `DeleteFile` した際に Node の ENOENT が漏れる Bug 117-B も VBA Error 53 へ正規化し、回帰テストを追加した。 | 2026-07-26 |
+| 118 | 実行互換性 #118: FileSystemObject TextStream の読み取り境界 | `TextStream.Read` と `Skip`、`SkipLine` が Error 438 になっていた Bug 118-A を修正した。現在位置を進める文字数読み取り・スキップを実装し、既存の `ReadAll` / `ReadLine` と合わせて回帰テストを追加した。 | 2026-07-26 |
+| 119 | 回帰確認 #119: Property・Binary・ファイルモード境界 | インデックス付きProperty Get/Let/Set、Property経由のオブジェクト格納、配列境界、Binaryの連続Put/Getと空文字、Inputハンドルへの書き込みを評価した。いずれも期待値またはVBA Error 9/54と一致し、新規バグは確認されなかった。 | 2026-07-26 |
+| 120 | 仕様確認 #120: Format数値書式の色指定 | `[Red]` はVBA `Format`関数の公式書式ではなく、Excelのセル書式側の指定であることが未確認のまま実装評価されていた。VBA仕様準拠の評価対象から除外する。 | 2026-07-26 |
+| 121 | 回帰確認 #121: 引数束縛とネストしたエラー伝播 | Optional既定値、名前付き引数、空の位置引数、`On Error GoTo` / `Resume Next` をまたぐ `Err.Raise` と内側で処理済みの Err.Number を評価した。結果はVBAの期待値と一致し、新規バグは確認されなかった。 | 2026-07-26 |
+| 122 | 記録整合確認 #122: 重点候補の実施状況 | `CDate("M,Y")` の実Excel差分、UDT配列の基本物理レイアウト、FSO TextStreamの基本読み書き、`Declare` 構文、`DoEvents` のスタブ、ポインター関数の恒久制限を既存記録と照合した。Formatの色・条件指定はExcelセル書式の機能であり、VBA `Format`関数の評価対象外と整理した。 | 2026-07-26 |
+| 123 | 実行互換性 #123: FSO TextStream Unicode入出力 | `CreateTextFile` / `OpenTextFile` の Unicode・ANSI指定、UTF-16LE BOM、CP932バイト列、既存UTF-16ファイルの読み取りを評価した。Unicode/ANSI引数を無視してUTF-8で読み書きしていた Bug 123-A〜C を修正し、VFSの生バイトと文字列往復を回帰テストで確認した。 | 2026-07-26 |
+| 124 | 回帰修正 #124: カバレッジ検出3件 | カバレッジ計測（TypeScript 331ファイル中328成功・3失敗、VBA 14ファイル/111手続きは全成功）で検出した3件を修正した。FOREIGN-NAME直後の空括弧、空白付き配列添字代入、引数個数コンパイルエラーの行番号欠落を回帰テストで確認した。 | 2026-07-26 |
+| 125 | 実行互換性 #125: ネストUDTの値コピー | UDT内UDT・固定配列・可変長Stringを含むBinary Put/Getの複合シナリオは正常だった。一方、`q = p` 後の `q.Header.A = 2` が `p.Header.A` まで変更する Bug 125-A を発見・修正し、ネストメンバーと配列を含む値コピーの回帰テストを追加した。 | 2026-07-26 |
+| 126 | 仕様確認 #126: Format条件セクション・Declare引数検査 | `[<100]` / `[Red]` はVBAの`Format`関数仕様ではなく、Excelのセル書式・条件付き書式の機能であることを公式仕様と照合した。`Declare` の構文・型は正常だったが、スタブが宣言引数数を検査しない Bug 126-A を修正した。 | 2026-07-26 |
+| 127 | 実Excel照合 #127: FSO・ネストUDT | Excel実機でXL-009/XL-010を照合した。Unicode TextStreamは`FF FE`付きUTF-16LE（LOF=12）、ANSIはCP932（LOF=6）、ネストUDTは可変長Stringディスクリプターと配列を含む20バイトとなり、自動テストと一致した。 | 2026-07-26 |
+| 128 | 文法評価 #128: 生成ケースと演算子境界 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュールの生成ケースは正常だった。空白なしの文字列連結（`s=s&"a"`）だけがLexerのLong型サフィックス判定に吸収される Bug 128-A を発見・修正し、回帰テストを追加した。 | 2026-07-26 |
+| 129 | テスト強度評価 #129: ミューテーションテスト | `format.ts` の丸め、`parser.ts` の比較分岐、`evaluator.ts` のIf/On Error分岐を変異させた。すべて既存の別テストを含む全体テストで検出され、製品コードの検出漏れは確認されなかった。`error_handling.test.ts`単体ではOn Error変異が残るため、テスト単位の分離強度は改善候補として把握した。 | 2026-07-26 |
+| 130 | 文法評価 #130: 宣言型サフィックス付き引数 | カバレッジ基準（2026-07-18）で未通過候補だった宣言型サフィックス境界を、クラス・Property・ReDim複合ケースと併せて独立評価した。`Function Echo(ByVal x&)` が実引数を受け取らず常に0を返す Bug 130-A を再現・修正し、パラメーター名のサフィックス除去とLong型導出、回帰テストを追加した。 | 2026-07-26 |
+| 131 | 実行互換性 #131: クラス配列要素のByRef書き戻し | FZ-GRAMMARの次境界（型付き配列＋Property/ByRef）を評価した。クラスPrivate配列の要素を別Subの`ByRef`引数へ渡すと更新が失われる Bug 131-A を再現・修正し、クラス手続き呼び出しでも引数の元式へ書き戻す経路と回帰テストを追加した。 | 2026-07-26 |
+| 132 | 実行互換性 #132: Property Set のByRefオブジェクト引数 | Property Let の2次元型付き配列と`ReDim Preserve`は正常だった。一方、Property Set内で`Set value = Nothing`したByRefオブジェクト引数が呼び出し元へ反映されない Bug 132-A を再現・修正し、Property Set呼び出しでも元の右辺式へ書き戻す回帰テストを追加した。 | 2026-07-26 |
+| 133 | リファクタリング確認 #133: 引数束縛経路の共通化 | `callProcedure` と `callClassMethod` に重複していた引数型登録・ByValコピー・既定値・ParamArray処理を `bindProcedureParameters` へ統合した。クラス、Property、配列、ByVal、イベントの既存回帰テストと型チェックを通過し、挙動差は確認されなかった。 | 2026-07-26 |
+| 134 | リファクタリング確認 #134: ByRef書き戻し参照の共通化 | 標準モジュールとクラスメソッドで分かれていた ByRef 書き戻しを `VbaLValueReference` に統合し、元の代入可能式へ同じ setter を適用するようにした。クラス、Property、配列、ByVal、イベントの関連回帰テストと型チェックを通過した。読み取り参照を含む全 l-value 統合は引き続き未完了である。 | 2026-07-26 |
+| 135 | リファクタリング確認 #135: ParamArray書き戻し参照の共通化 | ParamArray要素のByRef書き戻しも `VbaLValueReference` の配列へ統合し、通常引数と同じsetter経路で代入可能式へ反映するようにした。ParamArray・ByVal配列の回帰テストを通過した。参照の読み取り統合と全l-value対応は引き続き未完了である。 | 2026-07-26 |
+| 136 | リファクタリング確認 #136: l-value読み取り・書き戻しの共通化 | `VbaLValueReference` に getter を追加し、標準モジュール・クラスメソッドの引数評価、ParamArray要素の書き戻しを同じ参照へ接続した。識別子、配列要素、Property/UDTメンバーなど代入可能な式の評価・書き戻し経路を統合し、関連回帰テストを通過した。 | 2026-07-26 |
+| 137 | リファクタリング確認 #137: Property/Event・組み合わせ経路の統合 | Property Set/Letの値・添字引数、WithEventsハンドラーのByRef配列、名前付き引数・ByVal強制括弧を共通参照フレームへ接続した。新規 `byref-dispatch-matrix.test.ts` とクラス、Property、配列、イベント回帰テストを通過し、旧 `callProcedure` / `callClassMethod` 経路との差分は確認されなかった。 | 2026-07-26 |
+| 138 | 全テスト・カバレッジ確認 #138 | カバレッジ付き全実行でV8データ1,025プロセスを取得。TypeScriptは332ファイル中331成功・1失敗・0未実施、VBAは14ファイル中14成功・0失敗・0未実施、111手続き中111成功。失敗は `tests/spec/type-system.test.ts` の型サフィックス連結構文で、今回のリファクタリング回帰候補として別管理し、低カバレッジ重点選定とは分離する。プロセス統合値（c8直接集計）は evaluator 50.7%、builtins 53.3%、parser 68.4%、coerce 70.7%、lexer 73.7%、vba-types 77.7% だった。 | 2026-07-26 |
+| 139 | 回帰修正 #139: Longサフィックス後の連結演算子 | `n& & ","` の最初の `&` をLong型サフィックス、2つ目を連結演算子としてLexerが分離できず、`type-system.test.ts` が構文エラーになっていた。サフィックス判定で後続の `&` を連結演算子として許可し、型サフィックス回帰・Lexer行位置テストを通過した。 | 2026-07-26 |
+| 140 | 実行互換性 #140: Property Let ByRef書き戻し | 独立評価で、`Property Let(ByRef value As String)` 内の正規化結果が呼出元のスカラー変数・配列要素へ戻らない Bug 140-A を確認した。クラスProperty代入経路が右辺ASTを参照ラッパーへ渡していなかったためで、`evaluateAssignmentToVariable` から右辺式を `callClassMethodWithExpressions` へ渡すよう修正し、`class-module.test.ts` に回帰テストを追加した。 | 2026-07-26 |
+| 141 | リファクタリング強化 #141: Property代入経路の参照伝播 | Bug 140-A の修正を全代入分岐へ広げ、暗黙With経由のProperty LetとProperty Setの添字付き代入でも右辺式を共通参照フレームへ渡すようにした。クラス、Property、配列、イベントの関連回帰テストと型チェックを再通過した。 | 2026-07-26 |
+| 142 | 回帰確認 #142: Property特殊経路テスト追加 | #141で強化した暗黙With内の添字付きProperty Letと添字付きProperty Setについて、呼出元スカラー・オブジェクトへのByRef書き戻しを専用回帰テストとして追加した。クラスモジュール全テストを通過し、特殊経路の未検証状態を解消した。 | 2026-07-26 |
+| 143 | 実行互換性 #143: FormatPercent の表示オプション | FZ-BUILTIN の独立評価で、`FormatPercent` の `UseParensForNegativeNumbers` と `IncludeLeadingDigit` が位置・名前付き引数のいずれでも無視される Bug 143-A を確認した。共有 `fmtNumeric` が両引数を未使用だったため、負数の括弧表示と先頭ゼロ抑制を実装し、`FormatNumber` を含む回帰テストを追加した。 | 2026-07-26 |
+| 144 | 回帰確認 #144: Null/Empty Variant配列境界 | FZ-BUILTIN の別入力で、Variant配列要素の `Null`/`Empty`、`TypeName`/`VarType`/`IsNull`/`IsEmpty`、`CInt` の型強制、Variant配列のFunction戻りとByRef再渡しを評価した。VBA内の値の区別と変換は期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
+| 145 | 実行互換性 #145: Pmt のゼロ期間エラー | FZ-BUILTIN の日付・財務境界で `Pmt` の `Type`/`FV` optional 引数と期末・期首払いを確認した。`NPer=0` だけは JavaScript の `-Infinity` を返して `On Error` を発火しない Bug 145-A だったため、VBA Error 5 の事前検証と回帰テストを追加した。 | 2026-07-26 |
+| 146 | 実行互換性 #146: DateValue の不正日付 | FZ-BUILTIN の日付境界で `DateDiff` の `FirstWeekOfYear` と `DateSerial` の月日繰上げを確認し、両方は仕様どおりだった。一方 `DateValue("2024/02/30")` が JavaScript の自動正規化で `2024/03/01` になる Bug 146-A を修正し、無効日付を Error 13 とする回帰テストを追加した。 | 2026-07-26 |
+| 147 | 回帰確認 #147: Currency/Decimal/Boolean 型強制 | FZ-BUILTIN の `coerce.ts` 境界で Currency の負値銀行丸め、Decimal の28桁演算、Boolean文字列変換、CInt/CLng、ByRef書き戻し、Function戻り値、Class/Collection、Variant配列メタデータ、非数値エラーを評価した。結果は期待値と一致し、新規バグは確認されなかった。 | 2026-07-26 |
+| 148 | 実行互換性 #148: CStr の配列・Object 型強制 | FZ-BUILTIN の混在型境界で Currency/Decimal と Null/Empty/ErrorValue、Decimal上限、指数文字列、CBool の配列/Object拒否を評価した。`CStr` だけが Variant配列を文字列化し、既定プロパティのないObjectを `[object Object]` として返す Bug 148-A だったため、Error 13 に統一して回帰テストを追加した。 | 2026-07-26 |
+| 149 | 回帰確認 #149: ErrorValue と Null/Empty 混在演算 | FZ-BUILTIN の `CVErr` と Currency/Decimal/Null/Empty の算術・比較・文字列化、配列内の型識別、`On Error` 伝播を評価した。`CVErr` の型情報、算術・比較 Error 13、`CStr`、Null伝播、Empty変換はいずれも期待どおりで、新規バグは確認されなかった。 | 2026-07-26 |
+| 150 | 実行互換性 #150: CVErr の論理演算・文字列連結 | FZ-BUILTIN の継続評価で `CVErr` の `And`/`Or`/`Xor`/`Not` と `&` を確認した。暗黙変換により Error code の数値化・`"Error 2000-tail"` の生成が起きる Bug 150-A だったため、Error 13 を返す検証と明示 `CStr` の回帰テストを追加した。 | 2026-07-27 |
+| 151 | 実行互換性 #151: 名前付きProperty LetのByRef境界 | FZ-GRAMMAR の未実施境界として、添字付き `Property Let` を名前付き引数で呼び出した。`Call obj.Value(index:=1, text:=text)` では `NamedArgument` ラッパーが l-value として扱われず、Property内の暗黙ByRef書き戻しが失われる Bug 151-A を再現・修正した。クラス呼び出しで名前付き引数を宣言位置へ再束縛し、元の値式へ書き戻す回帰テストを追加した。 | 2026-07-27 |
+| 152 | 実行互換性 #152: 修飾名前付きByRef引数 | FZ-GRAMMAR の継続境界として、標準モジュールを修飾した `Call ModuleA.Mutate(y:=b, x:=a, z:=c)` を評価した。修飾呼び出しが名前付き引数を一時値のまま渡し、スカラー・Optional ByRefの書き戻しを失う Bug 152-A（配列・UDTでも同じ経路）を再現・修正した。クラスと修飾標準モジュールで共有する引数正規化を追加し、逆順・Optionalを含む回帰テストを追加した。 | 2026-07-27 |
+| 153 | 実行互換性 #153: ローカル2次元クラス配列のPreserve | FZ-GRAMMAR の型付き配列境界として、ローカル `Dim boxes() As PreserveBox` の2次元配列を要素メンバー代入後に最終次元へ `ReDim Preserve` した。`Set boxes(i,j)=...` のローカル配列経路が2次元要素メンバー代入を壊し、後続アクセスをError 9にする Bug 153-A を再現・修正した。`Set` の多次元オブジェクト配列要素書き込みと既存のPreserveコピーを接続し、回帰テストを追加した。 | 2026-07-27 |
+| 154 | 実行互換性 #154: Property Getの2次元配列戻り値 | FZ-GRAMMAR の型付き配列・Property境界として、0引数 `Property Get Data() As Long()` が返す2次元配列を `holder.Data(2,4)` の形で参照した。戻り値添字経路が最初の添字だけを使い、2次元では行配列を `CStr` に渡してError 13になる Bug 154-A を再現・修正した。Property Get戻り値の配列を次元数・境界付きで走査する回帰テストを追加した。 | 2026-07-27 |
+| 155 | 実行互換性 #155: 既定ValueオブジェクトのCStr | FZ-BUILTIN のObject/配列既定プロパティ境界として、Excelモックの `Range("A5")` を `CStr` へ直接渡した。`__vbaDefault__` の `Value` を展開せず一律Error 13にしていた Bug 155-A を再現・修正し、明示的に既定Valueを持つオブジェクトだけを値へ再帰的に変換する回帰テストを追加した。 | 2026-07-27 |
+| 156 | 実行互換性 #156: 既定ValueのBoolean・数値型強制 | FZ-BUILTINの継続評価で、明示的な `__vbaDefault__` Valueオブジェクトを `CBool` と `CInt` に直接渡した。`CStr`と異なり、Boolean/数値coerceがオブジェクトを値展開せずError 13またはJSの暗黙挙動になる境界を確認した Bug 156-A を修正し、Valueを再帰的に型強制する回帰テストを追加した。 | 2026-07-27 |
+| 157 | 実行互換性 #157: IsNumericの既定Value判定 | FZ-BUILTINの継続評価で、数値を保持する `__vbaDefault__` オブジェクトを `IsNumeric` に渡した。組み込み判定がオブジェクトを即Falseにしていた Bug 157-A を再現・修正し、Valueを再帰的に判定する回帰テストを追加した。 | 2026-07-27 |
+| 158 | 実行互換性 #158: IsDate/CDateの既定Value判定 | FZ-BUILTINの継続評価で、日付文字列を保持する `__vbaDefault__` オブジェクトを `IsDate` と `CDate` に直接渡した。既定Valueを展開せず `False` または Error 13 になる Bug 158-A を再現・修正し、日付判定と年取得の回帰テストを追加した。 | 2026-07-27 |
+| 159 | 実行互換性 #159: DateValueの既定Value判定 | 同じ日付既定プロパティ境界で `DateValue` を評価したところ、`parseVbaDate` がラッパーオブジェクトを直接処理して Error 13 になる Bug 159-A を確認した。`Value` を展開して既存の日付検証へ渡す処理と回帰テストを追加した。 | 2026-07-27 |
+| 160 | 回帰確認 #160: Err.Raise伝播とDecimal overflow後のErr状態 | FZ-BUILTINの継続評価で、Class・Collection・Variant配列・ループ・`On Error` を組み合わせた複数 `Err.Raise` の再送出と、Currency/Decimal overflow後の `Err` の保持・`Err.Clear`・成功後のリセットを確認した。期待値と実値は一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 161 | 回帰確認 #161: 型付き多次元配列のPreserve追加シード | FZ-GRAMMARの未実施境界として、UDT（固定配列・固定長文字列）2次元配列、3次元Long配列、ByRefで拡張する2次元配列、3次元クラス配列を `ReDim Preserve`・境界エラー・Collection・ループ・`On Error` と組み合わせて評価した。全ケースで期待値と実値が一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 162 | 回帰確認 #162: 宣言型サフィックスの比較・連結 | FZ-GRAMMARの未実施境界として、Integer/Long/Single/Double/Currency/String の宣言型サフィックスを比較演算・`TypeName`・空白なしの文字列連結と組み合わせて評価した。期待値と実値は一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 163 | 回帰確認 #163: UDT Binary Put/Get 境界変異 | MUT-ENGINEの未実施境界として、固定長Stringを含むUDT配列をBinaryへ連続 `Put`/`Get` し、バイト位置指定とEOF超過（Error 62）を `On Error Resume Next`・ループと組み合わせて評価した。期待値と実値は一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 164 | 実行互換性 #164: 日付関数の既定Value展開 | FZ-BUILTINの継続評価で、`Year`/`Month`/`Day`/`Hour`/`Minute`/`Second`/`Weekday`/`DatePart`/`DateAdd`/`DateDiff`/`TimeValue` へ日付文字列を保持する `__vbaDefault__` オブジェクトを直接渡した。各関数がラッパーを `parseVbaDate` へ渡して Error 13 になる Bug 164-A を共通展開ヘルパーで修正し、既定Valueを配列要素から渡す回帰経路を追加した。 | 2026-07-27 |
+| 165 | 実行互換性 #165: Formatの既定Value展開 | 同じ既定日付オブジェクトを `Format(..., "yyyy")` へ渡したところ、Valueを展開せず文字列表現へ落ちる Bug 165-A を確認した。Format系の入力でも既定Valueを共通展開し、日付書式の回帰を追加した。 | 2026-07-27 |
+| 166 | 回帰確認 #166: 直接手続きの名前付きByRef引数 | FZ-GRAMMARの未統合API経路として、モジュール修飾なしの直接 `Sub` を逆順名前付き・位置+名前混在・Optional ByRef・UDT/配列要素・Call/非Call・括弧付きで呼び出した。スカラー・String・UDT・Collectionを含む複合ケースで期待値と実値が一致し、新規バグは確認されなかった。 | 2026-07-27 |
+| 167 | 実行互換性 #167: CallByNameのクラスByRef書き戻し | FZ-GRAMMARの外部呼び出し経路として、`CallByName` でクラスのByRefメソッドをスカラー・配列要素・UDT・Collection・Property Let/Setへ渡した。組み込み実装が評価済みの値だけを `callMethod` へ渡し、呼び出し元の更新を失う Bug 167-A を再現・修正した。AST式を保持するクラス専用経路を追加し、ByRef書き戻しの回帰テストを追加した。 | 2026-07-27 |
+| 168 | 実行互換性 #168: 標準ファイルI/OのCP932文字列 | MUT-ENGINEのファイルI/O追加境界として、Collection・配列・ループ・`On Error` と `Print`/`Line Input`/Binary `Seek`/`Get`/`Put` を組み合わせた。ANSIテキストのCP932マルチバイト文字が1バイトごとのUTF-8 `TextDecoder` で `�` になる Bug 168-A、`Print` がUTF-8バイトを書き込む不一致を再現・修正し、CP932の入出力とバイト位置更新の回帰テストを追加した。 | 2026-07-27 |
+| 169 | 実行互換性 #169: Inputの行境界跨ぎ | MUT-ENGINEのファイルI/O別入力として、2行の `Write #` 出力を1回の `Input #` で文字列・数値・Collectionへ読み込んだ。実装が最初のLFまでしか読まず、次レコードを未読のまま `Empty`/0を返す Bug 169-A を再現・修正し、CP932デコード後のカンマ・CRLF区切りを指定変数数まで消費する回帰テストを追加した。 | 2026-07-27 |
+| 170 | 実行互換性 #170: EOF後のLine Inputエラー | MUT-ENGINEの `On Error Resume Next` ファイル境界として、1行読了後のEOFで `Line Input #` を再実行した。実装が0バイトを無操作で終了し `Err.Number=0` のままにする Bug 170-A を再現・修正し、Error 62と成功後の `Err.Clear` を確認する回帰テストを追加した。 | 2026-07-27 |
+| 171 | 実行互換性 #171: Currency/Decimalの型強制・日付シリアル | FZ-BUILTINの既定Value別入力として、Currency/Decimalを直接および `__vbaDefault__` Value経由で `CBool`/`IsDate`/`CDate`/`DateValue`へ渡した。数値オブジェクトをType mismatchにし、日付シリアルを文字列日付へ誤変換する Bug 171-A を修正し、数値型のBoolean・日付変換回帰を追加した。 | 2026-07-27 |
+| 172 | 実行互換性 #172: 循環既定Valueの安全な拒否 | 同じ別入力シードで、`__vbaDefault__` の `Value` が自身を参照する循環オブジェクトを `CStr` へ渡した。再帰展開がJSのスタックオーバーフローになる Bug 172-A を再現・修正し、循環をError 13として処理する回帰テストを追加した。 | 2026-07-27 |
+| 173 | 実行互換性 #173: Select Caseの日付値比較 | MUT-ENGINEの比較・分岐変異として、`DateSerial` で生成した別インスタンスを `Select Case` の `Case` 式へ渡した。通常の比較演算と異なり厳密なオブジェクト参照比較でCase Elseへ進む Bug 173-A を再現・修正し、Dateシリアル値比較の回帰テストを追加した。 | 2026-07-27 |
+| 174 | 回帰確認 #174: Select Case追加数値種別 | MUT-ENGINEの継続評価で、Currency/Decimal/Boolean/Empty/Null、数値文字列、Variant配列要素、Collection、ループ、`On Error` を `Select Case` と組み合わせた。Currency/Decimal等のVBA内経路は期待値と一致したが、数値文字列と数値Caseの一致規則は実Excel未照合のためXL-013へ登録した。 | 2026-07-27 |
+| 175 | 実行互換性 #175: 外部CallByNameのメンバー解決 | FZ-GRAMMARの外部Object/COM経路で、prototype上の大文字小文字混在Getter/Setter/Methodと未定義メンバーを `CallByName` から呼び出した。`Object.keys` がprototypeを探索せず `undefined` を返し、未定義名もError 438にならない Bug 175-A を再現・修正し、prototype走査と未定義メンバー拒否の回帰テストを追加した。外部JSのスカラーByRef書き戻しは値渡し制限として残す。 | 2026-07-27 |
+| 176 | 実行互換性 #176: Inputの不足フィールドEOF | MUT-ENGINEのファイルI/O追加境界として、CP932の追記・FSO Unicode読み書き・引用符付きInputを評価した。`Input #` の入力値が要求変数数より少ない場合、実装が残りの変数を無変更のままError 0で終了する Bug 176-A を再現・修正し、Error 62と既に代入済みの値を確認する回帰テストを追加した。未引用の空フィールドは実Excel照合が必要な候補として断定しない。 | 2026-07-27 |
+| 177 | 回帰確認 #177: 外部CallByNameの引数境界 | FZ-GRAMMARの外部Object/COM経路で、Optional既定値、位置引数、添字相当のGet/Method、オブジェクト引数、大文字小文字混在を確認した。これらは期待どおり動作し、外部スカラーByRefの非書き戻しは既知の値渡し制限、名前付き引数のError 448はCallByNameのParamArrayに外部引数名がない仕様境界として整理した。新規バグは確認されなかった。 | 2026-07-27 |
+| 178 | 実行互換性 #178: 既定Value Nullの数値書式 | FZ-BUILTINの別入力シードとして、`__vbaDefault__` の単層・入れ子・配列要素が `Null` を返す場合を `FormatNumber`/`FormatCurrency`/`FormatPercent` に渡した。直接の`Null`は空文字列なのに既定Value経由だけError 13になる Bug 178-A を再現・修正し、共通`fmtNumeric`の展開と回帰テストを追加した。 | 2026-07-28 |
+| 179 | 実行互換性 #179: InputのEmptyフィールドと空ファイルEOF | MUT-ENGINEのファイルI/O境界として、未引用の先頭・末尾空フィールド、空行、空ファイル、明示的な`""`、複数レコードを確認した。区切りカンマ・空行を0へ変換し空ファイルを擬似フィールドとしていたため、Emptyの型情報を失いEOFでError 62にならない Bug 179-A を再現・修正し、空フィールドの保持・末尾区切り・空ファイルの回帰テストを追加した。 | 2026-07-28 |
+| 180 | 実行互換性 #180: 16進・8進リテラルの符号とサフィックス | FZ-GRAMMARの追加型サフィックス境界として、16進・8進リテラルを高ビット値、`%`/`&`サフィックス、配列添字・Select Case・戻り値と組み合わせた。Lexerが基数リテラルのサフィックスを捨て、符号付き16/32ビット解釈も失っていた Bug 180-A を再現・修正し、TypeName/VarType/値の回帰テストを追加した。 | 2026-07-28 |
+| 181 | 実行互換性 #181: On Error Resume Next の Err.Source 更新 | MUT-ENGINEの単独エラー状態境界として、連続した`Err.Raise`、暗黙の除算エラー、`Err.Clear`、ループ・呼出し先ハンドラーを評価した。前回の`Err.Raise`で指定した`CustomSource`が、Source省略のRaiseと暗黙ランタイムエラーへ残留する Bug 181-A を再現・修正し、エラー種別ごとのSource更新を回帰テストに追加した。 | 2026-07-28 |
+| 182 | 実行互換性 #182: FSO追記とクラスByVal引数の相互作用 | MUT-ENGINEのファイルI/O追加境界として、FSOのUnicode/ANSI追記、標準`Open ... For Append`、`Input`/`Line Input`、Collection・クラス・ループ・`On Error`を組み合わせた。クラスメソッドの`ByVal`引数へ`TextStream.ReadLine`を直接渡すと、参照生成時に式を二重評価して1行読み飛ばす Bug 182-A を再現・修正し、既存の追記バイト列と複合読み取りの正常動作も確認した。 | 2026-07-28 |
+| 183 | 実行互換性 #183: LongLong/LongPtrリテラルの64ビット境界 | FZ-GRAMMARの追加型サフィックス境界として、Currency/Decimal/LongLong/LongPtrのFunction戻り値、Property、ByRef、配列、`On Error`と64ビット最大値付近の`^`リテラルを評価した。LongLong/LongPtrリテラルをJSの`number`へ変換してからBigInt化していたため、最大値がError 6になり近傍値も丸められる Bug 183-A を再現・修正し、元の10進桁列を保持する回帰テストを追加した。 | 2026-07-28 |
+| 184 | 実行互換性 #184: Select CaseのLongLong比較と呼出し経路横展開 | MUT-ENGINEのCurrency/Decimal追加種別を含む複合Select Caseを、Variant/Collection/Property/ループ/`On Error`と評価した。LongLongの`BigInt`値と通常の整数Case式を厳密比較して不一致になる Bug 184-A を再現・修正した。Bug 182-Aの横展開として標準/修飾モジュール、クラスByVal、Property、名前付き引数、CallByName、RaiseEvent、ParamArrayをソース列挙と最小テストで確認し、ByVal経路は正常、ByRefへProperty Getを直接渡す二重getterは実Excel仕様未確定候補として残した。 | 2026-07-28 |
+| 185 | 実行互換性 #185: Null既定Valueの型変換エラー | FZ-BUILTINの別入力シードとして、`__vbaDefault__`がNullを返す値をCollection・Property・Variant配列から`CByte`/`CInt`/`CLng`/`CSng`/`CDbl`/`CDate`/`CDec`/`CCur`/`CLngLng`/`CBool`へ渡した。既定Value展開後のNull検査がなくError 13になる Bug 185-A を再現・修正し、直接Nullと同じError 94を全変換関数で回帰確認した。 | 2026-07-28 |
+| 186 | 回帰確認 #186: 既定Value日付の境界引数 | FZ-BUILTINの別日付シードとして、既定Valueの日付文字列をクラスのByVal Variant引数へ渡し、`DateValue`/`TimeValue`/`DateSerial`/`DatePart`週設定/`FormatDateTime`/`DateDiff`、ループ、`On Error`、1900年・1899年・9999年境界を評価した。期待値と実値は一致し、不正日付のError 13、Null/Emptyも既存仕様どおりで、新規バグは確認されなかった。 | 2026-07-28 |
+| 187 | 回帰確認 #187: Append/Inputの混在ハンドル境界 | MUT-ENGINEの別ファイルI/Oシードとして、FSO ANSI/Unicode追記と標準`Open ... For Append`、末尾改行なし・空行・CP932、複数読取ハンドル、`On Error`、Collectionを組み合わせた。標準`Line Input`/FSO`ReadLine`のレコード、EOF Error 62、BOM/CP932バイト列、独立読取位置はいずれも期待値と一致し、新規バグは確認されなかった。 | 2026-07-28 |
+| 188 | 回帰確認 #188: 外部CallByNameのスカラーByRef境界 | FZ-GRAMMARの外部呼出し境界として、JS外部オブジェクトのCallByNameについてVbGet/VbLet/VbSet、Optional・複数引数、Null/Empty、型返却、On Error、子オブジェクトSetを評価した。スカラーByRefの書き戻しなしは既知の外部スタブ制限、名前付き引数のError 448と存在しないメンバーのError 438は既知境界と一致し、新規バグは確認されなかった。 | 2026-07-28 |
+| 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
+| 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
+| 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
+| 96 | 実行互換性 #96: `Err.Clear` 後の `Resume` | **Bug 96-A 修正済み**: `On Error GoTo` のハンドラーで `Err.Clear` を呼ぶと、続く `Resume` が Error 20 になった。`Err` の表示状態ではなく、アクティブなハンドラー状態で Resume の有効性を判定する回帰テストを追加した。 | 2026-07-25 |
+| 95 | 実行互換性 #95: Dictionary CompareMode | **Bug 95-A/B 修正済み**: `vbTextCompare` で `Exists` は大文字小文字を無視する一方、`Add` と既定 `Item` 代入は別キーを作れた。全キー操作で比較モードを適用し、重複を Error 457、既定代入を更新とする回帰テストを追加した。 | 2026-07-25 |
+| 94 | 実行互換性 #94: バイナリ Get の終端超過 | **Bug 94-A 修正済み**: 短いファイルから配列を `Get` すると JavaScript の `RangeError` が漏れた。読み取り範囲不足を VBA Error 62 に変換する回帰テストを追加した。 | 2026-07-25 |
+| 93 | 実行互換性 #93: UDT 配列バイナリ I/O | **Bug 93-A 修正済み**: UDT 配列を `Put` / `Get` に渡すと Error 13 になった。既存の UDT レイアウトを各要素へ適用して往復する回帰テストを追加した。 | 2026-07-25 |
+| 92 | 実行互換性 #92: 固定長 String 配列バイナリ I/O | **Bug 92-A 修正済み**: `String * N` 配列を `Put` / `Get` に渡すと Error 13 になった。配列の固定長情報を保持し、CP932 バイト列として往復する回帰テストを追加した。 | 2026-07-25 |
+| 91 | 実行互換性 #91: 型付き配列バイナリ I/O | **Bug 91-A/B/C/D 修正済み**: Byte / Integer / Long 配列を `Put` / `Get` に渡すと Error 13 になり、多次元 Byte 配列も未対応だった。固定長の数値・Boolean 配列を宣言添字順の連続バイト列として往復する一次元・二次元の回帰テストを追加した。 | 2026-07-25 |
+| 90 | 実行互換性 #90: Boolean バイナリ I/O | **Bug 90-A 修正済み**: 宣言済み `Boolean` を `Put` / `Get` に渡すと未対応型 Error 13 になった。True=-1 / False=0 の2バイト符号付きリトルエンディアンで往復する回帰テストを追加した。 | 2026-07-25 |
+| 89 | 実行互換性 #89: LongLong バイナリ I/O | **Bug 89-A 修正済み**: 宣言済み `LongLong` を `Put` / `Get` に渡すと未対応型 Error 13 になった。8バイト符号付きリトルエンディアンで往復し、負値を含む回帰テストを追加した。 | 2026-07-25 |
+| 88 | 実行互換性 #88: 型付き配列手続きの戻り値 | **Bug 88-A/B/C 修正済み**: Function 内の添字・UDT メンバーを手続き呼び出しと誤認して Error 450 にし、Property Get の `ReDim` 後も Variant 配列になった。代入左辺の添字を識別し、Function / Property Get の戻り値宣言から要素型を復元する回帰テストを追加した。 | 2026-07-25 |
+| 87 | 実行互換性 #87: `Erase` 後の型付き配列再確保 | **Bug 87-A/B 修正済み**: `Erase widgets` 後の `ReDim widgets(0)` が `Variant():False` になり、`Erase holder.Values` は構文解析できなかった。未割当状態とは別に配列の宣言型を環境へ保持し、ローカル・クラス配列で再確保後の型と初期値を維持する回帰テストを追加した。 | 2026-07-24 |
+| 86 | 実行互換性 #86: `With` 経由のクラス参照代入 | **Bug 86-A/B 修正済み**: `With holder: Set .Value = New Widget` が Error 5 になり、二次元の `.Values(1, 1)` も Error 9 になった。`Set` の暗黙 With 経路でクラスフィールド・多次元配列フィールドを解決する回帰テストを追加した。 | 2026-07-24 |
+| 85 | 実行互換性 #85: 多次元クラス配列フィールド | **Bug 85-A 修正済み**: 二次元の `Set holder.Values(1, 1)` が先頭次元へ直接代入し、読み戻し時に Error 9 になった。全添字を走査してネスト要素へ代入する回帰テストを追加した。 | 2026-07-24 |
+| 84 | 実行互換性 #84: クラス配列フィールドの要素代入 | **Bug 84-A 修正済み**: `Set holder.Values(0) = New Widget` が配列フィールドを Property Set と誤認して Error 438 になった。配列フィールドを先に解決し、要素代入と型検査を行う回帰テストを追加した。 | 2026-07-24 |
+| 83 | 実行互換性 #83: クラスフィールドの代入型検査 | **Bug 83-A 修正済み**: `Public Value As Widget` へ `OtherWidget` を `Set` しても成功した。クラスインスタンスのフィールド環境にも宣言クラスを保持し、型不一致を Error 13 とする回帰テストを追加した。 | 2026-07-24 |
+| 82 | 実行互換性 #82: クラス型の手続き戻り値 | **Bug 82-A 修正済み**: `Function ... As Widget` の戻り値に `OtherWidget` を `Set` しても成功した。戻り値変数にも宣言クラスを保持し、型不一致を Error 13 とする回帰テストを追加した。 | 2026-07-24 |
+| 81 | 実行互換性 #81: クラス型パラメーター | **Bug 81-A 修正済み**: `ByVal value As Widget` へ `OtherWidget` を渡しても成功した。手続き呼び出し時の型情報にも宣言クラスを保持し、型不一致を Error 13 とする回帰テストを追加した。 | 2026-07-24 |
+| 80 | 実行互換性 #80: クラス参照の代入型検査 | **Bug 80-A 修正済み**: `As Widget` の変数・配列要素へ無関係な `OtherWidget` を `Set` しても成功した。宣言クラス名を照合し、型不一致を Error 13 とする回帰テストを追加した。 | 2026-07-24 |
+| 79 | 実行互換性 #79: クラス型配列の初期値 | **Bug 79-A 修正済み**: 固定長・`ReDim` 後のクラス型配列要素が数値 `0` で、`Is Nothing` が False になった。オブジェクト配列の各要素を `Nothing` として初期化する回帰テストを追加した。 | 2026-07-24 |
+| 78 | 実行互換性 #78: クラス型配列への代入 | **Bug 78-A 修正済み**: クラス型配列要素に `widgets(0) = 1` と Let 代入しても成功した。オブジェクト型配列では `Set` を必須にし、Let 代入を Error 424 にする回帰テストを追加した。 | 2026-07-24 |
+| 77 | 実行互換性 #77: クラス型配列の型検査 | **Bug 77-A 修正済み**: `Dim widgets() As Widget` の `ReDim` 後に `VarType=8204` / `TypeName="Variant()"` になった。オブジェクト配列の宣言型を保持し、`8201` / `Widget()` を返す回帰テストを追加した。 | 2026-07-24 |
+| 76 | 実行互換性 #76: 型付き配列の型検査 | **Bug 76-A 修正済み**: `Dim n() As Integer` が `VarType=8204` / `TypeName="Variant()"` になった。配列の要素型メタデータから `8194` / `Integer()` を返し、String・Variant 配列との回帰比較を追加した。 | 2026-07-24 |
+| 75 | 実行互換性 #75: 宣言の型名欠落（残りの構文） | **Bug 75-A 修正済み**: `Declare Function ... As` と UDT メンバー `Value As` が改行を型名として受理した。`Const` と `ReDim` も型名欠落時の診断を統一し、4形式の構文エラー回帰テストを追加した。 | 2026-07-24 |
+| 74 | 実行互換性 #74: 手続き宣言の型名欠落 | **Bug 74-A 修正済み**: `Function F() As` が改行を戻り型として保持し、`Sub F(x As)` も型なしパラメーターとして受理された。手続き戻り型・パラメーター型で `As` 後の型名を必須化し、構文エラー回帰テストを追加した。 | 2026-07-24 |
+| 73 | 実行互換性 #73: クラスの型付き配列フィールド | **Bug 73-A 修正済み**: クラスフィールド `Private values() As Integer` は `ReDim` 後に要素型情報を持たず、`1.5` をそのまま格納した。クラス生成時にも配列要素型を設定し、`1.5 → 2` の強制変換を回帰テスト化した。 | 2026-07-24 |
+| 72 | 実行互換性 #72: `WithEvents` 購読解除 | **Bug 72-A 修正済み**: `Set subscriber.Source = Nothing` 後も、別変数が保持する同じイベントソースからハンドラーが呼ばれ続けた。`WithEvents` フィールドごとに登録コールバックを追跡し、再代入・Nothing 時に解除することで、解除後の通知が届かないことを回帰テスト化した。 | 2026-07-24 |
+| 71 | 実行互換性 #71: 宣言の型名欠落 | **Bug 71-A 修正済み**: `Dim value As` が型名なしでも黙って Variable 宣言として受理された。通常実行では型名欠落を構文エラーにし、LSP の `errorRecovery` では診断を記録して後続手続きを保持する回帰テストを追加した。 | 2026-07-24 |
+| 70 | 実行互換性 #70: `ReDim` 型付き配列 | **Bug 70-A 修正済み**: `Dim values() As Integer` の `ReDim` 後に要素型情報が失われ、`1.5` が Integer の `2` へ強制変換されずそのまま残った。通常の `ReDim` と `ReDim Preserve` の両方で要素型を継承し、代入時の型強制を回帰テスト化した。 | 2026-07-24 |
+| 69 | 実行互換性 #69: UDT 固定長配列バイナリ I/O | **Bug 69-A 修正済み**: 固定長の一次元配列メンバーを持つ UDT を `Put` / `Get` に渡すと Error 13 になった。非ゼロ下限の `Long` 配列・固定長 `String` 配列の12バイト往復を回帰テスト化した。代入時の固定長文字列パディングも配列要素へ適用した。 | 2026-07-24 |
+| 68 | 実行互換性 #68: Currency バイナリ I/O | **Bug 68-A 修正済み**: 宣言済み `Currency` を `Put` / `Get` に渡すと未対応型 Error 13 になった。小数点以下4桁でスケールした符号付き64ビット整数をリトルエンディアンで直列化・復元し、`LOF=8` と負値の往復を回帰テスト化した。 | 2026-07-24 |
+| 67 | 実行互換性 #67: Date バイナリ I/O | **Bug 67-A 修正済み**: 宣言済み `Date` を `Put` / `Get` に渡すと未対応型 Error 13 になった。VBA Date のシリアル値をIEEE 754リトルエンディアン8バイトで直列化・復元し、`LOF=8` と日時の往復を回帰テスト化した。 | 2026-07-24 |
+| 66 | 実行互換性 #66: 浮動小数点バイナリ I/O | **Bug 66-A 修正済み**: `Put` / `Get` に宣言済みの `Single` / `Double` を渡すと未対応型 Error 13 になった。IEEE 754 リトルエンディアンの4 / 8バイトで直列化・復元し、12バイトのファイル長と往復値を回帰テスト化した。 | 2026-07-24 |
+| 65 | 実行互換性 #65: Random レコード長 | **Bug 65-A 修正済み**: `Open ... For Random As #1 Len = 8` は構文解析できても、`Len` を無視して `Put` / `Get` の第2レコードをバイト位置1として扱っていた。レコード長をハンドルに保持し、第2レコードを位置8へ換算して `LOF=12`・読み戻し一致を回帰テスト化した。 | 2026-07-24 |
+| 64 | 実行互換性 #64: `Open` の `Shared` 句 | `Open "shared.dat" For Random Access Read Shared As #1` を評価。`Access Read` とスタンドアロン `Shared` の併用でオープン・クローズとも正常に動作した。未検証TODOを回帰テストで確定した。 | 2026-07-24 |
+| 63 | 実行互換性 #63: UDT の `End` メンバー | **Bug 63-A 修正済み**: `Type Interval: End As Long: End Type` で先頭の `End` を無条件に終端として扱い構文エラーになった。`End Type` の組だけを終端とし、UDT への代入・参照を回帰テスト化した。 | 2026-07-24 |
+| 62 | 実行互換性 #62: 連鎖比較の優先度 | **Bug 62-A 修正済み**: `1 = 2 < 3` を `1 = (2 < 3)` と右側優先で解析して `False` を返した。VBA の比較演算子を同一優先度・左結合として解析し、`(1 = 2) < 3` の `True` を回帰テスト化した。 | 2026-07-24 |
+| 61 | 実行互換性 #61: 多段修飾 `AddressOf` | **Bug 61-A 修正済み**: `AddressOf NS.Module.Proc` が最初の修飾だけを読み、残りを通常のメンバーアクセスとして解析していた。最終要素を手続き名、前段をモジュール名として結合し、評価値を回帰テスト化した。 | 2026-07-24 |
+| 60 | 実行互換性 #60: 多段修飾型名 | **Bug 60-A 修正済み**: `Dim value As A.B.C` が2つ目のドットを残して構文エラーになった。`Dim` の型名連結を繰り返し処理へ変更し、完全な型名を AST に保持する回帰テストを追加した。 | 2026-07-24 |
+| 59 | 実行互換性 #59: `With` 内の `!Key` | **Bug 59-A 修正済み**: `With dict` 内の文頭 `!Key` が式開始トークンとして振り分けられず、代入では `!` を破棄し、参照では構文エラーになった。暗黙辞書アクセスを表現し、代入・参照を回帰テスト化した。 | 2026-07-23 |
+| 58 | 実行互換性 #58: 呼び出し側 `ByVal` | **Bug 58-A 修正済み**: `Increment(ByVal value)` が `ByVal` で構文エラーになった。呼び出し側の値渡し修飾子を保持し、callee の `ByRef` 引数でも呼び出し元へ書き戻さないことを回帰テスト化した。 | 2026-07-23 |
+| 57 | 実行互換性 #57: パラメーター修飾子順 | **Bug 57-A 修正済み**: `ByVal Optional value As Integer` で `Optional` をパラメーター名として扱い構文エラーになった。`Optional`、`ParamArray`、`ByVal`/`ByRef` を順不同で消費し、省略時・指定時の既定値を回帰テスト化した。 | 2026-07-23 |
+| 56 | 実行互換性 #56: サフィックス付き手続き名 | `Function Greeting$()` の戻り値代入と、サフィックスなしの `Greeting()` 呼び出しを確認。宣言名のサフィックスを戻り型へ反映して通常名に正規化する既存実装により、期待どおり文字列を返した。回帰テストを追加。 | 2026-07-23 |
+| 55 | 実行互換性 #55: 修飾 `Implements` 名 | **Bug 55-A 修正済み**: `Implements ADODB.ICommand` が最初の識別子だけを読み、`.` で構文エラーになった。ドット区切りのインターフェース名を結合して保持し、構文回帰テストを追加した。 | 2026-07-23 |
+| 54 | 実行互換性 #54: `Line Input` の配列要素 | **Bug 54-A 修正済み**: `Line Input #1, lines(i)` が代入先を識別子に限定して構文エラーになった。配列要素を代入先として受理し、2行のファイル読み込み結果を回帰テスト化した。 | 2026-07-23 |
+| 53 | 実行互換性 #53: 省略開始位置の `Lock` | **Bug 53-A 修正済み**: `Lock #1, To 100` と対になる `Unlock` が、開始位置の式を必須として `To` で構文エラーになった。開始位置なしの範囲を表現し、開始レコード 1 として競合判定・解除できるよう回帰テスト化した。 | 2026-07-23 |
+| 52 | 実行互換性 #52: `Dim Shared` | **Bug 52-A 修正済み**: VBA6 互換のモジュール変数 `Dim Shared x As Long` で `Shared` を変数名として解釈して構文エラーになった。修飾情報を AST に保持して受理し、モジュール変数の状態維持を回帰テスト化した。 | 2026-07-23 |
+| 51 | 実行互換性 #51: 代替比較演算子 | **Bug 51-A 修正済み**: `><`、`=<`、`=>` が別々の演算子トークンになり、比較式と `Case Is >< 5` をパースできなかった。字句解析でそれぞれ `<>`、`<=`、`>=` に正規化し、式と `Select Case` の実行結果を回帰テスト化した。 | 2026-07-23 |
+| 50 | 実行互換性 #50: `If Then` 行番号分岐 | **Bug 50-A 修正済み**: `If True Then 100` の `100` をラベル宣言として扱い、条件付きジャンプが起きなかった。単行 `If` の数値節を `GoToStatement` として扱い、Then / Else の数値ラベルを回帰テスト化した。 | 2026-07-23 |
+| 49 | 実行互換性 #49: 2語形式 `Go Sub` | **Bug 49-A 修正済み**: `Go Sub worker` が `Go` を識別子として扱いパースエラーだった。2語を `GoSubStatement` として受理し、`Return` を経由した名前・数値ラベルの回帰テストを追加した。 | 2026-07-23 |
+| 48 | 実行互換性 #48: 2語形式 `Go To` | **Bug 48-A 修正済み**: `Go To done` が `Go` を識別子として扱いパースエラーだった。2語を `GoToStatement` として受理し、名前・数値ラベルへ正しくジャンプする回帰テストを追加した。 | 2026-07-23 |
+| 47 | 実行互換性 #47: `With` 内の `Call` | **Bug 47-A 修正済み**: `Call .AddItem "A"` が暗黙 `With` メンバーを呼び出し先として認めずパースエラーだった。括弧なし引数と `ImplicitWithObjectExpression` を `CallStatement` として受理し、クラスメソッドの回帰テストを追加した。 | 2026-07-23 |
+| 46 | エンジン評価 #46: `Declare PtrSafe` 構文 | `Private Declare PtrSafe Sub/Function` の `Lib`、`Alias`、`LongPtr`、`ByRef String`、戻り型を含むモジュールを評価。外部 DLL は安全なスタブとして呼ばず、構文解析・ロードと後続のクラス／Collection 処理が正常であることを確認した。 | 2026-07-23 |
+| 45 | エンジン評価 #45: パーサーの手続き単位回復 | `errorRecovery: true`（LSP と同じ経路）で、壊れた `Sub` の後にある `StillUsable` を保持しつつ診断を返すことを確認。通常の実行パーサーは例外を送出するが、LSP 用回復経路の仕様どおりでありバグは再現しなかった。 | 2026-07-23 |
+| 44 | エンジン評価 #44: 財務関数の反復・配列基底 | **Bug 44-A 修正済み**: `IRR` と `MIRR` が1基底の VBA 配列で未使用の添字0を数値化し `NaN` を返した。**Bug 44-B 修正済み**: `IPmt` は第2期以降の符号が逆で期首払いも誤計算、`per > nper` も受理していた。配列基底・通常／期首払い・範囲外 period を回帰テスト化した。 | 2026-07-23 |
+| 43 | エンジン評価 #43: クラス本体の `Dim` / `Static` | クラスフィールドの `Dim`、Collection 初期化・走査、`Static hits As Long` のインスタンス別状態を評価。同一インスタンスは `1:2`、別インスタンスは `1` から開始し、期待どおり `1:2:1` を返した。バグは再現しなかった。 | 2026-07-23 |
+| 42 | エンジン評価 #42: 年始の週番号 | `DateAdd("ww")` は年またぎを含め正常。**Bug 42-A 修正済み**: `DatePart("ww")` が `firstweekofyear` を無視し、`#1/1/2021#` で `vbFirstJan1` / `vbFirstFourDays` / `vbFirstFullWeek` のすべてを週1としていた。各規則に応じた週開始日を計算し、結果を `1,53,52` に修正した。 | 2026-07-23 |
+| 41 | エンジン評価 #41: Decimal 除算と銀行丸め | `CDec` による除算・符号・28桁丸め・銀行丸め境界を、クラス・Collection・`On Error` を含む集計サンプルで評価。`1/6`、`1/7`、負値、`±1.005` / `±1.015`、`CStr` の不要な末尾ゼロ除去はいずれも期待どおりで、バグは再現しなかった。 | 2026-07-23 |
+| 40 | エンジン評価 #40: `Set` 連鎖代入 | クラスの `Property Set`、Dictionary の `Item`、右辺のキー付き取得を組み合わせた配送ルート集計で評価。`Set byCode.Item(key) = obj`、`Set first.NextStop = obj`、`Set byCode.Item("P2").NextStop = byCode.Item("SPARE")` は期待どおり参照を保持し、バグは再現しなかった。 | 2026-07-23 |
+| 39 | エンジン評価 #39: GUI 操作スタブ | `AppActivate "Microsoft Excel"` と `SendKeys "{ESC}", True` の文形式を、クラス・Collection・文字列処理・`On Error`・ループを含むサンプルと最小再現で評価。構文・実行とも正常で、GUI へ実際に副作用を与えない `[STUB]` 出力となる。`Wait:=True` も安全な no-op として扱うため、実 GUI 操作・待機はエミュレートしない。 | 2026-07-22 |
+| 38 | 実 Excel 差分確認 #38: Double `D` 指数表記 | 実機で確認済みの `1.5D+10` / `2D5` は `Double` として正常に実行できる仕様に合わせた。**Bug 38-A 修正済み**: レキサーが `D`/`d` を指数部として扱わずモジュール全体をパースエラーにしていた。`D`/`d` を受理し、数値変換前に `e` へ正規化した。大文字・小文字・正負指数と `TypeName` を回帰テスト化。 | 2026-07-22 |
+| 37 | 実 Excel 差分確認 #37: 文字列から Byte 配列への暗黙変換 | 実機で確認済みの `Dim b() As Byte : b = "Aあ"` を修正。VBA と同じ UTF-16LE コード単位で `41 00 42 30`、下限 0・上限 3 の配列を生成する。 | 2026-07-22 |
+| 36 | 実 Excel 差分確認 #36: 日付リテラル・バイナリファイル I/O | 実機で `#3/15#` / `#15/3#` が実行年の 3 月 15 日、時刻併記が保持されることを確認し回帰テスト化。**Bug 26-1/2/4/5 修正済み**: `Long`、`Integer`、CP932 文字列、固定長文字列のみの UDT を `Put` / `Get` でバイナリ入出力できるようにした。実機の `Long 1234567`=`87 D6 12 00`、UDT=連続9バイト、`"Aあ"`=`41 82 A0` を回帰テストに固定。続けて、準備用 `Put #f,,CByte(1)` が型付き変換式を扱えず Error 13 になる回帰、および `Open ... Shared As #f` を構文エラーにするバグを修正。実機5ケースで確定した `Access` / `Lock` 共有行列（Read/Write の禁止と Shared）を実装し、競合時を Error 70 にした。 | 2026-07-22 |
+| 35 | エンジン評価 #35: ファイルロック付き在庫台帳 | `Lock` / `Unlock` の範囲指定・解除、閉鎖済みファイル番号、重複範囲を評価。**Bug 35-A 発見・修正済み**: Lock/Unlock が無条件成功するスタブだった。ハンドルごとの範囲ロック管理を追加し、無効ファイル番号・重複範囲・未ロック解除を VBA エラーにした。 | 2026-07-22 |
+| 34 | エンジン評価 #34: 年次締切・休業日判定ドメイン | `HolidayCalendar.cls` と標準モジュールで **日付リテラル**・`DateValue`/`TimeValue`・`DateSerial`・`Weekday`・年末日時を評価。Collection、文字列正規化、`On Error GoTo`、ループ、条件分岐を含むサンプルで通常・不正入力を確認。`#3/15#`・`#15/3#`・うるう日・日時併記を調査。**Bug 34-A 発見・修正済み**: 2桁年の日付リテラルが常に 20xx と解釈され、Excel の既定 2029 ルールおよび `DateSerial` と不一致だった。 | 2026-07-19 |
+| 33 | エンジン評価 #33: カードゲーム（ブラックジャック風）シミュレーション・ドメイン | **定数からの定数定義・畳み込み**（`DECK_SIZE = SUIT_COUNT * RANK_COUNT`）: 一発動作。**行継続 `_`（引数リスト内・演算子後）/ コロン複文 / REM 行**: 一発動作。**`ChrW`/`AscW` 往復・非 ASCII の `Len`**: 正確（♠=9824）。**With のネスト（`With .TopCard` = Property Get 返却オブジェクト）**: 内側 `.` 解決正常。**`Do While`+`Exit Do` / Randomize シード再現性**: 正常。**Bug 33-A 発見・修正済み**: クラス内の括弧なし自メンバー参照が silent Empty。**Bug 33-B 発見・修正済み**: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド。**Bug 33-C 発見・修正済み**: 未使用 `As New` 変数の ByVal 渡しで実体が呼び出し元に反映されない。leniency 記録: `x = 1 REM comment`（コロンなし）を受理（実 VBA は構文エラー、低優先）。 | 2026-07-18 |
+| 32 | エンジン評価 #32: 差し込みテンプレートエンジン + 帳票出力ドメイン | **ジャグ配列 `rows(i)(j)`**: クラス内・ローカルとも完全動作。**クラスメソッドから配列返却 + `UBound`/添字**: `ReDim Preserve` 後の返却も正常。**配列の ByRef 渡し**: VBA 内書き戻し・TS `run()` args 経由の書き戻しとも動作。**インデックス付き Property Let/Get `obj.Item(3) = "x"`**: 一発動作。**`Err.Raise vbObjectError+n` の Description 伝播**: 正確。**`Print #` ゾーン**: セミコロン連結・カンマ 14 桁ゾーン・`Spc(n)`・数値書式は正確。**Bug 32-A〜32-E 発見・全件修正済み**: Tab(n) オフバイワン / `#1, #日付#` レクサー誤認 / `Input #` 引用符内カンマ分割 / `Write #` 日付書式・改行コード / `LSet` UDT 間コピー Error 424。仕様準拠確認: `Write #` が埋め込み引用符を二重化しないのは実 VBA と同じ。 | 2026-07-18 |
+| 31 | エンジン評価 #31: 再帰下降式パーサー（電卓インタープリター・ドメイン） | **クラス 3 つ + 標準モジュール連携（Token.cls / Tokenizer.cls / ExprParser.cls）**: クラス内から別クラス New・Collection へのオブジェクト格納・`Item(i)`/`For Each` 取り出し 完全動作。**オブジェクト配列**: `Dim tokens() As Token` + `ReDim Preserve` + `Set tokens(i) = New Token` + `For Each` 走査 完全動作。**後置 `Do...Loop While` / `Do...Loop Until`**: 完全動作。**`Err.Raise vbObjectError + n` → `Err.Number - vbObjectError` 往復**: 完全動作（`vbObjectError` = -2147221504 正確）。**Dictionary 暗黙 Let 代入 `m_vars(key) = v`**: 追加・更新とも正常。**文字列連結 20000 回**: 176ms で完走。**行番号付きレガシー構文**: `10 x = 1` 形式のパース・`GoTo 30`・`On Error GoTo 99`（数値ターゲット）すべて動作。**Bug 31-A 発見・修正済み**: `Public/Private Static Sub|Function` がパースエラー。**Bug 31-B 発見・修正済み**: `Erl` が未実装で常に 0（識別子として暗黙解決）。実装追加でハンドラー内 `Erl` がエラー行番号を返すように。 | 2026-07-18 |
+| 30 | エンジン評価 #30: 状態機械 / ワークフローエンジン（注文処理ドメイン） | **複数クラス連携（State.cls + WorkflowEngine.cls）**: `Class_Initialize` で `Scripting.Dictionary` をフィールド初期化・複数クラス間の Set 代入・メソッド呼び出し 正常動作。**Collection による履歴記録**: `myCol.Add` / `For Each` による全件走査 正常動作。**On Error GoTo + Err.Raise**: 無効遷移（存在しない状態・イベント）の Error 5 送出・呼び出し元での捕捉 正常動作。**For Each で Dictionary Keys 走査**: `For Each key In dict.Keys` パターン正常動作。**`new VBARunner(optionsObj)` 誤用で ERR_INVALID_ARG_TYPE**: Node.js 内部エラーになりわかりにくい（改善提案）。**Bug 30-A 発見・修正済み**: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）。`builtins.ts` の `__vbaClass__` チェックが `__vbaTypeName__` チェックより後にあったため。チェック順を入れ替えて修正。`TypeName()` は正常動作していた。 | 2026-07-17 |
+| 29 | エンジン評価 #29: 演算子セマンティクス / Option Base 1・Option Compare Text / クラスイベント（Event/RaiseEvent/WithEvents） / Erase・IsMissing・型サフィックス・While Wend（音楽理論ドメイン: 移調・スケール・コード進行・メトロノーム） | **`\`/`Mod`**: 事前銀行家丸め・負数・ゼロ除算 12 ケース全て実 VBA と一致。**`&` vs `+`**: `"1"+1`=2、`"a"+1`=Error 13、`"a" & Null`="a" 正常（`Null & Null` のみ Bug 29-D）。**比較型強制**: `"10">9`・Empty 比較 全一致。**`Xor`/`Eqv`/`Imp`**: ビット演算として正確（`5 Eqv 3`=-7、`5 Imp 3`=-5）。**クラスイベント**: `Public Event`/`RaiseEvent`/`Dim WithEvents`/`Private Sub obj_Event()` ハンドラー **完全動作**（4拍子6拍のイベント列正確）。**Option Base 1**: `Dim a(3)` の LBound=1 正常（`Array()` のみ Bug 29-E）。**Option Compare Text**: `=`/`<`/`Like`/`InStr` のモジュールスコープ既定まで正常。**Erase**: 動的配列解放後 UBound=Error 9 正常。**IsMissing**: 正常。**サフィックスリテラル**（`123&`/`1.5#`/`1.5!`/`123@`）: TypeName 全正確（サフィックス付き `Dim n&` は Bug 29-A）。**While Wend**: 正常。**Bug 29-A〜29-H 発見**（下記セクション参照・全件メイン再現確認済み） | 2026-07-17 |
+| 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / ReDim Preserve / StrConv日本語変換 / Nz / RGB・QBColor / Format Yes/No（アルゴリズムライブラリ+テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST 走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換**: `vbKatakana(16)` / `vbHiragana(32)` / `vbWide(4)` / `vbNarrow(8)` すべて期待通り動作。**Nz**: `Nz(Null, 0)` / `Nz(Empty, 42)` / `Nz(有値, default)` の3パターン正常。**RGB / QBColor**: 評価 #27 修正済みで正常動作を確認。**Format("Yes/No"/"On/Off"/"True/False")**: 評価 #27 修正済みで正常動作を確認。**TextAnalyzer.cls**: Class_Initialize・On Error GoTo・Property Get・Scripting.Dictionary 組み合わせ正常動作。**Bug 28-1 発見**: `ReDim Preserve` で UDT 配列を拡張した後、新インデックス要素のメンバーアクセスが Error 424。 | 2026-07-16 |
+| 28 | エンジン評価 #28: 再帰アルゴリズム / UDT配列 / StrConv日本語変換 / Nz・RGB・Format（アルゴリズムライブラリ + テキスト分析ドメイン） | **再帰 Function（Fibonacci・MergeSort・BST走査）**: 完全正常動作。スタック・スコープに問題なし。**StrConv 日本語変換（vbKatakana=16/vbHiragana=32/vbWide=4/vbNarrow=8）**: すべて期待通り動作。**Nz / RGB / QBColor / Format "Yes/No"**: 評価直前のバグ修正（Bug A〜N）によりすべて正常動作。**TextAnalyzer.cls（Class_Initialize + Dictionary + On Error GoTo + Property Get）**: 完全正常動作。**Bug 28-1 発見・修正済み**: `ReDim Preserve n(0 To 1)` で UDT 配列を拡張後、`n(1).Value = 2` が Error 424。旧 `fillArrayWithUDT` の `!isPreserve` ガードにより新インデックスが未初期化のまま残っていた。 | 2026-07-16 |
+| 27 | エンジン評価 #27: Registry スタブ / 時刻関数 / Filter・Array・CallByName / Shell・DoEvents（人事・勤怠管理システムドメイン） | **SaveSetting/GetSetting/DeleteSetting/GetAllSettings**、時刻関数、`Filter`、`Array`、`CallByName`（`VbGet`/`VbMethod`/`VbLet`/`VbSet`）、`Shell`、`DoEvents` は正常動作。CallByName の Property Let/Set は後続修正と回帰テストで確認済み。**Bug 27-2**（エラーハンドラー脱出時の Err 残留）は後続評価で修正済み。 | 2026-07-15 |
+| 26 | エンジン評価 #26: バイナリファイル I/O / ランダムアクセスファイル / ファイルシステム関数 / Error(n)（バイナリファイル処理ドメイン） | 初回評価で検出した型付きバイナリI/O、`Open ... Len=`、UDT、`GetAttr` の問題は後続評価 #67〜#102 と回帰テストで修正・確認済み。`FileLen`、`FileDateTime`、`Kill`、`Error(n)` も正常動作。 | 2026-07-14 |
+| 25 | エンジン評価 #25: Dir() / DatePart・MonthName・WeekdayName / Byte関数（ログファイル解析ドメイン） | **Dir()**: `Dir("C:\logs\*.log")` → VFS 上の `.log` ファイル3件を列挙。引数なし繰り返し呼び出し（`Do While f <> ""`）パターン正常動作。存在しないパターンは `""` を返す（エラーなし）。ネスト Dir() はグローバル状態リセットで元のポインターが失われる（実 VBA 仕様準拠）。**DatePart**: `DatePart("yyyy"/"m"/"d"/"ww"/"h"/"n"/"s"/"q", d)` 全インターバル正常動作。第3・第4引数も実装済み。**MonthName** / **WeekdayName** / **MidB** 正常動作。**Bug #25-1〜#25-6 修正済み**: `LenB` / `AscB` / `ChrB`（UTF-16LE バイトモデル）、文字列から `Byte()` への代入、`Split` の `limit`、`DatePart` の曜日・週開始引数を実装。回帰テスト: `tests/spec/builtin-strings.test.ts`, `tests/spec/split-join.test.ts`, `tests/spec/datetime.test.ts`, `tests/spec/byte-array.test.ts`. | 2026-07-13 |
+| 24 | エンジン評価 #24: 財務関数 / Mid代入 / LSet・RSet（住宅ローン計算・投資シミュレーションドメイン） | **財務関数**: `Pmt`（99,379円≒期待値99,378円）/ `IPmt`（利息50,000円）/ `PPmt`（元金49,379円、`IPmt+PPmt=Pmt` 確認）/ `NPer`（323.7ヶ月）/ `FV`（139万円≒期待値139万円）/ `SLN`（1,800円）/ `SYD`（year1=3,000円、year5=600円）/ `DDB`（year1=4,000円、year2=2,400円）/ `Rate`（収束にはguessRateが重要、初期値が遠いと別の根に収束する点は仕様通り）— 全関数が実装済みで正常動作。**Mid 代入形式（`Mid(s, i, n) = val`）**: 正常動作。`Mid(s, 7, 5) = "VBA!!"` → "Hello VBA!!" / `Mid(s, 2, 2) = "XY"` → "AXYDE" / `eval()` 直接呼び出しも正常。**LSet / RSet**: 固定長文字列に対して正常動作。`LSet fixedStr = "ABC"` → "ABC       "（10文字）/ `RSet fixedStr2 = "XYZ"` → "       XYZ"（10文字）。`FormatReportLine` 関数での LSet（ラベル）+ RSet（金額右詰め）パターンも正常動作。**Collection + string処理**: `SummarizeLoans` でコレクション + `Pmt` 関数の組み合わせが正常動作。**Bug 24-1 発見・修正済み**: `NPV(rate, flows)` に VBA 1-based 配列（`Dim flows(1 To 3)`）を渡すと NaN を返す。`builtins.ts` の NPV 実装が `values.map(Number)` でインデックス 0 から反復するため、`vbaBase=1` の配列ではインデックス 0（undefined）が NaN になっていた。`(values as any).vbaBase ?? 0` で基底インデックスを取得し正しく反復するよう修正。レグレッションテスト: `tests/spec/financial.test.ts` Bug 24-1 ブロック。 | 2026-07-13 |
+| 23 | エンジン評価 #23: 多次元配列 / Currency・Decimal BigInt 精度（売上管理・収益分析ドメイン） | **テーマA（多次元配列）**: `Dim arr(3,4) As Currency` 2D配列宣言正常。`UBound(arr,1)` / `UBound(arr,2)` 各次元の上限取得正常。`ReDim Preserve` による最終次元（2次元目）拡張正常・既存データ保持確認。クラスメンバーとしての 2D 配列（`SalesMatrix.cls`）正常動作。配列を Function 戻り値として返す（`GetDataCopy`）正常動作。**テーマB（Currency/Decimal 精度）**: `CCur(0.1) + CCur(0.2) = "0.3"`（CStr で厳密一致）確認。`CDec(1)/CDec(3) = "0.3333333333333333333333333333"`（28桁）確認。`TypeName(CDec(x)) = "Decimal"` / `VarType(CDec(x)) = 14`（vbDecimal）正常。`Err.Raise` カスタムメッセージが JS 側に正しく伝わる。**Bug C-1 発見・修正済み**: `run()` / `eval()` が `VbaCurrency` を JS `number` に変換せず `VbaCurrency { internal: BigInt }` オブジェクトのまま返す。`test-runner.ts` に `normalizeVbaValue` ヘルパーを追加し `VbaCurrency` / `VbaDecimal` を `Number(v.toString())` で変換するよう修正。**Bug C-2 発見・修正済み**: Currency 型 ByRef パラメーターへの書き戻し後に `JSON.stringify(BigInt)` でクラッシュ。`formatVbaArg` ヘルパーで `VbaCurrency` / `VbaDecimal` を `JSON.stringify` 経由せずに文字列化するよう修正。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts`（6テスト）。 | 2026-07-13 |
+| 22 | エンジン評価 #22: 数学・数値関数 / 型チェック / Like / Optional+ParamArray / 名前付き引数 / IIf・Choose・Switch / Null / 文字列変換（暗号・エンコーディング+数値解析ドメイン） | **Hex/Oct**: `Hex(65)="41"`, `Oct(65)="101"` 全正常。**Like演算子**: `"*@*.*"` メールバリデーション / `?` 単一文字 / `[a-c]` 文字クラス / `[!acd]` 否定クラス / `#` 数字 すべて正常動作。**StrReverse/Space/String**: `StrReverse("Hello")="olleH"` / `Space(3)="   "` / `String(5,"-")="-----"` 正常。**数学関数**: `Sqr`, `Abs`, `Log`, `Exp`, `Sin`, `Cos`, `Atn`（Pi計算: `4*Atn(1)`）, `Sgn`, `Fix` すべて正常。Fix(-2.7)=-2, Int(-2.7)=-3 の違いも正確。**ParamArray**: `CalcMean(1,2,3,4,5)=3`, `CalcStdDev(2,4,4,4,5,5,7,9)≈2.138` 正常。**Rnd/Randomize**: `Randomize seed` でシード固定 → 同一シードで同一乱数列を確認。**TypeName/VarType**: `TypeName(42)="Integer"`, `TypeName(32768)="Long"`, `TypeName(3.14)="Double"` リテラル引数は正常。VarType constants (0=Empty, 1=Null, 2=Integer, 3=Long, 5=Double, 8=String, 11=Boolean) も正確。IsNull/IsEmpty/IsArray/IsObject/IsError/CVErr すべて正常。**Null**: `Null` リテラル代入 / `IsNull(Null)=True` / `IsEmpty(Null)=False` / `Null+1=Null`（伝播）/ `TypeName(Null)="Null"` すべて正常。**IIf/Choose/Switch**: 全正常。`Choose(1,"Mon","Tue",...)`, `Switch(score>=90,"A", ...)` も正常。**Optional/Named Args**: `FormatNum(value:=3.14159, decimals:=3)` 名前付き引数・引数順序逆転・部分指定のみ すべて正常（今回初確認）。**StrConv**: `StrConv("hello",1)="HELLO"` / `StrConv("HELLO",2)="hello"` 正常。**Bug 22-1 発見・修正済み**: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）。`evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加して修正。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。 | 2026-07-12 |
+| 21 | エンジン評価 #21: Static 変数 / Single 型 / 固定長文字列 / Select Case 範囲 / Do Until（シリアルナンバー生成システムドメイン） | **Static 変数**、**Single 型・型変換**、**Select Case 範囲**、**Do Until / Loop Until** は正常動作。固定長文字列 Bug 21-1 は後続評価で修正済み（`fixed-length-string.test.ts`）。 | 2026-07-11 |
+| 20 | VS Code 拡張機能 評価 #20: UDT/Enum/GoSub/Implements エンジン + LSP 統合（地図座標管理ドメイン） | **テーマA（UDT/Enum）**: UDT フィールドアクセス・ByRef 引数渡し・戻り値返却・固定長配列・ネスト UDT（`ln.Start.X`）・Enum 定数（修飾あり/なし）・Select Case での Enum 使用 全正常動作。**テーマB（GoSub/Return）**: 基本実行・複数回呼び出し・複数ラベルシーケンス・ネスト GoSub・`Return without GoSub` エラー 全正常動作。戻りアドレスのスタック管理が正しく動作。**テーマC（Implements）**: 構文エラーなし・直接呼び出し・インターフェース経由ディスパッチ・ポリモーフィズム（Circle/Rectangle 切り替え）全正常動作。**テーマD（LSP 統合）**: 診断（UDT/Enum で誤 VBA016 なし）正常。補完/ホバー/フォーマット に Bug LSP-1/2/3 発見・修正済み。フォーマッターの `=` 前後スペース未整形は設計上の制限（Bug LSP-4）。 | 2026-07-07 |
+| 19 | VS Code 拡張機能 評価 #19: buildExtractFunctionEdit edge case / Dead Store 精度 / analyzeDefUse 複雑制御フロー（学力テスト結果管理ドメイン） | **テーマA（buildExtractFunctionEdit edge case）**: 複数出力パラメーター正常（ByRef x/y/z 生成）・純粋ローカル変数のみ選択で空引数呼び出し正常・Function 内抽出は常に Sub 生成（型推論不可）。**パラメーター名小文字化**: analyzeDefUse が返す変数名が小文字正規化済みのためシグネチャの `inputVal` → `inputval` になる（改善候補）。**テーマB（Dead Store 精度）**: ループカウンター変数・集計変数・条件分岐内代入・関数戻り値変数 すべて誤検出なし ✓ 実際のデッドストア正しく検出 ✓ CFG ベース生変数解析が高精度。**テーマC（analyzeDefUse 複雑制御フロー）**: With ブロック内変数 inputs/outputs/locals 正しく分類 ✓ ByRef 引数渡し後の後続使用を outputs に正しく分類 ✓ **テーマD（コード品質）**: 全パラメーターが As Variant（型推論なし）は設計制限。選択外 Dim の extraDims も As Variant になる。**Bug W1 発見・修正済み**: With ブロック内でユーザー定義クラスの Property Get（`.Score`）が Error 424 になる。Function 呼び出し（`.Summary()`）は正常。`evaluateImplicitWithObjectExpression`（`evaluator.ts:6268`）に `__vbaClass__` ブランチが欠如。`evaluateMemberExpression` と同じ Property Get → callClassMethod パターンを追加して修正。レグレッションテスト: `class-module.test.ts` 末尾 Bug W1 ブロック。 | 2026-07-07 |
+| 18 | VS Code 拡張機能 評価 #18: LSP リファクタリングプロバイダー群 | **`analyzeDefUse(proc, startLine, endLine)`**、**`findDeadStores(proc)`**、**`LspServer.getCodeActions(uri, range)`**、**`LspServer.buildExtractFunctionEdit(...)`** の動作を確認。Bug R1 は修正済み。Introduce Variable は評価 #104、Extract Constant / Inline Variable / Introduce With / Organize Declarations は評価 #105 で拡張機能側のCode Action・コマンド実装を確認済み。 | 2026-07-07 |
+| 17 | VS Code 拡張機能 評価 #17: InlayHint / Diagnostics / Completion / Hover 全面評価 | **InlayHint（inferVariantTypes/inferProcedureHints）**: A1-A7 全正常。CreateObject型推論・曖昧型ヒントなし・数値代入→Long・型なしパラメーター→Variant・モジュールレベルObject推論・戻り型ヒント 全動作確認。`Dim x As Variant`+数値代入→Long ヒントが出る（設計通り）/ **CompletionProvider**: ユーザー定義クラスチェーン(SimSheet→Cells→SimCell.Value)・CreateObject Dictionary補完・型不明Object/Variant空補完 全正常 / **DiagnosticProvider（lintProgram+checkUnknownTypes）**: VBA001〜VBA014 全lint コード確認済み（VBA011除く・Excel依存のみ）。severity: VBA013=Error(1)・VBA003=Hint(4)・VBA002/VBA004=Info(3)・他Warning(2) / **HoverProvider**: ローカル変数・パラメーター・モジュールレベル変数・定数・プロシージャ・As Object→CreateObject型推論表示・到達定義情報 全正常動作 / **Bug E1**: `Const MAX As Long = 100` のホバーが `Const MAX` のみ（型・値を表示しない）`symbol-table.ts:addConstDeclaration` の `displayText` が `Const 名前` のみ / **Bug E2**: `Public`/`Private` キーワードが hover で lowercase 表示（`public count As Long`）パーサーが scope を lowercase 格納するため / VBA003(ByRef/ByVal省略)・VBA012(ByRef明示なし代入)も確認済み | 2026-07-07 |
+| 16 | VS Code 拡張機能 評価 #15 バグ修正確認 + 新規 edge case | **全3件修正確認**: `autoParensEdit` 戻り型付き Function 対応済み / `TestRunner.runTests(src)` 本実装済み（`Err.Raise` → `failed` を返す）/ `runTestWithEvaluation` エラーメッセージ正常化済み / **新規**: VBA キーワード（`Set`/`If`）参照は正しく空を返す（問題なし）/ `Dim x As`（型名欠落）はパーサーが黙って回復し構文エラーを出さない（改善候補）/ `ByRef/ByVal` 省略への VBA003 警告が severity:Warning（新規ユーザーには noisy） | 2026-07-05 |
+| 1 | 在庫管理システム | `.cls` クラス / `ReDim Preserve` / `On Error GoTo`・`Resume Next` / `Err.Raise` / 動的配列 | 2026-06-26 |
+| 2 | ローマ数字コンバーター | `.cls` / `Property Get` / `ByRef` writeback / Boolean 変換 / JS 配列→VBA 配列 | 2026-06-27 |
+| 3 | テキスト統計アナライザー | `Function As Double` 精度 / ディレクトリ読み込み / `eval()` 括弧あり・なし呼び出し / `Err.Raise` | 2026-06-27 |
+| 4 | 図書館蔵書管理システム | `Scripting.Dictionary`（Add/Item/Exists/Count/Keys/Items/For Each/ネスト） / `VBA Collection`（Add/Item(1-based)/Item(key)/Count/Remove/For Each） / Dictionary+Collection 組み合わせ / クラス (`Book.cls`) / `On Error GoTo` | 2026-06-27 |
+| 5 | CSV ログ書き込み・読み込みシステム | `Open For Output/Append/Input` / `Print #` / `Write #` / `Line Input #` / `Input #`（CSV）/ `Close` / `EOF()` / `FreeFile()` / `LOF()` / `LOC()` / Windows パス→VFS マッピング（C:\, D:\ ドライブ）/ 相対パス / `sandboxRoot` オプション / Error 53 / `Scripting.FileSystemObject`（CreateTextFile, OpenTextFile, FileExists, TextStream.ReadLine/ReadAll/WriteLine/Close）/ `Tab()` / VFS 事前配置 | 2026-06-27 |
+| 6 | 家計簿・収支管理システム | `Integer`/`Long` オーバーフロー（Error 6）/ `Currency` 型の精度（浮動小数点のまま・要注意）/ `CInt`/`CLng`/`CCur` 変換関数・バンカーズ丸め / `Format()` `"#,##0.00"`・`"0.00%"` 正常・**`"000"` 零埋めバグ** / `InStr`/`InStrRev`（境界・開始位置・大文字小文字）/ `Split`/`Join`（空文字列・デリミタ）/ 全角文字の `Len`/`Mid`/`Left`/`Right`（文字数カウント正常）/ `On Error GoTo` / `Collection` + `Property Get/Let` クラス / `Debug.Print` 出力 | 2026-06-27 |
+| 7 | 診療予約管理システム | 複数クラス連携（`Patient.cls` + `Appointment.cls`）/ `Set` 代入 / `Is Nothing` / `Class_Terminate` タイミング / 日付リテラル `#yyyy/mm/dd#` / `Format()` 日付パターン全般 / `DateSerial` / `DateAdd` / `DateDiff` / `Year`/`Month`/`Day` / `Now()` / `Date()` / `CDate` / `DateValue` / `IsDate` / `Weekday` / 日付+時刻リテラル `#yyyy/mm/dd HH:MM:SS#` | 2026-06-28 |
+| 8 | バリデーション付き設定ファイルローダー | `Resume` / `Resume Next` / `Resume Label`（ラベルジャンプ）/ 複数スタックフレームを超えたエラー伝搬 / `Err.Clear` / `Err.Number` / `run()` type:'get','let','set' / JS モックオブジェクト Property Set 注入 / `config.env` + `Environ()` 注入 / `config.sandboxRoot` カスタム VFS ルート / `ByRef` 複数パラメーター writeback / `#If`/`#Const`/`#Else`/`#End If` 条件付きコンパイル / `config.compilerConstants` 外部定数注入 | 2026-07-03 |
+| 9 | VS Code 拡張 LSP 機能（直接インポートによる評価） | メンバー補完（Dictionary/Worksheet/ユーザー定義クラス）/ チェーンアクセス引数なし `ws.Cells.` → Range / CreateObject 型推論 / VBA016 診断 / ホバー情報 `getMemberHoverInfo` | 2026-07-04 |
+| 9 | VS Code 拡張 LSP 機能（初回評価） | `CompletionProvider.getCompletions` / `detectMemberAccess` / `resolveExprType` / `getMemberHoverInfo` / `checkUnknownTypes` / `collectUserDefinedTypeNames` / 単純メンバー補完（`dict.`/`ws.`）/ チェーン補完（`ws.Cells.` → Range）/ 引数付きチェーン `ws.Cells(1,1).`（バグ）/ ユーザー定義クラス補完 / `createObject` ProgID 型推論 / VBA016 未知型診断（column ずれバグ）/ mid-word ホバー（正常） | 2026-07-04 |
+| 10 | VS Code 拡張 LSP 機能（評価 #9 修正確認 + 新規テーマ） | 引数付きチェーン補完の修正確認（OK）/ VBA016 波下線位置の修正確認（OK）/ With ブロック内引数付きチェーン補完（新バグ）/ クロスモジュール補完（`parseAsClass` 必須と判明）/ `generateDefaultTypeStubsJson` JSON valid 性確認 / `setTypeStubs(Map)` API 非対称設計の発見 / カスタム型上書き優先（正常動作） | 2026-07-04 |
+| 11 | VS Code 拡張 LSP 機能（評価 #10 修正確認 + シグネチャヘルプ + Quick Fix） | With ブロック内引数付きチェーン補完修正確認（OK・48 件）/ `parseTypeStubsJson` API 非対称解消確認（OK）/ `SignatureHelpProvider` 組み込み 60 件超・ユーザー定義 Function・ネスト呼び出し（内側優先）正常動作 / **文字列リテラル入力中にシグネチャが消えるバグ発見 → Lexer ベース修正済み** / VBA016 Quick Fix 実装確認（`extension.ts` に `initTypeStubs`・`addToTypeStubs` コマンド実装済み）/ `parse()` は `Program` を返す（`getCompletions` には `.body` を渡す必要あり） | 2026-07-04 |
+| 12 | `__mocks__` 注入・`setBuiltinOverride`・FileSystemWatcher（評価 #12） | JS `__addCreateObject__` による `CreateObject` 置換 / VBA・JS・TSモック / `setBuiltinOverride` / `spy()` / FileSystemWatcher の作成・変更・削除通知を確認。複数VBAモックの同名関数は後続修正で解消済み。 | 2026-07-04 |
+| 13 | VS Code 拡張 LSP ナビゲーション（definition / references / rename / symbol）（評価 #13） | `DefinitionProvider.getDefinition` / `ReferencesProvider.getReferences` / `RenameProvider.getRename` / `SymbolProvider.extractSymbols` / `.bas` 全機能正常動作 / セクションヘッダー `' --- Name ---` → SymbolKind.Namespace 抽出 / ローカル変数スコープ絞り込み正常 / クロスモジュールは `null` 返却（設計通り）/ **Bug B 発見・再現確認・修正済み: `parseAsClass` で生成した `ClassDeclaration`/`ProcedureDeclaration` の `loc` が `undefined`（`parseClassBody` が `parseStatement` を経由せず直接パース関数を呼ぶため）→ `parseClassBody` 内で各文パース後に `loc` を設定するよう修正。`tsc -b` / `class-module.test.ts` 全通過確認済み** / Bug A（仕様準拠）: `FuncName = value` の戻り値代入行が refs に含まれる（正規表現全出現検索の仕様。Rename では正しい動作） | 2026-07-05 |
+| 14 | VS Code 拡張 LSP（Formatter / CodeLens / FoldingRange / CallGraph）（評価 #14） | Formatter、CodeLens、FoldingRange、CallGraph を確認。`Test_*` 宣言行だけを参照する疑似陽性は後続修正済み（評価 #106）。組み込み型名・オブジェクトのケーシングは設計上の制限。 | 2026-07-05 |
+| 15 | VS Code 拡張 LSP（auto-parens / keyword-casing / line-continuation / label-navigator / ast-comparison / test-discovery / test-runner / hover-provider / variant-type-inferencer）（評価 #15） | `autoParensEdit`/`getBlockEnd`/`needsBodyIndent`/`needsEndBlock` 各動作確認 / `canonicalKeyword`/`isInStringOrComment` 正常動作 / `needsLineContinuation`/`stripInlineComment` 正常動作 / `LabelNavigator` GoTo定義・参照両方向ナビゲーション正常 / `astEqual`/`serializeAst`/`findMatchingExpressions` 正常動作 / `TestDiscovery.discoverTests` 正常動作 / `TestRunner.runTests` スタブ（常に passed）バグ / `TestRunner.runTestWithEvaluation` エラーメッセージ `"[object Object]"` バグ / `HoverProvider.getHoverInfo` 変数宣言・パラメーター・到達定義情報 正常動作（パラメーター range は col 0 固定・設計上の制限）/ `inferVariantTypes` String/Long/Double/Boolean/ProgID推論 正常動作 / **Bug: `autoParensEdit` が戻り型付き Function（`Function GetValue As Long`）を検出しない** / **Bug: `TestRunner.runTests()` スタブ実装・常に passed** / **Bug: `runTestWithEvaluation` の catch で VBA エラーオブジェクトが `"[object Object]"` になる** | 2026-07-05 |
+
+---
+
+## 発見した問題と対応状況
+
+### 修正済みバグ
+
+| 問題 | 最小再現コード | 修正コミット |
+|---|---|---|
+| **Bug 73-A: `RaiseEvent` の `ByRef` 引数がイベント発行元へ書き戻されない** | `Public Event Change(ByRef text As String)` を宣言し、WithEvents ハンドラーで `text = "changed"` とすると、修正前はハンドラーが呼ばれても発行元の値が `"original"` のまま残った。イベント経路に ByRef 引数配列の伝播・発行元式への書き戻しを追加し、`tests/spec/raiseevent.test.ts` に回帰テストを追加。 | このコミット |
+| **Bug 114-A: `ByVal Variant` 配列の変更が呼び出し元へ伝播する** | `values = Array("old")` を `MutateCopy(ByVal values As Variant)` に渡し、callee で `values(0) = "new"`。修正前は caller の値が `"new"` になった。ByVal の配列を要素コピーし、配列メタデータを保持するよう修正。回帰テスト: `tests/spec/array-functions.test.ts`。 | このコミット |
+| **Bug 115-A: 括弧付きByRef配列がByVal化されない** | 非ゼロ下限配列を `ChangeFirst (values)` で `ByRef values() As Long` へ渡すと、修正前は `99` が呼び出し元へ書き戻された。括弧付き引数を強制ByValとして扱い、ByRef書き戻し対象から除外。回帰テスト: `tests/spec/array-functions.test.ts`。 | このコミット |
+| **Bug 116-A〜D: ParamArray の宣言制約を受理する** | `Optional` との併用、末尾以外への配置、`ByVal`/`ByRef` 修飾、Variant 配列以外の型、`()` 省略を修正前は受理していた。`validateParameterOrder` で ParamArray を最後の Variant 配列・修飾子なしに限定し、Optional との併用を拒否。回帰テスト: `tests/spec/optional-param-order.test.ts`。 | このコミット |
+| **Bug 117-A/B: FSO のファイル操作が未実装・Nodeエラー漏れ** | `fso.CopyFile source, destination` と `fso.MoveFile source, destination` が Error 438 になり、存在しないファイルへの `fso.DeleteFile` は Node の ENOENT をそのまま返していた。FSOへコピー・移動を実装し、ファイル未存在を VBA Error 53、上書きなしの既存先を Error 58 として処理。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
+| **Bug 118-A: TextStream の Read/Skip 系メソッドが未実装** | `OpenTextFile` の戻り値に対する `Read(2)` と `Skip(1)` が Error 438 になり、`SkipLine` も未実装だった。TextStream の現在位置を文字単位で進める `Read` / `Skip` / `SkipLine` を追加。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
+| Formatの`[Red]`/`[<100]`指定 | VBA `Format`関数の仕様ではなく、ExcelのNumberFormat/FormatConditions側の機能。vba-runnerのVBA仕様準拠バグとして扱わない。 | 仕様確認 #120/#126 |
+| **Bug 123-A〜C: FSO TextStream の Unicode/ANSI指定を無視する** | `CreateTextFile(..., True, True)` がUTF-16LE BOMを出さずUTF-8を書き、`unicode=False` もUTF-8を出力していた。`OpenTextFile(..., format=True)` はUTF-16LE BOM入力をUTF-8として誤読していた。UnicodeはUTF-16LE+BOM、ANSIはCP932、format指定とBOM検出を実装。回帰テスト: `tests/spec/createobject.test.ts`。 | このコミット |
+| **Bug 125-A: UDT代入がネスト値を共有する** | `Type Parent: Header As Child: End Type` で `q = p` 後に `q.Header.A = 2` を実行すると、値型である `p.Header.A` まで `2` になっていた。UDT代入時に `deepCopyByValValue` を適用し、ネストUDTと配列を再帰コピー。回帰テスト: `tests/spec/binary-file-io.test.ts`。 | このコミット |
+| **Bug 126-A: Declareスタブが引数個数を検査しない** | 必須1引数の`Declare Function`を0個または2個の引数で呼び出しても成功していた。宣言パラメーターをスタブの引数検査へ渡し、VBA Error 450を返すよう修正。回帰テスト: `tests/spec/declare.test.ts`。 | このコミット |
+| **Bug 128-A: 空白なしの`&`連結をLong型サフィックスと誤認する** | `s=s&"a"` の`&`を識別子サフィックスとしてLexerが`s&`に結合し、構文エラーになっていた。連結演算子の文脈では`&`を演算子としてトークン化し、`Dim n&`等の宣言サフィックスは維持。回帰テスト: `tests/spec/identifier-type-suffix.test.ts`。 | このコミット |
+| **Bug 181-A: 新しいエラーが前回の`Err.Source`を残す** | `Err.Raise 5, "CustomSource", "custom"` の後に Source省略の`Err.Raise 6`または暗黙の除算エラーを実行すると、前回のSourceが残留していた。明示Source、省略Source、暗黙ランタイムエラーを状態更新時に区別し、`tests/spec/error_handling.test.ts` に回帰テストを追加。 | `c7d68b5` |
+| **Bug 182-A: クラスのByValメンバー式を二重評価する** | `c.AddLine ts.ReadLine` のようにクラスメソッドの`ByVal`引数へ状態変更を伴うメンバー呼出しを渡すと、`ReadLine`が二度実行されて`one|two|`が`two||`になっていた。ByVal引数ではl-value参照を生成せず、最初の値評価だけを束縛するよう修正。回帰テスト: `tests/spec/class-module.test.ts`。 | このコミット |
+
+| `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
+| `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
+| `Dictionary.Item("nonexistent")` がキーを自動生成しない | 実 VBA では存在しないキーへの `.Item` 読み取りで Empty のエントリを自動生成する（Count+1, Exists→True）。修正後は VBA 互換動作＋コンソール警告を出力 | `ca409b7` |
+| `Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる | `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 | `9e25adc` |
+| **Bug 22-1: `Dim v As Variant : v = 42 : TypeName(v)` → "Double"（正しくは "Integer"）** | `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`tests/spec/typename.test.ts` Bug 22-1 ブロックにレグレッションテスト追加 | 評価 #22 |
+| ~~**Bug #25-1〜3: `LenB` / `AscB` / `ChrB` 未実装**~~ | **修正済み**: `builtins.ts` に `lenb`（文字数×2）/`ascb`（先頭バイト & 0xFF）/`chrb`（charCode & 0xFF → 文字）を登録。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug #25-1〜3 ブロック。 | |
+| ~~**Bug #25-4: `Dim b() As Byte : b = str` 未実装**~~ | **評価 #37 で修正済み**: UTF-16LE のコード単位へ展開し、`"Aあ"` → `41 00 42 30` を返す。 | |
+| ~~**Bug #25-5: `Split(str, delim, limit)` 第3引数未対応**~~ | **修正済み**: `builtins.ts` の `split` 登録に `limit`（省略可、デフォルト -1）と `compare`（省略可）を追加。`limit=0` は空配列、`limit<0` は全分割、`limit>0` は最大要素数（最後の要素に残り全体）。レグレッションテスト: `tests/spec/split-join.test.ts` Bug #25-5 ブロック。 | |
+| ~~**Bug #25-6: `DatePart` 第3引数（firstdayofweek）未対応**~~ | **修正済み**: `builtins.ts` の `datepart` 登録に `firstdayofweek`（省略可、デフォルト 1=日曜）と `firstweekofyear`（省略可）を追加。`'w'` は `(weekday - weekStart + 7) % 7 + 1`、`'ww'` は Jan1 からの日数オフセットで週番号計算。レグレッションテスト: `tests/spec/datetime.test.ts` Bug #25-6 ブロック。 | |
+| **Bug 24-1: `NPV(rate, flows)` に VBA 1-based 配列を渡すと NaN** | `Dim flows(1 To 3) As Double : flows(1)=30000 : ... : NPV(0.1, flows)` → NaN | `builtins.ts` の NPV が `values.map(Number)` でインデックス 0 から反復するため `vbaBase=1` の配列でインデックス 0（undefined）が NaN になった。`(values as any).vbaBase ?? 0` で基底インデックスを取得して修正。レグレッションテスト: `tests/spec/financial.test.ts` Bug 24-1 ブロック | 評価 #24 |
+| **Bug C-1: `run()` / `eval()` が `VbaCurrency` を `number` に変換しない** | `test-runner.ts` に `normalizeVbaValue` ヘルパーを追加し、`VbaCurrency` は `Number(v.toString())`、`VbaDecimal` は `Number(v.toString())` で変換。`run()` と `eval()` の両メソッドで適用。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts` | 評価 #23 |
+| **Bug C-2: Currency 型 ByRef パラメーター書き戻し後に `JSON.stringify(BigInt)` でクラッシュ** | `test-runner.ts` に `formatVbaArg` ヘルパーを追加し、`VbaCurrency` / `VbaDecimal` を `JSON.stringify` 経由せずに文字列化。`run()` の `formatArgs` 生成で使用。レグレッションテスト: `tests/test-libs-tests/vba-currency-decimal-normalize.test.ts` | 評価 #23 |
+| **Bug #25-1〜3: `LenB`/`AscB`/`ChrB` 未実装** | `builtins.ts` に UTF-16LE バイトモデルで実装（`LenB`=文字数×2, `AscB`=先頭バイト, `ChrB`=バイト→文字）。レグレッションテスト: `tests/spec/builtin-strings.test.ts` | 評価 #25 修正 |
+| **Bug #25-5: `Split` の `limit` 引数未対応** | `builtins.ts` の split 登録に `limit`/`compare` を追加。VBA 仕様通り（limit=0→空配列、limit>0→最大N要素）。レグレッションテスト: `tests/spec/split-join.test.ts` | 評価 #25 修正 |
+| **Bug #25-6: `DatePart` の `firstdayofweek` 引数未対応** | `builtins.ts` の datepart に `firstdayofweek`/`firstweekofyear` を追加。`'w'`/`'ww'` の曜日計算で weekStart オフセットを反映。レグレッションテスト: `tests/spec/datetime.test.ts` | 評価 #25 修正 |
+| **Bug 26-3: `Open For Random Len=N` パースエラー** | `parser.ts:parseOpenStatement` でファイル番号後に `Len = <expr>` をオプション消費するよう修正（`peek().type===Identifier && value.toLowerCase()==='len'`）。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
+| **Bug 26-7: `GetAttr` 未実装 + ファイル属性定数未登録** | `evaluator.ts` に `getattr`（0 返却）/`setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`〜`vbAlias` 8定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` | 評価 #26 修正 |
+| **Bug 26-1/2/4/5: `Put` / `Get` が型サイズを無視し、UDT を文字列化する** | `Long 1234567` を `87 D6 12 00`、`Long`/`Integer`/`String * 3` の UDT を9バイト連続、`"Aあ"` を CP932 の `41 82 A0` として入出力する。実機結果を `tests/spec/binary-file-io.test.ts` に固定。 | 評価 #36 修正 |
+| FSO `TextStream.ReadAll()` が `ReadLine()` 後も全体を返す | `readall` が `pos` を参照するよう修正 | `9e25adc` |
+| **Bug F: `Format(True, "0")` が "-1" でなく "True" を返す** | `formatFunc` の非 named フォーマット分岐で `VbaBoolean` を `val.value`（数値）に unwrap してから `formatNumber` に渡すよう修正。`Format(True, "0")` → "-1"、`Format(False, "0")` → "0" が正しく返るようになった。レグレッションテスト: `tests/spec/builtins.test.ts` Bug F ブロック。 | `8562e4f` |
+| **Bug G: `IsDate(1)` が False を返す（数値シリアル日付を認識しない）** | `isdate` 関数に `typeof val === 'number' && isFinite(val)` → `vbaTrue` 分岐を追加。VBA では数値は日付シリアルとして有効な日付。レグレッションテスト: `tests/spec/builtins.test.ts` Bug G ブロック。 | `8562e4f` |
+| **Bug H: `Asc("")` が null/NaN を返す（Error 5 にならない）** | `ascFunc` に `str.length === 0` チェックを追加して Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug H ブロック。 | `8562e4f` |
+| **Bug I: `Left/Right` の負値長さ、`Mid` の start<1 や負値長さが Error 5 にならない** | `leftFunc`/`rightFunc` に `l < 0` チェック、`midFunc` に `st < 1` と `len < 0` チェックを追加して Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug I ブロック。 | `8562e4f` |
+| **Bug J: `Space(-1)` / `String(-1, "x")` が JS RangeError（VBA Error 5 にならない）** | `spaceFunc`/`stringFunc` に `count < 0` チェックを追加して VBA Error 5 を投げるよう修正。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug J ブロック。 | `8562e4f` |
+| **Bug K: `InStr(0, "abc", "b")` が Error 5 にならずに検索成功する** | `instrFunc` に `Number(start) < 1` チェックを追加して Error 5 を投げるよう修正（2引数形式（start なし）は start=1 扱いのため影響なし）。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug K ブロック。 | `8562e4f` |
+| **Bug L: `Format(CCur/CDec, 数値パターン)` が書式未適用で文字列化される** | `formatFunc` の namedFormats 分岐と非 named 分岐の両方で `VbaCurrency`/`VbaDecimal` を `Number(val.toString())` に変換してから `formatNumber` に渡すよう修正。`Format(CCur(1234.5), "#,##0.00")` → "1,234.50" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug L ブロック。 | `5f7abcb` |
+| **Bug M: `Chr(256)` が Error 5 にならず Unicode 文字を返す** | `Chr`/`Chr$` は ANSI 範囲 0-255 のみ受け付ける VBA 仕様に従い、範囲外で Error 5 を投げるよう修正。`ChrW`/`ChrW$` は別実装に分離し 0-65535 範囲を適用。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug M ブロック。 | `a611127` |
+| **Bug N2: `Format(n, "Scientific")` が小文字 e・1桁指数を返す** | `format.ts` で `toExponential(2)` の出力を VBA 仕様の大文字 E・最低2桁指数（"1.23E+06"）に変換するよう修正。レグレッションテスト: `tests/spec/builtins.test.ts` Bug N2 ブロック。 | `a3fd929` |
+| **Bug P: `AscB("")` が Error 5 にならず 0 を返す** | `AscB` に空文字列チェックを追加して Error 5 を投げるよう修正（`Asc`/`AscW` と同様）。 | `01c079a` |
+| `eval("Exit Sub")` が JS 例外を漏らしてクラッシュ | `executeStatements` を try/catch でラップして Exit シグナルを飲み込む | `0ca97d8` |
+| 同一ファイルへの二重 `Open` が Error 55 を出さない | `fileHandles` を走査して同一パスの重複チェックを追加 | `0ca97d8` |
+| FSO `TextStream.AtEndOfStream` 未実装（Error 438） | `pos >= content.length` を返す getter を実装 | `0ca97d8` |
+
+### 仕様準拠の動作（バグではない）
+
+| 現象 | 説明 |
+|---|---|
+| `eval('m + 1')`（m は Long 変数）→ Error 424 | 実 VBA でも変数名 + 算術は文として `Call m(+1)` と解釈される。ワークアラウンド: `(m) + 1` |
+| `eval('Dim x : x = 42 : x')` → `undefined` | マルチステートメント末尾の裸の識別子は Call 文扱い。値を得るには別の `eval('x')` で |
+| `eval()` で他モジュールの `Dim`/`Private` 変数が読めない | `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private` 変数にはアクセスできない（VBA のクロスモジュール非公開変数と同じ意味論）。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計。 |
+| `On Error GoTo` ハンドラー内で `Exit Function` 後も `Err.Number` が残留 | `Function DivSafe(a,b): On Error GoTo H: DivSafe=a/b: Exit Function: H: DivSafe=0: End Function` → 呼出後 `Err.Number=11` | 実 VBA の仕様通り。VBA の `Err` はグローバルオブジェクトであり、`Resume` / `Resume Next` / `Err.Clear` / `On Error` 文の実行でのみリセットされる。`Exit Function` は `Err` をクリアしない。ワークアラウンド: エラーハンドラー内で明示的に `Err.Clear` を呼ぶ。 |
+
+### ~~拡張機能 LSP のバグ（評価 #9 で発見・修正済み）~~
+
+| 問題 | 再現コード | 根本原因 |
+|---|---|---|
+| ~~引数付きチェーン補完が効かない~~ | **修正済み**（評価 #10/#11）: `ws.Cells(1, 1).` でRangeメンバーを返す。 | `detectMemberAccess` の `)` 終端対応を追加 |
+| ~~VBA016 波下線が変数名を指す~~ | **修正済み**（評価 #10）: 型名の範囲を診断する。 | `objectTypeLoc` を優先して使用 |
+
+### ~~未修正バグ（評価 #21 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 21-1: `Dim s As String * N` がパースエラー**~~ | **修正済み**: `VariableDeclarator` に `fixedLength?: number` を追加。`parseDimStatement` が `As String * <整数>` の `* N` を消費して記録。`Environment.coerceToType` の `'String'` ブランチで `fixedLength` がある場合にパディング・切り捨てを適用。初期値は `'\0'.repeat(N)`（VBA 仕様準拠）。UDT `TypeMember` にも `fixedLength` を追加し `instantiateType` と MemberExpression 代入で同様の処理を実装。レグレッションテスト: `tests/spec/fixed-length-string.test.ts`（12 テスト）。 | |
+
+### ~~未修正バグ（評価 #22 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 22-1: Variant 変数に整数を代入すると TypeName/VarType が subtype を失い Double を返す**~~ | **修正済み（評価 #22）**: `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer 範囲（-32768..32767）/Long 範囲チェックを追加。`Dim v As Variant : v = 42 : TypeName(v)` → "Integer" が正しく返るようになった。`VarType(v)` → 2（vbInteger）も正常。浮動小数点 `v = 3.14` → "Double" は変わらず正しい。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。 | `evaluator.ts:5471`: TypeName/VarType の数値分岐が `argExpr.type === 'NumberLiteral'` のときだけ `inferLiteralTypeName` を呼び、それ以外（Variant 変数・引数など）は `return 'Double'` にフォールバックしていた。内部では JS `number`（64bit float）として格納されるため subtype タグが消える。 |
+
+### ~~未修正バグ（評価 #12 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`__mocks__` 内の複数 VBA ファイルに同名関数があると "Ambiguous procedure" になる~~ | **修正済み**: `Environment.promoteProceduresFromModule` を追加し `loadVbaMock` で呼び出すことで後勝ち動作を実現。`A.bas` → `B.bas` の順でロードすると `B.bas` の定義が有効になる。 | |
+
+### ~~未修正バグ（評価 #13 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`parseAsClass` で生成した AST の `loc` が `undefined` → `.cls` ファイルで DefinitionProvider/ReferencesProvider/RenameProvider が機能しない~~ | **修正済み（評価 #13）**: `parseClassBody()` 内で各文パース後に `tok`（ブランチ開始前のトークン）と `this.tokens[this.pos-1]`（パース後の最終トークン）から `loc` を設定するよう修正。`ClassDeclaration` 本体の `loc` も最初・最後の文トークンから設定。`tsc -b` / `class-module.test.ts` 全通過。 | `parser.ts:parseClassBody()` が `parseProcedureDeclaration()` を直接呼ぶため `parseStatement()` の `stmt.loc = { start, end }` 設定（line 1358）が実行されない。`ClassDeclaration` 本体も `{ type, name, fields, procedures, body }` のみで `loc` なし。`buildScopedSymbolTable` 内の `if (!proc.loc) continue;` ガードで全シンボルがスキップされる。影響: DefinitionProvider は常に `null`、ReferencesProvider はスコープ絞り込みと `includeDeclaration` 除外が無効、RenameProvider は全ファイル無差別テキスト置換。`SymbolProvider` は別の fallback を持ち動作するが位置情報がすべて `(0,0)` になる。 |
+
+### ~~未修正バグ（評価 #14 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`CodeLensProvider`: `Test_*` プロシージャが常に `✓ Tested` を返す（疑似陽性）~~ | **修正済み**: `testProcReferences` の `start` を `proc.loc.start.line - 1`（宣言行含む）から `proc.loc.start.line`（宣言行スキップ）に変更。 | |
+
+### ~~未修正バグ（評価 #15 で発見・評価 #16 で修正確認）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~`autoParensEdit` が戻り型付き Function を検出しない~~ | **修正済み（評価 #16 で確認）**: `PROC_NO_PARENS` 正規表現に `(?:\s+As\s+\w+)?` が追加されており `autoParensEdit('Function GetValue As Long')` → `{ insertCol: 17 }` が正常に返る。 | |
+| ~~`TestRunner.runTests()` がスタブ実装（常に `passed` を返す）~~ | **修正済み（評価 #16 で確認）**: `runTests` の引数は `stmts` から `src: string` に変更され、内部で `Evaluator` が実際に評価を行う本実装になっている。`Err.Raise` → `{ state: 'failed', message: 'Intentional failure' }` が正しく返る。 | |
+| ~~`runTestWithEvaluation` のエラーメッセージが `"[object Object]"`~~ | **修正済み（評価 #16 で確認）**: `catch` 節が `(testError as any)?.message ?? String(testError)` になっており、VBA エラー plain object の `.message` プロパティが正しく取り出される。`Err.Raise 1, , "Intentional failure"` → `result.message === "Intentional failure"` が確認できた。 | |
+
+### ~~未修正バグ（評価 #17 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 修正コミット |
+|---|---|---|
+| ~~`Const` ホバーで型と値が表示されない~~ | **修正済み（`03f2b23`）**: `parser.ts` で `objectType` を `ConstDeclaration` に保持し、`symbol-table.ts` の `constLiteralText()` ヘルパーで値を文字列化。`Const MAX As Long = 100` と表示されるようになった。 | `03f2b23` |
+| ~~`Public`/`Private` キーワードが hover で lowercase 表示~~ | **修正済み（`03f2b23`）**: `symbol-table.ts` に `cap()` ヘルパーを追加し、変数・定数・プロシージャの scope 表示を capitalize するよう修正。`Public count As Long` と正しく表示されるようになった。 | `03f2b23` |
+| ~~`buildExtractFunctionEdit` が Dim 宣言とパラメーターを共存させる不正コードを生成する（Bug R1）~~ | **修正済み（評価 #18）**: 選択範囲に `Dim x` が含まれ `x` が inputs/outputs パラメーターになる場合、`reindented` ステップで `Dim x` が残存し `ByRef x As Variant` と重複する VBA コンパイルエラーが発生していた。`paramVarNames` set を使って `Dim` 行をフィルタリングする修正を `server.ts:819-826` に適用。`lsp-code-actions.test.ts` Test 13 でレグレッションテスト追加。 | 評価 #18 |
+| ~~With ブロック内でユーザー定義クラスの Property Get が Error 424（Bug W1）~~ | **修正済み（評価 #19）**: `evaluateImplicitWithObjectExpression`（`evaluator.ts`）に `__vbaClass__` ブランチが欠如。VBA クラスを With オブジェクトとした場合、`.PropertyGet` が JS オブジェクトのメンバーとして探索されて失敗。`evaluateMemberExpression` と同じ getter → callClassMethod パターンを追加。`.Summary()`（Function 呼び出し）は別コードパスで動作していたため非対称になっていた。レグレッションテスト: `tests/spec/class-module.test.ts` 末尾 Bug W1 ブロック。 | 評価 #19 |
+| ~~UDT 変数（`Dim pt As Point`）の `pt.` 補完が 0件（Bug LSP-1）~~ | **修正済み（評価 #20）**: `completion-provider.ts` の `getMembersForType()` が `ClassDeclaration` のみ探索し `TypeDeclaration` を未対応だった。`TypeDeclaration` ブランチを追加し、メンバーを `CompletionItemKind.Field` で返すよう修正。レグレッションテスト: `lsp-completion.test.ts` Test 14。 | 評価 #20 |
+| ~~Enum 定数のホバーが null（Bug LSP-2）・Type 名のホバーが null（Bug LSP-3）~~ | **修正済み（評価 #20）**: `symbol-table.ts` の `collectScopedSymbols()` が `TypeDeclaration` / `EnumDeclaration` を未対応だった。`SymbolKind` に `'udt'` / `'enum-member'` を追加し、`TypeDeclaration` は型名を `Type Point (X As Long, Y As Long)` 形式で、`EnumDeclaration` は各メンバーを `Direction.North = 1` 形式でシンボルテーブルに登録。`hover-provider.ts` の `kindContextLabel()` にも対応 case を追加。レグレッションテスト: `lsp-hover.test.ts` 末尾 Bug LSP-2/3 ブロック。 | 評価 #20 |
+
+### ~~未修正バグ（評価 #27 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 27-1: `CallByName` の `VbLet(4)` / `VbSet(8)` 未実装**~~ | **修正済み**: `builtins.ts` の `callbyname` に VbLet(4)/VbSet(8) ブランチを追加。`classDef.procedures` から `propertyType === 'let'`/`'set'` の手続きを検索して `ctx.callMethod` で呼び出す。fallback として逆タイプ（Let→Set/Set→Let）も試みる。レグレッションテスト: `tests/spec/callbyname.test.ts`（4テスト）。 | `builtins.ts:155-156` の `callbyname` が `VbGet(2)`/`VbMethod(1)` しかハンドルせず、それ以外は即 `throwError`。VBA クラスの Property Let を検索・呼び出すブランチが未実装。 |
+
+### ~~未修正バグ（仕様調査 #27-続 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug A: `Replace(s, find, repl, start, count, compare)` — start/count/compare 引数が Error 450**~~ | **修正済み**: `builtins.ts` の `replace` を完全再実装。`start` は結果が prefix を除いたスライス、`count=-1` で無制限、`compare=1`（vbTextCompare）で大文字小文字無視。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug A ブロック（8テスト）。 | 旧実装は `(s: any, f: any, r: any)` の3引数固定登録。`start`/`count`/`compare` のパラメーター登録がなく Error 450 になっていた。 |
+| ~~**Bug B: `Weekday(date, firstdayofweek)` — firstdayofweek 引数が Error 450**~~ | **修正済み**: `builtins.ts` の `weekday` 登録に `FirstDayOfWeek`（省略可）を追加。`fdow=0` は仕様通り `1`（vbSunday）扱い、`weekStart = fdow <= 1 ? 0 : fdow - 1` で JS 0-based 曜日にマッピング。レグレッションテスト: `tests/spec/datetime.test.ts` Bug B ブロック（5テスト）。 | 旧実装は `(d: any)` 単引数固定登録。 |
+| ~~**Bug C: `DateDiff(interval, d1, d2, firstdayofweek, firstweekofyear)` — 第4/5引数が Error 450**~~ | **修正済み**: `builtins.ts` の `datediff` 登録に `FirstDayOfWeek`/`FirstWeekOfYear`（省略可）を追加。`"ww"` インターバルは両日付を週境界に丸めてから差を計算（`weekStart` オフセット反映）。レグレッションテスト: `tests/spec/datetime.test.ts` Bug C ブロック（4テスト）。 | 旧実装は `(interval, date1, date2)` の3引数固定登録。 |
+| ~~**Bug D: `Format(expr, fmt, firstdayofweek, firstweekofyear)` — 第3/4引数が Error 450**~~ | **修正済み**: `builtins.ts` の `format` 登録パラメーター配列に `FirstDayOfWeek`/`FirstWeekOfYear`（省略可）を追加（実装本体は変更なし・引数は受けるが無視）。`Format(Now(), "dddd", 2)` が Error 450 なく動作するようになった。 | `format` の `ctx.reg` 呼び出しのパラメーター配列が2要素固定（`Expression`/`Format`）だった。 |
+| ~~**Bug E: `RGB(r, g, b)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `rgb` を登録。COLORREF 形式 `r + g*256 + b*65536`。各チャネルは 0-255 にクランプ。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | 定数テーブルは vbRed 等のエイリアスを持たず、`RGB` 関数自体が `builtins.ts` に未登録だった。 |
+
+### ~~未修正バグ（評価 #143 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 | 修正コミット |
+|---|---|---|---|
+| ~~**Bug 143-A: `FormatPercent` の `IncludeLeadingDigit` / `UseParensForNegativeNumbers` が無視される**~~ | `FormatPercent(-0.125, 1, True, True, False)` が `-12.5%`、`FormatPercent(0.005, 1, False, False, False)` が `0.5%` になっていた。期待値はそれぞれ `(12.5%)`、`.5%`。`FormatNumber` の同じ共有経路も回帰確認した。 | `builtins.ts` の共有 `fmtNumeric` が optional 引数を `_leadingDigit` / `_parens` として受け取るだけで表示処理に使っていなかった。 | このコミット |
+| ~~**Bug 145-A: `Pmt` の `NPer=0` が `-Infinity` を返す**~~ | `On Error GoTo Handler` 中に `Pmt(0.01, 0, 1000)` を呼ぶと、期待する Error 5 ではなく `-Infinity` が返り、ハンドラーへ分岐しなかった。 | `builtins.ts` の `pmt` が `NPer` の正数検査なしに JavaScript のゼロ除算を返していた。`NPer <= 0` を `INVALID_PROCEDURE_CALL` として検証した。 | このコミット |
+| ~~**Bug 146-A: `DateValue` が無効日付を正規化する**~~ | `DateValue("2024/02/30")` が Error 13 ではなく `2024/03/01` を返していた。 | `parseVbaDate` が JavaScript `Date` の自動繰上げ結果を検証していなかったため、`DateValue` で明示的な `yyyy/mm/dd` の成分一致を検証し、不一致を `TYPE_MISMATCH` とした。 | このコミット |
+| ~~**Bug 148-A: `CStr` が配列・ObjectをJavaScript文字列化する**~~ | `CStr(Array(1, "x"))` が `"1,x"`、既定プロパティのないクラスを `CStr` に渡すと `"[object Object]"` になっていた。 | `coerce.ts` の `vbaToString` が配列・汎用Objectを除外せず `String(val)` にフォールバックしていた。VBA型エラーとして拒否し、組み込み値型の文字列表現は維持した。 | このコミット |
+| ~~**Bug 150-A: `CVErr` が論理演算・連結で暗黙変換される**~~ | `CVErr(2000) And True` が `2000`、`Not CVErr(2000)` が `-2001`、`CVErr(2000) & "tail"` が `"Error 2000-tail"` になっていた。期待値はすべて Error 13。 | `evaluator.ts` の論理演算が `VbaErrorValue` の `valueOf()` を数値化し、`&` が表示文字列へ暗黙変換していた。論理・連結演算の入口で `TYPE_MISMATCH` とし、明示 `CStr` は維持した。 | このコミット |
+| ~~**Bug F: `QBColor(n)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `qbcolor` を登録。16色テーブルで 0〜15 を COLORREF に変換。範囲外は Error 5。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | `builtins.ts` に `qbcolor` の登録が存在しなかった。 |
+| ~~**Bug G: `Nz(value, valueifnull)` が Error 35（未実装）**~~ | **修正済み**: `builtins.ts:registerConstants` に `nz` を登録。`Null`/`Empty`/`null`/`undefined` なら `valueifnull`（省略時は `0`）を返す。レグレッションテスト: `tests/spec/builtins.test.ts` RGB/QBColor/Nz ブロック。 | Access VBA の組み込み関数で Excel VBA には存在しないため未登録だった。 |
+| ~~**Bug H: `StrConv(s, conv, LCID)` 第3引数が Error 450**~~ | **修正済み**: `strconv` 登録に `{ name: 'LCID', optional: true }` を追加（LCID は無視するが引数を受け取るようになった）。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `ctx.reg` の params 配列が `String`/`Conversion` の2要素固定だった。 |
+| ~~**Bug I: `InputBox(prompt, title, default, XPos, YPos, ...)` 第4引数以降が Error 450**~~ | **修正済み**: `inputbox` 登録に `XPos`/`YPos`/`HelpFile`/`Context`（すべて省略可）を追加（スタブ実装・無視）。 | params 配列が3要素固定だった。 |
+| ~~**Bug J: `MsgBox(prompt, buttons, title, HelpFile, Context)` 第4引数以降が Error 450**~~ | **修正済み**: `msgbox` 登録に `HelpFile`/`Context`（省略可）を追加（スタブ実装・無視）。 | params 配列が3要素固定だった。 |
+| ~~**Bug K: `CreateObject(class, ServerName)` 第2引数が Error 450**~~ | **修正済み**: `createobject` 登録に `{ name: 'ServerName', optional: true }` を追加（無視）。 | params 配列が1要素固定だった。 |
+| ~~**Bug L: `Format(True, "Yes/No")` が "Yes" でなく "True" を返す**~~ | **修正済み**: `formatFunc` の named format ブランチで `VbaBoolean` を検出して `yes/no`→"Yes"/"No"、`on/off`→"On"/"Off"、`true/false`→"True"/"False" を返すよう修正。VbaBoolean 以外の数値型は `val.value` を `formatNumber` に渡す。レグレッションテスト: `tests/spec/builtins.test.ts`。 | `VbaBoolean` は `typeof 'object'` のため `typeof val === 'number'` が false になり `String(val)` → "True"/"False" へフォールバックしていた。 |
+| ~~**Bug M: `vbFirstJan1`/`vbFirstFourDays`/`vbFirstFullWeek`/`vbDecimal`/`vbDataObject`/`vbUserDefinedType` が未登録（`Null` を返す）**~~ | **修正済み**: `registerConstants` に 6 定数を追加（`vbFirstJan1=1`/`vbFirstFourDays=2`/`vbFirstFullWeek=3`/`vbDecimal=14`/`vbDataObject=13`/`vbUserDefinedType=36`）。未登録定数を参照すると暗黙的に `Empty` が返り、`firstweekofyear` 引数として渡すと 0 扱いで誤動作する。 | VarType 定数ラインに `vbDataObject`/`vbDecimal`/`vbUserDefinedType` が含まれておらず、firstweekofyear 定数ライン自体が存在しなかった。 |
+| ~~**Bug N: `Left(Null, n)` / `Right(Null, n)` / `Mid(Null, n)` が Null でなく文字列を返す**~~ | **修正済み**: 各関数の先頭に `if (val === vbaNull) return vbaNull;` を追加。`Left(Null, 2)` → `Null`（`IsNull=True`）が正しく返るようになった。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug N ブロック。 | `leftFunc`/`rightFunc`/`midFunc` で `String(val ?? '')` を先に評価しており、`vbaNull` は Symbol のため `??` で素通りして `String(Symbol(vbaNull))` → `"Symbol(vbaNull)"` になっていた。 |
+
+### ~~未修正バグ（評価 #28 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 28-1: `ReDim Preserve` で UDT 配列を拡張後、新インデックス要素のメンバーアクセスが Error 424**~~ | **修正済み**: `evaluateReDimDeclarator` の Preserve パス内に `fillArrayWithUDT(arr, dims, 0, typeName, true)` 呼び出しを追加。`skipExisting=true` のとき既存要素をスキップし、`undefined`/`0` のスロットのみ `instantiateType` で初期化する。レグレッションテスト: `tests/spec/array-functions.test.ts` Bug 28-1 ブロック。 | `evaluator.ts:5172-5174` の `if (!isPreserve)` ガードにより `fillArrayWithUDT` が Preserve 時にスキップされ、`copyPreservedData` は旧インデックスのみコピーするため新インデックスの UDT 要素が `0` のまま残っていた。Long/String の通常配列では `0`/`""` を直接メンバーアクセスせず代入で済むため問題が顕在化しなかった。 |
+
+### ~~未修正バグ（評価 #29 で発見・全件メイン再現確認済み）~~ → 全件修正済み
+
+| 問題 | 修正ファイル | テスト |
+|---|---|---|
+| ~~**Bug 29-A: 型サフィックス付き宣言 `Dim n&` が機能しない**~~ | `parser.ts: parseDimStatement / parsePrimary` | `tests/spec/type-system.test.ts` |
+| ~~**Bug 29-B: `^` が右結合（VBA は左結合）**~~ | `parser.ts: parseExponentiation` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-C: 負の底の非整数べき乗が Error 5 にならない**~~ | `evaluator.ts: case '^'` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-D: `Null & Null` が Null にならない**~~ | `evaluator.ts: op === '&'` | `tests/spec/operators-extra.test.ts` |
+| ~~**Bug 29-E: `Array()` が `Option Base 1` を無視する**~~ | `builtins.ts: array 登録 / UBound` | `tests/spec/option_base.test.ts` |
+| ~~**Bug 29-F: `eval()` の裸の引数なしメソッド呼び出しが静かに no-op**~~ | `evaluator.ts: evaluateMemberExpression` | `tests/spec/class-module.test.ts` |
+| ~~**Bug 29-G: eval 複文中の裸引数なしメソッドが Error 450**~~ | `parser.ts: call arg check (OperatorColon 除外)` | `tests/spec/class-module.test.ts` |
+| ~~**Bug 29-H: BEGIN/END なしの部分 .cls ヘッダーが全メンバー Error 438**~~ | `preprocessor.ts: stripVBAFileHeader` | `tests/spec/preprocessor-cls-header.test.ts` |
+
+### ~~未修正バグ（評価 #33 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 33-A: クラス内の非修飾・括弧なし自メンバー参照（Property Get / Function）が silent Empty**~~ | クラス内 `CallsProp = PropX & "!"` → `"!"`（Option Explicit でも検出されない） | クラスメンバーは env のプロシージャマップに載らず、未定義変数の暗黙 Empty に解決されていた。Identifier 評価に「変数にもプロシージャにも解決できない場合、Me のクラスメンバー（Function/Property Get、必須引数 0）を暗黙の Me.<name> として呼ぶ」フォールバックを追加。`env.get()` の暗黙初期化より先に `hasVariable` を取るのが要点。`class-module.test.ts` Bug 33-A ブロック |
+| ~~**Bug 33-B: `Collection.Add` の名前付き `Before:=`/`After:=` が誤バインド**~~ | `c.Add "C", After:=1` → 末尾追加（値が Key 位置に化ける） | `VbaCollection.add` に `__vbaParamSpec__` がなく、名前付き引数の値が位置引数に落ちていた。仕様を付与し、さらに仕様にない名前付き引数・仕様なし関数への名前付き引数は Error 448 で明示的に失敗させるように。`collection.test.ts` Bug 33-B ブロック |
+| ~~**Bug 33-C: 未使用の `Dim x As New Class` を ByVal で渡すとメンバー変更が呼び出し元に見えない**~~ | `Dim b As New Widget : Poke b : b.Cnt` → 0（期待 1） | auto-instance プレースホルダーが callee 側で実体化され、caller の変数に書き戻されなかった。ユーザープロシージャ呼び出しの引数評価（位置・名前付きとも）で `resolveAutoInstance` を通し、渡す時点で caller 側に実体化するよう修正。`auto-instance-args.test.ts` Bug 33-C ブロック |
+
+### ~~未修正バグ（評価 #32 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 32-A: `Tab(n)` が n+1 桁目に出力（オフバイワン）**~~ | `Debug.Print "X"; Tab(10); "Y"` → Y が 11 桁目 | Print #/Debug.Print の Tab 処理が `n - output.length` でパディングしていた（正しくは `n - 1 - output.length`）。両経路とも修正。`tests/spec/write-input-print-zones.test.ts` |
+| ~~**Bug 32-B: `Write #1, #2024/03/15#` がパースエラー**~~ | 同左 → `Parse error: unexpected token '2024'` | レクサーの日付リテラル判定がカンマ許容の緩い正規表現で `#1, #` を日付と誤認。日付・時刻区切り（`/` `-` `:`）の存在を必須化して修正。`lexer.ts` |
+| ~~**Bug 32-C: `Input #` が引用符内カンマで分割**~~ | `Write #f, "comma, inside", 42` → `Input #f, s, n` が Error 13 | 単純 `split(",")` だった。引用符状態を追跡するフィールド分割に変更。 |
+| ~~**Bug 32-D: `Write #` の日付書式と改行が実 VBA と不一致**~~ | 出力が `#2024/03/15#` + LF（期待: `#2024-03-15#` universal format + CRLF） | 日付を universal format で書き、改行を CRLF に統一（Print # と対称に）。`Input #` にも `#日付#` フィールドの VbaDate 復元を追加。 |
+| ~~**Bug 32-E: `LSet udtB = udtA`（UDT 間コピー）が Error 424**~~ | 同レイアウト Type 2 つで `LSet b = a` | LSet が文字列パスしかなかった。同一レイアウト（フィールド数一致）なら位置ベースでフィールドコピー、不一致なら明示的な Error 5 を実装。`tests/spec/lset-rset.test.ts` Bug 32-E ブロック |
+
+### ~~未修正バグ（評価 #31 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 31-A: `Public/Private Static Sub|Function` がパースエラー**~~ | `Public Static Function F() As Long` → `Parse error: Expected variable name (Found Static)` | `parser.ts` の `KeywordPublic/Private` 分岐が `Static` をチェックせず `parseDimStatement` にフォールスルーしていた。`Static` + `Sub|Function|Property` の先読み分岐を追加して修正。レグレッションテスト: `tests/spec/static.test.ts` Bug 31-A ブロック。 |
+| ~~**Bug 31-B: `Erl` が未実装で常に 0 を返す（黙って識別子暗黙解決）**~~ | `On Error GoTo H` + `20 Err.Raise 5` + ハンドラー内 `Erl` → 0（期待 20） | `erl` の登録がどこにもなく、未定義識別子として暗黙 0 に解決されていた。数値行ラベル通過時に `lastLineNumberLabel` へ記録し、エラー捕捉時に `Err` 状態へ確定する実装を追加。`Err.Clear`/`Resume`/`On Error` 文でリセット。レグレッションテスト: `tests/spec/erl-function.test.ts` Bug 31-B ブロック（既存の INFO-only テスト 1・2 もハードパスに）。 |
+
+### ~~未修正バグ（評価 #30 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 30-A: `VarType(classInstance)` が 36 (vbUserDefinedType) を返す（仕様: 9 = vbObject）**~~ | `Dim obj As New MyClass : VarType(obj)` → 36 | `builtins.ts` の `vartype` 登録で `if (val.__vbaTypeName__) return 36` が `if (val.__vbaClass__) return 9` より先に実行されていた。クラスインスタンスは両方のプロパティを持つため UDT 扱いになっていた。チェック順を入れ替えて修正。`TypeName(obj)` は正常動作していた。レグレッションテスト: `tests/spec/typename.test.ts` Bug 30-A ブロック。 | `builtins.ts:109-110` の順序を入れ替え |
+
+### ~~未修正バグ（評価 #26 で発見・修正済み）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 26-1: `Put #n,,var` はバイナリでなくテキスト書き込み**~~ | **評価 #36 で修正済み**: `Byte`/`Integer`/`Long` と CP932 `String` を型サイズ・バイト列で書き込む。 | |
+| ~~**Bug 26-2: `Get #n,,var` は常に1024バイト一括読み込み（型サイズ無視）**~~ | **評価 #36 で修正済み**: 宣言型・固定長文字列長から必要な範囲だけを読み、ハンドル位置を消費バイト数分だけ進める。 | |
+| ~~**Bug 26-3: `Open path For Random As #n Len = recLen` がパースエラー**~~ | **修正済み**: `parser.ts:parseOpenStatement` でファイル番号消費後に `peek().type === Identifier && value.toLowerCase() === 'len'` + `OperatorEquals` を消費して `recordLen` を記録するよう修正。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-3 ブロック。 | |
+| ~~**Bug 26-4: UDT変数を `Put` すると "[object Object]" を書き込む**~~ | **評価 #36 で修正済み**: 配列を含まない UDT を宣言順に連続したバイナリフィールドとして書き込む。 | |
+| ~~**Bug 26-5: UDT変数への `Get` で Error 424**~~ | **評価 #36 で修正済み**: 同じ範囲の UDT を復元して代入する。 | |
+| ~~**Bug 26-7: `GetAttr(path)` が Error 35（未実装）**~~ | **修正済み**: `evaluator.ts` に `getattr`（常に 0 を返すスタブ）と `setattr`（no-op）を登録。`builtins.ts:registerConstants` に `vbNormal`/`vbReadOnly`/`vbHidden`/`vbSystem`/`vbVolume`/`vbDirectory`/`vbArchive`/`vbAlias` 定数を追加。レグレッションテスト: `tests/spec/filesystem.test.ts` Bug 26-7 ブロック。 | |
+
+### 実機照合キュー
+
+vba-runner 単体では VBA/Excel 固有の実バイト列・UI 挙動を確定できない項目を蓄積する。
+評価中に候補を見つけたら、ここへ再現目的・実行する VBA・比較対象を追加する。
+このキューは個別にユーザー操作を依頼するためではなく、候補が十分に集まった時点で
+Excel 実機上でまとめて実施するための一覧である。照合後は結果・対象 Excel 環境・対応コミットを記録して完了へ移す。
+
+| ID | 照合対象 | Excel で確認する結果 | vba-runner 側の自動テスト | 状態 |
+|---|---|---|---|---|
+| XL-001 | 多次元固定配列を持つ UDT の `Put #` バイト順 | Excel: `01 00 00 00 03 00 00 00 02 00 00 00 04 00 00 00`（LOF=16） | エンジンを左端次元連続順へ修正。回帰テストで `1,3,2,4` を確認 | 照合済み |
+| XL-002 | 多次元固定 `String * 2` 配列を持つ UDT の `Put #` バイト順 | Excel: `41 20 43 20 42 20 44 20`（LOF=8） | エンジンの多次元配列順序を修正 | 照合済み |
+| XL-003 | 多次元 `Byte()` の `Put #` バイト順 | Excel: `01 03 02 04`（LOF=4） | `tests/spec/binary-byte-array.test.ts` で物理順序を回帰確認 | 照合済み |
+| XL-004 | 多次元 `Integer()` の `Put #` バイト順 | Excel: `01 00 03 00 02 00 04 00`（LOF=8） | 多次元配列の共通直列化順序を修正 | 照合済み |
+| XL-005 | 多次元 `Long()` の `Put #` バイト順 | Excel: `01 00 00 00 03 00 00 00 02 00 00 00 04 00 00 00`（LOF=16） | 多次元配列の共通直列化順序を修正 | 照合済み |
+| XL-006 | 固定長 `String()` の `Put #` CP932 バイト列 | Excel: `82 A0 41 20`（LOF=4） | `tests/spec/binary-byte-array.test.ts` の固定長文字列処理で回帰確認 | 照合済み |
+| XL-007 | UDT 配列の `Put #` バイト順 | Excel: `01 00 00 00 02 00 03 00 00 00 04 00`（LOF=12） | `tests/spec/binary-byte-array.test.ts` のUDT配列往復で回帰確認 | 照合済み |
+| XL-008 | UDT内可変長 `String` のディスクリプター | Excel: Binary/Randomとも `LOF=9`, `04 03 02 01 03 00 41 82 A0` | `tests/spec/binary-file-io.test.ts` と一致 | 照合済み |
+| XL-009 | FSO TextStream の Unicode/ANSI書き込み | Excel: Unicode `LOF=12` `FF FE 41 00 42 30 42 00 0D 00 0A 00`、ANSI `LOF=6` `41 82 A0 42 0D 0A` | VFSでUTF-16LE+BOMとCP932を確認（#123） | 照合済み（#127） |
+| XL-010 | ネストUDTの複合 Binary `Put` / `Get` | Excel: `LOF=20` `04 03 02 01 03 00 41 82 A0 01 00 00 00 02 00 00 00 01 00 5A` | 単体・配列・2次元・可変長String・ネスト複合を確認（#125） | 照合済み（#127） |
+| XL-011 | `Format` の条件付きセクション | `[<100]` / `[>=100]` はVBA `Format`関数ではなくExcelのセル書式機能であることを確認 | VBA Formatの評価対象外（Excel側の別機能） |
+| XL-012 | `Declare` 引数型・ByRefスタブ境界 | `LongPtr`、String、配列、UDT、ByRef書き戻し、Alias指定の呼び出し結果 | 構文・ロード・引数個数検査を確認（#46、#126）。外部呼び出しの戻り値0/ByRef無変更は安全なスタブ制限 | 自動テスト済み（実DLL呼び出し対象外） |
+| XL-013 | `Select Case` の数値文字列と数値Caseの一致規則 | `Dim x As Variant: x = "12"` に対する `Select Case x: Case 12` と逆方向の実Excel結果（一致、型不一致、Case Elseの別） | 現状は文字列と数値Caseを一致させない。実機結果に応じて比較共通化の仕様を確定する | 未照合 |
+
+### 未対応の機能制限（改善候補）
+
+| 制限 | 詳細 |
+|---|---|
+| ~~`VBARunner` が複数ファイルの配列渡しに非対応~~ | **対応済み**（`new VBARunner(['/a/M1.bas', '/b/C1.cls'])` が動作するよう修正） |
+| ~~`eval()` の行番号が常に "line 1"~~ | **修正済み**: Lexerの行番号をVBAエラーへ伝播し、マルチラインevalでは実際の行番号を表示する。 |
+| ~~README に `eval()` の「式 vs 文」の注意書きがない~~ | **修正済み**: `build/runner/README.md` に、`eval("x + 1")` と `eval("(x) + 1")` の解釈差を追記。 |
+| ~~`Dictionary.Add` へ Object をキーとして渡してもエラーなし~~ | **仕様確認済み**: Dictionaryのキーは配列以外の任意の値を許容するため、オブジェクトキーをMapの参照同一性で保持する。回帰テスト: `tests/spec/dictionary-object-key.test.ts`。 |
+| ~~`Exit Sub` を `eval()` トップレベルで使うと JS 例外が漏れる~~ | **修正済み** (`0ca97d8`): `executeStatements` を try/catch でラップして Exit シグナルを飲み込む |
+| ~~`Write #` で Boolean が `#TRUE#`/`#FALSE#` でなく `True`/`False` になる~~ | **修正済み** (`9e25adc`): `evaluateWriteStatement` に `VbaBoolean` 分岐を追加 |
+| ~~`FSO TextStream.AtEndOfStream` 未実装~~ | **修正済み** (`0ca97d8`): `pos >= content.length` を返す getter を実装 |
+| ~~`FSO TextStream` 位置追跡バグ~~ | **修正済み** (`9e25adc`): `readall` が `pos` を参照するよう修正 |
+| ~~同一ファイルへの二重 `Open` が Error 55 を出さない~~ | **修正済み** (`0ca97d8`): `fileHandles` を走査して同一パスの重複チェックを追加 |
+| ~~`Format()` の零埋めが動作しない~~ | **修正済み**: `intPart.padStart(minIntegers, '0')` を追加。`Format(42, "000")` → `"042"` が正常動作 |
+| ~~`Dim s As String * N`（固定長文字列）が未実装~~（Bug 21-1）~~ | **修正済み**: `VariableDeclarator.fixedLength` と `TypeMember.fixedLength` を追加。`parseDimStatement` / Type ブロックパーサーで `As String * N` の `* N` を消費・記録。`Environment.coerceToType` でパディング・切り捨てを適用。UDT メンバー代入も `__fixedLengths__` で対応。`tests/spec/fixed-length-string.test.ts`（12 テスト）。 |
+| ~~`Currency` 型が固定小数点演算でない~~ | **修正済み（評価 #23 で確認）**: `CCur(0.1) + CCur(0.2) = 0.3` 厳密一致。内部 BigInt ベースの 4桁固定小数点演算に刷新済み。`VBARunner.run()` / `.eval()` の戻り値も `number` に正規化（Bug C-1 修正）。 |
+| ~~`Dim x As`（型名欠落）が構文エラーにならない~~ | **修正済み（評価 #71）**: 通常実行では構文エラー、LSP の `errorRecovery` では診断を残して後続手続きを保持する。 |
+| ~~VBA003（ByRef/ByVal 省略）警告が severity:Warning で新規ユーザーに noisy~~ | **修正済み**: `VBA003` は severity 4（Hint）として通知される。 |
+| ~~`vba-types.json` 削除時に型スタブがリセットされない~~ | **修正済み**: `server.ts` に `clearTypeStubs()` を追加し、`extension.ts` の `typeStubsWatcher.onDidDelete` でフック。`vba-types.json` 削除時に補完プロバイダーの型スタブが即座にクリアされる。 |
+| ~~LSP: 引数付きチェーン補完 `obj.Method(args).` が効かない~~ | **修正済み（評価 #10 で確認）**: `ws.Cells(1, 1).` で 48 件の Range メンバーが正しく返るようになった。`detectMemberAccess` の正規表現が `)` 終端を処理できるよう拡張済み（`completion-provider.ts:454`）。 |
+| ~~LSP: シグネチャヘルプが文字列リテラル入力中に消える~~ | **修正済み**: `findCallContext` の文字列境界判定を Lexer トークンベースに変更。右→左スキャンの誤判定を解消。`findCallContext('Format(x, "', 11)` → `{ name: 'Format', activeParameter: 1 }` が正しく返る。 |
+| ~~LSP: VBA016 診断の range が型名でなく変数名を指す~~ | **修正済み（評価 #10 で確認）**: `Dim x As UnknownType` で `column: 9, endColumn: 20`（UnknownType の位置）が返るようになった。`unknown-type-checker.ts:79` で `d.objectTypeLoc ?? d.name.loc` の優先順位が機能している。パーサーが `objectTypeLoc` を AST に格納するよう修正済み。 |
+| `Dim empty As String` がパースエラー | `empty` は VBA 仕様上の予約語のため変数名に使えない。VBA 仕様準拠の正しい動作。 |
+| ~~LSP: With ブロック内で引数付きメソッドチェーン後の補完が 0 件~~ | **修正済み（評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。コミット `3300dcb`。 |
+| ~~時刻のみの日付リテラル未対応~~ | **修正済み** (`b4d00c3`): `#12:30:45#` / `#8:30:00 AM#` が Error 13 になっていた。`parseDateLiteral` が時刻のみの場合に基準日（1899/12/30）を返すよう修正。 |
+| ~~`Class_Terminate` が参照カウントなしで早期発動~~ | **修正済み**: `Set p1 = Nothing` を呼んでも別変数 `p2` が同じオブジェクトを保持していれば `Class_Terminate` を呼ばないよう、参照カウント（`__refCount__`）を実装。`Set` 代入で addRef、`Set = Nothing` で releaseRef、スコープ脱出でもカウントを減算。`circular-reference-terminate.test.ts` 全 16 テスト通過。 |
+| ~~**Bug R: ISO 日付文字列 "YYYY-MM-DD" のタイムゾーンオフセット混入**~~ | **修正済み**: `vba-types.ts:parseVbaDate` で ISO 形式（`/^\d{4}-\d{2}-\d{2}$/`）を検出し、`-` を `/` に置換してから `new Date()` に渡すよう修正。JS の ISO 形式は UTC midnight として解析されるため、UTC+9 環境では `getHours()=9` → VBA シリアル値に 0.375 が混入していた。スラッシュ形式は LOCAL midnight として解析されるため修正される。レグレッションテスト: `tests/spec/cdate.test.ts` Bug R ブロック。 | `f4c3856` |
+| ~~**Bug S: `LenB(Null)` が 30 を返す（vbaNull Symbol を文字列化した長さ）**~~ | **修正済み**: `builtins.ts:lenb` に `if (s === vbaNull) return vbaNull;` を追加。`Len(Null)` は既に修正済みだったが `LenB` が未対応だった。レグレッションテスト: `tests/spec/builtin-strings.test.ts` Bug S ブロック。 | `c6544f7` |
+| ~~**Bug T/U: `LeftB/RightB/MidB(Null)` が Null でなく文字列を返す**~~ | **修正済み**: 各関数の先頭に `if (val === vbaNull) return vbaNull;` を追加。`Left/Right/Mid` と同様の Null 伝播を実装。`tests/spec/builtin-strings.test.ts` Bug S ブロックで検証。 | `c6544f7` |
+| ~~**Bug V/W: `Asc/AscW/AscB(Null)` が 83 を返す（vbaNull Symbol の先頭バイト）**~~ | **修正済み**: `ascFunc`/`ascb` の先頭に `if (s === vbaNull) return vbaNull;` を追加。`String(vbaNull ?? '')` が `"Symbol(vbaNull)"` を生成して `charCodeAt(0)=83` を返していた。 | `4f2172a` |
+| ~~**Bug X: `Replace(Null, find, repl)` が "Symbol(vbaNull)" を返す**~~ | **修正済み**: `replace` の先頭に `if (s === vbaNull) return vbaNull;` を追加。VBA 仕様通り第1引数 Null → Null 伝播。 | `4f2172a` |
+| ~~**Bug AA: `Space(Null)` が TypeError（Symbol→数値変換エラー）**~~ | **修正済み**: `spaceFunc` の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(vbaNull)` が JS TypeError を投げていた。 | `2221d61` |
+| ~~**Bug AB: `String(n, Null)` / `String(Null, char)` が誤った文字列を返す**~~ | **修正済み**: `stringFunc` の先頭に `if (n === vbaNull \|\| char === vbaNull) return vbaNull;` を追加。 | `2221d61` |
+| ~~**Bug Y: `Format(文字列, 日付パターン)` が文字列フォーマットとして処理される**~~ | **修正済み**: `formatFunc` で `typeof effectiveVal === 'string'` 分岐に `isDatePattern` チェックを移動。`isDatePattern && !/^[0#,.%]+$/.test(fmt)` のとき `parseVbaDate` で変換してから `formatDate` を呼ぶよう修正。`Format("2024/03/15", "yyyy")` → "2024" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Y ブロック。 | `02a682d` |
+| ~~**Bug Z: `Format(time, "hh:nn AM/PM")` が 24 時間制のままになる**~~ | **修正済み**: `format.ts:formatDate` でトークン列を事前スキャンして `am/pm`/`ampm`/`a/p` マーカーがある場合は `use12Hour=true` にし、`hh`/`h` トークンを `h12`（12 時間制）で返すよう修正。`Format(CDate("14:30:00"), "hh:nn AM/PM")` → "02:30 PM" が正しく返る。レグレッションテスト: `tests/spec/builtins.test.ts` Bug Z ブロック。 | `f34b9b0` |
+| ~~**Bug AC: `Replace(str, Null, repl)` / `Replace(str, find, Null)` が Null でなく文字列を返す**~~ | **修正済み**: `builtins.ts:replace` の先頭条件を `if (s === vbaNull \|\| f === vbaNull \|\| r === vbaNull) return vbaNull;` に拡張。find が Null だと `String(vbaNull)="Symbol(vbaNull)"` に変換されて検索対象が見つからず元文字列がそのまま返っていた。repl が Null だと "Symbol(vbaNull)bc" が返っていた。 | `51b32af`〜 |
+| ~~**Bug AD: `Null Like pattern` / `str Like Null` が Null でなく True/False を返す**~~ | **修正済み**: `evaluator.ts` の `case 'like':` に `if (leftVal === vbaNull \|\| rightVal === vbaNull) return vbaNull;` を追加。VBA の Like 演算子はいずれかのオペランドが Null なら Null を返す。 | `51b32af`〜 |
+| ~~**Bug AE: `Chr(Null)` / `ChrW(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrFunc`/`chrwFunc` の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` が JS TypeError を投げていた。 | `51b32af`〜 |
+| ~~**Bug AF: `Hex(3.7)` / `Oct(3.7)` が切り捨てではなく四捨五入されない**~~ | **修正済み**: `hexFn`/`octFn` で `Math.floor` を `vbaRound(..., 0)` に変更。VBA は整数変換にバンカーズ丸め（偶数丸め）を使うため `Math.floor` では不正確。`Hex(3.7)` = "4", `Hex(2.5)` = "2", `Hex(3.5)` = "4" が正しく返る。 | `51b32af`〜 |
+| ~~**Bug AG/AH/AI: `DateAdd/DateDiff/DatePart` の date 引数が Null のとき TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (date === vbaNull) return vbaNull;`（DateDiff は date1/date2 両方）を追加。`parseVbaDate(Symbol)` → `String(Symbol)` → `Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
+| ~~**Bug AJ: `ChrB(Null)` が TypeError でクラッシュする**~~ | **修正済み**: `chrb` 関数の先頭に `if (n === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
+| ~~**Bug AK: `Year/Month/Day/Hour/Minute/Second/Weekday(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `d === vbaNull ? vbaNull :` チェックを追加。`parseVbaDate(Symbol)` → `String(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
+| ~~**Bug AL: `WeekdayName(Null)` / `MonthName(Null)` が TypeError でクラッシュする**~~ | **修正済み**: 各関数の先頭に `if (weekday/month === vbaNull) return vbaNull;` を追加。`Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
+| ~~**Bug AM/AN: `Split(Null, ",")` が Null でなく `["Symbol(vbaNull)"]` を返す / `Join(arr, Null)` がクラッシュ**~~ | **修正済み**: `split` 先頭に `if (s === vbaNull) return vbaNull;`、`join` に `if (del === vbaNull) return vbaNull;` を追加。 | `51b32af`〜 |
+| ~~**Bug AO: `Choose(Null, ...)` が Type mismatch エラー（VBA 仕様では Null を返す）**~~ | **修正済み**: `choose` の先頭の `ctx.throwError(TYPE_MISMATCH)` を `return vbaNull` に変更。VBA ドキュメント「index が Null の場合 Null を返す」に準拠。 | `51b32af`〜 |
+| ~~**Bug AP/AQ/AR: `Left(str, Null)` / `Right(str, Null)` / `Mid(str, Null, n)` / `Mid(str, n, Null)` が TypeError でクラッシュ**~~ | **修正済み**: `leftFunc`/`rightFunc`/`midFunc` の Null チェックを `val === vbaNull \|\| len/start === vbaNull` に拡張。 | `51b32af`〜 |
+| ~~**Bug AS/AT: `DateValue(Null)` / `TimeValue(Null)` が TypeError でクラッシュ**~~ | **修正済み**: `datevalue`/`timevalue` の先頭に `if (val === vbaNull) return vbaNull;` を追加。 | `51b32af`〜 |
+| ~~**Bug AU/AV/AW: `LeftB(str, Null)` / `RightB(str, Null)` / `MidB` の Null 引数でクラッシュ**~~ | **修正済み**: `leftb`/`rightb`/`midbFunc` の Null チェックを `val \|\| len/start` に拡張。 | `51b32af`〜 |
+| ~~**Bug AX/AY: `DateSerial(Null,...)` / `TimeSerial(Null,...)` が TypeError でクラッシュ**~~ | **修正済み**: 各関数の先頭に Null チェックを追加。`Number(Symbol)` で JS TypeError が発生していた。 | `51b32af`〜 |
+| ~~**Bug AZ/BA/BB: `And`/`Or`/`Imp` が Null を含む場合に単純 Null 伝播を行い、三値論理の特例を無視**~~ | **修正済み**: `evaluateBinaryExpression` で Null チェック前に And/Or/Imp の特例を処理。`False And Null`=False、`True Or Null`=True、`False Imp Null`=True、`Null Imp True`=True。 | `51b32af`〜 |
+| ~~**Bug BC: `FormatCurrency` / `FormatNumber` / `FormatPercent` / `FormatDateTime` が未実装**~~ | **修正済み**: 4関数を `builtins.ts` に追加。`FormatCurrency(1234.5)` = "$1,234.50"、`FormatPercent(0.5)` = "50.00%"、`FormatDateTime(date, namedFmt)` で vbGeneralDate(0)/vbLongDate(1)/vbShortDate(2)/vbLongTime(3)/vbShortTime(4) に対応。 | `077a26e`〜 |
+| ~~**Bug BD: `CByte`/`CInt`/`CLng`/`CSng`/`CDbl`/`CDec`/`CCur`/`CLngLng`(Null) が Error 13 を返す（VBA では Error 94）**~~ | **修正済み**: 各変換関数の先頭に `if (val === vbaNull) ctx.throwError(INVALID_USE_OF_NULL, ...)` を追加。`CLngLng` は `TYPE_MISMATCH` から `INVALID_USE_OF_NULL` に変更。 | `c490d76`〜 |
+| ~~**Bug BE: `Filter(arr, Null)` が空配列を返す（VBA では Error 13 Type mismatch）**~~ | **修正済み**: `filter` 関数に `if (match === vbaNull) ctx.throwError(TYPE_MISMATCH, ...)` を追加。`String(Symbol)` が `"Symbol(vbaNull)"` になる問題を回避。 | `c490d76`〜 |
+| ~~**Bug BF: `Nz(Null)` が `0` を返す（VBA では `""` を返す）**~~ | **修正済み**: `nz` のデフォルト引数を `vbaMissing` に変更し、未指定時は `''` を返すよう修正。`Nz(Null, 42)` は引き続き `42` を返す。 | `c490d76`〜 |
+| ~~**Bug BG: `Format(2.5, "0")` が `"3"` を返す（VBA では `"2"` — 銀行家丸め）**~~ | **修正済み**: `format.ts` の `formatSection` で `n.toFixed(maxDecimals)` を `vbaRound(n, maxDecimals).toFixed(maxDecimals)` に変更。`builtins.ts` の `fmtNumeric` (FormatCurrency/FormatNumber/FormatPercent) も同様に修正。`Format(2.5, "0")`="2"、`Format(3.5, "0")`="4"、`Format(1234.5, "0")`="1234"。 | `1a93ea9`〜 |
+| ~~**Bug BH: `7.5 \\ 2` が `3` を返す（VBA では `4` — 被演算子を事前に整数化してから除算）**~~ | **修正済み**: `evaluator.ts` の `\\` と `Mod` 演算子に `_vbaRound(x, 0)` で各引数を整数化してから演算するよう修正。`7.5 \\ 2`=4、`7.5 Mod 2`=0。 | `f047068`〜 |
+| ~~**Bug BI: `2 ^ -1` がパースエラーになる（VBA では 0.5）**~~ | **修正済み**: `parser.ts` の `parseExponentiation` で右辺の `parsePrimary()` を `parseUnary()` に変更し、単項 `-` が `^` の右辺に出現できるようにした。 | `f047068`〜 |
+| ~~**Bug BJ: Currency混在の `\\`/`Mod` が事前丸めと 0 除算チェックを欠いていた**~~ | **修正済み**: `evaluateCurrencyOp` の整数パス（`bankersDivide` ベース）と浮動小数点フォールバックパスの両方で `_vbaRound(x / 10000, 0)` による事前丸めと `ri === 0` 判定を追加。`CCur(6.5) Mod 3`=0（旧: 5000）、`CCur(5.5) \\ CCur(3.5)`=1（旧: 2）が正しく返る。 | `04838c3`〜 |
+| ~~**Bug BK: `CDate(Null)`/`Str(Null)`/`Val(Null)` が Error 94 の代わりに異常動作**~~ | **修正済み**: `builtins.ts` の各変換関数で `vbaNull` チェックを追加して `INVALID_USE_OF_NULL` を投げるよう修正。`CStr(Null)` は例外ではなく `""` を返すよう修正。 | `95e1840`〜 |
+| ~~**Bug BL: `Input#` が `#TRUE#`/`#FALSE#`/`#NULL#` トークンを解析できなかった**~~ | **修正済み**: `evaluateInputStatement` に `parseInputValue` ヘルパーを追加し、`#TRUE#`→`vbaTrue`、`#FALSE#`→`vbaFalse`、`#NULL#`→`vbaNull`に変換。 | `a4b229c`〜 |
+| ~~**Bug BM-1: `Write#` で `Empty` が `#NULL#` と書き出されていた**~~ | **修正済み**: `vbaEmpty===null`（JavaScript null）のため、`val===null` チェックが `vbaNull`（Symbol）より先に `vbaEmpty` も捕捉していた。チェック順を入れ替え `vbaEmpty` を先にチェックし `""`、`vbaNull` を後にチェックし `#NULL#` を返すよう修正。 | `2748e2a` |
+| ~~**Bug BM-2: `Line Input#` がモジュールレベル変数に書き込めなかった**~~ | **修正済み**: `evaluateLineInputStatement` が `env.setLocally()` を使っていたため、プロシージャ終了後に変数が破棄されていた。`evaluateAssignmentToVariable()` に変更しスコープチェーンを正しく辿るよう修正。 | `2748e2a` |
+| ~~**Bug BN: `Erase` 後の動的配列への `UBound`/`LBound` が Error 9 を投げなかった**~~ | **修正済み**: `evaluateEraseStatement` の動的配列パスで `d=[]` と空配列を代入していたが、`UBound([])=-1` で誤動作。`d=null` に変更し既存の `!Array.isArray` チェックで Error 9 が投げられるよう修正。`ReDim` は引き続き正常動作。 | `2748e2a` |
+| ~~**Bug BO: `evalExpression("True + True")` が Error 424 になっていた**~~ | **修正済み**: `isCallableLeftmostLeaf` が VBA キーワード定数（`True`/`False`/`Null`/`Empty`/`Nothing`）の `Identifier` も callable とみなし statement fallback に飛ばしていた。定数名を除外する分岐を追加。`evalExpression('True + True')=-2`, `'False + 1'=1`, `'Null + 1'=Null` が正しく動作するようになった。 | `c987947` |
+| ~~**Bug BP: `evalExpression("\"abc\" = \"ABC\"")` が `undefined` を返していた**~~ | **修正済み**: `isStatementAmbiguous` の `=` 演算子チェックが左辺の型に関係なくトリガーされ、文字列/数値リテラル同士の等値比較が statement fallback に飛んで結果が捨てられていた。修正: `=` も `+`/`-` と同様に `isCallableLeftmostLeaf` チェックを追加し、左辺が代入可能なノードの場合のみ ambiguous とみなすよう変更。代入セマンティクス（`x = 42`）は変わらず動作。 | `06a3ded` |
+| ~~**Bug BQ: `Format(time, "Long Time")` が 24 時間表記で返っていた / `Format(date, "Short Date")` が `yyyy/MM/dd` 形式だった**~~ | **修正済み**: `format.ts` の named format テーブルで `"long time"` が `HH:mm:ss`（24h）、`"short date"` が `yyyy/MM/dd` になっていた。`"long time"` → `h:mm:ss AM/PM`（12h）、`"short date"` → `M/D/YYYY`（米国形式）に修正。 | *(このセッション)* |
+| ~~**Bug BR: `Debug.Print "a"; "b"` が `ParseError: unexpected token ';'` で失敗していた**~~ | **修正済み**: `Debug.Print` は `CallStatement` として解析されていたため `;` セパレーターが不正なトークンとなっていた。パーサーに `DebugPrintStatement` 型を追加し、`Debug.Print` を `parsePrintStatement` と同等の print-list 構文（`;` / `,` / `Spc()` / `Tab()` 対応）で解析するよう変更。評価器に `evaluateDebugPrintStatement` を追加し `onPrint` コールバックに出力。 | `f038feb` |
+| ~~**Bug CB: `Dim c As Color` (Enum 型変数) の `TypeName(c)` が "Double" を返していた**~~ | **修正済み**: `evaluateVariableDeclaration` の型追跡で `typeMap` にない型名は無視されていた。Enum 名は `env.getConst(effectiveType)` で plain object として取得できるため、`__vbaClass__` / `__vbaTypeName__` が両方なければ Enum 型として判定し `setVariableType({ vbaType: 'Long' })` を登録するよう修正。VBA では Enum の基底型は Long。レグレッションテスト: `tests/spec/enum.test.ts` Bug CB ブロック。 | このセッション |
+| ~~**Bug CC: `Public Code As String * 5` クラスフィールドが固定長を無視していた（代入後も長さが保持されない）**~~ | **修正済み**: `createInstanceFromDef()` で `mt === 'string'` の初期化を `decl.fixedLength !== undefined ? ' '.repeat(fixedLength) : ''` に変更し、固定長フィールド名 → 長さのマップ `classFixedLengths` を構築してインスタンスに `__fixedLengths__` として付加。`evaluateAssignmentToVariable` の `__vbaClass__` 分岐（MemberExpression / ImplicitWithObjectExpression 両方）にUDT と同じ truncate/pad 処理を追加。レグレッションテスト: `tests/spec/class-module.test.ts` Bug CC ブロック。 | このセッション |
+| ~~**Bug CF: `TypeOf obj Is InterfaceName` — `obj` のクラスが `Implements InterfaceName` していても `False` を返していた**~~ | **修正済み**: `evaluateTypeOfIsExpression` が `obj.__vbaTypeName__ === typeName` のみチェックしており、Implements チェーンを参照していなかった。`obj.__classDef__.body` を走査して `ImplementsDirective.interfaceName` と照合するブランチを追加。`TypeOf dogObj Is Animal`（Dog implements Animal）が正しく `True` を返すようになった。レグレッションテスト: `tests/spec/implements.test.ts` Bug CF ブロック。 | このセッション |
+| ~~**Bug CE: `w.Inner("key")` — Property Set が Property Get より先に宣言されていると、読み取りコンテキストで Property Set が誤って呼ばれ Error 424 になっていた**~~ | **修正済み**: `evaluateCallExpression` の VBA クラスブランチで `classDef.procedures.find()` は宣言順で最初のものを返すため、Property Set が先なら setter が選択されていた。修正: `propertyType === 'get'` を優先する二段階 find に変更（Get が存在すれば Get を選択、なければ最初のマッチを選択）。読み取りコンテキストでは常に getter が優先されるべきであり、setter への呼び出しは代入文（`x = w.Inner` でなく `w.Inner = x`）から来るため、この変更は代入パスに影響しない。レグレッションテスト: `tests/spec/class-module.test.ts` Bug CE ブロック。 | このセッション |
+| ~~**Bug CD: `Public Next As Object` — VBA キーワード `Next` がクラスフィールド名として受け付けられなかった**~~ | **修正済み**: `parser.ts` の `CONTEXTUAL_KW_STRUCTURAL` に `TokenType.KeywordNext` を追加。`Next`（トークン型 7）は `KeywordBase`（82）より小さく `KeywordBase..KeywordAddressOf` 範囲に含まれないため `isIdentifier()` が false を返していた。class body field parsing（line 2331 の `isIdentifier(inner)`）と `parseDimDeclarationList`（line 1868 の `isIdentifier(idToken)` チェック）の両方で `Next` がフィールド名として受け入れられるようになった。For ループの `Next` 終端判定はトークン型を直接比較するため影響なし。レグレッションテスト: `tests/spec/class-module.test.ts` Bug CD ブロック（連結リスト走査 + `n.Next Is Nothing`）。 | このセッション |
+| ~~**Bug CG: `Dim arr(n) As Variant : arr(0) = 42 : TypeName(arr(0))` が `"Double"` を返していた**~~ | **修正済み**: `evaluateAssignmentStatement` の数値サブタイプ追跡が `Identifier` 変数のみを対象にしており、`CallExpression`（配列要素添字）を無視していた。Variant 配列への数値代入時にインデックスキー（`"0"` / `"1,2"` 等）→サブタイプのマップ `arr.__vbaSubtypes__` を更新するブランチを追加。`resolveNumericSubtype` にも `CallExpression` ケースを追加し、`TypeName`/`VarType` 評価時に `arr.__vbaSubtypes__[idxs.join(',')]` を参照するよう変更。レグレッションテスト: `tests/spec/typename.test.ts` Bug CG ブロック。 | このセッション |
+| ~~**Bug CI: 複数モジュール構成で `Dim obj As New ClassName` が `Long 0` に化けていた**~~ | **修正済み**: `evaluateVariableDeclaration` の Enum-typed 変数チェック（Bug CB 対処）が `VbaNamespaceRef`（モジュール名として env に登録されたセンチネル）を enum と誤判定し `setVariableType('Long')` を呼んでいた。`!(enumObj instanceof VbaNamespaceRef)` の条件を追加して除外。`evalVBAModules` でクラス名と同名のモジュールを別ソースとして読み込んだ場合も `Dim obj As New MyClass` が正しく auto-instance placeholder を生成し、メンバーアクセスが動作するようになった。レグレッションテスト: `tests/spec/class-module.test.ts` Bug CI ブロック・`tests/spec/parse-as-class.test.ts` 全テスト。 | このセッション |
+| ~~**Bug CH: `Function F(s As String * 5)` に短い/長い文字列を渡しても `s` が切り詰め/パディングされなかった**~~ | **修正済み**: パラメーター束縛時の `setVariableType` 呼び出し（3か所: 外部 `callProcedure`・VBA 内 `callProcedure`・クラスメソッド `callClassMethod`）に `fixedLength: mapped === 'String' ? param.fixedLength : undefined` を追加。`setLocally` → `coerceToType` のパスで `fixedLength` がある場合に truncate/pad が適用されるようになった。`LenOf("Hi")` → 5（パディング後）/ `LenOf("TooLongStr")` → 5（切り捨て後）が正しく返るようになった。レグレッションテスト: `tests/spec/fixed-length-string.test.ts` Bug CH ブロック。 | このセッション |
+| ~~**Bug CA: `With m / .Data(0,0) = 1` — `CallExpression` の callee が `ImplicitWithObjectExpression` のとき Error 5 になっていた**~~ | **修正済み**: `evaluateAssignmentToVariable` の `CallExpression` 分岐に `call.callee.type === 'ImplicitWithObjectExpression'` の処理がなかった。`With` ブロック内で `.ArrayField(i,j) = val` や `.Property(arg) = val` を書くと `else` ブランチの Error 5 に落ちていた。VBA クラスの配列フィールド・Property Let に対応する分岐を追加（`MemberExpression` ケースと同じ論理、`obj` は `withObjectStack` から取得）。レグレッションテスト: `tests/spec/class-module.test.ts` Bug CA ブロック（1D/2D 配列フィールド）。 | このセッション |
+| ~~**Bug BZ: `c.TheObj("k")` — `Property Get TheObj() As Object` が無引数のとき引数を Property Get への呼び出し引数と誤解釈し Error 450 になっていた**~~ | **修正済み**: `evaluateCallExpression` の VBA クラス分岐で `proc.isProperty && proc.propertyType === 'get' && proc.parameters.length === 0 && expr.args.length > 0` の場合に Property Get を引数なしで呼び出し、返却値に対して引数を添字アクセス（Dictionary/Collection/配列/デフォルトプロパティ）する分岐を追加。`c.Dict("key")`（Dictionary）/ `c.Items(n)`（Collection）/ `c.Data(i)`（配列）すべて正しく動作するようになった。レグレッションテスト: `tests/spec/class-module.test.ts` Bug BZ ブロック。 | このセッション |
+| ~~**Bug BY: `Public P As New ClassName` クラスフィールドが `vbaNothing` に初期化されていた（`c.P.X = 42` が Error 91）**~~ | **修正済み**: `createInstanceFromDef()` のフィールド初期化ループが `decl.isNew` フラグを無視していたため、`Public P As New Point` のようなフィールドが `vbaNothing` として初期化されていた。`decl.isNew && classDefinitions.has(mt)` の分岐を追加し、`Collection` / 外部 factory / ユーザー定義クラスを即時インスタンス化するよう修正。レグレッションテスト: `tests/spec/class-module.test.ts` Bug BY ブロック（直接チェーンアクセス `c.P.X` + ネスト With `.P` 両方）。 | このセッション |
+| ~~**Bug BX: `ByVal` UDT パラメーターがコピーを作らず参照として渡されていた**~~ | **修正済み**: `evaluateCallExpression` のパラメーター束縛時、`param.isByVal` かつ引数値が UDT オブジェクト（`__vbaTypeName__` あり・`__vbaClass__` なし）の場合に新メソッド `deepCopyUdtValue()` でコピーを作るよう修正。`deepCopyUdtValue()` はネストした UDT メンバーも再帰コピーする。VBA クラスインスタンス（オブジェクト参照型）はコピーせず参照をそのまま渡す（VBA の値型/参照型の区別に準拠）。 | `50485d4` |
+| ~~**Bug BW: パラメーター宣言 `As String * N` が ParseError になっていた**~~ | **修正済み**: `parseParameter()` が fixed-length-string-spec (`String * N`) を解析しておらず、`ByRef s As String * 5` のような宣言で「Expected ')' after procedure parameters」のパースエラーになっていた。変数宣言の `parseVariableDeclaration()` と同様に、`As` 後の型名が `"String"` で次トークンが `*` の場合にサイズを読み込むよう修正。`Parameter` インターフェースに `fixedLength?: number` を追加。 | `6c97cd7` |
+| ~~**Bug BV: `Dim a As New ClassName` 後の `TypeOf a Is ClassName` が `False` を返していた**~~ | **修正済み**: `evaluateTypeOfIsExpression()` で `evaluateExpression()` の後に `resolveAutoInstance()` を呼ばずプレースホルダーを渡していた。auto-instance placeholder は `__vbaTypeName__` を持たないため常に `vbaFalse` を返していた。修正: TypeOf 評価の先頭で `resolveAutoInstance(expr.expression, raw)` を呼ぶよう変更。`TypeOf a Is Object` は元から動作していた（プレースホルダーも `typeof obj === 'object'` を満たすため）。 | `aea8a33` |
+| ~~**Bug BT: `Type` メンバーに配列 `Items(9) As Item` を持つ UDT で `c.Items(0)` が Error 438 になっていた**~~ | **修正済み（複合修正）**: (1) パーサーの `TypeMember` インターフェースに `isArray/arrayBounds` を追加し、配列境界（`(n)` / `(m To n)`）をパース・保持するよう変更（従来はスキップして捨てていた）。(2) `instantiateType()` で配列メンバーを初期化するよう修正。(3) 評価器の `evaluateCallExpression` に UDT 配列メンバーの読み取り、`evaluateAssignmentToVariable` に UDT 配列メンバーへの書き込みパスを追加。`isStatementAmbiguous` の `=` チェックも `isAssignableTarget` に変更（`parts(1) = "a"` の回帰を修正）。 | `671edd3` |
+| ~~**Bug BU: `"7" = 7` が `False` を返していた（文字列/数値混在の `=` / `<>` 比較）**~~ | **修正済み**: JS の `===` は型変換しないため `"7" === 7` は `false`。`<`/`>`/`<=`/`>=` は JS が暗黙変換するので機能していたが `=` / `<>` は動いていなかった。`evaluateBinaryExpression()` の `case '='` と `case '<>'` に `typeof leftVal === 'string' && typeof rightVal === 'number'`（逆も）の条件を追加し、`toVbaNumber()` で文字列を数値に変換してから比較するよう修正。副作用として `live-vars.ts` の `getStmtUses()` に `DebugPrintStatement` ケースを追加（`Debug.Print x` の `x` がデッドストア検出の「使用」として計上されない回帰を修正）。 | `b049cd4` |
+
+### ~~未修正バグ（評価 #34 で発見）~~
+
+| 問題 | 最小再現コード | 根本原因 |
+|---|---|---|
+| ~~**Bug 34-A: 2桁年の日付リテラルが常に 20xx になる**~~ | **修正済み**: `Format(#3/15/30#, "yyyy-mm-dd")` → `1930-03-15`、`#3/15/99#` → `1999-03-15`。`parseDateLiteral()` を DateSerial と同じ既定 2029 ルール（00–29 は 20xx、30–99 は 19xx）へ修正し、`tests/spec/date-literal-parsing.test.ts` に回帰テストを追加。 | 旧実装は `year < 100` のとき常に `year += 2000` としていた。 |
+
+---
+
+### 重点候補の実施状況（評価ログを正とする）
+
+| 項目 | 現状 | 根拠・残る境界 |
+|---|---|---|
+| `CDate("M,Y")` の実Excel一致 | **実施済み** | 差分コーパス第2回で現代年を含む境界を再検証。極端に古い年はタイムゾーン依存のため許容差分として扱う。 |
+| `Format` の色指定・条件付き書式 | **VBA Formatの評価対象外** | `[Red]`や`[<100]`はExcelのセル書式・条件付き書式の機能であり、VBA `Format`関数の仕様項目ではない。 |
+| UDT の `Put` / `Get` 複合配列・ネスト | **実Excel照合済み** | スカラー、UDT配列、固定長配列、可変長String、2次元配列、ネストしたUDTを自動テスト・実Excelで確認（#100〜#102、#125、#127）。 |
+| FSO TextStream の書き込み・Unicode形式 | **実Excel照合済み** | `unicode` / `format` 引数、UTF-16LE BOM、CP932、CRLFをVFSと実Excelで確認（#123、#127）。 |
+| `Declare` スタブと引数型・ByRef | **自動テスト済み（外部DLLは恒久的スタブ）** | `PtrSafe`、`Lib`、`Alias`、`LongPtr`、`ByRef String`、配列・UDT宣言と引数個数検査を #46/#126 で確認。外部DLLの実呼び出し・ByRef書き戻しは安全なスタブ設計の対象外。 |
+| `DoEvents` / `Sleep` の外部イベント | **恒久的制限を確認済み** | `DoEvents` は no-op、外部APIはスタブで同期Evaluatorを中断しない（#27）。実装未完了としてではなく、同期設計上の制限として扱う。 |
+| `VarPtr` / `StrPtr` / `ObjPtr` | **恒久的制限を確認済み** | `varptr.test.ts` でダミー値・非アドレス意味論を確認。実メモリーアドレスやWin32連携は対象外。 |
+
+### 次回 `evaluate-vba-runner` の未実施領域
+
+次回以降の独立評価エージェントは、以下からまだ評価されていない領域を
+1つ選び、実用的な複合サンプルで検証すること。検証後はこの一覧の状態を
+更新し、実機差分が必要な項目は候補として残す。
+
+| 優先度 | 未実施領域 | 評価の焦点 | 状態 |
+|---|---|---|---|
+
+`CDate("M,Y")`、基本 UDT 配列物理レイアウト、基本 TextStream
+読み書き、`Declare` 構文、`DoEvents` の制限、ポインター関数の制限は上の
+「重点候補の実施状況」で確定済みであり、次回評価で重複させない。
+
+### 継続評価キャンペーン
+
+ファザーとミューテーションは、1回の実行で手法全体を完了したとは扱わない。
+対象ファイル、生成シード、変異種別、テスト単位を変えた評価を別回として蓄積し、
+各回の「次に未実施の境界」をここで管理する。`evaluate-vba-runner` は未実施領域
+キューが空でも、次表の継続キャンペーンから次回対象を1つ選ぶ。
+
+| キャンペーン | 次回の未実施対象 | 状態 |
+|---|---|---|
+| FZ-BUILTIN | 既定Valueを受ける別の日付入力シード、変更後の別日付入力（別のロケール・境界） | 継続 |
+| FZ-GRAMMAR | 別の型サフィックス境界、Select Case数値文字列の実Excel照合 | 継続 |
+| MUT-ENGINE | ファイルI/Oの別EOF/Append境界、Select Caseの別数値型比較、別テスト単位での検出確認 | 継続 |
+
+#### キャンペーン評価履歴
+
+評価番号と評価内容の対応は、上の「評価済みドメイン・機能」と同じ番号で管理する。
+履歴は1評価番号につき1行とし、異なるキャンペーンに属する番号を同じ行へまとめない。
+
+| キャンペーン | 評価番号 | 該当する評価 |
+|---|---|---|
+| FZ-BUILTIN | 導入時 | 組み込み関数の敵対値スモーク |
+| FZ-BUILTIN | #143 | FormatPercentの表示オプション |
+| FZ-BUILTIN | #144 | Null/Empty Variant配列境界 |
+| FZ-BUILTIN | #145 | Pmtのゼロ期間エラー |
+| FZ-BUILTIN | #146 | DateValueの不正日付 |
+| FZ-BUILTIN | #147 | Currency/Decimal/Boolean型強制 |
+| FZ-BUILTIN | #148 | CStrの配列・Object型強制 |
+| FZ-BUILTIN | #149 | ErrorValueとNull/Empty混在演算 |
+| FZ-BUILTIN | #150 | CVErrの論理演算・文字列連結 |
+| FZ-BUILTIN | #155 | 既定ValueオブジェクトのCStr |
+| FZ-BUILTIN | #156 | 既定ValueのBoolean・数値型強制 |
+| FZ-BUILTIN | #157 | IsNumericの既定Value判定 |
+| FZ-BUILTIN | #158 | IsDate/CDateの既定Value判定 |
+| FZ-BUILTIN | #159 | DateValueの既定Value判定 |
+| FZ-BUILTIN | #160 | Err.Raise伝播とDecimal overflow後のErr状態 |
+| FZ-BUILTIN | #164 | 日付関数の既定Value展開 |
+| FZ-BUILTIN | #165 | Formatの既定Value展開 |
+| FZ-BUILTIN | #171 | Currency/Decimalの型強制・日付シリアル |
+| FZ-BUILTIN | #172 | 循環既定Valueの安全な拒否 |
+| FZ-BUILTIN | #178 | 既定Value Nullの数値書式 |
+| FZ-BUILTIN | #185 | Null既定Valueの型変換エラー |
+| FZ-BUILTIN | #186 | 既定Value日付の境界引数 |
+| FZ-GRAMMAR | #128 | 生成ケースと演算子境界 |
+| FZ-GRAMMAR | #130 | 宣言型サフィックス付き引数 |
+| FZ-GRAMMAR | #131 | クラス配列要素のByRef書き戻し |
+| FZ-GRAMMAR | #132 | Property SetのByRefオブジェクト引数 |
+| FZ-GRAMMAR | #151 | 名前付きProperty LetのByRef境界 |
+| FZ-GRAMMAR | #152 | 修飾名前付きByRef引数 |
+| FZ-GRAMMAR | #153 | ローカル2次元クラス配列のPreserve |
+| FZ-GRAMMAR | #154 | Property Getの2次元配列戻り値 |
+| FZ-GRAMMAR | #161 | 型付き多次元配列のPreserve追加シード |
+| FZ-GRAMMAR | #162 | 宣言型サフィックスの比較・連結 |
+| FZ-GRAMMAR | #166 | 直接手続きの名前付きByRef引数 |
+| FZ-GRAMMAR | #167 | CallByNameのクラスByRef書き戻し |
+| FZ-GRAMMAR | #173 | Select Caseの日付値比較 |
+| FZ-GRAMMAR | #175 | 外部CallByNameのメンバー解決 |
+| FZ-GRAMMAR | #177 | 外部CallByNameの引数境界 |
+| FZ-GRAMMAR | #180 | 16進・8進リテラルの符号とサフィックス |
+| FZ-GRAMMAR | #183 | LongLong/LongPtrリテラルの64ビット境界 |
+| FZ-GRAMMAR | #188 | 外部CallByNameのスカラーByRef境界 |
+| MUT-ENGINE | #129 | ミューテーションテスト |
+| MUT-ENGINE | #163 | UDT Binary Put/Get境界変異 |
+| MUT-ENGINE | #168 | 標準ファイルI/OのCP932文字列 |
+| MUT-ENGINE | #169 | Inputの行境界跨ぎ |
+| MUT-ENGINE | #170 | EOF後のLine Inputエラー |
+| MUT-ENGINE | #173 | Select Caseの日付値比較 |
+| MUT-ENGINE | #174 | Select Case追加数値種別 |
+| MUT-ENGINE | #176 | Inputの不足フィールドEOF |
+| MUT-ENGINE | #179 | InputのEmptyフィールドと空ファイルEOF |
+| MUT-ENGINE | #181 | On Error Resume NextのErr.Source更新 |
+| MUT-ENGINE | #182 | FSO追記とクラスByVal引数の相互作用 |
+| MUT-ENGINE | #184 | Select CaseのLongLong比較と呼出し経路横展開 |
+| MUT-ENGINE | #187 | Append/Inputの混在ハンドル境界 |
+
+各キャンペーンを実施したら、評価済みドメイン表と「キャンペーン評価履歴」に番号と
+該当する評価内容を1行追加し、上の概要表の「次回の未実施対象」を同じコミットで更新する。製品バグを
+確認した場合は通常の修正・回帰テスト・評価ログ更新を行い、変異が生き残った場合は
+テスト強化候補として次回対象に残す。生き残りを製品バグと断定しない。
+
+#### カバレッジを使った優先順位付け
+
+次回対象は、まず最新のカバレッジで一度も通っていない分岐・行を確認し、その中から
+仕様上の影響が大きく、入力を作りやすい領域を選ぶ。ファザーでは未通過のパーサー／
+評価器経路へ到達する生成条件を追加し、ミューテーションでは未通過経路を含むファイル
+の境界演算子を優先する。カバレッジはバグの有無を証明しないため、数値だけで対象を
+決めず、既存の実機照合結果・既知の制限・変更されたコードを併せて判断する。
+
+カバレッジ結果が古い場合は、既存の `coverage-v8/` を `./scripts/coverage.sh --report`
+で集計し直す。実行データがない、または大きなエンジン変更後の場合だけ全計測を行い、
+高コストな全計測を毎回のファザー／ミューテーション実施条件にはしない。選定根拠と
+使用したカバレッジ日付を各キャンペーンの実施履歴に記録する。
+
+## 監査済み領域と追加評価候補
+
+評価済みドメインでカバーしたものを除いた、まだ十分に試されていない機能。
+
+### カバレッジ計測で特定した暗部（2026-07-18、`./scripts/coverage.sh` 全 913 プロセスのユニオン集計）
+
+行カバレッジ: `evaluator.ts` 92.1% / `parser.ts` 92.6% / `builtins.ts` 94.8% / `coerce.ts` 93.8% / `lexer.ts` 98.4%。
+テストスイートが一度も通していない主な分岐（= 監査もされていない挙動。今後の評価ドメイン選定・テスト追加の優先候補）:
+
+### 最新計測の重点候補（2026-07-26）
+
+今回の全プロセス統合値は、`run_all_tests.sh` の子プロセス構成による c8 の過少報告を含むため、絶対値ではなく同一計測内の優先順位として扱う。低い順に、次の領域を評価候補へ追加する。
+
+1. `evaluator.ts`（50.7%）: 未到達のエラー処理、ファイルI/O、Property・クラス境界を優先する。
+2. `builtins.ts`（53.3%）: 日付・財務・文字列変換の未通過分岐を、既存の実機照合済み領域と重複しないよう選ぶ。
+3. `parser.ts`（68.4%）: 宣言・型サフィックス・エラー回復の組み合わせを追加する。
+4. `coerce.ts`（70.7%）／`lexer.ts`（73.7%）／`vba-types.ts`（77.7%）: Null、配列、型強制、トークン境界の未通過分岐をファザー候補にする。
+
+TypeScriptの1失敗（`type-system.test.ts`）はリファクタリング回帰候補として別トラックで扱い、低カバレッジ重点候補の根拠には含めない。
+
+- ~~**日付リテラルの 2 要素形式**~~ **評価 #36 で実機確認・回帰テスト追加済み**: 年なしは実行年を使い、`#3/15#` は mm/dd、月として不正な `#15/3#` は dd/mm にフォールバックし、時刻部分を保持する。
+- ~~**`&H`/`&O` 文字列の数値強制**~~ **実装・差分コーパス登録済み**: `vbaToNumber` が `&H`/`&O` を16/8進数として扱い、`CDbl("&H10")=16`、`CLng("&O17")=15` を確認。
+- ~~**`Lock` / `Unlock` 文**~~ **評価 #35 で修正済み**: ハンドルごとの範囲ロックを管理し、閉鎖済み番号・重複範囲・未ロック解除を VBA エラーにする。
+- ~~**`Open` 文の Access/Lock 節**~~ **評価 #36 で実機確認・修正済み**: `Lock Read` は他ハンドルの Read、`Lock Write` は Write を拒否し、`Shared` は両方を許可する。競合は Error 70。
+- ~~**AppActivate / SendKeys の文形式**~~ **評価 #39: `AppActivate "Microsoft Excel"` / `SendKeys "{ESC}", True` は構文・実行とも正常。GUI 副作用や `Wait` は安全なスタブとしてエミュレートしない。**
+- ~~**財務関数の一部経路**~~ **評価 #44: IRR/MIRR の1基底配列を `NaN` から修正。IPmt/PPmt の第2期以降の符号、期首払い、および範囲外 period を修正。**
+- ~~**Decimal 除算経路**~~ **評価 #41: `1/6` / `1/7` の28桁丸め、負値、`±1.005`・`±1.015` の銀行丸め、Collection 集計を確認。期待どおり。**
+- ~~**`Set obj.Prop = x` のチェーン経路**~~ **評価 #40: クラスの `Property Set` と Dictionary の `Item` を組み合わせたキー付き左辺・右辺で、連鎖代入と参照保持が正常。**
+- ~~**`DateAdd "ww"`・`DatePart` の年始基準系**~~ **評価 #42: `DateAdd("ww")` は正常。`DatePart("ww", #1/1/2021#, vbSunday, vbFirstJan1 / vbFirstFourDays / vbFirstFullWeek)` を `1,1,1` から `1,53,52` へ修正。**
+- ~~**クラス本体直下の `Dim`/`Static` 宣言**~~ **評価 #43: `Dim` フィールド・Collection と `Static hits As Long` を評価。同一インスタンスで状態を保持し、別インスタンスは独立する。**
+- ~~**パーサーのエラー回復**~~ **評価 #45: `errorRecovery: true` では不正手続きの診断後に後続手続きを保持する。通常実行時は例外を返す設計。**
+- ~~**`Declare` 文の一部形式**~~ **評価 #46: `Declare PtrSafe` の `Lib` / `Alias` / `LongPtr` / `ByRef String` / 戻り型を含む有効な宣言はロード可能。外部 DLL 呼び出しは安全なスタブ。**
+
+### 数学・数値関数・型チェック・文字列変換（評価 #22 で確認済み）
+
+- ~~`Sqr()`, `Abs()`, `Log()`, `Exp()`, `Sin()`, `Cos()`, `Atn()`, `Sgn()`, `Fix()`, `Rnd()`/`Randomize`~~ **評価済み（評価#22）: 全正常動作。`Atn(1)*4` で Pi 計算も正常。`Fix(-2.7)=-2` / `Int(-2.7)=-3` の違い正確。`Randomize seed` で同一シード → 同一乱数列を確認。**
+- ~~`TypeName()`, `VarType()`, `IsNull()`, `IsArray()`, `IsObject()`, `IsError()`, `IsEmpty()`~~ **評価済み（評価#22）: `TypeName(42)="Integer"` など VBA リテラル引数は正常。`IsNull`/`IsEmpty`/`IsArray`/`IsObject`/`IsError`/`CVErr` すべて正常。ただし **Bug 22-1**: Variant 変数経由の TypeName/VarType が subtype を失い常に Double を返す。**
+- ~~`Like` 演算子~~ **評価済み（評価#22）: `*`/`?`/`[a-z]`/`[!x]`/`#` すべて正常動作。メールバリデーションパターン `"*@*.*"` も正常。**
+- ~~`Optional ByVal x As Long = 0` デフォルト値付き Optional パラメーター~~ **評価済み（評価#22）: 正常動作。部分指定（一部の Optional のみ渡す）も正常。**
+- ~~`ParamArray args()` 可変引数~~ **評価済み（評価#22）: `CalcMean(ParamArray vals())` / `CalcStdDev(ParamArray vals())` 正常動作。`eval()` から `CalcMean(1,2,3,4,5)` で呼び出し可能。**
+- ~~名前付き引数 `Func(argB:=2, argA:=1)`~~ **評価済み（評価#22）: `FormatNum(value:=3.14, decimals:=3, prefix:="PI=")` 正常。引数順序逆転（`decimals:=4, value:=2.71`）も正常。部分指定（`value:=99.9` のみ）も正常。**
+- ~~`IIf()`, `Choose()`, `Switch()` 条件関数~~ **評価済み（評価#22）: 全正常。`Choose(dayNum,"Mon","Tue",...)` 1-based index / `Switch(score>=90,"A", True,"F")` フォールバック True も正常。**
+- ~~`Null` の扱い: `IsNull()`, `Null` リテラル, `Null` と `Empty` の区別~~ **評価済み（評価#22）: `IsNull(Null)=True` / `IsEmpty(Null)=False` / `Null+1=Null`（伝播）/ `TypeName(Null)="Null"` / `VarType(Null)=1` すべて正常。VarType 0=Empty, 1=Null の区別も正確。**
+- ~~`Asc()`, `Chr()`, `Hex()`, `Oct()`, `StrReverse()`, `Space()`, `String()`, `StrConv()`~~ **評価済み（評価#22）: 全正常。`Hex(65)="41"`, `Oct(65)="101"`, `StrReverse("Hello")="olleH"`, `String(5,"-")="-----"`, `Space(3)="   "`, `StrConv("hello",1)="HELLO"` / `StrConv("HELLO",2)="hello"` すべて正常。**
+
+### ファイル入出力
+
+- ~~`Open ... For Output/Input/Append`, `Print #`, `Line Input #`, `Close`~~ **評価済み（評価#5）**
+- ~~Sandbox パス変換（`C:\` → サブディレクトリ変換）の動作確認~~ **評価済み（評価#5）: 正常動作**
+- ~~存在しないファイルの `Open For Input` → Error 53 (File not found)~~ **評価済み（評価#5）: 正常動作**
+- ~~`Open For Binary` / `Put #` / `Get #` / `Seek`~~ **評価済み（評価#69、#101、#102）**: 数値、CP932文字列、固定長・可変長文字列を含む UDT、各種型付き配列を実機照合・回帰テストで確認。
+- ~~`Open For Random As #n Len = recLen`~~ **修正済み（評価#26）: `Len =` 節を解析し、レコード位置計算へ反映。**
+- ~~`FileLen(path)` / `FileDateTime(path)` / `Kill path`~~ **評価済み（評価#26）: 全正常動作**
+- ~~`GetAttr(path)`~~ **修正済み（評価#26）: `getattr` と属性定数を登録。**
+- ~~`Error(n)` 関数~~ **評価済み（評価#26）: 主要コード（5/6/9/11/13/53/91）は正確。未登録は汎用フォールバック**
+
+### Scripting.Dictionary
+
+- ~~`CreateObject("Scripting.Dictionary")` / `.Add` / `.Item` / `.Exists` / `.Keys` / `.Items`~~ **評価済み（評価#4）**
+- ~~ネストした Dictionary~~ **評価済み（評価#4）**
+- ~~`For Each` による Keys 列挙~~ **評価済み（評価#4）**
+
+### 文字列操作の深掘り
+
+- ~~`Format()` 関数（数値フォーマット `"#,##0.00"` / `"0.00%"`）~~ **評価済み（評価#6）: `"#,##0.00"` / `"0.00%"` は正常。`"000"` 零埋めはバグあり**
+- ~~`InStr` / `InStrRev` / `Split` / `Join` の境界ケース~~ **評価済み（評価#6）: 正常動作**
+- ~~全角・マルチバイト文字の `Len` / `Mid` / `Left` / `Right`~~ **評価済み（評価#6）: 文字数カウントで正常動作**
+- ~~`Format()` 日付フォーマット（`"yyyy/mm/dd"` 等）— 日付リテラル `#2024/01/15#` の扱い未確認~~ **評価済み（評価#7）**: 日付・時刻リテラル、Format日付パターン、DateAdd、DateDiff、Now、DateSerialを確認。
+
+### 数値型の境界
+
+- ~~`Integer`（-32768〜32767）のオーバーフロー → Error 6~~ **評価済み（評価#6）: 正常動作**
+- ~~`Long`（-2147483648〜2147483647）のオーバーフロー → Error 6~~ **評価済み（評価#6）: 正常動作**
+- ~~`CInt` / `CLng` / `CCur` などの変換関数~~ **評価済み（評価#6）: バンカーズ丸めも正常**
+- ~~`Currency` 型の精度~~ **評価済み（評価#6）: 浮動小数点扱いのため 0.1+0.2≠0.3（バグ）**
+- ~~`CDbl` / `CSng` の精度と `Single` 型の動作~~ **評価済み（評価 #21）: `CSng(1)/CSng(3)` → `0.3333333432674408`（32bit 精度）、`CDbl(1)/CDbl(3)` → `0.3333333333333333`（64bit 精度）。実 VBA と同様の精度差を正しく再現。正常動作。**
+
+### コレクション
+
+- ~~VBA `Collection` オブジェクト（`Add` / `Item` / `Count` / `Remove` / `For Each`）~~ **評価済み（評価#4）**
+- ~~ゼロ基底 vs 1基底のインデックスの挙動~~ **評価済み（評価#4）: 1基底が正しく動作する**
+
+### 複数クラスの連携
+
+- ~~クラス間の相互参照（A が B のインスタンスを持つ）~~ **評価済み（評価#7）: 正常動作**
+- ~~`Set` 代入 / `Is Nothing` 判定~~ **評価済み（評価#7）: 正常動作**
+- ~~`Class_Terminate` の呼ばれるタイミング~~ **評価済み（評価#7）＋修正済み: 参照カウント実装により最後の参照が解放されたときに発動するよう修正**
+
+### 拡張機能 LSP（評価済み）
+
+- ~~`__mocks__` ディレクトリによる VBA/JS/TS モック注入~~ **評価済み（評価 #12）: JS `__addCreateObject__` / VBA `.cls` クラスモック / `__mocks__.bas` 単一形式 / `.ts` モック すべて正常動作。同名 Public Function を複数 VBA モックが持つ場合は Ambiguous procedure バグあり**
+- ~~`setBuiltinOverride` で組み込み関数を上書き~~ **評価済み（評価 #12）: MsgBox を vbOK/vbCancel に固定 → 正常動作。`spy()` API も動作確認**
+- ~~vba-types.json の自動リロード（FileSystemWatcher）~~ **修正済み（評価 #12）: `onDidCreate` / `onDidChange` / `onDidDelete` で読み込み・更新・削除を反映。**
+- ~~Formatter（コード整形）~~ **評価済み（評価 #14）: キーワード大文字小文字 / インデント / 識別子ケーシング 全正常。組み込み型名（String/Integer 等）は正規化しない（設計ギャップ）**
+- ~~CodeLensProvider（▶ Run / 🐛 Debug / 参照数 / テスト状態）~~ **評価済み（評価 #14）: 基本動作正常。`Test_*` が常に `✓ Tested`（疑似陽性バグ）**
+- ~~FoldingRangeProvider（コード折りたたみ）~~ **評価済み（評価 #14）: 全主要ブロック対応・正常動作**
+- ~~CallGraphProvider（コールグラフ構築）~~ **評価済み（評価 #14）: マルチファイル・相互再帰・自己再帰・Excel依存検出すべて正常**
+- ~~With ブロック内のチェーン補完（`.Cells(args).` など）~~ **評価済み（評価 #10, #11）: 引数なし `.Cells.` は正常動作、引数付き `.Cells(1,1).` は評価 #10 でバグ検出 → コミット `3300dcb` で修正 → 評価 #11 で修正確認（48 件返るようになった）**
+- ~~クロスモジュール補完（複数ファイル展開時）~~ **評価済み（評価 #10）: `parseAsClass` オプションを使えば動作する。単純な statements マージだけでは不十分**
+- ~~`generateDefaultTypeStubsJson` / `setTypeStubs`~~ **評価済み（評価 #10, #11）: コミット `9e41d0c` で `parseTypeStubsJson` 追加により API 非対称が解消。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結**
+- ~~カスタム型上書き優先~~ **評価済み（評価 #10）: BUILTIN_MEMBERS よりカスタム定義が優先される。正常動作**
+- ~~VBA016 Quick Fix の動作（initTypeStubs / addToTypeStubs コマンド）~~ **評価済み（評価 #11）: `extension.ts` に完全実装。`vba-runner.initTypeStubs`（デフォルト vba-types.json 生成）と `vba-runner.addToTypeStubs`（型名追記）が CodeAction として登録済み。VS Code なしの動作確認は不可**
+- ~~シグネチャヘルプの深掘り（ネスト呼び出し・Optional 引数・ParamArray）~~ **評価済み（評価 #11）: 組み込み 60 件超・ユーザー定義 Function・ネスト優先すべて正常。文字列リテラル入力中に消えるバグあり**
+- ~~DefinitionProvider（F12 定義ジャンプ）~~ **評価済み（評価 #13）: `.bas` は正常。`.cls` は `parseAsClass` 使用時に `loc` 未設定バグにより常に `null`（Bug B）**
+- ~~ReferencesProvider（Find All References）~~ **評価済み（評価 #13）: `.bas` は概ね正常。`FuncName = value` 戻り値代入行が refs に含まれる（仕様準拠）。ローカル変数スコープ絞り込み正常。`.cls` は Bug B によりスコープ・includeDeclaration 除外が無効**
+- ~~RenameProvider（F2 リネーム）~~ **評価済み（評価 #13）: `.bas` 正常（戻り値代入行も含む TextEdit は正しい）。`.cls` は Bug B によりスコープ無視のテキスト置換**
+- ~~SymbolProvider（ドキュメントシンボル / アウトライン）~~ **評価済み（評価 #13）: `.bas` 完全動作。`source` 引数なし→Sub/Function のみ、あり→セクションヘッダー `' --- Name ---` も SymbolKind.Namespace で追加。`.cls` は動作するが全シンボルの loc が `(0,0)`（Bug B の影響・fallback 動作）**
+- ~~`formatter.ts` — VBA コード整形（インデント・キーワード大文字化・空行）~~ **評価済み（評価 #14）**
+- ~~`code-lens-provider.ts` — ▶ Run / ▶ Test CodeLens 生成~~ **評価済み（評価 #14）**
+- ~~`folding-range-provider.ts` — Sub/If/For 等の折りたたみ範囲~~ **評価済み（評価 #14）**
+- ~~`call-graph-provider.ts` — コールグラフ（呼び出し関係・再帰検出）~~ **評価済み（評価 #14）**
+- ~~`auto-parens.ts`~~ **評価済み（評価 #15）: `autoParensEdit`/`getBlockEnd`/`needsBodyIndent`/`needsEndBlock` 正常動作。戻り型付き Function 未検出バグあり**
+- ~~`keyword-casing.ts`~~ **評価済み（評価 #15）: `canonicalKeyword`/`isInStringOrComment` 正常動作**
+- ~~`label-navigator.ts`~~ **評価済み（評価 #15）: GoTo←→LabelStatement 双方向ナビゲーション正常動作**
+- ~~`line-continuation-checker.ts`~~ **評価済み（評価 #15）: `needsLineContinuation`/`stripInlineComment` 正常動作**
+- ~~`variant-type-inferencer.ts`~~ **評価済み（評価 #15・#17）: `inferVariantTypes`・`inferProcedureHints`・`inferModuleVarType`・`inferLocalVarType`・`buildProcMap`・`findProcAtLine` 全関数確認。CreateObject ProgID型推論（Dictionary/FSO/Worksheet等）・曖昧型抑制・パラメーター Variant ヒント・戻り型ヒント・モジュールレベル変数推論すべて正常。`Dim x As Variant` + 数値代入 → Long ヒントが出る（設計通り）**
+- ~~`test-discovery.ts`~~ **評価済み（評価 #15）: `TestDiscovery.discoverTests` 正常動作**
+- ~~`test-runner.ts`~~ **評価済み（評価 #15）: `runTests()` はスタブ（常に passed バグ）。`runTestWithEvaluation()` は実装済みだがエラーメッセージが `"[object Object]"` になるバグ**
+- ~~`ast-comparison.ts`~~ **評価済み（評価 #15）: `astEqual`/`serializeAst`/`findMatchingExpressions` 正常動作**
+- ~~`hover-provider.ts`~~ **評価済み（評価 #15・#17）: `HoverProvider.getHoverInfo` ローカル変数・パラメーター・モジュールレベル変数・定数・プロシージャ・As Object→CreateObject型推論表示・到達定義情報 全正常動作。`Const MAX As Long = 100` のホバーが `Const MAX` のみ（型・値なし）バグあり。`Public`/`Private` が lowercase で表示されるバグあり**
+- デバッガー系（VS Code なしでは動作確認不可・ソース確認のみ）: `debugger.ts` / `debug-adapter.ts` / `debug-session.ts` / `debug-worker.ts` / `vscode-debug-adapter.ts`
+- `call-graph-webview.ts` — コールグラフの WebView 表示（VS Code なしでは動作確認不可）
+
+### 使い勝手の観点
+
+機能の正常動作だけでなく、ユーザー体験として自然かどうかを評価する観点。
+サブエージェントは以下の視点で「引っかかり」や「改善提案」を記録すること。
+
+- **ホバー表示**: 変数・型名・プロシージャのホバーに表示される情報が十分か、冗長・不足はないか
+- **補完候補の順序と品質**: 最も使いそうな候補が上位に来るか、不要なノイズが多くないか
+- **エラーメッセージの分かりやすさ**: VBA016 等の診断メッセージがユーザーにとって意味が伝わるか
+- **初回ロード体験**: ファイルを開いた直後の診断・補完の応答速度や順序感（先にスキャンされるべきかどうか）
+- **API 直感性（VBARunner）**: `run()` / `eval()` の引数・戻り値がドキュメントなしでも推測できるか
+- **テスト結果の読みやすさ**: `runTests()` の出力（状態・メッセージ・時間）が CI ログとして見やすいか
+
+### ~~条件付きコンパイル~~ **評価済み（評価#8）**
+
+- ~~`#If` / `#Const` / `#Else`~~ **評価済み（評価#8）: 正常動作**
+- ~~`config.compilerConstants` による定数上書き~~ **評価済み（評価#8）: ただしファイル内 `#Const` が `compilerConstants` より優先（VBA 仕様準拠）。VBA7 デフォルト=0 に注意**
+
+### ~~エラーハンドリングの深掘り~~ **評価済み（評価#8）**
+
+- ~~`Resume` / `Resume Next` / `Resume Label`~~ **評価済み（評価#8）: 全3形式とも正常動作。`Resume`（ラベルなし）は同一行リトライ確認**
+- ~~ネストした `On Error` （Sub から呼んだ Sub でエラーが起きた場合）~~ **評価済み（評価#8）: 複数スタックフレームを超えた伝搬が正常動作（MidLevel 無ハンドラー → TopLevel でキャッチ確認）**
+- ~~`Err.Clear` / `Err.Number` の伝搬~~ **評価済み（評価#8）: `Err.Clear` で `Err.Number` が 0 にリセットされることを確認**
+
+### ~~`VBARunner.run()` の高度な使い方~~ **評価済み（評価#8）**
+
+- ~~`type: 'get'` / `'let'` / `'set'` オプション（Property アクセス）~~ **評価済み（評価#8）: `type:'set'` で JS モックオブジェクトを VBA Property Set へ注入可能（依存性注入パターンとして有用）**
+- ~~`ByRef` パラメーター経由での値の書き戻し確認~~ **評価済み（評価#8）: 複数 ByRef パラメーターすべて JS 配列への writeback を確認**
+- ~~`config.env` / `config.sandboxRoot` オプション~~ **評価済み（評価#8）: 両オプションとも正常動作**
+
+---
+
+## 評価時の注意事項（過去の評価で学んだこと）
+
+1. **配列でファイルを渡せる**（修正済み）: `new VBARunner(['/a/M1.bas', '/b/C1.cls'])` が動作する。なお配列渡しは mock スキャンが行われない（ディレクトリ渡しと異なる点）
+2. **`eval()` で変数 + 算術は括弧が必要**: `eval('x + 1')` はエラー。`eval('(x) + 1')` または `eval('x')` で値を取り出してから JS 側で計算する
+3. **組み込み関数の戻り値への算術は括弧不要（修正済み）**: `eval('UBound(arr) + 1')` は `ec63519` 以降正常に動作する
+4. **ディレクトリ読み込みは `.bas`/`.cls` のみ**: `.ts` / `.js` ファイルが混在していても無視される
+5. **`eval()` 末尾の裸の識別子は値を返さない**: マルチステートメント中の最後の `x` は `undefined`。値読み出しは独立した `eval('x')` で行う
+6. **`Dictionary.Add(key, item)` vs `Collection.Add(item [, key])`**: 引数順序が逆。Dictionary はキーが先、Collection はアイテムが先。間違えると Error 91 が出るが「何を間違えたか」のヒントがない
+7. **`Dictionary.Item("nonexistent")` はキーを自動生成する（VBA 互換）**: 読み取り時に存在しないキーがあると Empty でエントリを生成しコンソール警告を出力する
+8. **VFS パスは絶対パス `/sandbox/c/...` を使う**: `sandboxRoot` はコンストラクターオプション名。JS から VFS へアクセスする際は先頭スラッシュが必須（`fs.readFileSync('/sandbox/c/test.txt', 'utf-8')`）
+9. **`Print #` は CRLF（`\r\n`）を書く**: JS 側で `readFileSync` したときは `split('\r\n')` でパースすること。`split('\n')` では行末に `\r` が残る
+10. **~~`Exit Sub` を `eval()` トップレベルで呼ばない~~（修正済み `0ca97d8`）**: 現在は `executeStatements` が Exit シグナルを飲み込むため正常動作する
+11. **~~FSO `AtEndOfStream` は未実装（Error 438）~~（修正済み `0ca97d8`）**: 現在は `pos >= content.length` を返す getter が実装済み。`Do While Not ts.AtEndOfStream` パターンも使用可
+12. **`Format()` の零埋め（`"000"` 等）は正常動作**（修正済み）: `Format(42, "000")` → `"042"`。`"#,##0.00"` / `"0.00%"` も正常。
+13. ~~**`Currency` は固定小数点ではなく浮動小数点**~~（**評価 #23 で修正確認済み**）: `CCur(0.1) + CCur(0.2)` は厳密に `0.3`（内部 BigInt で 4桁固定小数点演算）。`VbaRunner.run()` / `.eval()` の戻り値も `number` に正規化される（Bug C-1/C-2 修正済み）。
+14. **`empty` / `Empty` は変数名に使えない**: `Dim empty() As String` は「Expected variable name (Found empty)」でパースエラー。`emptyArr` 等の代替名を使う。
+15. **`run()` の第2引数は省略可能**（修正済み）: 引数なし Sub は `r.run('Sub名')` と省略できる。`args` のデフォルト値を `[]` に修正済み。
+16. ~~**時刻のみリテラル `#HH:MM:SS#` は使えない**~~（修正済み `b4d00c3`）: `#12:30:45#` / `#8:30:00 AM#` が正常動作するようになった。評価 #27 で動作を確認。日付+時刻 `#2024/01/15 12:30:45#` も正常。
+87. ~~**`CallByName` の `VbLet(4)` / `VbSet(8)` は未実装（Bug 27-1）**~~: **修正済み**。`builtins.ts` の `callbyname` に VbLet(4)/VbSet(8) ブランチを追加。VBA クラスの `classDef.procedures` から `propertyType === 'let'`/`'set'` の Property を検索して `ctx.callMethod` で呼び出す。レグレッションテスト: `tests/spec/callbyname.test.ts`（4テスト）。
+88. **`On Error GoTo` ハンドラー内で `Exit Function/Sub` 後も `Err.Number` が残留する（仕様準拠）**: エラーハンドラーで処理後 `Exit Function` で抜けると、呼び出し元の `Err.Number` にエラー番号が残留する。これは実 VBA と同じ動作。VBA の `Err` はグローバルオブジェクトであり、`Resume`/`Resume Next`/`Err.Clear`/`On Error` 文の実行でのみリセットされる。ワークアラウンド: エラーハンドラー内で明示的に `Err.Clear` を呼ぶ。
+89. **`GetAllSettings` の戻り値は `Array[row][0=key, 1=val]` の2次元配列**: 評価 #27 で確認。`GetAllSettings(appName, section)` は行数×2列の配列を返す。TypeScript 側でアクセスするには `(result as any[][])[row][0]`（キー）/ `[1]`（値）でアクセスする。README に記載なし。
+90. **`Shell(cmd)` はスタブとしてタスク ID `1` を返す**: 実際にコマンドを実行せず `[SHELL] cmd` のログを出力してタスク ID `1` を返す。CLAUDE.md に記載の通り。`DoEvents` は `0` を返す no-op。
+91. **`Filter(arr, keyword, include, compare)` の第3引数 `include` と第4引数 `compare` は動作する**: `Filter(arr, "key", False)` で非一致フィルタが正常動作。`Filter(arr, "key", True, 1)` で `vbTextCompare`（大文字小文字無視）も動作。一致なしの場合は `UBound=-1` の空配列を返す。
+41. ~~**`Dim s As String * N`（固定長文字列）は未実装**（Bug 21-1）~~: **修正済み**。`Dim s As String * 10` が正常に動作する。短い文字列はスペースでパディング、長い文字列は切り捨て、`Len(s)` は常に N を返す。UDT の `Name As String * 30` メンバーも対応。初期値は NUL 文字 × N（VBA 仕様準拠）。
+17. **`Class_Terminate` は参照カウントなしで早期発動する**: `Set p1 = Nothing` で他に参照があっても `Class_Terminate` が呼ばれる。ただしオブジェクト自体は破棄されず残存する。VBA の COM 参照カウント完全再現ではない（evaluator.ts に既知制限として明記）。
+18. **`Format()` 日付パターンは豊富に動作する**: `yyyy/mm/dd` / `yyyy年mm月dd日` / `d-mmm-yyyy` / `dddd` / `ddd` / `Long Date` / `Short Date` / `yy/mm/dd` / `hh:mm:ss` / `h:mm AM/PM` すべて正常。
+19. **`.cls` ファイルのクラス名はファイル名（拡張子なし）で決まる**: `Attribute VB_Name = "MyObj"` の値ではなく、`MyObj.cls` のようにファイル名がクラス名になる。ファイルを `TerminateTest.cls` と名付けると VBA 側で `New TerminateTest` と書かないと Error 429 になる。実際の VBA エクスポートではファイル名と `VB_Name` は通常一致しているが、ファイルをリネームした場合に落とし穴になる。
+20. **コンパイラ定数のデフォルトは現代的な 64bit Windows 環境**: `DEFAULT_COMPILER_CONSTANTS: { VBA7: -1, Win64: -1, Win32: -1, Mac: 0 }`（Office 2010+ / 64bit）。32bit 環境をシミュレートするには `compilerConstants: { VBA7: 0, Win64: 0 }` を渡す。README のセクション10に記載。
+21. **ファイル内 `#Const` は外部 `compilerConstants` より優先**: `preprocess()` は `localConsts`（`#Const` で定義）を `merged`（`compilerConstants`）より先に参照する。外部から定数を注入しても、ファイル内で `#Const FOO = X` が定義されていれば上書きされる。VBA 仕様準拠。README のセクション10に記載。
+22. **`Dim entry As New Type` をループ内で使うと同一オブジェクトを共有する**:
+ VBA の `Dim` はプロシージャスコープのため、ループ内に書いてもループ変数はイテレーション間で共有される。新しいオブジェクトが必要なら `Set entry = New Type` をループ内に書くこと（`Dim` はプロシージャ先頭で1回だけ宣言する）。
+23. **`run()` の `type:'set'` でJS モックオブジェクトを Property Set へ注入できる**: `r.run('PropName', [mockObj], 'set')` でフラットな JS オブジェクトを VBA の Property Set 経由でモジュール変数に代入できる。その後 VBA 側のコードで `Is Nothing` 判定や、プロパティアクセスが可能。依存性注入パターンとして有用。
+24. **`eval()` で読めるのは `Public` モジュール変数のみ（`Dim`/`Private` は不可）**: `eval()` は独立したトップレベルモジュールとして評価されるため、他モジュールの `Private`/`Dim` 変数は見えない。`Public` 変数はグローバル env 経由でアクセス可能。意図通りの設計（モジュールコンテキスト内でのデバッグ評価とは別概念）。
+25. **`CompletionProvider` を LSP 外部から使うには `Parser` を `errorRecovery: true` で呼ぶこと**: `new Parser(tokens).parse()` は不完全な VBA（補完トリガー時の途中入力）でスローする。LSP サーバーが内部で使っているように `new Parser(tokens, { errorRecovery: true }).parse()` とする必要がある。公開ドキュメントに記載なし。
+32. **`getCompletions` に渡すのは `parse().body`（`Statement[]`）であり `Program` オブジェクトではない**: `parse()` は `{ type: 'Program', body: Statement[], diagnostics: [] }` を返す。`getCompletions(parsed, ...)` と渡すと `statements is not iterable` エラー。`getCompletions(parsed.body, ...)` が正しい。（ただしサブエージェントは `stmts` を `parse()` の返り値から `.body` で取り出して正常動作した）
+33. **`parseTypeStubsJson` 関数を使えば `setTypeStubs` の前処理が不要になった（評価 #11 で確認）**: コミット `9e41d0c` で `parseTypeStubsJson` が `completion-provider.ts` に追加された。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結。旧評価 #10 で必要だった手動 JSON.parse + lowercase 変換 + Map 構築は不要。
+34. **`SignatureHelpProvider.getSignatureHelp(stmts, source, line, char)` が使える**: 組み込み関数 60 件超・ユーザー定義 Function・ネスト呼び出し（内側を優先）が動作する。ただし文字列リテラルを入力し始めると `findCallContext` が `null` を返してシグネチャが消える（`signature-help-provider.ts:145` の右→左スキャンバグ）。
+26. **`CompletionProvider.getCompletions` の引数順は `(statements, source, line, character)`**: `statements` が第1引数、`source` が第2引数の順。ドキュメントや過去の記述で逆順に書かれていた例があるため注意。
+27. **`checkUnknownTypes` の第2引数は `Set<string>`（オブジェクトリテラル `{}` は不可）**: 誤って `{}` を渡すと `knownTypeNames.has is not a function` で実行時エラー。`new Set<string>()` か `collectUserDefinedTypeNames(stmts)` の戻り値を渡すこと。
+28. **~~`setTypeStubs()` の引数は `Map<string, CompletionItem[]>`（JSON 文字列ではない）~~（評価 #11 で解消確認）**: コミット `9e41d0c` で `parseTypeStubsJson(json)` が追加された。`generateDefaultTypeStubsJson()` → `parseTypeStubsJson(json)` → `cp.setTypeStubs(map)` の 3 ステップで完結。手動変換は不要。
+29. **`parse()` フリー関数は存在しない**: `parser.ts` はフリー関数の `parse()` をエクスポートしていない。`Lexer` でトークナイズ後に `new Parser(tokens, { errorRecovery: true }).parse()` という形で呼ぶこと。
+30. **クロスモジュール補完にはクラスモジュールのパースに `parseAsClass` オプションが必要**: `.cls` ファイルを `new Parser(tokens, { parseAsClass: 'ClassName' })` で解析しないと `ClassDeclaration` として AST に格納されない。単純に `statements` をマージするだけでは不十分で、クラスのメンバーが補完候補に出ない。
+31. **~~With ブロック内の引数付きメソッドチェーン後の補完は未対応（新バグ）~~（コミット `3300dcb` で修正・評価 #11 で確認）**: `    .Cells(1, 1).` でトリガーして 48 件の Range メンバーが返るようになった。
+35. **JS `__addCreateObject__` モックは `CreateObject(progId)` 呼び出し全体を置換する**: `factory()` が返すオブジェクトに `__progId__` がない場合は `mock-loader.ts:181` でキーを `__progId__` として補完する。`evaluator.registerComObject` に渡される。既存の組み込みスタブ（Scripting.Dictionary など）よりも優先される。
+36. **`.ts` モックは `tsx` 環境下では `createRequire` で直接 require できる**: `mock-loader.ts` は `createRequire(import.meta.url)` で生成した `_require` を使って `.ts` モックを読み込む。`tsx` 実行環境では `.ts` ファイルを直接 require できるため、TypeScript でモックを書ける。
+37. ~~**複数の VBA モックが同名 `Public Function` を持つと Ambiguous procedure エラー**（評価 #12）~~: **修正済み**。`loadVbaMock` が後勝ちで手続きを昇格し、後からロードしたモックの定義を有効にする。
+38. **`__mocks__/ClassName.cls` は本番 `ClassName.cls` を上書きする**: `promoteMockVbaClasses` が mock の `.cls` を `externalObjectFactories` に昇格させ、`instantiateClass` で `classDefinitions` より優先されるため、本番クラスは実質上書きされる。VBA クラスモックは期待通り動作する。
+39. **`vba-types.json` の FileSystemWatcher は削除（`onDidDelete`）を監視しない**: `extension.ts:70-77` では `onDidCreate` と `onDidChange` のみフックしている。`vba-types.json` を削除した場合は型スタブがメモリに残ったまま（拡張機能再起動まで消えない）。
+40. **LSP ナビゲーション 4 プロバイダーの API パターン**（評価 #13）: 全プロバイダーとも `setDocumentUri(uri)` + 1 メソッド呼び出しのシンプルな設計。`stmts` には `new Parser(tokens, { errorRecovery: true }).parse().body` を渡す（`Program` オブジェクトをそのまま渡すと動かない）。`DefinitionProvider.getDefinition(stmts, source, line, char)` / `ReferencesProvider.getReferences(stmts, source, line, char, includeDeclaration)` / `RenameProvider.getRename(stmts, source, line, char, newName)` / `SymbolProvider.extractSymbols(stmts, source?)` の 4 メソッド。`line` / `character` はすべて 0-based。
+41. **`SymbolProvider.extractSymbols(stmts, source)` は `source` あり時にセクションヘッダーを抽出する**（評価 #13）: `' --- Section Name ---` / `' === Section Name ===` スタイルの VBA コメントを `SymbolKind.Namespace` として返す。`.bas` の機能として有用。`source` 省略時は Sub/Function/Property のみ。
+42. ~~**`parseAsClass` 使用時は DefinitionProvider / ReferencesProvider / RenameProvider が `.cls` シンボルを認識しない**（評価 #13・Bug B・修正済み）~~: 修正: `parseClassBody()` 内で `tok`（ブランチ開始前トークン）を startTok として記録し、各パース呼び出し後に `stmt.loc = { start: tok.line/col, end: endTok.line/col }` を設定。`ClassDeclaration` 本体の `loc` も最初・最後の有効トークンから設定。これにより `DefinitionProvider.getDefinition` が `.cls` ファイルで正しく位置を返す・`SymbolProvider` 子シンボルの位置が正確になる。`tsc -b` / `class-module.test.ts` 全通過確認済み。
+43. **`ReferencesProvider` は `FuncName = value` の戻り値代入行を参照として返す**（評価 #13）: テキスト正規表現による全出現検索の仕様。`includeDeclaration: false` は宣言行の正確な position のみを除外する。戻り値代入 `CalcTax = price * rate` は宣言行 (line 0) とは別の行 (line 1) のため除外されない。**RenameProvider の観点では正しい動作**（関数リネーム時に戻り値代入も書き換え必須）。「Find All References」の「呼び出し一覧」として使う場合はユーザーが驚く可能性あり。
+44. **`format(source, options)` + `applyEdits(source, edits)` の使い方**（評価 #14）: `format()` は `TextEdit[]` を返すだけ。実際に文字列を得るには `applyEdits(source, format(source, opts))` とする。`FormatterOptions` は `indentSize`（デフォルト 4）/ `indentChar`（デフォルト `' '`）/ `keywordCase`（`'pascal'` or `false`）。
+45. **Formatter が正規化しないもの**（評価 #14）: 組み込み型名（`String`/`Integer`/`Boolean`/`Long`/`Double`/`Date`/`Variant`/`Object` など `As` 後に使う型名）と組み込みオブジェクト（`Debug`/`Err`/`ActiveSheet` など）は `TokenType.Identifier` として扱われ、ユーザー宣言もないため正規化されない。`Dim s As string` → `Dim s As string`（変化なし）。
+46. **Formatter の行継続インデント方針**（評価 #14）: 行継続（`_` 終端）行の後続行は `actualIndent`（既存の先頭空白）を保持するだけで、新たなインデントを付与しない。継続行が列 0 に書かれていれば列 0 のまま。意図的保存動作（フォーマッター非制御領域）。
+47. **`CodeLensProvider.getCodeLens` の lens 構成**（評価 #14）: プロシージャごとに最大 5 種類の lens が付く: `▶ Run` + `🐛 Debug`（必須パラメーターなし or `Test_*` 1param のみ）/ 参照数 or `🔔 Event Handler`（常時）/ `✓ Tested` or `Untested`（常時）/ `📊 Show in Call Graph`（常時）。テスト結果を渡した場合は `Test_*` にさらに結果 lens（`✓ Xms` or `✗ message`）が追加。
+48. **`CodeLensProvider.getDeadCodeWarnings` で Private 0参照プロシージャを検出できる**（評価 #14）: `isPrivate && refCount === 0 && !isEventHandler` の条件でデッド候補を列挙。イベントハンドラー（`KNOWN_VBA_EVENT_NAMES` 照合）は除外される。
+49. **`FoldingRangeProvider.getFoldingRanges` は全主要ブロックをカバー**（評価 #14）: Sub/Function/If/For/ForEach/DoWhile/While/With/SelectCase/Type/Enum/Class が対象。単行 `If x Then Debug.Print y`（Then 後に実体がある場合）は折りたたみ対象外。`FoldingRange` は `{ startLine, endLine }` の 0-based ペア。
+51. ~~**`autoParensEdit` は戻り型なしの Sub/Function/Property のみ対応**（評価 #15）~~（評価 #16 で修正確認済み）: `PROC_NO_PARENS` 正規表現に `(?:\s+As\s+\w+)?` が追加され、`Function GetValue As Long` → `{ insertCol: 17 }` が正常に返る。
+52. ~~**`TestRunner.runTests(statements)` はスタブ実装**（評価 #15）~~（評価 #16 で修正確認済み）: `runTests` の引数は `src: string`（VBA ソース文字列）に変更され、内部で実際に評価を行う本実装になっている。`Err.Raise` するテストは `{ state: 'failed' }` を返す。
+53. ~~**`TestRunner.runTestWithEvaluation` のエラーメッセージが `"[object Object]"` になる**（評価 #15）~~（評価 #16 で修正確認済み）: `catch` 節が `(testError as any)?.message ?? String(testError)` になっており、VBA エラー plain object の `.message` が正しく取り出される。
+56. **`TestRunner.runTests(src)` の正しい引数は VBA ソース文字列**（評価 #16）: 評価 #15 では `stmts`（Statement[]）が引数と記録されていたが、現行は `src: string` が正しい。`runTests(parsed.body)` のように Statement[] を渡すと `char.codePointAt is not a function` で TypeError になる。正しくは `runTests(vbaSourceCode)` とすること。
+54. **`HoverProvider.getHoverInfo` のパラメーター hover range は列 0 固定**（評価 #15）: パーサーがパラメーターの loc を AST に記録しないため、`symbol-table.ts` がパラメーターの位置を手続きヘッダー行・列 0 からの推定値として記録する。ホバー時の下線範囲が列 0 から始まる（設計上の既知の制限）。
+55. **`inferVariantTypes` は `buildProcMap` の返す `Map` を渡すと再帰型推論が効く**（評価 #15）: `allProcs: Map<string, ProcedureDeclaration>` を渡さないと関数呼び出し経由の型推論が行われない。同ファイルの全手続きマップを作って渡すこと。同じ型推論を繰り返す場合は `memo: Map<string, InferredType>` を共有すれば高速化できる。
+
+50. **`CallGraphProvider.buildCallGraph` はマルチファイル対応・再帰検出あり**（評価 #14）: `fileMap: Map<uri, { statements, uri }>` を渡す。戻り値は `{ nodes: Map<nameLower, ProcNode>, edges: CallEdge[] }`。自己再帰（`factorial → factorial`）・相互再帰（`funca ↔ funcb`）ともにエッジとして正しく検出。メンバーアクセス呼び出し（`obj.Method()`）は追跡しない（設計上の仕様）。`ProcNode.isExcelDependent` は EXCEL_ROOT_OBJECTS 定数セット（`sheets`/`range`/`cells`/`application` 等）への直接参照で判定。
+57. **`inferProcedureHints` は `inferVariantTypes`（変数）+ パラメーターヒント + 戻り型ヒントの上位 API**（評価 #17）: 変数・パラメーター・戻り型の3種類のヒントを一括取得するには `inferProcedureHints` を使う。`inferVariantTypes` は変数のみ。戻り型ヒントは `kind: 'return'` で区別できる。
+58. **`Dim x As Variant` に数値を代入すると `As Long` ヒントが出る（設計通り）**（評価 #17）: `variant` 宣言済みでも代入から推論された型が異なれば（'long' ≠ 'variant'）ヒントが表示される。ユーザーにとっては「Variant で宣言しているのにヒントが出る」と驚く可能性がある。意図的な動作。
+59. **`lintProgram(program)` に渡すのは `Program`（`parse()` の戻り値そのもの）**（評価 #17）: `checkUnknownTypes` と異なり `lintProgram` は `program.body` ではなく `Program` オブジェクト全体を受け取る。`Program.body` を渡すと `checkOptionExplicit` が機能しない（`OptionExplicitStatement` を走査できないため）。
+60. **診断コード VBA001〜VBA014 の severity 一覧**（評価 #17）: VBA013=Error(1)、VBA001/VBA005/VBA006/VBA008/VBA009/VBA010/VBA012/VBA014=Warning(2)、VBA002/VBA004/VBA007=Info(3)、VBA003=Hint(4)。VBA011（Range変数アクセス）と VBA016（未知型・別モジュール）は `lintProgram` には含まれない（`checkUnknownTypes` で別途取得）。
+61. ~~**`Const` の hover displayText にはすべての情報が含まれていない**（評価 #17 で発見）~~: **修正済み（`03f2b23`）**: `parser.ts` で `ConstDeclaration.objectType` を保持し、`symbol-table.ts` に `constLiteralText()` ヘルパーを追加。`Const MAX As Long = 100` と型・値つきで表示されるようになった。
+62. ~~**`Public`/`Private` が hover で lowercase 表示される**（評価 #17 で発見）~~: **修正済み（`03f2b23`）**: `symbol-table.ts` に `cap()` ヘルパーを追加し、scope 文字列を capitalize するよう修正。
+63. **`analyzeDefUse(proc, startLine, endLine)` の行番号は 1-based**（評価 #18）: `src/engine/def-use-analyzer.ts` の公開 API。`LspServer.getCodeActions` 内部では 0-based の `range.start.line` を `+1` して渡している。呼び出し元で要注意。戻り値 `{ inputs, outputs, locals }` はすべて小文字正規化済み変数名の配列。
+64. **`findDeadStores(proc)` は `ProcedureDeclaration` を直接受け取る**（評価 #18）: `src/engine/dead-store.ts`。`DeadStore` の `line`/`column`/`endColumn` はすべて 1-based で診断 range に直接使える。ByRef パラメーターと Function 戻り値変数は `alwaysLive` 扱いで除外される（正しい動作）。
+65. **`LspServer.getCodeActions` は `analyzeDefUse` の実行まで完了しており、`buildExtractFunctionEdit` は純粋テキスト変換のみ**（評価 #18）: `getCodeActions` の戻り値 `actions[0].command.arguments` には `[uri, range, defUseResult, procSignature, callStatement]` が含まれる。ユーザーが procName を指定してから `buildExtractFunctionEdit(uri, range, procName, defUseResult, procSignature, callStatement)` を呼ぶ2ステップ設計。VS Code コマンドとして仲介される想定。
+66. ~~**`buildExtractFunctionEdit` が選択内の Dim をパラメーターと共存させる不正コードを生成する（Bug R1）**（評価 #18 で発見）~~: **修正済み（評価 #18）**: `reindented` 生成時に inputs/outputs に含まれる変数名の `Dim` 行をフィルタリングする処理を追加（`server.ts:819-830`）。レグレッションテスト: `tests/lsp/lsp-code-actions.test.ts` Test 13。
+67. **`buildExtractFunctionEdit` のパラメーター名は小文字正規化される**（評価 #19）: `analyzeDefUse` が返す変数名配列が小文字正規化済みのため、シグネチャの `ByVal inputVal As Variant` → `ByVal inputval As Variant` になる。VBA は大文字小文字無視のため動作には影響しないが可読性が低下する。本体コードの識別子は元ソースの大文字小文字を維持するため、シグネチャと本体で不一致になる。
+68. **`buildExtractFunctionEdit` は抽出先を常に `Private Sub` にする**（評価 #19）: 元のコードが Function 内であっても、戻り型の推論が困難なため抽出先は常に `Private Sub` になる。設計上の制限。
+69. **`findDeadStores` はループカウンター・集計変数・条件分岐内代入・関数戻り値変数を誤検出しない**（評価 #19）: CFG ベースの生変数解析が高精度で動作することを確認。ByRef パラメーターと Function 戻り値変数は `alwaysLive` 扱いで適切に除外。
+70. ~~**With ブロック内でユーザー定義クラスの Property Get が Error 424（Bug W1）**（評価 #19 で発見）~~: **修正済み（評価 #19）**: `evaluateImplicitWithObjectExpression` に `__vbaClass__` ブランチを追加。`With classInstance: .PropertyGet` が正常動作するようになった。`class-module.test.ts` Bug W1 テスト追加。
+71. ~~**Variant 変数経由の TypeName/VarType は subtype を失い常に Double を返す（Bug 22-1）**（評価 #22）~~: **修正済み（評価 #22）**: `evaluator.ts:evaluateTypeIntrinsic` の非リテラル数値分岐に `Number.isInteger(val)` + Integer/Long 範囲チェックを追加。`Dim v As Variant : v = 42 : TypeName(v)` → "Integer"、`VarType(v)` → 2（vbInteger）が正しく返るようになった。`v = 3.14` の浮動小数点は引き続き "Double"。レグレッションテスト: `tests/spec/typename.test.ts` Bug 22-1 ブロック。
+77. **`Dir()` はグローバル状態を共有する**: `Dir(pattern)` を呼ぶと内部ポインターがリセットされる。ネストした `Dir(pattern2)` 呼び出しで元の列挙が中断される。実 VBA と同じ仕様準拠の動作。ループ内でサブルーチンを呼ばずに `Dir()` を使うこと。
+78. ~~**`DatePart` の第3・第4引数（firstdayofweek / firstweekofyear）は未対応** (Bug #25-6)~~: **修正済み**。`DatePart("ww", d, 2)` を含む曜日・週開始引数を処理し、`tests/spec/datetime.test.ts` で回帰確認済み。
+79. ~~**`LenB` / `AscB` / `ChrB` は未実装** (Bug #25-1〜3)~~: **修正済み**。UTF-16LE バイトモデルで実装し、`tests/spec/builtin-strings.test.ts` で ASCII・日本語・Null を回帰確認済み。
+80. **`Dim b() As Byte : b = str` は修正済み**（評価 #37・Bug #25-4）: 文字列を UTF-16LE のコード単位へ展開する。`"Aあ"` は `41 00 42 30`、下限 0・上限 3 になる。
+81. ~~**`Split(str, delim, limit)` の第3引数（limit）は未対応** (Bug #25-5)~~: **修正済み**。`limit=0`・正数・負数を VBA 仕様に合わせ、`tests/spec/split-join.test.ts` で回帰確認済み。
+73. **`NPV` に 1-based VBA 配列を渡す場合は修正済み（Bug 24-1）**: `Dim flows(1 To N)` で宣言した配列も `NPV(rate, flows)` で正常動作する。`vbaBase` プロパティを参照して基底インデックスを取得する実装に修正済み。
+74. **`Rate` は初期推定値（guessRate）が悪いと別の根に収束する**: `Rate(nper, pmt, pv, 0, 0, guessRate)` の最後の引数 `guessRate` には解に近い値を渡すこと。年率 2% のローンなら `guessRate=0.001`（月率 0.1%）が適切。`guessRate=0.1`（月率 10%）のような遠い値では別の根に収束する。これは VBA 仕様通りの動作（Newton-Raphson 収束の性質）。
+75. **`Mid(s, i, n) = val`（代入形式）は実装済み**: 関数形式と同様に正常動作する。`s` の長さは変わらず、指定位置から `len(val)` 文字が上書きされる。
+76. **`LSet` / `RSet` は固定長文字列に対して正常動作**: `Dim s As String * 10: LSet s = "ABC"` → `"ABC       "`（左詰め）、`RSet s = "XYZ"` → `"       XYZ"`（右詰め）。
+72. **JS 配列を VBA Variant パラメーターに渡すと VarType=8204（vbArray+vbVariant）になる**（評価 #22）: `run('InspectVariant', [[1,2,3]])` → `TypeName="Variant()", VarType=8204, IsArray=True`。`8204 = 8192(vbArray) + 12(vbVariant)`。実 VBA でも配列の VarType はこのビット OR 形式のため、これは正しい動作。
+92. **`ReDim Preserve` で UDT 配列を拡張すると新インデックス要素が未初期化（Bug 28-1）**: `ReDim Preserve n(0 To 1)` で添字 1 の UDT 要素が `undefined` のまま残り `n(1).Value = 2` が Error 424 になる。`Long`/`String` の通常配列では同じ操作が正常動作するため非対称。回避策: Preserve を使わず一時配列に手動コピーして置き換えるか、`ReDim n(0 To N)` 後に手動で各要素を `Set` / 初期化する。
+93. **`Function` の戻り値と ByRef 引数書き戻しの両方を使う場合の注意**: `Function SafeDivide(a, b, ByRef errMsg)` を `r.run('SafeDivide', [10, 0, ''])` で呼ぶと、戻り値は `run()` の返り値に入り、`errMsg` の書き戻しは `args[0]` ではなく `args[2]`（第3引数）のインデックスに入る。ByRef 書き戻しは引数の元の位置（0-based インデックス）に対応する。`r.run()` が返す配列は `[戻り値, arg0書き戻し, arg1書き戻し, ...]` のように見えるが、実際は呼び出し時に渡した args 配列が直接書き換えられる（`args` オブジェクトへの ByRef 書き戻し）。README の ByRef 例が Sub のみのため Function との組み合わせが分かりにくい。
+82. **`Put #` / `Get #` の基本バイナリ I/O は修正済み**（評価 #36〜#102）: 数値はリトルエンディアン、文字列は CP932、固定長文字列・固定長配列を含む UDT は連続バイト列で入出力する。Single/Double、Date、Currency、Random のレコード長、多次元配列の左端次元連続順、UDT内可変長文字列のディスクリプターも実Excel照合済み。
+83. ~~**`Open path For Random As #n Len = recLen` はパースエラー**（評価 #26・Bug 26-3）~~: **修正済み**。`Len = <expr>` 節を解析する。
+84. ~~**`GetAttr(path)` は未実装（Error 35）**（評価 #26・Bug 26-7）~~: **修正済み**。`getattr` とファイル属性定数を登録する。
+85. **`FileLen` / `FileDateTime` / `Kill` は正常動作**（評価 #26）: VFS 上のファイルに対してそれぞれ正常に動作する。`Kill path`（括弧なしステートメント形式）も正常。
+86. **`Error(n)` 関数の主要コードは正しいメッセージを返す**（評価 #26）: Error(5)="Invalid procedure call or argument" / Error(6)="Overflow" / Error(9)="Subscript out of range" / Error(11)="Division by zero" / Error(13)="Type mismatch" / Error(53)="File not found" / Error(91)="Object variable not set" はすべて正確。未登録番号（Error(0)/Error(7)/Error(14)/Error(999) など）は "Application-defined or object-defined error" にフォールバック。
+94. **クラスイベント（`Public Event`/`RaiseEvent`/`Dim WithEvents obj As Class`/`Private Sub obj_EventName()`）は完全動作する**（評価 #29、#113）: イベント引数付き・複数イベント・複数拍のイベント列、`ByRef` 引数のハンドラーから発行元への書き戻しまで正確。未実装と思われがちだが実装済み。
+95. ~~**`eval()` で引数なしクラスメソッドを呼ぶときは `()` を付けること**（評価 #29・Bug 29-F）~~ → **修正済み**（Bug 29-F/G）: `eval('a.Increment')` / `eval('Dim g As New Counter : g.Increment')` どちらも正常に Sub を呼ぶようになった。
+96. ~~**手書き `.cls` のヘッダーは「完全」か「なし」のどちらかにすること**（評価 #29・Bug 29-H）~~ → **修正済み**（Bug 29-H）: `VERSION 1.0 CLASS` 行だけ（BEGIN/END なし）でも本体が正しくロードされる。

@@ -366,12 +366,69 @@ function record(file) {
 function migrate(dryRun) {
   const legacy = path.join(root, 'EVAL_LOG.md');
   if (!fs.existsSync(legacy)) throw new Error('EVAL_LOG.md not found');
-  const rows = fs.readFileSync(legacy, 'utf8').split(/\r?\n/)
-    .map((line) => line.match(/^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$/))
-    .filter(Boolean);
+  const rows = fs.readFileSync(legacy, 'utf8').split(/\r?\n/).map((line) => {
+    if (!/^\|\s*\d+\s*\|/.test(line)) return null;
+    const body = line.slice(1, line.endsWith('|') ? -1 : undefined);
+    const first = body.indexOf('|');
+    const last = body.lastIndexOf('|');
+    const second = body.indexOf('|', first + 1);
+    if (first < 0 || second < 0 || last <= second) return null;
+    return [
+      null,
+      body.slice(0, first).trim(),
+      body.slice(first + 1, second).trim(),
+      body.slice(second + 1, last).trim(),
+      body.slice(last + 1).trim(),
+    ];
+  }).filter(Boolean);
   const candidates = rows.filter((row) => Number(row[1]) >= 100 && Number(row[1]) <= 188);
-  if (!dryRun) throw new Error(`migration is intentionally dry-run only; found ${candidates.length} rows`);
-  console.log(JSON.stringify({ source: legacy, candidates: candidates.length }, null, 2));
+  if (dryRun) {
+    console.log(JSON.stringify({ source: legacy, candidates: candidates.length }, null, 2));
+    return;
+  }
+  const legacyDir = path.join(evalRoot, 'legacy');
+  fs.mkdirSync(legacyDir, { recursive: true });
+  fs.copyFileSync(legacy, path.join(legacyDir, 'EVAL_LOG.md'));
+  fs.mkdirSync(recordsDir, { recursive: true });
+  let created = 0;
+  for (const [, number, title, description, date] of candidates) {
+    const id = `EV-${String(number).padStart(5, '0')}`;
+    const target = path.join(recordsDir, `${id}.md`);
+    if (fs.existsSync(target)) continue;
+    const text = `${title} ${description}`;
+    const campaign = (text.match(/FZ-BUILTIN|FZ-GRAMMAR|MUT-ENGINE/) ?? ['LEGACY'])[0];
+    const status = /未実装|恒久的制限/.test(text)
+      ? 'known-limit'
+      : (/修正済み|修正した|修正。|Bug [^ ]+.*修正/.test(text) ? 'fixed' : 'verified-no-bug');
+    const record = [
+      '---',
+      `id: ${id}`,
+      `legacyNumber: '${number}'`,
+      `campaign: ${campaign}`,
+      `status: ${status}`,
+      'priority: medium',
+      `focus: ${JSON.stringify(title)}`,
+      'coverageSnapshot: null',
+      'findings: []',
+      'tests: []',
+      'horizontalAudit:',
+      '  confirmed: []',
+      '  ruledOut: []',
+      '  unresolved: []',
+      '---',
+      '',
+      `# ${title}`,
+      '',
+      `- 旧評価番号: ${number}`,
+      `- 評価日: ${date}`,
+      '',
+      description,
+      '',
+    ].join('\n');
+    fs.writeFileSync(target, record);
+    created++;
+  }
+  console.log(JSON.stringify({ source: legacy, candidates: candidates.length, created }, null, 2));
 }
 
 function hash(file) {
@@ -407,6 +464,8 @@ try {
     record(process.argv[3]);
   } else if (command === 'migrate' && process.argv[3] === '--dry-run') {
     migrate(true);
+  } else if (command === 'migrate' && process.argv[3] === '--apply') {
+    migrate(false);
   } else if (command === 'hash' && process.argv[3]) {
     console.log(hash(path.resolve(process.argv[3])));
   } else {

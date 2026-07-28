@@ -12,6 +12,13 @@ generated: 2026-07-28
 
 # 評価記録とバグ探索状態の永続化
 
+## 現在の導入状況
+
+- 評価#100〜#189を `evaluation/evaluations/` へ移行済み。
+- 旧ログは `evaluation/legacy/EVAL_LOG.md` に保全済み。
+- rootの `EVAL_LOG.md` は構造化記録から生成するサマリーへ切り替え済み。
+- 次の作業はPhase 3のcoverageスナップショット実測である。
+
 ## 目的
 
 `EVAL_LOG.md` に混在している評価履歴、次の探索候補、横展開調査、実Excel照合待ち、
