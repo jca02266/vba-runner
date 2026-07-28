@@ -134,6 +134,17 @@ function candidateScore(item, uncovered) {
   return { score: (item.priority ?? 99) - (matched.length ? 0.5 : 0), coverageMatched: matched };
 }
 
+function effectiveCandidate(item, results, claims) {
+  const result = results.get(item.id);
+  const claim = claims.get(item.id);
+  return {
+    ...item,
+    effectiveStatus: result?.status ?? (claim ? 'claimed' : item.status),
+    evaluationId: result?.evaluationId,
+    claimOwner: claim?.owner,
+  };
+}
+
 function validate(records = readRecords()) {
   const schema = readSchema();
   const findings = readFindings();
@@ -193,9 +204,9 @@ function render(records, output) {
   const uncovered = readCoverageTargets();
   const queue = items
     .filter((item) => item.status === 'queued' && !claims.has(item.id) && !results.has(item.id))
-    .map((item) => ({ item, ...candidateScore(item, uncovered) }))
+    .map((item) => ({ item: effectiveCandidate(item, results, claims), ...candidateScore(item, uncovered) }))
     .sort((a, b) => a.score - b.score || String(a.item.id).localeCompare(String(b.item.id)))
-    .map(({ item, coverageMatched }) => `| ${item.id} | ${item.priority ?? ''} | ${item.focus ?? item.title} | ${coverageMatched.length ? 'yes' : ''} |`)
+    .map(({ item, coverageMatched }) => `| ${item.id} | ${item.priority ?? ''} | ${item.effectiveStatus} | ${item.focus ?? item.title} | ${coverageMatched.length ? 'yes' : ''} |`)
     .join('\n');
   const counts = [...new Set(records.map(({ data }) => data.status))]
     .sort().map((status) => `| ${status} | ${records.filter(({ data }) => data.status === status).length} |`).join('\n');
@@ -220,9 +231,9 @@ function render(records, output) {
     '',
     '## 次の候補',
     '',
-    '| ID | 優先度 | 対象 | coverage一致 |',
-    '|---|---:|---|---|',
-    queue || '| (none) | | |',
+    '| ID | 優先度 | 実効状態 | 対象 | coverage一致 |',
+    '|---|---:|---|---|---|',
+    queue || '| (none) | | | | |',
     '',
   ].join('\n');
   fs.mkdirSync(path.dirname(output), { recursive: true });
@@ -328,11 +339,13 @@ function context(candidateId, limit = 5) {
   const item = readCampaignItems().get(candidateId);
   if (!item) throw new Error(`unknown campaign item ${candidateId}`);
   const records = validate();
+  const results = readResults();
+  const claims = readClaims();
   const related = records
-    .filter(({ data }) => data.campaign === item.campaign || (item.causeKey && data.causeKey === item.causeKey))
+    .filter(({ data }) => data.campaign === item.campaign || (item.priorCauseKey && data.causeKey === item.priorCauseKey))
     .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
     .slice(0, Math.max(1, Math.min(limit, 10)));
-  console.log(JSON.stringify({ candidate: item, relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
+  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
 }
 
 function record(file) {

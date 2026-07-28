@@ -14,12 +14,16 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 9 evaluation records/);
+assert.match(validated.stdout, /validated 10 evaluation records/);
 
 const first = run('next');
 assert.equal(first.status, 0, first.stderr);
 const candidate = JSON.parse(first.stdout);
 assert.equal(candidate.status, 'queued');
+
+const context = run('context', 'FZ-GRAMMAR-001');
+assert.equal(context.status, 0, context.stderr);
+assert.equal(JSON.parse(context.stdout).candidate.effectiveStatus, 'fixed');
 
 const claimed = run('claim', candidate.id);
 assert.equal(claimed.status, 0, claimed.stderr);
@@ -36,11 +40,11 @@ try {
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /already claimed/);
 
-    const unauthorized = run('complete', candidate.id, 'EV-00180', 'fixed', 'wrong-token');
+    const unauthorized = run('complete', candidate.id, 'EV-00187', 'verified-no-bug', 'wrong-token');
     assert.notEqual(unauthorized.status, 0);
     assert.match(unauthorized.stderr, /token is invalid/);
 
-    const completed = run('complete', candidate.id, 'EV-00180', 'fixed', claimState.token);
+    const completed = run('complete', candidate.id, 'EV-00187', 'verified-no-bug', claimState.token);
     assert.equal(completed.status, 0, completed.stderr);
     const afterComplete = run('next');
     assert.equal(afterComplete.status, 0, afterComplete.stderr);

@@ -131,6 +131,10 @@ TTL切れの `claimed` / `in-progress` は `release` で回収できる。
 
 `unresolved` をバグ件数へ加えず、実機照合キューへ送る。
 
+候補に設定した原因仮説は `priorCauseKey`、評価で確定した原因は
+`causeKey`（発見原因）として分離する。候補の静的statusと結果ファイルの実効statusは
+別に保持し、`context` と `render` では実効statusと関連評価IDを表示する。
+
 ## 移行計画
 
 ### Phase 1: CLIと試験移行

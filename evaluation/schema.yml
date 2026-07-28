@@ -9,6 +9,8 @@ record:
     - priority
     - focus
     - causeKey
+    - priorCauseKey
+    - discoveredCauseKey
     - coverageSnapshot
     - findings
     - tests
