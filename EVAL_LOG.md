@@ -98,6 +98,7 @@
 | 185 | 実行互換性 #185: Null既定Valueの型変換エラー | FZ-BUILTINの別入力シードとして、`__vbaDefault__`がNullを返す値をCollection・Property・Variant配列から`CByte`/`CInt`/`CLng`/`CSng`/`CDbl`/`CDate`/`CDec`/`CCur`/`CLngLng`/`CBool`へ渡した。既定Value展開後のNull検査がなくError 13になる Bug 185-A を再現・修正し、直接Nullと同じError 94を全変換関数で回帰確認した。 | 2026-07-28 |
 | 186 | 回帰確認 #186: 既定Value日付の境界引数 | FZ-BUILTINの別日付シードとして、既定Valueの日付文字列をクラスのByVal Variant引数へ渡し、`DateValue`/`TimeValue`/`DateSerial`/`DatePart`週設定/`FormatDateTime`/`DateDiff`、ループ、`On Error`、1900年・1899年・9999年境界を評価した。期待値と実値は一致し、不正日付のError 13、Null/Emptyも既存仕様どおりで、新規バグは確認されなかった。 | 2026-07-28 |
 | 187 | 回帰確認 #187: Append/Inputの混在ハンドル境界 | MUT-ENGINEの別ファイルI/Oシードとして、FSO ANSI/Unicode追記と標準`Open ... For Append`、末尾改行なし・空行・CP932、複数読取ハンドル、`On Error`、Collectionを組み合わせた。標準`Line Input`/FSO`ReadLine`のレコード、EOF Error 62、BOM/CP932バイト列、独立読取位置はいずれも期待値と一致し、新規バグは確認されなかった。 | 2026-07-28 |
+| 188 | 回帰確認 #188: 外部CallByNameのスカラーByRef境界 | FZ-GRAMMARの外部呼出し境界として、JS外部オブジェクトのCallByNameについてVbGet/VbLet/VbSet、Optional・複数引数、Null/Empty、型返却、On Error、子オブジェクトSetを評価した。スカラーByRefの書き戻しなしは既知の外部スタブ制限、名前付き引数のError 448と存在しないメンバーのError 438は既知境界と一致し、新規バグは確認されなかった。 | 2026-07-28 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -566,7 +567,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | キャンペーン | 次回の未実施対象 | 状態 |
 |---|---|---|
 | FZ-BUILTIN | 既定Valueを受ける別の日付入力シード、変更後の別日付入力（別のロケール・境界） | 継続 |
-| FZ-GRAMMAR | 別の型サフィックス境界、外部CallByNameのスカラーByRef制限境界、Select Case数値文字列の実Excel照合 | 継続 |
+| FZ-GRAMMAR | 別の型サフィックス境界、Select Case数値文字列の実Excel照合 | 継続 |
 | MUT-ENGINE | ファイルI/Oの別EOF/Append境界、Select Caseの別数値型比較、別テスト単位での検出確認 | 継続 |
 
 #### キャンペーン評価履歴
@@ -615,6 +616,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | FZ-GRAMMAR | #177 | 外部CallByNameの引数境界 |
 | FZ-GRAMMAR | #180 | 16進・8進リテラルの符号とサフィックス |
 | FZ-GRAMMAR | #183 | LongLong/LongPtrリテラルの64ビット境界 |
+| FZ-GRAMMAR | #188 | 外部CallByNameのスカラーByRef境界 |
 | MUT-ENGINE | #129 | ミューテーションテスト |
 | MUT-ENGINE | #163 | UDT Binary Put/Get境界変異 |
 | MUT-ENGINE | #168 | 標準ファイルI/OのCP932文字列 |
