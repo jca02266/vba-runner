@@ -16,3 +16,19 @@ items:
     priorCauseKey: binary-fixed-point-string-rounding
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-003
+    title: LongLongのFormat高精度書式
+    status: queued
+    priority: 1
+    focus: LongLongのカスタム・名前付き数値書式
+    priorCauseKey: format-fixed-point-number-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+  - id: FZ-BUILTIN-004
+    title: Currency指数表記Stringの精度
+    status: queued
+    priority: 2
+    focus: CCurの指数・16進・桁区切りString
+    priorCauseKey: binary-fixed-point-string-rounding
+    coverageTargets:
+      - src/engine/builtins.ts

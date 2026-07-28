@@ -14,7 +14,7 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 101 evaluation records/);
+assert.match(validated.stdout, /validated 102 evaluation records/);
 
 const targetCandidate = 'FZ-GRAMMAR-003';
 const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;

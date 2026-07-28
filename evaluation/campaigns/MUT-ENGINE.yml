@@ -56,3 +56,11 @@ items:
     priorCauseKey: binary-fixed-point-string-rounding
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: MUT-ENGINE-008
+    title: LongLong通常算術の64bit精度
+    status: queued
+    priority: 1
+    focus: LongLongの加減算・乗算とString混在
+    priorCauseKey: longlong-string-number-rounding
+    coverageTargets:
+      - src/engine/evaluator.ts

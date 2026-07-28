@@ -105,19 +105,22 @@
 | EV-00198 | MUT-ENGINE | fixed | LongLongと安全範囲外の数値文字列 |
 | EV-00199 | MUT-ENGINE | fixed | Decimal/Currency通常式の固定小数点精度 |
 | EV-00200 | MUT-ENGINE | fixed | Currencyの高値整数除算・Mod |
+| EV-00201 | FZ-BUILTIN | fixed | Decimal/Currencyの大値書式化 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 60 |
+| fixed | 61 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 36、実Excel待ち評価: 0
+横展開未解決経路: 39、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-002 | 2 | queued | Decimal/Currencyの大値書式化 | yes |
+| FZ-BUILTIN-003 | 1 | queued | LongLongのカスタム・名前付き数値書式 | yes |
+| MUT-ENGINE-008 | 1 | queued | LongLongの加減算・乗算とString混在 | yes |
+| FZ-BUILTIN-004 | 2 | queued | CCurの指数・16進・桁区切りString | yes |
