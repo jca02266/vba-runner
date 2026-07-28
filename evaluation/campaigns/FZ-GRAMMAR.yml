@@ -15,3 +15,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-GRAMMAR-003
+    title: Select Case数値文字列の等価変換
+    status: queued
+    priority: 1
+    focus: Variant Stringと数値Caseの等価比較
+    priorCauseKey: select-case-numeric-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

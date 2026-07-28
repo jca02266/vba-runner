@@ -15,3 +15,19 @@ items:
     focus: Currency、Decimal、LongLong比較
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: MUT-ENGINE-003
+    title: Select Case Nullの比較境界
+    status: queued
+    priority: 1
+    focus: NullとCase Isの等価・大小比較
+    priorCauseKey: select-case-null-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: MUT-ENGINE-004
+    title: Decimal/CurrencyのSelect Case大小比較
+    status: queued
+    priority: 1
+    focus: Case IsとToの固定小数点精度
+    priorCauseKey: select-case-fixed-point-range-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
