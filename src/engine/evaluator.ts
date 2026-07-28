@@ -2716,6 +2716,15 @@ export class Evaluator {
         const selectVal = this.evaluateExpression(stmt.expression);
         const selectCaseEquals = (left: any, right: any): boolean => {
             if (left instanceof VbaDate && right instanceof VbaDate) return left.value === right.value;
+            if (typeof left === 'bigint' || typeof right === 'bigint') {
+                const bigintValue = typeof left === 'bigint' ? left : right;
+                const otherValue = typeof left === 'bigint' ? right : left;
+                if (typeof otherValue === 'bigint') return bigintValue === otherValue;
+                if (typeof otherValue === 'number') {
+                    if (Number.isSafeInteger(otherValue)) return bigintValue === BigInt(otherValue);
+                    return Number(bigintValue) === otherValue;
+                }
+            }
             if (left instanceof VbaCurrency || left instanceof VbaDecimal ||
                 right instanceof VbaCurrency || right instanceof VbaDecimal) {
                 try { return this.toVbaNumber(left) === this.toVbaNumber(right); } catch { return false; }

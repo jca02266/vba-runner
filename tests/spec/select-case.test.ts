@@ -159,3 +159,21 @@ End Function
     assert.strictEqual(result, 'D', 'Select Case はDateオブジェクトをシリアル値で比較する');
     console.log('[PASS] Bug 173-A: Select Case Date equality');
 }
+
+// Bug 184-A: LongLong values must match ordinary integral Case expressions.
+{
+    const result = runFunc(`
+Function TestLongLongCase() As String
+    Dim value As LongLong
+    value = CLngLng(42)
+    Select Case value
+        Case 42
+            TestLongLongCase = "number"
+        Case Else
+            TestLongLongCase = "else"
+    End Select
+End Function
+`, 'TestLongLongCase');
+    assert.strictEqual(result, 'number', 'Select Case compares LongLong with integral numbers');
+    console.log('[PASS] Bug 184-A: Select Case LongLong equality');
+}

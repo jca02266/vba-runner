@@ -1234,7 +1234,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [ ] 既定Valueオブジェクトの型強制を共通化する（`CStr`/`CBool`/数値変換/`IsNumeric`/`IsDate`/`CDate`/`DateValue`/日付関数/`Format` と #178 の共通数値書式は `__vbaDefault__` のValue展開と循環拒否を実装済みだが、coerce経路と組み込み登録に個別判定が残る。既定Valueだけを一度展開する共通ヘルパーを全経路へ統合し、Object拒否とExcel互換のValue文脈を両立する）
 - [ ] 数値リテラルの基数・符号・サフィックスメタデータをLexer/Parserで共通化する（#180で基数リテラルのsuffixをLexerが読み捨て、#183でLongLong/LongPtrの64ビット10進桁列がParserのJS `number`化で精度を失った。トークン段階で基数・ビット幅・符号・型指定・整数原文を構造化し、`TypeName`/`VarType`/評価値の解釈を一つのリテラル情報から導出する）
 - [ ] 標準ファイルI/Oの文字コード・レコード・EOF処理を共通化する（`Print`/`Write`/`Line Input`/`Input` がそれぞれ独自にバイト変換・デコード・EOF判定していたため、評価 #168〜#170、#176、#179 でCP932マルチバイト文字、Inputの行境界・不足フィールド・Empty、空ファイルEOF、EOF後Error 62に分岐が見つかった。TextStreamと同じエンコード境界を共有し、モード別のANSI/Unicode・レコード消費・EOF/位置更新を一箇所で管理する）
-- [ ] `Select Case` の比較を通常の比較演算と共通化する（評価 #173 で `Date` のCase式だけがJSの参照比較となり、`evaluateBinaryExpressionInner` の値比較と経路差が発生した。Date/Currency/Decimal・Null/Emptyの型強制と比較演算子を共通ヘルパーへ統合し、分岐構文ごとの比較差をなくす）
+- [ ] `Select Case` の比較を通常の比較演算と共通化する（評価 #173 で `Date` のCase式だけがJSの参照比較となり、#184でLongLongのBigIntとNumberのCase式も厳密比較で不一致になった。Date/Currency/Decimal/LongLong・Null/Emptyの型強制と比較演算子を共通ヘルパーへ統合し、分岐構文ごとの比較差をなくす）
 - [ ] `Err` 状態の更新を単一経路へ統合する（評価 #181 で、`Err.Raise`、組み込みの暗黙エラー、`On Error Resume Next` の捕捉が Number/Description/Source を別々に更新し、前回のカスタム `Source` が新しいエラーへ残留した。エラー番号・説明・Source・Erl の既定値と明示値を一つの状態更新ヘルパーへ集約し、エラー発生経路による状態差をなくす）
 - [ ] ByVal引数の式評価とByRef参照生成を分離する（評価 #182 で、クラス呼出しの `ByVal` メンバー式を値評価後に l-value getter でも再評価し、`TextStream.ReadLine` のような状態変更式を二重実行した。ByValは一度だけ評価した値を束縛し、ByRef対象だけ参照を生成する共通呼出しフレームへ整理する）
 

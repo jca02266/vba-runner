@@ -94,6 +94,7 @@
 | 181 | 実行互換性 #181: On Error Resume Next の Err.Source 更新 | MUT-ENGINEの単独エラー状態境界として、連続した`Err.Raise`、暗黙の除算エラー、`Err.Clear`、ループ・呼出し先ハンドラーを評価した。前回の`Err.Raise`で指定した`CustomSource`が、Source省略のRaiseと暗黙ランタイムエラーへ残留する Bug 181-A を再現・修正し、エラー種別ごとのSource更新を回帰テストに追加した。 | 2026-07-28 |
 | 182 | 実行互換性 #182: FSO追記とクラスByVal引数の相互作用 | MUT-ENGINEのファイルI/O追加境界として、FSOのUnicode/ANSI追記、標準`Open ... For Append`、`Input`/`Line Input`、Collection・クラス・ループ・`On Error`を組み合わせた。クラスメソッドの`ByVal`引数へ`TextStream.ReadLine`を直接渡すと、参照生成時に式を二重評価して1行読み飛ばす Bug 182-A を再現・修正し、既存の追記バイト列と複合読み取りの正常動作も確認した。 | 2026-07-28 |
 | 183 | 実行互換性 #183: LongLong/LongPtrリテラルの64ビット境界 | FZ-GRAMMARの追加型サフィックス境界として、Currency/Decimal/LongLong/LongPtrのFunction戻り値、Property、ByRef、配列、`On Error`と64ビット最大値付近の`^`リテラルを評価した。LongLong/LongPtrリテラルをJSの`number`へ変換してからBigInt化していたため、最大値がError 6になり近傍値も丸められる Bug 183-A を再現・修正し、元の10進桁列を保持する回帰テストを追加した。 | 2026-07-28 |
+| 184 | 実行互換性 #184: Select CaseのLongLong比較と呼出し経路横展開 | MUT-ENGINEのCurrency/Decimal追加種別を含む複合Select Caseを、Variant/Collection/Property/ループ/`On Error`と評価した。LongLongの`BigInt`値と通常の整数Case式を厳密比較して不一致になる Bug 184-A を再現・修正した。Bug 182-Aの横展開として標準/修飾モジュール、クラスByVal、Property、名前付き引数、CallByName、RaiseEvent、ParamArrayをソース列挙と最小テストで確認し、ByVal経路は正常、ByRefへProperty Getを直接渡す二重getterは実Excel仕様未確定候補として残した。 | 2026-07-28 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -563,7 +564,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|---|
 | FZ-BUILTIN | 既定Valueを受ける別の数値・日付入力シード、変更後の別日付入力 | 継続 |
 | FZ-GRAMMAR | 別の型サフィックス境界、外部CallByNameのスカラーByRef制限境界、Select Case数値文字列の実Excel照合 | 継続 |
-| MUT-ENGINE | ファイルI/Oの別Append/Input境界、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
+| MUT-ENGINE | ファイルI/Oの別Append/Input境界、Select Caseの別数値型比較、別テスト単位での検出確認 | 継続 |
 
 #### キャンペーン評価履歴
 
@@ -620,6 +621,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | MUT-ENGINE | #179 | InputのEmptyフィールドと空ファイルEOF |
 | MUT-ENGINE | #181 | On Error Resume NextのErr.Source更新 |
 | MUT-ENGINE | #182 | FSO追記とクラスByVal引数の相互作用 |
+| MUT-ENGINE | #184 | Select CaseのLongLong比較と呼出し経路横展開 |
 
 各キャンペーンを実施したら、評価済みドメイン表と「キャンペーン評価履歴」に番号と
 該当する評価内容を1行追加し、上の概要表の「次回の未実施対象」を同じコミットで更新する。製品バグを
