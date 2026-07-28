@@ -164,6 +164,10 @@ function evalExpr(expr: string): any {
         evalExpr('Format(CDec("123499999999999999"), "0.00E+00")'),
         '1.23E+17',
         'Format custom Scientific keeps Decimal rounding exact');
+    assert.strictEqual(
+        evalExpr('Format(CDec("0"), "Scientific")'),
+        '0.00E+00',
+        'Format Scientific renders zero consistently');
     console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
 }
 
@@ -179,6 +183,8 @@ function evalExpr(expr: string): any {
         'Format LongLong applies named Currency format');
     assert.strictEqual(evalExpr(`Format(${value}, "General Number")`), '9007199254740993',
         'Format LongLong General Number has no grouping');
+    assert.strictEqual(evalExpr(`Format(${value}, "Scientific")`), '9.01E+15',
+        'Format LongLong Scientific preserves digits');
     console.log('[PASS] Bug 203-A: LongLong formatting');
 }
 

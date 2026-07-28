@@ -1045,7 +1045,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         let [intPart, fracPart = ''] = text.split('.');
         intPart = intPart || '0';
         const digits = (intPart + fracPart).replace(/^0+/, '');
-        if (!digits) return `${negative ? '-' : ''}0.${'0'.repeat(decFmt.length)}${match[2]}+${'0'.repeat(match[3].length)}${match[4]}`;
+        if (!digits) {
+            const zeroMantissa = intFmt.includes('0')
+                ? `0${decFmt ? `.${'0'.repeat((decFmt.match(/0/g) || []).length)}` : ''}`
+                : '';
+            const zeroSign = match[2][1] === '+' ? '+' : '';
+            return `${negative ? '-' : ''}${zeroMantissa}${match[2][0]}${zeroSign}${'0'.repeat(match[3].length)}${match[4]}`;
+        }
         const firstNonzero = (intPart + fracPart).search(/[1-9]/);
         let exponent = intPart.length - firstNonzero - 1;
         const maxDecimals = decFmt.length;
@@ -1072,7 +1078,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
         if (fmt === "") return vbaToString(val);
         if (typeof val === 'bigint') {
-            const exactScientific = exactScientificFormat(val.toString(), fmt);
+            const scientificPattern = fmt.toLowerCase() === 'scientific' ? '0.00E+00' : fmt;
+            const exactScientific = exactScientificFormat(val.toString(), scientificPattern);
             if (exactScientific !== undefined) return exactScientific;
             const namedExact: Record<string, [number, boolean, number, string, string]> = {
                 'general number': [0, false, 1, '', ''],
@@ -1087,7 +1094,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (exact !== undefined) return exact;
         }
         if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
-            const exactScientific = exactScientificFormat(val.toString(), fmt === 'Scientific' ? '0.00E+00' : fmt);
+            const exactScientific = exactScientificFormat(val.toString(), fmt.toLowerCase() === 'scientific' ? '0.00E+00' : fmt);
             if (exactScientific !== undefined) return exactScientific;
             if (fmt.toLowerCase() === 'general number') return val.toString();
             const namedExact: Record<string, [number, boolean, number, string, string]> = {
