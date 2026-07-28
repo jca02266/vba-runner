@@ -6,7 +6,7 @@ tags:
   - evaluation
   - bug-hunting
   - workflow
-status: proposed
+status: active
 generated: 2026-07-28
 ---
 
@@ -14,10 +14,11 @@ generated: 2026-07-28
 
 ## 現在の導入状況
 
-- 評価#100〜#189を `evaluation/evaluations/` へ移行済み。
+- 評価#100〜#190を `evaluation/evaluations/` へ移行済み（91件）。
 - 旧ログは `evaluation/legacy/EVAL_LOG.md` に保全済み。
 - rootの `EVAL_LOG.md` は構造化記録から生成するサマリーへ切り替え済み。
-- 次の作業はPhase 3のcoverageスナップショット実測である。
+- Phase 3（評価スキル統合）とカバレッジ参照の導入は完了している。
+  現在は構造化された候補キューを消化し、評価結果を蓄積する段階である。
 
 ## 目的
 

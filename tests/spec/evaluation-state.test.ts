@@ -14,7 +14,7 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 90 evaluation records/);
+assert.match(validated.stdout, /validated 91 evaluation records/);
 
 const first = run('next');
 assert.equal(first.status, 0, first.stderr);
@@ -40,11 +40,11 @@ try {
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /already claimed/);
 
-    const unauthorized = run('complete', candidate.id, 'EV-00187', 'verified-no-bug', 'wrong-token');
+    const unauthorized = run('complete', candidate.id, 'EV-00186', 'verified-no-bug', 'wrong-token');
     assert.notEqual(unauthorized.status, 0);
     assert.match(unauthorized.stderr, /token is invalid/);
 
-    const completed = run('complete', candidate.id, 'EV-00187', 'verified-no-bug', claimState.token);
+    const completed = run('complete', candidate.id, 'EV-00186', 'verified-no-bug', claimState.token);
     assert.equal(completed.status, 0, completed.stderr);
     const afterComplete = run('next');
     assert.equal(afterComplete.status, 0, afterComplete.stderr);
