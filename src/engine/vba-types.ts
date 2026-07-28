@@ -75,6 +75,19 @@ export const parseVbaDate = (val: any): Date => {
     if (/^\d{4}-\d{2}-\d{2}$/.test(str)) str = str.replace(/-/g, '/');
     const d = new Date(str);
     if (isNaN(d.getTime())) throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: '${val}'`);
+    // JavaScript normalizes impossible calendar dates (for example,
+    // 02/29/2023) instead of rejecting them. VBA date parsing raises Error 13
+    // for these strings; DateSerial's intentional component rollover remains
+    // separate because it does not pass through this parser.
+    const parts = /^(?:(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})|(\d{1,2})[\/-](\d{1,2})[\/-](\d{4}))(?:\s|$)/.exec(str);
+    if (parts) {
+        const year = Number(parts[1] ?? parts[6]);
+        const month = Number(parts[2] ?? parts[4]);
+        const day = Number(parts[3] ?? parts[5]);
+        if (d.getFullYear() !== year || d.getMonth() + 1 !== month || d.getDate() !== day) {
+            throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Type mismatch: '${val}'`);
+        }
+    }
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(),
         d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds());
 };
