@@ -14,12 +14,18 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 108 evaluation records/);
+assert.match(validated.stdout, /validated 109 evaluation records/);
 
 const targetCandidate = 'FZ-GRAMMAR-003';
 const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;
 const persistedResultBody = existsSync(persistedResult) ? readFileSync(persistedResult, 'utf8') : null;
 if (persistedResultBody !== null) unlinkSync(persistedResult);
+// All migrated campaign candidates may already have a fixed evaluation. Temporarily
+// hide this candidate's record so the state-machine claim assertion exercises a
+// genuinely queued path; restore it immediately after claiming and at cleanup.
+const targetEvaluation = `${root}/evaluation/evaluations/EV-00194.md`;
+const targetEvaluationBody = readFileSync(targetEvaluation, 'utf8');
+unlinkSync(targetEvaluation);
 
 const first = run('next');
 assert.equal(first.status, 0, first.stderr);
@@ -38,11 +44,12 @@ assert.equal(claimed.status, 0, claimed.stderr);
 const claimState = JSON.parse(claimed.stdout);
 assert.equal(claimState.id, targetCandidate);
 assert.match(claimState.token, /^[0-9a-f]+$/);
+writeFileSync(targetEvaluation, targetEvaluationBody);
 
 try {
     const whileClaimed = run('next');
-    assert.equal(whileClaimed.status, 0, whileClaimed.stderr);
-    assert.notEqual(JSON.parse(whileClaimed.stdout).id, targetCandidate);
+    assert.notEqual(whileClaimed.status, 0);
+    assert.match(whileClaimed.stderr, /no queued candidate/);
 
     const duplicate = run('claim', targetCandidate);
     assert.notEqual(duplicate.status, 0);
@@ -68,12 +75,13 @@ try {
     writeFileSync(resultFile, validResult);
 
     const afterComplete = run('next');
-    assert.equal(afterComplete.status, 0, afterComplete.stderr);
-    assert.notEqual(JSON.parse(afterComplete.stdout).id, targetCandidate);
+    assert.notEqual(afterComplete.status, 0);
+    assert.match(afterComplete.stderr, /no queued candidate/);
 } finally {
     const result = `${root}/evaluation/states/${targetCandidate}.result.yml`;
     if (existsSync(result)) unlinkSync(result);
     if (persistedResultBody !== null) writeFileSync(persistedResult, persistedResultBody);
+    writeFileSync(targetEvaluation, targetEvaluationBody);
     const released = run('release', targetCandidate, claimState.token);
     if (released.status !== 0 && !/not claimed/.test(released.stderr)) {
         assert.equal(released.status, 0, released.stderr);
