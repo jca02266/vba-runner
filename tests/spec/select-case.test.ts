@@ -235,6 +235,24 @@ End Function
     console.log('[PASS] Bug 193-A: Select Case Decimal/Currency ranges');
 }
 
+// Bug 194-A: numeric Variant strings use numeric equality in Select Case.
+{
+    const result = runFunc(`
+Function TestNumericStringCase() As String
+    Dim value As Variant
+    value = "100"
+    Select Case value
+        Case 100
+            TestNumericStringCase = "number"
+        Case Else
+            TestNumericStringCase = "else"
+    End Select
+End Function
+`, 'TestNumericStringCase');
+    assert.strictEqual(result, 'number', 'Numeric Variant String matches numeric Case');
+    console.log('[PASS] Bug 194-A: Select Case numeric String equality');
+}
+
 // Bug 173-A: Select Case の Date 式比較は値で一致判定する
 {
     const result = runFunc(`

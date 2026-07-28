@@ -2751,6 +2751,16 @@ export class Evaluator {
             if (typeof left === 'number' && typeof right === 'number') {
                 return left === right ? 0 : (left < right ? -1 : 1);
             }
+            const isNumericValue = (value: any): boolean =>
+                typeof value === 'number' || typeof value === 'bigint' ||
+                value instanceof VbaBoolean || value instanceof VbaDate ||
+                value instanceof VbaDecimal || value instanceof VbaCurrency;
+            if (typeof left === 'string' && isNumericValue(right)) {
+                try { return selectCaseCompare(this.toVbaNumber(left), right); } catch { return undefined; }
+            }
+            if (typeof right === 'string' && isNumericValue(left)) {
+                try { return selectCaseCompare(left, this.toVbaNumber(right)); } catch { return undefined; }
+            }
             return undefined;
         };
         const selectCaseEquals = (left: any, right: any): boolean => {
@@ -2759,6 +2769,8 @@ export class Evaluator {
             // local to Select Case so DateSerial and ordinary expressions keep
             // their existing coercion rules.
             [left, right] = normalizeEmpty(left, right);
+            const compared = selectCaseCompare(left, right);
+            if (compared !== undefined) return compared === 0;
             if (left instanceof VbaDate && right instanceof VbaDate) return left.value === right.value;
             if (typeof left === 'bigint' || typeof right === 'bigint') {
                 const bigintValue = typeof left === 'bigint' ? left : right;
