@@ -94,6 +94,7 @@
 | EV-00187 | MUT-ENGINE | verified-no-bug | Append/Inputの混在ハンドル境界 |
 | EV-00188 | FZ-GRAMMAR | verified-no-bug | 外部CallByNameのスカラーByRef境界 |
 | EV-00189 | FZ-GRAMMAR | fixed | 宣言型Longサフィックスと複合演算子 |
+| EV-00190 | MUT-ENGINE | verified-no-bug | 別シードのファイルI/O EOF/Append境界 |
 
 ## 状態集計
 
@@ -101,15 +102,14 @@
 |---|---:|
 | fixed | 50 |
 | known-limit | 1 |
-| verified-no-bug | 39 |
+| verified-no-bug | 40 |
 
-横展開未解決経路: 4、実Excel待ち評価: 0
+横展開未解決経路: 7、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-001 | 1 | queued | EOF、Append、複数ハンドル | yes |
 | FZ-BUILTIN-001 | 2 | queued | 別ロケール・日付境界 | yes |
 | FZ-GRAMMAR-002 | 2 | queued | 数値文字列とLongLong/Decimalの比較 | yes |
 | MUT-ENGINE-002 | 2 | queued | Currency、Decimal、LongLong比較 | yes |
