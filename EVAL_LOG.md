@@ -98,19 +98,21 @@
 | EV-00191 | FZ-BUILTIN | fixed | 既定値経由の日付文字列と不正暦日境界 |
 | EV-00192 | FZ-GRAMMAR | fixed | Select CaseのEmpty文脈変換 |
 | EV-00193 | MUT-ENGINE | fixed | Select CaseのDecimal高精度等価比較 |
+| EV-00194 | FZ-GRAMMAR | fixed | Select Caseの数値Variant String等価比較 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 53 |
+| fixed | 54 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 16、実Excel待ち評価: 0
+横展開未解決経路: 19、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| MUT-ENGINE-003 | 1 | queued | NullとCase Isの等価・大小比較 | yes |
+| MUT-ENGINE-004 | 1 | queued | Case IsとToの固定小数点精度 | yes |
