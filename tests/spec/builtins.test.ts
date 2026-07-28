@@ -161,6 +161,8 @@ function evalExpr(expr: string): any {
         'FormatNumber LongLong preserves 64-bit digits');
     assert.strictEqual(evalExpr(`Format(${value}, "Currency")`), '$9,007,199,254,740,993.00',
         'Format LongLong applies named Currency format');
+    assert.strictEqual(evalExpr(`Format(${value}, "General Number")`), '9007199254740993',
+        'Format LongLong General Number has no grouping');
     console.log('[PASS] Bug 203-A: LongLong formatting');
 }
 

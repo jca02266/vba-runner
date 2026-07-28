@@ -1038,7 +1038,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (fmt === "") return vbaToString(val);
         if (typeof val === 'bigint') {
             const namedExact: Record<string, [number, boolean, number, string, string]> = {
-                'general number': [0, true, 1, '', ''],
+                'general number': [0, false, 1, '', ''],
                 'currency': [2, true, 1, '$', ''],
                 'fixed': [2, false, 1, '', ''],
                 'standard': [2, true, 1, '', ''],
