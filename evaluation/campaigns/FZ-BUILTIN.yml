@@ -32,3 +32,19 @@ items:
     priorCauseKey: binary-fixed-point-string-rounding
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-005
+    title: LongLong General Number書式の区切り
+    status: queued
+    priority: 1
+    focus: General Numberの桁区切りなし仕様
+    priorCauseKey: format-longlong-dispatch
+    coverageTargets:
+      - src/engine/builtins.ts
+  - id: FZ-BUILTIN-006
+    title: Decimal/Currency名前付きFormat精度
+    status: queued
+    priority: 1
+    focus: General Number・Currency・Fixed・Percentの大値
+    priorCauseKey: format-fixed-point-number-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
