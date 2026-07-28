@@ -588,6 +588,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
   - 原因: `resolveIdentifiers()`（Pass 2）は `VBARunner` 構築時にロードしたモジュール群のみを `checkOptionExplicit` の対象にしており、構築後に `eval()` で定義したプロシージャは一度も解析されず `optionExplicitViolations` に登録されなかった
   - 修正: `evalExpression()` の複数文フォールバックで都度 `checkOptionExplicit` を実行し、違反があれば `optionExplicitViolations` に追加登録するよう修正（既存の登録は維持） | `eval-option-explicit.test.ts`
 - ✅ **`On Error Resume Next` 下の暗黙の `Err.Clear`**: 正常文実行時のクリア（または非クリア）タイミング | `err-clear-timing.test.ts`
+- ✅ **`Err.Source` の既定値と更新**: `Err.Raise` の Source 省略時は既定値を設定し、暗黙ランタイムエラーでは直前のカスタム Source を引き継がない。 | `error_handling.test.ts`（評価 #181）
 - ✅ **`Resume` の対象決定**: エラー発生点・Resume Next・Resume <label> の正確な制御フロー | `resume-statement-target.test.ts`
 - ✅ **エラーハンドラー内での再帰的なエラー発生**: スタックフレームのリセット規則 | `recursive-error-handling.test.ts`
 - ✅ **`Erl` 関数**: エラー発生時点で最後に通過した数値行ラベルを返す。数値行ラベルがない VBA ソースでは仕様どおり 0 を返す。 | `erl-function.test.ts`

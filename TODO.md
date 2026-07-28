@@ -1235,6 +1235,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [ ] 数値リテラルの基数・符号・サフィックスメタデータをLexer/Parserで共通化する（#180で基数リテラルのsuffixをLexerが読み捨て、Parserが10進リテラルと同じ推定経路へ落としていた。トークン段階で基数・ビット幅・符号・型指定を構造化し、`TypeName`/`VarType`/評価値の解釈を一つのリテラル情報から導出する）
 - [ ] 標準ファイルI/Oの文字コード・レコード・EOF処理を共通化する（`Print`/`Write`/`Line Input`/`Input` がそれぞれ独自にバイト変換・デコード・EOF判定していたため、評価 #168〜#170、#176、#179 でCP932マルチバイト文字、Inputの行境界・不足フィールド・Empty、空ファイルEOF、EOF後Error 62に分岐が見つかった。TextStreamと同じエンコード境界を共有し、モード別のANSI/Unicode・レコード消費・EOF/位置更新を一箇所で管理する）
 - [ ] `Select Case` の比較を通常の比較演算と共通化する（評価 #173 で `Date` のCase式だけがJSの参照比較となり、`evaluateBinaryExpressionInner` の値比較と経路差が発生した。Date/Currency/Decimal・Null/Emptyの型強制と比較演算子を共通ヘルパーへ統合し、分岐構文ごとの比較差をなくす）
+- [ ] `Err` 状態の更新を単一経路へ統合する（評価 #181 で、`Err.Raise`、組み込みの暗黙エラー、`On Error Resume Next` の捕捉が Number/Description/Source を別々に更新し、前回のカスタム `Source` が新しいエラーへ残留した。エラー番号・説明・Source・Erl の既定値と明示値を一つの状態更新ヘルパーへ集約し、エラー発生経路による状態差をなくす）
 
 これはVBA仕様項目の未実装ではなく、エンジンの保守性・経路一貫性を高めるための
 リファクタリング課題である。仕様準拠の未実装・制限は [TODO_SPEC.md](TODO_SPEC.md) に記録する。

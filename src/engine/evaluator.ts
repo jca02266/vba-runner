@@ -287,7 +287,13 @@ export class VbaErrObject {
 
     public raise(number: number, source?: any, description?: any, helpfile?: any, helpcontext?: any) {
         this.number = number;
-        if (source !== undefined && source !== vbaEmpty && source !== null) this.source = String(source);
+        // VBA uses the current project name when Source is omitted.  Do not
+        // retain a custom Source from an earlier error.
+        if (source !== undefined && source !== vbaEmpty && source !== null) {
+            this.source = String(source);
+        } else {
+            this.source = 'VBAProject';
+        }
         if (description !== undefined && description !== vbaEmpty && description !== null) {
             this.description = String(description);
         } else {
@@ -298,7 +304,12 @@ export class VbaErrObject {
         if (helpfile !== undefined && helpfile !== vbaEmpty && helpfile !== null) this.helpfile = String(helpfile);
         if (helpcontext !== undefined && helpcontext !== vbaEmpty && helpcontext !== null) this.helpcontext = Number(helpcontext);
 
-        throw { type: 'VbaError', number: this.number, message: this.description };
+        throw {
+            type: 'VbaError',
+            number: this.number,
+            message: this.description,
+            vbaSource: this.source,
+        };
     }
 }
 export interface VbaTypeInfo {
@@ -2653,7 +2664,7 @@ export class Evaluator {
 
     private vbaRound(val: number, decimals: number = 0): number { return _vbaRound(val, decimals); }
 
-    private throwVbaError(number: number, message: string, overrideLine?: number, overrideModule?: string): never {
+    private throwVbaError(number: number, message: string, overrideLine?: number, overrideModule?: string, source?: string): never {
         const line = overrideLine ?? (this.currentLine || undefined);
         const mod = overrideModule ?? (this.executingModuleName || this.currentSourceModule || null);
         const msg = line !== undefined ? `Run-time error '${number}': ${message} (line ${line})` : `Run-time error '${number}': ${message}`;
@@ -2662,6 +2673,7 @@ export class Evaluator {
         err.number = number;
         err.vbaLine = line;
         err.vbaModule = mod;
+        if (source !== undefined) err.vbaSource = source;
         err.vbaStack = [...this.vbaCallStack].reverse();
         // Err.Description は "Run-time error 'N': ..." の枠組みテキストを含まず、
         // 生のメッセージ（例: "Type mismatch"）だけを保持する（実 VBA 仕様）。
@@ -4160,7 +4172,7 @@ export class Evaluator {
         try {
             return fn.apply(thisArg, args);
         } catch (e: any) {
-            if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message);
+            if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message, undefined, undefined, e.vbaSource);
             throw e;
         }
     }
@@ -6511,6 +6523,9 @@ export class Evaluator {
                     const errorMessage = e.vbaBareMessage ?? e.message ?? String(e);
 
                     this.errObj.number = errorNumber;
+                    // A new runtime error replaces the previous Err.Source;
+                    // otherwise a prior Err.Raise custom source leaks into it.
+                    this.errObj.source = e.vbaSource ?? (this.executingModuleName || 'VBAProject');
                     this.errObj.description = errorMessage;
                     this.errObj.erl = this.lastLineNumberLabel;
 

@@ -27,3 +27,24 @@ expected.forEach((exp, i) => {
 });
 
 console.log('✅ Error Handling: 全テスト通過');
+
+// Err.Raise without Source and implicit runtime errors must not retain the
+// custom Source from an earlier error.
+const sourceLines: string[] = [];
+evalVBASingle(`
+    Sub TestSource()
+        On Error Resume Next
+        Err.Raise 5, "CustomSource", "custom"
+        Debug.Print Err.Source
+        Err.Raise 6
+        Debug.Print Err.Source
+        Dim x As Long
+        x = 1 / 0
+        Debug.Print Err.Source
+    End Sub
+    TestSource
+`, { onPrint: (o) => sourceLines.push(o.trim()) });
+
+assert.deepStrictEqual(sourceLines, ["CustomSource", "VBAProject", "Module1"],
+    'Err.Source is refreshed for omitted and implicit runtime errors');
+console.log('✅ Err.Source refresh regression passed');
