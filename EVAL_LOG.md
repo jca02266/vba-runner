@@ -553,14 +553,66 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 各回の「次に未実施の境界」をここで管理する。`evaluate-vba-runner` は未実施領域
 キューが空でも、次表の継続キャンペーンから次回対象を1つ選ぶ。
 
-| キャンペーン | 実施履歴 | 今回までに確認した範囲 | 次回の未実施対象 | 状態 |
-|---|---|---|---|---|
-| FZ-BUILTIN | 導入時（359件検出→修正、0件到達）、#143〜#150、#155〜#165、#171〜#172、#178 | 組み込み関数の敵対値スモーク、`FormatPercent` の位置・名前付き optional 引数、`FormatNumber`/`FormatCurrency` 共通数値書式経路、Null/Empty Variant配列と型強制、`Pmt` の Type/FV とゼロ期間エラー境界、`DateDiff` の週境界・`DateSerial` 繰上げ・`DateValue` の不正日付、Currency/Decimal/Boolean の丸め・ByRef・配列メタデータ、CStrの配列/Object拒否、CVErrの混在演算とError伝播、CVErrの論理・連結拒否、`__vbaDefault__` ValueのCStr/CBool/数値型強制/IsNumeric/IsDate/CDate/DateValue/日付関数/Format、Currency/Decimalの日付シリアル、循環既定Value、既定Value Nullの共通数値書式、複数Err.Raise伝播とDecimal overflow後のErr状態 | 既定Valueを受ける別の数値・日付入力シード、変更後の別日付入力 | 継続 |
-| FZ-GRAMMAR | #128、#130、#131、#132、#151、#152、#153、#154、#161〜#162、#166〜#167、#173〜#175、#177 | If/For/Select、On Error、ReDim、Property、クラス、複数モジュール、演算子境界、宣言型サフィックス付き引数、クラス配列要素とProperty SetのByRef書き戻し、名前付きProperty Letと修飾標準モジュールのByRef再束縛・書き戻し、ローカル2次元クラス配列の要素代入後Preserve、Property Getの2次元配列戻り値、UDT/Long/クラスの多次元配列Preserve追加シード、宣言型サフィックスの比較・連結、直接手続きの名前付きByRef複合呼び出し、CallByNameクラス手続きのByRef書き戻し、Select CaseのDate/Currency/Decimal比較・追加数値種別、外部CallByNameのprototype/未定義メンバー解決・位置/Optional/添字/オブジェクト引数（カバレッジ基準 2026-07-18） | 追加の型サフィックス境界、外部CallByNameのスカラーByRef制限境界、Select Case数値文字列の実Excel照合 | 継続 |
-| MUT-ENGINE | #129、#163、#168〜#170、#173、#176、#179 | `format.ts` 丸め、`parser.ts` 比較、`evaluator.ts` If/On Errorの代表変異、UDT Binary Put/Get の配列・EOF境界変異、標準ファイルI/OのCP932テキスト・Binary混在境界、Input # の複数行消費・不足フィールドError 62・Emptyフィールド・空ファイルEOF、EOF後Line InputのError 62、Select Caseの日付値比較。全体テストで検出 | `On Error Resume Next` の単独テスト強化、ファイルI/OのUnicode/Append/Input追加境界（FSOとの相互作用を含む）、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
+| キャンペーン | 次回の未実施対象 | 状態 |
+|---|---|---|
+| FZ-BUILTIN | 既定Valueを受ける別の数値・日付入力シード、変更後の別日付入力 | 継続 |
+| FZ-GRAMMAR | 追加の型サフィックス境界、外部CallByNameのスカラーByRef制限境界、Select Case数値文字列の実Excel照合 | 継続 |
+| MUT-ENGINE | `On Error Resume Next` の単独テスト強化、ファイルI/OのUnicode/Append/Input追加境界（FSOとの相互作用を含む）、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
 
-各キャンペーンを実施したら、評価済みドメイン表にも回数を追記し、この表の「実施履歴」
-「今回までに確認した範囲」「次回の未実施対象」を同じコミットで更新する。製品バグを
+#### キャンペーン評価履歴
+
+評価番号と評価内容の対応は、上の「評価済みドメイン・機能」と同じ番号で管理する。
+履歴は1評価番号につき1行とし、異なるキャンペーンに属する番号を同じ行へまとめない。
+
+| キャンペーン | 評価番号 | 該当する評価 |
+|---|---|---|
+| FZ-BUILTIN | 導入時 | 組み込み関数の敵対値スモーク |
+| FZ-BUILTIN | #143 | FormatPercentの表示オプション |
+| FZ-BUILTIN | #144 | Null/Empty Variant配列境界 |
+| FZ-BUILTIN | #145 | Pmtのゼロ期間エラー |
+| FZ-BUILTIN | #146 | DateValueの不正日付 |
+| FZ-BUILTIN | #147 | Currency/Decimal/Boolean型強制 |
+| FZ-BUILTIN | #148 | CStrの配列・Object型強制 |
+| FZ-BUILTIN | #149 | ErrorValueとNull/Empty混在演算 |
+| FZ-BUILTIN | #150 | CVErrの論理演算・文字列連結 |
+| FZ-BUILTIN | #155 | 既定ValueオブジェクトのCStr |
+| FZ-BUILTIN | #156 | 既定ValueのBoolean・数値型強制 |
+| FZ-BUILTIN | #157 | IsNumericの既定Value判定 |
+| FZ-BUILTIN | #158 | IsDate/CDateの既定Value判定 |
+| FZ-BUILTIN | #159 | DateValueの既定Value判定 |
+| FZ-BUILTIN | #160 | Err.Raise伝播とDecimal overflow後のErr状態 |
+| FZ-BUILTIN | #164 | 日付関数の既定Value展開 |
+| FZ-BUILTIN | #165 | Formatの既定Value展開 |
+| FZ-BUILTIN | #171 | Currency/Decimalの型強制・日付シリアル |
+| FZ-BUILTIN | #172 | 循環既定Valueの安全な拒否 |
+| FZ-BUILTIN | #178 | 既定Value Nullの数値書式 |
+| FZ-GRAMMAR | #128 | 生成ケースと演算子境界 |
+| FZ-GRAMMAR | #130 | 宣言型サフィックス付き引数 |
+| FZ-GRAMMAR | #131 | クラス配列要素のByRef書き戻し |
+| FZ-GRAMMAR | #132 | Property SetのByRefオブジェクト引数 |
+| FZ-GRAMMAR | #151 | 名前付きProperty LetのByRef境界 |
+| FZ-GRAMMAR | #152 | 修飾名前付きByRef引数 |
+| FZ-GRAMMAR | #153 | ローカル2次元クラス配列のPreserve |
+| FZ-GRAMMAR | #154 | Property Getの2次元配列戻り値 |
+| FZ-GRAMMAR | #161 | 型付き多次元配列のPreserve追加シード |
+| FZ-GRAMMAR | #162 | 宣言型サフィックスの比較・連結 |
+| FZ-GRAMMAR | #166 | 直接手続きの名前付きByRef引数 |
+| FZ-GRAMMAR | #167 | CallByNameのクラスByRef書き戻し |
+| FZ-GRAMMAR | #173 | Select Caseの日付値比較 |
+| FZ-GRAMMAR | #175 | 外部CallByNameのメンバー解決 |
+| FZ-GRAMMAR | #177 | 外部CallByNameの引数境界 |
+| MUT-ENGINE | #129 | ミューテーションテスト |
+| MUT-ENGINE | #163 | UDT Binary Put/Get境界変異 |
+| MUT-ENGINE | #168 | 標準ファイルI/OのCP932文字列 |
+| MUT-ENGINE | #169 | Inputの行境界跨ぎ |
+| MUT-ENGINE | #170 | EOF後のLine Inputエラー |
+| MUT-ENGINE | #173 | Select Caseの日付値比較 |
+| MUT-ENGINE | #174 | Select Case追加数値種別 |
+| MUT-ENGINE | #176 | Inputの不足フィールドEOF |
+| MUT-ENGINE | #179 | InputのEmptyフィールドと空ファイルEOF |
+
+各キャンペーンを実施したら、評価済みドメイン表と「キャンペーン評価履歴」に番号と
+該当する評価内容を1行追加し、上の概要表の「次回の未実施対象」を同じコミットで更新する。製品バグを
 確認した場合は通常の修正・回帰テスト・評価ログ更新を行い、変異が生き残った場合は
 テスト強化候補として次回対象に残す。生き残りを製品バグと断定しない。
 
