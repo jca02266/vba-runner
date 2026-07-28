@@ -46,3 +46,40 @@ const ptrEv = evalVBASingle(`
 
 assert.strictEqual(ptrEv.callProcedure('RoundTripLongPtr', []), '8:123456789');
 console.log('✅ Binary Put/Get supports LongPtr');
+
+// Bug 208-A: LongLong arithmetic must not pass through IEEE-754 Number.
+const arithmeticEv = evalVBASingle(`
+    Function LongLongArithmetic() As String
+        Dim x As LongLong
+        x = CLngLng("9007199254740993")
+        LongLongArithmetic = CStr(x + 1) & "|" & CStr(x - 1) & "|" & _
+            CStr(x * 3) & "|" & CStr(x \\ 3) & "|" & CStr(x Mod 3) & "|" & TypeName(x + 1)
+    End Function
+    Function LongLongUnaryPlus() As String
+        LongLongUnaryPlus = CStr(+CLngLng("9007199254740993"))
+    End Function
+`);
+assert.strictEqual(
+    arithmeticEv.callProcedure('LongLongArithmetic', []),
+    '9007199254740994|9007199254740992|27021597764222979|3002399751580331|0|LongLong',
+    'LongLong arithmetic preserves all 64-bit digits');
+assert.strictEqual(
+    arithmeticEv.callProcedure('LongLongUnaryPlus', []),
+    '9007199254740993',
+    'unary plus preserves LongLong');
+
+const overflowEv = evalVBASingle(`
+    Function LongLongOverflow() As LongLong
+        Dim x As LongLong
+        x = CLngLng("9223372036854775807")
+        LongLongOverflow = x + 1
+    End Function
+`);
+try {
+    overflowEv.callProcedure('LongLongOverflow', []);
+    throw new Error('LongLong overflow was not detected');
+} catch (e: any) {
+    assert.strictEqual(e?.type, 'VbaError', 'LongLong overflow raises a VBA error');
+    assert.strictEqual(e?.number, 6, 'LongLong overflow raises Error 6');
+}
+console.log('✅ LongLong arithmetic preserves precision and checks range');

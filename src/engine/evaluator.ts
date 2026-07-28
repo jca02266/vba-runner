@@ -519,6 +519,21 @@ export class Environment {
                 if (n < -2147483648 || n > 2147483647) Environment.throwOverflow();
                 return n;
             }
+            case 'LongLong':
+            case 'LongPtr': {
+                let n: bigint;
+                if (typeof value === 'bigint') {
+                    n = value;
+                } else if (typeof value === 'string' && /^[+-]?\d+$/.test(value.trim())) {
+                    n = BigInt(value.trim());
+                } else {
+                    n = BigInt(Environment.vbaRoundStatic(Environment.toNumeric(value)));
+                }
+                if (n < -9223372036854775808n || n > 9223372036854775807n) {
+                    Environment.throwOverflow();
+                }
+                return n;
+            }
             case 'Single': {
                 const n = Environment.toNumeric(value);
                 const f32 = Math.fround(n);
@@ -3746,8 +3761,10 @@ export class Evaluator {
             // Typed numeric/string variables get VBA-spec default values (also applies Def-Directive type)
             if (effectiveType) {
                 const t = effectiveType.toLowerCase();
-                if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(t)) {
+                if (['integer', 'long', 'single', 'double', 'currency', 'byte'].includes(t)) {
                     initialValue = 0;
+                } else if (t === 'longlong' || t === 'longptr') {
+                    initialValue = 0n;
                 } else if (t === 'string') {
                     // Fixed-length strings initialize with null characters (VBA spec)
                     initialValue = decl.fixedLength !== undefined ? '\0'.repeat(decl.fixedLength) : '';
@@ -8296,6 +8313,9 @@ export class Evaluator {
                 if (argument instanceof VbaDecimal) return new VbaDecimal(-argument.mantissa, argument.scale);
                 return -argument;
             case '+':
+                // JavaScript の単項 + は BigInt を受け付けない。LongLong は
+                // 値を変更しない単項演算としてそのまま保持する。
+                if (typeof argument === 'bigint') return argument;
                 return +argument;
             default:
                 throw new Error(`Execution error: Unknown unary operator ${expr.operator}`);
@@ -8789,6 +8809,43 @@ export class Evaluator {
             if (arithmeticOps.has(op) || comparisonOps.has(op)) {
                 return this.evaluateCurrencyOp(op, leftVal, rightVal, toVbaNumber);
             }
+        }
+
+        // LongLong の整数演算は Number に落とさず BigInt のまま評価する。
+        // JavaScript Number は 2^53 を超える整数を表現できないため、通常の
+        // 算術経路へ進むと LongLong の下位桁が失われる。Double 昇格を伴う
+        // `/` と `^` はここでは扱わず、整数演算の +,-,*,\\,Mod のみ対象にする。
+        const longLongIntegerOps = new Set(['+', '-', '*', '\\', 'mod']);
+        const isExactInteger = (v: any): boolean =>
+            typeof v === 'bigint' ||
+            (typeof v === 'number' && Number.isSafeInteger(v)) ||
+            v instanceof VbaBoolean;
+        if (longLongIntegerOps.has(op) &&
+            (typeof leftVal === 'bigint' || typeof rightVal === 'bigint') &&
+            isExactInteger(leftVal) && isExactInteger(rightVal)) {
+            const asBigInt = (v: any): bigint => {
+                if (typeof v === 'bigint') return v;
+                if (v instanceof VbaBoolean) return BigInt(v.value);
+                return BigInt(v);
+            };
+            const l = asBigInt(leftVal);
+            const r = asBigInt(rightVal);
+            let result: bigint;
+            if ((op === '\\' || op === 'mod') && r === 0n) {
+                this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+            }
+            switch (op) {
+                case '+': result = l + r; break;
+                case '-': result = l - r; break;
+                case '*': result = l * r; break;
+                case '\\': result = l / r; break;
+                case 'mod': result = l % r; break;
+                default: throw new Error(`Execution error: Unknown integer operator ${op}`);
+            }
+            if (result < -9223372036854775808n || result > 9223372036854775807n) {
+                this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
+            return result;
         }
 
         // 比較演算子では VbaBoolean を数値として扱う（True=-1, False=0）

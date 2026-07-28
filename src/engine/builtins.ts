@@ -365,7 +365,12 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     const clnglngFunc = (val: any) => {
         val = unwrapConversionValue(val);
         if (val === null) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        if (typeof val === 'bigint') return val;
+        if (typeof val === 'bigint') {
+            if (val < -9223372036854775808n || val > 9223372036854775807n) {
+                ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+            }
+            return val;
+        }
         if (typeof val === 'string') {
             const trimmed = val.trim();
             if (/^-?\d+$/.test(trimmed)) {
