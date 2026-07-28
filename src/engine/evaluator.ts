@@ -6947,7 +6947,7 @@ export class Evaluator {
                 return vbaEmpty;
             case 'NumberLiteral': {
                 const lit = expr as NumberLiteral;
-                return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix);
+                return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix, lit.rawIntegerText);
             }
             case 'StringLiteral':
                 return (expr as StringLiteral).value;
@@ -7224,7 +7224,7 @@ export class Evaluator {
      * - Long if it's a whole number in Long range
      * - Double otherwise (or if it has a fractional part)
      */
-    private applyLiteralTypeSuffix(val: number, suffix: NumberLiteral['typeSuffix']): any {
+    private applyLiteralTypeSuffix(val: number, suffix: NumberLiteral['typeSuffix'], rawIntegerText?: string): any {
         switch (suffix) {
             case '%': {
                 const n = this.vbaRound(val, 0);
@@ -7245,7 +7245,9 @@ export class Evaluator {
                 return VbaCurrency.fromNumber(this.vbaRound(val, 4));
             case '^':
                 // TypeName → 'LongLong' は AST の typeSuffix 経由で返る。
-                // BigInt 変換は VbaSingle 同様にラッパー未実装のため行わない。
+                // Preserve the source digits before JavaScript Number loses
+                // precision, then let declared-type coercion validate the range.
+                if (rawIntegerText !== undefined) return BigInt(rawIntegerText);
                 return val;
             default: return val;
         }

@@ -545,6 +545,8 @@ export interface ImplicitWithDictionaryAccessExpression extends Expression {
 export interface NumberLiteral extends Expression {
     type: 'NumberLiteral';
     value: number;
+    /** Exact decimal digits for integer literals whose value exceeds JS precision. */
+    rawIntegerText?: string;
     /** VBA type declaration suffix: % Integer, & Long, ! Single, # Double, @ Currency, ^ LongLong */
     typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^';
     /** true when the literal was written with a decimal point or exponent (e.g. 1.0, 1E5) */
@@ -3232,7 +3234,10 @@ export class Parser {
                     parsedValue = unsigned - 0x100000000;
                 }
             }
-            expr = { type: 'NumberLiteral', value: parsedValue, typeSuffix, isFloat, baseWidth } as NumberLiteral;
+            const rawIntegerText = typeSuffix === '^' && /^\d+$/.test(cleanVal)
+                ? cleanVal
+                : undefined;
+            expr = { type: 'NumberLiteral', value: parsedValue, rawIntegerText, typeSuffix, isFloat, baseWidth } as NumberLiteral;
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {

@@ -135,4 +135,19 @@ console.log('--- Starting Identifier Type Suffix Tests ---');
     console.log('[PASS] & suffix on procedure parameter');
 }
 
+// --- 9. LongLong/LongPtr literals preserve 64-bit integer digits ---
+{
+    const r = runFunc(`
+        Function TestWideLiteral() As String
+            Dim ll As LongLong, lp As LongPtr
+            ll = 9223372036854775807^
+            lp = 9223372036854775806^
+            TestWideLiteral = CStr(ll) & ":" & CStr(lp)
+        End Function
+    `, 'TestWideLiteral');
+    assert.strictEqual(r, '9223372036854775807:9223372036854775806',
+        'LongLong and LongPtr suffix literals retain exact 64-bit values');
+    console.log('[PASS] 64-bit suffix literals preserve precision');
+}
+
 console.log('\n✅ Identifier Type Suffix: 全テスト通過');
