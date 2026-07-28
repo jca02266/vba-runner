@@ -35,6 +35,30 @@ function evalExpr(expr: string): any {
     assert.strictEqual(evalExpr('Fix(-123.9)'), -123, 'Fix negative');
 }
 
+// Bug 209-A: Currency string conversion must retain four fractional digits
+// for exponent, grouped, and explicitly positive decimal strings.
+{
+    const expected = '900719925474099.3125';
+    for (const input of [
+        '9.007199254740993125E+14',
+        '900,719,925,474,099.3125',
+        '+900719925474099.3125',
+    ]) {
+        assert.strictEqual(evalExpr(`CStr(CCur("${input}"))`), expected,
+            `CCur preserves precision for ${input}`);
+    }
+    const ev = evalVBASingle(`
+        Function CurrencyAssignment() As String
+            Dim c As Currency
+            c = "9.007199254740993125E+14"
+            CurrencyAssignment = CStr(c)
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('CurrencyAssignment', []), expected,
+        'Currency declaration coercion shares exact string conversion');
+    console.log('[PASS] Bug 209-A: Currency string precision');
+}
+
 // 3. Math Functions
 {
     assert.strictEqual(evalExpr('Abs(-10)'), 10, 'Abs');

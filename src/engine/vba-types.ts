@@ -273,6 +273,17 @@ export function bankersDivide(n: bigint, d: bigint): bigint {
     return r < 0n ? q - 1n : q + 1n;
 }
 
+/** Parse a VBA Currency string without passing through an IEEE-754 number. */
+export function parseCurrencyString(s: string): VbaCurrency {
+    const normalized = s.trim().replace(/,/g, '').replace(/^\+/, '');
+    const decimal = VbaDecimal.fromString(normalized);
+    const scaleDelta = decimal.scale - 4;
+    const internal = scaleDelta <= 0
+        ? decimal.mantissa * (10n ** BigInt(-scaleDelta))
+        : bankersDivide(decimal.mantissa, 10n ** BigInt(scaleDelta));
+    return new VbaCurrency(internal);
+}
+
 /**
  * VBA Currency: 64-bit fixed-point, scale 10^-4.
  * Internal representation: integer × 10^-4 (e.g., 1.5 → 15000n).

@@ -98,7 +98,7 @@ import {
     fromVbaDate,
     parseVbaDate,
     tryParseTimeFractionString,
-    parseFixedPointString, bankersDivide,
+    parseFixedPointString, bankersDivide, parseCurrencyString,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
@@ -548,8 +548,12 @@ export class Environment {
                 if (typeof value === 'bigint') return new VbaCurrency(value * 10000n);
                 if (typeof value === 'string') {
                     const trimmed = value.trim();
-                    if (!/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) Environment.throwOverflow();
-                    return new VbaCurrency(parseFixedPointString(trimmed, 4));
+                    const decimalString = trimmed.replace(/,/g, '');
+                    if (!/^\+?(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(decimalString) &&
+                        !/^-?(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(decimalString)) {
+                        Environment.throwOverflow();
+                    }
+                    return parseCurrencyString(trimmed);
                 }
                 return VbaCurrency.fromNumber(Environment.vbaRoundStatic(Environment.toNumeric(value), 4));
             }

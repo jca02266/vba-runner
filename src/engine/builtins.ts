@@ -2,7 +2,7 @@ import {
     VbaBoolean, VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate, tryParseTimeFractionString,
-    parseFixedPointString,
+    parseFixedPointString, parseCurrencyString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
@@ -354,8 +354,10 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
         if (typeof val === 'string') {
             const trimmed = val.trim();
-            if (/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
-                return new VbaCurrency(parseFixedPointString(trimmed, 4));
+            const decimalString = trimmed.replace(/,/g, '');
+            if (/^\+?(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(decimalString) ||
+                /^-?(\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?$/.test(decimalString)) {
+                return parseCurrencyString(trimmed);
             }
             // &H/&O/指数/カンマ区切り等は数値文字列として解釈（実 VBA 差分で裁定）
             return VbaCurrency.fromNumber(ctx.toVbaNumber(trimmed));
