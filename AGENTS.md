@@ -17,6 +17,27 @@ the summary with exactly one blank line. Wrap body paragraphs at about 72
 characters. Do not represent paragraph breaks with escape notation. Omit the
 body when the summary alone is sufficient.
 
+Create the message with separate `git commit -m` arguments, for example:
+
+```bash
+git commit -m 'Fix: preserve ByRef values' \
+  -m 'Keep the reference alive across the call boundary.' \
+  -m 'Add a regression test for nested procedure calls.'
+```
+
+In Bash or Zsh, ANSI-C quoting is also valid when the complete body is more
+convenient to write as one argument:
+
+```bash
+git commit -m $'Fix: preserve ByRef values\n\nKeep the reference alive across the call boundary.\nAdd a regression test for nested procedure calls.'
+```
+
+Do not pass the two-character sequence `\n` as message text and never use an
+ordinary quoted string such as `git commit -m "summary\n\nbody"`. The
+sequence is permitted only inside Bash/Zsh `$'...'` quoting, where it becomes
+an actual line break. Each `-m`
+argument is a paragraph; Git inserts the real blank line between paragraphs.
+
 ## バグ原因の報告
 
 バグの原因を説明するときは、原因や再現経路だけで終わらせず、現在の
