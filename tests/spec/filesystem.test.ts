@@ -291,4 +291,58 @@ console.log('[PASS] Bug BM: Write# Null/Empty encoding');
     console.log('[PASS] Bug 176-A: Input# short record raises Error 62');
 }
 
+// Bug 179-A: Input # の空フィールドは Empty、空ファイルは Error 62
+{
+    const vfs10 = new MemoryFileSystem();
+    vfs10.writeFileSync('/sandbox/empty-fields.txt', ',"B"\r\n');
+    const ev = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Dim emptyValue As Variant, textValue As String
+            Open "empty-fields.txt" For Input As #1
+            Input #1, emptyValue, textValue
+            result = CStr(IsEmpty(emptyValue)) & "|" & textValue
+            Close #1
+        End Sub
+    `, { fs: vfs10 });
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 'True|B',
+        'Input# の空フィールドは Empty として読み込む');
+
+    const trailingVfs = new MemoryFileSystem();
+    trailingVfs.writeFileSync('/sandbox/trailing-empty.txt', '"A",');
+    const trailingEv = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Dim textValue As String, emptyValue As Variant
+            Open "trailing-empty.txt" For Input As #1
+            Input #1, textValue, emptyValue
+            result = textValue & "|" & CStr(IsEmpty(emptyValue))
+            Close #1
+        End Sub
+    `, { fs: trailingVfs });
+    trailingEv.callProcedure('Test', []);
+    assert.strictEqual(trailingEv.env.get('result'), 'A|True',
+        '末尾区切りの空フィールドも Empty として読み込む');
+
+    const vfs11 = new MemoryFileSystem();
+    vfs11.writeFileSync('/sandbox/empty-file.txt', '');
+    const eofEv = evalVBASingle(`
+        Public result As String
+        Sub Test()
+            Dim value As String
+            value = "initial"
+            Open "empty-file.txt" For Input As #1
+            On Error Resume Next
+            Input #1, value
+            result = value & "|" & CStr(Err.Number)
+            Close #1
+        End Sub
+    `, { fs: vfs11 });
+    eofEv.callProcedure('Test', []);
+    assert.strictEqual(eofEv.env.get('result'), 'initial|62',
+        '空ファイルのInput#はError 62で既存値を保持する');
+    console.log('[PASS] Bug 179-A: Input# empty fields and empty-file EOF');
+}
+
 console.log('✅ FileSystem: 全テスト通過');

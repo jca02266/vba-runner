@@ -5837,12 +5837,17 @@ export class Evaluator {
             readPos += bytesRead;
         }
 
+        if (contentBytes.length === 0 && stmt.variables.length > 0) {
+            this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
+        }
+
         const content = iconv.decode(Buffer.from(contentBytes), Evaluator.VBA_BINARY_ENCODING);
         // 引用符内のカンマ・改行で分割しないフィールド分割（Bug 32-C）
         const splitInputFields = (src: string): Array<{ raw: string; end: number }> => {
             const fields: Array<{ raw: string; end: number }> = [];
             let cur = '';
             let inQuotes = false;
+            let endedWithDelimiter = false;
             for (let i = 0; i < src.length; i++) {
                 const ch = src[i];
                 if (inQuotes) {
@@ -5859,11 +5864,15 @@ export class Evaluator {
                     if (ch === '\r' && src[i + 1] === '\n') { end++; i++; }
                     fields.push({ raw: cur, end });
                     cur = '';
+                    endedWithDelimiter = ch === ',';
                 } else {
                     cur += ch;
+                    endedWithDelimiter = false;
                 }
             }
-            if (cur.length > 0 || fields.length === 0) fields.push({ raw: cur, end: src.length });
+            if (cur.length > 0 || fields.length === 0 || endedWithDelimiter) {
+                fields.push({ raw: cur, end: src.length });
+            }
             return fields;
         };
         const fields = splitInputFields(content);
@@ -5874,6 +5883,7 @@ export class Evaluator {
         }
         const parseInputValue = (raw: string): any => {
             const t = raw.trim();
+            if (t.length === 0) return vbaEmpty;
             if (t.startsWith('"') && t.endsWith('"')) return t.slice(1, -1);
             const lower = t.toLowerCase();
             if (lower === '#true#') return vbaTrue;
