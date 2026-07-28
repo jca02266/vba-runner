@@ -31,3 +31,20 @@ items:
     priorCauseKey: select-case-fixed-point-range-coercion
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: MUT-ENGINE-005
+    title: LongLongと安全範囲外の数値文字列
+    status: queued
+    priority: 1
+    focus: 64bit整数と長いStringの等価・大小比較
+    priorCauseKey: select-case-numeric-string-equality
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: MUT-ENGINE-006
+    title: Decimal/Currency通常式の固定小数点精度
+    status: queued
+    priority: 1
+    focus: BinaryExpressionのString・Decimal・Currency精度
+    priorCauseKey: select-case-fixed-point-string-rounding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts

@@ -24,3 +24,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-GRAMMAR-004
+    title: Select Case非数値文字列のエラー伝播
+    status: queued
+    priority: 1
+    focus: 数値Caseに対する非数値・空文字Variant String
+    priorCauseKey: select-case-numeric-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
