@@ -2,6 +2,14 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.18] - 2026-07-29
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — corrected fixed-point numeric
+  precision, numeric-string and `Null` handling in `Select Case`, and error
+  propagation across evaluation boundaries.
+
 ## [0.1.1-alpha.17] - 2026-07-27
 
 ### Fixed
