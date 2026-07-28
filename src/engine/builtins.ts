@@ -1050,6 +1050,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (exact !== undefined) return exact;
         }
         if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+            if (fmt.toLowerCase() === 'general number') return val.toString();
+            const namedExact: Record<string, [number, boolean, number, string, string]> = {
+                'general number': [0, false, 1, '', ''],
+                'currency': [2, true, 1, '$', ''],
+                'fixed': [2, false, 1, '', ''],
+                'standard': [2, true, 1, '', ''],
+                'percent': [2, false, 100, '', '%'],
+            };
+            const spec = namedExact[fmt.toLowerCase()];
+            if (spec) return exactFixedFormat(val.toString(), spec[0], spec[1], true, spec[3], spec[4], false, spec[2]);
+        }
+        if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
             const exact = exactPatternFormat(val.toString(), fmt);
             if (exact !== undefined) return exact;
         }

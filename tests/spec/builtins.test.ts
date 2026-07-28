@@ -148,6 +148,14 @@ function evalExpr(expr: string): any {
         evalExpr('FormatPercent(CDec("1234567890123456.789"), 3)'),
         '123,456,789,012,345,678.900%',
         'FormatPercent keeps high-precision digits');
+    assert.strictEqual(
+        evalExpr('Format(CDec("123456789012345678.9012"), "General Number")'),
+        '123456789012345678.9012',
+        'Format General Number keeps Decimal digits');
+    assert.strictEqual(
+        evalExpr('Format(CDec("123456789012345678.9012"), "Currency")'),
+        '$123,456,789,012,345,678.90',
+        'Format Currency keeps Decimal digits');
     console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
 }
 
