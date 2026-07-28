@@ -339,8 +339,11 @@ function record(file) {
   const parsed = readRecord(path.resolve(file));
   validate([parsed]);
   const target = path.join(recordsDir, `${parsed.data.id}.md`);
-  if (fs.existsSync(target) && path.resolve(file) !== target) {
-    throw new Error(`${parsed.data.id} already exists`);
+  if (fs.existsSync(target)) {
+    const existing = fs.readFileSync(target, 'utf8');
+    if (existing !== parsed.source) throw new Error(`${parsed.data.id} already exists with different content`);
+    console.log(`${target} (unchanged)`);
+    return;
   }
   fs.mkdirSync(recordsDir, { recursive: true });
   if (path.resolve(file) !== target) fs.copyFileSync(path.resolve(file), target);
