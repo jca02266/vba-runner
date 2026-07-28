@@ -14,7 +14,7 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 92 evaluation records/);
+assert.match(validated.stdout, /validated 93 evaluation records/);
 
 const persistedResult = `${root}/evaluation/states/FZ-BUILTIN-001.result.yml`;
 const persistedResultBody = existsSync(persistedResult) ? readFileSync(persistedResult, 'utf8') : null;
@@ -28,6 +28,9 @@ assert.equal(candidate.status, 'queued');
 const context = run('context', 'FZ-GRAMMAR-001');
 assert.equal(context.status, 0, context.stderr);
 assert.equal(JSON.parse(context.stdout).candidate.effectiveStatus, 'fixed');
+
+const rerecorded = run('record', 'evaluation/evaluations/EV-00191.md');
+assert.equal(rerecorded.status, 0, rerecorded.stderr);
 
 const claimed = run('claim', candidate.id);
 assert.equal(claimed.status, 0, claimed.stderr);

@@ -373,7 +373,8 @@ function context(candidateId, limit = 5) {
 
 function record(file) {
   const parsed = readRecord(path.resolve(file));
-  validate([parsed]);
+  const records = readRecords().filter(({ data }) => data.id !== parsed.data.id);
+  validate([...records, parsed]);
   const target = path.join(recordsDir, `${parsed.data.id}.md`);
   if (fs.existsSync(target)) {
     const existing = fs.readFileSync(target, 'utf8');
