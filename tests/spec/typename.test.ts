@@ -331,6 +331,17 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     assert.strictEqual(ev.evalExpression('VarType(1.5!)'), 4, 'VarType(1.5!) -> 4 (vbSingle)');
     assert.strictEqual(ev.evalExpression('VarType(123^)'), 20, 'VarType(123^) -> 20 (vbLongLong)');
 
+    // Hex/OctalリテラルはVBAの符号付きビットパターンとLongサフィックスを保持する
+    assert.strictEqual(ev.evalExpression('TypeName(&H8000)'), 'Integer', 'TypeName(&H8000) -> Integer');
+    assert.strictEqual(ev.evalExpression('CStr(&H8000)'), '-32768', '&H8000 -> -32768');
+    assert.strictEqual(ev.evalExpression('CStr(&HFFFF)'), '-1', '&HFFFF -> -1');
+    assert.strictEqual(ev.evalExpression('CStr(&H8000&)'), '32768', '&H8000& -> 32768');
+    assert.strictEqual(ev.evalExpression('TypeName(&H8000&)'), 'Long', 'TypeName(&H8000&) -> Long');
+    assert.strictEqual(ev.evalExpression('CStr(&O177777)'), '-1', '&O177777 -> -1');
+    assert.strictEqual(ev.evalExpression('CStr(&HFFFFFFFF)'), '-1', '&HFFFFFFFF -> -1');
+    assert.strictEqual(ev.evalExpression('TypeName(&HFFFFFFFF)'), 'Long', 'TypeName(&HFFFFFFFF) -> Long');
+    assert.strictEqual(ev.evalExpression('VarType(&HFFFFFFFF)'), 3, 'VarType(&HFFFFFFFF) -> Long');
+
     // 小数点付きリテラルは isFloat により Double
     assert.strictEqual(ev.evalExpression('TypeName(1.0)'), 'Double', 'TypeName(1.0) -> Double');
     assert.strictEqual(ev.evalExpression('TypeName(1.5)'), 'Double', 'TypeName(1.5) -> Double');

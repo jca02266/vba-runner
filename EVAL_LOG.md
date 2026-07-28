@@ -90,6 +90,7 @@
 | 177 | 回帰確認 #177: 外部CallByNameの引数境界 | FZ-GRAMMARの外部Object/COM経路で、Optional既定値、位置引数、添字相当のGet/Method、オブジェクト引数、大文字小文字混在を確認した。これらは期待どおり動作し、外部スカラーByRefの非書き戻しは既知の値渡し制限、名前付き引数のError 448はCallByNameのParamArrayに外部引数名がない仕様境界として整理した。新規バグは確認されなかった。 | 2026-07-27 |
 | 178 | 実行互換性 #178: 既定Value Nullの数値書式 | FZ-BUILTINの別入力シードとして、`__vbaDefault__` の単層・入れ子・配列要素が `Null` を返す場合を `FormatNumber`/`FormatCurrency`/`FormatPercent` に渡した。直接の`Null`は空文字列なのに既定Value経由だけError 13になる Bug 178-A を再現・修正し、共通`fmtNumeric`の展開と回帰テストを追加した。 | 2026-07-28 |
 | 179 | 実行互換性 #179: InputのEmptyフィールドと空ファイルEOF | MUT-ENGINEのファイルI/O境界として、未引用の先頭・末尾空フィールド、空行、空ファイル、明示的な`""`、複数レコードを確認した。区切りカンマ・空行を0へ変換し空ファイルを擬似フィールドとしていたため、Emptyの型情報を失いEOFでError 62にならない Bug 179-A を再現・修正し、空フィールドの保持・末尾区切り・空ファイルの回帰テストを追加した。 | 2026-07-28 |
+| 180 | 実行互換性 #180: 16進・8進リテラルの符号とサフィックス | FZ-GRAMMARの追加型サフィックス境界として、16進・8進リテラルを高ビット値、`%`/`&`サフィックス、配列添字・Select Case・戻り値と組み合わせた。Lexerが基数リテラルのサフィックスを捨て、符号付き16/32ビット解釈も失っていた Bug 180-A を再現・修正し、TypeName/VarType/値の回帰テストを追加した。 | 2026-07-28 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -601,6 +602,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | FZ-GRAMMAR | #173 | Select Caseの日付値比較 |
 | FZ-GRAMMAR | #175 | 外部CallByNameのメンバー解決 |
 | FZ-GRAMMAR | #177 | 外部CallByNameの引数境界 |
+| FZ-GRAMMAR | #180 | 16進・8進リテラルの符号とサフィックス |
 | MUT-ENGINE | #129 | ミューテーションテスト |
 | MUT-ENGINE | #163 | UDT Binary Put/Get境界変異 |
 | MUT-ENGINE | #168 | 標準ファイルI/OのCP932文字列 |

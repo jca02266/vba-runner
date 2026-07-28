@@ -7240,6 +7240,8 @@ export class Evaluator {
             return map[lit.typeSuffix];
         }
         if (lit.isFloat) return 'Double';
+        if (lit.baseWidth === 16) return 'Integer';
+        if (lit.baseWidth === 32) return 'Long';
         const val = lit.value;
         if (Number.isInteger(val)) {
             if (val >= -32768 && val <= 32767) return 'Integer';
@@ -7256,6 +7258,8 @@ export class Evaluator {
             return map[lit.typeSuffix];
         }
         if (lit.isFloat) return 5; // vbDouble
+        if (lit.baseWidth === 16) return 2; // vbInteger
+        if (lit.baseWidth === 32) return 3; // vbLong
         const val = lit.value;
         if (Number.isInteger(val)) {
             if (val >= -32768 && val <= 32767) return 2; // vbInteger

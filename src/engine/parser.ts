@@ -549,6 +549,8 @@ export interface NumberLiteral extends Expression {
     typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^';
     /** true when the literal was written with a decimal point or exponent (e.g. 1.0, 1E5) */
     isFloat?: true;
+    /** Signed bit-pattern width used by an unsuffixed hexadecimal/octal literal. */
+    baseWidth?: 16 | 32;
 }
 
 export interface StringLiteral extends Expression {
@@ -3213,7 +3215,24 @@ export class Parser {
             const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
                 && /[.eEdD]/.test(cleanVal) ? true as const : undefined;
             // Use Number() to support 0x (Hex) and 0o (Octal) prefixes
-            expr = { type: 'NumberLiteral', value: Number(numericVal), typeSuffix, isFloat } as NumberLiteral;
+            let parsedValue = Number(numericVal);
+            let baseWidth: NumberLiteral['baseWidth'];
+            // Unsuffixed hexadecimal/octal literals use VBA's signed Integer or
+            // Long bit pattern.  An explicit Long suffix keeps the 32-bit
+            // pattern, while other explicit numeric suffixes convert the
+            // unsigned literal value without changing its width.
+            if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
+                const unsigned = parsedValue;
+                if (unsigned <= 0xffff) baseWidth = 16;
+                else if (unsigned <= 0xffffffff) baseWidth = 32;
+                if (typeSuffix === undefined || typeSuffix === '%') {
+                    if (unsigned >= 0x80000000 && unsigned <= 0xffffffff) parsedValue = unsigned - 0x100000000;
+                    else if (unsigned >= 0x8000 && unsigned <= 0xffff) parsedValue = unsigned - 0x10000;
+                } else if (typeSuffix === '&' && unsigned >= 0x80000000 && unsigned <= 0xffffffff) {
+                    parsedValue = unsigned - 0x100000000;
+                }
+            }
+            expr = { type: 'NumberLiteral', value: parsedValue, typeSuffix, isFloat, baseWidth } as NumberLiteral;
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {

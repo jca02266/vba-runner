@@ -1038,6 +1038,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 | 状態 | 項目 | 概要 |
 |------|------|------|
 | ✅ | **数値リテラルのサフィックス型情報保持** | `NumberLiteral` AST の `typeSuffix` フィールドで `TypeName(100&)` → `Long`、`TypeName(1.5!)` → `Single` など正しく返る | `typename.test.ts` |
+| ✅ | **16進・8進リテラルの符号とサフィックス** | `&H8000`/`&HFFFF`/`&O177777` の符号付きビットパターン、`&H8000&` のLongサフィックス、基数リテラルの `TypeName`/`VarType` を実装 | `typename.test.ts` |
 | ✅ | **サフィックス付きリテラルのオーバーフロー検出** | `100000%` → Overflow (Error 6)、`3000000000&` → Overflow (Error 6) | `typename.test.ts` |
 | ✅ | **`1.0` リテラルの型推定誤り** | `isFloat` フラグにより `TypeName(1.0)` → `"Double"` を正しく返す | `typename.test.ts` |
 | ✅ | **算術演算結果の型伝播** | `TypeName(1 + 1)` → `"Integer"`、`TypeName(6\2)` → `"Integer"`、`TypeName(6/2)` → `"Double"` など VBA 型昇格規則を AST レベルで実装（ランタイムラッパー不要） | `typename.test.ts` |
