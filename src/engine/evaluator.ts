@@ -2715,6 +2715,12 @@ export class Evaluator {
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
         const selectCaseEquals = (left: any, right: any): boolean => {
+            // Empty is context-sensitive in VBA: it is 0 in a numeric Case
+            // and an empty string in a string Case.  Keep this normalization
+            // local to Select Case so DateSerial and ordinary expressions keep
+            // their existing coercion rules.
+            if (left === vbaEmpty) left = typeof right === 'string' ? '' : 0;
+            if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
             if (left instanceof VbaDate && right instanceof VbaDate) return left.value === right.value;
             if (typeof left === 'bigint' || typeof right === 'bigint') {
                 const bigintValue = typeof left === 'bigint' ? left : right;

@@ -142,6 +142,52 @@ console.log('[PASS] 文字列マッチ');
 
 console.log('\n✅ Select Case: 全テスト通過');
 
+// Bug 191-A: Empty follows the comparison context in Select Case equality.
+{
+    const result = runFunc(`
+Function TestEmptyCase() As String
+    Dim value As Variant
+    value = Empty
+    Select Case value
+        Case 0
+            TestEmptyCase = "zero"
+        Case Else
+            TestEmptyCase = "else"
+    End Select
+End Function
+`, 'TestEmptyCase');
+    assert.strictEqual(result, 'zero', 'Empty matches numeric Case 0');
+
+    const stringResult = runFunc(`
+Function TestEmptyStringCase() As String
+    Dim value As Variant
+    value = Empty
+    Select Case value
+        Case ""
+            TestEmptyStringCase = "empty"
+        Case Else
+            TestEmptyStringCase = "else"
+    End Select
+End Function
+`, 'TestEmptyStringCase');
+    assert.strictEqual(stringResult, 'empty', 'Empty matches string Case ""');
+
+    const notEqualResult = runFunc(`
+Function TestEmptyNotEqual() As String
+    Dim value As Variant
+    value = Empty
+    Select Case value
+        Case Is <> 0
+            TestEmptyNotEqual = "wrong"
+        Case Else
+            TestEmptyNotEqual = "zero"
+    End Select
+End Function
+`, 'TestEmptyNotEqual');
+    assert.strictEqual(notEqualResult, 'zero', 'Empty Case Is <> 0 is false');
+    console.log('[PASS] Bug 191-A: Select Case Empty coercion');
+}
+
 // Bug 173-A: Select Case の Date 式比較は値で一致判定する
 {
     const result = runFunc(`
