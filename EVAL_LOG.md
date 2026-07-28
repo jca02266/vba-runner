@@ -109,7 +109,7 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-001 | 1 | queued | EOF、Append、複数ハンドル |  |
-| FZ-BUILTIN-001 | 2 | queued | 別ロケール・日付境界 |  |
-| FZ-GRAMMAR-002 | 2 | queued | 数値文字列とLongLong/Decimalの比較 |  |
-| MUT-ENGINE-002 | 2 | queued | Currency、Decimal、LongLong比較 |  |
+| MUT-ENGINE-001 | 1 | queued | EOF、Append、複数ハンドル | yes |
+| FZ-BUILTIN-001 | 2 | queued | 別ロケール・日付境界 | yes |
+| FZ-GRAMMAR-002 | 2 | queued | 数値文字列とLongLong/Decimalの比較 | yes |
+| MUT-ENGINE-002 | 2 | queued | Currency、Decimal、LongLong比較 | yes |

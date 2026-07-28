@@ -1,1 +1,18 @@
-snapshots: []
+snapshots:
+  - id: COV-2026-07-28-existing
+    generatedAt: '2026-07-28T13:54:08.951Z'
+    commit: 71b56d3
+    source: coverage-chunks
+    reports:
+      - coverage-chunks/r10/coverage-final.json
+      - coverage-chunks/r12/coverage-final.json
+      - coverage-chunks/r16/coverage-final.json
+      - coverage-chunks/r18/coverage-final.json
+      - coverage-chunks/r4/coverage-final.json
+      - coverage-chunks/r6/coverage-final.json
+    uncovered:
+      - src/engine/evaluator.ts:29.6%
+      - src/engine/builtins.ts:39.0%
+      - src/engine/parser.ts:53.0%
+      - src/engine/lexer.ts:81.9%
+      - src/engine/coerce.ts:70.1%

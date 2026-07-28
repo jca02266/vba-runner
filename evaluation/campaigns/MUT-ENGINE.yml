@@ -6,8 +6,12 @@ items:
     status: queued
     priority: 1
     focus: EOF、Append、複数ハンドル
+    coverageTargets:
+      - src/engine/evaluator.ts
   - id: MUT-ENGINE-002
     title: Select Caseの別数値種別比較
     status: queued
     priority: 2
     focus: Currency、Decimal、LongLong比較
+    coverageTargets:
+      - src/engine/evaluator.ts

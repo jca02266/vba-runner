@@ -6,3 +6,5 @@ items:
     status: queued
     priority: 2
     focus: 別ロケール・日付境界
+    coverageTargets:
+      - src/engine/builtins.ts

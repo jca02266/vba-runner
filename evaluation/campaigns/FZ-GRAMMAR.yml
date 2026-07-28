@@ -12,3 +12,6 @@ items:
     status: queued
     priority: 2
     focus: 数値文字列とLongLong/Decimalの比較
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
