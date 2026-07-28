@@ -102,20 +102,20 @@
 | EV-00195 | MUT-ENGINE | fixed | Select CaseのNull比較境界 |
 | EV-00196 | MUT-ENGINE | fixed | Decimal/Currencyと長い数値文字列の比較 |
 | EV-00197 | FZ-GRAMMAR | fixed | Select Case非数値文字列のエラー伝播 |
+| EV-00198 | MUT-ENGINE | fixed | LongLongと安全範囲外の数値文字列 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 57 |
+| fixed | 58 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 27、実Excel待ち評価: 0
+横展開未解決経路: 30、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-005 | 1 | queued | 64bit整数と長いStringの等価・大小比較 | yes |
 | MUT-ENGINE-006 | 1 | queued | BinaryExpressionのString・Decimal・Currency精度 | yes |
