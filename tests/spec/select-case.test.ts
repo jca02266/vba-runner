@@ -253,6 +253,28 @@ End Function
     console.log('[PASS] Bug 194-A: Select Case numeric String equality');
 }
 
+// Bug 195-A: Null comparisons do not match or throw a JS Symbol error.
+{
+    const result = runFunc(`
+Function TestNullCase() As String
+    Dim value As Variant
+    value = Null
+    Select Case value
+        Case Null
+            TestNullCase = "wrong-null"
+        Case Is <> 0
+            TestNullCase = "wrong-neq"
+        Case Is > 0
+            TestNullCase = "wrong-gt"
+        Case Else
+            TestNullCase = "else"
+    End Select
+End Function
+`, 'TestNullCase');
+    assert.strictEqual(result, 'else', 'Null Select Case comparisons fall through without throwing');
+    console.log('[PASS] Bug 195-A: Select Case Null comparison');
+}
+
 // Bug 173-A: Select Case の Date 式比較は値で一致判定する
 {
     const result = runFunc(`

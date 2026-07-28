@@ -2714,6 +2714,7 @@ export class Evaluator {
 
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
+        const isVbaNull = (value: any): boolean => value === vbaNull;
         const normalizeEmpty = (left: any, right: any): [any, any] => {
             if (left === vbaEmpty) left = typeof right === 'string' ? '' : 0;
             if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
@@ -2803,18 +2804,27 @@ export class Evaluator {
             let matched = false;
             for (const range of caseClause.ranges) {
                 if (range.kind === 'expression') {
-                    matched = selectCaseEquals(selectVal, this.evaluateExpression(range.value));
+                    const value = this.evaluateExpression(range.value);
+                    matched = !isVbaNull(selectVal) && !isVbaNull(value) && selectCaseEquals(selectVal, value);
                 } else if (range.kind === 'to') {
                     const start = this.evaluateExpression(range.start);
                     const end = this.evaluateExpression(range.end);
-                    const lower = selectCaseCompare(selectVal, start);
-                    const upper = selectCaseCompare(selectVal, end);
-                    matched = lower !== undefined && upper !== undefined
-                        ? lower >= 0 && upper <= 0
-                        : selectVal >= start && selectVal <= end;
+                    if (isVbaNull(selectVal) || isVbaNull(start) || isVbaNull(end)) {
+                        matched = false;
+                    } else {
+                        const lower = selectCaseCompare(selectVal, start);
+                        const upper = selectCaseCompare(selectVal, end);
+                        matched = lower !== undefined && upper !== undefined
+                            ? lower >= 0 && upper <= 0
+                            : selectVal >= start && selectVal <= end;
+                    }
                 } else {
                     // comparison: selectVal <op> value
                     const val = this.evaluateExpression(range.value);
+                    if (isVbaNull(selectVal) || isVbaNull(val)) {
+                        matched = false;
+                        continue;
+                    }
                     switch (range.operator) {
                         case '=':  matched = selectCaseEquals(selectVal, val); break;
                         case '<>': matched = !selectCaseEquals(selectVal, val); break;
