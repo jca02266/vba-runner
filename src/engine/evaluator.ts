@@ -8308,6 +8308,13 @@ export class Evaluator {
     private evaluateDecimalOp(op: string, a: any, b: any, toVbaNumber: (v: any) => number): any {
         const parseVal = (v: any): { m: bigint; scale: number } => {
             if (v instanceof VbaDecimal) return { m: v.mantissa, scale: v.scale };
+            if (v instanceof VbaCurrency) return { m: v.internal, scale: 4 };
+            if (typeof v === 'bigint') return { m: v, scale: 0 };
+            if (typeof v === 'string') {
+                const trimmed = v.trim().replace(/^\+/, '');
+                const d = VbaDecimal.fromString(trimmed);
+                return { m: d.mantissa, scale: d.scale };
+            }
             const d = VbaDecimal.fromNumber(toVbaNumber(v));
             return { m: d.mantissa, scale: d.scale };
         };
@@ -8389,6 +8396,13 @@ export class Evaluator {
             if (typeof v === 'number') {
                 if (Number.isInteger(v)) return BigInt(v) * 10000n;
                 return null; // non-integer float → Double path
+            }
+            if (typeof v === 'string') {
+                const trimmed = v.trim().replace(/^\+/, '');
+                if (/^-?(\d+\.?\d*|\.\d+)$/.test(trimmed)) {
+                    return parseFixedPointString(trimmed, 4);
+                }
+                return null;
             }
             return null;
         };

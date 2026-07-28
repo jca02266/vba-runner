@@ -7,6 +7,27 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 // Helper: compare VbaDecimal result as string
 function dec(v: any): string { return String(v); }
 
+// Bug 200-A: Decimal mixed with a long numeric String must keep fixed-point
+// digits instead of converting the String through JavaScript Number.
+{
+    const code = `
+    Function TestMixedDecimal()
+        Dim d As Decimal
+        Dim s As String
+        d = CDec("9007199254740993.2")
+        s = "9007199254740993.1"
+        If d = s Then
+            TestMixedDecimal = "equal|" & CStr(d - s)
+        Else
+            TestMixedDecimal = "wrong|" & CStr(d - s)
+        End If
+    End Function
+    `;
+    const result = runFunc(code, 'TestMixedDecimal');
+    assert.strictEqual(result, 'wrong|0.1', 'Decimal/String keeps long fixed-point digits');
+    console.log('[PASS] Bug 200-A: Decimal/String fixed-point precision');
+}
+
 // Test 1: 28-digit precision via CDec(string)
 {
     const code = `

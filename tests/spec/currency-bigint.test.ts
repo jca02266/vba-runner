@@ -6,6 +6,25 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 
 function cur(v: any): string { return String(v); }
 
+// Bug 200-B: Currency mixed with a long numeric String must keep four decimal
+// places beyond JavaScript's safe integer range.
+{
+    const code = `
+    Function TestMixedCurrency()
+        Dim c As Currency
+        c = CCur("900719925474099.1234")
+        If c < "900719925474099.1235" Then
+            TestMixedCurrency = CStr(c + "0.0001")
+        Else
+            TestMixedCurrency = "wrong|" & CStr(c - "900719925474099.1235")
+        End If
+    End Function
+    `;
+    const result = runFunc(code, 'TestMixedCurrency');
+    assert.strictEqual(result, '900719925474099.1235', 'Currency/String keeps long fixed-point digits');
+    console.log('[PASS] Bug 200-B: Currency/String fixed-point precision');
+}
+
 // ── Phase 1: VbaCurrency BigInt 精度テスト ──────────────────────────────────
 
 // 主要精度テスト: CCur(0.1) + CCur(0.2) = CCur(0.3) (float では 0.30000000000000004)
