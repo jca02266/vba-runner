@@ -216,6 +216,32 @@ End Function
     console.log('[PASS] Bug 178-A: numeric format functions unwrap Null defaults');
 }
 
+// Bug 185-A: conversion functions must preserve Error 94 after default-value
+// expansion returns Null, just as they do for a direct Null argument.
+{
+    const nullDefault: any = { __vbaDefault__: true as const, Value: vbaNull };
+    const result = run(`
+Function TestNullDefaultConversions() As String
+    Dim e As Long, s As String
+    On Error Resume Next
+    x = CByte(v): e = Err.Number: Err.Clear: s = CStr(e)
+    x = CInt(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CLng(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CSng(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CDbl(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CDate(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CDec(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CCur(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CLngLng(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    x = CBool(v): e = Err.Number: Err.Clear: s = s & ":" & CStr(e)
+    TestNullDefaultConversions = s
+End Function
+`, 'TestNullDefaultConversions', ev => ev.set('v', nullDefault));
+    assert.strictEqual(result, '94:94:94:94:94:94:94:94:94:94',
+        'default Value Null raises Invalid use of Null for conversions');
+    console.log('[PASS] Bug 185-A: Null default conversion errors');
+}
+
 // 6. MockRange を使った VBA 演算
 {
     const ws = new MockWorksheet('Sheet1');

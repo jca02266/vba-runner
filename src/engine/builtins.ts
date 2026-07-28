@@ -259,39 +259,45 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerConversionFunctions(ctx: StdlibCtx): void {
+    const unwrapConversionValue = (value: any): any => {
+        const unwrapped = unwrapVbaDefaultValue(value);
+        if (unwrapped === vbaNull) {
+            ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+        return unwrapped;
+    };
     ctx.reg('cbyte', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         if (val instanceof VbaBoolean) return val.valueOf() ? 255 : 0;
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < 0 || n > 255) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('cint', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < -32768 || n > 32767) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('clng', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < -2147483648 || n > 2147483647) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('csng', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         const n = ctx.toVbaNumber(val);
         const f32 = Math.fround(n);
         if (!isFinite(f32) && isFinite(n)) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return f32;
     }, [{ name: 'Expression' }]);
     ctx.reg('cdbl', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         return ctx.toVbaNumber(val);
     }, [{ name: 'Expression' }]);
     ctx.reg('cdate', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        val = unwrapVbaDefaultValue(val);
+        val = unwrapConversionValue(val);
         // CDate(Empty) はシリアル値 0（1899-12-30）を返す（実 VBA 差分で裁定）
         if (val === vbaEmpty) return new VbaDate(0);
         if (val instanceof VbaDate) return val;
@@ -333,7 +339,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return (ctx.envGet('cdate') as Function)(val);
     }, [{ name: 'Expression' }]);
     ctx.reg('cdec', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         if (val instanceof VbaDecimal) return val;
         if (val instanceof VbaCurrency) return new VbaDecimal(val.internal, 4);
         if (val instanceof VbaBoolean) return new VbaDecimal(BigInt(val.value), 0);
@@ -342,7 +348,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return VbaDecimal.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     ctx.reg('ccur', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         if (val instanceof VbaCurrency) return val;
         if (val instanceof VbaBoolean) return new VbaCurrency(BigInt(val.value) * 10000n);
         if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
@@ -357,7 +363,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return VbaCurrency.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     const clnglngFunc = (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         if (val === null) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (typeof val === 'bigint') return val;
         if (typeof val === 'string') {
@@ -395,7 +401,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
     }, [{ name: 'Expression' }]);
     ctx.reg('cbool', (val: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        val = unwrapConversionValue(val);
         return vbaToBoolean(val);
     }, [{ name: 'Expression' }]);
     ctx.reg('cvar', (val: any) => val, [{ name: 'Expression' }]);
