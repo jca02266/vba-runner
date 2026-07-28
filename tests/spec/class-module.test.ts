@@ -885,4 +885,43 @@ End Function
     console.log('[PASS] Bug 153-A: ローカル2次元クラス配列のPreserve');
 }
 
+// Bug 182-A: a class ByVal argument must not evaluate a member call twice.
+{
+    const ev = evalVBASingle(`
+        Class LineCollector
+            Public lines As Collection
+            Private Sub Class_Initialize()
+                Set lines = New Collection
+            End Sub
+            Public Sub AddLine(ByVal value As String)
+                lines.Add value
+            End Sub
+            Public Function Joined() As String
+                Dim item As Variant
+                For Each item In lines
+                    Joined = Joined & item & "|"
+                Next item
+            End Function
+        End Class
+
+        Function TestByValMemberCall() As String
+            Dim fso As New FileSystemObject
+            Dim ts As Object
+            Dim c As New LineCollector
+            Set ts = fso.CreateTextFile("C:\\byval-readline.txt", True, False)
+            ts.WriteLine "one"
+            ts.WriteLine "two"
+            ts.Close
+            Set ts = fso.OpenTextFile("C:\\byval-readline.txt", 1, False, False)
+            c.AddLine ts.ReadLine
+            c.AddLine ts.ReadLine
+            ts.Close
+            TestByValMemberCall = c.Joined
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestByValMemberCall', []), 'one|two|',
+        'class ByVal member-call arguments are evaluated once');
+    console.log('✅ Bug 182-A: class ByVal member-call evaluation');
+}
+
 console.log('\n✅ Class Module: 全テスト通過');

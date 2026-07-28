@@ -92,6 +92,7 @@
 | 179 | 実行互換性 #179: InputのEmptyフィールドと空ファイルEOF | MUT-ENGINEのファイルI/O境界として、未引用の先頭・末尾空フィールド、空行、空ファイル、明示的な`""`、複数レコードを確認した。区切りカンマ・空行を0へ変換し空ファイルを擬似フィールドとしていたため、Emptyの型情報を失いEOFでError 62にならない Bug 179-A を再現・修正し、空フィールドの保持・末尾区切り・空ファイルの回帰テストを追加した。 | 2026-07-28 |
 | 180 | 実行互換性 #180: 16進・8進リテラルの符号とサフィックス | FZ-GRAMMARの追加型サフィックス境界として、16進・8進リテラルを高ビット値、`%`/`&`サフィックス、配列添字・Select Case・戻り値と組み合わせた。Lexerが基数リテラルのサフィックスを捨て、符号付き16/32ビット解釈も失っていた Bug 180-A を再現・修正し、TypeName/VarType/値の回帰テストを追加した。 | 2026-07-28 |
 | 181 | 実行互換性 #181: On Error Resume Next の Err.Source 更新 | MUT-ENGINEの単独エラー状態境界として、連続した`Err.Raise`、暗黙の除算エラー、`Err.Clear`、ループ・呼出し先ハンドラーを評価した。前回の`Err.Raise`で指定した`CustomSource`が、Source省略のRaiseと暗黙ランタイムエラーへ残留する Bug 181-A を再現・修正し、エラー種別ごとのSource更新を回帰テストに追加した。 | 2026-07-28 |
+| 182 | 実行互換性 #182: FSO追記とクラスByVal引数の相互作用 | MUT-ENGINEのファイルI/O追加境界として、FSOのUnicode/ANSI追記、標準`Open ... For Append`、`Input`/`Line Input`、Collection・クラス・ループ・`On Error`を組み合わせた。クラスメソッドの`ByVal`引数へ`TextStream.ReadLine`を直接渡すと、参照生成時に式を二重評価して1行読み飛ばす Bug 182-A を再現・修正し、既存の追記バイト列と複合読み取りの正常動作も確認した。 | 2026-07-28 |
 | 99 | 回帰確認 #99: LenB / AscB / ChrB | **Bug 25-1〜3 の修正を再確認**: UTF-16LE バイトモデル、Null 伝播、空文字 Error 5 を回帰テストで確認。過去の未修正記載を整理した。 | 2026-07-26 |
 | 98 | MockExcel 互換性 #98: Range への配列サイズ不一致 | **Bug 98-A 修正済み**: 2D 配列を範囲へ書き込むと行・列数の不一致を検出せず、空文字で補完していた。範囲サイズと一致しない 2D 配列を Error 1004 とする回帰テストを追加した。 | 2026-07-26 |
 | 97 | 回帰修正: Implements 型への `Set` | **Bug 97-A 修正済み**: `Dim x As New Implementer : Dim i As Interface : Set i = x` が未実体化プレースホルダーの型検査で Error 13 になった。`Set` 右辺の AutoInstance を型検査前に実体化し、Implements 関係をクラス参照型の代入互換性として認めた。 | 2026-07-25 |
@@ -213,6 +214,8 @@
 | **Bug 125-A: UDT代入がネスト値を共有する** | `Type Parent: Header As Child: End Type` で `q = p` 後に `q.Header.A = 2` を実行すると、値型である `p.Header.A` まで `2` になっていた。UDT代入時に `deepCopyByValValue` を適用し、ネストUDTと配列を再帰コピー。回帰テスト: `tests/spec/binary-file-io.test.ts`。 | このコミット |
 | **Bug 126-A: Declareスタブが引数個数を検査しない** | 必須1引数の`Declare Function`を0個または2個の引数で呼び出しても成功していた。宣言パラメーターをスタブの引数検査へ渡し、VBA Error 450を返すよう修正。回帰テスト: `tests/spec/declare.test.ts`。 | このコミット |
 | **Bug 128-A: 空白なしの`&`連結をLong型サフィックスと誤認する** | `s=s&"a"` の`&`を識別子サフィックスとしてLexerが`s&`に結合し、構文エラーになっていた。連結演算子の文脈では`&`を演算子としてトークン化し、`Dim n&`等の宣言サフィックスは維持。回帰テスト: `tests/spec/identifier-type-suffix.test.ts`。 | このコミット |
+| **Bug 181-A: 新しいエラーが前回の`Err.Source`を残す** | `Err.Raise 5, "CustomSource", "custom"` の後に Source省略の`Err.Raise 6`または暗黙の除算エラーを実行すると、前回のSourceが残留していた。明示Source、省略Source、暗黙ランタイムエラーを状態更新時に区別し、`tests/spec/error_handling.test.ts` に回帰テストを追加。 | `c7d68b5` |
+| **Bug 182-A: クラスのByValメンバー式を二重評価する** | `c.AddLine ts.ReadLine` のようにクラスメソッドの`ByVal`引数へ状態変更を伴うメンバー呼出しを渡すと、`ReadLine`が二度実行されて`one|two|`が`two||`になっていた。ByVal引数ではl-value参照を生成せず、最初の値評価だけを束縛するよう修正。回帰テスト: `tests/spec/class-module.test.ts`。 | このコミット |
 
 | `eval()` で組み込み関数戻り値への `+`/`-` 演算が Error 424 | `r.eval('UBound(arr) + 1')` → Error 424（括弧ワークアラウンド: `(UBound(arr)) + 1`）| `ec63519` |
 | `run()` ログで JS 配列引数が `[Object]` と表示される | `r.run('Proc', [[1,2,3]])` → ログが `Proc([Object])` | `ec63519` |
@@ -559,7 +562,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 |---|---|---|
 | FZ-BUILTIN | 既定Valueを受ける別の数値・日付入力シード、変更後の別日付入力 | 継続 |
 | FZ-GRAMMAR | 追加の型サフィックス境界、外部CallByNameのスカラーByRef制限境界、Select Case数値文字列の実Excel照合 | 継続 |
-| MUT-ENGINE | ファイルI/OのUnicode/Append/Input追加境界（FSOとの相互作用を含む）、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
+| MUT-ENGINE | ファイルI/Oの別Append/Input境界、Select CaseのCurrency/Decimal追加種別、別テスト単位での検出確認 | 継続 |
 
 #### キャンペーン評価履歴
 
@@ -614,6 +617,7 @@ Excel 実機上でまとめて実施するための一覧である。照合後�
 | MUT-ENGINE | #176 | Inputの不足フィールドEOF |
 | MUT-ENGINE | #179 | InputのEmptyフィールドと空ファイルEOF |
 | MUT-ENGINE | #181 | On Error Resume NextのErr.Source更新 |
+| MUT-ENGINE | #182 | FSO追記とクラスByVal引数の相互作用 |
 
 各キャンペーンを実施したら、評価済みドメイン表と「キャンペーン評価履歴」に番号と
 該当する評価内容を1行追加し、上の概要表の「次回の未実施対象」を同じコミットで更新する。製品バグを

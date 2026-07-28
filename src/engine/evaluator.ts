@@ -4272,7 +4272,12 @@ export class Evaluator {
         }
         const aligned = supplied.slice(0, lastProvided + 1);
         const expressions = aligned.map(slot => slot?.expr ?? null);
-        const references = expressions.map(expr => expr ? this.createLValueReference(expr) : null);
+        // A ByVal argument is already evaluated above.  Resolving a reference
+        // for it would evaluate member-call expressions a second time (for
+        // example, TextStream.ReadLine would consume two lines).
+        const references = expressions.map((expr, i) =>
+            expr && !proc.parameters[i]?.isByVal ? this.createLValueReference(expr) : null
+        );
         const args = aligned.map((slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
             : vbaMissing);
