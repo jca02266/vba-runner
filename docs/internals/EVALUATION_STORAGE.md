@@ -70,7 +70,7 @@ JSONが存在しない場合は `audit` が警告またはエラーにする。
 
 ## CLIと状態遷移
 
-`scripts/eval.ts` に次の操作を実装する。
+`scripts/eval.mjs` に次の操作を実装する。
 
 ```text
 eval audit

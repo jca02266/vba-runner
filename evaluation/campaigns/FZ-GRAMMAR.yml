@@ -1,0 +1,13 @@
+id: FZ-GRAMMAR
+method: fuzzer
+items:
+  - id: FZ-GRAMMAR-001
+    title: 別の型サフィックス境界
+    status: queued
+    priority: 1
+    focus: 宣言型サフィックスと複合式
+  - id: FZ-GRAMMAR-002
+    title: Select Case数値文字列の実Excel照合
+    status: queued
+    priority: 2
+    focus: 数値文字列とLongLong/Decimalの比較

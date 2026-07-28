@@ -1,0 +1,37 @@
+version: 1
+record:
+  required:
+    - id
+    - campaign
+    - status
+    - priority
+    - focus
+  stringFields:
+    - id
+    - legacyNumber
+    - campaign
+    - status
+    - priority
+    - focus
+    - coverageSnapshot
+    - commit
+  statuses:
+    - queued
+    - claimed
+    - in-progress
+    - verified-no-bug
+    - bug-found
+    - fixed
+    - blocked
+    - abandoned
+    - known-limit
+    - needs-excel
+    - retired
+  arrays:
+    - findings
+    - tests
+horizontalAudit:
+  required:
+    - confirmed
+    - ruledOut
+    - unresolved

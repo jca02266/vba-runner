@@ -1,0 +1,13 @@
+id: MUT-ENGINE
+method: mutation
+items:
+  - id: MUT-ENGINE-001
+    title: ファイルI/Oの別EOF/Append境界
+    status: queued
+    priority: 1
+    focus: EOF、Append、複数ハンドル
+  - id: MUT-ENGINE-002
+    title: Select Caseの別数値種別比較
+    status: queued
+    priority: 2
+    focus: Currency、Decimal、LongLong比較
