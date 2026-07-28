@@ -1036,6 +1036,19 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
         if (fmt === "") return vbaToString(val);
+        if (typeof val === 'bigint') {
+            const namedExact: Record<string, [number, boolean, number, string, string]> = {
+                'general number': [0, true, 1, '', ''],
+                'currency': [2, true, 1, '$', ''],
+                'fixed': [2, false, 1, '', ''],
+                'standard': [2, true, 1, '', ''],
+                'percent': [2, false, 100, '', '%'],
+            };
+            const spec = namedExact[fmt.toLowerCase()];
+            if (spec) return exactFixedFormat(val.toString(), spec[0], spec[1], true, spec[3], spec[4], false, spec[2]);
+            const exact = exactPatternFormat(val.toString(), fmt);
+            if (exact !== undefined) return exact;
+        }
         if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
             const exact = exactPatternFormat(val.toString(), fmt);
             if (exact !== undefined) return exact;
@@ -1107,7 +1120,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // suppresses it for values whose formatted magnitude is below one.
         const includeLeadingDigit = leadingDigit === vbaMissing || ctx.toVbaNumber(leadingDigit) !== 0;
         const useParensForNegative = parens !== vbaMissing && ctx.toVbaNumber(parens) !== 0;
-        if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+        if (val instanceof VbaCurrency || val instanceof VbaDecimal || typeof val === 'bigint') {
             return exactFixedFormat(val.toString(), dec, group, includeLeadingDigit,
                 prefix, suffix, useParensForNegative, scale);
         }

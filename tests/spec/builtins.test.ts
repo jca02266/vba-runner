@@ -151,6 +151,19 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
 }
 
+// Bug 203-A: LongLong formatting must apply numeric patterns without Number
+// rounding or silently returning the unformatted value.
+{
+    const value = 'CLngLng("9007199254740993")';
+    assert.strictEqual(evalExpr(`Format(${value}, "#,##0")`), '9,007,199,254,740,993',
+        'Format LongLong applies custom grouping exactly');
+    assert.strictEqual(evalExpr(`FormatNumber(${value}, 0)`), '9,007,199,254,740,993',
+        'FormatNumber LongLong preserves 64-bit digits');
+    assert.strictEqual(evalExpr(`Format(${value}, "Currency")`), '$9,007,199,254,740,993.00',
+        'Format LongLong applies named Currency format');
+    console.log('[PASS] Bug 203-A: LongLong formatting');
+}
+
 // Bug 120-A: 数値書式の色指定が日付書式として誤認される
 {
     assert.strictEqual(
