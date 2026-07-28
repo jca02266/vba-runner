@@ -133,6 +133,24 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug L: Format(Currency/Decimal, 数値パターン)');
 }
 
+// Bug 202-A: Format-family builtins must preserve Decimal/Currency digits
+// beyond JavaScript's safe integer range.
+{
+    assert.strictEqual(
+        evalExpr('Format(CDec("123456789012345678.9012"), "#,##0.0000")'),
+        '123,456,789,012,345,678.9012',
+        'Format Decimal keeps high-precision digits');
+    assert.strictEqual(
+        evalExpr('FormatCurrency(CCur("123456789012345.67"), 2)'),
+        '$123,456,789,012,345.67',
+        'FormatCurrency keeps high-precision digits');
+    assert.strictEqual(
+        evalExpr('FormatPercent(CDec("1234567890123456.789"), 3)'),
+        '123,456,789,012,345,678.900%',
+        'FormatPercent keeps high-precision digits');
+    console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
+}
+
 // Bug 120-A: 数値書式の色指定が日付書式として誤認される
 {
     assert.strictEqual(

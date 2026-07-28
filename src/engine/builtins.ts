@@ -960,12 +960,86 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Start' },
         { name: 'Length', optional: true },
     ], ['$']);
+
+    /** Format a Decimal/Currency string without passing through JS Number. */
+    const exactFixedFormat = (raw: string, decimals: number, group: boolean,
+                              includeLeadingDigit = true, prefix = '', suffix = '',
+                              useParens = false, scale = 1): string => {
+        let text = raw.trim();
+        let negative = text.startsWith('-');
+        if (negative || text.startsWith('+')) text = text.slice(1);
+        let [intPart, fracPart = ''] = text.split('.');
+        intPart = intPart || '0';
+        if (scale === 100) {
+            const all = intPart + fracPart;
+            const point = intPart.length + 2;
+            if (point >= all.length) {
+                intPart = all + '0'.repeat(point - all.length);
+                fracPart = '';
+            } else {
+                intPart = all.slice(0, point);
+                fracPart = all.slice(point);
+            }
+        }
+        const kept = fracPart.slice(0, decimals).padEnd(decimals, '0');
+        const next = fracPart[decimals];
+        let scaledDigits = (intPart + kept).replace(/^0+(?=\d)/, '') || '0';
+        if (next !== undefined && next >= '5') {
+            scaledDigits = (BigInt(scaledDigits || '0') + 1n).toString();
+        }
+        if (decimals > 0) {
+            scaledDigits = scaledDigits.padStart(decimals + 1, '0');
+            intPart = scaledDigits.slice(0, -decimals) || '0';
+            fracPart = scaledDigits.slice(-decimals);
+        } else {
+            intPart = scaledDigits;
+            fracPart = '';
+        }
+        if (!includeLeadingDigit && intPart === '0') intPart = '';
+        if (group && intPart) intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        const number = intPart + (fracPart ? `.${fracPart}` : '');
+        const body = `${prefix}${number}${suffix}`;
+        if (!negative) return body;
+        return useParens ? `(${body})` : `-${body}`;
+    };
+
+    const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
+        const clean = stripFormatColorDirectives(pattern);
+        const sections = clean.split(';');
+        const negative = raw.trim().startsWith('-');
+        const section = negative && sections.length > 1 ? sections[1] : sections[0];
+        const first = section.search(/[0#]/);
+        const last = Math.max(section.lastIndexOf('0'), section.lastIndexOf('#'));
+        if (first < 0 || last < first || /[Ee][+-]/.test(section)) return undefined;
+        const prefix = section.slice(0, first).replace(/"([^"]*)"/g, '$1');
+        const suffix = section.slice(last + 1).replace(/"([^"]*)"/g, '$1');
+        const core = section.slice(first, last + 1);
+        const percent = core.includes('%');
+        const numericCore = core.replace(/%/g, '').replace(/,/g, '');
+        const parts = numericCore.split('.');
+        const intFmt = parts[0] || '';
+        const decFmt = parts[1] || '';
+        const decimals = decFmt.length;
+        const group = core.includes(',');
+        const includeLeading = (intFmt.match(/0/g) || []).length > 0;
+        const formatted = exactFixedFormat(raw, decimals, group, includeLeading, prefix,
+            `${suffix}${percent ? '%' : ''}`, false, percent ? 100 : 1);
+        if (negative && sections.length > 1 && section.includes('(')) {
+            return formatted.replace(/^-/, '');
+        }
+        return formatted;
+    };
+
     const formatFunc = (val: any, pattern?: any) => {
         val = unwrapVbaDefaultValue(val);
         if (val === null || val === vbaNull || val === vbaEmpty) return "";
         if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
         if (fmt === "") return vbaToString(val);
+        if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+            const exact = exactPatternFormat(val.toString(), fmt);
+            if (exact !== undefined) return exact;
+        }
         const fmtLower = fmt.toLowerCase();
         const namedFormats = ['general number', 'currency', 'fixed', 'standard', 'percent', 'scientific', 'true/false', 'yes/no', 'on/off'];
         const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
@@ -1033,6 +1107,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // suppresses it for values whose formatted magnitude is below one.
         const includeLeadingDigit = leadingDigit === vbaMissing || ctx.toVbaNumber(leadingDigit) !== 0;
         const useParensForNegative = parens !== vbaMissing && ctx.toVbaNumber(parens) !== 0;
+        if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+            return exactFixedFormat(val.toString(), dec, group, includeLeadingDigit,
+                prefix, suffix, useParensForNegative, scale);
+        }
         const neg = n < 0;
         const abs = Math.abs(n);
         const decFixed = Math.min(dec, 100);
