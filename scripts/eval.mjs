@@ -321,6 +321,9 @@ function complete(candidateId, evaluationId, status, token) {
   const evaluation = readRecords().find(({ data }) => data.id === evaluationId)?.data;
   if (!evaluation) throw new Error(`unknown evaluation ${evaluationId}`);
   if (evaluation.campaign !== item.campaign) throw new Error(`${candidateId} and ${evaluationId} have different campaigns`);
+  if (evaluation.candidateId !== candidateId) {
+    throw new Error(`${evaluationId} belongs to ${evaluation.candidateId}, not ${candidateId}`);
+  }
   if (!statuses.has(status) || status === 'queued' || status === 'claimed') throw new Error(`invalid completion status ${status}`);
   if (evaluation.status !== status) throw new Error(`${evaluationId} status ${evaluation.status} cannot complete as ${status}`);
   if (status === 'fixed' && (!evaluation.commit || !Array.isArray(evaluation.tests) || evaluation.tests.length === 0)) {

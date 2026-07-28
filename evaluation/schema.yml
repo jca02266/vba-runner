@@ -18,6 +18,7 @@ record:
     - horizontalAudit
   required:
     - id
+    - candidateId
     - campaign
     - status
     - priority

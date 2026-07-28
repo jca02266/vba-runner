@@ -44,6 +44,10 @@ try {
     assert.notEqual(unauthorized.status, 0);
     assert.match(unauthorized.stderr, /token is invalid/);
 
+    const mismatched = run('complete', candidate.id, 'EV-00185', 'fixed', claimState.token);
+    assert.notEqual(mismatched.status, 0);
+    assert.match(mismatched.stderr, /belongs to .* not /);
+
     const completed = run('complete', candidate.id, 'EV-00186', 'verified-no-bug', claimState.token);
     assert.equal(completed.status, 0, completed.stderr);
     const afterComplete = run('next');
