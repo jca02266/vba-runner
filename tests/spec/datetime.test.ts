@@ -129,8 +129,10 @@ End Function
     assert.strictEqual(runFunc(dsCode, 'TestYear',  [v]), 2024, 'DateValue year');
     assert.strictEqual(runFunc(dsCode, 'TestMonth', [v]), 3,    'DateValue month');
     assert.strictEqual(runFunc(dsCode, 'TestDay',   [v]), 15,   'DateValue day');
-    assert.throws(() => runFunc(dsCode, 'TestDateValue', ['02/29/2023']), /Type mismatch|13/);
-    assert.throws(() => runFunc(dsCode, 'TestDateValue', ['2023-02-29']), /Type mismatch|13/);
+    assert.throwsMatch(() => runFunc(dsCode, 'TestDateValue', ['02/29/2023']), /Type mismatch|13/,
+        'DateValue rejects impossible US calendar dates instead of normalizing');
+    assert.throwsMatch(() => runFunc(dsCode, 'TestDateValue', ['2023-02-29']), /Type mismatch|13/,
+        'DateValue rejects impossible ISO calendar dates instead of normalizing');
     console.log('[PASS] DateValue');
 }
 
