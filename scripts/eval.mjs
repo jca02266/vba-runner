@@ -96,7 +96,7 @@ function readResults() {
     const result = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
     if (!result?.candidateId || results.has(result.candidateId)) throw new Error(`duplicate result ${result?.candidateId ?? name}`);
     if (!statuses.has(result.status) || !result.evaluationId) throw new Error(`invalid result ${name}`);
-    results.set(result.candidateId, result);
+    results.set(result.candidateId, { ...result, file: path.join(statesDir, name) });
   }
   return results;
 }
@@ -188,7 +188,27 @@ function validate(records = readRecords()) {
       if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
     }
   }
-  readCampaignItems();
+  const items = readCampaignItems();
+  const recordsById = new Map(records.map(({ data }) => [data.id, data]));
+  for (const [candidateId, result] of readResults()) {
+    const expectedFile = `${candidateId}.result.yml`;
+    if (path.basename(result.file) !== expectedFile) {
+      throw new Error(`${result.file}: result filename does not match ${candidateId}`);
+    }
+    const item = items.get(candidateId);
+    if (!item) throw new Error(`${result.file}: unknown candidate ${candidateId}`);
+    const evaluation = recordsById.get(result.evaluationId);
+    if (!evaluation) throw new Error(`${result.file}: unknown evaluation ${result.evaluationId}`);
+    if (evaluation.candidateId !== candidateId) {
+      throw new Error(`${result.file}: evaluation ${result.evaluationId} belongs to ${evaluation.candidateId}, not ${candidateId}`);
+    }
+    if (evaluation.campaign !== item.campaign) {
+      throw new Error(`${result.file}: evaluation campaign ${evaluation.campaign} does not match ${item.campaign}`);
+    }
+    if (evaluation.status !== result.status) {
+      throw new Error(`${result.file}: result status ${result.status} does not match evaluation ${evaluation.status}`);
+    }
+  }
   validateCoverageIndex();
   return records;
 }
