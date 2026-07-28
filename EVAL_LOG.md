@@ -97,19 +97,20 @@
 | EV-00190 | MUT-ENGINE | verified-no-bug | 別シードのファイルI/O EOF/Append境界 |
 | EV-00191 | FZ-BUILTIN | fixed | 既定値経由の日付文字列と不正暦日境界 |
 | EV-00192 | FZ-GRAMMAR | fixed | Select CaseのEmpty文脈変換 |
+| EV-00193 | MUT-ENGINE | fixed | Select CaseのDecimal高精度等価比較 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 52 |
+| fixed | 53 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 13、実Excel待ち評価: 0
+横展開未解決経路: 16、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-002 | 2 | queued | Currency、Decimal、LongLong比較 | yes |
+| (none) | | | | |
