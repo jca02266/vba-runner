@@ -6,6 +6,22 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 
 function cur(v: any): string { return String(v); }
 
+// Bug 201-A: Currency integer division and Mod must round the fixed-point
+// internal value before dividing, without passing through Number.
+{
+    const code = `
+    Function TestCurrencyDivModBoundary()
+        Dim c As Currency
+        c = CCur("922337203685477.4999")
+        TestCurrencyDivModBoundary = CStr(c \\ 2) & "|" & CStr(c Mod 2) _
+            & "|" & CStr(c \\ 3) & "|" & CStr(c Mod 3)
+    End Function
+    `;
+    const result = runFunc(code, 'TestCurrencyDivModBoundary');
+    assert.strictEqual(result, '461168601842738|1|307445734561825|2', 'Currency high-value \\ and Mod preserve rounding');
+    console.log('[PASS] Bug 201-A: Currency high-value \\ and Mod');
+}
+
 // Bug 200-B: Currency mixed with a long numeric String must keep four decimal
 // places beyond JavaScript's safe integer range.
 {

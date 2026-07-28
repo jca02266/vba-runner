@@ -8454,16 +8454,16 @@ export class Evaluator {
                 return Number(ai!) / Number(bi!);
             }
             case '\\': {
-                const li = _vbaRound(Number(ai!) / 10000, 0);
-                const ri = _vbaRound(Number(bi!) / 10000, 0);
+                const li = bankersDivide(ai!, 10000n);
+                const ri = bankersDivide(bi!, 10000n);
                 if (ri === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return Math.trunc(li / ri);
+                return Number(li / ri);
             }
             case 'mod': {
-                const lm = _vbaRound(Number(ai!) / 10000, 0);
-                const rm = _vbaRound(Number(bi!) / 10000, 0);
+                const lm = bankersDivide(ai!, 10000n);
+                const rm = bankersDivide(bi!, 10000n);
                 if (rm === 0) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return lm % rm;
+                return Number(lm % rm);
             }
             case '=':  return ai! === bi! ? vbaTrue : vbaFalse;
             case '<>': return ai! !== bi! ? vbaTrue : vbaFalse;
