@@ -1,7 +1,7 @@
 snapshots:
   - id: COV-2026-07-28-existing
     generatedAt: '2026-07-28T13:54:08.951Z'
-    commit: 71b56d3
+    commit: c12a9c0
     source: coverage-chunks
     reports:
       - coverage-chunks/r10/coverage-final.json
