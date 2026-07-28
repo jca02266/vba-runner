@@ -2714,13 +2714,51 @@ export class Evaluator {
 
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
+        const normalizeEmpty = (left: any, right: any): [any, any] => {
+            if (left === vbaEmpty) left = typeof right === 'string' ? '' : 0;
+            if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
+            return [left, right];
+        };
+        const selectCaseCompare = (rawLeft: any, rawRight: any): number | undefined => {
+            let [left, right] = normalizeEmpty(rawLeft, rawRight);
+            if (left instanceof VbaDate && right instanceof VbaDate) {
+                return left.value === right.value ? 0 : (left.value < right.value ? -1 : 1);
+            }
+            if (left instanceof VbaDecimal || right instanceof VbaDecimal ||
+                left instanceof VbaCurrency || right instanceof VbaCurrency) {
+                try {
+                    const asDecimal = (value: any): VbaDecimal => {
+                        if (value instanceof VbaDecimal) return value;
+                        if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
+                        if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
+                        return VbaDecimal.fromNumber(this.toVbaNumber(value));
+                    };
+                    const leftDecimal = asDecimal(left);
+                    const rightDecimal = asDecimal(right);
+                    const scale = Math.max(leftDecimal.scale, rightDecimal.scale);
+                    const leftMantissa = leftDecimal.mantissa * (10n ** BigInt(scale - leftDecimal.scale));
+                    const rightMantissa = rightDecimal.mantissa * (10n ** BigInt(scale - rightDecimal.scale));
+                    return leftMantissa === rightMantissa ? 0 : (leftMantissa < rightMantissa ? -1 : 1);
+                } catch { return undefined; }
+            }
+            if (typeof left === 'bigint' || typeof right === 'bigint') {
+                try {
+                    const leftBig = typeof left === 'bigint' ? left : BigInt(this.toVbaNumber(left));
+                    const rightBig = typeof right === 'bigint' ? right : BigInt(this.toVbaNumber(right));
+                    return leftBig === rightBig ? 0 : (leftBig < rightBig ? -1 : 1);
+                } catch { return undefined; }
+            }
+            if (typeof left === 'number' && typeof right === 'number') {
+                return left === right ? 0 : (left < right ? -1 : 1);
+            }
+            return undefined;
+        };
         const selectCaseEquals = (left: any, right: any): boolean => {
             // Empty is context-sensitive in VBA: it is 0 in a numeric Case
             // and an empty string in a string Case.  Keep this normalization
             // local to Select Case so DateSerial and ordinary expressions keep
             // their existing coercion rules.
-            if (left === vbaEmpty) left = typeof right === 'string' ? '' : 0;
-            if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
+            [left, right] = normalizeEmpty(left, right);
             if (left instanceof VbaDate && right instanceof VbaDate) return left.value === right.value;
             if (typeof left === 'bigint' || typeof right === 'bigint') {
                 const bigintValue = typeof left === 'bigint' ? left : right;
@@ -2731,8 +2769,19 @@ export class Evaluator {
                     return Number(bigintValue) === otherValue;
                 }
             }
-            if (left instanceof VbaCurrency || left instanceof VbaDecimal ||
-                right instanceof VbaCurrency || right instanceof VbaDecimal) {
+            if (left instanceof VbaDecimal || right instanceof VbaDecimal) {
+                try {
+                    const asDecimal = (value: any): VbaDecimal =>
+                        value instanceof VbaDecimal ? value : VbaDecimal.fromNumber(this.toVbaNumber(value));
+                    const leftDecimal = asDecimal(left);
+                    const rightDecimal = asDecimal(right);
+                    const scale = Math.max(leftDecimal.scale, rightDecimal.scale);
+                    const leftMantissa = leftDecimal.mantissa * (10n ** BigInt(scale - leftDecimal.scale));
+                    const rightMantissa = rightDecimal.mantissa * (10n ** BigInt(scale - rightDecimal.scale));
+                    return leftMantissa === rightMantissa;
+                } catch { return false; }
+            }
+            if (left instanceof VbaCurrency || right instanceof VbaCurrency) {
                 try { return this.toVbaNumber(left) === this.toVbaNumber(right); } catch { return false; }
             }
             return left === right;
@@ -2746,17 +2795,21 @@ export class Evaluator {
                 } else if (range.kind === 'to') {
                     const start = this.evaluateExpression(range.start);
                     const end = this.evaluateExpression(range.end);
-                    matched = selectVal >= start && selectVal <= end;
+                    const lower = selectCaseCompare(selectVal, start);
+                    const upper = selectCaseCompare(selectVal, end);
+                    matched = lower !== undefined && upper !== undefined
+                        ? lower >= 0 && upper <= 0
+                        : selectVal >= start && selectVal <= end;
                 } else {
                     // comparison: selectVal <op> value
                     const val = this.evaluateExpression(range.value);
                     switch (range.operator) {
                         case '=':  matched = selectCaseEquals(selectVal, val); break;
                         case '<>': matched = !selectCaseEquals(selectVal, val); break;
-                        case '<':  matched = selectVal < val;   break;
-                        case '>':  matched = selectVal > val;   break;
-                        case '<=': matched = selectVal <= val;  break;
-                        case '>=': matched = selectVal >= val;  break;
+                        case '<':  { const cmp = selectCaseCompare(selectVal, val); matched = cmp !== undefined ? cmp < 0 : selectVal < val; break; }
+                        case '>':  { const cmp = selectCaseCompare(selectVal, val); matched = cmp !== undefined ? cmp > 0 : selectVal > val; break; }
+                        case '<=': { const cmp = selectCaseCompare(selectVal, val); matched = cmp !== undefined ? cmp <= 0 : selectVal <= val; break; }
+                        case '>=': { const cmp = selectCaseCompare(selectVal, val); matched = cmp !== undefined ? cmp >= 0 : selectVal >= val; break; }
                     }
                 }
                 if (matched) break;

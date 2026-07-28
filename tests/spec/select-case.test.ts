@@ -188,6 +188,53 @@ End Function
     console.log('[PASS] Bug 191-A: Select Case Empty coercion');
 }
 
+// Bug 192-A: Decimal equality must not round through a JS Number.
+{
+    const result = runFunc(`
+Function TestDecimalPrecisionCase() As String
+    Dim value As Variant
+    value = CDec("12345678901234567.1")
+    Select Case value
+        Case CDec("12345678901234567.2")
+            TestDecimalPrecisionCase = "wrong-equal"
+        Case Else
+            TestDecimalPrecisionCase = "distinct"
+    End Select
+End Function
+`, 'TestDecimalPrecisionCase');
+    assert.strictEqual(result, 'distinct', 'Select Case preserves Decimal equality precision');
+    console.log('[PASS] Bug 192-A: Select Case Decimal precision');
+
+    const rangeResult = runFunc(`
+Function TestDecimalRange() As String
+    Dim value As Variant
+    value = CDec("9.5")
+    Select Case value
+        Case CDec("9") To CDec("10")
+            TestDecimalRange = "range"
+        Case Else
+            TestDecimalRange = "no"
+    End Select
+End Function
+`, 'TestDecimalRange');
+    assert.strictEqual(rangeResult, 'range', 'Select Case preserves Decimal range comparison');
+
+    const currencyRange = runFunc(`
+Function TestCurrencyRange() As String
+    Dim value As Currency
+    value = CCur("9.5")
+    Select Case value
+        Case CCur(9) To CCur(10)
+            TestCurrencyRange = "range"
+        Case Else
+            TestCurrencyRange = "no"
+    End Select
+End Function
+`, 'TestCurrencyRange');
+    assert.strictEqual(currencyRange, 'range', 'Select Case preserves Currency range comparison');
+    console.log('[PASS] Bug 193-A: Select Case Decimal/Currency ranges');
+}
+
 // Bug 173-A: Select Case の Date 式比較は値で一致判定する
 {
     const result = runFunc(`
