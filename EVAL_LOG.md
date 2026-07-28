@@ -104,20 +104,20 @@
 | EV-00197 | FZ-GRAMMAR | fixed | Select Case非数値文字列のエラー伝播 |
 | EV-00198 | MUT-ENGINE | fixed | LongLongと安全範囲外の数値文字列 |
 | EV-00199 | MUT-ENGINE | fixed | Decimal/Currency通常式の固定小数点精度 |
+| EV-00200 | MUT-ENGINE | fixed | Currencyの高値整数除算・Mod |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 59 |
+| fixed | 60 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 33、実Excel待ち評価: 0
+横展開未解決経路: 36、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-007 | 1 | queued | Currencyの\\・Modでの固定小数点丸め | yes |
 | FZ-BUILTIN-002 | 2 | queued | Decimal/Currencyの大値書式化 | yes |
