@@ -108,21 +108,22 @@
 | EV-00201 | FZ-BUILTIN | fixed | Decimal/Currencyの大値書式化 |
 | EV-00202 | FZ-BUILTIN | fixed | LongLongのカスタム・名前付き数値書式 |
 | EV-00203 | FZ-BUILTIN | fixed | General Numberの桁区切りなし仕様 |
+| EV-00204 | FZ-BUILTIN | fixed | Decimal/Currency名前付きFormat精度 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 63 |
+| fixed | 64 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 44、実Excel待ち評価: 0
+横展開未解決経路: 47、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-006 | 1 | queued | General Number・Currency・Fixed・Percentの大値 | yes |
+| FZ-BUILTIN-007 | 1 | queued | Scientific名前付き・カスタム書式の高精度値 | yes |
 | MUT-ENGINE-008 | 1 | queued | LongLongの加減算・乗算とString混在 | yes |
 | FZ-BUILTIN-004 | 2 | queued | CCurの指数・16進・桁区切りString | yes |

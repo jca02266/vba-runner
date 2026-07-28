@@ -48,3 +48,11 @@ items:
     priorCauseKey: format-fixed-point-number-rounding
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-007
+    title: Decimal/Currency Scientific書式精度
+    status: queued
+    priority: 1
+    focus: Scientific名前付き・カスタム書式の高精度値
+    priorCauseKey: format-named-fixed-point-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
