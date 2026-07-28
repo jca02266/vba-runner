@@ -14,9 +14,10 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 93 evaluation records/);
+assert.match(validated.stdout, /validated 98 evaluation records/);
 
-const persistedResult = `${root}/evaluation/states/FZ-BUILTIN-001.result.yml`;
+const targetCandidate = 'FZ-GRAMMAR-003';
+const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;
 const persistedResultBody = existsSync(persistedResult) ? readFileSync(persistedResult, 'utf8') : null;
 if (persistedResultBody !== null) unlinkSync(persistedResult);
 
@@ -32,35 +33,35 @@ assert.equal(JSON.parse(context.stdout).candidate.effectiveStatus, 'fixed');
 const rerecorded = run('record', 'evaluation/evaluations/EV-00191.md');
 assert.equal(rerecorded.status, 0, rerecorded.stderr);
 
-const claimed = run('claim', candidate.id);
+const claimed = run('claim', targetCandidate);
 assert.equal(claimed.status, 0, claimed.stderr);
 const claimState = JSON.parse(claimed.stdout);
-assert.equal(claimState.id, candidate.id);
+assert.equal(claimState.id, targetCandidate);
 assert.match(claimState.token, /^[0-9a-f]+$/);
 
 try {
     const whileClaimed = run('next');
     assert.equal(whileClaimed.status, 0, whileClaimed.stderr);
-    assert.notEqual(JSON.parse(whileClaimed.stdout).id, candidate.id);
+    assert.notEqual(JSON.parse(whileClaimed.stdout).id, targetCandidate);
 
-    const duplicate = run('claim', candidate.id);
+    const duplicate = run('claim', targetCandidate);
     assert.notEqual(duplicate.status, 0);
     assert.match(duplicate.stderr, /already claimed/);
 
-    const unauthorized = run('complete', candidate.id, 'EV-00186', 'verified-no-bug', 'wrong-token');
+    const unauthorized = run('complete', targetCandidate, 'EV-00192', 'fixed', 'wrong-token');
     assert.notEqual(unauthorized.status, 0);
     assert.match(unauthorized.stderr, /token is invalid/);
 
-    const mismatched = run('complete', candidate.id, 'EV-00185', 'fixed', claimState.token);
+    const mismatched = run('complete', targetCandidate, 'EV-00192', 'fixed', claimState.token);
     assert.notEqual(mismatched.status, 0);
     assert.match(mismatched.stderr, /belongs to .* not /);
 
-    const completed = run('complete', candidate.id, 'EV-00186', 'verified-no-bug', claimState.token);
+    const completed = run('complete', targetCandidate, 'EV-00194', 'fixed', claimState.token);
     assert.equal(completed.status, 0, completed.stderr);
 
-    const resultFile = `${root}/evaluation/states/${candidate.id}.result.yml`;
+    const resultFile = `${root}/evaluation/states/${targetCandidate}.result.yml`;
     const validResult = readFileSync(resultFile, 'utf8');
-    writeFileSync(resultFile, validResult.replace('evaluationId: EV-00186', 'evaluationId: EV-NOT-FOUND'));
+    writeFileSync(resultFile, validResult.replace('evaluationId: EV-00194', 'evaluationId: EV-NOT-FOUND'));
     const invalidResult = run('validate');
     assert.notEqual(invalidResult.status, 0);
     assert.match(invalidResult.stderr, /unknown evaluation EV-NOT-FOUND/);
@@ -68,12 +69,12 @@ try {
 
     const afterComplete = run('next');
     assert.equal(afterComplete.status, 0, afterComplete.stderr);
-    assert.notEqual(JSON.parse(afterComplete.stdout).id, candidate.id);
+    assert.notEqual(JSON.parse(afterComplete.stdout).id, targetCandidate);
 } finally {
-    const result = `${root}/evaluation/states/${candidate.id}.result.yml`;
+    const result = `${root}/evaluation/states/${targetCandidate}.result.yml`;
     if (existsSync(result)) unlinkSync(result);
     if (persistedResultBody !== null) writeFileSync(persistedResult, persistedResultBody);
-    const released = run('release', candidate.id, claimState.token);
+    const released = run('release', targetCandidate, claimState.token);
     if (released.status !== 0 && !/not claimed/.test(released.stderr)) {
         assert.equal(released.status, 0, released.stderr);
     }

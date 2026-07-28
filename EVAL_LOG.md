@@ -101,19 +101,21 @@
 | EV-00194 | FZ-GRAMMAR | fixed | Select Caseの数値Variant String等価比較 |
 | EV-00195 | MUT-ENGINE | fixed | Select CaseのNull比較境界 |
 | EV-00196 | MUT-ENGINE | fixed | Decimal/Currencyと長い数値文字列の比較 |
+| EV-00197 | FZ-GRAMMAR | fixed | Select Case非数値文字列のエラー伝播 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 56 |
+| fixed | 57 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 24、実Excel待ち評価: 0
+横展開未解決経路: 27、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| MUT-ENGINE-005 | 1 | queued | 64bit整数と長いStringの等価・大小比較 | yes |
+| MUT-ENGINE-006 | 1 | queued | BinaryExpressionのString・Decimal・Currency精度 | yes |
