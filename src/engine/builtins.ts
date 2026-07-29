@@ -2,7 +2,7 @@ import {
     VbaBoolean, VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate, tryParseTimeFractionString,
-    parseFixedPointString, parseCurrencyString,
+    parseCurrencyString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
