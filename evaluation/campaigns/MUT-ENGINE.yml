@@ -64,3 +64,13 @@ items:
     priorCauseKey: longlong-string-number-rounding
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: MUT-ENGINE-009
+    title: 配列読み取り共通化の境界保持
+    status: queued
+    priority: 1
+    focus: 通常配列とUDT配列メンバーの次元数・範囲外・未定義要素
+    priorCauseKey: array-read-policy-divergence
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-subscript-bounds.test.ts
+      - tests/spec/udt-type.test.ts
