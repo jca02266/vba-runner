@@ -116,14 +116,13 @@
 | EV-00210 | FZ-BUILTIN | retired | Decimal/Currency整数除算・Modの精度 |
 | EV-00211 | FZ-BUILTIN | fixed | Decimal整数演算のLong境界 |
 | EV-00212 | FZ-BUILTIN | fixed | Currency整数演算のLong境界 |
-| EV-00213 | FZ-BUILTIN | bug-found | LongLongとStringの算術型昇格 |
+| EV-00213 | FZ-BUILTIN | fixed | LongLongとStringの算術型昇格 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 70 |
+| fixed | 71 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 40 |
@@ -134,4 +133,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-012 | 1 | queued | LongLongと数値Stringの加減算精度・書式 | yes |
+| (none) | | | | |

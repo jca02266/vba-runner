@@ -171,6 +171,15 @@ export function vbaToString(val: any): string {
         !(val instanceof VbaErrorValue)) {
         throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     }
+    if (typeof val === 'number' && Number.isFinite(val) && Math.abs(val) >= 1e15) {
+        // CStr(Double) switches to VBA's general scientific form at this
+        // magnitude. Keep 15 significant digits, matching Excel's display
+        // for LongLong/String mixed arithmetic.
+        return val.toExponential(14)
+            .replace(/\.0+e/, 'e')
+            .replace(/(\d)0+e/, '$1e')
+            .replace('e', 'E');
+    }
     return String(val);
 }
 

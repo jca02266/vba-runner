@@ -83,3 +83,18 @@ try {
     assert.strictEqual(e?.number, 6, 'LongLong overflow raises Error 6');
 }
 console.log('✅ LongLong arithmetic preserves precision and checks range');
+
+// XL-016: LongLong mixed with a numeric String is promoted to Double for
+// display, so CStr uses Excel's 15-significant-digit scientific form.
+const mixedStringEv = evalVBASingle(`
+    Function LongLongStringArithmetic() As String
+        Dim value As LongLong
+        value = CLngLng("9007199254740993")
+        LongLongStringArithmetic = CStr(value + "1") & "|" & CStr(value - "1")
+    End Function
+`);
+assert.strictEqual(
+    mixedStringEv.callProcedure('LongLongStringArithmetic', []),
+    '9.00719925474099E+15|9.00719925474099E+15',
+    'LongLong/String mixed arithmetic uses Excel Double CStr form');
+console.log('✅ LongLong/String mixed CStr matches XL-016');
