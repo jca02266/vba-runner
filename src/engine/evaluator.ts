@@ -3252,7 +3252,7 @@ export class Evaluator {
                     if (Array.isArray(arr)) {
                         const elemType = (arr as any).__vbaElementType__;
                         if (!elemType || elemType === 'variant') {
-                            const idxs = call.args.map(a => this.evaluateExpression(a) as number);
+                            const idxs = this.evaluateIndexExpressions(call.args);
                             const key = idxs.join(',');
                             const subtype = this.resolveNumericSubtype(stmt.right);
                             if (!(arr as any).__vbaSubtypes__) (arr as any).__vbaSubtypes__ = Object.create(null);
@@ -4427,6 +4427,11 @@ export class Evaluator {
     /** Evaluate an expression list left-to-right without additional coercion. */
     private evaluateExpressions(expressions: Expression[]): any[] {
         return expressions.map(expression => this.evaluateExpression(expression));
+    }
+
+    /** Evaluate index expressions without changing their existing numeric coercion. */
+    private evaluateIndexExpressions(expressions: Expression[]): number[] {
+        return expressions.map(expression => this.evaluateExpression(expression) as number);
     }
 
     private alignProcedureCallExpressions(
@@ -7645,7 +7650,7 @@ export class Evaluator {
                 const arrName = (ce.callee as Identifier).name;
                 const arr = this.env.get(arrName);
                 if (Array.isArray(arr) && (arr as any).__vbaSubtypes__) {
-                    const idxs = ce.args.map(a => this.evaluateExpression(a) as number);
+                    const idxs = this.evaluateIndexExpressions(ce.args);
                     return (arr as any).__vbaSubtypes__[idxs.join(',')];
                 }
             }
