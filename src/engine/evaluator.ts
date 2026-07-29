@@ -7860,6 +7860,11 @@ export class Evaluator {
                 const positionalArgExpressions: Expression[] = [];
 
                 const splitArgs = this.splitArgumentExpressions(expr.args);
+                for (const name of splitArgs.named.keys()) {
+                    if (!proc.parameters.some(parameter => parameter.name.toLowerCase() === name)) {
+                        this.throwVbaError(448, `Named argument not found: '${name}'`);
+                    }
+                }
                 for (const entry of splitArgs.ordered) {
                     const name = entry.name;
                     const argExpr = entry.expression;

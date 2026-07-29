@@ -32,3 +32,13 @@ items:
     priorCauseKey: select-case-numeric-coercion
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-GRAMMAR-005
+    title: 混在名前付き引数の評価順序
+    status: queued
+    priority: 1
+    focus: 位置引数と名前付き引数の副作用・ByRef・既定値
+    priorCauseKey: named-argument-evaluation-order
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/call-named-params.test.ts

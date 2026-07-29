@@ -148,6 +148,26 @@ assert.strictEqual(orderEvaluator.callProcedure('TestNamedEvaluationOrder', []),
     '名前付き引数を含む式をソース順に評価する');
 console.log('[PASS] 名前付き引数の式評価順序');
 
+// 標準モジュール手続きでも未知の名前付き引数は Error 448 にする。
+const invalidNamedCode = `
+Function RequiredArg(ByVal value As Long) As Long
+    RequiredArg = value
+End Function
+Function TestInvalidNamed() As Long
+    TestInvalidNamed = RequiredArg(bogus:=1)
+End Function
+`;
+const invalidNamedEvaluator = evalVBA(invalidNamedCode);
+let invalidNamedError = 0;
+try {
+    invalidNamedEvaluator.callProcedure('TestInvalidNamed', []);
+} catch (error: any) {
+    invalidNamedError = error.number;
+}
+assert.strictEqual(invalidNamedError, 448,
+    '標準モジュール手続きの未知名前付き引数はError 448');
+console.log('[PASS] 標準モジュール手続きの未知名前付き引数');
+
 // Bug 152-A: モジュール修飾された名前付きByRef引数を書き戻す
 {
     const ev = evalVBAModules([
