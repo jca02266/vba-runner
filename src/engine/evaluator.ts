@@ -910,6 +910,19 @@ export class Evaluator {
         this.errObj.erl = this.lastLineNumberLabel;
     }
 
+    /** Apply VBA argument passing semantics at the single binding boundary. */
+    private prepareArgumentValue(value: any, param: ProcedureDeclaration['parameters'][number], forcedByVal = false): any {
+        return param.isByVal || forcedByVal ? this.deepCopyByValValue(value) : value;
+    }
+
+    private argumentReference(
+        expr: Expression | undefined,
+        param: ProcedureDeclaration['parameters'][number],
+        forcedByVal = false,
+    ): VbaLValueReference | null {
+        return expr && !param.isByVal && !forcedByVal ? this.createLValueReference(expr) : null;
+    }
+
     /** Bind positional values to a procedure frame for module and class calls. */
     private bindProcedureParameters(
         proc: ProcedureDeclaration,
@@ -951,7 +964,7 @@ export class Evaluator {
                     });
                 }
             }
-            if (param.isByVal) argValue = this.deepCopyByValValue(argValue);
+            argValue = this.prepareArgumentValue(argValue, param);
             localEnv.setLocally(paramName, argValue);
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
                     && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
@@ -4402,7 +4415,7 @@ export class Evaluator {
         // for it would evaluate member-call expressions a second time (for
         // example, TextStream.ReadLine would consume two lines).
         const references = expressions.map((expr, i) =>
-            expr && !proc.parameters[i]?.isByVal ? this.createLValueReference(expr) : null
+            this.argumentReference(expr ?? undefined, proc.parameters[i])
         );
         const args = aligned.map((slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
@@ -7864,7 +7877,7 @@ export class Evaluator {
                     }
                     // ByVal values must not share mutable VBA arrays or UDTs with
                     // the caller. Class instances remain references, as in VBA.
-                    if (param.isByVal || forcedByVal) argVal = this.deepCopyByValValue(argVal);
+                    argVal = this.prepareArgumentValue(argVal, param, forcedByVal);
                     localEnv.setLocally(param.name, argVal);
                     // Variant（型なし）パラメーターへ数値サブタイプを伝播
                     if (!param.paramType || param.paramType.toLowerCase() === 'variant') {
@@ -7883,9 +7896,7 @@ export class Evaluator {
                         } else if (i < positionalArgExpressions.length) {
                             originalExpr = positionalArgExpressions[i];
                         }
-                        const reference = originalExpr && !forcedByVal
-                            ? this.createLValueReference(originalExpr)
-                            : null;
+                        const reference = this.argumentReference(originalExpr, param, forcedByVal);
                         if (reference) {
                             byRefArgs.push({
                                 paramName: param.name,
