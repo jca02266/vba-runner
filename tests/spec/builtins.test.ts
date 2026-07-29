@@ -59,6 +59,25 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug 209-A: Currency string precision');
 }
 
+// Bug 210-A: Decimal integer division and Mod must retain the 96-bit mantissa.
+{
+    const max = '79228162514264337593543950335';
+    const slash = String.fromCharCode(92);
+    assert.strictEqual(
+        evalExpr(`CStr(CDec("${max}") ${slash} 3)`),
+        '26409387504754779197847983445',
+        'Decimal integer division preserves all digits');
+    assert.strictEqual(
+        evalExpr(`CStr(CDec("${max}") Mod 100000000000000000)`),
+        '64337593543950335',
+        'Decimal Mod preserves the exact remainder');
+    assert.strictEqual(
+        evalExpr(`TypeName(CDec("${max}") ${slash} 3)`),
+        'Decimal',
+        'Decimal integer division keeps the Decimal subtype');
+    console.log('[PASS] Bug 210-A: Decimal integer division precision');
+}
+
 // 3. Math Functions
 {
     assert.strictEqual(evalExpr('Abs(-10)'), 10, 'Abs');
