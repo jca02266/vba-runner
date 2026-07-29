@@ -113,16 +113,17 @@
 | EV-00207 | FZ-BUILTIN | fixed | Scientificのゼロ表示とLongLong仮数 |
 | EV-00208 | MUT-ENGINE | fixed | LongLong通常算術の64bit精度 |
 | EV-00209 | FZ-BUILTIN | fixed | Currency指数表記Stringの精度 |
+| EV-00210 | FZ-BUILTIN | fixed | Decimal/Currency整数除算・Modの精度 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 68 |
+| fixed | 69 |
 | known-limit | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 59、実Excel待ち評価: 0
+横展開未解決経路: 62、実Excel待ち評価: 0
 
 ## 次の候補
 

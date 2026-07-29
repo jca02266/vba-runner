@@ -64,3 +64,12 @@ items:
     priorCauseKey: format-scientific-number-rounding
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-009
+    title: Decimal/Currency整数除算・Modの精度
+    status: queued
+    priority: 1
+    focus: Decimal/Currencyの\\・Modと大整数境界
+    priorCauseKey: fixed-point-integer-division-rounding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
