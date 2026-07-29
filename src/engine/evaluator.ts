@@ -4206,10 +4206,12 @@ export class Evaluator {
         const namedArgs = new Map<string, any>();
         const positionalArgs: any[] = [];
         const split = this.splitArgumentExpressions(argExprs);
-        for (const [name, argExpr] of split.named) {
-            namedArgs.set(name, this.evaluateExpression(argExpr));
-        }
-        for (const argExpr of split.positional) {
+        for (const entry of split.ordered) {
+            const argExpr = entry.expression;
+            if (entry.name !== undefined) {
+                namedArgs.set(entry.name, this.evaluateExpression(argExpr));
+                continue;
+            }
             if (argExpr.type === 'MissingArgument') {
                 positionalArgs.push(undefined);
             } else {
@@ -4397,19 +4399,23 @@ export class Evaluator {
     private splitArgumentExpressions(argExprs: (Expression | null)[]): {
         named: Map<string, Expression>;
         positional: Expression[];
+        ordered: Array<{ name?: string; expression: Expression }>;
     } {
         const named = new Map<string, Expression>();
         const positional: Expression[] = [];
+        const ordered: Array<{ name?: string; expression: Expression }> = [];
         for (const argExpr of argExprs) {
             if (!argExpr) continue;
             if (argExpr.type === 'NamedArgument') {
                 const namedArg = argExpr as NamedArgument;
                 named.set(namedArg.name.toLowerCase(), namedArg.value);
+                ordered.push({ name: namedArg.name.toLowerCase(), expression: namedArg.value });
             } else {
                 positional.push(argExpr);
+                ordered.push({ expression: argExpr });
             }
         }
-        return { named, positional };
+        return { named, positional, ordered };
     }
 
     private alignProcedureCallExpressions(
@@ -4422,26 +4428,24 @@ export class Evaluator {
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
             new Array(proc.parameters.length);
         const split = this.splitArgumentExpressions(argExprs);
-        for (const [name, valueExpr] of split.named) {
-            const paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === name);
-            if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${name}'`);
-            const sourceIndex = argExprs.findIndex(arg => arg?.type === 'NamedArgument' &&
-                (arg as NamedArgument).name.toLowerCase() === name);
+        let nextPositional = 0;
+        for (let sourceIndex = 0; sourceIndex < split.ordered.length; sourceIndex++) {
+            const entry = split.ordered[sourceIndex];
+            let paramIndex: number;
+            if (entry.name !== undefined) {
+                paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === entry.name);
+                if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${entry.name}'`);
+            } else {
+                while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
+                paramIndex = nextPositional++;
+            }
+            if (paramIndex >= supplied.length) {
+                this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
+            }
+            const valueExpr = entry.expression;
             const value = evaluatedArgs?.[sourceIndex] ??
                 this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
             supplied[paramIndex] = { expr: valueExpr, value };
-        }
-        let nextPositional = 0;
-        for (let i = 0; i < split.positional.length; i++) {
-            while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
-            if (nextPositional >= supplied.length) {
-                this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
-            }
-            const valueExpr = split.positional[i];
-            const sourceIndex = argExprs.indexOf(valueExpr);
-            const value = evaluatedArgs?.[sourceIndex] ??
-                this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
-            supplied[nextPositional++] = { expr: valueExpr, value };
         }
         let lastProvided = -1;
         for (let i = supplied.length - 1; i >= 0; i--) {
@@ -7819,7 +7823,17 @@ export class Evaluator {
                 const positionalArgExpressions: Expression[] = [];
 
                 const splitArgs = this.splitArgumentExpressions(expr.args);
-                for (const [name, argExpr] of splitArgs.named) {
+                for (const entry of splitArgs.ordered) {
+                    const name = entry.name;
+                    const argExpr = entry.expression;
+                    if (name === undefined) {
+                        const reference = this.createLValueReference(argExpr);
+                        positionalArgs.push(reference
+                            ? reference.get()
+                            : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+                        positionalArgExpressions.push(argExpr);
+                        continue;
+                    }
                     // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
                     // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
                     const reference = this.createLValueReference(argExpr);
@@ -7827,13 +7841,6 @@ export class Evaluator {
                         ? reference.get()
                         : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
                     namedArgExpressions.set(name, argExpr);
-                }
-                for (const argExpr of splitArgs.positional) {
-                    const reference = this.createLValueReference(argExpr);
-                    positionalArgs.push(reference
-                        ? reference.get()
-                        : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
-                    positionalArgExpressions.push(argExpr);
                 }
                 // Variant サブタイプは呼び出し元 env で引数式から解決しておき、
                 // パラメーターへ伝播する（実 VBA 差分: TypeName(引数) が Double に化けるのを防ぐ）
