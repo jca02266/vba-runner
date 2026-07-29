@@ -14,7 +14,7 @@ function run(...args: string[]) {
 
 const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
-assert.match(validated.stdout, /validated 110 evaluation records/);
+assert.match(validated.stdout, /validated 111 evaluation records/);
 
 const targetCandidate = 'FZ-GRAMMAR-003';
 const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;
@@ -48,8 +48,9 @@ writeFileSync(targetEvaluation, targetEvaluationBody);
 
 try {
     const whileClaimed = run('next');
-    assert.notEqual(whileClaimed.status, 0);
-    assert.match(whileClaimed.stderr, /no queued candidate/);
+    assert.equal(whileClaimed.status, 0, whileClaimed.stderr);
+    assert.notEqual(JSON.parse(whileClaimed.stdout).id, targetCandidate,
+        'claimed candidate is excluded while other candidates remain');
 
     const duplicate = run('claim', targetCandidate);
     assert.notEqual(duplicate.status, 0);
@@ -75,8 +76,9 @@ try {
     writeFileSync(resultFile, validResult);
 
     const afterComplete = run('next');
-    assert.notEqual(afterComplete.status, 0);
-    assert.match(afterComplete.stderr, /no queued candidate/);
+    assert.equal(afterComplete.status, 0, afterComplete.stderr);
+    assert.notEqual(JSON.parse(afterComplete.stdout).id, targetCandidate,
+        'completed candidate is excluded from the queue');
 } finally {
     const result = `${root}/evaluation/states/${targetCandidate}.result.yml`;
     if (existsSync(result)) unlinkSync(result);
