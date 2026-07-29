@@ -2731,6 +2731,49 @@ export class Evaluator {
         }
     }
 
+    /** Compare VBA values using the same coercion rules as Select Case. */
+    private compareVbaValues(rawLeft: any, rawRight: any): number | undefined {
+        let left = rawLeft === vbaEmpty ? (typeof rawRight === 'string' ? '' : 0) : rawLeft;
+        let right = rawRight === vbaEmpty ? (typeof left === 'string' ? '' : 0) : rawRight;
+        if (left instanceof VbaDate && right instanceof VbaDate) {
+            return left.value === right.value ? 0 : (left.value < right.value ? -1 : 1);
+        }
+        if (left instanceof VbaDecimal || right instanceof VbaDecimal ||
+            left instanceof VbaCurrency || right instanceof VbaCurrency) {
+            const asDecimal = (value: any): VbaDecimal => {
+                if (value instanceof VbaDecimal) return value;
+                if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
+                if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
+                if (typeof value === 'string') return VbaDecimal.fromString(value.trim());
+                return VbaDecimal.fromNumber(this.toVbaNumber(value));
+            };
+            const l = asDecimal(left), r = asDecimal(right);
+            const scale = Math.max(l.scale, r.scale);
+            const lm = l.mantissa * (10n ** BigInt(scale - l.scale));
+            const rm = r.mantissa * (10n ** BigInt(scale - r.scale));
+            return lm === rm ? 0 : (lm < rm ? -1 : 1);
+        }
+        if (typeof left === 'bigint' || typeof right === 'bigint') {
+            const exact = (value: any): bigint => {
+                if (typeof value === 'bigint') return value;
+                if (typeof value === 'string' && /^[+-]?\d+$/.test(value.trim())) return BigInt(value.trim());
+                return BigInt(this.toVbaNumber(value));
+            };
+            const l = exact(left), r = exact(right);
+            return l === r ? 0 : (l < r ? -1 : 1);
+        }
+        if (typeof left === 'string' && (typeof right === 'number' || right instanceof VbaBoolean || right instanceof VbaDate)) {
+            return this.compareVbaValues(this.toVbaNumber(left), right);
+        }
+        if (typeof right === 'string' && (typeof left === 'number' || left instanceof VbaBoolean || left instanceof VbaDate)) {
+            return this.compareVbaValues(left, this.toVbaNumber(right));
+        }
+        if (typeof left === 'number' && typeof right === 'number') {
+            return left === right ? 0 : (left < right ? -1 : 1);
+        }
+        return undefined;
+    }
+
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
         const isVbaNull = (value: any): boolean => value === vbaNull;
@@ -2739,55 +2782,8 @@ export class Evaluator {
             if (right === vbaEmpty) right = typeof left === 'string' ? '' : 0;
             return [left, right];
         };
-        const toExactBigInt = (value: any): bigint => {
-            if (typeof value === 'bigint') return value;
-            if (typeof value === 'string') {
-                const trimmed = value.trim();
-                if (/^[+-]?\d+$/.test(trimmed)) return BigInt(trimmed);
-            }
-            return BigInt(this.toVbaNumber(value));
-        };
-        const selectCaseCompare = (rawLeft: any, rawRight: any): number | undefined => {
-            let [left, right] = normalizeEmpty(rawLeft, rawRight);
-            if (left instanceof VbaDate && right instanceof VbaDate) {
-                return left.value === right.value ? 0 : (left.value < right.value ? -1 : 1);
-            }
-            if (left instanceof VbaDecimal || right instanceof VbaDecimal ||
-                left instanceof VbaCurrency || right instanceof VbaCurrency) {
-                const asDecimal = (value: any): VbaDecimal => {
-                    if (value instanceof VbaDecimal) return value;
-                    if (value instanceof VbaCurrency) return new VbaDecimal(value.internal, 4);
-                    if (typeof value === 'bigint') return VbaDecimal.fromString(value.toString());
-                    if (typeof value === 'string') return VbaDecimal.fromString(value.trim());
-                    return VbaDecimal.fromNumber(this.toVbaNumber(value));
-                };
-                const leftDecimal = asDecimal(left);
-                const rightDecimal = asDecimal(right);
-                const scale = Math.max(leftDecimal.scale, rightDecimal.scale);
-                const leftMantissa = leftDecimal.mantissa * (10n ** BigInt(scale - leftDecimal.scale));
-                const rightMantissa = rightDecimal.mantissa * (10n ** BigInt(scale - rightDecimal.scale));
-                return leftMantissa === rightMantissa ? 0 : (leftMantissa < rightMantissa ? -1 : 1);
-            }
-            if (typeof left === 'bigint' || typeof right === 'bigint') {
-                const leftBig = toExactBigInt(left);
-                const rightBig = toExactBigInt(right);
-                return leftBig === rightBig ? 0 : (leftBig < rightBig ? -1 : 1);
-            }
-            if (typeof left === 'number' && typeof right === 'number') {
-                return left === right ? 0 : (left < right ? -1 : 1);
-            }
-            const isNumericValue = (value: any): boolean =>
-                typeof value === 'number' || typeof value === 'bigint' ||
-                value instanceof VbaBoolean || value instanceof VbaDate ||
-                value instanceof VbaDecimal || value instanceof VbaCurrency;
-            if (typeof left === 'string' && isNumericValue(right)) {
-                return selectCaseCompare(this.toVbaNumber(left), right);
-            }
-            if (typeof right === 'string' && isNumericValue(left)) {
-                return selectCaseCompare(left, this.toVbaNumber(right));
-            }
-            return undefined;
-        };
+        const selectCaseCompare = (left: any, right: any): number | undefined =>
+            this.compareVbaValues(left, right);
         const selectCaseEquals = (left: any, right: any): boolean => {
             // Empty is context-sensitive in VBA: it is 0 in a numeric Case
             // and an empty string in a string Case.  Keep this normalization
