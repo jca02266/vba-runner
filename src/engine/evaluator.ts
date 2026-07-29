@@ -4205,11 +4205,12 @@ export class Evaluator {
     private splitCallArgs(argExprs: Expression[]): { namedArgs: Map<string, any>; positionalArgs: any[] } {
         const namedArgs = new Map<string, any>();
         const positionalArgs: any[] = [];
-        for (const argExpr of argExprs) {
-            if (argExpr.type === 'NamedArgument') {
-                const namedArg = argExpr as NamedArgument;
-                namedArgs.set(namedArg.name.toLowerCase(), this.evaluateExpression(namedArg.value));
-            } else if (argExpr.type === 'MissingArgument') {
+        const split = this.splitArgumentExpressions(argExprs);
+        for (const [name, argExpr] of split.named) {
+            namedArgs.set(name, this.evaluateExpression(argExpr));
+        }
+        for (const argExpr of split.positional) {
+            if (argExpr.type === 'MissingArgument') {
                 positionalArgs.push(undefined);
             } else {
                 positionalArgs.push(this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
@@ -4393,7 +4394,7 @@ export class Evaluator {
     }
 
     /** Normalize positional and named call arguments to declaration order. */
-    private splitProcedureArgumentExpressions(argExprs: (Expression | null)[]): {
+    private splitArgumentExpressions(argExprs: (Expression | null)[]): {
         named: Map<string, Expression>;
         positional: Expression[];
     } {
@@ -4420,7 +4421,7 @@ export class Evaluator {
         // its value node so ByRef writes target the original caller variable.
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
             new Array(proc.parameters.length);
-        const split = this.splitProcedureArgumentExpressions(argExprs);
+        const split = this.splitArgumentExpressions(argExprs);
         for (const [name, valueExpr] of split.named) {
             const paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === name);
             if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${name}'`);
@@ -7817,7 +7818,7 @@ export class Evaluator {
                 const positionalArgs: any[] = [];
                 const positionalArgExpressions: Expression[] = [];
 
-                const splitArgs = this.splitProcedureArgumentExpressions(expr.args);
+                const splitArgs = this.splitArgumentExpressions(expr.args);
                 for (const [name, argExpr] of splitArgs.named) {
                     // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
                     // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
