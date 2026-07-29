@@ -3203,41 +3203,37 @@ export class Parser {
         return left;
     }
 
+    /** Parse a numeric token while preserving suffix, base width, and source digits. */
+    private parseNumericLiteral(tokenValue: string): NumberLiteral {
+        const m = tokenValue.match(/[%&@!#^]$/);
+        const typeSuffix = m ? m[0] as NumberLiteral['typeSuffix'] : undefined;
+        const cleanVal = tokenValue.replace(/[%&@!#^]$/, '');
+        const numericVal = cleanVal.replace(/[dD]/, 'e');
+        const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
+            && /[.eEdD]/.test(cleanVal) ? true as const : undefined;
+        let parsedValue = Number(numericVal);
+        let baseWidth: NumberLiteral['baseWidth'];
+        if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
+            const unsigned = parsedValue;
+            if (unsigned <= 0xffff) baseWidth = 16;
+            else if (unsigned <= 0xffffffff) baseWidth = 32;
+            if (typeSuffix === undefined || typeSuffix === '%') {
+                if (unsigned >= 0x80000000 && unsigned <= 0xffffffff) parsedValue = unsigned - 0x100000000;
+                else if (unsigned >= 0x8000 && unsigned <= 0xffff) parsedValue = unsigned - 0x10000;
+            } else if (typeSuffix === '&' && unsigned >= 0x80000000 && unsigned <= 0xffffffff) {
+                parsedValue = unsigned - 0x100000000;
+            }
+        }
+        const rawIntegerText = typeSuffix === '^' && /^\d+$/.test(cleanVal) ? cleanVal : undefined;
+        return { type: 'NumberLiteral', value: parsedValue, rawIntegerText, typeSuffix, isFloat, baseWidth };
+    }
+
     private parsePrimary(stopBeforeSpacedLParen: boolean = false): Expression {
         const startTok = this.tokens[this.pos];
         const token = this.advance();
         let expr: Expression;
         if (token.type === TokenType.Number) {
-            const m = token.value.match(/[%&@!#^]$/);
-            const typeSuffix = m ? m[0] as NumberLiteral['typeSuffix'] : undefined;
-            const cleanVal = token.value.replace(/[%&@!#^]$/, '');
-            // JavaScript Number() does not accept VBA's D/d exponent marker.
-            const numericVal = cleanVal.replace(/[dD]/, 'e');
-            // 0x/0o は整数なので isFloat = false。それ以外で . or e/E/D/d を含む場合は Double リテラル
-            const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
-                && /[.eEdD]/.test(cleanVal) ? true as const : undefined;
-            // Use Number() to support 0x (Hex) and 0o (Octal) prefixes
-            let parsedValue = Number(numericVal);
-            let baseWidth: NumberLiteral['baseWidth'];
-            // Unsuffixed hexadecimal/octal literals use VBA's signed Integer or
-            // Long bit pattern.  An explicit Long suffix keeps the 32-bit
-            // pattern, while other explicit numeric suffixes convert the
-            // unsigned literal value without changing its width.
-            if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
-                const unsigned = parsedValue;
-                if (unsigned <= 0xffff) baseWidth = 16;
-                else if (unsigned <= 0xffffffff) baseWidth = 32;
-                if (typeSuffix === undefined || typeSuffix === '%') {
-                    if (unsigned >= 0x80000000 && unsigned <= 0xffffffff) parsedValue = unsigned - 0x100000000;
-                    else if (unsigned >= 0x8000 && unsigned <= 0xffff) parsedValue = unsigned - 0x10000;
-                } else if (typeSuffix === '&' && unsigned >= 0x80000000 && unsigned <= 0xffffffff) {
-                    parsedValue = unsigned - 0x100000000;
-                }
-            }
-            const rawIntegerText = typeSuffix === '^' && /^\d+$/.test(cleanVal)
-                ? cleanVal
-                : undefined;
-            expr = { type: 'NumberLiteral', value: parsedValue, rawIntegerText, typeSuffix, isFloat, baseWidth } as NumberLiteral;
+            expr = this.parseNumericLiteral(token.value);
         } else if (token.type === TokenType.String) {
             expr = { type: 'StringLiteral', value: token.value } as StringLiteral;
         } else if (token.type === TokenType.Date) {
