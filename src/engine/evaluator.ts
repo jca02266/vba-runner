@@ -896,6 +896,20 @@ export class Evaluator {
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
     private debugHook: DebugHook | null = null;
 
+    /** Keep Err object mutation in one path for Resume and runtime failures. */
+    private clearErrState(): void {
+        this.errObj.clear();
+    }
+
+    private recordErrState(error: any): void {
+        const number = error?.type === 'VbaError' ? error.number : 1000;
+        const description = error?.vbaBareMessage ?? error?.message ?? String(error);
+        this.errObj.number = number;
+        this.errObj.source = error?.vbaSource ?? (this.executingModuleName || 'VBAProject');
+        this.errObj.description = description;
+        this.errObj.erl = this.lastLineNumberLabel;
+    }
+
     /** Bind positional values to a procedure frame for module and class calls. */
     private bindProcedureParameters(
         proc: ProcedureDeclaration,
@@ -6626,25 +6640,17 @@ export class Evaluator {
                             this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: label '${e.label}'`);
                         }
                     }
-                    this.errObj.clear();
+                    this.clearErrState();
                     continue;
                 }
 
                 // Handle VbaError or standard JS Error
                 if (!this.isInErrorHandler) {
-                    const errorNumber = e.type === 'VbaError' ? e.number : 1000;
                     // vbaBareMessage があれば "Run-time error 'N': ... (line X)" の枠組みを
                     // 含まない生のメッセージを使う（throwVbaError 経由のエラー）。
                     // Err.Raise も invokeBuiltin で枠組み付き Error に包み直されるため
                     // vbaBareMessage を持つ（Err.Description には生メッセージが入る）。
-                    const errorMessage = e.vbaBareMessage ?? e.message ?? String(e);
-
-                    this.errObj.number = errorNumber;
-                    // A new runtime error replaces the previous Err.Source;
-                    // otherwise a prior Err.Raise custom source leaks into it.
-                    this.errObj.source = e.vbaSource ?? (this.executingModuleName || 'VBAProject');
-                    this.errObj.description = errorMessage;
-                    this.errObj.erl = this.lastLineNumberLabel;
+                    this.recordErrState(e);
 
                     if (this.errorHandlingMode === 'ResumeNext') {
                         this.lastErrorIndex = i;
@@ -6690,7 +6696,7 @@ export class Evaluator {
                                 throw { type: 'Exit', target: 'Sub' };
                             }
                             this.isInErrorHandler = false;
-                            this.errObj.clear();
+                            this.clearErrState();
                             if (resumeInfo.mode === 'Current') continue;      // 失敗文を再実行
                             if (resumeInfo.mode === 'Next') { i++; continue; } // 失敗文の次へ
                             // Resume <label>: ラベルはプロシージャレベルにあるため GoTo として伝播
