@@ -113,20 +113,23 @@
 | EV-00207 | FZ-BUILTIN | fixed | Scientificのゼロ表示とLongLong仮数 |
 | EV-00208 | MUT-ENGINE | fixed | LongLong通常算術の64bit精度 |
 | EV-00209 | FZ-BUILTIN | fixed | Currency指数表記Stringの精度 |
-| EV-00210 | FZ-BUILTIN | fixed | Decimal/Currency整数除算・Modの精度 |
+| EV-00210 | FZ-BUILTIN | retired | Decimal/Currency整数除算・Modの精度 |
+| EV-00211 | FZ-BUILTIN | needs-excel | Decimal整数演算のLong境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 69 |
+| fixed | 68 |
 | known-limit | 1 |
+| needs-excel | 1 |
+| retired | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 62、実Excel待ち評価: 0
+横展開未解決経路: 64、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-010 | 1 | queued | Decimalの\\・ModにおけるLong範囲外オーバーフロー | yes |

@@ -69,13 +69,20 @@ Private Sub VerifySelectCaseString()
 End Sub
 
 Private Sub VerifyDecimalIntegerOps()
-    Dim value As Variant, quotient As Variant, remainder As Variant
+    Dim value As Variant, quotient As Variant, remainder As Variant, errNo As Long
     value = CDec("79228162514264337593543950335")
+    On Error Resume Next
     quotient = value \ CDec("3")
+    errNo = Err.Number
+    Debug.Print "XL-014 DIVERR=" & CStr(errNo)
+    Err.Clear
     remainder = value Mod CDec("100000000000000000")
-    Debug.Print "XL-014 DIV=" & CStr(quotient) & " DIVTYPE=" & TypeName(quotient) & _
-        " MOD=" & CStr(remainder) & " MODTYPE=" & TypeName(remainder)
+    errNo = Err.Number
+    Debug.Print "XL-014 MODERR=" & CStr(errNo)
+    Err.Clear
     Debug.Print "XL-014 NEG=" & CStr(CDec("-5.5") \ CDec("2.5"))
+    Debug.Print "XL-014 NEGERR=" & CStr(Err.Number)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyCurrencyDivision()

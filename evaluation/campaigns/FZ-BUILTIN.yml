@@ -73,3 +73,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-010
+    title: Decimal整数演算のLong境界
+    status: queued
+    priority: 1
+    focus: Decimalの\\・ModにおけるLong範囲外オーバーフロー
+    priorCauseKey: decimal-integer-division-number-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/builtins.test.ts

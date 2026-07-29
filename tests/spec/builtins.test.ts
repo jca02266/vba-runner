@@ -59,23 +59,18 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug 209-A: Currency string precision');
 }
 
-// Bug 210-A: Decimal integer division and Mod must retain the 96-bit mantissa.
+// Bug 210-A: Decimal \ and Mod use Long effective operands and overflow outside
+// the Long range, as confirmed by Excel XL-014.
 {
     const max = '79228162514264337593543950335';
     const slash = String.fromCharCode(92);
-    assert.strictEqual(
-        evalExpr(`CStr(CDec("${max}") ${slash} 3)`),
-        '26409387504754779197847983445',
-        'Decimal integer division preserves all digits');
-    assert.strictEqual(
-        evalExpr(`CStr(CDec("${max}") Mod 100000000000000000)`),
-        '64337593543950335',
-        'Decimal Mod preserves the exact remainder');
-    assert.strictEqual(
-        evalExpr(`TypeName(CDec("${max}") ${slash} 3)`),
-        'Decimal',
-        'Decimal integer division keeps the Decimal subtype');
-    console.log('[PASS] Bug 210-A: Decimal integer division precision');
+    assert.throwsMatch(() => evalExpr(`CDec("${max}") ${slash} 3`), /error '6'/,
+        'Decimal integer division outside Long range → Error 6');
+    assert.throwsMatch(() => evalExpr(`CDec("${max}") Mod 100000000000000000`), /error '6'/,
+        'Decimal Mod outside Long range → Error 6');
+    assert.strictEqual(evalExpr(`CDec("2147483647") ${slash} 3`), 715827882,
+        'Decimal integer division uses rounded Long operands');
+    console.log('[PASS] Bug 210-A: Decimal integer operation Long boundary');
 }
 
 // 3. Math Functions

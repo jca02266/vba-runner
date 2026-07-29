@@ -8387,13 +8387,23 @@ export class Evaluator {
                 const la = bankersDivide(am, 10n ** BigInt(as_));
                 const lb = bankersDivide(bm, 10n ** BigInt(bs_));
                 if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return new VbaDecimal(la / lb, 0);
+                const longMin = -2147483648n;
+                const longMax = 2147483647n;
+                if (la < longMin || la > longMax || lb < longMin || lb > longMax) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+                return Number(la / lb);
             }
             case 'mod': {
                 const la = bankersDivide(am, 10n ** BigInt(as_));
                 const lb = bankersDivide(bm, 10n ** BigInt(bs_));
                 if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                return new VbaDecimal(la % lb, 0);
+                const longMin = -2147483648n;
+                const longMax = 2147483647n;
+                if (la < longMin || la > longMax || lb < longMin || lb > longMax) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+                return Number(la % lb);
             }
             // 比較: スケール整列してから大小比較
             case '=':  { const { aam, bbm } = align(); return aam === bbm ? vbaTrue : vbaFalse; }
