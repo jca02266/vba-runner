@@ -91,3 +91,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/currency-bigint.test.ts
+  - id: FZ-BUILTIN-012
+    title: LongLongとStringの算術型昇格
+    status: queued
+    priority: 1
+    focus: LongLongと数値Stringの加減算精度・書式
+    priorCauseKey: longlong-number-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/binary-longlong.test.ts
