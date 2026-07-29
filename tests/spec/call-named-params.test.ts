@@ -128,6 +128,26 @@ End Sub
 
 console.log('\n✅ Call & Named Parameters: 全テスト通過');
 
+// 引数の束縛順序と式の評価順序を分離し、ソース順評価を固定する。
+const evaluationOrderCode = `
+Dim trace As String
+Function Mark(ByVal label As String) As Long
+    trace = trace & label
+    Mark = Len(trace)
+End Function
+Function Target(ByVal first As Long, ByVal second As Long) As String
+    Target = CStr(first) & ":" & CStr(second)
+End Function
+Function TestNamedEvaluationOrder() As String
+    trace = ""
+    TestNamedEvaluationOrder = Target(Mark("A"), second:=Mark("B")) & ":" & trace
+End Function
+`;
+const orderEvaluator = evalVBA(evaluationOrderCode);
+assert.strictEqual(orderEvaluator.callProcedure('TestNamedEvaluationOrder', []), '1:2:AB',
+    '名前付き引数を含む式をソース順に評価する');
+console.log('[PASS] 名前付き引数の式評価順序');
+
 // Bug 152-A: モジュール修飾された名前付きByRef引数を書き戻す
 {
     const ev = evalVBAModules([
