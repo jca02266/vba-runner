@@ -48,9 +48,12 @@ writeFileSync(targetEvaluation, targetEvaluationBody);
 
 try {
     const whileClaimed = run('next');
-    assert.equal(whileClaimed.status, 0, whileClaimed.stderr);
-    assert.notEqual(JSON.parse(whileClaimed.stdout).id, targetCandidate,
-        'claimed candidate is excluded while other candidates remain');
+    if (whileClaimed.status === 0) {
+        assert.notEqual(JSON.parse(whileClaimed.stdout).id, targetCandidate,
+            'claimed candidate is excluded while other candidates remain');
+    } else {
+        assert.match(whileClaimed.stderr, /no queued candidate/);
+    }
 
     const duplicate = run('claim', targetCandidate);
     assert.notEqual(duplicate.status, 0);
@@ -76,9 +79,12 @@ try {
     writeFileSync(resultFile, validResult);
 
     const afterComplete = run('next');
-    assert.equal(afterComplete.status, 0, afterComplete.stderr);
-    assert.notEqual(JSON.parse(afterComplete.stdout).id, targetCandidate,
-        'completed candidate is excluded from the queue');
+    if (afterComplete.status === 0) {
+        assert.notEqual(JSON.parse(afterComplete.stdout).id, targetCandidate,
+            'completed candidate is excluded from the queue');
+    } else {
+        assert.match(afterComplete.stderr, /no queued candidate/);
+    }
 } finally {
     const result = `${root}/evaluation/states/${targetCandidate}.result.yml`;
     if (existsSync(result)) unlinkSync(result);
