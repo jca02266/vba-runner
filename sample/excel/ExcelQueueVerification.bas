@@ -86,12 +86,23 @@ Private Sub VerifyDecimalIntegerOps()
 End Sub
 
 Private Sub VerifyCurrencyDivision()
-    Dim value As Currency, divisor As Currency, quotient As Variant
+    Dim value As Currency, divisor As Currency, quotient As Variant, remainder As Variant, errNo As Long
     value = CCur("922337203685477.5807")
     divisor = CCur("7")
+    On Error Resume Next
     quotient = value / divisor
-    Debug.Print "XL-015 DIV=" & CStr(quotient) & " TYPE=" & TypeName(quotient)
-    Debug.Print "XL-015 MOD=" & CStr(value Mod divisor) & " MODTYPE=" & TypeName(value Mod divisor)
+    errNo = Err.Number
+    Debug.Print "XL-015 DIV=" & CStr(quotient) & " TYPE=" & TypeName(quotient) & " ERR=" & CStr(errNo)
+    Err.Clear
+    remainder = value Mod divisor
+    errNo = Err.Number
+    If errNo = 0 Then
+        Debug.Print "XL-015 MOD=" & CStr(remainder) & " MODTYPE=" & TypeName(remainder) & " ERR=0"
+    Else
+        Debug.Print "XL-015 MODERR=" & CStr(errNo)
+    End If
+    Err.Clear
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyLongLongStringOps()
