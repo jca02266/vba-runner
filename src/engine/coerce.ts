@@ -17,7 +17,8 @@ import {
 } from './vba-types';
 import { VbaErrorCode, throwVbaError } from './vba-errors';
 
-function unwrapDefaultValue(value: any): any {
+/** Expand explicit VBA default Value chains and reject circular chains. */
+export function unwrapDefaultValue(value: any): any {
     const seen = new Set<any>();
     let current = value;
     while (current && typeof current === 'object' && current.__vbaDefault__ === true) {

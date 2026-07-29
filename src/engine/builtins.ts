@@ -5,20 +5,14 @@ import {
     parseCurrencyString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
-import { vbaToBoolean, vbaToString, vbaRound } from './coerce';
+import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
 function unwrapVbaDefaultValue(value: any): any {
-    const seen = new Set<any>();
-    let current = value;
-    while (current && typeof current === 'object' && current.__vbaDefault__ === true && !seen.has(current)) {
-        seen.add(current);
-        current = current.Value;
-    }
-    return current;
+    return unwrapDefaultValue(value);
 }
 
 // ---------------------------------------------------------------------------
