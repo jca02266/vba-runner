@@ -2894,6 +2894,24 @@ export class Evaluator {
         }
     }
 
+    /** Shared VBA array arity and bound checks for indexed reads and writes. */
+    private validateArrayArity(dims: { lower: number, upper: number }[] | undefined, count: number): void {
+        if (dims && count !== dims.length) {
+            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+        }
+    }
+
+    private validateArrayIndex(
+        dims: { lower: number, upper: number }[] | undefined,
+        dimension: number,
+        index: number,
+    ): void {
+        const bounds = dims?.[dimension];
+        if (bounds && (index < bounds.lower || index > bounds.upper)) {
+            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+        }
+    }
+
     private evaluateDoWhileStatement(stmt: DoWhileStatement) {
         const checkCondition = (): boolean => {
             if (stmt.condition === undefined) return true; // infinite
@@ -5203,27 +5221,18 @@ export class Evaluator {
                         this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
                     }
                     const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                    if (dims && call.args.length !== dims.length) {
-                        this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                    }
+                    this.validateArrayArity(dims, call.args.length);
                     let current: any = target;
                     for (let i = 0; i < call.args.length - 1; i++) {
                         const index = this.evaluateExpression(call.args[i]) as number;
-                        if (dims && (index < dims[i].lower || index > dims[i].upper)) {
-                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
+                        this.validateArrayIndex(dims, i, index);
                         current = current[index];
                         if (!Array.isArray(current)) {
                             this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                         }
                     }
                     const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                    if (dims) {
-                        const lastDim = dims[dims.length - 1];
-                        if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
-                            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
-                    }
+                    this.validateArrayIndex(dims, call.args.length - 1, lastIndex);
                     current[lastIndex] = value;
                 } else if (target && typeof target === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
@@ -7953,16 +7962,13 @@ export class Evaluator {
                 } else if (Array.isArray(variable)) {
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     const dims = (variable as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                    if (dims && expr.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                    this.validateArrayArity(dims, expr.args.length);
                     // VBA index == JS index. Multi-dimensional: arr(i, j) -> arr[i][j]
                     let current = variable;
                     for (let i = 0; i < expr.args.length; i++) {
                         if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                         const idx = this.evaluateExpression(expr.args[i]) as number;
-                        if (dims) {
-                            const { lower, upper } = dims[i];
-                            if (idx < lower || idx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
+                        this.validateArrayIndex(dims, i, idx);
                         current = current[idx];
                     }
                     if (current === undefined) return vbaEmpty;
