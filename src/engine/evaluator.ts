@@ -4393,6 +4393,24 @@ export class Evaluator {
     }
 
     /** Normalize positional and named call arguments to declaration order. */
+    private splitProcedureArgumentExpressions(argExprs: (Expression | null)[]): {
+        named: Map<string, Expression>;
+        positional: Expression[];
+    } {
+        const named = new Map<string, Expression>();
+        const positional: Expression[] = [];
+        for (const argExpr of argExprs) {
+            if (!argExpr) continue;
+            if (argExpr.type === 'NamedArgument') {
+                const namedArg = argExpr as NamedArgument;
+                named.set(namedArg.name.toLowerCase(), namedArg.value);
+            } else {
+                positional.push(argExpr);
+            }
+        }
+        return { named, positional };
+    }
+
     private alignProcedureCallExpressions(
         proc: ProcedureDeclaration,
         argExprs: (Expression | null)[],
@@ -4402,26 +4420,27 @@ export class Evaluator {
         // its value node so ByRef writes target the original caller variable.
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
             new Array(proc.parameters.length);
+        const split = this.splitProcedureArgumentExpressions(argExprs);
+        for (const [name, valueExpr] of split.named) {
+            const paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === name);
+            if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${name}'`);
+            const sourceIndex = argExprs.findIndex(arg => arg?.type === 'NamedArgument' &&
+                (arg as NamedArgument).name.toLowerCase() === name);
+            const value = evaluatedArgs?.[sourceIndex] ??
+                this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
+            supplied[paramIndex] = { expr: valueExpr, value };
+        }
         let nextPositional = 0;
-        for (let i = 0; i < argExprs.length; i++) {
-            const arg = argExprs[i];
-            if (!arg) continue;
-            let paramIndex: number;
-            let valueExpr: Expression = arg;
-            if (arg.type === 'NamedArgument') {
-                const named = arg as NamedArgument;
-                paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === named.name.toLowerCase());
-                if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${named.name}'`);
-                valueExpr = named.value;
-            } else {
-                while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
-                paramIndex = nextPositional++;
-            }
-            if (paramIndex >= supplied.length) {
+        for (let i = 0; i < split.positional.length; i++) {
+            while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
+            if (nextPositional >= supplied.length) {
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
             }
-            const value = evaluatedArgs?.[i] ?? this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
-            supplied[paramIndex] = { expr: valueExpr, value };
+            const valueExpr = split.positional[i];
+            const sourceIndex = argExprs.indexOf(valueExpr);
+            const value = evaluatedArgs?.[sourceIndex] ??
+                this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
+            supplied[nextPositional++] = { expr: valueExpr, value };
         }
         let lastProvided = -1;
         for (let i = supplied.length - 1; i >= 0; i--) {
@@ -7798,23 +7817,22 @@ export class Evaluator {
                 const positionalArgs: any[] = [];
                 const positionalArgExpressions: Expression[] = [];
 
-                for (const argExpr of expr.args) {
-                    if (argExpr.type === 'NamedArgument') {
-                        const namedArg = argExpr as NamedArgument;
-                        // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
-                        // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
-                        const reference = this.createLValueReference(namedArg.value);
-                        namedArgs.set(namedArg.name.toLowerCase(), reference
-                            ? reference.get()
-                            : this.resolveAutoInstance(namedArg.value, this.evaluateExpression(namedArg.value)));
-                        namedArgExpressions.set(namedArg.name.toLowerCase(), namedArg.value);
-                    } else {
-                        const reference = this.createLValueReference(argExpr);
-                        positionalArgs.push(reference
-                            ? reference.get()
-                            : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
-                        positionalArgExpressions.push(argExpr);
-                    }
+                const splitArgs = this.splitProcedureArgumentExpressions(expr.args);
+                for (const [name, argExpr] of splitArgs.named) {
+                    // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
+                    // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
+                    const reference = this.createLValueReference(argExpr);
+                    namedArgs.set(name, reference
+                        ? reference.get()
+                        : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+                    namedArgExpressions.set(name, argExpr);
+                }
+                for (const argExpr of splitArgs.positional) {
+                    const reference = this.createLValueReference(argExpr);
+                    positionalArgs.push(reference
+                        ? reference.get()
+                        : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+                    positionalArgExpressions.push(argExpr);
                 }
                 // Variant サブタイプは呼び出し元 env で引数式から解決しておき、
                 // パラメーターへ伝播する（実 VBA 差分: TypeName(引数) が Double に化けるのを防ぐ）
