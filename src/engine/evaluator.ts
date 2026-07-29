@@ -4418,6 +4418,12 @@ export class Evaluator {
         return { named, positional, ordered };
     }
 
+    /** Evaluate positional argument expressions in their original order. */
+    private evaluateCallArgumentValues(argExprs: Expression[]): any[] {
+        return argExprs.map(argExpr =>
+            this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+    }
+
     private alignProcedureCallExpressions(
         proc: ProcedureDeclaration,
         argExprs: (Expression | null)[],
@@ -8038,7 +8044,7 @@ export class Evaluator {
                         if (tier6Key !== undefined) {
                             const tier6Member = this.defaultBindingObject[tier6Key];
                             if (typeof tier6Member === 'function') {
-                                const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                                const argsVals = this.evaluateCallArgumentValues(expr.args);
                                 return (tier6Member as (...a: any[]) => any).apply(this.defaultBindingObject, argsVals);
                             }
                             if (expr.args.length === 0) return tier6Member;
@@ -8143,7 +8149,7 @@ export class Evaluator {
                     if (proc.isProperty && proc.propertyType === 'get' &&
                         proc.parameters.length === 0 && expr.args.length > 0) {
                         const returned = this.callClassMethod(obj, proc, []);
-                        const argsVals = expr.args.map(a => this.resolveAutoInstance(a, this.evaluateExpression(a)));
+                        const argsVals = this.evaluateCallArgumentValues(expr.args);
                         if (returned && returned.__isVbaDict__) {
                             return returned.__map__.get(argsVals[0]);
                         }
