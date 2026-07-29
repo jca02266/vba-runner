@@ -5462,7 +5462,7 @@ export class Evaluator {
             output += "\r\n";
         }
 
-        const outputBytes = iconv.encode(output, Evaluator.VBA_BINARY_ENCODING);
+        const outputBytes = this.encodeVbaFileText(output);
         const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
         this.fs.writeSync(handle.fd, outputBytes, 0, outputBytes.length, writePosition);
         handle.pos! += outputBytes.length;
@@ -5518,7 +5518,7 @@ export class Evaluator {
             if (byte !== 0x0d) lineBytes.push(byte);
         }
 
-        const line = iconv.decode(Buffer.from(lineBytes), Evaluator.VBA_BINARY_ENCODING);
+        const line = this.decodeVbaFileText(new Uint8Array(lineBytes));
         this.evaluateAssignmentToVariable(stmt.variable, line);
     }
 
@@ -5541,6 +5541,15 @@ export class Evaluator {
      * supported Windows-compatible code page is CP932, matching the project
      * fixtures and the Excel differential tests. */
     private static readonly VBA_BINARY_ENCODING = 'cp932';
+
+    /** Shared text-file encoding boundary for Print/Write/Input/Line Input. */
+    private encodeVbaFileText(text: string): Uint8Array {
+        return iconv.encode(text, Evaluator.VBA_BINARY_ENCODING);
+    }
+
+    private decodeVbaFileText(bytes: Uint8Array): string {
+        return iconv.decode(Buffer.from(bytes), Evaluator.VBA_BINARY_ENCODING);
+    }
 
     private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
         const elementType = Array.isArray(value) ? (value as any).__vbaElementType__?.toLowerCase() : undefined;
@@ -5979,7 +5988,7 @@ export class Evaluator {
             return String(val);
         }).join(",");
 
-        const lineOutput = iconv.encode(output + "\r\n", Evaluator.VBA_BINARY_ENCODING);  // Print # と同じく CP932/CRLF
+        const lineOutput = this.encodeVbaFileText(output + "\r\n");  // Print # と同じく CP932/CRLF
         const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
         this.fs.writeSync(handle.fd, lineOutput, 0, lineOutput.length, writePosition);
         handle.pos! += lineOutput.length;
@@ -6006,7 +6015,7 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
         }
 
-        const content = iconv.decode(Buffer.from(contentBytes), Evaluator.VBA_BINARY_ENCODING);
+        const content = this.decodeVbaFileText(new Uint8Array(contentBytes));
         // 引用符内のカンマ・改行で分割しないフィールド分割（Bug 32-C）
         const splitInputFields = (src: string): Array<{ raw: string; end: number }> => {
             const fields: Array<{ raw: string; end: number }> = [];
@@ -6044,7 +6053,7 @@ export class Evaluator {
         const rawValues = fields.slice(0, stmt.variables.length).map(field => field.raw.trim());
         if (fields.length > 0 && stmt.variables.length > 0) {
             const consumedEnd = fields[Math.min(stmt.variables.length, fields.length) - 1].end;
-            handle.pos = (handle.pos || 0) + iconv.encode(content.slice(0, consumedEnd), Evaluator.VBA_BINARY_ENCODING).length;
+            handle.pos = (handle.pos || 0) + this.encodeVbaFileText(content.slice(0, consumedEnd)).length;
         }
         const parseInputValue = (raw: string): any => {
             const t = raw.trim();
