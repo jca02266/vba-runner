@@ -8372,6 +8372,14 @@ export class Evaluator {
             return new VbaDecimal(mAdj, sAdj);
         };
 
+        const toLongOperand = (m: bigint, scale: number): bigint => {
+            const value = bankersDivide(m, 10n ** BigInt(scale));
+            if (value < -2147483648n || value > 2147483647n) {
+                this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
+            return value;
+        };
+
         switch (op) {
             case '+': { const { aam, bbm, maxScale } = align(); return normalizeDecimal(aam + bbm, maxScale); }
             case '-': { const { aam, bbm, maxScale } = align(); return normalizeDecimal(aam - bbm, maxScale); }
@@ -8384,25 +8392,15 @@ export class Evaluator {
                 return normalizeDecimal(bankersDivide(extNum, bm), 28);
             }
             case '\\': {
-                const la = bankersDivide(am, 10n ** BigInt(as_));
-                const lb = bankersDivide(bm, 10n ** BigInt(bs_));
+                const la = toLongOperand(am, as_);
+                const lb = toLongOperand(bm, bs_);
                 if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                const longMin = -2147483648n;
-                const longMax = 2147483647n;
-                if (la < longMin || la > longMax || lb < longMin || lb > longMax) {
-                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
-                }
                 return Number(la / lb);
             }
             case 'mod': {
-                const la = bankersDivide(am, 10n ** BigInt(as_));
-                const lb = bankersDivide(bm, 10n ** BigInt(bs_));
+                const la = toLongOperand(am, as_);
+                const lb = toLongOperand(bm, bs_);
                 if (lb === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
-                const longMin = -2147483648n;
-                const longMax = 2147483647n;
-                if (la < longMin || la > longMax || lb < longMin || lb > longMax) {
-                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
-                }
                 return Number(la % lb);
             }
             // 比較: スケール整列してから大小比較
