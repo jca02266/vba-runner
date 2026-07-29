@@ -3118,7 +3118,7 @@ export class Evaluator {
         if (me && me.__events__) {
             const handlers = me.__events__.get(eventName);
             if (handlers) {
-                let args = stmt.args.map((a: any) => this.evaluateExpression(a));
+                let args = this.evaluateExpressions(stmt.args);
                 for (const handler of handlers) {
                     const updatedArgs = handler(...args);
                     if ((handler as any).__vbaEventByRef__ && Array.isArray(updatedArgs)) {
@@ -3469,7 +3469,7 @@ export class Evaluator {
                         p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === 'item'
                     );
                     if (setter) {
-                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(target, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -3505,7 +3505,7 @@ export class Evaluator {
                         p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === methodName
                     );
                     if (setter) {
-                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(obj, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
                         // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
@@ -3569,7 +3569,7 @@ export class Evaluator {
                         return;
                     }
                     if (typeof method === 'function') {
-                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const argsVals = this.evaluateExpressions(call.args);
                         const result = method.call(obj, ...argsVals);
                         if (result && result.__vbaDefault__ === true) {
                             const valueKey = this.resolveObjectMemberKey(result, 'value') ?? 'Value';
@@ -3596,7 +3596,7 @@ export class Evaluator {
                         p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === implicitProp
                     );
                     if (implicitSetter) {
-                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(implicitObj, implicitSetter,
                             [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
@@ -4424,6 +4424,11 @@ export class Evaluator {
             this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
     }
 
+    /** Evaluate an expression list left-to-right without additional coercion. */
+    private evaluateExpressions(expressions: Expression[]): any[] {
+        return expressions.map(expression => this.evaluateExpression(expression));
+    }
+
     private alignProcedureCallExpressions(
         proc: ProcedureDeclaration,
         argExprs: (Expression | null)[],
@@ -5225,7 +5230,7 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === methodName
                     );
                     if (setter) {
-                        const argsVals = call.args.map(a => this.evaluateExpression(a));
+                        const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right], [...argsVals, value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -5314,7 +5319,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right],
-                            [...call.args.map(a => this.evaluateExpression(a)), value]);
+                            [...this.evaluateExpressions(call.args), value]);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
