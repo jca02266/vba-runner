@@ -115,6 +115,7 @@
 | EV-00209 | FZ-BUILTIN | fixed | Currency指数表記Stringの精度 |
 | EV-00210 | FZ-BUILTIN | retired | Decimal/Currency整数除算・Modの精度 |
 | EV-00211 | FZ-BUILTIN | needs-excel | Decimal整数演算のLong境界 |
+| EV-00212 | FZ-BUILTIN | needs-excel | Currency整数演算のLong境界 |
 
 ## 状態集計
 
@@ -122,14 +123,15 @@
 |---|---:|
 | fixed | 68 |
 | known-limit | 1 |
-| needs-excel | 1 |
+| needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 40 |
 
-横展開未解決経路: 64、実Excel待ち評価: 1
+横展開未解決経路: 66、実Excel待ち評価: 2
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
 | FZ-BUILTIN-010 | 1 | queued | Decimalの\\・ModにおけるLong範囲外オーバーフロー | yes |
+| FZ-BUILTIN-011 | 1 | queued | Currencyの\\・ModにおけるLong範囲外オーバーフロー | yes |

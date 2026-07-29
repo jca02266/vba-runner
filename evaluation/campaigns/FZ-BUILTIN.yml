@@ -82,3 +82,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-011
+    title: Currency整数演算のLong境界
+    status: queued
+    priority: 1
+    focus: Currencyの\\・ModにおけるLong範囲外オーバーフロー
+    priorCauseKey: decimal-integer-division-long-boundary
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/currency-bigint.test.ts

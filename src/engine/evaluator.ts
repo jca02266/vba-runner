@@ -8489,12 +8489,18 @@ export class Evaluator {
                 const li = bankersDivide(ai!, 10000n);
                 const ri = bankersDivide(bi!, 10000n);
                 if (ri === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                if (li < -2147483648n || li > 2147483647n || ri < -2147483648n || ri > 2147483647n) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
                 return Number(li / ri);
             }
             case 'mod': {
                 const lm = bankersDivide(ai!, 10000n);
                 const rm = bankersDivide(bi!, 10000n);
                 if (rm === 0n) this.throwVbaError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
+                if (lm < -2147483648n || lm > 2147483647n || rm < -2147483648n || rm > 2147483647n) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
                 return Number(lm % rm);
             }
             case '=':  return ai! === bi! ? vbaTrue : vbaFalse;
