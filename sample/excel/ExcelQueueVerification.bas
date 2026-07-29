@@ -48,7 +48,56 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStream root & Application.PathSeparator & "XL-009-unicode.txt", True
     VerifyTextStream root & Application.PathSeparator & "XL-009-ansi.txt", False
     VerifyNestedRecord root & Application.PathSeparator & "XL-010.bin"
+    VerifySelectCaseString
+    VerifyDecimalIntegerOps
+    VerifyCurrencyDivision
+    VerifyLongLongStringOps
+    VerifyCurrencyStringInputs
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifySelectCaseString()
+    Dim value As Variant, result As String
+    value = "12"
+    Select Case value
+        Case 12
+            result = "numeric-case"
+        Case Else
+            result = "else"
+    End Select
+    Debug.Print "XL-013 SELECT=" & result & " TYPENAME=" & TypeName(value)
+End Sub
+
+Private Sub VerifyDecimalIntegerOps()
+    Dim value As Variant, quotient As Variant, remainder As Variant
+    value = CDec("79228162514264337593543950335")
+    quotient = value \ CDec("3")
+    remainder = value Mod CDec("100000000000000000")
+    Debug.Print "XL-014 DIV=" & CStr(quotient) & " DIVTYPE=" & TypeName(quotient) & _
+        " MOD=" & CStr(remainder) & " MODTYPE=" & TypeName(remainder)
+    Debug.Print "XL-014 NEG=" & CStr(CDec("-5.5") \ CDec("2.5"))
+End Sub
+
+Private Sub VerifyCurrencyDivision()
+    Dim value As Currency, divisor As Currency, quotient As Variant
+    value = CCur("922337203685477.5807")
+    divisor = CCur("7")
+    quotient = value / divisor
+    Debug.Print "XL-015 DIV=" & CStr(quotient) & " TYPE=" & TypeName(quotient)
+    Debug.Print "XL-015 MOD=" & CStr(value Mod divisor) & " MODTYPE=" & TypeName(value Mod divisor)
+End Sub
+
+Private Sub VerifyLongLongStringOps()
+    Dim value As LongLong
+    value = CLngLng("9007199254740993")
+    Debug.Print "XL-016 ADD=" & CStr(value + "1") & " SUB=" & CStr(value - "1") & _
+        " NEG=" & CStr(-value)
+End Sub
+
+Private Sub VerifyCurrencyStringInputs()
+    Debug.Print "XL-017 EXP=" & CStr(CCur("9.007199254740993125E+14"))
+    Debug.Print "XL-017 GROUP=" & CStr(CCur("900,719,925,474,099.3125"))
+    Debug.Print "XL-017 PLUS=" & CStr(CCur("+900719925474099.3125"))
 End Sub
 
 Private Sub VerifyTextStream(ByVal path As String, ByVal unicodeMode As Boolean)

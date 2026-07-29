@@ -1151,8 +1151,8 @@ VBA仕様に関わるチェックは [`TODO_SPEC.md`](TODO_SPEC.md) で管理す
 次の順序で、回帰確認・実Excel照合・共通化を進める。各段階で結果を評価記録と
 回帰テストへ反映し、修正がある場合は個別コミットする。
 
-- [ ] `scripts/bg-test.sh` を実行し、TypeScript/VBAテストの成功・失敗・未実施件数と所要時間を記録する
-- [ ] bg-test結果を基に、未照合の実Excel候補を整理し、Windows Excelでまとめて照合する
+- [x] `scripts/bg-test.sh` を実行し、TypeScript/VBAテストの成功・失敗・未実施件数と所要時間を記録する（再実行: 333/333、14/14、111/111、未実施0、約2分。修正前の未使用import失敗は`64db649`で修正）
+- [ ] bg-test結果を基に、未照合の実Excel候補を整理し、Windows Excelでまとめて照合する（`sample/excel/ExcelQueueVerification.bas` にXL-013〜XL-017を追加済み。Windows Excel実行待ち）
 - [ ] 実機結果を構造化評価記録へ反映し、仕様差分と実装バグを分離する
 - [ ] 共通化TODOを優先度順に実施する（数値リテラル、比較、Err状態、ByVal/ByRef、配列添字、既定Value、ファイルI/O）
 - [ ] 各共通化変更に対して既存回帰・組み合わせテストを実行し、横展開で見つかった差分を修正する
