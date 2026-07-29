@@ -337,4 +337,28 @@ End Function
     console.log('[PASS] Bug BT: Type 配列メンバー 1 To N 境界の読み書き');
 }
 
+// UDT 配列メンバーの読み取りも通常配列と同じ境界エラーを返す。
+{
+    const code = `
+Type Row
+    cells(1 To 2) As Long
+End Type
+
+    Function TestUdtArrayReadBounds() As Long
+    Dim r As Row
+    TestUdtArrayReadBounds = r.cells(3)
+End Function
+`;
+    const ev = evalVBA(code);
+    let errorNumber = 0;
+    try {
+        ev.callProcedure('TestUdtArrayReadBounds', []);
+    } catch (error: any) {
+        errorNumber = error.number;
+    }
+    assert.strictEqual(errorNumber, 9,
+        'UDT 配列メンバーの範囲外読み取りは Error 9');
+    console.log('[PASS] UDT 配列メンバーの範囲外読み取り: Error 9');
+}
+
 console.log('\n✅ User Defined Type: 全テスト通過');
