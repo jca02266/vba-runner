@@ -68,3 +68,6 @@ coverage
 coverage-v8
 coverage-chunks
 diff-vba
+
+# 評価レポートの生成HTML（scripts/eval-report.mjs）
+evaluation/EVAL_REPORT.html
