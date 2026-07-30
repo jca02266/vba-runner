@@ -222,14 +222,19 @@ function renderMarkdown(records, summary, series, findingTypes) {
     '',
     '## 状態の計上先',
     '',
-    '| 評価状態 | 評価分類 | Finding計上 |',
-    '|---|---|---|',
-    '| `verified-no-bug` | 非バグ評価 | なし |',
-    '| `bug-found` | バグ評価 | 発見Finding |',
-    '| `fixed` | バグ評価 | 改修済みFinding |',
-    '| `needs-excel` / `blocked` / `in-progress` / `claimed` | 判定保留評価 | 未確定 |',
-    '| `known-limit` | その他（制限事項） | 対象外 |',
-    '| `retired` / `abandoned` / `queued` | その他 | 対象外 |',
+    '| 評価状態 | 意味 | 評価分類 | Finding計上 |',
+    '|---|---|---|---|',
+    '| `verified-no-bug` | バグを再現せず評価完了 | 非バグ評価 | なし |',
+    '| `bug-found` | バグを確認し修正前 | バグ評価 | 発見Finding |',
+    '| `fixed` | 確認したバグを修正済み | バグ評価 | 改修済みFinding |',
+    '| `needs-excel` | 実Excelなど外部確認が必要 | 判定保留評価 | 未確定 |',
+    '| `blocked` | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |',
+    '| `in-progress` | 評価または修正を実行中 | 判定保留評価 | 未確定 |',
+    '| `claimed` | 評価担当者が取得済み | 判定保留評価 | 未確定 |',
+    '| `known-limit` | 既知の仕様上の制限 | その他（制限事項） | 対象外 |',
+    '| `retired` | 仮説または候補を退役 | その他 | 対象外 |',
+    '| `abandoned` | 評価を中止 | その他 | 対象外 |',
+    '| `queued` | 評価待ち | その他 | 対象外 |',
     '',
     '## 時系列の収束状況',
     '',
@@ -308,9 +313,14 @@ ${renderConvergenceChart(series)}
 <tr><td><code>verified-no-bug</code></td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
 <tr><td><code>bug-found</code></td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
 <tr><td><code>fixed</code></td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
-<tr><td><code>needs-excel</code> / <code>blocked</code> / <code>in-progress</code> / <code>claimed</code></td><td>外部確認または追加作業が必要</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>needs-excel</code></td><td>実Excelなど外部確認が必要</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>blocked</code></td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>in-progress</code></td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>claimed</code></td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>known-limit</code></td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
-<tr><td><code>retired</code> / <code>abandoned</code> / <code>queued</code></td><td>退役・中止・未実施</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>retired</code></td><td>仮説または候補を退役</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>abandoned</code></td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>queued</code></td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
 </body></html>\n`;
 }
