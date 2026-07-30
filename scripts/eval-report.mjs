@@ -79,6 +79,16 @@ function readResults() {
   return results;
 }
 
+function readFindings() {
+  const findingsDir = path.join(evaluationRoot, 'findings');
+  const findings = new Map();
+  for (const name of listFiles(findingsDir, '.md')) {
+    const finding = readFrontmatter(path.join(findingsDir, name));
+    if (finding?.id) findings.set(finding.id, finding);
+  }
+  return findings;
+}
+
 function findingCount(record) {
   return new Set(Array.isArray(record.findings) ? record.findings : []).size;
 }
@@ -116,26 +126,28 @@ function aggregate(records) {
   return [...groups.values()].sort((a, b) => b.evaluations - a.evaluations || a.area.localeCompare(b.area));
 }
 
-function timeSeries(records, results) {
+function timeSeries(records, results, findings) {
   const events = records
     .map((record) => ({ record, result: results.get(record.id) }))
     .filter(({ result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt)))
     .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt));
   let evaluations = 0;
-  let bugs = 0;
-  let unresolved = 0;
+  let discovered = 0;
+  let fixed = 0;
   return events.map(({ record, result }) => {
     evaluations += 1;
-    bugs += findingCount(record);
-    if (!settledStatuses.has(result.status)) unresolved += 1;
+    const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
+    discovered += recordFindings.length;
+    fixed += recordFindings.filter((finding) => finding.status === 'fixed' || finding.status === 'closed').length;
     return {
       date: new Date(result.completedAt).toISOString(),
       evaluationId: record.id,
       status: result.status,
       area: areaFor(record.focus),
       evaluations,
-      bugs,
-      unresolved,
+      discovered,
+      fixed,
+      openBugs: discovered - fixed,
     };
   });
 }
@@ -165,9 +177,9 @@ function renderMarkdown(records, summary, series) {
     '',
     '完了状態ファイルの `completedAt` を基準にした累積値です。日時未登録の評価は含みません。',
     '',
-    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | 累積バグ | 未収束 |',
-    '|---|---|---|---|---:|---:|---:|',
-    ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugs} | ${row.unresolved} |`),
+    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | 累積発見バグ | 累積改修済み | 未改修バグ |',
+    '|---|---|---|---|---:|---:|---:|---:|',
+    ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.discovered} | ${row.fixed} | ${row.openBugs} |`),
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -195,9 +207,9 @@ const convergenceLabels = ${labels};
 new Chart(document.getElementById('convergence-chart'), {
   type: 'line',
   data: { labels: convergenceLabels, datasets: [
-    { label: '累積評価', data: ${values('evaluations')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
-    { label: '累積バグ', data: ${values('bugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 },
-    { label: '未収束', data: ${values('unresolved')}, borderColor: '#d97706', backgroundColor: '#d97706', tension: 0.15 }
+    { label: '累積発見バグ', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
+    { label: '累積改修済みバグ', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
+    { label: '未改修バグ', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
     plugins: { title: { display: true, text: 'バグ収束曲線' }, tooltip: { mode: 'index' } },
@@ -210,7 +222,7 @@ new Chart(document.getElementById('convergence-chart'), {
 function renderHtml(records, summary, series) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
-  const seriesRows = series.map((row) => `<tr><td>${htmlCell(row.date)}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
+  const seriesRows = series.map((row) => `<tr><td>${htmlCell(row.date)}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
@@ -220,13 +232,13 @@ function renderHtml(records, summary, series) {
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>時系列の収束状況</h2><p><code>completedAt</code>を基準にした累積値です。日時未登録の評価は含みません。</p>
 ${renderConvergenceChart(series)}
-<table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>累積バグ</th><th>未収束</th></tr></thead><tbody>${seriesRows}</tbody></table>
+<table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>累積発見バグ</th><th>累積改修済み</th><th>未改修バグ</th></tr></thead><tbody>${seriesRows}</tbody></table>
 </body></html>\n`;
 }
 
 function renderCsv(series) {
-  const header = ['completedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'cumulativeBugs', 'unresolved'];
-  return `${header.join(',')}\n${series.map((row) => [row.date, row.evaluationId, row.status, row.area, row.evaluations, row.bugs, row.unresolved].map(csvCell).join(',')).join('\n')}\n`;
+  const header = ['completedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'cumulativeDiscoveredBugs', 'cumulativeFixedBugs', 'openBugs'];
+  return `${header.join(',')}\n${series.map((row) => [row.date, row.evaluationId, row.status, row.area, row.evaluations, row.discovered, row.fixed, row.openBugs].map(csvCell).join(',')).join('\n')}\n`;
 }
 
 function main() {
@@ -234,7 +246,7 @@ function main() {
   const records = readRecords();
   const results = readResults();
   const summary = aggregate(records);
-  const series = timeSeries(records, results);
+  const series = timeSeries(records, results, readFindings());
   fs.mkdirSync(path.dirname(options.output), { recursive: true });
   fs.writeFileSync(options.output, renderMarkdown(records, summary, series));
   if (options.html) {
