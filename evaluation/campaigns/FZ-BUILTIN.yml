@@ -180,3 +180,12 @@ items:
     priorCauseKey: financial-invalid-argument-validation
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-022
+    title: Open Access/Lock互換境界
+    status: queued
+    priority: 1
+    focus: Open文のAccess/Lock組み合わせと共有違反
+    priorCauseKey: coverage-open-access-lock-dark-path
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts

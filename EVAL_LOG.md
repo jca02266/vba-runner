@@ -133,6 +133,7 @@
 | EV-00227 | FZ-GRAMMAR | verified-no-bug | Select Caseの文字列・Empty/Null・Decimal・範囲比較 |
 | EV-00228 | FZ-BUILTIN | fixed | IRR/MIRR・IPmt/PPmtの境界引数 |
 | EV-00229 | FZ-BUILTIN | fixed | NPer/Rate/NPV/PV/SLN/SYD/DDBの不正引数・非収束境界 |
+| EV-00230 | FZ-BUILTIN | verified-no-bug | Open文のAccess/Lock組み合わせと共有違反 |
 
 ## 状態集計
 
@@ -142,9 +143,9 @@
 | known-limit | 1 |
 | needs-excel | 2 |
 | retired | 1 |
-| verified-no-bug | 46 |
+| verified-no-bug | 47 |
 
-横展開未解決経路: 85、実Excel待ち評価: 2
+横展開未解決経路: 86、実Excel待ち評価: 2
 
 ## 次の候補
 
