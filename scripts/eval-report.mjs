@@ -250,11 +250,11 @@ new Chart(document.getElementById('evaluation-chart'), {
     { label: '非バグ評価', data: ${values('nonBugEvaluations')}, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: '判定保留評価', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: 'その他評価', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, tension: 0.15 }
+    { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, yAxisID: 'yTotal', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
     plugins: { title: { display: true, text: '評価分類の累積面グラフ（黒線＝評価数）' }, tooltip: { mode: 'index' } },
-    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積評価数' }, ticks: { precision: 0 } } }
+    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: '分類別の累積評価数' }, ticks: { precision: 0 } }, yTotal: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '累積評価数（黒線）' }, ticks: { precision: 0 } } }
   }
 });
 new Chart(document.getElementById('finding-chart'), {
