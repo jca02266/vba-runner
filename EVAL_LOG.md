@@ -120,6 +120,7 @@
 | EV-00214 | MUT-ENGINE | verified-no-bug | 配列読み取り共通化の境界保持 |
 | EV-00215 | FZ-GRAMMAR | fixed | 混在名前付き引数の評価順序 |
 | EV-00216 | MUT-ENGINE | fixed | Namespace Tier 6名前付き引数検査 |
+| EV-00217 | FZ-GRAMMAR | verified-no-bug | 名前付き引数重複とOptional省略 |
 
 ## 状態集計
 
@@ -128,9 +129,9 @@
 | fixed | 73 |
 | known-limit | 1 |
 | retired | 1 |
-| verified-no-bug | 41 |
+| verified-no-bug | 42 |
 
-横展開未解決経路: 71、実Excel待ち評価: 0
+横展開未解決経路: 72、実Excel待ち評価: 0
 
 ## 次の候補
 

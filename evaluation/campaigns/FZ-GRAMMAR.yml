@@ -42,3 +42,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/call-named-params.test.ts
+  - id: FZ-GRAMMAR-006
+    title: 名前付き引数重複とOptional省略
+    status: queued
+    priority: 2
+    focus: 同一引数名の重複、位置引数との衝突、Optional既定値
+    priorCauseKey: named-argument-evaluation-order
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
