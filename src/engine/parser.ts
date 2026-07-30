@@ -2489,7 +2489,12 @@ export class Parser {
             }
 
             const inner = this.peek();
-            if (inner.type === TokenType.KeywordSub || inner.type === TokenType.KeywordFunction || inner.type === TokenType.KeywordProperty) {
+            if (tok.type === TokenType.KeywordOption && this.peek(1).type === TokenType.KeywordCompare) {
+                this.advance(); // consume Option
+                this.advance(); // consume Compare
+                const option = this.parseOptionCompareStatement();
+                body.push(option);
+            } else if (inner.type === TokenType.KeywordSub || inner.type === TokenType.KeywordFunction || inner.type === TokenType.KeywordProperty) {
                 const proc = this.parseProcedureDeclaration(scope, undefined, true);
                 if (tok.line !== undefined) {
                     const endTok = this.tokens[this.pos - 1];

@@ -28,3 +28,18 @@ assert.equal(classBoundary.callProcedure('LikeClosingBracket', []), 'T',
     'Like character class accepts a closing bracket as its first character');
 
 console.log('✅ Like module comparison and character-class boundaries');
+
+const selectText = evalVBAModules([
+    {
+        name: 'SelectText',
+        code: `Option Compare Text
+Function SelectMatch() As String
+    Select Case "abc"
+        Case "ABC": SelectMatch = "T"
+        Case Else: SelectMatch = "F"
+    End Select
+End Function`,
+    },
+]);
+assert.equal(selectText.callProcedure('SelectMatch', []), 'T',
+    'Select Case string comparison follows Option Compare Text');

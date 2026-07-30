@@ -2781,6 +2781,11 @@ export class Evaluator {
             const rm = r.mantissa * (10n ** BigInt(scale - r.scale));
             return lm === rm ? 0 : (lm < rm ? -1 : 1);
         }
+        if (typeof left === 'string' && typeof right === 'string' && this.getComparisonMode() === 'Text') {
+            const l = left.toLowerCase();
+            const r = right.toLowerCase();
+            return l === r ? 0 : (l < r ? -1 : 1);
+        }
         if (typeof left === 'bigint' || typeof right === 'bigint') {
             const exact = (value: any): bigint => {
                 if (typeof value === 'bigint') return value;
@@ -3964,6 +3969,12 @@ export class Evaluator {
     }
 
     private evaluateClassDeclaration(stmt: ClassDeclaration) {
+        for (const bodyStmt of stmt.body) {
+            if (bodyStmt.type === 'OptionCompareStatement') {
+                this.moduleComparisonModes.set(stmt.name.toLowerCase(), (bodyStmt as OptionCompareStatement).mode);
+            }
+        }
+        for (const proc of stmt.procedures) proc.moduleName = stmt.name;
         this.registerClass(stmt.name, stmt);
     }
 
@@ -4579,6 +4590,7 @@ export class Evaluator {
         const previousProcedureReturnsArray = this.currentProcedureReturnsArray;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
+        const previousExecutingModule = this.executingModuleName;
         this.env = localEnv;
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
@@ -4591,6 +4603,7 @@ export class Evaluator {
         this.currentProcedureReturnsArray = proc.returnsArray ?? false;
         this.currentProcIsStatic = false;
         this.staticVarsInCurrentProc = new Set();
+        this.executingModuleName = proc.moduleName ?? previousExecutingModule;
 
         try {
             this.executeStatements(proc.body, 0);
@@ -4650,6 +4663,7 @@ export class Evaluator {
             this.currentProcedureReturnsArray = previousProcedureReturnsArray;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
+            this.executingModuleName = previousExecutingModule;
         }
 
         if (proc.isFunction || proc.isProperty) {

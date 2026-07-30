@@ -60,3 +60,12 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-GRAMMAR-008
+    title: Option Compareのクラス・Select Case経路
+    status: queued
+    priority: 1
+    focus: クラスモジュールとSelect Caseの文字列比較モード
+    priorCauseKey: like-module-comparison-scope
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/option_compare.test.ts
