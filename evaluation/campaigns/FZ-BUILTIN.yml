@@ -154,3 +154,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-019
+    title: Format浮動小数点丸め境界
+    status: queued
+    priority: 1
+    focus: Formatの半端値・負数・指数境界の丸め
+    priorCauseKey: format-custom-section-boundaries
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts

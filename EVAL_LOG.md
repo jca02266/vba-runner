@@ -127,6 +127,7 @@
 | EV-00221 | FZ-BUILTIN | verified-no-bug | 数値Stringの基数・書式変換 |
 | EV-00222 | FZ-BUILTIN | needs-excel | CDec文字列の受理境界 |
 | EV-00223 | FZ-BUILTIN | fixed | Formatカスタム数値セクション |
+| EV-00224 | FZ-BUILTIN | needs-excel | Format浮動小数点丸め境界 |
 
 ## 状態集計
 
@@ -134,11 +135,11 @@
 |---|---:|
 | fixed | 75 |
 | known-limit | 1 |
-| needs-excel | 1 |
+| needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 45 |
 
-横展開未解決経路: 78、実Excel待ち評価: 1
+横展開未解決経路: 80、実Excel待ち評価: 2
 
 ## 次の候補
 
