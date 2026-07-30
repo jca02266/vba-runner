@@ -32,6 +32,10 @@ after migration, use the structured records and the generated Markdown view.
    action. For a verified defect, implement the smallest compatible fix, add
    a regression test, and run focused checks. Also assess structural
    weaknesses and update `TODO.md` or `TODO_SPEC.md` only when justified.
+   When a regression test or the full regression suite exposes a defect,
+   mark the linked Finding with `discoveryType: regression`; use a different
+   explicit type for fuzzing, mutation, coverage, Excel comparison, or direct
+   evaluation findings. Do not infer a historical type without evidence.
 7. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
    the generated `EVAL_LOG.md` is up to date. Commit the implementation,

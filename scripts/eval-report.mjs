@@ -101,6 +101,17 @@ function findingCount(record) {
   return new Set(Array.isArray(record.findings) ? record.findings : []).size;
 }
 
+function findingTypeSummary(records, findings) {
+  const counts = new Map();
+  for (const record of records) {
+    for (const id of new Set(record.findings ?? [])) {
+      const type = findings.get(id)?.discoveryType ?? 'unknown';
+      counts.set(type, (counts.get(type) ?? 0) + 1);
+    }
+  }
+  return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([type, count]) => ({ type, count }));
+}
+
 // A record is assigned to its first matching primary area so totals remain additive.
 const areas = [
   ['Select Case', /Select Case/],
@@ -184,7 +195,7 @@ function mdCell(value) {
   return String(value ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ');
 }
 
-function renderMarkdown(records, summary, series) {
+function renderMarkdown(records, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const completed = series.length;
   const pending = records.length - completed;
@@ -200,6 +211,14 @@ function renderMarkdown(records, summary, series) {
     '| 実装領域 | 評価件数 | バグ件数 | 未収束件数 |',
     '|---|---:|---:|---:|',
     ...summary.map((row) => `| ${mdCell(row.area)} | ${row.evaluations} | ${row.bugs} | ${row.unresolved} |`),
+    '',
+    '## バグ発見種別',
+    '',
+    '`discoveryType: regression` はレグレッションテストまたは回帰試験で発見したデグレードを表します。',
+    '',
+    '| 発見種別 | Finding件数 |',
+    '|---|---:|',
+    ...findingTypes.map((row) => `| ${mdCell(row.type)} | ${row.count} |`),
     '',
     '## 状態の計上先',
     '',
@@ -268,9 +287,10 @@ new Chart(document.getElementById('finding-chart'), {
 </script>`;
 }
 
-function renderHtml(records, summary, series) {
+function renderHtml(records, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
+  const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
   const seriesRows = series.map((row) => `<tr><td>${htmlCell(row.date)}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
@@ -279,6 +299,7 @@ function renderHtml(records, summary, series) {
 </head><body><h1>評価レポート</h1>
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
+<h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
 <table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
@@ -302,12 +323,14 @@ function main() {
   const records = readRecords();
   const results = readResults();
   const summary = aggregate(records);
-  const series = timeSeries(records, results, readFindings());
+  const findings = readFindings();
+  const series = timeSeries(records, results, findings);
+  const findingTypes = findingTypeSummary(records, findings);
   fs.mkdirSync(path.dirname(options.output), { recursive: true });
-  fs.writeFileSync(options.output, renderMarkdown(records, summary, series));
+  fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes));
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
-    fs.writeFileSync(options.html, renderHtml(records, summary, series));
+    fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes));
   }
   if (options.csv) {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });
