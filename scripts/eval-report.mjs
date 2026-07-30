@@ -185,6 +185,35 @@ function htmlCell(value) {
     .replaceAll('"', '&quot;');
 }
 
+function renderConvergenceChart(series) {
+  const width = 900;
+  const height = 330;
+  const left = 52;
+  const right = 22;
+  const top = 24;
+  const bottom = 42;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const maxValue = Math.max(1, ...series.flatMap((row) => [row.evaluations, row.bugs, row.unresolved]));
+  const x = (index) => left + (series.length <= 1 ? plotWidth / 2 : index * plotWidth / (series.length - 1));
+  const y = (value) => top + plotHeight - (value / maxValue) * plotHeight;
+  const polyline = (field, color) => {
+    const points = series.map((row, index) => `${x(index).toFixed(1)},${y(row[field]).toFixed(1)}`).join(' ');
+    return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>`;
+  };
+  const grid = [0, 0.5, 1].map((fraction) => {
+    const value = Math.round(maxValue * fraction);
+    const yy = y(value).toFixed(1);
+    return `<line x1="${left}" y1="${yy}" x2="${width - right}" y2="${yy}" stroke="#ddd"/><text x="${left - 8}" y="${Number(yy) + 4}" text-anchor="end">${value}</text>`;
+  }).join('');
+  const labels = series.length ? [0, series.length - 1].filter((index, pos, all) => all.indexOf(index) === pos).map((index) =>
+    `<text x="${x(index).toFixed(1)}" y="${height - 12}" text-anchor="${index === 0 ? 'start' : 'end'}">${htmlCell(series[index].date.slice(0, 10))}</text>`).join('') : '';
+  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="評価・バグ・未収束の累積推移">
+${grid}<line x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}" stroke="#555"/><line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" stroke="#555"/>${labels}
+${polyline('evaluations', '#2563eb')}${polyline('bugs', '#dc2626')}${polyline('unresolved', '#d97706')}
+</svg><div class="legend"><span class="evaluations">累積評価</span><span class="bugs">累積バグ</span><span class="unresolved">未収束</span></div>`;
+}
+
 function renderHtml(records, summary, series) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
@@ -192,11 +221,12 @@ function renderHtml(records, summary, series) {
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
-<style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}</style>
+<style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart{display:block;max-width:900px;width:100%;height:auto}.legend{display:flex;gap:1.2rem;margin:-1.5rem 0 2rem 3rem}.legend span::before{content:' ';display:inline-block;width:.8rem;height:.8rem;margin-right:.35rem;background:currentColor}.evaluations{color:#2563eb}.bugs{color:#dc2626}.unresolved{color:#d97706}</style>
 </head><body><h1>評価レポート</h1>
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>時系列の収束状況</h2><p><code>completedAt</code>を基準にした累積値です。日時未登録の評価は含みません。</p>
+${renderConvergenceChart(series)}
 <table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>累積バグ</th><th>未収束</th></tr></thead><tbody>${seriesRows}</tbody></table>
 </body></html>\n`;
 }
