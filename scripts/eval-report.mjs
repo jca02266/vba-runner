@@ -21,6 +21,7 @@ const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 
 const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
 const pendingEvaluationStatuses = new Set(['needs-excel', 'blocked', 'in-progress', 'claimed']);
+const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
 
 function usage() {
   console.log('Usage: node scripts/eval-report.mjs [--output FILE] [--csv FILE]');
@@ -151,6 +152,8 @@ function timeSeries(records, results, findings) {
   let fixed = 0;
   let pendingEvaluations = 0;
   let nonBugEvaluations = 0;
+  let bugEvaluations = 0;
+  let otherEvaluations = 0;
   return events.map(({ record, result }) => {
     evaluations += 1;
     const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
@@ -158,6 +161,8 @@ function timeSeries(records, results, findings) {
     fixed += recordFindings.filter((finding) => finding.status === 'fixed' || finding.status === 'closed').length;
     if (pendingEvaluationStatuses.has(result.status)) pendingEvaluations += 1;
     if (result.status === 'verified-no-bug') nonBugEvaluations += 1;
+    if (result.status === 'bug-found' || result.status === 'fixed') bugEvaluations += 1;
+    if (otherEvaluationStatuses.has(result.status)) otherEvaluations += 1;
     return {
       date: new Date(result.completedAt).toISOString(),
       evaluationId: record.id,
@@ -169,6 +174,8 @@ function timeSeries(records, results, findings) {
       openBugs: discovered - fixed,
       pendingEvaluations,
       nonBugEvaluations,
+      bugEvaluations,
+      otherEvaluations,
     };
   });
 }
@@ -199,18 +206,18 @@ function renderMarkdown(records, summary, series) {
     '| 評価状態 | 計上先 |',
     '|---|---|',
     '| `verified-no-bug` | 非バグ評価 |',
-    '| `bug-found` / `fixed` | 発見バグ・改修済みバグ |',
+    '| `bug-found` / `fixed` | バグ評価（Finding件数は別集計） |',
     '| `needs-excel` / `blocked` / `in-progress` / `claimed` | 判定保留評価 |',
     '| `known-limit` | 制限事項 |',
     '| `retired` / `abandoned` / `queued` | その他 |',
     '',
     '## 時系列の収束状況',
     '',
-    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした累積値です。日時未登録の評価は含みません。',
+    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。',
     '',
-    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | 累積非バグ評価 | 累積発見バグ | 累積改修済み | 未改修バグ | 判定保留評価 |',
-    '|---|---|---|---|---:|---:|---:|---:|---:|---:|',
-    ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.nonBugEvaluations} | ${row.discovered} | ${row.fixed} | ${row.openBugs} | ${row.pendingEvaluations} |`),
+    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | バグ評価 | 非バグ評価 | 判定保留 | その他 | 発見Finding | 改修済みFinding | 未改修Finding |',
+    '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
+    ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugEvaluations} | ${row.nonBugEvaluations} | ${row.pendingEvaluations} | ${row.otherEvaluations} | ${row.discovered} | ${row.fixed} | ${row.openBugs} |`),
   ];
   return `${lines.join('\n')}\n`;
 }
@@ -240,9 +247,11 @@ new Chart(document.getElementById('convergence-chart'), {
   data: { labels: convergenceLabels, datasets: [
     { label: '累積評価件数', data: ${values('evaluations')}, borderColor: '#7c3aed', backgroundColor: '#7c3aed', tension: 0.15 },
     { label: '累積非バグ評価', data: ${values('nonBugEvaluations')}, borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.15 },
-    { label: '累積発見バグ', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
-    { label: '累積改修済みバグ', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
-    { label: '未改修バグ', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 },
+    { label: '累積バグ評価', data: ${values('bugEvaluations')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
+    { label: 'その他評価', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: '#92400e', tension: 0.15 },
+    { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#60a5fa', backgroundColor: '#60a5fa', borderDash: [6, 4], tension: 0.15 },
+    { label: '累積改修済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', borderDash: [6, 4], tension: 0.15 },
+    { label: '未改修Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', borderDash: [6, 4], tension: 0.15 },
     { label: '判定保留評価', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: '#6b7280', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
@@ -256,7 +265,7 @@ new Chart(document.getElementById('convergence-chart'), {
 function renderHtml(records, summary, series) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
-  const seriesRows = series.map((row) => `<tr><td>${htmlCell(row.date)}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td><td>${row.pendingEvaluations}</td></tr>`).join('\n');
+  const seriesRows = series.map((row) => `<tr><td>${htmlCell(row.date)}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
@@ -264,12 +273,12 @@ function renderHtml(records, summary, series) {
 </head><body><h1>評価レポート</h1>
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
-<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。</p>
+<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
-<table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>累積非バグ評価</th><th>累積発見バグ</th><th>累積改修済み</th><th>未改修バグ</th><th>判定保留評価</th></tr></thead><tbody>${seriesRows}</tbody></table>
+<table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>状態の計上先</h2><table><thead><tr><th>評価状態</th><th>計上先</th><th>意味</th></tr></thead><tbody>
 <tr><td><code>verified-no-bug</code></td><td>非バグ評価</td><td>バグを再現せず、評価を完了</td></tr>
-<tr><td><code>bug-found</code> / <code>fixed</code></td><td>発見バグ・改修済みバグ</td><td>評価でバグを確認。<code>fixed</code> はFindingの改修状態で集計</td></tr>
+<tr><td><code>bug-found</code> / <code>fixed</code></td><td>バグ評価</td><td>評価単位で1件。Findingの発見・改修件数は別列で集計</td></tr>
 <tr><td><code>needs-excel</code> / <code>blocked</code> / <code>in-progress</code> / <code>claimed</code></td><td>判定保留評価</td><td>外部確認または追加作業が必要</td></tr>
 <tr><td><code>known-limit</code></td><td>制限事項</td><td>既知の仕様上の制限</td></tr>
 <tr><td><code>retired</code> / <code>abandoned</code> / <code>queued</code></td><td>その他</td><td>退役・中止・未実施</td></tr>
@@ -278,8 +287,8 @@ ${renderConvergenceChart(series)}
 }
 
 function renderCsv(series) {
-  const header = ['completedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'cumulativeNonBugEvaluations', 'cumulativeDiscoveredBugs', 'cumulativeFixedBugs', 'openBugs', 'pendingEvaluations'];
-  return `${header.join(',')}\n${series.map((row) => [row.date, row.evaluationId, row.status, row.area, row.evaluations, row.nonBugEvaluations, row.discovered, row.fixed, row.openBugs, row.pendingEvaluations].map(csvCell).join(',')).join('\n')}\n`;
+  const header = ['completedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'bugEvaluations', 'nonBugEvaluations', 'pendingEvaluations', 'otherEvaluations', 'cumulativeDiscoveredFindings', 'cumulativeFixedFindings', 'openFindings'];
+  return `${header.join(',')}\n${series.map((row) => [row.date, row.evaluationId, row.status, row.area, row.evaluations, row.bugEvaluations, row.nonBugEvaluations, row.pendingEvaluations, row.otherEvaluations, row.discovered, row.fixed, row.openBugs].map(csvCell).join(',')).join('\n')}\n`;
 }
 
 function main() {
