@@ -136,3 +136,12 @@ items:
     coverageTargets:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-017
+    title: CDec文字列の受理境界
+    status: queued
+    priority: 1
+    focus: CDecの先頭符号・基数・桁区切りStringの変換
+    priorCauseKey: numeric-string-coercion-boundaries
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts

@@ -125,6 +125,7 @@
 | EV-00219 | FZ-BUILTIN | verified-no-bug | LongLongとStringの境界変換 |
 | EV-00220 | FZ-BUILTIN | verified-no-bug | Decimal Currency Double混在除算 |
 | EV-00221 | FZ-BUILTIN | verified-no-bug | 数値Stringの基数・書式変換 |
+| EV-00222 | FZ-BUILTIN | needs-excel | CDec文字列の受理境界 |
 
 ## 状態集計
 
@@ -132,10 +133,11 @@
 |---|---:|
 | fixed | 74 |
 | known-limit | 1 |
+| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 45 |
 
-横展開未解決経路: 76、実Excel待ち評価: 0
+横展開未解決経路: 77、実Excel待ち評価: 1
 
 ## 次の候補
 
