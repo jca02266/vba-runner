@@ -163,3 +163,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-020
+    title: 財務関数のゼロ・境界引数
+    status: queued
+    priority: 1
+    focus: IRR/MIRR・IPmt/PPmtの境界引数
+    priorCauseKey: coverage-financial-dark-paths
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

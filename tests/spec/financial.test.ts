@@ -163,4 +163,26 @@ console.log('[PASS] IPmt/PPmt period and payment timing');
 }
 console.log('[PASS] Bug 145-A: Pmt のゼロ期間をエラー化');
 
+// Bug 180-A: IRR/MIRR must reject cash flows without both signs.
+{
+    const ev = evalVBASingle(`
+    Public irrError, mirrError
+    Sub Test()
+        Dim flows(0 To 2) As Double
+        flows(0) = 100 : flows(1) = 20 : flows(2) = 10
+        Dim ignored As Double
+        On Error Resume Next
+        ignored = IRR(flows)
+        irrError = Err.Number
+        Err.Clear
+        ignored = MIRR(flows, 0.1, 0.1)
+        mirrError = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('irrerror'), 5, 'IRR without positive and negative flows is Error 5');
+    assert.strictEqual(ev.env.get('mirrerror'), 5, 'MIRR without positive and negative flows is Error 5');
+}
+console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
+
 console.log('\n✅ Financial Functions: 全テスト通過');

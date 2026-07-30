@@ -1609,6 +1609,9 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const base: number = (values as any).vbaBase ?? 0;
         const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
+        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
         let r = toNum(guess);
         for (let i = 0; i < 100; i++) {
             let npv = 0, dnpv = 0;
@@ -1618,8 +1621,14 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
                 if (t > 0) dnpv -= t * v[t] / (p1 * (1 + r));
             }
             const newR = r - npv / dnpv;
+            if (!Number.isFinite(newR)) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
             if (Math.abs(newR - r) < 1e-10) return newR;
             r = newR;
+        }
+        if (!Number.isFinite(r)) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return r;
     }, [{ name: 'ValueArray' }, { name: 'Guess', optional: true }]);
@@ -1628,6 +1637,9 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         const base: number = (values as any).vbaBase ?? 0;
         const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
+        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
         const n = v.length - 1;
         let npv_neg = 0, npv_pos = 0;
         for (let t = 0; t < v.length; t++) {
@@ -1635,7 +1647,11 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             else npv_pos += v[t] / Math.pow(1 + rr, t);
         }
         const tv = npv_pos * Math.pow(1 + rr, n);
-        return Math.pow(-tv / npv_neg, 1 / n) - 1;
+        const result = Math.pow(-tv / npv_neg, 1 / n) - 1;
+        if (!Number.isFinite(result)) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
+        return result;
     }, [{ name: 'ValueArray' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");

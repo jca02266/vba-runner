@@ -36,7 +36,12 @@ after migration, use the structured records and the generated Markdown view.
    a fix, test, or state transition until the structured record is valid and
    the generated `EVAL_LOG.md` is up to date. Commit the implementation,
    regression test, structured record, and generated view together.
-8. Report the evaluated scenario, independently verified behavior,
+8. After each evaluation commit, refresh the local HTML report with
+   `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.
+   The HTML is generated output and is ignored by Git; do not stage or commit
+   it. Use the refreshed report for the next loop's status and convergence
+   review.
+9. Report the evaluated scenario, independently verified behavior,
    horizontal-expansion investigation (including ruled-out paths), root cause,
    tests run, state transition, and commit hash. If no defect was verified,
    say so plainly and record the appropriate no-bug or limitation state.
