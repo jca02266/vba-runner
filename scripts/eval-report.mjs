@@ -343,8 +343,10 @@ function main() {
   const findings = readFindings();
   const series = timeSeries(records, results, findings);
   const findingTypes = findingTypeSummary(records, findings);
-  fs.mkdirSync(path.dirname(options.output), { recursive: true });
-  fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes));
+  if (options.output) {
+    fs.mkdirSync(path.dirname(options.output), { recursive: true });
+    fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes));
+  }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
     fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes));
@@ -353,7 +355,7 @@ function main() {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });
     fs.writeFileSync(options.csv, renderCsv(series));
   }
-  console.log(options.output);
+  if (options.output) console.log(options.output);
   if (options.html) console.log(options.html);
   if (options.csv) console.log(options.csv);
 }
