@@ -28,7 +28,7 @@ function usage() {
 }
 
 function parseArgs(argv) {
-  const options = { output: defaultOutput, html: null, csv: null };
+  const options = { output: null, html: null, csv: null };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') {
@@ -49,6 +49,7 @@ function parseArgs(argv) {
     }
     throw new Error(`unknown argument: ${arg}`);
   }
+  if (!options.output && !options.html && !options.csv) options.output = defaultOutput;
   return options;
 }
 
@@ -110,6 +111,10 @@ function findingTypeSummary(records, findings) {
     }
   }
   return [...counts.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([type, count]) => ({ type, count }));
+}
+
+function evaluationStatusCount(records, status) {
+  return records.filter((record) => record.status === status).length;
 }
 
 // A record is assigned to its first matching primary area so totals remain additive.
@@ -222,19 +227,19 @@ function renderMarkdown(records, summary, series, findingTypes) {
     '',
     '## 状態の計上先',
     '',
-    '| 評価状態 | 意味 | 評価分類 | Finding計上 |',
-    '|---|---|---|---|',
-    '| `verified-no-bug` | バグを再現せず評価完了 | 非バグ評価 | なし |',
-    '| `bug-found` | バグを確認し修正前 | バグ評価 | 発見Finding |',
-    '| `fixed` | 確認したバグを修正済み | バグ評価 | 改修済みFinding |',
-    '| `needs-excel` | 実Excelなど外部確認が必要 | 判定保留評価 | 未確定 |',
-    '| `blocked` | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |',
-    '| `in-progress` | 評価または修正を実行中 | 判定保留評価 | 未確定 |',
-    '| `claimed` | 評価担当者が取得済み | 判定保留評価 | 未確定 |',
-    '| `known-limit` | 既知の仕様上の制限 | その他（制限事項） | 対象外 |',
-    '| `retired` | 仮説または候補を退役 | その他 | 対象外 |',
-    '| `abandoned` | 評価を中止 | その他 | 対象外 |',
-    '| `queued` | 評価待ち | その他 | 対象外 |',
+    '| 評価状態 | 件数 | 意味 | 評価分類 | Finding計上 |',
+    '|---|---:|---|---|---|',
+    `| \`verified-no-bug\` | ${evaluationStatusCount(records, 'verified-no-bug')} | バグを再現せず評価完了 | 非バグ評価 | なし |`,
+    `| \`bug-found\` | ${evaluationStatusCount(records, 'bug-found')} | バグを確認し修正前 | バグ評価 | 発見Finding |`,
+    `| \`fixed\` | ${evaluationStatusCount(records, 'fixed')} | 確認したバグを修正済み | バグ評価 | 改修済みFinding |`,
+    `| \`needs-excel\` | ${evaluationStatusCount(records, 'needs-excel')} | 実Excelなど外部確認が必要 | 判定保留評価 | 未確定 |`,
+    `| \`blocked\` | ${evaluationStatusCount(records, 'blocked')} | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |`,
+    `| \`in-progress\` | ${evaluationStatusCount(records, 'in-progress')} | 評価または修正を実行中 | 判定保留評価 | 未確定 |`,
+    `| \`claimed\` | ${evaluationStatusCount(records, 'claimed')} | 評価担当者が取得済み | 判定保留評価 | 未確定 |`,
+    `| \`known-limit\` | ${evaluationStatusCount(records, 'known-limit')} | 既知の仕様上の制限 | その他（制限事項） | 対象外 |`,
+    `| \`retired\` | ${evaluationStatusCount(records, 'retired')} | 仮説または候補を退役 | その他 | 対象外 |`,
+    `| \`abandoned\` | ${evaluationStatusCount(records, 'abandoned')} | 評価を中止 | その他 | 対象外 |`,
+    `| \`queued\` | ${evaluationStatusCount(records, 'queued')} | 評価待ち | その他 | 対象外 |`,
     '',
     '## 時系列の収束状況',
     '',
@@ -309,18 +314,18 @@ function renderHtml(records, summary, series, findingTypes) {
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
 <table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
-<tr><td><code>verified-no-bug</code></td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
-<tr><td><code>bug-found</code></td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
-<tr><td><code>fixed</code></td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
-<tr><td><code>needs-excel</code></td><td>実Excelなど外部確認が必要</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>blocked</code></td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>in-progress</code></td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>claimed</code></td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>known-limit</code></td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
-<tr><td><code>retired</code></td><td>仮説または候補を退役</td><td>その他</td><td>対象外</td></tr>
-<tr><td><code>abandoned</code></td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
-<tr><td><code>queued</code></td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
+<h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
+<tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(records, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
+<tr><td><code>bug-found</code></td><td>${evaluationStatusCount(records, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
+<tr><td><code>fixed</code></td><td>${evaluationStatusCount(records, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
+<tr><td><code>needs-excel</code></td><td>${evaluationStatusCount(records, 'needs-excel')}</td><td>実Excelなど外部確認が必要</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>blocked</code></td><td>${evaluationStatusCount(records, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>in-progress</code></td><td>${evaluationStatusCount(records, 'in-progress')}</td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>claimed</code></td><td>${evaluationStatusCount(records, 'claimed')}</td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(records, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
+<tr><td><code>retired</code></td><td>${evaluationStatusCount(records, 'retired')}</td><td>仮説または候補を退役</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>abandoned</code></td><td>${evaluationStatusCount(records, 'abandoned')}</td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>queued</code></td><td>${evaluationStatusCount(records, 'queued')}</td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
 </body></html>\n`;
 }
