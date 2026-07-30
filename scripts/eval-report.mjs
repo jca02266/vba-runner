@@ -186,32 +186,25 @@ function htmlCell(value) {
 }
 
 function renderConvergenceChart(series) {
-  const width = 900;
-  const height = 330;
-  const left = 52;
-  const right = 22;
-  const top = 24;
-  const bottom = 42;
-  const plotWidth = width - left - right;
-  const plotHeight = height - top - bottom;
-  const maxValue = Math.max(1, ...series.flatMap((row) => [row.evaluations, row.bugs, row.unresolved]));
-  const x = (index) => left + (series.length <= 1 ? plotWidth / 2 : index * plotWidth / (series.length - 1));
-  const y = (value) => top + plotHeight - (value / maxValue) * plotHeight;
-  const polyline = (field, color) => {
-    const points = series.map((row, index) => `${x(index).toFixed(1)},${y(row[field]).toFixed(1)}`).join(' ');
-    return `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="2"/>`;
-  };
-  const grid = [0, 0.5, 1].map((fraction) => {
-    const value = Math.round(maxValue * fraction);
-    const yy = y(value).toFixed(1);
-    return `<line x1="${left}" y1="${yy}" x2="${width - right}" y2="${yy}" stroke="#ddd"/><text x="${left - 8}" y="${Number(yy) + 4}" text-anchor="end">${value}</text>`;
-  }).join('');
-  const labels = series.length ? [0, series.length - 1].filter((index, pos, all) => all.indexOf(index) === pos).map((index) =>
-    `<text x="${x(index).toFixed(1)}" y="${height - 12}" text-anchor="${index === 0 ? 'start' : 'end'}">${htmlCell(series[index].date.slice(0, 10))}</text>`).join('') : '';
-  return `<svg class="chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="評価・バグ・未収束の累積推移">
-${grid}<line x1="${left}" y1="${top}" x2="${left}" y2="${height - bottom}" stroke="#555"/><line x1="${left}" y1="${height - bottom}" x2="${width - right}" y2="${height - bottom}" stroke="#555"/>${labels}
-${polyline('evaluations', '#2563eb')}${polyline('bugs', '#dc2626')}${polyline('unresolved', '#d97706')}
-</svg><div class="legend"><span class="evaluations">累積評価</span><span class="bugs">累積バグ</span><span class="unresolved">未収束</span></div>`;
+  const labels = JSON.stringify(series.map((row) => row.date.slice(0, 10)));
+  const values = (field) => JSON.stringify(series.map((row) => row[field]));
+  return `<div class="chart-container"><canvas id="convergence-chart" role="img" aria-label="評価・バグ・未収束の累積推移"></canvas></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+const convergenceLabels = ${labels};
+new Chart(document.getElementById('convergence-chart'), {
+  type: 'line',
+  data: { labels: convergenceLabels, datasets: [
+    { label: '累積評価', data: ${values('evaluations')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
+    { label: '累積バグ', data: ${values('bugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 },
+    { label: '未収束', data: ${values('unresolved')}, borderColor: '#d97706', backgroundColor: '#d97706', tension: 0.15 }
+  ]},
+  options: { responsive: true, interaction: { mode: 'index', intersect: false },
+    plugins: { title: { display: true, text: 'バグ収束曲線' }, tooltip: { mode: 'index' } },
+    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積件数' }, ticks: { precision: 0 } } }
+  }
+});
+</script>`;
 }
 
 function renderHtml(records, summary, series) {
@@ -221,7 +214,7 @@ function renderHtml(records, summary, series) {
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
-<style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart{display:block;max-width:900px;width:100%;height:auto}.legend{display:flex;gap:1.2rem;margin:-1.5rem 0 2rem 3rem}.legend span::before{content:' ';display:inline-block;width:.8rem;height:.8rem;margin-right:.35rem;background:currentColor}.evaluations{color:#2563eb}.bugs{color:#dc2626}.unresolved{color:#d97706}</style>
+<style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
