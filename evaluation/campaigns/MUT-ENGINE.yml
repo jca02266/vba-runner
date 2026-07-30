@@ -74,3 +74,11 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/array-subscript-bounds.test.ts
       - tests/spec/udt-type.test.ts
+  - id: MUT-ENGINE-010
+    title: Namespace Tier 6名前付き引数検査
+    status: queued
+    priority: 2
+    focus: VbaNamespaceRefとdefaultBindingObjectの未知名前付き引数
+    priorCauseKey: module-named-argument-unknown-name
+    coverageTargets:
+      - src/engine/evaluator.ts

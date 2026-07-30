@@ -119,17 +119,18 @@
 | EV-00213 | FZ-BUILTIN | fixed | LongLongとStringの算術型昇格 |
 | EV-00214 | MUT-ENGINE | verified-no-bug | 配列読み取り共通化の境界保持 |
 | EV-00215 | FZ-GRAMMAR | fixed | 混在名前付き引数の評価順序 |
+| EV-00216 | MUT-ENGINE | fixed | Namespace Tier 6名前付き引数検査 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 72 |
+| fixed | 73 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 41 |
 
-横展開未解決経路: 70、実Excel待ち評価: 0
+横展開未解決経路: 71、実Excel待ち評価: 0
 
 ## 次の候補
 
