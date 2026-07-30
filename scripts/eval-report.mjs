@@ -222,13 +222,14 @@ function renderMarkdown(records, summary, series, findingTypes) {
     '',
     '## 状態の計上先',
     '',
-    '| 評価状態 | 計上先 |',
-    '|---|---|',
-    '| `verified-no-bug` | 非バグ評価 |',
-    '| `bug-found` / `fixed` | バグ評価（Finding件数は別集計） |',
-    '| `needs-excel` / `blocked` / `in-progress` / `claimed` | 判定保留評価 |',
-    '| `known-limit` | 制限事項 |',
-    '| `retired` / `abandoned` / `queued` | その他 |',
+    '| 評価状態 | 評価分類 | Finding計上 |',
+    '|---|---|---|',
+    '| `verified-no-bug` | 非バグ評価 | なし |',
+    '| `bug-found` | バグ評価 | 発見Finding |',
+    '| `fixed` | バグ評価 | 改修済みFinding |',
+    '| `needs-excel` / `blocked` / `in-progress` / `claimed` | 判定保留評価 | 未確定 |',
+    '| `known-limit` | その他（制限事項） | 対象外 |',
+    '| `retired` / `abandoned` / `queued` | その他 | 対象外 |',
     '',
     '## 時系列の収束状況',
     '',
@@ -303,12 +304,13 @@ function renderHtml(records, summary, series, findingTypes) {
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
 <table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>状態の計上先</h2><table><thead><tr><th>評価状態</th><th>計上先</th><th>意味</th></tr></thead><tbody>
-<tr><td><code>verified-no-bug</code></td><td>非バグ評価</td><td>バグを再現せず、評価を完了</td></tr>
-<tr><td><code>bug-found</code> / <code>fixed</code></td><td>バグ評価</td><td>評価単位で1件。Findingの発見・改修件数は別列で集計</td></tr>
-<tr><td><code>needs-excel</code> / <code>blocked</code> / <code>in-progress</code> / <code>claimed</code></td><td>判定保留評価</td><td>外部確認または追加作業が必要</td></tr>
-<tr><td><code>known-limit</code></td><td>制限事項</td><td>既知の仕様上の制限</td></tr>
-<tr><td><code>retired</code> / <code>abandoned</code> / <code>queued</code></td><td>その他</td><td>退役・中止・未実施</td></tr>
+<h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
+<tr><td><code>verified-no-bug</code></td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
+<tr><td><code>bug-found</code></td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
+<tr><td><code>fixed</code></td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
+<tr><td><code>needs-excel</code> / <code>blocked</code> / <code>in-progress</code> / <code>claimed</code></td><td>外部確認または追加作業が必要</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>known-limit</code></td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
+<tr><td><code>retired</code> / <code>abandoned</code> / <code>queued</code></td><td>退役・中止・未実施</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
 </body></html>\n`;
 }
