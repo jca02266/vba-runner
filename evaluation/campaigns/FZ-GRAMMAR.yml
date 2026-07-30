@@ -69,3 +69,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/option_compare.test.ts
+  - id: FZ-GRAMMAR-009
+    title: Select Case型境界
+    status: queued
+    priority: 1
+    focus: Select Caseの文字列・Empty/Null・Decimal・範囲比較
+    priorCauseKey: option-compare-class-select-scope
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
