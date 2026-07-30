@@ -127,3 +127,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-016
+    title: 数値Stringの基数・書式変換
+    status: queued
+    priority: 1
+    focus: CDec/CBool系の16進・8進・桁区切り・指数String境界
+    priorCauseKey: numeric-string-coercion-boundaries
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts

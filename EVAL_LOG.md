@@ -124,6 +124,7 @@
 | EV-00218 | FZ-BUILTIN | fixed | LongLongとStringの混在演算横展開 |
 | EV-00219 | FZ-BUILTIN | verified-no-bug | LongLongとStringの境界変換 |
 | EV-00220 | FZ-BUILTIN | verified-no-bug | Decimal Currency Double混在除算 |
+| EV-00221 | FZ-BUILTIN | verified-no-bug | 数値Stringの基数・書式変換 |
 
 ## 状態集計
 
@@ -132,9 +133,9 @@
 | fixed | 74 |
 | known-limit | 1 |
 | retired | 1 |
-| verified-no-bug | 44 |
+| verified-no-bug | 45 |
 
-横展開未解決経路: 75、実Excel待ち評価: 0
+横展開未解決経路: 76、実Excel待ち評価: 0
 
 ## 次の候補
 
