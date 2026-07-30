@@ -1521,6 +1521,9 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerFinancialFunctions(ctx: StdlibCtx): void {
+    const invalidFinancialArg = (): never => {
+        ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+    };
     const toNum = (val: any): number => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         return ctx.toVbaNumber(val);
@@ -1541,6 +1544,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), f = toNum(fv), t = toNum(type);
         if (r === 0) return -(f + p * n);
         const p1 = Math.pow(1 + r, n);
+        if (!Number.isFinite(p1) || p1 === 0) invalidFinancialArg();
         return -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
@@ -1560,10 +1564,17 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
-        if (r === 0) return -(v + f) / p;
+        if (r === 0) {
+            if (p === 0) invalidFinancialArg();
+            const result = -(v + f) / p;
+            return Number.isFinite(result) ? result : invalidFinancialArg();
+        }
         const numerator = p * (1 + r * t) - f * r;
         const denominator = p * (1 + r * t) + v * r;
-        return Math.log(numerator / denominator) / Math.log(1 + r);
+        const ratio = numerator / denominator;
+        if (1 + r <= 0 || !Number.isFinite(ratio) || ratio <= 0) invalidFinancialArg();
+        const result = Math.log(ratio) / Math.log(1 + r);
+        return Number.isFinite(result) ? result : invalidFinancialArg();
     }, [
         { name: 'Rate' }, { name: 'Pmt' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
@@ -1571,29 +1582,35 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
         let r = toNum(guess);
         const n = toNum(nper), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
         for (let i = 0; i < 20; i++) {
             const p1 = Math.pow(1 + r, n);
             const f_r = v * p1 + p * (1 + r * t) * ((p1 - 1) / r) + f;
             const df_r = v * n * Math.pow(1 + r, n - 1) + p * (t * ((p1 - 1) / r) + (1 + r * t) * (n * Math.pow(1 + r, n - 1) * r - (p1 - 1)) / (r * r));
+            if (!Number.isFinite(f_r) || !Number.isFinite(df_r) || df_r === 0) invalidFinancialArg();
             const newR = r - f_r / df_r;
+            if (!Number.isFinite(newR) || 1 + newR <= 0) invalidFinancialArg();
             if (Math.abs(newR - r) < 1e-10) return newR;
             r = newR;
         }
-        return r;
+        invalidFinancialArg();
     }, [
         { name: 'NPer' }, { name: 'Pmt' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true }, { name: 'Guess', optional: true },
     ]);
     ctx.reg('sln', (cost: any, salvage: any, life: any) => {
-        return (toNum(cost) - toNum(salvage)) / toNum(life);
+        const l = toNum(life);
+        if (!Number.isFinite(l) || l <= 0) invalidFinancialArg();
+        return (toNum(cost) - toNum(salvage)) / l;
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
     ctx.reg('syd', (cost: any, salvage: any, life: any, period: any) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period);
+        if (!Number.isFinite(l) || !Number.isFinite(p) || l <= 0 || p <= 0 || p > l) invalidFinancialArg();
         return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
     ctx.reg('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period), f = toNum(factor);
-        if (p <= 0 || p > l) return 0;
+        if (!Number.isFinite(l) || !Number.isFinite(p) || !Number.isFinite(f) || l <= 0 || p <= 0 || p > l || f <= 0) invalidFinancialArg();
         let book = c;
         let dep = 0;
         for (let i = 1; i <= p; i++) {
@@ -1656,6 +1673,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const r = toNum(rate);
+        if (!Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
         const base: number = (values as any).vbaBase ?? 0;
         let result = 0;
         let period = 1;

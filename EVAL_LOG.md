@@ -132,18 +132,19 @@
 | EV-00226 | FZ-GRAMMAR | fixed | Option Compareのクラス・Select Case経路 |
 | EV-00227 | FZ-GRAMMAR | verified-no-bug | Select Caseの文字列・Empty/Null・Decimal・範囲比較 |
 | EV-00228 | FZ-BUILTIN | fixed | IRR/MIRR・IPmt/PPmtの境界引数 |
+| EV-00229 | FZ-BUILTIN | fixed | NPer/Rate/NPV/PV/SLN/SYD/DDBの不正引数・非収束境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 78 |
+| fixed | 79 |
 | known-limit | 1 |
 | needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 46 |
 
-横展開未解決経路: 84、実Excel待ち評価: 2
+横展開未解決経路: 85、実Excel待ち評価: 2
 
 ## 次の候補
 

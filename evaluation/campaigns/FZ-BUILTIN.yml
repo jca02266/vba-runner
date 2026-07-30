@@ -172,3 +172,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-021
+    title: 財務関数の不正引数と非収束
+    status: queued
+    priority: 1
+    focus: NPer/Rate/NPV/PV/SLN/SYD/DDBの不正引数・非収束境界
+    priorCauseKey: financial-invalid-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts

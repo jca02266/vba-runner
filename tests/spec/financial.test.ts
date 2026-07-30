@@ -185,4 +185,43 @@ console.log('[PASS] Bug 145-A: Pmt のゼロ期間をエラー化');
 }
 console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
 
+// Bug 181-A: financial functions must reject invalid domains instead of leaking
+// Infinity/NaN or silently returning a value.
+{
+    const ev = evalVBASingle(`
+    Function ProbeNpv() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = NPV(-1, Array(100, 200)): ProbeNpv = Err.Number
+    End Function
+    Function ProbePv() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = PV(-1, 10, -100): ProbePv = Err.Number
+    End Function
+    Function ProbeSln() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = SLN(1000, 100, 0): ProbeSln = Err.Number
+    End Function
+    Function ProbeSyd() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = SYD(1000, 100, 0, 1): ProbeSyd = Err.Number
+    End Function
+    Function ProbeDdb() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = DDB(1000, 100, 0, 1): ProbeDdb = Err.Number
+    End Function
+    Function ProbeNper() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = NPer(0.1, 0, 1000): ProbeNper = Err.Number
+    End Function
+    Function ProbeRate() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = Rate(0, -100, 100): ProbeRate = Err.Number
+    End Function
+    `);
+    for (const name of ['ProbeNpv', 'ProbePv', 'ProbeSln', 'ProbeSyd', 'ProbeDdb', 'ProbeNper', 'ProbeRate']) {
+        assert.strictEqual(ev.callProcedure(name, []), 5, `${name} is Error 5`);
+    }
+}
+console.log('[PASS] Bug 181-A: 財務関数の不正引数をエラー化');
+
 console.log('\n✅ Financial Functions: 全テスト通過');
