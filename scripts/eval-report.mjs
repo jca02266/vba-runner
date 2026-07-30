@@ -207,6 +207,7 @@ const convergenceLabels = ${labels};
 new Chart(document.getElementById('convergence-chart'), {
   type: 'line',
   data: { labels: convergenceLabels, datasets: [
+    { label: '累積評価件数', data: ${values('evaluations')}, borderColor: '#7c3aed', backgroundColor: '#7c3aed', tension: 0.15 },
     { label: '累積発見バグ', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
     { label: '累積改修済みバグ', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
     { label: '未改修バグ', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
