@@ -38,7 +38,8 @@ after migration, use the structured records and the generated Markdown view.
    evaluation findings. Do not infer a historical type without evidence.
 7. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
-   the generated `EVAL_LOG.md` is up to date. Commit the implementation,
+   the generated root `EVAL_LOG.md` is up to date. Do not create or commit an
+   `evaluation/EVAL_LOG.generated.md` duplicate. Commit the implementation,
    regression test, structured record, and generated view together.
 8. After each evaluation commit, refresh the local HTML report with
    `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.

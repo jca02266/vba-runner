@@ -96,7 +96,9 @@ evaluation/
   legacy/EVAL_LOG.md         # 移行前ログの保全コピー
 ```
 
-`EVAL_LOG.md` は手編集しない。必要な場合は次を実行して再生成する。
+`EVAL_LOG.md` は手編集しない。評価ログのMarkdown生成コマンドはこれだけであり、
+既定出力先はリポジトリルートの `EVAL_LOG.md` である。
+`evaluation/EVAL_LOG.generated.md` は使用しない。
 
 ```bash
 npm run eval -- render EVAL_LOG.md
