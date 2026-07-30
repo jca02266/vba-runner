@@ -118,3 +118,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/binary-longlong.test.ts
+  - id: FZ-BUILTIN-015
+    title: Decimal Currency Double混在除算
+    status: queued
+    priority: 1
+    focus: 固定小数点型とDoubleの混在除算・戻り型・大整数境界
+    priorCauseKey: decimal-currency-mixed-division-boundary
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
