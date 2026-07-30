@@ -469,4 +469,33 @@ End Sub
     console.log('[PASS] 14. Tier 6 未設定時は callProcedure で SUB_OR_FUNCTION_NOT_DEFINED（compile error）');
 }
 
+// ============================================================
+// 15. VbaNamespaceRef の Tier 6 fallback でも未知名前付き引数を拒否する
+// ============================================================
+{
+    const namespaceCode = `
+Option Explicit
+Public Function Marker() As String
+    Marker = "namespace"
+End Function
+`;
+    const userCode = `
+Option Explicit
+Function TestTier6UnknownNamed() As Long
+    Dim address As String
+    On Error Resume Next
+    address = CStr(Range(bogus:="A1").Address)
+    TestTier6UnknownNamed = Err.Number
+End Function
+`;
+    const app = new MockApplication();
+    const ev = evalVBAModules([
+        { name: 'Range', code: namespaceCode },
+        { name: 'UserModule', code: userCode },
+    ], { defaultBindingObject: app });
+    assert.strictEqual(ev.callProcedure('TestTier6UnknownNamed', []), 448,
+        'Tier 6 fallbackの未知名前付き引数はError 448');
+    console.log('[PASS] 15. Tier 6 fallbackの未知名前付き引数');
+}
+
 console.log('\n✅ Tier 6 型名前空間/値名前空間分離: 全テスト通過');

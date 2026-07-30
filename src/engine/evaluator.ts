@@ -4270,6 +4270,13 @@ export class Evaluator {
         const totalCount = positionalArgs.length + namedArgs.size;
         const arities = overloads.map(o => o.params.length);
 
+        const knownNames = new Set(overloads.flatMap(o => o.params.map(p => p.name.toLowerCase())));
+        for (const namedKey of namedArgs.keys()) {
+            if (!knownNames.has(namedKey)) {
+                this.throwVbaError(448, `Named argument not found: '${namedKey}'`);
+            }
+        }
+
         if (namedArgs.size === 0) {
             if (!arities.includes(totalCount)) {
                 if (totalCount < Math.min(...arities)) {
@@ -8071,7 +8078,7 @@ export class Evaluator {
                         if (tier6Key !== undefined) {
                             const tier6Member = this.defaultBindingObject[tier6Key];
                             if (typeof tier6Member === 'function') {
-                                const argsVals = this.evaluateCallArgumentValues(expr.args);
+                                const argsVals = this.resolveCallArgs(tier6Member, expr.args, name);
                                 return (tier6Member as (...a: any[]) => any).apply(this.defaultBindingObject, argsVals);
                             }
                             if (expr.args.length === 0) return tier6Member;
