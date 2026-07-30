@@ -209,6 +209,19 @@ function evalExpr(expr: string): any {
     console.log('[PASS] Bug 202-A: high-precision Decimal/Currency formatting');
 }
 
+// Bug 218-A/B: custom sections and scientific rounding boundaries.
+{
+    assert.strictEqual(
+        evalExpr('Format(CDec("0"), "0.00;(0.00);ZERO")'),
+        'ZERO',
+        'Format Decimal selects the zero section');
+    assert.strictEqual(
+        evalExpr('Format(999999, "0.00E+00")'),
+        '1.00E+06',
+        'Format Scientific normalizes a rounded mantissa');
+    console.log('[PASS] Bug 218-A/B: Format section and scientific boundaries');
+}
+
 // Bug 203-A: LongLong formatting must apply numeric patterns without Number
 // rounding or silently returning the unformatted value.
 {

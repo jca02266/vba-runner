@@ -1007,8 +1007,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
         const clean = stripFormatColorDirectives(pattern);
         const sections = clean.split(';');
-        const negative = raw.trim().startsWith('-');
-        const section = negative && sections.length > 1 ? sections[1] : sections[0];
+        const trimmed = raw.trim();
+        const negative = trimmed.startsWith('-');
+        const zero = /^[+-]?0(?:\.0*)?$/.test(trimmed);
+        const section = negative && sections.length > 1
+            ? sections[1]
+            : zero && sections.length > 2
+                ? sections[2]
+                : sections[0];
         const first = section.search(/[0#]/);
         const last = Math.max(section.lastIndexOf('0'), section.lastIndexOf('#'));
         if (first < 0 || last < first || /[Ee][+-]/.test(section)) return undefined;

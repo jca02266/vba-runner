@@ -145,3 +145,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
+  - id: FZ-BUILTIN-018
+    title: Formatカスタム数値セクション
+    status: queued
+    priority: 1
+    focus: Formatの正負ゼロ・複数セクション・ゼロ埋め境界
+    priorCauseKey: format-custom-section-boundaries
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

@@ -313,7 +313,7 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
         const pct     = mFmt.includes('%');
         if (pct) n *= 100;
 
-        const exp      = n === 0 ? 0 : Math.floor(Math.log10(n));
+        let exp      = n === 0 ? 0 : Math.floor(Math.log10(n));
         const mantissa = n === 0 ? 0 : n / Math.pow(10, exp);
 
         const mf       = mFmt.replace(/%/g, '').replace(/,/g, '');
@@ -324,7 +324,16 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
         const mMinDec  = (mDecFmt.match(/0/g) || []).length;
         const mMinInt  = (mIntFmt.match(/0/g) || []).length;
         const mFixed   = mantissa.toFixed(mMaxDec);
-        const [mInt, mDec] = mFixed.split('.');
+        let [mInt, mDec] = mFixed.split('.');
+        // Rounding can turn 9.999... into 10.00. Normalize the mantissa
+        // and carry into the exponent so scientific notation stays in
+        // the conventional [1, 10) range.
+        if (Number(mInt) >= 10) {
+            const roundedDigits = (mInt + (mDec || '')).padEnd(mMaxDec + 1, '0');
+            mInt = roundedDigits[0];
+            mDec = roundedDigits.slice(1, mMaxDec + 1).padEnd(mMaxDec, '0');
+            exp++;
+        }
         const mPadded  = mInt.padStart(mMinInt, '0');
         const mDisplay = mMinInt === 0 && mPadded === '0' ? '' : mPadded;
         const mDecDisp = mDec
