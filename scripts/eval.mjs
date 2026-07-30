@@ -471,7 +471,7 @@ try {
   } else if (command === 'audit') {
     audit();
   } else if (command === 'render') {
-    const output = path.resolve(process.argv[3] ?? path.join(evalRoot, 'EVAL_LOG.generated.md'));
+    const output = path.resolve(process.argv[3] ?? path.join(root, 'EVAL_LOG.md'));
     render(validate(), output);
     console.log(output);
   } else if (command === 'next') {
