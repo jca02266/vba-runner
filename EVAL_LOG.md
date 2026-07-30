@@ -122,6 +122,7 @@
 | EV-00216 | MUT-ENGINE | fixed | Namespace Tier 6名前付き引数検査 |
 | EV-00217 | FZ-GRAMMAR | verified-no-bug | 名前付き引数重複とOptional省略 |
 | EV-00218 | FZ-BUILTIN | fixed | LongLongとStringの混在演算横展開 |
+| EV-00219 | FZ-BUILTIN | verified-no-bug | LongLongとStringの境界変換 |
 
 ## 状態集計
 
@@ -130,9 +131,9 @@
 | fixed | 74 |
 | known-limit | 1 |
 | retired | 1 |
-| verified-no-bug | 42 |
+| verified-no-bug | 43 |
 
-横展開未解決経路: 73、実Excel待ち評価: 0
+横展開未解決経路: 74、実Excel待ち評価: 0
 
 ## 次の候補
 

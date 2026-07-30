@@ -109,3 +109,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/binary-longlong.test.ts
+  - id: FZ-BUILTIN-014
+    title: LongLongとStringの境界変換
+    status: queued
+    priority: 1
+    focus: 符号・ゼロ・オーバーフロー・小数指数Stringの混在演算
+    priorCauseKey: longlong-string-integer-operator-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/binary-longlong.test.ts
