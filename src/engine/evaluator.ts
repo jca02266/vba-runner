@@ -881,6 +881,7 @@ export class Evaluator {
     /** §5.6.10 Tier 6: 修飾なし識別子の最終フォールバック先オブジェクト（MockApplication 等） */
     private defaultBindingObject: any = null;
     private comparisonMode: 'Binary' | 'Text' = 'Binary';
+    private readonly moduleComparisonModes = new Map<string, 'Binary' | 'Text'>();
     private errorHandlerLabel: string | null = null;
     private errorHandlingMode: 'None' | 'ResumeNext' | 'GoTo' = 'None';
     private isInErrorHandler: boolean = false;
@@ -1168,7 +1169,7 @@ export class Evaluator {
             isTrue: (v) => this.isTrue(v),
             round: (n, d = 0) => this.vbaRound(n, d),
             callMethod: (o, p, a) => this.callClassMethod(o, p, a),
-            get compMode() { return self.comparisonMode; },
+            get compMode() { return self.getComparisonMode(); },
             get arrayBase() { return self.arrayBase; },
             print: (m) => this.onPrint(m),
             errNum: () => this.errObj.number,
@@ -3925,6 +3926,15 @@ export class Evaluator {
 
     private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {
         this.comparisonMode = stmt.mode;
+        const moduleName = this.currentSourceModule || this.executingModuleName;
+        if (moduleName) this.moduleComparisonModes.set(moduleName.toLowerCase(), stmt.mode);
+    }
+
+    private getComparisonMode(): 'Binary' | 'Text' {
+        const moduleName = this.executingModuleName || this.currentSourceModule;
+        return moduleName
+            ? (this.moduleComparisonModes.get(moduleName.toLowerCase()) ?? this.comparisonMode)
+            : this.comparisonMode;
     }
 
     private evaluateOptionExplicitStatement(_stmt: OptionExplicitStatement) {
@@ -9072,7 +9082,7 @@ export class Evaluator {
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) {
                     return leftVal.value === rightVal.value ? vbaTrue : vbaFalse;
                 }
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() === rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 // Mixed string/number: coerce string to number (VBA auto-coercion)
@@ -9090,7 +9100,7 @@ export class Evaluator {
                 if (leftVal instanceof VbaDate && rightVal instanceof VbaDate) {
                     return leftVal.value !== rightVal.value ? vbaTrue : vbaFalse;
                 }
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() !== rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 // Mixed string/number: coerce string to number (VBA auto-coercion)
@@ -9102,22 +9112,22 @@ export class Evaluator {
                 }
                 return leftVal !== rightVal ? vbaTrue : vbaFalse;
             case '<':
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() < rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal < rightVal ? vbaTrue : vbaFalse;
             case '>':
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() > rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal > rightVal ? vbaTrue : vbaFalse;
             case '<=':
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() <= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal <= rightVal ? vbaTrue : vbaFalse;
             case '>=':
-                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.comparisonMode === 'Text') {
+                if (typeof leftVal === 'string' && typeof rightVal === 'string' && this.getComparisonMode() === 'Text') {
                     return leftVal.toLowerCase() >= rightVal.toLowerCase() ? vbaTrue : vbaFalse;
                 }
                 return leftVal >= rightVal ? vbaTrue : vbaFalse;
@@ -9216,7 +9226,8 @@ export class Evaluator {
                     regexStr += '^';
                     i++;
                 }
-                while (i < patternStr.length && patternStr[i] !== ']') {
+                let firstClassChar = true;
+                while (i < patternStr.length && (firstClassChar || patternStr[i] !== ']')) {
                     const charInList = patternStr[i];
                     // Escape regex special chars inside [] if they are not part of range
                     if ('\\^$[]{}|()+.'.includes(charInList) && charInList !== '-') {
@@ -9225,6 +9236,7 @@ export class Evaluator {
                         regexStr += charInList;
                     }
                     i++;
+                    firstClassChar = false;
                 }
                 if (i < patternStr.length) {
                     regexStr += ']';
@@ -9242,7 +9254,7 @@ export class Evaluator {
         regexStr += '$';
 
         try {
-            const flags = this.comparisonMode === 'Text' ? 'i' : '';
+            const flags = this.getComparisonMode() === 'Text' ? 'i' : '';
             const regex = new RegExp(regexStr, flags);
             return regex.test(textStr);
         } catch (e) {

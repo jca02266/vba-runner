@@ -51,3 +51,12 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-GRAMMAR-007
+    title: Like文字クラス境界
+    status: queued
+    priority: 1
+    focus: Likeの範囲・否定・エスケープ・Option Compare組み合わせ
+    priorCauseKey: like-character-class-boundaries
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts

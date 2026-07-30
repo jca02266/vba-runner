@@ -128,18 +128,19 @@
 | EV-00222 | FZ-BUILTIN | needs-excel | CDec文字列の受理境界 |
 | EV-00223 | FZ-BUILTIN | fixed | Formatカスタム数値セクション |
 | EV-00224 | FZ-BUILTIN | needs-excel | Format浮動小数点丸め境界 |
+| EV-00225 | FZ-GRAMMAR | fixed | Like文字クラス境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 75 |
+| fixed | 76 |
 | known-limit | 1 |
 | needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 45 |
 
-横展開未解決経路: 80、実Excel待ち評価: 2
+横展開未解決経路: 82、実Excel待ち評価: 2
 
 ## 次の候補
 
