@@ -8918,12 +8918,22 @@ export class Evaluator {
             typeof v === 'bigint' ||
             (typeof v === 'number' && Number.isSafeInteger(v)) ||
             v instanceof VbaBoolean;
+        const isIntegerString = (v: any): boolean =>
+            typeof v === 'string' && /^[+-]?\d+$/.test(v.trim());
+        const isExactIntegerOperand = (v: any): boolean =>
+            isExactInteger(v) || isIntegerString(v);
+        const hasStringOperand = typeof leftVal === 'string' || typeof rightVal === 'string';
+        // VBA promotes LongLong +/− String to Double (XL-016), but the
+        // integer-only operators retain an integer String exactly.
+        const exactMixedIntegerOp = op === '*' || op === '\\' || op === 'mod';
         if (longLongIntegerOps.has(op) &&
             (typeof leftVal === 'bigint' || typeof rightVal === 'bigint') &&
-            isExactInteger(leftVal) && isExactInteger(rightVal)) {
+            (!hasStringOperand || exactMixedIntegerOp) &&
+            isExactIntegerOperand(leftVal) && isExactIntegerOperand(rightVal)) {
             const asBigInt = (v: any): bigint => {
                 if (typeof v === 'bigint') return v;
                 if (v instanceof VbaBoolean) return BigInt(v.value);
+                if (typeof v === 'string') return BigInt(v.trim());
                 return BigInt(v);
             };
             const l = asBigInt(leftVal);

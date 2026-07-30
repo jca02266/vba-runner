@@ -100,3 +100,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/binary-longlong.test.ts
+  - id: FZ-BUILTIN-013
+    title: LongLongとStringの混在演算横展開
+    status: queued
+    priority: 1
+    focus: LongLongと数値Stringの乗算・比較・除算・Mod
+    priorCauseKey: longlong-string-arithmetic-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/binary-longlong.test.ts

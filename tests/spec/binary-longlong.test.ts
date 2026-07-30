@@ -98,3 +98,20 @@ assert.strictEqual(
     '9.00719925474099E+15|9.00719925474099E+15',
     'LongLong/String mixed arithmetic uses Excel Double CStr form');
 console.log('✅ LongLong/String mixed CStr matches XL-016');
+
+// Integer-only operators must retain an integer numeric String exactly while
+// + and - above continue to use Excel's Double-promotion behavior.
+const mixedIntegerStringEv = evalVBASingle(`
+    Function LongLongStringIntegerOps() As String
+        Dim value As LongLong, factor As String
+        value = CLngLng("9007199254740993")
+        factor = "2"
+        LongLongStringIntegerOps = CStr(value * factor) & "|" & _
+            CStr(value \\ factor) & "|" & CStr(value Mod factor) & "|" & CStr(value > factor)
+    End Function
+`);
+assert.strictEqual(
+    mixedIntegerStringEv.callProcedure('LongLongStringIntegerOps', []),
+    '18014398509481986|4503599627370496|1|True',
+    'LongLong/String integer operators preserve exact digits');
+console.log('✅ LongLong/String integer operators preserve precision');
