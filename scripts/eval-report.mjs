@@ -68,7 +68,13 @@ function readFrontmatter(file) {
 }
 
 function readRecords() {
-  return listFiles(recordsDir, '.md').map((name) => readFrontmatter(path.join(recordsDir, name)));
+  return listFiles(recordsDir, '.md').map((name) => {
+    const file = path.join(recordsDir, name);
+    const source = fs.readFileSync(file, 'utf8');
+    const data = readFrontmatter(file);
+    const date = source.match(/^[-*]\s*評価日:\s*(\d{4}-\d{2}-\d{2})\s*$/m)?.[1];
+    return { ...data, legacyCompletedAt: date ? `${date}T23:59:59+09:00` : undefined };
+  });
 }
 
 function readResults() {
@@ -129,9 +135,17 @@ function aggregate(records) {
 
 function timeSeries(records, results, findings) {
   const events = records
-    .map((record) => ({ record, result: results.get(record.id) }))
+    .map((record) => ({
+      record,
+      result: results.get(record.id) ?? (record.legacyCompletedAt ? {
+        status: record.status,
+        completedAt: record.legacyCompletedAt,
+        source: 'legacy evaluation date',
+      } : null),
+    }))
     .filter(({ result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt)))
-    .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt));
+    .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt)
+      || Number(a.record.legacyNumber ?? 0) - Number(b.record.legacyNumber ?? 0));
   let evaluations = 0;
   let discovered = 0;
   let fixed = 0;
@@ -192,7 +206,7 @@ function renderMarkdown(records, summary, series) {
     '',
     '## 時系列の収束状況',
     '',
-    '完了状態ファイルの `completedAt` を基準にした累積値です。日時未登録の評価は含みません。',
+    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした累積値です。日時未登録の評価は含みません。',
     '',
     '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | 累積非バグ評価 | 累積発見バグ | 累積改修済み | 未改修バグ | 判定保留評価 |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|',
@@ -250,7 +264,7 @@ function renderHtml(records, summary, series) {
 </head><body><h1>評価レポート</h1>
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
-<h2>時系列の収束状況</h2><p><code>completedAt</code>を基準にした累積値です。日時未登録の評価は含みません。</p>
+<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。</p>
 ${renderConvergenceChart(series)}
 <table><thead><tr><th>完了日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>累積非バグ評価</th><th>累積発見バグ</th><th>累積改修済み</th><th>未改修バグ</th><th>判定保留評価</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>状態の計上先</h2><table><thead><tr><th>評価状態</th><th>計上先</th><th>意味</th></tr></thead><tbody>
