@@ -238,26 +238,32 @@ function htmlCell(value) {
 function renderConvergenceChart(series) {
   const labels = JSON.stringify(series.map((row) => row.date.slice(0, 10)));
   const values = (field) => JSON.stringify(series.map((row) => row[field]));
-  return `<div class="chart-container"><canvas id="convergence-chart" role="img" aria-label="評価・バグ・未収束の累積推移"></canvas></div>
+  return `<div class="chart-container"><canvas id="evaluation-chart" role="img" aria-label="評価分類の累積面グラフ"></canvas></div>
+<div class="chart-container"><canvas id="finding-chart" role="img" aria-label="Findingの発見・改修推移"></canvas></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 const convergenceLabels = ${labels};
-new Chart(document.getElementById('convergence-chart'), {
+new Chart(document.getElementById('evaluation-chart'), {
   type: 'line',
   data: { labels: convergenceLabels, datasets: [
-    { label: '累積評価件数', data: ${values('evaluations')}, borderColor: '#7c3aed', backgroundColor: '#7c3aed', tension: 0.15 },
-    { label: '累積非バグ評価', data: ${values('nonBugEvaluations')}, borderColor: '#0891b2', backgroundColor: '#0891b2', tension: 0.15 },
-    { label: '累積バグ評価', data: ${values('bugEvaluations')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
-    { label: 'その他評価', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: '#92400e', tension: 0.15 },
-    { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#60a5fa', backgroundColor: '#60a5fa', borderDash: [6, 4], tension: 0.15 },
-    { label: '累積改修済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', borderDash: [6, 4], tension: 0.15 },
-    { label: '未改修Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', borderDash: [6, 4], tension: 0.15 },
-    { label: '判定保留評価', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: '#6b7280', tension: 0.15 }
+    { label: 'バグ評価', data: ${values('bugEvaluations')}, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '非バグ評価', data: ${values('nonBugEvaluations')}, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '判定保留評価', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: 'その他評価', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
-    plugins: { title: { display: true, text: 'バグ収束曲線' }, tooltip: { mode: 'index' } },
-    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積件数' }, ticks: { precision: 0 } } }
+    plugins: { title: { display: true, text: '評価分類の累積面グラフ（黒線＝評価数）' }, tooltip: { mode: 'index' } },
+    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積評価数' }, ticks: { precision: 0 } } }
   }
+});
+new Chart(document.getElementById('finding-chart'), {
+  type: 'line', data: { labels: convergenceLabels, datasets: [
+    { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
+    { label: '累積改修済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
+    { label: '未改修Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
+  ]},
+  options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積Finding数' }, ticks: { precision: 0 } } } }
 });
 </script>`;
 }
