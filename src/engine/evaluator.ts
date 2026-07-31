@@ -125,7 +125,9 @@ function textStreamFlagIsUnicode(value: any): boolean {
 }
 
 function vbaFlagIsTrue(value: any): boolean {
-    return value === true || value === -1 || value?.value === true || value?.value === -1;
+    const raw = value?.value ?? value;
+    return raw === true || raw === -1 ||
+        (typeof raw === 'number' && Number.isFinite(raw) && raw !== 0);
 }
 
 function encodeTextStream(text: string, unicode: boolean): Uint8Array {
@@ -6643,7 +6645,7 @@ export class Evaluator {
                 }
                 let fd = -1;
                 try { fd = this.fs.openSync(full, 'w'); } catch (e) { throwFsoPathError(e); }
-                const useUnicode = textStreamFlagIsUnicode(unicode);
+                const useUnicode = vbaFlagIsTrue(unicode);
                 if (useUnicode) this.fs.writeSync(fd, encodeTextStream('', true));
                 const writeText = (s: string) => {
                     const bytes = encodeTextStream(s, useUnicode);
@@ -6661,7 +6663,7 @@ export class Evaluator {
             opentextfile: (p: string, iomode: any = 1, create: any = false, format: any = -2) => {
                 const full = this.sandbox.toRealPath(p);
                 const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
-                const shouldCreate = create === true || create === -1 || create?.value === true || create?.value === -1;
+                const shouldCreate = vbaFlagIsTrue(create);
                 if (shouldCreate && !this.fs.existsSync(full)) this.fs.openSync(full, 'w');
                 let fd: number;
                 try {

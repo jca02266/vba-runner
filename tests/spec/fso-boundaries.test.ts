@@ -70,3 +70,25 @@ pathProbe('fso.CreateFolder "existing": fso.CreateFolder "existing"', 'ProbeExis
 pathProbe('fso.DeleteFolder "absent"', 'ProbeMissingFolder', 76);
 pathProbe('Set stream = fso.GetFile("absent.txt")', 'ProbeMissingFile', 53);
 pathProbe('Set stream = fso.GetFolder("absent")', 'ProbeMissingGetFolder', 76);
+
+const variantFlagFs = new MemoryFileSystem();
+const variantFlags = evalVBASingle(`
+    Function ProbeVariantFlags() As String
+        Dim fso As Object, stream As Object, result As String
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("C:\\variant.txt", True, False)
+        stream.Write "old": stream.Close
+        On Error Resume Next
+        Set stream = fso.CreateTextFile("C:\\variant.txt", 1, False)
+        result = result & Err.Number & ","
+        Err.Clear
+        Set stream = fso.OpenTextFile("C:\\created.txt", 1, 2, 0)
+        result = result & Err.Number & ","
+        stream.Close
+        Set stream = fso.CreateTextFile("C:\\unicode.txt", True, 1)
+        stream.Write "Aあ": stream.Close
+        ProbeVariantFlags = result
+    End Function
+`, { fs: variantFlagFs });
+assert.strictEqual(variantFlags.callProcedure('ProbeVariantFlags', []), '0,0,',
+    'FSO Boolean parameters coerce nonzero numeric Variants to True');

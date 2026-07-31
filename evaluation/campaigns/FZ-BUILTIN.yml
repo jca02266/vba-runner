@@ -357,3 +357,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-BUILTIN-042
+    title: FSO TextStream引数のVariant境界
+    status: queued
+    priority: 1
+    focus: OpenTextFile/CreateTextFileのcreate・unicode・format引数
+    priorCauseKey: fso-boolean-and-file-error-mapping
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts

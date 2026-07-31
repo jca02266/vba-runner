@@ -156,19 +156,20 @@
 | EV-00250 | FZ-BUILTIN | fixed | FSO TextStream Unicode・位置境界 |
 | EV-00251 | FZ-BUILTIN | fixed | FSOファイル・フォルダーError境界 |
 | EV-00252 | FZ-BUILTIN | verified-no-bug | Select CaseとOption Compareの文字列境界 |
+| EV-00253 | FZ-BUILTIN | fixed | FSO TextStream引数のVariant境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 93 |
+| fixed | 94 |
 | known-limit | 1 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 114、実Excel待ち評価: 1
+横展開未解決経路: 115、実Excel待ち評価: 1
 
 ## 次の候補
 
