@@ -53,6 +53,8 @@ Public Sub RunExcelQueueVerification()
     VerifyCurrencyDivision
     VerifyLongLongStringOps
     VerifyCurrencyStringInputs
+    VerifyAppendWidthInitialColumn root & Application.PathSeparator & "XL-018-append-width.bin"
+    VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
     Debug.Print "RESULT_ROOT=" & root
 End Sub
 
@@ -116,6 +118,46 @@ Private Sub VerifyCurrencyStringInputs()
     Debug.Print "XL-017 EXP=" & CStr(CCur("9.007199254740993125E+14"))
     Debug.Print "XL-017 GROUP=" & CStr(CCur("900,719,925,474,099.3125"))
     Debug.Print "XL-017 PLUS=" & CStr(CCur("+900719925474099.3125"))
+End Sub
+
+Private Sub VerifyAppendWidthInitialColumn(ByVal path As String)
+    Dim f As Integer
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    f = FreeFile
+    Open path For Output As #f
+    Print #f, "1234";
+    Close #f
+    f = FreeFile
+    Open path For Append As #f
+    Width #f, 5
+    Print #f, "56"
+    Close #f
+    PrintBytes "XL-018", path
+End Sub
+
+Private Sub VerifyCrossHandleLock(ByVal path As String)
+    Dim first As Integer, second As Integer, errNo As Long
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    first = FreeFile
+    Open path For Random Access Read Write Lock Read Write As #first Len = 4
+    second = FreeFile
+    Open path For Random Access Read Write Shared As #second Len = 4
+    Err.Clear
+    Lock #first, 1 To 2
+    errNo = Err.Number
+    Debug.Print "XL-019 FIRSTERR=" & CStr(errNo)
+    Err.Clear
+    Lock #second, 1 To 2
+    Debug.Print "XL-019 SECONDERR=" & CStr(Err.Number)
+    Err.Clear
+    Unlock #first, 1 To 2
+    Close #second
+    Close #first
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyTextStream(ByVal path As String, ByVal unicodeMode As Boolean)

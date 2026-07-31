@@ -35,12 +35,12 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 
 ### Excel実機照合キューの一括検証
 
-`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-017 を
+`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-019 を
 1回のExcel操作で検証するためのマクロである。
 
 1. `ExcelQueueVerification.bas` を検証用ブックへインポートする。
 2. `RunExcelQueueVerification` を実行する。
-3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-017` の
+3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-019` の
    `LOF` と `BYTES` を保存する。
 4. その出力を `EVAL_LOG.md` の照合結果へ反映する。
 
