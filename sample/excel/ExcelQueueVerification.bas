@@ -237,10 +237,13 @@ Private Sub VerifyFormatRounding()
 End Sub
 
 Private Sub VerifySequentialLockBoundaries(ByVal path As String)
-    Dim mode As Variant
+    Dim mode As Variant, f As Integer
     On Error Resume Next
     Kill path
     On Error GoTo 0
+    f = FreeFile
+    Open path For Output As #f
+    Close #f
     For Each mode In Array("Input", "Output", "Append")
         ProbeSequentialLock path, CStr(mode)
     Next mode
@@ -275,11 +278,14 @@ Private Sub VerifySeekBoundaries(ByVal path As String)
 End Sub
 
 Private Sub ProbeSeek(ByVal path As String, ByVal mode As String)
-    Dim f As Integer, zeroErr As Long, negativeErr As Long, fractionErr As Long, highErr As Long
+    Dim f As Integer, seed As Integer, zeroErr As Long, negativeErr As Long, fractionErr As Long, highErr As Long
     On Error Resume Next
     Kill path
     On Error GoTo 0
     If mode = "Input" Then
+        seed = FreeFile
+        Open path For Output As #seed
+        Close #seed
         f = FreeFile: Open path For Input As #f
     ElseIf mode = "Output" Then
         f = FreeFile: Open path For Output As #f
