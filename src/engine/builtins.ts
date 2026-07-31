@@ -571,6 +571,7 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
             return lastRnd;
         } else if (typeof val === 'number' && val < 0) {
             const s = Math.abs(val) * 9301 + 49297;
+            if (!Number.isFinite(s)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
             lastRnd = (s % 233280) / 233280;
             return lastRnd;
         }
@@ -580,7 +581,11 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     ctx.reg('randomize', (val?: any) => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         rndInitialized = true;
-        rndSeed = (val === undefined || val === null) ? (Date.now() % 4294967296) : (Math.round(Math.abs(ctx.toVbaNumber(val)) * 1000) % 4294967296);
+        const seed = (val === undefined || val === null)
+            ? (Date.now() % 4294967296)
+            : (Math.round(Math.abs(ctx.toVbaNumber(val)) * 1000) % 4294967296);
+        if (!Number.isFinite(seed)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        rndSeed = seed;
         lastRnd = rndSeed / 4294967296;
     }, [{ name: 'Number', optional: true }]);
 }
@@ -1299,7 +1304,11 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
     ctx.reg('timeserial', (h: any, n: any, s: any) => {
         if (h === vbaNull || n === vbaNull || s === vbaNull) return vbaNull;
-        return new VbaDate(toVbaDate(new Date(1899, 11, 30, ctx.toVbaNumber(h), ctx.toVbaNumber(n), ctx.toVbaNumber(s))));
+        const hour = ctx.toVbaNumber(h), minute = ctx.toVbaNumber(n), second = ctx.toVbaNumber(s);
+        if (![hour, minute, second].every(Number.isFinite)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        const date = new Date(1899, 11, 30, hour, minute, second);
+        if (!Number.isFinite(date.getTime())) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        return new VbaDate(toVbaDate(date));
     }, [{ name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
         d = unwrapVbaDefaultValue(d);
@@ -1552,7 +1561,9 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toNum(type);
         const factor = getRateFactor(r, n);
-        return -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
+        const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
+        if (!Number.isFinite(result)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        return result;
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
         { name: 'PV', optional: true }, { name: 'Type', optional: true },

@@ -366,3 +366,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-043
+    title: 組み込み関数異常値ファズ新seed
+    status: queued
+    priority: 1
+    focus: 全組み込み関数の異常値・境界値を別seedで再探索
+    priorCauseKey: builtin-adversarial-input-smoke
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
