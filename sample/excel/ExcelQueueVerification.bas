@@ -55,6 +55,7 @@ Public Sub RunExcelQueueVerification()
     VerifyCurrencyStringInputs
     VerifyAppendWidthInitialColumn root & Application.PathSeparator & "XL-018-append-width.bin"
     VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
+    VerifySharedLockRange root & Application.PathSeparator & "XL-020-lock-range.bin"
     Debug.Print "RESULT_ROOT=" & root
 End Sub
 
@@ -162,6 +163,37 @@ Private Sub VerifyCrossHandleLock(ByVal path As String)
     Err.Clear
     Lock #second, 1 To 2
     Debug.Print "XL-019 SECONDERR=" & CStr(Err.Number)
+    Err.Clear
+    Unlock #first, 1 To 2
+    Close #second
+    Close #first
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifySharedLockRange(ByVal path As String)
+    Dim first As Integer, second As Integer, errNo As Long
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    first = FreeFile
+    Open path For Random Access Read Write Shared As #first Len = 4
+    second = FreeFile
+    On Error Resume Next
+    Open path For Random Access Read Write Shared As #second Len = 4
+    errNo = Err.Number
+    Debug.Print "XL-020 OPEN2ERR=" & CStr(errNo)
+    If errNo <> 0 Then
+        Err.Clear
+        Close #first
+        On Error GoTo 0
+        Exit Sub
+    End If
+    Err.Clear
+    Lock #first, 1 To 2
+    Debug.Print "XL-020 FIRSTERR=" & CStr(Err.Number)
+    Err.Clear
+    Lock #second, 2 To 3
+    Debug.Print "XL-020 SECONDERR=" & CStr(Err.Number)
     Err.Clear
     Unlock #first, 1 To 2
     Close #second
