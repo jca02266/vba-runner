@@ -154,19 +154,20 @@
 | EV-00248 | FZ-BUILTIN | verified-no-bug | 全組み込み関数異常値ファズ再実行 |
 | EV-00249 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の別seed |
 | EV-00250 | FZ-BUILTIN | fixed | FSO TextStream Unicode・位置境界 |
+| EV-00251 | FZ-BUILTIN | fixed | FSOファイル・フォルダーError境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 92 |
+| fixed | 93 |
 | known-limit | 1 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 54 |
 
-横展開未解決経路: 112、実Excel待ち評価: 1
+横展開未解決経路: 113、実Excel待ち評価: 1
 
 ## 次の候補
 
