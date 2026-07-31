@@ -6922,6 +6922,20 @@ export class Evaluator {
             let status = 0;
             return {
                 __progId__: 'MSXML2.XMLHTTP',
+                __vbaParamSpecs__: {
+                    open: [
+                        { name: 'bstrMethod', coerce: 'string' },
+                        { name: 'bstrUrl', coerce: 'string' },
+                        { name: 'varAsync', optional: true },
+                        { name: 'bstrUser', optional: true, coerce: 'string' },
+                        { name: 'bstrPassword', optional: true, coerce: 'string' },
+                    ],
+                    setrequestheader: [
+                        { name: 'bstrHeader', coerce: 'string' },
+                        { name: 'bstrValue', coerce: 'string' },
+                    ],
+                    send: [{ name: 'varBody', optional: true }],
+                },
                 open: (_method: string, _url: string, _async: boolean = true) => { /* Mock */ },
                 send: (_body?: any) => { /* Mock */ },
                 setrequestheader: (_h: string, _v: string) => { /* Mock */ },

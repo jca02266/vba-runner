@@ -112,3 +112,29 @@ const dictionaryReadResult = evalVBASingle(`
 `);
 assert.strictEqual(dictionaryReadResult.callProcedure('ProbeDictionaryNullRead', []), '94|0',
     'Dictionary default Item reads reject Null keys');
+
+assert.throwsMatch(
+    () => evalVBASingle(`
+        Dim xhr As Object
+        Set xhr = CreateObject("MSXML2.XMLHTTP")
+        xhr.Open bstrMethod:=Null, bstrUrl:="http://example"
+    `),
+    /Invalid use of Null|error '94'/,
+    'XMLHTTP.Open rejects Null method',
+);
+assert.throwsMatch(
+    () => evalVBASingle(`
+        Dim xhr As Object
+        Set xhr = CreateObject("MSXML2.XMLHTTP")
+        xhr.SetRequestHeader bstrHeader:="X-Test", bstrValue:=Null
+    `),
+    /Invalid use of Null|error '94'/,
+    'XMLHTTP.SetRequestHeader rejects Null value',
+);
+evalVBASingle(`
+    Dim xhr As Object
+    Set xhr = CreateObject("MSXML2.XMLHTTP")
+    xhr.Open bstrMethod:="GET", bstrUrl:="http://example", varAsync:=False
+    xhr.Send varBody:=Null
+`);
+console.log('[PASS] XMLHTTP parameter metadata boundaries');

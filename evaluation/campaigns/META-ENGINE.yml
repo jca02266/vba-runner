@@ -37,3 +37,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: META-ENGINE-005
+    title: XMLHTTP引数メタデータ境界
+    status: queued
+    priority: 1
+    focus: XMLHTTP open/send/setRequestHeaderのNull・省略・型変換
+    priorCauseKey: com-method-metadata-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
