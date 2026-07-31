@@ -30,13 +30,15 @@ after migration, use the structured records and the generated Markdown view.
    before declaring the evaluation complete. Ask whether the defect is caused
    by duplicated conversion, dispatch, state, or validation logic rather than
    only by a bad branch or missing condition. If a common abstraction is
-   missing, fix that abstraction in the same work item (or create a justified
-   refactoring TODO when it cannot be safely completed), then repeat the
-   horizontal expansion against every caller of the abstraction. Add regression
-   coverage for the original path and at least one analogous path. Record the
-   original symptom, the root cause, the root-cause remediation, and the
-   expanded paths in the Finding and evaluation record. A local patch that
-   leaves the identified common cause in place is not a completed bug fix.
+   missing because equivalent behavior is not shared, treat that lack of
+   commonization as the root cause: fix the abstraction in the same work item
+   (or create a justified refactoring TODO when it cannot be safely completed),
+   then repeat the horizontal expansion against every caller of the
+   abstraction. Add regression coverage for the original path and at least one
+   analogous path. Record the original symptom, the root cause, the
+   root-cause remediation, and the expanded paths in the Finding and
+   evaluation record. A local patch that leaves the identified common cause in
+   place is not a completed bug fix.
 7. For every evaluation run, write the structured evaluation record before
    staging a commit. Record the behavior, horizontal-expansion scope, cause
    key, confirmed/rule-out/unresolved paths, coverage reference, and next
