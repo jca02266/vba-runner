@@ -232,3 +232,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-028
+    title: EOF・Locのモード別位置意味
+    status: queued
+    priority: 1
+    focus: EOF/LocのRandom・Binary・Sequential・Append境界
+    priorCauseKey: file-position-query-semantics
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
