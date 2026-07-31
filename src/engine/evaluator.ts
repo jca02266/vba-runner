@@ -5599,7 +5599,9 @@ export class Evaluator {
         const outputBytes = this.encodeVbaFileText(output);
         const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
         this.fs.writeSync(handle.fd, outputBytes, 0, outputBytes.length, writePosition);
-        handle.pos! += outputBytes.length;
+        handle.pos = handle.mode === 'Append'
+            ? this.fs.statSync(handle.path).size
+            : handle.pos! + outputBytes.length;
     }
 
     private evaluateDebugPrintStatement(stmt: DebugPrintStatement) {
@@ -6152,7 +6154,9 @@ export class Evaluator {
         const lineOutput = this.encodeVbaFileText(output + "\r\n");  // Print # と同じく CP932/CRLF
         const writePosition = handle.mode === 'Append' ? null : (handle.pos ?? null);
         this.fs.writeSync(handle.fd, lineOutput, 0, lineOutput.length, writePosition);
-        handle.pos! += lineOutput.length;
+        handle.pos = handle.mode === 'Append'
+            ? this.fs.statSync(handle.path).size
+            : handle.pos! + lineOutput.length;
     }
 
     private evaluateInputStatement(stmt: InputStatement) {

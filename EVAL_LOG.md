@@ -141,23 +141,24 @@
 | EV-00235 | FZ-BUILTIN | fixed | AppendのEOF・Loc・Seek位置整合 |
 | EV-00236 | FZ-BUILTIN | fixed | EOF/LocのRandom・Binary・Sequential・Append境界 |
 | EV-00237 | FZ-BUILTIN | fixed | Random/Binary空ファイルとInput/Line Input後のEOF |
+| EV-00238 | FZ-BUILTIN | fixed | Append Shared複数ハンドルとMemoryFS/Node位置整合 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 84 |
+| fixed | 85 |
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 47 |
 
-横展開未解決経路: 100、実Excel待ち評価: 4
+横展開未解決経路: 102、実Excel待ち評価: 4
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-031 | 1 | queued | Append Shared複数ハンドルとMemoryFS/Node位置整合 | yes |
 | FZ-BUILTIN-032 | 1 | queued | Binary Input#/Line Input#末尾読取り後のEOF・Error 62 | yes |
+| FZ-BUILTIN-033 | 1 | queued | UDT・固定長配列・可変長StringのGet不足とError 62 | yes |
 | FZ-BUILTIN-029 | 2 | queued | Width文の未Open・モード・幅引数エラー | yes |

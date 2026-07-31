@@ -276,3 +276,11 @@ items:
     priorCauseKey: binary-text-input-eof-state
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-033
+    title: Binary固定長Getの複合不足境界
+    status: queued
+    priority: 1
+    focus: UDT・固定長配列・可変長StringのGet不足とError 62
+    priorCauseKey: binary-get-composite-boundary
+    coverageTargets:
+      - src/engine/evaluator.ts

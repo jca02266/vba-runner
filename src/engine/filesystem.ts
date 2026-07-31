@@ -250,7 +250,10 @@ export class MemoryFileSystem implements FileSystem {
         const entry = this.files.get(h.path);
         const oldBin = entry ? (typeof entry.data === 'string' ? new TextEncoder().encode(entry.data) : entry.data) : new Uint8Array(0);
         
-        const start = position !== null && position !== undefined ? position : h.pos;
+        // Node's O_APPEND always writes at the current physical end, even when
+        // another handle appended since this descriptor was opened.
+        const append = h.flags === 'a' && (position === null || position === undefined);
+        const start = append ? oldBin.length : (position !== null && position !== undefined ? position : h.pos);
         const totalSize = Math.max(oldBin.length, start + newData.length);
         const combined = new Uint8Array(totalSize);
         combined.set(oldBin);
@@ -263,7 +266,8 @@ export class MemoryFileSystem implements FileSystem {
             mtime: now,
             attributes: entry?.attributes ?? VBA_FILE_ATTRIBUTE.NORMAL,
         });
-        if (position === null || position === undefined) h.pos += newData.length;
+        if (append) h.pos = start + newData.length;
+        else if (position === null || position === undefined) h.pos += newData.length;
         return newData.length;
     }
 
