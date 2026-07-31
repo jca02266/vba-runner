@@ -411,3 +411,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
+  - id: FZ-BUILTIN-048
+    title: Collectionキー・インデックス境界
+    status: queued
+    priority: 1
+    focus: Collectionのキー・数値インデックス・Add/Remove/Itemの組み合わせ
+    priorCauseKey: collection-key-index-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts

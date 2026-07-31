@@ -118,5 +118,25 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] For Each with Collection');
 }
 
+// Collection keys use the shared COM argument coercion path.
+{
+    const code = `
+    Function ProbeKeyCoercion() As String
+        Dim col As New Collection
+        Dim value As Variant
+        On Error Resume Next
+        col.Add "numeric", 42
+        value = col.Item("42")
+        ProbeKeyCoercion = CStr(Err.Number) & "|" & CStr(value) & "|" & CStr(col.Count)
+        Err.Clear
+        value = col.Item(Null)
+        ProbeKeyCoercion = ProbeKeyCoercion & "|" & CStr(Err.Number)
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'ProbeKeyCoercion'), '0|numeric|1|5',
+        'Collection numeric keys are coerced to String');
+    console.log('[PASS] Collection key coercion and Null boundary');
+}
+
 
 console.log('\n✅ Collection.Remove: 全テスト通過');

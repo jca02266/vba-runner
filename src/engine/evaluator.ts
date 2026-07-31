@@ -6609,6 +6609,14 @@ export class Evaluator {
             return {
                 __isVbaCollection__: true,
                 __progId__: 'Collection',
+                __vbaParamSpecs__: {
+                    add: [
+                        { name: 'Item' },
+                        { name: 'Key', optional: true, coerce: 'string' },
+                        { name: 'Before', optional: true },
+                        { name: 'After', optional: true },
+                    ],
+                },
                 count: () => items.length,
                 add: (item: any, key?: any, before?: any, after?: any) => {
                     if (key !== undefined && key !== null && typeof key === 'string') {
