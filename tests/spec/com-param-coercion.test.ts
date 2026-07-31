@@ -138,6 +138,7 @@ const streamNamedResult = evalVBASingle(`
         Set stream = CreateObject("ADODB.Stream")
         stream.Open Options:=0
         stream.Write Buffer:="x"
+        stream.Position = 0
         ProbeStreamNamed = stream.Read(NumBytes:=1)
     End Function
 `);
@@ -176,12 +177,34 @@ const streamStateResult = evalVBASingle(`
         Set stream = CreateObject("ADODB.Stream")
         stream.Open
         stream.Write Buffer:="abc"
+        stream.Position = 0
         ProbeStreamState = stream.ReadText(NumChars:=2) & "|" & _
             CStr(stream.Position) & "|" & CStr(stream.Size)
     End Function
 `);
 assert.strictEqual(streamStateResult.callProcedure('ProbeStreamState', []), 'ab|2|3',
     'ADODB.Stream ReadText length and state are preserved');
+
+const writePositionResult = evalVBASingle(`
+    Function ProbeStreamWritePosition() As String
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open
+        stream.WriteText "abc"
+        ProbeStreamWritePosition = CStr(stream.Position) & "|" & CStr(stream.Size)
+    End Function
+`);
+assert.strictEqual(writePositionResult.callProcedure('ProbeStreamWritePosition', []), '3|3',
+    'ADODB.Stream writes advance Position');
+assert.throws(
+    () => evalVBASingle(`
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open
+        stream.Position = Null
+    `),
+    'ADODB.Stream Position rejects Null',
+);
 
 assert.throwsMatch(
     () => evalVBASingle(`

@@ -61,3 +61,11 @@ items:
     priorCauseKey: nested-com-method-metadata-gap
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-ENGINE-008
+    title: Streamプロパティ再配置とEOF境界
+    status: queued
+    priority: 1
+    focus: ADODB Position/Size/Type/CharsetとTextStream EOF・行境界
+    priorCauseKey: stream-state-boundary-divergence
+    coverageTargets:
+      - src/engine/evaluator.ts

@@ -6979,6 +6979,7 @@ export class Evaluator {
         this.registerComObject( () => {
             let content = "";
             let streamPos = 0;
+            const evaluator = this;
             return {
                 __progId__: 'ADODB.Stream',
                 __vbaParamSpecs__: {
@@ -6998,8 +6999,9 @@ export class Evaluator {
                 write: (data: any) => {
                     if (data === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
                     content += String(data);
+                    streamPos = content.length;
                 },
-                writetext: (text: string) => { content += text; },
+                writetext: (text: string) => { content += text; streamPos = content.length; },
                 read: (len?: number) => {
                     const requested = len === undefined || Number(len) < 0 ? content.length - streamPos : Math.max(0, Math.trunc(Number(len)));
                     const r = content.slice(streamPos, streamPos + requested);
@@ -7034,7 +7036,10 @@ export class Evaluator {
                 type: 2,
                 charset: 'utf-8',
                 get position() { return streamPos; },
-                set position(value: any) { streamPos = Math.max(0, Math.min(content.length, Math.trunc(Number(value)))); },
+                set position(value: any) {
+                    if (value === vbaNull) evaluator.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                    streamPos = Math.max(0, Math.min(content.length, Math.trunc(Number(value))));
+                },
                 get size() { return content.length; }
             };
         });
