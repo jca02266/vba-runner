@@ -1303,7 +1303,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         }
         return week;
     };
-    const coerceDateAddNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
+    const coerceDateNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
     ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
     ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
@@ -1312,12 +1312,12 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('second', (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(); }, [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => {
         if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
-        const rawYear = ctx.toVbaNumber(y);
+        const rawYear = coerceDateNumber(y);
         let year = rawYear;
         // VBA spec §6.1.2.4.1.4: 0-29 → 2000-2029, 30-99 → 1930-1999
         if (year >= 0 && year <= 29) year += 2000;
         else if (year >= 30 && year <= 99) year += 1900;
-        const mm = ctx.toVbaNumber(m) - 1, dd = ctx.toVbaNumber(d);
+        const mm = coerceDateNumber(m) - 1, dd = coerceDateNumber(d);
         // 月/日は範囲外なら繰り上げ・繰り下げされる（実 VBA 差分で裁定: Month=13→翌年1月）。
         if (rawYear >= 0 && rawYear <= 99) {
             // 0-99 年の特殊レンジのみ: JS の Date コンストラクターが 0-99 年を 1900 年台へ
@@ -1339,7 +1339,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
     ctx.reg('timeserial', (h: any, n: any, s: any) => {
         if (h === vbaNull || n === vbaNull || s === vbaNull) return vbaNull;
-        const hour = ctx.toVbaNumber(h), minute = ctx.toVbaNumber(n), second = ctx.toVbaNumber(s);
+        const hour = coerceDateNumber(h), minute = coerceDateNumber(n), second = coerceDateNumber(s);
         if (![hour, minute, second].every(Number.isFinite)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         const date = new Date(1899, 11, 30, hour, minute, second);
         ensureVbaDate(date);
@@ -1359,7 +1359,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         date = unwrapVbaDefaultValue(date);
         if (date === vbaNull || number === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
-        const n = coerceDateAddNumber(number);
+        const n = coerceDateNumber(number);
         const intv = String(interval).toLowerCase();
         if (intv === 'yyyy' || intv === 'q' || intv === 'm') {
             const oldDay = d.getDate();

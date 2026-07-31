@@ -17,6 +17,12 @@ assert.strictEqual(evalExpr('Day(DateAdd("d", -0.6, #2024-01-02#))'), 1,
     'DateAdd rounds negative fractional number arguments');
 assert.strictEqual(evalExpr('Day(DateAdd("d", 0.4, #2024-01-01#))'), 1,
     'DateAdd keeps sub-half fractional number arguments at zero');
+assert.strictEqual(evalExpr('Day(DateSerial(2024, 1, 1.6))'), 2,
+    'DateSerial rounds fractional day arguments');
+assert.strictEqual(evalExpr('Day(DateSerial(2024, 1, 0.6))'), 1,
+    'DateSerial rounds fractional zero-boundary arguments');
+assert.strictEqual(evalExpr('Hour(TimeSerial(0.6, 0, 0))'), 1,
+    'TimeSerial rounds fractional hour arguments');
 
 // 1. String Functions
 {

@@ -179,19 +179,20 @@
 | EV-00273 | META-ENGINE | fixed | CRLF/CR/LF混在時のLine・Column・AtEndOfLine遷移 |
 | EV-00274 | FZ-BUILTIN | verified-no-bug | DateDiff("w")の曜日出現回数とDateDiff("ww")の週境界 |
 | EV-00275 | FZ-BUILTIN | fixed | DateAddの小数numberを最近接整数へ丸める仕様 |
+| EV-00276 | FZ-BUILTIN | fixed | DateSerial/TimeSerialの小数引数と繰り上げ境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 113 |
+| fixed | 114 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 159、実Excel待ち評価: 3
+横展開未解決経路: 161、実Excel待ち評価: 3
 
 ## 次の候補
 
