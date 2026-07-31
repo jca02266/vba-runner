@@ -348,3 +348,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-041
+    title: Select CaseとOption Compareの文字列境界
+    status: queued
+    priority: 1
+    focus: Option Compare Text・大文字小文字・Case式の比較
+    priorCauseKey: select-case-string-comparison
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
