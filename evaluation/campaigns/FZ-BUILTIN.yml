@@ -473,3 +473,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-055
+    title: DateAdd 数値丸め境界
+    status: queued
+    priority: 1
+    focus: DateAddの小数numberを最近接整数へ丸める仕様
+    priorCauseKey: dateadd-number-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

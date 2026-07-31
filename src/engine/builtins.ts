@@ -1303,6 +1303,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         }
         return week;
     };
+    const coerceDateAddNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
     ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
     ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
@@ -1358,7 +1359,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         date = unwrapVbaDefaultValue(date);
         if (date === vbaNull || number === vbaNull) return vbaNull;
         const d = parseVbaDate(date);
-        const n = ctx.toVbaNumber(number);
+        const n = coerceDateAddNumber(number);
         const intv = String(interval).toLowerCase();
         if (intv === 'yyyy' || intv === 'q' || intv === 'm') {
             const oldDay = d.getDate();

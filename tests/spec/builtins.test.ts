@@ -11,6 +11,13 @@ function evalExpr(expr: string): any {
     return (ev as any).evaluateExpression(ast);
 }
 
+assert.strictEqual(evalExpr('Day(DateAdd("d", 0.6, #2024-01-01#))'), 2,
+    'DateAdd rounds positive fractional number arguments');
+assert.strictEqual(evalExpr('Day(DateAdd("d", -0.6, #2024-01-02#))'), 1,
+    'DateAdd rounds negative fractional number arguments');
+assert.strictEqual(evalExpr('Day(DateAdd("d", 0.4, #2024-01-01#))'), 1,
+    'DateAdd keeps sub-half fractional number arguments at zero');
+
 // 1. String Functions
 {
     assert.strictEqual(evalExpr('Len("Hello")'), 5, 'Len');
