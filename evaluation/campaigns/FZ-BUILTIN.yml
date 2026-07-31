@@ -393,3 +393,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-BUILTIN-046
+    title: FSO Boolean文字列・Null境界
+    status: queued
+    priority: 1
+    focus: CreateTextFile/OpenTextFileの文字列・Null・Empty引数
+    priorCauseKey: fso-boolean-variant-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts

@@ -125,9 +125,7 @@ function textStreamFlagIsUnicode(value: any): boolean {
 }
 
 function vbaFlagIsTrue(value: any): boolean {
-    const raw = value?.value ?? value;
-    return raw === true || raw === -1 ||
-        (typeof raw === 'number' && Number.isFinite(raw) && raw !== 0);
+    return vbaToBoolean(value).value !== 0;
 }
 
 function encodeTextStream(text: string, unicode: boolean): Uint8Array {

@@ -92,3 +92,23 @@ const variantFlags = evalVBASingle(`
 `, { fs: variantFlagFs });
 assert.strictEqual(variantFlags.callProcedure('ProbeVariantFlags', []), '0,0,',
     'FSO Boolean parameters coerce nonzero numeric Variants to True');
+
+const stringFlagFs = new MemoryFileSystem();
+const stringFlags = evalVBASingle(`
+    Function ProbeStringFlags() As String
+        Dim fso As Object, stream As Object, result As String
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("C:\\string.txt", True, False)
+        stream.Write "old": stream.Close
+        On Error Resume Next
+        Set stream = fso.CreateTextFile("C:\\string.txt", "True", False)
+        result = result & Err.Number & ","
+        Err.Clear
+        Set stream = fso.OpenTextFile("C:\\created-string.txt", 1, "1", 0)
+        result = result & Err.Number
+        If Err.Number = 0 Then stream.Close
+        ProbeStringFlags = result
+    End Function
+`, { fs: stringFlagFs });
+assert.strictEqual(stringFlags.callProcedure('ProbeStringFlags', []), '0,0',
+    'FSO Boolean parameters coerce True and numeric strings');

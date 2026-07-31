@@ -160,19 +160,20 @@
 | EV-00254 | FZ-BUILTIN | fixed | 組み込み関数異常値ファズ新seed |
 | EV-00255 | FZ-BUILTIN | fixed | FSO Error変換回帰確認 |
 | EV-00256 | FZ-BUILTIN | fixed | 財務・日付関数の非有限横展開 |
+| EV-00257 | FZ-BUILTIN | fixed | FSO Boolean文字列・Null境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 97 |
+| fixed | 98 |
 | known-limit | 1 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 120、実Excel待ち評価: 1
+横展開未解決経路: 122、実Excel待ち評価: 1
 
 ## 次の候補
 
