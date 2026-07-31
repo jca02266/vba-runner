@@ -319,6 +319,17 @@ export class Lexer {
         return char >= '0' && char <= '9';
     }
 
+    private consumeRequiredDigits(pattern: (char: string) => boolean, message: string, line: number, column: number): string {
+        let digits = '';
+        while (pattern(this.peek())) {
+            digits += this.advance();
+        }
+        if (digits.length === 0) {
+            throw new LexError(message, line, column);
+        }
+        return digits;
+    }
+
     /** `&` is both the Long type suffix and the concatenation operator. */
     private canConsumeLongSuffix(): boolean {
         // The ampersand is a suffix only when it immediately follows the
@@ -528,24 +539,12 @@ export class Lexer {
                 const next = this.peek().toLowerCase();
                 if (next === 'h') {
                     this.advance(); // consume 'h'
-                    let hexStr = '';
-                    while (/[0-9a-f]/i.test(this.peek())) {
-                        hexStr += this.advance();
-                    }
-                    if (hexStr.length === 0) {
-                        throw new LexError('16進数リテラルには数字が必要です', startLine, startColumn);
-                    }
+                    const hexStr = this.consumeRequiredDigits(char => /[0-9a-f]/i.test(char), '16進数リテラルには数字が必要です', startLine, startColumn);
                     const suffix = NUMERIC_TYPE_SUFFIXES.has(this.peek()) ? this.advance() : '';
                     return { type: TokenType.Number, value: '0x' + hexStr + suffix, line: startLine, column: startColumn };
                 } else if (next === 'o' || this.isDigit(next)) {
                     if (next === 'o') this.advance(); // consume 'o'
-                    let octStr = '';
-                    while (/[0-7]/.test(this.peek())) {
-                        octStr += this.advance();
-                    }
-                    if (octStr.length === 0) {
-                        throw new LexError('8進数リテラルには数字が必要です', startLine, startColumn);
-                    }
+                    const octStr = this.consumeRequiredDigits(char => /[0-7]/.test(char), '8進数リテラルには数字が必要です', startLine, startColumn);
                     const suffix = NUMERIC_TYPE_SUFFIXES.has(this.peek()) ? this.advance() : '';
                     return { type: TokenType.Number, value: '0o' + octStr + suffix, line: startLine, column: startColumn };
                 }
@@ -622,13 +621,7 @@ export class Lexer {
                     if (this.peek() === '+' || this.peek() === '-') {
                         numStr += this.advance();
                     }
-                    const exponentStart = this.pos;
-                    while (this.isDigit(this.peek())) {
-                        numStr += this.advance();
-                    }
-                    if (this.pos === exponentStart) {
-                        throw new LexError('指数リテラルには指数桁が必要です', startLine, startColumn);
-                    }
+                    numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
                 }
                 // Check for VBA Type Declaration Suffixes for numbers (MS-VBAL §3.3.5.2)
                 if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) {
