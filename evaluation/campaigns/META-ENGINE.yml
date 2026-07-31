@@ -77,3 +77,12 @@ items:
     priorCauseKey: nested-stream-property-stub-gap
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-ENGINE-010
+    title: TextStream改行境界の横展開
+    status: queued
+    priority: 1
+    focus: CRLF/CR/LF混在時のLine・Column・AtEndOfLine遷移
+    priorCauseKey: textstream-property-stub-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts

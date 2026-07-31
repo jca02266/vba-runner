@@ -232,6 +232,21 @@ const textStreamProperties = evalVBASingle(`
 assert.strictEqual(textStreamProperties.callProcedure('ProbeTextStreamProperties', []), '1|1|False|False',
     'TextStream exposes line, column, and line-end state');
 
+const mixedNewlineResult = evalVBASingle(`
+    Function ProbeMixedNewlines() As String
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-mixed-newlines.txt", True, False)
+        stream.Write "A" & Chr$(13) & "B" & Chr$(10) & "C" & Chr$(13) & Chr$(10) & "D"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream-mixed-newlines.txt", 1, False, -2)
+        ProbeMixedNewlines = stream.ReadLine & "|" & stream.ReadLine & "|" & _
+            stream.ReadLine & "|" & stream.ReadLine
+    End Function
+`);
+assert.strictEqual(mixedNewlineResult.callProcedure('ProbeMixedNewlines', []), 'A|B|C|D',
+    'TextStream ReadLine treats CR, LF, and CRLF as line breaks');
+
 assert.throwsMatch(
     () => evalVBASingle(`
         Dim xhr As Object

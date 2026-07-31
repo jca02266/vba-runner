@@ -6773,6 +6773,15 @@ export class Evaluator {
                     }
                     return decodeTextStream(bytes.subarray(0, read), useUnicode);
                 };
+                const nextLineBreak = (content: string, from: number) => {
+                    for (let index = Math.max(0, from); index < content.length; index++) {
+                        if (content[index] === '\r') {
+                            return { index, length: content[index + 1] === '\n' ? 2 : 1 };
+                        }
+                        if (content[index] === '\n') return { index, length: 1 };
+                    }
+                    return undefined;
+                };
                 return this.decorateComObject({
                     __vbaParamSpecs__: textStreamParamSpecs,
                     get atendofstream() {
@@ -6814,18 +6823,20 @@ export class Evaluator {
                     },
                     readline: () => {
                         const content = readContent();
-                        const lines = content.slice(pos).split(/\r?\n/);
-                        if (lines.length > 0) {
-                            const line = lines[0];
-                            pos += line.length + (content[pos + line.length] === '\r' ? 2 : 1);
+                        const breakAt = nextLineBreak(content, pos);
+                        if (!breakAt) {
+                            const line = content.slice(pos);
+                            pos = content.length;
                             return line;
                         }
-                        return "";
+                        const line = content.slice(pos, breakAt.index);
+                        pos = breakAt.index + breakAt.length;
+                        return line;
                     },
                     skipline: () => {
                         const content = readContent();
-                        const newline = content.indexOf('\n', pos);
-                        pos = newline < 0 ? content.length : newline + 1;
+                        const breakAt = nextLineBreak(content, pos);
+                        pos = breakAt ? breakAt.index + breakAt.length : content.length;
                     },
                     write: (s: string) => {
                         const bytes = encodeTextStream(s, useUnicode);
