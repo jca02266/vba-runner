@@ -1935,7 +1935,7 @@ export function registerRegistryFunctions(ctx: StdlibCtx): void {
         return (ctx.registry[vbaToString(app)]?.[vbaToString(sec)]?.[vbaToString(key)]) ?? vbaToString(def);
     }, [
         { name: 'AppName', coerce: 'string' }, { name: 'Section', coerce: 'string' },
-        { name: 'Key', coerce: 'string' }, { name: 'Default', optional: true, coerce: 'string' },
+        { name: 'Key', coerce: 'string' }, { name: 'Default', optional: true },
     ]);
     ctx.reg('getallsettings', (app: any, sec: any) => {
         const s = ctx.registry[app as string]?.[sec as string];
