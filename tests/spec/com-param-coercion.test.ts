@@ -113,6 +113,46 @@ const dictionaryReadResult = evalVBASingle(`
 assert.strictEqual(dictionaryReadResult.callProcedure('ProbeDictionaryNullRead', []), '94|0',
     'Dictionary default Item reads reject Null keys');
 
+const fsoNamedResult = evalVBASingle(`
+    Function ProbeFsoNamed() As String
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        ProbeFsoNamed = CStr(fso.FileExists(filespec:="missing")) & "|" & _
+            fso.GetBaseName(path:="C:\\x.txt")
+    End Function
+`);
+assert.strictEqual(fsoNamedResult.callProcedure('ProbeFsoNamed', []), 'False|x',
+    'FSO methods accept their documented named arguments');
+assert.throws(
+    () => evalVBASingle(`
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.FileExists Null
+    `),
+    'FSO required path arguments reject Null',
+);
+
+const streamNamedResult = evalVBASingle(`
+    Function ProbeStreamNamed() As String
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open Options:=0
+        stream.Write Buffer:="x"
+        ProbeStreamNamed = stream.Read(NumBytes:=1)
+    End Function
+`);
+assert.strictEqual(streamNamedResult.callProcedure('ProbeStreamNamed', []), 'x',
+    'ADODB.Stream methods accept their documented named arguments');
+assert.throws(
+    () => evalVBASingle(`
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open
+        stream.Write Null
+    `),
+    'ADODB.Stream.Write rejects Null Buffer',
+);
+
 assert.throwsMatch(
     () => evalVBASingle(`
         Dim xhr As Object

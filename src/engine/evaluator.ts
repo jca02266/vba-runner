@@ -6680,6 +6680,23 @@ export class Evaluator {
                     { name: 'Destination' },
                     { name: 'Overwrite', optional: true, coerce: 'boolean' },
                 ],
+                fileexists: [{ name: 'filespec', coerce: 'string' }],
+                folderexists: [{ name: 'folderspec', coerce: 'string' }],
+                deletefile: [
+                    { name: 'filespec', coerce: 'string' },
+                    { name: 'force', optional: true, coerce: 'boolean' },
+                ],
+                movefile: [
+                    { name: 'source', coerce: 'string' },
+                    { name: 'destination', coerce: 'string' },
+                ],
+                createfolder: [{ name: 'path', coerce: 'string' }],
+                getfile: [{ name: 'filespec', coerce: 'string' }],
+                getfolder: [{ name: 'folderspec', coerce: 'string' }],
+                getbasename: [{ name: 'path', coerce: 'string' }],
+                getextensionname: [{ name: 'path', coerce: 'string' }],
+                getparentfoldername: [{ name: 'path', coerce: 'string' }],
+                getabsolutepathname: [{ name: 'path', coerce: 'string' }],
             },
             fileexists: (p: string) => {
                 try {
@@ -6956,11 +6973,22 @@ export class Evaluator {
             return {
                 __progId__: 'ADODB.Stream',
                 __vbaParamSpecs__: {
+                    open: [{ name: 'Options', optional: true }],
+                    write: [{ name: 'Buffer' }],
                     writetext: [{ name: 'Text', coerce: 'string' }],
+                    read: [{ name: 'NumBytes', optional: true }],
+                    savetofile: [
+                        { name: 'FileName', coerce: 'string' },
+                        { name: 'SaveOptions', optional: true },
+                    ],
+                    loadfromfile: [{ name: 'FileName', coerce: 'string' }],
                 },
                 open: () => { streamPos = 0; },
                 close: () => { },
-                write: (data: any) => { content += String(data); },
+                write: (data: any) => {
+                    if (data === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                    content += String(data);
+                },
                 writetext: (text: string) => { content += text; },
                 read: (len: number) => { const r = content.slice(streamPos, streamPos + len); streamPos += len; return r; },
                 readtext: () => { const r = content.slice(streamPos); streamPos = content.length; return r; },

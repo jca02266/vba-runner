@@ -172,19 +172,20 @@
 | EV-00266 | FZ-GRAMMAR | fixed | 数値指数・型サフィックス境界 |
 | EV-00267 | FZ-BUILTIN | fixed | Registry・Interaction Optional境界 |
 | EV-00268 | META-ENGINE | fixed | XMLHTTP引数メタデータ境界 |
+| EV-00269 | META-ENGINE | fixed | FSO・ADODBメソッドメタデータ横展開 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 107 |
+| fixed | 108 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 142、実Excel待ち評価: 3
+横展開未解決経路: 145、実Excel待ち評価: 3
 
 ## 次の候補
 

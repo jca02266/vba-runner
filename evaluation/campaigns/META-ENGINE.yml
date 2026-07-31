@@ -45,3 +45,11 @@ items:
     priorCauseKey: com-method-metadata-gap
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-ENGINE-006
+    title: FSO・ADODBメソッドメタデータ横展開
+    status: queued
+    priority: 1
+    focus: FileSystemObject/ADODB.Streamの未登録メソッド引数とNull境界
+    priorCauseKey: com-method-metadata-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
