@@ -58,10 +58,20 @@ Public Sub RunExcelQueueVerification()
     VerifySharedLockRange root & Application.PathSeparator & "XL-020-lock-range.bin"
     VerifyCDecBoundaries
     VerifyFormatRounding
-    VerifySequentialLockBoundaries root & Application.PathSeparator & "XL-023-lock-range.dat"
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
     VerifyBinaryTextEof root & Application.PathSeparator & "XL-025-text-eof.dat"
+    Debug.Print "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Public Sub RunExcelSequentialLockVerification()
+    Dim root As String
+    root = Environ$("TEMP") & Application.PathSeparator & "vba-runner-xl-queue"
+    On Error Resume Next
+    MkDir root
+    On Error GoTo 0
+    VerifySequentialLockBoundaries root & Application.PathSeparator & "XL-023-lock-range.dat"
+    Debug.Print "XL-023 RESULT_ROOT=" & root
 End Sub
 
 Private Sub VerifySelectCaseString()

@@ -44,6 +44,10 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
    `LOF` と `BYTES` を保存する。
 4. その出力を `EVAL_LOG.md` の照合結果へ反映する。
 
+`XL-023` の逐次モードLock境界はExcelがロック待ちになる場合があるため、
+一括実行ではスキップする。必要な場合だけ `RunExcelSequentialLockVerification`
+を単独実行し、応答が戻らなければ中断して結果を未照合として扱う。
+
 マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
 日本語文字列のバイト列はExcelのシステムロケールに依存するため、
 出力された値をそのまま記録する。
