@@ -75,7 +75,7 @@ export function formatString(s: string, fmt: string): string {
 // ------------------------------------------------------------------ //
 // 日付フォーマット
 // ------------------------------------------------------------------ //
-export function formatDate(d: Date, pattern: string): string {
+export function formatDate(d: Date, pattern: string, firstDayOfWeek: number = 1, firstWeekOfYear: number = 1): string {
     const pLower = pattern.toLowerCase();
 
     const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -112,10 +112,25 @@ export function formatDate(d: Date, pattern: string): string {
         return Math.floor((d.getTime() - jan1.getTime()) / 86400000) + 1;
     };
 
-    // 年の通算週（1〜54、日曜始まり・1/1 を含む週 = 第1週）
+    const weekStart = firstDayOfWeek <= 1 ? 0 : firstDayOfWeek - 1;
+    // 年の通算週（FirstDayOfWeek/FirstWeekOfYearを反映）
     const weekOfYear = (): number => {
-        const jan1DayOfWeek = new Date(d.getFullYear(), 0, 1).getDay();
-        return Math.ceil((dayOfYear() + jan1DayOfWeek) / 7);
+        const firstWeekStart = (year: number): Date => {
+            const jan1 = new Date(year, 0, 1);
+            const offset = (jan1.getDay() - weekStart + 7) % 7;
+            const start = new Date(year, 0, 1 - offset);
+            if (firstWeekOfYear === 1) return start;
+            const daysInNewYear = 7 - offset;
+            const requiredDays = firstWeekOfYear === 2 ? 4 : 7;
+            if (daysInNewYear >= requiredDays) return start;
+            start.setDate(start.getDate() + 7);
+            return start;
+        };
+        const start = firstWeekStart(d.getFullYear());
+        if (d < start) return firstWeekStart(d.getFullYear() - 1).getFullYear() === d.getFullYear() - 1
+            ? Math.floor((d.getTime() - firstWeekStart(d.getFullYear() - 1).getTime()) / 604800000) + 1
+            : 1;
+        return Math.floor((d.getTime() - start.getTime()) / 604800000) + 1;
     };
 
     // ddddd（短い日付）/ dddddd（長い日付）/ ttttt（長い時刻）/ c（汎用日付時刻）用ヘルパー
@@ -169,7 +184,7 @@ export function formatDate(d: Date, pattern: string): string {
             case 'dd':     prevHour = false; return pad2(d.getDate());
             case 'd':      prevHour = false; return String(d.getDate());
             case 'ww':     prevHour = false; return String(weekOfYear());
-            case 'w':      prevHour = false; return String(d.getDay() + 1); // 日曜=1
+            case 'w':      prevHour = false; return String(((d.getDay() - weekStart + 7) % 7) + 1);
             case 'q':      prevHour = false; return String(Math.ceil((d.getMonth() + 1) / 3));
             case 'hh':     prevHour = true;  return hourPad;
             case 'h':      prevHour = true;  return hourNoP;

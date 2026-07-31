@@ -518,3 +518,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-060
+    title: Format週書式オプション境界
+    status: queued
+    priority: 1
+    focus: Formatのww/w書式とFirstDayOfWeek・FirstWeekOfYear
+    priorCauseKey: format-week-option-ignored
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts

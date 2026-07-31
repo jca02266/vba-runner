@@ -1112,11 +1112,19 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${match[4]}`;
     };
 
-    const formatFunc = (val: any, pattern?: any) => {
+    const normalizeFormatWeekArg = (value: any, max: number): number => {
+        if (value === undefined || value === vbaMissing) return 1;
+        const n = vbaRound(ctx.toVbaNumber(value));
+        if (n < 0 || n > max) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        return n;
+    };
+    const formatFunc = (val: any, pattern?: any, firstDayOfWeek?: any, firstWeekOfYear?: any) => {
         val = unwrapVbaDefaultValue(val);
         if (val === null || val === vbaNull || val === vbaEmpty) return "";
         if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
+        const fdow = normalizeFormatWeekArg(firstDayOfWeek, 7);
+        const fwoy = normalizeFormatWeekArg(firstWeekOfYear, 3);
         if (fmt === "") return vbaToString(val);
         if (typeof val === 'bigint') {
             const scientificPattern = fmt.toLowerCase() === 'scientific' ? '0.00E+00' : fmt;
@@ -1170,7 +1178,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         }
         if (dateNamedFormats.includes(fmtLower)) {
             const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(vbaToString(val)));
-            return formatDate(dateVal, fmt);
+            return formatDate(dateVal, fmt, fdow, fwoy);
         }
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
             : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
@@ -1181,14 +1189,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
                 try {
                     const parsed = parseVbaDate(effectiveVal);
-                    return formatDate(parsed, fmt);
+                    return formatDate(parsed, fmt, fdow, fwoy);
                 } catch { /* fall through to string formatting */ }
             }
             return formatString(effectiveVal, fmt);
         }
-        if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt);
+        if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, fwoy);
         if (typeof effectiveVal === 'number') {
-            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt);
+            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt, fdow, fwoy);
             return formatNumber(effectiveVal, fmt);
         }
         return vbaToString(effectiveVal);

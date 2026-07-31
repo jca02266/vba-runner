@@ -183,19 +183,20 @@
 | EV-00277 | FZ-BUILTIN | fixed | WeekdayName/Weekdayの小数FirstDayOfWeekと曜日番号 |
 | EV-00278 | FZ-BUILTIN | fixed | MonthNameの小数月番号・範囲検証と共通整数化 |
 | EV-00279 | FZ-BUILTIN | fixed | FormatDateTimeのNamedFormat小数・範囲と共通丸め |
+| EV-00280 | FZ-BUILTIN | fixed | Formatのww/w書式とFirstDayOfWeek・FirstWeekOfYear |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 117 |
+| fixed | 118 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 167、実Excel待ち評価: 3
+横展開未解決経路: 169、実Excel待ち評価: 3
 
 ## 次の候補
 
