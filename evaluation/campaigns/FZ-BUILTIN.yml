@@ -464,3 +464,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-054
+    title: DateDiff w と ww の境界
+    status: queued
+    priority: 1
+    focus: DateDiff("w")の曜日出現回数とDateDiff("ww")の週境界
+    priorCauseKey: datediff-week-interval-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
