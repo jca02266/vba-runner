@@ -23,6 +23,10 @@ assert.strictEqual(evalExpr('Day(DateSerial(2024, 1, 0.6))'), 1,
     'DateSerial rounds fractional zero-boundary arguments');
 assert.strictEqual(evalExpr('Hour(TimeSerial(0.6, 0, 0))'), 1,
     'TimeSerial rounds fractional hour arguments');
+assert.strictEqual(evalExpr('Weekday(#2024-01-07#, 1.6)'), 7,
+    'Weekday rounds fractional FirstDayOfWeek arguments');
+assert.strictEqual(evalExpr('WeekdayName(1, False, 1.6)'), 'Monday',
+    'WeekdayName rounds fractional weekday arguments');
 
 // 1. String Functions
 {

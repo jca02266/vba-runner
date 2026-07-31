@@ -491,3 +491,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-057
+    title: Weekday系数値引数の型境界
+    status: queued
+    priority: 1
+    focus: WeekdayName/Weekdayの小数FirstDayOfWeekと曜日番号
+    priorCauseKey: weekday-argument-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

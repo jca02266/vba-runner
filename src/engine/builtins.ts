@@ -1289,21 +1289,21 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         }
         return date;
     };
+    const coerceDateNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     const validateFirstDayOfWeek = (value: any): number => {
-        const day = ctx.toVbaNumber(value ?? 1);
+        const day = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(day) || day < 0 || day > 7) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return day;
     };
     const validateFirstWeekOfYear = (value: any): number => {
-        const week = ctx.toVbaNumber(value ?? 1);
+        const week = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(week) || week < 0 || week > 3) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return week;
     };
-    const coerceDateNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
     ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
     ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
@@ -1521,8 +1521,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Month' }, { name: 'Abbreviate', optional: true }]);
     ctx.reg('weekdayname', (weekday: any, abbreviate: any = vbaFalse, firstdayofweek: any = 1) => {
         if (weekday === vbaNull) return vbaNull;
-        const w = ctx.toVbaNumber(weekday);
-        let first = ctx.toVbaNumber(firstdayofweek);
+        const w = coerceDateNumber(weekday);
+        let first = validateFirstDayOfWeek(firstdayofweek);
         if (first === 0) first = 1;
         if (w < 1 || w > 7) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const names = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
