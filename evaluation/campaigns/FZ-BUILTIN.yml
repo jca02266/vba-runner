@@ -268,3 +268,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-032
+    title: Binary Input/Line InputのEOF状態
+    status: queued
+    priority: 1
+    focus: Binary Input#/Line Input#末尾読取り後のEOF・Error 62
+    priorCauseKey: binary-text-input-eof-state
+    coverageTargets:
+      - src/engine/evaluator.ts

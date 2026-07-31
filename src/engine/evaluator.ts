@@ -5912,6 +5912,11 @@ export class Evaluator {
 
     private decodeBinaryValue(bytes: Uint8Array, offset: number, layout: BinaryValueLayout, currentValue: any): { value: any, length: number } {
         const typeName = layout.typeName.toLowerCase();
+        const requireBytes = (length: number): void => {
+            if (offset + length > bytes.length) {
+                throw new RangeError('Binary Get reached end of file');
+            }
+        };
         switch (typeName) {
             case 'array': {
                 if (!layout.elementType) {
@@ -5950,26 +5955,35 @@ export class Evaluator {
                 return { value: target, length };
             }
             case 'byte':
+                requireBytes(1);
                 return { value: bytes[offset], length: 1 };
             case 'integer':
+                requireBytes(2);
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true), length: 2 };
             case 'boolean':
+                requireBytes(2);
                 return {
                     value: new DataView(bytes.buffer, bytes.byteOffset + offset, 2).getInt16(0, true) !== 0 ? vbaTrue : vbaFalse,
                     length: 2,
                 };
             case 'long':
+                requireBytes(4);
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getInt32(0, true), length: 4 };
             case 'longlong':
             case 'longptr':
+                requireBytes(8);
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getBigInt64(0, true), length: 8 };
             case 'single':
+                requireBytes(4);
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 4).getFloat32(0, true), length: 4 };
             case 'double':
+                requireBytes(8);
                 return { value: new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getFloat64(0, true), length: 8 };
             case 'date':
+                requireBytes(8);
                 return { value: new VbaDate(new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getFloat64(0, true)), length: 8 };
             case 'currency':
+                requireBytes(8);
                 return { value: new VbaCurrency(new DataView(bytes.buffer, bytes.byteOffset + offset, 8).getBigInt64(0, true)), length: 8 };
             case 'string': {
                 if (layout.variableLengthDescriptor) {
@@ -5989,6 +6003,9 @@ export class Evaluator {
                     ? bytes.length - offset
                     : this.encodedByteLengthForCharacters(bytes, offset,
                         layout.fixedLength ?? String(currentValue ?? '').length);
+                if (!layout.readToEnd && length < (layout.fixedLength ?? String(currentValue ?? '').length)) {
+                    throw new RangeError('Binary Get reached end of file');
+                }
                 return {
                     value: iconv.decode(Buffer.from(bytes.subarray(offset, offset + length)), Evaluator.VBA_BINARY_ENCODING),
                     length,
@@ -6242,7 +6259,7 @@ export class Evaluator {
         try {
             decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
         } catch (error) {
-            if (error instanceof RangeError) {
+            if (error instanceof RangeError || error?.number === VbaErrorCode.INPUT_PAST_END_OF_FILE) {
                 handle.eof = true;
                 this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
             }
