@@ -339,3 +339,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-040
+    title: FSOファイル・フォルダーError境界
+    status: queued
+    priority: 1
+    focus: CreateFolder/DeleteFolder/GetFile/GetFolderの欠落・既存パス
+    priorCauseKey: fso-file-error-mapping
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts

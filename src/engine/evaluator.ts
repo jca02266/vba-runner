@@ -6614,6 +6614,13 @@ export class Evaluator {
         });
 
         // --- Scripting.FileSystemObject ---
+        const throwFsoPathError = (error: any): never => {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            throw error;
+        };
         this.registerComObject( () => ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
@@ -6634,7 +6641,8 @@ export class Evaluator {
                 if (!vbaFlagIsTrue(overwrite) && this.fs.existsSync(full)) {
                     this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, "File already exists");
                 }
-                const fd = this.fs.openSync(full, 'w');
+                let fd = -1;
+                try { fd = this.fs.openSync(full, 'w'); } catch (e) { throwFsoPathError(e); }
                 const useUnicode = textStreamFlagIsUnicode(unicode);
                 if (useUnicode) this.fs.writeSync(fd, encodeTextStream('', true));
                 const writeText = (s: string) => {
@@ -6741,7 +6749,14 @@ export class Evaluator {
             },
             createfolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
-                this.fs.mkdirSync(full, { recursive: true });
+                if (this.fs.existsSync(full)) {
+                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                }
+                const parent = path.dirname(full);
+                if (!this.fs.existsSync(parent)) {
+                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                }
+                this.fs.mkdirSync(full);
                 return { path: p };
             },
             deletefile: (p: string) => {
@@ -6749,9 +6764,8 @@ export class Evaluator {
                 try {
                     this.fs.unlinkSync(full);
                 } catch (e: any) {
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    }
+                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e)))
+                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                     throw e;
                 }
             },
@@ -6802,11 +6816,21 @@ export class Evaluator {
             },
             deletefolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
+                if (!this.fs.existsSync(full)) {
+                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                }
                 this.fs.rmSync?.(full, { recursive: true, force: true });
             },
             getfile: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
-                const stats = this.fs.statSync(full);
+                let stats;
+                try { stats = this.fs.statSync(full); } catch (e) {
+                    if (e instanceof Error && /ENOENT|not found/i.test(e.message)) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    throw e;
+                }
+                if (!stats.isFile()) this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
                 return {
                     path: p,
                     size: stats.size,
@@ -6816,7 +6840,13 @@ export class Evaluator {
                     attributes: stats.mode || 0
                 };
             },
-            getfolder: (p: string) => ({ path: p }),
+            getfolder: (p: string) => {
+                const full = this.sandbox.toRealPath(p);
+                if (!this.fs.existsSync(full) || !this.fs.statSync(full).isDirectory()) {
+                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                }
+                return { path: p };
+            },
             // VBA は Windows パス前提。path.win32 で `\` をセパレータとして処理する。
             // GetBaseName は VBA 仕様で「拡張子を除いたファイル名」。
             getbasename: (p: string) => {

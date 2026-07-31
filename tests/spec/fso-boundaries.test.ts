@@ -50,3 +50,23 @@ assert.strictEqual(copy.callProcedure('ProbeCopyNoOverwrite', []), 58,
     'CopyFile honors a VBA False overwrite flag');
 
 console.log('[PASS] FSO Boolean flags and missing-file errors');
+
+const pathProbe = (body: string, name: string, expected: number) => {
+    const fs = new MemoryFileSystem();
+    fs.mkdirSync('/sandbox', { recursive: true });
+    const result = evalVBASingle(`
+        Function ${name}() As Long
+            Dim fso As Object, stream As Object
+            Set fso = CreateObject("Scripting.FileSystemObject")
+            On Error Resume Next
+            ${body}
+            ${name} = Err.Number
+        End Function
+    `, { fs });
+    assert.strictEqual(result.callProcedure(name, []), expected, `${name} maps FSO errors`);
+};
+pathProbe('fso.CreateFolder "missing\\child"', 'ProbeMissingParent', 76);
+pathProbe('fso.CreateFolder "existing": fso.CreateFolder "existing"', 'ProbeExistingFolder', 58);
+pathProbe('fso.DeleteFolder "absent"', 'ProbeMissingFolder', 76);
+pathProbe('Set stream = fso.GetFile("absent.txt")', 'ProbeMissingFile', 53);
+pathProbe('Set stream = fso.GetFolder("absent")', 'ProbeMissingGetFolder', 76);
