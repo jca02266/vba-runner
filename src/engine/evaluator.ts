@@ -4343,6 +4343,7 @@ export class Evaluator {
     private coerceBoundArgument(value: any, spec: BuiltinParamSpec): any {
         if (value === undefined || !spec.coerce) return value;
         if (spec.coerce === 'boolean') return vbaToBoolean(value);
+        if (spec.coerce === 'string') return vbaToString(value);
         return value;
     }
 
@@ -6572,7 +6573,7 @@ export class Evaluator {
                         // VBA auto-creates the key with Empty when reading a missing key
                         const loc = `${this.executingModuleName || this.currentSourceModule}:${this.currentLine}`;
                         console.warn(`[vba-runner] ${loc}: Dictionary.Item("${k}"): key not found, auto-creating with Empty (VBA compatible)`);
-                        dict.set(key, undefined);
+                        dict.set(key, vbaEmpty);
                     }
                     return dict.get(key);
                 }
@@ -6928,6 +6929,9 @@ export class Evaluator {
             let streamPos = 0;
             return {
                 __progId__: 'ADODB.Stream',
+                __vbaParamSpecs__: {
+                    writetext: [{ name: 'Text', coerce: 'string' }],
+                },
                 open: () => { streamPos = 0; },
                 close: () => { },
                 write: (data: any) => { content += String(data); },
@@ -6940,7 +6944,14 @@ export class Evaluator {
                 },
                 loadfromfile: (p: string) => {
                     const full = this.sandbox.toRealPath(p);
-                    content = this.fs.readFileSync(full, 'utf8');
+                    try {
+                        content = this.fs.readFileSync(full, 'utf8');
+                    } catch (e: any) {
+                        if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
+                            this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                        }
+                        throw e;
+                    }
                     streamPos = 0;
                 },
                 type: 2,

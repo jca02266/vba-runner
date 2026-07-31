@@ -28,3 +28,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: META-ENGINE-004
+    title: COMスタブ引数変換横展開
+    status: queued
+    priority: 1
+    focus: Dictionary/Collection/XMLHTTP/ADODBの引数変換とError境界
+    priorCauseKey: shared-com-argument-binding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts
