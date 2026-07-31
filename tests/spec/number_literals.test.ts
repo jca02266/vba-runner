@@ -1,5 +1,6 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { VbaCurrency } from '../../src/engine/vba-types';
+import { Lexer, LexError } from '../../src/engine/lexer';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -82,6 +83,12 @@ assert.strictEqual(sfx[2], 123.4, 'Suffix ! -> 123.4');
 assert.strictEqual(sfx[3], 123.4, 'Suffix # -> 123.4');
 assert.ok(sfx[4] instanceof VbaCurrency && sfx[4].toString() === '123.4', 'Suffix @ -> Currency 123.4');
 assert.strictEqual(sfx[5], 123n, 'Suffix ^ -> 123n');
+
+for (const literal of ['1E', '1E+', '1D-', '1.2E+', '&H', '&O', '&HZZ', '&OFFFF']) {
+    let error: unknown;
+    try { new Lexer(literal).tokenize(); } catch (e) { error = e; }
+    assert.ok(error instanceof LexError, `${literal} is rejected during lexing`);
+}
 
 console.log('[PASS] 数値リテラルの検証');
 

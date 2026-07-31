@@ -532,6 +532,9 @@ export class Lexer {
                     while (/[0-9a-f]/i.test(this.peek())) {
                         hexStr += this.advance();
                     }
+                    if (hexStr.length === 0) {
+                        throw new LexError('16進数リテラルには数字が必要です', startLine, startColumn);
+                    }
                     const suffix = NUMERIC_TYPE_SUFFIXES.has(this.peek()) ? this.advance() : '';
                     return { type: TokenType.Number, value: '0x' + hexStr + suffix, line: startLine, column: startColumn };
                 } else if (next === 'o' || this.isDigit(next)) {
@@ -539,6 +542,9 @@ export class Lexer {
                     let octStr = '';
                     while (/[0-7]/.test(this.peek())) {
                         octStr += this.advance();
+                    }
+                    if (octStr.length === 0) {
+                        throw new LexError('8進数リテラルには数字が必要です', startLine, startColumn);
                     }
                     const suffix = NUMERIC_TYPE_SUFFIXES.has(this.peek()) ? this.advance() : '';
                     return { type: TokenType.Number, value: '0o' + octStr + suffix, line: startLine, column: startColumn };
@@ -616,8 +622,12 @@ export class Lexer {
                     if (this.peek() === '+' || this.peek() === '-') {
                         numStr += this.advance();
                     }
+                    const exponentStart = this.pos;
                     while (this.isDigit(this.peek())) {
                         numStr += this.advance();
+                    }
+                    if (this.pos === exponentStart) {
+                        throw new LexError('指数リテラルには指数桁が必要です', startLine, startColumn);
                     }
                 }
                 // Check for VBA Type Declaration Suffixes for numbers (MS-VBAL §3.3.5.2)

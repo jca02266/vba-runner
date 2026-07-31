@@ -87,3 +87,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-GRAMMAR-011
+    title: 数値指数・型サフィックス境界
+    status: queued
+    priority: 1
+    focus: E/D指数、符号、型サフィックス、Malformed literalのLexer経路
+    priorCauseKey: numeric-literal-exponent-suffix
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
