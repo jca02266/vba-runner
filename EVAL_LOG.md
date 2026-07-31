@@ -181,19 +181,20 @@
 | EV-00275 | FZ-BUILTIN | fixed | DateAddの小数numberを最近接整数へ丸める仕様 |
 | EV-00276 | FZ-BUILTIN | fixed | DateSerial/TimeSerialの小数引数と繰り上げ境界 |
 | EV-00277 | FZ-BUILTIN | fixed | WeekdayName/Weekdayの小数FirstDayOfWeekと曜日番号 |
+| EV-00278 | FZ-BUILTIN | fixed | MonthNameの小数月番号・範囲検証と共通整数化 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 115 |
+| fixed | 116 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 163、実Excel待ち評価: 3
+横展開未解決経路: 165、実Excel待ち評価: 3
 
 ## 次の候補
 

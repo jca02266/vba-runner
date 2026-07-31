@@ -27,6 +27,10 @@ assert.strictEqual(evalExpr('Weekday(#2024-01-07#, 1.6)'), 7,
     'Weekday rounds fractional FirstDayOfWeek arguments');
 assert.strictEqual(evalExpr('WeekdayName(1, False, 1.6)'), 'Monday',
     'WeekdayName rounds fractional weekday arguments');
+assert.strictEqual(evalExpr('MonthName(1.6)'), 'February',
+    'MonthName rounds fractional month arguments');
+assert.strictEqual(evalExpr('MonthName(0.6)'), 'January',
+    'MonthName rounds fractional lower-bound arguments');
 
 // 1. String Functions
 {

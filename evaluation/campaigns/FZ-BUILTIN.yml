@@ -500,3 +500,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-058
+    title: MonthName数値引数の型境界
+    status: queued
+    priority: 1
+    focus: MonthNameの小数月番号・範囲検証と共通整数化
+    priorCauseKey: date-name-argument-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

@@ -1513,7 +1513,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Time' }]);
     ctx.reg('monthname', (month: any, abbreviate: any = vbaFalse) => {
         if (month === vbaNull) return vbaNull;
-        const m = ctx.toVbaNumber(month);
+        const m = coerceDateNumber(month);
         if (m < 1 || m > 12) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const names = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const abbrs = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
