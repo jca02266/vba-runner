@@ -447,3 +447,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
+  - id: FZ-BUILTIN-052
+    title: DateDiff w曜日境界
+    status: queued
+    priority: 1
+    focus: DateDiff("w")のFirstDayOfWeekと日曜・月曜境界
+    priorCauseKey: date-weekday-diff-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
