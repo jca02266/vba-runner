@@ -145,7 +145,7 @@
 | EV-00239 | FZ-BUILTIN | needs-excel | Binary Input#/Line Input#末尾読取り後のEOF・Error 62 |
 | EV-00240 | FZ-BUILTIN | verified-no-bug | UDT・固定長配列・可変長StringのGet不足とError 62 |
 | EV-00241 | FZ-BUILTIN | fixed | Width文の未Open・モード・幅引数エラー |
-| EV-00242 | FZ-BUILTIN | needs-excel | Appendで既存末尾が改行途中の場合のWidth・Print開始列 |
+| EV-00242 | FZ-BUILTIN | verified-no-bug | Appendで既存末尾が改行途中の場合のWidth・Print開始列 |
 
 ## 状態集計
 
@@ -153,11 +153,11 @@
 |---|---:|
 | fixed | 86 |
 | known-limit | 1 |
-| needs-excel | 6 |
+| needs-excel | 5 |
 | retired | 1 |
-| verified-no-bug | 48 |
+| verified-no-bug | 49 |
 
-横展開未解決経路: 109、実Excel待ち評価: 6
+横展開未解決経路: 108、実Excel待ち評価: 5
 
 ## 次の候補
 

@@ -145,7 +145,16 @@ Private Sub VerifyCrossHandleLock(ByVal path As String)
     first = FreeFile
     Open path For Random Access Read Write Lock Read Write As #first Len = 4
     second = FreeFile
+    On Error Resume Next
     Open path For Random Access Read Write Shared As #second Len = 4
+    errNo = Err.Number
+    Debug.Print "XL-019 OPEN2ERR=" & CStr(errNo)
+    If errNo <> 0 Then
+        Err.Clear
+        Close #first
+        On Error GoTo 0
+        Exit Sub
+    End If
     Err.Clear
     Lock #first, 1 To 2
     errNo = Err.Number
