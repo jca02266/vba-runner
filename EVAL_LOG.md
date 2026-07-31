@@ -147,18 +147,22 @@
 | EV-00241 | FZ-BUILTIN | fixed | Width文の未Open・モード・幅引数エラー |
 | EV-00242 | FZ-BUILTIN | verified-no-bug | Appendで既存末尾が改行途中の場合のWidth・Print開始列 |
 | EV-00243 | FZ-BUILTIN | fixed | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 |
+| EV-00244 | FZ-BUILTIN | fixed | Double文字列指数オーバーフロー |
+| EV-00245 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の新規seed |
+| EV-00246 | FZ-BUILTIN | needs-excel | 非有限数値のリテラル・演算結果 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 90 |
+| fixed | 91 |
 | known-limit | 1 |
+| needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 50 |
+| verified-no-bug | 51 |
 
-横展開未解決経路: 101、実Excel待ち評価: 0
+横展開未解決経路: 106、実Excel待ち評価: 1
 
 ## 次の候補
 
