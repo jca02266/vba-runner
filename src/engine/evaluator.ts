@@ -6767,7 +6767,7 @@ export class Evaluator {
                     this.fs.unlinkSync(full);
                 } catch (e: any) {
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e)))
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
                     throw e;
                 }
             },

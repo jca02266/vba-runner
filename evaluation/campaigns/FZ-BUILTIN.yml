@@ -375,3 +375,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-044
+    title: FSO Error変換回帰確認
+    status: queued
+    priority: 1
+    focus: DeleteFile・フォルダーError変換の回帰境界
+    priorCauseKey: fso-path-error-mapping
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts
