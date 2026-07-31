@@ -358,4 +358,20 @@ function ev(expr: string): any {
     console.log('[PASS] Bug BG: Replace(Null)/Start<1 エラー検証');
 }
 
+// String comparison-mode arguments share the same Null boundary.
+{
+    let errNum = 0;
+    try { ev('Replace("abc", "a", "X", 1, -1, Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'Replace(..., Compare=Null) → error 94');
+
+    errNum = 0;
+    try { ev('Filter(Array("a", "B"), "b", True, Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'Filter(..., Compare=Null) → error 94');
+
+    errNum = 0;
+    try { ev('InStrB(1, "abc", "a", Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
+    assert.strictEqual(errNum, 94, 'InStrB(..., Compare=Null) → error 94');
+    console.log('[PASS] String Compare Null boundary');
+}
+
 console.log('\n✅ 組み込み文字列関数: 全テスト通過');

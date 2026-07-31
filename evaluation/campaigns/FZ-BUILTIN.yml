@@ -429,3 +429,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-BUILTIN-050
+    title: 文字列関数のOptional境界
+    status: queued
+    priority: 1
+    focus: Split/Replace/Filter/InStrRev/MidBの未指定・Null・範囲引数
+    priorCauseKey: string-function-optional-argument
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

@@ -622,6 +622,12 @@ const FULL_TO_HALF_KANA: Record<string, string> = {
 };
 
 export function registerStringFunctions(ctx: StdlibCtx): void {
+    // All string search/transform functions reject a Null comparison mode
+    // before applying their operation. Keep this boundary shared so optional
+    // Compare arguments do not diverge between implementations.
+    const rejectNullCompare = (compare: any): void => {
+        if (compare === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+    };
     const ascFunc = (s: any) => {
         if (s === vbaNull) return vbaNull;
         const str = vbaToString(s ?? '');
@@ -660,7 +666,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         else if (args.length === 3) [start, s1, s2] = args;  // arg count determines form, not type
         else [s1, s2] = args;
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (comp === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        rejectNullCompare(comp);
         if (ctx.toVbaNumber(start) < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
@@ -679,6 +685,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (args.length >= 4) [startByte, s1, s2, comp] = args;
         else if (args.length === 3 && typeof args[0] === 'number') [startByte, s1, s2] = args;
         else [s1, s2] = args;
+        rejectNullCompare(comp);
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
         const startChar = Math.floor((ctx.toVbaNumber(startByte) - 1) / 2) + 1;
@@ -693,7 +700,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (comp === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        rejectNullCompare(comp);
         const startNum = ctx.toVbaNumber(start);
         if (startNum !== -1 && startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
@@ -808,7 +815,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
     ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, compare: any = undefined) => {
         if (s === vbaNull) return vbaNull;
-        if (del === vbaNull || limit === vbaNull || compare === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (del === vbaNull || limit === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        rejectNullCompare(compare);
         const str = vbaToString(s ?? '');
         const delimiter = del === null || del === undefined ? ' ' : String(del);
         const n = (limit === null || limit === undefined) ? -1 : ctx.toVbaNumber(limit);
@@ -855,6 +863,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
         if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (f === vbaNull || r === vbaNull) return vbaNull;
+        rejectNullCompare(compare);
         const str = vbaToString(s ?? '');
         const find = vbaToString(f ?? '');
         const repl = vbaToString(r ?? '');
@@ -894,7 +903,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('strcomp', (s1: any, s2: any, comp?: number) => {
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
-        if (comp !== undefined && (comp as any) === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        rejectNullCompare(comp);
         let str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         if (isText) { str1 = str1.toLowerCase(); str2 = str2.toLowerCase(); }
@@ -938,6 +947,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const srcDims = (source as any).__vbaDimensions__;
         if (srcDims && srcDims.length > 1) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         if (match === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        rejectNullCompare(compare);
         const find = vbaToString(match ?? '');
         const isInclude = ctx.isTrue(include);
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
