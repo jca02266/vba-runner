@@ -527,3 +527,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-061
+    title: Format週番号の年境界
+    status: queued
+    priority: 1
+    focus: Format ww の FirstWeekOfYear 年初・前年週番号
+    priorCauseKey: format-week-boundary-divergence
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts

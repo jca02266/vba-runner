@@ -9,6 +9,7 @@ import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue } from './coerc
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
+import { vbaWeekNumber } from './date-week';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
 function unwrapVbaDefaultValue(value: any): any {
@@ -1457,33 +1458,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             return ((dayOfWeek - weekStart + 7) % 7) + 1;
         }
         else if (intv === 'ww') {
-            let fwoy = validateFirstWeekOfYear(firstweekofyear);
-            if (fwoy === 0) fwoy = 1; // vbUseSystem → default to vbFirstJan1
-
-            const calendarDaysBetween = (left: Date, right: Date): number =>
-                Math.round((Date.UTC(right.getFullYear(), right.getMonth(), right.getDate()) -
-                    Date.UTC(left.getFullYear(), left.getMonth(), left.getDate())) / 86400000);
-
-            const firstWeekStart = (year: number): Date => {
-                const jan1 = new Date(year, 0, 1);
-                const offset = (jan1.getDay() - weekStart + 7) % 7;
-                const start = new Date(year, 0, 1 - offset);
-                if (fwoy === 1) return start; // vbFirstJan1
-
-                const daysInNewYear = 7 - offset;
-                const requiredDays = fwoy === 2 ? 4 : 7;
-                if (daysInNewYear >= requiredDays) return start;
-                start.setDate(start.getDate() + 7);
-                return start;
-            };
-
-            const weekNumber = (year: number): number => {
-                const start = firstWeekStart(year);
-                if (d < start) return weekNumber(year - 1);
-                return Math.floor(calendarDaysBetween(start, d) / 7) + 1;
-            };
-
-            return weekNumber(d.getFullYear());
+            const fwoy = validateFirstWeekOfYear(firstweekofyear);
+            return vbaWeekNumber(d, fdow, fwoy === 0 ? 1 : fwoy);
         }
         else if (intv === 'h') return d.getHours();
         else if (intv === 'n') return d.getMinutes();

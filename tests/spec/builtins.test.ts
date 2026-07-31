@@ -37,6 +37,8 @@ assert.throws(() => evalExpr('FormatDateTime(#2024-03-15#, 4.6)'),
     'FormatDateTime rejects rounded-out-of-range NamedFormat');
 assert.strictEqual(evalExpr('Format(#2024-01-07#, "w", 2)'), '7',
     'Format week-day token honors FirstDayOfWeek');
+assert.strictEqual(evalExpr('Format(#2021-01-01#, "ww", 2, 2)'), '53',
+    'Format week token honors FirstWeekOfYear at year boundary');
 
 // 1. String Functions
 {
