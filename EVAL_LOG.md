@@ -186,19 +186,20 @@
 | EV-00280 | FZ-BUILTIN | fixed | Formatのww/w書式とFirstDayOfWeek・FirstWeekOfYear |
 | EV-00281 | FZ-BUILTIN | fixed | Format ww の FirstWeekOfYear 年初・前年週番号 |
 | EV-00282 | FZ-BUILTIN | fixed | Format FirstDayOfWeek/FirstWeekOfYear=0のSystem既定扱い |
+| EV-00283 | FZ-BUILTIN | fixed | ChooseのIndex小数・Null・範囲境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 120 |
+| fixed | 121 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 173、実Excel待ち評価: 3
+横展開未解決経路: 175、実Excel待ち評価: 3
 
 ## 次の候補
 

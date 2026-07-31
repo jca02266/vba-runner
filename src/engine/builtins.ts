@@ -1848,9 +1848,10 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('iif', (c: any, t: any, f: any) => ctx.isTrue(c) ? t : f, [
         { name: 'Expr' }, { name: 'TruePart' }, { name: 'FalsePart' },
     ]);
+    const coerceIndex = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     ctx.reg('choose', (i: any, ...c: any[]) => {
         if (i === vbaNull) return vbaNull;
-        const idx = Math.floor(ctx.toVbaNumber(i));
+        const idx = coerceIndex(i);
         return (idx >= 1 && idx <= c.length) ? c[idx - 1] : vbaNull;
     }, [
         { name: 'Index' },
@@ -1875,7 +1876,7 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('lbound', (a: any, dim: any = 1) => {
         if (!Array.isArray(a)) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
         if (dim === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
-        const dimIndex = ctx.toVbaNumber(dim) - 1;
+        const dimIndex = coerceIndex(dim) - 1;
         if ((a as any).__vbaDimensions__) {
             if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
                 ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
@@ -1888,7 +1889,7 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('ubound', (a: any, dim: any = 1) => {
         if (!Array.isArray(a)) ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");
         if (dim === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
-        const dimIndex = ctx.toVbaNumber(dim) - 1;
+        const dimIndex = coerceIndex(dim) - 1;
         if ((a as any).__vbaDimensions__) {
             if (dimIndex < 0 || dimIndex >= (a as any).__vbaDimensions__.length) {
                 ctx.throwError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, "Subscript out of range");

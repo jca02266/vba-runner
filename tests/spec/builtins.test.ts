@@ -41,6 +41,10 @@ assert.strictEqual(evalExpr('Format(#2021-01-01#, "ww", 2, 2)'), '53',
     'Format week token honors FirstWeekOfYear at year boundary');
 assert.strictEqual(evalExpr('Format(#2024-01-07#, "ww", 0, 0)'), '2',
     'Format treats vbUseSystem week options as defaults');
+assert.strictEqual(evalExpr('Choose(0.6, "a", "b", "c")'), 'a',
+    'Choose rounds fractional lower-bound indices');
+assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
+    'Choose rounds fractional indices');
 
 // 1. String Functions
 {

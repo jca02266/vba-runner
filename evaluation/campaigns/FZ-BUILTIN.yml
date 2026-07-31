@@ -545,3 +545,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-063
+    title: Chooseインデックス数値丸め境界
+    status: queued
+    priority: 1
+    focus: ChooseのIndex小数・Null・範囲境界
+    priorCauseKey: choose-index-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
