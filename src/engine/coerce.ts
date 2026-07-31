@@ -52,21 +52,32 @@ export function vbaToNumber(val: any): number {
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
     if (val instanceof VbaCurrency) return Number(val.internal) / 10000;
-    if (typeof val === 'number') return val;
-    if (typeof val === 'bigint') return Number(val);
+    if (typeof val === 'number') {
+        if (!Number.isFinite(val)) throwVbaError(VbaErrorCode.OVERFLOW);
+        return val;
+    }
+    if (typeof val === 'bigint') {
+        const n = Number(val);
+        if (!Number.isFinite(n)) throwVbaError(VbaErrorCode.OVERFLOW);
+        return n;
+    }
     if (typeof val === 'string') {
         const trimmed = val.trim();
         // Handle hex literals: &H<hex> or &h<hex>
         if (trimmed.toLowerCase().startsWith('&h')) {
             const hexPart = trimmed.slice(2);
             if (!/^[0-9a-fA-F]+$/.test(hexPart)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
-            return parseInt(hexPart, 16);
+            const n = parseInt(hexPart, 16);
+            if (!Number.isFinite(n)) throwVbaError(VbaErrorCode.OVERFLOW);
+            return n;
         }
         // Handle octal literals: &O<octal> or &o<octal>
         if (trimmed.toLowerCase().startsWith('&o')) {
             const octPart = trimmed.slice(2);
             if (!/^[0-7]+$/.test(octPart)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
-            return parseInt(octPart, 8);
+            const n = parseInt(octPart, 8);
+            if (!Number.isFinite(n)) throwVbaError(VbaErrorCode.OVERFLOW);
+            return n;
         }
         // カンマ桁区切り（"1,234"）は区切りを除去して解釈（実 VBA 差分で裁定）
         const grouped = /^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(trimmed)
@@ -75,13 +86,14 @@ export function vbaToNumber(val: any): number {
         if (isNaN(n) || !/^[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?$/.test(grouped)) {
             throwVbaError(VbaErrorCode.TYPE_MISMATCH);
         }
+        if (!Number.isFinite(n)) throwVbaError(VbaErrorCode.OVERFLOW);
         return n;
     }
     if (val instanceof VbaErrorValue) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val === undefined) return 0;                         // Empty 相当（IsEmpty と同じ扱い）
     if (Array.isArray(val)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     const n = Number(val);
-    if (isNaN(n)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    if (!Number.isFinite(n)) throwVbaError(VbaErrorCode.OVERFLOW);
     return n;
 }
 

@@ -1,0 +1,12 @@
+id: META-ENGINE
+method: metamorphic
+items:
+  - id: META-ENGINE-001
+    title: 数値・文字列・日付恒等式の新規seed
+    status: queued
+    priority: 1
+    focus: 40恒等式をseed 20260731で再評価
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

@@ -24,4 +24,26 @@ const boundary = evalVBASingle(`
 assert.strictEqual(boundary.callProcedure('ProbeCDecForms', []), '1|16|8|1234|1200',
     'CDec accepts the Excel-verified signed, radix, grouped, and exponent forms');
 
+const doubleOverflow = evalVBASingle(`
+    Function ProbeCDblOverflow() As Long
+        On Error Resume Next
+        Dim value As Double
+        value = CDbl("1E+309")
+        ProbeCDblOverflow = Err.Number
+    End Function
+`);
+assert.strictEqual(doubleOverflow.callProcedure('ProbeCDblOverflow', []), 6,
+    'CDbl rejects a string exponent outside the finite Double range');
+
+const literalOverflow = evalVBASingle(`
+    Function ProbeLiteralOverflow() As Long
+        On Error Resume Next
+        Dim value As Double
+        value = 1E+309
+        ProbeLiteralOverflow = Err.Number
+    End Function
+`);
+assert.strictEqual(literalOverflow.callProcedure('ProbeLiteralOverflow', []), 6,
+    'numeric literals outside the finite Double range raise Overflow');
+
 console.log('✅ CDec: 全テスト通過');

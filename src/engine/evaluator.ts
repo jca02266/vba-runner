@@ -7363,6 +7363,9 @@ export class Evaluator {
                 return vbaEmpty;
             case 'NumberLiteral': {
                 const lit = expr as NumberLiteral;
+                if (!Number.isFinite(lit.value)) {
+                    this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
                 return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix, lit.rawIntegerText);
             }
             case 'StringLiteral':
@@ -9262,6 +9265,7 @@ export class Evaluator {
             case '^': {
                 const powResult = Math.pow(leftVal, rightVal);
                 if (isNaN(powResult)) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                if (!Number.isFinite(powResult)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                 return powResult;
             }
             case '=':

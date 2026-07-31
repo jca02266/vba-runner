@@ -302,3 +302,22 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-036
+    title: Double文字列指数オーバーフロー
+    status: queued
+    priority: 1
+    focus: CDblの有限範囲外指数とInfinity漏出
+    priorCauseKey: numeric-string-coercion-boundaries
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+  - id: FZ-BUILTIN-037
+    title: 非有限数値のリテラル・演算結果
+    status: queued
+    priority: 1
+    focus: "&H/&O過大桁、累乗、Val、Format、金融関数のInfinity/NaN境界"
+    priorCauseKey: numeric-nonfinite-output-boundaries
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
