@@ -60,8 +60,46 @@ Public Sub RunExcelQueueVerification()
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
     VerifyBinaryTextEof root & Application.PathSeparator & "XL-025-text-eof.dat"
+    VerifyNonFiniteBoundaries
     Debug.Print "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifyNonFiniteBoundaries()
+    Dim value As Variant
+    On Error Resume Next
+    Err.Clear
+    value = Val("1E+309")
+    PrintNumericProbe "XL-026", "VAL", value
+    Err.Clear
+    value = 1E+308 * 100
+    PrintNumericProbe "XL-027", "MUL", value
+    Err.Clear
+    value = 2 ^ 2000
+    PrintNumericProbe "XL-028", "POW", value
+    Err.Clear
+    value = FV(1, 2000, 1)
+    PrintNumericProbe "XL-029", "FV", value
+    Err.Clear
+    value = PMT(1E+308, 2, -1)
+    PrintNumericProbe "XL-030", "PMT", value
+    Err.Clear
+    value = SLN(1E+308, -1E+308, 2)
+    PrintNumericProbe "XL-031", "SLN", value
+    Err.Clear
+    value = DDB(1E+308, -1E+308, 2, 1)
+    PrintNumericProbe "XL-032", "DDB", value
+    On Error GoTo 0
+End Sub
+
+Private Sub PrintNumericProbe(ByVal id As String, ByVal label As String, ByVal value As Variant)
+    Dim errNo As Long
+    errNo = Err.Number
+    If errNo <> 0 Then
+        Debug.Print id & " " & label & " ERR=" & CStr(errNo)
+    Else
+        Debug.Print id & " " & label & " TYPE=" & TypeName(value) & " VALUE=" & CStr(value) & " ERR=0"
+    End If
 End Sub
 
 Public Sub RunExcelSequentialLockVerification()
