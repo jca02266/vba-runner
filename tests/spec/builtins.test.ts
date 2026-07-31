@@ -39,6 +39,8 @@ assert.strictEqual(evalExpr('Format(#2024-01-07#, "w", 2)'), '7',
     'Format week-day token honors FirstDayOfWeek');
 assert.strictEqual(evalExpr('Format(#2021-01-01#, "ww", 2, 2)'), '53',
     'Format week token honors FirstWeekOfYear at year boundary');
+assert.strictEqual(evalExpr('Format(#2024-01-07#, "ww", 0, 0)'), '2',
+    'Format treats vbUseSystem week options as defaults');
 
 // 1. String Functions
 {

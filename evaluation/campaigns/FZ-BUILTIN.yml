@@ -536,3 +536,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-062
+    title: Format週規則のSystem既定境界
+    status: queued
+    priority: 1
+    focus: Format FirstDayOfWeek/FirstWeekOfYear=0のSystem既定扱い
+    priorCauseKey: format-week-system-default
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts

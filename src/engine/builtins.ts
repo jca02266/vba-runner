@@ -1126,6 +1126,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
         const fdow = normalizeFormatWeekArg(firstDayOfWeek, 7);
         const fwoy = normalizeFormatWeekArg(firstWeekOfYear, 3);
+        const effectiveFwoy = fwoy === 0 ? 1 : fwoy;
         if (fmt === "") return vbaToString(val);
         if (typeof val === 'bigint') {
             const scientificPattern = fmt.toLowerCase() === 'scientific' ? '0.00E+00' : fmt;
@@ -1179,7 +1180,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         }
         if (dateNamedFormats.includes(fmtLower)) {
             const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(vbaToString(val)));
-            return formatDate(dateVal, fmt, fdow, fwoy);
+            return formatDate(dateVal, fmt, fdow, effectiveFwoy);
         }
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
             : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
@@ -1190,14 +1191,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
                 try {
                     const parsed = parseVbaDate(effectiveVal);
-                    return formatDate(parsed, fmt, fdow, fwoy);
+                    return formatDate(parsed, fmt, fdow, effectiveFwoy);
                 } catch { /* fall through to string formatting */ }
             }
             return formatString(effectiveVal, fmt);
         }
-        if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, fwoy);
+        if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, effectiveFwoy);
         if (typeof effectiveVal === 'number') {
-            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt, fdow, fwoy);
+            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt, fdow, effectiveFwoy);
             return formatNumber(effectiveVal, fmt);
         }
         return vbaToString(effectiveVal);
