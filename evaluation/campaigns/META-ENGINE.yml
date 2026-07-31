@@ -10,3 +10,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: META-ENGINE-002
+    title: 数値・文字列・日付恒等式の別seed
+    status: queued
+    priority: 1
+    focus: 40恒等式をseed 20260801で再評価
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
