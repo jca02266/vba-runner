@@ -4329,14 +4329,21 @@ export class Evaluator {
             }
             const nameLower = p.name.toLowerCase();
             if (namedArgs.has(nameLower)) {
-                result.push(namedArgs.get(nameLower));
+                result.push(this.coerceBoundArgument(namedArgs.get(nameLower), p));
             } else if (i < positionalArgs.length) {
-                result.push(positionalArgs[i]);
+                result.push(this.coerceBoundArgument(positionalArgs[i], p));
             } else {
                 result.push(undefined); // JS 側のデフォルト引数構文に委ねる
             }
         }
         return result;
+    }
+
+    /** Apply only explicitly requested host/COM parameter coercions. */
+    private coerceBoundArgument(value: any, spec: BuiltinParamSpec): any {
+        if (value === undefined || !spec.coerce) return value;
+        if (spec.coerce === 'boolean') return vbaToBoolean(value);
+        return value;
     }
 
     /**
@@ -6462,10 +6469,11 @@ export class Evaluator {
      * @param extraProgIds 同じ factory を追加で登録する ProgID（例: "Microsoft.XMLHTTP"）
      */
     public registerComObject(factory: () => VbaComObject, ...extraProgIds: string[]): void {
+        const decoratedFactory = () => this.decorateComObject(factory());
         const register = (key: string) => {
             const k = key.toLowerCase();
             if (!this.externalObjectFactories.has(k)) {
-                this.externalObjectFactories.set(k, factory);
+                this.externalObjectFactories.set(k, decoratedFactory);
             }
             // "ProjectName.ClassName" 形式ならプロジェクト名を Tier 5 に登録。
             // globalEnv には登録しない（Tier 3 と Tier 5 を混在させない）。
@@ -6480,10 +6488,10 @@ export class Evaluator {
         };
 
         try {
-            const sample = factory();
+            const sample = decoratedFactory();
             const progId = sample.__progId__;
             // 主キー登録
-            this.externalObjectFactories.set(progId.toLowerCase(), factory);
+            this.externalObjectFactories.set(progId.toLowerCase(), decoratedFactory);
             // "X.Y" → "Y" の短縮形も登録
             const dot = progId.lastIndexOf('.');
             if (dot >= 0) register(progId.slice(dot + 1));
@@ -6495,6 +6503,24 @@ export class Evaluator {
         for (const extra of extraProgIds) {
             register(extra);
         }
+    }
+
+    /**
+     * Attach the same parameter metadata used by builtins to host/COM methods.
+     * COM factories opt in with a non-VBA `__vbaParamSpecs__` map so dynamic
+     * objects share argument binding and coercion without hard-coding dispatch
+     * rules in the evaluator.
+     */
+    private decorateComObject(object: any): any {
+        const specs = object?.__vbaParamSpecs__ as Record<string, BuiltinParamSpec[]> | undefined;
+        if (!specs) return object;
+        for (const [name, params] of Object.entries(specs)) {
+            const method = object[name];
+            if (typeof method === 'function' && !(method as any).__vbaParamSpec__) {
+                (method as any).__vbaParamSpec__ = params;
+            }
+        }
+        return object;
     }
 
     private createExternalObject(progId: string): any {
@@ -6624,6 +6650,24 @@ export class Evaluator {
         this.registerComObject( () => ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
+            __vbaParamSpecs__: {
+                createtextfile: [
+                    { name: 'FileName' },
+                    { name: 'Overwrite', optional: true, coerce: 'boolean' },
+                    { name: 'Unicode', optional: true, coerce: 'boolean' },
+                ],
+                opentextfile: [
+                    { name: 'FileName' },
+                    { name: 'IOMode', optional: true },
+                    { name: 'Create', optional: true, coerce: 'boolean' },
+                    { name: 'Format', optional: true },
+                ],
+                copyfile: [
+                    { name: 'Source' },
+                    { name: 'Destination' },
+                    { name: 'Overwrite', optional: true, coerce: 'boolean' },
+                ],
+            },
             fileexists: (p: string) => {
                 try {
                     const full = this.sandbox.toRealPath(p);

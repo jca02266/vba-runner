@@ -161,19 +161,20 @@
 | EV-00255 | FZ-BUILTIN | fixed | FSO Error変換回帰確認 |
 | EV-00256 | FZ-BUILTIN | fixed | 財務・日付関数の非有限横展開 |
 | EV-00257 | FZ-BUILTIN | fixed | FSO Boolean文字列・Null境界 |
+| EV-00258 | META-ENGINE | fixed | COMメソッド引数変換の共通化 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 98 |
+| fixed | 99 |
 | known-limit | 1 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 122、実Excel待ち評価: 1
+横展開未解決経路: 123、実Excel待ち評価: 1
 
 ## 次の候補
 

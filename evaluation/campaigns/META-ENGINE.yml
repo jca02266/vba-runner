@@ -19,3 +19,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: META-ENGINE-003
+    title: COMメソッド引数変換の共通化
+    status: queued
+    priority: 1
+    focus: 組み込み関数とCOM/FSOの引数バインド・Boolean変換一致
+    priorCauseKey: fso-boolean-string-coercion
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts

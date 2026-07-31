@@ -29,6 +29,8 @@ export interface BuiltinParamSpec {
     name: string;
     optional?: boolean;
     isParamArray?: boolean;
+    /** Apply a shared VBA coercion before invoking a host/COM method. */
+    coerce?: 'boolean';
 }
 
 export interface BuiltinOverload {
