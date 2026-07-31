@@ -29,6 +29,21 @@ assert.ok(Math.abs(ev1.env.get('respv') - (-2752)) < 100, 'PV');
 assert.ok(Math.abs(ev1.env.get('respmt') - 106) < 10, 'PMT');
 console.log('[PASS] 基本財務関数 (FV, PV, PMT, etc.)');
 
+// Rate must accept an exact zero-rate solution even when Guess is explicitly 0.
+{
+    const ev = evalVBASingle(`
+    Function ProbeZeroRate() As String
+        On Error Resume Next
+        Dim value As Double
+        value = Rate(10, -10, 100, 0, 0, 0)
+        ProbeZeroRate = CStr(Err.Number) & "|" & CStr(value)
+    End Function
+    `);
+    assert.strictEqual(ev.callProcedure('ProbeZeroRate', []), '0|0',
+        'Rate accepts an exact zero-rate cash-flow solution');
+}
+console.log('[PASS] Rate zero-rate solution');
+
 // --- 2. SLN, SYD, DDB ---
 const depCode = `
     Public resSLN, resSYD, resDDB

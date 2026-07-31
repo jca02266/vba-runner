@@ -1586,6 +1586,16 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (rate === 0) return nper;
         return (Math.pow(1 + rate, nper) - 1) / rate;
     };
+    const getRateFactorAndDerivative = (rate: number, nper: number) => {
+        if (rate === 0) {
+            return { factor: nper, derivative: nper * (nper - 1) / 2 };
+        }
+        const p1 = Math.pow(1 + rate, nper);
+        return {
+            factor: (p1 - 1) / rate,
+            derivative: (nper * Math.pow(1 + rate, nper - 1) * rate - (p1 - 1)) / (rate * rate),
+        };
+    };
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toNum(type);
         const factor = getRateFactor(r, n);
@@ -1641,9 +1651,11 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
         for (let i = 0; i < 20; i++) {
             const p1 = Math.pow(1 + r, n);
-            const f_r = v * p1 + p * (1 + r * t) * ((p1 - 1) / r) + f;
-            const df_r = v * n * Math.pow(1 + r, n - 1) + p * (t * ((p1 - 1) / r) + (1 + r * t) * (n * Math.pow(1 + r, n - 1) * r - (p1 - 1)) / (r * r));
+            const { factor, derivative } = getRateFactorAndDerivative(r, n);
+            const f_r = v * p1 + p * (1 + r * t) * factor + f;
+            const df_r = v * n * Math.pow(1 + r, n - 1) + p * (t * factor + (1 + r * t) * derivative);
             if (!Number.isFinite(f_r) || !Number.isFinite(df_r) || df_r === 0) invalidFinancialArg();
+            if (Math.abs(f_r) < 1e-10) return r;
             const newR = r - f_r / df_r;
             if (!Number.isFinite(newR) || 1 + newR <= 0) invalidFinancialArg();
             if (Math.abs(newR - r) < 1e-10) return newR;
