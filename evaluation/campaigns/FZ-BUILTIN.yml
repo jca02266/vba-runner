@@ -214,3 +214,21 @@ items:
     priorCauseKey: lock-range-validation-by-mode
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-026
+    title: Seek位置の不正値境界
+    status: queued
+    priority: 1
+    focus: Seek文の0・負数・小数・上限値とError 5
+    priorCauseKey: seek-position-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+  - id: FZ-BUILTIN-027
+    title: EOF・LocのAppend境界
+    status: queued
+    priority: 1
+    focus: AppendのEOF・Loc・Seek位置整合
+    priorCauseKey: append-file-position-semantics
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
