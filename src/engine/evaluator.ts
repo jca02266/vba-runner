@@ -853,6 +853,8 @@ export class Evaluator {
         lastRecord?: number,
         nextRecord?: number,
         eof?: boolean,
+        width?: number,
+        lineColumn?: number,
         locks?: Array<{ start: number, end: number, key: string }>
     }> = new Map();
     private sandbox: SandboxPath;
@@ -3236,7 +3238,12 @@ export class Evaluator {
     private evaluateWidthStatement(stmt: WidthStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const width = Number(this.evaluateExpression(stmt.width));
-        console.log(`[STUB] Width #${fileNum}, ${width}`);
+        const handle = this.fileHandles.get(fileNum);
+        if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        if (!Number.isInteger(width) || width < 0 || width > 255) {
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        }
+        handle.width = width;
     }
 
     private evaluateAssignmentStatement(stmt: AssignmentStatement) {
@@ -5522,6 +5529,8 @@ export class Evaluator {
                 lastRecord: 0,
                 nextRecord: 1,
                 eof: stmt.mode === 'Output' || stmt.mode === 'Append',
+                width: 0,
+                lineColumn: 0,
                 recordLen,
                 locks: []
             });
@@ -5567,21 +5576,22 @@ export class Evaluator {
         this.requireFileMode(handle, ['Output', 'Append']);
 
         let output = "";
+        const startingColumn = handle.lineColumn ?? 0;
         for (const expr of stmt.expressions) {
             if (expr === 'Comma') {
-                const currentLen = output.length;
+                const currentLen = startingColumn + output.length;
                 const target = Math.ceil((currentLen + 1) / 14) * 14;
-                output += " ".repeat(target - currentLen);
+                output += " ".repeat(Math.max(0, target - currentLen));
             } else if (expr === 'Semicolon') {
                 // Continue
             } else if (typeof expr === 'object' && expr !== null && 'type' in expr) {
                  if (expr.type === 'Spc') {
                      const n = Number(this.evaluateExpression((expr as any).val));
                      output += " ".repeat(Math.max(0, n));
-                 } else if (expr.type === 'Tab') {
-                     // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
-                     const n = Number(this.evaluateExpression((expr as any).val));
-                     output += " ".repeat(Math.max(0, n - 1 - output.length));
+                } else if (expr.type === 'Tab') {
+                    // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
+                    const n = Number(this.evaluateExpression((expr as any).val));
+                    output += " ".repeat(Math.max(0, n - 1 - startingColumn - output.length));
                  } else {
                      output += String(this.evaluateExpression(expr as any));
                  }
@@ -5594,6 +5604,36 @@ export class Evaluator {
         const last = stmt.expressions[stmt.expressions.length - 1];
         if (last !== 'Semicolon' && last !== 'Comma') {
             output += "\r\n";
+        }
+
+        // Width # controls automatic line breaks for Print #. Width 0 means
+        // unlimited output. Track the current line across semicolon-terminated
+        // Print statements so repeated calls wrap at the configured boundary.
+        const width = handle.width ?? 0;
+        if (width > 0) {
+            let wrapped = '';
+            let column = handle.lineColumn ?? 0;
+            for (let i = 0; i < output.length; i++) {
+                const ch = output[i];
+                if (ch === '\r' && output[i + 1] === '\n') {
+                    wrapped += '\r\n';
+                    column = 0;
+                    i++;
+                    continue;
+                }
+                if (column >= width) {
+                    wrapped += '\r\n';
+                    column = 0;
+                }
+                wrapped += ch;
+                column++;
+            }
+            output = wrapped;
+            handle.lineColumn = column;
+        } else if (output.endsWith('\r\n')) {
+            handle.lineColumn = 0;
+        } else {
+            handle.lineColumn = (handle.lineColumn ?? 0) + output.length;
         }
 
         const outputBytes = this.encodeVbaFileText(output);
