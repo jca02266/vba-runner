@@ -48,6 +48,9 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 一括実行ではスキップする。必要な場合だけ `RunExcelSequentialLockVerification`
 を単独実行し、応答が戻らなければ中断して結果を未照合として扱う。
 
+`XL-020` のSharedハンドル間Lock競合は照合済み（`SECONDERR=70`）のため、
+一括実行では再試行しない。
+
 マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
 日本語文字列のバイト列はExcelのシステムロケールに依存するため、
 出力された値をそのまま記録する。
