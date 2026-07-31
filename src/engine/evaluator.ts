@@ -5499,13 +5499,16 @@ export class Evaluator {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
             }
+            const initialPosition = stmt.mode === 'Append'
+                ? this.fs.statSync(realPath).size
+                : 0;
             this.fileHandles.set(fileNum, {
                 fd,
                 mode: stmt.mode,
                 path: realPath,
                 access,
                 lock,
-                pos: 0,
+                pos: initialPosition,
                 recordLen,
                 locks: []
             });

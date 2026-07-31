@@ -241,3 +241,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-029
+    title: Width文のファイルモード境界
+    status: queued
+    priority: 2
+    focus: Width文の未Open・モード・幅引数エラー
+    priorCauseKey: width-statement-stub
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

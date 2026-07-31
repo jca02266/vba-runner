@@ -138,22 +138,23 @@
 | EV-00232 | FZ-BUILTIN | fixed | Write/Put/Getのモード制限とError 54伝播 |
 | EV-00233 | FZ-BUILTIN | needs-excel | Lock/Unlockの小数・逆順範囲と逐次モードError 5 |
 | EV-00234 | FZ-BUILTIN | needs-excel | Seek文の0・負数・小数・上限値とError 5 |
+| EV-00235 | FZ-BUILTIN | fixed | AppendのEOF・Loc・Seek位置整合 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 81 |
+| fixed | 82 |
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 47 |
 
-横展開未解決経路: 93、実Excel待ち評価: 4
+横展開未解決経路: 95、実Excel待ち評価: 4
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-027 | 1 | queued | AppendのEOF・Loc・Seek位置整合 | yes |
 | FZ-BUILTIN-028 | 1 | queued | EOF/LocのRandom・Binary・Sequential・Append境界 | yes |
+| FZ-BUILTIN-029 | 2 | queued | Width文の未Open・モード・幅引数エラー | yes |
