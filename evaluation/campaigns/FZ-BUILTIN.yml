@@ -189,3 +189,28 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-023
+    title: Lock/Unlock文の範囲境界
+    status: queued
+    priority: 1
+    focus: Lock/Unlock文のレコード範囲・ファイル番号・エラー伝播
+    priorCauseKey: coverage-lock-unlock-statements
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+  - id: FZ-BUILTIN-024
+    title: ファイルI/Oモード別操作制限
+    status: queued
+    priority: 1
+    focus: Write/Put/Getのモード制限とError 54伝播
+    priorCauseKey: file-io-mode-guard-missing
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-025
+    title: Lock不正範囲のモード横展開
+    status: queued
+    priority: 1
+    focus: Lock/Unlockの小数・逆順範囲と逐次モードError 5
+    priorCauseKey: lock-range-validation-by-mode
+    coverageTargets:
+      - src/engine/evaluator.ts

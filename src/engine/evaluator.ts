@@ -850,7 +850,7 @@ export class Evaluator {
         buffer?: Uint8Array,
         pos?: number,
         recordLen?: number,
-        locks?: Array<{ start: number, end: number }>
+        locks?: Array<{ start: number, end: number, key: string }>
     }> = new Map();
     private sandbox: SandboxPath;
     public fs: FileSystem;
@@ -3168,7 +3168,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
-        const range = this.evaluateLockRange(stmt.recordRange);
+        const range = this.evaluateLockRange(handle.mode, stmt.recordRange);
         const locks = handle.locks ?? (handle.locks = []);
         if (locks.some(lock => lock.start <= range.end && range.start <= lock.end)) {
             this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
@@ -3180,21 +3180,38 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
-        const range = this.evaluateLockRange(stmt.recordRange);
+        const range = this.evaluateLockRange(handle.mode, stmt.recordRange);
         const locks = handle.locks ?? [];
-        const index = locks.findIndex(lock => lock.start === range.start && lock.end === range.end);
+        const index = locks.findIndex(lock => lock.key === range.key);
         if (index < 0) this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
         locks.splice(index, 1);
     }
 
-    private evaluateLockRange(range?: { start?: Expression, end?: Expression }): { start: number, end: number } {
-        if (!range) return { start: 0, end: Infinity };
-        const start = range.start ? Number(this.evaluateExpression(range.start)) : 1;
-        const end = range.end ? Number(this.evaluateExpression(range.end)) : start;
+    private evaluateLockRange(
+        mode: OpenStatement['mode'],
+        range?: { start?: Expression, end?: Expression },
+    ): { start: number, end: number, key: string } {
+        const requested = range
+            ? {
+                start: range.start ? Number(this.evaluateExpression(range.start)) : undefined,
+                end: range.end ? Number(this.evaluateExpression(range.end)) : undefined,
+            }
+            : undefined;
+        const key = requested
+            ? `${requested.start ?? ''}:${requested.end ?? ''}`
+            : '';
+        // Sequential files do not have record ranges. VBA treats any supplied
+        // range as a request to lock or unlock the whole file.
+        if (mode === 'Input' || mode === 'Output' || mode === 'Append') {
+            return { start: 0, end: Infinity, key };
+        }
+        if (!requested) return { start: 0, end: Infinity, key };
+        const start = requested.start ?? 1;
+        const end = requested.end ?? start;
         if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
             this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         }
-        return { start, end };
+        return { start, end, key };
     }
 
     private evaluateWidthStatement(stmt: WidthStatement) {

@@ -48,3 +48,28 @@ const evalVba = (source: string) => evalVBASingle(source);
     assert.strictEqual(error?.number, 75, 'overlapping Lock raises Path/File access error');
     console.log('[PASS] Lock overlap');
 }
+
+for (const mode of ['Input', 'Output', 'Append']) {
+    const path = `sequential-${mode.toLowerCase()}.dat`;
+    const seed = mode === 'Input' || mode === 'Append'
+        ? `        Open "${path}" For Output As #1\n        Close #1\n`
+        : '';
+    const ev = evalVba(`
+        Function TestSequentialLock() As Long
+${seed}        Open "${path}" For ${mode} As #1
+        Lock #1, 1 To 2
+        On Error Resume Next
+        Lock #1, 3 To 4
+        TestSequentialLock = Err.Number * 100
+        Err.Clear
+        Unlock #1, 1 To 2
+        TestSequentialLock = TestSequentialLock + Err.Number
+        On Error GoTo 0
+        Close #1
+    End Function
+`);
+    assert.strictEqual(ev.callProcedure('TestSequentialLock', []), 7500,
+        `${mode} Lock ranges are normalized to the whole file`);
+}
+
+console.log('[PASS] Sequential Lock/Unlock ranges normalize to the whole file');
