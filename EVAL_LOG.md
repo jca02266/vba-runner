@@ -165,6 +165,7 @@
 | EV-00259 | META-ENGINE | fixed | COMスタブ引数変換横展開 |
 | EV-00260 | FZ-BUILTIN | fixed | Dictionary Nullキー境界 |
 | EV-00261 | FZ-BUILTIN | fixed | Collectionキー・インデックス境界 |
+| EV-00262 | FZ-BUILTIN | needs-excel | 情報関数のVariant境界 |
 
 ## 状態集計
 
@@ -173,11 +174,11 @@
 | blocked | 1 |
 | fixed | 102 |
 | known-limit | 1 |
-| needs-excel | 1 |
+| needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 129、実Excel待ち評価: 1
+横展開未解決経路: 131、実Excel待ち評価: 2
 
 ## 次の候補
 

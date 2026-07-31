@@ -420,3 +420,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-049
+    title: 情報関数のVariant境界
+    status: queued
+    priority: 1
+    focus: IsNumeric/IsDate/IsObject/VarType/TypeNameのEmpty・Null・既定値
+    priorCauseKey: information-function-default-value
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
