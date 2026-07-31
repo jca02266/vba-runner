@@ -124,6 +124,10 @@ function textStreamFlagIsUnicode(value: any): boolean {
     return value === true || value === -1 || value?.value === true || value?.value === -1;
 }
 
+function vbaFlagIsTrue(value: any): boolean {
+    return value === true || value === -1 || value?.value === true || value?.value === -1;
+}
+
 function encodeTextStream(text: string, unicode: boolean): Uint8Array {
     if (!unicode) return iconv.encode(text, 'cp932');
     const body = new Uint8Array(text.length * 2);
@@ -6627,7 +6631,9 @@ export class Evaluator {
             },
             createtextfile: (p: string, overwrite: any = true, unicode: any = false) => {
                 const full = this.sandbox.toRealPath(p);
-                if (!overwrite && this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, "File already exists");
+                if (!vbaFlagIsTrue(overwrite) && this.fs.existsSync(full)) {
+                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, "File already exists");
+                }
                 const fd = this.fs.openSync(full, 'w');
                 const useUnicode = textStreamFlagIsUnicode(unicode);
                 if (useUnicode) this.fs.writeSync(fd, encodeTextStream('', true));
@@ -6649,7 +6655,15 @@ export class Evaluator {
                 const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
                 const shouldCreate = create === true || create === -1 || create?.value === true || create?.value === -1;
                 if (shouldCreate && !this.fs.existsSync(full)) this.fs.openSync(full, 'w');
-                const fd = this.fs.openSync(full, mode);
+                let fd: number;
+                try {
+                    fd = this.fs.openSync(full, mode);
+                } catch (e: any) {
+                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
+                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+                    }
+                    throw e;
+                }
                 const evalFs = this.fs;
                 let pos = 0;
                 const useUnicode = textStreamFlagIsUnicode(format);
@@ -6748,7 +6762,7 @@ export class Evaluator {
                     if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
                         this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
                     }
-                    if (this.fs.existsSync(destinationPath) && !overwrite) {
+                    if (this.fs.existsSync(destinationPath) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
                     if (!this.fs.copyFileSync) {

@@ -330,3 +330,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-039
+    title: FSO TextStream Unicode・位置境界
+    status: queued
+    priority: 1
+    focus: TextStreamの読書き、Append、Skip、EOF、複数ハンドル
+    priorCauseKey: fso-textstream-boundaries
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
