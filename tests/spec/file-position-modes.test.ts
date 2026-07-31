@@ -60,4 +60,45 @@ const sequential = evalVBASingle(`
 assert.strictEqual(sequential.callProcedure('ProbeSequentialPosition', []), 1005,
     'Sequential Loc uses byte position divided by 128');
 
+const seekBoundaries = evalVBASingle(`
+    Function ProbeSeekBoundaries() As Long
+        Dim result As Long
+        Open "seek-boundaries.dat" For Binary As #1
+        On Error Resume Next
+        Seek #1, 0
+        result = result + Err.Number * 100
+        Err.Clear
+        Seek #1, -1
+        result = result + Err.Number * 10
+        Err.Clear
+        Seek #1, 1.5
+        result = result + Err.Number
+        Close #1
+        ProbeSeekBoundaries = result
+    End Function
+`);
+assert.strictEqual(seekBoundaries.callProcedure('ProbeSeekBoundaries', []), 6930,
+    'Seek rejects zero/negative positions with Error 63 and rounds fractions');
+
+const binaryLineEof = evalVBASingle(`
+    Function ProbeBinaryLineEof() As Long
+        Dim value As String, result As Long
+        Open "binary-line-eof.dat" For Output As #1
+        Print #1, "A";
+        Close #1
+        Open "binary-line-eof.dat" For Binary As #1
+        Seek #1, 1
+        Line Input #1, value
+        If EOF(1) Then result = result + 1
+        On Error Resume Next
+        Line Input #1, value
+        result = result + Err.Number * 10
+        If EOF(1) Then result = result + 100
+        Close #1
+        ProbeBinaryLineEof = result
+    End Function
+`);
+assert.strictEqual(binaryLineEof.callProcedure('ProbeBinaryLineEof', []), 720,
+    'Binary Line Input sets EOF after Error 62 at the end');
+
 console.log('[PASS] mode-specific EOF/Loc/Seek semantics');

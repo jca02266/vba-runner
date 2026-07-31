@@ -127,7 +127,7 @@
 | EV-00221 | FZ-BUILTIN | verified-no-bug | 数値Stringの基数・書式変換 |
 | EV-00222 | FZ-BUILTIN | fixed | CDec文字列の受理境界 |
 | EV-00223 | FZ-BUILTIN | fixed | Formatカスタム数値セクション |
-| EV-00224 | FZ-BUILTIN | needs-excel | Format浮動小数点丸め境界 |
+| EV-00224 | FZ-BUILTIN | verified-no-bug | Format浮動小数点丸め境界 |
 | EV-00225 | FZ-GRAMMAR | fixed | Like文字クラス境界 |
 | EV-00226 | FZ-GRAMMAR | fixed | Option Compareのクラス・Select Case経路 |
 | EV-00227 | FZ-GRAMMAR | verified-no-bug | Select Caseの文字列・Empty/Null・Decimal・範囲比較 |
@@ -137,12 +137,12 @@
 | EV-00231 | FZ-BUILTIN | fixed | Lock/Unlock文のレコード範囲・ファイル番号・エラー伝播 |
 | EV-00232 | FZ-BUILTIN | fixed | Write/Put/Getのモード制限とError 54伝播 |
 | EV-00233 | FZ-BUILTIN | needs-excel | Lock/Unlockの小数・逆順範囲と逐次モードError 5 |
-| EV-00234 | FZ-BUILTIN | needs-excel | Seek文の0・負数・小数・上限値とError 5 |
+| EV-00234 | FZ-BUILTIN | fixed | Seek文の0・負数・小数・上限値とError 5 |
 | EV-00235 | FZ-BUILTIN | fixed | AppendのEOF・Loc・Seek位置整合 |
 | EV-00236 | FZ-BUILTIN | fixed | EOF/LocのRandom・Binary・Sequential・Append境界 |
 | EV-00237 | FZ-BUILTIN | fixed | Random/Binary空ファイルとInput/Line Input後のEOF |
 | EV-00238 | FZ-BUILTIN | fixed | Append Shared複数ハンドルとMemoryFS/Node位置整合 |
-| EV-00239 | FZ-BUILTIN | needs-excel | Binary Input#/Line Input#末尾読取り後のEOF・Error 62 |
+| EV-00239 | FZ-BUILTIN | fixed | Binary Input#/Line Input#末尾読取り後のEOF・Error 62 |
 | EV-00240 | FZ-BUILTIN | verified-no-bug | UDT・固定長配列・可変長StringのGet不足とError 62 |
 | EV-00241 | FZ-BUILTIN | fixed | Width文の未Open・モード・幅引数エラー |
 | EV-00242 | FZ-BUILTIN | verified-no-bug | Appendで既存末尾が改行途中の場合のWidth・Print開始列 |
@@ -152,13 +152,13 @@
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 88 |
+| fixed | 90 |
 | known-limit | 1 |
-| needs-excel | 4 |
+| needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 49 |
+| verified-no-bug | 50 |
 
-横展開未解決経路: 107、実Excel待ち評価: 4
+横展開未解決経路: 101、実Excel待ち評価: 1
 
 ## 次の候補
 

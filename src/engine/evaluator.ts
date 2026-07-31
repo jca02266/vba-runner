@@ -5702,6 +5702,7 @@ export class Evaluator {
             bytesRead = this.fs.readSync(handle.fd, buffer, 0, 1, handle.pos ?? null);
             if (bytesRead === 0) {
                 if (lineBytes.length === 0) {
+                    handle.eof = true;
                     this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
                 }
                 break;
@@ -6235,6 +6236,7 @@ export class Evaluator {
         }
 
         if (contentBytes.length === 0 && stmt.variables.length > 0) {
+            handle.eof = true;
             this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
         }
 
@@ -6365,7 +6367,14 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
-        const pos = Number(this.evaluateExpression(stmt.position));
+        const rawPos = Number(this.evaluateExpression(stmt.position));
+        if (!Number.isFinite(rawPos)) {
+            this.throwVbaError(VbaErrorCode.BAD_RECORD_NUMBER, 'Bad record number');
+        }
+        const pos = Math.round(rawPos);
+        if (pos < 1 || (handle.mode === 'Random' && pos > 2147483647)) {
+            this.throwVbaError(VbaErrorCode.BAD_RECORD_NUMBER, 'Bad record number');
+        }
         // Node doesn't have seekSync on FD directly without lseek,
         // but we can track it in our handle if we use it for subsequent read/write.
         if (handle.mode === 'Random') {
