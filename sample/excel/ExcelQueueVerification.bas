@@ -56,6 +56,11 @@ Public Sub RunExcelQueueVerification()
     VerifyAppendWidthInitialColumn root & Application.PathSeparator & "XL-018-append-width.bin"
     VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
     VerifySharedLockRange root & Application.PathSeparator & "XL-020-lock-range.bin"
+    VerifyCDecBoundaries
+    VerifyFormatRounding
+    VerifySequentialLockBoundaries root & Application.PathSeparator & "XL-023-lock-range.dat"
+    VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
+    VerifyBinaryTextEof root & Application.PathSeparator & "XL-025-text-eof.dat"
     Debug.Print "RESULT_ROOT=" & root
 End Sub
 
@@ -198,6 +203,131 @@ Private Sub VerifySharedLockRange(ByVal path As String)
     Unlock #first, 1 To 2
     Close #second
     Close #first
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyCDecBoundaries()
+    PrintCDecResult "PLUS", "+1"
+    PrintCDecResult "HEX", "&H10"
+    PrintCDecResult "OCT", "&O10"
+    PrintCDecResult "GROUP", "1,234"
+    PrintCDecResult "EXP", "1.2E3"
+End Sub
+
+Private Sub PrintCDecResult(ByVal label As String, ByVal text As String)
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = CDec(text)
+    errNo = Err.Number
+    If errNo = 0 Then
+        Debug.Print "XL-021 " & label & " ERR=0 VALUE=" & CStr(value)
+    Else
+        Debug.Print "XL-021 " & label & " ERR=" & CStr(errNo)
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyFormatRounding()
+    Debug.Print "XL-022 CURRENCY=[" & Format(2.675, "Currency") & "]"
+    Debug.Print "XL-022 FIXED=[" & Format(2.675, "Fixed") & "]"
+    Debug.Print "XL-022 STANDARD=[" & Format(2.675, "Standard") & "]"
+    Debug.Print "XL-022 SCIENTIFIC=[" & Format(2.675, "Scientific") & "]"
+    Debug.Print "XL-022 SCI09995=[" & Format(0.09995, "Scientific") & "]"
+End Sub
+
+Private Sub VerifySequentialLockBoundaries(ByVal path As String)
+    Dim mode As Variant
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    For Each mode In Array("Input", "Output", "Append")
+        ProbeSequentialLock path, CStr(mode)
+    Next mode
+End Sub
+
+Private Sub ProbeSequentialLock(ByVal path As String, ByVal mode As String)
+    Dim f As Integer, zeroErr As Long, negativeErr As Long, fractionErr As Long, reverseErr As Long
+    If mode = "Input" Then
+        f = FreeFile: Open path For Input As #f
+    ElseIf mode = "Output" Then
+        f = FreeFile: Open path For Output As #f
+    Else
+        f = FreeFile: Open path For Append As #f
+    End If
+    On Error Resume Next
+    Err.Clear: Lock #f, 0 To 1: zeroErr = Err.Number
+    Err.Clear: Lock #f, -1 To 1: negativeErr = Err.Number
+    Err.Clear: Lock #f, 1.5 To 2: fractionErr = Err.Number
+    Err.Clear: Lock #f, 2 To 1: reverseErr = Err.Number
+    Close #f
+    On Error GoTo 0
+    Debug.Print "XL-023 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
+        " NEG=" & CStr(negativeErr) & " FRACTION=" & CStr(fractionErr) & _
+        " REVERSE=" & CStr(reverseErr)
+End Sub
+
+Private Sub VerifySeekBoundaries(ByVal path As String)
+    Dim mode As Variant
+    For Each mode In Array("Input", "Output", "Append", "Random", "Binary")
+        ProbeSeek path, CStr(mode)
+    Next mode
+End Sub
+
+Private Sub ProbeSeek(ByVal path As String, ByVal mode As String)
+    Dim f As Integer, zeroErr As Long, negativeErr As Long, fractionErr As Long, highErr As Long
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    If mode = "Input" Then
+        f = FreeFile: Open path For Input As #f
+    ElseIf mode = "Output" Then
+        f = FreeFile: Open path For Output As #f
+    ElseIf mode = "Append" Then
+        f = FreeFile: Open path For Append As #f
+    ElseIf mode = "Random" Then
+        f = FreeFile: Open path For Random As #f Len = 4
+    Else
+        f = FreeFile: Open path For Binary As #f
+    End If
+    On Error Resume Next
+    Err.Clear: Seek #f, 0: zeroErr = Err.Number
+    Err.Clear: Seek #f, -1: negativeErr = Err.Number
+    Err.Clear: Seek #f, 1.5: fractionErr = Err.Number
+    Err.Clear: Seek #f, 2147483647: highErr = Err.Number
+    Close #f
+    On Error GoTo 0
+    Debug.Print "XL-024 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
+        " NEG=" & CStr(negativeErr) & " FRACTION=" & CStr(fractionErr) & _
+        " HIGH=" & CStr(highErr)
+End Sub
+
+Private Sub VerifyBinaryTextEof(ByVal path As String)
+    Dim f As Integer, text As String, errNo As Long
+    On Error Resume Next
+    Kill path
+    On Error GoTo 0
+    f = FreeFile
+    Open path For Output As #f
+    Print #f, "alpha"
+    Close #f
+
+    f = FreeFile: Open path For Input As #f
+    Line Input #f, text
+    Debug.Print "XL-025 INPUT LINEEOF=" & CStr(EOF(f))
+    On Error Resume Next
+    Err.Clear: Line Input #f, text: errNo = Err.Number
+    Debug.Print "XL-025 INPUT LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
+    Close #f
+    On Error GoTo 0
+
+    f = FreeFile: Open path For Binary As #f
+    Line Input #f, text
+    Debug.Print "XL-025 BINARY LINEEOF=" & CStr(EOF(f))
+    On Error Resume Next
+    Err.Clear: Line Input #f, text: errNo = Err.Number
+    Debug.Print "XL-025 BINARY LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
+    Close #f
     On Error GoTo 0
 End Sub
 
