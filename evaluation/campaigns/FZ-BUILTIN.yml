@@ -321,3 +321,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-BUILTIN-038
+    title: 全組み込み関数異常値ファズ再実行
+    status: queued
+    priority: 1
+    focus: 185関数・敵対値12種のJS例外とSymbol漏出
+    priorCauseKey: builtin-adversarial-input-smoke
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

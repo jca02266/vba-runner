@@ -151,6 +151,7 @@
 | EV-00245 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の新規seed |
 | EV-00246 | FZ-BUILTIN | needs-excel | 非有限数値のリテラル・演算結果 |
 | EV-00247 | FZ-GRAMMAR | verified-no-bug | On Error状態の呼び出し境界 |
+| EV-00248 | FZ-BUILTIN | verified-no-bug | 全組み込み関数異常値ファズ再実行 |
 
 ## 状態集計
 
@@ -161,9 +162,9 @@
 | known-limit | 1 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 52 |
+| verified-no-bug | 53 |
 
-横展開未解決経路: 107、実Excel待ち評価: 1
+横展開未解決経路: 108、実Excel待ち評価: 1
 
 ## 次の候補
 
