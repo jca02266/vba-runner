@@ -7006,7 +7006,8 @@ export class Evaluator {
                     streamPos += r.length;
                     return r;
                 },
-                readtext: (numChars?: number) => {
+                readtext: (...args: any[]) => {
+                    const numChars = args[0] as number | undefined;
                     const requested = numChars === undefined || Number(numChars) < 0
                         ? content.length - streamPos
                         : Math.max(0, Math.trunc(Number(numChars)));
