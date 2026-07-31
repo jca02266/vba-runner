@@ -3164,6 +3164,15 @@ export class Evaluator {
         console.log(`[STUB] SendKeys "${keys}"`);
     }
 
+    private requireFileMode(
+        handle: { mode: OpenStatement['mode'] },
+        allowed: OpenStatement['mode'][],
+    ): void {
+        if (!allowed.includes(handle.mode)) {
+            this.throwVbaError(VbaErrorCode.BAD_FILE_MODE, "Bad file mode");
+        }
+    }
+
     private evaluateLockStatement(stmt: LockStatement) {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
@@ -5539,7 +5548,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
-        if (handle.mode === 'Input') this.throwVbaError(VbaErrorCode.BAD_FILE_MODE, "Bad file mode");
+        this.requireFileMode(handle, ['Output', 'Append']);
 
         let output = "";
         for (const expr of stmt.expressions) {
@@ -5608,6 +5617,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        this.requireFileMode(handle, ['Input', 'Binary']);
 
         const buffer = new Uint8Array(1);
         const lineBytes: number[] = [];
@@ -5635,6 +5645,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+        this.requireFileMode(handle, ['Random', 'Binary']);
 
         const data = this.evaluateExpression(stmt.data);
         const layout = this.getBinaryValueLayout(stmt.data, data);
@@ -6077,6 +6088,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
+        this.requireFileMode(handle, ['Output', 'Append']);
 
         const output = stmt.items.map(item => {
             const val = this.evaluateExpression(item);
@@ -6107,6 +6119,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
+        this.requireFileMode(handle, ['Input', 'Binary']);
 
         // Input # consumes comma-separated Write # values across line boundaries.
         // Read the remaining bytes as one CP932 stream so multibyte characters and
@@ -6191,6 +6204,7 @@ export class Evaluator {
         const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
+        this.requireFileMode(handle, ['Random', 'Binary']);
 
         const position = this.resolveFileRecordPosition(handle, stmt.recordNumber);
 

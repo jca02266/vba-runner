@@ -135,21 +135,22 @@
 | EV-00229 | FZ-BUILTIN | fixed | NPer/Rate/NPV/PV/SLN/SYD/DDBの不正引数・非収束境界 |
 | EV-00230 | FZ-BUILTIN | verified-no-bug | Open文のAccess/Lock組み合わせと共有違反 |
 | EV-00231 | FZ-BUILTIN | fixed | Lock/Unlock文のレコード範囲・ファイル番号・エラー伝播 |
+| EV-00232 | FZ-BUILTIN | fixed | Write/Put/Getのモード制限とError 54伝播 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 80 |
+| fixed | 81 |
 | known-limit | 1 |
 | needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 47 |
 
-横展開未解決経路: 88、実Excel待ち評価: 2
+横展開未解決経路: 90、実Excel待ち評価: 2
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-024 | 1 | queued | Write/Put/Getのモード制限とError 54伝播 | yes |
+| FZ-BUILTIN-025 | 1 | queued | Lock/Unlockの小数・逆順範囲と逐次モードError 5 | yes |
