@@ -58,3 +58,57 @@ const missingFileResult = evalVBASingle(`
 `);
 assert.strictEqual(missingFileResult.callProcedure('ProbeStreamMissingFile', []), 53,
     'ADODB.Stream maps missing LoadFromFile to File not found');
+
+const dictionaryNullResult = evalVBASingle(`
+    Function ProbeDictionaryNull() As String
+        Dim dictionary As Object
+        Set dictionary = CreateObject("Scripting.Dictionary")
+        On Error Resume Next
+        dictionary.Add Null, "value"
+        ProbeDictionaryNull = CStr(Err.Number) & "|" & CStr(dictionary.Count)
+        Err.Clear
+        dictionary.Remove Null
+        ProbeDictionaryNull = ProbeDictionaryNull & "|" & CStr(Err.Number)
+    End Function
+`);
+assert.strictEqual(dictionaryNullResult.callProcedure('ProbeDictionaryNull', []), '94|0|94',
+    'Dictionary Null keys raise Invalid use of Null');
+
+const dictionaryAssignmentResult = evalVBASingle(`
+    Function ProbeDictionaryNullAssignment() As String
+        Dim dictionary As Object
+        Set dictionary = CreateObject("Scripting.Dictionary")
+        On Error Resume Next
+        dictionary.Item(Null) = "value"
+        ProbeDictionaryNullAssignment = CStr(Err.Number) & "|" & CStr(dictionary.Count)
+    End Function
+`);
+assert.strictEqual(dictionaryAssignmentResult.callProcedure('ProbeDictionaryNullAssignment', []), '94|0',
+    'Dictionary Item assignment rejects Null keys');
+
+const dictionaryCompareResult = evalVBASingle(`
+    Function ProbeDictionaryCompareMode() As String
+        Dim dictionary As Object
+        Set dictionary = CreateObject("Scripting.Dictionary")
+        dictionary.CompareMode = 1
+        dictionary.Add "Key", "value"
+        On Error Resume Next
+        dictionary.Add "key", "duplicate"
+        ProbeDictionaryCompareMode = CStr(Err.Number) & "|" & CStr(dictionary.Exists("KEY"))
+    End Function
+`);
+assert.strictEqual(dictionaryCompareResult.callProcedure('ProbeDictionaryCompareMode', []), '457|True',
+    'Dictionary Add normalizes keys through CompareMode');
+
+const dictionaryReadResult = evalVBASingle(`
+    Function ProbeDictionaryNullRead() As String
+        Dim dictionary As Object
+        Set dictionary = CreateObject("Scripting.Dictionary")
+        On Error Resume Next
+        Dim value As Variant
+        value = dictionary(Null)
+        ProbeDictionaryNullRead = CStr(Err.Number) & "|" & CStr(dictionary.Count)
+    End Function
+`);
+assert.strictEqual(dictionaryReadResult.callProcedure('ProbeDictionaryNullRead', []), '94|0',
+    'Dictionary default Item reads reject Null keys');

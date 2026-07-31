@@ -3528,7 +3528,7 @@ export class Evaluator {
                     current[lastIdx] = val;
                 } else if (target && target.__isVbaDict__) {
                     // Treat as Dictionary assignment dict("key") = val
-                    const key = target.__resolveKey__(String(this.evaluateExpression(call.args[0])));
+                    const key = target.__resolveKey__(this.evaluateExpression(call.args[0]));
                     target.__map__.set(key, val);
                 } else if (target && target.__vbaClass__) {
                     // Default property assignment: obj(args) = val -> obj.Item(args) = val
@@ -3552,7 +3552,7 @@ export class Evaluator {
                 const methodName = memberCallee.property.name.toLowerCase();
                 if (obj && obj.__isVbaDict__) {
                     // dict.Item(key) = val
-                    const key = obj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
+                    const key = obj.__resolveKey__(this.evaluateExpression(call.args[0]));
                     obj.__map__.set(key, val);
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
@@ -3645,7 +3645,7 @@ export class Evaluator {
                             return;
                         }
                     }
-                    const key = obj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
+                    const key = obj.__resolveKey__(this.evaluateExpression(call.args[0]));
                     obj[key] = val;
                 } else {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
@@ -3707,7 +3707,7 @@ export class Evaluator {
                 // outer("sub")("x") = val  →  evaluate outer("sub") to get inner dict, then assign
                 const innerObj = this.evaluateExpression(call.callee);
                 if (innerObj && innerObj.__isVbaDict__) {
-                    const key = innerObj.__resolveKey__(String(this.evaluateExpression(call.args[0])));
+                    const key = innerObj.__resolveKey__(this.evaluateExpression(call.args[0]));
                     innerObj.__map__.set(key, val);
                 } else if (innerObj && typeof innerObj === 'object') {
                     const key = String(this.evaluateExpression(call.args[0]));
@@ -6546,6 +6546,9 @@ export class Evaluator {
             const dict = new Map<any, any>();
             let compareMode = 0;
             const matchingKey = (key: any): any => {
+                if (key === vbaNull) {
+                    this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                }
                 if (compareMode !== 1 || typeof key !== 'string') return key;
                 return Array.from(dict.keys()).find(existing =>
                     typeof existing === 'string' && existing.toLowerCase() === key.toLowerCase()) ?? key;
@@ -6556,8 +6559,9 @@ export class Evaluator {
                 __map__: dict,
                 __resolveKey__: matchingKey,
                 add: (k: any, v: any) => {
-                    if (dict.has(matchingKey(k))) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
-                    dict.set(k, v);
+                    const key = matchingKey(k);
+                    if (dict.has(key)) this.throwVbaError(VbaErrorCode.KEY_ALREADY_EXISTS, 'This key is already associated with an element of this collection');
+                    dict.set(key, v);
                 },
                 exists: (k: any) => dict.has(matchingKey(k)) ? vbaTrue : vbaFalse,
                 remove: (k: any) => dict.delete(matchingKey(k)),
@@ -8352,7 +8356,7 @@ export class Evaluator {
                 } else if (variable && variable.__isVbaDict__) {
                     // Dictionary read: dict("key")
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-                    const key = this.evaluateExpression(expr.args[0]);
+                    const key = variable.__resolveKey__(this.evaluateExpression(expr.args[0]));
                     return variable.__map__.get(key);
                 } else if (variable && variable.__isVbaCollection__) {
                     // Collection read: col(index_or_key) -> col.Item(...)
@@ -8486,7 +8490,7 @@ export class Evaluator {
                         const returned = this.callClassMethod(obj, proc, []);
                         const argsVals = this.evaluateCallArgumentValues(expr.args);
                         if (returned && returned.__isVbaDict__) {
-                            return returned.__map__.get(argsVals[0]);
+                            return returned.__map__.get(returned.__resolveKey__(argsVals[0]));
                         }
                         if (returned && returned.__isVbaCollection__) {
                             return (returned as VbaCollection).item(argsVals[0]);
@@ -8604,7 +8608,7 @@ export class Evaluator {
             return current === undefined ? vbaEmpty : current;
                 } else if (target && target.__isVbaDict__) {
             if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-            const key = this.evaluateExpression(expr.args[0]);
+            const key = target.__resolveKey__(this.evaluateExpression(expr.args[0]));
             return target.__map__.get(key);
         } else if (typeof target === 'function') {
             return this.invokeBuiltin(target, this.resolveCallArgs(target, expr.args, expr.callee.type));

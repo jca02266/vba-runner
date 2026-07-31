@@ -402,3 +402,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
+  - id: FZ-BUILTIN-047
+    title: Dictionary Nullキー境界
+    status: queued
+    priority: 1
+    focus: Scripting.DictionaryのNull/EmptyキーとItem/Exists
+    priorCauseKey: com-null-and-error-boundaries
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
