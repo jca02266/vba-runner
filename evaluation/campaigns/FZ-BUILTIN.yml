@@ -438,3 +438,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-051
+    title: DateDiff・DatePart週境界
+    status: queued
+    priority: 1
+    focus: DateDiff/DatePartのw・wwとFirstDay/FirstWeek境界
+    priorCauseKey: date-week-interval-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts

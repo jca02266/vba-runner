@@ -235,6 +235,32 @@ End Function
     console.log('[PASS] Bug C: DateDiff firstdayofweek');
 }
 
+// DateDiff counts calendar boundaries and validates week arguments.
+{
+    const runDD = (expr: string) => {
+        const ev2 = evalVBASingle(`Function T(): T = ${expr}: End Function`);
+        return ev2.callProcedure('T', []);
+    };
+    assert.strictEqual(
+        runDD('DateDiff("d", #2024/01/01 23:59:00#, #2024/01/02 00:01:00#)'),
+        1,
+        'DateDiff d counts a crossed calendar day');
+    assert.strictEqual(
+        runDD('DateDiff("d", #2024/01/01 00:01:00#, #2024/01/01 23:59:00#)'),
+        0,
+        'DateDiff d ignores time within one calendar day');
+
+    const errorNumber = (expr: string): number => {
+        try { runDD(expr); } catch (e: any) { return e?.number ?? 0; }
+        return 0;
+    };
+    assert.strictEqual(errorNumber('DatePart("ww", #2024/01/01#, 8, 1)'), 5,
+        'DatePart rejects FirstDayOfWeek > 7');
+    assert.strictEqual(errorNumber('DateDiff("ww", #2024/01/01#, #2024/01/02#, 1, 4)'), 5,
+        'DateDiff rejects FirstWeekOfYear > 3');
+    console.log('[PASS] DateDiff calendar and week argument boundaries');
+}
+
 // Bug AX/AY: DateSerial(Null,...) / TimeSerial(Null,...) が TypeError でクラッシュしていた
 {
     const Lexer5 = (await import('../../src/engine/lexer')).Lexer;

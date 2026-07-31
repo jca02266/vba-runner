@@ -1289,6 +1289,20 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         }
         return date;
     };
+    const validateFirstDayOfWeek = (value: any): number => {
+        const day = ctx.toVbaNumber(value ?? 1);
+        if (!Number.isFinite(day) || day < 0 || day > 7) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
+        return day;
+    };
+    const validateFirstWeekOfYear = (value: any): number => {
+        const week = ctx.toVbaNumber(value ?? 1);
+        if (!Number.isFinite(week) || week < 0 || week > 3) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
+        return week;
+    };
     ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
     ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
     ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
@@ -1335,8 +1349,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         if (d === vbaNull) return vbaNull;
         if (firstdayofweek === vbaNull) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const dayOfWeek = parseVbaDate(d).getDay(); // 0=Sun
-        let fdow = ctx.toVbaNumber(firstdayofweek ?? 1);
-        if (fdow < 0 || fdow > 7) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        let fdow = validateFirstDayOfWeek(firstdayofweek);
         if (fdow === 0) fdow = 1; // vbUseSystemDayOfWeek → treat as vbSunday
         const weekStart = fdow <= 1 ? 0 : fdow - 1; // convert VBA 1-based to JS 0-based
         return ((dayOfWeek - weekStart + 7) % 7) + 1;
@@ -1377,14 +1390,20 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         const d2 = parseVbaDate(date2);
         const intv = String(interval).toLowerCase();
         const diffMs = d2.getTime() - d1.getTime();
+        const calendarDayDiff = (): number => {
+            const day1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
+            const day2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
+            return Math.round((day2 - day1) / 86400000);
+        };
+        let fdow = validateFirstDayOfWeek(firstdayofweek);
+        validateFirstWeekOfYear(_firstweekofyear);
         if (intv === 'yyyy') return d2.getFullYear() - d1.getFullYear();
         else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
         else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
-        else if (intv === 'y' || intv === 'd') return Math.round(diffMs / 86400000);
+        else if (intv === 'y' || intv === 'd') return calendarDayDiff();
         else if (intv === 'w') return Math.trunc(Math.round(diffMs / 86400000) / 7);
         else if (intv === 'ww') {
             // Week count depends on firstdayofweek
-            let fdow = ctx.toVbaNumber(firstdayofweek ?? 1);
             if (fdow === 0) fdow = 1;
             const weekStart = fdow <= 1 ? 0 : fdow - 1;
             const day1 = new Date(d1); day1.setHours(0, 0, 0, 0);
@@ -1411,7 +1430,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
         // firstdayofweek: 1=Sunday(default), 2=Monday, ..., 7=Saturday; 0=system default(treat as 1)
-        const fdow = Math.max(0, ctx.toVbaNumber(firstdayofweek ?? 1));
+        const fdow = validateFirstDayOfWeek(firstdayofweek);
         const weekStart = fdow <= 1 ? 0 : fdow - 1; // JS: 0=Sun,1=Mon,...,6=Sat
         if (intv === 'yyyy') return d.getFullYear();
         else if (intv === 'q') return Math.floor(d.getMonth() / 3) + 1;
@@ -1428,11 +1447,8 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             return ((dayOfWeek - weekStart + 7) % 7) + 1;
         }
         else if (intv === 'ww') {
-            let fwoy = ctx.toVbaNumber(firstweekofyear ?? 1);
+            let fwoy = validateFirstWeekOfYear(firstweekofyear);
             if (fwoy === 0) fwoy = 1; // vbUseSystem → default to vbFirstJan1
-            if (fwoy < 1 || fwoy > 3) {
-                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-            }
 
             const calendarDaysBetween = (left: Date, right: Date): number =>
                 Math.round((Date.UTC(right.getFullYear(), right.getMonth(), right.getDate()) -

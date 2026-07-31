@@ -167,19 +167,20 @@
 | EV-00261 | FZ-BUILTIN | fixed | Collectionキー・インデックス境界 |
 | EV-00262 | FZ-BUILTIN | needs-excel | 情報関数のVariant境界 |
 | EV-00263 | FZ-BUILTIN | fixed | 文字列関数のOptional境界 |
+| EV-00264 | FZ-BUILTIN | fixed | DateDiff・DatePart週境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 103 |
+| fixed | 104 |
 | known-limit | 1 |
 | needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 133、実Excel待ち評価: 2
+横展開未解決経路: 135、実Excel待ち評価: 2
 
 ## 次の候補
 
