@@ -78,3 +78,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case.test.ts
+  - id: FZ-GRAMMAR-010
+    title: On Error状態の呼び出し境界
+    status: queued
+    priority: 1
+    focus: Class・標準手続き・ループ間のErr状態とハンドラー復帰
+    priorCauseKey: on-error-handler-state-propagation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
