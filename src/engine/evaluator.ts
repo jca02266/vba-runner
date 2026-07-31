@@ -6263,7 +6263,10 @@ export class Evaluator {
         try {
             decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
         } catch (error) {
-            if (error instanceof RangeError || error?.number === VbaErrorCode.INPUT_PAST_END_OF_FILE) {
+            const errorNumber = error && typeof error === 'object' && 'number' in error
+                ? (error as { number?: number }).number
+                : undefined;
+            if (error instanceof RangeError || errorNumber === VbaErrorCode.INPUT_PAST_END_OF_FILE) {
                 handle.eof = true;
                 this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
             }
