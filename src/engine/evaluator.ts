@@ -850,6 +850,9 @@ export class Evaluator {
         buffer?: Uint8Array,
         pos?: number,
         recordLen?: number,
+        lastRecord?: number,
+        nextRecord?: number,
+        eof?: boolean,
         locks?: Array<{ start: number, end: number, key: string }>
     }> = new Map();
     private sandbox: SandboxPath;
@@ -1213,6 +1216,8 @@ export class Evaluator {
         this.registerBuiltin('eof', (fn: any) => {
             const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+            if (h.mode === 'Output' || h.mode === 'Append') return vbaTrue;
+            if (h.mode === 'Random' || h.mode === 'Binary') return h.eof ? vbaTrue : vbaFalse;
             return h.pos! >= this.fs.statSync(h.path).size ? vbaTrue : vbaFalse;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('lof', (fn: any) => {
@@ -1223,11 +1228,16 @@ export class Evaluator {
         this.registerBuiltin('loc', (fn: any) => {
             const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+            if (h.mode === 'Random') return h.lastRecord ?? 0;
+            if (h.mode === 'Input' || h.mode === 'Output' || h.mode === 'Append') {
+                return Math.floor((h.pos ?? 0) / 128);
+            }
             return h.pos;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('seek', (fn: any) => {
             const h = this.fileHandles.get(this.toVbaNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
+            if (h.mode === 'Random') return h.nextRecord ?? 1;
             return (h.pos || 0) + 1;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('fileattr', (fn: any, info: any = 1) => {
@@ -5509,6 +5519,9 @@ export class Evaluator {
                 access,
                 lock,
                 pos: initialPosition,
+                lastRecord: 0,
+                nextRecord: 1,
+                eof: stmt.mode === 'Output' || stmt.mode === 'Append',
                 recordLen,
                 locks: []
             });
@@ -5658,6 +5671,13 @@ export class Evaluator {
 
         this.fs.writeSync(handle.fd, buffer, 0, buffer.length, position);
         handle.pos = (position ?? handle.pos ?? 0) + buffer.length;
+        if (handle.mode === 'Random') {
+            handle.lastRecord = Math.floor((position ?? handle.pos ?? 0) / (handle.recordLen ?? 128)) + 1;
+            handle.nextRecord = handle.lastRecord + 1;
+            handle.eof = false;
+        } else if (handle.mode === 'Binary') {
+            handle.eof = false;
+        }
     }
 
     /** VBA binary file strings use the active ANSI code page.  The runner's
@@ -6223,19 +6243,33 @@ export class Evaluator {
             decoded = this.decodeBinaryValue(buffer.subarray(0, bytesRead), 0, layout, currentValue);
         } catch (error) {
             if (error instanceof RangeError) {
+                handle.eof = true;
                 this.throwVbaError(VbaErrorCode.INPUT_PAST_END_OF_FILE, 'Input past end of file');
             }
             throw error;
         }
         this.evaluateAssignmentToVariable(stmt.variable, decoded.value);
         handle.pos = (position ?? handle.pos ?? 0) + decoded.length;
+        if (handle.mode === 'Random') {
+            handle.lastRecord = Math.floor((position ?? handle.pos ?? 0) / (handle.recordLen ?? 128)) + 1;
+            handle.nextRecord = handle.lastRecord + 1;
+            handle.eof = false;
+        } else if (handle.mode === 'Binary') {
+            handle.eof = false;
+        }
     }
 
     private resolveFileRecordPosition(
-        handle: { mode: OpenStatement['mode']; pos?: number; recordLen?: number },
+        handle: { mode: OpenStatement['mode']; pos?: number; recordLen?: number; nextRecord?: number },
         recordNumber?: Expression,
     ): number | null {
-        if (!recordNumber) return handle.pos ?? null;
+        if (!recordNumber) {
+            if (handle.mode === 'Random') {
+                const nextRecord = handle.nextRecord ?? 1;
+                return (nextRecord - 1) * (handle.recordLen ?? 128);
+            }
+            return handle.pos ?? null;
+        }
         const record = Number(this.evaluateExpression(recordNumber));
         if (!Number.isInteger(record) || record < 1) {
             this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
@@ -6253,7 +6287,14 @@ export class Evaluator {
         const pos = Number(this.evaluateExpression(stmt.position));
         // Node doesn't have seekSync on FD directly without lseek,
         // but we can track it in our handle if we use it for subsequent read/write.
-        handle.pos = Math.max(0, pos - 1);
+        if (handle.mode === 'Random') {
+            handle.nextRecord = Math.max(1, pos);
+            handle.pos = (handle.nextRecord - 1) * (handle.recordLen ?? 128);
+            handle.eof = false;
+        } else {
+            handle.pos = Math.max(0, pos - 1);
+            if (handle.mode === 'Binary') handle.eof = false;
+        }
     }
 
     private evaluateResetStatement(_stmt: ResetStatement) {

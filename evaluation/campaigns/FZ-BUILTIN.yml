@@ -250,3 +250,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-BUILTIN-030
+    title: 空ファイルのEOF境界
+    status: queued
+    priority: 1
+    focus: Random/Binary空ファイルとInput/Line Input後のEOF
+    priorCauseKey: eof-empty-file-semantics
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+  - id: FZ-BUILTIN-031
+    title: Append複数ハンドルの追記位置
+    status: queued
+    priority: 1
+    focus: Append Shared複数ハンドルとMemoryFS/Node位置整合
+    priorCauseKey: append-multi-handle-position
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
