@@ -1271,6 +1271,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
+    const ensureVbaDate = (date: Date): Date => {
+        if (!Number.isFinite(date.getTime()) || date.getFullYear() < 100 || date.getFullYear() > 9999) {
+            ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        return date;
+    };
     ctx.reg('year',   (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getFullYear(); }, [{ name: 'Date' }]);
     ctx.reg('month',  (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getMonth() + 1; }, [{ name: 'Date' }]);
     ctx.reg('day',    (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getDate(); }, [{ name: 'Date' }]);
@@ -1293,6 +1299,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             // 稀なエッジケースだが、0-99 年指定自体が非常に稀なので許容する）。
             const baseYear = 2000;
             const date = new Date(baseYear, mm, dd);
+            ensureVbaDate(date);
             const yearOffset = date.getFullYear() - baseYear;
             date.setFullYear(year + yearOffset);
             return new VbaDate(toVbaDate(date));
@@ -1300,6 +1307,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         // 通常の年（100 以上）は JS の Date コンストラクターがそのまま正しく
         // 繰り上げ・繰り下げてくれる（閏年判定も年に対して正確に行われる）
         const date = new Date(year, mm, dd);
+        ensureVbaDate(date);
         return new VbaDate(toVbaDate(date));
     }, [{ name: 'Year' }, { name: 'Month' }, { name: 'Day' }]);
     ctx.reg('timeserial', (h: any, n: any, s: any) => {
@@ -1307,7 +1315,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         const hour = ctx.toVbaNumber(h), minute = ctx.toVbaNumber(n), second = ctx.toVbaNumber(s);
         if (![hour, minute, second].every(Number.isFinite)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         const date = new Date(1899, 11, 30, hour, minute, second);
-        if (!Number.isFinite(date.getTime())) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        ensureVbaDate(date);
         return new VbaDate(toVbaDate(date));
     }, [{ name: 'Hour' }, { name: 'Minute' }, { name: 'Second' }]);
     ctx.reg('weekday', (d: any, firstdayofweek: any = 1) => {
@@ -1346,6 +1354,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         } else {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
+        ensureVbaDate(d);
         return new VbaDate(toVbaDate(d));
     }, [{ name: 'Interval' }, { name: 'Number' }, { name: 'Date' }]);
     ctx.reg('datediff', (interval: any, date1: any, date2: any, firstdayofweek: any = 1, _firstweekofyear: any = 1) => {
@@ -1550,6 +1559,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     const invalidFinancialArg = (): never => {
         ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
     };
+    const finiteResult = (value: number): number => {
+        if (!Number.isFinite(value)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        return value;
+    };
     const toNum = (val: any): number => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         return ctx.toVbaNumber(val);
@@ -1570,10 +1583,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), f = toNum(fv), t = toNum(type);
-        if (r === 0) return -(f + p * n);
+        if (r === 0) return finiteResult(-(f + p * n));
         const p1 = Math.pow(1 + r, n);
         if (!Number.isFinite(p1) || p1 === 0) invalidFinancialArg();
-        return -(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1;
+        return finiteResult(-(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1);
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
@@ -1583,9 +1596,9 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Number.isFinite(n) || n <= 0) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
-        if (r === 0) return -(v + f) / n;
+        if (r === 0) return finiteResult(-(v + f) / n);
         const p1 = Math.pow(1 + r, n);
-        return -(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r));
+        return finiteResult(-(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r)));
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
@@ -1629,12 +1642,12 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('sln', (cost: any, salvage: any, life: any) => {
         const l = toNum(life);
         if (!Number.isFinite(l) || l <= 0) invalidFinancialArg();
-        return (toNum(cost) - toNum(salvage)) / l;
+        return finiteResult((toNum(cost) - toNum(salvage)) / l);
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
     ctx.reg('syd', (cost: any, salvage: any, life: any, period: any) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period);
         if (!Number.isFinite(l) || !Number.isFinite(p) || l <= 0 || p <= 0 || p > l) invalidFinancialArg();
-        return ((c - s) * (l - p + 1) * 2) / (l * (l + 1));
+        return finiteResult(((c - s) * (l - p + 1) * 2) / (l * (l + 1)));
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
     ctx.reg('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period), f = toNum(factor);
@@ -1645,7 +1658,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             dep = Math.min(book * (f / l), Math.max(0, book - s));
             book -= dep;
         }
-        return dep;
+        return finiteResult(dep);
     }, [
         { name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' },
         { name: 'Factor', optional: true },
@@ -1696,7 +1709,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Number.isFinite(result)) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
-        return result;
+        return finiteResult(result);
     }, [{ name: 'ValueArray' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
@@ -1708,7 +1721,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         for (let idx = base; idx < values.length; idx++, period++) {
             result += ctx.toVbaNumber(values[idx]) / Math.pow(1 + r, period);
         }
-        return result;
+        return finiteResult(result);
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
@@ -1726,7 +1739,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             const fv_prev = ctx.toVbaNumber(ctx.envGet('fv')(r, p - 1, pmt, v, t));
             ipmt = fv_prev * r;
         }
-        return ipmt;
+        return finiteResult(ipmt);
     }, [
         { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
@@ -1735,7 +1748,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
         const pmt = ctx.toVbaNumber(ctx.envGet('pmt')(r, n, v, f, t));
         const ipmt = ctx.toVbaNumber(ctx.envGet('ipmt')(r, p, n, v, f, t));
-        return pmt - ipmt;
+        return finiteResult(pmt - ipmt);
     }, [
         { name: 'Rate' }, { name: 'Per' }, { name: 'NPer' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },

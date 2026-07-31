@@ -384,3 +384,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: FZ-BUILTIN-045
+    title: 財務・日付関数の非有限横展開
+    status: queued
+    priority: 1
+    focus: PV/PMT/SLN/SYD/DDB/NPVとDateSerial/DateAddの範囲外結果
+    priorCauseKey: nonfinite-builtin-results
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
