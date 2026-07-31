@@ -175,19 +175,20 @@
 | EV-00269 | META-ENGINE | fixed | FSO・ADODBメソッドメタデータ横展開 |
 | EV-00270 | META-ENGINE | fixed | TextStream・ADODB状態プロパティ境界 |
 | EV-00271 | META-ENGINE | fixed | Streamプロパティ再配置とEOF境界 |
+| EV-00272 | META-ENGINE | fixed | TextStreamプロパティとClose後操作 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 110 |
+| fixed | 111 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 55 |
 
-横展開未解決経路: 151、実Excel待ち評価: 3
+横展開未解決経路: 153、実Excel待ち評価: 3
 
 ## 次の候補
 

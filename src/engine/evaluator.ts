@@ -6779,6 +6779,21 @@ export class Evaluator {
                         const content = readContent();
                         return pos >= content.length ? vbaTrue : vbaFalse;
                     },
+                    get atendofline() {
+                        const content = readContent();
+                        return pos >= content.length || content[pos] === '\r' || content[pos] === '\n' ? vbaTrue : vbaFalse;
+                    },
+                    get line() {
+                        const content = readContent();
+                        const bounded = Math.min(pos, content.length);
+                        return (content.slice(0, bounded).match(/\r\n|\r|\n/g)?.length ?? 0) + 1;
+                    },
+                    get column() {
+                        const content = readContent();
+                        const bounded = Math.min(pos, content.length);
+                        const lastBreak = Math.max(content.lastIndexOf('\n', bounded - 1), content.lastIndexOf('\r', bounded - 1));
+                        return bounded - lastBreak;
+                    },
                     readall: () => {
                         const content = readContent();
                         const result = content.slice(pos);
@@ -6979,7 +6994,11 @@ export class Evaluator {
         this.registerComObject( () => {
             let content = "";
             let streamPos = 0;
+            let closed = true;
             const evaluator = this;
+            const ensureOpen = () => {
+                if (closed) evaluator.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Operation is not allowed when object is closed');
+            };
             return {
                 __progId__: 'ADODB.Stream',
                 __vbaParamSpecs__: {
@@ -6994,21 +7013,24 @@ export class Evaluator {
                     ],
                     loadfromfile: [{ name: 'FileName', coerce: 'string' }],
                 },
-                open: () => { streamPos = 0; },
-                close: () => { },
+                open: () => { closed = false; streamPos = 0; },
+                close: () => { closed = true; },
                 write: (data: any) => {
+                    ensureOpen();
                     if (data === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
                     content += String(data);
                     streamPos = content.length;
                 },
-                writetext: (text: string) => { content += text; streamPos = content.length; },
+                writetext: (text: string) => { ensureOpen(); content += text; streamPos = content.length; },
                 read: (len?: number) => {
+                    ensureOpen();
                     const requested = len === undefined || Number(len) < 0 ? content.length - streamPos : Math.max(0, Math.trunc(Number(len)));
                     const r = content.slice(streamPos, streamPos + requested);
                     streamPos += r.length;
                     return r;
                 },
                 readtext: (...args: any[]) => {
+                    ensureOpen();
                     const numChars = args[0] as number | undefined;
                     const requested = numChars === undefined || Number(numChars) < 0
                         ? content.length - streamPos
@@ -7018,10 +7040,12 @@ export class Evaluator {
                     return r;
                 },
                 savetofile: (p: string, _mode: number = 1) => {
+                    ensureOpen();
                     const full = this.sandbox.toRealPath(p);
                     this.fs.writeFileSync(full, content);
                 },
                 loadfromfile: (p: string) => {
+                    ensureOpen();
                     const full = this.sandbox.toRealPath(p);
                     try {
                         content = this.fs.readFileSync(full, 'utf8');
@@ -7035,12 +7059,13 @@ export class Evaluator {
                 },
                 type: 2,
                 charset: 'utf-8',
-                get position() { return streamPos; },
+                get position() { ensureOpen(); return streamPos; },
                 set position(value: any) {
+                    ensureOpen();
                     if (value === vbaNull) evaluator.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
                     streamPos = Math.max(0, Math.min(content.length, Math.trunc(Number(value))));
                 },
-                get size() { return content.length; }
+                get size() { ensureOpen(); return content.length; }
             };
         });
     }

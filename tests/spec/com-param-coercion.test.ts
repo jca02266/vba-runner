@@ -206,6 +206,32 @@ assert.throws(
     'ADODB.Stream Position rejects Null',
 );
 
+assert.throws(
+    () => evalVBASingle(`
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open
+        stream.Close
+        stream.ReadText
+    `),
+    'ADODB.Stream rejects ReadText after Close',
+);
+
+const textStreamProperties = evalVBASingle(`
+    Function ProbeTextStreamProperties() As String
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-properties.txt", True, False)
+        stream.WriteLine "abc"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream-properties.txt", 1, False, -2)
+        ProbeTextStreamProperties = CStr(stream.Line) & "|" & CStr(stream.Column) & "|" & _
+            CStr(stream.AtEndOfLine) & "|" & CStr(stream.AtEndOfStream)
+    End Function
+`);
+assert.strictEqual(textStreamProperties.callProcedure('ProbeTextStreamProperties', []), '1|1|False|False',
+    'TextStream exposes line, column, and line-end state');
+
 assert.throwsMatch(
     () => evalVBASingle(`
         Dim xhr As Object

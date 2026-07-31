@@ -69,3 +69,11 @@ items:
     priorCauseKey: stream-state-boundary-divergence
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-ENGINE-009
+    title: TextStreamプロパティとClose後操作
+    status: queued
+    priority: 1
+    focus: AtEndOfLine/Line/ColumnとADODB Close後メソッド境界
+    priorCauseKey: nested-stream-property-stub-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
