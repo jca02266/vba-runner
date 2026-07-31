@@ -31,6 +31,10 @@ assert.strictEqual(evalExpr('MonthName(1.6)'), 'February',
     'MonthName rounds fractional month arguments');
 assert.strictEqual(evalExpr('MonthName(0.6)'), 'January',
     'MonthName rounds fractional lower-bound arguments');
+assert.strictEqual(evalExpr('FormatDateTime(#2024-03-15 14:30#, 1.6)'), '3/15/2024',
+    'FormatDateTime rounds fractional NamedFormat arguments');
+assert.throws(() => evalExpr('FormatDateTime(#2024-03-15#, 4.6)'),
+    'FormatDateTime rejects rounded-out-of-range NamedFormat');
 
 // 1. String Functions
 {

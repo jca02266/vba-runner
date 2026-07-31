@@ -509,3 +509,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-059
+    title: FormatDateTime列挙型引数境界
+    status: queued
+    priority: 1
+    focus: FormatDateTimeのNamedFormat小数・範囲と共通丸め
+    priorCauseKey: date-format-enum-rounding
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

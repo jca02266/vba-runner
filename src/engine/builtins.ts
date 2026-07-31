@@ -1260,7 +1260,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (val === vbaNull) return '';
         if (namedFmt === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const d = (val instanceof VbaDate) ? fromVbaDate(val.value) : parseVbaDate(val);
-        const fmt = ctx.toVbaNumber(namedFmt ?? 0);
+        const fmt = vbaRound(ctx.toVbaNumber(namedFmt ?? 0));
+        if (fmt < 0 || fmt > 4) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const pad2 = (n: number) => String(n).padStart(2, '0');
         const mo = d.getMonth() + 1, dy = d.getDate(), yr = d.getFullYear();
         const hh = d.getHours(), mm = d.getMinutes(), ss = d.getSeconds();
