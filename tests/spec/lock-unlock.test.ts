@@ -73,3 +73,25 @@ ${seed}        Open "${path}" For ${mode} As #1
 }
 
 console.log('[PASS] Sequential Lock/Unlock ranges normalize to the whole file');
+
+{
+    const ev = evalVba(`
+        Function CrossHandleLock() As Long
+            Open "C:\\ledger\\shared-range.dat" For Random Access Read Write Shared As #1 Len = 4
+            Open "C:\\ledger\\shared-range.dat" For Random Access Read Write Shared As #2 Len = 4
+            Lock #1, 1 To 2
+            On Error Resume Next
+            Lock #2, 2 To 3
+            CrossHandleLock = Err.Number * 100
+            Err.Clear
+            Close #1
+            Lock #2, 2 To 3
+            CrossHandleLock = CrossHandleLock + Err.Number
+            Close #2
+            On Error GoTo 0
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('CrossHandleLock', []), 7000,
+        'overlapping Shared handles raise 70 and Close releases the range');
+    console.log('[PASS] Cross-handle Lock registry');
+}

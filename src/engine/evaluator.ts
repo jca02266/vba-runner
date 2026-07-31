@@ -843,6 +843,7 @@ export class Evaluator {
     private moduleEnvs: Map<string, Environment> = new Map(); // Tier 2: per-module vars
     private fileHandles: Map<number, {
         fd: number,
+        fileNumber: number,
         mode: 'Input' | 'Output' | 'Append' | 'Random' | 'Binary',
         path: string,
         access: 'Read' | 'Write' | 'Read Write',
@@ -857,6 +858,8 @@ export class Evaluator {
         lineColumn?: number,
         locks?: Array<{ start: number, end: number, key: string }>
     }> = new Map();
+    /** Runtime Lock ranges shared by all handles in this evaluator. */
+    private fileLocks: Map<string, Array<{ owner: number, start: number, end: number, key: string }>> = new Map();
     private sandbox: SandboxPath;
     public fs: FileSystem;
     private onPrint: PrintCallback;
@@ -3194,7 +3197,14 @@ export class Evaluator {
         if (locks.some(lock => lock.start <= range.end && range.start <= lock.end)) {
             this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
         }
+        const pathLocks = this.fileLocks.get(handle.path) ?? [];
+        if (pathLocks.some(lock => lock.owner !== fileNum
+            && lock.start <= range.end && range.start <= lock.end)) {
+            this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, "Permission denied");
+        }
         locks.push(range);
+        pathLocks.push({ owner: fileNum, ...range });
+        this.fileLocks.set(handle.path, pathLocks);
     }
 
     private evaluateUnlockStatement(stmt: UnlockStatement) {
@@ -3206,6 +3216,11 @@ export class Evaluator {
         const index = locks.findIndex(lock => lock.key === range.key);
         if (index < 0) this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, "Path/File access error");
         locks.splice(index, 1);
+        const pathLocks = this.fileLocks.get(handle.path) ?? [];
+        const globalIndex = pathLocks.findIndex(lock => lock.owner === fileNum && lock.key === range.key);
+        if (globalIndex >= 0) pathLocks.splice(globalIndex, 1);
+        if (pathLocks.length > 0) this.fileLocks.set(handle.path, pathLocks);
+        else this.fileLocks.delete(handle.path);
     }
 
     private evaluateLockRange(
@@ -5521,6 +5536,7 @@ export class Evaluator {
                 : 0;
             this.fileHandles.set(fileNum, {
                 fd,
+                fileNumber: fileNum,
                 mode: stmt.mode,
                 path: realPath,
                 access,
@@ -5563,6 +5579,7 @@ export class Evaluator {
         for (const num of nums) {
             const handle = this.fileHandles.get(num);
             if (handle) {
+                this.releaseFileLocks(handle);
                 this.fs.closeSync(handle.fd);
                 this.fileHandles.delete(num);
             }
@@ -6363,9 +6380,19 @@ export class Evaluator {
 
     private evaluateResetStatement(_stmt: ResetStatement) {
         for (const [_num, handle] of this.fileHandles) {
+            this.releaseFileLocks(handle);
             this.fs.closeSync(handle.fd);
         }
         this.fileHandles.clear();
+    }
+
+    private releaseFileLocks(handle: { fileNumber: number, path: string, locks?: Array<{ start: number, end: number, key: string }> }): void {
+        const pathLocks = this.fileLocks.get(handle.path);
+        if (!pathLocks) return;
+        const remaining = pathLocks.filter(lock => lock.owner !== handle.fileNumber);
+        if (remaining.length > 0) this.fileLocks.set(handle.path, remaining);
+        else this.fileLocks.delete(handle.path);
+        handle.locks?.splice(0, handle.locks.length);
     }
 
     private evaluateAttributeStatement(stmt: AttributeStatement) {
