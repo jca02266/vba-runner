@@ -162,4 +162,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-034 | 1 | queued | Appendで既存末尾が改行途中の場合のWidth・Print開始列 | yes |
+| FZ-BUILTIN-035 | 1 | queued | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 | yes |

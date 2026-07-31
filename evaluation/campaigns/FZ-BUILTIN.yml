@@ -284,3 +284,21 @@ items:
     priorCauseKey: binary-get-composite-boundary
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-034
+    title: Append既存行のWidth開始列
+    status: queued
+    priority: 1
+    focus: Appendで既存末尾が改行途中の場合のWidth・Print開始列
+    priorCauseKey: width-append-initial-column
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+  - id: FZ-BUILTIN-035
+    title: 複数ハンドルのLock範囲競合
+    status: queued
+    priority: 1
+    focus: 同一ファイルを共有するLock/Unlock範囲のハンドル間競合
+    priorCauseKey: lock-cross-handle-range
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
