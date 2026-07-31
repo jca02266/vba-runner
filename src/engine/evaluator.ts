@@ -6660,6 +6660,13 @@ export class Evaluator {
             }
             throw error;
         };
+        const textStreamParamSpecs: Record<string, BuiltinParamSpec[]> = {
+            write: [{ name: 'Text', coerce: 'string' }],
+            writeline: [{ name: 'Text', coerce: 'string' }],
+            writeblanklines: [{ name: 'NumberOfLines' }],
+            read: [{ name: 'Characters' }],
+            skip: [{ name: 'Characters' }],
+        };
         this.registerComObject( () => ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
@@ -6725,12 +6732,13 @@ export class Evaluator {
                     const payload = useUnicode ? bytes.subarray(2) : bytes;
                     this.fs.writeSync(fd, payload);
                 };
-                return {
+                return this.decorateComObject({
+                    __vbaParamSpecs__: textStreamParamSpecs,
                     write: writeText,
                     writeline: (s: string) => writeText(s + "\r\n"),
                     writeblanklines: (count: number) => writeText("\r\n".repeat(Math.max(0, Math.trunc(Number(count))))),
                     close: () => this.fs.closeSync(fd)
-                };
+                });
             },
             opentextfile: (p: string, iomode: any = 1, create: any = false, format: any = -2) => {
                 const full = this.sandbox.toRealPath(p);
@@ -6765,7 +6773,8 @@ export class Evaluator {
                     }
                     return decodeTextStream(bytes.subarray(0, read), useUnicode);
                 };
-                return {
+                return this.decorateComObject({
+                    __vbaParamSpecs__: textStreamParamSpecs,
                     get atendofstream() {
                         const content = readContent();
                         return pos >= content.length ? vbaTrue : vbaFalse;
@@ -6819,7 +6828,7 @@ export class Evaluator {
                         this.fs.writeSync(fd, payload);
                     },
                     close: () => this.fs.closeSync(fd)
-                };
+                });
             },
             createfolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
@@ -6977,6 +6986,7 @@ export class Evaluator {
                     write: [{ name: 'Buffer' }],
                     writetext: [{ name: 'Text', coerce: 'string' }],
                     read: [{ name: 'NumBytes', optional: true }],
+                    readtext: [{ name: 'NumChars', optional: true }],
                     savetofile: [
                         { name: 'FileName', coerce: 'string' },
                         { name: 'SaveOptions', optional: true },
@@ -6990,8 +7000,20 @@ export class Evaluator {
                     content += String(data);
                 },
                 writetext: (text: string) => { content += text; },
-                read: (len: number) => { const r = content.slice(streamPos, streamPos + len); streamPos += len; return r; },
-                readtext: () => { const r = content.slice(streamPos); streamPos = content.length; return r; },
+                read: (len?: number) => {
+                    const requested = len === undefined || Number(len) < 0 ? content.length - streamPos : Math.max(0, Math.trunc(Number(len)));
+                    const r = content.slice(streamPos, streamPos + requested);
+                    streamPos += r.length;
+                    return r;
+                },
+                readtext: (numChars?: number) => {
+                    const requested = numChars === undefined || Number(numChars) < 0
+                        ? content.length - streamPos
+                        : Math.max(0, Math.trunc(Number(numChars)));
+                    const r = content.slice(streamPos, streamPos + requested);
+                    streamPos += r.length;
+                    return r;
+                },
                 savetofile: (p: string, _mode: number = 1) => {
                     const full = this.sandbox.toRealPath(p);
                     this.fs.writeFileSync(full, content);
@@ -7010,8 +7032,9 @@ export class Evaluator {
                 },
                 type: 2,
                 charset: 'utf-8',
-                position: streamPos,
-                size: content.length
+                get position() { return streamPos; },
+                set position(value: any) { streamPos = Math.max(0, Math.min(content.length, Math.trunc(Number(value)))); },
+                get size() { return content.length; }
             };
         });
     }

@@ -53,3 +53,11 @@ items:
     priorCauseKey: com-method-metadata-gap
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-ENGINE-007
+    title: TextStream・ADODB状態プロパティ境界
+    status: queued
+    priority: 1
+    focus: FSO TextStreamのRead/Write引数とADODB Stream状態プロパティ
+    priorCauseKey: nested-com-method-metadata-gap
+    coverageTargets:
+      - src/engine/evaluator.ts

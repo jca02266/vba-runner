@@ -153,6 +153,36 @@ assert.throws(
     'ADODB.Stream.Write rejects Null Buffer',
 );
 
+const textStreamResult = evalVBASingle(`
+    Function ProbeTextStreamNamed() As String
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream.txt", True, False)
+        stream.WriteLine Text:="alpha"
+        stream.Write Text:="beta"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream.txt", 1, False, -2)
+        stream.Skip Characters:=2
+        ProbeTextStreamNamed = stream.Read(Characters:=3)
+        stream.Close
+    End Function
+`);
+assert.strictEqual(textStreamResult.callProcedure('ProbeTextStreamNamed', []), 'pha',
+    'TextStream methods accept documented named arguments');
+
+const streamStateResult = evalVBASingle(`
+    Function ProbeStreamState() As String
+        Dim stream As Object
+        Set stream = CreateObject("ADODB.Stream")
+        stream.Open
+        stream.Write Buffer:="abc"
+        ProbeStreamState = stream.ReadText(NumChars:=2) & "|" & _
+            CStr(stream.Position) & "|" & CStr(stream.Size)
+    End Function
+`);
+assert.strictEqual(streamStateResult.callProcedure('ProbeStreamState', []), 'ab|2|3',
+    'ADODB.Stream ReadText length and state are preserved');
+
 assert.throwsMatch(
     () => evalVBASingle(`
         Dim xhr As Object
