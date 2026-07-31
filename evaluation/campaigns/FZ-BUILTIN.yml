@@ -455,3 +455,12 @@ items:
     priorCauseKey: date-weekday-diff-boundary
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-053
+    title: Registry・Interaction Optional境界
+    status: queued
+    priority: 1
+    focus: GetAllSettings/DeleteSettingとInteraction関数の空・Null・省略引数
+    priorCauseKey: optional-argument-presence-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

@@ -3174,12 +3174,12 @@ export class Evaluator {
     }
 
     private evaluateAppActivateStatement(stmt: AppActivateStatement) {
-        const title = String(this.evaluateExpression(stmt.title));
+        const title = vbaToString(this.evaluateExpression(stmt.title));
         console.log(`[STUB] AppActivate "${title}"`);
     }
 
     private evaluateSendKeysStatement(stmt: SendKeysStatement) {
-        const keys = String(this.evaluateExpression(stmt.keys));
+        const keys = vbaToString(this.evaluateExpression(stmt.keys));
         console.log(`[STUB] SendKeys "${keys}"`);
     }
 

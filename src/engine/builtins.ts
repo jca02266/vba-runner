@@ -1920,35 +1920,47 @@ export function registerConstants(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerRegistryFunctions(ctx: StdlibCtx): void {
-    ctx.reg('savesetting', (app: string, sec: string, key: string, val: any) => {
-        if (!ctx.registry[app]) ctx.registry[app] = {};
-        if (!ctx.registry[app][sec]) ctx.registry[app][sec] = {};
-        ctx.registry[app][sec][key] = String(val);
+    ctx.reg('savesetting', (app: any, sec: any, key: any, val: any) => {
+        const appName = app as string;
+        const section = sec as string;
+        const settingKey = key as string;
+        if (!ctx.registry[appName]) ctx.registry[appName] = {};
+        if (!ctx.registry[appName][section]) ctx.registry[appName][section] = {};
+        ctx.registry[appName][section][settingKey] = val as string;
     }, [
-        { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Setting' },
+        { name: 'AppName', coerce: 'string' }, { name: 'Section', coerce: 'string' },
+        { name: 'Key', coerce: 'string' }, { name: 'Setting', coerce: 'string' },
     ]);
     ctx.reg('getsetting', (app: any, sec: any, key: any, def: any = "") => {
         return (ctx.registry[vbaToString(app)]?.[vbaToString(sec)]?.[vbaToString(key)]) ?? vbaToString(def);
     }, [
-        { name: 'AppName' }, { name: 'Section' }, { name: 'Key' }, { name: 'Default', optional: true },
+        { name: 'AppName', coerce: 'string' }, { name: 'Section', coerce: 'string' },
+        { name: 'Key', coerce: 'string' }, { name: 'Default', optional: true, coerce: 'string' },
     ]);
-    ctx.reg('getallsettings', (app: string, sec: string) => {
-        const s = ctx.registry[app]?.[sec];
+    ctx.reg('getallsettings', (app: any, sec: any) => {
+        const s = ctx.registry[app as string]?.[sec as string];
         if (!s) return vbaEmpty;
         const res = Object.entries(s).map(([k, v]) => [k, v]);
-        (res as any).vbaBase = 1;
+        (res as any).__vbaDimensions__ = [
+            { lower: 0, upper: res.length - 1 },
+            { lower: 0, upper: 1 },
+        ];
+        (res as any).vbaBase = 0;
         return res;
-    }, [{ name: 'AppName' }, { name: 'Section' }]);
-    ctx.reg('deletesetting', (app: string, sec?: string, key?: string) => {
-        if (!ctx.registry[app]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        if (!sec) { delete ctx.registry[app]; return; }
-        if (!ctx.registry[app][sec]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        if (!key) { delete ctx.registry[app][sec]; return; }
-        if (!(key in ctx.registry[app][sec])) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        delete ctx.registry[app][sec][key];
+    }, [{ name: 'AppName', coerce: 'string' }, { name: 'Section', coerce: 'string' }]);
+    ctx.reg('deletesetting', (app: any, sec?: any, key?: any) => {
+        const appName = app as string;
+        const section = sec as string | undefined;
+        const settingKey = key as string | undefined;
+        if (!ctx.registry[appName]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        if (section === undefined) { delete ctx.registry[appName]; return; }
+        if (!ctx.registry[appName][section]) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        if (settingKey === undefined) { delete ctx.registry[appName][section]; return; }
+        if (!(settingKey in ctx.registry[appName][section])) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        delete ctx.registry[appName][section][settingKey];
     }, [
-        { name: 'AppName' },
-        { name: 'Section', optional: true },
-        { name: 'Key', optional: true },
+        { name: 'AppName', coerce: 'string' },
+        { name: 'Section', optional: true, coerce: 'string' },
+        { name: 'Key', optional: true, coerce: 'string' },
     ]);
 }
