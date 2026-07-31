@@ -125,7 +125,7 @@
 | EV-00219 | FZ-BUILTIN | verified-no-bug | LongLongとStringの境界変換 |
 | EV-00220 | FZ-BUILTIN | verified-no-bug | Decimal Currency Double混在除算 |
 | EV-00221 | FZ-BUILTIN | verified-no-bug | 数値Stringの基数・書式変換 |
-| EV-00222 | FZ-BUILTIN | needs-excel | CDec文字列の受理境界 |
+| EV-00222 | FZ-BUILTIN | fixed | CDec文字列の受理境界 |
 | EV-00223 | FZ-BUILTIN | fixed | Formatカスタム数値セクション |
 | EV-00224 | FZ-BUILTIN | needs-excel | Format浮動小数点丸め境界 |
 | EV-00225 | FZ-GRAMMAR | fixed | Like文字クラス境界 |
@@ -152,13 +152,13 @@
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 87 |
+| fixed | 88 |
 | known-limit | 1 |
-| needs-excel | 5 |
+| needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 49 |
 
-横展開未解決経路: 108、実Excel待ち評価: 5
+横展開未解決経路: 107、実Excel待ち評価: 4
 
 ## 次の候補
 

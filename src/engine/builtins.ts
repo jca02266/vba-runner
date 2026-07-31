@@ -332,13 +332,30 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (val === vbaNull) return vbaNull;
         return (ctx.envGet('cdate') as Function)(val);
     }, [{ name: 'Expression' }]);
+    const parseCDecString = (source: string): VbaDecimal => {
+        const text = source.trim();
+        const hex = /^([+-]?)&[hH]([0-9a-fA-F]+)$/.exec(text);
+        if (hex) {
+            const sign = hex[1] === '-' ? -1n : 1n;
+            return new VbaDecimal(sign * BigInt(`0x${hex[2]}`), 0);
+        }
+        const oct = /^([+-]?)&[oO]([0-7]+)$/.exec(text);
+        if (oct) {
+            const sign = oct[1] === '-' ? -1n : 1n;
+            return new VbaDecimal(sign * BigInt(`0o${oct[2]}`), 0);
+        }
+        const grouped = /^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(text)
+            || /^[+-]?\.\d+(?:[eE][+-]?\d+)?$/.test(text);
+        if (grouped) return VbaDecimal.fromString(text.replace(/,/g, '').replace(/^\+/, ''));
+        return VbaDecimal.fromString(text);
+    };
     ctx.reg('cdec', (val: any) => {
         val = unwrapConversionValue(val);
         if (val instanceof VbaDecimal) return val;
         if (val instanceof VbaCurrency) return new VbaDecimal(val.internal, 4);
         if (val instanceof VbaBoolean) return new VbaDecimal(BigInt(val.value), 0);
         if (typeof val === 'bigint') return new VbaDecimal(val, 0);
-        if (typeof val === 'string') return VbaDecimal.fromString(val.trim());
+        if (typeof val === 'string') return parseCDecString(val);
         return VbaDecimal.fromNumber(ctx.toVbaNumber(val));
     }, [{ name: 'Expression' }]);
     ctx.reg('ccur', (val: any) => {
