@@ -674,3 +674,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-077
+    title: Chr系コード境界
+    status: queued
+    priority: 1
+    focus: Chr/ChrW/ChrBのコード小数・Empty・Null・符号と上限境界
+    priorCauseKey: character-code-rounding-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

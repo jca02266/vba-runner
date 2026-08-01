@@ -79,6 +79,16 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'StrComp rounds fractional Compare arguments');
     assert.throws(() => evalExpr('StrComp("a", "A", 2)'),
         'StrComp rejects unsupported Compare values');
+    assert.strictEqual(evalExpr('Asc(Chr(65.6))'), 66,
+        'Chr rounds fractional character codes');
+    assert.strictEqual(evalExpr('AscW(ChrW(65.6))'), 66,
+        'ChrW rounds fractional character codes');
+    assert.strictEqual(evalExpr('AscB(ChrB(65.6))'), 66,
+        'ChrB rounds fractional character codes');
+    assert.throws(() => evalExpr('ChrB(-1)'),
+        'ChrB rejects negative character codes');
+    assert.throws(() => evalExpr('ChrB(256)'),
+        'ChrB rejects character codes above 255');
 }
 
 // 2. Conversion Functions

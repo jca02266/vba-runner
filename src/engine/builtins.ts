@@ -678,14 +678,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('ascw', ascFunc, [{ name: 'String' }]);
     const chrFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        const code = ctx.toVbaNumber(n);
+        const code = ctx.round(ctx.toVbaNumber(n));
         if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code);
     };
     ctx.reg('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
     const chrwFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        const code = ctx.toVbaNumber(n);
+        const code = ctx.round(ctx.toVbaNumber(n));
         if (code < -32768 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code < 0 ? code + 65536 : code);
     };
@@ -698,7 +698,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return str.charCodeAt(0) & 0xFF;
     }, [{ name: 'String' }], ['$']);
-    ctx.reg('chrb', (n: any) => { if (n === vbaNull) return vbaNull; return String.fromCharCode(ctx.toVbaNumber(n) & 0xFF); }, [{ name: 'CharCode' }], ['$']);
+    ctx.reg('chrb', (n: any) => {
+        if (n === vbaNull) return vbaNull;
+        const code = ctx.round(ctx.toVbaNumber(n));
+        if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return String.fromCharCode(code);
+    }, [{ name: 'CharCode' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
         let start: any = 1, s1: any, s2: any, comp: any;
