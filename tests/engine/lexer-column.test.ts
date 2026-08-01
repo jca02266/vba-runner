@@ -1,10 +1,20 @@
-import { Lexer, TokenType } from '../../src/engine/lexer';
+import { Lexer, LexError, TokenType } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { assert } from '../../test-libs/test-runner';
 
 function tokenize(src: string) {
     return new Lexer(src).tokenize();
 }
+
+// An unterminated date-looking literal must not fall back to OperatorHash.
+try {
+    tokenize('#2024/01/01');
+    assert.ok(false, 'unterminated date literal should throw');
+} catch (e: any) {
+    assert.ok(e instanceof LexError, 'unterminated date literal throws LexError');
+    assert.ok(e.message.includes('日付リテラル'), 'date error message is specific');
+}
+console.log('[PASS] Unterminated date literal: LexError');
 
 // 1. First token on line starts at column 1
 {

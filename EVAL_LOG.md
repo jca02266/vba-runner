@@ -263,13 +263,14 @@
 | EV-00357 | FZ-BUILTIN | fixed | Lexer未終端文字列境界 |
 | EV-00358 | FZ-BUILTIN | fixed | Lexer文字列内改行境界 |
 | EV-00359 | FZ-BUILTIN | verified-no-bug | Lexer不正数値リテラル境界 |
+| EV-00360 | FZ-BUILTIN | fixed | Lexer未終端日付リテラル境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 180 |
+| fixed | 181 |
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |

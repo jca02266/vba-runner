@@ -1117,3 +1117,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - src/engine/parser.ts
+  - id: FZ-BUILTIN-126
+    title: Lexer未終端日付リテラル境界
+    status: queued
+    priority: 1
+    focus: 日付らしい#リテラルの閉じ#欠落をLexErrorとして拒否
+    priorCauseKey: lexer-unterminated-date-validation
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/engine/lexer-column.test.ts

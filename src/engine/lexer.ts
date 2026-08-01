@@ -435,6 +435,24 @@ export class Lexer {
                         }
                     }
                 }
+                // A hash-delimited date-looking literal must not silently
+                // fall back to the file-number/hash operator when its closing
+                // delimiter is missing.
+                let unterminatedDate = '';
+                let dateLookahead = this.pos + 1;
+                while (dateLookahead < this.input.length
+                    && this.input[dateLookahead] !== '#'
+                    && this.input[dateLookahead] !== '\n'
+                    && this.input[dateLookahead] !== '\r') {
+                    unterminatedDate += this.input[dateLookahead++];
+                }
+                const unterminatedDateRegex = /^[0-9\/\-\s:apm,]+$/i;
+                const unterminatedMonthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+                if ((unterminatedDateRegex.test(unterminatedDate)
+                    && /[\/\-:]/.test(unterminatedDate))
+                    || unterminatedMonthsRegex.test(unterminatedDate)) {
+                    throw new LexError('日付リテラルが閉じられていません', startLine, startColumn);
+                }
                 // Fallback to OperatorHash
                 this.advance();
                 return { type: TokenType.OperatorHash, value: '#', line: startLine, column: startColumn };
