@@ -1009,3 +1009,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-114
+    title: 算術乗算の非有限境界
+    status: queued
+    priority: 1
+    focus: Double乗算のInfinity漏出をError 6へ統一
+    priorCauseKey: arithmetic-multiplication-finite-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/overflow-detection.test.ts

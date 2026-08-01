@@ -228,3 +228,19 @@ function runFunc(code: string, name: string, args: any[] = []): any {
 }
 
 console.log('\n✅ Overflow Detection: テスト完了');
+
+// Excel raises Overflow for a Double multiplication that becomes Infinity.
+{
+    const ev = evalVBASingle(`
+    Public multiplicationError As Long
+    Sub Test()
+        On Error Resume Next
+        Dim value As Double
+        value = 1E+308 * 100
+        multiplicationError = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('multiplicationerror'), 6, 'non-finite multiplication -> Error 6');
+}
+console.log('[PASS] non-finite multiplication overflow');

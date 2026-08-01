@@ -9727,7 +9727,11 @@ export class Evaluator {
                 }
                 return (leftVal instanceof VbaDate || rightVal instanceof VbaDate) ? new VbaDate(diff) : diff;
             }
-            case '*': return leftVal * rightVal;
+            case '*': {
+                const product = leftVal * rightVal;
+                if (!Number.isFinite(product)) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                return product;
+            }
             case '/':
                 // 0/0 は Error 6 (Overflow)、x/0 (x≠0) は Error 11（実 VBA 差分で裁定）
                 if (rightVal === 0 && leftVal === 0) this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
