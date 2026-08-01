@@ -701,3 +701,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-080
+    title: Error番号境界
+    status: queued
+    priority: 1
+    focus: CVErr/Errorの番号小数・Empty・Null・範囲
+    priorCauseKey: error-number-rounding-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

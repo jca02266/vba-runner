@@ -428,7 +428,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('cvar', (val: any) => val, [{ name: 'Expression' }]);
     ctx.reg('cverr', (val: any) => {
         if (val instanceof VbaErrorValue) return val;
-        const code = ctx.toVbaNumber(val);
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        const code = ctx.round(ctx.toVbaNumber(val));
         if (code < 0 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return new VbaErrorValue(code);
     }, [{ name: 'ErrorNumber' }]);
@@ -1856,7 +1857,8 @@ export function registerConstants(ctx: StdlibCtx): void {
     };
     const errFunc = (n?: any) => {
         if (n === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        return errorMessages[n === undefined ? ctx.errNum() : ctx.toVbaNumber(n)] || "Application-defined or object-defined error";
+        const code = n === undefined ? ctx.errNum() : ctx.round(ctx.toVbaNumber(n));
+        return errorMessages[code] || "Application-defined or object-defined error";
     };
     ctx.reg('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
     ctx.envSetConst('vbsunday', 1);

@@ -103,6 +103,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'RGB preserves even banker-rounding ties');
     assert.strictEqual(evalExpr('QBColor(0.5)'), 0,
         'QBColor uses VBA banker rounding for indices');
+    assert.strictEqual((evalExpr('CVErr(1.6)') as any).code, 2,
+        'CVErr rounds fractional error numbers');
+    assert.strictEqual(evalExpr('Error(4.6)'), 'Invalid procedure call or argument',
+        'Error rounds fractional error numbers');
+    assert.throws(() => evalExpr('CVErr(Null)'),
+        'CVErr rejects Null with Invalid use of Null');
 }
 
 // 2. Conversion Functions
