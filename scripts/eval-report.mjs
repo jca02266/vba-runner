@@ -182,13 +182,31 @@ function timeSeries(records, results, findings) {
   let nonBugEvaluations = 0;
   let bugEvaluations = 0;
   let otherEvaluations = 0;
+  const discoveredFindingIds = new Set();
+  const resolvedFindingIds = new Set();
+  const openFindingIds = new Set();
   return events.map(({ record, result }) => {
     evaluations += 1;
     const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
-    discovered += recordFindings.length;
-    // retired は仮説を退役させた状態であり、未改修バグとして残さない。
-    fixed += recordFindings.filter((finding) =>
-      finding.status === 'fixed' || finding.status === 'closed' || finding.status === 'retired').length;
+    const recordStatus = result.status ?? record.status;
+    for (const finding of recordFindings) {
+      if (!discoveredFindingIds.has(finding.id)) {
+        discoveredFindingIds.add(finding.id);
+        discovered += 1;
+      }
+      // 判定は評価イベント時点の状態だけで行う。現在のFinding frontmatterを
+      // 参照して過去の未改修期間を後から消さない。
+      const resolvedAtDiscovery = recordStatus === 'fixed' || recordStatus === 'retired';
+      if (resolvedAtDiscovery) {
+        openFindingIds.delete(finding.id);
+        if (!resolvedFindingIds.has(finding.id)) {
+          resolvedFindingIds.add(finding.id);
+          fixed += 1;
+        }
+      } else if (!resolvedFindingIds.has(finding.id)) {
+        openFindingIds.add(finding.id);
+      }
+    }
     if (pendingEvaluationStatuses.has(result.status)) pendingEvaluations += 1;
     if (result.status === 'verified-no-bug') nonBugEvaluations += 1;
     if (result.status === 'bug-found' || result.status === 'fixed') bugEvaluations += 1;
@@ -201,7 +219,7 @@ function timeSeries(records, results, findings) {
       evaluations,
       discovered,
       fixed,
-      openBugs: discovered - fixed,
+      openBugs: openFindingIds.size,
       pendingEvaluations,
       nonBugEvaluations,
       bugEvaluations,
