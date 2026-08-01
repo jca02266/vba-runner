@@ -1,4 +1,4 @@
-import { Lexer, LexError } from '../../src/engine/lexer';
+import { Lexer, LexError, TokenType } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { assert } from '../../test-libs/test-runner';
 
@@ -21,6 +21,21 @@ function expectLexError(src: string, msgFragment: string, label: string) {
         assert.ok(e instanceof LexError, `${label}: LexError のインスタンス`);
         assert.ok(e.message.includes(msgFragment), `${label}: メッセージに「${msgFragment}」が含まれる（got: ${e.message}）`);
     }
+}
+
+// ─── 未終端文字列 ────────────────────────────────────────────────────────────
+
+{
+    expectLexError('x = "abc', '閉じられていません', 'EOFで未終端の文字列');
+    console.log('[PASS] EOFで未終端の文字列: LexError をスロー');
+}
+
+{
+    const tokens = lex('x = "abc""def"');
+    const stringToken = tokens.find(token => token.type === TokenType.String);
+    assert.ok(stringToken !== undefined, 'エスケープ引用符を含む文字列トークン');
+    assert.strictEqual(stringToken!.value, 'abc"def', '二重引用符エスケープは正常');
+    console.log('[PASS] 二重引用符エスケープ: 文字列を維持');
 }
 
 // ─── 正常な行継続 ──────────────────────────────────────────────────────────────

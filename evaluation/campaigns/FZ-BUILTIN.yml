@@ -1090,3 +1090,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-BUILTIN-123
+    title: Lexer未終端文字列境界
+    status: queued
+    priority: 1
+    focus: EOFで閉じ引用符のない文字列リテラルをLexErrorとして拒否
+    priorCauseKey: lexer-unterminated-string-validation
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/engine/lexer-line-continuation.test.ts

@@ -260,13 +260,14 @@
 | EV-00354 | FZ-BUILTIN | needs-excel | SYD巨大値の中間範囲境界 |
 | EV-00355 | FZ-BUILTIN | verified-no-bug | Select Case比較経路の組み合わせ境界 |
 | EV-00356 | FZ-BUILTIN | verified-no-bug | 手続き引数束縛の組み合わせ境界 |
+| EV-00357 | FZ-BUILTIN | fixed | Lexer未終端文字列境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 178 |
+| fixed | 179 |
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |

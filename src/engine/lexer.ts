@@ -504,7 +504,7 @@ export class Lexer {
                         strValue += this.advance();
                     }
                 }
-                return { type: TokenType.String, value: strValue, line: startLine, column: startColumn };
+                throw new LexError('文字列リテラルが閉じられていません', startLine, startColumn);
             }
 
             if (char === '=') {
