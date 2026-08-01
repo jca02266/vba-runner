@@ -8862,6 +8862,16 @@ export class Evaluator {
     }
 
     private evaluateUnaryExpression(expr: UnaryExpression): any {
+        // A signed minimum Integer/Long literal is lexed as a positive
+        // suffixed literal followed by unary minus.  Its positive magnitude
+        // is outside the declared type, but the signed value is representable
+        // (e.g. -32768% and -2147483648&).  Handle this boundary before the
+        // operand is coerced so the suffix check sees the final signed value.
+        if (expr.operator === '-' && expr.argument.type === 'NumberLiteral') {
+            const literal = expr.argument as NumberLiteral;
+            if (literal.typeSuffix === '%' && literal.value === 32768) return -32768;
+            if (literal.typeSuffix === '&' && literal.value === 2147483648) return -2147483648;
+        }
         let argument = this.evaluateExpression(expr.argument);
         const op = expr.operator.toLowerCase();
 

@@ -106,3 +106,13 @@ items:
       - src/engine/lexer.ts
       - src/engine/parser.ts
       - tests/spec/literal-suffix.test.ts
+  - id: FZ-GRAMMAR-013
+    title: 符号付きInteger/Long最小値リテラル
+    status: queued
+    priority: 1
+    focus: 負号と%/&型サフィックスの最小値境界
+    priorCauseKey: signed-literal-suffix-minimum-overflow
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/number_literals.test.ts

@@ -49,6 +49,20 @@ const code = `
     Function TestScientific()
         TestScientific = 1.23E+2
     End Function
+
+    Function TestSignedIntegerMinimum() As Long
+        TestSignedIntegerMinimum = -32768%
+    End Function
+
+    Function TestSignedLongMinimum() As Long
+        TestSignedLongMinimum = -2147483648&
+    End Function
+
+    Function TestSignedMinimumExpressions() As String
+        Dim value As Variant
+        value = -32768%
+        TestSignedMinimumExpressions = CStr(value) & "|" & CStr(-2147483648&)
+    End Function
 `;
 
 const ev = evalVBA(code);
@@ -75,6 +89,12 @@ assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
 }
 assert.strictEqual(ev.callProcedure('TestStringEscape', []), 'a"b', 'String escape "a""b" -> a"b');
 assert.strictEqual(ev.callProcedure('TestScientific', []), 123, 'Scientific 1.23E+2 -> 123');
+assert.strictEqual(ev.callProcedure('TestSignedIntegerMinimum', []), -32768,
+    'Signed Integer literal minimum is representable');
+assert.strictEqual(ev.callProcedure('TestSignedLongMinimum', []), -2147483648,
+    'Signed Long literal minimum is representable');
+assert.strictEqual(ev.callProcedure('TestSignedMinimumExpressions', []), '-32768|-2147483648',
+    'Signed minima survive Variant assignment and expression evaluation');
 
 const sfx = ev.callProcedure('TestSuffixes', []);
 assert.strictEqual(sfx[0], 123, 'Suffix % -> 123');
