@@ -53,7 +53,10 @@ after migration, use the structured records and the generated Markdown view.
    a fix, test, or state transition until the structured record is valid and
    the generated root `EVAL_LOG.md` is up to date. Do not create or commit an
    `evaluation/EVAL_LOG.generated.md` duplicate. Commit the implementation,
-   regression test, structured record, and generated view together.
+   regression test, structured record, and generated view together. When a
+   candidate changes from `needs-excel`, `blocked`, or `in-progress`, use the
+   `transition` command rather than editing its result snapshot; this appends
+   the state event and preserves the previous state for later reporting.
 9. After each evaluation commit, refresh the local HTML report with
    `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit

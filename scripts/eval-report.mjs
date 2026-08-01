@@ -88,6 +88,17 @@ function readResults() {
   return results;
 }
 
+function readStateEvents() {
+  const events = [];
+  for (const name of listFiles(statesDir, '.events.yml')) {
+    const candidateId = name.slice(0, -'.events.yml'.length);
+    const rows = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
+    if (!Array.isArray(rows)) throw new Error(`${name}: events must be an array`);
+    for (const event of rows) events.push({ ...event, candidateId: event.candidateId ?? candidateId });
+  }
+  return events.sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+}
+
 function readFindings() {
   const findingsDir = path.join(evaluationRoot, 'findings');
   const findings = new Map();
@@ -232,7 +243,7 @@ function mdCell(value) {
   return String(value ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ');
 }
 
-function renderMarkdown(records, summary, series, findingTypes) {
+function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const completed = series.length;
   const pending = records.length - completed;
@@ -256,6 +267,14 @@ function renderMarkdown(records, summary, series, findingTypes) {
     '| 発見種別 | Finding件数 |',
     '|---|---:|',
     ...findingTypes.map((row) => `| ${mdCell(row.type)} | ${row.count} |`),
+    '',
+    '## 状態遷移履歴',
+    '',
+    '状態スナップショットとは別に、`evaluation/states/*.events.yml` の追記型履歴を表示します。履歴がない既存状態はここには表示されません。',
+    '',
+    '| 発生日時 | 候補 | 評価ID | 遷移前 | 遷移後 |',
+    '|---|---|---|---|---|',
+    ...stateEvents.map((event) => `| ${event.occurredAt} | ${mdCell(event.candidateId)} | ${mdCell(event.evaluationId)} | ${mdCell(event.fromStatus ?? '(なし)')} | ${mdCell(event.status)} |`),
     '',
     '## 状態の計上先',
     '',
@@ -330,11 +349,12 @@ new Chart(document.getElementById('finding-chart'), {
 </script>`;
 }
 
-function renderHtml(records, summary, series, findingTypes) {
+function renderHtml(records, summary, series, findingTypes, stateEvents) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
+  const eventRows = stateEvents.map((event) => `<tr><td>${htmlCell(formatLocalDateTime(event.occurredAt))}</td><td>${htmlCell(event.candidateId)}</td><td>${htmlCell(event.evaluationId)}</td><td>${htmlCell(event.fromStatus ?? '(なし)')}</td><td>${htmlCell(event.status)}</td></tr>`).join('\n');
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
@@ -346,6 +366,7 @@ function renderHtml(records, summary, series, findingTypes) {
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
+<h2>状態遷移履歴</h2><p>追記型イベントファイルに記録された状態遷移です。既存のスナップショットに履歴がない状態は表示されません。</p><table><thead><tr><th>発生日時（ローカルTZ）</th><th>候補</th><th>評価ID</th><th>遷移前</th><th>遷移後</th></tr></thead><tbody>${eventRows || '<tr><td colspan="5">（履歴なし）</td></tr>'}</tbody></table>
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
@@ -378,13 +399,14 @@ function main() {
   const findings = readFindings();
   const series = timeSeries(records, results, findings);
   const findingTypes = findingTypeSummary(records, findings);
+  const stateEvents = readStateEvents();
   if (options.output) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
-    fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes));
+    fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes, stateEvents));
   }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
-    fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes));
+    fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes, stateEvents));
   }
   if (options.csv) {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });

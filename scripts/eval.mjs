@@ -101,6 +101,62 @@ function readResults() {
   return results;
 }
 
+function eventsFile(candidateId) {
+  return path.join(statesDir, `${candidateId}.events.yml`);
+}
+
+function readEvents(candidateId) {
+  const file = eventsFile(candidateId);
+  if (!fs.existsSync(file)) return [];
+  const events = yaml.load(fs.readFileSync(file, 'utf8'), { json: true });
+  if (!Array.isArray(events)) throw new Error(`${file}: events must be an array`);
+  return events;
+}
+
+function validateEvents(candidateId, events, result) {
+  let previousStatus = null;
+  for (const [index, event] of events.entries()) {
+    if (!event || event.candidateId !== candidateId || !event.evaluationId
+      || !statuses.has(event.status) || !event.occurredAt
+      || Number.isNaN(Date.parse(event.occurredAt))) {
+      throw new Error(`${eventsFile(candidateId)}: invalid event ${index + 1}`);
+    }
+    if (event.fromStatus !== undefined && event.fromStatus !== previousStatus) {
+      throw new Error(`${eventsFile(candidateId)}: event ${index + 1} fromStatus does not match history`);
+    }
+    if (previousStatus === event.status) {
+      throw new Error(`${eventsFile(candidateId)}: event ${index + 1} repeats status ${event.status}`);
+    }
+    previousStatus = event.status;
+  }
+  if (result && events.length > 0) {
+    const last = events.at(-1);
+    if (last.status !== result.status || last.evaluationId !== result.evaluationId) {
+      throw new Error(`${eventsFile(candidateId)}: last event does not match result snapshot`);
+    }
+  }
+}
+
+function appendEvent(candidateId, evaluationId, status, fromStatus = null) {
+  const events = readEvents(candidateId);
+  validateEvents(candidateId, events);
+  const event = {
+    candidateId,
+    evaluationId,
+    status,
+    ...(fromStatus ? { fromStatus } : {}),
+    occurredAt: new Date().toISOString(),
+  };
+  const next = [...events, event];
+  validateEvents(candidateId, next);
+  fs.mkdirSync(statesDir, { recursive: true });
+  const target = eventsFile(candidateId);
+  const temporary = `${target}.${process.pid}.${Date.now()}.tmp`;
+  fs.writeFileSync(temporary, yaml.dump(next, { noRefs: true, lineWidth: 100 }));
+  fs.renameSync(temporary, target);
+  return event;
+}
+
 function readCoverageTargets() {
   if (!fs.existsSync(coverageIndexFile)) return [];
   const index = yaml.load(fs.readFileSync(coverageIndexFile, 'utf8'), { json: true });
@@ -190,7 +246,8 @@ function validate(records = readRecords()) {
   }
   const items = readCampaignItems();
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
-  for (const [candidateId, result] of readResults()) {
+  const results = readResults();
+  for (const [candidateId, result] of results) {
     const expectedFile = `${candidateId}.result.yml`;
     if (path.basename(result.file) !== expectedFile) {
       throw new Error(`${result.file}: result filename does not match ${candidateId}`);
@@ -208,6 +265,12 @@ function validate(records = readRecords()) {
     if (evaluation.status !== result.status) {
       throw new Error(`${result.file}: result status ${result.status} does not match evaluation ${evaluation.status}`);
     }
+    validateEvents(candidateId, readEvents(candidateId), result);
+  }
+  for (const name of files(statesDir, '.events.yml')) {
+    const candidateId = name.slice(0, -'.events.yml'.length);
+    if (!results.has(candidateId)) throw new Error(`${path.join(statesDir, name)}: missing result snapshot`);
+    validateEvents(candidateId, readEvents(candidateId), results.get(candidateId));
   }
   validateCoverageIndex();
   return records;
@@ -281,7 +344,9 @@ function claim(id) {
   const item = readCampaignItems().get(id);
   if (!item) throw new Error(`unknown campaign item ${id}`);
   if (item.status !== 'queued') throw new Error(`${id} is not queued (${item.status})`);
-  if (readResults().has(id)) throw new Error(`${id} already has a result`);
+  const existingResult = readResults().get(id);
+  const resumable = existingResult && ['needs-excel', 'blocked', 'in-progress'].includes(existingResult.status);
+  if (existingResult && !resumable) throw new Error(`${id} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
   const existing = readClaims({ includeStale: true }).get(id);
@@ -350,12 +415,20 @@ function complete(candidateId, evaluationId, status, token) {
     throw new Error(`${evaluationId} fixed result requires commit and regression tests`);
   }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
-  if (fs.existsSync(target)) throw new Error(`${candidateId} already has a result`);
+  const previous = readResults().get(candidateId);
+  if (previous && !['needs-excel', 'blocked', 'in-progress'].includes(previous.status)) {
+    throw new Error(`${candidateId} already has a terminal result`);
+  }
   fs.mkdirSync(statesDir, { recursive: true });
   fs.writeFileSync(target, yaml.dump({ candidateId, evaluationId, status, completedAt: new Date().toISOString() }, { noRefs: true }));
+  appendEvent(candidateId, evaluationId, status, previous?.status ?? null);
   const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
   fs.rmSync(claimFile, { force: true });
   console.log(target);
+}
+
+function transition(candidateId, evaluationId, status, token) {
+  return complete(candidateId, evaluationId, status, token);
 }
 
 function context(candidateId, limit = 5) {
@@ -460,7 +533,7 @@ function hash(file) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition> [args]');
 }
 
 try {
@@ -482,6 +555,8 @@ try {
     release(process.argv[3], process.argv[4]);
   } else if (command === 'complete' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6]) {
     complete(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
+  } else if (command === 'transition' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6]) {
+    transition(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
   } else if (command === 'context' && process.argv[3]) {
     context(process.argv[3], Number(process.argv[4]) || 5);
   } else if (command === 'record' && process.argv[3]) {

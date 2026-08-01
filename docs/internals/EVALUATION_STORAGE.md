@@ -91,6 +91,7 @@ evaluation/
   campaigns/*.yml            # 探索候補と優先度・coverage対象
   states/*.claim.yml         # 実行中claim（TTL付き）
   states/*.result.yml        # 完了した候補と評価ID・状態
+  states/*.events.yml        # 状態遷移の追記型履歴（任意）
   coverage-index.yml         # 既存coverage JSONへの参照
   schema.yml                 # frontmatterと状態の検証規則
   legacy/EVAL_LOG.md         # 移行前ログの保全コピー
@@ -137,6 +138,7 @@ npm run eval -- claim <candidate-id>
 npm run eval -- release <candidate-id> <claim-token>
 npm run eval -- record <evaluation-file>
 npm run eval -- complete <candidate-id> <evaluation-id> <status> <claim-token>
+npm run eval -- transition <candidate-id> <evaluation-id> <status> <claim-token>
 npm run eval -- validate
 npm run eval -- render EVAL_LOG.md
 ```
@@ -148,6 +150,7 @@ npm run eval -- render EVAL_LOG.md
 - `release`: tokenを検証してclaimを解放する。
 - `record`: 評価記録を冪等に保存する。同じIDの異なる内容は拒否する。
 - `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
+- `transition`: `needs-excel`、`blocked`、`in-progress` の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
 - `validate`: frontmatter、必須項目、参照関係、result整合性を検証する。
 - `render`: 構造化記録から決定的なMarkdownビューを生成する。
 
@@ -198,6 +201,19 @@ git commit
 完了後に `complete` で候補と評価を関連付ける。結果ファイルが作成されると、
 `next` はその候補を自動的に除外する。次の評価では、直近の `causeKey` と横展開結果を
 再利用し、同じテストを理由なく繰り返さない。
+
+### 状態履歴
+
+`*.result.yml` は候補の現在状態を示すスナップショットであり、過去の状態を上書きする。
+そのため、実機照合待ちなどを後から解消した場合にも時系列を失わないよう、完了または
+再判定のたびに同じ候補の `*.events.yml` へイベントを追記する。イベントには
+`candidateId`、`evaluationId`、`status`、`fromStatus`（2回目以降）、`occurredAt`
+を保存し、最後のイベントはresultの状態・評価IDと一致しなければならない。
+
+既存候補に履歴がないことは許容する。移行時に推測で過去イベントを作らず、次回の
+状態更新から記録を開始する。`scripts/eval-report.mjs` はイベントファイルを読み取り、
+レポートの状態遷移履歴に表示する。履歴がない過去状態の増減を推測してグラフへ追加する
+ことはしない。
 
 ## トークン節約と収束
 
