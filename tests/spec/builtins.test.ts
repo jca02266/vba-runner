@@ -168,6 +168,16 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Filter rejects an invalid comparison mode');
     assert.throwsMatch(() => evalExpr('Filter(Array("alpha"), Null)'), /error '94'/,
         'Filter rejects a Null match with Invalid use of Null');
+    assert.strictEqual(evalExpr('Replace("abcabc", "a", "X", 1.6)'), 'bcXbc',
+        'Replace rounds its Start argument to a Long');
+    assert.strictEqual(evalExpr('Replace("abcabc", "a", "X", 1, 1.4)'), 'Xbcabc',
+        'Replace rounds its Count argument to a Long');
+    assert.throwsMatch(() => evalExpr('Replace("abc", "a", "X", Null)'), /error '94'/,
+        'Replace rejects Null Start with Invalid use of Null');
+    assert.throwsMatch(() => evalExpr('Replace("abc", "a", "X", 1, Null)'), /error '94'/,
+        'Replace rejects Null Count with Invalid use of Null');
+    assert.throwsMatch(() => evalExpr('Replace("abc", "a", "X", 1, -1, 2)'), /error '5'/,
+        'Replace rejects database comparison outside Access');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

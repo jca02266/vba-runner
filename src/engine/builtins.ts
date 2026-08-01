@@ -894,13 +894,22 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('replace', (s: any, f: any, r: any, start: any = 1, count: any = -1, compare: any = undefined) => {
         if (s === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (f === vbaNull || r === vbaNull) return vbaNull;
+        if (start === vbaNull || count === vbaNull) {
+            ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
         rejectNullCompare(compare);
+        if (compare !== undefined && compare !== vbaMissing) {
+            const compareValue = ctx.toVbaNumber(compare);
+            if (compareValue !== 0 && compareValue !== 1) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
+        }
         const str = vbaToString(s ?? '');
         const find = vbaToString(f ?? '');
         const repl = vbaToString(r ?? '');
-        const startNum = ctx.toVbaNumber(start ?? 1);
+        const startNum = ctx.round(ctx.toVbaNumber(start ?? 1));
         if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        const countNum = ctx.toVbaNumber(count ?? -1);
+        const countNum = ctx.round(ctx.toVbaNumber(count ?? -1));
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
         // Slice from start position (1-based), operate, then return from that offset
         const prefix = str.substring(0, startNum - 1);

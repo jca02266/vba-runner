@@ -629,3 +629,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-072
+    title: Replace数値引数境界
+    status: queued
+    priority: 1
+    focus: ReplaceのStart/Count/Compareの小数・Null・負値・無効列挙と空検索文字列
+    priorCauseKey: replace-optional-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
