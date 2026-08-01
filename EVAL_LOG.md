@@ -212,13 +212,14 @@
 | EV-00306 | FZ-BUILTIN | fixed | MidB引数境界 |
 | EV-00307 | FZ-BUILTIN | fixed | StrComp比較境界 |
 | EV-00308 | FZ-BUILTIN | fixed | Chr系コード境界 |
+| EV-00309 | FZ-BUILTIN | fixed | LeftRightMid境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 143 |
+| fixed | 144 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
