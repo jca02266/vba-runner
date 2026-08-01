@@ -7067,6 +7067,10 @@ export class Evaluator {
             let streamPos = 0;
             let closed = true;
             const evaluator = this;
+            const rejectNullArgument = (value: any) => {
+                if (value === vbaNull) evaluator.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                return value;
+            };
             const ensureOpen = () => {
                 if (closed) evaluator.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Operation is not allowed when object is closed');
             };
@@ -7084,7 +7088,7 @@ export class Evaluator {
                     ],
                     loadfromfile: [{ name: 'FileName', coerce: 'string' }],
                 },
-                open: () => { closed = false; streamPos = 0; },
+                open: (options?: any) => { rejectNullArgument(options); closed = false; streamPos = 0; },
                 close: () => { closed = true; },
                 write: (data: any) => {
                     ensureOpen();
@@ -7095,6 +7099,7 @@ export class Evaluator {
                 writetext: (text: string) => { ensureOpen(); content += text; streamPos = content.length; },
                 read: (len?: number) => {
                     ensureOpen();
+                    rejectNullArgument(len);
                     const requested = len === undefined || Number(len) < 0 ? content.length - streamPos : Math.max(0, Math.trunc(Number(len)));
                     const r = content.slice(streamPos, streamPos + requested);
                     streamPos += r.length;
@@ -7103,6 +7108,7 @@ export class Evaluator {
                 readtext: (...args: any[]) => {
                     ensureOpen();
                     const numChars = args[0] as number | undefined;
+                    rejectNullArgument(numChars);
                     const requested = numChars === undefined || Number(numChars) < 0
                         ? content.length - streamPos
                         : Math.max(0, Math.trunc(Number(numChars)));
@@ -7112,6 +7118,7 @@ export class Evaluator {
                 },
                 savetofile: (p: string, _mode: number = 1) => {
                     ensureOpen();
+                    rejectNullArgument(_mode);
                     const full = this.sandbox.toRealPath(p);
                     this.fs.writeFileSync(full, content);
                 },

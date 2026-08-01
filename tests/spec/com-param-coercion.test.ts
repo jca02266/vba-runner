@@ -50,6 +50,22 @@ const streamResult = evalVBASingle(`
 assert.strictEqual(streamResult.callProcedure('ProbeStreamNull', []), 94,
     'COM string parameters reject Null with Invalid use of Null');
 
+const streamNumericNullResult = evalVBASingle(`
+    Function ProbeStreamNumericNull() As String
+        Dim stream As Object, result As String
+        Set stream = CreateObject("ADODB.Stream")
+        On Error Resume Next
+        stream.Open Options:=Null
+        result = CStr(Err.Number) & "|"
+        Err.Clear
+        stream.Open Options:=0
+        stream.Read NumBytes:=Null
+        ProbeStreamNumericNull = result & CStr(Err.Number)
+    End Function
+`);
+assert.strictEqual(streamNumericNullResult.callProcedure('ProbeStreamNumericNull', []), '94|94',
+    'ADODB numeric arguments reject Null with Invalid use of Null');
+
 const dictionaryResult = evalVBASingle(`
     Function ProbeDictionaryMissing() As String
         Dim dictionary As Object

@@ -140,3 +140,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: META-ENGINE-017
+    title: COM Boolean変換Null境界の横展開
+    status: queued
+    priority: 1
+    focus: ADODB/XMLHTTP/FSO/DictionaryのBoolean Variant・Null・省略引数
+    priorCauseKey: boolean-coercion-null-error-divergence
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
