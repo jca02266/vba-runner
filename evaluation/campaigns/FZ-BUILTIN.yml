@@ -818,3 +818,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-093
+    title: 金融関数Guess Null境界
+    status: queued
+    priority: 2
+    focus: IRR/RateのOptional Guess Null・Emptyと共通数値変換
+    priorCauseKey: financial-optional-null-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
