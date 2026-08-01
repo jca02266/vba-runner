@@ -201,19 +201,20 @@
 | EV-00295 | FZ-BUILTIN | fixed | IsNumeric情報関数の文字列境界 |
 | EV-00296 | FZ-BUILTIN | fixed | IsNumeric Unicode数字境界 |
 | EV-00297 | FZ-BUILTIN | fixed | Val文字列走査境界 |
+| EV-00298 | FZ-BUILTIN | fixed | Val型サフィックス全境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 133 |
+| fixed | 134 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 58 |
 
-横展開未解決経路: 198、実Excel待ち評価: 3
+横展開未解決経路: 200、実Excel待ち評価: 3
 
 ## 次の候補
 
