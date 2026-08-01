@@ -247,13 +247,14 @@
 | EV-00341 | FZ-BUILTIN | fixed | RmDir非空ディレクトリ境界 |
 | EV-00342 | FZ-BUILTIN | fixed | OpenTextFile IOMode境界 |
 | EV-00343 | FZ-BUILTIN | fixed | Killディレクトリ対象境界 |
+| EV-00344 | FZ-BUILTIN | fixed | FSO DeleteFolder Force境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 168 |
+| fixed | 169 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |

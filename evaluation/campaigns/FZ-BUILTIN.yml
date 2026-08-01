@@ -973,3 +973,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-110
+    title: FSO DeleteFolder Force境界
+    status: queued
+    priority: 1
+    focus: 非空フォルダのForce省略時は削除せずError 75、True時のみ再帰削除
+    priorCauseKey: fso-deletefolder-force-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

@@ -6902,6 +6902,10 @@ export class Evaluator {
                     { name: 'destination', coerce: 'string' },
                 ],
                 createfolder: [{ name: 'path', coerce: 'string' }],
+                deletefolder: [
+                    { name: 'path' },
+                    { name: 'force', optional: true, coerce: 'boolean' },
+                ],
                 getfile: [{ name: 'filespec', coerce: 'string' }],
                 getfolder: [{ name: 'folderspec', coerce: 'string' }],
                 getbasename: [{ name: 'path', coerce: 'string' }],
@@ -7138,12 +7142,22 @@ export class Evaluator {
                     throw e;
                 }
             },
-            deletefolder: (p: string) => {
+            deletefolder: (p: string, force: any = false) => {
+                if (force === vbaNull) {
+                    this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                }
                 const full = this.sandbox.toRealPath(p);
                 if (!this.fs.existsSync(full)) {
                     this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                 }
-                this.fs.rmSync?.(full, { recursive: true, force: true });
+                if (!this.fs.statSync(full).isDirectory()) {
+                    this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+                }
+                const forceDelete = vbaFlagIsTrue(force);
+                if (!forceDelete && this.fs.readdirSync(full).length > 0) {
+                    this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+                }
+                this.fs.rmSync?.(full, { recursive: forceDelete, force: forceDelete });
             },
             getfile: (p: string) => {
                 const full = this.sandbox.toRealPath(p);

@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -176,6 +176,21 @@ const allCode = `
         On Error GoTo 0
         RmDir "kill_dir"
     End Sub
+
+    Sub Test13FsoDeleteFolderForce()
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "delete_folder"
+        Set stream = fso.CreateTextFile("delete_folder\\child.txt")
+        stream.Write "x"
+        stream.Close
+        On Error Resume Next
+        Err.Clear
+        fso.DeleteFolder "delete_folder"
+        deleteFolderErr = Err.Number
+        On Error GoTo 0
+        fso.DeleteFolder "delete_folder", True
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -260,5 +275,10 @@ console.log('[PASS] FSO OpenTextFile IOMode validation');
 ev.callProcedure('Test12KillDirectory', []);
 assert.strictEqual(ev.env.get('killdirectoryerr'), 75, 'Kill directory target -> Error 75');
 console.log('[PASS] Kill directory target validation');
+
+// Test 13: FSO DeleteFolder defaults Force to False for non-empty folders.
+ev.callProcedure('Test13FsoDeleteFolderForce', []);
+assert.strictEqual(ev.env.get('deletefoldererr'), 75, 'DeleteFolder non-empty without Force -> Error 75');
+console.log('[PASS] FSO DeleteFolder Force validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');
