@@ -1045,3 +1045,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-118
+    title: FSO DeleteFile Force属性境界
+    status: queued
+    priority: 1
+    focus: 読み取り専用ファイルのForce省略・FalseはError 70、Trueのみ削除
+    priorCauseKey: fso-deletefile-force-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts

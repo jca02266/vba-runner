@@ -7103,9 +7103,26 @@ export class Evaluator {
                 this.fs.mkdirSync(full);
                 return { path: p };
             },
-            deletefile: (p: string) => {
+            deletefile: (p: string, force: any = false) => {
                 const full = this.sandbox.toRealPath(p);
                 try {
+                    const attributes = this.fs.getAttributes?.(full);
+                    const readOnly = attributes !== undefined
+                        ? (attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0
+                        : (() => {
+                            const stat = this.fs.statSync(full);
+                            return stat.mode !== undefined && (stat.mode & 0o222) === 0;
+                        })();
+                    if (readOnly) {
+                        if (!vbaFlagIsTrue(force)) {
+                            this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, 'Permission denied');
+                        }
+                        if (this.fs.setAttributes && attributes !== undefined) {
+                            this.fs.setAttributes(full, attributes & ~VBA_FILE_ATTRIBUTE.READ_ONLY);
+                        } else if ((this.fs as any).chmodSync) {
+                            (this.fs as any).chmodSync(full, 0o666);
+                        }
+                    }
                     this.fs.unlinkSync(full);
                 } catch (e: any) {
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e)))

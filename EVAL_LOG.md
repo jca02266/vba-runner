@@ -255,13 +255,14 @@
 | EV-00349 | FZ-BUILTIN | fixed | FSO CopyFolder実装境界 |
 | EV-00350 | FZ-BUILTIN | fixed | FSO MoveFolder実装境界 |
 | EV-00351 | FZ-BUILTIN | fixed | SetAttr Directory属性境界 |
+| EV-00352 | FZ-BUILTIN | fixed | FSO DeleteFile Force属性境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 176 |
+| fixed | 177 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
