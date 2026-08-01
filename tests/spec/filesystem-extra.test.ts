@@ -15,6 +15,7 @@ function evalVBA(code: string): any {
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
+    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -88,6 +89,28 @@ const allCode = `
         Kill "copy_src.txt"
         Kill "copy_dst.txt"
     End Sub
+
+    Sub Test7FileNumberNull()
+        On Error Resume Next
+        Err.Clear
+        eofNullErr = Err.Number
+        eofNullErr = 0
+        eofNullErr = EOF(Null)
+        eofNullErr = Err.Number
+        Err.Clear
+        lofNullErr = LOF(Null)
+        lofNullErr = Err.Number
+        Err.Clear
+        locNullErr = Loc(Null)
+        locNullErr = Err.Number
+        Err.Clear
+        seekNullErr = Seek(Null)
+        seekNullErr = Err.Number
+        Err.Clear
+        Open "null-file.txt" For Output As #Null
+        openNullErr = Err.Number
+        On Error GoTo 0
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -135,5 +158,14 @@ console.log('[PASS] Dir attributes filter directories');
 ev.callProcedure('Test6FileCopyExistingDestination', []);
 assert.strictEqual(ev.env.get('copyerr'), 58, 'FileCopy existing destination -> Error 58');
 console.log('[PASS] FileCopy existing destination');
+
+// Test 7: File-number functions reject Null with Error 94.
+ev.callProcedure('Test7FileNumberNull', []);
+assert.strictEqual(ev.env.get('eofnullerr'), 94, 'EOF(Null) -> Error 94');
+assert.strictEqual(ev.env.get('lofnullerr'), 94, 'LOF(Null) -> Error 94');
+assert.strictEqual(ev.env.get('locnullerr'), 94, 'Loc(Null) -> Error 94');
+    assert.strictEqual(ev.env.get('seeknullerr'), 94, 'Seek(Null) -> Error 94');
+    assert.strictEqual(ev.env.get('opennullerr'), 94, 'Open file number Null -> Error 94');
+console.log('[PASS] File-number Null validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

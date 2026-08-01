@@ -1230,19 +1230,19 @@ export class Evaluator {
         };
         this.registerBuiltin('freefile', freeFileFunc, [{ name: 'RangeNumber', optional: true }]);
         this.registerBuiltin('eof', (fn: any) => {
-            const h = this.fileHandles.get(this.toVbaNumber(fn));
+            const h = this.fileHandles.get(this.toFileNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             if (h.mode === 'Output' || h.mode === 'Append') return vbaTrue;
             if (h.mode === 'Random' || h.mode === 'Binary') return h.eof ? vbaTrue : vbaFalse;
             return h.pos! >= this.fs.statSync(h.path).size ? vbaTrue : vbaFalse;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('lof', (fn: any) => {
-            const h = this.fileHandles.get(this.toVbaNumber(fn));
+            const h = this.fileHandles.get(this.toFileNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             return this.fs.statSync(h.path).size;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('loc', (fn: any) => {
-            const h = this.fileHandles.get(this.toVbaNumber(fn));
+            const h = this.fileHandles.get(this.toFileNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             if (h.mode === 'Random') return h.lastRecord ?? 0;
             if (h.mode === 'Input' || h.mode === 'Output' || h.mode === 'Append') {
@@ -1251,7 +1251,7 @@ export class Evaluator {
             return h.pos;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('seek', (fn: any) => {
-            const h = this.fileHandles.get(this.toVbaNumber(fn));
+            const h = this.fileHandles.get(this.toFileNumber(fn));
             if (!h) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
             if (h.mode === 'Random') return h.nextRecord ?? 1;
             return (h.pos || 0) + 1;
@@ -2785,6 +2785,19 @@ export class Evaluator {
         }
     }
 
+    /** Convert a file-number argument while preserving VBA's Null error. */
+    private toFileNumber(val: any): number {
+        if (val === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+        return this.toVbaNumber(val);
+    }
+
+    /** Evaluate a statement's file-number expression with the same Null rule. */
+    private evaluateFileNumber(expr: Expression): number {
+        return this.toFileNumber(this.evaluateExpression(expr));
+    }
+
     private toVbaString(val: any): string {
         try {
             return vbaToString(val);
@@ -3269,7 +3282,7 @@ export class Evaluator {
     }
 
     private evaluateLockStatement(stmt: LockStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         const range = this.evaluateLockRange(handle.mode, stmt.recordRange);
@@ -3288,7 +3301,7 @@ export class Evaluator {
     }
 
     private evaluateUnlockStatement(stmt: UnlockStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         const range = this.evaluateLockRange(handle.mode, stmt.recordRange);
@@ -3331,7 +3344,7 @@ export class Evaluator {
     }
 
     private evaluateWidthStatement(stmt: WidthStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const width = Number(this.evaluateExpression(stmt.width));
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
@@ -5553,7 +5566,7 @@ export class Evaluator {
     private evaluateOpenStatement(stmt: OpenStatement) {
         const vbaPath = String(this.evaluateExpression(stmt.path));
         const realPath = this.sandbox.toRealPath(vbaPath);
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
 
         if (this.fileHandles.has(fileNum)) {
             this.throwVbaError(VbaErrorCode.FILE_ALREADY_OPEN, "File already open");
@@ -5641,7 +5654,7 @@ export class Evaluator {
 
     private evaluateCloseStatement(stmt: CloseStatement) {
         const nums = stmt.fileNumbers.length > 0
-            ? stmt.fileNumbers.map(n => Number(this.evaluateExpression(n)))
+            ? stmt.fileNumbers.map(n => this.evaluateFileNumber(n))
             : Array.from(this.fileHandles.keys());
 
         for (const num of nums) {
@@ -5655,7 +5668,7 @@ export class Evaluator {
     }
 
     private evaluatePrintStatement(stmt: PrintStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         this.requireFileMode(handle, ['Output', 'Append']);
@@ -5757,7 +5770,7 @@ export class Evaluator {
     }
 
     private evaluateLineInputStatement(stmt: LineInputStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         this.requireFileMode(handle, ['Input', 'Binary']);
@@ -5786,7 +5799,7 @@ export class Evaluator {
     }
 
     private evaluatePutStatement(stmt: PutStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         this.requireFileMode(handle, ['Random', 'Binary']);
@@ -6253,7 +6266,7 @@ export class Evaluator {
     }
 
     private evaluateWriteStatement(stmt: WriteStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
         this.requireFileMode(handle, ['Output', 'Append']);
@@ -6286,7 +6299,7 @@ export class Evaluator {
     }
 
     private evaluateInputStatement(stmt: InputStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
         this.requireFileMode(handle, ['Input', 'Binary']);
@@ -6372,7 +6385,7 @@ export class Evaluator {
     }
 
     private evaluateGetStatement(stmt: GetStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
         this.requireFileMode(handle, ['Random', 'Binary']);
@@ -6431,7 +6444,7 @@ export class Evaluator {
     }
 
     private evaluateSeekStatement(stmt: SeekStatement) {
-        const fileNum = Number(this.evaluateExpression(stmt.fileNumber));
+        const fileNum = this.evaluateFileNumber(stmt.fileNumber);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 

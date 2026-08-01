@@ -241,13 +241,14 @@
 | EV-00335 | FZ-GRAMMAR | fixed | For制御式Null境界 |
 | EV-00336 | FZ-BUILTIN | fixed | FileCopy既存先境界 |
 | EV-00337 | FZ-BUILTIN | fixed | CurDir引数Null境界 |
+| EV-00338 | FZ-BUILTIN | fixed | ファイル番号Null境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 162 |
+| fixed | 163 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
