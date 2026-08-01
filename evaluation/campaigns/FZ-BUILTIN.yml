@@ -1099,3 +1099,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/engine/lexer-line-continuation.test.ts
+  - id: FZ-BUILTIN-124
+    title: Lexer文字列内改行境界
+    status: queued
+    priority: 1
+    focus: 物理改行を含む未終端文字列リテラルをLexErrorとして拒否
+    priorCauseKey: lexer-unterminated-string-newline-validation
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/engine/lexer-line-continuation.test.ts

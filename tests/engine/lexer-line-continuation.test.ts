@@ -31,6 +31,12 @@ function expectLexError(src: string, msgFragment: string, label: string) {
 }
 
 {
+    expectLexError('x = "abc\nxyz"', '閉じられていません', 'LFで未終端の文字列');
+    expectLexError('x = "abc\r\nxyz"', '閉じられていません', 'CRLFで未終端の文字列');
+    console.log('[PASS] 改行をまたぐ文字列: LexError をスロー');
+}
+
+{
     const tokens = lex('x = "abc""def"');
     const stringToken = tokens.find(token => token.type === TokenType.String);
     assert.ok(stringToken !== undefined, 'エスケープ引用符を含む文字列トークン');

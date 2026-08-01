@@ -491,6 +491,9 @@ export class Lexer {
                 this.advance(); // consume opening quote
                 let strValue = '';
                 while (this.peek() !== '\0') {
+                    if (this.peek() === '\r' || this.peek() === '\n') {
+                        throw new LexError('文字列リテラルが閉じられていません', startLine, startColumn);
+                    }
                     if (this.peek() === '"') {
                         this.advance(); // consume first quote
                         if (this.peek() === '"') {
