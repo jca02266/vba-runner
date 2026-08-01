@@ -1171,3 +1171,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
+  - id: FZ-BUILTIN-132
+    title: For Each配列下限と型変換横展開
+    status: queued
+    priority: 1
+    focus: 宣言配列・動的ReDim配列・多次元配列と型付きループ変数の列挙境界
+    priorCauseKey: foreach-option-base-filler
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts
+      - tests/spec/array-lbound-defaults.test.ts

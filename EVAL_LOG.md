@@ -269,6 +269,7 @@
 | EV-00363 | FZ-BUILTIN | fixed | 日付候補厳密化と二要素形式の回帰境界 |
 | EV-00364 | FZ-BUILTIN | needs-excel | On Error GoTo 0とResume状態境界 |
 | EV-00365 | FZ-BUILTIN | fixed | For Each Option Base 1配列境界 |
+| EV-00366 | FZ-BUILTIN | verified-no-bug | For Each配列下限と型変換横展開 |
 
 ## 状態集計
 
@@ -279,7 +280,7 @@
 | known-limit | 1 |
 | needs-excel | 7 |
 | retired | 1 |
-| verified-no-bug | 70 |
+| verified-no-bug | 71 |
 
 横展開未解決経路: 218、実Excel待ち評価: 7
 
