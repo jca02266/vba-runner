@@ -22,6 +22,10 @@ const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
 const pendingEvaluationStatuses = new Set(['needs-excel', 'blocked', 'in-progress', 'claimed']);
 const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
+const reportStatuses = [
+  'bug-found', 'fixed', 'verified-no-bug', 'needs-excel', 'blocked',
+  'in-progress', 'claimed', 'known-limit', 'retired', 'abandoned', 'queued',
+];
 
 function usage() {
   console.log('Usage: node scripts/eval-report.mjs [--output FILE] [--csv FILE]');
@@ -182,6 +186,9 @@ function timeSeries(records, results, findings) {
   let nonBugEvaluations = 0;
   let bugEvaluations = 0;
   let otherEvaluations = 0;
+  const pendingEvaluationIds = new Set();
+  const activeStatusByCandidate = new Map();
+  const activeStatusCounts = new Map(reportStatuses.map((status) => [status, 0]));
   const discoveredFindingIds = new Set();
   const resolvedFindingIds = new Set();
   const openFindingIds = new Set();
@@ -211,6 +218,13 @@ function timeSeries(records, results, findings) {
     if (result.status === 'verified-no-bug') nonBugEvaluations += 1;
     if (result.status === 'bug-found' || result.status === 'fixed') bugEvaluations += 1;
     if (otherEvaluationStatuses.has(result.status)) otherEvaluations += 1;
+    const pendingKey = record.candidateId || record.id;
+    if (pendingEvaluationStatuses.has(result.status)) pendingEvaluationIds.add(pendingKey);
+    else pendingEvaluationIds.delete(pendingKey);
+    const previousStatus = activeStatusByCandidate.get(pendingKey);
+    if (previousStatus) activeStatusCounts.set(previousStatus, activeStatusCounts.get(previousStatus) - 1);
+    activeStatusByCandidate.set(pendingKey, result.status);
+    activeStatusCounts.set(result.status, (activeStatusCounts.get(result.status) ?? 0) + 1);
     return {
       date: new Date(result.completedAt).toISOString(),
       evaluationId: record.id,
@@ -221,6 +235,8 @@ function timeSeries(records, results, findings) {
       fixed,
       openBugs: openFindingIds.size,
       pendingEvaluations,
+      openPendingEvaluations: pendingEvaluationIds.size,
+      activeStatuses: Object.fromEntries(activeStatusCounts),
       nonBugEvaluations,
       bugEvaluations,
       otherEvaluations,
@@ -300,7 +316,9 @@ function htmlCell(value) {
 function renderConvergenceChart(series) {
   const labels = JSON.stringify(series.map((row) => formatLocalDateTime(row.date)));
   const values = (field) => JSON.stringify(series.map((row) => row[field]));
+  const activeValues = (status) => JSON.stringify(series.map((row) => row.activeStatuses?.[status] ?? 0));
   return `<div class="chart-container"><canvas id="evaluation-chart" role="img" aria-label="評価分類の累積面グラフ"></canvas></div>
+<div class="chart-container"><canvas id="status-chart" role="img" aria-label="評価状態の未解消件数推移"></canvas></div>
 <div class="chart-container"><canvas id="finding-chart" role="img" aria-label="Findingの発見・改修推移"></canvas></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
@@ -313,10 +331,31 @@ new Chart(document.getElementById('evaluation-chart'), {
     { label: '判定保留評価', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: 'その他評価', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, yAxisID: 'yTotal', tension: 0.15 }
+    ,{ label: '未解消の判定保留', data: ${values('openPendingEvaluations')}, borderColor: '#f59e0b', backgroundColor: '#f59e0b', fill: false, borderWidth: 2, pointRadius: 2, yAxisID: 'yTotal', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
     plugins: { title: { display: true, text: '評価分類の累積面グラフ（黒線＝評価数）' }, tooltip: { mode: 'index' } },
     scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: '分類別の累積評価数' }, ticks: { precision: 0 } }, yTotal: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '累積評価数（黒線）' }, ticks: { precision: 0 } } }
+  }
+});
+new Chart(document.getElementById('status-chart'), {
+  type: 'line',
+  data: { labels: convergenceLabels, datasets: [
+    { label: 'bug-found', data: ${activeValues('bug-found')}, borderColor: '#dc2626', backgroundColor: 'rgba(220,38,38,.20)', fill: true, tension: 0.15 },
+    { label: 'fixed', data: ${activeValues('fixed')}, borderColor: '#16a34a', backgroundColor: 'rgba(22,163,74,.20)', fill: true, tension: 0.15 },
+    { label: 'verified-no-bug', data: ${activeValues('verified-no-bug')}, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.20)', fill: true, tension: 0.15 },
+    { label: 'needs-excel', data: ${activeValues('needs-excel')}, borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,.20)', fill: true, tension: 0.15 },
+    { label: 'blocked', data: ${activeValues('blocked')}, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,.20)', fill: true, tension: 0.15 },
+    { label: 'in-progress', data: ${activeValues('in-progress')}, borderColor: '#7c3aed', backgroundColor: 'rgba(124,58,237,.20)', fill: true, tension: 0.15 },
+    { label: 'claimed', data: ${activeValues('claimed')}, borderColor: '#9333ea', backgroundColor: 'rgba(147,51,234,.20)', fill: true, tension: 0.15 },
+    { label: 'known-limit', data: ${activeValues('known-limit')}, borderColor: '#92400e', backgroundColor: 'rgba(146,64,14,.20)', fill: true, tension: 0.15 },
+    { label: 'retired', data: ${activeValues('retired')}, borderColor: '#64748b', backgroundColor: 'rgba(100,116,139,.20)', fill: true, tension: 0.15 },
+    { label: 'abandoned', data: ${activeValues('abandoned')}, borderColor: '#475569', backgroundColor: 'rgba(71,85,105,.20)', fill: true, tension: 0.15 },
+    { label: 'queued', data: ${activeValues('queued')}, borderColor: '#a16207', backgroundColor: 'rgba(161,98,7,.20)', fill: true, tension: 0.15 }
+  ]},
+  options: { responsive: true, interaction: { mode: 'index', intersect: false },
+    plugins: { title: { display: true, text: '評価状態の未解消件数（候補の状態遷移で増減）' }, tooltip: { mode: 'index' } },
+    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: '未解消候補数' }, ticks: { precision: 0 } } }
   }
 });
 new Chart(document.getElementById('finding-chart'), {
