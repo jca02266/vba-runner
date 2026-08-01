@@ -2931,10 +2931,20 @@ export class Evaluator {
         dimension: number,
         index: number,
     ): void {
+        if (!Number.isFinite(index) || !Number.isInteger(index)) {
+            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+        }
         const bounds = dims?.[dimension];
         if (bounds && (index < bounds.lower || index > bounds.upper)) {
             this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
         }
+    }
+
+    /** Evaluate and validate one VBA array subscript through the shared path. */
+    private evaluateArrayIndex(expression: Expression, dims: { lower: number, upper: number }[] | undefined, dimension: number): number {
+        const index = Number(this.evaluateExpression(expression));
+        this.validateArrayIndex(dims, dimension, index);
+        return index;
     }
 
     private evaluateDoWhileStatement(stmt: DoWhileStatement) {
@@ -3495,21 +3505,13 @@ export class Evaluator {
                     // VBA index == JS index. Multi-dimensional: arr(i, j) = val -> arr[i][j] = val
                     let current = target;
                     for (let i = 0; i < call.args.length - 1; i++) {
-                        const d = this.evaluateExpression(call.args[i]) as number;
-                        if (dims) {
-                            const { lower, upper } = dims[i];
-                            if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
+                        const d = this.evaluateArrayIndex(call.args[i], dims, i);
                         if (!current[d]) {
                             current[d] = [];
                         }
                         current = current[d];
                     }
-                    const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                    if (dims) {
-                        const { lower, upper } = dims[call.args.length - 1];
-                        if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                    }
+                    const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                     // 型付き配列の要素代入: __vbaElementType__ に従って強制変換
                     const elemType = (target as any).__vbaElementType__;
                     if ((target as any).__vbaElementObjectTypeName__) {
@@ -3565,7 +3567,8 @@ export class Evaluator {
                             (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
                             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
                         }
-                        const index = this.evaluateExpression(call.args[0]) as number;
+                        const index = this.evaluateArrayIndex(call.args[0],
+                            (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined, 0);
                         fieldArr[index] = val;
                         return;
                     }
@@ -3585,19 +3588,11 @@ export class Evaluator {
                             if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                             let current = fieldArr;
                             for (let i = 0; i < call.args.length - 1; i++) {
-                                const d = this.evaluateExpression(call.args[i]) as number;
-                                if (dims) {
-                                    const { lower, upper } = dims[i];
-                                    if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                                }
+                                const d = this.evaluateArrayIndex(call.args[i], dims, i);
                                 if (!current[d]) current[d] = [];
                                 current = current[d];
                             }
-                            const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                            if (dims) {
-                                const { lower, upper } = dims[call.args.length - 1];
-                                if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
+                            const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                             current[lastIdx] = val;
                         } else {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -3614,19 +3609,11 @@ export class Evaluator {
                         const dims = (method as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         let current: any = method;
                         for (let i = 0; i < call.args.length - 1; i++) {
-                            const d = Number(this.evaluateExpression(call.args[i]));
-                            if (dims) {
-                                const { lower, upper } = dims[i];
-                                if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
+                            const d = this.evaluateArrayIndex(call.args[i], dims, i);
                             current = current[d];
                             if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                         }
-                        const lastIdx = Number(this.evaluateExpression(call.args[call.args.length - 1]));
-                        if (dims) {
-                            const { lower, upper } = dims[call.args.length - 1];
-                            if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
+                        const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                         const fixedLength = (method as any).__vbaElementFixedLength__ as number | undefined;
                         if (fixedLength !== undefined && typeof val === 'string') {
                             val = val.length > fixedLength
@@ -3675,19 +3662,11 @@ export class Evaluator {
                             if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                             let current: any = implicitFieldArr;
                             for (let i = 0; i < call.args.length - 1; i++) {
-                                const d = this.evaluateExpression(call.args[i]) as number;
-                                if (dims) {
-                                    const { lower, upper } = dims[i];
-                                    if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                                }
+                                const d = this.evaluateArrayIndex(call.args[i], dims, i);
                                 if (!current[d]) current[d] = [];
                                 current = current[d];
                             }
-                            const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                            if (dims) {
-                                const { lower, upper } = dims[call.args.length - 1];
-                                if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
+                            const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                             current[lastIdx] = val;
                         } else {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -3697,7 +3676,8 @@ export class Evaluator {
                     const resolvedKey = this.resolveObjectMemberKey(implicitObj, implicitProp) ?? implicitProp;
                     const fieldArr = implicitObj[resolvedKey];
                     if (Array.isArray(fieldArr)) {
-                        const lastIdx = this.evaluateExpression(call.args[call.args.length - 1]) as number;
+                        const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                         fieldArr[lastIdx] = val;
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -5337,19 +5317,10 @@ export class Evaluator {
                         }
                         let current = fieldArr;
                         for (let i = 0; i < call.args.length - 1; i++) {
-                            const index = this.evaluateExpression(call.args[i]) as number;
-                            if (dims && (index < dims[i].lower || index > dims[i].upper)) {
-                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
+                            const index = this.evaluateArrayIndex(call.args[i], dims, i);
                             current = current[index];
                         }
-                        const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                        if (dims) {
-                            const lastDim = dims[dims.length - 1];
-                            if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
-                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
-                        }
+                        const lastIndex = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                         current[lastIndex] = value;
                         return;
                     }
@@ -5424,19 +5395,10 @@ export class Evaluator {
                         }
                         let current = fieldArr;
                         for (let i = 0; i < call.args.length - 1; i++) {
-                            const index = this.evaluateExpression(call.args[i]) as number;
-                            if (dims && (index < dims[i].lower || index > dims[i].upper)) {
-                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
+                            const index = this.evaluateArrayIndex(call.args[i], dims, i);
                             current = current[index];
                         }
-                        const lastIndex = this.evaluateExpression(call.args[call.args.length - 1]) as number;
-                        if (dims) {
-                            const lastDim = dims[dims.length - 1];
-                            if (lastIndex < lastDim.lower || lastIndex > lastDim.upper) {
-                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                            }
-                        }
+                        const lastIndex = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                         current[lastIndex] = value;
                         return;
                     }
@@ -8621,9 +8583,7 @@ export class Evaluator {
                                     this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                                 }
                                 const index = Number(argsVals[i]);
-                                if (dims && (index < dims[i].lower || index > dims[i].upper)) {
-                                    this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                                }
+                                this.validateArrayIndex(dims, i, index);
                                 current = current[index];
                             }
                             return current;
@@ -8668,19 +8628,11 @@ export class Evaluator {
                     const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                     let current: any = fieldArr;
                     for (let i = 0; i < expr.args.length - 1; i++) {
-                        const d = Number(this.evaluateExpression(expr.args[i]));
-                        if (dims) {
-                            const { lower, upper } = dims[i];
-                            if (d < lower || d > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                        }
+                        const d = this.evaluateArrayIndex(expr.args[i], dims, i);
                         current = current[d];
                         if (!Array.isArray(current)) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     }
-                    const lastIdx = Number(this.evaluateExpression(expr.args[expr.args.length - 1]));
-                    if (dims) {
-                        const { lower, upper } = dims[expr.args.length - 1];
-                        if (lastIdx < lower || lastIdx > upper) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                    }
+                    const lastIdx = this.evaluateArrayIndex(expr.args[expr.args.length - 1], dims, expr.args.length - 1);
                     return current[lastIdx];
                 }
             }
@@ -8717,7 +8669,7 @@ export class Evaluator {
             let current = target;
             for (let i = 0; i < expr.args.length; i++) {
                 if (!current) return vbaEmpty;
-                const idx = this.evaluateExpression(expr.args[i]);
+                const idx = this.evaluateArrayIndex(expr.args[i], (target as any).__vbaDimensions__, i);
                 current = current[idx];
             }
             return current === undefined ? vbaEmpty : current;

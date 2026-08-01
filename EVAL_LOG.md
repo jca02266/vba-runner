@@ -188,22 +188,23 @@
 | EV-00282 | FZ-BUILTIN | fixed | Format FirstDayOfWeek/FirstWeekOfYear=0のSystem既定扱い |
 | EV-00283 | FZ-BUILTIN | fixed | ChooseのIndex小数・Null・範囲境界 |
 | EV-00284 | META-ENGINE | fixed | Rateの利率0・釣り合いキャッシュフローとNewton初期値 |
+| EV-00285 | META-ENGINE | fixed | クラス公開配列・通常配列・UDT配列の小数添字とError 9境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 122 |
+| fixed | 123 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 177、実Excel待ち評価: 3
+横展開未解決経路: 179、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| META-ENGINE-012 | 1 | queued | Property Let経由の配列・ネスト添字小数とError 9境界 | yes |
+| (none) | | | | |

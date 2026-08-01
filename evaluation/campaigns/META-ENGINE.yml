@@ -96,11 +96,11 @@ items:
       - src/engine/builtins.ts
       - tests/spec/financial-functions.test.ts
   - id: META-ENGINE-012
-    title: Property Let配列添字の整数境界
+    title: 配列添字検証経路の共通境界
     status: queued
     priority: 1
-    focus: Property Let経由の配列・ネスト添字小数とError 9境界
-    priorCauseKey: property-let-array-index-path-divergence
+    focus: クラス公開配列・通常配列・UDT配列の小数添字とError 9境界
+    priorCauseKey: array-index-validation-path-divergence
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-let.test.ts

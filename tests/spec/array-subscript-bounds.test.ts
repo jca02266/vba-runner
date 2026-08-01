@@ -231,4 +231,31 @@ End Sub`, 'Test');
     console.log('[PASS] Option Base 1: 境界内アクセス エラーなし');
 }
 
+// ---------------------------------------------------------------------------
+// クラス公開配列も通常配列と同じ小数添字検証を共有する
+// ---------------------------------------------------------------------------
+{
+    const e = catchError(`
+Class Box
+    Public Items(0 To 2) As Long
+End Class
+Sub Test()
+    Dim box As Box
+    Set box = New Box
+    box.Items(1.5) = 7
+End Sub`, 'Test');
+    assert.strictEqual(e.number, 9, 'public class array fractional index: Error 9');
+    console.log('[PASS] クラス公開配列: 小数添字は Error 9');
+}
+
+{
+    const e = catchError(`
+Sub Test()
+    Dim arr(0 To 2) As Long
+    arr(1.5) = 7
+End Sub`, 'Test');
+    assert.strictEqual(e.number, 9, 'array fractional index: Error 9');
+    console.log('[PASS] 通常配列: 小数添字は Error 9');
+}
+
 console.log('\n✅ array-subscript-bounds: 全テスト通過');
