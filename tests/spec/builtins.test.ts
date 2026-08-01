@@ -168,6 +168,8 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Round coerces fractional NumDigitsAfterDecimal to an integer');
     assert.strictEqual(evalExpr('Round(125, -1.5)'), 100,
         'Round coerces negative fractional NumDigitsAfterDecimal to an integer');
+    assert.strictEqual(evalExpr('Rnd("1")'), evalExpr('Rnd(1)'),
+        'Rnd coerces numeric string arguments before state updates');
     assert.strictEqual(evalExpr('Sqr(16)'), 4, 'Sqr');
 }
 

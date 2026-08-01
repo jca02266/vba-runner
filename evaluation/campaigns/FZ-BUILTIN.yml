@@ -764,3 +764,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-087
+    title: Rnd状態引数境界
+    status: queued
+    priority: 1
+    focus: Rnd/RandomizeのNull・Empty・負値と連続呼び出し状態
+    priorCauseKey: rnd-optional-null-state
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

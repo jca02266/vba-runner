@@ -602,17 +602,22 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     let rndSeed = 0.5;
     let lastRnd = 0.5;
     let rndInitialized = false;
+    const normalizeRandomArg = (val?: any): number | undefined => {
+        if (val === undefined) return undefined;
+        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        return ctx.toVbaNumber(val);
+    };
     const rndFunc = (val?: any) => {
         if (!rndInitialized) { rndSeed = 0.5; rndInitialized = true; }
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        if (val === undefined || (typeof val === 'number' && val > 0)) {
+        const n = normalizeRandomArg(val);
+        if (n === undefined || n > 0) {
             rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
             lastRnd = rndSeed / 4294967296;
             return lastRnd;
-        } else if (val === 0) {
+        } else if (n === 0) {
             return lastRnd;
-        } else if (typeof val === 'number' && val < 0) {
-            const s = Math.abs(val) * 9301 + 49297;
+        } else if (n < 0) {
+            const s = Math.abs(n) * 9301 + 49297;
             if (!Number.isFinite(s)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
             lastRnd = (s % 233280) / 233280;
             return lastRnd;
@@ -621,11 +626,11 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('rnd', rndFunc, [{ name: 'Number', optional: true }]);
     ctx.reg('randomize', (val?: any) => {
-        if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        const n = normalizeRandomArg(val);
         rndInitialized = true;
-        const seed = (val === undefined || val === null)
+        const seed = (n === undefined)
             ? (Date.now() % 4294967296)
-            : (Math.round(Math.abs(ctx.toVbaNumber(val)) * 1000) % 4294967296);
+            : (Math.round(Math.abs(n) * 1000) % 4294967296);
         if (!Number.isFinite(seed)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         rndSeed = seed;
         lastRnd = rndSeed / 4294967296;
