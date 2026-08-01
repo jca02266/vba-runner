@@ -153,7 +153,30 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         2,
         'With ブロック内で prototype の no-arg メソッドが auto-call されること'
     );
-    console.log('[PASS] With block: prototype no-arg method auto-call');
+console.log('[PASS] With block: prototype no-arg method auto-call');
+}
+
+// 7. With 式はブロック開始時に一度だけ評価する（VBA の参照保持）。
+{
+    const code = `
+        Dim calls As Long
+        Function MakeDict()
+            calls = calls + 1
+            Set MakeDict = CreateObject("Scripting.Dictionary")
+        End Function
+        Function TestWithExpressionOnce() As String
+            With MakeDict()
+                .Add "key", "value"
+                TestWithExpressionOnce = CStr(calls) & ":" & CStr(.Exists("key"))
+            End With
+        End Function
+    `;
+    assert.strictEqual(
+        runFunc(code, 'TestWithExpressionOnce'),
+        '1:True',
+        'With式は評価を一度だけ行い、ブロック内の各メンバー参照で再評価しない',
+    );
+    console.log('[PASS] With expression is evaluated once');
 }
 
 console.log('\n✅ With Statement: 全テスト通過');

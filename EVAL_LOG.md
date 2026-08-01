@@ -233,6 +233,7 @@
 | EV-00327 | FZ-BUILTIN | verified-no-bug | Array Option Base境界 |
 | EV-00328 | FZ-BUILTIN | fixed | 名前付き引数の順序・重複境界 |
 | EV-00329 | FZ-BUILTIN | fixed | InStr Optional名前付き省略境界 |
+| EV-00330 | FZ-GRAMMAR | verified-no-bug | With式評価と入れ子境界 |
 
 ## 状態集計
 
@@ -243,7 +244,7 @@
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
-| verified-no-bug | 65 |
+| verified-no-bug | 66 |
 
 横展開未解決経路: 212、実Excel待ち評価: 5
 

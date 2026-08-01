@@ -126,3 +126,12 @@ items:
       - src/engine/lexer.ts
       - src/engine/parser.ts
       - tests/spec/number_literals.test.ts
+  - id: FZ-GRAMMAR-015
+    title: With式評価と入れ子境界
+    status: queued
+    priority: 1
+    focus: With式の一度だけの評価、入れ子ブロック、UDTメンバー解決
+    priorCauseKey: with-expression-scope-evaluation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/with-statement.test.ts
