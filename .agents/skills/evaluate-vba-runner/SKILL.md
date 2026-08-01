@@ -49,6 +49,12 @@ after migration, use the structured records and the generated Markdown view.
    mark the linked Finding with `discoveryType: regression`; use a different
    explicit type for fuzzing, mutation, coverage, Excel comparison, or direct
    evaluation findings. Do not infer a historical type without evidence.
+   For every new Excel-comparison candidate, first add a uniquely numbered
+   probe (the next `XL-xxx`) to
+   `sample/excel/ExcelQueueVerification.bas` and call it from the queue
+   runner. Add any required `.cls`/`.frm` fixture beside that module, and
+   reference all of those source files and the XL ID in the evaluation
+   record's `tests`. A scratch-only probe is not a valid Excel queue entry.
 8. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
    the generated root `EVAL_LOG.md` is up to date. Do not create or commit an
