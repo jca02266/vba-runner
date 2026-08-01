@@ -33,6 +33,14 @@ export function unwrapDefaultValue(value: any): any {
 // §6.1.2.2 Numeric value coercion
 // ---------------------------------------------------------------------------
 
+/** Normalize VBA's D/d exponent marker before JavaScript numeric parsing. */
+export function normalizeVbaNumericString(value: string): string {
+    return value.replace(
+        /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))[dD]([+-]?\d+)$/,
+        '$1E$2',
+    );
+}
+
 /**
  * Convert any VBA value to a JS number.
  *
@@ -62,7 +70,7 @@ export function vbaToNumber(val: any): number {
         return n;
     }
     if (typeof val === 'string') {
-        const trimmed = val.trim();
+        const trimmed = normalizeVbaNumericString(val.trim());
         // Handle hex literals: &H<hex> or &h<hex>
         if (trimmed.toLowerCase().startsWith('&h')) {
             const hexPart = trimmed.slice(2);

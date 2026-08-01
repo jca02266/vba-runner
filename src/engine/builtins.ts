@@ -5,7 +5,7 @@ import {
     parseCurrencyString,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
-import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue } from './coerce';
+import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNumericString } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
@@ -82,7 +82,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'string') {
             const s = val.trim();
             if (s === "") return vbaFalse;
-            const cleaned = s.replace(/[$,]/g, '');
+            const cleaned = normalizeVbaNumericString(s.replace(/[$,]/g, ''));
             // 判定が目的なので throw しない。toVbaNumber(parseFloat) は "2024/01/15" の先頭
             // 数値を受理してしまうため、ここでは全体が数値の場合のみ通す厳密な Number() を使う
             if (/^&[hH][0-9a-fA-F]+$/.test(cleaned) || /^&[oO][0-7]+$/.test(cleaned)) return vbaTrue;
@@ -336,7 +336,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         return (ctx.envGet('cdate') as Function)(val);
     }, [{ name: 'Expression' }]);
     const parseCDecString = (source: string): VbaDecimal => {
-        const text = source.trim();
+        const text = normalizeVbaNumericString(source.trim());
         const hex = /^([+-]?)&[hH]([0-9a-fA-F]+)$/.exec(text);
         if (hex) {
             const sign = hex[1] === '-' ? -1n : 1n;

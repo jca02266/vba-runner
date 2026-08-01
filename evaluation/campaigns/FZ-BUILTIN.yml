@@ -554,3 +554,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-064
+    title: IsNumeric情報関数の文字列境界
+    status: queued
+    priority: 1
+    focus: IsNumericの空白・符号・指数・基数・日付文字列とNull/Empty
+    priorCauseKey: isnumeric-string-validation-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtins.test.ts
