@@ -218,6 +218,7 @@
 | EV-00312 | FZ-BUILTIN | verified-no-bug | DateDiffDatePart境界 |
 | EV-00313 | FZ-BUILTIN | fixed | Format数値オプション境界 |
 | EV-00314 | FZ-BUILTIN | fixed | Format週オプション境界 |
+| EV-00315 | FZ-BUILTIN | verified-no-bug | Date引数Null境界 |
 
 ## 状態集計
 
@@ -228,7 +229,7 @@
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 60 |
+| verified-no-bug | 61 |
 
 横展開未解決経路: 207、実Excel待ち評価: 3
 
