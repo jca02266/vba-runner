@@ -164,6 +164,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
 {
     assert.strictEqual(evalExpr('Abs(-10)'), 10, 'Abs');
     assert.strictEqual(evalExpr('Round(123.456, 2)'), 123.46, 'Round(n, m)');
+    assert.strictEqual(evalExpr('Round(1.25, 1.5)'), 1.25,
+        'Round coerces fractional NumDigitsAfterDecimal to an integer');
+    assert.strictEqual(evalExpr('Round(125, -1.5)'), 100,
+        'Round coerces negative fractional NumDigitsAfterDecimal to an integer');
     assert.strictEqual(evalExpr('Sqr(16)'), 4, 'Sqr');
 }
 
@@ -547,10 +551,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     console.log('[PASS] Bug BK: CDate/Str/Val/CStr(Null) = Error 94（実 VBA 差分で裁定）');
 }
 
-// Round: NumDigitsAfterDecimal=Null → 型エラー (JS内部TypeErrorではなくVBAエラーになるべき)
+// Round: NumDigitsAfterDecimal=Null → Error 94。
 {
     const errOf = (expr: string) => { try { evalExpr(expr); return null; } catch(e: any) { return e.number ?? null; } };
-    assert.ok(errOf('Round(1.5, Null)') !== null, 'Round(1.5, Null) → VBAエラーになること（JS TypeErrorでクラッシュしない）');
+    assert.strictEqual(errOf('Round(1.5, Null)'), 94, 'Round(1.5, Null) → Error 94');
     console.log('[PASS] Round: digits=Null でVBAエラー');
 }
 

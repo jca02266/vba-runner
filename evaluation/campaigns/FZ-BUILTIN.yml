@@ -755,3 +755,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-086
+    title: Round桁数境界
+    status: queued
+    priority: 1
+    focus: RoundのNumDigitsAfterDecimal Null・小数・負値と丸め共通経路
+    priorCauseKey: round-digit-argument-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

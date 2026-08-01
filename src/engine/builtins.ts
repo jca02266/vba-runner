@@ -578,8 +578,9 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Number' }]);
     ctx.reg('round', (val: any, digits: any = 0) => {
         if (val === vbaNull) return vbaNull;
-        if (digits !== undefined && digits === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
-        return ctx.round(ctx.toVbaNumber(val), ctx.toVbaNumber(digits));
+        rejectNullArgument(ctx, digits);
+        const digitCount = ctx.round(ctx.toVbaNumber(digits), 0);
+        return ctx.round(ctx.toVbaNumber(val), digitCount);
     }, [
         { name: 'Number' },
         { name: 'NumDigitsAfterDecimal', optional: true },
