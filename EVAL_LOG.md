@@ -228,13 +228,14 @@
 | EV-00322 | FZ-BUILTIN | verified-no-bug | String文字引数のEmpty境界 |
 | EV-00323 | FZ-BUILTIN | verified-no-bug | 文字列Compare列挙値境界 |
 | EV-00324 | FZ-BUILTIN | verified-no-bug | 金融関数Guess Null境界 |
+| EV-00325 | FZ-BUILTIN | fixed | 金融関数Type列挙値境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 153 |
+| fixed | 154 |
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
