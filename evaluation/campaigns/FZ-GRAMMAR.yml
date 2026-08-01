@@ -173,3 +173,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/array-subscript-bounds.test.ts
+  - id: FZ-GRAMMAR-020
+    title: 動的配列の再確保と消去境界
+    status: queued
+    priority: 1
+    focus: ReDim Preserve、Erase、Option Base、多次元下限の組み合わせ
+    priorCauseKey: redim-preserve-erase-boundaries
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts

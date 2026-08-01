@@ -277,6 +277,7 @@
 | EV-00371 | FZ-GRAMMAR | needs-excel | As New配列要素の遅延生成境界 |
 | EV-00372 | META-ENGINE | verified-no-bug | ディレクトリ読込とクラス名衝突の使い勝手境界 |
 | EV-00373 | META-ENGINE | fixed | As New変数の繰返しNothing境界 |
+| EV-00374 | FZ-GRAMMAR | verified-no-bug | 動的配列の再確保と消去境界 |
 
 ## 状態集計
 
@@ -287,7 +288,7 @@
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |
-| verified-no-bug | 72 |
+| verified-no-bug | 73 |
 
 横展開未解決経路: 221、実Excel待ち評価: 10
 
