@@ -248,13 +248,14 @@
 | EV-00342 | FZ-BUILTIN | fixed | OpenTextFile IOMode境界 |
 | EV-00343 | FZ-BUILTIN | fixed | Killディレクトリ対象境界 |
 | EV-00344 | FZ-BUILTIN | fixed | FSO DeleteFolder Force境界 |
+| EV-00345 | FZ-BUILTIN | fixed | Open Output親パス境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 169 |
+| fixed | 170 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |

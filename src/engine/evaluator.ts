@@ -5632,7 +5632,11 @@ export class Evaluator {
             if (flags === 'w' || flags === 'a') {
                 const dir = path.dirname(realPath);
                 if (!this.fs.existsSync(dir)) {
-                    this.fs.mkdirSync(dir, { recursive: true });
+                    if (dir === this.sandbox.getRoot()) {
+                        this.fs.mkdirSync(dir, { recursive: true });
+                    } else {
+                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                    }
                 }
             } else if (flags === 'r' && !this.fs.existsSync(realPath)) {
                 this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, "File not found");

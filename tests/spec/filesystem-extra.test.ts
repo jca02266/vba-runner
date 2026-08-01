@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -191,6 +191,15 @@ const allCode = `
         On Error GoTo 0
         fso.DeleteFolder "delete_folder", True
     End Sub
+
+    Sub Test14OpenOutputMissingParent()
+        On Error Resume Next
+        Err.Clear
+        Open "missing_parent\\output.txt" For Output As #1
+        openMissingParentErr = Err.Number
+        If Err.Number = 0 Then Close #1
+        On Error GoTo 0
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -280,5 +289,10 @@ console.log('[PASS] Kill directory target validation');
 ev.callProcedure('Test13FsoDeleteFolderForce', []);
 assert.strictEqual(ev.env.get('deletefoldererr'), 75, 'DeleteFolder non-empty without Force -> Error 75');
 console.log('[PASS] FSO DeleteFolder Force validation');
+
+// Test 14: Open Output does not create missing parent directories.
+ev.callProcedure('Test14OpenOutputMissingParent', []);
+assert.strictEqual(ev.env.get('openmissingparenterr'), 76, 'Open Output missing parent -> Error 76');
+console.log('[PASS] Open Output parent path validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

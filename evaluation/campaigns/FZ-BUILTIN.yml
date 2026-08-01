@@ -982,3 +982,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-111
+    title: Open Output親パス境界
+    status: queued
+    priority: 1
+    focus: 親ディレクトリ不在のOutputオープンをError 76として検証
+    priorCauseKey: open-output-parent-path-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
