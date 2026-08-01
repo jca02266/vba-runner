@@ -229,6 +229,7 @@
 | EV-00323 | FZ-BUILTIN | verified-no-bug | 文字列Compare列挙値境界 |
 | EV-00324 | FZ-BUILTIN | verified-no-bug | 金融関数Guess Null境界 |
 | EV-00325 | FZ-BUILTIN | fixed | 金融関数Type列挙値境界 |
+| EV-00326 | FZ-BUILTIN | needs-excel | MIRR金利下限境界 |
 
 ## 状態集計
 
@@ -237,11 +238,11 @@
 | blocked | 1 |
 | fixed | 154 |
 | known-limit | 1 |
-| needs-excel | 4 |
+| needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 64 |
 
-横展開未解決経路: 211、実Excel待ち評価: 4
+横展開未解決経路: 212、実Excel待ち評価: 5
 
 ## 次の候補
 

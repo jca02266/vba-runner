@@ -836,3 +836,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-095
+    title: MIRR金利下限境界
+    status: queued
+    priority: 1
+    focus: MIRRのFinanceRate/ReinvestRate -1以下とエラー種別
+    priorCauseKey: mirr-rate-domain-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
