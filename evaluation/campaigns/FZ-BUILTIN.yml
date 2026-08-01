@@ -1072,3 +1072,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-121
+    title: Select Case比較経路の組み合わせ境界
+    status: queued
+    priority: 1
+    focus: Option Compare・Variant型・Null/Empty・To/Is/複数Caseの比較共通経路
+    priorCauseKey: select-case-comparison-common-path
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
