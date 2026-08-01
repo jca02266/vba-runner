@@ -1,6 +1,6 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { VbaCurrency } from '../../src/engine/vba-types';
-import { Lexer, LexError } from '../../src/engine/lexer';
+import { Lexer, LexError, TokenType } from '../../src/engine/lexer';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -50,6 +50,10 @@ const code = `
         TestScientific = 1.23E+2
     End Function
 
+    Function TestLeadingDotLiterals() As String
+        TestLeadingDotLiterals = CStr(.5) & "|" & CStr(.5E2) & "|" & CStr(.5E-2) & "|" & CStr(-.5) & "|" & CStr(+.5)
+    End Function
+
     Function TestSignedIntegerMinimum() As Long
         TestSignedIntegerMinimum = -32768%
     End Function
@@ -89,6 +93,13 @@ assert.strictEqual(ev.callProcedure('TestOctalShort', []), 8, 'Octal &10 -> 8');
 }
 assert.strictEqual(ev.callProcedure('TestStringEscape', []), 'a"b', 'String escape "a""b" -> a"b');
 assert.strictEqual(ev.callProcedure('TestScientific', []), 123, 'Scientific 1.23E+2 -> 123');
+assert.strictEqual(ev.callProcedure('TestLeadingDotLiterals', []), '0.5|50|0.005|-0.5|0.5',
+    'Leading-dot floating literals support fractions, exponents, and unary signs');
+{
+    const memberTokens = new Lexer('obj.Member').tokenize();
+    assert.strictEqual(memberTokens[1].type, TokenType.OperatorDot,
+        'A dot before an identifier remains member access');
+}
 assert.strictEqual(ev.callProcedure('TestSignedIntegerMinimum', []), -32768,
     'Signed Integer literal minimum is representable');
 assert.strictEqual(ev.callProcedure('TestSignedLongMinimum', []), -2147483648,

@@ -116,3 +116,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/number_literals.test.ts
+  - id: FZ-GRAMMAR-014
+    title: 先頭小数点と指数リテラル境界
+    status: queued
+    priority: 1
+    focus: .5、.5E2、-.5と小数点・メンバーアクセスのLexer/Parser識別
+    priorCauseKey: leading-dot-numeric-literal-boundary
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/number_literals.test.ts

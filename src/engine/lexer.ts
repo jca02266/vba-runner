@@ -330,6 +330,33 @@ export class Lexer {
         return digits;
     }
 
+    /** Consume the common floating-point tail after its initial digits/dot. */
+    private consumeFloatingPointLiteral(prefix: string, startLine: number, startColumn: number): string {
+        let numStr = prefix;
+        while (this.isDigit(this.peek())) {
+            numStr += this.advance();
+        }
+        if (this.peek() === '.') {
+            numStr += this.advance();
+            while (this.isDigit(this.peek())) {
+                numStr += this.advance();
+            }
+        }
+        // Handle scientific notation: [eEdD][+-]?digits.
+        const nextChar = this.peek().toLowerCase();
+        if (nextChar === 'e' || nextChar === 'd') {
+            numStr += this.advance();
+            if (this.peek() === '+' || this.peek() === '-') {
+                numStr += this.advance();
+            }
+            numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
+        }
+        if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) {
+            numStr += this.advance();
+        }
+        return numStr;
+    }
+
     /** `&` is both the Long type suffix and the concatenation operator. */
     private canConsumeLongSuffix(): boolean {
         // The ampersand is a suffix only when it immediately follows the
@@ -583,6 +610,13 @@ export class Lexer {
             }
 
             if (char === '.') {
+                // MS-VBAL FLOAT also permits `.fractional-digits`; keep a
+                // member-access dot when the following character is not a digit.
+                if (this.isDigit(this.input[this.pos + 1] ?? '\0')) {
+                    this.advance();
+                    const value = this.consumeFloatingPointLiteral('.', startLine, startColumn);
+                    return { type: TokenType.Number, value, line: startLine, column: startColumn };
+                }
                 this.advance();
                 return { type: TokenType.OperatorDot, value: '.', line: startLine, column: startColumn };
             }
@@ -607,26 +641,7 @@ export class Lexer {
                 while (this.isDigit(this.peek())) {
                     numStr += this.advance();
                 }
-                if (this.peek() === '.') {
-                    numStr += this.advance();
-                    while (this.isDigit(this.peek())) {
-                        numStr += this.advance();
-                    }
-                }
-                // Handle scientific notation: [eEdD][+-]?digits.
-                // VBA accepts D/d as an exponent marker for Double literals.
-                const nextChar = this.peek().toLowerCase();
-                if (nextChar === 'e' || nextChar === 'd') {
-                    numStr += this.advance(); // consume exponent marker
-                    if (this.peek() === '+' || this.peek() === '-') {
-                        numStr += this.advance();
-                    }
-                    numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
-                }
-                // Check for VBA Type Declaration Suffixes for numbers (MS-VBAL §3.3.5.2)
-                if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) {
-                    numStr += this.advance();
-                }
+                numStr = this.consumeFloatingPointLiteral(numStr, startLine, startColumn);
                 return { type: TokenType.Number, value: numStr, line: startLine, column: startColumn };
             }
 
