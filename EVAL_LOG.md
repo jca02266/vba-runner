@@ -207,13 +207,14 @@
 | EV-00301 | FZ-BUILTIN | verified-no-bug | StrReverse Unicode境界 |
 | EV-00302 | FZ-BUILTIN | fixed | Filter配列比較境界 |
 | EV-00303 | FZ-BUILTIN | fixed | Replace数値引数境界 |
+| EV-00304 | FZ-BUILTIN | fixed | Split数値引数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 138 |
+| fixed | 139 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
