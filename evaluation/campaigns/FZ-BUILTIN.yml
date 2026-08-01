@@ -892,3 +892,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-101
+    title: Dir属性フィルタ境界
+    status: queued
+    priority: 1
+    focus: DirのAttributes指定によるディレクトリ・通常ファイル選択
+    priorCauseKey: dir-attributes-filter-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

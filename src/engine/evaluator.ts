@@ -1280,18 +1280,46 @@ export class Evaluator {
             }
         }, [{ name: 'PathName' }]);
         this.registerBuiltin('curdir', (_drive?: string) => this.sandbox.getCwd(), [{ name: 'Drive', optional: true }], ['$']);
-        this.registerBuiltin('dir', (pathName?: string, _attributes?: number) => {
+        this.registerBuiltin('dir', (pathName?: any, attributes?: any) => {
+            if (pathName === vbaNull || attributes === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            const attrMask = attributes === undefined ? VBA_FILE_ATTRIBUTE.NORMAL : this.toVbaNumber(attributes);
+            if (!Number.isInteger(attrMask) || attrMask < 0 || attrMask > 127) {
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
             if (pathName !== undefined && pathName !== null && pathName !== "") {
                 try {
                     const realPath = this.sandbox.toRealPath(pathName);
                     const dirPath = path.dirname(realPath);
                     const filter = path.basename(realPath);
                     const files = this.fs.readdirSync(dirPath);
+                    const includeDirectories = (attrMask & VBA_FILE_ATTRIBUTE.DIRECTORY) !== 0;
+                    const requestedAttributes = attrMask & ~VBA_FILE_ATTRIBUTE.DIRECTORY;
                     if (filter === '' || filter === '*' || filter === '*.*') {
-                        this.dirIterator = files;
+                        this.dirIterator = files.filter((entry: string) => {
+                            const entryPath = path.join(dirPath, entry);
+                            const stat = this.fs.statSync(entryPath);
+                            if (stat.isDirectory() && !includeDirectories) return false;
+                            if (requestedAttributes === 0) return true;
+                            const actual = this.fs.getAttributes
+                                ? this.fs.getAttributes(entryPath)
+                                : (stat.isDirectory() ? VBA_FILE_ATTRIBUTE.DIRECTORY : VBA_FILE_ATTRIBUTE.NORMAL);
+                            return (actual & requestedAttributes) === requestedAttributes;
+                        });
                     } else {
                         const regex = this.vbaWildcardToRegex(filter);
-                        this.dirIterator = files.filter((f: string) => regex.test(f));
+                        this.dirIterator = files.filter((entry: string) => {
+                            if (!regex.test(entry)) return false;
+                            const entryPath = path.join(dirPath, entry);
+                            const stat = this.fs.statSync(entryPath);
+                            if (stat.isDirectory() && !includeDirectories) return false;
+                            if (requestedAttributes === 0) return true;
+                            const actual = this.fs.getAttributes
+                                ? this.fs.getAttributes(entryPath)
+                                : (stat.isDirectory() ? VBA_FILE_ATTRIBUTE.DIRECTORY : VBA_FILE_ATTRIBUTE.NORMAL);
+                            return (actual & requestedAttributes) === requestedAttributes;
+                        });
                     }
                     this.dirIndex = 0;
                 } catch (e) {

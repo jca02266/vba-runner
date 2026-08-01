@@ -14,7 +14,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = `
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -62,6 +62,17 @@ const allCode = `
         Close #1
         Kill "test_attr.dat"
     End Sub
+
+    Sub Test5DirAttributes()
+        MkDir "test_dir"
+        Open "test_file.txt" For Output As #1
+        Print #1, "x"
+        Close #1
+        dirNormal = Dir("test_dir", vbNormal)
+        dirDirectory = Dir("test_dir", vbDirectory)
+        Kill "test_file.txt"
+        RmDir "test_dir"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -98,5 +109,11 @@ try { evalVBASingle('Debug.Print FileAttr(1, Null)', { fs: new MemoryFileSystem(
 catch (error: any) { nullError = error; }
 assert.strictEqual(nullError?.number, 94, 'FileAttrのNullはError 94');
 console.log('[PASS] FileAttr Null -> Error 94');
+
+// Test 5: Dir attributes distinguish normal files from directories.
+ev.callProcedure('Test5DirAttributes', []);
+assert.strictEqual(ev.env.get('dirnormal'), '', 'Dir(..., vbNormal) はディレクトリを返さない');
+assert.strictEqual(ev.env.get('dirdirectory'), 'test_dir', 'Dir(..., vbDirectory) はディレクトリを含む');
+console.log('[PASS] Dir attributes filter directories');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

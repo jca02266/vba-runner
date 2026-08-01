@@ -74,7 +74,9 @@ const vbaCode = `
         On Error GoTo 0
 
         ' 9. File System Stubs
-        Debug.Print "FileAttr: " & FileAttr(1)
+        Open "runtime_test.txt" For Input As #f
+        Debug.Print "FileAttr: " & FileAttr(f)
+        Close #f
     End Sub
 
     Function GetVal(Optional x As Integer = 123)
@@ -120,7 +122,7 @@ const expected = [
     "Err.HelpFile: HelpFile",
     "Err.HelpContext: 1000",
     "Err.LastDllError: 0",
-    "FileAttr: 1",
+    "FileAttr: 3",
 ];
 
 expected.forEach((exp, i) => {
