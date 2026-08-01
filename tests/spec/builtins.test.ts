@@ -63,6 +63,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Split treats Empty Limit as zero');
     assert.throws(() => evalExpr('Split("a,b", ",", -1, 2)'),
         'Split rejects unsupported Compare values');
+    assert.strictEqual(evalExpr('InStrRev("abcabc", "a", 2.6)'), 1,
+        'InStrRev rounds fractional Start arguments');
+    assert.throws(() => evalExpr('InStrRev("abc", "a", , 2)'),
+        'InStrRev rejects unsupported Compare values');
+    assert.strictEqual(evalExpr('InStrB(2.6, "あA", "A")'), 3,
+        'InStrB rounds byte Start arguments');
 }
 
 // 2. Conversion Functions

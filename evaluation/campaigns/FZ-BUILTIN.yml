@@ -647,3 +647,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-074
+    title: InStrRev境界引数
+    status: queued
+    priority: 1
+    focus: InStrRevのStart/Compareの小数・Empty・Null・無効列挙とUnicode境界
+    priorCauseKey: instrrev-optional-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

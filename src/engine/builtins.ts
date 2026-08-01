@@ -659,6 +659,15 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const rejectNullCompare = (compare: any): void => {
         if (compare === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
     };
+    const normalizeCompare = (compare: any): any => {
+        rejectNullCompare(compare);
+        if (compare === undefined || compare === vbaMissing) return compare;
+        const value = ctx.round(ctx.toVbaNumber(compare));
+        if (value !== 0 && value !== 1) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
+        return value;
+    };
     const ascFunc = (s: any) => {
         if (s === vbaNull) return vbaNull;
         const str = vbaToString(s ?? '');
@@ -697,12 +706,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         else if (args.length === 3) [start, s1, s2] = args;  // arg count determines form, not type
         else [s1, s2] = args;
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        rejectNullCompare(comp);
-        if (ctx.toVbaNumber(start) < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        comp = normalizeCompare(comp);
+        const startNum = ctx.round(ctx.toVbaNumber(start));
+        if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
-        const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), start - 1) : str1.indexOf(str2, start - 1);
+        const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startNum - 1) : str1.indexOf(str2, startNum - 1);
         return idx === -1 ? 0 : idx + 1;
     };
     ctx.regOvl('instr', instrFunc, [
@@ -714,12 +724,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const instrbFunc = (...args: any[]) => {
         let startByte = 1, s1, s2, comp;
         if (args.length >= 4) [startByte, s1, s2, comp] = args;
-        else if (args.length === 3 && typeof args[0] === 'number') [startByte, s1, s2] = args;
+        else if (args.length === 3) [startByte, s1, s2] = args;
         else [s1, s2] = args;
-        rejectNullCompare(comp);
+        comp = normalizeCompare(comp);
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
-        const startChar = Math.floor((ctx.toVbaNumber(startByte) - 1) / 2) + 1;
+        const startByteNum = ctx.round(ctx.toVbaNumber(startByte));
+        if (startByteNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        const startChar = Math.floor((startByteNum - 1) / 2) + 1;
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startChar - 1) : str1.indexOf(str2, startChar - 1);
         return idx === -1 ? 0 : idx * 2 + 1;
@@ -731,8 +743,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        rejectNullCompare(comp);
-        const startNum = ctx.toVbaNumber(start);
+        comp = normalizeCompare(comp);
+        const startNum = ctx.round(ctx.toVbaNumber(start));
         if (startNum !== -1 && startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str = vbaToString(s1 ?? ''), find = vbaToString(s2 ?? '');
