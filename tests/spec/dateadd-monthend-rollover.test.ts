@@ -242,4 +242,16 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Bug CT: DatePart 無効Interval は Error 5');
 }
 
+// Bug FZ-135: Null interval/week arguments use Error 94, not coercion errors.
+{
+    const errOf = (expr: string) => { try { evalVBA('').evalExpression(expr); return null; } catch(e: any) { return e.number ?? null; } };
+    assert.strictEqual(errOf('DatePart("ww", "2024-01-01", 2, Null)'), 94,
+        'DatePart: Null FirstWeekOfYear → Error 94');
+    assert.strictEqual(errOf('DateAdd(Null, 1, "2025-01-01")'), 94,
+        'DateAdd: Null Interval → Error 94');
+    assert.strictEqual(errOf('DateDiff(Null, "2025-01-01", "2025-01-02")'), 94,
+        'DateDiff: Null Interval → Error 94');
+    console.log('[PASS] Bug FZ-135: Date Null arguments use Error 94');
+}
+
 console.log('\n✅ DateAdd Month-End Rollover: 全テスト通過');

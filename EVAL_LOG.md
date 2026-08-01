@@ -272,13 +272,14 @@
 | EV-00366 | FZ-BUILTIN | verified-no-bug | For Each配列下限と型変換横展開 |
 | EV-00367 | FZ-BUILTIN | needs-excel | Case Is・範囲・Null/Emptyと文字列数値混在の比較境界 |
 | EV-00368 | FZ-BUILTIN | needs-excel | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
+| EV-00369 | FZ-BUILTIN | fixed | DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 185 |
+| fixed | 186 |
 | known-limit | 1 |
 | needs-excel | 9 |
 | retired | 1 |

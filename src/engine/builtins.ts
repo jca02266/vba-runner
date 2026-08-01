@@ -1390,6 +1390,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return day;
     };
     const validateFirstWeekOfYear = (value: any): number => {
+        rejectNullArgument(ctx, value);
         const week = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(week) || week < 0 || week > 3) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
@@ -1450,6 +1451,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('dateadd', (interval: any, number: any, date: any) => {
         date = unwrapVbaDefaultValue(date);
         if (date === vbaNull || number === vbaNull) return vbaNull;
+        rejectNullArgument(ctx, interval);
         const d = parseVbaDate(date);
         const n = coerceDateNumber(number);
         const intv = String(interval).toLowerCase();
@@ -1479,6 +1481,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         date1 = unwrapVbaDefaultValue(date1);
         date2 = unwrapVbaDefaultValue(date2);
         if (date1 === vbaNull || date2 === vbaNull) return vbaNull;
+        rejectNullArgument(ctx, interval);
         const d1 = parseVbaDate(date1);
         const d2 = parseVbaDate(date2);
         const intv = String(interval).toLowerCase();
@@ -1520,6 +1523,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('datepart', (interval: any, date: any, firstdayofweek: any = 1, firstweekofyear: any = 1) => {
         date = unwrapVbaDefaultValue(date);
         if (date === vbaNull) return vbaNull;
+        rejectNullArgument(ctx, interval);
         const d = parseVbaDate(date);
         const intv = String(interval).toLowerCase();
         // firstdayofweek: 1=Sunday(default), 2=Monday, ..., 7=Saturday; 0=system default(treat as 1)

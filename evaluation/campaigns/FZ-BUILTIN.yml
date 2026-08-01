@@ -1199,3 +1199,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-BUILTIN-135
+    title: DateDiffと週番号の暦境界
+    status: queued
+    priority: 1
+    focus: DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界
+    priorCauseKey: date-calendar-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
