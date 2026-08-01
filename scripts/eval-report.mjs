@@ -315,7 +315,9 @@ function renderHtml(records, summary, series, findingTypes) {
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
-  const seriesRows = series.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
+  // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
+  const recentSeries = series.slice(-10);
+  const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
@@ -326,7 +328,7 @@ function renderHtml(records, summary, series, findingTypes) {
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
-<table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
+<h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
 <tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(records, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
 <tr><td><code>bug-found</code></td><td>${evaluationStatusCount(records, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
