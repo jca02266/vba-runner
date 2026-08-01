@@ -611,3 +611,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-070
+    title: StrReverse Unicode境界
+    status: queued
+    priority: 1
+    focus: StrReverseのサロゲートペア・結合文字・Null/Empty・UTF-16順序
+    priorCauseKey: strreverse-codeunit-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

@@ -204,6 +204,7 @@
 | EV-00298 | FZ-BUILTIN | fixed | Val型サフィックス全境界 |
 | EV-00299 | FZ-BUILTIN | fixed | Val浮動小数点サフィックス境界 |
 | EV-00300 | FZ-BUILTIN | fixed | StrConv変換フラグ境界 |
+| EV-00301 | FZ-BUILTIN | verified-no-bug | StrReverse Unicode境界 |
 
 ## 状態集計
 
@@ -214,9 +215,9 @@
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 58 |
+| verified-no-bug | 59 |
 
-横展開未解決経路: 204、実Excel待ち評価: 3
+横展開未解決経路: 205、実Excel待ち評価: 3
 
 ## 次の候補
 
