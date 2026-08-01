@@ -194,6 +194,7 @@
 | EV-00288 | META-ENGINE | fixed | FSO返却コレクションとTextStream変換境界 |
 | EV-00289 | META-ENGINE | fixed | FSO返却オブジェクトのBoolean引数Null境界 |
 | EV-00290 | META-ENGINE | fixed | ADODB.Stream数値引数のNull境界 |
+| EV-00291 | META-ENGINE | verified-no-bug | XMLHTTP OpenのvarAsync Null・Empty・文字列・名前付き引数 |
 
 ## 状態集計
 
@@ -204,9 +205,9 @@
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 56 |
+| verified-no-bug | 57 |
 
-横展開未解決経路: 189、実Excel待ち評価: 3
+横展開未解決経路: 191、実Excel待ち評価: 3
 
 ## 次の候補
 

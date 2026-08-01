@@ -150,3 +150,12 @@ items:
       - src/engine/coerce.ts
       - src/engine/evaluator.ts
       - tests/spec/com-param-coercion.test.ts
+  - id: META-ENGINE-018
+    title: XMLHTTP引数metadataとBoolean境界
+    status: queued
+    priority: 1
+    focus: XMLHTTP OpenのvarAsync Null・Empty・文字列・名前付き引数
+    priorCauseKey: com-method-metadata-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
