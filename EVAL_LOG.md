@@ -215,6 +215,7 @@
 | EV-00309 | FZ-BUILTIN | fixed | LeftRightMid境界 |
 | EV-00310 | FZ-BUILTIN | fixed | RGB色成分境界 |
 | EV-00311 | FZ-BUILTIN | fixed | Error番号境界 |
+| EV-00312 | FZ-BUILTIN | verified-no-bug | DateDiffDatePart境界 |
 
 ## 状態集計
 
@@ -225,7 +226,7 @@
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 59 |
+| verified-no-bug | 60 |
 
 横展開未解決経路: 207、実Excel待ち評価: 3
 

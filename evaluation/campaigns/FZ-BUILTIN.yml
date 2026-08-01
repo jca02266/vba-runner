@@ -710,3 +710,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-081
+    title: DateDiffDatePart境界
+    status: queued
+    priority: 1
+    focus: DateDiff/DatePartのw/ww・週開始・年開始・境界日
+    priorCauseKey: datediff-week-boundary-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
