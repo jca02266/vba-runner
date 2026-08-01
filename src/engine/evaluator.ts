@@ -1962,7 +1962,7 @@ export class Evaluator {
         const procNameKey = proc.name.name.toLowerCase();
 
         // Initialize return variable for function/property
-        if (proc.isFunction || proc.isProperty) {
+        if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
             // 配列を返す関数（As String() 等）は戻り値変数をスカラー型として
             // coerce してはいけない（CStr() 等が配列に適用され壊れるため）
@@ -4606,7 +4606,7 @@ export class Evaluator {
 
         this.bindProcedureParameters(proc, args, localEnv);
 
-        if (proc.isFunction || proc.isProperty) {
+        if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
             // 配列を返す関数（As String() 等）は戻り値変数をスカラー型として
             // coerce してはいけない（CStr() 等が配列に適用され壊れるため）
@@ -4693,7 +4693,8 @@ export class Evaluator {
             // like any local, but Terminate is suppressed — even if a sibling local var holds
             // the same object and its release brings refCount to 0.
             {
-                const retVarName = (proc.isFunction || proc.isProperty) ? proc.name.name.toLowerCase() : null;
+                const retVarName = (proc.isFunction || (proc.isProperty && proc.propertyType === 'get'))
+                    ? proc.name.name.toLowerCase() : null;
                 const retCapture = retVarName !== null ? localEnv.getLocalVariables().get(retVarName) : undefined;
                 for (const [name, val] of localEnv.getLocalVariables()) {
                     if (name === 'me') continue;
@@ -4716,7 +4717,7 @@ export class Evaluator {
             this.executingModuleName = previousExecutingModule;
         }
 
-        if (proc.isFunction || proc.isProperty) {
+        if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             return localEnv.get(proc.name.name.toLowerCase());
         }
         return vbaEmpty;
@@ -8555,9 +8556,24 @@ export class Evaluator {
                 // when both share the same name. `classDef.procedures.find()` returns whichever was
                 // declared first, so if Property Set precedes Property Get, the setter is incorrectly
                 // invoked on a call like `w.Inner("key")`.
-                const proc = classDef.procedures.find(
+                const getter = classDef.procedures.find(
                     p => p.name.name.toLowerCase() === methodNameLower && p.isProperty && p.propertyType === 'get'
-                ) ?? classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
+                );
+                const setter = classDef.procedures.find(
+                    p => p.name.name.toLowerCase() === methodNameLower &&
+                        p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set')
+                );
+                // A call-style Property Let can supply its value by name (for example,
+                // Call obj.Value(Value:=x)). Prefer the setter when a named argument
+                // exists only in the setter; ordinary property reads keep Getter priority.
+                const namedArgs = expr.args
+                    .filter(arg => arg.type === 'NamedArgument')
+                    .map(arg => (arg as NamedArgument).name.toLowerCase());
+                const getterNames = new Set((getter?.parameters ?? []).map(param => param.name.toLowerCase()));
+                const setterNames = new Set((setter?.parameters ?? []).map(param => param.name.toLowerCase()));
+                const setterOnlyNamedArg = namedArgs.some(name => setterNames.has(name) && !getterNames.has(name));
+                const proc = setterOnlyNamedArg ? setter : getter ?? setter ??
+                    classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
                 if (proc) {
                     // Bug BZ: Property Get with 0 params but called with args → get the object first,
                     // then subscript/index the returned value with the given args.

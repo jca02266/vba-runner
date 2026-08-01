@@ -104,3 +104,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-let.test.ts
+  - id: META-ENGINE-013
+    title: Property Let暗黙ByRef引数境界
+    status: queued
+    priority: 1
+    focus: Property Letの暗黙ByRef・名前付き引数・型変換の経路一致
+    priorCauseKey: property-let-byref-binding-divergence
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts

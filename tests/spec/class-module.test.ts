@@ -862,6 +862,33 @@ End Function
     console.log('[PASS] Bug 151-A: 名前付きProperty LetのByRef書き戻し');
 }
 
+// Call-style Property Let with a named value must select the setter even when
+// a same-named Property Get is also present.
+{
+    const ev = evalVBASingle(`
+        Class NamedValue
+            Private mValue As Variant
+            Public Property Get Value() As Variant
+                Value = mValue
+            End Property
+            Public Property Let Value(ByRef value As Variant)
+                mValue = value
+            End Property
+        End Class
+
+        Function TestNamedPropertyLetValue() As String
+            Dim obj As New NamedValue
+            Dim value As Variant
+            value = 42
+            Call obj.Value(Value:=value)
+            TestNamedPropertyLetValue = CStr(obj.Value)
+        End Function
+    `);
+    assert.strictEqual(ev.callProcedure('TestNamedPropertyLetValue', []), '42',
+        'Call-style named Property Let selects the setter');
+    console.log('[PASS] Call-style named Property Let setter selection');
+}
+
 // Bug 153-A: ローカル2次元クラス配列の要素代入後もReDim Preserveできる
 {
     const ev = evalVBASingle(`

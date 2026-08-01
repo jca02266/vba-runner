@@ -189,19 +189,20 @@
 | EV-00283 | FZ-BUILTIN | fixed | ChooseのIndex小数・Null・範囲境界 |
 | EV-00284 | META-ENGINE | fixed | Rateの利率0・釣り合いキャッシュフローとNewton初期値 |
 | EV-00285 | META-ENGINE | fixed | クラス公開配列・通常配列・UDT配列の小数添字とError 9境界 |
+| EV-00286 | META-ENGINE | fixed | Property Letの暗黙ByRef・名前付き引数・型変換の経路一致 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 123 |
+| fixed | 124 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 179、実Excel待ち評価: 3
+横展開未解決経路: 181、実Excel待ち評価: 3
 
 ## 次の候補
 
