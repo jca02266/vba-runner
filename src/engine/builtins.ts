@@ -983,8 +983,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (!Array.isArray(source)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const srcDims = (source as any).__vbaDimensions__;
         if (srcDims && srcDims.length > 1) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        if (match === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        if (match === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
         rejectNullCompare(compare);
+        if (compare !== undefined && compare !== vbaMissing) {
+            const compareValue = ctx.toVbaNumber(compare);
+            if (compareValue !== 0 && compareValue !== 1) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+            }
+        }
         const find = vbaToString(match ?? '');
         const isInclude = ctx.isTrue(include);
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');

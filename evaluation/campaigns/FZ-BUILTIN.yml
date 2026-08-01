@@ -620,3 +620,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-071
+    title: Filter配列比較境界
+    status: queued
+    priority: 1
+    focus: FilterのInclude/Compare省略・Null・無効値・Option Compare・空配列
+    priorCauseKey: filter-compare-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

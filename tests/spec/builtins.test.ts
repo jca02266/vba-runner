@@ -162,6 +162,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'StrConv rejects an invalid LCID');
     assert.throwsMatch(() => evalExpr('StrConv("hello", 3, -1)'), /error '5'/,
         'StrConv rejects a negative LCID');
+    assert.throwsMatch(() => evalExpr('Filter(Array("alpha"), "a", True, 2)'), /error '5'/,
+        'Filter rejects database comparison outside Access');
+    assert.throwsMatch(() => evalExpr('Filter(Array("alpha"), "a", True, -1)'), /error '5'/,
+        'Filter rejects an invalid comparison mode');
+    assert.throwsMatch(() => evalExpr('Filter(Array("alpha"), Null)'), /error '94'/,
+        'Filter rejects a Null match with Invalid use of Null');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 
