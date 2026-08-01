@@ -252,19 +252,20 @@
 | EV-00346 | FZ-BUILTIN | fixed | SLN巨大値の丸め境界 |
 | EV-00347 | FZ-BUILTIN | fixed | DDB巨大値の中間範囲境界 |
 | EV-00348 | FZ-BUILTIN | fixed | 算術乗算の非有限境界 |
+| EV-00349 | FZ-BUILTIN | fixed | FSO CopyFolder実装境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 173 |
+| fixed | 174 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 67 |
 
-横展開未解決経路: 214、実Excel待ち評価: 5
+横展開未解決経路: 215、実Excel待ち評価: 5
 
 ## 次の候補
 

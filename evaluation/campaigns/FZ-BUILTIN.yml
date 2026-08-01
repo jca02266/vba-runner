@@ -1018,3 +1018,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/overflow-detection.test.ts
+  - id: FZ-BUILTIN-115
+    title: FSO CopyFolder実装境界
+    status: queued
+    priority: 1
+    focus: FSO CopyFolderの再帰コピー・Overwrite引数・メタデータ登録
+    priorCauseKey: fso-copyfolder-missing-method
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

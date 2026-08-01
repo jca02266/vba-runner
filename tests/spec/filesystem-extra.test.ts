@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -200,6 +200,19 @@ const allCode = `
         If Err.Number = 0 Then Close #1
         On Error GoTo 0
     End Sub
+
+    Sub Test15FsoCopyFolder()
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "copy_folder_source"
+        Set stream = fso.CreateTextFile("copy_folder_source\\child.txt")
+        stream.Write "x"
+        stream.Close
+        fso.CopyFolder "copy_folder_source", "copy_folder_dest", False
+        copyFolderResult = IIf(fso.FolderExists("copy_folder_dest") And fso.FileExists("copy_folder_dest\\child.txt"), "ok", "bad")
+        fso.DeleteFolder "copy_folder_dest", True
+        fso.DeleteFolder "copy_folder_source", True
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -294,5 +307,10 @@ console.log('[PASS] FSO DeleteFolder Force validation');
 ev.callProcedure('Test14OpenOutputMissingParent', []);
 assert.strictEqual(ev.env.get('openmissingparenterr'), 76, 'Open Output missing parent -> Error 76');
 console.log('[PASS] Open Output parent path validation');
+
+// Test 15: FSO CopyFolder recursively copies a folder tree.
+ev.callProcedure('Test15FsoCopyFolder', []);
+assert.strictEqual(ev.env.get('copyfolderresult'), 'ok', 'CopyFolder recursive copy');
+console.log('[PASS] FSO CopyFolder implementation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');
