@@ -1176,6 +1176,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
 
     const normalizeFormatWeekArg = (value: any, max: number): number => {
         if (value === undefined || value === vbaMissing) return 1;
+        if (value === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const n = vbaRound(ctx.toVbaNumber(value));
         if (n < 0 || n > max) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         return n;
@@ -1366,6 +1367,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     };
     const coerceDateNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
     const validateFirstDayOfWeek = (value: any): number => {
+        if (value === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const day = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(day) || day < 0 || day > 7) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
@@ -1373,6 +1375,7 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return day;
     };
     const validateFirstWeekOfYear = (value: any): number => {
+        if (value === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const week = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(week) || week < 0 || week > 3) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
