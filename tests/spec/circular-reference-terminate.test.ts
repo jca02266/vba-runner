@@ -140,6 +140,35 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 4: Class_Terminate executes at most once');
 }
 
+// Regression: repeated Set Nothing on an untouched As New placeholder must
+// not create and terminate an extra empty instance.
+{
+    const code = `
+    Dim lifecycle As String
+    Class AutoClearProbe
+        Public Label As String
+        Public Sub Class_Initialize()
+            lifecycle = lifecycle & "I,"
+        End Sub
+        Public Sub Class_Terminate()
+            lifecycle = lifecycle & "T:" & Label & ","
+        End Sub
+    End Class
+
+    Function TestRepeatedAutoClear() As String
+        Dim item As New AutoClearProbe
+        item.Label = "epsilon"
+        Set item = Nothing
+        Set item = Nothing
+        TestRepeatedAutoClear = lifecycle
+    End Function
+    `;
+    const result = runFunc(code, 'TestRepeatedAutoClear');
+    assert.strictEqual(result, 'I,T:epsilon,',
+        'Repeated Set Nothing must not materialize an extra As New instance');
+    console.log('[PASS] Repeated Set Nothing does not reinitialize As New placeholder');
+}
+
 // Test 5: Multiple independent objects
 {
     const code = `

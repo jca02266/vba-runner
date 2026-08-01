@@ -276,13 +276,14 @@
 | EV-00370 | FZ-GRAMMAR | fixed | 数値リテラル直後の指数演算子境界 |
 | EV-00371 | FZ-GRAMMAR | needs-excel | As New配列要素の遅延生成境界 |
 | EV-00372 | META-ENGINE | verified-no-bug | ディレクトリ読込とクラス名衝突の使い勝手境界 |
+| EV-00373 | META-ENGINE | fixed | As New変数の繰返しNothing境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 187 |
+| fixed | 188 |
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |

@@ -5326,7 +5326,8 @@ export class Evaluator {
             // `Dim w As New T` + `Set w = Nothing` without any prior access: real VBA still
             // instantiates the object (Class_Initialize) before destroying it (Class_Terminate).
             // Resolve the placeholder first so both lifecycle hooks fire correctly.
-            if (value === vbaNothing && isAutoInstancePlaceholder(oldVal)) {
+            if (value === vbaNothing && isAutoInstancePlaceholder(oldVal)
+                && !(oldVal as any).__explicitlyCleared__) {
                 oldVal = this.instantiateClass(oldVal.__className__);
                 this.env.set(name, oldVal);
             }
@@ -5358,7 +5359,14 @@ export class Evaluator {
             // 仕様: 再度参照したら新しいインスタンスが生成される。
             const className = this.autoInstanceVars.get(name.toLowerCase());
             if (className && value === vbaNothing) {
-                this.env.set(name, createAutoInstancePlaceholder(className));
+                const placeholder = createAutoInstancePlaceholder(className);
+                // Remember that this auto-instance was explicitly cleared.
+                // A repeated `Set x = Nothing` must not materialize and
+                // terminate a fresh, unused object a second time.  Accessing
+                // x still resolves the placeholder normally and then a later
+                // clear gets the usual initialize/terminate lifecycle.
+                (placeholder as any).__explicitlyCleared__ = true;
+                this.env.set(name, placeholder);
                 return;
             }
             this.env.set(name, value);

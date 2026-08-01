@@ -168,3 +168,12 @@ items:
     coverageTargets:
       - test-libs/test-runner.ts
       - src/engine/evaluator.ts
+  - id: META-ENGINE-020
+    title: As New変数の繰返しNothing境界
+    status: queued
+    priority: 1
+    focus: Set Nothingの再実行、Class_Initialize/Terminate、別名参照のライフサイクル
+    priorCauseKey: auto-instance-clear-placeholder-state
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/circular-reference-terminate.test.ts
