@@ -1063,3 +1063,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-120
+    title: SYD巨大値の中間範囲境界
+    status: queued
+    priority: 1
+    focus: SYDのCost-Salvage中間値が非有限になる場合のExcelエラー番号照合
+    priorCauseKey: syd-intermediate-finite-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

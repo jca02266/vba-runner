@@ -257,6 +257,7 @@
 | EV-00351 | FZ-BUILTIN | fixed | SetAttr Directory属性境界 |
 | EV-00352 | FZ-BUILTIN | fixed | FSO DeleteFile Force属性境界 |
 | EV-00353 | FZ-BUILTIN | fixed | FSO DeleteFile ディレクトリ対象境界 |
+| EV-00354 | FZ-BUILTIN | needs-excel | SYD巨大値の中間範囲境界 |
 
 ## 状態集計
 
@@ -265,11 +266,11 @@
 | blocked | 1 |
 | fixed | 178 |
 | known-limit | 1 |
-| needs-excel | 5 |
+| needs-excel | 6 |
 | retired | 1 |
 | verified-no-bug | 67 |
 
-横展開未解決経路: 216、実Excel待ち評価: 5
+横展開未解決経路: 217、実Excel待ち評価: 6
 
 ## 次の候補
 
