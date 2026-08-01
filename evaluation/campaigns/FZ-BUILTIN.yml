@@ -1190,3 +1190,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case.test.ts
+  - id: FZ-BUILTIN-134
+    title: Format数値関数の引数境界
+    status: queued
+    priority: 1
+    focus: FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界
+    priorCauseKey: format-numeric-common-helper
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

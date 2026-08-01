@@ -271,6 +271,7 @@
 | EV-00365 | FZ-BUILTIN | fixed | For Each Option Base 1配列境界 |
 | EV-00366 | FZ-BUILTIN | verified-no-bug | For Each配列下限と型変換横展開 |
 | EV-00367 | FZ-BUILTIN | needs-excel | Case Is・範囲・Null/Emptyと文字列数値混在の比較境界 |
+| EV-00368 | FZ-BUILTIN | needs-excel | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
 
 ## 状態集計
 
@@ -279,11 +280,11 @@
 | blocked | 1 |
 | fixed | 185 |
 | known-limit | 1 |
-| needs-excel | 8 |
+| needs-excel | 9 |
 | retired | 1 |
 | verified-no-bug | 71 |
 
-横展開未解決経路: 219、実Excel待ち評価: 8
+横展開未解決経路: 220、実Excel待ち評価: 9
 
 ## 次の候補
 
