@@ -100,7 +100,7 @@ const ev = evalVBASingle('');
     assert.throwsMatch(() => ev.evalExpression('FileLen("noexist_dt")'), /error '53'/, 'FileLen(不存在) → Error 53');
     assert.throwsMatch(() => ev.evalExpression('FileDateTime("noexist_dt")'), /error '53'/, 'FileDateTime(不存在) → Error 53');
     assert.throwsMatch(() => ev.evalExpression('FileCopy "noexist_dt", "dest_dt"'), /error '53'/, 'FileCopy(不存在) → Error 53');
-    assert.throwsMatch(() => ev.evalExpression('EOF(Null)'), /error '13'/, 'EOF(Null) → Error 13');
+assert.throwsMatch(() => ev.evalExpression('EOF(Null)'), /error '94'/, 'EOF(Null) → Error 94');
     assert.throwsMatch(() => ev.evalExpression('Kill Null'), /error '94'/, 'Kill Null → Error 94');
     assert.throwsMatch(() => ev.evalExpression('MkDir Null'), /error '94'/, 'MkDir Null → Error 94');
     console.log('[PASS] ファイル I/O の異常値 → VBA エラー');
