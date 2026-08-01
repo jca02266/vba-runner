@@ -136,6 +136,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(evalExpr('CDbl("1D3")'), 1000, 'CDbl parses D exponent strings');
     assert.strictEqual(evalExpr('IsNumeric("１２３")'), vbaTrue, 'IsNumeric recognizes full-width digits');
     assert.strictEqual(evalExpr('IsNumeric("－１２３．４")'), vbaTrue, 'IsNumeric recognizes full-width signs and decimal points');
+    assert.throwsMatch(() => evalExpr('Val("50.5%")'), /error '13'/,
+        'Val rejects an Integer suffix on a non-integral value');
+    assert.strictEqual(evalExpr('Val("&HFFFF")'), -1, 'Val sign-extends 16-bit hex values');
+    assert.strictEqual(evalExpr('Val("&HFFFFFFFF")'), -1, 'Val sign-extends 32-bit hex values');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

@@ -456,9 +456,22 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         // Non-string values are Let-coerced to String before parsing (VBA spec).
         if (typeof s !== 'string') s = vbaToString(s);
         const cleaned = s.trim().replace(/ /g, '');
-        if (cleaned.toLowerCase().startsWith('&h')) return parseInt(cleaned.slice(2), 16) || 0;
+        if (cleaned.toLowerCase().startsWith('&h')) {
+            const digits = cleaned.slice(2).match(/^[0-9a-f]+/i)?.[0] ?? '';
+            if (!digits) return 0;
+            const unsigned = parseInt(digits, 16);
+            if (digits.length <= 4 && unsigned >= 0x8000) return unsigned - 0x10000;
+            if (digits.length <= 8 && unsigned >= 0x80000000) return unsigned - 0x100000000;
+            return unsigned;
+        }
         if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
         const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
+        // Val recognizes legacy type-declaration suffixes.  An Integer
+        // suffix cannot be applied to a non-integral value (VBA raises type
+        // mismatch for e.g. Val("50.5%") instead of silently ignoring '%').
+        if (match && cleaned[match[0].length] === '%' && !Number.isInteger(parseFloat(match[0]))) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
         return match ? parseFloat(match[0]) || 0 : 0;
     }, [{ name: 'String' }]);
 

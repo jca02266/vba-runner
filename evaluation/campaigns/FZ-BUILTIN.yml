@@ -574,3 +574,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-066
+    title: Val文字列走査境界
+    status: queued
+    priority: 1
+    focus: Valの符号・小数・指数・基数接頭辞・停止文字と空文字
+    priorCauseKey: val-string-scanning-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
