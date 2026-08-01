@@ -96,3 +96,13 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - src/engine/parser.ts
+  - id: FZ-GRAMMAR-012
+    title: Lexerの符号・基数・区切り境界
+    status: queued
+    priority: 1
+    focus: 16進数・8進数・符号付きリテラルと不正区切りのLexer/Parser経路
+    priorCauseKey: lexer-radix-sign-separator-boundary
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/literal-suffix.test.ts
