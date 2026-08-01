@@ -69,6 +69,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'InStrRev rejects unsupported Compare values');
     assert.strictEqual(evalExpr('InStrB(2.6, "あA", "A")'), 3,
         'InStrB rounds byte Start arguments');
+    assert.strictEqual(evalExpr('LeftB("abc", 1.6)'), 'a',
+        'LeftB rounds fractional byte Length arguments');
+    assert.strictEqual(evalExpr('RightB("abc", 1.6)'), 'c',
+        'RightB rounds fractional byte Length arguments');
+    assert.strictEqual(evalExpr('MidB("abc", 1.6, 3.6)'), 'ab',
+        'MidB rounds fractional byte arguments');
 }
 
 // 2. Conversion Functions

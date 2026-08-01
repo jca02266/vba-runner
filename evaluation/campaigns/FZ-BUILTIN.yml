@@ -656,3 +656,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-075
+    title: MidB引数境界
+    status: queued
+    priority: 1
+    focus: MidB/LeftB/RightBのStart/Length小数・Empty・Null・奇数バイト境界
+    priorCauseKey: byte-string-argument-rounding-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

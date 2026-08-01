@@ -1038,14 +1038,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('leftb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const byteLen = ctx.toVbaNumber(len);
+        const byteLen = ctx.round(ctx.toVbaNumber(len));
         if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = vbaToString(val ?? '');
         return s.substring(0, Math.floor(byteLen / 2));
     }, [{ name: 'String' }, { name: 'Length' }]);
     ctx.reg('rightb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const byteLen = ctx.toVbaNumber(len);
+        const byteLen = ctx.round(ctx.toVbaNumber(len));
         if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = vbaToString(val ?? '');
         const charLen = Math.floor(byteLen / 2);
@@ -1054,12 +1054,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const midbFunc = (val: any, start: any, len?: any) => {
         if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
         const s = vbaToString(val ?? '');
-        const byteStart = ctx.toVbaNumber(start);
+        const byteStart = ctx.round(ctx.toVbaNumber(start));
         if (byteStart < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        if (len !== undefined && ctx.toVbaNumber(len) < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        const byteLen = len === undefined ? undefined : ctx.round(ctx.toVbaNumber(len));
+        if (byteLen !== undefined && byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const charStart = Math.floor((byteStart + 1) / 2);
-        if (len === undefined) return s.substring(charStart - 1);
-        const charLen = Math.floor(ctx.toVbaNumber(len) / 2);
+        if (byteLen === undefined) return s.substring(charStart - 1);
+        const charLen = Math.floor(byteLen / 2);
         return s.substring(charStart - 1, charStart - 1 + charLen);
     };
     ctx.reg('midb', midbFunc, [
