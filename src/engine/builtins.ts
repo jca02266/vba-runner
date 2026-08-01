@@ -477,7 +477,18 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                 const max = suffix === '%' ? 32767 : suffix === '&' ? 2147483647 : 9223372036854776000;
                 if (value < min || value > max) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
             }
+            if (suffix === '!') {
+                if (!Number.isFinite(value) || Math.abs(value) > 3.4028234663852886e38) {
+                    ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+                }
+                return Math.fround(value);
+            }
+            if (suffix === '@') return VbaCurrency.fromNumber(value);
+            if (suffix === '#' && !Number.isFinite(value)) {
+                ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
         }
+        if (!Number.isFinite(value)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         return value;
     }, [{ name: 'String' }]);
 

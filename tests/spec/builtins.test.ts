@@ -148,6 +148,16 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Val rejects an Integer suffix outside its range');
     assert.throwsMatch(() => evalExpr('Val("2147483648&")'), /error '6'/,
         'Val rejects a Long suffix outside its range');
+    assert.strictEqual(evalExpr('CStr(Val("1.23456@"))'), '1.2346',
+        'Val rounds Currency suffix values to four places');
+    assert.notStrictEqual(evalExpr('Val("1.23456789!")'), 1.23456789,
+        'Val rounds Single suffix values to Single precision');
+    assert.throwsMatch(() => evalExpr('Val("1E40!")'), /error '6'/,
+        'Val rejects Single overflow');
+    assert.throwsMatch(() => evalExpr('Val("1E309#")'), /error '6'/,
+        'Val rejects Double overflow');
+    assert.throwsMatch(() => evalExpr('Val("922337203685478@")'), /error '6'/,
+        'Val rejects Currency overflow');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

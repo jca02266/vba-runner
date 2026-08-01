@@ -592,3 +592,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-068
+    title: Val浮動小数点サフィックス境界
+    status: queued
+    priority: 1
+    focus: ValのSingle/Currency/Double/Stringサフィックスと丸め・範囲・停止文字
+    priorCauseKey: val-floating-suffix-range-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/builtins.test.ts
