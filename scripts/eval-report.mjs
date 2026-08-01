@@ -186,7 +186,9 @@ function timeSeries(records, results, findings) {
     evaluations += 1;
     const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
     discovered += recordFindings.length;
-    fixed += recordFindings.filter((finding) => finding.status === 'fixed' || finding.status === 'closed').length;
+    // retired は仮説を退役させた状態であり、未改修バグとして残さない。
+    fixed += recordFindings.filter((finding) =>
+      finding.status === 'fixed' || finding.status === 'closed' || finding.status === 'retired').length;
     if (pendingEvaluationStatuses.has(result.status)) pendingEvaluations += 1;
     if (result.status === 'verified-no-bug') nonBugEvaluations += 1;
     if (result.status === 'bug-found' || result.status === 'fixed') bugEvaluations += 1;
