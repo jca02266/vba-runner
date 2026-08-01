@@ -323,12 +323,12 @@ function ev(expr: string): any {
     console.log('[PASS] Bug AM/AN: Split/Join の Null 伝播');
 }
 
-// --- Bug BE: Filter(arr, Null) が空配列を返す（VBA では Type mismatch Error 13）---
+// --- Bug BE: Filter(arr, Null) が空配列を返す（VBA では Invalid use of Null Error 94）---
 {
     let errNum = 0;
     try { ev('Filter(Array("a","b"), Null)'); } catch (e: any) { errNum = e?.number ?? 0; }
-    assert.strictEqual(errNum, 13, 'Filter(arr, Null) should throw Error 13');
-    console.log('[PASS] Bug BE: Filter(arr, Null) = Error 13');
+    assert.strictEqual(errNum, 94, 'Filter(arr, Null) should throw Error 94');
+    console.log('[PASS] Bug BE: Filter(arr, Null) = Error 94');
 }
 
 // --- Bug BF: Nz(Null) が 0 を返す（VBA では "" を返す）---
