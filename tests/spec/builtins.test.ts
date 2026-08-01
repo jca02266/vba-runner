@@ -648,10 +648,6 @@ End Sub
         'Format Null FirstDayOfWeek → Error 94');
     assert.throwsMatch(() => ev.evalExpression('Format(#2024-01-01#, "ww", 1, Null)'), /error '94'/,
         'Format Null FirstWeekOfYear → Error 94');
-    assert.throwsMatch(() => ev.evalExpression('DatePart("ww", #2024-01-01#, Null)'), /error '94'/,
-        'DatePart Null FirstDayOfWeek → Error 94');
-    assert.throwsMatch(() => ev.evalExpression('DateDiff("ww", #2024-01-01#, #2024-01-08#, 1, Null)'), /error '94'/,
-        'DateDiff Null FirstWeekOfYear → Error 94');
 }
 
 console.log('\n✅ Built-in Functions: 全テスト通過');

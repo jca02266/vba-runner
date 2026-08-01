@@ -737,3 +737,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-084
+    title: Date引数Null境界
+    status: queued
+    priority: 1
+    focus: DateAdd/DateDiff/DatePart/WeekdayのInterval・週引数NullとDateSerial伝播
+    priorCauseKey: date-optional-null-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
