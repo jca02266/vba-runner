@@ -221,19 +221,20 @@
 | EV-00315 | FZ-BUILTIN | verified-no-bug | Date引数Null境界 |
 | EV-00316 | FZ-BUILTIN | fixed | Shellと環境変数のNull境界 |
 | EV-00317 | FZ-BUILTIN | fixed | Round桁数境界 |
+| EV-00318 | FZ-BUILTIN | fixed | Rnd状態引数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 150 |
+| fixed | 151 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 61 |
 
-横展開未解決経路: 207、実Excel待ち評価: 3
+横展開未解決経路: 208、実Excel待ち評価: 3
 
 ## 次の候補
 
