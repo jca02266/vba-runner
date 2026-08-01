@@ -266,13 +266,14 @@
 | EV-00360 | FZ-BUILTIN | fixed | Lexer未終端日付リテラル境界 |
 | EV-00361 | FZ-BUILTIN | fixed | 未終端日付判定とファイル番号構文の回帰境界 |
 | EV-00362 | FZ-BUILTIN | fixed | Lexer日付候補の区切り誤分類境界 |
+| EV-00363 | FZ-BUILTIN | fixed | 日付候補厳密化と二要素形式の回帰境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 183 |
+| fixed | 184 |
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |

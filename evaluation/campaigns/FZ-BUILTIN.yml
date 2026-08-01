@@ -1144,3 +1144,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/engine/lexer-column.test.ts
+  - id: FZ-BUILTIN-129
+    title: 日付候補厳密化と二要素形式の回帰境界
+    status: queued
+    priority: 1
+    focus: "#3/15#・#3/15 12:34#の正常な日付候補を維持"
+    priorCauseKey: lexer-date-candidate-two-part-regression
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/spec/date-literal-parsing.test.ts

@@ -422,8 +422,9 @@ export class Lexer {
                     // 日付・時刻の区切り（/ - :）を必須にする。これがないと
                     // `Write #1, #2024/03/15#` の先頭 `#1, #` を日付と誤認する（Bug 32-B）
                     const dateSeparatorCount = (potentialDate.match(/[\/\-]/g) ?? []).length;
-                    const hasClock = /^\s*\d{1,2}:\d{2}/.test(potentialDate);
-                    const hasDateSeparator = dateSeparatorCount >= 2 || hasClock;
+                    const hasClock = /\b\d{1,2}:\d{2}/.test(potentialDate);
+                    const hasTwoPartDate = /^\s*\d{1,4}[\/\-]\d{1,2}\s*$/.test(potentialDate);
+                    const hasDateSeparator = dateSeparatorCount >= 2 || hasClock || hasTwoPartDate;
 
                     if ((dateRegex.test(potentialDate) && hasDateSeparator) || monthsRegex.test(potentialDate)) {
                         this.advance(); // consume opening #
@@ -451,9 +452,10 @@ export class Lexer {
                 const unterminatedDateRegex = /^[0-9\/\-\s:apm,]+$/i;
                 const unterminatedMonthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
                 const dateSeparators = (unterminatedDate.match(/[\/\-]/g) ?? []).length;
-                const looksLikeTime = /^\s*\d{1,2}:\d{2}/.test(unterminatedDate);
+                const looksLikeTime = /\b\d{1,2}:\d{2}/.test(unterminatedDate);
+                const looksLikeTwoPartDate = /^\s*\d{1,4}[\/\-]\d{1,2}\s*$/.test(unterminatedDate);
                 if ((unterminatedDateRegex.test(unterminatedDate)
-                    && (dateSeparators >= 2 || looksLikeTime))
+                    && (dateSeparators >= 2 || looksLikeTime || looksLikeTwoPartDate))
                     || unterminatedMonthsRegex.test(unterminatedDate)) {
                     throw new LexError('日付リテラルが閉じられていません', startLine, startColumn);
                 }
