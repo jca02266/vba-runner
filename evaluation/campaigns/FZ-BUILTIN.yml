@@ -583,3 +583,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-067
+    title: Val型サフィックス全境界
+    status: queued
+    priority: 1
+    focus: Valの%、&、^、!、@、#、$サフィックスと整数範囲・オーバーフロー
+    priorCauseKey: val-type-suffix-range-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

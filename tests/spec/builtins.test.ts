@@ -140,6 +140,14 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Val rejects an Integer suffix on a non-integral value');
     assert.strictEqual(evalExpr('Val("&HFFFF")'), -1, 'Val sign-extends 16-bit hex values');
     assert.strictEqual(evalExpr('Val("&HFFFFFFFF")'), -1, 'Val sign-extends 32-bit hex values');
+    assert.throwsMatch(() => evalExpr('Val("1.5&")'), /error '13'/,
+        'Val rejects a fractional Long suffix');
+    assert.throwsMatch(() => evalExpr('Val("1.5^")'), /error '13'/,
+        'Val rejects a fractional LongLong suffix');
+    assert.throwsMatch(() => evalExpr('Val("32768%")'), /error '6'/,
+        'Val rejects an Integer suffix outside its range');
+    assert.throwsMatch(() => evalExpr('Val("2147483648&")'), /error '6'/,
+        'Val rejects a Long suffix outside its range');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

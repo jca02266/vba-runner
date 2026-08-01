@@ -466,13 +466,19 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
         const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
-        // Val recognizes legacy type-declaration suffixes.  An Integer
-        // suffix cannot be applied to a non-integral value (VBA raises type
-        // mismatch for e.g. Val("50.5%") instead of silently ignoring '%').
-        if (match && cleaned[match[0].length] === '%' && !Number.isInteger(parseFloat(match[0]))) {
-            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        const value = match ? parseFloat(match[0]) || 0 : 0;
+        // Val recognizes legacy type-declaration suffixes and applies their
+        // conversion range before returning the number.
+        if (match) {
+            const suffix = cleaned[match[0].length];
+            if (suffix === '%' || suffix === '&' || suffix === '^') {
+                if (!Number.isInteger(value)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                const min = suffix === '%' ? -32768 : suffix === '&' ? -2147483648 : -9223372036854776000;
+                const max = suffix === '%' ? 32767 : suffix === '&' ? 2147483647 : 9223372036854776000;
+                if (value < min || value > max) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
         }
-        return match ? parseFloat(match[0]) || 0 : 0;
+        return value;
     }, [{ name: 'String' }]);
 
     // VB string constants (settable, not const, for compatibility)
