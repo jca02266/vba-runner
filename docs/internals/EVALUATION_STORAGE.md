@@ -215,6 +215,23 @@ git commit
 レポートの状態遷移履歴に表示する。履歴がない過去状態の増減を推測してグラフへ追加する
 ことはしない。
 
+## 変更範囲に応じた検証
+
+評価状態CLI、レポート、評価記録、ドキュメントだけを変更した場合は、次の短い検証で
+十分とする。
+
+```bash
+npx tsx tests/spec/evaluation-state.test.ts
+npm run eval -- validate
+node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html
+npm run check:docs
+```
+
+`scripts/bg-test.sh` はエンジン、組み込み関数、Parser、拡張機能、共通テストハーネス
+などランナーの実行経路を変更した場合に限って実行する。評価基盤だけの変更で全VBA
+テストを繰り返さず、変更面に対応した検証結果を評価記録へ残す。短い検証で別領域の
+失敗が判明した場合、または変更が複数領域に及ぶ場合は、全体テストへ昇格する。
+
 ## トークン節約と収束
 
 全履歴が必要なのは移行、重複確認、監査、収束判定だけである。通常の評価では候補の

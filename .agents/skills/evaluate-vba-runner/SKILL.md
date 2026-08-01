@@ -62,7 +62,16 @@ after migration, use the structured records and the generated Markdown view.
    The HTML is generated output and is ignored by Git; do not stage or commit
    it. Use the refreshed report for the next loop's status and convergence
    review.
-10. Report the evaluated scenario, independently verified behavior,
+10. Select verification by changed-surface before running tests. For changes
+   limited to `scripts/eval.mjs`, `scripts/eval-report.mjs`, evaluation
+   records, or documentation, run the focused evaluation-state test,
+   `npm run eval -- validate`, report generation, and documentation checks;
+   do not run `scripts/bg-test.sh`. Run `bg-test.sh` only when engine,
+   builtin, parser, extension, shared test harness, or runtime-facing code
+   changed, or when a focused check exposes a cross-surface failure. Record
+   the selected verification tier in the evaluation record and use a full
+   background run before declaring such code changes regression-safe.
+11. Report the evaluated scenario, independently verified behavior,
    horizontal-expansion investigation (including ruled-out paths), root cause,
    tests run, state transition, and commit hash. If no defect was verified,
    say so plainly and record the appropriate no-bug or limitation state.
