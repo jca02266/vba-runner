@@ -1181,3 +1181,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
       - tests/spec/array-lbound-defaults.test.ts
+  - id: FZ-BUILTIN-133
+    title: Select Case 条件境界横展開
+    status: queued
+    priority: 1
+    focus: Case Is・範囲・Null/Emptyと文字列数値混在の比較境界
+    priorCauseKey: select-case-comparison-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
