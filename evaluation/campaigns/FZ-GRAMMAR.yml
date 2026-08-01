@@ -144,3 +144,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-GRAMMAR-017
+    title: For制御式Null境界
+    status: queued
+    priority: 1
+    focus: Forの開始値・終了値・StepにNullを渡した場合のエラー番号
+    priorCauseKey: for-null-control-expression
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-loop.test.ts

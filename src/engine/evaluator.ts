@@ -2624,6 +2624,14 @@ export class Evaluator {
         const stepValue = stmt.step ? this.evaluateExpression(stmt.step) : 1;
         const varName = stmt.identifier.name;
 
+        // VBA rejects Null in any numeric For control expression with
+        // "Invalid use of Null" (Error 94).  Check before assigning the
+        // control variable; Environment.set otherwise obscures the VBA
+        // error as an internal type-assignment failure.
+        if (startValue === vbaNull || endValue === vbaNull || stepValue === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+
         // Initialize block scope variable if it doesn't exist
         if (this.env.get(varName) === vbaEmpty) { // Check against vbaEmpty
             this.env.set(varName, startValue);

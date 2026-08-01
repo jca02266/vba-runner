@@ -74,7 +74,28 @@ const exitForCode = `
 assert.strictEqual(runFunc(exitForCode, 'FindFirstEven', [10]), 2, '2でループを抜ける');
 console.log('[PASS] Exit For');
 
-// --- 5. ネストした For と Exit For ---
+// --- 5. Null in For control expressions ---
+function forNullError(expression: string): number {
+    let output = '';
+    evalVBASingle(`
+        Sub Main()
+            Dim i As Long
+            On Error Resume Next
+            ${expression}
+            Next i
+            Debug.Print Err.Number
+        End Sub
+        Main
+    `, { onPrint: value => { output = value.trim(); } });
+    return Number(output);
+}
+
+assert.strictEqual(forNullError('For i = Null To 3'), 94, 'Null start -> Error 94');
+assert.strictEqual(forNullError('For i = 1 To Null'), 94, 'Null end -> Error 94');
+assert.strictEqual(forNullError('For i = 1 To 3 Step Null'), 94, 'Null step -> Error 94');
+console.log('[PASS] For Null control expressions');
+
+// --- 6. ネストした For と Exit For ---
 const nestedForCode = `
     Function NestedExit()
         Dim count
