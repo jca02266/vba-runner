@@ -7106,6 +7106,9 @@ export class Evaluator {
             deletefile: (p: string, force: any = false) => {
                 const full = this.sandbox.toRealPath(p);
                 try {
+                    if (this.fs.statSync(full).isDirectory()) {
+                        this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+                    }
                     const attributes = this.fs.getAttributes?.(full);
                     const readOnly = attributes !== undefined
                         ? (attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0

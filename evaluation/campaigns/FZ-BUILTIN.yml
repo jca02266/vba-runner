@@ -1054,3 +1054,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: FZ-BUILTIN-119
+    title: FSO DeleteFile ディレクトリ対象境界
+    status: queued
+    priority: 1
+    focus: フォルダーをDeleteFileへ渡した場合はError 75として分類
+    priorCauseKey: fso-deletefile-path-kind-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

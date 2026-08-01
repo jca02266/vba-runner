@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -254,6 +254,18 @@ const allCode = `
         deleteFileForceExists = fso.FileExists("readonly-file.txt")
         On Error GoTo 0
     End Sub
+
+    Sub Test19FsoDeleteFileDirectory()
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "delete-file-dir"
+        On Error Resume Next
+        Err.Clear
+        fso.DeleteFile "delete-file-dir", True
+        deleteFileDirectoryErr = Err.Number
+        On Error GoTo 0
+        fso.DeleteFolder "delete-file-dir", True
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -371,5 +383,10 @@ assert.strictEqual(ev.env.get('deletefilenoforceexists'), vbaTrue, 'DeleteFile w
 assert.strictEqual(ev.env.get('deletefileforceerr'), 0, 'DeleteFile read-only with Force succeeds');
 assert.strictEqual(ev.env.get('deletefileforceexists'), vbaFalse, 'DeleteFile with Force removes read-only file');
 console.log('[PASS] FSO DeleteFile Force validation');
+
+// Test 19: FSO DeleteFile must reject directory targets as path access errors.
+ev.callProcedure('Test19FsoDeleteFileDirectory', []);
+assert.strictEqual(ev.env.get('deletefiledirectoryerr'), 75, 'DeleteFile directory target -> Error 75');
+console.log('[PASS] FSO DeleteFile directory validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

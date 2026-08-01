@@ -256,19 +256,20 @@
 | EV-00350 | FZ-BUILTIN | fixed | FSO MoveFolder実装境界 |
 | EV-00351 | FZ-BUILTIN | fixed | SetAttr Directory属性境界 |
 | EV-00352 | FZ-BUILTIN | fixed | FSO DeleteFile Force属性境界 |
+| EV-00353 | FZ-BUILTIN | fixed | FSO DeleteFile ディレクトリ対象境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 177 |
+| fixed | 178 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 67 |
 
-横展開未解決経路: 215、実Excel待ち評価: 5
+横展開未解決経路: 216、実Excel待ち評価: 5
 
 ## 次の候補
 
