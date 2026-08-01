@@ -782,3 +782,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-089
+    title: 空配列の上下限境界
+    status: queued
+    priority: 1
+    focus: Array()に対するLBound/UBoundと空要素配列の区別
+    priorCauseKey: empty-array-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

@@ -223,6 +223,7 @@
 | EV-00317 | FZ-BUILTIN | fixed | Round桁数境界 |
 | EV-00318 | FZ-BUILTIN | fixed | Rnd状態引数境界 |
 | EV-00319 | FZ-BUILTIN | fixed | ダイアログ関数のNull境界 |
+| EV-00320 | FZ-BUILTIN | needs-excel | 空配列の上下限境界 |
 
 ## 状態集計
 
@@ -231,11 +232,11 @@
 | blocked | 1 |
 | fixed | 152 |
 | known-limit | 1 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 61 |
 
-横展開未解決経路: 209、実Excel待ち評価: 3
+横展開未解決経路: 210、実Excel待ち評価: 4
 
 ## 次の候補
 
