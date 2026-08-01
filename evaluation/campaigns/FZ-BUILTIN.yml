@@ -809,3 +809,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-092
+    title: 文字列Compare列挙値境界
+    status: queued
+    priority: 2
+    focus: InStr/Replace/Split/StrComp系Compareの無効値と共通検証
+    priorCauseKey: compare-enum-invalid-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
