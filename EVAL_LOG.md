@@ -219,13 +219,14 @@
 | EV-00313 | FZ-BUILTIN | fixed | Format数値オプション境界 |
 | EV-00314 | FZ-BUILTIN | fixed | Format週オプション境界 |
 | EV-00315 | FZ-BUILTIN | verified-no-bug | Date引数Null境界 |
+| EV-00316 | FZ-BUILTIN | fixed | Shellと環境変数のNull境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 148 |
+| fixed | 149 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
