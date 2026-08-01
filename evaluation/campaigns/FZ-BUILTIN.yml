@@ -692,3 +692,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-079
+    title: RGB色成分境界
+    status: queued
+    priority: 1
+    focus: RGB/QBColorの小数・負値・上限・NullとVBA丸め
+    priorCauseKey: rgb-component-rounding-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

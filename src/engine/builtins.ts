@@ -1879,14 +1879,14 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.reg('environ', (k: any) => ctx.getEnv(k), [{ name: 'EnvString' }], ['$']);
     ctx.reg('rgb', (r: any, g: any, b: any) => {
         if (r === vbaNull || g === vbaNull || b === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        const clamp = (n: number) => Math.min(255, Math.max(0, Math.round(n)));
+        const clamp = (n: number) => Math.min(255, Math.max(0, ctx.round(n)));
         return clamp(ctx.toVbaNumber(r)) + clamp(ctx.toVbaNumber(g)) * 256 + clamp(ctx.toVbaNumber(b)) * 65536;
     }, [{ name: 'Red' }, { name: 'Green' }, { name: 'Blue' }]);
     const qbColorTable = [0, 8388608, 32768, 8421376, 128, 8388736, 32896, 12632256,
                           8421504, 16711680, 65280, 16776960, 255, 16711935, 65535, 16777215];
     ctx.reg('qbcolor', (c: any) => {
         if (c === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
-        const idx = Math.round(ctx.toVbaNumber(c));
+        const idx = ctx.round(ctx.toVbaNumber(c));
         if (idx < 0 || idx > 15) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return qbColorTable[idx];
     }, [{ name: 'Color' }]);

@@ -97,6 +97,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Mid rounds fractional Start and Length arguments');
     assert.strictEqual(evalExpr('String(1, 65.6)'), 'B',
         'String rounds numeric Character arguments');
+    assert.strictEqual(evalExpr('RGB(0.5, 0, 0)'), 0,
+        'RGB uses VBA banker rounding for color components');
+    assert.strictEqual(evalExpr('RGB(2.5, 0, 0)'), 2,
+        'RGB preserves even banker-rounding ties');
+    assert.strictEqual(evalExpr('QBColor(0.5)'), 0,
+        'QBColor uses VBA banker rounding for indices');
 }
 
 // 2. Conversion Functions
