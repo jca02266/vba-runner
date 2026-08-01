@@ -225,6 +225,7 @@
 | EV-00319 | FZ-BUILTIN | fixed | ダイアログ関数のNull境界 |
 | EV-00320 | FZ-BUILTIN | needs-excel | 空配列の上下限境界 |
 | EV-00321 | FZ-BUILTIN | fixed | Join区切り文字のEmpty変換 |
+| EV-00322 | FZ-BUILTIN | verified-no-bug | String文字引数のEmpty境界 |
 
 ## 状態集計
 
@@ -235,7 +236,7 @@
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 61 |
+| verified-no-bug | 62 |
 
 横展開未解決経路: 211、実Excel待ち評価: 4
 

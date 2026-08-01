@@ -800,3 +800,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-091
+    title: String文字引数のEmpty境界
+    status: queued
+    priority: 2
+    focus: StringのCharacter Empty・Null・数値・文字列変換
+    priorCauseKey: string-character-empty-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
