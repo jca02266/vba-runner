@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -156,6 +156,16 @@ const allCode = `
         Kill "nonempty_dir\\child.txt"
         RmDir "nonempty_dir"
     End Sub
+
+    Sub Test11FsoIOModeBoundary()
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        On Error Resume Next
+        Err.Clear
+        Set stream = fso.OpenTextFile("mode-boundary.txt", 3, True, -2)
+        fsoModeErr = Err.Number
+        On Error GoTo 0
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -230,5 +240,10 @@ console.log('[PASS] Put/Get/Seek record position Null validation');
 ev.callProcedure('Test10RmDirNonEmpty', []);
 assert.strictEqual(ev.env.get('rmdirnonemptyerr'), 75, 'RmDir non-empty directory -> Error 75');
 console.log('[PASS] RmDir non-empty directory validation');
+
+// Test 11: FSO OpenTextFile rejects unsupported IOMode values with Error 5.
+ev.callProcedure('Test11FsoIOModeBoundary', []);
+assert.strictEqual(ev.env.get('fsomodeerr'), 5, 'OpenTextFile IOMode 3 -> Error 5');
+console.log('[PASS] FSO OpenTextFile IOMode validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

@@ -120,10 +120,6 @@ import {
 import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
 export { VbaErrorCode } from './vba-errors';
 
-function textStreamFlagIsUnicode(value: any): boolean {
-    return value === true || value === -1 || value?.value === true || value?.value === -1;
-}
-
 function vbaFlagIsTrue(value: any): boolean {
     return vbaToBoolean(value).value !== 0;
 }
@@ -6944,7 +6940,18 @@ export class Evaluator {
             },
             opentextfile: (p: string, iomode: any = 1, create: any = false, format: any = -2) => {
                 const full = this.sandbox.toRealPath(p);
-                const mode = iomode === 1 ? 'r' : (iomode === 2 ? 'w' : 'a');
+                if (iomode === vbaNull || format === vbaNull) {
+                    this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                }
+                const modeValue = iomode === vbaEmpty ? 1 : Number(iomode?.valueOf?.() ?? iomode);
+                if (![1, 2, 8].includes(modeValue)) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                }
+                const formatValue = format === vbaEmpty ? -2 : Number(format?.valueOf?.() ?? format);
+                if (![ -2, -1, 0 ].includes(formatValue)) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+                }
+                const mode = modeValue === 1 ? 'r' : (modeValue === 2 ? 'w' : 'a');
                 const shouldCreate = vbaFlagIsTrue(create);
                 if (shouldCreate && !this.fs.existsSync(full)) this.fs.openSync(full, 'w');
                 let fd: number;
@@ -6958,7 +6965,7 @@ export class Evaluator {
                 }
                 const evalFs = this.fs;
                 let pos = 0;
-                const useUnicode = textStreamFlagIsUnicode(format);
+                const useUnicode = formatValue === -1;
                 const readContent = () => {
                     const size = evalFs.statSync(full).size;
                     const rawFd = evalFs.openSync(full, 'r');

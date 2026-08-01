@@ -955,3 +955,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-108
+    title: OpenTextFile IOMode境界
+    status: queued
+    priority: 1
+    focus: FSO OpenTextFileのIOModeを1/2/8以外Error 5として検証
+    priorCauseKey: fso-opentextfile-iomode-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso.test.ts
+  - id: FZ-BUILTIN-109
+    title: Killディレクトリ対象境界
+    status: queued
+    priority: 1
+    focus: ファイル専用Killのディレクトリ対象をError 75として検証
+    priorCauseKey: kill-directory-target-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
