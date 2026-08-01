@@ -197,19 +197,20 @@
 | EV-00291 | META-ENGINE | verified-no-bug | XMLHTTP OpenのvarAsync Null・Empty・文字列・名前付き引数 |
 | EV-00292 | FZ-GRAMMAR | verified-no-bug | Lexerの符号・基数・区切り境界 |
 | EV-00293 | FZ-GRAMMAR | fixed | 符号付きInteger/Long最小値リテラル |
+| EV-00294 | FZ-GRAMMAR | fixed | 先頭小数点と指数リテラル境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 129 |
+| fixed | 130 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 58 |
 
-横展開未解決経路: 193、実Excel待ち評価: 3
+横展開未解決経路: 194、実Excel待ち評価: 3
 
 ## 次の候補
 
