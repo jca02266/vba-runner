@@ -273,6 +273,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(evalExpr('Nz(Null, 99)'), 99, 'Nz(Null, 99) = 99');
     assert.strictEqual(evalExpr('Nz(42, 99)'), 42, 'Nz(42, 99) = 42');
     assert.strictEqual(evalExpr('Nz(Null)'), '', 'Nz(Null) default = "" (VBA default is empty string, not 0)');
+    assert.throws(() => evalExpr('Shell("echo", Null)'),
+        'Shell rejects Null WindowStyle with Error 94');
+    assert.throws(() => evalExpr('Environ(Null)'),
+        'Environ rejects Null EnvString with Error 94');
     console.log('[PASS] RGB / QBColor / Nz');
 }
 

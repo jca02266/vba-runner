@@ -16,6 +16,13 @@ function unwrapVbaDefaultValue(value: any): any {
     return unwrapDefaultValue(value);
 }
 
+/** Reject Null at host-function boundaries that require a concrete argument. */
+function rejectNullArgument(ctx: Pick<StdlibCtx, 'throwError'>, value: any): void {
+    if (value === vbaNull) {
+        ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+    }
+}
+
 // ---------------------------------------------------------------------------
 // Shared type definitions (also re-exported from evaluator.ts)
 // ---------------------------------------------------------------------------
@@ -1592,7 +1599,11 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
 // ---------------------------------------------------------------------------
 
 export function registerInteractionFunctions(ctx: StdlibCtx): void {
-    ctx.reg('shell', (cmd: any, style: any = 1) => { ctx.print(`[SHELL] ${vbaToString(cmd ?? '')} (Style: ${ctx.toVbaNumber(style)})`); return 1; }, [
+    ctx.reg('shell', (cmd: any, style: any = 1) => {
+        rejectNullArgument(ctx, style);
+        ctx.print(`[SHELL] ${vbaToString(cmd ?? '')} (Style: ${ctx.toVbaNumber(style)})`);
+        return 1;
+    }, [
         { name: 'PathName' },
         { name: 'WindowStyle', optional: true },
     ]);
@@ -1882,7 +1893,10 @@ export function registerConstants(ctx: StdlibCtx): void {
     ctx.envSetConst('vbobjecterror', -2147221504);
     ctx.envSetConst('true', vbaTrue); ctx.envSetConst('false', vbaFalse); ctx.envSetConst('empty', vbaEmpty); ctx.envSetConst('nothing', vbaNothing); ctx.envSetConst('null', vbaNull);
 
-    ctx.reg('environ', (k: any) => ctx.getEnv(k), [{ name: 'EnvString' }], ['$']);
+    ctx.reg('environ', (k: any) => {
+        rejectNullArgument(ctx, k);
+        return ctx.getEnv(k);
+    }, [{ name: 'EnvString' }], ['$']);
     ctx.reg('rgb', (r: any, g: any, b: any) => {
         if (r === vbaNull || g === vbaNull || b === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const clamp = (n: number) => Math.min(255, Math.max(0, ctx.round(n)));

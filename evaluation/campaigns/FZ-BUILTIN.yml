@@ -746,3 +746,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-085
+    title: Shellと環境変数のNull境界
+    status: queued
+    priority: 1
+    focus: Shell/Environ/NzのNull・Empty・Missing引数と型変換
+    priorCauseKey: interaction-environment-null-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
