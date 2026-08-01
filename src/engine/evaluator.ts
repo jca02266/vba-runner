@@ -1373,7 +1373,29 @@ export class Evaluator {
             }
             this.fs.mkdirSync(realPath);
         }, [{ name: 'Path' }]);
-        this.registerBuiltin('rmdir', (p: any) => this.fs.rmdirSync?.(this.sandbox.toRealPath(vbaToString(p ?? ''))), [{ name: 'Path' }]);
+        this.registerBuiltin('rmdir', (p: any) => {
+            if (p === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
+            let stat: ReturnType<FileSystem['statSync']>;
+            try {
+                stat = this.fs.statSync(realPath);
+            } catch {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            if (!stat!.isDirectory()) {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+            if (this.fs.readdirSync(realPath).length > 0) {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+            try {
+                this.fs.rmdirSync?.(realPath);
+            } catch {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+        }, [{ name: 'Path' }]);
         this.registerBuiltin('chdir', (p: any) => {
             if (p === vbaNull) {
                 this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');

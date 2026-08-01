@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -142,6 +142,20 @@ const allCode = `
         Close #1
         On Error GoTo 0
     End Sub
+
+    Sub Test10RmDirNonEmpty()
+        MkDir "nonempty_dir"
+        Open "nonempty_dir\\child.txt" For Output As #1
+        Print #1, "x"
+        Close #1
+        On Error Resume Next
+        Err.Clear
+        RmDir "nonempty_dir"
+        rmdirNonEmptyErr = Err.Number
+        On Error GoTo 0
+        Kill "nonempty_dir\\child.txt"
+        RmDir "nonempty_dir"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -211,5 +225,10 @@ assert.strictEqual(ev.env.get('putrecordnullerr'), 94, 'Put record Null -> Error
 assert.strictEqual(ev.env.get('getrecordnullerr'), 94, 'Get record Null -> Error 94');
 assert.strictEqual(ev.env.get('seekpositionnullerr'), 94, 'Seek position Null -> Error 94');
 console.log('[PASS] Put/Get/Seek record position Null validation');
+
+// Test 10: RmDir rejects non-empty directories with Error 75.
+ev.callProcedure('Test10RmDirNonEmpty', []);
+assert.strictEqual(ev.env.get('rmdirnonemptyerr'), 75, 'RmDir non-empty directory -> Error 75');
+console.log('[PASS] RmDir non-empty directory validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');
