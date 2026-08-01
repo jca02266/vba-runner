@@ -864,3 +864,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/builtin-arg-metadata.test.ts
       - tests/spec/call-named-params.test.ts
+  - id: FZ-BUILTIN-098
+    title: InStr Optional名前付き省略境界
+    status: queued
+    priority: 1
+    focus: InStr/InStrBの先頭Optional省略と後続名前付き引数のオーバーロード解決
+    priorCauseKey: overloaded-optional-named-binding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/builtin-arg-metadata.test.ts

@@ -170,6 +170,17 @@ End Function
     console.log('[PASS] 名前付き引数の順序違反・重複を拒否');
 }
 
+// --- 12b. InStr/InStrB: 先頭 Optional Start を名前付きで省略 ---
+{
+    const instr = evalVBA(`Function F()\n F = InStr(String1:="Abc", String2:="b", Compare:=1)\nEnd Function`).callProcedure('F', []);
+    const instrReordered = evalVBA(`Function F()\n F = InStr(Compare:=1, String2:="b", String1:="Abc")\nEnd Function`).callProcedure('F', []);
+    const instrb = evalVBA(`Function F()\n F = InStrB(String1:="Abc", String2:="b", Compare:=0)\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(instr, 2, 'InStrはStartを省略してString1/String2/Compareを名前指定できる');
+    assert.strictEqual(instrReordered, 2, 'InStrの省略Start形は名前の順序に依存しない');
+    assert.strictEqual(instrb, 3, 'InStrBはStartを省略してString1/String2/Compareを名前指定できる');
+    console.log('[PASS] InStr/InStrBの先頭Optional名前付き省略');
+}
+
 // --- 13. Batch 3: 引数数エラー（代表サンプル） ---
 {
     expectVbaError(`Debug.Print Left()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Left() (引数なし)');

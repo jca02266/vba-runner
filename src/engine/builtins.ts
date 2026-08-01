@@ -724,6 +724,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (args.length >= 4) [start, s1, s2, comp] = args;
         else if (args.length === 3) [start, s1, s2] = args;  // arg count determines form, not type
         else [s1, s2] = args;
+        if (start === undefined) start = 1;
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         comp = normalizeCompare(comp);
         const startNum = ctx.round(ctx.toVbaNumber(start));
@@ -736,8 +737,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.regOvl('instr', instrFunc, [
         { params: [{ name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }] },
+        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
     ]);
     // InStrB: バイト単位での検索（VBA では 1 文字 = 2 バイト）
     const instrbFunc = (...args: any[]) => {
@@ -745,6 +746,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (args.length >= 4) [startByte, s1, s2, comp] = args;
         else if (args.length === 3) [startByte, s1, s2] = args;
         else [s1, s2] = args;
+        if (startByte === undefined) startByte = 1;
         comp = normalizeCompare(comp);
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
@@ -757,8 +759,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.regOvl('instrb', instrbFunc, [
         { params: [{ name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }] },
+        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
     ]);
     ctx.reg('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');

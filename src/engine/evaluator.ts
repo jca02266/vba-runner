@@ -4359,7 +4359,7 @@ export class Evaluator {
         }
 
         const candidates = overloads.filter(o => {
-            if (o.params.length !== totalCount) return false;
+            if (positionalArgs.length > o.params.length) return false;
             const paramNames = o.params.map(p => p.name.toLowerCase());
             for (const namedKey of namedArgs.keys()) {
                 if (!paramNames.includes(namedKey)) return false;
@@ -4368,9 +4368,11 @@ export class Evaluator {
             for (let i = 0; i < positionalArgs.length; i++) {
                 if (namedArgs.has(paramNames[i])) return false;
             }
-            // 残り（位置引数で埋まらないスロット）が全て名前付き引数で埋まること
+            // 残り（位置引数で埋まらないスロット）は名前付き引数、または
+            // Optional の省略で埋まること。先頭 Optional を飛ばした
+            // `InStr(String1:=..., String2:=..., Compare:=...)` を許可する。
             for (let i = positionalArgs.length; i < o.params.length; i++) {
-                if (!namedArgs.has(paramNames[i])) return false;
+                if (!namedArgs.has(paramNames[i]) && !o.params[i].optional) return false;
             }
             return true;
         });
@@ -4380,6 +4382,16 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             }
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
+        }
+        if (candidates.length > 1) {
+            // 複数の形が同じ名前集合に適用できる場合は、省略スロットが
+            // 最も少ない（より具体的な）形を選ぶ。InStr の2引数形を
+            // Start省略の3引数形より優先するための決定規則。
+            candidates.sort((a, b) =>
+                (a.params.length - totalCount) - (b.params.length - totalCount));
+            if (candidates[0].params.length !== candidates[1].params.length) {
+                candidates.splice(1);
+            }
         }
         if (candidates.length > 1) {
             // registerOverloadedBuiltin の登録時チェックで弾かれるはずなので、ここに来るのは
