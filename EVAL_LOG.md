@@ -216,13 +216,14 @@
 | EV-00310 | FZ-BUILTIN | fixed | RGB色成分境界 |
 | EV-00311 | FZ-BUILTIN | fixed | Error番号境界 |
 | EV-00312 | FZ-BUILTIN | verified-no-bug | DateDiffDatePart境界 |
+| EV-00313 | FZ-BUILTIN | fixed | Format数値オプション境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 146 |
+| fixed | 147 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
