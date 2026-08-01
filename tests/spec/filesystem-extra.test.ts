@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -213,6 +213,18 @@ const allCode = `
         fso.DeleteFolder "copy_folder_dest", True
         fso.DeleteFolder "copy_folder_source", True
     End Sub
+
+    Sub Test16FsoMoveFolder()
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "move_folder_source"
+        Set stream = fso.CreateTextFile("move_folder_source\\child.txt")
+        stream.Write "x"
+        stream.Close
+        fso.MoveFolder "move_folder_source", "move_folder_dest"
+        moveFolderResult = IIf((Not fso.FolderExists("move_folder_source")) And fso.FileExists("move_folder_dest\\child.txt"), "ok", "bad")
+        fso.DeleteFolder "move_folder_dest", True
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -312,5 +324,10 @@ console.log('[PASS] Open Output parent path validation');
 ev.callProcedure('Test15FsoCopyFolder', []);
 assert.strictEqual(ev.env.get('copyfolderresult'), 'ok', 'CopyFolder recursive copy');
 console.log('[PASS] FSO CopyFolder implementation');
+
+// Test 16: FSO MoveFolder moves a folder tree and removes its source.
+ev.callProcedure('Test16FsoMoveFolder', []);
+assert.strictEqual(ev.env.get('movefolderresult'), 'ok', 'MoveFolder recursive move');
+console.log('[PASS] FSO MoveFolder implementation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

@@ -253,13 +253,14 @@
 | EV-00347 | FZ-BUILTIN | fixed | DDB巨大値の中間範囲境界 |
 | EV-00348 | FZ-BUILTIN | fixed | 算術乗算の非有限境界 |
 | EV-00349 | FZ-BUILTIN | fixed | FSO CopyFolder実装境界 |
+| EV-00350 | FZ-BUILTIN | fixed | FSO MoveFolder実装境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 174 |
+| fixed | 175 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
