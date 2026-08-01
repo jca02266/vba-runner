@@ -883,3 +883,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/freefile.test.ts
+  - id: FZ-BUILTIN-100
+    title: FileAttr戻り値種別境界
+    status: queued
+    priority: 1
+    focus: FileAttrのReturnType 1/2、無効値、Null、未オープン番号
+    priorCauseKey: fileattr-return-type-stub
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

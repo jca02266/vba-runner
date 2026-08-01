@@ -1257,8 +1257,16 @@ export class Evaluator {
             return (h.pos || 0) + 1;
         }, [{ name: 'FileNumber' }]);
         this.registerBuiltin('fileattr', (fn: any, info: any = 1) => {
-            console.log(`[STUB] FileAttr #${this.toVbaNumber(fn)}, ${this.toVbaNumber(info)}`);
-            return 1;
+            if (fn === vbaNull || info === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            const fileNumber = this.toVbaNumber(fn);
+            const returnType = this.toVbaNumber(info);
+            const handle = this.fileHandles.get(fileNumber);
+            if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, 'Bad file name or number');
+            if (returnType === 1) return handle.fd;
+            if (returnType === 2) return fileNumber;
+            this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }, [{ name: 'FileNumber' }, { name: 'ReturnType', optional: true }]);
         this.registerBuiltin('chdrive', (drive: any) => {
             console.log(`[STUB] ChDrive "${vbaToString(drive ?? '')}"`);

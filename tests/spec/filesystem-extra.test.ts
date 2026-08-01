@@ -14,7 +14,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = `
-    Public s, flen, fdate, posBefore, posAfter
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -44,6 +44,24 @@ const allCode = `
         Close #1
         Kill "test_bin.dat"
     End Sub
+
+    Sub Test4()
+        Open "test_attr.dat" For Binary As #1
+        attrFd = FileAttr(1, 1)
+        attrNum = FileAttr(1, 2)
+        Close #1
+        Kill "test_attr.dat"
+    End Sub
+
+    Sub Test4Invalid()
+        Open "test_attr.dat" For Binary As #1
+        On Error Resume Next
+        attrErr = 0
+        attrFd = FileAttr(1, 0)
+        attrErr = Err.Number
+        Close #1
+        Kill "test_attr.dat"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -66,5 +84,19 @@ assert.strictEqual(ev.env.get('posafter'), 5, 'Seek #1, 5');
 // VFS 内のファイル存在確認
 assert.strictEqual(vfs.existsSync('/test_bin.dat'), false, 'Kill');
 console.log('[PASS] Seek, Kill');
+
+// Test 4: FileAttr return type and validation
+ev.callProcedure('Test4', []);
+assert.strictEqual(ev.env.get('attrnum'), 1, 'FileAttr(..., 2) はVBAファイル番号');
+assert.strictEqual(typeof ev.env.get('attrfd'), 'number', 'FileAttr(..., 1) はOSハンドル');
+ev.callProcedure('Test4Invalid', []);
+assert.strictEqual(ev.env.get('attrerr'), 5, 'FileAttrの無効ReturnTypeはError 5');
+console.log('[PASS] FileAttr return type and validation');
+
+let nullError: any = null;
+try { evalVBASingle('Debug.Print FileAttr(1, Null)', { fs: new MemoryFileSystem() }); }
+catch (error: any) { nullError = error; }
+assert.strictEqual(nullError?.number, 94, 'FileAttrのNullはError 94');
+console.log('[PASS] FileAttr Null -> Error 94');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

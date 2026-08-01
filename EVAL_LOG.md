@@ -235,13 +235,14 @@
 | EV-00329 | FZ-BUILTIN | fixed | InStr Optional名前付き省略境界 |
 | EV-00330 | FZ-GRAMMAR | verified-no-bug | With式評価と入れ子境界 |
 | EV-00331 | FZ-BUILTIN | fixed | FreeFile範囲引数境界 |
+| EV-00332 | FZ-BUILTIN | fixed | FileAttr戻り値種別境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 157 |
+| fixed | 158 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
