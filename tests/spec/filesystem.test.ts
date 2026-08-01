@@ -153,6 +153,8 @@ console.log('[PASS] GetAttr/SetAttr: VFS属性ビット');
     const ev = evalVBASingle(`
         Public ws, wi, wb1, wb2
         Sub Test()
+            MkDir "C:"
+            MkDir "C:\\test"
             Open "C:\\\\test\\\\bl.txt" For Output As #1
             Write #1, "hello", 42, True, False
             Close #1
@@ -176,6 +178,8 @@ console.log('[PASS] Bug BL: Input# #TRUE#/#FALSE# Boolean パース');
     const ev = evalVBASingle(`
         Public result As String
         Sub Test()
+            MkDir "C:"
+            MkDir "C:\\test"
             Open "C:\\\\test\\\\bm.txt" For Output As #1
             Write #1, Null, Empty
             Close #1
