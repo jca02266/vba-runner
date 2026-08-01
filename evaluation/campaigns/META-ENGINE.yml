@@ -122,3 +122,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: META-ENGINE-015
+    title: FSO返却コレクションとTextStream変換境界
+    status: queued
+    priority: 1
+    focus: File.OpenAsTextStream、Folder.Files/SubFolders、File.Typeと名前付き引数
+    priorCauseKey: fso-returned-object-commonization-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts

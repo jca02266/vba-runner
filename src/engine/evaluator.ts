@@ -6640,6 +6640,10 @@ export class Evaluator {
                 { name: 'Overwrite', optional: true, coerce: 'boolean' },
             ],
             move: [{ name: 'Destination', coerce: 'string' }],
+            openastextstream: [
+                { name: 'IOMode', optional: true },
+                { name: 'Format', optional: true },
+            ],
         };
         const makePathObject = (kind: 'file' | 'folder', requestedPath: string, stats: any): any => {
             const full = this.sandbox.toRealPath(requestedPath);
@@ -6712,7 +6716,8 @@ export class Evaluator {
             }
             return this.decorateComObject(common);
         };
-        this.registerComObject( () => ({
+        let fsoObject: any;
+        this.registerComObject( () => (fsoObject = ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
             __vbaParamSpecs__: {
@@ -6985,14 +6990,31 @@ export class Evaluator {
                     throw e;
                 }
                 if (!stats.isFile()) this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                return makePathObject('file', p, stats);
+                const file = makePathObject('file', p, stats);
+                file.openastextstream = (iomode: any = 1, format: any = -2) =>
+                    fsoObject.opentextfile(p, iomode, false, format);
+                return this.decorateComObject(file);
             },
             getfolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
                 if (!this.fs.existsSync(full) || !this.fs.statSync(full).isDirectory()) {
                     this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                 }
-                return makePathObject('folder', p, this.fs.statSync(full));
+                const folder = makePathObject('folder', p, this.fs.statSync(full));
+                const files = new VbaCollection();
+                const subfolders = new VbaCollection();
+                for (const name of this.fs.readdirSync(full)) {
+                    const childPath = path.win32.join(p, name);
+                    const childFull = this.sandbox.toRealPath(childPath);
+                    let childStats: any;
+                    try { childStats = this.fs.statSync(childFull); } catch { continue; }
+                    if (childStats.isFile()) files.add(makePathObject('file', childPath, childStats));
+                    else if (childStats.isDirectory()) subfolders.add(makePathObject('folder', childPath, childStats));
+                }
+                Object.defineProperty(folder, 'files', { get: () => files, enumerable: true });
+                Object.defineProperty(folder, 'subfolders', { get: () => subfolders, enumerable: true });
+                Object.defineProperty(folder, 'isrootfolder', { get: () => path.win32.dirname(p) === p, enumerable: true });
+                return this.decorateComObject(folder);
             },
             // VBA は Windows パス前提。path.win32 で `\` をセパレータとして処理する。
             // GetBaseName は VBA 仕様で「拡張子を除いたファイル名」。
@@ -7004,7 +7026,7 @@ export class Evaluator {
             getextensionname: (p: string) => path.win32.extname(p).replace('.', ''),
             getparentfoldername: (p: string) => path.win32.dirname(p),
             getabsolutepathname: (p: string) => p
-        }));
+        })));
 
         // --- MSXML2.XMLHTTP / Microsoft.XMLHTTP ---
         const xmlhttpFactory = () => {

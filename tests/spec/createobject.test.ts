@@ -214,6 +214,23 @@ console.log('[PASS] Scripting.Dictionary');
             file.Delete
             TestFSOReturnedMembers = TestFSOReturnedMembers & "|" & fso.FileExists("C:\\returned.txt")
         End Function
+
+        Function TestFSOReturnedCollections() As String
+            Dim fso As New FileSystemObject, stream, file, folder, child, ts
+            fso.CreateFolder "C:\\listing"
+            Set stream = fso.CreateTextFile("C:\\listing\\entry.txt")
+            stream.Write "entry"
+            stream.Close
+            fso.CreateFolder "C:\\listing\\child"
+            Set file = fso.GetFile("C:\\listing\\entry.txt")
+            Set ts = file.OpenAsTextStream(1, -2)
+            TestFSOReturnedCollections = ts.ReadAll
+            ts.Close
+            Set folder = fso.GetFolder("C:\\listing")
+            TestFSOReturnedCollections = TestFSOReturnedCollections & "|" & folder.Files.Count & _
+                "|" & folder.Files.Item(1).Name & "|" & folder.SubFolders.Count & _
+                "|" & folder.SubFolders.Item(1).Name
+        End Function
     `;
     const ev = evalVBASingle(code, { fs: vfs });
     assert.strictEqual(ev.callProcedure('TestFSOCreateText', []), vbaTrue, 'FSO: CreateTextFile + FileExists');
@@ -250,6 +267,11 @@ console.log('[PASS] Scripting.Dictionary');
         ev.callProcedure('TestFSOReturnedMembers', []),
         'returned.txt|||False',
         'FSO: GetFile/GetFolder share returned-object members and operations'
+    );
+    assert.strictEqual(
+        ev.callProcedure('TestFSOReturnedCollections', []),
+        'entry|1|entry.txt|1|child',
+        'FSO: File.OpenAsTextStream and Folder collections share returned objects'
     );
     console.log('[PASS] Scripting.FileSystemObject');
 }
