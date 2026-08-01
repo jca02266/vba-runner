@@ -1,0 +1,20 @@
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "ExcelQueueTicket"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = False
+Attribute VB_Exposed = False
+Option Explicit
+
+Private mCode As String
+
+Public Property Get Code() As String
+    Code = mCode
+End Property
+
+Public Property Let Code(ByVal value As String)
+    mCode = value
+End Property

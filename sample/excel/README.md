@@ -46,6 +46,10 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 
 `XL-026`〜`XL-032` は非有限数値境界（Val、通常算術、累乗、財務関数）を確認する。
 
+`XL-033` はクラス型配列の `As New` 要素を確認する。`ExcelQueueTicket.cls` と
+`ExcelQueueVerification.bas` を同じブックへインポートしてから一括マクロを実行し、
+`CODE=X TYPE=ExcelQueueTicket ERR=0` になるか、またはExcelのエラー番号を記録する。
+
 `XL-023` の逐次モードLock境界はExcelがロック待ちになる場合があるため、
 一括実行ではスキップする。必要な場合だけ `RunExcelSequentialLockVerification`
 を単独実行し、応答が戻らなければ中断して結果を未照合として扱う。

@@ -61,8 +61,24 @@ Public Sub RunExcelQueueVerification()
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
     VerifyBinaryTextEof root & Application.PathSeparator & "XL-025-text-eof.dat"
     VerifyNonFiniteBoundaries
+    VerifyAsNewArray
     Debug.Print "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifyAsNewArray()
+    Dim tickets(0 To 1) As New ExcelQueueTicket
+    Dim errNo As Long
+    On Error Resume Next
+    Err.Clear
+    tickets(0).Code = "X"
+    errNo = Err.Number
+    If errNo <> 0 Then
+        Debug.Print "XL-033 ERR=" & CStr(errNo)
+    Else
+        Debug.Print "XL-033 CODE=" & tickets(0).Code & " TYPE=" & TypeName(tickets(0)) & " ERR=0"
+    End If
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyNonFiniteBoundaries()
