@@ -267,6 +267,7 @@
 | EV-00361 | FZ-BUILTIN | fixed | 未終端日付判定とファイル番号構文の回帰境界 |
 | EV-00362 | FZ-BUILTIN | fixed | Lexer日付候補の区切り誤分類境界 |
 | EV-00363 | FZ-BUILTIN | fixed | 日付候補厳密化と二要素形式の回帰境界 |
+| EV-00364 | FZ-BUILTIN | needs-excel | On Error GoTo 0とResume状態境界 |
 
 ## 状態集計
 
@@ -275,11 +276,11 @@
 | blocked | 1 |
 | fixed | 184 |
 | known-limit | 1 |
-| needs-excel | 6 |
+| needs-excel | 7 |
 | retired | 1 |
 | verified-no-bug | 70 |
 
-横展開未解決経路: 217、実Excel待ち評価: 6
+横展開未解決経路: 218、実Excel待ち評価: 7
 
 ## 次の候補
 
