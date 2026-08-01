@@ -421,7 +421,9 @@ export class Lexer {
                     const monthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
                     // 日付・時刻の区切り（/ - :）を必須にする。これがないと
                     // `Write #1, #2024/03/15#` の先頭 `#1, #` を日付と誤認する（Bug 32-B）
-                    const hasDateSeparator = /[\/\-:]/.test(potentialDate);
+                    const dateSeparatorCount = (potentialDate.match(/[\/\-]/g) ?? []).length;
+                    const hasClock = /^\s*\d{1,2}:\d{2}/.test(potentialDate);
+                    const hasDateSeparator = dateSeparatorCount >= 2 || hasClock;
 
                     if ((dateRegex.test(potentialDate) && hasDateSeparator) || monthsRegex.test(potentialDate)) {
                         this.advance(); // consume opening #

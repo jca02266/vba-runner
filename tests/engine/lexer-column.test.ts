@@ -22,6 +22,11 @@ assert.ok(seekTokens.some(token => token.type === TokenType.OperatorHash),
     'Seek file number keeps the hash operator');
 console.log('[PASS] Seek file number with negative position: no date false positive');
 
+const invalidHashTokens = tokenize('#1, -1#');
+assert.ok(!invalidHashTokens.some(token => token.type === TokenType.Date),
+    'comma and negative value are not classified as a date literal');
+console.log('[PASS] Invalid hash date candidate: no Date token');
+
 // 1. First token on line starts at column 1
 {
     const tokens = tokenize('Sub Foo()');

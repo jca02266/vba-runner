@@ -1135,3 +1135,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/spec/file-position-modes.test.ts
+  - id: FZ-BUILTIN-128
+    title: Lexer日付候補の区切り誤分類境界
+    status: queued
+    priority: 1
+    focus: "#内のカンマ・負数を日付リテラルと誤認しない判定"
+    priorCauseKey: lexer-date-candidate-separator-validation
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/engine/lexer-column.test.ts
