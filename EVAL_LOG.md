@@ -199,19 +199,20 @@
 | EV-00293 | FZ-GRAMMAR | fixed | 符号付きInteger/Long最小値リテラル |
 | EV-00294 | FZ-GRAMMAR | fixed | 先頭小数点と指数リテラル境界 |
 | EV-00295 | FZ-BUILTIN | fixed | IsNumeric情報関数の文字列境界 |
+| EV-00296 | FZ-BUILTIN | fixed | IsNumeric Unicode数字境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 131 |
+| fixed | 132 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 58 |
 
-横展開未解決経路: 195、実Excel待ち評価: 3
+横展開未解決経路: 196、実Excel待ち評価: 3
 
 ## 次の候補
 
