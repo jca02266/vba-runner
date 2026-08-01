@@ -854,3 +854,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/option_base.test.ts
+  - id: FZ-BUILTIN-097
+    title: 名前付き引数の順序・重複境界
+    status: queued
+    priority: 1
+    focus: 名前付き引数後の位置引数と同一名前付き引数の共通バインダ検証
+    priorCauseKey: named-argument-binder-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/builtin-arg-metadata.test.ts
+      - tests/spec/call-named-params.test.ts

@@ -231,13 +231,14 @@
 | EV-00325 | FZ-BUILTIN | fixed | 金融関数Type列挙値境界 |
 | EV-00326 | FZ-BUILTIN | needs-excel | MIRR金利下限境界 |
 | EV-00327 | FZ-BUILTIN | verified-no-bug | Array Option Base境界 |
+| EV-00328 | FZ-BUILTIN | fixed | 名前付き引数の順序・重複境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 154 |
+| fixed | 155 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |

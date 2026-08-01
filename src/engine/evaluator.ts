@@ -4482,13 +4482,28 @@ export class Evaluator {
         const named = new Map<string, Expression>();
         const positional: Expression[] = [];
         const ordered: Array<{ name?: string; expression: Expression }> = [];
+        let namedSeen = false;
         for (const argExpr of argExprs) {
             if (!argExpr) continue;
             if (argExpr.type === 'NamedArgument') {
                 const namedArg = argExpr as NamedArgument;
-                named.set(namedArg.name.toLowerCase(), namedArg.value);
-                ordered.push({ name: namedArg.name.toLowerCase(), expression: namedArg.value });
+                const nameLower = namedArg.name.toLowerCase();
+                if (named.has(nameLower)) {
+                    this.throwVbaError(
+                        VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                        `Duplicate named argument: '${namedArg.name}'`,
+                    );
+                }
+                namedSeen = true;
+                named.set(nameLower, namedArg.value);
+                ordered.push({ name: nameLower, expression: namedArg.value });
             } else {
+                if (namedSeen) {
+                    this.throwVbaError(
+                        VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                        'Positional argument cannot follow a named argument',
+                    );
+                }
                 positional.push(argExpr);
                 ordered.push({ expression: argExpr });
             }

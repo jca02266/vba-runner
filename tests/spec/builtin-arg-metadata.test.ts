@@ -156,6 +156,18 @@ End Function
     const fv2 = evalVBA(`Function F()\n F = FV(Pmt:=-100, Rate:=0.01, NPer:=12)\nEnd Function`).callProcedure('F', []);
     assert.strictEqual(fv2, fv1, 'FV の名前付き引数（PV/Type 省略・順序非依存）');
     console.log('[PASS] Batch 3: FV 名前付き引数');
+
+    expectVbaError(
+        `Debug.Print FV(Rate:=0.01, 12, -100)`,
+        VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+        'FV(名前付き引数の後の位置引数)',
+    );
+    expectVbaError(
+        `Debug.Print FV(Rate:=0.01, Rate:=0.02, NPer:=12, Pmt:=-100)`,
+        VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+        'FV(名前付き引数の重複)',
+    );
+    console.log('[PASS] 名前付き引数の順序違反・重複を拒否');
 }
 
 // --- 13. Batch 3: 引数数エラー（代表サンプル） ---

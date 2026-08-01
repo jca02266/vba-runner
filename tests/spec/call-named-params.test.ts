@@ -168,6 +168,34 @@ assert.strictEqual(invalidNamedError, 448,
     '標準モジュール手続きの未知名前付き引数はError 448');
 console.log('[PASS] 標準モジュール手続きの未知名前付き引数');
 
+// 名前付き引数の順序違反と重複は、組み込みだけでなく共通手続きバインダーでも拒否する。
+{
+    const orderEvaluator = evalVBA(`
+Function RequiredPair(ByVal first As Long, ByVal second As Long) As Long
+    RequiredPair = first + second
+End Function
+Function TestInvalidNamedOrder() As Long
+    TestInvalidNamedOrder = RequiredPair(first:=1, 2)
+End Function
+`);
+    let orderError: any = null;
+    try { orderEvaluator.callProcedure('TestInvalidNamedOrder', []); } catch (error: any) { orderError = error; }
+    assert.strictEqual(orderError?.number, 450, '名前付き引数の後の位置引数はError 450');
+
+    const duplicateEvaluator = evalVBA(`
+Function RequiredPair(ByVal first As Long, ByVal second As Long) As Long
+    RequiredPair = first + second
+End Function
+Function TestDuplicateNamed() As Long
+    TestDuplicateNamed = RequiredPair(first:=1, first:=2, second:=3)
+End Function
+`);
+    let duplicateError: any = null;
+    try { duplicateEvaluator.callProcedure('TestDuplicateNamed', []); } catch (error: any) { duplicateError = error; }
+    assert.strictEqual(duplicateError?.number, 450, '名前付き引数の重複はError 450');
+    console.log('[PASS] 共通手続きバインダーの名前付き引数境界');
+}
+
 // Bug 152-A: モジュール修飾された名前付きByRef引数を書き戻す
 {
     const ev = evalVBAModules([
