@@ -113,3 +113,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-014
+    title: FSO返却オブジェクトの共通引数境界
+    status: queued
+    priority: 1
+    focus: File/Folder/TextStream返却オブジェクトの名前付き・Null・省略引数
+    priorCauseKey: nested-fso-method-binding-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts

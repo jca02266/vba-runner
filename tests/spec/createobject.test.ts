@@ -202,6 +202,18 @@ console.log('[PASS] Scripting.Dictionary');
             Dim fso As New FileSystemObject
             TestFSOPathOps = fso.GetBaseName(p) & "|" & fso.GetExtensionName(p) & "|" & fso.GetParentFolderName(p)
         End Function
+
+        Function TestFSOReturnedMembers() As String
+            Dim fso As New FileSystemObject, stream, file, folder
+            Set stream = fso.CreateTextFile("C:\\returned.txt")
+            stream.Write "payload"
+            stream.Close
+            Set file = fso.GetFile("C:\\returned.txt")
+            Set folder = fso.GetFolder("C:\\")
+            TestFSOReturnedMembers = file.Name & "|" & file.ParentFolder.Name & "|" & folder.Name
+            file.Delete
+            TestFSOReturnedMembers = TestFSOReturnedMembers & "|" & fso.FileExists("C:\\returned.txt")
+        End Function
     `;
     const ev = evalVBASingle(code, { fs: vfs });
     assert.strictEqual(ev.callProcedure('TestFSOCreateText', []), vbaTrue, 'FSO: CreateTextFile + FileExists');
@@ -233,6 +245,11 @@ console.log('[PASS] Scripting.Dictionary');
         ev.callProcedure('TestFSOPathOps', ['C:\\path\\to\\report.xlsx']),
         'report|xlsx|C:\\path\\to',
         'FSO: GetBaseName / GetExtensionName / GetParentFolderName'
+    );
+    assert.strictEqual(
+        ev.callProcedure('TestFSOReturnedMembers', []),
+        'returned.txt|||False',
+        'FSO: GetFile/GetFolder share returned-object members and operations'
     );
     console.log('[PASS] Scripting.FileSystemObject');
 }

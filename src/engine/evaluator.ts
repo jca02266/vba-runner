@@ -6630,6 +6630,88 @@ export class Evaluator {
             read: [{ name: 'Characters' }],
             skip: [{ name: 'Characters' }],
         };
+        // File/Folder は FSO の複数メソッドから返される同じ COM 境界の
+        // オブジェクトである。ここで共通のパス属性と操作を組み立て、
+        // GetFile/GetFolder ごとに個別の薄いオブジェクトを作らない。
+        const pathObjectParamSpecs: Record<string, BuiltinParamSpec[]> = {
+            delete: [{ name: 'Force', optional: true, coerce: 'boolean' }],
+            copy: [
+                { name: 'Destination', coerce: 'string' },
+                { name: 'Overwrite', optional: true, coerce: 'boolean' },
+            ],
+            move: [{ name: 'Destination', coerce: 'string' }],
+        };
+        const makePathObject = (kind: 'file' | 'folder', requestedPath: string, stats: any): any => {
+            const full = this.sandbox.toRealPath(requestedPath);
+            const isFile = kind === 'file';
+            const base = path.win32.basename(requestedPath);
+            const parentPath = path.win32.dirname(requestedPath);
+            const common: any = {
+                path: requestedPath,
+                name: base,
+                parentfolder: this.decorateComObject({
+                    path: parentPath,
+                    name: path.win32.basename(parentPath),
+                }),
+                datecreated: new VbaDate(toVbaDate(stats.birthtime || stats.mtime)),
+                datelastaccessed: new VbaDate(toVbaDate(stats.atime || stats.mtime)),
+                datelastmodified: new VbaDate(toVbaDate(stats.mtime)),
+                attributes: stats.mode || 0,
+                __vbaParamSpecs__: pathObjectParamSpecs,
+            };
+            if (isFile) {
+                common.size = stats.size;
+                common.type = path.win32.extname(base).replace(/^\./, '');
+                common.delete = (force: any = false) => {
+                    try { this.fs.unlinkSync(full); }
+                    catch (e: any) {
+                        if (vbaFlagIsTrue(force) && e?.code === 'EACCES') {
+                            (this.fs as any).chmodSync?.(full, 0o666);
+                            this.fs.unlinkSync(full);
+                            return;
+                        }
+                        throwFsoPathError(e);
+                    }
+                };
+                common.copy = (destination: string, overwrite: any = false) => {
+                    const target = this.sandbox.toRealPath(destination);
+                    if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    }
+                    if (!this.fs.copyFileSync) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File copy is not supported');
+                    try { this.fs.copyFileSync(full, target); } catch (e) { throwFsoPathError(e); }
+                };
+                common.move = (destination: string) => {
+                    const target = this.sandbox.toRealPath(destination);
+                    if (this.fs.existsSync(target)) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    }
+                    if (!this.fs.copyFileSync) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File move is not supported');
+                    try {
+                        this.fs.copyFileSync(full, target);
+                        this.fs.unlinkSync(full);
+                    } catch (e) { throwFsoPathError(e); }
+                };
+            } else {
+                common.delete = (force: any = false) => {
+                    if (!this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                    this.fs.rmSync?.(full, { recursive: vbaFlagIsTrue(force), force: vbaFlagIsTrue(force) });
+                };
+                common.copy = (destination: string, overwrite: any = false) => {
+                    const target = this.sandbox.toRealPath(destination);
+                    if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    }
+                    (this.fs as any).cpSync?.(full, target, { recursive: true, force: vbaFlagIsTrue(overwrite) });
+                };
+                common.move = (destination: string) => {
+                    const target = this.sandbox.toRealPath(destination);
+                    if (this.fs.existsSync(target)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                    (this.fs as any).renameSync?.(full, target);
+                };
+            }
+            return this.decorateComObject(common);
+        };
         this.registerComObject( () => ({
             __isVbaFso__: true,
             __progId__: 'Scripting.FileSystemObject',
@@ -6903,21 +6985,14 @@ export class Evaluator {
                     throw e;
                 }
                 if (!stats.isFile()) this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                return {
-                    path: p,
-                    size: stats.size,
-                    datecreated: new VbaDate(toVbaDate(stats.birthtime || stats.mtime)),
-                    datelastaccessed: new VbaDate(toVbaDate(stats.mtime)),
-                    datelastmodified: new VbaDate(toVbaDate(stats.mtime)),
-                    attributes: stats.mode || 0
-                };
+                return makePathObject('file', p, stats);
             },
             getfolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
                 if (!this.fs.existsSync(full) || !this.fs.statSync(full).isDirectory()) {
                     this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                 }
-                return { path: p };
+                return makePathObject('folder', p, this.fs.statSync(full));
             },
             // VBA は Windows パス前提。path.win32 で `\` をセパレータとして処理する。
             // GetBaseName は VBA 仕様で「拡張子を除いたファイル名」。
