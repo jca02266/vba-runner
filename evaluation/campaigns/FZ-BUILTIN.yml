@@ -665,3 +665,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-076
+    title: StrComp比較境界
+    status: queued
+    priority: 1
+    focus: StrCompのCompare小数・Empty・Null・無効列挙とOption Compare
+    priorCauseKey: string-compare-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
