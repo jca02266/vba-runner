@@ -8,7 +8,7 @@ if (fs.existsSync(testDir)) fs.rmdirSync(testDir);
 
 const code = `
     MkDir "vba_test_dir"
-    Debug.Print Dir("vba_test_dir")
+    Debug.Print Dir("vba_test_dir", vbDirectory)
     RmDir "vba_test_dir"
 `;
 
