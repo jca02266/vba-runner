@@ -275,6 +275,7 @@
 | EV-00369 | FZ-BUILTIN | fixed | DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界 |
 | EV-00370 | FZ-GRAMMAR | fixed | 数値リテラル直後の指数演算子境界 |
 | EV-00371 | FZ-GRAMMAR | needs-excel | As New配列要素の遅延生成境界 |
+| EV-00372 | META-ENGINE | verified-no-bug | ディレクトリ読込とクラス名衝突の使い勝手境界 |
 
 ## 状態集計
 
@@ -285,7 +286,7 @@
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |
-| verified-no-bug | 71 |
+| verified-no-bug | 72 |
 
 横展開未解決経路: 221、実Excel待ち評価: 10
 

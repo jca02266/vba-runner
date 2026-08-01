@@ -159,3 +159,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-param-coercion.test.ts
+  - id: META-ENGINE-019
+    title: ディレクトリ読込とクラス名衝突の使い勝手境界
+    status: queued
+    priority: 2
+    focus: VBARunnerのディレクトリ読込、複数クラスの名前衝突、明示ファイル配列との差
+    priorCauseKey: directory-load-scope
+    coverageTargets:
+      - test-libs/test-runner.ts
+      - src/engine/evaluator.ts
