@@ -719,3 +719,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-082
+    title: Format数値オプション境界
+    status: queued
+    priority: 1
+    focus: FormatNumber/FormatCurrency/FormatPercentのNull・Empty・小数オプション
+    priorCauseKey: format-numeric-optional-null-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

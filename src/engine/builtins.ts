@@ -1276,6 +1276,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                         prefix: string, suffix: string, scale: number): string => {
         val = unwrapVbaDefaultValue(val);
         if (val === vbaNull) return '';
+        for (const option of [digits, leadingDigit, parens, groupDigits]) {
+            if (option === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
         let n: number;
         if (val instanceof VbaDate) n = val.value;
         else if (val instanceof VbaCurrency) n = ctx.toVbaNumber(val.internal) / 10000;

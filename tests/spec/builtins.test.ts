@@ -637,4 +637,13 @@ End Sub
     console.log('[PASS] Bug DS: DeleteSetting non-existent → runtime error');
 }
 
+// Bug 321: numeric formatting option Null must be Error 94, not Type mismatch.
+{
+    const ev = evalVBASingle('');
+    assert.throwsMatch(() => ev.evalExpression('FormatNumber(1.25, Null)'), /error '94'/,
+        'FormatNumber Null digits → Error 94');
+    assert.throwsMatch(() => ev.evalExpression('FormatCurrency(1.25, 2, Null)'), /error '94'/,
+        'FormatCurrency Null leading digit → Error 94');
+}
+
 console.log('\n✅ Built-in Functions: 全テスト通過');
