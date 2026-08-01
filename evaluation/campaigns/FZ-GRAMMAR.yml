@@ -153,3 +153,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/for-loop.test.ts
+  - id: FZ-GRAMMAR-018
+    title: 数値リテラル直後の指数演算子境界
+    status: queued
+    priority: 1
+    focus: 空白なしの数値^指数、指数表記とLongLong型サフィックスのLexer識別
+    priorCauseKey: numeric-literal-exponent-suffix
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/operators-extra.test.ts

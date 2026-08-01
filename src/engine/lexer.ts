@@ -351,7 +351,20 @@ export class Lexer {
             }
             numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
         }
-        if (NUMERIC_TYPE_SUFFIXES.has(this.peek())) {
+        const suffix = this.peek();
+        // `^` is both the LongLong type suffix and exponentiation.  It is a
+        // suffix only for an integer literal and only when it is not followed
+        // by an identifier character.  Without this contextual check,
+        // `10^400` was tokenized as a malformed LongLong literal followed by
+        // `400`, and the evaluator silently returned `undefined` instead of
+        // raising VBA's overflow error.
+        const suffixNext = this.input[this.pos + 1] ?? '\0';
+        const hasFloatingSyntax = /[.eEdD]/.test(numStr);
+        const isLongLongSuffix = suffix === '^'
+            && !hasFloatingSyntax
+            && !this.isAlphaNumeric(suffixNext);
+        if (NUMERIC_TYPE_SUFFIXES.has(suffix)
+            && (suffix !== '^' || isLongLongSuffix)) {
             numStr += this.advance();
         }
         return numStr;

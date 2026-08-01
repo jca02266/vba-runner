@@ -119,6 +119,25 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 - `eval complete <candidate-id> <evaluation-id> <status> <claim-token>` で候補と評価結果を関連付ける
 - `eval validate` と `eval render` を実行し、生成された `EVAL_LOG.md` を更新する
 
+### 3.5 実Excel照合結果を状態へ反映する
+
+`sample/excel/*.result` などに実機ログを追加しただけでは、評価状態やレポートは変わらない。
+実機ログの各テストIDを評価記録の `tests` と照合し、次の順序で必ず状態へ反映する。
+
+1. 実機出力とrunnerの同一入力を比較し、期待値・エラー番号・未確定の仕様差を評価本文の
+   `unresolved` から削除または更新する。ログが候補の一部しか覆わない場合は、未確認の
+   境界を `unresolved` に残す。
+2. 差異が確定した場合は通常のバグ修正手順へ戻り、実機一致で差異がない場合は
+   `verified-no-bug`、実装しない仕様差は `known-limit` として記録する。
+3. claimを取得し、`npm run eval -- transition <candidate-id> <evaluation-id> <status> <token>`
+   を実行してresultとeventsを更新する。評価記録のfrontmatter、本文、実機ログの対応を
+   同じ変更で保存する。
+4. `npm run eval -- validate` と `npm run eval -- render EVAL_LOG.md` を実行し、レポートの
+   `needs-excel` 件数が実際の未確定境界と一致することを確認する。
+
+実機ログの存在だけを根拠に `needs-excel` 件数を減らしてはならない。また、評価記録を
+更新せずにログだけをコミットしてはならない。
+
 ### 4. ユーザーに報告する
 
 検証済みの内容（サンプル概要・使い勝手評価・改善提案・検証済みバグと根本原因）を

@@ -148,6 +148,10 @@ End Function
     const ev = evalVBASingle('');
     assert.strictEqual(ev.evalExpression('2 ^ 3 ^ 2'), 64, 'Bug 29-B: 2^3^2 = (2^3)^2 = 64 (左結合)');
     assert.strictEqual(ev.evalExpression('2 ^ 3'), 8, 'Bug 29-B: 2^3 = 8');
+    assert.strictEqual(ev.evalExpression('10^2'), 100, 'Bug 29-E: 数値リテラル直後の ^ は指数演算子');
+    let overflow = 0;
+    try { ev.evalExpression('10^400'); } catch (e: any) { overflow = e?.number ?? -1; }
+    assert.strictEqual(overflow, 6, 'Bug 29-E: 数値リテラル直後の ^ もOverflowを返す');
     console.log('[PASS] Bug 29-B: ^ 演算子は左結合');
 }
 

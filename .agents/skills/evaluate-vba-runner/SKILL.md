@@ -57,6 +57,10 @@ after migration, use the structured records and the generated Markdown view.
    candidate changes from `needs-excel`, `blocked`, or `in-progress`, use the
    `transition` command rather than editing its result snapshot; this appends
    the state event and preserves the previous state for later reporting.
+   When Excel output is supplied, follow the command's Excel reconciliation
+   step: map every output ID to its evaluation record, resolve or retain each
+   `unresolved` boundary, then transition the candidate. A result file alone
+   never changes the `needs-excel` count.
 9. After each evaluation commit, refresh the local HTML report with
    `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit

@@ -151,6 +151,11 @@ npm run eval -- render EVAL_LOG.md
 - `record`: 評価記録を冪等に保存する。同じIDの異なる内容は拒否する。
 - `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
 - `transition`: `needs-excel`、`blocked`、`in-progress` の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
+
+実Excel照合結果の反映は、ログファイルを置くだけでは完了しない。各XLテストIDを
+評価記録の`tests`へ対応付け、runnerとの差異と未確定境界を本文の`unresolved`へ反映
+した後、claim付きの`transition`で状態を更新する。対応付けられないログや、候補の一部
+だけを覆うログは、`needs-excel`を減らす根拠にしない。
 - `validate`: frontmatter、必須項目、参照関係、result整合性を検証する。
 - `render`: 構造化記録から決定的なMarkdownビューを生成する。
 
