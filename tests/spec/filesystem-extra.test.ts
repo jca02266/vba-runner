@@ -15,7 +15,7 @@ function evalVBA(code: string): any {
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
-    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr
+    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -111,6 +111,19 @@ const allCode = `
         openNullErr = Err.Number
         On Error GoTo 0
     End Sub
+
+    Sub Test8MkDirExistingPath()
+        MkDir "existing_dir"
+        On Error Resume Next
+        MkDir "existing_dir"
+        mkdirErr = Err.Number
+        On Error GoTo 0
+        RmDir "existing_dir"
+        On Error Resume Next
+        MkDir "missing_parent/child"
+        mkdirMissingErr = Err.Number
+        On Error GoTo 0
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -166,6 +179,12 @@ assert.strictEqual(ev.env.get('lofnullerr'), 94, 'LOF(Null) -> Error 94');
 assert.strictEqual(ev.env.get('locnullerr'), 94, 'Loc(Null) -> Error 94');
     assert.strictEqual(ev.env.get('seeknullerr'), 94, 'Seek(Null) -> Error 94');
     assert.strictEqual(ev.env.get('opennullerr'), 94, 'Open file number Null -> Error 94');
-console.log('[PASS] File-number Null validation');
+    console.log('[PASS] File-number Null validation');
+
+// Test 8: MkDir rejects an existing path with Error 75.
+ev.callProcedure('Test8MkDirExistingPath', []);
+    assert.strictEqual(ev.env.get('mkdirerr'), 75, 'MkDir existing path -> Error 75');
+    assert.strictEqual(ev.env.get('mkdirmissingerr'), 76, 'MkDir missing parent -> Error 76');
+console.log('[PASS] MkDir existing path');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

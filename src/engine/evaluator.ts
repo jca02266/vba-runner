@@ -1356,7 +1356,23 @@ export class Evaluator {
             { name: 'Source' }, { name: 'Destination' },
         ]);
         this.registerBuiltin('kill', (p: any) => this.executeKill(vbaToString(p ?? '')), [{ name: 'PathName' }]);
-        this.registerBuiltin('mkdir', (p: any) => this.fs.mkdirSync(this.sandbox.toRealPath(vbaToString(p ?? '')), { recursive: true }), [{ name: 'Path' }]);
+        this.registerBuiltin('mkdir', (p: any) => {
+            const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
+            if (this.fs.existsSync(realPath)) {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+            const parentPath = path.dirname(realPath);
+            if (!this.fs.existsSync(parentPath)) {
+                // The sandbox root is an execution-container boundary rather
+                // than a user-created VBA directory; initialize it once.
+                if (parentPath === this.sandbox.getRoot()) {
+                    this.fs.mkdirSync(parentPath, { recursive: true });
+                } else {
+                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                }
+            }
+            this.fs.mkdirSync(realPath);
+        }, [{ name: 'Path' }]);
         this.registerBuiltin('rmdir', (p: any) => this.fs.rmdirSync?.(this.sandbox.toRealPath(vbaToString(p ?? ''))), [{ name: 'Path' }]);
         this.registerBuiltin('chdir', (p: any) => {
             if (p === vbaNull) {

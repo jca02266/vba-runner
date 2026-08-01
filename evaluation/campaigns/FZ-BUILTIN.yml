@@ -928,3 +928,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-105
+    title: MkDir既存パス境界
+    status: queued
+    priority: 1
+    focus: 既存ディレクトリ・既存ファイルへのMkDirのError 75
+    priorCauseKey: mkdir-existing-path-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
