@@ -991,3 +991,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-112
+    title: SLN巨大値の丸め境界
+    status: queued
+    priority: 1
+    focus: 巨大Cost/SalvageのSLNで中間減算を回避し有限結果を維持
+    priorCauseKey: sln-large-value-stable-arithmetic
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

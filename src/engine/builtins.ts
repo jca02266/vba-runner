@@ -1773,9 +1773,12 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true }, { name: 'Guess', optional: true },
     ]);
     ctx.reg('sln', (cost: any, salvage: any, life: any) => {
+        const c = toNum(cost), s = toNum(salvage);
         const l = toNum(life);
         if (!Number.isFinite(l) || l <= 0) invalidFinancialArg();
-        return finiteResult((toNum(cost) - toNum(salvage)) / l);
+        // Divide before subtracting so opposite-signed values near the
+        // Double limit do not overflow an otherwise finite VBA result.
+        return finiteResult(c / l - s / l);
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }]);
     ctx.reg('syd', (cost: any, salvage: any, life: any, period: any) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period);

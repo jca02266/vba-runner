@@ -255,4 +255,20 @@ console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
 }
 console.log('[PASS] Bug 181-A: 財務関数の不正引数をエラー化');
 
+// Excel keeps this SLN result finite by scaling each operand before subtraction.
+{
+    const ev = evalVBASingle(`
+    Public slnHuge As Variant, slnHugeErr As Long
+    Sub Test()
+        On Error Resume Next
+        slnHuge = SLN(1E+308, -1E+308, 2)
+        slnHugeErr = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('slnhugeerr'), 0, 'SLN huge operands remain finite');
+    assert.strictEqual(ev.env.get('slnhuge'), 1e308, 'SLN huge result matches Excel');
+}
+console.log('[PASS] SLN huge operand stability');
+
 console.log('\n✅ Financial Functions: 全テスト通過');

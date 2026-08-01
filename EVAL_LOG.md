@@ -249,19 +249,20 @@
 | EV-00343 | FZ-BUILTIN | fixed | Killディレクトリ対象境界 |
 | EV-00344 | FZ-BUILTIN | fixed | FSO DeleteFolder Force境界 |
 | EV-00345 | FZ-BUILTIN | fixed | Open Output親パス境界 |
+| EV-00346 | FZ-BUILTIN | fixed | SLN巨大値の丸め境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 170 |
+| fixed | 171 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 67 |
 
-横展開未解決経路: 213、実Excel待ち評価: 5
+横展開未解決経路: 214、実Excel待ち評価: 5
 
 ## 次の候補
 
