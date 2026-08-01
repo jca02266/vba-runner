@@ -683,3 +683,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-078
+    title: LeftRightMid境界
+    status: queued
+    priority: 1
+    focus: Left/Right/MidのStart/Length小数・Empty・NullとString文字コード境界
+    priorCauseKey: string-position-argument-rounding-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

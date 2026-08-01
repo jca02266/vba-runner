@@ -89,6 +89,14 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'ChrB rejects negative character codes');
     assert.throws(() => evalExpr('ChrB(256)'),
         'ChrB rejects character codes above 255');
+    assert.strictEqual(evalExpr('Left("abc", 1.6)'), 'ab',
+        'Left rounds fractional Length arguments');
+    assert.strictEqual(evalExpr('Right("abc", 1.6)'), 'bc',
+        'Right rounds fractional Length arguments');
+    assert.strictEqual(evalExpr('Mid("abc", 1.6, 1.6)'), 'bc',
+        'Mid rounds fractional Start and Length arguments');
+    assert.strictEqual(evalExpr('String(1, 65.6)'), 'B',
+        'String rounds numeric Character arguments');
 }
 
 // 2. Conversion Functions

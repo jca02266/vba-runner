@@ -797,24 +797,25 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
     const leftFunc = (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const l = ctx.toVbaNumber(len);
+        const l = ctx.round(ctx.toVbaNumber(len));
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return vbaToString(val ?? '').substring(0, l);
     };
     ctx.reg('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const rightFunc = (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const s = vbaToString(val ?? ''), l = ctx.toVbaNumber(len);
+        const s = vbaToString(val ?? ''), l = ctx.round(ctx.toVbaNumber(len));
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return s.substring(s.length - l);
     };
     ctx.reg('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
     const midFunc = (val: any, start: any, len?: any) => {
         if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
-        const s = vbaToString(val ?? ''), st = ctx.toVbaNumber(start);
+        const s = vbaToString(val ?? ''), st = ctx.round(ctx.toVbaNumber(start));
         if (st < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        if (len !== undefined && ctx.toVbaNumber(len) < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        return len !== undefined ? s.substring(st - 1, st - 1 + ctx.toVbaNumber(len)) : s.substring(st - 1);
+        const length = len === undefined ? undefined : ctx.round(ctx.toVbaNumber(len));
+        if (length !== undefined && length < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return length !== undefined ? s.substring(st - 1, st - 1 + length) : s.substring(st - 1);
     };
     ctx.reg('mid', midFunc, [
         { name: 'String' },
@@ -851,7 +852,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         let c: string;
         if (typeof char === 'number') {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
-            c = String.fromCharCode(Math.trunc(char) % 256);
+            c = String.fromCharCode(ctx.round(char) % 256);
         } else {
             const s = vbaToString(char ?? '');
             // Empty string character is invalid per spec
