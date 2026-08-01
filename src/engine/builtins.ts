@@ -944,9 +944,15 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'String2' },
         { name: 'Compare', optional: true },
     ]);
-    ctx.reg('strconv', (s: any, conv: any) => {
+    ctx.reg('strconv', (s: any, conv: any, lcid: any = vbaMissing) => {
         if (s === vbaNull) return vbaNull;
         if (conv === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        if (lcid !== vbaMissing && lcid !== undefined) {
+            const localeId = ctx.toVbaNumber(lcid);
+            if (!Number.isInteger(localeId) || localeId <= 0 || localeId > 0xFFFF) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
+        }
         let str = vbaToString(s ?? '');
         const c = ctx.toVbaNumber(conv);
         const caseConv = c & 3;

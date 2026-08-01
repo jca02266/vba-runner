@@ -158,6 +158,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Val rejects Double overflow');
     assert.throwsMatch(() => evalExpr('Val("922337203685478@")'), /error '6'/,
         'Val rejects Currency overflow');
+    assert.throwsMatch(() => evalExpr('StrConv("hello", 3, 99999)'), /error '5'/,
+        'StrConv rejects an invalid LCID');
+    assert.throwsMatch(() => evalExpr('StrConv("hello", 3, -1)'), /error '5'/,
+        'StrConv rejects a negative LCID');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

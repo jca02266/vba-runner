@@ -602,3 +602,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-069
+    title: StrConv変換フラグ境界
+    status: queued
+    priority: 1
+    focus: StrConvのProperCase・半角/全角かな・LCID・複合フラグ・Null
+    priorCauseKey: strconv-conversion-flag-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
