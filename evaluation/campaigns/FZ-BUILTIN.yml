@@ -845,3 +845,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-096
+    title: Array Option Base境界
+    status: queued
+    priority: 2
+    focus: Option Base 0/1でArray関数の下限・上限と既存仕様の整合
+    priorCauseKey: array-option-base-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/option_base.test.ts
