@@ -2803,7 +2803,9 @@ export class Evaluator {
 
     private flattenArray(arr: any[]): any[] {
         const result: any[] = [];
-        for (const item of arr) {
+        const start = Number((arr as any).vbaBase ?? 0);
+        for (let index = start; index < arr.length; index++) {
+            const item = arr[index];
             if (Array.isArray(item)) {
                 result.push(...this.flattenArray(item));
             } else {

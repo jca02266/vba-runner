@@ -268,13 +268,14 @@
 | EV-00362 | FZ-BUILTIN | fixed | Lexer日付候補の区切り誤分類境界 |
 | EV-00363 | FZ-BUILTIN | fixed | 日付候補厳密化と二要素形式の回帰境界 |
 | EV-00364 | FZ-BUILTIN | needs-excel | On Error GoTo 0とResume状態境界 |
+| EV-00365 | FZ-BUILTIN | fixed | For Each Option Base 1配列境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 184 |
+| fixed | 185 |
 | known-limit | 1 |
 | needs-excel | 7 |
 | retired | 1 |

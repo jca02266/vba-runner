@@ -1162,3 +1162,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handling.test.ts
+  - id: FZ-BUILTIN-131
+    title: For Each Option Base 1配列境界
+    status: queued
+    priority: 1
+    focus: Array()のOption Base 1配列で未使用フィラーを列挙しない
+    priorCauseKey: foreach-option-base-filler
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts

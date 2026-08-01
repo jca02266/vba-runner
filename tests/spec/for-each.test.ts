@@ -40,6 +40,23 @@ End Function
 assert.strictEqual(runFunc(arrayCode, 'SumArray'), 150, '1次元配列の合計');
 console.log('[PASS] 1次元配列の反復');
 
+// --- Option Base 1 の Array() は先頭の内部フィラーを列挙しない ---
+const optionBaseArrayCode = `
+Option Base 1
+Function ConcatOptionBaseArray()
+    Dim arr, x, result
+    arr = Array("A", "B")
+    result = ""
+    For Each x In arr
+        result = result & "[" & CStr(x) & "]"
+    Next
+    ConcatOptionBaseArray = result
+End Function
+`;
+assert.strictEqual(runFunc(optionBaseArrayCode, 'ConcatOptionBaseArray'), '[A][B]',
+    'Option Base 1 Array() does not enumerate its filler element');
+console.log('[PASS] For Each Option Base 1 array bounds');
+
 // --- 2. Collection オブジェクトの反復 ---
 const colCode = `
 Function SumCollection()
