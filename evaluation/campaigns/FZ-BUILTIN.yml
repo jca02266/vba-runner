@@ -901,3 +901,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-102
+    title: FileCopy既存先境界
+    status: queued
+    priority: 1
+    focus: FileCopyの既存宛先に対するError 58と上書き禁止
+    priorCauseKey: filecopy-existing-destination
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

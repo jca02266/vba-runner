@@ -1336,8 +1336,15 @@ export class Evaluator {
             const srcPath = this.sandbox.toRealPath(vbaToString(src ?? ''));
             const destPath = this.sandbox.toRealPath(vbaToString(dest ?? ''));
             try {
+                if (this.fs.existsSync(destPath)) {
+                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                }
                 this.fs.copyFileSync?.(srcPath, destPath);
             } catch {
+                // Preserve the VBA error raised for an existing destination.
+                if (this.fs.existsSync(destPath)) {
+                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+                }
                 this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
             }
         }, [

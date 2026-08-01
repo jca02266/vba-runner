@@ -239,13 +239,14 @@
 | EV-00333 | FZ-BUILTIN | fixed | Dir属性フィルタ境界 |
 | EV-00334 | FZ-GRAMMAR | verified-no-bug | GoSub/Return復帰スタック境界 |
 | EV-00335 | FZ-GRAMMAR | fixed | For制御式Null境界 |
+| EV-00336 | FZ-BUILTIN | fixed | FileCopy既存先境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 160 |
+| fixed | 161 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |

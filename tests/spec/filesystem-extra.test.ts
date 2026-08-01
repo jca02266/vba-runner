@@ -14,7 +14,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = `
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -73,6 +73,21 @@ const allCode = `
         Kill "test_file.txt"
         RmDir "test_dir"
     End Sub
+
+    Sub Test6FileCopyExistingDestination()
+        Open "copy_src.txt" For Output As #1
+        Print #1, "source"
+        Close #1
+        Open "copy_dst.txt" For Output As #1
+        Print #1, "destination"
+        Close #1
+        On Error Resume Next
+        FileCopy "copy_src.txt", "copy_dst.txt"
+        copyErr = Err.Number
+        On Error GoTo 0
+        Kill "copy_src.txt"
+        Kill "copy_dst.txt"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -115,5 +130,10 @@ ev.callProcedure('Test5DirAttributes', []);
 assert.strictEqual(ev.env.get('dirnormal'), '', 'Dir(..., vbNormal) はディレクトリを返さない');
 assert.strictEqual(ev.env.get('dirdirectory'), 'test_dir', 'Dir(..., vbDirectory) はディレクトリを含む');
 console.log('[PASS] Dir attributes filter directories');
+
+// Test 6: FileCopy must not overwrite an existing destination.
+ev.callProcedure('Test6FileCopyExistingDestination', []);
+assert.strictEqual(ev.env.get('copyerr'), 58, 'FileCopy existing destination -> Error 58');
+console.log('[PASS] FileCopy existing destination');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');
