@@ -16,6 +16,12 @@ try {
 }
 console.log('[PASS] Unterminated date literal: LexError');
 
+// File-number syntax with a negative position must not be mistaken for a date.
+const seekTokens = tokenize('Seek #1, -1');
+assert.ok(seekTokens.some(token => token.type === TokenType.OperatorHash),
+    'Seek file number keeps the hash operator');
+console.log('[PASS] Seek file number with negative position: no date false positive');
+
 // 1. First token on line starts at column 1
 {
     const tokens = tokenize('Sub Foo()');

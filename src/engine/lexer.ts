@@ -448,8 +448,10 @@ export class Lexer {
                 }
                 const unterminatedDateRegex = /^[0-9\/\-\s:apm,]+$/i;
                 const unterminatedMonthsRegex = /jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec/i;
+                const dateSeparators = (unterminatedDate.match(/[\/\-]/g) ?? []).length;
+                const looksLikeTime = /^\s*\d{1,2}:\d{2}/.test(unterminatedDate);
                 if ((unterminatedDateRegex.test(unterminatedDate)
-                    && /[\/\-:]/.test(unterminatedDate))
+                    && (dateSeparators >= 2 || looksLikeTime))
                     || unterminatedMonthsRegex.test(unterminatedDate)) {
                     throw new LexError('日付リテラルが閉じられていません', startLine, startColumn);
                 }

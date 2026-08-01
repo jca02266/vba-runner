@@ -264,13 +264,14 @@
 | EV-00358 | FZ-BUILTIN | fixed | Lexer文字列内改行境界 |
 | EV-00359 | FZ-BUILTIN | verified-no-bug | Lexer不正数値リテラル境界 |
 | EV-00360 | FZ-BUILTIN | fixed | Lexer未終端日付リテラル境界 |
+| EV-00361 | FZ-BUILTIN | fixed | 未終端日付判定とファイル番号構文の回帰境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 181 |
+| fixed | 182 |
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |

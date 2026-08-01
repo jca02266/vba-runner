@@ -1126,3 +1126,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/engine/lexer-column.test.ts
+  - id: FZ-BUILTIN-127
+    title: 未終端日付判定とファイル番号構文の回帰境界
+    status: queued
+    priority: 1
+    focus: Seek/Printの#ファイル番号を日付リテラルと誤認しない判定
+    priorCauseKey: lexer-unterminated-date-heuristic
+    coverageTargets:
+      - src/engine/lexer.ts
+      - tests/spec/file-position-modes.test.ts
