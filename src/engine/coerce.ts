@@ -35,7 +35,13 @@ export function unwrapDefaultValue(value: any): any {
 
 /** Normalize VBA's D/d exponent marker before JavaScript numeric parsing. */
 export function normalizeVbaNumericString(value: string): string {
-    return value.replace(
+    // VBA's numeric parser accepts the full-width forms commonly produced by
+    // Japanese input methods.  Normalize only the full-width ASCII block so
+    // unrelated Unicode compatibility characters are not reinterpreted.
+    const ascii = value.replace(/[！-～]/g, (char) =>
+        String.fromCharCode(char.charCodeAt(0) - 0xfee0),
+    ).replace(/\u3000/g, ' ');
+    return ascii.replace(
         /^([+-]?(?:\d+(?:\.\d*)?|\.\d+))[dD]([+-]?\d+)$/,
         '$1E$2',
     );

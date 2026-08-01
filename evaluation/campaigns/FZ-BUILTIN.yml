@@ -564,3 +564,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-065
+    title: IsNumeric Unicode数字境界
+    status: queued
+    priority: 1
+    focus: IsNumericの全角数字・全角符号・Unicode空白と数値変換の共通経路
+    priorCauseKey: isnumeric-unicode-digit-normalization-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtins.test.ts

@@ -134,6 +134,8 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(evalExpr('IsNumeric("1D3")'), vbaTrue, 'IsNumeric recognizes D exponent strings');
     assert.strictEqual(evalExpr('IsNumeric("1d-3")'), vbaTrue, 'IsNumeric recognizes lowercase D exponent strings');
     assert.strictEqual(evalExpr('CDbl("1D3")'), 1000, 'CDbl parses D exponent strings');
+    assert.strictEqual(evalExpr('IsNumeric("１２３")'), vbaTrue, 'IsNumeric recognizes full-width digits');
+    assert.strictEqual(evalExpr('IsNumeric("－１２３．４")'), vbaTrue, 'IsNumeric recognizes full-width signs and decimal points');
     console.log('[PASS] Bug DA: IsNumeric(Date) は False');
 }
 

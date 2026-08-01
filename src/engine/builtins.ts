@@ -82,7 +82,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'string') {
             const s = val.trim();
             if (s === "") return vbaFalse;
-            const cleaned = normalizeVbaNumericString(s.replace(/[$,]/g, ''));
+            const cleaned = normalizeVbaNumericString(s).replace(/[$,]/g, '');
             // 判定が目的なので throw しない。toVbaNumber(parseFloat) は "2024/01/15" の先頭
             // 数値を受理してしまうため、ここでは全体が数値の場合のみ通す厳密な Number() を使う
             if (/^&[hH][0-9a-fA-F]+$/.test(cleaned) || /^&[oO][0-7]+$/.test(cleaned)) return vbaTrue;
