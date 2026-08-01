@@ -57,6 +57,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(evalExpr('InStr("Hello", "z")'), 0, 'InStr not found');
     assert.strictEqual(evalExpr('LCase("HELLO")'), 'hello', 'LCase');
     assert.strictEqual(evalExpr('Replace("Hello", "e", "a")'), 'Hallo', 'Replace');
+    assert.strictEqual(JSON.stringify(evalExpr('Split("a,b,c", ",", 1.6)')), '["a","b,c"]',
+        'Split rounds fractional Limit arguments');
+    assert.strictEqual(JSON.stringify(evalExpr('Split("a,b,c", ",", Empty)')), '[]',
+        'Split treats Empty Limit as zero');
+    assert.throws(() => evalExpr('Split("a,b", ",", -1, 2)'),
+        'Split rejects unsupported Compare values');
 }
 
 // 2. Conversion Functions

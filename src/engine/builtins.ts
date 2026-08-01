@@ -850,7 +850,15 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         rejectNullCompare(compare);
         const str = vbaToString(s ?? '');
         const delimiter = del === null || del === undefined ? ' ' : String(del);
-        const n = (limit === null || limit === undefined) ? -1 : ctx.toVbaNumber(limit);
+        const n = limit === undefined
+            ? -1
+            : ctx.round(ctx.toVbaNumber(limit === vbaEmpty ? 0 : limit));
+        if (compare !== undefined && compare !== vbaMissing) {
+            const compareValue = ctx.toVbaNumber(compare);
+            if (compareValue !== 0 && compareValue !== 1) {
+                ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
+        }
         let result: string[];
         if (str === '' || n === 0) {
             result = [];

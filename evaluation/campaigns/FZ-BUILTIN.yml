@@ -638,3 +638,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-073
+    title: Split数値引数境界
+    status: queued
+    priority: 1
+    focus: SplitのLimit/Compareの小数・Null・負値・無効列挙と空Delimiter
+    priorCauseKey: split-optional-argument-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
