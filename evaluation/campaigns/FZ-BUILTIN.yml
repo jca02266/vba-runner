@@ -1081,3 +1081,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-BUILTIN-122
+    title: 手続き引数束縛の組み合わせ境界
+    status: queued
+    priority: 1
+    focus: 名前付き引数・Optional・ByRef/ByVal・括弧強制ByVal・Property経路
+    priorCauseKey: procedure-argument-binding-common-path
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

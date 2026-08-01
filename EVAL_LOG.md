@@ -259,6 +259,7 @@
 | EV-00353 | FZ-BUILTIN | fixed | FSO DeleteFile ディレクトリ対象境界 |
 | EV-00354 | FZ-BUILTIN | needs-excel | SYD巨大値の中間範囲境界 |
 | EV-00355 | FZ-BUILTIN | verified-no-bug | Select Case比較経路の組み合わせ境界 |
+| EV-00356 | FZ-BUILTIN | verified-no-bug | 手続き引数束縛の組み合わせ境界 |
 
 ## 状態集計
 
@@ -269,7 +270,7 @@
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |
-| verified-no-bug | 68 |
+| verified-no-bug | 69 |
 
 横展開未解決経路: 217、実Excel待ち評価: 6
 
