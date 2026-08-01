@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -225,6 +225,17 @@ const allCode = `
         moveFolderResult = IIf((Not fso.FolderExists("move_folder_source")) And fso.FileExists("move_folder_dest\\child.txt"), "ok", "bad")
         fso.DeleteFolder "move_folder_dest", True
     End Sub
+
+    Sub Test17SetAttrDirectory()
+        Open "attr-file.txt" For Output As #1
+        Close #1
+        On Error Resume Next
+        Err.Clear
+        SetAttr "attr-file.txt", vbDirectory
+        setattrDirectoryErr = Err.Number
+        On Error GoTo 0
+        Kill "attr-file.txt"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -329,5 +340,10 @@ console.log('[PASS] FSO CopyFolder implementation');
 ev.callProcedure('Test16FsoMoveFolder', []);
 assert.strictEqual(ev.env.get('movefolderresult'), 'ok', 'MoveFolder recursive move');
 console.log('[PASS] FSO MoveFolder implementation');
+
+// Test 17: SetAttr rejects vbDirectory as a settable attribute.
+ev.callProcedure('Test17SetAttrDirectory', []);
+assert.strictEqual(ev.env.get('setattrdirectoryerr'), 5, 'SetAttr vbDirectory -> Error 5');
+console.log('[PASS] SetAttr Directory attribute validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

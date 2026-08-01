@@ -1431,6 +1431,9 @@ export class Evaluator {
                 if (!this.fs.setAttributes) {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File attributes are not supported');
                 }
+                if ((attributes & VBA_FILE_ATTRIBUTE.DIRECTORY) !== 0) {
+                    this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Directory attribute cannot be set');
+                }
                 this.fs.setAttributes(realPath, attributes);
             } catch (e: any) {
                 if (e?.type === 'VbaError') throw e;

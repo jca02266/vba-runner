@@ -1036,3 +1036,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-117
+    title: SetAttr Directory属性境界
+    status: queued
+    priority: 1
+    focus: SetAttrでvbDirectory指定をError 5として拒否
+    priorCauseKey: setattr-directory-attribute-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
