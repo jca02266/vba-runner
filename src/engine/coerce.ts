@@ -133,6 +133,9 @@ export function vbaRound(val: number, decimals: number = 0): number {
  */
 export function vbaToBoolean(val: any): VbaBoolean {
     val = unwrapDefaultValue(val);
+    // Null は Boolean 引数の型変換では Type mismatch ではなく、
+    // VBA の「Invalid use of Null」(Error 94) になる。
+    if (val === vbaNull) throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL);
     if (val instanceof VbaBoolean) return val;
     if (val === vbaEmpty) return vbaFalse;
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);

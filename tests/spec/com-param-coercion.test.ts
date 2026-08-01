@@ -22,6 +22,21 @@ assert.strictEqual(result.callProcedure('ProbeHostFlag', []), '-1,0',
     'generic COM metadata uses shared VBA Boolean coercion');
 console.log('[PASS] generic COM parameter coercion');
 
+const fsoReturnedBooleanNull = evalVBASingle(`
+    Function ProbeReturnedFileNullBoolean() As Long
+        Dim fso As Object, stream As Object, file As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("C:\\null-force.txt")
+        stream.Close
+        Set file = fso.GetFile("C:\\null-force.txt")
+        On Error Resume Next
+        file.Delete Force:=Null
+        ProbeReturnedFileNullBoolean = Err.Number
+    End Function
+`);
+assert.strictEqual(fsoReturnedBooleanNull.callProcedure('ProbeReturnedFileNullBoolean', []), 94,
+    'shared COM Boolean coercion maps Null to Invalid use of Null');
+
 const streamResult = evalVBASingle(`
     Function ProbeStreamNull() As Long
         Dim stream As Object

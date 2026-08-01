@@ -131,3 +131,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: META-ENGINE-016
+    title: FSO返却オブジェクトの操作・列挙境界
+    status: queued
+    priority: 1
+    focus: File/Folderの名前付き操作、Files/SubFolders列挙順、TypeとRoot判定
+    priorCauseKey: fso-returned-object-collection-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/createobject.test.ts
