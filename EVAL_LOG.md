@@ -250,13 +250,14 @@
 | EV-00344 | FZ-BUILTIN | fixed | FSO DeleteFolder Force境界 |
 | EV-00345 | FZ-BUILTIN | fixed | Open Output親パス境界 |
 | EV-00346 | FZ-BUILTIN | fixed | SLN巨大値の丸め境界 |
+| EV-00347 | FZ-BUILTIN | fixed | DDB巨大値の中間範囲境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 171 |
+| fixed | 172 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |

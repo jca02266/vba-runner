@@ -271,4 +271,20 @@ console.log('[PASS] Bug 181-A: 財務関数の不正引数をエラー化');
 }
 console.log('[PASS] SLN huge operand stability');
 
+// Excel rejects a non-finite intermediate book/salvage difference in DDB.
+{
+    const ev = evalVBASingle(`
+    Public ddbHugeErr As Long
+    Sub Test()
+        On Error Resume Next
+        Dim ignored As Double
+        ignored = DDB(1E+308, -1E+308, 2, 1)
+        ddbHugeErr = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('ddbhugeerr'), 5, 'DDB huge intermediate -> Error 5');
+}
+console.log('[PASS] DDB huge intermediate validation');
+
 console.log('\n✅ Financial Functions: 全テスト通過');

@@ -1791,8 +1791,13 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         let book = c;
         let dep = 0;
         for (let i = 1; i <= p; i++) {
-            dep = Math.min(book * (f / l), Math.max(0, book - s));
+            const remaining = book - s;
+            const scheduled = book * (f / l);
+            if (!Number.isFinite(remaining) || !Number.isFinite(scheduled)) invalidFinancialArg();
+            dep = Math.min(scheduled, Math.max(0, remaining));
+            if (!Number.isFinite(dep)) invalidFinancialArg();
             book -= dep;
+            if (!Number.isFinite(book)) invalidFinancialArg();
         }
         return finiteResult(dep);
     }, [

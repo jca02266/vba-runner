@@ -1000,3 +1000,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-113
+    title: DDB巨大値の中間範囲境界
+    status: queued
+    priority: 1
+    focus: DDB各期間の中間値非有限をError 5として検証
+    priorCauseKey: ddb-intermediate-finite-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
