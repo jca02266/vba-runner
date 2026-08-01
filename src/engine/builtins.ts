@@ -1614,6 +1614,10 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
         { name: 'WindowStyle', optional: true },
     ]);
     ctx.reg('msgbox', (msg: any, _buttons: any = 0, _title: any = "", _helpFile?: string, _context?: number) => {
+        rejectNullArgument(ctx, _buttons);
+        rejectNullArgument(ctx, _title);
+        rejectNullArgument(ctx, _helpFile);
+        rejectNullArgument(ctx, _context);
         const titleStr = vbaToString(_title ?? '');
         const title = titleStr ? ` ${titleStr}:` : '';
         ctx.print(`[MSGBOX]${title} ${vbaToString(msg ?? '')}`);
@@ -1626,6 +1630,12 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
         { name: 'Context', optional: true },
     ]);
     ctx.reg('inputbox', (prompt: any, _title: any = "", def: any = "", _xpos?: number, _ypos?: number, _helpFile?: string, _context?: number) => {
+        rejectNullArgument(ctx, _title);
+        rejectNullArgument(ctx, def);
+        rejectNullArgument(ctx, _xpos);
+        rejectNullArgument(ctx, _ypos);
+        rejectNullArgument(ctx, _helpFile);
+        rejectNullArgument(ctx, _context);
         ctx.print(`[INPUTBOX] ${vbaToString(prompt ?? '')}`);
         return def;
     }, [
@@ -1637,11 +1647,17 @@ export function registerInteractionFunctions(ctx: StdlibCtx): void {
         { name: 'HelpFile', optional: true },
         { name: 'Context', optional: true },
     ]);
-    ctx.reg('appactivate', (title: any, _wait?: boolean) => { ctx.print(`[APPACTIVATE] ${vbaToString(title ?? '')}`); }, [
+    ctx.reg('appactivate', (title: any, _wait?: boolean) => {
+        rejectNullArgument(ctx, _wait);
+        ctx.print(`[APPACTIVATE] ${vbaToString(title ?? '')}`);
+    }, [
         { name: 'Title' },
         { name: 'Wait', optional: true },
     ]);
-    ctx.reg('sendkeys', (keys: any, _wait?: boolean) => { ctx.print(`[SENDKEYS] ${vbaToString(keys ?? '')}`); }, [
+    ctx.reg('sendkeys', (keys: any, _wait?: boolean) => {
+        rejectNullArgument(ctx, _wait);
+        ctx.print(`[SENDKEYS] ${vbaToString(keys ?? '')}`);
+    }, [
         { name: 'String' },
         { name: 'Wait', optional: true },
     ]);

@@ -773,3 +773,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-088
+    title: ダイアログ関数のNull境界
+    status: queued
+    priority: 1
+    focus: MsgBox/InputBoxの省略可能引数Null・Empty・型変換
+    priorCauseKey: interaction-optional-null-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts

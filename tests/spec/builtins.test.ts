@@ -283,6 +283,16 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Shell rejects Null WindowStyle with Error 94');
     assert.throws(() => evalExpr('Environ(Null)'),
         'Environ rejects Null EnvString with Error 94');
+    assert.throws(() => evalExpr('MsgBox("x", Null)'),
+        'MsgBox rejects Null Buttons with Error 94');
+    assert.throws(() => evalExpr('MsgBox("x", , Null)'),
+        'MsgBox rejects Null Title with Error 94');
+    assert.throws(() => evalExpr('InputBox("x", Null)'),
+        'InputBox rejects Null Title with Error 94');
+    assert.throws(() => evalExpr('AppActivate("x", Null)'),
+        'AppActivate rejects Null Wait with Error 94');
+    assert.throws(() => evalExpr('SendKeys("x", Null)'),
+        'SendKeys rejects Null Wait with Error 94');
     console.log('[PASS] RGB / QBColor / Nz');
 }
 
