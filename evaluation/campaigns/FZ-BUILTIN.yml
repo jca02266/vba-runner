@@ -937,3 +937,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-106
+    title: Put/Get/Seek位置引数Null境界
+    status: queued
+    priority: 1
+    focus: Put/Getのrecord番号とSeek位置のNullをInvalid use of Nullとして検証
+    priorCauseKey: record-position-null-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-107
+    title: RmDir非空ディレクトリ境界
+    status: queued
+    priority: 1
+    focus: 内容を含むディレクトリのRmDirをError 75として検証
+    priorCauseKey: rmdir-nonempty-directory-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

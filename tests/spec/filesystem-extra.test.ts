@@ -16,6 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -124,6 +125,23 @@ const allCode = `
         mkdirMissingErr = Err.Number
         On Error GoTo 0
     End Sub
+
+    Sub Test9RecordPositionNull()
+        Dim b As Byte
+        Open "record-null.bin" For Binary As #1
+        On Error Resume Next
+        Err.Clear
+        Put #1, Null, b
+        putRecordNullErr = Err.Number
+        Err.Clear
+        Get #1, Null, b
+        getRecordNullErr = Err.Number
+        Err.Clear
+        Seek #1, Null
+        seekPositionNullErr = Err.Number
+        Close #1
+        On Error GoTo 0
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -186,5 +204,12 @@ ev.callProcedure('Test8MkDirExistingPath', []);
     assert.strictEqual(ev.env.get('mkdirerr'), 75, 'MkDir existing path -> Error 75');
     assert.strictEqual(ev.env.get('mkdirmissingerr'), 76, 'MkDir missing parent -> Error 76');
 console.log('[PASS] MkDir existing path');
+
+// Test 9: Put/Get/Seek record positions reject Null with Error 94.
+ev.callProcedure('Test9RecordPositionNull', []);
+assert.strictEqual(ev.env.get('putrecordnullerr'), 94, 'Put record Null -> Error 94');
+assert.strictEqual(ev.env.get('getrecordnullerr'), 94, 'Get record Null -> Error 94');
+assert.strictEqual(ev.env.get('seekpositionnullerr'), 94, 'Seek position Null -> Error 94');
+console.log('[PASS] Put/Get/Seek record position Null validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

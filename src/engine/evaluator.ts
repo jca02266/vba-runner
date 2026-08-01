@@ -6450,7 +6450,11 @@ export class Evaluator {
             }
             return handle.pos ?? null;
         }
-        const record = Number(this.evaluateExpression(recordNumber));
+        const value = this.evaluateExpression(recordNumber);
+        if (value === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+        const record = this.toVbaNumber(value);
         if (!Number.isInteger(record) || record < 1) {
             this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
@@ -6464,7 +6468,11 @@ export class Evaluator {
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, `Bad file name or number: #${fileNum}`);
 
-        const rawPos = Number(this.evaluateExpression(stmt.position));
+        const positionValue = this.evaluateExpression(stmt.position);
+        if (positionValue === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+        const rawPos = this.toVbaNumber(positionValue);
         if (!Number.isFinite(rawPos)) {
             this.throwVbaError(VbaErrorCode.BAD_RECORD_NUMBER, 'Bad record number');
         }

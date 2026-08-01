@@ -243,22 +243,23 @@
 | EV-00337 | FZ-BUILTIN | fixed | CurDir引数Null境界 |
 | EV-00338 | FZ-BUILTIN | fixed | ファイル番号Null境界 |
 | EV-00339 | FZ-BUILTIN | fixed | MkDir既存パス境界 |
+| EV-00340 | FZ-BUILTIN | fixed | Put/Get/Seek位置引数Null境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 164 |
+| fixed | 165 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 67 |
 
-横展開未解決経路: 212、実Excel待ち評価: 5
+横展開未解決経路: 213、実Excel待ち評価: 5
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-107 | 1 | queued | 内容を含むディレクトリのRmDirをError 75として検証 | yes |
