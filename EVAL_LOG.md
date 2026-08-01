@@ -208,13 +208,14 @@
 | EV-00302 | FZ-BUILTIN | fixed | Filter配列比較境界 |
 | EV-00303 | FZ-BUILTIN | fixed | Replace数値引数境界 |
 | EV-00304 | FZ-BUILTIN | fixed | Split数値引数境界 |
+| EV-00305 | FZ-BUILTIN | fixed | InStrRev境界引数 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 139 |
+| fixed | 140 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
