@@ -192,19 +192,20 @@
 | EV-00286 | META-ENGINE | fixed | Property Letの暗黙ByRef・名前付き引数・型変換の経路一致 |
 | EV-00287 | META-ENGINE | fixed | FSO返却File/Folderオブジェクトの共通属性・操作境界 |
 | EV-00288 | META-ENGINE | fixed | FSO返却コレクションとTextStream変換境界 |
+| EV-00289 | META-ENGINE | fixed | FSO返却オブジェクトのBoolean引数Null境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 126 |
+| fixed | 127 |
 | known-limit | 1 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 56 |
 
-横展開未解決経路: 185、実Excel待ち評価: 3
+横展開未解決経路: 187、実Excel待ち評価: 3
 
 ## 次の候補
 
