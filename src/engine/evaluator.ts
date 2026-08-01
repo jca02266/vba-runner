@@ -1279,7 +1279,12 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
             }
         }, [{ name: 'PathName' }]);
-        this.registerBuiltin('curdir', (_drive?: string) => this.sandbox.getCwd(), [{ name: 'Drive', optional: true }], ['$']);
+        this.registerBuiltin('curdir', (drive?: any) => {
+            if (drive === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            return this.sandbox.getCwd();
+        }, [{ name: 'Drive', optional: true }], ['$']);
         this.registerBuiltin('dir', (pathName?: any, attributes?: any) => {
             if (pathName === vbaNull || attributes === vbaNull) {
                 this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
@@ -1353,9 +1358,12 @@ export class Evaluator {
         this.registerBuiltin('kill', (p: any) => this.executeKill(vbaToString(p ?? '')), [{ name: 'PathName' }]);
         this.registerBuiltin('mkdir', (p: any) => this.fs.mkdirSync(this.sandbox.toRealPath(vbaToString(p ?? '')), { recursive: true }), [{ name: 'Path' }]);
         this.registerBuiltin('rmdir', (p: any) => this.fs.rmdirSync?.(this.sandbox.toRealPath(vbaToString(p ?? ''))), [{ name: 'Path' }]);
-        this.registerBuiltin('chdir', (p: string) => {
+        this.registerBuiltin('chdir', (p: any) => {
+            if (p === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
             try {
-                this.sandbox.setCwd(p);
+                this.sandbox.setCwd(vbaToString(p ?? ''));
             } catch {
                 this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
             }

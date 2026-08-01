@@ -19,6 +19,15 @@ console.log('--- Starting CurDir Tests ---');
     // ドライブレター指定（モック実装なのでサンドボックスルートを返す）
     assert.strictEqual(ev.evalExpression('CurDir("C")'), '\\', 'CurDir("C") も同じ動作');
     console.log('[PASS] デフォルト Sandbox での CurDir');
+
+    let nullError: any;
+    try {
+        ev.evalExpression('CurDir(Null)');
+    } catch (error: any) {
+        nullError = error;
+    }
+    assert.strictEqual(nullError?.number, 94, 'CurDir(Null) は Error 94');
+    console.log('[PASS] CurDir Null validation');
 }
 
 // --- 2. カスタム Sandbox ルートでの CurDir ---

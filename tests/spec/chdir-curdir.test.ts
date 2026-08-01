@@ -38,6 +38,19 @@ function runFunc(code: string, name: string, vfs: MemoryFileSystem): any {
     console.log('[PASS] ChDir changes CurDir:', result);
 }
 
+// Test 2b: ChDir rejects Null with Invalid use of Null.
+{
+    const vfs = new MemoryFileSystem();
+    let nullError: any;
+    try {
+        runVBA('ChDir Null', vfs);
+    } catch (error: any) {
+        nullError = error;
+    }
+    assert.strictEqual(nullError?.number, 94, 'ChDir(Null) は Error 94');
+    console.log('[PASS] ChDir Null validation');
+}
+
 // Test 3: ChDir ".." navigates up one level
 {
     const vfs = new MemoryFileSystem();

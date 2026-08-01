@@ -910,3 +910,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-BUILTIN-103
+    title: CurDir引数Null境界
+    status: queued
+    priority: 1
+    focus: CurDirの省略可能なDrive引数のNull・Empty・文字列検証
+    priorCauseKey: curdir-drive-argument-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
