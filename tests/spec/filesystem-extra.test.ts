@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -166,6 +166,16 @@ const allCode = `
         fsoModeErr = Err.Number
         On Error GoTo 0
     End Sub
+
+    Sub Test12KillDirectory()
+        MkDir "kill_dir"
+        On Error Resume Next
+        Err.Clear
+        Kill "kill_dir"
+        killDirectoryErr = Err.Number
+        On Error GoTo 0
+        RmDir "kill_dir"
+    End Sub
 `;
 
 const ev = evalVBA(allCode);
@@ -245,5 +255,10 @@ console.log('[PASS] RmDir non-empty directory validation');
 ev.callProcedure('Test11FsoIOModeBoundary', []);
 assert.strictEqual(ev.env.get('fsomodeerr'), 5, 'OpenTextFile IOMode 3 -> Error 5');
 console.log('[PASS] FSO OpenTextFile IOMode validation');
+
+// Test 12: Kill rejects directory targets with Error 75.
+ev.callProcedure('Test12KillDirectory', []);
+assert.strictEqual(ev.env.get('killdirectoryerr'), 75, 'Kill directory target -> Error 75');
+console.log('[PASS] Kill directory target validation');
 
 console.log('\n✅ FileSystem (Extra): 全テスト通過');

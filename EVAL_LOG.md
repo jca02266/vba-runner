@@ -246,13 +246,14 @@
 | EV-00340 | FZ-BUILTIN | fixed | Put/Get/Seek位置引数Null境界 |
 | EV-00341 | FZ-BUILTIN | fixed | RmDir非空ディレクトリ境界 |
 | EV-00342 | FZ-BUILTIN | fixed | OpenTextFile IOMode境界 |
+| EV-00343 | FZ-BUILTIN | fixed | Killディレクトリ対象境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 167 |
+| fixed | 168 |
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
@@ -264,4 +265,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-109 | 1 | queued | ファイル専用Killのディレクトリ対象をError 75として検証 | yes |
+| (none) | | | | |

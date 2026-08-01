@@ -6287,8 +6287,14 @@ export class Evaluator {
         } else {
             const realPath = this.sandbox.toRealPath(vbaPath);
             try {
+                if (this.fs.existsSync(realPath) && this.fs.statSync(realPath).isDirectory()) {
+                    this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+                }
                 this.fs.unlinkSync(realPath);
-            } catch {
+            } catch (e) {
+                if (e && typeof e === 'object' && 'type' in e && (e as { type?: string }).type === 'VbaError') {
+                    throw e;
+                }
                 this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
             }
         }
