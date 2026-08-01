@@ -876,12 +876,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return repeatChecked(c, n);
     };
     ctx.reg('string', stringFunc, [{ name: 'Number' }, { name: 'Character' }], ['$']);
+    const coerceStringDelimiter = (del: any): string => del === vbaEmpty ? '' : String(del);
     ctx.reg('split', (s: any, del: any = ' ', limit: any = -1, compare: any = undefined) => {
         if (s === vbaNull) return vbaNull;
         if (del === vbaNull || limit === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         compare = normalizeCompare(compare);
         const str = vbaToString(s ?? '');
-        const delimiter = del === null || del === undefined ? ' ' : String(del);
+        const delimiter = del === null || del === undefined ? ' ' : coerceStringDelimiter(del);
         const n = limit === undefined
             ? -1
             : ctx.round(ctx.toVbaNumber(limit === vbaEmpty ? 0 : limit));
@@ -920,7 +921,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (el === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
             return el === undefined || el === vbaEmpty ? '' : String(el);
         });
-        return elems.join(String(del));
+        return elems.join(coerceStringDelimiter(del));
     }, [
         { name: 'SourceArray' },
         { name: 'Delimiter', optional: true },

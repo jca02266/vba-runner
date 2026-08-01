@@ -791,3 +791,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-BUILTIN-090
+    title: Join区切り文字のEmpty変換
+    status: queued
+    priority: 1
+    focus: Joinの明示Delimiter Empty・Null・省略時の文字列変換
+    priorCauseKey: join-delimiter-empty-coercion
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

@@ -64,6 +64,12 @@ console.log('--- Starting Split / Join Tests ---');
 
     // 区切り省略時はスペース
     assert.strictEqual(ev(`Join(Array("a", "b", "c"))`), 'a b c', '区切り省略 = スペース');
+    assert.strictEqual(ev(`Join(Array("a", "b"), Empty)`), 'ab',
+        '明示したEmpty区切り文字は空文字へ変換');
+    const emptySplit = ev(`Split("anullb", Empty)`);
+    assert.strictEqual(emptySplit.length, 1, 'SplitのEmpty区切り文字は分割しない');
+    assert.strictEqual(emptySplit[0], 'anullb',
+        'Splitの明示したEmpty区切り文字は空文字へ変換');
 
     // 仕様バグ修正: 下限付き固定配列（Dim a(1 To n)）は物理ストレージに
     // LBound 分の隠し要素（添字0）を含むため、Join がそのまま arr.join() すると
