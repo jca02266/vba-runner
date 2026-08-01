@@ -1215,9 +1215,16 @@ export class Evaluator {
     }
 
     private registerFileSystemFunctions() {
-        const freeFileFunc = (range?: number) => {
-            const start = (range === 1) ? 256 : 1;
-            const end = (range === 1) ? 511 : 255;
+        const freeFileFunc = (range?: any) => {
+            if (range === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            const rangeNumber = range === undefined ? 0 : this.toVbaNumber(range);
+            if (!Number.isInteger(rangeNumber) || (rangeNumber !== 0 && rangeNumber !== 1)) {
+                this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+            }
+            const start = rangeNumber === 1 ? 256 : 1;
+            const end = rangeNumber === 1 ? 511 : 255;
             for (let i = start; i <= end; i++) if (!this.fileHandles.has(i)) return i;
             this.throwVbaError(VbaErrorCode.TOO_MANY_FILES, "Too many files");
         };

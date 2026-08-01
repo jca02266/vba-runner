@@ -874,3 +874,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/builtin-arg-metadata.test.ts
+  - id: FZ-BUILTIN-099
+    title: FreeFile範囲引数境界
+    status: queued
+    priority: 1
+    focus: FreeFileのRangeNumber 0/1制約、Null・小数・範囲外検証
+    priorCauseKey: freefile-range-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/freefile.test.ts
