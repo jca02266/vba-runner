@@ -262,6 +262,7 @@
 | EV-00356 | FZ-BUILTIN | verified-no-bug | 手続き引数束縛の組み合わせ境界 |
 | EV-00357 | FZ-BUILTIN | fixed | Lexer未終端文字列境界 |
 | EV-00358 | FZ-BUILTIN | fixed | Lexer文字列内改行境界 |
+| EV-00359 | FZ-BUILTIN | verified-no-bug | Lexer不正数値リテラル境界 |
 
 ## 状態集計
 
@@ -272,7 +273,7 @@
 | known-limit | 1 |
 | needs-excel | 6 |
 | retired | 1 |
-| verified-no-bug | 69 |
+| verified-no-bug | 70 |
 
 横展開未解決経路: 217、実Excel待ち評価: 6
 

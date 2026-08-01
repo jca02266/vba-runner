@@ -1108,3 +1108,12 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/engine/lexer-line-continuation.test.ts
+  - id: FZ-BUILTIN-125
+    title: Lexer不正数値リテラル境界
+    status: queued
+    priority: 1
+    focus: E/D指数・16進/8進・小数点・符号の不完全入力をLexErrorとして拒否
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
