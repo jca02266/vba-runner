@@ -44,6 +44,22 @@ console.log('[PASS] 基本財務関数 (FV, PV, PMT, etc.)');
 }
 console.log('[PASS] Rate zero-rate solution');
 
+// Payment Type is restricted to 0 (end) or 1 (beginning).
+for (const expression of [
+    'FV(0.01, 12, -100, 0, 2)',
+    'PV(0.01, 12, -100, 0, 2)',
+    'PMT(0.01, 12, 100, 0, 2)',
+    'NPer(0.01, -100, 100, 0, 2)',
+    'Rate(12, -100, 100, 0, 2)',
+    'IPmt(0.01, 1, 12, 100, 0, 2)',
+    'PPmt(0.01, 1, 12, 100, 0, 2)',
+    'FV(0.01, 12, -100, 0, 0.5)',
+]) {
+    const ev = evalVBASingle(`Function Probe() As Long\n On Error Resume Next\n Dim value As Double\n value = ${expression}\n Probe = Err.Number\nEnd Function`);
+    assert.strictEqual(ev.callProcedure('Probe', []), 5, `${expression} rejects invalid Type`);
+}
+console.log('[PASS] Financial Type enumeration validation');
+
 // --- 2. SLN, SYD, DDB ---
 const depCode = `
     Public resSLN, resSYD, resDDB

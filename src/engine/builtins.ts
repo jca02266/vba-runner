@@ -1681,6 +1681,11 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         return ctx.toVbaNumber(val);
     };
+    const toPaymentType = (val: any): number => {
+        const type = toNum(val);
+        if (type !== 0 && type !== 1) invalidFinancialArg();
+        return type;
+    };
     const getRateFactor = (rate: number, nper: number) => {
         if (rate === 0) return nper;
         return (Math.pow(1 + rate, nper) - 1) / rate;
@@ -1696,7 +1701,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         };
     };
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
-        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toNum(type);
+        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toPaymentType(type);
         const factor = getRateFactor(r, n);
         const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
         if (!Number.isFinite(result)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
@@ -1706,7 +1711,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'PV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('pv', (rate: any, nper: any, pmt: any, fv: any = 0, type: any = 0) => {
-        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), f = toNum(fv), t = toNum(type);
+        const r = toNum(rate), n = toNum(nper), p = toNum(pmt), f = toNum(fv), t = toPaymentType(type);
         if (r === 0) return finiteResult(-(f + p * n));
         const p1 = Math.pow(1 + r, n);
         if (!Number.isFinite(p1) || p1 === 0) invalidFinancialArg();
@@ -1716,7 +1721,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('pmt', (rate: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = toNum(rate), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        const r = toNum(rate), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         if (!Number.isFinite(n) || n <= 0) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
@@ -1728,7 +1733,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         if (r === 0) {
             if (p === 0) invalidFinancialArg();
             const result = -(v + f) / p;
@@ -1746,7 +1751,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('rate', (nper: any, pmt: any, pv: any, fv: any = 0, type: any = 0, guess: any = 0.1) => {
         let r = toNum(guess);
-        const n = toNum(nper), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        const n = toNum(nper), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         if (!Number.isFinite(n) || n <= 0 || !Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
         for (let i = 0; i < 20; i++) {
             const p1 = Math.pow(1 + r, n);
@@ -1850,7 +1855,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         return finiteResult(result);
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         if (!Number.isInteger(p) || p < 1 || p > n) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
@@ -1871,7 +1876,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
     ]);
     ctx.reg('ppmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
-        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toNum(type);
+        const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         const pmt = ctx.toVbaNumber(ctx.envGet('pmt')(r, n, v, f, t));
         const ipmt = ctx.toVbaNumber(ctx.envGet('ipmt')(r, p, n, v, f, t));
         return finiteResult(pmt - ipmt);

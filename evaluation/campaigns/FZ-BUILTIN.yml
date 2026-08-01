@@ -827,3 +827,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-094
+    title: 金融関数Type列挙値境界
+    status: queued
+    priority: 1
+    focus: FV/PV/PMT/NPer/Rate/IPMT/PPMTのType無効値と共通検証
+    priorCauseKey: financial-payment-type-validation
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
