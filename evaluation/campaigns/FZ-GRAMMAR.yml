@@ -135,3 +135,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/with-statement.test.ts
+  - id: FZ-GRAMMAR-016
+    title: GoSub/Return復帰スタック境界
+    status: queued
+    priority: 1
+    focus: GoSubラベル復帰、Return単独実行、ネストしたサブルーチン復帰
+    priorCauseKey: gosub-return-stack-boundary
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

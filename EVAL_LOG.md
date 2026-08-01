@@ -237,6 +237,7 @@
 | EV-00331 | FZ-BUILTIN | fixed | FreeFile範囲引数境界 |
 | EV-00332 | FZ-BUILTIN | fixed | FileAttr戻り値種別境界 |
 | EV-00333 | FZ-BUILTIN | fixed | Dir属性フィルタ境界 |
+| EV-00334 | FZ-GRAMMAR | verified-no-bug | GoSub/Return復帰スタック境界 |
 
 ## 状態集計
 
@@ -247,7 +248,7 @@
 | known-limit | 1 |
 | needs-excel | 5 |
 | retired | 1 |
-| verified-no-bug | 66 |
+| verified-no-bug | 67 |
 
 横展開未解決経路: 212、実Excel待ち評価: 5
 
