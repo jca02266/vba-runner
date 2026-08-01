@@ -274,6 +274,7 @@
 | EV-00368 | FZ-BUILTIN | needs-excel | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
 | EV-00369 | FZ-BUILTIN | fixed | DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界 |
 | EV-00370 | FZ-GRAMMAR | fixed | 数値リテラル直後の指数演算子境界 |
+| EV-00371 | FZ-GRAMMAR | needs-excel | As New配列要素の遅延生成境界 |
 
 ## 状態集計
 
@@ -282,11 +283,11 @@
 | blocked | 1 |
 | fixed | 187 |
 | known-limit | 1 |
-| needs-excel | 9 |
+| needs-excel | 10 |
 | retired | 1 |
 | verified-no-bug | 71 |
 
-横展開未解決経路: 219、実Excel待ち評価: 9
+横展開未解決経路: 221、実Excel待ち評価: 10
 
 ## 次の候補
 

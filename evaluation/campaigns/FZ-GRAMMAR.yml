@@ -164,3 +164,12 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/operators-extra.test.ts
+  - id: FZ-GRAMMAR-019
+    title: As New配列要素の遅延生成境界
+    status: queued
+    priority: 1
+    focus: クラス型配列のAs New要素参照と自動インスタンス化
+    priorCauseKey: as-new-array-element-lazy-instantiation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-subscript-bounds.test.ts
