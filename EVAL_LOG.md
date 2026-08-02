@@ -285,6 +285,7 @@
 | EV-00379 | FZ-BUILTIN | needs-excel | CallByNameと通常代入のProperty Let/Set種別境界 |
 | EV-00380 | FZ-BUILTIN | verified-no-bug | 情報関数の既定値と循環参照境界 |
 | EV-00381 | FZ-BUILTIN | fixed | 金融関数の引数型と境界値 |
+| EV-00382 | FZ-BUILTIN | fixed | 金融キャッシュフロー検証の共通化 |
 
 ## 状態集計
 
@@ -292,7 +293,7 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 2 |
-| fixed | 191 |
+| fixed | 192 |
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
@@ -304,4 +305,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-140 | 2 | queued | IRR/MIRR/NPVの配列抽出・数値化・正負領域検証を共通ヘルパーへ統合 | yes |
+| (none) | | | | |
