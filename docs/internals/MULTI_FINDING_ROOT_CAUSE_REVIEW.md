@@ -48,6 +48,21 @@ sources:
 
 この境界が確認できるまでは、BuiltinParamSpec全体を置き換える実装タスクは開始しない。
 
+### 最小設計の検証マトリクス
+
+| 代表関数 | 共通メタデータへ置ける責務 | 関数側に残す責務 | 確認する回帰 |
+| --- | --- | --- | --- |
+| `Left` / `Right` | 必須Long、銀行丸め、Null伝播方針 | 負値Error 5、文字列切り出し | 小数、Null、負値 |
+| `Replace` | Optional Longの既定値、丸め、Null方針 | Compare 0/1、空検索、結果生成 | Start/Count小数、Empty、Null |
+| `StrComp` | Optional Compareの丸めとMissing | Compare 0/1、Null文字列伝播 | Compare小数・無効値・Null |
+| `InStr` / `InStrB` | 各形式のLong変換 | 引数個数による形式選択、Start下限、検索 | 2/3/4引数、名前付き、Null |
+| `ChrB` / `RGB` / `CVErr` | 数値のVBA丸め | 範囲、clamp、Error番号固有規則 | 範囲外、Null、銀行丸め |
+
+この表から、共通メタデータは「値の型変換」と「既定のNull/Empty方針」までに留め、
+範囲・列挙値・可変arity・結果生成を自動化しないのが安全な境界と判断した。次の確認では、
+この境界を表現する型を追加した場合に、既存の名前付き引数・評価順序・ByRef経路へ影響しないかを
+最小の設計テストで確認する。
+
 ### ファイルシステムのNull境界
 
 対象は[EV-00337](../../evaluation/evaluations/EV-00337.md)と[EV-00338](../../evaluation/evaluations/EV-00338.md)である。
