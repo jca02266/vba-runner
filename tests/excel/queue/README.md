@@ -10,7 +10,7 @@
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
-- `run-excel-queue.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
+- `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
 
 ## 一括実行
@@ -34,7 +34,7 @@ PowerShellが終了後にシステムコードページからBOMなしUTF-8へ�
 ## 個別実行
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
+powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
   -Workbook .\t.xlsm `
   -Module ExcelQueueVerification `
   -Procedure RunExcelQueueVerification
