@@ -74,6 +74,10 @@ try {
     if ((Get-Item -LiteralPath $outputPath).Length -eq 0) {
         throw "Macro created an empty result file: $outputPath"
     }
+    # VBA Print writes using the Windows system code page.  Normalize the
+    # completed result to UTF-8 without a BOM for repository-friendly output.
+    $text = [System.IO.File]::ReadAllText($outputPath, [System.Text.Encoding]::Default)
+    [System.IO.File]::WriteAllText($outputPath, $text, (New-Object System.Text.UTF8Encoding($false)))
     Write-Output "Saved Excel macro result: $outputPath"
 }
 catch {

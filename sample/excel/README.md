@@ -97,7 +97,8 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
 `-Module`を省略すると、`-Procedure`をそのままExcelの実行名として扱う。`-Output`を
 省略した場合は、ブックと同じディレクトリの`ExcelQueueVerification.result`を確認する。
 `ExcelQueueVerification.bas`は`ThisWorkbook.Path`へ各結果行を直接書き込み、
-`Debug.Print`は補助的にImmediateウィンドウへも出力する。保存後にExcelを終了する。
+`Debug.Print`は補助的にImmediateウィンドウへも出力する。マクロ終了後、PowerShellが
+結果ファイルをシステムコードページからBOMなしUTF-8へ変換してからExcelを終了する。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `

@@ -68,7 +68,6 @@ Public Sub RunExcelQueueVerification()
     VerifyAsNewArray
     VerifyCollectionEnumerationMutation
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
-    EmitResult "RESULT_ROOT=" & root
     EndResult
 End Sub
 
@@ -180,7 +179,6 @@ Public Sub RunExcelSequentialLockVerification()
     MkDir root
     On Error GoTo 0
     VerifySequentialLockBoundaries root & Application.PathSeparator & "XL-023-lock-range.dat"
-    EmitResult "XL-023 RESULT_ROOT=" & root
     EndResult
 End Sub
 
