@@ -177,3 +177,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/circular-reference-terminate.test.ts
+  - id: META-ENGINE-021
+    title: Collection・Dictionary列挙変更境界
+    status: queued
+    priority: 1
+    focus: For Each中のCollection AddとDictionary Keys列挙中Removeの結果・エラー
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts

@@ -50,4 +50,5 @@ XL-029 FV ERR=6
 XL-030 PMT ERR=6
 XL-031 SLN TYPE=Double VALUE=1E+308 ERR=0
 XL-032 DDB ERR=5
+XL-033 CODE=X TYPE=ExcelQueueTicket ERR=0
 XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行

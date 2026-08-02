@@ -367,6 +367,7 @@ export class Environment {
         elementType?: string;
         elementTypeName?: string;
         elementObjectTypeName?: string;
+        elementAutoNew?: boolean;
     }> = new Map();
     /** Dynamic numeric subtype for Variant variables (e.g. after `v = 42`, tracks "Integer") */
     private variantNumericSubtypes: Map<string, VbaVarType> = new Map();
@@ -440,10 +441,11 @@ export class Environment {
             elementType: (value as any).__vbaElementType__,
             elementTypeName: (value as any).__vbaElementTypeName__,
             elementObjectTypeName: (value as any).__vbaElementObjectTypeName__,
+            elementAutoNew: (value as any).__vbaElementAutoNew__,
         });
     }
 
-    getArrayTypeInfo(name: string): { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string } | undefined {
+    getArrayTypeInfo(name: string): { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string; elementAutoNew?: boolean } | undefined {
         const key = name.toLowerCase();
         if (this.arrayTypeInfo.has(key)) return this.arrayTypeInfo.get(key);
         return this.enclosing?.getArrayTypeInfo(name);
@@ -4018,6 +4020,15 @@ export class Evaluator {
                     ['object', 'collection'].includes(decl.objectType.toLowerCase())
                 )) {
                     (initialValue as any).__vbaElementObjectTypeName__ = decl.objectType;
+                    // `Dim items(0 To n) As New ClassName` gives each array
+                    // element the same lazy-instantiation semantics as a
+                    // scalar `Dim item As New ClassName`.
+                    if (decl.isNew && this.classDefinitions.has(decl.objectType.toLowerCase())) {
+                        (initialValue as any).__vbaElementAutoNew__ = true;
+                        if ((initialValue as any).vbaFixed) {
+                            this.fillArrayWithAutoInstancePlaceholders(initialValue, decl.objectType);
+                        }
+                    }
                 }
             } else if (decl.isNew && decl.objectType === 'Collection') {
                 initialValue = new VbaCollection();
@@ -4232,6 +4243,12 @@ export class Evaluator {
                         ['object', 'collection'].includes(mt)
                     )) {
                         (defaultVal as any).__vbaElementObjectTypeName__ = decl.objectType;
+                        if (decl.isNew && this.classDefinitions.has(mt)) {
+                            (defaultVal as any).__vbaElementAutoNew__ = true;
+                            if ((defaultVal as any).vbaFixed) {
+                                this.fillArrayWithAutoInstancePlaceholders(defaultVal, decl.objectType);
+                            }
+                        }
                     }
                 }
                 instanceEnv.setLocally(decl.name.name, defaultVal);
@@ -4674,6 +4691,16 @@ export class Evaluator {
             const index = indexes[i];
             this.validateArrayIndex(dims, i, index);
             current = current[index];
+        }
+        // `As New` object arrays store a separate lazy placeholder for each
+        // element. Materialize the selected element once and retain it in the
+        // array, otherwise `items(0).Value` would lose prior assignments.
+        if (isAutoInstancePlaceholder(current) && (array as any).__vbaElementAutoNew__) {
+            const instance = this.instantiateClass(current.__className__);
+            let owner: any = array;
+            for (const index of indexes.slice(0, -1)) owner = owner[index];
+            owner[indexes[indexes.length - 1]] = instance;
+            current = instance;
         }
         return current === undefined && undefinedAsEmpty ? vbaEmpty : current;
     }
@@ -7635,7 +7662,10 @@ export class Evaluator {
                 if ((arr as any).vbaFixed) {
                     const defaultValue = (arr as any).__vbaDefaultValue__
                         ?? ((arr as any).__vbaElementObjectTypeName__ ? vbaNothing : 0);
-                    this.reinitializeArray(arr, defaultValue);
+                    const autoNewType = (arr as any).__vbaElementAutoNew__
+                        ? (arr as any).__vbaElementObjectTypeName__
+                        : undefined;
+                    this.reinitializeArray(arr, defaultValue, autoNewType);
                 } else {
                     // Dynamic array: Erase deallocates (uninitialized). Null signals this
                     // so UBound/LBound/access throw Error 9 until ReDim is called again.
@@ -7646,12 +7676,12 @@ export class Evaluator {
         }
     }
 
-    private reinitializeArray(arr: any[], defaultValue: any) {
+    private reinitializeArray(arr: any[], defaultValue: any, autoNewType?: string) {
         for (let i = 0; i < arr.length; i++) {
             if (Array.isArray(arr[i]) && !(arr[i] as any).__vbaClass__) {
-                this.reinitializeArray(arr[i], defaultValue);
+                this.reinitializeArray(arr[i], defaultValue, autoNewType);
             } else {
-                arr[i] = defaultValue;
+                arr[i] = autoNewType ? createAutoInstancePlaceholder(autoNewType) : defaultValue;
             }
         }
     }
@@ -7668,6 +7698,27 @@ export class Evaluator {
             } else {
                 for (let i = lower; i <= upper; i++) {
                     a[i] = this.instantiateType(typeName);
+                }
+            }
+        };
+        fillDim(arr, 0);
+    }
+
+    /** Fill an `As New` object array with one lazy placeholder per element. */
+    private fillArrayWithAutoInstancePlaceholders(arr: any[], typeName: string, skipExisting = false) {
+        const dims = (arr as any).__vbaDimensions__;
+        if (!dims) return;
+        const fillDim = (a: any[], dimIdx: number) => {
+            const { lower, upper } = dims[dimIdx];
+            if (dimIdx < dims.length - 1) {
+                for (let i = lower; i <= upper; i++) {
+                    if (Array.isArray(a[i])) fillDim(a[i], dimIdx + 1);
+                }
+            } else {
+                for (let i = lower; i <= upper; i++) {
+                    if (!skipExisting || a[i] === undefined || a[i] === vbaNothing) {
+                        a[i] = createAutoInstancePlaceholder(typeName);
+                    }
                 }
             }
         };
@@ -7765,7 +7816,7 @@ export class Evaluator {
         // Resolve get/set accessors for the three target forms
         let oldArr: any;
         let setNewArr: (arr: any[]) => void;
-        let storedArrayTypeInfo: { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string } | undefined;
+        let storedArrayTypeInfo: { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string; elementAutoNew?: boolean } | undefined;
         if (decl.name.type === 'Identifier') {
             const varName = (decl.name as Identifier).name;
             oldArr = this.env.get(varName);
@@ -7830,6 +7881,8 @@ export class Evaluator {
                 this.externalObjectFactories.has(returnArrayType.toLowerCase()) ||
                 ['object', 'collection'].includes(returnArrayType.toLowerCase())
             ) ? returnArrayType : undefined);
+        const elementAutoNew = (Array.isArray(oldArr) && (oldArr as any).__vbaElementAutoNew__)
+            || !!storedArrayTypeInfo?.elementAutoNew;
 
         let defaultValue: any = 0;
         if (decl.objectType) {
@@ -7889,12 +7942,23 @@ export class Evaluator {
             if (elementObjectTypeName) {
                 (arr as any).__vbaElementObjectTypeName__ = elementObjectTypeName;
             }
+            if (elementAutoNew && elementObjectTypeName && this.classDefinitions.has(elementObjectTypeName.toLowerCase())) {
+                (arr as any).__vbaElementAutoNew__ = true;
+            }
 
             if (isPreserve && Array.isArray(oldArr)) {
                 this.copyPreservedData(oldArr, arr, (arr as any).__vbaDimensions__);
                 if (elementTypeName) {
                     this.fillArrayWithUDT(arr, (arr as any).__vbaDimensions__, 0, elementTypeName, true);
                 }
+            }
+            if (elementAutoNew && elementObjectTypeName &&
+                this.classDefinitions.has(elementObjectTypeName.toLowerCase())) {
+                this.fillArrayWithAutoInstancePlaceholders(
+                    arr,
+                    elementObjectTypeName,
+                    isPreserve,
+                );
             }
 
             setNewArr(arr);

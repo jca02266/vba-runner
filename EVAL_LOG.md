@@ -274,17 +274,18 @@
 | EV-00368 | FZ-BUILTIN | needs-excel | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
 | EV-00369 | FZ-BUILTIN | fixed | DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界 |
 | EV-00370 | FZ-GRAMMAR | fixed | 数値リテラル直後の指数演算子境界 |
-| EV-00371 | FZ-GRAMMAR | needs-excel | As New配列要素の遅延生成境界 |
+| EV-00371 | FZ-GRAMMAR | fixed | As New配列要素の遅延生成境界 |
 | EV-00372 | META-ENGINE | verified-no-bug | ディレクトリ読込とクラス名衝突の使い勝手境界 |
 | EV-00373 | META-ENGINE | fixed | As New変数の繰返しNothing境界 |
 | EV-00374 | FZ-GRAMMAR | verified-no-bug | 動的配列の再確保と消去境界 |
+| EV-00375 | META-ENGINE | needs-excel | Collection・Dictionary列挙変更境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| fixed | 188 |
+| fixed | 189 |
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |

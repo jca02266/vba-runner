@@ -62,8 +62,34 @@ Public Sub RunExcelQueueVerification()
     VerifyBinaryTextEof root & Application.PathSeparator & "XL-025-text-eof.dat"
     VerifyNonFiniteBoundaries
     VerifyAsNewArray
+    VerifyCollectionEnumerationMutation
     Debug.Print "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     Debug.Print "RESULT_ROOT=" & root
+End Sub
+
+Private Sub VerifyCollectionEnumerationMutation()
+    Dim col As New Collection, item As Variant, seen As String
+    Dim dict As Object, key As Variant, keysSeen As String, errNo As Long
+    col.Add "A": col.Add "B"
+    On Error Resume Next
+    Err.Clear
+    For Each item In col
+        seen = seen & CStr(item)
+        If CStr(item) = "A" Then col.Add "C"
+    Next item
+    errNo = Err.Number
+    Debug.Print "XL-034 COLADD SEEN=" & seen & " COUNT=" & CStr(col.Count) & " ERR=" & CStr(errNo)
+    Err.Clear
+
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "A", 1: dict.Add "B", 2: dict.Add "C", 3
+    For Each key In dict.Keys
+        keysSeen = keysSeen & CStr(key)
+        If CStr(key) = "B" Then dict.Remove "B"
+    Next key
+    errNo = Err.Number
+    Debug.Print "XL-034 DICTREMOVE KEYS=" & keysSeen & " COUNT=" & CStr(dict.Count) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyAsNewArray()

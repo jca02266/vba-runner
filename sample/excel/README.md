@@ -35,12 +35,12 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 
 ### Excel実機照合キューの一括検証
 
-`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-025 を
+`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-034 を
 1回のExcel操作で検証するためのマクロである。
 
 1. `ExcelQueueVerification.bas` を検証用ブックへインポートする。
 2. `RunExcelQueueVerification` を実行する。
-3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-025` の
+3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-034` の
    `LOF` と `BYTES` を保存する。
 4. その出力を `EVAL_LOG.md` の照合結果へ反映する。
 
@@ -49,6 +49,9 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 `XL-033` はクラス型配列の `As New` 要素を確認する。`ExcelQueueTicket.cls` と
 `ExcelQueueVerification.bas` を同じブックへインポートしてから一括マクロを実行し、
 `CODE=X TYPE=ExcelQueueTicket ERR=0` になるか、またはExcelのエラー番号を記録する。
+
+`XL-034` は Collection の列挙中 `Add` と Dictionary の `Keys` 列挙中 `Remove` を確認する。
+`COLADD` と `DICTREMOVE` の `SEEN`、`COUNT`、`ERR` を記録し、runnerの出力と比較する。
 
 `XL-023` の逐次モードLock境界はExcelがロック待ちになる場合があるため、
 一括実行ではスキップする。必要な場合だけ `RunExcelSequentialLockVerification`
