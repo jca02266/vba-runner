@@ -875,7 +875,10 @@ export class Evaluator {
     // Maps module name (lower) -> set of variable/const names (lower) declared at module level
     private moduleVarRegistry: Map<string, Set<string>> = new Map();
     private withObjectStack: any[] = [];
-    private gosubStack: number[] = []; // Stack of statement indices for GoSub/Return
+    // Non-zero while executing a GoSub target in the current procedure.  A
+    // Return propagates to that target executor; a new procedure resets this
+    // value so a callee cannot consume its caller's GoSub continuation.
+    private gosubTargetDepth = 0;
     private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
     private currentProcIsStatic: boolean = false;
     private arrayBase: number = 0;
@@ -2094,6 +2097,7 @@ export class Evaluator {
         const previousExecutingModule = this.executingModuleName;
         const previousProcIsStatic = this.currentProcIsStatic;
         const previousStaticVars = this.staticVarsInCurrentProc;
+        const previousGoSubTargetDepth = this.gosubTargetDepth;
 
         this.env = localEnv;
         this.errorHandlerLabel = null;
@@ -2108,6 +2112,9 @@ export class Evaluator {
         this.executingModuleName = proc.moduleName ?? '';
         this.currentProcIsStatic = proc.isStatic ?? false;
         this.staticVarsInCurrentProc = new Set();
+        // GoSub/Return continuations belong to one procedure.  Do not allow a
+        // Return in a called procedure to consume the caller's continuation.
+        this.gosubTargetDepth = 0;
 
         try {
             this.executeStatements(proc.body, 0);
@@ -2178,6 +2185,7 @@ export class Evaluator {
             this.executingModuleName = previousExecutingModule;
             this.currentProcIsStatic = previousProcIsStatic;
             this.staticVarsInCurrentProc = previousStaticVars;
+            this.gosubTargetDepth = previousGoSubTargetDepth;
         }
 
         if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
@@ -3141,6 +3149,29 @@ export class Evaluator {
     private findLabelInBody(body: Statement[], label: string): number {
         const lower = label.toLowerCase();
         return body.findIndex(s => s.type === 'LabelStatement' && (s as any).label.toLowerCase() === lower);
+    }
+
+    /** Execute a GoSub target in the owning procedure and stop at Return. */
+    private executeGoSubLabel(label: string): void {
+        const body = this.currentProcBody;
+        if (!body) {
+            this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                `Sub or Function not defined: label '${label}'`);
+        }
+        const labelIndex = this.findLabelInBody(body, label);
+        if (labelIndex < 0) {
+            this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
+                `Sub or Function not defined: label '${label}'`);
+        }
+        this.gosubTargetDepth++;
+        try {
+            this.executeStatements(body, labelIndex + 1, true);
+        } catch (e: any) {
+            if (e && e.type === 'Return') return;
+            throw e;
+        } finally {
+            this.gosubTargetDepth--;
+        }
     }
 
     private evaluateGoToStatement(stmt: GoToStatement) {
@@ -7468,8 +7499,10 @@ export class Evaluator {
     }
 
     // Execute a sequence of statements starting from startIndex, with error handling support.
-    // isTopLevel=true (default): full handling for procedure bodies (GoTo, GoSub, Return, Resume).
-    // isTopLevel=false: only handle On Error Resume Next; all control flow re-throws to outer scope.
+    // GoSub is handled in every block using the owning procedure body, so a
+    // Return can resume the statement following the GoSub even inside loops or
+    // conditional clauses. Other procedure-level control flow still bubbles
+    // from nested blocks to their owning procedure executor.
     // inlineClause=true: 単一行 If の Then/Else 節。節内の文は「If 文の一部」なので、
     // GoTo ハンドラー処理を行わず外側へバブルさせる（Resume は If 文全体を再実行する）。
     private executeStatements(body: Statement[], startIndex: number, isTopLevel: boolean = true, inlineClause: boolean = false) {
@@ -7485,7 +7518,7 @@ export class Evaluator {
                 }
 
                 // In nested block contexts, propagate all procedure-level control flow
-                if (!isTopLevel && e && (e.type === 'GoTo' || e.type === 'GoSub' || e.type === 'Return' || e.type === 'Resume')) {
+                if (!isTopLevel && e && (e.type === 'GoTo' || e.type === 'Return' || e.type === 'Resume')) {
                     throw e;
                 }
 
@@ -7503,25 +7536,18 @@ export class Evaluator {
                 }
 
                 if (e && e.type === 'GoSub') {
-                    const labelName = e.label.toLowerCase();
-                    const labelIndex = body.findIndex(s =>
-                        s.type === 'LabelStatement' &&
-                        (s as any).label.toLowerCase() === labelName
-                    );
-                    if (labelIndex >= 0) {
-                        this.gosubStack.push(i);
-                        i = labelIndex;
-                        continue;
-                    }
-                    throw e;
+                    this.executeGoSubLabel(e.label);
+                    i++;
+                    continue;
                 }
 
                 if (e && e.type === 'Return') {
-                    if (this.gosubStack.length === 0) {
+                    if (this.gosubTargetDepth > 0) {
+                        throw e;
+                    }
+                    {
                         this.throwVbaError(VbaErrorCode.RETURN_WITHOUT_GOSUB, 'Return without GoSub');
                     }
-                    i = this.gosubStack.pop()! + 1;
-                    continue;
                 }
 
                 if (e && e.type === 'Resume') {
