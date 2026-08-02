@@ -57,10 +57,18 @@ after migration, use the structured records and the generated Markdown view.
    disappeared.
    For every new Excel-comparison candidate, first add a uniquely numbered
    probe (the next `XL-xxx`) to
-   `sample/excel/ExcelQueueVerification.bas` and call it from the queue
+   `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue
    runner. Add any required `.cls`/`.frm` fixture beside that module, and
    reference all of those source files and the XL ID in the evaluation
    record's `tests`. A scratch-only probe is not a valid Excel queue entry.
+   Before classifying a difference as a bug, add an `expectation` block with
+   `kind: spec`, `excel`, or `hypothesis`, a concrete `statement`, references,
+   and `verification`. Specification and Excel expectations require a cited
+   source and completed verification. A hypothesis may remain pending only
+   while the evaluation is non-terminal; verify it against the specification,
+   a minimal runtime check, or Excel before using `bug-found` or `fixed`. If
+   verification disproves the expectation, reclassify the evaluation and do
+   not implement a speculative fix.
 8. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
    the generated root `EVAL_LOG.md` is up to date. Do not create or commit an

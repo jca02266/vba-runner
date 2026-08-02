@@ -133,6 +133,23 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 - `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
   `horizontalAudit.unresolved`
 
+### 期待値の根拠と検証ゲート
+
+評価で「期待値と実際の動作が違う」と判断する前に、frontmatter の
+`expectation` に根拠を記録する。`kind` は `spec`（仕様・公式文書）、
+`excel`（Excel実機）、`hypothesis`（未確定の仮説）のいずれかである。
+`statement` には具体的な期待動作を、`references` には仕様URL・文書または
+実機ログとXL番号を記録し、`verification` は `pending`、`completed`、
+`not-required` のいずれかにする。`spec` と `excel` は参照と検証完了が必須である。
+
+`hypothesis` は最小再現、仕様確認、または実Excel照合を終えるまで
+`bug-found`、`fixed`、`verified-no-bug` などの確定状態にしてはならない。
+検証できない場合は `in-progress`、`needs-excel`、`blocked` のまま残し、
+未確定の境界を `horizontalAudit.unresolved` に記録する。検証結果が想定を
+否定した場合は期待値を修正し、推測に基づく実装修正を行わない。
+
+過去の移行記録では `expectation` がない場合があるが、新規評価では必須の運用項目とする。
+
 バグを修正した評価は、原因キー、回帰テスト、修正コミットを必ず記録する。
 バグがない場合も `verified-no-bug`、実機照合待ちは `needs-excel`、恒久的制限は
 `known-limit`、中断は `abandoned` または `blocked` として記録する。

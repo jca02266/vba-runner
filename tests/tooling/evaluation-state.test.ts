@@ -193,3 +193,37 @@ try {
 }
 
 console.log('[PASS] evaluation cause-layer validation');
+
+// Expected behavior must have a verified source before a terminal judgment.
+const expectationProbe = `${root}/evaluation/evaluations/EV-TEST-EXPECTATION.md`;
+const expectationProbeBody = `---
+id: EV-TEST-EXPECTATION
+candidateId: FZ-GRAMMAR-001
+campaign: FZ-GRAMMAR
+status: bug-found
+priority: low
+focus: expectation provenance test
+expectation:
+  kind: hypothesis
+  statement: an unverified expected value
+  references: []
+  verification: pending
+findings: []
+tests:
+  - tests/tooling/evaluation-state.test.ts
+horizontalAudit:
+  confirmed: []
+  ruledOut: []
+  unresolved: []
+---
+`;
+writeFileSync(expectationProbe, expectationProbeBody);
+try {
+    const invalidExpectation = run('record', expectationProbe);
+    assert.notEqual(invalidExpectation.status, 0);
+    assert.match(invalidExpectation.stderr, /hypothesis expectation must be verified/);
+} finally {
+    if (existsSync(expectationProbe)) unlinkSync(expectationProbe);
+}
+
+console.log('[PASS] evaluation expectation provenance validation');

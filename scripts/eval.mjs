@@ -201,6 +201,38 @@ function effectiveCandidate(item, results, claims) {
   };
 }
 
+function validateExpectation(file, expectation, status) {
+  if (expectation === undefined) return;
+  if (!expectation || typeof expectation !== 'object' || Array.isArray(expectation)) {
+    throw new Error(`${file}: expectation must be an object`);
+  }
+  const kinds = new Set(['spec', 'excel', 'hypothesis']);
+  if (!kinds.has(expectation.kind)) throw new Error(`${file}: invalid expectation.kind ${expectation.kind}`);
+  if (typeof expectation.statement !== 'string' || expectation.statement.trim() === '') {
+    throw new Error(`${file}: expectation.statement must be a non-empty string`);
+  }
+  if (!Array.isArray(expectation.references)) throw new Error(`${file}: expectation.references must be an array`);
+  for (const reference of expectation.references) {
+    if (!reference || typeof reference !== 'object' || Array.isArray(reference) ||
+        typeof reference.source !== 'string' || typeof reference.ref !== 'string' ||
+        reference.source.trim() === '' || reference.ref.trim() === '') {
+      throw new Error(`${file}: expectation references require source and ref`);
+    }
+  }
+  const verification = expectation.verification;
+  if (!['pending', 'completed', 'not-required'].includes(verification)) {
+    throw new Error(`${file}: invalid expectation.verification ${verification}`);
+  }
+  if (['spec', 'excel'].includes(expectation.kind) &&
+      (expectation.references.length === 0 || verification !== 'completed')) {
+    throw new Error(`${file}: ${expectation.kind} expectation requires a completed reference`);
+  }
+  const terminalStatuses = new Set(['verified-no-bug', 'bug-found', 'fixed', 'known-limit', 'retired']);
+  if (expectation.kind === 'hypothesis' && verification !== 'completed' && terminalStatuses.has(status)) {
+    throw new Error(`${file}: hypothesis expectation must be verified before terminal status ${status}`);
+  }
+}
+
 function validate(records = readRecords()) {
   const schema = readSchema();
   const findings = readFindings();
@@ -222,6 +254,7 @@ function validate(records = readRecords()) {
       throw new Error(`${file}: priority must be numeric or a known level`);
     }
     if (!schema.record.statuses.includes(data.status)) throw new Error(`${file}: invalid status ${data.status}`);
+    validateExpectation(file, data.expectation, data.status);
     for (const key of schema.record.stringFields ?? []) {
       if (data[key] !== undefined && data[key] !== null && typeof data[key] !== 'string') {
         throw new Error(`${file}: ${key} must be a string`);
@@ -456,7 +489,7 @@ function context(candidateId, limit = 5) {
     .filter(({ data }) => data.campaign === item.campaign || (item.priorCauseKey && data.causeKey === item.priorCauseKey))
     .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
     .slice(0, Math.max(1, Math.min(limit, 10)));
-  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, directCauseKey: data.directCauseKey, causeKey: data.causeKey, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
+  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, expectation: data.expectation, directCauseKey: data.directCauseKey, causeKey: data.causeKey, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
 }
 
 function record(file) {

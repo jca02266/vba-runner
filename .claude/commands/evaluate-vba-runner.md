@@ -100,6 +100,18 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 
 ### 2.3 真因分析と対処タスクのゲート
 
+#### 期待値の根拠を先に確定する
+
+期待値だけを想定してバグ判定してはならない。評価記録のfrontmatterに
+`expectation`を追加し、`kind`（`spec` / `excel` / `hypothesis`）、具体的な
+`statement`、`references`（仕様のURL・文書、または実機ログとXL番号）、
+`verification`（`pending` / `completed` / `not-required`）を記録する。
+`spec` と `excel` は根拠の参照と検証完了が必須である。`hypothesis` は
+最小再現、仕様確認、または実Excel照合を終えるまで確定状態にしてはならず、
+その間は `in-progress`、`needs-excel`、または `blocked` として扱う。
+検証結果が想定を否定した場合は期待値を修正し、推測に基づく実装修正を行わない。
+`npm run eval -- validate` はこのゲートを検証する。
+
 バグを再現し、横展開調査を終えたら、修正を始める前に真因分析サブエージェントを
 1つ起動する。症状の最小再現、関連ソース、横展開結果だけを渡し、次を独立に報告させる。
 
@@ -144,7 +156,7 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`、分析対�
 
 ### 3.5 実Excel照合結果を状態へ反映する
 
-`sample/excel/*.result` などに実機ログを追加しただけでは、評価状態やレポートは変わらない。
+`tests/excel/queue/*.result` などに実機ログを追加しただけでは、評価状態やレポートは変わらない。
 実機ログの各テストIDを評価記録の `tests` と照合し、次の順序で必ず状態へ反映する。
 
 1. 実機出力とrunnerの同一入力を比較し、期待値・エラー番号・未確定の仕様差を評価本文の
@@ -161,7 +173,7 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`、分析対�
 実機ログの存在だけを根拠に `needs-excel` 件数を減らしてはならない。また、評価記録を
 更新せずにログだけをコミットしてはならない。
 
-新しい実Excel照合候補を登録するときは、先に `sample/excel/ExcelQueueVerification.bas`
+新しい実Excel照合候補を登録するときは、先に `tests/excel/queue/ExcelQueueVerification.bas`
 へ未使用の`XL-xxx`プローブを追加し、`RunExcelQueueVerification`から呼び出す。クラスや
 フォームが必要な場合は同じディレクトリに`.cls`/`.frm`を追加する。評価記録の`tests`には
 このVBAソース、追加ソース、XL番号をすべて列挙する。スクラッチで動作確認しただけの
