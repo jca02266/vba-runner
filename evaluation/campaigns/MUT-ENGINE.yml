@@ -175,3 +175,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/dynamic-array-getter-assignment.test.ts
+  - id: MUT-ENGINE-021
+    title: Set配列getterのオブジェクト境界
+    status: queued
+    priority: 1
+    focus: Set target = external.Values の配列誤受理
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-array-getter-assignment.test.ts

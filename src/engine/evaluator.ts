@@ -5430,6 +5430,9 @@ export class Evaluator {
         value = this.resolveAutoInstance(stmt.right, value);
 
         // VBA requires Set target to be an object (or Nothing)
+        if (Array.isArray(value)) {
+            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+        }
         if (value !== null && value !== vbaNothing && typeof value !== 'object') {
             this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }

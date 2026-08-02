@@ -19,8 +19,8 @@ End Sub
 ];
 
 const ev = evalVBAModules(modules);
-assert.throwsMatch(() => ev.callProcedure('SetArray', []), /error '13'/,
+assert.throwsMatch(() => ev.callProcedure('SetArray', []), /error '424'/,
     'Set to a typed class array must be rejected');
-assert.throwsMatch(() => ev.callProcedure('SetIdentifier', []), /error '13'/,
+assert.throwsMatch(() => ev.callProcedure('SetIdentifier', []), /error '424'/,
     'Set to a typed array identifier must be rejected');
 console.log('[PASS] Set typed-array assignment boundary');
