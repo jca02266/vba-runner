@@ -213,3 +213,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/callbyname.test.ts
+  - id: MUT-ENGINE-025
+    title: クラスメソッドAs Object引数境界
+    status: queued
+    priority: 1
+    focus: 通常クラスメソッドのAs Object引数へ値型を渡す実行時検証
+    priorCauseKey: vba-object-reference-value-classification-missing
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/class-methods.test.ts
