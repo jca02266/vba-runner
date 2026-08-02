@@ -72,6 +72,13 @@ analysis; do not duplicate its taxonomy here.
    runner. Add any required `.cls`/`.frm` fixture beside that module, and
    reference the source files in the record's `tests`. A scratch-only probe is
    not a valid Excel queue entry.
+   When the queue source changes, build/import `t.xlsm` on the non-Windows
+   development side with vba-extractor before handing it to Windows. The
+   Windows `eval-excel.cmd` path must only open the prepared workbook, run the
+   requested macro, and convert the result; it must not require Node or invoke
+   vba-extractor. Rebuild the workbook whenever a queued `.bas`, `.cls`, or
+   `.frm` source changes and record the synchronized result before transitioning
+   the candidate.
    Before classifying a difference as a bug, add an `expectation` block with
    `kind: spec`, `excel`, or `hypothesis`, a concrete `statement`, references,
    and `verification`. Specification and Excel expectations require a cited
