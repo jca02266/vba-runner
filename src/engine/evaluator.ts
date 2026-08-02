@@ -959,6 +959,7 @@ export class Evaluator {
         args: any[],
         localEnv: Environment,
         argSubtypes?: (VbaVarType | undefined)[],
+        validateObjectArguments = false,
     ): string | null {
         for (let i = 0; i < proc.parameters.length; i++) {
             const param = proc.parameters[i];
@@ -987,12 +988,19 @@ export class Evaluator {
                         vbaType: mapped,
                         fixedLength: mapped === 'String' ? param.fixedLength : undefined,
                     });
+                } else if (param.paramType.toLowerCase() === 'object') {
+                    localEnv.setVariableType(paramName, { vbaType: 'Object' });
                 } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
                     localEnv.setVariableType(paramName, {
                         vbaType: 'Object',
                         objectTypeName: param.paramType,
                     });
                 }
+            }
+            if (validateObjectArguments && param.paramType?.toLowerCase() === 'object' &&
+                !param.isArray && argValue !== vbaMissing &&
+                !isVbaObjectReferenceCompatible(argValue)) {
+                this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
             argValue = this.prepareArgumentValue(argValue, param);
             localEnv.setLocally(paramName, argValue);
@@ -4933,7 +4941,7 @@ export class Evaluator {
         // Validate argument count
         this.checkArgCount(proc, args);
 
-        this.bindProcedureParameters(proc, args, localEnv);
+        this.bindProcedureParameters(proc, args, localEnv, undefined, !proc.isProperty);
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             localEnv.setLocally(proc.name.name, vbaEmpty);

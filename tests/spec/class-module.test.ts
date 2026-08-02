@@ -256,7 +256,54 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Function
     `;
     assert.strictEqual(runFunc(code, 'TestDefaults'), 'false,0,0', 'Boolean は False、Currency/Byte は 0 で既定初期化される');
-    console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
+console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
+}
+
+// A scalar As Object parameter must enforce the Object-reference contract at
+// the class-method binding boundary.  Values rejected before the body runs
+// must not mutate the receiver, while Nothing and a bound object remain valid.
+{
+    const code = String.raw`
+    Class Receiver
+        Public Hits As Long
+
+        Public Sub Accept(ByVal value As Object)
+            Hits = Hits + 1
+        End Sub
+    End Class
+
+    Class Payload
+        Public Value As Long
+    End Class
+
+    Function ProbeObjectArgument() As String
+        Dim receiver As New Receiver, payload As New Payload, none As Object
+        Dim errPrimitive As Long, errNull As Long, errNothing As Long, errObject As Long
+        Set none = Nothing
+        On Error Resume Next
+        receiver.Accept 42
+        errPrimitive = Err.Number
+        Err.Clear
+        receiver.Accept Null
+        errNull = Err.Number
+        Err.Clear
+        receiver.Accept none
+        errNothing = Err.Number
+        Err.Clear
+        receiver.Accept payload
+        errObject = Err.Number
+        ProbeObjectArgument = CStr(errPrimitive) & ":" & CStr(errNull) & ":" & _
+            CStr(errNothing) & ":" & CStr(errObject) & ":" & CStr(receiver.Hits)
+    End Function
+    `;
+    const result = runFunc(code, 'ProbeObjectArgument') as string;
+    const [primitive, nullValue, nothing, boundObject, hits] = result.split(':').map(Number);
+    assert.ok(primitive > 0, 'primitive As Object argument is rejected');
+    assert.ok(nullValue > 0, 'Null As Object argument is rejected');
+    assert.strictEqual(nothing, 0, 'Nothing As Object argument is accepted');
+    assert.strictEqual(boundObject, 0, 'bound Object argument is accepted');
+    assert.strictEqual(hits, 2, 'only accepted Object arguments execute the body');
+    console.log('[PASS] クラスメソッドのスカラーAs Object引数境界');
 }
 
 // --- 仕様バグ修正: クラスフィールドの固定長配列が Empty のままで Subscript out of range になっていた ---
