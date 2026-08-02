@@ -30,8 +30,12 @@ Private Type NestedParentRecord
     Tail As String
 End Type
 
+Private resultFile As Integer
+Private resultOpen As Boolean
+
 Public Sub RunExcelQueueVerification()
     Dim root As String
+    BeginResult
     root = Environ$("TEMP") & Application.PathSeparator & "vba-runner-xl-queue"
     On Error Resume Next
     MkDir root
@@ -55,7 +59,7 @@ Public Sub RunExcelQueueVerification()
     VerifyCurrencyStringInputs
     VerifyAppendWidthInitialColumn root & Application.PathSeparator & "XL-018-append-width.bin"
     VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
-    Debug.Print "XL-020 ALREADY_VERIFIED=SECONDERR=70"
+    EmitResult "XL-020 ALREADY_VERIFIED=SECONDERR=70"
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -63,8 +67,32 @@ Public Sub RunExcelQueueVerification()
     VerifyNonFiniteBoundaries
     VerifyAsNewArray
     VerifyCollectionEnumerationMutation
-    Debug.Print "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
-    Debug.Print "RESULT_ROOT=" & root
+    EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
+    EmitResult "RESULT_ROOT=" & root
+    EndResult
+End Sub
+
+Private Sub BeginResult()
+    Dim outputPath As String
+    outputPath = ThisWorkbook.Path
+    If Len(outputPath) = 0 Then outputPath = CurDir$
+    outputPath = outputPath & Application.PathSeparator & "ExcelQueueVerification.result"
+    On Error Resume Next
+    Kill outputPath
+    On Error GoTo 0
+    resultFile = FreeFile
+    Open outputPath For Output As #resultFile
+    resultOpen = True
+End Sub
+
+Private Sub EndResult()
+    If resultOpen Then Close #resultFile
+    resultOpen = False
+End Sub
+
+Private Sub EmitResult(ByVal line As String)
+    Debug.Print line
+    If resultOpen Then Print #resultFile, line
 End Sub
 
 Private Sub VerifyCollectionEnumerationMutation()
@@ -78,7 +106,7 @@ Private Sub VerifyCollectionEnumerationMutation()
         If CStr(item) = "A" Then col.Add "C"
     Next item
     errNo = Err.Number
-    Debug.Print "XL-034 COLADD SEEN=" & seen & " COUNT=" & CStr(col.Count) & " ERR=" & CStr(errNo)
+    EmitResult "XL-034 COLADD SEEN=" & seen & " COUNT=" & CStr(col.Count) & " ERR=" & CStr(errNo)
     Err.Clear
 
     Set dict = CreateObject("Scripting.Dictionary")
@@ -88,7 +116,7 @@ Private Sub VerifyCollectionEnumerationMutation()
         If CStr(key) = "B" Then dict.Remove "B"
     Next key
     errNo = Err.Number
-    Debug.Print "XL-034 DICTREMOVE KEYS=" & keysSeen & " COUNT=" & CStr(dict.Count) & " ERR=" & CStr(errNo)
+    EmitResult "XL-034 DICTREMOVE KEYS=" & keysSeen & " COUNT=" & CStr(dict.Count) & " ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 
@@ -100,9 +128,9 @@ Private Sub VerifyAsNewArray()
     tickets(0).Code = "X"
     errNo = Err.Number
     If errNo <> 0 Then
-        Debug.Print "XL-033 ERR=" & CStr(errNo)
+        EmitResult "XL-033 ERR=" & CStr(errNo)
     Else
-        Debug.Print "XL-033 CODE=" & tickets(0).Code & " TYPE=" & TypeName(tickets(0)) & " ERR=0"
+        EmitResult "XL-033 CODE=" & tickets(0).Code & " TYPE=" & TypeName(tickets(0)) & " ERR=0"
     End If
     On Error GoTo 0
 End Sub
@@ -138,20 +166,22 @@ Private Sub PrintNumericProbe(ByVal id As String, ByVal label As String, ByVal v
     Dim errNo As Long
     errNo = Err.Number
     If errNo <> 0 Then
-        Debug.Print id & " " & label & " ERR=" & CStr(errNo)
+        EmitResult id & " " & label & " ERR=" & CStr(errNo)
     Else
-        Debug.Print id & " " & label & " TYPE=" & TypeName(value) & " VALUE=" & CStr(value) & " ERR=0"
+        EmitResult id & " " & label & " TYPE=" & TypeName(value) & " VALUE=" & CStr(value) & " ERR=0"
     End If
 End Sub
 
 Public Sub RunExcelSequentialLockVerification()
     Dim root As String
+    BeginResult
     root = Environ$("TEMP") & Application.PathSeparator & "vba-runner-xl-queue"
     On Error Resume Next
     MkDir root
     On Error GoTo 0
     VerifySequentialLockBoundaries root & Application.PathSeparator & "XL-023-lock-range.dat"
-    Debug.Print "XL-023 RESULT_ROOT=" & root
+    EmitResult "XL-023 RESULT_ROOT=" & root
+    EndResult
 End Sub
 
 Private Sub VerifySelectCaseString()
@@ -163,7 +193,7 @@ Private Sub VerifySelectCaseString()
         Case Else
             result = "else"
     End Select
-    Debug.Print "XL-013 SELECT=" & result & " TYPENAME=" & TypeName(value)
+    EmitResult "XL-013 SELECT=" & result & " TYPENAME=" & TypeName(value)
 End Sub
 
 Private Sub VerifyDecimalIntegerOps()
@@ -172,14 +202,14 @@ Private Sub VerifyDecimalIntegerOps()
     On Error Resume Next
     quotient = value \ CDec("3")
     errNo = Err.Number
-    Debug.Print "XL-014 DIVERR=" & CStr(errNo)
+    EmitResult "XL-014 DIVERR=" & CStr(errNo)
     Err.Clear
     remainder = value Mod CDec("100000000000000000")
     errNo = Err.Number
-    Debug.Print "XL-014 MODERR=" & CStr(errNo)
+    EmitResult "XL-014 MODERR=" & CStr(errNo)
     Err.Clear
-    Debug.Print "XL-014 NEG=" & CStr(CDec("-5.5") \ CDec("2.5"))
-    Debug.Print "XL-014 NEGERR=" & CStr(Err.Number)
+    EmitResult "XL-014 NEG=" & CStr(CDec("-5.5") \ CDec("2.5"))
+    EmitResult "XL-014 NEGERR=" & CStr(Err.Number)
     On Error GoTo 0
 End Sub
 
@@ -190,14 +220,14 @@ Private Sub VerifyCurrencyDivision()
     On Error Resume Next
     quotient = value / divisor
     errNo = Err.Number
-    Debug.Print "XL-015 DIV=" & CStr(quotient) & " TYPE=" & TypeName(quotient) & " ERR=" & CStr(errNo)
+    EmitResult "XL-015 DIV=" & CStr(quotient) & " TYPE=" & TypeName(quotient) & " ERR=" & CStr(errNo)
     Err.Clear
     remainder = value Mod divisor
     errNo = Err.Number
     If errNo = 0 Then
-        Debug.Print "XL-015 MOD=" & CStr(remainder) & " MODTYPE=" & TypeName(remainder) & " ERR=0"
+        EmitResult "XL-015 MOD=" & CStr(remainder) & " MODTYPE=" & TypeName(remainder) & " ERR=0"
     Else
-        Debug.Print "XL-015 MODERR=" & CStr(errNo)
+        EmitResult "XL-015 MODERR=" & CStr(errNo)
     End If
     Err.Clear
     On Error GoTo 0
@@ -206,14 +236,14 @@ End Sub
 Private Sub VerifyLongLongStringOps()
     Dim value As LongLong
     value = CLngLng("9007199254740993")
-    Debug.Print "XL-016 ADD=" & CStr(value + "1") & " SUB=" & CStr(value - "1") & _
+    EmitResult "XL-016 ADD=" & CStr(value + "1") & " SUB=" & CStr(value - "1") & _
         " NEG=" & CStr(-value)
 End Sub
 
 Private Sub VerifyCurrencyStringInputs()
-    Debug.Print "XL-017 EXP=" & CStr(CCur("9.007199254740993125E+14"))
-    Debug.Print "XL-017 GROUP=" & CStr(CCur("900,719,925,474,099.3125"))
-    Debug.Print "XL-017 PLUS=" & CStr(CCur("+900719925474099.3125"))
+    EmitResult "XL-017 EXP=" & CStr(CCur("9.007199254740993125E+14"))
+    EmitResult "XL-017 GROUP=" & CStr(CCur("900,719,925,474,099.3125"))
+    EmitResult "XL-017 PLUS=" & CStr(CCur("+900719925474099.3125"))
 End Sub
 
 Private Sub VerifyAppendWidthInitialColumn(ByVal path As String)
@@ -244,7 +274,7 @@ Private Sub VerifyCrossHandleLock(ByVal path As String)
     On Error Resume Next
     Open path For Random Access Read Write Shared As #second Len = 4
     errNo = Err.Number
-    Debug.Print "XL-019 OPEN2ERR=" & CStr(errNo)
+    EmitResult "XL-019 OPEN2ERR=" & CStr(errNo)
     If errNo <> 0 Then
         Err.Clear
         Close #first
@@ -254,10 +284,10 @@ Private Sub VerifyCrossHandleLock(ByVal path As String)
     Err.Clear
     Lock #first, 1 To 2
     errNo = Err.Number
-    Debug.Print "XL-019 FIRSTERR=" & CStr(errNo)
+    EmitResult "XL-019 FIRSTERR=" & CStr(errNo)
     Err.Clear
     Lock #second, 1 To 2
-    Debug.Print "XL-019 SECONDERR=" & CStr(Err.Number)
+    EmitResult "XL-019 SECONDERR=" & CStr(Err.Number)
     Err.Clear
     Unlock #first, 1 To 2
     Close #second
@@ -276,7 +306,7 @@ Private Sub VerifySharedLockRange(ByVal path As String)
     On Error Resume Next
     Open path For Random Access Read Write Shared As #second Len = 4
     errNo = Err.Number
-    Debug.Print "XL-020 OPEN2ERR=" & CStr(errNo)
+    EmitResult "XL-020 OPEN2ERR=" & CStr(errNo)
     If errNo <> 0 Then
         Err.Clear
         Close #first
@@ -285,10 +315,10 @@ Private Sub VerifySharedLockRange(ByVal path As String)
     End If
     Err.Clear
     Lock #first, 1 To 2
-    Debug.Print "XL-020 FIRSTERR=" & CStr(Err.Number)
+    EmitResult "XL-020 FIRSTERR=" & CStr(Err.Number)
     Err.Clear
     Lock #second, 2 To 3
-    Debug.Print "XL-020 SECONDERR=" & CStr(Err.Number)
+    EmitResult "XL-020 SECONDERR=" & CStr(Err.Number)
     Err.Clear
     Unlock #first, 1 To 2
     Close #second
@@ -311,19 +341,19 @@ Private Sub PrintCDecResult(ByVal label As String, ByVal text As String)
     value = CDec(text)
     errNo = Err.Number
     If errNo = 0 Then
-        Debug.Print "XL-021 " & label & " ERR=0 VALUE=" & CStr(value)
+        EmitResult "XL-021 " & label & " ERR=0 VALUE=" & CStr(value)
     Else
-        Debug.Print "XL-021 " & label & " ERR=" & CStr(errNo)
+        EmitResult "XL-021 " & label & " ERR=" & CStr(errNo)
     End If
     On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatRounding()
-    Debug.Print "XL-022 CURRENCY=[" & Format(2.675, "Currency") & "]"
-    Debug.Print "XL-022 FIXED=[" & Format(2.675, "Fixed") & "]"
-    Debug.Print "XL-022 STANDARD=[" & Format(2.675, "Standard") & "]"
-    Debug.Print "XL-022 SCIENTIFIC=[" & Format(2.675, "Scientific") & "]"
-    Debug.Print "XL-022 SCI09995=[" & Format(0.09995, "Scientific") & "]"
+    EmitResult "XL-022 CURRENCY=[" & Format(2.675, "Currency") & "]"
+    EmitResult "XL-022 FIXED=[" & Format(2.675, "Fixed") & "]"
+    EmitResult "XL-022 STANDARD=[" & Format(2.675, "Standard") & "]"
+    EmitResult "XL-022 SCIENTIFIC=[" & Format(2.675, "Scientific") & "]"
+    EmitResult "XL-022 SCI09995=[" & Format(0.09995, "Scientific") & "]"
 End Sub
 
 Private Sub VerifySequentialLockBoundaries(ByVal path As String)
@@ -355,7 +385,7 @@ Private Sub ProbeSequentialLock(ByVal path As String, ByVal mode As String)
     Err.Clear: Lock #f, 2 To 1: reverseErr = Err.Number
     Close #f
     On Error GoTo 0
-    Debug.Print "XL-023 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
+    EmitResult "XL-023 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
         " NEG=" & CStr(negativeErr) & " FRACTION=" & CStr(fractionErr) & _
         " REVERSE=" & CStr(reverseErr)
 End Sub
@@ -393,7 +423,7 @@ Private Sub ProbeSeek(ByVal path As String, ByVal mode As String)
     Err.Clear: Seek #f, 2147483647: highErr = Err.Number
     Close #f
     On Error GoTo 0
-    Debug.Print "XL-024 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
+    EmitResult "XL-024 MODE=" & mode & " ZERO=" & CStr(zeroErr) & _
         " NEG=" & CStr(negativeErr) & " FRACTION=" & CStr(fractionErr) & _
         " HIGH=" & CStr(highErr)
 End Sub
@@ -410,19 +440,19 @@ Private Sub VerifyBinaryTextEof(ByVal path As String)
 
     f = FreeFile: Open path For Input As #f
     Line Input #f, text
-    Debug.Print "XL-025 INPUT LINEEOF=" & CStr(EOF(f))
+    EmitResult "XL-025 INPUT LINEEOF=" & CStr(EOF(f))
     On Error Resume Next
     Err.Clear: Line Input #f, text: errNo = Err.Number
-    Debug.Print "XL-025 INPUT LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
+    EmitResult "XL-025 INPUT LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
     Close #f
     On Error GoTo 0
 
     f = FreeFile: Open path For Binary As #f
     Line Input #f, text
-    Debug.Print "XL-025 BINARY LINEEOF=" & CStr(EOF(f))
+    EmitResult "XL-025 BINARY LINEEOF=" & CStr(EOF(f))
     On Error Resume Next
     Err.Clear: Line Input #f, text: errNo = Err.Number
-    Debug.Print "XL-025 BINARY LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
+    EmitResult "XL-025 BINARY LINEERR=" & CStr(errNo) & " EOF=" & CStr(EOF(f))
     Close #f
     On Error GoTo 0
 End Sub
@@ -526,5 +556,5 @@ Private Sub PrintBytes(ByVal id As String, ByVal path As String)
         line = line & Right$("0" & Hex$(value), 2)
     Next p
     Close #f
-    Debug.Print id & " LOF=" & n & " BYTES=" & line
+    EmitResult id & " LOF=" & n & " BYTES=" & line
 End Sub

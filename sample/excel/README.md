@@ -75,7 +75,7 @@ sample\excel\eval-excel.cmd
 ### Windowsでの汎用Excelマクロ実行
 
 `run-excel-queue.ps1`は、WindowsでExcelを起動して、既にブックへインポート済みの
-プロシージャを実行し、ImmediateウィンドウのDebug.Printをテキスト保存する汎用スクリプトである。
+プロシージャを実行し、マクロ自身が生成した結果ファイルを確認する汎用スクリプトである。
 モジュールの文字コード変換とインポートは、先に`vba-extractor`で行う。
 スクリプトはブックを開く前に、その自動化用Excelインスタンスだけの
 `AutomationSecurity`を`msoAutomationSecurityLow`へ設定する。これによりExcelが
@@ -95,16 +95,18 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
 ファイル名や`.bas`の名前を手続き名として渡してはならない。
 
 `-Module`を省略すると、`-Procedure`をそのままExcelの実行名として扱う。`-Output`を
-省略した場合は、ブックと同じディレクトリに`<ブック名>.result`を作成する。Debug.Printの
-出力はUTF-8で保存し、保存後にExcelを終了する。
+省略した場合は、ブックと同じディレクトリの`ExcelQueueVerification.result`を確認する。
+`ExcelQueueVerification.bas`は`ThisWorkbook.Path`へ各結果行を直接書き込み、
+`Debug.Print`は補助的にImmediateウィンドウへも出力する。保存後にExcelを終了する。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
   -Workbook .\test.xlsm -Procedure Module1.Run -Output .\Module1.result
 ```
 
-このコマンドはブックを保存せずに閉じる。VBProjectへのアクセスが拒否された場合は、
-事前のモジュールインポートを完了してから実行する。
+このコマンドはブックを保存せずに閉じる。指定したプロシージャが結果ファイルを生成しない
+場合は失敗するため、`-Output`にはそのプロシージャが生成するファイルを指定する。
+VBProjectへのアクセスが拒否された場合は、事前のモジュールインポートを完了してから実行する。
 
 マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
 日本語文字列のバイト列はExcelのシステムロケールに依存するため、

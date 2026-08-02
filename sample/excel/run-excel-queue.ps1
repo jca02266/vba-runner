@@ -27,8 +27,6 @@ try {
     $excel.AutomationSecurity = 1
     $book = $excel.Workbooks.Open((Resolve-Path -LiteralPath $Workbook).Path)
 
-    $immediate = $excel.VBE.Windows.Item('Immediate')
-    $before = [string]$immediate.Object.Text
     $qualifiedProcedure = if ($Module) { "$Module.$Procedure" } else { $Procedure }
     # Application.Run accepts <workbook>!<module>.<procedure>.  Excel's
     # parser is inconsistent about single-quoting a workbook name when it is
@@ -57,33 +55,31 @@ try {
     if (-not $runSucceeded) {
         throw "Application.Run could not resolve '$qualifiedProcedure' in workbook '$($book.Name)'. Tried: $($macroCandidates -join ', '). Last error: $($runError.Exception.Message)"
     }
-    Start-Sleep -Milliseconds 500
-    $after = [string]$immediate.Object.Text
-    if ($after.StartsWith($before, [System.StringComparison]::Ordinal)) {
-        $result = $after.Substring($before.Length)
-    } else {
-        $result = $after
-    }
-    if ([string]::IsNullOrWhiteSpace($result)) {
-        throw 'No Debug.Print output was captured from the Immediate window.'
-    }
-
     if (-not $Output) {
         $Output = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $Workbook).Path) `
-            "$([System.IO.Path]::GetFileNameWithoutExtension($Workbook)).result"
+            'ExcelQueueVerification.result'
     }
     $outputPath = [System.IO.Path]::GetFullPath($Output)
     $parent = Split-Path -Parent $outputPath
     if ($parent -and -not (Test-Path -LiteralPath $parent)) {
         [void](New-Item -ItemType Directory -Path $parent)
     }
-    [System.IO.File]::WriteAllText($outputPath, $result, (New-Object System.Text.UTF8Encoding($false)))
-    Write-Output "Saved Debug.Print output: $outputPath"
+    $deadline = [DateTime]::UtcNow.AddSeconds(10)
+    while ((-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) -and [DateTime]::UtcNow -lt $deadline) {
+        Start-Sleep -Milliseconds 200
+    }
+    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
+        throw "Macro completed but did not create the result file: $outputPath"
+    }
+    if ((Get-Item -LiteralPath $outputPath).Length -eq 0) {
+        throw "Macro created an empty result file: $outputPath"
+    }
+    Write-Output "Saved Excel macro result: $outputPath"
 }
 catch {
     Write-Error ("Excel macro execution failed. Ensure the workbook contains the requested " +
-        "module/procedure, macros are allowed for this automation instance, and the Immediate " +
-        "window is available. A file downloaded from the Internet may also need to be unblocked " +
+        "module/procedure, macros are allowed for this automation instance, and the macro writes " +
+        "its result file. A file downloaded from the Internet may also need to be unblocked " +
         "or opened from a Trusted Location. Details: " + $_.Exception.Message)
     exit 1
 }
