@@ -162,3 +162,34 @@ try {
 }
 
 console.log('[PASS] evaluation state event history/resume');
+
+// Cause analysis keeps the immediate implementation mechanism separate from
+// the reusable design/root-cause grouping key.
+const causeProbe = `${root}/evaluation/evaluations/EV-TEST-CAUSE.md`;
+const causeProbeBody = `---
+id: EV-TEST-CAUSE
+candidateId: FZ-GRAMMAR-001
+campaign: FZ-GRAMMAR
+status: bug-found
+priority: low
+focus: cause schema test
+directCauseKey: immediate-dispatch-gap
+findings: []
+tests:
+  - tests/spec/evaluation-state.test.ts
+horizontalAudit:
+  confirmed: []
+  ruledOut: []
+  unresolved: []
+---
+`;
+writeFileSync(causeProbe, causeProbeBody);
+try {
+    const invalidCause = run('record', causeProbe);
+    assert.notEqual(invalidCause.status, 0);
+    assert.match(invalidCause.stderr, /directCauseKey requires root causeKey/);
+} finally {
+    if (existsSync(causeProbe)) unlinkSync(causeProbe);
+}
+
+console.log('[PASS] evaluation cause-layer validation');

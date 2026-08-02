@@ -39,8 +39,10 @@ after migration, use the structured records and the generated Markdown view.
    the cause remains uncertain, do not fix speculatively; record the unresolved
    analysis and run the smallest additional check.
 7. For every evaluation run, write the structured evaluation record before
-   staging a commit. Record the behavior, horizontal-expansion scope, cause
-   key, confirmed/rule-out/unresolved paths, coverage reference, and next
+   staging a commit. Record the behavior, horizontal-expansion scope,
+   `directCauseKey` (immediate mechanism), `causeKey` (deeper design/root
+   cause), separate direct/root remediation statuses,
+   confirmed/rule-out/unresolved paths, coverage reference, and next
    action. For a verified defect, implement the smallest compatible fix, add
    a regression test, and run focused checks. Also assess structural
    weaknesses and update `TODO.md` or `TODO_SPEC.md` only when justified.
@@ -48,6 +50,11 @@ after migration, use the structured records and the generated Markdown view.
    mark the linked Finding with `discoveryType: regression`; use a different
    explicit type for fuzzing, mutation, coverage, Excel comparison, or direct
    evaluation findings. Do not infer a historical type without evidence.
+   `priorCauseKey` is only a pre-evaluation hypothesis; it is not a confirmed
+   cause. Keep `directFixStatus` and `rootFixStatus` separate. If root
+   remediation is a follow-up candidate, record its candidate ID and commit
+   when fixed; do not mark the root fixed merely because the symptom
+   disappeared.
    For every new Excel-comparison candidate, first add a uniquely numbered
    probe (the next `XL-xxx`) to
    `sample/excel/ExcelQueueVerification.bas` and call it from the queue

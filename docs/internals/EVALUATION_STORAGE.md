@@ -65,7 +65,18 @@ resultについても、次を `validate` / `audit` で検証する。
 
 ### 原因と横展開を再利用
 
-候補の仮説は `priorCauseKey`、評価で確認した原因は `causeKey` として分ける。
+候補の仮説は `priorCauseKey` として保存する。バグを確認した場合は原因を一つの
+キーに押し込めず、次の二層に分けて保存する。
+
+- `directCauseKey`: 観測された不具合を直接生じさせた実装上の機構・経路。
+- `causeKey`: 直接原因を生んだ設計上の真因。横展開のグルーピングにも使う。
+
+`causeKey` は一意なIDではなく再利用可能な分類キーであるため、評価・バグの一意性は
+`EV-xxxxx`、`BUG-xxxxx`、候補IDで保証する。原因分析の対処状況は
+`directFixStatus` と `rootFixStatus` に分ける。真因を別候補で修正した場合は
+`rootFixCandidateId` と `rootFixCommit` を記録する。過去記録にないフィールドは移行時に
+推測して補完せず、新規のバグ記録から必須とする。
+
 横展開調査は `confirmed`、`ruledOut`、`unresolved` の3分類で記録する。
 `unresolved` はバグ件数に含めず、実Excel照合などの待ち状態として扱う。
 
@@ -116,6 +127,9 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 
 - `id`, `candidateId`, `campaign`, `status`, `priority`, `focus`
 - `coverageSnapshot`, `findings`, `tests`, `commit`
+- バグを確認した新規記録では `directCauseKey`, `causeKey`,
+  `directFixStatus`, `rootFixStatus`。`rootFixStatus: fixed` の場合は
+  `rootFixCandidateId` と `rootFixCommit` も必須。
 - `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
   `horizontalAudit.unresolved`
 
@@ -204,8 +218,17 @@ git commit
 ### 4. 次の候補へ進む
 
 完了後に `complete` で候補と評価を関連付ける。結果ファイルが作成されると、
-`next` はその候補を自動的に除外する。次の評価では、直近の `causeKey` と横展開結果を
-再利用し、同じテストを理由なく繰り返さない。
+`next` はその候補を自動的に除外する。次の評価では、直近の `directCauseKey` と
+`causeKey`、横展開結果を再利用し、同じテストを理由なく繰り返さない。
+
+### 原因分析と二段階の対処
+
+直接修正だけで症状が消えても `rootFixStatus` は `unassessed` または `planned` のままに
+する。真因への対処が必要なら、現在の発見評価のコミットを完了してから、次のループで
+真因対処用の候補をclaimする。実装・回帰テスト・横展開確認が完了した時点で、元の評価
+または関連Findingの `rootFixStatus` を `fixed` に更新し、対処候補とコミットを紐付ける。
+真因が共通化不足でない場合も、変換、状態寿命、境界、評価順序、エラー伝播、名前解決
+など同じ二層分析を行う。
 
 ### 状態履歴
 

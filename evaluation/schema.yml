@@ -8,9 +8,13 @@ record:
     - status
     - priority
     - focus
+    - directCauseKey
     - causeKey
     - priorCauseKey
-    - discoveredCauseKey
+    - directFixStatus
+    - rootFixStatus
+    - rootFixCandidateId
+    - rootFixCommit
     - coverageSnapshot
     - findings
     - tests
@@ -30,7 +34,12 @@ record:
     - campaign
     - status
     - focus
+    - directCauseKey
     - causeKey
+    - directFixStatus
+    - rootFixStatus
+    - rootFixCandidateId
+    - rootFixCommit
     - coverageSnapshot
     - commit
   statuses:

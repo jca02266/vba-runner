@@ -227,6 +227,18 @@ function validate(records = readRecords()) {
         throw new Error(`${file}: ${key} must be a string`);
       }
     }
+    if (data.directCauseKey !== undefined && !data.causeKey) {
+      throw new Error(`${file}: directCauseKey requires root causeKey`);
+    }
+    const fixStatuses = new Set(['unassessed', 'not-required', 'planned', 'in-progress', 'fixed', 'blocked']);
+    for (const key of ['directFixStatus', 'rootFixStatus']) {
+      if (data[key] !== undefined && !fixStatuses.has(data[key])) {
+        throw new Error(`${file}: invalid ${key} ${data[key]}`);
+      }
+    }
+    if (data.rootFixStatus === 'fixed' && (!data.rootFixCandidateId || !data.rootFixCommit)) {
+      throw new Error(`${file}: fixed root cause requires rootFixCandidateId and rootFixCommit`);
+    }
     for (const key of schema.record.arrays ?? []) {
       if (data[key] !== undefined && !Array.isArray(data[key])) {
         throw new Error(`${file}: ${key} must be an array`);
@@ -444,7 +456,7 @@ function context(candidateId, limit = 5) {
     .filter(({ data }) => data.campaign === item.campaign || (item.priorCauseKey && data.causeKey === item.priorCauseKey))
     .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
     .slice(0, Math.max(1, Math.min(limit, 10)));
-  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, causeKey: data.causeKey, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
+  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, directCauseKey: data.directCauseKey, causeKey: data.causeKey, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
 }
 
 function record(file) {
