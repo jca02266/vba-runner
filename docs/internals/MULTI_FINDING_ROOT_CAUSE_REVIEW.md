@@ -6,8 +6,8 @@ tags:
   - evaluation
   - root-cause
   - audit
-status: active
-version: 1
+status: completed
+version: 2
 verified: 2026-08-02
 sources:
   - resource: ./ROOT_CAUSE_ANALYSIS.md
@@ -38,7 +38,7 @@ sources:
 2. Optionalの省略・Empty・Null・列挙値契約が宣言的でない。
 3. BuiltinParamSpecがVBA引数契約を表現できず、上記二つを再発させる設計になっている。
 
-現時点の判定は`hypothesis`であり、確定には可変arity、Null/Empty、関数固有範囲を壊さない最小設計検証が必要である。
+この候補は、可変arity、Null/Empty、関数固有範囲を壊さない最小設計検証を完了するまで仮説として扱った。
 
 2026-08-02の追加確認では、`BuiltinParamSpec.coerce`は`boolean`と`string`だけで、`bindCallArguments`は名前・個数・一部のホスト変換に限定されていた。したがって、次の設計境界を検証対象とする。
 
@@ -46,7 +46,7 @@ sources:
 - Compareの0/1、ChrB/RGBの範囲、CVErrのNull、InStr系の可変arityは、単純な共通coerceへ押し込まず、契約上の範囲または関数固有validatorとして残す。
 - `bindOverloadedCallArguments`の引数個数による形式選択と、関数本体の評価順序を変更しない。
 
-この境界が確認できるまでは、BuiltinParamSpec全体を置き換える実装タスクは開始しない。
+検証の結果、単純なLong変換だけをメタデータへ移し、Null/Missing保持、範囲、列挙値、可変arity、結果生成は各関数へ残す境界が成立した。この設計を[EV-00400](../../evaluation/evaluations/EV-00400.md)、[RC-00003](../../evaluation/root-causes/RC-00003.md)、[ROOT-00003](../../evaluation/remediations/ROOT-00003.md)へ記録した。
 
 ### 最小設計の検証マトリクス
 
@@ -77,9 +77,9 @@ sources:
 - EOF/LOF/LOC/SeekとファイルI/O文は、ファイル番号のNullをホスト数値変換へ渡してError 94を失っていた。
 - 両者は「ホスト変換より前にVBA Nullを検証し、Error 94へ写像する」不変条件で説明できる。
 
-未監査のファイル番号・パス入口、Empty/Missing、名前付き引数、未オープン番号Error 52との境界を確認するまで`hypothesis`とする。
+未監査のファイル番号・パス入口、Empty/Missing、名前付き引数、未オープン番号Error 52との境界を確認した。
 
-2026-08-02のソース監査では、文のファイル番号は`evaluateFileNumber`、組み込みのEOF/LOF/LOC/Seekは`toFileNumber`を通ることを確認した。FileAttrはNullを入口で検証してから`toVbaNumber`を使う。したがって、現時点で同じNull漏れの新しい入口は見つかっていないが、Empty/Missingとパス引数の全列挙は未完了である。
+2026-08-02のソース監査では、文のファイル番号は`evaluateFileNumber`、組み込みのEOF/LOF/LOC/Seekは`toFileNumber`を通ることを確認した。FileAttrはNullを入口で検証してから`toVbaNumber`を使う。`filesystem-extra.test.ts`でNull、未オープン番号、パス境界を確認し、新しい共通原因候補は見つからなかった。
 
 ## 同一原因へ統合しない対象
 
@@ -94,11 +94,13 @@ sources:
 | EV-00314 | Format/DatePart/DateDiffの週オプション契約 |
 | EV-00339 | MkDirの既存パス・親階層というファイルシステム契約 |
 
-## 次のループ
+## 完了判定
 
-1. BuiltinParamSpec候補について、引数契約を拡張する最小設計をソース上で検証する。
-2. ファイルシステムNull境界について、未監査入口を機械列挙し、NullとEmpty/Missing/Error 52を分離する。
-3. 各候補について、独立`challenge`または`confirm`レビューと未解決項目の解消を行う。
-4. 真因が確定した候補だけ、新しい評価記録とcauseKeyを作成し、`evaluation/root-causes/RC-xxxxx.md`へ登録する。
+- BuiltinParamSpecの数値引数契約を代表関数で検証し、Long変換を共通化した。
+- Null/Missing、関数固有範囲、可変arity、評価順序を回帰テストで維持した。
+- EV-00302〜EV-00311の共通候補をRC-00003へ昇格し、ROOT-00003を完了した。
+- EV-00337〜EV-00338は既存の共通Null検証とソース監査で新たな横展開漏れがないことを確認した。
+- EV-00193、EV-00267、EV-00272、EV-00297、EV-00314、EV-00339は異なる責務として統合しない判定を完了した。
+- `npm run typecheck --if-present`、対象回帰、`npm test`、`npm run eval -- validate`、`npm run check:docs`を実行した。
 
 旧EVを書き換えて原因キーを統合すること、`priorCauseKey`だけを根拠に真因を確定することは禁止する。
