@@ -50,6 +50,8 @@ sources:
 
 未監査のファイル番号・パス入口、Empty/Missing、名前付き引数、未オープン番号Error 52との境界を確認するまで`hypothesis`とする。
 
+2026-08-02のソース監査では、文のファイル番号は`evaluateFileNumber`、組み込みのEOF/LOF/LOC/Seekは`toFileNumber`を通ることを確認した。FileAttrはNullを入口で検証してから`toVbaNumber`を使う。したがって、現時点で同じNull漏れの新しい入口は見つかっていないが、Empty/Missingとパス引数の全列挙は未完了である。
+
 ## 同一原因へ統合しない対象
 
 次の評価はFindingが複数でも、今回の共通不変条件へは統合しない。
