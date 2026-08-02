@@ -306,6 +306,7 @@
 | EV-00400 | ROOT-CAUSE | fixed | 1 | BuiltinParamSpecのVBA引数契約不足 |
 | EV-00401 | MUT-ENGINE | fixed | 1 | CallByName VbSet添字配列境界 |
 | EV-00402 | MUT-ENGINE | fixed | 1 | クラスメソッドAs Object引数境界 |
+| EV-00403 | MUT-ENGINE | fixed | 1 | As Object配列引数のコンテナ境界 |
 
 ## 状態集計
 
@@ -313,7 +314,7 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 3 |
-| fixed | 207 |
+| fixed | 208 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 89 |
