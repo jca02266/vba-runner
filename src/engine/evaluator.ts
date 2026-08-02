@@ -3546,8 +3546,21 @@ export class Evaluator {
         const typed = (existing as any).__vbaElementType__ ||
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
-        const isArrayReturn = sourceExpr?.type === 'CallExpression' || sourceExpr?.type === 'MemberExpression';
+        const isArrayReturn = this.isArrayReturnExpression(sourceExpr);
         if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+    }
+
+    /** Distinguish a property getter returning an array from a plain array field. */
+    private isArrayReturnExpression(expr?: Expression): boolean {
+        if (!expr) return false;
+        if (expr.type === 'CallExpression') return true;
+        if (expr.type !== 'MemberExpression') return false;
+        const member = expr as MemberExpression;
+        if (member.object.type !== 'Identifier') return false;
+        const instance = this.resolveAutoInstance(member.object, this.env.get((member.object as Identifier).name));
+        if (!instance?.__vbaClass__) return false;
+        const classDef = instance.__classDef__ as ClassDeclaration;
+        return !!findClassProperty(classDef.procedures, member.property.name, 'get');
     }
 
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
