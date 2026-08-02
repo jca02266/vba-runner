@@ -2352,7 +2352,9 @@ export class Evaluator {
         if (!this.isAssignableTarget(expr)) return null;
         return {
             get: () => this.resolveAutoInstance(expr, this.evaluateExpression(expr)),
-            set: (value: any) => this.evaluateAssignmentToVariable(expr, value),
+            // ByRef array parameters may be rebound by ReDim and must write
+            // the replacement array back to the caller.
+            set: (value: any) => this.evaluateAssignmentToVariable(expr, value, undefined, true),
         };
     }
 
@@ -3539,7 +3541,7 @@ export class Evaluator {
 
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
-    private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression) {
+    private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
             let variable = this.env.get(name);
@@ -3595,6 +3597,25 @@ export class Evaluator {
                     const coerced = retType ? this.coerceToDeclaredType(val, retType.vbaType) : val;
                     this.env.setLocally(name, coerced);
                     return;
+                }
+            }
+
+            // VBA does not allow assigning one whole typed array to another
+            // (`target = source`).  Element assignment and Variant targets
+            // are separate valid paths; reject only a declared typed-array
+            // destination here before the normal Let-coercion can alias the
+            // JavaScript array object.
+            if (Array.isArray(oldVal) && Array.isArray(val)) {
+                const elementType = (oldVal as any).__vbaElementType__;
+                const elementTypeName = (oldVal as any).__vbaElementTypeName__;
+                const objectElementType = (oldVal as any).__vbaElementObjectTypeName__;
+                // A function/property array return is materialized into the
+                // destination by the existing return-value path.  The
+                // forbidden case is a whole-array value copied from another
+                // array variable (or equivalent non-call expression).
+                const isArrayReturn = sourceExpr?.type === 'CallExpression' || sourceExpr?.type === 'MemberExpression';
+                if ((elementType || elementTypeName || objectElementType) && !isArrayReturn && !allowArrayRebind) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
                 }
             }
 
