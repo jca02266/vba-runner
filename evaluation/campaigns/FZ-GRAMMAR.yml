@@ -211,3 +211,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/array-functions.test.ts
+  - id: FZ-GRAMMAR-024
+    title: ParamArrayとByRef配列バインド境界
+    status: queued
+    priority: 1
+    focus: ParamArrayの省略・Variant配列・名前付き引数とByRef書戻しの組み合わせ
+    priorCauseKey: paramarray-byref-array-binding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/byref.test.ts
