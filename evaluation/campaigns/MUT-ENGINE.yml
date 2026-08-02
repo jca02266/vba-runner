@@ -130,3 +130,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/typed-array-member-assignment.test.ts
+  - id: MUT-ENGINE-016
+    title: ネストProperty Get配列戻り値の境界
+    status: queued
+    priority: 1
+    focus: ネストMember・With経由の配列getter受け渡し
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/member-array-rhs-assignment.test.ts

@@ -3556,8 +3556,10 @@ export class Evaluator {
         if (expr.type === 'CallExpression') return true;
         if (expr.type !== 'MemberExpression') return false;
         const member = expr as MemberExpression;
-        if (member.object.type !== 'Identifier') return false;
-        const instance = this.resolveAutoInstance(member.object, this.env.get((member.object as Identifier).name));
+        const rawObject = member.object.type === 'Identifier'
+            ? this.env.get((member.object as Identifier).name)
+            : this.evaluateExpression(member.object);
+        const instance = this.resolveAutoInstance(member.object, rawObject);
         if (!instance?.__vbaClass__) return false;
         const classDef = instance.__classDef__ as ClassDeclaration;
         return !!findClassProperty(classDef.procedures, member.property.name, 'get');
