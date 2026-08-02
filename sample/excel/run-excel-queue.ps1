@@ -1,7 +1,11 @@
 [CmdletBinding()]
 param(
-    [string]$Workbook = (Join-Path $PSScriptRoot 'test.xlsm'),
-    [string]$Output = (Join-Path $PSScriptRoot 'ExcelQueueVerification.result')
+    [Parameter(Mandatory = $true)]
+    [string]$Workbook,
+    [Parameter(Mandatory = $true)]
+    [string]$Procedure,
+    [string]$Module,
+    [string]$Output
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,24 +22,10 @@ try {
     $excel.DisplayAlerts = $false
     $book = $excel.Workbooks.Open((Resolve-Path -LiteralPath $Workbook).Path)
 
-    # The verification modules are imported into this session only. The
-    # workbook is closed with SaveChanges:=False, so test.xlsm is unchanged.
-    $components = @($book.VBProject.VBComponents)
-    $names = @($components | ForEach-Object { $_.Name })
-    $bas = Join-Path $PSScriptRoot 'ExcelQueueVerification.bas'
-    $ticket = Join-Path $PSScriptRoot 'ExcelQueueTicket.cls'
-    if ($names -notcontains 'ExcelQueueVerification') {
-        [void]$book.VBProject.VBComponents.Import((Resolve-Path -LiteralPath $bas).Path)
-    }
-    $components = @($book.VBProject.VBComponents)
-    $names = @($components | ForEach-Object { $_.Name })
-    if ($names -notcontains 'ExcelQueueTicket') {
-        [void]$book.VBProject.VBComponents.Import((Resolve-Path -LiteralPath $ticket).Path)
-    }
-
     $immediate = $excel.VBE.Windows.Item('Immediate')
     $before = [string]$immediate.Object.Text
-    $macro = "'$($book.Name)'!ExcelQueueVerification.RunExcelQueueVerification"
+    $qualifiedProcedure = if ($Module) { "$Module.$Procedure" } else { $Procedure }
+    $macro = "'$($book.Name)'!$qualifiedProcedure"
     [void]$excel.Run($macro)
     Start-Sleep -Milliseconds 500
     $after = [string]$immediate.Object.Text
@@ -48,6 +38,10 @@ try {
         throw 'No Debug.Print output was captured from the Immediate window.'
     }
 
+    if (-not $Output) {
+        $Output = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $Workbook).Path) `
+            "$([System.IO.Path]::GetFileNameWithoutExtension($Workbook)).result"
+    }
     $outputPath = [System.IO.Path]::GetFullPath($Output)
     $parent = Split-Path -Parent $outputPath
     if ($parent -and -not (Test-Path -LiteralPath $parent)) {
@@ -57,8 +51,8 @@ try {
     Write-Output "Saved Debug.Print output: $outputPath"
 }
 catch {
-    Write-Error ("Excel queue verification failed. Enable 'Trust access to the VBA project object model' " +
-        "in Excel Trust Center if VBProject access is denied. Details: " + $_.Exception.Message)
+    Write-Error ("Excel macro execution failed. Ensure the workbook already contains the requested " +
+        "module/procedure and that the Immediate window is available. Details: " + $_.Exception.Message)
     exit 1
 }
 finally {
