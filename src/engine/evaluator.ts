@@ -5452,6 +5452,7 @@ export class Evaluator {
             }
 
             let oldVal = this.env.get(name);
+            this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
             // `Dim w As New T` + `Set w = Nothing` without any prior access: real VBA still
             // instantiates the object (Class_Initialize) before destroying it (Class_Terminate).
             // Resolve the placeholder first so both lifecycle hooks fire correctly.
@@ -5513,6 +5514,7 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 const oldVal = instanceEnv.get(propName);
+                this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
                 const isWithEvents = instanceEnv.isWithEvents(propName);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
@@ -5540,6 +5542,7 @@ export class Evaluator {
                 }
             } else if (obj && typeof obj === 'object') {
                 const oldVal = obj[propName];
+                this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
                 if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                 obj[propName] = value;
             } else {
@@ -5558,6 +5561,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
+                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), value, stmt.right);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
@@ -5567,6 +5571,7 @@ export class Evaluator {
                     instanceEnv.set(propName, value);
                 }
             } else if (obj && typeof obj === 'object') {
+                this.rejectTypedArrayWholeAssignment(obj[propName], value, stmt.right);
                 obj[propName] = value;
             } else {
                 this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');

@@ -112,3 +112,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/udt-type.test.ts
       - tests/spec/class-property.test.ts
+  - id: MUT-ENGINE-014
+    title: Set文と配列参照境界
+    status: queued
+    priority: 1
+    focus: Setによる配列代入とメンバー配列参照のalias防止
+    priorCauseKey: assignment-array-type-validation-bypass
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/set-statement.test.ts
