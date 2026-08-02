@@ -12,3 +12,8 @@
   status: needs-excel
   fromStatus: needs-excel-probe
   occurredAt: '2026-08-02T03:35:04.898Z'
+- candidateId: FZ-BUILTIN-049
+  evaluationId: EV-00262
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-02T06:13:32.271Z'
