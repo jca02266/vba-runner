@@ -3541,6 +3541,15 @@ export class Evaluator {
 
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
+    private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
+        if (!Array.isArray(existing) || !Array.isArray(value) || allowArrayRebind) return;
+        const typed = (existing as any).__vbaElementType__ ||
+            (existing as any).__vbaElementTypeName__ ||
+            (existing as any).__vbaElementObjectTypeName__;
+        const isArrayReturn = sourceExpr?.type === 'CallExpression' || sourceExpr?.type === 'MemberExpression';
+        if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+    }
+
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
@@ -3605,19 +3614,7 @@ export class Evaluator {
             // are separate valid paths; reject only a declared typed-array
             // destination here before the normal Let-coercion can alias the
             // JavaScript array object.
-            if (Array.isArray(oldVal) && Array.isArray(val)) {
-                const elementType = (oldVal as any).__vbaElementType__;
-                const elementTypeName = (oldVal as any).__vbaElementTypeName__;
-                const objectElementType = (oldVal as any).__vbaElementObjectTypeName__;
-                // A function/property array return is materialized into the
-                // destination by the existing return-value path.  The
-                // forbidden case is a whole-array value copied from another
-                // array variable (or equivalent non-call expression).
-                const isArrayReturn = sourceExpr?.type === 'CallExpression' || sourceExpr?.type === 'MemberExpression';
-                if ((elementType || elementTypeName || objectElementType) && !isArrayReturn && !allowArrayRebind) {
-                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
-                }
-            }
+            this.rejectTypedArrayWholeAssignment(oldVal, val, sourceExpr, allowArrayRebind);
 
             const proc = this.env.getProcedure(name, 'let');
             if (proc) {
@@ -3905,6 +3902,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
+                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), val, sourceExpr);
                 const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
@@ -3923,6 +3921,7 @@ export class Evaluator {
             } else if (obj && typeof obj === 'object') {
                 // VBA は大文字小文字不問: アクセサ(setter)・プロトタイプも辿って実キーを解決する
                 const resolvedProp = this.resolveObjectMemberKey(obj, propName) ?? propName;
+                this.rejectTypedArrayWholeAssignment(obj[resolvedProp], val, sourceExpr);
                 // UDT fixed-length string member coercion
                 const fl = obj.__fixedLengths__?.[propName];
                 if (fl !== undefined && typeof val === 'string') {
@@ -3947,6 +3946,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
+                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), val, sourceExpr);
                 const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
@@ -3963,6 +3963,7 @@ export class Evaluator {
                     instanceEnv.set(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
+                this.rejectTypedArrayWholeAssignment(obj[propName], val, sourceExpr);
                 obj[propName] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {

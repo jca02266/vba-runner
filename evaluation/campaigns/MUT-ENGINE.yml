@@ -102,3 +102,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/array-functions.test.ts
       - tests/spec/byref.test.ts
+  - id: MUT-ENGINE-013
+    title: 配列全体代入のメンバー境界
+    status: queued
+    priority: 1
+    focus: UDT配列・クラス配列・Property Letの全体代入検査
+    priorCauseKey: assignment-array-type-validation-bypass
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/udt-type.test.ts
+      - tests/spec/class-property.test.ts
