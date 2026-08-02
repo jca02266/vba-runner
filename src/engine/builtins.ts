@@ -145,7 +145,8 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val instanceof VbaDecimal) return 14;
         if (typeof val === 'bigint') return 20;
         if (val && (val.__vbaClass__ || val.__isVbaDict__ || val.__isVbaCollection__)) return 9;
-        if (val && val.__vbaTypeName__) return 36;
+        if (val && val.__vbaUdt__ === true) return 36;
+        if (val && val.__vbaTypeName__) return 9;
         if (typeof val === 'object' && val !== null) return 9;
         return 12;
     }, [{ name: 'VarName' }]);
