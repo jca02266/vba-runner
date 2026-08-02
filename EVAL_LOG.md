@@ -281,19 +281,21 @@
 | EV-00375 | META-ENGINE | verified-no-bug | Collection・Dictionary列挙変更境界 |
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
+| EV-00378 | FZ-BUILTIN | bug-found | TimeSerial負数コンポーネントの正規化 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
+| bug-found | 1 |
 | fixed | 190 |
 | known-limit | 1 |
 | needs-excel | 9 |
 | retired | 1 |
 | verified-no-bug | 75 |
 
-横展開未解決経路: 220、実Excel待ち評価: 9
+横展開未解決経路: 223、実Excel待ち評価: 9
 
 ## 次の候補
 

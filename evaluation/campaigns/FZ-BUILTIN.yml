@@ -1208,3 +1208,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-BUILTIN-136
+    title: TimeSerial負数コンポーネントの正規化
+    status: queued
+    priority: 1
+    focus: 時・分・秒の負数を含む時刻繰り下げ境界
+    priorCauseKey: timeserial-signed-component-normalization
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/datetime.test.ts
