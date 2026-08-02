@@ -459,8 +459,12 @@ function validateRootCauses(schema, records) {
     for (const id of data.originEvaluations) {
       const evaluation = evaluations.get(id);
       if (!evaluation) throw new Error(`${file}: unknown origin evaluation ${id}`);
-      if (evaluation.causeKey !== data.causeKey || evaluation.rootCauseProcedureVersion !== data.procedureVersion) {
+      if (evaluation.causeKey !== data.causeKey) {
         throw new Error(`${file}: ${id} causeKey ${evaluation.causeKey} does not match ${data.causeKey}`);
+      }
+      if (evaluation.rootCauseProcedureVersion !== undefined &&
+          evaluation.rootCauseProcedureVersion > data.procedureVersion) {
+        throw new Error(`${file}: ${id} uses a newer root cause procedure than ${data.id}`);
       }
     }
     for (const [index, review] of data.reviews.entries()) {
