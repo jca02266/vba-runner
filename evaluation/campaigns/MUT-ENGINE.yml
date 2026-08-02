@@ -139,3 +139,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/member-array-rhs-assignment.test.ts
+  - id: MUT-ENGINE-017
+    title: With経由Property Get配列戻り値の境界
+    status: queued
+    priority: 1
+    focus: ImplicitWithObjectExpressionの配列getter受け渡し
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/with-statement.test.ts

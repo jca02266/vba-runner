@@ -3554,6 +3554,13 @@ export class Evaluator {
     private isArrayReturnExpression(expr?: Expression): boolean {
         if (!expr) return false;
         if (expr.type === 'CallExpression') return true;
+        if (expr.type === 'ImplicitWithObjectExpression') {
+            const instance = this.withObjectStack[this.withObjectStack.length - 1];
+            if (!instance?.__vbaClass__) return false;
+            const property = (expr as ImplicitWithObjectExpression).property.name;
+            const classDef = instance.__classDef__ as ClassDeclaration;
+            return !!findClassProperty(classDef.procedures, property, 'get');
+        }
         if (expr.type !== 'MemberExpression') return false;
         const member = expr as MemberExpression;
         const rawObject = member.object.type === 'Identifier'
