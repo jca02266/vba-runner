@@ -294,6 +294,7 @@
 | EV-00388 | MUT-ENGINE | fixed | 配列戻り値とByRef配列の境界 |
 | EV-00389 | MUT-ENGINE | fixed | 配列全体代入のメンバー境界 |
 | EV-00390 | MUT-ENGINE | fixed | Setによる配列参照境界 |
+| EV-00391 | MUT-ENGINE | fixed | メンバー配列右辺の全体代入境界 |
 
 ## 状態集計
 
@@ -301,12 +302,12 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 3 |
-| fixed | 197 |
+| fixed | 198 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 87 |
 
-横展開未解決経路: 218、実Excel待ち評価: 0
+横展開未解決経路: 219、実Excel待ち評価: 0
 
 ## 次の候補
 

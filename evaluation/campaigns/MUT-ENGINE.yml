@@ -123,7 +123,7 @@ items:
       - tests/spec/set-statement.test.ts
   - id: MUT-ENGINE-015
     title: メンバー配列右辺の全体代入境界
-    status: queued
+    status: fixed
     priority: 1
     focus: 通常メンバー配列とProperty Get配列戻り値の識別
     priorCauseKey: assignment-array-type-validation-bypass
