@@ -4,8 +4,7 @@ param(
     [string]$Workbook,
     [Parameter(Mandatory = $true)]
     [string]$Procedure,
-    [string]$Module,
-    [string]$Output
+    [string]$Module
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,35 +54,12 @@ try {
     if (-not $runSucceeded) {
         throw "Application.Run could not resolve '$qualifiedProcedure' in workbook '$($book.Name)'. Tried: $($macroCandidates -join ', '). Last error: $($runError.Exception.Message)"
     }
-    if (-not $Output) {
-        $Output = Join-Path (Split-Path -Parent (Resolve-Path -LiteralPath $Workbook).Path) `
-            'ExcelQueueVerification.result'
-    }
-    $outputPath = [System.IO.Path]::GetFullPath($Output)
-    $parent = Split-Path -Parent $outputPath
-    if ($parent -and -not (Test-Path -LiteralPath $parent)) {
-        [void](New-Item -ItemType Directory -Path $parent)
-    }
-    $deadline = [DateTime]::UtcNow.AddSeconds(10)
-    while ((-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) -and [DateTime]::UtcNow -lt $deadline) {
-        Start-Sleep -Milliseconds 200
-    }
-    if (-not (Test-Path -LiteralPath $outputPath -PathType Leaf)) {
-        throw "Macro completed but did not create the result file: $outputPath"
-    }
-    if ((Get-Item -LiteralPath $outputPath).Length -eq 0) {
-        throw "Macro created an empty result file: $outputPath"
-    }
-    # VBA Print writes using the Windows system code page.  Normalize the
-    # completed result to UTF-8 without a BOM for repository-friendly output.
-    $text = [System.IO.File]::ReadAllText($outputPath, [System.Text.Encoding]::Default)
-    [System.IO.File]::WriteAllText($outputPath, $text, (New-Object System.Text.UTF8Encoding($false)))
-    Write-Output "Saved Excel macro result: $outputPath"
+    Write-Output "Excel macro completed: $qualifiedProcedure"
 }
 catch {
     Write-Error ("Excel macro execution failed. Ensure the workbook contains the requested " +
-        "module/procedure, macros are allowed for this automation instance, and the macro writes " +
-        "its result file. A file downloaded from the Internet may also need to be unblocked " +
+        "module/procedure, and macros are allowed for this automation instance. A file downloaded " +
+        "from the Internet may also need to be unblocked " +
         "or opened from a Trusted Location. Details: " + $_.Exception.Message)
     exit 1
 }

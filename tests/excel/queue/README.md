@@ -11,6 +11,7 @@
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
+- `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
 
 ## 一括実行
@@ -28,7 +29,7 @@ tests\excel\queue\eval-excel.cmd
 末尾データを引き継がない。
 
 マクロは`ThisWorkbook.Path\ExcelQueueVerification.result`へ結果を直接書き込み、
-PowerShellが終了後にシステムコードページからBOMなしUTF-8へ変換する。
+`eval-excel.cmd`が終了後に`convert-to-utf8.ps1`でシステムコードページからBOMなしUTF-8へ変換する。
 `Debug.Print`はImmediateウィンドウにも出力するが、記録の正本は結果ファイルである。
 
 ## 個別実行
@@ -41,8 +42,8 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
 ```
 
 `-Module`は標準モジュール名、`-Procedure`はPublic Sub/Function名である。
-ファイル名や`.bas`拡張子は指定しない。`-Output`を省略すると、ブックと同じディレクトリの
-`ExcelQueueVerification.result`を確認する。
+ファイル名や`.bas`拡張子は指定しない。結果ファイルの生成・変換は呼び出し側の責務であり、
+この汎用ランナーは出力パスを扱わない。
 
 ## 照合対象
 
