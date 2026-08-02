@@ -177,7 +177,7 @@ items:
       - tests/spec/dynamic-array-getter-assignment.test.ts
   - id: MUT-ENGINE-021
     title: Set配列getterのオブジェクト境界
-    status: queued
+    status: fixed
     priority: 1
     focus: Set target = external.Values の配列誤受理
     priorCauseKey: assignment-array-return-origin-dispatch
