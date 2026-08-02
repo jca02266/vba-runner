@@ -20,6 +20,11 @@ try {
     $excel = New-Object -ComObject Excel.Application
     $excel.Visible = $true
     $excel.DisplayAlerts = $false
+    # msoAutomationSecurityLow (1) applies to workbooks opened by this
+    # automation instance.  Without setting it before Open(), Excel may load
+    # the workbook with macros disabled and Application.Run then reports the
+    # misleading "macros may be disabled" error.
+    $excel.AutomationSecurity = 1
     $book = $excel.Workbooks.Open((Resolve-Path -LiteralPath $Workbook).Path)
 
     $immediate = $excel.VBE.Windows.Item('Immediate')
@@ -51,8 +56,10 @@ try {
     Write-Output "Saved Debug.Print output: $outputPath"
 }
 catch {
-    Write-Error ("Excel macro execution failed. Ensure the workbook already contains the requested " +
-        "module/procedure and that the Immediate window is available. Details: " + $_.Exception.Message)
+    Write-Error ("Excel macro execution failed. Ensure the workbook contains the requested " +
+        "module/procedure, macros are allowed for this automation instance, and the Immediate " +
+        "window is available. A file downloaded from the Internet may also need to be unblocked " +
+        "or opened from a Trusted Location. Details: " + $_.Exception.Message)
     exit 1
 }
 finally {

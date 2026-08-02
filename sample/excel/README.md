@@ -65,6 +65,10 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 `run-excel-queue.ps1`は、WindowsでExcelを起動して、既にブックへインポート済みの
 プロシージャを実行し、ImmediateウィンドウのDebug.Printをテキスト保存する汎用スクリプトである。
 モジュールの文字コード変換とインポートは、先に`vba-extractor`で行う。
+スクリプトはブックを開く前に、その自動化用Excelインスタンスだけの
+`AutomationSecurity`を`msoAutomationSecurityLow`へ設定する。これによりExcelが
+マクロを無効化した状態で開かれることを防ぐが、組織のポリシーで上書きされる場合がある。
+その場合は、ファイルのプロパティでブロックを解除するか、Trusted Locationから実行する。
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
