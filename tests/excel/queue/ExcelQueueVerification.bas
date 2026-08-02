@@ -109,11 +109,13 @@ Private Sub VerifyEmptyArrayBounds()
 End Sub
 
 Private Sub VerifyMirrRateBoundaries()
-    Dim result As Variant, errNo As Long
+    Dim result As Variant, errNo As Long, flows(0 To 1) As Double
+    flows(0) = -100
+    flows(1) = 100
     On Error Resume Next
-    Err.Clear: result = MIRR(Array(-100, 100), -1.1, 0.1): errNo = Err.Number
+    Err.Clear: result = MIRR(flows, -1.1, 0.1): errNo = Err.Number
     EmitResult "XL-037 FINANCE=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
-    Err.Clear: result = MIRR(Array(-100, 100), 0.1, -1): errNo = Err.Number
+    Err.Clear: result = MIRR(flows, 0.1, -1): errNo = Err.Number
     EmitResult "XL-037 REINVEST=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
     On Error GoTo 0
 End Sub
