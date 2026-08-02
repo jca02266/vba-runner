@@ -94,7 +94,7 @@ items:
       - tests/spec/byref.test.ts
   - id: MUT-ENGINE-012
     title: 配列戻り値とByRef配列の境界
-    status: queued
+    status: fixed
     priority: 1
     focus: Functionの配列戻り値、ByRef配列引数、ReDim、Eraseの組み合わせ
     priorCauseKey: array-return-byref-lifetime
