@@ -145,7 +145,7 @@ const allCode = String.raw`
 
     Sub Test10RmDirNonEmpty()
         MkDir "nonempty_dir"
-        Open "nonempty_dir\\child.txt" For Output As #1
+        Open "nonempty_dir\child.txt" For Output As #1
         Print #1, "x"
         Close #1
         On Error Resume Next
@@ -153,7 +153,7 @@ const allCode = String.raw`
         RmDir "nonempty_dir"
         rmdirNonEmptyErr = Err.Number
         On Error GoTo 0
-        Kill "nonempty_dir\\child.txt"
+        Kill "nonempty_dir\child.txt"
         RmDir "nonempty_dir"
     End Sub
 
@@ -181,7 +181,7 @@ const allCode = String.raw`
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         fso.CreateFolder "delete_folder"
-        Set stream = fso.CreateTextFile("delete_folder\\child.txt")
+        Set stream = fso.CreateTextFile("delete_folder\child.txt")
         stream.Write "x"
         stream.Close
         On Error Resume Next
@@ -195,7 +195,7 @@ const allCode = String.raw`
     Sub Test14OpenOutputMissingParent()
         On Error Resume Next
         Err.Clear
-        Open "missing_parent\\output.txt" For Output As #1
+        Open "missing_parent\output.txt" For Output As #1
         openMissingParentErr = Err.Number
         If Err.Number = 0 Then Close #1
         On Error GoTo 0
@@ -205,11 +205,11 @@ const allCode = String.raw`
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         fso.CreateFolder "copy_folder_source"
-        Set stream = fso.CreateTextFile("copy_folder_source\\child.txt")
+        Set stream = fso.CreateTextFile("copy_folder_source\child.txt")
         stream.Write "x"
         stream.Close
         fso.CopyFolder "copy_folder_source", "copy_folder_dest", False
-        copyFolderResult = IIf(fso.FolderExists("copy_folder_dest") And fso.FileExists("copy_folder_dest\\child.txt"), "ok", "bad")
+        copyFolderResult = IIf(fso.FolderExists("copy_folder_dest") And fso.FileExists("copy_folder_dest\child.txt"), "ok", "bad")
         fso.DeleteFolder "copy_folder_dest", True
         fso.DeleteFolder "copy_folder_source", True
     End Sub
@@ -218,11 +218,11 @@ const allCode = String.raw`
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         fso.CreateFolder "move_folder_source"
-        Set stream = fso.CreateTextFile("move_folder_source\\child.txt")
+        Set stream = fso.CreateTextFile("move_folder_source\child.txt")
         stream.Write "x"
         stream.Close
         fso.MoveFolder "move_folder_source", "move_folder_dest"
-        moveFolderResult = IIf((Not fso.FolderExists("move_folder_source")) And fso.FileExists("move_folder_dest\\child.txt"), "ok", "bad")
+        moveFolderResult = IIf((Not fso.FolderExists("move_folder_source")) And fso.FileExists("move_folder_dest\child.txt"), "ok", "bad")
         fso.DeleteFolder "move_folder_dest", True
     End Sub
 
@@ -246,7 +246,7 @@ const allCode = String.raw`
         fso.CreateFolder "fso-existing"
         fsoFolderExistingErr = Err.Number
         Err.Clear
-        fso.CreateFolder "fso-missing-parent\\child"
+        fso.CreateFolder "fso-missing-parent\child"
         fsoFolderMissingParentErr = Err.Number
         On Error GoTo 0
         fso.DeleteFolder "fso-existing", True
