@@ -4549,6 +4549,13 @@ export class Evaluator {
         if (value === undefined || !spec.coerce) return value;
         if (spec.coerce === 'boolean') return vbaToBoolean(value);
         if (spec.coerce === 'string') return vbaToString(value);
+        if (spec.coerce === 'long') {
+            // Null/Missing remain visible to the builtin so it can apply its
+            // function-specific propagation or error policy. Empty follows
+            // VBA numeric coercion and becomes zero.
+            if (value === vbaNull || value === vbaMissing) return value;
+            return this.vbaRound(this.toVbaNumber(value));
+        }
         return value;
     }
 
@@ -4580,7 +4587,9 @@ export class Evaluator {
                 }
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
             }
-            return positionalArgs;
+            const selected = overloads.find(o => o.params.length === totalCount)!;
+            return positionalArgs.map((value, index) =>
+                this.coerceBoundArgument(value, selected.params[index]));
         }
 
         const candidates = overloads.filter(o => {
@@ -4628,9 +4637,10 @@ export class Evaluator {
         const result: any[] = [];
         for (let i = 0; i < overload.params.length; i++) {
             if (i < positionalArgs.length) {
-                result.push(positionalArgs[i]);
+                result.push(this.coerceBoundArgument(positionalArgs[i], overload.params[i]));
             } else {
-                result.push(namedArgs.get(overload.params[i].name.toLowerCase()));
+                const value = namedArgs.get(overload.params[i].name.toLowerCase());
+                result.push(this.coerceBoundArgument(value, overload.params[i]));
             }
         }
         return result;

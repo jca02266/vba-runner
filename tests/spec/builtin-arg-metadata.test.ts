@@ -181,6 +181,19 @@ End Function
     console.log('[PASS] InStr/InStrBの先頭Optional名前付き省略');
 }
 
+// --- 12c. Long引数の共通VBA丸め（位置引数・名前付き引数） ---
+{
+    const leftPositional = evalVBA(`Function F()\n F = Left("abcd", 2.5)\nEnd Function`).callProcedure('F', []);
+    const leftNamed = evalVBA(`Function F()\n F = Left(Length:=2.5, String:="abcd")\nEnd Function`).callProcedure('F', []);
+    const replacePositional = evalVBA(`Function F()\n F = Replace("abcdabcd", "a", "X", 2.5, 1.5)\nEnd Function`).callProcedure('F', []);
+    const instrNamed = evalVBA(`Function F()\n F = InStr(Start:=1.5, String1:="abcd", String2:="b")\nEnd Function`).callProcedure('F', []);
+    assert.strictEqual(leftPositional, 'ab', 'LeftのLong引数は銀行丸めで2になる');
+    assert.strictEqual(leftNamed, leftPositional, 'Leftの名前付きLong引数も同じ共通丸めになる');
+    assert.strictEqual(replacePositional, 'bcdXbcd', 'ReplaceのStart/Countは共通Long丸め後に処理される');
+    assert.strictEqual(instrNamed, 2, 'InStrの可変arityでもStartの共通Long丸めを使う');
+    console.log('[PASS] Long引数メタデータ: 位置・名前付き・可変arity');
+}
+
 // --- 13. Batch 3: 引数数エラー（代表サンプル） ---
 {
     expectVbaError(`Debug.Print Left()`, VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Left() (引数なし)');

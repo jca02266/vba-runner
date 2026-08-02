@@ -39,8 +39,8 @@ export interface BuiltinParamSpec {
     name: string;
     optional?: boolean;
     isParamArray?: boolean;
-    /** Apply a shared VBA coercion before invoking a host/COM method. */
-    coerce?: 'boolean' | 'string';
+    /** Apply a shared VBA coercion before invoking the implementation. */
+    coerce?: 'boolean' | 'string' | 'long';
 }
 
 export interface BuiltinOverload {
@@ -676,7 +676,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const normalizeCompare = (compare: any): any => {
         rejectNullCompare(compare);
         if (compare === undefined || compare === vbaMissing) return compare;
-        const value = ctx.round(ctx.toVbaNumber(compare));
+        const value = compare;
         if (value !== 0 && value !== 1) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
@@ -692,18 +692,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('ascw', ascFunc, [{ name: 'String' }]);
     const chrFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        const code = ctx.round(ctx.toVbaNumber(n));
+        const code = n;
         if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code);
     };
-    ctx.reg('chr', chrFunc, [{ name: 'CharCode' }], ['$']);
+    ctx.reg('chr', chrFunc, [{ name: 'CharCode', coerce: 'long' }], ['$']);
     const chrwFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
-        const code = ctx.round(ctx.toVbaNumber(n));
+        const code = n;
         if (code < -32768 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code < 0 ? code + 65536 : code);
     };
-    ctx.reg('chrw', chrwFunc, [{ name: 'CharCode' }], ['$']);
+    ctx.reg('chrw', chrwFunc, [{ name: 'CharCode', coerce: 'long' }], ['$']);
     // Byte-oriented variants (UTF-16LE model: 1 char = 2 bytes, same as MidB)
     ctx.reg('lenb', (s: any) => s === vbaNull ? vbaNull : vbaToString(s ?? '').length * 2, [{ name: 'String' }]);
     ctx.reg('ascb', (s: any) => {
@@ -714,10 +714,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'String' }], ['$']);
     ctx.reg('chrb', (n: any) => {
         if (n === vbaNull) return vbaNull;
-        const code = ctx.round(ctx.toVbaNumber(n));
+        const code = n;
         if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code);
-    }, [{ name: 'CharCode' }], ['$']);
+    }, [{ name: 'CharCode', coerce: 'long' }], ['$']);
     // InStr: Start は先頭にある Optional 引数のため、引数の個数で意味が変わる
     const instrFunc = (...args: any[]) => {
         let start: any = 1, s1: any, s2: any, comp: any;
@@ -727,7 +727,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (start === undefined) start = 1;
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         comp = normalizeCompare(comp);
-        const startNum = ctx.round(ctx.toVbaNumber(start));
+        const startNum = start;
         if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
@@ -737,8 +737,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.regOvl('instr', instrFunc, [
         { params: [{ name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        { params: [{ name: 'Start', optional: true, coerce: 'long' }, { name: 'String1' }, { name: 'String2' }] },
+        { params: [{ name: 'Start', optional: true, coerce: 'long' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare', coerce: 'long' }] },
     ]);
     // InStrB: バイト単位での検索（VBA では 1 文字 = 2 バイト）
     const instrbFunc = (...args: any[]) => {
@@ -750,7 +750,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         comp = normalizeCompare(comp);
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
-        const startByteNum = ctx.round(ctx.toVbaNumber(startByte));
+        const startByteNum = startByte;
         if (startByteNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const startChar = Math.floor((startByteNum - 1) / 2) + 1;
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
@@ -759,13 +759,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.regOvl('instrb', instrbFunc, [
         { params: [{ name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }] },
-        { params: [{ name: 'Start', optional: true }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare' }] },
+        { params: [{ name: 'Start', optional: true, coerce: 'long' }, { name: 'String1' }, { name: 'String2' }] },
+        { params: [{ name: 'Start', optional: true, coerce: 'long' }, { name: 'String1' }, { name: 'String2' }, { name: 'Compare', coerce: 'long' }] },
     ]);
     ctx.reg('instrrev', (s1: any, s2: any, start: any = -1, comp: any = undefined) => {
         if (start === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         comp = normalizeCompare(comp);
-        const startNum = ctx.round(ctx.toVbaNumber(start));
+        const startNum = start;
         if (startNum !== -1 && startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str = vbaToString(s1 ?? ''), find = vbaToString(s2 ?? '');
@@ -779,8 +779,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     }, [
         { name: 'StringCheck' },
         { name: 'StringMatch' },
-        { name: 'Start', optional: true },
-        { name: 'Compare', optional: true },
+        { name: 'Start', optional: true, coerce: 'long' },
+        { name: 'Compare', optional: true, coerce: 'long' },
     ]);
     const lcaseFunc = (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').toLowerCase();
     ctx.reg('lcase', lcaseFunc, [{ name: 'String' }], ['$']);
@@ -813,30 +813,30 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('ucase', ucaseFunc, [{ name: 'String' }], ['$']);
     const leftFunc = (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const l = ctx.round(ctx.toVbaNumber(len));
+        const l = len;
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return vbaToString(val ?? '').substring(0, l);
     };
-    ctx.reg('left', leftFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
+    ctx.reg('left', leftFunc, [{ name: 'String' }, { name: 'Length', coerce: 'long' }], ['$']);
     const rightFunc = (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const s = vbaToString(val ?? ''), l = ctx.round(ctx.toVbaNumber(len));
+        const s = vbaToString(val ?? ''), l = len;
         if (l < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return s.substring(s.length - l);
     };
-    ctx.reg('right', rightFunc, [{ name: 'String' }, { name: 'Length' }], ['$']);
+    ctx.reg('right', rightFunc, [{ name: 'String' }, { name: 'Length', coerce: 'long' }], ['$']);
     const midFunc = (val: any, start: any, len?: any) => {
         if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
-        const s = vbaToString(val ?? ''), st = ctx.round(ctx.toVbaNumber(start));
+        const s = vbaToString(val ?? ''), st = start;
         if (st < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        const length = len === undefined ? undefined : ctx.round(ctx.toVbaNumber(len));
+        const length = len === undefined ? undefined : len;
         if (length !== undefined && length < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return length !== undefined ? s.substring(st - 1, st - 1 + length) : s.substring(st - 1);
     };
     ctx.reg('mid', midFunc, [
         { name: 'String' },
-        { name: 'Start' },
-        { name: 'Length', optional: true },
+        { name: 'Start', coerce: 'long' },
+        { name: 'Length', optional: true, coerce: 'long' },
     ], ['$']);
     ctx.reg('len', (val: any) => val === vbaNull ? vbaNull : vbaToString(val ?? '').length, [{ name: 'String' }]);
     // VBA の Trim 系はスペース（Chr 32）のみを除去する。タブ等は残す（実 VBA 差分で裁定）
@@ -885,9 +885,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         compare = normalizeCompare(compare);
         const str = vbaToString(s ?? '');
         const delimiter = del === null || del === undefined ? ' ' : coerceStringDelimiter(del);
-        const n = limit === undefined
-            ? -1
-            : ctx.round(ctx.toVbaNumber(limit === vbaEmpty ? 0 : limit));
+        const n = limit === undefined ? -1 : limit;
         let result: string[];
         if (str === '' || n === 0) {
             result = [];
@@ -912,8 +910,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     }, [
         { name: 'Expression' },
         { name: 'Delimiter', optional: true },
-        { name: 'Limit', optional: true },
-        { name: 'Compare', optional: true },
+        { name: 'Limit', optional: true, coerce: 'long' },
+        { name: 'Compare', optional: true, coerce: 'long' },
     ]);
     ctx.reg('join', (arr: any, del: any = ' ') => {
         if (del === vbaNull) return vbaNull;
@@ -938,9 +936,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const str = vbaToString(s ?? '');
         const find = vbaToString(f ?? '');
         const repl = vbaToString(r ?? '');
-        const startNum = ctx.round(ctx.toVbaNumber(start ?? 1));
+        const startNum = start ?? 1;
         if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        const countNum = ctx.round(ctx.toVbaNumber(count ?? -1));
+        const countNum = count ?? -1;
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
         // Slice from start position (1-based), operate, then return from that offset
         const prefix = str.substring(0, startNum - 1);
@@ -968,9 +966,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'Expression' },
         { name: 'Find' },
         { name: 'Replace' },
-        { name: 'Start', optional: true },
-        { name: 'Count', optional: true },
-        { name: 'Compare', optional: true },
+        { name: 'Start', optional: true, coerce: 'long' },
+        { name: 'Count', optional: true, coerce: 'long' },
+        { name: 'Compare', optional: true, coerce: 'long' },
     ]);
     ctx.reg('strcomp', (s1: any, s2: any, comp?: number) => {
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
@@ -982,7 +980,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     }, [
         { name: 'String1' },
         { name: 'String2' },
-        { name: 'Compare', optional: true },
+        { name: 'Compare', optional: true, coerce: 'long' },
     ]);
     ctx.reg('strconv', (s: any, conv: any, lcid: any = vbaMissing) => {
         if (s === vbaNull) return vbaNull;
@@ -1039,29 +1037,29 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         { name: 'SourceArray' },
         { name: 'Match' },
         { name: 'Include', optional: true },
-        { name: 'Compare', optional: true },
+        { name: 'Compare', optional: true, coerce: 'long' },
     ]);
     ctx.reg('leftb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const byteLen = ctx.round(ctx.toVbaNumber(len));
+        const byteLen = len;
         if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = vbaToString(val ?? '');
         return s.substring(0, Math.floor(byteLen / 2));
-    }, [{ name: 'String' }, { name: 'Length' }]);
+    }, [{ name: 'String' }, { name: 'Length', coerce: 'long' }]);
     ctx.reg('rightb', (val: any, len: any) => {
         if (val === vbaNull || len === vbaNull) return vbaNull;
-        const byteLen = ctx.round(ctx.toVbaNumber(len));
+        const byteLen = len;
         if (byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const s = vbaToString(val ?? '');
         const charLen = Math.floor(byteLen / 2);
         return s.substring(s.length - charLen);
-    }, [{ name: 'String' }, { name: 'Length' }]);
+    }, [{ name: 'String' }, { name: 'Length', coerce: 'long' }]);
     const midbFunc = (val: any, start: any, len?: any) => {
         if (val === vbaNull || start === vbaNull || len === vbaNull) return vbaNull;
         const s = vbaToString(val ?? '');
-        const byteStart = ctx.round(ctx.toVbaNumber(start));
+        const byteStart = start;
         if (byteStart < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        const byteLen = len === undefined ? undefined : ctx.round(ctx.toVbaNumber(len));
+        const byteLen = len === undefined ? undefined : len;
         if (byteLen !== undefined && byteLen < 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         const charStart = Math.floor((byteStart + 1) / 2);
         if (byteLen === undefined) return s.substring(charStart - 1);
@@ -1070,8 +1068,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('midb', midbFunc, [
         { name: 'String' },
-        { name: 'Start' },
-        { name: 'Length', optional: true },
+        { name: 'Start', coerce: 'long' },
+        { name: 'Length', optional: true, coerce: 'long' },
     ], ['$']);
 
     /** Format a Decimal/Currency string without passing through JS Number. */
