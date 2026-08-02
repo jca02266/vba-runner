@@ -292,6 +292,7 @@
 | EV-00386 | FZ-GRAMMAR | verified-no-bug | With入れ子と既定メンバー解決境界 |
 | EV-00387 | MUT-ENGINE | verified-no-bug | Optional・ByRef・名前付き引数の混在バインド |
 | EV-00388 | MUT-ENGINE | fixed | 配列戻り値とByRef配列の境界 |
+| EV-00389 | MUT-ENGINE | fixed | 配列全体代入のメンバー境界 |
 
 ## 状態集計
 
@@ -299,12 +300,12 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 3 |
-| fixed | 195 |
+| fixed | 196 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 87 |
 
-横展開未解決経路: 216、実Excel待ち評価: 0
+横展開未解決経路: 217、実Excel待ち評価: 0
 
 ## 次の候補
 
