@@ -1704,6 +1704,17 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             derivative: (nper * Math.pow(1 + rate, nper - 1) * rate - (p1 - 1)) / (rate * rate),
         };
     };
+    const toCashFlowValues = (values: any): number[] => {
+        if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const base: number = (values as any).vbaBase ?? 0;
+        return Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
+    };
+    const requireMixedCashFlows = (values: number[]): number[] => {
+        if (values.length < 2 || !values.some((value) => value < 0) || !values.some((value) => value > 0)) {
+            invalidFinancialArg();
+        }
+        return values;
+    };
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toPaymentType(type);
         const factor = getRateFactor(r, n);
@@ -1807,12 +1818,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         { name: 'Factor', optional: true },
     ]);
     ctx.reg('irr', (values: any, guess: any = 0.1) => {
-        if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        const base: number = (values as any).vbaBase ?? 0;
-        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
-        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
-            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        }
+        const v = requireMixedCashFlows(toCashFlowValues(values));
         let r = toNum(guess);
         for (let i = 0; i < 100; i++) {
             let npv = 0, dnpv = 0;
@@ -1834,13 +1840,8 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         return r;
     }, [{ name: 'ValueArray' }, { name: 'Guess', optional: true }]);
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
-        if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
-        const base: number = (values as any).vbaBase ?? 0;
-        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
+        const v = requireMixedCashFlows(toCashFlowValues(values));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
-        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
-            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
-        }
         const n = v.length - 1;
         let npv_neg = 0, npv_pos = 0;
         for (let t = 0; t < v.length; t++) {
@@ -1858,11 +1859,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const r = toNum(rate);
         if (!Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
-        const base: number = (values as any).vbaBase ?? 0;
-        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
-        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
-            invalidFinancialArg();
-        }
+        const v = requireMixedCashFlows(toCashFlowValues(values));
         let result = 0;
         let period = 1;
         for (const value of v) {
