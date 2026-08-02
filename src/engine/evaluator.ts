@@ -1376,19 +1376,8 @@ export class Evaluator {
         this.registerBuiltin('kill', (p: any) => this.executeKill(vbaToString(p ?? '')), [{ name: 'PathName' }]);
         this.registerBuiltin('mkdir', (p: any) => {
             const realPath = this.sandbox.toRealPath(vbaToString(p ?? ''));
-            if (this.fs.existsSync(realPath)) {
-                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
-            }
-            const parentPath = path.dirname(realPath);
-            if (!this.fs.existsSync(parentPath)) {
-                // The sandbox root is an execution-container boundary rather
-                // than a user-created VBA directory; initialize it once.
-                if (parentPath === this.sandbox.getRoot()) {
-                    this.fs.mkdirSync(parentPath, { recursive: true });
-                } else {
-                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                }
-            }
+            this.validateSingleDirectoryCreation(realPath, VbaErrorCode.PATH_FILE_ACCESS_ERROR,
+                'Path/File access error', true);
             this.fs.mkdirSync(realPath);
         }, [{ name: 'Path' }]);
         this.registerBuiltin('rmdir', (p: any) => {
@@ -2867,6 +2856,29 @@ export class Evaluator {
     /** Evaluate a statement's file-number expression with the same Null rule. */
     private evaluateFileNumber(expr: Expression): number {
         return this.toFileNumber(this.evaluateExpression(expr));
+    }
+
+    /**
+     * Enforce VBA's single-level directory creation contract before calling a
+     * backend whose mkdir semantics may differ (for example recursive memory
+     * or Node implementations).
+     */
+    private validateSingleDirectoryCreation(
+        realPath: string,
+        existingError: number,
+        existingMessage: string,
+        allowSandboxRootParent: boolean,
+    ): void {
+        if (this.fs.existsSync(realPath)) {
+            this.throwVbaError(existingError, existingMessage);
+        }
+        const parentPath = path.dirname(realPath);
+        if (this.fs.existsSync(parentPath)) return;
+        if (allowSandboxRootParent && parentPath === this.sandbox.getRoot()) {
+            this.fs.mkdirSync(parentPath, { recursive: true });
+            return;
+        }
+        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
     }
 
     private toVbaString(val: any): string {
@@ -7283,13 +7295,8 @@ export class Evaluator {
             },
             createfolder: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
-                if (this.fs.existsSync(full)) {
-                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                }
-                const parent = path.dirname(full);
-                if (!this.fs.existsSync(parent)) {
-                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                }
+                this.validateSingleDirectoryCreation(full, VbaErrorCode.FILE_ALREADY_EXISTS,
+                    'File already exists', false);
                 this.fs.mkdirSync(full);
                 return { path: p };
             },

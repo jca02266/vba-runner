@@ -16,7 +16,7 @@ function evalVBA(code: string): any {
 const allCode = `
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
-    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr
+    Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
     Sub Test1()
         ' --- 1. Put / Get (Binary mode) ---
@@ -237,7 +237,22 @@ const allCode = `
         Kill "attr-file.txt"
     End Sub
 
-    Sub Test18FsoDeleteFileForce()
+    Sub Test18FsoCreateFolderBoundaries()
+        Dim fso As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "fso-existing"
+        On Error Resume Next
+        Err.Clear
+        fso.CreateFolder "fso-existing"
+        fsoFolderExistingErr = Err.Number
+        Err.Clear
+        fso.CreateFolder "fso-missing-parent\\child"
+        fsoFolderMissingParentErr = Err.Number
+        On Error GoTo 0
+        fso.DeleteFolder "fso-existing", True
+    End Sub
+
+    Sub Test20FsoDeleteFileForce()
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         Set stream = fso.CreateTextFile("readonly-file.txt")
@@ -255,7 +270,7 @@ const allCode = `
         On Error GoTo 0
     End Sub
 
-    Sub Test19FsoDeleteFileDirectory()
+    Sub Test21FsoDeleteFileDirectory()
         Dim fso As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         fso.CreateFolder "delete-file-dir"
@@ -377,7 +392,14 @@ assert.strictEqual(ev.env.get('setattrdirectoryerr'), 5, 'SetAttr vbDirectory ->
 console.log('[PASS] SetAttr Directory attribute validation');
 
 // Test 18: FSO DeleteFile must honor the Force argument for read-only files.
-ev.callProcedure('Test18FsoDeleteFileForce', []);
+// Test 18: FSO CreateFolder shares the single-level path contract.
+ev.callProcedure('Test18FsoCreateFolderBoundaries', []);
+assert.strictEqual(ev.env.get('fsofolderexistingerr'), 58, 'CreateFolder existing path -> Error 58');
+assert.strictEqual(ev.env.get('fsofoldermissingparenterr'), 76, 'CreateFolder missing parent -> Error 76');
+console.log('[PASS] FSO CreateFolder path validation');
+
+// Test 20: FSO DeleteFile must honor the Force argument for read-only files.
+ev.callProcedure('Test20FsoDeleteFileForce', []);
 assert.strictEqual(ev.env.get('deletefilenoforceerr'), 70, 'DeleteFile read-only without Force -> Error 70');
 assert.strictEqual(ev.env.get('deletefilenoforceexists'), vbaTrue, 'DeleteFile without Force keeps read-only file');
 assert.strictEqual(ev.env.get('deletefileforceerr'), 0, 'DeleteFile read-only with Force succeeds');
@@ -385,7 +407,7 @@ assert.strictEqual(ev.env.get('deletefileforceexists'), vbaFalse, 'DeleteFile wi
 console.log('[PASS] FSO DeleteFile Force validation');
 
 // Test 19: FSO DeleteFile must reject directory targets as path access errors.
-ev.callProcedure('Test19FsoDeleteFileDirectory', []);
+ev.callProcedure('Test21FsoDeleteFileDirectory', []);
 assert.strictEqual(ev.env.get('deletefiledirectoryerr'), 75, 'DeleteFile directory target -> Error 75');
 console.log('[PASS] FSO DeleteFile directory validation');
 
