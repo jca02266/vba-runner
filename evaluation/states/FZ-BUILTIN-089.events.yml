@@ -1,0 +1,9 @@
+- candidateId: FZ-BUILTIN-089
+  evaluationId: EV-00320
+  status: needs-excel
+  occurredAt: '2026-08-01T10:56:37.680Z'
+- candidateId: FZ-BUILTIN-089
+  evaluationId: EV-00320
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-02T03:23:59.283Z'

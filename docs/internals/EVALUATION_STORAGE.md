@@ -127,6 +127,7 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 
 - `id`, `candidateId`, `campaign`, `status`, `priority`, `focus`
 - `coverageSnapshot`, `findings`, `tests`, `commit`
+- 実Excel照合を使う評価では、必要な出力IDを列挙した`excelProbeIds`
 - バグを確認した新規記録では `directCauseKey`, `causeKey`,
   `directFixStatus`, `rootFixStatus`。`rootFixStatus: fixed` の場合は
   `rootFixCandidateId` と `rootFixCommit` も必須。
@@ -152,8 +153,15 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 
 実Excel照合中は、状態を `needs-excel-probe` と `needs-excel` に分ける。
 前者は `ExcelQueueVerification.bas` へのテスト作成待ち、後者はプローブ作成済みで
-実機結果の反映待ちである。`audit` は後者の評価記録にキュー用VBAとXL番号が揃った
-ことを検出した場合、前者から後者へ自動更新する。実機結果を反映した後は、
+実機結果の反映待ちである。必要なXL番号は`excelProbeIds`を正本とする。評価ループは
+未解決境界をすべて覆うプローブを追加し、`excel-sync`が`needs-excel`を返した同じ変更で
+状態を更新する。`audit` は状態を推測して変更しない。
+
+実機結果は、全プローブ終了時の`QUEUE_COMPLETE=True`、現在の
+`ExcelQueueVerification.bas`をLF改行へ正規化したSHA-256、`excelProbeIds`の全出力が
+そろった場合だけ同期済みと判定する。この三条件により、途中で停止した実行、古いVBAで
+作った結果、一部のプローブだけを実行した結果を状態更新の根拠から除外する。
+実機結果を反映した後は、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed` へ遷移して
 完了を表す。実Excel確認の完了を別のサブステータスでは管理しない。
 
@@ -177,6 +185,7 @@ npm run eval -- release <candidate-id> <claim-token>
 npm run eval -- record <evaluation-file>
 npm run eval -- complete <candidate-id> <evaluation-id> <status> <claim-token>
 npm run eval -- transition <candidate-id> <evaluation-id> <status> <claim-token>
+npm run eval -- excel-sync <evaluation-id>
 npm run eval -- validate
 npm run eval -- render EVAL_LOG.md
 ```
@@ -188,12 +197,13 @@ npm run eval -- render EVAL_LOG.md
 - `release`: tokenを検証してclaimを解放する。
 - `record`: 評価記録を冪等に保存する。同じIDの異なる内容は拒否する。
 - `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
-- `transition`: `needs-excel`、`blocked`、`in-progress` の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
+- `transition`: 待ち状態、`blocked`、`in-progress`、`bug-found`の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
+- `excel-sync`: `excelProbeIds`、キューソース、実機結果を照合し、必要な待ち状態または`result-ready`をJSONで返す。状態は変更しない。
 
-実Excel照合結果の反映は、ログファイルを置くだけでは完了しない。各XLテストIDを
-評価記録の`tests`へ対応付け、runnerとの差異と未確定境界を本文の`unresolved`へ反映
-した後、claim付きの`transition`で状態を更新する。対応付けられないログや、候補の一部
-だけを覆うログは、`needs-excel`を減らす根拠にしない。
+実Excel照合結果の反映は、ログファイルを置くだけでは完了しない。先に`excel-sync`で
+`result-ready`を確認し、runnerとの差異と未確定境界を本文の`unresolved`へ反映した後、
+claim付きの`transition`で状態を更新する。`validate`は、キューから導出した待ち段階と
+記録状態が違う場合、および`result-ready`なのに待ち状態のままの場合に失敗する。
 - `validate`: frontmatter、必須項目、参照関係、result整合性を検証する。
 - `render`: 構造化記録から決定的なMarkdownビューを生成する。
 

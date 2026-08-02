@@ -114,8 +114,11 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 
 実Excel照合は `needs-excel-probe` と `needs-excel` の2状態で管理する。
 前者は `ExcelQueueVerification.bas` へのプローブ作成待ち、後者はプローブ作成済みで
-実機結果の反映待ちである。`eval audit` は評価の `tests` にキュー用VBAとXL番号が
-揃ったことを検出し、前者から後者へ自動更新する。実機結果を反映したら、
+実機結果の反映待ちである。必要なXL番号はfrontmatterの`excelProbeIds`へ列挙する。
+評価ループは未解決境界をすべて覆うプローブを追加した後に`eval excel-sync`を実行し、
+その判定が`needs-excel`になった同じ変更で状態を更新する。`eval audit` は状態を推測して
+変更しない。
+実機結果を反映したら、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed`へ遷移する。
 
 バグを再現し、横展開調査を終えたら、修正を始める前に真因分析サブエージェントを
@@ -163,24 +166,32 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`、分析対�
 ### 3.5 実Excel照合結果を状態へ反映する
 
 `tests/excel/queue/*.result` などに実機ログを追加しただけでは、評価状態やレポートは変わらない。
-実機ログの各テストIDを評価記録の `tests` と照合し、次の順序で必ず状態へ反映する。
+必要なテストIDは評価記録の`excelProbeIds`を正本とし、次の順序で必ず状態へ反映する。
 
-1. 実機出力とrunnerの同一入力を比較し、期待値・エラー番号・未確定の仕様差を評価本文の
+1. `npm run eval -- excel-sync <evaluation-id>`を実行する。`result-ready`でなければ比較を
+   始めない。欠落ID、未完了、ソースハッシュ不一致はコマンド出力に従って解消する。
+2. 実機出力とrunnerの同一入力を比較し、期待値・エラー番号・未確定の仕様差を評価本文の
    `unresolved` から削除または更新する。ログが候補の一部しか覆わない場合は、未確認の
    境界を `unresolved` に残す。
-2. 差異が確定した場合は通常のバグ修正手順へ戻り、実機一致で差異がない場合は
+3. 差異が確定した場合は通常のバグ修正手順へ戻り、実機一致で差異がない場合は
    `verified-no-bug`、実装しない仕様差は `known-limit` として記録する。
-3. claimを取得し、`npm run eval -- transition <candidate-id> <evaluation-id> <status> <token>`
+4. claimを取得し、`npm run eval -- transition <candidate-id> <evaluation-id> <status> <token>`
    を実行してresultとeventsを更新する。評価記録のfrontmatter、本文、実機ログの対応を
    同じ変更で保存する。
-4. `npm run eval -- validate` と `npm run eval -- render EVAL_LOG.md` を実行し、レポートの
+5. `npm run eval -- validate` と `npm run eval -- render EVAL_LOG.md` を実行し、レポートの
    `needs-excel` 件数が実際の未確定境界と一致することを確認する。
 
-実機ログの存在だけを根拠に `needs-excel` 件数を減らしてはならない。また、評価記録を
-更新せずにログだけをコミットしてはならない。
+`ExcelQueueVerification.result`は、全プローブ終了を示す`QUEUE_COMPLETE=True`と、現在の
+`ExcelQueueVerification.bas`をLFへ正規化したSHA-256が一致して初めて同期済みになる。
+実機ログの存在だけを根拠に`needs-excel`件数を減らしてはならない。また、評価記録を
+更新せずにログだけをコミットしてはならない。`validate`は導出された待ち段階と記録状態の
+不一致、および同期済み結果を待ち状態のまま残すことを拒否する。
 
-新しい実Excel照合候補を登録するときは、先に `tests/excel/queue/ExcelQueueVerification.bas`
-へ未使用の`XL-xxx`プローブを追加し、`RunExcelQueueVerification`から呼び出す。クラスや
+新しい実Excel照合候補を登録するときは、未使用の`XL-xxx`を予約して評価記録の
+`excelProbeIds`へ列挙する。まだプローブがなければ`needs-excel-probe`とする。その後
+`tests/excel/queue/ExcelQueueVerification.bas`へプローブを追加し、
+`RunExcelQueueVerification`から呼び出す。`excel-sync`が`needs-excel`を返したら、評価記録と
+resultをclaim付きで同じ状態へ遷移する。クラスや
 フォームが必要な場合は同じディレクトリに`.cls`/`.frm`を追加する。評価記録の`tests`には
 このVBAソース、追加ソース、XL番号をすべて列挙する。スクラッチで動作確認しただけの
 候補を実機照合キューとして登録してはならない。

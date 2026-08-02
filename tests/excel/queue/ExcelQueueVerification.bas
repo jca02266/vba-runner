@@ -69,6 +69,7 @@ Public Sub RunExcelQueueVerification()
     VerifyCollectionEnumerationMutation
     VerifyPendingExcelBoundaries
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
+    EmitResult "QUEUE_COMPLETE=True"
     EndResult
 End Sub
 

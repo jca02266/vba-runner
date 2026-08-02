@@ -9,6 +9,7 @@ record:
     - priority
     - focus
     - expectation
+    - excelProbeIds
     - directCauseKey
     - causeKey
     - priorCauseKey
@@ -59,6 +60,7 @@ record:
   arrays:
     - findings
     - tests
+    - excelProbeIds
 horizontalAudit:
   required:
     - confirmed

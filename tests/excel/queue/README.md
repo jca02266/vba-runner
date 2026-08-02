@@ -12,6 +12,7 @@
 - `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
+- `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
 
 ## 一括実行
@@ -31,6 +32,11 @@ tests\excel\queue\eval-excel.cmd
 マクロは`ThisWorkbook.Path\ExcelQueueVerification.result`へ結果を直接書き込み、
 `eval-excel.cmd`が終了後に`convert-to-utf8.ps1`でシステムコードページからBOMなしUTF-8へ変換する。
 `Debug.Print`はImmediateウィンドウにも出力するが、記録の正本は結果ファイルである。
+
+マクロは全プローブ終了後に`QUEUE_COMPLETE=True`を出力する。バッチはこの行を確認し、
+改行をLFへ正規化した`ExcelQueueVerification.bas`のSHA-256を
+`QUEUE_SOURCE_SHA256=<hash>`として追記する。完了行がない結果や、現在のソースと
+ハッシュが異なる結果は評価状態の更新に使用しない。
 
 ## 個別実行
 

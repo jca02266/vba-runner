@@ -14,6 +14,8 @@ const campaignsDir = path.join(evalRoot, 'campaigns');
 const statesDir = path.join(evalRoot, 'states');
 const schemaFile = path.join(evalRoot, 'schema.yml');
 const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
+const excelQueueSource = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.bas');
+const excelQueueResult = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.result');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'needs-excel-probe', 'retired',
@@ -137,14 +139,22 @@ function validateEvents(candidateId, events, result) {
   }
 }
 
-function appendEvent(candidateId, evaluationId, status, fromStatus = null) {
-  const events = readEvents(candidateId);
+function appendEvent(candidateId, evaluationId, status, previousResult = null) {
+  let events = readEvents(candidateId);
   validateEvents(candidateId, events);
+  if (events.length === 0 && previousResult) {
+    events = [{
+      candidateId,
+      evaluationId: previousResult.evaluationId,
+      status: previousResult.status,
+      occurredAt: previousResult.completedAt ?? new Date().toISOString(),
+    }];
+  }
   const event = {
     candidateId,
     evaluationId,
     status,
-    ...(fromStatus ? { fromStatus } : {}),
+    ...(events.length ? { fromStatus: events.at(-1).status } : {}),
     occurredAt: new Date().toISOString(),
   };
   const next = [...events, event];
@@ -233,6 +243,47 @@ function validateExpectation(file, expectation, status) {
   }
 }
 
+function normalizedExcelSourceHash(file = excelQueueSource) {
+  const source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+  return crypto.createHash('sha256').update(source, 'utf8').digest('hex');
+}
+
+function excelIds(source) {
+  return new Set([...source.matchAll(/\bXL-\d{3}(?:-[A-Z0-9]+)*/g)].map((match) => match[0]));
+}
+
+function excelQueueState(data) {
+  const requiredIds = data.excelProbeIds ?? [];
+  const sourceText = fs.existsSync(excelQueueSource) ? fs.readFileSync(excelQueueSource, 'utf8') : '';
+  const sourceIds = excelIds(sourceText);
+  const missingSourceIds = requiredIds.filter((id) => !sourceIds.has(id));
+  if (missingSourceIds.length > 0) {
+    return { requiredState: 'needs-excel-probe', requiredIds, missingSourceIds, missingResultIds: [], complete: false, hashMatches: false, resultReady: false };
+  }
+
+  const resultText = fs.existsSync(excelQueueResult) ? fs.readFileSync(excelQueueResult, 'utf8') : '';
+  const resultIds = new Set(resultText.split(/\r?\n/)
+    .map((line) => line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1])
+    .filter(Boolean));
+  const missingResultIds = requiredIds.filter((id) => !resultIds.has(id));
+  const complete = /^QUEUE_COMPLETE=True\s*$/m.test(resultText);
+  const recordedHash = resultText.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
+  const sourceHash = fs.existsSync(excelQueueSource) ? normalizedExcelSourceHash() : null;
+  const hashMatches = Boolean(recordedHash && sourceHash && recordedHash === sourceHash);
+  const resultReady = complete && hashMatches && missingResultIds.length === 0;
+  return {
+    requiredState: resultReady ? 'result-ready' : 'needs-excel',
+    requiredIds,
+    missingSourceIds,
+    missingResultIds,
+    complete,
+    hashMatches,
+    sourceHash,
+    recordedHash: recordedHash ?? null,
+    resultReady,
+  };
+}
+
 function validate(records = readRecords()) {
   const schema = readSchema();
   const findings = readFindings();
@@ -277,6 +328,13 @@ function validate(records = readRecords()) {
         throw new Error(`${file}: ${key} must be an array`);
       }
     }
+    if (data.excelProbeIds !== undefined) {
+      const invalidId = data.excelProbeIds.find((id) => typeof id !== 'string' || !/^XL-\d{3}(?:-[A-Z0-9]+)*$/.test(id));
+      if (invalidId !== undefined) throw new Error(`${file}: invalid excelProbeIds entry ${invalidId}`);
+      if (new Set(data.excelProbeIds).size !== data.excelProbeIds.length) {
+        throw new Error(`${file}: duplicate excelProbeIds`);
+      }
+    }
     for (const findingId of data.findings ?? []) {
       const finding = findings.get(findingId);
       if (!finding) throw new Error(`${file}: missing finding ${findingId}`);
@@ -290,6 +348,16 @@ function validate(records = readRecords()) {
     }
     if (data.status === 'needs-excel' && audit.unresolved.length === 0) {
       throw new Error(`${file}: resolved Excel boundaries require a terminal evaluation status`);
+    }
+    if (['needs-excel-probe', 'needs-excel'].includes(data.status)) {
+      if (!data.excelProbeIds?.length) throw new Error(`${file}: ${data.status} requires excelProbeIds`);
+      const queue = excelQueueState(data);
+      if (queue.resultReady) {
+        throw new Error(`${file}: synchronized Excel result is ready; reconcile to a terminal status`);
+      }
+      if (queue.requiredState !== data.status) {
+        throw new Error(`${file}: Excel queue requires ${queue.requiredState}, not ${data.status}`);
+      }
     }
   }
   const items = readCampaignItems();
@@ -342,7 +410,8 @@ function render(records, output) {
   const counts = [...new Set(records.map(({ data }) => data.status))]
     .sort().map((status) => `| ${status} | ${records.filter(({ data }) => data.status === status).length} |`).join('\n');
   const unresolved = records.reduce((sum, { data }) => sum + (data.horizontalAudit?.unresolved?.length ?? 0), 0);
-  const excelPending = records.filter(({ data }) => data.status === 'needs-excel').length;
+  const excelPending = records.filter(({ data }) =>
+    ['needs-excel-probe', 'needs-excel'].includes(data.status)).length;
   const body = [
     '# 評価状態サマリー',
     '',
@@ -430,35 +499,8 @@ function ownedClaim(id, token) {
   return claim;
 }
 
-function excelProbeIds(data) {
-  return [...new Set((data.tests ?? []).flatMap((test) =>
-    String(test).includes('tests/excel/queue/ExcelQueueVerification.bas')
-      ? [...String(test).matchAll(/XL-\d{3}/g)].map((match) => match[0])
-      : []))];
-}
-
-function syncExcelStatuses(records) {
-  let changed = 0;
-  const results = readResults();
-  for (const record of records) {
-    if (record.data.status !== 'needs-excel-probe') continue;
-    const probes = excelProbeIds(record.data);
-    if (probes.length === 0) continue;
-    fs.writeFileSync(record.file, record.source.replace(/^status: needs-excel-probe$/m, 'status: needs-excel'));
-    const result = results.get(record.data.candidateId);
-    if (result?.evaluationId === record.data.id && result.status === 'needs-excel-probe') {
-      fs.writeFileSync(result.file, fs.readFileSync(result.file, 'utf8').replace(/^status: needs-excel-probe$/m, 'status: needs-excel'));
-      appendEvent(record.data.candidateId, record.data.id, 'needs-excel', 'needs-excel-probe');
-    }
-    changed += 1;
-  }
-  return changed;
-}
-
 function audit() {
   const records = validate();
-  const synced = syncExcelStatuses(records);
-  if (synced) validate();
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
   const archiveDir = path.join(statesDir, 'archive');
   if (stale.length) fs.mkdirSync(archiveDir, { recursive: true });
@@ -467,7 +509,7 @@ function audit() {
     fs.renameSync(state.file, archive);
   }
   const active = readClaims();
-  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims, synchronized ${synced} Excel phases`);
+  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
 }
 
 function release(id, token) {
@@ -494,12 +536,12 @@ function complete(candidateId, evaluationId, status, token) {
   }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
   const previous = readResults().get(candidateId);
-  if (previous && !['needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
+  if (previous && !['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
     throw new Error(`${candidateId} already has a terminal result`);
   }
   fs.mkdirSync(statesDir, { recursive: true });
   fs.writeFileSync(target, yaml.dump({ candidateId, evaluationId, status, completedAt: new Date().toISOString() }, { noRefs: true }));
-  appendEvent(candidateId, evaluationId, status, previous?.status ?? null);
+  appendEvent(candidateId, evaluationId, status, previous ?? null);
   const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
   fs.rmSync(claimFile, { force: true });
   console.log(target);
@@ -520,6 +562,18 @@ function context(candidateId, limit = 5) {
     .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
     .slice(0, Math.max(1, Math.min(limit, 10)));
   console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, expectation: data.expectation, directCauseKey: data.directCauseKey, causeKey: data.causeKey, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
+}
+
+function excelSync(evaluationId) {
+  const record = readRecords().find(({ data }) => data.id === evaluationId);
+  if (!record) throw new Error(`unknown evaluation ${evaluationId}`);
+  if (!record.data.excelProbeIds?.length) throw new Error(`${evaluationId} has no excelProbeIds`);
+  console.log(JSON.stringify({
+    evaluationId,
+    candidateId: record.data.candidateId,
+    currentStatus: record.data.status,
+    ...excelQueueState(record.data),
+  }, null, 2));
 }
 
 function record(file) {
@@ -611,7 +665,7 @@ function hash(file) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition|excel-sync> [args]');
 }
 
 try {
@@ -637,6 +691,8 @@ try {
     transition(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
   } else if (command === 'context' && process.argv[3]) {
     context(process.argv[3], Number(process.argv[4]) || 5);
+  } else if (command === 'excel-sync' && process.argv[3]) {
+    excelSync(process.argv[3]);
   } else if (command === 'record' && process.argv[3]) {
     record(process.argv[3]);
   } else if (command === 'migrate' && process.argv[3] === '--dry-run') {

@@ -55,12 +55,12 @@ after migration, use the structured records and the generated Markdown view.
    remediation is a follow-up candidate, record its candidate ID and commit
    when fixed; do not mark the root fixed merely because the symptom
    disappeared.
-   For every new Excel-comparison candidate, first add a uniquely numbered
-   probe (the next `XL-xxx`) to
+   For every new Excel-comparison candidate, reserve the next unique `XL-xxx`
+   in the evaluation record's `excelProbeIds`. Then add that probe to
    `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue
    runner. Add any required `.cls`/`.frm` fixture beside that module, and
-   reference all of those source files and the XL ID in the evaluation
-   record's `tests`. A scratch-only probe is not a valid Excel queue entry.
+   reference the source files in the record's `tests`. A scratch-only probe is
+   not a valid Excel queue entry.
    Before classifying a difference as a bug, add an `expectation` block with
    `kind: spec`, `excel`, or `hypothesis`, a concrete `statement`, references,
    and `verification`. Specification and Excel expectations require a cited
@@ -69,12 +69,20 @@ after migration, use the structured records and the generated Markdown view.
    a minimal runtime check, or Excel before using `bug-found` or `fixed`. If
    verification disproves the expectation, reclassify the evaluation and do
    not implement a speculative fix.
-   Track Excel work with the two statuses `needs-excel-probe` (the queue probe
-   is not yet in `tests/excel/queue/ExcelQueueVerification.bas`) and
-   `needs-excel` (the probe is ready and its Excel result is pending). Running
-   `eval audit` changes the former to the latter automatically once the queue
-   source and XL IDs are recorded. Excel verification is complete only when
-   the evaluation leaves these statuses for `verified-no-bug`, `known-limit`,
+   Track Excel work with the two statuses `needs-excel-probe` (one or more
+   required probes are absent from `ExcelQueueVerification.bas`) and
+   `needs-excel` (all required probes are present, but a synchronized Excel
+   result is pending). Record every required ID in `excelProbeIds`; `tests` is
+   descriptive and is not used for state inference. After editing the queue or
+   receiving a result, run `npm run eval -- excel-sync <evaluation-id>`.
+   Advance to `needs-excel` only when it reports that state, and classify the
+   result only when it reports `result-ready`. The queue result is ready only
+   when it contains all required IDs, the end-of-run completion marker, and a
+   SHA-256 matching the current normalized VBA source. `eval audit` never
+   changes status. `validate` rejects a pending status that disagrees with the
+   derived phase and rejects a ready result left in a pending state. Excel
+   verification is complete only when the evaluation leaves these statuses
+   for `verified-no-bug`, `known-limit`,
    `bug-found`, or `fixed`; never add a separate completion sub-status.
 8. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
@@ -84,10 +92,10 @@ after migration, use the structured records and the generated Markdown view.
    candidate changes from `needs-excel`, `blocked`, or `in-progress`, use the
    `transition` command rather than editing its result snapshot; this appends
    the state event and preserves the previous state for later reporting.
-   When Excel output is supplied, follow the command's Excel reconciliation
-   step: map every output ID to its evaluation record, resolve or retain each
-   `unresolved` boundary, then transition the candidate. A result file alone
-   never changes the `needs-excel` count.
+   When Excel output is supplied, run `excel-sync` before interpretation, map
+   every output ID to its evaluation record, resolve or retain each
+   `unresolved` boundary, then transition the candidate. A stale, partial, or
+   source-mismatched result is rejected and never changes the pending count.
 9. After each evaluation commit, refresh the local HTML report with
    `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit

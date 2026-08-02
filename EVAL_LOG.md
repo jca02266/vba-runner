@@ -149,7 +149,7 @@
 | EV-00243 | FZ-BUILTIN | fixed | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 |
 | EV-00244 | FZ-BUILTIN | fixed | Double文字列指数オーバーフロー |
 | EV-00245 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の新規seed |
-| EV-00246 | FZ-BUILTIN | needs-excel | 非有限数値のリテラル・演算結果 |
+| EV-00246 | FZ-BUILTIN | needs-excel-probe | 非有限数値のリテラル・演算結果 |
 | EV-00247 | FZ-GRAMMAR | verified-no-bug | On Error状態の呼び出し境界 |
 | EV-00248 | FZ-BUILTIN | verified-no-bug | 全組み込み関数異常値ファズ再実行 |
 | EV-00249 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の別seed |
@@ -165,10 +165,10 @@
 | EV-00259 | META-ENGINE | fixed | COMスタブ引数変換横展開 |
 | EV-00260 | FZ-BUILTIN | fixed | Dictionary Nullキー境界 |
 | EV-00261 | FZ-BUILTIN | fixed | Collectionキー・インデックス境界 |
-| EV-00262 | FZ-BUILTIN | needs-excel | 情報関数のVariant境界 |
+| EV-00262 | FZ-BUILTIN | needs-excel-probe | 情報関数のVariant境界 |
 | EV-00263 | FZ-BUILTIN | fixed | 文字列関数のOptional境界 |
 | EV-00264 | FZ-BUILTIN | fixed | DateDiff・DatePart週境界 |
-| EV-00265 | FZ-BUILTIN | needs-excel | DateDiff w曜日境界 |
+| EV-00265 | FZ-BUILTIN | verified-no-bug | DateDiff w曜日境界 |
 | EV-00266 | FZ-GRAMMAR | fixed | 数値指数・型サフィックス境界 |
 | EV-00267 | FZ-BUILTIN | fixed | Registry・Interaction Optional境界 |
 | EV-00268 | META-ENGINE | fixed | XMLHTTP引数メタデータ境界 |
@@ -223,13 +223,13 @@
 | EV-00317 | FZ-BUILTIN | fixed | Round桁数境界 |
 | EV-00318 | FZ-BUILTIN | fixed | Rnd状態引数境界 |
 | EV-00319 | FZ-BUILTIN | fixed | ダイアログ関数のNull境界 |
-| EV-00320 | FZ-BUILTIN | needs-excel | 空配列の上下限境界 |
+| EV-00320 | FZ-BUILTIN | verified-no-bug | 空配列の上下限境界 |
 | EV-00321 | FZ-BUILTIN | fixed | Join区切り文字のEmpty変換 |
 | EV-00322 | FZ-BUILTIN | verified-no-bug | String文字引数のEmpty境界 |
 | EV-00323 | FZ-BUILTIN | verified-no-bug | 文字列Compare列挙値境界 |
 | EV-00324 | FZ-BUILTIN | verified-no-bug | 金融関数Guess Null境界 |
 | EV-00325 | FZ-BUILTIN | fixed | 金融関数Type列挙値境界 |
-| EV-00326 | FZ-BUILTIN | needs-excel | MIRR金利下限境界 |
+| EV-00326 | FZ-BUILTIN | bug-found | MIRR金利下限境界 |
 | EV-00327 | FZ-BUILTIN | verified-no-bug | Array Option Base境界 |
 | EV-00328 | FZ-BUILTIN | fixed | 名前付き引数の順序・重複境界 |
 | EV-00329 | FZ-BUILTIN | fixed | InStr Optional名前付き省略境界 |
@@ -267,11 +267,11 @@
 | EV-00361 | FZ-BUILTIN | fixed | 未終端日付判定とファイル番号構文の回帰境界 |
 | EV-00362 | FZ-BUILTIN | fixed | Lexer日付候補の区切り誤分類境界 |
 | EV-00363 | FZ-BUILTIN | fixed | 日付候補厳密化と二要素形式の回帰境界 |
-| EV-00364 | FZ-BUILTIN | needs-excel | On Error GoTo 0とResume状態境界 |
+| EV-00364 | FZ-BUILTIN | verified-no-bug | On Error GoTo 0とResume状態境界 |
 | EV-00365 | FZ-BUILTIN | fixed | For Each Option Base 1配列境界 |
 | EV-00366 | FZ-BUILTIN | verified-no-bug | For Each配列下限と型変換横展開 |
-| EV-00367 | FZ-BUILTIN | needs-excel | Case Is・範囲・Null/Emptyと文字列数値混在の比較境界 |
-| EV-00368 | FZ-BUILTIN | needs-excel | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
+| EV-00367 | FZ-BUILTIN | verified-no-bug | Case Is・範囲・Null/Emptyと文字列数値混在の比較境界 |
+| EV-00368 | FZ-BUILTIN | verified-no-bug | FormatCurrency/Number/Percent/DateTimeのNull・Missing・負数・桁数境界 |
 | EV-00369 | FZ-BUILTIN | fixed | DateDiff/DatePart/DateAddの月末・閏年・週番号・Null/Empty境界 |
 | EV-00370 | FZ-GRAMMAR | fixed | 数値リテラル直後の指数演算子境界 |
 | EV-00371 | FZ-GRAMMAR | fixed | As New配列要素の遅延生成境界 |
@@ -281,21 +281,21 @@
 | EV-00375 | META-ENGINE | verified-no-bug | Collection・Dictionary列挙変更境界 |
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
-| EV-00378 | FZ-BUILTIN | needs-excel | TimeSerial負数コンポーネントの正規化 |
+| EV-00378 | FZ-BUILTIN | needs-excel-probe | TimeSerial負数コンポーネントの正規化 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| bug-found | 1 |
+| bug-found | 2 |
 | fixed | 190 |
 | known-limit | 1 |
-| needs-excel | 9 |
+| needs-excel-probe | 3 |
 | retired | 1 |
-| verified-no-bug | 75 |
+| verified-no-bug | 80 |
 
-横展開未解決経路: 222、実Excel待ち評価: 9
+横展開未解決経路: 212、実Excel待ち評価: 3
 
 ## 次の候補
 

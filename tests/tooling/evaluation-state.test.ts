@@ -1,5 +1,6 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as yaml from 'js-yaml';
 
@@ -140,7 +141,7 @@ try {
     const firstClaim = run('claim', transitionCandidate);
     assert.equal(firstClaim.status, 0, firstClaim.stderr);
     transitionToken = JSON.parse(firstClaim.stdout).token;
-    const pending = run('complete', transitionCandidate, 'EV-00246', 'needs-excel', transitionToken);
+    const pending = run('complete', transitionCandidate, 'EV-00246', 'needs-excel-probe', transitionToken);
     assert.equal(pending.status, 0, pending.stderr);
     const secondClaim = run('claim', transitionCandidate);
     assert.equal(secondClaim.status, 0, secondClaim.stderr);
@@ -149,7 +150,7 @@ try {
     assert.equal(resolved.status, 0, resolved.stderr);
     const events = yaml.load(readFileSync(transitionEvents, 'utf8')) as Array<Record<string, string>>;
     assert.equal(events.length, 2);
-    assert.equal(events[1].fromStatus, 'needs-excel');
+    assert.equal(events[1].fromStatus, 'needs-excel-probe');
     assert.equal(events[1].status, 'verified-no-bug');
 } finally {
     const claim = `${root}/evaluation/states/${transitionCandidate}.claim.yml`;
@@ -228,7 +229,7 @@ try {
 
 console.log('[PASS] evaluation expectation provenance validation');
 
-// Adding an Excel queue probe autonomously advances the dedicated probe state.
+// Excel synchronization reports missing source probes without mutating state.
 const probeState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-PROBE.md`;
 const probeStateBody = `---
 id: EV-TEST-EXCEL-PROBE
@@ -237,6 +238,8 @@ campaign: FZ-GRAMMAR
 status: needs-excel-probe
 priority: low
 focus: Excel probe state test
+excelProbeIds:
+  - XL-999
 findings: []
 tests:
   - tests/excel/queue/ExcelQueueVerification.bas (XL-999)
@@ -249,11 +252,51 @@ horizontalAudit:
 `;
 writeFileSync(probeState, probeStateBody);
 try {
-    const advanced = run('audit');
-    assert.equal(advanced.status, 0, advanced.stderr);
-    assert.match(readFileSync(probeState, 'utf8'), /^status: needs-excel$/m);
+    const synchronized = run('excel-sync', 'EV-TEST-EXCEL-PROBE');
+    assert.equal(synchronized.status, 0, synchronized.stderr);
+    const state = JSON.parse(synchronized.stdout);
+    assert.equal(state.requiredState, 'needs-excel-probe');
+    assert.deepEqual(state.missingSourceIds, ['XL-999']);
+    assert.match(readFileSync(probeState, 'utf8'), /^status: needs-excel-probe$/m);
 } finally {
     if (existsSync(probeState)) unlinkSync(probeState);
 }
 
-console.log('[PASS] Excel probe state transition');
+console.log('[PASS] Excel probe synchronization');
+
+// A result is usable only when all required IDs, the completion marker, and
+// the normalized current source hash agree.
+const queueSource = `${root}/tests/excel/queue/ExcelQueueVerification.bas`;
+const queueResult = `${root}/tests/excel/queue/ExcelQueueVerification.result`;
+const queueResultBody = existsSync(queueResult) ? readFileSync(queueResult, 'utf8') : null;
+const readyState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-READY.md`;
+const readyStateBody = probeStateBody
+    .replaceAll('EV-TEST-EXCEL-PROBE', 'EV-TEST-EXCEL-READY')
+    .replace('status: needs-excel-probe', 'status: needs-excel')
+    .replaceAll('XL-999', 'XL-001');
+const normalizedSource = readFileSync(queueSource, 'utf8').replace(/\r\n/g, '\n');
+const sourceHash = createHash('sha256').update(normalizedSource, 'utf8').digest('hex');
+writeFileSync(readyState, readyStateBody);
+try {
+    writeFileSync(queueResult,
+        `XL-001 LOF=0 BYTES=\nQUEUE_COMPLETE=True\nQUEUE_SOURCE_SHA256=${sourceHash}\n`);
+    const ready = run('excel-sync', 'EV-TEST-EXCEL-READY');
+    assert.equal(ready.status, 0, ready.stderr);
+    assert.equal(JSON.parse(ready.stdout).requiredState, 'result-ready');
+
+    const unreconciled = run('validate');
+    assert.notEqual(unreconciled.status, 0);
+    assert.match(unreconciled.stderr, /synchronized Excel result is ready/);
+
+    writeFileSync(queueResult,
+        'XL-001 LOF=0 BYTES=\nQUEUE_COMPLETE=True\nQUEUE_SOURCE_SHA256=' + '0'.repeat(64) + '\n');
+    const stale = run('excel-sync', 'EV-TEST-EXCEL-READY');
+    assert.equal(stale.status, 0, stale.stderr);
+    assert.equal(JSON.parse(stale.stdout).requiredState, 'needs-excel');
+} finally {
+    if (queueResultBody === null) unlinkSync(queueResult);
+    else writeFileSync(queueResult, queueResultBody);
+    if (existsSync(readyState)) unlinkSync(readyState);
+}
+
+console.log('[PASS] Excel result synchronization gate');
