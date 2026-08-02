@@ -3551,7 +3551,11 @@ export class Evaluator {
         const typed = (existing as any).__vbaElementType__ ||
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
-        if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+        // Built-in calls return arrays without the user-procedure marker.
+        // A call expression is still a value-producing array-return boundary;
+        // plain identifiers and fields remain prohibited whole-array aliases.
+        const isCallReturn = sourceExpr?.type === 'CallExpression';
+        if (typed && !isArrayReturn && !isCallReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
     }
 
     /** Class fields must not resolve through the caller's environment chain. */
@@ -6617,7 +6621,8 @@ export class Evaluator {
             }
             throw error;
         }
-        this.evaluateAssignmentToVariable(stmt.variable, decoded.value);
+        // Binary/Random Get writes into the existing destination array.
+        this.evaluateAssignmentToVariable(stmt.variable, decoded.value, undefined, true);
         handle.pos = (position ?? handle.pos ?? 0) + decoded.length;
         if (handle.mode === 'Random') {
             handle.lastRecord = Math.floor((position ?? handle.pos ?? 0) / (handle.recordLen ?? 128)) + 1;
