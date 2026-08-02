@@ -302,6 +302,7 @@
 | EV-00396 | MUT-ENGINE | verified-no-bug | COM mock SAFEARRAY getter境界 |
 | EV-00397 | MUT-ENGINE | fixed | Set配列getterのオブジェクト境界 |
 | EV-00398 | MUT-ENGINE | fixed | CallByName VbSet配列境界 |
+| EV-00399 | MUT-ENGINE | fixed | Property Let配列引数のクラス境界 |
 
 ## 状態集計
 
@@ -309,15 +310,15 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 3 |
-| fixed | 203 |
+| fixed | 204 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 89 |
 
-横展開未解決経路: 226、実Excel待ち評価: 0
+横展開未解決経路: 223、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| MUT-ENGINE-024 | 2 | queued | Property Setの先行arglistに配列を渡す動的呼出し | yes |
