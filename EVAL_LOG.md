@@ -289,6 +289,7 @@
 | EV-00383 | FZ-GRAMMAR | verified-no-bug | ReDim Preserveの下限変更境界 |
 | EV-00384 | FZ-GRAMMAR | verified-no-bug | ParamArrayとByRef配列バインド境界 |
 | EV-00385 | FZ-GRAMMAR | fixed | クラスメンバーParamArray呼出し境界 |
+| EV-00386 | FZ-GRAMMAR | verified-no-bug | With入れ子と既定メンバー解決境界 |
 
 ## 状態集計
 
@@ -300,12 +301,12 @@
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 83 |
+| verified-no-bug | 84 |
 
-横展開未解決経路: 217、実Excel待ち評価: 4
+横展開未解決経路: 219、実Excel待ち評価: 4
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-025 | 1 | queued | 入れ子With・暗黙メンバー・既定プロパティの評価対象と一度だけのオブジェクト評価 | yes |
+| (none) | | | | |
