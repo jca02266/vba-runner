@@ -11,6 +11,13 @@ function evalExpr(expr: string): any {
     return (ev as any).evaluateExpression(ast);
 }
 
+function evalInjectedExpr(ev: Evaluator, expr: string): any {
+    const tokens = new Lexer(expr).tokenize();
+    const parser = new Parser(tokens);
+    const ast = (parser as any).parseExpression();
+    return (ev as any).evaluateExpression(ast);
+}
+
 assert.strictEqual(evalExpr('Day(DateAdd("d", 0.6, #2024-01-01#))'), 2,
     'DateAdd rounds positive fractional number arguments');
 assert.strictEqual(evalExpr('Day(DateAdd("d", -0.6, #2024-01-02#))'), 1,
@@ -181,6 +188,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(evalExpr('IsArray(123)'), vbaFalse, 'IsArray(123)');
     assert.strictEqual(evalExpr('IsObject(CreateObject("Scripting.Dictionary"))'), vbaTrue, 'IsObject(Dictionary)');
     assert.strictEqual(evalExpr('IsObject(123)'), vbaFalse, 'IsObject(123)');
+    const hostDateEvaluator = new Evaluator(() => {});
+    hostDateEvaluator.getGlobalEnv().set('hostDate', new Date('2024-01-01T00:00:00Z'));
+    assert.strictEqual(evalInjectedExpr(hostDateEvaluator, 'IsObject(hostDate)'), vbaFalse,
+        'IsObject(host Date) = False');
 }
 
 // Bug DA: IsNumeric(Date) は False (§6.1.2.7.1.8: Date は数値型リストに含まれない)

@@ -362,6 +362,9 @@ export function isVbaObjectReferenceCompatible(value: any): boolean {
     if (value === vbaNothing) return true;
     if (value === null || value === undefined || typeof value !== 'object') return false;
     if (Array.isArray(value)) return false;
+    // Public runner APIs may receive a host Date directly.  It represents a
+    // VBA Date value, not an Object reference.
+    if (value instanceof Date) return false;
     if (value.__vbaUdt__ === true) return false;
     if (value instanceof VbaDate || value instanceof VbaBoolean
         || value instanceof VbaDecimal || value instanceof VbaCurrency
