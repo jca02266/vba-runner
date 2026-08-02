@@ -20,6 +20,9 @@ const statesDir = path.join(evaluationRoot, 'states');
 const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 
 const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
+// Findings are considered resolved when the evaluation explicitly closes the
+// defect or classifies it as a blocked, known-limit, or retired outcome.
+const resolvedFindingStatuses = new Set(['fixed', 'blocked', 'known-limit', 'retired']);
 const pendingEvaluationStatuses = new Set(['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'claimed']);
 const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
 
@@ -86,17 +89,6 @@ function readResults() {
     if (result?.evaluationId) results.set(result.evaluationId, result);
   }
   return results;
-}
-
-function readStateEvents() {
-  const events = [];
-  for (const name of listFiles(statesDir, '.events.yml')) {
-    const candidateId = name.slice(0, -'.events.yml'.length);
-    const rows = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
-    if (!Array.isArray(rows)) throw new Error(`${name}: events must be an array`);
-    for (const event of rows) events.push({ ...event, candidateId: event.candidateId ?? candidateId });
-  }
-  return events.sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
 }
 
 function readFindings() {
@@ -207,7 +199,7 @@ function timeSeries(records, results, findings) {
       }
       // 判定は評価イベント時点の状態だけで行う。現在のFinding frontmatterを
       // 参照して過去の未改修期間を後から消さない。
-      const resolvedAtDiscovery = recordStatus === 'fixed' || recordStatus === 'retired';
+      const resolvedAtDiscovery = resolvedFindingStatuses.has(recordStatus);
       if (resolvedAtDiscovery) {
         openFindingIds.delete(finding.id);
         if (!resolvedFindingIds.has(finding.id)) {
@@ -243,7 +235,7 @@ function mdCell(value) {
   return String(value ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ');
 }
 
-function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
+function renderMarkdown(records, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const completed = series.length;
   const pending = records.length - completed;
@@ -268,13 +260,6 @@ function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
     '|---|---:|',
     ...findingTypes.map((row) => `| ${mdCell(row.type)} | ${row.count} |`),
     '',
-    '## 状態遷移履歴',
-    '',
-    '状態スナップショットとは別に、`evaluation/states/*.events.yml` の追記型履歴を表示します。履歴がない既存状態はここには表示されません。',
-    '',
-    '| 発生日時 | 候補 | 評価ID | 遷移前 | 遷移後 |',
-    '|---|---|---|---|---|',
-    ...stateEvents.map((event) => `| ${event.occurredAt} | ${mdCell(event.candidateId)} | ${mdCell(event.evaluationId)} | ${mdCell(event.fromStatus ?? '(なし)')} | ${mdCell(event.status)} |`),
     '',
     '## 状態の計上先',
     '',
@@ -282,14 +267,14 @@ function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
     '|---|---:|---|---|---|',
     `| \`verified-no-bug\` | ${evaluationStatusCount(records, 'verified-no-bug')} | バグを再現せず評価完了 | 非バグ評価 | なし |`,
     `| \`bug-found\` | ${evaluationStatusCount(records, 'bug-found')} | バグを確認し修正前 | バグ評価 | 発見Finding |`,
-    `| \`fixed\` | ${evaluationStatusCount(records, 'fixed')} | 確認したバグを修正済み | バグ評価 | 改修済みFinding |`,
+    `| \`fixed\` | ${evaluationStatusCount(records, 'fixed')} | 確認したバグを修正済み | バグ評価 | 解決済みFinding |`,
     `| \`needs-excel-probe\` | ${evaluationStatusCount(records, 'needs-excel-probe')} | Excelプローブ作成待ち | 判定保留評価 | 未確定 |`,
     `| \`needs-excel\` | ${evaluationStatusCount(records, 'needs-excel')} | 実Excel結果の反映待ち | 判定保留評価 | 未確定 |`,
-    `| \`blocked\` | ${evaluationStatusCount(records, 'blocked')} | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |`,
+    `| \`blocked\` | ${evaluationStatusCount(records, 'blocked')} | 外部要因・前提不足で進行不能 | 判定保留評価 | 解決済みFinding |`,
     `| \`in-progress\` | ${evaluationStatusCount(records, 'in-progress')} | 評価または修正を実行中 | 判定保留評価 | 未確定 |`,
     `| \`claimed\` | ${evaluationStatusCount(records, 'claimed')} | 評価担当者が取得済み | 判定保留評価 | 未確定 |`,
-    `| \`known-limit\` | ${evaluationStatusCount(records, 'known-limit')} | 既知の仕様上の制限 | その他（制限事項） | 対象外 |`,
-    `| \`retired\` | ${evaluationStatusCount(records, 'retired')} | 仮説または候補を退役 | その他 | 対象外 |`,
+    `| \`known-limit\` | ${evaluationStatusCount(records, 'known-limit')} | 既知の仕様上の制限 | その他（制限事項） | 解決済みFinding |`,
+    `| \`retired\` | ${evaluationStatusCount(records, 'retired')} | 仮説または候補を退役 | その他 | 解決済みFinding |`,
     `| \`abandoned\` | ${evaluationStatusCount(records, 'abandoned')} | 評価を中止 | その他 | 対象外 |`,
     `| \`queued\` | ${evaluationStatusCount(records, 'queued')} | 評価待ち | その他 | 対象外 |`,
     '',
@@ -297,7 +282,7 @@ function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
     '',
     '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。',
     '',
-    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | バグ評価 | 非バグ評価 | 判定保留 | その他 | 発見Finding | 改修済みFinding | 未改修Finding |',
+    '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | バグ評価 | 非バグ評価 | 判定保留 | その他 | 発見Finding | 解決済みFinding | 未解決Finding |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
     ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugEvaluations} | ${row.nonBugEvaluations} | ${row.pendingEvaluations} | ${row.otherEvaluations} | ${row.discovered} | ${row.fixed} | ${row.openBugs} |`),
   ];
@@ -342,20 +327,19 @@ new Chart(document.getElementById('evaluation-chart'), {
 new Chart(document.getElementById('finding-chart'), {
   type: 'line', data: { labels: convergenceLabels, datasets: [
     { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
-    { label: '累積改修済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
-    { label: '未改修Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
+    { label: '解決済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
+    { label: '未解決Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積Finding数' }, ticks: { precision: 0 } } } }
 });
 </script>`;
 }
 
-function renderHtml(records, summary, series, findingTypes, stateEvents) {
+function renderHtml(records, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
-  const eventRows = stateEvents.map((event) => `<tr><td>${htmlCell(formatLocalDateTime(event.occurredAt))}</td><td>${htmlCell(event.candidateId)}</td><td>${htmlCell(event.evaluationId)}</td><td>${htmlCell(event.fromStatus ?? '(なし)')}</td><td>${htmlCell(event.status)}</td></tr>`).join('\n');
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
@@ -367,21 +351,20 @@ function renderHtml(records, summary, series, findingTypes, stateEvents) {
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
-<h2>状態遷移履歴</h2><p>追記型イベントファイルに記録された状態遷移です。既存のスナップショットに履歴がない状態は表示されません。</p><table><thead><tr><th>発生日時（ローカルTZ）</th><th>候補</th><th>評価ID</th><th>遷移前</th><th>遷移後</th></tr></thead><tbody>${eventRows || '<tr><td colspan="5">（履歴なし）</td></tr>'}</tbody></table>
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
 ${renderConvergenceChart(series)}
-<h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>改修済みFinding</th><th>未改修Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
+<h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
 <tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(records, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
 <tr><td><code>bug-found</code></td><td>${evaluationStatusCount(records, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
-<tr><td><code>fixed</code></td><td>${evaluationStatusCount(records, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
+<tr><td><code>fixed</code></td><td>${evaluationStatusCount(records, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>解決済みFinding</td></tr>
 <tr><td><code>needs-excel-probe</code></td><td>${evaluationStatusCount(records, 'needs-excel-probe')}</td><td>Excelプローブ作成待ち</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>needs-excel</code></td><td>${evaluationStatusCount(records, 'needs-excel')}</td><td>実Excel結果の反映待ち</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>blocked</code></td><td>${evaluationStatusCount(records, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>blocked</code></td><td>${evaluationStatusCount(records, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>解決済みFinding</td></tr>
 <tr><td><code>in-progress</code></td><td>${evaluationStatusCount(records, 'in-progress')}</td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>claimed</code></td><td>${evaluationStatusCount(records, 'claimed')}</td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(records, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
-<tr><td><code>retired</code></td><td>${evaluationStatusCount(records, 'retired')}</td><td>仮説または候補を退役</td><td>その他</td><td>対象外</td></tr>
+<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(records, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>解決済みFinding</td></tr>
+<tr><td><code>retired</code></td><td>${evaluationStatusCount(records, 'retired')}</td><td>仮説または候補を退役</td><td>その他</td><td>解決済みFinding</td></tr>
 <tr><td><code>abandoned</code></td><td>${evaluationStatusCount(records, 'abandoned')}</td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
 <tr><td><code>queued</code></td><td>${evaluationStatusCount(records, 'queued')}</td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
@@ -401,14 +384,13 @@ function main() {
   const findings = readFindings();
   const series = timeSeries(records, results, findings);
   const findingTypes = findingTypeSummary(records, findings);
-  const stateEvents = readStateEvents();
   if (options.output) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
-    fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes, stateEvents));
+    fs.writeFileSync(options.output, renderMarkdown(records, summary, series, findingTypes));
   }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
-    fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes, stateEvents));
+    fs.writeFileSync(options.html, renderHtml(records, summary, series, findingTypes));
   }
   if (options.csv) {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });
