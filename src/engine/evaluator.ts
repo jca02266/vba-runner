@@ -3544,6 +3544,7 @@ export class Evaluator {
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
     private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
+        void sourceExpr;
         const isArrayReturn = Array.isArray(value) && (value as any).__vbaArrayReturn__ === true;
         if (isArrayReturn) delete (value as any).__vbaArrayReturn__;
         if (!Array.isArray(existing) || !Array.isArray(value) || allowArrayRebind) return;
