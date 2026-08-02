@@ -306,6 +306,40 @@ console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
     console.log('[PASS] クラスメソッドのスカラーAs Object引数境界');
 }
 
+// An array-designated Object parameter must reject a scalar container while
+// preserving a valid Object() array and its Nothing elements.
+{
+    const code = String.raw`
+    Class ArrayReceiver
+        Public Seen As Long
+
+        Public Sub Accept(ByRef values() As Object)
+            If values(0) Is Nothing Then
+                Seen = Seen + 10
+            Else
+                Seen = Seen + 100
+            End If
+        End Sub
+    End Class
+
+    Function ProbeObjectArrayArgument() As String
+        Dim receiver As New ArrayReceiver, values(0 To 0) As Object, errScalar As Long
+        On Error Resume Next
+        receiver.Accept 42
+        errScalar = Err.Number
+        Err.Clear
+        receiver.Accept values
+        ProbeObjectArrayArgument = CStr(errScalar) & ":" & CStr(Err.Number) & ":" & CStr(receiver.Seen)
+    End Function
+    `;
+    const result = runFunc(code, 'ProbeObjectArrayArgument') as string;
+    const [scalarError, arrayError, seen] = result.split(':').map(Number);
+    assert.ok(scalarError > 0, 'scalar value is rejected for an array parameter');
+    assert.strictEqual(arrayError, 0, 'Object() array is accepted');
+    assert.strictEqual(seen, 10, 'Nothing element remains valid');
+    console.log('[PASS] As Object()配列引数のコンテナ境界');
+}
+
 // --- 仕様バグ修正: クラスフィールドの固定長配列が Empty のままで Subscript out of range になっていた ---
 {
     const code = `

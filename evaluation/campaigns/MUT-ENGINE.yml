@@ -222,3 +222,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/class-methods.test.ts
+  - id: MUT-ENGINE-026
+    title: As Object配列引数のコンテナ境界
+    status: queued
+    priority: 1
+    focus: As Object()配列引数へスカラー値を渡す入口検証
+    priorCauseKey: array-parameter-element-contract-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/class-module.test.ts

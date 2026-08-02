@@ -945,6 +945,16 @@ export class Evaluator {
         return param.isByVal || forcedByVal ? this.deepCopyByValValue(value) : value;
     }
 
+    /** Array-designated parameters require an array container, not a scalar. */
+    private validateArrayParameterContainer(
+        value: any,
+        param: ProcedureDeclaration['parameters'][number],
+    ): void {
+        if (param.isArray && value !== vbaMissing && !Array.isArray(value)) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
+    }
+
     private argumentReference(
         expr: Expression | undefined,
         param: ProcedureDeclaration['parameters'][number],
@@ -975,6 +985,8 @@ export class Evaluator {
             if (i < args.length) argValue = args[i];
             else if (param.defaultValue) argValue = this.evaluateExpression(param.defaultValue);
             else argValue = vbaMissing;
+
+            this.validateArrayParameterContainer(argValue, param);
 
             if (param.paramType && !param.isArray) {
                 const typeMap: Record<string, VbaVarType> = {
@@ -8953,6 +8965,7 @@ export class Evaluator {
                         // ここに来る時点で param は必ず Optional（defaultValue なし）。
                         argVal = vbaMissing;
                     }
+                    this.validateArrayParameterContainer(argVal, param);
                     const originalArgExpr = namedArgExpressions.has(paramNameLower)
                         ? namedArgExpressions.get(paramNameLower)
                         : (i < positionalArgExpressions.length ? positionalArgExpressions[i] : undefined);
