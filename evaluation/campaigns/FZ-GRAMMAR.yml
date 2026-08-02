@@ -192,3 +192,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/for-loop.test.ts
+  - id: FZ-GRAMMAR-022
+    title: ByRef・ParamArray引数境界
+    status: queued
+    priority: 1
+    focus: ByRef/ByVal/Optional/ParamArrayと配列・文字列の引数バインド
+    priorCauseKey: argument-binding-byref-paramarray
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/byref.test.ts

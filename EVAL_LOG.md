@@ -280,6 +280,7 @@
 | EV-00374 | FZ-GRAMMAR | verified-no-bug | 動的配列の再確保と消去境界 |
 | EV-00375 | META-ENGINE | needs-excel | Collection・Dictionary列挙変更境界 |
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
+| EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
 
 ## 状態集計
 
@@ -290,7 +291,7 @@
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |
-| verified-no-bug | 73 |
+| verified-no-bug | 74 |
 
 横展開未解決経路: 222、実Excel待ち評価: 10
 
