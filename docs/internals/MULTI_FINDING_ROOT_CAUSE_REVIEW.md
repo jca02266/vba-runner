@@ -63,6 +63,12 @@ sources:
 この境界を表現する型を追加した場合に、既存の名前付き引数・評価順序・ByRef経路へ影響しないかを
 最小の設計テストで確認する。
 
+## 数値変換の追加ソース監査
+
+`builtins.ts`の`Math.round`・`Math.floor`・`Math.trunc`と`ctx.toVbaNumber`の全使用箇所を確認した。Randomizeのseed生成、DateDiffの暦日・時刻差、DateValue/TimeValueのDate serial、文字列関数の位置計算などは、Long引数の共通変換とは異なるドメイン責務だった。今回の監査では仕様または実Excel結果なしに新しいバグとは判定せず、引数契約候補へ追加しない。
+
+一方、文字列・数値組み込みの`ctx.round(ctx.toVbaNumber(...))`反復は、引数契約候補の根拠を補強する。次のループでは、代表4関数（Left、Replace、StrComp、InStr）の名前付き・位置引数テストを設計し、共通メタデータを導入しても評価順序と既存境界が保たれるかを確認する。
+
 ### ファイルシステムのNull境界
 
 対象は[EV-00337](../../evaluation/evaluations/EV-00337.md)と[EV-00338](../../evaluation/evaluations/EV-00338.md)である。
