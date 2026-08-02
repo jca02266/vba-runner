@@ -8797,7 +8797,8 @@ export class Evaluator {
                     const evaluatedPropertyArgs = callType === 8
                         ? this.evaluateExpressions(propertyArgs)
                         : undefined;
-                    if (callType === 8 && evaluatedPropertyArgs?.some((arg) => Array.isArray(arg))) {
+                    if (callType === 8 && evaluatedPropertyArgs && evaluatedPropertyArgs.length > 0 &&
+                        !isVbaObjectReferenceCompatible(evaluatedPropertyArgs[evaluatedPropertyArgs.length - 1])) {
                         this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
                     }
                     const procedures = (target.__classDef__ as ClassDeclaration).procedures;

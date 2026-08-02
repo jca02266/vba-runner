@@ -242,7 +242,7 @@
 | EV-00336 | FZ-BUILTIN | fixed |  | FileCopy既存先境界 |
 | EV-00337 | FZ-BUILTIN | fixed |  | CurDir引数Null境界 |
 | EV-00338 | FZ-BUILTIN | fixed |  | ファイル番号Null境界 |
-| EV-00339 | FZ-BUILTIN | fixed |  | MkDir既存パス境界 |
+| EV-00339 | FZ-BUILTIN | fixed | 1 | MkDir既存パス境界 |
 | EV-00340 | FZ-BUILTIN | fixed |  | Put/Get/Seek位置引数Null境界 |
 | EV-00341 | FZ-BUILTIN | fixed |  | RmDir非空ディレクトリ境界 |
 | EV-00342 | FZ-BUILTIN | fixed |  | OpenTextFile IOMode境界 |
@@ -303,22 +303,24 @@
 | EV-00397 | MUT-ENGINE | fixed | 1 | Set配列getterのオブジェクト境界 |
 | EV-00398 | MUT-ENGINE | fixed | 1 | CallByName VbSet配列境界 |
 | EV-00399 | MUT-ENGINE | fixed | 0 | Property Let配列引数のクラス境界 |
+| EV-00400 | ROOT-CAUSE | fixed | 1 | BuiltinParamSpecのVBA引数契約不足 |
+| EV-00401 | MUT-ENGINE | bug-found | 1 | CallByName VbSet添字配列境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| bug-found | 3 |
-| fixed | 204 |
+| bug-found | 4 |
+| fixed | 205 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 89 |
 
-横展開未解決経路: 223、実Excel待ち評価: 0
+横展開未解決経路: 226、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| MUT-ENGINE-024 | 2 | queued | Property Setの先行arglistに配列を渡す動的呼出し | yes |
+| (none) | | | | |

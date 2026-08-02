@@ -4,6 +4,41 @@ function evalVBA(code: string): any {
     return evalVBASingle(code);
 }
 
+// CallByName VbSet validates only the final value argument. Earlier property
+// index arguments may legitimately be arrays and must retain their ByRef path.
+{
+    const code = String.raw`
+    Class Payload
+        Public Name As String
+    End Class
+    Class Holder
+        Public Seen As String
+        Public Property Set Item(ByRef key() As Long, ByVal value As Object)
+            Seen = CStr(key(0)) & ":" & value.Name
+        End Property
+    End Class
+    Function TestVbSetIndexedArray() As String
+        Dim h As New Holder, p As New Payload, key(0 To 0) As Long
+        p.Name = "payload"
+        key(0) = 7
+        CallByName h, "Item", VbSet, key, p
+        TestVbSetIndexedArray = h.Seen
+    End Function
+    Function TestVbSetArrayValueError() As Long
+        Dim h As New Holder, key(0 To 0) As Long, values(0 To 0) As Long, errNo As Long
+        On Error Resume Next
+        CallByName h, "Item", VbSet, key, values
+        errNo = Err.Number
+        TestVbSetArrayValueError = errNo
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestVbSetIndexedArray'), '7:payload',
+        'CallByName VbSet preserves array property indexes and validates the final Object value');
+    assert.strictEqual(runFunc(code, 'TestVbSetArrayValueError'), 424,
+        'CallByName VbSet rejects an array as the final Object value');
+    console.log('[PASS] CallByName VbSet indexed-array boundary');
+}
+
 function runFunc(code: string, name: string, args: any[] = []): any {
     return evalVBA(code).callProcedure(name, args);
 }
