@@ -148,3 +148,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/with-statement.test.ts
+  - id: MUT-ENGINE-018
+    title: 配列getter判定の再評価副作用
+    status: queued
+    priority: 1
+    focus: Property Getチェーンの評価回数と配列代入判定
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/nested-array-getter-assignment.test.ts

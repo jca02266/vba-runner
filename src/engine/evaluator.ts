@@ -2190,7 +2190,9 @@ export class Evaluator {
         }
 
         if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
-            return localEnv.get(proc.name.name);
+            const result = localEnv.get(proc.name.name);
+            if (proc.returnsArray && Array.isArray(result)) (result as any).__vbaArrayReturn__ = true;
+            return result;
         }
         return opts.subReturnValue;
     }
@@ -3542,34 +3544,13 @@ export class Evaluator {
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
     private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
+        const isArrayReturn = Array.isArray(value) && (value as any).__vbaArrayReturn__ === true;
+        if (isArrayReturn) delete (value as any).__vbaArrayReturn__;
         if (!Array.isArray(existing) || !Array.isArray(value) || allowArrayRebind) return;
         const typed = (existing as any).__vbaElementType__ ||
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
-        const isArrayReturn = this.isArrayReturnExpression(sourceExpr);
         if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
-    }
-
-    /** Distinguish a property getter returning an array from a plain array field. */
-    private isArrayReturnExpression(expr?: Expression): boolean {
-        if (!expr) return false;
-        if (expr.type === 'CallExpression') return true;
-        if (expr.type === 'ImplicitWithObjectExpression') {
-            const instance = this.withObjectStack[this.withObjectStack.length - 1];
-            if (!instance?.__vbaClass__) return false;
-            const property = (expr as ImplicitWithObjectExpression).property.name;
-            const classDef = instance.__classDef__ as ClassDeclaration;
-            return !!findClassProperty(classDef.procedures, property, 'get');
-        }
-        if (expr.type !== 'MemberExpression') return false;
-        const member = expr as MemberExpression;
-        const rawObject = member.object.type === 'Identifier'
-            ? this.env.get((member.object as Identifier).name)
-            : this.evaluateExpression(member.object);
-        const instance = this.resolveAutoInstance(member.object, rawObject);
-        if (!instance?.__vbaClass__) return false;
-        const classDef = instance.__classDef__ as ClassDeclaration;
-        return !!findClassProperty(classDef.procedures, member.property.name, 'get');
     }
 
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
@@ -5014,7 +4995,9 @@ export class Evaluator {
         }
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
-            return localEnv.get(proc.name.name.toLowerCase());
+            const result = localEnv.get(proc.name.name.toLowerCase());
+            if (proc.returnsArray && Array.isArray(result)) (result as any).__vbaArrayReturn__ = true;
+            return result;
         }
         return vbaEmpty;
     }
