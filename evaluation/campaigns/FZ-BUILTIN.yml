@@ -1217,3 +1217,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/datetime.test.ts
+  - id: FZ-BUILTIN-137
+    title: CallByNameプロパティ種別境界
+    status: queued
+    priority: 1
+    focus: VbLetとVbSetがProperty Let/Setの不一致を誤って補完しないか
+    priorCauseKey: callbyname-property-kind-dispatch
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/call-by-name.test.ts

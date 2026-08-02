@@ -85,6 +85,7 @@ import {
     Parameter,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
+import { findClassProperty } from './property-resolution';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem, VBA_FILE_ATTRIBUTE } from './filesystem';
 import { checkOptionExplicit, UndefinedProcError } from './option-explicit-checker';
@@ -3551,13 +3552,14 @@ export class Evaluator {
             if (variable && typeof variable === 'object' && variable.__vbaClass__) {
                 const classDef = variable.__classDef__ as ClassDeclaration;
                 if (classDef) {
-                    const valueSetter = classDef.procedures.find(
-                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === 'value'
-                    );
+                    const valueSetter = findClassProperty(classDef.procedures, 'value', 'let');
                     if (valueSetter) {
                         // Call the Value property setter with the assigned value
                         this.callClassMethodWithExpressions(variable, valueSetter, [sourceExpr ?? null], [val]);
                         return;
+                    }
+                    if (findClassProperty(classDef.procedures, 'value', 'set')) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 }
             }
@@ -3686,9 +3688,7 @@ export class Evaluator {
                 } else if (target && target.__vbaClass__) {
                     // Default property assignment: obj(args) = val -> obj.Item(args) = val
                     const classDef = target.__classDef__ as ClassDeclaration;
-                    const setter = classDef.procedures.find(
-                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === 'item'
-                    );
+                    const setter = findClassProperty(classDef.procedures, 'item', 'let');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(target, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
@@ -3723,13 +3723,14 @@ export class Evaluator {
                         fieldArr[index] = val;
                         return;
                     }
-                    const setter = classDef.procedures.find(
-                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === methodName
-                    );
+                    const setter = findClassProperty(classDef.procedures, methodName, 'let');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(obj, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
+                        if (findClassProperty(classDef.procedures, methodName, 'set')) {
+                            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                        }
                         // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
                         // 例: obj.Items(0) = val
                         const instanceEnvForArr = obj.__instanceEnv__ as Environment;
@@ -3798,14 +3799,15 @@ export class Evaluator {
                 const implicitProp = (call.callee as ImplicitWithObjectExpression).property.name.toLowerCase();
                 if (implicitObj && implicitObj.__vbaClass__) {
                     const implicitClassDef = implicitObj.__classDef__ as ClassDeclaration;
-                    const implicitSetter = implicitClassDef.procedures.find(
-                        p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === implicitProp
-                    );
+                    const implicitSetter = findClassProperty(implicitClassDef.procedures, implicitProp, 'let');
                     if (implicitSetter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callClassMethodWithExpressions(implicitObj, implicitSetter,
                             [...call.args, sourceExpr ?? null], [...argsVals, val]);
                     } else {
+                        if (findClassProperty(implicitClassDef.procedures, implicitProp, 'set')) {
+                            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                        }
                         const implicitInstanceEnv = implicitObj.__instanceEnv__ as Environment;
                         const implicitFieldArr = implicitInstanceEnv.get(implicitProp);
                         if (Array.isArray(implicitFieldArr)) {
@@ -3882,12 +3884,13 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                const setter = classDef.procedures.find(
-                    p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
-                );
+                const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
                 } else {
+                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
@@ -3923,12 +3926,13 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                const setter = classDef.procedures.find(
-                    p => p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set') && p.name.name.toLowerCase() === propName
-                );
+                const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
                 } else {
+                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
                     // Bug CC: enforce fixed-length string for With-block class field assignment
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
@@ -8667,10 +8671,9 @@ export class Evaluator {
                     const procedures = (target.__classDef__ as ClassDeclaration).procedures;
                     const propertyType = callType === 4 ? 'let' : callType === 8 ? 'set' : undefined;
                     const proc = propertyType
-                        ? procedures.find(p => p.isProperty && p.propertyType === propertyType && p.name.name.toLowerCase() === procName)
-                            ?? procedures.find(p => p.isProperty && p.propertyType === (propertyType === 'let' ? 'set' : 'let') && p.name.name.toLowerCase() === procName)
+                        ? findClassProperty(procedures, procName, propertyType)
                         : (callType === 2
-                            ? procedures.find(p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === procName)
+                            ? findClassProperty(procedures, procName, 'get')
                             : procedures.find(p => !p.isProperty && p.name.name.toLowerCase() === procName));
                     if (proc) {
                         this.checkNoGapOnRequiredParam(proc.parameters, expr.args.slice(3));

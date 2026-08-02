@@ -435,4 +435,156 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     console.log('[PASS] Test 15: VBA veteran pattern - data binding');
 }
 
+// Bug 373: Let assignment selects Property Let even when Property Set is declared first
+{
+    const code = `
+    Class Payload
+    End Class
+
+    Class Target
+        Private mLetHits As Long
+        Private mSetHits As Long
+
+        Public Property Set Value(v As Object)
+            mSetHits = mSetHits + 1
+        End Property
+
+        Public Property Let Value(v As Variant)
+            mLetHits = mLetHits + 1
+        End Property
+
+        Public Property Set Item(index As Long, v As Object)
+            mSetHits = mSetHits + 1
+        End Property
+
+        Public Property Let Item(index As Long, v As Variant)
+            mLetHits = mLetHits + 1
+        End Property
+
+        Public Property Get LetHits() As Long
+            LetHits = mLetHits
+        End Property
+
+        Public Property Get SetHits() As Long
+            SetHits = mSetHits
+        End Property
+    End Class
+
+    Function TestLetWritePaths() As String
+        Dim target As New Target
+        target.Value = 1
+        With target
+            .Value = 2
+        End With
+        target = 3
+        target.Item(1) = 4
+        target(2) = 5
+        With target
+            .Item(3) = 6
+        End With
+        TestLetWritePaths = CStr(target.LetHits) & ":" & CStr(target.SetHits)
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestLetWritePaths'), '6:0', 'all Let write paths select Property Let');
+    console.log('[PASS] Bug 373: normal Let writes select exact property kind');
+}
+
+// Bug 373: Let assignment must not fall through to a same-named Set-only property
+{
+    const code = `
+    Class SetOnly
+        Private mSetHits As Long
+
+        Public Property Set Value(v As Object)
+            mSetHits = mSetHits + 1
+        End Property
+
+        Public Property Set Item(index As Long, v As Object)
+            mSetHits = mSetHits + 1
+        End Property
+
+        Public Property Get SetHits() As Long
+            SetHits = mSetHits
+        End Property
+    End Class
+
+    Function SimpleMemberMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        target.Value = 1
+        errNo = Err.Number
+        On Error GoTo 0
+        SimpleMemberMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+
+    Function WithMemberMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        With target
+            .Value = 1
+        End With
+        errNo = Err.Number
+        On Error GoTo 0
+        WithMemberMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+
+    Function IndexedMemberMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        target.Item(1) = 1
+        errNo = Err.Number
+        On Error GoTo 0
+        IndexedMemberMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+
+    Function DefaultValueMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        target = 1
+        errNo = Err.Number
+        On Error GoTo 0
+        DefaultValueMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+
+    Function DefaultItemMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        target(1) = 1
+        errNo = Err.Number
+        On Error GoTo 0
+        DefaultItemMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+
+    Function WithIndexedMismatch() As String
+        Dim target As New SetOnly
+        Dim errNo As Long
+        On Error Resume Next
+        With target
+            .Item(1) = 1
+        End With
+        errNo = Err.Number
+        On Error GoTo 0
+        WithIndexedMismatch = CStr(errNo) & ":" & CStr(target.SetHits)
+    End Function
+    `;
+    for (const procedure of [
+        'SimpleMemberMismatch',
+        'WithMemberMismatch',
+        'IndexedMemberMismatch',
+        'DefaultValueMismatch',
+        'DefaultItemMismatch',
+        'WithIndexedMismatch',
+    ]) {
+        const [errNo, setHits] = String(runFunc(code, procedure)).split(':').map(Number);
+        assert.ok(errNo !== 0, `${procedure} must report an error`);
+        assert.strictEqual(setHits, 0, `${procedure} must not execute Property Set`);
+    }
+    console.log('[PASS] Bug 373: Set-only properties reject all normal Let paths');
+}
+
 console.log('\n✅ Property Get/Let/Set Resolution: 全テスト通過');

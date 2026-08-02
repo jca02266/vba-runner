@@ -191,3 +191,120 @@ End Function
     assert.strictEqual(missing.callProcedure('Missing', []), 438, '未定義の外部CallByNameはError 438');
     console.log('[PASS] Bug 174-A: external CallByName prototype/missing members');
 }
+
+// Bug 373: VbLet/VbSet must not fall back to the opposite property kind
+{
+    const code = `
+    Class OnlySet
+        Private mHits As Long
+
+        Public Property Set Target(v As Object)
+            mHits = mHits + 1
+        End Property
+
+        Public Property Get Hits() As Long
+            Hits = mHits
+        End Property
+    End Class
+
+    Class OnlyLet
+        Private mHits As Long
+
+        Public Property Let Target(v As Variant)
+            mHits = mHits + 1
+        End Property
+
+        Public Property Get Hits() As Long
+            Hits = mHits
+        End Property
+    End Class
+
+    Class BothKinds
+        Private mLastKind As String
+
+        Public Property Set Target(v As Object)
+            mLastKind = "set"
+        End Property
+
+        Public Property Let Target(v As Variant)
+            mLastKind = "let"
+        End Property
+
+        Public Property Get LastKind() As String
+            LastKind = mLastKind
+        End Property
+    End Class
+
+    Class Payload
+    End Class
+
+    Function VbLetDoesNotCallSet() As String
+        Dim target As New OnlySet
+        Dim payload As New Payload
+        Dim errNo As Long
+        On Error Resume Next
+        CallByName target, "Target", 4, payload
+        errNo = Err.Number
+        On Error GoTo 0
+        VbLetDoesNotCallSet = CStr(errNo) & ":" & CStr(target.Hits)
+    End Function
+
+    Function VbSetDoesNotCallLet() As String
+        Dim target As New OnlyLet
+        Dim payload As New Payload
+        Dim errNo As Long
+        On Error Resume Next
+        CallByName target, "Target", 8, payload
+        errNo = Err.Number
+        On Error GoTo 0
+        VbSetDoesNotCallLet = CStr(errNo) & ":" & CStr(target.Hits)
+    End Function
+
+    Function VbLetValuePathDoesNotCallSet() As String
+        Dim target As New OnlySet
+        Dim payload As New Payload
+        Dim ignored As Variant
+        Dim errNo As Long
+        On Error Resume Next
+        ignored = VBA.CallByName(target, "Target", 4, payload)
+        errNo = Err.Number
+        On Error GoTo 0
+        VbLetValuePathDoesNotCallSet = CStr(errNo) & ":" & CStr(target.Hits)
+    End Function
+
+    Function VbSetValuePathDoesNotCallLet() As String
+        Dim target As New OnlyLet
+        Dim payload As New Payload
+        Dim ignored As Variant
+        Dim errNo As Long
+        On Error Resume Next
+        ignored = VBA.CallByName(target, "Target", 8, payload)
+        errNo = Err.Number
+        On Error GoTo 0
+        VbSetValuePathDoesNotCallLet = CStr(errNo) & ":" & CStr(target.Hits)
+    End Function
+
+    Function MatchingKinds() As String
+        Dim target As New BothKinds
+        Dim payload As New Payload
+        CallByName target, "Target", 4, 1
+        MatchingKinds = target.LastKind
+        CallByName target, "Target", 8, payload
+        MatchingKinds = MatchingKinds & ":" & target.LastKind
+    End Function
+    `;
+    const letMismatch = String(runFunc(code, 'VbLetDoesNotCallSet')).split(':').map(Number);
+    const setMismatch = String(runFunc(code, 'VbSetDoesNotCallLet')).split(':').map(Number);
+    const letValueMismatch = String(runFunc(code, 'VbLetValuePathDoesNotCallSet')).split(':').map(Number);
+    const setValueMismatch = String(runFunc(code, 'VbSetValuePathDoesNotCallLet')).split(':').map(Number);
+    assert.ok(letMismatch[0] !== 0, 'VbLet without Property Let must report an error');
+    assert.strictEqual(letMismatch[1], 0, 'VbLet must not execute Property Set');
+    assert.ok(setMismatch[0] !== 0, 'VbSet without Property Set must report an error');
+    assert.strictEqual(setMismatch[1], 0, 'VbSet must not execute Property Let');
+    assert.ok(letValueMismatch[0] !== 0, 'value-path VbLet without Property Let must report an error');
+    assert.strictEqual(letValueMismatch[1], 0, 'value-path VbLet must not execute Property Set');
+    assert.ok(setValueMismatch[0] !== 0, 'value-path VbSet without Property Set must report an error');
+    assert.strictEqual(setValueMismatch[1], 0, 'value-path VbSet must not execute Property Let');
+    assert.strictEqual(runFunc(code, 'MatchingKinds'), 'let:set', 'CallByName selects the exact property kind');
+    console.log('[PASS] Bug 373: CallByName exact property kind');
+}

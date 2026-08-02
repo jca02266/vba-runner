@@ -87,6 +87,7 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyLargeLiteralValues
     VerifyDefaultValueInformation
     VerifyTimeSerialConsumers
+    VerifyCallByNamePropertyKinds
 End Sub
 
 Private Sub VerifyDateDiffWBoundaries()
@@ -270,6 +271,22 @@ Private Sub VerifyTimeSerialConsumers()
     EmitValueAndType "XL-047 FORMAT", result, errNo
     Err.Clear: result = DateDiff("s", TimeSerial(0, 0, 0), value): errNo = Err.Number
     EmitValueAndType "XL-047 DATEDIFF", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyCallByNamePropertyKinds()
+    Dim target As ExcelQueueCallByNameTarget, payload As Collection, errNo As Long
+    Set target = New ExcelQueueCallByNameTarget
+    Set payload = New Collection
+    On Error Resume Next
+    Err.Clear
+    CallByName target, "Scalar", VbSet, 42
+    errNo = Err.Number
+    EmitResult "XL-048 VBSET-TO-LET ERR=" & CStr(errNo) & " LETHITS=" & CStr(target.LetHits)
+    Err.Clear
+    CallByName target, "Reference", VbLet, payload
+    errNo = Err.Number
+    EmitResult "XL-048 VBLET-TO-SET ERR=" & CStr(errNo) & " SETHITS=" & CStr(target.SetHits)
     On Error GoTo 0
 End Sub
 

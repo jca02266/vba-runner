@@ -282,6 +282,7 @@
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
 | EV-00378 | FZ-BUILTIN | needs-excel | TimeSerial負数コンポーネントの正規化 |
+| EV-00379 | FZ-BUILTIN | needs-excel | CallByNameと通常代入のProperty Let/Set種別境界 |
 
 ## 状態集計
 
@@ -291,11 +292,11 @@
 | bug-found | 2 |
 | fixed | 190 |
 | known-limit | 1 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 80 |
 
-横展開未解決経路: 212、実Excel待ち評価: 3
+横展開未解決経路: 213、実Excel待ち評価: 4
 
 ## 次の候補
 

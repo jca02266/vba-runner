@@ -8,6 +8,7 @@ import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNumericString } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
+import { findClassProperty } from './property-resolution';
 import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
 import { vbaWeekNumber } from './date-week';
 
@@ -205,9 +206,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
             if (obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
-                const getter = (classDef as any).procedures.find(
-                    (p: any) => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === name
-                );
+                const getter = findClassProperty(classDef.procedures, name, 'get');
                 if (getter) return ctx.callMethod(obj, getter, args);
                 const method = (classDef as any).procedures.find(
                     (p: any) => !p.isProperty && p.name.name.toLowerCase() === name
@@ -227,15 +226,14 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         }
         if (callType === 4 /* VbLet */ || callType === 8 /* VbSet */) {
             const propType = callType === 4 ? 'let' : 'set';
-            const fallbackType = callType === 4 ? 'set' : 'let';
             if (obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
-                const setter = (classDef as any).procedures.find(
-                    (p: any) => p.isProperty && p.propertyType === propType && p.name.name.toLowerCase() === name
-                ) ?? (classDef as any).procedures.find(
-                    (p: any) => p.isProperty && p.propertyType === fallbackType && p.name.name.toLowerCase() === name
-                );
+                const setter = findClassProperty(classDef.procedures, name, propType);
                 if (setter) return ctx.callMethod(obj, setter, args);
+                const oppositeType = propType === 'let' ? 'set' : 'let';
+                if (findClassProperty(classDef.procedures, name, oppositeType)) {
+                    ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
+                }
                 obj.__instanceEnv__.set(name, args[0]);
                 return;
             }
