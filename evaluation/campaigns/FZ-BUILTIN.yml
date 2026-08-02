@@ -1235,3 +1235,21 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/information-functions.test.ts
+  - id: FZ-BUILTIN-139
+    title: 金融関数の引数型と境界値
+    status: queued
+    priority: 1
+    focus: PV/FV/PMT/Rate/NPV/IRRのNull・Empty・ゼロ期間・境界値とエラー伝播
+    priorCauseKey: financial-function-coercion-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-140
+    title: 金融キャッシュフロー検証の共通化
+    status: queued
+    priority: 2
+    focus: IRR/MIRR/NPVの配列抽出・数値化・正負領域検証を共通ヘルパーへ統合
+    priorCauseKey: financial-cashflow-domain-validation-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

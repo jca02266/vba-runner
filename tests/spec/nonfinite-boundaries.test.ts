@@ -19,7 +19,7 @@ const probe = evalVBASingle(`
         value = SLN(1E+308, -1E+308, 1E-308)
         result = result & Err.Number & ","
         Err.Clear
-        value = NPV(1E-308, Array(1E+308, 1E+308))
+        value = NPV(1E-308, Array(-1E+308, 1E+308, 1E+308, 1E+308, 1E+308))
         result = result & Err.Number & ","
         Err.Clear
         value = DateSerial(1E+308, 1, 1)

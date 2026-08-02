@@ -101,11 +101,11 @@ console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
     Public resNpv1, resNpv0
     Sub Test()
         Dim flows1(1 To 3) As Double
-        flows1(1) = 30000 : flows1(2) = 40000 : flows1(3) = 50000
+        flows1(1) = -30000 : flows1(2) = 40000 : flows1(3) = 50000
         resNpv1 = NPV(0.1, flows1)
 
         Dim flows0(2) As Double
-        flows0(0) = 30000 : flows0(1) = 40000 : flows0(2) = 50000
+        flows0(0) = -30000 : flows0(1) = 40000 : flows0(2) = 50000
         resNpv0 = NPV(0.1, flows0)
     End Sub
     `);
@@ -114,7 +114,7 @@ console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
     const npv0 = ev.env.get('resnpv0') as number;
     assert.ok(!isNaN(npv1), `Bug 24-1: NPV 1-based should not be NaN (got ${npv1})`);
     assert.ok(Math.abs(npv1 - npv0) < 0.01, `NPV 1-based should equal 0-based (${npv1} vs ${npv0})`);
-    assert.ok(Math.abs(npv1 - 97896.32) < 1, `NPV(0.1,[30000,40000,50000]) ≈ 97896.32 (got ${npv1.toFixed(2)})`);
+    assert.ok(Math.abs(npv1 - 43350.86) < 1, `NPV(0.1,[-30000,40000,50000]) ≈ 43350.86 (got ${npv1.toFixed(2)})`);
 }
 console.log('[PASS] Bug 24-1: NPV 1-based 配列で正常動作');
 
@@ -215,6 +215,48 @@ console.log('[PASS] Bug 145-A: Pmt のゼロ期間をエラー化');
     assert.strictEqual(ev.env.get('mirrerror'), 5, 'MIRR without positive and negative flows is Error 5');
 }
 console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
+
+// Bug 182-A: NPV must reject cash-flow arrays without both signs, including
+// arrays whose lower bound is supplied by Option Base 1.
+{
+    const ev = evalVBASingle(`
+    Option Base 1
+    Public mixedNpv, positiveError, negativeError, optionBaseError
+    Sub Test()
+        Dim mixed(1 To 3) As Double
+        mixed(1) = -100 : mixed(2) = 40 : mixed(3) = 80
+        mixedNpv = NPV(0.1, mixed)
+
+        Dim positive(1 To 2) As Double
+        positive(1) = 100 : positive(2) = 20
+        On Error Resume Next
+        Dim ignored As Double
+        ignored = NPV(0.1, positive)
+        positiveError = Err.Number
+        Err.Clear
+
+        Dim negative(1 To 2) As Double
+        negative(1) = -100 : negative(2) = -20
+        ignored = NPV(0.1, negative)
+        negativeError = Err.Number
+        Err.Clear
+
+        Dim optionBaseMixed(1 To 3) As Double
+        optionBaseMixed(1) = -100 : optionBaseMixed(2) = 40 : optionBaseMixed(3) = 80
+        ignored = NPV(0.1, optionBaseMixed)
+        optionBaseError = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.ok(Number.isFinite(ev.env.get('mixednpv')), 'NPV accepts mixed-sign cash flows');
+    assert.strictEqual(ev.env.get('positiveerror'), 5,
+        'NPV positive-only cash flows are Error 5');
+    assert.strictEqual(ev.env.get('negativeerror'), 5,
+        'NPV negative-only cash flows are Error 5');
+    assert.strictEqual(ev.env.get('optionbaseerror'), 0,
+        'NPV accepts mixed-sign Option Base 1 cash flows');
+}
+console.log('[PASS] Bug 182-A: NPVの符号不足をエラー化');
 
 // Bug 181-A: financial functions must reject invalid domains instead of leaking
 // Infinity/NaN or silently returning a value.

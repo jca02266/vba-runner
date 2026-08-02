@@ -1859,10 +1859,14 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         const r = toNum(rate);
         if (!Number.isFinite(r) || 1 + r <= 0) invalidFinancialArg();
         const base: number = (values as any).vbaBase ?? 0;
+        const v = Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
+        if (v.length < 2 || !v.some((value) => value < 0) || !v.some((value) => value > 0)) {
+            invalidFinancialArg();
+        }
         let result = 0;
         let period = 1;
-        for (let idx = base; idx < values.length; idx++, period++) {
-            result += ctx.toVbaNumber(values[idx]) / Math.pow(1 + r, period);
+        for (const value of v) {
+            result += value / Math.pow(1 + r, period++);
         }
         return finiteResult(result);
     }, [{ name: 'Rate' }, { name: 'ValueArray' }]);
