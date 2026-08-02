@@ -257,7 +257,7 @@
 | EV-00351 | FZ-BUILTIN | fixed | SetAttr Directory属性境界 |
 | EV-00352 | FZ-BUILTIN | fixed | FSO DeleteFile Force属性境界 |
 | EV-00353 | FZ-BUILTIN | fixed | FSO DeleteFile ディレクトリ対象境界 |
-| EV-00354 | FZ-BUILTIN | needs-excel | SYD巨大値の中間範囲境界 |
+| EV-00354 | FZ-BUILTIN | bug-found | SYD巨大値の中間範囲境界 |
 | EV-00355 | FZ-BUILTIN | verified-no-bug | Select Case比較経路の組み合わせ境界 |
 | EV-00356 | FZ-BUILTIN | verified-no-bug | 手続き引数束縛の組み合わせ境界 |
 | EV-00357 | FZ-BUILTIN | fixed | Lexer未終端文字列境界 |
@@ -288,13 +288,14 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
+| bug-found | 1 |
 | fixed | 190 |
 | known-limit | 1 |
-| needs-excel | 10 |
+| needs-excel | 9 |
 | retired | 1 |
 | verified-no-bug | 75 |
 
-横展開未解決経路: 223、実Excel待ち評価: 10
+横展開未解決経路: 222、実Excel待ち評価: 9
 
 ## 次の候補
 
