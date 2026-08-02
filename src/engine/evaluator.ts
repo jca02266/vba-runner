@@ -3553,6 +3553,11 @@ export class Evaluator {
         if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
     }
 
+    /** Class fields must not resolve through the caller's environment chain. */
+    private getClassField(instanceEnv: Environment, name: string): any {
+        return instanceEnv.hasOwnVariable(name) ? instanceEnv.get(name) : undefined;
+    }
+
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
@@ -3731,7 +3736,7 @@ export class Evaluator {
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
                     const instanceEnv = obj.__instanceEnv__ as Environment;
-                    const fieldArr = instanceEnv.get(methodName);
+                    const fieldArr = this.getClassField(instanceEnv, methodName);
                     if (Array.isArray(fieldArr)) {
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
                         const actualType = (val as any)?.__className__ as string | undefined;
@@ -3755,7 +3760,7 @@ export class Evaluator {
                         // Property Let/Set がなければ、配列フィールドへの外部インデックス代入を試みる
                         // 例: obj.Items(0) = val
                         const instanceEnvForArr = obj.__instanceEnv__ as Environment;
-                        const fieldArr = instanceEnvForArr.get(methodName);
+                        const fieldArr = this.getClassField(instanceEnvForArr, methodName);
                         if (Array.isArray(fieldArr)) {
                             const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                             if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
@@ -3905,7 +3910,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
                 const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
@@ -3949,7 +3954,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
                 const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
@@ -5521,7 +5526,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                const oldVal = instanceEnv.get(propName);
+                const oldVal = this.getClassField(instanceEnv, propName);
                 this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
                 const isWithEvents = instanceEnv.isWithEvents(propName);
                 const setter = classDef.procedures.find(
@@ -5569,7 +5574,7 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                this.rejectTypedArrayWholeAssignment(instanceEnv.get(propName), value, stmt.right);
+                this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), value, stmt.right);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
@@ -5599,7 +5604,7 @@ export class Evaluator {
                 } else if (obj && obj.__vbaClass__) {
                     const classDef = obj.__classDef__ as ClassDeclaration;
                     const instanceEnv = obj.__instanceEnv__ as Environment;
-                    const fieldArr = instanceEnv.get(methodName);
+                    const fieldArr = this.getClassField(instanceEnv, methodName);
                     if (Array.isArray(fieldArr)) {
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
                         const actualType = (value as any)?.__className__ as string | undefined;
@@ -5677,7 +5682,7 @@ export class Evaluator {
                 const propName = (call.callee as ImplicitWithObjectExpression).property.name.toLowerCase();
                 if (obj && obj.__vbaClass__) {
                     const instanceEnv = obj.__instanceEnv__ as Environment;
-                    const fieldArr = instanceEnv.get(propName);
+                    const fieldArr = this.getClassField(instanceEnv, propName);
                     if (Array.isArray(fieldArr)) {
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
                         const actualType = (value as any)?.__className__ as string | undefined;
@@ -7938,7 +7943,7 @@ export class Evaluator {
             const propName = (mem.property as Identifier).name.toLowerCase();
             if (obj?.__vbaClass__) {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                oldArr = instanceEnv.get(propName);
+                oldArr = this.getClassField(instanceEnv, propName);
                 setNewArr = (arr) => instanceEnv.set(propName, arr);
                 storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
             } else {
@@ -7953,7 +7958,7 @@ export class Evaluator {
             const propName = prop.name.toLowerCase();
             if (obj?.__vbaClass__) {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                oldArr = instanceEnv.get(propName);
+                oldArr = this.getClassField(instanceEnv, propName);
                 setNewArr = (arr) => instanceEnv.set(propName, arr);
                 storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
             } else {
@@ -9701,7 +9706,8 @@ export class Evaluator {
             }
 
             // Field access
-            return instanceEnv.get(propName);
+            if (instanceEnv.hasOwnVariable(propName)) return instanceEnv.get(propName);
+            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
         }
 
         // case-insensitive にプロパティを解決（アクセサ・プロトタイプ・非列挙も対象）
@@ -10151,7 +10157,8 @@ export class Evaluator {
             if (method) return this.callClassMethod(obj, method, []);
             const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
             if (ifaceProc) return this.callClassMethod(obj, ifaceProc, []);
-            return instanceEnv.get(propName);
+            if (instanceEnv.hasOwnVariable(propName)) return instanceEnv.get(propName);
+            this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
         }
 
         if (obj && (typeof obj === 'object' || typeof obj === 'function')) {

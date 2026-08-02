@@ -13,6 +13,10 @@ The storage migration and steady-state rules are defined in
 state. During migration, preserve `EVAL_LOG.md` as a read-only legacy source;
 after migration, use the structured records and the generated Markdown view.
 
+The root-cause method is defined in
+`docs/internals/ROOT_CAUSE_ANALYSIS.md`. Read it before delegating cause
+analysis; do not duplicate its taxonomy here.
+
 1. Read `.claude/commands/evaluate-vba-runner.md` and
    `docs/internals/EVALUATION_STORAGE.md` in full. Run the storage audit and
    obtain one compact candidate context before selecting a theme; do not load
@@ -28,7 +32,9 @@ after migration, use the structured records and the generated Markdown view.
 5. After a defect is independently reproduced, run a horizontal-expansion investigation before editing. Delegate a bounded subtask to a second independent sub-agent: inspect the source for every analogous dispatch/evaluation path and report suspicious sites, without changing tracked files or reading TODO files/git history. Have the sub-agent add a scratch driver outside the repository only when source inspection identifies a plausible analogue; use focused tests for those candidates rather than broad test-suite runs. Record each confirmed analogue, ruled-out path, or unresolved real-Excel semantic question in the evaluation notes, and do not treat an unverified suspicion as a product bug.
 6. After reproduction and horizontal expansion, follow the command's
    root-cause analysis gate before editing. Delegate an independent sub-agent
-   to identify the direct cause, deeper design/state/flow cause, confirmed and
+   and require it to read `docs/internals/ROOT_CAUSE_ANALYSIS.md` first. The
+   report must follow that document's evidence and status format. Delegate an
+   independent sub-agent to identify the direct cause, deeper design/state/flow cause, confirmed and
    ruled-out analogues, confidence, and remediation options. Update the Finding
    and evaluation record with that analysis before starting implementation.
    Once the cause is confirmed, launch a separate bounded implementation task,

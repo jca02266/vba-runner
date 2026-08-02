@@ -194,3 +194,22 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/callbyname.test.ts
+  - id: MUT-ENGINE-023
+    title: Property Let配列引数のクラス境界
+    status: queued
+    priority: 1
+    focus: Property LetのByRef typed array引数とクラスフィールド探索
+    priorCauseKey: class-field-environment-leak
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+  - id: MUT-ENGINE-024
+    title: CallByName VbSet添字配列境界
+    status: queued
+    priority: 2
+    focus: Property Setの先行arglistに配列を渡す動的呼出し
+    priorCauseKey: set-object-type-boundary-bypass
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/callbyname.test.ts
