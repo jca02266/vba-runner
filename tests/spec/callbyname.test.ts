@@ -306,5 +306,25 @@ End Function
     assert.ok(setValueMismatch[0] !== 0, 'value-path VbSet without Property Set must report an error');
     assert.strictEqual(setValueMismatch[1], 0, 'value-path VbSet must not execute Property Let');
     assert.strictEqual(runFunc(code, 'MatchingKinds'), 'let:set', 'CallByName selects the exact property kind');
-    console.log('[PASS] Bug 373: CallByName exact property kind');
+console.log('[PASS] Bug 373: CallByName exact property kind');
+
+// Typed arrays are values, not object references: CallByName VbSet must reject them.
+{
+    const code = `
+    Class Holder
+        Public Property Set Value(v As Object)
+        End Property
+    End Class
+    Function TestVbSetArray() As Long
+        Dim h As New Holder, values(0 To 0) As Long, errNo As Long
+        On Error Resume Next
+        CallByName h, "Value", 8, values
+        errNo = Err.Number
+        TestVbSetArray = errNo
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'TestVbSetArray'), 424,
+        'CallByName VbSet must reject array values as Object required');
+    console.log('[PASS] CallByName VbSet array boundary');
+}
 }

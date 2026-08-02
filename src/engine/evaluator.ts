@@ -8748,6 +8748,13 @@ export class Evaluator {
                     const procName = vbaToString(this.evaluateExpression(expr.args[1])).toLowerCase();
                     const callType = this.evaluateExpression(expr.args[2]);
                     if (callType === vbaNull) this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                    const propertyArgs = expr.args.slice(3);
+                    const evaluatedPropertyArgs = callType === 8
+                        ? this.evaluateExpressions(propertyArgs)
+                        : undefined;
+                    if (callType === 8 && evaluatedPropertyArgs?.some((arg) => Array.isArray(arg))) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+                    }
                     const procedures = (target.__classDef__ as ClassDeclaration).procedures;
                     const propertyType = callType === 4 ? 'let' : callType === 8 ? 'set' : undefined;
                     const proc = propertyType
@@ -8756,8 +8763,8 @@ export class Evaluator {
                             ? findClassProperty(procedures, procName, 'get')
                             : procedures.find(p => !p.isProperty && p.name.name.toLowerCase() === procName));
                     if (proc) {
-                        this.checkNoGapOnRequiredParam(proc.parameters, expr.args.slice(3));
-                        return this.callClassMethodWithExpressions(target, proc, expr.args.slice(3));
+                        this.checkNoGapOnRequiredParam(proc.parameters, propertyArgs);
+                        return this.callClassMethodWithExpressions(target, proc, propertyArgs, evaluatedPropertyArgs);
                     }
                     this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
                 }

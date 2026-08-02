@@ -184,3 +184,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: MUT-ENGINE-022
+    title: CallByName VbSet配列境界
+    status: queued
+    priority: 1
+    focus: CallByNameのProperty Setへ配列を渡す経路
+    priorCauseKey: set-object-type-boundary-bypass
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts

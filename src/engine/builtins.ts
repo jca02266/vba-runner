@@ -226,6 +226,9 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         }
         if (callType === 4 /* VbLet */ || callType === 8 /* VbSet */) {
             const propType = callType === 4 ? 'let' : 'set';
+            if (callType === 8 && args.length > 0 && Array.isArray(args[args.length - 1])) {
+                ctx.throwError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+            }
             if (obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
                 const setter = findClassProperty(classDef.procedures, name, propType);
