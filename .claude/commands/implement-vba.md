@@ -75,7 +75,7 @@ ev.callProcedure('TestProc', []);
 > **既存テストの移行**: `tests/spec/` 内の古いテストは `evalVBASingle` をローカル定義（`reEvaluateModuleConstsAll` なし）している。これらは現在の定数がない or `setConstants()` 注入のテストであるため即壊れないが、モジュールレベル `Const` を追加した場合は壊れる。既存テストを修正する際は、ローカル定義の `evalVBASingle` を削除して `test-libs/test-runner` からのインポートに置き換えること。
 
 **テストの書き方**:
-- VBAコードはテンプレートリテラルのインライン文字列として書く（`.bas` ファイルは使わない）
+- VBAコードは `String.raw\`...\`` で囲んだテンプレートリテラルのインライン文字列として書く（`.bas` ファイルは使わない）。詳細と理由は `AGENTS.md` の「VBAソース文字列のテスト記法」に従う
 - 引数なしでプロシージャを呼ぶ場合も `runFunc(code, 'FuncName')` を使う
 - 式や副作用のみ確認する場合は `evalVBASingle(code)` を使う
 - アサーションは `assert.strictEqual(actual, expected, 'テストの説明')` を使う

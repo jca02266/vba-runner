@@ -45,6 +45,14 @@ argument is a paragraph; Git inserts the real blank line between paragraphs.
 `tests/tooling/`（または対象ツールに対応する専用ディレクトリ）へ置き、
 `tests/spec/`へ追加しない。
 
+## VBAソース文字列のテスト記法
+
+TypeScriptテストに複数行のVBAソースを埋め込む場合は、通常のテンプレート
+リテラルではなく `String.raw\`...\`` で囲む。これにより、Windowsパスなどに
+含まれるバックスラッシュやVBAソース内の改行をJavaScriptのエスケープ処理で
+変形させず、そのままテスト対象へ渡せる。新規テストと既存テストの修正では
+この記法を必須とする。
+
 ## バグ原因の報告
 
 バグの原因を説明するときは、原因や再現経路だけで終わらせず、現在の
