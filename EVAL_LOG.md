@@ -290,6 +290,7 @@
 | EV-00384 | FZ-GRAMMAR | verified-no-bug | ParamArrayとByRef配列バインド境界 |
 | EV-00385 | FZ-GRAMMAR | fixed | クラスメンバーParamArray呼出し境界 |
 | EV-00386 | FZ-GRAMMAR | verified-no-bug | With入れ子と既定メンバー解決境界 |
+| EV-00387 | MUT-ENGINE | verified-no-bug | Optional・ByRef・名前付き引数の混在バインド |
 
 ## 状態集計
 
@@ -301,7 +302,7 @@
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 84 |
+| verified-no-bug | 85 |
 
 横展開未解決経路: 219、実Excel待ち評価: 4
 
