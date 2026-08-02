@@ -121,7 +121,7 @@ priority: low
 focus: state event transition test
 findings: []
 tests:
-  - tests/spec/evaluation-state.test.ts
+  - tests/tooling/evaluation-state.test.ts
 horizontalAudit:
   confirmed: []
   ruledOut: []
@@ -176,7 +176,7 @@ focus: cause schema test
 directCauseKey: immediate-dispatch-gap
 findings: []
 tests:
-  - tests/spec/evaluation-state.test.ts
+  - tests/tooling/evaluation-state.test.ts
 horizontalAudit:
   confirmed: []
   ruledOut: []

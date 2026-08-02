@@ -249,7 +249,7 @@ git commit
 十分とする。
 
 ```bash
-npx tsx tests/spec/evaluation-state.test.ts
+npx tsx tests/tooling/evaluation-state.test.ts
 npm run eval -- validate
 node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html
 npm run check:docs

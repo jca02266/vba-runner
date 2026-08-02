@@ -38,6 +38,13 @@ sequence is permitted only inside Bash/Zsh `$'...'` quoting, where it becomes
 an actual line break. Each `-m`
 argument is a paragraph; Git inserts the real blank line between paragraphs.
 
+## テストの配置
+
+`tests/spec/` はVBA言語仕様とランナー実行意味論のテスト専用とする。
+評価状態CLI、レポート生成、その他の開発環境・運用ツールのテストは
+`tests/tooling/`（または対象ツールに対応する専用ディレクトリ）へ置き、
+`tests/spec/`へ追加しない。
+
 ## バグ原因の報告
 
 バグの原因を説明するときは、原因や再現経路だけで終わらせず、現在の
