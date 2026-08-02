@@ -54,6 +54,7 @@ record:
     - abandoned
     - known-limit
     - needs-excel
+    - needs-excel-probe
     - retired
   arrays:
     - findings

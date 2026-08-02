@@ -20,7 +20,7 @@ const statesDir = path.join(evaluationRoot, 'states');
 const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 
 const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
-const pendingEvaluationStatuses = new Set(['needs-excel', 'blocked', 'in-progress', 'claimed']);
+const pendingEvaluationStatuses = new Set(['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'claimed']);
 const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
 
 function usage() {
@@ -283,7 +283,8 @@ function renderMarkdown(records, summary, series, findingTypes, stateEvents) {
     `| \`verified-no-bug\` | ${evaluationStatusCount(records, 'verified-no-bug')} | バグを再現せず評価完了 | 非バグ評価 | なし |`,
     `| \`bug-found\` | ${evaluationStatusCount(records, 'bug-found')} | バグを確認し修正前 | バグ評価 | 発見Finding |`,
     `| \`fixed\` | ${evaluationStatusCount(records, 'fixed')} | 確認したバグを修正済み | バグ評価 | 改修済みFinding |`,
-    `| \`needs-excel\` | ${evaluationStatusCount(records, 'needs-excel')} | 実Excelなど外部確認が必要 | 判定保留評価 | 未確定 |`,
+    `| \`needs-excel-probe\` | ${evaluationStatusCount(records, 'needs-excel-probe')} | Excelプローブ作成待ち | 判定保留評価 | 未確定 |`,
+    `| \`needs-excel\` | ${evaluationStatusCount(records, 'needs-excel')} | 実Excel結果の反映待ち | 判定保留評価 | 未確定 |`,
     `| \`blocked\` | ${evaluationStatusCount(records, 'blocked')} | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |`,
     `| \`in-progress\` | ${evaluationStatusCount(records, 'in-progress')} | 評価または修正を実行中 | 判定保留評価 | 未確定 |`,
     `| \`claimed\` | ${evaluationStatusCount(records, 'claimed')} | 評価担当者が取得済み | 判定保留評価 | 未確定 |`,
@@ -374,7 +375,8 @@ ${renderConvergenceChart(series)}
 <tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(records, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
 <tr><td><code>bug-found</code></td><td>${evaluationStatusCount(records, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
 <tr><td><code>fixed</code></td><td>${evaluationStatusCount(records, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>改修済みFinding</td></tr>
-<tr><td><code>needs-excel</code></td><td>${evaluationStatusCount(records, 'needs-excel')}</td><td>実Excelなど外部確認が必要</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>needs-excel-probe</code></td><td>${evaluationStatusCount(records, 'needs-excel-probe')}</td><td>Excelプローブ作成待ち</td><td>判定保留評価</td><td>未確定</td></tr>
+<tr><td><code>needs-excel</code></td><td>${evaluationStatusCount(records, 'needs-excel')}</td><td>実Excel結果の反映待ち</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>blocked</code></td><td>${evaluationStatusCount(records, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>in-progress</code></td><td>${evaluationStatusCount(records, 'in-progress')}</td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>claimed</code></td><td>${evaluationStatusCount(records, 'claimed')}</td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>

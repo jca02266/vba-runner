@@ -69,6 +69,13 @@ after migration, use the structured records and the generated Markdown view.
    a minimal runtime check, or Excel before using `bug-found` or `fixed`. If
    verification disproves the expectation, reclassify the evaluation and do
    not implement a speculative fix.
+   Track Excel work with the two statuses `needs-excel-probe` (the queue probe
+   is not yet in `tests/excel/queue/ExcelQueueVerification.bas`) and
+   `needs-excel` (the probe is ready and its Excel result is pending). Running
+   `eval audit` changes the former to the latter automatically once the queue
+   source and XL IDs are recorded. Excel verification is complete only when
+   the evaluation leaves these statuses for `verified-no-bug`, `known-limit`,
+   `bug-found`, or `fixed`; never add a separate completion sub-status.
 8. Treat `validate` and deterministic `render` as commit gates. Do not commit
    a fix, test, or state transition until the structured record is valid and
    the generated root `EVAL_LOG.md` is up to date. Do not create or commit an

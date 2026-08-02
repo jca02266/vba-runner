@@ -150,6 +150,13 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 
 過去の移行記録では `expectation` がない場合があるが、新規評価では必須の運用項目とする。
 
+実Excel照合中は、状態を `needs-excel-probe` と `needs-excel` に分ける。
+前者は `ExcelQueueVerification.bas` へのテスト作成待ち、後者はプローブ作成済みで
+実機結果の反映待ちである。`audit` は後者の評価記録にキュー用VBAとXL番号が揃った
+ことを検出した場合、前者から後者へ自動更新する。実機結果を反映した後は、
+`verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed` へ遷移して
+完了を表す。実Excel確認の完了を別のサブステータスでは管理しない。
+
 バグを修正した評価は、原因キー、回帰テスト、修正コミットを必ず記録する。
 バグがない場合も `verified-no-bug`、実機照合待ちは `needs-excel`、恒久的制限は
 `known-limit`、中断は `abandoned` または `blocked` として記録する。
@@ -157,7 +164,7 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 使用可能な状態は次のとおりである。
 
 `queued`、`claimed`、`in-progress`、`verified-no-bug`、`bug-found`、`fixed`、
-`blocked`、`abandoned`、`known-limit`、`needs-excel`、`retired`
+`blocked`、`abandoned`、`known-limit`、`needs-excel-probe`、`needs-excel`、`retired`
 
 ## 現行CLIと役割
 

@@ -112,6 +112,12 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 検証結果が想定を否定した場合は期待値を修正し、推測に基づく実装修正を行わない。
 `npm run eval -- validate` はこのゲートを検証する。
 
+実Excel照合は `needs-excel-probe` と `needs-excel` の2状態で管理する。
+前者は `ExcelQueueVerification.bas` へのプローブ作成待ち、後者はプローブ作成済みで
+実機結果の反映待ちである。`eval audit` は評価の `tests` にキュー用VBAとXL番号が
+揃ったことを検出し、前者から後者へ自動更新する。実機結果を反映したら、
+`verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed`へ遷移する。
+
 バグを再現し、横展開調査を終えたら、修正を始める前に真因分析サブエージェントを
 1つ起動する。症状の最小再現、関連ソース、横展開結果だけを渡し、次を独立に報告させる。
 

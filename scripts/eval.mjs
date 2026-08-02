@@ -16,7 +16,7 @@ const schemaFile = path.join(evalRoot, 'schema.yml');
 const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
-  'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'retired',
+  'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'needs-excel-probe', 'retired',
 ]);
 
 function fail(message) {
@@ -288,6 +288,9 @@ function validate(records = readRecords()) {
     for (const key of schema.horizontalAudit.required) {
       if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
     }
+    if (data.status === 'needs-excel' && audit.unresolved.length === 0) {
+      throw new Error(`${file}: resolved Excel boundaries require a terminal evaluation status`);
+    }
   }
   const items = readCampaignItems();
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
@@ -393,7 +396,7 @@ function claim(id) {
   // A verified finding is intentionally resumable: the discovery loop records
   // the cause first, then a later remediation loop claims the same candidate
   // and completes it as fixed after implementation and regression testing.
-  const resumable = existingResult && ['needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(existingResult.status);
+  const resumable = existingResult && ['needs-excel', 'needs-excel-probe', 'blocked', 'in-progress', 'bug-found'].includes(existingResult.status);
   if (existingResult && !resumable) throw new Error(`${id} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
@@ -427,8 +430,35 @@ function ownedClaim(id, token) {
   return claim;
 }
 
+function excelProbeIds(data) {
+  return [...new Set((data.tests ?? []).flatMap((test) =>
+    String(test).includes('tests/excel/queue/ExcelQueueVerification.bas')
+      ? [...String(test).matchAll(/XL-\d{3}/g)].map((match) => match[0])
+      : []))];
+}
+
+function syncExcelStatuses(records) {
+  let changed = 0;
+  const results = readResults();
+  for (const record of records) {
+    if (record.data.status !== 'needs-excel-probe') continue;
+    const probes = excelProbeIds(record.data);
+    if (probes.length === 0) continue;
+    fs.writeFileSync(record.file, record.source.replace(/^status: needs-excel-probe$/m, 'status: needs-excel'));
+    const result = results.get(record.data.candidateId);
+    if (result?.evaluationId === record.data.id && result.status === 'needs-excel-probe') {
+      fs.writeFileSync(result.file, fs.readFileSync(result.file, 'utf8').replace(/^status: needs-excel-probe$/m, 'status: needs-excel'));
+      appendEvent(record.data.candidateId, record.data.id, 'needs-excel', 'needs-excel-probe');
+    }
+    changed += 1;
+  }
+  return changed;
+}
+
 function audit() {
   const records = validate();
+  const synced = syncExcelStatuses(records);
+  if (synced) validate();
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
   const archiveDir = path.join(statesDir, 'archive');
   if (stale.length) fs.mkdirSync(archiveDir, { recursive: true });
@@ -437,7 +467,7 @@ function audit() {
     fs.renameSync(state.file, archive);
   }
   const active = readClaims();
-  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
+  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims, synchronized ${synced} Excel phases`);
 }
 
 function release(id, token) {

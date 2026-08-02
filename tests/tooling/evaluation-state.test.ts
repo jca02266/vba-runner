@@ -227,3 +227,33 @@ try {
 }
 
 console.log('[PASS] evaluation expectation provenance validation');
+
+// Adding an Excel queue probe autonomously advances the dedicated probe state.
+const probeState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-PROBE.md`;
+const probeStateBody = `---
+id: EV-TEST-EXCEL-PROBE
+candidateId: FZ-GRAMMAR-001
+campaign: FZ-GRAMMAR
+status: needs-excel-probe
+priority: low
+focus: Excel probe state test
+findings: []
+tests:
+  - tests/excel/queue/ExcelQueueVerification.bas (XL-999)
+horizontalAudit:
+  confirmed: []
+  ruledOut: []
+  unresolved:
+    - pending Excel result
+---
+`;
+writeFileSync(probeState, probeStateBody);
+try {
+    const advanced = run('audit');
+    assert.equal(advanced.status, 0, advanced.stderr);
+    assert.match(readFileSync(probeState, 'utf8'), /^status: needs-excel$/m);
+} finally {
+    if (existsSync(probeState)) unlinkSync(probeState);
+}
+
+console.log('[PASS] Excel probe state transition');
