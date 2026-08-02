@@ -82,3 +82,13 @@ items:
     priorCauseKey: module-named-argument-unknown-name
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: MUT-ENGINE-011
+    title: Optional・ByRef・名前付き引数の混在バインド
+    status: queued
+    priority: 1
+    focus: Optionalの途中省略、ByRef書戻し、名前付き引数と既定値の組み合わせ
+    priorCauseKey: optional-byref-named-argument-binding
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/optional-param-order.test.ts
+      - tests/spec/byref.test.ts
