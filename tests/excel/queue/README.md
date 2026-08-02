@@ -11,13 +11,25 @@
 - `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `ExcelQueueCallByNameTarget.cls`: XL-048で使うLet/Set片側プロパティ付きクラス
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
-- `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
+- `prepare-excel-vba.sh`: 開発側で`t.xlsm`を作成し、VBAをインポートするコマンド
+- `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
 
-## 一括実行
+## ブックの準備と実機実行
+
+`ExcelQueueVerification.bas`、`.cls`、`.frm`を更新したときは、まずNode環境のある
+開発側（macOS/Linux等）で次を実行する。
+
+```bash
+tests/excel/queue/prepare-excel-vba.sh
+```
+
+このコマンドは`empty_with_macro.xlsm`を`t.xlsm`へコピーし、キューディレクトリ内の
+VBAソース一式を`vba-extractor import`で`t.xlsm`へ取り込む。Windows側ではNodeや
+vba-extractorを実行せず、準備済みの`t.xlsm`を使用する。
 
 Windowsのコマンドプロンプトから、リポジトリ内のどこにいても次を実行できる。
 
@@ -25,8 +37,7 @@ Windowsのコマンドプロンプトから、リポジトリ内のどこにい�
 tests\excel\queue\eval-excel.cmd
 ```
 
-バッチは自身のディレクトリへ移動し、`empty_with_macro.xlsm`を`t.xlsm`へ複製する。
-その後、`ExcelQueueVerification.bas`と`ExcelQueueTicket.cls`をインポートして
+`eval-excel.cmd`は自身のディレクトリへ移動し、準備済み`t.xlsm`をExcelで開いて
 `RunExcelQueueVerification`を実行する。開始時に
 `%TEMP%\vba-runner-xl-queue`を削除するため、Binary Writeの短い出力が前回ファイルの
 末尾データを引き継がない。

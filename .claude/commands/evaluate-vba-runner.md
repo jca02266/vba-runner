@@ -200,10 +200,12 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 更新せずにログだけをコミットしてはならない。`validate`は導出された待ち段階と記録状態の
 不一致、および同期済み結果を待ち状態のまま残すことを拒否する。
 
-キューの`.bas`、`.cls`、`.frm`が更新された場合、vba-extractorによる`t.xlsm`の作成・
-インポートはWindows側で行わず、Node環境のある開発側で先に完了させる。Windows側の
-`eval-excel.cmd`は準備済み`t.xlsm`をExcelで開き、指定Procを実行し、結果をUTF-8へ
-変換するだけとする。ソース更新ごとに`t.xlsm`を再生成してから実機へ渡す。
+キューの`.bas`、`.cls`、`.frm`が更新された場合、開発側で
+`tests/excel/queue/prepare-excel-vba.sh`を実行する。このコマンドが
+`empty_with_macro.xlsm`を`t.xlsm`へコピーし、`vba-extractor import`を実行する。
+生成された`t.xlsm`をWindowsへ渡し、Windows側の`eval-excel.cmd`は準備済みブックを
+Excelで開き、指定Procを実行し、結果をUTF-8へ変換するだけとする。Windows側にNode環境を
+要求せず、ソース更新ごとに準備コマンドを再実行してから実機へ渡す。
 
 新しい実Excel照合候補を登録するときは、未使用の`XL-xxx`を予約して評価記録の
 `excelProbeIds`へ列挙する。まだプローブがなければ`needs-excel-probe`とする。その後
