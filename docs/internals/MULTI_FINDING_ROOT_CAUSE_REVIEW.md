@@ -40,6 +40,14 @@ sources:
 
 現時点の判定は`hypothesis`であり、確定には可変arity、Null/Empty、関数固有範囲を壊さない最小設計検証が必要である。
 
+2026-08-02の追加確認では、`BuiltinParamSpec.coerce`は`boolean`と`string`だけで、`bindCallArguments`は名前・個数・一部のホスト変換に限定されていた。したがって、次の設計境界を検証対象とする。
+
+- 単純な必須/Optional Long引数は、対象型・丸め・Null/Empty方針をメタデータで表現できる。
+- Compareの0/1、ChrB/RGBの範囲、CVErrのNull、InStr系の可変arityは、単純な共通coerceへ押し込まず、契約上の範囲または関数固有validatorとして残す。
+- `bindOverloadedCallArguments`の引数個数による形式選択と、関数本体の評価順序を変更しない。
+
+この境界が確認できるまでは、BuiltinParamSpec全体を置き換える実装タスクは開始しない。
+
 ### ファイルシステムのNull境界
 
 対象は[EV-00337](../../evaluation/evaluations/EV-00337.md)と[EV-00338](../../evaluation/evaluations/EV-00338.md)である。
