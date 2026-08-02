@@ -231,3 +231,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/class-module.test.ts
+  - id: MUT-ENGINE-027
+    title: Object配列要素のbound object代入境界
+    status: queued
+    priority: 1
+    focus: As Object()配列要素への異なるクラスObject参照代入
+    priorCauseKey: object-array-element-type-classification-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/class-module.test.ts

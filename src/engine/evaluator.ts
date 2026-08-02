@@ -955,6 +955,21 @@ export class Evaluator {
         }
     }
 
+    /** Validate a Set assignment to a typed object-array element. */
+    private validateObjectArrayElementValue(value: any, requiredType: string): void {
+        if (requiredType.toLowerCase() === 'object') {
+            if (!isVbaObjectReferenceCompatible(value)) {
+                this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+            }
+            return;
+        }
+        const actualType = value?.__className__ as string | undefined;
+        if (value !== vbaNothing &&
+            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
+    }
+
     private argumentReference(
         expr: Expression | undefined,
         param: ProcedureDeclaration['parameters'][number],
@@ -5671,11 +5686,7 @@ export class Evaluator {
                     const fieldArr = this.getClassField(instanceEnv, methodName);
                     if (Array.isArray(fieldArr)) {
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
-                        const actualType = (value as any)?.__className__ as string | undefined;
-                        if (requiredType && value !== vbaNothing &&
-                            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
-                            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
-                        }
+                        if (requiredType) this.validateObjectArrayElementValue(value, requiredType);
                         const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         if (dims && call.args.length !== dims.length) {
                             this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
@@ -5714,10 +5725,7 @@ export class Evaluator {
                     target.__map__.set(key, value);
                 } else if (Array.isArray(target) && (target as any).__vbaElementObjectTypeName__) {
                     const requiredType = (target as any).__vbaElementObjectTypeName__ as string;
-                    const actualType = (value as any)?.__className__ as string | undefined;
-                    if (value !== vbaNothing && (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
-                    }
+                    this.validateObjectArrayElementValue(value, requiredType);
                     const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                     this.validateArrayArity(dims, call.args.length);
                     let current: any = target;
@@ -5749,11 +5757,7 @@ export class Evaluator {
                     const fieldArr = this.getClassField(instanceEnv, propName);
                     if (Array.isArray(fieldArr)) {
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
-                        const actualType = (value as any)?.__className__ as string | undefined;
-                        if (requiredType && value !== vbaNothing &&
-                            (!actualType || actualType.toLowerCase() !== requiredType.toLowerCase())) {
-                            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
-                        }
+                        if (requiredType) this.validateObjectArrayElementValue(value, requiredType);
                         const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         if (dims && call.args.length !== dims.length) {
                             this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');

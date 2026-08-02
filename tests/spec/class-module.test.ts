@@ -340,6 +340,55 @@ console.log('[PASS] Boolean/Currency/Byte フィールドの既定値');
     console.log('[PASS] As Object()配列引数のコンテナ境界');
 }
 
+// Generic Object() element assignment accepts any bound object through the
+// local, class-field, With, and ByRef routes; NamedClass() remains strict.
+{
+    const code = String.raw`
+    Class Holder
+        Public Values(0) As Object
+
+        Public Sub Assign(ByRef values() As Object, ByVal payload As Object)
+            Set values(0) = payload
+        End Sub
+    End Class
+
+    Class Payload
+        Public Value As Long
+    End Class
+
+    Function ProbeObjectArrayElement() As String
+        Dim holder As New Holder, payload As New Payload, values(0 To 0) As Object
+        Dim eLocal As Long, eField As Long, eWith As Long, eByRef As Long
+        On Error Resume Next
+        Set values(0) = payload
+        eLocal = Err.Number
+        Err.Clear
+        Set holder.Values(0) = payload
+        eField = Err.Number
+        Err.Clear
+        With holder
+            Set .Values(0) = payload
+        End With
+        eWith = Err.Number
+        Err.Clear
+        holder.Assign values, payload
+        eByRef = Err.Number
+        ProbeObjectArrayElement = CStr(eLocal) & ":" & CStr(eField) & ":" & _
+            CStr(eWith) & ":" & CStr(eByRef) & ":" & TypeName(values(0)) & ":" & _
+            TypeName(holder.Values(0))
+    End Function
+    `;
+    const result = runFunc(code, 'ProbeObjectArrayElement') as string;
+    const [localError, fieldError, withError, byRefError, localType, fieldType] = result.split(':');
+    assert.strictEqual(localError, '0', 'local Object() element accepts a bound object');
+    assert.strictEqual(fieldError, '0', 'class-field Object() element accepts a bound object');
+    assert.strictEqual(withError, '0', 'With Object() element accepts a bound object');
+    assert.strictEqual(byRefError, '0', 'ByRef Object() element accepts a bound object');
+    assert.strictEqual(localType, 'Payload', 'local Object() element retains its object');
+    assert.strictEqual(fieldType, 'Payload', 'field Object() element retains its object');
+    console.log('[PASS] Object()配列要素のbound object代入境界');
+}
+
 // --- 仕様バグ修正: クラスフィールドの固定長配列が Empty のままで Subscript out of range になっていた ---
 {
     const code = `
