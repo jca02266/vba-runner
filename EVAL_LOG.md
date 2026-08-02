@@ -297,6 +297,7 @@
 | EV-00391 | MUT-ENGINE | fixed | メンバー配列右辺の全体代入境界 |
 | EV-00392 | MUT-ENGINE | fixed | ネストProperty Get配列戻り値の境界 |
 | EV-00393 | MUT-ENGINE | fixed | With経由Property Get配列戻り値の境界 |
+| EV-00394 | MUT-ENGINE | fixed | 配列getter判定の評価回数 |
 
 ## 状態集計
 
@@ -304,12 +305,12 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 3 |
-| fixed | 200 |
+| fixed | 201 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 87 |
 
-横展開未解決経路: 221、実Excel待ち評価: 0
+横展開未解決経路: 222、実Excel待ち評価: 0
 
 ## 次の候補
 
