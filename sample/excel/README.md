@@ -76,6 +76,12 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
   -Procedure RunExcelQueueVerification -Output .\ExcelQueueVerification.result
 ```
 
+`-Module`は標準モジュールの名前、`-Procedure`はその中の`Public Sub`または
+`Public Function`の名前である。例えば上記のファイルでは、Excelが実行する名前は
+`test.xlsm!ExcelQueueVerification.RunExcelQueueVerification`になる。
+`Module1`や`ExcelQueueVerification`は実際のモジュール名と手続き名に置き換える必要があり、
+ファイル名や`.bas`の名前を手続き名として渡してはならない。
+
 `-Module`を省略すると、`-Procedure`をそのままExcelの実行名として扱う。`-Output`を
 省略した場合は、ブックと同じディレクトリに`<ブック名>.result`を作成する。Debug.Printの
 出力はUTF-8で保存し、保存後にExcelを終了する。

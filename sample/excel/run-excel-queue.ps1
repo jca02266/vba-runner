@@ -30,8 +30,33 @@ try {
     $immediate = $excel.VBE.Windows.Item('Immediate')
     $before = [string]$immediate.Object.Text
     $qualifiedProcedure = if ($Module) { "$Module.$Procedure" } else { $Procedure }
-    $macro = "'$($book.Name)'!$qualifiedProcedure"
-    [void]$excel.Run($macro)
+    # Application.Run accepts <workbook>!<module>.<procedure>.  Excel's
+    # parser is inconsistent about single-quoting a workbook name when it is
+    # called through COM, so try the documented bare form first and the quoted
+    # form only for the specific "cannot run macro" lookup failure.
+    $macroCandidates = @(
+        "$($book.Name)!$qualifiedProcedure",
+        "'$($book.Name)'!$qualifiedProcedure"
+    )
+    $runSucceeded = $false
+    $runError = $null
+    foreach ($macro in $macroCandidates) {
+        Write-Verbose "Running Excel macro: $macro"
+        try {
+            [void]$excel.Run($macro)
+            $runSucceeded = $true
+            break
+        } catch {
+            $runError = $_
+            $message = [string]$_.Exception.Message
+            if ($message -notmatch 'macro|マクロ|使用できません|無効') {
+                throw
+            }
+        }
+    }
+    if (-not $runSucceeded) {
+        throw "Application.Run could not resolve '$qualifiedProcedure' in workbook '$($book.Name)'. Tried: $($macroCandidates -join ', '). Last error: $($runError.Exception.Message)"
+    }
     Start-Sleep -Milliseconds 500
     $after = [string]$immediate.Object.Text
     if ($after.StartsWith($before, [System.StringComparison]::Ordinal)) {
