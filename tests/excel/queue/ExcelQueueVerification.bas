@@ -67,8 +67,151 @@ Public Sub RunExcelQueueVerification()
     VerifyNonFiniteBoundaries
     VerifyAsNewArray
     VerifyCollectionEnumerationMutation
+    VerifyPendingExcelBoundaries
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EndResult
+End Sub
+
+Private Sub VerifyPendingExcelBoundaries()
+    VerifyDateDiffWBoundaries
+    VerifyEmptyArrayBounds
+    VerifyMirrRateBoundaries
+    VerifySydLargeBoundary
+    VerifyOnErrorResumeBoundary
+    VerifyDecimalCurrencySelect
+    VerifyFormatNumberNull
+    VerifyTimeSerialNegativeBoundaries
+    VerifyInformationEmptyBoundaries
+    VerifyLargeLiteralBoundaries
+End Sub
+
+Private Sub VerifyDateDiffWBoundaries()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = DateDiff("w", DateSerial(2024, 1, 1), DateSerial(2024, 1, 8), vbMonday): errNo = Err.Number
+    EmitResult "XL-035 DATE1MON=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    Err.Clear: result = DateDiff("w", DateSerial(2024, 1, 7), DateSerial(2024, 1, 8), vbMonday): errNo = Err.Number
+    EmitResult "XL-035 ONE-DAY=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    Err.Clear: result = DateDiff("w", DateSerial(2024, 1, 8) + TimeSerial(12, 0, 0), DateSerial(2024, 1, 1), vbSunday): errNo = Err.Number
+    EmitResult "XL-035 REVERSE-TIME=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyEmptyArrayBounds()
+    Dim values As Variant, errNo As Long, lower As Long, upper As Long
+    values = Array()
+    On Error Resume Next
+    Err.Clear: lower = LBound(values): errNo = Err.Number
+    EmitResult "XL-036 LBOUND=" & CStr(lower) & " ERR=" & CStr(errNo)
+    Err.Clear: upper = UBound(values): errNo = Err.Number
+    EmitResult "XL-036 UBOUND=" & CStr(upper) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrRateBoundaries()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = MIRR(Array(-100, 100), -1.1, 0.1): errNo = Err.Number
+    EmitResult "XL-037 FINANCE=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    Err.Clear: result = MIRR(Array(-100, 100), 0.1, -1): errNo = Err.Number
+    EmitResult "XL-037 REINVEST=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifySydLargeBoundary()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = SYD(1E+308, -1E+308, 2, 1): errNo = Err.Number
+    EmitResult "XL-038 SYD=" & IIf(errNo = 0, CStr(result), "ERR=" & CStr(errNo))
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyOnErrorResumeBoundary()
+    Dim errNo As Long
+    On Error GoTo Handler
+    Err.Raise 5
+    EmitResult "XL-039 BODY=NO-ERROR"
+    Exit Sub
+Handler:
+    On Error GoTo 0
+    On Error Resume Next
+    Resume AfterResume
+AfterResume:
+    errNo = Err.Number
+    EmitResult "XL-039 RESUME_ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyDecimalCurrencySelect()
+    Dim value As Variant, result As String
+    value = CDec("1.5")
+    Select Case value
+        Case "1.5": result = "STRING"
+        Case CCur("1.5"): result = "CURRENCY"
+        Case Else: result = "ELSE"
+    End Select
+    EmitResult "XL-040 DECIMAL=" & result
+    value = CCur("1.5")
+    Select Case value
+        Case "1.5": result = "STRING"
+        Case CDec("1.5"): result = "DECIMAL"
+        Case Else: result = "ELSE"
+    End Select
+    EmitResult "XL-040 CURRENCY=" & result
+End Sub
+
+Private Sub VerifyFormatNumberNull()
+    Dim value As Variant, result As Variant, errNo As Long
+    value = Null
+    On Error Resume Next
+    Err.Clear: result = FormatNumber(value): errNo = Err.Number
+    EmitResult "XL-041 NULL ERR=" & CStr(errNo) & " ISNULL=" & CStr(IsNull(result))
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyTimeSerialNegativeBoundaries()
+    EmitTimeSerialProbe "XL-042 MINUS-SECOND", 0, 0, -1
+    EmitTimeSerialProbe "XL-042 MINUS-MINUTE", 0, -1, 0
+    EmitTimeSerialProbe "XL-042 MINUS-HOUR", -1, 0, 0
+    EmitTimeSerialProbe "XL-042 MIXED", -1, -1, -1
+End Sub
+
+Private Sub EmitTimeSerialProbe(ByVal id As String, ByVal hours As Long, ByVal minutes As Long, ByVal seconds As Long)
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = TimeSerial(hours, minutes, seconds): errNo = Err.Number
+    If errNo = 0 Then
+        EmitResult id & " INPUT=" & CStr(hours) & "," & CStr(minutes) & "," & CStr(seconds) & " VALUE=" & CStr(result)
+    Else
+        EmitResult id & " INPUT=" & CStr(hours) & "," & CStr(minutes) & "," & CStr(seconds) & " ERR=" & CStr(errNo)
+    End If
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyInformationEmptyBoundaries()
+    Dim value As Variant, result As Boolean, obj As Object, errNo As Long
+    value = Empty
+    On Error Resume Next
+    Err.Clear: result = IsNumeric(value): errNo = Err.Number
+    EmitResult "XL-043 ISNUMERIC_EMPTY=" & CStr(result) & " ERR=" & CStr(errNo)
+    Err.Clear: result = IsDate(value): errNo = Err.Number
+    EmitResult "XL-043 ISDATE_EMPTY=" & CStr(result) & " ERR=" & CStr(errNo)
+    Set obj = Nothing
+    Err.Clear: result = IsNumeric(obj): errNo = Err.Number
+    EmitResult "XL-043 ISNUMERIC_OBJECT=" & CStr(result) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyLargeLiteralBoundaries()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CLng("&HFFFFFFFF"): errNo = Err.Number
+    EmitResult "XL-044 HEX32 ERR=" & CStr(errNo)
+    Err.Clear: value = CDec("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitResult "XL-044 HEX64 ERR=" & CStr(errNo)
+    Err.Clear: value = CDec("&O777777777777777777777"): errNo = Err.Number
+    EmitResult "XL-044 OCT-LARGE ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub BeginResult()

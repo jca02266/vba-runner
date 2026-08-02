@@ -6,7 +6,7 @@
 
 ## ファイル
 
-- `ExcelQueueVerification.bas`: XL-001〜XL-034の検証マクロ
+- `ExcelQueueVerification.bas`: XL-001〜XL-044の検証マクロ
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
@@ -52,6 +52,7 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
 - XL-026〜XL-032: 非有限数値境界
 - XL-033: クラス型配列の`As New`
 - XL-034: Collection列挙中の`Add`とDictionary Keys列挙中の`Remove`
+- XL-035〜XL-044: DateDiff、空配列、MIRR/SYD、On Error、Select Case、FormatNumber、TimeSerial、情報関数、過大リテラルの未照合境界
 
 XL-023の逐次モードLock境界はExcelが待機する可能性があるため、一括実行では
 スキップする。必要な場合だけ`RunExcelSequentialLockVerification`を単独実行し、
