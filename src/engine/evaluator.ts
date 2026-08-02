@@ -4644,7 +4644,27 @@ export class Evaluator {
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < args.length; i++) {
-            if (!proc.parameters[i].isByVal && references[i]) {
+            const param = proc.parameters[i];
+            if (param.isParamArray) {
+                // bindProcedureParameters packs all arguments at and after the
+                // ParamArray declaration into one array.  Keep each original
+                // expression as a separate ByRef write-back target instead of
+                // attempting to write the packed array to the parameter slot.
+                const packed = byRefValues[i];
+                if (Array.isArray(packed)) {
+                    for (let j = i; j < args.length; j++) {
+                        if (references[j]) {
+                            try {
+                                references[j]!.set(packed[j - i]);
+                            } catch {
+                                // Non-assignable expressions are temporaries.
+                            }
+                        }
+                    }
+                }
+                break;
+            }
+            if (!param.isByVal && references[i]) {
                 try {
                     references[i]!.set(byRefValues[i]);
                 } catch {
@@ -4745,11 +4765,17 @@ export class Evaluator {
         argExprs: (Expression | null)[],
         evaluatedArgs?: any[],
     ): { args: any[]; references: Array<VbaLValueReference | null>; expressions: Array<Expression | null> } {
+        const split = this.splitArgumentExpressions(argExprs);
+        const paramArrayIndex = proc.parameters.findIndex(p => p.isParamArray);
+
         // NamedArgument itself is a wrapper, not an assignable expression. Keep
         // its value node so ByRef writes target the original caller variable.
+        // ParamArray is different from ordinary parameters: every positional
+        // expression from its slot onward must remain an individual argument
+        // so bindProcedureParameters can perform the canonical packing.
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
-            new Array(proc.parameters.length);
-        const split = this.splitArgumentExpressions(argExprs);
+            new Array(paramArrayIndex >= 0 ? paramArrayIndex : proc.parameters.length);
+        const paramArraySupplied: Array<{ expr: Expression; value: any }> = [];
         let nextPositional = 0;
         for (let sourceIndex = 0; sourceIndex < split.ordered.length; sourceIndex++) {
             const entry = split.ordered[sourceIndex];
@@ -4757,8 +4783,19 @@ export class Evaluator {
             if (entry.name !== undefined) {
                 paramIndex = proc.parameters.findIndex(p => p.name.toLowerCase() === entry.name);
                 if (paramIndex < 0) this.throwVbaError(448, `Named argument not found: '${entry.name}'`);
+                if (paramIndex === paramArrayIndex) {
+                    this.throwVbaError(448, `Named argument not found: '${entry.name}'`);
+                }
             } else {
-                while (nextPositional < supplied.length && supplied[nextPositional]) nextPositional++;
+                while (nextPositional < (paramArrayIndex >= 0 ? paramArrayIndex : supplied.length)
+                    && supplied[nextPositional]) nextPositional++;
+                if (paramArrayIndex >= 0 && nextPositional >= paramArrayIndex) {
+                    const valueExpr = entry.expression;
+                    const value = evaluatedArgs?.[sourceIndex] ??
+                        this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
+                    paramArraySupplied.push({ expr: valueExpr, value });
+                    continue;
+                }
                 paramIndex = nextPositional++;
             }
             if (paramIndex >= supplied.length) {
@@ -4784,6 +4821,14 @@ export class Evaluator {
         const args = aligned.map((slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
             : vbaMissing);
+        if (paramArrayIndex >= 0) {
+            for (const slot of paramArraySupplied) {
+                expressions.push(slot.expr);
+                references.push(this.argumentReference(slot.expr, proc.parameters[paramArrayIndex]));
+                const i = expressions.length - 1;
+                args.push(references[i] ? references[i]!.get() : slot.value);
+            }
+        }
         return { args, references, expressions };
     }
 

@@ -221,3 +221,22 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/byref.test.ts
+  - id: FZ-GRAMMAR-025
+    title: With入れ子と既定メンバー解決境界
+    status: queued
+    priority: 1
+    focus: 入れ子With・暗黙メンバー・既定プロパティの評価対象と一度だけのオブジェクト評価
+    priorCauseKey: nested-with-default-member-resolution
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/with-statement.test.ts
+  - id: FZ-GRAMMAR-026
+    title: クラスメンバーParamArray呼出し境界
+    status: queued
+    priority: 1
+    focus: ClassモジュールのPublic Function/SubがParamArrayへ複数引数を受ける経路
+    priorCauseKey: class-member-paramarray-packing
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/paramarray-edge-cases.test.ts

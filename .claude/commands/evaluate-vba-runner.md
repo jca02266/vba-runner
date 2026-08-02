@@ -131,7 +131,11 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 - 修正する場合の影響範囲と必要な回帰テスト
 
 分析サブエージェントには追跡ファイルを変更させない。報告を受けたら、まず評価記録と
-Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`、分析対象、確信度、対処方針を反映する。真因が未確定ならバグを確定せず、
+Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映する。さらに評価記録の
+`rootCauseAnalysis`へ、`status`、`directCause`、`designCause`、
+`confirmed`、`ruledOut`、`unresolved`、`decision`を個別に保存する。
+`horizontalAudit`は挙動の横展開、`rootCauseAnalysis`は原因の分析と対処判断なので、
+片方で代用してはならない。真因が未確定ならバグを確定せず、
 追加の最小検証または`unresolved`として残す。
 
 真因が確定した場合は、記録更新後に別の実装タスクを起動する。このタスクは分析で定めた

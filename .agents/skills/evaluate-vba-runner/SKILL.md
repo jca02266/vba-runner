@@ -55,6 +55,11 @@ after migration, use the structured records and the generated Markdown view.
    remediation is a follow-up candidate, record its candidate ID and commit
    when fixed; do not mark the root fixed merely because the symptom
    disappeared.
+   From EV-00385 onward, also require a structured `rootCauseAnalysis` object
+   with `status`, `directCause`, `designCause`, `confirmed`, `ruledOut`,
+   `unresolved`, and `decision`. Keep it separate from `horizontalAudit`:
+   horizontal expansion records which paths were checked, while root-cause
+   analysis records why the behavior occurred and how it will be addressed.
    For every new Excel-comparison candidate, reserve the next unique `XL-xxx`
    in the evaluation record's `excelProbeIds`. Then add that probe to
    `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue

@@ -351,6 +351,21 @@ function validate(records = readRecords()) {
     for (const key of schema.horizontalAudit.required) {
       if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
     }
+    const evaluationNumber = Number.parseInt(String(data.id).replace(/^EV-/, ''), 10);
+    const causeAnalysis = data.rootCauseAnalysis;
+    if (Number.isFinite(evaluationNumber) && evaluationNumber >= (schema.record.rootCauseAnalysisFrom ?? Number.MAX_SAFE_INTEGER)) {
+      for (const key of schema.rootCauseAnalysis.required) {
+        if (!causeAnalysis || (typeof causeAnalysis[key] !== 'string' && !Array.isArray(causeAnalysis[key]))) {
+          throw new Error(`${file}: rootCauseAnalysis.${key} is required`);
+        }
+      }
+      if (!['confirmed', 'hypothesis', 'ruled-out', 'not-applicable'].includes(causeAnalysis.status)) {
+        throw new Error(`${file}: invalid rootCauseAnalysis.status`);
+      }
+      for (const key of ['confirmed', 'ruledOut', 'unresolved']) {
+        if (!Array.isArray(causeAnalysis[key])) throw new Error(`${file}: rootCauseAnalysis.${key} must be an array`);
+      }
+    }
     if (data.status === 'needs-excel' && audit.unresolved.length === 0) {
       throw new Error(`${file}: resolved Excel boundaries require a terminal evaluation status`);
     }

@@ -77,6 +77,22 @@ resultについても、次を `validate` / `audit` で検証する。
 `rootFixCandidateId` と `rootFixCommit` を記録する。過去記録にないフィールドは移行時に
 推測して補完せず、新規のバグ記録から必須とする。
 
+原因キーだけでは分析の中身が抜け落ちるため、EV-00385以降の評価では
+`rootCauseAnalysis`を必須の構造化項目とする。次の項目をすべて記録する。
+
+- `status`: `confirmed`、`hypothesis`、`ruled-out`、`not-applicable`
+- `directCause`: 直接原因の機構と発生経路
+- `designCause`: 直接原因を許した設計上の真因
+- `confirmed`: 真因分析で確認した経路・証拠
+- `ruledOut`: 同じ原因ではないと除外した経路
+- `unresolved`: まだ確認できない経路・境界
+- `decision`: 共通化、局所修正、制限、TODO化の判断と次の対処
+
+`horizontalAudit`が挙動の横展開を記録するのに対し、`rootCauseAnalysis`はなぜその
+挙動になったかと対処方針を記録する。`scripts/eval.mjs validate`が必須項目と状態値を
+検証するため、真因分析を本文だけに書いて完了扱いにしてはならない。EV-00384以前の
+移行済み履歴は旧形式として保持し、新規記録はこの項目を省略しない。
+
 横展開調査は `confirmed`、`ruledOut`、`unresolved` の3分類で記録する。
 `unresolved` はバグ件数に含めず、実Excel照合などの待ち状態として扱う。
 
@@ -133,6 +149,8 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
   `rootFixCandidateId` と `rootFixCommit` も必須。
 - `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
   `horizontalAudit.unresolved`
+- EV-00385以降は`rootCauseAnalysis.status`, `directCause`, `designCause`,
+  `confirmed`, `ruledOut`, `unresolved`, `decision`
 
 ### 期待値の根拠と検証ゲート
 

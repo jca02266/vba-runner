@@ -22,6 +22,7 @@ record:
     - tests
     - commit
     - horizontalAudit
+    - rootCauseAnalysis
   required:
     - id
     - candidateId
@@ -61,8 +62,18 @@ record:
     - findings
     - tests
     - excelProbeIds
+  rootCauseAnalysisFrom: 385
 horizontalAudit:
   required:
     - confirmed
     - ruledOut
     - unresolved
+rootCauseAnalysis:
+  required:
+    - status
+    - directCause
+    - designCause
+    - confirmed
+    - ruledOut
+    - unresolved
+    - decision
