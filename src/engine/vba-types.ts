@@ -353,6 +353,28 @@ export const vbaNothing = Symbol('vbaNothing');
 export const vbaMissing = Symbol('vbaMissing');
 
 /**
+ * Returns whether a runtime value can be used where VBA requires an Object
+ * reference.  This is deliberately a semantic predicate rather than a host
+ * representation check: arrays, UDT values, and boxed VBA value types are
+ * objects in JavaScript but are not Object references in VBA.
+ */
+export function isVbaObjectReferenceCompatible(value: any): boolean {
+    if (value === vbaNothing) return true;
+    if (value === null || value === undefined || typeof value !== 'object') return false;
+    if (Array.isArray(value)) return false;
+    if (value.__vbaUdt__ === true) return false;
+    if (value instanceof VbaDate || value instanceof VbaBoolean
+        || value instanceof VbaDecimal || value instanceof VbaCurrency
+        || value instanceof VbaErrorValue || value instanceof VbaNamespaceRef) return false;
+    return true;
+}
+
+/** Returns whether a value is a bound Object (Object reference other than Nothing). */
+export function isVbaBoundObject(value: any): boolean {
+    return value !== vbaNothing && isVbaObjectReferenceCompatible(value);
+}
+
+/**
  * Represents a VBA project or module name used as a namespace qualifier.
  * Exists as a pre-defined value in the environment so that bare uses
  * (e.g. `VarType(VBA)` or `VarType(Module1)`) can be detected and rejected.

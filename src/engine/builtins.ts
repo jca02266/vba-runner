@@ -3,6 +3,7 @@ import {
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate, tryParseTimeFractionString,
     parseCurrencyString,
+    isVbaObjectReferenceCompatible,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNumericString } from './coerce';
@@ -113,10 +114,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         return vbaFalse;
     }, [{ name: 'Expression' }]);
     ctx.reg('isobject', (val: any) => {
-        if (val === vbaNothing) return vbaTrue;
-        if (!val || typeof val !== 'object' || Array.isArray(val)) return vbaFalse;
-        if (val instanceof VbaDate || val instanceof VbaBoolean || val instanceof VbaDecimal || val instanceof VbaCurrency || val instanceof VbaErrorValue) return vbaFalse;
-        return vbaTrue;
+        return isVbaObjectReferenceCompatible(val) ? vbaTrue : vbaFalse;
     }, [{ name: 'Identifier' }]);
     ctx.reg('iserror', (val: any) => (val instanceof VbaErrorValue) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
     ctx.reg('isnull', (val: any) => (val === vbaNull) ? vbaTrue : vbaFalse, [{ name: 'Expression' }]);
@@ -226,7 +224,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         }
         if (callType === 4 /* VbLet */ || callType === 8 /* VbSet */) {
             const propType = callType === 4 ? 'let' : 'set';
-            if (callType === 8 && args.length > 0 && Array.isArray(args[args.length - 1])) {
+            if (callType === 8 && args.length > 0 && !isVbaObjectReferenceCompatible(args[args.length - 1])) {
                 ctx.throwError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
             if (obj.__vbaClass__) {

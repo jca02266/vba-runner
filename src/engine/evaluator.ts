@@ -101,6 +101,7 @@ import {
     tryParseTimeFractionString,
     parseFixedPointString, bankersDivide, parseCurrencyString,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
+    isVbaObjectReferenceCompatible,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
 export {
@@ -5440,10 +5441,7 @@ export class Evaluator {
         value = this.resolveAutoInstance(stmt.right, value);
 
         // VBA requires Set target to be an object (or Nothing)
-        if (Array.isArray(value)) {
-            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
-        }
-        if (value !== null && value !== vbaNothing && typeof value !== 'object') {
+        if (!isVbaObjectReferenceCompatible(value)) {
             this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
         }
         // If the right side evaluates to a variable name (string), resolve it
