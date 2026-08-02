@@ -71,3 +71,7 @@ diff-vba
 
 # 評価レポートの生成HTML（scripts/eval-report.mjs）
 evaluation/EVAL_REPORT.html
+
+# Excel実機照合バッチの一時ブック
+tests/excel/queue/t.xlsm
+tests/excel/queue/t.xlsm.bak

@@ -33,85 +33,9 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 出力した `output.xlsm` を Excel で開き、Alt+F11 で VBE を表示して何も編集せず保存する。
 保存できることが、新規クラスモジュールを含む import 出力の互換性確認になる。
 
-### Excel実機照合キューの一括検証
+## Excel実機照合キュー
 
-`ExcelQueueVerification.bas` は、`EVAL_LOG.md` の XL-001〜XL-034 を
-1回のExcel操作で検証するためのマクロである。
-
-1. `ExcelQueueVerification.bas` を検証用ブックへインポートする。
-2. `RunExcelQueueVerification` を実行する。
-3. VBEのイミディエイトウィンドウに出力された `XL-001`〜`XL-034` の
-   `LOF` と `BYTES` を保存する。
-4. その出力を `EVAL_LOG.md` の照合結果へ反映する。
-
-`XL-026`〜`XL-032` は非有限数値境界（Val、通常算術、累乗、財務関数）を確認する。
-
-`XL-033` はクラス型配列の `As New` 要素を確認する。`ExcelQueueTicket.cls` と
-`ExcelQueueVerification.bas` を同じブックへインポートしてから一括マクロを実行し、
-`CODE=X TYPE=ExcelQueueTicket ERR=0` になるか、またはExcelのエラー番号を記録する。
-
-`XL-034` は Collection の列挙中 `Add` と Dictionary の `Keys` 列挙中 `Remove` を確認する。
-`COLADD` と `DICTREMOVE` の `SEEN`、`COUNT`、`ERR` を記録し、runnerの出力と比較する。
-
-`XL-023` の逐次モードLock境界はExcelがロック待ちになる場合があるため、
-一括実行ではスキップする。必要な場合だけ `RunExcelSequentialLockVerification`
-を単独実行し、応答が戻らなければ中断して結果を未照合として扱う。
-
-`XL-020` のSharedハンドル間Lock競合は照合済み（`SECONDERR=70`）のため、
-一括実行では再試行しない。
-
-Windowsでは、ブックの複製、VBAインポート、一時検証ディレクトリの初期化、
-Excel実行、結果保存を次のバッチで一括実行できる。バッチは自身のディレクトリへ
-移動してから実行するため、別の作業ディレクトリから起動してもよい。
-
-```bat
-sample\excel\eval-excel.cmd
-```
-
-実行前に`%TEMP%\vba-runner-xl-queue`を削除するため、Binary Writeの短い出力が
-前回ファイルの末尾データを引き継がない。生成された`ExcelQueueVerification.result`は
-各XL IDを対応する評価記録へ反映してからコミットする。
-
-### Windowsでの汎用Excelマクロ実行
-
-`run-excel-queue.ps1`は、WindowsでExcelを起動して、既にブックへインポート済みの
-プロシージャを実行し、マクロ自身が生成した結果ファイルを確認する汎用スクリプトである。
-モジュールの文字コード変換とインポートは、先に`vba-extractor`で行う。
-スクリプトはブックを開く前に、その自動化用Excelインスタンスだけの
-`AutomationSecurity`を`msoAutomationSecurityLow`へ設定する。これによりExcelが
-マクロを無効化した状態で開かれることを防ぐが、組織のポリシーで上書きされる場合がある。
-その場合は、ファイルのプロパティでブロックを解除するか、Trusted Locationから実行する。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
-  -Workbook .\test.xlsm -Module ExcelQueueVerification `
-  -Procedure RunExcelQueueVerification -Output .\ExcelQueueVerification.result
-```
-
-`-Module`は標準モジュールの名前、`-Procedure`はその中の`Public Sub`または
-`Public Function`の名前である。例えば上記のファイルでは、Excelが実行する名前は
-`test.xlsm!ExcelQueueVerification.RunExcelQueueVerification`になる。
-`Module1`や`ExcelQueueVerification`は実際のモジュール名と手続き名に置き換える必要があり、
-ファイル名や`.bas`の名前を手続き名として渡してはならない。
-
-`-Module`を省略すると、`-Procedure`をそのままExcelの実行名として扱う。`-Output`を
-省略した場合は、ブックと同じディレクトリの`ExcelQueueVerification.result`を確認する。
-`ExcelQueueVerification.bas`は`ThisWorkbook.Path`へ各結果行を直接書き込み、
-`Debug.Print`は補助的にImmediateウィンドウへも出力する。マクロ終了後、PowerShellが
-結果ファイルをシステムコードページからBOMなしUTF-8へ変換してからExcelを終了する。
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
-  -Workbook .\test.xlsm -Procedure Module1.Run -Output .\Module1.result
-```
-
-このコマンドはブックを保存せずに閉じる。指定したプロシージャが結果ファイルを生成しない
-場合は失敗するため、`-Output`にはそのプロシージャが生成するファイルを指定する。
-VBProjectへのアクセスが拒否された場合は、事前のモジュールインポートを完了してから実行する。
-
-マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
-日本語文字列のバイト列はExcelのシステムロケールに依存するため、
-出力された値をそのまま記録する。
+実Excel照合用のテストフィクスチャと実行手順は [`../../tests/excel/queue/`](../../tests/excel/queue/README.md) を参照してください。
 
 ## セットアップ
 
