@@ -26,19 +26,18 @@ after migration, use the structured records and the generated Markdown view.
    workflow. A single fuzzer or mutation run never marks the method complete.
 4. Independently reproduce every reported defect with the smallest practical command or scratch program. Do not change tracked files for unverified reports. Identify the responsible parser, evaluator, builtin, or LSP code before editing.
 5. After a defect is independently reproduced, run a horizontal-expansion investigation before editing. Delegate a bounded subtask to a second independent sub-agent: inspect the source for every analogous dispatch/evaluation path and report suspicious sites, without changing tracked files or reading TODO files/git history. Have the sub-agent add a scratch driver outside the repository only when source inspection identifies a plausible analogue; use focused tests for those candidates rather than broad test-suite runs. Record each confirmed analogue, ruled-out path, or unresolved real-Excel semantic question in the evaluation notes, and do not treat an unverified suspicion as a product bug.
-6. After implementing a verified defect, perform a root-cause design review
-   before declaring the evaluation complete. Ask whether the defect is caused
-   by duplicated conversion, dispatch, state, or validation logic rather than
-   only by a bad branch or missing condition. If a common abstraction is
-   missing because equivalent behavior is not shared, treat that lack of
-   commonization as the root cause: fix the abstraction in the same work item
-   (or create a justified refactoring TODO when it cannot be safely completed),
-   then repeat the horizontal expansion against every caller of the
-   abstraction. Add regression coverage for the original path and at least one
-   analogous path. Record the original symptom, the root cause, the
-   root-cause remediation, and the expanded paths in the Finding and
-   evaluation record. A local patch that leaves the identified common cause in
-   place is not a completed bug fix.
+6. After reproduction and horizontal expansion, follow the command's
+   root-cause analysis gate before editing. Delegate an independent sub-agent
+   to identify the direct cause, deeper design/state/flow cause, confirmed and
+   ruled-out analogues, confidence, and remediation options. Update the Finding
+   and evaluation record with that analysis before starting implementation.
+   Once the cause is confirmed, launch a separate bounded implementation task,
+   then have root verify that it addresses the recorded cause and adds
+   regression coverage for the original and analogous paths. Commonization
+   gaps are only one possible cause; also consider conversion, lifetime,
+   boundaries, evaluation order, error propagation, and name resolution. If
+   the cause remains uncertain, do not fix speculatively; record the unresolved
+   analysis and run the smallest additional check.
 7. For every evaluation run, write the structured evaluation record before
    staging a commit. Record the behavior, horizontal-expansion scope, cause
    key, confirmed/rule-out/unresolved paths, coverage reference, and next
