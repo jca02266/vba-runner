@@ -11,6 +11,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 -Workboo
 if errorlevel 1 exit /b 1
 powershell -NoProfile -ExecutionPolicy Bypass -File .\convert-to-utf8.ps1 "%~dp0ExcelQueueVerification.result"
 if errorlevel 1 exit /b 1
-powershell -NoProfile -ExecutionPolicy Bypass -File .\finalize-excel-queue.ps1 -Source "%~dp0ExcelQueueVerification.bas" -Result "%~dp0ExcelQueueVerification.result"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\finalize-excel-queue.ps1 -SourceDirectory "%~dp0" -Result "%~dp0ExcelQueueVerification.result"
 if errorlevel 1 exit /b 1
 endlocal

@@ -14,7 +14,8 @@ const campaignsDir = path.join(evalRoot, 'campaigns');
 const statesDir = path.join(evalRoot, 'states');
 const schemaFile = path.join(evalRoot, 'schema.yml');
 const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
-const excelQueueSource = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.bas');
+const excelQueueDir = path.join(root, 'tests', 'excel', 'queue');
+const excelQueueSource = path.join(excelQueueDir, 'ExcelQueueVerification.bas');
 const excelQueueResult = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.result');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
@@ -243,9 +244,13 @@ function validateExpectation(file, expectation, status) {
   }
 }
 
-function normalizedExcelSourceHash(file = excelQueueSource) {
-  const source = fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
-  return crypto.createHash('sha256').update(source, 'utf8').digest('hex');
+function normalizedExcelSourceHash(directory = excelQueueDir) {
+  const manifest = fs.readdirSync(directory)
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .sort()
+    .map((name) => `${name}\n${fs.readFileSync(path.join(directory, name), 'utf8').replace(/\r\n/g, '\n')}\n`)
+    .join('');
+  return crypto.createHash('sha256').update(manifest, 'utf8').digest('hex');
 }
 
 function excelIds(source) {

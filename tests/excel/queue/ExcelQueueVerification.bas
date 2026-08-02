@@ -84,6 +84,9 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyTimeSerialNegativeBoundaries
     VerifyInformationEmptyBoundaries
     VerifyLargeLiteralBoundaries
+    VerifyLargeLiteralValues
+    VerifyDefaultValueInformation
+    VerifyTimeSerialConsumers
 End Sub
 
 Private Sub VerifyDateDiffWBoundaries()
@@ -214,6 +217,59 @@ Private Sub VerifyLargeLiteralBoundaries()
     EmitResult "XL-044 HEX64 ERR=" & CStr(errNo)
     Err.Clear: value = CDec("&O777777777777777777777"): errNo = Err.Number
     EmitResult "XL-044 OCT-LARGE ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyLargeLiteralValues()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CLng("&HFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-045 HEX32", value, errNo
+    Err.Clear: value = CDec("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-045 HEX64", value, errNo
+    Err.Clear: value = CDec("&O777777777777777777777"): errNo = Err.Number
+    EmitValueAndType "XL-045 OCT-LARGE", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub EmitValueAndType(ByVal id As String, ByVal value As Variant, ByVal errNo As Long)
+    If errNo = 0 Then
+        EmitResult id & " VALUE=" & CStr(value) & " TYPE=" & TypeName(value)
+    Else
+        EmitResult id & " ERR=" & CStr(errNo)
+    End If
+End Sub
+
+Private Sub VerifyDefaultValueInformation()
+    Dim value As ExcelQueueDefaultValue, result As Boolean, errNo As Long
+    Set value = New ExcelQueueDefaultValue
+    On Error Resume Next
+    value.Value = "123"
+    Err.Clear: result = IsNumeric(value): errNo = Err.Number
+    EmitResult "XL-046 NUMERIC-STRING=" & CStr(result) & " ERR=" & CStr(errNo)
+    value.Value = DateSerial(2024, 1, 2)
+    Err.Clear: result = IsDate(value): errNo = Err.Number
+    EmitResult "XL-046 DATE=" & CStr(result) & " ERR=" & CStr(errNo)
+    value.Value = "not-a-date"
+    Err.Clear: result = IsDate(value): errNo = Err.Number
+    EmitResult "XL-046 TEXT=" & CStr(result) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyTimeSerialConsumers()
+    Dim value As Date, result As Variant, errNo As Long
+    value = TimeSerial(0, 0, -1)
+    On Error Resume Next
+    Err.Clear: result = Hour(value): errNo = Err.Number
+    EmitValueAndType "XL-047 HOUR", result, errNo
+    Err.Clear: result = Minute(value): errNo = Err.Number
+    EmitValueAndType "XL-047 MINUTE", result, errNo
+    Err.Clear: result = Second(value): errNo = Err.Number
+    EmitValueAndType "XL-047 SECOND", result, errNo
+    Err.Clear: result = Format(value, "hh:nn:ss"): errNo = Err.Number
+    EmitValueAndType "XL-047 FORMAT", result, errNo
+    Err.Clear: result = DateDiff("s", TimeSerial(0, 0, 0), value): errNo = Err.Number
+    EmitValueAndType "XL-047 DATEDIFF", result, errNo
     On Error GoTo 0
 End Sub
 

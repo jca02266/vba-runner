@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as yaml from 'js-yaml';
 
 const root = process.cwd();
@@ -117,7 +117,7 @@ const transitionRecord = `---
 id: EV-TEST-EVENTS
 candidateId: ${transitionCandidate}
 campaign: FZ-BUILTIN
-status: verified-no-bug
+status: in-progress
 priority: low
 focus: state event transition test
 findings: []
@@ -141,8 +141,10 @@ try {
     const firstClaim = run('claim', transitionCandidate);
     assert.equal(firstClaim.status, 0, firstClaim.stderr);
     transitionToken = JSON.parse(firstClaim.stdout).token;
-    const pending = run('complete', transitionCandidate, 'EV-00246', 'needs-excel-probe', transitionToken);
+    const pending = run('complete', transitionCandidate, 'EV-TEST-EVENTS', 'in-progress', transitionToken);
     assert.equal(pending.status, 0, pending.stderr);
+    writeFileSync(transitionEvaluation,
+        transitionRecord.replace('status: in-progress', 'status: verified-no-bug'));
     const secondClaim = run('claim', transitionCandidate);
     assert.equal(secondClaim.status, 0, secondClaim.stderr);
     transitionToken = JSON.parse(secondClaim.stdout).token;
@@ -150,7 +152,7 @@ try {
     assert.equal(resolved.status, 0, resolved.stderr);
     const events = yaml.load(readFileSync(transitionEvents, 'utf8')) as Array<Record<string, string>>;
     assert.equal(events.length, 2);
-    assert.equal(events[1].fromStatus, 'needs-excel-probe');
+    assert.equal(events[1].fromStatus, 'in-progress');
     assert.equal(events[1].status, 'verified-no-bug');
 } finally {
     const claim = `${root}/evaluation/states/${transitionCandidate}.claim.yml`;
@@ -266,7 +268,7 @@ console.log('[PASS] Excel probe synchronization');
 
 // A result is usable only when all required IDs, the completion marker, and
 // the normalized current source hash agree.
-const queueSource = `${root}/tests/excel/queue/ExcelQueueVerification.bas`;
+const queueDirectory = `${root}/tests/excel/queue`;
 const queueResult = `${root}/tests/excel/queue/ExcelQueueVerification.result`;
 const queueResultBody = existsSync(queueResult) ? readFileSync(queueResult, 'utf8') : null;
 const readyState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-READY.md`;
@@ -274,7 +276,11 @@ const readyStateBody = probeStateBody
     .replaceAll('EV-TEST-EXCEL-PROBE', 'EV-TEST-EXCEL-READY')
     .replace('status: needs-excel-probe', 'status: needs-excel')
     .replaceAll('XL-999', 'XL-001');
-const normalizedSource = readFileSync(queueSource, 'utf8').replace(/\r\n/g, '\n');
+const normalizedSource = readdirSync(queueDirectory)
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .sort()
+    .map((name) => `${name}\n${readFileSync(`${queueDirectory}/${name}`, 'utf8').replace(/\r\n/g, '\n')}\n`)
+    .join('');
 const sourceHash = createHash('sha256').update(normalizedSource, 'utf8').digest('hex');
 writeFileSync(readyState, readyStateBody);
 try {

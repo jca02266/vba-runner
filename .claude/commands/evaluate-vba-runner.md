@@ -182,7 +182,8 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`、分析対�
    `needs-excel` 件数が実際の未確定境界と一致することを確認する。
 
 `ExcelQueueVerification.result`は、全プローブ終了を示す`QUEUE_COMPLETE=True`と、現在の
-`ExcelQueueVerification.bas`をLFへ正規化したSHA-256が一致して初めて同期済みになる。
+キューからインポートする`.bas`、`.cls`、`.frm`一式をLFへ正規化したSHA-256が一致して
+初めて同期済みになる。
 実機ログの存在だけを根拠に`needs-excel`件数を減らしてはならない。また、評価記録を
 更新せずにログだけをコミットしてはならない。`validate`は導出された待ち段階と記録状態の
 不一致、および同期済み結果を待ち状態のまま残すことを拒否する。

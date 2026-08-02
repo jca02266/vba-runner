@@ -6,8 +6,9 @@
 
 ## ファイル
 
-- `ExcelQueueVerification.bas`: XL-001〜XL-044の検証マクロ
+- `ExcelQueueVerification.bas`: XL-001〜XL-047の検証マクロ
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
+- `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `eval-excel.cmd`: ブック複製、VBAインポート、Excel実行を一括するWindowsバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
@@ -34,7 +35,8 @@ tests\excel\queue\eval-excel.cmd
 `Debug.Print`はImmediateウィンドウにも出力するが、記録の正本は結果ファイルである。
 
 マクロは全プローブ終了後に`QUEUE_COMPLETE=True`を出力する。バッチはこの行を確認し、
-改行をLFへ正規化した`ExcelQueueVerification.bas`のSHA-256を
+インポート対象の`.bas`、`.cls`、`.frm`をファイル名順に並べ、改行をLFへ正規化した
+ソース一式のSHA-256を
 `QUEUE_SOURCE_SHA256=<hash>`として追記する。完了行がない結果や、現在のソースと
 ハッシュが異なる結果は評価状態の更新に使用しない。
 
@@ -58,7 +60,7 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
 - XL-026〜XL-032: 非有限数値境界
 - XL-033: クラス型配列の`As New`
 - XL-034: Collection列挙中の`Add`とDictionary Keys列挙中の`Remove`
-- XL-035〜XL-044: DateDiff、空配列、MIRR/SYD、On Error、Select Case、FormatNumber、TimeSerial、情報関数、過大リテラルの未照合境界
+- XL-035〜XL-047: DateDiff、空配列、MIRR/SYD、On Error、Select Case、FormatNumber、TimeSerial、情報関数、過大リテラルの境界
 
 XL-023の逐次モードLock境界はExcelが待機する可能性があるため、一括実行では
 スキップする。必要な場合だけ`RunExcelSequentialLockVerification`を単独実行し、

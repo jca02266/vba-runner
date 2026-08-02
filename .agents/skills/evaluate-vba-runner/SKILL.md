@@ -78,7 +78,7 @@ after migration, use the structured records and the generated Markdown view.
    Advance to `needs-excel` only when it reports that state, and classify the
    result only when it reports `result-ready`. The queue result is ready only
    when it contains all required IDs, the end-of-run completion marker, and a
-   SHA-256 matching the current normalized VBA source. `eval audit` never
+   SHA-256 matching the current normalized VBA source bundle. `eval audit` never
    changes status. `validate` rejects a pending status that disagrees with the
    derived phase and rejects a ready result left in a pending state. Excel
    verification is complete only when the evaluation leaves these statuses

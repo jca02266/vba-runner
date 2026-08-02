@@ -149,7 +149,7 @@
 | EV-00243 | FZ-BUILTIN | fixed | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 |
 | EV-00244 | FZ-BUILTIN | fixed | Double文字列指数オーバーフロー |
 | EV-00245 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の新規seed |
-| EV-00246 | FZ-BUILTIN | needs-excel-probe | 非有限数値のリテラル・演算結果 |
+| EV-00246 | FZ-BUILTIN | needs-excel | 非有限数値のリテラル・演算結果 |
 | EV-00247 | FZ-GRAMMAR | verified-no-bug | On Error状態の呼び出し境界 |
 | EV-00248 | FZ-BUILTIN | verified-no-bug | 全組み込み関数異常値ファズ再実行 |
 | EV-00249 | META-ENGINE | verified-no-bug | 数値・文字列・日付恒等式の別seed |
@@ -165,7 +165,7 @@
 | EV-00259 | META-ENGINE | fixed | COMスタブ引数変換横展開 |
 | EV-00260 | FZ-BUILTIN | fixed | Dictionary Nullキー境界 |
 | EV-00261 | FZ-BUILTIN | fixed | Collectionキー・インデックス境界 |
-| EV-00262 | FZ-BUILTIN | needs-excel-probe | 情報関数のVariant境界 |
+| EV-00262 | FZ-BUILTIN | needs-excel | 情報関数のVariant境界 |
 | EV-00263 | FZ-BUILTIN | fixed | 文字列関数のOptional境界 |
 | EV-00264 | FZ-BUILTIN | fixed | DateDiff・DatePart週境界 |
 | EV-00265 | FZ-BUILTIN | verified-no-bug | DateDiff w曜日境界 |
@@ -281,7 +281,7 @@
 | EV-00375 | META-ENGINE | verified-no-bug | Collection・Dictionary列挙変更境界 |
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
-| EV-00378 | FZ-BUILTIN | needs-excel-probe | TimeSerial負数コンポーネントの正規化 |
+| EV-00378 | FZ-BUILTIN | needs-excel | TimeSerial負数コンポーネントの正規化 |
 
 ## 状態集計
 
@@ -291,7 +291,7 @@
 | bug-found | 2 |
 | fixed | 190 |
 | known-limit | 1 |
-| needs-excel-probe | 3 |
+| needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 80 |
 
