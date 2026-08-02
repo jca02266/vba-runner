@@ -166,3 +166,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/nested-array-getter-assignment.test.ts
+  - id: MUT-ENGINE-020
+    title: COM mock SAFEARRAY getter境界
+    status: queued
+    priority: 1
+    focus: __progId__付き外部オブジェクトの配列Property Get
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/dynamic-array-getter-assignment.test.ts

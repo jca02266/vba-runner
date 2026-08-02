@@ -9704,6 +9704,12 @@ export class Evaluator {
                 if (typeof val === 'function' && val.length === 0) {
                     return val.call(obj);
                 }
+                // Host/COM properties may expose SAFEARRAY-like values
+                // without VBA ProcedureDeclaration metadata. Treat the
+                // evaluated value as a getter result for this assignment only.
+                if (Array.isArray(val) && (obj as any).__progId__) {
+                    (val as any).__vbaArrayReturn__ = true;
+                }
                 return val;
             }
         }
