@@ -345,7 +345,10 @@ function claim(id) {
   if (!item) throw new Error(`unknown campaign item ${id}`);
   if (item.status !== 'queued') throw new Error(`${id} is not queued (${item.status})`);
   const existingResult = readResults().get(id);
-  const resumable = existingResult && ['needs-excel', 'blocked', 'in-progress'].includes(existingResult.status);
+  // A verified finding is intentionally resumable: the discovery loop records
+  // the cause first, then a later remediation loop claims the same candidate
+  // and completes it as fixed after implementation and regression testing.
+  const resumable = existingResult && ['needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(existingResult.status);
   if (existingResult && !resumable) throw new Error(`${id} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
@@ -416,7 +419,7 @@ function complete(candidateId, evaluationId, status, token) {
   }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
   const previous = readResults().get(candidateId);
-  if (previous && !['needs-excel', 'blocked', 'in-progress'].includes(previous.status)) {
+  if (previous && !['needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
     throw new Error(`${candidateId} already has a terminal result`);
   }
   fs.mkdirSync(statesDir, { recursive: true });

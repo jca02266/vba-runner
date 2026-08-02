@@ -279,19 +279,21 @@
 | EV-00373 | META-ENGINE | fixed | As New変数の繰返しNothing境界 |
 | EV-00374 | FZ-GRAMMAR | verified-no-bug | 動的配列の再確保と消去境界 |
 | EV-00375 | META-ENGINE | needs-excel | Collection・Dictionary列挙変更境界 |
+| EV-00376 | FZ-GRAMMAR | bug-found | For内GoSub/Return復帰位置境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
+| bug-found | 1 |
 | fixed | 189 |
 | known-limit | 1 |
 | needs-excel | 10 |
 | retired | 1 |
 | verified-no-bug | 73 |
 
-横展開未解決経路: 221、実Excel待ち評価: 10
+横展開未解決経路: 222、実Excel待ち評価: 10
 
 ## 次の候補
 

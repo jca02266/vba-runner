@@ -182,3 +182,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/array-functions.test.ts
+  - id: FZ-GRAMMAR-021
+    title: For内GoSub/Return復帰位置境界
+    status: queued
+    priority: 1
+    focus: For・If反復中のGoSub/Return復帰位置と関数終了判定
+    priorCauseKey: gosub-return-loop-resumption
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/for-loop.test.ts

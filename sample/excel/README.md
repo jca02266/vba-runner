@@ -60,6 +60,28 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 `XL-020` のSharedハンドル間Lock競合は照合済み（`SECONDERR=70`）のため、
 一括実行では再試行しない。
 
+### Windowsでの自動実機検証
+
+WindowsでExcelがインストールされている場合は、PowerShellから次のコマンドで
+`test.xlsm`を開き、検証モジュールをその実行セッションへインポートして
+`RunExcelQueueVerification`を実行できる。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1
+```
+
+既定では、Debug.Printの出力を`sample/excel/ExcelQueueVerification.result`へUTF-8で保存し、
+保存後にExcelを終了する。別のブックまたは出力先を指定する場合は次のようにする。
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run-excel-queue.ps1 `
+  -Workbook .\test.xlsm -Output .\ExcelQueueVerification.result
+```
+
+このコマンドはブックを保存せずに閉じる。VBProjectへのアクセスが拒否された場合は、
+Excelの「トラストセンター → マクロの設定 → VBAプロジェクトオブジェクトモデルへの
+アクセスを信頼する」を有効にする必要がある。
+
 マクロは `%TEMP%\vba-runner-xl-queue` に検証ファイルを作成する。
 日本語文字列のバイト列はExcelのシステムロケールに依存するため、
 出力された値をそのまま記録する。
