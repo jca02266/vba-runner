@@ -304,15 +304,15 @@
 | EV-00398 | MUT-ENGINE | fixed | 1 | CallByName VbSet配列境界 |
 | EV-00399 | MUT-ENGINE | fixed | 0 | Property Let配列引数のクラス境界 |
 | EV-00400 | ROOT-CAUSE | fixed | 1 | BuiltinParamSpecのVBA引数契約不足 |
-| EV-00401 | MUT-ENGINE | bug-found | 1 | CallByName VbSet添字配列境界 |
+| EV-00401 | MUT-ENGINE | fixed | 1 | CallByName VbSet添字配列境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 1 |
-| bug-found | 4 |
-| fixed | 205 |
+| bug-found | 3 |
+| fixed | 206 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 89 |
