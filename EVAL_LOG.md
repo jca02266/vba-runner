@@ -278,7 +278,7 @@
 | EV-00372 | META-ENGINE | verified-no-bug | ディレクトリ読込とクラス名衝突の使い勝手境界 |
 | EV-00373 | META-ENGINE | fixed | As New変数の繰返しNothing境界 |
 | EV-00374 | FZ-GRAMMAR | verified-no-bug | 動的配列の再確保と消去境界 |
-| EV-00375 | META-ENGINE | needs-excel | Collection・Dictionary列挙変更境界 |
+| EV-00375 | META-ENGINE | verified-no-bug | Collection・Dictionary列挙変更境界 |
 | EV-00376 | FZ-GRAMMAR | fixed | For内GoSub/Return復帰位置境界 |
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
 
@@ -289,11 +289,11 @@
 | blocked | 1 |
 | fixed | 190 |
 | known-limit | 1 |
-| needs-excel | 10 |
+| needs-excel | 9 |
 | retired | 1 |
-| verified-no-bug | 74 |
+| verified-no-bug | 75 |
 
-横展開未解決経路: 222、実Excel待ち評価: 10
+横展開未解決経路: 220、実Excel待ち評価: 9
 
 ## 次の候補
 

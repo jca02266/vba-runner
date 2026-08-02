@@ -60,6 +60,18 @@ npx vba-extractor import empty_with_macro.xlsm src/vba output.xlsm --yes
 `XL-020` のSharedハンドル間Lock競合は照合済み（`SECONDERR=70`）のため、
 一括実行では再試行しない。
 
+Windowsでは、ブックの複製、VBAインポート、一時検証ディレクトリの初期化、
+Excel実行、結果保存を次のバッチで一括実行できる。バッチは自身のディレクトリへ
+移動してから実行するため、別の作業ディレクトリから起動してもよい。
+
+```bat
+sample\excel\eval-excel.cmd
+```
+
+実行前に`%TEMP%\vba-runner-xl-queue`を削除するため、Binary Writeの短い出力が
+前回ファイルの末尾データを引き継がない。生成された`ExcelQueueVerification.result`は
+各XL IDを対応する評価記録へ反映してからコミットする。
+
 ### Windowsでの汎用Excelマクロ実行
 
 `run-excel-queue.ps1`は、WindowsでExcelを起動して、既にブックへインポート済みの
