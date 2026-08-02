@@ -201,3 +201,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/byref.test.ts
+  - id: FZ-GRAMMAR-023
+    title: ReDim Preserveの下限変更境界
+    status: queued
+    priority: 1
+    focus: 動的配列のReDim Preserveで下限・次元・要素型を変更した場合の保持とエラー
+    priorCauseKey: redim-preserve-lower-bound-resize
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/array-functions.test.ts
