@@ -287,6 +287,7 @@
 | EV-00381 | FZ-BUILTIN | fixed | 金融関数の引数型と境界値 |
 | EV-00382 | FZ-BUILTIN | fixed | 金融キャッシュフロー検証の共通化 |
 | EV-00383 | FZ-GRAMMAR | verified-no-bug | ReDim Preserveの下限変更境界 |
+| EV-00384 | FZ-GRAMMAR | verified-no-bug | ParamArrayとByRef配列バインド境界 |
 
 ## 状態集計
 
@@ -298,7 +299,7 @@
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 82 |
+| verified-no-bug | 83 |
 
 横展開未解決経路: 215、実Excel待ち評価: 4
 
