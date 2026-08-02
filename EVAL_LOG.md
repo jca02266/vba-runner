@@ -284,6 +284,7 @@
 | EV-00378 | FZ-BUILTIN | needs-excel | TimeSerial負数コンポーネントの正規化 |
 | EV-00379 | FZ-BUILTIN | needs-excel | CallByNameと通常代入のProperty Let/Set種別境界 |
 | EV-00380 | FZ-BUILTIN | verified-no-bug | 情報関数の既定値と循環参照境界 |
+| EV-00381 | FZ-BUILTIN | fixed | 金融関数の引数型と境界値 |
 
 ## 状態集計
 
@@ -291,16 +292,16 @@
 |---|---:|
 | blocked | 1 |
 | bug-found | 2 |
-| fixed | 190 |
+| fixed | 191 |
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 81 |
 
-横展開未解決経路: 214、実Excel待ち評価: 4
+横展開未解決経路: 215、実Excel待ち評価: 4
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-140 | 2 | queued | IRR/MIRR/NPVの配列抽出・数値化・正負領域検証を共通ヘルパーへ統合 | yes |
