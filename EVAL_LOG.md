@@ -283,6 +283,7 @@
 | EV-00377 | FZ-GRAMMAR | verified-no-bug | ByRef・ParamArray引数境界 |
 | EV-00378 | FZ-BUILTIN | needs-excel | TimeSerial負数コンポーネントの正規化 |
 | EV-00379 | FZ-BUILTIN | needs-excel | CallByNameと通常代入のProperty Let/Set種別境界 |
+| EV-00380 | FZ-BUILTIN | verified-no-bug | 情報関数の既定値と循環参照境界 |
 
 ## 状態集計
 
@@ -294,9 +295,9 @@
 | known-limit | 1 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 80 |
+| verified-no-bug | 81 |
 
-横展開未解決経路: 213、実Excel待ち評価: 4
+横展開未解決経路: 214、実Excel待ち評価: 4
 
 ## 次の候補
 

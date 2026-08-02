@@ -1226,3 +1226,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/call-by-name.test.ts
+  - id: FZ-BUILTIN-138
+    title: 情報関数の既定値と循環参照境界
+    status: queued
+    priority: 1
+    focus: IsNumeric/IsDate/TypeName/VarTypeが既定プロパティと循環オブジェクトを一貫して判定するか
+    priorCauseKey: information-function-default-cycle-dispatch
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/information-functions.test.ts
