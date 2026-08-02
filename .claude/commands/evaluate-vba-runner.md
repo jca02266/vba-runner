@@ -202,3 +202,26 @@ resultをclaim付きで同じ状態へ遷移する。クラスや
 検証済みの内容（サンプル概要・使い勝手評価・改善提案・検証済みバグと根本原因）を
 日本語で簡潔にユーザーへ報告する。バグ修正が必要そうな場合でも、無断で実装には
 進まず、修正してよいかユーザーに確認する。
+
+## コミット後の待機
+
+評価コミット後の30分待機は、会話を占有するsleepや1分ごとの状態報告で実施しない。
+`scripts/eval-wait.sh`で待機プロセスをバックグラウンド起動し、IDだけを控える。
+待機中は他の会話や作業を継続できる。完了後に一度だけ`status`を確認し、次の評価へ進む。
+
+```bash
+wait_id="eval-$(date +%Y%m%d-%H%M%S)"
+./scripts/eval-wait.sh start 1800 "$wait_id"
+./scripts/eval-wait.sh status "$wait_id"
+```
+
+`status`が`state=done`になるまで次の評価を開始しない。待機を取り消す必要がある場合は、
+IDを指定して停止し、同じIDを再利用せず新しい待機を開始する。
+
+```bash
+./scripts/eval-wait.sh stop "$wait_id"
+./scripts/eval-wait.sh status "$wait_id"
+```
+
+`state=interrupted`は待機未完了を意味するため、コミット後30分の条件を満たしたとは
+扱わない。待機の状態ファイルはOSの一時ディレクトリに保存し、リポジトリへ追加しない。
