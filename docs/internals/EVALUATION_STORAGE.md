@@ -71,13 +71,17 @@ resultについても、次を `validate` / `audit` で検証する。
 - `directCauseKey`: 観測された不具合を直接生じさせた実装上の機構・経路。
 - `causeKey`: 直接原因を生んだ設計上の真因。横展開のグルーピングにも使う。
 
-`causeKey` は一意なIDではなく再利用可能な分類キーであるため、評価・バグの一意性は
-`EV-xxxxx`、`BUG-xxxxx`、候補IDで保証する。原因分析の対処状況は
-`directFixStatus` と `rootFixStatus` に分ける。真因を別候補で修正した場合は
-`rootFixCandidateId` と `rootFixCommit` を記録する。過去記録にないフィールドは移行時に
-推測して補完せず、新規のバグ記録から必須とする。
+`causeKey` は一意なIDではなく再利用可能な分類キーである。評価・バグは
+`EV-xxxxx`、`BUG-xxxxx`、真因分析は`RC-xxxxx`、真因対処は`ROOT-xxxxx`で一意にする。
+原因分析の対処状況は`directFixStatus` と `rootFixStatus` に分ける。真因対処が完了した
+場合は`rootFixTaskId` と `rootFixCommit` を記録する。`rootFixCandidateId`は旧方式との
+互換用であり、新しい真因対処では使用しない。
 
-原因キーだけでは分析の中身が抜け落ちるため、EV-00385以降の評価では
+評価記録には`rootCauseProcedureVersion`を付ける。`0`は手順未整備時代の旧記録、
+`1`は[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md) v1に従った記録である。
+番号がない記録は方式不明として確定根拠に使わない。
+
+原因キーだけでは分析の中身が抜け落ちるため、新方式の評価では
 `rootCauseAnalysis`を必須の構造化項目とする。次の項目をすべて記録する。
 
 - `status`: `confirmed`、`hypothesis`、`ruled-out`、`not-applicable`
@@ -88,6 +92,9 @@ resultについても、次を `validate` / `audit` で検証する。
 - `unresolved`: まだ確認できない経路・境界
 - `decision`: 共通化、局所修正、制限、TODO化の判断と次の対処
 
+新方式の`RC-xxxxx`と`ROOT-xxxxx`にも`procedureVersion: 1`を記録し、起点評価の
+`rootCauseProcedureVersion`と一致させる。
+
 `horizontalAudit`が挙動の横展開を記録するのに対し、`rootCauseAnalysis`はなぜその
 挙動になったかと対処方針を記録する。`scripts/eval.mjs validate`が必須項目と状態値を
 検証するため、真因分析を本文だけに書いて完了扱いにしてはならない。EV-00384以前の
@@ -95,6 +102,19 @@ resultについても、次を `validate` / `audit` で検証する。
 
 横展開調査は `confirmed`、`ruledOut`、`unresolved` の3分類で記録する。
 `unresolved` はバグ件数に含めず、実Excel照合などの待ち状態として扱う。
+
+### 真因仮説と対処タスクを分離
+
+最初の真因分析は確定情報ではない。`evaluation/root-causes/RC-xxxxx.md`へ
+`hypothesis`として登録し、別のサブエージェントによる補足・反証・確認レビューを
+追記する。独立した確認レビューがあり、未解決点が空の場合だけ`confirmed`にする。
+詳細な分析順序と確定条件は
+[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md)を正本とする。
+
+確定した真因だけを`evaluation/remediations/ROOT-xxxxx.md`の対処タスクへ変換する。
+対処タスクは評価候補と異なり、起点評価、変更対象・対象外、受入条件、回帰テスト、
+実装コミットを保持する。`remediation-next`は次の`queued`タスクを返し、
+`remediation-context`は実装担当へ渡す最小コンテキストを返す。
 
 ### coverageで候補を優先
 
@@ -115,6 +135,8 @@ resultについても、次を `validate` / `audit` で検証する。
 evaluation/
   evaluations/EV-xxxxx.md   # 1評価1ファイル。YAML + 詳細本文
   findings/BUG-xxxxx.md      # 評価で確認したバグ
+  root-causes/RC-xxxxx.md     # 真因仮説、独立レビュー、確定判断
+  remediations/ROOT-xxxxx.md  # 確定した真因への設計対処タスク
   campaigns/*.yml            # 探索候補と優先度・coverage対象
   states/*.claim.yml         # 実行中claim（TTL付き）
   states/*.result.yml        # 完了した候補と評価ID・状態
@@ -145,8 +167,8 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 - `coverageSnapshot`, `findings`, `tests`, `commit`
 - 実Excel照合を使う評価では、必要な出力IDを列挙した`excelProbeIds`
 - バグを確認した新規記録では `directCauseKey`, `causeKey`,
-  `directFixStatus`, `rootFixStatus`。`rootFixStatus: fixed` の場合は
-  `rootFixCandidateId` と `rootFixCommit` も必須。
+  `directFixStatus`, `rootFixStatus`。新方式で`rootFixStatus: fixed` の場合は
+  `rootCauseId`、`rootFixTaskId`、`rootFixCommit`も必須。
 - `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
   `horizontalAudit.unresolved`
 - EV-00385以降は`rootCauseAnalysis.status`, `directCause`, `designCause`,
@@ -205,6 +227,8 @@ npm run eval -- record <evaluation-file>
 npm run eval -- complete <candidate-id> <evaluation-id> <status> <claim-token>
 npm run eval -- transition <candidate-id> <evaluation-id> <status> <claim-token>
 npm run eval -- excel-sync <evaluation-id>
+npm run eval -- remediation-next
+npm run eval -- remediation-context <root-task-id>
 npm run eval -- validate
 npm run eval -- render EVAL_LOG.md
 ```
@@ -218,6 +242,8 @@ npm run eval -- render EVAL_LOG.md
 - `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
 - `transition`: 待ち状態、`blocked`、`in-progress`、`bug-found`の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
 - `excel-sync`: `excelProbeIds`、キューソース、実機結果を照合し、必要な待ち状態または`result-ready`をJSONで返す。状態は変更しない。
+- `remediation-next`: 確定済み真因から作成した次の`queued`対処タスクを返す。
+- `remediation-context`: 対処タスクと起点評価・FindingだけをJSONで返す。
 
 実Excel照合結果の反映は、ログファイルを置くだけでは完了しない。先に`excel-sync`で
 `result-ready`を確認し、runnerとの差異と未確定境界を本文の`unresolved`へ反映した後、
@@ -277,11 +303,12 @@ git commit
 ### 原因分析と二段階の対処
 
 直接修正だけで症状が消えても `rootFixStatus` は `unassessed` または `planned` のままに
-する。真因への対処が必要なら、現在の発見評価のコミットを完了してから、次のループで
-真因対処用の候補をclaimする。実装・回帰テスト・横展開確認が完了した時点で、元の評価
-または関連Findingの `rootFixStatus` を `fixed` に更新し、対処候補とコミットを紐付ける。
-真因が共通化不足でない場合も、変換、状態寿命、境界、評価順序、エラー伝播、名前解決
-など同じ二層分析を行う。
+する。真因への対処が必要なら、現在の発見評価のコミットを完了し、真因仮説の独立レビューを
+終えてから`ROOT-xxxxx`を作成する。`remediation-next`で選んだタスクを`in-progress`へ
+変更して実装し、受入条件・回帰テスト・横展開確認が完了した時点で`completed`とする。
+その後、元の評価または関連Findingの`rootFixStatus`を`fixed`に更新し、`rootFixTaskId`と
+コミットを紐付ける。真因が共通化不足でない場合も、変換、状態寿命、境界、評価順序、
+エラー伝播、名前解決など同じ二層分析を行う。
 
 ### 状態履歴
 

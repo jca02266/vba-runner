@@ -16,6 +16,7 @@
 * [Currency / Decimal 実装](DECIMAL_IMPLEMENTATION.md) - BigInt 固定小数点
 * [VBA エクスポート・インポート](VBA_EXPORT_IMPORT.md) - Office バイナリ処理
 * [評価記録とバグ探索状態](EVALUATION_STORAGE.md) - 評価履歴・探索キュー・横展開調査の永続化
+* [真因分析と対処タスク](ROOT_CAUSE_ANALYSIS.md) - 仮説、独立レビュー、設計対処の手順
 
 ## Plans
 

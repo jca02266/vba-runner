@@ -32,12 +32,16 @@ analysis; do not duplicate its taxonomy here.
 5. After a defect is independently reproduced, run a horizontal-expansion investigation before editing. Delegate a bounded subtask to a second independent sub-agent: inspect the source for every analogous dispatch/evaluation path and report suspicious sites, without changing tracked files or reading TODO files/git history. Have the sub-agent add a scratch driver outside the repository only when source inspection identifies a plausible analogue; use focused tests for those candidates rather than broad test-suite runs. Record each confirmed analogue, ruled-out path, or unresolved real-Excel semantic question in the evaluation notes, and do not treat an unverified suspicion as a product bug.
 6. After reproduction and horizontal expansion, follow the command's
    root-cause analysis gate before editing. Delegate an independent sub-agent
-   and require it to read `docs/internals/ROOT_CAUSE_ANALYSIS.md` first. The
-   report must follow that document's evidence and status format. Delegate an
-   independent sub-agent to identify the direct cause, deeper design/state/flow cause, confirmed and
-   ruled-out analogues, confidence, and remediation options. Update the Finding
-   and evaluation record with that analysis before starting implementation.
-   Once the cause is confirmed, launch a separate bounded implementation task,
+   and require it to read `docs/internals/ROOT_CAUSE_ANALYSIS.md` first. Register
+   its proposal as a hypothesis in `evaluation/root-causes/RC-xxxxx.md`; the
+   proposing agent never confirms its own hypothesis. Delegate at least one
+   different sub-agent to supplement, challenge, or confirm it, and continue
+   the smallest necessary source/test checks until the unresolved list is
+   empty. Update the Finding and evaluation record with the analysis before
+   starting implementation. Once root confirms the cause, define a separate
+   `evaluation/remediations/ROOT-xxxxx.md` task with scope, exclusions,
+   acceptance criteria, and tests, then launch a bounded implementation task
+   after the direct-fix commit,
    then have root verify that it addresses the recorded cause and adds
    regression coverage for the original and analogous paths. Commonization
    gaps are only one possible cause; also consider conversion, lifetime,
@@ -66,6 +70,12 @@ analysis; do not duplicate its taxonomy here.
    `unresolved`, and `decision`. Keep it separate from `horizontalAudit`:
    horizontal expansion records which paths were checked, while root-cause
    analysis records why the behavior occurred and how it will be addressed.
+   Set `rootCauseProcedureVersion` explicitly. Use `0` only for preserved
+   historical inline analysis, and `1` only when a linked `RC-xxxxx` follows
+   version 1 of `ROOT_CAUSE_ANALYSIS.md`, has independent confirmation, and no
+   unresolved questions. When reusing an older evaluation, inspect this field
+   first; never infer the procedure from the evaluation number or
+   `rootCauseAnalysis.status`.
    For every new Excel-comparison candidate, reserve the next unique `XL-xxx`
    in the evaluation record's `excelProbeIds`. Then add that probe to
    `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue

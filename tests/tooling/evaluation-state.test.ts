@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, readdirSync, unlinkSync, writeFileSync } from 'node:fs';
 import * as yaml from 'js-yaml';
 
 const root = process.cwd();
@@ -196,6 +196,77 @@ try {
 }
 
 console.log('[PASS] evaluation cause-layer validation');
+
+// Root-cause hypotheses require an independent review before a remediation
+// task can reference them. Remediation tasks are distinct from campaign items.
+const rootCauseProbe = `${root}/evaluation/root-causes/RC-99999.md`;
+const remediationProbe = `${root}/evaluation/remediations/ROOT-99999.md`;
+const rootCauseBody = `---
+id: RC-99999
+status: confirmed
+causeKey: vba-object-reference-value-classification-missing
+statement: test root cause
+proposedBy: test-proposer
+procedureVersion: 1
+originEvaluations:
+  - EV-00390
+evidence:
+  - test evidence
+alternatives: []
+unresolved: []
+reviews:
+  - reviewer: independent-test-reviewer
+    verdict: confirm
+    summary: test confirmation
+acceptanceCriteria:
+  - test criterion
+decision: create a remediation task
+---
+`;
+const remediationBody = `---
+id: ROOT-99999
+procedureVersion: 1
+status: queued
+priority: low
+title: test remediation
+rootCauseId: RC-99999
+causeKey: vba-object-reference-value-classification-missing
+originEvaluations:
+  - EV-00390
+originFindings:
+  - BUG-00386
+scope:
+  include:
+    - test include
+  exclude:
+    - test exclude
+acceptanceCriteria:
+  - test criterion
+tests: []
+---
+`;
+mkdirSync(`${root}/evaluation/root-causes`, { recursive: true });
+mkdirSync(`${root}/evaluation/remediations`, { recursive: true });
+writeFileSync(rootCauseProbe, rootCauseBody);
+writeFileSync(remediationProbe, remediationBody);
+try {
+    const validRootTask = run('validate');
+    assert.equal(validRootTask.status, 0, validRootTask.stderr);
+    const rootContext = run('remediation-context', 'ROOT-99999');
+    assert.equal(rootContext.status, 0, rootContext.stderr);
+    assert.equal(JSON.parse(rootContext.stdout).task.rootCauseId, 'RC-99999');
+    assert.equal(JSON.parse(rootContext.stdout).task.procedureVersion, 1);
+
+    writeFileSync(rootCauseProbe, rootCauseBody.replace('status: confirmed', 'status: hypothesis'));
+    const prematureTask = run('validate');
+    assert.notEqual(prematureTask.status, 0);
+    assert.match(prematureTask.stderr, /root cause RC-99999 is not confirmed/);
+} finally {
+    if (existsSync(rootCauseProbe)) unlinkSync(rootCauseProbe);
+    if (existsSync(remediationProbe)) unlinkSync(remediationProbe);
+}
+
+console.log('[PASS] root-cause review and remediation task validation');
 
 // Expected behavior must have a verified source before a terminal judgment.
 const expectationProbe = `${root}/evaluation/evaluations/EV-TEST-EXPECTATION.md`;

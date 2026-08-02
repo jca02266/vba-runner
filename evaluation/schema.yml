@@ -15,6 +15,7 @@ record:
     - priorCauseKey
     - directFixStatus
     - rootFixStatus
+    - rootFixTaskId
     - rootFixCandidateId
     - rootFixCommit
     - coverageSnapshot
@@ -23,6 +24,8 @@ record:
     - commit
     - horizontalAudit
     - rootCauseAnalysis
+    - rootCauseProcedureVersion
+    - rootCauseId
   required:
     - id
     - candidateId
@@ -41,8 +44,10 @@ record:
     - causeKey
     - directFixStatus
     - rootFixStatus
+    - rootFixTaskId
     - rootFixCandidateId
     - rootFixCommit
+    - rootCauseId
     - coverageSnapshot
     - commit
   statuses:
@@ -76,4 +81,57 @@ rootCauseAnalysis:
     - confirmed
     - ruledOut
     - unresolved
+    - decision
+remediationTask:
+  statuses:
+    - queued
+    - in-progress
+    - completed
+    - blocked
+    - cancelled
+  required:
+    - id
+    - status
+    - procedureVersion
+    - priority
+    - title
+    - causeKey
+    - rootCauseId
+    - originEvaluations
+    - originFindings
+    - scope
+    - acceptanceCriteria
+    - tests
+  arrays:
+    - originEvaluations
+    - originFindings
+    - acceptanceCriteria
+    - tests
+  scopeRequired:
+    - include
+    - exclude
+rootCauseCase:
+  statuses:
+    - hypothesis
+    - under-review
+    - confirmed
+    - rejected
+  reviewVerdicts:
+    - supplement
+    - challenge
+    - confirm
+    - reject
+  required:
+    - id
+    - status
+    - procedureVersion
+    - causeKey
+    - statement
+    - proposedBy
+    - originEvaluations
+    - evidence
+    - alternatives
+    - unresolved
+    - reviews
+    - acceptanceCriteria
     - decision

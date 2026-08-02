@@ -8,3 +8,5 @@
   Markdown links, exposed as `npm run check:docs`.
 * **Provenance**: Added generation, verification, source, and freshness
   metadata to the documentation hub and core guides.
+* **Root cause workflow**: Separated provisional analysis, independent review,
+  and durable remediation tasks in the evaluation process.

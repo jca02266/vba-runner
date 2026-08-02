@@ -10,6 +10,8 @@ const root = process.cwd();
 const evalRoot = path.join(root, 'evaluation');
 const recordsDir = path.join(evalRoot, 'evaluations');
 const findingsDir = path.join(evalRoot, 'findings');
+const remediationsDir = path.join(evalRoot, 'remediations');
+const rootCausesDir = path.join(evalRoot, 'root-causes');
 const campaignsDir = path.join(evalRoot, 'campaigns');
 const statesDir = path.join(evalRoot, 'states');
 const schemaFile = path.join(evalRoot, 'schema.yml');
@@ -52,6 +54,14 @@ function readFindings() {
     const record = readRecord(path.join(findingsDir, name));
     return [record.data.id, record];
   }));
+}
+
+function readRemediations() {
+  return files(remediationsDir, '.md').map((name) => readRecord(path.join(remediationsDir, name)));
+}
+
+function readRootCauses() {
+  return files(rootCausesDir, '.md').map((name) => readRecord(path.join(rootCausesDir, name)));
 }
 
 function readSchema() {
@@ -325,8 +335,9 @@ function validate(records = readRecords()) {
         throw new Error(`${file}: invalid ${key} ${data[key]}`);
       }
     }
-    if (data.rootFixStatus === 'fixed' && (!data.rootFixCandidateId || !data.rootFixCommit)) {
-      throw new Error(`${file}: fixed root cause requires rootFixCandidateId and rootFixCommit`);
+    if (data.rootFixStatus === 'fixed' &&
+        (!(data.rootFixTaskId || data.rootFixCandidateId) || !data.rootFixCommit)) {
+      throw new Error(`${file}: fixed root cause requires rootFixTaskId (or legacy rootFixCandidateId) and rootFixCommit`);
     }
     for (const key of schema.record.arrays ?? []) {
       if (data[key] !== undefined && !Array.isArray(data[key])) {
@@ -353,6 +364,17 @@ function validate(records = readRecords()) {
     }
     const evaluationNumber = Number.parseInt(String(data.id).replace(/^EV-/, ''), 10);
     const causeAnalysis = data.rootCauseAnalysis;
+    if (causeAnalysis !== undefined) {
+      if (![0, 1].includes(data.rootCauseProcedureVersion)) {
+        throw new Error(`${file}: rootCauseProcedureVersion must be 0 or 1`);
+      }
+      if (data.rootCauseProcedureVersion === 1 && !data.rootCauseId) {
+        throw new Error(`${file}: structured root cause analysis requires rootCauseId`);
+      }
+      if (data.rootCauseProcedureVersion === 0 && data.rootCauseId) {
+        throw new Error(`${file}: procedure version 0 must not claim a rootCauseId`);
+      }
+    }
     if (Number.isFinite(evaluationNumber) && evaluationNumber >= (schema.record.rootCauseAnalysisFrom ?? Number.MAX_SAFE_INTEGER)) {
       for (const key of schema.rootCauseAnalysis.required) {
         if (!causeAnalysis || (typeof causeAnalysis[key] !== 'string' && !Array.isArray(causeAnalysis[key]))) {
@@ -380,6 +402,8 @@ function validate(records = readRecords()) {
       }
     }
   }
+  const rootCauses = validateRootCauses(schema, records);
+  validateRemediations(schema, records, findings, rootCauses);
   const items = readCampaignItems();
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
   const results = readResults();
@@ -412,10 +436,151 @@ function validate(records = readRecords()) {
   return records;
 }
 
+function validateRootCauses(schema, records) {
+  const caseSchema = schema.rootCauseCase;
+  const evaluations = new Map(records.map((record) => [record.data.id, record.data]));
+  const cases = new Map();
+  for (const record of readRootCauses()) {
+    const { file, data } = record;
+    for (const key of caseSchema.required) {
+      if (data[key] === undefined || data[key] === null || data[key] === '') {
+        throw new Error(`${file}: missing ${key}`);
+      }
+    }
+    if (!/^RC-\d{5}$/.test(data.id)) throw new Error(`${file}: invalid root cause id ${data.id}`);
+    if (![1].includes(data.procedureVersion)) throw new Error(`${file}: unsupported root cause procedureVersion ${data.procedureVersion}`);
+    if (cases.has(data.id)) throw new Error(`${file}: duplicate root cause id ${data.id}`);
+    if (path.basename(file) !== `${data.id}.md`) throw new Error(`${file}: filename does not match ${data.id}`);
+    if (!caseSchema.statuses.includes(data.status)) throw new Error(`${file}: invalid root cause status ${data.status}`);
+    for (const key of ['originEvaluations', 'evidence', 'alternatives', 'unresolved', 'reviews', 'acceptanceCriteria']) {
+      if (!Array.isArray(data[key])) throw new Error(`${file}: ${key} must be an array`);
+    }
+    if (data.originEvaluations.length === 0) throw new Error(`${file}: originEvaluations must not be empty`);
+    for (const id of data.originEvaluations) {
+      const evaluation = evaluations.get(id);
+      if (!evaluation) throw new Error(`${file}: unknown origin evaluation ${id}`);
+      if (evaluation.causeKey !== data.causeKey || evaluation.rootCauseProcedureVersion !== data.procedureVersion) {
+        throw new Error(`${file}: ${id} causeKey ${evaluation.causeKey} does not match ${data.causeKey}`);
+      }
+    }
+    for (const [index, review] of data.reviews.entries()) {
+      if (!review || typeof review !== 'object' || Array.isArray(review)
+          || typeof review.reviewer !== 'string' || typeof review.summary !== 'string'
+          || !caseSchema.reviewVerdicts.includes(review.verdict)) {
+        throw new Error(`${file}: invalid review ${index + 1}`);
+      }
+      if (review.reviewer === data.proposedBy) {
+        throw new Error(`${file}: proposer cannot review its own root cause hypothesis`);
+      }
+    }
+    if (data.status === 'confirmed') {
+      if (data.reviews.length === 0 || !data.reviews.some((review) => review.verdict === 'confirm')) {
+        throw new Error(`${file}: confirmed root cause requires an independent confirming review`);
+      }
+      if (data.unresolved.length > 0) throw new Error(`${file}: confirmed root cause must not have unresolved questions`);
+      if (data.acceptanceCriteria.length === 0) throw new Error(`${file}: confirmed root cause requires acceptanceCriteria`);
+    }
+    cases.set(data.id, record);
+  }
+  for (const record of records) {
+    if (record.data.rootCauseId && !cases.has(record.data.rootCauseId)) {
+      throw new Error(`${record.file}: unknown rootCauseId ${record.data.rootCauseId}`);
+    }
+  }
+  return cases;
+}
+
+function validateRemediations(schema, records, findings, rootCauses) {
+  const taskSchema = schema.remediationTask;
+  const evaluations = new Map(records.map((record) => [record.data.id, record.data]));
+  const seen = new Set();
+  for (const task of readRemediations()) {
+    const { file, data } = task;
+    for (const key of taskSchema.required) {
+      if (data[key] === undefined || data[key] === null || data[key] === '') {
+        throw new Error(`${file}: missing ${key}`);
+      }
+    }
+    if (!/^ROOT-\d{5}$/.test(data.id)) throw new Error(`${file}: invalid remediation id ${data.id}`);
+    if (seen.has(data.id)) throw new Error(`${file}: duplicate remediation id ${data.id}`);
+    seen.add(data.id);
+    if (path.basename(file) !== `${data.id}.md`) throw new Error(`${file}: filename does not match ${data.id}`);
+    if (!taskSchema.statuses.includes(data.status)) throw new Error(`${file}: invalid remediation status ${data.status}`);
+    for (const key of taskSchema.arrays) {
+      if (!Array.isArray(data[key])) throw new Error(`${file}: ${key} must be an array`);
+    }
+    for (const key of taskSchema.scopeRequired) {
+      if (!data.scope || !Array.isArray(data.scope[key])) throw new Error(`${file}: scope.${key} must be an array`);
+    }
+    if (data.originEvaluations.length === 0) throw new Error(`${file}: originEvaluations must not be empty`);
+    if (data.acceptanceCriteria.length === 0) throw new Error(`${file}: acceptanceCriteria must not be empty`);
+    for (const id of data.originEvaluations) {
+      const evaluation = evaluations.get(id);
+      if (!evaluation) throw new Error(`${file}: unknown origin evaluation ${id}`);
+      if (evaluation.causeKey !== data.causeKey) {
+        throw new Error(`${file}: ${id} causeKey ${evaluation.causeKey} does not match ${data.causeKey}`);
+      }
+    }
+    for (const id of data.originFindings) {
+      const finding = findings.get(id)?.data;
+      if (!finding) throw new Error(`${file}: unknown origin finding ${id}`);
+      if (finding.causeKey !== data.causeKey) {
+        throw new Error(`${file}: ${id} causeKey ${finding.causeKey} does not match ${data.causeKey}`);
+      }
+    }
+    const rootCause = rootCauses.get(data.rootCauseId)?.data;
+    if (!rootCause) throw new Error(`${file}: unknown rootCauseId ${data.rootCauseId}`);
+    if (rootCause.status !== 'confirmed') throw new Error(`${file}: root cause ${data.rootCauseId} is not confirmed`);
+    if (rootCause.causeKey !== data.causeKey) {
+      throw new Error(`${file}: root cause ${data.rootCauseId} does not match ${data.causeKey}`);
+    }
+    if (data.procedureVersion !== rootCause.procedureVersion) {
+      throw new Error(`${file}: procedureVersion does not match root cause ${data.rootCauseId}`);
+    }
+    if (data.status === 'completed') {
+      if (typeof data.commit !== 'string' || data.commit.trim() === '') {
+        throw new Error(`${file}: completed remediation requires commit`);
+      }
+      if (data.tests.length === 0) throw new Error(`${file}: completed remediation requires tests`);
+    } else if (data.commit !== undefined) {
+      throw new Error(`${file}: incomplete remediation must not have commit`);
+    }
+  }
+  for (const record of records) {
+    const taskId = record.data.rootFixTaskId;
+    if (taskId && !seen.has(taskId)) throw new Error(`${record.file}: unknown rootFixTaskId ${taskId}`);
+  }
+}
+
+function nextRemediation() {
+  const task = readRemediations()
+    .filter(({ data }) => data.status === 'queued')
+    .sort((a, b) => {
+      const rank = { critical: 0, high: 1, medium: 2, low: 3 };
+      return (rank[a.data.priority] ?? 99) - (rank[b.data.priority] ?? 99)
+        || String(a.data.id).localeCompare(String(b.data.id));
+    })[0];
+  if (!task) throw new Error('no queued remediation task');
+  console.log(JSON.stringify(task.data, null, 2));
+}
+
+function remediationContext(id) {
+  const task = readRemediations().find(({ data }) => data.id === id);
+  if (!task) throw new Error(`unknown remediation task ${id}`);
+  const records = readRecords();
+  const findings = readFindings();
+  console.log(JSON.stringify({
+    task: task.data,
+    evaluations: task.data.originEvaluations.map((evaluationId) =>
+      records.find(({ data }) => data.id === evaluationId)?.data),
+    findings: task.data.originFindings.map((findingId) => findings.get(findingId)?.data),
+  }, null, 2));
+}
+
 function render(records, output) {
   const rows = records
     .sort((a, b) => String(a.data.id).localeCompare(String(b.data.id), undefined, { numeric: true }))
-    .map(({ data }) => `| ${data.id} | ${data.campaign} | ${data.status} | ${data.focus} |`)
+    .map(({ data }) => `| ${data.id} | ${data.campaign} | ${data.status} | ${data.rootCauseProcedureVersion ?? ''} | ${data.focus} |`)
     .join('\n');
   const items = [...readCampaignItems().values()];
   const claims = readClaims();
@@ -437,8 +602,8 @@ function render(records, output) {
     '',
     'このファイルは `evaluation/evaluations/*.md` から生成されます。',
     '',
-    '| ID | キャンペーン | 状態 | 対象 |',
-    '|---|---|---|---|',
+    '| ID | キャンペーン | 状態 | 真因手順 | 対象 |',
+    '|---|---|---|---:|---|',
     rows,
     '',
     '## 状態集計',
@@ -581,7 +746,7 @@ function context(candidateId, limit = 5) {
     .filter(({ data }) => data.campaign === item.campaign || (item.priorCauseKey && data.causeKey === item.priorCauseKey))
     .sort((a, b) => String(b.data.id).localeCompare(String(a.data.id), undefined, { numeric: true }))
     .slice(0, Math.max(1, Math.min(limit, 10)));
-  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, expectation: data.expectation, directCauseKey: data.directCauseKey, causeKey: data.causeKey, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
+  console.log(JSON.stringify({ candidate: effectiveCandidate(item, results, claims), relatedEvaluations: related.map(({ data }) => ({ id: data.id, focus: data.focus, status: data.status, expectation: data.expectation, directCauseKey: data.directCauseKey, causeKey: data.causeKey, rootCauseProcedureVersion: data.rootCauseProcedureVersion, rootCauseId: data.rootCauseId, directFixStatus: data.directFixStatus, rootFixStatus: data.rootFixStatus, rootFixCandidateId: data.rootFixCandidateId, rootFixTaskId: data.rootFixTaskId, horizontalAudit: data.horizontalAudit })), uncovered: readCoverageTargets().slice(0, 20) }, null, 2));
 }
 
 function excelSync(evaluationId) {
@@ -685,7 +850,7 @@ function hash(file) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition|excel-sync> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition|excel-sync|remediation-next|remediation-context> [args]');
 }
 
 try {
@@ -713,6 +878,10 @@ try {
     context(process.argv[3], Number(process.argv[4]) || 5);
   } else if (command === 'excel-sync' && process.argv[3]) {
     excelSync(process.argv[3]);
+  } else if (command === 'remediation-next') {
+    nextRemediation();
+  } else if (command === 'remediation-context' && process.argv[3]) {
+    remediationContext(process.argv[3]);
   } else if (command === 'record' && process.argv[3]) {
     record(process.argv[3]);
   } else if (command === 'migrate' && process.argv[3] === '--dry-run') {
