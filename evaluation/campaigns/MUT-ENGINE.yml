@@ -157,3 +157,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/nested-array-getter-assignment.test.ts
+  - id: MUT-ENGINE-019
+    title: 動的型配列getter戻り値の受け渡し
+    status: verified-no-bug
+    priority: 1
+    focus: As Object/Variantの所有者を経由する配列Property Get
+    priorCauseKey: assignment-array-return-origin-dispatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/nested-array-getter-assignment.test.ts
