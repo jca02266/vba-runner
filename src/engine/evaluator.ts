@@ -101,7 +101,7 @@ import {
     tryParseTimeFractionString,
     parseFixedPointString, bankersDivide, parseCurrencyString,
     createAutoInstancePlaceholder, isAutoInstancePlaceholder,
-    isVbaObjectReferenceCompatible,
+    isVbaObjectReferenceCompatible, isVbaBoundObject,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
 export {
@@ -437,6 +437,11 @@ export class Environment {
         return undefined;
     }
 
+    /** Class-field metadata must not fall through to a caller's same-named variable. */
+    getOwnVariableType(name: string): VbaTypeInfo | undefined {
+        return this.variableTypes.get(name.toLowerCase());
+    }
+
     setArrayTypeInfo(name: string, value: any): void {
         if (!Array.isArray(value)) return;
         this.arrayTypeInfo.set(name.toLowerCase(), {
@@ -451,6 +456,10 @@ export class Environment {
         const key = name.toLowerCase();
         if (this.arrayTypeInfo.has(key)) return this.arrayTypeInfo.get(key);
         return this.enclosing?.getArrayTypeInfo(name);
+    }
+
+    getOwnArrayTypeInfo(name: string): { elementType?: string; elementTypeName?: string; elementObjectTypeName?: string; elementAutoNew?: boolean } | undefined {
+        return this.arrayTypeInfo.get(name.toLowerCase());
     }
 
     setVariantSubtype(name: string, subtype: VbaVarType): void {
@@ -600,6 +609,10 @@ export class Environment {
         if (this.withEventsVariables.has(key)) return true;
         if (this.enclosing) return this.enclosing.isWithEvents(name);
         return false;
+    }
+
+    hasOwnWithEvents(name: string): boolean {
+        return this.withEventsVariables.has(name.toLowerCase());
     }
 
     setConstant(name: string, value: any) {
@@ -844,6 +857,7 @@ interface ArgBinderParam {
 export class Evaluator {
     public env: Environment;          // Tier 3: Public cross-module names
     private builtinEnv!: Environment; // Tier 4: standard library
+    private globalEnv!: Environment;  // Stable Tier 3 parent; not replaced during calls
     private moduleEnvs: Map<string, Environment> = new Map(); // Tier 2: per-module vars
     private fileHandles: Map<number, {
         fd: number,
@@ -1017,6 +1031,7 @@ export class Evaluator {
         this.registerBuiltinExternalObjects(); // → typeLibraryNamespaces
         // Tier 3: globalEnv — cross-module public names, enclosing = builtinEnv
         this.env = new Environment(this.builtinEnv);
+        this.globalEnv = this.env;
     }
 
     // Public accessor for testing/mocking
@@ -1495,7 +1510,8 @@ export class Evaluator {
         if (!typeMembers) return 0;
 
         const instance: any = {
-            __vbaTypeName__: typeName
+            __vbaTypeName__: typeName,
+            __vbaUdt__: true
         };
         for (const member of typeMembers) {
             const mt = member.memberType;
@@ -1674,7 +1690,7 @@ export class Evaluator {
     private getOrCreateModuleEnv(moduleName: string): Environment {
         const key = (moduleName || 'module1').toLowerCase();
         if (!this.moduleEnvs.has(key)) {
-            this.moduleEnvs.set(key, new Environment(this.env));
+            this.moduleEnvs.set(key, new Environment(this.globalEnv));
         }
         return this.moduleEnvs.get(key)!;
     }
@@ -3225,9 +3241,9 @@ export class Evaluator {
         if (stmt.left.type === 'Identifier') {
             const name = (stmt.left as Identifier).name;
             const target = this.env.get(name);
-            if (target && typeof target === 'object' && (target as any).__vbaTypeName__ && !(target as any).__vbaClass__) {
+            if (target && typeof target === 'object' && (target as any).__vbaUdt__ === true) {
                 const source = this.evaluateExpression(stmt.right);
-                if (!(source && typeof source === 'object' && (source as any).__vbaTypeName__)) {
+                if (!(source && typeof source === 'object' && (source as any).__vbaUdt__ === true)) {
                     this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch: LSet target is a user-defined type but source is not');
                 }
                 const fieldNames = (obj: any) => Object.keys(obj).filter(k => !k.startsWith('__'));
@@ -3643,7 +3659,7 @@ export class Evaluator {
             }
             // UDTs are value types in VBA.  Assignment must not make the
             // destination share nested UDTs or arrays with the source.
-            if (val && typeof val === 'object' && val.__vbaTypeName__ && !val.__vbaClass__) {
+            if (val && typeof val === 'object' && val.__vbaUdt__ === true) {
                 val = this.deepCopyByValValue(val);
             }
             this.env.set(name, val);
@@ -3930,7 +3946,7 @@ export class Evaluator {
                         if (val.length > fl) val = val.slice(0, fl);
                         else if (val.length < fl) val = val + ' '.repeat(fl - val.length);
                     }
-                    instanceEnv.set(propName, val);
+                    instanceEnv.setLocally(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
                 // VBA は大文字小文字不問: アクセサ(setter)・プロトタイプも辿って実キーを解決する
@@ -3974,7 +3990,7 @@ export class Evaluator {
                         if (val.length > fl) val = val.slice(0, fl);
                         else if (val.length < fl) val = val + ' '.repeat(fl - val.length);
                     }
-                    instanceEnv.set(propName, val);
+                    instanceEnv.setLocally(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
                 this.rejectTypedArrayWholeAssignment(obj[propName], val, sourceExpr);
@@ -4236,8 +4252,11 @@ export class Evaluator {
     }
 
     private createInstanceFromDef(classDef: ClassDeclaration): any {
-        // Create instance environment rooted at the global env
-        const instanceEnv = new Environment(this.env);
+        // Keep module/global visibility without capturing the transient caller
+        // procedure environment as a class-field parent.
+        const moduleName = (this.executingModuleName || this.currentSourceModule || '').toLowerCase();
+        const parentEnv = this.moduleEnvs.get(moduleName) ?? this.globalEnv;
+        const instanceEnv = new Environment(parentEnv);
 
         // Bug CC: Track fixed-length string fields for enforcement on assignment
         const classFixedLengths: Record<string, number> = {};
@@ -5531,7 +5550,7 @@ export class Evaluator {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 const oldVal = this.getClassField(instanceEnv, propName);
                 this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
-                const isWithEvents = instanceEnv.isWithEvents(propName);
+                const isWithEvents = instanceEnv.hasOwnWithEvents(propName);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
@@ -5547,7 +5566,7 @@ export class Evaluator {
                     } else if (value === vbaNothing && oldVal !== value) {
                         this.triggerTerminate(oldVal);
                     }
-                    instanceEnv.set(propName, value);
+                    instanceEnv.setLocally(propName, value);
                     // obj.Field = New X 形式（外部からの WithEvents フィールド代入）でも
                     // バインドが行われるようにする。bare identifier 代入のみを見ていたため、
                     // member access 経由の代入では handler が一切ワイヤリングされず
@@ -5584,7 +5603,7 @@ export class Evaluator {
                 if (setter) {
                     this.callClassMethodWithExpressions(obj, setter, [stmt.right], [value]);
                 } else {
-                    instanceEnv.set(propName, value);
+                    instanceEnv.setLocally(propName, value);
                 }
             } else if (obj && typeof obj === 'object') {
                 this.rejectTypedArrayWholeAssignment(obj[propName], value, stmt.right);
@@ -7948,8 +7967,8 @@ export class Evaluator {
             if (obj?.__vbaClass__) {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 oldArr = this.getClassField(instanceEnv, propName);
-                setNewArr = (arr) => instanceEnv.set(propName, arr);
-                storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
+                setNewArr = (arr) => instanceEnv.setLocally(propName, arr);
+                storedArrayTypeInfo = instanceEnv.getOwnArrayTypeInfo(propName);
             } else {
                 oldArr = obj?.[propName];
                 setNewArr = (arr) => { obj[propName] = arr; };
@@ -7963,8 +7982,8 @@ export class Evaluator {
             if (obj?.__vbaClass__) {
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 oldArr = this.getClassField(instanceEnv, propName);
-                setNewArr = (arr) => instanceEnv.set(propName, arr);
-                storedArrayTypeInfo = instanceEnv.getArrayTypeInfo(propName);
+                setNewArr = (arr) => instanceEnv.setLocally(propName, arr);
+                storedArrayTypeInfo = instanceEnv.getOwnArrayTypeInfo(propName);
             } else {
                 oldArr = obj?.[propName];
                 setNewArr = (arr) => { obj[propName] = arr; };
@@ -9314,7 +9333,7 @@ export class Evaluator {
         const obj = this.resolveAutoInstance(expr.expression as any, raw);
         const typeName = expr.typeName.toLowerCase();
 
-        if (obj === null || obj === undefined || typeof obj !== 'object') return vbaFalse;
+        if (!isVbaBoundObject(obj)) return vbaFalse;
 
         // Check for built-in types
         if (typeName === 'object') return vbaTrue; // Everything that reaches here is an object
@@ -9590,7 +9609,7 @@ export class Evaluator {
             }
             return copy;
         }
-        if (value && typeof value === 'object' && value.__vbaTypeName__ && !value.__vbaClass__) {
+        if (value && typeof value === 'object' && value.__vbaUdt__ === true) {
             return this.deepCopyUdtValue(value);
         }
         return value;
@@ -9604,7 +9623,7 @@ export class Evaluator {
             const val = obj[key];
             if (Array.isArray(val)) {
                 copy[key] = this.deepCopyByValValue(val);
-            } else if (val && typeof val === 'object' && !val.__vbaClass__ && val.__vbaTypeName__) {
+            } else if (val && typeof val === 'object' && val.__vbaUdt__ === true) {
                 copy[key] = this.deepCopyUdtValue(val);
             } else {
                 copy[key] = val;
