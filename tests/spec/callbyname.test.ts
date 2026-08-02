@@ -31,11 +31,20 @@ function evalVBA(code: string): any {
         errNo = Err.Number
         TestVbSetArrayValueError = errNo
     End Function
+    Function TestVbSetScalarValueError() As Long
+        Dim h As New Holder, key(0 To 0) As Long, errNo As Long
+        On Error Resume Next
+        CallByName h, "Item", VbSet, key, 123
+        errNo = Err.Number
+        TestVbSetScalarValueError = errNo
+    End Function
     `;
     assert.strictEqual(runFunc(code, 'TestVbSetIndexedArray'), '7:payload',
         'CallByName VbSet preserves array property indexes and validates the final Object value');
     assert.strictEqual(runFunc(code, 'TestVbSetArrayValueError'), 424,
         'CallByName VbSet rejects an array as the final Object value');
+    assert.strictEqual(runFunc(code, 'TestVbSetScalarValueError'), 424,
+        'CallByName VbSet rejects a scalar as the final Object value');
     console.log('[PASS] CallByName VbSet indexed-array boundary');
 }
 
