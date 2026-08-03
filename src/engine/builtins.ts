@@ -917,6 +917,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             }
         }
         (result as any).vbaBase = 0;
+        (result as any).__vbaArrayReturn__ = true;
+        (result as any).__vbaArrayReturnType__ = 'String';
         return result;
     }, [
         { name: 'Expression' },
@@ -1043,6 +1045,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             return isInclude ? found : !found;
         });
         (result as any).vbaBase = 0;
+        (result as any).__vbaArrayReturn__ = true;
+        (result as any).__vbaArrayReturnType__ = 'Variant';
         return result;
     }, [
         { name: 'SourceArray' },
@@ -2017,6 +2021,8 @@ export function registerConstants(ctx: StdlibCtx): void {
         const base = ctx.arrayBase;
         const a: any[] = new Array(base).fill(undefined).concat(args);
         (a as any).vbaBase = base;
+        (a as any).__vbaArrayReturn__ = true;
+        (a as any).__vbaArrayReturnType__ = 'Variant';
         return a;
     }, [
         { name: 'Arglist', isParamArray: true },

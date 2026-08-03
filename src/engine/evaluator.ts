@@ -3624,11 +3624,14 @@ export class Evaluator {
         const typed = (existing as any).__vbaElementType__ ||
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
+        const returnType = (value as any).__vbaArrayReturnType__ as string | undefined;
         // A call expression alone does not prove that the value is a legal
         // typed-array return. Only an evaluated procedure/host getter that
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
-        if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+        if (typed && (!isArrayReturn || (returnType && returnType.toLowerCase() !== String(typed).toLowerCase()))) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+        }
     }
 
     /** Class fields must not resolve through the caller's environment chain. */
