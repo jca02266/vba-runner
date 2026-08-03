@@ -74,6 +74,48 @@ ${seed}        Open "${path}" For ${mode} As #1
 
 console.log('[PASS] Sequential Lock/Unlock ranges normalize to the whole file');
 
+for (const mode of ['Input', 'Output', 'Append']) {
+    for (const range of ['-1 To 1', '1.5 To 2', '2 To 1']) {
+        const path = `sequential-invalid-${mode.toLowerCase()}-${range.replaceAll(' ', '').replace('.', '_')}.dat`;
+        const seed = mode === 'Input' || mode === 'Append'
+            ? `        Open "${path}" For Output As #1\n        Close #1\n`
+            : '';
+        const ev = evalVba(`
+        Function TestInvalidSequentialLock() As Long
+${seed}        Open "${path}" For ${mode} As #1
+        On Error Resume Next
+        Lock #1, ${range}
+        TestInvalidSequentialLock = Err.Number
+        Close #1
+        On Error GoTo 0
+    End Function
+`);
+        assert.strictEqual(ev.callProcedure('TestInvalidSequentialLock', []), 70,
+            `${mode} Lock ${range} raises Permission denied`);
+    }
+}
+
+for (const mode of ['Input', 'Output', 'Append']) {
+    const path = `sequential-zero-${mode.toLowerCase()}.dat`;
+    const seed = mode === 'Input' || mode === 'Append'
+        ? `        Open "${path}" For Output As #1\n        Close #1\n`
+        : '';
+    const ev = evalVba(`
+        Function TestZeroSequentialLock() As Long
+${seed}        Open "${path}" For ${mode} As #1
+        On Error Resume Next
+        Lock #1, 0 To 1
+        TestZeroSequentialLock = Err.Number
+        Close #1
+        On Error GoTo 0
+    End Function
+`);
+    assert.strictEqual(ev.callProcedure('TestZeroSequentialLock', []), 0,
+        `${mode} Lock 0 To 1 is accepted`);
+}
+
+console.log('[PASS] Sequential invalid Lock ranges raise Permission denied');
+
 {
     const ev = evalVba(`
         Function CrossHandleLock() As Long

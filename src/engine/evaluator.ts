@@ -3471,8 +3471,18 @@ export class Evaluator {
             ? `${requested.start ?? ''}:${requested.end ?? ''}`
             : '';
         // Sequential files do not have record ranges. VBA treats any supplied
-        // range as a request to lock or unlock the whole file.
+        // range as a request to lock or unlock the whole file, but validates
+        // an explicitly supplied range before applying that normalization.
         if (mode === 'Input' || mode === 'Output' || mode === 'Append') {
+            if (requested) {
+                const start = requested.start;
+                const end = requested.end;
+                if ((start !== undefined && (!Number.isFinite(start) || !Number.isInteger(start) || start < 0))
+                    || (end !== undefined && (!Number.isFinite(end) || !Number.isInteger(end) || end < 1))
+                    || (start !== undefined && end !== undefined && end < start)) {
+                    this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, "Permission denied");
+                }
+            }
             return { start: 0, end: Infinity, key };
         }
         if (!requested) return { start: 0, end: Infinity, key };
