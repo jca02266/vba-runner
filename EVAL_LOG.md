@@ -308,22 +308,21 @@
 | EV-00402 | MUT-ENGINE | fixed | 1 | クラスメソッドAs Object引数境界 |
 | EV-00403 | MUT-ENGINE | fixed | 1 | As Object配列引数のコンテナ境界 |
 | EV-00404 | MUT-ENGINE | fixed | 1 | Object配列要素のbound object代入境界 |
-| EV-00406 | ROOT-CAUSE | needs-excel-probe | 1 | 基数表記の桁幅・符号拡張横展開 |
-| EV-00407 | ROOT-CAUSE | needs-excel-probe | 1 | MIRR金利境界・計算精度横展開 |
-| EV-00408 | ROOT-CAUSE | needs-excel-probe | 1 | SYD中間値のError 5・Overflow境界横展開 |
+| EV-00406 | ROOT-CAUSE | bug-found | 1 | 基数表記の桁幅・符号拡張横展開 |
+| EV-00407 | ROOT-CAUSE | bug-found | 1 | MIRR金利境界・計算精度横展開 |
+| EV-00408 | ROOT-CAUSE | bug-found | 1 | SYD中間値のError 5・Overflow境界横展開 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 3 |
+| bug-found | 6 |
 | fixed | 210 |
 | known-limit | 1 |
-| needs-excel-probe | 3 |
 | retired | 1 |
 | verified-no-bug | 89 |
 
-横展開未解決経路: 237、実Excel待ち評価: 3
+横展開未解決経路: 237、実Excel待ち評価: 0
 
 ## 次の候補
 
