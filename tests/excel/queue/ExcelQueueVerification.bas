@@ -88,6 +88,54 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyDefaultValueInformation
     VerifyTimeSerialConsumers
     VerifyCallByNamePropertyKinds
+    VerifyRadixWidthBoundaries
+    VerifyMirrBoundaryMatrix
+    VerifySydErrorMatrix
+End Sub
+
+Private Sub VerifyRadixWidthBoundaries()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CByte("&HFF"): errNo = Err.Number
+    EmitValueAndType "XL-049 CByte-FF", value, errNo
+    Err.Clear: value = CInt("&HFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-049 CInt-FFFF", value, errNo
+    Err.Clear: value = CLng("&HFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-049 CLng-FFFF", value, errNo
+    Err.Clear: value = CDec("&HFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-049 CDec-FFFF", value, errNo
+    Err.Clear: value = Val("&O777777"): errNo = Err.Number
+    EmitValueAndType "XL-049 Val-OCT", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrBoundaryMatrix()
+    Dim flows(0 To 1) As Double, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 100
+    On Error Resume Next
+    Err.Clear: result = MIRR(flows, -1.0001, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-050 FINANCE-LOW", result, errNo
+    Err.Clear: result = MIRR(flows, -0.9999, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-050 FINANCE-NEAR", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -1.0001): errNo = Err.Number
+    EmitValueAndType "XL-050 REINVEST-LOW", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -0.9999): errNo = Err.Number
+    EmitValueAndType "XL-050 REINVEST-NEAR", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifySydErrorMatrix()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = SYD(1E+308, 1E+308, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-051 SAME-SIGN", result, errNo
+    Err.Clear: result = SYD(1E+308, -1E+308, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-051 OPPOSITE-SIGN", result, errNo
+    Err.Clear: result = SYD(1E+307, -1E+307, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-051 FINITE-OPPOSITE", result, errNo
+    Err.Clear: result = SYD(1E+308, -1E+308, 2, 2): errNo = Err.Number
+    EmitValueAndType "XL-051 PERIOD-2", result, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyDateDiffWBoundaries()
