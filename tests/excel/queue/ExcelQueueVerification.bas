@@ -94,6 +94,7 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyRadixExtendedMatrix
     VerifyMirrCashflowMatrix
     VerifySydPositiveArgumentMatrix
+    VerifyMirrPrecisionMatrix
 End Sub
 
 Private Sub VerifyRadixWidthBoundaries()
@@ -183,6 +184,22 @@ Private Sub VerifySydPositiveArgumentMatrix()
     EmitValueAndType "XL-054 ZERO-COST", result, errNo
     Err.Clear: result = SYD(100, 1, 2, 1): errNo = Err.Number
     EmitValueAndType "XL-054 POSITIVE", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrPrecisionMatrix()
+    Dim flows(0 To 2) As Double, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 0: flows(2) = 100
+    On Error Resume Next
+    Err.Clear: result = MIRR(flows, -1.1, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-055 ZERO-MIDDLE-LOW", result, errNo
+    Err.Clear: result = MIRR(flows, -0.9999, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-055 ZERO-MIDDLE-NEAR", result, errNo
+    flows(1) = 100
+    Err.Clear: result = MIRR(flows, -1.1, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-055 POS-MIDDLE-LOW", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -1.1): errNo = Err.Number
+    EmitValueAndType "XL-055 POS-MIDDLE-REINVEST", result, errNo
     On Error GoTo 0
 End Sub
 
