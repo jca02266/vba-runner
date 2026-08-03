@@ -1,7 +1,7 @@
 /**
  * Financial Functions (§6.1.2.6) のテスト
  */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertClose } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -92,6 +92,26 @@ ev3.callProcedure('Test', []);
 assert.ok(Math.abs(ev3.env.get('resirr') - 0.16) < 0.05, 'IRR');
 assert.ok(Math.abs(ev3.env.get('resnpv') - 1188) < 100, 'NPV');
 console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
+
+// Excel may retain a machine-epsilon residue where the runner rounds MIRR to
+// zero. Compare this boundary with the shared absolute/relative policy rather
+// than treating harmless floating-point operation order as a regression.
+{
+    const ev = evalVBASingle(String.raw`
+    Public result
+    Sub Test()
+        Dim flows(0 To 1) As Double
+        flows(0) = -100
+        flows(1) = 100
+        result = MIRR(flows, -1.1, 0.1)
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assertClose(ev.env.get('result') as number, 2.22044604925031e-16, {
+        message: 'MIRR Excel epsilon boundary (XL-037)',
+    });
+}
+console.log('[PASS] MIRR Excel epsilon boundary comparison');
 
 // --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
 // Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため

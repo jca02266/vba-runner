@@ -471,6 +471,34 @@ export const assert = {
     },
 };
 
+/**
+ * Compare floating-point results using both absolute and relative tolerance.
+ *
+ * The default is a few machine epsilons: it accepts harmless operation-order
+ * differences while still rejecting ordinary numerical regressions. Callers
+ * can tighten or widen either bound for a domain-specific comparison.
+ */
+export function assertClose(
+    actual: number,
+    expected: number,
+    options: {
+        absolute?: number;
+        relative?: number;
+        message?: string;
+    } = {},
+): void {
+    const absolute = options.absolute ?? Number.EPSILON * 4;
+    const relative = options.relative ?? Number.EPSILON * 4;
+    const difference = Math.abs(actual - expected);
+    const scale = Math.max(1, Math.abs(actual), Math.abs(expected));
+    const tolerance = Math.max(absolute, relative * scale);
+    if (!(difference <= tolerance)) {
+        const label = options.message ?? 'Floating-point values are not close';
+        console.error(`[FAIL] ${label} - Expected ${expected} but got ${actual} (difference ${difference}, tolerance ${tolerance})`);
+        throw new Error('Assertion Failed');
+    }
+}
+
 /** Pass 1 (parse) コンパイルエラー専用アサーション。Parser.parse() のみを try で囲み ParseError を検証する。 */
 function assertCompileErrorImpl(opts: {
     label: string;
