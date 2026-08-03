@@ -314,7 +314,7 @@
 | EV-00409 | ROOT-CAUSE | fixed | 1 | 基数表記の追加幅・符号境界 |
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
 | EV-00411 | ROOT-CAUSE | fixed | 1 | SYD全引数正数境界 |
-| EV-00412 | ROOT-CAUSE | needs-excel | 1 | MIRR演算順序・epsilon再現性 |
+| EV-00412 | ROOT-CAUSE | verified-no-bug | 1 | MIRR演算順序・epsilon再現性 |
 
 ## 状態集計
 
@@ -323,11 +323,10 @@
 | bug-found | 2 |
 | fixed | 216 |
 | known-limit | 1 |
-| needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 90 |
+| verified-no-bug | 91 |
 
-横展開未解決経路: 241、実Excel待ち評価: 1
+横展開未解決経路: 241、実Excel待ち評価: 0
 
 ## 次の候補
 
