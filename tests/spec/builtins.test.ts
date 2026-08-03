@@ -209,6 +209,11 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Val rejects an Integer suffix on a non-integral value');
     assert.strictEqual(evalExpr('Val("&HFFFF")'), -1, 'Val sign-extends 16-bit hex values');
     assert.strictEqual(evalExpr('Val("&HFFFFFFFF")'), -1, 'Val sign-extends 32-bit hex values');
+    assert.strictEqual(evalExpr('CInt("&HFFFF")'), -1, 'CInt sign-extends 16-bit hex values');
+    assert.strictEqual(evalExpr('CInt("&H8000")'), -32768, 'CInt sign-extends the 16-bit boundary');
+    assert.strictEqual(evalExpr('CLng("&HFFFFFFFF")'), -1, 'CLng sign-extends 32-bit hex values');
+    assert.strictEqual(evalExpr('CDec("&HFFFFFFFFFFFFFFFF")').toString(), '-1',
+        'CDec sign-extends 64-bit hex values');
     assert.throwsMatch(() => evalExpr('Val("1.5&")'), /error '13'/,
         'Val rejects a fractional Long suffix');
     assert.throwsMatch(() => evalExpr('Val("1.5^")'), /error '13'/,

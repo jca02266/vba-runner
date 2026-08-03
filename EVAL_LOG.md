@@ -149,7 +149,7 @@
 | EV-00243 | FZ-BUILTIN | fixed |  | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 |
 | EV-00244 | FZ-BUILTIN | fixed |  | Double文字列指数オーバーフロー |
 | EV-00245 | META-ENGINE | verified-no-bug |  | 数値・文字列・日付恒等式の新規seed |
-| EV-00246 | FZ-BUILTIN | bug-found | 1 | 非有限数値のリテラル・演算結果 |
+| EV-00246 | FZ-BUILTIN | fixed | 1 | 非有限数値のリテラル・演算結果 |
 | EV-00247 | FZ-GRAMMAR | verified-no-bug |  | On Error状態の呼び出し境界 |
 | EV-00248 | FZ-BUILTIN | verified-no-bug |  | 全組み込み関数異常値ファズ再実行 |
 | EV-00249 | META-ENGINE | verified-no-bug |  | 数値・文字列・日付恒等式の別seed |
@@ -308,10 +308,10 @@
 | EV-00402 | MUT-ENGINE | fixed | 1 | クラスメソッドAs Object引数境界 |
 | EV-00403 | MUT-ENGINE | fixed | 1 | As Object配列引数のコンテナ境界 |
 | EV-00404 | MUT-ENGINE | fixed | 1 | Object配列要素のbound object代入境界 |
-| EV-00406 | ROOT-CAUSE | bug-found | 1 | 基数表記の桁幅・符号拡張横展開 |
+| EV-00406 | ROOT-CAUSE | fixed | 1 | 基数表記の桁幅・符号拡張横展開 |
 | EV-00407 | ROOT-CAUSE | bug-found | 1 | MIRR金利境界・計算精度横展開 |
 | EV-00408 | ROOT-CAUSE | bug-found | 1 | SYD中間値のError 5・Overflow境界横展開 |
-| EV-00409 | ROOT-CAUSE | bug-found | 1 | 基数表記の追加幅・符号境界 |
+| EV-00409 | ROOT-CAUSE | fixed | 1 | 基数表記の追加幅・符号境界 |
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
 | EV-00411 | ROOT-CAUSE | fixed | 1 | SYD全引数正数境界 |
 
@@ -319,8 +319,8 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 7 |
-| fixed | 211 |
+| bug-found | 4 |
+| fixed | 214 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 90 |

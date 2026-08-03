@@ -270,6 +270,23 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         return unwrapped;
     };
+    const parseRadixForWidth = (source: string, bits: 16 | 32 | 64): number | bigint | undefined => {
+        const text = normalizeVbaNumericString(source.trim());
+        const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
+        if (!match) return undefined;
+        const base = match[2].toLowerCase() === 'h' ? 16 : 8;
+        const digits = match[3];
+        if (base === 16 && !/^[0-9a-fA-F]+$/.test(digits)) return undefined;
+        if (base === 8 && !/^[0-7]+$/.test(digits)) return undefined;
+        const magnitude = BigInt(base === 16 ? `0x${digits}` : `0o${digits}`);
+        const fullDigits = base === 16 ? bits / 4 : Math.ceil(bits / 3);
+        const signBit = 1n << BigInt(bits - 1);
+        const modulus = 1n << BigInt(bits);
+        let value = magnitude;
+        if (match[1] === '-') value = -magnitude;
+        else if (digits.length >= fullDigits && magnitude >= signBit) value = magnitude - modulus;
+        return bits === 64 ? value : Number(value);
+    };
     ctx.reg('cbyte', (val: any) => {
         val = unwrapConversionValue(val);
         if (val instanceof VbaBoolean) return val.valueOf() ? 255 : 0;
@@ -279,13 +296,15 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('cint', (val: any) => {
         val = unwrapConversionValue(val);
-        const n = ctx.round(ctx.toVbaNumber(val));
+        const radix = typeof val === 'string' ? parseRadixForWidth(val, 16) : undefined;
+        const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -32768 || n > 32767) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
     ctx.reg('clng', (val: any) => {
         val = unwrapConversionValue(val);
-        const n = ctx.round(ctx.toVbaNumber(val));
+        const radix = typeof val === 'string' ? parseRadixForWidth(val, 32) : undefined;
+        const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -2147483648 || n > 2147483647) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
     }, [{ name: 'Expression' }]);
@@ -344,16 +363,8 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     const parseCDecString = (source: string): VbaDecimal => {
         const text = normalizeVbaNumericString(source.trim());
-        const hex = /^([+-]?)&[hH]([0-9a-fA-F]+)$/.exec(text);
-        if (hex) {
-            const sign = hex[1] === '-' ? -1n : 1n;
-            return new VbaDecimal(sign * BigInt(`0x${hex[2]}`), 0);
-        }
-        const oct = /^([+-]?)&[oO]([0-7]+)$/.exec(text);
-        if (oct) {
-            const sign = oct[1] === '-' ? -1n : 1n;
-            return new VbaDecimal(sign * BigInt(`0o${oct[2]}`), 0);
-        }
+        const radix = parseRadixForWidth(text, 64);
+        if (radix !== undefined) return new VbaDecimal(radix as bigint, 0);
         const grouped = /^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(text)
             || /^[+-]?\.\d+(?:[eE][+-]?\d+)?$/.test(text);
         if (grouped) return VbaDecimal.fromString(text.replace(/,/g, '').replace(/^\+/, ''));
