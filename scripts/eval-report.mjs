@@ -200,7 +200,7 @@ function aggregate(records) {
 }
 
 function timeSeries(records, results, findings, stateEvents) {
-  const events = records
+  const evaluationEvents = records
     .map((record) => ({
       record,
       result: results.get(record.id) ?? (record.legacyCompletedAt ? {
@@ -212,6 +212,13 @@ function timeSeries(records, results, findings, stateEvents) {
     .filter(({ result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt)))
     .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt)
       || Number(a.record.legacyNumber ?? 0) - Number(b.record.legacyNumber ?? 0));
+  const recordsById = new Map(records.map((record) => [record.id, record]));
+  const timeline = [
+    ...evaluationEvents.map((event) => ({ ...event, kind: 'evaluation', at: event.result.completedAt })),
+    ...stateEvents
+      .filter((event) => recordsById.has(event.evaluationId))
+      .map((event) => ({ event, kind: 'state', at: event.occurredAt })),
+  ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || (a.kind === 'evaluation' ? 1 : -1));
   let evaluations = 0;
   let discovered = 0;
   let fixed = 0;
@@ -219,40 +226,44 @@ function timeSeries(records, results, findings, stateEvents) {
   const resolvedFindingIds = new Set();
   const openFindingIds = new Set();
   const candidateStatuses = new Map();
-  let stateEventIndex = 0;
-  return events.map(({ record, result }) => {
-    evaluations += 1;
-    const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
-    const recordStatus = result.status ?? record.status;
-    const eventDate = Date.parse(result.completedAt);
-    while (stateEventIndex < stateEvents.length
-      && Date.parse(stateEvents[stateEventIndex].occurredAt) <= eventDate) {
-      const stateEvent = stateEvents[stateEventIndex];
-      candidateStatuses.set(stateEvent.candidateId, stateEvent.status);
-      stateEventIndex += 1;
-    }
-    // The result snapshot is authoritative at this evaluation's own point.
-    // State event timestamps can be written a few milliseconds after it.
-    candidateStatuses.set(record.candidateId ?? record.id, recordStatus);
-    const countFindings = !excludedFindingStatuses.has(recordStatus);
-    for (const finding of countFindings ? recordFindings : []) {
-      if (!discoveredFindingIds.has(finding.id)) {
-        discoveredFindingIds.add(finding.id);
-        discovered += 1;
-      }
-      // 判定は評価イベント時点の状態だけで行う。現在のFinding frontmatterを
-      // 参照して過去の未改修期間を後から消さない。
-      const resolvedAtDiscovery = resolvedFindingStatuses.has(recordStatus);
-      if (resolvedAtDiscovery) {
-        openFindingIds.delete(finding.id);
-        if (!resolvedFindingIds.has(finding.id)) {
-          resolvedFindingIds.add(finding.id);
-          fixed += 1;
-        }
-      } else if (!resolvedFindingIds.has(finding.id)) {
-        openFindingIds.add(finding.id);
+  const applyFindingStatus = (evaluationId, status) => {
+    const evaluation = recordsById.get(evaluationId);
+    if (!evaluation || excludedFindingStatuses.has(status)) return;
+    for (const findingId of new Set(evaluation.findings ?? [])) {
+      if (!findings.has(findingId)) continue;
+      discoveredFindingIds.add(findingId);
+      if (resolvedFindingStatuses.has(status)) {
+        openFindingIds.delete(findingId);
+        resolvedFindingIds.add(findingId);
+      } else if (!resolvedFindingIds.has(findingId)) {
+        openFindingIds.add(findingId);
       }
     }
+    fixed = resolvedFindingIds.size;
+  };
+  const rows = timeline.map((item) => {
+    let evaluationId;
+    let status;
+    let area;
+    if (item.kind === 'state') {
+      const stateEvent = item.event;
+      evaluationId = stateEvent.evaluationId;
+      status = stateEvent.status;
+      const record = recordsById.get(evaluationId);
+      area = areaFor(record?.focus);
+      candidateStatuses.set(stateEvent.candidateId, status);
+      applyFindingStatus(evaluationId, status);
+    } else {
+      const { record, result } = item;
+      evaluationId = record.id;
+      status = result.status ?? record.status;
+      area = areaFor(record.focus);
+      evaluations += 1;
+      // The result snapshot is authoritative at this evaluation's own point.
+      candidateStatuses.set(record.candidateId ?? record.id, status);
+      applyFindingStatus(record.id, status);
+    }
+    discovered = discoveredFindingIds.size;
     const stateCounts = [...candidateStatuses.values()].reduce((counts, status) => {
       if (status === 'verified-no-bug') counts.nonBug += 1;
       else if (status === 'bug-found' || status === 'fixed') counts.bug += 1;
@@ -261,10 +272,11 @@ function timeSeries(records, results, findings, stateEvents) {
       return counts;
     }, { bug: 0, nonBug: 0, pending: 0, other: 0 });
     return {
-      date: new Date(result.completedAt).toISOString(),
-      evaluationId: record.id,
-      status: result.status,
-      area: areaFor(record.focus),
+      date: new Date(item.at).toISOString(),
+      evaluationId,
+      evaluationPoint: item.kind === 'evaluation',
+      status,
+      area,
       evaluations,
       discovered,
       fixed,
@@ -275,6 +287,14 @@ function timeSeries(records, results, findings, stateEvents) {
       otherEvaluations: stateCounts.other,
     };
   });
+  return rows.filter((row, index) => {
+    if (index === 0) return true;
+    const previous = rows[index - 1];
+    return [
+      'evaluations', 'bugEvaluations', 'nonBugEvaluations', 'pendingEvaluations',
+      'otherEvaluations', 'discovered', 'fixed', 'openBugs',
+    ].some((key) => row[key] !== previous[key]);
+  });
 }
 
 function mdCell(value) {
@@ -283,7 +303,7 @@ function mdCell(value) {
 
 function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
-  const completed = series.length;
+  const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
   const pending = records.length - completed;
   const lines = [
     '# 評価レポート',
@@ -385,6 +405,7 @@ new Chart(document.getElementById('finding-chart'), {
 
 function renderHtml(records, statusRecords, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
+  const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
@@ -396,7 +417,7 @@ function renderHtml(records, statusRecords, summary, series, findingTypes) {
 <title>VBA Runner 評価レポート</title>
 <style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
-<p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
+<p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${completed}、日時未登録: ${records.length - completed}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
