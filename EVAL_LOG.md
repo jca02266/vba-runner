@@ -313,14 +313,14 @@
 | EV-00408 | ROOT-CAUSE | bug-found | 1 | SYD中間値のError 5・Overflow境界横展開 |
 | EV-00409 | ROOT-CAUSE | bug-found | 1 | 基数表記の追加幅・符号境界 |
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
-| EV-00411 | ROOT-CAUSE | bug-found | 1 | SYD全引数正数境界 |
+| EV-00411 | ROOT-CAUSE | fixed | 1 | SYD全引数正数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 8 |
-| fixed | 210 |
+| bug-found | 7 |
+| fixed | 211 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 90 |

@@ -297,6 +297,19 @@ console.log('[PASS] Bug 182-A: NPVの符号不足をエラー化');
 }
 console.log('[PASS] Bug 181-A: 財務関数の不正引数をエラー化');
 
+// SYD rejects a negative salvage value before the arithmetic result is classified.
+{
+    const ev = evalVBASingle(String.raw`
+    Function ProbeSydNegativeSalvage() As Long
+        On Error Resume Next
+        Dim ignored As Double: ignored = SYD(100, -1, 2, 1): ProbeSydNegativeSalvage = Err.Number
+    End Function
+    `);
+    assert.strictEqual(ev.callProcedure('ProbeSydNegativeSalvage', []), 5,
+        'SYD negative salvage is Error 5');
+}
+console.log('[PASS] SYD negative salvage domain');
+
 // Excel keeps this SLN result finite by scaling each operand before subtraction.
 {
     const ev = evalVBASingle(`
