@@ -95,6 +95,21 @@ function readResults() {
   return results;
 }
 
+function readStateEvents() {
+  const events = [];
+  for (const name of listFiles(statesDir, '.events.yml')) {
+    const loaded = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
+    if (!Array.isArray(loaded)) continue;
+    for (const event of loaded) {
+      if (event?.candidateId && event?.status && event?.occurredAt
+        && !Number.isNaN(Date.parse(event.occurredAt))) {
+        events.push(event);
+      }
+    }
+  }
+  return events.sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+}
+
 function readFindings() {
   const findingsDir = path.join(evaluationRoot, 'findings');
   const findings = new Map();
@@ -171,7 +186,7 @@ function aggregate(records) {
   return [...groups.values()].sort((a, b) => b.evaluations - a.evaluations || a.area.localeCompare(b.area));
 }
 
-function timeSeries(records, results, findings) {
+function timeSeries(records, results, findings, stateEvents) {
   const events = records
     .map((record) => ({
       record,
@@ -187,17 +202,28 @@ function timeSeries(records, results, findings) {
   let evaluations = 0;
   let discovered = 0;
   let fixed = 0;
-  let pendingEvaluations = 0;
   let nonBugEvaluations = 0;
   let bugEvaluations = 0;
   let otherEvaluations = 0;
   const discoveredFindingIds = new Set();
   const resolvedFindingIds = new Set();
   const openFindingIds = new Set();
+  const candidateStatuses = new Map();
+  let stateEventIndex = 0;
   return events.map(({ record, result }) => {
     evaluations += 1;
     const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
     const recordStatus = result.status ?? record.status;
+    const eventDate = Date.parse(result.completedAt);
+    while (stateEventIndex < stateEvents.length
+      && Date.parse(stateEvents[stateEventIndex].occurredAt) <= eventDate) {
+      const stateEvent = stateEvents[stateEventIndex];
+      candidateStatuses.set(stateEvent.candidateId, stateEvent.status);
+      stateEventIndex += 1;
+    }
+    // The result snapshot is authoritative at this evaluation's own point.
+    // State event timestamps can be written a few milliseconds after it.
+    candidateStatuses.set(record.candidateId ?? record.id, recordStatus);
     const countFindings = !excludedFindingStatuses.has(recordStatus);
     for (const finding of countFindings ? recordFindings : []) {
       if (!discoveredFindingIds.has(finding.id)) {
@@ -217,7 +243,6 @@ function timeSeries(records, results, findings) {
         openFindingIds.add(finding.id);
       }
     }
-    if (pendingEvaluationStatuses.has(result.status)) pendingEvaluations += 1;
     if (result.status === 'verified-no-bug') nonBugEvaluations += 1;
     if (result.status === 'bug-found' || result.status === 'fixed') bugEvaluations += 1;
     if (otherEvaluationStatuses.has(result.status)) otherEvaluations += 1;
@@ -230,7 +255,8 @@ function timeSeries(records, results, findings) {
       discovered,
       fixed,
       openBugs: openFindingIds.size,
-      pendingEvaluations,
+      pendingEvaluations: [...candidateStatuses.values()]
+        .filter((status) => pendingEvaluationStatuses.has(status)).length,
       nonBugEvaluations,
       bugEvaluations,
       otherEvaluations,
@@ -287,7 +313,7 @@ function renderMarkdown(records, summary, series, findingTypes) {
     '',
     '## 時系列の収束状況',
     '',
-    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした累積値です。日時未登録の評価は含みません。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。',
+    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした値です。日時未登録の評価は含みません。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。',
     '',
     '| 完了日時 | 評価ID | 状態 | 実装領域 | 累積評価 | バグ評価 | 非バグ評価 | 判定保留 | その他 | 発見Finding | 解決済みFinding | 未解決Finding |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
@@ -358,7 +384,7 @@ function renderHtml(records, summary, series, findingTypes) {
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${series.length}、日時未登録: ${records.length - series.length}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
-<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした累積値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位で累積評価件数と一致し、Finding列は別単位のバグ収束指標です。</p>
+<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>累積評価</th><th>バグ評価</th><th>非バグ評価</th><th>判定保留</th><th>その他</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>評価状態の意味と計上先</h2><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
@@ -389,7 +415,8 @@ function main() {
   const results = readResults();
   const summary = aggregate(records);
   const findings = readFindings();
-  const series = timeSeries(records, results, findings);
+  const stateEvents = readStateEvents();
+  const series = timeSeries(records, results, findings, stateEvents);
   const findingTypes = findingTypeSummary(records, findings);
   if (options.output) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
