@@ -91,6 +91,9 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyRadixWidthBoundaries
     VerifyMirrBoundaryMatrix
     VerifySydErrorMatrix
+    VerifyRadixExtendedMatrix
+    VerifyMirrCashflowMatrix
+    VerifySydPositiveArgumentMatrix
 End Sub
 
 Private Sub VerifyRadixWidthBoundaries()
@@ -135,6 +138,51 @@ Private Sub VerifySydErrorMatrix()
     EmitValueAndType "XL-051 FINITE-OPPOSITE", result, errNo
     Err.Clear: result = SYD(1E+308, -1E+308, 2, 2): errNo = Err.Number
     EmitValueAndType "XL-051 PERIOD-2", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyRadixExtendedMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CByte("&H80"): errNo = Err.Number
+    EmitValueAndType "XL-052 CByte-80", value, errNo
+    Err.Clear: value = CInt("&H8000"): errNo = Err.Number
+    EmitValueAndType "XL-052 CInt-8000", value, errNo
+    Err.Clear: value = CInt("&O77777"): errNo = Err.Number
+    EmitValueAndType "XL-052 CInt-OCT", value, errNo
+    Err.Clear: value = CLng("&HFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-052 CLng-FFFFFFFF", value, errNo
+    Err.Clear: value = CDec("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-052 CDec-FFFFFFFFFFFFFFFF", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrCashflowMatrix()
+    Dim flows(0 To 2) As Double, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    On Error Resume Next
+    Err.Clear: result = MIRR(flows, -1.1, 0.1): errNo = Err.Number
+    EmitValueAndType "XL-053 THREE-FLOW-FINANCE", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -1.1): errNo = Err.Number
+    EmitValueAndType "XL-053 THREE-FLOW-REINVEST", result, errNo
+    Err.Clear: result = MIRR(flows, 0.05, 0.05): errNo = Err.Number
+    EmitValueAndType "XL-053 THREE-FLOW-NORMAL", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifySydPositiveArgumentMatrix()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = SYD(100, -1, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-054 NEG-SALVAGE", result, errNo
+    Err.Clear: result = SYD(100, 0, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-054 ZERO-SALVAGE", result, errNo
+    Err.Clear: result = SYD(100, 100, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-054 EQUAL-COST", result, errNo
+    Err.Clear: result = SYD(0, 0, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-054 ZERO-COST", result, errNo
+    Err.Clear: result = SYD(100, 1, 2, 1): errNo = Err.Number
+    EmitValueAndType "XL-054 POSITIVE", result, errNo
     On Error GoTo 0
 End Sub
 
