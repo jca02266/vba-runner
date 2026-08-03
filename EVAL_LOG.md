@@ -311,22 +311,21 @@
 | EV-00406 | ROOT-CAUSE | bug-found | 1 | 基数表記の桁幅・符号拡張横展開 |
 | EV-00407 | ROOT-CAUSE | bug-found | 1 | MIRR金利境界・計算精度横展開 |
 | EV-00408 | ROOT-CAUSE | bug-found | 1 | SYD中間値のError 5・Overflow境界横展開 |
-| EV-00409 | ROOT-CAUSE | needs-excel | 1 | 基数表記の追加幅・符号境界 |
-| EV-00410 | ROOT-CAUSE | needs-excel | 1 | MIRR別キャッシュフローの境界精度 |
-| EV-00411 | ROOT-CAUSE | needs-excel | 1 | SYD全引数正数境界 |
+| EV-00409 | ROOT-CAUSE | bug-found | 1 | 基数表記の追加幅・符号境界 |
+| EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
+| EV-00411 | ROOT-CAUSE | bug-found | 1 | SYD全引数正数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 6 |
+| bug-found | 8 |
 | fixed | 210 |
 | known-limit | 1 |
-| needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 89 |
+| verified-no-bug | 90 |
 
-横展開未解決経路: 240、実Excel待ち評価: 3
+横展開未解決経路: 240、実Excel待ち評価: 0
 
 ## 次の候補
 
