@@ -149,7 +149,7 @@
 | EV-00243 | FZ-BUILTIN | fixed |  | 同一ファイルを共有するLock/Unlock範囲のハンドル間競合 |
 | EV-00244 | FZ-BUILTIN | fixed |  | Double文字列指数オーバーフロー |
 | EV-00245 | META-ENGINE | verified-no-bug |  | 数値・文字列・日付恒等式の新規seed |
-| EV-00246 | FZ-BUILTIN | bug-found | 0 | 非有限数値のリテラル・演算結果 |
+| EV-00246 | FZ-BUILTIN | bug-found | 1 | 非有限数値のリテラル・演算結果 |
 | EV-00247 | FZ-GRAMMAR | verified-no-bug |  | On Error状態の呼び出し境界 |
 | EV-00248 | FZ-BUILTIN | verified-no-bug |  | 全組み込み関数異常値ファズ再実行 |
 | EV-00249 | META-ENGINE | verified-no-bug |  | 数値・文字列・日付恒等式の別seed |
@@ -229,7 +229,7 @@
 | EV-00323 | FZ-BUILTIN | verified-no-bug |  | 文字列Compare列挙値境界 |
 | EV-00324 | FZ-BUILTIN | verified-no-bug |  | 金融関数Guess Null境界 |
 | EV-00325 | FZ-BUILTIN | fixed |  | 金融関数Type列挙値境界 |
-| EV-00326 | FZ-BUILTIN | bug-found |  | MIRR金利下限境界 |
+| EV-00326 | FZ-BUILTIN | bug-found | 1 | MIRR金利下限境界 |
 | EV-00327 | FZ-BUILTIN | verified-no-bug |  | Array Option Base境界 |
 | EV-00328 | FZ-BUILTIN | fixed |  | 名前付き引数の順序・重複境界 |
 | EV-00329 | FZ-BUILTIN | fixed |  | InStr Optional名前付き省略境界 |
@@ -257,7 +257,7 @@
 | EV-00351 | FZ-BUILTIN | fixed |  | SetAttr Directory属性境界 |
 | EV-00352 | FZ-BUILTIN | fixed |  | FSO DeleteFile Force属性境界 |
 | EV-00353 | FZ-BUILTIN | fixed |  | FSO DeleteFile ディレクトリ対象境界 |
-| EV-00354 | FZ-BUILTIN | bug-found |  | SYD巨大値の中間範囲境界 |
+| EV-00354 | FZ-BUILTIN | bug-found | 1 | SYD巨大値の中間範囲境界 |
 | EV-00355 | FZ-BUILTIN | verified-no-bug |  | Select Case比較経路の組み合わせ境界 |
 | EV-00356 | FZ-BUILTIN | verified-no-bug |  | 手続き引数束縛の組み合わせ境界 |
 | EV-00357 | FZ-BUILTIN | fixed |  | Lexer未終端文字列境界 |
@@ -319,7 +319,7 @@
 | retired | 1 |
 | verified-no-bug | 89 |
 
-横展開未解決経路: 229、実Excel待ち評価: 0
+横展開未解決経路: 234、実Excel待ち評価: 0
 
 ## 次の候補
 
