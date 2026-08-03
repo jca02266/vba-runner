@@ -3618,18 +3618,17 @@ export class Evaluator {
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
     private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
-        void sourceExpr;
         const isArrayReturn = Array.isArray(value) && (value as any).__vbaArrayReturn__ === true;
         if (isArrayReturn) delete (value as any).__vbaArrayReturn__;
         if (!Array.isArray(existing) || !Array.isArray(value) || allowArrayRebind) return;
         const typed = (existing as any).__vbaElementType__ ||
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
-        // Built-in calls return arrays without the user-procedure marker.
-        // A call expression is still a value-producing array-return boundary;
-        // plain identifiers and fields remain prohibited whole-array aliases.
-        const isCallReturn = sourceExpr?.type === 'CallExpression';
-        if (typed && !isArrayReturn && !isCallReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
+        // A call expression alone does not prove that the value is a legal
+        // typed-array return. Only an evaluated procedure/host getter that
+        // explicitly carries the array-return marker may bypass this guard.
+        void sourceExpr;
+        if (typed && !isArrayReturn) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
     }
 
     /** Class fields must not resolve through the caller's environment chain. */

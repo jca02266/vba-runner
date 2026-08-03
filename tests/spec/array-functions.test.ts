@@ -56,6 +56,27 @@ assert.strictEqual(v3.length, 3, '要素数は 3');
 assert.strictEqual(v3[0], "A", 'v(0) は "A"');
 console.log('[PASS] Array 関数');
 
+// A Variant array returned by Array/Split is not a typed Long() whole-array
+// assignment. Keep this boundary separate from Property Get array returns.
+{
+    for (const expression of [
+        'Array(1, 2)',
+        'Split("a,b", ",")',
+    ]) {
+        const ev = evalVBASingle(String.raw`
+            Function Probe() As Long
+                Dim values() As Long
+                On Error Resume Next
+                values = ${expression}
+                Probe = Err.Number
+            End Function
+        `);
+        assert.strictEqual(ev.callProcedure('Probe', []), 13,
+            `${expression} cannot replace a typed Long() array`);
+    }
+}
+console.log('[PASS] Variant array call results reject typed-array whole assignment');
+
 // --- Bug 28-1: ReDim Preserve で UDT 配列を拡張後、新インデックス要素が Error 424 ---
 {
     const udtPreserveCode = `

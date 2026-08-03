@@ -315,18 +315,19 @@
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
 | EV-00411 | ROOT-CAUSE | fixed | 1 | SYD全引数正数境界 |
 | EV-00412 | ROOT-CAUSE | verified-no-bug | 1 | MIRR演算順序・epsilon再現性 |
+| EV-00413 | ROOT-CAUSE | fixed | 1 | 旧配列戻り値分析のCallExpression境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 1 |
-| fixed | 216 |
+| fixed | 217 |
 | known-limit | 2 |
 | retired | 1 |
 | verified-no-bug | 91 |
 
-横展開未解決経路: 240、実Excel待ち評価: 0
+横展開未解決経路: 242、実Excel待ち評価: 0
 
 ## 次の候補
 
