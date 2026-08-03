@@ -23,7 +23,10 @@ const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
 // Findings are considered resolved only when the evaluation explicitly closes
 // the defect or classifies it as a known limit or withdrawn hypothesis.
 // Blocked evaluations remain unconfirmed and therefore unresolved.
-const resolvedFindingStatuses = new Set(['fixed', 'known-limit', 'retired']);
+const resolvedFindingStatuses = new Set(['fixed']);
+// Known limits and withdrawn candidates are evaluation outcomes, not findings
+// to include in discovery or convergence totals.
+const excludedFindingStatuses = new Set(['known-limit', 'retired']);
 const pendingEvaluationStatuses = new Set(['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'claimed']);
 const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
 
@@ -103,12 +106,14 @@ function readFindings() {
 }
 
 function findingCount(record) {
+  if (excludedFindingStatuses.has(record.status)) return 0;
   return new Set(Array.isArray(record.findings) ? record.findings : []).size;
 }
 
 function findingTypeSummary(records, findings) {
   const counts = new Map();
   for (const record of records) {
+    if (excludedFindingStatuses.has(record.status)) continue;
     for (const id of new Set(record.findings ?? [])) {
       const type = findings.get(id)?.discoveryType ?? 'unknown';
       counts.set(type, (counts.get(type) ?? 0) + 1);
@@ -193,7 +198,8 @@ function timeSeries(records, results, findings) {
     evaluations += 1;
     const recordFindings = [...new Set(record.findings ?? [])].map((id) => findings.get(id)).filter(Boolean);
     const recordStatus = result.status ?? record.status;
-    for (const finding of recordFindings) {
+    const countFindings = !excludedFindingStatuses.has(recordStatus);
+    for (const finding of countFindings ? recordFindings : []) {
       if (!discoveredFindingIds.has(finding.id)) {
         discoveredFindingIds.add(finding.id);
         discovered += 1;
@@ -274,8 +280,8 @@ function renderMarkdown(records, summary, series, findingTypes) {
     `| \`blocked\` | ${evaluationStatusCount(records, 'blocked')} | 外部要因・前提不足で進行不能 | 判定保留評価 | 未確定 |`,
     `| \`in-progress\` | ${evaluationStatusCount(records, 'in-progress')} | 評価または修正を実行中 | 判定保留評価 | 未確定 |`,
     `| \`claimed\` | ${evaluationStatusCount(records, 'claimed')} | 評価担当者が取得済み | 判定保留評価 | 未確定 |`,
-    `| \`known-limit\` | ${evaluationStatusCount(records, 'known-limit')} | 既知の仕様上の制限 | その他（制限事項） | 解決済みFinding |`,
-    `| \`retired\` | ${evaluationStatusCount(records, 'retired')} | 仮説または候補を取り下げ | その他 | 解決済みFinding |`,
+    `| \`known-limit\` | ${evaluationStatusCount(records, 'known-limit')} | 既知の仕様上の制限 | その他（制限事項） | 対象外 |`,
+    `| \`retired\` | ${evaluationStatusCount(records, 'retired')} | 仮説または候補を取り下げ | その他 | 対象外 |`,
     `| \`abandoned\` | ${evaluationStatusCount(records, 'abandoned')} | 評価を中止 | その他 | 対象外 |`,
     `| \`queued\` | ${evaluationStatusCount(records, 'queued')} | 評価待ち | その他 | 対象外 |`,
     '',
@@ -364,8 +370,8 @@ ${renderConvergenceChart(series)}
 <tr><td><code>blocked</code></td><td>${evaluationStatusCount(records, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>in-progress</code></td><td>${evaluationStatusCount(records, 'in-progress')}</td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
 <tr><td><code>claimed</code></td><td>${evaluationStatusCount(records, 'claimed')}</td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(records, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>解決済みFinding</td></tr>
-<tr><td><code>retired</code></td><td>${evaluationStatusCount(records, 'retired')}</td><td>仮説または候補を取り下げ</td><td>その他</td><td>解決済みFinding</td></tr>
+<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(records, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
+<tr><td><code>retired</code></td><td>${evaluationStatusCount(records, 'retired')}</td><td>仮説または候補を取り下げ</td><td>その他</td><td>対象外</td></tr>
 <tr><td><code>abandoned</code></td><td>${evaluationStatusCount(records, 'abandoned')}</td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
 <tr><td><code>queued</code></td><td>${evaluationStatusCount(records, 'queued')}</td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
