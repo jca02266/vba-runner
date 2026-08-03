@@ -257,7 +257,7 @@
 | EV-00351 | FZ-BUILTIN | fixed |  | SetAttr Directory属性境界 |
 | EV-00352 | FZ-BUILTIN | fixed |  | FSO DeleteFile Force属性境界 |
 | EV-00353 | FZ-BUILTIN | fixed |  | FSO DeleteFile ディレクトリ対象境界 |
-| EV-00354 | FZ-BUILTIN | bug-found | 1 | SYD巨大値の中間範囲境界 |
+| EV-00354 | FZ-BUILTIN | fixed | 1 | SYD巨大値の中間範囲境界 |
 | EV-00355 | FZ-BUILTIN | verified-no-bug |  | Select Case比較経路の組み合わせ境界 |
 | EV-00356 | FZ-BUILTIN | verified-no-bug |  | 手続き引数束縛の組み合わせ境界 |
 | EV-00357 | FZ-BUILTIN | fixed |  | Lexer未終端文字列境界 |
@@ -310,7 +310,7 @@
 | EV-00404 | MUT-ENGINE | fixed | 1 | Object配列要素のbound object代入境界 |
 | EV-00406 | ROOT-CAUSE | fixed | 1 | 基数表記の桁幅・符号拡張横展開 |
 | EV-00407 | ROOT-CAUSE | bug-found | 1 | MIRR金利境界・計算精度横展開 |
-| EV-00408 | ROOT-CAUSE | bug-found | 1 | SYD中間値のError 5・Overflow境界横展開 |
+| EV-00408 | ROOT-CAUSE | fixed | 1 | SYD中間値のError 5・Overflow境界横展開 |
 | EV-00409 | ROOT-CAUSE | fixed | 1 | 基数表記の追加幅・符号境界 |
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
 | EV-00411 | ROOT-CAUSE | fixed | 1 | SYD全引数正数境界 |
@@ -319,8 +319,8 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 4 |
-| fixed | 214 |
+| bug-found | 2 |
+| fixed | 216 |
 | known-limit | 1 |
 | retired | 1 |
 | verified-no-bug | 90 |
