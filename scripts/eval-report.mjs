@@ -141,6 +141,13 @@ function evaluationStatusCount(records, status) {
   return records.filter((record) => record.status === status).length;
 }
 
+function statusTableRecords(records, datedRecords) {
+  const dated = new Set(datedRecords);
+  const undatedPending = records.filter((record) =>
+    !dated.has(record) && pendingEvaluationStatuses.has(record.status));
+  return [...datedRecords, ...undatedPending];
+}
+
 function hasCompletedAt(record, results) {
   const result = results.get(record.id);
   const completedAt = result?.completedAt ?? record.legacyCompletedAt;
@@ -302,6 +309,8 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     '## 状態の計上先',
     '',
+    '完了日時付き評価を基本に集計し、日時未登録でも現在保留中の評価（needs-excel-probe等）は件数へ含めます。',
+    '',
     '| 評価状態 | 件数 | 意味 | 評価分類 | Finding計上 |',
     '|---|---:|---|---|---|',
     `| \`verified-no-bug\` | ${evaluationStatusCount(statusRecords, 'verified-no-bug')} | バグを再現せず評価完了 | 非バグ評価 | なし |`,
@@ -393,7 +402,7 @@ function renderHtml(records, statusRecords, summary, series, findingTypes) {
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><p>件数は時系列と同じく、完了日時を持つ294件だけを対象にしています。日時未登録10件は除外しています。</p><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
+<h2>評価状態の意味と計上先</h2><p>完了日時付き評価を基本に集計し、日時未登録でも現在保留中の評価（needs-excel-probe等）は件数へ含めます。時系列グラフは完了日時付き評価だけを対象にします。</p><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
 <tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(statusRecords, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
 <tr><td><code>bug-found</code></td><td>${evaluationStatusCount(statusRecords, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
 <tr><td><code>fixed</code></td><td>${evaluationStatusCount(statusRecords, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>解決済みFinding</td></tr>
@@ -423,7 +432,8 @@ function main() {
   const findings = readFindings();
   const stateEvents = readStateEvents();
   const series = timeSeries(records, results, findings, stateEvents);
-  const statusRecords = records.filter((record) => hasCompletedAt(record, results));
+  const datedStatusRecords = records.filter((record) => hasCompletedAt(record, results));
+  const statusRecords = statusTableRecords(records, datedStatusRecords);
   const findingTypes = findingTypeSummary(records, findings);
   if (options.output) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
