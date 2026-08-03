@@ -141,6 +141,33 @@ function evaluationStatusCount(records, status) {
   return records.filter((record) => record.status === status).length;
 }
 
+const rootCauseAnalysisStatuses = [
+  ['confirmed', '独立レビューと証拠確認が完了した真因'],
+  ['under-review', '仮説をレビュー中、未解決経路が残る'],
+  ['hypothesis', '初回の真因仮説として登録済み'],
+  ['rejected', '仮説を反証し、真因として採用しない'],
+  ['not-applicable', '不具合なし等で真因分析の対象外'],
+  ['未記録', 'rootCauseAnalysisがない、または状態が未設定'],
+];
+
+function rootCauseAnalysisStatusCounts(records) {
+  const counts = new Map(rootCauseAnalysisStatuses.map(([status]) => [status, { total: 0, v1: 0, legacy: 0 }]));
+  for (const record of records) {
+    const analysisStatus = record.rootCauseAnalysis?.status;
+    const status = rootCauseAnalysisStatuses.some(([name]) => name === analysisStatus)
+      ? analysisStatus : '未記録';
+    const count = counts.get(status);
+    count.total += 1;
+    if (record.rootCauseProcedureVersion === 1) count.v1 += 1;
+    else count.legacy += 1;
+  }
+  return rootCauseAnalysisStatuses.map(([status, meaning]) => ({
+    status,
+    meaning,
+    ...counts.get(status),
+  }));
+}
+
 function statusTableRecords(records, datedRecords) {
   const dated = new Set(datedRecords);
   const undatedPending = records.filter((record) =>
@@ -403,12 +430,13 @@ new Chart(document.getElementById('finding-chart'), {
 </script>`;
 }
 
-function renderHtml(records, statusRecords, summary, series, findingTypes) {
+function renderHtml(records, statusRecords, summary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
+  const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${row.v1}</td><td>${row.legacy}</td><td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
@@ -437,6 +465,7 @@ ${renderConvergenceChart(series)}
 <tr><td><code>abandoned</code></td><td>${evaluationStatusCount(statusRecords, 'abandoned')}</td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
 <tr><td><code>queued</code></td><td>${evaluationStatusCount(statusRecords, 'queued')}</td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
 </tbody></table>
+<h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}</tbody></table>
 </body></html>\n`;
 }
 
@@ -456,13 +485,14 @@ function main() {
   const datedStatusRecords = records.filter((record) => hasCompletedAt(record, results));
   const statusRecords = statusTableRecords(records, datedStatusRecords);
   const findingTypes = findingTypeSummary(records, findings);
+  const rootCauseStatuses = rootCauseAnalysisStatusCounts(records);
   if (options.output) {
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
     fs.writeFileSync(options.output, renderMarkdown(records, statusRecords, summary, series, findingTypes));
   }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
-    fs.writeFileSync(options.html, renderHtml(records, statusRecords, summary, series, findingTypes));
+    fs.writeFileSync(options.html, renderHtml(records, statusRecords, summary, series, findingTypes, rootCauseStatuses));
   }
   if (options.csv) {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });
