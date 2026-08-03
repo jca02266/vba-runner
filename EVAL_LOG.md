@@ -229,7 +229,7 @@
 | EV-00323 | FZ-BUILTIN | verified-no-bug |  | 文字列Compare列挙値境界 |
 | EV-00324 | FZ-BUILTIN | verified-no-bug |  | 金融関数Guess Null境界 |
 | EV-00325 | FZ-BUILTIN | fixed |  | 金融関数Type列挙値境界 |
-| EV-00326 | FZ-BUILTIN | bug-found | 1 | MIRR金利下限境界 |
+| EV-00326 | FZ-BUILTIN | known-limit | 1 | MIRR金利下限境界 |
 | EV-00327 | FZ-BUILTIN | verified-no-bug |  | Array Option Base境界 |
 | EV-00328 | FZ-BUILTIN | fixed |  | 名前付き引数の順序・重複境界 |
 | EV-00329 | FZ-BUILTIN | fixed |  | InStr Optional名前付き省略境界 |
@@ -320,13 +320,13 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
+| bug-found | 1 |
 | fixed | 216 |
-| known-limit | 1 |
+| known-limit | 2 |
 | retired | 1 |
 | verified-no-bug | 91 |
 
-横展開未解決経路: 241、実Excel待ち評価: 0
+横展開未解決経路: 240、実Excel待ち評価: 0
 
 ## 次の候補
 

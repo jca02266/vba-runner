@@ -1853,6 +1853,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         const v = requireMixedCashFlows(toCashFlowValues(values));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
+        // A zero reinvestment growth factor has no defined future-value
+        // denominator. Report VBA's argument error before the calculation
+        // reaches the generic non-finite-result path.
+        if (1 + rr === 0) invalidFinancialArg();
         const n = v.length - 1;
         let npv_neg = 0, npv_pos = 0;
         for (let t = 0; t < v.length; t++) {

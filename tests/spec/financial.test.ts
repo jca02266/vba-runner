@@ -113,6 +113,21 @@ console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
 }
 console.log('[PASS] MIRR Excel epsilon boundary comparison');
 
+// MIRR's exact -1 reinvestment boundary is an invalid argument (Excel Error 5).
+{
+    const ev = evalVBASingle(String.raw`
+    Function ProbeMirrReinvestBoundary() As Long
+        On Error Resume Next
+        Dim ignored As Double
+        ignored = MIRR(Array(-100, 100), 0.1, -1)
+        ProbeMirrReinvestBoundary = Err.Number
+    End Function
+    `);
+    assert.strictEqual(ev.callProcedure('ProbeMirrReinvestBoundary', []), 5,
+        'MIRR ReinvestRate=-1 is Error 5');
+}
+console.log('[PASS] MIRR ReinvestRate boundary error');
+
 // --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
 // Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため
 // values.map(Number) がインデックス 0 (undefined → NaN) を含んでいた
