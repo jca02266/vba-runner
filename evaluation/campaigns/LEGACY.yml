@@ -1,0 +1,8 @@
+id: LEGACY
+method: historical-migration
+items:
+  - id: LEGACY-EV-00100
+    title: 実Excel照合 #100: バイナリ配列の物理レイアウト
+    status: verified-no-bug
+    priority: 3
+    focus: 実Excel照合 #100: バイナリ配列の物理レイアウト
