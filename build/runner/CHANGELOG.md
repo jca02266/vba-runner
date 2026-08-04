@@ -2,6 +2,15 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.19] - 2026-08-05
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — corrected Object/UDT value
+  classification, array and CallByName assignment validation, typed-array
+  return contracts, numeric and financial boundaries, and class Optional
+  argument binding across the evaluator.
+
 ## [0.1.1-alpha.18] - 2026-07-29
 
 ### Fixed

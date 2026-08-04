@@ -2,6 +2,15 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.6] - 2026-08-05
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — corrected Object/UDT value
+  classification, array and CallByName assignment validation, typed-array
+  return contracts, numeric and financial boundaries, and class Optional
+  argument binding across the bundled evaluator.
+
 ## [0.3.5] - 2026-07-29
 
 ### Fixed
