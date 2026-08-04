@@ -309,7 +309,7 @@
 | EV-00403 | MUT-ENGINE | fixed | 1 | As Object配列引数のコンテナ境界 |
 | EV-00404 | MUT-ENGINE | fixed | 1 | Object配列要素のbound object代入境界 |
 | EV-00406 | ROOT-CAUSE | fixed | 1 | 基数表記の桁幅・符号拡張横展開 |
-| EV-00407 | ROOT-CAUSE | bug-found | 1 | MIRR金利境界・計算精度横展開 |
+| EV-00407 | ROOT-CAUSE | known-limit | 1 | MIRR金利境界・計算精度横展開 |
 | EV-00408 | ROOT-CAUSE | fixed | 1 | SYD中間値のError 5・Overflow境界横展開 |
 | EV-00409 | ROOT-CAUSE | fixed | 1 | 基数表記の追加幅・符号境界 |
 | EV-00410 | ROOT-CAUSE | verified-no-bug | 1 | MIRR別キャッシュフローの境界精度 |
@@ -322,9 +322,8 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
 | fixed | 218 |
-| known-limit | 2 |
+| known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 91 |
 
