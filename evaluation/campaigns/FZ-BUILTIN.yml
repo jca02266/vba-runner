@@ -1,6 +1,11 @@
 id: FZ-BUILTIN
 method: fuzzer
 items:
+  - id: FZ-BUILTIN-OTHER
+    title: Null既定Valueの型変換エラー
+    status: fixed
+    priority: 3
+    focus: Null既定Valueの型変換エラー
   - id: FZ-BUILTIN-001
     title: 既定Valueを受ける別の日付入力シード
     status: queued

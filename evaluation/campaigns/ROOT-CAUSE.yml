@@ -1,6 +1,41 @@
 id: ROOT-CAUSE
 method: historical-migration
 items:
+  - id: RCA-MULTI-BUILTIN-001
+    title: BuiltinParamSpecのVBA引数契約不足
+    status: fixed
+    priority: 3
+    focus: BuiltinParamSpecのVBA引数契約不足
+  - id: RCA-EXCEL-010
+    title: 基数表記の桁幅・符号拡張横展開
+    status: fixed
+    priority: 3
+    focus: 基数表記の桁幅・符号拡張横展開
+  - id: RCA-EXCEL-012
+    title: SYD中間値のError 5・Overflow境界横展開
+    status: fixed
+    priority: 3
+    focus: SYD中間値のError 5・Overflow境界横展開
+  - id: RCA-EXCEL-013
+    title: 基数表記の追加幅・符号境界
+    status: fixed
+    priority: 3
+    focus: 基数表記の追加幅・符号境界
+  - id: RCA-EXCEL-015
+    title: SYD全引数正数境界
+    status: fixed
+    priority: 3
+    focus: SYD全引数正数境界
+  - id: RCA-LEGACY-ARRAY-001
+    title: 旧配列戻り値分析のCallExpression境界
+    status: fixed
+    priority: 3
+    focus: 旧配列戻り値分析のCallExpression境界
+  - id: RCA-LEGACY-OPTIONAL-001
+    title: Class名前付きOptionalの中間省略
+    status: fixed
+    priority: 3
+    focus: Class名前付きOptionalの中間省略
   - id: RCA-EXCEL-014
     title: MIRR別キャッシュフローの境界精度
     status: verified-no-bug

@@ -1,0 +1,4 @@
+- candidateId: RCA-LEGACY-ARRAY-001
+  evaluationId: EV-00413
+  status: fixed
+  occurredAt: '2026-08-04T07:25:17+09:00'

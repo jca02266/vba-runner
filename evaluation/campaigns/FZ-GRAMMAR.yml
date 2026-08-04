@@ -1,6 +1,16 @@
 id: FZ-GRAMMAR
 method: fuzzer
 items:
+  - id: LEGACY-EV-00180
+    title: 16進・8進リテラルの符号とサフィックス
+    status: fixed
+    priority: 3
+    focus: 16進・8進リテラルの符号とサフィックス
+  - id: LEGACY-EV-00183
+    title: LongLong/LongPtrリテラルの64ビット境界
+    status: fixed
+    priority: 3
+    focus: LongLong/LongPtrリテラルの64ビット境界
   - id: LEGACY-EV-00188
     title: 外部CallByNameのスカラーByRef境界
     status: verified-no-bug

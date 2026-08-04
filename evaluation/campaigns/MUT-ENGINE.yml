@@ -1,6 +1,21 @@
 id: MUT-ENGINE
 method: mutation
 items:
+  - id: LEGACY-EV-00181
+    title: On Error Resume NextのErr.Source更新
+    status: fixed
+    priority: 3
+    focus: On Error Resume NextのErr.Source更新
+  - id: LEGACY-EV-00182
+    title: FSO追記とクラスByVal引数の相互作用
+    status: fixed
+    priority: 3
+    focus: FSO追記とクラスByVal引数の相互作用
+  - id: LEGACY-EV-00184
+    title: Select CaseのLongLong比較と呼出し経路横展開
+    status: fixed
+    priority: 3
+    focus: Select CaseのLongLong比較と呼出し経路横展開
   - id: LEGACY-EV-00187
     title: Append/Inputの混在ハンドル境界
     status: verified-no-bug
