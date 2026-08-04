@@ -1,6 +1,11 @@
 id: FZ-GRAMMAR
 method: fuzzer
 items:
+  - id: LEGACY-EV-00188
+    title: 外部CallByNameのスカラーByRef境界
+    status: verified-no-bug
+    priority: 3
+    focus: 外部CallByNameのスカラーByRef境界
   - id: FZ-GRAMMAR-001
     title: 別の型サフィックス境界
     status: queued

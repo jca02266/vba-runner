@@ -6,3 +6,8 @@ items:
     status: verified-no-bug
     priority: 3
     focus: MIRR別キャッシュフローの境界精度
+  - id: RCA-EXCEL-016
+    title: MIRR演算順序・epsilon再現性
+    status: verified-no-bug
+    priority: 3
+    focus: MIRR演算順序・epsilon再現性

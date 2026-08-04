@@ -1,6 +1,11 @@
 id: MUT-ENGINE
 method: mutation
 items:
+  - id: LEGACY-EV-00187
+    title: Append/Inputの混在ハンドル境界
+    status: verified-no-bug
+    priority: 3
+    focus: Append/Inputの混在ハンドル境界
   - id: MUT-ENGINE-001
     title: ファイルI/Oの別EOF/Append境界
     status: queued
