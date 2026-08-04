@@ -1,6 +1,11 @@
 id: ROOT-CAUSE
 method: historical-migration
 items:
+  - id: RCA-EXCEL-011
+    title: MIRR金利境界・計算精度横展開
+    status: known-limit
+    priority: 3
+    focus: MIRR金利境界・計算精度横展開
   - id: RCA-MULTI-BUILTIN-001
     title: BuiltinParamSpecのVBA引数契約不足
     status: fixed
