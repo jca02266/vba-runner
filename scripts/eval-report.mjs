@@ -181,6 +181,33 @@ function hasCompletedAt(record, results) {
   return completedAt && !Number.isNaN(Date.parse(completedAt));
 }
 
+const evaluationStatusDescriptions = [
+  ['verified-no-bug', 'バグを再現せず評価完了', '非バグ評価', 'なし'],
+  ['bug-found', 'バグを確認し修正前', 'バグ評価', '発見Finding'],
+  ['fixed', '確認したバグを修正済み', 'バグ評価', '解決済みFinding'],
+  ['needs-excel-probe', 'Excelプローブ作成待ち', '判定保留評価', '未確定'],
+  ['needs-excel', '実Excel結果の反映待ち', '判定保留評価', '未確定'],
+  ['blocked', '外部要因・前提不足で進行不能', '判定保留評価', '未確定'],
+  ['in-progress', '評価または修正を実行中', '判定保留評価', '未確定'],
+  ['claimed', '評価担当者が取得済み', '判定保留評価', '未確定'],
+  ['known-limit', '既知の仕様上の制限', 'その他（制限事項）', '対象外'],
+  ['retired', '仮説または候補を取り下げ', 'その他', '対象外'],
+  ['abandoned', '評価を中止', 'その他', '対象外'],
+  ['queued', '評価待ち', 'その他', '対象外'],
+];
+
+function statusTableRows(records, results) {
+  return evaluationStatusDescriptions.flatMap(([status, meaning, category, finding]) =>
+    [true, false].map((completed) => ({
+      status,
+      completed,
+      count: records.filter((record) => record.status === status && Boolean(hasCompletedAt(record, results)) === completed).length,
+      meaning,
+      category,
+      finding,
+    })));
+}
+
 function formatLocalDateTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value ?? '');
@@ -430,13 +457,14 @@ new Chart(document.getElementById('finding-chart'), {
 </script>`;
 }
 
-function renderHtml(records, statusRecords, summary, series, findingTypes, rootCauseStatuses) {
+function renderHtml(records, statusRecords, statusRows, summary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
   const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${row.v1}</td><td>${row.legacy}</td><td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
+  const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.completed ? 'あり' : 'なし'}</td><td>${row.count}</td><td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
@@ -451,20 +479,7 @@ function renderHtml(records, statusRecords, summary, series, findingTypes, rootC
 <h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><p>完了日時付き評価を基本に集計し、日時未登録でも現在保留中の評価（needs-excel-probe等）は件数へ含めます。時系列グラフは完了日時付き評価だけを対象にします。</p><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>
-<tr><td><code>verified-no-bug</code></td><td>${evaluationStatusCount(statusRecords, 'verified-no-bug')}</td><td>バグを再現せず評価完了</td><td>非バグ評価</td><td>なし</td></tr>
-<tr><td><code>bug-found</code></td><td>${evaluationStatusCount(statusRecords, 'bug-found')}</td><td>バグを確認し修正前</td><td>バグ評価</td><td>発見Finding</td></tr>
-<tr><td><code>fixed</code></td><td>${evaluationStatusCount(statusRecords, 'fixed')}</td><td>確認したバグを修正済み</td><td>バグ評価</td><td>解決済みFinding</td></tr>
-<tr><td><code>needs-excel-probe</code></td><td>${evaluationStatusCount(statusRecords, 'needs-excel-probe')}</td><td>Excelプローブ作成待ち</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>needs-excel</code></td><td>${evaluationStatusCount(statusRecords, 'needs-excel')}</td><td>実Excel結果の反映待ち</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>blocked</code></td><td>${evaluationStatusCount(statusRecords, 'blocked')}</td><td>外部要因・前提不足で進行不能</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>in-progress</code></td><td>${evaluationStatusCount(statusRecords, 'in-progress')}</td><td>評価または修正を実行中</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>claimed</code></td><td>${evaluationStatusCount(statusRecords, 'claimed')}</td><td>評価担当者が取得済み</td><td>判定保留評価</td><td>未確定</td></tr>
-<tr><td><code>known-limit</code></td><td>${evaluationStatusCount(statusRecords, 'known-limit')}</td><td>既知の仕様上の制限</td><td>その他（制限事項）</td><td>対象外</td></tr>
-<tr><td><code>retired</code></td><td>${evaluationStatusCount(statusRecords, 'retired')}</td><td>仮説または候補を取り下げ</td><td>その他</td><td>対象外</td></tr>
-<tr><td><code>abandoned</code></td><td>${evaluationStatusCount(statusRecords, 'abandoned')}</td><td>評価を中止</td><td>その他</td><td>対象外</td></tr>
-<tr><td><code>queued</code></td><td>${evaluationStatusCount(statusRecords, 'queued')}</td><td>評価待ち</td><td>その他</td><td>対象外</td></tr>
-</tbody></table>
+<h2>評価状態の意味と計上先</h2><p>各評価状態を、完了日時の有無で分けて全件集計しています。時系列グラフと完了日時付き評価一覧は、完了日時がある評価だけを対象にします。</p><table><thead><tr><th>評価状態</th><th>完了日時</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
 <h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}</tbody></table>
 </body></html>\n`;
 }
@@ -484,6 +499,7 @@ function main() {
   const series = timeSeries(records, results, findings, stateEvents);
   const datedStatusRecords = records.filter((record) => hasCompletedAt(record, results));
   const statusRecords = statusTableRecords(records, datedStatusRecords);
+  const statusRows = statusTableRows(records, results);
   const findingTypes = findingTypeSummary(records, findings);
   const rootCauseStatuses = rootCauseAnalysisStatusCounts(records);
   if (options.output) {
@@ -492,7 +508,7 @@ function main() {
   }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
-    fs.writeFileSync(options.html, renderHtml(records, statusRecords, summary, series, findingTypes, rootCauseStatuses));
+    fs.writeFileSync(options.html, renderHtml(records, statusRecords, statusRows, summary, series, findingTypes, rootCauseStatuses));
   }
   if (options.csv) {
     fs.mkdirSync(path.dirname(options.csv), { recursive: true });
