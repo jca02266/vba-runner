@@ -251,7 +251,7 @@ function aggregate(records) {
 }
 
 function timeSeries(records, results, findings, stateEvents) {
-  const eventCandidateIds = new Set(stateEvents.map((event) => event.candidateId));
+  const eventEvaluationIds = new Set(stateEvents.map((event) => event.evaluationId));
   const evaluationEvents = records
     .map((record) => {
       const snapshot = results.get(record.id);
@@ -262,7 +262,7 @@ function timeSeries(records, results, findings, stateEvents) {
       };
     })
     .filter(({ record, result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt))
-      && !eventCandidateIds.has(record.candidateId ?? record.id))
+      && !eventEvaluationIds.has(record.id))
     .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt)
       || Number(a.record.legacyNumber ?? 0) - Number(b.record.legacyNumber ?? 0));
   const recordsById = new Map(records.map((record) => [record.id, record]));
@@ -272,13 +272,12 @@ function timeSeries(records, results, findings, stateEvents) {
       .filter((event) => recordsById.has(event.evaluationId))
       .map((event) => ({ event, kind: 'state', at: event.occurredAt })),
   ].sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || (a.kind === 'evaluation' ? 1 : -1));
-  let evaluations = 0;
   let discovered = 0;
   let fixed = 0;
   const discoveredFindingIds = new Set();
   const resolvedFindingIds = new Set();
   const openFindingIds = new Set();
-  const candidateStatuses = new Map();
+  const evaluationStatuses = new Map();
   const applyFindingStatus = (evaluationId, status) => {
     const evaluation = recordsById.get(evaluationId);
     if (!evaluation || excludedFindingStatuses.has(status)) return;
@@ -305,10 +304,9 @@ function timeSeries(records, results, findings, stateEvents) {
       status = stateEvent.status;
       const record = recordsById.get(evaluationId);
       area = areaFor(record?.focus);
-      candidateStatuses.set(stateEvent.candidateId, status);
+      evaluationStatuses.set(evaluationId, status);
       applyFindingStatus(evaluationId, status);
       if (finalEvaluationStatuses.has(status)) {
-        evaluations += 1;
         evaluationPoint = true;
       }
     } else {
@@ -316,14 +314,13 @@ function timeSeries(records, results, findings, stateEvents) {
       evaluationId = record.id;
       status = result.status ?? record.status;
       area = areaFor(record.focus);
-      evaluations += 1;
       evaluationPoint = true;
       // The result snapshot is authoritative at this evaluation's own point.
-      candidateStatuses.set(record.candidateId ?? record.id, status);
+      evaluationStatuses.set(evaluationId, status);
       applyFindingStatus(record.id, status);
     }
     discovered = discoveredFindingIds.size;
-    const stateCounts = [...candidateStatuses.values()].reduce((counts, status) => {
+    const stateCounts = [...evaluationStatuses.values()].reduce((counts, status) => {
       if (status === 'verified-no-bug') counts.nonBug += 1;
       else if (status === 'bug-found' || status === 'fixed') counts.bug += 1;
       else if (pendingEvaluationStatuses.has(status)) counts.pending += 1;
@@ -336,7 +333,7 @@ function timeSeries(records, results, findings, stateEvents) {
       evaluationPoint,
       status,
       area,
-      evaluations,
+      evaluations: evaluationStatuses.size,
       discovered,
       fixed,
       openBugs: openFindingIds.size,
@@ -407,7 +404,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     '## 時系列の収束状況',
     '',
-    '状態履歴の `occurredAt` を基準にした値です。履歴のない旧評価だけ `completedAt` または本文の `評価日` を使用します。評価分類はその時点で有効な候補数、Finding列は別単位の収束指標です。',
+    '状態履歴の `occurredAt` を基準にした値です。履歴のない旧評価だけ `completedAt` または本文の `評価日` を使用します。評価分類はその時点で有効なEV数、Finding列は別単位の収束指標です。',
     '',
     '| 状態遷移日時 | 評価ID | 状態 | 実装領域 | 評価件数（累積） | バグ状態数 | 非バグ状態数 | 判定保留状態数 | その他状態数 | 発見Finding | 解決済みFinding | 未解決Finding |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
@@ -481,7 +478,7 @@ function renderHtml(records, statusRecords, statusRows, summary, series, finding
 <p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、最終状態記録付き: ${completed}、状態日時未登録: ${records.length - completed}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
-<h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準にした値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類はその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
+<h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準にした値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類はその時点で有効なEV数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>状態遷移日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>評価状態の意味と計上先</h2><p>各評価状態について、旧形式の完了日時あり・なしを別列で全件集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用し、履歴のない旧評価だけ完了日時を使用します。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
