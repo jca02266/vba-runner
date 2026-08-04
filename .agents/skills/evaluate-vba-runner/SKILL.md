@@ -116,10 +116,14 @@ analysis; do not duplicate its taxonomy here.
    a fix, test, or state transition until the structured record is valid and
    the generated root `EVAL_LOG.md` is up to date. Do not create or commit an
    `evaluation/EVAL_LOG.generated.md` duplicate. Commit the implementation,
-   regression test, structured record, and generated view together. When a
-   candidate changes from `needs-excel`, `blocked`, or `in-progress`, use the
-   `transition` command rather than editing its result snapshot; this appends
-   the state event and preserves the previous state for later reporting.
+   regression test, structured record, and generated view together. Every new
+   evaluation must be recorded with `record` and finalized through `complete`;
+   every subsequent state change, including root-cause evaluations, must use
+   `transition`. Never create or edit a `*.result.yml` directly. The CLI writes
+   `stateVersion: 1` and appends the corresponding event; `validate` rejects a
+   versioned snapshot without an event history. This also applies when the
+   state changes directly to `fixed`, `verified-no-bug`, `known-limit`, or
+   `retired`, not only when leaving a pending state.
    When Excel output is supplied, run `excel-sync` before interpretation, map
    every output ID to its evaluation record, resolve or retain each
    `unresolved` boundary, then transition the candidate. A stale, partial, or

@@ -144,6 +144,7 @@ try {
     const pending = run('complete', transitionCandidate, 'EV-TEST-EVENTS', 'in-progress', transitionToken);
     assert.equal(pending.status, 0, pending.stderr);
     const pendingSnapshot = yaml.load(readFileSync(transitionResult, 'utf8')) as Record<string, string>;
+    assert.equal(pendingSnapshot.stateVersion, 1);
     assert.equal(pendingSnapshot.status, 'in-progress');
     assert.equal(pendingSnapshot.completedAt, undefined,
         'intermediate evaluation states must not receive completedAt');
@@ -155,6 +156,7 @@ try {
     const resolved = run('transition', transitionCandidate, 'EV-TEST-EVENTS', 'verified-no-bug', transitionToken);
     assert.equal(resolved.status, 0, resolved.stderr);
     const resolvedSnapshot = yaml.load(readFileSync(transitionResult, 'utf8')) as Record<string, string>;
+    assert.equal(resolvedSnapshot.stateVersion, 1);
     assert.equal(resolvedSnapshot.status, 'verified-no-bug');
     assert.equal(resolvedSnapshot.completedAt, undefined,
         'state events, rather than snapshots, own transition timestamps');

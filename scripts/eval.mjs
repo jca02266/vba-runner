@@ -426,7 +426,11 @@ function validate(records = readRecords()) {
     if (evaluation.status !== result.status) {
       throw new Error(`${result.file}: result status ${result.status} does not match evaluation ${evaluation.status}`);
     }
-    validateEvents(candidateId, readEvents(candidateId), result);
+    const events = readEvents(candidateId);
+    if (result.stateVersion === 1 && events.length === 0) {
+      throw new Error(`${result.file}: stateVersion 1 requires an event history`);
+    }
+    validateEvents(candidateId, events, result);
   }
   for (const name of files(statesDir, '.events.yml')) {
     const candidateId = name.slice(0, -'.events.yml'.length);
@@ -730,7 +734,7 @@ function complete(candidateId, evaluationId, status, token) {
     throw new Error(`${candidateId} already has a terminal result`);
   }
   fs.mkdirSync(statesDir, { recursive: true });
-  const snapshot = { candidateId, evaluationId, status };
+  const snapshot = { stateVersion: 1, candidateId, evaluationId, status };
   fs.writeFileSync(target, yaml.dump(snapshot, { noRefs: true }));
   appendEvent(candidateId, evaluationId, status, previous ?? null);
   const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
