@@ -176,7 +176,8 @@ function statusTableRecords(records, datedRecords) {
   return [...datedRecords, ...undatedPending];
 }
 
-function hasCompletedAt(record, results) {
+function hasCompletedAt(record, results, eventEvaluationIds = new Set()) {
+  if (eventEvaluationIds.has(record.id)) return true;
   const result = results.get(record.id);
   const completedAt = result?.completedAt ?? record.legacyCompletedAt;
   return completedAt && !Number.isNaN(Date.parse(completedAt));
@@ -197,10 +198,11 @@ const evaluationStatusDescriptions = [
   ['queued', '評価待ち', 'その他', '対象外'],
 ];
 
-function statusTableRows(records, results) {
+function statusTableRows(records, results, stateEvents) {
+  const eventEvaluationIds = new Set(stateEvents.map((event) => event.evaluationId));
   return evaluationStatusDescriptions.map(([status, meaning, category, finding]) => {
-    const dated = records.filter((record) => record.status === status && Boolean(hasCompletedAt(record, results))).length;
-    const undated = records.filter((record) => record.status === status && !Boolean(hasCompletedAt(record, results))).length;
+    const dated = records.filter((record) => record.status === status && Boolean(hasCompletedAt(record, results, eventEvaluationIds))).length;
+    const undated = records.filter((record) => record.status === status && !Boolean(hasCompletedAt(record, results, eventEvaluationIds))).length;
     return { status, dated, undated, total: dated + undated, meaning, category, finding };
   });
 }
@@ -481,7 +483,7 @@ function renderHtml(records, statusRecords, statusRows, summary, series, finding
 <h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準にした値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類はその時点で有効なEV数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>状態遷移日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><p>各評価状態について、旧形式の完了日時あり・なしを別列で全件集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用し、履歴のない旧評価だけ完了日時を使用します。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
+<h2>評価状態の意味と計上先</h2><p>各評価状態について、状態イベントまたは完了日時があるものと、どちらもないものを別列で全件集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用し、履歴のない旧評価だけ完了日時を使用します。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
 <h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}</tbody></table>
 </body></html>\n`;
 }
@@ -499,9 +501,10 @@ function main() {
   const findings = readFindings();
   const stateEvents = readStateEvents();
   const series = timeSeries(records, results, findings, stateEvents);
-  const datedStatusRecords = records.filter((record) => hasCompletedAt(record, results));
+  const eventEvaluationIds = new Set(stateEvents.map((event) => event.evaluationId));
+  const datedStatusRecords = records.filter((record) => hasCompletedAt(record, results, eventEvaluationIds));
   const statusRecords = statusTableRecords(records, datedStatusRecords);
-  const statusRows = statusTableRows(records, results);
+  const statusRows = statusTableRows(records, results, stateEvents);
   const findingTypes = findingTypeSummary(records, findings);
   const rootCauseStatuses = rootCauseAnalysisStatusCounts(records);
   if (options.output) {
