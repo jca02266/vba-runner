@@ -352,6 +352,9 @@ export const vbaNothing = Symbol('vbaNothing');
 /** Sentinel for missing optional argument. */
 export const vbaMissing = Symbol('vbaMissing');
 
+/** Internal sentinel for an omitted call slot before Optional defaults bind. */
+export const vbaOmitted = Symbol('vbaOmitted');
+
 /**
  * Returns whether a runtime value can be used where VBA requires an Object
  * reference.  This is deliberately a semantic predicate rather than a host

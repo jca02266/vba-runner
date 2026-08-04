@@ -93,7 +93,7 @@ import * as path from 'path';
 import iconv from 'iconv-lite';
 import {
     VbaBoolean, VbaDate, VbaDecimal, VbaErrorValue, VbaNamespaceRef, VbaCurrency,
-    vbaEmpty, vbaNull, vbaNothing, vbaMissing,
+    vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaOmitted,
     vbaTrue, vbaFalse,
     toVbaDate,
     fromVbaDate,
@@ -997,7 +997,7 @@ export class Evaluator {
             }
 
             let argValue: any;
-            if (i < args.length) argValue = args[i];
+            if (i < args.length && args[i] !== vbaOmitted) argValue = args[i];
             else if (param.defaultValue) argValue = this.evaluateExpression(param.defaultValue);
             else argValue = vbaMissing;
 
@@ -4942,9 +4942,9 @@ export class Evaluator {
         const references = expressions.map((expr, i) =>
             this.argumentReference(expr ?? undefined, proc.parameters[i])
         );
-        const args = aligned.map((slot, i) => slot
+        const args = Array.from(aligned, (slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
-            : vbaMissing);
+            : vbaOmitted);
         if (paramArrayIndex >= 0) {
             for (const slot of paramArraySupplied) {
                 expressions.push(slot.expr);

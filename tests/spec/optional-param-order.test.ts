@@ -72,3 +72,21 @@ assertCompileErrorPass1(
 }
 
 console.log('✅ Optional パラメーター順序チェック: 全テスト通過');
+
+// Class/Property の名前付き呼出しでも、中間Optionalの省略は既定値へ束ねる。
+{
+    const ev = evalVBASingle(String.raw`Class Box
+Public Function Sum(a As Long, Optional middle As Long = 7, Optional tail As Long = 9) As Long
+    Sum = a + middle + tail
+End Function
+Public Property Get Total(a As Long, Optional middle As Long = 7, Optional tail As Long = 9) As Long
+    Total = a + middle + tail
+End Property
+End Class
+Function Probe() As String
+    Dim box As New Box
+    Probe = CStr(box.Sum(a:=1, tail:=3)) & "|" & CStr(box.Total(a:=1, tail:=3))
+End Function`);
+    assert.strictEqual(ev.callProcedure('Probe', []), '11|11',
+        'Class Function/Property Getは中間Optionalの既定値を適用する');
+}
