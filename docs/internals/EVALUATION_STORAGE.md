@@ -215,6 +215,13 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 `queued`、`claimed`、`in-progress`、`verified-no-bug`、`bug-found`、`fixed`、
 `blocked`、`abandoned`、`known-limit`、`needs-excel-probe`、`needs-excel`、`retired`
 
+### 完了日時の意味
+
+状態が完了かどうかはスナップショットの`status`で判断できるため、新しい状態更新では
+`completedAt`を生成しない。状態になった時刻は`events[].occurredAt`に記録し、これを
+時系列集計の正本とする。`completedAt`は過去のスナップショットとの互換用に読み取る
+だけであり、過去記録の評価日しかない場合も旧記録由来の日時として表示する。
+
 ## 現行CLIと役割
 
 ```text
@@ -239,7 +246,8 @@ npm run eval -- render EVAL_LOG.md
 - `claim`: 候補を予約し、tokenを発行する。
 - `release`: tokenを検証してclaimを解放する。
 - `record`: 評価記録を冪等に保存する。同じIDの異なる内容は拒否する。
-- `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して完了結果を保存する。
+- `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して結果を保存する。
+  状態スナップショットには完了日時を重複保存せず、遷移日時はeventsへ記録する。
 - `transition`: 待ち状態、`blocked`、`in-progress`、`bug-found`の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
 - `excel-sync`: `excelProbeIds`、キューソース、実機結果を照合し、必要な待ち状態または`result-ready`をJSONで返す。状態は変更しない。
 - `remediation-next`: 確定済み真因から作成した次の`queued`対処タスクを返す。

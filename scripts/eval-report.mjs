@@ -29,6 +29,7 @@ const resolvedFindingStatuses = new Set(['fixed']);
 const excludedFindingStatuses = new Set(['known-limit', 'retired']);
 const pendingEvaluationStatuses = new Set(['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'claimed']);
 const otherEvaluationStatuses = new Set(['known-limit', 'retired', 'abandoned', 'queued']);
+const finalEvaluationStatuses = new Set(['verified-no-bug', 'fixed', 'known-limit', 'retired']);
 
 function usage() {
   console.log('Usage: node scripts/eval-report.mjs [--output FILE] [--csv FILE]');
@@ -250,16 +251,18 @@ function aggregate(records) {
 }
 
 function timeSeries(records, results, findings, stateEvents) {
+  const eventCandidateIds = new Set(stateEvents.map((event) => event.candidateId));
   const evaluationEvents = records
-    .map((record) => ({
-      record,
-      result: results.get(record.id) ?? (record.legacyCompletedAt ? {
-        status: record.status,
-        completedAt: record.legacyCompletedAt,
-        source: 'legacy evaluation date',
-      } : null),
-    }))
-    .filter(({ result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt)))
+    .map((record) => {
+      const snapshot = results.get(record.id);
+      const completedAt = snapshot?.completedAt ?? record.legacyCompletedAt;
+      return {
+        record,
+        result: completedAt ? { ...snapshot, status: snapshot?.status ?? record.status, completedAt } : null,
+      };
+    })
+    .filter(({ record, result }) => result?.completedAt && !Number.isNaN(Date.parse(result.completedAt))
+      && !eventCandidateIds.has(record.candidateId ?? record.id))
     .sort((a, b) => Date.parse(a.result.completedAt) - Date.parse(b.result.completedAt)
       || Number(a.record.legacyNumber ?? 0) - Number(b.record.legacyNumber ?? 0));
   const recordsById = new Map(records.map((record) => [record.id, record]));
@@ -295,6 +298,7 @@ function timeSeries(records, results, findings, stateEvents) {
     let evaluationId;
     let status;
     let area;
+    let evaluationPoint = false;
     if (item.kind === 'state') {
       const stateEvent = item.event;
       evaluationId = stateEvent.evaluationId;
@@ -303,12 +307,17 @@ function timeSeries(records, results, findings, stateEvents) {
       area = areaFor(record?.focus);
       candidateStatuses.set(stateEvent.candidateId, status);
       applyFindingStatus(evaluationId, status);
+      if (finalEvaluationStatuses.has(status)) {
+        evaluations += 1;
+        evaluationPoint = true;
+      }
     } else {
       const { record, result } = item;
       evaluationId = record.id;
       status = result.status ?? record.status;
       area = areaFor(record.focus);
       evaluations += 1;
+      evaluationPoint = true;
       // The result snapshot is authoritative at this evaluation's own point.
       candidateStatuses.set(record.candidateId ?? record.id, status);
       applyFindingStatus(record.id, status);
@@ -324,7 +333,7 @@ function timeSeries(records, results, findings, stateEvents) {
     return {
       date: new Date(item.at).toISOString(),
       evaluationId,
-      evaluationPoint: item.kind === 'evaluation',
+      evaluationPoint,
       status,
       area,
       evaluations,
@@ -360,7 +369,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     'このファイルは `scripts/eval-report.mjs` から生成されます。',
     '',
-    `評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${completed}、日時未登録: ${pending}`,
+    `評価件数: ${records.length}、発見バグ件数: ${totalBugs}、最終状態記録付き: ${completed}、状態日時未登録: ${pending}`,
     '',
     '## 実装領域別集計',
     '',
@@ -379,7 +388,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     '## 状態の計上先',
     '',
-    '完了日時付き評価を基本に集計し、日時未登録でも現在保留中の評価（needs-excel-probe等）は件数へ含めます。',
+    '状態履歴を基本に集計し、履歴のない旧評価は完了日時または本文の評価日を使用します。',
     '',
     '| 評価状態 | 件数 | 意味 | 評価分類 | Finding計上 |',
     '|---|---:|---|---|---|',
@@ -398,9 +407,9 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     '## 時系列の収束状況',
     '',
-    '結果状態の `completedAt` または旧評価本文の `評価日` を基準にした値です。日時未登録の評価は含みません。評価分類は状態履歴からその時点で有効な候補数、累積評価は別途表示しません。Finding列はさらに別単位の収束指標です。',
+    '状態履歴の `occurredAt` を基準にした値です。履歴のない旧評価だけ `completedAt` または本文の `評価日` を使用します。評価分類はその時点で有効な候補数、Finding列は別単位の収束指標です。',
     '',
-    '| 完了日時 | 評価ID | 状態 | 実装領域 | 評価件数（累積） | バグ状態数 | 非バグ状態数 | 判定保留状態数 | その他状態数 | 発見Finding | 解決済みFinding | 未解決Finding |',
+    '| 状態遷移日時 | 評価ID | 状態 | 実装領域 | 評価件数（累積） | バグ状態数 | 非バグ状態数 | 判定保留状態数 | その他状態数 | 発見Finding | 解決済みFinding | 未解決Finding |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
     ...series.map((row) => `| ${row.date} | ${row.evaluationId} | ${row.status} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugEvaluations} | ${row.nonBugEvaluations} | ${row.pendingEvaluations} | ${row.otherEvaluations} | ${row.discovered} | ${row.fixed} | ${row.openBugs} |`),
   ];
@@ -469,19 +478,19 @@ function renderHtml(records, statusRecords, statusRows, summary, series, finding
 <title>VBA Runner 評価レポート</title>
 <style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
-<p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、完了日時付き: ${completed}、日時未登録: ${records.length - completed}</p>
+<p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、最終状態記録付き: ${completed}、状態日時未登録: ${records.length - completed}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
-<h2>時系列の収束状況</h2><p>結果状態の <code>completedAt</code> または旧評価本文の <code>評価日</code> を基準にした値です。日時未登録の評価は含みません。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類は評価単位の累積値、判定保留は状態履歴からその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
+<h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準にした値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類はその時点で有効な候補数、Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
-<h3>評価一覧（直近10件）</h3><table><thead><tr><th>完了日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><p>各評価状態について、完了日時あり・なしを別列で全件集計しています。時系列グラフと完了日時付き評価一覧は、完了日時がある評価だけを対象にします。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
+<h3>評価一覧（直近10件）</h3><table><thead><tr><th>状態遷移日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
+<h2>評価状態の意味と計上先</h2><p>各評価状態について、旧形式の完了日時あり・なしを別列で全件集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用し、履歴のない旧評価だけ完了日時を使用します。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
 <h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}</tbody></table>
 </body></html>\n`;
 }
 
 function renderCsv(series) {
-  const header = ['completedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'bugStateCount', 'nonBugStateCount', 'pendingStateCount', 'otherStateCount', 'cumulativeDiscoveredFindings', 'cumulativeFixedFindings', 'openFindings'];
+  const header = ['transitionedAt', 'evaluationId', 'status', 'area', 'cumulativeEvaluations', 'bugStateCount', 'nonBugStateCount', 'pendingStateCount', 'otherStateCount', 'cumulativeDiscoveredFindings', 'cumulativeFixedFindings', 'openFindings'];
   return `${header.join(',')}\n${series.map((row) => [row.date, row.evaluationId, row.status, row.area, row.evaluations, row.bugEvaluations, row.nonBugEvaluations, row.pendingEvaluations, row.otherEvaluations, row.discovered, row.fixed, row.openBugs].map(csvCell).join(',')).join('\n')}\n`;
 }
 

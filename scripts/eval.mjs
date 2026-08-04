@@ -23,6 +23,7 @@ const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'needs-excel-probe', 'retired',
 ]);
+const finalEvaluationStatuses = new Set(['verified-no-bug', 'fixed', 'known-limit', 'retired']);
 
 function fail(message) {
   console.error(`eval: ${message}`);
@@ -248,8 +249,8 @@ function validateExpectation(file, expectation, status) {
       (expectation.references.length === 0 || verification !== 'completed')) {
     throw new Error(`${file}: ${expectation.kind} expectation requires a completed reference`);
   }
-  const terminalStatuses = new Set(['verified-no-bug', 'bug-found', 'fixed', 'known-limit', 'retired']);
-  if (expectation.kind === 'hypothesis' && verification !== 'completed' && terminalStatuses.has(status)) {
+  if (expectation.kind === 'hypothesis' && verification !== 'completed'
+      && (finalEvaluationStatuses.has(status) || status === 'bug-found')) {
     throw new Error(`${file}: hypothesis expectation must be verified before terminal status ${status}`);
   }
 }
@@ -729,7 +730,8 @@ function complete(candidateId, evaluationId, status, token) {
     throw new Error(`${candidateId} already has a terminal result`);
   }
   fs.mkdirSync(statesDir, { recursive: true });
-  fs.writeFileSync(target, yaml.dump({ candidateId, evaluationId, status, completedAt: new Date().toISOString() }, { noRefs: true }));
+  const snapshot = { candidateId, evaluationId, status };
+  fs.writeFileSync(target, yaml.dump(snapshot, { noRefs: true }));
   appendEvent(candidateId, evaluationId, status, previous ?? null);
   const claimFile = path.join(statesDir, `${candidateId}.claim.yml`);
   fs.rmSync(claimFile, { force: true });

@@ -143,6 +143,10 @@ try {
     transitionToken = JSON.parse(firstClaim.stdout).token;
     const pending = run('complete', transitionCandidate, 'EV-TEST-EVENTS', 'in-progress', transitionToken);
     assert.equal(pending.status, 0, pending.stderr);
+    const pendingSnapshot = yaml.load(readFileSync(transitionResult, 'utf8')) as Record<string, string>;
+    assert.equal(pendingSnapshot.status, 'in-progress');
+    assert.equal(pendingSnapshot.completedAt, undefined,
+        'intermediate evaluation states must not receive completedAt');
     writeFileSync(transitionEvaluation,
         transitionRecord.replace('status: in-progress', 'status: verified-no-bug'));
     const secondClaim = run('claim', transitionCandidate);
@@ -150,6 +154,10 @@ try {
     transitionToken = JSON.parse(secondClaim.stdout).token;
     const resolved = run('transition', transitionCandidate, 'EV-TEST-EVENTS', 'verified-no-bug', transitionToken);
     assert.equal(resolved.status, 0, resolved.stderr);
+    const resolvedSnapshot = yaml.load(readFileSync(transitionResult, 'utf8')) as Record<string, string>;
+    assert.equal(resolvedSnapshot.status, 'verified-no-bug');
+    assert.equal(resolvedSnapshot.completedAt, undefined,
+        'state events, rather than snapshots, own transition timestamps');
     const events = yaml.load(readFileSync(transitionEvents, 'utf8')) as Array<Record<string, string>>;
     assert.equal(events.length, 2);
     assert.equal(events[1].fromStatus, 'in-progress');
