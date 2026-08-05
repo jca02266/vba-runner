@@ -442,12 +442,11 @@ new Chart(document.getElementById('evaluation-chart'), {
     { label: 'バグ状態数', data: ${values('bugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: '非バグ状態数', data: ${values('nonBugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: '判定保留状態数', data: ${values('pendingEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: 'その他状態数', data: ${values('otherEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, yAxisID: 'yTotal', tension: 0.15 }
+    { label: 'その他状態数', data: ${values('otherEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
-    plugins: { title: { display: true, text: '評価状態の時点別面グラフ（黒線＝累積評価件数）' }, tooltip: { mode: 'index' } },
-    scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: 'その時点の状態数' }, ticks: { precision: 0 } }, yTotal: { beginAtZero: true, position: 'right', grid: { drawOnChartArea: false }, title: { display: true, text: '累積評価件数（黒線）' }, ticks: { precision: 0 } } }
+    plugins: { title: { display: true, text: '評価状態の時点別積み上げ面グラフ' }, tooltip: { mode: 'index' } },
+    scales: { x: { title: { display: true, text: '状態遷移日時' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: 'その時点の状態数' }, ticks: { precision: 0 } } }
   }
 });
 new Chart(document.getElementById('finding-chart'), {
