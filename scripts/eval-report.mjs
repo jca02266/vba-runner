@@ -439,10 +439,10 @@ const convergenceLabels = ${labels};
 new Chart(document.getElementById('evaluation-chart'), {
   type: 'line',
   data: { labels: convergenceLabels, datasets: [
-    { label: 'バグ状態数', data: ${values('bugEvaluations')}, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '非バグ状態数', data: ${values('nonBugEvaluations')}, borderColor: '#0891b2', backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '判定保留状態数', data: ${values('pendingEvaluations')}, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: 'その他状態数', data: ${values('otherEvaluations')}, borderColor: '#92400e', backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: 'バグ状態数', data: ${values('bugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '非バグ状態数', data: ${values('nonBugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '判定保留状態数', data: ${values('pendingEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: 'その他状態数', data: ${values('otherEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
     { label: '累積評価数（面の合計確認用）', data: ${values('evaluations')}, borderColor: '#111827', backgroundColor: 'transparent', fill: false, borderWidth: 3, pointRadius: 0, yAxisID: 'yTotal', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
