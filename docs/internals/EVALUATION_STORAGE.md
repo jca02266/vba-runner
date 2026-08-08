@@ -167,6 +167,8 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 - `area`は固定語彙から1つ選ぶ。既存記録の補完は`eval classify`が`focus`から推定し、
   `areaSource: inferred`を付ける。新規記録でエージェントが選択した分類は
   `areaSource: confirmed`とする。レポートは`focus`の再検索ではなく`area`を集計する。
+- レポートの`areaClass`は保存せず、`area`から導出する大分類である。実装領域別集計には
+  詳細`area`単位と`areaClass`単位の両方を表示し、評価状態は未確定・対象外・解決済みに分ける。
 - `coverageSnapshot`, `findings`, `tests`, `commit`
 - 実Excel照合を使う評価では、必要な出力IDを列挙した`excelProbeIds`
 - バグを確認した新規記録では `directCauseKey`, `causeKey`,
