@@ -133,6 +133,22 @@ analysis; do not duplicate its taxonomy here.
    The HTML is generated output and is ignored by Git; do not stage or commit
    it. Use the refreshed report for the next loop's status and convergence
    review.
+9.5. After the post-commit 30-minute wait has completed, perform a mandatory
+   convergence checkpoint **before** obtaining the next evaluation candidate.
+   Do not go directly from `eval-wait.sh status` to `eval next`. At this
+   checkpoint, run `eval audit` and inspect the compact evaluation/report state,
+   then rank the highest-priority remaining work in this order:
+   (a) confirmed root-cause remediation tasks and evaluations whose
+   `rootCauseAnalysis` is still unresolved, (b) confirmed bugs whose horizontal
+   expansion is incomplete, (c) pending Excel/spec expectation boundaries, and
+   (d) only then ordinary queued exploratory candidates. Choose an actionable
+   item from that ranking and execute or register the smallest follow-up task
+   before calling `eval next`; for example, finish an independent RCA review,
+   record ruled-out/confirmed paths, or create a remediation task. If no item
+   is actionable, explicitly record that the high-priority RCA and horizontal
+   expansion queues were checked and why ordinary evaluation is the next best
+   action. This decision is required on every loop, including when the prior
+   evaluation was `verified-no-bug`.
 10. Select verification by changed-surface before running tests. For changes
    limited to `scripts/eval.mjs`, `scripts/eval-report.mjs`, evaluation
    records, or documentation, run the focused evaluation-state test,
