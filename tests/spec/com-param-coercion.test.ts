@@ -248,6 +248,31 @@ assert.throws(
     'ADODB.Stream rejects ReadText after Close',
 );
 
+assert.throws(
+    () => evalVBASingle(String.raw`
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-close.txt", True, False)
+        stream.Write "abc"
+        stream.Close
+        stream.Write "closed"
+    `),
+    'FSO CreateTextFile rejects Write after Close',
+);
+assert.throws(
+    () => evalVBASingle(String.raw`
+        Dim fso As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-close-read.txt", True, False)
+        stream.Write "abc"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream-close-read.txt", 1, False, -2)
+        stream.Close
+        stream.ReadAll
+    `),
+    'FSO OpenTextFile rejects ReadAll after Close',
+);
+
 const textStreamProperties = evalVBASingle(`
     Function ProbeTextStreamProperties() As String
         Dim fso As Object, stream As Object

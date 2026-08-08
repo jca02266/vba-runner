@@ -7195,7 +7195,13 @@ export class Evaluator {
                 try { fd = this.fs.openSync(full, 'w'); } catch (e) { throwFsoPathError(e); }
                 const useUnicode = vbaFlagIsTrue(unicode);
                 if (useUnicode) this.fs.writeSync(fd, encodeTextStream('', true));
+                let closed = false;
+                const ensureOpen = () => {
+                    if (closed) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        'Operation is not allowed when object is closed');
+                };
                 const writeText = (s: string) => {
+                    ensureOpen();
                     const bytes = encodeTextStream(s, useUnicode);
                     // encodeTextStream includes a BOM; only the first write owns it.
                     const payload = useUnicode ? bytes.subarray(2) : bytes;
@@ -7206,7 +7212,11 @@ export class Evaluator {
                     write: writeText,
                     writeline: (s: string) => writeText(s + "\r\n"),
                     writeblanklines: (count: number) => writeText("\r\n".repeat(Math.max(0, Math.trunc(Number(count))))),
-                    close: () => this.fs.closeSync(fd)
+                    close: () => {
+                        if (closed) return;
+                        this.fs.closeSync(fd);
+                        closed = true;
+                    }
                 });
             },
             opentextfile: (p: string, iomode: any = 1, create: any = false, format: any = -2) => {
@@ -7235,9 +7245,15 @@ export class Evaluator {
                     throw e;
                 }
                 const evalFs = this.fs;
+                let closed = false;
+                const ensureOpen = () => {
+                    if (closed) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                        'Operation is not allowed when object is closed');
+                };
                 let pos = 0;
                 const useUnicode = formatValue === -1;
                 const readContent = () => {
+                    ensureOpen();
                     const size = evalFs.statSync(full).size;
                     const rawFd = evalFs.openSync(full, 'r');
                     const bytes = new Uint8Array(size);
@@ -7319,6 +7335,7 @@ export class Evaluator {
                         pos = breakAt ? breakAt.index + breakAt.length : content.length;
                     },
                     write: (s: string) => {
+                        ensureOpen();
                         const bytes = encodeTextStream(s, useUnicode);
                         const payload = useUnicode && (evalFs.statSync(full).size === 0)
                             ? bytes
@@ -7326,6 +7343,7 @@ export class Evaluator {
                         this.fs.writeSync(fd, payload);
                     },
                     writeline: (s: string) => {
+                        ensureOpen();
                         const text = s + "\r\n";
                         const bytes = encodeTextStream(text, useUnicode);
                         const payload = useUnicode && (evalFs.statSync(full).size === 0)
@@ -7333,7 +7351,11 @@ export class Evaluator {
                             : (useUnicode ? bytes.subarray(2) : bytes);
                         this.fs.writeSync(fd, payload);
                     },
-                    close: () => this.fs.closeSync(fd)
+                    close: () => {
+                        if (closed) return;
+                        this.fs.closeSync(fd);
+                        closed = true;
+                    }
                 });
             },
             createfolder: (p: string) => {
