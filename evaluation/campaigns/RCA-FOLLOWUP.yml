@@ -1,0 +1,73 @@
+id: RCA-FOLLOWUP
+method: root-cause-followup
+items:
+  - id: RCA-FOLLOWUP-001
+    title: AppActivate・SendKeysの文形式Wait Null境界
+    status: queued
+    priority: 1
+    focus: AppActivate/SendKeysの文形式Wait:=Nullと必須引数変換
+    priorCauseKey: builtin-boundary-contract-dispersion
+    rootCauseId: RC-00023
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+  - id: RCA-FOLLOWUP-002
+    title: GetAllSettings空セクションの配列境界
+    status: queued
+    priority: 1
+    focus: 空セクション時のLBound/UBoundと2次元配列メタデータ
+    priorCauseKey: builtin-boundary-contract-dispersion
+    rootCauseId: RC-00023
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/registry.test.ts
+  - id: RCA-FOLLOWUP-003
+    title: Decimal relational Case Isの精度境界
+    status: queued
+    priority: 1
+    focus: DecimalのCase Isによる大小比較と高精度境界
+    priorCauseKey: select-case-decimal-number-rounding
+    rootCauseId: RC-00025
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
+  - id: RCA-FOLLOWUP-004
+    title: DecimalとCurrencyの異種Select Case比較
+    status: queued
+    priority: 1
+    focus: Decimal/Currency異種比較の変換・精度契約
+    priorCauseKey: select-case-decimal-number-rounding
+    rootCauseId: RC-00025
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
+  - id: RCA-FOLLOWUP-005
+    title: FSO TextStreamのClose後Read/Write契約
+    status: queued
+    priority: 1
+    focus: Close後Read/WriteのVBAエラーと再Open境界
+    priorCauseKey: stream-closed-state-gap
+    rootCauseId: RC-00026
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
+  - id: RCA-FOLLOWUP-006
+    title: TextStream混在改行の行列境界
+    status: queued
+    priority: 2
+    focus: CRLF/CR/LF混在時のLine・Column・AtEndOfLine
+    priorCauseKey: stream-closed-state-gap
+    rootCauseId: RC-00026
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
+  - id: RCA-FOLLOWUP-007
+    title: 実COM StreamのClose後エラー番号
+    status: queued
+    priority: 2
+    focus: 実COMにおけるClose後操作の正確なエラー番号
+    priorCauseKey: stream-closed-state-gap
+    rootCauseId: RC-00026
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/excel/queue/ExcelQueueVerification.bas

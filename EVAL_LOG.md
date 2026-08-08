@@ -97,7 +97,7 @@
 | EV-00190 | MUT-ENGINE | verified-no-bug |  | 別シードのファイルI/O EOF/Append境界 |
 | EV-00191 | FZ-BUILTIN | fixed |  | 既定値経由の日付文字列と不正暦日境界 |
 | EV-00192 | FZ-GRAMMAR | fixed |  | Select CaseのEmpty文脈変換 |
-| EV-00193 | MUT-ENGINE | fixed |  | Select CaseのDecimal高精度等価比較 |
+| EV-00193 | MUT-ENGINE | fixed | 1 | Select CaseのDecimal高精度等価比較 |
 | EV-00194 | FZ-GRAMMAR | fixed |  | Select Caseの数値Variant String等価比較 |
 | EV-00195 | MUT-ENGINE | fixed |  | Select CaseのNull比較境界 |
 | EV-00196 | MUT-ENGINE | fixed |  | Decimal/Currencyと長い数値文字列の比較 |
@@ -170,12 +170,12 @@
 | EV-00264 | FZ-BUILTIN | fixed |  | DateDiff・DatePart週境界 |
 | EV-00265 | FZ-BUILTIN | verified-no-bug |  | DateDiff w曜日境界 |
 | EV-00266 | FZ-GRAMMAR | fixed |  | 数値指数・型サフィックス境界 |
-| EV-00267 | FZ-BUILTIN | fixed |  | Registry・Interaction Optional境界 |
+| EV-00267 | FZ-BUILTIN | fixed | 1 | Registry・Interaction Optional境界 |
 | EV-00268 | META-ENGINE | fixed |  | XMLHTTP引数メタデータ境界 |
 | EV-00269 | META-ENGINE | fixed |  | FSO・ADODBメソッドメタデータ横展開 |
 | EV-00270 | META-ENGINE | fixed |  | TextStream・ADODB状態プロパティ境界 |
 | EV-00271 | META-ENGINE | fixed |  | Streamプロパティ再配置とEOF境界 |
-| EV-00272 | META-ENGINE | fixed |  | TextStreamプロパティとClose後操作 |
+| EV-00272 | META-ENGINE | fixed | 1 | TextStreamプロパティとClose後操作 |
 | EV-00273 | META-ENGINE | fixed |  | CRLF/CR/LF混在時のLine・Column・AtEndOfLine遷移 |
 | EV-00274 | FZ-BUILTIN | verified-no-bug |  | DateDiff("w")の曜日出現回数とDateDiff("ww")の週境界 |
 | EV-00275 | FZ-BUILTIN | fixed |  | DateAddの小数numberを最近接整数へ丸める仕様 |
@@ -206,13 +206,13 @@
 | EV-00300 | FZ-BUILTIN | fixed |  | StrConv変換フラグ境界 |
 | EV-00301 | FZ-BUILTIN | verified-no-bug |  | StrReverse Unicode境界 |
 | EV-00302 | FZ-BUILTIN | fixed |  | Filter配列比較境界 |
-| EV-00303 | FZ-BUILTIN | fixed |  | Replace数値引数境界 |
+| EV-00303 | FZ-BUILTIN | fixed | 1 | Replace数値引数境界 |
 | EV-00304 | FZ-BUILTIN | fixed |  | Split数値引数境界 |
-| EV-00305 | FZ-BUILTIN | fixed |  | InStrRev境界引数 |
+| EV-00305 | FZ-BUILTIN | fixed | 1 | InStrRev境界引数 |
 | EV-00306 | FZ-BUILTIN | fixed |  | MidB引数境界 |
-| EV-00307 | FZ-BUILTIN | fixed |  | StrComp比較境界 |
-| EV-00308 | FZ-BUILTIN | fixed |  | Chr系コード境界 |
-| EV-00309 | FZ-BUILTIN | fixed |  | LeftRightMid境界 |
+| EV-00307 | FZ-BUILTIN | fixed | 1 | StrComp比較境界 |
+| EV-00308 | FZ-BUILTIN | fixed | 1 | Chr系コード境界 |
+| EV-00309 | FZ-BUILTIN | fixed | 1 | LeftRightMid境界 |
 | EV-00310 | FZ-BUILTIN | fixed |  | RGB色成分境界 |
 | EV-00311 | FZ-BUILTIN | fixed |  | Error番号境界 |
 | EV-00312 | FZ-BUILTIN | verified-no-bug |  | DateDiffDatePart境界 |
@@ -333,4 +333,10 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| RCA-FOLLOWUP-001 | 1 | queued | AppActivate/SendKeysの文形式Wait:=Nullと必須引数変換 | yes |
+| RCA-FOLLOWUP-002 | 1 | queued | 空セクション時のLBound/UBoundと2次元配列メタデータ | yes |
+| RCA-FOLLOWUP-003 | 1 | queued | DecimalのCase Isによる大小比較と高精度境界 | yes |
+| RCA-FOLLOWUP-004 | 1 | queued | Decimal/Currency異種比較の変換・精度契約 | yes |
+| RCA-FOLLOWUP-005 | 1 | queued | Close後Read/WriteのVBAエラーと再Open境界 | yes |
+| RCA-FOLLOWUP-006 | 2 | queued | CRLF/CR/LF混在時のLine・Column・AtEndOfLine | yes |
+| RCA-FOLLOWUP-007 | 2 | queued | 実COMにおけるClose後操作の正確なエラー番号 | yes |
