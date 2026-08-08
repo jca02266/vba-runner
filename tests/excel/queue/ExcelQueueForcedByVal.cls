@@ -11,6 +11,10 @@ Option Explicit
 
 Implements ExcelQueueForcedByValInterface
 
-Public Sub ExcelQueueForcedByValInterface_Mutate(ByRef value As Long)
+Public Sub Mutate(ByRef value As Long)
     value = value + 1
+End Sub
+
+Public Sub ExcelQueueForcedByValInterface_Mutate(ByRef value As Long)
+    Mutate value
 End Sub

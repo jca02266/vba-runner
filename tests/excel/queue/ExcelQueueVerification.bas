@@ -97,11 +97,11 @@ Private Sub VerifyCallByNameNamedParamArray()
     Dim value As New ExcelQueueTicket, errNo As Long
     On Error Resume Next
     Err.Clear
-    CallByName target, "Item", VbSet, value:=value, index:=2
+    CallByName target, "Item", VbSet, value
     errNo = Err.Number
     EmitResult "XL-058 VALUE-FIRST ERR=" & CStr(errNo)
     Err.Clear
-    CallByName target, "Item", VbSet, index:=2, value:=value
+    CallByName target, "Item", VbSet, 2, value
     errNo = Err.Number
     EmitResult "XL-058 INDEX-FIRST ERR=" & CStr(errNo)
     On Error GoTo 0
