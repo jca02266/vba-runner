@@ -9467,7 +9467,7 @@ export class Evaluator {
                     return this.callClassMethodWithExpressions(obj, proc, expr.args);
                 }
                 // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
-                const ifaceProc = this.allowsInterfaceDispatch(expr.callee.object, methodNameOriginal)
+                const ifaceProc = this.allowsInterfaceDispatch((expr.callee as MemberExpression).object, methodNameOriginal)
                     ? this.findInterfaceDispatch(obj, methodNameOriginal)
                     : null;
                 if (ifaceProc) {
