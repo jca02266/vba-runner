@@ -17,7 +17,7 @@ Function ConcreteCall() As String
     Dim concrete As New Thing, value As Long
     value = 1
     On Error Resume Next
-    concrete.Mutate (value)
+    concrete.Mutate value
     ConcreteCall = CStr(Err.Number) & ":" & CStr(value)
 End Function
 
