@@ -7902,10 +7902,14 @@ export class Evaluator {
                         : undefined;
                     this.reinitializeArray(arr, defaultValue, autoNewType);
                 } else {
-                    // Dynamic array: Erase deallocates (uninitialized). Null signals this
-                    // so UBound/LBound/access throw Error 9 until ReDim is called again.
+                    // Dynamic Erase releases the elements but preserves the declared
+                    // element type. Keep an empty, typed container so ByRef binders and
+                    // Variant assignments can still identify Long()/UDT/Object() while
+                    // the erased marker makes bounds/access operations raise Error 9.
                     if (typeInfoEnv && typeInfoName) typeInfoEnv.setArrayTypeInfo(typeInfoName, arr);
-                    setValue(null);
+                    arr.length = 0;
+                    (arr as any).__vbaErased__ = true;
+                    setValue(arr);
                 }
             }
         }

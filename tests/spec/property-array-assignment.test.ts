@@ -63,3 +63,32 @@ if (mismatchResult !== '13:13:13') {
   throw new Error(`expected typed-array mismatches to reject, got ${mismatchResult}`);
 }
 console.log('[PASS] Property Let and ByRef reject mismatched array element types');
+
+const eraseModules = [
+  {
+    name: 'EraseArrayModule',
+    code: String.raw`Sub AcceptLongs(ByRef incoming() As Long)
+End Sub
+Function ProbeErase() As String
+Dim values() As Long, valuesAsVariant As Variant
+ReDim values(0 To 0)
+Erase values
+On Error Resume Next
+AcceptLongs values
+Dim directErr As Long
+directErr = Err.Number
+Err.Clear
+valuesAsVariant = values
+AcceptLongs valuesAsVariant
+Dim variantErr As Long
+variantErr = Err.Number
+ProbeErase = CStr(directErr) & ":" & CStr(variantErr)
+End Function`,
+  },
+];
+const eraseRunner = evalVBAModules(eraseModules);
+const eraseResult = eraseRunner.callProcedure('ProbeErase', []);
+if (eraseResult !== '0:0') {
+  throw new Error(`expected Erase to preserve typed array binding, got ${eraseResult}`);
+}
+console.log('[PASS] Erase preserves typed array parameter compatibility');
