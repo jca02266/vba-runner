@@ -157,3 +157,14 @@ items:
       - src/engine/parser.ts
       - tests/spec/class-paramarray.test.ts
       - tests/spec/paramarray-edge-cases.test.ts
+  - id: RCA-FOLLOWUP-016
+    title: Interface・COM Property value-tail境界
+    status: queued
+    priority: 1
+    focus: 外部ObjectのProperty Let/SetにおけるParamArrayとRHS value-paramの分離
+    priorCauseKey: property-paramarray-value-tail-model
+    rootCauseId: RC-00029
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+      - tests/spec/property-paramarray.test.ts
