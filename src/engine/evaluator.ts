@@ -4046,11 +4046,13 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let') ??
-                    findClassProperty(classDef.procedures, propName, 'set');
+                const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
+                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
@@ -4088,11 +4090,13 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let') ??
-                    findClassProperty(classDef.procedures, propName, 'set');
+                const setter = findClassProperty(classDef.procedures, propName, 'let');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
+                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
+                    }
                     // Bug CC: enforce fixed-length string for With-block class field assignment
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
