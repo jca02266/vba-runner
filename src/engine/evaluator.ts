@@ -9467,7 +9467,9 @@ export class Evaluator {
                     return this.callClassMethodWithExpressions(obj, proc, expr.args);
                 }
                 // Implements interface dispatch: obj.Speak -> obj.IAnimal_Speak
-                const ifaceProc = this.findInterfaceDispatch(obj, methodNameOriginal);
+                const ifaceProc = this.allowsInterfaceDispatch(expr.callee.object, methodNameOriginal)
+                    ? this.findInterfaceDispatch(obj, methodNameOriginal)
+                    : null;
                 if (ifaceProc) {
                     this.checkNoGapOnRequiredParam(ifaceProc.parameters, expr.args);
                     return this.callClassMethodWithExpressions(obj, ifaceProc, expr.args);
@@ -9972,7 +9974,9 @@ export class Evaluator {
             }
 
             // Implements interface dispatch: obj.Area -> obj.IShape_Area
-            const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
+            const ifaceProc = this.allowsInterfaceDispatch(expr.object, expr.property.name)
+                ? this.findInterfaceDispatch(obj, expr.property.name)
+                : null;
             if (ifaceProc) {
                 return this.callClassMethod(obj, ifaceProc, []);
             }
@@ -10042,6 +10046,20 @@ export class Evaluator {
             if (implProc) return implProc;
         }
         return null;
+    }
+
+    /** Interface members are visible through an Interface-typed reference only. */
+    private allowsInterfaceDispatch(source: Expression | undefined, memberName: string): boolean {
+        if (!source || source.type !== 'Identifier') return true;
+        const typeInfo = this.env.getVariableType((source as Identifier).name);
+        const declaredType = typeInfo?.objectTypeName;
+        if (!declaredType) return true;
+        const declaredClass = this.classDefinitions.get(declaredType.toLowerCase());
+        if (!declaredClass) return true;
+        return declaredClass.procedures.some(proc =>
+            proc.name.name.toLowerCase() === memberName.toLowerCase()) ||
+            declaredClass.fields.some(field => field.declarations.some(decl =>
+                decl.name.name.toLowerCase() === memberName.toLowerCase()));
     }
 
     private evaluateBinaryExpression(expr: BinaryExpression): any {
