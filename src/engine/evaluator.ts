@@ -8937,18 +8937,6 @@ export class Evaluator {
 
             const proc = this.env.getProcedure(name);
 
-            // An erased dynamic array is still a typed array value, but indexed
-            // reads must fail until ReDim rather than returning Empty.
-            if (!proc) {
-                const arrayValue = this.env.getConst(name);
-                if (Array.isArray(arrayValue) && expr.args.length > 0) {
-                    this.ensureArrayNotErased(arrayValue);
-                    const dims = (arrayValue as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
-                    const indexes = this.evaluateIndexExpressions(expr.args);
-                    return this.readArrayAtIndexes(arrayValue, indexes, dims, false, false);
-                }
-            }
-
             if (proc) {
                 // Cross-module Private access check
                 if (
@@ -9162,6 +9150,7 @@ export class Evaluator {
                 if (typeof variable === 'function') {
                     return this.invokeBuiltin(variable, this.resolveCallArgs(variable, expr.args, name));
                 } else if (Array.isArray(variable)) {
+                    this.ensureArrayNotErased(variable);
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     const dims = (variable as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                     const indexes = this.evaluateIndexExpressions(expr.args);
