@@ -300,6 +300,28 @@ assert.ok(
     'FSO OpenTextFile rejects all read and position members after Close',
 );
 
+const eofTextStream = evalVBASingle(String.raw`
+    Function ProbeTextStreamEof() As String
+        Dim fso As Object, stream As Object, text As String
+        Dim eLine As Long, eSkip As Long
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-eof-readline.txt", True, False)
+        stream.Write "abc"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream-eof-readline.txt", 1, False, -2)
+        text = stream.ReadAll
+        On Error Resume Next
+        Err.Clear: text = stream.ReadLine: eLine = Err.Number
+        Err.Clear: stream.SkipLine: eSkip = Err.Number
+        ProbeTextStreamEof = CStr(eLine) & "|" & CStr(eSkip)
+    End Function
+`);
+assert.strictEqual(
+    eofTextStream.callProcedure('ProbeTextStreamEof', []),
+    '62|62',
+    'FSO TextStream ReadLine/SkipLine at EOF return Error 62',
+);
+
 const textStreamProperties = evalVBASingle(`
     Function ProbeTextStreamProperties() As String
         Dim fso As Object, stream As Object

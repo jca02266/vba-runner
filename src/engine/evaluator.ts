@@ -7368,6 +7368,9 @@ export class Evaluator {
                     },
                     readline: () => {
                         const content = readContent();
+                        if (pos >= content.length) {
+                            this.throwVbaError(62, 'Input past end of file');
+                        }
                         const breakAt = nextLineBreak(content, pos);
                         if (!breakAt) {
                             const line = content.slice(pos);
@@ -7380,6 +7383,9 @@ export class Evaluator {
                     },
                     skipline: () => {
                         const content = readContent();
+                        if (pos >= content.length) {
+                            this.throwVbaError(62, 'Input past end of file');
+                        }
                         const breakAt = nextLineBreak(content, pos);
                         pos = breakAt ? breakAt.index + breakAt.length : content.length;
                     },
