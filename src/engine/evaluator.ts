@@ -5876,8 +5876,24 @@ export class Evaluator {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                 } else if (obj && typeof obj === 'object') {
-                    const key = String(this.evaluateExpression(call.args[0]));
-                    obj[key] = value;
+                    const member = this.resolveObjectMemberKey(obj, methodName);
+                    const array = member !== undefined ? obj[member] : undefined;
+                    if (Array.isArray(array) && call.args.length > 0) {
+                        this.ensureArrayNotErased(array);
+                        const dims = (array as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                        const requiredType = (array as any).__vbaElementObjectTypeName__ as string | undefined;
+                        if (requiredType) this.validateObjectArrayElementValue(value, requiredType);
+                        this.validateArrayArity(dims, call.args.length);
+                        let current: any = array;
+                        for (let i = 0; i < call.args.length - 1; i++) {
+                            current = current[this.evaluateArrayIndex(call.args[i], dims, i)];
+                        }
+                        const lastIndex = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
+                        current[lastIndex] = this.coerceArrayElementValue(array, value);
+                    } else {
+                        const key = String(this.evaluateExpression(call.args[0]));
+                        obj[key] = value;
+                    }
                 } else {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
