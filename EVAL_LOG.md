@@ -336,6 +336,7 @@
 | EV-00431 | RCA-FOLLOWUP | fixed | 1 | Class Optional MissingArgumentとCallByName境界 |
 | EV-00432 | RCA-FOLLOWUP | needs-excel | 1 | CallByName VbSetの名前付き引数順不同境界 |
 | EV-00433 | RCA-FOLLOWUP | fixed | 1 | Implements経由のindexed Property Let/Set dispatch |
+| EV-00434 | RCA-FOLLOWUP | verified-no-bug | 1 | CallByName Optional・ByRef binder横展開 |
 
 ## 状態集計
 
@@ -345,9 +346,9 @@
 | known-limit | 3 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 98 |
+| verified-no-bug | 99 |
 
-横展開未解決経路: 265、実Excel待ち評価: 1
+横展開未解決経路: 268、実Excel待ち評価: 1
 
 ## 次の候補
 

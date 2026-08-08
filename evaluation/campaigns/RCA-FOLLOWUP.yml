@@ -199,3 +199,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/interfaces.test.ts
+  - id: RCA-FOLLOWUP-020
+    title: CallByName Optional・ByRef binder横展開
+    status: queued
+    priority: 1
+    focus: CallByNameのVbMethod/VbGet/VbLet/VbSetにおけるOptional穴、ByRef、名前付き引数の共通契約
+    priorCauseKey: argument-binding-order-and-writeback
+    rootCauseId: RC-00017
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/callbyname.test.ts
+      - tests/spec/optional-param-order.test.ts
