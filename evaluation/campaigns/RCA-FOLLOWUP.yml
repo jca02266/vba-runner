@@ -233,3 +233,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/interface-property-assignment.test.ts
+  - id: RCA-FOLLOWUP-023
+    title: Class・Interface forced ByVal 呼出し境界
+    status: queued
+    priority: 1
+    focus: クラス・Interface手続き呼出しで括弧付きByRef引数を一時値として扱う共通契約
+    priorCauseKey: argument-binding-order-and-writeback
+    rootCauseId: RC-00017
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/byref-dispatch-matrix.test.ts

@@ -1,6 +1,6 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-const ev = evalVBASingle(`
+const ev = evalVBASingle(String.raw`
     Type Pair
         Left As Long
         Right As Long
