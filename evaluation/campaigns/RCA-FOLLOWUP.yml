@@ -123,3 +123,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-013
+    title: Erase後配列組み込み境界
+    status: queued
+    priority: 2
+    focus: Erase済み配列をFor Each・Join・Filterへ渡した場合の未割当Error 9契約
+    priorCauseKey: typed-array-parameter-element-type-validation-gap
+    rootCauseId: RC-00028
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/array-functions.test.ts
