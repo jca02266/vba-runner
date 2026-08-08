@@ -189,3 +189,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/callbyname.test.ts
+  - id: RCA-FOLLOWUP-019
+    title: Implements Property Let・Set代入dispatch
+    status: queued
+    priority: 1
+    focus: インターフェース参照からindexed Property Let/Setを実装メンバーへdispatchする経路
+    priorCauseKey: interface-assignment-dispatch-omission
+    rootCauseId: RC-00031
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interfaces.test.ts
