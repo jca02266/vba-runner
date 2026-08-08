@@ -2,3 +2,8 @@
   evaluationId: EV-00438
   status: bug-found
   occurredAt: '2026-08-08T20:45:56.491Z'
+- candidateId: RCA-FOLLOWUP-024
+  evaluationId: EV-00438
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-08T20:55:45.122Z'

@@ -340,18 +340,19 @@
 | EV-00435 | RCA-FOLLOWUP | fixed | 1 | UDT・Object配列の共通binder要素型境界 |
 | EV-00436 | RCA-FOLLOWUP | fixed | 1 | Interface CallByName Property value-tail dispatch |
 | EV-00437 | RCA-FOLLOWUP | needs-excel | 1 | Class・Interface forced ByVal 呼出し境界 |
+| EV-00438 | RCA-FOLLOWUP | fixed | 1 | UDT配列メンバーの要素型境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 231 |
+| fixed | 232 |
 | known-limit | 3 |
 | needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 99 |
 
-横展開未解決経路: 272、実Excel待ち評価: 2
+横展開未解決経路: 274、実Excel待ち評価: 2
 
 ## 次の候補
 
