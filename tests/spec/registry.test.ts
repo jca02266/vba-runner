@@ -86,4 +86,22 @@ assert.throwsMatch(
     'SendKeys statement positional Wait rejects Null',
 );
 
+const interactionWaitEvaluation = evalVBASingle(String.raw`
+    Dim waitEvaluations As Long
+    Function NextWait() As Boolean
+        waitEvaluations = waitEvaluations + 1
+        NextWait = True
+    End Function
+    Function ProbeInteractionWaitEvaluation() As String
+        AppActivate "x", Wait:=NextWait()
+        SendKeys "x", Wait:=NextWait()
+        ProbeInteractionWaitEvaluation = CStr(waitEvaluations)
+    End Function
+`);
+assert.strictEqual(
+    interactionWaitEvaluation.callProcedure('ProbeInteractionWaitEvaluation', []),
+    '2',
+    'AppActivate and SendKeys evaluate named Wait expressions once',
+);
+
 console.log('✅ Registry/Interaction optional and array boundaries: 全テスト通過');

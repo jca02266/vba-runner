@@ -322,6 +322,7 @@
 | EV-00417 | RCA-FOLLOWUP | verified-no-bug | 0 | Decimal relational Case Isの精度境界 |
 | EV-00418 | RCA-FOLLOWUP | verified-no-bug | 0 | DecimalとCurrencyの異種Select Case比較 |
 | EV-00419 | RCA-FOLLOWUP | needs-excel | 1 | FSO TextStreamのClose後Read/Write契約 |
+| EV-00420 | RCA-FOLLOWUP | verified-no-bug | 0 | AppActivate・SendKeys待機式の副作用評価順序 |
 
 ## 状態集計
 
@@ -331,7 +332,7 @@
 | known-limit | 3 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 94 |
+| verified-no-bug | 95 |
 
 横展開未解決経路: 248、実Excel待ち評価: 1
 
@@ -339,6 +340,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-008 | 1 | queued | Wait式の副作用・型不正・Err状態を一度だけ評価する契約 | yes |
 | RCA-FOLLOWUP-006 | 2 | queued | CRLF/CR/LF混在時のLine・Column・AtEndOfLine | yes |
 | RCA-FOLLOWUP-007 | 2 | queued | 実COMにおけるClose後操作の正確なエラー番号 | yes |
