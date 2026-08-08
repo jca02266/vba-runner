@@ -246,6 +246,20 @@ Function TestDecimalRelationalPrecision() As String
 End Function
 `, 'TestDecimalRelationalPrecision');
     assert.strictEqual(relationalPrecision, 'less', 'Select Case relational Decimal comparison preserves precision');
+
+    const mixedPrecision = runFunc(`
+Function TestDecimalCurrencyPrecision() As String
+    Dim value As Variant
+    value = CDec("1.23456")
+    Select Case value
+        Case Is < CCur("1.2346")
+            TestDecimalCurrencyPrecision = "less"
+        Case Else
+            TestDecimalCurrencyPrecision = "wrong"
+    End Select
+End Function
+`, 'TestDecimalCurrencyPrecision');
+    assert.strictEqual(mixedPrecision, 'less', 'Select Case preserves Decimal/Currency precision');
     console.log('[PASS] Bug 193-A: Select Case Decimal/Currency ranges');
 
     const decimalString = runFunc(`
