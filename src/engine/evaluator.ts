@@ -1000,6 +1000,16 @@ export class Evaluator {
         return expr && !param.isByVal && !forcedByVal ? this.createLValueReference(expr) : null;
     }
 
+    /** Property Let/Set's final RHS is always a ByVal value parameter. */
+    private isPropertyValueParameter(
+        proc: ProcedureDeclaration,
+        index: number,
+    ): boolean {
+        return proc.isProperty &&
+            (proc.propertyType === 'let' || proc.propertyType === 'set') &&
+            index === proc.parameters.length - 1;
+    }
+
     /** Bind positional values to a procedure frame for module and class calls. */
     private bindProcedureParameters(
         proc: ProcedureDeclaration,
@@ -1008,18 +1018,25 @@ export class Evaluator {
         argSubtypes?: (VbaVarType | undefined)[],
         validateObjectArguments = false,
     ): string | null {
+        let propertyValueTailIndex = -1;
+        let propertyValueTailValue: any;
         for (let i = 0; i < proc.parameters.length; i++) {
             const param = proc.parameters[i];
             const paramName = param.name;
             if (param.isParamArray) {
-                const remainingArgs = args.slice(i);
+                const hasPropertyValueTail = this.isPropertyValueParameter(proc, i + 1);
+                const remainingArgs = args.slice(i, hasPropertyValueTail ? -1 : undefined);
                 (remainingArgs as any).vbaBase = 0;
                 localEnv.setLocally(paramName, remainingArgs);
-                return paramName;
+                if (!hasPropertyValueTail) return paramName;
+                propertyValueTailIndex = i + 1;
+                propertyValueTailValue = args.length > i ? args[args.length - 1] : vbaMissing;
+                continue;
             }
 
             let argValue: any;
-            if (i < args.length && args[i] !== vbaOmitted) argValue = args[i];
+            if (i === propertyValueTailIndex) argValue = propertyValueTailValue;
+            else if (i < args.length && args[i] !== vbaOmitted) argValue = args[i];
             else if (param.defaultValue) argValue = this.evaluateExpression(param.defaultValue);
             else argValue = vbaMissing;
 
@@ -1051,7 +1068,7 @@ export class Evaluator {
                 !isVbaObjectReferenceCompatible(argValue)) {
                 this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
-            argValue = this.prepareArgumentValue(argValue, param);
+            argValue = this.prepareArgumentValue(argValue, param, this.isPropertyValueParameter(proc, i));
             localEnv.setLocally(paramName, argValue);
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
                     && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
@@ -4945,6 +4962,10 @@ export class Evaluator {
     ): { args: any[]; references: Array<VbaLValueReference | null>; expressions: Array<Expression | null> } {
         const split = this.splitArgumentExpressions(argExprs);
         const paramArrayIndex = proc.parameters.findIndex(p => p.isParamArray);
+        const propertyValueIndex = paramArrayIndex >= 0 &&
+            this.isPropertyValueParameter(proc, proc.parameters.length - 1)
+            ? proc.parameters.length - 1
+            : -1;
 
         // NamedArgument itself is a wrapper, not an assignable expression. Keep
         // its value node so ByRef writes target the original caller variable.
@@ -4952,7 +4973,7 @@ export class Evaluator {
         // expression from its slot onward must remain an individual argument
         // so bindProcedureParameters can perform the canonical packing.
         const supplied: Array<{ expr: Expression | null; value: any } | undefined> =
-            new Array(paramArrayIndex >= 0 ? paramArrayIndex : proc.parameters.length);
+            new Array(paramArrayIndex >= 0 ? (propertyValueIndex >= 0 ? proc.parameters.length : paramArrayIndex) : proc.parameters.length);
         const paramArraySupplied: Array<{ expr: Expression; value: any }> = [];
         let nextPositional = 0;
         for (let sourceIndex = 0; sourceIndex < split.ordered.length; sourceIndex++) {
@@ -4984,11 +5005,19 @@ export class Evaluator {
                 this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
             supplied[paramIndex] = { expr: valueExpr, value };
         }
+        // In a Property Let/Set invocation, the final positional argument is
+        // the RHS value and is not part of the ParamArray. A named RHS was
+        // already placed in its final slot above.
+        if (propertyValueIndex >= 0 && !supplied[propertyValueIndex] && paramArraySupplied.length > 0) {
+            const tail = paramArraySupplied.pop()!;
+            supplied[propertyValueIndex] = { expr: tail.expr, value: tail.value };
+        }
         let lastProvided = -1;
         for (let i = supplied.length - 1; i >= 0; i--) {
             if (supplied[i]) { lastProvided = i; break; }
         }
-        const aligned = supplied.slice(0, lastProvided + 1);
+        const leadingEnd = paramArrayIndex >= 0 ? paramArrayIndex : lastProvided + 1;
+        const aligned = supplied.slice(0, leadingEnd);
         const expressions = aligned.map(slot => slot?.expr ?? null);
         // A ByVal argument is already evaluated above.  Resolving a reference
         // for it would evaluate member-call expressions a second time (for
@@ -4996,15 +5025,26 @@ export class Evaluator {
         const references = expressions.map((expr, i) =>
             this.argumentReference(expr ?? undefined, proc.parameters[i])
         );
-        const args = Array.from(aligned, (slot, i) => slot
+        const leadingArgs = Array.from(aligned, (slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
             : vbaOmitted);
+        const args = leadingArgs;
         if (paramArrayIndex >= 0) {
             for (const slot of paramArraySupplied) {
                 expressions.push(slot.expr);
                 references.push(this.argumentReference(slot.expr, proc.parameters[paramArrayIndex]));
                 const i = expressions.length - 1;
                 args.push(references[i] ? references[i]!.get() : slot.value);
+            }
+            if (propertyValueIndex >= 0 && supplied[propertyValueIndex]) {
+                const slot = supplied[propertyValueIndex]!;
+                expressions.push(slot.expr);
+                references.push(this.argumentReference(
+                    slot.expr,
+                    proc.parameters[propertyValueIndex],
+                    this.isPropertyValueParameter(proc, propertyValueIndex),
+                ));
+                args.push(slot.value);
             }
         }
         return { args, references, expressions };

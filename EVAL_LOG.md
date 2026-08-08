@@ -331,17 +331,18 @@
 | EV-00426 | RCA-FOLLOWUP | fixed | 1 | Erase後typed array添字アクセス境界 |
 | EV-00427 | RCA-FOLLOWUP | verified-no-bug | 1 | Erase後配列組み込み境界 |
 | EV-00428 | RCA-FOLLOWUP | fixed | 1 | Property Let/Set Optional holeと最終value整列 |
+| EV-00429 | RCA-FOLLOWUP | fixed | 1 | ParamArray Property・CallByName binder境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 226 |
+| fixed | 227 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 97 |
 
-横展開未解決経路: 257、実Excel待ち評価: 0
+横展開未解決経路: 259、実Excel待ち評価: 0
 
 ## 次の候補
 

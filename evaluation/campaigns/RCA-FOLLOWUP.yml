@@ -145,3 +145,15 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/optional-param-order.test.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-015
+    title: ParamArray Property・CallByName binder境界
+    status: queued
+    priority: 1
+    focus: PropertyアクセサとCallByNameのParamArray、名前付き通常引数、ByRef書戻し
+    priorCauseKey: class-dispatch-omits-paramarray-tail
+    rootCauseId: RC-00029
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/class-paramarray.test.ts
+      - tests/spec/paramarray-edge-cases.test.ts

@@ -879,7 +879,8 @@ export class Parser {
                 if (seenOptional || p.isOptional) {
                     this.throwError(`Compile error at line ${line}: ParamArray cannot be combined with Optional parameters`);
                 }
-                if (index !== params.length - 1) {
+                const propertyValueTail = allowPropertyValueTail && index === params.length - 2;
+                if (index !== params.length - 1 && !propertyValueTail) {
                     this.throwError(`Compile error at line ${line}: ParamArray must be the last parameter`);
                 }
                 if (p.hasPassingModifier) {
@@ -891,7 +892,12 @@ export class Parser {
                 if (p.paramType && p.paramType.toLowerCase() !== 'variant') {
                     this.throwError(`Compile error at line ${line}: ParamArray must be an array of Variant`);
                 }
-                break;
+                // Property Let/Set has one required value parameter after a
+                // ParamArray.  Validate that final value parameter on the next
+                // iteration; ordinary procedures and Property Get retain the
+                // usual ParamArray-last rule.
+                if (!propertyValueTail) break;
+                continue;
             }
             if (p.isOptional) {
                 seenOptional = true;
