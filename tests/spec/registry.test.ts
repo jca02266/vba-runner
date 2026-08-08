@@ -34,6 +34,22 @@ evalVBASingle(`
 `, { onPrint: (o) => matrixLines.push(o.trim()) });
 assert.deepStrictEqual(matrixLines, ['1:1', 'Top=75', 'Left=50'], 'GetAllSettings returns a 2D array');
 
+const emptySectionLines: string[] = [];
+evalVBASingle(`
+    SaveSetting "EmptyMatrixApp", "EmptySection", "Only", "value"
+    DeleteSetting "EmptyMatrixApp", "EmptySection", "Only"
+    Dim emptySettings As Variant
+    emptySettings = GetAllSettings("EmptyMatrixApp", "EmptySection")
+    Debug.Print TypeName(emptySettings)
+    Debug.Print LBound(emptySettings, 1) & ":" & UBound(emptySettings, 1)
+    Debug.Print LBound(emptySettings, 2) & ":" & UBound(emptySettings, 2)
+`, { onPrint: (o) => emptySectionLines.push(o.trim()) });
+assert.deepStrictEqual(
+    emptySectionLines,
+    ['Variant()', '0:-1', '0:1'],
+    'GetAllSettings preserves empty two-dimensional section bounds',
+);
+
 assert.throwsMatch(
     () => evalVBASingle('SaveSetting Null, "S", "K", "V"'),
     /Invalid use of Null/,
