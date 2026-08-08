@@ -5001,8 +5001,13 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
             }
             const valueExpr = entry.expression;
-            const value = evaluatedArgs?.[sourceIndex] ??
-                this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
+            // Keep a syntactic omitted slot distinct from an explicit Empty.
+            // Class alignment must let the common binder apply an Optional
+            // default instead of materializing MissingArgument as vbaEmpty.
+            const value = valueExpr.type === 'MissingArgument'
+                ? vbaOmitted
+                : evaluatedArgs?.[sourceIndex] ??
+                    this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
             supplied[paramIndex] = { expr: valueExpr, value };
         }
         // In a Property Let/Set invocation, the final positional argument is

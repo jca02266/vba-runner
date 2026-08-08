@@ -168,3 +168,14 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/callbyname.test.ts
       - tests/spec/property-paramarray.test.ts
+  - id: RCA-FOLLOWUP-017
+    title: CallByName Optional hole境界
+    status: queued
+    priority: 1
+    focus: CallByNameのProperty Let/SetとFunctionで中間Optional、MissingArgument、ByRefを束ねる契約
+    priorCauseKey: class-optional-hole-default-binding
+    rootCauseId: RC-00018
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+      - tests/spec/optional-param-order.test.ts

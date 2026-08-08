@@ -333,17 +333,18 @@
 | EV-00428 | RCA-FOLLOWUP | fixed | 1 | Property Let/Set Optional holeと最終value整列 |
 | EV-00429 | RCA-FOLLOWUP | fixed | 1 | ParamArray Property・CallByName binder境界 |
 | EV-00430 | RCA-FOLLOWUP | verified-no-bug | 1 | Interface・COM Property value-tail境界 |
+| EV-00431 | RCA-FOLLOWUP | fixed | 1 | Class Optional MissingArgumentとCallByName境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 227 |
+| fixed | 228 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 98 |
 
-横展開未解決経路: 260、実Excel待ち評価: 0
+横展開未解決経路: 263、実Excel待ち評価: 0
 
 ## 次の候補
 
