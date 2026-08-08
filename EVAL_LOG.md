@@ -317,26 +317,27 @@
 | EV-00412 | ROOT-CAUSE | verified-no-bug | 1 | MIRR演算順序・epsilon再現性 |
 | EV-00413 | ROOT-CAUSE | fixed | 1 | 旧配列戻り値分析のCallExpression境界 |
 | EV-00414 | ROOT-CAUSE | fixed | 1 | Class名前付きOptionalの中間省略 |
+| EV-00415 | RCA-FOLLOWUP | fixed | 1 | AppActivate・SendKeys文形式Wait引数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 218 |
+| fixed | 219 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 91 |
 
-横展開未解決経路: 244、実Excel待ち評価: 0
+横展開未解決経路: 245、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-001 | 1 | queued | AppActivate/SendKeysの文形式Wait:=Nullと必須引数変換 | yes |
 | RCA-FOLLOWUP-002 | 1 | queued | 空セクション時のLBound/UBoundと2次元配列メタデータ | yes |
 | RCA-FOLLOWUP-003 | 1 | queued | DecimalのCase Isによる大小比較と高精度境界 | yes |
 | RCA-FOLLOWUP-004 | 1 | queued | Decimal/Currency異種比較の変換・精度契約 | yes |
 | RCA-FOLLOWUP-005 | 1 | queued | Close後Read/WriteのVBAエラーと再Open境界 | yes |
+| RCA-FOLLOWUP-008 | 1 | queued | Wait式の副作用・型不正・Err状態を一度だけ評価する契約 | yes |
 | RCA-FOLLOWUP-006 | 2 | queued | CRLF/CR/LF混在時のLine・Column・AtEndOfLine | yes |
 | RCA-FOLLOWUP-007 | 2 | queued | 実COMにおけるClose後操作の正確なエラー番号 | yes |
