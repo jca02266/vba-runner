@@ -321,27 +321,27 @@
 | EV-00416 | RCA-FOLLOWUP | verified-no-bug | 0 | GetAllSettings空セクションの配列境界 |
 | EV-00417 | RCA-FOLLOWUP | verified-no-bug | 0 | Decimal relational Case Isの精度境界 |
 | EV-00418 | RCA-FOLLOWUP | verified-no-bug | 0 | DecimalとCurrencyの異種Select Case比較 |
-| EV-00419 | RCA-FOLLOWUP | needs-excel | 1 | FSO TextStreamのClose後Read/Write契約 |
+| EV-00419 | RCA-FOLLOWUP | fixed | 1 | FSO TextStreamのClose後Read/Write契約 |
 | EV-00420 | RCA-FOLLOWUP | verified-no-bug | 0 | AppActivate・SendKeys待機式の副作用評価順序 |
 | EV-00421 | RCA-FOLLOWUP | verified-no-bug | 0 | TextStream混在改行の行列境界 |
-| EV-00422 | RCA-FOLLOWUP | needs-excel | 1 | 実COM StreamのClose後エラー番号 |
-| EV-00423 | RCA-FOLLOWUP | needs-excel | 1 | TextStream EOF ReadLine境界 |
+| EV-00422 | RCA-FOLLOWUP | fixed | 1 | 実COM StreamのClose後エラー番号 |
+| EV-00423 | RCA-FOLLOWUP | fixed | 1 | TextStream EOF ReadLine境界 |
 | EV-00424 | RCA-FOLLOWUP | fixed | 1 | Property Let typed array要素型境界 |
 | EV-00425 | RCA-FOLLOWUP | fixed | 1 | Erase後のtyped array要素型保持 |
 | EV-00426 | RCA-FOLLOWUP | fixed | 1 | Erase後typed array添字アクセス境界 |
 | EV-00427 | RCA-FOLLOWUP | verified-no-bug | 1 | Erase後配列組み込み境界 |
+| EV-00428 | RCA-FOLLOWUP | fixed | 1 | Property Let/Set Optional holeと最終value整列 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 222 |
+| fixed | 226 |
 | known-limit | 3 |
-| needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 97 |
 
-横展開未解決経路: 256、実Excel待ち評価: 3
+横展開未解決経路: 257、実Excel待ち評価: 0
 
 ## 次の候補
 
