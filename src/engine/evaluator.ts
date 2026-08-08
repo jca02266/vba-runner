@@ -3677,10 +3677,9 @@ export class Evaluator {
         sourceExpr: Expression | undefined,
         value: any,
     ): void {
-        const hasNamedIndex = indexExpressions.some(expr => expr.type === 'NamedArgument');
         const finalParameter = setter.parameters[setter.parameters.length - 1];
         const rhsExpression = sourceExpr ?? ({ type: 'Literal', value } as Expression);
-        const rhsArgument: Expression = hasNamedIndex && finalParameter
+        const rhsArgument: Expression = finalParameter
             ? ({ type: 'NamedArgument', name: finalParameter.name, value: rhsExpression } as any)
             : rhsExpression;
         this.callClassMethodWithExpressions(obj, setter,
@@ -4047,13 +4046,11 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let');
+                const setter = findClassProperty(classDef.procedures, propName, 'let') ??
+                    findClassProperty(classDef.procedures, propName, 'set');
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
+                        this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
-                    if (findClassProperty(classDef.procedures, propName, 'set')) {
-                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
-                    }
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
@@ -4091,13 +4088,11 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let');
+                const setter = findClassProperty(classDef.procedures, propName, 'let') ??
+                    findClassProperty(classDef.procedures, propName, 'set');
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [sourceExpr ?? null], [val]);
+                        this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
-                    if (findClassProperty(classDef.procedures, propName, 'set')) {
-                        this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
-                    }
                     // Bug CC: enforce fixed-length string for With-block class field assignment
                     const fl = obj.__fixedLengths__?.[propName];
                     if (fl !== undefined && typeof val === 'string') {
@@ -5679,7 +5674,7 @@ export class Evaluator {
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [stmt.right], [value]);
+                    this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
                 } else {
                     if (isWithEvents) {
                         this.detachWithEventsHandlers(propName, obj);
@@ -5725,7 +5720,7 @@ export class Evaluator {
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                 );
                 if (setter) {
-                    this.callClassMethodWithExpressions(obj, setter, [stmt.right], [value]);
+                        this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
                 } else {
                     instanceEnv.setLocally(propName, value);
                 }
@@ -5772,7 +5767,7 @@ export class Evaluator {
                     );
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right], [...argsVals, value]);
+                        this.callPropertySetterAssignment(obj, setter, call.args, argsVals, stmt.right, value);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -5845,8 +5840,8 @@ export class Evaluator {
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
                     );
                     if (setter) {
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, stmt.right],
-                            [...this.evaluateExpressions(call.args), value]);
+                        this.callPropertySetterAssignment(obj, setter, call.args,
+                            this.evaluateExpressions(call.args), stmt.right, value);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }

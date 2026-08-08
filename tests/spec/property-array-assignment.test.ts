@@ -120,9 +120,26 @@ End Function
 End Class`,
   },
   {
+    name: 'Thing',
+    code: String.raw`Class Thing
+End Class`,
+  },
+  {
+    name: 'OptionalObjectBox',
+    code: String.raw`Class OptionalObjectBox
+Private seen As Long
+Public Property Set Obj(Optional index1 As Long = 0, Optional index2 As Long = 0, ByVal value As Thing)
+  seen = index1 * 100 + index2 * 10
+End Property
+Public Function Read() As Long
+  Read = seen
+End Function
+End Class`,
+  },
+  {
     name: 'OptionalPropertyModule',
     code: String.raw`Function ProbeOptionalProperty() As String
-Dim b As New OptionalPropertyBox, e As Long
+Dim b As New OptionalPropertyBox, o As New OptionalObjectBox, t As New Thing, e As Long
 On Error Resume Next
 b.Item(, 2) = 3
 e = Err.Number
@@ -131,12 +148,24 @@ Err.Clear
 b.Item(index2:=2) = 3
 e = Err.Number
 ProbeOptionalProperty = ProbeOptionalProperty & "|named=" & CStr(e) & ":" & CStr(b.Read())
+Err.Clear
+b.Item = 3
+e = Err.Number
+ProbeOptionalProperty = ProbeOptionalProperty & "|value=" & CStr(e) & ":" & CStr(b.Read())
+Err.Clear
+Set o.Obj(index2:=2) = t
+e = Err.Number
+ProbeOptionalProperty = ProbeOptionalProperty & "|setnamed=" & CStr(e) & ":" & CStr(o.Read())
+Err.Clear
+Set o.Obj = t
+e = Err.Number
+ProbeOptionalProperty = ProbeOptionalProperty & "|setvalue=" & CStr(e) & ":" & CStr(o.Read())
 End Function`,
   },
 ];
 const optionalPropertyRunner = evalVBAModules(optionalPropertyModules);
 const optionalPropertyResult = optionalPropertyRunner.callProcedure('ProbeOptionalProperty', []);
-if (optionalPropertyResult !== 'pos=0:23|named=0:23') {
+if (optionalPropertyResult !== 'pos=0:23|named=0:23|value=0:3|setnamed=0:20|setvalue=0:0') {
   throw new Error(`expected Property Let Optional holes to bind defaults, got ${optionalPropertyResult}`);
 }
 console.log('[PASS] Property Let binds named Optional holes before value');
