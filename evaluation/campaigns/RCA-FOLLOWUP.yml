@@ -82,3 +82,14 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/registry.test.ts
+  - id: RCA-FOLLOWUP-009
+    title: TextStream EOF ReadLine境界
+    status: queued
+    priority: 2
+    focus: AtEndOfStream後のReadLineとError 62契約
+    priorCauseKey: stream-closed-state-gap
+    rootCauseId: RC-00026
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas

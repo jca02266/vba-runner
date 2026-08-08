@@ -68,10 +68,28 @@ Public Sub RunExcelQueueVerification()
     VerifyAsNewArray
     VerifyCollectionEnumerationMutation
     VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
+    VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyPendingExcelBoundaries
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyTextStreamEofReadLine(ByVal path As String)
+    Dim fso As Object, stream As Object, text As String, errNo As Long
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile(path, True, False)
+    stream.Write "abc"
+    stream.Close
+    Set stream = fso.OpenTextFile(path, 1, False, -2)
+    text = stream.ReadAll
+    On Error Resume Next
+    Err.Clear: text = stream.ReadLine: errNo = Err.Number
+    EmitResult "XL-057 EOF_READLINE_ERR=" & CStr(errNo) & " TEXT=[" & text & "] EOF=" & CStr(stream.AtEndOfStream)
+    Err.Clear: stream.SkipLine: errNo = Err.Number
+    EmitResult "XL-057 EOF_SKIPLINE_ERR=" & CStr(errNo) & " EOF=" & CStr(stream.AtEndOfStream)
+    On Error GoTo 0
+    stream.Close
 End Sub
 
 Private Sub VerifyPendingExcelBoundaries()

@@ -325,6 +325,7 @@
 | EV-00420 | RCA-FOLLOWUP | verified-no-bug | 0 | AppActivate・SendKeys待機式の副作用評価順序 |
 | EV-00421 | RCA-FOLLOWUP | verified-no-bug | 0 | TextStream混在改行の行列境界 |
 | EV-00422 | RCA-FOLLOWUP | needs-excel | 1 | 実COM StreamのClose後エラー番号 |
+| EV-00423 | RCA-FOLLOWUP | needs-excel | 1 | TextStream EOF ReadLine境界 |
 
 ## 状態集計
 
@@ -332,11 +333,11 @@
 |---|---:|
 | fixed | 219 |
 | known-limit | 3 |
-| needs-excel | 2 |
+| needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 96 |
 
-横展開未解決経路: 249、実Excel待ち評価: 2
+横展開未解決経路: 250、実Excel待ち評価: 3
 
 ## 次の候補
 
