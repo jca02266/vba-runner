@@ -70,9 +70,25 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyPendingExcelBoundaries
+    VerifyCallByNameNamedParamArray
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyCallByNameNamedParamArray()
+    Dim target As New ExcelQueueCallByNameIndexed
+    Dim value As New ExcelQueueTicket, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    CallByName target, "Item", VbSet, value:=value, index:=2
+    errNo = Err.Number
+    EmitResult "XL-058 VALUE-FIRST ERR=" & CStr(errNo)
+    Err.Clear
+    CallByName target, "Item", VbSet, index:=2, value:=value
+    errNo = Err.Number
+    EmitResult "XL-058 INDEX-FIRST ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyTextStreamEofReadLine(ByVal path As String)

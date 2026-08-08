@@ -179,3 +179,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/callbyname.test.ts
       - tests/spec/optional-param-order.test.ts
+  - id: RCA-FOLLOWUP-018
+    title: CallByName VbSet名前付き引数順序
+    status: queued
+    priority: 1
+    focus: VbSetのvalue/index名前付き引数順不同時のObject判定とProperty binder
+    priorCauseKey: callbyname-property-argument-order-assumption
+    rootCauseId: RC-00030
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
