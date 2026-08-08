@@ -338,18 +338,19 @@
 | EV-00433 | RCA-FOLLOWUP | fixed | 1 | Implements経由のindexed Property Let/Set dispatch |
 | EV-00434 | RCA-FOLLOWUP | verified-no-bug | 1 | CallByName Optional・ByRef binder横展開 |
 | EV-00435 | RCA-FOLLOWUP | fixed | 1 | UDT・Object配列の共通binder要素型境界 |
+| EV-00436 | RCA-FOLLOWUP | fixed | 1 | Interface CallByName Property value-tail dispatch |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 230 |
+| fixed | 231 |
 | known-limit | 3 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 99 |
 
-横展開未解決経路: 270、実Excel待ち評価: 1
+横展開未解決経路: 271、実Excel待ち評価: 1
 
 ## 次の候補
 
