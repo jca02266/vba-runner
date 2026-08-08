@@ -30,6 +30,10 @@ Private Type NestedParentRecord
     Tail As String
 End Type
 
+Private Type UdtObjectArrayRecord
+    Values(0 To 1) As Object
+End Type
+
 Private resultFile As Integer
 Private resultOpen As Boolean
 
@@ -72,9 +76,23 @@ Public Sub RunExcelQueueVerification()
     VerifyPendingExcelBoundaries
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
+    VerifyUdtObjectArraySet
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyUdtObjectArraySet()
+    Dim record As UdtObjectArrayRecord, payload As New ExcelQueueForcedByVal, errNo As Long
+    On Error Resume Next
+    Set payload = New ExcelQueueForcedByVal
+    Err.Clear: Set record.Values(0) = payload: errNo = Err.Number
+    EmitResult "XL-060 SET-PAYLOAD ERR=" & CStr(errNo) & " TYPE=" & TypeName(record.Values(0))
+    Err.Clear: Set record.Values(1) = Nothing: errNo = Err.Number
+    EmitResult "XL-060 SET-NOTHING ERR=" & CStr(errNo) & " TYPE=" & TypeName(record.Values(1))
+    Err.Clear: record.Values(0) = 1: errNo = Err.Number
+    EmitResult "XL-060 LET-SCALAR ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyMemberForcedByVal()
