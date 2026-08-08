@@ -870,7 +870,7 @@ export class Parser {
         return { type: 'OptionCompareStatement', mode };
     }
 
-    private validateParameterOrder(params: Parameter[]): void {
+    private validateParameterOrder(params: Parameter[], allowPropertyValueTail = false): void {
         let seenOptional = false;
         for (let index = 0; index < params.length; index++) {
             const p = params[index];
@@ -895,7 +895,7 @@ export class Parser {
             }
             if (p.isOptional) {
                 seenOptional = true;
-            } else if (seenOptional) {
+            } else if (seenOptional && !(allowPropertyValueTail && index === params.length - 1)) {
                 const line = (p as any).loc?.start?.line ?? this.peek().line;
                 this.throwError(`Compile error at line ${line}: Non-optional parameter '${p.name}' cannot follow an Optional parameter`);
             }
@@ -1954,7 +1954,8 @@ export class Parser {
             }
             const rParen = this.consume(TokenType.OperatorRParen, "Expected ')' after procedure parameters");
             paramsEndColumn = rParen.column + 1; // 1-based column immediately after ')'
-            this.validateParameterOrder(parameters);
+            this.validateParameterOrder(parameters,
+                propertyType === 'let' || propertyType === 'set');
         }
 
         // Optional Function return type (e.g. 'As Long', 'As Scripting.Dictionary', 'As String()')

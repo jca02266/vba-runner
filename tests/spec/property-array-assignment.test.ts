@@ -105,3 +105,38 @@ if (eraseResult !== '0:0:9:9:9') {
   throw new Error(`expected Erase to preserve typed array binding, got ${eraseResult}`);
 }
 console.log('[PASS] Erase preserves typed array parameter compatibility');
+
+const optionalPropertyModules = [
+  {
+    name: 'OptionalPropertyBox',
+    code: String.raw`Class OptionalPropertyBox
+Private total As Long
+Public Property Let Item(Optional index1 As Long = 0, Optional index2 As Long = 0, ByVal value As Long)
+  total = index1 * 100 + index2 * 10 + value
+End Property
+Public Function Read() As Long
+  Read = total
+End Function
+End Class`,
+  },
+  {
+    name: 'OptionalPropertyModule',
+    code: String.raw`Function ProbeOptionalProperty() As String
+Dim b As New OptionalPropertyBox, e As Long
+On Error Resume Next
+b.Item(, 2) = 3
+e = Err.Number
+ProbeOptionalProperty = "pos=" & CStr(e) & ":" & CStr(b.Read())
+Err.Clear
+b.Item(index2:=2) = 3
+e = Err.Number
+ProbeOptionalProperty = ProbeOptionalProperty & "|named=" & CStr(e) & ":" & CStr(b.Read())
+End Function`,
+  },
+];
+const optionalPropertyRunner = evalVBAModules(optionalPropertyModules);
+const optionalPropertyResult = optionalPropertyRunner.callProcedure('ProbeOptionalProperty', []);
+if (optionalPropertyResult !== 'pos=0:23|named=0:23') {
+  throw new Error(`expected Property Let Optional holes to bind defaults, got ${optionalPropertyResult}`);
+}
+console.log('[PASS] Property Let binds named Optional holes before value');

@@ -3668,6 +3668,25 @@ export class Evaluator {
         return instanceEnv.hasOwnVariable(name) ? instanceEnv.get(name) : undefined;
     }
 
+    /** Bind a Property Let/Set RHS to its required final parameter. */
+    private callPropertySetterAssignment(
+        obj: any,
+        setter: ProcedureDeclaration,
+        indexExpressions: Expression[],
+        indexValues: any[],
+        sourceExpr: Expression | undefined,
+        value: any,
+    ): void {
+        const hasNamedIndex = indexExpressions.some(expr => expr.type === 'NamedArgument');
+        const finalParameter = setter.parameters[setter.parameters.length - 1];
+        const rhsExpression = sourceExpr ?? ({ type: 'Literal', value } as Expression);
+        const rhsArgument: Expression = hasNamedIndex && finalParameter
+            ? ({ type: 'NamedArgument', name: finalParameter.name, value: rhsExpression } as any)
+            : rhsExpression;
+        this.callClassMethodWithExpressions(obj, setter,
+            [...indexExpressions, rhsArgument], [...indexValues, value]);
+    }
+
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
         if (left.type === 'Identifier') {
             const name = (left as Identifier).name;
@@ -3828,7 +3847,7 @@ export class Evaluator {
                     const setter = findClassProperty(classDef.procedures, 'item', 'let');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
-                        this.callClassMethodWithExpressions(target, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
+                        this.callPropertySetterAssignment(target, setter, call.args, argsVals, sourceExpr, val);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
@@ -3865,7 +3884,7 @@ export class Evaluator {
                     const setter = findClassProperty(classDef.procedures, methodName, 'let');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
-                        this.callClassMethodWithExpressions(obj, setter, [...call.args, sourceExpr ?? null], [...argsVals, val]);
+                        this.callPropertySetterAssignment(obj, setter, call.args, argsVals, sourceExpr, val);
                     } else {
                         if (findClassProperty(classDef.procedures, methodName, 'set')) {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -3943,8 +3962,8 @@ export class Evaluator {
                     const implicitSetter = findClassProperty(implicitClassDef.procedures, implicitProp, 'let');
                     if (implicitSetter) {
                         const argsVals = this.evaluateExpressions(call.args);
-                        this.callClassMethodWithExpressions(implicitObj, implicitSetter,
-                            [...call.args, sourceExpr ?? null], [...argsVals, val]);
+                        this.callPropertySetterAssignment(implicitObj, implicitSetter,
+                            call.args, argsVals, sourceExpr, val);
                     } else {
                         if (findClassProperty(implicitClassDef.procedures, implicitProp, 'set')) {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
