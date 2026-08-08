@@ -329,6 +329,7 @@
 | EV-00424 | RCA-FOLLOWUP | fixed | 1 | Property Let typed array要素型境界 |
 | EV-00425 | RCA-FOLLOWUP | fixed | 1 | Erase後のtyped array要素型保持 |
 | EV-00426 | RCA-FOLLOWUP | fixed | 1 | Erase後typed array添字アクセス境界 |
+| EV-00427 | RCA-FOLLOWUP | verified-no-bug | 1 | Erase後配列組み込み境界 |
 
 ## 状態集計
 
@@ -338,9 +339,9 @@
 | known-limit | 3 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 96 |
+| verified-no-bug | 97 |
 
-横展開未解決経路: 255、実Excel待ち評価: 3
+横展開未解決経路: 256、実Excel待ち評価: 3
 
 ## 次の候補
 
