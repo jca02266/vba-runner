@@ -67,6 +67,7 @@ Public Sub RunExcelQueueVerification()
     VerifyNonFiniteBoundaries
     VerifyAsNewArray
     VerifyCollectionEnumerationMutation
+    VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
     VerifyPendingExcelBoundaries
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
@@ -95,6 +96,34 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyMirrCashflowMatrix
     VerifySydPositiveArgumentMatrix
     VerifyMirrPrecisionMatrix
+End Sub
+
+Private Sub VerifyTextStreamCloseBoundaries(ByVal path As String)
+    Dim fso As Object, stream As Object, errNo As Long
+    Dim text As String, atEnd As Boolean, lineNo As Long
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile(path, True, False)
+    stream.Write "abc"
+    stream.Close
+    Set stream = fso.OpenTextFile(path, 1, False, -2)
+    stream.Close
+
+    On Error Resume Next
+    Err.Clear: text = stream.ReadAll: errNo = Err.Number
+    EmitResult "XL-056 READALL_ERR=" & CStr(errNo)
+    Err.Clear: text = stream.ReadLine: errNo = Err.Number
+    EmitResult "XL-056 READLINE_ERR=" & CStr(errNo)
+    Err.Clear: stream.Skip 1: errNo = Err.Number
+    EmitResult "XL-056 SKIP_ERR=" & CStr(errNo)
+    Err.Clear: stream.SkipLine: errNo = Err.Number
+    EmitResult "XL-056 SKIPLINE_ERR=" & CStr(errNo)
+    Err.Clear: atEnd = stream.AtEndOfStream: errNo = Err.Number
+    EmitResult "XL-056 ATEND_ERR=" & CStr(errNo)
+    Err.Clear: lineNo = stream.Line: errNo = Err.Number
+    EmitResult "XL-056 LINE_ERR=" & CStr(errNo)
+    Err.Clear: stream.Close: errNo = Err.Number
+    EmitResult "XL-056 CLOSE2_ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixWidthBoundaries()
