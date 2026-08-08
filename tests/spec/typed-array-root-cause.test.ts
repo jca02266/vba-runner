@@ -35,6 +35,19 @@ Class ArrayFactory
     End Property
 End Class
 
+Type UdtIntegerArray
+    Values(0 To 1) As Integer
+End Type
+
+Class PrimitiveArrayHolder
+    Public Values(0 To 1) As Integer
+End Class
+
+Function MakeLongs() As Long()
+    Dim values(0 To 1) As Long
+    MakeLongs = values
+End Function
+
 Sub AcceptObjects(ByRef values() As Object)
     If values(0) Is Nothing Then
         Err.Raise 5
@@ -66,6 +79,23 @@ Function VerifyTypedArrays() As String
         TypeName(returned) & ":" & TypeName(objects(0)) & ":" & CStr(objectError) & ":" & _
         CStr(returnError) & ":" & CStr(propertyError)
 End Function
+
+Function VerifyMemberArrayContracts() As String
+    Dim u As UdtIntegerArray, h As New PrimitiveArrayHolder
+    Dim errU As Long, errH As Long
+    On Error Resume Next
+    u.Values = MakeLongs()
+    errU = Err.Number
+    Err.Clear
+    h.Values = MakeLongs()
+    errH = Err.Number
+    Err.Clear
+    u.Values(0) = "12"
+    h.Values(0) = "12"
+    VerifyMemberArrayContracts = CStr(errU) & ":" & CStr(errH) & ":" & _
+        TypeName(u.Values(0)) & ":" & TypeName(h.Values(0)) & ":" & _
+        CStr(u.Values(0)) & ":" & CStr(h.Values(0))
+End Function
 `;
 
 const evaluator = evalVBASingle(code);
@@ -73,5 +103,10 @@ assert.strictEqual(
     evaluator.callProcedure('VerifyTypedArrays', []),
     '2:42:Point():Payload:13:13:13',
     'UDT/Object配列の戻り値・ByRef・異型要素検証を共通binderで維持する',
+);
+assert.strictEqual(
+    evaluator.callProcedure('VerifyMemberArrayContracts', []),
+    '13:13:Double:Double:12:12',
+    'UDT/Class member arrays enforce whole-array type checks and element coercion',
 );
 console.log('✅ UDT/Object typed-array root-cause boundary: 全テスト通過');

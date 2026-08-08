@@ -1602,6 +1602,11 @@ export class Evaluator {
                     (arr as any).vbaFixed = true;
                     (arr as any).vbaBase = dims[0].lower;
                     if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    else if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mtLower)) {
+                        (arr as any).__vbaElementType__ = mtLower;
+                    } else if (mtLower === 'object' || this.classDefinitions.has(mtLower) || this.externalObjectFactories.has(mtLower)) {
+                        (arr as any).__vbaElementObjectTypeName__ = mt;
+                    }
                     if (mtLower === 'string' && member.fixedLength !== undefined) {
                         (arr as any).__vbaElementFixedLength__ = member.fixedLength;
                     }
@@ -1611,6 +1616,11 @@ export class Evaluator {
                     (arr as any).vbaBase = this.arrayBase;
                     (arr as any).vbaFixed = false;
                     if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    else if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mtLower)) {
+                        (arr as any).__vbaElementType__ = mtLower;
+                    } else if (mtLower === 'object' || this.classDefinitions.has(mtLower) || this.externalObjectFactories.has(mtLower)) {
+                        (arr as any).__vbaElementObjectTypeName__ = mt;
+                    }
                     instance[memberKey] = arr;
                 }
             } else if (mtLower === 'string') {
@@ -3662,6 +3672,29 @@ export class Evaluator {
 
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
+    /** Apply the declared element contract shared by local and member arrays. */
+    private coerceArrayElementValue(array: any[], value: any): any {
+        const objectType = (array as any).__vbaElementObjectTypeName__ as string | undefined;
+        if (objectType) {
+            this.validateObjectArrayElementValue(value, objectType);
+            return value;
+        }
+        const elementType = (array as any).__vbaElementType__ as string | undefined;
+        if (elementType && elementType !== 'variant') {
+            value = this.coerceToDeclaredType(
+                value,
+                elementType.charAt(0).toUpperCase() + elementType.slice(1),
+            );
+        }
+        const fixedLength = (array as any).__vbaElementFixedLength__ as number | undefined;
+        if (elementType === 'string' && fixedLength !== undefined && typeof value === 'string') {
+            value = value.length > fixedLength
+                ? value.slice(0, fixedLength)
+                : value + ' '.repeat(fixedLength - value.length);
+        }
+        return value;
+    }
+
     private markArrayReturnMetadata(proc: ProcedureDeclaration, result: any): any {
         if (proc.returnsArray && Array.isArray(result)) {
             (result as any).__vbaArrayReturn__ = true;
@@ -3905,6 +3938,7 @@ export class Evaluator {
                         }
                         const index = this.evaluateArrayIndex(call.args[0],
                             (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined, 0);
+                        val = this.coerceArrayElementValue(fieldArr, val);
                         fieldArr[index] = val;
                         return;
                     }
@@ -3932,6 +3966,7 @@ export class Evaluator {
                                 current = current[d];
                             }
                             const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
+                            val = this.coerceArrayElementValue(fieldArr, val);
                             current[lastIdx] = val;
                         } else {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -3960,6 +3995,7 @@ export class Evaluator {
                                 ? val.slice(0, fixedLength)
                                 : val + ' '.repeat(fixedLength - val.length);
                         }
+                        val = this.coerceArrayElementValue(method, val);
                         current[lastIdx] = val;
                         return;
                     }
@@ -4011,6 +4047,7 @@ export class Evaluator {
                                 current = current[d];
                             }
                             const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
+                            val = this.coerceArrayElementValue(implicitFieldArr, val);
                             current[lastIdx] = val;
                         } else {
                             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
@@ -4023,7 +4060,7 @@ export class Evaluator {
                         this.ensureArrayNotErased(fieldArr);
                         const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
-                        fieldArr[lastIdx] = val;
+                        fieldArr[lastIdx] = this.coerceArrayElementValue(fieldArr, val);
                     } else {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }

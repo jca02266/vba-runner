@@ -243,3 +243,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/byref-dispatch-matrix.test.ts
+  - id: RCA-FOLLOWUP-024
+    title: UDT配列メンバーの要素型境界
+    status: queued
+    priority: 1
+    focus: UDT固定配列メンバーのwhole-array代入とProperty ByRef binderの要素型検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - tests/spec/udt-type.test.ts
