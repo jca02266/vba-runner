@@ -5040,7 +5040,7 @@ export class Evaluator {
                 const slot = supplied[propertyValueIndex]!;
                 expressions.push(slot.expr);
                 references.push(this.argumentReference(
-                    slot.expr,
+                    slot.expr ?? undefined,
                     proc.parameters[propertyValueIndex],
                     this.isPropertyValueParameter(proc, propertyValueIndex),
                 ));
