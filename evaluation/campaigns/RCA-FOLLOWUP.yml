@@ -254,3 +254,14 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
       - tests/spec/udt-type.test.ts
+  - id: RCA-FOLLOWUP-025
+    title: UDT Object配列のSet代入境界
+    status: queued
+    priority: 1
+    focus: UDT／Class Object配列要素へのSet代入とNothing・型検証の共通経路
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/set-array-assignment.test.ts
+      - tests/spec/udt-type.test.ts
