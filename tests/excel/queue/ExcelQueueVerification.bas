@@ -71,9 +71,25 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyPendingExcelBoundaries
     VerifyCallByNameNamedParamArray
+    VerifyMemberForcedByVal
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyMemberForcedByVal()
+    Dim concrete As New ExcelQueueForcedByVal, target As ExcelQueueForcedByValInterface
+    Dim value As Long, errNo As Long
+    On Error Resume Next
+    value = 1
+    Err.Clear: concrete.Mutate (value): errNo = Err.Number
+    EmitResult "XL-059 CLASS-PAREN VALUE=" & CStr(value) & " ERR=" & CStr(errNo)
+    Err.Clear: value = 1: concrete.Mutate value: errNo = Err.Number
+    EmitResult "XL-059 CLASS-PLAIN VALUE=" & CStr(value) & " ERR=" & CStr(errNo)
+    Set target = concrete
+    Err.Clear: value = 1: target.Mutate (value): errNo = Err.Number
+    EmitResult "XL-059 INTERFACE-PAREN VALUE=" & CStr(value) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyCallByNameNamedParamArray()

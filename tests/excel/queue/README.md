@@ -6,10 +6,11 @@
 
 ## ファイル
 
-- `ExcelQueueVerification.bas`: XL-001〜XL-048の検証マクロ
+- `ExcelQueueVerification.bas`: XL-001〜XL-059の検証マクロ
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `ExcelQueueCallByNameTarget.cls`: XL-048で使うLet/Set片側プロパティ付きクラス
+- `ExcelQueueForcedByVal.cls`、`ExcelQueueForcedByValInterface.cls`: XL-059のClass／Interface呼出し引数検証
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `prepare-excel-vba.sh`: 開発側で`t.xlsm`を作成し、VBAをインポートするコマンド
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
@@ -73,6 +74,7 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
 - XL-033: クラス型配列の`As New`
 - XL-034: Collection列挙中の`Add`とDictionary Keys列挙中の`Remove`
 - XL-035〜XL-048: DateDiff、空配列、MIRR/SYD、On Error、Select Case、FormatNumber、TimeSerial、情報関数、過大リテラル、CallByNameの境界
+- XL-059: Class／Interface member callのスペース付き括弧とByRef書戻し
 
 XL-023の逐次モードLock境界はExcelが待機する可能性があるため、一括実行では
 スキップする。必要な場合だけ`RunExcelSequentialLockVerification`を単独実行し、
