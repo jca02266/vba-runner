@@ -8940,7 +8940,7 @@ export class Evaluator {
             // An erased dynamic array is still a typed array value, but indexed
             // reads must fail until ReDim rather than returning Empty.
             if (!proc) {
-                const arrayValue = this.env.get(name);
+                const arrayValue = this.env.getConst(name);
                 if (Array.isArray(arrayValue) && expr.args.length > 0) {
                     this.ensureArrayNotErased(arrayValue);
                     const dims = (arrayValue as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
