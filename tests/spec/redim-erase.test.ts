@@ -56,9 +56,11 @@ const eraseDynCode = `
 const ev3 = evalVBA(eraseDynCode);
 ev3.callProcedure('Test', []);
 const arr3 = ev3.env.get('arr');
-// VBA では動的配列を Erase すると未割り当て状態になる
-// 実装では null を設定して「未割り当て」を表現する（UBound/LBound/アクセスは Error 9 になる）
-assert.strictEqual(arr3, null, '動的配列を Erase すると null (未割り当て) になる');
+// VBA では動的配列を Erase すると要素型を保持した空配列になる。
+// 添字・UBound/LBound は未割り当て状態として Error 9 になる。
+assert.strictEqual(Array.isArray(arr3), true, 'Erase後も動的配列の型付きコンテナを保持する');
+assert.strictEqual(arr3.length, 0, 'Erase後の動的配列は空になる');
+assert.strictEqual((arr3 as any).__vbaErased__, true, 'Erase後は未割り当てmarkerを保持する');
 console.log('[PASS] Erase (動的配列)');
 
 // --- 4. Erase (固定配列) ---

@@ -113,3 +113,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-012
+    title: Erase後typed array添字アクセス境界
+    status: queued
+    priority: 1
+    focus: Erase済み動的配列の添字読み書きとError 9契約
+    priorCauseKey: typed-array-parameter-element-type-validation-gap
+    rootCauseId: RC-00028
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts

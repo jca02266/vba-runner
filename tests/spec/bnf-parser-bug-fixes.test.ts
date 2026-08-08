@@ -37,8 +37,8 @@ import { MemoryFileSystem } from '../../src/engine/filesystem';
     ev.callProcedure('TestEraseMultiple', []);
     const a1 = ev.env.get('arr1');
     const a2 = ev.env.get('arr2');
-    assert.strictEqual(a1, null, 'Erase arr1, arr2 — arr1 が解放される (null = 未割り当て)');
-    assert.strictEqual(a2, null, 'Erase arr1, arr2 — arr2 が解放される (null = 未割り当て)');
+    assert.strictEqual(Array.isArray(a1), true, 'Erase arr1, arr2 — arr1 は型付き空配列になる');
+    assert.strictEqual(Array.isArray(a2), true, 'Erase arr1, arr2 — arr2 は型付き空配列になる');
     console.log('[PASS] Erase 複数要素');
 }
 
@@ -56,9 +56,9 @@ import { MemoryFileSystem } from '../../src/engine/filesystem';
     `;
     const ev = evalVBASingle(code);
     ev.callProcedure('TestEraseThree', []);
-    assert.strictEqual(ev.env.get('a'), null, 'Erase 3要素 — a が解放される (null = 未割り当て)');
-    assert.strictEqual(ev.env.get('b'), null, 'Erase 3要素 — b が解放される (null = 未割り当て)');
-    assert.strictEqual(ev.env.get('c'), null, 'Erase 3要素 — c が解放される (null = 未割り当て)');
+    assert.strictEqual(Array.isArray(ev.env.get('a')), true, 'Erase 3要素 — a は型付き空配列になる');
+    assert.strictEqual(Array.isArray(ev.env.get('b')), true, 'Erase 3要素 — b は型付き空配列になる');
+    assert.strictEqual(Array.isArray(ev.env.get('c')), true, 'Erase 3要素 — c は型付き空配列になる');
     console.log('[PASS] Erase 3要素');
 }
 

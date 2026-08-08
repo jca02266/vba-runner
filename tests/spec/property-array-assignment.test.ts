@@ -82,13 +82,26 @@ valuesAsVariant = values
 AcceptLongs valuesAsVariant
 Dim variantErr As Long
 variantErr = Err.Number
-ProbeErase = CStr(directErr) & ":" & CStr(variantErr)
+Err.Clear
+Dim ignored As Long
+ignored = values(0)
+Dim readErr As Long
+readErr = Err.Number
+Err.Clear
+values(0) = 4
+Dim writeErr As Long
+writeErr = Err.Number
+Err.Clear
+ignored = valuesAsVariant(0)
+Dim variantReadErr As Long
+variantReadErr = Err.Number
+ProbeErase = CStr(directErr) & ":" & CStr(variantErr) & ":" & CStr(readErr) & ":" & CStr(writeErr) & ":" & CStr(variantReadErr)
 End Function`,
   },
 ];
 const eraseRunner = evalVBAModules(eraseModules);
 const eraseResult = eraseRunner.callProcedure('ProbeErase', []);
-if (eraseResult !== '0:0') {
+if (eraseResult !== '0:0:9:9:9') {
   throw new Error(`expected Erase to preserve typed array binding, got ${eraseResult}`);
 }
 console.log('[PASS] Erase preserves typed array parameter compatibility');

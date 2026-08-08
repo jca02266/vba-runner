@@ -970,6 +970,13 @@ export class Evaluator {
         }
     }
 
+    /** Erased arrays retain their type but cannot be indexed until ReDim. */
+    private ensureArrayNotErased(value: any): void {
+        if (Array.isArray(value) && (value as any).__vbaErased__) {
+            this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+        }
+    }
+
     /** Validate a Set assignment to a typed object-array element. */
     private validateObjectArrayElementValue(value: any, requiredType: string): void {
         if (requiredType.toLowerCase() === 'object') {
@@ -3782,6 +3789,7 @@ export class Evaluator {
                 const target = this.env.get(name);
 
                 if (Array.isArray(target)) {
+                    this.ensureArrayNotErased(target);
                     const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                     if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                     // VBA index == JS index. Multi-dimensional: arr(i, j) = val -> arr[i][j] = val
@@ -3841,6 +3849,8 @@ export class Evaluator {
                     const instanceEnv = obj.__instanceEnv__ as Environment;
                     const fieldArr = this.getClassField(instanceEnv, methodName);
                     if (Array.isArray(fieldArr)) {
+                        this.ensureArrayNotErased(fieldArr);
+                        this.ensureArrayNotErased(fieldArr);
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
                         const actualType = (val as any)?.__className__ as string | undefined;
                         if (requiredType && val !== vbaNothing &&
@@ -3865,6 +3875,7 @@ export class Evaluator {
                         const instanceEnvForArr = obj.__instanceEnv__ as Environment;
                         const fieldArr = this.getClassField(instanceEnvForArr, methodName);
                         if (Array.isArray(fieldArr)) {
+                            this.ensureArrayNotErased(fieldArr);
                             const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                             if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                             let current = fieldArr;
@@ -3887,6 +3898,7 @@ export class Evaluator {
                     const method = methodKey !== undefined ? (obj as any)[methodKey] : undefined;
                     // UDT array member subscript assignment: udt.Items(i) = val
                     if (Array.isArray(method) && call.args.length > 0) {
+                        this.ensureArrayNotErased(method);
                         const dims = (method as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         let current: any = method;
                         for (let i = 0; i < call.args.length - 1; i++) {
@@ -3940,6 +3952,7 @@ export class Evaluator {
                         const implicitInstanceEnv = implicitObj.__instanceEnv__ as Environment;
                         const implicitFieldArr = implicitInstanceEnv.get(implicitProp);
                         if (Array.isArray(implicitFieldArr)) {
+                            this.ensureArrayNotErased(implicitFieldArr);
                             const dims = (implicitFieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                             if (dims && call.args.length !== dims.length) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
                             let current: any = implicitFieldArr;
@@ -3958,6 +3971,7 @@ export class Evaluator {
                     const resolvedKey = this.resolveObjectMemberKey(implicitObj, implicitProp) ?? implicitProp;
                     const fieldArr = implicitObj[resolvedKey];
                     if (Array.isArray(fieldArr)) {
+                        this.ensureArrayNotErased(fieldArr);
                         const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         const lastIdx = this.evaluateArrayIndex(call.args[call.args.length - 1], dims, call.args.length - 1);
                         fieldArr[lastIdx] = val;
@@ -5758,6 +5772,7 @@ export class Evaluator {
                     if (value === vbaNothing && oldVal !== value) this.triggerTerminate(oldVal);
                     target.__map__.set(key, value);
                 } else if (Array.isArray(target) && (target as any).__vbaElementObjectTypeName__) {
+                    this.ensureArrayNotErased(target);
                     const requiredType = (target as any).__vbaElementObjectTypeName__ as string;
                     this.validateObjectArrayElementValue(value, requiredType);
                     const dims = (target as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
@@ -5790,6 +5805,7 @@ export class Evaluator {
                     const instanceEnv = obj.__instanceEnv__ as Environment;
                     const fieldArr = this.getClassField(instanceEnv, propName);
                     if (Array.isArray(fieldArr)) {
+                        this.ensureArrayNotErased(fieldArr);
                         const requiredType = (fieldArr as any).__vbaElementObjectTypeName__ as string | undefined;
                         if (requiredType) this.validateObjectArrayElementValue(value, requiredType);
                         const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
@@ -8921,6 +8937,18 @@ export class Evaluator {
 
             const proc = this.env.getProcedure(name);
 
+            // An erased dynamic array is still a typed array value, but indexed
+            // reads must fail until ReDim rather than returning Empty.
+            if (!proc) {
+                const arrayValue = this.env.get(name);
+                if (Array.isArray(arrayValue) && expr.args.length > 0) {
+                    this.ensureArrayNotErased(arrayValue);
+                    const dims = (arrayValue as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
+                    const indexes = this.evaluateIndexExpressions(expr.args);
+                    return this.readArrayAtIndexes(arrayValue, indexes, dims, false, false);
+                }
+            }
+
             if (proc) {
                 // Cross-module Private access check
                 if (
@@ -9335,6 +9363,7 @@ export class Evaluator {
                     const instanceEnvForRead = obj.__instanceEnv__ as Environment;
                     const fieldArrRead = instanceEnvForRead.get(methodNameLower);
                     if (Array.isArray(fieldArrRead) && expr.args.length > 0) {
+                        this.ensureArrayNotErased(fieldArrRead);
                         const dims = (fieldArrRead as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                         const indexes = this.evaluateIndexExpressions(expr.args);
                         return this.readArrayAtIndexes(fieldArrRead, indexes, dims, false, false);
@@ -9348,6 +9377,7 @@ export class Evaluator {
                 const memberKey = this.resolveObjectMemberKey(obj, methodNameLower);
                 const fieldArr = memberKey !== undefined ? obj[memberKey] : undefined;
                 if (Array.isArray(fieldArr) && expr.args.length > 0) {
+                    this.ensureArrayNotErased(fieldArr);
                     const dims = (fieldArr as any).__vbaDimensions__ as { lower: number, upper: number }[] | undefined;
                     let current: any = fieldArr;
                     for (let i = 0; i < expr.args.length - 1; i++) {
@@ -9388,6 +9418,7 @@ export class Evaluator {
         // e.g. Array(1, 2)(0)
         const target = this.evaluateExpression(expr.callee);
         if (Array.isArray(target)) {
+            this.ensureArrayNotErased(target);
             if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
             let current = target;
             for (let i = 0; i < expr.args.length; i++) {
