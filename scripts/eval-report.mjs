@@ -253,14 +253,13 @@ function aggregate(records) {
     const area = areaFor(record);
     const group = groups.get(area) ?? {
       area, areaClass: evaluationAreaClass(area), evaluations: 0, bugs: 0,
-      unconfirmed: 0, excluded: 0, resolved: 0,
+      unconfirmed: 0, excluded: 0,
     };
     group.evaluations += 1;
     group.bugs += findingCount(record);
     const classification = evaluationClassification(record.status);
     if (classification === '未確定') group.unconfirmed += 1;
     else if (classification === '対象外') group.excluded += 1;
-    else group.resolved += 1;
     groups.set(area, group);
   }
   return [...groups.values()].sort((a, b) => b.evaluations - a.evaluations || a.area.localeCompare(b.area));
@@ -270,13 +269,12 @@ function aggregateAreaClasses(summary) {
   const groups = new Map();
   for (const row of summary) {
     const group = groups.get(row.areaClass) ?? {
-      areaClass: row.areaClass, evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0, resolved: 0,
+      areaClass: row.areaClass, evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0,
     };
     group.evaluations += row.evaluations;
     group.bugs += row.bugs;
     group.unconfirmed += row.unconfirmed;
     group.excluded += row.excluded;
-    group.resolved += row.resolved;
     groups.set(row.areaClass, group);
   }
   return [...groups.values()].sort((a, b) => b.evaluations - a.evaluations || a.areaClass.localeCompare(b.areaClass));
@@ -388,6 +386,10 @@ function mdCell(value) {
   return String(value ?? '').replaceAll('|', '\\|').replaceAll('\n', ' ');
 }
 
+function formatRate(bugs, evaluations) {
+  return evaluations > 0 ? `${((bugs / evaluations) * 100).toFixed(1)}%` : '0.0%';
+}
+
 function renderMarkdown(records, statusRecords, summary, classSummary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const candidateTotal = candidateCount(records);
@@ -396,8 +398,7 @@ function renderMarkdown(records, statusRecords, summary, classSummary, series, f
     bugs: totals.bugs + row.bugs,
     unconfirmed: totals.unconfirmed + row.unconfirmed,
     excluded: totals.excluded + row.excluded,
-    resolved: totals.resolved + row.resolved,
-  }), { evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0, resolved: 0 });
+  }), { evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0 });
   const findingTotal = findingTypes.reduce((total, row) => total + row.count, 0);
   const statusTotal = statusRecords.length;
   const lines = [
@@ -409,17 +410,17 @@ function renderMarkdown(records, statusRecords, summary, classSummary, series, f
     '',
     '## 実装領域別集計',
     '',
-    '| areaClass | 実装領域 | 評価件数 | バグ件数 | 未確定評価 | 対象外評価 | 解決済み評価 |',
+    '| 領域分類 | 実装領域 | 評価件数 | バグ件数 | バグ検出率 | 未確定評価 | 対象外評価 |',
     '|---|---|---:|---:|---:|---:|---:|',
-    ...summary.map((row) => `| ${mdCell(row.areaClass)} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugs} | ${row.unconfirmed} | ${row.excluded} | ${row.resolved} |`),
-    `| **合計** | | **${summaryTotals.evaluations}** | **${summaryTotals.bugs}** | **${summaryTotals.unconfirmed}** | **${summaryTotals.excluded}** | **${summaryTotals.resolved}** |`,
+    ...summary.map((row) => `| ${mdCell(row.areaClass)} | ${mdCell(row.area)} | ${row.evaluations} | ${row.bugs} | ${formatRate(row.bugs, row.evaluations)} | ${row.unconfirmed} | ${row.excluded} |`),
+    `| **合計** | | **${summaryTotals.evaluations}** | **${summaryTotals.bugs}** | **${formatRate(summaryTotals.bugs, summaryTotals.evaluations)}** | **${summaryTotals.unconfirmed}** | **${summaryTotals.excluded}** |`,
     '',
     '### areaClass別集計',
     '',
-    '| areaClass | 評価件数 | バグ件数 | 未確定評価 | 対象外評価 | 解決済み評価 |',
+    '| 領域分類 | 評価件数 | バグ件数 | バグ検出率 | 未確定評価 | 対象外評価 |',
     '|---|---:|---:|---:|---:|---:|',
-    ...classSummary.map((row) => `| ${mdCell(row.areaClass)} | ${row.evaluations} | ${row.bugs} | ${row.unconfirmed} | ${row.excluded} | ${row.resolved} |`),
-    `| **合計** | **${summaryTotals.evaluations}** | **${summaryTotals.bugs}** | **${summaryTotals.unconfirmed}** | **${summaryTotals.excluded}** | **${summaryTotals.resolved}** |`,
+    ...classSummary.map((row) => `| ${mdCell(row.areaClass)} | ${row.evaluations} | ${row.bugs} | ${formatRate(row.bugs, row.evaluations)} | ${row.unconfirmed} | ${row.excluded} |`),
+    `| **合計** | **${summaryTotals.evaluations}** | **${summaryTotals.bugs}** | **${formatRate(summaryTotals.bugs, summaryTotals.evaluations)}** | **${summaryTotals.unconfirmed}** | **${summaryTotals.excluded}** |`,
     '',
     '## バグ発見種別',
     '',
@@ -507,18 +508,30 @@ new Chart(document.getElementById('finding-chart'), {
 </script>`;
 }
 
+function renderBugPieChart(classSummary) {
+  const labels = JSON.stringify(classSummary.map((row) => row.areaClass));
+  const values = JSON.stringify(classSummary.map((row) => row.bugs));
+  return `<div class="chart-container"><canvas id="bug-area-chart" role="img" aria-label="領域分類別のバグ件数円グラフ"></canvas></div>
+<script>
+new Chart(document.getElementById('bug-area-chart'), {
+  type: 'pie',
+  data: { labels: ${labels}, datasets: [{ label: 'バグ件数', data: ${values}, backgroundColor: ['#2563eb','#16a34a','#dc2626','#ca8a04','#9333ea','#0891b2','#ea580c','#4b5563'] }] },
+  options: { responsive: true, plugins: { title: { display: true, text: '領域分類別のバグ件数' }, legend: { position: 'right' } } }
+});
+</script>`;
+}
+
 function renderHtml(records, statusRecords, statusRows, summary, classSummary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const candidateTotal = candidateCount(records);
   const timeZone = localTimeZone();
-  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unconfirmed}</td><td>${row.excluded}</td><td>${row.resolved}</td></tr>`).join('\n');
+  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${htmlCell(formatRate(row.bugs, row.evaluations))}</td><td>${row.unconfirmed}</td><td>${row.excluded}</td></tr>`).join('\n');
   const summaryTotals = summary.reduce((totals, row) => ({
     evaluations: totals.evaluations + row.evaluations,
     bugs: totals.bugs + row.bugs,
     unconfirmed: totals.unconfirmed + row.unconfirmed,
     excluded: totals.excluded + row.excluded,
-    resolved: totals.resolved + row.resolved,
-  }), { evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0, resolved: 0 });
+  }), { evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0 });
   const findingTotal = findingTypes.reduce((total, row) => total + row.count, 0);
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
   const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${row.v1}</td><td>${row.legacy}</td><td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
@@ -529,9 +542,9 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   }), { total: 0, v1: 0, legacy: 0 });
   const statusTotal = statusRows.reduce((total, row) => total + row.total, 0);
   const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
-  const summaryTotalRow = `<tr><th>合計</th><th></th><th>${summaryTotals.evaluations}</th><th>${summaryTotals.bugs}</th><th>${summaryTotals.unconfirmed}</th><th>${summaryTotals.excluded}</th><th>${summaryTotals.resolved}</th></tr>`;
-  const classSummaryRows = classSummary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unconfirmed}</td><td>${row.excluded}</td><td>${row.resolved}</td></tr>`).join('\n');
-  const classSummaryTotalRow = `<tr><th>合計</th><th>${summaryTotals.evaluations}</th><th>${summaryTotals.bugs}</th><th>${summaryTotals.unconfirmed}</th><th>${summaryTotals.excluded}</th><th>${summaryTotals.resolved}</th></tr>`;
+  const summaryTotalRow = `<tr><th>合計</th><th></th><th>${summaryTotals.evaluations}</th><th>${summaryTotals.bugs}</th><th>${htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations))}</th><th>${summaryTotals.unconfirmed}</th><th>${summaryTotals.excluded}</th></tr>`;
+  const classSummaryRows = classSummary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${htmlCell(formatRate(row.bugs, row.evaluations))}</td><td>${row.unconfirmed}</td><td>${row.excluded}</td></tr>`).join('\n');
+  const classSummaryTotalRow = `<tr><th>合計</th><th>${summaryTotals.evaluations}</th><th>${summaryTotals.bugs}</th><th>${htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations))}</th><th>${summaryTotals.unconfirmed}</th><th>${summaryTotals.excluded}</th></tr>`;
   const findingTotalRow = `<tr><th>合計</th><th>${findingTotal}</th></tr>`;
   const statusTotalRow = `<tr><th>合計</th><th>${statusTotal}</th><th></th><th></th><th></th></tr>`;
   const rootCauseTotalRow = `<tr><th>合計</th><th>${rootCauseTotals.total}</th><th>${rootCauseTotals.v1}</th><th>${rootCauseTotals.legacy}</th><th></th></tr>`;
@@ -544,11 +557,12 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
 <style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
 <p>候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p>
-<h2>実装領域別集計</h2><table><thead><tr><th>areaClass</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未確定評価</th><th>対象外評価</th><th>解決済み評価</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table>
-<h3>areaClass別集計</h3><table><thead><tr><th>areaClass</th><th>評価件数</th><th>バグ件数</th><th>未確定評価</th><th>対象外評価</th><th>解決済み評価</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table>
+<h2>実装領域別集計</h2><table><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>バグ検出率</th><th>未確定評価</th><th>対象外評価</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table>
+<h3>領域分類別集計</h3><table><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>バグ検出率</th><th>未確定評価</th><th>対象外評価</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>
 <h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に、評価単位で集計した値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
+${renderBugPieChart(classSummary)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>状態遷移日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
 <h2>評価状態の意味と計上先</h2><p>各評価状態の全件数を集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用します。</p><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}${statusTotalRow}</tbody></table>
 <h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}${rootCauseTotalRow}</tbody></table>
