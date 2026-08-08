@@ -8991,11 +8991,12 @@ export class Evaluator {
                     }
                     const procedures = (target.__classDef__ as ClassDeclaration).procedures;
                     const propertyType = callType === 4 ? 'let' : callType === 8 ? 'set' : undefined;
-                    const proc = propertyType
+                    const directProc = propertyType
                         ? findClassProperty(procedures, procName, propertyType)
                         : (callType === 2
                             ? findClassProperty(procedures, procName, 'get')
                             : procedures.find(p => !p.isProperty && p.name.name.toLowerCase() === procName));
+                    const proc = directProc ?? this.findInterfaceDispatch(target, procName, propertyType);
                     if (proc) {
                         this.checkNoGapOnRequiredParam(proc.parameters, propertyArgs);
                         return this.callClassMethodWithExpressions(target, proc, propertyArgs, evaluatedPropertyArgs);

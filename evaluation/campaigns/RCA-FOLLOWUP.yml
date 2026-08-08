@@ -222,3 +222,14 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
       - tests/spec/udt-type.test.ts
+  - id: RCA-FOLLOWUP-022
+    title: Interface CallByName Property value-tail dispatch
+    status: queued
+    priority: 1
+    focus: Interface参照をCallByNameのVbLet/VbSetで呼ぶProperty value-tail dispatch
+    priorCauseKey: interface-property-callbyname-dispatch-omission
+    rootCauseId: RC-00029
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/interface-property-assignment.test.ts
