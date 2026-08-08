@@ -272,6 +272,33 @@ assert.throws(
     `),
     'FSO OpenTextFile rejects ReadAll after Close',
 );
+const closedTextStreamMembers = evalVBASingle(String.raw`
+    Function ProbeClosedTextStreamMembers() As String
+        Dim fso As Object, stream As Object, text As String
+        Dim eReadLine As Long, eSkip As Long, eSkipLine As Long
+        Dim eEnd As Long, eLine As Long, eColumn As Long
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        Set stream = fso.CreateTextFile("textstream-close-members.txt", True, False)
+        stream.Write "abc"
+        stream.Close
+        Set stream = fso.OpenTextFile("textstream-close-members.txt", 1, False, -2)
+        stream.Close
+        On Error Resume Next
+        Err.Clear: text = stream.ReadLine: eReadLine = Err.Number
+        Err.Clear: stream.Skip 1: eSkip = Err.Number
+        Err.Clear: stream.SkipLine: eSkipLine = Err.Number
+        Err.Clear: text = CStr(stream.AtEndOfStream): eEnd = Err.Number
+        Err.Clear: text = CStr(stream.Line): eLine = Err.Number
+        Err.Clear: text = CStr(stream.Column): eColumn = Err.Number
+        ProbeClosedTextStreamMembers = CStr(eReadLine) & "|" & CStr(eSkip) & "|" & _
+            CStr(eSkipLine) & "|" & CStr(eEnd) & "|" & CStr(eLine) & "|" & CStr(eColumn)
+    End Function
+`);
+assert.ok(
+    /^[1-9]\d*\|[1-9]\d*\|[1-9]\d*\|[1-9]\d*\|[1-9]\d*\|[1-9]\d*$/.test(
+        closedTextStreamMembers.callProcedure('ProbeClosedTextStreamMembers', [])),
+    'FSO OpenTextFile rejects all read and position members after Close',
+);
 
 const textStreamProperties = evalVBASingle(`
     Function ProbeTextStreamProperties() As String
