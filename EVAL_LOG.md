@@ -319,6 +319,7 @@
 | EV-00414 | ROOT-CAUSE | fixed | 1 | Class名前付きOptionalの中間省略 |
 | EV-00415 | RCA-FOLLOWUP | fixed | 1 | AppActivate・SendKeys文形式Wait引数境界 |
 | EV-00416 | RCA-FOLLOWUP | verified-no-bug | 0 | GetAllSettings空セクションの配列境界 |
+| EV-00417 | RCA-FOLLOWUP | verified-no-bug | 0 | Decimal relational Case Isの精度境界 |
 
 ## 状態集計
 
@@ -327,7 +328,7 @@
 | fixed | 219 |
 | known-limit | 3 |
 | retired | 1 |
-| verified-no-bug | 92 |
+| verified-no-bug | 93 |
 
 横展開未解決経路: 246、実Excel待ち評価: 0
 
@@ -335,7 +336,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-003 | 1 | queued | DecimalのCase Isによる大小比較と高精度境界 | yes |
 | RCA-FOLLOWUP-004 | 1 | queued | Decimal/Currency異種比較の変換・精度契約 | yes |
 | RCA-FOLLOWUP-005 | 1 | queued | Close後Read/WriteのVBAエラーと再Open境界 | yes |
 | RCA-FOLLOWUP-008 | 1 | queued | Wait式の副作用・型不正・Err状態を一度だけ評価する契約 | yes |
