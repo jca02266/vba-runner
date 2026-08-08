@@ -3897,7 +3897,8 @@ export class Evaluator {
                         fieldArr[index] = val;
                         return;
                     }
-                    const setter = findClassProperty(classDef.procedures, methodName, 'let');
+                    const setter = findClassProperty(classDef.procedures, methodName, 'let')
+                        ?? this.findInterfaceDispatch(obj, memberCallee.property.name, 'let');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callPropertySetterAssignment(obj, setter, call.args, argsVals, sourceExpr, val);
@@ -3975,7 +3976,9 @@ export class Evaluator {
                 const implicitProp = (call.callee as ImplicitWithObjectExpression).property.name.toLowerCase();
                 if (implicitObj && implicitObj.__vbaClass__) {
                     const implicitClassDef = implicitObj.__classDef__ as ClassDeclaration;
-                    const implicitSetter = findClassProperty(implicitClassDef.procedures, implicitProp, 'let');
+                    const implicitSetter = findClassProperty(implicitClassDef.procedures, implicitProp, 'let')
+                        ?? this.findInterfaceDispatch(implicitObj,
+                            (call.callee as ImplicitWithObjectExpression).property.name, 'let');
                     if (implicitSetter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callPropertySetterAssignment(implicitObj, implicitSetter,
@@ -4063,11 +4066,13 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let');
+                const setter = findClassProperty(classDef.procedures, propName, 'let')
+                    ?? this.findInterfaceDispatch(obj, member.property.name, 'let');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
-                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                    if (findClassProperty(classDef.procedures, propName, 'set')
+                        || this.findInterfaceDispatch(obj, member.property.name, 'set')) {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                     // Bug CC: enforce fixed-length string truncation/padding for class fields
@@ -4107,11 +4112,13 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
-                const setter = findClassProperty(classDef.procedures, propName, 'let');
+                const setter = findClassProperty(classDef.procedures, propName, 'let')
+                    ?? this.findInterfaceDispatch(obj, member.property.name, 'let');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], sourceExpr, val);
                 } else {
-                    if (findClassProperty(classDef.procedures, propName, 'set')) {
+                    if (findClassProperty(classDef.procedures, propName, 'set')
+                        || this.findInterfaceDispatch(obj, member.property.name, 'set')) {
                         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, "Object doesn't support this property or method");
                     }
                     // Bug CC: enforce fixed-length string for With-block class field assignment
@@ -5721,7 +5728,7 @@ export class Evaluator {
                 const isWithEvents = instanceEnv.hasOwnWithEvents(propName);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                );
+                ) ?? this.findInterfaceDispatch(obj, member.property.name, 'set');
                 if (setter) {
                     this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
                 } else {
@@ -5767,7 +5774,8 @@ export class Evaluator {
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), value, stmt.right);
                 const setter = classDef.procedures.find(
                     p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                );
+                ) ?? this.findInterfaceDispatch(obj,
+                    (stmt.left as ImplicitWithObjectExpression).property.name, 'set');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
                 } else {
@@ -5813,7 +5821,7 @@ export class Evaluator {
                     }
                     const setter = classDef.procedures.find(
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === methodName
-                    );
+                    ) ?? this.findInterfaceDispatch(obj, memberCallee.property.name, 'set');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callPropertySetterAssignment(obj, setter, call.args, argsVals, stmt.right, value);
@@ -5887,7 +5895,8 @@ export class Evaluator {
                     const classDef = obj.__classDef__ as ClassDeclaration;
                     const setter = classDef.procedures.find(
                         p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                    );
+                    ) ?? this.findInterfaceDispatch(obj,
+                        (call.callee as ImplicitWithObjectExpression).property.name, 'set');
                     if (setter) {
                         this.callPropertySetterAssignment(obj, setter, call.args,
                             this.evaluateExpressions(call.args), stmt.right, value);
@@ -9952,7 +9961,11 @@ export class Evaluator {
      * obj.Speak() で Speak が見つからない場合、obj の Implements IAnimal から
      * IAnimal に Speak があれば IAnimal_Speak にディスパッチする。
      */
-    private findInterfaceDispatch(obj: any, methodNameOriginal: string): ProcedureDeclaration | null {
+    private findInterfaceDispatch(
+        obj: any,
+        methodNameOriginal: string,
+        propertyType?: 'get' | 'let' | 'set',
+    ): ProcedureDeclaration | null {
         if (!obj || !obj.__vbaClass__) return null;
         const classDef = obj.__classDef__ as ClassDeclaration;
         const methodNameLower = methodNameOriginal.toLowerCase();
@@ -9966,14 +9979,18 @@ export class Evaluator {
             // interface has the requested member?
             const inInterface = ifaceClass.procedures.some(
                 p => p.name.name.toLowerCase() === methodNameLower
+                    && (!propertyType || p.propertyType === propertyType)
             ) || ifaceClass.fields.some(
-                f => f.declarations.some(d => d.name.name.toLowerCase() === methodNameLower)
+                f => !propertyType && f.declarations.some(d => d.name.name.toLowerCase() === methodNameLower)
             );
             if (!inInterface) continue;
 
             // look for IfaceName_MethodName in concrete class
             const implName = `${ifaceName}_${methodNameOriginal}`.toLowerCase();
-            const implProc = classDef.procedures.find(p => p.name.name.toLowerCase() === implName);
+            const implProc = classDef.procedures.find(p =>
+                p.name.name.toLowerCase() === implName
+                && (!propertyType || (p.isProperty && p.propertyType === propertyType))
+            );
             if (implProc) return implProc;
         }
         return null;
