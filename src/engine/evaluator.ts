@@ -2271,8 +2271,7 @@ export class Evaluator {
 
         if (proc.isFunction || (opts.returnOnProperty && proc.isProperty)) {
             const result = localEnv.get(proc.name.name);
-            if (proc.returnsArray && Array.isArray(result)) (result as any).__vbaArrayReturn__ = true;
-            return result;
+            return this.markArrayReturnMetadata(proc, result);
         }
         return opts.subReturnValue;
     }
@@ -3663,6 +3662,16 @@ export class Evaluator {
 
     private coerceToBoolean(val: any): VbaBoolean { return vbaToBoolean(val); }
 
+    private markArrayReturnMetadata(proc: ProcedureDeclaration, result: any): any {
+        if (proc.returnsArray && Array.isArray(result)) {
+            (result as any).__vbaArrayReturn__ = true;
+            if (proc.returnType) {
+                (result as any).__vbaArrayReturnType__ = proc.returnType;
+            }
+        }
+        return result;
+    }
+
     private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
         const isArrayReturn = Array.isArray(value) && (value as any).__vbaArrayReturn__ === true;
         if (isArrayReturn) delete (value as any).__vbaArrayReturn__;
@@ -3671,11 +3680,13 @@ export class Evaluator {
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
         const returnType = (value as any).__vbaArrayReturnType__ as string | undefined;
+        const opaqueArrayReturn = isArrayReturn && !returnType;
         // A call expression alone does not prove that the value is a legal
         // typed-array return. Only an evaluated procedure/host getter that
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
-        if (typed && (!isArrayReturn || (returnType && returnType.toLowerCase() !== String(typed).toLowerCase()))) {
+        const sameType = returnType && returnType.toLowerCase() === String(typed).toLowerCase();
+        if (typed && !opaqueArrayReturn && (!isArrayReturn || !sameType)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
         }
     }
@@ -5201,8 +5212,7 @@ export class Evaluator {
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             const result = localEnv.get(proc.name.name.toLowerCase());
-            if (proc.returnsArray && Array.isArray(result)) (result as any).__vbaArrayReturn__ = true;
-            return result;
+            return this.markArrayReturnMetadata(proc, result);
         }
         return vbaEmpty;
     }

@@ -211,3 +211,14 @@ items:
       - src/engine/builtins.ts
       - tests/spec/callbyname.test.ts
       - tests/spec/optional-param-order.test.ts
+  - id: RCA-FOLLOWUP-021
+    title: UDT・Object配列の共通binder要素型境界
+    status: queued
+    priority: 1
+    focus: Function/Property/ByRefでのUDT配列とObject配列の要素型メタデータ保持
+    priorCauseKey: typed-array-parameter-element-type-validation-gap
+    rootCauseId: RC-00028
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - tests/spec/udt-type.test.ts
