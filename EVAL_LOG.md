@@ -324,6 +324,7 @@
 | EV-00419 | RCA-FOLLOWUP | needs-excel | 1 | FSO TextStreamのClose後Read/Write契約 |
 | EV-00420 | RCA-FOLLOWUP | verified-no-bug | 0 | AppActivate・SendKeys待機式の副作用評価順序 |
 | EV-00421 | RCA-FOLLOWUP | verified-no-bug | 0 | TextStream混在改行の行列境界 |
+| EV-00422 | RCA-FOLLOWUP | needs-excel | 1 | 実COM StreamのClose後エラー番号 |
 
 ## 状態集計
 
@@ -331,14 +332,14 @@
 |---|---:|
 | fixed | 219 |
 | known-limit | 3 |
-| needs-excel | 1 |
+| needs-excel | 2 |
 | retired | 1 |
 | verified-no-bug | 96 |
 
-横展開未解決経路: 248、実Excel待ち評価: 1
+横展開未解決経路: 249、実Excel待ち評価: 2
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-007 | 2 | queued | 実COMにおけるClose後操作の正確なエラー番号 | yes |
+| (none) | | | | |
