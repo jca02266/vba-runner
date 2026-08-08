@@ -17,6 +17,7 @@ const root = process.cwd();
 const evaluationRoot = path.join(root, 'evaluation');
 const recordsDir = path.join(evaluationRoot, 'evaluations');
 const statesDir = path.join(evaluationRoot, 'states');
+const campaignsDir = path.join(evaluationRoot, 'campaigns');
 const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 
 const settledStatuses = new Set(['fixed', 'verified-no-bug', 'retired']);
@@ -85,6 +86,25 @@ function readRecords() {
     const date = source.match(/^[-*]\s*評価日:\s*(\d{4}-\d{2}-\d{2})\s*$/m)?.[1];
     return { ...data, legacyCompletedAt: date ? `${date}T23:59:59+09:00` : undefined };
   });
+}
+
+function readCampaignCandidateIds() {
+  const ids = new Set();
+  for (const name of listFiles(campaignsDir, '.yml')) {
+    const campaign = yaml.load(fs.readFileSync(path.join(campaignsDir, name), 'utf8'), { json: true });
+    for (const item of campaign?.items ?? []) {
+      if (item?.id) ids.add(item.id);
+    }
+  }
+  return ids;
+}
+
+function candidateCount(records) {
+  const ids = readCampaignCandidateIds();
+  for (const record of records) {
+    if (record.candidateId) ids.add(record.candidateId);
+  }
+  return ids.size;
 }
 
 function readResults() {
@@ -360,7 +380,7 @@ function mdCell(value) {
 
 function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
-  const candidateCount = new Set(records.map((record) => record.candidateId)).size;
+  const candidateTotal = candidateCount(records);
   const summaryTotals = summary.reduce((totals, row) => ({
     evaluations: totals.evaluations + row.evaluations,
     bugs: totals.bugs + row.bugs,
@@ -373,7 +393,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '',
     'このファイルは `scripts/eval-report.mjs` から生成されます。',
     '',
-    `候補件数: ${candidateCount}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}`,
+    `候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}`,
     '',
     '## 実装領域別集計',
     '',
@@ -470,7 +490,7 @@ new Chart(document.getElementById('finding-chart'), {
 
 function renderHtml(records, statusRecords, statusRows, summary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
-  const candidateCount = new Set(records.map((record) => record.candidateId)).size;
+  const candidateTotal = candidateCount(records);
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
   const summaryTotals = summary.reduce((totals, row) => ({
@@ -500,7 +520,7 @@ function renderHtml(records, statusRecords, statusRows, summary, series, finding
 <title>VBA Runner 評価レポート</title>
 <style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
-<p>候補件数: ${candidateCount}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p>
+<p>候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p>
 <h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table>
 <h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>
 <h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に、評価単位で集計した値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の収束指標です。</p>
