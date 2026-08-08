@@ -71,3 +71,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/excel/queue/ExcelQueueVerification.bas
+  - id: RCA-FOLLOWUP-008
+    title: AppActivate・SendKeys待機式の副作用評価順序
+    status: queued
+    priority: 1
+    focus: Wait式の副作用・型不正・Err状態を一度だけ評価する契約
+    priorCauseKey: builtin-argument-semantics-not-shared
+    rootCauseId: RC-00027
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/registry.test.ts

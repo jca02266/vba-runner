@@ -3404,13 +3404,20 @@ export class Evaluator {
     }
 
     private evaluateAppActivateStatement(stmt: AppActivateStatement) {
-        const title = vbaToString(this.evaluateExpression(stmt.title));
-        console.log(`[STUB] AppActivate "${title}"`);
+        this.evaluateInteractionStatement('AppActivate', stmt.title, stmt.wait);
     }
 
     private evaluateSendKeysStatement(stmt: SendKeysStatement) {
-        const keys = vbaToString(this.evaluateExpression(stmt.keys));
-        console.log(`[STUB] SendKeys "${keys}"`);
+        this.evaluateInteractionStatement('SendKeys', stmt.keys, stmt.wait);
+    }
+
+    private evaluateInteractionStatement(name: string, required: Expression, wait?: Expression) {
+        const args = wait === undefined ? [required] : [required, wait];
+        this.evaluateCallExpression({
+            type: 'CallExpression',
+            callee: { type: 'Identifier', name } as Identifier,
+            args,
+        });
     }
 
     private requireFileMode(

@@ -49,5 +49,25 @@ assert.throwsMatch(
     /Invalid use of Null/,
     'SendKeys required String arguments reject Null',
 );
+assert.throwsMatch(
+    () => evalVBASingle('AppActivate "x", Wait:=Null'),
+    /Invalid use of Null/,
+    'AppActivate statement named Wait rejects Null',
+);
+assert.throwsMatch(
+    () => evalVBASingle('SendKeys "x", Wait:=Null'),
+    /Invalid use of Null/,
+    'SendKeys statement named Wait rejects Null',
+);
+assert.throwsMatch(
+    () => evalVBASingle('AppActivate "x", Null'),
+    /Invalid use of Null/,
+    'AppActivate statement positional Wait rejects Null',
+);
+assert.throwsMatch(
+    () => evalVBASingle('SendKeys "x", Null'),
+    /Invalid use of Null/,
+    'SendKeys statement positional Wait rejects Null',
+);
 
 console.log('✅ Registry/Interaction optional and array boundaries: 全テスト通過');

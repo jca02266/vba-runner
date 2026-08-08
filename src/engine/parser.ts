@@ -3569,7 +3569,7 @@ export class Parser {
         const title = this.parseExpression();
         let wait: Expression | undefined;
         if (this.match(TokenType.OperatorComma)) {
-            wait = this.parseExpression();
+            wait = this.parseCallArgument();
         }
         return { type: 'AppActivateStatement', title, wait };
     }
@@ -3579,7 +3579,7 @@ export class Parser {
         const keys = this.parseExpression();
         let wait: Expression | undefined;
         if (this.match(TokenType.OperatorComma)) {
-            wait = this.parseExpression();
+            wait = this.parseCallArgument();
         }
         return { type: 'SendKeysStatement', keys, wait };
     }
