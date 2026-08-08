@@ -341,14 +341,13 @@
 | EV-00436 | RCA-FOLLOWUP | fixed | 1 | Interface CallByName Property value-tail dispatch |
 | EV-00437 | RCA-FOLLOWUP | fixed | 1 | Class・Interface forced ByVal 呼出し境界 |
 | EV-00438 | RCA-FOLLOWUP | fixed | 1 | UDT配列メンバーの要素型境界 |
-| EV-00439 | RCA-FOLLOWUP | bug-found | 1 | UDT Object配列のSet代入境界 |
+| EV-00439 | RCA-FOLLOWUP | fixed | 1 | UDT Object配列のSet代入境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 233 |
+| fixed | 234 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 100 |
