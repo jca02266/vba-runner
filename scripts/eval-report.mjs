@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import * as yaml from 'js-yaml';
+import { evaluationArea } from './eval-areas.mjs';
 
 const root = process.cwd();
 const evaluationRoot = path.join(root, 'evaluation');
@@ -239,30 +240,14 @@ function localTimeZone() {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local time';
 }
 
-// A record is assigned to its first matching primary area so totals remain additive.
-const areas = [
-  ['Select Case', /Select Case/],
-  ['Format', /Format/],
-  ['数値精度', /LongLong|Decimal|Currency|数値String|算術|整数除算|指数|桁区切り|Scientific/],
-  ['引数・ByRef・Property', /ByRef|Property|引数|CallByName/],
-  ['ファイルI\/O・FSO', /FSO|ファイル|Append|Input|EOF|VFS/],
-  ['配列・UDT', /配列|UDT|Binary/],
-  ['Option Compare・Like', /Option Compare|Like/],
-  ['Date', /日付|Date/],
-  ['Err・On Error', /Err|エラー|On Error/],
-  ['LSP・拡張機能', /LSP|拡張機能/],
-  ['Parser・Lexer', /Lexer|文法|識別子/],
-  ['評価基盤', /EVAL_LOG|カバレッジ|評価|テスト|Namespace|名前空間|リファクタリング|ミューテーション/],
-];
-
-function areaFor(focus) {
-  return areas.find(([, pattern]) => pattern.test(String(focus ?? '')))?.[0] ?? 'その他';
+function areaFor(record) {
+  return evaluationArea(record);
 }
 
 function aggregate(records) {
   const groups = new Map();
   for (const record of records) {
-    const area = areaFor(record.focus);
+    const area = areaFor(record);
     const group = groups.get(area) ?? { area, evaluations: 0, bugs: 0, unresolved: 0 };
     group.evaluations += 1;
     group.bugs += findingCount(record);
@@ -325,7 +310,7 @@ function timeSeries(records, results, findings, stateEvents) {
       evaluationId = stateEvent.evaluationId;
       status = stateEvent.status;
       const record = recordsById.get(evaluationId);
-      area = areaFor(record?.focus);
+      area = areaFor(record);
       evaluationStatuses.set(evaluationId, status);
       applyFindingStatus(evaluationId, status);
       if (finalEvaluationStatuses.has(status)) {
@@ -335,7 +320,7 @@ function timeSeries(records, results, findings, stateEvents) {
       const { record, result } = item;
       evaluationId = record.id;
       status = result.status ?? record.status;
-      area = areaFor(record.focus);
+      area = areaFor(record);
       evaluationPoint = true;
       evaluationStatuses.set(evaluationId, status);
       applyFindingStatus(record.id, status);

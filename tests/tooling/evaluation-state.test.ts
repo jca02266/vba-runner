@@ -120,6 +120,8 @@ campaign: FZ-BUILTIN
 status: in-progress
 priority: low
 focus: state event transition test
+area: 評価基盤
+areaSource: confirmed
 findings: []
 tests:
   - tests/tooling/evaluation-state.test.ts
@@ -186,6 +188,8 @@ campaign: FZ-GRAMMAR
 status: bug-found
 priority: low
 focus: cause schema test
+area: 評価基盤
+areaSource: confirmed
 directCauseKey: immediate-dispatch-gap
 findings: []
 tests:
@@ -287,6 +291,8 @@ campaign: FZ-GRAMMAR
 status: bug-found
 priority: low
 focus: expectation provenance test
+area: 評価基盤
+areaSource: confirmed
 expectation:
   kind: hypothesis
   statement: an unverified expected value
@@ -321,6 +327,8 @@ campaign: FZ-GRAMMAR
 status: needs-excel-probe
 priority: low
 focus: Excel probe state test
+area: 評価基盤
+areaSource: confirmed
 excelProbeIds:
   - XL-999
 findings: []

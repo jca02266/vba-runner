@@ -8,6 +8,8 @@ record:
     - status
     - priority
     - focus
+    - area
+    - areaSource
     - expectation
     - excelProbeIds
     - directCauseKey
@@ -33,6 +35,8 @@ record:
     - status
     - priority
     - focus
+    - area
+    - areaSource
   stringFields:
     - id
     - candidateId

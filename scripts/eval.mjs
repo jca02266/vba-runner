@@ -5,6 +5,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import process from 'node:process';
 import * as yaml from 'js-yaml';
+import { inferEvaluationArea, VALID_EVALUATION_AREAS } from './eval-areas.mjs';
 
 const root = process.cwd();
 const evalRoot = path.join(root, 'evaluation');
@@ -315,6 +316,10 @@ function validate(records = readRecords()) {
     seen.add(data.id);
     for (const key of Object.keys(data)) {
       if (!(schema.record.allowed ?? []).includes(key)) throw new Error(`${file}: unknown field ${key}`);
+    }
+    if (!VALID_EVALUATION_AREAS.has(data.area)) throw new Error(`${file}: invalid area ${data.area}`);
+    if (!['inferred', 'confirmed'].includes(data.areaSource)) {
+      throw new Error(`${file}: areaSource must be inferred or confirmed`);
     }
     if (!(Number.isFinite(data.priority) || ['critical', 'high', 'medium', 'low'].includes(data.priority))) {
       throw new Error(`${file}: priority must be numeric or a known level`);
@@ -830,6 +835,8 @@ function migrate(dryRun) {
       `status: ${status}`,
       'priority: medium',
       `focus: ${JSON.stringify(title)}`,
+      `area: ${JSON.stringify(inferEvaluationArea(title))}`,
+      'areaSource: inferred',
       'coverageSnapshot: null',
       'findings: []',
       'tests: []',
@@ -857,8 +864,30 @@ function hash(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
 }
 
+function classifyAreas(dryRun = false, refreshInferred = false) {
+  const changes = [];
+  for (const name of files(recordsDir, '.md')) {
+    const file = path.join(recordsDir, name);
+    const parsed = readRecord(file);
+    if (!refreshInferred && parsed.data.area !== undefined && parsed.data.areaSource !== undefined) continue;
+    if (refreshInferred && parsed.data.areaSource !== 'inferred') continue;
+    const area = inferEvaluationArea(parsed.data.focus);
+    const match = parsed.source.match(/^(---\n)([\s\S]*?)(\n---(?:\n|$))/);
+    if (!match) throw new Error(`${file}: missing YAML frontmatter`);
+    const frontmatter = match[2]
+      .replace(/^area:.*\n?/gm, '')
+      .replace(/^areaSource:.*\n?/gm, '')
+      .replace(/^(focus:.*)$/m, `$1\narea: ${JSON.stringify(area)}\nareaSource: inferred`);
+    const source = `${match[1]}${frontmatter}${match[3]}${parsed.source.slice(match[0].length)}`;
+    if (source === parsed.source) continue;
+    changes.push({ file, area });
+    if (!dryRun) fs.writeFileSync(file, source);
+  }
+  console.log(JSON.stringify({ dryRun, classified: changes.length, changes }, null, 2));
+}
+
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|next|context|claim|release|complete|transition|excel-sync|remediation-next|remediation-context> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|classify|next|context|claim|release|complete|transition|excel-sync|remediation-next|remediation-context> [args]');
 }
 
 try {
@@ -872,6 +901,8 @@ try {
     const output = path.resolve(process.argv[3] ?? path.join(root, 'EVAL_LOG.md'));
     render(validate(), output);
     console.log(output);
+  } else if (command === 'classify') {
+    classifyAreas(process.argv[3] === '--dry-run', process.argv[3] === '--refresh-inferred');
   } else if (command === 'next') {
     nextCandidate(process.argv[3] === '--limit' ? Number(process.argv[4]) || 1 : 1);
   } else if (command === 'claim' && process.argv[3]) {

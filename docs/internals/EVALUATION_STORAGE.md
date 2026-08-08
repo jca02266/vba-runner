@@ -163,7 +163,10 @@ coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力を�
 frontmatterには機械的に扱う情報を置き、再現コード、実行結果、原因、横展開の詳細は
 本文に置く。全評価で次の項目を記録する。
 
-- `id`, `candidateId`, `campaign`, `status`, `priority`, `focus`
+- `id`, `candidateId`, `campaign`, `status`, `priority`, `focus`, `area`, `areaSource`
+- `area`は固定語彙から1つ選ぶ。既存記録の補完は`eval classify`が`focus`から推定し、
+  `areaSource: inferred`を付ける。新規記録でエージェントが選択した分類は
+  `areaSource: confirmed`とする。レポートは`focus`の再検索ではなく`area`を集計する。
 - `coverageSnapshot`, `findings`, `tests`, `commit`
 - 実Excel照合を使う評価では、必要な出力IDを列挙した`excelProbeIds`
 - バグを確認した新規記録では `directCauseKey`, `causeKey`,
