@@ -103,3 +103,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-011
+    title: typed array戻り値・Object配列互換境界
+    status: queued
+    priority: 2
+    focus: Function/Property Get/UDT/Object/外部配列の要素型メタデータとByRef binder契約
+    priorCauseKey: typed-array-parameter-element-type-validation-gap
+    rootCauseId: RC-00028
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
