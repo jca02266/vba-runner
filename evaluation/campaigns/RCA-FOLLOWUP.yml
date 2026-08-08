@@ -93,3 +93,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/com-param-coercion.test.ts
       - tests/excel/queue/ExcelQueueVerification.bas
+  - id: RCA-FOLLOWUP-010
+    title: Property Let typed array要素型境界
+    status: queued
+    priority: 1
+    focus: Property LetのByRef Long()引数へInteger()/Variant配列を渡す型検証
+    priorCauseKey: typed-array-parameter-element-type-validation-gap
+    rootCauseId: RC-00028
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts

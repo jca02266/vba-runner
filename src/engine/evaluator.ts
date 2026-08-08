@@ -950,7 +950,22 @@ export class Evaluator {
         value: any,
         param: ProcedureDeclaration['parameters'][number],
     ): void {
-        if (param.isArray && value !== vbaMissing && !Array.isArray(value)) {
+        if (!param.isArray || value === vbaMissing) return;
+        if (!Array.isArray(value)) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
+        const expected = param.paramType?.toLowerCase();
+        if (!expected || expected === 'variant') return;
+
+        // Typed arrays and array-returning calls carry their element type as
+        // runtime metadata. A container check alone is insufficient for
+        // ByRef/Property Let array parameters: Integer() and Array()'s
+        // Variant() must not enter a Long() binder.
+        const actual = ((value as any).__vbaElementType__ ??
+            (value as any).__vbaElementTypeName__ ??
+            (value as any).__vbaElementObjectTypeName__ ??
+            (value as any).__vbaArrayReturnType__)?.toLowerCase?.();
+        if (actual && actual !== expected) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
     }
