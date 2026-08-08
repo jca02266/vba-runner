@@ -334,12 +334,12 @@
 | EV-00429 | RCA-FOLLOWUP | fixed | 1 | ParamArray Property・CallByName binder境界 |
 | EV-00430 | RCA-FOLLOWUP | verified-no-bug | 1 | Interface・COM Property value-tail境界 |
 | EV-00431 | RCA-FOLLOWUP | fixed | 1 | Class Optional MissingArgumentとCallByName境界 |
-| EV-00432 | RCA-FOLLOWUP | needs-excel | 1 | CallByName VbSetの名前付き引数順不同境界 |
+| EV-00432 | RCA-FOLLOWUP | verified-no-bug | 1 | CallByName VbSetの名前付き引数順不同境界 |
 | EV-00433 | RCA-FOLLOWUP | fixed | 1 | Implements経由のindexed Property Let/Set dispatch |
 | EV-00434 | RCA-FOLLOWUP | verified-no-bug | 1 | CallByName Optional・ByRef binder横展開 |
 | EV-00435 | RCA-FOLLOWUP | fixed | 1 | UDT・Object配列の共通binder要素型境界 |
 | EV-00436 | RCA-FOLLOWUP | fixed | 1 | Interface CallByName Property value-tail dispatch |
-| EV-00437 | RCA-FOLLOWUP | needs-excel | 1 | Class・Interface forced ByVal 呼出し境界 |
+| EV-00437 | RCA-FOLLOWUP | bug-found | 1 | Class・Interface forced ByVal 呼出し境界 |
 | EV-00438 | RCA-FOLLOWUP | fixed | 1 | UDT配列メンバーの要素型境界 |
 | EV-00439 | RCA-FOLLOWUP | in-progress | 1 | UDT Object配列のSet代入境界 |
 
@@ -347,14 +347,14 @@
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 232 |
 | in-progress | 1 |
 | known-limit | 3 |
-| needs-excel | 2 |
 | retired | 1 |
-| verified-no-bug | 99 |
+| verified-no-bug | 100 |
 
-横展開未解決経路: 276、実Excel待ち評価: 2
+横展開未解決経路: 276、実Excel待ち評価: 0
 
 ## 次の候補
 
