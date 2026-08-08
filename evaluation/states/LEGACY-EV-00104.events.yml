@@ -1,0 +1,7 @@
+- candidateId: LEGACY-EV-00104
+  evaluationId: EV-00104
+  status: verified-no-bug
+  occurredAt: '2026-07-26T09:51:13+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: ccb933b

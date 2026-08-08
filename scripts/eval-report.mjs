@@ -317,16 +317,15 @@ function timeSeries(records, results, findings, stateEvents) {
       status = result.status ?? record.status;
       area = areaFor(record.focus);
       evaluationPoint = true;
-      // The result snapshot is authoritative at this evaluation's own point.
       evaluationStatuses.set(evaluationId, status);
       applyFindingStatus(record.id, status);
     }
     discovered = discoveredFindingIds.size;
-    const stateCounts = [...evaluationStatuses.values()].reduce((counts, status) => {
-      if (status === 'verified-no-bug') counts.nonBug += 1;
-      else if (status === 'bug-found' || status === 'fixed') counts.bug += 1;
-      else if (pendingEvaluationStatuses.has(status)) counts.pending += 1;
-      else if (otherEvaluationStatuses.has(status)) counts.other += 1;
+    const stateCounts = [...evaluationStatuses.values()].reduce((counts, currentStatus) => {
+      if (currentStatus === 'verified-no-bug') counts.nonBug += 1;
+      else if (currentStatus === 'bug-found' || currentStatus === 'fixed') counts.bug += 1;
+      else if (pendingEvaluationStatuses.has(currentStatus)) counts.pending += 1;
+      else if (otherEvaluationStatuses.has(currentStatus)) counts.other += 1;
       return counts;
     }, { bug: 0, nonBug: 0, pending: 0, other: 0 });
     return {
@@ -361,20 +360,27 @@ function mdCell(value) {
 
 function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
-  const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
-  const pending = records.length - completed;
+  const candidateCount = new Set(records.map((record) => record.candidateId)).size;
+  const summaryTotals = summary.reduce((totals, row) => ({
+    evaluations: totals.evaluations + row.evaluations,
+    bugs: totals.bugs + row.bugs,
+    unresolved: totals.unresolved + row.unresolved,
+  }), { evaluations: 0, bugs: 0, unresolved: 0 });
+  const findingTotal = findingTypes.reduce((total, row) => total + row.count, 0);
+  const statusTotal = statusRecords.length;
   const lines = [
     '# 評価レポート',
     '',
     'このファイルは `scripts/eval-report.mjs` から生成されます。',
     '',
-    `評価件数: ${records.length}、発見バグ件数: ${totalBugs}、最終状態記録付き: ${completed}、状態日時未登録: ${pending}`,
+    `候補件数: ${candidateCount}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}`,
     '',
     '## 実装領域別集計',
     '',
     '| 実装領域 | 評価件数 | バグ件数 | 未収束件数 |',
     '|---|---:|---:|---:|',
     ...summary.map((row) => `| ${mdCell(row.area)} | ${row.evaluations} | ${row.bugs} | ${row.unresolved} |`),
+    `| **合計** | **${summaryTotals.evaluations}** | **${summaryTotals.bugs}** | **${summaryTotals.unresolved}** |`,
     '',
     '## バグ発見種別',
     '',
@@ -383,6 +389,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     '| 発見種別 | Finding件数 |',
     '|---|---:|',
     ...findingTypes.map((row) => `| ${mdCell(row.type)} | ${row.count} |`),
+    `| **合計** | **${findingTotal}** |`,
     '',
     '',
     '## 状態の計上先',
@@ -403,6 +410,7 @@ function renderMarkdown(records, statusRecords, summary, series, findingTypes) {
     `| \`retired\` | ${evaluationStatusCount(statusRecords, 'retired')} | 仮説または候補を取り下げ | その他 | 対象外 |`,
     `| \`abandoned\` | ${evaluationStatusCount(statusRecords, 'abandoned')} | 評価を中止 | その他 | 対象外 |`,
     `| \`queued\` | ${evaluationStatusCount(statusRecords, 'queued')} | 評価待ち | その他 | 対象外 |`,
+    `| **合計** | **${statusTotal}** | | | |`,
     '',
     '## 時系列の収束状況',
     '',
@@ -439,10 +447,10 @@ const convergenceLabels = ${labels};
 new Chart(document.getElementById('evaluation-chart'), {
   type: 'line',
   data: { labels: convergenceLabels, datasets: [
-    { label: 'バグ状態数', data: ${values('bugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '非バグ状態数', data: ${values('nonBugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: '判定保留状態数', data: ${values('pendingEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
-    { label: 'その他状態数', data: ${values('otherEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 }
+    { label: 'バグ状態数（評価）', data: ${values('bugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(37,99,235,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '非バグ状態数（評価）', data: ${values('nonBugEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(8,145,178,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: '判定保留状態数（評価）', data: ${values('pendingEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(107,114,128,.45)', fill: true, stack: 'evaluation', tension: 0.15 },
+    { label: 'その他状態数（評価）', data: ${values('otherEvaluations')}, borderColor: 'transparent', borderWidth: 0, pointRadius: 0, backgroundColor: 'rgba(146,64,14,.45)', fill: true, stack: 'evaluation', tension: 0.15 }
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false },
     plugins: { title: { display: true, text: '評価状態の時点別積み上げ面グラフ' }, tooltip: { mode: 'index' } },
@@ -462,12 +470,28 @@ new Chart(document.getElementById('finding-chart'), {
 
 function renderHtml(records, statusRecords, statusRows, summary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
-  const completed = new Set(series.filter((row) => row.evaluationPoint).map((row) => row.evaluationId)).size;
+  const candidateCount = new Set(records.map((record) => record.candidateId)).size;
   const timeZone = localTimeZone();
   const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugs}</td><td>${row.unresolved}</td></tr>`).join('\n');
+  const summaryTotals = summary.reduce((totals, row) => ({
+    evaluations: totals.evaluations + row.evaluations,
+    bugs: totals.bugs + row.bugs,
+    unresolved: totals.unresolved + row.unresolved,
+  }), { evaluations: 0, bugs: 0, unresolved: 0 });
+  const findingTotal = findingTypes.reduce((total, row) => total + row.count, 0);
   const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td><td>${row.count}</td></tr>`).join('\n');
   const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${row.v1}</td><td>${row.legacy}</td><td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
-  const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.dated}</td><td>${row.undated}</td><td>${row.total}</td><td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
+  const rootCauseTotals = rootCauseStatuses.reduce((totals, row) => ({
+    total: totals.total + row.total,
+    v1: totals.v1 + row.v1,
+    legacy: totals.legacy + row.legacy,
+  }), { total: 0, v1: 0, legacy: 0 });
+  const statusTotal = statusRows.reduce((total, row) => total + row.total, 0);
+  const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td><td>${row.total}</td><td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
+  const summaryTotalRow = `<tr><th>合計</th><th>${summaryTotals.evaluations}</th><th>${summaryTotals.bugs}</th><th>${summaryTotals.unresolved}</th></tr>`;
+  const findingTotalRow = `<tr><th>合計</th><th>${findingTotal}</th></tr>`;
+  const statusTotalRow = `<tr><th>合計</th><th>${statusTotal}</th><th></th><th></th><th></th></tr>`;
+  const rootCauseTotalRow = `<tr><th>合計</th><th>${rootCauseTotals.total}</th><th>${rootCauseTotals.v1}</th><th>${rootCauseTotals.legacy}</th><th></th></tr>`;
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
@@ -476,14 +500,14 @@ function renderHtml(records, statusRecords, statusRows, summary, series, finding
 <title>VBA Runner 評価レポート</title>
 <style>body{font-family:system-ui,sans-serif;line-height:1.5;margin:2rem}table{border-collapse:collapse;margin:1rem 0 2rem}th,td{border:1px solid #bbb;padding:.35rem .6rem;text-align:left}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.1rem .25rem}.chart-container{max-width:1000px;margin:1rem 0 2rem}</style>
 </head><body><h1>評価レポート</h1>
-<p>評価件数: ${records.length}、発見バグ件数: ${totalBugs}、最終状態記録付き: ${completed}、状態日時未登録: ${records.length - completed}</p>
-<h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}</tbody></table>
-<h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}</tbody></table>
-<h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準にした値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。評価分類はその時点で有効なEV数、Finding列は別単位の収束指標です。</p>
+<p>候補件数: ${candidateCount}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p>
+<h2>実装領域別集計</h2><table><thead><tr><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>未収束件数</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table>
+<h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はレグレッションテストまたは回帰試験で発見したデグレードを表します。</p><table><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>
+<h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に、評価単位で集計した値です。履歴のない旧評価だけ <code>completedAt</code> または本文の <code>評価日</code> を使用します。表示日時は生成環境のローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の収束指標です。</p>
 ${renderConvergenceChart(series)}
 <h3>評価一覧（直近10件）</h3><table><thead><tr><th>状態遷移日時（ローカルTZ）</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価件数（累積）</th><th>バグ状態数</th><th>非バグ状態数</th><th>判定保留状態数</th><th>その他状態数</th><th>発見Finding</th><th>解決済みFinding</th><th>未解決Finding</th></tr></thead><tbody>${seriesRows}</tbody></table>
-<h2>評価状態の意味と計上先</h2><p>各評価状態について、状態イベントまたは完了日時があるものと、どちらもないものを別列で全件集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用し、履歴のない旧評価だけ完了日時を使用します。</p><table><thead><tr><th>評価状態</th><th>完了日時あり</th><th>完了日時なし</th><th>合計</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}</tbody></table>
-<h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}</tbody></table>
+<h2>評価状態の意味と計上先</h2><p>各評価状態の全件数を集計しています。時系列グラフと評価一覧は状態履歴の遷移日時を使用します。</p><table><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}${statusTotalRow}</tbody></table>
+<h2>真因分析の状態別件数</h2><p>評価記録の <code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録、未記録は真因分析項目がない評価です。旧方式の状態をv1の確定済みとは扱いません。</p><table><thead><tr><th>真因分析状態</th><th>件数</th><th>v1件数</th><th>v0・未設定件数</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}${rootCauseTotalRow}</tbody></table>
 </body></html>\n`;
 }
 

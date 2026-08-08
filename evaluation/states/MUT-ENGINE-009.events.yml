@@ -1,0 +1,7 @@
+- candidateId: MUT-ENGINE-009
+  evaluationId: EV-00214
+  status: verified-no-bug
+  occurredAt: '2026-07-30T06:57:01+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: e77ebc9

@@ -1,0 +1,7 @@
+- candidateId: META-ENGINE-012
+  evaluationId: EV-00285
+  status: fixed
+  occurredAt: '2026-08-01T12:53:03+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 4fa3c09

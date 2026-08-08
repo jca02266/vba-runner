@@ -1,0 +1,7 @@
+- candidateId: MUT-ENGINE-004
+  evaluationId: EV-00196
+  status: fixed
+  occurredAt: '2026-07-29T03:04:42+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: c6ae33f

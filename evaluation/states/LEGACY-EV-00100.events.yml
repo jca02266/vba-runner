@@ -2,3 +2,5 @@
   evaluationId: EV-00100
   status: verified-no-bug
   occurredAt: '2026-07-26T09:21:02+09:00'
+  source: git-history
+  sourceCommit: 2a4dac6

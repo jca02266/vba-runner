@@ -1,0 +1,7 @@
+- candidateId: LEGACY-EV-00116
+  evaluationId: EV-00116
+  status: fixed
+  occurredAt: '2026-07-26T13:16:51+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 2216ead

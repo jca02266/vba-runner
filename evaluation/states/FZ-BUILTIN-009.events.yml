@@ -1,0 +1,7 @@
+- candidateId: FZ-BUILTIN-009
+  evaluationId: EV-00210
+  status: retired
+  occurredAt: '2026-07-29T12:35:10+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 3b84652

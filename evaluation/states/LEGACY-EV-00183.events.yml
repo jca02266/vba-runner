@@ -2,3 +2,5 @@
   evaluationId: EV-00183
   status: fixed
   occurredAt: '2026-07-29T00:42:37+09:00'
+  source: git-history
+  sourceCommit: 4d87125

@@ -1,0 +1,7 @@
+- candidateId: LEGACY-EV-00137
+  evaluationId: EV-00137
+  status: verified-no-bug
+  occurredAt: '2026-07-26T20:25:13+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 0d2f548

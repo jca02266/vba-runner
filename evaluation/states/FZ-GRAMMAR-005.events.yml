@@ -1,0 +1,7 @@
+- candidateId: FZ-GRAMMAR-005
+  evaluationId: EV-00215
+  status: fixed
+  occurredAt: '2026-07-30T08:44:03+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 0868f1d

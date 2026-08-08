@@ -1,0 +1,7 @@
+- candidateId: LEGACY-EV-00146
+  evaluationId: EV-00146
+  status: fixed
+  occurredAt: '2026-07-26T23:50:51+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: dced4cb

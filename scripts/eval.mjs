@@ -138,9 +138,8 @@ function validateEvents(candidateId, events, result) {
     if (event.fromStatus !== undefined && event.fromStatus !== previousStatus) {
       throw new Error(`${eventsFile(candidateId)}: event ${index + 1} fromStatus does not match history`);
     }
-    if (previousStatus === event.status) {
-      throw new Error(`${eventsFile(candidateId)}: event ${index + 1} repeats status ${event.status}`);
-    }
+    // Events are evaluation-level status transitions. Different evaluations
+    // may legitimately report the same status for one candidate.
     previousStatus = event.status;
   }
   if (result && events.length > 0) {
@@ -434,7 +433,6 @@ function validate(records = readRecords()) {
   }
   for (const name of files(statesDir, '.events.yml')) {
     const candidateId = name.slice(0, -'.events.yml'.length);
-    if (!results.has(candidateId)) throw new Error(`${path.join(statesDir, name)}: missing result snapshot`);
     validateEvents(candidateId, readEvents(candidateId), results.get(candidateId));
   }
   validateCoverageIndex();

@@ -1,0 +1,6 @@
+- candidateId: FZ-BUILTIN-040
+  evaluationId: EV-00251
+  status: fixed
+  occurredAt: '2026-07-31T23:28:48+09:00'
+  inferred: true
+  source: git-history

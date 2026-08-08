@@ -1,0 +1,7 @@
+- candidateId: LEGACY-EV-00105
+  evaluationId: EV-00105
+  status: known-limit
+  occurredAt: '2026-07-26T09:45:06+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: 56576bc

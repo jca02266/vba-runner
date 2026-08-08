@@ -1,0 +1,7 @@
+- candidateId: FZ-BUILTIN-100
+  evaluationId: EV-00332
+  status: fixed
+  occurredAt: '2026-08-01T21:21:26+09:00'
+  inferred: true
+  source: git-history
+  sourceCommit: cbf35f6
