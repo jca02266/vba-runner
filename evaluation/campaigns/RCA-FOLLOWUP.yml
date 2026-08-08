@@ -134,3 +134,14 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/array-functions.test.ts
+  - id: RCA-FOLLOWUP-014
+    title: Class Property Optional hole binder境界
+    status: queued
+    priority: 1
+    focus: Property Let/Set、ByRef、forced ByValの中間Optional省略と既定値適用
+    priorCauseKey: class-optional-hole-default-binding
+    rootCauseId: RC-00018
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/optional-param-order.test.ts
+      - tests/spec/property-array-assignment.test.ts
