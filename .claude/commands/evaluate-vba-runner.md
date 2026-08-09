@@ -29,7 +29,8 @@
 
 30分待機後は、候補選択の前に`eval audit`で全体状態を確認し、残るRCA・横展開・
 実機待ち・通常候補の優先順位から次の作業を決める。この判断はキャンペーンに依存
-しない`evaluation/checkpoints/EVALUATION_LOOP.yml`へ、監査結果・理由・次候補とともに
+しない`evaluation/checkpoints/EVALUATION_LOOP.yml`へ、監査結果・理由・判断結果
+（既存候補の`claim`または新規候補の`create-candidate`）・次候補とともに
 追記する。EV本文とキャンペーン定義には運用チェックポイントを記録しない。
 
 移行前の一時運用では、従来どおり `EVAL_LOG.md` を読み取り専用で参照する。

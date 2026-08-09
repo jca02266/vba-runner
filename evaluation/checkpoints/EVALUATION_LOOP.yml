@@ -3,8 +3,10 @@ checkpoints:
   - afterEvaluation: EV-00454
     audit: "353 evaluations, 0 active claims"
     decision: "No On Error boundary bug; select Optional/named/ByRef binding next."
+    action: claim
     nextCandidate: FZ-COVERAGE-20260810-002
   - afterEvaluation: EV-00455
     audit: "354 evaluations, 0 active claims"
     decision: "No Optional/named/ByRef boundary bug; select Like/Option Compare next."
+    action: claim
     nextCandidate: FZ-COVERAGE-20260810-003

@@ -147,12 +147,11 @@ analysis; do not duplicate its taxonomy here.
    (d) only then ordinary queued exploratory candidates. Choose an actionable
    item from that ranking and execute or register the smallest follow-up task
    before calling `eval next`; for example, finish an independent RCA review,
-   record ruled-out/confirmed paths, or create a remediation task. Record the
-   checkpoint decision and its reason in the structured evaluation work item
-   (or the linked RCA/remediation record) before selecting another candidate.
+   record ruled-out/confirmed paths, or create a remediation task.
    Append the checkpoint to the campaign-independent
    `evaluation/checkpoints/EVALUATION_LOOP.yml` with the audit result, the
-   decision, and the selected candidate or follow-up. Do not put operational
+   decision, the action (`claim` for an existing candidate or
+   `create-candidate` for a newly registered candidate), and the selected candidate or follow-up. Do not put operational
    checkpoint prose in an EV body or campaign definition. If no item is actionable, explicitly record that the high-priority RCA and
    horizontal expansion queues were checked and why ordinary evaluation is
    the next best action. This decision is required on every loop, including
