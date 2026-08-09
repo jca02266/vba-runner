@@ -353,17 +353,19 @@
 | EV-00448 | RCA-FOLLOWUP | fixed | 1 | 固定typed配列へ異なるshapeのopaque COM/host配列を代入したときの境界契約 |
 | EV-00449 | RCA-FOLLOWUP | fixed | 1 | 固定typed配列へのopaque COM/host配列全体代入を静的に拒否する |
 | EV-00450 | RCA-FOLLOWUP | fixed | 1 | ByRef ReDim経由の固定typed配列再束縛境界 |
+| EV-00451 | RCA-FOLLOWUP | bug-found | 1 | ParamArray引数のErase/ReDim静的禁止境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 243 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 102 |
 
-横展開未解決経路: 298、実Excel待ち評価: 0
+横展開未解決経路: 299、実Excel待ち評価: 0
 
 ## 次の候補
 

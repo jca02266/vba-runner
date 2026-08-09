@@ -1,5 +1,5 @@
 import { Evaluator } from '../../src/engine/evaluator';
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertCompileErrorPreproc } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): Evaluator {
     return evalVBASingle(code);
@@ -8,6 +8,21 @@ function evalVBA(code: string): Evaluator {
 function runFunc(code: string, name: string, args: any[] = []): any {
     return evalVBA(code).callProcedure(name, args);
 }
+
+assertCompileErrorPreproc(String.raw`
+Sub RejectParamArrayReDim(ParamArray args() As Variant)
+    ReDim args(0 To 2)
+End Sub
+`, 'RejectParamArrayReDim', 3, /Invalid use of ParamArray/i,
+    'ParamArray cannot be resized with ReDim');
+
+assertCompileErrorPreproc(String.raw`
+Sub RejectParamArrayErase(ParamArray args() As Variant)
+    Erase args
+End Sub
+`, 'RejectParamArrayErase', 3, /Invalid use of ParamArray/i,
+    'ParamArray cannot be erased');
+console.log('[PASS] ParamArray rejects Erase and ReDim');
 
 // Test 1: ParamArray with zero arguments (empty array, LBound=0, UBound=-1)
 {

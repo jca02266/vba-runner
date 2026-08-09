@@ -1857,6 +1857,11 @@ export class Evaluator {
                     "Can't assign to an array", findings.arrayAssignment.line,
                     proc.moduleName ?? undefined);
             }
+            if (findings.paramArrayUse) {
+                this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                    'Invalid use of ParamArray', findings.paramArrayUse.line,
+                    proc.moduleName ?? undefined);
+            }
         } catch (e: any) {
             if (e._precheckRaw) {
                 const line = e.vbaLine;
@@ -1885,6 +1890,7 @@ export class Evaluator {
         arrayBounds: ArrayBound[];
         duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
         arrayAssignment?: { line?: number };
+        paramArrayUse?: { line?: number };
         labels: Set<string>;
         jumps: Array<{ label: string; line: number }>;
         argumentError?: { code: number; message: string; line?: number };
@@ -1900,6 +1906,7 @@ export class Evaluator {
             arrayBounds: ArrayBound[];
             duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
             arrayAssignment?: { line?: number };
+            paramArrayUse?: { line?: number };
             labels: Set<string>;
             jumps: Array<{ label: string; line: number }>;
             argumentError?: { code: number; message: string; line?: number };
@@ -1922,9 +1929,13 @@ export class Evaluator {
         let inResumeNext = false;
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
-        const arrayDeclarations = new Map<string, { type?: string; fixed: boolean }>();
+        const arrayDeclarations = new Map<string, { type?: string; fixed: boolean; paramArray?: boolean }>();
         for (const param of proc.parameters) {
-            if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), { type: param.paramType, fixed: false });
+            if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), {
+                type: param.paramType,
+                fixed: false,
+                paramArray: !!param.isParamArray,
+            });
         }
 
         const visitExpression = (expr: Expression, assignmentTarget = false): void => {
@@ -2102,8 +2113,30 @@ export class Evaluator {
                 }
                 case 'ReDimStatement': {
                     const s = stmt as ReDimStatement;
+                    if (!findings.paramArrayUse) {
+                        for (const d of s.declarations) {
+                            if (d.name.type === 'Identifier' &&
+                                arrayDeclarations.get((d.name as Identifier).name.toLowerCase())?.paramArray) {
+                                findings.paramArrayUse = { line: d.name.loc?.start.line ?? s.loc?.start.line };
+                                break;
+                            }
+                        }
+                    }
                     for (const d of s.declarations) for (const b of d.bounds) {
                         if (b.lower) visitExpression(b.lower); visitExpression(b.upper);
+                    }
+                    break;
+                }
+                case 'EraseStatement': {
+                    const s = stmt as EraseStatement;
+                    if (!findings.paramArrayUse) {
+                        for (const target of s.names) {
+                            if (target.type === 'Identifier' &&
+                                arrayDeclarations.get((target as Identifier).name.toLowerCase())?.paramArray) {
+                                findings.paramArrayUse = { line: target.loc?.start.line ?? s.loc?.start.line };
+                                break;
+                            }
+                        }
                     }
                     break;
                 }

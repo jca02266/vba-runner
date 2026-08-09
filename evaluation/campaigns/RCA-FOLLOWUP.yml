@@ -379,3 +379,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-037
+    title: ParamArray Erase/ReDim prohibition
+    status: queued
+    priority: 1
+    focus: ParamArray引数に対するEraseとReDimを静的に拒否する境界
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/paramarray-edge-cases.test.ts
