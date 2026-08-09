@@ -360,11 +360,13 @@
 | EV-00455 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Optional・名前付き引数・ByRef書戻しの組み合わせ |
 | EV-00456 | FZ-COVERAGE-20260810 | fixed | 1 | Like文字クラスとOption Compareの組み合わせ |
 | EV-00457 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の不正引数・非収束・エラー伝播 |
+| EV-00458 | FZ-COVERAGE-20260810 | bug-found | 1 | COM返却オブジェクトの名前付き・Null・省略引数変換 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 246 |
 | known-limit | 3 |
 | retired | 1 |
@@ -376,5 +378,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-005 | 1 | queued | COM返却オブジェクトの名前付き・Null・省略引数変換 | yes |
 | FZ-COVERAGE-20260810-006 | 1 | queued | Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約 | yes |

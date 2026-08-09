@@ -945,6 +945,19 @@ export class Evaluator {
         return param.isByVal || forcedByVal ? this.deepCopyByValValue(value) : value;
     }
 
+    /** Normalize a scalar Object parameter at every procedure-call binder. */
+    private normalizeObjectArgumentValue(
+        value: any,
+        param: ProcedureDeclaration['parameters'][number],
+    ): any {
+        if (param.paramType?.toLowerCase() !== 'object' || param.isArray) return value;
+        if (value === vbaMissing) return vbaNothing;
+        if (!isVbaObjectReferenceCompatible(value)) {
+            this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
+        }
+        return value;
+    }
+
     /** Array-designated parameters require an array container, not a scalar. */
     private validateArrayParameterContainer(
         value: any,
@@ -1071,6 +1084,12 @@ export class Evaluator {
 
             this.validateArrayParameterContainer(argValue, param);
 
+            // Object parameters have a different default contract from
+            // Optional Variant parameters. Keep this at the shared binding
+            // boundary so Module and Class calls cannot diverge.
+            const objectParameter = param.paramType?.toLowerCase() === 'object' && !param.isArray;
+            argValue = this.normalizeObjectArgumentValue(argValue, param);
+
             if (param.paramType && !param.isArray) {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
@@ -1092,7 +1111,7 @@ export class Evaluator {
                     });
                 }
             }
-            if (validateObjectArguments && param.paramType?.toLowerCase() === 'object' &&
+            if (validateObjectArguments && objectParameter &&
                 !param.isArray && argValue !== vbaMissing &&
                 !isVbaObjectReferenceCompatible(argValue)) {
                 this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
@@ -1756,7 +1775,7 @@ export class Evaluator {
         const parentEnv = this.moduleEnvs.get(procModuleKey) ?? this.env;
         const localEnv = new Environment(parentEnv);
 
-        this.bindProcedureParameters(proc, args, localEnv, argSubtypes);
+        this.bindProcedureParameters(proc, args, localEnv, argSubtypes, true);
 
         const result = this.execProcBody(proc, localEnv, {
             byRefArgs: [],
@@ -9358,6 +9377,7 @@ export class Evaluator {
                         argVal = vbaMissing;
                     }
                     this.validateArrayParameterContainer(argVal, param);
+                    argVal = this.normalizeObjectArgumentValue(argVal, param);
                     const originalArgExpr = namedArgExpressions.has(paramNameLower)
                         ? namedArgExpressions.get(paramNameLower)
                         : (i < positionalArgExpressions.length ? positionalArgExpressions[i] : undefined);
