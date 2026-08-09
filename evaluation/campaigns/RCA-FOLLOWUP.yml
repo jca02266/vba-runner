@@ -329,3 +329,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/paramarray-edge-cases.test.ts
       - tests/spec/callbyname.test.ts
+  - id: RCA-FOLLOWUP-032
+    title: opaque多次元配列のshape・要素型境界
+    status: queued
+    priority: 1
+    focus: COM/host opaque多次元配列をprimitive/Object typed arrayへ代入するshapeとleaf検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-array-getter-assignment.test.ts
