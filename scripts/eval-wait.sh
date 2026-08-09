@@ -24,7 +24,8 @@ mark_done() {
 
 launch_worker() {
   local dir=$1 deadline=$2
-  nohup bash -c '
+  local label="vba-runner-eval-wait-${dir##*/}"
+  local worker='
     dir=$1
     deadline=$2
     sleep_pid=
@@ -44,7 +45,13 @@ launch_worker() {
     date -r "$(date +%s)" "+%Y-%m-%dT%H:%M:%S%z" > "$dir/done"
     printf "done\n" > "$dir/state"
     rm -f "$dir/pid"
-  ' _ "$dir" "$deadline" > "$dir/output" 2>&1 &
+  '
+  printf '%s\n' "$label" > "$dir/launch_label"
+  if [[ "$(uname -s)" == Darwin ]] && command -v launchctl >/dev/null 2>&1; then
+    launchctl submit -l "$label" -- /bin/bash -c "$worker" _ "$dir" "$deadline" > "$dir/output" 2>&1
+  else
+    nohup bash -c "$worker" _ "$dir" "$deadline" > "$dir/output" 2>&1 &
+  fi
 }
 
 read_state() {
@@ -137,6 +144,9 @@ case "$command" in
     [[ -d "$dir" ]] || { printf 'unknown: %s\n' "$id" >&2; exit 1; }
     if [[ -f "$dir/pid" ]]; then
       kill "$(<"$dir/pid")" 2>/dev/null || true
+    fi
+    if [[ -f "$dir/launch_label" ]] && command -v launchctl >/dev/null 2>&1; then
+      launchctl remove "$(<"$dir/launch_label")" 2>/dev/null || true
     fi
     printf 'interrupted\n' > "$dir/state"
     if [[ -f "$dir/resume_epoch" ]]; then
