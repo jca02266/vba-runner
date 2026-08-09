@@ -30,3 +30,8 @@ checkpoints:
     decision: "LikeのError 93と[]の空文字契約を修正し、ROOT-00016を完了した。RC-00032に残るlocale依存の複数文字同値性を次の評価候補として登録する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-007
+  - afterEvaluation: EV-00460
+    audit: "359 evaluations, 0 active claims"
+    decision: "Likeの複合文字locale同値性を修正し、ROOT-00017を完了した。カバレッジ未通過が大きい組み込み日時関数の週・間隔境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-008

@@ -59,3 +59,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-008
+    title: DateDiff and DatePart interval boundaries
+    status: queued
+    priority: 1
+    focus: 組み込み日時関数のinterval・週境界・Option設定
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
