@@ -35,3 +35,8 @@ checkpoints:
     decision: "Likeの複合文字locale同値性を修正し、ROOT-00017を完了した。カバレッジ未通過が大きい組み込み日時関数の週・間隔境界を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-008
+  - afterEvaluation: EV-00461
+    audit: "360 evaluations, 0 active claims"
+    decision: "DateDiff wの時刻丸めを修正し、ROOT-00018を完了した。DatePart/Weekdayの週オプション年境界を独立評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-009

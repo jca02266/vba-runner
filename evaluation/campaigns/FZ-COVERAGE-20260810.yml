@@ -67,3 +67,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-009
+    title: DatePart week option matrix
+    status: queued
+    priority: 1
+    focus: DatePart・Weekdayのfirstdayofweek/firstweekofyear年境界マトリクス
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
