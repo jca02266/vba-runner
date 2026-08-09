@@ -41,3 +41,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260810-006
+    title: Like invalid pattern and empty class
+    status: queued
+    priority: 1
+    focus: Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約
+    priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-boundary.test.ts

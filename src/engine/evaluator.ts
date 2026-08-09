@@ -10670,60 +10670,70 @@ export class Evaluator {
         const textStr = String(text);
         const patternStr = String(pattern);
 
-        // Convert VBA Like pattern to Regex
-        // Special characters in VBA Like: *, ?, #, [
-        // Regex special characters to escape: \, ^, $, ., |, (, ), [, ], {, }, +, * , ?
-        let regexStr = '^';
-        let i = 0;
-        while (i < patternStr.length) {
-            const char = patternStr[i];
-            if (char === '*') {
-                regexStr += '.*';
-            } else if (char === '?') {
-                regexStr += '.';
-            } else if (char === '#') {
-                regexStr += '\\d';
-            } else if (char === '[') {
-                regexStr += '[';
-                i++;
-                if (i < patternStr.length && patternStr[i] === '!') {
-                    regexStr += '^';
-                    i++;
-                }
-                let firstClassChar = true;
-                while (i < patternStr.length && (firstClassChar || patternStr[i] !== ']')) {
-                    const charInList = patternStr[i];
-                    // Escape regex special chars inside [] if they are not part of range
-                    if ('\\^$[]{}|()+.'.includes(charInList) && charInList !== '-') {
-                        regexStr += '\\' + charInList;
-                    } else {
-                        regexStr += charInList;
-                    }
-                    i++;
-                    firstClassChar = false;
-                }
-                if (i < patternStr.length) {
-                    regexStr += ']';
-                }
-            } else {
-                // Escape regex special characters
-                if ('\\^$[]{}|()+.'.includes(char)) {
-                    regexStr += '\\' + char;
-                } else {
-                    regexStr += char;
+        const textCompare = this.getComparisonMode() === 'Text';
+        // Regex /i only folds case. VBA Text ranges also use the host locale,
+        // so À/à belong to [A-E]. Match tokens directly with a locale collator.
+        const collator = textCompare
+            ? new Intl.Collator(undefined, { usage: 'search', sensitivity: 'accent' })
+            : undefined;
+        const equal = (left: string, right: string) => textCompare
+            ? collator!.compare(left, right) === 0
+            : left === right;
+        const ordered = (left: string, right: string) => textCompare
+            ? collator!.compare(left, right)
+            : left.charCodeAt(0) - right.charCodeAt(0);
+        type LikeToken = { kind: 'star' | 'any' | 'digit' | 'literal' | 'class'; value?: string; negate?: boolean; members?: string[]; ranges?: Array<[string, string]> };
+        const tokens: LikeToken[] = [];
+        for (let i = 0; i < patternStr.length;) {
+            const char = patternStr[i++];
+            if (char === '*') { tokens.push({ kind: 'star' }); continue; }
+            if (char === '?') { tokens.push({ kind: 'any' }); continue; }
+            if (char === '#') { tokens.push({ kind: 'digit' }); continue; }
+            if (char !== '[') { tokens.push({ kind: 'literal', value: char }); continue; }
+            let negate = false;
+            if (patternStr[i] === '!') { negate = true; i++; }
+            const members: string[] = [];
+            const ranges: Array<[string, string]> = [];
+            if (patternStr[i] === ']') { members.push(']'); i++; }
+            while (i < patternStr.length && patternStr[i] !== ']') members.push(patternStr[i++]);
+            if (i < patternStr.length && patternStr[i] === ']') i++;
+            for (let j = 0; j < members.length; j++) {
+                if (members[j + 1] === '-' && members[j + 2] !== undefined) {
+                    ranges.push([members[j], members[j + 2]]);
+                    j += 2;
                 }
             }
-            i++;
+            tokens.push({ kind: 'class', negate, members, ranges });
         }
-        regexStr += '$';
-
-        try {
-            const flags = this.getComparisonMode() === 'Text' ? 'i' : '';
-            const regex = new RegExp(regexStr, flags);
-            return regex.test(textStr);
-        } catch (e) {
-            return false;
-        }
+        const memo = new Map<string, boolean>();
+        const matchesClass = (value: string, token: LikeToken) => {
+            const explicit = (token.members ?? []).some(member => equal(member, value));
+            const ranged = (token.ranges ?? []).some(([start, end]) =>
+                ordered(start, value) <= 0 && ordered(value, end) <= 0);
+            return token.negate ? !(explicit || ranged) : explicit || ranged;
+        };
+        const match = (textIndex: number, tokenIndex: number): boolean => {
+            const key = `${textIndex}:${tokenIndex}`;
+            const cached = memo.get(key);
+            if (cached !== undefined) return cached;
+            let result = false;
+            if (tokenIndex === tokens.length) result = textIndex === textStr.length;
+            else if (tokens[tokenIndex].kind === 'star') {
+                result = match(textIndex, tokenIndex + 1)
+                    || (textIndex < textStr.length && match(textIndex + 1, tokenIndex));
+            } else if (textIndex < textStr.length) {
+                const token = tokens[tokenIndex];
+                const value = textStr[textIndex];
+                result = token.kind === 'any'
+                    || (token.kind === 'digit' && value >= '0' && value <= '9')
+                    || (token.kind === 'literal' && equal(token.value!, value))
+                    || (token.kind === 'class' && matchesClass(value, token));
+                if (result) result = match(textIndex + 1, tokenIndex + 1);
+            }
+            memo.set(key, result);
+            return result;
+        };
+        return match(0, 0);
     }
 
     private isTrue(val: any): boolean {

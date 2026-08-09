@@ -149,8 +149,10 @@ rootは、独立した`confirm`レビューがあり、`unresolved`が空で、�
 過去の`EV-xxxxx`を参照したときは、最初に`rootCauseProcedureVersion`を確認する。
 
 1. `0`は手順未整備時代の記録であり、本文の`confirmed`は新方式の独立レビュー済み確定とは扱わない。
-2. `1`はこの文書の手順に従った記録であり、`rootCauseId`の`procedureVersion: 1`、
-   独立`confirm`レビュー、空の`unresolved`を確認する。
+2. `1`はこの文書の手順に従った記録である。`hypothesis`または`not-applicable`では
+   真因が未確定・非該当のため`rootCauseId`を持たなくてよい。`confirmed`へ進める
+   場合は、`rootCauseId`の`procedureVersion: 1`、独立`confirm`レビュー、空の
+   `unresolved`を確認する。
 3. 項目がない、または参照先のバージョンが一致しない場合は、真因確定済みとして利用せず、
    `procedureVersion: 1`の新しい仮説登録から開始する。
 

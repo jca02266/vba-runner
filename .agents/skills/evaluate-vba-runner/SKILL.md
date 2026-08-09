@@ -71,11 +71,12 @@ analysis; do not duplicate its taxonomy here.
    horizontal expansion records which paths were checked, while root-cause
    analysis records why the behavior occurred and how it will be addressed.
    Set `rootCauseProcedureVersion` explicitly. Use `0` only for preserved
-   historical inline analysis, and `1` only when a linked `RC-xxxxx` follows
-   version 1 of `ROOT_CAUSE_ANALYSIS.md`, has independent confirmation, and no
-   unresolved questions. When reusing an older evaluation, inspect this field
-   first; never infer the procedure from the evaluation number or
-   `rootCauseAnalysis.status`.
+   historical inline analysis. Use `1` for new records following
+   `ROOT_CAUSE_ANALYSIS.md`; a `hypothesis` or `not-applicable` analysis may
+   omit `rootCauseId`, while a confirmed analysis must link an independently
+   confirmed `RC-xxxxx` with no unresolved questions. When reusing an older
+   evaluation, inspect this field first; never infer the procedure from the
+   evaluation number or `rootCauseAnalysis.status`.
    For every new Excel-comparison candidate, reserve the next unique `XL-xxx`
    in the evaluation record's `excelProbeIds`. Then add that probe to
    `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue
@@ -149,7 +150,10 @@ analysis; do not duplicate its taxonomy here.
    record ruled-out/confirmed paths, or create a remediation task. Record the
    checkpoint decision and its reason in the structured evaluation work item
    (or the linked RCA/remediation record) before selecting another candidate.
-   If no item is actionable, explicitly record that the high-priority RCA and
+   Append the checkpoint to the campaign-independent
+   `evaluation/checkpoints/EVALUATION_LOOP.yml` with the audit result, the
+   decision, and the selected candidate or follow-up. Do not put operational
+   checkpoint prose in an EV body or campaign definition. If no item is actionable, explicitly record that the high-priority RCA and
    horizontal expansion queues were checked and why ordinary evaluation is
    the next best action. This decision is required on every loop, including
    when the prior evaluation was `verified-no-bug`; a 30-minute wait must

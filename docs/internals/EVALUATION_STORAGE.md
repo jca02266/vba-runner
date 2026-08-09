@@ -232,6 +232,11 @@ CLIが作成する新しい結果スナップショットには`stateVersion: 1`
 
 ## 現行CLIと役割
 
+待機後の収束チェックポイントは、キャンペーンに依存しない
+`evaluation/checkpoints/EVALUATION_LOOP.yml`へ監査結果・判断・次候補を追記する。
+EV本文は評価事象と結果、キャンペーン定義は候補の静的情報だけを持ち、運用上の
+チェックポイントを重複記録しない。
+
 ```text
 npm run eval -- audit
 npm run eval -- next --limit 1

@@ -43,3 +43,14 @@ End Function`,
 ]);
 assert.equal(selectText.callProcedure('SelectMatch', []), 'T',
     'Select Case string comparison follows Option Compare Text');
+
+const localeText = evalVBASingle(String.raw`Option Compare Text
+Function AccentRange(value As String) As String
+    AccentRange = IIf(value Like "[A-E]", "T", "F")
+End Function`);
+assert.equal(localeText.callProcedure('AccentRange', ['À']), 'T',
+    'Option Compare Text Like ranges include À within [A-E]');
+assert.equal(localeText.callProcedure('AccentRange', ['à']), 'T',
+    'Option Compare Text Like ranges include à within [A-E]');
+assert.equal(localeText.callProcedure('AccentRange', ['Ê']), 'F',
+    'Option Compare Text Like ranges do not over-include Ê after E');

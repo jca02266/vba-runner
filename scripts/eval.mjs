@@ -373,7 +373,8 @@ function validate(records = readRecords()) {
       if (![0, 1].includes(data.rootCauseProcedureVersion)) {
         throw new Error(`${file}: rootCauseProcedureVersion must be 0 or 1`);
       }
-      if (data.rootCauseProcedureVersion === 1 && !data.rootCauseId) {
+      if (data.rootCauseProcedureVersion === 1 && !data.rootCauseId
+          && !['hypothesis', 'not-applicable'].includes(causeAnalysis.status)) {
         throw new Error(`${file}: structured root cause analysis requires rootCauseId`);
       }
       if (data.rootCauseProcedureVersion === 0 && data.rootCauseId) {
