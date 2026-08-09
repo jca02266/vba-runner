@@ -348,6 +348,7 @@
 | EV-00443 | RCA-FOLLOWUP | fixed | 1 | opaque COM getter primitive配列の要素型検証 |
 | EV-00444 | RCA-FOLLOWUP | fixed | 1 | opaque配列のByRef・Property・Collection/Dictionary binder |
 | EV-00445 | RCA-FOLLOWUP | verified-no-bug | 1 | ParamArray・CallByName opaque配列relay境界 |
+| EV-00446 | RCA-FOLLOWUP | needs-excel | 1 | opaque多次元配列のshape・要素型境界 |
 
 ## 状態集計
 
@@ -355,10 +356,11 @@
 |---|---:|
 | fixed | 238 |
 | known-limit | 3 |
+| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 102 |
 
-横展開未解決経路: 290、実Excel待ち評価: 0
+横展開未解決経路: 292、実Excel待ち評価: 1
 
 ## 次の候補
 

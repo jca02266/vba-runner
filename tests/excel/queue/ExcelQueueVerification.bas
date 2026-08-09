@@ -77,9 +77,36 @@ Public Sub RunExcelQueueVerification()
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
+    VerifyOpaqueShape
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyOpaqueShape()
+    Dim ws As Worksheet, source As Variant
+    Dim target(0 To 1, 0 To 1) As Long
+    Dim errNo As Long, upper As Long
+    On Error Resume Next
+    Set ws = Worksheets.Add
+    ws.Range("A1:C2").Value2 = Array(Array(1, 2, 3), Array(4, 5, 6))
+    source = ws.Range("A1:C2").Value2
+    Err.Clear
+    target = source
+    errNo = Err.Number
+    If errNo = 0 Then
+        Err.Clear
+        upper = UBound(target, 2)
+        If Err.Number <> 0 Then upper = -1
+    Else
+        upper = -1
+    End If
+    EmitResult "XL-061 SHAPEERR=" & CStr(errNo) & " UBOUND2=" & CStr(upper)
+    Err.Clear
+    Application.DisplayAlerts = False
+    ws.Delete
+    Application.DisplayAlerts = True
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyUdtObjectArraySet()
