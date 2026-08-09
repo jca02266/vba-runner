@@ -50,3 +50,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-007
+    title: Like locale multi-character equivalence
+    status: queued
+    priority: 1
+    focus: Option Compare Textのæ/ae等の複数文字locale同値性とLike共通入口
+    priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-boundary.test.ts

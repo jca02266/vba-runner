@@ -25,3 +25,8 @@ checkpoints:
     decision: "Object引数のNull/Missing境界を修正し、ROOT-00015の受入条件を確認した。次はLike無効パターン・空クラス境界を評価する。"
     action: claim
     nextCandidate: FZ-COVERAGE-20260810-006
+  - afterEvaluation: EV-00459
+    audit: "358 evaluations, 0 active claims"
+    decision: "LikeのError 93と[]の空文字契約を修正し、ROOT-00016を完了した。RC-00032に残るlocale依存の複数文字同値性を次の評価候補として登録する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-007
