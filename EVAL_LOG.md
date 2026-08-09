@@ -342,6 +342,7 @@
 | EV-00437 | RCA-FOLLOWUP | fixed | 1 | Class・Interface forced ByVal 呼出し境界 |
 | EV-00438 | RCA-FOLLOWUP | fixed | 1 | UDT配列メンバーの要素型境界 |
 | EV-00439 | RCA-FOLLOWUP | fixed | 1 | UDT Object配列のSet代入境界 |
+| EV-00440 | RCA-FOLLOWUP | verified-no-bug | 1 | typed arrayの既定Property・indexed CallExpression入口 |
 
 ## 状態集計
 
@@ -350,9 +351,9 @@
 | fixed | 234 |
 | known-limit | 3 |
 | retired | 1 |
-| verified-no-bug | 100 |
+| verified-no-bug | 101 |
 
-横展開未解決経路: 276、実Excel待ち評価: 0
+横展開未解決経路: 278、実Excel待ち評価: 0
 
 ## 次の候補
 
