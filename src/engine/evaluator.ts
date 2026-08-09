@@ -10702,7 +10702,7 @@ export class Evaluator {
         const ordered = (left: string, right: string) => textCompare
             ? collator!.compare(left, right)
             : left.charCodeAt(0) - right.charCodeAt(0);
-        type LikeToken = { kind: 'star' | 'any' | 'digit' | 'literal' | 'class'; value?: string; negate?: boolean; members?: string[]; ranges?: Array<[string, string]> };
+        type LikeToken = { kind: 'star' | 'any' | 'digit' | 'literal' | 'empty' | 'class'; value?: string; negate?: boolean; members?: string[]; ranges?: Array<[string, string]> };
         const tokens: LikeToken[] = [];
         for (let i = 0; i < patternStr.length;) {
             const char = patternStr[i++];
@@ -10714,11 +10714,28 @@ export class Evaluator {
             if (patternStr[i] === '!') { negate = true; i++; }
             const members: string[] = [];
             const ranges: Array<[string, string]> = [];
+            // VBA defines [] as a zero-length pattern. A second closing bracket
+            // (as in []]) is the literal closing-bracket boundary instead.
+            if (patternStr[i] === ']' && patternStr[i + 1] !== ']') {
+                if (negate) this.throwVbaError(VbaErrorCode.INVALID_PATTERN, 'Invalid pattern string');
+                i++;
+                tokens.push({ kind: 'empty' });
+                continue;
+            }
             if (patternStr[i] === ']') { members.push(']'); i++; }
             while (i < patternStr.length && patternStr[i] !== ']') members.push(patternStr[i++]);
-            if (i < patternStr.length && patternStr[i] === ']') i++;
+            if (i >= patternStr.length) {
+                this.throwVbaError(VbaErrorCode.INVALID_PATTERN, 'Invalid pattern string');
+            }
+            i++;
+            if (negate && members.length === 0) {
+                this.throwVbaError(VbaErrorCode.INVALID_PATTERN, 'Invalid pattern string');
+            }
             for (let j = 0; j < members.length; j++) {
                 if (members[j + 1] === '-' && members[j + 2] !== undefined) {
+                    if (ordered(members[j], members[j + 2]) > 0) {
+                        this.throwVbaError(VbaErrorCode.INVALID_PATTERN, 'Invalid pattern string');
+                    }
                     ranges.push([members[j], members[j + 2]]);
                     j += 2;
                 }
@@ -10741,6 +10758,8 @@ export class Evaluator {
             else if (tokens[tokenIndex].kind === 'star') {
                 result = match(textIndex, tokenIndex + 1)
                     || (textIndex < textStr.length && match(textIndex + 1, tokenIndex));
+            } else if (tokens[tokenIndex].kind === 'empty') {
+                result = match(textIndex, tokenIndex + 1);
             } else if (textIndex < textStr.length) {
                 const token = tokens[tokenIndex];
                 const value = textStr[textIndex];

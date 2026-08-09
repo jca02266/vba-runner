@@ -18,6 +18,7 @@ export const VbaErrorCode = {
     // --- Type / arithmetic ---
     INVALID_PROCEDURE_CALL:              5,
     OVERFLOW:                            6,
+    INVALID_PATTERN:                    93,
     TYPE_MISMATCH:                      13,
     OUT_OF_STRING_SPACE:                14,
     DIVISION_BY_ZERO:                   11,
@@ -57,6 +58,7 @@ export const VBA_ERROR_MESSAGES: Readonly<Record<number, string>> = {
     [VbaErrorCode.RESUME_WITHOUT_ERROR]:             'Resume without error',
     [VbaErrorCode.INVALID_PROCEDURE_CALL]:           'Invalid procedure call or argument',
     [VbaErrorCode.OVERFLOW]:                         'Overflow',
+    [VbaErrorCode.INVALID_PATTERN]:                   'Invalid pattern string',
     [VbaErrorCode.TYPE_MISMATCH]:                    'Type mismatch',
     [VbaErrorCode.OUT_OF_STRING_SPACE]:              'Out of string space',
     [VbaErrorCode.DIVISION_BY_ZERO]:                 'Division by zero',

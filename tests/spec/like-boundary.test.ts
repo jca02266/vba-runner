@@ -54,3 +54,45 @@ assert.equal(localeText.callProcedure('AccentRange', ['à']), 'T',
     'Option Compare Text Like ranges include à within [A-E]');
 assert.equal(localeText.callProcedure('AccentRange', ['Ê']), 'F',
     'Option Compare Text Like ranges do not over-include Ê after E');
+
+const invalidPatterns = evalVBASingle(String.raw`Option Compare Text
+Function PatternError(ByVal pattern As String) As Long
+    On Error Resume Next
+    Err.Clear
+    Dim matched As Boolean
+    matched = "Y" Like pattern
+    PatternError = Err.Number
+End Function
+Function EmptyPatternMatch(ByVal value As String) As String
+    EmptyPatternMatch = IIf(value Like "[]", "T", "F")
+End Function`);
+assert.equal(invalidPatterns.callProcedure('PatternError', ['[Z-A]']), 93,
+    'Like rejects descending ranges with Error 93');
+assert.equal(invalidPatterns.callProcedure('PatternError', ['[ABC']), 93,
+    'Like rejects unterminated character lists with Error 93');
+assert.equal(invalidPatterns.callProcedure('EmptyPatternMatch', ['']), 'T',
+    'Like [] matches the zero-length string');
+assert.equal(invalidPatterns.callProcedure('EmptyPatternMatch', ['Y']), 'F',
+    'Like [] does not match a non-empty string');
+
+const classInvalidPatterns = evalVBAModules([
+    {
+        name: 'LikeProbe',
+        parseAsClass: 'LikeProbe',
+        code: String.raw`Public Function PatternError(ByVal pattern As String) As Long
+    On Error Resume Next
+    Dim matched As Boolean
+    matched = "Y" Like pattern
+    PatternError = Err.Number
+End Function`,
+    },
+    {
+        name: 'LikeClassCaller',
+        code: String.raw`Function ClassPatternError(ByVal pattern As String) As Long
+    Dim probe As New LikeProbe
+    ClassPatternError = probe.PatternError(pattern)
+End Function`,
+    },
+]);
+assert.equal(classInvalidPatterns.callProcedure('ClassPatternError', ['[Z-A]']), 93,
+    'Like Error 93 propagates through a class method');
