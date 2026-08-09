@@ -349,3 +349,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/typed-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-034
+    title: 固定typed配列のopaque shape再束縛境界
+    status: queued
+    priority: 1
+    focus: COM/host由来の異なる次元・bounds配列を固定typed配列へ代入したときのshape制約
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-array-getter-assignment.test.ts
