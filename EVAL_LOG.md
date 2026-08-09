@@ -348,19 +348,23 @@
 | EV-00443 | RCA-FOLLOWUP | fixed | 1 | opaque COM getter primitive配列の要素型検証 |
 | EV-00444 | RCA-FOLLOWUP | fixed | 1 | opaque配列のByRef・Property・Collection/Dictionary binder |
 | EV-00445 | RCA-FOLLOWUP | verified-no-bug | 1 | ParamArray・CallByName opaque配列relay境界 |
-| EV-00446 | RCA-FOLLOWUP | needs-excel | 1 | opaque多次元配列のshape・要素型境界 |
+| EV-00446 | RCA-FOLLOWUP | fixed | 1 | Range.Value2由来多次元Variant配列のshape・要素型境界 |
+| EV-00447 | RCA-FOLLOWUP | fixed | 1 | typed配列全体代入をprecheckProcでコンパイル時に拒否する |
+| EV-00448 | RCA-FOLLOWUP | fixed | 1 | 固定typed配列へ異なるshapeのopaque COM/host配列を代入したときの境界契約 |
+| EV-00449 | RCA-FOLLOWUP | fixed | 1 | 固定typed配列へのopaque COM/host配列全体代入を静的に拒否する |
+| EV-00450 | RCA-FOLLOWUP | bug-found | 1 | ByRef ReDim経由の固定typed配列再束縛境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 238 |
+| bug-found | 1 |
+| fixed | 242 |
 | known-limit | 3 |
-| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 102 |
 
-横展開未解決経路: 292、実Excel待ち評価: 1
+横展開未解決経路: 298、実Excel待ち評価: 0
 
 ## 次の候補
 

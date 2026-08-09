@@ -24,6 +24,7 @@ export const VbaErrorCode = {
 
     // --- Collection / array ---
     SUBSCRIPT_OUT_OF_RANGE:              9,
+    ARRAY_FIXED_OR_LOCKED:               10,
     KEY_ALREADY_EXISTS:                457,
 
     // --- File I/O ---
@@ -60,6 +61,7 @@ export const VBA_ERROR_MESSAGES: Readonly<Record<number, string>> = {
     [VbaErrorCode.OUT_OF_STRING_SPACE]:              'Out of string space',
     [VbaErrorCode.DIVISION_BY_ZERO]:                 'Division by zero',
     [VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE]:           'Subscript out of range',
+    [VbaErrorCode.ARRAY_FIXED_OR_LOCKED]:            'This array is fixed or temporarily locked',
     [VbaErrorCode.KEY_ALREADY_EXISTS]:               'This key is already associated with an element of this collection',
     [VbaErrorCode.FILE_NOT_FOUND]:                   'File not found',
     [VbaErrorCode.BAD_FILE_MODE]:                    'Bad file mode',

@@ -41,3 +41,27 @@ assert.strictEqual(
     'Class and UDT dynamic array members preserve ByRef ReDim writeback',
 );
 console.log('[PASS] ByRef ReDim writeback for Class/UDT array members');
+
+const fixedCode = String.raw`
+Class FixedHolder
+    Public Values(0 To 1) As Long
+End Class
+
+Sub ResizeFixed(ByRef values() As Long)
+    ReDim values(0 To 2)
+End Sub
+
+Function ProbeFixed() As Long
+    Dim holder As New FixedHolder
+    On Error Resume Next
+    ResizeFixed holder.Values
+    ProbeFixed = Err.Number
+End Function
+`;
+const fixedEvaluator = evalVBASingle(fixedCode);
+assert.strictEqual(
+    fixedEvaluator.callProcedure('ProbeFixed', []),
+    10,
+    'ReDim through ByRef must reject a fixed-size array',
+);
+console.log('[PASS] ByRef ReDim rejects fixed-size array members');

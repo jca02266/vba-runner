@@ -77,7 +77,8 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     End Sub
 
     Function Test4()
-        Dim myArr(2) As Integer
+        Dim myArr() As Integer
+        ReDim myArr(0 To 2)
         myArr(0) = 1
         myArr(1) = 2
         myArr(2) = 3

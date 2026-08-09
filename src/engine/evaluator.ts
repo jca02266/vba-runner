@@ -8390,6 +8390,15 @@ export class Evaluator {
         const elementAutoNew = (Array.isArray(oldArr) && (oldArr as any).__vbaElementAutoNew__)
             || !!storedArrayTypeInfo?.elementAutoNew;
 
+        // ReDim can only resize a dynamic array.  A fixed array may be passed
+        // ByRef, but the callee must not replace its storage during writeback.
+        if (Array.isArray(oldArr) && (oldArr as any).vbaFixed) {
+            this.throwVbaError(
+                VbaErrorCode.ARRAY_FIXED_OR_LOCKED,
+                'This array is fixed or temporarily locked',
+            );
+        }
+
         let defaultValue: any = 0;
         if (decl.objectType) {
             const t = decl.objectType.toLowerCase();

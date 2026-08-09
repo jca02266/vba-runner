@@ -369,3 +369,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/typed-array-assignment.test.ts
+  - id: RCA-FOLLOWUP-036
+    title: ByRef writeback fixed array shape boundary
+    status: queued
+    priority: 1
+    focus: allowArrayRebind経由のByRef書戻しで固定typed配列のshape・型制約が迂回されないこと
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
