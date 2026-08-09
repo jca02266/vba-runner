@@ -992,6 +992,23 @@ export class Evaluator {
         }
     }
 
+    /** Validate every leaf of an opaque array returned by a host/COM getter. */
+    private validateObjectArrayContents(value: any[], requiredType: string): void {
+        for (let i = 0; i < value.length; i++) {
+            const element = value[i];
+            if (Array.isArray(element)) {
+                this.validateObjectArrayContents(element, requiredType);
+            } else if (requiredType.toLowerCase() === 'object' &&
+                !isVbaObjectReferenceCompatible(element)) {
+                // Whole-array assignment reports an incompatible declared type,
+                // rather than the Object-required error used by Set element writes.
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            } else {
+                this.validateObjectArrayElementValue(element, requiredType);
+            }
+        }
+    }
+
     private argumentReference(
         expr: Expression | undefined,
         param: ProcedureDeclaration['parameters'][number],
@@ -3719,6 +3736,9 @@ export class Evaluator {
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
         const sameType = returnType && returnType.toLowerCase() === String(typed).toLowerCase();
+        if (typed && opaqueArrayReturn && typed.toLowerCase() === 'object') {
+            this.validateObjectArrayContents(value, typed);
+        }
         if (typed && !opaqueArrayReturn && (!isArrayReturn || !sameType)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
         }
