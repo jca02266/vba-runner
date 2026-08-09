@@ -968,6 +968,18 @@ export class Evaluator {
         if (actual && actual !== expected) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
+        if (!actual) {
+            if (expected === 'object') {
+                this.validateObjectArrayContents(value, expected);
+            } else {
+                // A typed array parameter cannot infer its element type from an
+                // unannotated host/collection array. Require the adapter or
+                // producer to carry the declared element metadata.
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            }
+        } else if (expected === 'object') {
+            this.validateObjectArrayContents(value, expected);
+        }
     }
 
     /** Erased arrays retain their type but cannot be indexed until ReDim. */
