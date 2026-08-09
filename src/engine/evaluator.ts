@@ -4113,7 +4113,9 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(
+                    this.getClassField(instanceEnv, propName), val, sourceExpr, allowArrayRebind,
+                );
                 const setter = findClassProperty(classDef.procedures, propName, 'let')
                     ?? this.findInterfaceDispatch(obj, member.property.name, 'let');
                 if (setter) {
@@ -4134,7 +4136,9 @@ export class Evaluator {
             } else if (obj && typeof obj === 'object') {
                 // VBA は大文字小文字不問: アクセサ(setter)・プロトタイプも辿って実キーを解決する
                 const resolvedProp = this.resolveObjectMemberKey(obj, propName) ?? propName;
-                this.rejectTypedArrayWholeAssignment(obj[resolvedProp], val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(
+                    obj[resolvedProp], val, sourceExpr, allowArrayRebind,
+                );
                 // UDT fixed-length string member coercion
                 const fl = obj.__fixedLengths__?.[propName];
                 if (fl !== undefined && typeof val === 'string') {
@@ -4159,7 +4163,9 @@ export class Evaluator {
             if (obj && obj.__vbaClass__) {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
-                this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(
+                    this.getClassField(instanceEnv, propName), val, sourceExpr, allowArrayRebind,
+                );
                 const setter = findClassProperty(classDef.procedures, propName, 'let')
                     ?? this.findInterfaceDispatch(obj, member.property.name, 'let');
                 if (setter) {
@@ -4178,7 +4184,9 @@ export class Evaluator {
                     instanceEnv.setLocally(propName, val);
                 }
             } else if (obj && typeof obj === 'object') {
-                this.rejectTypedArrayWholeAssignment(obj[propName], val, sourceExpr);
+                this.rejectTypedArrayWholeAssignment(
+                    obj[propName], val, sourceExpr, allowArrayRebind,
+                );
                 obj[propName] = val;
             } else {
                 if (obj === null || obj === undefined || obj === vbaNothing) {
