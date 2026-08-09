@@ -3734,6 +3734,36 @@ export class Evaluator {
         return result;
     }
 
+    /**
+     * Preserve the SAFEARRAY shape exposed by host/COM getters.  A JavaScript
+     * nested array has no VBA rank or bounds of its own, so host adapters may
+     * provide __vbaDimensions__; when they do not, infer the rectangular rank
+     * with the VBA default lower bound (zero) rather than silently treating it
+     * as a one-dimensional array.
+     */
+    private normalizeOpaqueArrayReturn(value: any): any {
+        if (!Array.isArray(value)) return value;
+        (value as any).__vbaArrayReturn__ = true;
+        const existing = (value as any).__vbaDimensions__;
+        if (Array.isArray(existing) && existing.length > 0) return value;
+
+        const dimensions: { lower: number; upper: number }[] = [];
+        let current: any = value;
+        while (Array.isArray(current)) {
+            const lower = Number.isInteger((current as any).vbaBase)
+                ? Number((current as any).vbaBase)
+                : 0;
+            dimensions.push({ lower, upper: lower + current.length - 1 });
+            if (current.length === 0 || !Array.isArray(current[0])) break;
+            current = current[0];
+        }
+        if (dimensions.length > 1) {
+            (value as any).__vbaDimensions__ = dimensions;
+            (value as any).vbaBase = dimensions[0].lower;
+        }
+        return value;
+    }
+
     private rejectTypedArrayWholeAssignment(existing: any, value: any, sourceExpr?: Expression, allowArrayRebind = false) {
         const isArrayReturn = Array.isArray(value) && (value as any).__vbaArrayReturn__ === true;
         if (isArrayReturn) delete (value as any).__vbaArrayReturn__;
@@ -3751,7 +3781,8 @@ export class Evaluator {
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
         const sameType = returnType && returnType.toLowerCase() === String(typed).toLowerCase();
-        if (typed && opaqueArrayReturn) {
+        const variantDestination = typed?.toLowerCase() === 'variant';
+        if (typed && opaqueArrayReturn && !variantDestination) {
             if (sourceElementType && sourceElementType.toLowerCase() === typed.toLowerCase()) {
                 if (typed.toLowerCase() === 'object') this.validateObjectArrayContents(value, typed);
             } else if (typed.toLowerCase() === 'object') {
@@ -3763,7 +3794,7 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
             }
         }
-        if (typed && !opaqueArrayReturn && (!isArrayReturn || !sameType)) {
+        if (typed && !variantDestination && !opaqueArrayReturn && (!isArrayReturn || !sameType)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");
         }
     }
@@ -9592,7 +9623,8 @@ export class Evaluator {
                 }
 
                 if (typeof targetMethod === 'function') {
-                    return this.invokeBuiltin(targetMethod, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal), obj);
+                    const result = this.invokeBuiltin(targetMethod, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal), obj);
+                    return (obj as any).__progId__ ? this.normalizeOpaqueArrayReturn(result) : result;
                 }
             }
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${methodNameOriginal}'`);
@@ -10067,10 +10099,7 @@ export class Evaluator {
                 // Host/COM properties may expose SAFEARRAY-like values
                 // without VBA ProcedureDeclaration metadata. Treat the
                 // evaluated value as a getter result for this assignment only.
-                if (Array.isArray(val) && (obj as any).__progId__) {
-                    (val as any).__vbaArrayReturn__ = true;
-                }
-                return val;
+                return (obj as any).__progId__ ? this.normalizeOpaqueArrayReturn(val) : val;
             }
         }
         this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
@@ -10540,7 +10569,7 @@ export class Evaluator {
                 if (typeof val === 'function') {
                     return val.bind(obj);
                 }
-                return val;
+                return (obj as any).__progId__ ? this.normalizeOpaqueArrayReturn(val) : val;
             }
         }
         if (obj === null || obj === undefined || obj === vbaNothing) {
