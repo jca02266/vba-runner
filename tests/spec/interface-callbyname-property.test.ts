@@ -60,3 +60,31 @@ assert.strictEqual(
     'Interface参照のCallByName VbLet/VbSetがProperty value-tailへdispatchする',
 );
 console.log('✅ Interface CallByName Property value-tail: 全テスト通過');
+
+const interfaceLifecycleCode = String.raw`
+Class ILifecycle
+    Public Property Get Item(ParamArray indexes()) As Long
+    End Property
+End Class
+
+Class LifecycleStore
+    Implements ILifecycle
+    Public Property Get ILifecycle_Item(ParamArray indexes()) As Long
+        Erase indexes
+        ILifecycle_Item = 42
+    End Property
+End Class
+
+Function VerifyInterfaceLifecycle() As Long
+    Dim store As New LifecycleStore, target As ILifecycle
+    Set target = store
+    VerifyInterfaceLifecycle = target.Item(1)
+End Function
+`;
+const interfaceLifecycleEvaluator = evalVBASingle(interfaceLifecycleCode);
+assert.throwsMatch(
+    () => interfaceLifecycleEvaluator.callProcedure('VerifyInterfaceLifecycle', []),
+    /Compile error: Invalid use of ParamArray/i,
+    'Interface Property dispatch keeps ParamArray lifecycle diagnostics',
+);
+console.log('✅ Interface ParamArray lifecycle convergence: 全テスト通過');

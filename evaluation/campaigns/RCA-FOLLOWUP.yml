@@ -399,3 +399,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/paramarray-edge-cases.test.ts
+  - id: RCA-FOLLOWUP-039
+    title: Interface ParamArray lifecycle convergence
+    status: queued
+    priority: 1
+    focus: Implements Interface dispatchでもParamArray Erase/ReDim静的診断が共通化されているか
+    priorCauseKey: class-dispatch-paramarray-precheck-missing
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interface-callbyname-property.test.ts
