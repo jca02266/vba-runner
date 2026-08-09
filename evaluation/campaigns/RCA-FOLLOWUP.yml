@@ -297,3 +297,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: RCA-FOLLOWUP-029
+    title: COM getter primitive配列の要素型境界
+    status: queued
+    priority: 1
+    focus: opaque COM/host getter配列をLong()/String()へ代入する異型要素検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-array-getter-assignment.test.ts
