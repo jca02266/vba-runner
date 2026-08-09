@@ -3730,14 +3730,26 @@ export class Evaluator {
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
         const returnType = (value as any).__vbaArrayReturnType__ as string | undefined;
+        const sourceElementType = ((value as any).__vbaElementType__ ??
+            (value as any).__vbaElementTypeName__ ??
+            (value as any).__vbaElementObjectTypeName__) as string | undefined;
         const opaqueArrayReturn = isArrayReturn && !returnType;
         // A call expression alone does not prove that the value is a legal
         // typed-array return. Only an evaluated procedure/host getter that
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
         const sameType = returnType && returnType.toLowerCase() === String(typed).toLowerCase();
-        if (typed && opaqueArrayReturn && typed.toLowerCase() === 'object') {
-            this.validateObjectArrayContents(value, typed);
+        if (typed && opaqueArrayReturn) {
+            if (sourceElementType && sourceElementType.toLowerCase() === typed.toLowerCase()) {
+                if (typed.toLowerCase() === 'object') this.validateObjectArrayContents(value, typed);
+            } else if (typed.toLowerCase() === 'object') {
+                this.validateObjectArrayContents(value, typed);
+            } else {
+                // An opaque SAFEARRAY without VARTYPE metadata cannot prove that
+                // its elements have the primitive declared type. Do not alias it
+                // into a typed array; the host adapter must provide metadata.
+                this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+            }
         }
         if (typed && !opaqueArrayReturn && (!isArrayReturn || !sameType)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, "Can't assign to an array");

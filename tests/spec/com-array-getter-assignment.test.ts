@@ -19,9 +19,11 @@ Function ReadComObjectArray() As Long
 End Function
 `);
 
+const longValues: any[] = [7];
+(longValues as any).__vbaElementType__ = 'long';
 ev.registerComObject(() => ({
     __progId__: 'Test.Array',
-    Values: [7],
+    Values: longValues,
 }) as any);
 
 assert.strictEqual(ev.callProcedure('ReadComArray', []), 7,
