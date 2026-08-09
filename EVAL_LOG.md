@@ -364,6 +364,7 @@
 | EV-00459 | FZ-COVERAGE-20260810 | fixed | 1 | Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約 |
 | EV-00460 | FZ-COVERAGE-20260810 | fixed | 1 | Option Compare TextのLike複合文字locale同値性 |
 | EV-00461 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み日時関数のDateDiff w間隔・週境界 |
+| EV-00462 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DatePart・Weekdayのfirstdayofweek/firstweekofyear年境界マトリクス |
 
 ## 状態集計
 
@@ -372,9 +373,9 @@
 | fixed | 250 |
 | known-limit | 3 |
 | retired | 1 |
-| verified-no-bug | 106 |
+| verified-no-bug | 107 |
 
-横展開未解決経路: 312、実Excel待ち評価: 0
+横展開未解決経路: 314、実Excel待ち評価: 0
 
 ## 次の候補
 
