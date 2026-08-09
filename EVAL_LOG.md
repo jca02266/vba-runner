@@ -345,17 +345,18 @@
 | EV-00440 | RCA-FOLLOWUP | verified-no-bug | 1 | typed arrayの既定Property・indexed CallExpression入口 |
 | EV-00441 | RCA-FOLLOWUP | fixed | 1 | Class・UDT配列メンバーのByRef ReDim writeback |
 | EV-00442 | RCA-FOLLOWUP | fixed | 1 | COM getter配列のObject()要素型検証 |
+| EV-00443 | RCA-FOLLOWUP | fixed | 1 | opaque COM getter primitive配列の要素型検証 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 236 |
+| fixed | 237 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 101 |
 
-横展開未解決経路: 284、実Excel待ち評価: 0
+横展開未解決経路: 287、実Excel待ち評価: 0
 
 ## 次の候補
 
