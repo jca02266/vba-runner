@@ -344,20 +344,21 @@
 | EV-00439 | RCA-FOLLOWUP | fixed | 1 | UDT Object配列のSet代入境界 |
 | EV-00440 | RCA-FOLLOWUP | verified-no-bug | 1 | typed arrayの既定Property・indexed CallExpression入口 |
 | EV-00441 | RCA-FOLLOWUP | fixed | 1 | Class・UDT配列メンバーのByRef ReDim writeback |
+| EV-00442 | RCA-FOLLOWUP | fixed | 1 | COM getter配列のObject()要素型検証 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 235 |
+| fixed | 236 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 101 |
 
-横展開未解決経路: 281、実Excel待ち評価: 0
+横展開未解決経路: 284、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-028 | 1 | queued | COM/host getterのSAFEARRAYをObject()へ代入する際の要素category検証 | yes |
+| (none) | | | | |
