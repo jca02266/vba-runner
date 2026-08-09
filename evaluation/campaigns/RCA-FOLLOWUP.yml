@@ -307,3 +307,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: RCA-FOLLOWUP-030
+    title: opaque配列のByRef・Property・コンテナbinder境界
+    status: queued
+    priority: 1
+    focus: COM/host opaque配列をByRef配列引数、Property Let/Set、Collection/Dictionary経由で束縛する要素型検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - tests/spec/com-array-getter-assignment.test.ts
