@@ -362,17 +362,18 @@
 | EV-00457 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の不正引数・非収束・エラー伝播 |
 | EV-00458 | FZ-COVERAGE-20260810 | fixed | 1 | COM返却オブジェクトの名前付き・Null・省略引数変換 |
 | EV-00459 | FZ-COVERAGE-20260810 | fixed | 1 | Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約 |
+| EV-00460 | FZ-COVERAGE-20260810 | fixed | 1 | Option Compare TextのLike複合文字locale同値性 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 248 |
+| fixed | 249 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 106 |
 
-横展開未解決経路: 309、実Excel待ち評価: 0
+横展開未解決経路: 311、実Excel待ち評価: 0
 
 ## 次の候補
 
