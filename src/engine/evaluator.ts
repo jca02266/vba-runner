@@ -1922,9 +1922,9 @@ export class Evaluator {
         let inResumeNext = false;
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
-        const arrayDeclarations = new Map<string, string | undefined>();
+        const arrayDeclarations = new Map<string, { type?: string; fixed: boolean }>();
         for (const param of proc.parameters) {
-            if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), param.paramType);
+            if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), { type: param.paramType, fixed: false });
         }
 
         const visitExpression = (expr: Expression, assignmentTarget = false): void => {
@@ -1996,7 +1996,10 @@ export class Evaluator {
                     for (const d of decl.declarations) {
                         const key = d.name.name.toLowerCase();
                         if (d.isArray && d.arrayBounds) findings.arrayBounds.push(...d.arrayBounds);
-                        if (d.isArray) arrayDeclarations.set(key, d.objectType);
+                        if (d.isArray) arrayDeclarations.set(key, {
+                            type: d.objectType,
+                            fixed: Array.isArray(d.arrayBounds) && d.arrayBounds.length > 0,
+                        });
                         if (!findings.duplicate && seen.has(key)) {
                             findings.duplicate = { kind: 'Variable', name: d.name.name, line: d.name.loc?.start.line };
                         }
@@ -2035,8 +2038,9 @@ export class Evaluator {
                     // are left to the array binder while identifier forms are
                     // diagnosed here.
                     if (!findings.arrayAssignment && a.left.type === 'Identifier') {
-                        const targetType = arrayDeclarations.get((a.left as Identifier).name.toLowerCase());
-                        if (targetType !== undefined && targetType.toLowerCase() !== 'variant' && a.right.type === 'Identifier') {
+                        const target = arrayDeclarations.get((a.left as Identifier).name.toLowerCase());
+                        if (target && target.type?.toLowerCase() !== 'variant' &&
+                            (target.fixed || a.right.type === 'Identifier')) {
                             findings.arrayAssignment = { line: a.left.loc?.start.line ?? a.loc?.start.line };
                         }
                     }

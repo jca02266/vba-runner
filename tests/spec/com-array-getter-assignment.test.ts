@@ -9,7 +9,7 @@ Function ReadComArray() As Long
 End Function
 
 Function ReadComObjectArray() As Long
-    Dim source As Object, target(0 To 0) As Object
+    Dim source As Object, target() As Object
     Dim errNo As Long
     Set source = CreateObject("Test.ObjectArray")
     On Error Resume Next
@@ -33,7 +33,7 @@ console.log('[PASS] COM mock array getter boundary');
 let objectValues: any[] = [{ __vbaClass__: true, __className__: 'Payload' }];
 const objectEvaluator = evalVBASingle(String.raw`
 Function ReadComObjectArray() As Long
-    Dim source As Object, target(0 To 0) As Object
+    Dim source As Object, target() As Object
     Dim errNo As Long
     Set source = CreateObject("Test.ObjectArray")
     On Error Resume Next
@@ -59,6 +59,32 @@ objectValues = [{ __vbaClass__: true, __className__: 'Payload' }, 42];
 assert.strictEqual(objectEvaluator.callProcedure('ReadComObjectArray', []), 13,
     'COM getter Object() rejects mixed element categories');
 console.log('[PASS] COM mock Object() element-category boundary');
+
+const fixedEvaluator = evalVBASingle(String.raw`
+Function ReadComFixedArray() As Long
+    Dim source As Object, target(0 To 1, 0 To 1) As Long
+    Set source = CreateObject("Test.RangeFixed")
+    target = source.Values
+    ReadComFixedArray = UBound(target, 2)
+End Function
+`);
+const fixedValues: any[] = [[1, 2, 3], [4, 5, 6]];
+(fixedValues as any).__vbaArrayReturn__ = true;
+(fixedValues as any).__vbaElementType__ = 'long';
+(fixedValues as any).__vbaDimensions__ = [
+    { lower: 0, upper: 1 },
+    { lower: 0, upper: 2 },
+];
+fixedEvaluator.registerComObject(() => ({
+    __progId__: 'Test.RangeFixed',
+    Values: fixedValues,
+}) as any);
+assert.throwsMatch(
+    () => fixedEvaluator.callProcedure('ReadComFixedArray', []),
+    /Compile error: Can't assign to an array/,
+    'fixed typed arrays reject whole-array host getter assignment during precheck',
+);
+console.log('[PASS] COM mock fixed-array shape boundary');
 
 const variantEvaluator = evalVBASingle(String.raw`
 Function ReadComVariantArray() As Long
