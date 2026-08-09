@@ -354,17 +354,19 @@
 | EV-00449 | RCA-FOLLOWUP | fixed | 1 | 固定typed配列へのopaque COM/host配列全体代入を静的に拒否する |
 | EV-00450 | RCA-FOLLOWUP | fixed | 1 | ByRef ReDim経由の固定typed配列再束縛境界 |
 | EV-00451 | RCA-FOLLOWUP | fixed | 1 | ParamArray引数のErase/ReDim静的禁止境界 |
+| EV-00452 | RCA-FOLLOWUP | bug-found | 1 | Property・CallByName class dispatchのParamArray Erase/ReDim静的診断 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 244 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 102 |
 
-横展開未解決経路: 299、実Excel待ち評価: 0
+横展開未解決経路: 300、実Excel待ち評価: 0
 
 ## 次の候補
 

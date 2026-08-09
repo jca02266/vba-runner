@@ -389,3 +389,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/paramarray-edge-cases.test.ts
+  - id: RCA-FOLLOWUP-038
+    title: Class Property ParamArray lifecycle boundary
+    status: queued
+    priority: 1
+    focus: Property・CallByNameの共通class dispatchでParamArray Erase/ReDim禁止を維持する
+    priorCauseKey: paramarray-redim-erase-precheck-missing
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/paramarray-edge-cases.test.ts

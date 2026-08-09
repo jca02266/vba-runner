@@ -56,3 +56,44 @@ assert.strictEqual(evaluator.callProcedure('ProbeSet', []), '0|2:1:4',
 assert.strictEqual(evaluator.callProcedure('ProbeCallByName', []), '0|2:1:8|0|2:1:4',
     'CallByName preserves Property Let/Set ParamArray and value-tail binding');
 console.log('[PASS] Property Let/Set ParamArray value-tail binding');
+
+const illegalPropertyCode = String.raw`
+Class IllegalBag
+    Public Property Get Item(ParamArray indexes()) As Long
+        Erase indexes
+        Item = 42
+    End Property
+End Class
+
+Function ProbeDirect() As Long
+    Dim bag As New IllegalBag
+    ProbeDirect = bag.Item(1)
+End Function
+`;
+const illegalDirect = evalVBASingle(illegalPropertyCode);
+assert.throwsMatch(
+    () => illegalDirect.callProcedure('ProbeDirect', []),
+    /Compile error: Invalid use of ParamArray/i,
+    'Property Get ParamArray rejects Erase through class dispatch',
+);
+
+const illegalCallByNameCode = String.raw`
+Class IllegalBag
+    Public Property Let Item(ParamArray indexes(), value As Variant)
+        ReDim indexes(0 To 2)
+    End Property
+End Class
+
+Function ProbeCallByName() As Long
+    Dim bag As New IllegalBag
+    CallByName bag, "Item", VbLet, 1, 2, 8
+    ProbeCallByName = 0
+End Function
+`;
+const illegalCallByName = evalVBASingle(illegalCallByNameCode);
+assert.throwsMatch(
+    () => illegalCallByName.callProcedure('ProbeCallByName', []),
+    /Compile error: Invalid use of ParamArray/i,
+    'CallByName Property Let ParamArray rejects ReDim through class dispatch',
+);
+console.log('[PASS] Property and CallByName ParamArray lifecycle diagnostics');

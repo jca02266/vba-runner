@@ -5277,6 +5277,24 @@ export class Evaluator {
         // Validate argument count
         this.checkArgCount(proc, args);
 
+        // Class dispatch does not use the module-procedure precheck path.
+        // Apply only the ParamArray lifecycle restriction here so class-local
+        // helper names are not misclassified as unresolved module calls.
+        const classFindings = this.collectPrecheckFindings(proc);
+        if (classFindings.paramArrayUse) {
+            const line = classFindings.paramArrayUse.line;
+            const message = line !== undefined
+                ? `Compile error: Invalid use of ParamArray (line ${line})`
+                : 'Compile error: Invalid use of ParamArray';
+            const error: any = new Error(message);
+            error.type = 'VbaError';
+            error.number = VbaErrorCode.INVALID_PROCEDURE_CALL;
+            error.vbaLine = line;
+            error.vbaModule = proc.moduleName ?? this.currentSourceModule ?? null;
+            error.vbaStack = [...this.vbaCallStack].reverse();
+            throw error;
+        }
+
         this.bindProcedureParameters(proc, args, localEnv, undefined, !proc.isProperty);
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
