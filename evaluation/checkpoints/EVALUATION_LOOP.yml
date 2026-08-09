@@ -40,3 +40,8 @@ checkpoints:
     decision: "DateDiff wの時刻丸めを修正し、ROOT-00018を完了した。DatePart/Weekdayの週オプション年境界を独立評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-009
+  - afterEvaluation: EV-00462
+    audit: "361 evaluations, 0 active claims"
+    decision: "DatePart/Weekdayの年境界マトリクスは仕様一致で、RCA・横展開の未解決はvbUseSystemの環境依存だけだった。次はWeekdayName/Weekdayの省略・Null・範囲外を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-010

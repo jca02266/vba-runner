@@ -75,3 +75,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
+  - id: FZ-COVERAGE-20260810-010
+    title: WeekdayName optional and invalid argument boundaries
+    status: queued
+    priority: 1
+    focus: WeekdayName/Weekdayの省略・Null・範囲外引数
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/datetime_names.test.ts
