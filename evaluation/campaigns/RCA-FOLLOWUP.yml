@@ -276,3 +276,24 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
       - tests/spec/udt-type.test.ts
+  - id: RCA-FOLLOWUP-027
+    title: ByRef配列再束縛のMember・ParamArray writeback境界
+    status: queued
+    priority: 1
+    focus: Class/UDT配列メンバーのByRef ReDim再束縛とParamArrayへのtyped array全体代入
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - tests/spec/byref-dispatch-matrix.test.ts
+  - id: RCA-FOLLOWUP-028
+    title: COM getterからObject配列への要素型境界
+    status: queued
+    priority: 1
+    focus: COM/host getterのSAFEARRAYをObject()へ代入する際の要素category検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-array-getter-assignment.test.ts
