@@ -96,3 +96,23 @@ End Function`,
 ]);
 assert.equal(classInvalidPatterns.callProcedure('ClassPatternError', ['[Z-A]']), 93,
     'Like Error 93 propagates through a class method');
+
+const digraphText = evalVBASingle(String.raw`Option Compare Text
+Function Digraph(ByVal value As String, ByVal pattern As String) As String
+    Digraph = IIf(value Like pattern, "T", "F")
+End Function`);
+assert.equal(digraphText.callProcedure('Digraph', ['æ', 'ae']), 'T',
+    'Text Like expands a ligature in the subject');
+assert.equal(digraphText.callProcedure('Digraph', ['ae', 'æ']), 'T',
+    'Text Like contracts a ligature in the subject');
+assert.equal(digraphText.callProcedure('Digraph', ['ae', '[æ]']), 'T',
+    'Text Like character classes consume a ligature expansion');
+assert.equal(digraphText.callProcedure('Digraph', ['ae', '[!æ]']), 'F',
+    'Text Like negated classes reject a ligature expansion');
+
+const digraphBinary = evalVBASingle(String.raw`Option Compare Binary
+Function BinaryDigraph() As String
+    BinaryDigraph = IIf("æ" Like "ae", "T", "F")
+End Function`);
+assert.equal(digraphBinary.callProcedure('BinaryDigraph', []), 'F',
+    'Binary Like does not apply Text ligature equivalence');

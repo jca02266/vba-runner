@@ -10696,8 +10696,15 @@ export class Evaluator {
         const collator = textCompare
             ? new Intl.Collator(undefined, { usage: 'search', sensitivity: 'accent' })
             : undefined;
+        // VBA Text comparison may treat the ligature æ/Æ as the digraph ae/AE
+        // in locales that define that collation expansion. Keep this expansion
+        // explicit instead of relying on the host's default Intl locale.
+        const normalizeTextExpansion = (value: string) => textCompare
+            ? value.replace(/[æÆ]/g, 'ae')
+            : value;
         const equal = (left: string, right: string) => textCompare
-            ? collator!.compare(left, right) === 0
+            ? (collator!.compare(left, right) === 0
+                || normalizeTextExpansion(left).toLocaleLowerCase() === normalizeTextExpansion(right).toLocaleLowerCase())
             : left === right;
         const ordered = (left: string, right: string) => textCompare
             ? collator!.compare(left, right)
@@ -10706,6 +10713,11 @@ export class Evaluator {
         const tokens: LikeToken[] = [];
         for (let i = 0; i < patternStr.length;) {
             const char = patternStr[i++];
+            if (textCompare && (char === 'a' || char === 'A') &&
+                (patternStr[i] === 'e' || patternStr[i] === 'E')) {
+                tokens.push({ kind: 'literal', value: char + patternStr[i++] });
+                continue;
+            }
             if (char === '*') { tokens.push({ kind: 'star' }); continue; }
             if (char === '?') { tokens.push({ kind: 'any' }); continue; }
             if (char === '#') { tokens.push({ kind: 'digit' }); continue; }
@@ -10749,6 +10761,30 @@ export class Evaluator {
                 ordered(start, value) <= 0 && ordered(value, end) <= 0);
             return token.negate ? !(explicit || ranged) : explicit || ranged;
         };
+        const literalMatchLengths = (value: string, textIndex: number): number[] => {
+            const candidate = textStr.slice(textIndex, textIndex + value.length);
+            const lengths: number[] = [];
+            if (candidate.length === value.length && equal(value, candidate)) lengths.push(value.length);
+            // A ligature in the target expands to a two-character literal, and
+            // a two-character literal can contract to the ligature in Text mode.
+            if (textCompare && value.length === 2 && /^[aA][eE]$/.test(value) &&
+                (textStr[textIndex] === 'æ' || textStr[textIndex] === 'Æ')) lengths.push(1);
+            if (textCompare && (value === 'æ' || value === 'Æ') &&
+                /^[aA][eE]$/.test(textStr.slice(textIndex, textIndex + 2))) lengths.push(2);
+            return lengths;
+        };
+        const classMatchLengths = (token: LikeToken, textIndex: number): number[] => {
+            const lengths: number[] = [];
+            const one = textStr.slice(textIndex, textIndex + 1);
+            if (one.length === 1 && matchesClass(one, token)) lengths.push(1);
+            if (textCompare && (textStr[textIndex] === 'æ' || textStr[textIndex] === 'Æ')) {
+                if (matchesClass(textStr[textIndex], token)) lengths.push(1);
+            }
+            const two = textStr.slice(textIndex, textIndex + 2);
+            if (textCompare && two.length === 2 && /^[aA][eE]$/.test(two) &&
+                matchesClass('æ', token)) lengths.push(2);
+            return [...new Set(lengths)];
+        };
         const match = (textIndex: number, tokenIndex: number): boolean => {
             const key = `${textIndex}:${tokenIndex}`;
             const cached = memo.get(key);
@@ -10763,11 +10799,17 @@ export class Evaluator {
             } else if (textIndex < textStr.length) {
                 const token = tokens[tokenIndex];
                 const value = textStr[textIndex];
-                result = token.kind === 'any'
-                    || (token.kind === 'digit' && value >= '0' && value <= '9')
-                    || (token.kind === 'literal' && equal(token.value!, value))
-                    || (token.kind === 'class' && matchesClass(value, token));
-                if (result) result = match(textIndex + 1, tokenIndex + 1);
+                if (token.kind === 'any') {
+                    result = match(textIndex + 1, tokenIndex + 1);
+                } else if (token.kind === 'digit' && value >= '0' && value <= '9') {
+                    result = match(textIndex + 1, tokenIndex + 1);
+                } else if (token.kind === 'literal') {
+                    result = literalMatchLengths(token.value!, textIndex)
+                        .some(length => match(textIndex + length, tokenIndex + 1));
+                } else if (token.kind === 'class') {
+                    result = classMatchLengths(token, textIndex)
+                        .some(length => match(textIndex + length, tokenIndex + 1));
+                }
             }
             memo.set(key, result);
             return result;
