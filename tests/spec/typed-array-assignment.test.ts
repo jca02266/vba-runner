@@ -23,6 +23,12 @@ Function AssignToVariant() As Long
     value = source
     AssignToVariant = value(1)
 End Function
+
+Sub AssignVariantToTypedArray()
+    Dim source As Variant, target(0 To 1, 0 To 1) As Long
+    source = MakeLongs()
+    target = source
+End Sub
 `;
 
 const ev = evalVBASingle(code);
@@ -33,4 +39,9 @@ assert.throwsMatch(
 );
 assert.strictEqual(ev.callProcedure('AssignToVariant', []), 20,
     'Variant whole-array assignment remains valid');
+assert.throwsMatch(
+    () => ev.callProcedure('AssignVariantToTypedArray', []),
+    /Compile error: Can't assign to an array/,
+    'typed array assignment from a Variant is rejected during precheck',
+);
 console.log('[PASS] typed array whole-assignment boundary');

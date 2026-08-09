@@ -2031,12 +2031,12 @@ export class Evaluator {
                     const a = stmt as AssignmentStatement;
                     // Excel rejects whole-array assignment to a typed array at
                     // compile time. Function-return array assignment remains a
-                    // valid runtime operation, so this static rule is limited
-                    // to an array variable on the RHS.
-                    if (!findings.arrayAssignment && a.left.type === 'Identifier' && a.right.type === 'Identifier') {
+                    // valid runtime operation, so calls and host/member getters
+                    // are left to the array binder while identifier forms are
+                    // diagnosed here.
+                    if (!findings.arrayAssignment && a.left.type === 'Identifier') {
                         const targetType = arrayDeclarations.get((a.left as Identifier).name.toLowerCase());
-                        const sourceType = arrayDeclarations.get((a.right as Identifier).name.toLowerCase());
-                        if (targetType !== undefined && sourceType !== undefined && targetType.toLowerCase() !== 'variant') {
+                        if (targetType !== undefined && targetType.toLowerCase() !== 'variant' && a.right.type === 'Identifier') {
                             findings.arrayAssignment = { line: a.left.loc?.start.line ?? a.loc?.start.line };
                         }
                     }

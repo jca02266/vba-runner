@@ -359,3 +359,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: RCA-FOLLOWUP-035
+    title: Variant経由typed配列代入の静的診断
+    status: queued
+    priority: 1
+    focus: Variant識別子を右辺にしたtyped配列whole-array assignmentのprecheck診断
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/typed-array-assignment.test.ts
