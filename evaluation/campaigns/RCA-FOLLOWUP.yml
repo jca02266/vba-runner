@@ -265,3 +265,14 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/set-array-assignment.test.ts
       - tests/spec/udt-type.test.ts
+  - id: RCA-FOLLOWUP-026
+    title: typed arrayの既定Property・indexed CallExpression入口
+    status: queued
+    priority: 1
+    focus: 既定Value Property Letとindexed Property/Dictionaryのtyped array全体代入検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - tests/spec/udt-type.test.ts
