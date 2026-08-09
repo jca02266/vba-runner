@@ -363,17 +363,18 @@
 | EV-00458 | FZ-COVERAGE-20260810 | fixed | 1 | COM返却オブジェクトの名前付き・Null・省略引数変換 |
 | EV-00459 | FZ-COVERAGE-20260810 | fixed | 1 | Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約 |
 | EV-00460 | FZ-COVERAGE-20260810 | fixed | 1 | Option Compare TextのLike複合文字locale同値性 |
+| EV-00461 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み日時関数のDateDiff w間隔・週境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 249 |
+| fixed | 250 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 106 |
 
-横展開未解決経路: 311、実Excel待ち評価: 0
+横展開未解決経路: 312、実Excel待ち評価: 0
 
 ## 次の候補
 
