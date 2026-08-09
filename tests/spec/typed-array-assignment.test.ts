@@ -28,8 +28,8 @@ End Function
 const ev = evalVBASingle(code);
 assert.throwsMatch(
     () => ev.callProcedure('AssignTypedArray', []),
-    /error '13'/,
-    'typed whole-array assignment must be rejected',
+    /Compile error: Can't assign to an array/,
+    'typed whole-array assignment must be rejected during precheck',
 );
 assert.strictEqual(ev.callProcedure('AssignToVariant', []), 20,
     'Variant whole-array assignment remains valid');

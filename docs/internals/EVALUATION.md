@@ -32,6 +32,17 @@ resolveIdentifiersDone = true
 プロシージャ本体の実行
 ```
 
+### 配列全体代入の静的検査
+
+`precheckProc` は、宣言済みの配列識別子どうしの全体代入を検査する。左辺が
+`Variant()` ではない型付き配列で、右辺も配列変数の場合は、実行せずに
+`Compile error: Can't assign to an array`（VBA Error 13相当）を報告する。
+これはExcelが `target = source` をコンパイル時に拒否する契約に対応する。
+
+関数が返す配列を受け取る代入（例 `source = MakeLongs()`）は、戻り値の型・由来を
+実行時に確定する既存の配列binderへ委ねるため、この静的検査の対象外である。
+`Variant()` への配列全体代入と、添字付き要素代入も引き続き許可される。
+
 ---
 
 ## ① パース

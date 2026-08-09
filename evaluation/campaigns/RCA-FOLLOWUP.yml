@@ -339,3 +339,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: RCA-FOLLOWUP-033
+    title: typed配列全体代入のコンパイル時診断
+    status: queued
+    priority: 1
+    focus: 固定型配列どうしのwhole-array assignmentをprecheckProcでExcel同様に拒否する
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/typed-array-assignment.test.ts

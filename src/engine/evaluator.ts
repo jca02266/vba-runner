@@ -1852,6 +1852,11 @@ export class Evaluator {
                     findings.argumentError.message, findings.argumentError.line,
                     proc.moduleName ?? undefined);
             }
+            if (findings.arrayAssignment) {
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                    "Can't assign to an array", findings.arrayAssignment.line,
+                    proc.moduleName ?? undefined);
+            }
         } catch (e: any) {
             if (e._precheckRaw) {
                 const line = e.vbaLine;
@@ -1879,6 +1884,7 @@ export class Evaluator {
         undefinedCalls: UndefinedProcError[];
         arrayBounds: ArrayBound[];
         duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
+        arrayAssignment?: { line?: number };
         labels: Set<string>;
         jumps: Array<{ label: string; line: number }>;
         argumentError?: { code: number; message: string; line?: number };
@@ -1893,6 +1899,7 @@ export class Evaluator {
             undefinedCalls: UndefinedProcError[];
             arrayBounds: ArrayBound[];
             duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
+            arrayAssignment?: { line?: number };
             labels: Set<string>;
             jumps: Array<{ label: string; line: number }>;
             argumentError?: { code: number; message: string; line?: number };
@@ -1915,6 +1922,10 @@ export class Evaluator {
         let inResumeNext = false;
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
+        const arrayDeclarations = new Map<string, string | undefined>();
+        for (const param of proc.parameters) {
+            if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), param.paramType);
+        }
 
         const visitExpression = (expr: Expression, assignmentTarget = false): void => {
             if (expr.type === 'CallExpression') {
@@ -1985,6 +1996,7 @@ export class Evaluator {
                     for (const d of decl.declarations) {
                         const key = d.name.name.toLowerCase();
                         if (d.isArray && d.arrayBounds) findings.arrayBounds.push(...d.arrayBounds);
+                        if (d.isArray) arrayDeclarations.set(key, d.objectType);
                         if (!findings.duplicate && seen.has(key)) {
                             findings.duplicate = { kind: 'Variable', name: d.name.name, line: d.name.loc?.start.line };
                         }
@@ -2017,6 +2029,17 @@ export class Evaluator {
                     break;
                 case 'AssignmentStatement': {
                     const a = stmt as AssignmentStatement;
+                    // Excel rejects whole-array assignment to a typed array at
+                    // compile time. Function-return array assignment remains a
+                    // valid runtime operation, so this static rule is limited
+                    // to an array variable on the RHS.
+                    if (!findings.arrayAssignment && a.left.type === 'Identifier' && a.right.type === 'Identifier') {
+                        const targetType = arrayDeclarations.get((a.left as Identifier).name.toLowerCase());
+                        const sourceType = arrayDeclarations.get((a.right as Identifier).name.toLowerCase());
+                        if (targetType !== undefined && sourceType !== undefined && targetType.toLowerCase() !== 'variant') {
+                            findings.arrayAssignment = { line: a.left.loc?.start.line ?? a.loc?.start.line };
+                        }
+                    }
                     const name = this.subNameInValueExpr(a.right);
                     if (!findings.subAsValue && name) {
                         const target = this.env.getProcedure(name);
