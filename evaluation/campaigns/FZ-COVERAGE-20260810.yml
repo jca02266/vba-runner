@@ -1,0 +1,43 @@
+id: FZ-COVERAGE-20260810
+method: coverage-guided-fuzzer
+items:
+  - id: FZ-COVERAGE-20260810-001
+    title: On Error handler state across class calls
+    status: queued
+    priority: 1
+    focus: Class・標準手続き間のOn Error状態とErr復帰
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-002
+    title: Named argument default and ByRef writeback
+    status: queued
+    priority: 1
+    focus: Optional・名前付き引数・ByRef書戻しの組み合わせ
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-003
+    title: Like pattern class and comparison mode
+    status: queued
+    priority: 1
+    focus: Like文字クラスとOption Compareの組み合わせ
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-004
+    title: Financial invalid argument boundary
+    status: queued
+    priority: 1
+    focus: 財務関数の不正引数・非収束・エラー伝播
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-005
+    title: COM returned object argument conversion
+    status: queued
+    priority: 1
+    focus: COM返却オブジェクトの名前付き・Null・省略引数変換
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
