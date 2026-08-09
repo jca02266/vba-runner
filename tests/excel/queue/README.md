@@ -75,7 +75,7 @@ powershell -ExecutionPolicy Bypass -File .\run-excel-vba.ps1 `
 - XL-034: Collection列挙中の`Add`とDictionary Keys列挙中の`Remove`
 - XL-035〜XL-048: DateDiff、空配列、MIRR/SYD、On Error、Select Case、FormatNumber、TimeSerial、情報関数、過大リテラル、CallByNameの境界
 - XL-059: Class／Interface member callのスペース付き括弧とByRef書戻し
-- XL-061: COM/host由来の多次元opaque配列を固定Long配列へ代入するshape境界
+- XL-061: Range.Value2由来の2次元Variant配列を動的Variant配列へ代入するshape境界
 
 XL-023の逐次モードLock境界はExcelが待機する可能性があるため、一括実行では
 スキップする。必要な場合だけ`RunExcelSequentialLockVerification`を単独実行し、

@@ -85,8 +85,8 @@ End Sub
 
 Private Sub VerifyOpaqueShape()
     Dim ws As Worksheet, source As Variant
-    Dim target(0 To 1, 0 To 1) As Long
-    Dim errNo As Long, upper As Long
+    Dim target() As Variant
+    Dim errNo As Long, lower As Long, upper As Long
     On Error Resume Next
     Set ws = Worksheets.Add
     ws.Range("A1:C2").Value2 = Array(Array(1, 2, 3), Array(4, 5, 6))
@@ -96,12 +96,14 @@ Private Sub VerifyOpaqueShape()
     errNo = Err.Number
     If errNo = 0 Then
         Err.Clear
+        lower = LBound(target, 2)
         upper = UBound(target, 2)
-        If Err.Number <> 0 Then upper = -1
+        If Err.Number <> 0 Then lower = -1: upper = -1
     Else
+        lower = -1
         upper = -1
     End If
-    EmitResult "XL-061 SHAPEERR=" & CStr(errNo) & " UBOUND2=" & CStr(upper)
+    EmitResult "XL-061 SHAPEERR=" & CStr(errNo) & " LBOUND2=" & CStr(lower) & " UBOUND2=" & CStr(upper)
     Err.Clear
     Application.DisplayAlerts = False
     ws.Delete
