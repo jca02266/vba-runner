@@ -479,8 +479,7 @@ function htmlCell(value) {
 function renderConvergenceChart(series) {
   const labels = JSON.stringify(series.map((row) => formatLocalDateTime(row.date)));
   const values = (field) => JSON.stringify(series.map((row) => row[field]));
-  return `<div class="chart-container"><canvas id="evaluation-chart" role="img" aria-label="評価分類の累積面グラフ"></canvas></div>
-<div class="chart-container"><canvas id="finding-chart" role="img" aria-label="Findingの発見・改修推移"></canvas></div>
+  return `<div class="chart-container"><canvas id="evaluation-chart" role="img" aria-label="評価分類の累積面グラフ"></canvas>
 <script>
 const convergenceLabels = ${labels};
 new Chart(document.getElementById('evaluation-chart'), {
@@ -496,6 +495,9 @@ new Chart(document.getElementById('evaluation-chart'), {
     scales: { x: { title: { display: true, text: '状態遷移日時' } }, y: { beginAtZero: true, stacked: true, title: { display: true, text: 'その時点の状態数' }, ticks: { precision: 0 } } }
   }
 });
+</script></div>
+<div class="chart-container"><canvas id="finding-chart" role="img" aria-label="Findingの発見・改修推移"></canvas>
+<script>
 new Chart(document.getElementById('finding-chart'), {
   type: 'line', data: { labels: convergenceLabels, datasets: [
     { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
@@ -504,18 +506,18 @@ new Chart(document.getElementById('finding-chart'), {
   ]},
   options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積Finding数' }, ticks: { precision: 0 } } } }
 });
-</script>`;
+</script></div>`;
 }
 
 function renderPieChart(id, ariaLabel, title, labels, values) {
-  return `<div class="chart-container"><canvas id="${id}" role="img" aria-label="${ariaLabel}"></canvas></div>
+  return `<div class="chart-container"><canvas id="${id}" role="img" aria-label="${ariaLabel}"></canvas>
 <script>
 new Chart(document.getElementById('${id}'), {
   type: 'pie',
   data: { labels: ${labels}, datasets: [{ label: 'バグ件数', data: ${values}, backgroundColor: ['#2563eb','#16a34a','#dc2626','#ca8a04','#9333ea','#0891b2','#ea580c','#4b5563'] }] },
   options: { responsive: true, plugins: { title: { display: true, text: '${title}' }, legend: { position: 'right' } } }
 });
-</script>`;
+</script></div>`;
 }
 
 function renderBugPieCharts(summary, findingTypes) {
@@ -555,13 +557,13 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const rootCauseTotalRow = `<tr><th>合計</th><th>${rootCauseTotals.total}</th><th>${rootCauseTotals.v1}</th><th>${rootCauseTotals.legacy}</th><th></th></tr>`;
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
-  const seriesRows = recentSeries.map((row) => `<tr><td>${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td>${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
+  const seriesRows = recentSeries.map((row) => `<tr><td class="recent-date">${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td class="recent-area">${htmlCell(row.area)}</td><td>${row.evaluations}</td><td>${row.bugEvaluations}</td><td>${row.nonBugEvaluations}</td><td>${row.pendingEvaluations}</td><td>${row.otherEvaluations}</td><td>${row.discovered}</td><td>${row.fixed}</td><td>${row.openBugs}</td></tr>`).join('\n');
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">
 <title>VBA Runner 評価レポート</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <style>
-*{box-sizing:border-box}html,body{height:100%;overflow:hidden}body{font-family:system-ui,sans-serif;line-height:1.2;font-size:11px;margin:0;padding:7px;color:#222}h1{font-size:16px;margin:0}h2{font-size:13px;margin:0 0 4px}h3{font-size:12px;margin:0 0 3px}p{margin:3px 0 5px}.dashboard-header{height:34px;display:flex;align-items:center;justify-content:space-between;gap:8px}.meta{white-space:nowrap}.tabs{display:flex;gap:3px}.tab-button{border:1px solid #aaa;background:#f3f3f3;border-radius:3px;padding:3px 8px;font:inherit;cursor:pointer}.tab-button.active{background:#2563eb;color:#fff;border-color:#2563eb}.tab-panel{display:none;height:calc(100vh - 41px);overflow:hidden}.tab-panel.active{display:block}.panel-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.85fr);gap:6px;height:100%}.two-column{display:grid;grid-template-columns:1fr 1fr;gap:6px}.panel-card{border:1px solid #d0d0d0;border-radius:3px;padding:5px;min-width:0;overflow:hidden}table{border-collapse:collapse;margin:3px 0 6px;width:100%;table-layout:auto}th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;white-space:nowrap}th{background:#eee}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.05rem .15rem}.compact-table{font-size:10px}.compact-table th,.compact-table td{padding:2px 3px}.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;height:50%;min-height:180px}.chart-container{height:calc(50% - 3px);min-height:0;margin:0 0 6px}.chart-container canvas{max-height:100%;width:100%!important}.chart-row .chart-container{height:100%;margin:0}.pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:calc(100% - 80px)}.pie-grid .chart-container{height:100%;margin:0}.recent-table{font-size:9px;table-layout:fixed}.recent-table th,.recent-table td{overflow:hidden;text-overflow:ellipsis}.status-grid{display:flex;flex-direction:column;gap:6px;height:100%}.status-grid .panel-card{flex:1;overflow:hidden;font-size:14px}.status-grid h2{font-size:16px}.status-grid .compact-table{font-size:14px}.status-grid p{font-size:14px}@media(max-height:700px){body{font-size:10px;padding:5px}.dashboard-header{height:30px}.tab-panel{height:calc(100vh - 36px)}.compact-table{font-size:9px}.chart-row{height:50%;min-height:150px}.status-grid .panel-card,.status-grid p{font-size:12px}.status-grid h2{font-size:14px}.status-grid .compact-table{font-size:12px}}
+*{box-sizing:border-box}html,body{height:100%;overflow:hidden}body{font-family:system-ui,sans-serif;line-height:1.2;font-size:14px;margin:0;padding:7px;color:#222}h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 4px}h3{font-size:14px;margin:0 0 3px}p{margin:3px 0 5px}.dashboard-header{height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px}.meta{white-space:nowrap}.tabs{display:flex;gap:3px}.tab-button{border:1px solid #aaa;background:#f3f3f3;border-radius:3px;padding:3px 8px;font:inherit;cursor:pointer}.tab-button.active{background:#2563eb;color:#fff;border-color:#2563eb}.tab-panel{display:none;height:calc(100vh - 45px);overflow:hidden}.tab-panel.active{display:block}.panel-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.85fr);gap:6px;height:100%}.two-column{display:grid;grid-template-columns:1fr 1fr;gap:6px}.panel-card{border:1px solid #d0d0d0;border-radius:3px;padding:5px;min-width:0;overflow:hidden}table{border-collapse:collapse;margin:3px 0 6px;width:100%;table-layout:auto}th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;white-space:nowrap}th{background:#eee;white-space:normal}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.05rem .15rem}.compact-table{font-size:12px}.compact-table th,.compact-table td{padding:2px 3px}.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;height:50%;min-height:180px}.chart-container{height:calc(50% - 3px);min-height:0;margin:0 0 6px}.chart-container canvas{max-height:100%;width:100%!important}.chart-row .chart-container{height:100%;margin:0}.pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:calc(100% - 80px)}.pie-grid .chart-container{height:100%;margin:0}.recent-table{font-size:11px;table-layout:auto}.recent-table th,.recent-table td{overflow:visible;text-overflow:clip}.recent-table .recent-date{width:175px}.recent-table .recent-area{width:160px;white-space:normal}.status-grid{display:flex;flex-direction:column;gap:6px;height:100%}.status-grid .panel-card{flex:1;overflow:hidden;font-size:14px}.status-grid h2{font-size:16px}.status-grid .compact-table{font-size:14px}.status-grid p{font-size:14px}@media(max-height:700px){body{padding:5px}.dashboard-header{height:34px}.tab-panel{height:calc(100vh - 41px)}.compact-table{font-size:11px}.chart-row{height:50%;min-height:150px}.status-grid .compact-table{font-size:12px}}
 </style>
 </head><body><header class="dashboard-header"><h1>評価レポート</h1><p class="meta">候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p><nav class="tabs" role="tablist"><button class="tab-button active" role="tab" aria-selected="true" data-tab="overview">概要</button><button class="tab-button" role="tab" aria-selected="false" data-tab="convergence">収束状況</button><button class="tab-button" role="tab" aria-selected="false" data-tab="status">状態・真因</button></nav></header>
 <section id="tab-overview" class="tab-panel active" role="tabpanel"><div class="panel-grid"><div class="panel-card"><h2>実装領域別集計</h2><table class="compact-table"><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table><h3>領域分類別集計</h3><table class="compact-table"><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table></div><div class="panel-card"><h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はデグレードを表します。</p><table class="compact-table"><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>${renderBugPieCharts(summary, findingTypes)}</div></div></section>
