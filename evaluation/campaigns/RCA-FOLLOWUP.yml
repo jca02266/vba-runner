@@ -318,3 +318,14 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
       - tests/spec/com-array-getter-assignment.test.ts
+  - id: RCA-FOLLOWUP-031
+    title: ParamArray・CallByName opaque配列relay境界
+    status: queued
+    priority: 1
+    focus: opaque配列をParamArrayで保持しtyped ByRefまたはCallByName VbLetへ再束縛する契約
+    priorCauseKey: assignment-array-type-validation-bypass
+    rootCauseId: RC-00014
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/paramarray-edge-cases.test.ts
+      - tests/spec/callbyname.test.ts
