@@ -54,7 +54,8 @@ const vbaCode = `
         Debug.Print "RTrim: " & RTrim("abc  ")
 
         ' 7. Arrays
-        Dim arr(1 To 2, 1 To 2) As Integer
+        Dim arr() As Integer
+        ReDim arr(1 To 2, 1 To 2)
         arr(1, 1) = 100
         ReDim Preserve arr(1 To 2, 1 To 3)
         arr(1, 3) = 200

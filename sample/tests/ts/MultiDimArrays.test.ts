@@ -16,7 +16,8 @@ async function testMultiDimArrays() {
     
     const vbaCode = `
         Sub TestMultiDim()
-            Dim arr(1 To 3, 2 To 4) As Integer
+            Dim arr() As Integer
+            ReDim arr(1 To 3, 2 To 4)
             
             arr(1, 2) = 10
             arr(3, 4) = 20
