@@ -20,3 +20,8 @@ checkpoints:
     decision: "NPVの同符号配列Error 5は仕様一致。未解決RCA・横展開の優先項目はなく、COM返却オブジェクト変換を次に評価する。"
     action: claim
     nextCandidate: FZ-COVERAGE-20260810-005
+  - afterEvaluation: EV-00458
+    audit: "357 evaluations, 0 active claims"
+    decision: "Object引数のNull/Missing境界を修正し、ROOT-00015の受入条件を確認した。次はLike無効パターン・空クラス境界を評価する。"
+    action: claim
+    nextCandidate: FZ-COVERAGE-20260810-006
