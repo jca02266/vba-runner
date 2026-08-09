@@ -251,7 +251,7 @@ console.log('[PASS] Bug 145-A: Pmt のゼロ期間をエラー化');
 }
 console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
 
-// Bug 182-A: NPV must reject cash-flow arrays without both signs, including
+// NPV's VBA contract requires at least one payment and one receipt, including
 // arrays whose lower bound is supplied by Option Base 1.
 {
     const ev = evalVBASingle(`
@@ -285,13 +285,13 @@ console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
     ev.callProcedure('Test', []);
     assert.ok(Number.isFinite(ev.env.get('mixednpv')), 'NPV accepts mixed-sign cash flows');
     assert.strictEqual(ev.env.get('positiveerror'), 5,
-        'NPV positive-only cash flows are Error 5');
+        'NPV positive-only cash flows follow the VBA sign contract');
     assert.strictEqual(ev.env.get('negativeerror'), 5,
-        'NPV negative-only cash flows are Error 5');
+        'NPV negative-only cash flows follow the VBA sign contract');
     assert.strictEqual(ev.env.get('optionbaseerror'), 0,
         'NPV accepts mixed-sign Option Base 1 cash flows');
 }
-console.log('[PASS] Bug 182-A: NPVの符号不足をエラー化');
+console.log('[PASS] NPVの正負キャッシュフロー契約');
 
 // Bug 181-A: financial functions must reject invalid domains instead of leaking
 // Infinity/NaN or silently returning a value.

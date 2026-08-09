@@ -10,3 +10,13 @@ checkpoints:
     decision: "No Optional/named/ByRef boundary bug; select Like/Option Compare next."
     action: claim
     nextCandidate: FZ-COVERAGE-20260810-003
+  - afterEvaluation: EV-00456
+    audit: "355 evaluations, 0 active claims"
+    decision: "Like range defect fixed; select financial invalid-argument boundary next."
+    action: claim
+    nextCandidate: FZ-COVERAGE-20260810-004
+  - afterEvaluation: EV-00457
+    audit: "356 evaluations, 0 active claims"
+    decision: "NPVの同符号配列Error 5は仕様一致。未解決RCA・横展開の優先項目はなく、COM返却オブジェクト変換を次に評価する。"
+    action: claim
+    nextCandidate: FZ-COVERAGE-20260810-005
