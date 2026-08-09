@@ -356,24 +356,25 @@
 | EV-00451 | RCA-FOLLOWUP | fixed | 1 | ParamArray引数のErase/ReDim静的禁止境界 |
 | EV-00452 | RCA-FOLLOWUP | fixed | 1 | Property・CallByName class dispatchのParamArray Erase/ReDim静的診断 |
 | EV-00453 | RCA-FOLLOWUP | verified-no-bug | 1 | Implements Interface dispatchのParamArray Erase/ReDim収束確認 |
-| EV-00454 | FZ-COVERAGE-20260810 | verified-no-bug | 0 | Class・標準手続き間のOn Error状態とErr復帰 |
-| EV-00455 | FZ-COVERAGE-20260810 | verified-no-bug | 0 | Optional・名前付き引数・ByRef書戻しの組み合わせ |
+| EV-00454 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Class・標準手続き間のOn Error状態とErr復帰 |
+| EV-00455 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Optional・名前付き引数・ByRef書戻しの組み合わせ |
+| EV-00456 | FZ-COVERAGE-20260810 | fixed | 1 | Like文字クラスとOption Compareの組み合わせ |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 245 |
+| fixed | 246 |
 | known-limit | 3 |
 | retired | 1 |
 | verified-no-bug | 105 |
 
-横展開未解決経路: 303、実Excel待ち評価: 0
+横展開未解決経路: 306、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-003 | 1 | queued | Like文字クラスとOption Compareの組み合わせ | yes |
 | FZ-COVERAGE-20260810-004 | 1 | queued | 財務関数の不正引数・非収束・エラー伝播 | yes |
 | FZ-COVERAGE-20260810-005 | 1 | queued | COM返却オブジェクトの名前付き・Null・省略引数変換 | yes |
+| FZ-COVERAGE-20260810-006 | 1 | queued | Likeの降順範囲・未閉鎖クラス・空クラスのError 93契約 | yes |
