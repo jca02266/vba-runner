@@ -1510,7 +1510,14 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         else if (intv === 'q') return (d2.getFullYear() - d1.getFullYear()) * 4 + Math.floor(d2.getMonth() / 3) - Math.floor(d1.getMonth() / 3);
         else if (intv === 'm') return (d2.getFullYear() - d1.getFullYear()) * 12 + d2.getMonth() - d1.getMonth();
         else if (intv === 'y' || intv === 'd') return calendarDayDiff();
-        else if (intv === 'w') return Math.trunc(Math.round(diffMs / 86400000) / 7);
+        else if (intv === 'w') {
+            // Weekday counts are calendar-day counts: DateDiff excludes date1
+            // and includes date2, so time-of-day must not round a six-day span
+            // up to a seventh day. This is distinct from the `ww` boundary
+            // calculation below.
+            const days = calendarDayDiff();
+            return days >= 0 ? Math.floor(days / 7) : -Math.floor(-days / 7);
+        }
         else if (intv === 'ww') {
             // Week count depends on firstdayofweek
             if (fdow === 0) fdow = 1;
