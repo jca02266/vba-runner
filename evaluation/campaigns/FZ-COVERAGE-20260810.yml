@@ -144,3 +144,11 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-018
+    title: InStr boundary and compare matrix
+    status: queued
+    priority: 1
+    focus: InStr・InStrBの開始位置・Null・Compare・空文字境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

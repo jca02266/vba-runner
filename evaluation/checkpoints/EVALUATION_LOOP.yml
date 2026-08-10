@@ -80,3 +80,8 @@ checkpoints:
     decision: "$付き組み込みのNull境界バグを修正し、ROOT-00021を完了した。RC-00039の横展開対象を独立評価する候補を登録する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-017
+  - afterEvaluation: EV-00470
+    audit: "369 evaluations, 0 active claims, 0 queued candidates"
+    decision: "$付き組み込み関数の横展開は仕様一致で、RC-00039の未解決範囲は解消した。次はInStr/InStrBの境界マトリクスを評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-018
