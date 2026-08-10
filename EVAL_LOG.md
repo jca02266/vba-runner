@@ -371,17 +371,23 @@
 | EV-00466 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値書式のNull第4セクション空欄・引用・エスケープ境界 |
 | EV-00467 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Chr/ChrW/ChrBのNull・境界値・数値文字コード変換 |
 | EV-00468 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Space・LTrim・RTrim・TrimのNull・負数・空白文字境界 |
+| EV-00469 | FZ-COVERAGE-20260810 | fixed | 1 | Space$・LTrim$・RTrim$・Trim$のNull戻り値型とError 94境界 |
+| EV-00470 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | $付き組み込み関数のNull境界と通常入力の横展開 |
+| EV-00471 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | InStr・InStrBの開始位置・Null・Compare・空文字境界 |
+| EV-00472 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LeftB・RightB・MidBのUTF-16LEバイト境界・Null・長さ引数 |
+| EV-00473 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Asc・AscW・AscBの空文字・Null・Unicode・境界値 |
+| EV-00474 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Replaceの開始位置・件数・Compare・Null・空検索境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 252 |
+| fixed | 253 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 110 |
+| verified-no-bug | 115 |
 
-横展開未解決経路: 320、実Excel待ち評価: 0
+横展開未解決経路: 321、実Excel待ち評価: 0
 
 ## 次の候補
 
