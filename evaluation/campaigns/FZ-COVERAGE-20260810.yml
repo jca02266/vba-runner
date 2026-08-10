@@ -1535,6 +1535,16 @@ items:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-157
+    title: Radix currency octal follow-up
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCCur八進符号境界横展開
+    priorCauseKey: radix-value-width-semantics-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
