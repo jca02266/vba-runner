@@ -155,3 +155,13 @@ checkpoints:
     decision: "基本Binary UDTのPut/Get往復は仕様一致で新規バグなし。EV-00480〜EV-00484の5回連続で新規バグがなく、現時点の評価ループ終了条件に到達した。"
     action: stop
     reason: five-consecutive-no-bug
+  - afterEvaluation: RESTART-20260810-001
+    audit: "383 evaluations, 0 active claims, 1 queued candidate"
+    decision: "未収束領域の監査で、引数・ByRef・Propertyに未解決横展開経路が最多（40件）残っているため、停止条件後の再開候補としてProperty/ParamArray/Interface組合せを選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-032
+  - afterEvaluation: EV-00485
+    audit: "384 evaluations, 0 active claims, 0 queued candidates"
+    decision: "引数・ByRef・PropertyのImplements経路は仕様一致で新規バグなし。未収束領域の残るParamArray・配列要素ByRef・Optional組合せを次に確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-033

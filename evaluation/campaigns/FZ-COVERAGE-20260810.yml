@@ -273,3 +273,22 @@ items:
       - src/engine/evaluator.ts
       - src/engine/type-system.ts
       - tests/spec/binary-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-032
+    title: Property and ParamArray interface boundaries
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty/ParamArray/Interface組合せと書戻し境界
+    priorCauseKey: property-value-parameter-effective-byval-not-propagated
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/property-paramarray*.test.ts
+  - id: FZ-COVERAGE-20260810-033
+    title: Property ParamArray and array ByRef boundaries
+    status: queued
+    priority: 1
+    focus: Property引数のParamArray・配列要素ByRef・Optional組合せ
+    priorCauseKey: property-value-parameter-effective-byval-not-propagated
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray.test.ts

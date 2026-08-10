@@ -387,6 +387,7 @@
 | EV-00482 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Enum・Type宣言・UDT既定値・メンバー初期化の境界 |
 | EV-00483 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | UDTのネスト・配列・可変長String初期化と値渡し境界 |
 | EV-00484 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | UDTのBinary Put/Get・Property・ParamArray境界 |
+| EV-00485 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のProperty/ParamArray/Interface組合せと書戻し境界 |
 
 ## 状態集計
 
@@ -396,12 +397,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 122 |
+| verified-no-bug | 123 |
 
-横展開未解決経路: 332、実Excel待ち評価: 0
+横展開未解決経路: 333、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-033 | 1 | queued | Property引数のParamArray・配列要素ByRef・Optional組合せ | yes |
