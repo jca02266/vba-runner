@@ -540,3 +540,8 @@ checkpoints:
     decision: "Parser・LexerのUnicode文字列・StrConv・行継続・位置診断は仕様一致で新規バグなし。次は複合コメント・文字列終端の構文回復を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-109
+  - afterEvaluation: EV-00560
+    audit: "459 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Parser・Lexerの複合コメント・文字列終端・構文回復・位置診断は仕様一致で新規バグなし。次は複数モジュール・外部参照回復を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-110
