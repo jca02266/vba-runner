@@ -235,3 +235,8 @@ checkpoints:
     decision: "Currency/Decimalの銀行丸め・負数・比較境界は仕様一致で新規バグなし。次はLocale依存の数値文字列入力と指数・桁区切り変換を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-046
+  - afterEvaluation: EV-00499
+    audit: "398 evaluations, 0 active claims, 0 queued candidates"
+    decision: "数値文字列の暗黙変換・演算子境界は仕様一致で新規バグなし。EV-00495〜EV-00499の5回連続で新規バグがなく、次の未収束領域としてファイルI/O・FSO（未解決19件）を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-047

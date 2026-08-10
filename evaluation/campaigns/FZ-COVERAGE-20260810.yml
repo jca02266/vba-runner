@@ -420,3 +420,13 @@ items:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
       - tests/spec/string-numeric-coercion.test.ts
+  - id: FZ-COVERAGE-20260810-047
+    title: File I/O and FSO unresolved boundaries
+    status: queued
+    priority: 1
+    focus: ファイルI/O・FSO領域のOpen/Lock/EOF/TextStream未解決境界
+    priorCauseKey: virtual-filesystem-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/mock/MockFileSystem.ts
+      - tests/spec/filesystem-extra.test.ts
