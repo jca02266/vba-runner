@@ -675,3 +675,8 @@ checkpoints:
     decision: "LSP・拡張機能のReferences・Symbol Provider・Renameは仕様一致で新規バグなし。次はDebugger・Test Runner・Debug Hookを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-139
+  - afterEvaluation: EV-00587
+    audit: "486 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LSP・拡張機能のDebugger・Test Runner・Debug Hookは仕様一致で新規バグなし。EV-00582〜EV-00586の5回連続無バグを確認し、評価基盤領域へ移行する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-140
