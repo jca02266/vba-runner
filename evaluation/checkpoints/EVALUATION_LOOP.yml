@@ -55,3 +55,8 @@ checkpoints:
     decision: "FormatのNull第4セクション短絡を修正し、ROOT-00019と回帰テストを完了した。既存候補が尽きたため、String/LenBのNull・Empty・長さ境界を新しい評価候補として登録する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-012
+  - afterEvaluation: EV-00465
+    audit: "364 evaluations, 0 active claims, 0 queued candidates"
+    decision: "String/LenBのNull・Empty・Unicode境界は仕様一致だった。負の文字コードは別境界として残し、Format Null第4セクションの空欄・引用・エスケープを新規評価候補として登録する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-013

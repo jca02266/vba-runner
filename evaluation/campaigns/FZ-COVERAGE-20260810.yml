@@ -99,3 +99,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/string-functions.test.ts
+  - id: FZ-COVERAGE-20260810-013
+    title: Format Null empty-section fallback
+    status: queued
+    priority: 1
+    focus: Format数値書式のNull第4セクション空欄・引用・エスケープ境界
+    priorCauseKey: format-null-section-short-circuit
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
