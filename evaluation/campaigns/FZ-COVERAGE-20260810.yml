@@ -370,3 +370,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/type-system.ts
       - tests/spec/binary-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-042
+    title: Numeric precision unresolved boundaries
+    status: queued
+    priority: 1
+    focus: 数値精度領域の丸め、整数境界、Decimal/Currency/Double相互変換
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/numeric-*.test.ts
