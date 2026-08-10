@@ -715,3 +715,8 @@ checkpoints:
     decision: "文字列基数変換の実機確認をEV-00594へ保留したまま、RC-00041の別の未解決範囲であるConst・フロー型推論の正確なLongLongメタデータ伝播を優先して確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-148
+  - afterEvaluation: EV-00596
+    audit: "495 evaluations, 0 active claims, 1 needs-excel, 0 queued candidates"
+    decision: "LongLong混在演算のVariant BigIntサブタイプ欠落を修正し、配列・ByVal・戻り値の回帰と全回帰を通過した。次はRC-00042の未検証ByRef Variant・Property戻り値・LongPtr経路を、EV-00594の実機待ちを保持したまま優先確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-150

@@ -1465,6 +1465,16 @@ items:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
       - tests/spec/longlong-literal-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-150
+    title: BigInt subtype propagation through ByRef and Property
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong BigIntサブタイプのByRef Variant・Property戻り値・LongPtr伝播
+    priorCauseKey: variant-numeric-subtype-metadata-excludes-bigint
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/longlong-literal-boundaries.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
