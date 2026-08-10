@@ -45,3 +45,8 @@ checkpoints:
     decision: "DatePart/Weekdayの年境界マトリクスは仕様一致で、RCA・横展開の未解決はvbUseSystemの環境依存だけだった。次はWeekdayName/Weekdayの省略・Null・範囲外を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-010
+  - afterEvaluation: EV-00463
+    audit: "362 evaluations, 0 active claims"
+    decision: "Weekday/WeekdayNameの明示引数は仕様一致し、vbUseSystemのみknown-limitとして分類した。次はFormatの名前付き書式・Null・日付時刻境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-011

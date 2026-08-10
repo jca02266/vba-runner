@@ -83,3 +83,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/datetime_names.test.ts
+  - id: FZ-COVERAGE-20260810-011
+    title: Format named and null boundaries
+    status: queued
+    priority: 1
+    focus: Formatの名前付き書式・Null・日付時刻境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
