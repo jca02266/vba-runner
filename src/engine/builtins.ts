@@ -13,6 +13,7 @@ import { findClassProperty } from './property-resolution';
 import {
     formatDate, formatNumber, formatString, formatNullSection,
     splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, stripFormatColorDirectives,
+    stripVbaBracketDirectives, hasUnclosedVbaBracket, hasUnescapedFormatChars,
 } from './format';
 import { vbaWeekNumber } from './date-week';
 
@@ -1132,8 +1133,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return useParens ? `(${body})` : `-${body}`;
     };
 
-    const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
-        const clean = stripFormatColorDirectives(pattern);
+        const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
+        const clean = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
         const sections = clean.split(';');
         const trimmed = raw.trim();
         const negative = trimmed.startsWith('-');
@@ -1146,6 +1147,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const first = section.search(/[0#]/);
         const last = Math.max(section.lastIndexOf('0'), section.lastIndexOf('#'));
         if (first < 0 || last < first || /[Ee][+-]/.test(section)) return undefined;
+        if (!hasNumericFormatTokens(section)) return undefined;
         const prefix = section.slice(0, first).replace(/"([^"]*)"/g, '$1');
         const suffix = section.slice(last + 1).replace(/"([^"]*)"/g, '$1');
         const core = section.slice(first, last + 1);
@@ -1166,7 +1168,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
 
     const exactScientificFormat = (raw: string, pattern: string): string | undefined => {
-        const clean = stripFormatColorDirectives(pattern);
+        const clean = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
         const match = clean.match(/^(.*?)([Ee][+-])(0+|#+)(.*?)$/);
         if (!match || !/[0#]/.test(match[1])) return undefined;
         const mantissaFmt = match[1].replace(/%/g, '').replace(/,/g, '');
@@ -1287,12 +1289,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // section can select the date formatter.  A quoted literal in the
         // Null section (for example "NULL") must not affect that dispatch.
         const datePatternSource = (() => {
-            if (typeof effectiveVal !== 'number') return fmt;
+            const selectionNumber = effectiveVal instanceof VbaDate ? effectiveVal.value : effectiveVal;
+            if (typeof selectionNumber !== 'number') return fmt;
             const sections = splitFormatSections(fmt);
             if (sections.length < 2) return sections[0];
             if (!hasNumericFormatTokens(sections[0])) return sections[0];
-            if (effectiveVal < 0) return sections[1] || sections[0];
-            if (effectiveVal === 0 && sections.length >= 3) return sections[2] || sections[0];
+            if (selectionNumber < 0) return sections[1] || sections[0];
+            if (selectionNumber === 0 && sections.length >= 3) return sections[2] || sections[0];
             return sections[0];
         })();
         const sectionsHaveNumericSelector = (() => {
@@ -1315,8 +1318,24 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             // A Date expression can be formatted either as a date or as its
             // underlying serial number. Numeric-only formats use the serial
             // value in VBA instead of the date-token formatter.
+            const normalizedDatePattern = stripVbaBracketDirectives(stripFormatColorDirectives(fmt));
+            if (hasUnclosedVbaBracket(fmt)) return '';
+            if (!normalizedDatePattern) {
+                return formatDate(fromVbaDate(effectiveVal.value), 'General Date', fdow, effectiveFwoy);
+            }
+            if (normalizedDatePattern === '.') {
+                return formatNumber(effectiveVal.value, normalizedDatePattern);
+            }
+            if (!isDatePattern && !hasNumericFormatTokens(normalizedDatePattern)) {
+                if (hasUnescapedFormatChars(normalizedDatePattern, '!*')) return '';
+                if (hasUnescapedFormatChars(normalizedDatePattern, '@&<>')) {
+                    return formatDate(fromVbaDate(effectiveVal.value), 'General Date', fdow, effectiveFwoy);
+                }
+                if (!datePatternSource && normalizedDatePattern) return '';
+                return formatDate(fromVbaDate(effectiveVal.value), datePatternSource, fdow, effectiveFwoy);
+            }
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
-                return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, effectiveFwoy);
+                return formatDate(fromVbaDate(effectiveVal.value), datePatternSource, fdow, effectiveFwoy);
             }
             return formatNumber(effectiveVal.value, fmt);
         }

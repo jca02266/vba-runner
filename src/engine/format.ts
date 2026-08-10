@@ -30,28 +30,88 @@ export function splitFormatSections(pattern: string): string[] {
     return sections;
 }
 
+/** Remove an unescaped bracket directive from a VBA Format pattern. */
+export function stripVbaBracketDirectives(pattern: string): string {
+    let out = '';
+    let quoted = false;
+    for (let i = 0; i < pattern.length; i++) {
+        const ch = pattern[i];
+        if (ch === '\\') {
+            out += ch;
+            if (i + 1 < pattern.length) out += pattern[++i];
+            continue;
+        }
+        if (ch === '"') {
+            quoted = !quoted;
+            out += ch;
+            continue;
+        }
+        if (!quoted && ch === '[') {
+            while (i + 1 < pattern.length && pattern[i + 1] !== ']') i++;
+            if (i + 1 < pattern.length) i++;
+            continue;
+        }
+        out += ch;
+    }
+    return out;
+}
+
+export function hasUnclosedVbaBracket(pattern: string): boolean {
+    let quoted = false;
+    for (let i = 0; i < pattern.length; i++) {
+        const ch = pattern[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch === '"') { quoted = !quoted; continue; }
+        if (!quoted && ch === '[') {
+            while (i + 1 < pattern.length && pattern[i + 1] !== ']') i++;
+            if (i + 1 >= pattern.length) return true;
+            i++;
+        }
+    }
+    return false;
+}
+
+export function hasUnescapedFormatChars(pattern: string, chars: string): boolean {
+    let quoted = false;
+    for (let i = 0; i < pattern.length; i++) {
+        const ch = pattern[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch === '"') { quoted = !quoted; continue; }
+        if (!quoted && chars.includes(ch)) return true;
+    }
+    return false;
+}
+
 // ------------------------------------------------------------------ //
 // 文字列フォーマット（@, &, <, >, !）
 // ------------------------------------------------------------------ //
 export function formatString(s: string, fmt: string): string {
+    if (!fmt) return s;
+    fmt = stripVbaBracketDirectives(fmt);
     if (!fmt) return s;
     const sections = splitFormatSections(fmt);
     // 2 セクション: 第1は通常文字列、第2は null/空文字列
     const section = sections.length >= 2 && s === '' ? sections[1] : sections[0];
     if (!section) return s;
 
-    // 大文字 / 小文字変換（単独でもパターン中に含まれていても有効）
-    if (section.includes('>')) return s.toUpperCase();
-    if (section.includes('<')) return s.toLowerCase();
-
-    // @, & プレースホルダー
-    const hasExcl = section.includes('!');
+    let hasExcl = false;
     const phs: Array<'@' | '&'> = [];
-    for (const ch of section) {
-        if (ch === '@') phs.push('@');
+    let forceUpper = false;
+    let forceLower = false;
+    for (let i = 0; i < section.length; i++) {
+        const ch = section[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch === '"') { i++; while (i < section.length && section[i] !== '"') i++; continue; }
+        if (ch === '>') forceUpper = true;
+        else if (ch === '<') forceLower = true;
+        else if (ch === '!') hasExcl = true;
+        else if (ch === '@') phs.push('@');
         else if (ch === '&') phs.push('&');
     }
-    if (phs.length === 0) return s;
+    if (forceUpper) return s.toUpperCase();
+    if (forceLower) return s.toLowerCase();
+    if (phs.length === 0) return section.includes('!') ? '' : s;
+    if (phs.length === 1 && (section === '@' || section === '&')) return s;
 
     const chars = [...s]; // Unicode 対応
     let result = '';
@@ -77,6 +137,9 @@ export function formatString(s: string, fmt: string): string {
 // 日付フォーマット
 // ------------------------------------------------------------------ //
 export function formatDate(d: Date, pattern: string, firstDayOfWeek: number = 1, firstWeekOfYear: number = 1): string {
+    if (hasUnclosedVbaBracket(pattern)) return '';
+    pattern = stripVbaBracketDirectives(pattern);
+    if (!pattern) return formatDate(d, 'General Date', firstDayOfWeek, firstWeekOfYear);
     const pLower = pattern.toLowerCase();
 
     const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -123,8 +186,8 @@ export function formatDate(d: Date, pattern: string, firstDayOfWeek: number = 1,
     const generalDateStr = () => {
         const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0 || d.getSeconds() !== 0;
         const isBaseDate = d.getFullYear() === 1899 && d.getMonth() === 11 && d.getDate() === 30;
-        if (!isBaseDate && hasTime) return `${shortDateStr()} ${longTimeStr()}`;
-        if (!isBaseDate) return shortDateStr();
+        if (!isBaseDate && hasTime) return `${yyyy}/${MM}/${dd} ${longTimeStr()}`;
+        if (!isBaseDate) return `${yyyy}/${MM}/${dd}`;
         return longTimeStr();
     };
 
@@ -200,7 +263,7 @@ export function stripFormatColorDirectives(pattern: string): string {
  * a numeric format; a leading literal-only section is reused as text.
  */
 export function hasNumericFormatTokens(pattern: string): boolean {
-    const clean = stripFormatColorDirectives(pattern);
+    const clean = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
     let quoted = false;
     for (let i = 0; i < clean.length; i++) {
         const ch = clean[i];
@@ -220,20 +283,26 @@ export function hasNumericFormatTokens(pattern: string): boolean {
  * Quoted literals and escaped characters are display text, not tokens.
  */
 export function containsDateFormatTokens(pattern: string): boolean {
-    const clean = stripFormatColorDirectives(pattern);
+    const clean = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
     let quoted = false;
     for (let i = 0; i < clean.length; i++) {
         const ch = clean[i];
         if (ch === '\\') { i++; continue; }
         if (ch === '"') { quoted = !quoted; continue; }
-        if (!quoted && /[ymdhns]/i.test(ch)) return true;
-        if (!quoted && /^am\/pm|^a\/p|^ampm/i.test(clean.slice(i))) return true;
+        if (!quoted && /[ymdhnsqcw]/i.test(ch)) return true;
+        if (!quoted && /^(?:am\/pm|a\/p|ampm|ttttt)/i.test(clean.slice(i))) return true;
     }
     return false;
 }
 
 export function formatNumber(n: number, pattern: string): string {
-    pattern = stripFormatColorDirectives(pattern);
+    if (hasUnclosedVbaBracket(pattern)) return '';
+    pattern = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
+    if (!pattern) return String(n);
+    if (pattern === '.') {
+        if (n === 0) return '.';
+        return `${Math.round(n)}.`;
+    }
     const pLower = pattern.toLowerCase();
 
     // 千の位区切り付き文字列ヘルパー
@@ -267,6 +336,8 @@ export function formatNumber(n: number, pattern: string): string {
     if (sections.length === 1) {
         section = sections[0];
         autoNegSign = n < 0;
+    } else if (sections.length === 2 && sections[0] === '' && n < 0 && sections[1] !== '') {
+        section = sections[1]; autoNegSign = false;
     } else if (!hasNumericFormatTokens(sections[0])) {
         // A literal-only first section is a string format, not a numeric
         // positive/negative section pair. Excel reuses it for the value.
@@ -305,7 +376,7 @@ export function formatNumber(n: number, pattern: string): string {
  * normal Format behavior.
  */
 export function formatNullSection(pattern: string): string | undefined {
-    const sections = splitFormatSections(stripFormatColorDirectives(pattern));
+    const sections = splitFormatSections(stripVbaBracketDirectives(stripFormatColorDirectives(pattern)));
     if (sections.length < 4) return undefined;
     const section = sections[3] === '' ? sections[0] : sections[3];
     return formatNumberSection(0, section, false);
@@ -327,9 +398,9 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
             while (i < section.length && section[i] !== '"') lit += section[i++];
             if (i < section.length) i++;
             toks.push({ k: 'lit', v: lit });
-        } else if ('0#.,'.includes(c)) {
+        } else if ('0#'.includes(c) || ('.%,'.includes(c) && /[0#]/.test(section))) {
             toks.push({ k: 'fmt', v: c }); i++;
-        } else if (c === '%') {
+        } else if (c === '%' && /[0#]/.test(section)) {
             toks.push({ k: 'fmt', v: '%' }); i++;
         } else if ((c === 'E' || c === 'e') && i + 1 < section.length && '+-'.includes(section[i + 1])) {
             // 科学記数法: E+ / E- / e+ / e- の後に続く 0/# を込みで1トークンにする
@@ -351,6 +422,21 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
 
     // 書式指定子なし（\Z\e\r\o のような純リテラルセクション）
     if (firstFmt === -1) {
+        const hasUnescaped = (chars: string): boolean => {
+            let quoted = false;
+            for (let k = 0; k < section.length; k++) {
+                const ch = section[k];
+                if (ch === '\\') { k++; continue; }
+                if (ch === '"') { quoted = !quoted; continue; }
+                if (!quoted && chars.includes(ch)) return true;
+            }
+            return false;
+        };
+        if (hasUnescaped('!*')) return '';
+        if (hasUnescaped('@&<>')) return (addNegSign ? '-' : '') + String(absN);
+        if (section.endsWith('\\') || section === '/' || section === ':') {
+            return toks.map(t => t.v).join('');
+        }
         return (addNegSign ? '-' : '') + toks.map(t => t.v).join('');
     }
 
