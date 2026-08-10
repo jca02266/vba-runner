@@ -194,3 +194,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/type-system.ts
       - tests/spec/typed-array-root-cause.test.ts
+  - id: FZ-COVERAGE-20260810-024
+    title: Structured loop exit boundaries
+    status: queued
+    priority: 1
+    focus: 制御フローのExit For/Do・ネスト・継続境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/for-loop.test.ts
