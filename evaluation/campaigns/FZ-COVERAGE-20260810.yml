@@ -929,6 +929,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/on-error-nested-resume.test.ts
       - tests/spec/recursive-error-handling.test.ts
+  - id: FZ-COVERAGE-20260810-100
+    title: GoSub Return error interaction
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のGoSub・Return・On Error継続フレーム回帰
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-goto.test.ts
+      - tests/spec/on-error-nested-resume.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
