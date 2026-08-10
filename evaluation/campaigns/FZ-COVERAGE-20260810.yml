@@ -1057,6 +1057,17 @@ items:
       - src/lexer
       - tests/spec/parser-error-context.test.ts
       - tests/spec/module-qualified-type.test.ts
+  - id: FZ-COVERAGE-20260810-112
+    title: Parser external reference recovery
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域のDeclare・修飾型・外部参照エラー回復回帰
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/spec/declare.test.ts
+      - tests/spec/module-qualified-type.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
