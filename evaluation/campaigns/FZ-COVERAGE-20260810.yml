@@ -440,3 +440,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/mock/MockFileSystem.ts
       - tests/spec/fs-lock-width.test.ts
+  - id: FZ-COVERAGE-20260810-049
+    title: TextStream Unicode boundaries
+    status: queued
+    priority: 1
+    focus: ファイルI/O・FSO領域のTextStream Unicode/ANSI、改行、EOF境界
+    priorCauseKey: virtual-filesystem-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/mock/MockFileSystem.ts
+      - tests/spec/fso-boundaries.test.ts

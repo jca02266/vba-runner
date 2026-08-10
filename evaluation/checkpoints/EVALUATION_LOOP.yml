@@ -245,3 +245,8 @@ checkpoints:
     decision: "ファイルI/O・FSOの基本操作と属性・削除境界は仕様一致で新規バグなし。次はOpen Lock共有、Seek/EOF、Binary/Text境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-048
+  - afterEvaluation: EV-00501
+    audit: "400 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Lock/Width・Seek/Loc/EOF・Binary Put/Get境界は仕様一致で新規バグなし。次はTextStream Unicode/ANSI・改行・EOF境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-049

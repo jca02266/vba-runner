@@ -403,6 +403,7 @@
 | EV-00498 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域の銀行丸め、負数丸め、Decimal/Currency比較境界 |
 | EV-00499 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域のLocale依存文字列入力、指数・桁区切り・型変換 |
 | EV-00500 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のOpen/Lock/EOF/TextStream未解決境界 |
+| EV-00501 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のOpen Lock共有、Seek/EOF、Binary/Text境界 |
 
 ## 状態集計
 
@@ -412,12 +413,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 138 |
+| verified-no-bug | 139 |
 
-横展開未解決経路: 348、実Excel待ち評価: 0
+横展開未解決経路: 349、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-048 | 1 | queued | ファイルI/O・FSO領域のOpen Lock共有、Seek/EOF、Binary/Text境界 | yes |
+| FZ-COVERAGE-20260810-049 | 1 | queued | ファイルI/O・FSO領域のTextStream Unicode/ANSI、改行、EOF境界 | yes |
