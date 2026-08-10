@@ -125,3 +125,8 @@ checkpoints:
     decision: "LongLong十進範囲外と基数リテラル精度のバグをBUG-00449として記録した。RC-00041は独立レビューで仮説の説明力は認められたが、基数符号規則・Const/Variant/式伝播・変換入口の責務が未確定のため、修正タスクは起こさず追跡候補を先に評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-026
+  - afterEvaluation: EV-00479
+    audit: "378 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LongLong基数リテラルの精度損失を共通の正確な整数表現と回帰テストで修正した。RC-00041は符号拡張・Const/Variant/式伝播が未確定のため仮説を維持し、次の評価で境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-027

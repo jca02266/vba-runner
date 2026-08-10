@@ -8935,8 +8935,13 @@ export class Evaluator {
                 // TypeName → 'LongLong' は AST の typeSuffix 経由で返る。
                 // Preserve the source digits before JavaScript Number loses
                 // precision, then let declared-type coercion validate the range.
-                if (rawIntegerText !== undefined) return BigInt(rawIntegerText);
-                return val;
+                {
+                    const n = rawIntegerText !== undefined ? BigInt(rawIntegerText) : BigInt(this.vbaRound(val, 0));
+                    if (n < -9223372036854775808n || n > 9223372036854775807n) {
+                        this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                    }
+                    return n;
+                }
             default: return val;
         }
     }
@@ -9874,6 +9879,9 @@ export class Evaluator {
             const literal = expr.argument as NumberLiteral;
             if (literal.typeSuffix === '%' && literal.value === 32768) return -32768;
             if (literal.typeSuffix === '&' && literal.value === 2147483648) return -2147483648;
+            if (literal.typeSuffix === '^' && literal.rawIntegerText === '9223372036854775808') {
+                return -9223372036854775808n;
+            }
         }
         let argument = this.evaluateExpression(expr.argument);
         const op = expr.operator.toLowerCase();

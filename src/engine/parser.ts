@@ -3238,7 +3238,14 @@ export class Parser {
                 parsedValue = unsigned - 0x100000000;
             }
         }
-        const rawIntegerText = typeSuffix === '^' && /^\d+$/.test(cleanVal) ? cleanVal : undefined;
+        let rawIntegerText: string | undefined;
+        if (typeSuffix === '^') {
+            if (/^\d+$/.test(cleanVal)) rawIntegerText = cleanVal;
+            else if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
+                // Keep radix LongLong literals exact; Number loses digits above 2^53.
+                rawIntegerText = BigInt(cleanVal).toString();
+            }
+        }
         return { type: 'NumberLiteral', value: parsedValue, rawIntegerText, typeSuffix, isFloat, baseWidth };
     }
 

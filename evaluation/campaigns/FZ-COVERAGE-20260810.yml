@@ -223,3 +223,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
       - tests/spec/identifier-type-suffix.test.ts
+  - id: FZ-COVERAGE-20260810-027
+    title: LongLong sign and propagation boundaries
+    status: queued
+    priority: 1
+    focus: LongLong基数の符号拡張、負数、Const・Variant・式伝播の仕様境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/identifier-type-suffix.test.ts
