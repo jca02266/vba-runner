@@ -176,3 +176,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-022
+    title: Property procedure object and ByRef boundaries
+    status: queued
+    priority: 1
+    focus: クラスProperty Let/Set/GetのByRef・配列・Object/値分類境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/property.test.ts
