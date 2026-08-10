@@ -414,6 +414,7 @@
 | EV-00509 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域の閏年、月末、DST、Locale依存暦境界 |
 | EV-00510 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定、条件付き書式、数値・日付表示境界 |
 | EV-00511 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定、条件付き書式、複数セクション境界 |
+| EV-00512 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の日付・時刻・Locale依存書式と色指定境界 |
 
 ## 状態集計
 
@@ -423,12 +424,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 149 |
+| verified-no-bug | 150 |
 
-横展開未解決経路: 359、実Excel待ち評価: 0
+横展開未解決経路: 360、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-059 | 1 | queued | Format領域の日付・時刻・Locale依存書式と色指定境界 | yes |
+| FZ-COVERAGE-20260810-060 | 1 | queued | Format領域の色指定・条件付き書式の実Excel出力 | yes |
