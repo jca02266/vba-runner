@@ -240,3 +240,8 @@ checkpoints:
     decision: "数値文字列の暗黙変換・演算子境界は仕様一致で新規バグなし。EV-00495〜EV-00499の5回連続で新規バグがなく、次の未収束領域としてファイルI/O・FSO（未解決19件）を選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-047
+  - afterEvaluation: EV-00500
+    audit: "399 evaluations, 0 active claims, 0 queued candidates"
+    decision: "ファイルI/O・FSOの基本操作と属性・削除境界は仕様一致で新規バグなし。次はOpen Lock共有、Seek/EOF、Binary/Text境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-048

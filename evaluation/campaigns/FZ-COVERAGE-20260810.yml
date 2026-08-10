@@ -430,3 +430,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/mock/MockFileSystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-048
+    title: File lock and EOF boundaries
+    status: queued
+    priority: 1
+    focus: ファイルI/O・FSO領域のOpen Lock共有、Seek/EOF、Binary/Text境界
+    priorCauseKey: virtual-filesystem-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/mock/MockFileSystem.ts
+      - tests/spec/fs-lock-width.test.ts
