@@ -1369,6 +1369,17 @@ items:
       - scripts/eval-report.mjs
       - tests/tooling/evaluation-state.test.ts
       - tests/tooling/eval-report.test.ts
+  - id: FZ-COVERAGE-20260810-141
+    title: Evaluation event history and report aggregation regression
+    status: queued
+    priority: 1
+    focus: 評価基盤領域の状態イベント・候補集計・時系列レポート境界回帰
+    priorCauseKey: evaluation-state-history-contract
+    coverageTargets:
+      - scripts/eval.mjs
+      - scripts/eval-report.mjs
+      - tests/tooling/evaluation-state.test.ts
+      - tests/tooling/eval-report.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

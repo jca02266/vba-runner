@@ -680,3 +680,8 @@ checkpoints:
     decision: "LSP・拡張機能のDebugger・Test Runner・Debug Hookは仕様一致で新規バグなし。EV-00582〜EV-00586の5回連続無バグを確認し、評価基盤領域へ移行する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-140
+  - afterEvaluation: EV-00588
+    audit: "487 evaluations, 0 active claims, 0 queued candidates"
+    decision: "評価基盤の状態CLI・イベント履歴・原因層検証・Excel同期・レポート領域選択は仕様一致で新規不具合なし。次はイベント履歴と時系列集計を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-141
