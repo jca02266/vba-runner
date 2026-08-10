@@ -74,6 +74,7 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyPendingExcelBoundaries
+    VerifyRadixConversionBoundaries
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -81,6 +82,22 @@ Public Sub RunExcelQueueVerification()
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixConversionBoundaries()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CLngLng("&H7FFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-062 CLngLng-POS", value, errNo
+    Err.Clear: value = CLngLng("&H8000000000000000"): errNo = Err.Number
+    EmitValueAndType "XL-062 CLngLng-MIN", value, errNo
+    Err.Clear: value = CLngLng("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-062 CLngLng-NEG1", value, errNo
+    Err.Clear: value = CCur("&HFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-063 CCur-32", value, errNo
+    Err.Clear: value = Val("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-064 Val-64", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyOpaqueShape()

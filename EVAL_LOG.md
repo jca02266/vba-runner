@@ -496,6 +496,7 @@
 | EV-00591 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域の状態分類・領域別集計・Finding収束グラフ境界回帰 |
 | EV-00592 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域のローカル日時・直近評価一覧・状態件数表境界回帰 |
 | EV-00593 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のLongLong基数リテラル・符号拡張・Const/Variant伝播回帰 |
+| EV-00594 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・CDec・CCur・Val基数変換の幅・符号境界 |
 
 ## 状態集計
 
@@ -504,10 +505,11 @@
 | bug-found | 1 |
 | fixed | 257 |
 | known-limit | 4 |
+| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 229 |
 
-横展開未解決経路: 442、実Excel待ち評価: 0
+横展開未解決経路: 445、実Excel待ち評価: 1
 
 ## 次の候補
 
