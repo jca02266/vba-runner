@@ -134,3 +134,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-017
+    title: Dollar-suffix builtin horizontal expansion
+    status: queued
+    priority: 1
+    focus: LCase$・UCase$・Left$・Right$・Mid$・String$・Chr$・Hex$・Oct$・Str$のNull境界と通常入力
+    priorCauseKey: string-dollar-return-contract-not-modeled
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/builtin-strings.test.ts

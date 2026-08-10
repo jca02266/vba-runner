@@ -75,3 +75,8 @@ checkpoints:
     decision: "通常版Space/Trim系は仕様一致だったが、横展開で$付き関数のNull戻り値型境界が未確認と判明した。通常候補より優先してこの境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-016
+  - afterEvaluation: EV-00469
+    audit: "368 evaluations, 0 active claims, 0 queued candidates"
+    decision: "$付き組み込みのNull境界バグを修正し、ROOT-00021を完了した。RC-00039の横展開対象を独立評価する候補を登録する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-017
