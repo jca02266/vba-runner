@@ -335,3 +335,8 @@ checkpoints:
     decision: "Select CaseのÊ/ê除外境界は仕様一致で新規バグなし。次は複数範囲・否定範囲・文字列等値比較を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-066
+  - afterEvaluation: EV-00519
+    audit: "418 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Select Case複数文字範囲は仕様一致で新規バグなし。次はOption Compare Textの文字列等値・大小比較を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-067
