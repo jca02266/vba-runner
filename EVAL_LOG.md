@@ -484,6 +484,7 @@
 | EV-00579 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域の組み込みHost関数Null・戻り値型・エラー伝播回帰 |
 | EV-00580 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のHost型強制・Object境界・Null伝播回帰 |
 | EV-00581 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のHost Objectライフサイクル・既定メンバー・Null境界回帰 |
+| EV-00582 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LSP・拡張機能領域の診断・定義・参照・シンボル境界回帰 |
 
 ## 状態集計
 
@@ -493,12 +494,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 218 |
+| verified-no-bug | 219 |
 
-横展開未解決経路: 429、実Excel待ち評価: 0
+横展開未解決経路: 430、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-133 | 1 | queued | その他領域のHost Object多段既定メンバー・再参照・エラー境界回帰 | yes |
+| FZ-COVERAGE-20260810-135 | 1 | queued | LSP・拡張機能領域のHover・Completion・Signature Help境界回帰 |  |

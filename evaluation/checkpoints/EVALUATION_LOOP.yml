@@ -650,3 +650,8 @@ checkpoints:
     decision: "その他領域のHost Objectライフサイクル・既定メンバーは仕様一致で新規バグなし。EV-00576〜EV-00581で5回連続無バグを確認し、次の未収束領域を再選定する。"
     action: select-area
     nextCandidate: FZ-COVERAGE-20260810-134
+  - afterEvaluation: EV-00582
+    audit: "481 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LSP・拡張機能の診断・定義・参照は、診断種別を分離した回帰テストを含めて仕様一致。次はHover・Completion・Signature Helpを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-135

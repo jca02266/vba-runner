@@ -1303,6 +1303,17 @@ items:
       - tests/lsp/server-diagnostics.test.ts
       - tests/lsp/lsp-definition.test.ts
       - tests/lsp/lsp-references.test.ts
+  - id: FZ-COVERAGE-20260810-135
+    title: LSP hover and completion regression
+    status: queued
+    priority: 1
+    focus: LSP・拡張機能領域のHover・Completion・Signature Help境界回帰
+    priorCauseKey: lsp-diagnostic-navigation-contract
+    coverageTargets:
+      - src/lsp
+      - tests/lsp/lsp-hover.test.ts
+      - tests/lsp/lsp-completion.test.ts
+      - tests/lsp/lsp-signature-help.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
