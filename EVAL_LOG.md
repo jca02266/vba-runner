@@ -405,6 +405,7 @@
 | EV-00500 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のOpen/Lock/EOF/TextStream未解決境界 |
 | EV-00501 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のOpen Lock共有、Seek/EOF、Binary/Text境界 |
 | EV-00502 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のTextStream Unicode/ANSI、改行、EOF境界 |
+| EV-00503 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ファイルI/O・FSO領域のTextStream Append・文字コード指定・複数回書込み |
 
 ## 状態集計
 
@@ -414,12 +415,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 140 |
+| verified-no-bug | 141 |
 
-横展開未解決経路: 350、実Excel待ち評価: 0
+横展開未解決経路: 351、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-050 | 1 | queued | ファイルI/O・FSO領域のTextStream Append・文字コード指定・複数回書込み | yes |
+| FZ-COVERAGE-20260810-051 | 1 | queued | ファイルI/O・FSO領域のUnicode BOM・複数回ReadLine・EOF境界 | yes |

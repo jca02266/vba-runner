@@ -460,3 +460,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/mock/MockFileSystem.ts
       - tests/spec/fso-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-051
+    title: TextStream BOM and ReadLine boundaries
+    status: queued
+    priority: 1
+    focus: ファイルI/O・FSO領域のUnicode BOM・複数回ReadLine・EOF境界
+    priorCauseKey: virtual-filesystem-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/mock/MockFileSystem.ts
+      - tests/spec/fso-boundaries.test.ts
