@@ -907,7 +907,7 @@ End Function
     console.log('[PASS] Bug 139-A: Property LetのByRef value書き戻し抑止');
 }
 
-// Bug 141-A: With内の添字付きProperty Letも右辺へ書き戻す
+// Bug 141-A: With内の添字付きProperty Letもvalue引数を書き戻さない
 {
     const ev = evalVBASingle(`
         Class IndexedLedger
@@ -926,12 +926,12 @@ End Function
             TestIndexedPropertyLetByRef = label
         End Function
     `);
-    assert.strictEqual(ev.callProcedure('TestIndexedPropertyLetByRef', []), 'GREEN',
-        'With内の添字付きProperty Letを書き戻す');
-    console.log('[PASS] Bug 141-A: With内の添字付きProperty Let書き戻し');
+    assert.strictEqual(ev.callProcedure('TestIndexedPropertyLetByRef', []), ' green ',
+        'With内の添字付きProperty Letの最終value引数を書き戻さない');
+    console.log('[PASS] Bug 141-A: With内の添字付きProperty Let書き戻し抑止');
 }
 
-// Bug 141-B: 添字付きProperty Setでも右辺オブジェクトを書き戻す
+// Bug 141-B: 添字付きProperty Setでもvalue Objectを書き戻さない
 {
     const ev = evalVBAModules([
         { name: 'IndexedChild', code: `
@@ -965,12 +965,12 @@ Function TestIndexedPropertySetByRef() As String
 End Function
 ` },
     ]);
-    assert.strictEqual(ev.callProcedure('TestIndexedPropertySetByRef', []), '9:nothing',
-        '添字付きProperty SetのByRef valueを書き戻す');
-    console.log('[PASS] Bug 141-B: 添字付きProperty Set書き戻し');
+    assert.strictEqual(ev.callProcedure('TestIndexedPropertySetByRef', []), '9:alive',
+        '添字付きProperty Setの最終Object valueを書き戻さない');
+    console.log('[PASS] Bug 141-B: 添字付きProperty Set書き戻し抑止');
 }
 
-// Bug 151-A: 名前付きProperty Let引数でも暗黙ByRefを書き戻す
+// Bug 151-A: 名前付きProperty Letのvalue引数も書き戻さない
 {
     const ev = evalVBASingle(`
         Class NamedLet
@@ -987,9 +987,9 @@ End Function
             TestNamedPropertyLetByRef = text
         End Function
     `);
-    assert.strictEqual(ev.callProcedure('TestNamedPropertyLetByRef', []), 'NAMED',
-        '名前付きProperty Let引数のByRef書き戻しを保持する');
-    console.log('[PASS] Bug 151-A: 名前付きProperty LetのByRef書き戻し');
+    assert.strictEqual(ev.callProcedure('TestNamedPropertyLetByRef', []), 'named',
+        '名前付きProperty Letの最終value引数を書き戻さない');
+    console.log('[PASS] Bug 151-A: 名前付きProperty LetのByRef書き戻し抑止');
 }
 
 // Call-style Property Let with a named value must select the setter even when
