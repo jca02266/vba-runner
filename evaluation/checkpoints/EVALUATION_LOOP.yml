@@ -440,3 +440,8 @@ checkpoints:
     decision: "Err・On Errorのエラー報告・Colon連結境界は仕様一致で新規バグなし。次はBlock内Resume制御フローを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-088
+  - afterEvaluation: EV-00540
+    audit: "439 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Err・On ErrorのBlock・Colon・Resume制御は仕様一致で新規バグなし。次はNothing・未初期化ObjectのErr伝播を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-089

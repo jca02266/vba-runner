@@ -814,6 +814,16 @@ items:
       - tests/spec/on-error-in-blocks.test.ts
       - tests/spec/on-error-colon.test.ts
       - tests/spec/resume-statement-target.test.ts
+  - id: FZ-COVERAGE-20260810-089
+    title: Err Resume and Nothing boundary
+    status: queued
+    priority: 1
+    focus: Err・On Error領域のResume・Nothing・未初期化Object境界
+    priorCauseKey: error-handler-state-not-shared
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-error-nothing.test.ts
+      - tests/spec/on-error-nested-resume.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
