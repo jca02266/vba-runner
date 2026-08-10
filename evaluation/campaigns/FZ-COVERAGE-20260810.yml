@@ -1216,6 +1216,16 @@ items:
       - tests/spec/collection.test.ts
       - tests/spec/for-each.test.ts
       - tests/spec/object-lifecycle.test.ts
+  - id: FZ-COVERAGE-20260810-127
+    title: Host environment and registry boundary regression
+    status: queued
+    priority: 1
+    focus: その他領域のHost環境・Registry・Shell境界回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/registry.test.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

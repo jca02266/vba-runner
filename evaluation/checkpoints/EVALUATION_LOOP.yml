@@ -615,3 +615,8 @@ checkpoints:
     decision: "コレクション・DictionaryのDictionary列挙・外部Object列挙・Bangアクセスは仕様一致で新規バグなし。次はObject要素のライフサイクルと再利用を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-126
+  - afterEvaluation: EV-00575
+    audit: "474 evaluations, 0 active claims, 0 queued candidates"
+    decision: "コレクション・Dictionary領域でEV-00571〜EV-00575の5回連続無バグを確認したため収束扱いとし、未収束のその他領域（Host環境・Registry・Shell）を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-127
