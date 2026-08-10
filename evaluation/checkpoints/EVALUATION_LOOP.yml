@@ -365,3 +365,8 @@ checkpoints:
     decision: "Like空クラス・不閉鎖パターンは仕様一致で新規バグなし。次はUnicode æ/ae同値とアクセントLocale境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-072
+  - afterEvaluation: EV-00525
+    audit: "424 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Like Unicode æ/ae同値は現実行環境で仕様一致し新規バグなし。次はアクセント比較回帰を確認して5回連続無バグを判定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-073
