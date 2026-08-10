@@ -215,3 +215,8 @@ checkpoints:
     decision: "可変長String UDTのRandom Put/Get復元は仕様一致で、EV-00490〜EV-00494の5回連続で新規バグなし。次の未収束領域として数値精度（未解決22件）を選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-042
+  - afterEvaluation: EV-00495
+    audit: "394 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Currency/Decimal高精度演算と型変換は仕様一致で新規バグなし。次はDoubleの2^53境界とDecimal/Currency表示変換を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-043

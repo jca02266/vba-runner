@@ -380,3 +380,13 @@ items:
       - src/engine/coerce.ts
       - src/engine/evaluator.ts
       - tests/spec/numeric-*.test.ts
+  - id: FZ-COVERAGE-20260810-043
+    title: Double precision and conversion boundaries
+    status: queued
+    priority: 1
+    focus: 数値精度領域のDouble丸め、2^53境界、Decimal/Currency表示変換
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/decimal-precision.test.ts
