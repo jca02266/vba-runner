@@ -1046,6 +1046,17 @@ items:
       - src/lexer
       - tests/engine/parser-error-recovery.test.ts
       - tests/engine/parser-error-location.test.ts
+  - id: FZ-COVERAGE-20260810-111
+    title: Parser multi-module recovery regression
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域の複数モジュール・修飾型名・外部参照回復回帰
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/spec/parser-error-context.test.ts
+      - tests/spec/module-qualified-type.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

@@ -545,3 +545,8 @@ checkpoints:
     decision: "Parser・Lexerの複合コメント・文字列終端・構文回復・位置診断は仕様一致で新規バグなし。次は複数モジュール・外部参照回復を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-110
+  - afterEvaluation: EV-00561
+    audit: "460 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Parser・Lexerの複数エラー回復・複数モジュール・修飾型名境界は仕様一致で新規バグなし。次は外部参照とParser回復の組み合わせを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-111
