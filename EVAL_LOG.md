@@ -466,6 +466,7 @@
 | EV-00561 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の構文回復・複数エラー・ソース位置回帰 |
 | EV-00562 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の複数モジュール・修飾型名・外部参照回復回帰 |
 | EV-00563 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域のDeclare・修飾型・外部参照エラー回復回帰 |
+| EV-00564 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のObject参照・IDispatch・Mock境界 |
 
 ## 状態集計
 
@@ -475,12 +476,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 200 |
+| verified-no-bug | 201 |
 
-横展開未解決経路: 411、実Excel待ち評価: 0
+横展開未解決経路: 412、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-114 | 1 | queued | オブジェクト・COM領域のObject参照・IDispatch・Mock境界 | yes |
+| FZ-COVERAGE-20260810-115 | 1 | queued | オブジェクト・COM領域のCallByName・IDispatch・Property遅延解決回帰 | yes |

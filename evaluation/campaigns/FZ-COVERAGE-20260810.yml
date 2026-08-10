@@ -1091,6 +1091,16 @@ items:
       - tests/spec/com-param-coercion.test.ts
       - tests/spec/idispatch-property-dispatch.test.ts
       - tests/spec/default-property-noncls.test.ts
+  - id: FZ-COVERAGE-20260810-115
+    title: Object COM dispatch regression
+    status: queued
+    priority: 1
+    focus: オブジェクト・COM領域のCallByName・IDispatch・Property遅延解決回帰
+    priorCauseKey: object-argument-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/idispatch-property-dispatch.test.ts
+      - tests/spec/interface-callbyname-property.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

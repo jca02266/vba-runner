@@ -560,3 +560,8 @@ checkpoints:
     decision: "Parser・LexerのDeclare・修飾型・欠落参照診断は仕様一致で新規バグなし。EV-00556〜EV-00563で5回以上連続して新規バグがなく、次の未収束領域としてオブジェクト・COMを選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-114
+  - afterEvaluation: EV-00564
+    audit: "463 evaluations, 0 active claims, 0 queued candidates"
+    decision: "オブジェクト・COMのObject参照・IDispatch・Default Property基本境界は仕様一致で新規バグなし。次はCallByNameと遅延Propertyの複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-115
