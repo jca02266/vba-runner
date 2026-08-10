@@ -793,6 +793,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/class-method-on-error-isolation.test.ts
       - tests/spec/error-handler-reentry.test.ts
+  - id: FZ-COVERAGE-20260810-087
+    title: Err callback and event propagation
+    status: queued
+    priority: 1
+    focus: Err・On Error領域のイベント・コールバック・スタックトレース境界
+    priorCauseKey: error-handler-state-not-shared
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/runtime-error-trace.test.ts
+      - tests/spec/error-line-reporting.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
