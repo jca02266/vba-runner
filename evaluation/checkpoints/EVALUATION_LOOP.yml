@@ -735,3 +735,8 @@ checkpoints:
     decision: "XL-065〜067でCLngLngの八進境界とValの八進符号差異をBUG-00455として確定した。RC-00010の変換先型別契約は未確定のため、修正前に明示符号・他桁幅を追加評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-152
+  - afterEvaluation: EV-00599
+    audit: "498 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-068〜070で明示符号のError 13とVal八進符号差異をBUG-00456として確定した。RC-00010の未解決境界を引き続き変換先型別に確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-153

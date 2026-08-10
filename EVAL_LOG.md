@@ -501,13 +501,14 @@
 | EV-00596 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格 |
 | EV-00597 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong BigIntサブタイプのByRef Variant・Property戻り値・LongPtr伝播 |
 | EV-00598 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
-| EV-00599 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
+| EV-00599 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
+| EV-00600 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 4 |
+| bug-found | 5 |
 | fixed | 257 |
 | known-limit | 4 |
 | needs-excel | 1 |
@@ -520,4 +521,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-152 | 1 | queued | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 | yes |
+| FZ-COVERAGE-20260810-153 | 1 | queued | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 | yes |

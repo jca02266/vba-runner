@@ -79,6 +79,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
+    VerifyRadixTargetTypeMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -87,6 +88,24 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixTargetTypeMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CDec("&H80000000"): errNo = Err.Number
+    EmitValueAndType "XL-071 CDec-32MIN", value, errNo
+    Err.Clear: value = CDec("&HFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-071 CDec-32NEG1", value, errNo
+    Err.Clear: value = CCur("&H7FFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-072 CCur-32POS", value, errNo
+    Err.Clear: value = CCur("&H80000000"): errNo = Err.Number
+    EmitValueAndType "XL-072 CCur-32MIN", value, errNo
+    Err.Clear: value = Val("&H80000000"): errNo = Err.Number
+    EmitValueAndType "XL-073 Val-32MIN", value, errNo
+    Err.Clear: value = Val("&H7FFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-073 Val-32POS", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixConversionMatrix()
