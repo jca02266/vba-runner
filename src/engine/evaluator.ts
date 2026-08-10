@@ -1133,7 +1133,8 @@ export class Evaluator {
             argValue = this.prepareArgumentValue(argValue, param, this.isPropertyValueParameter(proc, i));
             localEnv.setLocally(paramName, argValue);
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
-                    && argSubtypes && i < argSubtypes.length && argSubtypes[i] && typeof argValue === 'number') {
+                    && argSubtypes && i < argSubtypes.length && argSubtypes[i]
+                    && (typeof argValue === 'number' || typeof argValue === 'bigint')) {
                 localEnv.setVariantSubtype(paramName, argSubtypes[i]!);
             }
             this.addRef(argValue);
@@ -3741,12 +3742,13 @@ export class Evaluator {
         this.evaluateAssignmentToVariable(stmt.left, val, stmt.right);
 
         // Track numeric subtype for Variant variables so TypeName/VarType reflect the assigned type
-        if (typeof val === 'number') {
+        if (typeof val === 'number' || typeof val === 'bigint') {
             if (stmt.left.type === 'Identifier') {
                 const name = (stmt.left as Identifier).name;
                 const typeInfo = this.env.getVariableType(name);
                 if (!typeInfo || typeInfo.vbaType === 'Variant') {
-                    const subtype = this.resolveNumericSubtype(stmt.right);
+                    const subtype = this.resolveNumericSubtype(stmt.right)
+                        ?? (typeof val === 'bigint' ? 'LongLong' : undefined);
                     if (subtype) {
                         this.env.setVariantSubtype(name, subtype);
                     } else {
@@ -3767,7 +3769,8 @@ export class Evaluator {
                         if (!elemType || elemType === 'variant') {
                             const idxs = this.evaluateIndexExpressions(call.args);
                             const key = idxs.join(',');
-                            const subtype = this.resolveNumericSubtype(stmt.right);
+                            const subtype = this.resolveNumericSubtype(stmt.right)
+                                ?? (typeof val === 'bigint' ? 'LongLong' : undefined);
                             if (!(arr as any).__vbaSubtypes__) (arr as any).__vbaSubtypes__ = Object.create(null);
                             if (subtype) (arr as any).__vbaSubtypes__[key] = subtype;
                             else delete (arr as any).__vbaSubtypes__[key];
@@ -9391,11 +9394,13 @@ export class Evaluator {
                 // Variant サブタイプは呼び出し元 env で引数式から解決しておき、
                 // パラメーターへ伝播する（実 VBA 差分: TypeName(引数) が Double に化けるのを防ぐ）
                 const positionalSubtypes = positionalArgs.map((v, i) =>
-                    typeof v === 'number' ? this.resolveNumericSubtype(positionalArgExpressions[i]) : undefined);
+                    (typeof v === 'number' || typeof v === 'bigint')
+                        ? this.resolveNumericSubtype(positionalArgExpressions[i]) : undefined);
                 const namedSubtypes = new Map<string, VbaVarType | undefined>();
                 for (const [k, e] of namedArgExpressions) {
                     const v = namedArgs.get(k);
-                    namedSubtypes.set(k, typeof v === 'number' ? this.resolveNumericSubtype(e) : undefined);
+                    namedSubtypes.set(k, (typeof v === 'number' || typeof v === 'bigint')
+                        ? this.resolveNumericSubtype(e) : undefined);
                 }
 
                 // Validate argument count
@@ -10478,9 +10483,17 @@ export class Evaluator {
         // VBA promotes LongLong +/− String to Double (XL-016), but the
         // integer-only operators retain an integer String exactly.
         const exactMixedIntegerOp = op === '*' || op === '\\' || op === 'mod';
+        const leftSubtype = this.resolveNumericSubtype(expr.left);
+        const rightSubtype = this.resolveNumericSubtype(expr.right);
+        const hasFloatingPromotionOperand = ['Single', 'Double'].includes(leftSubtype ?? '')
+            || ['Single', 'Double'].includes(rightSubtype ?? '');
         if (longLongIntegerOps.has(op) &&
             (typeof leftVal === 'bigint' || typeof rightVal === 'bigint') &&
             (!hasStringOperand || exactMixedIntegerOp) &&
+            // Integral-valued Single/Double operands are still floating-point
+            // operands.  They must take the VBA promotion path instead of the
+            // exact BigInt path merely because their current value is safe.
+            !(['+', '-', '*'].includes(op) && hasFloatingPromotionOperand) &&
             isExactIntegerOperand(leftVal) && isExactIntegerOperand(rightVal)) {
             const asBigInt = (v: any): bigint => {
                 if (typeof v === 'bigint') return v;

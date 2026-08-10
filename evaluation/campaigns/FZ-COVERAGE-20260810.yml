@@ -1455,6 +1455,16 @@ items:
       - src/engine/type-environment.ts
       - src/engine/parser.ts
       - tests/spec/longlong-literal-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-149
+    title: LongLong floating promotion regression
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+      - tests/spec/longlong-literal-boundaries.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
