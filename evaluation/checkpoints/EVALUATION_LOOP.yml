@@ -390,3 +390,8 @@ checkpoints:
     decision: "引数・ByRef・PropertyのProperty Set・Interface・Object再代入は仕様一致で新規バグなし。次は暗黙Object参照と値式の混在境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-078
+  - afterEvaluation: EV-00530
+    audit: "429 evaluations, 0 active claims, 0 queued candidates"
+    decision: "引数・ByRef・PropertyのDefault Property・CallByName・ParamArray境界は仕様一致で新規バグなし。最後のObject参照回帰を確認して5回連続無バグを判定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-079

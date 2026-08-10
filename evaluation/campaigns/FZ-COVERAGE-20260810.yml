@@ -713,6 +713,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/interface-property-assignment.test.ts
       - tests/spec/byref-reference-preservation.test.ts
+  - id: FZ-COVERAGE-20260810-079
+    title: Default Property reference boundary
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のDefault Property・CallByName・ParamArray境界
+    priorCauseKey: vba-object-reference-value-classification
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/default-property-noncls.test.ts
+      - tests/spec/interface-callbyname-property.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
