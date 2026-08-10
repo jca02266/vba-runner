@@ -466,4 +466,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-095 | 1 | queued | 宣言・型・リテラル領域のDeclare ByRef・配列・型強制回帰 | yes |
+| FZ-COVERAGE-20260810-096 | 1 | queued | 制御フロー領域のGoSub・Return・Resume・ネスト継続フレーム | yes |

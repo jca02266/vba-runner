@@ -472,6 +472,6 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-094
   - afterEvaluation: EV-00546
     audit: "445 evaluations, 0 active claims, 0 queued candidates"
-    decision: "宣言・型・リテラルのDeclare ByRef・配列・型強制境界は仕様一致で新規バグなし。次はDeclareのObject配列・UDT引数を確認する。"
+    decision: "宣言・型・リテラルのDeclare ByRef・配列・型強制境界は仕様一致で新規バグなし。EV-00542〜EV-00546の5回連続で新規バグがなく、次の未収束領域として制御フローを選定する。"
     action: create-candidate
-    nextCandidate: FZ-COVERAGE-20260810-095
+    nextCandidate: FZ-COVERAGE-20260810-096
