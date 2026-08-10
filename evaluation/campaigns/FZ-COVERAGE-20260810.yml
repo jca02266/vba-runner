@@ -1237,6 +1237,17 @@ items:
       - tests/spec/shell.test.ts
       - tests/spec/flow-environment.test.ts
       - tests/spec/interaction.test.ts
+  - id: FZ-COVERAGE-20260810-129
+    title: Host type and environment propagation regression
+    status: queued
+    priority: 1
+    focus: その他領域のHost型推論・環境伝播・Shell戻り値境界回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/type-environment.test.ts
+      - tests/spec/flow-environment.test.ts
+      - tests/spec/shell.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

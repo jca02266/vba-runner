@@ -625,3 +625,8 @@ checkpoints:
     decision: "その他領域のRegistry・組み込みHost境界は仕様一致で新規バグなし。次はShell・環境変数・Interaction境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-128
+  - afterEvaluation: EV-00577
+    audit: "476 evaluations, 0 active claims, 0 queued candidates"
+    decision: "その他領域のShell・環境変数・Interaction境界は仕様一致で新規バグなし。次はHost型推論と環境伝播を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-129
