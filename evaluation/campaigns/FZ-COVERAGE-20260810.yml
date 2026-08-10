@@ -875,6 +875,17 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/declare.test.ts
       - tests/spec/spy-mock-api.test.ts
+  - id: FZ-COVERAGE-20260810-095
+    title: Declare array and ByRef regression
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のDeclare ByRef・配列・型強制回帰
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/declare.test.ts
+      - tests/spec/byref-byval.test.ts
+      - tests/spec/typed-array-assignment.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
