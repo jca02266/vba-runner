@@ -582,6 +582,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case-nonascii.test.ts
+  - id: FZ-COVERAGE-20260810-065
+    title: Select Case accent exclusion boundaries
+    status: queued
+    priority: 1
+    focus: Select Case領域のÊ/ê除外、複数範囲、文字列等値横展開
+    priorCauseKey: vba-text-comparison-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case-nonascii.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

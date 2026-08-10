@@ -325,3 +325,8 @@ checkpoints:
     decision: "Option Compare Textの非ASCII範囲バグをBUG-00451として修正し、全回帰テスト369+14件が通過した。修正後のLocale横展開を5回連続無バグで確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-064
+  - afterEvaluation: EV-00517
+    audit: "416 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Select Case非ASCII範囲修正の初回横展開は仕様一致で新規バグなし。次はÊ/ê除外、複数範囲、文字列等値を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-065
