@@ -185,3 +185,13 @@ checkpoints:
     decision: "Property既定値とCallByNameの複合境界は仕様一致で新規バグなし。EV-00485〜EV-00489の5回連続で新規バグがなく、未収束領域の今回の評価ループを終了する。"
     action: stop
     reason: five-consecutive-no-bug
+  - afterEvaluation: RESTART-20260810-002
+    audit: "388 evaluations, 0 active claims, 0 queued candidates"
+    decision: "未収束領域の再監査で、配列・UDTに未解決横展開経路が27件残っているため、動的配列・ReDim Preserve・UDT配列要素ByRefを次の領域候補として選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-037
+  - afterEvaluation: EV-00490
+    audit: "389 evaluations, 0 active claims, 0 queued candidates"
+    decision: "動的配列・ReDim・UDT配列要素の型と書戻しは仕様一致で新規バグなし。次は多次元配列のLBound/UBoundとReDim Preserve境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-038

@@ -320,3 +320,23 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/default-property-noncls.test.ts
       - tests/spec/callbyname-optional-binder.test.ts
+  - id: FZ-COVERAGE-20260810-037
+    title: UDT array and ReDim boundaries
+    status: queued
+    priority: 1
+    focus: 配列・UDT領域の動的配列、ReDim Preserve、UDT配列要素ByRef境界
+    priorCauseKey: typed-array-writeback-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/typed-array-root-cause.test.ts
+  - id: FZ-COVERAGE-20260810-038
+    title: Multidimensional array boundaries
+    status: queued
+    priority: 1
+    focus: 配列・UDT領域の多次元配列、LBound/UBound、ReDim Preserve境界
+    priorCauseKey: typed-array-writeback-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/binary-udt-array.test.ts
