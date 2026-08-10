@@ -800,3 +800,8 @@ checkpoints:
     decision: "XL-103〜106は全件一致で、基数領域は5回連続無バグとなり収束扱いにした。未収束のFormat領域へ切り替える。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-164
+  - afterEvaluation: EV-00611
+    audit: "510 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-107〜110は全件一致でFormat領域の連続無バグ数は1回。次の条件・色セクションを評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-165

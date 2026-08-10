@@ -90,6 +90,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixValSignedScanMatrix
     VerifyRadixPositiveHexBoundaryMatrix
     VerifyFormatSectionFollowupMatrix
+    VerifyFormatConditionalColorMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -98,6 +99,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFormatConditionalColorMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(1234.5, "$#,##0.00"): errNo = Err.Number
+    EmitValueAndType "XL-111 FORMAT-CURRENCY", value, errNo
+    Err.Clear: value = Format(-1, "0.00;[Red](0.00)"): errNo = Err.Number
+    EmitValueAndType "XL-112 FORMAT-NEG-PAREN", value, errNo
+    Err.Clear: value = Format(50, "[<100]0;[>=100]0"): errNo = Err.Number
+    EmitValueAndType "XL-113 FORMAT-COND-LOW", value, errNo
+    Err.Clear: value = Format(150, "[<100]0;[>=100]0"): errNo = Err.Number
+    EmitValueAndType "XL-114 FORMAT-COND-HIGH", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatSectionFollowupMatrix()

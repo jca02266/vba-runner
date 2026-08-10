@@ -1613,6 +1613,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-165
+    title: Format conditional color matrix
+    status: queued
+    priority: 1
+    focus: Format領域の通貨・負数括弧・条件付きセクション回帰
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
