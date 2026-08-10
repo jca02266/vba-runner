@@ -480,3 +480,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/datetime.test.ts
+  - id: FZ-COVERAGE-20260810-053
+    title: Date serial rounding boundaries
+    status: queued
+    priority: 1
+    focus: Date領域のシリアル丸め、DateValue/TimeValue、タイムゾーン表示
+    priorCauseKey: timeserial-signed-component-normalization
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/datetime.test.ts
