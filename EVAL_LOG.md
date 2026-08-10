@@ -385,6 +385,7 @@
 | EV-00480 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongLong基数の符号拡張、負数、Const・Variant・式伝播の仕様境界 |
 | EV-00481 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言時既定値、型推論、Option Explicit、未初期化変数の境界 |
 | EV-00482 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Enum・Type宣言・UDT既定値・メンバー初期化の境界 |
+| EV-00483 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | UDTのネスト・配列・可変長String初期化と値渡し境界 |
 
 ## 状態集計
 
@@ -394,12 +395,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 120 |
+| verified-no-bug | 121 |
 
-横展開未解決経路: 330、実Excel待ち評価: 0
+横展開未解決経路: 331、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-030 | 1 | queued | UDTのネスト・配列・可変長String初期化と値渡し境界 | yes |
+| FZ-COVERAGE-20260810-031 | 1 | queued | UDTのBinary Put/Get・Property・ParamArray境界 | yes |

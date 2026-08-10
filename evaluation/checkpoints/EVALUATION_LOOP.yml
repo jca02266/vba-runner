@@ -145,3 +145,8 @@ checkpoints:
     decision: "EnumとUDTの基本値・初期化・固定長文字列は仕様一致で新規バグなし。次は複合UDTのネスト・配列・可変長String境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-030
+  - afterEvaluation: EV-00483
+    audit: "382 evaluations, 0 active claims, 0 queued candidates"
+    decision: "ネストUDTとUDT配列の初期化・メンバー参照は仕様一致で新規バグなし。次はUDTのBinary Put/GetとProperty・ParamArray境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-031

@@ -263,3 +263,13 @@ items:
       - src/engine/type-system.ts
       - src/engine/evaluator.ts
       - tests/spec/binary-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-031
+    title: UDT binary and property boundaries
+    status: queued
+    priority: 1
+    focus: UDTのBinary Put/Get・Property・ParamArray境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/binary-udt-array.test.ts
