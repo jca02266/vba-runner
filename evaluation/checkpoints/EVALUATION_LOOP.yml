@@ -610,3 +610,8 @@ checkpoints:
     decision: "コレクション・Dictionaryの列挙中変更・Snapshot・Bang/キー境界は仕様一致で新規バグなし。次は外部Object列挙とライフサイクルを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-125
+  - afterEvaluation: EV-00574
+    audit: "473 evaluations, 0 active claims, 0 queued candidates"
+    decision: "コレクション・DictionaryのDictionary列挙・外部Object列挙・Bangアクセスは仕様一致で新規バグなし。次はObject要素のライフサイクルと再利用を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-126

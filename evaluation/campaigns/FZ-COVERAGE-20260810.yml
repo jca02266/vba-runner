@@ -1205,6 +1205,17 @@ items:
       - tests/spec/dictionary-bang.test.ts
       - tests/spec/with-dictionary-bang.test.ts
       - tests/spec/for-each.test.ts
+  - id: FZ-COVERAGE-20260810-126
+    title: Collection object lifecycle regression
+    status: queued
+    priority: 1
+    focus: コレクション・Dictionary領域のObject要素列挙・解放・再利用回帰
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/collection.test.ts
+      - tests/spec/for-each.test.ts
+      - tests/spec/object-lifecycle.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
