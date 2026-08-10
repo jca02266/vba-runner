@@ -367,6 +367,7 @@
 | EV-00462 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DatePart・Weekdayのfirstdayofweek/firstweekofyear年境界マトリクス |
 | EV-00463 | FZ-COVERAGE-20260810 | known-limit | 1 | WeekdayName/Weekdayの省略・Null・範囲外引数 |
 | EV-00464 | FZ-COVERAGE-20260810 | fixed | 1 | Formatの名前付き書式・Null・日付時刻境界 |
+| EV-00465 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | String/LenBのNull・Empty・文字列長境界と戻り値伝播 |
 
 ## 状態集計
 
@@ -375,9 +376,9 @@
 | fixed | 251 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 107 |
+| verified-no-bug | 108 |
 
-横展開未解決経路: 316、実Excel待ち評価: 0
+横展開未解決経路: 317、実Excel待ち評価: 0
 
 ## 次の候補
 
