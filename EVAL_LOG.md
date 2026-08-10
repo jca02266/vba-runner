@@ -438,6 +438,7 @@
 | EV-00533 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のNull伝播・引数数・エラー番号回帰 |
 | EV-00534 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDate・Financial・Format複合境界 |
 | EV-00535 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域の配列・Object既定Property・Variant強制境界 |
+| EV-00536 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のFileSystem・COMを含む組み込みObject境界 |
 
 ## 状態集計
 
@@ -447,12 +448,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 172 |
+| verified-no-bug | 173 |
 
-横展開未解決経路: 383、実Excel待ち評価: 0
+横展開未解決経路: 384、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-084 | 1 | queued | 組み込み関数領域のVariant配列・添字・既定境界回帰 | yes |
+| FZ-COVERAGE-20260810-085 | 1 | queued | Err・On Error領域のResume Next・GoTo・クラス境界 | yes |
