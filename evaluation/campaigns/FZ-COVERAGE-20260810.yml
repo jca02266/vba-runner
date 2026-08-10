@@ -618,6 +618,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case.test.ts
+  - id: FZ-COVERAGE-20260810-069
+    title: Option Compare Like unresolved boundaries
+    status: queued
+    priority: 1
+    focus: Option Compare・Like領域の非ASCII範囲、無効パターン、空クラス境界
+    priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like*.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

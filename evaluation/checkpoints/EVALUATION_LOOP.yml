@@ -345,3 +345,8 @@ checkpoints:
     decision: "Select Case Text文字列等値は仕様一致で新規バグなし。最後の回帰境界を確認して5回連続無バグを判定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-068
+  - afterEvaluation: EV-00521
+    audit: "420 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Select CaseのText比較修正後回帰は仕様一致で新規バグなし。EV-00517〜EV-00521の5回連続で新規バグがなく、次の未収束領域としてOption Compare・Likeを選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-069
