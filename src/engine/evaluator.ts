@@ -1052,6 +1052,20 @@ export class Evaluator {
             index === proc.parameters.length - 1;
     }
 
+    /**
+     * Return whether an argument is not eligible for caller writeback.
+     * Property Let/Set value parameters are effectively ByVal even when their
+     * declaration omits ByVal or explicitly says ByRef; all call boundaries
+     * must use this predicate instead of inspecting the declaration alone.
+     */
+    private isEffectiveByValParameter(
+        proc: ProcedureDeclaration,
+        index: number,
+    ): boolean {
+        return proc.parameters[index]?.isByVal === true ||
+            this.isPropertyValueParameter(proc, index);
+    }
+
     /** Bind positional values to a procedure frame for module and class calls. */
     private bindProcedureParameters(
         proc: ProcedureDeclaration,
@@ -5099,7 +5113,7 @@ export class Evaluator {
                 }
                 break;
             }
-            if (!param.isByVal && references[i]) {
+            if (!this.isEffectiveByValParameter(proc, i) && references[i]) {
                 try {
                     references[i]!.set(byRefValues[i]);
                 } catch {
@@ -5268,7 +5282,11 @@ export class Evaluator {
         // for it would evaluate member-call expressions a second time (for
         // example, TextStream.ReadLine would consume two lines).
         const references = expressions.map((expr, i) =>
-            this.argumentReference(expr ?? undefined, proc.parameters[i])
+            this.argumentReference(
+                expr ?? undefined,
+                proc.parameters[i],
+                this.isPropertyValueParameter(proc, i),
+            )
         );
         const leadingArgs = Array.from(aligned, (slot, i) => slot
             ? (references[i] ? references[i]!.get() : slot.value)
@@ -5304,7 +5322,9 @@ export class Evaluator {
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, values, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < references.length; i++) {
-            if (!proc.parameters[i].isByVal) references[i].set(byRefValues[i]);
+            if (!this.isEffectiveByValParameter(proc, i)) {
+                references[i].set(byRefValues[i]);
+            }
         }
         return result;
     }
