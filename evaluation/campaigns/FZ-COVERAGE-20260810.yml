@@ -1390,6 +1390,16 @@ items:
       - scripts/eval.mjs
       - tests/tooling/evaluation-state.test.ts
       - tests/tooling/eval-report.test.ts
+  - id: FZ-COVERAGE-20260810-143
+    title: Evaluation status classification and area report regression
+    status: queued
+    priority: 1
+    focus: 評価基盤領域の状態分類・領域別集計・Finding収束グラフ境界回帰
+    priorCauseKey: evaluation-state-history-contract
+    coverageTargets:
+      - scripts/eval-report.mjs
+      - tests/tooling/eval-report.test.ts
+      - tests/tooling/evaluation-state.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
