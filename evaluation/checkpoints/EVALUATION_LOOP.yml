@@ -745,3 +745,8 @@ checkpoints:
     decision: "XL-071〜073でCDec・CCurの32ビット符号拡張差異をBUG-00457として確定した。RC-00010の共通契約仮説を修正設計へ進める前に、既存の一致経路を回帰条件として固定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-154
+  - afterEvaluation: EV-00601
+    audit: "500 evaluations, 0 active claims, 0 queued candidates"
+    decision: "基数変換回帰マトリクスは既知BUG-00454〜00457のみを再現し、新規バグはなかった。次は4件に共通するRC-00010の修正設計と回帰実装を優先する。"
+    action: claim
+    nextCandidate: FZ-COVERAGE-20260810-154

@@ -503,7 +503,7 @@
 | EV-00598 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
 | EV-00599 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
 | EV-00600 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 |
-| EV-00601 | FZ-COVERAGE-20260810 | queued | 1 | 宣言・型・リテラル領域の基数変換符号拡張と変換先型回帰 |
+| EV-00601 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数変換符号拡張と変換先型回帰 |
 
 ## 状態集計
 
@@ -512,14 +512,13 @@
 | bug-found | 6 |
 | fixed | 257 |
 | known-limit | 4 |
-| queued | 1 |
 | retired | 1 |
-| verified-no-bug | 231 |
+| verified-no-bug | 232 |
 
-横展開未解決経路: 446、実Excel待ち評価: 0
+横展開未解決経路: 445、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-154 | 1 | queued | 宣言・型・リテラル領域の基数変換符号拡張と変換先型回帰 | yes |
+| (none) | | | | |
