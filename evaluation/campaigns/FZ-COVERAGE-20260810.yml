@@ -732,6 +732,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/*builtin*.test.ts
+  - id: FZ-COVERAGE-20260810-081
+    title: Built-in Null and error regression
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のNull伝播・引数数・エラー番号回帰
+    priorCauseKey: builtin-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
+      - tests/spec/builtin-arg-metadata.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
