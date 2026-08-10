@@ -185,3 +185,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/property.test.ts
+  - id: FZ-COVERAGE-20260810-023
+    title: Typed array and UDT argument boundaries
+    status: queued
+    priority: 1
+    focus: 配列・UDTのByRef書戻し・型境界・ネスト値渡し
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/typed-array-root-cause.test.ts

@@ -105,3 +105,8 @@ checkpoints:
     decision: "Replaceの引数境界は仕様一致し、直近5回の評価で新規バグは見つからなかった。組み込み関数以外へ範囲を広げ、Property手続きのObject/値・ByRef・配列境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-022
+  - afterEvaluation: EV-00475
+    audit: "374 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Property value-paramの実効ByVal漏れをRC-00040/ROOT-00022で修正し、独立レビュー・全回帰テストで受入れた。RCAと横展開に未解決はないため、組み込み関数以外の配列・UDTの型境界を新規評価候補として登録する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-023
