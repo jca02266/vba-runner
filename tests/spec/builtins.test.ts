@@ -494,6 +494,10 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
     assert.strictEqual(fmtDt('FormatDateTime(CDate("2024/3/15"))'), '3/15/2024', 'FormatDateTime date-only');
     assert.strictEqual(fmtDt('FormatDateTime(CDate("2024/3/15"), 2)'), '3/15/2024', 'FormatDateTime vbShortDate');
     assert.strictEqual(fmtDt('FormatDateTime(CDate("14:30:00"), 4)'), '14:30', 'FormatDateTime vbShortTime');
+    assert.strictEqual(fmtDt('Format(CDate("2026-03-15 12:34:56"), "0.00")'), '46096.52',
+        'Format(Date, numeric format) uses the date serial value');
+    assert.strictEqual(fmtDt('Format(CDate("2026-03-15 12:34:56"), "#,##0.00")'), '46,096.52',
+        'Format(Date, grouped numeric format) uses the date serial value');
     console.log('[PASS] Bug BC: FormatCurrency/FormatNumber/FormatPercent/FormatDateTime 実装');
 }
 

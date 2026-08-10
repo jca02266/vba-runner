@@ -1305,7 +1305,15 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             }
             return formatString(effectiveVal, fmt);
         }
-        if (effectiveVal instanceof VbaDate) return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, effectiveFwoy);
+        if (effectiveVal instanceof VbaDate) {
+            // A Date expression can be formatted either as a date or as its
+            // underlying serial number. Numeric-only formats use the serial
+            // value in VBA instead of the date-token formatter.
+            if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
+                return formatDate(fromVbaDate(effectiveVal.value), fmt, fdow, effectiveFwoy);
+            }
+            return formatNumber(effectiveVal.value, fmt);
+        }
         if (typeof effectiveVal === 'number') {
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) return formatDate(fromVbaDate(effectiveVal), fmt, fdow, effectiveFwoy);
             return formatNumber(effectiveVal, fmt);
