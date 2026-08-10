@@ -498,6 +498,12 @@ assert.strictEqual(evalExpr('Choose(1.6, "a", "b", "c")'), 'b',
         'Format(Date, numeric format) uses the date serial value');
     assert.strictEqual(fmtDt('Format(CDate("2026-03-15 12:34:56"), "#,##0.00")'), '46,096.52',
         'Format(Date, grouped numeric format) uses the date serial value');
+    assert.strictEqual(evalExpr('Format(-1000, "Lo;Hi")'), 'Lo',
+        'Format literal-only first section is reused for negative values');
+    assert.strictEqual(evalExpr('Format(-1000, "Lo0;Hi")'), 'Hi',
+        'Format selects the negative section when the first section has a placeholder');
+    assert.strictEqual(evalExpr('Format(-1000, "Lo;Hi0")'), 'Lo',
+        'Format does not select a negative section when the first section is literal-only');
     console.log('[PASS] Bug BC: FormatCurrency/FormatNumber/FormatPercent/FormatDateTime 実装');
 }
 

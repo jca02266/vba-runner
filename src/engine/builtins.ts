@@ -12,7 +12,7 @@ import type { ProcedureDeclaration } from './parser';
 import { findClassProperty } from './property-resolution';
 import {
     formatDate, formatNumber, formatString, formatNullSection,
-    splitFormatSections, containsDateFormatTokens, stripFormatColorDirectives,
+    splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, stripFormatColorDirectives,
 } from './format';
 import { vbaWeekNumber } from './date-week';
 
@@ -1290,11 +1290,17 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (typeof effectiveVal !== 'number') return fmt;
             const sections = splitFormatSections(fmt);
             if (sections.length < 2) return sections[0];
+            if (!hasNumericFormatTokens(sections[0])) return sections[0];
             if (effectiveVal < 0) return sections[1] || sections[0];
             if (effectiveVal === 0 && sections.length >= 3) return sections[2] || sections[0];
             return sections[0];
         })();
-        const isDatePattern = containsDateFormatTokens(datePatternSource);
+        const sectionsHaveNumericSelector = (() => {
+            const sections = splitFormatSections(fmt);
+            return sections.length > 1 && hasNumericFormatTokens(sections[0]);
+        })();
+        const isDatePattern = containsDateFormatTokens(datePatternSource) &&
+            !(sectionsHaveNumericSelector && !hasNumericFormatTokens(datePatternSource));
         if (typeof effectiveVal === 'string') {
             // If the format contains date/time symbols, try to parse the string as a date first
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {

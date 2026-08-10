@@ -195,6 +195,27 @@ export function stripFormatColorDirectives(pattern: string): string {
 }
 
 /**
+ * Whether a user-defined section contains a numeric placeholder.  VBA only
+ * applies positive/negative/zero section selection when the first section is
+ * a numeric format; a leading literal-only section is reused as text.
+ */
+export function hasNumericFormatTokens(pattern: string): boolean {
+    const clean = stripFormatColorDirectives(pattern);
+    let quoted = false;
+    for (let i = 0; i < clean.length; i++) {
+        const ch = clean[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch === '"') { quoted = !quoted; continue; }
+        if (quoted) continue;
+        if ('0#%'.includes(ch)) return true;
+        if ((ch === 'E' || ch === 'e') && i + 1 < clean.length && '+-'.includes(clean[i + 1])) {
+            if (i + 2 < clean.length && '0#'.includes(clean[i + 2])) return true;
+        }
+    }
+    return false;
+}
+
+/**
  * Determine whether a format section contains date/time tokens.
  * Quoted literals and escaped characters are display text, not tokens.
  */
@@ -246,6 +267,11 @@ export function formatNumber(n: number, pattern: string): string {
     if (sections.length === 1) {
         section = sections[0];
         autoNegSign = n < 0;
+    } else if (!hasNumericFormatTokens(sections[0])) {
+        // A literal-only first section is a string format, not a numeric
+        // positive/negative section pair. Excel reuses it for the value.
+        section = sections[0];
+        autoNegSign = false;
     } else if (sections.length === 2) {
         if (n >= 0) {
             section = sections[0]; autoNegSign = false;
