@@ -78,6 +78,7 @@ Public Sub RunExcelQueueVerification()
     VerifyPendingExcelBoundaries
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
+    VerifyRadixExplicitSignMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -101,6 +102,22 @@ Private Sub VerifyRadixConversionMatrix()
     EmitValueAndType "XL-067 CCur-64", value, errNo
     Err.Clear: value = Val("&O1777777777777777777777"): errNo = Err.Number
     EmitValueAndType "XL-067 Val-OCTAL", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyRadixExplicitSignMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CLng("+&HFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-068 CLng-PLUS", value, errNo
+    Err.Clear: value = CInt("-&H8000"): errNo = Err.Number
+    EmitValueAndType "XL-068 CInt-MINUS", value, errNo
+    Err.Clear: value = CLng("&O37777777777"): errNo = Err.Number
+    EmitValueAndType "XL-069 CLng-OCTAL", value, errNo
+    Err.Clear: value = CInt("&O77777"): errNo = Err.Number
+    EmitValueAndType "XL-069 CInt-OCTAL", value, errNo
+    Err.Clear: value = Val("&O77777777777"): errNo = Err.Number
+    EmitValueAndType "XL-070 Val-OCTAL32", value, errNo
     On Error GoTo 0
 End Sub
 

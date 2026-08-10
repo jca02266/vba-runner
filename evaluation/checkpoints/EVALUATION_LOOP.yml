@@ -730,3 +730,8 @@ checkpoints:
     decision: "独立RCAでRC-00010との関係を支持したが、変換先型別の短い桁・明示符号・八進境界が未解決である。XL-065〜067を追加した候補を作成し、実機照合へ進める。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-151
+  - afterEvaluation: EV-00598
+    audit: "497 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-065〜067でCLngLngの八進境界とValの八進符号差異をBUG-00455として確定した。RC-00010の変換先型別契約は未確定のため、修正前に明示符号・他桁幅を追加評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-152

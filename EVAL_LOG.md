@@ -500,23 +500,24 @@
 | EV-00595 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong基数リテラルのConst・フロー型・式推論メタデータ伝播 |
 | EV-00596 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格 |
 | EV-00597 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong BigIntサブタイプのByRef Variant・Property戻り値・LongPtr伝播 |
-| EV-00598 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
+| EV-00598 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
+| EV-00599 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 3 |
+| bug-found | 4 |
 | fixed | 257 |
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 231 |
 
-横展開未解決経路: 445、実Excel待ち評価: 1
+横展開未解決経路: 446、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-151 | 1 | queued | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 | yes |
+| FZ-COVERAGE-20260810-152 | 1 | queued | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 | yes |
