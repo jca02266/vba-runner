@@ -192,8 +192,23 @@ export function formatDate(d: Date, pattern: string, firstDayOfWeek: number = 1,
     };
 
     // トークン化（\x / "text" エスケープ対応、長いトークンを先に）
-    const tokenRe = /\\.|"[^"]*"|ampm|am\/pm|a\/p|ttttt|dddddd|ddddd|dddd|ddd|dd|d|yyyy|yy|mmmm|mmm|mm|m|ww|w|q|y|hh|h|nn|n|ss|s|c|[^a-zA-Z\\"]+|[a-zA-Z]/gi;
+    const tokenRe = /\\.|"[^"]*"|ampm|am\/pm|a\/p|ttttt|dddddd|ddddd|dddd|ddd|dd|d|yyyy|yy|mmmm|mmm|mm|m|ww|w|q|gg|ee|y|hh|h|nn|n|ss|s|c|g|e|[^a-zA-Z\\"]+|[a-zA-Z]/gi;
     const toks = pattern.match(tokenRe) || [];
+
+    const japaneseEra = () => {
+        const year = d.getFullYear();
+        const dateValue = d.getTime();
+        const eras = [
+            { name: 'R', start: Date.UTC(2019, 4, 1), base: 2018 },
+            { name: 'H', start: Date.UTC(1989, 0, 8), base: 1988 },
+            { name: 'S', start: Date.UTC(1926, 11, 25), base: 1925 },
+            { name: 'T', start: Date.UTC(1912, 6, 30), base: 1911 },
+            { name: 'M', start: Date.UTC(1868, 8, 8), base: 1867 },
+        ];
+        const era = eras.find(candidate => dateValue >= candidate.start) || eras[eras.length - 1];
+        return { name: era.name, year: year - era.base };
+    };
+    const era = japaneseEra();
 
     // AM/PM 指定がある場合は 12 時間制を使う
     const use12Hour = toks.some(t => /^(am\/pm|ampm|a\/p)$/i.test(t));
@@ -232,6 +247,10 @@ export function formatDate(d: Date, pattern: string, firstDayOfWeek: number = 1,
             case 'ww':     prevHour = false; return String(weekOfYear());
             case 'w':      prevHour = false; return String(((d.getDay() - (firstDayOfWeek <= 1 ? 0 : firstDayOfWeek - 1) + 7) % 7) + 1);
             case 'q':      prevHour = false; return String(Math.ceil((d.getMonth() + 1) / 3));
+            case 'g':
+            case 'gg':     prevHour = false; return era.name;
+            case 'e':      prevHour = false; return String(era.year);
+            case 'ee':     prevHour = false; return pad2(era.year);
             case 'hh':     prevHour = true;  return hourPad;
             case 'h':      prevHour = true;  return hourNoP;
             case 'nn':     prevHour = false; return mm;
@@ -289,7 +308,11 @@ export function containsDateFormatTokens(pattern: string): boolean {
         const ch = clean[i];
         if (ch === '\\') { i++; continue; }
         if (ch === '"') { quoted = !quoted; continue; }
-        if (!quoted && /[ymdhnsqcw]/i.test(ch)) return true;
+        if (!quoted && /e/i.test(ch) && i + 1 < clean.length && '+-'.includes(clean[i + 1])) {
+            i++;
+            continue;
+        }
+        if (!quoted && /[ymdhnsqcwge]/i.test(ch)) return true;
         if (!quoted && /^(?:am\/pm|a\/p|ampm|ttttt)/i.test(clean.slice(i))) return true;
     }
     return false;

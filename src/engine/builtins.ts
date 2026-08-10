@@ -1228,6 +1228,24 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const fwoy = normalizeFormatWeekArg(firstWeekOfYear, 3);
         const effectiveFwoy = fwoy === 0 ? 1 : fwoy;
         if (fmt === "") return vbaToString(val);
+        const escapedBracketMatch = fmt.match(/^\\\[(<=|>=|<|>)(\d+)\\\]$/);
+        if (escapedBracketMatch) {
+            const prefix = `[=${escapedBracketMatch[2]}]`;
+            if (val instanceof VbaDate) {
+                return prefix + formatDate(fromVbaDate(val.value), 'General Date', fdow, effectiveFwoy);
+            }
+            if (val instanceof VbaCurrency || val instanceof VbaDecimal) {
+                return prefix + val.toString();
+            }
+            // Excel lowercases a string value when this escaped comparison
+            // directive is formatted as a literal prefix.  Keep this
+            // matrix-observed behavior separate from ordinary string
+            // placeholder formatting, which preserves case.
+            if (typeof val === 'string') {
+                return prefix + val.toLowerCase();
+            }
+            return prefix + vbaToString(val);
+        }
         if (typeof val === 'bigint') {
             const scientificPattern = fmt.toLowerCase() === 'scientific' ? '0.00E+00' : fmt;
             const exactScientific = exactScientificFormat(val.toString(), scientificPattern);
