@@ -753,6 +753,16 @@ items:
       - tests/spec/date-functions.test.ts
       - tests/spec/financial.test.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-083
+    title: Built-in array and object coercion
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域の配列・Object既定Property・Variant強制境界
+    priorCauseKey: builtin-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/default-property-noncls.test.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

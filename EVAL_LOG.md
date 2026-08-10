@@ -436,6 +436,7 @@
 | EV-00531 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域の暗黙Object参照と値式の混在境界 |
 | EV-00532 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域の型変換・Null・配列・エラー境界 |
 | EV-00533 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のNull伝播・引数数・エラー番号回帰 |
+| EV-00534 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDate・Financial・Format複合境界 |
 
 ## 状態集計
 
@@ -445,12 +446,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 170 |
+| verified-no-bug | 171 |
 
-横展開未解決経路: 381、実Excel待ち評価: 0
+横展開未解決経路: 382、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-082 | 1 | queued | 組み込み関数領域のDate・Financial・Format複合境界 | yes |
+| FZ-COVERAGE-20260810-083 | 1 | queued | 組み込み関数領域の配列・Object既定Property・Variant強制境界 | yes |
