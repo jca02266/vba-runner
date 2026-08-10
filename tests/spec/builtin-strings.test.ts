@@ -71,6 +71,16 @@ function ev(expr: string): any {
     console.log('[PASS] LCase / LCase$');
 }
 
+// --- $付き文字列関数のNull戻り値型 ---
+{
+    for (const expr of ['Space$(Null)', 'LTrim$(Null)', 'RTrim$(Null)', 'Trim$(Null)', 'Left$(Null, 1)', 'String$(Null, "A")']) {
+        assert.throwsMatch(() => ev(expr), /error '94'/,
+            `${expr} はString戻り値のためNullでError 94`);
+    }
+    assert.strictEqual(ev('LTrim(" x ")'), 'x ', 'Variant版LTrimは通常どおりNull伝播契約を保持');
+    console.log('[PASS] $付き文字列関数: NullはError 94');
+}
+
 // --- Left / Left$ ---
 {
     assert.strictEqual(ev(`Left("Hello World", 5)`), 'Hello', 'Left("Hello World", 5)');
@@ -131,6 +141,7 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`Space(0)`), '', 'Space(0) = ""');
     assert.strictEqual(ev(`Space(1)`), ' ', 'Space(1) = " "');
     assert.strictEqual(ev(`Space$(5)`), '     ', 'Space$ は Space と同じ');
+    assert.throwsMatch(() => ev('Space(Null)'), /error '94'/, 'Space(Null) → Error 94');
     console.log('[PASS] Space / Space$');
 }
 

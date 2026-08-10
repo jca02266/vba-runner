@@ -1214,7 +1214,30 @@ export class Evaluator {
     /** Register a function under `name`, and also under `name$` when variants includes '$'. */
     private envSet(name: string, fn: any, variants: string[] = []) {
         this.env.set(name, fn);
-        for (const v of variants) this.env.set(name + v, fn);
+        for (const v of variants) {
+            if (v !== '$') {
+                this.env.set(name + v, fn);
+                continue;
+            }
+            // A `$` suffix promises a String return value.  Unlike the
+            // Variant form, it cannot propagate Null; VBA raises Error 94
+            // before the function result can be assigned.  Keep this rule in
+            // the shared variant registration path so every `$` builtin has
+            // the same boundary behavior.
+            const stringVariant = (...args: any[]) => {
+                if (args.some((arg) => arg === vbaNull)) {
+                    this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+                }
+                return fn(...args);
+            };
+            if (fn && (fn as any).__vbaParamSpec__) {
+                (stringVariant as any).__vbaParamSpec__ = (fn as any).__vbaParamSpec__;
+            }
+            if (fn && (fn as any).__vbaOverloads__) {
+                (stringVariant as any).__vbaOverloads__ = (fn as any).__vbaOverloads__;
+            }
+            this.env.set(name + v, stringVariant);
+        }
     }
 
     /**
@@ -9206,7 +9229,9 @@ export class Evaluator {
 
     private evaluateCallExpression(expr: CallExpression): any {
         if (expr.callee.type === 'Identifier') {
-            const name = (expr.callee as Identifier).name;
+            const identifier = expr.callee as Identifier;
+            const name = identifier.name;
+            const builtinName = identifier.typeSuffix === '$' ? `${name}$` : name;
 
             // Special handling: TypeName() and VarType() need AST-level access to check variable types
             const nameLower = name.toLowerCase();
@@ -9471,7 +9496,7 @@ export class Evaluator {
                     }
                 }
 
-                const variable = this.env.get(name);
+                const variable = this.env.get(builtinName);
                 if (expr.args.length === 0 && typeof variable !== 'function' && !Array.isArray(variable) && !(variable && variable.__isVbaDict__)) {
                     // Undeclared identifier used as a procedure call: "Mainloo" when Sub is "MainLoop"
                     if (!wasExplicitlyDeclared) {
@@ -9480,7 +9505,7 @@ export class Evaluator {
                     return variable;
                 }
                 if (typeof variable === 'function') {
-                    return this.invokeBuiltin(variable, this.resolveCallArgs(variable, expr.args, name));
+                    return this.invokeBuiltin(variable, this.resolveCallArgs(variable, expr.args, builtinName));
                 } else if (Array.isArray(variable)) {
                     this.ensureArrayNotErased(variable);
                     if (expr.args.length === 0) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');

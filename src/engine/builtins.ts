@@ -873,7 +873,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         }
     };
     const spaceFunc = (n: any) => {
-        if (n === vbaNull) return vbaNull;
+        if (n === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, "Invalid use of Null");
         return repeatChecked(' ', n);
     };
     ctx.reg('space', spaceFunc, [{ name: 'Number' }], ['$']);

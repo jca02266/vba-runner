@@ -528,6 +528,8 @@ export interface NewExpression extends Expression {
 export interface Identifier extends Expression {
     type: 'Identifier';
     name: string;
+    /** VBA type-declaration suffix written at a call/reference site. */
+    typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^' | '$';
     /** true when parsed from FOREIGN-NAME `[...]` syntax (§3.3.5.2) */
     foreign?: boolean;
 }
@@ -3255,8 +3257,15 @@ export class Parser {
         } else if (token.type === TokenType.Identifier ||
                    Parser.CONTEXTUAL_KW.has(token.type) ||
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
-            // Strip type-declaration suffix from identifier references (e.g. `n&`, `s$`).
-            expr = { type: 'Identifier', name: token.value.replace(/[$%&!#@^]$/, '') } as Identifier;
+            // Keep the suffix separately: variable/procedure identity uses the
+            // base name, while builtin call dispatch needs `name$` to select
+            // the String-returning variant.
+            const suffix = token.value.match(/[$%&!#@^]$/)?.[0] as Identifier['typeSuffix'] | undefined;
+            expr = {
+                type: 'Identifier',
+                name: token.value.replace(/[$%&!#@^]$/, ''),
+                ...(suffix ? { typeSuffix: suffix } : {}),
+            } as Identifier;
         } else if (token.type === TokenType.KeywordAddressOf) {
             const firstTok = this.advance();
             if (!this.isIdentifier(firstTok)) this.throwError(`Parse error at line ${firstTok.line}: Expected procedure name after 'AddressOf'`);
