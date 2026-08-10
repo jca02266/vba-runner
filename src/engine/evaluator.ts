@@ -3191,9 +3191,14 @@ export class Evaluator {
             return lm === rm ? 0 : (lm < rm ? -1 : 1);
         }
         if (typeof left === 'string' && typeof right === 'string' && this.getComparisonMode() === 'Text') {
-            const l = left.toLowerCase();
-            const r = right.toLowerCase();
-            return l === r ? 0 : (l < r ? -1 : 1);
+            // VBA Text comparison uses the host locale's accent-aware sort
+            // order for ranges (e.g. À belongs between A and B), not merely
+            // JavaScript's lowercase/code-unit ordering.
+            const comparison = new Intl.Collator(undefined, {
+                usage: 'search',
+                sensitivity: 'accent',
+            }).compare(left, right);
+            return comparison === 0 ? 0 : (comparison < 0 ? -1 : 1);
         }
         if (typeof left === 'bigint' || typeof right === 'bigint') {
             const exact = (value: any): bigint => {
