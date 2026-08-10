@@ -429,6 +429,7 @@
 | EV-00524 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare・Like領域の空文字クラス、不閉鎖括弧、Unicode特殊文字 |
 | EV-00525 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare・Like領域のUnicode æ/ae同値、アクセント、Locale境界 |
 | EV-00526 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare・Like領域のUnicode等値・アクセント比較回帰 |
+| EV-00527 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のProperty・ParamArray・Interface書戻し境界 |
 
 ## 状態集計
 
@@ -438,12 +439,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 163 |
+| verified-no-bug | 164 |
 
-横展開未解決経路: 374、実Excel待ち評価: 0
+横展開未解決経路: 375、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-075 | 1 | queued | 引数・ByRef・Property領域のProperty・ParamArray・Interface書戻し境界 | yes |
+| FZ-COVERAGE-20260810-076 | 1 | queued | 引数・ByRef・Property領域の配列・UDT・Object書戻し回帰 | yes |

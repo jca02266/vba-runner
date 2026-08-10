@@ -375,3 +375,8 @@ checkpoints:
     decision: "Like Unicode等値・文字クラス・否定クラスの回帰は仕様一致で新規バグなし。EV-00522〜EV-00526の5回連続で新規バグがなく、次の未収束領域として引数・ByRef・Propertyを選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-075
+  - afterEvaluation: EV-00527
+    audit: "426 evaluations, 0 active claims, 0 queued candidates"
+    decision: "引数・ByRef・PropertyのProperty・ParamArray・Interface書戻し境界は仕様一致で新規バグなし。次は配列・UDT・Object書戻し回帰を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-076
