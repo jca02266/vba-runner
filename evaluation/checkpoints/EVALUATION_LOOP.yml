@@ -595,3 +595,8 @@ checkpoints:
     decision: "オブジェクト・COMのCOM Object配列Getter・shape・FSO境界は仕様一致で新規バグなし。EV-00564〜EV-00570の5回以上連続で新規バグがなく、次の未収束領域としてコレクション・Dictionaryを選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-122
+  - afterEvaluation: EV-00571
+    audit: "470 evaluations, 0 active claims, 0 queued candidates"
+    decision: "コレクション・Dictionaryの列挙・キー・削除・Objectキー・Bangアクセスは仕様一致で新規バグなし。次は列挙中変更とSnapshot semanticsを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-123

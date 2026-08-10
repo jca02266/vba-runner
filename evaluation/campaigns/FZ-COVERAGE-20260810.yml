@@ -1174,6 +1174,16 @@ items:
       - tests/spec/collection.test.ts
       - tests/spec/collection-remove.test.ts
       - tests/spec/dictionary-object-key.test.ts
+  - id: FZ-COVERAGE-20260810-123
+    title: Collection enumeration mutation regression
+    status: queued
+    priority: 1
+    focus: コレクション・Dictionary領域の列挙中変更・Snapshot・キー強制回帰
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/collection.test.ts
+      - tests/spec/collection-remove.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
