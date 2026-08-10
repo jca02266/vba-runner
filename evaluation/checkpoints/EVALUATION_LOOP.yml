@@ -640,3 +640,8 @@ checkpoints:
     decision: "その他領域の組み込みHost関数Null・戻り値型・エラー伝播は仕様一致で新規バグなし。次はHost型強制・Object境界・Null伝播を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-131
+  - afterEvaluation: EV-00580
+    audit: "479 evaluations, 0 active claims, 0 queued candidates"
+    decision: "その他領域のHost型強制・Object境界・Null伝播は仕様一致で新規バグなし。次はHost Objectライフサイクルと既定メンバーを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-132

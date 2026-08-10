@@ -1268,8 +1268,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/com-param-coercion.test.ts
-      - tests/spec/object-lifecycle.test.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-132
+    title: Host Object lifecycle and default access regression
+    status: queued
+    priority: 1
+    focus: その他領域のHost Objectライフサイクル・既定メンバー・Null境界回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/com-param-coercion.test.ts
+      - tests/spec/default-property.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
