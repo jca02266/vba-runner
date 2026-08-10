@@ -47,11 +47,13 @@ tests\excel\queue\eval-excel.cmd
 `eval-excel.cmd`が終了後に`convert-to-utf8.ps1`でシステムコードページからBOMなしUTF-8へ変換する。
 `Debug.Print`はImmediateウィンドウにも出力するが、記録の正本は結果ファイルである。
 
-マクロは全プローブ終了後に`QUEUE_COMPLETE=True`を出力する。バッチはこの行を確認し、
-インポート対象の`.bas`、`.cls`、`.frm`をファイル名順に並べ、改行をLFへ正規化した
-ソース一式のSHA-256を
-`QUEUE_SOURCE_SHA256=<hash>`として追記する。完了行がない結果や、現在のソースと
-ハッシュが異なる結果は評価状態の更新に使用しない。
+`prepare-excel-vba.sh`は、インポート対象の`.bas`、`.cls`、`.frm`をファイル名順に
+並べ、改行をLFへ正規化したソース一式のSHA-256を計算し、その値をマクロへ埋め込んで
+から`t.xlsm`を作成する。マクロは全プローブ終了後に埋め込み値を
+`QUEUE_SOURCE_SHA256=<hash>`として出力し、その後`QUEUE_COMPLETE=True`を出力する。
+`finalize-excel-queue.ps1`は結果に含まれるハッシュを現在のソースと照合するだけで、
+実行後にハッシュを追記しない。これにより、古い`t.xlsm`の実行結果を現在のソースの
+結果として受理できない。ソースを変更した場合は必ず準備スクリプトを再実行する。
 
 ## 個別実行
 

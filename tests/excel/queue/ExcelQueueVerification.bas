@@ -1,6 +1,8 @@
 Attribute VB_Name = "ExcelQueueVerification"
 Option Explicit
 
+Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"
+
 Private Type MatrixRecord
     Values(0 To 1, 0 To 1) As Long
 End Type
@@ -80,6 +82,7 @@ Public Sub RunExcelQueueVerification()
     VerifyUdtObjectArraySet
     VerifyOpaqueShape
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
+    EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
 End Sub

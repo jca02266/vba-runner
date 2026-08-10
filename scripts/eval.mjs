@@ -259,7 +259,13 @@ function normalizedExcelSourceHash(directory = excelQueueDir) {
   const manifest = fs.readdirSync(directory)
     .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
     .sort()
-    .map((name) => `${name}\n${fs.readFileSync(path.join(directory, name), 'utf8').replace(/\r\n/g, '\n')}\n`)
+    .map((name) => {
+      const source = fs.readFileSync(path.join(directory, name), 'utf8')
+        .replace(/\r\n/g, '\n')
+        .replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
+          'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"');
+      return `${name}\n${source}\n`;
+    })
     .join('');
   return crypto.createHash('sha256').update(manifest, 'utf8').digest('hex');
 }

@@ -25,6 +25,9 @@ if ($sourceFiles.Count -eq 0) {
 $manifest = New-Object System.Text.StringBuilder
 foreach ($sourceFile in $sourceFiles) {
     $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName, $utf8).Replace("`r`n", "`n")
+    $sourceText = [regex]::Replace($sourceText,
+        '(?mi)^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$',
+        'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"')
     [void]$manifest.Append($sourceFile.Name).Append("`n").Append($sourceText).Append("`n")
 }
 $sha256 = [System.Security.Cryptography.SHA256]::Create()
@@ -34,6 +37,11 @@ try {
     $sha256.Dispose()
 }
 $hash = ([System.BitConverter]::ToString($hashBytes)).Replace('-', '').ToLowerInvariant()
-$resultText = $resultText.TrimEnd("`r", "`n") + "`nQUEUE_SOURCE_SHA256=$hash`n"
-[System.IO.File]::WriteAllText($resultPath, $resultText, $utf8)
-Write-Output "Finalized Excel queue result: $resultPath"
+$recordedHashMatch = [regex]::Match($resultText, '(?mi)^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$')
+if (-not $recordedHashMatch.Success) {
+    throw "Excel queue result is missing the embedded workbook source hash: $resultPath"
+}
+if ($recordedHashMatch.Groups[1].Value.ToLowerInvariant() -ne $hash) {
+    throw "Excel queue result source hash does not match the current source: $resultPath"
+}
+Write-Output "Verified Excel queue result: $resultPath"

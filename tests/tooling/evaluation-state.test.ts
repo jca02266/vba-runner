@@ -368,7 +368,13 @@ const readyStateBody = probeStateBody
 const normalizedSource = readdirSync(queueDirectory)
     .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
     .sort()
-    .map((name) => `${name}\n${readFileSync(`${queueDirectory}/${name}`, 'utf8').replace(/\r\n/g, '\n')}\n`)
+    .map((name) => {
+        const source = readFileSync(`${queueDirectory}/${name}`, 'utf8')
+            .replace(/\r\n/g, '\n')
+            .replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
+                'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"');
+        return `${name}\n${source}\n`;
+    })
     .join('');
 const sourceHash = createHash('sha256').update(normalizedSource, 'utf8').digest('hex');
 writeFileSync(readyState, readyStateBody);
