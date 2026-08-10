@@ -950,6 +950,16 @@ items:
       - tests/spec/on-goto.test.ts
       - tests/spec/goto-statement.test.ts
       - tests/spec/resume-statement-target.test.ts
+  - id: FZ-COVERAGE-20260810-102
+    title: Control-flow contextual label regression
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のContextual Keywordラベル・GoSub・Resume回帰
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/contextual-kw-labels-goto.test.ts
+      - tests/spec/on-goto.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

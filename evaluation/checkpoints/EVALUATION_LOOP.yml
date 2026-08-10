@@ -500,3 +500,8 @@ checkpoints:
     decision: "制御フローのGoSub/ReturnとOn Error直接複合は仕様一致で新規バグなし。次は多段GoSubとクラス境界の複合を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-101
+  - afterEvaluation: EV-00552
+    audit: "451 evaluations, 0 active claims, 0 queued candidates"
+    decision: "制御フローのラベル・Resume・GoSub・Contextual Keyword境界は仕様一致で新規バグなし。次は多段GoSub・クラス境界の継続を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-102
