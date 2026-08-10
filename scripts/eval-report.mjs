@@ -307,18 +307,31 @@ function timeSeries(records, results, findings, stateEvents) {
   const discoveredFindingIds = new Set();
   const resolvedFindingIds = new Set();
   const openFindingIds = new Set();
+  const findingAreaStates = new Map();
+  const findingAreaState = (area) => {
+    const state = findingAreaStates.get(area) ?? {
+      discovered: new Set(), resolved: new Set(), open: new Set(),
+    };
+    findingAreaStates.set(area, state);
+    return state;
+  };
   const evaluationStatuses = new Map();
   const applyFindingStatus = (evaluationId, status) => {
     const evaluation = recordsById.get(evaluationId);
     if (!evaluation || excludedFindingStatuses.has(status)) return;
+    const areaState = findingAreaState(areaFor(evaluation));
     for (const findingId of new Set(evaluation.findings ?? [])) {
       if (!findings.has(findingId)) continue;
       discoveredFindingIds.add(findingId);
+      areaState.discovered.add(findingId);
       if (resolvedFindingStatuses.has(status)) {
         openFindingIds.delete(findingId);
         resolvedFindingIds.add(findingId);
+        areaState.open.delete(findingId);
+        areaState.resolved.add(findingId);
       } else if (!resolvedFindingIds.has(findingId)) {
         openFindingIds.add(findingId);
+        if (!areaState.resolved.has(findingId)) areaState.open.add(findingId);
       }
     }
     fixed = resolvedFindingIds.size;
@@ -366,6 +379,11 @@ function timeSeries(records, results, findings, stateEvents) {
       discovered,
       fixed,
       openBugs: openFindingIds.size,
+      findingAreas: Object.fromEntries([...findingAreaStates.entries()].map(([name, state]) => [name, {
+        discovered: state.discovered.size,
+        fixed: state.resolved.size,
+        openBugs: state.open.size,
+      }])),
       pendingEvaluations: stateCounts.pending,
       nonBugEvaluations: stateCounts.nonBug,
       bugEvaluations: stateCounts.bug,
@@ -378,7 +396,8 @@ function timeSeries(records, results, findings, stateEvents) {
     return [
       'evaluations', 'bugEvaluations', 'nonBugEvaluations', 'pendingEvaluations',
       'otherEvaluations', 'discovered', 'fixed', 'openBugs',
-    ].some((key) => row[key] !== previous[key]);
+    ].some((key) => row[key] !== previous[key])
+      || JSON.stringify(row.findingAreas) !== JSON.stringify(previous.findingAreas);
   });
 }
 
@@ -479,6 +498,14 @@ function htmlCell(value) {
 function renderConvergenceChart(series) {
   const labels = JSON.stringify(series.map((row) => formatLocalDateTime(row.date)));
   const values = (field) => JSON.stringify(series.map((row) => row[field]));
+  const areaNames = [...new Set(series.flatMap((row) => Object.keys(row.findingAreas ?? {})))].sort((a, b) => a.localeCompare(b));
+  const areaOptions = JSON.stringify(areaNames.map((name) => ({ key: name, label: name })));
+  const areaSeries = JSON.stringify(Object.fromEntries(areaNames.map((name) => [name,
+    series.map((row) => row.findingAreas?.[name] ?? { discovered: 0, fixed: 0, openBugs: 0 }),
+  ])));
+  const allFindingSeries = JSON.stringify(series.map((row) => ({
+    discovered: row.discovered, fixed: row.fixed, openBugs: row.openBugs,
+  })));
   return `<div class="chart-container"><canvas id="evaluation-chart" role="img" aria-label="評価分類の累積面グラフ"></canvas>
 <script>
 const convergenceLabels = ${labels};
@@ -496,15 +523,36 @@ new Chart(document.getElementById('evaluation-chart'), {
   }
 });
 </script></div>
-<div class="chart-container"><canvas id="finding-chart" role="img" aria-label="Findingの発見・改修推移"></canvas>
+<div class="chart-container"><div class="finding-chart-controls"><label for="finding-area-select">表示領域</label><select id="finding-area-select"><option value="all">すべて</option></select></div><canvas id="finding-chart" class="finding-chart-canvas" role="img" aria-label="Findingの発見・改修推移"></canvas>
 <script>
-new Chart(document.getElementById('finding-chart'), {
+const findingAreaOptions = ${areaOptions};
+const findingAreaSeries = ${areaSeries};
+const allFindingSeries = ${allFindingSeries};
+const findingChart = new Chart(document.getElementById('finding-chart'), {
   type: 'line', data: { labels: convergenceLabels, datasets: [
     { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
     { label: '解決済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
     { label: '未解決Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
   ]},
   options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積Finding数' }, ticks: { precision: 0 } } } }
+});
+const findingAreaSelect = document.getElementById('finding-area-select');
+for (const option of findingAreaOptions) {
+  const element = document.createElement('option');
+  element.value = option.key;
+  element.textContent = option.label;
+  findingAreaSelect.appendChild(element);
+}
+findingAreaSelect.addEventListener('change', () => {
+  const key = findingAreaSelect.value;
+  const selected = key === 'all' ? allFindingSeries : findingAreaSeries[key];
+  findingChart.data.datasets[0].data = selected.map((row) => row.discovered);
+  findingChart.data.datasets[1].data = selected.map((row) => row.fixed);
+  findingChart.data.datasets[2].data = selected.map((row) => row.openBugs);
+  findingChart.options.plugins.title.text = key === 'all'
+    ? 'Finding単位のバグ収束（すべて）'
+    : 'Finding単位のバグ収束（' + key + '）';
+  findingChart.update();
 });
 </script></div>`;
 }
@@ -565,6 +613,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
 <style>
 *{box-sizing:border-box}html,body{height:100%;overflow:hidden}body{font-family:system-ui,sans-serif;line-height:1.2;font-size:14px;margin:0;padding:7px;color:#222}h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 4px}h3{font-size:14px;margin:0 0 3px}p{margin:3px 0 5px}.dashboard-header{height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px}.meta{white-space:nowrap}.tabs{display:flex;gap:3px}.tab-button{border:1px solid #aaa;background:#f3f3f3;border-radius:3px;padding:3px 8px;font:inherit;cursor:pointer}.tab-button.active{background:#2563eb;color:#fff;border-color:#2563eb}.tab-panel{display:none;height:calc(100vh - 45px);overflow:hidden}.tab-panel.active{display:block}.panel-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.85fr);gap:6px;height:100%}.two-column{display:grid;grid-template-columns:1fr 1fr;gap:6px}.panel-card{border:1px solid #d0d0d0;border-radius:3px;padding:5px;min-width:0;overflow:hidden}table{border-collapse:collapse;margin:3px 0 6px;width:100%;table-layout:auto}th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;white-space:nowrap}th{background:#eee;white-space:normal}td:not(:first-child){text-align:right}code{background:#f3f3f3;padding:.05rem .15rem}.compact-table{font-size:12px}.compact-table th,.compact-table td{padding:2px 3px}.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;height:50%;min-height:180px}.chart-container{height:calc(50% - 3px);min-height:0;margin:0 0 6px}.chart-container canvas{height:100%!important;max-height:100%;width:100%!important}.chart-row .chart-container{height:100%;margin:0}.pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:240px}.pie-grid .chart-container{height:240px;margin:0}.pie-grid .chart-container canvas{height:240px!important;max-height:240px}.recent-table{font-size:11px;table-layout:auto}.recent-table th,.recent-table td{overflow:visible;text-overflow:clip}.recent-table .recent-date{width:175px}.recent-table .recent-area{width:160px;white-space:normal}.status-grid{display:flex;flex-direction:column;gap:6px;height:100%}.status-grid .panel-card{flex:1;overflow:hidden;font-size:14px}.status-grid h2{font-size:16px}.status-grid .compact-table{font-size:14px}.status-grid p{font-size:14px}@media(max-height:700px){body{padding:5px}.dashboard-header{height:34px}.tab-panel{height:calc(100vh - 41px)}.compact-table{font-size:11px}.chart-row{height:50%;min-height:150px}.pie-grid{height:200px}.pie-grid .chart-container,.pie-grid .chart-container canvas{height:200px!important;max-height:200px}.status-grid .compact-table{font-size:12px}}
 </style>
+<style>.finding-chart-controls{height:24px;display:flex;align-items:center;gap:5px}.finding-chart-controls select{font:inherit;padding:1px 4px}.finding-chart-canvas{height:calc(100% - 24px)!important;max-height:calc(100% - 24px)!important}</style>
 </head><body><header class="dashboard-header"><h1>評価レポート</h1><p class="meta">候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs}</p><nav class="tabs" role="tablist"><button class="tab-button active" role="tab" aria-selected="true" data-tab="overview">概要</button><button class="tab-button" role="tab" aria-selected="false" data-tab="convergence">収束状況</button><button class="tab-button" role="tab" aria-selected="false" data-tab="status">状態・真因</button></nav></header>
 <section id="tab-overview" class="tab-panel active" role="tabpanel"><div class="panel-grid"><div class="panel-card"><h2>実装領域別集計</h2><table class="compact-table"><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table><h3>領域分類別集計</h3><table class="compact-table"><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table></div><div class="panel-card"><h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はデグレードを表します。</p><table class="compact-table"><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>${renderBugPieCharts(summary, findingTypes)}</div></div></section>
 <section id="tab-convergence" class="tab-panel" role="tabpanel"><div class="panel-card" style="height:100%"><h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に評価単位で集計しています。旧評価は <code>completedAt</code> または本文の評価日を使用します。表示日時はローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の指標です。</p><div class="chart-row">${renderConvergenceChart(series)}</div><h3>評価一覧（直近10件）</h3><table class="recent-table"><thead><tr><th>状態遷移日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価累積</th><th>バグ状態</th><th>非バグ状態</th><th>判定保留</th><th>その他状態</th><th>発見Finding</th><th>解決済み</th><th>未解決</th></tr></thead><tbody>${seriesRows}</tbody></table></div></section>
