@@ -645,3 +645,8 @@ checkpoints:
     decision: "その他領域のHost型強制・Object境界・Null伝播は仕様一致で新規バグなし。次はHost Objectライフサイクルと既定メンバーを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-132
+  - afterEvaluation: EV-00581
+    audit: "480 evaluations, 0 active claims, 0 queued candidates"
+    decision: "その他領域のHost Objectライフサイクル・既定メンバーは仕様一致で新規バグなし。EV-00576〜EV-00581で5回連続無バグを確認し、次の未収束領域を再選定する。"
+    action: select-area
+    nextCandidate: FZ-COVERAGE-20260810-134

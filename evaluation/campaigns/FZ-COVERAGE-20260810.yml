@@ -1280,6 +1280,29 @@ items:
       - src/engine/builtins.ts
       - tests/spec/com-param-coercion.test.ts
       - tests/spec/default-property.test.ts
+  - id: FZ-COVERAGE-20260810-133
+    title: Host Object nested lifecycle regression
+    status: retired
+    priority: 1
+    focus: その他領域のHost Object多段既定メンバー・再参照・エラー境界回帰
+    priorCauseKey: host-function-null-validation-gap
+    retirementReason: "その他領域の5回連続無バグ判定により、未収束領域を優先するため保留候補を退役"
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/default-property.test.ts
+      - tests/spec/default-property-noncls.test.ts
+      - tests/spec/com-param-coercion.test.ts
+  - id: FZ-COVERAGE-20260810-134
+    title: LSP diagnostics and symbol navigation regression
+    status: queued
+    priority: 1
+    focus: LSP・拡張機能領域の診断・定義・参照・シンボル境界回帰
+    priorCauseKey: lsp-diagnostic-navigation-contract
+    coverageTargets:
+      - src/lsp
+      - tests/lsp/server-diagnostics.test.ts
+      - tests/lsp/lsp-definition.test.ts
+      - tests/lsp/lsp-references.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
