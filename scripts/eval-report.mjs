@@ -319,9 +319,10 @@ function timeSeries(records, results, findings, stateEvents) {
   const applyFindingStatus = (evaluationId, status) => {
     const evaluation = recordsById.get(evaluationId);
     if (!evaluation || excludedFindingStatuses.has(status)) return;
+    const findingIds = [...new Set(evaluation.findings ?? [])].filter((findingId) => findings.has(findingId));
+    if (!findingIds.length) return;
     const areaState = findingAreaState(areaFor(evaluation));
-    for (const findingId of new Set(evaluation.findings ?? [])) {
-      if (!findings.has(findingId)) continue;
+    for (const findingId of findingIds) {
       discoveredFindingIds.add(findingId);
       areaState.discovered.add(findingId);
       if (resolvedFindingStatuses.has(status)) {
@@ -500,9 +501,16 @@ function renderConvergenceChart(series) {
   const values = (field) => JSON.stringify(series.map((row) => row[field]));
   const areaNames = [...new Set(series.flatMap((row) => Object.keys(row.findingAreas ?? {})))].sort((a, b) => a.localeCompare(b));
   const areaOptions = JSON.stringify(areaNames.map((name) => ({ key: name, label: name })));
-  const areaSeries = JSON.stringify(Object.fromEntries(areaNames.map((name) => [name,
-    series.map((row) => row.findingAreas?.[name] ?? { discovered: 0, fixed: 0, openBugs: 0 }),
-  ])));
+  const areaSeries = JSON.stringify(Object.fromEntries(areaNames.map((name) => {
+    // An area view is evaluated on that area's own timeline.  Global events
+    // before the area's first Finding are intentionally omitted rather than
+    // shown as a misleading run of zeroes.
+    const areaRows = series.filter((row) => row.area === name && row.findingAreas?.[name]);
+    return [name, {
+      labels: areaRows.map((row) => formatLocalDateTime(row.date)),
+      values: areaRows.map((row) => row.findingAreas[name]),
+    }];
+  })));
   const allFindingSeries = JSON.stringify(series.map((row) => ({
     discovered: row.discovered, fixed: row.fixed, openBugs: row.openBugs,
   })));
@@ -545,10 +553,13 @@ for (const option of findingAreaOptions) {
 }
 findingAreaSelect.addEventListener('change', () => {
   const key = findingAreaSelect.value;
-  const selected = key === 'all' ? allFindingSeries : findingAreaSeries[key];
-  findingChart.data.datasets[0].data = selected.map((row) => row.discovered);
-  findingChart.data.datasets[1].data = selected.map((row) => row.fixed);
-  findingChart.data.datasets[2].data = selected.map((row) => row.openBugs);
+  const selected = key === 'all'
+    ? { labels: convergenceLabels, values: allFindingSeries }
+    : findingAreaSeries[key];
+  findingChart.data.labels = selected.labels;
+  findingChart.data.datasets[0].data = selected.values.map((row) => row.discovered);
+  findingChart.data.datasets[1].data = selected.values.map((row) => row.fixed);
+  findingChart.data.datasets[2].data = selected.values.map((row) => row.openBugs);
   findingChart.options.plugins.title.text = key === 'all'
     ? 'Finding単位のバグ収束（すべて）'
     : 'Finding単位のバグ収束（' + key + '）';

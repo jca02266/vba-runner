@@ -14,6 +14,8 @@ try {
     assert.match(html, /id="finding-area-select"/);
     assert.match(html, /value="all">すべて/);
     assert.match(html, /findingAreaSeries/);
+    assert.match(html, /findingChart\.data\.labels = selected\.labels/);
+    assert.match(html, /selected\.labels/);
     assert.match(html, /findingChart\.data\.datasets\[0\]\.data/);
 } finally {
     rmSync(outputDir, { recursive: true, force: true });
