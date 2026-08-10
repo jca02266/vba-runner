@@ -700,3 +700,8 @@ checkpoints:
     decision: "評価基盤の状態分類・領域別集計・Findingグラフは仕様一致で新規バグなし。次はローカル日時・直近一覧・状態件数表を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-144
+  - afterEvaluation: EV-00592
+    audit: "491 evaluations, 0 active claims, 0 queued candidates"
+    decision: "評価基盤のローカル日時・直近一覧・状態件数表は仕様一致で新規バグなし。次は領域別Finding時系列の未実施時点省略を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-145

@@ -494,6 +494,7 @@
 | EV-00589 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域の状態イベント・候補集計・時系列レポート境界回帰 |
 | EV-00590 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域のExcel同期・needs-excel遷移・候補完了ゲート回帰 |
 | EV-00591 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域の状態分類・領域別集計・Finding収束グラフ境界回帰 |
+| EV-00592 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域のローカル日時・直近評価一覧・状態件数表境界回帰 |
 
 ## 状態集計
 
@@ -503,12 +504,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 228 |
+| verified-no-bug | 229 |
 
-横展開未解決経路: 439、実Excel待ち評価: 0
+横展開未解決経路: 440、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-144 | 1 | queued | 評価基盤領域のローカル日時・直近評価一覧・状態件数表境界回帰 |  |
+| FZ-COVERAGE-20260810-145 | 1 | queued | 評価基盤領域の領域別Finding時系列・未実施時点省略・グラフ選択回帰 |  |
