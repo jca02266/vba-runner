@@ -500,3 +500,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/datetime.test.ts
+  - id: FZ-COVERAGE-20260810-055
+    title: Date arithmetic and interval boundaries
+    status: queued
+    priority: 1
+    focus: Date領域のDateAdd/DateDiff/DatePart間隔・負数・Null境界
+    priorCauseKey: timeserial-signed-component-normalization
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/datetime.test.ts

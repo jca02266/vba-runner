@@ -275,3 +275,8 @@ checkpoints:
     decision: "DateValue/TimeValue・シリアル変換境界は仕様一致で新規バグなし。次はNow/Dateタイムゾーン、曜日・週番号境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-054
+  - afterEvaluation: EV-00507
+    audit: "406 evaluations, 0 active claims, 0 queued candidates"
+    decision: "曜日・週番号・Now/Date境界は仕様一致で新規バグなし。次はDateAdd/DateDiff/DatePartの間隔・負数・Null境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-055
