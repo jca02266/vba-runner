@@ -765,3 +765,8 @@ checkpoints:
     decision: "XL-079でCCur八進32ビット符号拡張差異をBUG-00458として確定した。基数領域の無バグ連続数をリセットし、RC-00010の未解決入口を追加評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-157
+  - afterEvaluation: EV-00604
+    audit: "503 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-080〜082でCCur・CDec・Valの八進32ビット符号拡張差異をBUG-00459〜00461として確定した。基数領域の無バグ連続数を再度リセットし、残る変換入口境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-158
