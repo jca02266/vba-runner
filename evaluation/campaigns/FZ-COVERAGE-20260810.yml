@@ -1153,15 +1153,27 @@ items:
       - tests/spec/com-array-getter-assignment.test.ts
   - id: FZ-COVERAGE-20260810-121
     title: Object external lifecycle regression
-    status: queued
+    status: retired
     priority: 1
     focus: オブジェクト・COM領域のFSO・COM Object配列・外部lifecycle回帰
     priorCauseKey: com-array-getter-boundary
+    retirementReason: "オブジェクト・COM領域の5回連続無バグ判定により、未収束領域を優先するため保留候補を退役"
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/com-array-getter-assignment.test.ts
       - tests/spec/fso-boundaries.test.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-122
+    title: Collection Dictionary convergence
+    status: queued
+    priority: 1
+    focus: コレクション・Dictionary領域の列挙・キー・削除・Object境界
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/collection.test.ts
+      - tests/spec/collection-remove.test.ts
+      - tests/spec/dictionary-object-key.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

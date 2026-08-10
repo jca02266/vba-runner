@@ -490,4 +490,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-121 | 1 | queued | オブジェクト・COM領域のFSO・COM Object配列・外部lifecycle回帰 | yes |
+| FZ-COVERAGE-20260810-122 | 1 | queued | コレクション・Dictionary領域の列挙・キー・削除・Object境界 | yes |
