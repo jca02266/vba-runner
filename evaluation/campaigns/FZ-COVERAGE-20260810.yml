@@ -301,3 +301,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray.test.ts
+  - id: FZ-COVERAGE-20260810-035
+    title: Property Optional array argument boundaries
+    status: queued
+    priority: 1
+    focus: PropertyのOptional引数・配列要素・名前付き引数の組合せ
+    priorCauseKey: property-value-parameter-effective-byval-not-propagated
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray.test.ts
