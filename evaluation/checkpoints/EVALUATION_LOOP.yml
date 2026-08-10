@@ -720,3 +720,13 @@ checkpoints:
     decision: "LongLong混在演算のVariant BigIntサブタイプ欠落を修正し、配列・ByVal・戻り値の回帰と全回帰を通過した。次はRC-00042の未検証ByRef Variant・Property戻り値・LongPtr経路を、EV-00594の実機待ちを保持したまま優先確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-150
+  - afterEvaluation: EV-00594-EXCEL-RESULT
+    audit: "496 evaluations, 0 active claims, 0 queued candidates"
+    decision: "EV-00594の実機結果でBUG-00454を確定した。次は既存RC-00010の未解決事項と今回のCLngLng・CCur・Val差異の責務境界を独立RCAで確認し、修正前に横展開範囲を確定する。"
+    action: claim
+    nextCandidate: FZ-COVERAGE-20260810-147
+  - afterEvaluation: EV-00594-RCA
+    audit: "497 evaluations, 0 active claims, 1 needs-excel, 0 queued candidates"
+    decision: "独立RCAでRC-00010との関係を支持したが、変換先型別の短い桁・明示符号・八進境界が未解決である。XL-065〜067を追加した候補を作成し、実機照合へ進める。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-151

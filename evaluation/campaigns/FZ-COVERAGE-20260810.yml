@@ -1475,6 +1475,16 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/longlong-literal-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-151
+    title: Radix conversion matrix expansion
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約
+    priorCauseKey: radix-value-width-semantics-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

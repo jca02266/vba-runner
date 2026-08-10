@@ -77,6 +77,7 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyPendingExcelBoundaries
     VerifyRadixConversionBoundaries
+    VerifyRadixConversionMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -85,6 +86,22 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixConversionMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CInt("&H80"): errNo = Err.Number
+    EmitValueAndType "XL-065 CInt-SHORT", value, errNo
+    Err.Clear: value = CInt("&HFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-065 CInt-BOUNDARY", value, errNo
+    Err.Clear: value = CLngLng("&O777777777777777777777"): errNo = Err.Number
+    EmitValueAndType "XL-066 CLngLng-OCTAL", value, errNo
+    Err.Clear: value = CCur("&HFFFFFFFFFFFFFFFF"): errNo = Err.Number
+    EmitValueAndType "XL-067 CCur-64", value, errNo
+    Err.Clear: value = Val("&O1777777777777777777777"): errNo = Err.Number
+    EmitValueAndType "XL-067 Val-OCTAL", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixConversionBoundaries()
