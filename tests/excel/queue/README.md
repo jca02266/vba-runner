@@ -7,6 +7,7 @@
 ## ファイル
 
 - `ExcelQueueVerification.bas`: XL-001〜XL-061の検証マクロ
+- `FormatMatrixVerification.bas`: FormatのASCII単文字・複合トークンマトリックス
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `ExcelQueueCallByNameTarget.cls`: XL-048で使うLet/Set片側プロパティ付きクラス
@@ -16,6 +17,7 @@
 - `verify-excel-queue-source.sh`: Windowsへ渡す前に準備スタンプを照合する検査
 - `verify-excel-queue-source.ps1`: Windows側で準備スタンプと現在のソースを照合する事前検査
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
+- `eval-format-matrix.cmd`: Formatマトリックスだけを実行する専用バッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
@@ -58,6 +60,12 @@ tests\excel\queue\eval-excel.cmd
 結果として受理できない。`eval-excel.cmd`はExcelを起動する前にスタンプと現在の
 ソースを照合するため、ソース変更後に準備を忘れた場合は明示的に停止する。ソースを
 変更した場合は必ず準備スクリプトを再実行し、`t.xlsm`とスタンプをWindowsへ渡す。
+
+Formatの仕様探索は通常の回帰出力に混ぜない。`FormatMatrixVerification.bas`の
+`RunFormatMatrixVerification`を`eval-format-matrix.cmd`から呼び出すと、ASCII印字可能文字
+と代表的な数値・負数・ゼロ・Date・Currency・String引数の組み合わせ、および複合トークン
+の組み合わせを`FormatMatrix.result`へ出力する。Format仕様が固まった後の通常評価では、
+この専用マトリックスを毎回実行しない。
 
 Windowsへ渡す前には、開発側で次を実行する。
 
