@@ -1622,6 +1622,42 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-166
+    title: Format date and time batch
+    status: queued
+    priority: 1
+    focus: Format領域の日付・時刻書式バッチ
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-167
+    title: Format scientific batch
+    status: queued
+    priority: 1
+    focus: Format領域の指数・三セクション書式バッチ
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-168
+    title: Format mixed section batch
+    status: queued
+    priority: 1
+    focus: Format領域のゼロ・通貨・条件境界バッチ
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-169
+    title: Format date name batch
+    status: queued
+    priority: 1
+    focus: Format領域の日付名・桁埋め書式バッチ
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

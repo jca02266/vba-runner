@@ -83,6 +83,12 @@ analysis; do not duplicate its taxonomy here.
    runner. Add any required `.cls`/`.frm` fixture beside that module, and
    reference the source files in the record's `tests`. A scratch-only probe is
    not a valid Excel queue entry.
+   Accumulate up to five candidates in the same evaluation area before
+   requesting Windows execution. Add all of their probes to the queue,
+   prepare one workbook, and run `eval-excel.cmd` once. Then reconcile each
+   candidate from the single result in separate evaluation updates. Do not
+   create a separate Windows handoff merely to satisfy the five-no-bug
+   convergence counter.
    When the queue source changes, build/import `t.xlsm` on the non-Windows
    development side with vba-extractor before handing it to Windows. The
    preparation command also writes `t.xlsm.source.sha256`; copy that stamp

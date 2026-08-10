@@ -132,6 +132,8 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 `needs-excel`への遷移やWindows依頼を行わない。
 実機結果を反映したら、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed`へ遷移する。
+同じ領域の実機候補は最大5件までまとめて登録・準備し、Windowsの`eval-excel.cmd`を
+1回だけ実行する。結果ファイルから各EVを個別に照合・遷移する。
 
 バグを再現し、横展開調査を終えたら、修正を始める前に真因分析サブエージェントを
 起動する。症状の最小再現、関連ソース、横展開結果だけを渡し、次を独立に報告させる。

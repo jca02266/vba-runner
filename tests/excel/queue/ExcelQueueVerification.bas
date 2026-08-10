@@ -91,6 +91,10 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixPositiveHexBoundaryMatrix
     VerifyFormatSectionFollowupMatrix
     VerifyFormatConditionalColorMatrix
+    VerifyFormatDateTimeMatrix
+    VerifyFormatScientificMatrix
+    VerifyFormatMixedSectionMatrix
+    VerifyFormatDateNameMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -99,6 +103,62 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFormatDateNameMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(DateSerial(2026, 12, 31), "dddd"): errNo = Err.Number
+    EmitValueAndType "XL-127 FORMAT-DAY-NAME", value, errNo
+    Err.Clear: value = Format(DateSerial(2026, 12, 31), "mmmm"): errNo = Err.Number
+    EmitValueAndType "XL-128 FORMAT-MONTH-NAME", value, errNo
+    Err.Clear: value = Format(1.234, "0.0#"): errNo = Err.Number
+    EmitValueAndType "XL-129 FORMAT-OPTIONAL-DIGIT", value, errNo
+    Err.Clear: value = Format(1.2, "000.00"): errNo = Err.Number
+    EmitValueAndType "XL-130 FORMAT-ZERO-PAD", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyFormatDateTimeMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(DateSerial(2026, 3, 15), "yyyy-mm-dd"): errNo = Err.Number
+    EmitValueAndType "XL-115 FORMAT-DATE-ISO", value, errNo
+    Err.Clear: value = Format(TimeSerial(12, 34, 56), "hh:nn:ss"): errNo = Err.Number
+    EmitValueAndType "XL-116 FORMAT-TIME", value, errNo
+    Err.Clear: value = Format(DateSerial(2026, 3, 15), "mmm d, yyyy"): errNo = Err.Number
+    EmitValueAndType "XL-117 FORMAT-DATE-LONG", value, errNo
+    Err.Clear: value = Format(TimeSerial(0, 0, 0), "h:mm AM/PM"): errNo = Err.Number
+    EmitValueAndType "XL-118 FORMAT-TIME-MIDNIGHT", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyFormatScientificMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(12345.6, "0.00E+00"): errNo = Err.Number
+    EmitValueAndType "XL-119 FORMAT-SCI", value, errNo
+    Err.Clear: value = Format(0.0012, "0.0E+00"): errNo = Err.Number
+    EmitValueAndType "XL-120 FORMAT-SCI-SMALL", value, errNo
+    Err.Clear: value = Format(12.5, "0.00;[Red](0.00);zero"): errNo = Err.Number
+    EmitValueAndType "XL-121 FORMAT-THREE-SECTION", value, errNo
+    Err.Clear: value = Format(-12.5, "0.00;[Red](0.00);zero"): errNo = Err.Number
+    EmitValueAndType "XL-122 FORMAT-THREE-NEG", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyFormatMixedSectionMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(0, "#,##0;(#,##0);-"): errNo = Err.Number
+    EmitValueAndType "XL-123 FORMAT-ZERO-DASH", value, errNo
+    Err.Clear: value = Format(-1234.5, "$#,##0.00;($#,##0.00)"): errNo = Err.Number
+    EmitValueAndType "XL-124 FORMAT-CURRENCY-NEG", value, errNo
+    Err.Clear: value = Format(0.25, "0%;(0%);-"): errNo = Err.Number
+    EmitValueAndType "XL-125 FORMAT-PERCENT-SECTION", value, errNo
+    Err.Clear: value = Format(1000, "[<=1000]Low;[>1000]High"): errNo = Err.Number
+    EmitValueAndType "XL-126 FORMAT-COND-EDGE", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatConditionalColorMatrix()

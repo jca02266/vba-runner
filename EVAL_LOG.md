@@ -515,6 +515,10 @@
 | EV-00610 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の正の16進変換境界回帰 |
 | EV-00611 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の数値セクション・色指定・ゼロセクション回帰 |
 | EV-00612 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域の通貨・負数括弧・条件付きセクション回帰 |
+| EV-00613 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域の日付・時刻書式バッチ |
+| EV-00614 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域の指数・三セクション書式バッチ |
+| EV-00615 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域のゼロ・通貨・条件境界バッチ |
+| EV-00616 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域の日付名・桁埋め書式バッチ |
 
 ## 状態集計
 
@@ -523,14 +527,18 @@
 | bug-found | 9 |
 | fixed | 257 |
 | known-limit | 4 |
-| needs-excel | 1 |
+| needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 239 |
 
-横展開未解決経路: 446、実Excel待ち評価: 1
+横展開未解決経路: 450、実Excel待ち評価: 5
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
 | FZ-COVERAGE-20260810-165 | 1 | queued | Format領域の通貨・負数括弧・条件付きセクション回帰 | yes |
+| FZ-COVERAGE-20260810-166 | 1 | queued | Format領域の日付・時刻書式バッチ | yes |
+| FZ-COVERAGE-20260810-167 | 1 | queued | Format領域の指数・三セクション書式バッチ | yes |
+| FZ-COVERAGE-20260810-168 | 1 | queued | Format領域のゼロ・通貨・条件境界バッチ | yes |
+| FZ-COVERAGE-20260810-169 | 1 | queued | Format領域の日付名・桁埋め書式バッチ | yes |
