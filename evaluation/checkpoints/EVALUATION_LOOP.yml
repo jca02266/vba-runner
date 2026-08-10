@@ -705,3 +705,8 @@ checkpoints:
     decision: "ユーザー指定の優先順位に従い、未確定のRC-00041/RC-00010に直結するLongLong・基数リテラル境界を最優先で再開する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-146
+  - afterEvaluation: EV-00593
+    audit: "492 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LongLong基数リテラルの精度損失と64ビット符号拡張欠落を修正した。RC-00041の未確定範囲のうち、次はRC-00010に直結する文字列基数変換の幅・符号契約を優先評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-147

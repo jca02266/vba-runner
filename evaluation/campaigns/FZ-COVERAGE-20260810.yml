@@ -1432,6 +1432,18 @@ items:
       - tests/spec/longlong-literal-boundaries.test.ts
       - tests/spec/number_literals.test.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-147
+    title: Radix conversion width and sign contract
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCInt・CLng・CLngLng・CDec・CCur・Val基数変換の幅・符号境界
+    priorCauseKey: radix-value-width-semantics-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - src/engine/parser.ts
+      - tests/spec/builtins.test.ts
+      - tests/spec/number_literals.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
