@@ -380,20 +380,22 @@
 | EV-00475 | FZ-COVERAGE-20260810 | fixed | 1 | クラスProperty Let/Set/GetのByRef・配列・Object/値分類境界 |
 | EV-00476 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDTのByRef書戻し・型境界・ネスト値渡し |
 | EV-00477 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フローのExit For/Do・ネスト・継続境界 |
+| EV-00478 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラルの型接尾辞・既定値・16進8進境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 254 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 117 |
 
-横展開未解決経路: 323、実Excel待ち評価: 0
+横展開未解決経路: 325、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-026 | 1 | queued | LongLongの16進・8進符号規則、負数・Const・Variant・式伝播の正確な整数境界 | yes |

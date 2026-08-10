@@ -212,3 +212,14 @@ items:
       - src/engine/parser.ts
       - src/engine/coerce.ts
       - tests/spec/identifier-type-suffix.test.ts
+  - id: FZ-COVERAGE-20260810-026
+    title: LongLong radix and propagation boundaries
+    status: queued
+    priority: 1
+    focus: LongLongの16進・8進符号規則、負数・Const・Variant・式伝播の正確な整数境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+      - tests/spec/identifier-type-suffix.test.ts

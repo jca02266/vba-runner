@@ -120,3 +120,8 @@ checkpoints:
     decision: "制御フローのExit For/Doとネスト・条件境界は仕様一致で新規バグなし。直近2回の非組み込み評価が連続無バグとなったため、次は宣言・型・リテラルの低カバレッジ境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-025
+  - afterEvaluation: EV-00478
+    audit: "377 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LongLong十進範囲外と基数リテラル精度のバグをBUG-00449として記録した。RC-00041は独立レビューで仮説の説明力は認められたが、基数符号規則・Const/Variant/式伝播・変換入口の責務が未確定のため、修正タスクは起こさず追跡候補を先に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-026
