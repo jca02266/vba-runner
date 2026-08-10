@@ -980,6 +980,17 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/on-goto.test.ts
       - tests/spec/recursive-error-handling.test.ts
+  - id: FZ-COVERAGE-20260810-105
+    title: Parser lexer boundary expansion
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域の継続行・予約語・数値・文字列境界
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/engine/lexer-line-continuation.test.ts
+      - tests/spec/vba_compile_error.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
