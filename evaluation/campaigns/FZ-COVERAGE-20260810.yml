@@ -1226,6 +1226,17 @@ items:
       - src/engine/builtins.ts
       - tests/spec/registry.test.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-128
+    title: Host shell and environment boundary regression
+    status: queued
+    priority: 1
+    focus: その他領域のShell・環境変数・Interaction境界回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/shell.test.ts
+      - tests/spec/flow-environment.test.ts
+      - tests/spec/interaction.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

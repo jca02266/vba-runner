@@ -478,6 +478,7 @@
 | EV-00573 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | コレクション・Dictionary領域のFor Each中変更・削除・Snapshot回帰 |
 | EV-00574 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | コレクション・Dictionary領域のDictionary列挙・外部Object列挙・Bang回帰 |
 | EV-00575 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | コレクション・Dictionary領域のObject要素列挙・解放・再利用回帰 |
+| EV-00576 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のHost環境・Registry・Shell境界回帰 |
 
 ## 状態集計
 
@@ -487,12 +488,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 212 |
+| verified-no-bug | 213 |
 
-横展開未解決経路: 423、実Excel待ち評価: 0
+横展開未解決経路: 424、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-127 | 1 | queued | その他領域のHost環境・Registry・Shell境界回帰 | yes |
+| FZ-COVERAGE-20260810-128 | 1 | queued | その他領域のShell・環境変数・Interaction境界回帰 | yes |

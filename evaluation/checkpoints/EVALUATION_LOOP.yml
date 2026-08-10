@@ -620,3 +620,8 @@ checkpoints:
     decision: "コレクション・Dictionary領域でEV-00571〜EV-00575の5回連続無バグを確認したため収束扱いとし、未収束のその他領域（Host環境・Registry・Shell）を選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-127
+  - afterEvaluation: EV-00576
+    audit: "475 evaluations, 0 active claims, 0 queued candidates"
+    decision: "その他領域のRegistry・組み込みHost境界は仕様一致で新規バグなし。次はShell・環境変数・Interaction境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-128
