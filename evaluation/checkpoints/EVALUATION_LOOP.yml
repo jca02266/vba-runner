@@ -270,3 +270,8 @@ checkpoints:
     decision: "DateSerial/TimeSerial通常値・負数・繰り上げは仕様一致で新規バグなし。次はシリアル丸め・DateValue/TimeValue・表示境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-053
+  - afterEvaluation: EV-00506
+    audit: "405 evaluations, 0 active claims, 0 queued candidates"
+    decision: "DateValue/TimeValue・シリアル変換境界は仕様一致で新規バグなし。次はNow/Dateタイムゾーン、曜日・週番号境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-054
