@@ -233,3 +233,13 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/identifier-type-suffix.test.ts
+  - id: FZ-COVERAGE-20260810-028
+    title: Declaration default and inference boundaries
+    status: queued
+    priority: 1
+    focus: 宣言時既定値、型推論、Option Explicit、未初期化変数の境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/type-system.ts
+      - tests/spec/option-explicit.test.ts
