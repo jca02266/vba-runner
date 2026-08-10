@@ -763,6 +763,16 @@ items:
       - src/engine/builtins.ts
       - tests/spec/default-property-noncls.test.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-084
+    title: Built-in Variant array regression
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のVariant配列・添字・既定境界回帰
+    priorCauseKey: builtin-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/array-functions.test.ts
+      - tests/spec/array-subscript-bounds.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
