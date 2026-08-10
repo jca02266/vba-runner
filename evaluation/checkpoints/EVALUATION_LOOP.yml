@@ -590,3 +590,8 @@ checkpoints:
     decision: "オブジェクト・COMのCollection・Dictionary・COM配列・FSO境界は仕様一致で新規バグなし。次はCOM Object配列の多段GetterとFSO lifecycleを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-120
+  - afterEvaluation: EV-00570
+    audit: "469 evaluations, 0 active claims, 0 queued candidates"
+    decision: "オブジェクト・COMのCOM Object配列Getter・shape・FSO境界は仕様一致で新規バグなし。次は外部COM lifecycleの実環境差を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-121
