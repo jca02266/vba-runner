@@ -200,3 +200,8 @@ checkpoints:
     decision: "多次元動的配列のReDim Preserveと境界取得は仕様一致で新規バグなし。次は多次元UDT配列のBinary Put/Getと固定長String複合境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-039
+  - afterEvaluation: EV-00492
+    audit: "391 evaluations, 0 active claims, 0 queued candidates"
+    decision: "多次元UDT配列のBinary Put/Getと固定長String保持は仕様一致で新規バグなし。次は可変長Stringを含むUDT配列のBinary境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-040

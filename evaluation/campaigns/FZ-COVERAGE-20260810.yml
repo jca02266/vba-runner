@@ -350,3 +350,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/type-system.ts
       - tests/spec/binary-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-040
+    title: Variable-string UDT array boundaries
+    status: queued
+    priority: 1
+    focus: 配列・UDT領域の可変長Stringを含むUDT配列Binary境界
+    priorCauseKey: typed-array-writeback-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/binary-udt-array.test.ts

@@ -394,6 +394,7 @@
 | EV-00489 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property既定値・CallByName・名前付きByRef引数の複合境界 |
 | EV-00490 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDT領域の動的配列、ReDim Preserve、UDT配列要素ByRef境界 |
 | EV-00491 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDT領域の多次元配列、LBound/UBound、ReDim Preserve境界 |
+| EV-00492 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDT領域の多次元UDT配列、Binary Put/Get、固定長String複合境界 |
 
 ## 状態集計
 
@@ -403,12 +404,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 129 |
+| verified-no-bug | 130 |
 
-横展開未解決経路: 339、実Excel待ち評価: 0
+横展開未解決経路: 340、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-039 | 1 | queued | 配列・UDT領域の多次元UDT配列、Binary Put/Get、固定長String複合境界 | yes |
+| FZ-COVERAGE-20260810-040 | 1 | queued | 配列・UDT領域の可変長Stringを含むUDT配列Binary境界 | yes |
