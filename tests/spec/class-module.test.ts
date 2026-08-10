@@ -864,7 +864,7 @@ End Function
     console.log('[PASS] Bug 132-A: Property SetのByRef書き戻し');
 }
 
-// Bug 139-A: Property Let の ByRef value 引数を呼出元へ書き戻す
+// Bug 139-A: Property Let の value 引数は宣言がByRefでも呼出元へ書き戻さない
 {
     const ev = evalVBAModules([
         { name: 'LetLedger', code: `
@@ -902,9 +902,9 @@ Function TestPropertyLetByRef() As String
 End Function
 ` },
     ]);
-    assert.strictEqual(ev.callProcedure('TestPropertyLetByRef', []), 'GREEN|RED|INVALID|GREEN,RED,INVALID',
-        'Property LetのByRef value引数を書き戻す');
-    console.log('[PASS] Bug 139-A: Property LetのByRef書き戻し');
+    assert.strictEqual(ev.callProcedure('TestPropertyLetByRef', []), ' green | red |  |GREEN,RED,INVALID',
+        'Property Letの最終value引数は宣言がByRefでも呼出し元へ書き戻さない');
+    console.log('[PASS] Bug 139-A: Property LetのByRef value書き戻し抑止');
 }
 
 // Bug 141-A: With内の添字付きProperty Letも右辺へ書き戻す
