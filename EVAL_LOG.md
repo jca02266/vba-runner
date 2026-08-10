@@ -460,6 +460,7 @@
 | EV-00555 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フロー領域のReturnスタック・クラス呼出し・エラーハンドラー復帰回帰 |
 | EV-00556 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の継続行・予約語・数値・文字列境界 |
 | EV-00557 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域のコメント・文字列・数値トークン境界回帰 |
+| EV-00558 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域のUnicode識別子・Contextual Keyword・診断回帰 |
 
 ## 状態集計
 
@@ -469,12 +470,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 194 |
+| verified-no-bug | 195 |
 
-横展開未解決経路: 405、実Excel待ち評価: 0
+横展開未解決経路: 406、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-107 | 1 | queued | Parser・Lexer領域のUnicode識別子・Contextual Keyword・診断回帰 |  |
+| FZ-COVERAGE-20260810-108 | 1 | queued | Parser・Lexer領域のUnicode文字列・StrConv・文字コード境界回帰 |  |
