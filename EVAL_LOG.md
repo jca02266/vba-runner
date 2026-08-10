@@ -425,6 +425,7 @@
 | EV-00520 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域のOption Compare Text文字列等値・大小比較 |
 | EV-00521 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域のText比較修正後回帰・Case Else境界 |
 | EV-00522 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare・Like領域の非ASCII範囲、無効パターン、空クラス境界 |
+| EV-00523 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare・Like領域の無効パターン、降順範囲、空文字クラスError 93境界 |
 
 ## 状態集計
 
@@ -434,12 +435,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 159 |
+| verified-no-bug | 160 |
 
-横展開未解決経路: 370、実Excel待ち評価: 0
+横展開未解決経路: 371、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-070 | 1 | queued | Option Compare・Like領域の無効パターン、降順範囲、空文字クラスError 93境界 | yes |
+| FZ-COVERAGE-20260810-071 | 1 | queued | Option Compare・Like領域の空文字クラス、不閉鎖括弧、Unicode特殊文字 | yes |
