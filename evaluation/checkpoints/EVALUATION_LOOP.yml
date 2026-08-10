@@ -320,3 +320,8 @@ checkpoints:
     decision: "Select Caseの基本値・範囲・精度境界は仕様一致で新規バグなし。次はOption Compare Textの非ASCII文字範囲・大小比較を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-063
+  - afterEvaluation: EV-00516
+    audit: "415 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Option Compare Textの非ASCII範囲バグをBUG-00451として修正し、全回帰テスト369+14件が通過した。修正後のLocale横展開を5回連続無バグで確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-064

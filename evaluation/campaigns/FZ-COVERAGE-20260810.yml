@@ -573,6 +573,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case.test.ts
+  - id: FZ-COVERAGE-20260810-064
+    title: Select Case locale horizontal expansion
+    status: queued
+    priority: 1
+    focus: Select Case領域の複数Locale・アクセント・否定範囲比較の横展開
+    priorCauseKey: vba-text-comparison-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case-nonascii.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

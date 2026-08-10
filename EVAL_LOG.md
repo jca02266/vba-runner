@@ -418,14 +418,14 @@
 | EV-00513 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定・条件付き書式の実Excel出力 |
 | EV-00514 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の条件・色セクション後の通常出力回帰境界 |
 | EV-00515 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域のDecimal/LongLong/文字列範囲・Option Compare境界 |
-| EV-00516 | FZ-COVERAGE-20260810 | bug-found | 1 | Select Case領域のOption Compare Text、非ASCII文字範囲・大小比較 |
+| EV-00516 | FZ-COVERAGE-20260810 | fixed | 1 | Select Case領域のOption Compare Text、非ASCII文字範囲・大小比較 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
-| fixed | 255 |
+| bug-found | 1 |
+| fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 153 |
@@ -436,4 +436,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-064 | 1 | queued | Select Case領域の複数Locale・アクセント・否定範囲比較の横展開 | yes |
