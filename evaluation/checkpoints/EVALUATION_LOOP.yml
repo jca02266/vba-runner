@@ -790,3 +790,8 @@ checkpoints:
     decision: "XL-095〜098は全件一致で新規バグなし。基数領域の連続無バグ数は3回となり、次の未検証変換入口を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-162
+  - afterEvaluation: EV-00609
+    audit: "508 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-099〜102は全件一致で新規バグなし。基数領域の連続無バグ数は4回となり、最後の独立境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-163
