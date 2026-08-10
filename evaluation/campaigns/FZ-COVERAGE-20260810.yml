@@ -537,3 +537,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-059
+    title: Format date and locale boundaries
+    status: queued
+    priority: 1
+    focus: Format領域の日付・時刻・Locale依存書式と色指定境界
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

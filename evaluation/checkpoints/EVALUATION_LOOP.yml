@@ -295,3 +295,8 @@ checkpoints:
     decision: "Format基本の数値・日付・Null・セクション選択は仕様一致で新規バグなし。次は色指定・条件付き書式・複数セクション境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-058
+  - afterEvaluation: EV-00511
+    audit: "410 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Format複数セクション・条件選択は仕様一致で新規バグなし。次は日付・時刻・Locale依存書式と色指定境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-059
