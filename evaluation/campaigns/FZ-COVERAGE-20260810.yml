@@ -991,6 +991,17 @@ items:
       - src/lexer
       - tests/engine/lexer-line-continuation.test.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: FZ-COVERAGE-20260810-106
+    title: Parser lexer token boundary regression
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域のコメント・文字列・数値トークン境界回帰
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/engine/lexer-line-continuation.test.ts
+      - tests/spec/number_literals.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
