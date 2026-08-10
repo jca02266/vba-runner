@@ -90,3 +90,8 @@ checkpoints:
     decision: "InStr/InStrBの境界マトリクスは仕様一致だった。次はUTF-16LEバイト単位のLeftB/RightB/MidB境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-019
+  - afterEvaluation: EV-00472
+    audit: "371 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LeftB/RightB/MidBのUTF-16LEバイト境界は仕様一致だった。次はAsc/AscW/AscBの文字コード境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-020

@@ -160,3 +160,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-020
+    title: Asc family character boundaries
+    status: queued
+    priority: 1
+    focus: Asc・AscW・AscBの空文字・Null・Unicode・境界値
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
