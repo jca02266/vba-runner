@@ -95,6 +95,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFormatScientificMatrix
     VerifyFormatMixedSectionMatrix
     VerifyFormatDateNameMatrix
+    VerifyFormatBracketAndSectionMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -103,6 +104,33 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFormatBracketAndSectionMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+
+    Err.Clear: value = Format(1000, "[abc]"): errNo = Err.Number
+    EmitValueAndType "XL-131 FORMAT-BRACKET-ABC", value, errNo
+    Err.Clear: value = Format(1000, "[123]"): errNo = Err.Number
+    EmitValueAndType "XL-132 FORMAT-BRACKET-NUMERIC", value, errNo
+    Err.Clear: value = Format(1000, "[<=1000]"): errNo = Err.Number
+    EmitValueAndType "XL-133 FORMAT-BRACKET-COMPARISON", value, errNo
+    Err.Clear: value = Format(1000, "\[<=1000\]"): errNo = Err.Number
+    EmitValueAndType "XL-134 FORMAT-BRACKET-ESCAPED", value, errNo
+    Err.Clear: value = Format(1000, """[<=1000]"""): errNo = Err.Number
+    EmitValueAndType "XL-135 FORMAT-BRACKET-QUOTED", value, errNo
+
+    Err.Clear: value = Format(-1000, "Lo;Hi"): errNo = Err.Number
+    EmitValueAndType "XL-136 FORMAT-NEG-NOPLACEHOLDER", value, errNo
+    Err.Clear: value = Format(-1000, "Lo0;Hi"): errNo = Err.Number
+    EmitValueAndType "XL-137 FORMAT-NEG-FIRST-PLACEHOLDER", value, errNo
+    Err.Clear: value = Format(1000, "Lo;Hi"): errNo = Err.Number
+    EmitValueAndType "XL-138 FORMAT-POS-NOPLACEHOLDER", value, errNo
+    Err.Clear: value = Format(1000, "Lo0;Hi"): errNo = Err.Number
+    EmitValueAndType "XL-139 FORMAT-POS-FIRST-PLACEHOLDER", value, errNo
+
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatDateNameMatrix()
