@@ -481,6 +481,7 @@
 | EV-00576 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のHost環境・Registry・Shell境界回帰 |
 | EV-00577 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のShell・環境変数・Interaction境界回帰 |
 | EV-00578 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域のHost型推論・環境伝播・Shell戻り値境界回帰 |
+| EV-00579 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | その他領域の組み込みHost関数Null・戻り値型・エラー伝播回帰 |
 
 ## 状態集計
 
@@ -490,12 +491,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 215 |
+| verified-no-bug | 216 |
 
-横展開未解決経路: 426、実Excel待ち評価: 0
+横展開未解決経路: 427、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-130 | 1 | queued | その他領域の組み込みHost関数Null・戻り値型・エラー伝播回帰 | yes |
+| FZ-COVERAGE-20260810-131 | 1 | queued | その他領域のHost型強制・Object境界・Null伝播回帰 | yes |

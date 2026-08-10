@@ -1259,6 +1259,17 @@ items:
       - tests/spec/builtins.test.ts
       - tests/spec/builtin-strings.test.ts
       - tests/spec/nonfinite-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-131
+    title: Host coercion and object boundary regression
+    status: queued
+    priority: 1
+    focus: その他領域のHost型強制・Object境界・Null伝播回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/com-param-coercion.test.ts
+      - tests/spec/object-lifecycle.test.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
