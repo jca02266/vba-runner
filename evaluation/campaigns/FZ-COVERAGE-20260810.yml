@@ -834,6 +834,17 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/literal*.test.ts
       - tests/spec/declaration*.test.ts
+  - id: FZ-COVERAGE-20260810-091
+    title: Declaration type environment regression
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域の型環境・Enum・UDT・TypeName回帰
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/type-environment.test.ts
+      - tests/spec/enum.test.ts
+      - tests/spec/udt-type.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

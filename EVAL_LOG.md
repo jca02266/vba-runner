@@ -444,6 +444,7 @@
 | EV-00539 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Err・On Error領域のイベント・コールバック・スタックトレース境界 |
 | EV-00540 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Err・On Error領域のColon・Block・Resume制御フロー回帰 |
 | EV-00541 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Err・On Error領域のResume・Nothing・未初期化Object境界 |
+| EV-00542 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の整数型・型サフィックス・基数リテラル境界 |
 
 ## 状態集計
 
@@ -453,12 +454,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 178 |
+| verified-no-bug | 179 |
 
-横展開未解決経路: 389、実Excel待ち評価: 0
+横展開未解決経路: 390、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-090 | 1 | queued | 宣言・型・リテラル領域の整数型・型サフィックス・基数リテラル境界 | yes |
+| FZ-COVERAGE-20260810-091 | 1 | queued | 宣言・型・リテラル領域の型環境・Enum・UDT・TypeName回帰 | yes |

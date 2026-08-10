@@ -450,3 +450,8 @@ checkpoints:
     decision: "Err・On ErrorのNothing・未初期化Object・Resume境界は仕様一致で新規バグなし。EV-00537〜EV-00541の5回連続で新規バグがなく、次の未収束領域として宣言・型・リテラルを選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-090
+  - afterEvaluation: EV-00542
+    audit: "441 evaluations, 0 active claims, 0 queued candidates"
+    decision: "宣言・型・リテラルの基本リテラル・型サフィックス・Enum・UDT境界は仕様一致で新規バグなし。次は型環境・Option Explicit・予約語の複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-091
