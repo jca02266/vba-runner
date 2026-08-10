@@ -180,3 +180,8 @@ checkpoints:
     decision: "Property Optional・名前付きByRef binderの横展開は仕様一致で新規バグなし。最後の連続確認としてProperty既定値・CallByNameの複合境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-036
+  - afterEvaluation: EV-00489
+    audit: "388 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Property既定値とCallByNameの複合境界は仕様一致で新規バグなし。EV-00485〜EV-00489の5回連続で新規バグがなく、未収束領域の今回の評価ループを終了する。"
+    action: stop
+    reason: five-consecutive-no-bug

@@ -391,6 +391,7 @@
 | EV-00486 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property引数のParamArray・配列要素ByRef・Optional組合せ |
 | EV-00487 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property引数と配列要素ByRef・Optional引数の複合境界 |
 | EV-00488 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | PropertyのOptional引数・配列要素・名前付き引数の組合せ |
+| EV-00489 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property既定値・CallByName・名前付きByRef引数の複合境界 |
 
 ## 状態集計
 
@@ -400,12 +401,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 126 |
+| verified-no-bug | 127 |
 
-横展開未解決経路: 336、実Excel待ち評価: 0
+横展開未解決経路: 337、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-036 | 1 | queued | Property既定値・CallByName・名前付きByRef引数の複合境界 | yes |
+| (none) | | | | |
