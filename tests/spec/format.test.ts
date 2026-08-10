@@ -100,6 +100,17 @@ assert.strictEqual(evNum.callProcedure('TestThousands', []), '1,234,567', 'Forma
 
 console.log('[PASS] Format 数値: 零埋め・# プレースホルダー・パーセント・千の位');
 
+// --- Null入力の4番目の数値書式セクション ---
+const nullSectionCode = String.raw`
+    Function TestNullSection()
+        TestNullSection = Format(Null, "0.00;;;""NULL""")
+    End Function
+`;
+const evNullSection = evalVBASingle(nullSectionCode);
+assert.strictEqual(evNullSection.callProcedure('TestNullSection', []), 'NULL',
+    'Format(Null, "0.00;;;""NULL""") は第4セクションを適用');
+console.log('[PASS] Format Null: 第4セクション');
+
 // --- 数値フォーマット: リテラル文字・複数セクション・科学記数法 ---
 const numCode2 = `
     Function TestLiteralPrefix()

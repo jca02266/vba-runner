@@ -10,7 +10,7 @@ import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNu
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { findClassProperty } from './property-resolution';
-import { formatDate, formatNumber, formatString, stripFormatColorDirectives } from './format';
+import { formatDate, formatNumber, formatString, formatNullSection, stripFormatColorDirectives } from './format';
 import { vbaWeekNumber } from './date-week';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
@@ -1212,9 +1212,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     const formatFunc = (val: any, pattern?: any, firstDayOfWeek?: any, firstWeekOfYear?: any) => {
         val = unwrapVbaDefaultValue(val);
-        if (val === null || val === vbaNull || val === vbaEmpty) return "";
         if (pattern === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const fmt = pattern && pattern !== vbaMissing ? vbaToString(pattern) : "";
+        if (val === vbaNull) {
+            const nullSection = formatNullSection(fmt);
+            return nullSection === undefined ? "" : nullSection;
+        }
+        if (val === null || val === vbaEmpty) return "";
         const fdow = normalizeFormatWeekArg(firstDayOfWeek, 7);
         const fwoy = normalizeFormatWeekArg(firstWeekOfYear, 3);
         const effectiveFwoy = fwoy === 0 ? 1 : fwoy;

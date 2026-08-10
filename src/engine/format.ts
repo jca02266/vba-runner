@@ -253,6 +253,21 @@ export function formatNumber(n: number, pattern: string): string {
     return formatNumberSection(Math.abs(n), section, autoNegSign);
 }
 
+/**
+ * Format the fourth (Null) section of a user-defined numeric format.
+ *
+ * Null is not a numeric zero: selecting the fourth section must happen
+ * before numeric section selection.  The section renderer is nevertheless
+ * shared so quoted literals, escapes, and digit placeholders retain the
+ * normal Format behavior.
+ */
+export function formatNullSection(pattern: string): string | undefined {
+    const sections = splitFormatSections(stripFormatColorDirectives(pattern));
+    if (sections.length < 4) return undefined;
+    const section = sections[3] === '' ? sections[0] : sections[3];
+    return formatNumberSection(0, section, false);
+}
+
 // 1セクション分の数値書式化（\x / "text" / リテラル文字 / E+E- 対応）
 function formatNumberSection(absN: number, section: string, addNegSign: boolean): string {
     type Tok = { k: 'lit'; v: string } | { k: 'fmt'; v: string };
