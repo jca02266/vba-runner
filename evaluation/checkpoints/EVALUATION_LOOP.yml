@@ -315,3 +315,8 @@ checkpoints:
     decision: "Format条件・色セクション後の通常出力回帰は仕様一致で新規バグなし。EV-00510〜EV-00514の5回連続で新規バグがなく、次の未収束領域としてSelect Case（未解決8件）を選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-061
+  - afterEvaluation: EV-00515
+    audit: "414 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Select Caseの基本値・範囲・精度境界は仕様一致で新規バグなし。次はOption Compare Textの非ASCII文字範囲・大小比較を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-063

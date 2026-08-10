@@ -564,6 +564,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case*.test.ts
+  - id: FZ-COVERAGE-20260810-063
+    title: Select Case non-ASCII comparison boundaries
+    status: queued
+    priority: 1
+    focus: Select Case領域のOption Compare Text、非ASCII文字範囲・大小比較
+    priorCauseKey: vba-text-comparison-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
