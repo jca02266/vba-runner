@@ -609,6 +609,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case-nonascii.test.ts
+  - id: FZ-COVERAGE-20260810-068
+    title: Select Case final comparison regression
+    status: queued
+    priority: 1
+    focus: Select Case領域のText比較修正後回帰・Case Else境界
+    priorCauseKey: vba-text-comparison-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
