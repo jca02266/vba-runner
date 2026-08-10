@@ -450,3 +450,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/mock/MockFileSystem.ts
       - tests/spec/fso-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-050
+    title: TextStream append and encoding boundaries
+    status: queued
+    priority: 1
+    focus: ファイルI/O・FSO領域のTextStream Append・文字コード指定・複数回書込み
+    priorCauseKey: virtual-filesystem-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/mock/MockFileSystem.ts
+      - tests/spec/fso-boundaries.test.ts

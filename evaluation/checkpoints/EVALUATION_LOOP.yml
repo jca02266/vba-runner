@@ -250,3 +250,8 @@ checkpoints:
     decision: "Lock/Width・Seek/Loc/EOF・Binary Put/Get境界は仕様一致で新規バグなし。次はTextStream Unicode/ANSI・改行・EOF境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-049
+  - afterEvaluation: EV-00502
+    audit: "401 evaluations, 0 active claims, 0 queued candidates"
+    decision: "TextStream Unicode/改行/ReadAllは実Excel既知結果と一致し新規バグなし。次はAppend・文字コード指定・複数回書込みを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-050
