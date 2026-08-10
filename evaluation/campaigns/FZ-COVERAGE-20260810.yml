@@ -703,6 +703,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-assignment.test.ts
       - tests/spec/property-value-param-byval.test.ts
+  - id: FZ-COVERAGE-20260810-078
+    title: Property Set object dispatch regression
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty Set・Interface・Object再代入回帰
+    priorCauseKey: vba-object-reference-value-classification
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interface-property-assignment.test.ts
+      - tests/spec/byref-reference-preservation.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
