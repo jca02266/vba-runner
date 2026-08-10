@@ -580,3 +580,8 @@ checkpoints:
     decision: "オブジェクト・COMのCOM引数・多段Default Property・Property配列/ByRefは仕様一致で新規バグなし。次はCOM Object配列と外部ライフサイクルを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-118
+  - afterEvaluation: EV-00568
+    audit: "467 evaluations, 0 active claims, 0 queued candidates"
+    decision: "オブジェクト・COMのCOM引数・Default Property・Collection境界は仕様一致で新規バグなし。次はDictionary・COM外部ライフサイクルを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-119

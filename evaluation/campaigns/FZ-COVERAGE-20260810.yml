@@ -1131,6 +1131,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/default-property.test.ts
       - tests/spec/default-property-noncls.test.ts
+  - id: FZ-COVERAGE-20260810-119
+    title: Object collection and COM lifecycle
+    status: queued
+    priority: 1
+    focus: オブジェクト・COM領域のCollection・Dictionary・COMライフサイクル回帰
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/collection.test.ts
+      - tests/spec/com-param-coercion.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
