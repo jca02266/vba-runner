@@ -1575,6 +1575,16 @@ items:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-161
+    title: Radix currency decimal sign matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCCur・CDec明示符号分離回帰
+    priorCauseKey: radix-value-width-semantics-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
