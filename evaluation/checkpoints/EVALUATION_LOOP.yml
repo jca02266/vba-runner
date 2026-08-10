@@ -557,6 +557,6 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-112
   - afterEvaluation: EV-00563
     audit: "462 evaluations, 0 active claims, 0 queued candidates"
-    decision: "Parser・LexerのDeclare・修飾型・欠落参照診断は仕様一致で新規バグなし。次は複数モジュールの不正外部参照連鎖を確認する。"
+    decision: "Parser・LexerのDeclare・修飾型・欠落参照診断は仕様一致で新規バグなし。EV-00556〜EV-00563で5回以上連続して新規バグがなく、次の未収束領域としてオブジェクト・COMを選定する。"
     action: create-candidate
-    nextCandidate: FZ-COVERAGE-20260810-113
+    nextCandidate: FZ-COVERAGE-20260810-114

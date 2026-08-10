@@ -1070,15 +1070,27 @@ items:
       - tests/spec/module-qualified-type.test.ts
   - id: FZ-COVERAGE-20260810-113
     title: Parser missing reference diagnostics
-    status: queued
+    status: retired
     priority: 1
     focus: Parser・Lexer領域の不正型・欠落モジュール・未定義手続き診断回帰
     priorCauseKey: lexer-invalid-number-literal-validation
+    retirementReason: "Parser・Lexer領域の5回連続無バグ判定により、未収束領域を優先するため保留候補を退役"
     coverageTargets:
       - src/parser
       - src/lexer
       - tests/spec/vba_compile_error.test.ts
       - tests/spec/undefined-proc-error.test.ts
+  - id: FZ-COVERAGE-20260810-114
+    title: Object and COM boundary expansion
+    status: queued
+    priority: 1
+    focus: オブジェクト・COM領域のObject参照・IDispatch・Mock境界
+    priorCauseKey: object-argument-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-param-coercion.test.ts
+      - tests/spec/idispatch-property-dispatch.test.ts
+      - tests/spec/default-property-noncls.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

@@ -483,4 +483,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-113 | 1 | queued | Parser・Lexer領域の不正型・欠落モジュール・未定義手続き診断回帰 |  |
+| FZ-COVERAGE-20260810-114 | 1 | queued | オブジェクト・COM領域のObject参照・IDispatch・Mock境界 | yes |
