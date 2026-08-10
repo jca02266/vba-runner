@@ -1380,6 +1380,16 @@ items:
       - scripts/eval-report.mjs
       - tests/tooling/evaluation-state.test.ts
       - tests/tooling/eval-report.test.ts
+  - id: FZ-COVERAGE-20260810-142
+    title: Evaluation Excel synchronization and status transition regression
+    status: queued
+    priority: 1
+    focus: 評価基盤領域のExcel同期・needs-excel遷移・候補完了ゲート回帰
+    priorCauseKey: evaluation-state-history-contract
+    coverageTargets:
+      - scripts/eval.mjs
+      - tests/tooling/evaluation-state.test.ts
+      - tests/tooling/eval-report.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
