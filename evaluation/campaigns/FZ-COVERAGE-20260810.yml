@@ -1419,6 +1419,19 @@ items:
     coverageTargets:
       - scripts/eval-report.mjs
       - tests/tooling/eval-report.test.ts
+  - id: FZ-COVERAGE-20260810-146
+    title: LongLong radix width and propagation regression
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong基数リテラル・符号拡張・Const/Variant伝播回帰
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/longlong-literal-boundaries.test.ts
+      - tests/spec/number_literals.test.ts
+      - tests/spec/builtins.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

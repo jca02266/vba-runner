@@ -549,6 +549,8 @@ export interface NumberLiteral extends Expression {
     value: number;
     /** Exact decimal digits for integer literals whose value exceeds JS precision. */
     rawIntegerText?: string;
+    /** Exact source radix for integer literals whose value exceeds JS precision. */
+    rawIntegerBase?: 8 | 16;
     /** VBA type declaration suffix: % Integer, & Long, ! Single, # Double, @ Currency, ^ LongLong */
     typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^';
     /** true when the literal was written with a decimal point or exponent (e.g. 1.0, 1E5) */
@@ -3239,14 +3241,16 @@ export class Parser {
             }
         }
         let rawIntegerText: string | undefined;
+        let rawIntegerBase: NumberLiteral['rawIntegerBase'];
         if (typeSuffix === '^') {
             if (/^\d+$/.test(cleanVal)) rawIntegerText = cleanVal;
             else if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
                 // Keep radix LongLong literals exact; Number loses digits above 2^53.
                 rawIntegerText = BigInt(cleanVal).toString();
+                rawIntegerBase = cleanVal.startsWith('0x') ? 16 : 8;
             }
         }
-        return { type: 'NumberLiteral', value: parsedValue, rawIntegerText, typeSuffix, isFloat, baseWidth };
+        return { type: 'NumberLiteral', value: parsedValue, rawIntegerText, rawIntegerBase, typeSuffix, isFloat, baseWidth };
     }
 
     private parsePrimary(stopBeforeSpacedLParen: boolean = false): Expression {

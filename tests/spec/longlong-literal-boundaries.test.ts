@@ -16,6 +16,18 @@ Public Function Minimum() As String
     Minimum = CStr(-9223372036854775808^)
 End Function
 
+Public Function HexMinimum() As String
+    HexMinimum = CStr(&H8000000000000000^)
+End Function
+
+Public Function HexMinusOne() As String
+    HexMinusOne = CStr(&HFFFFFFFFFFFFFFFF^)
+End Function
+
+Public Function OctMinusOne() As String
+    OctMinusOne = CStr(&O1777777777777777777777^)
+End Function
+
 Public Function OverflowPositive() As Long
     On Error Resume Next
     Dim value As Variant
@@ -34,6 +46,9 @@ End Function
 assert.equal(ev.callProcedure('ExactHex', []), '9007199254740993');
 assert.equal(ev.callProcedure('ExactOct', []), '4611686018427387905');
 assert.equal(ev.callProcedure('Minimum', []), '-9223372036854775808');
+assert.equal(ev.callProcedure('HexMinimum', []), '-9223372036854775808');
+assert.equal(ev.callProcedure('HexMinusOne', []), '-1');
+assert.equal(ev.callProcedure('OctMinusOne', []), '-1');
 assert.equal(ev.callProcedure('OverflowPositive', []), 6);
 assert.equal(ev.callProcedure('OverflowNegative', []), 6);
 

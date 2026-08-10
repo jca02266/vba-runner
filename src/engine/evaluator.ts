@@ -8640,7 +8640,7 @@ export class Evaluator {
                 if (!Number.isFinite(lit.value)) {
                     this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                 }
-                return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix, lit.rawIntegerText);
+                return this.applyLiteralTypeSuffix(lit.value, lit.typeSuffix, lit.rawIntegerText, lit.rawIntegerBase);
             }
             case 'StringLiteral':
                 return (expr as StringLiteral).value;
@@ -8917,7 +8917,7 @@ export class Evaluator {
      * - Long if it's a whole number in Long range
      * - Double otherwise (or if it has a fractional part)
      */
-    private applyLiteralTypeSuffix(val: number, suffix: NumberLiteral['typeSuffix'], rawIntegerText?: string): any {
+    private applyLiteralTypeSuffix(val: number, suffix: NumberLiteral['typeSuffix'], rawIntegerText?: string, rawIntegerBase?: NumberLiteral['rawIntegerBase']): any {
         switch (suffix) {
             case '%': {
                 const n = this.vbaRound(val, 0);
@@ -8941,7 +8941,13 @@ export class Evaluator {
                 // Preserve the source digits before JavaScript Number loses
                 // precision, then let declared-type coercion validate the range.
                 {
-                    const n = rawIntegerText !== undefined ? BigInt(rawIntegerText) : BigInt(this.vbaRound(val, 0));
+                    let n = rawIntegerText !== undefined ? BigInt(rawIntegerText) : BigInt(this.vbaRound(val, 0));
+                    // Hex/octal LongLong literals are unsigned bit patterns at
+                    // parse time.  Interpret the high bit as a signed 64-bit
+                    // value before applying the LongLong range contract.
+                    if (rawIntegerBase !== undefined && n >= 0x8000000000000000n) {
+                        n -= 0x10000000000000000n;
+                    }
                     if (n < -9223372036854775808n || n > 9223372036854775807n) {
                         this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
                     }

@@ -701,6 +701,7 @@ checkpoints:
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-144
   - afterEvaluation: EV-00592
-    audit: "491 evaluations, 0 active claims, 0 queued candidates"
-    decision: "評価基盤領域でEV-00588〜EV-00592の5回連続無バグを確認した。対象領域（言語仕様・LSP・評価基盤を含む）の各最新5件もすべて無バグであり、今回の評価ループを終了する。"
-    action: stop
+    audit: "491 evaluations, 0 active claims, 1 queued candidate"
+    decision: "ユーザー指定の優先順位に従い、未確定のRC-00041/RC-00010に直結するLongLong・基数リテラル境界を最優先で再開する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-146
