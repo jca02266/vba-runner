@@ -474,6 +474,7 @@
 | EV-00569 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のCollection・Dictionary・COMライフサイクル回帰 |
 | EV-00570 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のDictionary・Collection・COM配列形状回帰 |
 | EV-00571 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | コレクション・Dictionary領域の列挙・キー・削除・Object境界 |
+| EV-00572 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | コレクション・Dictionary領域の列挙中変更・Snapshot・キー強制回帰 |
 
 ## 状態集計
 
@@ -483,12 +484,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 208 |
+| verified-no-bug | 209 |
 
-横展開未解決経路: 419、実Excel待ち評価: 0
+横展開未解決経路: 420、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-123 | 1 | queued | コレクション・Dictionary領域の列挙中変更・Snapshot・キー強制回帰 | yes |
+| FZ-COVERAGE-20260810-124 | 1 | queued | コレクション・Dictionary領域のFor Each中変更・削除・追加Snapshot回帰 | yes |
