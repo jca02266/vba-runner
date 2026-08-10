@@ -405,3 +405,8 @@ checkpoints:
     decision: "組み込み関数の型変換・Null・配列・引数境界は仕様一致で新規バグなし。次はNull伝播・引数数・エラー番号の横展開を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-081
+  - afterEvaluation: EV-00533
+    audit: "432 evaluations, 0 active claims, 0 queued candidates"
+    decision: "組み込み関数のNull伝播・引数数・エラー番号は仕様一致で新規バグなし。次はDate・Financial・Format複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-082
