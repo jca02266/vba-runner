@@ -205,3 +205,8 @@ checkpoints:
     decision: "多次元UDT配列のBinary Put/Getと固定長String保持は仕様一致で新規バグなし。次は可変長Stringを含むUDT配列のBinary境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-040
+  - afterEvaluation: EV-00493
+    audit: "392 evaluations, 0 active claims, 0 queued candidates"
+    decision: "可変長Stringを含むUDTのBinary Put結果は実Excel XL-008と一致し新規バグなし。次は同形式のGet復元とRandomアクセス境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-041

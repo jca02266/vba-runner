@@ -360,3 +360,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/type-system.ts
       - tests/spec/binary-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-041
+    title: Variable-string UDT binary readback
+    status: queued
+    priority: 1
+    focus: 配列・UDT領域の可変長String UDT配列のGet復元・Randomアクセス境界
+    priorCauseKey: typed-array-writeback-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-system.ts
+      - tests/spec/binary-udt-array.test.ts
