@@ -502,13 +502,17 @@ function renderConvergenceChart(series) {
   const areaNames = [...new Set(series.flatMap((row) => Object.keys(row.findingAreas ?? {})))].sort((a, b) => a.localeCompare(b));
   const areaOptions = JSON.stringify(areaNames.map((name) => ({ key: name, label: name })));
   const areaSeries = JSON.stringify(Object.fromEntries(areaNames.map((name) => {
-    // An area view is evaluated on that area's own timeline.  Global events
-    // before the area's first Finding are intentionally omitted rather than
-    // shown as a misleading run of zeroes.
-    const areaRows = series.filter((row) => row.area === name && row.findingAreas?.[name]);
+    // An area view is evaluated on that area's own timeline.  Keep every
+    // evaluation performed in the selected area, including no-bug checks
+    // before its first Finding; omit events from all other areas entirely.
+    const areaRows = series.filter((row) => row.area === name);
     return [name, {
       labels: areaRows.map((row) => formatLocalDateTime(row.date)),
-      values: areaRows.map((row) => row.findingAreas[name]),
+      values: areaRows.map((row) => row.findingAreas?.[name] ?? {
+        discovered: 0,
+        fixed: 0,
+        openBugs: 0,
+      }),
     }];
   })));
   const allFindingSeries = JSON.stringify(series.map((row) => ({
