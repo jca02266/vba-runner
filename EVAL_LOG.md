@@ -398,6 +398,7 @@
 | EV-00493 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDT領域の可変長Stringを含むUDT配列Binary境界 |
 | EV-00494 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDT領域の可変長String UDT配列のGet復元・Randomアクセス境界 |
 | EV-00495 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域の丸め、整数境界、Decimal/Currency/Double相互変換 |
+| EV-00496 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域のDouble丸め、2^53境界、Decimal/Currency表示変換 |
 
 ## 状態集計
 
@@ -407,12 +408,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 133 |
+| verified-no-bug | 134 |
 
-横展開未解決経路: 343、実Excel待ち評価: 0
+横展開未解決経路: 344、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-043 | 1 | queued | 数値精度領域のDouble丸め、2^53境界、Decimal/Currency表示変換 | yes |
+| FZ-COVERAGE-20260810-044 | 1 | queued | 数値精度領域のDouble負数最小・指数・Currency/Decimal表示変換 | yes |

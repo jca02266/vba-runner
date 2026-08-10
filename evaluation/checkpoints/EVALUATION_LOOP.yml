@@ -220,3 +220,8 @@ checkpoints:
     decision: "Currency/Decimal高精度演算と型変換は仕様一致で新規バグなし。次はDoubleの2^53境界とDecimal/Currency表示変換を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-043
+  - afterEvaluation: EV-00496
+    audit: "395 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Doubleの2^53丸めと同値判定は仕様一致で新規バグなし。次はDouble極値・指数とCurrency/Decimal表示変換を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-044
