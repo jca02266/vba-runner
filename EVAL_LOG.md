@@ -469,6 +469,7 @@
 | EV-00564 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のObject参照・IDispatch・Mock境界 |
 | EV-00565 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のCallByName・IDispatch・Property遅延解決回帰 |
 | EV-00566 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のCallByName・Interface・ParamArray dispatch回帰 |
+| EV-00567 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | オブジェクト・COM領域のProperty Set/Let・配列・ByRef混在回帰 |
 
 ## 状態集計
 
@@ -478,12 +479,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 203 |
+| verified-no-bug | 204 |
 
-横展開未解決経路: 414、実Excel待ち評価: 0
+横展開未解決経路: 415、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-117 | 1 | queued | オブジェクト・COM領域のProperty Set/Let・配列・ByRef混在回帰 | yes |
+| FZ-COVERAGE-20260810-118 | 1 | queued | オブジェクト・COM領域の多段Default Property・Collection・Dictionary回帰 | yes |
