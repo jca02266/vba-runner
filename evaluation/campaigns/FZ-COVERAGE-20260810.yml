@@ -400,3 +400,13 @@ items:
       - src/engine/coerce.ts
       - src/engine/evaluator.ts
       - tests/spec/decimal-precision.test.ts
+  - id: FZ-COVERAGE-20260810-045
+    title: Numeric rounding and comparison boundaries
+    status: queued
+    priority: 1
+    focus: 数値精度領域の銀行丸め、負数丸め、Decimal/Currency比較境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/currency-bigint.test.ts
