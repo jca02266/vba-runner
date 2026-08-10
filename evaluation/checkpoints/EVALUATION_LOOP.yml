@@ -115,3 +115,8 @@ checkpoints:
     decision: "配列・UDTのByRef、ReDim、ネスト値渡し、型不一致は仕様一致で新規バグなし。未解決のProperty/ParamArray等を優先候補化する前に、制御フローの低カバレッジなExit For/Do境界を独立評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-024
+  - afterEvaluation: EV-00477
+    audit: "376 evaluations, 0 active claims, 0 queued candidates"
+    decision: "制御フローのExit For/Doとネスト・条件境界は仕様一致で新規バグなし。直近2回の非組み込み評価が連続無バグとなったため、次は宣言・型・リテラルの低カバレッジ境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-025

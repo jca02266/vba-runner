@@ -203,3 +203,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/for-loop.test.ts
+  - id: FZ-COVERAGE-20260810-025
+    title: Declaration and literal coercion boundaries
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラルの型接尾辞・既定値・16進8進境界
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/coerce.ts
+      - tests/spec/identifier-type-suffix.test.ts
