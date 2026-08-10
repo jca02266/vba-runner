@@ -226,6 +226,9 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 同時に`t.xlsm.source.sha256`を作成するので、`t.xlsm`と同じ場所へコピーする。
 Windows側の`eval-excel.cmd`はExcel起動前にこのスタンプと現在のVBAソースを照合し、
 準備漏れがあれば停止する。
+Windowsへ依頼する前に開発側でも同じスタンプ照合を実行する。照合が成功した場合だけ、
+プローブ未作成の`needs-excel-probe`を実機結果待ちの`needs-excel`へ遷移させ、評価記録と
+準備済みブックを同じ変更として扱う。
 生成された`t.xlsm`をWindowsへ渡し、Windows側の`eval-excel.cmd`は準備済みブックを
 Excelで開き、指定Procを実行し、結果をUTF-8へ変換するだけとする。Windows側にNode環境を
 要求せず、ソース更新ごとに準備コマンドを再実行してから実機へ渡す。

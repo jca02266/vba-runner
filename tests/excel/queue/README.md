@@ -13,6 +13,7 @@
 - `ExcelQueueForcedByVal.cls`、`ExcelQueueForcedByValInterface.cls`: XL-059のClass／Interface呼出し引数検証
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `prepare-excel-vba.sh`: 開発側で`t.xlsm`を作成し、VBAをインポートするコマンド
+- `verify-excel-queue-source.sh`: Windowsへ渡す前に準備スタンプを照合する検査
 - `verify-excel-queue-source.ps1`: Windows側で準備スタンプと現在のソースを照合する事前検査
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
@@ -57,6 +58,14 @@ tests\excel\queue\eval-excel.cmd
 結果として受理できない。`eval-excel.cmd`はExcelを起動する前にスタンプと現在の
 ソースを照合するため、ソース変更後に準備を忘れた場合は明示的に停止する。ソースを
 変更した場合は必ず準備スクリプトを再実行し、`t.xlsm`とスタンプをWindowsへ渡す。
+
+Windowsへ渡す前には、開発側で次を実行する。
+
+```bash
+tests/excel/queue/verify-excel-queue-source.sh
+```
+
+この検査が成功した場合だけ、評価を`needs-excel-probe`から`needs-excel`へ遷移させる。
 
 ## 個別実行
 

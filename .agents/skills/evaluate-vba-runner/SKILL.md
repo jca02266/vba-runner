@@ -88,6 +88,11 @@ analysis; do not duplicate its taxonomy here.
    preparation command also writes `t.xlsm.source.sha256`; copy that stamp
    beside the workbook. Windows `eval-excel.cmd` verifies the stamp before
    opening Excel and stops if the source changed without rebuilding.
+   Before handing the files to Windows, run
+   `tests/excel/queue/verify-excel-queue-source.sh` to compare the stamp with
+   the current source hash. Only after that check succeeds may
+   an evaluation move from `needs-excel-probe` to `needs-excel`; record that
+   status change in the same update as the prepared workbook.
    Windows `eval-excel.cmd` path must only open the prepared workbook, run the
    requested macro, and convert the result; it must not require Node or invoke
    vba-extractor. Rebuild the workbook whenever a queued `.bas`, `.cls`, or
