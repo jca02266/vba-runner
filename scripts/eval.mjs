@@ -20,6 +20,7 @@ const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
 const excelQueueDir = path.join(root, 'tests', 'excel', 'queue');
 const excelQueueSource = path.join(excelQueueDir, 'ExcelQueueVerification.bas');
 const excelQueueResult = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.result');
+const excelQueuePreparationStamp = path.join(excelQueueDir, 't.xlsm.source.sha256');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'needs-excel-probe', 'retired',
@@ -280,7 +281,11 @@ function excelQueueState(data) {
   const sourceIds = excelIds(sourceText);
   const missingSourceIds = requiredIds.filter((id) => !sourceIds.has(id));
   if (missingSourceIds.length > 0) {
-    return { requiredState: 'needs-excel-probe', requiredIds, missingSourceIds, missingResultIds: [], complete: false, hashMatches: false, resultReady: false };
+    return {
+      requiredState: 'needs-excel-probe', requiredIds, missingSourceIds,
+      missingResultIds: [], complete: false, hashMatches: false,
+      preparationStamp: null, preparationStampMatches: false, resultReady: false,
+    };
   }
 
   const resultText = fs.existsSync(excelQueueResult) ? fs.readFileSync(excelQueueResult, 'utf8') : '';
@@ -291,6 +296,13 @@ function excelQueueState(data) {
   const complete = /^QUEUE_COMPLETE=True\s*$/m.test(resultText);
   const recordedHash = resultText.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
   const sourceHash = fs.existsSync(excelQueueSource) ? normalizedExcelSourceHash() : null;
+  const preparationStamp = fs.existsSync(excelQueuePreparationStamp)
+    ? fs.readFileSync(excelQueuePreparationStamp, 'utf8').trim().toLowerCase()
+    : null;
+  const preparationStampMatches = Boolean(
+    sourceHash && preparationStamp && /^[0-9a-f]{64}$/.test(preparationStamp)
+      && preparationStamp === sourceHash,
+  );
   const hashMatches = Boolean(recordedHash && sourceHash && recordedHash === sourceHash);
   const resultReady = complete && hashMatches && missingResultIds.length === 0;
   return {
@@ -301,6 +313,8 @@ function excelQueueState(data) {
     complete,
     hashMatches,
     sourceHash,
+    preparationStamp,
+    preparationStampMatches,
     recordedHash: recordedHash ?? null,
     resultReady,
   };
@@ -411,6 +425,10 @@ function validate(records = readRecords()) {
       }
       if (queue.requiredState !== data.status) {
         throw new Error(`${file}: Excel queue requires ${queue.requiredState}, not ${data.status}`);
+      }
+      if (data.status === 'needs-excel' && queue.preparationStamp !== null
+          && !queue.preparationStampMatches) {
+        throw new Error(`${file}: Excel preparation stamp is stale; rerun prepare-excel-vba.sh`);
       }
     }
   }

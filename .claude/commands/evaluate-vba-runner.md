@@ -127,7 +127,9 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 実機結果の反映待ちである。必要なXL番号はfrontmatterの`excelProbeIds`へ列挙する。
 評価ループは未解決境界をすべて覆うプローブを追加した後に`eval excel-sync`を実行し、
 その判定が`needs-excel`になった同じ変更で状態を更新する。`eval audit` は状態を推測して
-変更しない。
+変更しない。`eval excel-sync`は実機結果のハッシュに加えて、準備スタンプと現在ソースの
+一致も報告する。スタンプが不一致の場合は`prepare-excel-vba.sh`を再実行するまで
+`needs-excel`への遷移やWindows依頼を行わない。
 実機結果を反映したら、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed`へ遷移する。
 
