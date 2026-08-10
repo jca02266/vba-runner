@@ -1604,6 +1604,15 @@ items:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-164
+    title: Format section follow-up matrix
+    status: queued
+    priority: 1
+    focus: Format領域の数値セクション・色指定・ゼロセクション回帰
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

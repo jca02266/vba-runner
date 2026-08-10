@@ -512,7 +512,8 @@
 | EV-00607 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val明示符号基数回帰 |
 | EV-00608 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCCur・CDec明示符号分離回帰 |
 | EV-00609 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のVal符号付き基数走査回帰 |
-| EV-00610 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域の正の16進変換境界回帰 |
+| EV-00610 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の正の16進変換境界回帰 |
+| EV-00611 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format領域の数値セクション・色指定・ゼロセクション回帰 |
 
 ## 状態集計
 
@@ -523,7 +524,7 @@
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 237 |
+| verified-no-bug | 238 |
 
 横展開未解決経路: 446、実Excel待ち評価: 1
 
@@ -531,4 +532,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-163 | 1 | queued | 宣言・型・リテラル領域の正の16進変換境界回帰 | yes |
+| FZ-COVERAGE-20260810-164 | 1 | queued | Format領域の数値セクション・色指定・ゼロセクション回帰 | yes |

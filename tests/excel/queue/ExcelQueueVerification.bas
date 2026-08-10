@@ -89,6 +89,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixCurrencyDecimalSignMatrix
     VerifyRadixValSignedScanMatrix
     VerifyRadixPositiveHexBoundaryMatrix
+    VerifyFormatSectionFollowupMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -97,6 +98,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFormatSectionFollowupMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Format(1234.5, "#,##0.00"): errNo = Err.Number
+    EmitValueAndType "XL-107 FORMAT-GROUP", value, errNo
+    Err.Clear: value = Format(-12.5, "0.00;[Red]-0.00"): errNo = Err.Number
+    EmitValueAndType "XL-108 FORMAT-NEG-COLOR", value, errNo
+    Err.Clear: value = Format(0, "0.00;[Red]-0.00;zero"): errNo = Err.Number
+    EmitValueAndType "XL-109 FORMAT-ZERO-SECTION", value, errNo
+    Err.Clear: value = Format(0.125, "Percent"): errNo = Err.Number
+    EmitValueAndType "XL-110 FORMAT-PERCENT", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixPositiveHexBoundaryMatrix()
