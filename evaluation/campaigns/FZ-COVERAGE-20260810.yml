@@ -243,3 +243,13 @@ items:
       - src/engine/parser.ts
       - src/engine/type-system.ts
       - tests/spec/option-explicit.test.ts
+  - id: FZ-COVERAGE-20260810-029
+    title: Enum and user-defined declaration boundaries
+    status: queued
+    priority: 1
+    focus: Enum・Type宣言・UDT既定値・メンバー初期化の境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/type-system.ts
+      - tests/spec/udt*.test.ts

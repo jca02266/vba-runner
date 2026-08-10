@@ -135,3 +135,8 @@ checkpoints:
     decision: "LongLongのConst・Variant・式・負数伝播は修正後の正確な値を維持し、新規バグなし。次は宣言時既定値・型推論・Option Explicitの低カバレッジ境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-028
+  - afterEvaluation: EV-00481
+    audit: "380 evaluations, 0 active claims, 0 queued candidates"
+    decision: "宣言時既定値・型接尾辞推論・Option Explicitは仕様一致で新規バグなし。次はEnumとUDTの既定値・メンバー初期化境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-029

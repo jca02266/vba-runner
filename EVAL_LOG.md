@@ -383,6 +383,7 @@
 | EV-00478 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラルの型接尾辞・既定値・16進8進境界 |
 | EV-00479 | FZ-COVERAGE-20260810 | fixed | 1 | LongLongの基数リテラルと式・Variant伝播 |
 | EV-00480 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongLong基数の符号拡張、負数、Const・Variant・式伝播の仕様境界 |
+| EV-00481 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言時既定値、型推論、Option Explicit、未初期化変数の境界 |
 
 ## 状態集計
 
@@ -392,12 +393,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 118 |
+| verified-no-bug | 119 |
 
-横展開未解決経路: 328、実Excel待ち評価: 0
+横展開未解決経路: 329、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-028 | 1 | queued | 宣言時既定値、型推論、Option Explicit、未初期化変数の境界 | yes |
+| FZ-COVERAGE-20260810-029 | 1 | queued | Enum・Type宣言・UDT既定値・メンバー初期化の境界 | yes |
