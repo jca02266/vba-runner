@@ -195,3 +195,8 @@ checkpoints:
     decision: "動的配列・ReDim・UDT配列要素の型と書戻しは仕様一致で新規バグなし。次は多次元配列のLBound/UBoundとReDim Preserve境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-038
+  - afterEvaluation: EV-00491
+    audit: "390 evaluations, 0 active claims, 0 queued candidates"
+    decision: "多次元動的配列のReDim Preserveと境界取得は仕様一致で新規バグなし。次は多次元UDT配列のBinary Put/Getと固定長String複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-039
