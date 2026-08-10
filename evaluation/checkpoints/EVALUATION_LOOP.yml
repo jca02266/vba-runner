@@ -702,6 +702,5 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-144
   - afterEvaluation: EV-00592
     audit: "491 evaluations, 0 active claims, 0 queued candidates"
-    decision: "評価基盤のローカル日時・直近一覧・状態件数表は仕様一致で新規バグなし。次は領域別Finding時系列の未実施時点省略を確認する。"
-    action: create-candidate
-    nextCandidate: FZ-COVERAGE-20260810-145
+    decision: "評価基盤領域でEV-00588〜EV-00592の5回連続無バグを確認した。対象領域（言語仕様・LSP・評価基盤を含む）の各最新5件もすべて無バグであり、今回の評価ループを終了する。"
+    action: stop

@@ -1411,10 +1411,11 @@ items:
       - tests/tooling/eval-report.test.ts
   - id: FZ-COVERAGE-20260810-145
     title: Evaluation report area timeline regression
-    status: queued
+    status: retired
     priority: 1
     focus: 評価基盤領域の領域別Finding時系列・未実施時点省略・グラフ選択回帰
     priorCauseKey: evaluation-state-history-contract
+    retirementReason: "評価基盤領域の5回連続無バグ判定により、今回のキャンペーンの評価ループを終了"
     coverageTargets:
       - scripts/eval-report.mjs
       - tests/tooling/eval-report.test.ts
