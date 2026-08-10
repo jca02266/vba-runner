@@ -7,7 +7,7 @@
 ## ファイル
 
 - `ExcelQueueVerification.bas`: XL-001〜XL-061の検証マクロ
-- `FormatMatrixVerification.bas`: FormatのASCII単文字・複合トークンマトリックス
+- `FormatMatrixVerification.bas`: FormatのASCII単文字・複合トークン・字句境界マトリックス
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `ExcelQueueCallByNameTarget.cls`: XL-048で使うLet/Set片側プロパティ付きクラス
@@ -64,8 +64,9 @@ tests\excel\queue\eval-excel.cmd
 
 Formatの仕様探索は通常の回帰出力に混ぜない。`FormatMatrixVerification.bas`の
 `RunFormatMatrixVerification`を`eval-format-matrix.cmd`から呼び出すと、ASCII印字可能文字
-と代表的な数値・負数・ゼロ・Date・Currency・String引数の組み合わせ、および複合トークン
-の組み合わせを`FormatMatrix.result`へ出力する。Format仕様が固まった後の通常評価では、
+と代表的な数値・負数・ゼロ・Date・Currency・String引数の組み合わせ、複合トークン、および
+実装の字句分岐から抽出した引用・エスケープ・角括弧・セクション・文字列プレースホルダー
+境界を`FormatMatrix.result`へ出力する。Format仕様が固まった後の通常評価では、
 この専用マトリックスを毎回実行しない。
 
 Windowsへ渡す前には、開発側で次を実行する。

@@ -144,7 +144,7 @@ analysis; do not duplicate its taxonomy here.
    `unresolved` boundary, then transition the candidate. A stale, partial, or
    source-mismatched result is rejected and never changes the pending count.
 9. After each evaluation commit, refresh the local HTML report with
-   `node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html`.
+   `node scripts/eval-report.mjs --output evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit
    it. Use the refreshed report for the next loop's status and convergence
    review.

@@ -357,7 +357,7 @@ EVの完了または再判定のたびに同じ候補の `*.events.yml` へ評�
 ```bash
 npx tsx tests/tooling/evaluation-state.test.ts
 npm run eval -- validate
-node scripts/eval-report.mjs --html evaluation/EVAL_REPORT.html
+node scripts/eval-report.mjs --output evaluation/EVAL_REPORT.html
 npm run check:docs
 ```
 

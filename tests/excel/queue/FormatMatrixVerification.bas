@@ -11,8 +11,26 @@ Public Sub RunFormatMatrixVerification()
     Print #resultFile, "FORMAT_MATRIX_BEGIN"
     EmitSingleCharacterMatrix
     EmitCompoundTokenMatrix
+    EmitTokenizerCornerMatrix
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitTokenizerCornerMatrix()
+    Dim patterns As Variant, i As Long
+    ' These patterns are extracted from splitFormatSections, the escape and
+    ' quote scanners, and the numeric/date/string token dispatchers. Keep
+    ' them in this dedicated matrix so normal Excel queue output stays small.
+    patterns = Array( _
+        "0\;0", "0"";""0", "0\", "0""literal", _
+        "[abc", "\[abc\]", """[abc]""", "[Red]0", "[<=1000]0", _
+        "0.00e-00", "%", "0%", ".", ",", "!@@@", "@@@", "\@", _
+        """@""", ">@@@", "<@@@", "hh:mm", "h:m", "yyyy-mm-dd", _
+        "m", "n", "E", "G", "ggee", "\Y""Year""yyyy" _
+    )
+    For i = LBound(patterns) To UBound(patterns)
+        EmitArguments "TOKENIZER-" & Format$(i + 1, "00"), CStr(patterns(i))
+    Next i
 End Sub
 
 Private Sub EmitSingleCharacterMatrix()

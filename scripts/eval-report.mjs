@@ -5,7 +5,8 @@
  *
  * Usage:
  *   node scripts/eval-report.mjs
- *   node scripts/eval-report.mjs --output /tmp/eval-report.md --html /tmp/eval-report.html --csv /tmp/eval-curve.csv
+ *   node scripts/eval-report.mjs --output /tmp/eval-report.html
+ *   node scripts/eval-report.mjs --output /tmp/eval-report.md --csv /tmp/eval-curve.csv
  */
 
 import fs from 'node:fs';
@@ -37,7 +38,18 @@ const evaluationClassification = (status) => {
 };
 
 function usage() {
-  console.log('Usage: node scripts/eval-report.mjs [--output FILE] [--csv FILE]');
+  console.log('Usage: node scripts/eval-report.mjs [--output FILE] [--html FILE] [--csv FILE]');
+  console.log('  --output FILE  select Markdown, HTML, or CSV from the file extension');
+  console.log('  --html FILE    legacy HTML alias (prefer --output FILE.html)');
+  console.log('  --csv FILE     legacy CSV alias (prefer --output FILE.csv)');
+}
+
+function outputFormat(file) {
+  const extension = path.extname(file).toLowerCase();
+  if (extension === '.md' || extension === '.markdown') return 'markdown';
+  if (extension === '.html' || extension === '.htm') return 'html';
+  if (extension === '.csv') return 'csv';
+  throw new Error(`--output requires a supported extension (.md, .html, or .csv): ${file}`);
 }
 
 function parseArgs(argv) {
@@ -658,8 +670,14 @@ function main() {
   const findingTypes = findingTypeSummary(records, findings);
   const rootCauseStatuses = rootCauseAnalysisStatusCounts(records);
   if (options.output) {
+    const format = outputFormat(options.output);
     fs.mkdirSync(path.dirname(options.output), { recursive: true });
-    fs.writeFileSync(options.output, renderMarkdown(records, statusRecords, summary, classSummary, series, findingTypes));
+    const content = format === 'html'
+      ? renderHtml(records, statusRecords, statusRows, summary, classSummary, series, findingTypes, rootCauseStatuses)
+      : format === 'csv'
+        ? renderCsv(series)
+        : renderMarkdown(records, statusRecords, summary, classSummary, series, findingTypes);
+    fs.writeFileSync(options.output, content);
   }
   if (options.html) {
     fs.mkdirSync(path.dirname(options.html), { recursive: true });
