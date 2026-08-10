@@ -723,6 +723,15 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/default-property-noncls.test.ts
       - tests/spec/interface-callbyname-property.test.ts
+  - id: FZ-COVERAGE-20260810-080
+    title: Built-in function boundary expansion
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域の型変換・Null・配列・エラー境界
+    priorCauseKey: builtin-coercion-contract-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/*builtin*.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

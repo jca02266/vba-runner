@@ -395,3 +395,8 @@ checkpoints:
     decision: "引数・ByRef・PropertyのDefault Property・CallByName・ParamArray境界は仕様一致で新規バグなし。最後のObject参照回帰を確認して5回連続無バグを判定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-079
+  - afterEvaluation: EV-00531
+    audit: "430 evaluations, 0 active claims, 0 queued candidates"
+    decision: "引数・ByRef・Propertyの多段Default Property・IDispatch境界は仕様一致で新規バグなし。EV-00527〜EV-00531の5回連続で新規バグがなく、次の未収束領域として組み込み関数を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-080
