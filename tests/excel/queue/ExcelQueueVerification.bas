@@ -81,6 +81,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixExplicitSignMatrix
     VerifyRadixTargetTypeMatrix
     VerifyRadixShortWidthMatrix
+    VerifyRadixByteAndOctalMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -89,6 +90,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixByteAndOctalMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CByte("&HFF"): errNo = Err.Number
+    EmitValueAndType "XL-077 CByte-FF", value, errNo
+    Err.Clear: value = CByte("&H100"): errNo = Err.Number
+    EmitValueAndType "XL-077 CByte-100", value, errNo
+    Err.Clear: value = CDec("&O777777777777777777777"): errNo = Err.Number
+    EmitValueAndType "XL-078 CDec-OCTAL", value, errNo
+    Err.Clear: value = CCur("&O37777777777"): errNo = Err.Number
+    EmitValueAndType "XL-079 CCur-OCTAL", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixShortWidthMatrix()
