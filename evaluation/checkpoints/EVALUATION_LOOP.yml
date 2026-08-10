@@ -785,3 +785,8 @@ checkpoints:
     decision: "XL-091とXL-094でCDec明示符号付き基数入力の受理差異をBUG-00462〜00463として確定した。基数領域の無バグ連続数をリセットし、残る入口境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-161
+  - afterEvaluation: EV-00608
+    audit: "507 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-095〜098は全件一致で新規バグなし。基数領域の連続無バグ数は3回となり、次の未検証変換入口を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-162
