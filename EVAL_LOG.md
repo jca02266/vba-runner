@@ -420,6 +420,7 @@
 | EV-00515 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域のDecimal/LongLong/文字列範囲・Option Compare境界 |
 | EV-00516 | FZ-COVERAGE-20260810 | fixed | 1 | Select Case領域のOption Compare Text、非ASCII文字範囲・大小比較 |
 | EV-00517 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域の複数Locale・アクセント・否定範囲比較の横展開 |
+| EV-00518 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Select Case領域のÊ/ê除外、複数範囲、文字列等値横展開 |
 
 ## 状態集計
 
@@ -429,12 +430,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 154 |
+| verified-no-bug | 155 |
 
-横展開未解決経路: 365、実Excel待ち評価: 0
+横展開未解決経路: 366、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-065 | 1 | queued | Select Case領域のÊ/ê除外、複数範囲、文字列等値横展開 | yes |
+| FZ-COVERAGE-20260810-066 | 1 | queued | Select Case領域の複数文字範囲、否定範囲、文字列等値比較 | yes |
