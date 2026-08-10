@@ -465,3 +465,8 @@ checkpoints:
     decision: "宣言・型・リテラルのOption Explicit・予約語・診断境界は仕様一致で新規バグなし。次はDeclare・外部手続き型の宣言境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-093
+  - afterEvaluation: EV-00545
+    audit: "444 evaluations, 0 active claims, 0 queued candidates"
+    decision: "宣言・型・リテラルのOption Explicit・Declare・外部手続き境界は仕様一致で新規バグなし。次はDeclare ByRef・配列引数の複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-094

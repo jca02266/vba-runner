@@ -447,6 +447,7 @@
 | EV-00542 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の整数型・型サフィックス・基数リテラル境界 |
 | EV-00543 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の型環境・Enum・UDT・TypeName回帰 |
 | EV-00544 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のOption Explicit・暗黙変数・予約語診断回帰 |
+| EV-00545 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のDeclare・外部手続き型の宣言境界 |
 
 ## 状態集計
 
@@ -456,12 +457,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 181 |
+| verified-no-bug | 182 |
 
-横展開未解決経路: 392、実Excel待ち評価: 0
+横展開未解決経路: 393、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-093 | 1 | queued | 宣言・型・リテラル領域の予約語・型名・手続き名診断回帰 | yes |
+| FZ-COVERAGE-20260810-094 | 1 | queued | 宣言・型・リテラル領域のDeclare・Alias・外部手続きスタブ回帰 | yes |

@@ -865,6 +865,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/contextual-kw-for-enum-type.test.ts
       - tests/spec/typed-procedure-name.test.ts
+  - id: FZ-COVERAGE-20260810-094
+    title: Declare stub declaration regression
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のDeclare・Alias・外部手続きスタブ回帰
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/declare.test.ts
+      - tests/spec/spy-mock-api.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
