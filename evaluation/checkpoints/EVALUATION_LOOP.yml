@@ -305,3 +305,13 @@ checkpoints:
     decision: "Format日付・時刻・Locale経路は仕様一致で新規バグなし。次は色指定・条件付き書式の実Excel出力を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-060
+  - afterEvaluation: EV-00513
+    audit: "412 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Format条件・色パターンは既存契約を壊さず新規バグなし。EV-00510〜EV-00513は4回連続のため、最後のFormat回帰境界を確認してから収束判定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-062
+  - afterEvaluation: EV-00514
+    audit: "413 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Format条件・色セクション後の通常出力回帰は仕様一致で新規バグなし。EV-00510〜EV-00514の5回連続で新規バグがなく、次の未収束領域としてSelect Case（未解決8件）を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-061

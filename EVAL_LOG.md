@@ -415,6 +415,8 @@
 | EV-00510 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定、条件付き書式、数値・日付表示境界 |
 | EV-00511 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定、条件付き書式、複数セクション境界 |
 | EV-00512 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の日付・時刻・Locale依存書式と色指定境界 |
+| EV-00513 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定・条件付き書式の実Excel出力 |
+| EV-00514 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の条件・色セクション後の通常出力回帰境界 |
 
 ## 状態集計
 
@@ -424,12 +426,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 150 |
+| verified-no-bug | 152 |
 
-横展開未解決経路: 360、実Excel待ち評価: 0
+横展開未解決経路: 362、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-060 | 1 | queued | Format領域の色指定・条件付き書式の実Excel出力 | yes |
+| FZ-COVERAGE-20260810-061 | 1 | queued | Select Case領域のDecimal/LongLong/文字列範囲・Option Compare境界 | yes |

@@ -555,3 +555,21 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-061
+    title: Select Case unresolved comparison boundaries
+    status: queued
+    priority: 1
+    focus: Select Case領域のDecimal/LongLong/文字列範囲・Option Compare境界
+    priorCauseKey: vba-text-comparison-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case*.test.ts
+  - id: FZ-COVERAGE-20260810-062
+    title: Format completion regression boundary
+    status: queued
+    priority: 1
+    focus: Format領域の条件・色セクション後の通常出力回帰境界
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
