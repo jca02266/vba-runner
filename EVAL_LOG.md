@@ -499,6 +499,7 @@
 | EV-00594 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・CDec・CCur・Val基数変換の幅・符号境界 |
 | EV-00595 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong基数リテラルのConst・フロー型・式推論メタデータ伝播 |
 | EV-00596 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格 |
+| EV-00597 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong BigIntサブタイプのByRef Variant・Property戻り値・LongPtr伝播 |
 
 ## 状態集計
 
@@ -509,7 +510,7 @@
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 230 |
+| verified-no-bug | 231 |
 
 横展開未解決経路: 446、実Excel待ち評価: 1
 
