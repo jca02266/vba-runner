@@ -379,6 +379,7 @@
 | EV-00474 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Replaceの開始位置・件数・Compare・Null・空検索境界 |
 | EV-00475 | FZ-COVERAGE-20260810 | fixed | 1 | クラスProperty Let/Set/GetのByRef・配列・Object/値分類境界 |
 | EV-00476 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDTのByRef書戻し・型境界・ネスト値渡し |
+| EV-00477 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フローのExit For/Do・ネスト・継続境界 |
 
 ## 状態集計
 
@@ -387,9 +388,9 @@
 | fixed | 254 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 116 |
+| verified-no-bug | 117 |
 
-横展開未解決経路: 322、実Excel待ち評価: 0
+横展開未解決経路: 323、実Excel待ち評価: 0
 
 ## 次の候補
 
