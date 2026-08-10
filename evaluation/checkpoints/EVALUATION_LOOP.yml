@@ -285,3 +285,8 @@ checkpoints:
     decision: "DateAdd/DateDiff/DatePartの間隔・負数・Null境界は仕様一致で新規バグなし。次は閏年・月末・DST・Locale暦境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-056
+  - afterEvaluation: EV-00509
+    audit: "408 evaluations, 0 active claims, 0 queued candidates"
+    decision: "閏年・月末・暦境界は仕様一致で新規バグなし。EV-00505〜EV-00509の5回連続で新規バグがなく、次の未収束領域としてFormat（未解決8件）を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-057
