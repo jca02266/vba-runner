@@ -292,3 +292,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray.test.ts
+  - id: FZ-COVERAGE-20260810-034
+    title: Property array element ByRef boundaries
+    status: queued
+    priority: 1
+    focus: Property引数と配列要素ByRef・Optional引数の複合境界
+    priorCauseKey: property-value-parameter-effective-byval-not-propagated
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray.test.ts

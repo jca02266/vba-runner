@@ -165,3 +165,8 @@ checkpoints:
     decision: "引数・ByRef・PropertyのImplements経路は仕様一致で新規バグなし。未収束領域の残るParamArray・配列要素ByRef・Optional組合せを次に確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-033
+  - afterEvaluation: EV-00486
+    audit: "385 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Property ParamArrayとCallByNameの値末尾束縛は仕様一致で新規バグなし。次はPropertyと配列要素ByRef・Optional引数の複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-034
