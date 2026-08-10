@@ -455,3 +455,8 @@ checkpoints:
     decision: "宣言・型・リテラルの基本リテラル・型サフィックス・Enum・UDT境界は仕様一致で新規バグなし。次は型環境・Option Explicit・予約語の複合境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-091
+  - afterEvaluation: EV-00543
+    audit: "442 evaluations, 0 active claims, 0 queued candidates"
+    decision: "宣言・型・リテラルの型環境・Enum・UDT境界は仕様一致で新規バグなし。次はOption Explicitの予約語・診断メタデータを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-092
