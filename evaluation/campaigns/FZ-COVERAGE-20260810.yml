@@ -470,3 +470,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/mock/MockFileSystem.ts
       - tests/spec/fso-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-052
+    title: Date and serial conversion boundaries
+    status: queued
+    priority: 1
+    focus: Date領域のDateSerial/TimeSerial、負数、シリアル変換境界
+    priorCauseKey: timeserial-signed-component-normalization
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/datetime.test.ts

@@ -260,3 +260,8 @@ checkpoints:
     decision: "TextStream Append・文字コード指定・複数回書込みは仕様一致で新規バグなし。次はUnicode BOM・複数回ReadLine・EOF境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-051
+  - afterEvaluation: EV-00504
+    audit: "403 evaluations, 0 active claims, 0 queued candidates"
+    decision: "TextStream BOM・ReadLine・EOFは実Excel既知結果と一致し新規バグなし。EV-00500〜EV-00504の5回連続で新規バグがなく、次の未収束領域としてDate（未解決12件）を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-052
