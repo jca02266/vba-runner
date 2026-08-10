@@ -525,3 +525,8 @@ checkpoints:
     decision: "Parser・Lexerの行継続・コメント・文字列・数値トークン境界は仕様一致で新規バグなし。次はUnicode識別子・複合コメント境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-106
+  - afterEvaluation: EV-00557
+    audit: "456 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Parser・LexerのUnicode識別子・Contextual Keyword・診断境界は仕様一致で新規バグなし。次は複合コメントとUnicode文字列のLocale境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-107

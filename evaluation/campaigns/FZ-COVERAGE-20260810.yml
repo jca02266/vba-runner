@@ -1002,6 +1002,17 @@ items:
       - src/lexer
       - tests/engine/lexer-line-continuation.test.ts
       - tests/spec/number_literals.test.ts
+  - id: FZ-COVERAGE-20260810-107
+    title: Parser Unicode identifier regression
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域のUnicode識別子・Contextual Keyword・診断回帰
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/spec/unicode-identifiers.test.ts
+      - tests/spec/contextual-keyword-as-identifier.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
