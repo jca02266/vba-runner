@@ -859,8 +859,8 @@ Function TestPropertySetByRef() As String
 End Function
 ` },
     ]);
-    assert.strictEqual(ev.callProcedure('TestPropertySetByRef', []), '77:nothing',
-        'Property SetのByRefオブジェクト引数を書き戻す');
+    assert.strictEqual(ev.callProcedure('TestPropertySetByRef', []), '77:alive',
+        'Property Setの最終Object引数は宣言がByRefでも呼出し元へ書き戻さない');
     console.log('[PASS] Bug 132-A: Property SetのByRef書き戻し');
 }
 
