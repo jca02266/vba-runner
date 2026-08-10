@@ -446,4 +446,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-074 | 1 | queued | Option Compare・Like領域のUnicode文字クラス・否定クラス回帰 | yes |
+| FZ-COVERAGE-20260810-075 | 1 | queued | 引数・ByRef・Property領域のProperty・ParamArray・Interface書戻し境界 | yes |

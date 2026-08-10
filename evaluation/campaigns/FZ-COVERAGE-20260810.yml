@@ -665,13 +665,24 @@ items:
       - tests/spec/like-boundary.test.ts
   - id: FZ-COVERAGE-20260810-074
     title: Like Unicode class regression
-    status: queued
+    status: retired
     priority: 1
     focus: Option Compare・Like領域のUnicode文字クラス・否定クラス回帰
     priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    retirementReason: "Like領域の5回連続無バグ判定により、未収束領域を優先するため保留候補を退役"
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-075
+    title: ByRef and Property boundary expansion
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty・ParamArray・Interface書戻し境界
+    priorCauseKey: vba-object-reference-value-classification
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property*.test.ts
+      - tests/spec/byref*.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

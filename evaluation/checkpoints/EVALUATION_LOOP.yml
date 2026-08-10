@@ -372,6 +372,6 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-073
   - afterEvaluation: EV-00526
     audit: "425 evaluations, 0 active claims, 0 queued candidates"
-    decision: "Like Unicode等値・文字クラス・否定クラスの回帰は仕様一致で新規バグなし。次はBinary/Text境界を確認して5回連続無バグを判定する。"
+    decision: "Like Unicode等値・文字クラス・否定クラスの回帰は仕様一致で新規バグなし。EV-00522〜EV-00526の5回連続で新規バグがなく、次の未収束領域として引数・ByRef・Propertyを選定する。"
     action: create-candidate
-    nextCandidate: FZ-COVERAGE-20260810-074
+    nextCandidate: FZ-COVERAGE-20260810-075
