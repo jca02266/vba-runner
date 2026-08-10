@@ -908,6 +908,17 @@ items:
       - tests/spec/for-next.test.ts
       - tests/spec/for-each.test.ts
       - tests/spec/do-loop.test.ts
+  - id: FZ-COVERAGE-20260810-098
+    title: Control-flow error interaction
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のOn Error・Resume・Exitとループ複合境界
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-error-in-blocks.test.ts
+      - tests/spec/on-error-nested-resume.test.ts
+      - tests/spec/recursive-error-handling.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

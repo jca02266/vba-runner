@@ -450,6 +450,7 @@
 | EV-00545 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のDeclare・外部手続き型の宣言境界 |
 | EV-00546 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のDeclare ByRef・配列引数の複合境界 |
 | EV-00547 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フロー領域のGoSub・Return・Resume・ネスト継続フレーム |
+| EV-00548 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フロー領域のFor・For Each・Do・Whileネスト継続回帰 |
 
 ## 状態集計
 
@@ -459,12 +460,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 184 |
+| verified-no-bug | 185 |
 
-横展開未解決経路: 395、実Excel待ち評価: 0
+横展開未解決経路: 396、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-097 | 1 | queued | 制御フロー領域のFor・For Each・Do・Whileネスト継続回帰 | yes |
+| FZ-COVERAGE-20260810-098 | 1 | queued | 制御フロー領域のOn Error・Resume・Exitとループ複合境界 | yes |
