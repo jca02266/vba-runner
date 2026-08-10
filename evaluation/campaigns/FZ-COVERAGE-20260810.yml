@@ -970,6 +970,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/on-goto.test.ts
       - tests/spec/class-method-on-error-isolation.test.ts
+  - id: FZ-COVERAGE-20260810-104
+    title: Control-flow return stack regression
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のReturnスタック・クラス呼出し・エラーハンドラー復帰回帰
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-goto.test.ts
+      - tests/spec/recursive-error-handling.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

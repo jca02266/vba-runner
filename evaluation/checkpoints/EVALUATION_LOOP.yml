@@ -510,3 +510,8 @@ checkpoints:
     decision: "制御フローのContextual Keywordラベル・GoSub・Resume境界は仕様一致で新規バグなし。次は多段GoSub・クラス境界のReturnを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-103
+  - afterEvaluation: EV-00554
+    audit: "453 evaluations, 0 active claims, 0 queued candidates"
+    decision: "制御フローの多段GoSub・クラスReturn境界は仕様一致で新規バグなし。次はイベント・コールバックと制御フローの複合を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-104
