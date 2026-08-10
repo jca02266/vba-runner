@@ -310,3 +310,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray.test.ts
+  - id: FZ-COVERAGE-20260810-036
+    title: Property default and CallByName argument boundaries
+    status: queued
+    priority: 1
+    focus: Property既定値・CallByName・名前付きByRef引数の複合境界
+    priorCauseKey: property-value-parameter-effective-byval-not-propagated
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/default-property-noncls.test.ts
+      - tests/spec/callbyname-optional-binder.test.ts
