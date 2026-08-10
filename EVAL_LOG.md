@@ -465,6 +465,7 @@
 | EV-00560 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の複合コメント・Unicode文字列・位置診断回帰 |
 | EV-00561 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の構文回復・複数エラー・ソース位置回帰 |
 | EV-00562 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域の複数モジュール・修飾型名・外部参照回復回帰 |
+| EV-00563 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parser・Lexer領域のDeclare・修飾型・外部参照エラー回復回帰 |
 
 ## 状態集計
 
@@ -474,12 +475,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 199 |
+| verified-no-bug | 200 |
 
-横展開未解決経路: 410、実Excel待ち評価: 0
+横展開未解決経路: 411、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-112 | 1 | queued | Parser・Lexer領域のDeclare・修飾型・外部参照エラー回復回帰 |  |
+| FZ-COVERAGE-20260810-113 | 1 | queued | Parser・Lexer領域の不正型・欠落モジュール・未定義手続き診断回帰 |  |

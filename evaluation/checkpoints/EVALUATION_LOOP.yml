@@ -555,3 +555,8 @@ checkpoints:
     decision: "Parser・Lexerの複数モジュール・修飾型・Declare外部参照回復は仕様一致で新規バグなし。次は不正型・欠落モジュール診断を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-112
+  - afterEvaluation: EV-00563
+    audit: "462 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Parser・LexerのDeclare・修飾型・欠落参照診断は仕様一致で新規バグなし。次は複数モジュールの不正外部参照連鎖を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-113
