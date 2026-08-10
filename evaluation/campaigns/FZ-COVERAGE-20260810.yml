@@ -1111,6 +1111,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/interface-callbyname-property.test.ts
       - tests/spec/callbyname-class.test.ts
+  - id: FZ-COVERAGE-20260810-117
+    title: Object Property Set Let array regression
+    status: queued
+    priority: 1
+    focus: オブジェクト・COM領域のProperty Set/Let・配列・ByRef混在回帰
+    priorCauseKey: callbyname-object-boundary-dispatch-gap
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interface-property-assignment.test.ts
+      - tests/spec/property-array-assignment.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

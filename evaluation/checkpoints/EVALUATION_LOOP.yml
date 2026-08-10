@@ -570,3 +570,8 @@ checkpoints:
     decision: "オブジェクト・COMのCallByName・IDispatch・Interface基本dispatchは仕様一致で新規バグなし。次はCallByNameのObject配列・Set/Let混在を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-116
+  - afterEvaluation: EV-00566
+    audit: "465 evaluations, 0 active claims, 0 queued candidates"
+    decision: "オブジェクト・COMのCallByName配列・Property Set/Let・ByRef混在は仕様一致で新規バグなし。次はCOM Object配列と既定Propertyの多段解決を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-117
