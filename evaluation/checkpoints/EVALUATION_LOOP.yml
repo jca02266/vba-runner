@@ -445,3 +445,8 @@ checkpoints:
     decision: "Err・On ErrorのBlock・Colon・Resume制御は仕様一致で新規バグなし。次はNothing・未初期化ObjectのErr伝播を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-089
+  - afterEvaluation: EV-00541
+    audit: "440 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Err・On ErrorのNothing・未初期化Object・Resume境界は仕様一致で新規バグなし。EV-00537〜EV-00541の5回連続で新規バグがなく、次の未収束領域として宣言・型・リテラルを選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-090
