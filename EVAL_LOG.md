@@ -410,6 +410,7 @@
 | EV-00505 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のDateSerial/TimeSerial、負数、シリアル変換境界 |
 | EV-00506 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のシリアル丸め、DateValue/TimeValue、タイムゾーン表示 |
 | EV-00507 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のNow/Dateタイムゾーン、曜日・週番号・カレンダー境界 |
+| EV-00508 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のDateAdd/DateDiff/DatePart間隔・負数・Null境界 |
 
 ## 状態集計
 
@@ -419,12 +420,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 145 |
+| verified-no-bug | 146 |
 
-横展開未解決経路: 355、実Excel待ち評価: 0
+横展開未解決経路: 356、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-055 | 1 | queued | Date領域のDateAdd/DateDiff/DatePart間隔・負数・Null境界 | yes |
+| FZ-COVERAGE-20260810-056 | 1 | queued | Date領域の閏年、月末、DST、Locale依存暦境界 | yes |

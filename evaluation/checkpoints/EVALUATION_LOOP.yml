@@ -280,3 +280,8 @@ checkpoints:
     decision: "曜日・週番号・Now/Date境界は仕様一致で新規バグなし。次はDateAdd/DateDiff/DatePartの間隔・負数・Null境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-055
+  - afterEvaluation: EV-00508
+    audit: "407 evaluations, 0 active claims, 0 queued candidates"
+    decision: "DateAdd/DateDiff/DatePartの間隔・負数・Null境界は仕様一致で新規バグなし。次は閏年・月末・DST・Locale暦境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-056

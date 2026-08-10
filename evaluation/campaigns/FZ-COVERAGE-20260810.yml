@@ -509,3 +509,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/datetime.test.ts
+  - id: FZ-COVERAGE-20260810-056
+    title: Date leap-year and DST boundaries
+    status: queued
+    priority: 1
+    focus: Date領域の閏年、月末、DST、Locale依存暦境界
+    priorCauseKey: timeserial-signed-component-normalization
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/datetime.test.ts
