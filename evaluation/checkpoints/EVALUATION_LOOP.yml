@@ -360,3 +360,8 @@ checkpoints:
     decision: "Like降順範囲の無効パターンはError 93で仕様一致し新規バグなし。次は空文字クラス、不閉鎖括弧、Unicode特殊文字を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-071
+  - afterEvaluation: EV-00524
+    audit: "423 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Like空クラス・不閉鎖パターンは仕様一致で新規バグなし。次はUnicode æ/ae同値とアクセントLocale境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-072

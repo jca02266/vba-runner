@@ -645,6 +645,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-072
+    title: Like Unicode equivalence boundaries
+    status: queued
+    priority: 1
+    focus: Option Compare・Like領域のUnicode æ/ae同値、アクセント、Locale境界
+    priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-boundary.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
