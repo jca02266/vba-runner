@@ -369,6 +369,7 @@
 | EV-00464 | FZ-COVERAGE-20260810 | fixed | 1 | Formatの名前付き書式・Null・日付時刻境界 |
 | EV-00465 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | String/LenBのNull・Empty・文字列長境界と戻り値伝播 |
 | EV-00466 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値書式のNull第4セクション空欄・引用・エスケープ境界 |
+| EV-00467 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Chr/ChrW/ChrBのNull・境界値・数値文字コード変換 |
 
 ## 状態集計
 
@@ -377,9 +378,9 @@
 | fixed | 252 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 108 |
+| verified-no-bug | 109 |
 
-横展開未解決経路: 318、実Excel待ち評価: 0
+横展開未解決経路: 319、実Excel待ち評価: 0
 
 ## 次の候補
 
