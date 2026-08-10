@@ -511,6 +511,7 @@
 | EV-00606 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCDec・CCur・Val小値基数回帰 |
 | EV-00607 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val明示符号基数回帰 |
 | EV-00608 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCCur・CDec明示符号分離回帰 |
+| EV-00609 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のVal符号付き基数走査回帰 |
 
 ## 状態集計
 
@@ -519,13 +520,14 @@
 | bug-found | 9 |
 | fixed | 257 |
 | known-limit | 4 |
+| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 236 |
 
-横展開未解決経路: 445、実Excel待ち評価: 0
+横展開未解決経路: 446、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-162 | 1 | queued | 宣言・型・リテラル領域のVal符号付き基数走査回帰 | yes |

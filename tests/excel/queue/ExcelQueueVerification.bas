@@ -87,6 +87,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixSmallTargetMatrix
     VerifyRadixExplicitSignTargetMatrix
     VerifyRadixCurrencyDecimalSignMatrix
+    VerifyRadixValSignedScanMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -95,6 +96,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixValSignedScanMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = Val("-&H10"): errNo = Err.Number
+    EmitValueAndType "XL-099 Val-MINUS-HEX", value, errNo
+    Err.Clear: value = Val("+&H10"): errNo = Err.Number
+    EmitValueAndType "XL-100 Val-PLUS-HEX", value, errNo
+    Err.Clear: value = Val("-&O10"): errNo = Err.Number
+    EmitValueAndType "XL-101 Val-MINUS-OCT", value, errNo
+    Err.Clear: value = Val("+&O10"): errNo = Err.Number
+    EmitValueAndType "XL-102 Val-PLUS-OCT", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixCurrencyDecimalSignMatrix()
