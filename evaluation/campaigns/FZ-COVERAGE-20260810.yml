@@ -152,3 +152,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-019
+    title: Byte-oriented string slice boundaries
+    status: queued
+    priority: 1
+    focus: LeftB・RightB・MidBのUTF-16LEバイト境界・Null・長さ引数
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

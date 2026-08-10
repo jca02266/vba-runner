@@ -85,3 +85,8 @@ checkpoints:
     decision: "$付き組み込み関数の横展開は仕様一致で、RC-00039の未解決範囲は解消した。次はInStr/InStrBの境界マトリクスを評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-018
+  - afterEvaluation: EV-00471
+    audit: "370 evaluations, 0 active claims, 0 queued candidates"
+    decision: "InStr/InStrBの境界マトリクスは仕様一致だった。次はUTF-16LEバイト単位のLeftB/RightB/MidB境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-019
