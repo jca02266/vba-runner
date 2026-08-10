@@ -65,3 +65,8 @@ checkpoints:
     decision: "Formatの非選択セクションのリテラルが数値入力の日付判定を汚染するバグを修正し、ROOT-00020を完了した。次はChr系組み込み関数のNull・境界値・数値文字コード変換を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-014
+  - afterEvaluation: EV-00467
+    audit: "366 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Chr/ChrW/ChrBの通常Unicode範囲・Null・丸めは仕様一致だった。DBCSコードページは別known-limit候補に分離し、Space/Trim系のNull・負数・空白境界を新規評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-015

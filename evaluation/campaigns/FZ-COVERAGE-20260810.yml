@@ -116,3 +116,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-015
+    title: Space and Trim Null boundaries
+    status: queued
+    priority: 1
+    focus: Space・LTrim・RTrim・TrimのNull・負数・空白文字境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
