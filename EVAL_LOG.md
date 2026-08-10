@@ -505,23 +505,22 @@
 | EV-00600 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 |
 | EV-00601 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数変換符号拡張と変換先型回帰 |
 | EV-00602 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の4・8・16ビット未満基数桁幅と符号規則 |
-| EV-00603 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のCByte境界とCDec・CCur八進変換 |
+| EV-00603 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCByte境界とCDec・CCur八進変換 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 6 |
+| bug-found | 7 |
 | fixed | 257 |
 | known-limit | 4 |
-| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 233 |
 
-横展開未解決経路: 446、実Excel待ち評価: 1
+横展開未解決経路: 445、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-156 | 1 | queued | 宣言・型・リテラル領域のCByte境界とCDec・CCur八進変換 | yes |
+| (none) | | | | |
