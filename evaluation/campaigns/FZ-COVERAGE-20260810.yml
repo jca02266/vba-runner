@@ -528,3 +528,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format*.test.ts
+  - id: FZ-COVERAGE-20260810-058
+    title: Format color and conditional boundaries
+    status: queued
+    priority: 1
+    focus: Format領域の色指定、条件付き書式、複数セクション境界
+    priorCauseKey: format-section-selection-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

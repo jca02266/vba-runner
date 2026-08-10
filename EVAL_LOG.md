@@ -412,6 +412,7 @@
 | EV-00507 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のNow/Dateタイムゾーン、曜日・週番号・カレンダー境界 |
 | EV-00508 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域のDateAdd/DateDiff/DatePart間隔・負数・Null境界 |
 | EV-00509 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Date領域の閏年、月末、DST、Locale依存暦境界 |
+| EV-00510 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の色指定、条件付き書式、数値・日付表示境界 |
 
 ## 状態集計
 
@@ -421,12 +422,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 147 |
+| verified-no-bug | 148 |
 
-横展開未解決経路: 357、実Excel待ち評価: 0
+横展開未解決経路: 358、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-057 | 1 | queued | Format領域の色指定、条件付き書式、数値・日付表示境界 | yes |
+| FZ-COVERAGE-20260810-058 | 1 | queued | Format領域の色指定、条件付き書式、複数セクション境界 | yes |
