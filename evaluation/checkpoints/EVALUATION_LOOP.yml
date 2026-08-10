@@ -805,3 +805,8 @@ checkpoints:
     decision: "XL-107〜110は全件一致でFormat領域の連続無バグ数は1回。次の条件・色セクションを評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-165
+  - afterEvaluation: EV-00612-BATCH
+    audit: "515 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Format領域の5候補を一括照合し、EV-00612とEV-00615で条件セクション差異をBUG-00464・00465として確定、EV-00613・00614・00616は一致した。条件セクションの横展開を5候補単位で続ける。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-170
