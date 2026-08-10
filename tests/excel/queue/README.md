@@ -22,6 +22,7 @@
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
+- `FormatMatrix.result`: 専用Formatマトリックスの実機結果（通常回帰とは別管理）
 
 ## ブックの準備と実機実行
 
