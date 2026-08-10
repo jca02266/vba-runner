@@ -1400,6 +1400,15 @@ items:
       - scripts/eval-report.mjs
       - tests/tooling/eval-report.test.ts
       - tests/tooling/evaluation-state.test.ts
+  - id: FZ-COVERAGE-20260810-144
+    title: Evaluation report local-time and recent-list regression
+    status: queued
+    priority: 1
+    focus: 評価基盤領域のローカル日時・直近評価一覧・状態件数表境界回帰
+    priorCauseKey: evaluation-state-history-contract
+    coverageTargets:
+      - scripts/eval-report.mjs
+      - tests/tooling/eval-report.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

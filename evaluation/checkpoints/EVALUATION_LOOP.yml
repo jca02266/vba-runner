@@ -695,3 +695,8 @@ checkpoints:
     decision: "評価基盤のExcel同期・完了ゲート・needs-excel遷移は仕様一致で新規バグなし。次は状態分類・領域別集計・Finding収束グラフを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-143
+  - afterEvaluation: EV-00591
+    audit: "490 evaluations, 0 active claims, 0 queued candidates"
+    decision: "評価基盤の状態分類・領域別集計・Findingグラフは仕様一致で新規バグなし。次はローカル日時・直近一覧・状態件数表を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-144
