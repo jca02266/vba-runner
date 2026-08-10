@@ -168,3 +168,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-021
+    title: Replace comparison and Null boundaries
+    status: queued
+    priority: 1
+    focus: Replaceの開始位置・件数・Compare・Null・空検索境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

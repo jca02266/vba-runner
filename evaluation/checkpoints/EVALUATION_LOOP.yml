@@ -95,3 +95,8 @@ checkpoints:
     decision: "LeftB/RightB/MidBのUTF-16LEバイト境界は仕様一致だった。次はAsc/AscW/AscBの文字コード境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-020
+  - afterEvaluation: EV-00473
+    audit: "372 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Asc/AscW/AscBの文字コード境界は仕様一致だった。次はReplaceの開始位置・件数・Compare・Null境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-021
