@@ -50,3 +50,8 @@ checkpoints:
     decision: "Weekday/WeekdayNameの明示引数は仕様一致し、vbUseSystemのみknown-limitとして分類した。次はFormatの名前付き書式・Null・日付時刻境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-011
+  - afterEvaluation: EV-00464
+    audit: "363 evaluations, 0 active claims, 0 queued candidates"
+    decision: "FormatのNull第4セクション短絡を修正し、ROOT-00019と回帰テストを完了した。既存候補が尽きたため、String/LenBのNull・Empty・長さ境界を新しい評価候補として登録する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-012

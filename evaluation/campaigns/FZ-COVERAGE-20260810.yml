@@ -91,3 +91,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-012
+    title: String and LenB Null propagation
+    status: queued
+    priority: 1
+    focus: String/LenBのNull・Empty・文字列長境界と戻り値伝播
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/string-functions.test.ts
