@@ -377,12 +377,13 @@
 | EV-00472 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LeftB・RightB・MidBのUTF-16LEバイト境界・Null・長さ引数 |
 | EV-00473 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Asc・AscW・AscBの空文字・Null・Unicode・境界値 |
 | EV-00474 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Replaceの開始位置・件数・Compare・Null・空検索境界 |
+| EV-00475 | FZ-COVERAGE-20260810 | fixed | 1 | クラスProperty Let/Set/GetのByRef・配列・Object/値分類境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 253 |
+| fixed | 254 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 115 |
