@@ -755,3 +755,8 @@ checkpoints:
     decision: "RC-00010の短い桁幅規則が未検証のため、XL-074〜076を追加した短い桁幅評価を登録し、基数領域の収束判定を継続する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-155
+  - afterEvaluation: EV-00602
+    audit: "501 evaluations, 0 active claims, 0 queued candidates"
+    decision: "XL-074〜076は全件一致で新規バグなし。基数領域の連続無バグ数は2回のため、次の独立境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-156
