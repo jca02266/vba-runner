@@ -366,17 +366,18 @@
 | EV-00461 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み日時関数のDateDiff w間隔・週境界 |
 | EV-00462 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DatePart・Weekdayのfirstdayofweek/firstweekofyear年境界マトリクス |
 | EV-00463 | FZ-COVERAGE-20260810 | known-limit | 1 | WeekdayName/Weekdayの省略・Null・範囲外引数 |
+| EV-00464 | FZ-COVERAGE-20260810 | fixed | 1 | Formatの名前付き書式・Null・日付時刻境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 250 |
+| fixed | 251 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 107 |
 
-横展開未解決経路: 315、実Excel待ち評価: 0
+横展開未解決経路: 316、実Excel待ち評価: 0
 
 ## 次の候補
 
