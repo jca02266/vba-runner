@@ -1024,6 +1024,17 @@ items:
       - src/lexer
       - tests/spec/strconv-unicode.test.ts
       - tests/spec/unicode-identifiers.test.ts
+  - id: FZ-COVERAGE-20260810-109
+    title: Parser composite token diagnostics
+    status: queued
+    priority: 1
+    focus: Parser・Lexer領域の複合コメント・Unicode文字列・位置診断回帰
+    priorCauseKey: lexer-invalid-number-literal-validation
+    coverageTargets:
+      - src/parser
+      - src/lexer
+      - tests/engine/lexer-line-continuation.test.ts
+      - tests/spec/parser-error-context.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
