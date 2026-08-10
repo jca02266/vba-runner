@@ -83,6 +83,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixShortWidthMatrix
     VerifyRadixByteAndOctalMatrix
     VerifyRadixCurrencyOctalFollowup
+    VerifyRadixByteIntegerLongOctalMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyUdtObjectArraySet
@@ -91,6 +92,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRadixByteIntegerLongOctalMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = CByte("&O377"): errNo = Err.Number
+    EmitValueAndType "XL-083 CByte-OCT-MAX", value, errNo
+    Err.Clear: value = CByte("&O400"): errNo = Err.Number
+    EmitValueAndType "XL-084 CByte-OCT-OVER", value, errNo
+    Err.Clear: value = CInt("&O77777"): errNo = Err.Number
+    EmitValueAndType "XL-085 CInt-OCT-MAX", value, errNo
+    Err.Clear: value = CLng("&O17777777777"): errNo = Err.Number
+    EmitValueAndType "XL-086 CLng-OCT-MAX", value, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRadixCurrencyOctalFollowup()
