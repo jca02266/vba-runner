@@ -230,3 +230,8 @@ checkpoints:
     decision: "Double極値とCurrency/Decimal変換は仕様一致で新規バグなし。次は銀行丸め・負数丸め・Decimal/Currency比較境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-045
+  - afterEvaluation: EV-00498
+    audit: "397 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Currency/Decimalの銀行丸め・負数・比較境界は仕様一致で新規バグなし。次はLocale依存の数値文字列入力と指数・桁区切り変換を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-046

@@ -400,6 +400,7 @@
 | EV-00495 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域の丸め、整数境界、Decimal/Currency/Double相互変換 |
 | EV-00496 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域のDouble丸め、2^53境界、Decimal/Currency表示変換 |
 | EV-00497 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域のDouble負数最小・指数・Currency/Decimal表示変換 |
+| EV-00498 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 数値精度領域の銀行丸め、負数丸め、Decimal/Currency比較境界 |
 
 ## 状態集計
 
@@ -409,12 +410,12 @@
 | fixed | 255 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 135 |
+| verified-no-bug | 136 |
 
-横展開未解決経路: 345、実Excel待ち評価: 0
+横展開未解決経路: 346、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-045 | 1 | queued | 数値精度領域の銀行丸め、負数丸め、Decimal/Currency比較境界 | yes |
+| FZ-COVERAGE-20260810-046 | 1 | queued | 数値精度領域のLocale依存文字列入力、指数・桁区切り・型変換 | yes |

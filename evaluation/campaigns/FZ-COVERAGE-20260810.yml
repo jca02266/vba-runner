@@ -410,3 +410,13 @@ items:
       - src/engine/coerce.ts
       - src/engine/evaluator.ts
       - tests/spec/currency-bigint.test.ts
+  - id: FZ-COVERAGE-20260810-046
+    title: Numeric locale input boundaries
+    status: queued
+    priority: 1
+    focus: 数値精度領域のLocale依存文字列入力、指数・桁区切り・型変換
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/string-numeric-coercion.test.ts
