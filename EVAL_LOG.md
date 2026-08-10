@@ -488,6 +488,7 @@
 | EV-00583 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LSP・拡張機能領域のHover・Completion・Signature Help境界回帰 |
 | EV-00584 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LSP・拡張機能領域のCode Action・Formatter・CodeLens境界回帰 |
 | EV-00585 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LSP・拡張機能領域のDocument Symbol・Cross-file・Call Graph境界回帰 |
+| EV-00586 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LSP・拡張機能領域のReferences・Symbol Provider・Rename境界回帰 |
 
 ## 状態集計
 
@@ -497,12 +498,12 @@
 | fixed | 256 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 222 |
+| verified-no-bug | 223 |
 
-横展開未解決経路: 433、実Excel待ち評価: 0
+横展開未解決経路: 434、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-138 | 1 | queued | LSP・拡張機能領域のReferences・Symbol Provider・Rename境界回帰 |  |
+| FZ-COVERAGE-20260810-139 | 1 | queued | LSP・拡張機能領域のDebugger・Test Runner・Debug Hook境界回帰 |  |

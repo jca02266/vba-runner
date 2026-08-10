@@ -1347,6 +1347,17 @@ items:
       - tests/lsp/lsp-references.test.ts
       - tests/lsp/lsp-symbol-provider.test.ts
       - tests/lsp/lsp-definition.test.ts
+  - id: FZ-COVERAGE-20260810-139
+    title: LSP debugger and test-runner regression
+    status: queued
+    priority: 1
+    focus: LSP・拡張機能領域のDebugger・Test Runner・Debug Hook境界回帰
+    priorCauseKey: lsp-diagnostic-navigation-contract
+    coverageTargets:
+      - src/lsp
+      - tests/lsp/lsp-debugger.test.ts
+      - tests/lsp/lsp-test-runner.test.ts
+      - tests/lsp/lsp-debug-hook.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued

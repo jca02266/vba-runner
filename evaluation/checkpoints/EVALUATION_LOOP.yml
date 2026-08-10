@@ -670,3 +670,8 @@ checkpoints:
     decision: "LSP・拡張機能のDocument Symbol・Cross-file・Call Graphは仕様一致で新規バグなし。次はReferences・Symbol Provider・Renameを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-138
+  - afterEvaluation: EV-00586
+    audit: "485 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LSP・拡張機能のReferences・Symbol Provider・Renameは仕様一致で新規バグなし。次はDebugger・Test Runner・Debug Hookを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-139
