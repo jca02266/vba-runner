@@ -750,3 +750,8 @@ checkpoints:
     decision: "基数変換回帰マトリクスは既知BUG-00454〜00457のみを再現し、新規バグはなかった。次は4件に共通するRC-00010の修正設計と回帰実装を優先する。"
     action: claim
     nextCandidate: FZ-COVERAGE-20260810-154
+  - afterEvaluation: EV-00601-RCA-SCOPE
+    audit: "501 evaluations, 0 active claims, 0 queued candidates"
+    decision: "RC-00010の短い桁幅規則が未検証のため、XL-074〜076を追加した短い桁幅評価を登録し、基数領域の収束判定を継続する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-155
