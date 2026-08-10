@@ -129,6 +129,18 @@ Private Sub VerifyFormatBracketAndSectionMatrix()
     EmitValueAndType "XL-138 FORMAT-POS-NOPLACEHOLDER", value, errNo
     Err.Clear: value = Format(1000, "Lo0;Hi"): errNo = Err.Number
     EmitValueAndType "XL-139 FORMAT-POS-FIRST-PLACEHOLDER", value, errNo
+    Err.Clear: value = Format(-1000, "Lo;Hi0"): errNo = Err.Number
+    EmitValueAndType "XL-140 FORMAT-NEG-SECOND-PLACEHOLDER", value, errNo
+    Err.Clear: value = Format(1000, "Lo"): errNo = Err.Number
+    EmitValueAndType "XL-141 FORMAT-POS-PLAIN-TEXT", value, errNo
+    Err.Clear: value = Format(1000, "[Lo]"): errNo = Err.Number
+    EmitValueAndType "XL-142 FORMAT-BRACKET-TEXT", value, errNo
+    Err.Clear: value = Format(1000, "[Lo"): errNo = Err.Number
+    EmitValueAndType "XL-143 FORMAT-OPEN-BRACKET", value, errNo
+    Err.Clear: value = Format(1000, "Lo]"): errNo = Err.Number
+    EmitValueAndType "XL-144 FORMAT-CLOSE-BRACKET", value, errNo
+    Err.Clear: value = Format(1000, "[Lo]0"): errNo = Err.Number
+    EmitValueAndType "XL-145 FORMAT-BRACKET-TEXT-PLACEHOLDER", value, errNo
 
     On Error GoTo 0
 End Sub
