@@ -108,3 +108,11 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-014
+    title: Chr family Null and code boundaries
+    status: queued
+    priority: 1
+    focus: Chr/ChrW/ChrBのNull・境界値・数値文字コード変換
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
