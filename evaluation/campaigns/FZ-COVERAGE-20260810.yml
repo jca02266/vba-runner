@@ -124,3 +124,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-016
+    title: Dollar-suffix string Null typing
+    status: queued
+    priority: 1
+    focus: Space$・LTrim$・RTrim$・Trim$のNull戻り値型とError 94境界
+    priorCauseKey: string-dollar-null-return-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/builtin-strings.test.ts
