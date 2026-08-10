@@ -655,3 +655,8 @@ checkpoints:
     decision: "LSP・拡張機能の診断・定義・参照は、診断種別を分離した回帰テストを含めて仕様一致。次はHover・Completion・Signature Helpを確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-135
+  - afterEvaluation: EV-00583
+    audit: "482 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LSP・拡張機能のHover・Completion・Signature Helpは仕様一致で新規バグなし。次はCode Action・Formatter・CodeLensを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-136
