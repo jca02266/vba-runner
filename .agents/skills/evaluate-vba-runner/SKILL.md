@@ -85,6 +85,9 @@ analysis; do not duplicate its taxonomy here.
    not a valid Excel queue entry.
    When the queue source changes, build/import `t.xlsm` on the non-Windows
    development side with vba-extractor before handing it to Windows. The
+   preparation command also writes `t.xlsm.source.sha256`; copy that stamp
+   beside the workbook. Windows `eval-excel.cmd` verifies the stamp before
+   opening Excel and stops if the source changed without rebuilding.
    Windows `eval-excel.cmd` path must only open the prepared workbook, run the
    requested macro, and convert the result; it must not require Node or invoke
    vba-extractor. Rebuild the workbook whenever a queued `.bas`, `.cls`, or

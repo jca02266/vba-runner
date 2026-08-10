@@ -13,6 +13,7 @@
 - `ExcelQueueForcedByVal.cls`、`ExcelQueueForcedByValInterface.cls`: XL-059のClass／Interface呼出し引数検証
 - `empty_with_macro.xlsm`: マクロプロジェクトを持つ入力ブック
 - `prepare-excel-vba.sh`: 開発側で`t.xlsm`を作成し、VBAをインポートするコマンド
+- `verify-excel-queue-source.ps1`: Windows側で準備スタンプと現在のソースを照合する事前検査
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
@@ -49,11 +50,13 @@ tests\excel\queue\eval-excel.cmd
 
 `prepare-excel-vba.sh`は、インポート対象の`.bas`、`.cls`、`.frm`をファイル名順に
 並べ、改行をLFへ正規化したソース一式のSHA-256を計算し、その値をマクロへ埋め込んで
-から`t.xlsm`を作成する。マクロは全プローブ終了後に埋め込み値を
+から`t.xlsm`を作成し、同じソースハッシュを`t.xlsm.source.sha256`にも保存する。マクロは全プローブ終了後に埋め込み値を
 `QUEUE_SOURCE_SHA256=<hash>`として出力し、その後`QUEUE_COMPLETE=True`を出力する。
 `finalize-excel-queue.ps1`は結果に含まれるハッシュを現在のソースと照合するだけで、
 実行後にハッシュを追記しない。これにより、古い`t.xlsm`の実行結果を現在のソースの
-結果として受理できない。ソースを変更した場合は必ず準備スクリプトを再実行する。
+結果として受理できない。`eval-excel.cmd`はExcelを起動する前にスタンプと現在の
+ソースを照合するため、ソース変更後に準備を忘れた場合は明示的に停止する。ソースを
+変更した場合は必ず準備スクリプトを再実行し、`t.xlsm`とスタンプをWindowsへ渡す。
 
 ## 個別実行
 

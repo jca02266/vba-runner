@@ -4,6 +4,7 @@ set -euo pipefail
 queue_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 repo_dir=$(cd "$queue_dir/../../.." && pwd)
 workbook="$queue_dir/t.xlsm"
+workbook_stamp="$workbook.source.sha256"
 stamped_dir=$(mktemp -d "${TMPDIR:-/tmp}/vba-runner-excel-source.XXXXXX")
 trap 'rm -rf "$stamped_dir"' EXIT
 
@@ -44,3 +45,5 @@ cp "$queue_dir/empty_with_macro.xlsm" "$workbook"
 )
 
 printf 'Prepared workbook: %s\nSource hash: %s\n' "$workbook" "$source_hash"
+printf '%s\n' "$source_hash" > "$workbook_stamp"
+printf 'Preparation stamp: %s\n' "$workbook_stamp"

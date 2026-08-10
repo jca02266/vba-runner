@@ -223,6 +223,9 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 キューの`.bas`、`.cls`、`.frm`が更新された場合、開発側で
 `tests/excel/queue/prepare-excel-vba.sh`を実行する。このコマンドが
 `empty_with_macro.xlsm`を`t.xlsm`へコピーし、`vba-extractor import`を実行する。
+同時に`t.xlsm.source.sha256`を作成するので、`t.xlsm`と同じ場所へコピーする。
+Windows側の`eval-excel.cmd`はExcel起動前にこのスタンプと現在のVBAソースを照合し、
+準備漏れがあれば停止する。
 生成された`t.xlsm`をWindowsへ渡し、Windows側の`eval-excel.cmd`は準備済みブックを
 Excelで開き、指定Procを実行し、結果をUTF-8へ変換するだけとする。Windows側にNode環境を
 要求せず、ソース更新ごとに準備コマンドを再実行してから実機へ渡す。
