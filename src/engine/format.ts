@@ -194,6 +194,23 @@ export function stripFormatColorDirectives(pattern: string): string {
     return pattern.replace(/\[(?:black|blue|cyan|green|magenta|red|white|yellow)\]/gi, '');
 }
 
+/**
+ * Determine whether a format section contains date/time tokens.
+ * Quoted literals and escaped characters are display text, not tokens.
+ */
+export function containsDateFormatTokens(pattern: string): boolean {
+    const clean = stripFormatColorDirectives(pattern);
+    let quoted = false;
+    for (let i = 0; i < clean.length; i++) {
+        const ch = clean[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch === '"') { quoted = !quoted; continue; }
+        if (!quoted && /[ymdhns]/i.test(ch)) return true;
+        if (!quoted && /^am\/pm|^a\/p|^ampm/i.test(clean.slice(i))) return true;
+    }
+    return false;
+}
+
 export function formatNumber(n: number, pattern: string): string {
     pattern = stripFormatColorDirectives(pattern);
     const pLower = pattern.toLowerCase();

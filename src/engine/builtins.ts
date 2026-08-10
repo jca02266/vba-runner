@@ -10,7 +10,10 @@ import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNu
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
 import { findClassProperty } from './property-resolution';
-import { formatDate, formatNumber, formatString, formatNullSection, stripFormatColorDirectives } from './format';
+import {
+    formatDate, formatNumber, formatString, formatNullSection,
+    splitFormatSections, containsDateFormatTokens, stripFormatColorDirectives,
+} from './format';
 import { vbaWeekNumber } from './date-week';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
@@ -1280,7 +1283,18 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
             : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
             : val;
-        const isDatePattern = /y|m|d|h|n|s|am\/pm/i.test(stripFormatColorDirectives(fmt));
+        // For numeric values, only the selected positive/negative/zero
+        // section can select the date formatter.  A quoted literal in the
+        // Null section (for example "NULL") must not affect that dispatch.
+        const datePatternSource = (() => {
+            if (typeof effectiveVal !== 'number') return fmt;
+            const sections = splitFormatSections(fmt);
+            if (sections.length < 2) return sections[0];
+            if (effectiveVal < 0) return sections[1] || sections[0];
+            if (effectiveVal === 0 && sections.length >= 3) return sections[2] || sections[0];
+            return sections[0];
+        })();
+        const isDatePattern = containsDateFormatTokens(datePatternSource);
         if (typeof effectiveVal === 'string') {
             // If the format contains date/time symbols, try to parse the string as a date first
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {

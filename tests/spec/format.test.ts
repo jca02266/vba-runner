@@ -111,6 +111,21 @@ assert.strictEqual(evNullSection.callProcedure('TestNullSection', []), 'NULL',
     'Format(Null, "0.00;;;""NULL""") は第4セクションを適用');
 console.log('[PASS] Format Null: 第4セクション');
 
+const sectionDispatchCode = String.raw`
+    Function TestQuotedNullSection()
+        TestQuotedNullSection = Format(1, "0.00;;;""NULL""")
+    End Function
+    Function TestQuotedMonthSection()
+        TestQuotedMonthSection = Format(1, "0.00;;;""month""")
+    End Function
+`;
+const evSectionDispatch = evalVBASingle(sectionDispatchCode);
+assert.strictEqual(evSectionDispatch.callProcedure('TestQuotedNullSection', []), '1.00',
+    '非選択のNullセクションの引用文字列で日付経路へ入らない');
+assert.strictEqual(evSectionDispatch.callProcedure('TestQuotedMonthSection', []), '1.00',
+    '非選択セクションのmonthリテラルで日付経路へ入らない');
+console.log('[PASS] Format: 選択セクションの日付判定');
+
 // --- 数値フォーマット: リテラル文字・複数セクション・科学記数法 ---
 const numCode2 = `
     Function TestLiteralPrefix()
