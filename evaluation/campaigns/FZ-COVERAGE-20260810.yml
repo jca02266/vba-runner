@@ -1444,6 +1444,17 @@ items:
       - src/engine/parser.ts
       - tests/spec/builtins.test.ts
       - tests/spec/number_literals.test.ts
+  - id: FZ-COVERAGE-20260810-148
+    title: LongLong literal static metadata propagation
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong基数リテラルのConst・フロー型・式推論メタデータ伝播
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/flow-environment.ts
+      - src/engine/type-environment.ts
+      - src/engine/parser.ts
+      - tests/spec/longlong-literal-boundaries.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
