@@ -485,3 +485,8 @@ checkpoints:
     decision: "制御フローのループネスト・Exit・前後条件は仕様一致で新規バグなし。次はOn Error・Resume・Exitとの複合制御を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-098
+  - afterEvaluation: EV-00549
+    audit: "448 evaluations, 0 active claims, 0 queued candidates"
+    decision: "制御フローのOn Error・Resume・Exit・ループ複合境界は仕様一致で新規バグなし。次はGoSub/Returnとエラー処理の複合境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-099

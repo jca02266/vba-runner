@@ -919,6 +919,16 @@ items:
       - tests/spec/on-error-in-blocks.test.ts
       - tests/spec/on-error-nested-resume.test.ts
       - tests/spec/recursive-error-handling.test.ts
+  - id: FZ-COVERAGE-20260810-099
+    title: Control-flow Exit and handler regression
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のExit・Resume・Handler fall-through境界回帰
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-error-nested-resume.test.ts
+      - tests/spec/recursive-error-handling.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
