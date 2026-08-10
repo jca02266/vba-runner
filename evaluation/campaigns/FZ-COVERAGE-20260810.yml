@@ -1248,6 +1248,17 @@ items:
       - tests/spec/type-environment.test.ts
       - tests/spec/flow-environment.test.ts
       - tests/spec/shell.test.ts
+  - id: FZ-COVERAGE-20260810-130
+    title: Host function Null and return-type regression
+    status: queued
+    priority: 1
+    focus: その他領域の組み込みHost関数Null・戻り値型・エラー伝播回帰
+    priorCauseKey: host-function-null-validation-gap
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtins.test.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/spec/nonfinite-boundaries.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
