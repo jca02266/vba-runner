@@ -939,6 +939,17 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/on-goto.test.ts
       - tests/spec/on-error-nested-resume.test.ts
+  - id: FZ-COVERAGE-20260810-101
+    title: Control-flow label and resume regression
+    status: queued
+    priority: 1
+    focus: 制御フロー領域のラベル・Resume再実行・GoSub復帰回帰
+    priorCauseKey: CTRL-GOSUB-CONTINUATION-FRAME
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-goto.test.ts
+      - tests/spec/goto-statement.test.ts
+      - tests/spec/resume-statement-target.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
