@@ -605,3 +605,8 @@ checkpoints:
     decision: "コレクション・Dictionaryの列挙中変更・Snapshot・キー強制は仕様一致で新規バグなし。次はDictionary/外部Object列挙を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-124
+  - afterEvaluation: EV-00573
+    audit: "472 evaluations, 0 active claims, 0 queued candidates"
+    decision: "コレクション・Dictionaryの列挙中変更・Snapshot・Bang/キー境界は仕様一致で新規バグなし。次は外部Object列挙とライフサイクルを確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-125

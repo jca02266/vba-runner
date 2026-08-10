@@ -1194,6 +1194,17 @@ items:
       - src/engine/builtins.ts
       - tests/spec/for-each.test.ts
       - tests/spec/collection-remove.test.ts
+  - id: FZ-COVERAGE-20260810-125
+    title: Dictionary external enumeration regression
+    status: queued
+    priority: 1
+    focus: コレクション・Dictionary領域のDictionary列挙・外部Object列挙・Bang回帰
+    priorCauseKey: collection-enumeration-snapshot-semantics
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dictionary-bang.test.ts
+      - tests/spec/with-dictionary-bang.test.ts
+      - tests/spec/for-each.test.ts
   - id: FZ-COVERAGE-20260810-062
     title: Format completion regression boundary
     status: queued
