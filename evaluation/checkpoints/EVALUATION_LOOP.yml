@@ -140,3 +140,8 @@ checkpoints:
     decision: "宣言時既定値・型接尾辞推論・Option Explicitは仕様一致で新規バグなし。次はEnumとUDTの既定値・メンバー初期化境界を確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-029
+  - afterEvaluation: EV-00482
+    audit: "381 evaluations, 0 active claims, 0 queued candidates"
+    decision: "EnumとUDTの基本値・初期化・固定長文字列は仕様一致で新規バグなし。次は複合UDTのネスト・配列・可変長String境界を確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-030

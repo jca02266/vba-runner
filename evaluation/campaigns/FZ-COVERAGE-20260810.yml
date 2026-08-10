@@ -253,3 +253,13 @@ items:
       - src/engine/parser.ts
       - src/engine/type-system.ts
       - tests/spec/udt*.test.ts
+  - id: FZ-COVERAGE-20260810-030
+    title: Nested UDT and array initialization boundaries
+    status: queued
+    priority: 1
+    focus: UDTのネスト・配列・可変長String初期化と値渡し境界
+    priorCauseKey: exact-integer-literal-metadata-not-preserved
+    coverageTargets:
+      - src/engine/type-system.ts
+      - src/engine/evaluator.ts
+      - tests/spec/binary-udt-array.test.ts
