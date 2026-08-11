@@ -1864,3 +1864,12 @@ items:
       - src/engine/parser.ts
       - src/engine/builtins.ts
       - tests/spec/radix-conversion-regressions.test.ts
+  - id: FZ-COVERAGE-20260810-192
+    title: Radix coercion helper matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のvbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct基数経路
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/radix-conversion-regressions.test.ts

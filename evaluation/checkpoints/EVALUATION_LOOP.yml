@@ -895,3 +895,8 @@ checkpoints:
     decision: "日時領域は5回連続無バグで切り替えた。基数領域では幅超過値の折り返しバグを修正したため無バグ連続数をリセットし、符号・型サフィックス境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-191
+  - afterEvaluation: EV-00638
+    audit: "537 evaluations, 0 active claims, 0 queued candidates"
+    decision: "基数符号・型サフィックス11ケースは一致した。基数領域の連続無バグ数は1回なので、vbaToNumberとHex/Octの横展開経路を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-192
