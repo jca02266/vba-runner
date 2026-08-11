@@ -318,3 +318,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handling.test.ts
+  - id: FZ-GRAMMAR-034
+    title: クラスErr状態分離境界
+    status: queued
+    priority: 1
+    focus: クラス手続きのOn Error局所ハンドラと呼出し元Err状態の分離
+    priorCauseKey: class-error-state-isolation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/class-method-on-error-isolation.test.ts
