@@ -649,6 +649,7 @@
 | EV-00744 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format Null・Empty・数値/文字列プレースホルダー混在境界 |
 | EV-00745 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付き書式・Null第4セクション・基本エスケープ境界 |
 | EV-00746 | FZ-COVERAGE-20260810 | fixed | 1 | Format角括弧ディレクティブとString書式ドメイン境界 |
+| EV-00747 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format未閉鎖・降順・空角括弧と複数セクション条件の境界 |
 
 ## 状態集計
 
@@ -659,9 +660,9 @@
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 348 |
+| verified-no-bug | 349 |
 
-横展開未解決経路: 523、実Excel待ち評価: 1
+横展開未解決経路: 524、実Excel待ち評価: 1
 
 ## 次の候補
 
