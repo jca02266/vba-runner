@@ -660,6 +660,7 @@
 | EV-00755 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format General Number・Currency・Fixed・Standard・Percent・Scientificの型境界 |
 | EV-00756 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値値のリテラルのみ書式・符号・括弧・引用符境界 |
 | EV-00757 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Lexerの行継続・引用符・コメント・基数リテラル組合せ境界 |
+| EV-00758 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LexerのRem・単引用符コメント、コロン区切り、識別子型サフィックス境界 |
 
 ## 状態集計
 
@@ -670,7 +671,7 @@
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 356 |
+| verified-no-bug | 357 |
 
 横展開未解決経路: 535、実Excel待ち評価: 3
 

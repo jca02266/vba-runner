@@ -2536,3 +2536,13 @@ items:
       - src/engine/lexer.ts
       - src/engine/parser.ts
       - tests/spec/lexer.test.ts
+  - id: FZ-COVERAGE-20260810-269
+    title: Lexer comment and identifier suffix boundary
+    status: queued
+    priority: 1
+    focus: LexerのRem・単引用符コメント、コロン区切り、識別子型サフィックス境界
+    priorCauseKey: lexer-coverage-low
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/engine/lexer-line-continuation.test.ts

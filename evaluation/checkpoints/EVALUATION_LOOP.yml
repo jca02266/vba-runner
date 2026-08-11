@@ -1612,3 +1612,10 @@ checkpoints:
     nextArea: Lexer/Parser
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-268
+  - afterEvaluation: EV-00757
+    audit: "656 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Lexer・Parserの行継続・引用符・コメント・基数リテラル境界は新規バグなし。LexerのRem・単引用符コメント、コロン区切り、識別子型サフィックスの境界を次に評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-269
