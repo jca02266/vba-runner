@@ -1714,3 +1714,10 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     rootCauseId: RC-00063
+  - afterEvaluation: EV-00766-FIX
+    audit: "665 evaluations, 0 active claims; ROOT-00034 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "parseAsClassのSub/Function/Property/Dim/Implements/Event/Constをメンバー単位で同期し、後続フィールド・手続きの部分AST保持を回帰確認した。明示Class...End Class経路は未評価の別境界として次に選定する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-278

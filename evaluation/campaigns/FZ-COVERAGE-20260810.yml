@@ -2623,3 +2623,13 @@ items:
       - src/engine/parser.ts
       - src/lsp/server.ts
       - tests/engine/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-278
+    title: Parser explicit class recovery boundary
+    status: queued
+    priority: 1
+    focus: Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界
+    priorCauseKey: parser-class-recovery-context-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/lsp/server.ts
+      - tests/engine/parser-error-recovery.test.ts
