@@ -1374,3 +1374,10 @@ checkpoints:
     nextArea: 配列・UDT
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00722
+    audit: "621 evaluations, 0 active claims"
+    decision: "可変長String配列を含むUDTのPut/Getも一致し、配列・UDT領域の無バグ連続は3回。混在型・ネスト境界を継続する。"
+    action: continue-area
+    nextArea: 配列・UDT
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
