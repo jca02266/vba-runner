@@ -311,6 +311,9 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('cint', (val: any) => {
         val = unwrapConversionValue(val);
+        if (typeof val === 'string' && /^[+-]&[hHoO]/.test(val.trim())) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        }
         const radix = typeof val === 'string' ? parseRadixForWidth(val, 16) : undefined;
         const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -32768 || n > 32767) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
@@ -318,6 +321,9 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     ctx.reg('clng', (val: any) => {
         val = unwrapConversionValue(val);
+        if (typeof val === 'string' && /^[+-]&[hHoO]/.test(val.trim())) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        }
         const radix = typeof val === 'string' ? parseRadixForWidth(val, 32) : undefined;
         const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -2147483648 || n > 2147483647) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
@@ -378,8 +384,14 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Expression' }]);
     const parseCDecString = (source: string): VbaDecimal => {
         const text = normalizeVbaNumericString(source.trim());
-        const radix = parseRadixForWidth(text, 64);
-        if (radix !== undefined) return new VbaDecimal(radix as bigint, 0);
+        if (/^[+-]&[hHoO]/.test(text)) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
+        const radix = parseRadixForValue(text);
+        if (radix !== undefined) {
+            const integer = typeof radix === 'bigint' ? radix : BigInt(radix);
+            return new VbaDecimal(integer, 0);
+        }
         const grouped = /^[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d*)?(?:[eE][+-]?\d+)?$/.test(text)
             || /^[+-]?\.\d+(?:[eE][+-]?\d+)?$/.test(text);
         if (grouped) return VbaDecimal.fromString(text.replace(/,/g, '').replace(/^\+/, ''));
