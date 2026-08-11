@@ -689,6 +689,7 @@
 | EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
 | EV-00785 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
 | EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
+| EV-00787 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
 
 ## 状態集計
 
@@ -698,11 +699,11 @@
 | bug-found | 1 |
 | fixed | 302 |
 | known-limit | 4 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 369 |
 
-横展開未解決経路: 564、実Excel待ち評価: 3
+横展開未解決経路: 565、実Excel待ち評価: 4
 
 ## 次の候補
 

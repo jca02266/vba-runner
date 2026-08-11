@@ -19,9 +19,27 @@ Public Sub RunFormatMatrixVerification()
     EmitSelectedSectionBoundaryMatrix
     EmitNamedDateBoundaryMatrix
     EmitRoundingBoundaryMatrix
+    EmitNamedBooleanBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitNamedBooleanBoundaryMatrix()
+    Dim value As Variant
+    Print #resultFile, "XL-186"
+    Debug.Print "XL-186"
+    value = Empty
+    EmitCase "XL-186-EMPTY-TF", "True/False", value
+    EmitCase "XL-186-EMPTY-YN", "Yes/No", value
+    EmitCase "XL-186-EMPTY-OO", "On/Off", value
+    value = Null
+    EmitCase "XL-186-NULL-TF", "True/False", value
+    EmitCase "XL-186-NULL-YN", "Yes/No", value
+    EmitCase "XL-186-NULL-OO", "On/Off", value
+    EmitCase "XL-186-STRING1-TF", "True/False", "1"
+    EmitCase "XL-186-STRING0-YN", "Yes/No", "0"
+    EmitCase "XL-186-STRING-OO", "On/Off", "abc"
 End Sub
 
 Private Sub EmitRoundingBoundaryMatrix()

@@ -1920,3 +1920,12 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00787
+    audit: "686 evaluations, 0 active claims; Format名前付きBoolean基本境界は無バグ2回、Null・Empty・文字列境界をneeds-excelへ追加"
+    decision: "独立評価でEmpty・Null・Stringの値型差分を検出したが、Excel期待値が未確定のため修正せずXL-186で照合待ちとする。"
+    action: needs-excel
+    nextArea: Format
+    nextEvaluation: EV-00787
+    nextCandidate: FZ-COVERAGE-20260810-298
+    excelProbeIds:
+      - XL-186
