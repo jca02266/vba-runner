@@ -2109,3 +2109,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/radix-typed-parameter-composite.test.ts
+  - id: FZ-COVERAGE-20260810-219
+    title: Optional typed ByRef parameter boundary
+    status: queued
+    priority: 1
+    focus: Optional ByRef LongLongの省略・名前付き書き戻し
+    priorCauseKey: procedure-parameter-coercion-type-map-incomplete
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/radix-typed-parameter-composite.test.ts
+  - id: FZ-COVERAGE-20260810-220
+    title: Omitted Optional typed parameter boundary
+    status: queued
+    priority: 1
+    focus: Optional ByRef LongLong省略時の既定値と呼び出し元書き戻し境界
+    priorCauseKey: procedure-parameter-coercion-type-map-incomplete
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/radix-typed-parameter-composite.test.ts

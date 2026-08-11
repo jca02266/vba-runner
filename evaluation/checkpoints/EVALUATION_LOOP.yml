@@ -1276,3 +1276,17 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00708
+    audit: "607 evaluations, 0 active claims"
+    decision: "Optional ByRef LongLongの名前付き書き戻しも一致し、宣言・型・リテラル領域の無バグ連続は4回。5回目として省略時既定値の境界を評価する。"
+    action: continue-area
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00709
+    audit: "608 evaluations, 0 active claims"
+    decision: "Optional ByRef LongLong省略時の既定値も一致し、宣言・型・リテラル領域の近接境界で無バグ連続5回を達成した。次は未収束の別領域を選定する。"
+    action: select-next-area
+    nextArea: 組み込み関数・書式
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
