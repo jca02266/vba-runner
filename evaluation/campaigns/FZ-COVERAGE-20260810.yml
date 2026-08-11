@@ -2395,3 +2395,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-254
+    title: Format numeric-string boundary matrix
+    status: queued
+    priority: 1
+    focus: Format数値文字列の符号・指数・空文字列・Null・日付境界
+    priorCauseKey: format-domain-dispatch-does-not-coerce-numeric-strings
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts

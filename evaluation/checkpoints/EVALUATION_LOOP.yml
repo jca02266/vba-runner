@@ -1507,3 +1507,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-253
+  - afterEvaluation: EV-00742
+    audit: "641 evaluations, 0 active claims"
+    decision: "Formatの数値文字列ディスパッチを修正し、RC-00055の限定スコープ対処を完了した。除外した符号・指数・空文字列・Null・日付境界を同じ領域で次に評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-254
