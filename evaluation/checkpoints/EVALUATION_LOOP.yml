@@ -845,3 +845,13 @@ checkpoints:
     decision: "DateDiff h/nの境界バグを修正し、日時領域の無バグ連続数をリセットした。残る週設定境界を確認するため同領域を継続する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-181
+  - afterEvaluation: EV-00628
+    audit: "527 evaluations, 0 active claims, 0 queued candidates"
+    decision: "明示週オプションの1回目は一致した。日時領域の連続無バグ数は1回なので、入力型とNull/Error伝播を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-182
+  - afterEvaluation: EV-00629
+    audit: "528 evaluations, 0 active claims, 0 queued candidates"
+    decision: "入力型マトリクスでEmptyの日付変換バグを修正した。日時領域の無バグ連続数をリセットし、共通日付変換の複合型・Null境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-183

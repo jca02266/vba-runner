@@ -1775,3 +1775,20 @@ items:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-182
+    title: Date function input type matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDatePart・DateDiff・Weekday入力型とNull/Error境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-183
+    title: Date conversion cross-type matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateValue・TimeValue・FormatとCurrency・Decimal・Nothing・Null境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/date-functions.test.ts
