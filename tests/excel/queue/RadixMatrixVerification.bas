@@ -21,24 +21,31 @@ Public Sub RunRadixMatrixVerification()
             EmitCase "XL-175", CStr(kind), CStr(value)
         Next value
     Next kind
-    EmitImplicitWidthCase "XL-176", "&H100", "Byte"
-    EmitImplicitWidthCase "XL-177", "&H10000", "Integer"
-    EmitImplicitWidthCase "XL-178", "&H100000000", "Long"
-    EmitImplicitWidthCase "XL-179", "&H10000000000000000", "LongLong"
+    EmitImplicitWidthCase "XL-176", "&H100", "Byte", "256"
+    EmitImplicitWidthCase "XL-177", "&H10000", "Integer", "65536"
+    EmitImplicitWidthCase "XL-178", "&H100000000", "Long", "4294967296"
+    EmitImplicitWidthCase "XL-179", "&H10000000000000000", "LongLong", "18446744073709551616"
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "RADIX_MATRIX_COMPLETE=True"
     Close #resultFile
 End Sub
 
-Private Sub EmitImplicitWidthCase(ByVal probeId As String, ByVal text As String, ByVal targetKind As String)
+Private Sub EmitImplicitWidthCase(ByVal probeId As String, ByVal text As String, _
+        ByVal targetKind As String, ByVal decimalText As String)
     Dim source As Variant, result As Variant, errNo As Long
+    Dim byteValue As Byte, integerValue As Integer
+    Dim longValue As Long, longLongValue As LongLong
     On Error Resume Next
     Err.Clear
+    ' The radix magnitudes above are intentionally outside some target widths.
+    ' Keep them out of VBA source literals so this probe tests runtime coercion,
+    ' not a compile-time overflow in the probe itself.
+    source = CDec(decimalText)
     Select Case targetKind
-        Case "Byte": source = &H100: Dim byteValue As Byte: byteValue = source: result = byteValue
-        Case "Integer": source = &H10000: Dim integerValue As Integer: integerValue = source: result = integerValue
-        Case "Long": source = &H100000000: Dim longValue As Long: longValue = source: result = longValue
-        Case "LongLong": source = &H10000000000000000^: Dim longLongValue As LongLong: longLongValue = source: result = longLongValue
+        Case "Byte": byteValue = source: result = byteValue
+        Case "Integer": integerValue = source: result = integerValue
+        Case "Long": longValue = source: result = longValue
+        Case "LongLong": longLongValue = source: result = longLongValue
     End Select
     errNo = Err.Number
     If errNo <> 0 Then
