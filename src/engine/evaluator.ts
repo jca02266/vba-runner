@@ -3940,10 +3940,11 @@ export class Evaluator {
         const finalParameter = setter.parameters[setter.parameters.length - 1];
         const rhsExpression = sourceExpr ?? ({ type: 'Literal', value } as Expression);
         const rhsArgument: Expression = finalParameter
-            ? ({ type: 'NamedArgument', name: finalParameter.name, value: rhsExpression } as any)
+            ? ({ type: 'NamedArgument', name: finalParameter.name, value: rhsExpression,
+                __vbaPropertyValueTail: true } as any)
             : rhsExpression;
         this.callClassMethodWithExpressions(obj, setter,
-            [...indexExpressions, rhsArgument], [...indexValues, value]);
+            [...indexExpressions, rhsArgument], [...indexValues, value], true);
     }
 
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
@@ -5095,8 +5096,8 @@ export class Evaluator {
      * callee's updates, unlike module procedure calls which write back through
      * their original expressions.
      */
-    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[]): any {
-        const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs);
+    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[], allowSyntheticPropertyValueTail = false): any {
+        const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs, allowSyntheticPropertyValueTail);
         const { args, references } = aligned;
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
@@ -5221,9 +5222,21 @@ export class Evaluator {
         proc: ProcedureDeclaration,
         argExprs: (Expression | null)[],
         evaluatedArgs?: any[],
+        allowSyntheticPropertyValueTail = false,
     ): { args: any[]; references: Array<VbaLValueReference | null>; expressions: Array<Expression | null> } {
         const split = this.splitArgumentExpressions(argExprs);
         const paramArrayIndex = proc.parameters.findIndex(p => p.isParamArray);
+        // VBA forbids named arguments for every procedure that declares a
+        // ParamArray.  Property Let/Set has a synthetic value-tail parameter,
+        // but that tail does not relax the same call-site restriction.
+        const hasExplicitNamedArgument = argExprs.some(arg =>
+            arg?.type === 'NamedArgument' && !(arg as any).__vbaPropertyValueTail);
+        if (paramArrayIndex >= 0 && hasExplicitNamedArgument && !allowSyntheticPropertyValueTail) {
+            this.throwVbaError(
+                448,
+                'Named arguments cannot be used with ParamArray',
+            );
+        }
         const propertyValueIndex = paramArrayIndex >= 0 &&
             this.isPropertyValueParameter(proc, proc.parameters.length - 1)
             ? proc.parameters.length - 1
