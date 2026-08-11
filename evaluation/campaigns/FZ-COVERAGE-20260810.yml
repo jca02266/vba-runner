@@ -2905,3 +2905,14 @@ items:
       - src/engine/coerce.ts
       - tests/spec/declaration-conversion-boundaries.test.ts
       - tests/spec/radix-sign-suffix-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-307
+    title: Val radix and implicit assignment reconciliation
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類
+    priorCauseKey: radix-value-width-semantics-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/radix-implicit-width-boundary.test.ts
+      - tests/spec/declaration-conversion-boundaries.test.ts

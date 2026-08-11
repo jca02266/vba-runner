@@ -297,6 +297,36 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         return bits === 64 ? value : Number(value);
     };
+    const radixInputBits = (source: string): 16 | 32 | 64 | undefined => {
+        const text = normalizeVbaNumericString(source.trim());
+        const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
+        if (!match) return undefined;
+        const digits = match[3];
+        const base = match[2].toLowerCase();
+        return base === 'h'
+            ? (digits.length <= 4 ? 16 : digits.length <= 8 ? 32 : digits.length <= 16 ? 64 : undefined)
+            : (digits.length <= 6 ? 16 : digits.length <= 11 ? 32 : digits.length <= 22 ? 64 : undefined);
+    };
+    const hasFullRadixWidth = (source: string, bits: 16 | 32 | 64): boolean => {
+        const text = normalizeVbaNumericString(source.trim());
+        const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
+        if (!match) return false;
+        const digits = match[3];
+        return digits.length === (match[2].toLowerCase() === 'h' ? bits / 4 : Math.ceil(bits / 3));
+    };
+    const parseRadixForTarget = (source: string, targetBits: 16 | 32 | 64): number | bigint | undefined => {
+        const inputBits = radixInputBits(source);
+        if (inputBits === undefined) return undefined;
+        const parsed = parseRadixForWidth(source, inputBits);
+        if (parsed === undefined || inputBits >= targetBits || /^[+-]/.test(source.trim())) return parsed;
+        const text = normalizeVbaNumericString(source.trim());
+        const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
+        if (!match) return parsed;
+        const magnitude = BigInt(match[2].toLowerCase() === 'h'
+            ? `0x${match[3]}`
+            : `0o${match[3]}`);
+        return targetBits === 64 ? magnitude : Number(magnitude);
+    };
     const parseRadixForValue = (
         source: string,
         options: { signExtendShort?: boolean } = {},
@@ -323,6 +353,9 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('cbyte', (val: any) => {
         val = unwrapConversionValue(val);
         if (val instanceof VbaBoolean) return val.valueOf() ? 255 : 0;
+        if (typeof val === 'string' && hasFullRadixWidth(val, 64)) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        }
         const n = ctx.round(ctx.toVbaNumber(val));
         if (n < 0 || n > 255) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
@@ -332,7 +365,11 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'string' && /^[+-]&[hHoO]/.test(val.trim())) {
             ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         }
-        const radix = typeof val === 'string' ? parseRadixForWidth(val, 16) : undefined;
+        const inputBits = typeof val === 'string' ? radixInputBits(val) : undefined;
+        if (inputBits === 64 && hasFullRadixWidth(val, 64)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const radix = typeof val === 'string' && inputBits !== undefined
+            ? parseRadixForWidth(val, inputBits)
+            : undefined;
         const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -32768 || n > 32767) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
@@ -342,7 +379,11 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof val === 'string' && /^[+-]&[hHoO]/.test(val.trim())) {
             ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         }
-        const radix = typeof val === 'string' ? parseRadixForWidth(val, 32) : undefined;
+        const inputBits = typeof val === 'string' ? radixInputBits(val) : undefined;
+        if (inputBits === 64 && hasFullRadixWidth(val, 64)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const radix = typeof val === 'string' && inputBits !== undefined
+            ? parseRadixForTarget(val, 32)
+            : undefined;
         const n = ctx.round(radix === undefined ? ctx.toVbaNumber(val) : Number(radix));
         if (n < -2147483648 || n > 2147483647) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
         return n;
@@ -447,6 +488,16 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                 return parseCurrencyString(trimmed);
             }
             // &H/&O/指数/カンマ区切り等は数値文字列として解釈（実 VBA 差分で裁定）
+            if (radixInputBits(trimmed) === 64) {
+                if (/^[+-]?&[oO]/.test(trimmed)
+                    && trimmed.replace(/^[+-]?&[oO]/, '').length >= 22) {
+                    const digits = trimmed.replace(/^[+-]?&[oO]/, '');
+                    if (BigInt(`0o${digits}`) < (1n << 64n)) {
+                        ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+                    }
+                }
+                ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+            }
             const radix = parseRadixForValue(trimmed, { signExtendShort: false });
             if (radix !== undefined) {
                 const integer = typeof radix === 'bigint' ? radix : BigInt(radix);
@@ -481,7 +532,16 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         if (typeof val === 'string') {
             const trimmed = val.trim();
-            const radix = parseRadixForWidth(trimmed, 64);
+            const inputBits = radixInputBits(trimmed);
+            if (inputBits === 64 && /^&[oO]/.test(trimmed)
+                && hasFullRadixWidth(trimmed, 64)) {
+                const digits = trimmed.replace(/^[+-]?&[oO]/, '');
+                const magnitude = BigInt(`0o${digits}`);
+                if (magnitude < (1n << 64n)) {
+                    ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+                }
+            }
+            const radix = inputBits === undefined ? undefined : parseRadixForTarget(trimmed, 64);
             if (radix !== undefined) {
                 const n = typeof radix === 'bigint' ? radix : BigInt(radix);
                 if (n < -9223372036854775808n || n > 9223372036854775807n) {

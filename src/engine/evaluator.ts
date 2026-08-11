@@ -3890,7 +3890,7 @@ export class Evaluator {
      * VBA Let-coercion: 宣言型に合わせて値を強制変換する。
      * 現在は Boolean のみサポート。他の型（Integer/Long/...）の coercion は後続作業。
      */
-    private coerceToDeclaredType(val: any, vbaType: string): any {
+    private coerceToDeclaredType(val: any, vbaType: string, implicitAssignment = false): any {
         // Null は数値・Boolean 型では「Invalid use of Null (Error 94)」
         if (val === vbaNull) {
             const errorTypes = new Set(['Boolean', 'Byte', 'Integer', 'Long', 'LongLong', 'LongPtr', 'Single', 'Double', 'Currency', 'Date']);
@@ -3906,8 +3906,21 @@ export class Evaluator {
                 return this.env.get('cbyte')(val);
             case 'Integer':
                 return this.env.get('cint')(val);
-            case 'Long':
-                return this.env.get('clng')(val);
+            case 'Long': {
+                try {
+                    return this.env.get('clng')(val);
+                } catch (error: any) {
+                    // Direct CLng calls distinguish an over-wide radix string
+                    // as Type mismatch, while Variant-to-Long Let coercion
+                    // reports the historical Overflow contract.
+                    if (implicitAssignment && typeof val === 'string'
+                        && error?.type === 'VbaError'
+                        && error.number === VbaErrorCode.TYPE_MISMATCH) {
+                        this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+                    }
+                    throw error;
+                }
+            }
             case 'LongLong':
             case 'LongPtr':
                 return this.env.get('clnglng')(val);
@@ -4127,7 +4140,7 @@ export class Evaluator {
             // Let-coercion: 宣言型に合わせて値を変換
             const typeInfo = this.env.getVariableType(name);
             if (typeInfo) {
-                val = this.coerceToDeclaredType(val, typeInfo.vbaType);
+                val = this.coerceToDeclaredType(val, typeInfo.vbaType, true);
             }
             // UDTs are value types in VBA.  Assignment must not make the
             // destination share nested UDTs or arrays with the source.

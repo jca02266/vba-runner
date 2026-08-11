@@ -1986,3 +1986,12 @@ checkpoints:
     rootCauseId: RC-00068
     rootCauseParentId: RC-00010
     blocker: "RadixMatrix.resultの記録ハッシュは現行キューソースと不一致。XL-185/XL-186も結果未収録。"
+  - afterEvaluation: EV-00794
+    audit: "693 evaluations, 0 active claims; 宣言・型・リテラルの直接基数変換差異を17ケース修正、ValとVariant経路は未確定"
+    decision: "入力桁幅と変換先幅を分離する直接変換修正でCByte・CInt・CLng・CLngLng・CCurの85ケースを一致させた。Valの2ケースとVariant暗黙代入は別候補へ分離する。"
+    action: continue
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-307
+    rootCauseId: RC-00010
+    blocker: "RadixMatrix.resultの記録ハッシュは現行キューソースと不一致。Valの期待値根拠とVariant経路の実機契約が未確定。"
