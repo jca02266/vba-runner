@@ -507,3 +507,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-055
+    title: With・Select Case複合Resumeラベル境界
+    status: queued
+    priority: 1
+    focus: With内Select Case節のGoSub Resumeラベル解決
+    priorCauseKey: nested-resume-label-resolution
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

@@ -1198,3 +1198,8 @@ checkpoints:
     decision: "For Each内Resumeラベルも一致し、エラー処理領域の無バグ連続数は1回。Withとループを組み合わせたネスト境界を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-054
+  - afterEvaluation: EV-00698
+    audit: "597 evaluations, 0 active claims"
+    decision: "With内For複合ネストのResumeラベルも一致し、エラー処理領域の無バグ連続数は2回。With内Select Case複合境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-055
