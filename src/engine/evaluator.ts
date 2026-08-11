@@ -3440,7 +3440,13 @@ export class Evaluator {
             // Resume/GoTo/Exit statement, VBA terminates the procedure; it
             // must not return to the statement following the GoSub.
             if (!wasInErrorHandler && this.isInErrorHandler) {
-                throw { type: 'Exit', target: this.currentProcedureType === 'sub' ? 'Sub' : 'Function' };
+                const isProperty = ['get', 'let', 'set'].includes(this.currentProcedureType ?? '');
+                throw {
+                    type: 'Exit',
+                    target: isProperty
+                        ? 'Property'
+                        : (this.currentProcedureType === 'sub' ? 'Sub' : 'Function'),
+                };
             }
         } catch (e: any) {
             if (e && e.type === 'Return') return;

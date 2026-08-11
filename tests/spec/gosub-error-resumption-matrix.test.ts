@@ -1,5 +1,5 @@
 /** GoSub/ReturnとOn Error復帰境界。 */
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBAModules, evalVBASingle, assert } from '../../test-libs/test-runner';
 
 const ev = evalVBASingle(String.raw`
 Function ProbeNormal() As String
@@ -45,3 +45,39 @@ assert.strictEqual(ev.callProcedure('ProbeError', []), 'H5',
 assert.strictEqual(ev.callProcedure('ProbeResume', []), '6:1',
     'Resume Next handles an error raised inside a GoSub body');
 console.log('[PASS] GoSub error resumption matrix');
+
+const propertyEv = evalVBAModules([
+    {
+        name: 'Thing',
+        parseAsClass: 'Thing',
+        code: String.raw`
+Option Explicit
+Private mValue As Long
+
+Public Property Get Value() As Long
+    On Error GoTo Handler
+    GoSub Worker
+    Value = 99
+    Exit Property
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Value = 42
+End Property
+`,
+    },
+    {
+        name: 'Module1',
+        code: String.raw`
+Public Function ProbeProperty() As Long
+    Dim t As New Thing
+    ProbeProperty = t.Value
+End Function
+`,
+    },
+]);
+
+assert.strictEqual(propertyEv.callProcedure('ProbeProperty', []), 42,
+    'GoSub errors terminate a Property Get after its owning handler');
+console.log('[PASS] GoSub Property Get error resumption');
