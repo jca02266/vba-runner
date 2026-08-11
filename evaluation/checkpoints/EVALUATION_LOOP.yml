@@ -1325,3 +1325,10 @@ checkpoints:
     nextArea: ファイルI/O・FSO
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00715
+    audit: "614 evaluations, 0 active claims"
+    decision: "ファイルI/O・FSO領域でCreateTextFileのOverwrite=False境界は一致した。無バグ連続は1回で、作成モードとTextStream境界を継続する。"
+    action: continue-area
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

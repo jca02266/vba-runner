@@ -2167,3 +2167,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/val-suffix-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-226
+    title: FSO CreateTextFile overwrite boundary
+    status: queued
+    priority: 1
+    focus: FSO CreateTextFileのOverwrite省略・False時の既存ファイル境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso-overwrite-boundary.test.ts
