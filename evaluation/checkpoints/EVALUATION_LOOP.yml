@@ -1706,3 +1706,11 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-277
+  - afterEvaluation: EV-00766
+    audit: "665 evaluations, 0 active claims; BUG-00494 requires RCA confirmation; ROOT-00033 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "parseAsClassの壊れたメンバー後に後続メンバーを部分ASTへ保持できない事象を再現した。RC-00063の横展開と独立レビューで同期範囲を確定してから修正する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00063
