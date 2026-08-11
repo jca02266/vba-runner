@@ -344,6 +344,19 @@ export function hasNumericFormatTokens(pattern: string): boolean {
 }
 
 /**
+ * Whether a pattern belongs exclusively to the numeric Format domain.
+ *
+ * Keeping this predicate beside the token scanners prevents value dispatchers
+ * from independently approximating the boundary between numeric, date, and
+ * string-placeholder formats.
+ */
+export function isNumericOnlyFormat(pattern: string): boolean {
+    return hasNumericFormatTokens(pattern)
+        && !containsDateFormatTokens(pattern)
+        && !hasUnescapedFormatChars(pattern, '@&!<>');
+}
+
+/**
  * Determine whether a format section contains date/time tokens.
  * Quoted literals and escaped characters are display text, not tokens.
  */

@@ -12,8 +12,8 @@ import type { ProcedureDeclaration } from './parser';
 import { findClassProperty } from './property-resolution';
 import {
     formatDate, formatNumber, formatString, formatNullSection,
-    splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, stripFormatColorDirectives,
-    stripVbaBracketDirectives, hasUnclosedVbaBracket, hasUnescapedFormatChars,
+    splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, isNumericOnlyFormat,
+    stripFormatColorDirectives, stripVbaBracketDirectives, hasUnclosedVbaBracket, hasUnescapedFormatChars,
 } from './format';
 import { vbaWeekNumber } from './date-week';
 
@@ -1398,8 +1398,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             // strings.  Keep string-domain placeholders on formatString, but
             // send a convertible string with a numeric-only pattern through the
             // same formatter used for numeric values.
-            if (!isDatePattern && hasNumericFormatTokens(fmt) &&
-                !hasUnescapedFormatChars(fmt, '@&!<>')) {
+            if (isNumericOnlyFormat(fmt)) {
                 try {
                     return formatNumber(ctx.toVbaNumber(effectiveVal), fmt);
                 } catch { /* retain the existing string-domain behavior */ }
