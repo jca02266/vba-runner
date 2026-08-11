@@ -960,3 +960,8 @@ checkpoints:
     decision: "ParamArray名前付き引数の直接修正とRC-00048共通化タスクを完了した。残る収束確認として統合回帰マトリクスを一度実行し、その後は未収束の別領域へ切り替える。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-204
+  - afterEvaluation: EV-00651
+    audit: "550 evaluations, 0 active claims, 0 queued candidates"
+    decision: "ParamArrayの統合回帰とRC-00048共通化を完了した。次は未解決RCAであるRC-00047の基数入力横展開を優先し、vbaToNumber等の未確認経路を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-205

@@ -1985,3 +1985,13 @@ items:
       - tests/spec/property-paramarray-named-rejection.test.ts
       - tests/spec/module-paramarray-named-rejection.test.ts
       - tests/spec/builtin-paramarray-named-rejection.test.ts
+  - id: FZ-COVERAGE-20260810-205
+    title: Radix conversion unresolved expansion
+    status: queued
+    priority: 1
+    focus: 基数値のvbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct横展開
+    priorCauseKey: radix-width-sign-extension-contract-incomplete
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/radix-conversion-regressions.test.ts
