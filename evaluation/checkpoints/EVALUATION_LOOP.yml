@@ -1055,3 +1055,8 @@ checkpoints:
     decision: "日付Null・Empty・不正入力6境界は一致し、無バグ連続数は4回。最終確認として時刻値とDatePartの週境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-151
+  - afterEvaluation: EV-00670
+    audit: "569 evaluations, 0 active claims"
+    decision: "時刻・週境界9ケースは一致し、日付・時刻領域の無バグ連続5回を達成した。次は未収束の配列・UDT領域を優先評価する。"
+    action: select-next-area
+    nextArea: 配列・UDT
