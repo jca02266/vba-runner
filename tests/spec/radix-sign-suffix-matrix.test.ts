@@ -6,8 +6,12 @@ const cases = [
     ['CInt("&HFFFF")', 'TYPE=Integer:VALUE=-1'],
     ['CLng("&H80000000")', 'TYPE=Long:VALUE=-2147483648'],
     ['CLng("&HFFFFFFFF")', 'TYPE=Long:VALUE=-1'],
-    ['CDec("&HFFFF")', 'TYPE=Decimal:VALUE=-1'],
-    ['CCur("&H8000")', 'TYPE=Currency:VALUE=-32768'],
+    ['CDec("&HFFFF")', 'TYPE=Decimal:VALUE=65535'],
+    ['CDec("&H8000")', 'TYPE=Decimal:VALUE=32768'],
+    ['CDec("&O177777")', 'TYPE=Decimal:VALUE=65535'],
+    ['CCur("&H8000")', 'TYPE=Currency:VALUE=32768'],
+    ['CCur("&HFFFF")', 'TYPE=Currency:VALUE=65535'],
+    ['CCur("&O177777")', 'TYPE=Currency:VALUE=65535'],
     ['Val("&HFFFF")', 'TYPE=Double:VALUE=-1'],
     ['TypeName(&H10000)', 'TYPE=String:VALUE=Long'],
     ['TypeName(&HFFFF&)', 'TYPE=String:VALUE=Long'],
@@ -32,5 +36,5 @@ End Function`);
     assert.equal(ev.callProcedure('Probe', []), expected, `Radix sign/suffix ${expression}`);
 }
 
-assert.equal(cases.length, 11);
+assert.equal(cases.length, 15);
 console.log(`[PASS] radix sign and suffix matrix (${cases.length} cases)`);

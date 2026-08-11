@@ -1639,7 +1639,7 @@ checkpoints:
     action: create-candidate
     nextArea: Parser・Lexer
     nextEvaluation: null
-    nextCandidate: null
+    nextCandidate: FZ-COVERAGE-20260810-306
   - afterEvaluation: EV-00760-RCA
     audit: "659 evaluations, 0 active claims; ROOT-00030 completed; EV-00750 and EV-00751 remain needs-excel"
     decision: "RC-00059を独立confirmし、直接修正とROOT-00030の共通ラベル検証を完了した。Parser・Lexer領域の収束カウンターをリセットし、整数ラベルと同一行文・小数式残余トークンの横展開を再評価する。"
@@ -1976,3 +1976,13 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-305
     rootCauseId: RC-00010
     blocker: "既存RadixMatrix.resultは現行キューソースハッシュと不一致"
+  - afterEvaluation: EV-00793
+    audit: "692 evaluations, 0 active claims; BUG-00502をCDec・CCur短桁基数の限定scopeで修正"
+    decision: "RC-00011をconfirmedとして切り出し、CDec/CCurの16ビット短桁だけを修正した。RC-00010の他入口は未確定のため、次の評価候補選定を継続する。"
+    action: continue
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-306
+    rootCauseId: RC-00068
+    rootCauseParentId: RC-00010
+    blocker: "RadixMatrix.resultの記録ハッシュは現行キューソースと不一致。XL-185/XL-186も結果未収録。"

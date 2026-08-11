@@ -297,7 +297,10 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         return bits === 64 ? value : Number(value);
     };
-    const parseRadixForValue = (source: string): number | bigint | undefined => {
+    const parseRadixForValue = (
+        source: string,
+        options: { signExtendShort?: boolean } = {},
+    ): number | bigint | undefined => {
         const text = normalizeVbaNumericString(source.trim());
         const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
         if (!match) return undefined;
@@ -306,7 +309,16 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         const bits = base === 'h'
             ? (digits.length <= 4 ? 16 : digits.length <= 8 ? 32 : 64)
             : (digits.length <= 6 ? 16 : digits.length <= 11 ? 32 : 64);
-        return parseRadixForWidth(text, bits as 16 | 32 | 64);
+        const parsed = parseRadixForWidth(text, bits as 16 | 32 | 64);
+        if (options.signExtendShort !== false || parsed === undefined) return parsed;
+        // CDec/CCur treat a 16-bit radix pattern as an unsigned magnitude.
+        // Sign extension starts at the 32-bit pattern width for these
+        // conversion targets.
+        if (/^[+-]/.test(text)) return parsed;
+        const fullDigits = base === 'h' ? bits / 4 : Math.ceil(bits / 3);
+        if (bits !== 16 && digits.length >= fullDigits) return parsed;
+        const magnitude = BigInt(base === 'h' ? `0x${digits}` : `0o${digits}`);
+        return bits === 64 ? magnitude : Number(magnitude);
     };
     ctx.reg('cbyte', (val: any) => {
         val = unwrapConversionValue(val);
@@ -393,7 +405,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (/^[+-]&[hHoO]/.test(text)) {
             ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
-        const radix = parseRadixForValue(text);
+        const radix = parseRadixForValue(text, { signExtendShort: false });
         if (radix !== undefined) {
             const integer = typeof radix === 'bigint' ? radix : BigInt(radix);
             return new VbaDecimal(integer, 0);
@@ -435,7 +447,7 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                 return parseCurrencyString(trimmed);
             }
             // &H/&O/指数/カンマ区切り等は数値文字列として解釈（実 VBA 差分で裁定）
-            const radix = parseRadixForValue(trimmed);
+            const radix = parseRadixForValue(trimmed, { signExtendShort: false });
             if (radix !== undefined) {
                 const integer = typeof radix === 'bigint' ? radix : BigInt(radix);
                 return new VbaCurrency(integer * 10000n);

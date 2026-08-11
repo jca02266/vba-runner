@@ -2894,6 +2894,14 @@ items:
       - src/engine/builtins.ts
       - tests/spec/declaration-conversion-boundaries.test.ts
       - tests/excel/queue/RadixMatrixVerification.bas
+  - id: FZ-COVERAGE-20260810-306
+    title: Radix remaining target-type policy
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類
+    priorCauseKey: radix-value-width-semantics-not-shared
     coverageTargets:
-      - src/engine/format.ts
-      - tests/spec/format.test.ts
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/declaration-conversion-boundaries.test.ts
+      - tests/spec/radix-sign-suffix-matrix.test.ts
