@@ -1909,3 +1909,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-array-byref.test.ts
       - tests/spec/property-let-set.test.ts
+  - id: FZ-COVERAGE-20260810-197
+    title: Property ParamArray CallByName matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty ParamArray、CallByName、名前付き引数境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray.test.ts
+      - tests/spec/interface-callbyname-property.test.ts

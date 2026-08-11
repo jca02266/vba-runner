@@ -920,3 +920,8 @@ checkpoints:
     decision: "LongLong・LongPtr・Variant subtypeの8ケースが一致し、基数領域で5回連続無バグに到達した。基数領域を収束扱いとして切り替え、未収束の引数・ByRef・Property領域を選定する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-196
+  - afterEvaluation: EV-00643
+    audit: "542 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Property/ByRef/Object配列8境界は一致した。引数・ByRef・Property領域の連続無バグ数は1回なので、Property ParamArray・CallByName・名前付き引数を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-197
