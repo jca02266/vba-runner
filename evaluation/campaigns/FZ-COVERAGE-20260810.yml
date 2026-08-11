@@ -2812,3 +2812,12 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-297
+    title: Format named Boolean display matrix
+    status: queued
+    priority: 1
+    focus: Format名前付きTrue/False・Yes/No・On/Offの値型境界
+    priorCauseKey: format-named-boolean-display-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

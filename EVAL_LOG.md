@@ -688,6 +688,7 @@
 | EV-00783 | FZ-COVERAGE-20260810 | blocked | 1 | Format文字列の引用符・バックスラッシュによるリテラル境界 |
 | EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
 | EV-00785 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
+| EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
 
 ## 状態集計
 
@@ -699,9 +700,9 @@
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 368 |
+| verified-no-bug | 369 |
 
-横展開未解決経路: 563、実Excel待ち評価: 3
+横展開未解決経路: 564、実Excel待ち評価: 3
 
 ## 次の候補
 

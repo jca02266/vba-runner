@@ -1913,3 +1913,10 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-296
     excelProbeIds:
       - XL-185
+  - afterEvaluation: EV-00786
+    audit: "685 evaluations, 0 active claims; Format名前付きBoolean表示 verified-no-bug 1回目（EV-00784後の連続2回目）"
+    decision: "True/False、Yes/No、On/Offの真偽値・0・非0境界は仕様と一致した。Null・Empty・Error境界は別候補で扱い、Formatの無バグ連続を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
