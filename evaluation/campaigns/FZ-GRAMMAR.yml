@@ -417,3 +417,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-045
+    title: DoループとGoSub Resume Current境界
+    status: queued
+    priority: 1
+    focus: Doループ内GoSubのResume Currentと再実行位置
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

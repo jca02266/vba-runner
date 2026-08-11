@@ -1148,3 +1148,8 @@ checkpoints:
     decision: "Ifネスト内GoSubのResume Next復帰も一致し、エラー処理領域の無バグ連続数は2回。For/DoネストのResume復帰を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-044
+  - afterEvaluation: EV-00688
+    audit: "587 evaluations, 0 active claims"
+    decision: "Forループ内GoSubのResume Next復帰も一致し、エラー処理領域の無バグ連続数は3回。DoループとResume Currentの境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-045

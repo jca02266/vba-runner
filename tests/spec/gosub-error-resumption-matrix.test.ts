@@ -89,6 +89,21 @@ Handler:
     Resume Next
 End Function
 
+Function ProbeLoopResume() As String
+    Dim i As Long
+    On Error GoTo Handler
+    For i = 1 To 2
+        GoSub Worker
+    Next i
+    ProbeLoopResume = "after" & CStr(i)
+    Exit Function
+Worker:
+    If i = 1 Then Err.Raise 5
+    Return
+Handler:
+    Resume Next
+End Function
+
 Sub Helper()
     Err.Raise 5
 End Sub
@@ -108,6 +123,8 @@ assert.strictEqual(ev.callProcedure('ProbeResumeNextHandler', []), 'after',
     'A handler Resume Next returns from the GoSub error statement');
 assert.strictEqual(ev.callProcedure('ProbeNestedResume', []), 'after',
     'Resume Next from a nested GoSub block reaches the caller continuation');
+assert.strictEqual(ev.callProcedure('ProbeLoopResume', []), 'after3',
+    'Resume Next from a loop-nested GoSub continues the loop once');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([
