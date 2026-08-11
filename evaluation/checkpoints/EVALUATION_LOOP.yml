@@ -1227,3 +1227,17 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00654
+    audit: "601 evaluations, 0 active claims"
+    decision: "現ソースハッシュ一致のExcelQueueVerification.resultでXL-099〜XL-106を照合し、新規不一致がないためverified-no-bugへ遷移した。型・基数領域の未照合境界はEV-00619とEV-00702に残る。"
+    action: transition
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00618
+    audit: "601 evaluations, 0 active claims"
+    decision: "現ソースハッシュ一致のFormatMatrix.resultでXL-146〜XL-174を照合し、新規不一致がないためverified-no-bugへ遷移した。RadixMatrixのXL-175〜XL-179は実機結果待ちとして継続する。"
+    action: transition
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

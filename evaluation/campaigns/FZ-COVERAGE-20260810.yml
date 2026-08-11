@@ -1678,7 +1678,7 @@ items:
       - tests/spec/format-matrix-regressions.test.ts
   - id: FZ-COVERAGE-20260810-171
     title: Format tokenizer corner matrix
-    status: needs-excel
+    status: queued
     priority: 1
     focus: Format領域のエスケープ・引用・角括弧・日付字句境界マトリックス
     priorCauseKey: format-user-defined-token-contract
