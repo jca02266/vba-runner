@@ -668,22 +668,23 @@
 | EV-00763 | FZ-COVERAGE-20260810 | fixed | 1 | Parserのコロン区切り後エラー同期と同一行後続文保持境界 |
 | EV-00764 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのSub・If・For・Doブロック内errorRecoveryと終端保持境界 |
 | EV-00765 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのparseAsClass内errorRecoveryとクラス構造・終端保持境界 |
+| EV-00766 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのparseAsClass内不正文後のメンバー・部分AST・終端同期境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 1 |
-| fixed | 295 |
+| fixed | 296 |
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 360 |
 
-横展開未解決経路: 542、実Excel待ち評価: 3
+横展開未解決経路: 543、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-277 | 1 | queued | ParserのparseAsClass内不正文後のメンバー・部分AST・終端同期境界 | yes |
+| FZ-COVERAGE-20260810-278 | 1 | queued | Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界 | yes |
