@@ -1865,3 +1865,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-292
+  - afterEvaluation: EV-00781
+    audit: "680 evaluations, 0 active claims; Format single case-control combinations verified-no-bug 2回目"
+    decision: "公式に定義された単一<・>と@/&/!の組合せは一致した。複数制御・非BMPは実機待ちとして分離し、Formatの無バグ連続を継続する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-293

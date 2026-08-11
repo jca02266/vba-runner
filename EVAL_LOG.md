@@ -683,6 +683,7 @@
 | EV-00778 | FZ-COVERAGE-20260810 | blocked | 1 | Format単独の@・&・!プレースホルダーと数値・文字列型の適用境界 |
 | EV-00779 | FZ-COVERAGE-20260810 | blocked | 1 | Format文字列プレースホルダーの長さ・空文字・Unicode充填境界 |
 | EV-00780 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列の<・>大文字小文字変換とASCII・BMP境界 |
+| EV-00781 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format複数の<・>制御記号とプレースホルダーの優先順位境界 |
 
 ## 状態集計
 
@@ -694,9 +695,9 @@
 | known-limit | 4 |
 | needs-excel | 2 |
 | retired | 1 |
-| verified-no-bug | 366 |
+| verified-no-bug | 367 |
 
-横展開未解決経路: 552、実Excel待ち評価: 2
+横展開未解決経路: 554、実Excel待ち評価: 2
 
 ## 次の候補
 

@@ -2772,3 +2772,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-293
+    title: Format string section placeholder isolation
+    status: queued
+    priority: 1
+    focus: Format複数セクションにおける選択済み文字列プレースホルダーの分離
+    priorCauseKey: format-selected-section-placeholder-isolation
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
