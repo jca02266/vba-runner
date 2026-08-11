@@ -185,4 +185,32 @@ End Sub`;
     console.log('[PASS] block内errorRecoveryの構造と終端を保持');
 }
 
+// 16. parseAsClassでもerrorRecoveryを指定した入口はParseErrorを診断へ変換する
+{
+    const src = String.raw`Public Sub Broken()
+    Dim x As Long
+    Public Sub Later()
+    End Sub`;
+    let ast: any;
+    let thrown = false;
+    try {
+        ast = new Parser(new Lexer(src).tokenize(), {
+            parseAsClass: 'C',
+            errorRecovery: true,
+        }).parse();
+    } catch {
+        thrown = true;
+    }
+    assert.strictEqual(thrown, false, 'parseAsClassのrecoveryで例外を外へ投げない');
+    assert.ok(ast.diagnostics.length >= 1, 'parseAsClassの構文エラーをdiagnosticsへ記録する');
+    let strictThrown = false;
+    try {
+        new Parser(new Lexer(src).tokenize(), { parseAsClass: 'C' }).parse();
+    } catch {
+        strictThrown = true;
+    }
+    assert.strictEqual(strictThrown, true, 'errorRecovery falseの例外契約を維持する');
+    console.log('[PASS] parseAsClass入口のerrorRecovery契約');
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');

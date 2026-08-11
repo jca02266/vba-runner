@@ -1493,8 +1493,20 @@ export class Parser {
     public parse(): Program {
 
         if (this.parseAsClass) {
-            const classDecl = this.parseClassBody(this.parseAsClass, false);
-            return { type: 'Program', body: [classDecl], diagnostics: this._diagnostics };
+            try {
+                const classDecl = this.parseClassBody(this.parseAsClass, false);
+                return { type: 'Program', body: [classDecl], diagnostics: this._diagnostics };
+            } catch (e) {
+                if (!this.errorRecovery) throw e;
+                const msg = e instanceof Error ? e.message : String(e);
+                if (e instanceof ParseError) {
+                    const pos: Position = { line: e.line, column: e.column };
+                    this._diagnostics.push({ message: msg, loc: { start: pos, end: pos }, severity: 'error' });
+                } else {
+                    this.recordError(msg, this.peek());
+                }
+                return { type: 'Program', body: [], diagnostics: this._diagnostics };
+            }
         }
 
         const program: Program = {
