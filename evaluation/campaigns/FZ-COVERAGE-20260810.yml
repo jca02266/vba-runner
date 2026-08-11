@@ -2376,3 +2376,22 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-252
+    title: Format string section and control boundary
+    status: queued
+    priority: 1
+    focus: Format文字列の複数セクション・空文字列・@/&/!/< />制御境界
+    priorCauseKey: string-format-placeholder-only-renderer
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-253
+    title: Format string conversion and mixed-token boundary
+    status: queued
+    priority: 1
+    focus: Format Stringの暗黙数値・日付変換、複数セクション、数値トークンと@/&混在境界
+    priorCauseKey: format-domain-dispatch-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts

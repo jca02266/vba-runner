@@ -643,21 +643,22 @@
 | EV-00738 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | On Error Resume Next・GoTo 0・ハンドラ再設定の状態リセット境界 |
 | EV-00739 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・Resume・Resume labelの再開位置とErr状態境界 |
 | EV-00740 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列の角括弧・エスケープ・セクション・文字列プレースホルダー境界 |
+| EV-00741 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列の複数セクション・空文字列・@/&/!・値型と書式ドメイン境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 1 |
-| fixed | 286 |
+| fixed | 287 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 347 |
 
-横展開未解決経路: 514、実Excel待ち評価: 0
+横展開未解決経路: 516、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-252 | 1 | queued | Format文字列の複数セクション・空文字列・@/&/!/< />制御境界 |  |
+| FZ-COVERAGE-20260810-253 | 1 | queued | Format Stringの暗黙数値・日付変換、複数セクション、数値トークンと@/&混在境界 | yes |

@@ -1500,3 +1500,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: EV-00740
     nextCandidate: FZ-COVERAGE-20260810-251
+  - afterEvaluation: EV-00741
+    audit: "640 evaluations, 0 active claims"
+    decision: "Format領域のString値に数値・日付書式を誤適用するバグを修正した。文字列の暗黙変換と混在書式は未解決のため、追加候補を登録してFormat領域を継続する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-253
