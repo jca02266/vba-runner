@@ -1897,3 +1897,10 @@ checkpoints:
     nextEvaluation: EV-00783
     nextCandidate: FZ-COVERAGE-20260810-294
     rootCauseId: RC-00038
+  - afterEvaluation: EV-00784
+    audit: "683 evaluations, 0 active claims; Format numeric section selection verified-no-bug 1回目"
+    decision: "正負ゼロNullの1〜4セクション選択は公開仕様と一致した。Empty固有仕様と詳細リテラル解析は未確定候補として分離し、Formatの無バグ連続を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null

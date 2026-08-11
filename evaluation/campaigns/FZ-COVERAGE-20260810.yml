@@ -2792,3 +2792,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-295
+    title: Format numeric section selection matrix
+    status: queued
+    priority: 1
+    focus: Format数値の正・負・ゼロ・Nullセクション選択境界
+    priorCauseKey: format-selected-section-numeric-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

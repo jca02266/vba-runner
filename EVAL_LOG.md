@@ -686,6 +686,7 @@
 | EV-00781 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format複数の<・>制御記号とプレースホルダーの優先順位境界 |
 | EV-00782 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションにおける選択済み文字列プレースホルダーの分離 |
 | EV-00783 | FZ-COVERAGE-20260810 | blocked | 1 | Format文字列の引用符・バックスラッシュによるリテラル境界 |
+| EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
 
 ## 状態集計
 
@@ -697,9 +698,9 @@
 | known-limit | 4 |
 | needs-excel | 2 |
 | retired | 1 |
-| verified-no-bug | 367 |
+| verified-no-bug | 368 |
 
-横展開未解決経路: 559、実Excel待ち評価: 2
+横展開未解決経路: 561、実Excel待ち評価: 2
 
 ## 次の候補
 
