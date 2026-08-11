@@ -2175,3 +2175,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/fso-overwrite-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-227
+    title: FSO overwrite truncation boundary
+    status: queued
+    priority: 1
+    focus: FSO CreateTextFileのOverwrite=Trueによる既存内容切り詰め
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso-overwrite-boundary.test.ts

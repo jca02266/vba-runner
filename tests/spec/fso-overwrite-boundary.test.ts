@@ -14,8 +14,23 @@ Public Function Probe() As String
     Probe = "ERR=" & CStr(errNo)
     On Error GoTo 0
 End Function
+
+Public Function ProbeTruncate() As String
+    Dim fso As Object, stream As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile("C:\\truncate.txt", True, False)
+    stream.Write "old-content"
+    stream.Close
+    Set stream = fso.CreateTextFile("C:\\truncate.txt", True, False)
+    stream.Write "new"
+    stream.Close
+    Set stream = fso.OpenTextFile("C:\\truncate.txt", 1, False, -2)
+    ProbeTruncate = stream.ReadAll
+    stream.Close
+End Function
 `;
 
 const ev = evalVBASingle(source);
 assert.equal(ev.callProcedure('Probe', []), 'ERR=58');
-console.log('[PASS] FSO CreateTextFile overwrite boundary (1 case)');
+assert.equal(ev.callProcedure('ProbeTruncate', []), 'new');
+console.log('[PASS] FSO CreateTextFile overwrite boundary (2 cases)');
