@@ -1873,3 +1873,12 @@ items:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
       - tests/spec/radix-conversion-regressions.test.ts
+  - id: FZ-COVERAGE-20260810-193
+    title: Radix decimal currency string matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCDec・CCur基数値の符号、桁区切り、精度境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/radix-conversion-regressions.test.ts

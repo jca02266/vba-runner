@@ -900,3 +900,8 @@ checkpoints:
     decision: "基数符号・型サフィックス11ケースは一致した。基数領域の連続無バグ数は1回なので、vbaToNumberとHex/Octの横展開経路を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-192
+  - afterEvaluation: EV-00639
+    audit: "538 evaluations, 0 active claims, 0 queued candidates"
+    decision: "vbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct・Valの12ケースは一致した。基数領域の連続無バグ数は2回なので、Decimal/Currencyと符号・桁区切り入力を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-193
