@@ -514,6 +514,26 @@ Worker:
 Handler:
     Resume ContinueIfEach
 End Function
+
+Function ProbeIfSelectResumeLabel() As String
+    On Error GoTo Handler
+    If True Then
+        Select Case 1
+            Case 1
+                GoSub Worker
+ContinueIfSelect:
+                ProbeIfSelectResumeLabel = "after"
+            Case Else
+                ProbeIfSelectResumeLabel = "else"
+        End Select
+    End If
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume ContinueIfSelect
+End Function
 `);
 
 assert.strictEqual(eachEv.callProcedure('ProbeForEachResumeLabel', []), 'after2',
@@ -521,3 +541,5 @@ assert.strictEqual(eachEv.callProcedure('ProbeForEachResumeLabel', []), 'after2'
 console.log('[PASS] GoSub For Each error resumption');
 assert.strictEqual(eachEv.callProcedure('ProbeIfForEachResumeLabel', []), 'after2',
     'Resume label from For Each nested in If continues enumeration');
+assert.strictEqual(eachEv.callProcedure('ProbeIfSelectResumeLabel', []), 'after',
+    'Resume label from Select Case nested in If reaches the clause');
