@@ -1133,3 +1133,8 @@ checkpoints:
     decision: "GoSub本体からCallByNameしたクラスメソッドのエラー伝播も一致し、エラー処理領域の無バグ連続数は4回。5回目としてResumeラベル復帰境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-041
+  - afterEvaluation: EV-00685
+    audit: "584 evaluations, 0 active claims"
+    decision: "GoSubのResumeラベル経路で新たな誤復帰を発見し、転送状態を追跡して修正した。エラー処理領域の無バグ連続数は0回に戻るため、Resume Current/Nextとネストブロックの近接候補を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-042

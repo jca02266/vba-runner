@@ -390,3 +390,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-042
+    title: GoSub Resume Current・Next境界
+    status: queued
+    priority: 1
+    focus: GoSub内ハンドラのResume Current/Nextとネストブロック復帰
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts
