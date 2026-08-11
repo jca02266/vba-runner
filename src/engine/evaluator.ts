@@ -3431,9 +3431,17 @@ export class Evaluator {
             this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED,
                 `Sub or Function not defined: label '${label}'`);
         }
+        const wasInErrorHandler = this.isInErrorHandler;
         this.gosubTargetDepth++;
         try {
             this.executeStatements(body, labelIndex + 1, true);
+            // An error raised in a GoSub body may transfer to the owning
+            // procedure's handler. If that handler reaches the end without a
+            // Resume/GoTo/Exit statement, VBA terminates the procedure; it
+            // must not return to the statement following the GoSub.
+            if (!wasInErrorHandler && this.isInErrorHandler) {
+                throw { type: 'Exit', target: this.currentProcedureType === 'sub' ? 'Sub' : 'Function' };
+            }
         } catch (e: any) {
             if (e && e.type === 'Return') return;
             throw e;
