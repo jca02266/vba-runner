@@ -1927,3 +1927,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-value-param-byval.test.ts
       - tests/spec/byref-dispatch-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-199
+    title: Interface Property array object matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のInterface Property Set、配列、Object値複合境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interface-property-assignment.test.ts
+      - tests/spec/udt-object-array-set.test.ts
