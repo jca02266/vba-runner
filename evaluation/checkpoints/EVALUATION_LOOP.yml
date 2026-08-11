@@ -1220,3 +1220,10 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00702
+    audit: "601 evaluations, 0 active claims"
+    decision: "宣言・型・リテラル領域でVariantから整数型への暗黙基数値幅超過4ケースをローカル回帰化し、実Excel照合用XL-176〜179を追加した。RadixMatrixVerification.bas更新で既存Excel結果のソースハッシュが無効になったため、EV-00618、EV-00619、EV-00654、EV-00702を実機結果待ちとして維持する。"
+    action: excel-verification
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

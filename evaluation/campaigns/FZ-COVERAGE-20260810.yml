@@ -2054,3 +2054,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-213
+    title: Radix implicit target-width overflow matrix
+    status: queued
+    priority: 1
+    focus: VariantからByte/Integer/Long/LongLongへの基数値暗黙代入と幅超過境界
+    priorCauseKey: radix-width-sign-extension-contract-incomplete
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+      - tests/spec/radix-implicit-width-boundary.test.ts
