@@ -351,8 +351,11 @@ export function hasNumericFormatTokens(pattern: string): boolean {
  * string-placeholder formats.
  */
 export function isNumericOnlyFormat(pattern: string): boolean {
-    return hasNumericFormatTokens(pattern)
-        && !containsDateFormatTokens(pattern)
+    // Classify from the positive/zero section only. Text in unselected
+    // sections (for example `NEG` or `ZERO`) must not force date dispatch.
+    const primary = splitFormatSections(pattern)[0] ?? '';
+    return hasNumericFormatTokens(primary)
+        && !containsDateFormatTokens(primary)
         && !hasUnescapedFormatChars(pattern, '@&!<>');
 }
 

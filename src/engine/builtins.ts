@@ -1387,21 +1387,19 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const isDatePattern = containsDateFormatTokens(datePatternSource) &&
             !(sectionsHaveNumericSelector && !hasNumericFormatTokens(datePatternSource));
         if (typeof effectiveVal === 'string') {
+            // Resolve numeric strings before scanning the complete pattern for
+            // date tokens in unselected sections.
+            if (isNumericOnlyFormat(fmt)) {
+                try {
+                    return formatNumber(ctx.toVbaNumber(effectiveVal), fmt);
+                } catch { /* retain the existing string-domain behavior */ }
+            }
             // If the format contains date/time symbols, try to parse the string as a date first
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
                 try {
                     const parsed = parseVbaDate(effectiveVal);
                     return formatDate(parsed, fmt, fdow, effectiveFwoy);
                 } catch { /* fall through to string formatting */ }
-            }
-            // VBA applies user-defined numeric formats to non-localized numeric
-            // strings.  Keep string-domain placeholders on formatString, but
-            // send a convertible string with a numeric-only pattern through the
-            // same formatter used for numeric values.
-            if (isNumericOnlyFormat(fmt)) {
-                try {
-                    return formatNumber(ctx.toVbaNumber(effectiveVal), fmt);
-                } catch { /* retain the existing string-domain behavior */ }
             }
             // VBA applies user-defined string formats only when the pattern
             // contains a string-domain control (`@`, `&`, `!`, `<`, or `>`).

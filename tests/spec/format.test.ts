@@ -34,6 +34,11 @@ const numericStringFormatCode = String.raw`
     Function TestNonNumericStringNumericFormat() As String
         TestNonNumericStringNumericFormat = Format("Ab9", "0.00")
     End Function
+    Function TestNumericStringSections() As String
+        TestNumericStringSections = Format("12", "0.00;NEG;ZERO;NULL") & "|" & _
+            Format("-12", "0.00;NEG;ZERO;NULL") & "|" & _
+            Format("0", "0.00;NEG;ZERO;NULL")
+    End Function
 `;
 const evNumericString = evalVBASingle(numericStringFormatCode);
 assert.strictEqual(
@@ -45,6 +50,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestNonNumericStringNumericFormat', []),
     'Ab9',
     'Non-numeric strings retain the string-domain result',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestNumericStringSections', []),
+    '12.00|NEG|ZERO',
+    'Numeric strings select the same Format section as numeric values',
 );
 
 // --- 時刻フォーマットのバグ修正確認 ---
