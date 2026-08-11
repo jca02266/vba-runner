@@ -444,6 +444,26 @@ Worker:
 Handler:
     Resume ContinueWithFor
 End Function
+
+Public Function ProbeWithSelectResumeLabel() As Long
+    Dim target As New WithTarget
+    On Error GoTo Handler
+    With target
+        Select Case 1
+            Case 1
+                GoSub Worker
+ContinueWithSelect:
+                .Value = 9
+        End Select
+    End With
+    ProbeWithSelectResumeLabel = target.Value
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume ContinueWithSelect
+End Function
 `,
     },
 ]);
@@ -452,6 +472,8 @@ assert.strictEqual(withEv.callProcedure('ProbeWithResumeLabel', []), 7,
     'Resume label from a With-nested GoSub reaches the block body');
 assert.strictEqual(withEv.callProcedure('ProbeWithForResumeLabel', []), 3,
     'Resume label from a For nested in With continues the loop');
+assert.strictEqual(withEv.callProcedure('ProbeWithSelectResumeLabel', []), 9,
+    'Resume label from Select Case nested in With reaches the clause');
 console.log('[PASS] GoSub With-block error resumption');
 
 const eachEv = evalVBASingle(String.raw`
