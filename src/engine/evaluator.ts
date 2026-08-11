@@ -4909,6 +4909,12 @@ export class Evaluator {
      */
     private bindCallArguments(spec: BuiltinParamSpec[], argExprs: Expression[]): any[] {
         const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        if (spec.some(p => p.isParamArray) && namedArgs.size > 0) {
+            this.throwVbaError(
+                448,
+                'Named arguments cannot be used with ParamArray',
+            );
+        }
         // 仕様に存在しない名前付き引数は Error 448（Named argument not found）
         for (const nameLower of namedArgs.keys()) {
             if (!spec.some(p => p.name.toLowerCase() === nameLower)) {
