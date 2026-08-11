@@ -1828,3 +1828,11 @@ items:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-188
+    title: DateAdd week and time unit matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateAdd週・時・分・秒単位の境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
