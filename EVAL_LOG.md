@@ -658,6 +658,7 @@
 | EV-00753 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列プレースホルダー@/&/!/</>と空文字・Unicode境界 |
 | EV-00754 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format科学表記E/eの符号・桁数・百分率・スケーリング境界 |
 | EV-00755 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format General Number・Currency・Fixed・Standard・Percent・Scientificの型境界 |
+| EV-00756 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値値のリテラルのみ書式・符号・括弧・引用符境界 |
 
 ## 状態集計
 
@@ -668,9 +669,9 @@
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 354 |
+| verified-no-bug | 355 |
 
-横展開未解決経路: 534、実Excel待ち評価: 3
+横展開未解決経路: 535、実Excel待ち評価: 3
 
 ## 次の候補
 
