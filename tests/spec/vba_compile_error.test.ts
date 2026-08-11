@@ -98,23 +98,13 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [preproc] radix_hex_literal_out_of_range
+// [parse] radix_hex_literal_out_of_range
 // VBA: コンパイルエラー: オーバーフローしました
 // VBA error line (within Sub body): 2
 {
     try {
-        assertCompileErrorPreproc(`
-      Private Sub MySub()
-      End Sub
-      
-      Private Function MyFuncHasArg(x)
-      End Function
-      
-      Sub __test__()
-        Dim value As Long
-        value = &H100000000
-      End Sub
-    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_hex_literal_out_of_range');
+        assertCompileErrorPass1(`Dim value As Variant
+value = &H100000000`, 2, /numeric literal out of range|overflow/i, 'radix_hex_literal_out_of_range');
         console.log('[PASS] radix_hex_literal_out_of_range');
         __pass__++;
     } catch (e: any) {
@@ -123,7 +113,22 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
-// [preproc] radix_hex_longlong_literal_out_of_range
+// [parse] radix_hex_longlong_literal_out_of_range
+// VBA: コンパイルエラー: オーバーフローしました
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPass1(`Dim value As Variant
+value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'radix_hex_longlong_literal_out_of_range');
+        console.log('[PASS] radix_hex_longlong_literal_out_of_range');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] radix_hex_longlong_literal_out_of_range:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] radix_byte_literal_out_of_range
 // VBA: コンパイルエラー: オーバーフローしました
 // VBA error line (within Sub body): 2
 {
@@ -136,14 +141,39 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
       End Function
       
       Sub __test__()
-        Dim value As LongLong
-        value = &H10000000000000000^
+        Dim value As Byte
+        value = &H100
       End Sub
-    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_hex_longlong_literal_out_of_range');
-        console.log('[PASS] radix_hex_longlong_literal_out_of_range');
+    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_byte_literal_out_of_range');
+        console.log('[PASS] radix_byte_literal_out_of_range');
         __pass__++;
     } catch (e: any) {
-        console.error('[FAIL] radix_hex_longlong_literal_out_of_range:', e.message);
+        console.error('[FAIL] radix_byte_literal_out_of_range:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] radix_integer_literal_out_of_range
+// VBA: コンパイルエラー: オーバーフローしました
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        Dim value As Integer
+        value = &H10000
+      End Sub
+    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_integer_literal_out_of_range');
+        console.log('[PASS] radix_integer_literal_out_of_range');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] radix_integer_literal_out_of_range:', e.message);
         __fail__++;
     }
 }

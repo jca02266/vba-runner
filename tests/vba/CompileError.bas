@@ -85,25 +85,43 @@ Sub Case_assign_func_arg_no_parens()
 End Sub
 
 ' CASE: radix_hex_literal_out_of_range
-' TYPE: preproc
+' TYPE: parse
 ' VBA: コンパイルエラー: オーバーフローしました
 ' RUNNER: /numeric literal out of range|overflow/i
 ' NOTE: VBA は型サフィックスなしの基数リテラルを Long の範囲で
 '       コンパイルし、範囲外は実行前にコンパイルエラーにする。
 Sub Case_radix_hex_literal_out_of_range()
-    Dim value As Long
+    Dim value As Variant
     value = &H100000000 ' @error
 End Sub
 
 ' CASE: radix_hex_longlong_literal_out_of_range
-' TYPE: preproc
+' TYPE: parse
 ' VBA: コンパイルエラー: オーバーフローしました
 ' RUNNER: /numeric literal out of range|overflow/i
 ' NOTE: LongLong サフィックス付きでも 64 ビット幅を超える値は
 '       コンパイル時に受け付けない。
 Sub Case_radix_hex_longlong_literal_out_of_range()
-    Dim value As LongLong
+    Dim value As Variant
     value = &H10000000000000000^ ' @error
+End Sub
+
+' CASE: radix_byte_literal_out_of_range
+' TYPE: preproc
+' VBA: コンパイルエラー: オーバーフローしました
+' RUNNER: /numeric literal out of range|overflow/i
+Sub Case_radix_byte_literal_out_of_range()
+    Dim value As Byte
+    value = &H100 ' @error
+End Sub
+
+' CASE: radix_integer_literal_out_of_range
+' TYPE: preproc
+' VBA: コンパイルエラー: オーバーフローしました
+' RUNNER: /numeric literal out of range|overflow/i
+Sub Case_radix_integer_literal_out_of_range()
+    Dim value As Integer
+    value = &H10000 ' @error
 End Sub
 
 ' CASE: label_then_sub_call_with_empty_parens

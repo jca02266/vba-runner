@@ -380,7 +380,7 @@
 | EV-00475 | FZ-COVERAGE-20260810 | fixed | 1 | クラスProperty Let/Set/GetのByRef・配列・Object/値分類境界 |
 | EV-00476 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 配列・UDTのByRef書戻し・型境界・ネスト値渡し |
 | EV-00477 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 制御フローのExit For/Do・ネスト・継続境界 |
-| EV-00478 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラルの型接尾辞・既定値・16進8進境界 |
+| EV-00478 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラルの型接尾辞・既定値・16進8進境界 |
 | EV-00479 | FZ-COVERAGE-20260810 | fixed | 1 | LongLongの基数リテラルと式・Variant伝播 |
 | EV-00480 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongLong基数の符号拡張、負数、Const・Variant・式伝播の仕様境界 |
 | EV-00481 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言時既定値、型推論、Option Explicit、未初期化変数の境界 |
@@ -496,44 +496,168 @@
 | EV-00591 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域の状態分類・領域別集計・Finding収束グラフ境界回帰 |
 | EV-00592 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 評価基盤領域のローカル日時・直近評価一覧・状態件数表境界回帰 |
 | EV-00593 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のLongLong基数リテラル・符号拡張・Const/Variant伝播回帰 |
-| EV-00594 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・CDec・CCur・Val基数変換の幅・符号境界 |
+| EV-00594 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・CDec・CCur・Val基数変換の幅・符号境界 |
 | EV-00595 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong基数リテラルのConst・フロー型・式推論メタデータ伝播 |
-| EV-00596 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格 |
+| EV-00596 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のLongLongとSingle・Double混在演算の数値型昇格 |
 | EV-00597 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong BigIntサブタイプのByRef Variant・Property戻り値・LongPtr伝播 |
-| EV-00598 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
-| EV-00599 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
-| EV-00600 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 |
+| EV-00598 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域の基数変換の短い桁・八進境界・変換先型別符号契約 |
+| EV-00599 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域の基数文字列の明示符号と16・32ビット八進幅 |
+| EV-00600 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur・Val 32ビット符号境界 |
 | EV-00601 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数変換符号拡張と変換先型回帰 |
 | EV-00602 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の4・8・16ビット未満基数桁幅と符号規則 |
-| EV-00603 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCByte境界とCDec・CCur八進変換 |
-| EV-00604 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCCur八進符号境界横展開 |
+| EV-00603 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCByte境界とCDec・CCur八進変換 |
+| EV-00604 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCCur八進符号境界横展開 |
 | EV-00605 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCByte・CInt・CLng八進境界一致回帰 |
 | EV-00606 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCDec・CCur・Val小値基数回帰 |
-| EV-00607 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCDec・CCur・Val明示符号基数回帰 |
+| EV-00607 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur・Val明示符号基数回帰 |
 | EV-00608 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCCur・CDec明示符号分離回帰 |
 | EV-00609 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のVal符号付き基数走査回帰 |
 | EV-00610 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の正の16進変換境界回帰 |
 | EV-00611 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の数値セクション・色指定・ゼロセクション回帰 |
-| EV-00612 | FZ-COVERAGE-20260810 | bug-found | 1 | Format領域の通貨・負数括弧・条件付きセクション回帰 |
+| EV-00612 | FZ-COVERAGE-20260810 | fixed | 1 | Format領域の通貨・負数括弧・ユーザー定義記号の回帰 |
 | EV-00613 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の日付・時刻書式バッチ |
 | EV-00614 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の指数・三セクション書式バッチ |
-| EV-00615 | FZ-COVERAGE-20260810 | bug-found | 1 | Format領域のゼロ・通貨・条件境界バッチ |
+| EV-00615 | FZ-COVERAGE-20260810 | fixed | 1 | Format領域のゼロ・通貨・ユーザー定義記号バッチ |
 | EV-00616 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の日付名・桁埋め書式バッチ |
+| EV-00617 | FZ-COVERAGE-20260810 | fixed | 1 | Format領域の角括弧・正負セクション境界バッチ |
+| EV-00618 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域のエスケープ・引用・角括弧・日付字句境界マトリックス |
+| EV-00619 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の型・基数・境界直積マトリックス |
+| EV-00620 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLongサフィックス付き10進・16進・8進リテラル境界 |
+| EV-00621 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong Const・型推論精度境界 |
+| EV-00622 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLongリテラルからVariant・戻り値・配列への値伝播 |
+| EV-00623 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong値のByRef・Property・配列要素書戻し境界 |
+| EV-00624 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong比較・Select Case・算術境界 |
+| EV-00625 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDatePart・DateDiff・Weekday週境界マトリクス |
+| EV-00626 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDateDiff月末・うるう年・逆順intervalマトリクス |
+| EV-00627 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み関数領域のDateDiff全interval・時刻・逆順マトリクス |
+| EV-00628 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDatePart・DateDiff週オプション全値境界 |
+| EV-00629 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み関数領域のDatePart・DateDiff・Weekday入力型とNull/Error境界 |
+| EV-00630 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDateValue・TimeValue・FormatとCurrency・Decimal・Nothing・Null境界 |
+| EV-00631 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み関数領域のDateValue・TimeValue・DatePart無効日付文字列とBoolean・Error・配列境界 |
+| EV-00632 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のYear・Month・Day・Hour・Minute・Second Empty/Null境界 |
+| EV-00633 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域の日付文字列区切り・時刻精度・負シリアル境界 |
+| EV-00634 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDateAdd・DateDiff負数、月末、四半期、年単位境界 |
+| EV-00635 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDateAdd週・時・分・秒単位の境界 |
+| EV-00636 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数領域のDateAdd・DateDiff・DatePart無効intervalと週オプション境界 |
+| EV-00637 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域の基数変換と型幅・符号・オーバーフロー境界 |
+| EV-00638 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数値の符号、型サフィックス、文字列変換境界 |
+| EV-00639 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のvbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct基数経路 |
+| EV-00640 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCDec・CCur基数値の符号、桁区切り、精度境界 |
+| EV-00641 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のCInt・CLng・CDec・CCur丸めと最大最小境界 |
+| EV-00642 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong・LongPtr・Variant subtype基数境界 |
+| EV-00643 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のProperty Let/Set、ByRef配列、Object値分類境界 |
+| EV-00644 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のProperty ParamArray、CallByName、名前付き引数境界 |
+| EV-00645 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のProperty引数名前付き指定、Optional既定値、ByRef書戻し境界 |
+| EV-00646 | FZ-COVERAGE-20260810 | fixed | 1 | 引数・ByRef・Property領域のInterface Property Set、配列、Object値複合境界 |
+| EV-00647 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 引数・ByRef・Property領域のInterface Property ParamArrayと名前付きvalue境界 |
+| EV-00648 | FZ-COVERAGE-20260810 | fixed | 1 | 引数・ByRef・Property領域のModule ParamArray名前一致引数禁止境界 |
+| EV-00649 | FZ-COVERAGE-20260810 | fixed | 1 | 組み込み関数のParamArray名前付き引数禁止境界（Array・Choose・Switch） |
+| EV-00650 | FZ-COVERAGE-20260810 | fixed | 1 | Property ParamArrayの先行通常引数と名前付き指定の複合境界 |
+| EV-00651 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ParamArray名前付き禁止とProperty/Module/Interface/Builtin位置引数の統合回帰 |
+| EV-00652 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 基数値のvbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct横展開 |
+| EV-00653 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 基数値の暗黙Variant変換・代入・演算境界 |
+| EV-00654 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 基数値の明示・暗黙変換とExcel実機結果の一括照合 |
+| EV-00655 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の非収束・無効引数・境界エラー伝播 |
+| EV-00656 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数のOptional引数・Null・Empty・型変換境界 |
+| EV-00657 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の符号・ゼロ率・高精度境界 |
+| EV-00658 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の配列境界・償却終端・負値入力 |
+| EV-00659 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 財務関数の型変換・極小率・高精度入力 |
+| EV-00660 | FZ-BUILTIN | verified-no-bug | 1 | Likeの空文字クラス・降順範囲・未終端クラスの仕様検証 |
+| EV-00661 | FZ-BUILTIN | verified-no-bug | 1 | InStr/Replace/StrComp/FilterのText・Binary・明示CompareとUnicode境界 |
+| EV-00662 | FZ-BUILTIN | verified-no-bug | 1 | Unicodeアクセント・全角半角・Compare値検証の共通境界 |
+| EV-00663 | FZ-BUILTIN | verified-no-bug | 1 | モジュール別Option Compareの既定値と組み込み関数の比較モード継承 |
+| EV-00664 | FZ-BUILTIN | verified-no-bug | 1 | InStr/Replace/StrComp/FilterのNull・Empty・Compare省略時の共通伝播 |
+| EV-00665 | FZ-BUILTIN | verified-no-bug | 1 | Option Compare Text/BinaryとCompare省略・明示値の関数間整合 |
+| EV-00666 | FZ-BUILTIN | verified-no-bug | 1 | DateDiff/DatePart/DateAddの月末・閏年・週番号横断境界 |
+| EV-00667 | FZ-BUILTIN | verified-no-bug | 1 | TimeSerialの負数正規化とDateAddの時分秒・四半期単位 |
+| EV-00668 | FZ-BUILTIN | verified-no-bug | 1 | DateSerialの月日繰り上げ・負数とCDate/DateValueの型変換 |
+| EV-00669 | FZ-BUILTIN | verified-no-bug | 1 | DateAdd/DateDiff/DatePart/DateSerialのNull・Empty・範囲外入力 |
+| EV-00670 | FZ-BUILTIN | verified-no-bug | 1 | DateDiff/DatePartの時刻無視・週境界とTimeValueの正規化 |
+| EV-00671 | FZ-GRAMMAR | verified-no-bug | 1 | UDT配列のReDim・Erase・全体代入とネストメンバー保持 |
+| EV-00672 | FZ-GRAMMAR | verified-no-bug | 1 | Option Base・多次元LBound/UBound・For Each型変換の組み合わせ |
+| EV-00673 | FZ-GRAMMAR | verified-no-bug | 1 | 動的配列のReDim Preserve・Erase・再確保後の下限と要素保持 |
+| EV-00674 | FZ-GRAMMAR | verified-no-bug | 1 | Function配列戻り値・ByRef配列ReDim・呼出し後の要素保持 |
+| EV-00675 | FZ-GRAMMAR | verified-no-bug | 1 | UDT配列・クラス配列メンバーの全体代入と要素型検証 |
+| EV-00676 | FZ-GRAMMAR | verified-no-bug | 1 | On Error GoTo 0・Resume Next・ハンドラ再設定の状態遷移 |
+| EV-00677 | FZ-GRAMMAR | verified-no-bug | 1 | 標準手続き・クラス呼出し間のErr保持、Resume Next、再送出 |
+| EV-00678 | FZ-GRAMMAR | verified-no-bug | 1 | クラス手続きのOn Error局所ハンドラと呼出し元Err状態の分離 |
+| EV-00679 | FZ-GRAMMAR | verified-no-bug | 1 | For/Doループ内のErr.Raise・Resume Next・ハンドラ再入防止 |
+| EV-00680 | FZ-GRAMMAR | fixed | 1 | GoSub/Return・Call手続き境界でのOn Error捕捉とResume復帰 |
+| EV-00681 | FZ-GRAMMAR | verified-no-bug | 1 | Property Get/Let/Set内のGoSub・On Error・Exit境界 |
+| EV-00682 | FZ-GRAMMAR | verified-no-bug | 1 | Property Setおよび呼出し元CallからのGoSub・On Error境界 |
+| EV-00683 | FZ-GRAMMAR | verified-no-bug | 1 | GoSub本体から呼び出した別手続きのOn Error捕捉と復帰 |
+| EV-00684 | FZ-GRAMMAR | verified-no-bug | 1 | GoSub本体からCallByName等で呼び出した手続きのエラー伝播 |
+| EV-00685 | FZ-GRAMMAR | fixed | 1 | GoSub本体のエラーをResumeラベルで復帰する場合の捕捉と継続 |
+| EV-00686 | FZ-GRAMMAR | verified-no-bug | 1 | GoSub内ハンドラのResume Current/Nextとネストブロック復帰 |
+| EV-00687 | FZ-GRAMMAR | verified-no-bug | 1 | If/Forネスト内のGoSubエラーとResume復帰位置 |
+| EV-00688 | FZ-GRAMMAR | verified-no-bug | 1 | For/Doネスト内のGoSubエラーとResume Next復帰位置 |
+| EV-00689 | FZ-GRAMMAR | verified-no-bug | 1 | GoSub内ハンドラのResume（引数なし）による再実行位置 |
+| EV-00690 | FZ-GRAMMAR | fixed | 1 | Doループ内GoSubのResumeラベル転送とループ継続 |
+| EV-00691 | FZ-GRAMMAR | verified-no-bug | 1 | For/Whileネスト内のGoSub Resumeラベル解決 |
+| EV-00692 | FZ-GRAMMAR | verified-no-bug | 1 | Whileループ内のGoSub Resumeラベル解決 |
+| EV-00693 | FZ-GRAMMAR | fixed | 1 | If/Elseネスト内のGoSub Resumeラベル解決 |
+| EV-00694 | FZ-GRAMMAR | verified-no-bug | 1 | ElseIf分岐内のGoSub Resumeラベル解決 |
+| EV-00695 | FZ-GRAMMAR | fixed | 1 | Select Case分岐内のGoSub Resumeラベル解決 |
+| EV-00696 | FZ-GRAMMAR | fixed | 1 | Withブロック内のGoSub Resumeラベル解決 |
+| EV-00697 | FZ-GRAMMAR | verified-no-bug | 1 | For Each本体のGoSub Resumeラベル解決 |
+| EV-00698 | FZ-GRAMMAR | verified-no-bug | 1 | With内For/Do複合ブロックのGoSub Resumeラベル解決 |
+| EV-00699 | FZ-GRAMMAR | verified-no-bug | 1 | With内Select Case節のGoSub Resumeラベル解決 |
+| EV-00700 | FZ-GRAMMAR | verified-no-bug | 1 | If内For Each本体のGoSub Resumeラベル解決 |
+| EV-00701 | FZ-GRAMMAR | verified-no-bug | 1 | If内Select Case節のGoSub Resumeラベル解決 |
+| EV-00702 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | VariantからByte/Integer/Long/LongLongへの基数値暗黙代入と幅超過境界 |
+| EV-00703 | FZ-COVERAGE-20260810 | fixed | 1 | Variantから整数型への符号付き最小値・最小値超過暗黙変換 |
+| EV-00704 | FZ-COVERAGE-20260810 | fixed | 1 | Decimal VariantをLongLong ByVal引数へ渡す幅検査 |
+| EV-00705 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongLong/LongPtrのByRef・Optional・名前付き引数の型登録境界 |
+| EV-00706 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongLong() ByRef配列引数の要素型登録と書き戻し |
+| EV-00707 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LongPtr() ByRef配列引数の要素型登録と書き戻し |
+| EV-00708 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Optional ByRef LongLongの省略・名前付き書き戻し |
+| EV-00709 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Optional ByRef LongLong省略時の既定値と呼び出し元書き戻し境界 |
+| EV-00710 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Valの16進文字列における32-bit/64-bit符号拡張境界 |
+| EV-00711 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Valの8進文字列における桁幅と符号拡張境界 |
+| EV-00712 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Valの64-bit 8進最大・最小境界とDouble表示 |
+| EV-00713 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ValのCurrency/Single/Integer/Long/LongLongサフィックス境界 |
+| EV-00714 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Valの空白・符号と整数/Currencyサフィックスの組合せ |
+| EV-00715 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | FSO CreateTextFileのOverwrite省略・False時の既存ファイル境界 |
+| EV-00716 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | FSO CreateTextFileのOverwrite=Trueによる既存内容切り詰め |
+| EV-00717 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | FSO OpenTextFileのCreate=False不存在ファイルError 53境界 |
+| EV-00718 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | FSO OpenTextFileのCreate=True不存在ファイル作成と読書き |
+| EV-00719 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | FSO Unicode指定のBOM・日本語書込みとReadAll往復 |
+| EV-00720 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ネストUDT内の固定長文字列・Integer配列Put/Get境界 |
+| EV-00721 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 可変長Stringを含むUDTのBinary Put/Get書込み・読出し境界 |
+| EV-00722 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 可変長String配列を含むUDTのBinary Put/Get境界 |
+| EV-00723 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 可変長String配列とLong配列を混在させたUDT Put/Get境界 |
+| EV-00724 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 可変長String子UDTと後続Long配列のネストPut/Get境界 |
+| EV-00725 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | TimeSerialの負数・60超過・24時繰上げ正規化 |
+| EV-00726 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DateSerialの月0/13・日0/32の繰上げ繰下げ正規化 |
+| EV-00727 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DateSerialの2桁年補正・4桁年・負年Error 6境界 |
+| EV-00728 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 負の日付シリアル値に対するDatePart・Hour/Minute/Second境界 |
+| EV-00729 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | DateAddの負方向・正方向の日付境界と時刻繰上げ繰下げ |
+| EV-00730 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Likeの空文字クラス・降順範囲・未終端クラスの文法境界 |
+| EV-00731 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryとInStr・Replace・StrComp・FilterのUnicode比較境界 |
+| EV-00732 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | モジュール単位のOption Compare Text/Binary伝播とLike・Select Case比較 |
+| EV-00733 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Likeのワイルドカード・文字クラス・エスケープ境界 |
+| EV-00734 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Textにおけるæ/aeのLike同値とBinaryとの差 |
+| EV-00735 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | クラス局所On Errorと呼出し元Err状態の分離・再送出境界 |
+| EV-00736 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | On Error GoToハンドラ内のErr.Raise再送出とIf/For境界 |
+| EV-00737 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ネスト手続き呼出しのErr伝播・Resume Next・ハンドラ再送出境界 |
+| EV-00738 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | On Error Resume Next・GoTo 0・ハンドラ再設定の状態リセット境界 |
+| EV-00739 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・Resume・Resume labelの再開位置とErr状態境界 |
+| EV-00740 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列の角括弧・エスケープ・セクション・文字列プレースホルダー境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 11 |
-| fixed | 257 |
+| bug-found | 1 |
+| fixed | 286 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 242 |
+| verified-no-bug | 347 |
 
-横展開未解決経路: 445、実Excel待ち評価: 0
+横展開未解決経路: 514、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-252 | 1 | queued | Format文字列の複数セクション・空文字列・@/&/!/< />制御境界 |  |

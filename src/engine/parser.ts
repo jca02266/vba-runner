@@ -3230,6 +3230,16 @@ export class Parser {
         let parsedValue = Number(numericVal);
         let baseWidth: NumberLiteral['baseWidth'];
         if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
+            const digits = cleanVal.slice(2);
+            const max32Digits = cleanVal.startsWith('0x') ? 8 : 11;
+            const max64Digits = cleanVal.startsWith('0x') ? 16 : 22;
+            // VBA accepts the full-width signed bit-pattern form, but an
+            // intermediate-width literal has no representable inferred type.
+            // LongLong-suffixed literals are limited to one 64-bit word.
+            if ((typeSuffix === '^' && digits.length > max64Digits) ||
+                (typeSuffix !== '^' && digits.length > max32Digits && digits.length < max64Digits)) {
+                this.throwError(`Parse error: numeric literal out of range at line ${this.peek().line}`);
+            }
             const unsigned = parsedValue;
             if (unsigned <= 0xffff) baseWidth = 16;
             else if (unsigned <= 0xffffffff) baseWidth = 32;
