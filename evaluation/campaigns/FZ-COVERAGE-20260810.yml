@@ -2916,3 +2916,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/radix-implicit-width-boundary.test.ts
       - tests/spec/declaration-conversion-boundaries.test.ts
+  - id: FZ-COVERAGE-20260810-308
+    title: On Error Resume target and handler re-entry
+    status: queued
+    priority: 1
+    focus: エラー処理領域のResume遷移先・ハンドラ再入・クラス境界
+    priorCauseKey: on-error-resume-target-state
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-error.test.ts

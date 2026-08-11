@@ -2004,3 +2004,11 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-307
     rootCauseId: RC-00010
     blocker: "RadixMatrix.resultの記録ハッシュf6d488...と現行準備ハッシュ2d2e3b...が不一致"
+  - afterEvaluation: EV-00796
+    audit: "695 evaluations, 0 active claims; Err・On ErrorのResume Next・Resume label・クラス境界は差異なし"
+    decision: "終了ケースでは新規バグなし。引数なしResumeの再開位置とError 20契約は根拠不足のため評価をblockedで完了し、次候補は選定しない。"
+    action: stop
+    nextArea: Err・On Error
+    nextEvaluation: EV-00796
+    nextCandidate: null
+    blocker: "Resume単独の未確定意味論を残したまま、ユーザー指示によりこの評価サイクルを停止"
