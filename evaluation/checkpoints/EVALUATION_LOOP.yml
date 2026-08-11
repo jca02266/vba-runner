@@ -1248,3 +1248,10 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00704
+    audit: "603 evaluations, 0 active claims"
+    decision: "Decimal VariantをLongLong ByVal引数へ渡すと型変換されないバグを発見し、標準・式呼び出しの型マップへLongLong/LongPtrを追加して修正した。Property/Class経路の同型境界は横展開レビューを継続する。"
+    action: transition
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
