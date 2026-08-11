@@ -1946,3 +1946,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/interface-property-assignment.test.ts
       - tests/spec/property-paramarray-named-rejection.test.ts
+  - id: FZ-COVERAGE-20260810-201
+    title: Module ParamArray named matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のModule ParamArray名前一致引数禁止境界
+    priorCauseKey: property-paramarray-named-argument-guard-bypassed
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray-named-rejection.test.ts
+      - tests/spec/optional-param-order.test.ts

@@ -940,3 +940,8 @@ checkpoints:
     decision: "Property ParamArrayの名前付きvalue引数受理を修正した。直接修正は完了したが、共通ガードの真因はInterface経路の確認が未完了なので、通常の探索より先に横展開評価を行う。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-200
+  - afterEvaluation: EV-00647
+    audit: "546 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Interface Property ParamArrayの名前付きvalueは修正後に拒否できたが、独立横展開でModule ParamArrayの名前一致経路が同じ禁止規則を迂回することが判明した。RC-00048の未解決経路を先に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-201
