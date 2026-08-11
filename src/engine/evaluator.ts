@@ -3944,7 +3944,7 @@ export class Evaluator {
                 __vbaPropertyValueTail: true } as any)
             : rhsExpression;
         this.callClassMethodWithExpressions(obj, setter,
-            [...indexExpressions, rhsArgument], [...indexValues, value], true);
+            [...indexExpressions, rhsArgument], [...indexValues, value]);
     }
 
     private evaluateAssignmentToVariable(left: Expression, val: any, sourceExpr?: Expression, allowArrayRebind = false) {
@@ -5102,8 +5102,8 @@ export class Evaluator {
      * callee's updates, unlike module procedure calls which write back through
      * their original expressions.
      */
-    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[], allowSyntheticPropertyValueTail = false): any {
-        const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs, allowSyntheticPropertyValueTail);
+    private callClassMethodWithExpressions(instance: any, proc: ProcedureDeclaration, argExprs: (Expression | null)[], evaluatedArgs?: any[]): any {
+        const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs);
         const { args, references } = aligned;
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
@@ -5228,7 +5228,6 @@ export class Evaluator {
         proc: ProcedureDeclaration,
         argExprs: (Expression | null)[],
         evaluatedArgs?: any[],
-        allowSyntheticPropertyValueTail = false,
     ): { args: any[]; references: Array<VbaLValueReference | null>; expressions: Array<Expression | null> } {
         const split = this.splitArgumentExpressions(argExprs);
         const paramArrayIndex = proc.parameters.findIndex(p => p.isParamArray);
@@ -5237,7 +5236,7 @@ export class Evaluator {
         // but that tail does not relax the same call-site restriction.
         const hasExplicitNamedArgument = argExprs.some(arg =>
             arg?.type === 'NamedArgument' && !(arg as any).__vbaPropertyValueTail);
-        if (paramArrayIndex >= 0 && hasExplicitNamedArgument && !allowSyntheticPropertyValueTail) {
+        if (paramArrayIndex >= 0 && hasExplicitNamedArgument) {
             this.throwVbaError(
                 448,
                 'Named arguments cannot be used with ParamArray',
