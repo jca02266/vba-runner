@@ -1286,3 +1286,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-144
+    title: Option Compareモジュール境界
+    status: queued
+    priority: 1
+    focus: モジュール別Option Compareの既定値と組み込み関数の比較モード継承
+    priorCauseKey: option-compare-module-scope
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/strcomp-option-compare.test.ts
