@@ -152,6 +152,23 @@ Handler:
     Resume ContinueForIteration
 End Function
 
+Function ProbeWhileResumeLabel() As String
+    Dim i As Long
+    On Error GoTo Handler
+    While i < 2
+        i = i + 1
+        GoSub Worker
+ContinueWhileIteration:
+    Wend
+    ProbeWhileResumeLabel = "after" & CStr(i)
+    Exit Function
+Worker:
+    If i = 1 Then Err.Raise 5
+    Return
+Handler:
+    Resume ContinueWhileIteration
+End Function
+
 Sub Helper()
     Err.Raise 5
 End Sub
@@ -179,6 +196,8 @@ assert.strictEqual(ev.callProcedure('ProbeDoResumeLabel', []), 'after2',
     'Resume label from a Do-nested GoSub continues the loop once');
 assert.strictEqual(ev.callProcedure('ProbeForResumeLabel', []), 'after3',
     'Resume label from a For-nested GoSub continues the loop once');
+assert.strictEqual(ev.callProcedure('ProbeWhileResumeLabel', []), 'after2',
+    'Resume label from a While-nested GoSub continues the loop once');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([

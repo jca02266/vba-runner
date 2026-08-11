@@ -453,3 +453,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-049
+    title: 条件分岐ネスト内Resumeラベル境界
+    status: queued
+    priority: 1
+    focus: If/Elseネスト内のGoSub Resumeラベル解決
+    priorCauseKey: nested-resume-label-resolution
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts
