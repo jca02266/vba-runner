@@ -1105,3 +1105,11 @@ checkpoints:
     decision: "ループ・Resume再入2ケースは一致し、無バグ連続数は4回。最後にエラー処理とGoSub／Call境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-036
+  - afterEvaluation: EV-00680
+    audit: "579 evaluations, 0 active claims"
+    decision: "GoSubの標準手続きでハンドラ末尾の誤復帰を発見し、Property Get境界への横展開を含めて修正・真因確認した。エラー処理領域の無バグ連続数は0回に戻るため、同領域の近接候補を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-037
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

@@ -345,3 +345,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub.test.ts
+  - id: FZ-GRAMMAR-037
+    title: Property手続きのGoSub・エラー復帰横展開
+    status: queued
+    priority: 1
+    focus: Property Get/Let/Set内のGoSub・On Error・Exit境界
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts
