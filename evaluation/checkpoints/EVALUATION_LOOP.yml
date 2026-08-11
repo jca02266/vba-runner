@@ -1095,3 +1095,8 @@ checkpoints:
     decision: "ネストErr伝播2ケースは一致し、無バグ連続数は2回。クラス呼出し境界とErr状態分離を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-034
+  - afterEvaluation: EV-00678
+    audit: "577 evaluations, 0 active claims"
+    decision: "クラスErr状態分離2ケースは一致し、エラー処理領域の無バグ連続数は3回。ループ内ハンドラとResume再入を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-035

@@ -327,3 +327,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/class-method-on-error-isolation.test.ts
+  - id: FZ-GRAMMAR-035
+    title: ループ内ハンドラResume再入境界
+    status: queued
+    priority: 1
+    focus: For/Doループ内のErr.Raise・Resume Next・ハンドラ再入防止
+    priorCauseKey: loop-error-handler-reentry
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handler-reentry.test.ts
