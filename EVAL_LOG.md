@@ -672,21 +672,23 @@
 | EV-00767 | FZ-COVERAGE-20260810 | verified-no-bug | 0 | Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界 |
 | EV-00768 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列値と数値・文字列プレースホルダー混在書式の分類境界 |
 | EV-00769 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数表記と末尾スケーリングカンマのトークン境界 |
+| EV-00770 | FZ-COVERAGE-20260810 | blocked | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| blocked | 1 |
 | bug-found | 1 |
 | fixed | 300 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 362 |
 
-横展開未解決経路: 538、実Excel待ち評価: 0
+横展開未解決経路: 539、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-281 | 1 | queued | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 | yes |
+| FZ-COVERAGE-20260810-282 | 1 | queued | Format複数セクションの未選択日付トークンとString値の分類境界 | yes |

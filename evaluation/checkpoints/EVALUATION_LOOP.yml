@@ -1785,3 +1785,11 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-281
     rootCauseId: RC-00064
     rootFixTask: ROOT-00036
+  - afterEvaluation: EV-00770
+    audit: "669 evaluations, 0 active claims; Format type-specific exactScientificFormat is blocked pending Excel type contract"
+    decision: "型別exactScientificFormatのrunner差分は確認したが、Excel期待値がないため修正しない。Format領域の次の未評価境界として複数セクションの日付判定を調査する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-282
+    rootCauseId: RC-00064

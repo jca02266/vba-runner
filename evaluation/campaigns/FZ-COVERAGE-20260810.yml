@@ -2663,3 +2663,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-282
+    title: Format selected-section date classification
+    status: queued
+    priority: 1
+    focus: Format複数セクションの未選択日付トークンとString値の分類境界
+    priorCauseKey: format-date-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
