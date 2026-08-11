@@ -2012,3 +2012,23 @@ checkpoints:
     nextEvaluation: EV-00796
     nextCandidate: null
     blocker: "Resume単独の未確定意味論を残したまま、ユーザー指示によりこの評価サイクルを停止"
+  - afterEvaluation: EV-00795
+    audit: "695 evaluations, 0 active claims; 現行ソースハッシュ一致後、Val 64ビットHex 2ケースの差異を修正"
+    decision: "Excelの-1/0結果を再現するVal専用の下位32ビット処理を追加し、既存119ケースと全回帰テストを通過させた。Variant暗黙代入と共通基数ポリシーは別の未確定範囲として残す。"
+    action: fixed
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00795
+    nextCandidate: null
+    rootCauseId: RC-00010
+    commit: d7450b40
+  - afterEvaluation: EV-00771, EV-00773, EV-00785, EV-00787
+    audit: "695 evaluations, 0 active claims; Format実機結果XL-183〜XL-186を現行ソースハッシュで同期"
+    decision: "XL-183は未選択セクションの日付分類差異、XL-184は名前付き書式の値型分類差異、XL-186は非数値StringのOn/Off差異をbug-foundへ分類した。XL-185の丸め6ケースはverified-no-bug。"
+    action: reconcile-excel
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: null
+    rootCauseIds:
+      - RC-00067
+      - RC-00065
+      - format-named-format-value-coercion-contract

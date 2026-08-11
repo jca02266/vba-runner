@@ -2,3 +2,8 @@
   evaluationId: EV-00771
   status: needs-excel
   occurredAt: '2026-08-11T14:54:13.805Z'
+- candidateId: FZ-COVERAGE-20260810-282
+  evaluationId: EV-00771
+  status: bug-found
+  fromStatus: needs-excel
+  occurredAt: '2026-08-11T23:10:12.421Z'

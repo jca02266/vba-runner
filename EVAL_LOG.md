@@ -673,9 +673,9 @@
 | EV-00768 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列値と数値・文字列プレースホルダー混在書式の分類境界 |
 | EV-00769 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数表記と末尾スケーリングカンマのトークン境界 |
 | EV-00770 | FZ-COVERAGE-20260810 | blocked | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
-| EV-00771 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
+| EV-00771 | FZ-COVERAGE-20260810 | bug-found | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
 | EV-00772 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ |
-| EV-00773 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format名前付き書式と日付トークンの値型・セクション境界 |
+| EV-00773 | FZ-COVERAGE-20260810 | bug-found | 1 | Format名前付き書式と日付トークンの値型・セクション境界 |
 | EV-00774 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値トークン・リテラル・セクション区切りの組合せ境界 |
 | EV-00775 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format日付トークンの文脈依存m/n、リテラル、名前付きc境界 |
 | EV-00776 | FZ-COVERAGE-20260810 | fixed | 1 | Format Null・Empty・複数セクション・文字列placeholderの選択境界 |
@@ -687,9 +687,9 @@
 | EV-00782 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションにおける選択済み文字列プレースホルダーの分離 |
 | EV-00783 | FZ-COVERAGE-20260810 | blocked | 1 | Format文字列の引用符・バックスラッシュによるリテラル境界 |
 | EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
-| EV-00785 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
+| EV-00785 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
 | EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
-| EV-00787 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
+| EV-00787 | FZ-COVERAGE-20260810 | bug-found | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
 | EV-00788 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きGeneral Number・Currency・Fixed・Standard・Percent・Scientific境界 |
 | EV-00789 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format修正済みString非選択日付セクションの回帰境界 |
 | EV-00790 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format ASCII文字列の1〜4セクション選択と文字placeholder境界 |
@@ -697,7 +697,7 @@
 | EV-00792 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数リテラル最大幅・符号拡張境界 |
 | EV-00793 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur短い基数ビットパターン符号境界 |
 | EV-00794 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類 |
-| EV-00795 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
+| EV-00795 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
 | EV-00796 | FZ-COVERAGE-20260810 | blocked | 1 | エラー処理領域のResume遷移先・ハンドラ再入・クラス境界 |
 
 ## 状態集計
@@ -705,14 +705,13 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 2 |
-| fixed | 303 |
+| bug-found | 5 |
+| fixed | 304 |
 | known-limit | 4 |
-| needs-excel | 5 |
 | retired | 1 |
-| verified-no-bug | 374 |
+| verified-no-bug | 375 |
 
-横展開未解決経路: 580、実Excel待ち評価: 5
+横展開未解決経路: 578、実Excel待ち評価: 0
 
 ## 次の候補
 
