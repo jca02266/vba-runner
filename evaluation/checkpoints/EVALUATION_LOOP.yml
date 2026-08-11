@@ -1430,3 +1430,17 @@ checkpoints:
     nextArea: Option Compare・Like
     nextEvaluation: EV-00730
     nextCandidate: FZ-COVERAGE-20260810-241
+  - afterEvaluation: EV-00730
+    audit: "629 evaluations, 0 active claims"
+    decision: "Date領域の確認結果を区切り、Option Compare・Like領域のLike文法境界を評価した。次はUnicode比較境界を評価する。"
+    action: continue-area
+    nextArea: Option Compare・Like
+    nextEvaluation: EV-00731
+    nextCandidate: FZ-COVERAGE-20260810-242
+  - afterEvaluation: EV-00731
+    audit: "630 evaluations, 0 active claims"
+    decision: "Option Compare・Like領域のUnicode比較境界を評価した。次はモジュール単位の比較モード伝播を評価する。"
+    action: continue-area
+    nextArea: Option Compare・Like
+    nextEvaluation: EV-00732
+    nextCandidate: FZ-COVERAGE-20260810-243

@@ -2295,3 +2295,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-pattern-grammar-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-242
+    title: Option Compare text comparison matrix
+    status: queued
+    priority: 1
+    focus: Option Compare Text/BinaryとInStr・Replace・StrComp・FilterのUnicode比較境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/unicode-compare-validation.test.ts
+  - id: FZ-COVERAGE-20260810-243
+    title: Option Compare module boundary
+    status: queued
+    priority: 1
+    focus: モジュール単位のOption Compare Text/Binary伝播とLike・Select Case比較
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/module-option-compare-matrix.test.ts
