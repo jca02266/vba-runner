@@ -2151,3 +2151,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/val-radix-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-224
+    title: Val type suffix boundary
+    status: queued
+    priority: 1
+    focus: ValのCurrency/Single/Integer/Long/LongLongサフィックス境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/val-suffix-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-225
+    title: Val signed suffix composition
+    status: queued
+    priority: 1
+    focus: Valの空白・符号と整数/Currencyサフィックスの組合せ
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/val-suffix-boundary.test.ts

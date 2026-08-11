@@ -1311,3 +1311,17 @@ checkpoints:
     nextArea: 組み込み関数
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00713
+    audit: "612 evaluations, 0 active claims"
+    decision: "組み込み関数領域でVal型サフィックス境界も一致し、無バグ連続は4回。基数文字列とサフィックスの組合せを5回目として評価する。"
+    action: continue-area
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00714
+    audit: "613 evaluations, 0 active claims"
+    decision: "組み込み関数領域でValの符号・空白・サフィックス組合せも一致し、無バグ連続5回を達成した。次は未収束の別領域を選定する。"
+    action: select-next-area
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
