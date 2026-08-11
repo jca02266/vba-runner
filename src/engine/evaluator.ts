@@ -4902,6 +4902,13 @@ export class Evaluator {
         return { namedArgs, positionalArgs };
     }
 
+    /** Enforce VBA's single named-argument contract for every ParamArray binder. */
+    private rejectNamedParamArray(hasParamArray: boolean, namedCount: number): void {
+        if (hasParamArray && namedCount > 0) {
+            this.throwVbaError(448, 'Named arguments cannot be used with ParamArray');
+        }
+    }
+
     /**
      * `BuiltinParamSpec[]`（必須引数のあとに Optional 引数が続く通常形）を使って、
      * 組み込み関数呼び出しの引数を検証・解決する。ByRef・localEnv は組み込み関数には
@@ -4909,12 +4916,7 @@ export class Evaluator {
      */
     private bindCallArguments(spec: BuiltinParamSpec[], argExprs: Expression[]): any[] {
         const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
-        if (spec.some(p => p.isParamArray) && namedArgs.size > 0) {
-            this.throwVbaError(
-                448,
-                'Named arguments cannot be used with ParamArray',
-            );
-        }
+        this.rejectNamedParamArray(spec.some(p => p.isParamArray), namedArgs.size);
         // 仕様に存在しない名前付き引数は Error 448（Named argument not found）
         for (const nameLower of namedArgs.keys()) {
             if (!spec.some(p => p.name.toLowerCase() === nameLower)) {
@@ -5236,12 +5238,7 @@ export class Evaluator {
         // but that tail does not relax the same call-site restriction.
         const hasExplicitNamedArgument = argExprs.some(arg =>
             arg?.type === 'NamedArgument' && !(arg as any).__vbaPropertyValueTail);
-        if (paramArrayIndex >= 0 && hasExplicitNamedArgument) {
-            this.throwVbaError(
-                448,
-                'Named arguments cannot be used with ParamArray',
-            );
-        }
+        this.rejectNamedParamArray(paramArrayIndex >= 0, hasExplicitNamedArgument ? 1 : 0);
         const propertyValueIndex = paramArrayIndex >= 0 &&
             this.isPropertyValueParameter(proc, proc.parameters.length - 1)
             ? proc.parameters.length - 1
@@ -9385,12 +9382,10 @@ export class Evaluator {
                 const positionalArgExpressions: Expression[] = [];
 
                 const splitArgs = this.splitArgumentExpressions(expr.args);
-                if (proc.parameters.some(parameter => parameter.isParamArray) && splitArgs.named.size > 0) {
-                    this.throwVbaError(
-                        448,
-                        'Named arguments cannot be used with ParamArray',
-                    );
-                }
+                this.rejectNamedParamArray(
+                    proc.parameters.some(parameter => parameter.isParamArray),
+                    splitArgs.named.size,
+                );
                 for (const name of splitArgs.named.keys()) {
                     if (!proc.parameters.some(parameter => parameter.name.toLowerCase() === name)) {
                         this.throwVbaError(448, `Named argument not found: '${name}'`);
