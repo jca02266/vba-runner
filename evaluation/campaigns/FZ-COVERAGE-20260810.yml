@@ -2279,3 +2279,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-negative-serial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-240
+    title: DateAdd signed calendar rollover
+    status: queued
+    priority: 1
+    focus: DateAddの負方向・正方向の日付境界と時刻繰上げ繰下げ
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-arithmetic-signed-boundary-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-241
+    title: Like pattern grammar boundary
+    status: queued
+    priority: 1
+    focus: Likeの空文字クラス・降順範囲・未終端クラスの文法境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-pattern-grammar-matrix.test.ts

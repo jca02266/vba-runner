@@ -1416,3 +1416,17 @@ checkpoints:
     nextArea: Date
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00728
+    audit: "627 evaluations, 0 active claims"
+    decision: "負の日付シリアルのDatePart・時刻成分は既知仕様と一致した。DateAddの符号付き暦日境界を次に評価する。"
+    action: continue-area
+    nextArea: Date
+    nextEvaluation: EV-00729
+    nextCandidate: FZ-COVERAGE-20260810-240
+  - afterEvaluation: EV-00729
+    audit: "628 evaluations, 0 active claims"
+    decision: "DateAddの符号付き暦日・時刻境界は既知仕様と一致した。Date領域の確認結果を区切り、未収束のOption Compare・Like領域を次に選定する。"
+    action: select-next-area
+    nextArea: Option Compare・Like
+    nextEvaluation: EV-00730
+    nextCandidate: FZ-COVERAGE-20260810-241
