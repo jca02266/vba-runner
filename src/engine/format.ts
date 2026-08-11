@@ -541,7 +541,11 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
     const coreFmt  = coreToks.map(t => t.v).join('');
 
     // ---- 科学記数法 ----
-    const sciMatch = coreFmt.match(/^([\d#,.%]*)([Ee][+\-])(0+|#+)$/);
+    // Commas immediately after the exponent digits are part of the
+    // scientific-format spelling in VBA.  They must not make the token fall
+    // through to ordinary numeric rendering; Excel ignores them for this
+    // scientific form.  Escaped commas are literals and remain in suffix.
+    const sciMatch = coreFmt.match(/^([\d#,.%]*)([Ee][+\-])(0+|#+),*$/);
     if (sciMatch) {
         const mFmt    = sciMatch[1] || '0';
         const sciTok  = sciMatch[2]; // e.g. "E+" or "e-"

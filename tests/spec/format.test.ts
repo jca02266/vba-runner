@@ -48,6 +48,10 @@ const numericStringFormatCode = String.raw`
             Format(1234567, "#,##0,") & "|" & _
             Format(1234567, "0,.00")
     End Function
+    Function TestFormatScientificTrailingCommas() As String
+        TestFormatScientificTrailingCommas = Format(1000000, "0.00E+00,,") & "|" & _
+            Format(1000000, "0.00E+00\,\,")
+    End Function
 `;
 const evNumericString = evalVBASingle(numericStringFormatCode);
 assert.strictEqual(
@@ -88,6 +92,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestFormatScalingCommas', []),
     '1000|100|1,235|1234.57',
     'Consecutive format commas scale values by thousands',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestFormatScientificTrailingCommas', []),
+    '1.00E+06|1.00E+06,,',
+    'Scientific formats keep exponent rendering when trailing commas are present',
 );
 
 // --- 時刻フォーマットのバグ修正確認 ---
