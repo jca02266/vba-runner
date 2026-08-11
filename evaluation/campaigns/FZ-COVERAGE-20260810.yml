@@ -2752,3 +2752,23 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-291
+    title: Format case conversion matrix
+    status: queued
+    priority: 1
+    focus: Format文字列の<・>大文字小文字変換とASCII・BMP境界
+    priorCauseKey: format-string-case-conversion-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-292
+    title: Format combined case-control precedence
+    status: queued
+    priority: 1
+    focus: Format複数の<・>制御記号とプレースホルダーの優先順位境界
+    priorCauseKey: format-string-case-conversion-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

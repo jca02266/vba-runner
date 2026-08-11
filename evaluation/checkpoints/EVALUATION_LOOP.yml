@@ -1858,3 +1858,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: EV-00771
     nextCandidate: FZ-COVERAGE-20260810-282
+  - afterEvaluation: EV-00780
+    audit: "679 evaluations, 0 active claims; Format single < and > ASCII/BMP conversion verified-no-bug 1回目"
+    decision: "単一大小変換の仕様範囲は一致した。未確定の複数制御記号・非BMP・ロケール境界は別候補化し、Formatの無バグ連続を継続する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-292
