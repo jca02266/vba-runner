@@ -95,41 +95,87 @@ export function formatString(s: string, fmt: string): string {
     if (!section) return s;
 
     let hasExcl = false;
-    const phs: Array<'@' | '&'> = [];
     let forceUpper = false;
     let forceLower = false;
+    const tokens: Array<{ kind: 'literal' | 'placeholder'; value: string }> = [];
+    const placeholders: Array<'@' | '&'> = [];
+    let literal = '';
+    const flushLiteral = () => {
+        if (literal) {
+            tokens.push({ kind: 'literal', value: literal });
+            literal = '';
+        }
+    };
     for (let i = 0; i < section.length; i++) {
         const ch = section[i];
-        if (ch === '\\') { i++; continue; }
-        if (ch === '"') { i++; while (i < section.length && section[i] !== '"') i++; continue; }
-        if (ch === '>') forceUpper = true;
-        else if (ch === '<') forceLower = true;
-        else if (ch === '!') hasExcl = true;
-        else if (ch === '@') phs.push('@');
-        else if (ch === '&') phs.push('&');
+        if (ch === '\\') {
+            flushLiteral();
+            if (i + 1 < section.length) {
+                tokens.push({ kind: 'literal', value: section[++i] });
+            } else {
+                tokens.push({ kind: 'literal', value: '\\' });
+            }
+            continue;
+        }
+        if (ch === '"') {
+            flushLiteral();
+            let quoted = '';
+            i++;
+            while (i < section.length && section[i] !== '"') quoted += section[i++];
+            tokens.push({ kind: 'literal', value: quoted });
+            continue;
+        }
+        if (ch === '>') { forceUpper = true; continue; }
+        if (ch === '<') { forceLower = true; continue; }
+        if (ch === '!') { hasExcl = true; continue; }
+        if (ch === '@' || ch === '&') {
+            flushLiteral();
+            placeholders.push(ch);
+            tokens.push({ kind: 'placeholder', value: ch });
+            continue;
+        }
+        literal += ch;
     }
-    if (forceUpper) return s.toUpperCase();
-    if (forceLower) return s.toLowerCase();
-    if (phs.length === 0) return section.includes('!') ? '' : s;
-    if (phs.length === 1 && (section === '@' || section === '&')) return s;
+    flushLiteral();
+
+    if (placeholders.length === 0) {
+        const result = tokens.filter(token => token.kind === 'literal')
+            .map(token => token.value).join('');
+        if (forceUpper) return (result || s).toUpperCase();
+        if (forceLower) return (result || s).toLowerCase();
+        if (!result && hasExcl) return '';
+        if (!result) return s;
+        return result;
+    }
+    // A bare @/& is the identity form used by VBA for an unbounded string.
+    // Embedded placeholders still consume one character per position.
+    if (placeholders.length === 1 && (section === '@' || section === '&')) return s;
 
     const chars = [...s]; // Unicode 対応
-    let result = '';
+    const replacements = new Array<string>(placeholders.length);
     if (hasExcl) {
         // ! 付き: 左から右へ埋める
         let ci = 0;
-        for (const ph of phs) {
-            if (ci < chars.length) result += chars[ci++];
-            else if (ph === '@') result += ' '; // @ は空スペース、& は何も出力しない
+        for (let pi = 0; pi < placeholders.length; pi++) {
+            const ph = placeholders[pi];
+            if (ci < chars.length) replacements[pi] = chars[ci++];
+            else replacements[pi] = ph === '@' ? ' ' : ''; // @ は空スペース、& は何も出力しない
         }
     } else {
         // デフォルト: 右から左へ埋める
         let ci = chars.length - 1;
-        for (let j = phs.length - 1; j >= 0; j--) {
-            if (ci >= 0) result = chars[ci--] + result;
-            else if (phs[j] === '@') result = ' ' + result;
+        for (let pi = placeholders.length - 1; pi >= 0; pi--) {
+            const ph = placeholders[pi];
+            if (ci >= 0) replacements[pi] = chars[ci--];
+            else replacements[pi] = ph === '@' ? ' ' : '';
         }
     }
+    let placeholderIndex = 0;
+    let result = tokens.map(token => token.kind === 'literal'
+        ? token.value
+        : replacements[placeholderIndex++]).join('');
+    if (forceUpper) result = result.toUpperCase();
+    if (forceLower) result = result.toLowerCase();
     return result;
 }
 
