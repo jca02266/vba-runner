@@ -1633,3 +1633,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-271
+  - afterEvaluation: EV-00760
+    audit: "659 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel; BUG-00490 requires RCA confirmation"
+    decision: "不正数値リテラルのbare eval空実行を再現した。RC-00059の独立確認レビューと数値行ラベル文法の確定を先に行い、局所修正を保留する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null

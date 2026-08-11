@@ -662,22 +662,23 @@
 | EV-00757 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Lexerの行継続・引用符・コメント・基数リテラル組合せ境界 |
 | EV-00758 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | LexerのRem・単引用符コメント、コロン区切り、識別子型サフィックス境界 |
 | EV-00759 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Lexerの日付リテラル月名・時刻・CRLF・区切り文字境界 |
+| EV-00760 | FZ-COVERAGE-20260810 | bug-found | 1 | Lexerの小数点・E/D指数・符号・型サフィックス組合せ境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
+| bug-found | 2 |
 | fixed | 291 |
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 358 |
 
-横展開未解決経路: 535、実Excel待ち評価: 3
+横展開未解決経路: 537、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-271 | 1 | queued | Lexerの小数点・E/D指数・符号・型サフィックス組合せ境界 | yes |
+| (none) | | | | |
