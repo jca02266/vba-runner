@@ -646,6 +646,7 @@
 | EV-00741 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列の複数セクション・空文字列・@/&/!・値型と書式ドメイン境界 |
 | EV-00742 | FZ-COVERAGE-20260810 | fixed | 1 | Format Stringの数値文字列と数値書式の変換境界 |
 | EV-00743 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値文字列の複数セクション選択境界 |
+| EV-00744 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format Null・Empty・数値/文字列プレースホルダー混在境界 |
 
 ## 状態集計
 
@@ -654,10 +655,11 @@
 | bug-found | 1 |
 | fixed | 289 |
 | known-limit | 4 |
+| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 347 |
 
-横展開未解決経路: 519、実Excel待ち評価: 0
+横展開未解決経路: 521、実Excel待ち評価: 1
 
 ## 次の候補
 
