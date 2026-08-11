@@ -1943,3 +1943,11 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00790
+    audit: "689 evaluations, 0 active claims; Formatの無バグ連続5回（EV-00784、786、788、789、790）"
+    decision: "Formatの今回の修正後境界は5回連続で新規バグなしとなったため、未収束の宣言・型・リテラル領域へ切り替える。EV-00619のRadixMatrix実機差異とRC-00010未解決範囲を優先する。"
+    action: switch-area
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+    reason: "Format 5 consecutive verified-no-bug"

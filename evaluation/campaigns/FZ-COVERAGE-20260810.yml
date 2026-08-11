@@ -2855,6 +2855,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-302
+    title: Format ASCII string section selection
+    status: queued
+    priority: 1
+    focus: Format ASCII文字列の1〜4セクション選択と文字placeholder境界
+    priorCauseKey: format-string-section-selection-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts
