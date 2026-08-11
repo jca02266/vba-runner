@@ -77,6 +77,11 @@ export function hasUnescapedFormatChars(pattern: string, chars: string): boolean
         const ch = pattern[i];
         if (ch === '\\') { i++; continue; }
         if (ch === '"') { quoted = !quoted; continue; }
+        if (!quoted && ch === '[') {
+            while (i + 1 < pattern.length && pattern[i + 1] !== ']') i++;
+            if (i + 1 < pattern.length) i++;
+            continue;
+        }
         if (!quoted && chars.includes(ch)) return true;
     }
     return false;
