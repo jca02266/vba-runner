@@ -3242,6 +3242,20 @@ export class Evaluator {
 
     private evaluateSelectCaseStatement(stmt: SelectCaseStatement) {
         const selectVal = this.evaluateExpression(stmt.expression);
+        const executeClause = (clause: Statement[]) => {
+            try {
+                this.executeStatements(clause, 0, false);
+            } catch (e: any) {
+                if (e && e.type === 'GoTo') {
+                    const index = this.findLabelInBody(clause, e.label);
+                    if (index >= 0) {
+                        this.executeStatements(clause, index + 1, false);
+                        return;
+                    }
+                }
+                throw e;
+            }
+        };
         const isVbaNull = (value: any): boolean => value === vbaNull;
         const normalizeEmpty = (left: any, right: any): [any, any] => {
             if (left === vbaEmpty) left = typeof right === 'string' ? '' : 0;
@@ -3323,13 +3337,13 @@ export class Evaluator {
                 if (matched) break;
             }
             if (matched) {
-                this.executeStatements(caseClause.body, 0, false);
+                executeClause(caseClause.body);
                 return;
             }
         }
 
         if (stmt.elseBody) {
-            this.executeStatements(stmt.elseBody, 0, false);
+            executeClause(stmt.elseBody);
         }
     }
 

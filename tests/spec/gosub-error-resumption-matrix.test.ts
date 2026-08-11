@@ -207,6 +207,24 @@ Handler:
     Resume ContinueElseIf
 End Function
 
+Function ProbeSelectResumeLabel() As String
+    On Error GoTo Handler
+    Select Case 1
+        Case 1
+            GoSub Worker
+ContinueCase:
+            ProbeSelectResumeLabel = "after"
+        Case Else
+            ProbeSelectResumeLabel = "else"
+    End Select
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume ContinueCase
+End Function
+
 Sub Helper()
     Err.Raise 5
 End Sub
@@ -240,6 +258,8 @@ assert.strictEqual(ev.callProcedure('ProbeIfResumeLabel', []), 'after',
     'Resume label from an If-nested GoSub reaches the enclosing branch');
 assert.strictEqual(ev.callProcedure('ProbeElseIfResumeLabel', []), 'after',
     'Resume label from an ElseIf-nested GoSub reaches the selected branch');
+assert.strictEqual(ev.callProcedure('ProbeSelectResumeLabel', []), 'after',
+    'Resume label from a Select Case-nested GoSub reaches the selected clause');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([
