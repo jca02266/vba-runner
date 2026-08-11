@@ -1880,3 +1880,12 @@ checkpoints:
     nextEvaluation: EV-00782
     nextCandidate: null
     rootCauseId: RC-00067
+  - afterEvaluation: EV-00782-FIX
+    audit: "681 evaluations, 0 active claims; BUG-00500 fixed by ROOT-00038 with focused regression coverage"
+    decision: "Stringのactive section先行選択で未選択日付トークンの誤分岐を修正した。Formatの無バグ連続カウンターは修正でリセットし、残る実機待ち境界を優先する。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: FZ-COVERAGE-20260810-282
+    rootCauseId: RC-00067
+    rootFixTask: ROOT-00038

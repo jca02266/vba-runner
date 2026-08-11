@@ -684,15 +684,15 @@
 | EV-00779 | FZ-COVERAGE-20260810 | blocked | 1 | Format文字列プレースホルダーの長さ・空文字・Unicode充填境界 |
 | EV-00780 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列の<・>大文字小文字変換とASCII・BMP境界 |
 | EV-00781 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format複数の<・>制御記号とプレースホルダーの優先順位境界 |
-| EV-00782 | FZ-COVERAGE-20260810 | bug-found | 1 | Format複数セクションにおける選択済み文字列プレースホルダーの分離 |
+| EV-00782 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションにおける選択済み文字列プレースホルダーの分離 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 4 |
-| bug-found | 2 |
-| fixed | 301 |
+| bug-found | 1 |
+| fixed | 302 |
 | known-limit | 4 |
 | needs-excel | 2 |
 | retired | 1 |
