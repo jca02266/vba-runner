@@ -2014,3 +2014,11 @@ items:
     coverageTargets:
       - tests/excel/queue/ExcelQueueVerification.bas
       - tests/spec/radix-input-entry-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-208
+    title: Financial invalid convergence matrix
+    status: queued
+    priority: 1
+    focus: 財務関数の非収束・無効引数・境界エラー伝播
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

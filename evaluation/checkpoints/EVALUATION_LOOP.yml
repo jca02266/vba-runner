@@ -975,3 +975,8 @@ checkpoints:
     decision: "暗黙Variant基数4境界はrunnerで一致した。RC-00047の残件は実Excel照合なので、次は基数の明示・暗黙変換を一括Excelプローブ化してneeds-excelへ進める。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-207
+  - afterEvaluation: EV-00654
+    audit: "553 evaluations, 0 active claims"
+    decision: "基数Excel照合はneeds-excelで外部結果待ち。並行して未収束の財務関数領域から、非収束・無効引数・エラー伝播のマトリクスを評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-208
