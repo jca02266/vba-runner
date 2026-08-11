@@ -1514,3 +1514,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-254
+  - afterEvaluation: EV-00743
+    audit: "642 evaluations, 0 active claims"
+    decision: "Formatの複数セクション数値文字列の回帰を修正し、選択セクション先行分類を完了した。残るNull/Empty・複数セクション・文字列プレースホルダー混在を同じ領域で評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-255

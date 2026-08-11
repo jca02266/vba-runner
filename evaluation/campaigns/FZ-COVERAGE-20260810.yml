@@ -2405,3 +2405,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-255
+    title: Format numeric-string mixed and null boundaries
+    status: queued
+    priority: 1
+    focus: Format数値文字列のNull・Empty・複数セクション・文字列プレースホルダー混在
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
