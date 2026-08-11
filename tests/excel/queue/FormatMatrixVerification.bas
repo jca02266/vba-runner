@@ -2,6 +2,7 @@ Attribute VB_Name = "FormatMatrixVerification"
 Option Explicit
 
 Private resultFile As Integer
+Private Const QUEUE_SOURCE_SHA256 As String = ""
 
 Public Sub RunFormatMatrixVerification()
     Dim path As String
@@ -12,12 +13,13 @@ Public Sub RunFormatMatrixVerification()
     EmitSingleCharacterMatrix
     EmitCompoundTokenMatrix
     EmitTokenizerCornerMatrix
+    Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
 End Sub
 
 Private Sub EmitTokenizerCornerMatrix()
-    Dim patterns As Variant, i As Long
+    Dim patterns As Variant, probeIds As Variant, i As Long
     ' These patterns are extracted from splitFormatSections, the escape and
     ' quote scanners, and the numeric/date/string token dispatchers. Keep
     ' them in this dedicated matrix so normal Excel queue output stays small.
@@ -28,8 +30,14 @@ Private Sub EmitTokenizerCornerMatrix()
         """@""", ">@@@", "<@@@", "hh:mm", "h:m", "yyyy-mm-dd", _
         "m", "n", "E", "G", "ggee", "\Y""Year""yyyy" _
     )
+    probeIds = Array( _
+        "XL-146", "XL-147", "XL-148", "XL-149", "XL-150", "XL-151", "XL-152", "XL-153", _
+        "XL-154", "XL-155", "XL-156", "XL-157", "XL-158", "XL-159", "XL-160", "XL-161", _
+        "XL-162", "XL-163", "XL-164", "XL-165", "XL-166", "XL-167", "XL-168", "XL-169", _
+        "XL-170", "XL-171", "XL-172", "XL-173", "XL-174" _
+    )
     For i = LBound(patterns) To UBound(patterns)
-        EmitArguments "TOKENIZER-" & Format$(i + 1, "00"), CStr(patterns(i))
+        EmitArguments CStr(probeIds(i)), CStr(patterns(i))
     Next i
 End Sub
 

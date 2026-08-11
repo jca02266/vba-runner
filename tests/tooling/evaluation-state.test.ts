@@ -318,6 +318,21 @@ try {
 
 console.log('[PASS] evaluation expectation provenance validation');
 
+// New records cannot orphan themselves from the campaign manifest.
+const orphanProbe = `${root}/evaluation/evaluations/EV-TEST-ORPHAN.md`;
+writeFileSync(orphanProbe, expectationProbeBody
+    .replaceAll('EV-TEST-EXPECTATION', 'EV-TEST-ORPHAN')
+    .replace('candidateId: FZ-GRAMMAR-001', 'candidateId: NOT-REGISTERED'));
+try {
+    const orphan = run('record', orphanProbe);
+    assert.notEqual(orphan.status, 0);
+    assert.match(orphan.stderr, /unknown candidate NOT-REGISTERED/);
+} finally {
+    if (existsSync(orphanProbe)) unlinkSync(orphanProbe);
+}
+
+console.log('[PASS] campaign candidate linkage validation');
+
 // Excel synchronization reports missing source probes without mutating state.
 const probeState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-PROBE.md`;
 const probeStateBody = `---

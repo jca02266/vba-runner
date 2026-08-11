@@ -18,8 +18,6 @@ const statesDir = path.join(evalRoot, 'states');
 const schemaFile = path.join(evalRoot, 'schema.yml');
 const coverageIndexFile = path.join(evalRoot, 'coverage-index.yml');
 const excelQueueDir = path.join(root, 'tests', 'excel', 'queue');
-const excelQueueSource = path.join(excelQueueDir, 'ExcelQueueVerification.bas');
-const excelQueueResult = path.join(root, 'tests', 'excel', 'queue', 'ExcelQueueVerification.result');
 const excelQueuePreparationStamp = path.join(excelQueueDir, 't.xlsm.source.sha256');
 const statuses = new Set([
   'queued', 'claimed', 'in-progress', 'verified-no-bug', 'bug-found',
@@ -275,10 +273,24 @@ function excelIds(source) {
   return new Set([...source.matchAll(/\bXL-\d{3}(?:-[A-Z0-9]+)*/g)].map((match) => match[0]));
 }
 
+function excelQueueSources() {
+  return fs.readdirSync(excelQueueDir)
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .sort()
+    .map((name) => fs.readFileSync(path.join(excelQueueDir, name), 'utf8'));
+}
+
+function excelQueueResults() {
+  return fs.readdirSync(excelQueueDir)
+    .filter((name) => /\.result$/i.test(name))
+    .sort()
+    .map((name) => fs.readFileSync(path.join(excelQueueDir, name), 'utf8'));
+}
+
 function excelQueueState(data) {
   const requiredIds = data.excelProbeIds ?? [];
-  const sourceText = fs.existsSync(excelQueueSource) ? fs.readFileSync(excelQueueSource, 'utf8') : '';
-  const sourceIds = excelIds(sourceText);
+  const sourceTexts = excelQueueSources();
+  const sourceIds = new Set(sourceTexts.flatMap((source) => [...excelIds(source)]));
   const missingSourceIds = requiredIds.filter((id) => !sourceIds.has(id));
   if (missingSourceIds.length > 0) {
     return {
@@ -288,14 +300,17 @@ function excelQueueState(data) {
     };
   }
 
-  const resultText = fs.existsSync(excelQueueResult) ? fs.readFileSync(excelQueueResult, 'utf8') : '';
+  const resultText = excelQueueResults().join('\n');
   const resultIds = new Set(resultText.split(/\r?\n/)
-    .map((line) => line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1])
+    .flatMap((line) => [
+      line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1],
+      line.match(/^CASE=(XL-\d{3})(?:-[A-Z0-9]+)+\b/)?.[1],
+    ])
     .filter(Boolean));
   const missingResultIds = requiredIds.filter((id) => !resultIds.has(id));
-  const complete = /^QUEUE_COMPLETE=True\s*$/m.test(resultText);
+  const complete = /^(?:QUEUE_COMPLETE|FORMAT_MATRIX_COMPLETE)=True\s*$/mi.test(resultText);
   const recordedHash = resultText.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
-  const sourceHash = fs.existsSync(excelQueueSource) ? normalizedExcelSourceHash() : null;
+  const sourceHash = sourceTexts.length > 0 ? normalizedExcelSourceHash() : null;
   const preparationStamp = fs.existsSync(excelQueuePreparationStamp)
     ? fs.readFileSync(excelQueuePreparationStamp, 'utf8').trim().toLowerCase()
     : null;
@@ -436,6 +451,16 @@ function validate(records = readRecords()) {
   validateRemediations(schema, records, findings, rootCauses);
   const items = readCampaignItems();
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
+  for (const record of records) {
+    const { data, file } = record;
+    // Legacy imports predate campaign manifests. New records must be linked.
+    if (data.candidateId.startsWith('LEGACY-')) continue;
+    const item = items.get(data.candidateId);
+    if (!item) throw new Error(`${file}: unknown candidate ${data.candidateId}`);
+    if (item.campaign !== data.campaign) {
+      throw new Error(`${file}: candidate ${data.candidateId} belongs to ${item.campaign}, not ${data.campaign}`);
+    }
+  }
   const results = readResults();
   for (const [candidateId, result] of results) {
     const expectedFile = `${candidateId}.result.yml`;

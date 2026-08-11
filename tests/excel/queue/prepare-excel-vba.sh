@@ -26,10 +26,12 @@ const manifest = names.map((name) => `${name}\n${normalize(
 const hash = crypto.createHash('sha256').update(manifest, 'utf8').digest('hex');
 for (const name of names) {
   let text = fs.readFileSync(path.join(sourceDir, name), 'utf8');
-  if (name.toLowerCase() === 'excelqueueverification.bas') {
+  if (/\.bas$/i.test(name)) {
     const replaced = text.replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
       `Private Const QUEUE_SOURCE_SHA256 As String = "${hash}"`);
-    if (replaced === text) throw new Error('QUEUE_SOURCE_SHA256 marker not found');
+    if (replaced === text && name.toLowerCase() === 'excelqueueverification.bas') {
+      throw new Error('QUEUE_SOURCE_SHA256 marker not found');
+    }
     text = replaced;
   }
   fs.writeFileSync(path.join(stampedDir, name), text);

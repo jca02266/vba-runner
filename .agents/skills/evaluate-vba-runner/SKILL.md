@@ -139,6 +139,12 @@ analysis; do not duplicate its taxonomy here.
    versioned snapshot without an event history. This also applies when the
    state changes directly to `fixed`, `verified-no-bug`, `known-limit`, or
    `retired`, not only when leaving a pending state.
+   Before creating an evaluation, register its candidate in the campaign
+   manifest. Use `eval record` for the new EV file and stop if validation says
+   the candidate is unknown or belongs to another campaign; never create an EV,
+   Finding, or result for an unregistered candidate. `LEGACY-*` imports are the
+   only exempt historical records. This validation is a mandatory foolproof
+   gate for every new evaluation and every state update.
    When Excel output is supplied, run `excel-sync` before interpretation, map
    every output ID to its evaluation record, resolve or retain each
    `unresolved` boundary, then transition the candidate. A stale, partial, or
