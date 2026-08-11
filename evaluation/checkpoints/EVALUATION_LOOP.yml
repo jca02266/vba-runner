@@ -1890,10 +1890,10 @@ checkpoints:
     rootCauseId: RC-00067
     rootFixTask: ROOT-00038
   - afterEvaluation: EV-00783
-    audit: "682 evaluations, 0 active claims; BUG-00501 found in escaped-literal Q date dispatch"
-    decision: "Number経路のescaped Q誤分岐を再現し、既存RC-00038の未カバー境界として記録した。Currency/Decimal/LongLongとDateの期待値は別途確認し、修正前に横展開を完了する。"
-    action: continue-root-cause
+    audit: "682 evaluations, 0 active claims; escaped-literal Q date dispatch remains blocked pending type-specific expectation"
+    decision: "Number経路の差分は再現したが、Qが数値Formatで日付トークンになるかの期待値が仕様だけでは確定できない。BUG-00501は取り下げ、実機または厳密な仕様根拠を得るまで修正しない。"
+    action: claim
     nextArea: Format
     nextEvaluation: EV-00783
-    nextCandidate: null
+    nextCandidate: FZ-COVERAGE-20260810-294
     rootCauseId: RC-00038

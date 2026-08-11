@@ -2782,3 +2782,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-294
+    title: Format literal escape matrix
+    status: queued
+    priority: 1
+    focus: Format文字列の引用符・バックスラッシュによるリテラル境界
+    priorCauseKey: format-literal-escape-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
