@@ -19,6 +19,8 @@ const cases = [
     ['CCur("&HFFFFFFFFFFFFFFFF")', 'ERR=6'],
     ['CByte("&H7FFFFFFFFFFFFFFF")', 'ERR=13'],
     ['CLngLng("&O1777777777777777777777")', 'ERR=13'],
+    ['Val("&H7FFFFFFFFFFFFFFF")', 'TYPE=Double:VALUE=-1'],
+    ['Val("&H8000000000000000")', 'TYPE=Double:VALUE=0'],
     ['Val("&HFFFF")', 'TYPE=Double:VALUE=-1'],
     ['TypeName(&H10000)', 'TYPE=String:VALUE=Long'],
     ['TypeName(&HFFFF&)', 'TYPE=String:VALUE=Long'],
@@ -43,5 +45,5 @@ End Function`);
     assert.equal(ev.callProcedure('Probe', []), expected, `Radix sign/suffix ${expression}`);
 }
 
-assert.equal(cases.length, 22);
+assert.equal(cases.length, 24);
 console.log(`[PASS] radix sign and suffix matrix (${cases.length} cases)`);

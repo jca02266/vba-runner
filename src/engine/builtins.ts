@@ -618,6 +618,15 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof s !== 'string') s = vbaToString(s);
         const cleaned = s.trim().replace(/ /g, '');
         if (cleaned.toLowerCase().startsWith('&h')) {
+            const hexDigits = cleaned.slice(2);
+            // Val parses over-wide hexadecimal text through the 32-bit
+            // integer path.  Keep the lower 32-bit pattern instead of
+            // applying the signed 64-bit conversion used by C* functions.
+            if (/^[0-9a-fA-F]{16}$/.test(hexDigits)) {
+                const low = BigInt(`0x${hexDigits}`) & 0xFFFFFFFFn;
+                const signed = low >= 0x80000000n ? low - 0x100000000n : low;
+                return Number(signed);
+            }
             const radix = parseRadixForValue(cleaned);
             return radix === undefined ? 0 : Number(radix);
         }
