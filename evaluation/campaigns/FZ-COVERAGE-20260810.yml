@@ -2693,3 +2693,22 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-285
+    title: Format token scanner literal boundaries
+    status: queued
+    priority: 1
+    focus: Format数値トークン・リテラル・セクション区切りの組合せ境界
+    priorCauseKey: format-token-scanner-boundary
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-286
+    title: Format date token context
+    status: queued
+    priority: 1
+    focus: Format日付トークンの文脈依存m/n、リテラル、名前付きc境界
+    priorCauseKey: format-date-token-context
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

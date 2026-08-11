@@ -1814,3 +1814,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: EV-00773
     nextCandidate: FZ-COVERAGE-20260810-284
+  - afterEvaluation: EV-00774
+    audit: "673 evaluations, 0 active claims; Format no-bug連続2回目; XL-183/184 remain needs-excel"
+    decision: "トークンスキャナ境界は既存回帰と整合し、新規バグなし。Formatの無バグ連続を継続し、既存XL-182の日付トークン文脈を独立再確認する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-286

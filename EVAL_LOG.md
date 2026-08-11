@@ -676,6 +676,7 @@
 | EV-00771 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
 | EV-00772 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ |
 | EV-00773 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format名前付き書式と日付トークンの値型・セクション境界 |
+| EV-00774 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値トークン・リテラル・セクション区切りの組合せ境界 |
 
 ## 状態集計
 
@@ -687,12 +688,12 @@
 | known-limit | 4 |
 | needs-excel | 2 |
 | retired | 1 |
-| verified-no-bug | 363 |
+| verified-no-bug | 364 |
 
-横展開未解決経路: 542、実Excel待ち評価: 2
+横展開未解決経路: 543、実Excel待ち評価: 2
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-286 | 1 | queued | Format日付トークンの文脈依存m/n、リテラル、名前付きc境界 | yes |
