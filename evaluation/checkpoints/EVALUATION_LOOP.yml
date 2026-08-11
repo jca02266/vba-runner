@@ -1030,3 +1030,8 @@ checkpoints:
     decision: "文字列Null・Empty7境界は一致し、無バグ連続数は4回。最終確認としてCompare省略・明示値の関数間整合を評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-146
+  - afterEvaluation: EV-00665
+    audit: "564 evaluations, 0 active claims"
+    decision: "Compare省略整合4境界は一致し、比較・文字列領域の無バグ連続5回を達成した。次は未収束の日付・時刻領域を優先評価する。"
+    action: select-next-area
+    nextArea: 日付・時刻
