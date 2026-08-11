@@ -1080,3 +1080,8 @@ checkpoints:
     decision: "配列戻り値・ByRef再束縛4境界は一致し、無バグ連続数は4回。最後にUDT／クラス配列メンバーの型検証を評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-031
+  - afterEvaluation: EV-00675
+    audit: "574 evaluations, 0 active claims"
+    decision: "UDT／クラス配列メンバー型検証4境界は一致し、配列・UDT領域の無バグ連続5回を達成した。次は未収束のエラー処理・制御フロー領域を優先評価する。"
+    action: select-next-area
+    nextArea: エラー処理・制御フロー
