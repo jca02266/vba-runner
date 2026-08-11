@@ -2100,3 +2100,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/radix-typed-parameter-composite.test.ts
+  - id: FZ-COVERAGE-20260810-218
+    title: LongPtr array parameter boundary
+    status: queued
+    priority: 1
+    focus: LongPtr() ByRef配列引数の要素型登録と書き戻し
+    priorCauseKey: procedure-parameter-coercion-type-map-incomplete
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/radix-typed-parameter-composite.test.ts

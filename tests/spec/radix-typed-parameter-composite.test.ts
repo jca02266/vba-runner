@@ -12,6 +12,10 @@ Public Sub UpdateLongLongArray(ByRef values() As LongLong)
     values(0) = values(0) + 1
 End Sub
 
+Public Sub UpdateLongPtrArray(ByRef values() As LongPtr)
+    values(0) = values(0) + 1
+End Sub
+
 Public Function ProbeComposite() As String
     Dim value As LongLong, errNo As Long
     value = 10
@@ -33,10 +37,22 @@ Public Function ProbeArray() As String
     ProbeArray = "ERR=" & CStr(errNo) & ":VALUE=" & CStr(values(0))
     On Error GoTo 0
 End Function
+
+Public Function ProbeLongPtrArray() As String
+    Dim values(0 To 0) As LongPtr, errNo As Long
+    values(0) = 10
+    On Error Resume Next
+    Err.Clear
+    UpdateLongPtrArray values
+    errNo = Err.Number
+    ProbeLongPtrArray = "ERR=" & CStr(errNo) & ":VALUE=" & CStr(values(0))
+    On Error GoTo 0
+End Function
 `;
 
 const ev = evalVBASingle(source);
 assert.equal(ev.callProcedure('ProbeComposite', []), 'ERR=0:VALUE=12');
 assert.equal(ev.callProcedure('ProbeArray', []), 'ERR=0:VALUE=11');
+assert.equal(ev.callProcedure('ProbeLongPtrArray', []), 'ERR=0:VALUE=11');
 
-console.log('[PASS] typed parameter composite boundary (2 cases)');
+console.log('[PASS] typed parameter composite boundary (3 cases)');
