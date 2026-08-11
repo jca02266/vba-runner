@@ -732,6 +732,11 @@ export class Parser {
             || Parser.CONTEXTUAL_KW.has(token.type);
     }
 
+    /** Numeric labels follow the BNF INTEGER rule, not Number generally. */
+    private isIntegerLineNumber(token: Token): boolean {
+        return token.type === TokenType.Number && /^\d+$/.test(token.value);
+    }
+
     constructor(tokens: Token[], options: {
         parseAsClass?: string;
         errorRecovery?: boolean;
@@ -1536,14 +1541,18 @@ export class Parser {
         // label lets malformed input such as `1.2.3` fall through the eval()
         // statement fallback as an empty program.  The BNF permits a numeric
         // label only at line start and defines it as INTEGER.
-        if (token.type === TokenType.Number) {
+        if (this.isIntegerLineNumber(token)) {
             const labelName = token.value;
             if (!/^\d+$/.test(labelName)) {
                 this.throwError(`Parse error: invalid numeric label '${labelName}' at line ${token.line}`);
             }
             this.advance(); // consume Number
             const hasColon = this.match(TokenType.OperatorColon);
-            if (!hasColon && !this.isAtTerminator()) {
+            // A legacy line-number label may be followed by a same-line
+            // statement without a colon.  Do not, however, accept another
+            // Number token as a second label: that is the malformed-input
+            // path which previously turned `1 2` into an empty program.
+            if (!hasColon && this.peek().type === TokenType.Number) {
                 this.throwError(`Parse error: unexpected token '${this.peek().value}' after numeric label at line ${this.peek().line}`);
             }
             return { type: 'LabelStatement', label: labelName } as any;
@@ -1746,7 +1755,7 @@ export class Parser {
             this.advance(); // consume 'Go'
             this.advance(); // consume 'To'
             const labelToken = this.advance();
-            if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+            if (!this.isIdentifier(labelToken) && !this.isIntegerLineNumber(labelToken)) {
                 this.throwError(`Parse error: Expected identifier or number after 'Go To' at line ${labelToken.line}`);
             }
             return { type: 'GoToStatement', label: labelToken.value } as GoToStatement;
@@ -1755,7 +1764,7 @@ export class Parser {
             this.advance(); // consume 'Go'
             this.advance(); // consume 'Sub'
             const labelToken = this.advance();
-            if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+            if (!this.isIdentifier(labelToken) && !this.isIntegerLineNumber(labelToken)) {
                 this.throwError(`Parse error: Expected label after 'Go Sub' at line ${labelToken.line}`);
             }
             return { type: 'GoSubStatement', label: labelToken.value } as GoSubStatement;
@@ -1913,6 +1922,9 @@ export class Parser {
                    token.type === TokenType.OperatorDot || token.type === TokenType.OperatorExclamation || token.type === TokenType.KeywordMe ||
                    token.type === TokenType.Number || Parser.CONTEXTUAL_KW.has(token.type) ||
                    Parser.COMPAT_KW_EXPR.has(token.type)) {
+            if (token.type === TokenType.Number && !this.isIntegerLineNumber(token)) {
+                this.throwError(`Parse error: invalid numeric literal '${token.value}' at line ${token.line}`);
+            }
             return this.parseIdentifierOrCallStatement();
         } else if (token.type === TokenType.Unknown) {
             this.throwError(`Parse error: Unknown token '${this.tokenDisplay(token.value)}' at line ${token.line}`);
@@ -2240,7 +2252,7 @@ export class Parser {
     private parseGoToStatement(): GoToStatement {
         this.advance(); // consume 'GoTo'
         const labelToken = this.advance();
-        if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+        if (!this.isIdentifier(labelToken) && !this.isIntegerLineNumber(labelToken)) {
             this.throwError(`Parse error: Expected identifier or number after 'GoTo' at line ${labelToken.line}`);
         }
         return { type: 'GoToStatement', label: labelToken.value };
@@ -3470,7 +3482,7 @@ export class Parser {
         const labels: string[] = [];
         while (true) {
             const labelToken = this.advance();
-            if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+            if (!this.isIdentifier(labelToken) && !this.isIntegerLineNumber(labelToken)) {
                 this.throwError(`Parse error: Expected label (identifier or number) in On...GoTo/GoSub at line ${labelToken.line}`);
             }
             labels.push(labelToken.value);
@@ -3486,7 +3498,7 @@ export class Parser {
     private parseGoSubStatement(): GoSubStatement {
         this.advance(); // 'GoSub'
         const labelToken = this.advance();
-        if (!this.isIdentifier(labelToken) && labelToken.type !== TokenType.Number) {
+        if (!this.isIdentifier(labelToken) && !this.isIntegerLineNumber(labelToken)) {
             this.throwError(`Parse error: Expected label after GoSub at line ${labelToken.line}`);
         }
         return { type: 'GoSubStatement', label: labelToken.value };

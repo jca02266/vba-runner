@@ -65,6 +65,17 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     assert.strictEqual(runFunc(code, 'TestNumericLabel'), 2, 'GoTo should support numeric labels');
 }
 
+// Non-integer Number tokens are not line labels.
+assert.throwsMatch(
+    () => runFunc(String.raw`
+        Function TestInvalidNumericLabel()
+            GoTo 1.2
+        End Function
+    `, 'TestInvalidNumericLabel'),
+    /Expected identifier or number/,
+    'GoTo rejects floating-point labels',
+);
+
 // 5. コンテキストキーワードをラベル名に使う（Error:, Property: など）
 {
     const code = `
