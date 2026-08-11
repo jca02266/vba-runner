@@ -1632,9 +1632,20 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
             const week2Start = new Date(day2); week2Start.setDate(day2.getDate() - offset2);
             return Math.round((week2Start.getTime() - week1Start.getTime()) / 604800000);
         }
-        else if (intv === 'h') return Math.round(diffMs / 3600000);
-        else if (intv === 'n') return Math.round(diffMs / 60000);
-        else if (intv === 's') return Math.round(diffMs / 1000);
+        else if (intv === 'h' || intv === 'n' || intv === 's') {
+            // DateDiff counts boundaries of the requested unit, rather than
+            // rounding the elapsed duration.  Project both endpoints onto
+            // the unit boundary before taking their signed difference.
+            const boundary = (date: Date): Date => {
+                const value = new Date(date);
+                if (intv === 'h') value.setMinutes(0, 0, 0);
+                else if (intv === 'n') value.setSeconds(0, 0);
+                else value.setMilliseconds(0);
+                return value;
+            };
+            const unitMs = intv === 'h' ? 3600000 : intv === 'n' ? 60000 : 1000;
+            return Math.round((boundary(d2).getTime() - boundary(d1).getTime()) / unitMs);
+        }
         else ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
     }, [
         { name: 'Interval' }, { name: 'Date1' }, { name: 'Date2' },
