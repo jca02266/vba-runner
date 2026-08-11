@@ -2030,3 +2030,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-210
+    title: Financial sign and precision matrix
+    status: queued
+    priority: 1
+    focus: 財務関数の符号・ゼロ率・高精度境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-211
+    title: Financial array and date matrix
+    status: queued
+    priority: 1
+    focus: 財務関数の配列境界・日付シリアル・負値入力
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

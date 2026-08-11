@@ -985,3 +985,13 @@ checkpoints:
     decision: "財務無効引数8境界は一致した。財務領域の無バグ連続数は1回なので、Optional・Null・Emptyの変換境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-209
+  - afterEvaluation: EV-00656
+    audit: "555 evaluations, 0 active claims"
+    decision: "財務Optional/Null7境界は一致し、財務領域の無バグ連続数は2回。符号・ゼロ率・高精度境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-210
+  - afterEvaluation: EV-00657
+    audit: "556 evaluations, 0 active claims"
+    decision: "財務の符号・ゼロ率・高精度8境界は一致し、無バグ連続数は3回。残り2回の異なる境界評価を継続する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-211
