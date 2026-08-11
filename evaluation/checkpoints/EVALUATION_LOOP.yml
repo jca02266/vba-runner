@@ -1759,3 +1759,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-279
     rootCauseId: RC-00065
+  - afterEvaluation: EV-00768
+    audit: "667 evaluations, 0 active claims; BUG-00497 requires RC-00065 confirmation; EV-00750 remains separate Format RCA"
+    decision: "混在String書式の誤分岐を百分率・日付トークンへ横展開した。RC-00065のscopeを確定してから共通修正タスクを作成する。"
+    action: continue-root-cause
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00065
