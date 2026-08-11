@@ -1563,3 +1563,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-261
+  - afterEvaluation: EV-00750
+    audit: "649 evaluations, 0 active claims; EV-00750 remains needs-excel with XL-181 missing"
+    decision: "XL-181は実Excel結果待ちのため、Formatの日付トークン文脈（m/n/w/q/c）を実機不要のrunner評価として並行確認する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-262

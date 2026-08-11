@@ -2470,3 +2470,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-262
+    title: Format date token context matrix
+    status: queued
+    priority: 1
+    focus: Format日付トークンm・n・w・q・cの文脈と境界
+    priorCauseKey: format-number-tokenizer-does-not-model-scaling-separators
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
