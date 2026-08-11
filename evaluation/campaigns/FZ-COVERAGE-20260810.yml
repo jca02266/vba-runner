@@ -2865,6 +2865,16 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-303
+    title: Compile-time radix literal range checks
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域の範囲外基数リテラルコンパイル診断
+    priorCauseKey: compile-time-radix-literal-range-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/vba_compile_error.test.ts
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts

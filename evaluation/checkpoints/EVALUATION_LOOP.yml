@@ -1951,3 +1951,11 @@ checkpoints:
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
     reason: "Format 5 consecutive verified-no-bug"
+  - afterEvaluation: EV-00791
+    audit: "690 evaluations, 0 active claims; 宣言・型・リテラルのコンパイル時基数範囲診断 verified-no-bug 1回目"
+    decision: "parse/precheckProcの範囲外基数リテラル診断は一致した。実行時変換のEV-00619はRadixMatrix結果のソースハッシュ不一致を解消してから再評価する。"
+    action: continue
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+    blocker: "RadixMatrix.result recorded hash f6d488... differs from current prepared source hash 2d2e3b..."
