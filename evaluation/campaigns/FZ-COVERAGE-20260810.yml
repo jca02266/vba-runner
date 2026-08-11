@@ -1974,3 +1974,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray-named-rejection.test.ts
+  - id: FZ-COVERAGE-20260810-204
+    title: ParamArray consolidated regression matrix
+    status: queued
+    priority: 1
+    focus: ParamArray名前付き禁止とProperty/Module/Interface/Builtin位置引数の統合回帰
+    priorCauseKey: property-paramarray-named-argument-guard-bypassed
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray-named-rejection.test.ts
+      - tests/spec/module-paramarray-named-rejection.test.ts
+      - tests/spec/builtin-paramarray-named-rejection.test.ts

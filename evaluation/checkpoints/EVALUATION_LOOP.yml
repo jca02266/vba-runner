@@ -955,3 +955,8 @@ checkpoints:
     decision: "組み込みParamArrayの名前付き引数を修正したが、独立横展開で先行通常引数を持つProperty ParamArrayの名前付き指定が例外フラグを迂回することが判明した。RC-00048の残る直接経路を先に修正する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-203
+  - afterEvaluation: EV-00650
+    audit: "549 evaluations, 0 active claims, 0 queued candidates"
+    decision: "ParamArray名前付き引数の直接修正とRC-00048共通化タスクを完了した。残る収束確認として統合回帰マトリクスを一度実行し、その後は未収束の別領域へ切り替える。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-204
