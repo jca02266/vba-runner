@@ -1721,3 +1721,33 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-278
+  - afterEvaluation: EV-00744
+    audit: "666 evaluations, 0 active claims; BUG-00495 requires RCA; EV-00750 and EV-00751 synchronized Excel results reconciled"
+    decision: "XL-180の混在書式でString/非数値StringのExcel差分を確定した。RC-00064の独立レビューとFormat書式ドメインの横展開を先に行う。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00064
+  - afterEvaluation: EV-00750
+    audit: "666 evaluations, 0 active claims; BUG-00496 requires RCA; EV-00751 verified-no-bug"
+    decision: "XL-181の指数・連続カンマ組合せでExcelとrunnerの差分を追加確認した。Format数値レンダラーの同一RCAへ統合して調査する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00064
+  - afterEvaluation: EV-00751
+    audit: "666 evaluations, 0 active claims; EV-00750 and EV-00751 synchronized Excel results reconciled"
+    decision: "XL-182の日付トークン文脈・リテラル境界はrunnerとExcelが一致し、新規バグなし。Format領域は既存BUG-00495/00496のRCAを優先する。"
+    action: continue-root-cause
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+  - afterEvaluation: EV-00767
+    audit: "666 evaluations, 0 active claims; Parser・Lexerの明示Class recoveryは新規バグなし1回目"
+    decision: "明示Class...End Classのメンバー回復とEnd Class後のトップレベル分離は仕様一致。Parser・Lexerの未収束RCAを優先し、FormatのBUG-00495/00496を先に解決する。"
+    action: continue-root-cause
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
