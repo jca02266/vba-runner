@@ -1810,3 +1810,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-186
+    title: Date text and negative serial matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域の日付文字列区切り・時刻精度・負シリアル境界
+    coverageTargets:
+      - src/engine/vba-types.ts
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts

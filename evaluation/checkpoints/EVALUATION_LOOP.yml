@@ -865,3 +865,8 @@ checkpoints:
     decision: "無効入力マトリクスでCVErrとArrayの誤受理を修正した。日時領域の無バグ連続数をリセットし、Year・Month・Day・Hour・Minute・SecondのEmpty/Null境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-185
+  - afterEvaluation: EV-00632
+    audit: "531 evaluations, 0 active claims, 0 queued candidates"
+    decision: "日付スカラー抽出のEmpty/Null 12ケースは一致した。日時領域の連続無バグ数は1回なので、日付文字列の区切り・時刻精度・負シリアル境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-186
