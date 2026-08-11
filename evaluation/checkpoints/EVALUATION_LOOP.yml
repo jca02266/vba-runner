@@ -1793,3 +1793,10 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-282
     rootCauseId: RC-00064
+  - afterEvaluation: EV-00771-PROBE
+    audit: "670 evaluations, 0 active claims; XL-183 prepared and needs-excel; Format date-section expectation remains unverified"
+    decision: "未選択セクションの日付トークンが日付String分類を発火させるrunner経路をXL-183で実機照合待ちにした。結果を受けるまで推測修正せず、同じFormat領域の通常評価は一旦保留する。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: FZ-COVERAGE-20260810-282
