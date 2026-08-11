@@ -1936,3 +1936,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/interface-property-assignment.test.ts
       - tests/spec/udt-object-array-set.test.ts
+  - id: FZ-COVERAGE-20260810-200
+    title: Interface Property ParamArray named matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のInterface Property ParamArrayと名前付きvalue境界
+    priorCauseKey: property-paramarray-named-argument-guard-bypassed
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/interface-property-assignment.test.ts
+      - tests/spec/property-paramarray-named-rejection.test.ts
