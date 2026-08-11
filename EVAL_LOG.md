@@ -666,13 +666,14 @@
 | EV-00761 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parserの整数行ラベル・同一行文・小数式残余トークン境界 |
 | EV-00762 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ParserのerrorRecovery・不正残余トークン・改行境界診断 |
 | EV-00763 | FZ-COVERAGE-20260810 | fixed | 1 | Parserのコロン区切り後エラー同期と同一行後続文保持境界 |
+| EV-00764 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのSub・If・For・Doブロック内errorRecoveryと終端保持境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 1 |
-| fixed | 293 |
+| fixed | 294 |
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
@@ -684,4 +685,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-275 | 1 | queued | ParserのSub・If・For・Doブロック内errorRecoveryと終端保持境界 | yes |
+| FZ-COVERAGE-20260810-276 | 1 | queued | ParserのparseAsClass内errorRecoveryとクラス構造・終端保持境界 | yes |
