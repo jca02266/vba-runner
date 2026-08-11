@@ -2207,3 +2207,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/fso-unicode-roundtrip.test.ts
+  - id: FZ-COVERAGE-20260810-231
+    title: Nested UDT array Put/Get boundary
+    status: queued
+    priority: 1
+    focus: ネストUDT内の固定長文字列・Integer配列Put/Get境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/nested-udt-array.test.ts
