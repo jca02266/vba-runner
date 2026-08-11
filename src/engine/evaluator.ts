@@ -8208,7 +8208,10 @@ export class Evaluator {
                         if (labelIndex >= 0) {
                             i = labelIndex;
                         } else {
-                            this.throwVbaError(VbaErrorCode.SUB_OR_FUNCTION_NOT_DEFINED, `Sub or Function not defined: label '${e.label}'`);
+                            // A Resume label may live inside the enclosing
+                            // loop/conditional body. Let the block executor
+                            // resolve it before reporting an unknown label.
+                            throw { type: 'GoTo', label: e.label };
                         }
                     }
                     this.clearErrState();

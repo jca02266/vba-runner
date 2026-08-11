@@ -1150,6 +1150,11 @@ checkpoints:
     nextCandidate: FZ-GRAMMAR-044
   - afterEvaluation: EV-00688
     audit: "587 evaluations, 0 active claims"
-    decision: "Forループ内GoSubのResume Next復帰も一致し、エラー処理領域の無バグ連続数は3回。DoループとResume Currentの境界を次に評価する。"
+    decision: "Forループ内GoSubのResume Next復帰も一致し、エラー処理領域の無バグ連続数は3回。Resume（引数なし）の再実行境界を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-045
+  - afterEvaluation: EV-00689
+    audit: "588 evaluations, 0 active claims"
+    decision: "GoSub内Resume（引数なし）の再実行境界も一致し、エラー処理領域の無バグ連続数は4回。5回目としてDoループ・Resumeラベルの組合せを評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-046
