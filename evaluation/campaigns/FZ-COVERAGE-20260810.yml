@@ -2546,3 +2546,23 @@ items:
       - src/engine/lexer.ts
       - src/engine/parser.ts
       - tests/engine/lexer-line-continuation.test.ts
+  - id: FZ-COVERAGE-20260810-270
+    title: Lexer date literal and separator boundary
+    status: queued
+    priority: 1
+    focus: Lexerの日付リテラル月名・時刻・CRLF・区切り文字境界
+    priorCauseKey: lexer-coverage-low
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/engine/lexer-column.test.ts
+  - id: FZ-COVERAGE-20260810-271
+    title: Lexer decimal exponent and sign boundary
+    status: queued
+    priority: 1
+    focus: Lexerの小数点・E/D指数・符号・型サフィックス組合せ境界
+    priorCauseKey: lexer-coverage-low
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/radix-implicit-width-boundary.test.ts

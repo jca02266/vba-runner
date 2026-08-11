@@ -1619,3 +1619,17 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-269
+  - afterEvaluation: EV-00758
+    audit: "657 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Lexer・Parserのコメント・区切り・識別子サフィックス境界は2回目の新規バグなし。日付リテラルの月名・時刻・CRLF・区切り文字境界を同領域で評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-270
+  - afterEvaluation: EV-00759
+    audit: "658 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Lexer・Parserの日付リテラル境界は3回目の新規バグなし。小数点・E/D指数・符号・型サフィックスの数値トークン境界を次に評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-271
