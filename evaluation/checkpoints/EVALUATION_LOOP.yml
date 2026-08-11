@@ -1241,3 +1241,10 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00703
+    audit: "602 evaluations, 0 active claims"
+    decision: "符号付きDecimal暗黙変換でLongLong境界の丸めバグを発見し、LongLong/Currencyの精度保持を修正した。直接原因の回帰は通過したが、共有変換入口の横展開に未解決境界が残るため真因対処を継続する。"
+    action: transition
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
