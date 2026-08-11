@@ -1556,3 +1556,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-260
+  - afterEvaluation: EV-00749
+    audit: "648 evaluations, 0 active claims"
+    decision: "Format連続カンマの1000単位スケーリング欠落を修正し、ROOT-00029を完了した。負数・ゼロ・小数・百分率・複数セクションで同修正の横展開を評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-261

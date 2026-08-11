@@ -2461,3 +2461,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-261
+    title: Format scaling comma section matrix
+    status: queued
+    priority: 1
+    focus: Format連続カンマと負数・ゼロ・小数・百分率・複数セクションの境界
+    priorCauseKey: format-number-tokenizer-does-not-model-scaling-separators
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
