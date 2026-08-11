@@ -2191,3 +2191,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/fso-open-missing-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-229
+    title: FSO OpenTextFile create boundary
+    status: queued
+    priority: 1
+    focus: FSO OpenTextFileのCreate=True不存在ファイル作成と読書き
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso-open-missing-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-230
+    title: FSO Unicode TextStream round-trip
+    status: queued
+    priority: 1
+    focus: FSO Unicode指定のBOM・日本語書込みとReadAll往復
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso-unicode-roundtrip.test.ts

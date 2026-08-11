@@ -1346,3 +1346,17 @@ checkpoints:
     nextArea: ファイルI/O・FSO
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00718
+    audit: "617 evaluations, 0 active claims"
+    decision: "FSO OpenTextFileのCreate=True作成・読書きも一致し、ファイルI/O・FSO領域の無バグ連続は4回。5回目としてIOMode・Unicode境界を評価する。"
+    action: continue-area
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00719
+    audit: "618 evaluations, 0 active claims"
+    decision: "FSO Unicode TextStream往復も一致し、ファイルI/O・FSO領域で無バグ連続5回を達成した。次は未収束の別領域を選定する。"
+    action: select-next-area
+    nextArea: 配列・UDT
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
