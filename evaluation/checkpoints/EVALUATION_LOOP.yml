@@ -1640,3 +1640,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00760-RCA
+    audit: "659 evaluations, 0 active claims; ROOT-00030 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "RC-00059を独立confirmし、直接修正とROOT-00030の共通ラベル検証を完了した。Parser・Lexer領域の収束カウンターをリセットし、整数ラベルと同一行文・小数式残余トークンの横展開を再評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-272
