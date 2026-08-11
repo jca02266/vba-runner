@@ -3161,12 +3161,26 @@ export class Evaluator {
         // この場合、節内のエラーは If 文の粒度で扱う（Resume が If 全体を再実行できるように）
         const isInline = (clause: Statement[]) =>
             clause.length > 0 && (clause[0] as any).line === (stmt as any).line;
+        const executeClause = (clause: Statement[]) => {
+            try {
+                this.executeStatements(clause, 0, false, isInline(clause));
+            } catch (e: any) {
+                if (e && e.type === 'GoTo') {
+                    const index = this.findLabelInBody(clause, e.label);
+                    if (index >= 0) {
+                        this.executeStatements(clause, index + 1, false, isInline(clause));
+                        return;
+                    }
+                }
+                throw e;
+            }
+        };
         if (this.isTrue(conditionVal)) {
-            this.executeStatements(stmt.consequent, 0, false, isInline(stmt.consequent));
+            executeClause(stmt.consequent);
         } else if (stmt.alternate) {
             if (Array.isArray(stmt.alternate)) {
                 const alt = stmt.alternate as Statement[];
-                this.executeStatements(alt, 0, false, isInline(alt));
+                executeClause(alt);
             } else {
                 this.evaluateIfStatement(stmt.alternate as IfStatement);
             }
