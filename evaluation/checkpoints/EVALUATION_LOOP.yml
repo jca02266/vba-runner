@@ -1591,3 +1591,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-265
+  - afterEvaluation: EV-00754
+    audit: "653 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Format科学表記の既存Excel境界は新規バグなし。名前付き数値書式の負数・ゼロ・Date・Currency・String型境界を次に評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-266

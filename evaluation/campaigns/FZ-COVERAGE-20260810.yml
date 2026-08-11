@@ -2507,3 +2507,13 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-266
+    title: Format named numeric boundary matrix
+    status: queued
+    priority: 1
+    focus: Format General Number・Currency・Fixed・Standard・Percent・Scientificの型境界
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
