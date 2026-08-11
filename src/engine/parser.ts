@@ -861,6 +861,52 @@ export class Parser {
         }
     }
 
+    /**
+     * Recover one statement without leaving the procedure/block currently
+     * being parsed.  Top-level recovery may skip to a newline, but doing that
+     * from a nested parser loses the enclosing AST node and can promote its
+     * terminator or following statement to Program.body.
+     */
+    private parseNestedStatement(): Statement | null {
+        const startToken = this.peek();
+        try {
+            return this.parseStatement();
+        } catch (e) {
+            if (!this.errorRecovery) throw e;
+            const msg = e instanceof Error ? e.message : String(e);
+            if (e instanceof ParseError) {
+                const pos: Position = { line: e.line, column: e.column };
+                this._diagnostics.push({ message: msg, loc: { start: pos, end: pos }, severity: 'error' });
+            } else {
+                this.recordError(msg, startToken);
+            }
+            this.syncToNextNestedStatement();
+            return null;
+        }
+    }
+
+    private syncToNextNestedStatement(): void {
+        while (this.peek().type !== TokenType.EOF) {
+            const type = this.peek().type;
+            if (type === TokenType.Newline) {
+                this.advance();
+                return;
+            }
+            if (type === TokenType.OperatorColon) {
+                this.advance();
+                return;
+            }
+            // Leave the enclosing block terminator for its owning parser.
+            if (type === TokenType.KeywordEnd || type === TokenType.KeywordNext ||
+                type === TokenType.KeywordLoop || type === TokenType.KeywordWend ||
+                type === TokenType.KeywordCase || type === TokenType.KeywordElse ||
+                type === TokenType.KeywordElseIf) {
+                return;
+            }
+            this.advance();
+        }
+    }
+
     private peek(offset: number = 0): Token {
         if (this.pos + offset >= this.tokens.length) {
             return this.tokens[this.tokens.length - 1]; // EOF
@@ -2036,7 +2082,7 @@ export class Parser {
         this.procedureDepth++;
         try {
             while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
-                const stmt = this.parseStatement();
+                const stmt = this.parseNestedStatement();
                 if (stmt) body.push(stmt);
                 this.skipNewlines();
             }
@@ -2660,7 +2706,7 @@ export class Parser {
 
         const body: Statement[] = [];
         while (this.pendingNextVars.length === 0 && this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) body.push(stmt);
             // Only skip newlines when continuing the body; if an inner `Next a, b`
             // populated pendingNextVars, leave the trailing newline for the EOS check.
@@ -2732,7 +2778,7 @@ export class Parser {
 
         const body: Statement[] = [];
         while (this.pendingNextVars.length === 0 && this.peek().type !== TokenType.KeywordNext && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) body.push(stmt);
             if (this.pendingNextVars.length === 0) this.skipNewlines();
         }
@@ -2837,7 +2883,7 @@ export class Parser {
             this.peek().type !== TokenType.KeywordElseIf &&
             this.peek().type !== TokenType.EOF
         ) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) consequent.push(stmt);
             this.skipNewlines();
         }
@@ -2851,7 +2897,7 @@ export class Parser {
                 !this.isAtEndTerminator() &&
                 this.peek().type !== TokenType.EOF
             ) {
-                const stmt = this.parseStatement();
+                const stmt = this.parseNestedStatement();
                 if (stmt) alternate.push(stmt);
                 this.skipNewlines();
             }
@@ -2898,7 +2944,7 @@ export class Parser {
 
         const body: Statement[] = [];
         while (this.peek().type !== TokenType.KeywordLoop && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
         }
@@ -2936,7 +2982,7 @@ export class Parser {
 
         const body: Statement[] = [];
         while (this.peek().type !== TokenType.KeywordWend && this.peek().type !== TokenType.EOF && !this.isAtEndTerminator()) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
         }
@@ -2975,7 +3021,7 @@ export class Parser {
                     this.peek().type !== TokenType.KeywordCase &&
                     this.peek().type !== TokenType.EOF
                 ) {
-                    const stmt = this.parseStatement();
+                    const stmt = this.parseNestedStatement();
                     if (stmt) elseBody.push(stmt);
                     this.skipNewlines();
                 }
@@ -2996,7 +3042,7 @@ export class Parser {
                 this.peek().type !== TokenType.KeywordCase &&
                 this.peek().type !== TokenType.EOF
             ) {
-                const stmt = this.parseStatement();
+                const stmt = this.parseNestedStatement();
                 if (stmt) body.push(stmt);
                 this.skipNewlines();
             }
@@ -3021,7 +3067,7 @@ export class Parser {
 
         const body: Statement[] = [];
         while (!this.isAtEndTerminator() && this.peek().type !== TokenType.EOF) {
-            const stmt = this.parseStatement();
+            const stmt = this.parseNestedStatement();
             if (stmt) body.push(stmt);
             this.skipNewlines();
         }

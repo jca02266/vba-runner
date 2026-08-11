@@ -160,4 +160,29 @@ function parse(src: string) {
     console.log('[PASS] コロン後の同一行文をerrorRecoveryで保持');
 }
 
+// 15. procedure/block内の回復は構造ノードと終端を保持する
+{
+    const src = String.raw`Sub S()
+If True Then
+x = 1 : @ : y = 2
+End If
+For i = 1 To 2
+a = 1 : @ : b = 2
+Next i
+End Sub
+Sub T()
+z = 3
+End Sub`;
+    const ast: any = parse(src);
+    assert.ok(ast.diagnostics.length >= 1, 'block内の不正文を診断する');
+    assert.strictEqual(ast.body.length, 2, '壊れたprocedureと後続procedureを保持する');
+    assert.strictEqual(ast.body[0].type, 'ProcedureDeclaration', 'procedureをトップレベルに保持する');
+    assert.strictEqual(ast.body[0].name.name, 'S', '元のprocedure名を保持する');
+    assert.strictEqual(ast.body[0].body.length, 2, 'block構造をprocedure bodyに保持する');
+    assert.strictEqual(ast.body[1].name.name, 'T', '後続procedureを保持する');
+    assert.ok(ast.body.every((stmt: any) => stmt.type === 'ProcedureDeclaration'),
+        'block後の文をトップレベルへ漏らさない');
+    console.log('[PASS] block内errorRecoveryの構造と終端を保持');
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');
