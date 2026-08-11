@@ -58,7 +58,9 @@ export const tryParseTimeFractionString = (s: string): number | undefined => {
 };
 
 export const parseVbaDate = (val: any): Date => {
-    if (val === null || val === undefined) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    // VBA Empty is the numeric zero in date contexts (1899-12-30).  vbaNull
+    // is a distinct symbol and is handled by callers before this parser.
+    if (val === null || val === undefined) return fromVbaDate(0);
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'symbol') throwVbaError(VbaErrorCode.TYPE_MISMATCH); // vbaNull 等の番兵
     if (val instanceof VbaDate || (val && val.__isVbaDate__)) return fromVbaDate(val.value);
