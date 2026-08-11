@@ -1531,11 +1531,21 @@ export class Parser {
             return { type: 'LabelStatement', label: labelName } as any;
         }
 
-        // Line number label: "42" or "42:"
+        // Line number label: an INTEGER, with an optional colon.
+        // A floating-point Number must remain an expression; accepting it as a
+        // label lets malformed input such as `1.2.3` fall through the eval()
+        // statement fallback as an empty program.  The BNF permits a numeric
+        // label only at line start and defines it as INTEGER.
         if (token.type === TokenType.Number) {
             const labelName = token.value;
+            if (!/^\d+$/.test(labelName)) {
+                this.throwError(`Parse error: invalid numeric label '${labelName}' at line ${token.line}`);
+            }
             this.advance(); // consume Number
-            this.match(TokenType.OperatorColon); // optional colon
+            const hasColon = this.match(TokenType.OperatorColon);
+            if (!hasColon && !this.isAtTerminator()) {
+                this.throwError(`Parse error: unexpected token '${this.peek().value}' after numeric label at line ${this.peek().line}`);
+            }
             return { type: 'LabelStatement', label: labelName } as any;
         }
 
