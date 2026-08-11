@@ -1262,3 +1262,10 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00706
+    audit: "605 evaluations, 0 active claims"
+    decision: "LongLong() ByRef配列の要素更新も一致し、宣言・型・リテラル領域の無バグ連続は2回。LongPtr配列、再束縛、外部経路を残し、次の近接境界を評価する。"
+    action: continue-area
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
