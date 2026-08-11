@@ -2830,3 +2830,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/excel/queue/FormatMatrixVerification.bas
+  - id: FZ-COVERAGE-20260810-299
+    title: Format named numeric display matrix
+    status: queued
+    priority: 1
+    focus: Format名前付きGeneral Number・Currency・Fixed・Standard・Percent・Scientific境界
+    priorCauseKey: format-named-numeric-display-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

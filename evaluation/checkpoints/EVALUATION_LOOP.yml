@@ -1929,3 +1929,10 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-298
     excelProbeIds:
       - XL-186
+  - afterEvaluation: EV-00788
+    audit: "687 evaluations, 0 active claims; Format名前付き数値書式 verified-no-bug 3回目（EV-00784以降）"
+    decision: "General Number、Currency、Fixed、Standard、Percent、Scientificの代表値は仕様と一致した。ロケール固有値は別候補で扱い、Formatの無バグ連続を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
