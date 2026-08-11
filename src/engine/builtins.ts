@@ -288,7 +288,12 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         const modulus = 1n << BigInt(bits);
         let value = magnitude;
         if (match[1] === '-') value = -magnitude;
-        else if (digits.length >= fullDigits && magnitude >= signBit) value = magnitude - modulus;
+        // Only an in-width bit pattern is sign-extended.  A value with more
+        // than the target width is a positive magnitude and must reach the
+        // conversion's overflow/range check rather than wrap modulo 2^bits.
+        else if (magnitude < modulus && digits.length >= fullDigits && magnitude >= signBit) {
+            value = magnitude - modulus;
+        }
         return bits === 64 ? value : Number(value);
     };
     const parseRadixForValue = (source: string): number | bigint | undefined => {
@@ -442,6 +447,9 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
             const radix = parseRadixForWidth(trimmed, 64);
             if (radix !== undefined) {
                 const n = typeof radix === 'bigint' ? radix : BigInt(radix);
+                if (n < -9223372036854775808n || n > 9223372036854775807n) {
+                    ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+                }
                 return n;
             }
             if (/^-?\d+$/.test(trimmed)) {
