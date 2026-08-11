@@ -261,7 +261,7 @@ assert.strictEqual(evNum2.callProcedure('TestEscape',        []), 'Zero',     'F
 console.log('[PASS] Format 数値: リテラル・複数セクション・科学記数法・\\エスケープ');
 
 // --- 文字列フォーマット ---
-const strCode = `
+const strCode = String.raw`
     Function TestUpper()
         TestUpper = Format("hello", ">")
     End Function
@@ -277,6 +277,15 @@ const strCode = `
     Function TestAmpersand()
         TestAmpersand = Format("hi", "&&&&&")
     End Function
+    Function TestInactiveDateSection()
+        TestInactiveDateSection = Format("12", "@@;yyyy")
+    End Function
+    Function TestInactiveDateSectionLeft()
+        TestInactiveDateSectionLeft = Format("12", "!@@;yyyy")
+    End Function
+    Function TestInactiveDateSectionDate()
+        TestInactiveDateSectionDate = Format("12", "@;yyyy-mm-dd")
+    End Function
 `;
 const evStr = evalVBASingle(strCode);
 
@@ -285,6 +294,9 @@ assert.strictEqual(evStr.callProcedure('TestLower',     []), 'hello', 'Format("H
 assert.strictEqual(evStr.callProcedure('TestAtRight',   []), '   hi', 'Format("hi", "@@@@@") → "   hi"');
 assert.strictEqual(evStr.callProcedure('TestAtLeft',    []), 'hi   ', 'Format("hi", "!@@@@@") → "hi   "');
 assert.strictEqual(evStr.callProcedure('TestAmpersand', []), 'hi',    'Format("hi", "&&&&&") → "hi"');
+assert.strictEqual(evStr.callProcedure('TestInactiveDateSection', []), '12', '非空Stringは未選択第2セクションの日付トークンで分岐しない');
+assert.strictEqual(evStr.callProcedure('TestInactiveDateSectionLeft', []), '12', '左詰めStringも未選択第2セクションの日付トークンで分岐しない');
+assert.strictEqual(evStr.callProcedure('TestInactiveDateSectionDate', []), '12', '日付書式の未選択セクションをStringが解釈しない');
 
 console.log('[PASS] Format 文字列: >, <, @, &, !');
 

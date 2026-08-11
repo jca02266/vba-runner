@@ -1380,6 +1380,16 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // Null section (for example "NULL") must not affect that dispatch.
         const datePatternSource = (() => {
             const selectionNumber = effectiveVal instanceof VbaDate ? effectiveVal.value : effectiveVal;
+            if (typeof effectiveVal === 'string') {
+                // A non-empty String selects the first string section before
+                // the format domain is classified.  Date tokens in the
+                // inactive Null/empty-string section must not redirect the
+                // String value into the date renderer.
+                if (effectiveVal.length > 0) {
+                    return splitFormatSections(fmt)[0] ?? fmt;
+                }
+                return fmt;
+            }
             if (typeof selectionNumber !== 'number') return fmt;
             const sections = splitFormatSections(fmt);
             if (sections.length < 2) return sections[0];
