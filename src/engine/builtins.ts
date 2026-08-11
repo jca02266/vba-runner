@@ -1394,6 +1394,16 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                     return formatDate(parsed, fmt, fdow, effectiveFwoy);
                 } catch { /* fall through to string formatting */ }
             }
+            // VBA applies user-defined numeric formats to non-localized numeric
+            // strings.  Keep string-domain placeholders on formatString, but
+            // send a convertible string with a numeric-only pattern through the
+            // same formatter used for numeric values.
+            if (!isDatePattern && hasNumericFormatTokens(fmt) &&
+                !hasUnescapedFormatChars(fmt, '@&!<>')) {
+                try {
+                    return formatNumber(ctx.toVbaNumber(effectiveVal), fmt);
+                } catch { /* retain the existing string-domain behavior */ }
+            }
             // VBA applies user-defined string formats only when the pattern
             // contains a string-domain control (`@`, `&`, `!`, `<`, or `>`).
             // Numeric/date tokens and literal-only patterns do not convert a

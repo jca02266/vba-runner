@@ -23,6 +23,30 @@ assert.strictEqual(ev.callProcedure('TestFormatNumber', []), '1234.57', 'Format(
 const currency = ev.callProcedure('TestFormatCurrency', []);
 assert.ok(currency.includes('1,234.57') || currency.includes('1234.57'), 'Format(Number, "#,##0.00")');
 
+// 非ローカライズ数値文字列にもユーザー定義数値書式を適用する。
+const numericStringFormatCode = String.raw`
+    Function TestNumericStringFormats() As String
+        TestNumericStringFormats = Format("123", "0000") & "|" & _
+            Format("123.4", "0.00") & "|" & _
+            Format("0.125", "0.00%") & "|" & _
+            Format("1234.5", "#,##0.0")
+    End Function
+    Function TestNonNumericStringNumericFormat() As String
+        TestNonNumericStringNumericFormat = Format("Ab9", "0.00")
+    End Function
+`;
+const evNumericString = evalVBASingle(numericStringFormatCode);
+assert.strictEqual(
+    evNumericString.callProcedure('TestNumericStringFormats', []),
+    '0123|123.40|12.50%|1,234.5',
+    'Format numeric strings with user-defined numeric formats',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestNonNumericStringNumericFormat', []),
+    'Ab9',
+    'Non-numeric strings retain the string-domain result',
+);
+
 // --- 時刻フォーマットのバグ修正確認 ---
 const timeCode = `
     Function TestHH()
