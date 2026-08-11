@@ -860,3 +860,8 @@ checkpoints:
     decision: "Currency・Decimal・Nothing・Nullの複合入力型は一致した。日時領域の連続無バグ数は1回なので、無効日付文字列とBoolean/Error/配列境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-184
+  - afterEvaluation: EV-00631
+    audit: "530 evaluations, 0 active claims, 0 queued candidates"
+    decision: "無効入力マトリクスでCVErrとArrayの誤受理を修正した。日時領域の無バグ連続数をリセットし、Year・Month・Day・Hour・Minute・SecondのEmpty/Null境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-185

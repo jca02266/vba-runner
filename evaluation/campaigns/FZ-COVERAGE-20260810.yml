@@ -1801,3 +1801,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-185
+    title: Date scalar Empty Null matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のYear・Month・Day・Hour・Minute・Second Empty/Null境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/date-functions.test.ts
