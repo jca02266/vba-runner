@@ -1085,3 +1085,8 @@ checkpoints:
     decision: "UDT／クラス配列メンバー型検証4境界は一致し、配列・UDT領域の無バグ連続5回を達成した。次は未収束のエラー処理・制御フロー領域を優先評価する。"
     action: select-next-area
     nextArea: エラー処理・制御フロー
+  - afterEvaluation: EV-00676
+    audit: "575 evaluations, 0 active claims"
+    decision: "On Error状態・Resume3ケースは一致し、エラー処理領域の無バグ連続数は1回。ネスト呼出しとErr状態の伝播を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-033

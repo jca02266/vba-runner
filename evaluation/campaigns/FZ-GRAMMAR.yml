@@ -300,3 +300,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/typed-array-root-cause.test.ts
+  - id: FZ-GRAMMAR-032
+    title: On Error状態解除とResume境界
+    status: queued
+    priority: 1
+    focus: On Error GoTo 0・Resume Next・ハンドラ再設定の状態遷移
+    priorCauseKey: on-error-state-reset-resume
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts
+  - id: FZ-GRAMMAR-033
+    title: ネスト呼出しErr状態伝播境界
+    status: queued
+    priority: 1
+    focus: 標準手続き・クラス呼出し間のErr保持、Resume Next、再送出
+    priorCauseKey: nested-error-state-propagation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts
