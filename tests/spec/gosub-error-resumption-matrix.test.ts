@@ -102,3 +102,50 @@ console.log('[PASS] GoSub Property Get error resumption');
 assert.strictEqual(propertyEv.callProcedure('ProbePropertyLet', []), 42,
     'GoSub errors terminate a Property Let after its owning handler');
 console.log('[PASS] GoSub Property Let error resumption');
+
+const propertySetEv = evalVBAModules([
+    {
+        name: 'Payload',
+        parseAsClass: 'Payload',
+        code: String.raw`Public Name As String
+`,
+    },
+    {
+        name: 'Holder',
+        parseAsClass: 'Holder',
+        code: String.raw`
+Private mItem As Object
+Private mSeen As Long
+
+Public Property Set Item(ByVal value As Object)
+    On Error GoTo Handler
+    GoSub Worker
+    Set mItem = value
+    Exit Property
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    mSeen = 42
+End Property
+
+Public Property Get Seen() As Long
+    Seen = mSeen
+End Property
+`,
+    },
+    {
+        name: 'Module1',
+        code: String.raw`
+Public Function ProbePropertySet() As Long
+    Dim h As New Holder, p As New Payload
+    Set h.Item = p
+    ProbePropertySet = h.Seen
+End Function
+`,
+    },
+]);
+
+assert.strictEqual(propertySetEv.callProcedure('ProbePropertySet', []), 42,
+    'GoSub errors terminate a Property Set after its owning handler');
+console.log('[PASS] GoSub Property Set error resumption');
