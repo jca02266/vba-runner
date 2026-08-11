@@ -654,6 +654,7 @@
 | EV-00749 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値プレースホルダーの連続カンマスケーリング |
 | EV-00750 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format連続カンマと負数・ゼロ・小数・百分率・複数セクションの境界 |
 | EV-00751 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format日付トークンm・n・w・q・cの文脈と境界 |
+| EV-00752 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Null・Emptyと数値・日付・文字列書式の境界 |
 
 ## 状態集計
 
@@ -664,9 +665,9 @@
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 350 |
+| verified-no-bug | 351 |
 
-横展開未解決経路: 528、実Excel待ち評価: 3
+横展開未解決経路: 529、実Excel待ち評価: 3
 
 ## 次の候補
 
