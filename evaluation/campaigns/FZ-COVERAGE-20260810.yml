@@ -2415,3 +2415,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-256
+    title: Format named and invalid-pattern boundaries
+    status: queued
+    priority: 1
+    focus: Format名前付き書式・不正パターン・角括弧とエラー境界
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts

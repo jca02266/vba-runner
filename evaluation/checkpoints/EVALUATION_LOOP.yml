@@ -1521,3 +1521,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-255
+  - afterEvaluation: EV-00744
+    audit: "643 evaluations, 0 active claims; EV-00744 remains needs-excel with XL-180 missing"
+    decision: "XL-180は外部実機結果待ちで状態変更できないため、Format領域の実機不要な名前付き書式・不正パターン境界を並行評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-256
