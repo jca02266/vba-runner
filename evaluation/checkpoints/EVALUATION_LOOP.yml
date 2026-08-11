@@ -1647,3 +1647,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-272
+  - afterEvaluation: EV-00761
+    audit: "660 evaluations, 0 active claims; ROOT-00030 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "整数ラベル・同一行文・小数式残余トークンの横展開は修正後1回目の新規バグなし。ParserのerrorRecovery、不正式残余トークン、改行境界診断を次に評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-273

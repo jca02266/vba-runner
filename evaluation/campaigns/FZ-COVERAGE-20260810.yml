@@ -2576,3 +2576,13 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/malformed-numeric-eval.test.ts
+  - id: FZ-COVERAGE-20260810-273
+    title: Parser recovery and malformed expression boundary
+    status: queued
+    priority: 1
+    focus: ParserのerrorRecovery・不正式残余トークン・改行境界診断
+    priorCauseKey: parser-complete-input-and-label-grammar-invariant
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/parser-error-recovery.test.ts
