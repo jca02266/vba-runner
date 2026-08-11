@@ -1188,3 +1188,8 @@ checkpoints:
     decision: "Select Case節内ResumeラベルでError 35を発見し、選択節実行器のラベル解決を追加修正した。エラー処理領域の無バグ連続数は0回に戻るため、Withブロック境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-052
+  - afterEvaluation: EV-00696
+    audit: "595 evaluations, 0 active claims"
+    decision: "Withブロック内ResumeラベルでError 35を発見し、With実行器のラベル解決を追加修正した。エラー処理領域の無バグ連続数は0回に戻るため、For Each境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-053
