@@ -42,6 +42,12 @@ const numericStringFormatCode = String.raw`
     Function TestNumericStringBracketCondition() As String
         TestNumericStringBracketCondition = Format("Ab9", "[<=1000]0")
     End Function
+    Function TestFormatScalingCommas() As String
+        TestFormatScalingCommas = Format(1000000, "##0,") & "|" & _
+            Format(100000000, "##0,,") & "|" & _
+            Format(1234567, "#,##0,") & "|" & _
+            Format(1234567, "0,.00")
+    End Function
 `;
 const evNumericString = evalVBASingle(numericStringFormatCode);
 assert.strictEqual(
@@ -63,6 +69,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestNumericStringBracketCondition', []),
     'Ab9',
     'Bracket directives do not turn comparison characters into string controls',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestFormatScalingCommas', []),
+    '1000|100|1,235|1234.57',
+    'Consecutive format commas scale values by thousands',
 );
 
 // --- 時刻フォーマットのバグ修正確認 ---

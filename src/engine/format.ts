@@ -586,7 +586,18 @@ function formatNumberSection(absN: number, section: string, addNegSign: boolean)
     let n = absN;
     const isPercent = coreFmt.includes('%');
     if (isPercent) n *= 100;
-    const workFmt = coreFmt.replace(/%/g, '');
+    let workFmt = coreFmt.replace(/%/g, '');
+
+    // A comma immediately after the last digit placeholder (including just
+    // before the decimal point) scales the value by 1,000 per comma.  It is
+    // distinct from commas between digit placeholders, which are grouping
+    // separators and must remain available to the renderer.
+    const scaleMatch = workFmt.match(/([0#])(,+)(?=\.|$)/);
+    if (scaleMatch) {
+        n /= Math.pow(1000, scaleMatch[2].length);
+        workFmt = workFmt.slice(0, scaleMatch.index) + scaleMatch[1]
+            + workFmt.slice((scaleMatch.index ?? 0) + scaleMatch[0].length);
+    }
 
     // , が数字プレースホルダーの後に続く場合のみ千の位区切りとして扱う
     const hasThousands = /,[0#]/.test(workFmt);
