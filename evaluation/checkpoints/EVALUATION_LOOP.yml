@@ -1472,3 +1472,17 @@ checkpoints:
     nextArea: Err・On Error
     nextEvaluation: EV-00736
     nextCandidate: FZ-COVERAGE-20260810-247
+  - afterEvaluation: EV-00736
+    audit: "635 evaluations, 0 active claims"
+    decision: "Err・On Error領域のハンドラ再入境界を評価した。次はネスト手続きのErr伝播とResume Nextを評価する。"
+    action: continue-area
+    nextArea: Err・On Error
+    nextEvaluation: EV-00737
+    nextCandidate: FZ-COVERAGE-20260810-248
+  - afterEvaluation: EV-00737
+    audit: "636 evaluations, 0 active claims"
+    decision: "Err・On Error領域のネスト手続き伝播を評価した。次はResume Next・GoTo 0・ハンドラ再設定の状態リセットを評価する。"
+    action: continue-area
+    nextArea: Err・On Error
+    nextEvaluation: EV-00738
+    nextCandidate: FZ-COVERAGE-20260810-249

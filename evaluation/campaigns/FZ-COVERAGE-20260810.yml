@@ -2344,3 +2344,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handler-reentry.test.ts
+  - id: FZ-COVERAGE-20260810-248
+    title: Nested procedure error propagation
+    status: queued
+    priority: 1
+    focus: ネスト手続き呼出しのErr伝播・Resume Next・ハンドラ再送出境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/nested-error-propagation-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-249
+    title: On Error state reset boundary
+    status: queued
+    priority: 1
+    focus: On Error Resume Next・GoTo 0・ハンドラ再設定の状態リセット境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/on-error-state-reset-matrix.test.ts
