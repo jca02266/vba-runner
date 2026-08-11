@@ -1339,3 +1339,10 @@ checkpoints:
     nextArea: ファイルI/O・FSO
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00717
+    audit: "616 evaluations, 0 active claims"
+    decision: "FSO OpenTextFileの不存在・Create=False境界も一致し、ファイルI/O・FSO領域の無バグ連続は3回。Create=True、IOMode、Unicode境界を継続する。"
+    action: continue-area
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

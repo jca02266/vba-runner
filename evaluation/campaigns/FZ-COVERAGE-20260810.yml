@@ -2183,3 +2183,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/fso-overwrite-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-228
+    title: FSO OpenTextFile missing-file boundary
+    status: queued
+    priority: 1
+    focus: FSO OpenTextFileのCreate=False不存在ファイルError 53境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/fso-open-missing-boundary.test.ts
