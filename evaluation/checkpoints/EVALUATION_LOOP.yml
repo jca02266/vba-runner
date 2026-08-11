@@ -1402,3 +1402,10 @@ checkpoints:
     nextArea: Date
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00726
+    audit: "625 evaluations, 0 active claims"
+    decision: "DateSerialの月日正規化も一致し、Date領域の無バグ連続は2回。2桁年・負年境界を継続する。"
+    action: continue-area
+    nextArea: Date
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

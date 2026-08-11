@@ -2255,3 +2255,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/timeserial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-237
+    title: DateSerial rollover boundary
+    status: queued
+    priority: 1
+    focus: DateSerialの月0/13・日0/32の繰上げ繰下げ正規化
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-boundary.test.ts
