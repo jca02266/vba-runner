@@ -665,22 +665,23 @@
 | EV-00760 | FZ-COVERAGE-20260810 | fixed | 1 | Lexerの小数点・E/D指数・符号・型サフィックス組合せ境界 |
 | EV-00761 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Parserの整数行ラベル・同一行文・小数式残余トークン境界 |
 | EV-00762 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | ParserのerrorRecovery・不正残余トークン・改行境界診断 |
+| EV-00763 | FZ-COVERAGE-20260810 | bug-found | 1 | Parserのコロン区切り後エラー同期と同一行後続文保持境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
+| bug-found | 2 |
 | fixed | 292 |
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 360 |
 
-横展開未解決経路: 538、実Excel待ち評価: 3
+横展開未解決経路: 541、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-274 | 1 | queued | Parserのコロン区切り後エラー同期と同一行後続文保持境界 | yes |
+| (none) | | | | |

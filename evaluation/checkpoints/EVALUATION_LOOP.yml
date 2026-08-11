@@ -1661,3 +1661,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-274
+  - afterEvaluation: EV-00763
+    audit: "662 evaluations, 0 active claims; BUG-00491 requires RCA; ROOT-00030 completed"
+    decision: "errorRecoveryの同一行後続文欠落を再現した。RC-00060の独立レビューを先に完了し、コロン境界・block局所回復・parseAsClassの対象範囲を確定してから修正する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null
