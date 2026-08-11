@@ -18,6 +18,10 @@ const cases: Array<[string, string]> = [
     ['&H7FFFFFFFFFFFFFFF', '9.22337203685478E+18:ERR=0'],
     ['&H8000000000000000', '-9.22337203685478E+18:ERR=0'],
     ['&HFFFFFFFFFFFFFFFF', '-1:ERR=0'],
+    ['&O377', '255:ERR=0'],
+    ['&O177777', '-1:ERR=0'],
+    ['&O17777777777', '2147483647:ERR=0'],
+    ['&O20000000000', '-2147483648:ERR=0'],
 ];
 for (const [input, expected] of cases) {
     assert.equal(ev.callProcedure('Probe', [input]), expected, input);

@@ -2135,3 +2135,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/val-radix-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-222
+    title: Val octal sign-extension boundary
+    status: queued
+    priority: 1
+    focus: Valの8進文字列における桁幅と符号拡張境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/val-radix-boundary.test.ts
