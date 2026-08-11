@@ -1723,15 +1723,15 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-278
   - afterEvaluation: EV-00744
     audit: "666 evaluations, 0 active claims; BUG-00495 requires RCA; EV-00750 and EV-00751 synchronized Excel results reconciled"
-    decision: "XL-180の混在書式でString/非数値StringのExcel差分を確定した。RC-00064の独立レビューとFormat書式ドメインの横展開を先に行う。"
+    decision: "XL-180の混在書式でString/非数値StringのExcel差分を確定した。RC-00065の独立レビューとFormat書式ドメインの横展開を先に行う。"
     action: create-candidate
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
-    rootCauseId: RC-00064
+    rootCauseId: RC-00065
   - afterEvaluation: EV-00750
     audit: "666 evaluations, 0 active claims; BUG-00496 requires RCA; EV-00751 verified-no-bug"
-    decision: "XL-181の指数・連続カンマ組合せでExcelとrunnerの差分を追加確認した。Format数値レンダラーの同一RCAへ統合して調査する。"
+    decision: "XL-181の指数・連続カンマ組合せでExcelとrunnerの差分を追加確認した。RC-00064としてXL-180とは分離して調査する。"
     action: create-candidate
     nextArea: Format
     nextEvaluation: null
