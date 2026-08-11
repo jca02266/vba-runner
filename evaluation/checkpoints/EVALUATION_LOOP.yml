@@ -855,3 +855,8 @@ checkpoints:
     decision: "入力型マトリクスでEmptyの日付変換バグを修正した。日時領域の無バグ連続数をリセットし、共通日付変換の複合型・Null境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-183
+  - afterEvaluation: EV-00630
+    audit: "529 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Currency・Decimal・Nothing・Nullの複合入力型は一致した。日時領域の連続無バグ数は1回なので、無効日付文字列とBoolean/Error/配列境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-184

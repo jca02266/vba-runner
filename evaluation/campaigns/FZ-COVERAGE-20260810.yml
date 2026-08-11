@@ -1792,3 +1792,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-184
+    title: Date invalid input boundary matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateValue・TimeValue・DatePart無効日付文字列とBoolean・Error・配列境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/date-functions.test.ts
