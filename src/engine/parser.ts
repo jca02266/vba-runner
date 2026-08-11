@@ -836,6 +836,13 @@ export class Parser {
             this.peek().type !== TokenType.EOF &&
             this.peek().type !== TokenType.Newline
         ) {
+            // `:` is a VBA statement boundary on the same logical line.
+            // Consume it and let the outer loop parse the following statement
+            // instead of discarding the rest of the line.
+            if (this.peek().type === TokenType.OperatorColon) {
+                this.advance();
+                return;
+            }
             this.advance();
         }
         // Skip past any End Sub / End Function / End Property / End Property

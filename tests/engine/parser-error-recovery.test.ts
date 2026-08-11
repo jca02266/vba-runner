@@ -149,4 +149,15 @@ function parse(src: string) {
     console.log('[PASS] Dim As 型名欠落の診断と回復');
 }
 
+// 14. 同一行のコロン後にある正常文を回復で保持する
+{
+    const src = String.raw`x = 1 : @ : y = 2`;
+    const ast = parse(src);
+    assert.strictEqual(ast.diagnostics.length, 1, '同一行の不正文は1件の診断');
+    assert.strictEqual(ast.body.length, 2, 'コロン後の正常文を保持');
+    assert.strictEqual((ast.body[0] as any).type, 'AssignmentStatement', '前半の代入を保持');
+    assert.strictEqual((ast.body[1] as any).type, 'AssignmentStatement', '後半の代入を保持');
+    console.log('[PASS] コロン後の同一行文をerrorRecoveryで保持');
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');
