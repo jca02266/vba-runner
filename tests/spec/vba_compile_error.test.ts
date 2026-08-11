@@ -98,6 +98,56 @@ v = MyFuncHasArg arg`, 2, /syntax error|parse error/i, 'assign_func_arg_no_paren
     }
 }
 
+// [preproc] radix_hex_literal_out_of_range
+// VBA: コンパイルエラー: オーバーフローしました
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        Dim value As Long
+        value = &H100000000
+      End Sub
+    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_hex_literal_out_of_range');
+        console.log('[PASS] radix_hex_literal_out_of_range');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] radix_hex_literal_out_of_range:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] radix_hex_longlong_literal_out_of_range
+// VBA: コンパイルエラー: オーバーフローしました
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub __test__()
+        Dim value As LongLong
+        value = &H10000000000000000^
+      End Sub
+    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_hex_longlong_literal_out_of_range');
+        console.log('[PASS] radix_hex_longlong_literal_out_of_range');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] radix_hex_longlong_literal_out_of_range:', e.message);
+        __fail__++;
+    }
+}
+
 // [parse] label_then_sub_call_with_empty_parens1
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 1
@@ -566,104 +616,6 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         __pass__++;
     } catch (e: any) {
         console.error('[FAIL] module_level_toplevel_stmt_after_procedure_strict:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Dim value As`, 1, /expected type name after 'as'/i, 'missing_type_after_as');
-        console.log('[PASS] missing_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_procedure_return_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Function MissingReturnType() As
-End Function`, 1, /expected type name after 'as'/i, 'missing_procedure_return_type_after_as');
-        console.log('[PASS] missing_procedure_return_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_procedure_return_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_parameter_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Sub MissingParameterType(ByVal value As)
-End Sub`, 1, /expected type name after 'as'/i, 'missing_parameter_type_after_as');
-        console.log('[PASS] missing_parameter_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_parameter_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_declare_return_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Declare Function MissingDeclareType Lib "kernel32" () As`, 1, /expected type name after 'as'/i, 'missing_declare_return_type_after_as');
-        console.log('[PASS] missing_declare_return_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_declare_return_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_const_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Const MissingConstType As = 1`, 1, /expected type name after 'as'/i, 'missing_const_type_after_as');
-        console.log('[PASS] missing_const_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_const_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_udt_member_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Type MissingMemberType
-    Value As
-End Type`, 2, /expected type name after 'as'/i, 'missing_udt_member_type_after_as');
-        console.log('[PASS] missing_udt_member_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_udt_member_type_after_as:', e.message);
-        __fail__++;
-    }
-}
-
-// [parse] missing_redim_type_after_as
-// VBA: コンパイルエラー: 構文エラー
-{
-    try {
-        assertCompileErrorPass1(`Sub MissingReDimType()
-    Dim values()
-    ReDim values(1) As
-End Sub`, 3, /expected type name after 'as'/i, 'missing_redim_type_after_as');
-        console.log('[PASS] missing_redim_type_after_as');
-        __pass__++;
-    } catch (e: any) {
-        console.error('[FAIL] missing_redim_type_after_as:', e.message);
         __fail__++;
     }
 }

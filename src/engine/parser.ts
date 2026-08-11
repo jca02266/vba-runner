@@ -547,9 +547,9 @@ export interface ImplicitWithDictionaryAccessExpression extends Expression {
 export interface NumberLiteral extends Expression {
     type: 'NumberLiteral';
     value: number;
-    /** Exact decimal digits for integer literals whose value exceeds JS precision. */
+    /** Exact decimal digits for radix integer literals. */
     rawIntegerText?: string;
-    /** Exact source radix for integer literals whose value exceeds JS precision. */
+    /** Exact source radix for radix integer literals. */
     rawIntegerBase?: 8 | 16;
     /** VBA type declaration suffix: % Integer, & Long, ! Single, # Double, @ Currency, ^ LongLong */
     typeSuffix?: '%' | '&' | '!' | '#' | '@' | '^';
@@ -3242,13 +3242,12 @@ export class Parser {
         }
         let rawIntegerText: string | undefined;
         let rawIntegerBase: NumberLiteral['rawIntegerBase'];
-        if (typeSuffix === '^') {
-            if (/^\d+$/.test(cleanVal)) rawIntegerText = cleanVal;
-            else if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
-                // Keep radix LongLong literals exact; Number loses digits above 2^53.
-                rawIntegerText = BigInt(cleanVal).toString();
-                rawIntegerBase = cleanVal.startsWith('0x') ? 16 : 8;
-            }
+        if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
+            // Keep radix literals exact; Number loses digits above 2^53.
+            rawIntegerText = BigInt(cleanVal).toString();
+            rawIntegerBase = cleanVal.startsWith('0x') ? 16 : 8;
+        } else if (typeSuffix === '^' && /^\d+$/.test(cleanVal)) {
+            rawIntegerText = cleanVal;
         }
         return { type: 'NumberLiteral', value: parsedValue, rawIntegerText, rawIntegerBase, typeSuffix, isFloat, baseWidth };
     }

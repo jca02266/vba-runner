@@ -1923,6 +1923,11 @@ export class Evaluator {
                     "Can't assign to an array", findings.arrayAssignment.line,
                     proc.moduleName ?? undefined);
             }
+            if (findings.literalOverflow) {
+                this.throwCompileError(VbaErrorCode.OVERFLOW,
+                    `Numeric literal out of range for ${findings.literalOverflow.targetType}`,
+                    findings.literalOverflow.line, proc.moduleName ?? undefined);
+            }
             if (findings.paramArrayUse) {
                 this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                     'Invalid use of ParamArray', findings.paramArrayUse.line,
@@ -1952,6 +1957,7 @@ export class Evaluator {
      */
     private collectPrecheckFindings(proc: ProcedureDeclaration): {
         subAsValue?: { name: string; line?: number };
+        literalOverflow?: { line?: number; targetType: string };
         undefinedCalls: UndefinedProcError[];
         arrayBounds: ArrayBound[];
         duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
@@ -1968,6 +1974,7 @@ export class Evaluator {
             jumps: [] as Array<{ label: string; line: number }>,
         } as {
             subAsValue?: { name: string; line?: number };
+            literalOverflow?: { line?: number; targetType: string };
             undefinedCalls: UndefinedProcError[];
             arrayBounds: ArrayBound[];
             duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
@@ -1996,7 +2003,9 @@ export class Evaluator {
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
         const arrayDeclarations = new Map<string, { type?: string; fixed: boolean; paramArray?: boolean }>();
+        const variableTypes = new Map<string, string>();
         for (const param of proc.parameters) {
+            if (param.paramType) variableTypes.set(param.name.toLowerCase(), param.paramType);
             if (param.isArray) arrayDeclarations.set(param.name.toLowerCase(), {
                 type: param.paramType,
                 fixed: false,
@@ -2077,6 +2086,7 @@ export class Evaluator {
                             type: d.objectType,
                             fixed: Array.isArray(d.arrayBounds) && d.arrayBounds.length > 0,
                         });
+                        if (d.objectType) variableTypes.set(key, d.objectType);
                         if (!findings.duplicate && seen.has(key)) {
                             findings.duplicate = { kind: 'Variable', name: d.name.name, line: d.name.loc?.start.line };
                         }
@@ -2109,6 +2119,25 @@ export class Evaluator {
                     break;
                 case 'AssignmentStatement': {
                     const a = stmt as AssignmentStatement;
+                    if (!findings.literalOverflow && a.left.type === 'Identifier' && a.right.type === 'NumberLiteral') {
+                        const targetType = variableTypes.get((a.left as Identifier).name.toLowerCase())?.toLowerCase();
+                        const literal = a.right as NumberLiteral;
+                        if (targetType && literal.rawIntegerBase !== undefined && literal.rawIntegerText !== undefined) {
+                            const limits: Record<string, bigint> = {
+                                byte: 0xffn,
+                                integer: 0xffffn,
+                                long: 0xffffffffn,
+                                longlong: 0xffffffffffffffffn,
+                            };
+                            const limit = limits[targetType];
+                            if (limit !== undefined && BigInt(literal.rawIntegerText) > limit) {
+                                findings.literalOverflow = {
+                                    line: a.right.loc?.start.line ?? a.left.loc?.start.line,
+                                    targetType,
+                                };
+                            }
+                        }
+                    }
                     // Excel rejects whole-array assignment to a typed array at
                     // compile time. Function-return array assignment remains a
                     // valid runtime operation, so calls and host/member getters
