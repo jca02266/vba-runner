@@ -9380,6 +9380,12 @@ export class Evaluator {
                 const positionalArgExpressions: Expression[] = [];
 
                 const splitArgs = this.splitArgumentExpressions(expr.args);
+                if (proc.parameters.some(parameter => parameter.isParamArray) && splitArgs.named.size > 0) {
+                    this.throwVbaError(
+                        448,
+                        'Named arguments cannot be used with ParamArray',
+                    );
+                }
                 for (const name of splitArgs.named.keys()) {
                     if (!proc.parameters.some(parameter => parameter.name.toLowerCase() === name)) {
                         this.throwVbaError(448, `Named argument not found: '${name}'`);
