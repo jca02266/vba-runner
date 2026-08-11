@@ -1035,3 +1035,8 @@ checkpoints:
     decision: "Compare省略整合4境界は一致し、比較・文字列領域の無バグ連続5回を達成した。次は未収束の日付・時刻領域を優先評価する。"
     action: select-next-area
     nextArea: 日付・時刻
+  - afterEvaluation: EV-00666
+    audit: "565 evaluations, 0 active claims"
+    decision: "日付暦境界7ケースは一致し、日付・時刻領域の無バグ連続数は1回。負数TimeSerialとDateAdd単位境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-148

@@ -1314,3 +1314,21 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-147
+    title: 日付暦境界横断マトリクス
+    status: queued
+    priority: 1
+    focus: DateDiff/DatePart/DateAddの月末・閏年・週番号横断境界
+    priorCauseKey: date-calendar-cross-function
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
+  - id: FZ-BUILTIN-148
+    title: TimeSerial負数とDateAdd単位境界
+    status: queued
+    priority: 1
+    focus: TimeSerialの負数正規化とDateAddの時分秒・四半期単位
+    priorCauseKey: datetime-signed-unit-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/datetime.test.ts
