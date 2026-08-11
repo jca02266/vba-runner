@@ -1675,3 +1675,12 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-275
+  - afterEvaluation: EV-00764
+    audit: "663 evaluations, 0 active claims; BUG-00492 requires direct/root remediation; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Sub・If・For・Doブロック内errorRecoveryで構造ノードと終端が漏れるバグを再現した。RC-00061を独立レビューでconfirmし、通常Parserのprocedure/block局所recoveryをROOT-00032で共通化する。"
+    action: create-remediation
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00061
+    rootFixTask: ROOT-00032
