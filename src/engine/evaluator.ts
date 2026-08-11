@@ -3440,7 +3440,20 @@ export class Evaluator {
         const obj = this.resolveAutoInstance(stmt.expression, this.evaluateExpression(stmt.expression));
         this.withObjectStack.push(obj);
         try {
-            this.executeStatements(stmt.body, 0, false);
+            try {
+                this.executeStatements(stmt.body, 0, false);
+            } catch (e: any) {
+                if (e && e.type === 'GoTo') {
+                    const index = this.findLabelInBody(stmt.body, e.label);
+                    if (index >= 0) {
+                        this.executeStatements(stmt.body, index + 1, false);
+                    } else {
+                        throw e;
+                    }
+                } else {
+                    throw e;
+                }
+            }
         } finally {
             this.withObjectStack.pop();
         }

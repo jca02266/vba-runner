@@ -398,3 +398,37 @@ End Function
 assert.strictEqual(dynamicEv.callProcedure('ProbeDynamicCall', []), 'H5',
     'A dynamic call from GoSub reaches the owning handler');
 console.log('[PASS] GoSub dynamic-call error resumption');
+
+const withEv = evalVBAModules([
+    {
+        name: 'WithTarget',
+        parseAsClass: 'WithTarget',
+        code: String.raw`Public Value As Long
+`,
+    },
+    {
+        name: 'WithModule',
+        code: String.raw`
+Public Function ProbeWithResumeLabel() As Long
+    Dim target As New WithTarget
+    On Error GoTo Handler
+    With target
+        GoSub Worker
+ContinueWith:
+        .Value = 7
+    End With
+    ProbeWithResumeLabel = target.Value
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume ContinueWith
+End Function
+`,
+    },
+]);
+
+assert.strictEqual(withEv.callProcedure('ProbeWithResumeLabel', []), 7,
+    'Resume label from a With-nested GoSub reaches the block body');
+console.log('[PASS] GoSub With-block error resumption');
