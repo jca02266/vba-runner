@@ -2215,3 +2215,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/nested-udt-array.test.ts
+  - id: FZ-COVERAGE-20260810-232
+    title: Variable-string UDT Put/Get boundary
+    status: queued
+    priority: 1
+    focus: 可変長Stringを含むUDTのBinary Put/Get書込み・読出し境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/variable-string-udt.test.ts
