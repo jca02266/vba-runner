@@ -2732,3 +2732,23 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-289
+    title: Format standalone placeholder semantics
+    status: queued
+    priority: 1
+    focus: Format単独の@・&・!プレースホルダーと数値・文字列型の適用境界
+    priorCauseKey: format-placeholder-domain-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-290
+    title: Format string placeholder fill matrix
+    status: queued
+    priority: 1
+    focus: Format文字列プレースホルダーの長さ・空文字・Unicode充填境界
+    priorCauseKey: format-placeholder-domain-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

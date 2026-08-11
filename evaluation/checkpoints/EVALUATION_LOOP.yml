@@ -1844,3 +1844,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: EV-00771
     nextCandidate: FZ-COVERAGE-20260810-282
+  - afterEvaluation: EV-00778
+    audit: "677 evaluations, 0 active claims; Format placeholder boundary is blocked for numeric/Empty type contracts"
+    decision: "Stringの@・&・!充填は仕様整合で差異なしだが、数値・Empty・単独!はExcel期待値が未確定。Format領域の確定可能なString境界を別候補で評価し、実機待ちEVは結果受領まで保留する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-290

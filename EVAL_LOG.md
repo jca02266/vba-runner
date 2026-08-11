@@ -680,12 +680,13 @@
 | EV-00775 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format日付トークンの文脈依存m/n、リテラル、名前付きc境界 |
 | EV-00776 | FZ-COVERAGE-20260810 | fixed | 1 | Format Null・Empty・複数セクション・文字列placeholderの選択境界 |
 | EV-00777 | FZ-COVERAGE-20260810 | blocked | 1 | Formatの空ブラケット・降順範囲・不正ブラケットのトークン検証境界 |
+| EV-00778 | FZ-COVERAGE-20260810 | blocked | 1 | Format単独の@・&・!プレースホルダーと数値・文字列型の適用境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| blocked | 2 |
+| blocked | 3 |
 | bug-found | 1 |
 | fixed | 301 |
 | known-limit | 4 |
@@ -693,7 +694,7 @@
 | retired | 1 |
 | verified-no-bug | 365 |
 
-横展開未解決経路: 546、実Excel待ち評価: 2
+横展開未解決経路: 548、実Excel待ち評価: 2
 
 ## 次の候補
 
