@@ -2263,3 +2263,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/dateserial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-238
+    title: DateSerial year-width boundary
+    status: queued
+    priority: 1
+    focus: DateSerialの2桁年補正・4桁年・負年Error 6境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-boundary.test.ts
