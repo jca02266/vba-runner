@@ -1631,7 +1631,6 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         const d1 = parseVbaDate(date1);
         const d2 = parseVbaDate(date2);
         const intv = String(interval).toLowerCase();
-        const diffMs = d2.getTime() - d1.getTime();
         const calendarDayDiff = (): number => {
             const day1 = Date.UTC(d1.getFullYear(), d1.getMonth(), d1.getDate());
             const day2 = Date.UTC(d2.getFullYear(), d2.getMonth(), d2.getDate());
