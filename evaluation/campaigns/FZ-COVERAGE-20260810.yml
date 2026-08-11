@@ -2595,3 +2595,12 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - tests/spec/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-275
+    title: Parser block recovery boundary
+    status: queued
+    priority: 1
+    focus: ParserのSub・If・For・Doブロック内errorRecoveryと終端保持境界
+    priorCauseKey: statement-boundary-aware-error-recovery
+    coverageTargets:
+      - src/engine/parser.ts
+      - tests/engine/parser-error-recovery.test.ts

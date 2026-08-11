@@ -1668,3 +1668,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00763-RCA
+    audit: "662 evaluations, 0 active claims; ROOT-00031 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "RC-00060をトップレベルerrorRecoveryのコロン境界に限定してconfirmし、ROOT-00031を完了した。Parser・Lexer領域のバグ後カウンターをリセットし、未評価のSub・If・For・Doブロック内回復を次に評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-275
