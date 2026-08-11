@@ -537,6 +537,10 @@ export class Environment {
                 let n: bigint;
                 if (typeof value === 'bigint') {
                     n = value;
+                } else if (value instanceof VbaDecimal) {
+                    n = bankersDivide(value.mantissa, 10n ** BigInt(value.scale));
+                } else if (value instanceof VbaCurrency) {
+                    n = bankersDivide(value.internal, 10000n);
                 } else if (typeof value === 'string' && /^[+-]?\d+$/.test(value.trim())) {
                     n = BigInt(value.trim());
                 } else {

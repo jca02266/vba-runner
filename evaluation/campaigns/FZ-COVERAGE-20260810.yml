@@ -2064,3 +2064,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
       - tests/spec/radix-implicit-width-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-214
+    title: Signed implicit conversion boundary matrix
+    status: queued
+    priority: 1
+    focus: Variantから整数型への符号付き最小値・最小値超過暗黙変換
+    priorCauseKey: radix-width-sign-extension-contract-incomplete
+    coverageTargets:
+      - src/engine/coerce.ts
+      - tests/spec/radix-signed-implicit-boundary.test.ts

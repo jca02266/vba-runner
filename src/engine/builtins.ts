@@ -2,7 +2,7 @@ import {
     VbaBoolean, VbaDate, VbaDecimal, VbaCurrency, VbaErrorValue,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing, vbaTrue, vbaFalse,
     toVbaDate, fromVbaDate, parseVbaDate, tryParseTimeFractionString,
-    parseCurrencyString,
+    parseCurrencyString, bankersDivide,
     isVbaObjectReferenceCompatible,
 } from './vba-types';
 import { VbaErrorCode } from './vba-errors';
@@ -414,6 +414,16 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.reg('ccur', (val: any) => {
         val = unwrapConversionValue(val);
         if (val instanceof VbaCurrency) return val;
+        if (val instanceof VbaDecimal) {
+            const scaled = bankersDivide(
+                val.mantissa * 10000n,
+                10n ** BigInt(val.scale),
+            );
+            if (scaled < -9223372036854775808n || scaled > 9223372036854775807n) {
+                ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+            }
+            return new VbaCurrency(scaled);
+        }
         if (val instanceof VbaBoolean) return new VbaCurrency(BigInt(val.value) * 10000n);
         if (typeof val === 'bigint') return new VbaCurrency(val * 10000n);
         if (typeof val === 'string') {
@@ -441,6 +451,20 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                 ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
             }
             return val;
+        }
+        if (val instanceof VbaDecimal) {
+            const n = bankersDivide(val.mantissa, 10n ** BigInt(val.scale));
+            if (n < -9223372036854775808n || n > 9223372036854775807n) {
+                ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+            }
+            return n;
+        }
+        if (val instanceof VbaCurrency) {
+            const n = bankersDivide(val.internal, 10000n);
+            if (n < -9223372036854775808n || n > 9223372036854775807n) {
+                ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
+            }
+            return n;
         }
         if (typeof val === 'string') {
             const trimmed = val.trim();
