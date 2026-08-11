@@ -885,3 +885,8 @@ checkpoints:
     decision: "DateAddの週・時分秒7ケースは一致した。日時領域の連続無バグ数は4回なので、DatePart・DateDiff・DateAddの無効intervalとオプション境界を最後に確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-189
+  - afterEvaluation: EV-00636
+    audit: "535 evaluations, 0 active claims, 0 queued candidates"
+    decision: "日時領域の無効interval・週オプション8ケースが一致し、5回連続無バグに到達した。日時領域を収束扱いとして切り替え、実Excel未照合を残す基数・型・境界領域を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-190

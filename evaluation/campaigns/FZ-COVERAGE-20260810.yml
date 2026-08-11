@@ -1845,3 +1845,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-190
+    title: Radix conversion type boundary matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域の基数変換と型幅・符号・オーバーフロー境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/radix-conversion-regressions.test.ts
+      - tests/spec/declaration-conversion-boundaries.test.ts
