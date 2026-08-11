@@ -494,8 +494,30 @@ Worker:
 Handler:
     Resume ContinueEach
 End Function
+
+Function ProbeIfForEachResumeLabel() As String
+    Dim values(0 To 1) As Long, item As Variant
+    values(0) = 1
+    values(1) = 2
+    On Error GoTo Handler
+    If True Then
+        For Each item In values
+            GoSub Worker
+ContinueIfEach:
+        Next item
+    End If
+    ProbeIfForEachResumeLabel = "after" & CStr(item)
+    Exit Function
+Worker:
+    If item = 1 Then Err.Raise 5
+    Return
+Handler:
+    Resume ContinueIfEach
+End Function
 `);
 
 assert.strictEqual(eachEv.callProcedure('ProbeForEachResumeLabel', []), 'after2',
     'Resume label from a For Each-nested GoSub continues enumeration');
 console.log('[PASS] GoSub For Each error resumption');
+assert.strictEqual(eachEv.callProcedure('ProbeIfForEachResumeLabel', []), 'after2',
+    'Resume label from For Each nested in If continues enumeration');

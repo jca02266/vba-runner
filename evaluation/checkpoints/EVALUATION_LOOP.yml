@@ -1208,3 +1208,8 @@ checkpoints:
     decision: "With内Select Case複合ネストも一致し、エラー処理領域の無バグ連続数は3回。IfとFor Eachを組み合わせた境界を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-056
+  - afterEvaluation: EV-00700
+    audit: "599 evaluations, 0 active claims"
+    decision: "If内For Each複合ネストも一致し、エラー処理領域の無バグ連続数は4回。5回目としてIf内Select Case境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-057
