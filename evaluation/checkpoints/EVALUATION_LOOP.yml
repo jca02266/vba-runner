@@ -1213,3 +1213,10 @@ checkpoints:
     decision: "If内For Each複合ネストも一致し、エラー処理領域の無バグ連続数は4回。5回目としてIf内Select Case境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-057
+  - afterEvaluation: EV-00701
+    audit: "600 evaluations, 0 active claims"
+    decision: "エラー処理領域で無バグ連続5回を達成した。次は未収束の宣言・型・リテラル領域を選定する。既存の型・基数・境界直積評価EV-00619はneeds-excelのため、実機結果を先に照合する。"
+    action: select-next-area
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
