@@ -1967,3 +1967,12 @@ checkpoints:
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
     blocker: "EV-00619 requires a RadixMatrix result whose recorded source hash matches the current queue source"
+  - afterEvaluation: EV-00793
+    audit: "692 evaluations, 0 active claims; 宣言・型・リテラルでCDec・CCur短い基数符号差異を再現"
+    decision: "XL-175の記録と現runnerの比較でBUG-00502を確認した。RC-00010の独立レビューを補足したが、型別ポリシー未確定のため局所修正せず真因分析を継続する。"
+    action: continue-root-cause
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00793
+    nextCandidate: FZ-COVERAGE-20260810-305
+    rootCauseId: RC-00010
+    blocker: "既存RadixMatrix.resultは現行キューソースハッシュと不一致"
