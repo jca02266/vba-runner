@@ -1381,3 +1381,17 @@ checkpoints:
     nextArea: 配列・UDT
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00723
+    audit: "622 evaluations, 0 active claims"
+    decision: "可変長String配列とLong配列の混在UDTも一致し、配列・UDT領域の無バグ連続は4回。ネスト混在を5回目として継続する。"
+    action: continue-area
+    nextArea: 配列・UDT
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00724
+    audit: "623 evaluations, 0 active claims"
+    decision: "可変長String子UDTと後続Long配列のネストも一致し、配列・UDT領域で無バグ連続5回を達成した。次は未収束の別領域を選定する。"
+    action: select-next-area
+    nextArea: Date
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

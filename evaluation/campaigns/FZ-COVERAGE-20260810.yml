@@ -2231,3 +2231,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/variable-string-udt.test.ts
+  - id: FZ-COVERAGE-20260810-234
+    title: Mixed variable-string numeric UDT boundary
+    status: queued
+    priority: 1
+    focus: 可変長String配列とLong配列を混在させたUDT Put/Get境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/variable-string-udt.test.ts
+  - id: FZ-COVERAGE-20260810-235
+    title: Nested variable-string UDT boundary
+    status: queued
+    priority: 1
+    focus: 可変長String子UDTと後続Long配列のネストPut/Get境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/nested-udt-array.test.ts

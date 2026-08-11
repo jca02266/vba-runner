@@ -12,6 +12,15 @@ Type NestedParent
     Values(0 To 1) As Integer
 End Type
 
+Type VariableChild
+    Name As String
+End Type
+
+Type VariableParent
+    Header As VariableChild
+    Values(0 To 1) As Long
+End Type
+
 Public Function Probe() As String
     Dim written As NestedParent, readBack As NestedParent
     written.Header.Id = 42
@@ -27,7 +36,22 @@ Public Function Probe() As String
     Probe = CStr(readBack.Header.Id) & ":" & readBack.Header.Code & ":" & _
         CStr(readBack.Values(0)) & ":" & CStr(readBack.Values(1))
 End Function
+
+Public Function ProbeVariableNested() As String
+    Dim written As VariableParent, readBack As VariableParent
+    written.Header.Name = "Aあ"
+    written.Values(0) = 10
+    written.Values(1) = 20
+    Open "C:\\variable-nested.bin" For Binary As #1
+    Put #1, , written
+    Close #1
+    Open "C:\\variable-nested.bin" For Binary As #1
+    Get #1, , readBack
+    Close #1
+    ProbeVariableNested = readBack.Header.Name & ":" & CStr(readBack.Values(0)) & ":" & CStr(readBack.Values(1))
+End Function
 `;
 const ev = evalVBASingle(source);
 assert.equal(ev.callProcedure('Probe', []), '42:XY:100:200');
-console.log('[PASS] nested UDT array Put/Get boundary (1 case)');
+assert.equal(ev.callProcedure('ProbeVariableNested', []), 'Aあ:10:20');
+console.log('[PASS] nested UDT array Put/Get boundary (2 cases)');
