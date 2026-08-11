@@ -965,3 +965,8 @@ checkpoints:
     decision: "ParamArrayの統合回帰とRC-00048共通化を完了した。次は未解決RCAであるRC-00047の基数入力横展開を優先し、vbaToNumber等の未確認経路を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-205
+  - afterEvaluation: EV-00652
+    audit: "551 evaluations, 0 active claims, 0 queued candidates"
+    decision: "基数変換入口6境界は一致したが、RC-00047の暗黙Variant変換と実Excel照合が未完了である。まず暗黙代入・演算経路を評価し、その後Excel候補をまとめる。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-206

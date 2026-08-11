@@ -1995,3 +1995,13 @@ items:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
       - tests/spec/radix-conversion-regressions.test.ts
+  - id: FZ-COVERAGE-20260810-206
+    title: Radix implicit coercion matrix
+    status: queued
+    priority: 1
+    focus: 基数値の暗黙Variant変換・代入・演算境界
+    priorCauseKey: radix-width-sign-extension-contract-incomplete
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/radix-input-entry-matrix.test.ts
