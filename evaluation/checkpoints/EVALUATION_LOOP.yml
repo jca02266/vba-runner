@@ -1684,3 +1684,10 @@ checkpoints:
     nextCandidate: null
     rootCauseId: RC-00061
     rootFixTask: ROOT-00032
+  - afterEvaluation: EV-00764-FIX
+    audit: "663 evaluations, 0 active claims; ROOT-00032 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "ROOT-00032でprocedure/block局所recoveryを共通化し、Sub・If・Forの構造保持回帰を確認した。Parser・Lexer領域のバグ後カウンターをリセットし、次の未評価境界を選定する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-276

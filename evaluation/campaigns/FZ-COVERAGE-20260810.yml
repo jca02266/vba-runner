@@ -2604,3 +2604,12 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - tests/engine/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-276
+    title: Parser class recovery boundary
+    status: queued
+    priority: 1
+    focus: ParserのparseAsClass内errorRecoveryとクラス構造・終端保持境界
+    priorCauseKey: parser-nested-recovery-context-not-preserved
+    coverageTargets:
+      - src/engine/parser.ts
+      - tests/engine/parser-error-recovery.test.ts
