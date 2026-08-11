@@ -2425,3 +2425,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-257
+    title: Format bracket directive Excel boundary
+    status: queued
+    priority: 1
+    focus: Formatの色指定・条件指定・未閉鎖角括弧の実Excel境界
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/excel/queue/FormatMatrixVerification.bas

@@ -1528,3 +1528,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-256
+  - afterEvaluation: EV-00745
+    audit: "644 evaluations, 0 active claims; EV-00744 remains needs-excel with XL-180 missing"
+    decision: "Format基本書式境界は1回目の無バグ確認となった。既存Formatマトリックスの色・条件・未閉鎖角括弧を実Excelで照合し、同領域の収束判定を続ける。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-257
