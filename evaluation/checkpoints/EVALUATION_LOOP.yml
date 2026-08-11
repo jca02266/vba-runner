@@ -1605,3 +1605,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-267
+  - afterEvaluation: EV-00756
+    audit: "655 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Format領域で5件連続（EV-00752〜EV-00756）の新規バグなしを確認した。coverageが低いLexer/Parser領域へ切り替え、行継続・引用符・コメント・基数リテラルの組合せを評価する。"
+    action: create-candidate
+    nextArea: Lexer/Parser
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-268

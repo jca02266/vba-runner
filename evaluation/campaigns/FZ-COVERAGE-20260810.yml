@@ -2526,3 +2526,13 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-268
+    title: Lexer continuation and literal boundary
+    status: queued
+    priority: 1
+    focus: Lexerの行継続・引用符・コメント・基数リテラル組合せ境界
+    priorCauseKey: lexer-coverage-low
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/lexer.test.ts
