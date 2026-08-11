@@ -2022,3 +2022,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-209
+    title: Financial optional and Null matrix
+    status: queued
+    priority: 1
+    focus: 財務関数のOptional引数・Null・Empty・型変換境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

@@ -980,3 +980,8 @@ checkpoints:
     decision: "基数Excel照合はneeds-excelで外部結果待ち。並行して未収束の財務関数領域から、非収束・無効引数・エラー伝播のマトリクスを評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-208
+  - afterEvaluation: EV-00655
+    audit: "554 evaluations, 0 active claims"
+    decision: "財務無効引数8境界は一致した。財務領域の無バグ連続数は1回なので、Optional・Null・Emptyの変換境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-209
