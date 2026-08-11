@@ -1819,3 +1819,12 @@ items:
       - src/engine/vba-types.ts
       - src/engine/builtins.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-187
+    title: Date arithmetic signed boundary matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateAdd・DateDiff負数、月末、四半期、年単位境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-functions.test.ts

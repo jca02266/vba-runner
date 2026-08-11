@@ -870,3 +870,8 @@ checkpoints:
     decision: "日付スカラー抽出のEmpty/Null 12ケースは一致した。日時領域の連続無バグ数は1回なので、日付文字列の区切り・時刻精度・負シリアル境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-186
+  - afterEvaluation: EV-00633
+    audit: "532 evaluations, 0 active claims, 0 queued candidates"
+    decision: "日付文字列・負シリアル・小数秒の10ケースは一致した。日時領域の連続無バグ数は2回なので、DateAdd・DateDiffの負数・大きな単位境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-187
