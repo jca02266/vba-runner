@@ -1040,3 +1040,8 @@ checkpoints:
     decision: "日付暦境界7ケースは一致し、日付・時刻領域の無バグ連続数は1回。負数TimeSerialとDateAdd単位境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-148
+  - afterEvaluation: EV-00667
+    audit: "566 evaluations, 0 active claims"
+    decision: "負数TimeSerial・DateAdd単位7ケースは一致し、日付・時刻領域の無バグ連続数は2回。DateSerialと日付型変換境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-149

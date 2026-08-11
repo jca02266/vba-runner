@@ -1332,3 +1332,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/datetime.test.ts
+  - id: FZ-BUILTIN-149
+    title: DateSerialと日付型変換境界
+    status: queued
+    priority: 1
+    focus: DateSerialの月日繰り上げ・負数とCDate/DateValueの型変換
+    priorCauseKey: date-serial-conversion-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/conversion_date.test.ts
