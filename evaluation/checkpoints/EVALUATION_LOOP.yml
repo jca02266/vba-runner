@@ -1828,3 +1828,12 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-287
+  - afterEvaluation: EV-00776-FIX
+    audit: "675 evaluations, 0 active claims; ROOT-00037 completed; Format Empty boundary fixed"
+    decision: "Emptyの4セクション単純リテラル差分を修正し、Formatのバグ後カウンターをリセットする。次は残るFormatの未照合境界を実機結果受領後に再評価する。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: FZ-COVERAGE-20260810-282
+    rootCauseId: RC-00066
+    rootFixTask: ROOT-00037
