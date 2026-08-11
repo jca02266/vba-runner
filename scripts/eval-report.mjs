@@ -328,25 +328,30 @@ function timeSeries(records, results, findings, stateEvents) {
     return state;
   };
   const evaluationStatuses = new Map();
-  const applyFindingStatus = (evaluationId, status) => {
-    const evaluation = recordsById.get(evaluationId);
-    if (!evaluation || excludedFindingStatuses.has(status)) return;
-    const findingIds = [...new Set(evaluation.findings ?? [])].filter((findingId) => findings.has(findingId));
-    if (!findingIds.length) return;
-    const areaState = findingAreaState(areaFor(evaluation));
-    for (const findingId of findingIds) {
-      discoveredFindingIds.add(findingId);
-      areaState.discovered.add(findingId);
-      if (resolvedFindingStatuses.has(status)) {
-        openFindingIds.delete(findingId);
-        resolvedFindingIds.add(findingId);
-        areaState.open.delete(findingId);
-        areaState.resolved.add(findingId);
-      } else if (!resolvedFindingIds.has(findingId)) {
-        openFindingIds.add(findingId);
-        if (!areaState.resolved.has(findingId)) areaState.open.add(findingId);
+  const rebuildFindingStates = () => {
+    discoveredFindingIds.clear();
+    resolvedFindingIds.clear();
+    openFindingIds.clear();
+    findingAreaStates.clear();
+    for (const [evaluationId, status] of evaluationStatuses) {
+      const evaluation = recordsById.get(evaluationId);
+      if (!evaluation || excludedFindingStatuses.has(status)) continue;
+      const findingIds = [...new Set(evaluation.findings ?? [])]
+        .filter((findingId) => findings.has(findingId));
+      const areaState = findingAreaState(areaFor(evaluation));
+      for (const findingId of findingIds) {
+        discoveredFindingIds.add(findingId);
+        areaState.discovered.add(findingId);
+        if (resolvedFindingStatuses.has(status)) {
+          resolvedFindingIds.add(findingId);
+          areaState.resolved.add(findingId);
+        } else {
+          openFindingIds.add(findingId);
+          areaState.open.add(findingId);
+        }
       }
     }
+    discovered = discoveredFindingIds.size;
     fixed = resolvedFindingIds.size;
   };
   const rows = timeline.map((item) => {
@@ -361,7 +366,7 @@ function timeSeries(records, results, findings, stateEvents) {
       const record = recordsById.get(evaluationId);
       area = areaFor(record);
       evaluationStatuses.set(evaluationId, status);
-      applyFindingStatus(evaluationId, status);
+      rebuildFindingStates();
       if (finalEvaluationStatuses.has(status)) {
         evaluationPoint = true;
       }
@@ -372,7 +377,7 @@ function timeSeries(records, results, findings, stateEvents) {
       area = areaFor(record);
       evaluationPoint = true;
       evaluationStatuses.set(evaluationId, status);
-      applyFindingStatus(record.id, status);
+      rebuildFindingStates();
     }
     discovered = discoveredFindingIds.size;
     const stateCounts = [...evaluationStatuses.values()].reduce((counts, currentStatus) => {
@@ -486,7 +491,7 @@ function renderMarkdown(records, statusRecords, summary, classSummary, series, f
     '',
     '## 時系列の収束状況',
     '',
-    '状態履歴の `occurredAt` を基準にした値です。履歴のない旧評価だけ `completedAt` または本文の `評価日` を使用します。評価分類はその時点で有効なEV数、Finding列は別単位の収束指標です。',
+    '状態履歴の `occurredAt` を基準にした値です。履歴のない旧評価だけ `completedAt` または本文の `評価日` を使用します。評価分類はその時点で有効なEV数、Finding列は別単位の現行状態指標です。known-limitまたはretiredへ遷移したFindingは、その時点で各Finding集合から除外します。',
     '',
     '| 状態遷移日時 | 評価ID | 状態 | 実装領域 | 評価件数（累積） | バグ状態数 | 非バグ状態数 | 判定保留状態数 | その他状態数 | 発見Finding | 解決済みFinding | 未解決Finding |',
     '|---|---|---|---|---:|---:|---:|---:|---:|---:|---:|---:|',
@@ -554,11 +559,11 @@ const findingAreaSeries = ${areaSeries};
 const allFindingSeries = ${allFindingSeries};
 const findingChart = new Chart(document.getElementById('finding-chart'), {
   type: 'line', data: { labels: convergenceLabels, datasets: [
-    { label: '累積発見Finding', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
+    { label: '発見Finding（現行）', data: ${values('discovered')}, borderColor: '#2563eb', backgroundColor: '#2563eb', tension: 0.15 },
     { label: '解決済みFinding', data: ${values('fixed')}, borderColor: '#16a34a', backgroundColor: '#16a34a', tension: 0.15 },
     { label: '未解決Finding', data: ${values('openBugs')}, borderColor: '#dc2626', backgroundColor: '#dc2626', tension: 0.15 }
   ]},
-  options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: '累積Finding数' }, ticks: { precision: 0 } } } }
+  options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, plugins: { title: { display: true, text: 'Finding単位のバグ収束' }, tooltip: { mode: 'index' } }, scales: { x: { title: { display: true, text: '評価完了日' } }, y: { beginAtZero: true, title: { display: true, text: 'Finding数（現行）' }, ticks: { precision: 0 } } } }
 });
 const findingAreaSelect = document.getElementById('finding-area-select');
 for (const option of findingAreaOptions) {
