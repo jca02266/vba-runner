@@ -372,3 +372,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-040
+    title: GoSubから動的呼出しへのエラー伝播境界
+    status: queued
+    priority: 1
+    focus: GoSub本体からCallByName等で呼び出した手続きのエラー伝播
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

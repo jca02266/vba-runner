@@ -1123,3 +1123,8 @@ checkpoints:
     decision: "Property SetのGoSub・On Error境界も修正後の共通Exit処理と一致し、エラー処理領域の無バグ連続数は2回。Call経路とProperty呼出し元のエラー伝播を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-039
+  - afterEvaluation: EV-00683
+    audit: "582 evaluations, 0 active claims"
+    decision: "GoSub本体からのCallエラー伝播も修正後の共通Exit処理と一致し、エラー処理領域の無バグ連続数は3回。CallByNameと動的呼出し境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-040

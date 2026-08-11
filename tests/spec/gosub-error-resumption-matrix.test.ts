@@ -36,6 +36,22 @@ Worker:
     Err.Raise 6
     Return
 End Function
+
+Function ProbeCallBoundary() As String
+    On Error GoTo Handler
+    GoSub Worker
+    ProbeCallBoundary = "bad"
+    Exit Function
+Worker:
+    Call Helper
+    Return
+Handler:
+    ProbeCallBoundary = "H" & CStr(Err.Number)
+End Function
+
+Sub Helper()
+    Err.Raise 5
+End Sub
 `);
 
 assert.strictEqual(ev.callProcedure('ProbeNormal', []), '3',
@@ -44,6 +60,8 @@ assert.strictEqual(ev.callProcedure('ProbeError', []), 'H5',
     'GoSub errors reach the caller On Error handler');
 assert.strictEqual(ev.callProcedure('ProbeResume', []), '6:1',
     'Resume Next handles an error raised inside a GoSub body');
+assert.strictEqual(ev.callProcedure('ProbeCallBoundary', []), 'H5',
+    'An error from a procedure called inside GoSub reaches the owning handler');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([
