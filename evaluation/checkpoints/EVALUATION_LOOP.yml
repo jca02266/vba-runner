@@ -1751,3 +1751,11 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00744-RCA
+    audit: "666 evaluations, 0 active claims; RC-00065 supplement review only; RC-00064 remains separate"
+    decision: "XL-180の直接原因はformatStringへの誤分岐と確認したが、引用符・エスケープ・複数セクションを含む一般分類契約は未確定。追加のFormat文字列分類候補を作成する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-279
+    rootCauseId: RC-00065

@@ -2633,3 +2633,13 @@ items:
       - src/engine/parser.ts
       - src/lsp/server.ts
       - tests/engine/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-279
+    title: Format string mixed-domain classification
+    status: queued
+    priority: 1
+    focus: Format文字列値と数値・文字列プレースホルダー混在書式の分類境界
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
