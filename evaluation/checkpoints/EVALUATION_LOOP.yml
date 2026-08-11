@@ -950,3 +950,8 @@ checkpoints:
     decision: "Module ParamArray名一致引数の迂回を修正したが、独立横展開で組み込みParamArrayバインダーにも同種の受理が疑われる。RC-00048の最終未解決経路を先に確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-202
+  - afterEvaluation: EV-00649
+    audit: "548 evaluations, 0 active claims, 0 queued candidates"
+    decision: "組み込みParamArrayの名前付き引数を修正したが、独立横展開で先行通常引数を持つProperty ParamArrayの名前付き指定が例外フラグを迂回することが判明した。RC-00048の残る直接経路を先に修正する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-203

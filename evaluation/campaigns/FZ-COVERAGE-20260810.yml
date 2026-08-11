@@ -1965,3 +1965,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/builtins.test.ts
+  - id: FZ-COVERAGE-20260810-203
+    title: Property ParamArray leading named matrix
+    status: queued
+    priority: 1
+    focus: Property ParamArrayの先行通常引数と名前付き指定の複合境界
+    priorCauseKey: property-paramarray-named-argument-guard-bypassed
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray-named-rejection.test.ts
