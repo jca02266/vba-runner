@@ -840,3 +840,8 @@ checkpoints:
     decision: "DateDiff月末・うるう年・逆順の2回目は一致した。組み込み関数領域の連続無バグ数は2回なので、未検証intervalと時刻境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-180
+  - afterEvaluation: EV-00627
+    audit: "526 evaluations, 0 active claims, 0 queued candidates"
+    decision: "DateDiff h/nの境界バグを修正し、日時領域の無バグ連続数をリセットした。残る週設定境界を確認するため同領域を継続する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-181

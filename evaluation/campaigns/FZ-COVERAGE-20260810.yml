@@ -1766,3 +1766,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-181
+    title: Date week option matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDatePart・DateDiff週オプション全値境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-functions.test.ts
