@@ -1900,3 +1900,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/longlong-comparison-arithmetic-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-196
+    title: Property ByRef object array matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty Let/Set、ByRef配列、Object値分類境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-byref.test.ts
+      - tests/spec/property-let-set.test.ts

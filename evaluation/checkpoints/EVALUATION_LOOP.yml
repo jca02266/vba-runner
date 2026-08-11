@@ -915,3 +915,8 @@ checkpoints:
     decision: "十進変換の丸め・Overflow12ケースは一致した。基数領域の連続無バグ数は4回なので、LongLong・LongPtr・Variant subtypeとの基数境界を最後に確認する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-195
+  - afterEvaluation: EV-00642
+    audit: "541 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LongLong・LongPtr・Variant subtypeの8ケースが一致し、基数領域で5回連続無バグに到達した。基数領域を収束扱いとして切り替え、未収束の引数・ByRef・Property領域を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-196
