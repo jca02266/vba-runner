@@ -432,3 +432,27 @@ End Function
 assert.strictEqual(withEv.callProcedure('ProbeWithResumeLabel', []), 7,
     'Resume label from a With-nested GoSub reaches the block body');
 console.log('[PASS] GoSub With-block error resumption');
+
+const eachEv = evalVBASingle(String.raw`
+Function ProbeForEachResumeLabel() As String
+    Dim values(0 To 1) As Long, item As Variant
+    values(0) = 1
+    values(1) = 2
+    On Error GoTo Handler
+    For Each item In values
+        GoSub Worker
+ContinueEach:
+    Next item
+    ProbeForEachResumeLabel = "after" & CStr(item)
+    Exit Function
+Worker:
+    If item = 1 Then Err.Raise 5
+    Return
+Handler:
+    Resume ContinueEach
+End Function
+`);
+
+assert.strictEqual(eachEv.callProcedure('ProbeForEachResumeLabel', []), 'after2',
+    'Resume label from a For Each-nested GoSub continues enumeration');
+console.log('[PASS] GoSub For Each error resumption');

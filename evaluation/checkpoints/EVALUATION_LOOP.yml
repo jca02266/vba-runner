@@ -1193,3 +1193,8 @@ checkpoints:
     decision: "Withブロック内ResumeラベルでError 35を発見し、With実行器のラベル解決を追加修正した。エラー処理領域の無バグ連続数は0回に戻るため、For Each境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-053
+  - afterEvaluation: EV-00697
+    audit: "596 evaluations, 0 active claims"
+    decision: "For Each内Resumeラベルも一致し、エラー処理領域の無バグ連続数は1回。Withとループを組み合わせたネスト境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-054
