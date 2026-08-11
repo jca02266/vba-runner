@@ -336,3 +336,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handler-reentry.test.ts
+  - id: FZ-GRAMMAR-036
+    title: GoSub・Call境界のエラー復帰
+    status: queued
+    priority: 1
+    focus: GoSub/Return・Call手続き境界でのOn Error捕捉とResume復帰
+    priorCauseKey: gosub-call-error-resumption
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub.test.ts
