@@ -213,4 +213,34 @@ End Sub`;
     console.log('[PASS] parseAsClass入口のerrorRecovery契約');
 }
 
+// 17. 壊れたクラスメンバー後のフィールド・手続きを部分ASTへ保持する
+{
+    const brokenMembers = [
+        'Public Sub Bad()\n    Dim x As',
+        'Public Function Bad()\n    Dim x As',
+        'Public Property Get Bad()\n    Dim x As',
+        'Public Dim x As',
+        'Implements Foo.',
+        'Event Foo(',
+        'Const x =',
+    ];
+    for (const broken of brokenMembers) {
+        const src = String.raw`${broken}
+Public Value As Long
+Public Sub Good()
+End Sub`;
+        const ast: any = new Parser(new Lexer(src).tokenize(), {
+            parseAsClass: 'C',
+            errorRecovery: true,
+        }).parse();
+        const classBody = ast.body[0]?.body ?? [];
+        assert.ok(ast.diagnostics.length >= 1, `${broken}: 不正文を診断する`);
+        assert.ok(classBody.some((stmt: any) => stmt.type === 'VariableDeclaration'),
+            `${broken}: 後続フィールドを保持する`);
+        assert.ok(classBody.some((stmt: any) => stmt.type === 'ProcedureDeclaration' && stmt.name.name === 'Good'),
+            `${broken}: 後続手続きを保持する`);
+    }
+    console.log('[PASS] parseAsClassのメンバー単位recoveryと部分AST');
+}
+
 console.log('\n✅ Parser error recovery: 全テスト通過');

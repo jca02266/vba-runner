@@ -907,6 +907,34 @@ export class Parser {
         }
     }
 
+    private isClassMemberStartAt(index: number): boolean {
+        let token = this.tokens[index];
+        if (!token) return false;
+        const hasScope = token.type === TokenType.KeywordPublic || token.type === TokenType.KeywordPrivate ||
+            token.type === TokenType.KeywordFriend || token.type === TokenType.KeywordGlobal;
+        if (hasScope) {
+            token = this.tokens[index + 1];
+        }
+        if (hasScope && (token?.type === TokenType.Identifier || token?.type === TokenType.ForeignName ||
+            token?.type === TokenType.KeywordWithEvents)) return true;
+        return token?.type === TokenType.KeywordSub ||
+            token?.type === TokenType.KeywordFunction ||
+            token?.type === TokenType.KeywordProperty ||
+            token?.type === TokenType.KeywordDim ||
+            token?.type === TokenType.KeywordImplements ||
+            token?.type === TokenType.KeywordEvent ||
+            token?.type === TokenType.KeywordConst ||
+            token?.type === TokenType.KeywordStatic;
+    }
+
+    private syncToNextClassMember(): void {
+        while (this.peek().type !== TokenType.EOF) {
+            if (this.peek().type === TokenType.KeywordEnd && this.peek(1).type === TokenType.KeywordClass) return;
+            if (this.isClassMemberStartAt(this.pos)) return;
+            this.advance();
+        }
+    }
+
     private peek(offset: number = 0): Token {
         if (this.pos + offset >= this.tokens.length) {
             return this.tokens[this.tokens.length - 1]; // EOF
@@ -2586,6 +2614,8 @@ export class Parser {
                 this.advance(); // consume scope keyword
             }
 
+            const memberStartPos = this.pos;
+            try {
             const inner = this.peek();
             if (tok.type === TokenType.KeywordOption && this.peek(1).type === TokenType.KeywordCompare) {
                 this.advance(); // consume Option
@@ -2662,6 +2692,21 @@ export class Parser {
             } else {
                 // Skip unknown tokens gracefully
                 this.advance();
+            }
+            } catch (e) {
+                if (!this.errorRecovery) throw e;
+                const msg = e instanceof Error ? e.message : String(e);
+                if (e instanceof ParseError) {
+                    const pos: Position = { line: e.line, column: e.column };
+                    this._diagnostics.push({ message: msg, loc: { start: pos, end: pos }, severity: 'error' });
+                } else {
+                    this.recordError(msg, tok);
+                }
+                // Rewind because a malformed member parser may have consumed
+                // later declarations before discovering a missing terminator.
+                this.pos = memberStartPos;
+                if (this.peek().type !== TokenType.EOF) this.advance();
+                this.syncToNextClassMember();
             }
             this.skipNewlines();
         }
