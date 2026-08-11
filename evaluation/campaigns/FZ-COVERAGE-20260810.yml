@@ -2489,3 +2489,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-264
+    title: Format string placeholder Unicode matrix
+    status: queued
+    priority: 1
+    focus: Format文字列プレースホルダー@/&/!/</>と空文字・Unicode境界
+    priorCauseKey: format-token-scanners-do-not-share-bracket-opaque-boundary
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts

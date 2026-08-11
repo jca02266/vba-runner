@@ -1577,3 +1577,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-263
+  - afterEvaluation: EV-00752
+    audit: "651 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Format Null・Empty境界は新規バグなし。文字列プレースホルダーの空文字・Unicode・大文字小文字制御を次に評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-264
