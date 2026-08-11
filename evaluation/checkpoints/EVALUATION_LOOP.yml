@@ -1138,3 +1138,8 @@ checkpoints:
     decision: "GoSubのResumeラベル経路で新たな誤復帰を発見し、転送状態を追跡して修正した。エラー処理領域の無バグ連続数は0回に戻るため、Resume Current/Nextとネストブロックの近接候補を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-042
+  - afterEvaluation: EV-00686
+    audit: "585 evaluations, 0 active claims"
+    decision: "GoSub内ハンドラのResume Next境界は一致し、エラー処理領域の無バグ連続数は1回。ネストIf/For内のResume復帰を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-043

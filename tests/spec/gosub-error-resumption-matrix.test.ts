@@ -63,6 +63,18 @@ Recover:
     ProbeResumeLabel = "R" & CStr(Err.Number)
 End Function
 
+Function ProbeResumeNextHandler() As String
+    On Error GoTo Handler
+    GoSub Worker
+    ProbeResumeNextHandler = "after"
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume Next
+End Function
+
 Sub Helper()
     Err.Raise 5
 End Sub
@@ -78,6 +90,8 @@ assert.strictEqual(ev.callProcedure('ProbeCallBoundary', []), 'H5',
     'An error from a procedure called inside GoSub reaches the owning handler');
 assert.strictEqual(ev.callProcedure('ProbeResumeLabel', []), 'R0',
     'A handler Resume label exits the GoSub error path without re-entry');
+assert.strictEqual(ev.callProcedure('ProbeResumeNextHandler', []), 'after',
+    'A handler Resume Next returns from the GoSub error statement');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([

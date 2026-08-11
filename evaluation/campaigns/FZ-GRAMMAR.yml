@@ -399,3 +399,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-043
+    title: ネストブロック内GoSub Resume復帰
+    status: queued
+    priority: 1
+    focus: If/Forネスト内のGoSubエラーとResume復帰位置
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts
