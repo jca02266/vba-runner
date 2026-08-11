@@ -1570,3 +1570,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-262
+  - afterEvaluation: EV-00751
+    audit: "650 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "日付文脈のXL-182と連続カンマ組合せのXL-181は実機結果待ち。Format Null・Emptyの異なる書式ドメイン境界をrunnerで並行評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-263

@@ -2479,3 +2479,13 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-263
+    title: Format Null Empty cross-domain matrix
+    status: queued
+    priority: 1
+    focus: Format Null・Emptyと数値・日付・文字列書式の境界
+    priorCauseKey: format-domain-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts
