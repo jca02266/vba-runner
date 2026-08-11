@@ -1584,3 +1584,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-264
+  - afterEvaluation: EV-00753
+    audit: "652 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Format文字列プレースホルダー基本境界は新規バグなし。科学表記E/eの符号・指数桁数・百分率・スケーリング組合せを次に評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-265

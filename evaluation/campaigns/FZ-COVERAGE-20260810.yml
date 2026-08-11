@@ -2498,3 +2498,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-265
+    title: Format scientific exponent matrix
+    status: queued
+    priority: 1
+    focus: Format科学表記E/eの符号・桁数・百分率・スケーリング境界
+    priorCauseKey: format-number-tokenizer-does-not-model-scaling-separators
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts
