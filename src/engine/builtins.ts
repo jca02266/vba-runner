@@ -291,6 +291,17 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         else if (digits.length >= fullDigits && magnitude >= signBit) value = magnitude - modulus;
         return bits === 64 ? value : Number(value);
     };
+    const parseRadixForValue = (source: string): number | bigint | undefined => {
+        const text = normalizeVbaNumericString(source.trim());
+        const match = /^([+-]?)&([hHoO])([0-9a-fA-F]+)$/.exec(text);
+        if (!match) return undefined;
+        const digits = match[3];
+        const base = match[2].toLowerCase();
+        const bits = base === 'h'
+            ? (digits.length <= 4 ? 16 : digits.length <= 8 ? 32 : 64)
+            : (digits.length <= 6 ? 16 : digits.length <= 11 ? 32 : 64);
+        return parseRadixForWidth(text, bits as 16 | 32 | 64);
+    };
     ctx.reg('cbyte', (val: any) => {
         val = unwrapConversionValue(val);
         if (val instanceof VbaBoolean) return val.valueOf() ? 255 : 0;
@@ -396,6 +407,11 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                 return parseCurrencyString(trimmed);
             }
             // &H/&O/指数/カンマ区切り等は数値文字列として解釈（実 VBA 差分で裁定）
+            const radix = parseRadixForValue(trimmed);
+            if (radix !== undefined) {
+                const integer = typeof radix === 'bigint' ? radix : BigInt(radix);
+                return new VbaCurrency(integer * 10000n);
+            }
             return VbaCurrency.fromNumber(ctx.toVbaNumber(trimmed));
         }
         return VbaCurrency.fromNumber(ctx.toVbaNumber(val));
@@ -411,6 +427,11 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         }
         if (typeof val === 'string') {
             const trimmed = val.trim();
+            const radix = parseRadixForWidth(trimmed, 64);
+            if (radix !== undefined) {
+                const n = typeof radix === 'bigint' ? radix : BigInt(radix);
+                return n;
+            }
             if (/^-?\d+$/.test(trimmed)) {
                 try {
                     const n = BigInt(trimmed);
@@ -480,14 +501,13 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
         if (typeof s !== 'string') s = vbaToString(s);
         const cleaned = s.trim().replace(/ /g, '');
         if (cleaned.toLowerCase().startsWith('&h')) {
-            const digits = cleaned.slice(2).match(/^[0-9a-f]+/i)?.[0] ?? '';
-            if (!digits) return 0;
-            const unsigned = parseInt(digits, 16);
-            if (digits.length <= 4 && unsigned >= 0x8000) return unsigned - 0x10000;
-            if (digits.length <= 8 && unsigned >= 0x80000000) return unsigned - 0x100000000;
-            return unsigned;
+            const radix = parseRadixForValue(cleaned);
+            return radix === undefined ? 0 : Number(radix);
         }
-        if (cleaned.toLowerCase().startsWith('&o')) return parseInt(cleaned.slice(2), 8) || 0;
+        if (cleaned.toLowerCase().startsWith('&o')) {
+            const radix = parseRadixForValue(cleaned);
+            return radix === undefined ? 0 : Number(radix);
+        }
         const match = cleaned.match(/^[+-]?\d*(\.\d*)?([eE][+-]?\d+)?/);
         const value = match ? parseFloat(match[0]) || 0 : 0;
         // Val recognizes legacy type-declaration suffixes and applies their
