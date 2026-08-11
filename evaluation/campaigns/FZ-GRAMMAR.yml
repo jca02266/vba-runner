@@ -408,3 +408,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-044
+    title: ループネスト内GoSub Resume復帰
+    status: queued
+    priority: 1
+    focus: For/Doネスト内のGoSubエラーとResume Next復帰位置
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

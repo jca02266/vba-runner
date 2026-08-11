@@ -1143,3 +1143,8 @@ checkpoints:
     decision: "GoSub内ハンドラのResume Next境界は一致し、エラー処理領域の無バグ連続数は1回。ネストIf/For内のResume復帰を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-043
+  - afterEvaluation: EV-00687
+    audit: "586 evaluations, 0 active claims"
+    decision: "Ifネスト内GoSubのResume Next復帰も一致し、エラー処理領域の無バグ連続数は2回。For/DoネストのResume復帰を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-044
