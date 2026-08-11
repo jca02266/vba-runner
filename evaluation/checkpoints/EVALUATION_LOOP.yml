@@ -1872,3 +1872,11 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-293
+  - afterEvaluation: EV-00782
+    audit: "681 evaluations, 0 active claims; BUG-00500 confirmed for inactive date section dispatch; RC-00067 review challenges unresolved boundaries"
+    decision: "直接原因は再現・独立レビュー済みだが、空文字列・3/4セクションとRC-00054/RC-00065統合範囲が未解決。修正前に反例を最小確認し、真因を確定する。"
+    action: continue-root-cause
+    nextArea: Format
+    nextEvaluation: EV-00782
+    nextCandidate: null
+    rootCauseId: RC-00067
