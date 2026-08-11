@@ -1305,3 +1305,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-146
+    title: 文字列Compare省略整合マトリクス
+    status: queued
+    priority: 1
+    focus: Option Compare Text/BinaryとCompare省略・明示値の関数間整合
+    priorCauseKey: string-compare-default-consistency
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

@@ -1025,3 +1025,8 @@ checkpoints:
     decision: "モジュールOption Compare4境界は一致し、比較・文字列領域の無バグ連続数は3回。文字列のNull/Emptyと既定Compareを継続評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-145
+  - afterEvaluation: EV-00664
+    audit: "563 evaluations, 0 active claims"
+    decision: "文字列Null・Empty7境界は一致し、無バグ連続数は4回。最終確認としてCompare省略・明示値の関数間整合を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-146
