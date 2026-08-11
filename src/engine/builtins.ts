@@ -1394,6 +1394,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                     return formatDate(parsed, fmt, fdow, effectiveFwoy);
                 } catch { /* fall through to string formatting */ }
             }
+            // VBA applies user-defined string formats only when the pattern
+            // contains a string-domain control (`@`, `&`, `!`, `<`, or `>`).
+            // Numeric/date tokens and literal-only patterns do not convert a
+            // String value into formatted output; Excel returns the input.
+            if (!hasUnescapedFormatChars(fmt, '@&!<>')) return effectiveVal;
             return formatString(effectiveVal, fmt);
         }
         if (effectiveVal instanceof VbaDate) {
