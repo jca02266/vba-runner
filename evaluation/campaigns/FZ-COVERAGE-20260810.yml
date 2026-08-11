@@ -1836,3 +1836,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-189
+    title: Date interval option validation matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateAdd・DateDiff・DatePart無効intervalと週オプション境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-functions.test.ts

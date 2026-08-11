@@ -880,3 +880,8 @@ checkpoints:
     decision: "符号付きDateAdd・DateDiffの8ケースは一致した。日時領域の連続無バグ数は3回なので、週単位・時分秒単位のDateAdd境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-188
+  - afterEvaluation: EV-00635
+    audit: "534 evaluations, 0 active claims, 0 queued candidates"
+    decision: "DateAddの週・時分秒7ケースは一致した。日時領域の連続無バグ数は4回なので、DatePart・DateDiff・DateAddの無効intervalとオプション境界を最後に確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-189
