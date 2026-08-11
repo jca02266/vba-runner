@@ -1,0 +1,6 @@
+- candidateId: FZ-COVERAGE-20260810-170
+  evaluationId: EV-00617
+  status: fixed
+  occurredAt: '2026-08-10T23:45:08Z'
+  source: git-history-backfill
+  sourceCommit: c4aef5f23858f24291eac5452cf86db8a1397e7f

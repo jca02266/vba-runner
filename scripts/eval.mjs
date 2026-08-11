@@ -115,6 +115,32 @@ function readResults() {
   return results;
 }
 
+function readEventEvaluationIds() {
+  const ids = new Set();
+  for (const name of files(statesDir, '.events.yml')) {
+    const events = yaml.load(fs.readFileSync(path.join(statesDir, name), 'utf8'), { json: true });
+    if (!Array.isArray(events)) continue;
+    for (const event of events) {
+      if (event?.evaluationId && event?.occurredAt) ids.add(event.evaluationId);
+    }
+  }
+  return ids;
+}
+
+function hasLegacyEvaluationDate(record) {
+  return /^[-*]\s*評価日:\s*\d{4}-\d{2}-\d{2}\s*$/m.test(record.source);
+}
+
+function findTimelineGaps(records, results) {
+  const eventEvaluationIds = readEventEvaluationIds();
+  const resultEvaluationIds = new Set([...results.values()].map((result) => result.evaluationId));
+  return records
+    .filter(({ data, source }) => !eventEvaluationIds.has(data.id)
+      && !resultEvaluationIds.has(data.id)
+      && !hasLegacyEvaluationDate({ source }))
+    .map(({ data }) => ({ id: data.id, status: data.status, candidateId: data.candidateId }));
+}
+
 function eventsFile(candidateId) {
   return path.join(statesDir, `${candidateId}.events.yml`);
 }
@@ -748,6 +774,10 @@ function ownedClaim(id, token) {
 
 function audit() {
   const records = validate();
+  const timelineGaps = findTimelineGaps(records, readResults());
+  if (timelineGaps.length > 0) {
+    fail(`timeline coverage is incomplete for ${timelineGaps.length} evaluation records: ${timelineGaps.map(({ id, status }) => `${id}(${status})`).join(', ')}`);
+  }
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
   const archiveDir = path.join(statesDir, 'archive');
   if (stale.length) fs.mkdirSync(archiveDir, { recursive: true });
@@ -756,7 +786,9 @@ function audit() {
     fs.renameSync(state.file, archive);
   }
   const active = readClaims();
-  console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
+  if (timelineGaps.length === 0) {
+    console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
+  }
 }
 
 function release(id, token) {
