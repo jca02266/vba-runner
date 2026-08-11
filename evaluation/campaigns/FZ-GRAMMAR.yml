@@ -282,3 +282,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/array-functions.test.ts
+  - id: FZ-GRAMMAR-030
+    title: 配列戻り値とByRef再束縛境界
+    status: queued
+    priority: 1
+    focus: Function配列戻り値・ByRef配列ReDim・呼出し後の要素保持
+    priorCauseKey: array-return-byref-rebind
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/byref.test.ts

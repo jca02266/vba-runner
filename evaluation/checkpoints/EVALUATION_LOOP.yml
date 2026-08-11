@@ -1070,3 +1070,8 @@ checkpoints:
     decision: "多次元・型付き列挙6境界は一致し、無バグ連続数は2回。動的配列のReDim Preserve・Erase相互作用を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-029
+  - afterEvaluation: EV-00673
+    audit: "572 evaluations, 0 active claims"
+    decision: "ReDim Preserve・Erase5境界は一致し、配列・UDT領域の無バグ連続数は3回。配列戻り値・ByRef再束縛を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-030
