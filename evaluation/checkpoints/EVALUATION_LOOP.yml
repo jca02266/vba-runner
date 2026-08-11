@@ -1444,3 +1444,17 @@ checkpoints:
     nextArea: Option Compare・Like
     nextEvaluation: EV-00732
     nextCandidate: FZ-COVERAGE-20260810-243
+  - afterEvaluation: EV-00732
+    audit: "631 evaluations, 0 active claims"
+    decision: "Option Compare・Like領域のモジュール境界を評価した。次はワイルドカード・文字クラスの組合せを評価する。"
+    action: continue-area
+    nextArea: Option Compare・Like
+    nextEvaluation: EV-00733
+    nextCandidate: FZ-COVERAGE-20260810-244
+  - afterEvaluation: EV-00733
+    audit: "632 evaluations, 0 active claims"
+    decision: "Option Compare・Like領域のワイルドカード・文字クラス境界を評価した。次はText比較のUnicode同値を評価する。"
+    action: continue-area
+    nextArea: Option Compare・Like
+    nextEvaluation: EV-00734
+    nextCandidate: FZ-COVERAGE-20260810-245

@@ -2311,3 +2311,20 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/module-option-compare-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-244
+    title: Like wildcard and character class boundary
+    status: queued
+    priority: 1
+    focus: Likeのワイルドカード・文字クラス・エスケープ境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-charclass.test.ts
+      - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-245
+    title: Like Text ligature equivalence
+    status: queued
+    priority: 1
+    focus: Option Compare Textにおけるæ/aeのLike同値とBinaryとの差
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-pattern-grammar-matrix.test.ts
