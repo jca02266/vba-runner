@@ -945,3 +945,8 @@ checkpoints:
     decision: "Interface Property ParamArrayの名前付きvalueは修正後に拒否できたが、独立横展開でModule ParamArrayの名前一致経路が同じ禁止規則を迂回することが判明した。RC-00048の未解決経路を先に評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-201
+  - afterEvaluation: EV-00648
+    audit: "547 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Module ParamArray名一致引数の迂回を修正したが、独立横展開で組み込みParamArrayバインダーにも同種の受理が疑われる。RC-00048の最終未解決経路を先に確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-202

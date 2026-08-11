@@ -1956,3 +1956,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray-named-rejection.test.ts
       - tests/spec/optional-param-order.test.ts
+  - id: FZ-COVERAGE-20260810-202
+    title: Builtin ParamArray named matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数のParamArray名前付き引数禁止境界（Array・Choose・Switch）
+    priorCauseKey: property-paramarray-named-argument-guard-bypassed
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/builtins.test.ts
