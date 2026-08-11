@@ -1258,3 +1258,22 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-BUILTIN-141
+    title: Likeパターン文法境界
+    status: queued
+    priority: 1
+    focus: Likeの空文字クラス・降順範囲・未終端クラスの仕様検証
+    priorCauseKey: vba-like-pattern-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/string-like.test.ts
+  - id: FZ-BUILTIN-142
+    title: 文字列CompareとOption Compare境界
+    status: queued
+    priority: 1
+    focus: InStr/Replace/StrComp/FilterのText・Binary・明示CompareとUnicode境界
+    priorCauseKey: vba-text-comparison-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/builtin-strings.test.ts

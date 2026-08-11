@@ -1005,3 +1005,8 @@ checkpoints:
     decision: "財務の型変換・極小率5境界は一致し、財務領域の無バグ連続5回を達成した。次は未収束の比較・文字列領域を優先評価する。"
     action: select-next-area
     nextArea: 比較・文字列
+  - afterEvaluation: EV-00660
+    audit: "559 evaluations, 0 active claims"
+    decision: "Likeの空クラス・降順範囲・未終端クラス3境界は一致した。比較・文字列領域の次は文字列CompareとOption Compareの境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-142
