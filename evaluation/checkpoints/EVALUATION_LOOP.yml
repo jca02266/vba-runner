@@ -815,3 +815,18 @@ checkpoints:
     decision: "Format領域の5候補を一括照合し、EV-00612とEV-00615で条件セクション差異をBUG-00464・00465として確定、EV-00613・00614・00616は一致した。条件セクションの横展開を5候補単位で続ける。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-170
+  - afterEvaluation: EV-00620
+    audit: "519 evaluations, 0 active claims, 0 queued candidates before registration"
+    decision: "Formatと基数の実機待ちは継続する一方、別の未収束候補がないため、宣言・型・リテラルのLongLongリテラル境界を新規登録して評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-174
+  - afterEvaluation: EV-00621
+    audit: "520 evaluations, 0 active claims, 0 queued candidates"
+    decision: "LongLong Const・型推論の6ケースは一致し、同領域の連続無バグ数を2回へ更新した。Format/Radixの実機待ちを維持し、次は別経路の未検証LongLong境界を選定する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-175
+  - afterEvaluation: EV-00624
+    audit: "523 evaluations, 0 active claims, 0 queued candidates"
+    decision: "宣言・型・リテラルのLongLong境界はEV-00620〜EV-00624で5回連続無バグとなったため収束扱いにする。実機待ちを除く未収束の組み込み関数領域へ切り替える。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-178

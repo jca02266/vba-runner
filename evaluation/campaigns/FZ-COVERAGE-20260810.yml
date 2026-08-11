@@ -1696,3 +1696,57 @@ items:
       - src/engine/builtins.ts
       - tests/spec/declaration-conversion-boundaries.test.ts
       - tests/excel/queue/RadixMatrixVerification.bas
+  - id: FZ-COVERAGE-20260810-173
+    title: LongLong literal suffix boundary matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLongサフィックス付き10進・16進・8進リテラル境界
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/identifier-type-suffix.test.ts
+  - id: FZ-COVERAGE-20260810-174
+    title: LongLong constant inference matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong Const・型推論精度境界
+    coverageTargets:
+      - src/engine/flow-environment.ts
+      - src/engine/type-environment.ts
+      - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-175
+    title: LongLong value propagation matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLongリテラルからVariant・戻り値・配列への値伝播
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/variant-propagation.test.ts
+  - id: FZ-COVERAGE-20260810-176
+    title: LongLong ByRef and Property propagation matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong値のByRef・Property・配列要素書戻し境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+      - tests/spec/property-procedures.test.ts
+  - id: FZ-COVERAGE-20260810-177
+    title: LongLong comparison and arithmetic matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のLongLong比較・Select Case・算術境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
+      - tests/spec/operators-extra.test.ts
+  - id: FZ-COVERAGE-20260810-178
+    title: Date interval and week boundary matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDatePart・DateDiff・Weekday週境界マトリクス
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-functions.test.ts
