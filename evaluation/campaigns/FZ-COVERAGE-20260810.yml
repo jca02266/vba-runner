@@ -2143,3 +2143,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/val-radix-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-223
+    title: Val 64-bit octal boundary
+    status: queued
+    priority: 1
+    focus: Valの64-bit 8進最大・最小境界とDouble表示
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/val-radix-boundary.test.ts
