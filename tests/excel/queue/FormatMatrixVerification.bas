@@ -18,9 +18,21 @@ Public Sub RunFormatMatrixVerification()
     EmitDateContextBoundaryMatrix
     EmitSelectedSectionBoundaryMatrix
     EmitNamedDateBoundaryMatrix
+    EmitRoundingBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitRoundingBoundaryMatrix()
+    Print #resultFile, "XL-185"
+    Debug.Print "XL-185"
+    EmitCase "XL-185-POS-BELOW", "0", 1.499999999
+    EmitCase "XL-185-NEG-BELOW", "0", -1.499999999
+    EmitCase "XL-185-POS-HALF", "0", 1.5
+    EmitCase "XL-185-NEG-HALF", "0", -1.5
+    EmitCase "XL-185-POS-DECIMAL", "0.0", 2.349999999
+    EmitCase "XL-185-NEG-DECIMAL", "0.0", -2.349999999
 End Sub
 
 Private Sub EmitNamedDateBoundaryMatrix()

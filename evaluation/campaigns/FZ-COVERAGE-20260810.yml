@@ -2802,3 +2802,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-296
+    title: Format rounding and sign boundary matrix
+    status: queued
+    priority: 1
+    focus: Format数値の丸め・符号・ゼロ埋め境界
+    priorCauseKey: format-rounding-sign-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

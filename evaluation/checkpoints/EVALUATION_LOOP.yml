@@ -1904,3 +1904,12 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00785
+    audit: "684 evaluations, 0 active claims; Formatの丸め基本境界は一致したが1e-9未満の半端境界をneeds-excelで確認待ち"
+    decision: "独立評価で1.499999999がrunnerでは2になることを検出した。固定epsilonの影響かExcel仕様かをXL-185で照合するまで修正しない。"
+    action: needs-excel
+    nextArea: Format
+    nextEvaluation: EV-00785
+    nextCandidate: FZ-COVERAGE-20260810-296
+    excelProbeIds:
+      - XL-185
