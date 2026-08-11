@@ -1000,3 +1000,8 @@ checkpoints:
     decision: "財務の配列・償却終端・符号7境界は一致し、無バグ連続数は4回。最終確認として型変換・極小率境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-212
+  - afterEvaluation: EV-00659
+    audit: "558 evaluations, 0 active claims"
+    decision: "財務の型変換・極小率5境界は一致し、財務領域の無バグ連続5回を達成した。次は未収束の比較・文字列領域を優先評価する。"
+    action: select-next-area
+    nextArea: 比較・文字列
