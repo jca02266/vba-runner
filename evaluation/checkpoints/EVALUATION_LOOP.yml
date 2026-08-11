@@ -1851,3 +1851,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-290
+  - afterEvaluation: EV-00779
+    audit: "678 evaluations, 0 active claims; Format ASCII/BMP placeholder matrix is specification-consistent, with two Unicode/empty boundaries unresolved"
+    decision: "ASCII・BMPの確定範囲は新規バグなしだが、単独@空文字と補助平面Unicodeは実機待ち。既存の実機待ちEVと同じキューを再利用し、結果受領前に推測修正しない。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: FZ-COVERAGE-20260810-282
