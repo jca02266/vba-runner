@@ -2005,3 +2005,12 @@ items:
       - src/engine/coerce.ts
       - src/engine/evaluator.ts
       - tests/spec/radix-input-entry-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-207
+    title: Radix Excel comparison batch
+    status: queued
+    priority: 1
+    focus: 基数値の明示・暗黙変換とExcel実機結果の一括照合
+    priorCauseKey: radix-width-sign-extension-contract-incomplete
+    coverageTargets:
+      - tests/excel/queue/ExcelQueueVerification.bas
+      - tests/spec/radix-input-entry-matrix.test.ts

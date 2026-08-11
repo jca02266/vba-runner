@@ -970,3 +970,8 @@ checkpoints:
     decision: "基数変換入口6境界は一致したが、RC-00047の暗黙Variant変換と実Excel照合が未完了である。まず暗黙代入・演算経路を評価し、その後Excel候補をまとめる。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-206
+  - afterEvaluation: EV-00653
+    audit: "552 evaluations, 0 active claims, 0 queued candidates"
+    decision: "暗黙Variant基数4境界はrunnerで一致した。RC-00047の残件は実Excel照合なので、次は基数の明示・暗黙変換を一括Excelプローブ化してneeds-excelへ進める。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-207
