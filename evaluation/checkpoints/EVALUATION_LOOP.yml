@@ -1837,3 +1837,10 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-282
     rootCauseId: RC-00066
     rootFixTask: ROOT-00037
+  - afterEvaluation: EV-00777
+    audit: "676 evaluations, 0 active claims; Format bracket-pattern boundary remains blocked because Excel contract is unverified"
+    decision: "不正ブラケットのrunner出力は再現したが、Format固有の公開仕様または実機期待値がなくバグ確定できない。先に実機待ちのEV-00771/EV-00773を照合し、Formatの未確定境界を減らす。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00771
+    nextCandidate: FZ-COVERAGE-20260810-282

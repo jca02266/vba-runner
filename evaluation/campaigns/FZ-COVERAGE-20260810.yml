@@ -2722,3 +2722,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-288
+    title: Format bracket pattern validation
+    status: queued
+    priority: 1
+    focus: Formatの空ブラケット・降順範囲・不正ブラケットのトークン検証境界
+    priorCauseKey: format-bracket-pattern-validation-contract
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
