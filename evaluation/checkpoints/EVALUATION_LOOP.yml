@@ -1549,3 +1549,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-259
+  - afterEvaluation: EV-00748
+    audit: "647 evaluations, 0 active claims"
+    decision: "Formatの角括弧エスケープ・引用符・セクション区切り境界は実Excel結果と一致した。数値プレースホルダーとリテラル・エスケープの組合せを続けて評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-260
