@@ -1065,3 +1065,8 @@ checkpoints:
     decision: "UDT配列のReDim・Erase・全体代入5境界は一致し、配列・UDT領域の無バグ連続数は1回。多次元・Option Base・型付き列挙を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-028
+  - afterEvaluation: EV-00672
+    audit: "571 evaluations, 0 active claims"
+    decision: "多次元・型付き列挙6境界は一致し、無バグ連続数は2回。動的配列のReDim Preserve・Erase相互作用を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-029

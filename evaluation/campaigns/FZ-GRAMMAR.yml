@@ -273,3 +273,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
+  - id: FZ-GRAMMAR-029
+    title: 動的配列ReDim Preserve相互作用
+    status: queued
+    priority: 1
+    focus: 動的配列のReDim Preserve・Erase・再確保後の下限と要素保持
+    priorCauseKey: dynamic-array-redim-erase-interaction
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts
