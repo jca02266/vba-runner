@@ -1277,3 +1277,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-BUILTIN-143
+    title: Unicode文字列照合とCompare無効値
+    status: queued
+    priority: 1
+    focus: Unicodeアクセント・全角半角・Compare値検証の共通境界
+    priorCauseKey: unicode-string-compare-contract
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

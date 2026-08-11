@@ -1010,3 +1010,8 @@ checkpoints:
     decision: "Likeの空クラス・降順範囲・未終端クラス3境界は一致した。比較・文字列領域の次は文字列CompareとOption Compareの境界を評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-142
+  - afterEvaluation: EV-00661
+    audit: "560 evaluations, 0 active claims"
+    decision: "文字列Compare8境界は一致し、比較・文字列領域の無バグ連続数は1回。Unicode照合とCompare無効値を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-143
