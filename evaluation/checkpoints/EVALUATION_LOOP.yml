@@ -1060,3 +1060,8 @@ checkpoints:
     decision: "時刻・週境界9ケースは一致し、日付・時刻領域の無バグ連続5回を達成した。次は未収束の配列・UDT領域を優先評価する。"
     action: select-next-area
     nextArea: 配列・UDT
+  - afterEvaluation: EV-00671
+    audit: "570 evaluations, 0 active claims"
+    decision: "UDT配列のReDim・Erase・全体代入5境界は一致し、配列・UDT領域の無バグ連続数は1回。多次元・Option Base・型付き列挙を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-028

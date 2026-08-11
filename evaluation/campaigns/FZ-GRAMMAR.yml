@@ -255,3 +255,21 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/paramarray-edge-cases.test.ts
+  - id: FZ-GRAMMAR-027
+    title: 配列・UDT再確保横断境界
+    status: queued
+    priority: 1
+    focus: UDT配列のReDim・Erase・全体代入とネストメンバー保持
+    priorCauseKey: array-udt-resize-assignment
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts
+  - id: FZ-GRAMMAR-028
+    title: 多次元配列下限と型付き列挙境界
+    status: queued
+    priority: 1
+    focus: Option Base・多次元LBound/UBound・For Each型変換の組み合わせ
+    priorCauseKey: multidim-array-typed-enumeration
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts
