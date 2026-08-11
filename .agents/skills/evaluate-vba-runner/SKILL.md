@@ -83,6 +83,12 @@ analysis; do not duplicate its taxonomy here.
    runner. Add any required `.cls`/`.frm` fixture beside that module, and
    reference the source files in the record's `tests`. A scratch-only probe is
    not a valid Excel queue entry.
+   For type, radix, width, sign, precision, or other boundary-heavy areas,
+   do not represent the investigation as one example per evaluation. Define
+   an explicit matrix whose axes and boundary values are recorded in the test,
+   execute the same Cartesian cases in the runner and Excel probe, and use one
+   probe ID for the matrix batch only when every case is emitted under that ID.
+   A representative smoke test may supplement a matrix but cannot replace it.
    Accumulate up to five candidates in the same evaluation area before
    requesting Windows execution. Add all of their probes to the queue,
    prepare one workbook, and run `eval-excel.cmd` once. Then reconcile each

@@ -8,6 +8,7 @@
 
 - `ExcelQueueVerification.bas`: XL-001〜XL-061の検証マクロ
 - `FormatMatrixVerification.bas`: FormatのASCII単文字・複合トークン・字句境界マトリックス
+- `RadixMatrixVerification.bas`: 変換型×基数×幅・符号・精度境界の直積マトリックス
 - `ExcelQueueTicket.cls`: XL-033で使うクラスモジュール
 - `ExcelQueueDefaultValue.cls`: XL-046で使う既定プロパティ付きクラス
 - `ExcelQueueCallByNameTarget.cls`: XL-048で使うLet/Set片側プロパティ付きクラス
@@ -23,6 +24,7 @@
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
 - `ExcelQueueVerification.result`: 最新の実機結果（UTF-8、BOMなし）
 - `FormatMatrix.result`: 専用Formatマトリックスの実機結果（通常回帰とは別管理）
+- `RadixMatrix.result`: 変換境界マトリックスの実機結果（通常回帰とは別管理）
 
 ## ブックの準備と実機実行
 
