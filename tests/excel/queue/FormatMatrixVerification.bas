@@ -20,6 +20,8 @@ Public Sub RunFormatMatrixVerification()
 End Sub
 
 Private Sub EmitMixedNullBoundaryMatrix()
+    Print #resultFile, "XL-180"
+    Debug.Print "XL-180"
     EmitCase "XL-180-POS", "0.00;NEG;ZERO;NULL", "12"
     EmitCase "XL-180-NEG", "0.00;NEG;ZERO;NULL", "-12"
     EmitCase "XL-180-ZERO", "0.00;NEG;ZERO;NULL", "0"
