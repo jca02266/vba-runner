@@ -1699,3 +1699,10 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     rootCauseId: RC-00062
+  - afterEvaluation: EV-00765-FIX
+    audit: "664 evaluations, 0 active claims; ROOT-00033 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "parseAsClass入口でerrorRecovery:trueのParseErrorをdiagnosticsへ変換する修正と回帰を完了した。クラス内部の部分AST同期は未解決の別境界として次に評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-277

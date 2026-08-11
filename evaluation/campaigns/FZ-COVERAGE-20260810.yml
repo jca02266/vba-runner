@@ -2613,3 +2613,13 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - tests/engine/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-277
+    title: Parser class partial recovery boundary
+    status: queued
+    priority: 1
+    focus: ParserのparseAsClass内不正文後のメンバー・部分AST・終端同期境界
+    priorCauseKey: parser-class-recovery-bypasses-error-context
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/lsp/server.ts
+      - tests/engine/parser-error-recovery.test.ts
