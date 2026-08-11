@@ -2328,3 +2328,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-pattern-grammar-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-246
+    title: Class error handler isolation
+    status: queued
+    priority: 1
+    focus: クラス局所On Errorと呼出し元Err状態の分離・再送出境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/class-error-state-isolation-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-247
+    title: Error handler re-entry boundary
+    status: queued
+    priority: 1
+    focus: On Error GoToハンドラ内のErr.Raise再送出とIf/For境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handler-reentry.test.ts

@@ -1458,3 +1458,17 @@ checkpoints:
     nextArea: Option Compare・Like
     nextEvaluation: EV-00734
     nextCandidate: FZ-COVERAGE-20260810-245
+  - afterEvaluation: EV-00734
+    audit: "633 evaluations, 0 active claims"
+    decision: "Option Compare・Like領域のText比較同値を評価した。5件の確認結果を区切り、未収束のErr・On Error領域を次に選定する。"
+    action: select-next-area
+    nextArea: Err・On Error
+    nextEvaluation: EV-00735
+    nextCandidate: FZ-COVERAGE-20260810-246
+  - afterEvaluation: EV-00735
+    audit: "634 evaluations, 0 active claims"
+    decision: "Err・On Error領域のクラス局所ハンドラ分離と再送出を評価した。次はハンドラ内Err.Raiseの再入防止境界を評価する。"
+    action: continue-area
+    nextArea: Err・On Error
+    nextEvaluation: EV-00736
+    nextCandidate: FZ-COVERAGE-20260810-247
