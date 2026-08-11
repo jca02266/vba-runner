@@ -15,9 +15,19 @@ Public Sub RunFormatMatrixVerification()
     EmitTokenizerCornerMatrix
     EmitMixedNullBoundaryMatrix
     EmitScalingBoundaryMatrix
+    EmitDateContextBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitDateContextBoundaryMatrix()
+    Print #resultFile, "XL-182"
+    Debug.Print "XL-182"
+    EmitCase "XL-182-HM", "h m", DateSerial(2026, 3, 15) + TimeSerial(12, 34, 56)
+    EmitCase "XL-182-HYPHEN", "h-m", DateSerial(2026, 3, 15) + TimeSerial(12, 34, 56)
+    EmitCase "XL-182-LITERAL", "hfoo m", DateSerial(2026, 3, 15) + TimeSerial(12, 34, 56)
+    EmitCase "XL-182-C", "c", DateSerial(2026, 3, 15) + TimeSerial(12, 34, 56)
 End Sub
 
 Private Sub EmitScalingBoundaryMatrix()
