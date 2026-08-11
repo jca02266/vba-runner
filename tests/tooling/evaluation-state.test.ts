@@ -417,3 +417,44 @@ try {
 }
 
 console.log('[PASS] Excel result synchronization gate');
+
+// The combined matrix command writes its Radix completion marker to a
+// separate result file; that file must satisfy the same synchronization gate.
+const radixResult = `${root}/tests/excel/queue/RadixMatrix.result`;
+const radixResultBody = existsSync(radixResult) ? readFileSync(radixResult, 'utf8') : null;
+const radixState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-RADIX.md`;
+const radixStateBody = `---
+id: EV-TEST-EXCEL-RADIX
+candidateId: FZ-GRAMMAR-001
+campaign: FZ-GRAMMAR
+status: needs-excel
+priority: low
+focus: Radix matrix result synchronization test
+area: 評価基盤
+areaSource: confirmed
+excelProbeIds:
+  - XL-176
+findings: []
+tests:
+  - tests/excel/queue/RadixMatrixVerification.bas (XL-176)
+horizontalAudit:
+  confirmed: []
+  ruledOut: []
+  unresolved:
+    - pending Radix result
+---
+`;
+writeFileSync(radixState, radixStateBody);
+try {
+    writeFileSync(radixResult,
+        `CASE=XL-176 KIND=Byte INPUT=&H100 ERR=6\nRADIX_MATRIX_COMPLETE=True\nQUEUE_SOURCE_SHA256=${sourceHash}\n`);
+    const radixReady = run('excel-sync', 'EV-TEST-EXCEL-RADIX');
+    assert.equal(radixReady.status, 0, radixReady.stderr);
+    assert.equal(JSON.parse(radixReady.stdout).requiredState, 'result-ready');
+} finally {
+    if (radixResultBody === null) unlinkSync(radixResult);
+    else writeFileSync(radixResult, radixResultBody);
+    if (existsSync(radixState)) unlinkSync(radixState);
+}
+
+console.log('[PASS] Radix matrix result synchronization gate');

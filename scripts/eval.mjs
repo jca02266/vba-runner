@@ -330,11 +330,11 @@ function excelQueueState(data) {
   const resultIds = new Set(resultText.split(/\r?\n/)
     .flatMap((line) => [
       line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1],
-      line.match(/^CASE=(XL-\d{3})(?:-[A-Z0-9]+)+\b/)?.[1],
+      line.match(/^CASE=(XL-\d{3})(?:-[A-Z0-9]+)*\b/)?.[1],
     ])
     .filter(Boolean));
   const missingResultIds = requiredIds.filter((id) => !resultIds.has(id));
-  const complete = /^(?:QUEUE_COMPLETE|FORMAT_MATRIX_COMPLETE)=True\s*$/mi.test(resultText);
+  const complete = /^(?:QUEUE_COMPLETE|FORMAT_MATRIX_COMPLETE|RADIX_MATRIX_COMPLETE)=True\s*$/mi.test(resultText);
   const recordedHash = resultText.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
   const sourceHash = sourceTexts.length > 0 ? normalizedExcelSourceHash() : null;
   const preparationStamp = fs.existsSync(excelQueuePreparationStamp)
