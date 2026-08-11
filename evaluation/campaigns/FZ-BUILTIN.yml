@@ -1296,3 +1296,12 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/strcomp-option-compare.test.ts
+  - id: FZ-BUILTIN-145
+    title: 文字列Null Emptyと既定Compare境界
+    status: queued
+    priority: 1
+    focus: InStr/Replace/StrComp/FilterのNull・Empty・Compare省略時の共通伝播
+    priorCauseKey: string-null-empty-compare-default
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

@@ -1020,3 +1020,8 @@ checkpoints:
     decision: "Unicode比較・Compare無効値5境界は一致し、無バグ連続数は2回。次はOption Compareモジュール境界と組み込み関数の既定値を評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-144
+  - afterEvaluation: EV-00663
+    audit: "562 evaluations, 0 active claims"
+    decision: "モジュールOption Compare4境界は一致し、比較・文字列領域の無バグ連続数は3回。文字列のNull/Emptyと既定Compareを継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-145
