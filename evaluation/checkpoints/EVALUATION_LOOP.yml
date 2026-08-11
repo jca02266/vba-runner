@@ -905,3 +905,8 @@ checkpoints:
     decision: "vbaToNumber・CByte・CSng・CDbl・CDate・Hex・Oct・Valの12ケースは一致した。基数領域の連続無バグ数は2回なので、Decimal/Currencyと符号・桁区切り入力を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-193
+  - afterEvaluation: EV-00640
+    audit: "539 evaluations, 0 active claims, 0 queued candidates"
+    decision: "vbaToNumber系とDecimal/Currencyの符号・桁区切り12ケースを確認する。基数領域の連続無バグ数は3回なので、十進変換の丸め・Overflow境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-194

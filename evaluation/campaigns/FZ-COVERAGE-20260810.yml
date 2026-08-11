@@ -1882,3 +1882,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/vba-types.ts
       - tests/spec/radix-conversion-regressions.test.ts
+  - id: FZ-COVERAGE-20260810-194
+    title: Decimal currency rounding overflow matrix
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域のCInt・CLng・CDec・CCur丸めと最大最小境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/declaration-conversion-boundaries.test.ts
