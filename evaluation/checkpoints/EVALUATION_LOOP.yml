@@ -1535,3 +1535,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-257
+  - afterEvaluation: EV-00746
+    audit: "645 evaluations, 0 active claims"
+    decision: "Formatの条件ブラケット内比較演算子がStringドメイン判定を汚染するバグを修正し、ROOT-00028を完了した。未閉鎖・降順・空角括弧と複数セクション条件を同領域で評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-258

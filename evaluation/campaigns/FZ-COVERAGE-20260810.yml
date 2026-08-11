@@ -2434,3 +2434,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/excel/queue/FormatMatrixVerification.bas
+  - id: FZ-COVERAGE-20260810-258
+    title: Format malformed bracket and multi-section boundary
+    status: queued
+    priority: 1
+    focus: Format未閉鎖・降順・空角括弧と複数セクション条件の境界
+    priorCauseKey: format-token-scanners-do-not-share-bracket-opaque-boundary
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts
