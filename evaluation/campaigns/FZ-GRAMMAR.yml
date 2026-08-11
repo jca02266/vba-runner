@@ -381,3 +381,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-041
+    title: GoSubエラーハンドラResume復帰境界
+    status: queued
+    priority: 1
+    focus: GoSub本体のエラーをResumeラベルで復帰する場合の捕捉と継続
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

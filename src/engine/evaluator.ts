@@ -895,6 +895,10 @@ export class Evaluator {
     // Return propagates to that target executor; a new procedure resets this
     // value so a callee cannot consume its caller's GoSub continuation.
     private gosubTargetDepth = 0;
+    // Set when a GoSub-owned error handler transfers with `Resume label`.
+    // That transfer continues at the label in the owning procedure and must
+    // not return to the statement following the GoSub call.
+    private gosubResumeLabel = false;
     private staticVarStore: Map<string, any> = new Map(); // persistent store for Static variables
     private currentProcIsStatic: boolean = false;
     private arrayBase: number = 0;
@@ -3432,9 +3436,20 @@ export class Evaluator {
                 `Sub or Function not defined: label '${label}'`);
         }
         const wasInErrorHandler = this.isInErrorHandler;
+        const previousGosubResumeLabel = this.gosubResumeLabel;
+        this.gosubResumeLabel = false;
         this.gosubTargetDepth++;
         try {
             this.executeStatements(body, labelIndex + 1, true);
+            if (this.gosubResumeLabel) {
+                const isProperty = ['get', 'let', 'set'].includes(this.currentProcedureType ?? '');
+                throw {
+                    type: 'Exit',
+                    target: isProperty
+                        ? 'Property'
+                        : (this.currentProcedureType === 'sub' ? 'Sub' : 'Function'),
+                };
+            }
             // An error raised in a GoSub body may transfer to the owning
             // procedure's handler. If that handler reaches the end without a
             // Resume/GoTo/Exit statement, VBA terminates the procedure; it
@@ -3452,6 +3467,7 @@ export class Evaluator {
             if (e && e.type === 'Return') return;
             throw e;
         } finally {
+            this.gosubResumeLabel = previousGosubResumeLabel;
             this.gosubTargetDepth--;
         }
     }
@@ -8183,6 +8199,7 @@ export class Evaluator {
                     } else if (e.mode === 'Next') {
                         i = this.lastErrorIndex !== null ? this.lastErrorIndex + 1 : i + 1;
                     } else if (e.mode === 'Label') {
+                        if (this.gosubTargetDepth > 0) this.gosubResumeLabel = true;
                         const labelName = e.label.toLowerCase();
                         const labelIndex = body.findIndex(s =>
                             s.type === 'LabelStatement' &&
@@ -8254,6 +8271,7 @@ export class Evaluator {
                             if (resumeInfo.mode === 'Current') continue;      // 失敗文を再実行
                             if (resumeInfo.mode === 'Next') { i++; continue; } // 失敗文の次へ
                             // Resume <label>: ラベルはプロシージャレベルにあるため GoTo として伝播
+                            if (this.gosubTargetDepth > 0) this.gosubResumeLabel = true;
                             throw { type: 'GoTo', label: resumeInfo.label };
                         }
                     }

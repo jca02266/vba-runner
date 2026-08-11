@@ -1128,3 +1128,8 @@ checkpoints:
     decision: "GoSub本体からのCallエラー伝播も修正後の共通Exit処理と一致し、エラー処理領域の無バグ連続数は3回。CallByNameと動的呼出し境界を次に評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-040
+  - afterEvaluation: EV-00684
+    audit: "583 evaluations, 0 active claims"
+    decision: "GoSub本体からCallByNameしたクラスメソッドのエラー伝播も一致し、エラー処理領域の無バグ連続数は4回。5回目としてResumeラベル復帰境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-041

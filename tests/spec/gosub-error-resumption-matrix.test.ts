@@ -49,6 +49,20 @@ Handler:
     ProbeCallBoundary = "H" & CStr(Err.Number)
 End Function
 
+Function ProbeResumeLabel() As String
+    On Error GoTo Handler
+    GoSub Worker
+    ProbeResumeLabel = "bad"
+    Exit Function
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    Resume Recover
+Recover:
+    ProbeResumeLabel = "R" & CStr(Err.Number)
+End Function
+
 Sub Helper()
     Err.Raise 5
 End Sub
@@ -62,6 +76,8 @@ assert.strictEqual(ev.callProcedure('ProbeResume', []), '6:1',
     'Resume Next handles an error raised inside a GoSub body');
 assert.strictEqual(ev.callProcedure('ProbeCallBoundary', []), 'H5',
     'An error from a procedure called inside GoSub reaches the owning handler');
+assert.strictEqual(ev.callProcedure('ProbeResumeLabel', []), 'R0',
+    'A handler Resume label exits the GoSub error path without re-entry');
 console.log('[PASS] GoSub error resumption matrix');
 
 const propertyEv = evalVBAModules([
@@ -167,3 +183,36 @@ End Function
 assert.strictEqual(propertySetEv.callProcedure('ProbePropertySet', []), 42,
     'GoSub errors terminate a Property Set after its owning handler');
 console.log('[PASS] GoSub Property Set error resumption');
+
+const dynamicEv = evalVBAModules([
+    {
+        name: 'WorkerObject',
+        parseAsClass: 'WorkerObject',
+        code: String.raw`
+Public Function Boom() As Long
+    Err.Raise 5
+End Function
+`,
+    },
+    {
+        name: 'Module1',
+        code: String.raw`
+Public Function ProbeDynamicCall() As String
+    Dim worker As New WorkerObject
+    On Error GoTo Handler
+    GoSub Worker
+    ProbeDynamicCall = "bad"
+    Exit Function
+Worker:
+    CallByName worker, "Boom", VbMethod
+    Return
+Handler:
+    ProbeDynamicCall = "H" & CStr(Err.Number)
+End Function
+`,
+    },
+]);
+
+assert.strictEqual(dynamicEv.callProcedure('ProbeDynamicCall', []), 'H5',
+    'A dynamic call from GoSub reaches the owning handler');
+console.log('[PASS] GoSub dynamic-call error resumption');
