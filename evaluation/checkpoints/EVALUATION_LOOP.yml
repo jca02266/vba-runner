@@ -1959,3 +1959,11 @@ checkpoints:
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
     blocker: "RadixMatrix.result recorded hash f6d488... differs from current prepared source hash 2d2e3b..."
+  - afterEvaluation: EV-00792
+    audit: "691 evaluations, 0 active claims; 宣言・型・リテラルの最大幅基数リテラル verified-no-bug 2回目"
+    decision: "32/64ビット最大幅リテラルの符号拡張と正確な整数保持は一致した。EV-00619の実行時変換差異は実機結果同期後に別途評価する。"
+    action: continue
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
+    blocker: "EV-00619 requires a RadixMatrix result whose recorded source hash matches the current queue source"

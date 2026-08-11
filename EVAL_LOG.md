@@ -694,6 +694,7 @@
 | EV-00789 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format修正済みString非選択日付セクションの回帰境界 |
 | EV-00790 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format ASCII文字列の1〜4セクション選択と文字placeholder境界 |
 | EV-00791 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の範囲外基数リテラルコンパイル診断 |
+| EV-00792 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数リテラル最大幅・符号拡張境界 |
 
 ## 状態集計
 
@@ -705,9 +706,9 @@
 | known-limit | 4 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 373 |
+| verified-no-bug | 374 |
 
-横展開未解決経路: 569、実Excel待ち評価: 4
+横展開未解決経路: 570、実Excel待ち評価: 4
 
 ## 次の候補
 

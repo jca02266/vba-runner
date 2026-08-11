@@ -2875,6 +2875,15 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: FZ-COVERAGE-20260810-304
+    title: Radix literal maximum width boundaries
+    status: queued
+    priority: 1
+    focus: 宣言・型・リテラル領域の基数リテラル最大幅・符号拡張境界
+    priorCauseKey: radix-literal-maximum-width-sign-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - tests/spec/declaration-conversion-boundaries.test.ts
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format.test.ts
