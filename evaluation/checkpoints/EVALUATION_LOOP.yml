@@ -1050,3 +1050,8 @@ checkpoints:
     decision: "DateSerial・日付変換7ケースは一致し、無バグ連続数は3回。日付のNull/Emptyと不正入力境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-BUILTIN-150
+  - afterEvaluation: EV-00669
+    audit: "568 evaluations, 0 active claims"
+    decision: "日付Null・Empty・不正入力6境界は一致し、無バグ連続数は4回。最終確認として時刻値とDatePartの週境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-BUILTIN-151

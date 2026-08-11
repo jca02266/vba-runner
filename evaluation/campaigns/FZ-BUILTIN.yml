@@ -1350,3 +1350,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-invalid-input-matrix.test.ts
+  - id: FZ-BUILTIN-151
+    title: 時刻値と週境界マトリクス
+    status: queued
+    priority: 1
+    focus: DateDiff/DatePartの時刻無視・週境界とTimeValueの正規化
+    priorCauseKey: datetime-week-time-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/datediff-interval-time-matrix.test.ts
