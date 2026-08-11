@@ -67,6 +67,12 @@ export const parseVbaDate = (val: any): Date => {
     if (val instanceof VbaDecimal) return fromVbaDate(val.value);
     if (val instanceof VbaCurrency) return fromVbaDate(Number(val.internal) / 10000);
     if (typeof val === 'number') return fromVbaDate(val);
+    // Arrays, Error values, and Boolean values are not date expressions.
+    // Do not stringify host containers/boxed values and accidentally accept
+    // their textual representation as a date.
+    if (Array.isArray(val) || val instanceof VbaErrorValue || val instanceof VbaBoolean) {
+        throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    }
 
     let str = String(val);
     if (/^\d{1,2}:\d{1,2}(:\d{1,2})?$/.test(str)) {
