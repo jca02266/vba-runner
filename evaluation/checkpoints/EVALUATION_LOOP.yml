@@ -910,3 +910,8 @@ checkpoints:
     decision: "vbaToNumber系とDecimal/Currencyの符号・桁区切り12ケースを確認する。基数領域の連続無バグ数は3回なので、十進変換の丸め・Overflow境界を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-194
+  - afterEvaluation: EV-00641
+    audit: "540 evaluations, 0 active claims, 0 queued candidates"
+    decision: "十進変換の丸め・Overflow12ケースは一致した。基数領域の連続無バグ数は4回なので、LongLong・LongPtr・Variant subtypeとの基数境界を最後に確認する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-195
