@@ -1395,3 +1395,10 @@ checkpoints:
     nextArea: Date
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00725
+    audit: "624 evaluations, 0 active claims"
+    decision: "TimeSerialの負数・60超過・24時繰上げも一致し、Date領域の無バグ連続は1回。DateSerialと負日付境界を継続する。"
+    action: continue-area
+    nextArea: Date
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
