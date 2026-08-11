@@ -1654,3 +1654,10 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-273
+  - afterEvaluation: EV-00762
+    audit: "661 evaluations, 0 active claims; ROOT-00030 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "ParserのerrorRecovery境界は修正後2回目の新規バグなし。同一論理行のコロン区切り後に不正トークンがある場合の後続文保持を限定評価する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-274

@@ -2586,3 +2586,12 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/parser-error-recovery.test.ts
+  - id: FZ-COVERAGE-20260810-274
+    title: Parser same-line recovery boundary
+    status: queued
+    priority: 1
+    focus: Parserのコロン区切り後エラー同期と同一行後続文保持境界
+    priorCauseKey: parser-complete-input-and-label-grammar-invariant
+    coverageTargets:
+      - src/engine/parser.ts
+      - tests/spec/parser-error-recovery.test.ts
