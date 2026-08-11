@@ -1116,6 +1116,7 @@ export class Evaluator {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                     'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                    'longlong': 'LongLong', 'longptr': 'LongPtr',
                     'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
                 };
                 const mapped = typeMap[param.paramType.toLowerCase()];
@@ -9555,6 +9556,7 @@ export class Evaluator {
                         const typeMap: Record<string, VbaVarType> = {
                             'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
                             'single': 'Single', 'double': 'Double', 'currency': 'Currency',
+                            'longlong': 'LongLong', 'longptr': 'LongPtr',
                             'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
                         };
                         const mapped = typeMap[param.paramType.toLowerCase()];

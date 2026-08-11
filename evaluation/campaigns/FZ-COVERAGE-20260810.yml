@@ -2073,3 +2073,12 @@ items:
     coverageTargets:
       - src/engine/coerce.ts
       - tests/spec/radix-signed-implicit-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-215
+    title: Decimal ByVal parameter width coercion
+    status: queued
+    priority: 1
+    focus: Decimal VariantをLongLong ByVal引数へ渡す幅検査
+    priorCauseKey: numeric-coercion-width-precision-not-preserved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/radix-byval-decimal-boundary.test.ts
