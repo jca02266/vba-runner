@@ -1807,3 +1807,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-284
+  - afterEvaluation: EV-00773-PROBE
+    audit: "672 evaluations, 0 active claims; XL-183 and XL-184 are prepared needs-excel; Format no-bug count remains 1"
+    decision: "名前付き書式の型別差分をXL-184へ追加し、既存XL-183と同じ準備済みブックへ同期した。2件の実機結果をまとめて受領するまで推測修正を行わない。"
+    action: claim
+    nextArea: Format
+    nextEvaluation: EV-00773
+    nextCandidate: FZ-COVERAGE-20260810-284

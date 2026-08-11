@@ -17,9 +17,22 @@ Public Sub RunFormatMatrixVerification()
     EmitScalingBoundaryMatrix
     EmitDateContextBoundaryMatrix
     EmitSelectedSectionBoundaryMatrix
+    EmitNamedDateBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitNamedDateBoundaryMatrix()
+    Print #resultFile, "XL-184"
+    Debug.Print "XL-184"
+    EmitCase "XL-184-DATE-GENERALNUMBER", "General Number", DateSerial(2026, 3, 15) + TimeSerial(13, 4, 5)
+    EmitCase "XL-184-DATE-CURRENCY", "Currency", DateSerial(2026, 3, 15) + TimeSerial(13, 4, 5)
+    EmitCase "XL-184-DATE-FIXED", "Fixed", DateSerial(2026, 3, 15) + TimeSerial(13, 4, 5)
+    EmitCase "XL-184-DATE-SCIENTIFIC", "Scientific", DateSerial(2026, 3, 15) + TimeSerial(13, 4, 5)
+    EmitCase "XL-184-CURRENCY-GENERALDATE", "General Date", CCur("46096.5")
+    EmitCase "XL-184-DECIMAL-GENERALDATE", "General Date", CDec("46096.5")
+    EmitCase "XL-184-STRING-GENERALDATE", "General Date", "abc"
 End Sub
 
 Private Sub EmitSelectedSectionBoundaryMatrix()
