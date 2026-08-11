@@ -2653,3 +2653,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-281
+    title: Format exact scientific type dispatch
+    status: queued
+    priority: 1
+    focus: Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路
+    priorCauseKey: format-number-tokenization-must-separate-exponent-and-scaling
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts

@@ -1776,3 +1776,12 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-280
     rootCauseId: RC-00065
     rootFixTask: ROOT-00035
+  - afterEvaluation: EV-00769-FIX
+    audit: "668 evaluations, 0 active claims; ROOT-00036 completed; Format scientific type-specific paths remain unverified"
+    decision: "通常Number/Doubleの指数後カンマ差分を修正した。Format領域のバグ後カウンターは修正でリセットし、次は別実装経路であるCurrency/Decimal/BigIntの指数書式境界を評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-281
+    rootCauseId: RC-00064
+    rootFixTask: ROOT-00036
