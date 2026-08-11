@@ -653,6 +653,7 @@
 | EV-00748 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format角括弧のエスケープ・引用符・セクション区切りの字句境界 |
 | EV-00749 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値プレースホルダーの連続カンマスケーリング |
 | EV-00750 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format連続カンマと負数・ゼロ・小数・百分率・複数セクションの境界 |
+| EV-00751 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format日付トークンm・n・w・q・cの文脈と境界 |
 
 ## 状態集計
 
@@ -661,11 +662,11 @@
 | bug-found | 1 |
 | fixed | 291 |
 | known-limit | 4 |
-| needs-excel | 2 |
+| needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 350 |
 
-横展開未解決経路: 526、実Excel待ち評価: 2
+横展開未解決経路: 528、実Excel待ち評価: 3
 
 ## 次の候補
 
