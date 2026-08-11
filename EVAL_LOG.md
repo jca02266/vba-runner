@@ -656,6 +656,7 @@
 | EV-00751 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format日付トークンm・n・w・q・cの文脈と境界 |
 | EV-00752 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Null・Emptyと数値・日付・文字列書式の境界 |
 | EV-00753 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列プレースホルダー@/&/!/</>と空文字・Unicode境界 |
+| EV-00754 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format科学表記E/eの符号・桁数・百分率・スケーリング境界 |
 
 ## 状態集計
 
@@ -666,9 +667,9 @@
 | known-limit | 4 |
 | needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 352 |
+| verified-no-bug | 353 |
 
-横展開未解決経路: 531、実Excel待ち評価: 3
+横展開未解決経路: 533、実Excel待ち評価: 3
 
 ## 次の候補
 
