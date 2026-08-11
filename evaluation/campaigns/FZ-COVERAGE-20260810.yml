@@ -2046,3 +2046,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-212
+    title: Financial coercion and tiny-rate matrix
+    status: queued
+    priority: 1
+    focus: 財務関数の型変換・極小率・高精度入力
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

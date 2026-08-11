@@ -995,3 +995,8 @@ checkpoints:
     decision: "財務の符号・ゼロ率・高精度8境界は一致し、無バグ連続数は3回。残り2回の異なる境界評価を継続する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-211
+  - afterEvaluation: EV-00658
+    audit: "557 evaluations, 0 active claims"
+    decision: "財務の配列・償却終端・符号7境界は一致し、無バグ連続数は4回。最終確認として型変換・極小率境界を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-212
