@@ -1075,3 +1075,8 @@ checkpoints:
     decision: "ReDim Preserve・Erase5境界は一致し、配列・UDT領域の無バグ連続数は3回。配列戻り値・ByRef再束縛を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-GRAMMAR-030
+  - afterEvaluation: EV-00674
+    audit: "573 evaluations, 0 active claims"
+    decision: "配列戻り値・ByRef再束縛4境界は一致し、無バグ連続数は4回。最後にUDT／クラス配列メンバーの型検証を評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-031

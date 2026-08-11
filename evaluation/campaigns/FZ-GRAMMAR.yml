@@ -291,3 +291,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/byref.test.ts
+  - id: FZ-GRAMMAR-031
+    title: UDT・クラス配列メンバー型検証
+    status: queued
+    priority: 1
+    focus: UDT配列・クラス配列メンバーの全体代入と要素型検証
+    priorCauseKey: typed-array-member-validation
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/typed-array-root-cause.test.ts
