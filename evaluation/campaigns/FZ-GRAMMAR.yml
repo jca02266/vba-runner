@@ -354,3 +354,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-038
+    title: Property SetとCall境界のGoSubエラー復帰
+    status: queued
+    priority: 1
+    focus: Property Setおよび呼出し元CallからのGoSub・On Error境界
+    priorCauseKey: gosub-handler-fallthrough
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/gosub-error-resumption-matrix.test.ts

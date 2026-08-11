@@ -1113,3 +1113,8 @@ checkpoints:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - afterEvaluation: EV-00681
+    audit: "580 evaluations, 0 active claims"
+    decision: "Property Get/LetのGoSub・On Error境界は修正後の共通Exit処理と一致し、エラー処理領域の無バグ連続数は1回。Property SetとCall境界を次に評価する。"
+    action: create-candidate
+    nextCandidate: FZ-GRAMMAR-038

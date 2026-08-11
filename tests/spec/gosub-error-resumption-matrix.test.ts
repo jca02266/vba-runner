@@ -65,6 +65,18 @@ Worker:
 Handler:
     Value = 42
 End Property
+
+Public Property Let Value(ByVal incoming As Long)
+    On Error GoTo Handler
+    GoSub Worker
+    mValue = incoming
+    Exit Property
+Worker:
+    Err.Raise 5
+    Return
+Handler:
+    mValue = 42
+End Property
 `,
     },
     {
@@ -74,6 +86,12 @@ Public Function ProbeProperty() As Long
     Dim t As New Thing
     ProbeProperty = t.Value
 End Function
+
+Public Function ProbePropertyLet() As Long
+    Dim t As New Thing
+    t.Value = 7
+    ProbePropertyLet = t.Value
+End Function
 `,
     },
 ]);
@@ -81,3 +99,6 @@ End Function
 assert.strictEqual(propertyEv.callProcedure('ProbeProperty', []), 42,
     'GoSub errors terminate a Property Get after its owning handler');
 console.log('[PASS] GoSub Property Get error resumption');
+assert.strictEqual(propertyEv.callProcedure('ProbePropertyLet', []), 42,
+    'GoSub errors terminate a Property Let after its owning handler');
+console.log('[PASS] GoSub Property Let error resumption');
