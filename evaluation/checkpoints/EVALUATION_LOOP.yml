@@ -830,3 +830,13 @@ checkpoints:
     decision: "宣言・型・リテラルのLongLong境界はEV-00620〜EV-00624で5回連続無バグとなったため収束扱いにする。実機待ちを除く未収束の組み込み関数領域へ切り替える。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-178
+  - afterEvaluation: EV-00625
+    audit: "524 evaluations, 0 active claims, 0 queued candidates"
+    decision: "組み込み関数のDatePart・Weekday週境界は1回目が一致したが、DateDiffの月末・うるう年境界が未評価のため同領域を継続する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-179
+  - afterEvaluation: EV-00626
+    audit: "525 evaluations, 0 active claims, 0 queued candidates"
+    decision: "DateDiff月末・うるう年・逆順の2回目は一致した。組み込み関数領域の連続無バグ数は2回なので、未検証intervalと時刻境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-180

@@ -322,7 +322,8 @@ console.log('[PASS] evaluation expectation provenance validation');
 const orphanProbe = `${root}/evaluation/evaluations/EV-TEST-ORPHAN.md`;
 writeFileSync(orphanProbe, expectationProbeBody
     .replaceAll('EV-TEST-EXPECTATION', 'EV-TEST-ORPHAN')
-    .replace('candidateId: FZ-GRAMMAR-001', 'candidateId: NOT-REGISTERED'));
+    .replace('candidateId: FZ-GRAMMAR-001', 'candidateId: NOT-REGISTERED')
+    .replace('verification: pending', 'verification: completed'));
 try {
     const orphan = run('record', orphanProbe);
     assert.notEqual(orphan.status, 0);

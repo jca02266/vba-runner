@@ -783,7 +783,8 @@ function complete(candidateId, evaluationId, status, token) {
   }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
   const previous = readResults().get(candidateId);
-  if (previous && !['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
+  const reopeningVerifiedNoBug = previous?.status === 'verified-no-bug' && status === 'bug-found';
+  if (previous && !reopeningVerifiedNoBug && !['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
     throw new Error(`${candidateId} already has a terminal result`);
   }
   fs.mkdirSync(statesDir, { recursive: true });

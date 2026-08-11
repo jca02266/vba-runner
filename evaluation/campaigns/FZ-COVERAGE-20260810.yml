@@ -1750,3 +1750,19 @@ items:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
       - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-179
+    title: DateDiff month leap-year matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateDiff月末・うるう年・逆順intervalマトリクス
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
+  - id: FZ-COVERAGE-20260810-180
+    title: DateDiff interval time matrix
+    status: queued
+    priority: 1
+    focus: 組み込み関数領域のDateDiff全interval・時刻・逆順マトリクス
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-functions.test.ts
