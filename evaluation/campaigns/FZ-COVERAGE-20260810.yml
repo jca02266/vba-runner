@@ -2712,3 +2712,13 @@ items:
       - src/engine/format.ts
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-287
+    title: Format Null Empty section dispatch
+    status: queued
+    priority: 1
+    focus: Format Null・Empty・複数セクション・文字列placeholderの選択境界
+    priorCauseKey: format-null-section-dispatch
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts

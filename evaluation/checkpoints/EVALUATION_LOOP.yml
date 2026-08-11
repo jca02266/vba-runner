@@ -1821,3 +1821,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-286
+  - afterEvaluation: EV-00775
+    audit: "674 evaluations, 0 active claims; Format no-bug連続3回目; XL-183/184 remain needs-excel"
+    decision: "日付トークン文脈はXL-182と一致し、新規バグなし。Formatの無バグ連続を継続し、Null/Emptyの複数セクションとString placeholder境界を再確認する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-287
