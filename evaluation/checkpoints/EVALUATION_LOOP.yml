@@ -1691,3 +1691,11 @@ checkpoints:
     nextArea: Parser・Lexer
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-276
+  - afterEvaluation: EV-00765
+    audit: "664 evaluations, 0 active claims; BUG-00493 requires RCA confirmation; ROOT-00032 completed; EV-00750 and EV-00751 remain needs-excel"
+    decision: "parseAsClassにerrorRecovery:trueを指定しても不正文がthrowされる経路差を再現した。RC-00062の独立レビューで入口契約と部分AST保持範囲を確定してから修正する。"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00062
