@@ -650,6 +650,7 @@
 | EV-00745 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付き書式・Null第4セクション・基本エスケープ境界 |
 | EV-00746 | FZ-COVERAGE-20260810 | fixed | 1 | Format角括弧ディレクティブとString書式ドメイン境界 |
 | EV-00747 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format未閉鎖・降順・空角括弧と複数セクション条件の境界 |
+| EV-00748 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format角括弧のエスケープ・引用符・セクション区切りの字句境界 |
 
 ## 状態集計
 
@@ -660,9 +661,9 @@
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 349 |
+| verified-no-bug | 350 |
 
-横展開未解決経路: 524、実Excel待ち評価: 1
+横展開未解決経路: 525、実Excel待ち評価: 1
 
 ## 次の候補
 
