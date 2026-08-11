@@ -2643,3 +2643,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-280
+    title: Format scientific scaling boundary
+    status: queued
+    priority: 1
+    focus: Format指数表記と末尾スケーリングカンマのトークン境界
+    priorCauseKey: format-number-tokenization-must-separate-exponent-and-scaling
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

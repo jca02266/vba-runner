@@ -646,14 +646,14 @@
 | EV-00741 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列の複数セクション・空文字列・@/&/!・値型と書式ドメイン境界 |
 | EV-00742 | FZ-COVERAGE-20260810 | fixed | 1 | Format Stringの数値文字列と数値書式の変換境界 |
 | EV-00743 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値文字列の複数セクション選択境界 |
-| EV-00744 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format Null・Empty・数値/文字列プレースホルダー混在境界 |
+| EV-00744 | FZ-COVERAGE-20260810 | fixed | 1 | Format Null・Empty・数値/文字列プレースホルダー混在境界 |
 | EV-00745 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付き書式・Null第4セクション・基本エスケープ境界 |
 | EV-00746 | FZ-COVERAGE-20260810 | fixed | 1 | Format角括弧ディレクティブとString書式ドメイン境界 |
 | EV-00747 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format未閉鎖・降順・空角括弧と複数セクション条件の境界 |
 | EV-00748 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format角括弧のエスケープ・引用符・セクション区切りの字句境界 |
 | EV-00749 | FZ-COVERAGE-20260810 | fixed | 1 | Format数値プレースホルダーの連続カンマスケーリング |
-| EV-00750 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format連続カンマと負数・ゼロ・小数・百分率・複数セクションの境界 |
-| EV-00751 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format日付トークンm・n・w・q・cの文脈と境界 |
+| EV-00750 | FZ-COVERAGE-20260810 | bug-found | 1 | Format連続カンマと負数・ゼロ・小数・百分率・複数セクションの境界 |
+| EV-00751 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format日付トークンm・n・w・q・cの文脈と境界 |
 | EV-00752 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Null・Emptyと数値・日付・文字列書式の境界 |
 | EV-00753 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列プレースホルダー@/&/!/</>と空文字・Unicode境界 |
 | EV-00754 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format科学表記E/eの符号・桁数・百分率・スケーリング境界 |
@@ -669,22 +669,23 @@
 | EV-00764 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのSub・If・For・Doブロック内errorRecoveryと終端保持境界 |
 | EV-00765 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのparseAsClass内errorRecoveryとクラス構造・終端保持境界 |
 | EV-00766 | FZ-COVERAGE-20260810 | fixed | 1 | ParserのparseAsClass内不正文後のメンバー・部分AST・終端同期境界 |
+| EV-00767 | FZ-COVERAGE-20260810 | verified-no-bug | 0 | Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界 |
+| EV-00768 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列値と数値・文字列プレースホルダー混在書式の分類境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 296 |
+| bug-found | 2 |
+| fixed | 298 |
 | known-limit | 4 |
-| needs-excel | 3 |
 | retired | 1 |
-| verified-no-bug | 360 |
+| verified-no-bug | 362 |
 
-横展開未解決経路: 543、実Excel待ち評価: 3
+横展開未解決経路: 539、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-278 | 1 | queued | Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界 | yes |
+| FZ-COVERAGE-20260810-280 | 1 | queued | Format指数表記と末尾スケーリングカンマのトークン境界 | yes |

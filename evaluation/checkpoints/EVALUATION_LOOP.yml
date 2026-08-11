@@ -1767,3 +1767,12 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     rootCauseId: RC-00065
+  - afterEvaluation: EV-00768-FIX
+    audit: "667 evaluations, 0 active claims; ROOT-00035 completed; EV-00750 remains separate Format RCA"
+    decision: "String値と未エスケープ数値トークン・@/&/!/<>混在の誤分岐を修正し、XL-180横展開の回帰を確認した。次はRC-00064の指数・末尾カンマ境界を独立に評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-280
+    rootCauseId: RC-00065
+    rootFixTask: ROOT-00035
