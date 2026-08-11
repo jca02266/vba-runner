@@ -78,9 +78,10 @@ analysis; do not duplicate its taxonomy here.
    evaluation, inspect this field first; never infer the procedure from the
    evaluation number or `rootCauseAnalysis.status`.
    For every new Excel-comparison candidate, reserve the next unique `XL-xxx`
-   in the evaluation record's `excelProbeIds`. Then add that probe to
-   `tests/excel/queue/ExcelQueueVerification.bas` and call it from the queue
-   runner. Add any required `.cls`/`.frm` fixture beside that module, and
+   in the evaluation record's `excelProbeIds`. Add a normal probe to
+   `tests/excel/queue/ExcelQueueVerification.bas`, or add a Format/Radix matrix
+   case to its existing dedicated matrix module, and call it from that module's
+   public runner. Add any required `.cls`/`.frm` fixture beside the module, and
    reference the source files in the record's `tests`. A scratch-only probe is
    not a valid Excel queue entry.
    For type, radix, width, sign, precision, or other boundary-heavy areas,
@@ -90,24 +91,29 @@ analysis; do not duplicate its taxonomy here.
    probe ID for the matrix batch only when every case is emitted under that ID.
    A representative smoke test may supplement a matrix but cannot replace it.
    Accumulate up to five candidates in the same evaluation area before
-   requesting Windows execution. Add all of their probes to the queue,
-   prepare one workbook, and run `eval-excel.cmd` once. Then reconcile each
-   candidate from the single result in separate evaluation updates. Do not
-   create a separate Windows handoff merely to satisfy the five-no-bug
-   convergence counter.
-   When the queue source changes, build/import `t.xlsm` on the non-Windows
+   requesting Windows execution. Add all of their probes to the appropriate
+   queue module, prepare one workbook, and run the corresponding Windows
+   command once: `eval-excel.cmd` for the normal queue, or `eval-matrix.cmd`
+   for the combined Format and Radix matrices. Then reconcile each candidate
+   from its result file in separate evaluation updates. Do not create a
+   separate Windows handoff merely to satisfy the five-no-bug convergence
+   counter.
+   When any queue source changes, build/import `t.xlsm` on the non-Windows
    development side with vba-extractor before handing it to Windows. The
    preparation command also writes `t.xlsm.source.sha256`; copy that stamp
-   beside the workbook. Windows `eval-excel.cmd` verifies the stamp before
-   opening Excel and stops if the source changed without rebuilding.
+   beside the workbook. Both `eval-excel.cmd` and `eval-matrix.cmd` verify
+   the stamp before opening Excel and stop if the source changed without
+   rebuilding.
    Before handing the files to Windows, run
    `tests/excel/queue/verify-excel-queue-source.sh` to compare the stamp with
    the current source hash. Only after that check succeeds may
    an evaluation move from `needs-excel-probe` to `needs-excel`; record that
    status change in the same update as the prepared workbook.
-   Windows `eval-excel.cmd` path must only open the prepared workbook, run the
-   requested macro, and convert the result; it must not require Node or invoke
-   vba-extractor. Rebuild the workbook whenever a queued `.bas`, `.cls`, or
+   Windows queue commands must only open the prepared workbook, run their
+   requested macros, and convert the result; they must not require Node or
+   invoke vba-extractor. `eval-matrix.cmd` runs both matrix procedures in a
+   fixed order and validates `FormatMatrix.result` and `RadixMatrix.result`
+   independently. Rebuild the workbook whenever a queued `.bas`, `.cls`, or
    `.frm` source changes and record the synchronized result before transitioning
    the candidate.
    Before classifying a difference as a bug, add an `expectation` block with

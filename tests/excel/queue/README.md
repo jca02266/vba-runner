@@ -18,7 +18,7 @@
 - `verify-excel-queue-source.sh`: Windowsへ渡す前に準備スタンプを照合する検査
 - `verify-excel-queue-source.ps1`: Windows側で準備スタンプと現在のソースを照合する事前検査
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
-- `eval-format-matrix.cmd`: Formatマトリックスだけを実行する専用バッチ
+- `eval-matrix.cmd`: FormatとRadixのマトリックスを連続実行する専用バッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
@@ -45,6 +45,16 @@ Windowsのコマンドプロンプトから、リポジトリ内のどこにい�
 tests\excel\queue\eval-excel.cmd
 ```
 
+FormatとRadixの専用マトリックスも同じ準備済みブックで確認する場合は、通常キューとは
+別に次を実行する。
+
+```bat
+tests\excel\queue\eval-matrix.cmd
+```
+
+このバッチはFormat、Radixの順に各Publicプロシージャを実行し、
+`FormatMatrix.result`と`RadixMatrix.result`を個別に生成・検証する。
+
 `eval-excel.cmd`は自身のディレクトリへ移動し、準備済み`t.xlsm`をExcelで開いて
 `RunExcelQueueVerification`を実行する。開始時に
 `%TEMP%\vba-runner-xl-queue`を削除するため、Binary Writeの短い出力が前回ファイルの
@@ -64,11 +74,14 @@ tests\excel\queue\eval-excel.cmd
 ソースを照合するため、ソース変更後に準備を忘れた場合は明示的に停止する。ソースを
 変更した場合は必ず準備スクリプトを再実行し、`t.xlsm`とスタンプをWindowsへ渡す。
 
-Formatの仕様探索は通常の回帰出力に混ぜない。`FormatMatrixVerification.bas`の
-`RunFormatMatrixVerification`を`eval-format-matrix.cmd`から呼び出すと、ASCII印字可能文字
+Formatの仕様探索は通常の回帰出力に混ぜない。`eval-matrix.cmd`は
+`FormatMatrixVerification.bas`の`RunFormatMatrixVerification`と
+`RadixMatrixVerification.bas`の`RunRadixMatrixVerification`を順に呼び出す。
+前者はASCII印字可能文字
 と代表的な数値・負数・ゼロ・Date・Currency・String引数の組み合わせ、複合トークン、および
 実装の字句分岐から抽出した引用・エスケープ・角括弧・セクション・文字列プレースホルダー
-境界を`FormatMatrix.result`へ出力する。Format仕様が固まった後の通常評価では、
+境界を`FormatMatrix.result`へ出力し、後者は変換境界を`RadixMatrix.result`へ出力する。
+Format仕様が固まった後の通常評価では、
 この専用マトリックスを毎回実行しない。
 
 Windowsへ渡す前には、開発側で次を実行する。

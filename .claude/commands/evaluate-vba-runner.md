@@ -132,8 +132,9 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 `needs-excel`への遷移やWindows依頼を行わない。
 実機結果を反映したら、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed`へ遷移する。
-同じ領域の実機候補は最大5件までまとめて登録・準備し、Windowsの`eval-excel.cmd`を
-1回だけ実行する。結果ファイルから各EVを個別に照合・遷移する。
+同じ領域の実機候補は最大5件までまとめて登録・準備し、対象に応じたWindowsコマンドを
+1回だけ実行する。通常キューは`eval-excel.cmd`、FormatとRadixのマトリックスは
+両方を連続実行する`eval-matrix.cmd`を使う。結果ファイルから各EVを個別に照合・遷移する。
 
 バグを再現し、横展開調査を終えたら、修正を始める前に真因分析サブエージェントを
 起動する。症状の最小再現、関連ソース、横展開結果だけを渡し、次を独立に報告させる。
@@ -217,9 +218,11 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 5. `npm run eval -- validate` と `npm run eval -- render EVAL_LOG.md` を実行し、レポートの
    `needs-excel` 件数が実際の未確定境界と一致することを確認する。
 
-`ExcelQueueVerification.result`は、全プローブ終了を示す`QUEUE_COMPLETE=True`と、現在の
-キューからインポートする`.bas`、`.cls`、`.frm`一式をLFへ正規化したSHA-256が一致して
-初めて同期済みになる。
+通常キューの`ExcelQueueVerification.result`は、全プローブ終了を示す
+`QUEUE_COMPLETE=True`と、現在のキューからインポートする`.bas`、`.cls`、`.frm`一式を
+LFへ正規化したSHA-256が一致して初めて同期済みになる。マトリックス実行では
+`FormatMatrix.result`の`FORMAT_MATRIX_COMPLETE=True`と`RadixMatrix.result`の
+`RADIX_MATRIX_COMPLETE=True`をそれぞれ同じソースハッシュ検証付きで受理する。
 実機ログの存在だけを根拠に`needs-excel`件数を減らしてはならない。また、評価記録を
 更新せずにログだけをコミットしてはならない。`validate`は導出された待ち段階と記録状態の
 不一致、および同期済み結果を待ち状態のまま残すことを拒否する。
@@ -228,19 +231,20 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 `tests/excel/queue/prepare-excel-vba.sh`を実行する。このコマンドが
 `empty_with_macro.xlsm`を`t.xlsm`へコピーし、`vba-extractor import`を実行する。
 同時に`t.xlsm.source.sha256`を作成するので、`t.xlsm`と同じ場所へコピーする。
-Windows側の`eval-excel.cmd`はExcel起動前にこのスタンプと現在のVBAソースを照合し、
+Windows側の`eval-excel.cmd`または`eval-matrix.cmd`はExcel起動前にこのスタンプと現在のVBAソースを照合し、
 準備漏れがあれば停止する。
 Windowsへ依頼する前に開発側でも同じスタンプ照合を実行する。照合が成功した場合だけ、
 プローブ未作成の`needs-excel-probe`を実機結果待ちの`needs-excel`へ遷移させ、評価記録と
 準備済みブックを同じ変更として扱う。
-生成された`t.xlsm`をWindowsへ渡し、Windows側の`eval-excel.cmd`は準備済みブックを
-Excelで開き、指定Procを実行し、結果をUTF-8へ変換するだけとする。Windows側にNode環境を
-要求せず、ソース更新ごとに準備コマンドを再実行してから実機へ渡す。
+生成された`t.xlsm`をWindowsへ渡し、Windows側の`eval-excel.cmd`は通常キューを、
+`eval-matrix.cmd`はFormatとRadixの2つのマトリックスを準備済みブックで実行し、各結果を
+UTF-8へ変換するだけとする。Windows側にNode環境を要求せず、ソース更新ごとに準備コマンドを
+再実行してから実機へ渡す。
 
 新しい実Excel照合候補を登録するときは、未使用の`XL-xxx`を予約して評価記録の
-`excelProbeIds`へ列挙する。まだプローブがなければ`needs-excel-probe`とする。その後
-`tests/excel/queue/ExcelQueueVerification.bas`へプローブを追加し、
-`RunExcelQueueVerification`から呼び出す。`excel-sync`が`needs-excel`を返したら、評価記録と
+`excelProbeIds`へ列挙する。まだプローブがなければ`needs-excel-probe`とする。その後、通常
+プローブは`tests/excel/queue/ExcelQueueVerification.bas`へ、Format/Radixマトリックスは
+各専用モジュールへ追加し、対応するPublic runnerから呼び出す。`excel-sync`が`needs-excel`を返したら、評価記録と
 resultをclaim付きで同じ状態へ遷移する。クラスや
 フォームが必要な場合は同じディレクトリに`.cls`/`.frm`を追加する。評価記録の`tests`には
 このVBAソース、追加ソース、XL番号をすべて列挙する。スクラッチで動作確認しただけの

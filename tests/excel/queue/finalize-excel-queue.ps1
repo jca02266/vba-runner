@@ -3,7 +3,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$SourceDirectory,
     [Parameter(Mandatory = $true)]
-    [string]$Result
+    [string]$Result,
+    [string]$CompletionMarker = 'QUEUE_COMPLETE'
 )
 
 $ErrorActionPreference = 'Stop'
@@ -12,8 +13,8 @@ $resultPath = (Resolve-Path -LiteralPath $Result -ErrorAction Stop).Path
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $resultText = [System.IO.File]::ReadAllText($resultPath, $utf8)
 
-if ($resultText -notmatch '(?m)^QUEUE_COMPLETE=True\s*$') {
-    throw "Excel queue did not reach its completion marker: $resultPath"
+if ($resultText -notmatch "(?m)^$([regex]::Escape($CompletionMarker))=True\s*$") {
+    throw "Excel queue did not reach its completion marker ($CompletionMarker): $resultPath"
 }
 
 $sourceFiles = Get-ChildItem -LiteralPath $sourceDirectoryPath -File |
