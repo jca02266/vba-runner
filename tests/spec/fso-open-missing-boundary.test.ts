@@ -12,7 +12,19 @@ Public Function Probe() As String
     Probe = "ERR=" & CStr(errNo)
     On Error GoTo 0
 End Function
+
+Public Function ProbeCreate() As String
+    Dim fso As Object, stream As Object
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.OpenTextFile("C:\\create-open.txt", 2, True, -2)
+    stream.Write "created"
+    stream.Close
+    Set stream = fso.OpenTextFile("C:\\create-open.txt", 1, False, -2)
+    ProbeCreate = stream.ReadAll
+    stream.Close
+End Function
 `;
 const ev = evalVBASingle(source);
 assert.equal(ev.callProcedure('Probe', []), 'ERR=53');
-console.log('[PASS] FSO OpenTextFile missing-file boundary (1 case)');
+assert.equal(ev.callProcedure('ProbeCreate', []), 'created');
+console.log('[PASS] FSO OpenTextFile missing-file boundary (2 cases)');

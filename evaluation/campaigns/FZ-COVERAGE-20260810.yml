@@ -2271,3 +2271,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/dateserial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-239
+    title: Negative date serial component boundary
+    status: queued
+    priority: 1
+    focus: 負の日付シリアル値に対するDatePart・Hour/Minute/Second境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-negative-serial-boundary.test.ts
