@@ -674,6 +674,7 @@
 | EV-00769 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数表記と末尾スケーリングカンマのトークン境界 |
 | EV-00770 | FZ-COVERAGE-20260810 | blocked | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
 | EV-00771 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
+| EV-00772 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ |
 
 ## 状態集計
 
@@ -685,7 +686,7 @@
 | known-limit | 4 |
 | needs-excel | 1 |
 | retired | 1 |
-| verified-no-bug | 362 |
+| verified-no-bug | 363 |
 
 横展開未解決経路: 540、実Excel待ち評価: 1
 
@@ -693,4 +694,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-284 | 1 | queued | Format名前付き書式と日付トークンの値型・セクション境界 | yes |

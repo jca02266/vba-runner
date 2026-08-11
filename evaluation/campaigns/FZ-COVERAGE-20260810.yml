@@ -2673,3 +2673,23 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-283
+    title: Format bracket directive dispatch
+    status: queued
+    priority: 1
+    focus: Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ
+    priorCauseKey: format-bracket-directive-domain-dispatch
+    coverageTargets:
+      - src/engine/format.ts
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-284
+    title: Format named and date token dispatch
+    status: queued
+    priority: 1
+    focus: Format名前付き書式と日付トークンの値型・セクション境界
+    priorCauseKey: format-date-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/format.ts
+      - tests/spec/format.test.ts

@@ -1800,3 +1800,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: EV-00771
     nextCandidate: FZ-COVERAGE-20260810-282
+  - afterEvaluation: EV-00772
+    audit: "671 evaluations, 0 active claims; Format bracket boundary verified-no-bug 1回目; XL-183 remains needs-excel"
+    decision: "既存FormatMatrixのブラケット・エスケープ境界はExcel一致で新規バグなし。Formatの無バグ連続を継続し、次は名前付き書式と日付トークンの型別境界を評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-284
