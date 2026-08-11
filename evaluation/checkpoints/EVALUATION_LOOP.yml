@@ -1486,3 +1486,17 @@ checkpoints:
     nextArea: Err・On Error
     nextEvaluation: EV-00738
     nextCandidate: FZ-COVERAGE-20260810-249
+  - afterEvaluation: EV-00738
+    audit: "637 evaluations, 0 active claims"
+    decision: "Err・On Error領域の状態リセットを評価した。次はResume文の再開位置とErr状態を評価する。"
+    action: continue-area
+    nextArea: Err・On Error
+    nextEvaluation: EV-00739
+    nextCandidate: FZ-COVERAGE-20260810-250
+  - afterEvaluation: EV-00739
+    audit: "638 evaluations, 0 active claims"
+    decision: "Err・On Error領域のResume再開位置を評価した。5件の確認結果を区切り、未収束のFormat領域を次に選定する。"
+    action: select-next-area
+    nextArea: Format
+    nextEvaluation: EV-00740
+    nextCandidate: FZ-COVERAGE-20260810-251

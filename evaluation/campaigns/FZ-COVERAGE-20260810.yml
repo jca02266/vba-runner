@@ -2360,3 +2360,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/on-error-state-reset-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-250
+    title: Resume statement target boundary
+    status: queued
+    priority: 1
+    focus: Resume Next・Resume・Resume labelの再開位置とErr状態境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/resume-statement-target.test.ts
+  - id: FZ-COVERAGE-20260810-251
+    title: Format tokenizer corner boundary
+    status: queued
+    priority: 1
+    focus: Formatの角括弧・エスケープ・セクション・文字列プレースホルダー境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format-tokenizer-corners.test.ts
