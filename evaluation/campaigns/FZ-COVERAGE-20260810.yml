@@ -2517,3 +2517,12 @@ items:
       - src/engine/builtins.ts
       - src/engine/format.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-267
+    title: Format literal-only numeric boundary
+    status: queued
+    priority: 1
+    focus: Format数値値のリテラル書式・符号・括弧・引用符境界
+    priorCauseKey: format-token-scanners-do-not-share-bracket-opaque-boundary
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts

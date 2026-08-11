@@ -1598,3 +1598,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-266
+  - afterEvaluation: EV-00755
+    audit: "654 evaluations, 0 active claims; EV-00750 and EV-00751 remain needs-excel"
+    decision: "Format名前付き数値書式の型境界は新規バグなし。数値値のリテラルのみ書式、符号、括弧、引用符の境界を最後の連続無バグ候補として評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-267
