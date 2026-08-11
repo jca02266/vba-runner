@@ -1290,3 +1290,10 @@ checkpoints:
     nextArea: 組み込み関数・書式
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00710
+    audit: "609 evaluations, 0 active claims"
+    decision: "組み込み関数領域でVal 16進符号拡張境界は一致した。組み込み関数領域の無バグ連続は1回であり、8進・サフィックス・実Excel照合を次に評価する。"
+    action: continue-area
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172

@@ -2127,3 +2127,11 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/radix-typed-parameter-composite.test.ts
+  - id: FZ-COVERAGE-20260810-221
+    title: Val radix sign-extension boundary
+    status: queued
+    priority: 1
+    focus: Valの16進文字列における32-bit/64-bit符号拡張境界
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/val-radix-boundary.test.ts
