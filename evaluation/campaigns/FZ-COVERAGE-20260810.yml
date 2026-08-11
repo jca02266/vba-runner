@@ -2839,3 +2839,22 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-300
+    title: Format custom numeric section literals
+    status: retired
+    priority: 1
+    focus: Formatカスタム数値セクションの符号・括弧・引用リテラル描画
+    priorCauseKey: format-custom-numeric-section-literal-contract
+    retirementReason: "独立調査でEV-00745・EV-00755と評価範囲が重複することを確認したため退役"
+  - id: FZ-COVERAGE-20260810-301
+    title: Format inactive date section regression
+    status: queued
+    priority: 1
+    focus: Format修正済みString非選択日付セクションの回帰境界
+    priorCauseKey: format-date-classification-must-use-selected-section
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format.test.ts

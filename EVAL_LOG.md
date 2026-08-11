@@ -691,6 +691,7 @@
 | EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
 | EV-00787 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
 | EV-00788 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きGeneral Number・Currency・Fixed・Standard・Percent・Scientific境界 |
+| EV-00789 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format修正済みString非選択日付セクションの回帰境界 |
 
 ## 状態集計
 
@@ -702,9 +703,9 @@
 | known-limit | 4 |
 | needs-excel | 4 |
 | retired | 1 |
-| verified-no-bug | 370 |
+| verified-no-bug | 371 |
 
-横展開未解決経路: 566、実Excel待ち評価: 4
+横展開未解決経路: 567、実Excel待ち評価: 4
 
 ## 次の候補
 

@@ -1936,3 +1936,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: null
+  - afterEvaluation: EV-00789
+    audit: "688 evaluations, 0 active claims; Format修正済みString非選択日付セクション回帰 verified-no-bug 4回目（EV-00784以降）"
+    decision: "EV-00782のactive section先行選択は複数のString境界で維持された。Formatの無バグ連続を継続し、未確定の実機・ロケール境界は別管理する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
