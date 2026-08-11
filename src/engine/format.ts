@@ -364,6 +364,11 @@ export function isNumericOnlyFormat(pattern: string): boolean {
         && !hasUnescapedFormatChars(pattern, '@&!<>');
 }
 
+/** A format that mixes numeric placeholders with string-domain controls. */
+export function hasMixedNumericStringTokens(pattern: string): boolean {
+    return hasNumericFormatTokens(pattern) && hasUnescapedFormatChars(pattern, '@&!<>');
+}
+
 /**
  * Determine whether a format section contains date/time tokens.
  * Quoted literals and escaped characters are display text, not tokens.

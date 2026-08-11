@@ -13,6 +13,7 @@ import { findClassProperty } from './property-resolution';
 import {
     formatDate, formatNumber, formatString, formatNullSection,
     splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, isNumericOnlyFormat,
+    hasMixedNumericStringTokens,
     stripFormatColorDirectives, stripVbaBracketDirectives, hasUnclosedVbaBracket, hasUnescapedFormatChars,
 } from './format';
 import { vbaWeekNumber } from './date-week';
@@ -1387,6 +1388,17 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const isDatePattern = containsDateFormatTokens(datePatternSource) &&
             !(sectionsHaveNumericSelector && !hasNumericFormatTokens(datePatternSource));
         if (typeof effectiveVal === 'string') {
+            // A non-numeric String stays in the string domain when the user
+            // format mixes numeric placeholders with @/&/!/<> controls.
+            // Sending it to formatString makes 0/0.00 literal text, unlike
+            // Excel's mixed-domain behavior observed by XL-180.
+            if (hasMixedNumericStringTokens(fmt)) {
+                try {
+                    ctx.toVbaNumber(effectiveVal);
+                } catch {
+                    return effectiveVal;
+                }
+            }
             // Resolve numeric strings before scanning the complete pattern for
             // date tokens in unselected sections.
             if (isNumericOnlyFormat(fmt)) {

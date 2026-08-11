@@ -65,6 +65,20 @@ assert.strictEqual(
     '12.00|NEG|ZERO',
     'Numeric strings select the same Format section as numeric values',
 );
+
+const mixedStringFormatCode = String.raw`
+    Function TestMixedStringFormats() As String
+        TestMixedStringFormats = Format("AB", "0 @ & !") & "|" & _
+            Format("abc", "0.00 @") & "|" & _
+            Format("AB", "0.00% @")
+    End Function
+`;
+const evMixedString = evalVBASingle(mixedStringFormatCode);
+assert.strictEqual(
+    evMixedString.callProcedure('TestMixedStringFormats', []),
+    'AB|abc|AB',
+    'Non-numeric strings remain intact for mixed numeric/string formats',
+);
 assert.strictEqual(
     evNumericString.callProcedure('TestNumericStringBracketCondition', []),
     'Ab9',
