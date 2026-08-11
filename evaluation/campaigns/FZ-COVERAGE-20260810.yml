@@ -1918,3 +1918,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray.test.ts
       - tests/spec/interface-callbyname-property.test.ts
+  - id: FZ-COVERAGE-20260810-198
+    title: Property named optional ByRef matrix
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のProperty引数名前付き指定、Optional既定値、ByRef書戻し境界
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-value-param-byval.test.ts
+      - tests/spec/byref-dispatch-matrix.test.ts

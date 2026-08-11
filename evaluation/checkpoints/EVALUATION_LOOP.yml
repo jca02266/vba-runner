@@ -925,3 +925,8 @@ checkpoints:
     decision: "Property/ByRef/Object配列8境界は一致した。引数・ByRef・Property領域の連続無バグ数は1回なので、Property ParamArray・CallByName・名前付き引数を継続評価する。"
     action: create-candidate
     nextCandidate: FZ-COVERAGE-20260810-197
+  - afterEvaluation: EV-00644
+    audit: "543 evaluations, 0 active claims, 0 queued candidates"
+    decision: "Property ParamArray・CallByName4境界は一致した。引数・ByRef・Property領域の連続無バグ数は2回なので、名前付き引数、Optional、ByRef書戻しの複合境界を継続評価する。"
+    action: create-candidate
+    nextCandidate: FZ-COVERAGE-20260810-198
