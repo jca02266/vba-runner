@@ -1288,7 +1288,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             const nullSection = formatNullSection(fmt);
             return nullSection === undefined ? "" : nullSection;
         }
-        if (val === null || val === vbaEmpty) return "";
+        if (val === vbaEmpty) {
+            // Empty selects the fourth user-defined section just like the
+            // Excel Format contract observed for XL-180-EMPTY.  Keep the
+            // historical empty result when no fourth section exists.
+            const emptySection = formatNullSection(fmt);
+            return emptySection === undefined ? "" : emptySection;
+        }
+        if (val === null) return "";
         const fdow = normalizeFormatWeekArg(firstDayOfWeek, 7);
         const fwoy = normalizeFormatWeekArg(firstWeekOfYear, 3);
         const effectiveFwoy = fwoy === 0 ? 1 : fwoy;

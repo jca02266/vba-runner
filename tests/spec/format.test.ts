@@ -39,6 +39,11 @@ const numericStringFormatCode = String.raw`
             Format("-12", "0.00;NEG;ZERO;NULL") & "|" & _
             Format("0", "0.00;NEG;ZERO;NULL")
     End Function
+    Function TestEmptyFourthSection() As String
+        TestEmptyFourthSection = Format(Empty, "0.00;(0.00);-;EMPTY") & "|" & _
+            Format(Empty, "0.00;(0.00);-") & "|" & _
+            Format(Null, "0.00;(0.00);-;NULL")
+    End Function
     Function TestNumericStringBracketCondition() As String
         TestNumericStringBracketCondition = Format("Ab9", "[<=1000]0")
     End Function
@@ -68,6 +73,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestNumericStringSections', []),
     '12.00|NEG|ZERO',
     'Numeric strings select the same Format section as numeric values',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestEmptyFourthSection', []),
+    'EMPTY||NULL',
+    'Empty selects the fourth section while Null and short formats retain their contracts',
 );
 
 const mixedStringFormatCode = String.raw`
