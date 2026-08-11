@@ -1995,3 +1995,12 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260810-307
     rootCauseId: RC-00010
     blocker: "RadixMatrix.resultの記録ハッシュは現行キューソースと不一致。Valの期待値根拠とVariant経路の実機契約が未確定。"
+  - afterEvaluation: EV-00795
+    audit: "694 evaluations, 0 active claims; Val 64ビット基数とVariant暗黙代入を比較したが実機結果のソースハッシュが不一致"
+    decision: "独立評価ではValの2ケースに差異が見えたが、RadixMatrix.resultが現行準備ソース由来でないためバグ確定を保留する。Excelキューを再同期してから判定する。"
+    action: needs-excel
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00795
+    nextCandidate: FZ-COVERAGE-20260810-307
+    rootCauseId: RC-00010
+    blocker: "RadixMatrix.resultの記録ハッシュf6d488...と現行準備ハッシュ2d2e3b...が不一致"

@@ -697,6 +697,7 @@
 | EV-00792 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数リテラル最大幅・符号拡張境界 |
 | EV-00793 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur短い基数ビットパターン符号境界 |
 | EV-00794 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類 |
+| EV-00795 | FZ-COVERAGE-20260810 | needs-excel | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
 
 ## 状態集計
 
@@ -706,14 +707,14 @@
 | bug-found | 2 |
 | fixed | 303 |
 | known-limit | 4 |
-| needs-excel | 4 |
+| needs-excel | 5 |
 | retired | 1 |
 | verified-no-bug | 374 |
 
-横展開未解決経路: 575、実Excel待ち評価: 4
+横展開未解決経路: 578、実Excel待ち評価: 5
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-307 | 1 | queued | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 | yes |
+| (none) | | | | |
