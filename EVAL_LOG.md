@@ -651,12 +651,13 @@
 | EV-00746 | FZ-COVERAGE-20260810 | fixed | 1 | Format角括弧ディレクティブとString書式ドメイン境界 |
 | EV-00747 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format未閉鎖・降順・空角括弧と複数セクション条件の境界 |
 | EV-00748 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format角括弧のエスケープ・引用符・セクション区切りの字句境界 |
+| EV-00749 | FZ-COVERAGE-20260810 | bug-found | 1 | Format数値プレースホルダーの連続カンマスケーリング |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
+| bug-found | 2 |
 | fixed | 290 |
 | known-limit | 4 |
 | needs-excel | 1 |
