@@ -1542,3 +1542,10 @@ checkpoints:
     nextArea: Format
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-258
+  - afterEvaluation: EV-00747
+    audit: "646 evaluations, 0 active claims"
+    decision: "Formatの未閉鎖・降順・空角括弧境界はrunnerで新規バグなし。角括弧のエスケープ・引用符・セクション区切り字句境界を続けて評価する。"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-259

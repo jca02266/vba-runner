@@ -2443,3 +2443,12 @@ items:
     coverageTargets:
       - src/engine/format.ts
       - tests/spec/format-tokenizer-corners.test.ts
+  - id: FZ-COVERAGE-20260810-259
+    title: Format escaped bracket and literal matrix
+    status: queued
+    priority: 1
+    focus: Format角括弧のエスケープ・引用符・セクション区切りの字句境界
+    priorCauseKey: format-token-scanners-do-not-share-bracket-opaque-boundary
+    coverageTargets:
+      - src/engine/format.ts
+      - tests/spec/format-tokenizer-corners.test.ts
