@@ -2082,3 +2082,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/radix-byval-decimal-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-216
+    title: Typed parameter composite boundary matrix
+    status: queued
+    priority: 1
+    focus: LongLong/LongPtrのByRef・Optional・名前付き・Property・配列引数の型登録境界
+    priorCauseKey: procedure-parameter-coercion-type-map-incomplete
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/radix-byval-decimal-boundary.test.ts

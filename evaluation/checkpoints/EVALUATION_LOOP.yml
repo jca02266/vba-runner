@@ -1255,3 +1255,10 @@ checkpoints:
     nextArea: 宣言・型・リテラル
     nextEvaluation: EV-00619
     nextCandidate: FZ-COVERAGE-20260810-172
+  - afterEvaluation: EV-00705
+    audit: "604 evaluations, 0 active claims"
+    decision: "LongLong ByRefとOptional LongPtrの名前付き基本経路は回帰テストで一致し、追加バグは見つからなかった。RC-00052の未検証境界（32-bit幅、配列、外部経路）を残したまま、宣言・型・リテラル領域の実機待ちと横展開を継続する。"
+    action: continue-area
+    nextArea: 宣言・型・リテラル
+    nextEvaluation: EV-00619
+    nextCandidate: FZ-COVERAGE-20260810-172
