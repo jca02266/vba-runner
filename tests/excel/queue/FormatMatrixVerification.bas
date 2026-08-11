@@ -14,9 +14,25 @@ Public Sub RunFormatMatrixVerification()
     EmitCompoundTokenMatrix
     EmitTokenizerCornerMatrix
     EmitMixedNullBoundaryMatrix
+    EmitScalingBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitScalingBoundaryMatrix()
+    Print #resultFile, "XL-181"
+    Debug.Print "XL-181"
+    EmitCase "XL-181-POS", "##0,", 1000000
+    EmitCase "XL-181-NEG", "##0,", -1234567.89
+    EmitCase "XL-181-ZERO", "##0,", 0
+    EmitCase "XL-181-DOUBLE", "##0,,", 100000000
+    EmitCase "XL-181-GROUP", "#,##0,", 1234567
+    EmitCase "XL-181-DECIMAL", "0.00,,", 1234567.89
+    EmitCase "XL-181-PERCENT", "0.00,,%", 0.125
+    EmitCase "XL-181-PERCENT-SUFFIX", "0.00%,,", 0.125
+    EmitCase "XL-181-SCIENTIFIC", "0.00E+00,,", 1000000
+    EmitCase "XL-181-SCIENTIFIC-PREFIX", "0.00,,E+00", 1000000
 End Sub
 
 Private Sub EmitMixedNullBoundaryMatrix()
