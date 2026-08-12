@@ -2041,3 +2041,19 @@ checkpoints:
     nextCandidate: null
     rootCauseId: RC-00069
     commit: 0831a11d
+  - afterEvaluation: EV-00811
+    audit: "709 evaluations, 0 active claims; Formatの引用・エスケープsuffix境界は差異なし"
+    decision: "共通suffixデコーダの引用符・バックスラッシュ境界を確認し、verified-no-bugとした。Formatの無バグ連続は1件であり、同領域の評価を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: EV-00812
+    nextCandidate: FZ-COVERAGE-20260810-311
+  - afterEvaluation: EV-00812
+    audit: "710 evaluations, 0 active claims; Formatゼロ値指数suffixの差異を修正し、TypeScript 446件・VBA 111件の回帰を通過"
+    decision: "exactScientificFormatのゼロ値分岐だけが共通suffixデコーダを呼ばず、エスケープ記号と引用符を残していた。BUG-00511を修正し、根因タスクROOT-00041を完了した。無バグ連続はリセットされ、Formatの次候補を選定する。"
+    action: fixed
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00069
+    commit: f2e84ed9
