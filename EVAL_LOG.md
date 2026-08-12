@@ -707,9 +707,9 @@
 | EV-00803 | META-ENGINE | verified-no-bug |  | Property Letへ配列要素をByRefで渡したときの書戻し |
 | EV-00804 | ROOT-CAUSE | blocked |  | MIRR別キャッシュフロー判定のv2再評価 |
 | EV-00805 | META-ENGINE | in-progress |  | EV-00798のProperty Let暗黙ByRef・名前付き引数・型変換再評価 |
-| EV-00806 | META-ENGINE | in-progress |  | EV-00799のProperty Let配列要素ByRef再評価 |
-| EV-00807 | META-ENGINE | in-progress |  | EV-00800のProperty Let Optional・名前付きByRef再評価 |
-| EV-00808 | META-ENGINE | in-progress |  | EV-00801のProperty Let暗黙型変換・ByRef書戻し再評価 |
+| EV-00806 | META-ENGINE | verified-no-bug |  | EV-00799のProperty Let配列要素ByRef再評価 |
+| EV-00807 | META-ENGINE | verified-no-bug |  | EV-00800のProperty Let Optional・名前付きByRef再評価 |
+| EV-00808 | META-ENGINE | verified-no-bug |  | EV-00801のProperty Let暗黙型変換・ByRef書戻し再評価 |
 | EV-00809 | META-ENGINE | in-progress |  | EV-00802のクラスProperty Let継承・公開呼出し再評価 |
 
 ## 状態集計
@@ -718,10 +718,10 @@
 |---|---:|
 | blocked | 7 |
 | fixed | 309 |
-| in-progress | 5 |
+| in-progress | 2 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 381 |
+| verified-no-bug | 384 |
 
 横展開未解決経路: 571、実Excel待ち評価: 0
 
