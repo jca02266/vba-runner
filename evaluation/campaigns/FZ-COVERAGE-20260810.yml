@@ -2934,3 +2934,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-310
+    title: Format exact scientific quoted suffix boundary
+    status: queued
+    priority: 1
+    focus: Format指数書式の引用符・バックスラッシュsuffixの型別境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

@@ -98,6 +98,10 @@ const numericStringFormatCode = String.raw`
         TestFormatScientificEscapedSuffixes = Format(CCur("1000000"), "0.00E+00\,") & "|" & _
             Format(CDec("1000000"), "0.00E+00\,\,")
     End Function
+    Function TestFormatScientificQuotedSuffixes() As String
+        TestFormatScientificQuotedSuffixes = Format(CCur("1000000"), "0.00E+00""Q""") & "|" & _
+            Format(CDec("1000000"), "0.00E+00\Q")
+    End Function
 `;
 const evNumericString = evalVBASingle(numericStringFormatCode);
 assert.strictEqual(
@@ -153,6 +157,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestFormatScientificEscapedSuffixes', []),
     '1.00E+06,|1.00E+06,,',
     'Scientific exact-format suffixes decode escaped literal commas',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestFormatScientificQuotedSuffixes', []),
+    '1.00E+06Q|1.00E+06Q',
+    'Scientific exact-format suffixes decode quoted and escaped literals',
 );
 
 // --- 時刻フォーマットのバグ修正確認 ---
