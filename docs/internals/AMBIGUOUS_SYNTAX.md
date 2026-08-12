@@ -122,8 +122,8 @@ if (token.type === TokenType.Number) {
 を**先に**試すため、`x = 10` という入力は「`x` と `10` を比較する
 `BinaryExpression`」として全体をきれいに消費できてしまう。これが文だと
 判定されないと、代入が一切実行されず比較結果の真偽値だけが返る
-（2026-06-25 に発見・修正したバグ。詳細は `docs/todo/TODO_SPEC.md` の
-「テストランナー (`VBARunner`) の改善」セクション参照）。
+（2026-06-25 に発見・修正したバグ。詳細は
+[`VBA_ENGINE_BUG_HISTORY.md`](../bug-records/VBA_ENGINE_BUG_HISTORY.md) 参照）。
 
 **対処**: `evalExpression()` で、フルに消費された式のトップレベル演算子が
 `=` の `BinaryExpression` の場合は高速パスを採用せず、文として解析する

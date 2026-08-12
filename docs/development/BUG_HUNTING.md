@@ -10,7 +10,9 @@ status: stable
 
 VBA 実行エンジンのバグを体系的に発見するための手法カタログ。
 それぞれ狙うバグの種類が異なり、相互補完の関係にある。
-発見したバグの修正フローは通常どおり（`tests/spec/` にテスト追加 → 修正 → `docs/todo/TODO_SPEC.md` 記録 → コミット → `bg-test.sh`）。
+発見したバグの修正フローは通常どおり（`tests/spec/` にテスト追加 → 修正 →
+`docs/bug-records/VBA_ENGINE_BUG_HISTORY.md` に履歴記録 →
+`docs/todo/TODO_SPEC.md` の現在状態更新 → コミット → `bg-test.sh`）。
 
 この文書は手法の説明を正とし、各手法の実施状況・既知の問題・次回の
 未実施領域は `EVAL_LOG.md` に集約する。対象選定時は `EVAL_LOG.md` の

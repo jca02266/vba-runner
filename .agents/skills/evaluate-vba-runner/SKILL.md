@@ -56,6 +56,9 @@ analysis; do not duplicate its taxonomy here.
    action. For a verified defect, implement the smallest compatible fix, add
    a regression test, and run focused checks. Also assess structural
    weaknesses and update `docs/todo/TODO.md` or `docs/todo/TODO_SPEC.md` only when justified.
+   Record the historical defect and remediation in
+   `docs/bug-records/VBA_ENGINE_BUG_HISTORY.md`; keep the specification TODO
+   focused on current compliance status.
    When a regression test or the full regression suite exposes a defect,
    mark the linked Finding with `discoveryType: regression`; use a different
    explicit type for fuzzing, mutation, coverage, Excel comparison, or direct

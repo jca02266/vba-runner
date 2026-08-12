@@ -20,6 +20,7 @@
 | [LSP.md](./docs/implementation/LSP.md) | 開発者 | LSP 実装仕様 |
 | [TODO.md](./docs/todo/TODO.md) | 開発者 | 次期開発ロードマップ |
 | [TODO_SPEC.md](./docs/todo/TODO_SPEC.md) | 開発者 | VBA 言語仕様実装 TODO |
+| [VBA_ENGINE_BUG_HISTORY.md](./docs/bug-records/VBA_ENGINE_BUG_HISTORY.md) | 開発者 | 過去のVBAエンジン仕様バグ履歴 |
 | [INDEX.md](./INDEX.md) | メンテナ | 本台帳 |
 
 ## build/ — 配布パッケージ正本

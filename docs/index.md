@@ -30,6 +30,7 @@
 ## Bug records
 
 * [VBA組み込み関数監査ログ](./bug-records/audit-func-log.md) - MS-VBAL仕様と実装の照合履歴
+* [VBAエンジンバグ履歴](./bug-records/VBA_ENGINE_BUG_HISTORY.md) - 過去に発見・修正した仕様バグ
 
 ## Navigation
 

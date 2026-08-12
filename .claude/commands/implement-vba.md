@@ -151,7 +151,9 @@ End Sub
 - `src/engine/evaluator.ts` — 実行時の動作が必要な場合
 
 実装は仕様書の動作定義に忠実に行う。
-仕様と異なる実装や制限事項がある場合は、必ず docs/todo/TODO_SPEC.md の該当項目に制限事項としてメモを残すこと。
+仕様と異なる実装や制限事項がある場合は、`docs/todo/TODO_SPEC.md` の該当項目に
+現在の制限を記載し、修正したバグの経緯は
+`docs/bug-records/VBA_ENGINE_BUG_HISTORY.md` に記録すること。
 
 ### Step 6: テスト実行
 
@@ -177,6 +179,7 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 `docs/todo/TODO_SPEC.md` の対象項目を `🚧` → `✅` に更新する。
 部分実装や仕様上の制限がある場合は `⚠️`（備考を括弧内に記載）にする。
 仕様と異なる挙動が残る場合は、該当行に制限事項を明記すること。
+修正した仕様バグの詳細は `docs/bug-records/VBA_ENGINE_BUG_HISTORY.md` に追記する。
 
 **VBA ランタイム挙動の場合は、テスト列に両テストファイル名を記載する：**
 ```

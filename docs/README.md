@@ -85,4 +85,5 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 | LSP / VS Code 拡張の実装 | [LSP.md](./implementation/LSP.md) |
 | エンジン内部設計・仕様メモ | [internals/](./internals) |
 | 組み込み関数の仕様監査履歴 | [監査ログ](./bug-records/audit-func-log.md) |
+| 過去のVBAエンジンバグ履歴 | [バグ履歴](./bug-records/VBA_ENGINE_BUG_HISTORY.md) |
 | このリポジトリを AI が開発するときの契約 | [CLAUDE.md](../CLAUDE.md) |
