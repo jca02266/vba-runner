@@ -17,3 +17,8 @@
   status: needs-excel
   fromStatus: needs-excel-probe
   occurredAt: '2026-08-12T10:24:50.589Z'
+- candidateId: FZ-COVERAGE-20260810-281
+  evaluationId: EV-00770
+  status: fixed
+  fromStatus: needs-excel
+  occurredAt: '2026-08-12T10:37:27.252Z'

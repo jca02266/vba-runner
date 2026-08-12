@@ -672,20 +672,20 @@
 | EV-00767 | FZ-COVERAGE-20260810 | verified-no-bug | 0 | Parserの明示Class...End Class内メンバーerrorRecoveryとクラス終端保持境界 |
 | EV-00768 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列値と数値・文字列プレースホルダー混在書式の分類境界 |
 | EV-00769 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数表記と末尾スケーリングカンマのトークン境界 |
-| EV-00770 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
+| EV-00770 | FZ-COVERAGE-20260810 | fixed | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
 | EV-00771 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
 | EV-00772 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ |
 | EV-00773 | FZ-COVERAGE-20260810 | fixed | 1 | Format名前付き書式と日付トークンの値型・セクション境界 |
 | EV-00774 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値トークン・リテラル・セクション区切りの組合せ境界 |
 | EV-00775 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format日付トークンの文脈依存m/n、リテラル、名前付きc境界 |
 | EV-00776 | FZ-COVERAGE-20260810 | fixed | 1 | Format Null・Empty・複数セクション・文字列placeholderの選択境界 |
-| EV-00777 | FZ-COVERAGE-20260810 | needs-excel | 1 | Formatの空ブラケット・降順範囲・不正ブラケットのトークン検証境界 |
-| EV-00778 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format単独の@・&・!プレースホルダーと数値・文字列型の適用境界 |
-| EV-00779 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format文字列プレースホルダーの長さ・空文字・Unicode充填境界 |
+| EV-00777 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの空ブラケット・降順範囲・不正ブラケットのトークン検証境界 |
+| EV-00778 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format単独の@・&・!プレースホルダーと数値・文字列型の適用境界 |
+| EV-00779 | FZ-COVERAGE-20260810 | known-limit | 1 | Format文字列プレースホルダーの長さ・空文字・Unicode充填境界 |
 | EV-00780 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列の<・>大文字小文字変換とASCII・BMP境界 |
 | EV-00781 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format複数の<・>制御記号とプレースホルダーの優先順位境界 |
 | EV-00782 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションにおける選択済み文字列プレースホルダーの分離 |
-| EV-00783 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format文字列の引用符・バックスラッシュによるリテラル境界 |
+| EV-00783 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format文字列の引用符・バックスラッシュによるリテラル境界 |
 | EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
 | EV-00785 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
 | EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
@@ -716,13 +716,12 @@
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 309 |
-| known-limit | 4 |
-| needs-excel | 5 |
+| fixed | 310 |
+| known-limit | 5 |
 | retired | 1 |
-| verified-no-bug | 388 |
+| verified-no-bug | 391 |
 
-横展開未解決経路: 569、実Excel待ち評価: 5
+横展開未解決経路: 562、実Excel待ち評価: 0
 
 ## 次の候補
 
