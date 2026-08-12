@@ -437,19 +437,6 @@ function recentBugIncrease(series, limit = 10) {
   return increase;
 }
 
-function recentEvaluationIds(series, limit = 10) {
-  const ids = [];
-  const seen = new Set();
-  for (const row of series.filter((item) => item.evaluationPoint).slice().reverse()) {
-    if (!seen.has(row.evaluationId)) {
-      seen.add(row.evaluationId);
-      ids.push(row.evaluationId);
-      if (ids.length === limit) break;
-    }
-  }
-  return new Set(ids);
-}
-
 function countDelta(currentRows, previousRows, key, fields = ['count']) {
   const previous = new Map(previousRows.map((row) => [row[key], row]));
   return new Map(currentRows.map((row) => [row[key], Object.fromEntries(fields.map((field) => [field, (row[field] ?? 0) - (previous.get(row[key])?.[field] ?? 0)]))]));
@@ -648,7 +635,9 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const timeZone = localTimeZone();
   const numCell = (value) => `<td class="numeric">${value}</td>`;
   const numHeader = (value) => `<th class="numeric">${value}</th>`;
-  const recentIds = recentEvaluationIds(series);
+  // 評価一覧（直近10件）と同じ時系列行を差分の対象にする。
+  const recentSeries = series.slice(-10);
+  const recentIds = new Set(recentSeries.map((row) => row.evaluationId));
   const previousRecords = records.filter((record) => !recentIds.has(record.id));
   const previousSummary = aggregate(previousRecords);
   const previousClassSummary = aggregateAreaClasses(previousSummary);
@@ -688,7 +677,6 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const statusTotalRow = `<tr><th>合計</th>${deltaHeader(statusTotal, sumDelta(statusDelta, 'total'))}<th></th><th></th><th></th></tr>`;
   const rootCauseTotalRow = `<tr><th>合計</th>${deltaHeader(rootCauseTotals.total, sumDelta(rootCauseDelta, 'total'))}${deltaHeader(rootCauseTotals.v1, sumDelta(rootCauseDelta, 'v1'))}${deltaHeader(rootCauseTotals.legacy, sumDelta(rootCauseDelta, 'legacy'))}<th></th></tr>`;
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
-  const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td class="recent-date">${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td class="recent-area">${htmlCell(row.area)}</td>${numCell(row.evaluations)}${numCell(row.bugEvaluations)}${numCell(row.nonBugEvaluations)}${numCell(row.pendingEvaluations)}${numCell(row.otherEvaluations)}${numCell(row.discovered)}${numCell(row.fixed)}${numCell(row.openBugs)}</tr>`).join('\n');
   const reportLayoutOverrides = '<style>.dashboard-header{display:grid!important;grid-template-columns:auto auto minmax(0,1fr);justify-content:initial!important}.dashboard-header h1{grid-column:1;grid-row:1}.dashboard-header .tabs{grid-column:2;grid-row:1}.dashboard-header .meta{grid-column:3;grid-row:1}.alert-metric,.delta{color:#c00;font-weight:700}</style>';
   const initialTabScript = '<script>document.querySelector(\'.tab-button[data-tab="convergence"]\').click();</script>';
