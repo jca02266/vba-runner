@@ -2065,3 +2065,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     rootCauseId: RC-00069
+  - afterEvaluation: EV-00814
+    audit: "712 evaluations, 0 active claims; Format Decimal通常数値書式のエスケープsuffix境界は期待値と一致"
+    decision: "Decimalの通常値とゼロ値でバックスラッシュsuffixの実測出力が一致し、新規バグは確認されなかった。Formatの無バグ連続はBUG-00511後の2件目として、同領域の次候補を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00069
