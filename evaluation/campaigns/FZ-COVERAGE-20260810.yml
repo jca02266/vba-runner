@@ -2961,3 +2961,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-313
+    title: Format exact pattern Decimal escaped suffix boundary
+    status: queued
+    priority: 1
+    focus: Format Decimal通常数値書式のエスケープsuffix境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
