@@ -704,20 +704,20 @@
 | EV-00800 | META-ENGINE | verified-no-bug | 1 | Property LetのOptional引数と名前付きByRefの追加経路 |
 | EV-00801 | META-ENGINE | verified-no-bug | 1 | Property Letの暗黙型変換とByRef書戻しの追加経路 |
 | EV-00802 | META-ENGINE | verified-no-bug | 1 | クラスProperty Letの継承・公開呼び出し追加経路 |
-| EV-00803 | META-ENGINE | bug-found |  | Property Letへ配列要素をByRefで渡したときの書戻し |
+| EV-00803 | META-ENGINE | needs-excel-probe |  | Property Letへ配列要素をByRefで渡したときの書戻し |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 1 |
 | fixed | 309 |
 | known-limit | 4 |
+| needs-excel-probe | 1 |
 | retired | 1 |
 | verified-no-bug | 380 |
 
-横展開未解決経路: 571、実Excel待ち評価: 0
+横展開未解決経路: 571、実Excel待ち評価: 1
 
 ## 次の候補
 
