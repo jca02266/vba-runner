@@ -51,3 +51,8 @@ items:
     status: verified-no-bug
     priority: 3
     focus: MIRR演算順序・epsilon再現性
+  - id: RCA-REVIEW-014
+    title: MIRR別キャッシュフロー判定のv2再評価
+    status: queued
+    priority: 1
+    focus: MIRR別キャッシュフロー判定のv2再評価
