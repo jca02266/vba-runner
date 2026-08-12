@@ -83,6 +83,10 @@ analysis; do not duplicate its taxonomy here.
    and a prose explanation. The `## 結果` section must contain both a
    program-level observed output and a prose explanation. The five sections
    must not be empty.
+   The `## 実施方法` section must include the minimal self-contained VBA
+   source that constitutes the evaluation. A regression-test reference alone
+   is insufficient; regression tests may be supplemental evidence, but the
+   EV must be independently reproducible from its own source listing.
    A new BUG record uses `findingRecordVersion: 2` and records the symptom,
    horizontal expansion, root-cause analysis, and regression test separately.
    A BUG must distinguish discovery input from the persistent regression test.
