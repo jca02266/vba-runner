@@ -2970,3 +2970,21 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-314
+    title: Format Decimal quoted prefix and suffix boundary
+    status: queued
+    priority: 1
+    focus: Format Decimal通常数値書式の引用prefix・suffix境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-315
+    title: Format Decimal mixed escaped and quoted literal boundary
+    status: queued
+    priority: 1
+    focus: Format Decimal通常数値書式のエスケープprefixと引用suffix境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

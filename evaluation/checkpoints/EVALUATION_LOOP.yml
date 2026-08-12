@@ -2073,3 +2073,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     rootCauseId: RC-00069
+  - afterEvaluation: EV-00815
+    audit: "713 evaluations, 0 active claims; Format Decimal通常数値書式の引用prefix・suffix境界は期待値と一致"
+    decision: "引用符付きprefix・suffixの実測出力が通常値とゼロ値の双方で期待値と一致し、新規バグは確認されなかった。Formatの無バグ連続はBUG-00511後の3件目として、同領域の次候補を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-315
+    rootCauseId: RC-00069
