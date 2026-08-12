@@ -98,12 +98,24 @@ Public Sub RunExcelQueueVerification()
     VerifyFormatBracketAndSectionMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
+    VerifyPropertyArrayElementByRef
     VerifyUdtObjectArraySet
     VerifyOpaqueShape
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyPropertyArrayElementByRef()
+    Dim box As New ExcelQueuePropertyArray, values(0 To 0) As Long, errNo As Long
+    values(0) = 7
+    On Error Resume Next
+    Err.Clear
+    box.Value = values(0)
+    errNo = Err.Number
+    EmitResult "XL-187 ERR=" & CStr(errNo) & " SEEN=" & CStr(box.SeenValue) & " VALUE=" & CStr(values(0))
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatBracketAndSectionMatrix()

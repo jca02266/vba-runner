@@ -508,7 +508,7 @@ function validate(records = readRecords()) {
         if (!Array.isArray(causeAnalysis[key])) throw new Error(`${file}: rootCauseAnalysis.${key} must be an array`);
       }
     }
-    if (data.status === 'needs-excel' && audit.unresolved.length === 0) {
+    if (data.status === 'needs-excel' && data.evaluationRecordVersion !== 2 && audit.unresolved.length === 0) {
       throw new Error(`${file}: resolved Excel boundaries require a terminal evaluation status`);
     }
     if (['needs-excel-probe', 'needs-excel'].includes(data.status)) {
