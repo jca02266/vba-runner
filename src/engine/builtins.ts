@@ -1354,7 +1354,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                 ? `0${decFmt ? `.${'0'.repeat((decFmt.match(/0/g) || []).length)}` : ''}`
                 : '';
             const zeroSign = match[2][1] === '+' ? '+' : '';
-            return `${negative ? '-' : ''}${zeroMantissa}${match[2][0]}${zeroSign}${'0'.repeat(match[3].length)}${match[4]}`;
+            return `${negative ? '-' : ''}${zeroMantissa}${match[2][0]}${zeroSign}${'0'.repeat(match[3].length)}${decodeFormatLiterals(match[4])}`;
         }
         const firstNonzero = (intPart + fracPart).search(/[1-9]/);
         let exponent = intPart.length - firstNonzero - 1;

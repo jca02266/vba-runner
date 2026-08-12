@@ -2943,3 +2943,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-311
+    title: Format exact scientific zero literal suffix boundary
+    status: queued
+    priority: 1
+    focus: Format指数書式のゼロ値とエスケープsuffix境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
