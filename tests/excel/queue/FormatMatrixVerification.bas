@@ -20,9 +20,18 @@ Public Sub RunFormatMatrixVerification()
     EmitNamedDateBoundaryMatrix
     EmitRoundingBoundaryMatrix
     EmitNamedBooleanBoundaryMatrix
+    EmitScientificLiteralBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitScientificLiteralBoundaryMatrix()
+    Print #resultFile, "XL-198"
+    Debug.Print "XL-198"
+    EmitCase "XL-198-UNESCAPED", "0.00E+00,,", CCur("1000000")
+    EmitCase "XL-198-ESCAPED-ONE", "0.00E+00\,", CCur("1000000")
+    EmitCase "XL-198-ESCAPED-TWO", "0.00E+00\,\,", CCur("1000000")
 End Sub
 
 Private Sub EmitNamedBooleanBoundaryMatrix()

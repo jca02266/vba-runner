@@ -2925,3 +2925,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/on-error.test.ts
+  - id: FZ-COVERAGE-20260810-309
+    title: Format exact scientific literal suffix boundary
+    status: queued
+    priority: 1
+    focus: Format指数書式の引用・エスケープカンマと型別suffix境界
+    priorCauseKey: format-number-tokenization-must-separate-exponent-and-scaling
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
