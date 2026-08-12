@@ -705,12 +705,18 @@
 | EV-00801 | META-ENGINE | verified-no-bug | 1 | Property Letの暗黙型変換とByRef書戻しの追加経路 |
 | EV-00802 | META-ENGINE | verified-no-bug | 1 | クラスProperty Letの継承・公開呼び出し追加経路 |
 | EV-00803 | META-ENGINE | verified-no-bug |  | Property Letへ配列要素をByRefで渡したときの書戻し |
+| EV-00804 | ROOT-CAUSE | blocked |  | MIRR別キャッシュフロー判定のv2再評価 |
+| EV-00805 | META-ENGINE | blocked |  | EV-00798のProperty Let暗黙ByRef・名前付き引数・型変換再評価 |
+| EV-00806 | META-ENGINE | blocked |  | EV-00799のProperty Let配列要素ByRef再評価 |
+| EV-00807 | META-ENGINE | blocked |  | EV-00800のProperty Let Optional・名前付きByRef再評価 |
+| EV-00808 | META-ENGINE | blocked |  | EV-00801のProperty Let暗黙型変換・ByRef書戻し再評価 |
+| EV-00809 | META-ENGINE | blocked |  | EV-00802のクラスProperty Let継承・公開呼出し再評価 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| blocked | 6 |
+| blocked | 12 |
 | fixed | 309 |
 | known-limit | 4 |
 | retired | 1 |

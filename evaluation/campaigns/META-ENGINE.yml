@@ -235,3 +235,28 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
+  - id: META-REVIEW-050
+    title: Property Let暗黙ByRef再評価
+    status: queued
+    priority: 1
+    focus: EV-00798のProperty Let暗黙ByRef・名前付き引数・型変換再評価
+  - id: META-REVIEW-051
+    title: Property Let配列要素ByRef再評価
+    status: queued
+    priority: 1
+    focus: EV-00799のProperty Let配列要素ByRef再評価
+  - id: META-REVIEW-052
+    title: Property Let Optional名前付きByRef再評価
+    status: queued
+    priority: 1
+    focus: EV-00800のProperty Let Optional・名前付きByRef再評価
+  - id: META-REVIEW-053
+    title: Property Let暗黙型変換再評価
+    status: queued
+    priority: 1
+    focus: EV-00801のProperty Let暗黙型変換・ByRef書戻し再評価
+  - id: META-REVIEW-054
+    title: クラスProperty Let継承再評価
+    status: queued
+    priority: 1
+    focus: EV-00802のクラスProperty Let継承・公開呼出し再評価
