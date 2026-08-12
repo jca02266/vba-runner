@@ -2057,3 +2057,11 @@ checkpoints:
     nextCandidate: null
     rootCauseId: RC-00069
     commit: f2e84ed9
+  - afterEvaluation: EV-00813
+    audit: "711 evaluations, 0 active claims; Format負指数の引用suffix境界は期待値と一致"
+    decision: "負指数の通常値とゼロ値で引用suffixの実測出力が一致し、新規バグは確認されなかった。BUG-00511で直前に無バグ連続がリセットされているため、今回の連続無バグは1件としてFormatの次候補を継続する。"
+    action: continue
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00069

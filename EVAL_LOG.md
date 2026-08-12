@@ -714,6 +714,7 @@
 | EV-00810 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数書式の引用・エスケープカンマと型別suffix境界 |
 | EV-00811 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format指数書式の引用符・バックスラッシュsuffixの型別境界 |
 | EV-00812 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数書式のゼロ値とエスケープsuffix境界 |
+| EV-00813 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format負指数書式の引用suffix境界 |
 
 ## 状態集計
 
@@ -722,7 +723,7 @@
 | fixed | 312 |
 | known-limit | 5 |
 | retired | 1 |
-| verified-no-bug | 392 |
+| verified-no-bug | 393 |
 
 横展開未解決経路: 563、実Excel待ち評価: 0
 
