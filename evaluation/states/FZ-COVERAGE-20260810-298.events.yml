@@ -7,3 +7,8 @@
   status: bug-found
   fromStatus: needs-excel
   occurredAt: '2026-08-11T23:10:26.998Z'
+- candidateId: FZ-COVERAGE-20260810-298
+  evaluationId: EV-00787
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-12T03:57:31.915Z'

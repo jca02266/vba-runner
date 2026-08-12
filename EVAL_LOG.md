@@ -689,7 +689,7 @@
 | EV-00784 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の正・負・ゼロ・Nullセクション選択境界 |
 | EV-00785 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値の丸め・符号・ゼロ埋め境界 |
 | EV-00786 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きTrue/False・Yes/No・On/Offの値型境界 |
-| EV-00787 | FZ-COVERAGE-20260810 | bug-found | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
+| EV-00787 | FZ-COVERAGE-20260810 | fixed | 1 | Format名前付きBoolean書式のNull・Empty・文字列境界 |
 | EV-00788 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format名前付きGeneral Number・Currency・Fixed・Standard・Percent・Scientific境界 |
 | EV-00789 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format修正済みString非選択日付セクションの回帰境界 |
 | EV-00790 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format ASCII文字列の1〜4セクション選択と文字placeholder境界 |
@@ -705,13 +705,13 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 5 |
-| fixed | 304 |
+| bug-found | 4 |
+| fixed | 305 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 375 |
 
-横展開未解決経路: 578、実Excel待ち評価: 0
+横展開未解決経路: 577、実Excel待ち評価: 0
 
 ## 次の候補
 
