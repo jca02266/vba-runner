@@ -7,3 +7,13 @@
   status: in-progress
   fromStatus: blocked
   occurredAt: '2026-08-12T10:19:12.696Z'
+- candidateId: FZ-COVERAGE-20260810-290
+  evaluationId: EV-00779
+  status: needs-excel-probe
+  fromStatus: in-progress
+  occurredAt: '2026-08-12T10:23:47.668Z'
+- candidateId: FZ-COVERAGE-20260810-290
+  evaluationId: EV-00779
+  status: needs-excel
+  fromStatus: needs-excel-probe
+  occurredAt: '2026-08-12T10:24:58.179Z'

@@ -96,6 +96,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFormatMixedSectionMatrix
     VerifyFormatDateNameMatrix
     VerifyFormatBracketAndSectionMatrix
+    VerifyFormatUnresolvedMatrix
     VerifyCallByNameNamedParamArray
     VerifyMemberForcedByVal
     VerifyPropertyArrayElementByRef
@@ -105,6 +106,34 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFormatUnresolvedMatrix()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+
+    Err.Clear: value = Format(CCur("1000000"), "0.00E+00,,"): errNo = Err.Number
+    EmitValueAndType "XL-188 FORMAT-CURRENCY-SCI-COMMA", value, errNo
+    Err.Clear: value = Format(CDec("1000000"), "0.00E+00,,"): errNo = Err.Number
+    EmitValueAndType "XL-189 FORMAT-DECIMAL-SCI-COMMA", value, errNo
+    Err.Clear: value = Format(1000, "[]"): errNo = Err.Number
+    EmitValueAndType "XL-190 FORMAT-EMPTY-BRACKET", value, errNo
+    Err.Clear: value = Format(1000, "[Z-A]"): errNo = Err.Number
+    EmitValueAndType "XL-191 FORMAT-DESCENDING-BRACKET", value, errNo
+    Err.Clear: value = Format(1000, "[A"): errNo = Err.Number
+    EmitValueAndType "XL-192 FORMAT-UNCLOSED-BRACKET", value, errNo
+    Err.Clear: value = Format(1000, "@"): errNo = Err.Number
+    EmitValueAndType "XL-193 FORMAT-NUMERIC-AT", value, errNo
+    Err.Clear: value = Format(Empty, "!"): errNo = Err.Number
+    EmitValueAndType "XL-194 FORMAT-EMPTY-BANG", value, errNo
+    Err.Clear: value = Format(1000, "0.0\Q"): errNo = Err.Number
+    EmitValueAndType "XL-195 FORMAT-ESCAPED-Q", value, errNo
+    Err.Clear: value = Format("😀", "@@"): errNo = Err.Number
+    EmitValueAndType "XL-196 FORMAT-SUPPLEMENTARY-AT", value, errNo
+    Err.Clear: value = Format("", "@"): errNo = Err.Number
+    EmitValueAndType "XL-197 FORMAT-EMPTY-AT", value, errNo
+
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyPropertyArrayElementByRef()

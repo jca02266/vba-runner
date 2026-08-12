@@ -12,3 +12,13 @@
   status: in-progress
   fromStatus: blocked
   occurredAt: '2026-08-12T10:19:15.305Z'
+- candidateId: FZ-COVERAGE-20260810-294
+  evaluationId: EV-00783
+  status: needs-excel-probe
+  fromStatus: in-progress
+  occurredAt: '2026-08-12T10:23:50.171Z'
+- candidateId: FZ-COVERAGE-20260810-294
+  evaluationId: EV-00783
+  status: needs-excel
+  fromStatus: needs-excel-probe
+  occurredAt: '2026-08-12T10:25:00.752Z'
