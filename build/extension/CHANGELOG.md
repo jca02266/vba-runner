@@ -2,6 +2,12 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.7] - 2026-08-13
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — addressed numerous numeric `Format` compatibility issues, including escaped and quoted literals, scaling commas, zero and negative-exponent branches, and Decimal/scientific-format boundaries.
+
 ## [0.3.6] - 2026-08-05
 
 ### Fixed

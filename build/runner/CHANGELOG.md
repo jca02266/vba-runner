@@ -2,6 +2,12 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.20] - 2026-08-13
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — addressed numerous numeric `Format` compatibility issues, including escaped and quoted literals, scaling commas, zero and negative-exponent branches, and Decimal/scientific-format boundaries.
+
 ## [0.1.1-alpha.19] - 2026-08-05
 
 ### Fixed
