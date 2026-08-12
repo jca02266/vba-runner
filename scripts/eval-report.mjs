@@ -437,6 +437,24 @@ function recentBugIncrease(series, limit = 10) {
   return increase;
 }
 
+function recentEvaluationIds(series, limit = 10) {
+  const ids = [];
+  const seen = new Set();
+  for (const row of series.filter((item) => item.evaluationPoint).slice().reverse()) {
+    if (!seen.has(row.evaluationId)) {
+      seen.add(row.evaluationId);
+      ids.push(row.evaluationId);
+      if (ids.length === limit) break;
+    }
+  }
+  return new Set(ids);
+}
+
+function countDelta(currentRows, previousRows, key, fields = ['count']) {
+  const previous = new Map(previousRows.map((row) => [row[key], row]));
+  return new Map(currentRows.map((row) => [row[key], Object.fromEntries(fields.map((field) => [field, (row[field] ?? 0) - (previous.get(row[key])?.[field] ?? 0)]))]));
+}
+
 function renderMarkdown(records, statusRecords, summary, classSummary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const candidateTotal = candidateCount(records);
@@ -630,7 +648,23 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const timeZone = localTimeZone();
   const numCell = (value) => `<td class="numeric">${value}</td>`;
   const numHeader = (value) => `<th class="numeric">${value}</th>`;
-  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td>${numCell(row.evaluations)}${numCell(row.bugs)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${numCell(row.unconfirmed)}${numCell(row.excluded)}</tr>`).join('\n');
+  const recentIds = recentEvaluationIds(series);
+  const previousRecords = records.filter((record) => !recentIds.has(record.id));
+  const previousSummary = aggregate(previousRecords);
+  const previousClassSummary = aggregateAreaClasses(previousSummary);
+  const previousFindingTypes = findingTypeSummary(previousRecords, readFindings());
+  const previousStatusRows = statusTableRows(previousRecords, new Map(), []);
+  const previousRootCauseStatuses = rootCauseAnalysisStatusCounts(previousRecords);
+  const summaryDelta = countDelta(summary, previousSummary, 'area', ['evaluations', 'bugs', 'unconfirmed', 'excluded']);
+  const classSummaryDelta = countDelta(classSummary, previousClassSummary, 'areaClass', ['evaluations', 'bugs', 'unconfirmed', 'excluded']);
+  const findingTypeDelta = countDelta(findingTypes, previousFindingTypes, 'type');
+  const statusDelta = countDelta(statusRows, previousStatusRows, 'status', ['total']);
+  const rootCauseDelta = countDelta(rootCauseStatuses, previousRootCauseStatuses, 'status', ['total', 'v1', 'legacy']);
+  const deltaText = (delta) => delta === 0 ? '' : ` <span class="delta">(${delta > 0 ? '+' : ''}${delta})</span>`;
+  const deltaCell = (value, delta) => numCell(`${value}${deltaText(delta)}`);
+  const deltaHeader = (value, delta) => numHeader(`${value}${deltaText(delta)}`);
+  const sumDelta = (deltaMap, field) => [...deltaMap.values()].reduce((sum, row) => sum + (row[field] ?? 0), 0);
+  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td>${deltaCell(row.evaluations, summaryDelta.get(row.area)?.evaluations ?? 0)}${deltaCell(row.bugs, summaryDelta.get(row.area)?.bugs ?? 0)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${deltaCell(row.unconfirmed, summaryDelta.get(row.area)?.unconfirmed ?? 0)}${deltaCell(row.excluded, summaryDelta.get(row.area)?.excluded ?? 0)}</tr>`).join('\n');
   const summaryTotals = summary.reduce((totals, row) => ({
     evaluations: totals.evaluations + row.evaluations,
     bugs: totals.bugs + row.bugs,
@@ -638,25 +672,25 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
     excluded: totals.excluded + row.excluded,
   }), { evaluations: 0, bugs: 0, unconfirmed: 0, excluded: 0 });
   const findingTotal = findingTypes.reduce((total, row) => total + row.count, 0);
-  const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td>${numCell(row.count)}</tr>`).join('\n');
-  const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td>${numCell(row.total)}${numCell(row.v1)}${numCell(row.legacy)}<td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
+  const findingTypeRows = findingTypes.map((row) => `<tr><td><code>${htmlCell(row.type)}</code></td>${deltaCell(row.count, findingTypeDelta.get(row.type)?.count ?? 0)}</tr>`).join('\n');
+  const rootCauseStatusRows = rootCauseStatuses.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td>${deltaCell(row.total, rootCauseDelta.get(row.status)?.total ?? 0)}${deltaCell(row.v1, rootCauseDelta.get(row.status)?.v1 ?? 0)}${deltaCell(row.legacy, rootCauseDelta.get(row.status)?.legacy ?? 0)}<td>${htmlCell(row.meaning)}</td></tr>`).join('\n');
   const rootCauseTotals = rootCauseStatuses.reduce((totals, row) => ({
     total: totals.total + row.total,
     v1: totals.v1 + row.v1,
     legacy: totals.legacy + row.legacy,
   }), { total: 0, v1: 0, legacy: 0 });
   const statusTotal = statusRows.reduce((total, row) => total + row.total, 0);
-  const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td>${numCell(row.total)}<td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
-  const summaryTotalRow = `<tr><th>合計</th><th></th>${numHeader(summaryTotals.evaluations)}${numHeader(summaryTotals.bugs)}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${numHeader(summaryTotals.unconfirmed)}${numHeader(summaryTotals.excluded)}</tr>`;
-  const classSummaryRows = classSummary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td>${numCell(row.evaluations)}${numCell(row.bugs)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${numCell(row.unconfirmed)}${numCell(row.excluded)}</tr>`).join('\n');
-  const classSummaryTotalRow = `<tr><th>合計</th>${numHeader(summaryTotals.evaluations)}${numHeader(summaryTotals.bugs)}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${numHeader(summaryTotals.unconfirmed)}${numHeader(summaryTotals.excluded)}</tr>`;
-  const findingTotalRow = `<tr><th>合計</th>${numHeader(findingTotal)}</tr>`;
-  const statusTotalRow = `<tr><th>合計</th>${numHeader(statusTotal)}<th></th><th></th><th></th></tr>`;
-  const rootCauseTotalRow = `<tr><th>合計</th>${numHeader(rootCauseTotals.total)}${numHeader(rootCauseTotals.v1)}${numHeader(rootCauseTotals.legacy)}<th></th></tr>`;
+  const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td>${deltaCell(row.total, statusDelta.get(row.status)?.total ?? 0)}<td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
+  const summaryTotalRow = `<tr><th>合計</th><th></th>${deltaHeader(summaryTotals.evaluations, sumDelta(summaryDelta, 'evaluations'))}${deltaHeader(summaryTotals.bugs, sumDelta(summaryDelta, 'bugs'))}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${deltaHeader(summaryTotals.unconfirmed, sumDelta(summaryDelta, 'unconfirmed'))}${deltaHeader(summaryTotals.excluded, sumDelta(summaryDelta, 'excluded'))}</tr>`;
+  const classSummaryRows = classSummary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td>${deltaCell(row.evaluations, classSummaryDelta.get(row.areaClass)?.evaluations ?? 0)}${deltaCell(row.bugs, classSummaryDelta.get(row.areaClass)?.bugs ?? 0)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${deltaCell(row.unconfirmed, classSummaryDelta.get(row.areaClass)?.unconfirmed ?? 0)}${deltaCell(row.excluded, classSummaryDelta.get(row.areaClass)?.excluded ?? 0)}</tr>`).join('\n');
+  const classSummaryTotalRow = `<tr><th>合計</th>${deltaHeader(summaryTotals.evaluations, sumDelta(classSummaryDelta, 'evaluations'))}${deltaHeader(summaryTotals.bugs, sumDelta(classSummaryDelta, 'bugs'))}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${deltaHeader(summaryTotals.unconfirmed, sumDelta(classSummaryDelta, 'unconfirmed'))}${deltaHeader(summaryTotals.excluded, sumDelta(classSummaryDelta, 'excluded'))}</tr>`;
+  const findingTotalRow = `<tr><th>合計</th>${deltaHeader(findingTotal, sumDelta(findingTypeDelta, 'count'))}</tr>`;
+  const statusTotalRow = `<tr><th>合計</th>${deltaHeader(statusTotal, sumDelta(statusDelta, 'total'))}<th></th><th></th><th></th></tr>`;
+  const rootCauseTotalRow = `<tr><th>合計</th>${deltaHeader(rootCauseTotals.total, sumDelta(rootCauseDelta, 'total'))}${deltaHeader(rootCauseTotals.v1, sumDelta(rootCauseDelta, 'v1'))}${deltaHeader(rootCauseTotals.legacy, sumDelta(rootCauseDelta, 'legacy'))}<th></th></tr>`;
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const recentSeries = series.slice(-10);
   const seriesRows = recentSeries.map((row) => `<tr><td class="recent-date">${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td class="recent-area">${htmlCell(row.area)}</td>${numCell(row.evaluations)}${numCell(row.bugEvaluations)}${numCell(row.nonBugEvaluations)}${numCell(row.pendingEvaluations)}${numCell(row.otherEvaluations)}${numCell(row.discovered)}${numCell(row.fixed)}${numCell(row.openBugs)}</tr>`).join('\n');
-  const reportLayoutOverrides = '<style>.dashboard-header{display:grid!important;grid-template-columns:auto auto minmax(0,1fr);justify-content:initial!important}.dashboard-header h1{grid-column:1;grid-row:1}.dashboard-header .tabs{grid-column:2;grid-row:1}.dashboard-header .meta{grid-column:3;grid-row:1}.alert-metric{color:#c00;font-weight:700}</style>';
+  const reportLayoutOverrides = '<style>.dashboard-header{display:grid!important;grid-template-columns:auto auto minmax(0,1fr);justify-content:initial!important}.dashboard-header h1{grid-column:1;grid-row:1}.dashboard-header .tabs{grid-column:2;grid-row:1}.dashboard-header .meta{grid-column:3;grid-row:1}.alert-metric,.delta{color:#c00;font-weight:700}</style>';
   const initialTabScript = '<script>document.querySelector(\'.tab-button[data-tab="convergence"]\').click();</script>';
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">${reportLayoutOverrides}
