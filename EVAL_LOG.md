@@ -521,7 +521,7 @@
 | EV-00616 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域の日付名・桁埋め書式バッチ |
 | EV-00617 | FZ-COVERAGE-20260810 | fixed | 1 | Format領域の角括弧・正負セクション境界バッチ |
 | EV-00618 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format領域のエスケープ・引用・角括弧・日付字句境界マトリックス |
-| EV-00619 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域の型・基数・境界直積マトリックス |
+| EV-00619 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域の型・基数・境界直積マトリックス |
 | EV-00620 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLongサフィックス付き10進・16進・8進リテラル境界 |
 | EV-00621 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLong Const・型推論精度境界 |
 | EV-00622 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域のLongLongリテラルからVariant・戻り値・配列への値伝播 |
@@ -705,13 +705,13 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 2 |
-| fixed | 307 |
+| bug-found | 1 |
+| fixed | 308 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 375 |
 
-横展開未解決経路: 574、実Excel待ち評価: 0
+横展開未解決経路: 573、実Excel待ち評価: 0
 
 ## 次の候補
 

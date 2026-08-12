@@ -4,3 +4,8 @@
   occurredAt: '2026-08-11T10:11:36Z'
   source: git-history-backfill
   sourceCommit: a65c223028f692b12d514e62a3e7c81da61af0a1
+- candidateId: FZ-COVERAGE-20260810-172
+  evaluationId: EV-00619
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-12T04:11:32.212Z'

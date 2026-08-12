@@ -1688,7 +1688,7 @@ items:
       - tests/excel/queue/FormatMatrixVerification.bas
   - id: FZ-COVERAGE-20260810-172
     title: Declaration conversion type radix boundary matrix
-    status: needs-excel
+    status: fixed
     priority: 1
     focus: 宣言・型・リテラル領域の型・基数・境界直積マトリックス
     priorCauseKey: radix-value-width-semantics-not-shared
