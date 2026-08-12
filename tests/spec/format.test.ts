@@ -45,6 +45,21 @@ assert.strictEqual(
     'Date-like strings use their serial value for numeric Format sections',
 );
 
+const namedDateTypes = evalVBASingle(String.raw`
+    Function TestNamedDateTypes() As String
+        TestNamedDateTypes = Format(#2026-03-15 13:04:05#, "General Number") & "|" & _
+            Format(#2026-03-15 13:04:05#, "Fixed") & "|" & _
+            Format(CCur("46096.5"), "General Date") & "|" & _
+            Format(CDec("46096.5"), "General Date") & "|" & _
+            Format("abc", "General Date")
+    End Function
+`);
+assert.strictEqual(
+    namedDateTypes.callProcedure('TestNamedDateTypes', []),
+    '46096.54450231481|46096.54|2026/03/15 12:00:00|2026/03/15 12:00:00|abc',
+    'Named date and numeric formats preserve VBA value domains',
+);
+
 // 非ローカライズ数値文字列にもユーザー定義数値書式を適用する。
 const numericStringFormatCode = String.raw`
     Function TestNumericStringFormats() As String

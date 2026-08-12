@@ -1449,13 +1449,21 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
                 return isTrue ? 'True' : 'False';
             }
             const numVal = (val instanceof VbaBoolean) ? val.value
+                : (val instanceof VbaDate) ? val.value
                 : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
                 : val;
             if (typeof numVal === 'number') return formatNumber(numVal, fmt);
             return vbaToString(val);
         }
         if (dateNamedFormats.includes(fmtLower)) {
-            const dateVal = val instanceof VbaDate ? fromVbaDate(val.value) : (typeof val === 'number' ? fromVbaDate(val) : new Date(vbaToString(val)));
+            if (typeof val === 'string') {
+                try { return formatDate(parseVbaDate(val), fmt, fdow, effectiveFwoy); }
+                catch { return val; }
+            }
+            const dateSerial = val instanceof VbaDate ? val.value
+                : (val instanceof VbaCurrency || val instanceof VbaDecimal) ? ctx.toVbaNumber(val.toString())
+                : val;
+            const dateVal = fromVbaDate(typeof dateSerial === 'number' ? dateSerial : ctx.toVbaNumber(dateSerial));
             return formatDate(dateVal, fmt, fdow, effectiveFwoy);
         }
         const effectiveVal = (val instanceof VbaBoolean) ? val.value
