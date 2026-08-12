@@ -441,6 +441,7 @@ console.log('[PASS] Bug BQ: Long Time AM/PM と Short Date M/D/YYYY');
 {
     const ev = evalVBASingle('');
     assert.strictEqual(ev.evalExpression('Format(CDec("0.001"), "0.00E-00""Q""")'), '1.00E-03Q');
+    assert.strictEqual(ev.evalExpression('Format(CDec("0"), "0.00E-00""Q""")'), '0.00E00Q');
     console.log('[PASS] Format exact scientific: negative exponent quoted suffix');
 }
 
