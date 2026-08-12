@@ -2952,3 +2952,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-312
+    title: Format exact scientific negative exponent suffix boundary
+    status: queued
+    priority: 1
+    focus: Format負指数書式の引用suffix境界
+    priorCauseKey: format-exact-format-literal-escape-path-divergence
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts

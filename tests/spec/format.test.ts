@@ -436,4 +436,12 @@ console.log('[PASS] Bug BQ: Long Time AM/PM と Short Date M/D/YYYY');
     console.log('[PASS] Format exact scientific: trailing scaling commas');
 }
 
+// Negative-exponent exact scientific formats must use the same literal
+// decoding path as the positive-exponent branch.
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('Format(CDec("0.001"), "0.00E-00""Q""")'), '1.00E-03Q');
+    console.log('[PASS] Format exact scientific: negative exponent quoted suffix');
+}
+
 console.log('\n✅ Format: 全テスト通過');
