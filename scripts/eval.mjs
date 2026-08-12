@@ -78,8 +78,27 @@ function validateFindingRecordFormat(file, source, data) {
     if (data.retiredByEvaluation !== undefined && typeof data.retiredByEvaluation !== 'string') {
       throw new Error(`${file}: retiredByEvaluation must be a string`);
     }
+    for (const key of ['horizontalAudit', 'rootCauseAnalysis', 'regression']) {
+      if (data[key]?.status !== 'not-required') {
+        throw new Error(`${file}: retired finding requires ${key}.status not-required`);
+      }
+    }
   } else if (data.retiredReason !== undefined) {
     throw new Error(`${file}: retiredReason is only valid for retired findings`);
+  }
+  if (['fixed', 'retired'].includes(data.status)) {
+    if (!['not-required', 'registered', 'cancelled'].includes(data.followUpDisposition)) {
+      throw new Error(`${file}: ${data.status} finding requires followUpDisposition`);
+    }
+    if (!Array.isArray(data.followUpCandidates)) {
+      throw new Error(`${file}: ${data.status} finding requires followUpCandidates array`);
+    }
+    if (data.followUpDisposition === 'not-required' && data.followUpCandidates.length !== 0) {
+      throw new Error(`${file}: not-required follow-up disposition must have no candidates`);
+    }
+    if (data.followUpDisposition !== 'not-required' && data.followUpCandidates.length === 0) {
+      throw new Error(`${file}: ${data.followUpDisposition} follow-up disposition requires candidates`);
+    }
   }
 }
 
@@ -544,6 +563,18 @@ function validate(records = readRecords()) {
   const rootCauses = validateRootCauses(schema, records);
   validateRemediations(schema, records, findings, rootCauses);
   const items = readCampaignItems();
+  for (const finding of findings.values()) {
+    const data = finding.data;
+    if (data.findingRecordVersion !== 2 || !['fixed', 'retired'].includes(data.status)) continue;
+    if (data.followUpDisposition === 'not-required') continue;
+    for (const candidateId of data.followUpCandidates ?? []) {
+      const item = items.get(candidateId);
+      if (!item) throw new Error(`${finding.file}: unknown follow-up candidate ${candidateId}`);
+      if (data.followUpDisposition === 'cancelled' && item.status !== 'abandoned') {
+        throw new Error(`${finding.file}: cancelled follow-up candidate ${candidateId} must be abandoned`);
+      }
+    }
+  }
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
   for (const record of records) {
     const { data, file } = record;

@@ -92,6 +92,14 @@ analysis; do not duplicate its taxonomy here.
    A `retired` BUG must include `retiredReason` and, when applicable,
    `retiredByEvaluation` and `retiredFromStatus`. State whether horizontal
    expansion, RCA, and regression work is not required or merely incomplete.
+   A `fixed` or `retired` BUG must also record `followUpDisposition` and
+   `followUpCandidates`: use `not-required` with an empty list when no
+   follow-up is needed, `registered` when horizontal/RCA work was moved to
+   evaluation candidates, and `cancelled` when retirement cancels existing
+   candidates. A BUG is not complete while required follow-up work is only
+   described in prose.
+   Follow-up candidate IDs must exist in the campaign manifest; cancelled
+   candidates must also have campaign status `abandoned`.
    Do not create a follow-up candidate or BUG while the current EV is still
    non-terminal. First complete the current EV as `verified-no-bug`,
    `bug-found`, `known-limit`, or `blocked`; create a BUG only when that EV

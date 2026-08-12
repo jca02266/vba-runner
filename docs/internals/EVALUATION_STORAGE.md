@@ -185,6 +185,12 @@ coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力を�
 - BUGを`retired`にする場合は、`retiredReason`を必須とし、必要に応じて
   `retiredByEvaluation`と`retiredFromStatus`を記録する。退役は分析未実施を意味せず、
   誤判定・重複・仕様再分類など、追跡を終了する理由を明示する。
+- `fixed`または`retired`のBUGには`followUpDisposition`と`followUpCandidates`を記録する。
+  `not-required`は追加候補がない状態、`registered`は横展開・真因分析の追加候補を
+  評価キューへ移管済み、`cancelled`は退役に伴って既存候補を取り消した状態を示す。
+  `not-required`では候補配列を空にし、それ以外では候補を列挙する。
+  `registered`または`cancelled`の候補IDはcampaign manifestに存在し、`cancelled`の場合は
+  campaign側の状態も`abandoned`にする。これにより、本文だけで候補へ移管したことにしない。
 - バージョンのない既存記録は旧形式として保持し、新形式へ自動昇格しない。
 
 新しいv2のEVまたはBUGを完了状態へ遷移する前に、独立したサブエージェントへ反証レビューを
@@ -250,6 +256,9 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 1. BUGに`status: retired`、`retiredReason`、関連するEVを記録する。退役BUGの横展開・
    真因分析・回帰テストが不要なら、各状態を`not-required`とするか、退役理由により
    不要であることを明記する。
+   追加候補が存在する場合は`followUpDisposition: cancelled`へ変更し、
+   `followUpCandidates`に列挙した候補を取り消したことも記録する。継続する候補は
+   `registered`のままにして退役Findingから追跡できるようにする。
 2. 対応するEV本文の期待値・結果・判定を訂正し、訂正後の状態をYAMLに反映する。
 3. `npm run eval -- claim <candidate-id> --rollback`で訂正用claimを取得し、`rollback`で以前の終端状態から`in-progress`、`verified-no-bug`、
    `known-limit`、または`blocked`へ戻す。rollbackには理由を必須入力とし、状態履歴へ

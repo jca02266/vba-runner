@@ -226,6 +226,13 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 `retiredReason`を記録し、EV本文を訂正する。claim取得後、次でイベントを残したまま
 EVを巻き戻す。
 
+`fixed`または`retired`のBUGには`followUpDisposition`と`followUpCandidates`を記録する。
+`not-required`は空配列、`registered`は横展開・真因分析を評価候補へ移管済み、
+`cancelled`は退役に伴い候補を取り消した状態を示す。必要な横展開・真因分析が候補へ
+移管されていないBUGは終了扱いにしない。
+`registered`または`cancelled`の候補IDはcampaign manifestに登録し、`cancelled`の場合は
+候補の状態も`abandoned`へ更新する。
+
 ```bash
 npm run eval -- claim <candidate-id> --rollback
 npm run eval -- rollback <candidate-id> <evaluation-id> <status> <claim-token> <reason>

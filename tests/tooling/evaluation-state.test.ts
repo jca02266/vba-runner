@@ -18,6 +18,32 @@ const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
 assert.match(validated.stdout, /validated \d+ evaluation records/);
 
+// Retired v2 findings must explicitly mark all follow-up work as unnecessary.
+const retiredFinding = `${root}/evaluation/findings/BUG-00508.md`;
+const retiredFindingBody = readFileSync(retiredFinding, 'utf8');
+writeFileSync(retiredFinding, retiredFindingBody.replace(
+    'horizontalAudit:\n  status: not-required',
+    'horizontalAudit:\n  status: pending',
+));
+try {
+    const invalidRetired = run('validate');
+    assert.notEqual(invalidRetired.status, 0);
+    assert.match(invalidRetired.stderr, /retired finding requires horizontalAudit\.status not-required/);
+} finally {
+    writeFileSync(retiredFinding, retiredFindingBody);
+}
+writeFileSync(retiredFinding, retiredFindingBody.replace(
+    'followUpDisposition: not-required',
+    'followUpDisposition: registered',
+));
+try {
+    const missingFollowUp = run('validate');
+    assert.notEqual(missingFollowUp.status, 0);
+    assert.match(missingFollowUp.stderr, /registered follow-up disposition requires candidates/);
+} finally {
+    writeFileSync(retiredFinding, retiredFindingBody);
+}
+
 const targetCandidate = 'FZ-GRAMMAR-003';
 const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;
 const persistedEvents = `${root}/evaluation/states/${targetCandidate}.events.yml`;

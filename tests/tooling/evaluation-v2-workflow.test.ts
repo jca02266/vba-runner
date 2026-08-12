@@ -10,8 +10,9 @@ const run = (...args: string[]) => spawnSync(process.execPath, [cli, ...args], {
     encoding: 'utf8',
 });
 
-const candidate = { id: 'FZ-GRAMMAR-004', campaign: 'FZ-GRAMMAR' };
+const candidate = { id: 'TEST-V2-WORKFLOW', campaign: 'TEST-V2-WORKFLOW' };
 const evaluationId = 'EV-TEST-V2-WORKFLOW';
+const campaignFile = `${root}/evaluation/campaigns/${candidate.campaign}.yml`;
 const evaluationFile = `${root}/evaluation/evaluations/${evaluationId}.md`;
 const resultFile = `${root}/evaluation/states/${candidate.id}.result.yml`;
 const eventsFile = `${root}/evaluation/states/${candidate.id}.events.yml`;
@@ -19,6 +20,7 @@ const claimFile = `${root}/evaluation/states/${candidate.id}.claim.yml`;
 const oldResult = existsSync(resultFile) ? readFileSync(resultFile, 'utf8') : null;
 const oldEvents = existsSync(eventsFile) ? readFileSync(eventsFile, 'utf8') : null;
 const oldClaim = existsSync(claimFile) ? readFileSync(claimFile, 'utf8') : null;
+const oldCampaign = existsSync(campaignFile) ? readFileSync(campaignFile, 'utf8') : null;
 const body = `---
 id: ${evaluationId}
 evaluationRecordVersion: 2
@@ -55,7 +57,7 @@ tests: []
 記録形式の検証を通過した。
 
 ## 判定
-判定状態: \`verified-no-bug\`
+判定状態: \`in-progress\`
 `;
 
 const legacyProbe = `${root}/evaluation/EV-TEST-V2-MISSING.tmp.md`;
@@ -73,6 +75,7 @@ try {
 if (oldResult !== null) unlinkSync(resultFile);
 if (oldEvents !== null) unlinkSync(eventsFile);
 if (oldClaim !== null) unlinkSync(claimFile);
+writeFileSync(campaignFile, `id: ${candidate.campaign}\nitems:\n  - id: ${candidate.id}\n    title: v2 workflow test\n    status: queued\n    priority: 99\n    focus: v2 workflow CLI gate\n`);
 writeFileSync(evaluationFile, body);
 let token: string | undefined;
 try {
@@ -85,7 +88,9 @@ try {
     assert.equal(pending.status, 0, pending.stderr);
     const snapshot = yaml.load(readFileSync(resultFile, 'utf8')) as { status: string };
     assert.equal(snapshot.status, 'in-progress');
-    writeFileSync(evaluationFile, body.replace('status: in-progress', 'status: verified-no-bug'));
+    writeFileSync(evaluationFile, body
+        .replace('status: in-progress', 'status: verified-no-bug')
+        .replace('判定状態: `in-progress`', '判定状態: `verified-no-bug`'));
     const terminalClaim = run('claim', candidate.id);
     assert.equal(terminalClaim.status, 0, terminalClaim.stderr);
     token = (JSON.parse(terminalClaim.stdout) as { token: string }).token;
@@ -108,6 +113,8 @@ try {
     if (oldResult !== null) writeFileSync(resultFile, oldResult);
     if (oldEvents !== null) writeFileSync(eventsFile, oldEvents);
     if (oldClaim !== null) writeFileSync(claimFile, oldClaim);
+    if (existsSync(campaignFile)) unlinkSync(campaignFile);
+    if (oldCampaign !== null) writeFileSync(campaignFile, oldCampaign);
 }
 
 console.log('[PASS] evaluation v2 record and transition gates');
