@@ -700,6 +700,10 @@
 | EV-00795 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
 | EV-00796 | FZ-COVERAGE-20260810 | blocked | 1 | エラー処理領域のResume遷移先・ハンドラ再入・クラス境界 |
 | EV-00798 | META-ENGINE | verified-no-bug | 1 | Property Let暗黙ByRef・名前付き引数・型変換の経路一致 |
+| EV-00799 | META-ENGINE | verified-no-bug | 1 | Property Letへ配列要素をByRefで渡す追加経路 |
+| EV-00800 | META-ENGINE | verified-no-bug | 1 | Property LetのOptional引数と名前付きByRefの追加経路 |
+| EV-00801 | META-ENGINE | verified-no-bug | 1 | Property Letの暗黙型変換とByRef書戻しの追加経路 |
+| EV-00802 | META-ENGINE | verified-no-bug | 1 | クラスProperty Letの継承・公開呼び出し追加経路 |
 
 ## 状態集計
 
@@ -709,7 +713,7 @@
 | fixed | 309 |
 | known-limit | 4 |
 | retired | 1 |
-| verified-no-bug | 376 |
+| verified-no-bug | 380 |
 
 横展開未解決経路: 571、実Excel待ち評価: 0
 

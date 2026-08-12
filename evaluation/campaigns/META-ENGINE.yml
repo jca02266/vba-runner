@@ -122,6 +122,38 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-051
+    title: Property Letの配列要素ByRef境界
+    status: verified-no-bug
+    priority: 1
+    focus: Property Letへ配列要素をByRefで渡す追加経路
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-052
+    title: Property LetのOptional名前付き境界
+    status: verified-no-bug
+    priority: 1
+    focus: Property LetのOptional引数と名前付きByRefの追加経路
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-053
+    title: Property Letの型変換境界
+    status: verified-no-bug
+    priority: 1
+    focus: Property Letの暗黙型変換とByRef書戻しの追加経路
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-054
+    title: Property Letのクラス継承境界
+    status: verified-no-bug
+    priority: 1
+    focus: クラスProperty Letの継承・公開呼び出し追加経路
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
   - id: META-ENGINE-014
     title: FSO返却オブジェクトの共通引数境界
     status: queued
