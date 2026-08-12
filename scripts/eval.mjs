@@ -462,8 +462,10 @@ function validate(records = readRecords()) {
       }
     }
     const audit = data.horizontalAudit;
-    for (const key of schema.horizontalAudit.required) {
-      if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
+    if (data.evaluationRecordVersion !== 2) {
+      for (const key of schema.horizontalAudit.required) {
+        if (!audit || !Array.isArray(audit[key])) throw new Error(`${file}: horizontalAudit.${key} must be an array`);
+      }
     }
     const evaluationNumber = Number.parseInt(String(data.id).replace(/^EV-/, ''), 10);
     const causeAnalysis = data.rootCauseAnalysis;
@@ -479,7 +481,7 @@ function validate(records = readRecords()) {
         throw new Error(`${file}: procedure version 0 must not claim a rootCauseId`);
       }
     }
-    if (Number.isFinite(evaluationNumber) && evaluationNumber >= (schema.record.rootCauseAnalysisFrom ?? Number.MAX_SAFE_INTEGER)) {
+    if (data.evaluationRecordVersion !== 2 && Number.isFinite(evaluationNumber) && evaluationNumber >= (schema.record.rootCauseAnalysisFrom ?? Number.MAX_SAFE_INTEGER)) {
       for (const key of schema.rootCauseAnalysis.required) {
         if (!causeAnalysis || (typeof causeAnalysis[key] !== 'string' && !Array.isArray(causeAnalysis[key]))) {
           throw new Error(`${file}: rootCauseAnalysis.${key} is required`);

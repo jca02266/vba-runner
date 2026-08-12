@@ -192,15 +192,13 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
   `areaSource: confirmed`とする。レポートは`focus`の再検索ではなく`area`を集計する。
 - レポートの`areaClass`は保存せず、`area`から導出する大分類である。実装領域別集計には
   詳細`area`単位と`areaClass`単位の両方を表示し、評価状態は未確定・対象外・解決済みに分ける。
-- `coverageSnapshot`, `findings`, `tests`, `commit`
+- `coverageSnapshot`, `findings`, `tests`, `commit`は補助項目であり、該当する場合だけ記録する。
 - 実Excel照合を使う評価では、必要な出力IDを列挙した`excelProbeIds`
 - バグを確認した新規記録では `directCauseKey`, `causeKey`,
   `directFixStatus`, `rootFixStatus`。新方式で`rootFixStatus: fixed` の場合は
   `rootCauseId`、`rootFixTaskId`、`rootFixCommit`も必須。
-- `horizontalAudit.confirmed`, `horizontalAudit.ruledOut`,
-  `horizontalAudit.unresolved`
-- EV-00385以降は`rootCauseAnalysis.status`, `directCause`, `designCause`,
-  `confirmed`, `ruledOut`, `unresolved`, `decision`
+- 旧形式またはv1のEVでは`horizontalAudit`と`rootCauseAnalysis`を使用する。
+- v2のEVでは横展開・真因分析・回帰テストを記録しない。これらはBUG v2の責務である。
 
 ### 期待値の根拠と検証ゲート
 

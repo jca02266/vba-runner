@@ -83,11 +83,15 @@ analysis; do not duplicate its taxonomy here.
    `fixed` requires a passed regression test; a root-cause hypothesis is not
    a confirmed root remediation. Existing records without a format version
    remain legacy and are not silently upgraded.
-   After drafting a new v2 EV or BUG, delegate an independent sub-agent to
+   Do not create a follow-up candidate or BUG while the current EV is still
+   non-terminal. First complete the current EV as `verified-no-bug`,
+   `bug-found`, `known-limit`, or `blocked`; create a BUG only when that EV
+   has a verified mismatch, and create follow-up candidates only from the
+   completed record. After drafting a new v2 EV or BUG, delegate an independent sub-agent to
    challenge the record against this procedure before completion. Resolve
    review findings before the terminal state transition.
 
-   From EV-00385 onward, also require a structured `rootCauseAnalysis` object
+   Legacy/v1 EV records from EV-00385 onward may contain a structured `rootCauseAnalysis` object
    with `status`, `directCause`, `designCause`, `confirmed`, `ruledOut`,
    `unresolved`, and `decision`. Keep it separate from `horizontalAudit`:
    horizontal expansion records which paths were checked, while root-cause
