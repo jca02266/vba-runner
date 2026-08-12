@@ -122,6 +122,13 @@ Agent ツール（`subagent_type: general-purpose`）を1つ起動する。サ�
 検証結果が想定を否定した場合は期待値を修正し、推測に基づく実装修正を行わない。
 `npm run eval -- validate` はこのゲートを検証する。
 
+`expectation.kind: spec` の評価を確定する場合は、メイン担当者による確認だけでは
+不十分とする。仕様引用と評価対象の対応、特殊ケースが仕様に実際に明記されているか、
+期待値の読み違いがないかを、独立したサブエージェントにレビューさせる。レビュー結果を
+EVの記録または評価イベントに残し、レビュー未実施・反証あり・未解決点ありの場合は
+`verified-no-bug`、`bug-found`、`known-limit`へ遷移させてはならない。`excel`は実機結果、
+`hypothesis`は必要な検証結果を同じゲートで確認する。
+
 実Excel照合は `needs-excel-probe` と `needs-excel` の2状態で管理する。
 前者は `ExcelQueueVerification.bas` へのプローブ作成待ち、後者はプローブ作成済みで
 実機結果の反映待ちである。必要なXL番号はfrontmatterの`excelProbeIds`へ列挙する。

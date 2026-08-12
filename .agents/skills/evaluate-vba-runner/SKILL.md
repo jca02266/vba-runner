@@ -87,6 +87,11 @@ analysis; do not duplicate its taxonomy here.
    source that constitutes the evaluation. A regression-test reference alone
    is insufficient; regression tests may be supplemental evidence, but the
    EV must be independently reproducible from its own source listing.
+   When `expectation.kind` is `spec`, an independent sub-agent must review
+   every cited source against the exact behavior under evaluation, including
+   any special case. Record the review outcome before a terminal state
+   transition; without a completed, non-contradictory review, do not classify
+   the EV as `verified-no-bug`, `bug-found`, or `known-limit`.
    A new BUG record uses `findingRecordVersion: 2` and records the symptom,
    horizontal expansion, root-cause analysis, and regression test separately.
    A BUG must distinguish discovery input from the persistent regression test.

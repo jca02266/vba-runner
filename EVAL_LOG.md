@@ -698,7 +698,7 @@
 | EV-00793 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur短い基数ビットパターン符号境界 |
 | EV-00794 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類 |
 | EV-00795 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
-| EV-00796 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | エラー処理領域のResume遷移先・ハンドラ再入・クラス境界 |
+| EV-00796 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume labelの再開位置と非アクティブResumeのError 20 |
 | EV-00798 | META-ENGINE | verified-no-bug | 1 | Property Let暗黙ByRef・名前付き引数・型変換の経路一致 |
 | EV-00799 | META-ENGINE | verified-no-bug | 1 | Property Letへ配列要素をByRefで渡す追加経路 |
 | EV-00800 | META-ENGINE | verified-no-bug | 1 | Property LetのOptional引数と名前付きByRefの追加経路 |

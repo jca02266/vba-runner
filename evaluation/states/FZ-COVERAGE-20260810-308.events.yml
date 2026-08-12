@@ -7,3 +7,15 @@
   status: verified-no-bug
   fromStatus: blocked
   occurredAt: '2026-08-12T10:00:16.704Z'
+- candidateId: FZ-COVERAGE-20260810-308
+  evaluationId: EV-00796
+  status: in-progress
+  fromStatus: verified-no-bug
+  occurredAt: '2026-08-12T10:10:48.932Z'
+  rollbackFrom: verified-no-bug
+  rollbackReason: spec根拠の独立レビュー待ち
+- candidateId: FZ-COVERAGE-20260810-308
+  evaluationId: EV-00796
+  status: verified-no-bug
+  fromStatus: in-progress
+  occurredAt: '2026-08-12T10:11:36.063Z'
