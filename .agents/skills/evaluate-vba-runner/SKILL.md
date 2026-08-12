@@ -70,13 +70,18 @@ analysis; do not duplicate its taxonomy here.
    dispatch paths in one EV. If a follow-up path is needed, register a new
    candidate and create a new EV; keep the original evaluation unchanged.
    New EV records use `evaluationRecordVersion: 2`. Terminal v2 records must
-   contain the Markdown headings `## 評価内容`, `## 期待値`, `## 結果`, and
-   `## 判定`. Record minimal VBA input and observed values, but never record
+   contain the Markdown headings `## 評価内容`, `## 実施方法`, `## 期待値`,
+   `## 結果`, and `## 判定`, in that order. Record minimal VBA input and
+   observed values, but never record
    temporary filenames, `/tmp` paths, or ordinary execution commands.
    The evaluation body records what was tried and observed; a repository
    regression test is not required for an exploratory EV. The YAML `status`
    and `## 判定` must agree. A hypothesis cannot enter a terminal no-bug or
    bug state before its expectation is verified.
+   The `## 期待値` section must contain both a program-level expected output
+   and a prose explanation. The `## 結果` section must contain both a
+   program-level observed output and a prose explanation. The four sections
+   must not be empty.
    A new BUG record uses `findingRecordVersion: 2` and records the symptom,
    horizontal expansion, root-cause analysis, and regression test separately.
    A BUG must distinguish discovery input from the persistent regression test.

@@ -301,10 +301,24 @@ function validateEvaluationRecordFormat(file, source, data) {
     throw new Error(`${file}: evaluationRecordVersion must be 2 for new records`);
   }
   if (!finalEvaluationStatuses.has(data.status) && data.status !== 'bug-found') return;
-  const requiredSections = ['評価内容', '期待値', '結果', '判定'];
+  const requiredSections = ['評価内容', '実施方法', '期待値', '結果', '判定'];
   const missing = requiredSections.filter((section) => !new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source));
   if (missing.length > 0) {
     throw new Error(`${file}: evaluationRecordVersion 2 requires Markdown sections: ${missing.join(', ')}`);
+  }
+  const sectionBody = (heading) => source.match(new RegExp(`^##\\s+${heading}\\s*$([\\s\\S]*?)(?=^##\\s+|$)`, 'm'))?.[1]?.trim() ?? '';
+  for (const section of requiredSections) {
+    if (!sectionBody(section)) throw new Error(`${file}: ${section} section must not be empty`);
+  }
+  const positions = requiredSections.map((section) => source.search(new RegExp(`^##\\s+${section}\\s*$`, 'm')));
+  if (positions.some((position, index) => index > 0 && position <= positions[index - 1])) {
+    throw new Error(`${file}: v2 evaluation sections must be ordered: ${requiredSections.join(', ')}`);
+  }
+  if (!/期待出力[：:]/.test(sectionBody('期待値'))) {
+    throw new Error(`${file}: 期待値 must include a program expected output`);
+  }
+  if (!/実測出力[：:]/.test(sectionBody('結果'))) {
+    throw new Error(`${file}: 結果 must include a program observed output`);
   }
 }
 
