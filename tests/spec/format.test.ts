@@ -94,6 +94,10 @@ const numericStringFormatCode = String.raw`
         TestFormatScientificTrailingCommas = Format(1000000, "0.00E+00,,") & "|" & _
             Format(1000000, "0.00E+00\,\,")
     End Function
+    Function TestFormatScientificEscapedSuffixes() As String
+        TestFormatScientificEscapedSuffixes = Format(CCur("1000000"), "0.00E+00\,") & "|" & _
+            Format(CDec("1000000"), "0.00E+00\,\,")
+    End Function
 `;
 const evNumericString = evalVBASingle(numericStringFormatCode);
 assert.strictEqual(
@@ -144,6 +148,11 @@ assert.strictEqual(
     evNumericString.callProcedure('TestFormatScientificTrailingCommas', []),
     '1.00E+06|1.00E+06,,',
     'Scientific formats keep exponent rendering when trailing commas are present',
+);
+assert.strictEqual(
+    evNumericString.callProcedure('TestFormatScientificEscapedSuffixes', []),
+    '1.00E+06,|1.00E+06,,',
+    'Scientific exact-format suffixes decode escaped literal commas',
 );
 
 // --- 時刻フォーマットのバグ修正確認 ---

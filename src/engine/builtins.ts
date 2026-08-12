@@ -1279,7 +1279,28 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return useParens ? `(${body})` : `-${body}`;
     };
 
-        const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
+    const decodeFormatLiterals = (text: string): string => {
+        let result = '';
+        let quoted = false;
+        for (let i = 0; i < text.length; i++) {
+            const char = text[i];
+            if (char === '"') {
+                if (quoted && text[i + 1] === '"') {
+                    result += '"';
+                    i++;
+                } else {
+                    quoted = !quoted;
+                }
+            } else if (!quoted && char === '\\' && i + 1 < text.length) {
+                result += text[++i];
+            } else {
+                result += char;
+            }
+        }
+        return result;
+    };
+
+    const exactPatternFormat = (raw: string, pattern: string): string | undefined => {
         const clean = stripVbaBracketDirectives(stripFormatColorDirectives(pattern));
         const sections = clean.split(';');
         const trimmed = raw.trim();
@@ -1294,8 +1315,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const last = Math.max(section.lastIndexOf('0'), section.lastIndexOf('#'));
         if (first < 0 || last < first || /[Ee][+-]/.test(section)) return undefined;
         if (!hasNumericFormatTokens(section)) return undefined;
-        const prefix = section.slice(0, first).replace(/"([^"]*)"/g, '$1');
-        const suffix = section.slice(last + 1).replace(/"([^"]*)"/g, '$1');
+        const prefix = decodeFormatLiterals(section.slice(0, first));
+        const suffix = decodeFormatLiterals(section.slice(last + 1));
         const core = section.slice(first, last + 1);
         const percent = core.includes('%');
         const numericCore = core.replace(/%/g, '').replace(/,/g, '');
@@ -1364,7 +1385,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (quoted) break;
             suffix = suffix.slice(0, -1);
         }
-        return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${suffix}`;
+        return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${decodeFormatLiterals(suffix)}`;
     };
 
     const normalizeFormatWeekArg = (value: any, max: number): number => {
