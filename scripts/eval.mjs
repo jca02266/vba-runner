@@ -306,7 +306,7 @@ function validateEvaluationRecordFormat(file, source, data) {
   if (missing.length > 0) {
     throw new Error(`${file}: evaluationRecordVersion 2 requires Markdown sections: ${missing.join(', ')}`);
   }
-  const sectionBody = (heading) => source.match(new RegExp(`^##\\s+${heading}\\s*$([\\s\\S]*?)(?=^##\\s+|$)`, 'm'))?.[1]?.trim() ?? '';
+  const sectionBody = (heading) => source.match(new RegExp(`^##\\s+${heading}\\s*$([\\s\\S]*?)(?=^##\\s+|(?![\\s\\S]))`, 'm'))?.[1]?.trim() ?? '';
   for (const section of requiredSections) {
     if (!sectionBody(section)) throw new Error(`${file}: ${section} section must not be empty`);
   }

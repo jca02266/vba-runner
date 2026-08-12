@@ -2,3 +2,8 @@
   evaluationId: EV-00803
   status: in-progress
   occurredAt: '2026-08-12T05:31:14.418Z'
+- candidateId: META-ENGINE-056
+  evaluationId: EV-00803
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-12T06:07:56.817Z'
