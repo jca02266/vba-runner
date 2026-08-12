@@ -65,6 +65,28 @@ analysis; do not duplicate its taxonomy here.
    remediation is a follow-up candidate, record its candidate ID and commit
    when fixed; do not mark the root fixed merely because the symptom
    disappeared.
+   Treat each EV as exactly one evaluation of one concrete behavior. Do not
+   combine unrelated Property, ByRef, Optional, array, type-conversion, or
+   dispatch paths in one EV. If a follow-up path is needed, register a new
+   candidate and create a new EV; keep the original evaluation unchanged.
+   New EV records use `evaluationRecordVersion: 2`. Terminal v2 records must
+   contain the Markdown headings `## 評価内容`, `## 期待値`, `## 結果`, and
+   `## 判定`. Record minimal VBA input and observed values, but never record
+   temporary filenames, `/tmp` paths, or ordinary execution commands.
+   The evaluation body records what was tried and observed; a repository
+   regression test is not required for an exploratory EV. The YAML `status`
+   and `## 判定` must agree. A hypothesis cannot enter a terminal no-bug or
+   bug state before its expectation is verified.
+   A new BUG record uses `findingRecordVersion: 2` and records the symptom,
+   horizontal expansion, root-cause analysis, and regression test separately.
+   A BUG must distinguish discovery input from the persistent regression test.
+   `fixed` requires a passed regression test; a root-cause hypothesis is not
+   a confirmed root remediation. Existing records without a format version
+   remain legacy and are not silently upgraded.
+   After drafting a new v2 EV or BUG, delegate an independent sub-agent to
+   challenge the record against this procedure before completion. Resolve
+   review findings before the terminal state transition.
+
    From EV-00385 onward, also require a structured `rootCauseAnalysis` object
    with `status`, `directCause`, `designCause`, `confirmed`, `ruledOut`,
    `unresolved`, and `decision`. Keep it separate from `horizontalAudit`:

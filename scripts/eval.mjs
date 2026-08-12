@@ -57,6 +57,21 @@ function readFindings() {
   }));
 }
 
+function validateFindingRecordFormat(file, source, data) {
+  if (data.findingRecordVersion === undefined) return;
+  if (data.findingRecordVersion !== 2) {
+    throw new Error(`${file}: findingRecordVersion must be 2 for new records`);
+  }
+  const requiredSections = ['事象', '横展開', '真因分析', '回帰テスト'];
+  const missing = requiredSections.filter((section) => !new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source));
+  if (missing.length > 0) {
+    throw new Error(`${file}: findingRecordVersion 2 requires Markdown sections: ${missing.join(', ')}`);
+  }
+  if (data.status === 'fixed' && data.regression?.status !== 'passed') {
+    throw new Error(`${file}: fixed finding requires regression.status passed`);
+  }
+}
+
 function readRemediations() {
   return files(remediationsDir, '.md').map((name) => readRecord(path.join(remediationsDir, name)));
 }
@@ -286,7 +301,7 @@ function validateEvaluationRecordFormat(file, source, data) {
     throw new Error(`${file}: evaluationRecordVersion must be 2 for new records`);
   }
   if (!finalEvaluationStatuses.has(data.status) && data.status !== 'bug-found') return;
-  const requiredSections = ['期待値', '実施方法', '結果', '判定'];
+  const requiredSections = ['評価内容', '期待値', '結果', '判定'];
   const missing = requiredSections.filter((section) => !new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source));
   if (missing.length > 0) {
     throw new Error(`${file}: evaluationRecordVersion 2 requires Markdown sections: ${missing.join(', ')}`);
@@ -377,6 +392,9 @@ function excelQueueState(data) {
 function validate(records = readRecords()) {
   const schema = readSchema();
   const findings = readFindings();
+  for (const finding of findings.values()) {
+    validateFindingRecordFormat(finding.file, finding.source, finding.data);
+  }
   const seen = new Set();
   const required = schema.record.required;
   for (const record of records) {
@@ -404,6 +422,11 @@ function validate(records = readRecords()) {
     for (const key of schema.record.stringFields ?? []) {
       if (data[key] !== undefined && data[key] !== null && typeof data[key] !== 'string') {
         throw new Error(`${file}: ${key} must be a string`);
+      }
+    }
+    for (const key of schema.record.numericFields ?? []) {
+      if (data[key] !== undefined && (!Number.isInteger(data[key]) || data[key] < 0)) {
+        throw new Error(`${file}: ${key} must be a non-negative integer`);
       }
     }
     if (data.directCauseKey !== undefined && !data.causeKey) {
