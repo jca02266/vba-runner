@@ -2,3 +2,8 @@
   evaluationId: EV-00779
   status: blocked
   occurredAt: '2026-08-11T15:50:32.710Z'
+- candidateId: FZ-COVERAGE-20260810-290
+  evaluationId: EV-00779
+  status: in-progress
+  fromStatus: blocked
+  occurredAt: '2026-08-12T10:19:12.696Z'
