@@ -9,3 +9,8 @@
   occurredAt: '2026-08-12T09:32:08.263Z'
   rollbackFrom: verified-no-bug
   rollbackReason: 暗黙型変換のProperty専用実測が未記録であり、再評価を継続する
+- candidateId: META-REVIEW-053
+  evaluationId: EV-00808
+  status: in-progress
+  fromStatus: blocked
+  occurredAt: '2026-08-12T09:37:24.967Z'
