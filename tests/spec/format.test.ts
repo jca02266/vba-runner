@@ -34,6 +34,17 @@ assert.strictEqual(
     'Named Boolean formats preserve non-numeric String values',
 );
 
+const namedDateBoundary = evalVBASingle(String.raw`
+    Function TestNamedDateBoundary() As String
+        TestNamedDateBoundary = Format("2026-03-15", "0.00;NEG;ZERO;NULL")
+    End Function
+`);
+assert.strictEqual(
+    namedDateBoundary.callProcedure('TestNamedDateBoundary', []),
+    '46096.00',
+    'Date-like strings use their serial value for numeric Format sections',
+);
+
 // 非ローカライズ数値文字列にもユーザー定義数値書式を適用する。
 const numericStringFormatCode = String.raw`
     Function TestNumericStringFormats() As String

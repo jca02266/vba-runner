@@ -1507,7 +1507,16 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
             if (isNumericOnlyFormat(fmt)) {
                 try {
                     return formatNumber(ctx.toVbaNumber(effectiveVal), fmt);
-                } catch { /* retain the existing string-domain behavior */ }
+                } catch {
+                    // Excel treats a date-like String as a Date serial when a
+                    // numeric user format is selected. Keep this conversion
+                    // limited to numeric-only formats; mixed string formats
+                    // remain in the String domain.
+                    try {
+                        const parsed = parseVbaDate(effectiveVal);
+                        return formatNumber(toVbaDate(parsed), fmt);
+                    } catch { /* retain the existing string-domain behavior */ }
+                }
             }
             // If the format contains date/time symbols, try to parse the string as a date first
             if (isDatePattern && !/^[0#,.%]+$/.test(fmt)) {
