@@ -2032,3 +2032,12 @@ checkpoints:
       - RC-00067
       - RC-00065
       - format-named-format-value-coercion-contract
+  - afterEvaluation: EV-00810
+    audit: "708 evaluations, 0 active claims; XL-198のCurrency指数suffixを実機結果と同期"
+    decision: "未エスケープ末尾カンマはスケール指定、エスケープカンマはリテラルというExcel結果を確認した。exactScientificFormatのraw suffix連結を真因RC-00069として確定し、共通リテラルデコーダと回帰テストで修正した。Formatの無バグ連続はBUG-00510で中断したため、同領域の次候補を選定する。"
+    action: fixed
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseId: RC-00069
+    commit: 0831a11d

@@ -2,3 +2,13 @@
   evaluationId: EV-00810
   status: needs-excel
   occurredAt: '2026-08-12T11:08:08.813Z'
+- candidateId: FZ-COVERAGE-20260810-309
+  evaluationId: EV-00810
+  status: bug-found
+  fromStatus: needs-excel
+  occurredAt: '2026-08-12T11:42:16.447Z'
+- candidateId: FZ-COVERAGE-20260810-309
+  evaluationId: EV-00810
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-12T11:50:09.113Z'

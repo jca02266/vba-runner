@@ -711,19 +711,18 @@
 | EV-00807 | META-ENGINE | verified-no-bug |  | EV-00800のProperty Let Optional・名前付きByRef再評価 |
 | EV-00808 | META-ENGINE | verified-no-bug |  | EV-00801のProperty Let暗黙型変換・ByRef書戻し再評価 |
 | EV-00809 | META-ENGINE | verified-no-bug |  | EV-00802のクラスProperty Let継承・公開呼出し再評価 |
-| EV-00810 | FZ-COVERAGE-20260810 | needs-excel | 1 | Format指数書式の引用・エスケープカンマと型別suffix境界 |
+| EV-00810 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数書式の引用・エスケープカンマと型別suffix境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 310 |
+| fixed | 311 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 391 |
 
-横展開未解決経路: 563、実Excel待ち評価: 1
+横展開未解決経路: 563、実Excel待ち評価: 0
 
 ## 次の候補
 
