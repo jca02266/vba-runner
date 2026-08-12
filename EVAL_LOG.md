@@ -673,7 +673,7 @@
 | EV-00768 | FZ-COVERAGE-20260810 | fixed | 1 | Format文字列値と数値・文字列プレースホルダー混在書式の分類境界 |
 | EV-00769 | FZ-COVERAGE-20260810 | fixed | 1 | Format指数表記と末尾スケーリングカンマのトークン境界 |
 | EV-00770 | FZ-COVERAGE-20260810 | blocked | 1 | Format Currency・Decimal・LongLongの指数書式と末尾カンマの型別経路 |
-| EV-00771 | FZ-COVERAGE-20260810 | bug-found | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
+| EV-00771 | FZ-COVERAGE-20260810 | fixed | 1 | Format複数セクションの未選択日付トークンとString値の分類境界 |
 | EV-00772 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Formatの条件・色ブラケットとエスケープ境界の値型別ディスパッチ |
 | EV-00773 | FZ-COVERAGE-20260810 | bug-found | 1 | Format名前付き書式と日付トークンの値型・セクション境界 |
 | EV-00774 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format数値トークン・リテラル・セクション区切りの組合せ境界 |
@@ -705,13 +705,13 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 4 |
-| fixed | 305 |
+| bug-found | 3 |
+| fixed | 306 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 375 |
 
-横展開未解決経路: 577、実Excel待ち評価: 0
+横展開未解決経路: 576、実Excel待ち評価: 0
 
 ## 次の候補
 
