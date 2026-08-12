@@ -199,6 +199,10 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
 - 実Excel待ち、恒久制限、未実施を別状態として保存する
 - `eval complete <candidate-id> <evaluation-id> <status> <claim-token>` で候補と評価結果を関連付ける
 - `eval validate` と `eval render` を実行し、生成された `EVAL_LOG.md` を更新する
+- 新規EVは`evaluationRecordVersion: 2`を必須とする。`eval record`はこの項目がない
+  新規記録を拒否する。終端状態への`complete`もv2本文の5見出し、期待値・結果、判定を
+  検証してから状態を保存する。終端の`## 判定`には`判定状態: <status>`を置き、YAMLの
+  `status`と一致させる。
 
 ### 3.5 実Excel照合結果を状態へ反映する
 
@@ -217,6 +221,19 @@ Findingに2つの原因キー、`directFixStatus`、`rootFixStatus`を反映す�
    同じ変更で保存する。
 5. `npm run eval -- validate` と `npm run eval -- render EVAL_LOG.md` を実行し、レポートの
    `needs-excel` 件数が実際の未確定境界と一致することを確認する。
+
+確定後に期待値の誤りや重複が判明した場合は、BUGを`retired`へ変更して
+`retiredReason`を記録し、EV本文を訂正する。claim取得後、次でイベントを残したまま
+EVを巻き戻す。
+
+```bash
+npm run eval -- claim <candidate-id> --rollback
+npm run eval -- rollback <candidate-id> <evaluation-id> <status> <claim-token> <reason>
+```
+
+`status`は`in-progress`、`verified-no-bug`、`known-limit`、`blocked`のいずれかとする。
+CLIは以前の終端状態、v2本文、claim、理由を検証し、`rollbackFrom`と`rollbackReason`を
+イベントへ追記する。挙動を改めて評価する場合は巻き戻しではなく、新しい候補とEVを作成する。
 
 通常キューの`ExcelQueueVerification.result`は、全プローブ終了を示す
 `QUEUE_COMPLETE=True`と、現在のキューからインポートする`.bas`、`.cls`、`.frm`一式を

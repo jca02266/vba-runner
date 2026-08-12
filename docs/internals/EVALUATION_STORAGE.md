@@ -81,8 +81,9 @@ resultについても、次を `validate` / `audit` で検証する。
 `1`は[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md) v1に従った記録である。
 番号がない記録は方式不明として確定根拠に使わない。
 
-原因キーだけでは分析の中身が抜け落ちるため、新方式の評価では
-`rootCauseAnalysis`を必須の構造化項目とする。次の項目をすべて記録する。
+原因キーだけでは分析の中身が抜け落ちるため、旧形式またはv1の評価で真因分析を行う場合は
+`rootCauseAnalysis`を必須の構造化項目とする。v2のEVでは真因分析をBUG側へ分離するため、
+この項目を必須にしない。真因分析を行う記録では次の項目をすべて記録する。
 
 - `status`: `confirmed`、`hypothesis`、`ruled-out`、`not-applicable`
 - `directCause`: 直接原因の機構と発生経路
@@ -98,7 +99,8 @@ resultについても、次を `validate` / `audit` で検証する。
 `horizontalAudit`が挙動の横展開を記録するのに対し、`rootCauseAnalysis`はなぜその
 挙動になったかと対処方針を記録する。`scripts/eval.mjs validate`が必須項目と状態値を
 検証するため、真因分析を本文だけに書いて完了扱いにしてはならない。EV-00384以前の
-移行済み履歴は旧形式として保持し、新規記録はこの項目を省略しない。
+移行済み履歴は旧形式として保持する。v1の真因分析記録ではこの項目を省略せず、v2のEVでは
+BUG側に分離する。
 
 横展開調査は `confirmed`、`ruledOut`、`unresolved` の3分類で記録する。
 `unresolved` はバグ件数に含めず、実Excel照合などの待ち状態として扱う。
@@ -169,8 +171,9 @@ coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力を�
 - 一つのEVは一つの具体的な挙動、入力条件、期待値、判定だけを扱う。
 - EV本文には、`## 評価内容`、`## 実施方法`、`## 期待値`、`## 結果`、`## 判定`を
   この順序で置く。
+- 終端v2 EVの`## 判定`には`判定状態: <status>`を記録し、YAMLの`status`と一致させる。
 - `## 期待値`にはプログラム上の期待出力と文章による説明を、`## 結果`には
-  プログラム上の実測出力と文章による説明を必ず記録する。4見出しは空にしない。
+  プログラム上の実測出力と文章による説明を必ず記録する。5見出しは空にしない。
 - EVには最小入力やVBAコードと観測値を記録するが、一時ファイル名、`/tmp`のパス、
   通常の実行コマンドは記録しない。
 - EVの`tests`は永続回帰テストの一覧ではなく、補助参照であり必須ではない。
@@ -179,6 +182,9 @@ coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力を�
   独立した項目として記録する。発見時の一時入力と、修正後に残す回帰テストを区別する。
 - BUGを`fixed`にするには、回帰テストが成功していなければならない。真因が仮説のままなら
   真因対処済みとは扱わない。
+- BUGを`retired`にする場合は、`retiredReason`を必須とし、必要に応じて
+  `retiredByEvaluation`と`retiredFromStatus`を記録する。退役は分析未実施を意味せず、
+  誤判定・重複・仕様再分類など、追跡を終了する理由を明示する。
 - バージョンのない既存記録は旧形式として保持し、新形式へ自動昇格しない。
 
 新しいv2のEVまたはBUGを完了状態へ遷移する前に、独立したサブエージェントへ反証レビューを
@@ -215,7 +221,8 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 `hypothesis` は最小再現、仕様確認、または実Excel照合を終えるまで
 `bug-found`、`fixed`、`verified-no-bug` などの確定状態にしてはならない。
 検証できない場合は `in-progress`、`needs-excel`、`blocked` のまま残し、
-未確定の境界を `horizontalAudit.unresolved` に記録する。検証結果が想定を
+旧形式・v1では未確定の境界を `horizontalAudit.unresolved` に記録する。v2では
+評価本文の結果と次候補へ分離して記録する。検証結果が想定を
 否定した場合は期待値を修正し、推測に基づく実装修正を行わない。
 
 過去の移行記録では `expectation` がない場合があるが、新規評価では必須の運用項目とする。
@@ -234,6 +241,24 @@ frontmatterには機械的に扱う情報を置き、再現コード、実行結
 実機結果を反映した後は、
 `verified-no-bug`、`known-limit`、`bug-found`、または修正後の `fixed` へ遷移して
 完了を表す。実Excel確認の完了を別のサブステータスでは管理しない。
+
+### 確定後の誤判定を退役・巻き戻しする場合
+
+一度`bug-found`または`fixed`として確定した後に、期待値の誤り、重複登録、仕様上の
+再分類などが判明した場合は、本文やresultを直接書き換えて履歴を消してはならない。
+
+1. BUGに`status: retired`、`retiredReason`、関連するEVを記録する。退役BUGの横展開・
+   真因分析・回帰テストが不要なら、各状態を`not-required`とするか、退役理由により
+   不要であることを明記する。
+2. 対応するEV本文の期待値・結果・判定を訂正し、訂正後の状態をYAMLに反映する。
+3. `npm run eval -- claim <candidate-id> --rollback`で訂正用claimを取得し、`rollback`で以前の終端状態から`in-progress`、`verified-no-bug`、
+   `known-limit`、または`blocked`へ戻す。rollbackには理由を必須入力とし、状態履歴へ
+   `rollbackFrom`と`rollbackReason`を追記する。
+4. `validate`、`audit`、レポート生成を実行し、退役BUGとEVの最終状態・イベント履歴が
+   一致することを確認する。
+
+`rollback`は新しい評価を作る操作ではなく、既存評価の誤判定を訂正する操作である。
+挙動を改めて評価する場合や別の期待値を検証する場合は、新しい候補とEVを作成する。
 
 バグを修正した評価は、原因キー、回帰テスト、修正コミットを必ず記録する。
 バグがない場合も `verified-no-bug`、実機照合待ちは `needs-excel`、恒久的制限は
@@ -277,6 +302,8 @@ npm run eval -- release <candidate-id> <claim-token>
 npm run eval -- record <evaluation-file>
 npm run eval -- complete <candidate-id> <evaluation-id> <status> <claim-token>
 npm run eval -- transition <candidate-id> <evaluation-id> <status> <claim-token>
+npm run eval -- claim <candidate-id> --rollback
+npm run eval -- rollback <candidate-id> <evaluation-id> <status> <claim-token> <reason>
 npm run eval -- excel-sync <evaluation-id>
 npm run eval -- remediation-next
 npm run eval -- remediation-context <root-task-id>
@@ -293,6 +320,8 @@ npm run eval -- render EVAL_LOG.md
 - `complete`: 候補と評価の対応、状態、修正コミットとテストを検証して結果を保存する。
   状態スナップショットには完了日時を重複保存せず、遷移日時はeventsへ記録する。
 - `transition`: 待ち状態、`blocked`、`in-progress`、`bug-found`の再判定をclaim付きで行い、最新スナップショットを更新する。遷移前後はeventsに追記する。
+- `rollback`: 退役したBUGなどの訂正理由を付け、終端状態のEVを既存履歴を残したまま戻す。
+  v2本文の検証、対象状態、claim、理由をCLIで確認し、イベントに巻き戻し元と理由を記録する。
 - `excel-sync`: `excelProbeIds`、キューソース、実機結果を照合し、必要な待ち状態または`result-ready`をJSONで返す。状態は変更しない。
 - `remediation-next`: 確定済み真因から作成した次の`queued`対処タスクを返す。
 - `remediation-context`: 対処タスクと起点評価・FindingだけをJSONで返す。

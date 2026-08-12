@@ -41,7 +41,7 @@ const context = run('context', 'FZ-GRAMMAR-001');
 assert.equal(context.status, 0, context.stderr);
 assert.equal(JSON.parse(context.stdout).candidate.effectiveStatus, 'fixed');
 
-const rerecorded = run('record', 'evaluation/evaluations/EV-00191.md');
+const rerecorded = run('record', 'evaluation/evaluations/EV-00803.md');
 assert.equal(rerecorded.status, 0, rerecorded.stderr);
 
 const claimed = run('claim', targetCandidate);
@@ -115,6 +115,7 @@ const oldTransitionResult = existsSync(transitionResult) ? readFileSync(transiti
 const oldTransitionEvents = existsSync(transitionEvents) ? readFileSync(transitionEvents, 'utf8') : null;
 const transitionRecord = `---
 id: EV-TEST-EVENTS
+evaluationRecordVersion: 2
 candidateId: ${transitionCandidate}
 campaign: FZ-BUILTIN
 status: in-progress
@@ -128,10 +129,23 @@ tests:
 horizontalAudit:
   confirmed: []
   ruledOut: []
-  unresolved: []
+unresolved: []
 ---
 
 # state event transition test
+
+## 評価内容
+状態イベントの遷移を検証する。
+## 実施方法
+最小のv2評価記録を遷移させる。
+## 期待値
+プログラム上の期待出力: \`ok\`
+遷移履歴が追記される。
+## 結果
+プログラム上の実測出力: \`ok\`
+遷移履歴を確認した。
+## 判定
+判定状態: \`verified-no-bug\`
 `;
 if (oldTransitionResult !== null) unlinkSync(transitionResult);
 if (oldTransitionEvents !== null) unlinkSync(transitionEvents);
@@ -180,9 +194,10 @@ console.log('[PASS] evaluation state event history/resume');
 
 // Cause analysis keeps the immediate implementation mechanism separate from
 // the reusable design/root-cause grouping key.
-const causeProbe = `${root}/evaluation/evaluations/EV-TEST-CAUSE.md`;
+const causeProbe = `${root}/evaluation/EV-TEST-CAUSE.tmp.md`;
 const causeProbeBody = `---
 id: EV-TEST-CAUSE
+evaluationRecordVersion: 2
 candidateId: FZ-GRAMMAR-001
 campaign: FZ-GRAMMAR
 status: bug-found
@@ -190,6 +205,11 @@ priority: low
 focus: cause schema test
 area: 評価基盤
 areaSource: confirmed
+expectation:
+  kind: hypothesis
+  statement: cause schema is valid
+  references: []
+  verification: completed
 directCauseKey: immediate-dispatch-gap
 findings: []
 tests:
@@ -199,6 +219,19 @@ horizontalAudit:
   ruledOut: []
   unresolved: []
 ---
+
+## 評価内容
+原因キーを検証する。
+## 実施方法
+最小記録を検証する。
+## 期待値
+プログラム上の期待出力: \`ok\`
+期待値は有効である。
+## 結果
+プログラム上の実測出力: \`ok\`
+検証を実施した。
+## 判定
+判定状態: \`bug-found\`
 `;
 writeFileSync(causeProbe, causeProbeBody);
 try {
@@ -207,6 +240,8 @@ try {
     assert.match(invalidCause.stderr, /directCauseKey requires root causeKey/);
 } finally {
     if (existsSync(causeProbe)) unlinkSync(causeProbe);
+    const recordedCause = `${root}/evaluation/evaluations/EV-TEST-CAUSE.md`;
+    if (existsSync(recordedCause)) unlinkSync(recordedCause);
 }
 
 console.log('[PASS] evaluation cause-layer validation');
@@ -283,9 +318,10 @@ try {
 console.log('[PASS] root-cause review and remediation task validation');
 
 // Expected behavior must have a verified source before a terminal judgment.
-const expectationProbe = `${root}/evaluation/evaluations/EV-TEST-EXPECTATION.md`;
+const expectationProbe = `${root}/evaluation/EV-TEST-EXPECTATION.tmp.md`;
 const expectationProbeBody = `---
 id: EV-TEST-EXPECTATION
+evaluationRecordVersion: 2
 candidateId: FZ-GRAMMAR-001
 campaign: FZ-GRAMMAR
 status: bug-found
@@ -306,6 +342,19 @@ horizontalAudit:
   ruledOut: []
   unresolved: []
 ---
+
+## 評価内容
+期待値の根拠を検証する。
+## 実施方法
+最小記録を検証する。
+## 期待値
+プログラム上の期待出力: \`pending\`
+根拠が未検証である。
+## 結果
+プログラム上の実測出力: \`pending\`
+まだ確定していない。
+## 判定
+判定状態: \`bug-found\`
 `;
 writeFileSync(expectationProbe, expectationProbeBody);
 try {
@@ -314,12 +363,14 @@ try {
     assert.match(invalidExpectation.stderr, /hypothesis expectation must be verified/);
 } finally {
     if (existsSync(expectationProbe)) unlinkSync(expectationProbe);
+    const recordedExpectation = `${root}/evaluation/evaluations/EV-TEST-EXPECTATION.md`;
+    if (existsSync(recordedExpectation)) unlinkSync(recordedExpectation);
 }
 
 console.log('[PASS] evaluation expectation provenance validation');
 
 // New records cannot orphan themselves from the campaign manifest.
-const orphanProbe = `${root}/evaluation/evaluations/EV-TEST-ORPHAN.md`;
+const orphanProbe = `${root}/evaluation/EV-TEST-ORPHAN.tmp.md`;
 writeFileSync(orphanProbe, expectationProbeBody
     .replaceAll('EV-TEST-EXPECTATION', 'EV-TEST-ORPHAN')
     .replace('candidateId: FZ-GRAMMAR-001', 'candidateId: NOT-REGISTERED')
@@ -330,6 +381,8 @@ try {
     assert.match(orphan.stderr, /unknown candidate NOT-REGISTERED/);
 } finally {
     if (existsSync(orphanProbe)) unlinkSync(orphanProbe);
+    const recordedOrphan = `${root}/evaluation/evaluations/EV-TEST-ORPHAN.md`;
+    if (existsSync(recordedOrphan)) unlinkSync(recordedOrphan);
 }
 
 console.log('[PASS] campaign candidate linkage validation');

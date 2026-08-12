@@ -76,11 +76,12 @@ analysis; do not duplicate its taxonomy here.
    temporary filenames, `/tmp` paths, or ordinary execution commands.
    The evaluation body records what was tried and observed; a repository
    regression test is not required for an exploratory EV. The YAML `status`
-   and `## 判定` must agree. A hypothesis cannot enter a terminal no-bug or
+   and `## 判定` must agree. Terminal v2 records write
+   `判定状態: <status>` in that section. A hypothesis cannot enter a terminal no-bug or
    bug state before its expectation is verified.
    The `## 期待値` section must contain both a program-level expected output
    and a prose explanation. The `## 結果` section must contain both a
-   program-level observed output and a prose explanation. The four sections
+   program-level observed output and a prose explanation. The five sections
    must not be empty.
    A new BUG record uses `findingRecordVersion: 2` and records the symptom,
    horizontal expansion, root-cause analysis, and regression test separately.
@@ -88,6 +89,9 @@ analysis; do not duplicate its taxonomy here.
    `fixed` requires a passed regression test; a root-cause hypothesis is not
    a confirmed root remediation. Existing records without a format version
    remain legacy and are not silently upgraded.
+   A `retired` BUG must include `retiredReason` and, when applicable,
+   `retiredByEvaluation` and `retiredFromStatus`. State whether horizontal
+   expansion, RCA, and regression work is not required or merely incomplete.
    Do not create a follow-up candidate or BUG while the current EV is still
    non-terminal. First complete the current EV as `verified-no-bug`,
    `bug-found`, `known-limit`, or `blocked`; create a BUG only when that EV
@@ -192,6 +196,12 @@ analysis; do not duplicate its taxonomy here.
    every output ID to its evaluation record, resolve or retain each
    `unresolved` boundary, then transition the candidate. A stale, partial, or
    source-mismatched result is rejected and never changes the pending count.
+   If a confirmed BUG is later shown to be a false positive, duplicate, or
+   specification reclassification, retire the BUG with its reason, correct the
+   existing EV, and use `eval rollback` to append a reasoned state reversal.
+   Do not erase or overwrite the prior result event. Use rollback only to
+   correct an existing evaluation; a new behavior or expectation requires a
+   new candidate and EV.
 9. After each evaluation commit, refresh the local HTML report with
    `node scripts/eval-report.mjs --output evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit

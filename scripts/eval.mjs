@@ -24,6 +24,7 @@ const statuses = new Set([
   'fixed', 'blocked', 'abandoned', 'known-limit', 'needs-excel', 'needs-excel-probe', 'retired',
 ]);
 const finalEvaluationStatuses = new Set(['verified-no-bug', 'fixed', 'known-limit', 'retired']);
+const terminalJudgmentStatuses = new Set([...finalEvaluationStatuses, 'bug-found']);
 
 function fail(message) {
   console.error(`eval: ${message}`);
@@ -69,6 +70,16 @@ function validateFindingRecordFormat(file, source, data) {
   }
   if (data.status === 'fixed' && data.regression?.status !== 'passed') {
     throw new Error(`${file}: fixed finding requires regression.status passed`);
+  }
+  if (data.status === 'retired') {
+    if (typeof data.retiredReason !== 'string' || data.retiredReason.trim() === '') {
+      throw new Error(`${file}: retired finding requires retiredReason`);
+    }
+    if (data.retiredByEvaluation !== undefined && typeof data.retiredByEvaluation !== 'string') {
+      throw new Error(`${file}: retiredByEvaluation must be a string`);
+    }
+  } else if (data.retiredReason !== undefined) {
+    throw new Error(`${file}: retiredReason is only valid for retired findings`);
   }
 }
 
@@ -191,7 +202,7 @@ function validateEvents(candidateId, events, result) {
   }
 }
 
-function appendEvent(candidateId, evaluationId, status, previousResult = null) {
+function appendEvent(candidateId, evaluationId, status, previousResult = null, metadata = {}) {
   let events = readEvents(candidateId);
   validateEvents(candidateId, events);
   if (events.length === 0 && previousResult) {
@@ -208,6 +219,7 @@ function appendEvent(candidateId, evaluationId, status, previousResult = null) {
     status,
     ...(events.length ? { fromStatus: events.at(-1).status } : {}),
     occurredAt: new Date().toISOString(),
+    ...metadata,
   };
   const next = [...events, event];
   validateEvents(candidateId, next);
@@ -319,6 +331,9 @@ function validateEvaluationRecordFormat(file, source, data) {
   }
   if (!/実測出力[：:]/.test(sectionBody('結果'))) {
     throw new Error(`${file}: 結果 must include a program observed output`);
+  }
+  if (!new RegExp(`\\b${data.status}\\b`, 'm').test(sectionBody('判定'))) {
+    throw new Error(`${file}: 判定 must name YAML status ${data.status}`);
   }
 }
 
@@ -783,7 +798,7 @@ function nextCandidate(limit = 1) {
   console.log(JSON.stringify(selected.length === 1 ? selected[0] : selected, null, 2));
 }
 
-function claim(id) {
+function claim(id, allowTerminal = false) {
   const item = readCampaignItems().get(id);
   if (!item) throw new Error(`unknown campaign item ${id}`);
   if (item.status !== 'queued') throw new Error(`${id} is not queued (${item.status})`);
@@ -791,7 +806,10 @@ function claim(id) {
   // A verified finding is intentionally resumable: the discovery loop records
   // the cause first, then a later remediation loop claims the same candidate
   // and completes it as fixed after implementation and regression testing.
-  const resumable = existingResult && ['needs-excel', 'needs-excel-probe', 'blocked', 'in-progress', 'bug-found'].includes(existingResult.status);
+  const resumable = existingResult && (
+    ['needs-excel', 'needs-excel-probe', 'blocked', 'in-progress', 'bug-found'].includes(existingResult.status)
+      || (allowTerminal && finalEvaluationStatuses.has(existingResult.status))
+  );
   if (existingResult && !resumable) throw new Error(`${id} already has a result`);
   fs.mkdirSync(statesDir, { recursive: true });
   const target = path.join(statesDir, `${id}.claim.yml`);
@@ -863,11 +881,31 @@ function complete(candidateId, evaluationId, status, token) {
   }
   if (!statuses.has(status) || status === 'queued' || status === 'claimed') throw new Error(`invalid completion status ${status}`);
   if (evaluation.status !== status) throw new Error(`${evaluationId} status ${evaluation.status} cannot complete as ${status}`);
+  if (evaluation.evaluationRecordVersion === 2) {
+    validateEvaluationRecordFormat(
+      path.join(recordsDir, `${evaluation.id}.md`),
+      readRecords().find(({ data }) => data.id === evaluationId).source,
+      evaluation,
+    );
+    validateExpectation(path.join(recordsDir, `${evaluation.id}.md`), evaluation.expectation, status);
+    if (status === 'bug-found' && (!Array.isArray(evaluation.findings) || evaluation.findings.length === 0)) {
+      throw new Error(`${evaluationId} bug-found result requires at least one finding`);
+    }
+  }
   if (status === 'fixed' && (!evaluation.commit || !Array.isArray(evaluation.tests) || evaluation.tests.length === 0)) {
     throw new Error(`${evaluationId} fixed result requires commit and regression tests`);
   }
   const target = path.join(statesDir, `${candidateId}.result.yml`);
   const previous = readResults().get(candidateId);
+  if (previous?.status === 'needs-excel-probe' && terminalJudgmentStatuses.has(status)) {
+    throw new Error(`${evaluationId} cannot leave needs-excel-probe before all Excel probes are prepared`);
+  }
+  if (previous?.status === 'needs-excel' && terminalJudgmentStatuses.has(status)) {
+    const queue = excelQueueState(evaluation);
+    if (!queue.resultReady) {
+      throw new Error(`${evaluationId} cannot leave needs-excel before excel-sync reports result-ready`);
+    }
+  }
   const reopeningVerifiedNoBug = previous?.status === 'verified-no-bug' && status === 'bug-found';
   if (previous && !reopeningVerifiedNoBug && !['needs-excel-probe', 'needs-excel', 'blocked', 'in-progress', 'bug-found'].includes(previous.status)) {
     throw new Error(`${candidateId} already has a terminal result`);
@@ -883,6 +921,43 @@ function complete(candidateId, evaluationId, status, token) {
 
 function transition(candidateId, evaluationId, status, token) {
   return complete(candidateId, evaluationId, status, token);
+}
+
+function rollback(candidateId, evaluationId, status, token, reason) {
+  const item = readCampaignItems().get(candidateId);
+  if (!item) throw new Error(`unknown campaign item ${candidateId}`);
+  ownedClaim(candidateId, token);
+  const record = readRecords().find(({ data }) => data.id === evaluationId);
+  if (!record) throw new Error(`unknown evaluation ${evaluationId}`);
+  if (record.data.candidateId !== candidateId || record.data.campaign !== item.campaign) {
+    throw new Error(`${evaluationId} does not belong to ${candidateId}`);
+  }
+  const previous = readResults().get(candidateId);
+  if (!previous || !['bug-found', 'fixed', 'verified-no-bug', 'known-limit', 'retired'].includes(previous.status)) {
+    throw new Error(`${candidateId} has no terminal result to roll back`);
+  }
+  if (!['in-progress', 'verified-no-bug', 'known-limit', 'blocked'].includes(status)) {
+    throw new Error(`invalid rollback target ${status}`);
+  }
+  if (record.data.status !== status) {
+    throw new Error(`${evaluationId} status ${record.data.status} must be updated to ${status} before rollback`);
+  }
+  if (typeof reason !== 'string' || reason.trim() === '') {
+    throw new Error('rollback requires a reason');
+  }
+  if (record.data.evaluationRecordVersion === 2) {
+    validateEvaluationRecordFormat(record.file, record.source, record.data);
+    validateExpectation(record.file, record.data.expectation, status);
+  }
+  const target = path.join(statesDir, `${candidateId}.result.yml`);
+  const snapshot = { stateVersion: 1, candidateId, evaluationId, status };
+  fs.writeFileSync(target, yaml.dump(snapshot, { noRefs: true }));
+  appendEvent(candidateId, evaluationId, status, previous, {
+    rollbackFrom: previous.status,
+    rollbackReason: reason.trim(),
+  });
+  fs.rmSync(path.join(statesDir, `${candidateId}.claim.yml`), { force: true });
+  console.log(target);
 }
 
 function context(candidateId, limit = 5) {
@@ -912,8 +987,10 @@ function excelSync(evaluationId) {
 
 function record(file) {
   const parsed = readRecord(path.resolve(file));
+  if (parsed.data.evaluationRecordVersion !== 2) {
+    throw new Error(`${file}: new evaluation records must set evaluationRecordVersion: 2`);
+  }
   const records = readRecords().filter(({ data }) => data.id !== parsed.data.id);
-  validate([...records, parsed]);
   const target = path.join(recordsDir, `${parsed.data.id}.md`);
   if (fs.existsSync(target)) {
     const existing = fs.readFileSync(target, 'utf8');
@@ -921,6 +998,7 @@ function record(file) {
     console.log(`${target} (unchanged)`);
     return;
   }
+  validate([...records, parsed]);
   fs.mkdirSync(recordsDir, { recursive: true });
   if (path.resolve(file) !== target) fs.copyFileSync(path.resolve(file), target);
   console.log(target);
@@ -1023,7 +1101,7 @@ function classifyAreas(dryRun = false, refreshInferred = false) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|classify|next|context|claim|release|complete|transition|excel-sync|remediation-next|remediation-context> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|render|classify|next|context|claim|release|complete|transition|rollback|excel-sync|remediation-next|remediation-context> [args]');
 }
 
 try {
@@ -1042,13 +1120,15 @@ try {
   } else if (command === 'next') {
     nextCandidate(process.argv[3] === '--limit' ? Number(process.argv[4]) || 1 : 1);
   } else if (command === 'claim' && process.argv[3]) {
-    claim(process.argv[3]);
+    claim(process.argv[3], process.argv[4] === '--rollback');
   } else if (command === 'release' && process.argv[3] && process.argv[4]) {
     release(process.argv[3], process.argv[4]);
   } else if (command === 'complete' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6]) {
     complete(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
   } else if (command === 'transition' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6]) {
     transition(process.argv[3], process.argv[4], process.argv[5], process.argv[6]);
+  } else if (command === 'rollback' && process.argv[3] && process.argv[4] && process.argv[5] && process.argv[6] && process.argv[7]) {
+    rollback(process.argv[3], process.argv[4], process.argv[5], process.argv[6], process.argv.slice(7).join(' '));
   } else if (command === 'context' && process.argv[3]) {
     context(process.argv[3], Number(process.argv[4]) || 5);
   } else if (command === 'excel-sync' && process.argv[3]) {
