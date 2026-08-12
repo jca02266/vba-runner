@@ -122,7 +122,7 @@ if (token.type === TokenType.Number) {
 を**先に**試すため、`x = 10` という入力は「`x` と `10` を比較する
 `BinaryExpression`」として全体をきれいに消費できてしまう。これが文だと
 判定されないと、代入が一切実行されず比較結果の真偽値だけが返る
-（2026-06-25 に発見・修正したバグ。詳細は `TODO_SPEC.md` の
+（2026-06-25 に発見・修正したバグ。詳細は `docs/todo/TODO_SPEC.md` の
 「テストランナー (`VBARunner`) の改善」セクション参照）。
 
 **対処**: `evalExpression()` で、フルに消費された式のトップレベル演算子が
@@ -214,7 +214,7 @@ private isCallableLeftmostLeaf(expr: Expression): boolean {
 実 VBA の statement 文法には「文の並びの最後の式を評価して返す」という機能が
 存在しない。裸の式 `x` だけの行は、`x` が呼び出し可能でなければ文として成立せず
 （`Foo` のような0引数手続きなら暗黙の Call 文として成立する。詳細は
-[FUNCTION_CALL.md](FUNCTION_CALL.md) 参照）、`eval()` が「最後の文の値を返す」
+[FUNCTION_CALL.md](./FUNCTION_CALL.md) 参照）、`eval()` が「最後の文の値を返す」
 ことを保証しようとすると、文法上意味を持たない概念を発明することになる。
 
 `evalExpression()` の文として解析するフォールバックは、単に
@@ -225,7 +225,7 @@ private isCallableLeftmostLeaf(expr: Expression): boolean {
 - `Debug.Print`/`onPrint` で出力する
 - 単一の式だけを渡す（高速パスが効き、値が返る）
 
-のいずれかを使う。README 5節（`quiet`/`onPrint`）・REFERENCE.md にこの制限の
+のいずれかを使う。README 5節（`quiet`/`onPrint`）・docs/implementation/REFERENCE.md にこの制限の
 記載がある。
 
 ---

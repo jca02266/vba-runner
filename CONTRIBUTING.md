@@ -4,17 +4,17 @@
 >
 > 前提: Node.js / npm が使えること
 >
-> 次に読む: [CLAUDE.md](CLAUDE.md)、[REFERENCE.md](REFERENCE.md)、利用者向け地図は [docs/README.md](docs/README.md)
+> 次に読む: [CLAUDE.md](./CLAUDE.md)、[REFERENCE.md](./docs/implementation/REFERENCE.md)、利用者向け地図は [docs/README.md](./docs/README.md)
 
 VBA Runner本体、npmパッケージ、VS Code拡張機能、Web UIの開発に参加するためのガイドです。
 
 `vba-runner`や`vba-extractor`を利用するだけの場合は、この文書ではなく各パッケージのREADMEから始めてください。
 
-- [vba-runner](build/runner/README.ja.md)
-- [vba-extractor](build/extractor/README.ja.md)
-- [VS Code拡張機能](build/extension/README.ja.md)
-- [VBA Web Runner](build/playground/README.md)
-- [ドキュメントガイド](docs/README.md)（目的別の共通ハブ）
+- [vba-runner](./build/runner/README.ja.md)
+- [vba-extractor](./build/extractor/README.ja.md)
+- [VS Code拡張機能](./build/extension/README.ja.md)
+- [VBA Web Runner](./build/playground/README.md)
+- [ドキュメントガイド](./docs/README.md)（目的別の共通ハブ）
 
 ---
 
@@ -110,11 +110,11 @@ npm パッケージ利用者向けの CLI 手順は、各パッケージの READ
 
 | 参照したいもの | 対象 | まず読む文書 |
 |---|---|---|
-| 利用者向けの目的別地図 | 利用者 | [docs/README.md](docs/README.md) |
-| VBA Runner の実装詳細 | 開発者 | [REFERENCE.md](REFERENCE.md) → [docs/internals/](docs/internals/) |
-| VS Code 拡張機能の実装詳細 | 開発者 | [LSP.md](LSP.md) |
-| 未着手の開発項目、デバッグ手法 | 開発者 | [TODO.md](TODO.md)、[TODO_SPEC.md](TODO_SPEC.md)、[BUG_HUNTING.md](BUG_HUNTING.md)、[EVAL_LOG.md](EVAL_LOG.md) |
-| リポジトリ全体の文書台帳 | メンテナ | [INDEX.md](INDEX.md) |
+| 利用者向けの目的別地図 | 利用者 | [docs/README.md](./docs/README.md) |
+| VBA Runner の実装詳細 | 開発者 | [REFERENCE.md](./docs/implementation/REFERENCE.md) → [docs/internals/](./docs/internals) |
+| VS Code 拡張機能の実装詳細 | 開発者 | [LSP.md](./docs/implementation/LSP.md) |
+| 未着手の開発項目、デバッグ手法 | 開発者 | [TODO.md](./docs/todo/TODO.md)、[TODO_SPEC.md](./docs/todo/TODO_SPEC.md)、[BUG_HUNTING.md](./docs/development/BUG_HUNTING.md)、[EVAL_LOG.md](./EVAL_LOG.md) |
+| リポジトリ全体の文書台帳 | メンテナ | [INDEX.md](./INDEX.md) |
 
 ## AIエージェント向けの補足
 

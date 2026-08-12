@@ -1,23 +1,23 @@
 # VBA機能実装スキル
 
-TODO_SPEC.mdから優先度の高い未実装機能を1件選び、テスト作成・実装・検証・コミットまでを一連で行う。
+docs/todo/TODO_SPEC.mdから優先度の高い未実装機能を1件選び、テスト作成・実装・検証・コミットまでを一連で行う。
 
 ## 手順
 
 ### Step 1: 対象機能の選定
 
-`TODO_SPEC.md` を読み、「高優先度」セクションの先頭にある `❌` 項目を1件選ぶ。
+`docs/todo/TODO_SPEC.md` を読み、「高優先度」セクションの先頭にある `❌` 項目を1件選ぶ。
 高優先度がすべて完了していれば「中優先度」から選ぶ。
 
-### Step 2: TODO_SPEC.mdに実装中マークを記録
+### Step 2: docs/todo/TODO_SPEC.mdに実装中マークを記録
 
-選んだ項目の `❌` を `🚧` に変更してTODO_SPEC.mdを保存する。
+選んだ項目の `❌` を `🚧` に変更してdocs/todo/TODO_SPEC.mdを保存する。
 （例: `| ❌ | Select Case Statement |` → `| 🚧 | Select Case Statement |`）
 
 ### Step 3: 仕様書で該当機能を確認
 
 `spec/MS-VBAL.txt` から該当セクションを読み、構文ルール・動作仕様・エッジケースを把握する。
-仕様書の章番号はTODO_SPEC.mdの「仕様書」列を参照する。
+仕様書の章番号はdocs/todo/TODO_SPEC.mdの「仕様書」列を参照する。
 
 **行番号の引き方**: `spec/MS-VBAL-index.txt` に節番号→行番号の対応表がある。
 grep で引いた行番号を使って `sed -n 'LINE,+100p' spec/MS-VBAL.txt` で本文を読む。
@@ -39,7 +39,7 @@ sed -n '1956,+80p' spec/MS-VBAL.txt         # → その行から本文を読む
 - VBA ソーステスト: `tests/vba/<機能名>Test.bas` （実際のVBAコードの挙動確認用）
   - ファイル名例: `ByrefArraysTest.bas`, `DefaultPropertyTest.bas`, `AutoInstantiationTest.bas`
   - テストプロシージャは `Test` で始まる名前で記述（`TestBasicBehavior` など）
-  - TODO_SPEC.md の「VBA ランタイム挙動」セクションに両テストファイル名を記載
+  - docs/todo/TODO_SPEC.md の「VBA ランタイム挙動」セクションに両テストファイル名を記載
 
 #### tests/spec/ のテスト記述ルール
 
@@ -151,7 +151,7 @@ End Sub
 - `src/engine/evaluator.ts` — 実行時の動作が必要な場合
 
 実装は仕様書の動作定義に忠実に行う。
-仕様と異なる実装や制限事項がある場合は、必ず TODO_SPEC.md の該当項目に制限事項としてメモを残すこと。
+仕様と異なる実装や制限事項がある場合は、必ず docs/todo/TODO_SPEC.md の該当項目に制限事項としてメモを残すこと。
 
 ### Step 6: テスト実行
 
@@ -172,9 +172,9 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 テストがパスしたら `spec/MS-VBAL.txt` の該当セクションを再読し、実装が仕様を満たしているか確認する。
 問題があれば実装を修正してStep 6に戻る。
 
-### Step 8: TODO_SPEC.mdを更新してコミット
+### Step 8: docs/todo/TODO_SPEC.mdを更新してコミット
 
-`TODO_SPEC.md` の対象項目を `🚧` → `✅` に更新する。
+`docs/todo/TODO_SPEC.md` の対象項目を `🚧` → `✅` に更新する。
 部分実装や仕様上の制限がある場合は `⚠️`（備考を括弧内に記載）にする。
 仕様と異なる挙動が残る場合は、該当行に制限事項を明記すること。
 

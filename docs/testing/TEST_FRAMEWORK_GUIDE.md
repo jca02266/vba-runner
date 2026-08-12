@@ -13,10 +13,10 @@ verified:
 stale_after: 2027-01-26
 sources:
   - id: runner-package
-    resource: ../build/runner/README.ja.md
+    resource: ../../build/runner/README.ja.md
     title: vba-runner パッケージガイド
   - id: testing-strategy
-    resource: TESTING_STRATEGY.md
+    resource: ./TESTING_STRATEGY.md
     title: VBA マクロ単体テスト戦略
 ---
 
@@ -24,9 +24,9 @@ sources:
 
 > 対象: TypeScript / Jest などから VBA をテストしたい利用者
 >
-> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)、[vba-runner](../build/runner/README.ja.md)
+> 前提: [TESTING_STRATEGY.md](./TESTING_STRATEGY.md)、[vba-runner](../../build/runner/README.ja.md)
 >
-> 次に読む: Excel 依存が残る場合は [MOCK_GUIDE.md](MOCK_GUIDE.md)、実例は [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)
+> 次に読む: Excel 依存が残る場合は [MOCK_GUIDE.md](../guides/MOCK_GUIDE.md)、実例は [REFACTORING_EXAMPLE.md](../refactoring/REFACTORING_EXAMPLE.md)
 
 ## はじめに
 
@@ -91,7 +91,7 @@ tests/
 
 ---
 
-## パターン1: 基本的な単体テスト [[→ T-01](REFACTORING_TESTING_CATALOG.md#t-01)]
+## パターン1: 基本的な単体テスト [[→ T-01](./REFACTORING_TESTING_CATALOG.md#t-01)]
 
 ### VBA コード
 
@@ -154,7 +154,7 @@ npx tsx tests/spec/math.test.ts
 
 ---
 
-## パターン2: パラメーター化テスト [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
+## パターン2: パラメーター化テスト [[→ T-02](./REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 
@@ -307,7 +307,7 @@ describe('Array Operations', () => {
 
 ---
 
-## パターン4: エラーハンドリングのテスト [[→ T-05](REFACTORING_TESTING_CATALOG.md#t-05)]
+## パターン4: エラーハンドリングのテスト [[→ T-05](./REFACTORING_TESTING_CATALOG.md#t-05)]
 
 ### VBA コード
 
@@ -455,7 +455,7 @@ describe('Sales Business Logic', () => {
 
 ---
 
-## パターン6: ファイルシステム操作（VFS 使用） [[→ T-06](REFACTORING_TESTING_CATALOG.md#t-06)]
+## パターン6: ファイルシステム操作（VFS 使用） [[→ T-06](./REFACTORING_TESTING_CATALOG.md#t-06)]
 
 ### VBA コード
 
@@ -496,7 +496,7 @@ describe('File Operations with VFS', () => {
 
 ---
 
-## パターン7: 日時依存テスト（Time Mocking） [[→ T-07](REFACTORING_TESTING_CATALOG.md#t-07)]
+## パターン7: 日時依存テスト（Time Mocking） [[→ T-07](./REFACTORING_TESTING_CATALOG.md#t-07)]
 
 `Now()` や `Date()` を使う VBA コードは、実行するたびに結果が変わるため通常はテストできません。
 `mockDate()` で日時を固定すれば、決定論的なテストが書けます。
@@ -656,7 +656,7 @@ vbaRunner.mockDate('2024-12-31T23:59:59Z')  // 日時を固定
 vbaRunner.mockDate(null)                      // 解除
 ```
 
-#### `spy(name, returnFn?)` → `SpyRecord` [[→ T-08](REFACTORING_TESTING_CATALOG.md#t-08)]
+#### `spy(name, returnFn?)` → `SpyRecord` [[→ T-08](./REFACTORING_TESTING_CATALOG.md#t-08)]
 
 VBA 関数をスパイでラップし、呼び出し記録を返す。`returnFn` を指定すると戻り値を上書きできる。
 
@@ -699,7 +699,7 @@ it('should show error when input is invalid', () => {
 });
 ```
 
-#### `registerComObject(factory)` → `void` [[→ T-09](REFACTORING_TESTING_CATALOG.md#t-09)]
+#### `registerComObject(factory)` → `void` [[→ T-09](./REFACTORING_TESTING_CATALOG.md#t-09)]
 
 `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える。`factory()` が返すオブジェクトの `__progId__` プロパティが照合キーになる。
 
@@ -966,7 +966,7 @@ try {
 }
 ```
 
-エラー番号の一覧は [VBA Error 番号一覧（TODO_SPEC.md）](../TODO_SPEC.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
+エラー番号の一覧は [VBA Error 番号一覧（docs/todo/TODO_SPEC.md）](../todo/TODO_SPEC.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
 
 ### Q: VBA オブジェクト（Sheets など）をテストしたい
 

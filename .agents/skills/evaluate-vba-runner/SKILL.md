@@ -55,7 +55,7 @@ analysis; do not duplicate its taxonomy here.
    confirmed/rule-out/unresolved paths, coverage reference, and next
    action. For a verified defect, implement the smallest compatible fix, add
    a regression test, and run focused checks. Also assess structural
-   weaknesses and update `TODO.md` or `TODO_SPEC.md` only when justified.
+   weaknesses and update `docs/todo/TODO.md` or `docs/todo/TODO_SPEC.md` only when justified.
    When a regression test or the full regression suite exposes a defect,
    mark the linked Finding with `discoveryType: regression`; use a different
    explicit type for fuzzing, mutation, coverage, Excel comparison, or direct

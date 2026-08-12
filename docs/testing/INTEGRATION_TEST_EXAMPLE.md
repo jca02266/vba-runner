@@ -10,11 +10,11 @@ status: stable
 
 > 対象: モックを使った統合テストを書きたい利用者
 >
-> 前提: [MOCK_GUIDE.md](MOCK_GUIDE.md)、[TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+> 前提: [MOCK_GUIDE.md](../guides/MOCK_GUIDE.md)、[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)
 >
-> 次に読む: 手法の横断索引は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)
+> 次に読む: 手法の横断索引は [REFACTORING_TESTING_CATALOG.md](./REFACTORING_TESTING_CATALOG.md)
 
-> 本ドキュメントで登場する手法の名前付き一覧は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md) を参照してください。
+> 本ドキュメントで登場する手法の名前付き一覧は [REFACTORING_TESTING_CATALOG.md](./REFACTORING_TESTING_CATALOG.md) を参照してください。
 
 ## 概要
 
@@ -28,7 +28,7 @@ status: stable
 
 ---
 
-## なぜ統合テストが必要か [[→ T-10](REFACTORING_TESTING_CATALOG.md#t-10)]
+## なぜ統合テストが必要か [[→ T-10](./REFACTORING_TESTING_CATALOG.md#t-10)]
 
 ### 単体テスト（ドメインロジック）
 

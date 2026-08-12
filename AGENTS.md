@@ -86,4 +86,4 @@ npm run check:docs
 
 この検査はフロントマター、相対 `sources.resource`、ローカル Markdown
 リンクを確認する。検査スクリプトは
-[`scripts/validate-docs-okf.mjs`](scripts/validate-docs-okf.mjs) である。
+[`scripts/validate-docs-okf.mjs`](./scripts/validate-docs-okf.mjs) である。

@@ -24,7 +24,7 @@ sources:
 
 目的から探す共通ハブです。パッケージの使い方そのものは各配布物の README が正本です。
 
-AI や外部ツールから文書を概念単位で参照する場合は、[OKF バンドルの索引](index.md) を利用できます。既存の文書入口と本文は変更せず、段階的に主要ガイドからメタデータを付与しています。
+AI や外部ツールから文書を概念単位で参照する場合は、[OKF バンドルの索引](./index.md) を利用できます。既存の文書入口と本文は変更せず、段階的に主要ガイドからメタデータを付与しています。
 
 | いま知りたいこと | 対象 | 先に読む場所 |
 |---|---|---|
@@ -34,7 +34,7 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 | CLI の npm / clone 対応表 | 全員 | [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) |
 | このリポジトリ自体の開発 | 開発者 | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 
-詳細な読み順・問題別検索が必要なときだけ [legacy-index.md](legacy-index.md)（任意）を参照してください。
+詳細な読み順・問題別検索が必要なときだけ [legacy-index.md](./legacy-index.md)（任意）を参照してください。
 
 ---
 
@@ -53,24 +53,24 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 
 | 目的 | 文書 |
 |---|---|
-| 最初の一連の体験（抽出 → 編集 → 書き戻し） | [TUTORIAL.md](TUTORIAL.md) |
-| AI への指示だけで同じ流れを進める | [TUTORIAL_AI.md](TUTORIAL_AI.md) |
+| 最初の一連の体験（抽出 → 編集 → 書き戻し） | [TUTORIAL.md](./guides/TUTORIAL.md) |
+| AI への指示だけで同じ流れを進める | [TUTORIAL_AI.md](./guides/TUTORIAL_AI.md) |
 | AI に作業を任せるときの実行契約 | [FOR_AI.md](../FOR_AI.md) |
-| テスト可能化の原則 | [TESTING_STRATEGY.md](TESTING_STRATEGY.md) |
-| Domain Logic と I/O の分離 | [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) |
-| JavaScript から VBA をテストする | [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md) |
-| Excel オブジェクトをモックする | [MOCK_GUIDE.md](MOCK_GUIDE.md) |
+| テスト可能化の原則 | [TESTING_STRATEGY.md](./testing/TESTING_STRATEGY.md) |
+| Domain Logic と I/O の分離 | [REFACTORING_GUIDE.md](./refactoring/REFACTORING_GUIDE.md) |
+| JavaScript から VBA をテストする | [TEST_FRAMEWORK_GUIDE.md](./testing/TEST_FRAMEWORK_GUIDE.md) |
+| Excel オブジェクトをモックする | [MOCK_GUIDE.md](./guides/MOCK_GUIDE.md) |
 
 ### 手法・事例（必要なとき）
 
 | 目的 | 文書 |
 |---|---|
-| 手法名のカタログ | [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md) |
-| TaskScheduler のリファクタリング実例 | [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) |
-| 統合テストの実例 | [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md) |
-| テーブル駆動リファクタリング | [TABLE_DRIVEN_GUIDE.md](TABLE_DRIVEN_GUIDE.md) |
-| レガシー着手の判断フロー | [LEGACY_REFACTORING_APPROACH.md](LEGACY_REFACTORING_APPROACH.md) |
-| クロージャによるループ抽象化 | [REFACTORING_CLOSURE.md](REFACTORING_CLOSURE.md) |
+| 手法名のカタログ | [REFACTORING_TESTING_CATALOG.md](./testing/REFACTORING_TESTING_CATALOG.md) |
+| TaskScheduler のリファクタリング実例 | [REFACTORING_EXAMPLE.md](./refactoring/REFACTORING_EXAMPLE.md) |
+| 統合テストの実例 | [INTEGRATION_TEST_EXAMPLE.md](./testing/INTEGRATION_TEST_EXAMPLE.md) |
+| テーブル駆動リファクタリング | [TABLE_DRIVEN_GUIDE.md](./refactoring/TABLE_DRIVEN_GUIDE.md) |
+| レガシー着手の判断フロー | [LEGACY_REFACTORING_APPROACH.md](./refactoring/LEGACY_REFACTORING_APPROACH.md) |
+| クロージャによるループ抽象化 | [REFACTORING_CLOSURE.md](./refactoring/REFACTORING_CLOSURE.md) |
 
 ---
 
@@ -81,7 +81,7 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 | 目的 | 文書 |
 |---|---|
 | リポジトリ開発（セットアップ・コマンド） | [CONTRIBUTING.md](../CONTRIBUTING.md) |
-| API・制約・Sandbox などの詳細仕様 | [REFERENCE.md](../REFERENCE.md) |
-| LSP / VS Code 拡張の実装 | [LSP.md](../LSP.md) |
-| エンジン内部設計・仕様メモ | [internals/](internals/) |
+| API・制約・Sandbox などの詳細仕様 | [REFERENCE.md](./implementation/REFERENCE.md) |
+| LSP / VS Code 拡張の実装 | [LSP.md](./implementation/LSP.md) |
+| エンジン内部設計・仕様メモ | [internals/](./internals) |
 | このリポジトリを AI が開発するときの契約 | [CLAUDE.md](../CLAUDE.md) |

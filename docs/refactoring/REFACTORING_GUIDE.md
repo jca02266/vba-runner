@@ -13,10 +13,10 @@ verified:
 stale_after: 2027-01-26
 sources:
   - id: testing-strategy
-    resource: TESTING_STRATEGY.md
+    resource: ../testing/TESTING_STRATEGY.md
     title: VBA マクロ単体テスト戦略
   - id: runner-reference
-    resource: ../REFERENCE.md
+    resource: ../implementation/REFERENCE.md
     title: VBA Runner 詳細仕様
 ---
 
@@ -24,9 +24,9 @@ sources:
 
 > 対象: テストが書けないレガシー VBA を改善したい利用者
 >
-> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+> 前提: [TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md)
 >
-> 次に読む: [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)
+> 次に読む: [REFACTORING_EXAMPLE.md](./REFACTORING_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](../testing/TEST_FRAMEWORK_GUIDE.md)
 
 ## はじめに
 
@@ -99,7 +99,7 @@ End Sub
 
 ## 基本原則
 
-### 原則 1: 職責の分離（Separation of Concerns） [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+### 原則 1: 職責の分離（Separation of Concerns） [[→ R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)]
 
 コードを 3 つの層に分ける：
 
@@ -168,7 +168,7 @@ End Function
 
 ## リファクタリングパターン集
 
-### パターン 1: 単純な集計ロジック [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+### パターン 1: 単純な集計ロジック [[→ R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)]
 
 **リファクタリング前**（テスト不可能）:
 ```vb
@@ -262,7 +262,7 @@ End Sub
 
 ---
 
-### パターン 2: データ加工と変換 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+### パターン 2: データ加工と変換 [[→ R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)]
 
 **リファクタリング前**:
 ```vb
@@ -329,7 +329,7 @@ End Sub
 
 ---
 
-### パターン 3: 複雑なビジネスロジック（UDT を使用） [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
+### パターン 3: 複雑なビジネスロジック（UDT を使用） [[→ R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01) / [R-03](../testing/REFACTORING_TESTING_CATALOG.md#r-03)]
 
 **リファクタリング前**:
 ```vb
@@ -436,7 +436,7 @@ End Sub
 
 ---
 
-### パターン 4: 状態を持つ処理（オブジェクト指向版） [[→ R-04](REFACTORING_TESTING_CATALOG.md#r-04)]
+### パターン 4: 状態を持つ処理（オブジェクト指向版） [[→ R-04](../testing/REFACTORING_TESTING_CATALOG.md#r-04)]
 
 **リファクタリング前**（グローバル変数を使用）:
 ```vb
@@ -547,7 +547,7 @@ Sub ProcessBatchData()
 End Sub
 ```
 
-### パターン 5: テーブル駆動パターン [[→ R-11](REFACTORING_TESTING_CATALOG.md#r-11)]
+### パターン 5: テーブル駆動パターン [[→ R-11](../testing/REFACTORING_TESTING_CATALOG.md#r-11)]
 
 **概要**: 大量の同じ構造を持つ分岐を、**データテーブルとシンプルなルックアップロジック**に置き換える。複雑な if-else-if チェーンが繰り返されている場合に特に有効。
 
@@ -749,7 +749,7 @@ End Sub
 
 ---
 
-### パターン 6: 副作用が絡み合った関数のリファクタリング [[→ R-12](REFACTORING_TESTING_CATALOG.md#r-12) / [R-13](REFACTORING_TESTING_CATALOG.md#r-13)]
+### パターン 6: 副作用が絡み合った関数のリファクタリング [[→ R-12](../testing/REFACTORING_TESTING_CATALOG.md#r-12) / [R-13](../testing/REFACTORING_TESTING_CATALOG.md#r-13)]
 
 **概要**: `Sheets` / `MsgBox` / ファイル I/O などの副作用がロジックの途中に散在し、テストも書けない大きな関数に対処する2つのパターン。副作用の性質に応じてどちらを使うか選ぶ。
 
@@ -810,7 +810,7 @@ Core（`DecideApproval`）は Excel なしでユニットテストできる。Sh
 
 #### パターン 6b: Seam（副作用の結果がロジックに影響する場合）
 
-副作用の出力が後続のロジック分岐に影響する、または副作用への入力値が処理途中の計算結果に依存するため、後ろにまとめられない場合に使う。**テストが書ける状態を作るための前段階**として副作用の塊を関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）で関数（接合部）として抽出し、テスト時にモックに差し替えられるようにする。
+副作用の出力が後続のロジック分岐に影響する、または副作用への入力値が処理途中の計算結果に依存するため、後ろにまとめられない場合に使う。**テストが書ける状態を作るための前段階**として副作用の塊を関数抽出（[R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)）で関数（接合部）として抽出し、テスト時にモックに差し替えられるようにする。
 
 **Before: 副作用の出力がロジックに入り込んでいる**
 
@@ -838,7 +838,7 @@ Function ProcessApproval(dept As String, amount As Long) As String
 End Function
 ```
 
-**Step 1: 副作用の塊を接合部（関数）として関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）する**
+**Step 1: 副作用の塊を接合部（関数）として関数抽出（[R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)）する**
 
 ```vb
 Function ProcessApproval(dept As String, amount As Long) As String
@@ -894,7 +894,7 @@ assert.strictEqual(runner.run("ProcessApproval", ["Engineering", 100000]), "Esca
 
 **モックの粒度**: 低レベル API（`Sheets`・`MsgBox`）ではなくビジネス的な意味を持つ塊単位で接合部を作る。塊の中に `ByRef` 変数への更新が含まれる場合はモックでもその更新を再現する。
 
-**重要**: 接合部を作る関数抽出（[R-01](REFACTORING_TESTING_CATALOG.md#r-01)）自体はテストなしで行うため、抽出後は必ず Excel 上での手動実行で動作確認してからスナップショット（[T-13](REFACTORING_TESTING_CATALOG.md#t-13)）を記録する。
+**重要**: 接合部を作る関数抽出（[R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)）自体はテストなしで行うため、抽出後は必ず Excel 上での手動実行で動作確認してからスナップショット（[T-13](../testing/REFACTORING_TESTING_CATALOG.md#t-13)）を記録する。
 
 ---
 
@@ -1116,7 +1116,7 @@ End Sub
 
 ## 段階的なリファクタリング戦略
 
-### フェーズ 1: ホットスポットを特定 [[→ R-07](REFACTORING_TESTING_CATALOG.md#r-07)]
+### フェーズ 1: ホットスポットを特定 [[→ R-07](../testing/REFACTORING_TESTING_CATALOG.md#r-07)]
 
 **最初にすべてをリファクタリングしない**。以下を優先：
 
@@ -1136,7 +1136,7 @@ Sub ExportToCSV()
 End Sub
 ```
 
-### フェーズ 2: 小さく始める [[→ R-08](REFACTORING_TESTING_CATALOG.md#r-08)]
+### フェーズ 2: 小さく始める [[→ R-08](../testing/REFACTORING_TESTING_CATALOG.md#r-08)]
 
 複数の Function を同時にリファクタリングしない。1つずつ：
 
@@ -1159,7 +1159,7 @@ Sub Main()
 End Sub
 ```
 
-### フェーズ 3: 段階的な導入 [[→ R-08](REFACTORING_TESTING_CATALOG.md#r-08)]
+### フェーズ 3: 段階的な導入 [[→ R-08](../testing/REFACTORING_TESTING_CATALOG.md#r-08)]
 
 既存コードと新しいコードを共存させる：
 
@@ -1273,6 +1273,6 @@ End Sub
 
 ## 関連ドキュメント
 
-- **`REFACTORING_TESTING_CATALOG.md`** — リファクタリング・テスト手法カタログ（R-01〜R-18、T-01〜T-15、S-01、VA-01〜VA-04）
-- **`TESTING_STRATEGY.md`** — VBA テストの設計原則
-- **`TEST_FRAMEWORK_GUIDE.md`** — JavaScript テストフレームワークの活用
+- **`docs/testing/REFACTORING_TESTING_CATALOG.md`** — リファクタリング・テスト手法カタログ（R-01〜R-18、T-01〜T-15、S-01、VA-01〜VA-04）
+- **`docs/testing/TESTING_STRATEGY.md`** — VBA テストの設計原則
+- **`docs/testing/TEST_FRAMEWORK_GUIDE.md`** — JavaScript テストフレームワークの活用

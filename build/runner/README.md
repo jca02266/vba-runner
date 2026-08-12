@@ -222,7 +222,7 @@ unless your VBA code never touches them through that same name.
 
 To inject any other named variable or constant directly, `vbaRunner.set(name, value)` is also available.
 
-See [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) for more advanced mocking patterns.
+See [`docs/guides/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/guides/MOCK_GUIDE.md) for more advanced mocking patterns.
 
 ### 6. Quiet mode / routing `Debug.Print` output separately
 
@@ -365,5 +365,5 @@ If you cloned this repository, see the command mapping in [CONTRIBUTING.md](../.
 ## Documentation
 
 - [Documentation hub](../../docs/README.md) — Goal-oriented guides (users / developers)
-- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — Type system, mock registration, Sandbox policy, VFS details
+- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/docs/implementation/REFERENCE.md) — Type system, mock registration, Sandbox policy, VFS details
 - [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — Project overview

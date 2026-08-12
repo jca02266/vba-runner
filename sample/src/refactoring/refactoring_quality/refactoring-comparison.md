@@ -55,7 +55,7 @@ AutoScheduleTasks（247行 ❌）
 ```
 ほぼ v1 と同じ巨大 Sub が残存。外科的な抽出のみ実施。
 
-### v4（REFACTORING_GUIDE.md）
+### v4（docs/refactoring/REFACTORING_GUIDE.md）
 ```
 AutoScheduleTasks（71行 ⚠️, nest1 ✅）
   ├── SaveApplicationState / RestoreApplicationState
@@ -98,7 +98,7 @@ AutoScheduleTasks（26行 ✅, nest1 ✅）   ← 薄い I/O シェル
 
   > **発見**: analyzer の「点の指摘」は外科的修正しか生まない。最初から analyzer だけを頼りにするとかえって悪化する。
 
-### v4（REFACTORING_GUIDE.md）
+### v4（docs/refactoring/REFACTORING_GUIDE.md）
 - **効果**: 「I/O 層 / ビジネスロジック層 / データ」の目標アーキテクチャを持って設計 → AutoScheduleTasks が I/O シェルに
 - **限界**: ガイドに細粒度の分割指針がなく ScheduleAllTasks（123 行❌）で止まった。
 

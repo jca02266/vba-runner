@@ -300,8 +300,8 @@ With a `.bas` file open, press `F5` to launch the file with the VBA Runner debug
 ## Documentation
 
 - [Documentation hub](../../docs/README.md) — Goal-oriented guides (users / developers)
-- [LSP.md](../../LSP.md) — LSP design and implementation (for developers)
-- [REFERENCE.md](../../REFERENCE.md) — Detailed specs
+- [LSP.md](../../docs/implementation/LSP.md) — LSP design and implementation (for developers)
+- [REFERENCE.md](../../docs/implementation/REFERENCE.md) — Detailed specs
 - [README.md](../../README.md) — Project overview
 
 ## Repository

@@ -71,7 +71,7 @@ ProcessData()          ← エントリポイント
 ### 1. パッケージの準備
 
 vba-runner は npm パッケージとして配布される。
-このワークスペースには VS Codeからの拡張機能のデバッグ実行([VSCODE_SAMPLE_WORKSPACE.md](../../docs/VSCODE_SAMPLE_WORKSPACE.md)参照)した場合は、以下のインストールは完了した状態になっている。
+このワークスペースには VS Codeからの拡張機能のデバッグ実行([VSCODE_SAMPLE_WORKSPACE.md](../../docs/guides/VSCODE_SAMPLE_WORKSPACE.md)参照)した場合は、以下のインストールは完了した状態になっている。
 
 ```bash
 cd sample/workspace

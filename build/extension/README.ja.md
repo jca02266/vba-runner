@@ -307,6 +307,6 @@ npm run package:extension # .vsix パッケージを生成
 ## 詳細ドキュメント
 
 - [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
-- [LSP.md](../../LSP.md) — LSP の設計・実装方針（開発者向け）
-- [REFERENCE.md](../../REFERENCE.md) — 詳細仕様
+- [LSP.md](../../docs/implementation/LSP.md) — LSP の設計・実装方針（開発者向け）
+- [REFERENCE.md](../../docs/implementation/REFERENCE.md) — 詳細仕様
 - [README.md](../../README.md) — プロジェクト概要

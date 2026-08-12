@@ -221,7 +221,7 @@ assert.ok(registered !== null);
 
 任意の名前の変数・定数を直接注入したい場合は `vbaRunner.set(name, value)` も使えます。
 
-詳細なモック実装パターンは [`docs/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/MOCK_GUIDE.md) を参照してください。
+詳細なモック実装パターンは [`docs/guides/MOCK_GUIDE.md`](https://github.com/jca02266/vba-runner/blob/main/docs/guides/MOCK_GUIDE.md) を参照してください。
 
 ### 6. 静かなモード / `Debug.Print` 出力の分離
 
@@ -364,6 +364,6 @@ vba-runner parse-check src/vba/Module1.bas
 ## 詳細ドキュメント
 
 - [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
-- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
+- [REFERENCE.md](https://github.com/jca02266/vba-runner/blob/main/docs/implementation/REFERENCE.md) — 型システム・モック登録・Sandbox方針・VFS など詳細仕様
 - [README.md](https://github.com/jca02266/vba-runner/blob/main/README.md) — プロジェクト概要
 - [FOR_AI.md](https://github.com/jca02266/vba-runner/blob/main/FOR_AI.md) — AIによるリファクタリング支援ガイド

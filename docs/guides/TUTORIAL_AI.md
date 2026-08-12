@@ -6,23 +6,23 @@ tags: [vba, ai, tutorial, refactoring]
 status: stable
 ---
 
-# TUTORIAL_AI.md — AI への指示だけで完結するチュートリアル
+# docs/guides/TUTORIAL_AI.md — AI への指示だけで完結するチュートリアル
 
 > 対象: コマンド詳細を知らずに AI 指示だけで VBA 改善を進めたい利用者
 >
 > 前提: vba-runner 一式を使える AI コーディングエージェント、対象の `.xlsm`（または `.bas`/`.cls`）
 >
-> 次に読む: [FOR_AI.md](../FOR_AI.md)。手作業の詳細は [TUTORIAL.md](TUTORIAL.md)
+> 次に読む: [FOR_AI.md](../../FOR_AI.md)。手作業の詳細は [TUTORIAL.md](./TUTORIAL.md)
 >
-> コマンド表記: AI への指示ではパッケージ利用者形（`vba-runner` / `vba-extractor`）を想定。clone 環境なら [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) に読み替える
+> コマンド表記: AI への指示ではパッケージ利用者形（`vba-runner` / `vba-extractor`）を想定。clone 環境なら [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) に読み替える
 
 ## 対象読者
 
 コマンドや実装の詳細を知らなくても、AI コーディングエージェント（Claude Code 等）への**指示文だけ**で、Excel VBA の抽出・確認・リファクタリング・機能追加・書き戻しを完結させたい人向けです。
 
-このドキュメントには `bash` コマンドや TypeScript コードは登場しません。各ステップで「あなたが AI に伝える指示文の例」だけを示します。コマンドの実行・テストコードの作成・モックの実装といった作業は、すべて AI が `vba-runner` 一式（実行エンジン・解析ツール・抽出ツール）とリポジトリ内のガイド文書（`FOR_AI.md` / `MOCK_GUIDE.md` 等）を使って行います。
+このドキュメントには `bash` コマンドや TypeScript コードは登場しません。各ステップで「あなたが AI に伝える指示文の例」だけを示します。コマンドの実行・テストコードの作成・モックの実装といった作業は、すべて AI が `vba-runner` 一式（実行エンジン・解析ツール・抽出ツール）とリポジトリ内のガイド文書（`FOR_AI.md` / `docs/guides/MOCK_GUIDE.md` 等）を使って行います。
 
-> コマンドの詳細を自分の手で確認したい場合は [TUTORIAL.md](TUTORIAL.md) を参照してください。
+> コマンドの詳細を自分の手で確認したい場合は [TUTORIAL.md](./TUTORIAL.md) を参照してください。
 
 ## 前提
 
@@ -31,7 +31,7 @@ status: stable
   - `.xlsm` がまだ無く `.bas`/`.cls` ファイルしかない場合は、AI に次のように指示してください:
     > `src/vba` の `.bas` ファイルから新規に `MyBook.xlsm` を作ってください（`vba-extractor` 同梱の
     > `scripts/Build-Xlsm.ps1` を使ってください）。
-    AIが [vba-extractor README](../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
+    AIが [vba-extractor README](../../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
     の手順（Excel COM自動化での新規作成 → `vba-extractor import` での同期）を実行します。
     Windows + ローカルにインストールされたExcelが必要です。
 
@@ -190,7 +190,7 @@ AI が抽出ツールを使って `.xlsm` に書き戻します。元ファイ�
 
 | 知りたいこと | 読むドキュメント |
 |---|---|
-| 目的別のガイド一覧 | [docs/README.md](README.md) |
-| 各ステップで実際にどんなコマンドが動いているか | [TUTORIAL.md](TUTORIAL.md) |
-| AI がリファクタリングサイクルをどう回しているか | [FOR_AI.md](../FOR_AI.md) |
-| Excel オブジェクトのモックの仕組み | [MOCK_GUIDE.md](MOCK_GUIDE.md) |
+| 目的別のガイド一覧 | [docs/README.md](../README.md) |
+| 各ステップで実際にどんなコマンドが動いているか | [TUTORIAL.md](./TUTORIAL.md) |
+| AI がリファクタリングサイクルをどう回しているか | [FOR_AI.md](../../FOR_AI.md) |
+| Excel オブジェクトのモックの仕組み | [MOCK_GUIDE.md](./MOCK_GUIDE.md) |

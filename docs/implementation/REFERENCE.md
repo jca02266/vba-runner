@@ -1,13 +1,21 @@
+---
+type: Reference
+title: VBA Runner 詳細仕様
+description: VBA RunnerのAPI、制約、Sandbox、仮想ファイルシステムの詳細仕様。
+tags: [vba, implementation, reference]
+status: stable
+---
+
 # REFERENCE — VBA Runner 詳細仕様
 
 > 対象: 利用者・開発者（API・制約・Sandbox などの詳細が必要なとき）
 >
-> 前提: 概要は [README.md](README.md)、目的別ハブは [docs/README.md](docs/README.md)
+> 前提: 概要は [README.md](../../README.md)、目的別ハブは [docs/README.md](../README.md)
 >
-> 次に読む: LSP 実装は [LSP.md](LSP.md)、エンジン内部は [docs/internals/](docs/internals/)、開発入口は [CONTRIBUTING.md](CONTRIBUTING.md)
+> 次に読む: LSP 実装は [LSP.md](./LSP.md)、エンジン内部は [docs/internals/](../internals)、開発入口は [CONTRIBUTING.md](../../CONTRIBUTING.md)
 
 詳細な仕様・設計方針・高度な使い方をまとめたリファレンスです。
-概要は [README.md](README.md) を参照してください。
+概要は [README.md](../../README.md) を参照してください。
 
 ---
 
@@ -377,7 +385,7 @@ VBA マクロの中でも **Excel オブジェクトへの依存**（`Sheets(...
 
 ### 推奨アプローチ：依存の分離を優先する
 
-モック化の前に、まず **Excel I/O とドメインロジックを分離**することを強く推奨します（詳細は [`docs/TESTING_STRATEGY.md`](docs/TESTING_STRATEGY.md) / [`docs/REFACTORING_GUIDE.md`](docs/REFACTORING_GUIDE.md)）。
+モック化の前に、まず **Excel I/O とドメインロジックを分離**することを強く推奨します（詳細は [`docs/TESTING_STRATEGY.md`](../testing/TESTING_STRATEGY.md) / [`docs/REFACTORING_GUIDE.md`](../refactoring/REFACTORING_GUIDE.md)）。
 
 ```vb
 ' ❌ テストしにくい：ロジックが Excel I/O に直結している
@@ -439,7 +447,7 @@ class MockApplicationEx extends MockApplication {
 
 > **注意**: エンジンは VBA の識別子を小文字で解決します（`Application.WorksheetFunction` → `application.worksheetfunction`）。プロパティ名はすべて lowercase で定義してください。
 
-詳細は [`docs/MOCK_GUIDE.md`](docs/MOCK_GUIDE.md) を参照してください。
+詳細は [`docs/MOCK_GUIDE.md`](../guides/MOCK_GUIDE.md) を参照してください。
 
 ---
 
@@ -718,15 +726,15 @@ npx tsx test-libs/vba-test-generator.ts --dir tests/vba
 
 ## さらなるドキュメント
 
-目的別の入口は [docs/README.md](docs/README.md) です。読み順・問題別検索が必要なときだけ [docs/legacy-index.md](docs/legacy-index.md)（任意）を参照してください。
+目的別の入口は [docs/README.md](../README.md) です。読み順・問題別検索が必要なときだけ [docs/legacy-index.md](../legacy-index.md)（任意）を参照してください。
 
 | 文書 | 対象 | 内容 |
 |---|---|---|
-| [docs/README.md](docs/README.md) | 全員 | 目的別の共通ハブ |
-| [docs/legacy-index.md](docs/legacy-index.md) | 利用者 | 読み順・問題別検索（任意） |
-| [TESTING_STRATEGY.md](docs/TESTING_STRATEGY.md) | 利用者 | テスト設計の原則 |
-| [REFACTORING_GUIDE.md](docs/REFACTORING_GUIDE.md) | 利用者 | テスト可能化のリファクタリング |
-| [TEST_FRAMEWORK_GUIDE.md](docs/TEST_FRAMEWORK_GUIDE.md) | 利用者 | JS から VBA をテストする |
-| [MOCK_GUIDE.md](docs/MOCK_GUIDE.md) | 利用者 | Excel オブジェクトのモック |
-| [TYPE_SYSTEM_SPEC.md](docs/internals/TYPE_SYSTEM_SPEC.md) | 開発者 | 型システムの仕様と実装 |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | 開発者 | リポジトリ開発の入口 |
+| [docs/README.md](../README.md) | 全員 | 目的別の共通ハブ |
+| [docs/legacy-index.md](../legacy-index.md) | 利用者 | 読み順・問題別検索（任意） |
+| [TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) | 利用者 | テスト設計の原則 |
+| [REFACTORING_GUIDE.md](../refactoring/REFACTORING_GUIDE.md) | 利用者 | テスト可能化のリファクタリング |
+| [TEST_FRAMEWORK_GUIDE.md](../testing/TEST_FRAMEWORK_GUIDE.md) | 利用者 | JS から VBA をテストする |
+| [MOCK_GUIDE.md](../guides/MOCK_GUIDE.md) | 利用者 | Excel オブジェクトのモック |
+| [TYPE_SYSTEM_SPEC.md](../internals/TYPE_SYSTEM_SPEC.md) | 開発者 | 型システムの仕様と実装 |
+| [CONTRIBUTING.md](../../CONTRIBUTING.md) | 開発者 | リポジトリ開発の入口 |

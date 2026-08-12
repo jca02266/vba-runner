@@ -6,15 +6,15 @@ tags: [vba, ai, tutorial, testing]
 status: stable
 ---
 
-# TUTORIAL.md — Excel VBA を抽出し、AI と一緒にテスト・機能追加するチュートリアル
+# docs/guides/TUTORIAL.md — Excel VBA を抽出し、AI と一緒にテスト・機能追加するチュートリアル
 
 > 対象: Excel VBA を AI と安全に改善したい利用者
 >
-> 前提: [vba-extractor](../build/extractor/README.ja.md) と [vba-runner](../build/runner/README.ja.md)（または本リポジトリの clone）
+> 前提: [vba-extractor](../../build/extractor/README.ja.md) と [vba-runner](../../build/runner/README.ja.md)（または本リポジトリの clone）
 >
-> 次に読む: [FOR_AI.md](../FOR_AI.md)、[MOCK_GUIDE.md](MOCK_GUIDE.md)、目的別ハブは [README.md](README.md)
+> 次に読む: [FOR_AI.md](../../FOR_AI.md)、[MOCK_GUIDE.md](./MOCK_GUIDE.md)、目的別ハブは [README.md](../README.md)
 >
-> コマンド表記: 本文はパッケージ利用者向け（`vba-runner` / `vba-extractor`）。clone している場合は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
+> コマンド表記: 本文はパッケージ利用者向け（`vba-runner` / `vba-extractor`）。clone している場合は [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
 
 ## 対象読者
 
@@ -27,7 +27,7 @@ Excel で作成された VBA マクロ（`.xlsm`）を持っていて、
 という人向けのチュートリアルです。最終的に変更結果を `.xlsm` に書き戻すところまでをひととおり体験します。
 
 > 手元に `.xlsm` がなく `.bas`/`.cls` ファイルしかない場合は、まず
-> [vba-extractor README](../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
+> [vba-extractor README](../../build/extractor/README.ja.md#新規-xlsm-をゼロから作る-windows--excel)
 > の手順で最初の `.xlsm` を作成してから本チュートリアルを始めてください
 > (Windows + ローカルにインストールされたExcelが必要です)。
 
@@ -42,7 +42,7 @@ Excel で作成された VBA マクロ（`.xlsm`）を持っていて、
 .bas / .cls （テキストファイル）
   │  ② VS Code で参照（VBA Runner 拡張機能）
   ▼
-AI に FOR_AI.md / MOCK_GUIDE.md を読ませる
+AI に FOR_AI.md / docs/guides/MOCK_GUIDE.md を読ませる
   │  ③ 解析 → 計画 → 提案 → 承認
   ▼
 ④ テストで既存動作を記録（GREEN）
@@ -70,7 +70,7 @@ npm install -g vba-extractor
 code --install-extension jca02266.vba-runner
 ```
 
-リファクタリング・テストには `vba-runner` の実行エンジンが必要です。npm パッケージとして使う場合は [build/runner/README.md](../build/runner/README.md) を参照してください。本リポジトリを clone して作業する場合は追加のパッケージインストールは不要で、CLI は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-runner --` 等）を使います。
+リファクタリング・テストには `vba-runner` の実行エンジンが必要です。npm パッケージとして使う場合は [build/runner/README.md](../../build/runner/README.md) を参照してください。本リポジトリを clone して作業する場合は追加のパッケージインストールは不要で、CLI は [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-runner --` 等）を使います。
 
 ---
 
@@ -93,7 +93,7 @@ Done.
 
 標準モジュールは `.bas`、クラスモジュール／フォーム／シートオブジェクトは `.cls` として、文字コードは xlsm 内の `PROJECTCODEPAGE` から自動判定して UTF-8 に変換されます。これで `src/vba/` 配下が Git で管理できる通常のテキストファイルになりました。
 
-詳細は [build/extractor/README.md](../build/extractor/README.md) を参照。
+詳細は [build/extractor/README.md](../../build/extractor/README.md) を参照。
 
 ---
 
@@ -112,13 +112,13 @@ Done.
 
 抽出した `Module1.bas` を開くと、`ProcessData`（エントリポイント）から `CreateSampleData` → `CopyFilteredData` → `SummarizeByCategory` → `FormatResultSheet` が呼ばれる構造が、コードレンズの参照数やコールグラフで一目で確認できます。
 
-詳細は [build/extension/README.md](../build/extension/README.md) を参照。
+詳細は [build/extension/README.md](../../build/extension/README.md) を参照。
 
 ---
 
 ## ③ AI にリファクタリング・機能追加を依頼する準備
 
-AI（Claude Code 等）にこのソースを触ってもらう前に、**[FOR_AI.md](../FOR_AI.md) を読ませます**。これは人間向けではなく AI 向けに書かれたガイドで、以下のサイクルにしたがって自律的に作業を進めるためのルールが書かれています。
+AI（Claude Code 等）にこのソースを触ってもらう前に、**[FOR_AI.md](../../FOR_AI.md) を読ませます**。これは人間向けではなく AI 向けに書かれたガイドで、以下のサイクルにしたがって自律的に作業を進めるためのルールが書かれています。
 
 ```
 Phase 1: 解析 → Phase 2: 計画 → Phase 3: 提案 → [ユーザー承認]
@@ -139,7 +139,7 @@ FOR_AI.md の基本ルールで重要なのは次の 3 点です。
 2. **計画単位で進める** — 提案された計画に承認を出すまで実装には進まない
 3. **テストなしで変更しない** — 変更前に必ず既存動作をテストで GREEN にする
 
-Excel オブジェクト（`ActiveSheet`、`Range`、`Cells`、`Application` など）に依存するコードをテストするにはモックが必要です。AI は必要になったタイミングで **[MOCK_GUIDE.md](MOCK_GUIDE.md) の「Step 1: 対応表」** を読み、対象オブジェクトの注入コードを確認します。
+Excel オブジェクト（`ActiveSheet`、`Range`、`Cells`、`Application` など）に依存するコードをテストするにはモックが必要です。AI は必要になったタイミングで **[MOCK_GUIDE.md](./MOCK_GUIDE.md) の「Step 1: 対応表」** を読み、対象オブジェクトの注入コードを確認します。
 
 ---
 
@@ -147,7 +147,7 @@ Excel オブジェクト（`ActiveSheet`、`Range`、`Cells`、`Application` な
 
 `Module1.bas` の `SummarizeByCategory` はカテゴリ別の件数・売上合計・平均売上を計算して書き出す関数です。Excel に依存しているため、テストには `MockWorksheet` 相当のモックが必要です。
 
-`SummarizeByCategory` は内部で `LastRow`（`ws.Cells(ws.Rows.Count, 1).End(xlUp).Row` で最終行を取得）を使っていますが、組み込みの `MockWorksheet` の `End()` は固定値しか返さないスタブのため、[MOCK_GUIDE.md §C](MOCK_GUIDE.md#c-未対応オブジェクトの拡張rowscount--columnscount--vba定数) の方針にしたがって、セルの実データを走査する簡易モックを自作します。
+`SummarizeByCategory` は内部で `LastRow`（`ws.Cells(ws.Rows.Count, 1).End(xlUp).Row` で最終行を取得）を使っていますが、組み込みの `MockWorksheet` の `End()` は固定値しか返さないスタブのため、[docs/guides/MOCK_GUIDE.md §C](./MOCK_GUIDE.md#c-未対応オブジェクトの拡張rowscount--columnscount--vba定数) の方針にしたがって、セルの実データを走査する簡易モックを自作します。
 
 ```typescript
 // src/vba/Module1.test.ts
@@ -206,7 +206,7 @@ npx tsx src/vba/Module1.test.ts
 
 これで「変更前の動作」がテストとして記録され、安全にリファクタリング・機能追加を始められる状態になりました（FOR_AI.md Phase 5-b）。`Excel` を一度も開かずに動作確認ができている点がポイントです。
 
-> Excel オブジェクトのモック実装の詳細（`ActiveSheet`/`Application` の注入パターン、`Rows(i).Copy` の実装など）は [MOCK_GUIDE.md](MOCK_GUIDE.md) を参照してください。
+> Excel オブジェクトのモック実装の詳細（`ActiveSheet`/`Application` の注入パターン、`Rows(i).Copy` の実装など）は [MOCK_GUIDE.md](./MOCK_GUIDE.md) を参照してください。
 
 ---
 
@@ -304,7 +304,7 @@ Saved: sample/excel/test_updated.xlsm
 
 最後に `test_updated.xlsm` を Excel で開き、`Alt+F11` で VBA エディターを起動して `Module1` に「最高売上」列のコードが反映されていることを目視確認します。問題なければ元のファイル名にリネームするか、再度 `vba-extractor import` を出力先なしで実行して上書きしてください。
 
-詳細は [build/extractor/README.md](../build/extractor/README.md) を参照。
+詳細は [build/extractor/README.md](../../build/extractor/README.md) を参照。
 
 ---
 
@@ -312,11 +312,11 @@ Saved: sample/excel/test_updated.xlsm
 
 | やりたいこと | 読むドキュメント |
 |---|---|
-| AI に渡す指示の全体仕様を理解したい | [FOR_AI.md](../FOR_AI.md) |
-| Excel オブジェクトのモックをもっと使いこなしたい | [MOCK_GUIDE.md](MOCK_GUIDE.md) |
-| JS テストフレームワーク（Jest 等）と組み合わせたい | [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md) |
-| テストが書けないコードをどう分離するか学びたい | [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) |
-| 大きなリファクタリングの実例を見たい | [REFACTORING_EXAMPLE.md](REFACTORING_EXAMPLE.md) |
-| VS Code 拡張機能の全機能を確認したい | [build/extension/README.md](../build/extension/README.md) |
-| ドキュメント全体の地図を見たい | [docs/README.md](README.md) |
-| 読み順・問題別検索が欲しい | [docs/legacy-index.md](legacy-index.md)（任意） |
+| AI に渡す指示の全体仕様を理解したい | [FOR_AI.md](../../FOR_AI.md) |
+| Excel オブジェクトのモックをもっと使いこなしたい | [MOCK_GUIDE.md](./MOCK_GUIDE.md) |
+| JS テストフレームワーク（Jest 等）と組み合わせたい | [TEST_FRAMEWORK_GUIDE.md](../testing/TEST_FRAMEWORK_GUIDE.md) |
+| テストが書けないコードをどう分離するか学びたい | [REFACTORING_GUIDE.md](../refactoring/REFACTORING_GUIDE.md) |
+| 大きなリファクタリングの実例を見たい | [REFACTORING_EXAMPLE.md](../refactoring/REFACTORING_EXAMPLE.md) |
+| VS Code 拡張機能の全機能を確認したい | [build/extension/README.md](../../build/extension/README.md) |
+| ドキュメント全体の地図を見たい | [docs/README.md](../README.md) |
+| 読み順・問題別検索が欲しい | [docs/legacy-index.md](../legacy-index.md)（任意） |

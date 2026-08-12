@@ -2,9 +2,9 @@
 
 > 対象: このリポジトリ自体を開発する AI
 >
-> 前提: 利用者の VBA リファクタリング支援なら先に [FOR_AI.md](FOR_AI.md)
+> 前提: 利用者の VBA リファクタリング支援なら先に [FOR_AI.md](./FOR_AI.md)
 >
-> 次に読む: [CONTRIBUTING.md](CONTRIBUTING.md)、[REFERENCE.md](REFERENCE.md)、[docs/internals/](docs/internals/)
+> 次に読む: [CONTRIBUTING.md](./CONTRIBUTING.md)、[REFERENCE.md](./docs/implementation/REFERENCE.md)、[docs/internals/](./docs/internals)
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
@@ -46,7 +46,7 @@ npm run vba-runner -- analyze <path>
 npm run vba-runner -- format <path>
 npm run vba-extractor -- export <input.xlsm> <out-dir>
 ```
-パッケージ利用者形との対応は [CONTRIBUTING.md](CONTRIBUTING.md#cli-コマンド対応表) を参照。`npx tsx test-libs/vba-*.ts` は使わない。
+パッケージ利用者形との対応は [CONTRIBUTING.md](./CONTRIBUTING.md#cli-コマンド対応表) を参照。`npx tsx test-libs/vba-*.ts` は使わない。
 **成果物のビルド**（配布時）:
 ```bash
 npm run build              # 4 成果物すべて（runner → extension → playground → extractor）
@@ -113,8 +113,8 @@ TypeScript で実装された VBA 実行エンジン。Excel 不要で VBA コ�
 VBA 仕様に関わる修正（バグ修正・未実装機能の追加）を行う場合は、**`.claude/commands/implement-vba.md` に記述された手順**に従うこと。要点：
 
 1. `tests/spec/` にテストを追加する（`evalVBASingle` / `evalVBAModules` を使う）
-2. `TODO_SPEC.md` の該当項目を更新する（`❌` → `✅` または `⚠️`）
-3. 仕様バグ修正時は `TODO_SPEC.md` の「仕様バグ修正」セクションにも記録する
+2. `docs/todo/TODO_SPEC.md` の該当項目を更新する（`❌` → `✅` または `⚠️`）
+3. 仕様バグ修正時は `docs/todo/TODO_SPEC.md` の「仕様バグ修正」セクションにも記録する
 
 テストの書き方の詳細は `.claude/commands/implement-vba.md` の「Step 4: テストを作成」を参照。
 
@@ -136,7 +136,7 @@ VBA 仕様に関わる修正（バグ修正・未実装機能の追加）を行�
 
 ## ファイル入出力の実装規則
 
-**ファイル操作（Open, Close, Print#, Write#, Input# など §5.4.5 全般）を実装する際は、必ず REFERENCE.md の「ファイル入出力のSandbox方針」を参照すること。**
+**ファイル操作（Open, Close, Print#, Write#, Input# など §5.4.5 全般）を実装する際は、必ず `docs/implementation/REFERENCE.md` の「ファイル入出力のSandbox方針」を参照すること。**
 
 実装上の必須要件:
 - すべてのファイルパスは `src/engine/sandbox.ts` の `SandboxPath` クラスを通じて解決する

@@ -2,7 +2,7 @@
 
 このディレクトリは、vba-runnerのVBA実行結果をWindows版Excelと照合するための
 テストフィクスチャと実行スクリプトを置く場所である。vba-extractorの利用サンプルは
-[`sample/excel/`](../../../sample/excel/)を参照する。
+[`sample/excel/`](../../../sample/excel)を参照する。
 
 ## ファイル
 

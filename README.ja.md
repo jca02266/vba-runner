@@ -22,31 +22,31 @@ VBA Runner は、次の問題を解決できます。
 
 | 目的 | はじめる場所 |
 |---|---|
-| VBA を TypeScript から実行・テストする | [vba-runner](build/runner/README.ja.md) |
-| Excel ファイルから VBA を抽出・書き戻す | [vba-extractor](build/extractor/README.ja.md) |
-| VS Code で VBA を編集・確認する | [VS Code 拡張機能](build/extension/README.ja.md) |
-| ブラウザで VBA を試す | [VBA Web Runner](build/playground/README.md) |
-| AI とレガシー VBA を改善する | [実践チュートリアル](docs/TUTORIAL.md) |
-| すべてのガイドから目的に合うものを探す | [ドキュメントガイド](docs/README.md) |
-| このリポジトリを開発する | [開発者ガイド](CONTRIBUTING.md) |
+| VBA を TypeScript から実行・テストする | [vba-runner](./build/runner/README.ja.md) |
+| Excel ファイルから VBA を抽出・書き戻す | [vba-extractor](./build/extractor/README.ja.md) |
+| VS Code で VBA を編集・確認する | [VS Code 拡張機能](./build/extension/README.ja.md) |
+| ブラウザで VBA を試す | [VBA Web Runner](./build/playground/README.md) |
+| AI とレガシー VBA を改善する | [実践チュートリアル](./docs/guides/TUTORIAL.md) |
+| すべてのガイドから目的に合うものを探す | [ドキュメントガイド](./docs/README.md) |
+| このリポジトリを開発する | [開発者ガイド](./CONTRIBUTING.md) |
 
 ## 提供パッケージ
 
 | パッケージ | 内容 | 正本 |
 |---|---|---|
-| `vba-runner`（npm ライブラリ） | VBA 実行エンジン + テストランナー + CLI | [build/runner/README.ja.md](build/runner/README.ja.md) |
-| `vba-extractor`（npm CLI） | Office ファイルから VBA ソースを export / import | [build/extractor/README.ja.md](build/extractor/README.ja.md) |
-| VBA Runner（VS Code 拡張機能） | LSP・デバッガー・コール階層表示 | [build/extension/README.ja.md](build/extension/README.ja.md) |
-| VBA Web Runner（Web UI デモ） | ブラウザ上で VBA を即試せるデモ | [build/playground/README.md](build/playground/README.md) |
+| `vba-runner`（npm ライブラリ） | VBA 実行エンジン + テストランナー + CLI | [build/runner/README.ja.md](./build/runner/README.ja.md) |
+| `vba-extractor`（npm CLI） | Office ファイルから VBA ソースを export / import | [build/extractor/README.ja.md](./build/extractor/README.ja.md) |
+| VBA Runner（VS Code 拡張機能） | LSP・デバッガー・コール階層表示 | [build/extension/README.ja.md](./build/extension/README.ja.md) |
+| VBA Web Runner（Web UI デモ） | ブラウザ上で VBA を即試せるデモ | [build/playground/README.md](./build/playground/README.md) |
 
 パッケージのインストール手順や API は、各正本を参照してください。
-リポジトリを clone して本体を開発する場合は [CONTRIBUTING.md](CONTRIBUTING.md) を参照してください。
+リポジトリを clone して本体を開発する場合は [CONTRIBUTING.md](./CONTRIBUTING.md) を参照してください。
 
 ## 関連ドキュメント
 
 | 文書 | 役割 |
 |---|---|
-| [docs/README.md](docs/README.md) | 目的別の共通ハブ |
-| [FOR_AI.md](FOR_AI.md) | 利用者の VBA を AI が扱うための指示書 |
-| [REFERENCE.md](REFERENCE.md) | 詳細仕様（Sandbox・型・モックなど） |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | リポジトリ開発者向け入口 |
+| [docs/README.md](./docs/README.md) | 目的別の共通ハブ |
+| [FOR_AI.md](./FOR_AI.md) | 利用者の VBA を AI が扱うための指示書 |
+| [REFERENCE.md](./docs/implementation/REFERENCE.md) | 詳細仕様（Sandbox・型・モックなど） |
+| [CONTRIBUTING.md](./CONTRIBUTING.md) | リポジトリ開発者向け入口 |

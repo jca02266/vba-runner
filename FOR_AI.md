@@ -2,9 +2,9 @@
 
 > 対象: 利用者の VBA を解析・テスト・リファクタリングする AI（LLM）
 >
-> 前提: ユーザーから本ファイルを根拠に作業するよう指示されたこと。CLI は npm パッケージ形（`vba-runner` / `vba-extractor`）を使う。clone 環境なら [CONTRIBUTING.md](CONTRIBUTING.md#cli-コマンド対応表) の右列に読み替える
+> 前提: ユーザーから本ファイルを根拠に作業するよう指示されたこと。CLI は npm パッケージ形（`vba-runner` / `vba-extractor`）を使う。clone 環境なら [CONTRIBUTING.md](./CONTRIBUTING.md#cli-コマンド対応表) の右列に読み替える
 >
-> 次に読む: 本ファイルだけで進める。人間向け入口は [docs/README.md](docs/README.md)。このリポジトリ本体の開発は [CLAUDE.md](CLAUDE.md)
+> 次に読む: 本ファイルだけで進める。人間向け入口は [docs/README.md](./docs/README.md)。このリポジトリ本体の開発は [CLAUDE.md](./CLAUDE.md)
 
 **VBA Runner** は **VBA実行環境 + リファクタリング支援ツール** です。
 Excel 不要で VBA コードを実行・テスト・静的解析できます。
@@ -392,7 +392,7 @@ Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）はモック注�
 | `src/lsp/` | VS Code LSP拡張機能の実装。リファクタリング作業と無関係 |
 | `src/App.tsx` 他 React ファイル | Web UI |
 | `dist/`, `node_modules/` | ビルド成果物・パッケージ |
-| `TODO_SPEC.md` | VBA実行エンジンの仕様準拠TODO |
+| `docs/todo/TODO_SPEC.md` | VBA実行エンジンの仕様準拠TODO |
 | `docs/internals/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
 | `tests/` | VBA実行エンジン自体のテスト |
 

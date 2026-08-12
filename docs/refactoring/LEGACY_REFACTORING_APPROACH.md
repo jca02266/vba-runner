@@ -10,18 +10,18 @@ status: stable
 
 > 対象: テストのないレガシー VBA に着手したい利用者
 >
-> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)
+> 前提: [TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md)
 >
-> 次に読む: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)、手法一覧は [REFACTORING_TESTING_CATALOG.md](REFACTORING_TESTING_CATALOG.md)
+> 次に読む: [REFACTORING_GUIDE.md](./REFACTORING_GUIDE.md)、手法一覧は [REFACTORING_TESTING_CATALOG.md](../testing/REFACTORING_TESTING_CATALOG.md)
 >
-> コマンド表記: 本文はパッケージ利用者向け（`vba-runner analyze` 等）。clone している場合は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
+> コマンド表記: 本文はパッケージ利用者向け（`vba-runner analyze` 等）。clone している場合は [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) の右列に置き換える
 
 ## このドキュメントの目的
 
 テストのないレガシー VBA コードにはじめて向き合うとき、「どこから手を付けるか」「何の手法を使えばよいか」の判断を助けるガイドです。
 
 *Working Effectively with Legacy Code*（Michael Feathers）の考え方を VBA に適用した概要版です。
-各手法の詳細は [`REFACTORING_TESTING_CATALOG.md`](REFACTORING_TESTING_CATALOG.md) を参照してください。
+各手法の詳細は [`docs/testing/REFACTORING_TESTING_CATALOG.md`](../testing/REFACTORING_TESTING_CATALOG.md) を参照してください。
 
 ---
 
@@ -92,7 +92,7 @@ vba-runner analyze <対象ディレクトリ> --outline
 
 ### 状況 A: 「この Sub が何をしているかわからない」
 
-**手法: 特性テスト（Characterization Test）→ [`T-14`](REFACTORING_TESTING_CATALOG.md)**
+**手法: 特性テスト（Characterization Test）→ [`T-14`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 仕様を理解しようとするのではなく、現在の出力をそのまま記録します。
 「今のコードが何をしているか」のスナップショットを取ることが目的です。
@@ -108,7 +108,7 @@ vba-runner analyze <対象ディレクトリ> --outline
 
 ### 状況 B: 「テストを書きたいが Excel に依存していて書けない」
 
-**手法: 接合部の作成（Seam）+ 純粋関数の切り出し（Extract Function）→ [`R-01`](REFACTORING_TESTING_CATALOG.md), [`R-13`](REFACTORING_TESTING_CATALOG.md)**
+**手法: 接合部の作成（Seam）+ 純粋関数の切り出し（Extract Function）→ [`R-01`](../testing/REFACTORING_TESTING_CATALOG.md), [`R-13`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 Excel 依存（`Range`, `Sheets`, `ActiveCell` 等）とビジネスロジックを分離します。
 
@@ -148,7 +148,7 @@ End Sub
 
 ---
 
-**① Sprout Method（発芽メソッド）の基本パターン → [`R-17`](REFACTORING_TESTING_CATALOG.md)**
+**① Sprout Method（発芽メソッド）の基本パターン → [`R-17`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 新機能のロジックを別 Sub に書き、既存コードには呼び出しを 1 行追加するだけにします。
 既存の処理本体には触れないため、デグレのリスクを最小化できます。
@@ -168,7 +168,7 @@ End Sub
 
 ---
 
-**② 既存処理の途中に新機能を割り込ませる → Sprout Method（発芽メソッド）[`R-17`](REFACTORING_TESTING_CATALOG.md)**
+**② 既存処理の途中に新機能を割り込ませる → Sprout Method（発芽メソッド）[`R-17`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 新機能を追加するとき、既存ループの中にコードを混ぜ込みたくなりがちです。
 よくあるのが「ループの中に処理を追加する」パターンですが、
@@ -216,7 +216,7 @@ End Sub
 
 ---
 
-**③ 既存処理の前後に処理を追加する → Wrap Method（ラップメソッド）[`R-18`](REFACTORING_TESTING_CATALOG.md)**
+**③ 既存処理の前後に処理を追加する → Wrap Method（ラップメソッド）[`R-18`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 既存 Sub をリネームして内部に隠し、同名の新 Sub でラップします。
 呼び出し元を一切変えずに、前処理・後処理を追加できます。
@@ -265,7 +265,7 @@ End Sub
 
 ### 状況 D: 「深いネストと複雑な条件分岐を整理したい」
 
-**手法: ガード節の導入 + 条件の名前付け → [`R-03`](REFACTORING_TESTING_CATALOG.md)**
+**手法: ガード節の導入 + 条件の名前付け → [`R-03`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 まず特性テストで守ってから、内側から外側に向かって整理します。
 
@@ -290,7 +290,7 @@ If amount <= 0 Then Exit Sub
 
 ### 状況 E: 「同じようなコードが複数箇所にある」
 
-**手法: 重複ブロックの統合 → [`R-05`](REFACTORING_TESTING_CATALOG.md)**
+**手法: 重複ブロックの統合 → [`R-05`](../testing/REFACTORING_TESTING_CATALOG.md)**
 
 `vba-runner analyze` の `duplicateBlocks` で検出した重複を統合します。
 ただし、**統合前に両方の呼び出しをテストで守る**のが前提です。
@@ -344,7 +344,7 @@ vba-runner analyze <対象ディレクトリ> --diff .vba-baseline.json
 
 ## 参照ドキュメント
 
-- [`REFACTORING_TESTING_CATALOG.md`](REFACTORING_TESTING_CATALOG.md) — 手法の詳細・コード例
-- [`FEATHERS_TECHNIQUES_TODO.md`](FEATHERS_TECHNIQUES_TODO.md) — Feathers 手法の収録状況一覧
-- [`REFACTORING_GUIDE.md`](REFACTORING_GUIDE.md) — Excel オブジェクト分離の詳細ガイド
-- [`TESTING_STRATEGY.md`](TESTING_STRATEGY.md) — テスト戦略の全体像
+- [`docs/testing/REFACTORING_TESTING_CATALOG.md`](../testing/REFACTORING_TESTING_CATALOG.md) — 手法の詳細・コード例
+- [`docs/refactoring/FEATHERS_TECHNIQUES_TODO.md`](./FEATHERS_TECHNIQUES_TODO.md) — Feathers 手法の収録状況一覧
+- [`docs/refactoring/REFACTORING_GUIDE.md`](./REFACTORING_GUIDE.md) — Excel オブジェクト分離の詳細ガイド
+- [`docs/testing/TESTING_STRATEGY.md`](../testing/TESTING_STRATEGY.md) — テスト戦略の全体像

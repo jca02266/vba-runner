@@ -1,7 +1,7 @@
 # VBA 組み込み関数 監査ログ
 
 関数仕様（MS-VBAL）と実装（`builtins.ts` / `evaluator.ts`）の照合結果を記録する。
-バグが見つかった場合は `tests/spec/` にテストを追加し、TODO_SPEC.md に記録する。
+バグが見つかった場合は `tests/spec/` にテストを追加し、docs/todo/TODO_SPEC.md に記録する。
 
 ## 監査済み関数
 

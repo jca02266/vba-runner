@@ -16,8 +16,8 @@ generated: 2026-07-29
 
 この文書は、`evaluate-vba-runner` の評価履歴と候補キューを、現在どのように
 保存・選定・完了管理するかを説明する。VBAの仕様準拠TODOは
-[`TODO_SPEC.md`](../../TODO_SPEC.md)、仕様準拠外の開発課題は
-[`TODO.md`](../../TODO.md)で管理する。
+[`docs/todo/TODO_SPEC.md`](../todo/TODO_SPEC.md)、仕様準拠外の開発課題は
+[`docs/todo/TODO.md`](../todo/TODO.md)で管理する。
 
 ## 当初の問題
 
@@ -78,7 +78,7 @@ resultについても、次を `validate` / `audit` で検証する。
 互換用であり、新しい真因対処では使用しない。
 
 評価記録には`rootCauseProcedureVersion`を付ける。`0`は手順未整備時代の旧記録、
-`1`は[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md) v1に従った記録である。
+`1`は[`ROOT_CAUSE_ANALYSIS.md`](./ROOT_CAUSE_ANALYSIS.md) v1に従った記録である。
 番号がない記録は方式不明として確定根拠に使わない。
 
 既存評価を別のEVで再評価した場合は、相関を両方のYAML frontmatterに記録する。
@@ -115,7 +115,7 @@ BUG側に分離する。
 `hypothesis`として登録し、別のサブエージェントによる補足・反証・確認レビューを
 追記する。独立した確認レビューがあり、未解決点が空の場合だけ`confirmed`にする。
 詳細な分析順序と確定条件は
-[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md)を正本とする。
+[`ROOT_CAUSE_ANALYSIS.md`](./ROOT_CAUSE_ANALYSIS.md)を正本とする。
 
 確定した真因だけを`evaluation/remediations/ROOT-xxxxx.md`の対処タスクへ変換する。
 対処タスクは評価候補と異なり、起点評価、変更対象・対象外、受入条件、回帰テスト、

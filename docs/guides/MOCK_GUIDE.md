@@ -13,10 +13,10 @@ verified:
 stale_after: 2027-01-26
 sources:
   - id: runner-reference
-    resource: ../REFERENCE.md
+    resource: ../implementation/REFERENCE.md
     title: VBA Runner 詳細仕様
   - id: testing-strategy
-    resource: TESTING_STRATEGY.md
+    resource: ../testing/TESTING_STRATEGY.md
     title: VBA マクロ単体テスト戦略
 ---
 
@@ -24,9 +24,9 @@ sources:
 
 > 対象: Excel オブジェクト依存を避けられない利用者
 >
-> 前提: [TESTING_STRATEGY.md](TESTING_STRATEGY.md)、可能なら先に [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md) で分離を検討
+> 前提: [TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md)、可能なら先に [REFACTORING_GUIDE.md](../refactoring/REFACTORING_GUIDE.md) で分離を検討
 >
-> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md)、API 詳細は [REFERENCE.md](../REFERENCE.md)
+> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](../testing/INTEGRATION_TEST_EXAMPLE.md)、API 詳細は [REFERENCE.md](../implementation/REFERENCE.md)
 
 > **まずは Part 0 を試してください**: `__mocks__/` ディレクトリ(または `__mocks__.*` 単一ファイル)を
 > 置くだけでビルトインを差し替えられる規約で、npm パッケージ利用者・VS Code 拡張機能利用者のどちらでも
@@ -667,7 +667,7 @@ class MockRows implements VbaIterable {
 
 ---
 
-## Step 0: モックが必要かどうかを確認する [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+## Step 0: モックが必要かどうかを確認する [[→ R-01](../testing/REFACTORING_TESTING_CATALOG.md#r-01)]
 
 **モックより先に純粋関数の抽出を試みること。**
 Excel オブジェクトへの依存を引数として受け取るように関数を分離できれば、モックは不要になる。
@@ -1422,7 +1422,7 @@ v[2][1];  // 3行2列目
 
 ---
 
-## 7. 自作モックのパターン（4 つ） [[→ T-11](REFACTORING_TESTING_CATALOG.md#t-11)]
+## 7. 自作モックのパターン（4 つ） [[→ T-11](../testing/REFACTORING_TESTING_CATALOG.md#t-11)]
 
 ### パターン 1: JavaScript オブジェクト（最軽量）
 
@@ -1996,7 +1996,7 @@ it('test 2', () => {
 モック実装 < VBA コード  が原則
 
 長い場合は：
-1. ビジネスロジックを分離（REFACTORING_GUIDE.md）
+1. ビジネスロジックを分離（docs/refactoring/REFACTORING_GUIDE.md）
 2. よりシンプルなモックパターンを採用
 ```
 
@@ -2010,11 +2010,11 @@ it('test 2', () => {
 
 - [ ] **Domain Logic を Function に分離できたか？**
   - 「はい」→ 以下に進む
-  - 「いいえ」→ REFACTORING_GUIDE.md を参照してリファクタリング
+  - 「いいえ」→ docs/refactoring/REFACTORING_GUIDE.md を参照してリファクタリング
 
 - [ ] **I/O は Sub に集約できたか？**
   - 「はい」→ 以下に進む
-  - 「いいえ」→ REFACTORING_GUIDE.md を参照
+  - 「いいえ」→ docs/refactoring/REFACTORING_GUIDE.md を参照
 
 - [ ] **テスト対象の Sub は 20 行以内か？**
   - 「はい」→ 以下に進む
@@ -2029,12 +2029,12 @@ it('test 2', () => {
 | 結果 | 対応 |
 |------|------|
 | **すべて Yes** | モック実装開始（このガイド Part 1） |
-| **No が 1-2 個** | リファクタリング（REFACTORING_GUIDE.md） |
+| **No が 1-2 個** | リファクタリング（docs/refactoring/REFACTORING_GUIDE.md） |
 | **No が 3 個以上** | 大幅なリファクタリングが必要 |
 
 ---
 
-## 12. テスト戦略：段階的なテスト化 [[→ S-01](REFACTORING_TESTING_CATALOG.md#s-01)]
+## 12. テスト戦略：段階的なテスト化 [[→ S-01](../testing/REFACTORING_TESTING_CATALOG.md#s-01)]
 
 ```
 ┌─────────────────────────────────────┐
@@ -2286,7 +2286,7 @@ assert.strictEqual(vbaRunner.run('IsTimeout', [9000]), false, '5000 < 9000 → n
 | 依存の種類 | 対応方法 |
 |---|---|
 | `Declare Function` / DLL 直呼び出し | 同名 VBA 関数を後ろに追記して差し替え（本節） |
-| `CreateObject("Foo.Bar")` | `vbaRunner.registerComObject(factory)` で TypeScript ファクトリを登録（REFERENCE.md 参照） |
+| `CreateObject("Foo.Bar")` | `vbaRunner.registerComObject(factory)` で TypeScript ファクトリを登録（docs/implementation/REFERENCE.md 参照） |
 
 ---
 

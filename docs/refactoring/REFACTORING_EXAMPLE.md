@@ -13,10 +13,10 @@ verified:
 stale_after: 2027-01-26
 sources:
   - id: task-scheduler-spec
-    resource: ../sample/src/refactoring/TaskScheduler.md
+    resource: ../../sample/src/refactoring/TaskScheduler.md
     title: TaskScheduler 仕様
   - id: refactoring-guide
-    resource: REFACTORING_GUIDE.md
+    resource: ./REFACTORING_GUIDE.md
     title: VBA リファクタリングガイド
 ---
 
@@ -24,9 +24,9 @@ sources:
 
 > 対象: リファクタリング手法を実例で学びたい利用者
 >
-> 前提: [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)
+> 前提: [REFACTORING_GUIDE.md](./REFACTORING_GUIDE.md)
 >
-> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)
+> 次に読む: [INTEGRATION_TEST_EXAMPLE.md](../testing/INTEGRATION_TEST_EXAMPLE.md)、[TEST_FRAMEWORK_GUIDE.md](../testing/TEST_FRAMEWORK_GUIDE.md)
 
 ## 概要
 
@@ -37,7 +37,7 @@ sources:
 - **リファクタリング前**: `sample/src/refactoring/TaskScheduler_v1.bas`（393 行の巨大 Sub）
 - **リファクタリング後**: `sample/src/refactoring/TaskScheduler.bas` + `sample/src/refactoring/TaskScheduler_Core.bas`
 
-`TaskScheduler_v1.bas` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/refactoring/TaskScheduler.md`](../sample/src/refactoring/TaskScheduler.md) を参照してください。
+`TaskScheduler_v1.bas` が何をするマクロなのか（シートレイアウト・使い方・動作ルール）は [`sample/src/refactoring/TaskScheduler.md`](../../sample/src/refactoring/TaskScheduler.md) を参照してください。
 
 ---
 
@@ -170,7 +170,7 @@ numDays = lastCol - COL_CALENDAR_START_IDX + 1
 
 **目的**: タスク数とカレンダー日数を動的に計算
 
-### フェーズ 2: データ読み込み（行 101-122） [[→ R-05](REFACTORING_TESTING_CATALOG.md#r-05)]
+### フェーズ 2: データ読み込み（行 101-122） [[→ R-05](../testing/REFACTORING_TESTING_CATALOG.md#r-05)]
 
 **Double Buffering パターン** — Excel シートをメモリの配列に読み込む：
 
@@ -566,7 +566,7 @@ ev.callProcedure('ScheduleUnlockedTask', [taskData, numDays, ...]);
 
 ## 改善策：リファクタリング後のコード
 
-### 改善 1: 関心の分離と構造化（UDT 導入） [[→ R-06](REFACTORING_TESTING_CATALOG.md#r-06) / [R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
+### 改善 1: 関心の分離と構造化（UDT 導入） [[→ R-06](../testing/REFACTORING_TESTING_CATALOG.md#r-06) / [R-03](../testing/REFACTORING_TESTING_CATALOG.md#r-03)]
 
 **リファクタリング前**:
 ```vb
@@ -1032,11 +1032,11 @@ Main Sub
 = 複雑度が分散され、認知負荷が低い
 ```
 
-このリファクタリングは、**REFACTORING_GUIDE.md で説明した「分割統治」と「関心の分離」の実践例**です。
+このリファクタリングは、**docs/refactoring/REFACTORING_GUIDE.md で説明した「分割統治」と「関心の分離」の実践例**です。
 
 ---
 
-## さらなるリファクタリング：セル位置の即値を避ける [[→ R-09](REFACTORING_TESTING_CATALOG.md#r-09)]
+## さらなるリファクタリング：セル位置の即値を避ける [[→ R-09](../testing/REFACTORING_TESTING_CATALOG.md#r-09)]
 
 リファクタリング後のコードでも、列番号・行番号はソースに直書きされています。
 
@@ -1065,7 +1065,7 @@ End Type
 
 ### VBA 側の実装
 
-`GetSetting` は [`sample/src/vba/LibSheet.bas`](../sample/src/vba/LibSheet.bas) に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
+`GetSetting` は [`sample/src/vba/LibSheet.bas`](../../sample/src/vba/LibSheet.bas) に実装されています。シート名・テーブル名は埋め込まず、呼び出し元が `ListObject` を取得して渡します。
 
 ```vb
 ' LibSheet.bas

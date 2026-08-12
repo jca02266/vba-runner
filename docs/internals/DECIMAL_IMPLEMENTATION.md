@@ -11,8 +11,8 @@ status: stable
 `Currency` 型と `Decimal` 型の内部実装解説。両型とも JS `number`（IEEE 754 double）ではなく
 **BigInt 整数を内部表現とする固定小数点**で実装されている。
 
-関連ドキュメント: [`LITERALS_AND_OPERATORS.md`](LITERALS_AND_OPERATORS.md)（リテラル型サフィックスと演算子の型規則）、
-[`TYPE_SYSTEM_SPEC.md`](TYPE_SYSTEM_SPEC.md)（型変換とオーバーフローの意味論）
+関連ドキュメント: [`LITERALS_AND_OPERATORS.md`](./LITERALS_AND_OPERATORS.md)（リテラル型サフィックスと演算子の型規則）、
+[`TYPE_SYSTEM_SPEC.md`](./TYPE_SYSTEM_SPEC.md)（型変換とオーバーフローの意味論）
 
 ---
 

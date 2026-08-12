@@ -388,4 +388,4 @@ VBA にはクロージャがないため、「ループの構造は同じだが�
 
 ## 参照
 
-- [REFACTORING_TESTING_CATALOG.md — R-10](REFACTORING_TESTING_CATALOG.md#r-10)
+- [docs/testing/REFACTORING_TESTING_CATALOG.md — R-10](../testing/REFACTORING_TESTING_CATALOG.md#r-10)

@@ -1,8 +1,16 @@
+---
+type: Roadmap
+title: VBA実装TODOリスト
+description: MS-VBAL仕様に関係するVBA構文、標準機能、ランタイム挙動の実装項目。
+tags: [vba, specification, roadmap]
+status: active
+---
+
 # VBA実装 TODOリスト（MS-VBAL仕様書準拠）
 
 この文書は、MS-VBAL仕様に定義されたVBAの構文・標準機能・ランタイム挙動に
 関する実装状況だけを管理する。IDE機能、テスト支援、モック拡張、解析器の
-高度化など仕様準拠以外の開発課題は [TODO.md](TODO.md) に記載する。
+高度化など仕様準拠以外の開発課題は [TODO.md](./TODO.md) に記載する。
 
 **進捗**: MS-VBAL 仕様書で個別セクションに名前が付いた **構文要素 / ステートメント / 式 / 標準ライブラリ関数 / 組み込みクラス** はすべて実装済みです。
 
@@ -381,7 +389,7 @@
 ## 実装優先度ガイド（履歴）
 
 MS-VBAL仕様書に個別セクションを持つ機能の実装優先度は、初期開発時の履歴として管理していた。
-現在の実装状況は各仕様セクションの状態表を正とし、未実装の製品機能ロードマップは `TODO.md` を参照する。
+現在の実装状況は各仕様セクションの状態表を正とし、未実装の製品機能ロードマップは `docs/todo/TODO.md` を参照する。
 
 
 ## 仮想ファイルシステム (VFS) の実装状況と課題
@@ -614,7 +622,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 - ✅ **Fix: `VarType(VBA)` / `VarType(Module1)` のようにプロジェクト名・モジュール名を値として使った場合にエラーにならない** | `namespace-as-value-error.test.ts`
   - VBA 仕様: `VarType(VBA)` → コンパイルエラー「プロジェクトではなく、変数またはプロシージャを指定してください」。モジュール名も同様。
   - 修正: `vba-types.ts` に `VbaNamespaceRef` センチネルクラスを追加し、`VBA` を `kind='project'` で、各モジュール名を `kind='module'` で env に事前登録。`Identifier` 評価時に `VbaNamespaceRef` を検出してエラーを投げる。修飾形式（`VBA.X`、`Module1.Proc`）は早期リターンで正常動作を維持。
-  - **MS-VBAL 上の「プロジェクト」の定義・実装詳細**: `REFERENCE.md` §「外部ライブラリの参照設定と `New ProjectName.ClassName`」を参照。`registerExternalObject('X.Y', factory)` でプロジェクト名 X が `VbaNamespaceRef kind='project'` として自動登録される仕様を含む。
+  - **MS-VBAL 上の「プロジェクト」の定義・実装詳細**: `docs/implementation/REFERENCE.md` §「外部ライブラリの参照設定と `New ProjectName.ClassName`」を参照。`registerExternalObject('X.Y', factory)` でプロジェクト名 X が `VbaNamespaceRef kind='project'` として自動登録される仕様を含む。
 - ✅ **モジュール修飾付き変数/定数アクセス**: `Module1.A` 形式でモジュールレベルの変数・定数を参照
   - 実装: Const は module-qualified キー (`module1:a`) で格納（不変なので複製コピーで同名競合も区別可）。変数は `moduleVarRegistry` に登録し参照時は非修飾名で引く
   - `evaluateMemberExpression` でオブジェクト評価前に台帳チェック（`Environment.get` の暗黙ゼロ初期化による誤検知を防止）
@@ -1034,7 +1042,7 @@ BNF と parser.ts を体系的に比較して判明した未実装・仕様乖�
 
 ## リテラル型・演算子型の未実装項目
 
-詳細は [`docs/internals/LITERALS_AND_OPERATORS.md`](../docs/internals/LITERALS_AND_OPERATORS.md) を参照。
+詳細は [`docs/internals/LITERALS_AND_OPERATORS.md`](../internals/LITERALS_AND_OPERATORS.md) を参照。
 
 | 状態 | 項目 | 概要 |
 |------|------|------|

@@ -36,4 +36,4 @@ npm run build:playground   # build/playground/dist/ に出力
 
 - [ドキュメントガイド](../../docs/README.md) — 目的別の共通ハブ（利用者／開発者）
 - [README.md](../../README.md) — プロジェクト概要
-- [REFERENCE.md](../../REFERENCE.md) — 詳細仕様
+- [REFERENCE.md](../../docs/implementation/REFERENCE.md) — 詳細仕様

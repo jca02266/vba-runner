@@ -44,15 +44,15 @@ End Sub
 **具体例: Excel オブジェクト依存の分離**
 VBA における典型的な適用場面。`Range`・`Cells`・`Sheets` などの Excel オブジェクトへのアクセスを `Sub` に限定し、ビジネスロジックを Excel 非依存の `Function` として切り出す。これにより `Function` 単体を Excel なしでテストできる。対象箇所の検出には `vba-analyzer` の `excelMockTargets`・`excelAccessCount` が使える（[VA-01](#va-01)）。
 
-* [TESTING\_STRATEGY.md — 原則1](TESTING_STRATEGY.md#原則1-domain-logic-と-excel-io-の徹底的分離)
+* [TESTING\_STRATEGY.md — 原則1](./TESTING_STRATEGY.md#原則1-domain-logic-と-excel-io-の徹底的分離)
 
-* [TESTING\_STRATEGY.md — §5](TESTING_STRATEGY.md#5-excel-オブジェクト依存は-sub-に限定)
+* [TESTING\_STRATEGY.md — §5](./TESTING_STRATEGY.md#5-excel-オブジェクト依存は-sub-に限定)
 
-* [REFACTORING\_GUIDE.md — 原則1・パターン1〜3](REFACTORING_GUIDE.md#原則-1-職責の分離separation-of-concerns)
+* [REFACTORING\_GUIDE.md — 原則1・パターン1〜3](../refactoring/REFACTORING_GUIDE.md#原則-1-職責の分離separation-of-concerns)
 
-* [REFACTORING\_EXAMPLE.md](REFACTORING_EXAMPLE.md)
+* [REFACTORING\_EXAMPLE.md](../refactoring/REFACTORING_EXAMPLE.md)
 
-* [MOCK\_GUIDE.md — Step 0](MOCK_GUIDE.md#step-0-モックが必要かどうかを確認する)
+* [MOCK\_GUIDE.md — Step 0](../guides/MOCK_GUIDE.md#step-0-モックが必要かどうかを確認する)
 
 ***
 
@@ -87,11 +87,11 @@ Cells(3, COL_STATUS).Value = Sheets(SHEET_MASTER).Cells(row, COL_MASTER).Value
 
 ドメインとして一体のパラメーター群を `Type` 宣言にまとめて関数に渡す手法。関数シグネチャが簡潔になり、関連しない変数が紛れ込みにくくなる。関係のないパラメーターを無理にまとめることは避ける。
 
-* [TESTING\_STRATEGY.md — §3](TESTING_STRATEGY.md#3-関連パラメーターは-type-にまとめる)
+* [TESTING\_STRATEGY.md — §3](./TESTING_STRATEGY.md#3-関連パラメーターは-type-にまとめる)
 
-* [REFACTORING\_GUIDE.md — パターン3](REFACTORING_GUIDE.md#パターン-3-複雑なビジネスロジックudt-を使用)
+* [REFACTORING\_GUIDE.md — パターン3](../refactoring/REFACTORING_GUIDE.md#パターン-3-複雑なビジネスロジックudt-を使用)
 
-* [REFACTORING\_EXAMPLE.md — 改善1](REFACTORING_EXAMPLE.md#改善-1-関心の分離と構造化udt-導入)
+* [REFACTORING\_EXAMPLE.md — 改善1](../refactoring/REFACTORING_EXAMPLE.md#改善-1-関心の分離と構造化udt-導入)
 
 ***
 
@@ -101,9 +101,9 @@ Cells(3, COL_STATUS).Value = Sheets(SHEET_MASTER).Cells(row, COL_MASTER).Value
 
 状態保持・バリデーション・複数の操作が必要になった場合に `Class` を導入する手法。VBA のクラスはコンストラクターへの引数渡し・継承・オーバーロードがなく制限が多いため、`Type` + モジュール関数で足りる間はクラス化を急がない。
 
-* [TESTING\_STRATEGY.md — §4](TESTING_STRATEGY.md#4-振る舞いを持たせたい場合はクラスを検討する)
+* [TESTING\_STRATEGY.md — §4](./TESTING_STRATEGY.md#4-振る舞いを持たせたい場合はクラスを検討する)
 
-* [REFACTORING\_GUIDE.md — パターン4](REFACTORING_GUIDE.md#パターン-4-状態を持つ処理オブジェクト指向版)
+* [REFACTORING\_GUIDE.md — パターン4](../refactoring/REFACTORING_GUIDE.md#パターン-4-状態を持つ処理オブジェクト指向版)
 
 ***
 
@@ -113,7 +113,7 @@ Cells(3, COL_STATUS).Value = Sheets(SHEET_MASTER).Cells(row, COL_MASTER).Value
 
 Excel シートのデータをメモリ上の配列に一括読み込みし、配列だけで処理して最後に一括書き戻す手法。シートへのアクセス回数を最小化してパフォーマンスを向上し、ロジック部分を Excel 依存から切り離してテスト可能にする。
 
-* [REFACTORING\_EXAMPLE.md — フェーズ2 データ読み込み](REFACTORING_EXAMPLE.md#フェーズ-2-データ読み込み行-101-122)
+* [REFACTORING\_EXAMPLE.md — フェーズ2 データ読み込み](../refactoring/REFACTORING_EXAMPLE.md#フェーズ-2-データ読み込み行-101-122)
 
 ***
 
@@ -123,7 +123,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 バラバラに定義された定数を意味のまとまりで `Type` にまとめ、初期化関数で一括セットアップする手法。変更箇所が一ヶ所に集中し、関連する定数の一貫性が保ちやすくなる。
 
-* [REFACTORING\_EXAMPLE.md — 改善1](REFACTORING_EXAMPLE.md#改善-1-関心の分離と構造化udt-導入)
+* [REFACTORING\_EXAMPLE.md — 改善1](../refactoring/REFACTORING_EXAMPLE.md#改善-1-関心の分離と構造化udt-導入)
 
 ***
 
@@ -133,7 +133,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 すべてのコードを一度にリファクタリングするのではなく、変更頻度が高い・複雑度が高い・テストが切実に必要な箇所から着手する戦略。投資対効果を最大化する。
 
-* [REFACTORING\_GUIDE.md — フェーズ1](REFACTORING_GUIDE.md#フェーズ-1-ホットスポットを特定)
+* [REFACTORING\_GUIDE.md — フェーズ1](../refactoring/REFACTORING_GUIDE.md#フェーズ-1-ホットスポットを特定)
 
 ***
 
@@ -143,7 +143,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 1つの `Function` を抽出 → テスト追加 → 元の `Sub` から呼び出しに差し替え、という小さなサイクルを繰り返す手法。一度に大きく変えずリグレッションリスクを低く保つ。
 
-* [REFACTORING\_GUIDE.md — フェーズ2〜3](REFACTORING_GUIDE.md#フェーズ-2-小さく始める)
+* [REFACTORING\_GUIDE.md — フェーズ2〜3](../refactoring/REFACTORING_GUIDE.md#フェーズ-2-小さく始める)
 
 ***
 
@@ -153,7 +153,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 列番号・行番号の即値をコードに埋め込まず、Excel の設定シート（テーブル）で管理して `GetSetting()` などの関数で動的に参照する手法。シートレイアウト変更時のコード修正を不要にする。
 
-* [REFACTORING\_EXAMPLE.md — セル位置の即値を避ける](REFACTORING_EXAMPLE.md#さらなるリファクタリングセル位置の即値を避ける)
+* [REFACTORING\_EXAMPLE.md — セル位置の即値を避ける](../refactoring/REFACTORING_EXAMPLE.md#さらなるリファクタリングセル位置の即値を避ける)
 
 ***
 
@@ -165,7 +165,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 **典型例**: 部門別売上小計、キーブレイクによるグループ集計
 
-* [REFACTORING\_CLOSURE.md — 詳細と全コード例](REFACTORING_CLOSURE.md)
+* [REFACTORING\_CLOSURE.md — 詳細と全コード例](../refactoring/REFACTORING_CLOSURE.md)
 
 ***
 
@@ -185,9 +185,9 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 **自動検出**: `test-libs/table-driven-detector.ts` の `TableDrivenDetector` クラスで検出・スコアリング可能。
 
-* [TABLE\_DRIVEN\_GUIDE.md — 完全ガイド](TABLE_DRIVEN_GUIDE.md)
+* [TABLE\_DRIVEN\_GUIDE.md — 完全ガイド](../refactoring/TABLE_DRIVEN_GUIDE.md)
 
-* [REFACTORING\_GUIDE.md — パターン5](REFACTORING_GUIDE.md#パターン-5-テーブル駆動パターン)
+* [REFACTORING\_GUIDE.md — パターン5](../refactoring/REFACTORING_GUIDE.md#パターン-5-テーブル駆動パターン)
 
 ***
 
@@ -199,7 +199,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 副作用の結果が後続のロジックに影響する場合や、Core に `ByRef` を使った変形が必要になる場合は FC/IS を断念して [R-13](#r-13) を選ぶ。
 
-* [REFACTORING\_GUIDE.md — パターン 6a](REFACTORING_GUIDE.md#パターン-6a-fcis副作用を末尾にまとめられる場合)
+* [REFACTORING\_GUIDE.md — パターン 6a](../refactoring/REFACTORING_GUIDE.md#パターン-6a-fcis副作用を末尾にまとめられる場合)
 
 ***
 
@@ -218,7 +218,7 @@ Excel シートのデータをメモリ上の配列に一括読み込みし、�
 
 接合部を作る関数抽出（[R-01](#r-01)）自体はテストなしで行うため、抽出後は Excel 上で動作確認してからスナップショット（[T-13](#t-13)）を記録すること。
 
-* [REFACTORING\_GUIDE.md — パターン 6b](REFACTORING_GUIDE.md#パターン-6b-seam副作用の結果がロジックに影響する場合)
+* [REFACTORING\_GUIDE.md — パターン 6b](../refactoring/REFACTORING_GUIDE.md#パターン-6b-seam副作用の結果がロジックに影響する場合)
 * [T-08](#t-08): Spy（呼び出し記録）
 * [T-13](#t-13): スナップショットテスト（ベースライン記録）
 * [T-14](#t-14): 特性テスト（挙動の保存）
@@ -334,9 +334,9 @@ dst.NumberFormat = src.NumberFormat
 
 * [ ] `vba-analyzer` で `PasteSpecial` の使用箇所を検出し、オプション別に「直接代替可能」「要検討」を分類して警告
 
-* [ ] Code Action（[TODO.md](../TODO.md)）として `ActiveSheet` → 引数 `ws As Worksheet` への自動リファクタリングを追加（Introduce Parameter）
+* [ ] Code Action（[TODO.md](../todo/TODO.md)）として `ActiveSheet` → 引数 `ws As Worksheet` への自動リファクタリングを追加（Introduce Parameter）
 
-* [ ] Diagnostics 警告（[TODO.md](../TODO.md)）: `PasteSpecial` 使用時に「クリップボード依存あり、直接代入への書き換えを検討」を表示
+* [ ] Diagnostics 警告（[TODO.md](../todo/TODO.md)）: `PasteSpecial` 使用時に「クリップボード依存あり、直接代入への書き換えを検討」を表示
 
 ***
 
@@ -740,9 +740,9 @@ Wrap Method は既存の呼び出し元が多い場合に特に有効。前後�
 
 副作用なし・Excel 依存なしの `Function` を直接呼び出して入出力を検証するテストパターン。最もシンプルで安定しており、テスト設計の出発点となる。
 
-* [TESTING\_STRATEGY.md — パターン1](TESTING_STRATEGY.md#パターン1-純粋関数テスト最適)
+* [TESTING\_STRATEGY.md — パターン1](./TESTING_STRATEGY.md#パターン1-純粋関数テスト最適)
 
-* [TEST\_FRAMEWORK\_GUIDE.md — パターン1](TEST_FRAMEWORK_GUIDE.md#パターン1-基本的な単体テスト)
+* [TEST\_FRAMEWORK\_GUIDE.md — パターン1](./TEST_FRAMEWORK_GUIDE.md#パターン1-基本的な単体テスト)
 
 ***
 
@@ -762,9 +762,9 @@ cases.forEach(([params, expected, label]) => {
 });
 ```
 
-* [TESTING\_STRATEGY.md — パターン2](TESTING_STRATEGY.md#パターン2-パラメーター化テスト複数ケース)
+* [TESTING\_STRATEGY.md — パターン2](./TESTING_STRATEGY.md#パターン2-パラメーター化テスト複数ケース)
 
-* [TEST\_FRAMEWORK\_GUIDE.md — パターン2](TEST_FRAMEWORK_GUIDE.md#パターン2-パラメーター化テスト)
+* [TEST\_FRAMEWORK\_GUIDE.md — パターン2](./TEST_FRAMEWORK_GUIDE.md#パターン2-パラメーター化テスト)
 
 ***
 
@@ -782,7 +782,7 @@ const calcWith = (overrides: Partial<Params>) => calcFn({ ...base, ...overrides 
 assert.strictEqual(calcWith({ A: 100, B: 30 }), 120);
 ```
 
-* [TESTING\_STRATEGY.md — §3](TESTING_STRATEGY.md#3-関連パラメーターは-type-にまとめる)
+* [TESTING\_STRATEGY.md — §3](./TESTING_STRATEGY.md#3-関連パラメーターは-type-にまとめる)
 
 ***
 
@@ -792,9 +792,9 @@ assert.strictEqual(calcWith({ A: 100, B: 30 }), 120);
 
 モジュール変数やクラスの状態を初期化してから複数回呼び出し、状態遷移を順番に検証するパターン。`beforeEach` で状態をリセットし、テスト間の干渉を防ぐ。
 
-* [TESTING\_STRATEGY.md — パターン3](TESTING_STRATEGY.md#パターン3-状態変更を伴うロジックcontroller)
+* [TESTING\_STRATEGY.md — パターン3](./TESTING_STRATEGY.md#パターン3-状態変更を伴うロジックcontroller)
 
-* [TEST\_FRAMEWORK\_GUIDE.md — beforeEach/afterEach](TEST_FRAMEWORK_GUIDE.md#1-beforeeach--aftereach-でセットアップクリーンアップ)
+* [TEST\_FRAMEWORK\_GUIDE.md — beforeEach/afterEach](./TEST_FRAMEWORK_GUIDE.md#1-beforeeach--aftereach-でセットアップクリーンアップ)
 
 ***
 
@@ -804,9 +804,9 @@ assert.strictEqual(calcWith({ A: 100, B: 30 }), 120);
 
 意図的に異常系の入力を与え、期待通りのエラーが発生することを検証するパターン。正常系と同じ粒度でエラー系のケースを網羅する。
 
-* [TESTING\_STRATEGY.md — パターン4](TESTING_STRATEGY.md#パターン4-エラーハンドリング)
+* [TESTING\_STRATEGY.md — パターン4](./TESTING_STRATEGY.md#パターン4-エラーハンドリング)
 
-* [TEST\_FRAMEWORK\_GUIDE.md — パターン4](TEST_FRAMEWORK_GUIDE.md#パターン4-エラーハンドリングのテスト)
+* [TEST\_FRAMEWORK\_GUIDE.md — パターン4](./TEST_FRAMEWORK_GUIDE.md#パターン4-エラーハンドリングのテスト)
 
 ***
 
@@ -816,7 +816,7 @@ assert.strictEqual(calcWith({ A: 100, B: 30 }), 120);
 
 `MemoryFileSystem` を使い、実際のファイルを作成せずにファイル I/O を含む VBA コードをテストする手法。サンドボックスルートを設定してパステストも可能。
 
-* [TEST\_FRAMEWORK\_GUIDE.md — パターン6](TEST_FRAMEWORK_GUIDE.md#パターン6-ファイルシステム操作vfs-使用)
+* [TEST\_FRAMEWORK\_GUIDE.md — パターン6](./TEST_FRAMEWORK_GUIDE.md#パターン6-ファイルシステム操作vfs-使用)
 
 ***
 
@@ -832,7 +832,7 @@ vbaRunner.mockDate('2024-12-31T09:00:00');
 vbaRunner.mockDate(null); // 解除
 ```
 
-* [TEST\_FRAMEWORK\_GUIDE.md — パターン7](TEST_FRAMEWORK_GUIDE.md#パターン7-日時依存テストtime-mocking)
+* [TEST\_FRAMEWORK\_GUIDE.md — パターン7](./TEST_FRAMEWORK_GUIDE.md#パターン7-日時依存テストtime-mocking)
 
 ***
 
@@ -849,7 +849,7 @@ assert.strictEqual(spy.callCount, 1);
 assert.ok(spy.calledWith('確認しますか？'));
 ```
 
-* [TEST\_FRAMEWORK\_GUIDE.md — spy()](TEST_FRAMEWORK_GUIDE.md#spyname-returnfn--spyrecord)
+* [TEST\_FRAMEWORK\_GUIDE.md — spy()](./TEST_FRAMEWORK_GUIDE.md#spyname-returnfn--spyrecord)
 
 ***
 
@@ -859,9 +859,9 @@ assert.ok(spy.calledWith('確認しますか？'));
 
 `vbaRunner.registerComObject()` で `CreateObject(progId)` が返すオブジェクトをテスト用スタブに差し替える手法。`VBScript.RegExp` などのランタイム依存を排除できる。
 
-* [TEST\_FRAMEWORK\_GUIDE.md — registerComObject()](TEST_FRAMEWORK_GUIDE.md#registercomobjectfactory--void)
+* [TEST\_FRAMEWORK\_GUIDE.md — registerComObject()](./TEST_FRAMEWORK_GUIDE.md#registercomobjectfactory--void)
 
-* [MOCK\_GUIDE.md](MOCK_GUIDE.md)
+* [MOCK\_GUIDE.md](../guides/MOCK_GUIDE.md)
 
 ***
 
@@ -871,9 +871,9 @@ assert.ok(spy.calledWith('確認しますか？'));
 
 `MockApplication` / `MockWorksheet` を使い、Excel I/O を含む複数関数の相互作用を検証する統合テストパターン。単体テストでは確認できない関数間の連携を検証できる。
 
-* [MOCK\_GUIDE.md — Part 1](MOCK_GUIDE.md#1-クイックスタート)
+* [MOCK\_GUIDE.md — Part 1](../guides/MOCK_GUIDE.md#1-クイックスタート)
 
-* [INTEGRATION\_TEST\_EXAMPLE.md](INTEGRATION_TEST_EXAMPLE.md#なぜ統合テストが必要か)
+* [INTEGRATION\_TEST\_EXAMPLE.md](./INTEGRATION_TEST_EXAMPLE.md#なぜ統合テストが必要か)
 
 ***
 
@@ -883,7 +883,7 @@ assert.ok(spy.calledWith('確認しますか？'));
 
 既存の `MockWorksheet` を使わず、テスト対象に合わせた最小限のモックオブジェクトを自作する手法。軽量オブジェクト・クラス・ビルダー・JSON ベースの 4 パターンがある。
 
-* [MOCK\_GUIDE.md — §7](MOCK_GUIDE.md#7-自作モックのパターン4-つ)
+* [MOCK\_GUIDE.md — §7](../guides/MOCK_GUIDE.md#7-自作モックのパターン4-つ)
 
 ***
 
@@ -893,7 +893,7 @@ assert.ok(spy.calledWith('確認しますか？'));
 
 Excel I/O や UI 操作を伴う `Sub` は VBA IDE 内で実行し、シートの状態を目視確認する手法。自動テストの対象外となる処理の検証方法。
 
-* [TESTING\_STRATEGY.md — 原則3](TESTING_STRATEGY.md#原則3-excel-io-テストは-vba-ide-で行う)
+* [TESTING\_STRATEGY.md — 原則3](./TESTING_STRATEGY.md#原則3-excel-io-テストは-vba-ide-で行う)
 
 ***
 
@@ -924,7 +924,7 @@ ReadDeptStatus("Marketing")           → "inactive"
 
 **注意**: スナップショットを記録する前に、ベースラインとなる挙動が正しいことを実際に動かして確認しておく必要がある（[R-13](#r-13) 参照）。バグ込みの挙動を記録すると「バグの保存」になる。
 
-* [TEST\_FRAMEWORK\_GUIDE.md — スナップショットテスト](TEST_FRAMEWORK_GUIDE.md)
+* [TEST\_FRAMEWORK\_GUIDE.md — スナップショットテスト](./TEST_FRAMEWORK_GUIDE.md)
 
 ***
 
@@ -1007,9 +1007,9 @@ End Sub
 
 Unit Tests（70〜80%）→ Integration Tests（15〜25%）→ E2E / VBA IDE 手動テスト（5〜10%）の比率でテストを構成する戦略。下層ほど高速・安定で、上層ほど現実に近いが遅く壊れやすい。
 
-* [TESTING\_STRATEGY.md](TESTING_STRATEGY.md)
+* [TESTING\_STRATEGY.md](./TESTING_STRATEGY.md)
 
-* [MOCK\_GUIDE.md — §12](MOCK_GUIDE.md#12-テスト戦略段階的なテスト化)
+* [MOCK\_GUIDE.md — §12](../guides/MOCK_GUIDE.md#12-テスト戦略段階的なテスト化)
 
 ***
 
@@ -1027,7 +1027,7 @@ Unit Tests（70〜80%）→ Integration Tests（15〜25%）→ E2E / VBA IDE 手
 vba-runner analyze src/vba/
 ```
 
-clone している場合は [CONTRIBUTING.md](../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-runner -- analyze ...`）に置き換えてください。
+clone している場合は [CONTRIBUTING.md](../../CONTRIBUTING.md#cli-コマンド対応表) の右列（`npm run vba-runner -- analyze ...`）に置き換えてください。
 
 #### CLI オプション一覧
 

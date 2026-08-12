@@ -13,7 +13,7 @@ verified:
 stale_after: 2027-01-26
 sources:
   - id: runner-reference
-    resource: ../REFERENCE.md
+    resource: ../implementation/REFERENCE.md
     title: VBA Runner 詳細仕様
 ---
 
@@ -21,9 +21,9 @@ sources:
 
 > 対象: VBA をテスト可能にしたい利用者
 >
-> 前提: [vba-runner のインストール](../build/runner/README.ja.md)
+> 前提: [vba-runner のインストール](../../build/runner/README.ja.md)
 >
-> 次に読む: [TEST_FRAMEWORK_GUIDE.md](TEST_FRAMEWORK_GUIDE.md)、分離が難しい場合は [REFACTORING_GUIDE.md](REFACTORING_GUIDE.md)
+> 次に読む: [TEST_FRAMEWORK_GUIDE.md](./TEST_FRAMEWORK_GUIDE.md)、分離が難しい場合は [REFACTORING_GUIDE.md](../refactoring/REFACTORING_GUIDE.md)
 
 ## はじめに
 
@@ -39,7 +39,7 @@ sources:
 
 ---
 
-## 原則1: Domain Logic と Excel I/O の徹底的分離 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+## 原則1: Domain Logic と Excel I/O の徹底的分離 [[→ R-01](./REFACTORING_TESTING_CATALOG.md#r-01)]
 
 ### 問題のあるコード（テストしづらい）
 
@@ -173,7 +173,7 @@ describe('Sales Calculation', () => {
 
 ---
 
-## 原則3: Excel I/O テストは VBA IDE で行う [[→ T-12](REFACTORING_TESTING_CATALOG.md#t-12)]
+## 原則3: Excel I/O テストは VBA IDE で行う [[→ T-12](./REFACTORING_TESTING_CATALOG.md#t-12)]
 
 ### Excel I/O テストチェックリスト
 
@@ -211,7 +211,7 @@ Excel I/O を VBA Runnerでテストすると：
 
 ---
 
-## パターン1: 純粋関数（テスト最適） [[→ T-01](REFACTORING_TESTING_CATALOG.md#t-01)]
+## パターン1: 純粋関数（テスト最適） [[→ T-01](./REFACTORING_TESTING_CATALOG.md#t-01)]
 
 ### VBA コード
 
@@ -261,7 +261,7 @@ describe('Pure Functions', () => {
 
 ---
 
-## パターン2: パラメーター化テスト（複数ケース） [[→ T-02](REFACTORING_TESTING_CATALOG.md#t-02)]
+## パターン2: パラメーター化テスト（複数ケース） [[→ T-02](./REFACTORING_TESTING_CATALOG.md#t-02)]
 
 ### VBA コード
 
@@ -305,7 +305,7 @@ describe('Discount Calculation', () => {
 
 ---
 
-## パターン3: 状態変更を伴うロジック（Controller） [[→ T-04](REFACTORING_TESTING_CATALOG.md#t-04)]
+## パターン3: 状態変更を伴うロジック（Controller） [[→ T-04](./REFACTORING_TESTING_CATALOG.md#t-04)]
 
 ### VBA コード
 
@@ -355,7 +355,7 @@ describe('Stateful Processing', () => {
 
 ---
 
-## パターン4: エラーハンドリング [[→ T-05](REFACTORING_TESTING_CATALOG.md#t-05)]
+## パターン4: エラーハンドリング [[→ T-05](./REFACTORING_TESTING_CATALOG.md#t-05)]
 
 ### VBA コード
 
@@ -455,7 +455,7 @@ Function CalculateNewInventory(currentStock As Long, soldUnits As Long, _
 End Function
 ```
 
-### 3. 関連パラメーターは Type にまとめる [[→ R-03](REFACTORING_TESTING_CATALOG.md#r-03)]
+### 3. 関連パラメーターは Type にまとめる [[→ R-03](./REFACTORING_TESTING_CATALOG.md#r-03)]
 
 引数が増えてきた場合は、**ドメインとして意味のあるまとまり**を `Type` にまとめて渡すことを推奨します。
 個々の引数を並べるよりも呼び出し側・テスト側の可読性が上がり、将来的なパラメーター追加にも強くなります。
@@ -544,7 +544,7 @@ assert.strictEqual(calcInventoryWith({ SoldUnits: 30, RestockAmount: 50 }), 120)
 assert.strictEqual(calcInventoryWith({ CurrentStock: 10, SoldUnits: 20, RestockAmount: 5 }), 10); // MinStock に丸め
 ```
 
-### 4. 振る舞いを持たせたい場合はクラスを検討する [[→ R-04](REFACTORING_TESTING_CATALOG.md#r-04)]
+### 4. 振る舞いを持たせたい場合はクラスを検討する [[→ R-04](./REFACTORING_TESTING_CATALOG.md#r-04)]
 
 単純なデータの集約には `Type` が適切です。**バリデーションや複数の操作をデータと一緒に持たせたい**場合はクラスを検討します。
 
@@ -587,7 +587,7 @@ End Function
 ' End Function
 ```
 
-### 5. Excel オブジェクト依存は Sub に限定 [[→ R-01](REFACTORING_TESTING_CATALOG.md#r-01)]
+### 5. Excel オブジェクト依存は Sub に限定 [[→ R-01](./REFACTORING_TESTING_CATALOG.md#r-01)]
 
 ```vb
 ' ✅ 推奨パターン
