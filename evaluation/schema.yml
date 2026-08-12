@@ -6,6 +6,8 @@ record:
     - candidateId
     - legacyNumber
     - campaign
+    - reassessmentOf
+    - reassessedBy
     - status
     - priority
     - focus
@@ -43,6 +45,8 @@ record:
     - candidateId
     - legacyNumber
     - campaign
+    - reassessmentOf
+    - reassessedBy
     - status
     - focus
     - directCauseKey

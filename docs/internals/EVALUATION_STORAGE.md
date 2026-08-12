@@ -81,6 +81,10 @@ resultについても、次を `validate` / `audit` で検証する。
 `1`は[`ROOT_CAUSE_ANALYSIS.md`](ROOT_CAUSE_ANALYSIS.md) v1に従った記録である。
 番号がない記録は方式不明として確定根拠に使わない。
 
+既存評価を別のEVで再評価した場合は、相関を両方のYAML frontmatterに記録する。
+元の評価には`reassessedBy: EV-xxxxx`、再評価には`reassessmentOf: EV-xxxxx`を付ける。
+元の評価は履歴として保持し、再評価の結果で上書きしない。
+
 原因キーだけでは分析の中身が抜け落ちるため、旧形式またはv1の評価で真因分析を行う場合は
 `rootCauseAnalysis`を必須の構造化項目とする。v2のEVでは真因分析をBUG側へ分離するため、
 この項目を必須にしない。真因分析を行う記録では次の項目をすべて記録する。
