@@ -1351,7 +1351,20 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const eLetter = match[2][0];
         const expSign = exponent < 0 ? '-' : (match[2][1] === '+' ? '+' : '');
         const expDigits = String(Math.abs(exponent)).padStart(match[3].length, '0');
-        return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${match[4]}`;
+        // A comma immediately after the exponent is a scale marker, just as
+        // it is after an ordinary numeric section.  It is not a literal
+        // suffix.  Preserve quoted/escaped commas while removing only the
+        // unescaped trailing scale markers.
+        let suffix = match[4];
+        while (suffix.endsWith(',') && !suffix.endsWith('\\,')) {
+            let quoted = false;
+            for (let i = 0; i < suffix.length - 1; i++) {
+                if (suffix[i] === '"' && suffix[i - 1] !== '\\') quoted = !quoted;
+            }
+            if (quoted) break;
+            suffix = suffix.slice(0, -1);
+        }
+        return `${negative ? '-' : ''}${match[1].replace(/[0#.,]+/, mantissa)}${eLetter}${expSign}${expDigits}${suffix}`;
     };
 
     const normalizeFormatWeekArg = (value: any, max: number): number => {

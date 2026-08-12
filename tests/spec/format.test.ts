@@ -397,7 +397,16 @@ console.log('[PASS] Format() は通常の四捨五入（実 VBA 差分で裁定�
     assert.strictEqual(ev.evalExpression('Format(TimeSerial(0, 0, 0), "Long Time")'), '12:00:00 AM', 'Long Time 深夜0時');
     assert.strictEqual(ev.evalExpression('Format(DateSerial(2024, 1, 5), "Short Date")'), '1/5/2024', 'Short Date: M/D/YYYY');
     assert.strictEqual(ev.evalExpression('Format(DateSerial(2024, 12, 31), "Short Date")'), '12/31/2024', 'Short Date: 12桁月');
-    console.log('[PASS] Bug BQ: Long Time AM/PM と Short Date M/D/YYYY');
+console.log('[PASS] Bug BQ: Long Time AM/PM と Short Date M/D/YYYY');
+}
+
+// Currency/Decimal use the exact scientific formatter as LongLong.  A
+// trailing comma after the exponent is a scaling marker, not literal text.
+{
+    const ev = evalVBASingle('');
+    assert.strictEqual(ev.evalExpression('Format(CCur("1000000"), "0.00E+00,,")'), '1.00E+06');
+    assert.strictEqual(ev.evalExpression('Format(CDec("1000000"), "0.00E+00,,")'), '1.00E+06');
+    console.log('[PASS] Format exact scientific: trailing scaling commas');
 }
 
 console.log('\n✅ Format: 全テスト通過');
