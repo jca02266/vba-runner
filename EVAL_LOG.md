@@ -696,7 +696,7 @@
 | EV-00791 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の範囲外基数リテラルコンパイル診断 |
 | EV-00792 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 宣言・型・リテラル領域の基数リテラル最大幅・符号拡張境界 |
 | EV-00793 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCDec・CCur短い基数ビットパターン符号境界 |
-| EV-00794 | FZ-COVERAGE-20260810 | bug-found | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類 |
+| EV-00794 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のCInt・CLng・CLngLng・Val基数変換の残存幅・符号・エラー分類 |
 | EV-00795 | FZ-COVERAGE-20260810 | fixed | 1 | 宣言・型・リテラル領域のVal 64ビット基数期待値とVariant暗黙代入エラー分類 |
 | EV-00796 | FZ-COVERAGE-20260810 | blocked | 1 | エラー処理領域のResume遷移先・ハンドラ再入・クラス境界 |
 
@@ -705,13 +705,12 @@
 | 状態 | 件数 |
 |---|---:|
 | blocked | 6 |
-| bug-found | 1 |
-| fixed | 308 |
+| fixed | 309 |
 | known-limit | 4 |
 | retired | 1 |
 | verified-no-bug | 375 |
 
-横展開未解決経路: 573、実Excel待ち評価: 0
+横展開未解決経路: 571、実Excel待ち評価: 0
 
 ## 次の候補
 
