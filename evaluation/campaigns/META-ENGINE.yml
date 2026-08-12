@@ -113,6 +113,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-050
+    title: Property Let暗黙ByRef追加境界
+    status: verified-no-bug
+    priority: 1
+    focus: Property Letの暗黙ByRef・名前付き引数・型変換の追加経路
+    priorCauseKey: property-let-byref-binding-divergence
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
   - id: META-ENGINE-014
     title: FSO返却オブジェクトの共通引数境界
     status: queued
