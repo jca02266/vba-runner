@@ -27,6 +27,10 @@
 
 * [内部仕様・設計索引](./internals/index.md) - エンジン実装の仕様、設計メモ、計画
 
+## Bug records
+
+* [VBA組み込み関数監査ログ](./bug-records/audit-func-log.md) - MS-VBAL仕様と実装の照合履歴
+
 ## Navigation
 
 * [Documentation hub](./README.md) - 人間向けの目的別入口

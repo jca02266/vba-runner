@@ -84,4 +84,5 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 | API・制約・Sandbox などの詳細仕様 | [REFERENCE.md](./implementation/REFERENCE.md) |
 | LSP / VS Code 拡張の実装 | [LSP.md](./implementation/LSP.md) |
 | エンジン内部設計・仕様メモ | [internals/](./internals) |
+| 組み込み関数の仕様監査履歴 | [監査ログ](./bug-records/audit-func-log.md) |
 | このリポジトリを AI が開発するときの契約 | [CLAUDE.md](../CLAUDE.md) |

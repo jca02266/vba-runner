@@ -2,7 +2,7 @@
 
 `src/engine/builtins.ts` および `src/engine/evaluator.ts` に実装されている VBA 組み込み関数を
 **バッチで複数件（デフォルト 5 件）** 選び、MS-VBAL 仕様書と実装・テストを照合してバグを探す。
-試した関数は `.claude/audit-func-log.md` に記録し、同じ評価を繰り返さない。
+試した関数は `docs/bug-records/audit-func-log.md` に記録し、同じ評価を繰り返さない。
 
 引数に関数名が指定された場合（例: `audit-func Val StrComp`）はそれを優先して選ぶ。
 
@@ -10,7 +10,7 @@
 
 ## Step 1: 監査ログを読んで未監査の関数を選ぶ
 
-`.claude/audit-func-log.md` の「監査済み関数」テーブルを読む。
+`docs/bug-records/audit-func-log.md` の「監査済み関数」テーブルを読む。
 
 次に `builtins.ts` から全関数名を抽出し、まだログにない関数を洗い出す：
 
@@ -132,7 +132,7 @@ npx tsx sample/tests/ts/TaskScheduler_Core.test.ts
 
 ## Step 7: 監査ログを更新する
 
-`.claude/audit-func-log.md` を更新する（今回監査した全関数を一括追記）：
+`docs/bug-records/audit-func-log.md` を更新する（今回監査した全関数を一括追記）：
 
 **監査済みテーブルに行を追加**：
 

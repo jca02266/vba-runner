@@ -67,6 +67,7 @@
 | [docs/internals/DECIMAL_IMPLEMENTATION.md](./docs/internals/DECIMAL_IMPLEMENTATION.md) | 開発者 | Decimal 実装メモ |
 | [docs/internals/DATAFLOW_ANALYSIS_TODO.md](./docs/internals/DATAFLOW_ANALYSIS_TODO.md) | 開発者 | データフロー解析計画 |
 | [docs/internals/IDENTIFIER_CLASSIFICATION.md](./docs/internals/IDENTIFIER_CLASSIFICATION.md) | 開発者 | VBA識別子分類の実装説明 |
+| [docs/bug-records/audit-func-log.md](./docs/bug-records/audit-func-log.md) | 開発者 | 組み込み関数の仕様監査履歴 |
 
 ## sample/ / .claude/
 

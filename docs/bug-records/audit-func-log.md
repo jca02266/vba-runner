@@ -1,3 +1,11 @@
+---
+type: Record
+title: VBA組み込み関数監査ログ
+description: MS-VBAL仕様と組み込み関数実装の照合結果を記録する履歴。
+tags: [vba, debugging, audit, bug-records]
+status: active
+---
+
 # VBA 組み込み関数 監査ログ
 
 関数仕様（MS-VBAL）と実装（`builtins.ts` / `evaluator.ts`）の照合結果を記録する。
