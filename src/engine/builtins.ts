@@ -1438,6 +1438,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const dateNamedFormats = ['general date', 'long date', 'medium date', 'short date', 'long time', 'medium time', 'short time'];
         if (namedFormats.includes(fmtLower)) {
             if (fmtLower === 'yes/no' || fmtLower === 'on/off' || fmtLower === 'true/false') {
+                // Excel preserves a non-numeric String for named Boolean
+                // formats instead of coercing it to Null/False.
+                if (typeof val === 'string' && !/^\s*[+-]?(?:\d+(?:\.\d*)?|\.\d+)\s*$/.test(val)) {
+                    return val;
+                }
                 const isTrue = val instanceof VbaBoolean ? val.value !== 0 : (ctx.toVbaNumber(val) !== 0);
                 if (fmtLower === 'yes/no') return isTrue ? 'Yes' : 'No';
                 if (fmtLower === 'on/off') return isTrue ? 'On' : 'Off';

@@ -23,6 +23,17 @@ assert.strictEqual(ev.callProcedure('TestFormatNumber', []), '1234.57', 'Format(
 const currency = ev.callProcedure('TestFormatCurrency', []);
 assert.ok(currency.includes('1,234.57') || currency.includes('1234.57'), 'Format(Number, "#,##0.00")');
 
+const namedBooleanString = evalVBASingle(String.raw`
+    Function TestNamedBooleanString() As String
+        TestNamedBooleanString = Format("abc", "On/Off") & "|" & Format("abc", "Yes/No")
+    End Function
+`);
+assert.strictEqual(
+    namedBooleanString.callProcedure('TestNamedBooleanString', []),
+    'abc|abc',
+    'Named Boolean formats preserve non-numeric String values',
+);
+
 // 非ローカライズ数値文字列にもユーザー定義数値書式を適用する。
 const numericStringFormatCode = String.raw`
     Function TestNumericStringFormats() As String
