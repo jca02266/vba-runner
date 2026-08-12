@@ -280,6 +280,19 @@ function validateExpectation(file, expectation, status) {
   }
 }
 
+function validateEvaluationRecordFormat(file, source, data) {
+  if (data.evaluationRecordVersion === undefined) return;
+  if (!Number.isInteger(data.evaluationRecordVersion) || data.evaluationRecordVersion !== 2) {
+    throw new Error(`${file}: evaluationRecordVersion must be 2 for new records`);
+  }
+  if (!finalEvaluationStatuses.has(data.status) && data.status !== 'bug-found') return;
+  const requiredSections = ['期待値', '実施方法', '結果', '判定'];
+  const missing = requiredSections.filter((section) => !new RegExp(`^##\\s+${section}\\s*$`, 'm').test(source));
+  if (missing.length > 0) {
+    throw new Error(`${file}: evaluationRecordVersion 2 requires Markdown sections: ${missing.join(', ')}`);
+  }
+}
+
 function normalizedExcelSourceHash(directory = excelQueueDir) {
   const manifest = fs.readdirSync(directory)
     .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
@@ -385,6 +398,7 @@ function validate(records = readRecords()) {
     if (!(Number.isFinite(data.priority) || ['critical', 'high', 'medium', 'low'].includes(data.priority))) {
       throw new Error(`${file}: priority must be numeric or a known level`);
     }
+    validateEvaluationRecordFormat(file, record.source, data);
     if (!schema.record.statuses.includes(data.status)) throw new Error(`${file}: invalid status ${data.status}`);
     validateExpectation(file, data.expectation, data.status);
     for (const key of schema.record.stringFields ?? []) {

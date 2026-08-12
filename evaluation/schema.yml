@@ -1,6 +1,7 @@
 version: 1
 record:
   allowed:
+    - evaluationRecordVersion
     - id
     - candidateId
     - legacyNumber
@@ -54,6 +55,8 @@ record:
     - rootCauseId
     - coverageSnapshot
     - commit
+  numericFields:
+    - evaluationRecordVersion
   statuses:
     - queued
     - claimed

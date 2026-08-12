@@ -154,6 +154,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
+  - id: META-ENGINE-056
+    title: Property Let配列要素ByRefの最小再現
+    status: queued
+    priority: 1
+    focus: Property Letへ配列要素をByRefで渡したときの書戻し
+    priorCauseKey: property-let-byref-binding-divergence
+    coverageTargets:
+      - src/engine/evaluator.ts
   - id: META-ENGINE-014
     title: FSO返却オブジェクトの共通引数境界
     status: queued
