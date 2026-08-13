@@ -571,3 +571,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: FZ-GRAMMAR-062
+    title: Function余分引数の実行時型不一致境界
+    status: verified-no-bug
+    priority: 1
+    focus: 必須引数なしFunctionへ余分な引数を渡した場合の実行時エラー
+    priorCauseKey: function-excess-argument-runtime-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
+      - tests/vba/CompileError.bas

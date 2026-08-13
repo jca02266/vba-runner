@@ -44,6 +44,12 @@ End Sub
 Private Function MyFuncHasArg(x)
 End Function
 
+Private Function MyFuncNoArg()
+End Function
+
+Private Sub MySubHasArg(x)
+End Sub
+
 ' ================================================================
 ' [parse] 構文エラー
 ' VBE に貼り付けると該当行が赤くなることで確認できる。
@@ -292,6 +298,40 @@ End Sub
 Sub Case_function_call_without_required_argument()
     MyFuncHasArg  ' @error
 End Sub
+
+' 実行時確認: function_call_with_excess_argument_runtime
+' VBAではコンパイルエラーにならず、実行時エラー13（型が一致しません）になる。
+' @errorは付けないため、vba_compile_error.test.tsには生成されない。
+Sub Case_function_call_with_excess_argument_runtime()
+    Dim value As Variant
+    On Error Resume Next
+    Err.Clear
+    value = MyFuncNoArg(1)
+    Debug.Print "CASE=function_call_with_excess_argument_runtime ERR=" & CStr(Err.Number)
+    On Error GoTo 0
+End Sub
+
+' CASE: sub_call_without_required_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 引数は省略できません。
+' RUNNER: /argument not optional/i
+' NOTE: 必須引数付きSubを引数なしで呼び出す境界。
+'@case-begin
+Sub Case_sub_call_without_required_argument()
+    Call MySubHasArg()  ' @error
+End Sub
+'@case-end
+
+' CASE: sub_call_with_excess_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 引数の数が一致していません。または不正なプロパティを指定しています。
+' RUNNER: /wrong number of arguments/i
+' NOTE: 引数なしSubへ引数を渡す逆方向のアリティ境界。
+'@case-begin
+Sub Case_sub_call_with_excess_argument()
+    Call MySub(1)  ' @error
+End Sub
+'@case-end
 '@case-end
 
 ' CASE: collection_item_without_required_argument

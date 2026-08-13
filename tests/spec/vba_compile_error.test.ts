@@ -136,15 +136,21 @@ value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'rad
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         Dim value As Byte
         value = &H100
       End Sub
-    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_byte_literal_out_of_range');
+    `, '__test__', 16, /numeric literal out of range|overflow/i, 'radix_byte_literal_out_of_range');
         console.log('[PASS] radix_byte_literal_out_of_range');
         __pass__++;
     } catch (e: any) {
@@ -161,15 +167,21 @@ value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'rad
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         Dim value As Integer
         value = &H10000
       End Sub
-    `, '__test__', 10, /numeric literal out of range|overflow/i, 'radix_integer_literal_out_of_range');
+    `, '__test__', 16, /numeric literal out of range|overflow/i, 'radix_integer_literal_out_of_range');
         console.log('[PASS] radix_integer_literal_out_of_range');
         __pass__++;
     } catch (e: any) {
@@ -261,15 +273,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         Dim v
         v = MySub
       End Sub
-    `, '__test__', 10, /function or variable/i, 'assign_from_sub');
+    `, '__test__', 16, /function or variable/i, 'assign_from_sub');
         console.log('[PASS] assign_from_sub');
         __pass__++;
     } catch (e: any) {
@@ -286,15 +304,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         Dim v
         v = MySub()
       End Sub
-    `, '__test__', 10, /function or variable/i, 'assign_from_sub_with_parens');
+    `, '__test__', 16, /function or variable/i, 'assign_from_sub_with_parens');
         console.log('[PASS] assign_from_sub_with_parens');
         __pass__++;
     } catch (e: any) {
@@ -311,15 +335,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         Dim v
         Dim v
       End Sub
-    `, '__test__', 10, /duplicate/i, 'duplicate_dim');
+    `, '__test__', 16, /duplicate/i, 'duplicate_dim');
         console.log('[PASS] duplicate_dim');
         __pass__++;
     } catch (e: any) {
@@ -336,14 +366,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         GoTo NoSuchLabel
       End Sub
-    `, '__test__', 9, /not defined.*label|label.*not defined/i, 'goto_undefined_label');
+    `, '__test__', 15, /not defined.*label|label.*not defined/i, 'goto_undefined_label');
         console.log('[PASS] goto_undefined_label');
         __pass__++;
     } catch (e: any) {
@@ -360,14 +396,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         UnknownProc
       End Sub
-    `, '__test__', 9, /sub or function not defined/i, 'undefined_sub_call');
+    `, '__test__', 15, /sub or function not defined/i, 'undefined_sub_call');
         console.log('[PASS] undefined_sub_call');
         __pass__++;
     } catch (e: any) {
@@ -384,15 +426,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Option Explicit
       Sub Case_qualified_undeclared_obj()
           UnknownModule.UnknownProc
       End Sub
-    `, 'Case_qualified_undeclared_obj', 10, /variable not declared|not declared/i, 'qualified_undeclared_obj');
+    `, 'Case_qualified_undeclared_obj', 16, /variable not declared|not declared/i, 'qualified_undeclared_obj');
         console.log('[PASS] qualified_undeclared_obj');
         __pass__++;
     } catch (e: any) {
@@ -409,14 +457,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub Case_undefined_sub_call_no_oe()
           UnknownProc
       End Sub
-    `, 'Case_undefined_sub_call_no_oe', 9, /sub or function not defined/i, 'undefined_sub_call_no_oe');
+    `, 'Case_undefined_sub_call_no_oe', 15, /sub or function not defined/i, 'undefined_sub_call_no_oe');
         console.log('[PASS] undefined_sub_call_no_oe');
         __pass__++;
     } catch (e: any) {
@@ -433,15 +487,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Option Explicit
       Sub Case_undefined_sub_call_with_oe()
           UnknownProc
       End Sub
-    `, 'Case_undefined_sub_call_with_oe', 10, /sub or function not defined/i, 'undefined_sub_call_with_oe');
+    `, 'Case_undefined_sub_call_with_oe', 16, /sub or function not defined/i, 'undefined_sub_call_with_oe');
         console.log('[PASS] undefined_sub_call_with_oe');
         __pass__++;
     } catch (e: any) {
@@ -458,14 +518,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub __test__()
         MySub (42)
       End Sub
-    `, '__test__', 9, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
+    `, '__test__', 15, /wrong number of arguments/i, 'sub_call_arg_count_mismatch');
         console.log('[PASS] sub_call_arg_count_mismatch');
         __pass__++;
     } catch (e: any) {
@@ -474,7 +540,7 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
-// [preproc] function_call_without_required_argument
+// [preproc] sub_call_without_required_argument
 // VBA: コンパイル エラー: 引数は省略できません。
 // VBA error line (within Sub body): 2
 {
@@ -482,18 +548,54 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
-      Sub Case_function_call_without_required_argument()
-          MyFuncHasArg
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
       End Sub
-    `, 'Case_function_call_without_required_argument', 9, /argument not optional/i, 'function_call_without_required_argument');
-        console.log('[PASS] function_call_without_required_argument');
+
+      Sub Case_sub_call_without_required_argument()
+          Call MySubHasArg()
+      End Sub
+    `, 'Case_sub_call_without_required_argument', 15, /argument not optional/i, 'sub_call_without_required_argument');
+        console.log('[PASS] sub_call_without_required_argument');
         __pass__++;
     } catch (e: any) {
-        console.error('[FAIL] function_call_without_required_argument:', e.message);
+        console.error('[FAIL] sub_call_without_required_argument:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] sub_call_with_excess_argument
+// VBA: コンパイル エラー: 引数の数が一致していません。または不正なプロパティを指定しています。
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+
+      Private Function MyFuncHasArg(x)
+      End Function
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
+      Sub Case_sub_call_with_excess_argument()
+          Call MySub(1)
+      End Sub
+    `, 'Case_sub_call_with_excess_argument', 15, /wrong number of arguments/i, 'sub_call_with_excess_argument');
+        console.log('[PASS] sub_call_with_excess_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] sub_call_with_excess_argument:', e.message);
         __fail__++;
     }
 }
@@ -506,17 +608,23 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub Case_collection_item_without_required_argument()
           Dim items As Collection, value As Variant
           Set items = New Collection
           items.Add "entry"
           value = items.Item
       End Sub
-    `, 'Case_collection_item_without_required_argument', 12, /argument not optional/i, 'collection_item_without_required_argument');
+    `, 'Case_collection_item_without_required_argument', 18, /argument not optional/i, 'collection_item_without_required_argument');
         console.log('[PASS] collection_item_without_required_argument');
         __pass__++;
     } catch (e: any) {
@@ -533,17 +641,23 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub Case_collection_item_without_required_argument_parens()
           Dim items As Collection, value As Variant
           Set items = New Collection
           items.Add "entry"
           value = items.Item()
       End Sub
-    `, 'Case_collection_item_without_required_argument_parens', 12, /argument not optional/i, 'collection_item_without_required_argument_parens');
+    `, 'Case_collection_item_without_required_argument_parens', 18, /argument not optional/i, 'collection_item_without_required_argument_parens');
         console.log('[PASS] collection_item_without_required_argument_parens');
         __pass__++;
     } catch (e: any) {
@@ -560,17 +674,23 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub duplicate_sub_name()
-      
+
       End Sub
       Sub duplicate_sub_name()
-      
+
       End Sub
-    `, 11, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name');
+    `, 17, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name');
         console.log('[PASS] duplicate_sub_name');
         __pass__++;
     } catch (e: any) {
@@ -587,14 +707,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelDimAfterProcedure()
       End Sub
       Dim moduleLevelVar As Integer
-    `, 10, /only comments may appear after end sub/i, 'module_level_dim_after_procedure', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_dim_after_procedure', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_dim_after_procedure');
         __pass__++;
     } catch (e: any) {
@@ -611,14 +737,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelConstAfterProcedure()
       End Sub
       Const ModuleLevelConst As Integer = 1
-    `, 10, /only comments may appear after end sub/i, 'module_level_const_after_procedure', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_const_after_procedure', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_const_after_procedure');
         __pass__++;
     } catch (e: any) {
@@ -635,14 +767,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelPublicAfterProcedure()
       End Sub
       Public ModuleLevelPublicVar As Integer
-    `, 10, /only comments may appear after end sub/i, 'module_level_public_after_procedure', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_public_after_procedure', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_public_after_procedure');
         __pass__++;
     } catch (e: any) {
@@ -659,16 +797,22 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelTypeAfterProcedure()
       End Sub
       Type ModuleLevelType
           Field As Integer
       End Type
-    `, 10, /only comments may appear after end sub/i, 'module_level_type_after_procedure', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_type_after_procedure', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_type_after_procedure');
         __pass__++;
     } catch (e: any) {
@@ -685,16 +829,22 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelEnumAfterProcedure()
       End Sub
       Enum ModuleLevelEnum
           ModuleLevelEnumValue
       End Enum
-    `, 10, /only comments may appear after end sub/i, 'module_level_enum_after_procedure', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_enum_after_procedure', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_enum_after_procedure');
         __pass__++;
     } catch (e: any) {
@@ -711,15 +861,21 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
       Sub ModuleLevelToplevelStmtAfterProcedureStrict()
       End Sub
       For moduleLevelIdx = 0 To 10
       Next moduleLevelIdx
-    `, 10, /only comments may appear after end sub/i, 'module_level_toplevel_stmt_after_procedure_strict', { allowTopLevelStatements: false });
+    `, 16, /only comments may appear after end sub/i, 'module_level_toplevel_stmt_after_procedure_strict', { allowTopLevelStatements: false });
         console.log('[PASS] module_level_toplevel_stmt_after_procedure_strict');
         __pass__++;
     } catch (e: any) {

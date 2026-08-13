@@ -2013,6 +2013,28 @@ export class Evaluator {
             });
         }
 
+        const checkArity = (parameters: Parameter[], provided: number, line?: number): void => {
+            const min = parameters.filter(p => !p.isOptional && p.defaultValue == null && !p.isParamArray).length;
+            if (parameters.some(p => p.isParamArray)) return;
+            if (provided > parameters.length) {
+                findings.argumentError ??= {
+                    code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    message: 'Wrong number of arguments or invalid property assignment', line,
+                };
+            } else if (provided < min) {
+                findings.argumentError ??= {
+                    code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                    message: 'Argument not optional', line,
+                };
+            }
+        };
+
+        const classProcedure = (typeName: string | undefined, memberName: string): ProcedureDeclaration | undefined => {
+            const classDef = typeName ? this.classDefinitions.get(typeName.toLowerCase()) : undefined;
+            if (!classDef) return undefined;
+            return classDef.procedures.find(p => p.name.name.toLowerCase() === memberName.toLowerCase());
+        };
+
         const visitExpression = (expr: Expression, assignmentTarget = false): void => {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
@@ -2028,7 +2050,7 @@ export class Evaluator {
                         const target = this.env.getProcedure((call.callee as Identifier).name);
                         if (target && !target.parameters.some(p => p.isParamArray)) {
                             const min = target.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
-                            if (call.args.length > target.parameters.length) {
+                            if (call.args.length > target.parameters.length && !target.isFunction) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                                     message: 'Wrong number of arguments or invalid property assignment',
@@ -2041,6 +2063,24 @@ export class Evaluator {
                                     line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
                             }
+                        }
+                    }
+                    if (!findings.argumentError && call.callee.type === 'MemberExpression') {
+                        const member = call.callee as MemberExpression;
+                        const objectType = member.object.type === 'Identifier'
+                            ? variableTypes.get((member.object as Identifier).name.toLowerCase()) : undefined;
+                        const target = classProcedure(objectType, member.property.name);
+                        if (target) {
+                            checkArity(target.parameters, call.args.length,
+                                call.loc?.start.line ?? member.property.loc?.start.line);
+                        } else if (member.object.type === 'Identifier') {
+                            const qualified = this.env.getProcedureFromModule(
+                                member.property.name, (member.object as Identifier).name,
+                            ) ?? this.env.getProcedureFromModule(
+                                member.property.name, (member.object as Identifier).name, 'get',
+                            );
+                            if (qualified) checkArity(qualified.parameters, call.args.length,
+                                call.loc?.start.line ?? member.property.loc?.start.line);
                         }
                     }
                     if (!findings.argumentError && call.callee.type === 'MemberExpression' &&
@@ -5004,12 +5044,11 @@ export class Evaluator {
      */
     private checkArgCountGeneric(params: ArgBinderParam[], providedCount: number): void {
         const hasParamArray = params.some(p => p.isParamArray);
-        if (hasParamArray) return;
 
         const maxParams = params.length;
         const minParams = params.filter(p => !p.isOptional).length;
 
-        if (providedCount > maxParams) {
+        if (!hasParamArray && providedCount > maxParams) {
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
         }
         if (providedCount < minParams) {
@@ -5024,6 +5063,9 @@ export class Evaluator {
             isOptional: !!p.isOptional || p.defaultValue != null,
             isParamArray: !!p.isParamArray,
         }));
+        if (proc.isFunction && !params.some(p => p.isParamArray) && args.length > params.length) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
         this.checkArgCountGeneric(params, args.length);
     }
 
@@ -9596,6 +9638,10 @@ export class Evaluator {
                         isOptional: !!p.isOptional || p.defaultValue != null,
                         isParamArray: !!p.isParamArray,
                     }));
+                    if (proc.isFunction && !argBinderParams.some(p => p.isParamArray) &&
+                        positionalArgs.length + namedArgs.size > proc.parameters.length) {
+                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                    }
                     this.checkArgCountGeneric(argBinderParams, positionalArgs.length + namedArgs.size);
                 }
                 this.checkNoGapOnRequiredParam(proc.parameters, positionalArgExpressions);
