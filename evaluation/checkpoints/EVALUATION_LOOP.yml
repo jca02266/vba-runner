@@ -2081,3 +2081,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-315
     rootCauseId: RC-00069
+  - afterEvaluation: EV-00816
+    audit: "714 evaluations, 0 active claims; Format Decimalのエスケープprefixと引用suffix境界は仕様・Runnerとも一致し、通常のqueued候補は残っていない"
+    decision: "FZ-315は新規バグなし。独立RCAレビューでRC-00054の初期誤ディスパッチが既修正と確認された一方、空文字列の3/4セクションと第1セクション日付書式が未評価として残ったため、新規候補FZ-COVERAGE-20260810-316を登録する"
+    action: create-candidate
+    nextArea: Format
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-316
+    rootCauseId: RC-00054

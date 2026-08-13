@@ -2988,3 +2988,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-316
+    title: Format String empty multi-section domain boundary
+    status: queued
+    priority: 1
+    focus: Format空文字列と数値・日付の複数セクション書式境界
+    priorCauseKey: format-domain-dispatch-not-centralized
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/format.test.ts
