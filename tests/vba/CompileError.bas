@@ -309,6 +309,20 @@ Sub Case_collection_item_without_required_argument()
 End Sub
 '@case-end
 
+' CASE: collection_item_without_required_argument_parens
+' TYPE: preproc
+' VBA: コンパイル エラー: 引数は省略できません。
+' RUNNER: /argument not optional/i
+' NOTE: Collection.Item()も必須indexの省略として実行前に拒否される。
+'@case-begin
+Sub Case_collection_item_without_required_argument_parens()
+    Dim items As Collection, value As Variant
+    Set items = New Collection
+    items.Add "entry"
+    value = items.Item()  ' @error
+End Sub
+'@case-end
+
 ' CASE: duplicate_sub_name
 ' TYPE: resolve
 ' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
