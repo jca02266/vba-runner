@@ -75,6 +75,7 @@ Public Sub RunExcelQueueVerification()
     VerifyCollectionEnumerationMutation
     VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
+    VerifyTextStreamRequiredRead root & Application.PathSeparator & "XL-200-read.txt"
     VerifyPendingExcelBoundaries
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -106,6 +107,29 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyTextStreamRequiredRead(ByVal path As String)
+    Dim fso As Object, stream As Object, value As Variant, errNo As Long
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile(path, True, False)
+    stream.Write "abc"
+    stream.Close
+    Set stream = fso.OpenTextFile(path, 1, False, 0)
+
+    On Error Resume Next
+    Err.Clear
+    value = stream.Read
+    errNo = Err.Number
+    EmitResult "XL-200 OMITTED ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(value) & " LEN=" & CStr(Len(CStr(value)))
+    Err.Clear
+    value = stream.Read()
+    errNo = Err.Number
+    EmitResult "XL-200 PARENS ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(value) & " LEN=" & CStr(Len(CStr(value)))
+    stream.Close
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFormatUnresolvedMatrix()

@@ -2997,3 +2997,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/format.test.ts
+  - id: FZ-COVERAGE-20260810-317
+    title: TextStream Read required-argument boundary
+    status: queued
+    priority: 1
+    focus: FSO TextStream Readの必須引数省略と関数メンバー評価
+    priorCauseKey: fso-textstream-required-argument-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+      - tests/spec/createobject.test.ts

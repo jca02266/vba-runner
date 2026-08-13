@@ -2089,3 +2089,10 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-316
     rootCauseId: RC-00054
+  - afterEvaluation: EV-00817
+    audit: "715 evaluations, 0 active claims; needs-excel 0件、通常のqueued候補なし"
+    decision: "Formatの空文字列境界を実機照合で完了したため、別領域へ切り替える。FSO TextStream.Readの必須引数省略時に関数オブジェクトが返る未評価境界を、実機結果で仕様確定する"
+    action: create-candidate
+    nextArea: FSO・TextStream
+    nextEvaluation: EV-00818
+    nextCandidate: FZ-COVERAGE-20260810-317
