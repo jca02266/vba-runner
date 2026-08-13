@@ -2043,6 +2043,19 @@ export class Evaluator {
                             }
                         }
                     }
+                    if (!findings.argumentError && call.callee.type === 'MemberExpression' &&
+                        call.args.length === 0) {
+                        const member = call.callee as MemberExpression;
+                        if (member.object.type === 'Identifier' &&
+                            variableTypes.get((member.object as Identifier).name.toLowerCase())?.toLowerCase() === 'collection' &&
+                            member.property.name.toLowerCase() === 'item') {
+                            findings.argumentError = {
+                                code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                                message: 'Argument not optional',
+                                line: call.loc?.start.line ?? member.property.loc?.start.line,
+                            };
+                        }
+                    }
                 }
             }
 
@@ -2059,6 +2072,16 @@ export class Evaluator {
                     case 'ByValArgument':
                         visitExpression((expr as ByValArgument).value); break;
                     case 'MemberExpression':
+                        if (!findings.argumentError && expr.type === 'MemberExpression' &&
+                            expr.object.type === 'Identifier' &&
+                            variableTypes.get((expr.object as Identifier).name.toLowerCase())?.toLowerCase() === 'collection' &&
+                            expr.property.name.toLowerCase() === 'item') {
+                            findings.argumentError = {
+                                code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                                message: 'Argument not optional',
+                                line: expr.loc?.start.line ?? expr.property.loc?.start.line,
+                            };
+                        }
                     case 'DictionaryAccessExpression':
                         visitExpression((expr as MemberExpression).object, assignmentTarget); break;
                     case 'TypeOfIsExpression':

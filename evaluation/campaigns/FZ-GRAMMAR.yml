@@ -561,3 +561,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/missing-arg.test.ts
+  - id: FZ-GRAMMAR-061
+    title: Collection.Item必須引数の静的コンパイル検査
+    status: queued
+    priority: 1
+    focus: early-bound Collection.Itemの必須index省略とprecheckProc
+    priorCauseKey: required-argument-static-runtime-parity
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/vba_compile_error.test.ts

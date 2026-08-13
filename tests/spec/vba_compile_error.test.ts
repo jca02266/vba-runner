@@ -498,6 +498,33 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] collection_item_without_required_argument
+// VBA: コンパイル エラー: 引数は省略できません。
+// VBA error line (within Sub body): 5
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Sub Case_collection_item_without_required_argument()
+          Dim items As Collection, value As Variant
+          Set items = New Collection
+          items.Add "entry"
+          value = items.Item
+      End Sub
+    `, 'Case_collection_item_without_required_argument', 12, /argument not optional/i, 'collection_item_without_required_argument');
+        console.log('[PASS] collection_item_without_required_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] collection_item_without_required_argument:', e.message);
+        __fail__++;
+    }
+}
+
 // [resolve] duplicate_sub_name
 // VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name
 // VBA error line (within Sub body): 4
