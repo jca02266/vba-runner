@@ -21,9 +21,20 @@ Public Sub RunFormatMatrixVerification()
     EmitRoundingBoundaryMatrix
     EmitNamedBooleanBoundaryMatrix
     EmitScientificLiteralBoundaryMatrix
+    EmitEmptyStringSectionBoundaryMatrix
     Print #resultFile, "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     Print #resultFile, "FORMAT_MATRIX_COMPLETE=True"
     Close #resultFile
+End Sub
+
+Private Sub EmitEmptyStringSectionBoundaryMatrix()
+    Print #resultFile, "XL-199"
+    Debug.Print "XL-199"
+    EmitCase "XL-199-AT-EMPTY", "@;EMPTY", ""
+    EmitCase "XL-199-NUM-EMPTY", "0.00;NEG;ZERO;NULL", ""
+    EmitCase "XL-199-DATE-EMPTY", "yyyy-mm-dd;EMPTY", ""
+    EmitCase "XL-199-NUM-DATE-EMPTY", "0.00;yyyy-mm-dd;EMPTY", ""
+    EmitCase "XL-199-NUM-NEG-ZERO-EMPTY", "0.00;NEG;ZERO;EMPTY", ""
 End Sub
 
 Private Sub EmitScientificLiteralBoundaryMatrix()
