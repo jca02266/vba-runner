@@ -2180,6 +2180,28 @@ export class Evaluator {
                             findings.subAsValue = { name, line: a.right.loc?.start.line };
                         }
                     }
+                    // A Function/Property Get used as a bare value is an
+                    // implicit call in VBA.  Apply the same required-arity
+                    // contract as an explicit CallExpression; otherwise a
+                    // required parameter is silently replaced by a function
+                    // value and the error is discovered too late (or not at
+                    // all).
+                    if (!findings.argumentError && a.right.type === 'Identifier') {
+                        const implicitName = (a.right as Identifier).name;
+                        const implicitProc = this.env.getProcedure(implicitName);
+                        if (implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
+                            const min = implicitProc.parameters.filter(
+                                p => !p.isOptional && p.defaultValue == null,
+                            ).length;
+                            if (min > 0) {
+                                findings.argumentError = {
+                                    code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                                    message: 'Argument not optional',
+                                    line: a.right.loc?.start.line ?? a.left.loc?.start.line,
+                                };
+                            }
+                        }
+                    }
                     visitExpression(a.left, true); visitExpression(a.right); break;
                 }
                 case 'SetStatement': {
