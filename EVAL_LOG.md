@@ -720,6 +720,7 @@
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
 | EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
+| EV-00819 | FZ-COVERAGE-20260810 | in-progress |  | 動的COMメンバーの必須引数とMemberExpression/With境界 |
 
 ## 状態集計
 
@@ -727,6 +728,7 @@
 |---|---:|
 | bug-found | 1 |
 | fixed | 312 |
+| in-progress | 1 |
 | known-limit | 5 |
 | retired | 1 |
 | verified-no-bug | 397 |
@@ -737,4 +739,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-318 | 1 | queued | 動的COMメンバーの必須・Optional引数とMemberExpression/With境界 | yes |
+| (none) | | | | |

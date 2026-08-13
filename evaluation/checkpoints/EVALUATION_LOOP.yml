@@ -2104,3 +2104,11 @@ checkpoints:
     nextEvaluation: EV-00818
     nextCandidate: FZ-COVERAGE-20260810-317
     finding: BUG-00512
+  - afterEvaluation: EV-00819
+    audit: "717 evaluations, 0 active claims; BUG-00512の横展開候補でFSO・Dictionary・Collectionの同種Runner差異を再現"
+    decision: "動的COMメンバーの必須引数契約を別経路でも確認した。Optional、With、CallByName、別COMの残境界を追加レビューし、RC-00070を確定できるか判断する"
+    action: continue-root-cause-review
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00819
+    nextCandidate: FZ-COVERAGE-20260810-318
+    finding: BUG-00512
