@@ -563,7 +563,7 @@ items:
       - tests/spec/missing-arg.test.ts
   - id: FZ-GRAMMAR-061
     title: Collection.Item必須引数の静的コンパイル検査
-    status: queued
+    status: fixed
     priority: 1
     focus: early-bound Collection.Itemの必須index省略とprecheckProc
     priorCauseKey: required-argument-static-runtime-parity
