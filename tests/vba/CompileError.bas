@@ -283,6 +283,17 @@ Sub Case_sub_call_arg_count_mismatch()
     MySub (42)  ' @error
 End Sub
 
+' CASE: function_call_without_required_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 引数は省略できません。
+' RUNNER: /argument not optional/i
+' NOTE: 引数必須のFunctionを括弧なしで呼び出すと、VBEは実行前にコンパイルエラーを表示する。
+'@case-begin
+Sub Case_function_call_without_required_argument()
+    MyFuncHasArg  ' @error
+End Sub
+'@case-end
+
 ' CASE: duplicate_sub_name
 ' TYPE: resolve
 ' VBA: コンパイルエラー: 名前が適切ではありません duplicate_sub_name

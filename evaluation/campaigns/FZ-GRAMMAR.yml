@@ -534,3 +534,30 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/gosub-error-resumption-matrix.test.ts
+  - id: FZ-GRAMMAR-058
+    title: 必須引数省略の静的コンパイル検査横展開
+    status: queued
+    priority: 1
+    focus: Function・Sub・Property呼出しの必須引数省略とprecheckProc
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/vba_compile_error.test.ts
+  - id: FZ-GRAMMAR-059
+    title: Property・修飾メンバーの必須引数境界
+    status: queued
+    priority: 1
+    focus: Property Get/Let/SetとModule・Class修飾呼出しの引数不足検査
+    priorCauseKey: required-argument-static-runtime-parity
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-resolution-order.test.ts
+  - id: FZ-GRAMMAR-060
+    title: 動的メンバーの必須引数エラー境界
+    status: queued
+    priority: 2
+    focus: COM・CallByName・Collection・Dictionaryの省略引数エラー
+    priorCauseKey: dynamic-member-required-argument-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/missing-arg.test.ts
