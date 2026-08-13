@@ -3007,3 +3007,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
       - tests/spec/createobject.test.ts
+  - id: FZ-COVERAGE-20260810-318
+    title: Dynamic COM member arity expansion
+    status: queued
+    priority: 1
+    focus: 動的COMメンバーの必須・Optional引数とMemberExpression/With境界
+    priorCauseKey: dynamic-member-arity-contract-not-shared
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+      - tests/spec/createobject.test.ts

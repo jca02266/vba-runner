@@ -737,4 +737,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-318 | 1 | queued | 動的COMメンバーの必須・Optional引数とMemberExpression/With境界 | yes |
