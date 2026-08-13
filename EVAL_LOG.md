@@ -718,6 +718,7 @@
 | EV-00814 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープsuffix境界 |
 | EV-00815 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式の引用prefix・suffix境界 |
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
+| EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
 
 ## 状態集計
 
@@ -726,7 +727,7 @@
 | fixed | 312 |
 | known-limit | 5 |
 | retired | 1 |
-| verified-no-bug | 396 |
+| verified-no-bug | 397 |
 
 横展開未解決経路: 563、実Excel待ち評価: 0
 
