@@ -188,6 +188,13 @@ Private Sub VerifyTextStreamRequiredRead(ByVal path As String)
     errNo = Err.Number
     EmitResult "XL-200 PARENS ERR=" & CStr(errNo) & _
         " TYPE=" & TypeName(value) & " LEN=" & CStr(Len(CStr(value)))
+    Err.Clear
+    With stream
+        value = .Read
+    End With
+    errNo = Err.Number
+    EmitResult "XL-204 WITH-OMITTED ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(value)
     stream.Close
     On Error GoTo 0
 End Sub

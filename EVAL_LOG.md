@@ -720,7 +720,7 @@
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
 | EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
-| EV-00819 | FZ-COVERAGE-20260810 | in-progress |  | TextStream.ReadのWith式における必須引数境界 |
+| EV-00819 | FZ-COVERAGE-20260810 | needs-excel |  | TextStream.ReadのWith式における必須引数境界 |
 | EV-00820 | FZ-COVERAGE-20260810 | needs-excel | 1 | FSO.GetFileの必須引数省略 |
 | EV-00821 | FZ-COVERAGE-20260810 | needs-excel | 1 | Scripting.Dictionary.Existsの必須引数省略 |
 | EV-00822 | FZ-COVERAGE-20260810 | needs-excel | 1 | Collection.Itemの必須引数省略 |
@@ -731,13 +731,12 @@
 |---|---:|
 | bug-found | 1 |
 | fixed | 312 |
-| in-progress | 1 |
 | known-limit | 5 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | retired | 1 |
 | verified-no-bug | 397 |
 
-横展開未解決経路: 563、実Excel待ち評価: 3
+横展開未解決経路: 563、実Excel待ち評価: 4
 
 ## 次の候補
 

@@ -2130,8 +2130,8 @@ checkpoints:
     excelProbe: XL-201
     finding: null
   - afterEvaluation: EV-00822
-    audit: "720 evaluations, 0 active claims; XL-201〜XL-203を同一キューへ追加し、GetFile・Dictionary.Exists・Collection.Itemの実機待ちへ移行"
-    decision: "同じWindows handoffで3経路を比較できるよう、各EVをneeds-excelへ同期した。結果受領後はEVごとにExcelとの差異を判定し、未確認経路をバグ件数へ加えない"
+    audit: "720 evaluations, 0 active claims; XL-201〜XL-204を同一キューへ追加し、動的COMの4経路を実機待ちへ移行"
+    decision: "同じWindows handoffで4経路を比較できるよう、With Readも追加して各EVをneeds-excelへ同期した。結果受領後はEVごとにExcelとの差異を判定し、未確認経路をバグ件数へ加えない"
     action: reconcile-excel
     nextArea: ファイルI/O・FSO
     nextEvaluation: EV-00820
@@ -2140,4 +2140,5 @@ checkpoints:
       - XL-201
       - XL-202
       - XL-203
+      - XL-204
     finding: BUG-00512

@@ -2,3 +2,8 @@
   evaluationId: EV-00819
   status: in-progress
   occurredAt: '2026-08-13T15:14:13.402Z'
+- candidateId: FZ-COVERAGE-20260810-318
+  evaluationId: EV-00819
+  status: needs-excel
+  fromStatus: in-progress
+  occurredAt: '2026-08-13T15:34:33.430Z'
