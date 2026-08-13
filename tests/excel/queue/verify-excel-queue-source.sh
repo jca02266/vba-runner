@@ -17,10 +17,11 @@ const directory = process.argv[2];
 const names = fs.readdirSync(directory)
   .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
   .sort();
+const hashScheme = 'QUEUE_SOURCE_HASH_SCHEME=grouped-v1\n';
 const normalize = (text) => text.replace(/\r\n/g, '\n')
   .replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
     'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"');
-const manifest = names.map((name) => `${name}\n${normalize(
+const manifest = hashScheme + names.map((name) => `${name}\n${normalize(
   fs.readFileSync(path.join(directory, name), 'utf8'))}\n`).join('');
 process.stdout.write(crypto.createHash('sha256').update(manifest, 'utf8').digest('hex'));
 NODE

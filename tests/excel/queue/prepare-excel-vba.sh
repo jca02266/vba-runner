@@ -18,18 +18,40 @@ const names = fs.readdirSync(sourceDir)
   .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
   .sort();
 if (names.length === 0) throw new Error(`No VBA source files found: ${sourceDir}`);
+const sourcePrefix = (name) => {
+  for (const prefix of ['ExcelQueue', 'FormatMatrix', 'RadixMatrix']) {
+    if (name.toLowerCase().startsWith(prefix.toLowerCase())) return prefix;
+  }
+  return null;
+};
+const hashScheme = 'QUEUE_SOURCE_HASH_SCHEME=grouped-v1\n';
 const normalize = (text) => text.replace(/\r\n/g, '\n')
   .replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
     'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"');
-const manifest = names.map((name) => `${name}\n${normalize(
-  fs.readFileSync(path.join(sourceDir, name), 'utf8'))}\n`).join('');
-const hash = crypto.createHash('sha256').update(manifest, 'utf8').digest('hex');
+const hashFor = (groupNames, includeScheme = false) => {
+  const manifest = (includeScheme ? hashScheme : '') + groupNames.map((name) => `${name}\n${normalize(
+    fs.readFileSync(path.join(sourceDir, name), 'utf8'))}\n`).join('');
+  return crypto.createHash('sha256').update(manifest, 'utf8').digest('hex');
+};
+const groups = new Map();
+for (const name of names) {
+  const prefix = sourcePrefix(name);
+  if (prefix) groups.set(prefix, [...(groups.get(prefix) ?? []), name]);
+}
+const groupHashes = new Map([...groups].map(([prefix, groupNames]) => [prefix, hashFor(groupNames)]));
+const hash = hashFor(names, true);
 for (const name of names) {
   let text = fs.readFileSync(path.join(sourceDir, name), 'utf8');
   if (/\.bas$/i.test(name)) {
+    const prefix = sourcePrefix(name);
+    const groupHash = prefix ? groupHashes.get(prefix) : null;
     const replaced = text.replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
-      `Private Const QUEUE_SOURCE_SHA256 As String = "${hash}"`);
-    if (replaced === text && name.toLowerCase() === 'excelqueueverification.bas') {
+      `Private Const QUEUE_SOURCE_SHA256 As String = "${groupHash ?? hash}"`);
+    if (replaced === text && [
+      'excelqueueverification.bas',
+      'formatmatrixverification.bas',
+      'radixmatrixverification.bas',
+    ].includes(name.toLowerCase())) {
       throw new Error('QUEUE_SOURCE_SHA256 marker not found');
     }
     text = replaced;

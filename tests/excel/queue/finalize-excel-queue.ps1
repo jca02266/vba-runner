@@ -10,6 +10,18 @@ param(
 $ErrorActionPreference = 'Stop'
 $sourceDirectoryPath = (Resolve-Path -LiteralPath $SourceDirectory -ErrorAction Stop).Path
 $resultPath = (Resolve-Path -LiteralPath $Result -ErrorAction Stop).Path
+$resultName = [System.IO.Path]::GetFileName($resultPath)
+$sourcePrefix = $null
+if ($resultName.StartsWith('ExcelQueue', [System.StringComparison]::OrdinalIgnoreCase)) {
+    $sourcePrefix = 'ExcelQueue'
+} elseif ($resultName.StartsWith('FormatMatrix', [System.StringComparison]::OrdinalIgnoreCase)) {
+    $sourcePrefix = 'FormatMatrix'
+} elseif ($resultName.StartsWith('RadixMatrix', [System.StringComparison]::OrdinalIgnoreCase)) {
+    $sourcePrefix = 'RadixMatrix'
+}
+if ($null -eq $sourcePrefix) {
+    throw "Cannot determine VBA source group from result filename: $resultName"
+}
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 $resultText = [System.IO.File]::ReadAllText($resultPath, $utf8)
 
@@ -18,7 +30,10 @@ if ($resultText -notmatch "(?m)^$([regex]::Escape($CompletionMarker))=True\s*$")
 }
 
 $sourceFiles = Get-ChildItem -LiteralPath $sourceDirectoryPath -File |
-    Where-Object { $_.Extension -match '^\.(bas|cls|frm)$' } |
+    Where-Object {
+        $_.Extension -match '^\.(bas|cls|frm)$' -and
+        $_.Name.StartsWith($sourcePrefix, [System.StringComparison]::OrdinalIgnoreCase)
+    } |
     Sort-Object -Property Name
 if ($sourceFiles.Count -eq 0) {
     throw "No VBA source files found: $sourceDirectoryPath"
@@ -43,6 +58,6 @@ if (-not $recordedHashMatch.Success) {
     throw "Excel queue result is missing the embedded workbook source hash: $resultPath"
 }
 if ($recordedHashMatch.Groups[1].Value.ToLowerInvariant() -ne $hash) {
-    throw "Excel queue result source hash does not match the current source: $resultPath"
+    throw "Excel queue result source hash does not match the current source: $resultPath (recorded=$($recordedHashMatch.Groups[1].Value.ToLowerInvariant()), current=$hash, group=$sourcePrefix)"
 }
 Write-Output "Verified Excel queue result: $resultPath"

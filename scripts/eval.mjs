@@ -356,9 +356,18 @@ function validateEvaluationRecordFormat(file, source, data) {
   }
 }
 
-function normalizedExcelSourceHash(directory = excelQueueDir) {
-  const manifest = fs.readdirSync(directory)
+function excelSourcePrefix(resultName) {
+  const name = path.basename(resultName).toLowerCase();
+  for (const prefix of ['excelqueue', 'formatmatrix', 'radixmatrix']) {
+    if (name.startsWith(prefix)) return prefix;
+  }
+  throw new Error(`Unknown Excel result source group: ${resultName}`);
+}
+
+function normalizedExcelSourceHash(directory = excelQueueDir, prefix = null) {
+  const manifest = (prefix ? '' : 'QUEUE_SOURCE_HASH_SCHEME=grouped-v1\n') + fs.readdirSync(directory)
     .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .filter((name) => !prefix || name.toLowerCase().startsWith(prefix.toLowerCase()))
     .sort()
     .map((name) => {
       const source = fs.readFileSync(path.join(directory, name), 'utf8')
@@ -386,7 +395,10 @@ function excelQueueResults() {
   return fs.readdirSync(excelQueueDir)
     .filter((name) => /\.result$/i.test(name))
     .sort()
-    .map((name) => fs.readFileSync(path.join(excelQueueDir, name), 'utf8'));
+    .map((name) => ({
+      name,
+      text: fs.readFileSync(path.join(excelQueueDir, name), 'utf8'),
+    }));
 }
 
 function excelQueueState(data) {
@@ -402,7 +414,8 @@ function excelQueueState(data) {
     };
   }
 
-  const resultText = excelQueueResults().join('\n');
+  const resultEntries = excelQueueResults();
+  const resultText = resultEntries.map(({ text }) => text).join('\n');
   const resultIds = new Set(resultText.split(/\r?\n/)
     .flatMap((line) => [
       line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1],
@@ -411,16 +424,39 @@ function excelQueueState(data) {
     .filter(Boolean));
   const missingResultIds = requiredIds.filter((id) => !resultIds.has(id));
   const complete = /^(?:QUEUE_COMPLETE|FORMAT_MATRIX_COMPLETE|RADIX_MATRIX_COMPLETE)=True\s*$/mi.test(resultText);
-  const recordedHash = resultText.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
-  const sourceHash = sourceTexts.length > 0 ? normalizedExcelSourceHash() : null;
+  const idsForResult = (text) => new Set(text.split(/\r?\n/)
+    .flatMap((line) => [
+      line.match(/^(XL-\d{3}(?:-[A-Z0-9]+)*)\b/)?.[1],
+      line.match(/^CASE=(XL-\d{3})(?:-[A-Z0-9]+)*\b/)?.[1],
+    ]).filter(Boolean));
+  const relevantResults = resultEntries.filter(({ text }) => {
+    const ids = idsForResult(text);
+    return requiredIds.some((id) => ids.has(id));
+  });
+  const resultWithRequiredIds = resultEntries.find(({ text }) => {
+    const ids = idsForResult(text);
+    return requiredIds.every((id) => ids.has(id));
+  });
+  const overallSourceHash = sourceTexts.length > 0 ? normalizedExcelSourceHash() : null;
+  const resultHashMatches = relevantResults.length > 0 && relevantResults.every(({ name, text }) => {
+    const recordedHash = text.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
+    const sourceHash = sourceTexts.length > 0
+      ? normalizedExcelSourceHash(excelQueueDir, excelSourcePrefix(name)) : null;
+    return Boolean(recordedHash && sourceHash && recordedHash === sourceHash);
+  });
+  /* Keep the selected entry for diagnostics while validating every relevant group. */
+  const resultForHash = resultWithRequiredIds ?? resultEntries[0];
+  const resultPrefix = resultForHash ? excelSourcePrefix(resultForHash.name) : null;
+  const recordedHash = resultForHash?.text.match(/^QUEUE_SOURCE_SHA256=([0-9a-f]{64})\s*$/mi)?.[1]?.toLowerCase();
+  const sourceHash = resultPrefix ? normalizedExcelSourceHash(excelQueueDir, resultPrefix) : null;
   const preparationStamp = fs.existsSync(excelQueuePreparationStamp)
     ? fs.readFileSync(excelQueuePreparationStamp, 'utf8').trim().toLowerCase()
     : null;
   const preparationStampMatches = Boolean(
-    sourceHash && preparationStamp && /^[0-9a-f]{64}$/.test(preparationStamp)
-      && preparationStamp === sourceHash,
+    overallSourceHash && preparationStamp && /^[0-9a-f]{64}$/.test(preparationStamp)
+      && preparationStamp === overallSourceHash,
   );
-  const hashMatches = Boolean(recordedHash && sourceHash && recordedHash === sourceHash);
+  const hashMatches = resultHashMatches;
   const resultReady = complete && hashMatches && missingResultIds.length === 0;
   return {
     requiredState: resultReady ? 'result-ready' : 'needs-excel',

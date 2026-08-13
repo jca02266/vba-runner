@@ -22,6 +22,7 @@ if ($sourceFiles.Count -eq 0) {
     throw "No VBA source files found: $sourceDirectoryPath"
 }
 $manifest = New-Object System.Text.StringBuilder
+[void]$manifest.Append("QUEUE_SOURCE_HASH_SCHEME=grouped-v1`n")
 foreach ($sourceFile in $sourceFiles) {
     $sourceText = [System.IO.File]::ReadAllText($sourceFile.FullName, $utf8).Replace("`r`n", "`n")
     $sourceText = [regex]::Replace($sourceText,

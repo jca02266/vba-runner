@@ -65,9 +65,14 @@ tests\excel\queue\eval-matrix.cmd
 `Debug.Print`はImmediateウィンドウにも出力するが、記録の正本は結果ファイルである。
 
 `prepare-excel-vba.sh`は、インポート対象の`.bas`、`.cls`、`.frm`をファイル名順に
-並べ、改行をLFへ正規化したソース一式のSHA-256を計算し、その値をマクロへ埋め込んで
-から`t.xlsm`を作成し、同じソースハッシュを`t.xlsm.source.sha256`にも保存する。マクロは全プローブ終了後に埋め込み値を
+並べ、改行をLFへ正規化したソース一式のSHA-256を計算し、その値を準備済みブックの
+鮮度スタンプ（ハッシュ方式`grouped-v1`）として`t.xlsm.source.sha256`に保存する。さらに、結果ファイルに対応する
+接頭辞（`ExcelQueue`、`FormatMatrix`、`RadixMatrix`）ごとにもSHA-256を計算し、各グループの
+検証マクロへそのグループの値を埋め込む。マクロは全プローブ終了後に埋め込み値を
 `QUEUE_SOURCE_SHA256=<hash>`として出力し、その後`QUEUE_COMPLETE=True`を出力する。
+`finalize-excel-queue.ps1`と評価CLIは、結果名に対応する接頭辞のソースだけをハッシュして
+結果に含まれる値と照合する。したがって、Formatだけを変更してもExcelQueueやRadixの
+結果ハッシュは変わらず、変更していないテストの結果を更新する必要はない。
 `finalize-excel-queue.ps1`は結果に含まれるハッシュを現在のソースと照合するだけで、
 実行後にハッシュを追記しない。これにより、古い`t.xlsm`の実行結果を現在のソースの
 結果として受理できない。`eval-excel.cmd`はExcelを起動する前にスタンプと現在の
