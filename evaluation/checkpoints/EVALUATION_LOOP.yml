@@ -2106,9 +2106,17 @@ checkpoints:
     finding: BUG-00512
   - afterEvaluation: EV-00819
     audit: "717 evaluations, 0 active claims; BUG-00512の横展開候補でFSO・Dictionary・Collectionの同種Runner差異を再現"
-    decision: "動的COMメンバーの必須引数契約を別経路でも確認した。Optional、With、CallByName、別COMの残境界を追加レビューし、RC-00070を確定できるか判断する"
-    action: continue-root-cause-review
+    decision: "EV-00819はWith内TextStream.Readの一挙動へ限定し、FSO GetFile、Dictionary Exists、Collection Itemは個別候補へ分割する。Excel根拠がないため、いずれも実機または仕様確認まで終端判定しない"
+    action: create-candidate
     nextArea: ファイルI/O・FSO
     nextEvaluation: EV-00819
     nextCandidate: FZ-COVERAGE-20260810-318
+    finding: BUG-00512
+  - afterEvaluation: EV-00819
+    audit: "717 evaluations, 0 active claims; EV-00819の記録レビューで複数挙動の混在を検出"
+    decision: "With内ReadをEV-00819に残し、GetFile、Dictionary Exists、Collection ItemをFZ-319〜321へ分離した。各候補は個別の期待値・実機根拠を揃えてから判定する"
+    action: create-candidate
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-319
     finding: BUG-00512

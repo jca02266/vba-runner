@@ -720,7 +720,7 @@
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
 | EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
-| EV-00819 | FZ-COVERAGE-20260810 | in-progress |  | 動的COMメンバーの必須引数とMemberExpression/With境界 |
+| EV-00819 | FZ-COVERAGE-20260810 | in-progress |  | TextStream.ReadのWith式における必須引数境界 |
 
 ## 状態集計
 
@@ -739,4 +739,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-319 | 1 | queued | FSO.GetFileの必須引数省略 | yes |
+| FZ-COVERAGE-20260810-320 | 1 | queued | Scripting.Dictionary.Existsの必須引数省略 | yes |
+| FZ-COVERAGE-20260810-321 | 1 | queued | Collection.Itemの必須引数省略 | yes |
