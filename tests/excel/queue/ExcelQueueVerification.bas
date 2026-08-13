@@ -76,6 +76,7 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamCloseBoundaries root & Application.PathSeparator & "XL-056-close.txt"
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyTextStreamRequiredRead root & Application.PathSeparator & "XL-200-read.txt"
+    VerifyFsoGetFileRequired
     VerifyPendingExcelBoundaries
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -107,6 +108,33 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFsoGetFileRequired()
+    Dim fso As Object, fileValue As Object, value As Variant, errNo As Long
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    On Error Resume Next
+    Err.Clear
+    Set fileValue = fso.GetFile
+    errNo = Err.Number
+    EmitResult "XL-201 SET-OMITTED ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(fileValue)
+    Err.Clear
+    Set fileValue = fso.GetFile()
+    errNo = Err.Number
+    EmitResult "XL-201 SET-PARENS ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(fileValue)
+    Err.Clear
+    value = fso.GetFile
+    errNo = Err.Number
+    EmitResult "XL-201 VALUE-OMITTED ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(value)
+    Err.Clear
+    value = fso.GetFile()
+    errNo = Err.Number
+    EmitResult "XL-201 VALUE-PARENS ERR=" & CStr(errNo) & _
+        " TYPE=" & TypeName(value)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyTextStreamRequiredRead(ByVal path As String)

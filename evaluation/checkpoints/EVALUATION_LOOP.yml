@@ -2120,3 +2120,12 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-319
     finding: BUG-00512
+  - afterEvaluation: EV-00820
+    audit: "718 evaluations, 0 active claims; FSO.GetFile省略呼び出しのRunner差異を再現し、XL-201を追加してソースハッシュ一致の実機待ちへ移行"
+    decision: "Set代入とVariant代入を含むGetFile省略境界を単独評価として登録した。ExcelでOMITTED/PARENSの実測結果を確認するまで判定しない"
+    action: claim
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00820
+    nextCandidate: FZ-COVERAGE-20260810-319
+    excelProbe: XL-201
+    finding: null
