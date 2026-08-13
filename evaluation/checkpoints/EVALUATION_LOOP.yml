@@ -2096,3 +2096,11 @@ checkpoints:
     nextArea: FSO・TextStream
     nextEvaluation: EV-00818
     nextCandidate: FZ-COVERAGE-20260810-317
+  - afterEvaluation: EV-00818
+    audit: "716 evaluations, 0 active claims; XL-200のExcel結果がソースハッシュ一致で同期済み"
+    decision: "TextStream.Readの省略形式・括弧付き形式ともRunnerとExcelでエラー番号が異なり、BUG-00512を登録した。次は動的COMメンバーの同種経路を横展開し、真因を独立レビューする"
+    action: bug-found
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00818
+    nextCandidate: FZ-COVERAGE-20260810-317
+    finding: BUG-00512

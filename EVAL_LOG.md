@@ -719,19 +719,19 @@
 | EV-00815 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式の引用prefix・suffix境界 |
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
-| EV-00818 | FZ-COVERAGE-20260810 | needs-excel |  | FSO TextStream Readの必須引数省略と関数メンバー評価 |
+| EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 312 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 1 |
 | verified-no-bug | 397 |
 
-横展開未解決経路: 563、実Excel待ち評価: 1
+横展開未解決経路: 563、実Excel待ち評価: 0
 
 ## 次の候補
 
