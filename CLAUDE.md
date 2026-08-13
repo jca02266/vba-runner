@@ -113,8 +113,8 @@ TypeScript で実装された VBA 実行エンジン。Excel 不要で VBA コ�
 VBA 仕様に関わる修正（バグ修正・未実装機能の追加）を行う場合は、**`.claude/commands/implement-vba.md` に記述された手順**に従うこと。要点：
 
 1. `tests/spec/` にテストを追加する（`evalVBASingle` / `evalVBAModules` を使う）
-2. `docs/todo/TODO_SPEC.md` の該当項目を更新する（`❌` → `✅` または `⚠️`）
-3. 仕様バグ修正時は `docs/bug-records/VBA_ENGINE_BUG_HISTORY.md` に履歴を記録し、`docs/todo/TODO_SPEC.md` には現在の仕様準拠状態だけを反映する
+2. `docs/implementation/VBA_SPEC_LIST.md` の該当項目を更新する（`❌` → `✅` または `⚠️`）
+3. 仕様バグ修正時は `docs/bug-records/VBA_ENGINE_BUG_HISTORY.md` に履歴を記録し、`docs/implementation/VBA_SPEC_LIST.md` には現在の仕様準拠状態だけを反映する
 
 テストの書き方の詳細は `.claude/commands/implement-vba.md` の「Step 4: テストを作成」を参照。
 

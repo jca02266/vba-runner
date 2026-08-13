@@ -966,7 +966,7 @@ try {
 }
 ```
 
-エラー番号の一覧は [VBA Error 番号一覧（docs/todo/TODO_SPEC.md）](../todo/TODO_SPEC.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
+エラー番号の一覧は [VBA Error 番号一覧（VBA_SPEC_LIST.md）](../implementation/VBA_SPEC_LIST.md#vba-エラー番号別の改善項目errnumber-対応) を参照してください。
 
 ### Q: VBA オブジェクト（Sheets など）をテストしたい
 

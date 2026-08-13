@@ -8,9 +8,9 @@ status: stable
 
 # VBAエンジンバグ履歴
 
-この文書は、`TODO_SPEC.md` から分離した過去の仕様バグと修正履歴を記録する。
+この文書は、`VBA_SPEC_LIST.md` から分離した過去の仕様バグと修正履歴を記録する。
 現在の仕様準拠状況と未実装・部分実装・恒久的制限は
-[TODO_SPEC.md](../todo/TODO_SPEC.md)を参照する。
+[VBA_SPEC_LIST.md](../implementation/VBA_SPEC_LIST.md)を参照する。
 個別バグの現在の状態、真因分析、横展開、回帰テストは
 `evaluation/findings/BUG-*.md`を正本とする。
 

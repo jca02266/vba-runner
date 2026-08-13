@@ -1,24 +1,24 @@
 ---
-type: Roadmap
-title: VBA実装TODOリスト
-description: MS-VBAL仕様に関係するVBA構文、標準機能、ランタイム挙動の実装項目。
-tags: [vba, specification, roadmap]
-status: active
+type: Reference
+title: VBA仕様実装一覧
+description: MS-VBAL仕様に対するVBA構文、標準機能、ランタイム挙動の実装状況。
+tags: [vba, specification, implementation, status]
+status: stable
 ---
 
-# VBA実装 TODOリスト（MS-VBAL仕様書準拠）
+# VBA仕様実装一覧（MS-VBAL仕様書準拠）
 
 この文書は、MS-VBAL仕様に定義されたVBAの構文・標準機能・ランタイム挙動に
 関する現在の実装状況だけを管理する。過去に発見・修正した仕様バグの詳細は
 [VBA_ENGINE_BUG_HISTORY.md](../bug-records/VBA_ENGINE_BUG_HISTORY.md) に分離している。
 IDE機能、テスト支援、モック拡張、解析器の高度化など仕様準拠以外の開発課題は
-[TODO.md](./TODO.md) に記載する。
+[TODO.md](../todo/TODO.md) に記載する。
 
 **進捗**: MS-VBAL 仕様書で個別セクションに名前が付いた **構文要素 / ステートメント / 式 / 標準ライブラリ関数 / 組み込みクラス** はすべて実装済みです。
 
 ただし、これは「言語仕様書のリストに名前のある機能」の網羅率であって、**VBA のランタイム挙動（仕様書本文に書かれているが個別セクションを持たない暗黙の振る舞い）** までを 100% 満たしているわけではありません。実装が未確認のランタイム挙動については本ドキュメントの「[VBA ランタイム挙動](#vba-ランタイム挙動)」セクションを参照してください。
 
-## 今後のロードマップ
+## 実装状況の更新方針
 
 ランタイム挙動の検証を以下の手順で進めていきます。
 

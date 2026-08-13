@@ -16,7 +16,7 @@ generated: 2026-07-29
 
 この文書は、`evaluate-vba-runner` の評価履歴と候補キューを、現在どのように
 保存・選定・完了管理するかを説明する。VBAの仕様準拠TODOは
-[`docs/todo/TODO_SPEC.md`](../todo/TODO_SPEC.md)、仕様準拠外の開発課題は
+[`VBA_SPEC_LIST.md`](../implementation/VBA_SPEC_LIST.md)、仕様準拠外の開発課題は
 [`docs/todo/TODO.md`](../todo/TODO.md)で管理する。
 
 ## 当初の問題

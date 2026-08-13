@@ -11,7 +11,7 @@ status: active
 この文書は、VBA仕様そのものの実装ではなく、IDE機能、テスト支援、モック拡張、
 解析器の高度化など、VBA開発環境としての使いやすさ・検証性・保守性を改善する
 ためのTODOと将来ロードマップを管理する。
-VBA仕様準拠に関するTODOは [TODO_SPEC.md](./TODO_SPEC.md) を参照する。
+VBA仕様実装一覧は [VBA_SPEC_LIST.md](../implementation/VBA_SPEC_LIST.md) を参照する。
 
 このプロジェクトは、`vba-runner` によるVBA実行を中核に、`vba-extractor` による
 ExcelファイルとのVBAソース連携、解析器・テスト支援、VS Code拡張機能などを
@@ -20,7 +20,7 @@ ExcelファイルとのVBAソース連携、解析器・テスト支援、VS Cod
 環境全体の改善を管理します。
 
 > Phase 1（MS-VBAL 仕様書に列挙された構文要素・標準ライブラリ関数の実装）は完了。
-> 仕様書本文に記載されたランタイム挙動の細部は [`docs/todo/TODO_SPEC.md` の「VBA ランタイム挙動」](./TODO_SPEC.md#vba-ランタイム挙動) でトラッキング中。
+> 仕様書本文に記載されたランタイム挙動の細部は [VBA_SPEC_LIST.md](../implementation/VBA_SPEC_LIST.md#vba-ランタイム挙動) の「VBA ランタイム挙動」でトラッキング中。
 
 ---
 
@@ -1136,7 +1136,7 @@ VBA Runner を使って以下の順で進めてください：
 ## コンパイル前チェックの実装状況
 
 `precheckProc` の実装状況や、重複 `Dim`・未定義ラベル・引数数不一致など
-VBA仕様に関わるチェックは [`docs/todo/TODO_SPEC.md`](./TODO_SPEC.md) で管理する。
+VBA仕様に関わるチェックは [`VBA_SPEC_LIST.md`](../implementation/VBA_SPEC_LIST.md) で管理する。
 この文書では同じ仕様準拠項目を重複管理しない。
 
 ---
@@ -1275,7 +1275,7 @@ private evaluateClassDeclaration(stmt: ClassDeclaration) {
 - [ ] ByVal引数の式評価とByRef参照生成を分離する（評価 #182 で、クラス呼出しの `ByVal` メンバー式を値評価後に l-value getter でも再評価し、`TextStream.ReadLine` のような状態変更式を二重実行した。ByValは一度だけ評価した値を束縛し、ByRef対象だけ参照を生成する共通呼出しフレームへ整理する）
 
 これはVBA仕様項目の未実装ではなく、エンジンの保守性・経路一貫性を高めるための
-リファクタリング課題である。仕様準拠の未実装・制限は [TODO_SPEC.md](./TODO_SPEC.md) に記録する。
+リファクタリング課題である。仕様準拠の未実装・制限は [VBA_SPEC_LIST.md](../implementation/VBA_SPEC_LIST.md) に記録する。
 
 ### 拡張機能の自己完結化（MCP 廃案）
 
@@ -1579,7 +1579,7 @@ End Sub
 
 ### Web UI（デモサイト）の改善
 エンジン側の `Dir` / `Kill` とワイルドカード処理は実装済み（詳細は
-`docs/todo/TODO_SPEC.md` の FileSystem / VFS 表）であり、ここではデモサイトへの統合を管理する。
+`docs/implementation/VBA_SPEC_LIST.md` の FileSystem / VFS 表）であり、ここではデモサイトへの統合を管理する。
 
 - [ ] デモサイトで `Dir` 関数のディレクトリ列挙を提供
 - [ ] デモサイトで `Kill` ワイルドカード操作（例: `Kill "*.txt"`）を提供

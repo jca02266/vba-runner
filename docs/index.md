@@ -26,6 +26,7 @@
 ## Internal design and specifications
 
 * [内部仕様・設計索引](./internals/index.md) - エンジン実装の仕様、設計メモ、計画
+* [VBA仕様実装一覧](./implementation/VBA_SPEC_LIST.md) - MS-VBAL仕様への対応状況
 
 ## Bug records
 

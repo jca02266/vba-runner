@@ -392,7 +392,7 @@ Excelオブジェクト（`ActiveSheet`, `Range`, `Cells` 等）はモック注�
 | `src/lsp/` | VS Code LSP拡張機能の実装。リファクタリング作業と無関係 |
 | `src/App.tsx` 他 React ファイル | Web UI |
 | `dist/`, `node_modules/` | ビルド成果物・パッケージ |
-| `docs/todo/TODO_SPEC.md` | VBA実行エンジンの仕様準拠TODO |
+| `docs/implementation/VBA_SPEC_LIST.md` | VBA実行エンジンの仕様実装一覧 |
 | `docs/internals/TYPE_SYSTEM_SPEC.md` | VBA実行エンジン内部型システムの仕様書 |
 | `tests/` | VBA実行エンジン自体のテスト |
 

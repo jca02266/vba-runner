@@ -113,7 +113,7 @@ npm パッケージ利用者向けの CLI 手順は、各パッケージの READ
 | 利用者向けの目的別地図 | 利用者 | [docs/README.md](./docs/README.md) |
 | VBA Runner の実装詳細 | 開発者 | [REFERENCE.md](./docs/implementation/REFERENCE.md) → [docs/internals/](./docs/internals) |
 | VS Code 拡張機能の実装詳細 | 開発者 | [LSP.md](./docs/implementation/LSP.md) |
-| 未着手の開発項目、デバッグ手法 | 開発者 | [TODO.md](./docs/todo/TODO.md)、[TODO_SPEC.md](./docs/todo/TODO_SPEC.md)、[BUG_HUNTING.md](./docs/development/BUG_HUNTING.md)、[EVAL_LOG.md](./EVAL_LOG.md) |
+| 未着手の開発項目、デバッグ手法 | 開発者 | [TODO.md](./docs/todo/TODO.md)、[VBA_SPEC_LIST.md](./docs/implementation/VBA_SPEC_LIST.md)、[BUG_HUNTING.md](./docs/development/BUG_HUNTING.md)、[EVAL_LOG.md](./EVAL_LOG.md) |
 | 過去の仕様バグ履歴 | 開発者 | [VBA_ENGINE_BUG_HISTORY.md](./docs/bug-records/VBA_ENGINE_BUG_HISTORY.md) |
 | リポジトリ全体の文書台帳 | メンテナ | [INDEX.md](./INDEX.md) |
 

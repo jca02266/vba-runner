@@ -55,7 +55,7 @@ analysis; do not duplicate its taxonomy here.
    confirmed/rule-out/unresolved paths, coverage reference, and next
    action. For a verified defect, implement the smallest compatible fix, add
    a regression test, and run focused checks. Also assess structural
-   weaknesses and update `docs/todo/TODO.md` or `docs/todo/TODO_SPEC.md` only when justified.
+   weaknesses and update `docs/todo/TODO.md` or `docs/implementation/VBA_SPEC_LIST.md` only when justified.
    Record the historical defect and remediation in
    `docs/bug-records/VBA_ENGINE_BUG_HISTORY.md`; keep the specification TODO
    focused on current compliance status.

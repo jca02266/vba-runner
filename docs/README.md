@@ -83,6 +83,7 @@ AI や外部ツールから文書を概念単位で参照する場合は、[OKF 
 | リポジトリ開発（セットアップ・コマンド） | [CONTRIBUTING.md](../CONTRIBUTING.md) |
 | API・制約・Sandbox などの詳細仕様 | [REFERENCE.md](./implementation/REFERENCE.md) |
 | LSP / VS Code 拡張の実装 | [LSP.md](./implementation/LSP.md) |
+| VBA仕様の実装状況一覧 | [VBA_SPEC_LIST.md](./implementation/VBA_SPEC_LIST.md) |
 | エンジン内部設計・仕様メモ | [internals/](./internals) |
 | 組み込み関数の仕様監査履歴 | [監査ログ](./bug-records/audit-func-log.md) |
 | 過去のVBAエンジンバグ履歴 | [バグ履歴](./bug-records/VBA_ENGINE_BUG_HISTORY.md) |
