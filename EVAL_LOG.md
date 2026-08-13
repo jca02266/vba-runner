@@ -722,6 +722,8 @@
 | EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
 | EV-00819 | FZ-COVERAGE-20260810 | in-progress |  | TextStream.ReadのWith式における必須引数境界 |
 | EV-00820 | FZ-COVERAGE-20260810 | needs-excel | 1 | FSO.GetFileの必須引数省略 |
+| EV-00821 | FZ-COVERAGE-20260810 | needs-excel | 1 | Scripting.Dictionary.Existsの必須引数省略 |
+| EV-00822 | FZ-COVERAGE-20260810 | needs-excel | 1 | Collection.Itemの必須引数省略 |
 
 ## 状態集計
 
@@ -731,15 +733,14 @@
 | fixed | 312 |
 | in-progress | 1 |
 | known-limit | 5 |
-| needs-excel | 1 |
+| needs-excel | 3 |
 | retired | 1 |
 | verified-no-bug | 397 |
 
-横展開未解決経路: 563、実Excel待ち評価: 1
+横展開未解決経路: 563、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-320 | 1 | queued | Scripting.Dictionary.Existsの必須引数省略 | yes |
-| FZ-COVERAGE-20260810-321 | 1 | queued | Collection.Itemの必須引数省略 | yes |
+| (none) | | | | |

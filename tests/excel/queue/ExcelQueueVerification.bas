@@ -77,6 +77,8 @@ Public Sub RunExcelQueueVerification()
     VerifyTextStreamEofReadLine root & Application.PathSeparator & "XL-057-eof.txt"
     VerifyTextStreamRequiredRead root & Application.PathSeparator & "XL-200-read.txt"
     VerifyFsoGetFileRequired
+    VerifyDictionaryExistsRequired
+    VerifyCollectionItemRequired
     VerifyPendingExcelBoundaries
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -134,6 +136,36 @@ Private Sub VerifyFsoGetFileRequired()
     errNo = Err.Number
     EmitResult "XL-201 VALUE-PARENS ERR=" & CStr(errNo) & _
         " TYPE=" & TypeName(value)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyDictionaryExistsRequired()
+    Dim dict As Object, value As Variant, errNo As Long
+    Set dict = CreateObject("Scripting.Dictionary")
+    dict.Add "key", True
+    On Error Resume Next
+    Err.Clear: value = dict.Exists: errNo = Err.Number
+    EmitResult "XL-202 OMITTED ERR=" & CStr(errNo) & " TYPE=" & TypeName(value)
+    Err.Clear: value = dict.Exists(): errNo = Err.Number
+    EmitResult "XL-202 PARENS ERR=" & CStr(errNo) & " TYPE=" & TypeName(value)
+    Err.Clear: value = dict.Exists("key"): errNo = Err.Number
+    EmitResult "XL-202 KEY ERR=" & CStr(errNo) & " TYPE=" & TypeName(value) & _
+        " VALUE=" & CStr(value)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyCollectionItemRequired()
+    Dim items As Collection, value As Variant, errNo As Long
+    Set items = New Collection
+    items.Add "entry"
+    On Error Resume Next
+    Err.Clear: value = items.Item: errNo = Err.Number
+    EmitResult "XL-203 OMITTED ERR=" & CStr(errNo) & " TYPE=" & TypeName(value)
+    Err.Clear: value = items.Item(): errNo = Err.Number
+    EmitResult "XL-203 PARENS ERR=" & CStr(errNo) & " TYPE=" & TypeName(value)
+    Err.Clear: value = items.Item(1): errNo = Err.Number
+    EmitResult "XL-203 INDEX ERR=" & CStr(errNo) & " TYPE=" & TypeName(value) & _
+        " VALUE=" & CStr(value)
     On Error GoTo 0
 End Sub
 
