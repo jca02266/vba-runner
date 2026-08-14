@@ -2,3 +2,8 @@
   evaluationId: EV-00822
   status: needs-excel
   occurredAt: '2026-08-13T15:32:49.475Z'
+- candidateId: FZ-COVERAGE-20260810-321
+  evaluationId: EV-00822
+  status: needs-excel-probe
+  fromStatus: needs-excel
+  occurredAt: '2026-08-14T00:02:51.373Z'

@@ -720,26 +720,30 @@
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
 | EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
-| EV-00819 | FZ-COVERAGE-20260810 | needs-excel |  | TextStream.ReadのWith式における必須引数境界 |
-| EV-00820 | FZ-COVERAGE-20260810 | needs-excel | 1 | FSO.GetFileの必須引数省略 |
-| EV-00821 | FZ-COVERAGE-20260810 | needs-excel | 1 | Scripting.Dictionary.Existsの必須引数省略 |
-| EV-00822 | FZ-COVERAGE-20260810 | needs-excel | 1 | Collection.Itemの必須引数省略 |
+| EV-00819 | FZ-COVERAGE-20260810 | bug-found | 1 | TextStream.ReadのWith式における必須引数境界 |
+| EV-00820 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO.GetFileの必須引数省略 |
+| EV-00821 | FZ-COVERAGE-20260810 | bug-found | 1 | Scripting.Dictionary.Existsの必須引数省略 |
+| EV-00822 | FZ-COVERAGE-20260810 | needs-excel-probe | 1 | Collection.Itemの必須引数省略 |
+| EV-00823 | FZ-GRAMMAR | verified-no-bug |  | Function・Sub・Property呼出しの必須引数省略とprecheckProc |
+| EV-00824 | FZ-GRAMMAR | fixed | 1 | early-bound Collection.Itemの必須index省略とprecheckProc |
+| EV-00825 | FZ-GRAMMAR | verified-no-bug |  | Function余分引数の実行時型不一致境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 312 |
+| bug-found | 4 |
+| fixed | 313 |
 | known-limit | 5 |
-| needs-excel | 4 |
+| needs-excel-probe | 1 |
 | retired | 1 |
-| verified-no-bug | 397 |
+| verified-no-bug | 399 |
 
-横展開未解決経路: 563、実Excel待ち評価: 4
+横展開未解決経路: 563、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-GRAMMAR-059 | 1 | queued | Property Get/Let/SetとModule・Class修飾呼出しの引数不足検査 | yes |
+| FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
