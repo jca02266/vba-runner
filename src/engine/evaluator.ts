@@ -7839,7 +7839,8 @@ export class Evaluator {
                     get: () => {
                         const parentFull = this.sandbox.toRealPath(parentPath);
                         const parentStats = this.fs.statSync(parentFull);
-                        return attachFolderMembers(makePathObject('folder', parentPath, parentStats), parentPath);
+                        const parentHasParent = path.win32.dirname(parentPath) !== parentPath;
+                        return attachFolderMembers(makePathObject('folder', parentPath, parentStats, parentHasParent), parentPath);
                     },
                     enumerable: true,
                 });

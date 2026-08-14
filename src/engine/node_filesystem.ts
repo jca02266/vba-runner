@@ -17,9 +17,21 @@ export class NodeFileSystem implements FileSystem {
     copyFileSync(src: string, dest: string) { fs.copyFileSync(src, dest); }
     moveFileSync(src: string, dest: string) { fs.renameSync(src, dest); }
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }) {
+        const source = path.resolve(src);
+        const target = path.resolve(dest);
+        if (target === source || target.startsWith(`${source}${path.sep}`)) {
+            throw new Error(`EINVAL: destination is inside source '${dest}'`);
+        }
         fs.cpSync(src, dest, { recursive: true, force: options?.overwrite === true, errorOnExist: options?.overwrite !== true });
     }
-    moveDirectorySync(src: string, dest: string) { fs.renameSync(src, dest); }
+    moveDirectorySync(src: string, dest: string) {
+        const source = path.resolve(src);
+        const target = path.resolve(dest);
+        if (target === source || target.startsWith(`${source}${path.sep}`)) {
+            throw new Error(`EINVAL: destination is inside source '${dest}'`);
+        }
+        fs.renameSync(src, dest);
+    }
     unlinkSync(p: string) { fs.unlinkSync(p); }
     readdirSync(p: string) { return fs.readdirSync(p); }
     statSync(p: string) {

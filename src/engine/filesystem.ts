@@ -121,6 +121,9 @@ export class MemoryFileSystem implements FileSystem {
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void {
         const source = this.normalize(src);
         const target = this.normalize(dest);
+        if (target === source || target.startsWith(`${source}/`)) {
+            throw new Error(`EINVAL: destination is inside source '${dest}'`);
+        }
         if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
         if (this.existsSync(target)) {
             if (!options?.overwrite) throw new Error(`EEXIST: destination exists '${dest}'`);
@@ -141,6 +144,11 @@ export class MemoryFileSystem implements FileSystem {
     }
 
     moveDirectorySync(src: string, dest: string): void {
+        const source = this.normalize(src);
+        const target = this.normalize(dest);
+        if (target === source || target.startsWith(`${source}/`)) {
+            throw new Error(`EINVAL: destination is inside source '${dest}'`);
+        }
         this.copyDirectorySync(src, dest);
         this.rmSync(src, { recursive: true, force: true });
     }

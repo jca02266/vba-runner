@@ -485,6 +485,12 @@ try {
     nodeFs.rmSync(nodeRoot, { recursive: true, force: true });
 }
 
+const guardedFs = new MemoryFileSystem();
+guardedFs.mkdirSync('/source', { recursive: true });
+assert.throws(() => guardedFs.copyDirectorySync('/source', '/source/child'), /inside source/);
+assert.throws(() => guardedFs.moveDirectorySync('/source', '/source/child'), /inside source/);
+console.log('[PASS] FSO self-contained directory operation guard');
+
 // Test 17: SetAttr rejects vbDirectory as a settable attribute.
 ev.callProcedure('Test17SetAttrDirectory', []);
 assert.strictEqual(ev.env.get('setattrdirectoryerr'), 5, 'SetAttr vbDirectory -> Error 5');
