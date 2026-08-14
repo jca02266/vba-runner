@@ -1410,6 +1410,115 @@ export class Evaluator {
         });
     }
 
+    /** Shared FSO/top-level file operation boundary. */
+    private copyFilePath(sourcePath: string, destinationPath: string, overwrite: boolean, missingCode: VbaErrorCode): void {
+        try {
+            if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
+                this.throwVbaError(missingCode, 'File not found');
+            }
+            this.fs.copyFileSync(sourcePath, destinationPath, { overwrite });
+        } catch (error: any) {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(missingCode, 'File not found');
+            }
+            if (error?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
+            throw error;
+        }
+    }
+
+    /** Shared FSO/top-level file move boundary. */
+    private moveFilePath(sourcePath: string, destinationPath: string, missingCode: VbaErrorCode): void {
+        try {
+            if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
+                this.throwVbaError(missingCode, 'File not found');
+            }
+            this.fs.moveFileSync(sourcePath, destinationPath);
+        } catch (error: any) {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(missingCode, 'File not found');
+            }
+            if (error?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
+            throw error;
+        }
+    }
+
+    /** Shared FSO/top-level directory copy boundary. */
+    private copyDirectoryPath(sourcePath: string, destinationPath: string, overwrite: boolean): void {
+        try {
+            if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isDirectory()) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            if (!this.fs.existsSync(path.dirname(destinationPath))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            this.fs.copyDirectorySync(sourcePath, destinationPath, { overwrite });
+        } catch (error: any) {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            if (error?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
+            throw error;
+        }
+    }
+
+    /** Shared FSO/top-level directory move boundary. */
+    private moveDirectoryPath(sourcePath: string, destinationPath: string): void {
+        try {
+            if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isDirectory()) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            if (this.fs.existsSync(destinationPath)) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
+            if (!this.fs.existsSync(path.dirname(destinationPath))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            this.fs.moveDirectorySync(sourcePath, destinationPath);
+        } catch (error: any) {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            if (error?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
+            throw error;
+        }
+    }
+
+    /** Shared FSO/top-level directory deletion boundary. */
+    private deleteDirectoryPath(fullPath: string, force: boolean): void {
+        if (!this.fs.existsSync(fullPath)) {
+            this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+        }
+        if (!this.fs.statSync(fullPath).isDirectory()) {
+            this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+        }
+        if (!force && this.fs.readdirSync(fullPath).length > 0) {
+            this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+        }
+        try {
+            this.fs.rmSync(fullPath, { recursive: force, force });
+        } catch (error: any) {
+            if (error?.code === 'ENOTEMPTY' || /not empty/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+            }
+            throw error;
+        }
+    }
+
     private registerFileSystemFunctions() {
         const freeFileFunc = (range?: any) => {
             if (range === vbaNull) {
@@ -1536,18 +1645,7 @@ export class Evaluator {
         this.registerBuiltin('filecopy', (src: any, dest: any) => {
             const srcPath = this.sandbox.toRealPath(vbaToString(src ?? ''));
             const destPath = this.sandbox.toRealPath(vbaToString(dest ?? ''));
-            try {
-                if (this.fs.existsSync(destPath)) {
-                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                }
-                this.fs.copyFileSync(srcPath, destPath);
-            } catch {
-                // Preserve the VBA error raised for an existing destination.
-                if (this.fs.existsSync(destPath)) {
-                    this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                }
-                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-            }
+            this.copyFilePath(srcPath, destPath, false, VbaErrorCode.FILE_NOT_FOUND);
         }, [
             { name: 'Source' }, { name: 'Destination' },
         ]);
@@ -7866,43 +7964,23 @@ export class Evaluator {
                 };
                 common.copy = (destination: string, overwrite: any = false) => {
                     const target = this.sandbox.toRealPath(destination);
-                    if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    try { this.fs.copyFileSync(full, target, { overwrite: vbaFlagIsTrue(overwrite) }); } catch (e) { throwFsoPathError(e); }
+                    this.copyFilePath(full, target, vbaFlagIsTrue(overwrite), VbaErrorCode.FILE_NOT_FOUND);
                 };
                 common.move = (destination: string) => {
                     const target = this.sandbox.toRealPath(destination);
-                    if (this.fs.existsSync(target)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    try { this.fs.moveFileSync(full, target); } catch (e) { throwFsoPathError(e); }
+                    this.moveFilePath(full, target, VbaErrorCode.FILE_NOT_FOUND);
                 };
             } else {
                 common.delete = (force: any = false) => {
-                    if (!this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    try {
-                        this.fs.rmSync(full, { recursive: vbaFlagIsTrue(force), force: vbaFlagIsTrue(force) });
-                    } catch (e: any) {
-                        if (e?.code === 'ENOTEMPTY' || /not empty/i.test(String(e?.message ?? e))) {
-                            this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
-                        }
-                        throwFsoPathError(e);
-                    }
+                    this.deleteDirectoryPath(full, vbaFlagIsTrue(force));
                 };
                 common.copy = (destination: string, overwrite: any = false) => {
                     const target = this.sandbox.toRealPath(destination);
-                    if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    try {
-                        this.fs.copyDirectorySync(full, target, { overwrite: vbaFlagIsTrue(overwrite) });
-                    } catch (e) { throwFsoPathError(e); }
+                    this.copyDirectoryPath(full, target, vbaFlagIsTrue(overwrite));
                 };
                 common.move = (destination: string) => {
                     const target = this.sandbox.toRealPath(destination);
-                    if (this.fs.existsSync(target)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    try { this.fs.moveDirectorySync(full, target); } catch (e) { throwFsoPathError(e); }
+                    this.moveDirectoryPath(full, target);
                 };
             }
             return this.decorateComObject(common);
@@ -8208,21 +8286,7 @@ export class Evaluator {
             copyfile: (source: string, destination: string, overwrite: boolean = false) => {
                 const sourcePath = this.sandbox.toRealPath(source);
                 const destinationPath = this.sandbox.toRealPath(destination);
-                try {
-                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    }
-                    if (this.fs.existsSync(destinationPath) && !vbaFlagIsTrue(overwrite)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    this.fs.copyFileSync(sourcePath, destinationPath, { overwrite: vbaFlagIsTrue(overwrite) });
-                } catch (e: any) {
-                    if (e?.type === 'VbaError') throw e;
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    }
-                    throw e;
-                }
+                this.copyFilePath(sourcePath, destinationPath, vbaFlagIsTrue(overwrite), VbaErrorCode.FILE_NOT_FOUND);
             },
             copyfolder: (source: string, destination: string, overwrite: any = false) => {
                 const sourcePath = this.sandbox.toRealPath(source);
@@ -8230,83 +8294,24 @@ export class Evaluator {
                 if (overwrite === vbaNull) {
                     this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
                 }
-                try {
-                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isDirectory()) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    const parent = path.dirname(destinationPath);
-                    if (!this.fs.existsSync(parent)) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    this.fs.copyDirectorySync(sourcePath, destinationPath, { overwrite: vbaFlagIsTrue(overwrite) });
-                } catch (e: any) {
-                    if (e?.type === 'VbaError') throw e;
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    if (e?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    throw e;
-                }
+                this.copyDirectoryPath(sourcePath, destinationPath, vbaFlagIsTrue(overwrite));
             },
             movefolder: (source: string, destination: string) => {
                 const sourcePath = this.sandbox.toRealPath(source);
                 const destinationPath = this.sandbox.toRealPath(destination);
-                try {
-                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isDirectory()) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    if (this.fs.existsSync(destinationPath)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    if (!this.fs.existsSync(path.dirname(destinationPath))) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    this.fs.moveDirectorySync(sourcePath, destinationPath);
-                } catch (e: any) {
-                    if (e?.type === 'VbaError') throw e;
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    }
-                    throw e;
-                }
+                this.moveDirectoryPath(sourcePath, destinationPath);
             },
             movefile: (source: string, destination: string) => {
                 const sourcePath = this.sandbox.toRealPath(source);
                 const destinationPath = this.sandbox.toRealPath(destination);
-                try {
-                    if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isFile()) {
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    }
-                    if (this.fs.existsSync(destinationPath)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
-                    this.fs.moveFileSync(sourcePath, destinationPath);
-                } catch (e: any) {
-                    if (e?.type === 'VbaError') throw e;
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    }
-                    throw e;
-                }
+                this.moveFilePath(sourcePath, destinationPath, VbaErrorCode.FILE_NOT_FOUND);
             },
             deletefolder: (p: string, force: any = false) => {
                 if (force === vbaNull) {
                     this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
                 }
                 const full = this.sandbox.toRealPath(p);
-                if (!this.fs.existsSync(full)) {
-                    this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                }
-                if (!this.fs.statSync(full).isDirectory()) {
-                    this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
-                }
-                const forceDelete = vbaFlagIsTrue(force);
-                if (!forceDelete && this.fs.readdirSync(full).length > 0) {
-                    this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
-                }
-                this.fs.rmSync(full, { recursive: forceDelete, force: forceDelete });
+                this.deleteDirectoryPath(full, vbaFlagIsTrue(force));
             },
             getfile: (p: string) => {
                 const full = this.sandbox.toRealPath(p);
