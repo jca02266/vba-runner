@@ -237,4 +237,22 @@ Sub Caller()
 End Sub
 `, 'Caller', undefined, /argument not optional/i, 'Property-Get/bare-required-index');
 
+// A parameter may shadow a procedure name.  The identifier on the RHS is
+// then a variable, not an implicit zero-argument function call.
+{
+    const runner = evalVBASingle(String.raw`Function D(value As Long) As Long
+    D = value
+End Function
+Function Wrapper(d As Long) As Long
+    Wrapper = d
+End Function
+Sub Caller()
+    Dim result As Long
+    result = Wrapper(1)
+End Sub
+`);
+    assert.doesNotThrow(() => runner.callProcedure('Caller', []),
+        'Implicit function precheck respects parameter shadowing');
+}
+
 console.log('✅ Function/Sub definition and call arity matrix passed');

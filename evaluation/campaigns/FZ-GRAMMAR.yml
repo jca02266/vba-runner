@@ -628,3 +628,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
+  - id: FZ-GRAMMAR-068
+    title: 関数名と引数名の影付き裸参照境界
+    status: fixed
+    priority: 1
+    focus: precheckProcが引数名を同名Functionの暗黙呼出しと誤認しないこと
+    priorCauseKey: implicit-call-shadowing-not-resolved
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
+      - sample/tests/ts/LibDate.test.ts

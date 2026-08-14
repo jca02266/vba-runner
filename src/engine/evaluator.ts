@@ -2111,10 +2111,10 @@ export class Evaluator {
                 switch (expr.type) {
                     case 'CallExpression': {
                         const call = expr as CallExpression;
-                        // A call's callee is not the assignment target.  Keep
-                        // that distinction so Property Let/Set value tails
-                        // remain excluded from ParamArray indexing.
-                        visitExpression(call.callee, false, true);
+                        // Preserve assignment-target context for function
+                        // return assignments while marking the callee so
+                        // bare-member checks are not duplicated.
+                        visitExpression(call.callee, assignmentTarget, true);
                         for (const arg of call.args) visitExpression(arg);
                         break;
                     }
@@ -2264,7 +2264,8 @@ export class Evaluator {
                     if (!findings.argumentError && a.right.type === 'Identifier') {
                         const implicitName = (a.right as Identifier).name;
                         const implicitProc = this.env.getProcedure(implicitName);
-                        if (implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
+                        if (!declared.has(implicitName.toLowerCase()) &&
+                            implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
                             const min = implicitProc.parameters.filter(
                                 p => !p.isOptional && p.defaultValue == null,
                             ).length;
