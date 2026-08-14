@@ -719,10 +719,10 @@
 | EV-00815 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式の引用prefix・suffix境界 |
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
-| EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
-| EV-00819 | FZ-COVERAGE-20260810 | bug-found | 1 | TextStream.ReadのWith式における必須引数境界 |
-| EV-00820 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO.GetFileの必須引数省略 |
-| EV-00821 | FZ-COVERAGE-20260810 | bug-found | 1 | Scripting.Dictionary.Existsの必須引数省略 |
+| EV-00818 | FZ-COVERAGE-20260810 | fixed | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
+| EV-00819 | FZ-COVERAGE-20260810 | fixed | 1 | TextStream.ReadのWith式における必須引数境界 |
+| EV-00820 | FZ-COVERAGE-20260810 | fixed | 1 | FSO.GetFileの必須引数省略 |
+| EV-00821 | FZ-COVERAGE-20260810 | fixed | 1 | Scripting.Dictionary.Existsの必須引数省略 |
 | EV-00822 | FZ-COVERAGE-20260810 | needs-excel-probe | 1 | Collection.Itemの必須引数省略 |
 | EV-00823 | FZ-GRAMMAR | verified-no-bug |  | Function・Sub・Property呼出しの必須引数省略とprecheckProc |
 | EV-00824 | FZ-GRAMMAR | fixed | 1 | early-bound Collection.Itemの必須index省略とprecheckProc |
@@ -730,13 +730,19 @@
 | EV-00826 | FZ-GRAMMAR | fixed | 1 | Property Let/Set省略インデックスの引数検査 |
 | EV-00827 | FZ-GRAMMAR | retired | 1 | Property Let/Setの必須インデックス省略 |
 | EV-00828 | FZ-GRAMMAR | fixed | 1 | Property Getの裸参照における必須引数検査 |
+| EV-00829 | FZ-GRAMMAR | fixed | 1 | ParamArray省略時の最小引数検査境界 |
+| EV-00830 | FZ-GRAMMAR | fixed | 1 | 先行固定必須引数とParamArrayを持つ手続きのprecheckProc |
+| EV-00831 | FZ-GRAMMAR | fixed | 1 | precheckProcが引数名を同名Functionの暗黙呼出しと誤認しないこと |
+| EV-00832 | FZ-GRAMMAR | fixed | 1 | 引数なしProperty Getの戻り値添字をProperty引数と誤認しないprecheck |
+| EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
+| EV-00834 | FZ-GRAMMAR | fixed | 1 | CallByName外部メンバーの必須引数省略 |
+| EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 4 |
-| fixed | 315 |
+| fixed | 326 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -748,5 +754,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
-| FZ-GRAMMAR-065 | 2 | queued | Module修飾Function/Subの括弧なし必須引数検査 | yes |
+| (none) | | | | |
