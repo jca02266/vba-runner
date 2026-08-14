@@ -1685,7 +1685,7 @@ export class Parser {
             }
             const previous = this.tokens[memberEnd];
             const lparen = this.tokens[memberEnd + 1];
-            if (lparen?.type === TokenType.OperatorLParen && previous &&
+            if (memberEnd > this.pos && lparen?.type === TokenType.OperatorLParen && previous &&
                 lparen.line === previous.line &&
                 lparen.column > previous.column + String(previous.value).length) {
                 spacedCallArgument = true;
