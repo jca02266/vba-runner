@@ -120,6 +120,11 @@ import {
     vbaRound as _vbaRound,
 } from './coerce';
 import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
+import {
+    classifyArgumentCount,
+    hasParamArrayArgument,
+    hasRequiredArgumentAfterPrefix,
+} from './argument-contract';
 export { VbaErrorCode } from './vba-errors';
 
 function vbaFlagIsTrue(value: any): boolean {
@@ -1044,10 +1049,13 @@ export class Evaluator {
 
     private argumentReference(
         expr: Expression | undefined,
-        param: ProcedureDeclaration['parameters'][number],
+        proc: ProcedureDeclaration,
+        parameterIndex: number,
         forcedByVal = false,
     ): VbaLValueReference | null {
-        return expr && !param.isByVal && !forcedByVal ? this.createLValueReference(expr) : null;
+        return expr && !this.isEffectiveByValParameter(proc, parameterIndex) && !forcedByVal
+            ? this.createLValueReference(expr)
+            : null;
     }
 
     /** Property Let/Set's final RHS is always a ByVal value parameter. */
@@ -2014,13 +2022,13 @@ export class Evaluator {
         }
 
         const checkArity = (parameters: Parameter[], provided: number, line?: number): void => {
-            const min = parameters.filter(p => !p.isOptional && p.defaultValue == null && !p.isParamArray).length;
-            if (provided < min) {
+            const violation = classifyArgumentCount(parameters, provided);
+            if (violation === 'missing') {
                 findings.argumentError ??= {
                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                     message: 'Argument not optional', line,
                 };
-            } else if (!parameters.some(p => p.isParamArray) && provided > parameters.length) {
+            } else if (violation === 'excess') {
                 findings.argumentError ??= {
                     code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                     message: 'Wrong number of arguments or invalid property assignment', line,
@@ -2048,26 +2056,17 @@ export class Evaluator {
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
                         const target = this.env.getProcedure((call.callee as Identifier).name);
                         if (target) {
-                            const min = target.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
-                            const requiredCount = target.parameters.filter(p =>
-                                !p.isOptional && p.defaultValue == null && !p.isParamArray).length;
-                            if (call.args.length < requiredCount) {
+                            const violation = classifyArgumentCount(target.parameters, call.args.length);
+                            if (violation === 'missing') {
                                 findings.argumentError = {
                                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                                     message: 'Argument not optional',
                                     line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
-                            } else if (!target.parameters.some(p => p.isParamArray) &&
-                                call.args.length > target.parameters.length && !target.isFunction) {
+                            } else if (violation === 'excess' && !target.isFunction) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                                     message: 'Wrong number of arguments or invalid property assignment',
-                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
-                                };
-                            } else if (!target.parameters.some(p => p.isParamArray) && call.args.length < min) {
-                                findings.argumentError = {
-                                    code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
-                                    message: 'Argument not optional',
                                     line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
                             }
@@ -4190,11 +4189,8 @@ export class Evaluator {
         // preceding index parameter; do not let the alignment layer turn an
         // omitted index into an accepted `vbaOmitted` slot.
         const valueParameterIndex = setter.parameters.length - 1;
-        for (let i = indexExpressions.length; i < valueParameterIndex; i++) {
-            const parameter = setter.parameters[i];
-            if (!parameter.isOptional && parameter.defaultValue == null && !parameter.isParamArray) {
-                this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-            }
+        if (hasRequiredArgumentAfterPrefix(setter.parameters, indexExpressions.length, valueParameterIndex)) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
         const finalParameter = setter.parameters[setter.parameters.length - 1];
         const rhsExpression = sourceExpr ?? ({ type: 'Literal', value } as Expression);
@@ -5099,32 +5095,27 @@ export class Evaluator {
      * その違いは呼び出し側で吸収する（このメソッド自体は判定済みの `isOptional` を見るだけ）。
      */
     private checkArgCountGeneric(params: ArgBinderParam[], providedCount: number): void {
-        const hasParamArray = params.some(p => p.isParamArray);
-
-        const maxParams = params.length;
-        // ParamArray may be omitted entirely; only fixed parameters
-        // contribute to the minimum argument count.
-        const minParams = params.filter(p => !p.isOptional && !p.isParamArray).length;
-
-        if (!hasParamArray && providedCount > maxParams) {
+        const violation = classifyArgumentCount(params, providedCount);
+        if (violation === 'excess') {
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
         }
-        if (providedCount < minParams) {
+        if (violation === 'missing') {
             this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
     }
 
-    private checkArgCount(proc: ProcedureDeclaration, args: any[]): void {
+    private checkArgCount(proc: ProcedureDeclaration, argsOrCount: any[] | number): void {
         // 「required」とみなされない（= minParams に数えない）のは isOptional または
         // defaultValue を持つパラメーター。checkArgCountGeneric 側の isOptional フラグに変換する。
         const params: ArgBinderParam[] = proc.parameters.map(p => ({
             isOptional: !!p.isOptional || p.defaultValue != null,
             isParamArray: !!p.isParamArray,
         }));
-        if (proc.isFunction && !params.some(p => p.isParamArray) && args.length > params.length) {
+        const providedCount = typeof argsOrCount === 'number' ? argsOrCount : argsOrCount.length;
+        if (proc.isFunction && !hasParamArrayArgument(params) && providedCount > params.length) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
-        this.checkArgCountGeneric(params, args.length);
+        this.checkArgCountGeneric(params, providedCount);
     }
 
     /**
@@ -5587,7 +5578,8 @@ export class Evaluator {
         const references = expressions.map((expr, i) =>
             this.argumentReference(
                 expr ?? undefined,
-                proc.parameters[i],
+                proc,
+                i,
                 this.isPropertyValueParameter(proc, i),
             )
         );
@@ -5598,7 +5590,7 @@ export class Evaluator {
         if (paramArrayIndex >= 0) {
             for (const slot of paramArraySupplied) {
                 expressions.push(slot.expr);
-                references.push(this.argumentReference(slot.expr, proc.parameters[paramArrayIndex]));
+                references.push(this.argumentReference(slot.expr, proc, paramArrayIndex));
                 const i = expressions.length - 1;
                 args.push(references[i] ? references[i]!.get() : slot.value);
             }
@@ -5607,7 +5599,8 @@ export class Evaluator {
                 expressions.push(slot.expr);
                 references.push(this.argumentReference(
                     slot.expr ?? undefined,
-                    proc.parameters[propertyValueIndex],
+                    proc,
+                    propertyValueIndex,
                     this.isPropertyValueParameter(proc, propertyValueIndex),
                 ));
                 args.push(slot.value);
@@ -9721,17 +9714,7 @@ export class Evaluator {
                 }
 
                 // Validate argument count
-                {
-                    const argBinderParams: ArgBinderParam[] = proc.parameters.map(p => ({
-                        isOptional: !!p.isOptional || p.defaultValue != null,
-                        isParamArray: !!p.isParamArray,
-                    }));
-                    if (proc.isFunction && !argBinderParams.some(p => p.isParamArray) &&
-                        positionalArgs.length + namedArgs.size > proc.parameters.length) {
-                        this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
-                    }
-                    this.checkArgCountGeneric(argBinderParams, positionalArgs.length + namedArgs.size);
-                }
+                this.checkArgCount(proc, positionalArgs.length + namedArgs.size);
                 this.checkNoGapOnRequiredParam(proc.parameters, positionalArgExpressions);
 
                 for (let i = 0; i < proc.parameters.length; i++) {
@@ -9815,7 +9798,7 @@ export class Evaluator {
                         } else if (i < positionalArgExpressions.length) {
                             originalExpr = positionalArgExpressions[i];
                         }
-                        const reference = this.argumentReference(originalExpr, param, forcedByVal);
+                        const reference = this.argumentReference(originalExpr, proc, i, forcedByVal);
                         if (reference) {
                             byRefArgs.push({
                                 paramName: param.name,
