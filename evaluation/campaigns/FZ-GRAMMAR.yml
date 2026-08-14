@@ -554,7 +554,7 @@ items:
       - tests/spec/property-resolution-order.test.ts
   - id: FZ-GRAMMAR-064
     title: Property Get必須引数の裸参照境界
-    status: queued
+    status: fixed
     priority: 1
     focus: Property Getの裸参照における必須引数検査
     priorCauseKey: member-call-arity-contract-not-centralized

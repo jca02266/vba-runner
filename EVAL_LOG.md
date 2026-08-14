@@ -729,13 +729,14 @@
 | EV-00825 | FZ-GRAMMAR | verified-no-bug |  | Function余分引数の実行時型不一致境界 |
 | EV-00826 | FZ-GRAMMAR | fixed | 1 | Property Let/Set省略インデックスの引数検査 |
 | EV-00827 | FZ-GRAMMAR | retired | 1 | Property Let/Setの必須インデックス省略 |
+| EV-00828 | FZ-GRAMMAR | fixed | 1 | Property Getの裸参照における必須引数検査 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 314 |
+| fixed | 315 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -747,5 +748,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-064 | 1 | queued | Property GetとModule・Class修飾呼出しの引数不足検査 | yes |
 | FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
+| FZ-GRAMMAR-065 | 2 | queued | Module修飾Function/Subの括弧なし必須引数検査 | yes |
