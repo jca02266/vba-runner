@@ -17,6 +17,10 @@ try {
     assert.match(html, /findingChart\.data\.labels = selected\.labels/);
     assert.match(html, /selected\.labels/);
     assert.match(html, /findingChart\.data\.datasets\[0\]\.data/);
+    assert.match(html, /相対収束度/);
+    assert.match(html, /領域別の直近発見率 \/ 領域別の累積発見率/);
+    assert.match(html, /評価件数の10%（切り上げ、ただし最低10件）/);
+    assert.match(html, /#N\/A/);
 
     const markdown = join(outputDir, 'report.md');
     execFileSync(process.execPath, ['scripts/eval-report.mjs', '--output', markdown], {

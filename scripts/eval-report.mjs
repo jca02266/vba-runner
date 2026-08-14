@@ -292,6 +292,41 @@ function aggregateAreaClasses(summary) {
   return [...groups.values()].sort((a, b) => b.evaluations - a.evaluations || a.areaClass.localeCompare(b.areaClass));
 }
 
+const AREA_RECENT_MIN_EVALUATION_COUNT = 10;
+const AREA_RECENT_FRACTION = 0.1;
+
+function areaConvergence(summary, records, series) {
+  const recordsById = new Map(records.map((record) => [record.id, record]));
+  const pointsByArea = new Map();
+  for (const row of series) {
+    if (!row.evaluationPoint || !row.area || !recordsById.has(row.evaluationId)) continue;
+    const rows = pointsByArea.get(row.area) ?? [];
+    rows.push(row);
+    pointsByArea.set(row.area, rows);
+  }
+  const result = new Map();
+  for (const group of summary) {
+    const recentCount = Math.max(AREA_RECENT_MIN_EVALUATION_COUNT, Math.ceil(group.evaluations * AREA_RECENT_FRACTION));
+    const uniquePoints = new Map();
+    for (const row of pointsByArea.get(group.area) ?? []) uniquePoints.set(row.evaluationId, row);
+    const points = [...uniquePoints.values()].sort((a, b) => Date.parse(a.date) - Date.parse(b.date));
+    const recentPoints = points.slice(-recentCount);
+    const cumulativeRate = group.evaluations > 0 ? group.bugs / group.evaluations : null;
+    const recentRate = recentPoints.length === recentCount
+      ? recentPoints.reduce((total, row) => total + findingCount(recordsById.get(row.evaluationId)), 0) / recentCount
+      : null;
+    result.set(group.area, {
+      recentCount: recentPoints.length,
+      cumulativeRate,
+      recentRate,
+      relativeConvergence: cumulativeRate && recentRate !== null
+        ? 1 - (recentRate / cumulativeRate)
+        : null,
+    });
+  }
+  return result;
+}
+
 function timeSeries(records, results, findings, stateEvents) {
   const eventEvaluationIds = new Set(stateEvents.map((event) => event.evaluationId));
   const evaluationEvents = records
@@ -425,6 +460,10 @@ function mdCell(value) {
 
 function formatRate(bugs, evaluations) {
   return evaluations > 0 ? `${((bugs / evaluations) * 100).toFixed(1)}%` : '0.0%';
+}
+
+function formatRelativeConvergence(value) {
+  return value === null || !Number.isFinite(value) ? '#N/A' : `${(value * 100).toFixed(1)}%`;
 }
 
 function recentBugIncrease(series, limit = 10) {
@@ -632,6 +671,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const needsExcel = evaluationStatusCount(records, 'needs-excel');
   const bugFound = evaluationStatusCount(records, 'bug-found');
   const recentIncrease = recentBugIncrease(series);
+  const areaConvergenceSummary = areaConvergence(summary, records, series);
   const timeZone = localTimeZone();
   const numCell = (value) => `<td class="numeric">${value}</td>`;
   const numHeader = (value) => `<th class="numeric">${value}</th>`;
@@ -653,7 +693,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const deltaCell = (value, delta) => numCell(`${value}${deltaText(delta)}`);
   const deltaHeader = (value, delta) => numHeader(`${value}${deltaText(delta)}`);
   const sumDelta = (deltaMap, field) => [...deltaMap.values()].reduce((sum, row) => sum + (row[field] ?? 0), 0);
-  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td>${deltaCell(row.evaluations, summaryDelta.get(row.area)?.evaluations ?? 0)}${deltaCell(row.bugs, summaryDelta.get(row.area)?.bugs ?? 0)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${deltaCell(row.unconfirmed, summaryDelta.get(row.area)?.unconfirmed ?? 0)}${deltaCell(row.excluded, summaryDelta.get(row.area)?.excluded ?? 0)}</tr>`).join('\n');
+  const summaryRows = summary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td><td>${htmlCell(row.area)}</td>${deltaCell(row.evaluations, summaryDelta.get(row.area)?.evaluations ?? 0)}${deltaCell(row.bugs, summaryDelta.get(row.area)?.bugs ?? 0)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${numCell(htmlCell(formatRelativeConvergence(areaConvergenceSummary.get(row.area)?.relativeConvergence ?? null)))}${deltaCell(row.unconfirmed, summaryDelta.get(row.area)?.unconfirmed ?? 0)}${deltaCell(row.excluded, summaryDelta.get(row.area)?.excluded ?? 0)}</tr>`).join('\n');
   const summaryTotals = summary.reduce((totals, row) => ({
     evaluations: totals.evaluations + row.evaluations,
     bugs: totals.bugs + row.bugs,
@@ -670,7 +710,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   }), { total: 0, v1: 0, legacy: 0 });
   const statusTotal = statusRows.reduce((total, row) => total + row.total, 0);
   const evaluationStatusRows = statusRows.map((row) => `<tr><td><code>${htmlCell(row.status)}</code></td>${deltaCell(row.total, statusDelta.get(row.status)?.total ?? 0)}<td>${htmlCell(row.meaning)}</td><td>${htmlCell(row.category)}</td><td>${htmlCell(row.finding)}</td></tr>`).join('\n');
-  const summaryTotalRow = `<tr><th>合計</th><th></th>${deltaHeader(summaryTotals.evaluations, sumDelta(summaryDelta, 'evaluations'))}${deltaHeader(summaryTotals.bugs, sumDelta(summaryDelta, 'bugs'))}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${deltaHeader(summaryTotals.unconfirmed, sumDelta(summaryDelta, 'unconfirmed'))}${deltaHeader(summaryTotals.excluded, sumDelta(summaryDelta, 'excluded'))}</tr>`;
+  const summaryTotalRow = `<tr><th>合計</th><th></th>${deltaHeader(summaryTotals.evaluations, sumDelta(summaryDelta, 'evaluations'))}${deltaHeader(summaryTotals.bugs, sumDelta(summaryDelta, 'bugs'))}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${numHeader('#N/A')}${deltaHeader(summaryTotals.unconfirmed, sumDelta(summaryDelta, 'unconfirmed'))}${deltaHeader(summaryTotals.excluded, sumDelta(summaryDelta, 'excluded'))}</tr>`;
   const classSummaryRows = classSummary.map((row) => `<tr><td>${htmlCell(row.areaClass)}</td>${deltaCell(row.evaluations, classSummaryDelta.get(row.areaClass)?.evaluations ?? 0)}${deltaCell(row.bugs, classSummaryDelta.get(row.areaClass)?.bugs ?? 0)}${numCell(htmlCell(formatRate(row.bugs, row.evaluations)))}${deltaCell(row.unconfirmed, classSummaryDelta.get(row.areaClass)?.unconfirmed ?? 0)}${deltaCell(row.excluded, classSummaryDelta.get(row.areaClass)?.excluded ?? 0)}</tr>`).join('\n');
   const classSummaryTotalRow = `<tr><th>合計</th>${deltaHeader(summaryTotals.evaluations, sumDelta(classSummaryDelta, 'evaluations'))}${deltaHeader(summaryTotals.bugs, sumDelta(classSummaryDelta, 'bugs'))}${numHeader(htmlCell(formatRate(summaryTotals.bugs, summaryTotals.evaluations)))}${deltaHeader(summaryTotals.unconfirmed, sumDelta(classSummaryDelta, 'unconfirmed'))}${deltaHeader(summaryTotals.excluded, sumDelta(classSummaryDelta, 'excluded'))}</tr>`;
   const findingTotalRow = `<tr><th>合計</th>${deltaHeader(findingTotal, sumDelta(findingTypeDelta, 'count'))}</tr>`;
@@ -689,7 +729,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
 </style>
 <style>.finding-chart-controls{height:24px;display:flex;align-items:center;gap:5px}.finding-chart-controls select{font:inherit;padding:1px 4px}.finding-chart-canvas{height:calc(100% - 24px)!important;max-height:calc(100% - 24px)!important}</style>
 </head><body><header class="dashboard-header"><h1>評価レポート</h1><p class="meta">候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs} (+${recentIncrease})、<span class="${needsExcel > 0 ? 'alert-metric' : ''}">needs-excel件数: ${needsExcel}</span>、<span class="${bugFound > 0 ? 'alert-metric' : ''}">bug-found件数: ${bugFound}</span></p><nav class="tabs" role="tablist"><button class="tab-button active" role="tab" aria-selected="true" data-tab="convergence">収束状況</button><button class="tab-button" role="tab" aria-selected="false" data-tab="overview">評価領域</button><button class="tab-button" role="tab" aria-selected="false" data-tab="status">状態・真因</button></nav></header>
-<section id="tab-overview" class="tab-panel active" role="tabpanel"><div class="panel-grid"><div class="panel-card"><h2>実装領域別集計</h2><table class="compact-table"><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table><h3>領域分類別集計</h3><table class="compact-table"><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table></div><div class="panel-card"><h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はデグレードを表します。</p><table class="compact-table"><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>${renderBugPieCharts(summary, findingTypes)}</div></div></section>
+<section id="tab-overview" class="tab-panel active" role="tabpanel"><div class="panel-grid"><div class="panel-card"><h2>実装領域別集計</h2><p>相対収束度 = 1 - (領域別の直近発見率 / 領域別の累積発見率)。直近は各領域の評価件数の10%（切り上げ、ただし最低${AREA_RECENT_MIN_EVALUATION_COUNT}件）です。領域の評価件数が必要な直近件数未満、または累積発見率が0の場合は<code>#N/A</code>とします。</p><table class="compact-table"><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>相対収束度</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table><h3>領域分類別集計</h3><table class="compact-table"><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table></div><div class="panel-card"><h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はデグレードを表します。</p><table class="compact-table"><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>${renderBugPieCharts(summary, findingTypes)}</div></div></section>
 <section id="tab-convergence" class="tab-panel" role="tabpanel"><div class="panel-card" style="height:100%"><h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に評価単位で集計しています。旧評価は <code>completedAt</code> または本文の評価日を使用します。表示日時はローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の指標です。</p><div class="chart-row">${renderConvergenceChart(series)}</div><h3>評価一覧（直近10件）</h3><table class="recent-table"><thead><tr><th>状態遷移日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価累積</th><th>バグ状態</th><th>非バグ状態</th><th>判定保留</th><th>その他状態</th><th>発見Finding</th><th>解決済み</th><th>未解決</th></tr></thead><tbody>${seriesRows}</tbody></table></div></section>
 <section id="tab-status" class="tab-panel" role="tabpanel"><div class="status-grid"><div class="panel-card"><h2>評価状態の意味と計上先</h2><p>全件数を集計しています。グラフと一覧は状態履歴の遷移日時を使用します。</p><table class="compact-table"><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}${statusTotalRow}</tbody></table></div><div class="panel-card"><h2>真因分析の状態別件数</h2><p><code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録です。</p><table class="compact-table"><thead><tr><th>状態</th><th>件数</th><th>v1</th><th>v0・未設定</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}${rootCauseTotalRow}</tbody></table></div></div></section>
 <script>document.querySelectorAll('.tab-button').forEach((button)=>button.addEventListener('click',()=>{const id=button.dataset.tab;document.querySelectorAll('.tab-button').forEach((item)=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active));});document.querySelectorAll('.tab-panel').forEach((panel)=>panel.classList.toggle('active',panel.id==='tab-'+id));window.dispatchEvent(new Event('resize'));}));</script>
