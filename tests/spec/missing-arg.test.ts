@@ -204,4 +204,25 @@ End Function
     console.log('[PASS] late-bound Dictionary/Collection required-member matrix');
 }
 
+// 12. FSO.GetFile も戻り値の型（Set/Variant）にかかわらず必須引数を検査する
+{
+    const code = String.raw`
+Function ProbeFsoGetFile() As String
+    Dim fso As Object, file As Object, value As Variant, out As String
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    On Error Resume Next
+    Set file = Nothing: Err.Clear: Set file = fso.GetFile: out = "SET-BARE=" & CStr(Err.Number) & ":" & TypeName(file)
+    Set file = Nothing: Err.Clear: Set file = fso.GetFile(): out = out & "|SET-PARENS=" & CStr(Err.Number) & ":" & TypeName(file)
+    value = Empty: Err.Clear: value = fso.GetFile: out = out & "|VALUE-BARE=" & CStr(Err.Number) & ":" & TypeName(value)
+    value = Empty: Err.Clear: value = fso.GetFile(): out = out & "|VALUE-PARENS=" & CStr(Err.Number) & ":" & TypeName(value)
+    ProbeFsoGetFile = out
+End Function
+`;
+    const ev = evalVBA(code);
+    assert.strictEqual(ev.callProcedure('ProbeFsoGetFile', []),
+        'SET-BARE=450:Nothing|SET-PARENS=450:Nothing|VALUE-BARE=450:Empty|VALUE-PARENS=450:Empty',
+        'FSO.GetFile required pathname is validated in Set and Variant paths');
+    console.log('[PASS] FSO.GetFile required-member matrix');
+}
+
 console.log('\n✅ missing-arg: 全テスト通過');
