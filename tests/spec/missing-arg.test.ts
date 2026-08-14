@@ -163,4 +163,45 @@ function expectVbaError(code: string, expectedNumber: number, label: string): vo
     console.log('[PASS] 必須パラメーターの省略スロットは 449（モジュール修飾呼び出し）');
 }
 
+// 11. late-bound Dictionary/Collection の必須メンバーは、裸参照・空括弧で
+//     JavaScript関数値や既定値を漏出させず、引数不足契約を適用する
+{
+    const code = String.raw`
+Function ProbeDynamicMembers() As String
+    Dim d As Object, c As Object, fso As Object, stream As Object, value As Variant, out As String
+    Set d = CreateObject("Scripting.Dictionary")
+    d.Add "key", True
+    Set c = New Collection
+    c.Add "entry"
+    Set fso = CreateObject("Scripting.FileSystemObject")
+    Set stream = fso.CreateTextFile("dynamic-read.txt", True, False)
+    stream.Write "abc": stream.Close
+    Set stream = fso.OpenTextFile("dynamic-read.txt", 1, False, 0)
+    On Error Resume Next
+    value = Empty: Err.Clear: value = d.Exists: out = "DICT-BARE=" & CStr(Err.Number) & ":" & TypeName(value)
+    value = Empty: Err.Clear: value = d.Exists(): out = out & "|DICT-PARENS=" & CStr(Err.Number) & ":" & TypeName(value)
+    Err.Clear: value = d.Exists("key"): out = out & "|DICT-KEY=" & CStr(Err.Number) & ":" & TypeName(value) & ":" & CStr(value)
+    value = Empty: Err.Clear: value = c.Item: out = out & "|COLL-BARE=" & CStr(Err.Number) & ":" & TypeName(value)
+    value = Empty: Err.Clear: value = c.Item(): out = out & "|COLL-PARENS=" & CStr(Err.Number) & ":" & TypeName(value)
+    Err.Clear: value = c.Item(1): out = out & "|COLL-INDEX=" & CStr(Err.Number) & ":" & TypeName(value) & ":" & CStr(value)
+    With d
+        value = Empty: Err.Clear: value = .Exists: out = out & "|WITH-DICT=" & CStr(Err.Number) & ":" & TypeName(value)
+    End With
+    With c
+        value = Empty: Err.Clear: value = .Item(): out = out & "|WITH-COLL=" & CStr(Err.Number) & ":" & TypeName(value)
+    End With
+    value = Empty: Err.Clear: value = stream.Read: out = out & "|READ-BARE=" & CStr(Err.Number) & ":" & TypeName(value)
+    value = Empty: Err.Clear: value = stream.Read(): out = out & "|READ-PARENS=" & CStr(Err.Number) & ":" & TypeName(value)
+    stream.Close
+    ProbeDynamicMembers = out
+End Function
+`;
+    const ev = evalVBA(code);
+    const result = ev.callProcedure('ProbeDynamicMembers', []);
+    assert.strictEqual(result,
+        'DICT-BARE=450:Empty|DICT-PARENS=450:Empty|DICT-KEY=0:Boolean:True|COLL-BARE=450:Empty|COLL-PARENS=450:Empty|COLL-INDEX=0:String:entry|WITH-DICT=450:Empty|WITH-COLL=450:Empty|READ-BARE=450:Empty|READ-PARENS=450:Empty',
+        'late-bound Dictionary/Collection の必須メンバー引数契約');
+    console.log('[PASS] late-bound Dictionary/Collection required-member matrix');
+}
+
 console.log('\n✅ missing-arg: 全テスト通過');

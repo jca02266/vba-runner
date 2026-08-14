@@ -580,6 +580,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/missing-arg.test.ts
+  - id: FZ-GRAMMAR-070
+    title: CallByName動的メンバーの必須引数境界
+    status: queued
+    priority: 2
+    focus: CallByNameのVbGet・VbMethod・VbLet・VbSetと必須引数省略
+    priorCauseKey: dynamic-member-arity-contract-not-shared
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
   - id: FZ-GRAMMAR-061
     title: Collection.Item必須引数の静的コンパイル検査
     status: fixed

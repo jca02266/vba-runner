@@ -734,13 +734,14 @@
 | EV-00830 | FZ-GRAMMAR | fixed | 1 | 先行固定必須引数とParamArrayを持つ手続きのprecheckProc |
 | EV-00831 | FZ-GRAMMAR | fixed | 1 | precheckProcが引数名を同名Functionの暗黙呼出しと誤認しないこと |
 | EV-00832 | FZ-GRAMMAR | fixed | 1 | 引数なしProperty Getの戻り値添字をProperty引数と誤認しないprecheck |
+| EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 319 |
+| fixed | 320 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -752,5 +753,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
 | FZ-GRAMMAR-065 | 2 | queued | Module修飾Function/Subの括弧なし必須引数検査 | yes |
+| FZ-GRAMMAR-070 | 2 | queued | CallByNameのVbGet・VbMethod・VbLet・VbSetと必須引数省略 | yes |

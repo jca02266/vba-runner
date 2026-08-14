@@ -5345,6 +5345,23 @@ export class Evaluator {
     }
 
     /**
+     * Bind a late-bound COM/host member. Excel reports a missing required
+     * argument for both `obj.Member` and `obj.Member()` as Error 450, while
+     * user-defined procedure calls retain the normal Error 449 contract.
+     */
+    private resolveDynamicMemberArgs(fn: Function, argExprs: Expression[], nameForError: string): any[] {
+        try {
+            return this.resolveCallArgs(fn, argExprs, nameForError);
+        } catch (error: any) {
+            if (error?.number === VbaErrorCode.ARGUMENT_NOT_OPTIONAL) {
+                this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    'Wrong number of arguments or invalid property assignment');
+            }
+            throw error;
+        }
+    }
+
+    /**
      * 括弧無し参照（`Now`、`Rnd` など）時に自動呼び出ししてよいか
      * （= 必須引数が0個か）を `__vbaParamSpec__`/`__vbaOverloads__` から判定する。
      * どちらも付いていない（未移行の組み込み関数）場合は対象外。
@@ -7600,6 +7617,16 @@ export class Evaluator {
             const dictionary: any = {
                 __isVbaDict__: true,
                 __progId__: 'Scripting.Dictionary',
+                __vbaParamSpecs__: {
+                    add: [{ name: 'Key' }, { name: 'Item' }],
+                    exists: [{ name: 'Key' }],
+                    remove: [{ name: 'Key' }],
+                    removeall: [],
+                    count: [],
+                    keys: [],
+                    items: [],
+                    item: [{ name: 'Key' }, { name: 'Item', optional: true }],
+                },
                 __map__: dict,
                 __resolveKey__: matchingKey,
                 add: (k: any, v: any) => {
@@ -7660,6 +7687,9 @@ export class Evaluator {
                         { name: 'Before', optional: true },
                         { name: 'After', optional: true },
                     ],
+                    item: [{ name: 'Index' }],
+                    remove: [{ name: 'Index' }],
+                    count: [],
                 },
                 count: () => items.length,
                 add: (item: any, key?: any, before?: any, after?: any) => {
@@ -10088,7 +10118,8 @@ export class Evaluator {
                 }
 
                 if (typeof targetMethod === 'function') {
-                    const result = this.invokeBuiltin(targetMethod, this.resolveCallArgs(targetMethod, expr.args, methodNameOriginal), obj);
+                    const result = this.invokeBuiltin(targetMethod,
+                        this.resolveDynamicMemberArgs(targetMethod, expr.args, methodNameOriginal), obj);
                     return (obj as any).__progId__ ? this.normalizeOpaqueArrayReturn(result) : result;
                 }
             }
@@ -10561,8 +10592,17 @@ export class Evaluator {
                 const val = obj[key];
                 // Auto-call only zero-arg functions (VBA property/method without parens like col.Count, ws.Add)
                 // Functions requiring args (like Worksheets(name)) are returned as references
-                if (typeof val === 'function' && val.length === 0) {
-                    return val.call(obj);
+                if (typeof val === 'function') {
+                    const spec = (val as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
+                    const overloads = (val as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
+                    if (spec || overloads) {
+                        if (!this.isAutoCallable(val)) {
+                            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                                'Wrong number of arguments or invalid property assignment');
+                        }
+                        return this.invokeBuiltin(val, this.resolveDynamicMemberArgs(val, [], propName), obj);
+                    }
+                    if (val.length === 0) return val.call(obj);
                 }
                 // Host/COM properties may expose SAFEARRAY-like values
                 // without VBA ProcedureDeclaration metadata. Treat the
@@ -11039,8 +11079,17 @@ export class Evaluator {
             const key = this.resolveObjectMemberKey(obj, propName);
             if (key !== undefined) {
                 const val = obj[key];
-                if (typeof val === 'function' && val.length === 0) {
-                    return val.call(obj);
+                if (typeof val === 'function') {
+                    const spec = (val as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
+                    const overloads = (val as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
+                    if (spec || overloads) {
+                        if (!this.isAutoCallable(val)) {
+                            this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                                'Wrong number of arguments or invalid property assignment');
+                        }
+                        return this.invokeBuiltin(val, this.resolveDynamicMemberArgs(val, [], propName), obj);
+                    }
+                    if (val.length === 0) return val.call(obj);
                 }
                 if (typeof val === 'function') {
                     return val.bind(obj);

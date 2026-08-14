@@ -2104,6 +2104,13 @@ checkpoints:
     nextEvaluation: EV-00818
     nextCandidate: FZ-COVERAGE-20260810-317
     finding: BUG-00512
+  - afterEvaluation: EV-00832
+    audit: "730 evaluations, 0 active claims; needs-excel 0件、通常のqueued候補はFZ-GRAMMAR-060とFZ-GRAMMAR-065"
+    decision: "既存の動的メンバー差異（TextStream.Read、FSO.GetFile、Dictionary.Exists）を重複評価せず、Dictionary・Collection・CallByName・COMの経路差と共通引数契約を横展開するFZ-GRAMMAR-060を先にclaimする"
+    action: claim
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-GRAMMAR-060
   - afterEvaluation: EV-00819
     audit: "717 evaluations, 0 active claims; BUG-00512の横展開候補でFSO・Dictionary・Collectionの同種Runner差異を再現"
     decision: "EV-00819はWith内TextStream.Readの一挙動へ限定し、FSO GetFile、Dictionary Exists、Collection Itemは個別候補へ分割する。Excel根拠がないため、いずれも実機または仕様確認まで終端判定しない"
