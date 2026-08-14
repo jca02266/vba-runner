@@ -371,4 +371,36 @@ console.log('[PASS] Bug 373: CallByName exact property kind');
         'CallByName VbSet must reject array values as Object required');
     console.log('[PASS] CallByName VbSet array boundary');
 }
+
+// Dynamic external members keep the same required-argument contract when
+// reached through CallByName's ParamArray path.
+{
+    const code = String.raw`
+    Function ProbeCallByNameDynamic() As String
+        Dim d As Object, c As Object, value As Variant, out As String
+        Set d = CreateObject("Scripting.Dictionary")
+        d.Add "key", True
+        Set c = New Collection
+        c.Add "entry"
+        On Error Resume Next
+        value = Empty: Err.Clear: value = CallByName(d, "Exists", VbGet)
+        out = "DGET=" & CStr(Err.Number) & ":" & TypeName(value)
+        value = Empty: Err.Clear: value = CallByName(d, "Exists", VbMethod)
+        out = out & "|DMETHOD=" & CStr(Err.Number) & ":" & TypeName(value)
+        value = Empty: Err.Clear: value = CallByName(c, "Item", VbGet)
+        out = out & "|CGET=" & CStr(Err.Number) & ":" & TypeName(value)
+        Err.Clear: value = CallByName(d, "Exists", VbGet, "key")
+        out = out & "|DKEY=" & CStr(Err.Number) & ":" & TypeName(value) & ":" & CStr(value)
+        value = Empty: Err.Clear: value = CallByName(d, "Exists", VbGet, "key", "extra")
+        out = out & "|DOVER=" & CStr(Err.Number) & ":" & TypeName(value)
+        value = Empty: Err.Clear: value = CallByName(c, "Item", VbGet, 1, 2)
+        out = out & "|COVER=" & CStr(Err.Number) & ":" & TypeName(value)
+        ProbeCallByNameDynamic = out
+    End Function
+    `;
+    assert.strictEqual(runFunc(code, 'ProbeCallByNameDynamic'),
+        'DGET=450:Empty|DMETHOD=450:Empty|CGET=450:Empty|DKEY=0:Boolean:True|DOVER=450:Empty|COVER=450:Empty',
+        'CallByName external member required-argument matrix');
+    console.log('[PASS] CallByName external required-member matrix');
+}
 }

@@ -196,6 +196,23 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (procName === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         if (callType === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         const name = vbaToString(procName).toLowerCase();
+        const validateDynamicArguments = (
+            member: any,
+            supplied: any[],
+            declaredSpec?: BuiltinParamSpec[],
+        ): void => {
+            const spec = declaredSpec ?? member?.__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
+            const required = spec
+                ? spec.filter(param => !param.optional && !param.isParamArray).length
+                : member.length;
+            const variadic = spec?.some(param => param.isParamArray) ?? false;
+            const tooFew = supplied.length < required;
+            const tooMany = !variadic && spec !== undefined && supplied.length > spec.length;
+            if (tooFew || tooMany) {
+                ctx.throwError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    'Wrong number of arguments or invalid property assignment');
+            }
+        };
         const findExternalKey = (): string | undefined => {
             let current = obj;
             while (current && current !== Object.prototype) {
@@ -206,6 +223,12 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                 current = Object.getPrototypeOf(current);
             }
             return undefined;
+        };
+        const findExternalParamSpec = (match: string): BuiltinParamSpec[] | undefined => {
+            const specs = (obj as any).__vbaParamSpecs__ as Record<string, BuiltinParamSpec[]> | undefined;
+            if (!specs) return undefined;
+            const key = Object.keys(specs).find(k => k.toLowerCase() === match.toLowerCase());
+            return key ? specs[key] : undefined;
         };
         if (callType === 2 /* VbGet */ || callType === 1 /* VbMethod */) {
             if (obj.__vbaClass__) {
@@ -224,7 +247,10 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                     ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
                 }
                 const val = obj[match];
-                if (typeof val === 'function') return val.apply(obj, args);
+                if (typeof val === 'function') {
+                    validateDynamicArguments(val, args, findExternalParamSpec(match));
+                    return val.apply(obj, args);
+                }
                 return val;
             }
         }
@@ -250,7 +276,10 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                     ctx.throwError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${procName}'`);
                 }
                 const val = obj[match];
-                if (typeof val === 'function') { val.apply(obj, args); } else { obj[match] = args[0]; }
+                if (typeof val === 'function') {
+                    validateDynamicArguments(val, args, findExternalParamSpec(match));
+                    val.apply(obj, args);
+                } else { obj[match] = args[0]; }
                 return;
             }
         }

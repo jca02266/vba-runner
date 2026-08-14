@@ -2111,6 +2111,14 @@ checkpoints:
     nextArea: 引数・ByRef・Property
     nextEvaluation: null
     nextCandidate: FZ-GRAMMAR-060
+  - afterEvaluation: EV-00833
+    audit: "731 evaluations, 0 active claims; FZ-GRAMMAR-060のMemberExpression・With・Dictionary・Collection・TextStream経路を修正し回帰447件・VBA111件を通過"
+    decision: "RC-00070の未解決経路のうちCallByNameはParamArrayを通る別経路であり、既存評価との重複を避けてFZ-GRAMMAR-070を先にclaimする"
+    action: claim
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-GRAMMAR-070
+    rootCauseId: RC-00070
   - afterEvaluation: EV-00819
     audit: "717 evaluations, 0 active claims; BUG-00512の横展開候補でFSO・Dictionary・Collectionの同種Runner差異を再現"
     decision: "EV-00819はWith内TextStream.Readの一挙動へ限定し、FSO GetFile、Dictionary Exists、Collection Itemは個別候補へ分割する。Excel根拠がないため、いずれも実機または仕様確認まで終端判定しない"
