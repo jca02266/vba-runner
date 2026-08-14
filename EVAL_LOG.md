@@ -743,12 +743,13 @@
 | EV-00839 | FZ-COVERAGE-20260810 | verified-no-bug |  | Double最小値未満の10進指数リテラルの丸め境界 |
 | EV-00840 | FZ-COVERAGE-20260810 | fixed | 1 | Class・Module修飾Functionの過剰引数を実行時Error 13へ渡す経路 |
 | EV-00841 | FZ-COVERAGE-20260810 | fixed | 1 | FSO GetFolder戻り値のFolder.Copyがフォルダーと子ファイルを複製する経路 |
+| EV-00842 | FZ-COVERAGE-20260810 | fixed | 1 | GetFile戻り値のParentFolderがFolder操作を提供する経路 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 329 |
+| fixed | 330 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 403 |
