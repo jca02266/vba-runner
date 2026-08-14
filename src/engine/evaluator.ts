@@ -5074,10 +5074,54 @@ export class Evaluator {
         args: any[],
         localEnv: Environment,
     ): void {
-        for (let i = 0; i < proc.parameters.length && i < args.length; i++) {
-            const parameter = proc.parameters[i];
-            if (parameter.isParamArray || isEffectiveByValParameter(proc, i)) continue;
-            args[i] = localEnv.get(parameter.name.toLowerCase());
+        const values = this.collectProcedureWritebackValues(proc, localEnv);
+        for (let i = 0; i < values.length && i < args.length; i++) {
+            if (values[i] !== undefined) args[i] = values[i];
+        }
+    }
+
+    private collectProcedureWritebackValues(proc: ProcedureDeclaration, localEnv: Environment): any[] {
+        return proc.parameters.map((parameter, index) =>
+            parameter.isParamArray || isEffectiveByValParameter(proc, index)
+                ? undefined
+                : localEnv.get(parameter.name.toLowerCase())
+        );
+    }
+
+    /**
+     * Apply a single writeback plan to expression or value references. The
+     * callee may return ParamArray values packed into one parameter slot, so
+     * those values are expanded back to their original argument references.
+     */
+    private writeBackArgumentReferences(
+        proc: ProcedureDeclaration,
+        references: Array<VbaLValueReference | null>,
+        updatedValues: any[],
+    ): void {
+        for (let index = 0; index < proc.parameters.length && index < references.length; index++) {
+            if (proc.parameters[index].isParamArray) {
+                const packed = updatedValues[index];
+                if (Array.isArray(packed)) {
+                    for (let offset = 0; offset + index < references.length; offset++) {
+                        const reference = references[index + offset];
+                        if (!reference) continue;
+                        try {
+                            reference.set(packed[offset]);
+                        } catch {
+                            // Non-assignable expressions are temporaries.
+                        }
+                    }
+                }
+                break;
+            }
+            if (isEffectiveByValParameter(proc, index)) continue;
+            const reference = references[index];
+            if (!reference) continue;
+            try {
+                reference.set(updatedValues[index]);
+            } catch {
+                // Non-assignable expressions are temporaries.
+            }
         }
     }
 
@@ -5359,35 +5403,7 @@ export class Evaluator {
         const { args, references } = aligned;
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, args, byRefValues);
-        for (let i = 0; i < proc.parameters.length && i < args.length; i++) {
-            const param = proc.parameters[i];
-            if (param.isParamArray) {
-                // bindProcedureParameters packs all arguments at and after the
-                // ParamArray declaration into one array.  Keep each original
-                // expression as a separate ByRef write-back target instead of
-                // attempting to write the packed array to the parameter slot.
-                const packed = byRefValues[i];
-                if (Array.isArray(packed)) {
-                    for (let j = i; j < args.length; j++) {
-                        if (references[j]) {
-                            try {
-                                references[j]!.set(packed[j - i]);
-                            } catch {
-                                // Non-assignable expressions are temporaries.
-                            }
-                        }
-                    }
-                }
-                break;
-            }
-            if (!isEffectiveByValParameter(proc, i) && references[i]) {
-                try {
-                    references[i]!.set(byRefValues[i]);
-                } catch {
-                    // Non-assignable expressions are passed as temporary values.
-                }
-            }
-        }
+        this.writeBackArgumentReferences(proc, references, byRefValues);
         return result;
     }
 
@@ -5596,11 +5612,7 @@ export class Evaluator {
         }));
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, values, byRefValues);
-        for (let i = 0; i < proc.parameters.length && i < references.length; i++) {
-            if (!isEffectiveByValParameter(proc, i)) {
-                references[i].set(byRefValues[i]);
-            }
-        }
+        this.writeBackArgumentReferences(proc, references, byRefValues);
         return result;
     }
 
@@ -5703,11 +5715,9 @@ export class Evaluator {
             // Event handlers pass a mutable argument array so ByRef changes can
             // propagate back through RaiseEvent.
             if (byRefWriteback) {
-                for (let i = 0; i < proc.parameters.length; i++) {
-                    const param = proc.parameters[i];
-                    if (!isEffectiveByValParameter(proc, i)) {
-                        byRefWriteback[i] = localEnv.get(param.name);
-                    }
+                const values = this.collectProcedureWritebackValues(proc, localEnv);
+                for (let i = 0; i < values.length; i++) {
+                    if (values[i] !== undefined) byRefWriteback[i] = values[i];
                 }
             }
             this.env = previousEnv;
@@ -9927,11 +9937,7 @@ export class Evaluator {
                             const subtypes = aligned.args.map((v, i) =>
                                 typeof v === 'number' ? this.resolveNumericSubtype(aligned.expressions[i] ?? expr.args[i]) : undefined);
                             const result = this.callProcedure(member.property.name, aligned.args, undefined, possibleModuleName, subtypes);
-                            for (let i = 0; i < qualifiedProc.parameters.length && i < aligned.args.length; i++) {
-                                if (!isEffectiveByValParameter(qualifiedProc, i) && aligned.references[i]) {
-                                    aligned.references[i]!.set(aligned.args[i]);
-                                }
-                            }
+                            this.writeBackArgumentReferences(qualifiedProc, aligned.references, aligned.args);
                             return result;
                         }
                     }
