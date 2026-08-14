@@ -638,3 +638,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
       - sample/tests/ts/LibDate.test.ts
+  - id: FZ-GRAMMAR-069
+    title: 配列・オブジェクトを返すProperty Getの添字境界
+    status: fixed
+    priority: 1
+    focus: 引数なしProperty Getの戻り値添字をProperty引数と誤認しないprecheck
+    priorCauseKey: property-return-index-misclassified-as-call-arity
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/default-property.test.ts
+      - tests/spec/class-module.test.ts

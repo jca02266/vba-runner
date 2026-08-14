@@ -2078,7 +2078,13 @@ export class Evaluator {
                         const objectType = member.object.type === 'Identifier'
                             ? variableTypes.get((member.object as Identifier).name.toLowerCase()) : undefined;
                         const target = classProcedure(objectType, member.property.name);
-                        if (target) {
+                        // Arguments after a zero-parameter Property Get may
+                        // index its returned array/object; they are not
+                        // arguments to the Property Get itself.
+                        const indexesReturnedValue = target?.isProperty &&
+                            target.propertyType === 'get' && target.parameters.length === 0 &&
+                            call.args.length > 0;
+                        if (target && !indexesReturnedValue) {
                             checkArity(target.parameters, call.args.length,
                                 call.loc?.start.line ?? member.property.loc?.start.line);
                         } else if (member.object.type === 'Identifier') {
@@ -2087,7 +2093,10 @@ export class Evaluator {
                             ) ?? this.env.getProcedureFromModule(
                                 member.property.name, (member.object as Identifier).name, 'get',
                             );
-                            if (qualified) checkArity(qualified.parameters, call.args.length,
+                            const moduleIndexesReturnedValue = qualified?.isProperty &&
+                                qualified.propertyType === 'get' && qualified.parameters.length === 0 &&
+                                call.args.length > 0;
+                            if (qualified && !moduleIndexesReturnedValue) checkArity(qualified.parameters, call.args.length,
                                 call.loc?.start.line ?? member.property.loc?.start.line);
                         }
                     }
