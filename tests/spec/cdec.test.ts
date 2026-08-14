@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, assert, assertCompileErrorPass1 } from '../../test-libs/test-runner';
 
 console.log("Running CDec tests...");
 
@@ -35,15 +35,8 @@ const doubleOverflow = evalVBASingle(`
 assert.strictEqual(doubleOverflow.callProcedure('ProbeCDblOverflow', []), 6,
     'CDbl rejects a string exponent outside the finite Double range');
 
-const literalOverflow = evalVBASingle(`
-    Function ProbeLiteralOverflow() As Long
-        On Error Resume Next
-        Dim value As Double
-        value = 1E+309
-        ProbeLiteralOverflow = Err.Number
-    End Function
-`);
-assert.strictEqual(literalOverflow.callProcedure('ProbeLiteralOverflow', []), 6,
-    'numeric literals outside the finite Double range raise Overflow');
+assertCompileErrorPass1(`Dim value As Double
+value = 1E+309`, 2, /numeric literal out of range|overflow|syntax error|parse error/i,
+    'decimal exponent literals outside the finite Double range are syntax errors');
 
 console.log('✅ CDec: 全テスト通過');

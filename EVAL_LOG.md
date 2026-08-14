@@ -739,12 +739,13 @@
 | EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
 | EV-00836 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルの型境界と実行時オーバーフロー |
 | EV-00837 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルのDouble精度境界（2^53前後） |
+| EV-00838 | FZ-COVERAGE-20260810 | fixed | 1 | Double有限値域外の10進指数リテラルの構文エラー段階 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 326 |
+| fixed | 327 |
 | known-limit | 5 |
 | needs-excel | 2 |
 | retired | 2 |

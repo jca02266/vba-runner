@@ -213,6 +213,21 @@ value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'rad
     }
 }
 
+// [parse] decimal_exponent_literal_out_of_range
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPass1(`Dim value As Double
+value = 1E+309`, 2, /syntax error|parse error|numeric literal out of range|overflow/i, 'decimal_exponent_literal_out_of_range');
+        console.log('[PASS] decimal_exponent_literal_out_of_range');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] decimal_exponent_literal_out_of_range:', e.message);
+        __fail__++;
+    }
+}
+
 // [parse] label_then_sub_call_with_empty_parens1
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 1

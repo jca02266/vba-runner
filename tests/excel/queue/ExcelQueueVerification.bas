@@ -933,14 +933,12 @@ Private Sub VerifyLargeLiteralValues()
 End Sub
 
 Private Sub VerifyDecimalLiteralOverflowBoundaries()
-    Dim currencyValue As Currency, longValue As Long, doubleValue As Double, errNo As Long
+    Dim currencyValue As Currency, longValue As Long, errNo As Long
     On Error Resume Next
     Err.Clear: currencyValue = 922337203685477.5807: errNo = Err.Number
     EmitResult "XL-205 CURRENCY-MAX ERR=" & CStr(errNo)
     Err.Clear: longValue = 2147483648: errNo = Err.Number
     EmitResult "XL-205 LONG-OVER ERR=" & CStr(errNo)
-    Err.Clear: doubleValue = 1E+309: errNo = Err.Number
-    EmitResult "XL-205 DOUBLE-OVER ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 

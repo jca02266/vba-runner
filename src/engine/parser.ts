@@ -3387,6 +3387,13 @@ export class Parser {
         const isFloat = !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')
             && /[.eEdD]/.test(cleanVal) ? true as const : undefined;
         let parsedValue = Number(numericVal);
+        if (!Number.isFinite(parsedValue) && !cleanVal.startsWith('0x') && !cleanVal.startsWith('0o')) {
+            // VBA rejects a decimal/exponent literal outside the finite
+            // Double range while compiling; it is not a runtime coercion
+            // overflow. Keep this phase distinct from typed-variable
+            // assignment overflow handled by the evaluator.
+            this.throwError(`Parse error: numeric literal out of range at line ${this.peek().line}`);
+        }
         let baseWidth: NumberLiteral['baseWidth'];
         if (cleanVal.startsWith('0x') || cleanVal.startsWith('0o')) {
             const digits = cleanVal.slice(2);

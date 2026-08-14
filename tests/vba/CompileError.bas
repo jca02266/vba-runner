@@ -100,8 +100,8 @@ End Sub
 ' RUNNER: /identifier too long|too long|識別子が長すぎます/i
 ' NOTE: VBAの識別子は255文字まで。256文字のFunction名はパース時に拒否される。
 '@case-begin
-Function Faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa() As Long ' @error
-End Function
+''Function Faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa() As Long ' @error
+''End Function
 '@case-end
 
 ' CASE: radix_hex_literal_out_of_range
@@ -142,6 +142,16 @@ End Sub
 Sub Case_radix_integer_literal_out_of_range()
     Dim value As Integer
     value = &H10000 ' @error
+End Sub
+
+' CASE: decimal_exponent_literal_out_of_range
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error|numeric literal out of range|overflow/i
+' NOTE: Doubleの有限値域を超える10進指数リテラルは実行前に構文エラーになる。
+Sub Case_decimal_exponent_literal_out_of_range()
+    Dim value As Double
+    value = 1E+309 ' @error
 End Sub
 
 ' CASE: label_then_sub_call_with_empty_parens

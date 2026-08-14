@@ -3065,3 +3065,12 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/type-system.test.ts
+  - id: FZ-COVERAGE-20260810-324
+    title: Decimal exponent literal parse overflow boundary
+    status: queued
+    priority: 1
+    focus: Double有限値域外の10進指数リテラルの構文エラー段階
+    priorCauseKey: numeric-literal-phase-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - tests/spec/vba_compile_error.test.ts
