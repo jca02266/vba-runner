@@ -148,6 +148,22 @@ console.log('[PASS] Bug 26-7: GetAttr/SetAttr + ファイル属性定数');
 }
 console.log('[PASS] GetAttr/SetAttr: VFS属性ビット');
 
+// MemoryFileSystemのハンドル権限・ゼロ長書込み・close境界をNode契約と照合する。
+{
+    const handleFs = new MemoryFileSystem();
+    handleFs.writeFileSync('/sandbox/handles.bin', new Uint8Array([1, 2]));
+    const readFd = handleFs.openSync('/sandbox/handles.bin', 'r');
+    assert.throws(() => handleFs.writeSync(readFd, new Uint8Array([3]), 0, 1, null), /EBADF/,
+        'Read-only handle rejects writes');
+    handleFs.closeSync(readFd);
+    assert.throws(() => handleFs.closeSync(readFd), /EBADF/, 'Double close rejects invalid handle');
+    const writeFd = handleFs.openSync('/sandbox/handles.bin', 'w');
+    const zeroWritten = handleFs.writeSync(writeFd, new Uint8Array([3, 4]), 0, 0, null);
+    assert.strictEqual(zeroWritten, 0, 'Explicit zero-length write is a no-op');
+    handleFs.closeSync(writeFd);
+}
+console.log('[PASS] MemoryFileSystem handle contract');
+
 // --- Bug BL: Input # が #TRUE#/#FALSE# を Boolean として読み込めない ---
 {
     const ev = evalVBASingle(`

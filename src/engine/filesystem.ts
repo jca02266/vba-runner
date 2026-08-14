@@ -286,8 +286,15 @@ export class MemoryFileSystem implements FileSystem {
 
     openSync(p: string, flags: string): number {
         const norm = this.normalize(p);
-        if (flags === 'r' && !this.existsSync(norm)) throw new Error(`File not found: ${p}`);
-        if (flags === 'w' || flags === 'a') {
+        if (!['r', 'r+', 'w', 'a'].includes(flags)) throw new Error(`EINVAL: unsupported flags '${flags}'`);
+        if (flags === 'r' || flags === 'r+') {
+            if (!this.files.has(norm)) throw new Error(`ENOENT: no such file or directory, open '${p}'`);
+        } else {
+            if (this.dirs.has(norm)) throw new Error(`EISDIR: illegal operation on a directory, open '${p}'`);
+            const existing = this.files.get(norm);
+            if (existing?.attributes !== undefined && (existing.attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0) {
+                throw new Error(`EACCES: permission denied, open '${p}'`);
+            }
             if (flags === 'w' || !this.files.has(norm)) {
                 this.writeFileSync(norm, new Uint8Array(0));
             }
@@ -309,12 +316,14 @@ export class MemoryFileSystem implements FileSystem {
     }
 
     closeSync(fd: number): void {
+        if (!this.fileHandles.has(fd)) throw new Error('EBADF: invalid file descriptor');
         this.fileHandles.delete(fd);
     }
 
     readSync(fd: number, buffer: Uint8Array, offset: number, length: number, position: number | null): number {
         const h = this.fileHandles.get(fd);
         if (!h) throw new Error("Invalid FD");
+        if (h.flags === 'w' || h.flags === 'a') throw new Error('EBADF: file is not open for reading');
         const entry = this.files.get(h.path);
         if (!entry) return 0;
         
@@ -332,6 +341,7 @@ export class MemoryFileSystem implements FileSystem {
     writeSync(fd: number, buffer: string | Uint8Array, offset?: number, length?: number, position?: number | null): number {
         const h = this.fileHandles.get(fd);
         if (!h) throw new Error("Invalid FD");
+        if (h.flags === 'r') throw new Error('EBADF: file is not open for writing');
         
         const startOffset = offset ?? 0;
         const byteLength = length ?? (typeof buffer === 'string' ? new TextEncoder().encode(buffer).length : buffer.length - startOffset);
@@ -340,6 +350,9 @@ export class MemoryFileSystem implements FileSystem {
             : buffer.subarray(startOffset, startOffset + byteLength);
         const entry = this.files.get(h.path);
         const oldBin = entry ? (typeof entry.data === 'string' ? new TextEncoder().encode(entry.data) : entry.data) : new Uint8Array(0);
+        if (entry?.attributes !== undefined && (entry.attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0) {
+            throw new Error('EACCES: permission denied');
+        }
         
         // Node's O_APPEND always writes at the current physical end, even when
         // another handle appended since this descriptor was opened.

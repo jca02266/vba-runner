@@ -1181,6 +1181,7 @@ export class Evaluator {
         this.onPrint = onPrint;
         this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         this.fs = config.fs || new MemoryFileSystem();
+        this.fs.mkdirSync(this.sandbox.getRoot(), { recursive: true });
         if (config.allowTopLevelStatements !== undefined) this.allowTopLevelStatements = config.allowTopLevelStatements;
         this.registerStandardLibrary();     // → builtinEnv
         this.registerBuiltinExternalObjects(); // → typeLibraryNamespaces
