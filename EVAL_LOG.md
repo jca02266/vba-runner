@@ -737,23 +737,23 @@
 | EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
 | EV-00834 | FZ-GRAMMAR | fixed | 1 | CallByName外部メンバーの必須引数省略 |
 | EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
-| EV-00836 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルの型境界と実行時オーバーフロー |
-| EV-00837 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルのDouble精度境界（2^53前後） |
+| EV-00836 | FZ-COVERAGE-20260810 | verified-no-bug |  | 10進数リテラルの型境界と実行時オーバーフロー |
+| EV-00837 | FZ-COVERAGE-20260810 | verified-no-bug |  | 10進数リテラルのDouble精度境界（2^53前後） |
 | EV-00838 | FZ-COVERAGE-20260810 | fixed | 1 | Double有限値域外の10進指数リテラルの構文エラー段階 |
-| EV-00839 | FZ-COVERAGE-20260810 | needs-excel |  | Double最小値未満の10進指数リテラルの丸め境界 |
+| EV-00839 | FZ-COVERAGE-20260810 | verified-no-bug |  | Double最小値未満の10進指数リテラルの丸め境界 |
 | EV-00840 | FZ-COVERAGE-20260810 | fixed | 1 | Class・Module修飾Functionの過剰引数を実行時Error 13へ渡す経路 |
+| EV-00841 | FZ-COVERAGE-20260810 | fixed | 1 | FSO GetFolder戻り値のFolder.Copyがフォルダーと子ファイルを複製する経路 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 328 |
+| fixed | 329 |
 | known-limit | 5 |
-| needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 400 |
+| verified-no-bug | 403 |
 
-横展開未解決経路: 563、実Excel待ち評価: 3
+横展開未解決経路: 564、実Excel待ち評価: 0
 
 ## 次の候補
 
