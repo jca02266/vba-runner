@@ -718,8 +718,60 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   const rootCauseTotalRow = `<tr><th>合計</th>${deltaHeader(rootCauseTotals.total, sumDelta(rootCauseDelta, 'total'))}${deltaHeader(rootCauseTotals.v1, sumDelta(rootCauseDelta, 'v1'))}${deltaHeader(rootCauseTotals.legacy, sumDelta(rootCauseDelta, 'legacy'))}<th></th></tr>`;
   // グラフは全期間を使い、一覧表だけ直近の評価に絞る。
   const seriesRows = recentSeries.map((row) => `<tr><td class="recent-date">${htmlCell(formatLocalDateTime(row.date))}</td><td>${htmlCell(row.evaluationId)}</td><td>${htmlCell(row.status)}</td><td class="recent-area">${htmlCell(row.area)}</td>${numCell(row.evaluations)}${numCell(row.bugEvaluations)}${numCell(row.nonBugEvaluations)}${numCell(row.pendingEvaluations)}${numCell(row.otherEvaluations)}${numCell(row.discovered)}${numCell(row.fixed)}${numCell(row.openBugs)}</tr>`).join('\n');
-  const reportLayoutOverrides = '<style>.dashboard-header{display:grid!important;grid-template-columns:auto auto minmax(0,1fr);justify-content:initial!important}.dashboard-header h1{grid-column:1;grid-row:1}.dashboard-header .tabs{grid-column:2;grid-row:1}.dashboard-header .meta{grid-column:3;grid-row:1}.alert-metric,.delta{color:#c00;font-weight:700}</style>';
+  const reportLayoutOverrides = '<style>.dashboard-header{display:grid!important;grid-template-columns:auto auto minmax(0,1fr);justify-content:initial!important}.dashboard-header h1{grid-column:1;grid-row:1}.dashboard-header .tabs{grid-column:2;grid-row:1}.dashboard-header .meta{grid-column:3;grid-row:1}.alert-metric,.delta{color:#c00;font-weight:700}.sortable{cursor:pointer;user-select:none}.sortable::after{content:" ↕";font-size:.8em;color:#777}</style>';
   const initialTabScript = '<script>document.querySelector(\'.tab-button[data-tab="convergence"]\').click();</script>';
+  const sortableTableScript = `<script>
+(() => {
+  const parseCell = (cell) => {
+    const text = cell.textContent.trim();
+    if (text === '#N/A') return { kind: 'missing', value: null };
+    if (/^\\d{4}-\\d{2}-\\d{2}/.test(text)) {
+      const date = Date.parse(text);
+      if (!Number.isNaN(date)) return { kind: 'number', value: date };
+    }
+    const number = Number(text.replaceAll(',', '').replace('%', '').match(/^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)/)?.[0]);
+    if (Number.isFinite(number)) return { kind: 'number', value: number };
+    return { kind: 'text', value: text.toLocaleLowerCase('ja') };
+  };
+  const compareCells = (left, right, direction) => {
+    if (left.kind === 'missing' && right.kind !== 'missing') return 1;
+    if (right.kind === 'missing' && left.kind !== 'missing') return -1;
+    if (left.kind === 'number' && right.kind === 'number') return (left.value - right.value) * direction;
+    return String(left.value).localeCompare(String(right.value), 'ja') * direction;
+  };
+  document.querySelectorAll('table').forEach((table) => {
+    const headerCells = Array.from(table.querySelectorAll('thead th'));
+    const body = table.tBodies[0];
+    if (!body || headerCells.length === 0) return;
+    headerCells.forEach((header, column) => {
+      header.classList.add('sortable');
+      header.tabIndex = 0;
+      header.setAttribute('aria-sort', 'none');
+      const sort = () => {
+        const direction = header.dataset.sortDirection === 'asc' ? -1 : 1;
+        headerCells.forEach((cell) => {
+          cell.dataset.sortDirection = '';
+          cell.setAttribute('aria-sort', 'none');
+        });
+        header.dataset.sortDirection = direction === 1 ? 'asc' : 'desc';
+        header.setAttribute('aria-sort', direction === 1 ? 'ascending' : 'descending');
+        const rows = Array.from(body.rows);
+        const totals = rows.filter((row) => row.cells[0]?.textContent.trim() === '合計');
+        const sortableRows = rows.filter((row) => !totals.includes(row));
+        sortableRows.sort((a, b) => compareCells(parseCell(a.cells[column]), parseCell(b.cells[column]), direction));
+        sortableRows.concat(totals).forEach((row) => body.appendChild(row));
+      };
+      header.addEventListener('click', sort);
+      header.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          sort();
+        }
+      });
+    });
+  });
+})();
+</script>`;
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">${reportLayoutOverrides}
 <title>VBA Runner 評価レポート</title>
@@ -733,7 +785,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
 <section id="tab-convergence" class="tab-panel" role="tabpanel"><div class="panel-card" style="height:100%"><h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に評価単位で集計しています。旧評価は <code>completedAt</code> または本文の評価日を使用します。表示日時はローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の指標です。</p><div class="chart-row">${renderConvergenceChart(series)}</div><h3>評価一覧（直近10件）</h3><table class="recent-table"><thead><tr><th>状態遷移日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価累積</th><th>バグ状態</th><th>非バグ状態</th><th>判定保留</th><th>その他状態</th><th>発見Finding</th><th>解決済み</th><th>未解決</th></tr></thead><tbody>${seriesRows}</tbody></table></div></section>
 <section id="tab-status" class="tab-panel" role="tabpanel"><div class="status-grid"><div class="panel-card"><h2>評価状態の意味と計上先</h2><p>全件数を集計しています。グラフと一覧は状態履歴の遷移日時を使用します。</p><table class="compact-table"><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}${statusTotalRow}</tbody></table></div><div class="panel-card"><h2>真因分析の状態別件数</h2><p><code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録です。</p><table class="compact-table"><thead><tr><th>状態</th><th>件数</th><th>v1</th><th>v0・未設定</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}${rootCauseTotalRow}</tbody></table></div></div></section>
 <script>document.querySelectorAll('.tab-button').forEach((button)=>button.addEventListener('click',()=>{const id=button.dataset.tab;document.querySelectorAll('.tab-button').forEach((item)=>{const active=item===button;item.classList.toggle('active',active);item.setAttribute('aria-selected',String(active));});document.querySelectorAll('.tab-panel').forEach((panel)=>panel.classList.toggle('active',panel.id==='tab-'+id));window.dispatchEvent(new Event('resize'));}));</script>
-${initialTabScript}</body></html>\n`;
+${sortableTableScript}${initialTabScript}</body></html>\n`;
 }
 
 function renderCsv(series) {
