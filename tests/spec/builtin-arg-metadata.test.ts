@@ -264,6 +264,15 @@ End Function
 
 // --- 18. 必須引数より前を名前付き／MissingArgumentで省略しない ---
 {
+    const instrWithOmittedStart = evalVBA(String.raw`Function F()
+ F = InStr(, "abc", "b")
+End Function`).callProcedure('F', []);
+    assert.strictEqual(instrWithOmittedStart, 2, 'InStrは有効なoverloadなら先頭Optionalを明示省略できる');
+    expectVbaError(
+        String.raw`Debug.Print InStr(, "abc")`,
+        VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+        'InStr(必須String2を明示省略)',
+    );
     expectVbaError(
         String.raw`Debug.Print Replace("abc", "a", Start:=1)`,
         VbaErrorCode.ARGUMENT_NOT_OPTIONAL,

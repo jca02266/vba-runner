@@ -90,6 +90,26 @@ export function hasMissingRequiredArgument(
     return false;
 }
 
+/** Return whether a mixed positional/named call omits a required parameter. */
+export function hasMissingRequiredNamedArgument(
+    parameters: readonly VbaArgumentParameter[],
+    positionalCount: number,
+    namedNames: Iterable<string>,
+): boolean {
+    const named = new Set([...namedNames].map(name => name.toLowerCase()));
+    const paramArrayIndex = parameters.findIndex(isParamArrayArgument);
+    const positionalPrefixCount = paramArrayIndex >= 0
+        ? Math.min(positionalCount, paramArrayIndex)
+        : positionalCount;
+    for (let index = positionalPrefixCount; index < parameters.length; index++) {
+        const parameter = parameters[index];
+        if (!named.has(parameter.name?.toLowerCase() ?? '') && isRequiredArgument(parameter)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** Validate the declaration-shape part of a mixed positional/named call. */
 export function acceptsNamedArgumentShape(
     parameters: readonly VbaArgumentParameter[],

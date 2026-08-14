@@ -125,6 +125,7 @@ import {
     acceptsNamedArgumentShape,
     hasParamArrayArgument,
     hasMissingRequiredArgument,
+    hasMissingRequiredNamedArgument,
     hasRequiredArgumentAfterPrefix,
     isEffectiveByValParameter,
     isPropertyValueParameter,
@@ -5328,15 +5329,15 @@ export class Evaluator {
                 this.throwVbaError(448, `Named argument not found: '${namedKey}'`);
             }
         }
-        if (hasMissingRequiredArgument(overloads[0]?.params ?? [], positionalMissing)) {
-            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-        }
-
         if (namedArgs.size === 0) {
             const matchingOverloads = overloads.filter(o =>
-                classifyArgumentCount(o.params, totalCount) === null);
+                classifyArgumentCount(o.params, totalCount) === null &&
+                acceptsNamedArgumentShape(o.params, positionalArgs.length, []) &&
+                !hasMissingRequiredArgument(o.params, positionalMissing) &&
+                !hasMissingRequiredNamedArgument(o.params, positionalArgs.length, []));
             if (matchingOverloads.length === 0) {
-                if (totalCount < Math.min(...arities)) {
+                if (totalCount <= Math.max(...arities) && overloads.some(o =>
+                    hasMissingRequiredNamedArgument(o.params, positionalArgs.length, []))) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                 }
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
@@ -5347,11 +5348,14 @@ export class Evaluator {
         }
 
         const candidates = overloads.filter(o => {
-            return acceptsNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys());
+            return acceptsNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys()) &&
+                !hasMissingRequiredArgument(o.params, positionalMissing) &&
+                !hasMissingRequiredNamedArgument(o.params, positionalArgs.length, namedArgs.keys());
         });
 
         if (candidates.length === 0) {
-            if (totalCount < Math.min(...arities)) {
+            if (totalCount <= Math.max(...arities) && overloads.some(o =>
+                hasMissingRequiredNamedArgument(o.params, positionalArgs.length, namedArgs.keys()))) {
                 this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             }
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
