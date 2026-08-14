@@ -2114,6 +2114,16 @@ checkpoints:
     rootCauseIds:
       - RC-00070
       - RC-00071
+  - afterEvaluation: EV-00835
+    audit: "733 evaluations, 0 active claims; FZ-GRAMMAR-065の修正後にTS447件・VBA111件を通過し、queued候補とqueued remediation taskは0件"
+    decision: "Module修飾Functionの裸参照漏れを修正し、引数契約の共通化後に同領域の追加候補は現時点でない。RC-00070/RC-00071はOptional、Property value-tail、VbLet/VbSet、Excel未照合境界を残したunder-reviewとして収束監視へ移す"
+    action: pause-for-no-queued-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: null
+    rootCauseIds:
+      - RC-00070
+      - RC-00071
   - afterEvaluation: EV-00832
     audit: "730 evaluations, 0 active claims; needs-excel 0件、通常のqueued候補はFZ-GRAMMAR-060とFZ-GRAMMAR-065"
     decision: "既存の動的メンバー差異（TextStream.Read、FSO.GetFile、Dictionary.Exists）を重複評価せず、Dictionary・Collection・CallByName・COMの経路差と共通引数契約を横展開するFZ-GRAMMAR-060を先にclaimする"
