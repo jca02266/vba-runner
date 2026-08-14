@@ -116,9 +116,14 @@ export class MemoryFileSystem implements FileSystem {
     }
 
     moveFileSync(src: string, dest: string): void {
-        if (this.existsSync(this.normalize(dest))) throw new Error(`EEXIST: destination exists '${dest}'`);
-        this.copyFileSync(src, dest);
-        this.unlinkSync(src);
+        const source = this.normalize(src);
+        const target = this.normalize(dest);
+        const entry = this.files.get(source);
+        if (!entry) throw new Error(`ENOENT: no such file or directory, moveFileSync '${src}'`);
+        if (!this.dirs.has(path.dirname(target))) throw new Error(`ENOENT: no such directory, moveFileSync '${dest}'`);
+        if (this.existsSync(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
+        this.files.set(target, entry);
+        this.files.delete(source);
     }
 
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void {
@@ -157,8 +162,24 @@ export class MemoryFileSystem implements FileSystem {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
         }
         if (this.existsSync(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
-        this.copyDirectorySync(src, dest);
-        this.rmSync(src, { recursive: true, force: true });
+        if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, moveDirectorySync '${src}'`);
+        if (!this.dirs.has(path.dirname(target))) throw new Error(`ENOENT: no such directory, moveDirectorySync '${dest}'`);
+        const prefix = source === '/' ? '/' : source + '/';
+        const movedDirs = new Map<string, { birthtime: Date, mtime: Date, attributes?: number }>();
+        for (const [dir, entry] of this.dirs.entries()) {
+            if (dir === source || dir.startsWith(prefix)) {
+                const suffix = dir === source ? '' : dir.slice(prefix.length);
+                movedDirs.set(suffix ? path.join(target, suffix) : target, entry);
+            }
+        }
+        const movedFiles = new Map<string, { data: Uint8Array | string, birthtime: Date, mtime: Date, attributes?: number }>();
+        for (const [file, entry] of this.files.entries()) {
+            if (file.startsWith(prefix)) movedFiles.set(path.join(target, file.slice(prefix.length)), entry);
+        }
+        for (const dir of [...this.dirs.keys()]) if (dir === source || dir.startsWith(prefix)) this.dirs.delete(dir);
+        for (const file of [...this.files.keys()]) if (file.startsWith(prefix)) this.files.delete(file);
+        for (const [dir, entry] of movedDirs) this.dirs.set(dir, entry);
+        for (const [file, entry] of movedFiles) this.files.set(file, entry);
     }
 
     rmSync(p: string, options?: { recursive?: boolean, force?: boolean }): void {
