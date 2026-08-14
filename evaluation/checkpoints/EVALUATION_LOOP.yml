@@ -2193,3 +2193,15 @@ checkpoints:
     nextEvaluation: EV-00837
     nextCandidate: FZ-COVERAGE-20260810-323
     finding: null
+  - afterEvaluation: EV-00839
+    audit: "738 evaluations, 0 active claims; needs-excel 3件（XL-205〜XL-207）、通常のqueued候補0件。3件ともrequired probeがresultに未収録で、source hashも未取得のためresult-readyではない"
+    decision: "数値リテラル境界のRunner結果は確認済みだが、Excel結果がないまま終端判定すると仮説を確定してしまう。新規候補を増やさず、XL-205〜XL-207を同一の実機結果で照合するまで保留する"
+    action: reconcile-excel
+    nextArea: 数値リテラル・型境界
+    nextEvaluation: EV-00836
+    nextCandidate: null
+    excelProbes:
+      - XL-205
+      - XL-206
+      - XL-207
+    finding: null
