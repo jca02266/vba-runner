@@ -3074,3 +3074,13 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: FZ-COVERAGE-20260810-325
+    title: Decimal literal underflow boundary
+    status: queued
+    priority: 1
+    focus: Double最小値未満の10進指数リテラルの丸め境界
+    priorCauseKey: numeric-literal-underflow-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/excel/queue/ExcelQueueVerification.bas

@@ -643,6 +643,7 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyLargeLiteralValues
     VerifyDecimalLiteralOverflowBoundaries
     VerifyDecimalLiteralPrecisionBoundary
+    VerifyDecimalLiteralUnderflowBoundary
     VerifyDefaultValueInformation
     VerifyTimeSerialConsumers
     VerifyCallByNamePropertyKinds
@@ -948,6 +949,18 @@ Private Sub VerifyDecimalLiteralPrecisionBoundary()
     nextValue = 9007199254740993
     EmitResult "XL-206 FIRST=" & CStr(firstValue) & " SECOND=" & CStr(nextValue) & _
         " EQUAL=" & CStr(firstValue = nextValue) & " TYPE1=" & TypeName(firstValue) & " TYPE2=" & TypeName(nextValue)
+End Sub
+
+Private Sub VerifyDecimalLiteralUnderflowBoundary()
+    Dim firstValue As Variant, secondValue As Variant, negativeValue As Variant
+    On Error Resume Next
+    Err.Clear: firstValue = 1E-323
+    EmitResult "XL-207 FIRST=" & CStr(firstValue) & " ERR=" & CStr(Err.Number)
+    Err.Clear: secondValue = 1E-324
+    EmitResult "XL-207 SECOND=" & CStr(secondValue) & " ERR=" & CStr(Err.Number)
+    Err.Clear: negativeValue = -1E-324
+    EmitResult "XL-207 NEGATIVE=" & CStr(negativeValue) & " ERR=" & CStr(Err.Number)
+    On Error GoTo 0
 End Sub
 
 Private Sub EmitValueAndType(ByVal id As String, ByVal value As Variant, ByVal errNo As Long)

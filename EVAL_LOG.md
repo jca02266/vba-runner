@@ -740,6 +740,7 @@
 | EV-00836 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルの型境界と実行時オーバーフロー |
 | EV-00837 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルのDouble精度境界（2^53前後） |
 | EV-00838 | FZ-COVERAGE-20260810 | fixed | 1 | Double有限値域外の10進指数リテラルの構文エラー段階 |
+| EV-00839 | FZ-COVERAGE-20260810 | needs-excel |  | Double最小値未満の10進指数リテラルの丸め境界 |
 
 ## 状態集計
 
@@ -747,11 +748,11 @@
 |---|---:|
 | fixed | 327 |
 | known-limit | 5 |
-| needs-excel | 2 |
+| needs-excel | 3 |
 | retired | 2 |
 | verified-no-bug | 400 |
 
-横展開未解決経路: 563、実Excel待ち評価: 2
+横展開未解決経路: 563、実Excel待ち評価: 3
 
 ## 次の候補
 
