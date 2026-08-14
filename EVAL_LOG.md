@@ -747,12 +747,13 @@
 | EV-00843 | FZ-COVERAGE-20260810 | fixed | 1 | Folder.SubFoldersから取得した子FolderのFiles/Copy契約 |
 | EV-00844 | FZ-COVERAGE-20260810 | fixed | 1 | File/FolderパスオブジェクトとトップレベルFile操作の共通能力・境界 |
 | EV-00845 | FZ-COVERAGE-20260810 | fixed | 1 | FSO CopyFolderの既存フォルダーへのマージとOverwrite境界 |
+| EV-00846 | FZ-COVERAGE-20260810 | fixed | 1 | FSOの削除必須能力・非空境界・VBA Attributes値の共通契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 333 |
+| fixed | 334 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 403 |

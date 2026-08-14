@@ -1,0 +1,14 @@
+- candidateId: FZ-COVERAGE-20260810-332
+  evaluationId: EV-00846
+  status: in-progress
+  occurredAt: '2026-08-15T01:00:00+09:00'
+- candidateId: FZ-COVERAGE-20260810-332
+  evaluationId: EV-00846
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T01:10:00+09:00'
+- candidateId: FZ-COVERAGE-20260810-332
+  evaluationId: EV-00846
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-15T01:20:00+09:00'

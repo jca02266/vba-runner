@@ -3140,3 +3140,14 @@ items:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-332
+    title: FSO backend deletion and attribute contract
+    status: fixed
+    priority: 1
+    focus: FSOの削除必須能力・非空境界・VBA Attributes値の共通契約
+    priorCauseKey: fso-backend-boundary-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
