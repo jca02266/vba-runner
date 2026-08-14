@@ -746,12 +746,13 @@
 | EV-00842 | FZ-COVERAGE-20260810 | fixed | 1 | GetFile戻り値のParentFolderがFolder操作を提供する経路 |
 | EV-00843 | FZ-COVERAGE-20260810 | fixed | 1 | Folder.SubFoldersから取得した子FolderのFiles/Copy契約 |
 | EV-00844 | FZ-COVERAGE-20260810 | fixed | 1 | File/FolderパスオブジェクトとトップレベルFile操作の共通能力・境界 |
+| EV-00845 | FZ-COVERAGE-20260810 | fixed | 1 | FSO CopyFolderの既存フォルダーへのマージとOverwrite境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 332 |
+| fixed | 333 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 403 |
