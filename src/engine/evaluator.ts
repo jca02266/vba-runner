@@ -1181,7 +1181,13 @@ export class Evaluator {
         this.onPrint = onPrint;
         this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         this.fs = config.fs || new MemoryFileSystem();
-        this.fs.mkdirSync(this.sandbox.getRoot(), { recursive: true });
+        // The in-memory backend needs an explicit virtual sandbox root.  A
+        // Node-backed filesystem must not implicitly create the default
+        // `/sandbox` path: callers may use a read-only or container-mounted
+        // host and should provide a real sandboxRoot when host I/O is wanted.
+        if (this.fs instanceof MemoryFileSystem) {
+            this.fs.mkdirSync(this.sandbox.getRoot(), { recursive: true });
+        }
         if (config.allowTopLevelStatements !== undefined) this.allowTopLevelStatements = config.allowTopLevelStatements;
         this.registerStandardLibrary();     // → builtinEnv
         this.registerBuiltinExternalObjects(); // → typeLibraryNamespaces
