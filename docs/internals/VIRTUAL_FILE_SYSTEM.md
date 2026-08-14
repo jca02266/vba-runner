@@ -34,9 +34,9 @@ sources:
 
 VBA RunnerのファイルI/Oは、`FileSystem`インターフェースを介して
 Evaluatorから分離されています。
-通常の評価では、ホストOSに触れない`MemoryFileSystem`を使用します。
-Node.jsの実ファイルを扱う必要があるCLIや統合テストだけが、
-`NodeFileSystem`を明示的に注入します。
+通常の評価と`vba-runner run` CLIでは、ホストOSに触れない
+`MemoryFileSystem`を使用します。Node.jsの実ファイルを扱う必要がある
+統合テストなどだけが、`NodeFileSystem`を明示的に注入します。
 
 ここでいう「ファイルシステム実装（バックエンド）」とは、Evaluatorから
 呼び出される`FileSystem`インターフェースの実装を指します。
@@ -77,7 +77,7 @@ MemoryFileSystem   NodeFileSystem
 | テスト間の分離 | インスタンス単位で容易 | 一時ディレクトリ管理が必要 |
 | OS権限・属性 | エンジンが定義した近似値 | OSの権限・属性に依存 |
 | 外部からの永続化 | なし | あり |
-| 主な用途 | 通常評価、単体テスト、ブラウザ | CLI、実ファイル統合テスト |
+| 主な用途 | 通常評価、単体テスト、`vba-runner run`、ブラウザ | 明示的な実ファイル統合テスト |
 
 ## 守る契約
 
@@ -181,26 +181,10 @@ const ev = evalVBASingle(source, {
 });
 ```
 
-CLIの`vba-run`はこのルールに従い、Nodeの一時ディレクトリを生成して
-明示的に渡します。NodeFileSystemを直接注入するコードで
+CLIの`vba-run`もMemoryFileSystemを使用します。CLIが入力VBAソースを
+Nodeの`fs`で読み込むことと、VBA実行中のファイルI/Oをどの実装で行うかは
+別の責務です。NodeFileSystemを直接注入するコードで
 `sandboxRoot`を省略することはできません。
-
-## 類似文書との役割分担
-
-既存文書にも関連情報はありますが、両ファイルシステム実装の比較と保証境界を
-一つにまとめた文書はありません。
-
-- [REFERENCE.md](../implementation/REFERENCE.md): 利用者向けAPI、Sandbox、
-  MemoryFileSystemの基本利用方法。NodeFileSystemとの安全境界は本書が補完する。
-- [VBA_SPEC_LIST.md](../implementation/VBA_SPEC_LIST.md): FileSystem/VFSの
-  実装項目と進捗。個別バグの履歴ではなく仕様実装一覧を管理する。
-- [TEST_FRAMEWORK_GUIDE.md](../testing/TEST_FRAMEWORK_GUIDE.md):
-  MemoryFileSystemを使ったテスト方法。ファイルシステム実装の設計正本ではない。
-- [VBA_ENGINE_BUG_HISTORY.md](../bug-records/VBA_ENGINE_BUG_HISTORY.md):
-  過去のファイルI/Oバグと修正履歴。本書は現在の設計契約を記述する。
-
-したがって、実装契約・安全境界は本書、利用方法は`REFERENCE.md`、
-仕様項目の進捗は`VBA_SPEC_LIST.md`、過去の不具合はバグ履歴を参照します。
 
 ## 実装・検証の入口
 

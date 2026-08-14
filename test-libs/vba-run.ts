@@ -1,10 +1,9 @@
 import * as fs from 'fs';
-import * as os from 'os';
 import * as path from 'path';
 import { Lexer } from '../src/engine/lexer';
 import { Parser } from '../src/engine/parser';
 import { Evaluator } from '../src/engine/evaluator';
-import { NodeFileSystem } from '../src/engine/node_filesystem';
+import { MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, stripVBAFileHeader } from '../src/engine/preprocessor';
 import { VERSION } from './version';
 
@@ -47,12 +46,11 @@ export function main(args: string[]): void {
     const absFile = path.resolve(filePath);
     const dir     = path.dirname(absFile);
     const callArgs = rawArgs.map(parseArg);
-    const sandboxRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'vba-runner-'));
 
     // Debug.Print → stderr、戻り値のみ stdout に出す
     const ev = new Evaluator(
         (s: string) => process.stderr.write(s + '\n'),
-        { fs: new NodeFileSystem(), sandboxRoot }
+        { fs: new MemoryFileSystem() }
     );
 
     const files = fs.readdirSync(dir)
