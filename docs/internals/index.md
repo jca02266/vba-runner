@@ -17,6 +17,7 @@
 * [VBA エクスポート・インポート](./VBA_EXPORT_IMPORT.md) - Office バイナリ処理
 * [評価記録とバグ探索状態](./EVALUATION_STORAGE.md) - 評価履歴・探索キュー・横展開調査の永続化
 * [真因分析と対処タスク](./ROOT_CAUSE_ANALYSIS.md) - 仮説、独立レビュー、設計対処の手順
+* [仮想ファイルシステムとNodeFileSystem](./VIRTUAL_FILE_SYSTEM.md) - バックエンド差異、保証範囲、安全境界
 
 ## Plans
 
