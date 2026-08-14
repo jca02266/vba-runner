@@ -553,10 +553,20 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
   - id: FZ-GRAMMAR-064
-    title: Property Get・修飾メンバーの必須引数境界
+    title: Property Get必須引数の裸参照境界
     status: queued
     priority: 1
-    focus: Property GetとModule・Class修飾呼出しの引数不足検査
+    focus: Property Getの裸参照における必須引数検査
+    priorCauseKey: member-call-arity-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
+      - tests/vba/CompileError.bas
+  - id: FZ-GRAMMAR-065
+    title: Module修飾メンバーの裸参照境界
+    status: queued
+    priority: 2
+    focus: Module修飾Function/Subの括弧なし必須引数検査
     priorCauseKey: member-call-arity-contract-not-centralized
     coverageTargets:
       - src/engine/evaluator.ts

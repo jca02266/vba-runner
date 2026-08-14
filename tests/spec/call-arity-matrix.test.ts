@@ -222,4 +222,19 @@ End Sub
         `Property ${propertyKind}/required-index-omitted`);
 }
 
+// A bare Property Get or module-qualified Function is still an implicit call.
+// Required parameters must be rejected during precheck, before object lookup
+// or runtime member evaluation can produce a secondary error.
+assertCompileErrorPreproc(String.raw`Class ArityGetter
+Public Property Get Item(index As Long) As Long
+    Item = index
+End Property
+End Class
+Sub Caller()
+    Dim instance As New ArityGetter
+    Dim result As Long
+    result = instance.Item
+End Sub
+`, 'Caller', undefined, /argument not optional/i, 'Property-Get/bare-required-index');
+
 console.log('✅ Function/Sub definition and call arity matrix passed');

@@ -50,6 +50,10 @@ End Function
 Private Sub MySubHasArg(x)
 End Sub
 
+Private Property Get MyPropertyHasArg(index As Long) As Long
+    MyPropertyHasArg = index
+End Property
+
 ' ================================================================
 ' [parse] 構文エラー
 ' VBE に貼り付けると該当行が赤くなることで確認できる。
@@ -298,6 +302,18 @@ End Sub
 Sub Case_function_call_without_required_argument()
     MyFuncHasArg  ' @error
 End Sub
+
+' CASE: property_get_without_required_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 引数は省略できません。
+' RUNNER: /argument not optional/i
+' NOTE: 必須引数付きProperty Getの裸参照は、Functionと同じ暗黙呼出し契約を持つ。
+'@case-begin
+Sub Case_property_get_without_required_argument()
+    Dim value As Long
+    value = MyPropertyHasArg  ' @error
+End Sub
+'@case-end
 
 ' 実行時確認: function_call_with_excess_argument_runtime
 ' VBAではコンパイルエラーにならず、実行時エラー13（型が一致しません）になる。

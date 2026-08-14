@@ -2035,7 +2035,7 @@ export class Evaluator {
             return classDef.procedures.find(p => p.name.name.toLowerCase() === memberName.toLowerCase());
         };
 
-        const visitExpression = (expr: Expression, assignmentTarget = false): void => {
+        const visitExpression = (expr: Expression, assignmentTarget = false, asCallCallee = false): void => {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
                 if (!(assignmentTarget && call.callee.type === 'Identifier')) {
@@ -2065,7 +2065,7 @@ export class Evaluator {
                             }
                         }
                     }
-                    if (!findings.argumentError && call.callee.type === 'MemberExpression') {
+                    if (!assignmentTarget && !findings.argumentError && call.callee.type === 'MemberExpression') {
                         const member = call.callee as MemberExpression;
                         const objectType = member.object.type === 'Identifier'
                             ? variableTypes.get((member.object as Identifier).name.toLowerCase()) : undefined;
@@ -2103,7 +2103,7 @@ export class Evaluator {
                 switch (expr.type) {
                     case 'CallExpression': {
                         const call = expr as CallExpression;
-                        visitExpression(call.callee);
+                        visitExpression(call.callee, assignmentTarget, true);
                         for (const arg of call.args) visitExpression(arg);
                         break;
                     }
@@ -2112,7 +2112,7 @@ export class Evaluator {
                     case 'ByValArgument':
                         visitExpression((expr as ByValArgument).value); break;
                     case 'MemberExpression':
-                        if (!findings.argumentError && expr.type === 'MemberExpression' &&
+                        if (!asCallCallee && !assignmentTarget && !findings.argumentError && expr.type === 'MemberExpression' &&
                             expr.object.type === 'Identifier' &&
                             variableTypes.get((expr.object as Identifier).name.toLowerCase())?.toLowerCase() === 'collection' &&
                             expr.property.name.toLowerCase() === 'item') {
@@ -2121,6 +2121,25 @@ export class Evaluator {
                                 message: 'Argument not optional',
                                 line: expr.loc?.start.line ?? expr.property.loc?.start.line,
                             };
+                        }
+                        if (!asCallCallee && !assignmentTarget && !findings.argumentError && expr.type === 'MemberExpression' &&
+                            expr.object.type === 'Identifier') {
+                            const objectName = (expr.object as Identifier).name;
+                            const objectType = variableTypes.get(objectName.toLowerCase());
+                            const classTarget = classProcedure(objectType, expr.property.name);
+                            const moduleTarget = this.moduleEnvs.has(objectName.toLowerCase())
+                                ? this.env.getProcedureFromModule(
+                                    expr.property.name, objectName,
+                                ) ?? this.env.getProcedureFromModule(
+                                    expr.property.name, objectName, 'get',
+                                )
+                                : undefined;
+                            const target = classTarget ?? moduleTarget;
+                            if (target && (target.isFunction ||
+                                (target.isProperty && target.propertyType === 'get'))) {
+                                checkArity(target.parameters, 0,
+                                    expr.loc?.start.line ?? expr.property.loc?.start.line);
+                            }
                         }
                     case 'DictionaryAccessExpression':
                         visitExpression((expr as MemberExpression).object, assignmentTarget); break;

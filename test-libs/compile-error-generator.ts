@@ -2,7 +2,7 @@
  * CompileError.bas を解析して vba_compile_error.test.ts を生成するツール。
  *
  * CompileError.bas の構造:
- *   - Private Sub/Function ... End Sub/Function  → PREAMBLE（ヘルパー定義）として扱う
+ *   - Private Sub/Function/Property ... End ...  → PREAMBLE（ヘルパー定義）として扱う
  *
  *   通常ケース（Sub Case_<name>() でラップ）:
  *   - ' CASE: name
@@ -192,15 +192,15 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
             continue;
         }
 
-        // PREAMBLE: Private Sub/Function ... End Sub/Function
-        if (!meta && /^\s*Private\s+(Sub|Function)\s+/i.test(raw)) {
+        // PREAMBLE: Private Sub/Function/Property ... End ...
+        if (!meta && /^\s*Private\s+(Sub|Function|Property\s+(?:Get|Let|Set))\s+/i.test(raw)) {
             inPreambleSub = true;
             preambleBuffer = [raw];
             continue;
         }
         if (inPreambleSub) {
             preambleBuffer.push(raw);
-            if (/^\s*End\s+(Sub|Function)\s*$/i.test(trimmed)) {
+            if (/^\s*End\s+(Sub|Function|Property)\s*$/i.test(trimmed)) {
                 preamble.push(...preambleBuffer);
                 preamble.push('');
                 inPreambleSub = false;
