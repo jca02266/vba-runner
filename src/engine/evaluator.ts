@@ -1519,6 +1519,33 @@ export class Evaluator {
         }
     }
 
+    /** Shared FSO/top-level file deletion boundary, including Force/read-only handling. */
+    private deleteFilePath(fullPath: string, force: boolean): void {
+        try {
+            const stats = this.fs.statSync(fullPath);
+            if (stats.isDirectory()) {
+                this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+            }
+            const attributes = this.fs.getAttributes?.(fullPath);
+            const readOnly = attributes !== undefined
+                ? (attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0
+                : stats.mode !== undefined && (stats.mode & 0o222) === 0;
+            if (readOnly && !force) {
+                this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, 'Permission denied');
+            }
+            if (readOnly && force && attributes !== undefined && this.fs.setAttributes) {
+                this.fs.setAttributes(fullPath, attributes & ~VBA_FILE_ATTRIBUTE.READ_ONLY);
+            }
+            this.fs.unlinkSync(fullPath);
+        } catch (error: any) {
+            if (error?.type === 'VbaError') throw error;
+            if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
+            }
+            throw error;
+        }
+    }
+
     private registerFileSystemFunctions() {
         const freeFileFunc = (range?: any) => {
             if (range === vbaNull) {
@@ -7952,15 +7979,7 @@ export class Evaluator {
                 common.size = stats.size;
                 common.type = path.win32.extname(base).replace(/^\./, '');
                 common.delete = (force: any = false) => {
-                    try { this.fs.unlinkSync(full); }
-                    catch (e: any) {
-                        if (vbaFlagIsTrue(force) && e?.code === 'EACCES') {
-                            (this.fs as any).chmodSync?.(full, 0o666);
-                            this.fs.unlinkSync(full);
-                            return;
-                        }
-                        throwFsoPathError(e);
-                    }
+                    this.deleteFilePath(full, vbaFlagIsTrue(force));
                 };
                 common.copy = (destination: string, overwrite: any = false) => {
                     const target = this.sandbox.toRealPath(destination);
@@ -8255,33 +8274,7 @@ export class Evaluator {
             },
             deletefile: (p: string, force: any = false) => {
                 const full = this.sandbox.toRealPath(p);
-                try {
-                    if (this.fs.statSync(full).isDirectory()) {
-                        this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
-                    }
-                    const attributes = this.fs.getAttributes?.(full);
-                    const readOnly = attributes !== undefined
-                        ? (attributes & VBA_FILE_ATTRIBUTE.READ_ONLY) !== 0
-                        : (() => {
-                            const stat = this.fs.statSync(full);
-                            return stat.mode !== undefined && (stat.mode & 0o222) === 0;
-                        })();
-                    if (readOnly) {
-                        if (!vbaFlagIsTrue(force)) {
-                            this.throwVbaError(VbaErrorCode.PERMISSION_DENIED, 'Permission denied');
-                        }
-                        if (this.fs.setAttributes && attributes !== undefined) {
-                            this.fs.setAttributes(full, attributes & ~VBA_FILE_ATTRIBUTE.READ_ONLY);
-                        } else if ((this.fs as any).chmodSync) {
-                            (this.fs as any).chmodSync(full, 0o666);
-                        }
-                    }
-                    this.fs.unlinkSync(full);
-                } catch (e: any) {
-                    if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e)))
-                        this.throwVbaError(VbaErrorCode.FILE_NOT_FOUND, 'File not found');
-                    throw e;
-                }
+                this.deleteFilePath(full, vbaFlagIsTrue(force));
             },
             copyfile: (source: string, destination: string, overwrite: boolean = false) => {
                 const sourcePath = this.sandbox.toRealPath(source);
