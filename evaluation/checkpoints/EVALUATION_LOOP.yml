@@ -2213,3 +2213,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     finding: null
+  - afterEvaluation: null
+    audit: "738 evaluations, 0 active claims; 引数・ByRef・Propertyのソース経路レビューと直接API・Property ParamArray・Function/Subアリティ回帰を確認し、新規差異なし"
+    decision: "通常モジュール、クラス、修飾呼び出し、CallByName、直接callProcedureの引数バインドは共通検証・書戻し経路へ接続されている。過去バグ32件のFSO経路を次に同じ機械レビューへ進める"
+    action: source-review
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    finding: null
