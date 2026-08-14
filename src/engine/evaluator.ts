@@ -4140,6 +4140,17 @@ export class Evaluator {
         sourceExpr: Expression | undefined,
         value: any,
     ): void {
+        // The assignment RHS supplies only the synthetic final value
+        // parameter.  Indexed Property Let/Set members still require every
+        // preceding index parameter; do not let the alignment layer turn an
+        // omitted index into an accepted `vbaOmitted` slot.
+        const valueParameterIndex = setter.parameters.length - 1;
+        for (let i = indexExpressions.length; i < valueParameterIndex; i++) {
+            const parameter = setter.parameters[i];
+            if (!parameter.isOptional && parameter.defaultValue == null && !parameter.isParamArray) {
+                this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+            }
+        }
         const finalParameter = setter.parameters[setter.parameters.length - 1];
         const rhsExpression = sourceExpr ?? ({ type: 'Literal', value } as Expression);
         const rhsArgument: Expression = finalParameter

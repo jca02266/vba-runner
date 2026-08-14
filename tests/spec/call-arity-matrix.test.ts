@@ -196,7 +196,30 @@ Sub Caller()
     result = Target(1, 2, 3, 4)
 End Sub
 `);
-    assert.doesNotThrow(() => runner.callProcedure('Caller', []), 'ParamArray/unbounded-tail');
+assert.doesNotThrow(() => runner.callProcedure('Caller', []), 'ParamArray/unbounded-tail');
+}
+
+// Property Let/Set assignments append the RHS as an implicit final
+// parameter.  An indexed property must still reject an omitted required index.
+for (const propertyKind of ['Let', 'Set'] as const) {
+    const valueType = propertyKind === 'Set' ? 'Object' : 'Long';
+    const assignment = propertyKind === 'Set' ? 'Set instance.Value = child' : 'instance.Value = 2';
+    const source = String.raw`Class ArityProperty
+Public Property Get Status() As Long
+    Status = 0
+End Property
+Public Property ${propertyKind} Value(index As Long, value As ${valueType})
+    Status = 1
+End Property
+End Class
+Sub Caller()
+    Dim instance As New ArityProperty
+    ${propertyKind === 'Set' ? 'Dim child As New ArityProperty' : ''}
+    ${assignment}
+End Sub
+`;
+    assertCompileErrorExec(source, 'Caller', undefined, /argument not optional/i,
+        `Property ${propertyKind}/required-index-omitted`);
 }
 
 console.log('✅ Function/Sub definition and call arity matrix passed');
