@@ -20,7 +20,8 @@ export interface FileSystem {
     mkdirSync(path: string, options?: { recursive?: boolean }): void;
     rmdirSync?(path: string): void;
     rmSync?(path: string, options?: { recursive?: boolean, force?: boolean }): void;
-    copyFileSync?(src: string, dest: string): void;
+    copyFileSync(src: string, dest: string): void;
+    moveFileSync(src: string, dest: string): void;
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void;
     moveDirectorySync(src: string, dest: string): void;
     unlinkSync(path: string): void;
@@ -110,6 +111,11 @@ export class MemoryFileSystem implements FileSystem {
         const entry = this.files.get(s);
         if (!entry) throw new Error(`ENOENT: no such file or directory, copyFileSync '${src}'`);
         this.writeFileSync(d, entry.data);
+    }
+
+    moveFileSync(src: string, dest: string): void {
+        this.copyFileSync(src, dest);
+        this.unlinkSync(src);
     }
 
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void {

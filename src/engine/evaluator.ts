@@ -1540,7 +1540,7 @@ export class Evaluator {
                 if (this.fs.existsSync(destPath)) {
                     this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                 }
-                this.fs.copyFileSync?.(srcPath, destPath);
+                this.fs.copyFileSync(srcPath, destPath);
             } catch {
                 // Preserve the VBA error raised for an existing destination.
                 if (this.fs.existsSync(destPath)) {
@@ -7863,7 +7863,6 @@ export class Evaluator {
                     if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    if (!this.fs.copyFileSync) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File copy is not supported');
                     try { this.fs.copyFileSync(full, target); } catch (e) { throwFsoPathError(e); }
                 };
                 common.move = (destination: string) => {
@@ -7871,11 +7870,7 @@ export class Evaluator {
                     if (this.fs.existsSync(target)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    if (!this.fs.copyFileSync) this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File move is not supported');
-                    try {
-                        this.fs.copyFileSync(full, target);
-                        this.fs.unlinkSync(full);
-                    } catch (e) { throwFsoPathError(e); }
+                    try { this.fs.moveFileSync(full, target); } catch (e) { throwFsoPathError(e); }
                 };
             } else {
                 common.delete = (force: any = false) => {
@@ -8207,9 +8202,6 @@ export class Evaluator {
                     if (this.fs.existsSync(destinationPath) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    if (!this.fs.copyFileSync) {
-                        this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File copy is not supported');
-                    }
                     this.fs.copyFileSync(sourcePath, destinationPath);
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
@@ -8277,11 +8269,7 @@ export class Evaluator {
                     if (this.fs.existsSync(destinationPath)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    if (!this.fs.copyFileSync) {
-                        this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'File move is not supported');
-                    }
-                    this.fs.copyFileSync(sourcePath, destinationPath);
-                    this.fs.unlinkSync(sourcePath);
+                    this.fs.moveFileSync(sourcePath, destinationPath);
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {

@@ -3120,3 +3120,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-330
+    title: FSO File operation capability matrix
+    status: queued
+    priority: 1
+    focus: File/FolderパスオブジェクトとトップレベルFile操作の共通能力・境界
+    priorCauseKey: fso-path-object-copy-contract-not-guaranteed-by-filesystem-interface
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+      - tests/spec/filesystem-extra.test.ts

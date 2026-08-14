@@ -18,7 +18,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult, nestedFolderResult
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult, nestedFolderResult, fileOverwriteResult
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
@@ -264,6 +264,11 @@ const allCode = String.raw`
         parentFolderChainResult = IIf(Len(parent.ParentFolder.Path) > 0, "ok", "bad")
         copied.Copy "path_object_file_copy.txt"
         fileCopyResult = IIf(fso.FileExists("path_object_file_copy.txt"), "ok", "bad")
+        On Error Resume Next
+        Err.Clear: copied.Copy "path_object_file_copy.txt": fileOverwriteResult = Err.Number
+        Err.Clear: copied.Copy "path_object_file_copy.txt", True
+        If Err.Number = 0 And fileOverwriteResult = 58 Then fileOverwriteResult = 0 Else fileOverwriteResult = Err.Number
+        On Error GoTo 0
         Set moved = fso.GetFolder("path_object_copy")
         moved.Move "path_object_move"
         folderMoveResult = IIf((Not fso.FolderExists("path_object_copy")) And fso.FileExists("path_object_move\child.txt"), "ok", "bad")
@@ -442,6 +447,7 @@ assert.strictEqual(ev.env.get('foldercopyresult'), 'ok', 'GetFolder.Copy recursi
 assert.strictEqual(ev.env.get('foldermoveresult'), 'ok', 'GetFolder.Move recursive move');
 assert.strictEqual(ev.env.get('filecopyresult'), 'ok', 'GetFile.Copy');
 assert.strictEqual(ev.env.get('filemoveresult'), 'ok', 'GetFile.Move');
+assert.strictEqual(ev.env.get('fileoverwriteResult'.toLowerCase()), 0, 'GetFile.Copy overwrite');
 assert.strictEqual(ev.env.get('parentfoldercopyresult'), 'ok', 'GetFile.ParentFolder.Copy and Files');
 assert.strictEqual(ev.env.get('parentfolderchainresult'), 'ok', 'GetFile.ParentFolder.ParentFolder');
 console.log('[PASS] FSO path object Copy/Move capability contract');
@@ -456,20 +462,25 @@ try {
     const nodeCode = String.raw`
         Public result
         Sub Probe()
-            Dim fso As Object, stream As Object, folder As Object
+            Dim fso As Object, stream As Object, folder As Object, file As Object
             Set fso = CreateObject("Scripting.FileSystemObject")
             fso.CreateFolder "source"
             Set stream = fso.CreateTextFile("source\child.txt")
             stream.Write "x": stream.Close
             Set folder = fso.GetFolder("source")
             folder.Copy "copy"
-            result = IIf(fso.FolderExists("copy") And fso.FileExists("copy\child.txt"), "ok", "bad")
+            Set file = fso.GetFile("copy\child.txt")
+            file.Copy "file-copy.txt"
+            Set file = fso.GetFile("file-copy.txt")
+            file.Move "file-move.txt"
+            result = IIf(fso.FolderExists("copy") And fso.FileExists("copy\child.txt") And _
+                fso.FileExists("file-move.txt") And Not fso.FileExists("file-copy.txt"), "ok", "bad")
         End Sub
     `;
     const nodeEv = evalVBASingle(nodeCode, { fs: new NodeFileSystem(), sandboxRoot: nodeRoot });
     nodeEv.callProcedure('Probe', []);
-    assert.strictEqual(nodeEv.env.get('result'), 'ok', 'NodeFileSystem GetFolder.Copy');
-    console.log('[PASS] NodeFileSystem FSO path object Copy');
+    assert.strictEqual(nodeEv.env.get('result'), 'ok', 'NodeFileSystem FSO File/Folder operations');
+    console.log('[PASS] NodeFileSystem FSO File/Folder operations');
 } finally {
     nodeFs.rmSync(nodeRoot, { recursive: true, force: true });
 }
