@@ -125,8 +125,9 @@ import {
     hasParamArrayArgument,
     hasRequiredArgumentAfterPrefix,
     isEffectiveByValParameter,
-    isOptionalArgument,
+    isRequiredArgument,
     isPropertyValueParameter,
+    requiredArgumentCount,
     type VbaArgumentParameter,
 } from './argument-contract';
 export { VbaErrorCode } from './vba-errors';
@@ -2251,9 +2252,7 @@ export class Evaluator {
                         const implicitProc = this.env.getProcedure(implicitName);
                         if (!declared.has(implicitName.toLowerCase()) &&
                             implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
-                            const min = implicitProc.parameters.filter(
-                                p => !p.isOptional && p.defaultValue == null,
-                            ).length;
+                            const min = requiredArgumentCount(implicitProc.parameters);
                             if (min > 0) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
@@ -5124,7 +5123,7 @@ export class Evaluator {
         for (let i = 0; i < argExprs.length && i < params.length; i++) {
             if (argExprs[i].type !== 'MissingArgument') continue;
             const p = params[i];
-            if (!isOptionalArgument(p) && !p.isParamArray) {
+            if (isRequiredArgument(p)) {
                 this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             }
         }
@@ -9000,7 +8999,7 @@ export class Evaluator {
                         idName.toLowerCase() === this.currentProcedureName.toLowerCase();
                     if (!isCurrentProcReturn) {
                         // Only auto-call if it's a Function/Property and has 0 required arguments
-                        const requiredCount = p.parameters.filter(param => !param.isOptional && !param.isParamArray).length;
+                        const requiredCount = requiredArgumentCount(p.parameters);
                         if (requiredCount === 0) {
                             return this.callProcedure(idName, []);
                         }
@@ -9019,7 +9018,7 @@ export class Evaluator {
                             const member = (me.__classDef__ as ClassDeclaration).procedures.find(cp =>
                                 cp.name.name.toLowerCase() === lower &&
                                 (cp.isFunction || (cp.isProperty && cp.propertyType === 'get')) &&
-                                cp.parameters.filter(pp => !pp.isOptional && !pp.isParamArray).length === 0
+                                requiredArgumentCount(cp.parameters) === 0
                             );
                             if (member) {
                                 return this.callClassMethod(me, member, []);
@@ -10538,14 +10537,23 @@ export class Evaluator {
                 p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === propName
             );
             if (getter) {
+                if (requiredArgumentCount(getter.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
                 return this.callClassMethod(obj, getter, []);
             }
 
-            // No-arg Sub/Function access without parens: call it (Sub or Function).
+            // Function/Sub access without parens is an implicit call when all
+            // parameters have defaults.  Use the shared contract rather than
+            // checking the declaration length, so defaultValue-only parameters
+            // behave like Optional parameters on every member path.
             const method = classDef.procedures.find(
-                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.parameters.length === 0
+                p => !p.isProperty && p.name.name.toLowerCase() === propName
             );
             if (method) {
+                if (requiredArgumentCount(method.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
                 return this.callClassMethod(obj, method, []);
             }
 
@@ -10554,6 +10562,9 @@ export class Evaluator {
                 ? this.findInterfaceDispatch(obj, expr.property.name)
                 : null;
             if (ifaceProc) {
+                if (requiredArgumentCount(ifaceProc.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
                 return this.callClassMethod(obj, ifaceProc, []);
             }
 
@@ -11038,13 +11049,28 @@ export class Evaluator {
             const getter = classDef.procedures.find(
                 p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === propName
             );
-            if (getter) return this.callClassMethod(obj, getter, []);
+            if (getter) {
+                if (requiredArgumentCount(getter.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
+                return this.callClassMethod(obj, getter, []);
+            }
             const method = classDef.procedures.find(
-                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.parameters.length === 0 && p.isFunction
+                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.isFunction
             );
-            if (method) return this.callClassMethod(obj, method, []);
+            if (method) {
+                if (requiredArgumentCount(method.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
+                return this.callClassMethod(obj, method, []);
+            }
             const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
-            if (ifaceProc) return this.callClassMethod(obj, ifaceProc, []);
+            if (ifaceProc) {
+                if (requiredArgumentCount(ifaceProc.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
+                return this.callClassMethod(obj, ifaceProc, []);
+            }
             if (instanceEnv.hasOwnVariable(propName)) return instanceEnv.get(propName);
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
         }

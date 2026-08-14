@@ -70,6 +70,52 @@ for (const definition of parameterCases) {
     }
 }
 
+// A declaration may carry a default value without the Optional keyword in
+// exported VBA sources.  Every implicit-call route must treat that parameter
+// as optional, just like the explicit Optional spelling.
+{
+    const moduleDefault = evalVBASingle(String.raw`Function Target(value As Long = 1) As Long
+    Target = value
+End Function
+Sub Caller()
+    Dim result As Long
+    result = Target
+End Sub
+`);
+    assert.doesNotThrow(() => moduleDefault.callProcedure('Caller', []),
+        'Implicit-call/default-value/module');
+
+    const classDefault = evalVBASingle(String.raw`Class DefaultValueTarget
+Public Function Target(value As Long = 1) As Long
+    Target = value
+End Function
+End Class
+Sub Caller()
+    Dim instance As New DefaultValueTarget
+    Dim result As Long
+    result = instance.Target
+End Sub
+`);
+    assert.doesNotThrow(() => classDefault.callProcedure('Caller', []),
+        'Implicit-call/default-value/class');
+
+    const withDefault = evalVBASingle(String.raw`Class WithDefaultValueTarget
+Public Function Target(value As Long = 1) As Long
+    Target = value
+End Function
+End Class
+Sub Caller()
+    Dim instance As New WithDefaultValueTarget
+    Dim result As Long
+    With instance
+        result = .Target
+    End With
+End Sub
+`);
+    assert.doesNotThrow(() => withDefault.callProcedure('Caller', []),
+        'Implicit-call/default-value/with');
+}
+
 type MemberKind = 'Function' | 'Property Get' | 'Sub';
 
 const classSource = (memberKind: MemberKind, definitionParameters: string, argumentCount: number): string => {

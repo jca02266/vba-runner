@@ -22,6 +22,10 @@ export function isParamArrayArgument(parameter: VbaArgumentParameter): boolean {
     return parameter.isParamArray === true;
 }
 
+export function isRequiredArgument(parameter: VbaArgumentParameter): boolean {
+    return !isOptionalArgument(parameter) && !isParamArrayArgument(parameter);
+}
+
 /** Property Let/Set's final parameter is the implicit assignment value. */
 export function isPropertyValueParameter(
     procedure: { isProperty?: boolean; propertyType?: string; parameters: readonly VbaArgumentParameter[] },
@@ -42,9 +46,7 @@ export function isEffectiveByValParameter(
 }
 
 export function requiredArgumentCount(parameters: readonly VbaArgumentParameter[]): number {
-    return parameters.filter(parameter =>
-        !isOptionalArgument(parameter) && !isParamArrayArgument(parameter)
-    ).length;
+    return parameters.filter(isRequiredArgument).length;
 }
 
 export function hasParamArrayArgument(parameters: readonly VbaArgumentParameter[]): boolean {
@@ -67,7 +69,7 @@ export function hasRequiredArgumentAfterPrefix(
     endExclusive = parameters.length,
 ): boolean {
     for (let index = providedPrefixCount; index < endExclusive; index++) {
-        if (!isOptionalArgument(parameters[index]) && !isParamArrayArgument(parameters[index])) {
+        if (isRequiredArgument(parameters[index])) {
             return true;
         }
     }
