@@ -5080,9 +5080,13 @@ export class Evaluator {
         }
     }
 
-    private collectProcedureWritebackValues(proc: ProcedureDeclaration, localEnv: Environment): any[] {
+    private collectProcedureWritebackValues(
+        proc: ProcedureDeclaration,
+        localEnv: Environment,
+        includeParamArray = false,
+    ): any[] {
         return proc.parameters.map((parameter, index) =>
-            parameter.isParamArray || isEffectiveByValParameter(proc, index)
+            (parameter.isParamArray && !includeParamArray) || isEffectiveByValParameter(proc, index)
                 ? undefined
                 : localEnv.get(parameter.name.toLowerCase())
         );
@@ -5715,7 +5719,7 @@ export class Evaluator {
             // Event handlers pass a mutable argument array so ByRef changes can
             // propagate back through RaiseEvent.
             if (byRefWriteback) {
-                const values = this.collectProcedureWritebackValues(proc, localEnv);
+                const values = this.collectProcedureWritebackValues(proc, localEnv, true);
                 for (let i = 0; i < values.length; i++) {
                     if (values[i] !== undefined) byRefWriteback[i] = values[i];
                 }
