@@ -7796,6 +7796,9 @@ export class Evaluator {
             if (error?.code === 'ENOENT' || /ENOENT|not found/i.test(String(error?.message ?? error))) {
                 this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
             }
+            if (error?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(error?.message ?? error))) {
+                this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
+            }
             throw error;
         };
         const textStreamParamSpecs: Record<string, BuiltinParamSpec[]> = {
@@ -8222,18 +8225,18 @@ export class Evaluator {
                     if (!this.fs.existsSync(sourcePath) || !this.fs.statSync(sourcePath).isDirectory()) {
                         this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                     }
-                    if (this.fs.existsSync(destinationPath)) {
-                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    }
                     const parent = path.dirname(destinationPath);
                     if (!this.fs.existsSync(parent)) {
                         this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                     }
-                    this.fs.copyDirectorySync(sourcePath, destinationPath);
+                    this.fs.copyDirectorySync(sourcePath, destinationPath, { overwrite: vbaFlagIsTrue(overwrite) });
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
                         this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
+                    }
+                    if (e?.code === 'EEXIST' || /EEXIST|already exists/i.test(String(e?.message ?? e))) {
+                        this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
                     throw e;
                 }

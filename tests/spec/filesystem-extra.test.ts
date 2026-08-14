@@ -19,7 +19,7 @@ function evalVBA(code: string): any {
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult, nestedFolderResult, fileOverwriteResult
-    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
+    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr, copyFolderNoOverwriteResult, copyFolderOverwriteResult
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
     Sub Test1()
@@ -235,6 +235,37 @@ const allCode = String.raw`
         fso.DeleteFolder "copy_folder_source", True
     End Sub
 
+    Sub Test24FsoCopyFolderOverwrite()
+        Dim fso As Object, stream As Object, copied As Object
+        Dim noOverwriteErr As Long, content As String
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "copy_overwrite_source"
+        Set stream = fso.CreateTextFile("copy_overwrite_source\child.txt")
+        stream.Write "new"
+        stream.Close
+        fso.CreateFolder "copy_overwrite_dest"
+        Set stream = fso.CreateTextFile("copy_overwrite_dest\child.txt")
+        stream.Write "old"
+        stream.Close
+        On Error Resume Next
+        Err.Clear
+        fso.CopyFolder "copy_overwrite_source", "copy_overwrite_dest", False
+        noOverwriteErr = Err.Number
+        Err.Clear
+        On Error GoTo 0
+        Set copied = fso.OpenTextFile("copy_overwrite_dest\child.txt", 1)
+        content = copied.ReadAll()
+        copied.Close
+        copyFolderNoOverwriteResult = IIf(noOverwriteErr = 58 And content = "old", "ok", "bad")
+        fso.CopyFolder "copy_overwrite_source", "copy_overwrite_dest", True
+        Set copied = fso.OpenTextFile("copy_overwrite_dest\child.txt", 1)
+        content = copied.ReadAll()
+        copied.Close
+        copyFolderOverwriteResult = IIf(content = "new", "ok", "bad")
+        fso.DeleteFolder "copy_overwrite_dest", True
+        fso.DeleteFolder "copy_overwrite_source", True
+    End Sub
+
     Sub Test16FsoMoveFolder()
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
@@ -436,6 +467,12 @@ ev.callProcedure('Test15FsoCopyFolder', []);
 assert.strictEqual(ev.env.get('copyfolderresult'), 'ok', 'CopyFolder recursive copy');
 console.log('[PASS] FSO CopyFolder implementation');
 
+// Test 24: CopyFolder merges an existing destination and honors Overwrite.
+ev.callProcedure('Test24FsoCopyFolderOverwrite', []);
+assert.strictEqual(ev.env.get('copyfoldernooverwriteresult'), 'ok', 'CopyFolder existing destination without overwrite');
+assert.strictEqual(ev.env.get('copyfolderoverwriteresult'), 'ok', 'CopyFolder existing destination with overwrite');
+console.log('[PASS] FSO CopyFolder overwrite contract');
+
 // Test 16: FSO MoveFolder moves a folder tree and removes its source.
 ev.callProcedure('Test16FsoMoveFolder', []);
 assert.strictEqual(ev.env.get('movefolderresult'), 'ok', 'MoveFolder recursive move');
@@ -469,12 +506,17 @@ try {
             stream.Write "x": stream.Close
             Set folder = fso.GetFolder("source")
             folder.Copy "copy"
-            Set file = fso.GetFile("copy\child.txt")
+            Set folder = fso.GetFolder("copy")
+            folder.Move "moved"
+            Set file = fso.GetFile("moved\child.txt")
             file.Copy "file-copy.txt"
             Set file = fso.GetFile("file-copy.txt")
             file.Move "file-move.txt"
-            result = IIf(fso.FolderExists("copy") And fso.FileExists("copy\child.txt") And _
-                fso.FileExists("file-move.txt") And Not fso.FileExists("file-copy.txt"), "ok", "bad")
+            Set file = fso.GetFile("file-move.txt")
+            file.Delete
+            result = IIf(Not fso.FolderExists("copy") And fso.FolderExists("moved") And fso.FileExists("moved\child.txt") And _
+                Not fso.FileExists("file-move.txt") And _
+                Not fso.FileExists("file-copy.txt"), "ok", "bad")
         End Sub
     `;
     const nodeEv = evalVBASingle(nodeCode, { fs: new NodeFileSystem(), sandboxRoot: nodeRoot });

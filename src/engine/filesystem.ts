@@ -126,10 +126,10 @@ export class MemoryFileSystem implements FileSystem {
         }
         if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
         if (this.existsSync(target)) {
-            if (!options?.overwrite) throw new Error(`EEXIST: destination exists '${dest}'`);
-            this.rmSync(target, { recursive: true, force: true });
+            if (!this.dirs.has(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
+        } else {
+            this.mkdirSync(target, { recursive: true });
         }
-        this.mkdirSync(target, { recursive: true });
         const prefix = source === '/' ? '/' : source + '/';
         for (const dir of this.dirs.keys()) {
             if (dir.startsWith(prefix) && dir !== source) {
@@ -138,7 +138,11 @@ export class MemoryFileSystem implements FileSystem {
         }
         for (const file of this.files.keys()) {
             if (file.startsWith(prefix)) {
-                this.copyFileSync(file, path.join(target, file.slice(prefix.length)));
+                const destination = path.join(target, file.slice(prefix.length));
+                if (this.existsSync(destination) && !options?.overwrite) {
+                    throw new Error(`EEXIST: destination exists '${destination}'`);
+                }
+                this.copyFileSync(file, destination);
             }
         }
     }
