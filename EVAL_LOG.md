@@ -723,7 +723,7 @@
 | EV-00819 | FZ-COVERAGE-20260810 | fixed | 1 | TextStream.ReadのWith式における必須引数境界 |
 | EV-00820 | FZ-COVERAGE-20260810 | fixed | 1 | FSO.GetFileの必須引数省略 |
 | EV-00821 | FZ-COVERAGE-20260810 | fixed | 1 | Scripting.Dictionary.Existsの必須引数省略 |
-| EV-00822 | FZ-COVERAGE-20260810 | needs-excel | 1 | Collection.Itemの必須引数省略 |
+| EV-00822 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Collection.Itemの必須引数省略 |
 | EV-00823 | FZ-GRAMMAR | verified-no-bug |  | Function・Sub・Property呼出しの必須引数省略とprecheckProc |
 | EV-00824 | FZ-GRAMMAR | fixed | 1 | early-bound Collection.Itemの必須index省略とprecheckProc |
 | EV-00825 | FZ-GRAMMAR | verified-no-bug |  | Function余分引数の実行時型不一致境界 |
@@ -744,11 +744,10 @@
 |---|---:|
 | fixed | 326 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
-| verified-no-bug | 399 |
+| verified-no-bug | 400 |
 
-横展開未解決経路: 563、実Excel待ち評価: 1
+横展開未解決経路: 563、実Excel待ち評価: 0
 
 ## 次の候補
 
