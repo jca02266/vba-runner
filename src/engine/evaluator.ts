@@ -5072,8 +5072,18 @@ export class Evaluator {
         localEnv: Environment,
     ): void {
         const values = this.collectProcedureWritebackValues(proc, localEnv);
-        for (let i = 0; i < values.length && i < args.length; i++) {
-            if (values[i] !== undefined) args[i] = values[i];
+        this.copyProcedureWritebackValues(values, args, true);
+    }
+
+    /** Copy a procedure's shared writeback values to a call-boundary array. */
+    private copyProcedureWritebackValues(
+        values: readonly any[],
+        target: any[],
+        limitToExistingSlots = false,
+    ): void {
+        const limit = limitToExistingSlots ? target.length : values.length;
+        for (let i = 0; i < values.length && i < limit; i++) {
+            if (values[i] !== undefined) target[i] = values[i];
         }
     }
 
@@ -5711,9 +5721,7 @@ export class Evaluator {
             // propagate back through RaiseEvent.
             if (byRefWriteback) {
                 const values = this.collectProcedureWritebackValues(proc, localEnv, true);
-                for (let i = 0; i < values.length; i++) {
-                    if (values[i] !== undefined) byRefWriteback[i] = values[i];
-                }
+                this.copyProcedureWritebackValues(values, byRefWriteback);
             }
             this.env = previousEnv;
             this.errorHandlerLabel = previousErrorHandler;
