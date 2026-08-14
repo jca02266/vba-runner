@@ -161,6 +161,12 @@ console.log('[PASS] GetAttr/SetAttr: VFS属性ビット');
     const zeroWritten = handleFs.writeSync(writeFd, new Uint8Array([3, 4]), 0, 0, null);
     assert.strictEqual(zeroWritten, 0, 'Explicit zero-length write is a no-op');
     handleFs.closeSync(writeFd);
+    handleFs.writeFileSync('/sandbox/append.bin', 'A');
+    const appendFd = handleFs.openSync('/sandbox/append.bin', 'a');
+    handleFs.writeSync(appendFd, 'B', 0, 1, 0);
+    handleFs.closeSync(appendFd);
+    assert.strictEqual(handleFs.readFileSync('/sandbox/append.bin', 'utf8'), 'AB',
+        'Append ignores an explicit position and writes at EOF');
 }
 console.log('[PASS] MemoryFileSystem handle contract');
 

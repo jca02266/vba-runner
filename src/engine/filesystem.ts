@@ -69,6 +69,7 @@ export class MemoryFileSystem implements FileSystem {
 
     writeFileSync(p: string, content: string | Uint8Array): void {
         const norm = this.normalize(p);
+        if (this.dirs.has(norm)) throw new Error(`EISDIR: illegal operation on a directory, write '${p}'`);
         this.ensureDir(path.dirname(norm));
         const now = new Date();
         const existing = this.files.get(norm);
@@ -356,7 +357,7 @@ export class MemoryFileSystem implements FileSystem {
         
         // Node's O_APPEND always writes at the current physical end, even when
         // another handle appended since this descriptor was opened.
-        const append = h.flags === 'a' && (position === null || position === undefined);
+        const append = h.flags === 'a';
         const start = append ? oldBin.length : (position !== null && position !== undefined ? position : h.pos);
         const totalSize = Math.max(oldBin.length, start + newData.length);
         const combined = new Uint8Array(totalSize);
