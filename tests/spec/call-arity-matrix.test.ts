@@ -235,6 +235,28 @@ End Sub
     assert.doesNotThrow(() => runner.callProcedure('Caller', []), 'Named-arguments/reordered');
 }
 
+// Supplying a later named Optional argument must not bypass a required prefix.
+// The same contract applies to module and class procedure dispatch.
+assertCompileErrorExec(String.raw`Function Target(required As Long, Optional tail As Long = 2) As Long
+    Target = required + tail
+End Function
+Sub Caller()
+    Dim result As Long
+    result = Target(tail:=4)
+End Sub
+`, 'Caller', undefined, /argument not optional/i, 'Named-arguments/required-prefix-module');
+assertCompileErrorExec(String.raw`Class NamedArityTarget
+Public Function Target(required As Long, Optional tail As Long = 2) As Long
+    Target = required + tail
+End Function
+End Class
+Sub Caller()
+    Dim instance As New NamedArityTarget
+    Dim result As Long
+    result = instance.Target(tail:=4)
+End Sub
+`, 'Caller', undefined, /argument not optional/i, 'Named-arguments/required-prefix-class');
+
 // ParamArray is an unbounded tail, but its required prefix still participates
 // in the same minimum-arity contract.
 assertCompileErrorPreproc(String.raw`Function Target(required As Long, ParamArray values()) As Long

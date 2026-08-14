@@ -5177,6 +5177,20 @@ export class Evaluator {
         }
     }
 
+    /** Reject named calls that leave a required declaration slot unsupplied. */
+    private checkNamedArgumentShape(
+        parameters: readonly VbaArgumentParameter[],
+        positionalCount: number,
+        namedNames: Iterable<string>,
+        allowPropertyValueTail = false,
+    ): void {
+        const names = [...namedNames];
+        if (names.length > 0 && !acceptsNamedArgumentShape(
+            parameters, positionalCount, names, allowPropertyValueTail)) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+        }
+    }
+
     /** `argExprs` を名前付き/位置引数に振り分けて評価する（組み込み関数バインダー2種の共通処理）。 */
     private splitCallArgs(argExprs: Expression[]): { namedArgs: Map<string, any>; positionalArgs: any[] } {
         const namedArgs = new Map<string, any>();
@@ -5558,6 +5572,12 @@ export class Evaluator {
                     this.resolveAutoInstance(valueExpr, this.evaluateExpression(valueExpr));
             supplied[paramIndex] = { expr: valueExpr, value };
         }
+        this.checkNamedArgumentShape(
+            proc.parameters,
+            split.positional.length,
+            split.named.keys(),
+            propertyValueIndex >= 0,
+        );
         // In a Property Let/Set invocation, the final positional argument is
         // the RHS value and is not part of the ParamArray. A named RHS was
         // already placed in its final slot above.
@@ -9670,6 +9690,7 @@ export class Evaluator {
                         this.throwVbaError(448, `Named argument not found: '${name}'`);
                     }
                 }
+                this.checkNamedArgumentShape(proc.parameters, splitArgs.positional.length, splitArgs.named.keys());
                 for (const entry of splitArgs.ordered) {
                     const name = entry.name;
                     const argExpr = entry.expression;

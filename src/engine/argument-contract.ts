@@ -82,22 +82,34 @@ export function acceptsNamedArgumentShape(
     parameters: readonly VbaArgumentParameter[],
     positionalCount: number,
     namedNames: Iterable<string>,
+    allowPropertyValueTail = false,
 ): boolean {
     // ParamArray is a positional sink in VBA; it cannot be selected through
     // a named argument. Keep this rule in the shared contract so overloads
     // and ordinary built-ins cannot diverge.
     const normalizedNamedNames = [...namedNames].map(name => name.toLowerCase());
-    if (hasParamArrayArgument(parameters) && normalizedNamedNames.length > 0) return false;
-    if (positionalCount > parameters.length) return false;
+    const propertyValueName = allowPropertyValueTail && parameters.length > 0
+        ? parameters[parameters.length - 1].name?.toLowerCase()
+        : undefined;
+    const nonPropertyNamedNames = normalizedNamedNames.filter(name => name !== propertyValueName);
+    if (hasParamArrayArgument(parameters) && nonPropertyNamedNames.length > 0) return false;
+    const paramArrayIndex = parameters.findIndex(isParamArrayArgument);
+    if (paramArrayIndex < 0 && positionalCount > parameters.length) return false;
     const names = new Set(parameters.map(parameter => parameter.name?.toLowerCase()));
     for (const name of normalizedNamedNames) {
         if (!names.has(name)) return false;
     }
-    for (let index = 0; index < positionalCount; index++) {
+    // Positional arguments beyond ParamArray's declaration slot belong to its
+    // tail; they must not be mistaken for the following synthetic Property
+    // value parameter.
+    const positionalPrefixCount = paramArrayIndex >= 0
+        ? Math.min(positionalCount, paramArrayIndex)
+        : positionalCount;
+    for (let index = 0; index < positionalPrefixCount; index++) {
         const name = parameters[index]?.name?.toLowerCase();
         if (name && normalizedNamedNames.includes(name)) return false;
     }
-    for (let index = positionalCount; index < parameters.length; index++) {
+    for (let index = positionalPrefixCount; index < parameters.length; index++) {
         const name = parameters[index]?.name?.toLowerCase();
         const supplied = name !== undefined && normalizedNamedNames.includes(name);
         if (!supplied && isRequiredArgument(parameters[index])) return false;
