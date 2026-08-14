@@ -83,6 +83,11 @@ export class MemoryFileSystem implements FileSystem {
     mkdirSync(p: string, options?: { recursive?: boolean }): void {
         const norm = this.normalize(p);
         const now = new Date();
+        if (this.files.has(norm)) throw new Error(`EEXIST: path is a file, mkdir '${p}'`);
+        if (this.dirs.has(norm)) {
+            if (options?.recursive) return;
+            throw new Error(`EEXIST: path exists, mkdir '${p}'`);
+        }
         if (options?.recursive) {
             const parts = norm.split('/').filter(Boolean);
             let current = '';
@@ -93,6 +98,7 @@ export class MemoryFileSystem implements FileSystem {
                 }
             }
         } else {
+            if (!this.dirs.has(path.dirname(norm))) throw new Error(`ENOENT: parent does not exist, mkdir '${p}'`);
             this.dirs.set(norm, { birthtime: now, mtime: now, attributes: VBA_FILE_ATTRIBUTE.DIRECTORY });
         }
     }
