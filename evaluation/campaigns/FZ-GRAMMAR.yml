@@ -544,14 +544,23 @@ items:
       - src/engine/parser.ts
       - tests/spec/vba_compile_error.test.ts
   - id: FZ-GRAMMAR-059
-    title: Property・修飾メンバーの必須引数境界
-    status: queued
+    title: Property Let/Set必須インデックス境界
+    status: retired
     priority: 1
-    focus: Property Get/Let/SetとModule・Class修飾呼出しの引数不足検査
+    focus: Property Let/Setの暗黙値引数追加前の必須インデックス検査
     priorCauseKey: required-argument-static-runtime-parity
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-resolution-order.test.ts
+  - id: FZ-GRAMMAR-064
+    title: Property Get・修飾メンバーの必須引数境界
+    status: queued
+    priority: 1
+    focus: Property GetとModule・Class修飾呼出しの引数不足検査
+    priorCauseKey: member-call-arity-contract-not-centralized
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
   - id: FZ-GRAMMAR-060
     title: 動的メンバーの必須引数エラー境界
     status: queued

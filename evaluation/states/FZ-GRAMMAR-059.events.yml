@@ -1,0 +1,18 @@
+- candidateId: FZ-GRAMMAR-059
+  evaluationId: EV-00827
+  status: fixed
+  occurredAt: '2026-08-14T00:16:23.289Z'
+- candidateId: FZ-GRAMMAR-059
+  evaluationId: EV-00827
+  status: in-progress
+  fromStatus: fixed
+  occurredAt: '2026-08-14T00:17:08.348Z'
+  rollbackFrom: fixed
+  rollbackReason: >-
+    EV-00827 is a duplicate of EV-00826; preserve the event history and use EV-00826 as the
+    canonical evaluation.
+- candidateId: FZ-GRAMMAR-059
+  evaluationId: EV-00827
+  status: retired
+  fromStatus: in-progress
+  occurredAt: '2026-08-14T00:17:41.431Z'
