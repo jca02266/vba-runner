@@ -3130,3 +3130,13 @@ items:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-331
+    title: FSO CopyFolder existing destination overwrite boundary
+    status: fixed
+    priority: 1
+    focus: FSO CopyFolderの既存フォルダーへのマージとOverwrite境界
+    priorCauseKey: fso-directory-copy-overwrite-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
