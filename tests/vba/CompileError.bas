@@ -94,9 +94,19 @@ Sub Case_assign_func_arg_no_parens()
     v = MyFuncHasArg arg ' @error
 End Sub
 
+' CASE: identifier_too_long
+' TYPE: parse
+' VBA: コンパイルエラー: 識別子が長すぎます
+' RUNNER: /identifier too long|too long|識別子が長すぎます/i
+' NOTE: VBAの識別子は255文字まで。256文字のFunction名はパース時に拒否される。
+'@case-begin
+Function Faaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa() As Long ' @error
+End Function
+'@case-end
+
 ' CASE: radix_hex_literal_out_of_range
 ' TYPE: parse
-' VBA: コンパイルエラー: オーバーフローしました
+' VBA: コンパイルエラー: 構文エラー
 ' RUNNER: /numeric literal out of range|overflow/i
 ' NOTE: VBA は型サフィックスなしの基数リテラルを Long の範囲で
 '       コンパイルし、範囲外は実行前にコンパイルエラーにする。
@@ -107,7 +117,7 @@ End Sub
 
 ' CASE: radix_hex_longlong_literal_out_of_range
 ' TYPE: parse
-' VBA: コンパイルエラー: オーバーフローしました
+' VBA: コンパイルエラー: 構文エラー
 ' RUNNER: /numeric literal out of range|overflow/i
 ' NOTE: LongLong サフィックス付きでも 64 ビット幅を超える値は
 '       コンパイル時に受け付けない。
@@ -117,8 +127,8 @@ Sub Case_radix_hex_longlong_literal_out_of_range()
 End Sub
 
 ' CASE: radix_byte_literal_out_of_range
-' TYPE: preproc
-' VBA: コンパイルエラー: オーバーフローしました
+' TYPE: exec
+' VBA: 実行時エラー 6: オーバーフローしました
 ' RUNNER: /numeric literal out of range|overflow/i
 Sub Case_radix_byte_literal_out_of_range()
     Dim value As Byte
@@ -126,8 +136,8 @@ Sub Case_radix_byte_literal_out_of_range()
 End Sub
 
 ' CASE: radix_integer_literal_out_of_range
-' TYPE: preproc
-' VBA: コンパイルエラー: オーバーフローしました
+' TYPE: exec
+' VBA: 実行時エラー 6: オーバーフローしました
 ' RUNNER: /numeric literal out of range|overflow/i
 Sub Case_radix_integer_literal_out_of_range()
     Dim value As Integer

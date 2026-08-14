@@ -1,5 +1,7 @@
 import { Token, TokenType } from './lexer';
 
+const MAX_IDENTIFIER_LENGTH = 255;
+
 export interface ResumeStatement extends Statement {
     type: 'ResumeStatement';
     target: string; // 'Next' or label
@@ -1519,6 +1521,12 @@ export class Parser {
     }
 
     public parse(): Program {
+
+        const overlong = this.tokens.find((token) =>
+            token.type === TokenType.Identifier && token.value.length > MAX_IDENTIFIER_LENGTH);
+        if (overlong) {
+            this.throwError(`識別子が長すぎます at line ${overlong.line}`, overlong);
+        }
 
         if (this.parseAsClass) {
             try {

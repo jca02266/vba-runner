@@ -2237,7 +2237,12 @@ export class Evaluator {
                                 longlong: 0xffffffffffffffffn,
                             };
                             const limit = limits[targetType];
-                            if (limit !== undefined && BigInt(literal.rawIntegerText) > limit) {
+                            // Excel reports range overflow on typed Byte/Integer
+                            // assignments while executing the procedure. Keep
+                            // those cases out of the static precheck so the
+                            // exec-phase contract is observable.
+                            if (limit !== undefined && !['byte', 'integer'].includes(targetType)
+                                && BigInt(literal.rawIntegerText) > limit) {
                                 findings.literalOverflow = {
                                     line: a.right.loc?.start.line ?? a.left.loc?.start.line,
                                     targetType,

@@ -605,7 +605,13 @@ export function assertCompileErrorExec(src: string, procName: string, expectedLi
     assertCompileErrorImpl({
         label, phaseName: 'exec',
         pattern, expectedLine,
-        okAction: () => { ev = evalVBASingle(src); },
+        okAction: () => {
+            ev = evalVBASingle(src);
+            // An exec case must survive the static precheck. Without this
+            // guard, a preproc failure could be misreported as an execution
+            // failure because callProcedure performs the same precheck.
+            ev.checkProcedure(procName);
+        },
         throwAction: () => ev.callProcedure(procName, []),
     });
 }
