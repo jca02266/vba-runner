@@ -736,13 +736,14 @@
 | EV-00832 | FZ-GRAMMAR | fixed | 1 | 引数なしProperty Getの戻り値添字をProperty引数と誤認しないprecheck |
 | EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
 | EV-00834 | FZ-GRAMMAR | fixed | 1 | CallByName外部メンバーの必須引数省略 |
+| EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 321 |
+| fixed | 322 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -754,4 +755,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-065 | 2 | queued | Module修飾Function/Subの括弧なし必須引数検査 | yes |
+| (none) | | | | |

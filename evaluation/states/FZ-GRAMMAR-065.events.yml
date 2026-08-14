@@ -7,3 +7,8 @@
   status: bug-found
   fromStatus: verified-no-bug
   occurredAt: '2026-08-14T03:07:39.347Z'
+- candidateId: FZ-GRAMMAR-065
+  evaluationId: EV-00835
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-14T03:14:18.464Z'
