@@ -1672,6 +1672,25 @@ export class Parser {
                 }
             }
         }
+        // The callee may be a qualified member (`Module.Proc (arg)`).  In
+        // that form the opening parenthesis is not adjacent to the first
+        // identifier, so the immediate-token check above cannot see the
+        // forced-ByVal call syntax.  Stop before the qualified call paren as
+        // well, letting the statement path preserve the marker.
+        if (!spacedCallArgument) {
+            let memberEnd = this.pos;
+            while (this.tokens[memberEnd + 1]?.type === TokenType.OperatorDot &&
+                this.tokens[memberEnd + 2]?.type === TokenType.Identifier) {
+                memberEnd += 2;
+            }
+            const previous = this.tokens[memberEnd];
+            const lparen = this.tokens[memberEnd + 1];
+            if (lparen?.type === TokenType.OperatorLParen && previous &&
+                lparen.line === previous.line &&
+                lparen.column > previous.column + String(previous.value).length) {
+                spacedCallArgument = true;
+            }
+        }
         const expr = this.parsePrimary(spacedCallArgument); // will parse `foo`, `foo()`, `foo.bar`, `arr(0)` etc
 
         if (this.match(TokenType.OperatorEquals)) {

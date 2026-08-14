@@ -9604,6 +9604,43 @@ export class Evaluator {
         return undefined;
     }
 
+    /** Execute a user procedure after one shared expression-to-binding plan. */
+    private executeProcedureExpression(
+        proc: ProcedureDeclaration,
+        argExprs: Expression[],
+        callProcedureSemantics = false,
+    ): any {
+        const procModKey = (proc.moduleName ?? '').toLowerCase();
+        const parentEnv = this.moduleEnvs.get(procModKey) ?? this.env;
+        const localEnv = new Environment(parentEnv);
+        const split = this.splitArgumentExpressions(argExprs);
+        this.checkArgCount(proc, split.positional.length + split.named.size);
+        this.checkNoGapOnRequiredParam(proc.parameters, split.positional);
+        const aligned = this.alignProcedureCallExpressions(proc, argExprs);
+        const subtypes = aligned.args.map((value, index) => {
+            const expression = aligned.expressions[index];
+            return (typeof value === 'number' || typeof value === 'bigint') && expression
+                ? this.resolveNumericSubtype(expression)
+                : undefined;
+        });
+        const binding = this.bindProcedureParameters(
+            proc,
+            aligned.args,
+            localEnv,
+            subtypes,
+            aligned,
+        );
+        return this.execProcBody(proc, localEnv, {
+            byRefArgs: binding.byRefArgs,
+            paramArrayParamName: binding.paramArrayParamName,
+            paramArrayReferences: binding.paramArrayReferences,
+            initialLastErrorIndex: callProcedureSemantics ? null : -1,
+            acceptExitProperty: callProcedureSemantics,
+            returnOnProperty: callProcedureSemantics,
+            subReturnValue: callProcedureSemantics ? vbaEmpty : undefined,
+        });
+    }
+
     private evaluateCallExpression(expr: CallExpression): any {
         if (expr.callee.type === 'Identifier') {
             const identifier = expr.callee as Identifier;
@@ -9689,39 +9726,7 @@ export class Evaluator {
                 try {
 
                 this.precheckProc(proc);
-
-                // Procedure call (Function/Sub): Tier 1, enclosing = Tier 2 (moduleEnv)
-                const procModKey = (proc.moduleName ?? '').toLowerCase();
-                const procParentEnv = this.moduleEnvs.get(procModKey) ?? this.env;
-                const localEnv = new Environment(procParentEnv);
-
-                const split = this.splitArgumentExpressions(expr.args);
-                this.checkArgCount(proc, split.positional.length + split.named.size);
-                this.checkNoGapOnRequiredParam(proc.parameters, split.positional);
-                const aligned = this.alignProcedureCallExpressions(proc, expr.args);
-                const subtypes = aligned.args.map((value, index) =>
-                    (() => {
-                        const expression = aligned.expressions[index];
-                        return (typeof value === 'number' || typeof value === 'bigint') && expression
-                            ? this.resolveNumericSubtype(expression)
-                            : undefined;
-                    })());
-                const binding = this.bindProcedureParameters(
-                    proc,
-                    aligned.args,
-                    localEnv,
-                    subtypes,
-                    aligned,
-                );
-                return this.execProcBody(proc, localEnv, {
-                    byRefArgs: binding.byRefArgs,
-                    paramArrayParamName: binding.paramArrayParamName,
-                    paramArrayReferences: binding.paramArrayReferences,
-                    initialLastErrorIndex: -1,
-                    acceptExitProperty: false,
-                    returnOnProperty: false,
-                    subReturnValue: undefined,
-                });
+                return this.executeProcedureExpression(proc, expr.args);
 
                 } finally {
                     this.vbaCallStack.pop();
@@ -9847,14 +9852,17 @@ export class Evaluator {
                         const qualifiedProc = this.env.getProcedureFromModule(member.property.name, possibleModuleName)
                             ?? this.env.getProcedureFromModule(member.property.name, possibleModuleName, 'get');
                         if (qualifiedProc) {
-                            this.checkNoGapOnRequiredParam(qualifiedProc.parameters, expr.args);
-                            const aligned = this.alignProcedureCallExpressions(qualifiedProc, expr.args);
-                            // Variant サブタイプを呼び出し元 env で解決して伝播
-                            const subtypes = aligned.args.map((v, i) =>
-                                typeof v === 'number' ? this.resolveNumericSubtype(aligned.expressions[i] ?? expr.args[i]) : undefined);
-                            const result = this.callProcedure(member.property.name, aligned.args, undefined, possibleModuleName, subtypes);
-                            this.writeBackArgumentReferences(qualifiedProc, aligned.references, aligned.args);
-                            return result;
+                            this.vbaCallStack.push({
+                                name: qualifiedProc.name.name,
+                                moduleName: qualifiedProc.moduleName ?? possibleModuleName,
+                                line: this.currentLine,
+                            });
+                            try {
+                                this.precheckProc(qualifiedProc);
+                                return this.executeProcedureExpression(qualifiedProc, expr.args, true);
+                            } finally {
+                                this.vbaCallStack.pop();
+                            }
                         }
                     }
                 }

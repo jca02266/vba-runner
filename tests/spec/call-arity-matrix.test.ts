@@ -213,6 +213,25 @@ Sub Caller()
 End Sub
 `, 'Caller', 7, /argument not optional/i, 'Module-qualified/bare-required-argument');
 
+// A module-qualified expression call must retain the parenthesized ByVal
+// marker instead of routing through a value-only public call boundary.
+{
+    const runner = evalVBASingle(String.raw`Attribute VB_Name = "CallerModule"
+Function Mutate(ByRef value As Long) As Long
+    value = 99
+    Mutate = value
+End Function
+Function Probe() As Long
+    Dim value As Long
+    value = 1
+    CallerModule.Mutate (value)
+    Probe = value
+End Function
+`);
+    assert.strictEqual(runner.callProcedure('Probe', []), 1,
+        'Module-qualified/parenthesized-ByVal');
+}
+
 // Optional holes and named arguments exercise MissingArgument and the
 // name-to-parameter alignment path rather than only positional counts.
 assertCompileErrorExec(String.raw`Function Target(left As Long, right As Long) As Long
