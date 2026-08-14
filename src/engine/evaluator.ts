@@ -122,6 +122,7 @@ import {
 import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
 import {
     classifyArgumentCount,
+    acceptsNamedArgumentShape,
     hasParamArrayArgument,
     hasRequiredArgumentAfterPrefix,
     isEffectiveByValParameter,
@@ -5241,22 +5242,7 @@ export class Evaluator {
         }
 
         const candidates = overloads.filter(o => {
-            if (positionalArgs.length > o.params.length) return false;
-            const paramNames = o.params.map(p => p.name.toLowerCase());
-            for (const namedKey of namedArgs.keys()) {
-                if (!paramNames.includes(namedKey)) return false;
-            }
-            // 位置引数が占める先頭スロットの名前が、名前付き引数と重複していないこと
-            for (let i = 0; i < positionalArgs.length; i++) {
-                if (namedArgs.has(paramNames[i])) return false;
-            }
-            // 残り（位置引数で埋まらないスロット）は名前付き引数、または
-            // Optional の省略で埋まること。先頭 Optional を飛ばした
-            // `InStr(String1:=..., String2:=..., Compare:=...)` を許可する。
-            for (let i = positionalArgs.length; i < o.params.length; i++) {
-                if (!namedArgs.has(paramNames[i]) && !o.params[i].optional) return false;
-            }
-            return true;
+            return acceptsNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys());
         });
 
         if (candidates.length === 0) {
@@ -5353,11 +5339,11 @@ export class Evaluator {
     private isAutoCallable(fn: Function): boolean {
         const overloads = (fn as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
         if (overloads) {
-            return overloads.some(o => o.params.length === 0);
+            return overloads.some(o => requiredArgumentCount(o.params) === 0);
         }
         const spec = (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
         if (spec) {
-            return !spec.some(p => p.isParamArray) && spec.every(p => p.optional);
+            return !hasParamArrayArgument(spec) && requiredArgumentCount(spec) === 0;
         }
         return false;
     }

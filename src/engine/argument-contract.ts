@@ -4,6 +4,7 @@
  * contract violation to the VBA error used by its call boundary.
  */
 export interface VbaArgumentParameter {
+    name?: string;
     optional?: boolean;
     isOptional?: boolean;
     defaultValue?: unknown;
@@ -74,4 +75,28 @@ export function hasRequiredArgumentAfterPrefix(
         }
     }
     return false;
+}
+
+/** Validate the declaration-shape part of a mixed positional/named call. */
+export function acceptsNamedArgumentShape(
+    parameters: readonly VbaArgumentParameter[],
+    positionalCount: number,
+    namedNames: Iterable<string>,
+): boolean {
+    if (positionalCount > parameters.length) return false;
+    const normalizedNamedNames = [...namedNames].map(name => name.toLowerCase());
+    const names = new Set(parameters.map(parameter => parameter.name?.toLowerCase()));
+    for (const name of normalizedNamedNames) {
+        if (!names.has(name)) return false;
+    }
+    for (let index = 0; index < positionalCount; index++) {
+        const name = parameters[index]?.name?.toLowerCase();
+        if (name && normalizedNamedNames.includes(name)) return false;
+    }
+    for (let index = positionalCount; index < parameters.length; index++) {
+        const name = parameters[index]?.name?.toLowerCase();
+        const supplied = name !== undefined && normalizedNamedNames.includes(name);
+        if (!supplied && isRequiredArgument(parameters[index])) return false;
+    }
+    return true;
 }
