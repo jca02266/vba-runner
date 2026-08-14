@@ -206,6 +206,10 @@ analysis; do not duplicate its taxonomy here.
    versioned snapshot without an event history. This also applies when the
    state changes directly to `fixed`, `verified-no-bug`, `known-limit`, or
    `retired`, not only when leaving a pending state.
+   Never hand-write `*.events.yml` or invent an `occurredAt`. Use `record`,
+   `complete`, or `transition` so the CLI timestamps the event at the actual
+   operation. For historical backfills, use only a traceable commit timestamp
+   through the backfill tool; never use a scheduled, estimated, or future time.
    Before creating an evaluation, register its candidate in the campaign
    manifest. Use `eval record` for the new EV file and stop if validation says
    the candidate is unknown or belongs to another campaign; never create an EV,
