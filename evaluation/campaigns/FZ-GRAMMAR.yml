@@ -609,3 +609,22 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
+  - id: FZ-GRAMMAR-066
+    title: ParamArray省略時の最小引数検査境界
+    status: fixed
+    priority: 1
+    focus: ParamArrayだけを持つPropertyの引数省略と実行時アリティ検査
+    priorCauseKey: paramarray-counted-as-required
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-paramarray.test.ts
+      - tests/spec/property-paramarray-callbyname-matrix.test.ts
+  - id: FZ-GRAMMAR-067
+    title: ParamArray先行必須引数の静的検査境界
+    status: queued
+    priority: 1
+    focus: 先行固定必須引数とParamArrayを持つ手続きのprecheckProc
+    priorCauseKey: paramarray-counted-as-required
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts

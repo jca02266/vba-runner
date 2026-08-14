@@ -2103,7 +2103,10 @@ export class Evaluator {
                 switch (expr.type) {
                     case 'CallExpression': {
                         const call = expr as CallExpression;
-                        visitExpression(call.callee, assignmentTarget, true);
+                        // A call's callee is not the assignment target.  Keep
+                        // that distinction so Property Let/Set value tails
+                        // remain excluded from ParamArray indexing.
+                        visitExpression(call.callee, false, true);
                         for (const arg of call.args) visitExpression(arg);
                         break;
                     }
@@ -5081,7 +5084,9 @@ export class Evaluator {
         const hasParamArray = params.some(p => p.isParamArray);
 
         const maxParams = params.length;
-        const minParams = params.filter(p => !p.isOptional).length;
+        // ParamArray may be omitted entirely; only fixed parameters
+        // contribute to the minimum argument count.
+        const minParams = params.filter(p => !p.isOptional && !p.isParamArray).length;
 
         if (!hasParamArray && providedCount > maxParams) {
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
