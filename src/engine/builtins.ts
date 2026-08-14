@@ -17,6 +17,7 @@ import {
     stripFormatColorDirectives, stripVbaBracketDirectives, hasUnclosedVbaBracket, hasUnescapedFormatChars,
 } from './format';
 import { vbaWeekNumber } from './date-week';
+import { classifyArgumentCount } from './argument-contract';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
 function unwrapVbaDefaultValue(value: any): any {
@@ -202,13 +203,14 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
             declaredSpec?: BuiltinParamSpec[],
         ): void => {
             const spec = declaredSpec ?? member?.__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
-            const required = spec
-                ? spec.filter(param => !param.optional && !param.isParamArray).length
-                : member.length;
-            const variadic = spec?.some(param => param.isParamArray) ?? false;
-            const tooFew = supplied.length < required;
-            const tooMany = !variadic && spec !== undefined && supplied.length > spec.length;
-            if (tooFew || tooMany) {
+            // Dynamic host members without metadata still expose their JS arity.
+            // Convert that fallback into the same contract representation instead
+            // of maintaining a second required/excess implementation here.
+            const parameters = spec ?? Array.from(
+                { length: typeof member?.length === 'number' ? member.length : 0 },
+                () => ({ optional: false }),
+            );
+            if (classifyArgumentCount(parameters, supplied.length) !== null) {
                 ctx.throwError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                     'Wrong number of arguments or invalid property assignment');
             }

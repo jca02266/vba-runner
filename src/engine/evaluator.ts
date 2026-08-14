@@ -124,6 +124,10 @@ import {
     classifyArgumentCount,
     hasParamArrayArgument,
     hasRequiredArgumentAfterPrefix,
+    isEffectiveByValParameter,
+    isOptionalArgument,
+    isPropertyValueParameter,
+    type VbaArgumentParameter,
 } from './argument-contract';
 export { VbaErrorCode } from './vba-errors';
 
@@ -857,11 +861,8 @@ export class Environment {
 
 export type PrintCallback = (output: string) => void;
 
-/** `BuiltinParamSpec` と最小限の形を共有する抽象（ProcedureDeclaration.parameters も満たす） */
-interface ArgBinderParam {
-    isOptional: boolean;
-    isParamArray: boolean;
-}
+/** Shared argument-contract shape used by built-ins, declarations, and stubs. */
+type ArgBinderParam = VbaArgumentParameter;
 
 export class Evaluator {
     public env: Environment;          // Tier 3: Public cross-module names
@@ -1053,33 +1054,9 @@ export class Evaluator {
         parameterIndex: number,
         forcedByVal = false,
     ): VbaLValueReference | null {
-        return expr && !this.isEffectiveByValParameter(proc, parameterIndex) && !forcedByVal
+        return expr && !isEffectiveByValParameter(proc, parameterIndex) && !forcedByVal
             ? this.createLValueReference(expr)
             : null;
-    }
-
-    /** Property Let/Set's final RHS is always a ByVal value parameter. */
-    private isPropertyValueParameter(
-        proc: ProcedureDeclaration,
-        index: number,
-    ): boolean {
-        return proc.isProperty &&
-            (proc.propertyType === 'let' || proc.propertyType === 'set') &&
-            index === proc.parameters.length - 1;
-    }
-
-    /**
-     * Return whether an argument is not eligible for caller writeback.
-     * Property Let/Set value parameters are effectively ByVal even when their
-     * declaration omits ByVal or explicitly says ByRef; all call boundaries
-     * must use this predicate instead of inspecting the declaration alone.
-     */
-    private isEffectiveByValParameter(
-        proc: ProcedureDeclaration,
-        index: number,
-    ): boolean {
-        return proc.parameters[index]?.isByVal === true ||
-            this.isPropertyValueParameter(proc, index);
     }
 
     /** Bind positional values to a procedure frame for module and class calls. */
@@ -1096,7 +1073,7 @@ export class Evaluator {
             const param = proc.parameters[i];
             const paramName = param.name;
             if (param.isParamArray) {
-                const hasPropertyValueTail = this.isPropertyValueParameter(proc, i + 1);
+                const hasPropertyValueTail = isPropertyValueParameter(proc, i + 1);
                 const remainingArgs = args.slice(i, hasPropertyValueTail ? -1 : undefined);
                 (remainingArgs as any).vbaBase = 0;
                 localEnv.setLocally(paramName, remainingArgs);
@@ -1147,7 +1124,7 @@ export class Evaluator {
                 !isVbaObjectReferenceCompatible(argValue)) {
                 this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
-            argValue = this.prepareArgumentValue(argValue, param, this.isPropertyValueParameter(proc, i));
+            argValue = this.prepareArgumentValue(argValue, param, isPropertyValueParameter(proc, i));
             localEnv.setLocally(paramName, argValue);
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
                     && argSubtypes && i < argSubtypes.length && argSubtypes[i]
@@ -1849,11 +1826,7 @@ export class Evaluator {
         // args 配列に反映されない問題があった。VBA の既定の引数渡しは ByRef
         // （明示的な ByVal がない限り）なので、ByVal 以外のパラメーターは
         // 呼び出し後の最終値を args[i] に書き戻す。
-        for (let i = 0; i < proc.parameters.length; i++) {
-            const param = proc.parameters[i];
-            if (param.isParamArray || param.isByVal || i >= args.length) continue;
-            args[i] = localEnv.get(param.name.toLowerCase());
-        }
+        this.writeBackProcedureValues(proc, args, localEnv);
 
         return result;
 
@@ -5092,6 +5065,23 @@ export class Evaluator {
     }
 
     /**
+     * Apply the common ByRef writeback policy to value-based call boundaries.
+     * Property Let/Set value-tails are intentionally excluded by the same
+     * predicate used when creating lvalue references.
+     */
+    private writeBackProcedureValues(
+        proc: ProcedureDeclaration,
+        args: any[],
+        localEnv: Environment,
+    ): void {
+        for (let i = 0; i < proc.parameters.length && i < args.length; i++) {
+            const parameter = proc.parameters[i];
+            if (parameter.isParamArray || isEffectiveByValParameter(proc, i)) continue;
+            args[i] = localEnv.get(parameter.name.toLowerCase());
+        }
+    }
+
+    /**
      * 引数の数を検証する汎用ロジック。`ProcedureDeclaration.parameters`（ユーザー定義 Proc）と
      * `BuiltinParamSpec[]`（組み込み関数）の両方をこの最小形（`ArgBinderParam[]`）に変換して
      * 共有する。VBA の `Optional` 引数の判定基準は、ユーザー定義 Proc では
@@ -5134,7 +5124,7 @@ export class Evaluator {
         for (let i = 0; i < argExprs.length && i < params.length; i++) {
             if (argExprs[i].type !== 'MissingArgument') continue;
             const p = params[i];
-            if (!p.isOptional && p.defaultValue == null && !p.isParamArray) {
+            if (!isOptionalArgument(p) && !p.isParamArray) {
                 this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             }
         }
@@ -5405,7 +5395,7 @@ export class Evaluator {
                 }
                 break;
             }
-            if (!this.isEffectiveByValParameter(proc, i) && references[i]) {
+            if (!isEffectiveByValParameter(proc, i) && references[i]) {
                 try {
                     references[i]!.set(byRefValues[i]);
                 } catch {
@@ -5515,7 +5505,7 @@ export class Evaluator {
             arg?.type === 'NamedArgument' && !(arg as any).__vbaPropertyValueTail);
         this.rejectNamedParamArray(paramArrayIndex >= 0, hasExplicitNamedArgument ? 1 : 0);
         const propertyValueIndex = paramArrayIndex >= 0 &&
-            this.isPropertyValueParameter(proc, proc.parameters.length - 1)
+            isPropertyValueParameter(proc, proc.parameters.length - 1)
             ? proc.parameters.length - 1
             : -1;
 
@@ -5584,7 +5574,7 @@ export class Evaluator {
                 expr ?? undefined,
                 proc,
                 i,
-                this.isPropertyValueParameter(proc, i),
+                isPropertyValueParameter(proc, i),
             )
         );
         const leadingArgs = Array.from(aligned, (slot, i) => slot
@@ -5605,7 +5595,7 @@ export class Evaluator {
                     slot.expr ?? undefined,
                     proc,
                     propertyValueIndex,
-                    this.isPropertyValueParameter(proc, propertyValueIndex),
+                    isPropertyValueParameter(proc, propertyValueIndex),
                 ));
                 args.push(slot.value);
             }
@@ -5622,7 +5612,7 @@ export class Evaluator {
         const byRefValues: any[] = [];
         const result = this.callClassMethod(instance, proc, values, byRefValues);
         for (let i = 0; i < proc.parameters.length && i < references.length; i++) {
-            if (!this.isEffectiveByValParameter(proc, i)) {
+            if (!isEffectiveByValParameter(proc, i)) {
                 references[i].set(byRefValues[i]);
             }
         }
@@ -5730,7 +5720,7 @@ export class Evaluator {
             if (byRefWriteback) {
                 for (let i = 0; i < proc.parameters.length; i++) {
                     const param = proc.parameters[i];
-                    if (!param.isByVal) {
+                    if (!isEffectiveByValParameter(proc, i)) {
                         byRefWriteback[i] = localEnv.get(param.name);
                     }
                 }
@@ -9795,7 +9785,7 @@ export class Evaluator {
                     this.addRef(argVal);
 
                     // ByRef handling
-                    if (!param.isByVal) {
+                    if (!isEffectiveByValParameter(proc, i)) {
                         let originalExpr: Expression | undefined;
                         if (namedArgExpressions.has(paramNameLower)) {
                             originalExpr = namedArgExpressions.get(paramNameLower);
@@ -9953,7 +9943,7 @@ export class Evaluator {
                                 typeof v === 'number' ? this.resolveNumericSubtype(aligned.expressions[i] ?? expr.args[i]) : undefined);
                             const result = this.callProcedure(member.property.name, aligned.args, undefined, possibleModuleName, subtypes);
                             for (let i = 0; i < qualifiedProc.parameters.length && i < aligned.args.length; i++) {
-                                if (!qualifiedProc.parameters[i].isByVal && aligned.references[i]) {
+                                if (!isEffectiveByValParameter(qualifiedProc, i) && aligned.references[i]) {
                                     aligned.references[i]!.set(aligned.args[i]);
                                 }
                             }

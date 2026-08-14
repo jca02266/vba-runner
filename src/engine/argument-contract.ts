@@ -8,6 +8,7 @@ export interface VbaArgumentParameter {
     isOptional?: boolean;
     defaultValue?: unknown;
     isParamArray?: boolean;
+    isByVal?: boolean;
 }
 
 export type ArgumentContractViolation = 'missing' | 'excess' | null;
@@ -19,6 +20,25 @@ export function isOptionalArgument(parameter: VbaArgumentParameter): boolean {
 
 export function isParamArrayArgument(parameter: VbaArgumentParameter): boolean {
     return parameter.isParamArray === true;
+}
+
+/** Property Let/Set's final parameter is the implicit assignment value. */
+export function isPropertyValueParameter(
+    procedure: { isProperty?: boolean; propertyType?: string; parameters: readonly VbaArgumentParameter[] },
+    index: number,
+): boolean {
+    return procedure.isProperty === true &&
+        (procedure.propertyType === 'let' || procedure.propertyType === 'set') &&
+        index === procedure.parameters.length - 1;
+}
+
+/** Return whether a parameter is passed as a value at every call boundary. */
+export function isEffectiveByValParameter(
+    procedure: { isProperty?: boolean; propertyType?: string; parameters: readonly VbaArgumentParameter[] },
+    index: number,
+): boolean {
+    const parameter = procedure.parameters[index] as (VbaArgumentParameter & { isByVal?: boolean }) | undefined;
+    return parameter?.isByVal === true || isPropertyValueParameter(procedure, index);
 }
 
 export function requiredArgumentCount(parameters: readonly VbaArgumentParameter[]): number {
