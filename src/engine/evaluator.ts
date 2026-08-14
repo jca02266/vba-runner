@@ -122,10 +122,10 @@ import {
 import { VbaErrorCode, throwVbaError, VBA_ERROR_MESSAGES } from './vba-errors';
 import {
     classifyArgumentCount,
+    classifyNamedArgumentShape,
     acceptsNamedArgumentShape,
     hasParamArrayArgument,
     hasMissingRequiredArgument,
-    hasMissingRequiredNamedArgument,
     hasRequiredArgumentAfterPrefix,
     isEffectiveByValParameter,
     isPropertyValueParameter,
@@ -5330,14 +5330,14 @@ export class Evaluator {
             }
         }
         if (namedArgs.size === 0) {
-            const matchingOverloads = overloads.filter(o =>
-                classifyArgumentCount(o.params, totalCount) === null &&
-                acceptsNamedArgumentShape(o.params, positionalArgs.length, []) &&
-                !hasMissingRequiredArgument(o.params, positionalMissing) &&
-                !hasMissingRequiredNamedArgument(o.params, positionalArgs.length, []));
+            const matchingOverloads = overloads.filter(o => {
+                const shape = classifyNamedArgumentShape(o.params, positionalArgs.length, []);
+                return classifyArgumentCount(o.params, totalCount) === null &&
+                    shape === null && !hasMissingRequiredArgument(o.params, positionalMissing);
+            });
             if (matchingOverloads.length === 0) {
                 if (totalCount <= Math.max(...arities) && overloads.some(o =>
-                    hasMissingRequiredNamedArgument(o.params, positionalArgs.length, []))) {
+                    classifyNamedArgumentShape(o.params, positionalArgs.length, []) === 'missing')) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                 }
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
@@ -5348,14 +5348,13 @@ export class Evaluator {
         }
 
         const candidates = overloads.filter(o => {
-            return acceptsNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys()) &&
-                !hasMissingRequiredArgument(o.params, positionalMissing) &&
-                !hasMissingRequiredNamedArgument(o.params, positionalArgs.length, namedArgs.keys());
+            const shape = classifyNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys());
+            return shape === null && !hasMissingRequiredArgument(o.params, positionalMissing);
         });
 
         if (candidates.length === 0) {
             if (totalCount <= Math.max(...arities) && overloads.some(o =>
-                hasMissingRequiredNamedArgument(o.params, positionalArgs.length, namedArgs.keys()))) {
+                classifyNamedArgumentShape(o.params, positionalArgs.length, namedArgs.keys()) === 'missing')) {
                 this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
             }
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');

@@ -90,24 +90,41 @@ export function hasMissingRequiredArgument(
     return false;
 }
 
-/** Return whether a mixed positional/named call omits a required parameter. */
-export function hasMissingRequiredNamedArgument(
+export type NamedArgumentShapeViolation = 'missing' | 'invalid' | null;
+
+/** Classify the declaration-shape part of a mixed positional/named call. */
+export function classifyNamedArgumentShape(
     parameters: readonly VbaArgumentParameter[],
     positionalCount: number,
     namedNames: Iterable<string>,
-): boolean {
-    const named = new Set([...namedNames].map(name => name.toLowerCase()));
+    allowPropertyValueTail = false,
+): NamedArgumentShapeViolation {
+    const normalizedNamedNames = [...namedNames].map(name => name.toLowerCase());
+    const propertyValueName = allowPropertyValueTail && parameters.length > 0
+        ? parameters[parameters.length - 1].name?.toLowerCase()
+        : undefined;
+    const nonPropertyNamedNames = normalizedNamedNames.filter(name => name !== propertyValueName);
     const paramArrayIndex = parameters.findIndex(isParamArrayArgument);
+    if (hasParamArrayArgument(parameters) && nonPropertyNamedNames.length > 0) return 'invalid';
+    if (paramArrayIndex < 0 && positionalCount > parameters.length) return 'invalid';
+    const names = new Set(parameters.map(parameter => parameter.name?.toLowerCase()));
+    for (const name of normalizedNamedNames) {
+        if (!names.has(name)) return 'invalid';
+    }
     const positionalPrefixCount = paramArrayIndex >= 0
         ? Math.min(positionalCount, paramArrayIndex)
         : positionalCount;
+    for (let index = 0; index < positionalPrefixCount; index++) {
+        const name = parameters[index]?.name?.toLowerCase();
+        if (name && normalizedNamedNames.includes(name)) return 'invalid';
+    }
     for (let index = positionalPrefixCount; index < parameters.length; index++) {
         const parameter = parameters[index];
-        if (!named.has(parameter.name?.toLowerCase() ?? '') && isRequiredArgument(parameter)) {
-            return true;
-        }
+        const supplied = parameter.name !== undefined &&
+            normalizedNamedNames.includes(parameter.name.toLowerCase());
+        if (!supplied && isRequiredArgument(parameter)) return 'missing';
     }
-    return false;
+    return null;
 }
 
 /** Validate the declaration-shape part of a mixed positional/named call. */
@@ -117,35 +134,5 @@ export function acceptsNamedArgumentShape(
     namedNames: Iterable<string>,
     allowPropertyValueTail = false,
 ): boolean {
-    // ParamArray is a positional sink in VBA; it cannot be selected through
-    // a named argument. Keep this rule in the shared contract so overloads
-    // and ordinary built-ins cannot diverge.
-    const normalizedNamedNames = [...namedNames].map(name => name.toLowerCase());
-    const propertyValueName = allowPropertyValueTail && parameters.length > 0
-        ? parameters[parameters.length - 1].name?.toLowerCase()
-        : undefined;
-    const nonPropertyNamedNames = normalizedNamedNames.filter(name => name !== propertyValueName);
-    if (hasParamArrayArgument(parameters) && nonPropertyNamedNames.length > 0) return false;
-    const paramArrayIndex = parameters.findIndex(isParamArrayArgument);
-    if (paramArrayIndex < 0 && positionalCount > parameters.length) return false;
-    const names = new Set(parameters.map(parameter => parameter.name?.toLowerCase()));
-    for (const name of normalizedNamedNames) {
-        if (!names.has(name)) return false;
-    }
-    // Positional arguments beyond ParamArray's declaration slot belong to its
-    // tail; they must not be mistaken for the following synthetic Property
-    // value parameter.
-    const positionalPrefixCount = paramArrayIndex >= 0
-        ? Math.min(positionalCount, paramArrayIndex)
-        : positionalCount;
-    for (let index = 0; index < positionalPrefixCount; index++) {
-        const name = parameters[index]?.name?.toLowerCase();
-        if (name && normalizedNamedNames.includes(name)) return false;
-    }
-    for (let index = positionalPrefixCount; index < parameters.length; index++) {
-        const name = parameters[index]?.name?.toLowerCase();
-        const supplied = name !== undefined && normalizedNamedNames.includes(name);
-        if (!supplied && isRequiredArgument(parameters[index])) return false;
-    }
-    return true;
+    return classifyNamedArgumentShape(parameters, positionalCount, namedNames, allowPropertyValueTail) === null;
 }
