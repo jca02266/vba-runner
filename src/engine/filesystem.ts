@@ -112,7 +112,8 @@ export class MemoryFileSystem implements FileSystem {
         if (!entry) throw new Error(`ENOENT: no such file or directory, copyFileSync '${src}'`);
         if (!this.dirs.has(path.dirname(d))) throw new Error(`ENOENT: no such directory, copyFileSync '${dest}'`);
         if (this.existsSync(d) && !options?.overwrite) throw new Error(`EEXIST: destination exists '${dest}'`);
-        this.writeFileSync(d, entry.data);
+        const data = entry.data instanceof Uint8Array ? new Uint8Array(entry.data) : entry.data;
+        this.writeFileSync(d, data);
     }
 
     moveFileSync(src: string, dest: string): void {
@@ -133,25 +134,28 @@ export class MemoryFileSystem implements FileSystem {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
         }
         if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
+        const prefix = source === '/' ? '/' : source + '/';
+        const sourceFiles = [...this.files.keys()].filter(file => file.startsWith(prefix));
         if (this.existsSync(target)) {
             if (!this.dirs.has(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
-        } else {
-            this.mkdirSync(target, { recursive: true });
         }
-        const prefix = source === '/' ? '/' : source + '/';
+        if (!options?.overwrite) {
+            for (const file of sourceFiles) {
+                const destination = path.join(target, file.slice(prefix.length));
+                if (this.existsSync(destination)) {
+                    throw new Error(`EEXIST: destination exists '${destination}'`);
+                }
+            }
+        }
+        if (!this.existsSync(target)) this.mkdirSync(target, { recursive: true });
         for (const dir of this.dirs.keys()) {
             if (dir.startsWith(prefix) && dir !== source) {
                 this.mkdirSync(path.join(target, dir.slice(prefix.length)), { recursive: true });
             }
         }
-        for (const file of this.files.keys()) {
-            if (file.startsWith(prefix)) {
-                const destination = path.join(target, file.slice(prefix.length));
-                if (this.existsSync(destination) && !options?.overwrite) {
-                    throw new Error(`EEXIST: destination exists '${destination}'`);
-                }
-                this.copyFileSync(file, destination, { overwrite: options?.overwrite === true });
-            }
+        for (const file of sourceFiles) {
+            const destination = path.join(target, file.slice(prefix.length));
+            this.copyFileSync(file, destination, { overwrite: options?.overwrite === true });
         }
     }
 
