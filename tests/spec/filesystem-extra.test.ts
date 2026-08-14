@@ -19,7 +19,7 @@ function evalVBA(code: string): any {
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
     Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult, nestedFolderResult, fileOverwriteResult
-    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr, copyFolderNoOverwriteResult, copyFolderOverwriteResult
+    Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr, copyFolderNoOverwriteResult, copyFolderOverwriteResult, fsoFolderAttributes, fsoFileAttributes, fsoObjectDeleteErr, fsoObjectForceDeleteResult
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
     Sub Test1()
@@ -266,6 +266,27 @@ const allCode = String.raw`
         fso.DeleteFolder "copy_overwrite_source", True
     End Sub
 
+    Sub Test25FsoObjectBoundaries()
+        Dim fso As Object, folder As Object, file As Object, stream As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "object_boundary_folder"
+        Set folder = fso.GetFolder("object_boundary_folder")
+        fsoFolderAttributes = folder.Attributes
+        Set stream = fso.CreateTextFile("object_boundary_folder\child.txt")
+        stream.Write "x"
+        stream.Close
+        Set file = fso.GetFile("object_boundary_folder\child.txt")
+        fsoFileAttributes = file.Attributes
+        On Error Resume Next
+        Err.Clear
+        folder.Delete False
+        fsoObjectDeleteErr = Err.Number
+        Err.Clear
+        On Error GoTo 0
+        folder.Delete True
+        fsoObjectForceDeleteResult = IIf(Not fso.FolderExists("object_boundary_folder"), "ok", "bad")
+    End Sub
+
     Sub Test16FsoMoveFolder()
         Dim fso As Object, stream As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
@@ -472,6 +493,14 @@ ev.callProcedure('Test24FsoCopyFolderOverwrite', []);
 assert.strictEqual(ev.env.get('copyfoldernooverwriteresult'), 'ok', 'CopyFolder existing destination without overwrite');
 assert.strictEqual(ev.env.get('copyfolderoverwriteresult'), 'ok', 'CopyFolder existing destination with overwrite');
 console.log('[PASS] FSO CopyFolder overwrite contract');
+
+// Test 25: FSO object Attributes and Folder.Delete share VBA boundaries.
+ev.callProcedure('Test25FsoObjectBoundaries', []);
+assert.strictEqual(ev.env.get('fsofolderattributes'), 16, 'Folder.Attributes uses VBA DIRECTORY flag');
+assert.strictEqual(ev.env.get('fsofileattributes'), 0, 'File.Attributes uses VBA NORMAL flag');
+assert.strictEqual(ev.env.get('fsoobjectdeleteerr'), 75, 'Folder.Delete non-empty -> Error 75');
+assert.strictEqual(ev.env.get('fsoobjectforcedeleteresult'), 'ok', 'Folder.Delete Force removes tree');
+console.log('[PASS] FSO object Attributes/Delete boundaries');
 
 // Test 16: FSO MoveFolder moves a folder tree and removes its source.
 ev.callProcedure('Test16FsoMoveFolder', []);

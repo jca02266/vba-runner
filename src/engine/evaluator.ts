@@ -1576,7 +1576,7 @@ export class Evaluator {
                 this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
             }
             try {
-                this.fs.rmdirSync?.(realPath);
+                this.fs.rmdirSync(realPath);
             } catch {
                 this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
             }
@@ -7834,7 +7834,9 @@ export class Evaluator {
                 datecreated: new VbaDate(toVbaDate(stats.birthtime || stats.mtime)),
                 datelastaccessed: new VbaDate(toVbaDate(stats.atime || stats.mtime)),
                 datelastmodified: new VbaDate(toVbaDate(stats.mtime)),
-                attributes: stats.mode || 0,
+                attributes: this.fs.getAttributes
+                    ? this.fs.getAttributes(full)
+                    : (stats.isDirectory() ? VBA_FILE_ATTRIBUTE.DIRECTORY : VBA_FILE_ATTRIBUTE.NORMAL),
                 __vbaParamSpecs__: pathObjectParamSpecs,
             };
             if (includeParent) {
@@ -7867,7 +7869,7 @@ export class Evaluator {
                     if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    try { this.fs.copyFileSync(full, target); } catch (e) { throwFsoPathError(e); }
+                    try { this.fs.copyFileSync(full, target, { overwrite: vbaFlagIsTrue(overwrite) }); } catch (e) { throwFsoPathError(e); }
                 };
                 common.move = (destination: string) => {
                     const target = this.sandbox.toRealPath(destination);
@@ -7879,7 +7881,14 @@ export class Evaluator {
             } else {
                 common.delete = (force: any = false) => {
                     if (!this.fs.existsSync(full)) this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
-                    this.fs.rmSync?.(full, { recursive: vbaFlagIsTrue(force), force: vbaFlagIsTrue(force) });
+                    try {
+                        this.fs.rmSync(full, { recursive: vbaFlagIsTrue(force), force: vbaFlagIsTrue(force) });
+                    } catch (e: any) {
+                        if (e?.code === 'ENOTEMPTY' || /not empty/i.test(String(e?.message ?? e))) {
+                            this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
+                        }
+                        throwFsoPathError(e);
+                    }
                 };
                 common.copy = (destination: string, overwrite: any = false) => {
                     const target = this.sandbox.toRealPath(destination);
@@ -8206,7 +8215,7 @@ export class Evaluator {
                     if (this.fs.existsSync(destinationPath) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    this.fs.copyFileSync(sourcePath, destinationPath);
+                    this.fs.copyFileSync(sourcePath, destinationPath, { overwrite: vbaFlagIsTrue(overwrite) });
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
@@ -8297,7 +8306,7 @@ export class Evaluator {
                 if (!forceDelete && this.fs.readdirSync(full).length > 0) {
                     this.throwVbaError(VbaErrorCode.PATH_FILE_ACCESS_ERROR, 'Path/File access error');
                 }
-                this.fs.rmSync?.(full, { recursive: forceDelete, force: forceDelete });
+                this.fs.rmSync(full, { recursive: forceDelete, force: forceDelete });
             },
             getfile: (p: string) => {
                 const full = this.sandbox.toRealPath(p);

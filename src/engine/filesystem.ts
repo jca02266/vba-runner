@@ -18,9 +18,9 @@ export interface FileSystem {
     writeFileSync(path: string, content: string): void;
     appendFileSync?(path: string, content: string): void;
     mkdirSync(path: string, options?: { recursive?: boolean }): void;
-    rmdirSync?(path: string): void;
-    rmSync?(path: string, options?: { recursive?: boolean, force?: boolean }): void;
-    copyFileSync(src: string, dest: string): void;
+    rmdirSync(path: string): void;
+    rmSync(path: string, options?: { recursive?: boolean, force?: boolean }): void;
+    copyFileSync(src: string, dest: string, options?: { overwrite?: boolean }): void;
     moveFileSync(src: string, dest: string): void;
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void;
     moveDirectorySync(src: string, dest: string): void;
@@ -105,15 +105,18 @@ export class MemoryFileSystem implements FileSystem {
         this.files.delete(norm);
     }
 
-    copyFileSync(src: string, dest: string): void {
+    copyFileSync(src: string, dest: string, options?: { overwrite?: boolean }): void {
         const s = this.normalize(src);
         const d = this.normalize(dest);
         const entry = this.files.get(s);
         if (!entry) throw new Error(`ENOENT: no such file or directory, copyFileSync '${src}'`);
+        if (!this.dirs.has(path.dirname(d))) throw new Error(`ENOENT: no such directory, copyFileSync '${dest}'`);
+        if (this.existsSync(d) && !options?.overwrite) throw new Error(`EEXIST: destination exists '${dest}'`);
         this.writeFileSync(d, entry.data);
     }
 
     moveFileSync(src: string, dest: string): void {
+        if (this.existsSync(this.normalize(dest))) throw new Error(`EEXIST: destination exists '${dest}'`);
         this.copyFileSync(src, dest);
         this.unlinkSync(src);
     }
@@ -142,7 +145,7 @@ export class MemoryFileSystem implements FileSystem {
                 if (this.existsSync(destination) && !options?.overwrite) {
                     throw new Error(`EEXIST: destination exists '${destination}'`);
                 }
-                this.copyFileSync(file, destination);
+                this.copyFileSync(file, destination, { overwrite: options?.overwrite === true });
             }
         }
     }
@@ -153,6 +156,7 @@ export class MemoryFileSystem implements FileSystem {
         if (target === source || target.startsWith(`${source}/`)) {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
         }
+        if (this.existsSync(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
         this.copyDirectorySync(src, dest);
         this.rmSync(src, { recursive: true, force: true });
     }
@@ -180,6 +184,10 @@ export class MemoryFileSystem implements FileSystem {
                 this.dirs.delete(norm);
             }
         }
+    }
+
+    rmdirSync(p: string): void {
+        this.rmSync(p, { recursive: false, force: false });
     }
 
     readdirSync(p: string): string[] {
