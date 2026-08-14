@@ -18,7 +18,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
@@ -231,7 +231,7 @@ const allCode = String.raw`
     End Sub
 
     Sub Test22FsoPathObjectCopyMove()
-        Dim fso As Object, source As Object, child As Object, copied As Object, moved As Object
+        Dim fso As Object, source As Object, child As Object, copied As Object, moved As Object, parent As Object
         Set fso = CreateObject("Scripting.FileSystemObject")
         fso.CreateFolder "path_object_source"
         Set child = fso.CreateTextFile("path_object_source\child.txt")
@@ -241,6 +241,9 @@ const allCode = String.raw`
         source.Copy "path_object_copy"
         folderCopyResult = IIf(fso.FolderExists("path_object_copy") And fso.FileExists("path_object_copy\child.txt"), "ok", "bad")
         Set copied = fso.GetFile("path_object_copy\child.txt")
+        Set parent = copied.ParentFolder
+        parent.Copy "path_object_parent_copy"
+        parentFolderCopyResult = IIf(fso.FileExists("path_object_parent_copy\child.txt") And parent.Files.Count = 1, "ok", "bad")
         copied.Copy "path_object_file_copy.txt"
         fileCopyResult = IIf(fso.FileExists("path_object_file_copy.txt"), "ok", "bad")
         Set moved = fso.GetFolder("path_object_copy")
@@ -251,6 +254,7 @@ const allCode = String.raw`
         fileMoveResult = IIf((Not fso.FileExists("path_object_file_copy.txt")) And fso.FileExists("path_object_file_move.txt"), "ok", "bad")
         fso.DeleteFolder "path_object_source", True
         fso.DeleteFolder "path_object_move", True
+        fso.DeleteFolder "path_object_parent_copy", True
         fso.DeleteFile "path_object_file_move.txt", True
     End Sub
 
@@ -420,6 +424,7 @@ assert.strictEqual(ev.env.get('foldercopyresult'), 'ok', 'GetFolder.Copy recursi
 assert.strictEqual(ev.env.get('foldermoveresult'), 'ok', 'GetFolder.Move recursive move');
 assert.strictEqual(ev.env.get('filecopyresult'), 'ok', 'GetFile.Copy');
 assert.strictEqual(ev.env.get('filemoveresult'), 'ok', 'GetFile.Move');
+assert.strictEqual(ev.env.get('parentfoldercopyresult'), 'ok', 'GetFile.ParentFolder.Copy and Files');
 console.log('[PASS] FSO path object Copy/Move capability contract');
 
 const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-fso-path-'));
