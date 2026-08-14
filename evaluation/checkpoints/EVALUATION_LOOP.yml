@@ -2205,3 +2205,11 @@ checkpoints:
       - XL-206
       - XL-207
     finding: null
+  - afterEvaluation: null
+    audit: "738 evaluations, 0 active claims; needs-excel 3件。COV-2026-08-14-currentを再集計し、evaluator 91.7%、builtins 95.7%、parser 93.7%、coerce 96.4%、lexer 98.5%を確認した"
+    decision: "カバレッジだけでなく過去バグ件数も重ね、引数・ByRef・Property（58件）、FSO（32件）、宣言・型・リテラル（30件）、Format（30件）、配列・UDT（25件）の順で未到達分岐と共通経路を機械レビューする。実機待ち3件は結果受領まで判定しない"
+    action: source-review
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: null
+    finding: null
