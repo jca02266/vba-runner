@@ -16,3 +16,22 @@ snapshots:
       - src/engine/parser.ts:53.0%
       - src/engine/lexer.ts:81.9%
       - src/engine/coerce.ts:70.1%
+  - id: COV-2026-08-14-current
+    generatedAt: '2026-08-14T13:28:19.300Z'
+    commit: dd3c7eedaa28937f3c127738e2548a1cff397045
+    source: coverage-chunks
+    reports:
+      - coverage-chunks/r1/coverage-final.json
+    summary:
+      src/engine/evaluator.ts: '91.7% (8073/8801)'
+      src/engine/builtins.ts: '95.7% (1553/1622)'
+      src/engine/parser.ts: '93.7% (3386/3612)'
+      src/engine/coerce.ts: '96.4% (161/167)'
+      src/engine/lexer.ts: '98.5% (790/802)'
+      src/engine/vba-types.ts: '100.0% (440/440)'
+    uncovered:
+      - src/engine/evaluator.ts:91.7%
+      - src/engine/builtins.ts:95.7%
+      - src/engine/parser.ts:93.7%
+      - src/engine/coerce.ts:96.4%
+      - src/engine/lexer.ts:98.5%
