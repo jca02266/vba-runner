@@ -72,8 +72,9 @@ export class MemoryFileSystem implements FileSystem {
         this.ensureDir(path.dirname(norm));
         const now = new Date();
         const existing = this.files.get(norm);
-        this.files.set(norm, { 
-            data: content, 
+        const data = content instanceof Uint8Array ? new Uint8Array(content) : content;
+        this.files.set(norm, {
+            data,
             birthtime: existing ? existing.birthtime : now,
             mtime: now,
             attributes: existing?.attributes ?? VBA_FILE_ATTRIBUTE.NORMAL,
@@ -318,7 +319,7 @@ export class MemoryFileSystem implements FileSystem {
         if (!entry) return 0;
         
         const bin = typeof entry.data === 'string' ? new TextEncoder().encode(entry.data) : entry.data;
-        const start = position !== null ? position : h.pos;
+        const start = position !== null && position !== undefined ? position : h.pos;
         const available = bin.length - start;
         const toRead = Math.max(0, Math.min(length, available));
         
@@ -332,7 +333,11 @@ export class MemoryFileSystem implements FileSystem {
         const h = this.fileHandles.get(fd);
         if (!h) throw new Error("Invalid FD");
         
-        const newData = typeof buffer === 'string' ? new TextEncoder().encode(buffer) : buffer.subarray(offset || 0, (offset || 0) + (length || buffer.length));
+        const startOffset = offset ?? 0;
+        const byteLength = length ?? (typeof buffer === 'string' ? new TextEncoder().encode(buffer).length : buffer.length - startOffset);
+        const newData = typeof buffer === 'string'
+            ? new TextEncoder().encode(buffer).subarray(startOffset, startOffset + byteLength)
+            : buffer.subarray(startOffset, startOffset + byteLength);
         const entry = this.files.get(h.path);
         const oldBin = entry ? (typeof entry.data === 'string' ? new TextEncoder().encode(entry.data) : entry.data) : new Uint8Array(0);
         
@@ -358,7 +363,8 @@ export class MemoryFileSystem implements FileSystem {
     }
 
     private normalize(p: string): string {
-        return p.replace(/\\/g, '/').replace(/\/+$/, '') || '/';
+        const normalized = path.posix.normalize(p.replace(/\\/g, '/'));
+        return normalized.replace(/\/+$/, '') || '/';
     }
 
     private ensureDir(p: string) {
