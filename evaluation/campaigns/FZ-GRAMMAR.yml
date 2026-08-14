@@ -614,7 +614,7 @@ items:
     status: fixed
     priority: 1
     focus: ParamArrayだけを持つPropertyの引数省略と実行時アリティ検査
-    priorCauseKey: paramarray-counted-as-required
+    priorCauseKey: paramarray-arity-contract-not-shared
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/property-paramarray.test.ts
@@ -624,7 +624,7 @@ items:
     status: fixed
     priority: 1
     focus: 先行固定必須引数とParamArrayを持つ手続きのprecheckProc
-    priorCauseKey: paramarray-counted-as-required
+    priorCauseKey: paramarray-arity-contract-not-shared
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts

@@ -731,13 +731,14 @@
 | EV-00827 | FZ-GRAMMAR | retired | 1 | Property Let/Setの必須インデックス省略 |
 | EV-00828 | FZ-GRAMMAR | fixed | 1 | Property Getの裸参照における必須引数検査 |
 | EV-00829 | FZ-GRAMMAR | fixed | 1 | ParamArray省略時の最小引数検査境界 |
+| EV-00830 | FZ-GRAMMAR | fixed | 1 | 先行固定必須引数とParamArrayを持つ手続きのprecheckProc |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 316 |
+| fixed | 317 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -749,6 +750,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-067 | 1 | queued | 先行固定必須引数とParamArrayを持つ手続きのprecheckProc | yes |
 | FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
 | FZ-GRAMMAR-065 | 2 | queued | Module修飾Function/Subの括弧なし必須引数検査 | yes |
