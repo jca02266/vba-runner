@@ -2112,34 +2112,39 @@ export class Evaluator {
                     case 'ByValArgument':
                         visitExpression((expr as ByValArgument).value); break;
                     case 'MemberExpression':
-                        if (!asCallCallee && !assignmentTarget && !findings.argumentError && expr.type === 'MemberExpression' &&
-                            expr.object.type === 'Identifier' &&
-                            variableTypes.get((expr.object as Identifier).name.toLowerCase())?.toLowerCase() === 'collection' &&
-                            expr.property.name.toLowerCase() === 'item') {
+                        {
+                        const memberExpr = expr as MemberExpression;
+                        if (!asCallCallee && !assignmentTarget && !findings.argumentError &&
+                            memberExpr.object.type === 'Identifier' &&
+                            variableTypes.get((memberExpr.object as Identifier).name.toLowerCase())?.toLowerCase() === 'collection' &&
+                            memberExpr.property.name.toLowerCase() === 'item') {
                             findings.argumentError = {
                                 code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                                 message: 'Argument not optional',
-                                line: expr.loc?.start.line ?? expr.property.loc?.start.line,
+                                line: memberExpr.loc?.start.line ?? memberExpr.property.loc?.start.line,
                             };
                         }
-                        if (!asCallCallee && !assignmentTarget && !findings.argumentError && expr.type === 'MemberExpression' &&
-                            expr.object.type === 'Identifier') {
-                            const objectName = (expr.object as Identifier).name;
+                        if (!asCallCallee && !assignmentTarget && !findings.argumentError &&
+                            memberExpr.object.type === 'Identifier') {
+                            const objectName = (memberExpr.object as Identifier).name;
                             const objectType = variableTypes.get(objectName.toLowerCase());
-                            const classTarget = classProcedure(objectType, expr.property.name);
+                            const classTarget = classProcedure(objectType, memberExpr.property.name);
                             const moduleTarget = this.moduleEnvs.has(objectName.toLowerCase())
                                 ? this.env.getProcedureFromModule(
-                                    expr.property.name, objectName,
+                                    memberExpr.property.name, objectName,
                                 ) ?? this.env.getProcedureFromModule(
-                                    expr.property.name, objectName, 'get',
+                                    memberExpr.property.name, objectName, 'get',
                                 )
                                 : undefined;
                             const target = classTarget ?? moduleTarget;
                             if (target && (target.isFunction ||
                                 (target.isProperty && target.propertyType === 'get'))) {
                                 checkArity(target.parameters, 0,
-                                    expr.loc?.start.line ?? expr.property.loc?.start.line);
+                                    memberExpr.loc?.start.line ?? memberExpr.property.loc?.start.line);
                             }
+                        }
+                        visitExpression(memberExpr.object, assignmentTarget);
+                        break;
                         }
                     case 'DictionaryAccessExpression':
                         visitExpression((expr as MemberExpression).object, assignmentTarget); break;
