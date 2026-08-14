@@ -155,6 +155,18 @@ End Sub
     }
 }
 
+// A module-qualified Function used as a bare value must use the same
+// required-argument contract as an unqualified implicit call.
+assertCompileErrorPreproc(String.raw`Attribute VB_Name = "CallerModule"
+Function Target(value As Long) As Long
+    Target = value
+End Function
+Sub Caller()
+    Dim result As Long
+    result = CallerModule.Target
+End Sub
+`, 'Caller', 7, /argument not optional/i, 'Module-qualified/bare-required-argument');
+
 // Optional holes and named arguments exercise MissingArgument and the
 // name-to-parameter alignment path rather than only positional counts.
 assertCompileErrorExec(String.raw`Function Target(left As Long, right As Long) As Long

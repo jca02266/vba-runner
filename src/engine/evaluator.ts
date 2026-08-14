@@ -2148,13 +2148,17 @@ export class Evaluator {
                             const objectName = (memberExpr.object as Identifier).name;
                             const objectType = variableTypes.get(objectName.toLowerCase());
                             const classTarget = classProcedure(objectType, memberExpr.property.name);
-                            const moduleTarget = this.moduleEnvs.has(objectName.toLowerCase())
-                                ? this.env.getProcedureFromModule(
-                                    memberExpr.property.name, objectName,
-                                ) ?? this.env.getProcedureFromModule(
-                                    memberExpr.property.name, objectName, 'get',
-                                )
-                                : undefined;
+                            // Module-qualified names are resolved from the
+                            // procedure registry even before a module-local
+                            // environment has been materialized.  Gating this
+                            // check on moduleEnvs made a bare qualified
+                            // Function silently skip the required-argument
+                            // contract during precheck.
+                            const moduleTarget = this.env.getProcedureFromModule(
+                                memberExpr.property.name, objectName,
+                            ) ?? this.env.getProcedureFromModule(
+                                memberExpr.property.name, objectName, 'get',
+                            );
                             const target = classTarget ?? moduleTarget;
                             if (target && (target.isFunction ||
                                 (target.isProperty && target.propertyType === 'get'))) {
