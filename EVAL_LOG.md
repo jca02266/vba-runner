@@ -741,12 +741,13 @@
 | EV-00837 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルのDouble精度境界（2^53前後） |
 | EV-00838 | FZ-COVERAGE-20260810 | fixed | 1 | Double有限値域外の10進指数リテラルの構文エラー段階 |
 | EV-00839 | FZ-COVERAGE-20260810 | needs-excel |  | Double最小値未満の10進指数リテラルの丸め境界 |
+| EV-00840 | FZ-COVERAGE-20260810 | fixed | 1 | Class・Module修飾Functionの過剰引数を実行時Error 13へ渡す経路 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 327 |
+| fixed | 328 |
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |

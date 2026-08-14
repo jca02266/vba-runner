@@ -3084,3 +3084,12 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/excel/queue/ExcelQueueVerification.bas
+  - id: FZ-COVERAGE-20260810-326
+    title: Class and module Function excess-argument runtime phase
+    status: queued
+    priority: 1
+    focus: Class・Module修飾Functionの過剰引数を実行時Error 13へ渡す経路
+    priorCauseKey: function-excess-argument-runtime-contract
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts

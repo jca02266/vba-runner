@@ -150,8 +150,12 @@ for (const memberKind of ['Function', 'Property Get', 'Sub'] as const) {
                 continue;
             }
             if (argumentCount < definition.minCount || argumentCount > definition.maxCount) {
-                assertCompileErrorExec(code, 'Caller', undefined,
-                    /argument not optional|wrong number of arguments/i, label);
+                if (memberKind === 'Function' && argumentCount > definition.maxCount) {
+                    assertCompileErrorExec(code, 'Caller', undefined, /type mismatch/i, label);
+                } else {
+                    assertCompileErrorPreproc(code, 'Caller', undefined,
+                        /argument not optional|wrong number of arguments/i, label);
+                }
             } else {
                 const runner = evalVBASingle(code);
                 assert.doesNotThrow(() => runner.callProcedure('Caller', []), label);
@@ -192,9 +196,12 @@ Sub Caller()
     result = CallerModule.Target(${args.join(', ')})
 End Sub
 `;
-    if (argumentCount !== 1) {
-        assertCompileErrorExec(code, 'Caller', 7,
-            /argument not optional|wrong number of arguments/i, `Module-qualified/args-${argumentCount}`);
+    if (argumentCount === 0) {
+        assertCompileErrorPreproc(code, 'Caller', 7, /argument not optional/i,
+            `Module-qualified/args-${argumentCount}`);
+    } else if (argumentCount > 1) {
+        assertCompileErrorExec(code, 'Caller', undefined, /type mismatch/i,
+            `Module-qualified/args-${argumentCount}`);
     } else {
         const runner = evalVBASingle(code);
         assert.doesNotThrow(() => runner.callProcedure('Caller', []), 'Module-qualified/args-1');

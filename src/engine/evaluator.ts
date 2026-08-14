@@ -2081,7 +2081,12 @@ export class Evaluator {
                             target.propertyType === 'get' && target.parameters.length === 0 &&
                             call.args.length > 0;
                         if (target && !indexesReturnedValue) {
-                            checkArity(target.parameters, call.args.length,
+                            // VBA Function calls with excess arguments reach
+                            // the runtime binder and report Type mismatch;
+                            // Sub/Property calls retain static arity checks.
+                            const excessFunctionArgs = target.isFunction &&
+                                classifyArgumentCount(target.parameters, call.args.length) === 'excess';
+                            if (!excessFunctionArgs) checkArity(target.parameters, call.args.length,
                                 call.loc?.start.line ?? member.property.loc?.start.line);
                         } else if (member.object.type === 'Identifier') {
                             const qualified = this.env.getProcedureFromModule(
@@ -2092,8 +2097,12 @@ export class Evaluator {
                             const moduleIndexesReturnedValue = qualified?.isProperty &&
                                 qualified.propertyType === 'get' && qualified.parameters.length === 0 &&
                                 call.args.length > 0;
-                            if (qualified && !moduleIndexesReturnedValue) checkArity(qualified.parameters, call.args.length,
-                                call.loc?.start.line ?? member.property.loc?.start.line);
+                            if (qualified && !moduleIndexesReturnedValue) {
+                                const excessFunctionArgs = qualified.isFunction &&
+                                    classifyArgumentCount(qualified.parameters, call.args.length) === 'excess';
+                                if (!excessFunctionArgs) checkArity(qualified.parameters, call.args.length,
+                                    call.loc?.start.line ?? member.property.loc?.start.line);
+                            }
                         }
                     }
                     if (!findings.argumentError && call.callee.type === 'MemberExpression' &&
@@ -5611,6 +5620,9 @@ export class Evaluator {
                 paramIndex = nextPositional++;
             }
             if (paramIndex >= supplied.length) {
+                if (proc.isFunction && !proc.isProperty) {
+                    this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+                }
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
             }
             const valueExpr = entry.expression;
