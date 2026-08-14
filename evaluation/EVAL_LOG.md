@@ -732,13 +732,14 @@
 | EV-00828 | FZ-GRAMMAR | fixed | 1 | Property Getの裸参照における必須引数検査 |
 | EV-00829 | FZ-GRAMMAR | fixed | 1 | ParamArray省略時の最小引数検査境界 |
 | EV-00830 | FZ-GRAMMAR | fixed | 1 | 先行固定必須引数とParamArrayを持つ手続きのprecheckProc |
+| EV-00831 | FZ-GRAMMAR | fixed | 1 | precheckProcが引数名を同名Functionの暗黙呼出しと誤認しないこと |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 317 |
+| fixed | 318 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
