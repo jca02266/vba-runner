@@ -262,7 +262,27 @@ End Function
     console.log('[PASS] Batch 4: ParamArray 系の既存挙動は無変化');
 }
 
-// --- 18. Batch 4: LBound/UBound（必須+末尾Optional）は無変化 ---
+// --- 18. 必須引数より前を名前付き／MissingArgumentで省略しない ---
+{
+    expectVbaError(
+        String.raw`Debug.Print Replace("abc", "a", Start:=1)`,
+        VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+        'Replace(必須のReplaceを名前付きで飛び越す)',
+    );
+    expectVbaError(
+        String.raw`Debug.Print DatePart("d", FirstDayOfWeek:=2)`,
+        VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+        'DatePart(必須のFirstWeekOfYearを名前付きで飛び越す)',
+    );
+    expectVbaError(
+        String.raw`Debug.Print Replace(, "a", "b")`,
+        VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+        'Replace(位置引数の必須値を明示省略)',
+    );
+    console.log('[PASS] 組み込み関数の必須引数前方省略を共有契約で拒否');
+}
+
+// --- 19. Batch 4: LBound/UBound（必須+末尾Optional）は無変化 ---
 {
     const r = evalVBA(`Function F()\n Dim a(1 To 5) As Integer\n F = LBound(a) & "-" & UBound(a)\nEnd Function`).callProcedure('F', []);
     assert.strictEqual(r, '1-5', 'LBound/UBound(a) は今までどおり 1-5');

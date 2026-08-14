@@ -124,9 +124,9 @@ import {
     classifyArgumentCount,
     acceptsNamedArgumentShape,
     hasParamArrayArgument,
+    hasMissingRequiredArgument,
     hasRequiredArgumentAfterPrefix,
     isEffectiveByValParameter,
-    isRequiredArgument,
     isPropertyValueParameter,
     requiredArgumentCount,
     type VbaArgumentParameter,
@@ -5192,12 +5192,11 @@ export class Evaluator {
      * （gap は常に純粋な位置引数の文脈でのみ発生する）。
      */
     private checkNoGapOnRequiredParam(params: Parameter[], argExprs: Expression[]): void {
-        for (let i = 0; i < argExprs.length && i < params.length; i++) {
-            if (argExprs[i].type !== 'MissingArgument') continue;
-            const p = params[i];
-            if (isRequiredArgument(p)) {
-                this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
-            }
+        if (hasMissingRequiredArgument(
+            params,
+            argExprs.map(expression => expression.type === 'MissingArgument'),
+        )) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
     }
 
@@ -5216,9 +5215,14 @@ export class Evaluator {
     }
 
     /** `argExprs` を名前付き/位置引数に振り分けて評価する（組み込み関数バインダー2種の共通処理）。 */
-    private splitCallArgs(argExprs: Expression[]): { namedArgs: Map<string, any>; positionalArgs: any[] } {
+    private splitCallArgs(argExprs: Expression[]): {
+        namedArgs: Map<string, any>;
+        positionalArgs: any[];
+        positionalMissing: boolean[];
+    } {
         const namedArgs = new Map<string, any>();
         const positionalArgs: any[] = [];
+        const positionalMissing: boolean[] = [];
         const split = this.splitArgumentExpressions(argExprs);
         for (const entry of split.ordered) {
             const argExpr = entry.expression;
@@ -5228,11 +5232,13 @@ export class Evaluator {
             }
             if (argExpr.type === 'MissingArgument') {
                 positionalArgs.push(undefined);
+                positionalMissing.push(true);
             } else {
                 positionalArgs.push(this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
+                positionalMissing.push(false);
             }
         }
-        return { namedArgs, positionalArgs };
+        return { namedArgs, positionalArgs, positionalMissing };
     }
 
     /** Enforce VBA's single named-argument contract for every ParamArray binder. */
@@ -5248,13 +5254,23 @@ export class Evaluator {
      * 存在しないため、ユーザー定義 Proc 用のバインドループより意図的に単純にしている。
      */
     private bindCallArguments(spec: BuiltinParamSpec[], argExprs: Expression[]): any[] {
-        const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        const { namedArgs, positionalArgs, positionalMissing } = this.splitCallArgs(argExprs);
         this.rejectNamedParamArray(spec.some(p => p.isParamArray), namedArgs.size);
         // 仕様に存在しない名前付き引数は Error 448（Named argument not found）
         for (const nameLower of namedArgs.keys()) {
             if (!spec.some(p => p.name.toLowerCase() === nameLower)) {
                 this.throwVbaError(448, `Named argument not found: '${nameLower}'`);
             }
+        }
+        if (hasMissingRequiredArgument(spec, positionalMissing)) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+        }
+        if (namedArgs.size > 0 && !acceptsNamedArgumentShape(
+            spec,
+            positionalArgs.length,
+            namedArgs.keys(),
+        )) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
         this.checkArgCountGeneric(spec, positionalArgs.length + namedArgs.size);
 
@@ -5302,7 +5318,7 @@ export class Evaluator {
      * オーバーロードを選んで引数を並べ替える。
      */
     private bindOverloadedCallArguments(name: string, overloads: BuiltinOverload[], argExprs: Expression[]): any[] {
-        const { namedArgs, positionalArgs } = this.splitCallArgs(argExprs);
+        const { namedArgs, positionalArgs, positionalMissing } = this.splitCallArgs(argExprs);
         const totalCount = positionalArgs.length + namedArgs.size;
         const arities = overloads.map(o => o.params.length);
 
@@ -5311,6 +5327,9 @@ export class Evaluator {
             if (!knownNames.has(namedKey)) {
                 this.throwVbaError(448, `Named argument not found: '${namedKey}'`);
             }
+        }
+        if (hasMissingRequiredArgument(overloads[0]?.params ?? [], positionalMissing)) {
+            this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
         }
 
         if (namedArgs.size === 0) {

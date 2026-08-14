@@ -77,6 +77,19 @@ export function hasRequiredArgumentAfterPrefix(
     return false;
 }
 
+/** Return whether a positional MissingArgument occupies a required slot. */
+export function hasMissingRequiredArgument(
+    parameters: readonly VbaArgumentParameter[],
+    missingPositions: readonly boolean[],
+): boolean {
+    const paramArrayIndex = parameters.findIndex(isParamArrayArgument);
+    const endExclusive = paramArrayIndex >= 0 ? paramArrayIndex : parameters.length;
+    for (let index = 0; index < missingPositions.length && index < endExclusive; index++) {
+        if (missingPositions[index] && isRequiredArgument(parameters[index])) return true;
+    }
+    return false;
+}
+
 /** Validate the declaration-shape part of a mixed positional/named call. */
 export function acceptsNamedArgumentShape(
     parameters: readonly VbaArgumentParameter[],
