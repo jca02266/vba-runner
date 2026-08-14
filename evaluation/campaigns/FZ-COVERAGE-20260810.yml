@@ -3045,3 +3045,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/createobject.test.ts
+  - id: FZ-COVERAGE-20260810-322
+    title: Decimal literal overflow execution boundary
+    status: queued
+    priority: 1
+    focus: 10進数リテラルの型境界と実行時オーバーフロー
+    priorCauseKey: numeric-literal-phase-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/vba_compile_error.test.ts

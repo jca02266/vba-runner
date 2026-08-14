@@ -2177,3 +2177,11 @@ checkpoints:
       - XL-203
       - XL-204
     finding: BUG-00512
+  - afterEvaluation: null
+    audit: "733 evaluations, 0 active claims; queued候補がなかったためcoverage境界から新規候補を登録し、FZ-COVERAGE-20260810-322をclaimした"
+    decision: "直近の引数・ByRef・Propertyおよび動的メンバー評価は終端済みのため重複を避け、10進数リテラルの型境界と実行時オーバーフローを次の注力領域に選んだ"
+    action: claim
+    nextArea: 数値リテラル・型境界
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-322
+    finding: null

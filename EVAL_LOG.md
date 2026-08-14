@@ -737,6 +737,7 @@
 | EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
 | EV-00834 | FZ-GRAMMAR | fixed | 1 | CallByName外部メンバーの必須引数省略 |
 | EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
+| EV-00836 | FZ-COVERAGE-20260810 | needs-excel |  | 10進数リテラルの型境界と実行時オーバーフロー |
 
 ## 状態集計
 
@@ -744,10 +745,11 @@
 |---|---:|
 | fixed | 326 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 400 |
 
-横展開未解決経路: 563、実Excel待ち評価: 0
+横展開未解決経路: 563、実Excel待ち評価: 1
 
 ## 次の候補
 

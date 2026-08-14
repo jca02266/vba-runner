@@ -641,6 +641,7 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyInformationEmptyBoundaries
     VerifyLargeLiteralBoundaries
     VerifyLargeLiteralValues
+    VerifyDecimalLiteralOverflowBoundaries
     VerifyDefaultValueInformation
     VerifyTimeSerialConsumers
     VerifyCallByNamePropertyKinds
@@ -927,6 +928,18 @@ Private Sub VerifyLargeLiteralValues()
     EmitValueAndType "XL-045 HEX64", value, errNo
     Err.Clear: value = CDec("&O777777777777777777777"): errNo = Err.Number
     EmitValueAndType "XL-045 OCT-LARGE", value, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyDecimalLiteralOverflowBoundaries()
+    Dim currencyValue As Currency, longValue As Long, doubleValue As Double, errNo As Long
+    On Error Resume Next
+    Err.Clear: currencyValue = 922337203685477.5807: errNo = Err.Number
+    EmitResult "XL-205 CURRENCY-MAX ERR=" & CStr(errNo)
+    Err.Clear: longValue = 2147483648: errNo = Err.Number
+    EmitResult "XL-205 LONG-OVER ERR=" & CStr(errNo)
+    Err.Clear: doubleValue = 1E+309: errNo = Err.Number
+    EmitResult "XL-205 DOUBLE-OVER ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 
