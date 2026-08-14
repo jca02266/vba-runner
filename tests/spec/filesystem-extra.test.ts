@@ -18,7 +18,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult, nestedFolderResult
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
@@ -33,6 +33,23 @@ const allCode = String.raw`
         Close #2
 
         Debug.Print s
+    End Sub
+
+    Sub Test23FsoNestedSubFolderContract()
+        Dim fso As Object, stream As Object, root As Object, child As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "nested_root"
+        fso.CreateFolder "nested_root\child"
+        Set stream = fso.CreateTextFile("nested_root\child\item.txt")
+        stream.Write "x": stream.Close
+        Set root = fso.GetFolder("nested_root")
+        Set child = root.SubFolders.Item(1)
+        On Error Resume Next
+        Err.Clear
+        nestedFolderResult = IIf(child.Files.Count = 1 And child.SubFolders.Count = 0, "ok", "bad")
+        If Err.Number <> 0 Then nestedFolderResult = "error"
+        On Error GoTo 0
+        fso.DeleteFolder "nested_root", True
     End Sub
 
     Sub Test2()
@@ -428,6 +445,11 @@ assert.strictEqual(ev.env.get('filemoveresult'), 'ok', 'GetFile.Move');
 assert.strictEqual(ev.env.get('parentfoldercopyresult'), 'ok', 'GetFile.ParentFolder.Copy and Files');
 assert.strictEqual(ev.env.get('parentfolderchainresult'), 'ok', 'GetFile.ParentFolder.ParentFolder');
 console.log('[PASS] FSO path object Copy/Move capability contract');
+
+// Test 23: SubFolders elements retain the full Folder collection contract.
+ev.callProcedure('Test23FsoNestedSubFolderContract', []);
+assert.strictEqual(ev.env.get('nestedfolderresult'), 'ok', 'SubFolders child Folder collections');
+console.log('[PASS] FSO nested SubFolders contract');
 
 const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-fso-path-'));
 try {

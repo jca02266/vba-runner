@@ -3111,3 +3111,12 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-329
+    title: FSO nested SubFolders object capability boundary
+    status: queued
+    priority: 1
+    focus: Folder.SubFoldersから取得した子FolderのFiles/Copy契約
+    priorCauseKey: fso-parentfolder-object-contract-not-shared
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts

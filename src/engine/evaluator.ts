@@ -7909,7 +7909,9 @@ export class Evaluator {
                 let childStats: any;
                 try { childStats = this.fs.statSync(childFull); } catch { continue; }
                 if (childStats.isFile()) files.add(makePathObject('file', childPath, childStats));
-                else if (childStats.isDirectory()) subfolders.add(makePathObject('folder', childPath, childStats));
+                else if (childStats.isDirectory()) {
+                    subfolders.add(attachFolderMembers(makePathObject('folder', childPath, childStats), childPath));
+                }
             }
             Object.defineProperty(folder, 'files', { get: () => files, enumerable: true });
             Object.defineProperty(folder, 'subfolders', { get: () => subfolders, enumerable: true });
