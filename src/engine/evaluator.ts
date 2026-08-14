@@ -359,6 +359,17 @@ interface VbaLValueReference {
     set(value: any): void;
 }
 
+interface ProcedureExpressionBinding {
+    references: Array<VbaLValueReference | null>;
+    expressions: Array<Expression | null>;
+}
+
+interface ProcedureBindingResult {
+    byRefArgs: { paramName: string; reference: VbaLValueReference }[];
+    paramArrayParamName: string | null;
+    paramArrayReferences: (VbaLValueReference | null)[];
+}
+
 interface ExecProcBodyOptions {
     byRefArgs: { paramName: string; reference: VbaLValueReference }[];
     paramArrayParamName: string | null;
@@ -1065,7 +1076,13 @@ export class Evaluator {
         localEnv: Environment,
         argSubtypes?: (VbaVarType | undefined)[],
         validateObjectArguments = false,
-    ): string | null {
+        expressionBinding?: ProcedureExpressionBinding,
+    ): ProcedureBindingResult {
+        const result: ProcedureBindingResult = {
+            byRefArgs: [],
+            paramArrayParamName: null,
+            paramArrayReferences: [],
+        };
         let propertyValueTailIndex = -1;
         let propertyValueTailValue: any;
         for (let i = 0; i < proc.parameters.length; i++) {
@@ -1076,7 +1093,12 @@ export class Evaluator {
                 const remainingArgs = args.slice(i, hasPropertyValueTail ? -1 : undefined);
                 (remainingArgs as any).vbaBase = 0;
                 localEnv.setLocally(paramName, remainingArgs);
-                if (!hasPropertyValueTail) return paramName;
+                result.paramArrayParamName = paramName;
+                if (expressionBinding) {
+                    result.paramArrayReferences = expressionBinding.references
+                        .slice(i, i + remainingArgs.length);
+                }
+                if (!hasPropertyValueTail) return result;
                 propertyValueTailIndex = i + 1;
                 propertyValueTailValue = args.length > i ? args[args.length - 1] : vbaMissing;
                 continue;
@@ -1123,7 +1145,14 @@ export class Evaluator {
                 !isVbaObjectReferenceCompatible(argValue)) {
                 this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
-            argValue = this.prepareArgumentValue(argValue, param, isPropertyValueParameter(proc, i));
+            const expression = expressionBinding?.expressions[i];
+            const forcedByVal = expression?.type === 'ParenthesizedExpression' ||
+                expression?.type === 'ByValArgument';
+            argValue = this.prepareArgumentValue(
+                argValue,
+                param,
+                forcedByVal || isPropertyValueParameter(proc, i),
+            );
             localEnv.setLocally(paramName, argValue);
             if ((!param.paramType || param.paramType.toLowerCase() === 'variant')
                     && argSubtypes && i < argSubtypes.length && argSubtypes[i]
@@ -1131,8 +1160,13 @@ export class Evaluator {
                 localEnv.setVariantSubtype(paramName, argSubtypes[i]!);
             }
             this.addRef(argValue);
+
+            if (expressionBinding && !isEffectiveByValParameter(proc, i)) {
+                const reference = expressionBinding.references[i];
+                if (reference) result.byRefArgs.push({ paramName, reference });
+            }
         }
-        return null;
+        return result;
     }
 
     /**
@@ -9671,156 +9705,29 @@ export class Evaluator {
                 const procParentEnv = this.moduleEnvs.get(procModKey) ?? this.env;
                 const localEnv = new Environment(procParentEnv);
 
-                // Map arguments to parameters
-                const byRefArgs: { paramName: string, reference: VbaLValueReference }[] = [];
-                let paramArrayParamName: string | null = null;
-                let paramArrayReferences: (VbaLValueReference | null)[] = [];
-                const namedArgs = new Map<string, any>();
-                const namedArgExpressions = new Map<string, Expression>();
-                const positionalArgs: any[] = [];
-                const positionalArgExpressions: Expression[] = [];
-
-                const splitArgs = this.splitArgumentExpressions(expr.args);
-                this.rejectNamedParamArray(
-                    proc.parameters.some(parameter => parameter.isParamArray),
-                    splitArgs.named.size,
+                const split = this.splitArgumentExpressions(expr.args);
+                this.checkArgCount(proc, split.positional.length + split.named.size);
+                this.checkNoGapOnRequiredParam(proc.parameters, split.positional);
+                const aligned = this.alignProcedureCallExpressions(proc, expr.args);
+                const subtypes = aligned.args.map((value, index) =>
+                    (() => {
+                        const expression = aligned.expressions[index];
+                        return (typeof value === 'number' || typeof value === 'bigint') && expression
+                            ? this.resolveNumericSubtype(expression)
+                            : undefined;
+                    })());
+                const binding = this.bindProcedureParameters(
+                    proc,
+                    aligned.args,
+                    localEnv,
+                    subtypes,
+                    true,
+                    aligned,
                 );
-                for (const name of splitArgs.named.keys()) {
-                    if (!proc.parameters.some(parameter => parameter.name.toLowerCase() === name)) {
-                        this.throwVbaError(448, `Named argument not found: '${name}'`);
-                    }
-                }
-                this.checkNamedArgumentShape(proc.parameters, splitArgs.positional.length, splitArgs.named.keys());
-                for (const entry of splitArgs.ordered) {
-                    const name = entry.name;
-                    const argExpr = entry.expression;
-                    if (name === undefined) {
-                        const reference = this.createLValueReference(argExpr);
-                        positionalArgs.push(reference
-                            ? reference.get()
-                            : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
-                        positionalArgExpressions.push(argExpr);
-                        continue;
-                    }
-                    // As New auto-instance は引数として渡す時点で呼び出し元の変数に実体化する
-                    // （Bug 33-C: ByVal だと callee 側実体化が呼び出し元に反映されない）
-                    const reference = this.createLValueReference(argExpr);
-                    namedArgs.set(name, reference
-                        ? reference.get()
-                        : this.resolveAutoInstance(argExpr, this.evaluateExpression(argExpr)));
-                    namedArgExpressions.set(name, argExpr);
-                }
-                // Variant サブタイプは呼び出し元 env で引数式から解決しておき、
-                // パラメーターへ伝播する（実 VBA 差分: TypeName(引数) が Double に化けるのを防ぐ）
-                const positionalSubtypes = positionalArgs.map((v, i) =>
-                    (typeof v === 'number' || typeof v === 'bigint')
-                        ? this.resolveNumericSubtype(positionalArgExpressions[i]) : undefined);
-                const namedSubtypes = new Map<string, VbaVarType | undefined>();
-                for (const [k, e] of namedArgExpressions) {
-                    const v = namedArgs.get(k);
-                    namedSubtypes.set(k, (typeof v === 'number' || typeof v === 'bigint')
-                        ? this.resolveNumericSubtype(e) : undefined);
-                }
-
-                // Validate argument count
-                this.checkArgCount(proc, positionalArgs.length + namedArgs.size);
-                this.checkNoGapOnRequiredParam(proc.parameters, positionalArgExpressions);
-
-                for (let i = 0; i < proc.parameters.length; i++) {
-                    const param = proc.parameters[i];
-                    const paramNameLower = param.name.toLowerCase();
-
-                    if (param.isParamArray) {
-                        const remainingArgs = positionalArgs.slice(i);
-                        (remainingArgs as any).vbaBase = 0;
-                        localEnv.set(param.name, remainingArgs);
-                        // Track for ByRef writeback (spec §5.3.1.5: param array elements behave as ByRef)
-                        paramArrayParamName = param.name;
-                        paramArrayReferences = positionalArgExpressions.slice(i)
-                            .map(expr => this.createLValueReference(expr));
-                        break;
-                    }
-
-                    let argVal: any;
-                    const isMissingSlot = i < positionalArgExpressions.length &&
-                        positionalArgExpressions[i].type === 'MissingArgument';
-                    if (namedArgs.has(paramNameLower)) {
-                        argVal = namedArgs.get(paramNameLower);
-                    } else if (i < positionalArgs.length && !isMissingSlot) {
-                        argVal = positionalArgs[i];
-                    } else if (param.defaultValue) {
-                        argVal = this.evaluateExpression(param.defaultValue);
-                    } else {
-                        // checkNoGapOnRequiredParam済みのため、未指定または省略スロットで
-                        // ここに来る時点で param は必ず Optional（defaultValue なし）。
-                        argVal = vbaMissing;
-                    }
-                    this.validateArrayParameterContainer(argVal, param);
-                    argVal = this.normalizeObjectArgumentValue(argVal, param);
-                    const originalArgExpr = namedArgExpressions.has(paramNameLower)
-                        ? namedArgExpressions.get(paramNameLower)
-                        : (i < positionalArgExpressions.length ? positionalArgExpressions[i] : undefined);
-                    // Parenthesizing an argument forces a ByVal temporary in VBA,
-                    // even when the procedure declares the parameter ByRef.
-                    const forcedByVal = originalArgExpr?.type === 'ParenthesizedExpression' ||
-                        originalArgExpr?.type === 'ByValArgument';
-                    // Register parameter type metadata (but not for array parameters)
-                    if (param.paramType && !param.isArray) {
-                        const typeMap: Record<string, VbaVarType> = {
-                            'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
-                            'single': 'Single', 'double': 'Double', 'currency': 'Currency',
-                            'longlong': 'LongLong', 'longptr': 'LongPtr',
-                            'string': 'String', 'boolean': 'Boolean', 'date': 'Date',
-                        };
-                        const mapped = typeMap[param.paramType.toLowerCase()];
-                        if (mapped) {
-                            // Bug CH: include fixedLength so setLocally coerces String * N parameters
-                            localEnv.setVariableType(param.name, {
-                                vbaType: mapped,
-                                fixedLength: mapped === 'String' ? param.fixedLength : undefined,
-                            });
-                        } else if (this.classDefinitions.has(param.paramType.toLowerCase())) {
-                            localEnv.setVariableType(param.name, {
-                                vbaType: 'Object',
-                                objectTypeName: param.paramType,
-                            });
-                        }
-                    }
-                    // ByVal values must not share mutable VBA arrays or UDTs with
-                    // the caller. Class instances remain references, as in VBA.
-                    argVal = this.prepareArgumentValue(argVal, param, forcedByVal);
-                    localEnv.setLocally(param.name, argVal);
-                    // Variant（型なし）パラメーターへ数値サブタイプを伝播
-                    if (!param.paramType || param.paramType.toLowerCase() === 'variant') {
-                        const st = namedArgs.has(paramNameLower)
-                            ? namedSubtypes.get(paramNameLower)
-                            : (i < positionalSubtypes.length && !isMissingSlot ? positionalSubtypes[i] : undefined);
-                        if (st) localEnv.setVariantSubtype(param.name, st);
-                    }
-                    this.addRef(argVal);
-
-                    // ByRef handling
-                    if (!isEffectiveByValParameter(proc, i)) {
-                        let originalExpr: Expression | undefined;
-                        if (namedArgExpressions.has(paramNameLower)) {
-                            originalExpr = namedArgExpressions.get(paramNameLower);
-                        } else if (i < positionalArgExpressions.length) {
-                            originalExpr = positionalArgExpressions[i];
-                        }
-                        const reference = this.argumentReference(originalExpr, proc, i, forcedByVal);
-                        if (reference) {
-                            byRefArgs.push({
-                                paramName: param.name,
-                                reference,
-                            });
-                        }
-                    }
-                }
-
                 return this.execProcBody(proc, localEnv, {
-                    byRefArgs,
-                    paramArrayParamName,
-                    paramArrayReferences,
+                    byRefArgs: binding.byRefArgs,
+                    paramArrayParamName: binding.paramArrayParamName,
+                    paramArrayReferences: binding.paramArrayReferences,
                     initialLastErrorIndex: -1,
                     acceptExitProperty: false,
                     returnOnProperty: false,
