@@ -21,6 +21,8 @@ export interface FileSystem {
     rmdirSync?(path: string): void;
     rmSync?(path: string, options?: { recursive?: boolean, force?: boolean }): void;
     copyFileSync?(src: string, dest: string): void;
+    copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void;
+    moveDirectorySync(src: string, dest: string): void;
     unlinkSync(path: string): void;
     readdirSync(path: string): string[];
     statSync(path: string): {
@@ -108,6 +110,33 @@ export class MemoryFileSystem implements FileSystem {
         const entry = this.files.get(s);
         if (!entry) throw new Error(`ENOENT: no such file or directory, copyFileSync '${src}'`);
         this.writeFileSync(d, entry.data);
+    }
+
+    copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }): void {
+        const source = this.normalize(src);
+        const target = this.normalize(dest);
+        if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
+        if (this.existsSync(target)) {
+            if (!options?.overwrite) throw new Error(`EEXIST: destination exists '${dest}'`);
+            this.rmSync(target, { recursive: true, force: true });
+        }
+        this.mkdirSync(target, { recursive: true });
+        const prefix = source === '/' ? '/' : source + '/';
+        for (const dir of this.dirs.keys()) {
+            if (dir.startsWith(prefix) && dir !== source) {
+                this.mkdirSync(path.join(target, dir.slice(prefix.length)), { recursive: true });
+            }
+        }
+        for (const file of this.files.keys()) {
+            if (file.startsWith(prefix)) {
+                this.copyFileSync(file, path.join(target, file.slice(prefix.length)));
+            }
+        }
+    }
+
+    moveDirectorySync(src: string, dest: string): void {
+        this.copyDirectorySync(src, dest);
+        this.rmSync(src, { recursive: true, force: true });
     }
 
     rmSync(p: string, options?: { recursive?: boolean, force?: boolean }): void {

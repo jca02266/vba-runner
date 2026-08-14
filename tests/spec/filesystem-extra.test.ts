@@ -3,6 +3,10 @@
  */
 import { evalVBASingle, assert, vbaTrue, vbaFalse } from '../../test-libs/test-runner';
 import { MemoryFileSystem } from '../../src/engine/filesystem';
+import { NodeFileSystem } from '../../src/engine/node_filesystem';
+import * as nodeFs from 'node:fs';
+import * as nodePath from 'node:path';
+import * as nodeOs from 'node:os';
 
 // Use VFS (MemoryFileSystem) for tests
 const vfs = new MemoryFileSystem();
@@ -14,7 +18,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
@@ -226,6 +230,30 @@ const allCode = String.raw`
         fso.DeleteFolder "move_folder_dest", True
     End Sub
 
+    Sub Test22FsoPathObjectCopyMove()
+        Dim fso As Object, source As Object, child As Object, copied As Object, moved As Object
+        Set fso = CreateObject("Scripting.FileSystemObject")
+        fso.CreateFolder "path_object_source"
+        Set child = fso.CreateTextFile("path_object_source\child.txt")
+        child.Write "x"
+        child.Close
+        Set source = fso.GetFolder("path_object_source")
+        source.Copy "path_object_copy"
+        folderCopyResult = IIf(fso.FolderExists("path_object_copy") And fso.FileExists("path_object_copy\child.txt"), "ok", "bad")
+        Set copied = fso.GetFile("path_object_copy\child.txt")
+        copied.Copy "path_object_file_copy.txt"
+        fileCopyResult = IIf(fso.FileExists("path_object_file_copy.txt"), "ok", "bad")
+        Set moved = fso.GetFolder("path_object_copy")
+        moved.Move "path_object_move"
+        folderMoveResult = IIf((Not fso.FolderExists("path_object_copy")) And fso.FileExists("path_object_move\child.txt"), "ok", "bad")
+        Set copied = fso.GetFile("path_object_file_copy.txt")
+        copied.Move "path_object_file_move.txt"
+        fileMoveResult = IIf((Not fso.FileExists("path_object_file_copy.txt")) And fso.FileExists("path_object_file_move.txt"), "ok", "bad")
+        fso.DeleteFolder "path_object_source", True
+        fso.DeleteFolder "path_object_move", True
+        fso.DeleteFile "path_object_file_move.txt", True
+    End Sub
+
     Sub Test17SetAttrDirectory()
         Open "attr-file.txt" For Output As #1
         Close #1
@@ -385,6 +413,37 @@ console.log('[PASS] FSO CopyFolder implementation');
 ev.callProcedure('Test16FsoMoveFolder', []);
 assert.strictEqual(ev.env.get('movefolderresult'), 'ok', 'MoveFolder recursive move');
 console.log('[PASS] FSO MoveFolder implementation');
+
+// Test 22: File/Folder path objects share explicit directory/file capabilities.
+ev.callProcedure('Test22FsoPathObjectCopyMove', []);
+assert.strictEqual(ev.env.get('foldercopyresult'), 'ok', 'GetFolder.Copy recursive copy');
+assert.strictEqual(ev.env.get('foldermoveresult'), 'ok', 'GetFolder.Move recursive move');
+assert.strictEqual(ev.env.get('filecopyresult'), 'ok', 'GetFile.Copy');
+assert.strictEqual(ev.env.get('filemoveresult'), 'ok', 'GetFile.Move');
+console.log('[PASS] FSO path object Copy/Move capability contract');
+
+const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-fso-path-'));
+try {
+    const nodeCode = String.raw`
+        Public result
+        Sub Probe()
+            Dim fso As Object, stream As Object, folder As Object
+            Set fso = CreateObject("Scripting.FileSystemObject")
+            fso.CreateFolder "source"
+            Set stream = fso.CreateTextFile("source\child.txt")
+            stream.Write "x": stream.Close
+            Set folder = fso.GetFolder("source")
+            folder.Copy "copy"
+            result = IIf(fso.FolderExists("copy") And fso.FileExists("copy\child.txt"), "ok", "bad")
+        End Sub
+    `;
+    const nodeEv = evalVBASingle(nodeCode, { fs: new NodeFileSystem(), sandboxRoot: nodeRoot });
+    nodeEv.callProcedure('Probe', []);
+    assert.strictEqual(nodeEv.env.get('result'), 'ok', 'NodeFileSystem GetFolder.Copy');
+    console.log('[PASS] NodeFileSystem FSO path object Copy');
+} finally {
+    nodeFs.rmSync(nodeRoot, { recursive: true, force: true });
+}
 
 // Test 17: SetAttr rejects vbDirectory as a settable attribute.
 ev.callProcedure('Test17SetAttrDirectory', []);

@@ -15,6 +15,10 @@ export class NodeFileSystem implements FileSystem {
     rmdirSync(p: string) { fs.rmdirSync(p); }
     rmSync(p: string, options?: { recursive?: boolean, force?: boolean }) { fs.rmSync(p, options); }
     copyFileSync(src: string, dest: string) { fs.copyFileSync(src, dest); }
+    copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }) {
+        fs.cpSync(src, dest, { recursive: true, force: options?.overwrite === true, errorOnExist: options?.overwrite !== true });
+    }
+    moveDirectorySync(src: string, dest: string) { fs.renameSync(src, dest); }
     unlinkSync(p: string) { fs.unlinkSync(p); }
     readdirSync(p: string) { return fs.readdirSync(p); }
     statSync(p: string) {

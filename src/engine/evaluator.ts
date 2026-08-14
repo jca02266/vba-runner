@@ -7881,12 +7881,14 @@ export class Evaluator {
                     if (this.fs.existsSync(target) && !vbaFlagIsTrue(overwrite)) {
                         this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
                     }
-                    (this.fs as any).cpSync?.(full, target, { recursive: true, force: vbaFlagIsTrue(overwrite) });
+                    try {
+                        this.fs.copyDirectorySync(full, target, { overwrite: vbaFlagIsTrue(overwrite) });
+                    } catch (e) { throwFsoPathError(e); }
                 };
                 common.move = (destination: string) => {
                     const target = this.sandbox.toRealPath(destination);
                     if (this.fs.existsSync(target)) this.throwVbaError(VbaErrorCode.FILE_ALREADY_EXISTS, 'File already exists');
-                    (this.fs as any).renameSync?.(full, target);
+                    try { this.fs.moveDirectorySync(full, target); } catch (e) { throwFsoPathError(e); }
                 };
             }
             return this.decorateComObject(common);
@@ -8209,16 +8211,7 @@ export class Evaluator {
                     if (!this.fs.existsSync(parent)) {
                         this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                     }
-                    const copyTree = (from: string, to: string): void => {
-                        this.fs.mkdirSync(to);
-                        for (const name of this.fs.readdirSync(from)) {
-                            const fromChild = path.join(from, name);
-                            const toChild = path.join(to, name);
-                            if (this.fs.statSync(fromChild).isDirectory()) copyTree(fromChild, toChild);
-                            else this.fs.copyFileSync?.(fromChild, toChild);
-                        }
-                    };
-                    copyTree(sourcePath, destinationPath);
+                    this.fs.copyDirectorySync(sourcePath, destinationPath);
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {
@@ -8240,17 +8233,7 @@ export class Evaluator {
                     if (!this.fs.existsSync(path.dirname(destinationPath))) {
                         this.throwVbaError(VbaErrorCode.PATH_NOT_FOUND, 'Path not found');
                     }
-                    const moveTree = (from: string, to: string): void => {
-                        this.fs.mkdirSync(to);
-                        for (const name of this.fs.readdirSync(from)) {
-                            const fromChild = path.join(from, name);
-                            const toChild = path.join(to, name);
-                            if (this.fs.statSync(fromChild).isDirectory()) moveTree(fromChild, toChild);
-                            else this.fs.copyFileSync?.(fromChild, toChild);
-                        }
-                    };
-                    moveTree(sourcePath, destinationPath);
-                    this.fs.rmSync?.(sourcePath, { recursive: true, force: true });
+                    this.fs.moveDirectorySync(sourcePath, destinationPath);
                 } catch (e: any) {
                     if (e?.type === 'VbaError') throw e;
                     if (e?.code === 'ENOENT' || /ENOENT|not found/i.test(String(e?.message ?? e))) {

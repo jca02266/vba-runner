@@ -2,3 +2,13 @@
   evaluationId: EV-00841
   status: in-progress
   occurredAt: '2026-08-14T13:38:09.350Z'
+- candidateId: FZ-COVERAGE-20260810-327
+  evaluationId: EV-00841
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-14T13:48:31.564Z'
+- candidateId: FZ-COVERAGE-20260810-327
+  evaluationId: EV-00841
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-14T13:50:09.510Z'
