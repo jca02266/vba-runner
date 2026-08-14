@@ -3,7 +3,7 @@ method: fuzzer
 items:
   - id: LEGACY-EV-00180
     title: 16進・8進リテラルの符号とサフィックス
-    status: fixed
+    status: queued
     priority: 3
     focus: 16進・8進リテラルの符号とサフィックス
   - id: LEGACY-EV-00183
@@ -581,3 +581,12 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
       - tests/vba/CompileError.bas
+  - id: FZ-GRAMMAR-063
+    title: Property Let/Set省略インデックスの引数検査
+    status: fixed
+    priority: 1
+    focus: Property Let/Setの暗黙値引数追加前に必須インデックスを検査する
+    priorCauseKey: required-argument-static-runtime-parity
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts

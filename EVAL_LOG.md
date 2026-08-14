@@ -727,13 +727,14 @@
 | EV-00823 | FZ-GRAMMAR | verified-no-bug |  | Function・Sub・Property呼出しの必須引数省略とprecheckProc |
 | EV-00824 | FZ-GRAMMAR | fixed | 1 | early-bound Collection.Itemの必須index省略とprecheckProc |
 | EV-00825 | FZ-GRAMMAR | verified-no-bug |  | Function余分引数の実行時型不一致境界 |
+| EV-00826 | FZ-GRAMMAR | fixed | 1 | Property Let/Set省略インデックスの引数検査 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 4 |
-| fixed | 313 |
+| fixed | 314 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 1 |
@@ -745,5 +746,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-GRAMMAR-059 | 1 | queued | Property Get/Let/SetとModule・Class修飾呼出しの引数不足検査 | yes |
 | FZ-GRAMMAR-060 | 2 | queued | COM・CallByName・Collection・Dictionaryの省略引数エラー | yes |
