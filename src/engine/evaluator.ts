@@ -1075,7 +1075,6 @@ export class Evaluator {
         args: any[],
         localEnv: Environment,
         argSubtypes?: (VbaVarType | undefined)[],
-        validateObjectArguments = false,
         expressionBinding?: ProcedureExpressionBinding,
     ): ProcedureBindingResult {
         const result: ProcedureBindingResult = {
@@ -1112,10 +1111,6 @@ export class Evaluator {
 
             this.validateArrayParameterContainer(argValue, param);
 
-            // Object parameters have a different default contract from
-            // Optional Variant parameters. Keep this at the shared binding
-            // boundary so Module and Class calls cannot diverge.
-            const objectParameter = param.paramType?.toLowerCase() === 'object' && !param.isArray;
             argValue = this.normalizeObjectArgumentValue(argValue, param);
 
             if (param.paramType && !param.isArray) {
@@ -1139,11 +1134,6 @@ export class Evaluator {
                         objectTypeName: param.paramType,
                     });
                 }
-            }
-            if (validateObjectArguments && objectParameter &&
-                !param.isArray && argValue !== vbaMissing &&
-                !isVbaObjectReferenceCompatible(argValue)) {
-                this.throwVbaError(VbaErrorCode.OBJECT_REQUIRED, 'Object required');
             }
             const expression = expressionBinding?.expressions[i];
             const forcedByVal = expression?.type === 'ParenthesizedExpression' ||
@@ -1840,7 +1830,7 @@ export class Evaluator {
         const parentEnv = this.moduleEnvs.get(procModuleKey) ?? this.env;
         const localEnv = new Environment(parentEnv);
 
-        this.bindProcedureParameters(proc, args, localEnv, argSubtypes, true);
+        this.bindProcedureParameters(proc, args, localEnv, argSubtypes);
 
         const result = this.execProcBody(proc, localEnv, {
             byRefArgs: [],
@@ -5703,7 +5693,7 @@ export class Evaluator {
             throw error;
         }
 
-        this.bindProcedureParameters(proc, args, localEnv, undefined, !proc.isProperty);
+        this.bindProcedureParameters(proc, args, localEnv);
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
@@ -9721,7 +9711,6 @@ export class Evaluator {
                     aligned.args,
                     localEnv,
                     subtypes,
-                    true,
                     aligned,
                 );
                 return this.execProcBody(proc, localEnv, {
