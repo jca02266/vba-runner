@@ -3055,3 +3055,13 @@ items:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: FZ-COVERAGE-20260810-323
+    title: Decimal literal precision boundary near 2^53
+    status: queued
+    priority: 1
+    focus: 10進数リテラルのDouble精度境界（2^53前後）
+    priorCauseKey: numeric-literal-precision-contract
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/type-system.test.ts

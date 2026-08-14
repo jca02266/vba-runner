@@ -2185,3 +2185,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-322
     finding: null
+  - afterEvaluation: EV-00836
+    audit: "734 evaluations, 0 active claims; EV-00836はXL-205の実機結果待ちで、数値境界の同一キューに追加候補をまとめられる"
+    decision: "Currency境界の実機照合を待つ間、重複しない2^53前後のDouble精度境界を別EVとして評価し、XL-206を同じワークブックへ追加した"
+    action: claim
+    nextArea: 数値リテラル・型境界
+    nextEvaluation: EV-00837
+    nextCandidate: FZ-COVERAGE-20260810-323
+    finding: null

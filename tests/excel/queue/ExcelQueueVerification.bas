@@ -642,6 +642,7 @@ Private Sub VerifyPendingExcelBoundaries()
     VerifyLargeLiteralBoundaries
     VerifyLargeLiteralValues
     VerifyDecimalLiteralOverflowBoundaries
+    VerifyDecimalLiteralPrecisionBoundary
     VerifyDefaultValueInformation
     VerifyTimeSerialConsumers
     VerifyCallByNamePropertyKinds
@@ -941,6 +942,14 @@ Private Sub VerifyDecimalLiteralOverflowBoundaries()
     Err.Clear: doubleValue = 1E+309: errNo = Err.Number
     EmitResult "XL-205 DOUBLE-OVER ERR=" & CStr(errNo)
     On Error GoTo 0
+End Sub
+
+Private Sub VerifyDecimalLiteralPrecisionBoundary()
+    Dim firstValue As Variant, nextValue As Variant
+    firstValue = 9007199254740992
+    nextValue = 9007199254740993
+    EmitResult "XL-206 FIRST=" & CStr(firstValue) & " SECOND=" & CStr(nextValue) & _
+        " EQUAL=" & CStr(firstValue = nextValue) & " TYPE1=" & TypeName(firstValue) & " TYPE2=" & TypeName(nextValue)
 End Sub
 
 Private Sub EmitValueAndType(ByVal id As String, ByVal value As Variant, ByVal errNo As Long)
