@@ -65,6 +65,65 @@ MemoryFileSystem   NodeFileSystem
 ただし、`SandboxPath`はOSのアクセス権やシンボリックリンクを隔離する
 機構ではありません。
 
+### サンドボックスルートの役割
+
+`/sandbox`（または指定した`/sandboxroot`など）は、MemoryFileSystem内の
+仮想ルートを表す論理名です。特定のホストディレクトリを初期状態として
+読み込む機能ではありません。
+
+このルートを基準に、Windows形式のVBAパスをUnix形式の仮想パスへ変換します。
+
+```text
+C:\data\input.txt
+        ↓
+/sandboxroot/c/data/input.txt
+```
+
+この変換を`SandboxPath`に集約することで、EvaluatorはMemoryFileSystemと
+NodeFileSystemへ同じUnix形式のパス契約を渡せます。したがって、両実装の
+差異はデータの保存先（メモリまたはホスト）に限定され、VBA側のWindows
+パス解釈やEvaluatorのファイル操作分岐を共通化できます。
+
+`/sandboxroot`という名前自体に特別な意味はなく、`sandboxRoot`オプションで
+別の論理ルートへ変更できます。MemoryFileSystemでは仮想空間だけに存在し、
+NodeFileSystemでは明示的に指定した場合に限りホスト上のI/Oルートになります。
+
+### パスの読み替え
+
+VBAコードから見えるパスと、`FileSystem`実装が受け取るパスは異なります。
+MemoryFileSystemでは、次のように仮想パスとVBAパスを対応させます。
+
+```text
+(仮想ファイルシステム) /sandboxroot/c/foo.txt
+              ↓
+(VBA言語)       C:\foo.txt
+```
+
+NodeFileSystemでは、指定したホスト上の`sandboxRoot`にドライブ部分を追加した
+実パスを使用し、それを同じ仮想パス表現へ変換してからEvaluatorへ渡します。
+概念的には次の対応です（`C:\work\sandboxroot`はホスト上のルートの例です）。
+
+```text
+(実ファイルシステム) C:\work\sandboxroot\c\foo.txt
+              ↓
+(仮想ファイルシステム) /sandboxroot/c/foo.txt
+              ↓
+(VBA言語)       C:\foo.txt
+```
+
+この共通の仮想パス表現があるため、Evaluatorは保存先がメモリかホストかを
+意識せずに同じファイル操作コードを実行できます。
+
+一方、VBA実行経路には、次のような直接対応機能はありません。
+
+```text
+(実ファイルシステム) C:\foo.txt
+              ↓
+(VBA言語)       C:\foo.txt
+```
+
+これは、VBA RunnerがVBAコードのテストを目的としているためです。
+
 ## ファイルシステム実装（バックエンド）の差異
 
 | 観点 | MemoryFileSystem | NodeFileSystem |

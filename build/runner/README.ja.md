@@ -347,6 +347,10 @@ const vbaRunner = new VBARunner('src/vba/Module.bas', {
 | `vba-runner format <file.bas>` | VBAコードの整形（インデント・スペースの統一） |
 | `vba-runner parse-check <file.bas>` | VBAコードの構文チェック（パースエラーの検出） |
 
+`vba-runner run`のVBA実行時ファイルI/OはMemoryFileSystem上で行われます。
+VBAが作成したファイルはCLI終了後にホストへ残りません。入力ソースの読み込みに
+Node.jsの`fs`を使うこととは別の処理です。
+
 ```bash
 # VBAファイルの静的解析（アウトライン表示）
 vba-runner analyze --outline src/vba/Module1.bas

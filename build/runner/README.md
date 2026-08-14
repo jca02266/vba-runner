@@ -347,6 +347,10 @@ const vbaRunner = new VBARunner('src/vba/Module.bas', {
 | `vba-runner format <file.bas>` | Format VBA code (indentation, spacing) |
 | `vba-runner parse-check <file.bas>` | Syntax check (detect parse errors) |
 
+VBA file I/O performed by `vba-runner run` uses MemoryFileSystem, so files created
+by VBA do not remain on the host after the CLI exits. This is separate from the
+Node.js `fs` access used to load the input source file.
+
 ```bash
 # Show outline of a VBA file
 vba-runner analyze --outline src/vba/Module1.bas
