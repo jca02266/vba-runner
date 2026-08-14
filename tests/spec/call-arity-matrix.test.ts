@@ -179,7 +179,7 @@ End Sub
 
 // ParamArray is an unbounded tail, but its required prefix still participates
 // in the same minimum-arity contract.
-assertCompileErrorExec(String.raw`Function Target(required As Long, ParamArray values()) As Long
+assertCompileErrorPreproc(String.raw`Function Target(required As Long, ParamArray values()) As Long
     Target = required
 End Function
 Sub Caller()

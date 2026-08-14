@@ -2015,16 +2015,15 @@ export class Evaluator {
 
         const checkArity = (parameters: Parameter[], provided: number, line?: number): void => {
             const min = parameters.filter(p => !p.isOptional && p.defaultValue == null && !p.isParamArray).length;
-            if (parameters.some(p => p.isParamArray)) return;
-            if (provided > parameters.length) {
-                findings.argumentError ??= {
-                    code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
-                    message: 'Wrong number of arguments or invalid property assignment', line,
-                };
-            } else if (provided < min) {
+            if (provided < min) {
                 findings.argumentError ??= {
                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                     message: 'Argument not optional', line,
+                };
+            } else if (!parameters.some(p => p.isParamArray) && provided > parameters.length) {
+                findings.argumentError ??= {
+                    code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    message: 'Wrong number of arguments or invalid property assignment', line,
                 };
             }
         };
@@ -2048,15 +2047,24 @@ export class Evaluator {
                     }
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
                         const target = this.env.getProcedure((call.callee as Identifier).name);
-                        if (target && !target.parameters.some(p => p.isParamArray)) {
+                        if (target) {
                             const min = target.parameters.filter(p => !p.isOptional && p.defaultValue == null).length;
-                            if (call.args.length > target.parameters.length && !target.isFunction) {
+                            const requiredCount = target.parameters.filter(p =>
+                                !p.isOptional && p.defaultValue == null && !p.isParamArray).length;
+                            if (call.args.length < requiredCount) {
+                                findings.argumentError = {
+                                    code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
+                                    message: 'Argument not optional',
+                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
+                                };
+                            } else if (!target.parameters.some(p => p.isParamArray) &&
+                                call.args.length > target.parameters.length && !target.isFunction) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                                     message: 'Wrong number of arguments or invalid property assignment',
                                     line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
-                            } else if (call.args.length < min) {
+                            } else if (!target.parameters.some(p => p.isParamArray) && call.args.length < min) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.ARGUMENT_NOT_OPTIONAL,
                                     message: 'Argument not optional',
