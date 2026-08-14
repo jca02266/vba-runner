@@ -7839,7 +7839,7 @@ export class Evaluator {
                     get: () => {
                         const parentFull = this.sandbox.toRealPath(parentPath);
                         const parentStats = this.fs.statSync(parentFull);
-                        return attachFolderMembers(makePathObject('folder', parentPath, parentStats, false), parentPath);
+                        return attachFolderMembers(makePathObject('folder', parentPath, parentStats), parentPath);
                     },
                     enumerable: true,
                 });

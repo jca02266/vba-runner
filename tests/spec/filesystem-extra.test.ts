@@ -18,7 +18,7 @@ function evalVBA(code: string): any {
 
 // すべてのテストを1つのコード内で実行（複数のプロシージャ）
 const allCode = String.raw`
-    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult
+    Public s, flen, fdate, posBefore, posAfter, attrFd, attrNum, attrErr, dirNormal, dirDirectory, copyErr, folderCopyResult, folderMoveResult, fileCopyResult, fileMoveResult, parentFolderCopyResult, parentFolderChainResult
     Public eofNullErr, lofNullErr, locNullErr, seekNullErr, openNullErr, mkdirErr, mkdirMissingErr
     Public putRecordNullErr, getRecordNullErr, seekPositionNullErr, rmdirNonEmptyErr, fsoModeErr, killDirectoryErr, deleteFolderErr, openMissingParentErr, copyFolderResult, moveFolderResult, setattrDirectoryErr, deleteFileNoForceErr, deleteFileNoForceExists, deleteFileForceErr, deleteFileForceExists, deleteFileDirectoryErr, fsoFolderExistingErr, fsoFolderMissingParentErr
 
@@ -244,6 +244,7 @@ const allCode = String.raw`
         Set parent = copied.ParentFolder
         parent.Copy "path_object_parent_copy"
         parentFolderCopyResult = IIf(fso.FileExists("path_object_parent_copy\child.txt") And parent.Files.Count = 1, "ok", "bad")
+        parentFolderChainResult = IIf(Len(parent.ParentFolder.Path) > 0, "ok", "bad")
         copied.Copy "path_object_file_copy.txt"
         fileCopyResult = IIf(fso.FileExists("path_object_file_copy.txt"), "ok", "bad")
         Set moved = fso.GetFolder("path_object_copy")
@@ -425,6 +426,7 @@ assert.strictEqual(ev.env.get('foldermoveresult'), 'ok', 'GetFolder.Move recursi
 assert.strictEqual(ev.env.get('filecopyresult'), 'ok', 'GetFile.Copy');
 assert.strictEqual(ev.env.get('filemoveresult'), 'ok', 'GetFile.Move');
 assert.strictEqual(ev.env.get('parentfoldercopyresult'), 'ok', 'GetFile.ParentFolder.Copy and Files');
+assert.strictEqual(ev.env.get('parentfolderchainresult'), 'ok', 'GetFile.ParentFolder.ParentFolder');
 console.log('[PASS] FSO path object Copy/Move capability contract');
 
 const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-fso-path-'));
