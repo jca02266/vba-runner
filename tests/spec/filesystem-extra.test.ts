@@ -524,6 +524,13 @@ assert.strictEqual(ev.env.get('nestedfolderresult'), 'ok', 'SubFolders child Fol
 console.log('[PASS] FSO nested SubFolders contract');
 
 const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-fso-path-'));
+assert.throws(
+    () => evalVBASingle(String.raw`Sub Probe()
+    End Sub`, { fs: new NodeFileSystem() }),
+    /requires an explicit sandboxRoot/,
+    'NodeFileSystem requires an explicit host sandbox root',
+);
+console.log('[PASS] NodeFileSystem requires explicit sandbox root');
 try {
     const nodeCode = String.raw`
         Public result

@@ -1,9 +1,8 @@
 import { Evaluator } from '../../src/engine/evaluator';
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
-import { NodeFileSystem } from '../../src/engine/node_filesystem';
 
 function evalVBA(code: string): Evaluator {
-    const ev = evalVBASingle(code, { fs: new NodeFileSystem() });
+    const ev = evalVBASingle(code);
     return ev;
 }
 

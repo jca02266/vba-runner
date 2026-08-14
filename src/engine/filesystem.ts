@@ -13,6 +13,8 @@ export const VBA_FILE_ATTRIBUTE = {
 } as const;
 
 export interface FileSystem {
+    /** True when operations affect the host filesystem rather than memory. */
+    readonly hostBacked?: boolean;
     existsSync(path: string): boolean;
     readFileSync(path: string, encoding: 'utf-8' | 'utf8'): string;
     writeFileSync(path: string, content: string): void;
@@ -48,6 +50,7 @@ export interface FileSystem {
  * Memory-based file system for browser environments.
  */
 export class MemoryFileSystem implements FileSystem {
+    readonly hostBacked = false;
     private files: Map<string, { data: Uint8Array | string, birthtime: Date, mtime: Date, attributes?: number }> = new Map();
     private dirs: Map<string, { birthtime: Date, mtime: Date, attributes?: number }> = new Map([['/', { birthtime: new Date(), mtime: new Date(), attributes: VBA_FILE_ATTRIBUTE.DIRECTORY }]]);
     private fileHandles: Map<number, { path: string, flags: string, pos: number }> = new Map();

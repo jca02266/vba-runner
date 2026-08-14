@@ -7,6 +7,7 @@ import { VBA_FILE_ATTRIBUTE } from './filesystem';
  * Node.js based file system.
  */
 export class NodeFileSystem implements FileSystem {
+    readonly hostBacked = true;
     private readonly attributeOverrides = new Map<string, number>();
     existsSync(p: string) { return fs.existsSync(p); }
     readFileSync(p: string, encoding: 'utf-8' | 'utf8') { return fs.readFileSync(p, encoding); }

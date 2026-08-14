@@ -1181,6 +1181,9 @@ export class Evaluator {
         this.onPrint = onPrint;
         this.sandbox = new SandboxPath(config.sandboxRoot, config.env);
         this.fs = config.fs || new MemoryFileSystem();
+        if (this.fs.hostBacked && (!config.sandboxRoot || this.sandbox.getRoot() === '/sandbox')) {
+            throw new Error('NodeFileSystem requires an explicit sandboxRoot other than /sandbox');
+        }
         // The in-memory backend needs an explicit virtual sandbox root.  A
         // Node-backed filesystem must not implicitly create the default
         // `/sandbox` path: callers may use a read-only or container-mounted
