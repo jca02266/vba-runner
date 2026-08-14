@@ -863,9 +863,6 @@ export class Environment {
 
 export type PrintCallback = (output: string) => void;
 
-/** Shared argument-contract shape used by built-ins, declarations, and stubs. */
-type ArgBinderParam = VbaArgumentParameter;
-
 export class Evaluator {
     public env: Environment;          // Tier 3: Public cross-module names
     private builtinEnv!: Environment; // Tier 4: standard library
@@ -5130,13 +5127,11 @@ export class Evaluator {
     }
 
     /**
-     * 引数の数を検証する汎用ロジック。`ProcedureDeclaration.parameters`（ユーザー定義 Proc）と
-     * `BuiltinParamSpec[]`（組み込み関数）の両方をこの最小形（`ArgBinderParam[]`）に変換して
-     * 共有する。VBA の `Optional` 引数の判定基準は、ユーザー定義 Proc では
-     * `!isOptional && defaultValue == null`、組み込み関数では `!optional` であり、
-     * その違いは呼び出し側で吸収する（このメソッド自体は判定済みの `isOptional` を見るだけ）。
+     * 引数の数を検証する汎用ロジック。`ProcedureDeclaration.parameters`、
+     * `BuiltinParamSpec[]`、Declare のパラメーターを同じ契約形状として
+     * 直接受け取り、Optional / defaultValue / ParamArray の判定を共有する。
      */
-    private checkArgCountGeneric(params: ArgBinderParam[], providedCount: number): void {
+    private checkArgCountGeneric(params: readonly VbaArgumentParameter[], providedCount: number): void {
         const violation = classifyArgumentCount(params, providedCount);
         if (violation === 'excess') {
             this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
@@ -5147,17 +5142,11 @@ export class Evaluator {
     }
 
     private checkArgCount(proc: ProcedureDeclaration, argsOrCount: any[] | number): void {
-        // 「required」とみなされない（= minParams に数えない）のは isOptional または
-        // defaultValue を持つパラメーター。checkArgCountGeneric 側の isOptional フラグに変換する。
-        const params: ArgBinderParam[] = proc.parameters.map(p => ({
-            isOptional: !!p.isOptional || p.defaultValue != null,
-            isParamArray: !!p.isParamArray,
-        }));
         const providedCount = typeof argsOrCount === 'number' ? argsOrCount : argsOrCount.length;
-        if (proc.isFunction && !hasParamArrayArgument(params) && providedCount > params.length) {
+        if (proc.isFunction && !hasParamArrayArgument(proc.parameters) && providedCount > proc.parameters.length) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
-        this.checkArgCountGeneric(params, providedCount);
+        this.checkArgCountGeneric(proc.parameters, providedCount);
     }
 
     /**
@@ -5219,8 +5208,7 @@ export class Evaluator {
                 this.throwVbaError(448, `Named argument not found: '${nameLower}'`);
             }
         }
-        const params: ArgBinderParam[] = spec.map(p => ({ isOptional: !!p.optional, isParamArray: !!p.isParamArray }));
-        this.checkArgCountGeneric(params, positionalArgs.length + namedArgs.size);
+        this.checkArgCountGeneric(spec, positionalArgs.length + namedArgs.size);
 
         const result: any[] = [];
         for (let i = 0; i < spec.length; i++) {
@@ -5278,13 +5266,15 @@ export class Evaluator {
         }
 
         if (namedArgs.size === 0) {
-            if (!arities.includes(totalCount)) {
+            const matchingOverloads = overloads.filter(o =>
+                classifyArgumentCount(o.params, totalCount) === null);
+            if (matchingOverloads.length === 0) {
                 if (totalCount < Math.min(...arities)) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                 }
                 this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS, 'Wrong number of arguments or invalid property assignment');
             }
-            const selected = overloads.find(o => o.params.length === totalCount)!;
+            const selected = matchingOverloads[0];
             return positionalArgs.map((value, index) =>
                 this.coerceBoundArgument(value, selected.params[index]));
         }
@@ -5387,7 +5377,8 @@ export class Evaluator {
     private isAutoCallable(fn: Function): boolean {
         const overloads = (fn as any).__vbaOverloads__ as BuiltinOverload[] | undefined;
         if (overloads) {
-            return overloads.some(o => requiredArgumentCount(o.params) === 0);
+            return overloads.some(o =>
+                !hasParamArrayArgument(o.params) && requiredArgumentCount(o.params) === 0);
         }
         const spec = (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined;
         if (spec) {
@@ -7475,11 +7466,7 @@ export class Evaluator {
     private evaluateDeclareStatement(stmt: DeclareStatement) {
         const name = stmt.name.toLowerCase();
         this.env.set(name, (..._args: any[]) => {
-            const params: ArgBinderParam[] = stmt.parameters.map(param => ({
-                isOptional: !!param.isOptional || param.defaultValue != null,
-                isParamArray: !!param.isParamArray,
-            }));
-            this.checkArgCountGeneric(params, _args.length);
+            this.checkArgCountGeneric(stmt.parameters, _args.length);
             this.onPrint(`[DECLARE STUB] Calling ${stmt.isSub ? 'Sub' : 'Function'} ${stmt.name} from "${stmt.libName}" (Alias: ${stmt.aliasName || 'N/A'})`);
             return 0; // Dummy return
         });

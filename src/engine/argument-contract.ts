@@ -83,8 +83,12 @@ export function acceptsNamedArgumentShape(
     positionalCount: number,
     namedNames: Iterable<string>,
 ): boolean {
-    if (positionalCount > parameters.length) return false;
+    // ParamArray is a positional sink in VBA; it cannot be selected through
+    // a named argument. Keep this rule in the shared contract so overloads
+    // and ordinary built-ins cannot diverge.
     const normalizedNamedNames = [...namedNames].map(name => name.toLowerCase());
+    if (hasParamArrayArgument(parameters) && normalizedNamedNames.length > 0) return false;
+    if (positionalCount > parameters.length) return false;
     const names = new Set(parameters.map(parameter => parameter.name?.toLowerCase()));
     for (const name of normalizedNamedNames) {
         if (!names.has(name)) return false;

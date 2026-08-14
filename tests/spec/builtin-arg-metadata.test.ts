@@ -13,6 +13,7 @@
  */
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { VbaErrorCode } from '../../src/engine/evaluator';
+import { acceptsNamedArgumentShape, classifyArgumentCount } from '../../src/engine/argument-contract';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -27,6 +28,18 @@ function expectVbaError(code: string, expectedNumber: number, label: string): vo
     }
     assert.strictEqual(caught !== null, true, `${label}: エラーが発生する`);
     assert.strictEqual(caught?.number, expectedNumber, `${label}: エラー番号 ${expectedNumber}（got: ${caught?.number}）`);
+}
+
+// --- 0. 組み込みオーバーロードも共有契約で ParamArray を検証する ---
+{
+    const params = [
+        { name: 'values', isParamArray: true },
+    ];
+    assert.strictEqual(classifyArgumentCount(params, 0), null, 'ParamArrayのみの形は引数省略を許可する');
+    assert.strictEqual(acceptsNamedArgumentShape(params, 0, []), true, 'ParamArrayの位置引数形は許可する');
+    assert.strictEqual(acceptsNamedArgumentShape(params, 0, ['values']), false,
+        'ParamArrayを名前付きオーバーロード形として選択しない');
+    console.log('[PASS] 組み込みオーバーロードのParamArray契約共有');
 }
 
 // --- 1. Now/Date/Time/Timer/DoEvents: 引数を渡すとエラー（今までは黙って無視されていた） ---
