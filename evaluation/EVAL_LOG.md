@@ -762,17 +762,19 @@
 | EV-00858 | RCA-FOLLOWUP | fixed | 1 | 金融関数の中間Overflow安定性横展開 |
 | EV-00859 | RCA-FOLLOWUP | fixed | 1 | 金融関数線形結合の横展開 |
 | EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
+| EV-00861 | RCA-FOLLOWUP | in-progress | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | fixed | 340 |
+| in-progress | 1 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 411 |
 
-横展開未解決経路: 569、実Excel待ち評価: 0
+横展開未解決経路: 571、実Excel待ち評価: 0
 
 ## 次の候補
 
