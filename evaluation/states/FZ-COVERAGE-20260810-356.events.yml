@@ -2,3 +2,8 @@
   evaluationId: EV-00878
   status: bug-found
   occurredAt: '2026-08-15T09:39:35.043Z'
+- candidateId: FZ-COVERAGE-20260810-356
+  evaluationId: EV-00878
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-15T09:47:54.273Z'
