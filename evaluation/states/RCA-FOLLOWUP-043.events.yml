@@ -12,3 +12,10 @@
   status: needs-excel
   fromStatus: needs-excel-probe
   occurredAt: '2026-08-15T05:30:43.745Z'
+- candidateId: RCA-FOLLOWUP-043
+  evaluationId: EV-00859
+  status: bug-found
+  fromStatus: needs-excel
+  occurredAt: '2026-08-15T05:53:48.000Z'
+  findingIds:
+    - BUG-00538
