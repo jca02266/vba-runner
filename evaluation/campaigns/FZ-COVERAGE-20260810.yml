@@ -3572,3 +3572,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/timeserial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-363
+    title: DateValue and TimeValue input boundaries
+    status: queued
+    priority: 1
+    focus: DateValueの時刻切捨て・不正日付とTimeValueの時刻境界
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/date-value-time-value-boundary.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-value-time-value-boundary.test.ts
