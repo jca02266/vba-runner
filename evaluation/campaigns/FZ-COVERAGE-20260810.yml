@@ -3504,3 +3504,19 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/tooling/filesystem-backend-copy.test.ts
+  - id: FZ-COVERAGE-20260810-358
+    title: Memory and Node nested-copy collision atomicity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのcopyDirectorySync入れ子衝突失敗時状態契約
+    priorCauseKey: virtual-filesystem-copy-destination-contract-divergence
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
+      - tests/tooling/filesystem-backend-copy-empty.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
