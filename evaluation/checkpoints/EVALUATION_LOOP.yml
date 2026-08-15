@@ -2437,3 +2437,11 @@ checkpoints:
     nextEvaluation: EV-00861
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00861
+    audit: "759 evaluations, 0 active claims; XL-218の7ケースをExcelQueueVerification.basへ追加し、t.xlsmとExcelQueueソースハッシュを同期した"
+    decision: "EV-00861をneeds-excelへ遷移した。Windows側で既存キューを実行し、XL-218の7結果をExcelQueueVerification.resultへ反映する"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00861
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
