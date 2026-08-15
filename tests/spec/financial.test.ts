@@ -128,6 +128,25 @@ console.log('[PASS] MIRR Excel epsilon boundary comparison');
 }
 console.log('[PASS] MIRR ReinvestRate boundary error');
 
+// Excel reports Error 5 when FinanceRate=-1 makes a later negative cash-flow
+// discount denominator zero.  The initial cash flow alone remains valid.
+{
+    const ev = evalVBASingle(String.raw`
+    Function ProbeMirrFinanceBoundary() As Long
+        On Error Resume Next
+        Dim flows(0 To 2) As Double, ignored As Double
+        flows(0) = -100
+        flows(1) = -50
+        flows(2) = 200
+        ignored = MIRR(flows, -1, 0.1)
+        ProbeMirrFinanceBoundary = Err.Number
+    End Function
+    `);
+    assert.strictEqual(ev.callProcedure('ProbeMirrFinanceBoundary', []), 5,
+        'MIRR FinanceRate=-1 with a later negative cash flow is Error 5');
+}
+console.log('[PASS] MIRR FinanceRate zero-denominator boundary');
+
 // --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
 // Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため
 // values.map(Number) がインデックス 0 (undefined → NaN) を含んでいた
