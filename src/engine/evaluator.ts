@@ -998,12 +998,18 @@ export class Evaluator {
         let actual: string | undefined;
         if (expr.type === 'Identifier') {
             const name = (expr as Identifier).name;
+            if (['true', 'false', 'empty'].includes(name.toLowerCase())) return;
             actual = this.env.getVariableType(name)?.vbaType;
             if (!actual && this.env.hasVariable(name)) {
                 actual = this.env.getVariantSubtype(name) ?? 'Variant';
             }
-        } else {
+        } else if (expr.type === 'CallExpression') {
             actual = this.resolveDeclaredReturnType(expr);
+        } else {
+            // Literal arguments are temporary values rather than caller
+            // LValues.  They cannot participate in a ByRef writeback type
+            // contract; retain VBA's accepted temporary-value behavior.
+            return;
         }
         if (isByRefScalarTypeMismatch(actual, expected)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'ByRef argument type mismatch');
