@@ -2421,3 +2421,11 @@ checkpoints:
     nextEvaluation: EV-00855
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00860
+    audit: "758 evaluations, 0 active claims; 全体テストでFVの非有限中間係数がゼロ項に隠れる回帰を検出し、修正後にTypeScript 450件とVBA 111件が通過した"
+    decision: "EV-00860をfixed、BUG-00539の直接修正と回帰テストを完了した。RCA-FOLLOWUP-045以外に未評価のキュー候補はなく、次は新しい未検証境界の候補化を待つ"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
