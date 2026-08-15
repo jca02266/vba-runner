@@ -795,7 +795,7 @@
 | EV-00892 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarがDecimal・Currency・Error・Null・EmptyのVariantサブタイプと情報関数結果を保持するか |
 | EV-00893 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarへLong配列とVBAクラスを渡した場合の配列形状・Object参照・メンバーアクセス保持 |
 | EV-00894 | FZ-COVERAGE-20260810 | verified-no-bug |  | Strの符号・先頭空白・指数表記・Boolean/Currency変換とNullエラー境界 |
-| EV-00895 | FZ-COVERAGE-20260810 | bug-found |  | String関数のCurrency・Decimal character引数の数値コード変換 |
+| EV-00895 | FZ-COVERAGE-20260810 | fixed |  | String関数のCurrency・Decimal character引数の数値コード変換 |
 | EV-00896 | FZ-COVERAGE-20260810 | needs-excel |  | String関数のBoolean・Date character引数の変換契約 |
 | EV-00897 | FZ-COVERAGE-20260810 | fixed |  | DateSerialの年・月・日引数Integer幅境界 |
 | EV-00898 | FZ-COVERAGE-20260810 | needs-excel |  | DateSerialの年範囲外と月日正規化の組合せ |
@@ -807,8 +807,7 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 347 |
+| fixed | 348 |
 | known-limit | 5 |
 | needs-excel | 5 |
 | retired | 2 |
