@@ -3846,3 +3846,18 @@ items:
     coverageTargets:
       - src/engine/coerce.ts
       - tests/spec/conversion-extra.test.ts
+  - id: FZ-COVERAGE-20260810-382
+    title: CVar composite and subtype preservation
+    status: queued
+    priority: 1
+    focus: CVarの配列・クラス・Variantサブタイプ保持
+    priorCauseKey: vba-variant-subtype-preservation
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts
+      - tests/spec/typename.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

@@ -804,6 +804,7 @@
 | EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
 | EV-00902 | FZ-COVERAGE-20260810 | needs-excel |  | CDateの許容シリアル値上下端とError 6境界 |
 | EV-00903 | FZ-COVERAGE-20260810 | fixed | 1 | CBoolへLongLong数値式を渡した場合の真偽変換 |
+| EV-00904 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarの配列・クラス・Variantサブタイプ保持 |
 
 ## 状態集計
 
@@ -813,7 +814,7 @@
 | known-limit | 5 |
 | needs-excel | 6 |
 | retired | 2 |
-| verified-no-bug | 438 |
+| verified-no-bug | 439 |
 
 横展開未解決経路: 585、実Excel待ち評価: 6
 
