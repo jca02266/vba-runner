@@ -1057,10 +1057,16 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         return repeatChecked(' ', n);
     };
     ctx.reg('space', spaceFunc, [{ name: 'Number' }], ['$']);
+    // Stringのcharacter引数で文字コードとして扱うVariant型を一元化する。
+    // BooleanとDateはExcel実機での契約を別EVで確定するまで含めない。
+    const isStringCharacterNumericVariant = (value: any): boolean =>
+        typeof value === 'number' ||
+        value instanceof VbaCurrency ||
+        value instanceof VbaDecimal;
     const stringFunc = (n: any, char: any) => {
         if (n === vbaNull || char === vbaNull) return vbaNull;
         let c: string;
-        if (typeof char === 'number' || char instanceof VbaCurrency || char instanceof VbaDecimal) {
+        if (isStringCharacterNumericVariant(char)) {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
             c = String.fromCharCode(ctx.round(ctx.toVbaNumber(char)) % 256);
         } else {
