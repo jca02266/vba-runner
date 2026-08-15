@@ -83,6 +83,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFinancialIntermediateFollowup
     VerifyFinancialExpansion
     VerifyMirrFinanceRateBoundary
+    VerifyNPerShapeBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -154,6 +155,25 @@ Private Sub VerifyMirrFinanceRateBoundary()
         value = MIRR(flows, rates(i), 0.1)
         errNo = Err.Number
         EmitResult "XL-218 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
+            " VALUE=" & CStr(value)
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyNPerShapeBoundary()
+    Dim labels As Variant, rates As Variant, pmts As Variant, pvs As Variant
+    Dim i As Long, value As Double, errNo As Long
+    labels = Array("control-max-cancellation", "sign-reversed", "finite-large", _
+        "near-max-mixed", "zero-rate", "minus-one-rate", "normal")
+    rates = Array(0.5, 0.5, 0.5, 0.5, 0, -1, 0.05)
+    pmts = Array(-1E+308, 1E+308, -1E+308, -1E+307, -1E+308, -1E+308, -100)
+    pvs = Array(1E+308, -1E+308, 1E+307, 1E+308, 1E+308, 1E+308, 100)
+    For i = 0 To 6
+        On Error Resume Next
+        Err.Clear
+        value = NPer(rates(i), pmts(i), pvs(i), 0, 0)
+        errNo = Err.Number
+        EmitResult "XL-219 CASE=" & CStr(labels(i)) & " ERR=" & CStr(errNo) & _
             " VALUE=" & CStr(value)
     Next i
     On Error GoTo 0

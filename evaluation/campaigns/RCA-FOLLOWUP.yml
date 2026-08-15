@@ -480,3 +480,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-047
+    title: NPer最大相殺境界の周辺キャッシュフロー形状
+    status: queued
+    priority: 1
+    focus: NPerの最大相殺境界と近傍の符号・利率・有限値入力に対するError分類
+    priorCauseKey: nper-finite-result-error-boundary-mismatch
+    rootCauseId: RC-00012
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

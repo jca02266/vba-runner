@@ -2461,3 +2461,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: RCA-FOLLOWUP-046
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00861
+    audit: "759 evaluations, 0 active claims; 既存候補はすべて結果済みで、RC-00012のNPer横展開に未解決境界が残っていることを確認した"
+    decision: "通常のqueued候補がないため、NPerの周辺キャッシュフロー形状を評価するRCA-FOLLOWUP-047を登録し、独立Runner評価後にXL-219を準備した"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00862
+    nextCandidate: RCA-FOLLOWUP-047
+    coverageSnapshot: COV-2026-08-15-current
