@@ -2765,3 +2765,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00908
+    audit: "805 evaluations, 0 active claims; String/String$の数値0〜257とDate境界をXL-226マトリクスへ登録し、ソースハッシュ一致の実機結果待ちにした"
+    decision: "TrueとDate256の差異が単純な型判定かANSIコードページ境界かを、数値・Dateの同一マトリクスで切り分ける"
+    action: excel-probe
+    nextArea: 実Excel照合
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

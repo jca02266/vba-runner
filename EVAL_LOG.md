@@ -808,6 +808,7 @@
 | EV-00905 | FZ-COVERAGE-20260810 | verified-no-bug |  | CBoolのLongLong符号・最大値・最小値境界 |
 | EV-00906 | FZ-COVERAGE-20260810 | fixed | 1 | CLngLngの符号付き64ビット範囲外エラー番号 |
 | EV-00907 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
+| EV-00908 | FZ-COVERAGE-20260810 | needs-excel | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
 
 ## 状態集計
 
@@ -816,10 +817,11 @@
 | bug-found | 6 |
 | fixed | 350 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 441 |
 
-横展開未解決経路: 584、実Excel待ち評価: 0
+横展開未解決経路: 585、実Excel待ち評価: 1
 
 ## 次の候補
 

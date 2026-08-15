@@ -3903,3 +3903,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260810-386
+    title: String ANSI character and Date boundary matrix
+    status: queued
+    priority: 1
+    focus: String/String$の数値・Date characterコード境界とANSI変換
+    priorCauseKey: vba-character-boolean-date-variant-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

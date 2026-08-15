@@ -90,6 +90,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixConversionMatrix
     VerifyStringCharacterVariant
     VerifyStringCharacterCode
+    VerifyStringCharacterBoundary
     VerifyDateSerialNormalizationBoundary
     VerifyCDateSerialBoundaries
     VerifyRadixExplicitSignMatrix
@@ -181,6 +182,37 @@ Private Sub VerifyStringCharacterCode()
     errNo = Err.Number
     EmitResult "XL-225 API=String INPUT=Date256 ERR=" & CStr(errNo) & _
         " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyStringCharacterBoundary()
+    Dim values As Variant, i As Long, value As String, dateValue As Variant, errNo As Long
+    values = Array(0, 1, 65, 127, 128, 254, 255, 256, 257)
+    On Error Resume Next
+    For i = LBound(values) To UBound(values)
+        Err.Clear
+        value = String$(1, values(i))
+        errNo = Err.Number
+        EmitResult "XL-226 API=String$ INPUT=" & CStr(values(i)) & " ERR=" & CStr(errNo) & _
+            " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+        Err.Clear
+        value = String(1, values(i))
+        errNo = Err.Number
+        EmitResult "XL-226 API=String INPUT=" & CStr(values(i)) & " ERR=" & CStr(errNo) & _
+            " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Next i
+    For Each dateValue In Array(CDate(0), CDate(1), CDate(65), CDate(256), CDate(257))
+        Err.Clear
+        value = String$(1, dateValue)
+        errNo = Err.Number
+        EmitResult "XL-226 API=String$ INPUT=Date ERR=" & CStr(errNo) & _
+            " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+        Err.Clear
+        value = String(1, dateValue)
+        errNo = Err.Number
+        EmitResult "XL-226 API=String INPUT=Date ERR=" & CStr(errNo) & _
+            " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Next value
     On Error GoTo 0
 End Sub
 
