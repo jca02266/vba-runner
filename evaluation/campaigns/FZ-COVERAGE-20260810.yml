@@ -3273,3 +3273,16 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/callbyname-byref-type.test.ts
       - tests/excel/queue/ExcelQueueVerification.bas
+  - id: FZ-COVERAGE-20260810-341
+    title: Resume target and handler re-entry boundary
+    status: queued
+    priority: 1
+    focus: エラー処理領域のResume Next・ラベルResume・再実行とクラス境界
+    priorCauseKey: on-error-state-reset-resume
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts

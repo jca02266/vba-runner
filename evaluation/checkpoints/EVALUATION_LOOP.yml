@@ -2469,3 +2469,19 @@ checkpoints:
     nextEvaluation: EV-00862
     nextCandidate: RCA-FOLLOWUP-047
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00862
+    audit: "760 evaluations, 0 active claims; NPerの7ケースをRunnerで実行し、XL-219を準備済みt.xlsmへ追加した"
+    decision: "EV-00862はXL-219のExcel結果待ちのためneeds-excelを維持する。結果取得までは別領域の未検証Resume状態遷移を評価する"
+    action: excel-run
+    nextArea: Err・On Error
+    nextEvaluation: EV-00863
+    nextCandidate: FZ-COVERAGE-20260810-341
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00863
+    audit: "761 evaluations, 0 active claims; 標準SubのResume Next、ラベルResume、Resume再実行を自己完結した行列で確認した"
+    decision: "EV-00863はverified-no-bug。クラス境界・ネストイベント・外部COMは対象外として別候補で扱う。XL-219のExcel結果待ちは継続する"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

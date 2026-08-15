@@ -764,6 +764,7 @@
 | EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
 | EV-00861 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
 | EV-00862 | RCA-FOLLOWUP | needs-excel | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
+| EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
 
 ## 状態集計
 
@@ -773,9 +774,9 @@
 | known-limit | 5 |
 | needs-excel | 1 |
 | retired | 2 |
-| verified-no-bug | 411 |
+| verified-no-bug | 412 |
 
-横展開未解決経路: 572、実Excel待ち評価: 1
+横展開未解決経路: 573、実Excel待ち評価: 1
 
 ## 次の候補
 
