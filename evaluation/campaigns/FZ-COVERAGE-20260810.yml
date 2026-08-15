@@ -3889,3 +3889,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-385
+    title: String Boolean・Date character code contract
+    status: queued
+    priority: 1
+    focus: String/String$のBoolean・Date characterコードとAscW観測
+    priorCauseKey: vba-character-boolean-date-variant-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

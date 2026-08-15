@@ -89,6 +89,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyStringCharacterVariant
+    VerifyStringCharacterCode
     VerifyDateSerialNormalizationBoundary
     VerifyCDateSerialBoundaries
     VerifyRadixExplicitSignMatrix
@@ -134,6 +135,52 @@ Private Sub VerifyStringCharacterVariant()
     value = String(3, CDate(65))
     errNo = Err.Number
     EmitResult "XL-222 DATE=" & CStr(value) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyStringCharacterCode()
+    Dim value As String, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = String$(1, True)
+    errNo = Err.Number
+    EmitResult "XL-225 API=String$ INPUT=True ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String$(1, CDate(65))
+    errNo = Err.Number
+    EmitResult "XL-225 API=String$ INPUT=Date65 ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String$(1, False)
+    errNo = Err.Number
+    EmitResult "XL-225 API=String$ INPUT=False ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String$(1, CDate(256))
+    errNo = Err.Number
+    EmitResult "XL-225 API=String$ INPUT=Date256 ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String(1, True)
+    errNo = Err.Number
+    EmitResult "XL-225 API=String INPUT=True ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String(1, CDate(65))
+    errNo = Err.Number
+    EmitResult "XL-225 API=String INPUT=Date65 ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String(1, False)
+    errNo = Err.Number
+    EmitResult "XL-225 API=String INPUT=False ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String(1, CDate(256))
+    errNo = Err.Number
+    EmitResult "XL-225 API=String INPUT=Date256 ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
     On Error GoTo 0
 End Sub
 

@@ -160,8 +160,12 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`String(3, CCur(65))`), 'AAA', 'String Currency character code');
     assert.strictEqual(ev(`String(3, CDec(65))`), 'AAA', 'String Decimal character code');
     assert.strictEqual(ev(`String(3, True)`), String.fromCharCode(255).repeat(3), 'String Boolean character code');
+    assert.strictEqual(ev(`String(1, False)`), String.fromCharCode(0), 'String False character code');
     assert.strictEqual(ev(`String(3, CDate(65))`), 'AAA', 'String Date character code');
+    assert.strictEqual(ev(`String(1, CDate(256))`), String.fromCharCode(0), 'String Date 256 wraps');
     assert.strictEqual(ev(`String$(3, CCur(256))`), String.fromCharCode(0).repeat(3), 'String$ Currency applies Mod 256');
+    assert.strictEqual(ev(`String$(1, True)`), String.fromCharCode(255), 'String$ Boolean character code');
+    assert.strictEqual(ev(`String$(1, CDate(65))`), 'A', 'String$ Date character code');
     console.log('[PASS] Bug DB: String 数値 > 255 は Mod 256');
     // Bug DC: 空文字列 Character は Error 5 (§6.1.2.11.1.38)
     assert.throwsMatch(() => ev(`String(3, "")`), /error '5'/, 'String(3, "") → Error 5');

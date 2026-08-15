@@ -2757,3 +2757,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00907
+    audit: "804 evaluations, 0 active claims; String/String$のBoolean・Date character引数についてAscW観測用XL-225を追加し、ソースハッシュ一致の準備済みExcel待ちにした"
+    decision: "文字列表示のコードページ変換を判定根拠にせず、String/String$のTrue・False・Date境界をAscWとLenで実機照合する"
+    action: excel-probe
+    nextArea: 実Excel照合
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
