@@ -754,20 +754,19 @@
 | EV-00850 | FZ-COVERAGE-20260810 | fixed | 1 | 引数・ByRef・Property領域の型付きByRef引数と呼出し元型検査 |
 | EV-00851 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のIndexed Property value-tail binding |
 | EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
-| EV-00853 | FZ-COVERAGE-20260810 | needs-excel |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
-| EV-00854 | FZ-COVERAGE-20260810 | needs-excel |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
+| EV-00853 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
+| EV-00854 | FZ-COVERAGE-20260810 | fixed |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 335 |
+| fixed | 336 |
 | known-limit | 5 |
-| needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 408 |
+| verified-no-bug | 409 |
 
-横展開未解決経路: 564、実Excel待ち評価: 2
+横展開未解決経路: 564、実Excel待ち評価: 0
 
 ## 次の候補
 
