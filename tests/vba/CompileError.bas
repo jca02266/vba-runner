@@ -335,6 +335,19 @@ Sub Case_property_get_without_required_argument()
 End Sub
 '@case-end
 
+' CASE: npv_requires_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+' NOTE: ExcelのNPVは第2引数に静的な配列またはユーザー定義型を要求する。
+'   配列として宣言されていないスカラー変数を渡すと、実行前に
+'   「配列またはユーザー定義型を指定してください。」になる。
+Sub Case_npv_requires_array_argument()
+    Dim flows As Double, value As Double
+    flows = 100
+    value = NPV(0.5, flows) ' @error
+End Sub
+
 ' 実行時確認: function_call_with_excess_argument_runtime
 ' VBAではコンパイルエラーにならず、実行時エラー13（型が一致しません）になる。
 ' @errorは付けないため、vba_compile_error.test.tsには生成されない。

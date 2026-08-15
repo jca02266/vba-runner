@@ -2240,6 +2240,30 @@ export class Evaluator {
             return false;
         };
 
+        const hasBuiltinArrayTypeMismatch = (name: string, args: Expression[]): boolean => {
+            const fn = this.env.getConst(name);
+            const specs = typeof fn === 'function'
+                ? (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined
+                : undefined;
+            if (!specs) return false;
+            let positional = 0;
+            for (const arg of args) {
+                let value = arg;
+                let index = positional++;
+                if (arg.type === 'NamedArgument') {
+                    const named = arg as NamedArgument;
+                    index = specs.findIndex(p => p.name.toLowerCase() === named.name.toLowerCase());
+                    value = named.value;
+                }
+                if (index < 0) continue;
+                const spec = specs[index];
+                if (!spec?.isArray || value.type !== 'Identifier') continue;
+                const key = (value as Identifier).name.toLowerCase();
+                if (!arrayDeclarations.has(key) && variableTypes.has(key)) return true;
+            }
+            return false;
+        };
+
         const classProcedure = (typeName: string | undefined, memberName: string): ProcedureDeclaration | undefined => {
             const classDef = typeName ? this.classDefinitions.get(typeName.toLowerCase()) : undefined;
             if (!classDef) return undefined;
@@ -2258,6 +2282,13 @@ export class Evaluator {
                         }
                     }
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
+                        if (hasBuiltinArrayTypeMismatch((call.callee as Identifier).name, call.args)) {
+                            findings.argumentError = {
+                                code: VbaErrorCode.TYPE_MISMATCH,
+                                message: 'Type mismatch: array or user-defined type required',
+                                line: call.loc?.start.line ?? call.callee.loc?.start.line,
+                            };
+                        }
                         const target = this.env.getProcedure((call.callee as Identifier).name);
                         if (target) {
                             if (!findings.argumentError && hasByRefTypeMismatch(target.parameters, call.args)) {

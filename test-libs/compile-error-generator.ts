@@ -162,16 +162,21 @@ function parseCompileErrorBas(source: string): { preamble: string[], cases: Comp
             while (caseBody.length > 0 && caseBody[caseBody.length - 1].trim() === '') {
                 caseBody.pop();
             }
-            cases.push({
-                name: currentSubName!,
-                type: meta!.type ?? 'parse',
-                vbaError: meta!.vbaError ?? '',
-                errorLine: caseErrorLine,
-                runnerPattern: meta!.runnerPattern ?? '/.+/',
-                code: caseBody,
-                procName: meta!.procName,
-                evalOptions: meta!.evalOptions,
-            });
+            // A Sub without an @error marker is an executable observation,
+            // not a compile-error assertion (for example a runtime-error
+            // probe guarded by On Error Resume Next).
+            if (caseErrorLine !== null) {
+                cases.push({
+                    name: currentSubName!,
+                    type: meta!.type ?? 'parse',
+                    vbaError: meta!.vbaError ?? '',
+                    errorLine: caseErrorLine,
+                    runnerPattern: meta!.runnerPattern ?? '/.+/',
+                    code: caseBody,
+                    procName: meta!.procName,
+                    evalOptions: meta!.evalOptions,
+                });
+            }
             // meta はクリアしない — 同一 CASE コメントに複数 Sub を許容
             inCaseSub = false;
             currentSubName = null;

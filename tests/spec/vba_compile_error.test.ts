@@ -649,6 +649,42 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] npv_requires_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+
+      Private Function MyFuncHasArg(x)
+      End Function
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+
+      Sub __test__()
+        Dim flows As Double, value As Double
+        flows = 100
+        value = NPV(0.5, flows)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'npv_requires_array_argument');
+        console.log('[PASS] npv_requires_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] npv_requires_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] sub_call_without_required_argument
 // VBA: コンパイル エラー: 引数は省略できません。
 // VBA error line (within Sub body): 2
