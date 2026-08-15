@@ -770,6 +770,7 @@
 | EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
 | EV-00868 | FZ-COVERAGE-20260810 | needs-excel | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
 | EV-00869 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約 |
+| EV-00870 | FZ-COVERAGE-20260810 | needs-excel | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
 
 ## 状態集計
 
@@ -777,11 +778,11 @@
 |---|---:|
 | fixed | 342 |
 | known-limit | 5 |
-| needs-excel | 2 |
+| needs-excel | 3 |
 | retired | 2 |
 | verified-no-bug | 415 |
 
-横展開未解決経路: 580、実Excel待ち評価: 2
+横展開未解決経路: 582、実Excel待ち評価: 3
 
 ## 次の候補
 

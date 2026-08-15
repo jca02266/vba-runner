@@ -85,6 +85,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceRateBoundary
     VerifyMirrFinanceRateShapes
     VerifyNPerShapeBoundary
+    VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -201,6 +202,18 @@ Private Sub VerifyNPerShapeBoundary()
         EmitResult "XL-219 CASE=" & CStr(labels(i)) & " ERR=" & CStr(errNo) & _
             " VALUE=" & CStr(value)
     Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyQualifiedPropertyBoundary()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = ExcelQueueQualifiedProperty.Item(1): errNo = Err.Number
+    EmitResult "XL-221 ITEM ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = ExcelQueueQualifiedProperty.Name: errNo = Err.Number
+    EmitResult "XL-221 NAME ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = ExcelQueueQualifiedProperty.Values(1): errNo = Err.Number
+    EmitResult "XL-221 VALUES ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
     On Error GoTo 0
 End Sub
 

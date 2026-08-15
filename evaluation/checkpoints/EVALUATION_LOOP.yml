@@ -2533,3 +2533,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00870
+    audit: "767 evaluations, 0 active claims; 複数Moduleの修飾Property Getを3経路でRunner評価し、XL-221を準備済みキューへ追加した"
+    decision: "EV-00870をneeds-excelとした。引数付きGetは成功する一方、0引数Getと戻り値添字はRunnerで異常となったため、Excel結果でRC-00071の実装差異を確定する。XL-219/XL-220も結果待ちである"
+    action: excel-run
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00870
+    nextCandidate: FZ-COVERAGE-20260810-348
+    coverageSnapshot: COV-2026-08-15-current

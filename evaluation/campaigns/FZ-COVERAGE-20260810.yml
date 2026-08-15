@@ -3353,3 +3353,17 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/default-property.test.ts
+  - id: FZ-COVERAGE-20260810-348
+    title: Multi-module qualified Property Get boundary
+    status: queued
+    priority: 1
+    focus: 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決
+    priorCauseKey: member-call-arity-contract-not-centralized
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - evaluation/root-causes/RC-00071.md
+      - src/engine/evaluator.ts:9893-10090
+      - tests/spec/module-qualified-calls.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/module-qualified-calls.test.ts
