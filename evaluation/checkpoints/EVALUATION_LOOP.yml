@@ -2349,6 +2349,14 @@ checkpoints:
     nextEvaluation: EV-00855
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00855
+    audit: "755 evaluations, 0 active claims; XL-213の差異をSYDの中間Overflowとして修正し、既存のError 5境界を含む回帰テストを通過させた"
+    decision: "EV-00855をfixed、BUG-00536の直接修正を完了した。未検証の金融関数横展開はRCA-FOLLOWUP-042へ登録した"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: RCA-FOLLOWUP-042
+    coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00857
     audit: "755 evaluations, 0 active claims; XL-208、XL-211、XL-212をExcelQueueVerification.basへ追加し、準備済みt.xlsmとソースハッシュが一致した"
     decision: "EV-00855、EV-00856、EV-00857をneeds-excelへ遷移した。Windows側でeval-excel.cmdを1回実行し、3件の結果を個別にexcel-syncして判定する"

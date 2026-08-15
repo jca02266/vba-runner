@@ -22,3 +22,8 @@
   status: bug-found
   fromStatus: needs-excel
   occurredAt: '2026-08-15T03:36:37.001Z'
+- candidateId: RCA-FOLLOWUP-040
+  evaluationId: EV-00855
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-15T03:45:49.952Z'
