@@ -59,6 +59,11 @@ function readFindings() {
 }
 
 function validateFindingRecordFormat(file, source, data) {
+  if (['fixed', 'retired'].includes(data.status) && data.rootFixStatus === 'planned' &&
+      (data.followUpDisposition === 'not-required' ||
+       !Array.isArray(data.followUpCandidates) || data.followUpCandidates.length === 0)) {
+    throw new Error(`${file}: planned root fix requires a registered follow-up candidate`);
+  }
   if (data.findingRecordVersion === undefined) return;
   if (data.findingRecordVersion !== 2) {
     throw new Error(`${file}: findingRecordVersion must be 2 for new records`);

@@ -409,3 +409,24 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/interface-callbyname-property.test.ts
+  - id: RCA-FOLLOWUP-040
+    title: 金融関数の領域エラー分類共通化
+    status: queued
+    priority: 1
+    focus: SYDなど金融関数の引数領域エラーと共通Overflowエラーの分類契約を整理する
+    priorCauseKey: financial-domain-and-overflow-errors-not-separated
+    rootCauseId: RC-00012
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-041
+    title: ByRef式参照バインディング必須化
+    status: queued
+    priority: 1
+    focus: Class・Property・CallByNameのByRef呼出しで式とLValue参照情報を共通必須化する
+    priorCauseKey: byref-binding-type-contract-not-centralized
+    rootCauseId: RC-00080
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname-byref-type.test.ts
+      - tests/spec/byref-scalar-type.test.ts

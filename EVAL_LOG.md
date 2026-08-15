@@ -772,4 +772,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
+| RCA-FOLLOWUP-040 | 1 | queued | SYDなど金融関数の引数領域エラーと共通Overflowエラーの分類契約を整理する | yes |
+| RCA-FOLLOWUP-041 | 1 | queued | Class・Property・CallByNameのByRef呼出しで式とLValue参照情報を共通必須化する | yes |
 | FZ-COVERAGE-20260810-336-EXCEL | 1 | queued | 引数・ByRef・Property領域の型付きByRef異型実引数に対するExcel実行前エラー |  |

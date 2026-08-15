@@ -44,6 +44,21 @@ try {
     writeFileSync(retiredFinding, retiredFindingBody);
 }
 
+// A fixed finding with a planned root fix must retain an actionable follow-up
+// candidate; marking it not-required would silently lose the root-cause task.
+const plannedRootFinding = `${root}/evaluation/findings/BUG-00535.md`;
+const plannedRootBody = readFileSync(plannedRootFinding, 'utf8');
+writeFileSync(plannedRootFinding, plannedRootBody
+    .replace('followUpDisposition: registered', 'followUpDisposition: not-required')
+    .replace(/followUpCandidates:\n(?:  - .*\n)+/, 'followUpCandidates: []\n'));
+try {
+    const missingRootFollowUp = run('validate');
+    assert.notEqual(missingRootFollowUp.status, 0);
+    assert.match(missingRootFollowUp.stderr, /planned root fix requires a registered follow-up candidate/);
+} finally {
+    writeFileSync(plannedRootFinding, plannedRootBody);
+}
+
 const targetCandidate = 'FZ-GRAMMAR-003';
 const persistedResult = `${root}/evaluation/states/${targetCandidate}.result.yml`;
 const persistedEvents = `${root}/evaluation/states/${targetCandidate}.events.yml`;
@@ -461,7 +476,8 @@ const readyStateBody = probeStateBody
     .replace('status: needs-excel-probe', 'status: needs-excel')
     .replaceAll('XL-999', 'XL-001');
 const normalizedSource = readdirSync(queueDirectory)
-    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name)
+        && name.toLowerCase().startsWith('excelqueue'))
     .sort()
     .map((name) => {
         const source = readFileSync(`${queueDirectory}/${name}`, 'utf8')
@@ -472,6 +488,19 @@ const normalizedSource = readdirSync(queueDirectory)
     })
     .join('');
 const sourceHash = createHash('sha256').update(normalizedSource, 'utf8').digest('hex');
+const normalizedRadixSource = readdirSync(queueDirectory)
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name)
+        && name.toLowerCase().startsWith('radixmatrix'))
+    .sort()
+    .map((name) => {
+        const source = readFileSync(`${queueDirectory}/${name}`, 'utf8')
+            .replace(/\r\n/g, '\n')
+            .replace(/^\s*Private Const QUEUE_SOURCE_SHA256\s+As String\s*=\s*"[^"]*"\s*$/mi,
+                'Private Const QUEUE_SOURCE_SHA256 As String = "__QUEUE_SOURCE_SHA256__"');
+        return `${name}\n${source}\n`;
+    })
+    .join('');
+const radixSourceHash = createHash('sha256').update(normalizedRadixSource, 'utf8').digest('hex');
 writeFileSync(readyState, readyStateBody);
 try {
     writeFileSync(queueResult,
@@ -526,7 +555,7 @@ horizontalAudit:
 writeFileSync(radixState, radixStateBody);
 try {
     writeFileSync(radixResult,
-        `CASE=XL-176 KIND=Byte INPUT=&H100 ERR=6\nRADIX_MATRIX_COMPLETE=True\nQUEUE_SOURCE_SHA256=${sourceHash}\n`);
+        `CASE=XL-176 KIND=Byte INPUT=&H100 ERR=6\nRADIX_MATRIX_COMPLETE=True\nQUEUE_SOURCE_SHA256=${radixSourceHash}\n`);
     const radixReady = run('excel-sync', 'EV-TEST-EXCEL-RADIX');
     assert.equal(radixReady.status, 0, radixReady.stderr);
     assert.equal(JSON.parse(radixReady.stdout).requiredState, 'result-ready');
