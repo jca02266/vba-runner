@@ -2773,3 +2773,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00909
+    audit: "806 evaluations, 0 active claims; XL-227の型付きString/String$ 256・257境界マトリクスを追加し、ソースハッシュ一致済みのt.xlsmを準備した。Excel結果は未取得のためneeds-excelを維持する"
+    decision: "Integer・Long・Variant・Currency・Decimal・Dateの入力型ごとの差異を実機結果とRunner結果で照合し、RC-00090のCP932写像と256境界の範囲を確定する"
+    action: excel-probe
+    nextArea: 実Excel照合
+    nextEvaluation: EV-00909
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

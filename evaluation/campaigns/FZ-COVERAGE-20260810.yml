@@ -3918,3 +3918,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260810-387
+    title: String typed Variant character boundary matrix
+    status: queued
+    priority: 1
+    focus: String/String$へInteger・Long・Variant・Currency・Decimal・Dateを渡す256/257境界
+    priorCauseKey: vba-string-ansi-codepage-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

@@ -91,6 +91,7 @@ Public Sub RunExcelQueueVerification()
     VerifyStringCharacterVariant
     VerifyStringCharacterCode
     VerifyStringCharacterBoundary
+    VerifyStringTypedBoundary
     VerifyDateSerialNormalizationBoundary
     VerifyCDateSerialBoundaries
     VerifyRadixExplicitSignMatrix
@@ -213,6 +214,38 @@ Private Sub VerifyStringCharacterBoundary()
         EmitResult "XL-226 API=String INPUT=Date ERR=" & CStr(errNo) & _
             " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
     Next dateValue
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyStringTypedBoundary()
+    Dim i As Integer, l As Long, v As Variant, cur As Currency, dec As Variant, d As Date
+    i = 256: EmitStringTypedBoundary "Integer256", i
+    l = 256: EmitStringTypedBoundary "Long256", l
+    v = 256: EmitStringTypedBoundary "Variant256", v
+    cur = 256: EmitStringTypedBoundary "Currency256", cur
+    dec = CDec(256): EmitStringTypedBoundary "Decimal256", dec
+    d = CDate(256): EmitStringTypedBoundary "Date256", d
+    i = 257: EmitStringTypedBoundary "Integer257", i
+    l = 257: EmitStringTypedBoundary "Long257", l
+    v = 257: EmitStringTypedBoundary "Variant257", v
+    cur = 257: EmitStringTypedBoundary "Currency257", cur
+    dec = CDec(257): EmitStringTypedBoundary "Decimal257", dec
+    d = CDate(257): EmitStringTypedBoundary "Date257", d
+End Sub
+
+Private Sub EmitStringTypedBoundary(ByVal label As String, ByVal character As Variant)
+    Dim value As String, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = String$(1, character)
+    errNo = Err.Number
+    EmitResult "XL-227 API=String$ INPUT=" & label & " ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
+    Err.Clear
+    value = String(1, character)
+    errNo = Err.Number
+    EmitResult "XL-227 API=String INPUT=" & label & " ERR=" & CStr(errNo) & _
+        " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
     On Error GoTo 0
 End Sub
 
