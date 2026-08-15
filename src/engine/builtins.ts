@@ -1061,9 +1061,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     ctx.reg('space', spaceFunc, [{ name: 'Number' }], ['$']);
     // Stringのcharacter引数で文字コードとして扱うVariant型を一元化する。
-    // BooleanとDateはExcel実機での契約を別EVで確定するまで含めない。
+    // Boolean/DateもVBAの数値Variantとして同じ文字コード契約に入る。
     const isStringCharacterNumericVariant = (value: any): boolean =>
         typeof value === 'number' ||
+        value instanceof VbaBoolean ||
+        value instanceof VbaDate ||
         value instanceof VbaCurrency ||
         value instanceof VbaDecimal;
     const stringFunc = (n: any, char: any) => {
@@ -1071,7 +1073,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         let c: string;
         if (isStringCharacterNumericVariant(char)) {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
-            c = String.fromCharCode(ctx.round(ctx.toVbaNumber(char)) % 256);
+            const code = ctx.round(ctx.toVbaNumber(char));
+            c = String.fromCharCode(((code % 256) + 256) % 256);
         } else {
             const s = vbaToString(char ?? '');
             // Empty string character is invalid per spec
