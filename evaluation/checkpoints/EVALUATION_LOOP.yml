@@ -2334,6 +2334,14 @@ checkpoints:
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00858
+    audit: "756 evaluations, 0 active claims; XL-214〜XL-216のExcel結果がすべてError 0、RunnerはError 6となる差異を確認した"
+    decision: "EV-00858をbug-found、BUG-00537を作成した。独立RCAで線形結合の中間Overflowを直接原因とし、FV/PV/PMTの安定化修正と回帰テストを次に行う"
+    action: rca
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00858
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00858
     audit: "756 evaluations, 0 active claims; XL-214〜XL-216の入力を数学的に有限なキャンセル境界へ修正し、t.xlsmを再生成してソースハッシュを検証した"
     decision: "Excel実機照合前に、最終結果が有限となる評価ソースへ修正した。EV-00858はneeds-excelのまま、Windows結果を待つ"
     action: excel-run
