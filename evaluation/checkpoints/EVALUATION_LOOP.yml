@@ -2599,8 +2599,8 @@ checkpoints:
     coverageSnapshot: COV-2026-08-15-current
   - afterEvaluation: EV-00878
     audit: "775 evaluations, 0 active claims; FSO MoveFile/File.Move入口までNodeの既存ファイル置換差異を横展開し、BUG-00544を登録した"
-    decision: "EV-00878はbug-found。MoveFolder/Folder.Moveは一致するがFile移動はNodeだけ置換する。BUG-00542〜00544を共通移動先衝突修正へ統合する"
-    action: root-cause-review
+    decision: "EV-00878はbug-found。MoveFolder/Folder.Moveは一致するがFile移動はNodeだけ置換する。独立レビューでRC-00082をconfirmedとし、ROOT-00046へ修正を登録した"
+    action: remediation
     nextArea: ファイルI/O・FSO
     nextEvaluation: null
     nextCandidate: null
