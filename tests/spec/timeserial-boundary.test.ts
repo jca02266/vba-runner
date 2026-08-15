@@ -18,5 +18,9 @@ const cases: Array<[number, number, number, string]> = [
     [-1, 0, 0, '01:00:00:ERR=0'],
     [0, 0, 60, '00:01:00:ERR=0'],
 ];
-for (const [h, m, s, expected] of cases) assert.equal(ev.callProcedure('Probe', [h, m, s]), expected);
+for (const [h, m, s, expected] of cases) {
+    const actual = ev.callProcedure('Probe', [h, m, s]);
+    assert.equal(actual, expected);
+    console.log(`TIME-SERIAL ${h},${m},${s} => ${actual}`);
+}
 console.log(`[PASS] TimeSerial normalization boundary (${cases.length} cases)`);

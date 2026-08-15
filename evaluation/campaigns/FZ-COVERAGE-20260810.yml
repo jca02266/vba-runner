@@ -3559,3 +3559,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-negative-serial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-362
+    title: TimeSerial normalization boundaries
+    status: queued
+    priority: 1
+    focus: TimeSerialの負数・60超過・24時繰り上げ正規化
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/timeserial-boundary.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/timeserial-boundary.test.ts
