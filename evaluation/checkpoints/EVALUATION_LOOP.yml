@@ -2581,3 +2581,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00876
+    audit: "773 evaluations, 0 active claims; moveDirectorySyncの空destinationでMemory/Nodeの失敗後状態が分岐し、BUG-00542を登録した"
+    decision: "EV-00876はbug-found。NodeのrenameSync置換が直接差異で、移動先衝突契約の共通化を仮説として登録した。moveFileSyncとFSO入口の横展開を先に確認する"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-355
+    coverageSnapshot: COV-2026-08-15-current

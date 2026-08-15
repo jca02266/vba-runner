@@ -776,11 +776,13 @@
 | EV-00873 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderのoverwrite=False衝突時に先行コピーを残さない契約 |
 | EV-00874 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync既存パス・親欠落契約 |
 | EV-00875 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのUint8Arrayコピー内容・入力所有権契約 |
+| EV-00876 | FZ-COVERAGE-20260810 | bug-found | 1 | MemoryFileSystemとNodeFileSystemのmoveDirectorySync既存空ディレクトリ境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 342 |
 | known-limit | 5 |
 | needs-excel | 3 |
@@ -793,4 +795,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-355 | 1 | queued | MemoryFileSystemとNodeFileSystemのmoveFileSync既存宛先衝突契約 |  |

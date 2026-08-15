@@ -3444,3 +3444,33 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/tooling/filesystem-backend-copy.test.ts
+  - id: FZ-COVERAGE-20260810-354
+    title: Memory and Node directory-move boundary parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのmoveDirectorySync失敗境界・移動後状態
+    priorCauseKey: virtual-filesystem-directory-move-boundaries
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-355
+    title: Memory and Node file-move collision parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのmoveFileSync既存宛先衝突契約
+    priorCauseKey: virtual-filesystem-move-destination-contract-divergence
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
