@@ -2277,3 +2277,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-338
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00852
+    audit: "750 evaluations, 0 active claims; FZ-COVERAGE-20260810-338のメタデータなしhost memberを0/1/2引数、メタデータ付きCOM、通常Function/Subで比較し、契約差異を確認"
+    decision: "FZ-COVERAGE-20260810-338はverified-no-bugとして完了した。メタデータなし経路は可変host呼出し契約であり、必須引数検査を推測適用しない。引数・ByRef・Propertyの今回のカバレッジ候補は評価済みで、残る実機待ちはEV-00850のみ"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00850
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current

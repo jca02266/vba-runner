@@ -753,6 +753,7 @@
 | EV-00849 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の動的メンバー必須引数不足と通常手続きのエラー番号分岐 |
 | EV-00850 | FZ-COVERAGE-20260810 | needs-excel-probe |  | 引数・ByRef・Property領域の型付きByRef引数と呼出し元型検査 |
 | EV-00851 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のIndexed Property value-tail binding |
+| EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
 
 ## 状態集計
 
@@ -762,7 +763,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 407 |
+| verified-no-bug | 408 |
 
 横展開未解決経路: 564、実Excel待ち評価: 1
 
@@ -770,4 +771,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-338 | 2 | queued | 引数・ByRef・Property領域のメタデータなし遅延バインドメンバーにおける必須引数不足 | yes |
+| (none) | | | | |
