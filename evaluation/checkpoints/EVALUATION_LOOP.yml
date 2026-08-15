@@ -2341,6 +2341,14 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: RCA-FOLLOWUP-043
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00859
+    audit: "757 evaluations, 0 active claims; 金融関数7経路のRunnerソースと出力を対応付け、FV/PV/PMT以外では同じError 6差異を再現しなかった"
+    decision: "EV-00859は実施方法と期待値の対応を補正したが、数値結果とExcel照合が未完了のためin-progressで保持する"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00859
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00858
     audit: "756 evaluations, 0 active claims; XL-214〜XL-216のExcel結果がすべてError 0、RunnerはError 6となる差異を確認した"
     decision: "EV-00858をbug-found、BUG-00537を作成した。独立RCAで線形結合の中間Overflowを直接原因とし、FV/PV/PMTの安定化修正と回帰テストを次に行う"
