@@ -3613,3 +3613,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-option-validation-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-366
+    title: Date week option full matrix
+    status: queued
+    priority: 1
+    focus: DatePart週番号とWeekdayのFirstDayOfWeek・FirstWeekOfYear全指定行列
+    priorCauseKey: vba-date-week-number-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/date-week.ts
+      - src/engine/builtins.ts
+      - tests/spec/date-week-option-matrix.test.ts
+    coverageTargets:
+      - src/engine/date-week.ts
+      - src/engine/builtins.ts
+      - tests/spec/date-week-option-matrix.test.ts

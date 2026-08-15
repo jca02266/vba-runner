@@ -18,8 +18,10 @@ Public Function Probe() As String
         CStr(Weekday(value, ${firstDay}))
 End Function`);
     const weekday = firstDay === 1 ? 6 : firstDay === 2 ? 5 : firstDay === 4 ? 3 : firstDay === 6 ? 1 : 7;
-    assert.equal(ev.callProcedure('Probe', []), `${expected},${weekday}`,
+    const actual = ev.callProcedure('Probe', []);
+    assert.equal(actual, `${expected},${weekday}`,
         `Date week options firstday=${firstDay} firstweek=${firstWeek}`);
+    console.log(`DATE-WEEK-OPTION ${firstDay},${firstWeek} => ${actual}`);
 }
 
 assert.equal(cases.length, 15);
