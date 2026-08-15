@@ -3628,3 +3628,18 @@ items:
       - src/engine/date-week.ts
       - src/engine/builtins.ts
       - tests/spec/date-week-option-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-367
+    title: Date calendar cross-function matrix
+    status: queued
+    priority: 1
+    focus: DateAdd・DateDiff・DatePartの閏日・週・四半期境界横断
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-calendar-cross-matrix.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/date-week.ts
+      - tests/spec/date-calendar-cross-matrix.test.ts

@@ -789,6 +789,7 @@
 | EV-00886 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号の年初境界とFirstDayOfWeek・FirstWeekOfYear行列 |
 | EV-00887 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePart・Weekdayの無効引数・Null・週オプション検証 |
 | EV-00888 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号とWeekdayのFirstDayOfWeek・FirstWeekOfYear全指定行列 |
+| EV-00889 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePartの閏日・週・四半期境界横断 |
 
 ## 状態集計
 
@@ -798,7 +799,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 429 |
+| verified-no-bug | 430 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 

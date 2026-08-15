@@ -29,4 +29,13 @@ assert.strictEqual(ev.env.get('partisoweek'), 1,
 assert.strictEqual(ev.env.get('addyearfromleap'), 28,
     'DateAdd year clamps February 29 to February 28');
 assert.strictEqual(ev.env.get('partquarter'), 4, 'DatePart quarter at year end');
+console.log(`DATE-CALENDAR ${JSON.stringify({
+    addLeapForward: ev.env.get('addleapforward'),
+    addLeapBack: ev.env.get('addleapback'),
+    diffLeap: ev.env.get('diffleap'),
+    diffWeek: ev.env.get('diffweek'),
+    partIsoWeek: ev.env.get('partisoweek'),
+    addYearFromLeap: ev.env.get('addyearfromleap'),
+    partQuarter: ev.env.get('partquarter'),
+})}`);
 console.log('[PASS] Date calendar cross-function matrix');
