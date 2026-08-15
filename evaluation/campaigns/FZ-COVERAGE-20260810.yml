@@ -3383,3 +3383,19 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/callbyname.test.ts
+  - id: FZ-COVERAGE-20260810-350
+    title: External optional member dispatch boundary
+    status: queued
+    priority: 1
+    focus: 外部動的メンバーのOptional専用引数・値Property・CallByName引数省略
+    priorCauseKey: dynamic-member-arity-contract-not-shared
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - evaluation/root-causes/RC-00070.md
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/createobject.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/createobject.test.ts

@@ -2549,3 +2549,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00872
+    audit: "769 evaluations, 0 active claims; ADODB.StreamのReadTextを非空データで直接・CallByNameの省略/指定長まで確認した"
+    decision: "EV-00872はverified-no-bug。外部動的OptionalのRunner束縛は期待値と一致した。TextStreamの必須引数、実COMのVariant型、XL-219〜XL-221は別境界として継続する"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

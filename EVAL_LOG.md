@@ -772,6 +772,7 @@
 | EV-00869 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約 |
 | EV-00870 | FZ-COVERAGE-20260810 | needs-excel | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
 | EV-00871 | FZ-COVERAGE-20260810 | verified-no-bug |  | 動的メンバーのOptional専用Functionを省略・明示引数で呼び出す契約 |
+| EV-00872 | FZ-COVERAGE-20260810 | verified-no-bug |  | ADODB.StreamのOptional ReadTextを直接・CallByNameで省略する契約 |
 
 ## 状態集計
 
@@ -781,7 +782,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 416 |
+| verified-no-bug | 417 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 
