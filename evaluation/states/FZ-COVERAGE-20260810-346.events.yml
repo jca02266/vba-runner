@@ -2,3 +2,20 @@
   evaluationId: EV-00868
   status: needs-excel
   occurredAt: '2026-08-15T08:22:15.388Z'
+- candidateId: FZ-COVERAGE-20260810-346
+  evaluationId: EV-00868
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-15T13:50:08.129Z'
+- candidateId: FZ-COVERAGE-20260810-346
+  evaluationId: EV-00868
+  status: in-progress
+  fromStatus: verified-no-bug
+  occurredAt: '2026-08-15T14:01:46.231Z'
+  rollbackFrom: verified-no-bug
+  rollbackReason: Excel再照合でShape A FinanceRate=-1の差異を確認したため再評価
+- candidateId: FZ-COVERAGE-20260810-346
+  evaluationId: EV-00868
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T14:02:24.553Z'

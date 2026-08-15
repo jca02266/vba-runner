@@ -2,3 +2,20 @@
   evaluationId: EV-00902
   status: needs-excel
   occurredAt: '2026-08-15T11:36:59.764Z'
+- candidateId: FZ-COVERAGE-20260810-380
+  evaluationId: EV-00902
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-15T13:49:08.619Z'
+- candidateId: FZ-COVERAGE-20260810-380
+  evaluationId: EV-00902
+  status: in-progress
+  fromStatus: verified-no-bug
+  occurredAt: '2026-08-15T14:02:52.713Z'
+  rollbackFrom: verified-no-bug
+  rollbackReason: Excel照合で範囲外Error 13との差異を確認したため再評価
+- candidateId: FZ-COVERAGE-20260810-380
+  evaluationId: EV-00902
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T14:03:25.927Z'

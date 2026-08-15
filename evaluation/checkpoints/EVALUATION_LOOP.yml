@@ -2749,3 +2749,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EXCEL-SYNC-20260815-001
+    audit: "803 evaluations, 0 active claims; XL-219〜XL-224の実機結果を同期し、1件をverified-no-bug、5件をbug-foundへ分類した"
+    decision: "NPer、MIRR、修飾Property、StringのBoolean・Date、CDateの差異をFindingとRCA仮説へ記録する。次は5件の直接修正前に独立真因レビューを行う"
+    action: root-cause-review
+    nextArea: 組み込み関数・引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
