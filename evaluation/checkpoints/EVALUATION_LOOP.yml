@@ -2301,3 +2301,11 @@ checkpoints:
     nextEvaluation: EV-00853
     nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00854
+    audit: "752 evaluations, 0 active claims; CallByName経由のByRef LongへIntegerを渡す経路が通常の直接メンバー呼出しと異なり、Err=0で書戻しされた"
+    decision: "ExcelのCallByName Variant配列とByRef型契約が未確定のためneeds-excel-probeとした。XL-210を登録し、既存の型不一致Excel確認を優先する"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00854
+    nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
+    coverageSnapshot: COV-2026-08-14-current

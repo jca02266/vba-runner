@@ -755,6 +755,7 @@
 | EV-00851 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のIndexed Property value-tail binding |
 | EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
 | EV-00853 | FZ-COVERAGE-20260810 | needs-excel-probe |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
+| EV-00854 | FZ-COVERAGE-20260810 | needs-excel-probe |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
 
 ## 状態集計
 
@@ -762,11 +763,11 @@
 |---|---:|
 | fixed | 335 |
 | known-limit | 5 |
-| needs-excel-probe | 1 |
+| needs-excel-probe | 2 |
 | retired | 2 |
 | verified-no-bug | 408 |
 
-横展開未解決経路: 564、実Excel待ち評価: 1
+横展開未解決経路: 564、実Excel待ち評価: 2
 
 ## 次の候補
 

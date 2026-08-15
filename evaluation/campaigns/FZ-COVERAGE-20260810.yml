@@ -3258,3 +3258,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/byref-expression-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-340
+    title: CallByName typed ByRef scalar boundary
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/evaluator.ts:5695-5818
+      - src/engine/evaluator.ts:5911-5920
+      - src/engine/evaluator.ts:1000-1010
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname-byref-type.test.ts
