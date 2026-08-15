@@ -794,6 +794,7 @@
 | EV-00891 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderの既存宛先・入れ子ファイル上書きにおけるMemory/Nodeバックエンドの同一性 |
 | EV-00892 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarがDecimal・Currency・Error・Null・EmptyのVariantサブタイプと情報関数結果を保持するか |
 | EV-00893 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarへLong配列とVBAクラスを渡した場合の配列形状・Object参照・メンバーアクセス保持 |
+| EV-00894 | FZ-COVERAGE-20260810 | verified-no-bug |  | Strの符号・先頭空白・指数表記・Boolean/Currency変換とNullエラー境界 |
 
 ## 状態集計
 
@@ -803,7 +804,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 434 |
+| verified-no-bug | 435 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 

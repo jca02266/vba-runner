@@ -3706,3 +3706,17 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/array-functions.test.ts
+  - id: FZ-COVERAGE-20260810-372
+    title: Str numeric formatting boundaries
+    status: queued
+    priority: 1
+    focus: Strの符号・先頭空白・指数表記・Boolean/Currency変換とNullエラー境界
+    priorCauseKey: vba-string-format-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtin-strings.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

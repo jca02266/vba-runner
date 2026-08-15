@@ -2637,3 +2637,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-371
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00893
+    audit: "790 evaluations, 0 active claims; CVarのLong配列・VBAクラス保持をArray/TypeName回帰と照合し一致した。実機待ち3件は結果未着で、次に未評価のStr書式経路を選ぶ"
+    decision: "CVar複合値に差異なし。Strは専用の境界テストが薄いため、符号・先頭空白・小値指数・Boolean/Currency・Nullを同一プローブで確認する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-372
+    coverageSnapshot: COV-2026-08-15-current
