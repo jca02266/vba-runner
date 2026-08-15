@@ -778,12 +778,13 @@
 | EV-00875 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのUint8Arrayコピー内容・入力所有権契約 |
 | EV-00876 | FZ-COVERAGE-20260810 | bug-found | 1 | MemoryFileSystemとNodeFileSystemのmoveDirectorySync既存空ディレクトリ境界 |
 | EV-00877 | FZ-COVERAGE-20260810 | bug-found | 1 | MemoryFileSystemとNodeFileSystemのmoveFileSync既存宛先衝突契約 |
+| EV-00878 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO MoveFile・File.Moveの既存destination衝突とバックエンド差異 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
+| bug-found | 3 |
 | fixed | 342 |
 | known-limit | 5 |
 | needs-excel | 3 |

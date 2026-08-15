@@ -3474,3 +3474,18 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-356
+    title: FSO move collision entry parity
+    status: queued
+    priority: 1
+    focus: FSO MoveFile・File.Moveの既存destination衝突とバックエンド差異
+    priorCauseKey: virtual-filesystem-move-destination-contract-divergence
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/filesystem-extra.test.ts
