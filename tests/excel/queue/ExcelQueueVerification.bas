@@ -82,6 +82,7 @@ Public Sub RunExcelQueueVerification()
     VerifySydBoundaryMatrix
     VerifyFinancialIntermediateFollowup
     VerifyFinancialExpansion
+    VerifyMirrFinanceRateBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -137,6 +138,24 @@ Private Sub VerifyFinancialExpansion()
     EmitResult "XL-217 RATE ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
     Err.Clear: value = MIRR(flows, 0.1, 0.1): errNo = Err.Number
     EmitResult "XL-217 MIRR ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrFinanceRateBoundary()
+    Dim rates As Variant, flows(0 To 2) As Double
+    Dim i As Long, value As Double, errNo As Long
+    rates = Array(-2, -1.1, -1.0000000001, -1, -0.9999999999, -0.5, 0.1)
+    flows(0) = -100
+    flows(1) = -50
+    flows(2) = 200
+    For i = 0 To 6
+        On Error Resume Next
+        Err.Clear
+        value = MIRR(flows, rates(i), 0.1)
+        errNo = Err.Number
+        EmitResult "XL-218 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
+            " VALUE=" & CStr(value)
+    Next i
     On Error GoTo 0
 End Sub
 
