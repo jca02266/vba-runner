@@ -779,14 +779,13 @@
 | EV-00876 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのmoveDirectorySync既存空ディレクトリ境界 |
 | EV-00877 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのmoveFileSync既存宛先衝突契約 |
 | EV-00878 | FZ-COVERAGE-20260810 | fixed | 1 | FSO MoveFile・File.Moveの既存destination衝突とバックエンド差異 |
-| EV-00879 | FZ-COVERAGE-20260810 | bug-found | 1 | MemoryFileSystemとNodeFileSystemのcopyDirectorySync空ディレクトリ・入れ子構造契約 |
+| EV-00879 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのcopyDirectorySync空ディレクトリ・入れ子構造契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 345 |
+| fixed | 346 |
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
