@@ -2493,3 +2493,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00866
+    audit: "763 evaluations, 0 active claims; FSOバックエンドのoverwrite=false衝突を比較し、Nodeだけが先行コピーを残す差異を再現した"
+    decision: "EV-00866をbug-found、BUG-00541をconfirmedとした。NodeFileSystemの事前衝突検査を実装し、Memory/Node共通の失敗時状態回帰を通す"
+    action: fix
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: EV-00866
+    nextCandidate: FZ-COVERAGE-20260810-344
+    coverageSnapshot: COV-2026-08-15-current

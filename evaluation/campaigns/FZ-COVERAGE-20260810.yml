@@ -3150,7 +3150,7 @@ items:
       - src/engine/evaluator.ts
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
-      - tests/spec/filesystem-extra.test.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
   - id: FZ-COVERAGE-20260810-333
     title: Call-site forced ByVal and scalar ByRef writeback
     status: queued
@@ -3298,3 +3298,17 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/select-case.test.ts
+  - id: FZ-COVERAGE-20260810-344
+    title: Node and Memory CopyDirectory collision parity
+    status: queued
+    priority: 1
+    focus: NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts:141-174
+      - src/engine/node_filesystem.ts:22-31
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
