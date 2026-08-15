@@ -3533,3 +3533,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-arithmetic-signed-boundary-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-360
+    title: DateSerial year and rollover boundaries
+    status: queued
+    priority: 1
+    focus: DateSerialの2桁年補正・4桁年・負年エラーと月日繰り上げ繰り下げ
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-boundary.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-boundary.test.ts

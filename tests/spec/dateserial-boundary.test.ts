@@ -32,7 +32,15 @@ const cases: Array<[number, number, number, string]> = [
     [2024, 2, 29, '2024/02/29:ERR=0'],
     [2023, 2, 29, '2023/03/01:ERR=0'],
 ];
-for (const [y, m, d, expected] of cases) assert.equal(ev.callProcedure('Probe', [y, m, d]), expected);
+for (const [y, m, d, expected] of cases) {
+    const actual = ev.callProcedure('Probe', [y, m, d]);
+    assert.equal(actual, expected);
+    console.log(`DATE-SERIAL ${y},${m},${d} => ${actual}`);
+}
 const yearCases: Array<[number, string]> = [[0, '2000'], [29, '2029'], [30, '1930'], [99, '1999'], [100, '100'], [-1, 'ERR=6']];
-for (const [year, expected] of yearCases) assert.equal(ev.callProcedure('ProbeYear', [year]), expected);
+for (const [year, expected] of yearCases) {
+    const actual = ev.callProcedure('ProbeYear', [year]);
+    assert.equal(actual, expected);
+    console.log(`DATE-SERIAL-YEAR ${year} => ${actual}`);
+}
 console.log(`[PASS] DateSerial rollover boundary (${cases.length + yearCases.length} cases)`);
