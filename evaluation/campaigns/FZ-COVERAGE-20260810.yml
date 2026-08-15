@@ -3776,3 +3776,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/dateserial-conversion-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-377
+    title: mkdir parent file error parity
+    status: queued
+    priority: 2
+    focus: MemoryFileSystemとNodeFileSystemのmkdirSyncで既存ファイルを親にした場合のエラー契約
+    priorCauseKey: virtual-filesystem-mkdir-error-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy-empty.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts

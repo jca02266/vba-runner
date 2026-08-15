@@ -2685,3 +2685,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00899
+    audit: "796 evaluations, 0 active claims; mkdirSyncのMemory/Node低レベルエラー差異を確認したが、VBA入口は共通エラー変換を行い公開意味論の差異はなかった。実機待ち5件は結果未着のため変更しない"
+    decision: "raw FileSystemのOS依存エラーは仕様差異として記録し、次は未評価の共通I/O契約をソースレビューする"
+    action: source-review
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
