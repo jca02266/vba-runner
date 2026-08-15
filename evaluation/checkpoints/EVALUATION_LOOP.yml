@@ -2333,6 +2333,14 @@ checkpoints:
     nextEvaluation: EV-00855
     nextCandidate: RCA-FOLLOWUP-040
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00855
+    audit: "755 evaluations, 0 active claims; XL-213を追加して準備済みt.xlsmとソースハッシュを再同期した"
+    decision: "EV-00855の正数入力だけのSYD非有限境界をneeds-excelへ戻した。Windowsで既存XL-208/XL-211/XL-212と合わせてXL-213を1回実行し、結果を反映する"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00855
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00857
     audit: "755 evaluations, 0 active claims; XL-208、XL-211、XL-212をExcelQueueVerification.basへ追加し、準備済みt.xlsmとソースハッシュが一致した"
     decision: "EV-00855、EV-00856、EV-00857をneeds-excelへ遷移した。Windows側でeval-excel.cmdを1回実行し、3件の結果を個別にexcel-syncして判定する"

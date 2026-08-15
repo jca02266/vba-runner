@@ -12,3 +12,8 @@
   status: in-progress
   fromStatus: needs-excel
   occurredAt: '2026-08-15T03:28:00.939Z'
+- candidateId: RCA-FOLLOWUP-040
+  evaluationId: EV-00855
+  status: needs-excel
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T03:32:48.735Z'

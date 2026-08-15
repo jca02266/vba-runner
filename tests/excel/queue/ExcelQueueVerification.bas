@@ -121,6 +121,8 @@ Private Sub VerifySydBoundaryMatrix()
     EmitResult "XL-211 NEG-SALVAGE ERR=" & CStr(errNo)
     Err.Clear: value = SYD(1E+308, -1E+308, 2, 1): errNo = Err.Number
     EmitResult "XL-211 NONFINITE ERR=" & CStr(errNo)
+    Err.Clear: value = SYD(1E+308, 0, 2, 1): errNo = Err.Number
+    EmitResult "XL-213 POSITIVE-NONFINITE ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 
