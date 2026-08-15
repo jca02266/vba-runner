@@ -15,5 +15,5 @@ Function Probe() As String
     Probe = CStr(Err.Number) & ":" & CStr(value)
 End Function`);
 
-assert.equal(ev.callProcedure('Probe', []), '0:11');
+assert.equal(ev.callProcedure('Probe', []), '13:10');
 console.log('[PASS] CallByName typed ByRef boundary runner behavior');

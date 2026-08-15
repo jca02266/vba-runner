@@ -5696,7 +5696,7 @@ export class Evaluator {
         const aligned = this.alignProcedureCallExpressions(proc, argExprs, evaluatedArgs);
         const { args, references } = aligned;
         const byRefValues: any[] = [];
-        const result = this.callClassMethod(instance, proc, args, byRefValues);
+        const result = this.callClassMethod(instance, proc, args, byRefValues, aligned);
         this.writeBackArgumentReferences(proc, references, byRefValues);
         return result;
     }
@@ -5919,7 +5919,13 @@ export class Evaluator {
         return result;
     }
 
-    private callClassMethod(instance: any, proc: ProcedureDeclaration, args: any[], byRefWriteback?: any[]): any {
+    private callClassMethod(
+        instance: any,
+        proc: ProcedureDeclaration,
+        args: any[],
+        byRefWriteback?: any[],
+        expressionBinding?: ProcedureExpressionBinding,
+    ): any {
         const instanceEnv = instance.__instanceEnv__ as Environment;
         const localEnv = new Environment(instanceEnv);
 
@@ -5947,7 +5953,7 @@ export class Evaluator {
             throw error;
         }
 
-        this.bindProcedureParameters(proc, args, localEnv);
+        this.bindProcedureParameters(proc, args, localEnv, undefined, expressionBinding);
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
             localEnv.setLocally(proc.name.name, vbaEmpty);
