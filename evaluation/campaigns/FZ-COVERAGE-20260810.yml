@@ -3546,3 +3546,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/dateserial-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-361
+    title: Negative date serial component parity
+    status: queued
+    priority: 1
+    focus: 負の日付シリアル値に対するDatePart・DateDiff・Hour/Minute/Second境界
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/date-negative-serial-boundary.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-negative-serial-boundary.test.ts

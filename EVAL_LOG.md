@@ -783,6 +783,7 @@
 | EV-00880 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのcopyDirectorySync入れ子衝突失敗時状態契約 |
 | EV-00881 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAddとDateDiffの負方向・正方向の日付境界と時刻繰上げ繰下げ |
 | EV-00882 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateSerialの2桁年補正・4桁年・負年エラーと月日繰り上げ繰り下げ |
+| EV-00883 | FZ-COVERAGE-20260810 | verified-no-bug |  | 負の日付シリアル値に対するDatePart・DateDiff・Hour/Minute/Second境界 |
 
 ## 状態集計
 
@@ -792,7 +793,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 423 |
+| verified-no-bug | 424 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 
