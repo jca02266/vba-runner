@@ -3286,3 +3286,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handling.test.ts
+  - id: FZ-COVERAGE-20260810-342
+    title: Option Compare Text Select Case range boundary
+    status: queued
+    priority: 1
+    focus: Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/evaluator.ts:3619-3700
+      - tests/spec/select-case.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts

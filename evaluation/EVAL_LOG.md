@@ -765,6 +765,7 @@
 | EV-00861 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
 | EV-00862 | RCA-FOLLOWUP | needs-excel | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
 | EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
+| EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
 
 ## 状態集計
 
@@ -774,9 +775,9 @@
 | known-limit | 5 |
 | needs-excel | 1 |
 | retired | 2 |
-| verified-no-bug | 412 |
+| verified-no-bug | 413 |
 
-横展開未解決経路: 573、実Excel待ち評価: 1
+横展開未解決経路: 574、実Excel待ち評価: 1
 
 ## 次の候補
 

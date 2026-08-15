@@ -2485,3 +2485,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00864
+    audit: "762 evaluations, 0 active claims; Select CaseのOption Compare Text/Binary文字範囲をASCII・大小文字・アクセント境界の行列で確認した"
+    decision: "EV-00864はverified-no-bug。Runnerの比較経路は期待値と一致した。Excelホストのシステムロケール差とXL-219のNPer結果待ちは別境界として保持する"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
