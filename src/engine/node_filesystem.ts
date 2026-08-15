@@ -36,9 +36,10 @@ export class NodeFileSystem implements FileSystem {
         if (target === source || target.startsWith(`${source}${path.sep}`)) {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
         }
-        if (!options?.overwrite) {
-            this.assertNoDirectoryFileCollisions(source, target);
+        if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
+            throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
         }
+        this.assertDirectoryCopyCompatibility(source, target, options?.overwrite === true);
         fs.cpSync(src, dest, { recursive: true, force: options?.overwrite === true, errorOnExist: options?.overwrite !== true });
     }
 
@@ -47,7 +48,7 @@ export class NodeFileSystem implements FileSystem {
      * copy earlier entries before reporting a later EEXIST, which would leave
      * the two FileSystem backends with different failure states.
      */
-    private assertNoDirectoryFileCollisions(source: string, target: string): void {
+    private assertDirectoryCopyCompatibility(source: string, target: string, overwrite: boolean): void {
         if (fs.existsSync(target) && !fs.statSync(target).isDirectory()) {
             throw new Error(`EEXIST: destination exists '${target}'`);
         }
@@ -56,8 +57,12 @@ export class NodeFileSystem implements FileSystem {
                 const childRelative = path.join(relative, entry.name);
                 const destination = path.join(target, childRelative);
                 if (entry.isDirectory()) {
+                    if (fs.existsSync(destination) && !fs.statSync(destination).isDirectory()) {
+                        throw new Error(`EEXIST: destination exists '${destination}'`);
+                    }
                     visit(path.join(current, entry.name), childRelative);
-                } else if (fs.existsSync(destination)) {
+                } else if (fs.existsSync(destination) &&
+                    (!fs.statSync(destination).isFile() || !overwrite)) {
                     throw new Error(`EEXIST: destination exists '${destination}'`);
                 }
             }

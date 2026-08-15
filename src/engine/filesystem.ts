@@ -147,15 +147,20 @@ export class MemoryFileSystem implements FileSystem {
         if (!this.dirs.has(source)) throw new Error(`ENOENT: no such directory, copyDirectorySync '${src}'`);
         const prefix = source === '/' ? '/' : source + '/';
         const sourceFiles = [...this.files.keys()].filter(file => file.startsWith(prefix));
+        const sourceDirs = [...this.dirs.keys()].filter(dir => dir.startsWith(prefix) && dir !== source);
         if (this.existsSync(target)) {
             if (!this.dirs.has(target)) throw new Error(`EEXIST: destination exists '${dest}'`);
         }
-        if (!options?.overwrite) {
-            for (const file of sourceFiles) {
-                const destination = path.join(target, file.slice(prefix.length));
-                if (this.existsSync(destination)) {
-                    throw new Error(`EEXIST: destination exists '${destination}'`);
-                }
+        for (const dir of sourceDirs) {
+            const destination = path.join(target, dir.slice(prefix.length));
+            if (this.files.has(destination) || (!options?.overwrite && this.dirs.has(destination))) {
+                throw new Error(`EEXIST: destination exists '${destination}'`);
+            }
+        }
+        for (const file of sourceFiles) {
+            const destination = path.join(target, file.slice(prefix.length));
+            if (this.dirs.has(destination) || (!options?.overwrite && this.files.has(destination))) {
+                throw new Error(`EEXIST: destination exists '${destination}'`);
             }
         }
         if (!this.existsSync(target)) this.mkdirSync(target, { recursive: true });

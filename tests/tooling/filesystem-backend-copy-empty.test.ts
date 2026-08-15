@@ -8,6 +8,19 @@ import { NodeFileSystem } from '../../src/engine/node_filesystem';
 type Backend = MemoryFileSystem | NodeFileSystem;
 
 function probe(fs: Backend, root: string) {
+    const sourceFile = `${root}/source-file`;
+    const sourceFileDestination = `${root}/source-file-destination`;
+    fs.writeFileSync(sourceFile, 'not-a-directory');
+    fs.mkdirSync(sourceFileDestination, { recursive: true });
+    let sourceType = '';
+    try {
+        fs.copyDirectorySync(sourceFile, sourceFileDestination, { overwrite: false });
+    } catch (error) {
+        sourceType = (error as { code?: string }).code
+            ?? String(error).match(/EEXIST|ENOENT|EINVAL/)?.[0]
+            ?? String(error);
+    }
+
     const emptySource = `${root}/empty-source`;
     const emptyDestination = `${root}/empty-destination`;
     fs.mkdirSync(emptySource, { recursive: true });
@@ -41,6 +54,19 @@ function probe(fs: Backend, root: string) {
             ?? String(error).match(/EEXIST|ENOENT|EINVAL/)?.[0]
             ?? String(error);
     }
+    const fileSource = `${root}/file-source`;
+    const fileDestination = `${root}/file-destination`;
+    fs.mkdirSync(fileSource, { recursive: true });
+    fs.writeFileSync(`${fileSource}/child`, 'new');
+    fs.mkdirSync(`${fileDestination}/child`, { recursive: true });
+    let fileCollision = '';
+    try {
+        fs.copyDirectorySync(fileSource, fileDestination, { overwrite: true });
+    } catch (error) {
+        fileCollision = (error as { code?: string }).code
+            ?? String(error).match(/EEXIST|ENOENT|EINVAL/)?.[0]
+            ?? String(error);
+    }
 
     const overwriteSource = `${root}/overwrite-source`;
     const overwriteDestination = `${root}/overwrite-destination`;
@@ -61,15 +87,19 @@ function probe(fs: Backend, root: string) {
     ];
     fs.copyDirectorySync(overwriteSource, overwriteDestination, { overwrite: true });
     const overwriteState = [fs.readFileSync(`${overwriteDestination}/value.txt`, 'utf8')];
-    return { empty, mixed, directoryCollision, collisionState, overwriteState };
+    return { sourceType, empty, mixed, directoryCollision, fileCollision, collisionState, overwriteState };
 }
 
 const memory = probe(new MemoryFileSystem(), '/copy-empty-parity');
 const nodeRoot = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'vba-copy-empty-'));
 try {
     const node = probe(new NodeFileSystem(), nodeRoot);
+    assert.equal(memory.sourceType, 'ENOENT');
+    assert.equal(node.sourceType, 'ENOENT');
     assert.equal(memory.directoryCollision, 'EEXIST');
-    assert.equal(node.directoryCollision, 'ERR_FS_CP_DIR_TO_NON_DIR');
+    assert.equal(node.directoryCollision, 'EEXIST');
+    assert.equal(memory.fileCollision, 'EEXIST');
+    assert.equal(node.fileCollision, 'EEXIST');
     console.log(`Memory ${JSON.stringify(memory)}`);
     console.log(`Node ${JSON.stringify(node)}`);
 } finally {
