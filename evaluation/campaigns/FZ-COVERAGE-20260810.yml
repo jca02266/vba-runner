@@ -3324,3 +3324,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - scripts/fuzz-builtins.ts
+  - id: FZ-COVERAGE-20260810-346
+    title: MIRR finance-rate boundary contract
+    status: queued
+    priority: 1
+    focus: MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - evaluation/root-causes/RC-00011.md
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

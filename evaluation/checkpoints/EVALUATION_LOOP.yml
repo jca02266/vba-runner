@@ -2517,3 +2517,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00868
+    audit: "765 evaluations, 0 active claims; MIRRの3キャッシュフロー形状×7金利値をRunnerで確認し、XL-220を準備済みキューへ追加した"
+    decision: "EV-00868をneeds-excelとした。形状CのFinanceRate=-1未満で形状Bと異なるRunner結果を再現したため、Excel照合後にRC-00011の範囲を確定する。既存XL-219も結果待ちである"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00868
+    nextCandidate: FZ-COVERAGE-20260810-346
+    coverageSnapshot: COV-2026-08-15-current

@@ -83,6 +83,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFinancialIntermediateFollowup
     VerifyFinancialExpansion
     VerifyMirrFinanceRateBoundary
+    VerifyMirrFinanceRateShapes
     VerifyNPerShapeBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -156,6 +157,30 @@ Private Sub VerifyMirrFinanceRateBoundary()
         errNo = Err.Number
         EmitResult "XL-218 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
             " VALUE=" & CStr(value)
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrFinanceRateShapes()
+    Dim labels As Variant, rates As Variant, flowsA(0 To 2) As Double
+    Dim flowsB(0 To 2) As Double, flowsC(0 To 3) As Double
+    Dim i As Long, value As Double, errNo As Long
+    labels = Array("A", "B", "C")
+    rates = Array(-2, -1.1, -1.0000000001, -1, -0.9999999999, -0.5, 0.1)
+    flowsA(0) = -100: flowsA(1) = 50: flowsA(2) = 75
+    flowsB(0) = -100: flowsB(1) = -50: flowsB(2) = 200
+    flowsC(0) = -100: flowsC(1) = 100: flowsC(2) = -20: flowsC(3) = 75
+    For i = 0 To 6
+        On Error Resume Next
+        Err.Clear: value = MIRR(flowsA, rates(i), 0.1): errNo = Err.Number
+        EmitResult "XL-220 SHAPE=" & labels(0) & " RATE=" & CStr(rates(i)) & _
+            " ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+        Err.Clear: value = MIRR(flowsB, rates(i), 0.1): errNo = Err.Number
+        EmitResult "XL-220 SHAPE=" & labels(1) & " RATE=" & CStr(rates(i)) & _
+            " ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+        Err.Clear: value = MIRR(flowsC, rates(i), 0.1): errNo = Err.Number
+        EmitResult "XL-220 SHAPE=" & labels(2) & " RATE=" & CStr(rates(i)) & _
+            " ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
     Next i
     On Error GoTo 0
 End Sub

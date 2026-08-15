@@ -768,6 +768,7 @@
 | EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
 | EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
 | EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
+| EV-00868 | FZ-COVERAGE-20260810 | needs-excel | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
 
 ## 状態集計
 
@@ -775,11 +776,11 @@
 |---|---:|
 | fixed | 342 |
 | known-limit | 5 |
-| needs-excel | 1 |
+| needs-excel | 2 |
 | retired | 2 |
 | verified-no-bug | 414 |
 
-横展開未解決経路: 576、実Excel待ち評価: 1
+横展開未解決経路: 578、実Excel待ち評価: 2
 
 ## 次の候補
 
