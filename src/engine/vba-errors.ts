@@ -51,6 +51,9 @@ export const VbaErrorCode = {
     WRONG_NUMBER_OF_ARGUMENTS:         450,
 } as const;
 
+/** Union of the numeric VBA error codes exposed by the runtime. */
+export type VbaErrorCode = (typeof VbaErrorCode)[keyof typeof VbaErrorCode];
+
 /** Default error messages for static (non-dynamic) errors. */
 export const VBA_ERROR_MESSAGES: Readonly<Record<number, string>> = {
     [VbaErrorCode.OPTION_EXPLICIT_VIOLATION]:        'Variable not declared (Option Explicit)',

@@ -438,15 +438,21 @@ export const assert = {
             throw new Error(`Assertion Failed`);
         }
     },
-    throws: (fn: () => void, message?: string) => {
+    throws: (fn: () => void, patternOrMessage?: string | RegExp, message?: string) => {
         let threw = false;
+        let detail = '';
         try {
             fn();
-        } catch {
+        } catch (e: any) {
             threw = true;
+            detail = e?.message ?? String(e);
         }
         if (!threw) {
-            console.error(`[FAIL] ${message || 'Expected an exception but none was thrown'}`);
+            console.error(`[FAIL] ${message || (typeof patternOrMessage === 'string' ? patternOrMessage : 'Expected an exception but none was thrown')}`);
+            throw new Error(`Assertion Failed`);
+        }
+        if (patternOrMessage instanceof RegExp && !patternOrMessage.test(detail)) {
+            console.error(`[FAIL] ${message || 'Exception message did not match'} - pattern: ${patternOrMessage}, got: "${detail}"`);
             throw new Error(`Assertion Failed`);
         }
     },
