@@ -212,7 +212,7 @@ Private Sub VerifyStringCharacterBoundary()
         errNo = Err.Number
         EmitResult "XL-226 API=String INPUT=Date ERR=" & CStr(errNo) & _
             " LEN=" & CStr(Len(value)) & " ASCW=" & CStr(AscW(value))
-    Next value
+    Next dateValue
     On Error GoTo 0
 End Sub
 
