@@ -18,7 +18,18 @@ export class NodeFileSystem implements FileSystem {
     copyFileSync(src: string, dest: string, options?: { overwrite?: boolean }) {
         fs.copyFileSync(src, dest, options?.overwrite ? 0 : fs.constants.COPYFILE_EXCL);
     }
-    moveFileSync(src: string, dest: string) { fs.renameSync(src, dest); }
+    moveFileSync(src: string, dest: string) {
+        if (!fs.existsSync(src)) {
+            throw new Error(`ENOENT: no such file or directory, moveFileSync '${src}'`);
+        }
+        if (fs.statSync(src).isDirectory()) {
+            throw new Error(`ENOENT: no such file, moveFileSync '${src}'`);
+        }
+        if (fs.existsSync(dest)) {
+            throw new Error(`EEXIST: destination exists '${dest}'`);
+        }
+        fs.renameSync(src, dest);
+    }
     copyDirectorySync(src: string, dest: string, options?: { overwrite?: boolean }) {
         const source = path.resolve(src);
         const target = path.resolve(dest);
@@ -58,6 +69,15 @@ export class NodeFileSystem implements FileSystem {
         const target = path.resolve(dest);
         if (target === source || target.startsWith(`${source}${path.sep}`)) {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
+        }
+        if (!fs.existsSync(source)) {
+            throw new Error(`ENOENT: no such directory, moveDirectorySync '${src}'`);
+        }
+        if (!fs.statSync(source).isDirectory()) {
+            throw new Error(`ENOENT: no such directory, moveDirectorySync '${src}'`);
+        }
+        if (fs.existsSync(target)) {
+            throw new Error(`EEXIST: destination exists '${dest}'`);
         }
         fs.renameSync(src, dest);
     }

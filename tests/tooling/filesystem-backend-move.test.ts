@@ -30,6 +30,6 @@ try {
 }
 
 assert.equal(memoryResult, 'EEXIST:source=true:destination=true');
-assert.equal(nodeResult, 'ok:source=false:destination=true');
+assert.equal(nodeResult, 'EEXIST:source=true:destination=true');
 console.log(`Memory empty-destination=${memoryResult}`);
 console.log(`Node empty-destination=${nodeResult}`);

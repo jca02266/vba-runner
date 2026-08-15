@@ -36,6 +36,6 @@ try {
 }
 
 assert.equal(memoryResult, 'EEXIST:source=true:destination=true');
-assert.equal(nodeResult, 'ok:source=false:destination=true');
+assert.equal(nodeResult, 'EEXIST:source=true:destination=true');
 console.log(`Memory existing-file=${memoryResult}`);
 console.log(`Node existing-file=${nodeResult}`);
