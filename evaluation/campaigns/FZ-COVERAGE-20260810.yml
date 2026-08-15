@@ -3367,3 +3367,19 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/module-qualified-calls.test.ts
+  - id: FZ-COVERAGE-20260810-349
+    title: Dynamic optional-only member boundary
+    status: queued
+    priority: 1
+    focus: 動的メンバーのOptional専用引数・値Property・WithとCallByNameの省略境界
+    priorCauseKey: dynamic-member-arity-contract-not-shared
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - evaluation/root-causes/RC-00070.md
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/callbyname.test.ts

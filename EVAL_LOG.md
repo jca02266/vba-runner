@@ -760,19 +760,30 @@
 | EV-00856 | RCA-FOLLOWUP | verified-no-bug | 1 | Property LetのByRef型検査と式参照バインディング |
 | EV-00857 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
 | EV-00858 | RCA-FOLLOWUP | fixed | 1 | 金融関数の中間Overflow安定性横展開 |
-| EV-00859 | RCA-FOLLOWUP | needs-excel | 1 | 金融関数線形結合の横展開 |
+| EV-00859 | RCA-FOLLOWUP | fixed | 1 | 金融関数線形結合の横展開 |
+| EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
+| EV-00861 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
+| EV-00862 | RCA-FOLLOWUP | needs-excel | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
+| EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
+| EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
+| EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
+| EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
+| EV-00868 | FZ-COVERAGE-20260810 | needs-excel | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
+| EV-00869 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約 |
+| EV-00870 | FZ-COVERAGE-20260810 | needs-excel | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
+| EV-00871 | FZ-COVERAGE-20260810 | verified-no-bug |  | 動的メンバーのOptional専用Functionを省略・明示引数で呼び出す契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 338 |
+| fixed | 342 |
 | known-limit | 5 |
-| needs-excel | 1 |
+| needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 411 |
+| verified-no-bug | 416 |
 
-横展開未解決経路: 568、実Excel待ち評価: 1
+横展開未解決経路: 582、実Excel待ち評価: 3
 
 ## 次の候補
 

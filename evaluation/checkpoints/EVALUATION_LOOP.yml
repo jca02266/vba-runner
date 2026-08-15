@@ -2541,3 +2541,11 @@ checkpoints:
     nextEvaluation: EV-00870
     nextCandidate: FZ-COVERAGE-20260810-348
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00871
+    audit: "768 evaluations, 0 active claims; Optional専用Functionの直接呼出しとVBAクラスへのCallByNameを省略・明示引数で確認した"
+    decision: "EV-00871はverified-no-bug。VBAクラス経路はOptional既定値契約と一致した。外部COMのOptionalメンバーと既存XL-219〜XL-221の実機待ちは別境界として継続する"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
