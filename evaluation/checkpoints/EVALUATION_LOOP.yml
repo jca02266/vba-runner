@@ -2325,6 +2325,14 @@ checkpoints:
     nextEvaluation: EV-00855
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00855
+    audit: "755 evaluations, 0 active claims; XL-213で数学的に有限なSYD結果が中間乗算によりRunner Error 6、Excel Error 0となる差異を確認した"
+    decision: "EV-00855をbug-found、BUG-00536を作成した。独立RCAで入力領域Error 5と中間Overflowを分離したため、RC-00012へ補足を追加し、修正はSYDの計算順序と最終Overflow判定の回帰設計後に行う"
+    action: rca
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00855
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00857
     audit: "755 evaluations, 0 active claims; XL-208/XL-211/XL-212の実機結果をハッシュ一致で同期した"
     decision: "XL-208はRunnerとExcelが一致しverified-no-bug、XL-212もProperty Letの実効ByVal契約が一致しverified-no-bug。XL-211は負SalvageのError 5を確認したが正数入力の非有限境界が未確定のためEV-00855をin-progressで保持する"

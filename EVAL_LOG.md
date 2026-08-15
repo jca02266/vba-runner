@@ -756,7 +756,7 @@
 | EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
 | EV-00853 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
 | EV-00854 | FZ-COVERAGE-20260810 | fixed |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
-| EV-00855 | RCA-FOLLOWUP | needs-excel | 1 | SYDの領域エラーとOverflow分類境界 |
+| EV-00855 | RCA-FOLLOWUP | bug-found | 1 | SYDの領域エラーとOverflow分類境界 |
 | EV-00856 | RCA-FOLLOWUP | verified-no-bug | 1 | Property LetのByRef型検査と式参照バインディング |
 | EV-00857 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
 
@@ -764,13 +764,13 @@
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 336 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 411 |
 
-横展開未解決経路: 566、実Excel待ち評価: 1
+横展開未解決経路: 566、実Excel待ち評価: 0
 
 ## 次の候補
 
