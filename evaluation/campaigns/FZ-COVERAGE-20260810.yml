@@ -3151,3 +3151,73 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-333
+    title: Call-site forced ByVal and scalar ByRef writeback
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域の通常Sub/Functionにおける括弧・ByVal指定とScalar書戻し
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/parser.ts:3590-3592
+      - src/engine/evaluator.ts:1062-1070
+      - src/engine/evaluator.ts:1139-1156
+      - src/engine/evaluator.ts:5793-5805
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/call-byval-argument.test.ts
+  - id: FZ-COVERAGE-20260810-334
+    title: Optional MissingArgument with trailing named values
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のOptional中間省略・名前付き末尾引数・必須スロット判定
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/parser.ts:3583-3588
+      - src/engine/argument-contract.ts:81-125
+      - src/engine/evaluator.ts:5344-5350
+      - src/engine/evaluator.ts:5773-5785
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/argument-contract.ts
+      - src/engine/evaluator.ts
+      - tests/spec/property-named-optional-byref-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-335
+    title: Late-bound member argument error conversion
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域の動的メンバー必須引数不足と通常手続きのエラー番号分岐
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/evaluator.ts:5406-5425
+      - src/engine/evaluator.ts:5546-5588
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-object-argument-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-336
+    title: Parameter type suffix and ByRef binding
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域の仮引数型サフィックスとScalar型変換・書戻し
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/parser.ts:1028-1054
+      - src/engine/evaluator.ts:1117-1156
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - tests/spec/identifier-type-suffix.test.ts
+  - id: FZ-COVERAGE-20260810-337
+    title: Indexed Property setter value-tail binding
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域のIndexed Property Let/SetにおけるOptional・名前付き引数と暗黙value-tail
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/evaluator.ts:4326-4360
+      - src/engine/evaluator.ts:4500-4558
+      - src/engine/evaluator.ts:5715-5830
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - tests/spec/property-array-assignment.test.ts

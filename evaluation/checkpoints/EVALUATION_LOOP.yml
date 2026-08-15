@@ -2221,3 +2221,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     finding: null
+  - afterEvaluation: null
+    audit: "738 evaluations, 0 active claims; COV-2026-08-14-currentのevaluator 91.7%、parser 93.7%を参照し、引数・ByRef・Propertyのソースレビューで未評価の5経路を特定"
+    decision: "既存のProperty value-tail・ParamArray・配列ByRef評価と重複しないよう、通常手続きの括弧強制ByVal、Optional中間Missing、動的メンバーの引数エラー変換、仮引数型サフィックス、Indexed Propertyのvalue-tailを個別候補として登録する。実装修正やEV作成は候補の評価後に行う"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-333
+    coverageSnapshot: COV-2026-08-14-current
