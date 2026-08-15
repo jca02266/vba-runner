@@ -3818,3 +3818,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-380
+    title: CDateシリアル値上下端境界
+    status: queued
+    priority: 1
+    focus: CDateの許容シリアル値上下端とError 6境界
+    priorCauseKey: cdate-serial-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/cdate.test.ts
+      - tests/spec/date-negative-serial-boundary.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/cdate.test.ts

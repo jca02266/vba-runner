@@ -802,6 +802,7 @@
 | EV-00899 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync親ファイル境界 |
 | EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
 | EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
+| EV-00902 | FZ-COVERAGE-20260810 | needs-excel |  | CDateの許容シリアル値上下端とError 6境界 |
 
 ## 状態集計
 
@@ -809,11 +810,11 @@
 |---|---:|
 | fixed | 348 |
 | known-limit | 5 |
-| needs-excel | 5 |
+| needs-excel | 6 |
 | retired | 2 |
 | verified-no-bug | 438 |
 
-横展開未解決経路: 584、実Excel待ち評価: 5
+横展開未解決経路: 585、実Excel待ち評価: 6
 
 ## 次の候補
 
