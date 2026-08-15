@@ -24,4 +24,32 @@ for (const t of tests) {
     console.log(`[PASS] ${t.code}`);
 }
 
+const rangeSource = String.raw`
+Option Explicit
+Public Function Probe() As String
+    Dim value As LongLong, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = CLngLng("9223372036854775808")
+    errNo = Err.Number
+    Probe = "LLPOS=" & CStr(errNo)
+    Err.Clear
+    value = CLngLng("-9223372036854775809")
+    Probe = Probe & " LLNEG=" & CStr(Err.Number)
+    Err.Clear
+    value = CLngPtr("9223372036854775808")
+    Probe = Probe & " LPPOS=" & CStr(Err.Number)
+    Err.Clear
+    value = CLngLng("922x")
+    Probe = Probe & " INVALID=" & CStr(Err.Number)
+End Function
+`;
+const rangeEval = evalVBASingle(rangeSource);
+assert.strictEqual(
+    rangeEval.callProcedure('Probe', []),
+    'LLPOS=6 LLNEG=6 LPPOS=6 INVALID=13',
+    'CLngLng/CLngPtrは範囲外と構文不正を別エラーへ分類する',
+);
+console.log('[PASS] CLngLng/CLngPtr range error classification');
+
 console.log('✅ CLngLng: 全テスト通過');

@@ -587,7 +587,10 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
                     const n = BigInt(trimmed);
                     if (n < -9223372036854775808n || n > 9223372036854775807n) ctx.throwError(VbaErrorCode.OVERFLOW, "Overflow");
                     return n;
-                } catch {
+                } catch (error: any) {
+                    // Preserve conversion errors raised by the range check.
+                    // Only BigInt syntax failures are Type mismatch (13).
+                    if (error?.type === 'VbaError') throw error;
                     ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
                 }
             }

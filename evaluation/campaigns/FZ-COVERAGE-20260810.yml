@@ -3861,3 +3861,31 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-383
+    title: CBool LongLong signed boundaries
+    status: queued
+    priority: 1
+    focus: CBoolのLongLong符号・最大値・最小値境界
+    priorCauseKey: vba-numeric-boolean-coercion-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/cbool-longlong.test.ts
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-384
+    title: CLngLng signed range overflow contract
+    status: queued
+    priority: 1
+    focus: CLngLngの符号付き64ビット範囲外エラー番号
+    priorCauseKey: vba-longlong-range-error-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/clnglng.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

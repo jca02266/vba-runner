@@ -805,18 +805,20 @@
 | EV-00902 | FZ-COVERAGE-20260810 | needs-excel |  | CDateの許容シリアル値上下端とError 6境界 |
 | EV-00903 | FZ-COVERAGE-20260810 | fixed | 1 | CBoolへLongLong数値式を渡した場合の真偽変換 |
 | EV-00904 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarの配列・クラス・Variantサブタイプ保持 |
+| EV-00905 | FZ-COVERAGE-20260810 | verified-no-bug |  | CBoolのLongLong符号・最大値・最小値境界 |
+| EV-00906 | FZ-COVERAGE-20260810 | fixed | 1 | CLngLngの符号付き64ビット範囲外エラー番号 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 349 |
+| fixed | 350 |
 | known-limit | 5 |
 | needs-excel | 6 |
 | retired | 2 |
-| verified-no-bug | 439 |
+| verified-no-bug | 440 |
 
-横展開未解決経路: 585、実Excel待ち評価: 6
+横展開未解決経路: 586、実Excel待ち評価: 6
 
 ## 次の候補
 
