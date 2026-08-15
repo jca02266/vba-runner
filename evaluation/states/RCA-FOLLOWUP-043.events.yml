@@ -2,3 +2,13 @@
   evaluationId: EV-00859
   status: in-progress
   occurredAt: '2026-08-15T05:28:13.252Z'
+- candidateId: RCA-FOLLOWUP-043
+  evaluationId: EV-00859
+  status: needs-excel-probe
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T05:30:08.527Z'
+- candidateId: RCA-FOLLOWUP-043
+  evaluationId: EV-00859
+  status: needs-excel
+  fromStatus: needs-excel-probe
+  occurredAt: '2026-08-15T05:30:43.745Z'

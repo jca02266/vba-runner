@@ -81,6 +81,7 @@ Public Sub RunExcelQueueVerification()
     VerifyPendingExcelBoundaries
     VerifySydBoundaryMatrix
     VerifyFinancialIntermediateFollowup
+    VerifyFinancialExpansion
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -113,6 +114,28 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFinancialExpansion()
+    Dim huge As Double, value As Double, errNo As Long, flows As Variant
+    huge = 1E+308
+    flows = Array(-huge, huge)
+    On Error Resume Next
+    Err.Clear: value = IPmt(0.5, 1, 2, huge, 0, 0): errNo = Err.Number
+    EmitResult "XL-217 IPMT ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = PPmt(0.5, 1, 2, huge, 0, 0): errNo = Err.Number
+    EmitResult "XL-217 PPMT ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = DDB(huge, 0, 2, 1, 2): errNo = Err.Number
+    EmitResult "XL-217 DDB ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = NPV(0.5, flows): errNo = Err.Number
+    EmitResult "XL-217 NPV ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = NPer(0.5, -huge, huge, 0, 0): errNo = Err.Number
+    EmitResult "XL-217 NPER ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = Rate(2, -huge, huge, 0, 0, 0.1): errNo = Err.Number
+    EmitResult "XL-217 RATE ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    Err.Clear: value = MIRR(flows, 0.1, 0.1): errNo = Err.Number
+    EmitResult "XL-217 MIRR ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFinancialIntermediateFollowup()
