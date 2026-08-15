@@ -2573,3 +2573,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00875
+    audit: "772 evaluations, 0 active claims; Uint8Arrayの空・境界・UTF-8コピーと上書き・入力所有権をMemory/Nodeで比較した"
+    decision: "EV-00875はverified-no-bug。バイナリ内容、overwrite契約、入力配列変更後の保存内容が一致し、専用回帰テストも通過した"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

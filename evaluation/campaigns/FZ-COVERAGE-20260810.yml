@@ -3429,3 +3429,18 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-353
+    title: Memory and Node binary file-copy parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのUint8Arrayコピー内容・入力所有権契約
+    priorCauseKey: virtual-filesystem-binary-copy-ownership
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts

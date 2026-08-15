@@ -775,6 +775,7 @@
 | EV-00872 | FZ-COVERAGE-20260810 | verified-no-bug |  | ADODB.StreamのOptional ReadTextを直接・CallByNameで省略する契約 |
 | EV-00873 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderのoverwrite=False衝突時に先行コピーを残さない契約 |
 | EV-00874 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync既存パス・親欠落契約 |
+| EV-00875 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのUint8Arrayコピー内容・入力所有権契約 |
 
 ## 状態集計
 
@@ -784,7 +785,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 419 |
+| verified-no-bug | 420 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 
