@@ -3748,3 +3748,31 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-375
+    title: DateSerial argument width boundaries
+    status: queued
+    priority: 1
+    focus: DateSerialの年・月・日引数におけるInteger幅境界と相対日付の契約
+    priorCauseKey: vba-date-serial-boundary
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/dateserial-conversion-matrix.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-conversion-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-376
+    title: DateSerial normalization cross-boundaries
+    status: queued
+    priority: 2
+    focus: DateSerialの年範囲外と月日大幅正規化を組み合わせた日付範囲契約
+    priorCauseKey: dateserial-argument-width-contract-missing
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/dateserial-conversion-matrix.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/dateserial-conversion-matrix.test.ts

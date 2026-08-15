@@ -2669,3 +2669,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00897
+    audit: "794 evaluations, 0 active claims; DateSerialの年・月・日引数幅を確認し、日引数32768のError 6漏れを修正して回帰テストを追加した。StringのBoolean・Date照合待ちなど実機待ち4件は結果未着のため変更しない"
+    decision: "DateSerialの入力幅検査は修正済み。年範囲外と月日大幅正規化の組合せを次候補で確認する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-376
+    coverageSnapshot: COV-2026-08-15-current

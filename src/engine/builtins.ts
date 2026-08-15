@@ -1739,6 +1739,13 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
         return date;
     };
     const coerceDateNumber = (value: any): number => ctx.round(ctx.toVbaNumber(value));
+    const coerceDateSerialNumber = (value: any): number => {
+        const number = coerceDateNumber(value);
+        if (number < -32768 || number > 32767) {
+            ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
+        return number;
+    };
     const validateFirstDayOfWeek = (value: any): number => {
         const day = coerceDateNumber(value ?? 1);
         if (!Number.isFinite(day) || day < 0 || day > 7) {
@@ -1762,12 +1769,12 @@ export function registerStdlibDateTimeFunctions(ctx: StdlibCtx): void {
     ctx.reg('second', (d: any) => { d = unwrapVbaDefaultValue(d); return d === vbaNull ? vbaNull : parseVbaDate(d).getSeconds(); }, [{ name: 'Time' }]);
     ctx.reg('dateserial', (y: any, m: any, d: any) => {
         if (y === vbaNull || m === vbaNull || d === vbaNull) return vbaNull;
-        const rawYear = coerceDateNumber(y);
+        const rawYear = coerceDateSerialNumber(y);
         let year = rawYear;
         // VBA spec §6.1.2.4.1.4: 0-29 → 2000-2029, 30-99 → 1930-1999
         if (year >= 0 && year <= 29) year += 2000;
         else if (year >= 30 && year <= 99) year += 1900;
-        const mm = coerceDateNumber(m) - 1, dd = coerceDateNumber(d);
+        const mm = coerceDateSerialNumber(m) - 1, dd = coerceDateSerialNumber(d);
         // 月/日は範囲外なら繰り上げ・繰り下げされる（実 VBA 差分で裁定: Month=13→翌年1月）。
         if (rawYear >= 0 && rawYear <= 99) {
             // 0-99 年の特殊レンジのみ: JS の Date コンストラクターが 0-99 年を 1900 年台へ

@@ -22,4 +22,10 @@ assert.strictEqual(ev.env.get('dday0'), 31, 'DateSerial day zero returns the pri
 assert.strictEqual(ev.env.get('cdateleap'), 29, 'CDate accepts a leap-day string');
 assert.strictEqual(ev.env.get('datevalueday'), 29, 'DateValue preserves the calendar date');
 assert.strictEqual(ev.env.get('datevaluehour'), 0, 'DateValue strips the time component');
+assert.throwsMatch(() => ev.evalExpression('DateSerial(2024, 1, 32768)'), /error '6'/,
+    'DateSerial rejects day values outside the Integer argument range');
+assert.throwsMatch(() => ev.evalExpression('DateSerial(2024, 32768, 1)'), /error '6'/,
+    'DateSerial rejects month values outside the Integer argument range');
+assert.throwsMatch(() => ev.evalExpression('DateSerial(2024, 1, -32769)'), /error '6'/,
+    'DateSerial rejects negative day values outside the Integer argument range');
 console.log('[PASS] DateSerial and date conversion matrix');
