@@ -2766,10 +2766,10 @@ checkpoints:
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
   - afterEvaluation: EV-00908
-    audit: "805 evaluations, 0 active claims; String/String$の数値0〜257とDate境界をXL-226マトリクスへ登録し、ソースハッシュ一致の実機結果待ちにした"
-    decision: "TrueとDate256の差異が単純な型判定かANSIコードページ境界かを、数値・Dateの同一マトリクスで切り分ける"
-    action: excel-probe
-    nextArea: 実Excel照合
+    audit: "805 evaluations, 0 active claims; XL-226を同期し、数値254・255・256境界のString/String$差異をBUG-00556としてbug-foundにした"
+    decision: "差異はString/String$共通経路のCP932文字コード写像と256境界に限定される。RC-00089の独立レビュー後に修正範囲を決める"
+    action: root-cause-review
+    nextArea: 組み込み関数
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
