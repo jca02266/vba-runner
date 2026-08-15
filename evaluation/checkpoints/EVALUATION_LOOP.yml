@@ -2334,6 +2334,14 @@ checkpoints:
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00858
+    audit: "756 evaluations, 0 active claims; FV、PV、PMTのExcel Error 0差異をスケーリング計算へ修正し、金融関数回帰テストを通過させた"
+    decision: "EV-00858をfixed、BUG-00537の直接修正を完了した。残る金融関数の横展開をRCA-FOLLOWUP-043へ登録した"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: RCA-FOLLOWUP-043
+    coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00858
     audit: "756 evaluations, 0 active claims; XL-214〜XL-216のExcel結果がすべてError 0、RunnerはError 6となる差異を確認した"
     decision: "EV-00858をbug-found、BUG-00537を作成した。独立RCAで線形結合の中間Overflowを直接原因とし、FV/PV/PMTの安定化修正と回帰テストを次に行う"
     action: rca

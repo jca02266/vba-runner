@@ -759,14 +759,13 @@
 | EV-00855 | RCA-FOLLOWUP | fixed | 1 | SYDの領域エラーとOverflow分類境界 |
 | EV-00856 | RCA-FOLLOWUP | verified-no-bug | 1 | Property LetのByRef型検査と式参照バインディング |
 | EV-00857 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
-| EV-00858 | RCA-FOLLOWUP | bug-found | 1 | 金融関数の中間Overflow安定性横展開 |
+| EV-00858 | RCA-FOLLOWUP | fixed | 1 | 金融関数の中間Overflow安定性横展開 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 337 |
+| fixed | 338 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 411 |
@@ -777,4 +776,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| RCA-FOLLOWUP-043 | 1 | queued | IPMT、PPMT、NPV、NPer、Rate、MIRR、DDBの中間Overflow安定性を確認する | yes |
