@@ -89,6 +89,7 @@ Public Sub RunExcelQueueVerification()
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyStringCharacterVariant
+    VerifyDateSerialNormalizationBoundary
     VerifyRadixExplicitSignMatrix
     VerifyRadixTargetTypeMatrix
     VerifyRadixShortWidthMatrix
@@ -132,6 +133,16 @@ Private Sub VerifyStringCharacterVariant()
     value = String(3, CDate(65))
     errNo = Err.Number
     EmitResult "XL-222 DATE=" & CStr(value) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyDateSerialNormalizationBoundary()
+    Dim value As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = DateSerial(10000, -1, 1)
+    errNo = Err.Number
+    EmitResult "XL-223 Y10000-MINUS1 ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
     On Error GoTo 0
 End Sub
 

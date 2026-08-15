@@ -798,6 +798,7 @@
 | EV-00895 | FZ-COVERAGE-20260810 | bug-found |  | String関数のCurrency・Decimal character引数の数値コード変換 |
 | EV-00896 | FZ-COVERAGE-20260810 | needs-excel |  | String関数のBoolean・Date character引数の変換契約 |
 | EV-00897 | FZ-COVERAGE-20260810 | fixed |  | DateSerialの年・月・日引数Integer幅境界 |
+| EV-00898 | FZ-COVERAGE-20260810 | needs-excel |  | DateSerialの年範囲外と月日正規化の組合せ |
 
 ## 状態集計
 
@@ -806,14 +807,14 @@
 | bug-found | 1 |
 | fixed | 347 |
 | known-limit | 5 |
-| needs-excel | 4 |
+| needs-excel | 5 |
 | retired | 2 |
 | verified-no-bug | 435 |
 
-横展開未解決経路: 584、実Excel待ち評価: 4
+横展開未解決経路: 584、実Excel待ち評価: 5
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-376 | 2 | queued | DateSerialの年範囲外と月日大幅正規化を組み合わせた日付範囲契約 | yes |
+| (none) | | | | |

@@ -2677,3 +2677,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-376
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00898
+    audit: "795 evaluations, 0 active claims; DateSerialの年範囲外と月日正規化の組合せをランナーで再現し、XL-223を準備済みのExcel照合待ちにした。実機待ち5件は結果未着のため状態を維持する"
+    decision: "DateSerialのraw year上限は実機結果で確定し、正規化後の日付検査と分離した修正要否を判断する"
+    action: excel-probe
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
