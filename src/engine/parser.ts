@@ -2801,11 +2801,6 @@ export class Parser {
         if (this.pendingNextVars.length > 0) {
             // Outer loops: consume from the queue populated by an inner `Next a, b, c`
             const pending = this.pendingNextVars.shift()!;
-            if (pending.name.toLowerCase() !== identifier.name.toLowerCase()) {
-                this.throwError(
-                    `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${pending.name}')`,
-                );
-            }
             nextIdentifier = pending;
         } else {
             if (!this.match(TokenType.KeywordNext)) {
@@ -2815,12 +2810,6 @@ export class Parser {
             if (this.isIdentifier(this.peek())) {
                 const nextIdToken = this.advance();
                 nextIdentifier = this.makeIdentifier(nextIdToken);
-                if (nextIdentifier.name.toLowerCase() !== identifier.name.toLowerCase()) {
-                    this.throwError(
-                        `Compile error: Variable reference not valid in 'Next' (expected '${identifier.name}', got '${nextIdentifier.name}')`,
-                        nextIdToken
-                    );
-                }
                 // Collect remaining variables for outer loops: `Next j, i, k`
                 while (this.match(TokenType.OperatorComma)) {
                     if (this.isIdentifier(this.peek())) {
@@ -2870,11 +2859,6 @@ export class Parser {
         let nextIdentifier: Identifier | undefined;
         if (this.pendingNextVars.length > 0) {
             const pending = this.pendingNextVars.shift()!;
-            if (pending.name.toLowerCase() !== variable.name.toLowerCase()) {
-                this.throwError(
-                    `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${pending.name}')`,
-                );
-            }
             nextIdentifier = pending;
         } else {
             if (!this.match(TokenType.KeywordNext)) {
@@ -2884,12 +2868,6 @@ export class Parser {
             if (this.isIdentifier(this.peek())) {
                 const nextIdToken = this.advance();
                 nextIdentifier = this.makeIdentifier(nextIdToken);
-                if (nextIdentifier.name.toLowerCase() !== variable.name.toLowerCase()) {
-                    this.throwError(
-                        `Compile error: Variable reference not valid in 'Next' (expected '${variable.name}', got '${nextIdentifier.name}')`,
-                        nextIdToken
-                    );
-                }
                 // Collect remaining variables for outer loops: `Next x, i, k`
                 while (this.match(TokenType.OperatorComma)) {
                     if (this.isIdentifier(this.peek())) {

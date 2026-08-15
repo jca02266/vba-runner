@@ -2074,6 +2074,12 @@ export class Evaluator {
                 }
             }
             const findings = this.collectPrecheckFindings(proc);
+            if (findings.nextControlVariable) {
+                const mismatch = findings.nextControlVariable;
+                this.throwCompileError(VbaErrorCode.INVALID_PROCEDURE_CALL,
+                    `Variable reference not valid in 'Next' (expected '${mismatch.expected}', got '${mismatch.actual}')`,
+                    mismatch.line, proc.moduleName ?? undefined);
+            }
             if (findings.subAsValue) {
                 this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     `Function or variable expected: '${findings.subAsValue.name}'`,
@@ -2144,6 +2150,7 @@ export class Evaluator {
      * so combining the traversal does not change which error wins.
      */
     private collectPrecheckFindings(proc: ProcedureDeclaration): {
+        nextControlVariable?: { expected: string; actual: string; line?: number };
         subAsValue?: { name: string; line?: number };
         literalOverflow?: { line?: number; targetType: string };
         undefinedCalls: UndefinedProcError[];
@@ -2161,6 +2168,7 @@ export class Evaluator {
             labels: new Set<string>(),
             jumps: [] as Array<{ label: string; line: number }>,
         } as {
+            nextControlVariable?: { expected: string; actual: string; line?: number };
             subAsValue?: { name: string; line?: number };
             literalOverflow?: { line?: number; targetType: string };
             undefinedCalls: UndefinedProcError[];
@@ -2567,11 +2575,27 @@ export class Evaluator {
                 }
                 case 'ForStatement': {
                     const s = stmt as ForStatement;
+                    if (!findings.nextControlVariable && s.nextIdentifier &&
+                        s.nextIdentifier.name.toLowerCase() !== s.identifier.name.toLowerCase()) {
+                        findings.nextControlVariable = {
+                            expected: s.identifier.name,
+                            actual: s.nextIdentifier.name,
+                            line: s.nextIdentifier.loc?.start.line ?? s.loc?.start.line,
+                        };
+                    }
                     visitExpression(s.start); visitExpression(s.end); if (s.step) visitExpression(s.step);
                     this.walkPrecheckStatements(s.body, visitStatement); break;
                 }
                 case 'ForEachStatement': {
                     const s = stmt as ForEachStatement;
+                    if (!findings.nextControlVariable && s.nextIdentifier &&
+                        s.nextIdentifier.name.toLowerCase() !== s.variable.name.toLowerCase()) {
+                        findings.nextControlVariable = {
+                            expected: s.variable.name,
+                            actual: s.nextIdentifier.name,
+                            line: s.nextIdentifier.loc?.start.line ?? s.loc?.start.line,
+                        };
+                    }
                     visitExpression(s.collection); this.walkPrecheckStatements(s.body, visitStatement); break;
                 }
                 case 'DoWhileStatement': {

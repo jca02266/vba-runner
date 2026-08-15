@@ -85,6 +85,18 @@ Sub Case_sub_call_arg_without_call_keyword()
     Call MySub 42 ' @error
 End Sub
 
+' CASE: for_each_next_control_variable_mismatch
+' TYPE: preproc
+' VBA: コンパイル エラー: Next で指定された変数の参照が不正です。
+' RUNNER: /variable reference not valid|next.*control|invalid.*next|control variable|参照が不正/i
+' NOTE: For Each の制御変数 dateValue と Next の指定 value が一致しない。
+Sub Case_for_each_next_control_variable_mismatch()
+    Dim value As String, dateValue As Variant
+    For Each dateValue In Array(1)
+        value = CStr(dateValue)
+    Next value ' @error
+End Sub
+
 ' CASE: assign_func_arg_no_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー

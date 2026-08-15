@@ -83,6 +83,43 @@ let __pass__ = 0, __fail__ = 0;
     }
 }
 
+// [preproc] for_each_next_control_variable_mismatch
+// VBA: コンパイル エラー: Next で指定された変数の参照が不正です。
+// VBA error line (within Sub body): 4
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+
+      Private Function MyFuncHasArg(x)
+      End Function
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+
+      Sub __test__()
+        Dim value As String, dateValue As Variant
+        For Each dateValue In Array(1)
+            value = CStr(dateValue)
+        Next value
+      End Sub
+    `, '__test__', 22, /variable reference not valid|next.*control|invalid.*next|control variable|参照が不正/i, 'for_each_next_control_variable_mismatch');
+        console.log('[PASS] for_each_next_control_variable_mismatch');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] for_each_next_control_variable_mismatch:', e.message);
+        __fail__++;
+    }
+}
+
 // [parse] assign_func_arg_no_parens
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 2
