@@ -79,6 +79,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFsoGetFileRequired
     VerifyDictionaryExistsRequired
     VerifyPendingExcelBoundaries
+    VerifySydBoundaryMatrix
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -104,6 +105,7 @@ Public Sub RunExcelQueueVerification()
     VerifyByRefExpressionMatrix
     VerifyMemberForcedByVal
     VerifyPropertyArrayElementByRef
+    VerifyPropertyByRefTypeBoundary
     VerifyUdtObjectArraySet
     VerifyOpaqueShape
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
@@ -112,8 +114,28 @@ Public Sub RunExcelQueueVerification()
     EndResult
 End Sub
 
+Private Sub VerifySydBoundaryMatrix()
+    Dim value As Double, errNo As Long
+    On Error Resume Next
+    Err.Clear: value = SYD(100, -1, 5, 1): errNo = Err.Number
+    EmitResult "XL-211 NEG-SALVAGE ERR=" & CStr(errNo)
+    Err.Clear: value = SYD(1E+308, -1E+308, 2, 1): errNo = Err.Number
+    EmitResult "XL-211 NONFINITE ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyPropertyByRefTypeBoundary()
+    Dim target As New ExcelQueuePropertyArray, value As Integer, errNo As Long
+    value = 10
+    On Error Resume Next
+    Err.Clear: target.Value = value: errNo = Err.Number
+    EmitResult "XL-212 PROPERTY-LET ERR=" & CStr(errNo) & _
+        " VALUE=" & CStr(value) & " SEEN=" & CStr(target.SeenValue)
+    On Error GoTo 0
+End Sub
+
 Private Sub VerifyByRefExpressionMatrix()
-    Dim value As Integer, worker As Object, errNo As Long
+    Dim value As Integer, doubleValue As Double, worker As Object, errNo As Long
     On Error Resume Next
     Err.Clear
     VerifyLongExpression CLng(10)
@@ -133,6 +155,11 @@ Private Sub VerifyByRefExpressionMatrix()
     CallByName worker, "Mutate", VbMethod, value
     EmitResult "XL-210 CALLBYNAME ERR=" & CStr(Err.Number) & _
         " VALUE=" & CStr(value)
+    doubleValue = 10.5
+    Err.Clear
+    CallByName worker, "Mutate", VbMethod, doubleValue
+    EmitResult "XL-208 CALLBYNAME-DOUBLE ERR=" & CStr(Err.Number) & _
+        " VALUE=" & CStr(doubleValue)
     On Error GoTo 0
 End Sub
 
