@@ -2445,3 +2445,19 @@ checkpoints:
     nextEvaluation: EV-00861
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00861
+    audit: "759 evaluations, 0 active claims; XL-218のExcel結果をハッシュ一致で同期し、FinanceRate=-1の複合キャッシュフローだけRunnerとError 5が不一致だった"
+    decision: "EV-00861をbug-foundへ遷移し、BUG-00540を登録した。FinanceRate<-1全体は拒否せず、後続負キャッシュフローのゼロ分母だけを直接修正する"
+    action: fix
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00861
+    nextCandidate: RCA-FOLLOWUP-046
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00861
+    audit: "759 evaluations, 0 active claims; MIRR FinanceRate=-1のゼロ分母ガードと回帰テストを追加し、focused financial testが通過した"
+    decision: "EV-00861をfixed、BUG-00540の直接修正をfixedとした。RC-00011の一般的なFinanceRate境界は未確定のため計画扱いで継続する"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: RCA-FOLLOWUP-046
+    coverageSnapshot: COV-2026-08-15-current
