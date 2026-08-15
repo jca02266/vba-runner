@@ -117,9 +117,11 @@ Public Sub RunExcelQueueVerification()
 End Sub
 
 Private Sub VerifyFinancialExpansion()
-    Dim huge As Double, value As Double, errNo As Long, flows As Variant
+    Dim huge As Double, value As Double, errNo As Long
+    Dim flows(0 To 1) As Double
     huge = 1E+308
-    flows = Array(-huge, huge)
+    flows(0) = -huge
+    flows(1) = huge
     On Error Resume Next
     Err.Clear: value = IPmt(0.5, 1, 2, huge, 0, 0): errNo = Err.Number
     EmitResult "XL-217 IPMT ERR=" & CStr(errNo) & " VALUE=" & CStr(value)
