@@ -3600,3 +3600,16 @@ items:
       - src/engine/date-week.ts
       - src/engine/builtins.ts
       - tests/spec/date-week-boundary-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-365
+    title: Date option validation boundaries
+    status: queued
+    priority: 1
+    focus: DateAdd・DateDiff・DatePart・Weekdayの無効引数・Null・週オプション検証
+    priorCauseKey: vba-date-week-number-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/date-option-validation-matrix.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-option-validation-matrix.test.ts

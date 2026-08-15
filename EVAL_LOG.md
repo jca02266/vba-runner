@@ -787,6 +787,7 @@
 | EV-00884 | FZ-COVERAGE-20260810 | verified-no-bug |  | TimeSerialの負数・60超過・24時繰り上げ正規化 |
 | EV-00885 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateValueの時刻切捨て・不正日付とTimeValueの時刻境界 |
 | EV-00886 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号の年初境界とFirstDayOfWeek・FirstWeekOfYear行列 |
+| EV-00887 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePart・Weekdayの無効引数・Null・週オプション検証 |
 
 ## 状態集計
 
@@ -796,7 +797,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 427 |
+| verified-no-bug | 428 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 
