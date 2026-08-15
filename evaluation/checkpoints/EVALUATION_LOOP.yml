@@ -2429,3 +2429,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00861
+    audit: "759 evaluations, 0 active claims; MIRRのFinanceRate一般境界をRunnerで7値・複合キャッシュフローに対して実行した"
+    decision: "EV-00861をin-progressで保持する。FinanceRate < -1、-1近傍、正常値のExcel結果が未取得のため、RC-00011の修正可否は確定しない"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00861
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
