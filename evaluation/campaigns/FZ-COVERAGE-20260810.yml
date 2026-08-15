@@ -3790,3 +3790,17 @@ items:
     coverageTargets:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
+  - id: FZ-COVERAGE-20260810-378
+    title: Builtin adversarial fuzz smoke
+    status: queued
+    priority: 2
+    focus: 全組み込み関数へのNull・Empty・Nothing・配列・巨大数注入でJS生例外が漏れないこと
+    priorCauseKey: builtin-error-boundary
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - scripts/fuzz-builtins.ts
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

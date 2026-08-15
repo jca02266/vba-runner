@@ -2693,3 +2693,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00900
+    audit: "797 evaluations, 0 active claims; 全組み込み関数185個への敵対値4374呼び出しでJS生例外・Symbol漏れ0件を確認した。実機待ち5件は結果未着のため変更しない"
+    decision: "クラッシュ境界は安定しているため、次はファザーで扱わない戻り値精度・型保持の未評価領域をソースレビューする"
+    action: source-review
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

@@ -800,6 +800,7 @@
 | EV-00897 | FZ-COVERAGE-20260810 | fixed |  | DateSerialの年・月・日引数Integer幅境界 |
 | EV-00898 | FZ-COVERAGE-20260810 | needs-excel |  | DateSerialの年範囲外と月日正規化の組合せ |
 | EV-00899 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync親ファイル境界 |
+| EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
 
 ## 状態集計
 
@@ -810,7 +811,7 @@
 | known-limit | 5 |
 | needs-excel | 5 |
 | retired | 2 |
-| verified-no-bug | 436 |
+| verified-no-bug | 437 |
 
 横展開未解決経路: 584、実Excel待ち評価: 5
 
