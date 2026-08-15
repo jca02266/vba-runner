@@ -796,6 +796,7 @@
 | EV-00893 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarへLong配列とVBAクラスを渡した場合の配列形状・Object参照・メンバーアクセス保持 |
 | EV-00894 | FZ-COVERAGE-20260810 | verified-no-bug |  | Strの符号・先頭空白・指数表記・Boolean/Currency変換とNullエラー境界 |
 | EV-00895 | FZ-COVERAGE-20260810 | bug-found |  | String関数のCurrency・Decimal character引数の数値コード変換 |
+| EV-00896 | FZ-COVERAGE-20260810 | needs-excel |  | String関数のBoolean・Date character引数の変換契約 |
 
 ## 状態集計
 
@@ -804,14 +805,14 @@
 | bug-found | 1 |
 | fixed | 346 |
 | known-limit | 5 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | retired | 2 |
 | verified-no-bug | 435 |
 
-横展開未解決経路: 583、実Excel待ち評価: 3
+横展開未解決経路: 583、実Excel待ち評価: 4
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-374 | 1 | queued | String関数のcharacter引数へBoolean・Dateを渡す数値コード変換契約 | yes |
+| (none) | | | | |

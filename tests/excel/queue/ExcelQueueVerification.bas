@@ -88,6 +88,7 @@ Public Sub RunExcelQueueVerification()
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
+    VerifyStringCharacterVariant
     VerifyRadixExplicitSignMatrix
     VerifyRadixTargetTypeMatrix
     VerifyRadixShortWidthMatrix
@@ -118,6 +119,20 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyStringCharacterVariant()
+    Dim value As String, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = String(3, True)
+    errNo = Err.Number
+    EmitResult "XL-222 BOOL=" & CStr(value) & " ERR=" & CStr(errNo)
+    Err.Clear
+    value = String(3, CDate(65))
+    errNo = Err.Number
+    EmitResult "XL-222 DATE=" & CStr(value) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyFinancialExpansion()

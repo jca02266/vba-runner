@@ -2661,3 +2661,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-374
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00896
+    audit: "793 evaluations, 0 active claims; StringのBoolean・Date character引数をランナーで実行し、準備済みソースに対するExcel照合用XL-222を追加した。実機待ち4件は結果未着のため needs-excel を維持する"
+    decision: "Boolean・DateのVariant変換は実機結果で仕様を確定し、同じString character経路の修正範囲を判断する"
+    action: excel-probe
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
