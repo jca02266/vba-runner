@@ -2326,6 +2326,14 @@ checkpoints:
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00857
+    audit: "755 evaluations, 0 active claims; XL-208/XL-211/XL-212の実機結果をハッシュ一致で同期した"
+    decision: "XL-208はRunnerとExcelが一致しverified-no-bug、XL-212もProperty Letの実効ByVal契約が一致しverified-no-bug。XL-211は負SalvageのError 5を確認したが正数入力の非有限境界が未確定のためEV-00855をin-progressで保持する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00855
+    nextCandidate: RCA-FOLLOWUP-040
+    coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00857
     audit: "755 evaluations, 0 active claims; XL-208、XL-211、XL-212をExcelQueueVerification.basへ追加し、準備済みt.xlsmとソースハッシュが一致した"
     decision: "EV-00855、EV-00856、EV-00857をneeds-excelへ遷移した。Windows側でeval-excel.cmdを1回実行し、3件の結果を個別にexcel-syncして判定する"
     action: excel-run

@@ -7,3 +7,8 @@
   status: needs-excel
   fromStatus: needs-excel-probe
   occurredAt: '2026-08-15T03:24:05.191Z'
+- candidateId: FZ-COVERAGE-20260810-336-EXCEL
+  evaluationId: EV-00857
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-15T03:28:34.740Z'
