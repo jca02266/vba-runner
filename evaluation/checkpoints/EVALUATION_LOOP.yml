@@ -2269,3 +2269,11 @@ checkpoints:
     nextEvaluation: EV-00850
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: null
+    audit: "749 evaluations, 0 active claims; FZ-COVERAGE-20260810-335の独立評価で、引数メタデータなしの汎用host memberはundefinedを受け取り不足引数を検出しない経路が観測された"
+    decision: "COM metadata契約の範囲外として335では判定しなかったが、引数・ByRef・Propertyの信頼度を上げるため、metadataなし遅延バインドメンバーの必須引数契約を別候補としてFZ-COVERAGE-20260810-338に分離する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-338
+    coverageSnapshot: COV-2026-08-14-current

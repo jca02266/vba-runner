@@ -3221,3 +3221,15 @@ items:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
       - tests/spec/property-array-assignment.test.ts
+  - id: FZ-COVERAGE-20260810-338
+    title: Metadata-less host member arity
+    status: queued
+    priority: 2
+    focus: 引数・ByRef・Property領域のメタデータなし遅延バインドメンバーにおける必須引数不足
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/evaluator.ts:5406-5425
+      - src/engine/evaluator.ts:5546-5588
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/com-object-argument-boundary.test.ts
