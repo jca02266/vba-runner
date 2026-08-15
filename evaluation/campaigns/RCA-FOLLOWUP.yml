@@ -470,3 +470,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/nonfinite-boundaries.test.ts
+  - id: RCA-FOLLOWUP-046
+    title: MIRR FinanceRate負値の一般境界
+    status: queued
+    priority: 1
+    focus: MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
