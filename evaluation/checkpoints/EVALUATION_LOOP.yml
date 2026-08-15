@@ -2245,3 +2245,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-335
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00849
+    audit: "747 evaluations, 0 active claims; FZ-COVERAGE-20260810-335のメタデータ付き動的メンバー、CallByName、With、通常手続きの引数不足を比較し、Error 450/449の契約差異を確認"
+    decision: "FZ-COVERAGE-20260810-335はverified-no-bugとして完了した。メタデータを持たない汎用ホスト関数は今回のCOM契約対象外のため、推測でバグ化せず、次の仮引数型サフィックス境界をFZ-COVERAGE-20260810-336で評価する"
+    action: next
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-336
+    coverageSnapshot: COV-2026-08-14-current
