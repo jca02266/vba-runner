@@ -2629,3 +2629,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-370
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00892
+    audit: "789 evaluations, 0 active claims; CVarのスカラーVariantサブタイプを確認し、Decimal・Currency・Error・Null・Emptyに差異がなかった。NPer/MIRR/修飾Propertyの実機待ちは未着のため変更しない"
+    decision: "スカラーCVarの保持は確認済み。次は同じCVar経路へLong配列とVBAクラスを渡し、配列メタデータとObject参照が値変換で壊れないかを評価する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-371
+    coverageSnapshot: COV-2026-08-15-current

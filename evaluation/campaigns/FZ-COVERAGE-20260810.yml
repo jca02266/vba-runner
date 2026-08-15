@@ -3690,3 +3690,19 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/cdec.test.ts
+  - id: FZ-COVERAGE-20260810-371
+    title: CVar composite value preservation
+    status: queued
+    priority: 1
+    focus: CVarへLong配列とVBAクラスを渡した場合の配列形状・Object参照・メンバーアクセス保持
+    priorCauseKey: vba-variant-subtype-preservation
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts
+      - tests/spec/typename.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/array-functions.test.ts
