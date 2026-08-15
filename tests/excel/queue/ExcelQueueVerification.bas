@@ -80,6 +80,7 @@ Public Sub RunExcelQueueVerification()
     VerifyDictionaryExistsRequired
     VerifyPendingExcelBoundaries
     VerifySydBoundaryMatrix
+    VerifyFinancialIntermediateFollowup
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
     VerifyRadixExplicitSignMatrix
@@ -112,6 +113,19 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyFinancialIntermediateFollowup()
+    Dim value As Double, huge As Double, errNo As Long
+    huge = 1E+308
+    On Error Resume Next
+    Err.Clear: value = FV(0.5, 2, -huge * 1.5, huge, 0): errNo = Err.Number
+    EmitResult "XL-214 FV-CANCELLATION ERR=" & CStr(errNo)
+    Err.Clear: value = PV(0.5, 2, -huge, huge * 2.25, 0): errNo = Err.Number
+    EmitResult "XL-215 PV-CANCELLATION ERR=" & CStr(errNo)
+    Err.Clear: value = PMT(0.5, 2, huge, -huge * 2.25, 0): errNo = Err.Number
+    EmitResult "XL-216 PMT-CANCELLATION ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifySydBoundaryMatrix()

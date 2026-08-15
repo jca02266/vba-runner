@@ -759,6 +759,7 @@
 | EV-00855 | RCA-FOLLOWUP | fixed | 1 | SYDの領域エラーとOverflow分類境界 |
 | EV-00856 | RCA-FOLLOWUP | verified-no-bug | 1 | Property LetのByRef型検査と式参照バインディング |
 | EV-00857 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
+| EV-00858 | RCA-FOLLOWUP | needs-excel | 1 | 金融関数の中間Overflow安定性横展開 |
 
 ## 状態集計
 
@@ -766,13 +767,14 @@
 |---|---:|
 | fixed | 337 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 411 |
 
-横展開未解決経路: 566、実Excel待ち評価: 0
+横展開未解決経路: 567、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-042 | 1 | queued | SYDで数学的に有限な結果を中間Overflowさせない計算順序を他金融関数へ横展開する | yes |
+| (none) | | | | |

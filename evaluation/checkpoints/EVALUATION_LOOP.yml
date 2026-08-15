@@ -2325,6 +2325,14 @@ checkpoints:
     nextEvaluation: EV-00855
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00858
+    audit: "756 evaluations, 0 active claims; FV、PV、PMTの巨大入力キャンセル境界をRunnerで確認し、Excel照合用XL-214〜XL-216を既存キューへ追加した"
+    decision: "EV-00858をneeds-excelへ遷移し、t.xlsmを再生成してQUEUE_SOURCE_SHA256を検証した。Windows結果で数学的に有限な境界のExcel契約を確認する"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00858
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00855
     audit: "755 evaluations, 0 active claims; XL-213で数学的に有限なSYD結果が中間乗算によりRunner Error 6、Excel Error 0となる差異を確認した"
     decision: "EV-00855をbug-found、BUG-00536を作成した。独立RCAで入力領域Error 5と中間Overflowを分離したため、RC-00012へ補足を追加し、修正はSYDの計算順序と最終Overflow判定の回帰設計後に行う"
@@ -2356,6 +2364,14 @@ checkpoints:
     nextArea: 組み込み関数
     nextEvaluation: null
     nextCandidate: RCA-FOLLOWUP-042
+    coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00858
+    audit: "756 evaluations, 0 active claims; FV、PV、PMTの巨大入力キャンセル境界をRunnerで確認し、Excel照合用XL-214〜XL-216を既存キューへ追加した"
+    decision: "EV-00858をneeds-excelへ遷移し、t.xlsmを再生成してQUEUE_SOURCE_SHA256を検証した。Windows結果で数学的に有限な境界のExcel契約を確認する"
+    action: excel-run
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00858
+    nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
   - afterEvaluation: EV-00857
     audit: "755 evaluations, 0 active claims; XL-208、XL-211、XL-212をExcelQueueVerification.basへ追加し、準備済みt.xlsmとソースハッシュが一致した"
