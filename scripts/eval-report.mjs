@@ -123,6 +123,21 @@ function candidateCount(records) {
   return ids.size;
 }
 
+function unassessedCandidateCount(records) {
+  const assessed = new Set();
+  for (const record of records) {
+    if (record.candidateId) assessed.add(record.candidateId);
+  }
+  let count = 0;
+  for (const name of listFiles(campaignsDir, '.yml')) {
+    const campaign = yaml.load(fs.readFileSync(path.join(campaignsDir, name), 'utf8'), { json: true });
+    for (const item of campaign?.items ?? []) {
+      if (item?.status === 'queued' && item.id && !assessed.has(item.id)) count += 1;
+    }
+  }
+  return count;
+}
+
 function readResults() {
   const results = new Map();
   for (const name of listFiles(statesDir, '.result.yml')) {
@@ -484,6 +499,7 @@ function countDelta(currentRows, previousRows, key, fields = ['count']) {
 function renderMarkdown(records, statusRecords, summary, classSummary, series, findingTypes) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const candidateTotal = candidateCount(records);
+  const unassessedCandidates = unassessedCandidateCount(records);
   const needsExcel = evaluationStatusCount(records, 'needs-excel');
   const bugFound = evaluationStatusCount(records, 'bug-found');
   const recentIncrease = recentBugIncrease(series);
@@ -500,7 +516,7 @@ function renderMarkdown(records, statusRecords, summary, classSummary, series, f
     '',
     'このファイルは `scripts/eval-report.mjs` から生成されます。',
     '',
-    `候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs} (+${recentIncrease})、needs-excel件数: ${needsExcel}、bug-found件数: ${bugFound}`,
+    `候補件数: ${candidateTotal}${unassessedCandidates > 0 ? ` (未評価: ${unassessedCandidates})` : ''}、評価件数: ${records.length}、発見バグ件数: ${totalBugs} (+${recentIncrease})、needs-excel件数: ${needsExcel}、bug-found件数: ${bugFound}`,
     '',
     '## 実装領域別集計',
     '',
@@ -668,6 +684,7 @@ function renderBugPieCharts(summary, findingTypes) {
 function renderHtml(records, statusRecords, statusRows, summary, classSummary, series, findingTypes, rootCauseStatuses) {
   const totalBugs = records.reduce((sum, record) => sum + findingCount(record), 0);
   const candidateTotal = candidateCount(records);
+  const unassessedCandidates = unassessedCandidateCount(records);
   const needsExcel = evaluationStatusCount(records, 'needs-excel');
   const bugFound = evaluationStatusCount(records, 'bug-found');
   const recentIncrease = recentBugIncrease(series);
@@ -772,6 +789,9 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
   });
 })();
 </script>`;
+  const unassessedMetric = unassessedCandidates > 0
+    ? ` <span class="alert-metric">(未評価: ${unassessedCandidates})</span>`
+    : '';
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8">${reportLayoutOverrides}
 <title>VBA Runner 評価レポート</title>
@@ -780,7 +800,7 @@ function renderHtml(records, statusRecords, statusRows, summary, classSummary, s
 *{box-sizing:border-box}html,body{height:100%;overflow:hidden}body{font-family:system-ui,sans-serif;line-height:1.2;font-size:14px;margin:0;padding:7px;color:#222}h1{font-size:18px;margin:0}h2{font-size:16px;margin:0 0 4px}h3{font-size:14px;margin:0 0 3px}p{margin:3px 0 5px}.dashboard-header{height:38px;display:flex;align-items:center;justify-content:space-between;gap:8px}.meta{white-space:nowrap}.tabs{display:flex;gap:3px}.tab-button{border:1px solid #aaa;background:#f3f3f3;border-radius:3px;padding:3px 8px;font:inherit;cursor:pointer}.tab-button.active{background:#2563eb;color:#fff;border-color:#2563eb}.tab-panel{display:none;height:calc(100vh - 45px);overflow:hidden}.tab-panel.active{display:block}.panel-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(250px,.85fr);gap:6px;height:100%}.two-column{display:grid;grid-template-columns:1fr 1fr;gap:6px}.panel-card{border:1px solid #d0d0d0;border-radius:3px;padding:5px;min-width:0;overflow:hidden}table{border-collapse:collapse;margin:3px 0 6px;width:100%;table-layout:auto}th,td{border:1px solid #bbb;padding:2px 3px;text-align:left;white-space:nowrap}th{background:#eee;white-space:normal}th.numeric,td.numeric{text-align:right}code{background:#f3f3f3;padding:.05rem .15rem}.compact-table{font-size:12px}.compact-table th,.compact-table td{padding:2px 3px}.chart-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;height:50%;min-height:180px}.chart-container{height:calc(50% - 3px);min-height:0;margin:0 0 6px}.chart-container canvas{height:100%!important;max-height:100%;width:100%!important}.chart-row .chart-container{height:100%;margin:0}.pie-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;height:240px}.pie-grid .chart-container{height:240px;margin:0}.pie-grid .chart-container canvas{height:240px!important;max-height:240px}.recent-table{font-size:11px;table-layout:auto}.recent-table th,.recent-table td{overflow:visible;text-overflow:clip}.recent-table .recent-date{width:175px}.recent-table .recent-area{width:160px;white-space:normal}.status-grid{display:flex;flex-direction:column;gap:6px;height:100%}.status-grid .panel-card{flex:1;overflow:hidden;font-size:14px}.status-grid h2{font-size:16px}.status-grid .compact-table{font-size:14px}.status-grid p{font-size:14px}@media(max-height:700px){body{padding:5px}.dashboard-header{height:34px}.tab-panel{height:calc(100vh - 41px)}.compact-table{font-size:11px}.chart-row{height:50%;min-height:150px}.pie-grid{height:200px}.pie-grid .chart-container,.pie-grid .chart-container canvas{height:200px!important;max-height:200px}.status-grid .compact-table{font-size:12px}}
 </style>
 <style>.finding-chart-controls{height:24px;display:flex;align-items:center;gap:5px}.finding-chart-controls select{font:inherit;padding:1px 4px}.finding-chart-canvas{height:calc(100% - 24px)!important;max-height:calc(100% - 24px)!important}</style>
-</head><body><header class="dashboard-header"><h1>評価レポート</h1><p class="meta">候補件数: ${candidateTotal}、評価件数: ${records.length}、発見バグ件数: ${totalBugs} (+${recentIncrease})、<span class="${needsExcel > 0 ? 'alert-metric' : ''}">needs-excel件数: ${needsExcel}</span>、<span class="${bugFound > 0 ? 'alert-metric' : ''}">bug-found件数: ${bugFound}</span></p><nav class="tabs" role="tablist"><button class="tab-button active" role="tab" aria-selected="true" data-tab="convergence">収束状況</button><button class="tab-button" role="tab" aria-selected="false" data-tab="overview">評価領域</button><button class="tab-button" role="tab" aria-selected="false" data-tab="status">状態・真因</button></nav></header>
+</head><body><header class="dashboard-header"><h1>評価レポート</h1><p class="meta">候補件数: ${candidateTotal}${unassessedMetric}、評価件数: ${records.length}、発見バグ件数: ${totalBugs} (+${recentIncrease})、<span class="${needsExcel > 0 ? 'alert-metric' : ''}">needs-excel件数: ${needsExcel}</span>、<span class="${bugFound > 0 ? 'alert-metric' : ''}">bug-found件数: ${bugFound}</span></p><nav class="tabs" role="tablist"><button class="tab-button active" role="tab" aria-selected="true" data-tab="convergence">収束状況</button><button class="tab-button" role="tab" aria-selected="false" data-tab="overview">評価領域</button><button class="tab-button" role="tab" aria-selected="false" data-tab="status">状態・真因</button></nav></header>
 <section id="tab-overview" class="tab-panel active" role="tabpanel"><div class="panel-grid"><div class="panel-card"><h2>実装領域別集計</h2><p>相対収束度 = 1 - (領域別の直近発見率 / 領域別の累積発見率)。直近は各領域の評価件数の10%（切り上げ、ただし最低${AREA_RECENT_MIN_EVALUATION_COUNT}件）です。領域の評価件数が必要な直近件数未満、または累積発見率が0の場合は<code>#N/A</code>とします。</p><table class="compact-table"><thead><tr><th>領域分類</th><th>実装領域</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>相対収束度</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${summaryRows}${summaryTotalRow}</tbody></table><h3>領域分類別集計</h3><table class="compact-table"><thead><tr><th>領域分類</th><th>評価件数</th><th>バグ件数</th><th>検出率</th><th>未確定</th><th>対象外</th></tr></thead><tbody>${classSummaryRows}${classSummaryTotalRow}</tbody></table></div><div class="panel-card"><h2>バグ発見種別</h2><p><code>discoveryType: regression</code> はデグレードを表します。</p><table class="compact-table"><thead><tr><th>発見種別</th><th>Finding件数</th></tr></thead><tbody>${findingTypeRows}${findingTotalRow}</tbody></table>${renderBugPieCharts(summary, findingTypes)}</div></div></section>
 <section id="tab-convergence" class="tab-panel" role="tabpanel"><div class="panel-card" style="height:100%"><h2>時系列の収束状況</h2><p>状態履歴の <code>occurredAt</code> を基準に評価単位で集計しています。旧評価は <code>completedAt</code> または本文の評価日を使用します。表示日時はローカルTZ（${htmlCell(timeZone)}）です。Finding列は別単位の指標です。</p><div class="chart-row">${renderConvergenceChart(series)}</div><h3>評価一覧（直近10件）</h3><table class="recent-table"><thead><tr><th>状態遷移日時</th><th>評価ID</th><th>状態</th><th>実装領域</th><th>評価累積</th><th>バグ状態</th><th>非バグ状態</th><th>判定保留</th><th>その他状態</th><th>発見Finding</th><th>解決済み</th><th>未解決</th></tr></thead><tbody>${seriesRows}</tbody></table></div></section>
 <section id="tab-status" class="tab-panel" role="tabpanel"><div class="status-grid"><div class="panel-card"><h2>評価状態の意味と計上先</h2><p>全件数を集計しています。グラフと一覧は状態履歴の遷移日時を使用します。</p><table class="compact-table"><thead><tr><th>評価状態</th><th>件数</th><th>意味</th><th>評価分類</th><th>Finding計上</th></tr></thead><tbody>${evaluationStatusRows}${statusTotalRow}</tbody></table></div><div class="panel-card"><h2>真因分析の状態別件数</h2><p><code>rootCauseAnalysis.status</code> を集計しています。v0は旧方式の記録です。</p><table class="compact-table"><thead><tr><th>状態</th><th>件数</th><th>v1</th><th>v0・未設定</th><th>意味</th></tr></thead><tbody>${rootCauseStatusRows}${rootCauseTotalRow}</tbody></table></div></div></section>
