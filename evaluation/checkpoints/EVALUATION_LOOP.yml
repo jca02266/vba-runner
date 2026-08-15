@@ -2317,3 +2317,11 @@ checkpoints:
     nextEvaluation: EV-00850
     nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00857
+    audit: "755 evaluations, 0 active claims; 未評価だった3候補を評価記録へ登録し、金融関数のSYD境界、ByRef Property Let境界、Typed ByRefのExcel照合をneeds-excel-probeとして分離した"
+    decision: "3候補のランナー側確認を完了した。SYDとTyped ByRefは既存実機キューにないプローブが必要で、Property Let異型ByRefは独立評価で差異候補が見つかったため、XL-211/XL-212/XL-208を順に追加して実機確認する"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00855
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current

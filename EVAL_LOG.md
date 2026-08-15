@@ -756,6 +756,9 @@
 | EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
 | EV-00853 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
 | EV-00854 | FZ-COVERAGE-20260810 | fixed |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
+| EV-00855 | RCA-FOLLOWUP | needs-excel-probe | 1 | SYDの領域エラーとOverflow分類境界 |
+| EV-00856 | RCA-FOLLOWUP | needs-excel-probe | 1 | Property LetのByRef型検査と式参照バインディング |
+| EV-00857 | FZ-COVERAGE-20260810 | needs-excel-probe | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
 
 ## 状態集計
 
@@ -763,15 +766,14 @@
 |---|---:|
 | fixed | 336 |
 | known-limit | 5 |
+| needs-excel-probe | 3 |
 | retired | 2 |
 | verified-no-bug | 409 |
 
-横展開未解決経路: 564、実Excel待ち評価: 0
+横展開未解決経路: 567、実Excel待ち評価: 3
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-040 | 1 | queued | SYDなど金融関数の引数領域エラーと共通Overflowエラーの分類契約を整理する | yes |
-| RCA-FOLLOWUP-041 | 1 | queued | Class・Property・CallByNameのByRef呼出しで式とLValue参照情報を共通必須化する | yes |
-| FZ-COVERAGE-20260810-336-EXCEL | 1 | queued | 引数・ByRef・Property領域の型付きByRef異型実引数に対するExcel実行前エラー |  |
+| (none) | | | | |

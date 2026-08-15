@@ -1,0 +1,9 @@
+- candidateId: RCA-FOLLOWUP-041
+  evaluationId: EV-00856
+  status: in-progress
+  occurredAt: '2026-08-15T03:11:38.274Z'
+- candidateId: RCA-FOLLOWUP-041
+  evaluationId: EV-00856
+  status: needs-excel-probe
+  fromStatus: in-progress
+  occurredAt: '2026-08-15T03:13:00.432Z'
