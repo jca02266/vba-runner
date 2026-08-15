@@ -154,6 +154,9 @@ export function vbaToBoolean(val: any): VbaBoolean {
     if (val === vbaEmpty) return vbaFalse;
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (typeof val === 'number') return val !== 0 ? vbaTrue : vbaFalse;
+    // LongLong and LongPtr retain their exact integer representation as bigint.
+    // Do not coerce through Number, which could lose significant high bits.
+    if (typeof val === 'bigint') return val !== 0n ? vbaTrue : vbaFalse;
     if (typeof val === 'boolean') return val ? vbaTrue : vbaFalse;
     if (val instanceof VbaDecimal) return val.value !== 0 ? vbaTrue : vbaFalse;
     if (val instanceof VbaCurrency) return val.internal !== 0n ? vbaTrue : vbaFalse;

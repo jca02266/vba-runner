@@ -3832,3 +3832,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/cdate.test.ts
+  - id: FZ-COVERAGE-20260810-381
+    title: CBool LongLong numeric expression
+    status: queued
+    priority: 1
+    focus: CBoolへLongLong数値式を渡した場合の真偽変換
+    priorCauseKey: cbool-numeric-variant-width-coverage
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/conversion-extra.test.ts
+    coverageTargets:
+      - src/engine/coerce.ts
+      - tests/spec/conversion-extra.test.ts

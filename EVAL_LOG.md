@@ -803,12 +803,13 @@
 | EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
 | EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
 | EV-00902 | FZ-COVERAGE-20260810 | needs-excel |  | CDateの許容シリアル値上下端とError 6境界 |
+| EV-00903 | FZ-COVERAGE-20260810 | fixed | 1 | CBoolへLongLong数値式を渡した場合の真偽変換 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 348 |
+| fixed | 349 |
 | known-limit | 5 |
 | needs-excel | 6 |
 | retired | 2 |
