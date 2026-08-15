@@ -18,6 +18,8 @@ ev.callProcedure('Test', []);
 
 assertClose(ev.env.get('pmttext') as number, 88.8487886783416, {
     message: 'PMT coerces numeric strings',
+    // The host and runner may differ by a few ulps in the annuity factor.
+    absolute: 1e-12,
 });
 assertClose(ev.env.get('pmtinteger') as number, 25, {
     message: 'PMT accepts Integer arguments',

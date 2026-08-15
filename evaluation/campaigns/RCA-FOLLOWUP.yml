@@ -460,3 +460,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-045
+    title: FV非有限係数のゼロキャッシュフロー境界
+    status: queued
+    priority: 1
+    focus: FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する
+    priorCauseKey: financial-intermediate-overflow-contract-not-centralized
+    rootCauseId: RC-00012
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/nonfinite-boundaries.test.ts

@@ -2061,6 +2061,13 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         terms: Array<[value: number, factor: number]>,
         divisor = 1,
     ): number => {
+        // A zero-valued term must not hide an invalid rate factor.  Excel
+        // reports overflow for FV/PMT-style calculations as soon as an
+        // intermediate factor is non-finite, even when every cash-flow value
+        // is zero (BUG-00539).
+        if (terms.some(([, factor]) => !Number.isFinite(factor))) {
+            return finiteResult(Number.NaN);
+        }
         const scale = Math.max(...terms.map(([value]) => Math.abs(value)));
         if (scale === 0) return 0;
         if (!Number.isFinite(scale) || !Number.isFinite(divisor) || divisor === 0) {
