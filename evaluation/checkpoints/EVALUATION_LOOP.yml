@@ -2709,3 +2709,43 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00902
+    audit: "799 evaluations, 0 active claims; CDateシリアル上下端のXL-224を準備し、実機結果待ちを維持した"
+    decision: "CDateの許容境界はExcel結果の同期後に確定する。ローカル候補が空のため、実機待ちを優先しつつLongLong Boolean変換の未評価境界をソースレビューする"
+    action: source-review
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-381
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00903
+    audit: "800 evaluations, 0 active claims; CBoolのLongLong/LongPtr bigint変換でError 13を再現し、RCAと回帰テストを追加した"
+    decision: "vbaToBooleanのbigint分岐を追加してCBoolの数値契約を修正する。修正後は符号境界を別評価し、実機待ち評価の状態は変更しない"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00905
+    nextCandidate: FZ-COVERAGE-20260810-383
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00904
+    audit: "801 evaluations, 0 active claims; CVarの配列・クラス・Decimal・Currency・Date・Empty保持に差異なし"
+    decision: "CVar複合値の保持は仕様確認済み。CBool修正後のLongLong符号・64ビット境界を追加確認する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00905
+    nextCandidate: FZ-COVERAGE-20260810-383
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00905
+    audit: "802 evaluations, 0 active claims; CBoolのLongLong 0・負値・最大値・最小値は期待どおりで、範囲外CLngLngのError番号差異を発見した"
+    decision: "CLngLng/CLngPtrの範囲外変換を新規評価として切り出し、構文不正とOverflowの例外境界を横展開する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00906
+    nextCandidate: FZ-COVERAGE-20260810-384
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00906
+    audit: "803 evaluations, 0 active claims; CLngLng/CLngPtr範囲外のError 13をError 6へ修正し、構文不正との差を回帰テストで固定した。実機待ち評価は未解消"
+    decision: "LongLong変換の直接・真因対処は完了。次は実機待ち評価の同期を優先し、結果が到着するまで新しい候補を増やさない"
+    action: excel-probe
+    nextArea: 実Excel照合
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
