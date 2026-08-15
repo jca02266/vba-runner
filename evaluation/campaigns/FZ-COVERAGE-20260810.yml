@@ -3658,3 +3658,19 @@ items:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
       - tests/spec/real-vba-diff-regressions.test.ts
+  - id: FZ-COVERAGE-20260810-369
+    title: CopyFolder overwrite nested parity
+    status: queued
+    priority: 1
+    focus: CopyFolderの既存宛先・入れ子ファイル上書きにおけるMemory/Nodeバックエンドの同一性
+    priorCauseKey: filesystem-copy-entry-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - src/engine/evaluator.ts
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy-empty.test.ts

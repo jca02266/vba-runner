@@ -791,6 +791,7 @@
 | EV-00888 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号とWeekdayのFirstDayOfWeek・FirstWeekOfYear全指定行列 |
 | EV-00889 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePartの閏日・週・四半期境界横断 |
 | EV-00890 | FZ-COVERAGE-20260810 | verified-no-bug |  | CStrのEmpty・Boolean・Currency・Decimal・Error値の戻り値表現とErr伝播 |
+| EV-00891 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderの既存宛先・入れ子ファイル上書きにおけるMemory/Nodeバックエンドの同一性 |
 
 ## 状態集計
 
@@ -800,7 +801,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 431 |
+| verified-no-bug | 432 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 

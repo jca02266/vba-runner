@@ -2613,3 +2613,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-368
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00890
+    audit: "787 evaluations, 0 active claims; CStrの5型境界を仕様表と独立レビューで確認し、未解決のFSOバックエンド契約を優先対象にした"
+    decision: "CStrは仕様一致。次はCopyFolderのoverwrite=Trueで既存宛先と入れ子ファイルをMemory/Node双方に適用し、FSO入口へ伝播するコピー契約の差異を確認する"
+    action: create-candidate
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-369
+    coverageSnapshot: COV-2026-08-15-current
