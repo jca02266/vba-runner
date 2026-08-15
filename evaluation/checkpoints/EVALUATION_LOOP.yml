@@ -2253,3 +2253,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-336
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00850
+    audit: "748 evaluations, 0 active claims; FZ-COVERAGE-20260810-336で型サフィックス、標準モジュール・クラスの一致型ByRef書戻しを確認したが、Integer/DoubleをByRef Longへ渡す型不一致検査はランナーで未実装の可能性がある"
+    decision: "Excelの実行前型検査と比較する必要があるため、FZ-COVERAGE-20260810-336をneeds-excel-probeで完了した。CompileError用のXL-208を作成して実機結果を取得し、結果確定後に直接原因と共通原因を判定する。次はIndexed Propertyのvalue-tail bindingをFZ-COVERAGE-20260810-337で評価する"
+    action: next
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-337
+    coverageSnapshot: COV-2026-08-14-current
