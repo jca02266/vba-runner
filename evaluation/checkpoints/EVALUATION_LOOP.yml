@@ -2261,3 +2261,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-337
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00851
+    audit: "749 evaluations, 0 active claims; FZ-COVERAGE-20260810-337のIndexed Property Let/Setで位置・Optional・名前付き引数、暗黙value-tail、Property Setと既存Interface/ParamArray経路を独立再現し差異なし"
+    decision: "FZ-COVERAGE-20260810-337はverified-no-bugとして完了した。引数・ByRef・Propertyの今回の5経路は評価済みだが、EV-00850の型不一致ByRefは実機プローブ待ちのため、Excel確認キューを優先する"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00850
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
