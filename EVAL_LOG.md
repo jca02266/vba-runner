@@ -781,6 +781,7 @@
 | EV-00878 | FZ-COVERAGE-20260810 | fixed | 1 | FSO MoveFile・File.Moveの既存destination衝突とバックエンド差異 |
 | EV-00879 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのcopyDirectorySync空ディレクトリ・入れ子構造契約 |
 | EV-00880 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのcopyDirectorySync入れ子衝突失敗時状態契約 |
+| EV-00881 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAddとDateDiffの負方向・正方向の日付境界と時刻繰上げ繰下げ |
 
 ## 状態集計
 
@@ -790,7 +791,7 @@
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 421 |
+| verified-no-bug | 422 |
 
 横展開未解決経路: 582、実Excel待ち評価: 3
 

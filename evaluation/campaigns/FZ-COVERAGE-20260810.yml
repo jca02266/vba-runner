@@ -3520,3 +3520,16 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/tooling/filesystem-backend-copy.test.ts
+  - id: FZ-COVERAGE-20260810-359
+    title: DateAdd signed calendar rollover parity
+    status: queued
+    priority: 1
+    focus: DateAddとDateDiffの負方向・正方向の日付境界と時刻繰上げ繰下げ
+    priorCauseKey: vba-date-arithmetic-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/date-arithmetic-signed-boundary-matrix.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/date-arithmetic-signed-boundary-matrix.test.ts

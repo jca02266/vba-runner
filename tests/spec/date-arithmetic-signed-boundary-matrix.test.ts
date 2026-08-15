@@ -28,7 +28,9 @@ Public Function Probe() As String
         Probe = CStr(errNo) & "|" & TypeName(value) & "|" & CStr(value)
     End If
 End Function`);
-    assert.equal(ev.callProcedure('Probe', []), expected, `Date arithmetic ${expression}`);
+    const actual = ev.callProcedure('Probe', []);
+    assert.equal(actual, expected, `Date arithmetic ${expression}`);
+    console.log(`DATE-MATRIX ${expression} => ${actual}`);
 }
 
 assert.equal(cases.length, 8);
