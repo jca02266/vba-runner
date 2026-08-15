@@ -361,6 +361,25 @@ console.log('[PASS] SYD negative salvage domain');
 }
 console.log('[PASS] SLN huge operand stability');
 
+// SYD must not overflow an intermediate multiplication when the final
+// mathematical result remains finite.
+{
+    const ev = evalVBASingle(String.raw`
+    Public sydStable As Variant, sydStableErr As Long
+    Sub Test()
+        On Error Resume Next
+        sydStable = SYD(1E+308, 0, 2, 1)
+        sydStableErr = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('sydstableerr'), 0,
+        'SYD finite result does not become an intermediate overflow');
+    assert.ok(Number.isFinite(ev.env.get('sydstable')),
+        'SYD result remains finite');
+}
+console.log('[PASS] SYD intermediate overflow stability');
+
 // Excel rejects a non-finite intermediate book/salvage difference in DDB.
 {
     const ev = evalVBASingle(`

@@ -430,3 +430,13 @@ items:
       - src/engine/evaluator.ts
       - tests/spec/callbyname-byref-type.test.ts
       - tests/spec/byref-scalar-type.test.ts
+  - id: RCA-FOLLOWUP-042
+    title: 金融関数の中間Overflow安定性横展開
+    status: queued
+    priority: 1
+    focus: SYDで数学的に有限な結果を中間Overflowさせない計算順序を他金融関数へ横展開する
+    priorCauseKey: financial-domain-and-overflow-errors-not-separated
+    rootCauseId: RC-00012
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

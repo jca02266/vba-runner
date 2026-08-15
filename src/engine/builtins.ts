@@ -2170,7 +2170,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('syd', (cost: any, salvage: any, life: any, period: any) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period);
         if (!Number.isFinite(l) || !Number.isFinite(p) || l <= 0 || p <= 0 || p > l || s < 0) invalidFinancialArg();
-        return finiteResult(((c - s) * (l - p + 1) * 2) / (l * (l + 1)));
+        // Apply the denominator before the numerator multiplier so a
+        // mathematically finite result does not overflow an intermediate.
+        const factor = ((l - p + 1) * 2) / (l * (l + 1));
+        return finiteResult((c - s) * factor);
     }, [{ name: 'Cost' }, { name: 'Salvage' }, { name: 'Life' }, { name: 'Period' }]);
     ctx.reg('ddb', (cost: any, salvage: any, life: any, period: any, factor: any = 2) => {
         const c = toNum(cost), s = toNum(salvage), l = toNum(life), p = toNum(period), f = toNum(factor);
