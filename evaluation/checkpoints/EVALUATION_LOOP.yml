@@ -2285,3 +2285,11 @@ checkpoints:
     nextEvaluation: EV-00850
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00850
+    audit: "750 evaluations, 0 active claims; 公式ByRef型不一致仕様とvba-runnerの差異を再確認し、標準モジュール・クラスの異型Scalar ByRefを実行前に拒否する共通検査と回帰テストを追加した"
+    decision: "EV-00850をfixed、BUG-00534を作成した。直接原因は修正済みだが、実Excelとの最終照合は別候補FZ-COVERAGE-20260810-336-EXCELへ分離し、Property/Interface/CallByNameの異型Scalar ByRefは横展開で確認する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
+    coverageSnapshot: COV-2026-08-14-current

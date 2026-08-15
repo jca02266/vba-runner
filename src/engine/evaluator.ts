@@ -104,6 +104,15 @@ import {
     isVbaObjectReferenceCompatible, isVbaBoundObject,
 } from './vba-types';
 import type { VbaVarType, VbaComObject } from './vba-types';
+
+const BYREF_SCALAR_TYPES = new Set([
+    'byte', 'integer', 'long', 'single', 'double', 'currency',
+    'longlong', 'longptr', 'string', 'boolean', 'date',
+]);
+
+function isByRefScalarTypeMismatch(actual: string | undefined, expected: string): boolean {
+    return !!actual && BYREF_SCALAR_TYPES.has(expected) && actual.toLowerCase() !== expected;
+}
 export {
     VbaBoolean, VbaDate, VbaErrorValue, VbaNamespaceRef, VbaCurrency,
     vbaEmpty, vbaNull, vbaNothing, vbaMissing,
@@ -970,6 +979,37 @@ export class Evaluator {
         return param.isByVal || forcedByVal ? this.deepCopyByValValue(value) : value;
     }
 
+    /**
+     * VBA requires a ByRef caller variable to have the exact declared scalar
+     * type of the callee parameter.  Parenthesized and explicit ByVal
+     * arguments are temporary values and are intentionally exempt.
+     */
+    private validateByRefScalarType(
+        expression: Expression | undefined,
+        param: ProcedureDeclaration['parameters'][number],
+        forcedByVal: boolean,
+    ): void {
+        if (param.isByVal || forcedByVal || param.isArray || !param.paramType) return;
+        const expected = param.paramType.toLowerCase();
+        if (!BYREF_SCALAR_TYPES.has(expected) || !expression) return;
+        let expr = expression;
+        if (expr.type === 'NamedArgument') expr = (expr as NamedArgument).value;
+        if (expr.type === 'ParenthesizedExpression' || expr.type === 'ByValArgument') return;
+        let actual: string | undefined;
+        if (expr.type === 'Identifier') {
+            const name = (expr as Identifier).name;
+            actual = this.env.getVariableType(name)?.vbaType;
+            if (!actual && this.env.hasVariable(name)) {
+                actual = this.env.getVariantSubtype(name) ?? 'Variant';
+            }
+        } else {
+            actual = this.resolveDeclaredReturnType(expr);
+        }
+        if (isByRefScalarTypeMismatch(actual, expected)) {
+            this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'ByRef argument type mismatch');
+        }
+    }
+
     /** Normalize a scalar Object parameter at every procedure-call binder. */
     private normalizeObjectArgumentValue(
         value: any,
@@ -1139,6 +1179,8 @@ export class Evaluator {
             const expression = expressionBinding?.expressions[i];
             const forcedByVal = expression?.type === 'ParenthesizedExpression' ||
                 expression?.type === 'ByValArgument';
+            this.validateByRefScalarType(expression ?? undefined, param,
+                forcedByVal || isPropertyValueParameter(proc, i));
             argValue = this.prepareArgumentValue(
                 argValue,
                 param,
@@ -2168,6 +2210,30 @@ export class Evaluator {
             }
         };
 
+        const hasByRefTypeMismatch = (parameters: Parameter[], args: Expression[]): boolean => {
+            let positional = 0;
+            for (const arg of args) {
+                let paramIndex: number;
+                let value = arg;
+                if (arg.type === 'NamedArgument') {
+                    const named = arg as NamedArgument;
+                    paramIndex = parameters.findIndex(p => p.name.toLowerCase() === named.name.toLowerCase());
+                    value = named.value;
+                    if (paramIndex < 0) continue;
+                } else {
+                    paramIndex = positional++;
+                }
+                const param = parameters[paramIndex];
+                if (!param || param.isByVal || param.isArray || !param.paramType) continue;
+                const expected = param.paramType.toLowerCase();
+                if (!BYREF_SCALAR_TYPES.has(expected) || value.type === 'ParenthesizedExpression' || value.type === 'ByValArgument') continue;
+                if (value.type !== 'Identifier') continue;
+                const actual = variableTypes.get((value as Identifier).name.toLowerCase());
+                if (isByRefScalarTypeMismatch(actual, expected)) return true;
+            }
+            return false;
+        };
+
         const classProcedure = (typeName: string | undefined, memberName: string): ProcedureDeclaration | undefined => {
             const classDef = typeName ? this.classDefinitions.get(typeName.toLowerCase()) : undefined;
             if (!classDef) return undefined;
@@ -2188,6 +2254,13 @@ export class Evaluator {
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
                         const target = this.env.getProcedure((call.callee as Identifier).name);
                         if (target) {
+                            if (!findings.argumentError && hasByRefTypeMismatch(target.parameters, call.args)) {
+                                findings.argumentError = {
+                                    code: VbaErrorCode.TYPE_MISMATCH,
+                                    message: 'ByRef argument type mismatch',
+                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
+                                };
+                            }
                             const violation = classifyArgumentCount(target.parameters, call.args.length);
                             if (violation === 'missing') {
                                 findings.argumentError = {
@@ -2216,6 +2289,13 @@ export class Evaluator {
                             target.propertyType === 'get' && target.parameters.length === 0 &&
                             call.args.length > 0;
                         if (target && !indexesReturnedValue) {
+                            if (!findings.argumentError && hasByRefTypeMismatch(target.parameters, call.args)) {
+                                findings.argumentError = {
+                                    code: VbaErrorCode.TYPE_MISMATCH,
+                                    message: 'ByRef argument type mismatch',
+                                    line: call.loc?.start.line ?? member.property.loc?.start.line,
+                                };
+                            }
                             // VBA Function calls with excess arguments reach
                             // the runtime binder and report Type mismatch;
                             // Sub/Property calls retain static arity checks.

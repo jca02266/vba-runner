@@ -3233,3 +3233,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/com-object-argument-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-336-EXCEL
+    title: Typed ByRef caller mismatch Excel confirmation
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域の型付きByRef異型実引数に対するExcel実行前エラー
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - evaluation/evaluations/EV-00850.md
+      - https://learn.microsoft.com/ja-jp/office/vba/language/reference/user-interface-help/byref-argument-type-mismatch
+    coverageTargets:
+      - tests/vba/CompileError.bas
+      - tests/spec/byref-scalar-type.test.ts
