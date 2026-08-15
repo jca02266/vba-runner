@@ -2645,3 +2645,19 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-372
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00894
+    audit: "791 evaluations, 0 active claims; Strの符号・空白・指数・型変換・Nullを確認し一致した。CVar複合値とFSOコピーも直近で一致しており、StringのVariant character変換に未評価分岐がある"
+    decision: "String関数のcharacter引数はJavaScript numberだけを数値コードとして扱うため、Currency/DecimalなどVBA数値Variantで同じ意味になるかを優先確認する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-373
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00895
+    audit: "792 evaluations, 0 active claims; StringのCurrency・Decimal character引数で数値コード変換の差異を確認し、String/ String$の共有経路を横展開した。実機待ち3件は結果未着のため状態を変更しない"
+    decision: "Stringの数値Variant変換バグを記録し、同じcharacter引数経路のBoolean・Dateを別候補として評価する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-374
+    coverageSnapshot: COV-2026-08-15-current

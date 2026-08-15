@@ -1060,9 +1060,9 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const stringFunc = (n: any, char: any) => {
         if (n === vbaNull || char === vbaNull) return vbaNull;
         let c: string;
-        if (typeof char === 'number') {
+        if (typeof char === 'number' || char instanceof VbaCurrency || char instanceof VbaDecimal) {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
-            c = String.fromCharCode(ctx.round(char) % 256);
+            c = String.fromCharCode(ctx.round(ctx.toVbaNumber(char)) % 256);
         } else {
             const s = vbaToString(char ?? '');
             // Empty string character is invalid per spec

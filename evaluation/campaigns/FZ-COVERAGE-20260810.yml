@@ -3720,3 +3720,31 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-373
+    title: String numeric Variant character coercion
+    status: queued
+    priority: 1
+    focus: String関数のcharacter引数へCurrency・Decimal・Boolean・分数数値を渡す変換契約
+    priorCauseKey: vba-string-character-coercion
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtin-strings.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
+  - id: FZ-COVERAGE-20260810-374
+    title: String Boolean and Date character coercion
+    status: queued
+    priority: 1
+    focus: String関数のcharacter引数へBoolean・Dateを渡す数値コード変換契約
+    priorCauseKey: vba-string-character-coercion
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/vba-types.ts
+      - tests/spec/builtin-strings.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
