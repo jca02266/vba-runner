@@ -2621,3 +2621,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-369
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00891
+    audit: "788 evaluations, 0 active claims; CopyFolder overwrite=Trueのトップレベル・入れ子ファイルをMemory/Nodeで比較し一致した。NPer/MIRR/修飾Propertyの実機待ち3件は結果未着のため状態を変更しない"
+    decision: "FSOコピー契約に新差異なし。次はCVarが値をVariantへ包む際のDecimal・Currency・Error・Null・Emptyサブタイプを情報関数まで横断して確認する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-370
+    coverageSnapshot: COV-2026-08-15-current

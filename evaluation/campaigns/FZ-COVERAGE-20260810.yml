@@ -3674,3 +3674,19 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/tooling/filesystem-backend-copy-empty.test.ts
+  - id: FZ-COVERAGE-20260810-370
+    title: CVar Variant subtype preservation
+    status: queued
+    priority: 1
+    focus: CVarがDecimal・Currency・Error・Null・EmptyのVariantサブタイプと情報関数結果を保持するか
+    priorCauseKey: vba-variant-subtype-preservation
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/cdec.test.ts
+      - tests/spec/cverr.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/cdec.test.ts
