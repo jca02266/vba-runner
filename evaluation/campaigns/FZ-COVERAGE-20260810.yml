@@ -3643,3 +3643,18 @@ items:
       - src/engine/builtins.ts
       - src/engine/date-week.ts
       - tests/spec/date-calendar-cross-matrix.test.ts
+  - id: FZ-COVERAGE-20260810-368
+    title: CStr scalar subtype conversion boundaries
+    status: queued
+    priority: 1
+    focus: CStrのEmpty・Boolean・Currency・Decimal・Error値の戻り値表現とErr伝播
+    priorCauseKey: vba-string-coercion-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/real-vba-diff-regressions.test.ts
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/real-vba-diff-regressions.test.ts

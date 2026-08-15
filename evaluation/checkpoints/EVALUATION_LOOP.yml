@@ -2605,3 +2605,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00889
+    audit: "786 evaluations, 0 active claims; Date領域の閏日・週・四半期横断評価を完了し、既存の実機待ち以外に高優先度の未処理候補がないことを確認した"
+    decision: "Date境界の一巡後は、未評価の型変換共通経路を優先する。CStrのEmpty・Boolean・Currency・Decimal・Error値を一つの自己完結マトリクスで確認し、CStrの共通変換契約の不足を探る"
+    action: create-candidate
+    nextArea: 組み込み型変換
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-368
+    coverageSnapshot: COV-2026-08-15-current
