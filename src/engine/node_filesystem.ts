@@ -25,7 +25,33 @@ export class NodeFileSystem implements FileSystem {
         if (target === source || target.startsWith(`${source}${path.sep}`)) {
             throw new Error(`EINVAL: destination is inside source '${dest}'`);
         }
+        if (!options?.overwrite) {
+            this.assertNoDirectoryFileCollisions(source, target);
+        }
         fs.cpSync(src, dest, { recursive: true, force: options?.overwrite === true, errorOnExist: options?.overwrite !== true });
+    }
+
+    /**
+     * Match MemoryFileSystem's overwrite=false preflight. Node's cpSync can
+     * copy earlier entries before reporting a later EEXIST, which would leave
+     * the two FileSystem backends with different failure states.
+     */
+    private assertNoDirectoryFileCollisions(source: string, target: string): void {
+        if (fs.existsSync(target) && !fs.statSync(target).isDirectory()) {
+            throw new Error(`EEXIST: destination exists '${target}'`);
+        }
+        const visit = (current: string, relative: string): void => {
+            for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+                const childRelative = path.join(relative, entry.name);
+                const destination = path.join(target, childRelative);
+                if (entry.isDirectory()) {
+                    visit(path.join(current, entry.name), childRelative);
+                } else if (fs.existsSync(destination)) {
+                    throw new Error(`EEXIST: destination exists '${destination}'`);
+                }
+            }
+        };
+        visit(source, '');
     }
     moveDirectorySync(src: string, dest: string) {
         const source = path.resolve(src);
