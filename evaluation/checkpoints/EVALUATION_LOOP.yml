@@ -2237,3 +2237,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-334
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00848
+    audit: "746 evaluations, 0 active claims; FZ-COVERAGE-20260810-334のOptional中間省略、名前付き末尾引数、ByRef・クラス・Property経路を独立再現し、期待値との差異なし"
+    decision: "FZ-COVERAGE-20260810-334はverified-no-bugとして完了した。次は動的メンバーの必須引数不足と通常手続きのエラー番号分岐をFZ-COVERAGE-20260810-335で評価する"
+    action: next
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-335
+    coverageSnapshot: COV-2026-08-14-current

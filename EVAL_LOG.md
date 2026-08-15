@@ -749,6 +749,7 @@
 | EV-00845 | FZ-COVERAGE-20260810 | fixed | 1 | FSO CopyFolderの既存フォルダーへのマージとOverwrite境界 |
 | EV-00846 | FZ-COVERAGE-20260810 | fixed | 1 | FSOの削除必須能力・非空境界・VBA Attributes値の共通契約 |
 | EV-00847 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の通常Sub/Functionにおける括弧・ByVal指定とScalar書戻し |
+| EV-00848 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のOptional中間省略・名前付き末尾引数・必須スロット判定 |
 
 ## 状態集計
 
@@ -757,7 +758,7 @@
 | fixed | 334 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 404 |
+| verified-no-bug | 405 |
 
 横展開未解決経路: 564、実Excel待ち評価: 0
 
@@ -765,7 +766,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-334 | 1 | queued | 引数・ByRef・Property領域のOptional中間省略・名前付き末尾引数・必須スロット判定 | yes |
 | FZ-COVERAGE-20260810-335 | 1 | queued | 引数・ByRef・Property領域の動的メンバー必須引数不足と通常手続きのエラー番号分岐 | yes |
 | FZ-COVERAGE-20260810-336 | 1 | queued | 引数・ByRef・Property領域の仮引数型サフィックスとScalar型変換・書戻し | yes |
 | FZ-COVERAGE-20260810-337 | 1 | queued | 引数・ByRef・Property領域のIndexed Property Let/SetにおけるOptional・名前付き引数と暗黙value-tail | yes |
