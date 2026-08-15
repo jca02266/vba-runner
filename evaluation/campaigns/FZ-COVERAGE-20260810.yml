@@ -3399,3 +3399,18 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/createobject.test.ts
+  - id: FZ-COVERAGE-20260810-351
+    title: Memory and Node directory-copy collision parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのCopyDirectory衝突時部分変更契約
+    priorCauseKey: virtual-filesystem-copy-failure-atomicity
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
