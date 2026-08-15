@@ -2701,3 +2701,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00901
+    audit: "798 evaluations, 0 active claims; 40恒等式をseed固定で約8000試行し、値不一致0件を確認した。実機待ち5件は結果未着のため変更しない"
+    decision: "ファザーと恒等式評価で共通関数のクラッシュ・値不一致は未検出。次は実装レビューで未評価の型変換境界を抽出する"
+    action: source-review
+    nextArea: 型変換・組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

@@ -3804,3 +3804,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260810-379
+    title: Builtin metamorphic identities
+    status: queued
+    priority: 2
+    focus: 組み込み関数の値変換・文字列・日付・算術恒等式を用いたサイレント値誤り探索
+    priorCauseKey: builtin-value-invariant
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - scripts/metamorphic-test.ts
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

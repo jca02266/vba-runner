@@ -801,6 +801,7 @@
 | EV-00898 | FZ-COVERAGE-20260810 | needs-excel |  | DateSerialの年範囲外と月日正規化の組合せ |
 | EV-00899 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync親ファイル境界 |
 | EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
+| EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
 
 ## 状態集計
 
@@ -811,7 +812,7 @@
 | known-limit | 5 |
 | needs-excel | 5 |
 | retired | 2 |
-| verified-no-bug | 437 |
+| verified-no-bug | 438 |
 
 横展開未解決経路: 584、実Excel待ち評価: 5
 
