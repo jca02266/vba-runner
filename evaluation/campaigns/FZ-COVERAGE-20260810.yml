@@ -3489,3 +3489,18 @@ items:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/filesystem-extra.test.ts
+  - id: FZ-COVERAGE-20260810-357
+    title: Memory and Node empty-directory copy parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのcopyDirectorySync空ディレクトリ・入れ子構造契約
+    priorCauseKey: virtual-filesystem-copy-empty-directory-parity
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
