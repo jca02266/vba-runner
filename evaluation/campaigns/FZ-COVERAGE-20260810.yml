@@ -3245,3 +3245,16 @@ items:
     coverageTargets:
       - tests/vba/CompileError.bas
       - tests/spec/byref-scalar-type.test.ts
+  - id: FZ-COVERAGE-20260810-339
+    title: ByRef expression and function-result boundaries
+    status: queued
+    priority: 1
+    focus: 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/evaluator.ts:5695-5818
+      - src/engine/evaluator.ts:978-1010
+      - https://learn.microsoft.com/en-us/office/vba/language/reference/user-interface-help/byref-argument-type-mismatch
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/byref-expression-boundary.test.ts

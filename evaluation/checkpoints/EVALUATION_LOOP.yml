@@ -2293,3 +2293,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00853
+    audit: "751 evaluations, 0 active claims; ByRef Longへ関数戻り値・リテラル・括弧付き式を渡す3経路をランナーで確認した"
+    decision: "ランナーは3経路を一時値として受理したが、Excelの非LValue ByRef境界は未確定のためneeds-excel-probeとした。既存のXL-208確認を優先し、XL-209をこの評価へ登録する"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00853
+    nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
+    coverageSnapshot: COV-2026-08-14-current
