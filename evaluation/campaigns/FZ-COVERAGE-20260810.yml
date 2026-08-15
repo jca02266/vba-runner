@@ -3338,3 +3338,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260810-347
+    title: Property Get indexed and bare-member arity
+    status: queued
+    priority: 1
+    focus: Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約
+    priorCauseKey: member-call-arity-contract-not-centralized
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - evaluation/root-causes/RC-00071.md
+      - src/engine/evaluator.ts:9214-9245
+      - src/engine/evaluator.ts:10056-10090
+      - tests/spec/default-property.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/default-property.test.ts

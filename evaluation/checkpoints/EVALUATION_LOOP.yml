@@ -2525,3 +2525,11 @@ checkpoints:
     nextEvaluation: EV-00868
     nextCandidate: FZ-COVERAGE-20260810-346
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00869
+    audit: "766 evaluations, 0 active claims; Class Property Getの必須添字・裸参照・With・0引数Get・戻り値添字を独立評価した"
+    decision: "EV-00869はverified-no-bug。5経路は期待値と一致した。標準モジュール修飾の複数モジュール経路とCOM Propertyは別境界として保持し、XL-219/XL-220の実機待ちは継続する"
+    action: next
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
