@@ -380,6 +380,31 @@ console.log('[PASS] SLN huge operand stability');
 }
 console.log('[PASS] SYD intermediate overflow stability');
 
+// Financial linear combinations must preserve finite cancellation results
+// instead of overflowing an individual product first.
+{
+    const ev = evalVBASingle(String.raw`
+    Public fvStable As Variant, pvStable As Variant, pmtStable As Variant
+    Public fvStableErr As Long, pvStableErr As Long, pmtStableErr As Long
+    Sub Test()
+        Dim huge As Double, value As Double
+        huge = 1E+308
+        On Error Resume Next
+        Err.Clear: value = FV(0.5, 2, -huge * 0.48, huge * 0.8, 0): fvStable = value: fvStableErr = Err.Number
+        Err.Clear: value = PV(0.5, 2, huge * 0.8, -huge * 1.7, 0): pvStable = value: pvStableErr = Err.Number
+        Err.Clear: value = PMT(0.5, 2, huge * 0.8, -huge * 1.7, 0): pmtStable = value: pmtStableErr = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('fvstableerr'), 0, 'FV cancellation remains finite');
+    assert.strictEqual(ev.env.get('pvstableerr'), 0, 'PV cancellation remains finite');
+    assert.strictEqual(ev.env.get('pmtstableerr'), 0, 'PMT cancellation remains finite');
+    assert.ok(Number.isFinite(ev.env.get('fvstable')));
+    assert.ok(Number.isFinite(ev.env.get('pvstable')));
+    assert.ok(Number.isFinite(ev.env.get('pmtstable')));
+}
+console.log('[PASS] Financial linear-combination stability');
+
 // Excel rejects a non-finite intermediate book/salvage difference in DDB.
 {
     const ev = evalVBASingle(`

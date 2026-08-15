@@ -2055,6 +2055,18 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (!Number.isFinite(value)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         return value;
     };
+    const scaledLinearCombination = (
+        terms: Array<[value: number, factor: number]>,
+        divisor = 1,
+    ): number => {
+        const scale = Math.max(...terms.map(([value]) => Math.abs(value)));
+        if (scale === 0) return 0;
+        if (!Number.isFinite(scale) || !Number.isFinite(divisor) || divisor === 0) {
+            return finiteResult(Number.NaN);
+        }
+        const normalized = terms.reduce((sum, [value, factor]) => sum + (value / scale) * factor, 0);
+        return finiteResult(scale * (normalized / divisor));
+    };
     const toNum = (val: any): number => {
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         return ctx.toVbaNumber(val);
@@ -2092,9 +2104,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('fv', (rate: any, nper: any, pmt: any, pv: any = 0, type: any = 0) => {
         const r = toNum(rate), n = toNum(nper), p = toNum(pmt), v = toNum(pv), t = toPaymentType(type);
         const factor = getRateFactor(r, n);
-        const result = -(v * Math.pow(1 + r, n) + p * (1 + r * t) * factor);
-        if (!Number.isFinite(result)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
-        return result;
+        return -scaledLinearCombination([
+            [v, Math.pow(1 + r, n)],
+            [p, (1 + r * t) * factor],
+        ]);
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
         { name: 'PV', optional: true }, { name: 'Type', optional: true },
@@ -2104,7 +2117,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         if (r === 0) return finiteResult(-(f + p * n));
         const p1 = Math.pow(1 + r, n);
         if (!Number.isFinite(p1) || p1 === 0) invalidFinancialArg();
-        return finiteResult(-(f + p * (1 + r * t) * ((p1 - 1) / r)) / p1);
+        return -scaledLinearCombination([
+            [f, 1],
+            [p, (1 + r * t) * ((p1 - 1) / r)],
+        ], p1);
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'Pmt' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
@@ -2116,7 +2132,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         }
         if (r === 0) return finiteResult(-(v + f) / n);
         const p1 = Math.pow(1 + r, n);
-        return finiteResult(-(v * p1 + f) / ((1 + r * t) * ((p1 - 1) / r)));
+        return -scaledLinearCombination([
+            [v, p1],
+            [f, 1],
+        ], (1 + r * t) * ((p1 - 1) / r));
     }, [
         { name: 'Rate' }, { name: 'NPer' }, { name: 'PV' },
         { name: 'FV', optional: true }, { name: 'Type', optional: true },
