@@ -3311,4 +3311,16 @@ items:
     coverageTargets:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
-      - tests/spec/filesystem-extra.test.ts
+      - tests/tooling/filesystem-backend-copy.test.ts
+  - id: FZ-COVERAGE-20260810-345
+    title: Builtin adversarial exception fuzz
+    status: queued
+    priority: 1
+    focus: 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - scripts/fuzz-builtins.ts
+      - src/engine/builtins.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - scripts/fuzz-builtins.ts

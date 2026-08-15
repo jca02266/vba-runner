@@ -2509,3 +2509,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00867
+    audit: "764 evaluations, 0 active claims; 組み込み関数185種へ敵対値12種を最大6引数位置まで注入し、4,374呼出しを完了した"
+    decision: "EV-00867はverified-no-bug。生JavaScript例外と文字列結果へのSymbol漏れは0件だった。7番目以降の引数位置、戻り値の仕様差、Excel/COM差は個別評価で扱う"
+    action: next
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

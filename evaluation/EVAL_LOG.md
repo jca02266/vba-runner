@@ -767,6 +767,7 @@
 | EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
 | EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
 | EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
+| EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
 
 ## 状態集計
 
@@ -776,9 +777,9 @@
 | known-limit | 5 |
 | needs-excel | 1 |
 | retired | 2 |
-| verified-no-bug | 413 |
+| verified-no-bug | 414 |
 
-横展開未解決経路: 575、実Excel待ち評価: 1
+横展開未解決経路: 576、実Excel待ち評価: 1
 
 ## 次の候補
 
