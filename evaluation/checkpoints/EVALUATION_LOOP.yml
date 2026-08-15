@@ -2565,3 +2565,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00874
+    audit: "771 evaluations, 0 active claims; mkdirSyncの既存パス・親欠落・recursive境界をMemory/Nodeで比較した"
+    decision: "EV-00874はverified-no-bug。新規作成、既存パス、親欠落、recursive再実行の操作結果と存在状態が一致した"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

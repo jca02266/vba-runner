@@ -3414,3 +3414,18 @@ items:
       - src/engine/filesystem.ts
       - src/engine/node_filesystem.ts
       - tests/tooling/filesystem-backend-copy.test.ts
+  - id: FZ-COVERAGE-20260810-352
+    title: Memory and Node mkdir existing-path parity
+    status: queued
+    priority: 1
+    focus: MemoryFileSystemとNodeFileSystemのmkdirSync既存パス・親欠落契約
+    priorCauseKey: virtual-filesystem-mkdir-existing-path
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
+    coverageTargets:
+      - src/engine/filesystem.ts
+      - src/engine/node_filesystem.ts
+      - tests/spec/filesystem-extra.test.ts
