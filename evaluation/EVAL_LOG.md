@@ -766,14 +766,13 @@
 | EV-00862 | RCA-FOLLOWUP | needs-excel | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
 | EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
 | EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
-| EV-00866 | FZ-COVERAGE-20260810 | bug-found | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
+| EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 341 |
+| fixed | 342 |
 | known-limit | 5 |
 | needs-excel | 1 |
 | retired | 2 |

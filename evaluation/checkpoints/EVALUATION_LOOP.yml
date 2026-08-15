@@ -2501,3 +2501,11 @@ checkpoints:
     nextEvaluation: EV-00866
     nextCandidate: FZ-COVERAGE-20260810-344
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00866
+    audit: "763 evaluations, 0 active claims; NodeFileSystemへoverwrite=falseの衝突事前検査を追加し、Memory/Node回帰テストと型チェックが通過した"
+    decision: "EV-00866とBUG-00541をfixed、RC-00081をconfirmedとした。権限・I/O障害の完全な原子性は今回の対象外として保持する"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
