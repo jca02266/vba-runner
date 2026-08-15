@@ -101,6 +101,7 @@ Public Sub RunExcelQueueVerification()
     VerifyFormatBracketAndSectionMatrix
     VerifyFormatUnresolvedMatrix
     VerifyCallByNameNamedParamArray
+    VerifyByRefExpressionMatrix
     VerifyMemberForcedByVal
     VerifyPropertyArrayElementByRef
     VerifyUdtObjectArraySet
@@ -109,6 +110,34 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyByRefExpressionMatrix()
+    Dim value As Integer, worker As Object, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    VerifyLongExpression CLng(10)
+    errNo = Err.Number
+    EmitResult "XL-209 FUNCTION ERR=" & CStr(errNo)
+    Err.Clear
+    VerifyLongExpression 10
+    errNo = Err.Number
+    EmitResult "XL-209 LITERAL ERR=" & CStr(errNo)
+    Err.Clear
+    VerifyLongExpression (10)
+    errNo = Err.Number
+    EmitResult "XL-209 PAREN ERR=" & CStr(errNo)
+    Set worker = New ExcelQueueForcedByVal
+    value = 10
+    Err.Clear
+    CallByName worker, "Mutate", VbMethod, value
+    EmitResult "XL-210 CALLBYNAME ERR=" & CStr(Err.Number) & _
+        " VALUE=" & CStr(value)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyLongExpression(ByRef value As Long)
+    value = value + 1
 End Sub
 
 Private Sub VerifyFsoGetFileRequired()

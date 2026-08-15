@@ -2309,3 +2309,11 @@ checkpoints:
     nextEvaluation: EV-00854
     nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00854
+    audit: "ExcelQueueVerification.basへXL-209/XL-210の最小プローブを追加し、両評価の実機ソースを既存キューへ統合した"
+    decision: "Windows実行前にvba-extractorでt.xlsmを再生成し、QUEUE_SOURCE_SHA256を一致させる。結果反映後にEV-00850、EV-00853、EV-00854を個別に判定する"
+    action: excel-probe
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: EV-00850
+    nextCandidate: FZ-COVERAGE-20260810-336-EXCEL
+    coverageSnapshot: COV-2026-08-14-current

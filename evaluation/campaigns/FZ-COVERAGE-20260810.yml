@@ -3258,6 +3258,7 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/byref-expression-boundary.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
   - id: FZ-COVERAGE-20260810-340
     title: CallByName typed ByRef scalar boundary
     status: queued
@@ -3271,3 +3272,4 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/callbyname-byref-type.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
