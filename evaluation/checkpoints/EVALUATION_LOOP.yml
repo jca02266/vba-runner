@@ -2589,3 +2589,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-355
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00877
+    audit: "774 evaluations, 0 active claims; moveFileSyncとFSO入口でもNodeの既存destination置換を確認し、BUG-00543をBUG-00542へ横展開した"
+    decision: "EV-00877はbug-found。既存ファイル移動のNode/Memory差異を確認した。2件は移動先衝突契約の共通修正へ統合し、Windows挙動と回帰条件を残す"
+    action: next
+    nextArea: ファイルI/O・FSO
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
