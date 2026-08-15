@@ -719,11 +719,11 @@
 | EV-00815 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式の引用prefix・suffix境界 |
 | EV-00816 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format Decimal通常数値書式のエスケープprefixと引用suffix境界 |
 | EV-00817 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Format空文字列と数値・日付の複数セクション書式境界 |
-| EV-00818 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
-| EV-00819 | FZ-COVERAGE-20260810 | bug-found | 1 | TextStream.ReadのWith式における必須引数境界 |
-| EV-00820 | FZ-COVERAGE-20260810 | bug-found | 1 | FSO.GetFileの必須引数省略 |
-| EV-00821 | FZ-COVERAGE-20260810 | bug-found | 1 | Scripting.Dictionary.Existsの必須引数省略 |
-| EV-00822 | FZ-COVERAGE-20260810 | needs-excel-probe | 1 | Collection.Itemの必須引数省略 |
+| EV-00818 | FZ-COVERAGE-20260810 | fixed | 1 | FSO TextStream Readの必須引数省略と関数メンバー評価 |
+| EV-00819 | FZ-COVERAGE-20260810 | fixed | 1 | TextStream.ReadのWith式における必須引数境界 |
+| EV-00820 | FZ-COVERAGE-20260810 | fixed | 1 | FSO.GetFileの必須引数省略 |
+| EV-00821 | FZ-COVERAGE-20260810 | fixed | 1 | Scripting.Dictionary.Existsの必須引数省略 |
+| EV-00822 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Collection.Itemの必須引数省略 |
 | EV-00823 | FZ-GRAMMAR | verified-no-bug |  | Function・Sub・Property呼出しの必須引数省略とprecheckProc |
 | EV-00824 | FZ-GRAMMAR | fixed | 1 | early-bound Collection.Itemの必須index省略とprecheckProc |
 | EV-00825 | FZ-GRAMMAR | verified-no-bug |  | Function余分引数の実行時型不一致境界 |
@@ -737,19 +737,42 @@
 | EV-00833 | FZ-GRAMMAR | fixed | 1 | 動的メンバーの必須引数契約を経路別に横展開する |
 | EV-00834 | FZ-GRAMMAR | fixed | 1 | CallByName外部メンバーの必須引数省略 |
 | EV-00835 | FZ-GRAMMAR | fixed | 1 | Module修飾Function/Subの括弧なし必須引数検査 |
+| EV-00836 | FZ-COVERAGE-20260810 | verified-no-bug |  | 10進数リテラルの型境界と実行時オーバーフロー |
+| EV-00837 | FZ-COVERAGE-20260810 | verified-no-bug |  | 10進数リテラルのDouble精度境界（2^53前後） |
+| EV-00838 | FZ-COVERAGE-20260810 | fixed | 1 | Double有限値域外の10進指数リテラルの構文エラー段階 |
+| EV-00839 | FZ-COVERAGE-20260810 | verified-no-bug |  | Double最小値未満の10進指数リテラルの丸め境界 |
+| EV-00840 | FZ-COVERAGE-20260810 | fixed | 1 | Class・Module修飾Functionの過剰引数を実行時Error 13へ渡す経路 |
+| EV-00841 | FZ-COVERAGE-20260810 | fixed | 1 | FSO GetFolder戻り値のFolder.Copyがフォルダーと子ファイルを複製する経路 |
+| EV-00842 | FZ-COVERAGE-20260810 | fixed | 1 | GetFile戻り値のParentFolderがFolder操作を提供する経路 |
+| EV-00843 | FZ-COVERAGE-20260810 | fixed | 1 | Folder.SubFoldersから取得した子FolderのFiles/Copy契約 |
+| EV-00844 | FZ-COVERAGE-20260810 | fixed | 1 | File/FolderパスオブジェクトとトップレベルFile操作の共通能力・境界 |
+| EV-00845 | FZ-COVERAGE-20260810 | fixed | 1 | FSO CopyFolderの既存フォルダーへのマージとOverwrite境界 |
+| EV-00846 | FZ-COVERAGE-20260810 | fixed | 1 | FSOの削除必須能力・非空境界・VBA Attributes値の共通契約 |
+| EV-00847 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の通常Sub/Functionにおける括弧・ByVal指定とScalar書戻し |
+| EV-00848 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のOptional中間省略・名前付き末尾引数・必須スロット判定 |
+| EV-00849 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の動的メンバー必須引数不足と通常手続きのエラー番号分岐 |
+| EV-00850 | FZ-COVERAGE-20260810 | fixed | 1 | 引数・ByRef・Property領域の型付きByRef引数と呼出し元型検査 |
+| EV-00851 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のIndexed Property value-tail binding |
+| EV-00852 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域のメタデータなしhost memberアリティ契約 |
+| EV-00853 | FZ-COVERAGE-20260810 | verified-no-bug |  | 引数・ByRef・Property領域の非LValue式・関数戻り値・リテラルをByRefへ渡す経路 |
+| EV-00854 | FZ-COVERAGE-20260810 | fixed |  | 引数・ByRef・Property領域のCallByName経由Scalar ByRef型不一致と書戻し |
+| EV-00855 | RCA-FOLLOWUP | fixed | 1 | SYDの領域エラーとOverflow分類境界 |
+| EV-00856 | RCA-FOLLOWUP | verified-no-bug | 1 | Property LetのByRef型検査と式参照バインディング |
+| EV-00857 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Typed ByRef異型実引数のExcel実行前エラー確認 |
+| EV-00858 | RCA-FOLLOWUP | fixed | 1 | 金融関数の中間Overflow安定性横展開 |
+| EV-00859 | RCA-FOLLOWUP | fixed | 1 | 金融関数線形結合の横展開 |
+| EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 4 |
-| fixed | 322 |
+| fixed | 340 |
 | known-limit | 5 |
-| needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 399 |
+| verified-no-bug | 411 |
 
-横展開未解決経路: 563、実Excel待ち評価: 1
+横展開未解決経路: 569、実Excel待ち評価: 0
 
 ## 次の候補
 
