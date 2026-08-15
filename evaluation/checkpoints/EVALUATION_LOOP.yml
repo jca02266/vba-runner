@@ -2229,3 +2229,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260810-333
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00847
+    audit: "745 evaluations, 0 active claims; FZ-COVERAGE-20260810-333の通常Sub/Function・Call文・クラスMemberExpressionの括弧強制ByValとScalar ByRef書戻しを独立再現し、期待値との差異なし"
+    decision: "FZ-COVERAGE-20260810-333はverified-no-bugとして完了した。既存のProperty value-tail評価と重複しないため、次はOptional中間Missingと後続名前付き引数のFZ-COVERAGE-20260810-334を評価する"
+    action: next
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-334
+    coverageSnapshot: COV-2026-08-14-current
