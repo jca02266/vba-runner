@@ -2144,6 +2144,12 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
+        // Excel classifies the maximum-magnitude, opposite-sign cancellation
+        // boundary as overflow before returning the mathematically finite
+        // logarithmic quotient (BUG-00538 / XL-217).
+        if (Math.abs(p) >= 1e308 && Math.abs(v) >= 1e308 && p * v < 0) {
+            ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        }
         if (r === 0) {
             if (p === 0) invalidFinancialArg();
             const result = -(v + f) / p;

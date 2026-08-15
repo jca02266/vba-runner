@@ -19,3 +19,10 @@
   occurredAt: '2026-08-15T05:53:48.000Z'
   findingIds:
     - BUG-00538
+- candidateId: RCA-FOLLOWUP-043
+  evaluationId: EV-00859
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-15T15:02:00.000+09:00'
+  findingIds:
+    - BUG-00538

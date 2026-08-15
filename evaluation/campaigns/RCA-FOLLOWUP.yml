@@ -450,3 +450,13 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-044
+    title: NPer最大相殺境界の共通エラー契約
+    status: fixed
+    priority: 1
+    focus: NPerの最大相殺入力でExcelがError 6とする境界を金融関数のエラー契約へ反映する
+    priorCauseKey: nper-finite-result-error-boundary-mismatch
+    rootCauseId: RC-00012
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

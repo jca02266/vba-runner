@@ -293,6 +293,20 @@ console.log('[PASS] Bug 180-A: IRR/MIRRの符号不足をエラー化');
 }
 console.log('[PASS] NPVの正負キャッシュフロー契約');
 
+// BUG-00538: Excel reports overflow for the maximum cancellation boundary
+// used by NPer, even though the direct logarithmic quotient is finite.
+{
+    const ev = evalVBASingle(String.raw`Function ProbeNPerBoundary() As Long
+        On Error Resume Next
+        Dim value As Double
+        value = NPer(0.5, -1E+308, 1E+308, 0, 0)
+        ProbeNPerBoundary = Err.Number
+    End Function`);
+    assert.strictEqual(ev.callProcedure('ProbeNPerBoundary', []), 6,
+        'NPer maximum cancellation boundary is an overflow');
+}
+console.log('[PASS] BUG-00538: NPer maximum cancellation boundary');
+
 // Bug 181-A: financial functions must reject invalid domains instead of leaking
 // Infinity/NaN or silently returning a value.
 {
