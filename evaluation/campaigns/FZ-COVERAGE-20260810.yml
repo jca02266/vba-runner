@@ -3585,3 +3585,18 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/date-value-time-value-boundary.test.ts
+  - id: FZ-COVERAGE-20260810-364
+    title: DatePart week-number boundary parity
+    status: queued
+    priority: 1
+    focus: DatePart週番号の年初境界とFirstDayOfWeek・FirstWeekOfYear行列
+    priorCauseKey: vba-date-week-number-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/date-week.ts
+      - src/engine/builtins.ts
+      - tests/spec/date-week-boundary-matrix.test.ts
+    coverageTargets:
+      - src/engine/date-week.ts
+      - src/engine/builtins.ts
+      - tests/spec/date-week-boundary-matrix.test.ts

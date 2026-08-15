@@ -19,7 +19,9 @@ Public Function Probe() As String
         CStr(DatePart("ww", value, vbSunday, vbFirstJan1)) & "," & _
         CStr(Weekday(value, vbMonday)) & "," & CStr(Weekday(value, vbSunday))
 End Function`);
-    assert.equal(ev.callProcedure('Probe', []), expected, `date week boundary ${date}`);
+    const actual = ev.callProcedure('Probe', []);
+    assert.equal(actual, expected, `date week boundary ${date}`);
+    console.log(`DATE-WEEK ${date} => ${actual}`);
 }
 
 assert.equal(cases.length, 6);
