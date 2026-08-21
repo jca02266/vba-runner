@@ -92,6 +92,7 @@ Public Sub RunExcelQueueVerification()
     VerifyStringCharacterCode
     VerifyStringCharacterBoundary
     VerifyStringTypedBoundary
+    VerifyStringDirectBoundary
     VerifyDateSerialNormalizationBoundary
     VerifyCDateSerialBoundaries
     VerifyRadixExplicitSignMatrix
@@ -124,6 +125,29 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyStringDirectBoundary()
+    Dim values As Variant, i As Long
+    values = Array(0, 1, 254, 255, 256, 257, 258, 511, 512)
+    For i = LBound(values) To UBound(values)
+        EmitStringDirectBoundary CLng(values(i))
+    Next i
+End Sub
+
+Private Sub EmitStringDirectBoundary(ByVal n As Long)
+    Dim s As String, e As Long
+    On Error Resume Next
+    Err.Clear: s = String$(1, n): e = Err.Number
+    EmitResult "XL-228 API=String$ N=" & CStr(n) & " ERR=" & CStr(e) & _
+        " LEN=" & CStr(Len(s)) & " ASCW=" & CStr(AscW(s))
+    Err.Clear: s = String(1, n): e = Err.Number
+    EmitResult "XL-228 API=String N=" & CStr(n) & " ERR=" & CStr(e) & _
+        " LEN=" & CStr(Len(s)) & " ASCW=" & CStr(AscW(s))
+    Err.Clear: s = Chr$(n): e = Err.Number
+    EmitResult "XL-228 API=Chr$ N=" & CStr(n) & " ERR=" & CStr(e) & _
+        " LEN=" & CStr(Len(s)) & " ASCW=" & CStr(AscW(s))
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyStringCharacterVariant()

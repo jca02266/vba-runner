@@ -1,0 +1,18 @@
+id: FZ-COVERAGE-20260821
+method: coverage-guided-fuzzer
+items:
+  - id: FZ-COVERAGE-20260821-001
+    title: String and Chr direct character boundary matrix
+    status: queued
+    priority: 1
+    focus: String/String$/Chr/Chr$の0〜258・511・512境界と256実機差
+    priorCauseKey: vba-string-ansi-codepage-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

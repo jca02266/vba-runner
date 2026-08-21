@@ -2781,3 +2781,19 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: RCA-00090-review
+    audit: "806 evaluations, 0 active claims; BUG-00557の独立真因レビュー2件を実施し、CP932の254/255写像と256境界を同一原因へ確定できない未解決点を確認した"
+    decision: "直接リテラルとChr/ChrW経路を追加照合する候補FZ-COVERAGE-20260821-001を登録し、実機プローブ作成済みのneeds-excelへ進める"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00910
+    nextCandidate: FZ-COVERAGE-20260821-001
+    coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00910
+    audit: "806 evaluations, 0 active claims; XL-228の直接リテラル・Chr境界マトリクスをExcelQueueVerification.basへ追加し、ソースハッシュ一致済みt.xlsmを準備した。結果待ちのためneeds-excelを維持する"
+    decision: "Excel実機結果でString系とChr系の256境界を比較し、RC-00090の代替仮説を分離する"
+    action: excel-probe
+    nextArea: 実Excel照合
+    nextEvaluation: EV-00910
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
