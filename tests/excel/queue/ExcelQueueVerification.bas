@@ -129,14 +129,17 @@ Public Sub RunExcelQueueVerification()
 End Sub
 
 Private Sub VerifyPowerOperatorBoundary()
+    ' VBE may normalize whitespace and remove a unary plus when saving this
+    ' module. The labels below mirror the authored expressions; the
+    ' CompileError.bas probes cover syntax that VBE cannot preserve verbatim.
     On Error Resume Next
     Err.Clear
-    EmitResult "XL-229 2^-1=" & CStr(2 ^ -1) & " 10^-2=" & CStr(10 ^ -2) & _
-        " 2^+3=" & CStr(2 ^ +3) & " 2^(-1)=" & CStr(2 ^ (-1)) & _
-        " 123^+3=" & CStr(123 ^ +3) & " ERR=" & CStr(Err.Number)
+    EmitResult "XL-229 2 ^ -1=" & CStr(2 ^ -1) & " 10 ^ -2=" & CStr(10 ^ -2) & _
+        " 2 ^ +3=" & CStr(2 ^ +3) & " 2 ^ (-1)=" & CStr(2 ^ (-1)) & _
+        " 123 ^ +3=" & CStr(123 ^ +3) & " ERR=" & CStr(Err.Number)
     Err.Clear
-    EmitResult "XL-230 2^&H3=" & CStr(2 ^ &H3) & _
-        " 2^&O3=" & CStr(2 ^ &O3) & " ERR=" & CStr(Err.Number)
+    EmitResult "XL-230 2 ^ &H3=" & CStr(2 ^ &H3) & _
+        " 2 ^ &O3=" & CStr(2 ^ &O3) & " ERR=" & CStr(Err.Number)
     Err.Clear
     EmitResult "XL-232 10^-2=" & CStr(10^-2) & " 10^ -2=" & CStr(10^ -2) & _
         " 10^ - 2=" & CStr(10^ - 2) & " 10 ^ -2=" & CStr(10 ^ -2) & _
