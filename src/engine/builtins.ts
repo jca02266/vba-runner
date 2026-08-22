@@ -885,8 +885,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (str.length === 0) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return str.charCodeAt(0);
     };
+    const ascwFunc = (s: any) => {
+        const code = ascFunc(s);
+        return code > 0x7FFF ? code - 0x10000 : code;
+    };
     ctx.reg('asc', ascFunc, [{ name: 'String' }]);
-    ctx.reg('ascw', ascFunc, [{ name: 'String' }]);
+    ctx.reg('ascw', ascwFunc, [{ name: 'String' }]);
     const chrFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
         const code = n;
@@ -1071,13 +1075,20 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         value instanceof VbaDate ||
         value instanceof VbaCurrency ||
         value instanceof VbaDecimal;
+    const vbaAnsiByteToString = (byte: number): string => {
+        // Windows-31J leaves these two single-byte values in the private-use
+        // area. Excel exposes those code points through String/String$.
+        if (byte === 0xFE) return String.fromCharCode(0xF8F2);
+        if (byte === 0xFF) return String.fromCharCode(0xF8F3);
+        return String.fromCharCode(byte);
+    };
     const stringFunc = (n: any, char: any) => {
         if (n === vbaNull || char === vbaNull) return vbaNull;
         let c: string;
         if (isStringCharacterNumericVariant(char)) {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
             const code = ctx.round(ctx.toVbaNumber(char));
-            c = String.fromCharCode(((code % 256) + 256) % 256);
+            c = vbaAnsiByteToString(((code % 256) + 256) % 256);
         } else {
             const s = vbaToString(char ?? '');
             // Empty string character is invalid per spec
