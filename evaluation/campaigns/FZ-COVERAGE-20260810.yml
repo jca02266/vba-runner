@@ -3976,3 +3976,17 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-391
+    title: Lexer caret whitespace suffix boundary
+    status: queued
+    priority: 1
+    focus: Parser・Lexerの^直後空白とLongLongサフィックス・減算境界
+    priorCauseKey: vba-power-operator-suffix-context-not-modeled
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/power-operator-signed-right.test.ts
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts

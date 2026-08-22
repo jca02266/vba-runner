@@ -352,11 +352,16 @@ export class Lexer {
             numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
         }
         const suffix = this.peek();
-        // `^` is both the LongLong type suffix and exponentiation.  A numeric
-        // suffix is complete only at an expression delimiter; otherwise the
-        // parser must receive OperatorPower.  Looking only at the immediate
-        // next character incorrectly consumed `2^-1`, `2^ 1`, and `2^(-1)`
-        // as a LongLong literal followed by an unrelated expression.
+        // `^` is both the LongLong type suffix and exponentiation.  When it
+        // is adjacent to the numeric literal, VBA keeps it as the suffix even
+        // when whitespace follows it (`10^ - 2` => `10^ - 2`).  A space before
+        // the caret is what makes it an exponentiation operator (`10 ^ - 2`).
+        // Keep the immediate character for this distinction; skipping it
+        // would turn a suffix followed by subtraction into exponentiation.
+        const suffixImmediateNext = this.input[this.pos + 1] ?? '\0';
+        const isCaretSuffixBoundary = suffix === '^'
+            && (this.isWhitespace(suffixImmediateNext) || suffixImmediateNext === '+'
+                || suffixImmediateNext === '-');
         let suffixNextPos = this.pos + 1;
         while (suffixNextPos < this.input.length
             && (this.input[suffixNextPos] === ' ' || this.input[suffixNextPos] === '\t'
@@ -379,7 +384,7 @@ export class Lexer {
         const hasFloatingSyntax = /[.eEdD]/.test(numStr);
         const isLongLongSuffix = suffix === '^'
             && !hasFloatingSyntax
-            && isExpressionDelimiter;
+            && (isCaretSuffixBoundary || isExpressionDelimiter);
         if (NUMERIC_TYPE_SUFFIXES.has(suffix)
             && (suffix !== '^' || isLongLongSuffix)) {
             numStr += this.advance();
