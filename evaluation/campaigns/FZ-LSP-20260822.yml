@@ -1,0 +1,47 @@
+id: FZ-LSP-20260822
+method: source-review-and-regression
+items:
+  - id: FZ-LSP-20260822-001
+    title: LSP diagnostics for VBE class member attributes
+    status: queued
+    priority: 1
+    focus: VBEエクスポート済み.clsのメンバーAttributeとLSP診断経路
+    priorCauseKey: lsp-class-attribute-parser-mode-mismatch
+    sourceReview:
+      - src/lsp/server.ts
+      - src/engine/parser.ts
+      - tests/lsp/server-diagnostics.test.ts
+    coverageTargets:
+      - src/lsp/server.ts
+      - src/engine/parser.ts
+      - tests/lsp
+  - id: FZ-LSP-20260822-002
+    title: LSP .cls preprocessing across secondary entry points
+    status: queued
+    priority: 1
+    focus: .clsのヘッダー除去とparseAsClassをコードアクション・デバッグ・テスト実行へ伝播
+    priorCauseKey: lsp-class-entry-preprocessing-not-shared
+    sourceReview:
+      - src/lsp/server.ts
+      - src/lsp/debug-worker.ts
+      - src/lsp/test-runner.ts
+      - src/extension.ts
+    coverageTargets:
+      - src/lsp/server.ts
+      - src/lsp/debug-worker.ts
+      - src/lsp/test-runner.ts
+      - src/extension.ts
+  - id: FZ-LSP-20260822-003
+    title: LSP class Option Explicit metadata diagnostics
+    status: queued
+    priority: 2
+    focus: .cls本体のOption ExplicitとVBE属性を組み合わせた診断契約
+    priorCauseKey: lsp-class-option-explicit-registration
+    sourceReview:
+      - src/engine/parser.ts
+      - src/lsp/server.ts
+      - tests/lsp/server-diagnostics.test.ts
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/lsp/server.ts
+      - tests/lsp
