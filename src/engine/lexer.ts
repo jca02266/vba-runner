@@ -371,16 +371,12 @@ export class Lexer {
         const suffixNext = this.input[suffixNextPos] ?? '\0';
         const trailingWord = this.input.slice(suffixNextPos).match(/^[A-Za-z]+/)?.[0].toLowerCase();
         const isCommentBoundary = suffixNext === "'" || trailingWord === 'rem';
-        const startsRadixLiteral = suffixNext === '&'
-            && (this.input[suffixNextPos + 1]?.toLowerCase() === 'h'
-                || this.input[suffixNextPos + 1]?.toLowerCase() === 'o'
-                || this.isDigit(this.input[suffixNextPos + 1] ?? '\0'));
         const isPowerOperandStart = !isCommentBoundary && (this.isAlphaNumeric(suffixNext)
             || suffixNext === '.' || suffixNext === '+' || suffixNext === '-'
-            || suffixNext === '(' || startsRadixLiteral);
+        );
         const isExpressionDelimiter = !isPowerOperandStart
             && (suffixNext === '\0' || suffixNext === '\n'
-                || isCommentBoundary || "',;:)\]}&*/\\=<>".includes(suffixNext));
+                || isCommentBoundary || "',;:()[\]}&*/\\=<>".includes(suffixNext));
         const hasFloatingSyntax = /[.eEdD]/.test(numStr);
         const isLongLongSuffix = suffix === '^'
             && !hasFloatingSyntax

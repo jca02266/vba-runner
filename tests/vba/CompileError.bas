@@ -166,6 +166,54 @@ Sub Case_decimal_exponent_literal_out_of_range()
     value = 1E+309 ' @error
 End Sub
 
+' CASE: caret_parenthesized_negative_exponent
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: 括弧付きの負数を ^ の右辺に置く CStr 式は、VBA では構文エラーになる。
+Sub Case_caret_parenthesized_negative_exponent()
+    Dim value As String
+    value = CStr(2^(-1)) ' @error
+End Sub
+
+' CASE: caret_hex_literal_operand
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: ^ の右辺に16進リテラルを直接置く形式は、VBA では構文エラーになる。
+Sub Case_caret_hex_literal_operand()
+    Dim value As String
+    value = CStr(2^&H3) ' @error
+End Sub
+
+' CASE: caret_oct_literal_operand
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: ^ の右辺に8進リテラルを直接置く形式は、VBA では構文エラーになる。
+Sub Case_caret_oct_literal_operand()
+    Dim value As String
+    value = CStr(2^&O3) ' @error
+End Sub
+
+' CASE: numeric_literal_index_expression
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: index-expressionの左辺はl-expressionであり、数値リテラルは指定できない。
+Sub Case_numeric_literal_index_expression()
+    Debug.Print(1(-1)) ' @error
+End Sub
+
+' CASE: numeric_literal_long_suffix_adjacency
+' TYPE: parse
+' VBA: コンパイルエラー: 構文エラー
+' RUNNER: /syntax error|parse error/i
+' NOTE: 1&H1はLong型サフィックス付きリテラルと識別子が演算子なしで隣接する。
+Sub Case_numeric_literal_long_suffix_adjacency()
+    Debug.Print(1&H1) ' @error
+End Sub
+
 ' CASE: label_then_sub_call_with_empty_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー

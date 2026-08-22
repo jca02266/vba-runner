@@ -265,6 +265,79 @@ value = 1E+309`, 2, /syntax error|parse error|numeric literal out of range|overf
     }
 }
 
+// [parse] caret_parenthesized_negative_exponent
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPass1(`Dim value As String
+value = CStr(2^(-1))`, 2, /syntax error|parse error/i, 'caret_parenthesized_negative_exponent');
+        console.log('[PASS] caret_parenthesized_negative_exponent');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] caret_parenthesized_negative_exponent:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] caret_hex_literal_operand
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPass1(`Dim value As String
+value = CStr(2^&H3)`, 2, /syntax error|parse error/i, 'caret_hex_literal_operand');
+        console.log('[PASS] caret_hex_literal_operand');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] caret_hex_literal_operand:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] caret_oct_literal_operand
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 2
+{
+    try {
+        assertCompileErrorPass1(`Dim value As String
+value = CStr(2^&O3)`, 2, /syntax error|parse error/i, 'caret_oct_literal_operand');
+        console.log('[PASS] caret_oct_literal_operand');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] caret_oct_literal_operand:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] numeric_literal_index_expression
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass1(`Debug.Print(1(-1))`, 1, /syntax error|parse error/i, 'numeric_literal_index_expression');
+        console.log('[PASS] numeric_literal_index_expression');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] numeric_literal_index_expression:', e.message);
+        __fail__++;
+    }
+}
+
+// [parse] numeric_literal_long_suffix_adjacency
+// VBA: コンパイルエラー: 構文エラー
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPass1(`Debug.Print(1&H1)`, 1, /syntax error|parse error/i, 'numeric_literal_long_suffix_adjacency');
+        console.log('[PASS] numeric_literal_long_suffix_adjacency');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] numeric_literal_long_suffix_adjacency:', e.message);
+        __fail__++;
+    }
+}
+
 // [parse] label_then_sub_call_with_empty_parens1
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 1

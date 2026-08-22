@@ -3546,6 +3546,12 @@ export class Parser {
                 if (stopBeforeSpacedLParen && this.hasSpaceBeforeCurrentToken()) {
                     break;
                 }
+                if (!this.isIndexExpressionReceiver(expr)) {
+                    this.throwError(
+                        `Parse error: expression cannot be used as an indexed expression at line ${this.peek().line}`,
+                        this.peek(),
+                    );
+                }
                 this.advance(); // consume '('
                 const args: Expression[] = [];
                 if (this.peek().type !== TokenType.OperatorRParen) {
@@ -3564,6 +3570,18 @@ export class Parser {
             }
         }
         return expr;
+    }
+
+    /** MS-VBAL §5.6.12: only l-expressions may receive an argument list. */
+    private isIndexExpressionReceiver(expr: Expression): boolean {
+        return new Set([
+            'Identifier',
+            'MemberExpression',
+            'DictionaryAccessExpression',
+            'ImplicitWithObjectExpression',
+            'ImplicitWithDictionaryAccessExpression',
+            'CallExpression',
+        ]).has(expr.type);
     }
 
     // Parse a call argument, handling named arguments (e.g., shift:=xlUp)
