@@ -813,6 +813,7 @@
 | EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
 | EV-00911 | FZ-COVERAGE-20260822 | verified-no-bug | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
 | EV-00912 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexer低収束領域の日付リテラル下限と時刻ゼロ境界 |
+| EV-00913 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Dateリテラルの年1〜99とJavaScript年補正境界 |
 
 ## 状態集計
 
@@ -821,7 +822,7 @@
 | fixed | 360 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 442 |
+| verified-no-bug | 443 |
 
 横展開未解決経路: 588、実Excel待ち評価: 0
 
@@ -829,4 +830,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-COVERAGE-20260810-389 | 2 | queued | Dateリテラルの年1〜99とJavaScript年補正境界 | yes |
+| (none) | | | | |

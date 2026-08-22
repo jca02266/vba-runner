@@ -2821,3 +2821,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00913
+    audit: "810 evaluations, 0 active claims; Dateリテラルの年1〜99境界を独立評価し、2桁年規則と一致することを確認した"
+    decision: "JavaScript Dateの年0〜99補正はDateリテラル経路へ漏れていない。次候補の選定前に監査し、未解決の真因対処・実機待ち・低収束領域を比較する"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current
