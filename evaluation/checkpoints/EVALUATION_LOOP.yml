@@ -2829,3 +2829,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EVAL-LOOP-20260822-PARSER-2
+    audit: "810 evaluations, 0 active claims before selection; Parser・Lexerの相対収束度は-117.8%で、最新カバレッジのLexer未到達数値リテラル境界を確認した"
+    decision: "^のLongLongサフィックスと指数演算子の符号・括弧隣接を評価する候補を登録し、XL-229の実機照合を待つ"
+    action: claim
+    nextArea: Parser・Lexer
+    nextEvaluation: EV-00914
+    nextCandidate: FZ-COVERAGE-20260810-390
+    coverageSnapshot: COV-2026-08-14-current

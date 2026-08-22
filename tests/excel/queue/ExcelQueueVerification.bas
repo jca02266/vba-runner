@@ -121,10 +121,21 @@ Public Sub RunExcelQueueVerification()
     VerifyPropertyByRefTypeBoundary
     VerifyUdtObjectArraySet
     VerifyOpaqueShape
+    VerifyPowerOperatorBoundary
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyPowerOperatorBoundary()
+    On Error Resume Next
+    Err.Clear
+    EmitResult "XL-229 2^-1=" & CStr(2 ^ -1) & " 10^-2=" & CStr(10 ^ -2) & _
+        " 2^+3=" & CStr(2 ^ +3) & " 2^(-1)=" & CStr(2 ^ (-1)) & _
+        " 123^+3=" & CStr(123 ^ +3) & " ERR=" & CStr(Err.Number)
+    Err.Clear
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyStringDirectBoundary()

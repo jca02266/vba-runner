@@ -3962,3 +3962,17 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/vba-types.ts
+  - id: FZ-COVERAGE-20260810-390
+    title: Lexer numeric exponent and suffix boundary
+    status: queued
+    priority: 1
+    focus: Parser・Lexerの指数記法・Dサフィックス・LongLongサフィックス境界
+    priorCauseKey: parser-lexer-coverage-low
+    coverageSnapshot: COV-2026-08-14-current
+    sourceReview:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/numeric-literals.test.ts
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
