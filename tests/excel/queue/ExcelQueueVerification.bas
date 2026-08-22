@@ -145,6 +145,18 @@ Private Sub VerifyPowerOperatorBoundary()
         " 10^ - 2=" & CStr(10^ - 2) & " 10 ^ -2=" & CStr(10 ^ -2) & _
         " 10 ^ - 2=" & CStr(10 ^ - 2) & " ERR=" & CStr(Err.Number)
     Err.Clear
+    EmitResult "XL-232 U(-1)=" & CStr(-1) & " U(- 1)=" & CStr(- 1) & _
+        " U(+1)=" & CStr(+1) & " U(+ 1)=" & CStr(+ 1) & _
+        " A(1+-2)=" & CStr(1+-2) & " A(1+ -2)=" & CStr(1+ -2) & _
+        " A(1 + -2)=" & CStr(1 + -2) & " A(1 + - 2)=" & CStr(1 + - 2) & _
+        " S(1--2)=" & CStr(1--2) & " S(1- -2)=" & CStr(1- -2) & _
+        " S(1 - -2)=" & CStr(1 - -2) & " S(1 - - 2)=" & CStr(1 - - 2) & _
+        " P(2^-1)=" & CStr(2^-1) & " P(2^ -1)=" & CStr(2^ -1) & _
+        " P(2 ^-1)=" & CStr(2 ^-1) & " P(2 ^ -1)=" & CStr(2 ^ -1) & _
+        " P(2^+1)=" & CStr(2^+1) & " P(2^ +1)=" & CStr(2^ +1) & _
+        " P(2 ^+1)=" & CStr(2 ^+1) & " P(2 ^ +1)=" & CStr(2 ^ +1) & _
+        " ERR=" & CStr(Err.Number)
+    Err.Clear
     On Error GoTo 0
 End Sub
 
