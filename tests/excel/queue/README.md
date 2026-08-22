@@ -20,6 +20,7 @@
 - `skip-if-excel-result-current.ps1`: 完了済み結果のグループハッシュを現在のソースと照合し、再実行要否を判定する処理
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `eval-matrix.cmd`: FormatとRadixのマトリックスを連続実行する専用バッチ
+- `run-excel-queue-group.ps1`: 結果再利用判定からExcel実行・結果検証までを共通化したグループ実行処理
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
@@ -56,8 +57,10 @@ tests\excel\queue\eval-matrix.cmd
 このバッチはFormat、Radixの順に各Publicプロシージャを実行し、
 `FormatMatrix.result`と`RadixMatrix.result`を個別に生成・検証する。
 
-`eval-excel.cmd`は自身のディレクトリへ移動し、準備済み`t.xlsm`をExcelで開いて
-`RunExcelQueueVerification`を実行する。開始時に
+各cmdは自身のディレクトリへ移動し、共通の`run-excel-queue-group.ps1`へ対象グループの
+ソース接頭辞、結果ファイル、Publicプロシージャを渡す。共通処理は準備スタンプを検証し、
+必要な場合だけ準備済み`t.xlsm`をExcelで開いて対象プロシージャを実行する。通常キューでは
+開始時に
 `%TEMP%\vba-runner-xl-queue`を削除するため、Binary Writeの短い出力が前回ファイルの
 末尾データを引き継がない。
 
