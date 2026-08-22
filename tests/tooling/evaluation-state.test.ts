@@ -470,6 +470,9 @@ console.log('[PASS] Excel probe synchronization');
 const queueDirectory = `${root}/tests/excel/queue`;
 const queueResult = `${root}/tests/excel/queue/ExcelQueueVerification.result`;
 const queueResultBody = existsSync(queueResult) ? readFileSync(queueResult, 'utf8') : null;
+const preparationStamp = `${root}/tests/excel/queue/t.xlsm.source.sha256`;
+const preparationStampBody = existsSync(preparationStamp)
+    ? readFileSync(preparationStamp, 'utf8') : null;
 const readyState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-READY.md`;
 const readyStateBody = probeStateBody
     .replaceAll('EV-TEST-EXCEL-PROBE', 'EV-TEST-EXCEL-READY')
@@ -518,9 +521,16 @@ try {
     const stale = run('excel-sync', 'EV-TEST-EXCEL-READY');
     assert.equal(stale.status, 0, stale.stderr);
     assert.equal(JSON.parse(stale.stdout).requiredState, 'needs-excel');
+
+    writeFileSync(preparationStamp, `${'0'.repeat(64)}\n`);
+    const stalePreparation = run('validate');
+    assert.notEqual(stalePreparation.status, 0);
+    assert.match(stalePreparation.stderr, /Excel preparation stamp is missing or stale/);
 } finally {
     if (queueResultBody === null) unlinkSync(queueResult);
     else writeFileSync(queueResult, queueResultBody);
+    if (preparationStampBody === null) unlinkSync(preparationStamp);
+    else writeFileSync(preparationStamp, preparationStampBody);
     if (existsSync(readyState)) unlinkSync(readyState);
 }
 
