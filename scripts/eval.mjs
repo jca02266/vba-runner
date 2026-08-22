@@ -921,6 +921,21 @@ function audit() {
   if (timelineGaps.length > 0) {
     fail(`timeline coverage is incomplete for ${timelineGaps.length} evaluation records: ${timelineGaps.map(({ id, status }) => `${id}(${status})`).join(', ')}`);
   }
+  const excelStateMismatches = records.flatMap(({ data }) => {
+    if (!data.excelProbeIds?.length) return [];
+    const queue = excelQueueState(data);
+    const waitingStatuses = new Set(['needs-excel-probe', 'needs-excel']);
+    const pendingStatuses = new Set(['claimed', 'in-progress', 'blocked', ...waitingStatuses]);
+    if (!pendingStatuses.has(data.status)) return [];
+    const stateMatches = queue.requiredState === 'result-ready'
+      ? !waitingStatuses.has(data.status) && data.status !== 'in-progress'
+      : data.status === queue.requiredState;
+    return stateMatches ? [] : [{ id: data.id, status: data.status, requiredState: queue.requiredState }];
+  });
+  if (excelStateMismatches.length > 0) {
+    fail(`Excel state coverage is inconsistent: ${excelStateMismatches
+      .map(({ id, status, requiredState }) => `${id}(${status}, expected ${requiredState})`).join(', ')}`);
+  }
   const stale = [...readClaims({ includeStale: true }).values()].filter((state) => state.stale);
   const archiveDir = path.join(statesDir, 'archive');
   if (stale.length) fs.mkdirSync(archiveDir, { recursive: true });
@@ -929,7 +944,7 @@ function audit() {
     fs.renameSync(state.file, archive);
   }
   const active = readClaims();
-  if (timelineGaps.length === 0) {
+  if (timelineGaps.length === 0 && excelStateMismatches.length === 0) {
     console.log(`audit passed: ${records.length} records, ${active.size} active claims, recovered ${stale.length} stale claims`);
   }
 }

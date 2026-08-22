@@ -465,6 +465,8 @@ function timeSeries(records, results, findings, stateEvents) {
       'evaluations', 'bugEvaluations', 'nonBugEvaluations', 'pendingEvaluations',
       'otherEvaluations', 'discovered', 'fixed', 'openBugs',
     ].some((key) => row[key] !== previous[key])
+      || row.status !== previous.status
+      || row.evaluationId !== previous.evaluationId
       || JSON.stringify(row.findingAreas) !== JSON.stringify(previous.findingAreas);
   });
 }
