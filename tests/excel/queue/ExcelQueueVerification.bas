@@ -147,6 +147,9 @@ Private Sub EmitStringDirectBoundary(ByVal n As Long)
     Err.Clear: s = Chr$(n): e = Err.Number
     EmitResult "XL-228 API=Chr$ N=" & CStr(n) & " ERR=" & CStr(e) & _
         " LEN=" & CStr(Len(s)) & " ASCW=" & CStr(AscW(s))
+    Err.Clear: s = Chr(n): e = Err.Number
+    EmitResult "XL-228 API=Chr N=" & CStr(n) & " ERR=" & CStr(e) & _
+        " LEN=" & CStr(Len(s)) & " ASCW=" & CStr(AscW(s))
     On Error GoTo 0
 End Sub
 

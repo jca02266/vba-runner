@@ -2790,8 +2790,8 @@ checkpoints:
     nextCandidate: FZ-COVERAGE-20260821-001
     coverageSnapshot: COV-2026-08-15-current
   - afterEvaluation: EV-00910
-    audit: "806 evaluations, 0 active claims; XL-228の直接リテラル・Chr境界マトリクスをExcelQueueVerification.basへ追加し、ソースハッシュ一致済みt.xlsmを準備した。結果待ちのためneeds-excelを維持する"
-    decision: "Excel実機結果でString系とChr系の256境界を比較し、RC-00090の代替仮説を分離する"
+    audit: "806 evaluations, 0 active claims; XL-228へChr（$なし）を追加し、Chr/Chr$の255超境界を含むソースハッシュ一致済みt.xlsmを再準備した。結果待ちのためneeds-excelを維持する"
+    decision: "Excel実機結果でChrとChr$の255超受理範囲を比較し、RC-00091の仕様差と実装差を分離する"
     action: excel-probe
     nextArea: 実Excel照合
     nextEvaluation: EV-00910

@@ -810,7 +810,7 @@
 | EV-00907 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
 | EV-00908 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
 | EV-00909 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の型付きcharacter引数256/257境界 |
-| EV-00910 | FZ-COVERAGE-20260821 | needs-excel | 1 | String/String$/Chr/Chr$の直接character境界 |
+| EV-00910 | FZ-COVERAGE-20260821 | needs-excel | 1 | Chr/Chr$の直接character境界 |
 
 ## 状態集計
 
