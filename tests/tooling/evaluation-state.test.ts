@@ -170,7 +170,6 @@ tests:
 horizontalAudit:
   confirmed: []
   ruledOut: []
-unresolved: []
 ---
 
 # state event transition test
@@ -221,6 +220,15 @@ try {
     assert.equal(events.length, 2);
     assert.equal(events[1].fromStatus, 'in-progress');
     assert.equal(events[1].status, 'verified-no-bug');
+    const validEventsBody = readFileSync(transitionEvents, 'utf8');
+    writeFileSync(transitionEvents, validEventsBody.replace(
+        /occurredAt: '.*'/g,
+        "occurredAt: '2999-01-01T00:00:00.000Z'",
+    ));
+    const futureEvent = run('validate');
+    assert.notEqual(futureEvent.status, 0);
+    assert.match(futureEvent.stderr, /occurredAt is in the future/);
+    writeFileSync(transitionEvents, validEventsBody);
 } finally {
     const claim = `${root}/evaluation/states/${transitionCandidate}.claim.yml`;
     if (existsSync(claim)) unlinkSync(claim);

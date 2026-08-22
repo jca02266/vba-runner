@@ -211,6 +211,9 @@ function validateEvents(candidateId, events, result) {
       || Number.isNaN(Date.parse(event.occurredAt))) {
       throw new Error(`${eventsFile(candidateId)}: invalid event ${index + 1}`);
     }
+    if (Date.parse(event.occurredAt) > Date.now()) {
+      throw new Error(`${eventsFile(candidateId)}: event ${index + 1} occurredAt is in the future`);
+    }
     if (event.fromStatus !== undefined && event.fromStatus !== previousStatus) {
       throw new Error(`${eventsFile(candidateId)}: event ${index + 1} fromStatus does not match history`);
     }
