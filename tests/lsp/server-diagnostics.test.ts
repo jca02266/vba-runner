@@ -74,4 +74,23 @@ console.assert(propertyWarnings.length === 1, `Expected 1 VBA015 warning, got ${
 console.assert(propertyWarnings[0].severity === 2, 'VBA015 severity should be Warning (2)');
 console.log('[PASS] Property Let 暗黙 ByRef: VS Code Warning');
 
+// Test 9: VBE-exported member attributes are valid in class diagnostics
+server.didOpen('file:///ExcelQueueDefaultValue.cls', [
+    'VERSION 1.0 CLASS',
+    'BEGIN',
+    '  MultiUse = -1',
+    'END',
+    'Attribute VB_Name = "ExcelQueueDefaultValue"',
+    'Option Explicit',
+    'Public Property Get Value() As Variant',
+    'Attribute Value.VB_UserMemId = 0',
+    '    Value = 1',
+    'End Property',
+].join('\n'));
+const classAttributeDiagnostics = server.getDiagnostics('file:///ExcelQueueDefaultValue.cls')
+    .filter((d: any) => d.source === 'vba-runner');
+console.assert(classAttributeDiagnostics.length === 0,
+    `Expected no class attribute diagnostics, got ${classAttributeDiagnostics.map((d: any) => d.message).join('; ')}`);
+console.log('[PASS] VBE class member Attribute is accepted by diagnostics');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

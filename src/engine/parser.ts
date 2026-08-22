@@ -1110,7 +1110,15 @@ export class Parser {
 
     private parseAttributeStatement(): AttributeStatement {
         this.advance(); // 'Attribute'
-        const name = this.advance().value;
+        const nameParts = [this.advance().value];
+        // VBE-exported member metadata uses a qualified name, for example
+        // `Attribute Value.VB_UserMemId = 0`, immediately inside the member
+        // declaration.  Keep the qualification as metadata rather than
+        // treating the dot as an expression separator.
+        while (this.match(TokenType.OperatorDot)) {
+            nameParts.push(this.advance().value);
+        }
+        const name = nameParts.join('.');
         this.consume(TokenType.OperatorEquals, "Expected '=' after Attribute name");
         const value = this.parseExpression();
         return { type: 'AttributeStatement', name, value };

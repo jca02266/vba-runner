@@ -617,7 +617,14 @@ export class LSPServer {
                 message: d.message,
                 source: 'vba-runner',
             }));
-            const ast = new Parser(tokens, { errorRecovery: true }).parse();
+            let parserOptions: any = { errorRecovery: true };
+            if (uri.toLowerCase().endsWith('.cls')) {
+                try {
+                    const className = path.basename(uriToPath(uri), '.cls');
+                    parserOptions = { ...parserOptions, parseAsClass: className };
+                } catch { /* file:// 以外の URI は通常モジュールとして扱う */ }
+            }
+            const ast = new Parser(tokens, parserOptions).parse();
             checkOptionExplicit(ast); // populate ast.diagnostics with undeclared variable errors
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
