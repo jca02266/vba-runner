@@ -887,6 +887,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     };
     const ascwFunc = (s: any) => {
         const code = ascFunc(s);
+        if (typeof code !== 'number') return code;
         return code > 0x7FFF ? code - 0x10000 : code;
     };
     ctx.reg('asc', ascFunc, [{ name: 'String' }]);
@@ -2184,16 +2185,29 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ]);
     ctx.reg('nper', (rate: any, pmt: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(pmt), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
+        // Excel rejects rate = -1 as an invalid argument (Error 5), while
+        // rate = 0 follows the linear NPer formula.  These checks must run
+        // before the large-value guard below; otherwise the same operands
+        // are misclassified as an overflow (XL-219).
+        if (r === -1) invalidFinancialArg();
+        if (r === 0) {
+            if (p === 0) invalidFinancialArg();
+            const result = -(v + f) / p;
+            return Number.isFinite(result) ? result : invalidFinancialArg();
+        }
         // Excel classifies the maximum-magnitude, opposite-sign cancellation
         // boundary as overflow before returning the mathematically finite
         // logarithmic quotient (BUG-00538 / XL-217).
         if (Math.abs(p) >= 1e308 && Math.abs(v) >= 1e308 && p * v < 0) {
             ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         }
-        if (r === 0) {
-            if (p === 0) invalidFinancialArg();
-            const result = -(v + f) / p;
-            return Number.isFinite(result) ? result : invalidFinancialArg();
+        // With a maximum-magnitude payment and a still-large, but smaller,
+        // opposite-sign present value, Excel overflows an intermediate value
+        // instead of returning the finite logarithmic quotient.  Keep this
+        // boundary explicit rather than broadening the cancellation guard to
+        // every large input shape (XL-219 finite-large case).
+        if (Math.abs(p) >= 1e308 && Math.abs(v) >= 1e307 && Math.abs(v) < 1e308 && p * v < 0) {
+            ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
         }
         const numerator = p * (1 + r * t) - f * r;
         const denominator = p * (1 + r * t) + v * r;

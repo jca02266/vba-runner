@@ -10,7 +10,10 @@ import { evalVBASingle, assert } from '../../test-libs/test-runner';
 function expectCompileError(code: string, label: string): void {
     let threw = false;
     try {
-        evalVBASingle(code);
+        const ev = evalVBASingle(code);
+        // Next-variable validation is intentionally deferred to precheckProc,
+        // so loading the module alone is not the compile-time probe.
+        ev.callProcedure('Test', []);
     } catch (_e) {
         threw = true;
     }
@@ -20,7 +23,8 @@ function expectCompileError(code: string, label: string): void {
 
 function expectNoError(code: string, label: string): void {
     try {
-        evalVBASingle(code);
+        const ev = evalVBASingle(code);
+        ev.callProcedure('Test', []);
     } catch (e: any) {
         assert.fail(`[FAIL] ${label}: 予期しないエラー: ${e.message}`);
     }

@@ -763,14 +763,14 @@
 | EV-00859 | RCA-FOLLOWUP | fixed | 1 | 金融関数線形結合の横展開 |
 | EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
 | EV-00861 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
-| EV-00862 | RCA-FOLLOWUP | bug-found | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
+| EV-00862 | RCA-FOLLOWUP | fixed | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
 | EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
 | EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
 | EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
 | EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
-| EV-00868 | FZ-COVERAGE-20260810 | bug-found | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
+| EV-00868 | FZ-COVERAGE-20260810 | fixed | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
 | EV-00869 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約 |
-| EV-00870 | FZ-COVERAGE-20260810 | bug-found | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
+| EV-00870 | FZ-COVERAGE-20260810 | fixed | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
 | EV-00871 | FZ-COVERAGE-20260810 | verified-no-bug |  | 動的メンバーのOptional専用Functionを省略・明示引数で呼び出す契約 |
 | EV-00872 | FZ-COVERAGE-20260810 | verified-no-bug |  | ADODB.StreamのOptional ReadTextを直接・CallByNameで省略する契約 |
 | EV-00873 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderのoverwrite=False衝突時に先行コピーを残さない契約 |
@@ -802,27 +802,29 @@
 | EV-00899 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync親ファイル境界 |
 | EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
 | EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
-| EV-00902 | FZ-COVERAGE-20260810 | bug-found | 1 | CDateの許容シリアル値上下端とError 6境界 |
+| EV-00902 | FZ-COVERAGE-20260810 | fixed | 1 | CDateの許容シリアル値上下端とError 6境界 |
 | EV-00903 | FZ-COVERAGE-20260810 | fixed | 1 | CBoolへLongLong数値式を渡した場合の真偽変換 |
 | EV-00904 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarの配列・クラス・Variantサブタイプ保持 |
 | EV-00905 | FZ-COVERAGE-20260810 | verified-no-bug |  | CBoolのLongLong符号・最大値・最小値境界 |
 | EV-00906 | FZ-COVERAGE-20260810 | fixed | 1 | CLngLngの符号付き64ビット範囲外エラー番号 |
-| EV-00907 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
+| EV-00907 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
 | EV-00908 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
 | EV-00909 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の型付きcharacter引数256/257境界 |
-| EV-00910 | FZ-COVERAGE-20260821 | bug-found | 1 | Chr/Chr$の直接character境界 |
+| EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
+| EV-00911 | FZ-COVERAGE-20260822 | needs-excel | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 9 |
-| fixed | 350 |
+| bug-found | 3 |
+| fixed | 356 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 441 |
 
-横展開未解決経路: 587、実Excel待ち評価: 0
+横展開未解決経路: 588、実Excel待ち評価: 1
 
 ## 次の候補
 

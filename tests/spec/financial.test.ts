@@ -344,6 +344,27 @@ console.log('[PASS] NPVの正負キャッシュフロー契約');
 }
 console.log('[PASS] BUG-00538: NPer maximum cancellation boundary');
 
+// BUG-00550: Excel distinguishes NPer's rate-domain errors from its
+// intermediate overflow boundary.  In particular, rate = 0 is the linear
+// formula, rate = -1 is Error 5, and the finite-large shape is Error 6.
+{
+    const ev = evalVBASingle(String.raw`Function ProbeNPerExcelBoundaries() As String
+        Dim value As Double, text As String
+        On Error Resume Next
+        Err.Clear: value = NPer(0.5, -1E+308, 1E+307, 0, 0)
+        text = text & "finite-large=" & Err.Number & ":" & CStr(value) & ";"
+        Err.Clear: value = NPer(0, -1E+308, 1E+308, 0, 0)
+        text = text & "zero-rate=" & Err.Number & ":" & CStr(value) & ";"
+        Err.Clear: value = NPer(-1, -1E+308, 1E+308, 0, 0)
+        text = text & "minus-one=" & Err.Number & ";"
+        ProbeNPerExcelBoundaries = text
+    End Function`);
+    assert.strictEqual(ev.callProcedure('ProbeNPerExcelBoundaries', []),
+        'finite-large=6:0;zero-rate=0:1;minus-one=5;',
+        'NPer preserves Excel Error 5/6 and zero-rate boundaries');
+}
+console.log('[PASS] BUG-00550: NPer rate and overflow boundaries');
+
 // Bug 181-A: financial functions must reject invalid domains instead of leaking
 // Infinity/NaN or silently returning a value.
 {
