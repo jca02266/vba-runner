@@ -560,6 +560,26 @@ export class LSPServer {
         return names;
     }
 
+    /** Collect module/class qualifiers available to Option Explicit checks. */
+    private collectAllKnownModuleNames(): Set<string> {
+        const names = new Set<string>();
+        for (const [uri, doc] of this.allDocuments()) {
+            const fileName = this.uriBasename(uri);
+            if (fileName) {
+                names.add(fileName.replace(/\.[^.]+$/, '').toLowerCase());
+            }
+            const vbName = doc.content.match(/^\s*Attribute\s+VB_Name\s*=\s*"([^"]+)"/im);
+            if (vbName) names.add(vbName[1].toLowerCase());
+            try {
+                const ast = this.parseDocument(doc.content, uri);
+                if (ast?.body) {
+                    for (const name of collectUserDefinedTypeNames(ast.body)) names.add(name);
+                }
+            } catch { /* ignore malformed workspace documents */ }
+        }
+        return names;
+    }
+
     /**
      * Get signature help for a function call at the given position
      */
@@ -625,7 +645,11 @@ export class LSPServer {
                 } catch { /* file:// 以外の URI は通常モジュールとして扱う */ }
             }
             const ast = new Parser(tokens, parserOptions).parse();
-            checkOptionExplicit(ast); // populate ast.diagnostics with undeclared variable errors
+            // Pass the workspace's module qualifiers to the second-pass
+            // Option Explicit checker.  Otherwise ModuleName.Property is
+            // reported as undeclared in expression statements, while the
+            // call-expression path skips the same qualifier.
+            checkOptionExplicit(ast, this.collectAllKnownModuleNames());
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
                     start: { line: d.loc.start.line - 1, character: d.loc.start.column - 1 },

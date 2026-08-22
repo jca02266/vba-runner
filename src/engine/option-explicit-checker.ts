@@ -405,8 +405,20 @@ function checkExpr(expr: Expression, declared: Set<string>, diagnostics: ParseDi
         }
         case 'MemberExpression': {
             const m = expr as MemberExpression;
-            // Only check the object (left side); property is always a name, not a variable reference
-            checkExpr(m.object, declared, diagnostics, onViolation, knownModuleNames);
+            // Only check the object (left side); property is always a name, not
+            // a variable reference.  A bare object can also be a public module
+            // or class qualifier from another document, so use the same
+            // known-module rule as member calls below.
+            if (m.object.type === 'Identifier') {
+                const id = m.object as Identifier;
+                const lower = id.name.toLowerCase();
+                if (id.foreign || declared.has(lower) || VBA_BUILTINS.has(lower)
+                    || knownModuleNames?.has(lower)) break;
+                reportUndeclared(id.name, id, diagnostics);
+                onViolation(lower, exprLine(id));
+            } else {
+                checkExpr(m.object, declared, diagnostics, onViolation, knownModuleNames);
+            }
             break;
         }
         case 'DictionaryAccessExpression': {

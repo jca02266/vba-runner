@@ -93,4 +93,36 @@ console.assert(classAttributeDiagnostics.length === 0,
     `Expected no class attribute diagnostics, got ${classAttributeDiagnostics.map((d: any) => d.message).join('; ')}`);
 console.log('[PASS] VBE class member Attribute is accepted by diagnostics');
 
+// Test 10: Cross-module member qualifiers are known to Option Explicit
+server.loadWorkspaceFile('file:///workspace/ExcelQueueQualifiedProperty.cls', String.raw`VERSION 1.0 CLASS
+Attribute VB_Name = "ExcelQueueQualifiedProperty"
+Option Explicit
+Public Property Get Name() As String
+    Name = "module-a"
+End Property
+Public Property Get Values() As Variant
+    Values = Array(10, 20, 30)
+End Property`);
+server.didOpen('file:///workspace/qualified-property.bas', String.raw`Option Explicit
+Sub Verify()
+    Dim value As Variant, errNo As Long
+    Err.Clear: value = ExcelQueueQualifiedProperty.Name: errNo = Err.Number
+    Err.Clear: value = ExcelQueueQualifiedProperty.Values(1): errNo = Err.Number
+End Sub`);
+const qualifiedPropertyDiagnostics = server.getDiagnostics('file:///workspace/qualified-property.bas')
+    .filter((d: any) => d.source === 'vba-runner');
+console.assert(qualifiedPropertyDiagnostics.length === 0,
+    `Expected no cross-module qualifier diagnostics, got ${qualifiedPropertyDiagnostics.map((d: any) => d.message).join('; ')}`);
+
+server.didOpen('file:///workspace/unknown-qualifier.bas', String.raw`Option Explicit
+Sub Verify()
+    Dim value As Variant
+    value = UnknownQualifiedModule.Name
+End Sub`);
+const unknownQualifierDiagnostics = server.getDiagnostics('file:///workspace/unknown-qualifier.bas')
+    .filter((d: any) => d.source === 'vba-runner');
+console.assert(unknownQualifierDiagnostics.some((d: any) => d.message.includes("'UnknownQualifiedModule'")),
+    'Unknown module qualifiers must still be reported');
+console.log('[PASS] Cross-module qualifiers are known while unknown qualifiers remain diagnostics');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');
