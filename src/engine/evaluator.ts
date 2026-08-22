@@ -10048,6 +10048,28 @@ export class Evaluator {
                             });
                             try {
                                 this.precheckProc(qualifiedProc);
+                                // A zero-argument module Property Get is
+                                // evaluated first when call syntax supplies
+                                // indexes for its returned array/object.
+                                if (qualifiedProc.isProperty &&
+                                    qualifiedProc.propertyType === 'get' &&
+                                    qualifiedProc.parameters.length === 0 &&
+                                    expr.args.length > 0) {
+                                    const returned = this.executeProcedureExpression(qualifiedProc, [], true);
+                                    const argsVals = this.evaluateCallArgumentValues(expr.args);
+                                    if (Array.isArray(returned)) {
+                                        let current: any = returned;
+                                        for (const arg of argsVals) {
+                                            if (!Array.isArray(current)) {
+                                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+                                            }
+                                            current = current[Number(arg)];
+                                        }
+                                        return current === undefined ? vbaEmpty : current;
+                                    }
+                                    this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                                        'Wrong number of arguments or invalid property assignment');
+                                }
                                 return this.executeProcedureExpression(qualifiedProc, expr.args, true);
                             } finally {
                                 this.vbaCallStack.pop();
@@ -10616,6 +10638,13 @@ export class Evaluator {
             const vars = this.moduleVarRegistry.get(possibleModule.toLowerCase());
             if (vars && vars.has(propName)) {
                 return this.env.get(propName);
+            }
+            const qualified = this.env.getProcedureFromModule(propName, possibleModule, 'get');
+            if (qualified?.isProperty && qualified.propertyType === 'get') {
+                if (requiredArgumentCount(qualified.parameters) > 0) {
+                    this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
+                }
+                return this.executeProcedureExpression(qualified, [], true);
             }
         }
 

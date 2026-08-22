@@ -145,3 +145,28 @@ End Sub
 }
 
 console.log('[PASS] モジュール修飾付きプロシージャ呼び出し - 全テスト完了');
+
+// --- Module修飾Property Getの暗黙評価と戻り値添字 ---
+{
+    const propertyModule = String.raw`
+Public Property Get Item(ByVal index As Long) As Long
+    Item = index * 10 + 5
+End Property
+
+Public Property Get Name() As String
+    Name = "module-a"
+End Property
+
+Public Property Get Values() As Variant
+    Values = Array(10, 20, 30)
+End Property
+`;
+    const propertyEv = evalVBAModules([{ name: 'QualifiedProperty', code: propertyModule }]);
+    assert.strictEqual(propertyEv.evalExpression('QualifiedProperty.Item(1)'), 15,
+        'module-qualified parameterized Property Get');
+    assert.strictEqual(propertyEv.evalExpression('QualifiedProperty.Name'), 'module-a',
+        'module-qualified zero-argument Property Get');
+    assert.strictEqual(propertyEv.evalExpression('QualifiedProperty.Values(1)'), 20,
+        'module-qualified Property Get return indexing');
+    console.log('[PASS] Module修飾Property Getの暗黙評価と戻り値添字');
+}
