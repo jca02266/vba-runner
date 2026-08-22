@@ -462,12 +462,12 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
             if (numericSerial === undefined) {
                 return new VbaDate(toVbaDate(parseVbaDate(val)));
             }
-            if (numericSerial < -657434 || numericSerial >= 2958466) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+            if (numericSerial < -657434 || numericSerial >= 2958466) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
             return new VbaDate(numericSerial);
         }
         const serial = ctx.toVbaNumber(val);
-        // 日付シリアル値の有効範囲（100-01-01 〜 9999-12-31）。範囲外は Error 6（実 VBA 差分で裁定）
-        if (serial < -657434 || serial >= 2958466) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        // 日付シリアル値の有効範囲（100-01-01 〜 9999-12-31）。範囲外は Error 13。
+        if (serial < -657434 || serial >= 2958466) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         return new VbaDate(serial);
     }, [{ name: 'Expression' }]);
     ctx.reg('cvdate', (val: any) => {

@@ -55,6 +55,15 @@ const ev = evalVBASingle('');
     assert.strictEqual(ev.evalExpression('CStr(CDate(Empty))'), '1899/12/30', 'CDate(Empty) はエポック日');
 }
 
+// --- CDateの数値シリアル範囲外はError 13（Excel実機XL-224） ---
+{
+    assert.throwsMatch(() => ev.evalExpression('CDate(-657435)'), /error '13'/,
+        'CDate下限直下はType mismatch');
+    assert.throwsMatch(() => ev.evalExpression('CDate(2958466)'), /error '13'/,
+        'CDate上限直上はType mismatch');
+    console.log('[PASS] CDate numeric range boundary uses Error 13');
+}
+
 // --- CDate: 数値文字列（&H/&O/カンマ）はシリアル値として解釈する ---
 {
     assert.strictEqual(ev.evalExpression('CLng(CDate("&H10"))'), 16, 'CDate("&H10") は数値 16 のシリアル値');
