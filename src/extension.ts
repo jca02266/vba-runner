@@ -121,7 +121,13 @@ export async function activate(context: vscode.ExtensionContext) {
                 d.range.end.line,
                 d.range.end.character
             );
-            const sev = d.severity === 1 ? vscode.DiagnosticSeverity.Error : vscode.DiagnosticSeverity.Warning;
+            const sev = d.severity === 1
+                ? vscode.DiagnosticSeverity.Error
+                : d.severity === 2
+                    ? vscode.DiagnosticSeverity.Warning
+                    : d.severity === 3
+                        ? vscode.DiagnosticSeverity.Information
+                        : vscode.DiagnosticSeverity.Hint;
             const msg = d.l10nKey != null
                 ? l10n.t(d.l10nKey, ...(d.l10nArgs ?? []))
                 : d.message;

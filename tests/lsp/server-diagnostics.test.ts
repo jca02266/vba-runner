@@ -125,4 +125,22 @@ console.assert(unknownQualifierDiagnostics.some((d: any) => d.message.includes("
     'Unknown module qualifiers must still be reported');
 console.log('[PASS] Cross-module qualifiers are known while unknown qualifiers remain diagnostics');
 
+// Test 11: Host globals recommend a mock and provide an AI-oriented guide link
+server.didOpen('file:///workspace/host-dependent.bas', String.raw`Option Explicit
+Sub VerifyHost()
+    Dim value As Variant
+    value = ThisWorkbook.Name
+    value = Application.ActiveSheet.Name
+    value = CurrentDb()
+End Sub`);
+const hostMockDiagnostics = server.getDiagnostics('file:///workspace/host-dependent.bas')
+    .filter((d: any) => d.source === 'vba-mock-advisor');
+console.assert(hostMockDiagnostics.length === 3,
+    `Expected 3 host mock recommendations, got ${hostMockDiagnostics.length}`);
+console.assert(hostMockDiagnostics.every((d: any) => d.message.includes('__mocks__')
+    && d.message.includes('docs/guides/MOCK_GUIDE.md')
+    && d.message.includes('AI prompt example')),
+    'Host recommendations should include the mock guide and AI prompt example');
+console.log('[PASS] Host globals recommend __mocks__ and include an AI prompt example');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

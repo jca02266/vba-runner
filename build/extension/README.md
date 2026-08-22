@@ -158,6 +158,10 @@ The following diagnostic rules are reported as you type:
 | VBA013 | Warning | `Option Explicit` missing | File lacks `Option Explicit` |
 | VBA014 | Warning | Unused variable | Variable declared but never referenced |
 | VBA016 | Warning | Unknown type | `Dim x As UnknownType` — type is not recognized |
+| `vba-mock-advisor` | Information | Host mock recommendation | Suggests replacing `Application` / `ThisWorkbook` / `CurrentDb` and similar host globals with `__mocks__` |
+
+Host-dependent identifier recommendations include a GitHub link to the mock guide and a
+generic AI prompt for creating the smallest mock and a focused test.
 
 **Quick Fixes** are provided for:
 

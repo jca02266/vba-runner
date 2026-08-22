@@ -158,6 +158,10 @@ End Function
 | VBA013 | 警告 | `Option Explicit` 未記述 | ファイルに `Option Explicit` がない |
 | VBA014 | 警告 | 未使用変数 | 宣言されているが一度も参照されていない変数 |
 | VBA016 | 警告 | 未知の型 | `Dim x As UnknownType` — 型が認識されない |
+| `vba-mock-advisor` | 情報 | ホスト依存モック推奨 | `Application` / `ThisWorkbook` / `CurrentDb` などを `__mocks__` で差し替える案内 |
+
+ホスト依存識別子の情報診断には、モックガイドへのGitHubリンクと、AIに最小限の
+モックとテストを作成させる汎用プロンプト例が含まれます。
 
 **クイックフィックス**が提供されるルール:
 

@@ -22,6 +22,23 @@ sources:
 
 # VBA モック実装ガイド
 
+## VS Code 診断のホスト依存モック推奨
+
+VS Code 拡張は `Application`、`ThisWorkbook`、`ActiveSheet`、`CurrentDb`、
+`DoCmd` など、Excel/Accessホストに依存する識別子を検出すると、
+`__mocks__` にモックを作成する情報診断を表示します。診断にはこのガイドへの
+リンクと、AIにモック作成を依頼する汎用プロンプト例が含まれます。
+
+```text
+Read the mock guide at
+https://github.com/jca02266/vba-runner/blob/main/docs/guides/MOCK_GUIDE.md,
+create the smallest __mocks__ VBA/JS stub for 'Application', preserve the
+member calls used by this code, and add a focused test.
+```
+
+これはExcelやAccessの完全な再実装を意味しません。テスト対象が実際に使う
+メンバーだけをモックし、必要ならVBA/JavaScript/TypeScriptの形式を選びます。
+
 > 対象: Excel オブジェクト依存を避けられない利用者
 >
 > 前提: [TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md)、可能なら先に [REFACTORING_GUIDE.md](../refactoring/REFACTORING_GUIDE.md) で分離を検討

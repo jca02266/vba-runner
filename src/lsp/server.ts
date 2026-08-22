@@ -26,6 +26,7 @@ import { TestRunner } from './test-runner';
 import { DebugAdapter } from './debug-adapter';
 import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
 import { SignatureHelpProvider, SignatureHelpResult } from './signature-help-provider';
+import { collectHostMockDiagnostics } from './host-mock-advisor';
 
 export interface TextDocument {
     uri: string;
@@ -699,8 +700,9 @@ export class LSPServer {
                 l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
+            const hostMockDiags = collectHostMockDiagnostics(ast);
 
-            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags];
+            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags];
         } catch {
             return [];
         }
