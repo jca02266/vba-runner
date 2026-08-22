@@ -814,19 +814,18 @@
 | EV-00911 | FZ-COVERAGE-20260822 | verified-no-bug | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
 | EV-00912 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexer低収束領域の日付リテラル下限と時刻ゼロ境界 |
 | EV-00913 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Dateリテラルの年1〜99とJavaScript年補正境界 |
-| EV-00914 | FZ-COVERAGE-20260810 | needs-excel | 1 | Parser・Lexerの指数記法・Dサフィックス・LongLongサフィックス境界 |
+| EV-00914 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexerの指数記法・Dサフィックス・LongLongサフィックス境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 360 |
+| fixed | 361 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 443 |
 
-横展開未解決経路: 588、実Excel待ち評価: 1
+横展開未解決経路: 588、実Excel待ち評価: 0
 
 ## 次の候補
 
