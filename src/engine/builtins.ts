@@ -2286,9 +2286,8 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         const v = requireMixedCashFlows(toCashFlowValues(values));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
-        // Excel rejects the exact zero discount denominator when a later
-        // negative cash flow would be divided by (1 + FinanceRate)^t.
-        if (fr === -1 && v.some((value, index) => index > 0 && value < 0)) {
+        // Excel rejects FinanceRate=-1 for MIRR regardless of cash-flow shape.
+        if (fr === -1) {
             invalidFinancialArg();
         }
         // A zero reinvestment growth factor has no defined future-value

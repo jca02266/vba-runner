@@ -147,6 +147,24 @@ console.log('[PASS] MIRR ReinvestRate boundary error');
 }
 console.log('[PASS] MIRR FinanceRate zero-denominator boundary');
 
+// The initial negative cash flow is enough for Excel to reject FinanceRate=-1.
+{
+    const ev = evalVBASingle(String.raw`
+    Function ProbeMirrInitialOnlyBoundary() As Long
+        On Error Resume Next
+        Dim flows(0 To 2) As Double, ignored As Double
+        flows(0) = -100
+        flows(1) = 50
+        flows(2) = 75
+        ignored = MIRR(flows, -1, 0.1)
+        ProbeMirrInitialOnlyBoundary = Err.Number
+    End Function
+    `);
+    assert.strictEqual(ev.callProcedure('ProbeMirrInitialOnlyBoundary', []), 5,
+        'MIRR FinanceRate=-1 with no later negative cash flow is Error 5');
+}
+console.log('[PASS] MIRR FinanceRate=-1 initial-only boundary');
+
 // --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
 // Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため
 // values.map(Number) がインデックス 0 (undefined → NaN) を含んでいた
