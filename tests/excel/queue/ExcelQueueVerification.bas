@@ -138,6 +138,10 @@ Private Sub VerifyPowerOperatorBoundary()
     EmitResult "XL-230 2^&H3=" & CStr(2 ^ &H3) & _
         " 2^&O3=" & CStr(2 ^ &O3) & " ERR=" & CStr(Err.Number)
     Err.Clear
+    EmitResult "XL-232 10^-2=" & CStr(10^-2) & " 10^ -2=" & CStr(10^ -2) & _
+        " 10^ - 2=" & CStr(10^ - 2) & " 10 ^ -2=" & CStr(10 ^ -2) & _
+        " 10 ^ - 2=" & CStr(10 ^ - 2) & " ERR=" & CStr(Err.Number)
+    Err.Clear
     On Error GoTo 0
 End Sub
 
