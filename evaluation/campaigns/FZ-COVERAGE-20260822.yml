@@ -1,0 +1,17 @@
+id: FZ-COVERAGE-20260822
+method: remediation-guided-boundary
+items:
+  - id: FZ-COVERAGE-20260822-001
+    title: String and Chr extended character mapping boundary
+    status: queued
+    priority: 1
+    focus: String/String$/Chr/Chr$の256超入力に対する文字コード写像
+    priorCauseKey: vba-string-ansi-codepage-boundary-contract
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
+      - tests/excel/queue/ExcelQueueVerification.bas
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

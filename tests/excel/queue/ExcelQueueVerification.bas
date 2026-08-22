@@ -129,7 +129,7 @@ End Sub
 
 Private Sub VerifyStringDirectBoundary()
     Dim values As Variant, i As Long
-    values = Array(0, 1, 254, 255, 256, 257, 258, 511, 512)
+    values = Array(0, 1, 254, 255, 256, 257, 258, 321, 511, 512, 1023, 1024, 32767, 32768, 65535)
     For i = LBound(values) To UBound(values)
         EmitStringDirectBoundary CLng(values(i))
     Next i
