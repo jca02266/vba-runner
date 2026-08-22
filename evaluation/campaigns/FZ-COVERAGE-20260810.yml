@@ -3933,3 +3933,32 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260810-388
+    title: Parser lexer low-convergence boundary probe
+    status: queued
+    priority: 1
+    focus: Parser・Lexer低収束領域の未到達構文境界と診断整合性
+    priorCauseKey: parser-lexer-coverage-low
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/lexer.test.ts
+      - tests/spec/parser-error-recovery.test.ts
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260810-389
+    title: Date literal year one-to-ninety-nine boundary
+    status: queued
+    priority: 2
+    focus: Dateリテラルの年1〜99とJavaScript年補正境界
+    priorCauseKey: vba-date-serial-conversion-host-timezone-coupling
+    coverageSnapshot: COV-2026-08-15-current
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/vba-types.ts
+      - tests/spec/date-literal-parsing.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/vba-types.ts

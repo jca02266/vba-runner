@@ -812,12 +812,14 @@
 | EV-00909 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の型付きcharacter引数256/257境界 |
 | EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
 | EV-00911 | FZ-COVERAGE-20260822 | verified-no-bug | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
+| EV-00912 | FZ-COVERAGE-20260810 | in-progress | 1 | Parser・Lexer低収束領域の日付リテラル下限と時刻ゼロ境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | fixed | 359 |
+| in-progress | 1 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 442 |
@@ -828,4 +830,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260810-389 | 2 | queued | Dateリテラルの年1〜99とJavaScript年補正境界 | yes |

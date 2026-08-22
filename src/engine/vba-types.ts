@@ -24,12 +24,29 @@ export class VbaBoolean {
     }
 }
 
-// VBA date serial: days since local midnight 1899-12-30
-const VBA_EPOCH = new Date(1899, 11, 30);
+// VBA date serial: days since the calendar midnight 1899-12-30.
+// Do not subtract host-local Date timestamps: historical timezone/DST rules
+// would otherwise make the same VBA calendar value vary by TZ.
 const MS_PER_DAY = 86400000;
+const calendarDate = (year: number, month: number, day: number,
+    hour = 0, minute = 0, second = 0, millisecond = 0): Date => {
+    const result = new Date(0);
+    result.setFullYear(year, month - 1, day);
+    result.setHours(hour, minute, second, millisecond);
+    return result;
+};
+const calendarMilliseconds = (year: number, month: number, day: number,
+    hour = 0, minute = 0, second = 0, millisecond = 0): number => {
+    const result = new Date(0);
+    result.setUTCFullYear(year, month - 1, day);
+    result.setUTCHours(hour, minute, second, millisecond);
+    return result.getTime();
+};
+const VBA_EPOCH_MS = calendarMilliseconds(1899, 12, 30);
 
 export const toVbaDate = (d: Date): number =>
-    (d.getTime() - VBA_EPOCH.getTime()) / MS_PER_DAY;
+    (calendarMilliseconds(d.getFullYear(), d.getMonth() + 1, d.getDate(),
+        d.getHours(), d.getMinutes(), d.getSeconds(), d.getMilliseconds()) - VBA_EPOCH_MS) / MS_PER_DAY;
 
 export const fromVbaDate = (serial: number): Date => {
     // VBA の日付シリアル値: 整数部（0 方向切り捨て）が日数、絶対値の小数部が時刻。
@@ -38,7 +55,9 @@ export const fromVbaDate = (serial: number): Date => {
     const dayInt = Math.trunc(serial);
     const frac = Math.abs(serial - dayInt);
     const ms = dayInt * MS_PER_DAY + Math.round(frac * MS_PER_DAY);
-    return new Date(VBA_EPOCH.getTime() + ms);
+    const utc = new Date(VBA_EPOCH_MS + ms);
+    return calendarDate(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate(),
+        utc.getUTCHours(), utc.getUTCMinutes(), utc.getUTCSeconds(), utc.getUTCMilliseconds());
 };
 
 /**

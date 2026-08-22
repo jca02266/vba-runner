@@ -2797,6 +2797,14 @@ checkpoints:
     nextEvaluation: EV-00910
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EVAL-LOOP-20260822-PARSER
+    audit: "808 evaluations, 0 active claims; Parser・Lexerの相対収束度は-102.5%で、直近発見率が累積発見率を上回る。既存候補は評価済みで、監査上のqueued候補は0件"
+    decision: "低収束領域を優先し、未到達のLexer/Parser境界と診断整合性を独立評価する新規候補を登録する"
+    action: claim
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260810-388
+    coverageSnapshot: COV-2026-08-15-current
   - afterEvaluation: EV-00911
     audit: "808 evaluations; ROOT-00052の残課題であるString/String$/Chr/Chr$の256超文字コード写像について、XL-228の追加境界を同一ソースへ登録し、準備済みt.xlsmを needs-excel にした"
     decision: "Excel実機の同一ハッシュ結果を取得するまで、256超の全域写像を推測で実装しない"
