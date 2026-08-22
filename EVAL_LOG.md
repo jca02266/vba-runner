@@ -808,8 +808,8 @@
 | EV-00905 | FZ-COVERAGE-20260810 | verified-no-bug |  | CBoolのLongLong符号・最大値・最小値境界 |
 | EV-00906 | FZ-COVERAGE-20260810 | fixed | 1 | CLngLngの符号付き64ビット範囲外エラー番号 |
 | EV-00907 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
-| EV-00908 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
-| EV-00909 | FZ-COVERAGE-20260810 | bug-found | 1 | String/String$の型付きcharacter引数256/257境界 |
+| EV-00908 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
+| EV-00909 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の型付きcharacter引数256/257境界 |
 | EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
 | EV-00911 | FZ-COVERAGE-20260822 | needs-excel | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
 
@@ -817,8 +817,7 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
-| fixed | 357 |
+| fixed | 359 |
 | known-limit | 5 |
 | needs-excel | 1 |
 | retired | 2 |

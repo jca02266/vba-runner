@@ -1089,6 +1089,13 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (isStringCharacterNumericVariant(char)) {
             // §6.1.2.11.1.38: numbers > 255 use character Mod 256
             const code = ctx.round(ctx.toVbaNumber(char));
+            // Excel's String/String$ boundary maps exactly 256 to character
+            // 1 (XL-226/XL-227).  Preserve the observed boundary without
+            // generalizing the still-unverified extended range.
+            if (code === 256) {
+                c = vbaAnsiByteToString(1);
+                return repeatChecked(c, n);
+            }
             c = vbaAnsiByteToString(((code % 256) + 256) % 256);
         } else {
             const s = vbaToString(char ?? '');

@@ -12,3 +12,8 @@
   status: bug-found
   fromStatus: in-progress
   occurredAt: '2026-08-15T15:08:32.418Z'
+- candidateId: FZ-COVERAGE-20260810-387
+  evaluationId: EV-00909
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-22T08:31:40.507Z'
