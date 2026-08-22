@@ -135,6 +135,9 @@ Private Sub VerifyPowerOperatorBoundary()
         " 2^+3=" & CStr(2 ^ +3) & " 2^(-1)=" & CStr(2 ^ (-1)) & _
         " 123^+3=" & CStr(123 ^ +3) & " ERR=" & CStr(Err.Number)
     Err.Clear
+    EmitResult "XL-230 2^&H3=" & CStr(2 ^ &H3) & _
+        " 2^&O3=" & CStr(2 ^ &O3) & " ERR=" & CStr(Err.Number)
+    Err.Clear
     On Error GoTo 0
 End Sub
 

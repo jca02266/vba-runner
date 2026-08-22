@@ -352,17 +352,34 @@ export class Lexer {
             numStr += this.consumeRequiredDigits((char) => this.isDigit(char), '指数リテラルには指数桁が必要です', startLine, startColumn);
         }
         const suffix = this.peek();
-        // `^` is both the LongLong type suffix and exponentiation.  It is a
-        // suffix only for an integer literal and only when it is not followed
-        // by an identifier character.  Without this contextual check,
-        // `10^400` was tokenized as a malformed LongLong literal followed by
-        // `400`, and the evaluator silently returned `undefined` instead of
-        // raising VBA's overflow error.
-        const suffixNext = this.input[this.pos + 1] ?? '\0';
+        // `^` is both the LongLong type suffix and exponentiation.  A numeric
+        // suffix is complete only at an expression delimiter; otherwise the
+        // parser must receive OperatorPower.  Looking only at the immediate
+        // next character incorrectly consumed `2^-1`, `2^ 1`, and `2^(-1)`
+        // as a LongLong literal followed by an unrelated expression.
+        let suffixNextPos = this.pos + 1;
+        while (suffixNextPos < this.input.length
+            && (this.input[suffixNextPos] === ' ' || this.input[suffixNextPos] === '\t'
+                || this.input[suffixNextPos] === '\r')) {
+            suffixNextPos++;
+        }
+        const suffixNext = this.input[suffixNextPos] ?? '\0';
+        const trailingWord = this.input.slice(suffixNextPos).match(/^[A-Za-z]+/)?.[0].toLowerCase();
+        const isCommentBoundary = suffixNext === "'" || trailingWord === 'rem';
+        const startsRadixLiteral = suffixNext === '&'
+            && (this.input[suffixNextPos + 1]?.toLowerCase() === 'h'
+                || this.input[suffixNextPos + 1]?.toLowerCase() === 'o'
+                || this.isDigit(this.input[suffixNextPos + 1] ?? '\0'));
+        const isPowerOperandStart = !isCommentBoundary && (this.isAlphaNumeric(suffixNext)
+            || suffixNext === '.' || suffixNext === '+' || suffixNext === '-'
+            || suffixNext === '(' || startsRadixLiteral);
+        const isExpressionDelimiter = !isPowerOperandStart
+            && (suffixNext === '\0' || suffixNext === '\n'
+                || isCommentBoundary || "',;:)\]}&*/\\=<>".includes(suffixNext));
         const hasFloatingSyntax = /[.eEdD]/.test(numStr);
         const isLongLongSuffix = suffix === '^'
             && !hasFloatingSyntax
-            && !this.isAlphaNumeric(suffixNext);
+            && isExpressionDelimiter;
         if (NUMERIC_TYPE_SUFFIXES.has(suffix)
             && (suffix !== '^' || isLongLongSuffix)) {
             numStr += this.advance();
