@@ -17,6 +17,7 @@
 - `prepare-excel-vba.sh`: 開発側で`t.xlsm`を作成し、VBAをインポートするコマンド
 - `verify-excel-queue-source.sh`: Windowsへ渡す前に準備スタンプを照合する検査
 - `verify-excel-queue-source.ps1`: Windows側で準備スタンプと現在のソースを照合する事前検査
+- `skip-if-excel-result-current.ps1`: 完了済み結果のグループハッシュを現在のソースと照合し、再実行要否を判定する処理
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `eval-matrix.cmd`: FormatとRadixのマトリックスを連続実行する専用バッチ
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
@@ -78,6 +79,11 @@ tests\excel\queue\eval-matrix.cmd
 結果として受理できない。`eval-excel.cmd`はExcelを起動する前にスタンプと現在の
 ソースを照合するため、ソース変更後に準備を忘れた場合は明示的に停止する。ソースを
 変更した場合は必ず準備スクリプトを再実行し、`t.xlsm`とスタンプをWindowsへ渡す。
+さらに、既存の結果に完了マーカーがあり、結果の`QUEUE_SOURCE_SHA256`が現在の
+グループソースと一致する場合は、Excelを起動せずその結果を再利用する。不一致、
+結果欠落、または未完了の場合だけ結果を削除してExcelを実行する。
+`eval-matrix.cmd`はFormatとRadixを個別に判定するため、一方だけソースが変わった場合も
+もう一方の実機結果を再利用できる。
 
 Formatの仕様探索は通常の回帰出力に混ぜない。`eval-matrix.cmd`は
 `FormatMatrixVerification.bas`の`RunFormatMatrixVerification`と
