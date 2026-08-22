@@ -815,12 +815,15 @@
 | EV-00912 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexer低収束領域の日付リテラル下限と時刻ゼロ境界 |
 | EV-00913 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Dateリテラルの年1〜99とJavaScript年補正境界 |
 | EV-00914 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexerの指数記法・Dサフィックス・LongLongサフィックス境界 |
+| EV-00915 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexerの^直後空白とLongLongサフィックス・減算境界 |
+| EV-00916 | FZ-LSP-20260822 | fixed | 1 | VBEエクスポート済み.clsのメンバーAttributeとLSP診断経路 |
+| EV-00917 | FZ-LSP-20260822 | fixed | 1 | LSPのOption Explicitにおける別モジュール修飾プロパティ参照 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 361 |
+| fixed | 364 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 443 |
@@ -831,4 +834,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-LSP-20260822-003 | 2 | queued | .cls本体のOption ExplicitとVBE属性を組み合わせた診断契約 | yes |
