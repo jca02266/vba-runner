@@ -291,16 +291,21 @@ function ev(expr: string): any {
     console.log('[PASS] Bug BH: InStr Null/Boolean Start, Null Compare');
 }
 
-// --- Bug M: Chr の引数範囲は 0-255、ChrW は 0-65535 ---
+// --- Bug M: Chr/Chr$ は Excel の拡張 character 範囲を受理する ---
 {
     assert.strictEqual(ev('Chr(65)'), 'A', 'Chr(65) = "A"');
     assert.strictEqual(ev('Chr(255)'), 'ÿ', 'Chr(255) = "ÿ"');
-    assert.throwsMatch(() => ev('Chr(256)'), /error '5'/, 'Chr(256) → Error 5');
+    assert.strictEqual(ev('AscW(Chr(256))'), 1, 'Chr(256) = U+0001');
+    assert.strictEqual(ev('AscW(Chr$(257))'), 1, 'Chr$(257) = U+0001');
+    assert.strictEqual(ev('AscW(Chr(258))'), 1, 'Chr(258) = U+0001');
+    assert.strictEqual(ev('AscW(Chr$(511))'), 1, 'Chr$(511) = U+0001');
+    assert.strictEqual(ev('AscW(Chr(512))'), 2, 'Chr(512) = U+0002');
     assert.throwsMatch(() => ev('Chr(-1)'), /error '5'/, 'Chr(-1) → Error 5');
     assert.strictEqual(ev('ChrW(256)'), 'Ā', 'ChrW(256) = "Ā"');
     assert.strictEqual(ev('ChrW(12354)'), 'あ', 'ChrW(12354) = "あ"');
     assert.throwsMatch(() => ev('ChrW(65536)'), /error '5'/, 'ChrW(65536) → Error 5');
-    console.log('[PASS] Bug M: Chr(>255) / ChrW(>65535) → Error 5');
+    assert.throwsMatch(() => ev('Chr(65536)'), /error '5'/, 'Chr(65536) → Error 5');
+    console.log('[PASS] Bug M: Chr/Chr$ extended range and ChrW range');
 }
 
 // --- Bug S: LenB(Null) が Null を返さずゴミ値を返す ---

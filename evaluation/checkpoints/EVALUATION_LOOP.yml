@@ -2797,3 +2797,11 @@ checkpoints:
     nextEvaluation: EV-00910
     nextCandidate: null
     coverageSnapshot: COV-2026-08-15-current
+  - afterEvaluation: EV-00910
+    audit: "807 evaluations, 0 active claims; XL-228のChr/Chr$実機結果を同期し、256・257・258・511・512のExcel受理とRunnerのError 5を確認してbug-foundへ遷移した"
+    decision: "RC-00091をChr/Chr$の拡張入力範囲受理の真因として確認し、直接修正と回帰テストを実施する。文字変換全域は別候補に分離する"
+    action: direct-fix
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-15-current

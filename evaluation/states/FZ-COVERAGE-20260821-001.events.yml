@@ -12,3 +12,13 @@
   status: needs-excel
   fromStatus: in-progress
   occurredAt: '2026-08-22T07:15:33.351Z'
+- candidateId: FZ-COVERAGE-20260821-001
+  evaluationId: EV-00910
+  status: in-progress
+  fromStatus: needs-excel
+  occurredAt: '2026-08-22T07:24:11.620Z'
+- candidateId: FZ-COVERAGE-20260821-001
+  evaluationId: EV-00910
+  status: bug-found
+  fromStatus: in-progress
+  occurredAt: '2026-08-22T07:25:33.991Z'

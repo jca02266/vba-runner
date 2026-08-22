@@ -890,8 +890,11 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const chrFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
         const code = n;
-        if (code < 0 || code > 255) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        return String.fromCharCode(code);
+        // Excel accepts extended character codes in DBCS hosts.  For the
+        // observed 256..65535 range, Chr uses the high byte as the returned
+        // character; keep the existing single-byte behavior for 0..255.
+        if (code < 0 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        return String.fromCharCode(code <= 255 ? code : Math.floor(code / 256));
     };
     ctx.reg('chr', chrFunc, [{ name: 'CharCode', coerce: 'long' }], ['$']);
     const chrwFunc = (n: any) => {
