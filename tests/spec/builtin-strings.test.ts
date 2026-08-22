@@ -156,7 +156,7 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`String$(4, "X")`), 'XXXX', 'String$ は String と同じ');
     // Bug DB: 数値が255超の場合は Mod 256 を適用 (§6.1.2.11.1.38)
     assert.strictEqual(ev(`String(3, 257)`), String.fromCharCode(1).repeat(3), 'String(3, 257): 257 Mod 256 = 1 → chr(1) * 3');
-    assert.strictEqual(ev(`String(3, 321)`), 'AAA', 'String(3, 321): 321 Mod 256 = 65 = "A"');
+    assert.strictEqual(ev(`String(3, 321)`), String.fromCharCode(1).repeat(3), 'String(3, 321) uses Excel extended mapping');
     assert.strictEqual(ev(`String(3, CCur(65))`), 'AAA', 'String Currency character code');
     assert.strictEqual(ev(`String(3, CDec(65))`), 'AAA', 'String Decimal character code');
     assert.strictEqual(ev(`String(3, True)`), String.fromCharCode(0xF8F3).repeat(3), 'String Boolean CP932 character code');
@@ -165,6 +165,9 @@ function ev(expr: string): any {
     assert.strictEqual(ev(`String(1, CDate(256))`), String.fromCharCode(1), 'String Date 256 uses Excel boundary mapping');
     assert.strictEqual(ev(`String(1, 256)`), String.fromCharCode(1), 'String numeric 256 uses Excel boundary mapping');
     assert.strictEqual(ev(`String$(3, CCur(256))`), String.fromCharCode(1).repeat(3), 'String$ Currency uses Excel 256 boundary mapping');
+    assert.strictEqual(ev(`String(1, 258)`), String.fromCharCode(1), 'String numeric 258 uses Excel extended mapping');
+    assert.strictEqual(ev(`String(1, 512)`), String.fromCharCode(2), 'String numeric 512 uses Excel extended mapping');
+    assert.strictEqual(ev(`AscW(String(1, 65535))`), -1805, 'String numeric 65535 uses CP932 mapping');
     assert.strictEqual(ev(`String$(1, True)`), String.fromCharCode(0xF8F3), 'String$ Boolean CP932 character code');
     assert.strictEqual(ev('AscW(String(1, 254))'), -1806, 'String(1, 254) uses CP932 private-use mapping');
     assert.strictEqual(ev('AscW(String$(1, 255))'), -1805, 'String$(1, 255) uses CP932 private-use mapping');
@@ -297,7 +300,7 @@ function ev(expr: string): any {
 // --- Bug M: Chr/Chr$ は Excel の拡張 character 範囲を受理する ---
 {
     assert.strictEqual(ev('Chr(65)'), 'A', 'Chr(65) = "A"');
-    assert.strictEqual(ev('Chr(255)'), 'ÿ', 'Chr(255) = "ÿ"');
+    assert.strictEqual(ev('AscW(Chr(255))'), -1805, 'Chr(255) uses CP932 mapping');
     assert.strictEqual(ev('AscW(Chr(256))'), 1, 'Chr(256) = U+0001');
     assert.strictEqual(ev('AscW(Chr$(257))'), 1, 'Chr$(257) = U+0001');
     assert.strictEqual(ev('AscW(Chr(258))'), 1, 'Chr(258) = U+0001');
@@ -308,6 +311,15 @@ function ev(expr: string): any {
     assert.strictEqual(ev('ChrW(12354)'), 'あ', 'ChrW(12354) = "あ"');
     assert.throwsMatch(() => ev('ChrW(65536)'), /error '5'/, 'ChrW(65536) → Error 5');
     assert.throwsMatch(() => ev('Chr(65536)'), /error '5'/, 'Chr(65536) → Error 5');
+    const extended = [0, 1, 254, 255, 256, 257, 258, 321, 511, 512, 1023, 1024, 32767, 32768, 65535];
+    for (const n of extended) {
+        const byte = n > 255 ? Math.floor(n / 256) : n;
+        const expected = byte === 254 ? -1806 : byte === 255 ? -1805 : byte;
+        assert.strictEqual(ev(`AscW(String$(1, ${n}))`), expected, `String$ extended matrix ${n}`);
+        assert.strictEqual(ev(`AscW(String(1, ${n}))`), expected, `String extended matrix ${n}`);
+        assert.strictEqual(ev(`AscW(Chr$(${n}))`), expected, `Chr$ extended matrix ${n}`);
+        assert.strictEqual(ev(`AscW(Chr(${n}))`), expected, `Chr extended matrix ${n}`);
+    }
     console.log('[PASS] Bug M: Chr/Chr$ extended range and ChrW range');
 }
 

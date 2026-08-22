@@ -811,7 +811,7 @@
 | EV-00908 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
 | EV-00909 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の型付きcharacter引数256/257境界 |
 | EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
-| EV-00911 | FZ-COVERAGE-20260822 | needs-excel | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
+| EV-00911 | FZ-COVERAGE-20260822 | verified-no-bug | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
 
 ## 状態集計
 
@@ -819,11 +819,10 @@
 |---|---:|
 | fixed | 359 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
-| verified-no-bug | 441 |
+| verified-no-bug | 442 |
 
-横展開未解決経路: 588、実Excel待ち評価: 1
+横展開未解決経路: 588、実Excel待ち評価: 0
 
 ## 次の候補
 

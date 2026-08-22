@@ -890,6 +890,19 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (typeof code !== 'number') return code;
         return code > 0x7FFF ? code - 0x10000 : code;
     };
+    const vbaAnsiByteToString = (byte: number): string => {
+        // Windows-31J leaves these two single-byte values in the private-use
+        // area. Excel exposes those code points through character functions.
+        if (byte === 0xFE) return String.fromCharCode(0xF8F2);
+        if (byte === 0xFF) return String.fromCharCode(0xF8F3);
+        return String.fromCharCode(byte);
+    };
+    const excelExtendedCharacter = (code: number): string => {
+        const mapped = code < 0
+            ? ((code % 256) + 256) % 256
+            : code > 255 ? Math.floor(code / 256) : code;
+        return vbaAnsiByteToString(mapped);
+    };
     ctx.reg('asc', ascFunc, [{ name: 'String' }]);
     ctx.reg('ascw', ascwFunc, [{ name: 'String' }]);
     const chrFunc = (n: any) => {
@@ -899,7 +912,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         // observed 256..65535 range, Chr uses the high byte as the returned
         // character; keep the existing single-byte behavior for 0..255.
         if (code < 0 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
-        return String.fromCharCode(code <= 255 ? code : Math.floor(code / 256));
+        return excelExtendedCharacter(code);
     };
     ctx.reg('chr', chrFunc, [{ name: 'CharCode', coerce: 'long' }], ['$']);
     const chrwFunc = (n: any) => {
@@ -1076,27 +1089,14 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         value instanceof VbaDate ||
         value instanceof VbaCurrency ||
         value instanceof VbaDecimal;
-    const vbaAnsiByteToString = (byte: number): string => {
-        // Windows-31J leaves these two single-byte values in the private-use
-        // area. Excel exposes those code points through String/String$.
-        if (byte === 0xFE) return String.fromCharCode(0xF8F2);
-        if (byte === 0xFF) return String.fromCharCode(0xF8F3);
-        return String.fromCharCode(byte);
-    };
     const stringFunc = (n: any, char: any) => {
         if (n === vbaNull || char === vbaNull) return vbaNull;
         let c: string;
         if (isStringCharacterNumericVariant(char)) {
-            // §6.1.2.11.1.38: numbers > 255 use character Mod 256
+            // Excel's extended character functions use the high-byte value
+            // for inputs above 255 (XL-228), then apply the ANSI mapping.
             const code = ctx.round(ctx.toVbaNumber(char));
-            // Excel's String/String$ boundary maps exactly 256 to character
-            // 1 (XL-226/XL-227).  Preserve the observed boundary without
-            // generalizing the still-unverified extended range.
-            if (code === 256) {
-                c = vbaAnsiByteToString(1);
-                return repeatChecked(c, n);
-            }
-            c = vbaAnsiByteToString(((code % 256) + 256) % 256);
+            c = excelExtendedCharacter(code);
         } else {
             const s = vbaToString(char ?? '');
             // Empty string character is invalid per spec
