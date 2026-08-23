@@ -120,3 +120,21 @@ const runner = new TestRunner(() => {});
 }
 
 console.log('\n✅ LSP Test Runner: 全テスト通過');
+
+// VBE-exported .cls input must be normalized before test discovery/execution.
+{
+    const code = String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "EntryProbe"
+Option Explicit
+
+Public Sub Test_Attribute()
+Attribute Test_Attribute.VB_Description = "probe"
+End Sub`;
+    const results = runner.runTests(code, 'EntryProbe', true);
+    assert.strictEqual(results.length, 1, 'VBE class test discovered');
+    assert.strictEqual(results[0].state, 'passed', 'VBE class test runs');
+    console.log('[PASS] VBE-exported .cls preprocessing and class parsing');
+}

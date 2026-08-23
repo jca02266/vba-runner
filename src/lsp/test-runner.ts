@@ -1,7 +1,6 @@
-import { Lexer } from '../engine/lexer';
-import { Parser } from '../engine/parser';
 import { Evaluator } from '../engine/evaluator';
 import { ProcedureDeclaration, Statement, ClassDeclaration } from '../engine/parser';
+import { parseVBAModule } from './vba-source-parser';
 
 export type TestState = 'passed' | 'failed' | 'errored' | 'skipped';
 
@@ -19,9 +18,8 @@ export class TestRunner {
      * Parse `src`, discover all Test_* procedures, evaluate the module once,
      * then call each test procedure and collect results.
      */
-    runTests(src: string): TestResult[] {
-        const tokens = new Lexer(src).tokenize();
-        const ast = new Parser(tokens).parse();
+    runTests(src: string, moduleName = '', parseAsClass = false): TestResult[] {
+        const ast = parseVBAModule(src, { moduleName, isClass: parseAsClass });
 
         const testProcs: ProcedureDeclaration[] = [];
         this.collectTestProcs(ast.body, testProcs);
@@ -29,14 +27,26 @@ export class TestRunner {
 
         const ev = new Evaluator(this.onPrint, { allowTopLevelStatements: false });
         ev.evaluateModule(ast);
-        ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+        ev.resolveIdentifiers([{ ast, moduleName }]);
 
         const results: TestResult[] = [];
         for (const proc of testProcs) {
             const name = proc.name.name;
             const startTime = Date.now();
             try {
-                ev.callProcedure(name, []);
+                const owner = this.findOwningClass(ast.body, proc);
+                if (owner) {
+                    const wrapperSource = `Sub __VbaTestClassEntry()\n    Dim __vbaTestInstance As ${owner.name}\n    Set __vbaTestInstance = New ${owner.name}\n    Call __vbaTestInstance.${name}()\nEnd Sub`;
+                    const wrapperAst = parseVBAModule(wrapperSource, { moduleName: '__VbaTestEntry' });
+                    ev.evaluateModule(wrapperAst);
+                    ev.resolveIdentifiers([
+                        { ast, moduleName },
+                        { ast: wrapperAst, moduleName: '__VbaTestEntry' },
+                    ]);
+                    ev.callProcedure('__VbaTestClassEntry', []);
+                } else {
+                    ev.callProcedure(name, []);
+                }
                 results.push({ name, state: 'passed', duration: Date.now() - startTime });
             } catch (error) {
                 const message = (error as any)?.vbaBareMessage ?? (error as any)?.message ?? String(error);
@@ -50,12 +60,11 @@ export class TestRunner {
      * Run a test procedure with full evaluation context
      * Returns true if test passes, false otherwise
      */
-    runTestWithEvaluation(src: string, testName: string): TestResult {
+    runTestWithEvaluation(src: string, testName: string, moduleName = '', parseAsClass = false): TestResult {
         const startTime = Date.now();
 
         try {
-            const tokens = new Lexer(src).tokenize();
-            const ast = new Parser(tokens).parse();
+            const ast = parseVBAModule(src, { moduleName, isClass: parseAsClass });
 
             // Find the test procedure
             const testProc = this.findProcedure(ast.body, testName);
@@ -72,11 +81,23 @@ export class TestRunner {
             // Evaluate the entire module to set up scope, then call the test
             const ev = new Evaluator(this.onPrint, { allowTopLevelStatements: false });
             ev.evaluateModule(ast);
-            ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+            ev.resolveIdentifiers([{ ast, moduleName }]);
 
             // Call the test procedure
             try {
-                ev.callProcedure(testName, []);
+                const owner = this.findOwningClass(ast.body, testProc);
+                if (owner) {
+                    const wrapperSource = `Sub __VbaTestClassEntry()\n    Dim __vbaTestInstance As ${owner.name}\n    Set __vbaTestInstance = New ${owner.name}\n    Call __vbaTestInstance.${testName}()\nEnd Sub`;
+                    const wrapperAst = parseVBAModule(wrapperSource, { moduleName: '__VbaTestEntry' });
+                    ev.evaluateModule(wrapperAst);
+                    ev.resolveIdentifiers([
+                        { ast, moduleName },
+                        { ast: wrapperAst, moduleName: '__VbaTestEntry' },
+                    ]);
+                    ev.callProcedure('__VbaTestClassEntry', []);
+                } else {
+                    ev.callProcedure(testName, []);
+                }
                 const duration = Date.now() - startTime;
 
                 return {
@@ -149,6 +170,15 @@ export class TestRunner {
             }
         }
 
+        return null;
+    }
+
+    private findOwningClass(statements: Statement[], procedure: ProcedureDeclaration): ClassDeclaration | null {
+        for (const stmt of statements) {
+            if (stmt.type === 'ClassDeclaration' && (stmt as ClassDeclaration).procedures.includes(procedure)) {
+                return stmt as ClassDeclaration;
+            }
+        }
         return null;
     }
 }

@@ -27,6 +27,7 @@ import { DebugAdapter } from './debug-adapter';
 import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
 import { SignatureHelpProvider, SignatureHelpResult } from './signature-help-provider';
 import { collectHostMockDiagnostics, collectMockIdentifiers } from './host-mock-advisor';
+import { parseVBAModule } from './vba-source-parser';
 
 export interface TextDocument {
     uri: string;
@@ -648,8 +649,8 @@ export class LSPServer {
     runTests(uri: string): any[] {
         const doc = this.documents.get(uri);
         if (!doc) return [];
-
-        return this.testRunner.runTests(doc.content);
+        const moduleName = path.basename(uriToPath(uri)).replace(/\.[^.]+$/, '');
+        return this.testRunner.runTests(doc.content, moduleName, uri.toLowerCase().endsWith('.cls'));
     }
 
     /**
@@ -756,7 +757,7 @@ export class LSPServer {
         const uriPath = uri.startsWith('file://') ? decodeURIComponent(uri.slice(7)) : uri;
         const moduleName = uriPath.split('/').pop()?.replace(/\.[^.]+$/, '') ?? 'Module1';
 
-        const adapter = new DebugAdapter(doc.content, moduleName, uriPath);
+        const adapter = new DebugAdapter(doc.content, moduleName, uriPath, uri.toLowerCase().endsWith('.cls'));
         this.debugAdapters.set(uri, adapter);
         return adapter;
     }
@@ -813,8 +814,8 @@ export class LSPServer {
             : rawRange;
 
         try {
-            const tokens    = new Lexer(stripVBAFileHeader(doc.content)).tokenize();
-            const ast       = new Parser(tokens, { errorRecovery: true }).parse();
+            const ast       = this.parseDocument(doc.content, uri);
+            if (!ast) return [];
             const startLine = range.start.line + 1;  // 0-based → 1-based
             const endLine   = range.end.line   + 1;
 
@@ -1038,15 +1039,15 @@ export class LSPServer {
      */
     parseDocument(content: string, uri?: string): any {
         try {
-            const tokens = new Lexer(stripVBAFileHeader(content)).tokenize();
-            let opts: any = { errorRecovery: true };
+            let moduleName = 'Module1';
+            let isClass = false;
             if (uri?.toLowerCase().endsWith('.cls')) {
                 try {
-                    const className = path.basename(uriToPath(uri), '.cls');
-                    opts = { ...opts, parseAsClass: className };
+                    moduleName = path.basename(uriToPath(uri), '.cls');
+                    isClass = true;
                 } catch { /* file:// 以外の URI は無視 */ }
             }
-            return new Parser(tokens, opts).parse();
+            return parseVBAModule(content, { moduleName, isClass });
         } catch (error) {
             return null;
         }

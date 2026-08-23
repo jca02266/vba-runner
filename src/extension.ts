@@ -10,6 +10,7 @@ import { Parser } from './engine/parser';
 import { Evaluator } from './engine/evaluator';
 import { format as vbaFormat } from './lsp/formatter';
 import { FoldingRangeProvider as VBAFoldingRangeProvider } from './lsp/folding-range-provider';
+import { parseVBAModule } from './lsp/vba-source-parser';
 import { generateCallGraphHtml, generateDrawioXml } from './lsp/call-graph-webview';
 import { findMatchingExpressions } from './lsp/ast-comparison';
 import { needsLineContinuation } from './lsp/line-continuation-checker';
@@ -722,19 +723,17 @@ End Class`;
                     const fileUriStr = vscode.Uri.file(filePath).toString();
                     const openDoc = documentMap.get(fileUriStr);
                     const content = openDoc ? openDoc.getText() : fs.readFileSync(filePath, 'utf8');
-                    const tokens = new Lexer(content).tokenize();
-                    let ast;
-                    if (/\.cls$/i.test(entry)) {
-                        ast = new Parser(tokens, { parseAsClass: moduleName }).parse();
-                        ev.evaluateModule(ast);
-                    } else {
-                        ev.setSourceModule(moduleName);
-                        ast = new Parser(tokens, { errorRecovery: true }).parse();
+                    const ast = parseVBAModule(content, {
+                        moduleName,
+                        isClass: /\.cls$/i.test(entry),
+                    });
+                    ev.setSourceModule(moduleName);
+                    if (!/\.cls$/i.test(entry)) {
                         for (const d of ast.diagnostics) {
                             outputChannel.appendLine(`[parse warning] ${moduleName} line ${d.loc.start.line}: ${d.message}`);
                         }
-                        ev.evaluateModule(ast);
                     }
+                    ev.evaluateModule(ast);
                     asts.push({ ast, moduleName });
                 }
 
@@ -883,7 +882,7 @@ End Class`;
             // --- テストスタブ文字列の生成 ---
             const buildStub = (targetUri: string): string => {
                 const src = fs.readFileSync(vscode.Uri.parse(targetUri).fsPath, 'utf-8');
-                const ast = lspServer.parseDocument(src);
+                const ast = lspServer.parseDocument(src, targetUri);
                 let paramNames: string[] = [];
                 let isFunction = false;
                 if (ast?.body) {
@@ -1065,8 +1064,10 @@ End Class`;
             provideFoldingRanges(document) {
                 try {
                     const source = document.getText();
-                    const tokens = new Lexer(source).tokenize();
-                    const ast = new Parser(tokens).parse();
+                    const ast = parseVBAModule(source, {
+                        moduleName: path.basename(document.fileName, path.extname(document.fileName)),
+                        isClass: document.fileName.toLowerCase().endsWith('.cls'),
+                    });
                     const ranges = vbaFoldingProvider.getFoldingRanges(ast.body);
                     return ranges.map(r => new vscode.FoldingRange(r.startLine, r.endLine));
                 } catch {
@@ -1596,7 +1597,7 @@ End Class`;
             const replacementOffsets: Array<{ line: number; start: number; end: number }> = [];
 
             if (selectedExprAst) {
-                const ast = lspServer.parseDocument(editor.document.getText());
+                const ast = lspServer.parseDocument(editor.document.getText(), editor.document.uri.toString());
                 if (ast?.body) {
                     // Find the procedure containing the current line
                     for (const stmt of ast.body) {
@@ -1789,7 +1790,7 @@ End Class`;
             });
             if (!constName) return;
 
-            const ast = lspServer.parseDocument(editor.document.getText());
+            const ast = lspServer.parseDocument(editor.document.getText(), editor.document.uri.toString());
             const lineNum1 = range.start.line + 1; // 1-based
             const proc = ast?.body?.find((s: any) =>
                 s.type === 'ProcedureDeclaration' && s.loc?.start.line <= lineNum1 && s.loc?.end.line >= lineNum1
@@ -1842,7 +1843,7 @@ End Class`;
             if (!editor || editor.document.uri.toString() !== uri.toString()) return;
 
             const varName = editor.document.getText(wordRange);
-            const ast = lspServer.parseDocument(editor.document.getText());
+            const ast = lspServer.parseDocument(editor.document.getText(), editor.document.uri.toString());
             const lineNum1 = wordRange.start.line + 1; // 1-based
 
             const proc = ast?.body?.find((s: any) =>
@@ -1995,7 +1996,7 @@ End Class`;
             const editor = vscode.window.activeTextEditor;
             if (!editor || editor.document.uri.toString() !== uri.toString()) return;
 
-            const ast = lspServer.parseDocument(editor.document.getText());
+            const ast = lspServer.parseDocument(editor.document.getText(), editor.document.uri.toString());
             if (!ast) return;
 
             type DimVar = { line: number; varName: string; col: number; isSingleVar: boolean };
@@ -2057,12 +2058,14 @@ End Class`;
 
             // Parse with Option Explicit active (prepend if missing) to detect undeclared vars
             const sourceForCheck = hasOptionExplicit ? docText : 'Option Explicit\n' + docText;
-            const tokens = new Lexer(sourceForCheck).tokenize();
-            const modifiedAst = new Parser(tokens, { errorRecovery: true }).parse();
+            const modifiedAst = parseVBAModule(sourceForCheck, {
+                moduleName: path.basename(editor.document.fileName, path.extname(editor.document.fileName)),
+                isClass: editor.document.fileName.toLowerCase().endsWith('.cls'),
+            });
             const oeResult = checkOptionExplicit(modifiedAst);
 
             // Also parse original AST to get correct procedure line positions
-            const origAst = lspServer.parseDocument(docText);
+            const origAst = lspServer.parseDocument(docText, editor.document.uri.toString());
 
             const edit = new vscode.WorkspaceEdit();
 

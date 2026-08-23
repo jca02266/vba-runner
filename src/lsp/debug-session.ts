@@ -49,7 +49,8 @@ export class VBADebugSession extends EventEmitter {
     constructor(
         private readonly source: string,
         private readonly moduleName: string,
-        private readonly entryPoint: string | null = null
+        private readonly entryPoint: string | null = null,
+        private readonly parseAsClass = false
     ) {
         super();
         this.controlBuffer = new SharedArrayBuffer(4);
@@ -68,6 +69,7 @@ export class VBADebugSession extends EventEmitter {
             source: this.source,
             moduleName: this.moduleName,
             entryPoint: this.entryPoint,
+            parseAsClass: this.parseAsClass,
             controlBuffer: this.controlBuffer,
         };
 

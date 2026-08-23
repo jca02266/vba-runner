@@ -278,6 +278,27 @@ End Sub
     console.log('[PASS] runTests executes tests');
 }
 
+// 11a. runTests normalizes VBE-exported class modules
+{
+    const server = createServer();
+    const uri = 'file:///test.cls';
+    const code = String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "EntryProbe"
+Option Explicit
+
+Public Sub Test_Attribute()
+Attribute Test_Attribute.VB_Description = "probe"
+End Sub`;
+    server.didOpen(uri, code);
+    const results = server.runTests(uri);
+    assert.strictEqual(results.length, 1, 'VBE class test discovered');
+    assert.strictEqual(results[0].state, 'passed', 'VBE class test runs');
+    console.log('[PASS] runTests normalizes VBE-exported class modules');
+}
+
 // 12. createDebugAdapter creates adapter for document
 {
     const server = createServer();

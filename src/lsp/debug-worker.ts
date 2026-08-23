@@ -1,14 +1,15 @@
 import { parentPort, workerData, receiveMessageOnPort, MessagePort } from 'worker_threads';
 import { Evaluator, Environment, DebugHook } from '../engine/evaluator';
 import { vbaToDisplayString } from '../engine/coerce';
-import { Lexer } from '../engine/lexer';
-import { Parser, ProcedureDeclaration } from '../engine/parser';
+import { ProcedureDeclaration } from '../engine/parser';
 import { MemoryFileSystem } from '../engine/filesystem';
+import { parseVBAModule } from './vba-source-parser';
 
 interface WorkerInitData {
     source: string;
     moduleName: string;
     entryPoint: string | null;
+    parseAsClass?: boolean;
     controlBuffer: SharedArrayBuffer;
 }
 
@@ -20,7 +21,7 @@ const CMD_STEP_INTO = 3;
 const CMD_STEP_OUT = 4;
 const CMD_TERMINATE = 5;
 
-const { source, moduleName, entryPoint, controlBuffer } = workerData as WorkerInitData;
+const { source, moduleName, entryPoint, parseAsClass, controlBuffer } = workerData as WorkerInitData;
 const control = new Int32Array(controlBuffer);
 
 let currentCommand = CMD_STEP_INTO; // pause at first statement by default
@@ -150,8 +151,7 @@ const hook: DebugHook = {
 };
 
 try {
-    const tokens = new Lexer(source).tokenize();
-    const ast = new Parser(tokens, { errorRecovery: true }).parse();
+    const ast = parseVBAModule(source, { moduleName: moduleName || 'Module1', isClass: parseAsClass });
     for (const d of ast.diagnostics) {
         parentPort!.postMessage({ type: 'output', text: `[parse warning] Line ${d.loc.start.line}: ${d.message}` });
     }
@@ -166,6 +166,14 @@ try {
     evaluator.resolveIdentifiers([{ ast, moduleName: moduleName || 'Module1' }]);
 
     let ep = entryPoint;
+    let classEntry: ProcedureDeclaration | undefined;
+    if (parseAsClass && ast.body.length > 0) {
+        const classDecl = ast.body.find((stmt: any) => stmt.type === 'ClassDeclaration') as any;
+        classEntry = classDecl?.procedures?.find((proc: ProcedureDeclaration) =>
+            !proc.isProperty && (!ep || proc.name.name.toLowerCase() === ep.toLowerCase())
+        );
+        if (!ep && classEntry) ep = classEntry.name.name;
+    }
     if (!ep) {
         // まず Sub を探し、なければ Function にフォールバック
         let firstFunction: string | null = null;
@@ -183,7 +191,16 @@ try {
         if (!ep) ep = firstFunction;
     }
 
-    if (ep) {
+    if (ep && parseAsClass) {
+        const wrapperSource = `Sub __VbaDebugClassEntry()\n    Dim __vbaDebugInstance As ${moduleName}\n    Set __vbaDebugInstance = New ${moduleName}\n    Call __vbaDebugInstance.${ep}()\nEnd Sub`;
+        const wrapperAst = parseVBAModule(wrapperSource, { moduleName: '__VbaDebugEntry' });
+        evaluator.evaluateModule(wrapperAst);
+        evaluator.resolveIdentifiers([
+            { ast, moduleName: moduleName || 'Module1' },
+            { ast: wrapperAst, moduleName: '__VbaDebugEntry' },
+        ]);
+        evaluator.callProcedure('__VbaDebugClassEntry', []);
+    } else if (ep) {
         evaluator.callProcedure(ep, []);
     } else {
         parentPort!.postMessage({ type: 'output', text: 'Error: No Sub or Function found. Add "entryPoint" to your launch.json configuration (e.g. "entryPoint": "MyProcedure").' });

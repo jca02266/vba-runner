@@ -37,7 +37,8 @@ export class DebugAdapter {
     constructor(
         private readonly source: string,
         moduleName = 'Module1',
-        private readonly filePath: string | null = null
+        private readonly filePath: string | null = null,
+        private readonly parseAsClass = false
     ) {
         this.moduleName = moduleName;
     }
@@ -63,7 +64,7 @@ export class DebugAdapter {
         }
 
         const entryPoint = args?.entryPoint ?? null;
-        this.session = new VBADebugSession(this.source, this.moduleName, entryPoint);
+        this.session = new VBADebugSession(this.source, this.moduleName, entryPoint, this.parseAsClass);
 
         this.session.on('stopped', (info: { reason: string; line: number }) => {
             this.onEvent?.({
