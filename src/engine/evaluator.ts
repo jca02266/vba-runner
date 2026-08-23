@@ -10064,14 +10064,9 @@ export class Evaluator {
                                     const returned = this.executeProcedureExpression(qualifiedProc, [], true);
                                     const argsVals = this.evaluateCallArgumentValues(expr.args);
                                     if (Array.isArray(returned)) {
-                                        let current: any = returned;
-                                        for (const arg of argsVals) {
-                                            if (!Array.isArray(current)) {
-                                                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-                                            }
-                                            current = current[Number(arg)];
-                                        }
-                                        return current === undefined ? vbaEmpty : current;
+                                        const dims = (returned as any).__vbaDimensions__ as
+                                            { lower: number; upper: number }[] | undefined;
+                                        return this.readArrayAtIndexes(returned, argsVals, dims, true, true);
                                     }
                                     this.throwVbaError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
                                         'Wrong number of arguments or invalid property assignment');

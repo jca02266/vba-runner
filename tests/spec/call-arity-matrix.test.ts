@@ -1,4 +1,4 @@
-import { assertCompileErrorPreproc, assertCompileErrorExec, evalVBASingle, assert } from '../../test-libs/test-runner';
+import { assertCompileErrorPreproc, assertCompileErrorExec, evalVBAModules, evalVBASingle, assert } from '../../test-libs/test-runner';
 
 type ProcedureKind = 'Function' | 'Sub';
 
@@ -237,6 +237,32 @@ End Function
 `);
     assert.strictEqual(runner.callProcedure('Probe', []), 1,
         'Module-qualified/parenthesized-ByVal');
+}
+
+// A zero-argument module Property Get that returns a declared array must use
+// the shared array reader.  Direct JavaScript indexing would turn an invalid
+// upper/lower subscript into Empty and would accept the wrong rank.
+{
+    const runner = evalVBAModules([{
+        name: 'ArrayPropertyProvider',
+        code: String.raw`Public Property Get Values() As Variant
+    Dim data(0 To 1) As Long
+    data(0) = 7
+    data(1) = 8
+    Values = data
+End Property`,
+    }]);
+
+    assert.strictEqual(runner.evalExpression('ArrayPropertyProvider.Values(0)'), 7,
+        'Module Property Get array lower bound');
+    assert.strictEqual(runner.evalExpression('ArrayPropertyProvider.Values(1)'), 8,
+        'Module Property Get array upper bound');
+    assert.throwsMatch(() => runner.evalExpression('ArrayPropertyProvider.Values(-1)'),
+        /error '9'/i, 'Module Property Get array negative subscript');
+    assert.throwsMatch(() => runner.evalExpression('ArrayPropertyProvider.Values(2)'),
+        /error '9'/i, 'Module Property Get array upper subscript');
+    assert.throwsMatch(() => runner.evalExpression('ArrayPropertyProvider.Values(0, 0)'),
+        /error '9'/i, 'Module Property Get array rank mismatch');
 }
 
 // Optional holes and named arguments exercise MissingArgument and the
