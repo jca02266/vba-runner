@@ -1,4 +1,5 @@
 import { LSPServer } from '../../src/lsp/server';
+import { collectMockIdentifiers } from '../../src/lsp/host-mock-advisor';
 
 const server = new LSPServer();
 
@@ -151,5 +152,13 @@ const hostMockResolvedDiagnostics = server.getDiagnostics('file:///workspace/hos
 console.assert(hostMockResolvedDiagnostics.length === 0,
     `Expected mock recommendations to clear after mock registration, got ${hostMockResolvedDiagnostics.length}`);
 console.log('[PASS] Registering __mocks__ identifiers clears host recommendations');
+
+// Test 12: CommonJS object-export mocks are discovered by the same helper
+const applicationMockNames = collectMockIdentifiers(String.raw`module.exports = {
+    Application: { PathSeparator: '/', DisplayAlerts: true },
+};`);
+console.assert(applicationMockNames.has('application'),
+    'CommonJS object-export mock must register its exported host identifier');
+console.log('[PASS] CommonJS __mocks__/Application.js is discoverable');
 
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

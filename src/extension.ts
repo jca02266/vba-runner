@@ -143,10 +143,15 @@ export async function activate(context: vscode.ExtensionContext) {
     async function refreshMockIdentifiers(): Promise<void> {
         const names = new Set<string>();
         const mockUris = new Map<string, vscode.Uri>();
-        for (const pattern of ['**/__mocks__/**/*.{bas,cls,frm,js,ts}', '**/__mocks__.*']) {
+        // Keep the glob deliberately broad.  VS Code's glob implementation
+        // does not consistently expand brace alternatives in nested paths,
+        // so `**/__mocks__/**/*.{bas,js,...}` can silently miss a real mock.
+        for (const pattern of ['**/__mocks__/**/*', '**/__mocks__.*']) {
             for (const uri of await vscode.workspace.findFiles(pattern)) mockUris.set(uri.toString(), uri);
         }
         for (const uri of mockUris.values()) {
+            const extension = path.extname(uri.fsPath).toLowerCase();
+            if (!['.bas', '.cls', '.frm', '.js', '.ts'].includes(extension)) continue;
             try {
                 const openDoc = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
                 const content = openDoc?.getText()
@@ -157,7 +162,17 @@ export async function activate(context: vscode.ExtensionContext) {
             } catch { /* mock file may disappear during a watcher event */ }
         }
         lspServer.setMockedHostIdentifiers(names);
-        for (const uri of await vscode.workspace.findFiles('**/*.{bas,cls,frm}')) updateDiagnostics(uri);
+        // Recompute already-open documents explicitly.  Besides avoiding a
+        // brace-glob portability issue, this is what makes an existing
+        // diagnostic disappear immediately after a mock is saved.
+        for (const doc of vscode.workspace.textDocuments) {
+            if (doc.languageId === 'vba') updateDiagnostics(doc.uri);
+        }
+        const vbaUris = new Map<string, vscode.Uri>();
+        for (const pattern of ['**/*.bas', '**/*.cls', '**/*.frm']) {
+            for (const uri of await vscode.workspace.findFiles(pattern)) vbaUris.set(uri.toString(), uri);
+        }
+        for (const uri of vbaUris.values()) updateDiagnostics(uri);
     }
 
     // A newly created or edited __mocks__ file changes whether the host-global
@@ -958,6 +973,9 @@ End Class`;
                 });
                 fs.mkdirSync(path.dirname(outPath), { recursive: true });
                 fs.writeFileSync(outPath, content, 'utf-8');
+                // Do not wait for the file watcher: the currently open VBA
+                // document should lose the host-global diagnostic now.
+                await refreshMockIdentifiers();
 
                 // 生成したファイルを開く
                 const doc = await vscode.workspace.openTextDocument(outPath);
