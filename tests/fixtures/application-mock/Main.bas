@@ -1,3 +1,5 @@
+Option Explicit
+
 Function ReadPathSeparator() As String
     ReadPathSeparator = Application.PathSeparator
 End Function

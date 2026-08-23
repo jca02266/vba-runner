@@ -681,11 +681,13 @@ export class LSPServer {
                 } catch { /* file:// 以外の URI は通常モジュールとして扱う */ }
             }
             const ast = new Parser(tokens, parserOptions).parse();
+            const mockedHostIdentifiers = new Set(this.mockedHostIdentifiers);
+            for (const name of this.collectSiblingMockIdentifiers(uri)) mockedHostIdentifiers.add(name);
             // Pass the workspace's module qualifiers to the second-pass
             // Option Explicit checker.  Otherwise ModuleName.Property is
             // reported as undeclared in expression statements, while the
             // call-expression path skips the same qualifier.
-            checkOptionExplicit(ast, this.collectAllKnownModuleNames());
+            checkOptionExplicit(ast, this.collectAllKnownModuleNames(), mockedHostIdentifiers);
             const parseDiags = ast.diagnostics.map((d: any) => ({
                 range: {
                     start: { line: d.loc.start.line - 1, character: d.loc.start.column - 1 },
@@ -735,8 +737,6 @@ export class LSPServer {
                 l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
-            const mockedHostIdentifiers = new Set(this.mockedHostIdentifiers);
-            for (const name of this.collectSiblingMockIdentifiers(uri)) mockedHostIdentifiers.add(name);
             const hostMockDiags = collectHostMockDiagnostics(ast, mockedHostIdentifiers);
 
             return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags];

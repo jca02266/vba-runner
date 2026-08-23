@@ -105,8 +105,14 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
  *   references and skipped. When undefined (single-module first pass), all bare identifier
  *   objects in call-expression callees are skipped to avoid false positives from
  *   cross-module references that are not yet known.
+ * @param knownExternalNames - Host globals supplied by external mocks. These are valid
+ *   Option Explicit names both as bare values and as member-expression objects.
  */
-export function checkOptionExplicit(program: Program, knownModuleNames?: ReadonlySet<string>): OptionExplicitResult {
+export function checkOptionExplicit(
+    program: Program,
+    knownModuleNames?: ReadonlySet<string>,
+    knownExternalNames?: ReadonlySet<string>,
+): OptionExplicitResult {
     const violatedProcedures = new Map<string, Map<string, number>>();
 
     // Determine if Option Explicit is active
@@ -121,6 +127,7 @@ export function checkOptionExplicit(program: Program, knownModuleNames?: Readonl
     for (const stmt of program.body) {
         collectModuleLevelDeclaredNames(stmt, moduleLevelNames);
     }
+    for (const name of knownExternalNames ?? []) moduleLevelNames.add(name.toLowerCase());
 
     // --- Pass 2: check each procedure ---
     for (const stmt of program.body) {
