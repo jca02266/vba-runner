@@ -2933,3 +2933,19 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-opaque-array-shape
+  - afterEvaluation: EV-00924-next
+    audit: "821 evaluations, 0 active claims; opaque配列の正常契約に差異はなく、LSPクラス二次入口の未適用経路を独立評価へ切り出す"
+    decision: "RC-00094/RC-00096のfollow-upとして、.clsのヘッダー除去とparseAsClassがtest runner・debug・extensionへ共有されているかを確認する"
+    action: create-candidate
+    nextArea: LSP・拡張機能
+    nextEvaluation: null
+    nextCandidate: FZ-LSP-20260823-001
+    coverageSnapshot: COV-2026-08-23-lsp-secondary-entry
+  - afterEvaluation: EV-00925
+    audit: "822 evaluations, 0 active claims; LSP二次入口でtest runner・debug worker・foldingの.cls前処理欠落を再現し、BUG-00567とRC-00099仮説を登録した"
+    decision: "RC-00099の横展開範囲を確定し、共通前処理のROOTタスクを作成してから実装する"
+    action: root-cause-review
+    nextArea: LSP・拡張機能
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-lsp-secondary-entry

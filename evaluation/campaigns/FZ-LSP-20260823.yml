@@ -1,0 +1,21 @@
+id: FZ-LSP-20260823
+method: source-review-and-regression
+items:
+  - id: FZ-LSP-20260823-001
+    title: LSP .cls secondary entry preprocessing
+    status: queued
+    priority: 1
+    focus: .clsのVBEヘッダー除去とparseAsClassをcode action・debug・test runner・extension経路へ共有
+    priorCauseKey: lsp-class-entry-preprocessing-not-shared
+    sourceReview:
+      - src/lsp/server.ts
+      - src/lsp/debug-worker.ts
+      - src/lsp/test-runner.ts
+      - src/extension.ts
+      - evaluation/root-causes/RC-00094.md
+      - evaluation/root-causes/RC-00096.md
+    coverageTargets:
+      - src/lsp/server.ts
+      - src/lsp/debug-worker.ts
+      - src/lsp/test-runner.ts
+      - src/extension.ts

@@ -825,11 +825,13 @@
 | EV-00922 | FZ-COVERAGE-20260823 | fixed | 1 | Module修飾Property Getの配列戻り値添字境界 |
 | EV-00923 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値の多次元・下限変更・Class経路 |
 | EV-00924 | FZ-COVERAGE-20260823 | verified-no-bug |  | opaque配列の多次元shape・boundsとtyped destination検証 |
+| EV-00925 | FZ-LSP-20260823 | bug-found | 1 | LSP .cls secondary entry preprocessing |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 367 |
 | known-limit | 5 |
 | retired | 2 |
