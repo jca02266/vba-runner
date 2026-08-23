@@ -30,6 +30,7 @@ import {
     EnumDeclaration,
     ParseDiagnostic,
 } from './parser';
+import { VBA_ENUM_CONSTANT_NAMES } from './vba-constants';
 
 export interface OptionExplicitResult {
     /** Map of procedure names (lower-cased) to maps of undeclared name (lower-cased) → first line in AST */
@@ -38,7 +39,7 @@ export interface OptionExplicitResult {
 
 // VBA built-in names that are always available without a Dim declaration.
 // Includes language keywords used as values, built-in constants, and built-in functions.
-const VBA_BUILTINS: ReadonlySet<string> = new Set([
+const VBA_BUILTINS: Set<string> = new Set([
     // Value keywords
     'empty', 'nothing', 'null', 'true', 'false',
     // String constants
@@ -59,8 +60,6 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
     // StrConv / comparison constants
     'vbunicode', 'vbfromunicode', 'vbuppercase', 'vblowercase', 'vbpropercase',
     'vbtextcompare', 'vbbinarycompare', 'vbdatabasecompare',
-    // CallByName dispatch constants
-    'vbmethod', 'vbget', 'vblet', 'vbset',
     // Date / week constants
     'vbsunday', 'vbmonday', 'vbtuesday', 'vbwednesday', 'vbthursday', 'vbfriday', 'vbsaturday',
     'vbfirstjan1', 'vbfirstfourdays', 'vbfirstfullweek', 'vbusedefault', 'vbusecompatible',
@@ -96,6 +95,10 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
     // Built-in Sub statements parsed as CallStatement (not functions)
     'beep', 'chdir', 'mkdir', 'rmdir', 'randomize', 'sleep', 'wait',
 ]);
+
+for (const names of Object.values(VBA_ENUM_CONSTANT_NAMES)) {
+    for (const name of names) VBA_BUILTINS.add(name);
+}
 
 /**
  * Checks Option Explicit rules across the entire program AST.

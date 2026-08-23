@@ -18,6 +18,7 @@ import {
 } from './format';
 import { vbaWeekNumber } from './date-week';
 import { classifyArgumentCount } from './argument-contract';
+import { VBA_ENUM_CONSTANTS } from './vba-constants';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
 function unwrapVbaDefaultValue(value: any): any {
@@ -711,33 +712,6 @@ export function registerConversionFunctions(ctx: StdlibCtx): void {
     ctx.envSet('vbignore', 5);
     ctx.envSet('vbyes', 6);
     ctx.envSet('vbno', 7);
-    ctx.envSet('vbmethod', 1);
-    ctx.envSet('vbget', 2);
-    ctx.envSet('vblet', 4);
-    ctx.envSet('vbset', 8);
-    ctx.envSet('vbokonly', 0);
-    ctx.envSet('vbokcancel', 1);
-    ctx.envSet('vbabortretryignore', 2);
-    ctx.envSet('vbyesnocancel', 3);
-    ctx.envSet('vbyesno', 4);
-    ctx.envSet('vbretrycancel', 5);
-    ctx.envSet('vbcritical', 16);
-    ctx.envSet('vbquestion', 32);
-    ctx.envSet('vbexclamation', 48);
-    ctx.envSet('vbinformation', 64);
-    ctx.envSet('vbdefaultbutton1', 0);
-    ctx.envSet('vbdefaultbutton2', 256);
-    ctx.envSet('vbdefaultbutton3', 512);
-    ctx.envSet('vbdefaultbutton4', 768);
-    ctx.envSet('vbtextcompare', 1);
-    ctx.envSet('vbbinarycompare', 0);
-    ctx.envSet('vbuppercase', 1);
-    ctx.envSet('vblowercase', 2);
-    ctx.envSet('vbpropercase', 3);
-    ctx.envSet('vbwide', 4);
-    ctx.envSet('vbnarrow', 8);
-    ctx.envSet('vbkatakana', 16);
-    ctx.envSet('vbhiragana', 32);
 }
 
 // ---------------------------------------------------------------------------
@@ -2390,18 +2364,9 @@ export function registerConstants(ctx: StdlibCtx): void {
         return errorMessages[code] || "Application-defined or object-defined error";
     };
     ctx.reg('error', errFunc, [{ name: 'ErrorNumber', optional: true }], ['$']);
-    ctx.envSetConst('vbsunday', 1);
-    ctx.envSetConst('vbmonday', 2);
-    ctx.envSetConst('vbtuesday', 3);
-    ctx.envSetConst('vbwednesday', 4);
-    ctx.envSetConst('vbthursday', 5);
-    ctx.envSetConst('vbfriday', 6);
-    ctx.envSetConst('vbsaturday', 7);
-    ctx.envSetConst('vbusesystem', 0);
-    ctx.envSetConst('vbbinarycompare', 0);
-    ctx.envSetConst('vbtextcompare', 1);
-    ctx.envSetConst('vbempty', 0); ctx.envSetConst('vbnull', 1); ctx.envSetConst('vbinteger', 2); ctx.envSetConst('vblong', 3); ctx.envSetConst('vbsingle', 4); ctx.envSetConst('vbdouble', 5); ctx.envSetConst('vbcurrency', 6); ctx.envSetConst('vbdate', 7); ctx.envSetConst('vbstring', 8); ctx.envSetConst('vbobject', 9); ctx.envSetConst('vberror', 10); ctx.envSetConst('vbboolean', 11); ctx.envSetConst('vbvariant', 12); ctx.envSetConst('vbdataobject', 13); ctx.envSetConst('vbdecimal', 14); ctx.envSetConst('vbbyte', 17); ctx.envSetConst('vblonglong', 20); ctx.envSetConst('vbuserdefinedtype', 36); ctx.envSetConst('vbarray', 8192);
-    ctx.envSetConst('vbfirstjan1', 1); ctx.envSetConst('vbfirstfourdays', 2); ctx.envSetConst('vbfirstfullweek', 3);
+    for (const values of Object.values(VBA_ENUM_CONSTANTS)) {
+        for (const [name, value] of Object.entries(values)) ctx.envSetConst(name, value);
+    }
     ctx.envSetConst('vbcrlf', "\r\n"); ctx.envSetConst('vbtab', "\t"); ctx.envSetConst('vbcr', "\r"); ctx.envSetConst('vblf', "\n"); ctx.envSetConst('vbnewline', "\n"); ctx.envSetConst('vbnullstring', ''); ctx.envSetConst('vbnullchar', '\0'); ctx.envSetConst('vbback', "\b"); ctx.envSetConst('vbformfeed', "\f");
     ctx.envSetConst('vbnormal', 0); ctx.envSetConst('vbreadonly', 1); ctx.envSetConst('vbhidden', 2); ctx.envSetConst('vbsystem', 4); ctx.envSetConst('vbvolume', 8); ctx.envSetConst('vbdirectory', 16); ctx.envSetConst('vbarchive', 32); ctx.envSetConst('vbalias', 64);
     ctx.envSetConst('vbobjecterror', -2147221504);
