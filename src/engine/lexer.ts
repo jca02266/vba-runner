@@ -666,6 +666,9 @@ export class Lexer {
                 if (this.peek() !== ']') {
                     throw new LexError('FOREIGN-NAMEが閉じられていません', startLine, startColumn);
                 }
+                if (foreignStr.length === 0) {
+                    throw new LexError('FOREIGN-NAMEには名前が必要です', startLine, startColumn);
+                }
                 this.advance(); // consume ']'
                 return { type: TokenType.ForeignName, value: foreignStr, line: startLine, column: startColumn };
             }

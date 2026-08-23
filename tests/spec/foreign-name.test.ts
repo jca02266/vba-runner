@@ -31,6 +31,20 @@ End Sub`],
 }
 console.log('[PASS] FN00: 未終端 FOREIGN-NAME — LexerError');
 
+{
+    let caught = false;
+    try {
+        evalVBASingle(String.raw`Sub Test()
+    Debug.Print []
+End Sub`);
+    } catch (error) {
+        caught = true;
+        assert.strictEqual(String(error).includes('FOREIGN-NAMEには名前が必要です'), true);
+    }
+    assert.strictEqual(caught, true, 'empty FOREIGN-NAME must fail during lexing');
+    console.log('[PASS] FN00B: 空の FOREIGN-NAME — LexerError');
+}
+
 // ─── 1. 基本動作: 定義済み関数を [name] 構文で呼び出す ───────────────────────
 
 {

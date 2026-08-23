@@ -2981,3 +2981,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-010
     coverageSnapshot: COV-2026-08-23-foreign-name
+  - afterEvaluation: EV-00929
+    audit: "826 evaluations, 0 active claims; 空のFOREIGN-NAMEを受理するLexer境界を再現し、foreign-identifier最小長検証を追加した"
+    decision: "BUG-00569の直接修正と回帰を完了した。RC-00100の必須要素検証範囲をROOT-00061で対処し、FOREIGN-NAME境界は収束した"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-foreign-name
