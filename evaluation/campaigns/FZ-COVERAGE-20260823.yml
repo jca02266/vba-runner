@@ -138,3 +138,17 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - tests/spec/foreign-name.test.ts
+  - id: FZ-COVERAGE-20260823-011
+    title: NPer non-finite financial boundary
+    status: queued
+    priority: 1
+    focus: NPerの極端な利率・FV・符号反転における定義域とOverflow分類
+    priorCauseKey: financial-domain-and-overflow-errors-not-separated
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - tests/spec/financial-invalid-matrix.test.ts
+      - evaluation/root-causes/RC-00012.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

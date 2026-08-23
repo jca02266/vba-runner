@@ -830,6 +830,7 @@
 | EV-00927 | FZ-COVERAGE-20260823 | verified-no-bug |  | COM/host opaque配列の要素型メタデータ欠落とVariant・typed destinationの分岐 |
 | EV-00928 | FZ-COVERAGE-20260823 | fixed | 1 | FOREIGN-NAMEの閉じ括弧欠落とLexer・Parserの構文エラー境界 |
 | EV-00929 | FZ-COVERAGE-20260823 | fixed | 1 | 空のFOREIGN-NAMEとforeign-identifier最小長のLexer境界 |
+| EV-00930 | FZ-COVERAGE-20260823 | needs-excel |  | NPerの極端な利率・FV・符号反転における定義域とOverflow分類 |
 
 ## 状態集計
 
@@ -837,10 +838,11 @@
 |---|---:|
 | fixed | 370 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 449 |
 
-横展開未解決経路: 588、実Excel待ち評価: 0
+横展開未解決経路: 588、実Excel待ち評価: 1
 
 ## 次の候補
 

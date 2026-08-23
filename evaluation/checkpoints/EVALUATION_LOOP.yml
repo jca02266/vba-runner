@@ -2989,3 +2989,19 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-foreign-name
+  - afterEvaluation: policy-2026-08-23
+    audit: "826 evaluations, 0 active claims; Parser・Lexerの直近バグ修正後、通常queued候補はなく、未確定RCAでは金融関数RC-00012の未評価境界が残る"
+    decision: "境界マトリクス方針に従い、NPerの極端なrate・FV・符号反転を一つの独立評価へ登録する。Excel依存のError分類はRunner結果だけで確定せず、必要なら実機キューへ送る"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-011
+    coverageSnapshot: COV-2026-08-23-financial-boundary
+  - afterEvaluation: EV-00930
+    audit: "827 evaluations, 1 active claim; NPer境界4ケースをRunnerで再現し、ExcelQueueへXL-233を追加、準備スタンプとソースを検証済み"
+    decision: "Error 5/6と極端値のExcel意味はRunner結果だけで確定しないため、EV-00930をneeds-excelとして保持する。実機結果受領後にexcel-syncで個別判定する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00930
+    nextCandidate: FZ-COVERAGE-20260823-011
+    coverageSnapshot: COV-2026-08-23-financial-boundary

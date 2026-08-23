@@ -85,6 +85,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceRateBoundary
     VerifyMirrFinanceRateShapes
     VerifyNPerShapeBoundary
+    VerifyNPerNonFiniteBoundary
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -126,6 +127,25 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyNPerNonFiniteBoundary()
+    Dim caseNo As Long, value As Double, errNo As Long
+    For caseNo = 1 To 4
+        On Error Resume Next
+        Err.Clear
+        Select Case caseNo
+            Case 1: value = NPer(1E+308, -100, 100, 0, 0)
+            Case 2: value = NPer(0.5, -100, 100, 1E+308, 0)
+            Case 3: value = NPer(0.5, -100, 200, 0, 0)
+            Case 4: value = NPer(-0.999999999999, -100, 100, 0, 0)
+        End Select
+        errNo = Err.Number
+        EmitResult "XL-233 CASE=" & CStr(caseNo) & " ERR=" & CStr(errNo) & _
+            " VALUE=" & CStr(value) & " TYPE=" & TypeName(value)
+        Err.Clear
+        On Error GoTo 0
+    Next caseNo
 End Sub
 
 Private Sub VerifyPowerOperatorBoundary()
