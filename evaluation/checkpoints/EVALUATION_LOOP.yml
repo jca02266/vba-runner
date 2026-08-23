@@ -2901,3 +2901,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-005
     coverageSnapshot: COV-2026-08-23-property-get-array-shape
+  - afterEvaluation: EV-00922-fixed
+    audit: "819 evaluations, 0 active claims; Module Property Get配列添字の修正後に全回帰TS456/456、VBA14/14、手続き111/111が成功し、監査も通過した"
+    decision: "FZ-COVERAGE-20260823-005で多次元・下限変更・Class Property Getの配列形状境界を確認する"
+    action: checkpoint
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-005
+    coverageSnapshot: COV-2026-08-23-property-get-array-shape
