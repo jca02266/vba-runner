@@ -2,6 +2,21 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.8] - 2026-08-23
+
+### Fixed
+
+- **Host mock diagnostics** — `ThisWorkbook`, `Application`, `Worksheets`, and
+  other identifiers exported from JavaScript mock factories are now recognized
+  without executing user JavaScript in the LSP.
+- **Built-in Excel mock extensions** — JavaScript `__mocks__` factories can now
+  extend the injected `MockApplication` while preserving its worksheet, range,
+  and workbook state in VS Code runs.
+- **VBA enum diagnostics** — `VbGet`, `VbLet`, `VbSet`, `VbMethod`, and the
+  other supported VBA enum constants are no longer reported as undeclared.
+- **CommonJS mock loading** — `.js` and `.cjs` mocks continue to load correctly
+  in projects using package-level ESM configuration.
+
 ## [0.3.7] - 2026-08-13
 
 ### Fixed

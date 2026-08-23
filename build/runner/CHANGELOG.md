@@ -2,6 +2,23 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.21] - 2026-08-23
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — VBA enum constants now share one
+  definition between runtime registration and `Option Explicit` diagnostics,
+  including `VbCallType`, `VbVarType`, date/week, file, string-conversion,
+  message-box, comparison, and tri-state constants.
+- **Excel host mocks** — JavaScript `__mocks__` factories can extend the
+  injected `MockApplication` while preserving `Worksheets`, `Range`, `Cells`,
+  and `ThisWorkbook` behavior.
+- **JavaScript mock loading** — synchronous factory mocks receive the runtime
+  mock context, while CommonJS `.js` and `.cjs` files remain compatible with
+  ESM-configured projects.
+- **Mock discovery** — nested CommonJS exports and factory-returned host names
+  are recognized by the static diagnostic scanner without executing user code.
+
 ## [0.1.1-alpha.20] - 2026-08-13
 
 ### Fixed
