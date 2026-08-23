@@ -2949,3 +2949,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-lsp-secondary-entry
+  - afterEvaluation: EV-00925-fixed
+    audit: "822 evaluations, 0 active claims; RC-00099をconfirmし、parseVBAModuleによる.cls前処理共通化とLSP回帰をf334e061で完了した。全回帰TS456/456、VBA14/14、手続き111/111"
+    decision: "BUG-00567の直接・真因対処は完了。次は未解決RCAまたは低収束領域を監査して候補を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-lsp-secondary-entry
