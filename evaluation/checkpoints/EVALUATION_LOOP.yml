@@ -2861,3 +2861,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-chrw-boundary
+  - afterEvaluation: EV-00920-fixed
+    audit: "817 evaluations, 0 active claims; RC-00097を仕様根拠で確定し、ChrW/ChrW$の下限修正と境界回帰を完了した。全回帰はTS456/456、VBA14/14、手続き111/111で成功"
+    decision: "ChrW/ChrW$の境界欠陥は収束した。次は未解決RCA、低収束領域、または新しいカバレッジ差分を監査して候補を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-chrw-boundary
