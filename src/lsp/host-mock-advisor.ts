@@ -136,7 +136,7 @@ function scanObjectLiteralKeys(source: string, openBrace: number, names: Set<str
             }
             expectKey = false;
             i = first.end - 1;
-            previousSignificant = first.name.at(-1) ?? previousSignificant;
+            previousSignificant = first.name[first.name.length - 1] ?? previousSignificant;
             continue;
         }
 
@@ -317,7 +317,7 @@ function visitStatement(stmt: Statement, declared: Set<string>, mocked: Readonly
 
     // Walk expression-valued statement fields without treating declaration
     // names, labels, or source locations as identifier references.
-    for (const [key, value] of Object.entries(stmt as any)) {
+    for (const [key, value] of Object.entries(stmt as Record<string, any>)) {
         if (key === 'type' || key === 'loc' || key === 'name' || key === 'label') continue;
         if (Array.isArray(value)) {
             for (const item of value) {
