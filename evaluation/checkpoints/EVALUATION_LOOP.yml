@@ -2917,3 +2917,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-property-get-array-shape
+  - afterEvaluation: EV-00923-next
+    audit: "820 evaluations, 0 active claims; Property Get配列形状の横展開に差異はなく、RC-00014の未解決opaque配列shape/boundsを次の独立評価へ切り出した"
+    decision: "opaque多次元配列をprimitive/Object typed destinationへ渡すshape・bounds検証を、既存の1次元binder回帰と分離して評価する"
+    action: create-candidate
+    nextArea: 配列・UDT
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-006
+    coverageSnapshot: COV-2026-08-23-opaque-array-shape

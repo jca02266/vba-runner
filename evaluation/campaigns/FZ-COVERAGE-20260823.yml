@@ -70,3 +70,18 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
+  - id: FZ-COVERAGE-20260823-006
+    title: Opaque multidimensional array assignment boundary
+    status: queued
+    priority: 1
+    focus: opaque配列の多次元shape・boundsとtyped destination検証
+    priorCauseKey: assignment-array-type-validation-bypass
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts
+      - evaluation/root-causes/RC-00014.md
+      - evaluation/root-causes/RC-00015.md
+      - tests/spec/array-opaque-assignment.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/array-opaque-assignment.test.ts
