@@ -3005,3 +3005,11 @@ checkpoints:
     nextEvaluation: EV-00930
     nextCandidate: FZ-COVERAGE-20260823-011
     coverageSnapshot: COV-2026-08-23-financial-boundary
+  - afterEvaluation: EV-00930-excel
+    audit: "827 evaluations, 0 active claims; XL-233の結果を同期し、NPer 4ケースのError番号・Double型・残留値・数値精度が一致した"
+    decision: "NPerの今回の極端境界はverified-no-bugで収束した。RC-00012の未評価境界を新たに作らず、次の収束チェックで未解決RCA・横展開・実機待ちを再監査する"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: EV-00930
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-financial-boundary
