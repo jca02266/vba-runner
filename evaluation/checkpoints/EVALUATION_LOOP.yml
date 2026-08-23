@@ -2925,3 +2925,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-006
     coverageSnapshot: COV-2026-08-23-opaque-array-shape
+  - afterEvaluation: EV-00924
+    audit: "821 evaluations, 0 active claims; opaque多次元配列のshape・bounds、要素型、ByRef、Property Letを独立行列で確認し、差異なし"
+    decision: "正常なopaque配列契約の代表経路は収束した。矛盾したSAFEARRAYメタデータや空次元は対象外として、未解決RCAと低収束領域を監査して次を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-opaque-array-shape

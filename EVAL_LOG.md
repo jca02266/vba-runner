@@ -824,6 +824,7 @@
 | EV-00921 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Let/SetのWith・CallByName経路における必須引数アリティ |
 | EV-00922 | FZ-COVERAGE-20260823 | fixed | 1 | Module修飾Property Getの配列戻り値添字境界 |
 | EV-00923 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値の多次元・下限変更・Class経路 |
+| EV-00924 | FZ-COVERAGE-20260823 | verified-no-bug |  | opaque配列の多次元shape・boundsとtyped destination検証 |
 
 ## 状態集計
 
@@ -832,7 +833,7 @@
 | fixed | 367 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 446 |
+| verified-no-bug | 447 |
 
 横展開未解決経路: 588、実Excel待ち評価: 0
 
