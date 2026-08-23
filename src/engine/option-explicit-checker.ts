@@ -59,6 +59,8 @@ const VBA_BUILTINS: ReadonlySet<string> = new Set([
     // StrConv / comparison constants
     'vbunicode', 'vbfromunicode', 'vbuppercase', 'vblowercase', 'vbpropercase',
     'vbtextcompare', 'vbbinarycompare', 'vbdatabasecompare',
+    // CallByName dispatch constants
+    'vbmethod', 'vbget', 'vblet', 'vbset',
     // Date / week constants
     'vbsunday', 'vbmonday', 'vbtuesday', 'vbwednesday', 'vbthursday', 'vbfriday', 'vbsaturday',
     'vbfirstjan1', 'vbfirstfourdays', 'vbfirstfullweek', 'vbusedefault', 'vbusecompatible',

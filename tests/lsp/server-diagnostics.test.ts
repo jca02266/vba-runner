@@ -202,4 +202,17 @@ console.assert(fixtureHostDiagnostics.length === 0,
     `Expected sibling Application.js to clear advisor and Option Explicit diagnostics, got ${fixtureHostDiagnostics.length}`);
 console.log('[PASS] Sibling Application.js clears host and Option Explicit diagnostics');
 
+// Test 14: CallByName dispatch constants are VBA built-ins, not undeclared vars
+const callByNameConstantsUri = 'file:///workspace/callbyname-constants.bas';
+server.didOpen(callByNameConstantsUri, String.raw`Option Explicit
+Sub VerifyCallByNameConstants()
+    Dim mode As Long
+    mode = VbSet + VbLet + VbGet + VbMethod
+End Sub`);
+const callByNameDiagnostics = server.getDiagnostics(callByNameConstantsUri)
+    .filter((d: any) => d.message.includes('not declared'));
+console.assert(callByNameDiagnostics.length === 0,
+    `Expected CallByName constants to be recognized, got ${callByNameDiagnostics.length}`);
+console.log('[PASS] CallByName dispatch constants are recognized by Option Explicit');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');
