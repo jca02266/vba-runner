@@ -14,3 +14,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/like-boundary.test.ts
+  - id: FZ-COVERAGE-20260823-002
+    title: ChrW extended character range boundary
+    status: queued
+    priority: 1
+    focus: ChrW/ChrW$の負数・65535境界と文字コード変換
+    priorCauseKey: chrw-range-and-character-mapping-contract
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts
+      - evaluation/root-causes/RC-00091.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-strings.test.ts

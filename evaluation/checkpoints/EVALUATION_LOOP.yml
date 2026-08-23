@@ -2845,3 +2845,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-lsp-class-option-explicit
+  - afterEvaluation: EV-00919
+    audit: "816 evaluations, 0 active claims; EV-00919をverified-no-bugへ遷移し、Likeパターン文法の仕様境界を確認した。queued remediation0件"
+    decision: "RC-00091/BUG-00558の横展開で未解決のChrW/ChrW$範囲を、Chr/Chr$の修正範囲と混同しない独立評価として登録する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-002
+    coverageSnapshot: COV-2026-08-23-chrw-boundary
