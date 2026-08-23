@@ -9,6 +9,7 @@ import type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../
 import { FileSystem, MemoryFileSystem } from '../src/engine/filesystem';
 import { preprocess, stripVBAFileHeader, CompilerConstants } from '../src/engine/preprocessor';
 import { loadMocks } from './mock-loader';
+import type { MockLoadContext } from './mock-loader';
 import { injectExcelStub } from './excel-stub';
 import { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockWorkbook } from '../src/engine/mock/MockExcel';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
@@ -79,9 +80,13 @@ export class VBARunner {
             fs: config.fs ?? new MemoryFileSystem(),
             allowTopLevelStatements: false,
         });
+        let mockContext: MockLoadContext = {};
         if (config.excelStub) {
             const app = config.excelStub === true ? undefined : config.excelStub;
             (this as any).excelStub = injectExcelStub(this.evaluator, app);
+            mockContext = {
+                excel: { Application: (this as any).excelStub },
+            };
         }
 
         if (!pathOrDir) return;
@@ -102,6 +107,7 @@ export class VBARunner {
 
         const stat = fs.statSync(pathOrDir);
         const dir = stat.isDirectory() ? pathOrDir : path.dirname(pathOrDir);
+        mockContext.sourceDirectory = dir;
         const files = stat.isDirectory()
             ? fs.readdirSync(pathOrDir)
                   .filter(f => VBA_EXTENSIONS.has(path.extname(f).toLowerCase()))
@@ -110,7 +116,7 @@ export class VBARunner {
             : [pathOrDir];
 
         // モックを先にロード（標準ライブラリより後、本番コードより前に注入）
-        const mockModules = loadMocks(dir, this.evaluator);
+        const mockModules = loadMocks(dir, this.evaluator, mockContext);
         for (const { ast, moduleName } of mockModules) {
             this._asts.push(ast);
             this._moduleNames.push(moduleName);

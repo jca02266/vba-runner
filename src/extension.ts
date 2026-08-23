@@ -692,7 +692,7 @@ End Class`;
                     debugOutputChannel.show(true);
                 }, { allowTopLevelStatements: false });
                 // Excel API スタブを自動注入（Range / Cells / ActiveSheet 等をノーオプで動かす）
-                injectExcelStub(ev);
+                const excelApplication = injectExcelStub(ev);
                 const asts: Array<{ ast: ReturnType<Parser['parse']>; moduleName: string }> = [];
 
                 // AssertHelper をクラスモジュールとして評価
@@ -704,7 +704,10 @@ End Class`;
                 asts.push({ ast: assertAst, moduleName: 'AssertHelper' });
 
                 // __mocks__/ と __mocks__.* からモックを注入（本番モジュールより先）
-                const mockModules = loadMocks(dir, ev);
+                const mockModules = loadMocks(dir, ev, {
+                    excel: { Application: excelApplication },
+                    sourceDirectory: dir,
+                });
                 for (const { ast: mockAst, moduleName: mockName } of mockModules) {
                     asts.push({ ast: mockAst, moduleName: mockName });
                 }

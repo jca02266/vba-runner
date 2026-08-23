@@ -34,8 +34,9 @@ VS Code 拡張は `Application`、`ThisWorkbook`、`ActiveSheet`、`CurrentDb`�
 ```text
 Read the mock guide at
 https://github.com/jca02266/vba-runner/blob/main/docs/guides/MOCK_GUIDE.md,
-create the smallest __mocks__ VBA/JS stub for 'Application', preserve the
-member calls used by this code, and add a focused test.
+prefer the built-in MockApplication when it provides the required members,
+and create the smallest __mocks__ VBA/JS extension for the remaining members.
+Preserve the member calls used by this code and add a focused test.
 ```
 
 これはExcelやAccessの完全な再実装を意味しません。テスト対象が実際に使う
@@ -88,6 +89,41 @@ Excel がなくても VBA コードを実行できるようになります。
 > という汎用的な仕組みなので、`RGB` のように Excel/Windows に依存しない**単純に未実装の組み込み
 > 関数**を補う用途にもそのまま使える(→ [0-5](#0-5-未実装の組み込み関数を補うrgbの例))。
 > エンジンが対応していない組み込み関数に遭遇したら、まず`__mocks__/`で補えないか検討するとよい。
+
+### 組み込みExcelスタブを拡張する JavaScript モック
+
+VS Code の `▶ Run` と `VBARunner(..., { excelStub: true })` は、実行前に同じ
+`MockApplication` インスタンスを注入します。`Application`、`Worksheets`、
+`Sheets`、`Range`、`Cells`、`ThisWorkbook` など、組み込みスタブが提供する
+メンバーをモック側で使う場合は、オブジェクトを作り直さずファクトリとして
+そのインスタンスを拡張してください。
+
+```js
+// __mocks__/Application.js（同期ファクトリ）
+module.exports = ({ excel }) => {
+    const app = excel.Application;
+    app.PathSeparator = '/';
+
+    return {
+        // 同じ app を返すので、組み込みの Worksheets/Range も維持される
+        Application: app,
+        // 必要なら組み込みメソッドを別のグローバル名にも公開できる
+        Worksheets: app.Worksheets.bind(app),
+    };
+};
+```
+
+ファクトリには `excel.Application` と `sourceDirectory` が渡されます。ファクトリは
+同期関数でなければならず、Promise を返すモックは読み込まれません。従来どおり
+オブジェクトを `module.exports` する形式も利用できますが、その場合は
+`Application` が組み込みインスタンスを置き換えるため、未定義の
+`Worksheets` や `Range` を呼ぶコードが実行時に失敗することがあります。
+
+この仕組みは実行時の注入です。VS Code の診断はモックファイルを実行して
+メンバーを推論するものではないため、診断メッセージの解消には、対象ファイルを
+再解析するか、必要な識別子を静的に解決できる VBA/JavaScript モックとして
+配置してください。診断に表示される AI プロンプトへ渡す VBA 本文には、
+使用するメンバーをすべて含めます。
 
 ## ひな形の自動生成（vba-runner.generateMocks）
 
@@ -706,6 +742,7 @@ VBA コード中で使用している Excel オブジェクト名を下表で引
 |---|---|---|
 | `ActiveSheet` | `ev.getGlobalEnv().set('ActiveSheet', ws)` | [§A](#a-activesheet--sheets) |
 | `Sheets` | `ev.getGlobalEnv().set('Sheets', (n) => mockApp.Sheets(n))` | [§A](#a-activesheet--sheets) |
+| `Worksheets` | `ev.getGlobalEnv().set('Worksheets', (n) => mockApp.Worksheets(n))` | [§A](#a-activesheet--sheets) |
 | `Application`（Sheetsのみ使用）| `ev.getGlobalEnv().set('Application', mockApp)` | [§A](#a-activesheet--sheets) |
 | `Application`（ScreenUpdating等）| `ev.getGlobalEnv().set('Application', new MockApplicationWithSettings())` | [§B](#b-application-プロパティscreenupdating-等) |
 | `Cells`（`ws.Cells` 経由）| ActiveSheet の注入で解決 | [§A](#a-activesheet--sheets) |
@@ -718,7 +755,7 @@ VBA コード中で使用している Excel オブジェクト名を下表で引
 
 ## Step 2: 詳細セクション（必要なものだけ読む）
 
-### §A: ActiveSheet / Sheets
+### §A: ActiveSheet / Sheets / Worksheets
 
 最小限の注入パターン:
 
@@ -734,6 +771,7 @@ ws.setCellValue('A1:C3', [[1,2,3],[4,5,6],[7,8,9]]);  // 2D配列
 
 ev.getGlobalEnv().set('ActiveSheet', ws);
 ev.getGlobalEnv().set('Sheets', (nameOrIndex: string | number) => mockApp.Sheets(nameOrIndex));
+ev.getGlobalEnv().set('Worksheets', (nameOrIndex: string | number) => mockApp.Worksheets(nameOrIndex));
 ev.getGlobalEnv().set('Application', mockApp);  // Sheets()のみ必要な場合
 ```
 
@@ -742,8 +780,8 @@ VBA の `ws.Cells(r, c)`・`ws.Range("A1")` は MockWorksheet に実装済みの
 
 ### §B: Application プロパティ（ScreenUpdating 等）
 
-`MockApplication` は `Sheets()` のみ実装。`ScreenUpdating` などを注入しないと
-読み取り時に "Type mismatch" で実行が止まる。小文字プロパティを持つ拡張クラスで対応する:
+`MockApplication` は `Sheets()` / `Worksheets()` と基本的なExcelオブジェクトを実装する。
+`ScreenUpdating` などの追加メンバーが必要な場合は、小文字プロパティを持つ拡張クラスで対応する:
 
 ```typescript
 import { MockApplication } from '../../src/engine/mock/MockExcel';
@@ -1189,7 +1227,7 @@ npx tsx tests/spec/your-test.ts
 
 #### ⚠️ MockApplication の制限: Application プロパティは「無視」される
 
-`MockApplication` が実装しているのは `Sheets()` メソッドのみ。
+`MockApplication` は `Sheets()` / `Worksheets()` と基本的なExcelオブジェクトを実装する。
 `Application.ScreenUpdating`・`Application.Calculation`・`Application.EnableEvents` などのプロパティは**実装されていない**。
 
 しかしエラーにもならない。理由は evaluator の動作にある:

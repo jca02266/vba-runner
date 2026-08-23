@@ -58,6 +58,14 @@ export interface MockModule {
     moduleName: string;
 }
 
+/** Runtime services exposed to JavaScript/TypeScript mock factories. */
+export interface MockLoadContext {
+    excel?: {
+        Application: any;
+    };
+    sourceDirectory?: string;
+}
+
 /** 収集したモックファイルの内部表現 */
 interface MockEntry {
     /** ファイルの絶対パス */
@@ -76,7 +84,7 @@ interface MockEntry {
  *
  * ファイルは basename の ASCII 辞書順にソートされ、後にロードされたものが勝つ。
  */
-export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
+export function loadMocks(dir: string, evaluator: Evaluator, context: MockLoadContext = {}): MockModule[] {
     const entries: MockEntry[] = [];
 
     // --- 収集: __mocks__/ ディレクトリ内のファイル ---
@@ -112,7 +120,7 @@ export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
 
     for (const entry of entries) {
         if (entry.ext === '.js' || entry.ext === '.cjs' || entry.ext === '.ts') {
-            loadJsMock(entry.fullPath, evaluator);
+            loadJsMock(entry.fullPath, evaluator, context);
         } else {
             const mod = loadVbaMock(entry.fullPath, evaluator);
             if (mod) vbaMockModules.push(mod);
@@ -122,13 +130,13 @@ export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
     return vbaMockModules;
 }
 
-/** JS / TS モックを require() してエクスポートを evaluator に適用する */
-function loadJsMock(file: string, evaluator: Evaluator): void {
+/** JS / TS モックを読み込み、エクスポートまたは同期ファクトリを evaluator に適用する */
+function loadJsMock(file: string, evaluator: Evaluator, context: MockLoadContext): void {
     try {
         const mod = path.extname(file).toLowerCase() === '.ts'
             ? _require(path.resolve(file))
             : loadCommonJsMock(file);
-        applyJsMockExports(mod, evaluator, file);
+        applyJsMockExports(mod, evaluator, file, context);
     } catch (e: any) {
         console.warn(`[mock-loader] Failed to load JS/TS mock "${file}": ${e.message}`);
     }
@@ -190,8 +198,15 @@ function loadVbaMock(file: string, evaluator: Evaluator): MockModule | null {
  *   factory が __progId__ を持たない場合はキー名を __progId__ として補完する
  * - それ以外の関数 → setBuiltinOverride で env に登録
  */
-function applyJsMockExports(mod: any, evaluator: Evaluator, file: string): void {
-    const exports = mod?.default ?? mod;
+function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, context: MockLoadContext): void {
+    const factoryOrExports = mod?.default ?? mod;
+    const exports = typeof factoryOrExports === 'function'
+        ? factoryOrExports(context)
+        : factoryOrExports;
+    if (exports && typeof exports.then === 'function') {
+        console.warn(`[mock-loader] Async mock factory "${file}" is not supported; use a synchronous factory`);
+        return;
+    }
     if (!exports || typeof exports !== 'object') {
         console.warn(`[mock-loader] "${file}" exports nothing usable (expected object)`);
         return;

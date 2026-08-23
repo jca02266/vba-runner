@@ -17,11 +17,13 @@ assert.notStrictEqual(nativeRequire.status, 0,
 assert.ok(/ERR_REQUIRE_ESM/.test(nativeRequire.stderr),
     'plain Node require should demonstrate why the mock loader must force CommonJS semantics');
 
-const suite = new VBARunner('tests/fixtures/application-mock');
+const suite = new VBARunner('tests/fixtures/application-mock', { excelStub: true });
 
 assert.strictEqual(suite.run('ReadPathSeparator', []), '/',
     'Application.PathSeparator is provided by the mock');
 assert.strictEqual(suite.run('ToggleDisplayAlerts', []), false,
     'Application.DisplayAlerts accepts assignment through the mock');
+assert.strictEqual(suite.run('ReadWorksheetName', []), 'Sheet1',
+    'Application factory preserves the built-in Worksheets mock');
 
 console.log('[PASS] Application host-global mock preserves queue members');
