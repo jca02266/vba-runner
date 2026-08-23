@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { LSPServer } from '../../src/lsp/server';
 import { collectMockIdentifiers } from '../../src/lsp/host-mock-advisor';
 
@@ -160,5 +163,16 @@ const applicationMockNames = collectMockIdentifiers(String.raw`module.exports = 
 console.assert(applicationMockNames.has('application'),
     'CommonJS object-export mock must register its exported host identifier');
 console.log('[PASS] CommonJS __mocks__/Application.js is discoverable');
+
+// Test 13: Diagnostics discover the real sibling mock without manual registration
+const applicationFixture = path.resolve('tests/fixtures/application-mock/Main.bas');
+const applicationFixtureUri = pathToFileURL(applicationFixture).toString();
+const fixtureServer = new LSPServer();
+fixtureServer.didOpen(applicationFixtureUri, fs.readFileSync(applicationFixture, 'utf8'));
+const fixtureHostDiagnostics = fixtureServer.getDiagnostics(applicationFixtureUri)
+    .filter((d: any) => d.source === 'vba-mock-advisor');
+console.assert(fixtureHostDiagnostics.length === 0,
+    `Expected sibling Application.js to clear diagnostics, got ${fixtureHostDiagnostics.length}`);
+console.log('[PASS] Sibling __mocks__/Application.js clears host diagnostics');
 
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

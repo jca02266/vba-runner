@@ -26,7 +26,7 @@ import { TestRunner } from './test-runner';
 import { DebugAdapter } from './debug-adapter';
 import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
 import { SignatureHelpProvider, SignatureHelpResult } from './signature-help-provider';
-import { collectHostMockDiagnostics } from './host-mock-advisor';
+import { collectHostMockDiagnostics, collectMockIdentifiers } from './host-mock-advisor';
 
 export interface TextDocument {
     uri: string;
@@ -124,6 +124,35 @@ export class LSPServer {
     /** Update host identifiers supplied by the workspace's __mocks__ files. */
     setMockedHostIdentifiers(names: Iterable<string>): void {
         this.mockedHostIdentifiers = new Set([...names].map(name => name.toLowerCase()));
+    }
+
+    /** Read mocks that belong to the diagnosed VBA file itself. */
+    private collectSiblingMockIdentifiers(uri: string): Set<string> {
+        const names = new Set<string>();
+        const addFile = (file: string): void => {
+            const extension = path.extname(file).toLowerCase();
+            if (!['.bas', '.cls', '.frm', '.js', '.ts'].includes(extension)) return;
+            const base = path.basename(file, extension);
+            if (base && !base.startsWith('__mocks__')) names.add(base.toLowerCase());
+            try {
+                for (const name of collectMockIdentifiers(fs.readFileSync(file, 'utf8'))) names.add(name);
+            } catch { /* a mock can disappear while diagnostics are running */ }
+        };
+
+        try {
+            const directory = path.dirname(uriToPath(uri));
+            const mocksDirectory = path.join(directory, '__mocks__');
+            if (fs.existsSync(mocksDirectory) && fs.statSync(mocksDirectory).isDirectory()) {
+                for (const entry of fs.readdirSync(mocksDirectory, { withFileTypes: true })) {
+                    if (entry.isFile()) addFile(path.join(mocksDirectory, entry.name));
+                }
+            }
+            for (const extension of ['.bas', '.js', '.ts']) {
+                const file = path.join(directory, `__mocks__${extension}`);
+                if (fs.existsSync(file) && fs.statSync(file).isFile()) addFile(file);
+            }
+        } catch { /* non-file URI or inaccessible directory */ }
+        return names;
     }
 
     /**
@@ -706,7 +735,9 @@ export class LSPServer {
                 l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
-            const hostMockDiags = collectHostMockDiagnostics(ast, this.mockedHostIdentifiers);
+            const mockedHostIdentifiers = new Set(this.mockedHostIdentifiers);
+            for (const name of this.collectSiblingMockIdentifiers(uri)) mockedHostIdentifiers.add(name);
+            const hostMockDiags = collectHostMockDiagnostics(ast, mockedHostIdentifiers);
 
             return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags];
         } catch {
