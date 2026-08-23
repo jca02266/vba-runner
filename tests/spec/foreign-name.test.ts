@@ -10,6 +10,27 @@
 
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
+// ─── 0. 必須終端の検証 ────────────────────────────────────────────────────
+
+for (const [label, code] of [
+    ['call', String.raw`Sub Test()
+    Debug.Print [foo
+End Sub`],
+    ['declaration', String.raw`Sub Test()
+    Dim [foo As Long
+End Sub`],
+] as const) {
+    let caught = false;
+    try {
+        evalVBASingle(code);
+    } catch (error) {
+        caught = true;
+        assert.strictEqual(String(error).includes('FOREIGN-NAMEが閉じられていません'), true);
+    }
+    assert.strictEqual(caught, true, `unterminated FOREIGN-NAME (${label}) must fail during lexing`);
+}
+console.log('[PASS] FN00: 未終端 FOREIGN-NAME — LexerError');
+
 // ─── 1. 基本動作: 定義済み関数を [name] 構文で呼び出す ───────────────────────
 
 {

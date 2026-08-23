@@ -1,0 +1,9 @@
+- candidateId: FZ-COVERAGE-20260823-009
+  evaluationId: EV-00928
+  status: bug-found
+  occurredAt: '2026-08-23T08:46:25.575Z'
+- candidateId: FZ-COVERAGE-20260823-009
+  evaluationId: EV-00928
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-23T08:48:36.995Z'

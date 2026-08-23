@@ -663,7 +663,10 @@ export class Lexer {
                 while (this.peek() !== ']' && this.peek() !== '\n' && this.peek() !== '\r' && this.peek() !== '\0') {
                     foreignStr += this.advance();
                 }
-                if (this.peek() === ']') this.advance(); // consume ']'
+                if (this.peek() !== ']') {
+                    throw new LexError('FOREIGN-NAMEが閉じられていません', startLine, startColumn);
+                }
+                this.advance(); // consume ']'
                 return { type: TokenType.ForeignName, value: foreignStr, line: startLine, column: startColumn };
             }
 

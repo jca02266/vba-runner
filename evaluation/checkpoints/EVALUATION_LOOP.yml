@@ -2973,3 +2973,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00928
+    audit: "825 evaluations, 0 active claims; FOREIGN-NAMEの閉じ角括弧欠落を呼び出し・宣言の両経路で再現し、Lexer終端検証を追加した"
+    decision: "BUG-00568の直接修正と回帰を完了した。必須終端を持つLexerトークンの返却契約をRC-00100として確認し、ROOT-00060を実装待ちにする。空の[]は別候補FZ-COVERAGE-20260823-010で評価する"
+    action: root-cause-remediation
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-010
+    coverageSnapshot: COV-2026-08-23-foreign-name

@@ -828,12 +828,13 @@
 | EV-00925 | FZ-LSP-20260823 | fixed | 1 | LSP .cls secondary entry preprocessing |
 | EV-00926 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値のprovenance marker再利用と複数typed代入 |
 | EV-00927 | FZ-COVERAGE-20260823 | verified-no-bug |  | COM/host opaque配列の要素型メタデータ欠落とVariant・typed destinationの分岐 |
+| EV-00928 | FZ-COVERAGE-20260823 | fixed | 1 | FOREIGN-NAMEの閉じ括弧欠落とLexer・Parserの構文エラー境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 368 |
+| fixed | 369 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 449 |
@@ -844,4 +845,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260823-010 | 2 | queued | 空のFOREIGN-NAMEとforeign-identifier最小長のLexer境界 | yes |
