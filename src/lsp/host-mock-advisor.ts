@@ -51,9 +51,169 @@ export function collectMockIdentifiers(content: string): Set<string> {
     for (const match of content.matchAll(/^\s*Attribute\s+VB_Name\s*=\s*"([^"]+)"/gim)) add(match[1]);
     for (const match of content.matchAll(/\b(?:Public\s+|Private\s+|Friend\s+)?(?:Function|Sub|Property\s+(?:Get|Let|Set)|Class)\s+([A-Za-z_][A-Za-z0-9_]*)/gim)) add(match[1]);
     for (const match of content.matchAll(/\b(?:module\.)?exports\.([A-Za-z_][A-Za-z0-9_]*)\s*=/g)) add(match[1]);
-    const objectExport = content.match(/\bmodule\.exports\s*=\s*\{([\s\S]*?)\}/m)?.[1] ?? '';
-    for (const match of objectExport.matchAll(/(?:^|,)\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/g)) add(match[1]);
+    for (const match of content.matchAll(/\b(?:module\.)?exports\s*\[\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\]\s*=/g)) add(match[2]);
+    for (const name of collectCommonJsObjectExportNames(content)) add(name);
     return names;
+}
+
+/**
+ * Collect statically named top-level properties from `module.exports = { ... }`.
+ *
+ * This is intentionally not a JavaScript evaluator. Diagnostics run against
+ * unsaved, sometimes incomplete editor text, so executing the mock would be
+ * unsafe and would miss the current buffer. The scanner only models enough JS
+ * lexical structure to distinguish top-level object keys from nested members.
+ * Computed and spread properties are left unresolved until runtime.
+ */
+function collectCommonJsObjectExportNames(content: string): Set<string> {
+    const names = new Set<string>();
+    const assignment = /\bmodule\.exports\s*=\s*\{/g;
+    for (const match of content.matchAll(assignment)) {
+        const openBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
+        scanObjectLiteralKeys(content, openBrace, names);
+    }
+    return names;
+}
+
+function scanObjectLiteralKeys(source: string, openBrace: number, names: Set<string>): number {
+    let braceDepth = 1;
+    let bracketDepth = 0;
+    let parenDepth = 0;
+    let expectKey = true;
+    let previousSignificant = '{';
+
+    for (let i = openBrace + 1; i < source.length; i++) {
+        const ch = source[i];
+        const next = source[i + 1] ?? '';
+
+        if (/\s/.test(ch)) continue;
+        if (ch === '/' && next === '/') {
+            i = skipLineComment(source, i + 2);
+            continue;
+        }
+        if (ch === '/' && next === '*') {
+            i = skipBlockComment(source, i + 2);
+            continue;
+        }
+        if (ch === '"' || ch === "'") {
+            const end = skipQuoted(source, i, ch);
+            if (expectKey && braceDepth === 1 && bracketDepth === 0 && parenDepth === 0) {
+                const key = source.slice(i + 1, end);
+                const after = skipWhitespaceAndComments(source, end + 1);
+                if (source[after] === ':' || source[after] === ',' || source[after] === '}') names.add(key);
+                expectKey = false;
+            }
+            i = end;
+            previousSignificant = ch;
+            continue;
+        }
+        if (ch === '`') {
+            i = skipTemplate(source, i);
+            previousSignificant = '`';
+            continue;
+        }
+        if (ch === '/' && isRegexStart(previousSignificant)) {
+            i = skipRegexLiteral(source, i);
+            previousSignificant = '/';
+            continue;
+        }
+
+        const atObjectTop = braceDepth === 1 && bracketDepth === 0 && parenDepth === 0;
+        if (expectKey && atObjectTop && /[A-Za-z_$]/.test(ch)) {
+            const first = readIdentifier(source, i);
+            let after = skipWhitespaceAndComments(source, first.end);
+            let key = first.name;
+            if (/^(?:get|set|async)$/.test(first.name) && /[A-Za-z_$]/.test(source[after] ?? '')) {
+                const second = readIdentifier(source, after);
+                const afterSecond = skipWhitespaceAndComments(source, second.end);
+                if (source[afterSecond] === '(') {
+                    key = second.name;
+                    after = afterSecond;
+                }
+            }
+            if (source[after] === ':' || source[after] === '(' || source[after] === ',' || source[after] === '}') {
+                names.add(key);
+            }
+            expectKey = false;
+            i = first.end - 1;
+            previousSignificant = first.name.at(-1) ?? previousSignificant;
+            continue;
+        }
+
+        if (ch === '{') braceDepth++;
+        else if (ch === '}') {
+            braceDepth--;
+            if (braceDepth === 0) return i;
+        } else if (ch === '[') bracketDepth++;
+        else if (ch === ']') bracketDepth--;
+        else if (ch === '(') parenDepth++;
+        else if (ch === ')') parenDepth--;
+        else if (ch === ',' && atObjectTop) expectKey = true;
+
+        previousSignificant = ch;
+    }
+    return source.length;
+}
+
+function readIdentifier(source: string, start: number): { name: string; end: number } {
+    let end = start + 1;
+    while (/[A-Za-z0-9_$]/.test(source[end] ?? '')) end++;
+    return { name: source.slice(start, end), end };
+}
+
+function skipWhitespaceAndComments(source: string, start: number): number {
+    let i = start;
+    while (i < source.length) {
+        if (/\s/.test(source[i])) { i++; continue; }
+        if (source[i] === '/' && source[i + 1] === '/') { i = skipLineComment(source, i + 2) + 1; continue; }
+        if (source[i] === '/' && source[i + 1] === '*') { i = skipBlockComment(source, i + 2) + 1; continue; }
+        break;
+    }
+    return i;
+}
+
+function skipLineComment(source: string, start: number): number {
+    const newline = source.indexOf('\n', start);
+    return newline < 0 ? source.length : newline;
+}
+
+function skipBlockComment(source: string, start: number): number {
+    const close = source.indexOf('*/', start);
+    return close < 0 ? source.length : close + 1;
+}
+
+function skipQuoted(source: string, start: number, quote: string): number {
+    for (let i = start + 1; i < source.length; i++) {
+        if (source[i] === '\\') { i++; continue; }
+        if (source[i] === quote) return i;
+    }
+    return source.length;
+}
+
+function skipTemplate(source: string, start: number): number {
+    for (let i = start + 1; i < source.length; i++) {
+        if (source[i] === '\\') { i++; continue; }
+        if (source[i] === '`') return i;
+    }
+    return source.length;
+}
+
+function isRegexStart(previous: string): boolean {
+    return /[({[=,:;!?&|+\-*%^~<>]/.test(previous);
+}
+
+function skipRegexLiteral(source: string, start: number): number {
+    let inClass = false;
+    for (let i = start + 1; i < source.length; i++) {
+        if (source[i] === '\\') { i++; continue; }
+        if (source[i] === '[') inClass = true;
+        else if (source[i] === ']') inClass = false;
+        else if (source[i] === '/' && !inClass) {
+            while (/[A-Za-z]/.test(source[i + 1] ?? '')) i++;
+            return i;
+        }
+    }
+    return source.length;
 }
 
 function diagnosticFor(id: Identifier, kind: string): HostMockDiagnostic {

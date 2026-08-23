@@ -158,10 +158,26 @@ console.log('[PASS] Registering __mocks__ identifiers clears host recommendation
 
 // Test 12: CommonJS object-export mocks are discovered by the same helper
 const applicationMockNames = collectMockIdentifiers(String.raw`module.exports = {
-    Application: { PathSeparator: '/', DisplayAlerts: true },
-};`);
+    Application: {
+        PathSeparator: '/',
+        DisplayAlerts: true,
+        Pattern: /a,b\/c/,
+    },
+    ThisWorkbook: { Path: '/tmp' },
+    "Worksheets": [],
+    get Range() { return null; },
+    [computedName]: {},
+};
+exports.Cells = {};
+module.exports['Rows'] = {};`);
 console.assert(applicationMockNames.has('application'),
     'CommonJS object-export mock must register its exported host identifier');
+for (const name of ['thisworkbook', 'worksheets', 'range', 'cells', 'rows']) {
+    console.assert(applicationMockNames.has(name), `CommonJS mock should expose ${name}`);
+}
+for (const nested of ['pathseparator', 'displayalerts', 'pattern', 'path']) {
+    console.assert(!applicationMockNames.has(nested), `Nested member ${nested} must not become a host mock`);
+}
 console.log('[PASS] CommonJS __mocks__/Application.js is discoverable');
 
 // Test 13: Diagnostics discover the real sibling mock without manual registration

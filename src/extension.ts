@@ -140,7 +140,9 @@ export async function activate(context: vscode.ExtensionContext) {
         diagnosticCollection.set(uri, diags);
     }
 
+    let mockRefreshGeneration = 0;
     async function refreshMockIdentifiers(): Promise<void> {
+        const generation = ++mockRefreshGeneration;
         const names = new Set<string>();
         const mockUris = new Map<string, vscode.Uri>();
         // Keep the glob deliberately broad.  VS Code's glob implementation
@@ -177,6 +179,10 @@ export async function activate(context: vscode.ExtensionContext) {
                 if (base && !base.startsWith('__mocks__')) names.add(base.toLowerCase());
             } catch { /* mock file may disappear during a watcher event */ }
         }
+        // File watchers and editor changes can request overlapping scans.
+        // Only the newest scan may replace the identifier set; otherwise a
+        // slower stale scan can make a just-resolved diagnostic reappear.
+        if (generation !== mockRefreshGeneration) return;
         lspServer.setMockedHostIdentifiers(names);
         // Recompute already-open documents explicitly.  Besides avoiding a
         // brace-glob portability issue, this is what makes an existing
