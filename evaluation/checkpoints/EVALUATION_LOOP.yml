@@ -3013,3 +3013,11 @@ checkpoints:
     nextEvaluation: EV-00930
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-financial-boundary
+  - afterEvaluation: EV-00931
+    audit: "828 evaluations, 0 active claims; RC-00012のSYD未評価境界を5ケースのXL-234行列へ追加し、ソースハッシュ検証済みでneeds-excelへ移行した"
+    decision: "Life・Period・Cost・Salvage境界はExcelのError番号と値をRunner単独で確定できないため、EV-00931を実機結果待ちとして保持する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00931
+    nextCandidate: FZ-COVERAGE-20260823-012
+    coverageSnapshot: COV-2026-08-23-financial-boundary

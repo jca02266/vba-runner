@@ -152,3 +152,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: FZ-COVERAGE-20260823-012
+    title: SYD argument-domain boundary matrix
+    status: queued
+    priority: 1
+    focus: SYDのLife・Period・Cost・Salvage境界における領域エラーとOverflow分類
+    priorCauseKey: financial-domain-and-overflow-errors-not-separated
+    rootCauseId: RC-00012
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial-invalid-matrix.test.ts
+      - evaluation/root-causes/RC-00012.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial-invalid-matrix.test.ts

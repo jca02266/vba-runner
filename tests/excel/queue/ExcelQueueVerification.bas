@@ -86,6 +86,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceRateShapes
     VerifyNPerShapeBoundary
     VerifyNPerNonFiniteBoundary
+    VerifySydDomainBoundaryMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -127,6 +128,22 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifySydDomainBoundaryMatrix()
+    Dim result As Variant, errNo As Long
+    On Error Resume Next
+    Err.Clear: result = SYD(100, 0, 1, 1): errNo = Err.Number
+    EmitValueAndType "XL-234 LIFE-ONE", result, errNo
+    Err.Clear: result = SYD(100, 0, 5, 5): errNo = Err.Number
+    EmitValueAndType "XL-234 PERIOD-LIFE", result, errNo
+    Err.Clear: result = SYD(100, 0, 5, 0): errNo = Err.Number
+    EmitValueAndType "XL-234 ZERO-PERIOD", result, errNo
+    Err.Clear: result = SYD(-1, 0, 5, 1): errNo = Err.Number
+    EmitValueAndType "XL-234 NEG-COST", result, errNo
+    Err.Clear: result = SYD(100, 100, 5, 5): errNo = Err.Number
+    EmitValueAndType "XL-234 EQUAL-END", result, errNo
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyNPerNonFiniteBoundary()
