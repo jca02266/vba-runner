@@ -85,3 +85,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/opaque-array-binder.test.ts
+  - id: FZ-COVERAGE-20260823-007
+    title: Array return provenance reuse boundary
+    status: queued
+    priority: 1
+    focus: Property Get/Function配列戻り値のprovenance marker再利用と複数typed代入
+    priorCauseKey: assignment-array-return-origin-dispatch
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts
+      - evaluation/root-causes/RC-00015.md
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/property-array-assignment.test.ts

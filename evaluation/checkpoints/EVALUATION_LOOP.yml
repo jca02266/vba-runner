@@ -2957,3 +2957,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-lsp-secondary-entry
+  - afterEvaluation: EV-00926
+    audit: "823 evaluations, 0 active claims; Property Get Long()配列の直接反復代入をModule/Classの独立プローブで確認し、初回報告の0:13は再現せず0:0だった"
+    decision: "RC-00015のmarker消費仮説はこの直接経路では未再現。次は同RCAの未解決であるFunction/Propertyの戻り値メタデータ・ByRef/複数setter・COM由来を、静的whole-array診断と混同しない独立候補として優先する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-array-return-provenance

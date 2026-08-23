@@ -826,6 +826,7 @@
 | EV-00923 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値の多次元・下限変更・Class経路 |
 | EV-00924 | FZ-COVERAGE-20260823 | verified-no-bug |  | opaque配列の多次元shape・boundsとtyped destination検証 |
 | EV-00925 | FZ-LSP-20260823 | fixed | 1 | LSP .cls secondary entry preprocessing |
+| EV-00926 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値のprovenance marker再利用と複数typed代入 |
 
 ## 状態集計
 
@@ -834,7 +835,7 @@
 | fixed | 368 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 447 |
+| verified-no-bug | 448 |
 
 横展開未解決経路: 588、実Excel待ち評価: 0
 
