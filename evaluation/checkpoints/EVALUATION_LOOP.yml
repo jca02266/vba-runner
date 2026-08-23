@@ -2909,3 +2909,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-005
     coverageSnapshot: COV-2026-08-23-property-get-array-shape
+  - afterEvaluation: EV-00923
+    audit: "820 evaluations, 0 active claims; Module/Classの多次元・下限変更Property Get配列境界をverified-no-bugへ遷移し、共通添字修正の横展開を確認した"
+    decision: "Variant配列のLong()代入Error 13は別契約として候補化せず、未解決RCAと低収束領域を監査して次を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-property-get-array-shape
