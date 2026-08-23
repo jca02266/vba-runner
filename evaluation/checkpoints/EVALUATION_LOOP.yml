@@ -2853,3 +2853,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-002
     coverageSnapshot: COV-2026-08-23-chrw-boundary
+  - afterEvaluation: EV-00920
+    audit: "817 evaluations, 0 active claims; ChrW/ChrW$の-32768境界をMS-VBAL仕様との差異としてbug-foundに記録した。独立RCAレビューでExcel実機差異と設計原因が未確定のため、確定remediationは0件"
+    decision: "RC-00097の未解決点を解消するため、MS-VBAL仕様とExcel実機の差異を切り分けてから、ChrW境界修正のremediationを確定する"
+    action: checkpoint
+    nextArea: 組み込み関数
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-chrw-boundary
