@@ -149,6 +149,22 @@ export async function activate(context: vscode.ExtensionContext) {
         for (const pattern of ['**/__mocks__/**/*', '**/__mocks__.*']) {
             for (const uri of await vscode.workspace.findFiles(pattern)) mockUris.set(uri.toString(), uri);
         }
+        // Also inspect the mock directory beside every open VBA document.
+        // This covers a file opened without a workspace folder (where
+        // workspace.findFiles returns no results) and makes the common
+        // `module.bas` + `__mocks__/Application.js` layout deterministic.
+        for (const doc of vscode.workspace.textDocuments) {
+            if (doc.languageId !== 'vba') continue;
+            const directory = path.join(path.dirname(doc.uri.fsPath), '__mocks__');
+            try {
+                for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+                    if (entry.isFile()) {
+                        const uri = vscode.Uri.file(path.join(directory, entry.name));
+                        mockUris.set(uri.toString(), uri);
+                    }
+                }
+            } catch { /* no sibling mock directory */ }
+        }
         for (const uri of mockUris.values()) {
             const extension = path.extname(uri.fsPath).toLowerCase();
             if (!['.bas', '.cls', '.frm', '.js', '.ts'].includes(extension)) continue;
