@@ -2877,3 +2877,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-003
     coverageSnapshot: COV-2026-08-23-arity-property-boundary
+  - afterEvaluation: EV-00921
+    audit: "818 evaluations, 0 active claims; Property Let/SetのWith・CallByName必須引数をverified-no-bugへ遷移し、Error 449と正常書戻しを確認した"
+    decision: "RC-00071の未解決経路は今回の対象では差異なし。次は未解決RCAまたは低収束領域を監査して候補を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-arity-property-boundary

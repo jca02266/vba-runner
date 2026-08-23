@@ -821,6 +821,7 @@
 | EV-00918 | FZ-LSP-20260822 | fixed | 1 | .cls本体のOption ExplicitとVBE属性を組み合わせた診断契約 |
 | EV-00919 | FZ-COVERAGE-20260823 | verified-no-bug |  | Like演算子の空文字クラスと不正パターン文法 |
 | EV-00920 | FZ-COVERAGE-20260823 | fixed | 1 | ChrW/ChrW$の下限-32768境界 |
+| EV-00921 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Let/SetのWith・CallByName経路における必須引数アリティ |
 
 ## 状態集計
 
@@ -829,7 +830,7 @@
 | fixed | 366 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 444 |
+| verified-no-bug | 445 |
 
 横展開未解決経路: 588、実Excel待ち評価: 0
 
