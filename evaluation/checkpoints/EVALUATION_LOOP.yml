@@ -2893,3 +2893,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: FZ-COVERAGE-20260823-004
     coverageSnapshot: COV-2026-08-23-module-property-get
+  - afterEvaluation: EV-00922
+    audit: "819 evaluations, 0 active claims; Module修飾Property Getの配列添字境界をbug-foundからfixedへ遷移し、RC-00098の共通helper修正とfocused回帰を完了した"
+    decision: "BUG-00566に登録した多次元・下限変更・Class Property Getの形状境界をFZ-COVERAGE-20260823-005で独立評価する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-005
+    coverageSnapshot: COV-2026-08-23-property-get-array-shape

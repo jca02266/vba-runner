@@ -56,3 +56,17 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/argument-contract.ts
+  - id: FZ-COVERAGE-20260823-005
+    title: Property Get array shape follow-up
+    status: queued
+    priority: 2
+    focus: Property Get配列戻り値の多次元・下限変更・Class経路
+    priorCauseKey: module-property-get-array-boundary-contract-not-shared
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
+      - evaluation/findings/BUG-00566.md
+      - evaluation/root-causes/RC-00098.md
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/call-arity-matrix.test.ts
