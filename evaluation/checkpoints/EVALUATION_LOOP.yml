@@ -3021,3 +3021,11 @@ checkpoints:
     nextEvaluation: EV-00931
     nextCandidate: FZ-COVERAGE-20260823-012
     coverageSnapshot: COV-2026-08-23-financial-boundary
+  - afterEvaluation: EV-00931-excel
+    audit: "828 evaluations, 0 active claims; XL-234の5ケースを同期し、SYDのError番号・Double型・数値結果・失敗代入後の値保持が一致した"
+    decision: "EV-00931はverified-no-bugで完了。RC-00012の他金融関数への一般化は別の未解決境界として継続する"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: EV-00931
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-financial-boundary
