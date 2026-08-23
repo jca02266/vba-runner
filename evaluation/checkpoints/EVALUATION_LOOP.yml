@@ -2869,3 +2869,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-chrw-boundary
+  - afterEvaluation: EV-00920-fixed-next
+    audit: "817 evaluations, 0 active claims; ChrW境界修正後の全回帰と監査が成功し、queued remediation0件を確認した"
+    decision: "BUG-00517/RC-00071で未解決のWith・CallByNameアリティ経路を、Property Let/Setの直接経路と混同しない独立評価として登録する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-003
+    coverageSnapshot: COV-2026-08-23-arity-property-boundary
