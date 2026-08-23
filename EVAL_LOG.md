@@ -822,11 +822,13 @@
 | EV-00919 | FZ-COVERAGE-20260823 | verified-no-bug |  | Like演算子の空文字クラスと不正パターン文法 |
 | EV-00920 | FZ-COVERAGE-20260823 | fixed | 1 | ChrW/ChrW$の下限-32768境界 |
 | EV-00921 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Let/SetのWith・CallByName経路における必須引数アリティ |
+| EV-00922 | FZ-COVERAGE-20260823 | bug-found | 1 | Module修飾Property Getの配列戻り値添字境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 366 |
 | known-limit | 5 |
 | retired | 2 |
