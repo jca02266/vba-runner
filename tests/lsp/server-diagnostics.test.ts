@@ -145,4 +145,11 @@ console.assert(hostMockDiagnostics.every((d: any) => d.message.includes('__mocks
     'Host recommendations should require source context and include an AI prompt example');
 console.log('[PASS] Host globals recommend __mocks__ and include an AI prompt example');
 
+server.setMockedHostIdentifiers(['Application', 'ThisWorkbook', 'CurrentDb']);
+const hostMockResolvedDiagnostics = server.getDiagnostics('file:///workspace/host-dependent.bas')
+    .filter((d: any) => d.source === 'vba-mock-advisor');
+console.assert(hostMockResolvedDiagnostics.length === 0,
+    `Expected mock recommendations to clear after mock registration, got ${hostMockResolvedDiagnostics.length}`);
+console.log('[PASS] Registering __mocks__ identifiers clears host recommendations');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

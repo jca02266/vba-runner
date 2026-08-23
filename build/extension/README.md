@@ -161,7 +161,8 @@ The following diagnostic rules are reported as you type:
 | `vba-mock-advisor` | Information | Host mock recommendation | Suggests replacing `Application` / `ThisWorkbook` / `CurrentDb` and similar host globals with `__mocks__` |
 
 Host-dependent identifier recommendations include a GitHub link to the mock guide and a
-generic AI prompt for creating the smallest mock and a focused test.
+generic AI prompt for creating the smallest mock and a focused test. Diagnostics refresh
+immediately when `__mocks__` files are created, edited, or deleted.
 
 **Quick Fixes** are provided for:
 

@@ -18,6 +18,7 @@ import { autoParensEdit, getBlockEnd, needsBodyIndent, needsEndBlock } from './l
 import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
+import { collectMockIdentifiers } from './lsp/host-mock-advisor';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -139,6 +140,42 @@ export async function activate(context: vscode.ExtensionContext) {
         diagnosticCollection.set(uri, diags);
     }
 
+    async function refreshMockIdentifiers(): Promise<void> {
+        const names = new Set<string>();
+        const mockUris = new Map<string, vscode.Uri>();
+        for (const pattern of ['**/__mocks__/**/*.{bas,cls,frm,js,ts}', '**/__mocks__.*']) {
+            for (const uri of await vscode.workspace.findFiles(pattern)) mockUris.set(uri.toString(), uri);
+        }
+        for (const uri of mockUris.values()) {
+            try {
+                const openDoc = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
+                const content = openDoc?.getText()
+                    ?? new TextDecoder().decode(await vscode.workspace.fs.readFile(uri));
+                for (const name of collectMockIdentifiers(content)) names.add(name);
+                const base = path.basename(uri.fsPath).replace(/\.[^.]+$/, '');
+                if (base && !base.startsWith('__mocks__')) names.add(base.toLowerCase());
+            } catch { /* mock file may disappear during a watcher event */ }
+        }
+        lspServer.setMockedHostIdentifiers(names);
+        for (const uri of await vscode.workspace.findFiles('**/*.{bas,cls,frm}')) updateDiagnostics(uri);
+    }
+
+    // A newly created or edited __mocks__ file changes whether the host-global
+    // recommendation is applicable. Refresh all VBA diagnostics immediately.
+    const mockWatchers = [
+        vscode.workspace.createFileSystemWatcher('**/__mocks__/**/*'),
+        vscode.workspace.createFileSystemWatcher('**/__mocks__.*'),
+    ];
+    context.subscriptions.push(...mockWatchers);
+    for (const watcher of mockWatchers) {
+        context.subscriptions.push(
+            watcher.onDidCreate(() => { void refreshMockIdentifiers(); }),
+            watcher.onDidChange(() => { void refreshMockIdentifiers(); }),
+            watcher.onDidDelete(() => { void refreshMockIdentifiers(); }),
+        );
+    }
+    void refreshMockIdentifiers();
+
     // Register already-open documents
 
     for (const doc of vscode.workspace.textDocuments) {
@@ -206,6 +243,9 @@ export async function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeTextDocument((event) => {
             const doc = event.document;
+            if (doc.uri.fsPath.includes(`${path.sep}__mocks__${path.sep}`)) {
+                void refreshMockIdentifiers();
+            }
             if (doc.languageId === 'vba') {
                 documentMap.set(doc.uri.toString(), doc);
                 lspServer.didChange(doc.uri.toString(), doc.getText());

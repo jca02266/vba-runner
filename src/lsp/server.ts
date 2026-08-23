@@ -65,6 +65,7 @@ export class LSPServer {
     private signatureHelpProvider: SignatureHelpProvider;
     private debugAdapters: Map<string, DebugAdapter> = new Map();
     private testResultCache = new Map<string, Map<string, TestRunResult>>();
+    private mockedHostIdentifiers = new Set<string>();
 
     constructor() {
         this.symbolProvider = new SymbolProvider();
@@ -118,6 +119,11 @@ export class LSPServer {
      */
     hasDocument(uri: string): boolean {
         return this.documents.has(uri);
+    }
+
+    /** Update host identifiers supplied by the workspace's __mocks__ files. */
+    setMockedHostIdentifiers(names: Iterable<string>): void {
+        this.mockedHostIdentifiers = new Set([...names].map(name => name.toLowerCase()));
     }
 
     /**
@@ -700,7 +706,7 @@ export class LSPServer {
                 l10nArgs: d.l10nArgs,
                 source: `vba-lint(${d.code})`,
             }));
-            const hostMockDiags = collectHostMockDiagnostics(ast);
+            const hostMockDiags = collectHostMockDiagnostics(ast, this.mockedHostIdentifiers);
 
             return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags];
         } catch {

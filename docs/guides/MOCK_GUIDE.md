@@ -28,6 +28,8 @@ VS Code 拡張は `Application`、`ThisWorkbook`、`ActiveSheet`、`CurrentDb`�
 `DoCmd` など、Excel/Accessホストに依存する識別子を検出すると、
 `__mocks__` にモックを作成する情報診断を表示します。診断にはこのガイドへの
 リンクと、AIにモック作成を依頼する汎用プロンプト例が含まれます。
+`__mocks__` の作成・編集・削除は拡張機能が監視しており、モックが提供する
+識別子の診断はリアルタイムに更新されます。
 
 ```text
 Read the mock guide at
