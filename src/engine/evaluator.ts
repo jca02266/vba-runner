@@ -2055,24 +2055,7 @@ export class Evaluator {
     // §5.6.10 Tier 6: names resolvable via defaultBindingObject are not implicit variables.
     private precheckProc(proc: ProcedureDeclaration): void {
         try {
-            const procKey = proc.name.name.toLowerCase();
-            if (this.optionExplicitViolations.has(procKey)) {
-                const violations = this.optionExplicitViolations.get(procKey)!;
-                const stillMissing = [...violations.entries()].filter(([n]) => {
-                    if (this.env.hasVariable(n)) return false;
-                    if (this.typeLibraryNamespaces.has(n)) return false;
-                    if (this.defaultBindingObject &&
-                            this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
-                    return true;
-                });
-                if (stillMissing.length > 0) {
-                    const names = stillMissing.map(([n]) => n).join(', ');
-                    const firstLine = stillMissing[0][1] || undefined;
-                    this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
-                        `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
-                        firstLine, proc.moduleName ?? undefined);
-                }
-            }
+            this.precheckOptionExplicitProc(proc);
             const findings = this.collectPrecheckFindings(proc);
             if (findings.nextControlVariable) {
                 const mismatch = findings.nextControlVariable;
@@ -2142,6 +2125,26 @@ export class Evaluator {
             }
             throw e;
         }
+    }
+
+    /** Apply only the shared Option Explicit precheck to class and module calls. */
+    private precheckOptionExplicitProc(proc: ProcedureDeclaration): void {
+        const procKey = proc.name.name.toLowerCase();
+        if (!this.optionExplicitViolations.has(procKey)) return;
+        const violations = this.optionExplicitViolations.get(procKey)!;
+        const stillMissing = [...violations.entries()].filter(([n]) => {
+            if (this.env.hasVariable(n)) return false;
+            if (this.typeLibraryNamespaces.has(n)) return false;
+            if (this.defaultBindingObject &&
+                    this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
+            return true;
+        });
+        if (stillMissing.length === 0) return;
+        const names = stillMissing.map(([n]) => n).join(', ');
+        const firstLine = stillMissing[0][1] || undefined;
+        this.throwCompileError(VbaErrorCode.OPTION_EXPLICIT_VIOLATION,
+            `Variable not declared in '${proc.name.name}' (Option Explicit): ${names}`,
+            firstLine, proc.moduleName ?? undefined);
     }
 
     /**
@@ -5996,24 +5999,6 @@ export class Evaluator {
         // Validate argument count
         this.checkArgCount(proc, args);
 
-        // Class dispatch does not use the module-procedure precheck path.
-        // Apply only the ParamArray lifecycle restriction here so class-local
-        // helper names are not misclassified as unresolved module calls.
-        const classFindings = this.collectPrecheckFindings(proc);
-        if (classFindings.paramArrayUse) {
-            const line = classFindings.paramArrayUse.line;
-            const message = line !== undefined
-                ? `Compile error: Invalid use of ParamArray (line ${line})`
-                : 'Compile error: Invalid use of ParamArray';
-            const error: any = new Error(message);
-            error.type = 'VbaError';
-            error.number = VbaErrorCode.INVALID_PROCEDURE_CALL;
-            error.vbaLine = line;
-            error.vbaModule = proc.moduleName ?? this.currentSourceModule ?? null;
-            error.vbaStack = [...this.vbaCallStack].reverse();
-            throw error;
-        }
-
         this.bindProcedureParameters(proc, args, localEnv, undefined, expressionBinding);
 
         if (proc.isFunction || (proc.isProperty && proc.propertyType === 'get')) {
@@ -6066,6 +6051,27 @@ export class Evaluator {
         this.executingModuleName = proc.moduleName ?? previousExecutingModule;
 
         try {
+            // Class procedures use the same precheck contract as module
+            // procedures.  This includes Option Explicit violations recorded
+            // from the class body's module-level directives.
+            this.precheckOptionExplicitProc(proc);
+            // Keep the class-specific ParamArray lifecycle check.  The full
+            // module precheck also validates module-level call names, which
+            // would misclassify class-local helper procedures.
+            const classFindings = this.collectPrecheckFindings(proc);
+            if (classFindings.paramArrayUse) {
+                const line = classFindings.paramArrayUse.line;
+                const message = line !== undefined
+                    ? `Compile error: Invalid use of ParamArray (line ${line})`
+                    : 'Compile error: Invalid use of ParamArray';
+                const error: any = new Error(message);
+                error.type = 'VbaError';
+                error.number = VbaErrorCode.INVALID_PROCEDURE_CALL;
+                error.vbaLine = line;
+                error.vbaModule = proc.moduleName ?? this.currentSourceModule ?? null;
+                error.vbaStack = [...this.vbaCallStack].reverse();
+                throw error;
+            }
             this.executeStatements(proc.body, 0);
         } catch (e: any) {
             if (e && e.type === 'Exit') {

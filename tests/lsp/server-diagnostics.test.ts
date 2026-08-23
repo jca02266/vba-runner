@@ -97,6 +97,26 @@ console.assert(classAttributeDiagnostics.length === 0,
     `Expected no class attribute diagnostics, got ${classAttributeDiagnostics.map((d: any) => d.message).join('; ')}`);
 console.log('[PASS] VBE class member Attribute is accepted by diagnostics');
 
+// Test 9b: Option Explicit is retained in a VBE class and checks undeclared names
+server.didOpen('file:///workspace/OptionExplicitClass.cls', String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "OptionExplicitClass"
+Option Explicit
+Public Sub Verify()
+    missing = 1
+End Sub`);
+const classOptionDiagnostics = server.getDiagnostics('file:///workspace/OptionExplicitClass.cls');
+const classOptionLint = classOptionDiagnostics.filter((d: any) => d.code === 'VBA013');
+const classOptionUndeclared = classOptionDiagnostics.filter((d: any) => d.source === 'vba-runner'
+    && d.message.includes("Variable 'missing' not declared"));
+console.assert(classOptionLint.length === 0,
+    `Option Explicit in .cls must not emit VBA013, got ${classOptionLint.map((d: any) => d.message).join('; ')}`);
+console.assert(classOptionUndeclared.length === 1,
+    `Option Explicit in .cls must report missing once, got ${classOptionUndeclared.length}`);
+console.log('[PASS] VBE class Option Explicit checks undeclared names');
+
 // Test 10: Cross-module member qualifiers are known to Option Explicit
 server.loadWorkspaceFile('file:///workspace/ExcelQueueQualifiedProperty.cls', String.raw`VERSION 1.0 CLASS
 Attribute VB_Name = "ExcelQueueQualifiedProperty"

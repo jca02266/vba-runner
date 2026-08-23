@@ -177,6 +177,25 @@ End Function
     console.log('[PASS] parseAsClass with Option Explicit');
 }
 
+// Test 7b: Option Explicit is enforced for an undeclared class member.
+{
+    const ev = evalWithClass(`
+Option Explicit
+Sub Bad()
+    missing = 1
+End Sub
+`, 'ExplicitClass', `
+Function Test7b() As Long
+    Dim obj As New ExplicitClass
+    obj.Bad
+    Test7b = 1
+End Function
+`);
+    assert.throws(() => ev.callProcedure('Test7b', []), /not declared/,
+        'parseAsClass Option Explicit rejects undeclared names');
+    console.log('[PASS] parseAsClass Option Explicit rejects undeclared names');
+}
+
 // Test 8: Explicit Class...End Class syntax still works (no regression)
 {
     const ev = evalVBASingle(`
@@ -197,6 +216,27 @@ End Function
 `);
     assert.strictEqual(ev.callProcedure('Test8', []), 12, 'Explicit Class...End Class unaffected');
     console.log('[PASS] Explicit Class...End Class (no regression)');
+}
+
+// Test 8b: Explicit Class syntax also retains its own Option Explicit scope.
+{
+    const ev = evalVBASingle(`
+Class ExplicitRectangle
+    Option Explicit
+    Sub Bad()
+        missing = 1
+    End Sub
+End Class
+
+Function Test8b() As Long
+    Dim r As New ExplicitRectangle
+    r.Bad
+    Test8b = 1
+End Function
+`);
+    assert.throws(() => ev.callProcedure('Test8b', []), /not declared/,
+        'explicit Class Option Explicit rejects undeclared names');
+    console.log('[PASS] Explicit Class Option Explicit rejects undeclared names');
 }
 
 // Test 9: B-1 — クラス内 Private Const がメソッドから参照できる

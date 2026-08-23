@@ -120,11 +120,10 @@ export function checkOptionExplicit(
 ): OptionExplicitResult {
     const violatedProcedures = new Map<string, Map<string, number>>();
 
-    // Determine if Option Explicit is active
-    const hasOptionExplicit = program.body.some(s => s.type === 'OptionExplicitStatement');
-    if (!hasOptionExplicit) {
-        return { violatedProcedures };
-    }
+    // Option Explicit belongs to each module.  A parsed class is represented
+    // as one ClassDeclaration inside Program.body, so its directive lives in
+    // ClassDeclaration.body rather than alongside the class node.
+    const hasModuleOptionExplicit = program.body.some(s => s.type === 'OptionExplicitStatement');
 
     // --- Pass 1: collect module-level declared names ---
     const moduleLevelNames = new Set<string>();
@@ -136,7 +135,7 @@ export function checkOptionExplicit(
 
     // --- Pass 2: check each procedure ---
     for (const stmt of program.body) {
-        if (stmt.type === 'ProcedureDeclaration') {
+        if (stmt.type === 'ProcedureDeclaration' && hasModuleOptionExplicit) {
             const proc = stmt as ProcedureDeclaration;
             const undeclared = checkProcedure(proc, moduleLevelNames, program.diagnostics, knownModuleNames);
             if (undeclared) {
@@ -144,12 +143,20 @@ export function checkOptionExplicit(
             }
         } else if (stmt.type === 'ClassDeclaration') {
             const cls = stmt as ClassDeclaration;
+            const hasClassOptionExplicit = cls.body.some(s => s.type === 'OptionExplicitStatement');
+            if (!hasClassOptionExplicit) continue;
             const classModuleNames = new Set<string>(moduleLevelNames);
             // Add class fields to the class-level name set
             for (const field of cls.fields) {
                 for (const decl of field.declarations) {
                     classModuleNames.add(decl.name.name.toLowerCase());
                 }
+            }
+            // Class members are module-level names inside the class.  This
+            // includes Property Get/Let/Set and Functions referenced without
+            // an explicit Me. qualifier.
+            for (const member of cls.procedures) {
+                classModuleNames.add(member.name.name.toLowerCase());
             }
             for (const proc of cls.procedures) {
                 const undeclared = checkProcedure(proc, classModuleNames, program.diagnostics, knownModuleNames);

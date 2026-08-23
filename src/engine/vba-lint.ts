@@ -690,16 +690,30 @@ function recurseBlock(stmt: Statement, visitor: (stmts: Statement[]) => void): v
 
 /** VBA013: Option Explicit なし → 変数名のタイポが実行時まで検出されない */
 function checkOptionExplicit(program: Program, out: LintDiagnostic[]): void {
-    const hasExplicit = program.body.some(
+    const moduleHasExplicit = program.body.some(
         (s): s is OptionExplicitStatement => s.type === 'OptionExplicitStatement'
     );
-    if (!hasExplicit) {
+    const hasModuleBody = program.body.some((s) => s.type !== 'ClassDeclaration');
+    if (hasModuleBody && !moduleHasExplicit) {
         out.push({
             code: 'VBA013',
             severity: 1,
             message: 'Option Explicit is missing. Typos in variable names will not be detected until runtime',
             l10nKey: 'Option Explicit is missing. Typos in variable names will not be detected until runtime', l10nArgs: [],
             line: 0, column: 0, endLine: 0, endColumn: 0,
+        });
+    }
+    for (const stmt of program.body) {
+        if (stmt.type !== 'ClassDeclaration') continue;
+        const cls = stmt as ClassDeclaration;
+        if (cls.body.some((s) => s.type === 'OptionExplicitStatement')) continue;
+        out.push({
+            code: 'VBA013',
+            severity: 1,
+            message: 'Option Explicit is missing. Typos in variable names will not be detected until runtime',
+            l10nKey: 'Option Explicit is missing. Typos in variable names will not be detected until runtime', l10nArgs: [],
+            line: cls.loc?.start?.line ?? 0, column: cls.loc?.start?.column ?? 0,
+            endLine: cls.loc?.start?.line ?? 0, endColumn: cls.loc?.start?.column ?? 0,
         });
     }
 }
