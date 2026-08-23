@@ -2965,3 +2965,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-array-return-provenance
+  - afterEvaluation: EV-00927
+    audit: "824 evaluations, 0 active claims; 要素型メタデータなしのopaque配列をtyped Long()とVariantへ渡す1次元・2次元行列を独立実行し、Error 13とshape保持が一致した"
+    decision: "RC-00015のmock/hostメタデータ欠落境界はRunnerの安全側契約どおりだった。実COM SAFEARRAYのVARTYPE adapter責務は別問題として保持し、次は低収束のParser/Lexer境界をcoverage-guidedに選ぶ"
+    action: create-candidate
+    nextArea: Parser・Lexer
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-14-current
