@@ -59,9 +59,13 @@ function diagnosticFor(id: Identifier, kind: string): HostMockDiagnostic {
         message: `${kind} identifier '${name}' depends on an Excel/Access host. `
             + `Create a mock in __mocks__ before running with vba-runner. `
             + `See ${MOCK_GUIDE_URL}. `
-            + `AI prompt example: "Read the mock guide at ${MOCK_GUIDE_URL}, `
-            + `create the smallest __mocks__ VBA/JS stub for '${name}', `
-            + `preserve the member calls used by this code, and add a focused test."`,
+            + `This diagnostic alone does not contain the complete member list; `
+            + `include the full current VBA source when giving it to an AI. `
+            + `AI prompt example: "Read the mock guide at ${MOCK_GUIDE_URL}. `
+            + `Inspect the complete VBA source included with this diagnostic, `
+            + `enumerate every member used on '${name}', and create the smallest `
+            + `__mocks__ VBA/JS stub that preserves those calls. Do not guess `
+            + `members from this diagnostic alone; add a focused test."`,
     };
 }
 
@@ -167,4 +171,3 @@ export function collectHostMockDiagnostics(program: Program): HostMockDiagnostic
     for (const stmt of program.body) visitStatement(stmt, declared, out);
     return out;
 }
-

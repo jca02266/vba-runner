@@ -139,8 +139,10 @@ console.assert(hostMockDiagnostics.length === 3,
     `Expected 3 host mock recommendations, got ${hostMockDiagnostics.length}`);
 console.assert(hostMockDiagnostics.every((d: any) => d.message.includes('__mocks__')
     && d.message.includes('docs/guides/MOCK_GUIDE.md')
-    && d.message.includes('AI prompt example')),
-    'Host recommendations should include the mock guide and AI prompt example');
+    && d.message.includes('AI prompt example')
+    && d.message.includes('full current VBA source')
+    && d.message.includes('Do not guess')),
+    'Host recommendations should require source context and include an AI prompt example');
 console.log('[PASS] Host globals recommend __mocks__ and include an AI prompt example');
 
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');
