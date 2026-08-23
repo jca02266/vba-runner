@@ -32,7 +32,7 @@
  * ## 各形式の処理
  *
  * `.js` / `.ts`: createRequire で読み込み、エクスポートを evaluator に適用:
- *   - 通常の関数エクスポート → `setBuiltinOverride` (env を上書き)
+ *   - 関数・オブジェクトのエクスポート → `setBuiltinOverride` (env を上書き)
  *   - `__addCreateObject__` キー → `registerComObject` (CreateObject ファクトリ登録)
  *
  * `.bas` / `.cls`: VBA として評価:
@@ -189,7 +189,7 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string): void 
                     evaluator.registerComObject(wrappedFactory);
                 }
             }
-        } else if (typeof value === 'function') {
+        } else if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {
             evaluator.setBuiltinOverride(key, value);
         }
     }
