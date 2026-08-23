@@ -53,6 +53,7 @@ export function collectMockIdentifiers(content: string): Set<string> {
     for (const match of content.matchAll(/\b(?:module\.)?exports\.([A-Za-z_][A-Za-z0-9_]*)\s*=/g)) add(match[1]);
     for (const match of content.matchAll(/\b(?:module\.)?exports\s*\[\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\]\s*=/g)) add(match[2]);
     for (const name of collectCommonJsObjectExportNames(content)) add(name);
+    for (const name of collectFactoryReturnNames(content)) add(name);
     return names;
 }
 
@@ -69,6 +70,20 @@ function collectCommonJsObjectExportNames(content: string): Set<string> {
     const names = new Set<string>();
     const assignment = /\bmodule\.exports\s*=\s*\{/g;
     for (const match of content.matchAll(assignment)) {
+        const openBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
+        scanObjectLiteralKeys(content, openBrace, names);
+    }
+    return names;
+}
+
+/**
+ * Collect keys from a synchronous CommonJS mock factory's `return { ... }`.
+ * This is lexical discovery only; the factory is never executed by LSP.
+ */
+function collectFactoryReturnNames(content: string): Set<string> {
+    const names = new Set<string>();
+    const returns = /\breturn\s*\{/g;
+    for (const match of content.matchAll(returns)) {
         const openBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
         scanObjectLiteralKeys(content, openBrace, names);
     }

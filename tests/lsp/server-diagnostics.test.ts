@@ -175,6 +175,16 @@ console.assert(applicationMockNames.has('application'),
 for (const name of ['thisworkbook', 'worksheets', 'range', 'cells', 'rows']) {
     console.assert(applicationMockNames.has(name), `CommonJS mock should expose ${name}`);
 }
+const factoryMockNames = collectMockIdentifiers(String.raw`module.exports = ({ excel }) => {
+    return {
+        Application: excel.Application,
+        Worksheets: excel.Application.Worksheets,
+        ThisWorkbook: { Path: '/tmp' },
+    };
+};`);
+for (const name of ['application', 'worksheets', 'thisworkbook']) {
+    console.assert(factoryMockNames.has(name), `Factory mock should expose ${name}`);
+}
 for (const nested of ['pathseparator', 'displayalerts', 'pattern', 'path']) {
     console.assert(!applicationMockNames.has(nested), `Nested member ${nested} must not become a host mock`);
 }
