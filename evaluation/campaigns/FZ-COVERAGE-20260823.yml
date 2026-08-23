@@ -42,3 +42,17 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/call-arity-matrix.test.ts
+  - id: FZ-COVERAGE-20260823-004
+    title: Module Property Get return-index boundary
+    status: queued
+    priority: 1
+    focus: Module修飾Property Getの裸参照と戻り値添字のアリティ境界
+    priorCauseKey: member-call-arity-contract-not-centralized
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts
+      - tests/spec/call-arity-matrix.test.ts
+      - evaluation/root-causes/RC-00071.md
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts

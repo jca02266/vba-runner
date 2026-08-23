@@ -2885,3 +2885,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-arity-property-boundary
+  - afterEvaluation: EV-00921-next
+    audit: "818 evaluations, 0 active claims; EV-00921でWith・CallByNameのアリティ差異がないことを確認し、RC-00071の未評価境界を更新した"
+    decision: "RC-00071に残るModule修飾Property Getの裸参照・戻り値添字を、With/CallByNameの確認結果と分離して評価する"
+    action: create-candidate
+    nextArea: 引数・ByRef・Property
+    nextEvaluation: null
+    nextCandidate: FZ-COVERAGE-20260823-004
+    coverageSnapshot: COV-2026-08-23-module-property-get
