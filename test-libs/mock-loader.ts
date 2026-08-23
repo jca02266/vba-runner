@@ -31,7 +31,9 @@
  *
  * ## 各形式の処理
  *
- * `.js` / `.ts`: createRequire で読み込み、エクスポートを evaluator に適用:
+ * `.js` / `.cjs`: CommonJS モックとして読み込み、エクスポートを evaluator に適用:
+ *   - 親 package.json が `"type": "module"` でも `.js` はモック契約どおり CommonJS として扱う
+ * `.ts`: createRequire で読み込み、エクスポートを evaluator に適用:
  *   - 関数・オブジェクトのエクスポート → `setBuiltinOverride` (env を上書き)
  *   - `__addCreateObject__` キー → `registerComObject` (CreateObject ファクトリ登録)
  *
@@ -84,14 +86,14 @@ export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
             const fullPath = path.join(mocksDir, entry);
             if (!fs.statSync(fullPath).isFile()) continue;
             const ext = path.extname(entry).toLowerCase();
-            if (ext === '.ts' || ext === '.js' || ext === '.bas' || ext === '.cls') {
+            if (ext === '.ts' || ext === '.js' || ext === '.cjs' || ext === '.bas' || ext === '.cls') {
                 entries.push({ fullPath, sortKey: entry, ext });
             }
         }
     }
 
     // --- 収集: __mocks__.<ext> 単一ファイル ---
-    for (const ext of ['.ts', '.js', '.bas']) {
+    for (const ext of ['.ts', '.js', '.cjs', '.bas']) {
         const candidate = path.join(dir, `__mocks__${ext}`);
         if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
             entries.push({ fullPath: candidate, sortKey: `__mocks__${ext}`, ext });
@@ -109,7 +111,7 @@ export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
     const vbaMockModules: MockModule[] = [];
 
     for (const entry of entries) {
-        if (entry.ext === '.js' || entry.ext === '.ts') {
+        if (entry.ext === '.js' || entry.ext === '.cjs' || entry.ext === '.ts') {
             loadJsMock(entry.fullPath, evaluator);
         } else {
             const mod = loadVbaMock(entry.fullPath, evaluator);
@@ -123,11 +125,32 @@ export function loadMocks(dir: string, evaluator: Evaluator): MockModule[] {
 /** JS / TS モックを require() してエクスポートを evaluator に適用する */
 function loadJsMock(file: string, evaluator: Evaluator): void {
     try {
-        const mod = _require(path.resolve(file));
+        const mod = path.extname(file).toLowerCase() === '.ts'
+            ? _require(path.resolve(file))
+            : loadCommonJsMock(file);
         applyJsMockExports(mod, evaluator, file);
     } catch (e: any) {
         console.warn(`[mock-loader] Failed to load JS/TS mock "${file}": ${e.message}`);
     }
+}
+
+/**
+ * Evaluate JavaScript mocks with CommonJS semantics regardless of the nearest
+ * package.json `type`.  Mock files have historically used `module.exports`,
+ * so letting Node reinterpret Application.js as ESM makes a documented mock
+ * silently fail inside the VS Code extension.
+ */
+function loadCommonJsMock(file: string): any {
+    const resolved = path.resolve(file);
+    const source = fs.readFileSync(resolved, 'utf8').replace(/^#!.*\r?\n/, '');
+    const localRequire = createRequire(resolved);
+    const mockModule: { exports: any } = { exports: {} };
+    const execute = new Function(
+        'exports', 'require', 'module', '__filename', '__dirname',
+        `${source}\n//# sourceURL=${resolved}`,
+    );
+    execute(mockModule.exports, localRequire, mockModule, resolved, path.dirname(resolved));
+    return mockModule.exports;
 }
 
 /** VBA モック (.bas / .cls) を評価し、クラスを externalObjectFactories へ昇格する */

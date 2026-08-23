@@ -167,7 +167,7 @@ export async function activate(context: vscode.ExtensionContext) {
         }
         for (const uri of mockUris.values()) {
             const extension = path.extname(uri.fsPath).toLowerCase();
-            if (!['.bas', '.cls', '.frm', '.js', '.ts'].includes(extension)) continue;
+            if (!['.bas', '.cls', '.frm', '.js', '.cjs', '.ts'].includes(extension)) continue;
             try {
                 const openDoc = vscode.workspace.textDocuments.find(doc => doc.uri.toString() === uri.toString());
                 const content = openDoc?.getText()

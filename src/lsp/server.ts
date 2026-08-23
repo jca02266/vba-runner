@@ -131,7 +131,7 @@ export class LSPServer {
         const names = new Set<string>();
         const addFile = (file: string): void => {
             const extension = path.extname(file).toLowerCase();
-            if (!['.bas', '.cls', '.frm', '.js', '.ts'].includes(extension)) return;
+            if (!['.bas', '.cls', '.frm', '.js', '.cjs', '.ts'].includes(extension)) return;
             const base = path.basename(file, extension);
             if (base && !base.startsWith('__mocks__')) names.add(base.toLowerCase());
             try {
@@ -147,7 +147,7 @@ export class LSPServer {
                     if (entry.isFile()) addFile(path.join(mocksDirectory, entry.name));
                 }
             }
-            for (const extension of ['.bas', '.js', '.ts']) {
+            for (const extension of ['.bas', '.js', '.cjs', '.ts']) {
                 const file = path.join(directory, `__mocks__${extension}`);
                 if (fs.existsSync(file) && fs.statSync(file).isFile()) addFile(file);
             }
