@@ -2837,3 +2837,11 @@ checkpoints:
     nextEvaluation: EV-00914
     nextCandidate: FZ-COVERAGE-20260810-390
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00918
+    audit: "815 evaluations, 0 active claims; EV-00918をfixedへ遷移し、RC-00096の真因対処と回帰テストを完了した。queued候補0件、queued remediation0件"
+    decision: "FZ-LSP-20260822-002の二次.cls入口はEV-00917でfixed済みであり、追加のqueued候補・remediationはない。次の探索では低収束領域または新しいカバレッジ差分を根拠に候補を選ぶ"
+    action: checkpoint
+    nextArea: null
+    nextEvaluation: null
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-23-lsp-class-option-explicit
