@@ -1,0 +1,16 @@
+id: FZ-COVERAGE-20260823
+method: coverage-guided-boundary
+items:
+  - id: FZ-COVERAGE-20260823-001
+    title: Like pattern grammar boundary
+    status: queued
+    priority: 1
+    focus: Like演算子の空文字クラスと不正パターン文法
+    priorCauseKey: vba-like-locale-range-and-pattern-contract-unmodeled
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/like-boundary.test.ts
+      - evaluation/root-causes/RC-00032.md
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/like-boundary.test.ts

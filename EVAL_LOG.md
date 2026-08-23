@@ -819,6 +819,7 @@
 | EV-00916 | FZ-LSP-20260822 | fixed | 1 | VBEエクスポート済み.clsのメンバーAttributeとLSP診断経路 |
 | EV-00917 | FZ-LSP-20260822 | fixed | 1 | LSPのOption Explicitにおける別モジュール修飾プロパティ参照 |
 | EV-00918 | FZ-LSP-20260822 | fixed | 1 | .cls本体のOption ExplicitとVBE属性を組み合わせた診断契約 |
+| EV-00919 | FZ-COVERAGE-20260823 | verified-no-bug |  | Like演算子の空文字クラスと不正パターン文法 |
 
 ## 状態集計
 
@@ -827,7 +828,7 @@
 | fixed | 365 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 443 |
+| verified-no-bug | 444 |
 
 横展開未解決経路: 588、実Excel待ち評価: 0
 
