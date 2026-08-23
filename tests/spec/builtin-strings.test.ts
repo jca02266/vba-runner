@@ -309,6 +309,20 @@ function ev(expr: string): any {
     assert.throwsMatch(() => ev('Chr(-1)'), /error '5'/, 'Chr(-1) → Error 5');
     assert.strictEqual(ev('ChrW(256)'), 'Ā', 'ChrW(256) = "Ā"');
     assert.strictEqual(ev('ChrW(12354)'), 'あ', 'ChrW(12354) = "あ"');
+    for (const n of [-32769, -32768, -32767, -1, 0, 65535, 65536]) {
+        const expectedError = n < -32767 || n > 65535;
+        for (const fn of ['ChrW', 'ChrW$']) {
+            const expression = `${fn}(${n})`;
+            if (expectedError) {
+                assert.throwsMatch(() => ev(expression), /error '5'/,
+                    `${expression} → Error 5`);
+            } else {
+                const signedCode = n > 32767 ? n - 65536 : n;
+                assert.strictEqual(ev(`AscW(${expression})`), signedCode,
+                    `AscW(${expression}) preserves the signed code`);
+            }
+        }
+    }
     assert.throwsMatch(() => ev('ChrW(65536)'), /error '5'/, 'ChrW(65536) → Error 5');
     assert.throwsMatch(() => ev('Chr(65536)'), /error '5'/, 'Chr(65536) → Error 5');
     const extended = [0, 1, 254, 255, 256, 257, 258, 321, 511, 512, 1023, 1024, 32767, 32768, 65535];

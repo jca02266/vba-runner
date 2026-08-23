@@ -892,7 +892,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     const chrwFunc = (n: any) => {
         if (n === vbaNull) return vbaNull;
         const code = n;
-        if (code < -32768 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        // MS-VBAL permits -32767..65535; -32768 is outside the domain.
+        if (code < -32767 || code > 65535) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         return String.fromCharCode(code < 0 ? code + 65536 : code);
     };
     ctx.reg('chrw', chrwFunc, [{ name: 'CharCode', coerce: 'long' }], ['$']);
