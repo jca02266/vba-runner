@@ -17,6 +17,12 @@ The root-cause method is defined in
 `docs/internals/ROOT_CAUSE_ANALYSIS.md`. Read it before delegating cause
 analysis; do not duplicate its taxonomy here.
 
+The current evaluation focus and convergence policy are recorded in the
+project-owned command at `.claude/commands/evaluate-vba-runner.md` under
+「現在の評価方針」. Follow that section for the observed bug trend,
+boundary-matrix strategy, horizontal expansion, and prioritization; do not
+maintain a second copy here.
+
 1. Read `.claude/commands/evaluate-vba-runner.md` and
    `docs/internals/EVALUATION_STORAGE.md` in full. Run the storage audit and
    obtain one compact candidate context before selecting a theme; do not load
