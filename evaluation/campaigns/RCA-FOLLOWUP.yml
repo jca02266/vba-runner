@@ -672,3 +672,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-061
+    title: MIRR array lower-bound invariance matrix
+    status: queued
+    priority: 1
+    focus: MIRRが同じ順序のDouble配列を下限と固定長・可変長に依存せず同値評価するか照合する
+    priorCauseKey: financial-cashflow-array-shape-contract
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

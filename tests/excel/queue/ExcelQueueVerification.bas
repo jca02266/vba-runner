@@ -87,6 +87,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceNpvZeroCrossing
     VerifyMirrReinvestNpvZeroCrossing
     VerifyMirrExtremeRateClassification
+    VerifyMirrArrayLowerBoundMatrix
     VerifyNPerShapeBoundary
     VerifyNPerNonFiniteBoundary
     VerifySydDomainBoundaryMatrix
@@ -675,6 +676,49 @@ Private Sub EmitMirrExtremeRateCase(ByVal label As String, _
     EmitResult "XL-245 CASE=" & label & " ERR=" & CStr(errNo) & _
         " VALUE=[" & CStr(value) & "] TYPE=" & TypeName(value)
     On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrArrayLowerBoundMatrix()
+    Dim fixedNeg(-2 To 0) As Double, fixedZero(0 To 2) As Double
+    Dim fixedOne(1 To 3) As Double, fixedFive(5 To 7) As Double
+    Dim dynamicNeg() As Double, dynamicZero() As Double
+    Dim dynamicOne() As Double, dynamicFive() As Double
+    Dim value As Variant, errNo As Long
+    ReDim dynamicNeg(-2 To 0): ReDim dynamicZero(0 To 2)
+    ReDim dynamicOne(1 To 3): ReDim dynamicFive(5 To 7)
+    fixedNeg(-2) = -100: fixedNeg(-1) = 50: fixedNeg(0) = 100
+    fixedZero(0) = -100: fixedZero(1) = 50: fixedZero(2) = 100
+    fixedOne(1) = -100: fixedOne(2) = 50: fixedOne(3) = 100
+    fixedFive(5) = -100: fixedFive(6) = 50: fixedFive(7) = 100
+    dynamicNeg(-2) = -100: dynamicNeg(-1) = 50: dynamicNeg(0) = 100
+    dynamicZero(0) = -100: dynamicZero(1) = 50: dynamicZero(2) = 100
+    dynamicOne(1) = -100: dynamicOne(2) = 50: dynamicOne(3) = 100
+    dynamicFive(5) = -100: dynamicFive(6) = 50: dynamicFive(7) = 100
+    On Error Resume Next
+    Err.Clear: value = Empty: value = MIRR(fixedNeg, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "FIXED_NEG2", LBound(fixedNeg), UBound(fixedNeg), errNo, value
+    Err.Clear: value = Empty: value = MIRR(fixedZero, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "FIXED_0", LBound(fixedZero), UBound(fixedZero), errNo, value
+    Err.Clear: value = Empty: value = MIRR(fixedOne, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "FIXED_1", LBound(fixedOne), UBound(fixedOne), errNo, value
+    Err.Clear: value = Empty: value = MIRR(fixedFive, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "FIXED_5", LBound(fixedFive), UBound(fixedFive), errNo, value
+    Err.Clear: value = Empty: value = MIRR(dynamicNeg, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "DYNAMIC_NEG2", LBound(dynamicNeg), UBound(dynamicNeg), errNo, value
+    Err.Clear: value = Empty: value = MIRR(dynamicZero, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "DYNAMIC_0", LBound(dynamicZero), UBound(dynamicZero), errNo, value
+    Err.Clear: value = Empty: value = MIRR(dynamicOne, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "DYNAMIC_1", LBound(dynamicOne), UBound(dynamicOne), errNo, value
+    Err.Clear: value = Empty: value = MIRR(dynamicFive, 0.1, 0.12): errNo = Err.Number
+    EmitMirrArrayBoundResult "DYNAMIC_5", LBound(dynamicFive), UBound(dynamicFive), errNo, value
+    On Error GoTo 0
+End Sub
+
+Private Sub EmitMirrArrayBoundResult(ByVal label As String, ByVal lower As Long, _
+        ByVal upper As Long, ByVal errNo As Long, ByVal value As Variant)
+    EmitResult "XL-247 CASE=" & label & " LB=" & CStr(lower) & _
+        " UB=" & CStr(upper) & " ERR=" & CStr(errNo) & _
+        " VALUE=[" & CStr(value) & "] TYPE=" & TypeName(value)
 End Sub
 
 Private Sub VerifyNPerShapeBoundary()

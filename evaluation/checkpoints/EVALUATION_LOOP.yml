@@ -3149,3 +3149,11 @@ checkpoints:
     nextEvaluation: EV-00944
     nextCandidate: RCA-FOLLOWUP-060
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00944-array-type-probe
+    audit: "841 evaluations, 0 active claims; EV-00944は分離コンパイルプローブ待ちで、通常キューのMIRR実機バッチには1件以上追加できる"
+    decision: "通常キューを止めずに確認できる配列下限-2・0・1・5と固定長・可変長の不変性を1マトリクスで評価する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00945
+    nextCandidate: RCA-FOLLOWUP-061
+    coverageSnapshot: COV-2026-08-24-financial-rate

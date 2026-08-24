@@ -845,6 +845,7 @@
 | EV-00942 | RCA-FOLLOWUP | needs-excel |  | MIRRのReinvestRate=-1未満で正キャッシュフローNPVがゼロを横切る境界の値とError分類を照合する |
 | EV-00943 | RCA-FOLLOWUP | needs-excel |  | MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する |
 | EV-00944 | RCA-FOLLOWUP | needs-excel-probe |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
+| EV-00945 | RCA-FOLLOWUP | needs-excel |  | MIRRが同じ順序のDouble配列を下限と固定長・可変長に依存せず同値評価するか照合する |
 
 ## 状態集計
 
@@ -853,12 +854,12 @@
 | bug-found | 6 |
 | fixed | 371 |
 | known-limit | 5 |
-| needs-excel | 3 |
+| needs-excel | 4 |
 | needs-excel-probe | 1 |
 | retired | 2 |
 | verified-no-bug | 453 |
 
-横展開未解決経路: 595、実Excel待ち評価: 4
+横展開未解決経路: 595、実Excel待ち評価: 5
 
 ## 次の候補
 
