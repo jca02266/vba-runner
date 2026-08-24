@@ -3117,3 +3117,11 @@ checkpoints:
     nextEvaluation: EV-00940
     nextCandidate: null
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00940-finance-zero-crossing
+    audit: "837 evaluations, 0 active claims; queued候補と真因対処タスクは0件で、RC-00011にFinanceRate<-1の許容境界が未解決として残る"
+    decision: "既存XL-220が挟んでいたFinanceRate=-1.5の負値NPVゼロ交差を独立評価し、金利の固定範囲ではなくキャッシュフロー依存の成立条件かをExcelで確定する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00941
+    nextCandidate: RCA-FOLLOWUP-057
+    coverageSnapshot: COV-2026-08-24-financial-rate

@@ -841,6 +841,7 @@
 | EV-00938 | RCA-FOLLOWUP | bug-found | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
 | EV-00939 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
 | EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
+| EV-00941 | RCA-FOLLOWUP | needs-excel | 1 | MIRRのFinanceRate=-1未満で負値NPVがゼロを横切る境界の値とError分類を照合する |
 
 ## 状態集計
 
@@ -849,10 +850,11 @@
 | bug-found | 6 |
 | fixed | 371 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 453 |
 
-横展開未解決経路: 595、実Excel待ち評価: 0
+横展開未解決経路: 596、実Excel待ち評価: 1
 
 ## 次の候補
 

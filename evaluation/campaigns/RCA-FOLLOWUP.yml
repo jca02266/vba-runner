@@ -614,3 +614,17 @@ items:
       - src/engine/builtins.ts
       - src/engine/extended-precision.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-057
+    title: MIRR FinanceRate NPV zero crossing
+    status: queued
+    priority: 1
+    focus: MIRRのFinanceRate=-1未満で負値NPVがゼロを横切る境界の値とError分類を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
