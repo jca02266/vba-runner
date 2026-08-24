@@ -832,6 +832,7 @@
 | EV-00929 | FZ-COVERAGE-20260823 | fixed | 1 | 空のFOREIGN-NAMEとforeign-identifier最小長のLexer境界 |
 | EV-00930 | FZ-COVERAGE-20260823 | verified-no-bug |  | NPerの極端な利率・FV・符号反転における定義域とOverflow分類 |
 | EV-00931 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | SYDのLife・Period・Cost・Salvage境界における領域エラーとOverflow分類 |
+| EV-00932 | RCA-FOLLOWUP | needs-excel | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
 
 ## 状態集計
 
@@ -839,10 +840,11 @@
 |---|---:|
 | fixed | 370 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 451 |
 
-横展開未解決経路: 588、実Excel待ち評価: 0
+横展開未解決経路: 589、実Excel待ち評価: 1
 
 ## 次の候補
 

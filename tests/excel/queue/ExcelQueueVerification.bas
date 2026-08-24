@@ -87,6 +87,7 @@ Public Sub RunExcelQueueVerification()
     VerifyNPerShapeBoundary
     VerifyNPerNonFiniteBoundary
     VerifySydDomainBoundaryMatrix
+    VerifyMirrReinvestShapeMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -143,6 +144,25 @@ Private Sub VerifySydDomainBoundaryMatrix()
     EmitValueAndType "XL-234 NEG-COST", result, errNo
     Err.Clear: result = SYD(100, 100, 5, 5): errNo = Err.Number
     EmitValueAndType "XL-234 EQUAL-END", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrReinvestShapeMatrix()
+    Dim flows(0 To 2) As Double, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    On Error Resume Next
+    Err.Clear: result = MIRR(flows, 0.1, -1.1): errNo = Err.Number
+    EmitValueAndType "XL-235 THREE-LOW", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -1): errNo = Err.Number
+    EmitValueAndType "XL-235 THREE-MINUS-ONE", result, errNo
+    Err.Clear: result = MIRR(flows, 0.1, -0.9999999999): errNo = Err.Number
+    EmitValueAndType "XL-235 THREE-NEAR", result, errNo
+    flows(1) = 0
+    Err.Clear: result = MIRR(flows, 0.1, -1): errNo = Err.Number
+    EmitValueAndType "XL-235 ZERO-MIDDLE", result, errNo
+    flows(1) = -50
+    Err.Clear: result = MIRR(flows, 0.1, -1): errNo = Err.Number
+    EmitValueAndType "XL-235 NEG-MIDDLE", result, errNo
     On Error GoTo 0
 End Sub
 

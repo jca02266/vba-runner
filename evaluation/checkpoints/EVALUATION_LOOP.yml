@@ -3029,3 +3029,11 @@ checkpoints:
     nextEvaluation: EV-00931
     nextCandidate: null
     coverageSnapshot: COV-2026-08-23-financial-boundary
+  - afterEvaluation: EV-00932
+    audit: "829 evaluations, 0 active claims; RC-00011のMIRR ReinvestRate境界を5ケースのXL-235行列へ追加し、ソースハッシュ検証済みでneeds-excelへ移行した"
+    decision: "ReinvestRate=-1、-1未満、境界直上とキャッシュフロー形状の差異はExcel結果なしに確定できないため、EV-00932を実機結果待ちとして保持する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00932
+    nextCandidate: RCA-FOLLOWUP-048
+    coverageSnapshot: COV-2026-08-24-financial-rate

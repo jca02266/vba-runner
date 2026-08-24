@@ -490,3 +490,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-048
+    title: MIRR ReinvestRate shape boundary
+    status: queued
+    priority: 1
+    focus: MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
