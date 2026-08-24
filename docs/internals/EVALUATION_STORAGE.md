@@ -184,6 +184,9 @@ coverage JSONは `coverage-v8/` や `coverage-chunks/` にある既存出力を�
 - 追加の経路、横展開、真因対処の確認は元EVへ追記せず、新しい候補とEVに分ける。
 - 新規BUGには`findingRecordVersion: 2`を付け、横展開、真因分析、回帰テストを
   独立した項目として記録する。発見時の一時入力と、修正後に残す回帰テストを区別する。
+- 同じ不具合を複数のEVで再現した場合はBUGを増やさない。BUGの`evaluation`には最初に
+  発見したEVを保持し、`discoveredBy`へ最初のEVと追加確認したEVを列挙する。各EVの
+  `findings`は同じBUGを参照し、`validate`が双方向の参照を検証する。
 - BUGを`fixed`にするには、回帰テストが成功していなければならない。真因が仮説のままなら
   真因対処済みとは扱わない。
 - BUGを`retired`にする場合は、`retiredReason`を必須とし、必要に応じて

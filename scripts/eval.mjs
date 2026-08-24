@@ -59,6 +59,18 @@ function readFindings() {
 }
 
 function validateFindingRecordFormat(file, source, data) {
+  if (data.discoveredBy !== undefined) {
+    if (!Array.isArray(data.discoveredBy) ||
+        data.discoveredBy.some((evaluationId) => typeof evaluationId !== 'string')) {
+      throw new Error(`${file}: discoveredBy must be an array of evaluation IDs`);
+    }
+    if (!data.discoveredBy.includes(data.evaluation)) {
+      throw new Error(`${file}: discoveredBy must include primary evaluation ${data.evaluation}`);
+    }
+    if (new Set(data.discoveredBy).size !== data.discoveredBy.length) {
+      throw new Error(`${file}: discoveredBy must not contain duplicate evaluation IDs`);
+    }
+  }
   if (['fixed', 'retired'].includes(data.status) && data.rootFixStatus === 'planned' &&
       (data.followUpDisposition === 'not-required' ||
        !Array.isArray(data.followUpCandidates) || data.followUpCandidates.length === 0)) {
@@ -549,8 +561,12 @@ function validate(records = readRecords()) {
     for (const findingId of data.findings ?? []) {
       const finding = findings.get(findingId);
       if (!finding) throw new Error(`${file}: missing finding ${findingId}`);
-      if (finding.data.evaluation !== data.id) {
-        throw new Error(`${file}: finding ${findingId} points to ${finding.data.evaluation}`);
+      const linkedEvaluations = new Set([
+        finding.data.evaluation,
+        ...(finding.data.discoveredBy ?? []),
+      ]);
+      if (!linkedEvaluations.has(data.id)) {
+        throw new Error(`${file}: finding ${findingId} does not reference ${data.id}`);
       }
     }
     const audit = data.horizontalAudit;
@@ -620,6 +636,19 @@ function validate(records = readRecords()) {
     }
   }
   const recordsById = new Map(records.map(({ data }) => [data.id, data]));
+  for (const finding of findings.values()) {
+    const data = finding.data;
+    if (data.findingRecordVersion !== 2 || data.status === 'retired') continue;
+    for (const evaluationId of data.discoveredBy ?? [data.evaluation]) {
+      const evaluation = recordsById.get(evaluationId);
+      if (!evaluation) {
+        throw new Error(`${finding.file}: discoveredBy references unknown evaluation ${evaluationId}`);
+      }
+      if (!(evaluation.findings ?? []).includes(data.id)) {
+        throw new Error(`${finding.file}: evaluation ${evaluationId} does not reference finding ${data.id}`);
+      }
+    }
+  }
   for (const record of records) {
     const { data, file } = record;
     // Legacy imports predate campaign manifests. New records must be linked.

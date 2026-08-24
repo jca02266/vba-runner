@@ -2,3 +2,8 @@
   evaluationId: EV-00939
   status: needs-excel
   occurredAt: '2026-08-24T14:52:07.612Z'
+- candidateId: RCA-FOLLOWUP-055
+  evaluationId: EV-00939
+  status: bug-found
+  fromStatus: needs-excel
+  occurredAt: '2026-08-24T15:01:59.600Z'

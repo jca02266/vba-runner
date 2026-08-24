@@ -3101,3 +3101,11 @@ checkpoints:
     nextEvaluation: EV-00939
     nextCandidate: RCA-FOLLOWUP-055
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00939-excel
+    audit: "836 evaluations, 0 active claims; XL-238〜XL-242のハッシュ一致実機結果をRunnerと照合し、5評価を確定した"
+    decision: "入力倍率の不変性は一致した。近接度・期間数・正負位置・金利相互作用の有限値差はBUG-00570へ統合し、重複BUG-00571をretiredとした。内部計算法は未確定のため推測修正は行わない"
+    action: root-cause-review
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00939
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-24-financial-rate

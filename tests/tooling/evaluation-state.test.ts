@@ -18,6 +18,31 @@ const validated = run('validate');
 assert.equal(validated.status, 0, validated.stderr);
 assert.match(validated.stdout, /validated \d+ evaluation records/);
 
+// A single finding may be confirmed by several evaluations. The primary
+// evaluation remains stable while discoveredBy records every evaluation that
+// links the finding.
+const sharedFinding = `${root}/evaluation/findings/BUG-00570.md`;
+const sharedFindingBody = readFileSync(sharedFinding, 'utf8');
+try {
+    const validSharedFinding = run('validate');
+    assert.equal(validSharedFinding.status, 0, validSharedFinding.stderr);
+
+    writeFileSync(sharedFinding, sharedFindingBody.replace('  - EV-00933\n', ''));
+    const missingReverseLink = run('validate');
+    assert.notEqual(missingReverseLink.status, 0);
+    assert.match(missingReverseLink.stderr, /finding BUG-00570 does not reference EV-00933/);
+
+    writeFileSync(sharedFinding, sharedFindingBody.replace(
+        '  - EV-00933\n',
+        '  - EV-00933\n  - EV-NOT-FOUND\n',
+    ));
+    const unknownEvaluation = run('validate');
+    assert.notEqual(unknownEvaluation.status, 0);
+    assert.match(unknownEvaluation.stderr, /discoveredBy references unknown evaluation EV-NOT-FOUND/);
+} finally {
+    writeFileSync(sharedFinding, sharedFindingBody);
+}
+
 // Retired v2 findings must explicitly mark all follow-up work as unnecessary.
 const retiredFinding = `${root}/evaluation/findings/BUG-00508.md`;
 const retiredFindingBody = readFileSync(retiredFinding, 'utf8');
