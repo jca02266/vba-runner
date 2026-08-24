@@ -763,26 +763,100 @@
 | EV-00859 | RCA-FOLLOWUP | fixed | 1 | 金融関数線形結合の横展開 |
 | EV-00860 | RCA-FOLLOWUP | fixed | 1 | FVの非有限中間係数をゼロキャッシュフローが隠さないことを確認する |
 | EV-00861 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateが-1未満・境界近傍・正常値で示す値とエラー分類 |
-| EV-00862 | RCA-FOLLOWUP | needs-excel | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
+| EV-00862 | RCA-FOLLOWUP | fixed | 1 | NPerの最大相殺境界と周辺キャッシュフロー形状に対するError分類 |
 | EV-00863 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Resume Next・ラベルResume・Resume再実行の標準Sub状態遷移 |
 | EV-00864 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Option Compare Text/BinaryのSelect Case文字範囲比較とアクセント境界 |
 | EV-00866 | FZ-COVERAGE-20260810 | fixed | 1 | NodeFileSystemとMemoryFileSystemのCopyDirectory衝突失敗時状態の共通契約 |
 | EV-00867 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | 組み込み関数185種へのNull・Empty・Nothing・配列・範囲外値注入による生例外境界 |
-| EV-00868 | FZ-COVERAGE-20260810 | needs-excel | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
+| EV-00868 | FZ-COVERAGE-20260810 | fixed | 1 | MIRRのFinanceRate=-1近傍・-1未満とキャッシュフロー形状のエラー分類および有限値境界 |
 | EV-00869 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Property Getの必須引数・戻り値添字・裸参照とWith/修飾メンバーの引数契約 |
-| EV-00870 | FZ-COVERAGE-20260810 | needs-excel | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
+| EV-00870 | FZ-COVERAGE-20260810 | fixed | 1 | 複数モジュール間の修飾Property Get・必須引数・0引数Get・戻り値添字解決 |
+| EV-00871 | FZ-COVERAGE-20260810 | verified-no-bug |  | 動的メンバーのOptional専用Functionを省略・明示引数で呼び出す契約 |
+| EV-00872 | FZ-COVERAGE-20260810 | verified-no-bug |  | ADODB.StreamのOptional ReadTextを直接・CallByNameで省略する契約 |
+| EV-00873 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderのoverwrite=False衝突時に先行コピーを残さない契約 |
+| EV-00874 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync既存パス・親欠落契約 |
+| EV-00875 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのUint8Arrayコピー内容・入力所有権契約 |
+| EV-00876 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのmoveDirectorySync既存空ディレクトリ境界 |
+| EV-00877 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのmoveFileSync既存宛先衝突契約 |
+| EV-00878 | FZ-COVERAGE-20260810 | fixed | 1 | FSO MoveFile・File.Moveの既存destination衝突とバックエンド差異 |
+| EV-00879 | FZ-COVERAGE-20260810 | fixed | 1 | MemoryFileSystemとNodeFileSystemのcopyDirectorySync空ディレクトリ・入れ子構造契約 |
+| EV-00880 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのcopyDirectorySync入れ子衝突失敗時状態契約 |
+| EV-00881 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAddとDateDiffの負方向・正方向の日付境界と時刻繰上げ繰下げ |
+| EV-00882 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateSerialの2桁年補正・4桁年・負年エラーと月日繰り上げ繰り下げ |
+| EV-00883 | FZ-COVERAGE-20260810 | verified-no-bug |  | 負の日付シリアル値に対するDatePart・DateDiff・Hour/Minute/Second境界 |
+| EV-00884 | FZ-COVERAGE-20260810 | verified-no-bug |  | TimeSerialの負数・60超過・24時繰り上げ正規化 |
+| EV-00885 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateValueの時刻切捨て・不正日付とTimeValueの時刻境界 |
+| EV-00886 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号の年初境界とFirstDayOfWeek・FirstWeekOfYear行列 |
+| EV-00887 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePart・Weekdayの無効引数・Null・週オプション検証 |
+| EV-00888 | FZ-COVERAGE-20260810 | verified-no-bug |  | DatePart週番号とWeekdayのFirstDayOfWeek・FirstWeekOfYear全指定行列 |
+| EV-00889 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateAdd・DateDiff・DatePartの閏日・週・四半期境界横断 |
+| EV-00890 | FZ-COVERAGE-20260810 | verified-no-bug |  | CStrのEmpty・Boolean・Currency・Decimal・Error値の戻り値表現とErr伝播 |
+| EV-00891 | FZ-COVERAGE-20260810 | verified-no-bug |  | CopyFolderの既存宛先・入れ子ファイル上書きにおけるMemory/Nodeバックエンドの同一性 |
+| EV-00892 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarがDecimal・Currency・Error・Null・EmptyのVariantサブタイプと情報関数結果を保持するか |
+| EV-00893 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarへLong配列とVBAクラスを渡した場合の配列形状・Object参照・メンバーアクセス保持 |
+| EV-00894 | FZ-COVERAGE-20260810 | verified-no-bug |  | Strの符号・先頭空白・指数表記・Boolean/Currency変換とNullエラー境界 |
+| EV-00895 | FZ-COVERAGE-20260810 | fixed |  | String関数のCurrency・Decimal character引数の数値コード変換 |
+| EV-00896 | FZ-COVERAGE-20260810 | fixed | 1 | String関数のBoolean・Date character引数の変換契約 |
+| EV-00897 | FZ-COVERAGE-20260810 | fixed |  | DateSerialの年・月・日引数Integer幅境界 |
+| EV-00898 | FZ-COVERAGE-20260810 | verified-no-bug |  | DateSerialの年範囲外と月日正規化の組合せ |
+| EV-00899 | FZ-COVERAGE-20260810 | verified-no-bug |  | MemoryFileSystemとNodeFileSystemのmkdirSync親ファイル境界 |
+| EV-00900 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数の敵対値注入によるVBAエラー境界 |
+| EV-00901 | FZ-COVERAGE-20260810 | verified-no-bug |  | 組み込み関数のメタモルフィック恒等式による値誤り探索 |
+| EV-00902 | FZ-COVERAGE-20260810 | fixed | 1 | CDateの許容シリアル値上下端とError 6境界 |
+| EV-00903 | FZ-COVERAGE-20260810 | fixed | 1 | CBoolへLongLong数値式を渡した場合の真偽変換 |
+| EV-00904 | FZ-COVERAGE-20260810 | verified-no-bug |  | CVarの配列・クラス・Variantサブタイプ保持 |
+| EV-00905 | FZ-COVERAGE-20260810 | verified-no-bug |  | CBoolのLongLong符号・最大値・最小値境界 |
+| EV-00906 | FZ-COVERAGE-20260810 | fixed | 1 | CLngLngの符号付き64ビット範囲外エラー番号 |
+| EV-00907 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$のBoolean・Date characterコードをAscWで確定する |
+| EV-00908 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の数値・Date characterコード境界とANSI変換 |
+| EV-00909 | FZ-COVERAGE-20260810 | fixed | 1 | String/String$の型付きcharacter引数256/257境界 |
+| EV-00910 | FZ-COVERAGE-20260821 | fixed | 1 | Chr/Chr$の直接character境界 |
+| EV-00911 | FZ-COVERAGE-20260822 | verified-no-bug | 1 | String/String$/Chr/Chr$の256超入力に対する文字コード写像 |
+| EV-00912 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexer低収束領域の日付リテラル下限と時刻ゼロ境界 |
+| EV-00913 | FZ-COVERAGE-20260810 | verified-no-bug | 1 | Dateリテラルの年1〜99とJavaScript年補正境界 |
+| EV-00914 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexerの指数記法・Dサフィックス・LongLongサフィックス境界 |
+| EV-00915 | FZ-COVERAGE-20260810 | fixed | 1 | Parser・Lexerの^直後空白とLongLongサフィックス・減算境界 |
+| EV-00916 | FZ-LSP-20260822 | fixed | 1 | VBEエクスポート済み.clsのメンバーAttributeとLSP診断経路 |
+| EV-00917 | FZ-LSP-20260822 | fixed | 1 | LSPのOption Explicitにおける別モジュール修飾プロパティ参照 |
+| EV-00918 | FZ-LSP-20260822 | fixed | 1 | .cls本体のOption ExplicitとVBE属性を組み合わせた診断契約 |
+| EV-00919 | FZ-COVERAGE-20260823 | verified-no-bug |  | Like演算子の空文字クラスと不正パターン文法 |
+| EV-00920 | FZ-COVERAGE-20260823 | fixed | 1 | ChrW/ChrW$の下限-32768境界 |
+| EV-00921 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Let/SetのWith・CallByName経路における必須引数アリティ |
+| EV-00922 | FZ-COVERAGE-20260823 | fixed | 1 | Module修飾Property Getの配列戻り値添字境界 |
+| EV-00923 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値の多次元・下限変更・Class経路 |
+| EV-00924 | FZ-COVERAGE-20260823 | verified-no-bug |  | opaque配列の多次元shape・boundsとtyped destination検証 |
+| EV-00925 | FZ-LSP-20260823 | fixed | 1 | LSP .cls secondary entry preprocessing |
+| EV-00926 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get配列戻り値のprovenance marker再利用と複数typed代入 |
+| EV-00927 | FZ-COVERAGE-20260823 | verified-no-bug |  | COM/host opaque配列の要素型メタデータ欠落とVariant・typed destinationの分岐 |
+| EV-00928 | FZ-COVERAGE-20260823 | fixed | 1 | FOREIGN-NAMEの閉じ括弧欠落とLexer・Parserの構文エラー境界 |
+| EV-00929 | FZ-COVERAGE-20260823 | fixed | 1 | 空のFOREIGN-NAMEとforeign-identifier最小長のLexer境界 |
+| EV-00930 | FZ-COVERAGE-20260823 | verified-no-bug |  | NPerの極端な利率・FV・符号反転における定義域とOverflow分類 |
+| EV-00931 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | SYDのLife・Period・Cost・Salvage境界における領域エラーとOverflow分類 |
+| EV-00932 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
+| EV-00933 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する |
+| EV-00934 | RCA-FOLLOWUP | verified-no-bug | 1 | MIRR近傍の成長係数・終端価値・負値現在価値をExcelとRunnerで分解照合する |
+| EV-00935 | RCA-FOLLOWUP | bug-found | 1 | MIRRの2進正確値と10進近傍値で手計算値・組み込み値の乖離開始点を照合する |
+| EV-00936 | RCA-FOLLOWUP | verified-no-bug | 1 | MIRRの一様な2進スケーリングに対する結果不変性を照合する |
+| EV-00937 | RCA-FOLLOWUP | bug-found | 1 | MIRRの期間数増加に対する近傍金利の数値安定性を照合する |
+| EV-00938 | RCA-FOLLOWUP | bug-found | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
+| EV-00939 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
+| EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
+| EV-00941 | RCA-FOLLOWUP | needs-excel |  | MIRRのFinanceRate=-1未満で負値NPVがゼロを横切る境界の値とError分類を照合する |
+| EV-00942 | RCA-FOLLOWUP | needs-excel |  | MIRRのReinvestRate=-1未満で正キャッシュフローNPVがゼロを横切る境界の値とError分類を照合する |
+| EV-00943 | RCA-FOLLOWUP | needs-excel |  | MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 342 |
+| bug-found | 6 |
+| fixed | 371 |
 | known-limit | 5 |
 | needs-excel | 3 |
 | retired | 2 |
-| verified-no-bug | 415 |
+| verified-no-bug | 453 |
 
-横展開未解決経路: 582、実Excel待ち評価: 3
+横展開未解決経路: 595、実Excel待ち評価: 3
 
 ## 次の候補
 

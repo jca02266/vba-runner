@@ -3133,3 +3133,11 @@ checkpoints:
     nextEvaluation: EV-00942
     nextCandidate: RCA-FOLLOWUP-058
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00942-excel-batch
+    audit: "839 evaluations, 0 active claims; XL-243/244は実機待ちで、RC-00011の中間OverflowとError 5/6分類が未確定である"
+    decision: "同じWindows実行へ、巨大有限金利で有限power・overflow・NPV underflowを分離する8ケースを追加する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00943
+    nextCandidate: RCA-FOLLOWUP-059
+    coverageSnapshot: COV-2026-08-24-financial-rate

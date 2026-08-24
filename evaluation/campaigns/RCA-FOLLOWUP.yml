@@ -642,3 +642,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-059
+    title: MIRR extreme finite rate classification
+    status: queued
+    priority: 1
+    focus: MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/extended-precision.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/extended-precision.ts
+      - tests/spec/financial.test.ts

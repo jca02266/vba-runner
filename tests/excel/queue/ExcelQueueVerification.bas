@@ -86,6 +86,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceRateShapes
     VerifyMirrFinanceNpvZeroCrossing
     VerifyMirrReinvestNpvZeroCrossing
+    VerifyMirrExtremeRateClassification
     VerifyNPerShapeBoundary
     VerifyNPerNonFiniteBoundary
     VerifySydDomainBoundaryMatrix
@@ -648,6 +649,31 @@ Private Sub VerifyMirrReinvestNpvZeroCrossing()
         EmitResult "XL-244 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
             " VALUE=[" & CStr(value) & "] TYPE=" & TypeName(value)
     Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrExtremeRateClassification()
+    EmitMirrExtremeRateCase "FR+1E308", 1E+308, 0.12
+    EmitMirrExtremeRateCase "FR-1E308", -1E+308, 0.12
+    EmitMirrExtremeRateCase "RR+1E77", 0.1, 1E+77
+    EmitMirrExtremeRateCase "RR+1E78", 0.1, 1E+78
+    EmitMirrExtremeRateCase "RR-1E75", 0.1, -1E+75
+    EmitMirrExtremeRateCase "RR+1E100", 0.1, 1E+100
+    EmitMirrExtremeRateCase "RR+1E154", 0.1, 1E+154
+    EmitMirrExtremeRateCase "RR+1E308", 0.1, 1E+308
+End Sub
+
+Private Sub EmitMirrExtremeRateCase(ByVal label As String, _
+        ByVal financeRate As Double, ByVal reinvestRate As Double)
+    Dim flows(0 To 3) As Double, value As Variant, errNo As Long
+    flows(0) = -100: flows(1) = -50: flows(2) = 50: flows(3) = 100
+    On Error Resume Next
+    Err.Clear
+    value = Empty
+    value = MIRR(flows, financeRate, reinvestRate)
+    errNo = Err.Number
+    EmitResult "XL-245 CASE=" & label & " ERR=" & CStr(errNo) & _
+        " VALUE=[" & CStr(value) & "] TYPE=" & TypeName(value)
     On Error GoTo 0
 End Sub
 
