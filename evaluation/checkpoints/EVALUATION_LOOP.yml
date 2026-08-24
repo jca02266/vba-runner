@@ -3141,3 +3141,11 @@ checkpoints:
     nextEvaluation: EV-00943
     nextCandidate: RCA-FOLLOWUP-059
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00943-excel-batch
+    audit: "840 evaluations, 0 active claims; 通常候補と真因対処タスクは0件で、MIRRのValueArrayはDouble()宣言以外の静的配列型契約が未評価である"
+    decision: "同じ実機バッチを最大5候補まで活用し、Double()を対照に各数値配列型・Variant()・Array式のコンパイル時型検査を1マトリクスで評価する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00944
+    nextCandidate: RCA-FOLLOWUP-060
+    coverageSnapshot: COV-2026-08-24-financial-rate

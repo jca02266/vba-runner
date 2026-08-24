@@ -843,6 +843,8 @@
 | EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
 | EV-00941 | RCA-FOLLOWUP | needs-excel |  | MIRRのFinanceRate=-1未満で負値NPVがゼロを横切る境界の値とError分類を照合する |
 | EV-00942 | RCA-FOLLOWUP | needs-excel |  | MIRRのReinvestRate=-1未満で正キャッシュフローNPVがゼロを横切る境界の値とError分類を照合する |
+| EV-00943 | RCA-FOLLOWUP | needs-excel |  | MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する |
+| EV-00944 | RCA-FOLLOWUP | needs-excel-probe |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
 
 ## 状態集計
 
@@ -851,11 +853,12 @@
 | bug-found | 6 |
 | fixed | 371 |
 | known-limit | 5 |
-| needs-excel | 2 |
+| needs-excel | 3 |
+| needs-excel-probe | 1 |
 | retired | 2 |
 | verified-no-bug | 453 |
 
-横展開未解決経路: 595、実Excel待ち評価: 2
+横展開未解決経路: 595、実Excel待ち評価: 4
 
 ## 次の候補
 
