@@ -3053,3 +3053,11 @@ checkpoints:
     nextEvaluation: EV-00933
     nextCandidate: RCA-FOLLOWUP-049
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00934
+    audit: "830 evaluations, 0 active claims; MIRR近傍の中間値分解プローブXL-237を追加し、ソースハッシュ検証済みでneeds-excelへ移行した"
+    decision: "Excelの成長係数・終端価値・負値現在価値を取得するまで、RC-00011の真因と修正方法を確定しない"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00934
+    nextCandidate: RCA-FOLLOWUP-050
+    coverageSnapshot: COV-2026-08-24-financial-rate

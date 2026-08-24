@@ -89,6 +89,7 @@ Public Sub RunExcelQueueVerification()
     VerifySydDomainBoundaryMatrix
     VerifyMirrReinvestShapeMatrix
     VerifyMirrReinvestNearMatrix
+    VerifyMirrReinvestIntermediateMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -184,6 +185,30 @@ Private Sub VerifyMirrReinvestNearMatrix()
     EmitValueAndType "XL-236 B1", result, errNo
     Err.Clear: result = MIRR(fourC, 0.1, -0.9999999999): errNo = Err.Number
     EmitValueAndType "XL-236 C1", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrReinvestIntermediateMatrix()
+    Dim flows(0 To 2) As Double, g As Double, posPv As Double, posTv As Double
+    Dim negPv As Double, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    g = 1 + (-0.9999999999)
+    posPv = flows(1) / g + flows(2) / (g ^ 2)
+    posTv = posPv * (g ^ 2)
+    negPv = flows(0) / ((1 + 0.1) ^ 0)
+    On Error Resume Next
+    Err.Clear: result = MIRR(flows, 0.1, -0.9999999999): errNo = Err.Number
+    EmitResult "XL-237 THREE G=" & CStr(g) & " POSPV=" & CStr(posPv) & _
+        " POSTV=" & CStr(posTv) & " NEGPV=" & CStr(negPv) & _
+        " RESULT=" & CStr(result) & " ERR=" & CStr(errNo)
+    flows(1) = 50: flows(2) = 0
+    g = 1 + (-0.9999999999)
+    posPv = flows(1) / g
+    posTv = posPv * g ^ 2
+    Err.Clear: result = MIRR(flows, 0.1, -0.9999999999): errNo = Err.Number
+    EmitResult "XL-237 LASTZERO G=" & CStr(g) & " POSPV=" & CStr(posPv) & _
+        " POSTV=" & CStr(posTv) & " NEGPV=" & CStr(negPv) & _
+        " RESULT=" & CStr(result) & " ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 

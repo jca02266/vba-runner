@@ -834,6 +834,7 @@
 | EV-00931 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | SYDのLife・Period・Cost・Salvage境界における領域エラーとOverflow分類 |
 | EV-00932 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
 | EV-00933 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する |
+| EV-00934 | RCA-FOLLOWUP | needs-excel | 1 | MIRR近傍の成長係数・終端価値・負値現在価値をExcelとRunnerで分解照合する |
 
 ## 状態集計
 
@@ -842,10 +843,11 @@
 | bug-found | 2 |
 | fixed | 370 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 451 |
 
-横展開未解決経路: 590、実Excel待ち評価: 0
+横展開未解決経路: 591、実Excel待ち評価: 1
 
 ## 次の候補
 

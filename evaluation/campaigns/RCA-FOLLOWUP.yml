@@ -518,3 +518,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-050
+    title: MIRR ReinvestRate intermediate decomposition
+    status: queued
+    priority: 1
+    focus: MIRR近傍の成長係数・終端価値・負値現在価値をExcelとRunnerで分解照合する
+    priorCauseKey: mirr-reinvest-near-singularity-rounding-mismatch
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
