@@ -3109,3 +3109,11 @@ checkpoints:
     nextEvaluation: EV-00939
     nextCandidate: null
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00940
+    audit: "837 evaluations, 0 active claims; Microsoft Visual BasicのLDoNPV計算順序を再現し、XL-220・XL-238〜XL-242の59ケースを回帰化した"
+    decision: "BUG-00570の直接原因を修正済みとする。RC-00011の広い金利Error分類契約はunder-reviewのまま分離して継続する"
+    action: root-cause-review
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00940
+    nextCandidate: null
+    coverageSnapshot: COV-2026-08-24-financial-rate

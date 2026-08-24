@@ -840,13 +840,14 @@
 | EV-00937 | RCA-FOLLOWUP | bug-found | 1 | MIRRの期間数増加に対する近傍金利の数値安定性を照合する |
 | EV-00938 | RCA-FOLLOWUP | bug-found | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
 | EV-00939 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
+| EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 6 |
-| fixed | 370 |
+| fixed | 371 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 453 |

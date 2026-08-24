@@ -598,3 +598,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-056
+    title: MIRR extended precision recurrence
+    status: queued
+    priority: 1
+    focus: VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - spec/MS-VBAL.txt
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/extended-precision.ts
+      - tests/spec/financial.test.ts
