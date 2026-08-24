@@ -835,6 +835,7 @@
 | EV-00932 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
 | EV-00933 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する |
 | EV-00934 | RCA-FOLLOWUP | verified-no-bug | 1 | MIRR近傍の成長係数・終端価値・負値現在価値をExcelとRunnerで分解照合する |
+| EV-00935 | RCA-FOLLOWUP | needs-excel | 1 | MIRRの2進正確値と10進近傍値で手計算値・組み込み値の乖離開始点を照合する |
 
 ## 状態集計
 
@@ -843,10 +844,11 @@
 | bug-found | 2 |
 | fixed | 370 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 452 |
 
-横展開未解決経路: 591、実Excel待ち評価: 0
+横展開未解決経路: 592、実Excel待ち評価: 1
 
 ## 次の候補
 

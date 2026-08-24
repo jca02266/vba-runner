@@ -90,6 +90,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrReinvestShapeMatrix
     VerifyMirrReinvestNearMatrix
     VerifyMirrReinvestIntermediateMatrix
+    VerifyMirrGrowthFactorMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -209,6 +210,28 @@ Private Sub VerifyMirrReinvestIntermediateMatrix()
     EmitResult "XL-237 LASTZERO G=" & CStr(g) & " POSPV=" & CStr(posPv) & _
         " POSTV=" & CStr(posTv) & " NEGPV=" & CStr(negPv) & _
         " RESULT=" & CStr(result) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrGrowthFactorMatrix()
+    Dim flows(0 To 2) As Double, rates As Variant, i As Long
+    Dim rate As Double, g As Double, posPv As Double, posTv As Double
+    Dim manualResult As Double, mirrResult As Variant, errNo As Long
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    rates = Array(-0.5, -0.75, -0.875, -0.9375, -0.999, _
+        -0.999999, -0.99999999, -0.9999999999)
+    On Error Resume Next
+    For i = 0 To UBound(rates)
+        rate = CDbl(rates(i))
+        g = 1 + rate
+        posPv = flows(1) / g + flows(2) / (g ^ 2)
+        posTv = posPv * (g ^ 2)
+        manualResult = ((-posTv / flows(0)) ^ (1 / 2)) - 1
+        Err.Clear: mirrResult = MIRR(flows, 0.1, rate): errNo = Err.Number
+        EmitResult "XL-238 CASE=" & CStr(i) & " RATE=" & CStr(rate) & _
+            " G=" & CStr(g) & " MANUAL=" & CStr(manualResult) & _
+            " MIRR=" & CStr(mirrResult) & " ERR=" & CStr(errNo)
+    Next i
     On Error GoTo 0
 End Sub
 

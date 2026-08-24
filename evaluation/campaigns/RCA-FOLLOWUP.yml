@@ -532,3 +532,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-051
+    title: MIRR exact and decimal growth factors
+    status: queued
+    priority: 1
+    focus: MIRRの2進正確値と10進近傍値で手計算値・組み込み値の乖離開始点を照合する
+    priorCauseKey: mirr-reinvest-near-singularity-rounding-mismatch
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

@@ -3061,3 +3061,11 @@ checkpoints:
     nextEvaluation: EV-00934
     nextCandidate: null
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00935
+    audit: "831 evaluations, 0 active claims; RC-00011の未解決点から2進正確値・10進近傍値8ケースのXL-238行列を作成し、ソースハッシュを検証した"
+    decision: "Excel組み込みMIRRの乖離開始点を確定するため、EV-00935をneeds-excelとして保持する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00935
+    nextCandidate: RCA-FOLLOWUP-051
+    coverageSnapshot: COV-2026-08-24-financial-rate
