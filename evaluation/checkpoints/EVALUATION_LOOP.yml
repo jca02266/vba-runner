@@ -3054,10 +3054,10 @@ checkpoints:
     nextCandidate: RCA-FOLLOWUP-049
     coverageSnapshot: COV-2026-08-24-financial-rate
   - afterEvaluation: EV-00934
-    audit: "830 evaluations, 0 active claims; MIRR近傍の中間値分解プローブXL-237を追加し、ソースハッシュ検証済みでneeds-excelへ移行した"
-    decision: "Excelの成長係数・終端価値・負値現在価値を取得するまで、RC-00011の真因と修正方法を確定しない"
-    action: claim
+    audit: "831 evaluations, 0 active claims; XL-237のハッシュ一致実機結果で手計算中間値が一致し、組み込みMIRRの最終値だけが異なることを確認した"
+    decision: "単純な式変形ではExcel値を再現できない。EV-00934はverified-no-bugで完了し、RC-00011をExcel内部演算順序・保持精度の未解決仮説として継続する"
+    action: root-cause-review
     nextArea: 組み込み関数
     nextEvaluation: EV-00934
-    nextCandidate: RCA-FOLLOWUP-050
+    nextCandidate: null
     coverageSnapshot: COV-2026-08-24-financial-rate
