@@ -88,6 +88,7 @@ Public Sub RunExcelQueueVerification()
     VerifyNPerNonFiniteBoundary
     VerifySydDomainBoundaryMatrix
     VerifyMirrReinvestShapeMatrix
+    VerifyMirrReinvestNearMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -163,6 +164,26 @@ Private Sub VerifyMirrReinvestShapeMatrix()
     flows(1) = -50
     Err.Clear: result = MIRR(flows, 0.1, -1): errNo = Err.Number
     EmitValueAndType "XL-235 NEG-MIDDLE", result, errNo
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrReinvestNearMatrix()
+    Dim three(0 To 2) As Double, fourB(0 To 3) As Double, fourC(0 To 3) As Double
+    Dim result As Variant, errNo As Long
+    three(0) = -100: three(1) = 50: three(2) = 100
+    fourB(0) = -100: fourB(1) = 0: fourB(2) = 50: fourB(3) = 100
+    fourC(0) = -100: fourC(1) = 50: fourC(2) = 0: fourC(3) = 100
+    On Error Resume Next
+    Err.Clear: result = MIRR(three, 0.1, -0.999999): errNo = Err.Number
+    EmitValueAndType "XL-236 A1", result, errNo
+    Err.Clear: result = MIRR(three, 0.1, -0.99999999): errNo = Err.Number
+    EmitValueAndType "XL-236 A2", result, errNo
+    Err.Clear: result = MIRR(three, 0.1, -0.9999999999): errNo = Err.Number
+    EmitValueAndType "XL-236 A3", result, errNo
+    Err.Clear: result = MIRR(fourB, 0.1, -0.9999999999): errNo = Err.Number
+    EmitValueAndType "XL-236 B1", result, errNo
+    Err.Clear: result = MIRR(fourC, 0.1, -0.9999999999): errNo = Err.Number
+    EmitValueAndType "XL-236 C1", result, errNo
     On Error GoTo 0
 End Sub
 
