@@ -628,3 +628,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-058
+    title: MIRR ReinvestRate NPV zero crossing
+    status: queued
+    priority: 1
+    focus: MIRRのReinvestRate=-1未満で正キャッシュフローNPVがゼロを横切る境界の値とError分類を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

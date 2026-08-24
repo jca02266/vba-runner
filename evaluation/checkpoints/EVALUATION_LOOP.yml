@@ -3125,3 +3125,11 @@ checkpoints:
     nextEvaluation: EV-00941
     nextCandidate: RCA-FOLLOWUP-057
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00941-excel-batch
+    audit: "838 evaluations, 0 active claims; EV-00941はXL-243の実機待ちで、同じRC-00011にReinvestRate<-1の成立境界が残る"
+    decision: "Windows実行を分割せず、正値NPVがゼロとなるReinvestRate=-2.25の両側5ケースを同じ通常キューへ追加する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00942
+    nextCandidate: RCA-FOLLOWUP-058
+    coverageSnapshot: COV-2026-08-24-financial-rate

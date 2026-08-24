@@ -85,6 +85,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrFinanceRateBoundary
     VerifyMirrFinanceRateShapes
     VerifyMirrFinanceNpvZeroCrossing
+    VerifyMirrReinvestNpvZeroCrossing
     VerifyNPerShapeBoundary
     VerifyNPerNonFiniteBoundary
     VerifySydDomainBoundaryMatrix
@@ -626,6 +627,26 @@ Private Sub VerifyMirrFinanceNpvZeroCrossing()
         errNo = Err.Number
         EmitResult "XL-243 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
             " VALUE=" & CStr(value) & " TYPE=" & TypeName(value)
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrReinvestNpvZeroCrossing()
+    Dim rates As Variant, flows(0 To 2) As Double
+    Dim i As Long, value As Variant, errNo As Long
+    rates = Array(-2.125, -2.2499990463256836, -2.25, _
+        -2.2500009536743164, -2.375)
+    flows(0) = 4
+    flows(1) = 5
+    flows(2) = -1
+    For i = 0 To 4
+        On Error Resume Next
+        Err.Clear
+        value = Empty
+        value = MIRR(flows, 0.1, rates(i))
+        errNo = Err.Number
+        EmitResult "XL-244 RATE=" & CStr(rates(i)) & " ERR=" & CStr(errNo) & _
+            " VALUE=[" & CStr(value) & "] TYPE=" & TypeName(value)
     Next i
     On Error GoTo 0
 End Sub
