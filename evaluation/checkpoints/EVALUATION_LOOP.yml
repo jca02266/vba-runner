@@ -3046,9 +3046,9 @@ checkpoints:
     nextCandidate: RCA-FOLLOWUP-049
     coverageSnapshot: COV-2026-08-24-financial-rate
   - afterEvaluation: EV-00933
-    audit: "830 evaluations, 0 active claims; MIRR ReinvestRate近傍の期間数・正キャッシュフロー位置行列をXL-236へ追加し、ソースハッシュ検証済みでneeds-excelへ移行した"
-    decision: "Runner単独ではExcel互換の数値差を確定できないため、EV-00933を実機結果待ちとして保持する。結果に差異があればBUG-00570とRC-00011の適用範囲を更新する"
-    action: claim
+    audit: "830 evaluations, 0 active claims; XL-236のハッシュ一致実機結果で5ケース全ての有限値差を確認した"
+    decision: "BUG-00570の差異が期間数・正キャッシュフロー位置へ横展開した。RC-00011はまだ仮説のため、独立レビューで真因を確認してから修正タスクを登録する"
+    action: root-cause-review
     nextArea: 組み込み関数
     nextEvaluation: EV-00933
     nextCandidate: RCA-FOLLOWUP-049
