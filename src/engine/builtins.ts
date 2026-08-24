@@ -19,6 +19,7 @@ import {
 import { vbaWeekNumber } from './date-week';
 import { classifyArgumentCount } from './argument-contract';
 import { VBA_ENUM_CONSTANTS } from './vba-constants';
+import { vbaFinancialNpv } from './extended-precision';
 
 /** Expand only objects that explicitly expose a VBA-style default Value. */
 function unwrapVbaDefaultValue(value: any): any {
@@ -2282,6 +2283,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         const v = requireMixedCashFlows(toCashFlowValues(values));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
+        if (!Number.isFinite(fr) || !Number.isFinite(rr)) invalidFinancialArg();
         // Excel rejects FinanceRate=-1 for MIRR regardless of cash-flow shape.
         if (fr === -1) {
             invalidFinancialArg();
@@ -2290,14 +2292,19 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         // denominator. Report VBA's argument error before the calculation
         // reaches the generic non-finite-result path.
         if (1 + rr === 0) invalidFinancialArg();
-        const n = v.length - 1;
-        let npv_neg = 0, npv_pos = 0;
-        for (let t = 0; t < v.length; t++) {
-            if (v[t] < 0) npv_neg += v[t] / Math.pow(1 + fr, t);
-            else npv_pos += v[t] / Math.pow(1 + rr, t);
+        const periods = v.length - 1;
+        const npvNeg = vbaFinancialNpv(fr, v, (value) => value < 0);
+        const npvPos = vbaFinancialNpv(rr, v, (value) => value > 0);
+        if (!Number.isFinite(npvNeg) || !Number.isFinite(npvPos) || npvNeg === 0) {
+            invalidFinancialArg();
         }
-        const tv = npv_pos * Math.pow(1 + rr, n);
-        const result = Math.pow(-tv / npv_neg, 1 / n) - 1;
+        // VBA's financial runtime raises the reinvestment factor to the array
+        // length after its one-based NPV recurrence. Repeated multiplication
+        // avoids V8 Math.pow's one-ulp difference from the native integer power.
+        let reinvestmentPower = 1;
+        for (let i = 0; i < v.length; i++) reinvestmentPower *= 1 + rr;
+        const ratio = -npvPos * reinvestmentPower / (npvNeg * (fr + 1));
+        const result = Math.pow(ratio, 1 / periods) - 1;
         if (!Number.isFinite(result)) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }

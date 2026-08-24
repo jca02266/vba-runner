@@ -165,6 +165,128 @@ console.log('[PASS] MIRR FinanceRate zero-denominator boundary');
 }
 console.log('[PASS] MIRR FinanceRate=-1 initial-only boundary');
 
+// VBA accumulates MIRR's signed NPV values through a native extended-precision
+// recurrence before storing each completed total back into a Double.
+{
+    const ev = evalVBASingle(String.raw`
+    Sub MirrMatrixHost()
+    End Sub
+    `);
+    const mirr = ev.env.get('mirr') as (
+        values: number[], financeRate: number, reinvestRate: number,
+    ) => number;
+    const probe = (values: number[], financeRate: number, reinvestRate: number): number | string => {
+        try {
+            return mirr(values, financeRate, reinvestRate);
+        } catch (error) {
+            return `ERR:${(error as { number?: number }).number ?? 'unknown'}`;
+        }
+    };
+    const expectValue = (
+        label: string,
+        values: number[],
+        financeRate: number,
+        reinvestRate: number,
+        expected: number,
+    ): void => {
+        const actual = probe(values, financeRate, reinvestRate);
+        assert.strictEqual(typeof actual, 'number', `${label} returns Double`);
+        assertClose(actual as number, expected, { message: label });
+    };
+
+    const growthRates = [-0.5, -0.75, -0.875, -0.9375, -0.999, -0.999999,
+        -0.99999999, -0.9999999999];
+    const growthExpected = [0.118033988749895, 0.0606601717798212,
+        0.0307764064044151, 0.0155048005794951, 0.000249968757810137,
+        2.50000002477435e-7, 2.4992732328144e-9, 2.25147456234254e-10];
+    growthRates.forEach((rate, index) => {
+        expectValue(`XL-238 CASE=${index}`, [-100, 50, 100], 0.1, rate,
+            growthExpected[index]);
+    });
+
+    for (const scale of [2 ** -500, 2 ** -40, 1, 2 ** 500]) {
+        const values = [-100 * scale, 50 * scale, 100 * scale];
+        expectValue(`XL-239 normal scale=${scale}`, values, 0.1, 0.12,
+            0.24899959967968);
+        expectValue(`XL-239 near scale=${scale}`, values, 0.1, -0.9999999999,
+            2.25147456234254e-10);
+    }
+
+    const periodCases: Array<[number[], number]> = [
+        [[-100, 150], 0.500000000473316],
+        [[-100, 50, 100], 2.25147456234254e-10],
+        [[-100, 50, 0, 100], 2.35309105534043e-10],
+        [[-100, 50, 0, 0, 100], 2.88179924368137e-10],
+        [[-100, 50, 0, 0, 0, 100], 2.63979282877358e-10],
+        [[-100, 50, 0, 0, 0, 0, 0, 100], 1.04898534303288e-10],
+    ];
+    periodCases.forEach(([values, expected], index) => {
+        expectValue(`XL-240 CASE=${index + 1}`, values, 0.1, -0.9999999999, expected);
+    });
+
+    const positionCases: Array<[number[], number]> = [
+        [[-100, -50, 0, 50, 100], -0.0894198563072709],
+        [[-100, 50, -50, 0, 100], -0.0828353339356729],
+        [[-100, 50, 0, -50, 100], -0.0766370851899743],
+        [[-100, 50, 100, -50, 0], -0.999990766370472],
+        [[50, -100, -50, 0, 100], -0.0674624098474518],
+        [[50, -100, 0, 100, -50], -0.997009659738562],
+        [[100, 50, 0, -50, -100], -0.999999973784854],
+        [[100, -50, 0, 50, -100], -0.997425167180969],
+    ];
+    positionCases.forEach(([values, expected], index) => {
+        expectValue(`XL-241 CASE=${index + 1}`, values, 0.1, -0.9999999999, expected);
+    });
+
+    const interactionCases: Array<[number, number, number | string]> = [
+        [0.1, 0.12, 0.0236050824969549],
+        [-0.5, 0.12, -0.079483591748411],
+        [0.1, -0.5, -0.0492618848096521],
+        [-0.9999999999, 0.12, -0.999321757692808],
+        [0.1, -0.9999999999, -0.117412915946094],
+        [-0.9999999999, -0.9999999999, -0.999415196436182],
+        [-1.1, -0.9999999999, 'ERR:5'],
+        [-0.9999999999, -1.1, -0.999425110276349],
+    ];
+    interactionCases.forEach(([financeRate, reinvestRate, expected], index) => {
+        const label = `XL-242 CASE=${index + 1}`;
+        if (typeof expected === 'string') {
+            assert.strictEqual(probe([-100, -50, 50, 100], financeRate, reinvestRate),
+                expected, label);
+        } else {
+            expectValue(label, [-100, -50, 50, 100], financeRate, reinvestRate, expected);
+        }
+    });
+
+    const financeShapes = [
+        [-100, 50, 75],
+        [-100, -50, 200],
+        [-100, 100, -20, 75],
+    ];
+    const financeRates = [-2, -1.1, -1.0000000001, -1, -0.9999999999, -0.5, 0.1];
+    const financeExpected: Array<Array<number | string>> = [
+        [0.140175425099138, 1, 0.177673606017982],
+        [0.140175425099138, 'ERR:5', -0.546393858936442],
+        [0.140175425099138, 'ERR:5', -0.999999538956345],
+        ['ERR:5', 'ERR:5', 'ERR:5'],
+        [0.140175425099138, -0.999979999999178, -0.999999538956345],
+        [0.140175425099138, 0, 0.0287926560528617],
+        [0.140175425099138, 0.172603939955858, 0.189252600286169],
+    ];
+    financeRates.forEach((financeRate, rateIndex) => {
+        financeShapes.forEach((values, shapeIndex) => {
+            const expected = financeExpected[rateIndex][shapeIndex];
+            const label = `XL-220 RATE=${financeRate} SHAPE=${shapeIndex + 1}`;
+            if (typeof expected === 'string') {
+                assert.strictEqual(probe(values, financeRate, 0.1), expected, label);
+            } else {
+                expectValue(label, values, financeRate, 0.1, expected);
+            }
+        });
+    });
+}
+console.log('[PASS] MIRR VBA extended-precision and finance-rate matrices');
+
 // --- Bug 24-1: NPV が 1-based 配列で NaN を返す ---
 // Dim flows(1 To N) で宣言した配列を渡すと vbaBase=1 のため
 // values.map(Number) がインデックス 0 (undefined → NaN) を含んでいた
