@@ -3037,3 +3037,11 @@ checkpoints:
     nextEvaluation: EV-00932
     nextCandidate: RCA-FOLLOWUP-048
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00932-excel
+    audit: "829 evaluations, 0 active claims; XL-235はハッシュ一致の実機結果で、THREE-NEARの有限値差を確認した"
+    decision: "BUG-00570をconfirmedとして登録し、真因仮説RC-00011の適用範囲を追加行列で確認するRCA-FOLLOWUP-049を登録する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00932
+    nextCandidate: RCA-FOLLOWUP-049
+    coverageSnapshot: COV-2026-08-24-financial-rate

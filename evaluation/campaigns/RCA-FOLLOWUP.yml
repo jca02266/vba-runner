@@ -504,3 +504,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-049
+    title: MIRR ReinvestRate near-singularity expansion
+    status: queued
+    priority: 1
+    focus: MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する
+    priorCauseKey: mirr-reinvest-near-singularity-rounding-mismatch
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+      - evaluation/root-causes/RC-00011.md
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
