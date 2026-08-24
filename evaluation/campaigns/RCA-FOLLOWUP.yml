@@ -684,3 +684,17 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-062
+    title: MIRR multidimensional array rank matrix
+    status: queued
+    priority: 1
+    focus: MIRRへ渡す多次元Double配列の受理・走査順・Error分類を1次元対照と照合する
+    priorCauseKey: financial-cashflow-array-shape-contract
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/financial.test.ts

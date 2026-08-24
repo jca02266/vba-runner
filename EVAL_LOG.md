@@ -846,6 +846,7 @@
 | EV-00943 | RCA-FOLLOWUP | needs-excel |  | MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する |
 | EV-00944 | RCA-FOLLOWUP | needs-excel-probe |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
 | EV-00945 | RCA-FOLLOWUP | needs-excel |  | MIRRが同じ順序のDouble配列を下限と固定長・可変長に依存せず同値評価するか照合する |
+| EV-00946 | RCA-FOLLOWUP | needs-excel-probe |  | MIRRへ渡す多次元Double配列の受理・走査順・Error分類を1次元対照と照合する |
 
 ## 状態集計
 
@@ -855,11 +856,11 @@
 | fixed | 371 |
 | known-limit | 5 |
 | needs-excel | 4 |
-| needs-excel-probe | 1 |
+| needs-excel-probe | 2 |
 | retired | 2 |
 | verified-no-bug | 453 |
 
-横展開未解決経路: 595、実Excel待ち評価: 5
+横展開未解決経路: 595、実Excel待ち評価: 6
 
 ## 次の候補
 

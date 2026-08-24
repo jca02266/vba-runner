@@ -3157,3 +3157,11 @@ checkpoints:
     nextEvaluation: EV-00945
     nextCandidate: RCA-FOLLOWUP-061
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00945-excel-batch
+    audit: "842 evaluations, 0 active claims; XL-243〜XL-245とXL-247の4評価が通常キューで実機待ちであり、多次元配列はコンパイル可否も未確定である"
+    decision: "通常キューを停止させないよう、1次元対照と固定長・可変長の2次元Double配列を独立コンパイル単位で確認する候補として分離する"
+    action: create-candidate
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00946
+    nextCandidate: RCA-FOLLOWUP-062
+    coverageSnapshot: COV-2026-08-24-financial-rate
