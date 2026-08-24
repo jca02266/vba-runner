@@ -546,3 +546,55 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-052
+    title: MIRR cash-flow scale invariance
+    status: queued
+    priority: 1
+    focus: MIRRの一様な2進スケーリングに対する結果不変性を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-053
+    title: MIRR period count stability
+    status: queued
+    priority: 1
+    focus: MIRRの期間数増加に対する近傍金利の数値安定性を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-054
+    title: MIRR sign position stability
+    status: queued
+    priority: 1
+    focus: MIRRの正負キャッシュフロー位置による近傍金利結果を照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-055
+    title: MIRR finance and reinvest interaction
+    status: queued
+    priority: 1
+    focus: MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する
+    priorCauseKey: financial-rate-domain-contract-not-shared
+    rootCauseId: RC-00011
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/financial.test.ts

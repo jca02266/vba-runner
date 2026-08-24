@@ -3069,3 +3069,35 @@ checkpoints:
     nextEvaluation: EV-00935
     nextCandidate: RCA-FOLLOWUP-051
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00936
+    audit: "836 evaluations, 0 active claims; MIRRの2進スケール不変性8ケースをXL-239へ追加し、共通workbookを再生成した"
+    decision: "極端な入力倍率での中間値範囲をExcelと照合するためneeds-excelへ移行する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00936
+    nextCandidate: RCA-FOLLOWUP-052
+    coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00937
+    audit: "836 evaluations, 0 active claims; MIRRの期間数6ケースをXL-240へ追加し、共通workbookを再生成した"
+    decision: "期間数による極小べき乗と最終根の差異をExcelと照合するためneeds-excelへ移行する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00937
+    nextCandidate: RCA-FOLLOWUP-053
+    coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00938
+    audit: "836 evaluations, 0 active claims; MIRRの正負位置8ケースをXL-241へ追加し、共通workbookを再生成した"
+    decision: "正負キャッシュフロー位置による差異範囲をExcelと照合するためneeds-excelへ移行する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00938
+    nextCandidate: RCA-FOLLOWUP-054
+    coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00939
+    audit: "836 evaluations, 0 active claims; MIRRの両金利相互作用8ケースをXL-242へ追加し、XL-238〜242を一回のWindows実行へ集約した"
+    decision: "通常値・近傍値・-1未満の組合せをExcelと照合するためneeds-excelへ移行する"
+    action: claim
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00939
+    nextCandidate: RCA-FOLLOWUP-055
+    coverageSnapshot: COV-2026-08-24-financial-rate

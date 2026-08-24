@@ -91,6 +91,10 @@ Public Sub RunExcelQueueVerification()
     VerifyMirrReinvestNearMatrix
     VerifyMirrReinvestIntermediateMatrix
     VerifyMirrGrowthFactorMatrix
+    VerifyMirrScaleInvariantMatrix
+    VerifyMirrPeriodCountMatrix
+    VerifyMirrSignPositionMatrix
+    VerifyMirrRateInteractionMatrix
     VerifyQualifiedPropertyBoundary
     VerifyRadixConversionBoundaries
     VerifyRadixConversionMatrix
@@ -231,6 +235,87 @@ Private Sub VerifyMirrGrowthFactorMatrix()
         EmitResult "XL-238 CASE=" & CStr(i) & " RATE=" & CStr(rate) & _
             " G=" & CStr(g) & " MANUAL=" & CStr(manualResult) & _
             " MIRR=" & CStr(mirrResult) & " ERR=" & CStr(errNo)
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrScaleInvariantMatrix()
+    Dim flows(0 To 2) As Double, scales As Variant, rates As Variant
+    Dim i As Long, j As Long, caseNo As Long, result As Variant, errNo As Long
+    scales = Array(2 ^ -500, 2 ^ -40, 1, 2 ^ 500)
+    rates = Array(0.12, -0.9999999999)
+    caseNo = 0
+    On Error Resume Next
+    For i = 0 To UBound(scales)
+        For j = 0 To UBound(rates)
+            caseNo = caseNo + 1
+            flows(0) = -100 * scales(i)
+            flows(1) = 50 * scales(i)
+            flows(2) = 100 * scales(i)
+            Err.Clear: result = MIRR(flows, 0.1, rates(j)): errNo = Err.Number
+            EmitValueAndType "XL-239 S" & CStr(caseNo) & " SCALE=" & CStr(scales(i)) & _
+                " RATE=" & CStr(rates(j)), result, errNo
+        Next j
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrPeriodCountMatrix()
+    Dim lengths As Variant, flows() As Double, i As Long, last As Long
+    Dim result As Variant, errNo As Long
+    lengths = Array(2, 3, 4, 5, 6, 8)
+    On Error Resume Next
+    For i = 0 To UBound(lengths)
+        last = CLng(lengths(i)) - 1
+        ReDim flows(0 To last)
+        flows(0) = -100
+        If last = 1 Then
+            flows(1) = 150
+        Else
+            flows(1) = 50
+            flows(last) = 100
+        End If
+        Err.Clear: result = MIRR(flows, 0.1, -0.9999999999): errNo = Err.Number
+        EmitValueAndType "XL-240 PERIODS=" & CStr(last), result, errNo
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrSignPositionMatrix()
+    Dim cases As Variant, item As Variant, flows(0 To 4) As Double
+    Dim i As Long, j As Long, result As Variant, errNo As Long
+    cases = Array( _
+        Array(-100, -50, 0, 50, 100), Array(-100, 50, -50, 0, 100), _
+        Array(-100, 50, 0, -50, 100), Array(-100, 50, 100, -50, 0), _
+        Array(50, -100, -50, 0, 100), Array(50, -100, 0, 100, -50), _
+        Array(100, 50, 0, -50, -100), Array(100, -50, 0, 50, -100))
+    On Error Resume Next
+    For i = 0 To UBound(cases)
+        item = cases(i)
+        For j = 0 To 4
+            flows(j) = item(j)
+        Next j
+        Err.Clear: result = MIRR(flows, 0.1, -0.9999999999): errNo = Err.Number
+        EmitValueAndType "XL-241 CASE=" & CStr(i + 1), result, errNo
+    Next i
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyMirrRateInteractionMatrix()
+    Dim flows(0 To 3) As Double, financeRates As Variant, reinvestRates As Variant
+    Dim i As Long, result As Variant, errNo As Long
+    flows(0) = -100: flows(1) = -50: flows(2) = 50: flows(3) = 100
+    financeRates = Array(0.1, -0.5, 0.1, -0.9999999999, 0.1, _
+        -0.9999999999, -1.1, -0.9999999999)
+    reinvestRates = Array(0.12, 0.12, -0.5, 0.12, -0.9999999999, _
+        -0.9999999999, -0.9999999999, -1.1)
+    On Error Resume Next
+    For i = 0 To UBound(financeRates)
+        Err.Clear
+        result = MIRR(flows, financeRates(i), reinvestRates(i))
+        errNo = Err.Number
+        EmitValueAndType "XL-242 CASE=" & CStr(i + 1) & _
+            " FR=" & CStr(financeRates(i)) & " RR=" & CStr(reinvestRates(i)), result, errNo
     Next i
     On Error GoTo 0
 End Sub
