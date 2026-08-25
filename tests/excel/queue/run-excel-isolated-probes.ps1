@@ -16,26 +16,10 @@ if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) { throw "Isolate
 if (-not (Test-Path -LiteralPath $stampPath -PathType Leaf)) { throw "Isolated probe preparation stamp not found: $stampPath" }
 $manifest = Get-Content -LiteralPath $manifestPath -Raw | ConvertFrom-Json
 
-function Get-SourceHash {
-    $sha = [System.Security.Cryptography.SHA256]::Create()
-    try {
-        $builder = New-Object System.Text.StringBuilder
-        $sources = Get-ChildItem -LiteralPath $isolated -File |
-            Where-Object { $_.Extension -match '^\.(bas|cls|frm)$' } |
-            Sort-Object -Property Name
-        foreach ($source in $sources) {
-            $text = [System.IO.File]::ReadAllText($source.FullName, (New-Object System.Text.UTF8Encoding($false))).Replace("`r`n", "`n")
-            [void]$builder.Append($source.Name).Append("`n").Append($text).Append("`n")
-        }
-        $bytes = $sha.ComputeHash((New-Object System.Text.UTF8Encoding($false)).GetBytes($builder.ToString()))
-        return ([System.BitConverter]::ToString($bytes)).Replace('-', '').ToLowerInvariant()
-    } finally { $sha.Dispose() }
-}
-
-$currentHash = Get-SourceHash
+$currentHash = ([string]$manifest.sourceHash).ToLowerInvariant()
 $preparedHash = (Get-Content -LiteralPath $stampPath -Raw).Trim().ToLowerInvariant()
-if ($currentHash -ne $preparedHash -or $currentHash -ne ([string]$manifest.sourceHash).ToLowerInvariant()) {
-    throw "Isolated probe source is stale; regenerate on the development side with prepare-excel-vba.sh and copy isolated/*.bas plus isolated/workbooks/manifest.json, source.sha256, and *.xlsm to Windows (prepared=$preparedHash current=$currentHash)"
+if ($currentHash -ne $preparedHash) {
+    throw "Isolated probe package is stale; regenerate on the development side with prepare-excel-vba.sh and copy isolated/workbooks/manifest.json, source.sha256, and *.xlsm to Windows (prepared=$preparedHash package=$currentHash)"
 }
 foreach ($case in $manifest.cases) {
     $workbook = Join-Path $isolated $case.workbook

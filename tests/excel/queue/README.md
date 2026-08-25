@@ -80,8 +80,10 @@ PIDだけ終了し、他のExcelプロセスには触れない。
 分離結果は`IsolatedCompileProbe.result`へ集約され、末尾に
 `QUEUE_SOURCE_SHA256`と`ISOLATED_COMPILE_PROBE_COMPLETE`を持つ。既知のコンパイル失敗は
 全ケースが実行された時点で結果として扱えるため、結果の各行に対象の`XL-xxx`を含める。
-`needs-excel-probe`から`needs-excel`へ進める前に、準備スクリプトで生成した分離ソース
-ハッシュとブック群をWindowsへ渡す。
+`needs-excel-probe`から`needs-excel`へ進める前に、準備スクリプトで生成した分離
+ワークブック群と`manifest.json`、`source.sha256`をWindowsへ渡す。Windows側では
+マニフェストに記録されたパッケージハッシュをブック群の正本として検証するため、
+開発側の`isolated/*.bas`は実行先へコピーしない。
 
 各cmdは自身のディレクトリへ移動し、共通の`run-excel-queue-group.ps1`へ対象グループの
 ソース接頭辞、結果ファイル、Publicプロシージャを渡す。共通処理は準備スタンプを検証し、
