@@ -70,8 +70,8 @@ try {
             $completed = $false
             $lines.Add("HARNESS_UNVERIFIED PROBE=$($case.id) CASE=$($case.caseName) MISSING_RESULT=True")
         } elseif ($status -eq 'STATUS=run-error' -and $case.id -ne 'CONTROL') {
-            $error = ($output -split "`r?`n" | Where-Object { $_ -match '^ERROR=' } | Select-Object -First 1)
-            $message = if ($error) { $error.Substring(6) } else { 'Application.Run failed' }
+            $errorLine = ($output -split "`r?`n" | Where-Object { $_ -match '^ERROR=' } | Select-Object -First 1)
+            $message = if ($errorLine) { $errorLine.Substring(6) } else { 'Application.Run failed' }
             $message = $message.Replace("`r", ' ').Replace("`n", ' ')
             $lines.Add("$($case.id) CASE=$($case.caseName) COMPILE=ERROR MESSAGE=[$message]")
         } else {
