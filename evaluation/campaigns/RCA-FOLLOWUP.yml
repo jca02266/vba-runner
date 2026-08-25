@@ -698,3 +698,18 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/financial.test.ts
+  - id: RCA-FOLLOWUP-063
+    title: IRR and NPV ValueArray declaration type matrix
+    status: queued
+    priority: 1
+    focus: IRR・NPVのValueArrayに渡せる配列要素型とコンパイル時型検査をMIRRと横展開して照合する
+    priorCauseKey: financial-array-parameter-type-contract
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+      - tests/spec/financial.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/vba_compile_error.test.ts

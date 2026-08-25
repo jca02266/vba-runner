@@ -865,4 +865,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| RCA-FOLLOWUP-063 | 1 | queued | IRR・NPVのValueArrayに渡せる配列要素型とコンパイル時型検査をMIRRと横展開して照合する | yes |
