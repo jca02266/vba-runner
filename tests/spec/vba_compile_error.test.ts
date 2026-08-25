@@ -938,6 +938,42 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] mirr_single_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim flows(0 To 2) As Single, value As Variant
+        flows(0) = -100: flows(1) = 50: flows(2) = 100
+        value = MIRR(flows, 0.1, 0.12)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'mirr_single_array_argument');
+        console.log('[PASS] mirr_single_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] mirr_single_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] sub_call_without_required_argument
 // VBA: コンパイル エラー: 引数は省略できません。
 // VBA error line (within Sub body): 2
