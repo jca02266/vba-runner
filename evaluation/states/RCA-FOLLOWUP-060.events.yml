@@ -2,3 +2,8 @@
   evaluationId: EV-00944
   status: needs-excel-probe
   occurredAt: '2026-08-24T15:50:37.865Z'
+- candidateId: RCA-FOLLOWUP-060
+  evaluationId: EV-00944
+  status: needs-excel
+  fromStatus: needs-excel-probe
+  occurredAt: '2026-08-25T14:47:10.586Z'

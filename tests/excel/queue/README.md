@@ -21,6 +21,10 @@
 - `eval-excel.cmd`: 準備済みブックをWindows Excelで実行するバッチ
 - `eval-matrix.cmd`: FormatとRadixのマトリックスを連続実行する専用バッチ
 - `run-excel-queue-group.ps1`: 結果再利用判定からExcel実行・結果検証までを共通化したグループ実行処理
+- `isolated/`: コンパイルエラー候補を1ケース1ブックへ分離した実機プローブ
+- `prepare-excel-isolated-probes.sh`: 分離プローブのブック群とマニフェストを開発側で生成する処理
+- `run-excel-isolated-probes.ps1`: 分離ブックを個別プロセスで実行し、失敗しても次のケースへ進む集約処理
+- `run-excel-compile-probe.ps1`: 分離ブックのPublic Functionを実行する汎用子プロセス
 - `run-excel-vba.ps1`: 指定したPublicプロシージャをExcelで実行する汎用ランナー
 - `convert-to-utf8.ps1`: 結果ファイルをBOMなしUTF-8へ変換する汎用処理
 - `finalize-excel-queue.ps1`: 完了マーカーを検証し、使用したVBAソースのハッシュを結果へ付加する処理
@@ -56,6 +60,28 @@ tests\excel\queue\eval-matrix.cmd
 
 このバッチはFormat、Radixの順に各Publicプロシージャを実行し、
 `FormatMatrix.result`と`RadixMatrix.result`を個別に生成・検証する。
+
+`eval-excel.cmd`は通常キューの後に`isolated/`の分離コンパイルプローブも実行する。
+分離プローブは、1件のVBAコンパイルエラーが同じプロジェクト内の後続手続きを実行不能に
+する境界を確認するためのものである。開発側では通常キューの準備後に次を実行する。
+
+```bash
+tests/excel/queue/prepare-excel-isolated-probes.sh
+```
+
+この処理は`isolated/*.bas`ごとに`empty_with_macro.xlsm`から独立したブックを作り、
+`isolated/workbooks/manifest.json`とソースハッシュを生成する。Windows側の
+`run-excel-isolated-probes.ps1`は、マニフェストとハッシュを検証してからCONTROLを先に
+実行し、各ケースを個別のPowerShell/Excelプロセスで実行する。コンパイル失敗は
+`COMPILE=ERROR`として結果へ記録し、タイムアウトや制御ブックの失敗は
+`HARNESS_UNVERIFIED`として当該IDを未完了にする。後者ではExcelプロセスをそのケースの
+PIDだけ終了し、他のExcelプロセスには触れない。
+
+分離結果は`IsolatedCompileProbe.result`へ集約され、末尾に
+`QUEUE_SOURCE_SHA256`と`ISOLATED_COMPILE_PROBE_COMPLETE`を持つ。既知のコンパイル失敗は
+全ケースが実行された時点で結果として扱えるため、結果の各行に対象の`XL-xxx`を含める。
+`needs-excel-probe`から`needs-excel`へ進める前に、準備スクリプトで生成した分離ソース
+ハッシュとブック群をWindowsへ渡す。
 
 各cmdは自身のディレクトリへ移動し、共通の`run-excel-queue-group.ps1`へ対象グループの
 ソース接頭辞、結果ファイル、Publicプロシージャを渡す。共通処理は準備スタンプを検証し、

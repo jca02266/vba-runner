@@ -76,3 +76,7 @@ evaluation/EVAL_REPORT.html
 tests/excel/queue/t.xlsm
 tests/excel/queue/t.xlsm.bak
 tests/excel/queue/t.xlsm.source.sha256
+tests/excel/queue/isolated/workbooks/*.xlsm
+tests/excel/queue/isolated/workbooks/*.xlsm.bak
+tests/excel/queue/isolated/workbooks/manifest.json
+tests/excel/queue/isolated/workbooks/source.sha256

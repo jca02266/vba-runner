@@ -12,4 +12,6 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\run-excel-queue-group.ps1 
   -Module "ExcelQueueVerification" ^
   -CleanTemp
 if errorlevel 1 exit /b 1
+powershell -NoProfile -ExecutionPolicy Bypass -File .\run-excel-isolated-probes.ps1
+if errorlevel 1 exit /b 1
 endlocal

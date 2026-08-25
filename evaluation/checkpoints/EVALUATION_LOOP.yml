@@ -3165,3 +3165,11 @@ checkpoints:
     nextEvaluation: EV-00946
     nextCandidate: RCA-FOLLOWUP-062
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00946-isolated-probe-preparation
+    audit: "843 evaluations, 0 active claims; EV-00944とEV-00946の13ケースは通常キューへ混在させるとコンパイルエラーで後続確認を止めるため、実機結果が未取得である"
+    decision: "1ケース1ブックの分離コンパイルキューを追加し、CONTROLを先行実行してから全ケースを個別プロセスで継続実行する。タイムアウトは未検証として状態を戻す"
+    action: reconcile-excel
+    nextArea: 組み込み関数
+    nextEvaluation: EV-00944
+    nextCandidate: RCA-FOLLOWUP-060
+    coverageSnapshot: COV-2026-08-24-financial-rate

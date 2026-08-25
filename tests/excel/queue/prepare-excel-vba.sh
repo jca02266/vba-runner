@@ -71,3 +71,8 @@ cp "$queue_dir/empty_with_macro.xlsm" "$workbook"
 printf 'Prepared workbook: %s\nSource hash: %s\n' "$workbook" "$source_hash"
 printf '%s\n' "$source_hash" > "$workbook_stamp"
 printf 'Preparation stamp: %s\n' "$workbook_stamp"
+
+# Compile-error candidates use one workbook per case so a VBE compile failure
+# cannot prevent the normal queue from running.  Keep their preparation under
+# the same development-side command; Windows still receives prepared files.
+"$queue_dir/prepare-excel-isolated-probes.sh"

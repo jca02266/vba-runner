@@ -609,3 +609,52 @@ try {
 }
 
 console.log('[PASS] Radix matrix result synchronization gate');
+
+// Isolated compile probes use their own source group and completion marker;
+// they must be recognized without a generated workbook being present in CI.
+const isolatedResult = `${root}/tests/excel/queue/IsolatedCompileProbe.result`;
+const isolatedResultBody = existsSync(isolatedResult) ? readFileSync(isolatedResult, 'utf8') : null;
+const isolatedState = `${root}/evaluation/evaluations/EV-TEST-EXCEL-ISOLATED.md`;
+const isolatedStateBody = `---
+id: EV-TEST-EXCEL-ISOLATED
+candidateId: FZ-GRAMMAR-001
+campaign: FZ-GRAMMAR
+status: needs-excel
+priority: low
+focus: isolated Excel compile probe synchronization test
+area: 評価基盤
+areaSource: confirmed
+excelProbeIds:
+  - XL-246
+findings: []
+tests:
+  - tests/excel/queue/isolated/EV-00944-DYNAMIC_DOUBLE.bas
+horizontalAudit:
+  confirmed: []
+  ruledOut: []
+  unresolved:
+    - pending isolated Excel result
+---
+`;
+const isolatedSourceDir = `${root}/tests/excel/queue/isolated`;
+const isolatedSource = readdirSync(isolatedSourceDir)
+    .filter((name) => /\.(?:bas|cls|frm)$/i.test(name))
+    .sort()
+    .map((name) => `${name}\n${readFileSync(`${isolatedSourceDir}/${name}`, 'utf8').replace(/\r\n/g, '\n')}\n`)
+    .join('');
+const isolatedSourceHash = createHash('sha256').update(isolatedSource, 'utf8').digest('hex');
+writeFileSync(isolatedState, isolatedStateBody);
+try {
+    writeFileSync(isolatedResult,
+        `XL-246 CASE=DYNAMIC_DOUBLE COMPILE=ERROR MESSAGE=[compile]\n` +
+        `ISOLATED_COMPILE_PROBE_COMPLETE=True\nQUEUE_SOURCE_SHA256=${isolatedSourceHash}\n`);
+    const isolatedReady = run('excel-sync', 'EV-TEST-EXCEL-ISOLATED');
+    assert.equal(isolatedReady.status, 0, isolatedReady.stderr);
+    assert.equal(JSON.parse(isolatedReady.stdout).requiredState, 'result-ready');
+} finally {
+    if (isolatedResultBody === null) unlinkSync(isolatedResult);
+    else writeFileSync(isolatedResult, isolatedResultBody);
+    if (existsSync(isolatedState)) unlinkSync(isolatedState);
+}
+
+console.log('[PASS] Isolated Excel compile probe synchronization gate');
