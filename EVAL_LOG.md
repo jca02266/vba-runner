@@ -841,25 +841,25 @@
 | EV-00938 | RCA-FOLLOWUP | bug-found | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
 | EV-00939 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
 | EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
-| EV-00941 | RCA-FOLLOWUP | needs-excel |  | MIRRのFinanceRate=-1未満で負値NPVがゼロを横切る境界の値とError分類を照合する |
-| EV-00942 | RCA-FOLLOWUP | needs-excel |  | MIRRのReinvestRate=-1未満で正キャッシュフローNPVがゼロを横切る境界の値とError分類を照合する |
-| EV-00943 | RCA-FOLLOWUP | needs-excel |  | MIRRの巨大有限金利で有限値・非整数根・中間Overflowを区別したError分類を照合する |
+| EV-00941 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRate境界のError分類 |
+| EV-00942 | RCA-FOLLOWUP | verified-no-bug |  | MIRRのReinvestRate境界のError分類 |
+| EV-00943 | RCA-FOLLOWUP | bug-found | 1 | MIRRの巨大有限金利のError分類 |
 | EV-00944 | RCA-FOLLOWUP | needs-excel |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
-| EV-00945 | RCA-FOLLOWUP | needs-excel |  | MIRRが同じ順序のDouble配列を下限と固定長・可変長に依存せず同値評価するか照合する |
+| EV-00945 | RCA-FOLLOWUP | verified-no-bug |  | MIRR配列の下限と固定長・可変長の同値性 |
 | EV-00946 | RCA-FOLLOWUP | needs-excel |  | MIRRへ渡す多次元Double配列の受理・走査順・Error分類を1次元対照と照合する |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 6 |
+| bug-found | 8 |
 | fixed | 371 |
 | known-limit | 5 |
-| needs-excel | 6 |
+| needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 453 |
+| verified-no-bug | 455 |
 
-横展開未解決経路: 595、実Excel待ち評価: 6
+横展開未解決経路: 595、実Excel待ち評価: 2
 
 ## 次の候補
 

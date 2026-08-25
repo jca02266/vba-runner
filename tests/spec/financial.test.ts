@@ -118,8 +118,10 @@ console.log('[PASS] MIRR Excel epsilon boundary comparison');
     const ev = evalVBASingle(String.raw`
     Function ProbeMirrReinvestBoundary() As Long
         On Error Resume Next
-        Dim ignored As Double
-        ignored = MIRR(Array(-100, 100), 0.1, -1)
+        Dim flows(0 To 1) As Double, ignored As Double
+        flows(0) = -100
+        flows(1) = 100
+        ignored = MIRR(flows, 0.1, -1)
         ProbeMirrReinvestBoundary = Err.Number
     End Function
     `);

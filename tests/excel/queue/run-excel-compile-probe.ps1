@@ -43,7 +43,17 @@ public static class IsolatedExcelProcess {
     [System.IO.File]::WriteAllText($pidPath, [string]$excelPid)
     $book = $excel.Workbooks.Open((Resolve-Path -LiteralPath $Workbook).Path)
     $qualified = "$Module.$Procedure"
-    $macroNames = @("$($book.Name)!$qualified", "'$($book.Name)'!$qualified")
+    # Some Excel versions expose imported standard modules through the
+    # workbook-level macro name even when the exported Attribute VB_Name is
+    # present. Keep the qualified forms first, then use the documented
+    # workbook-level fallback before classifying the case as a run failure.
+    $macroNames = @(
+        "$($book.Name)!$qualified",
+        "'$($book.Name)'!$qualified",
+        "$($book.Name)!$Procedure",
+        "'$($book.Name)'!$Procedure",
+        $Procedure
+    )
     $runError = $null
     foreach ($macro in $macroNames) {
         try {

@@ -43,6 +43,7 @@ cp "$manifest_path" "$workbook_dir/manifest.next.json"
 source_hash=$(node -e 'process.stdout.write(require(process.argv[1]).sourceHash)' "$workbook_dir/manifest.next.json")
 if [[ -f "$manifest_path" ]] && cmp -s "$manifest_path" "$workbook_dir/manifest.next.json" \
   && [[ -f "$workbook_dir/source.sha256" ]] \
+  && [[ "$(tr -d '\\r\\n' < "$workbook_dir/source.sha256")" == "$source_hash" ]] \
   && find "$workbook_dir" -maxdepth 1 -name '*.xlsm' -print -quit | grep -q .; then
   printf 'Isolated compile probes are current: %s\n' "$source_hash"
   rm -f "$workbook_dir/manifest.next.json"

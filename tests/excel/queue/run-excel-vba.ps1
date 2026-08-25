@@ -33,7 +33,10 @@ try {
     # form only for the specific "cannot run macro" lookup failure.
     $macroCandidates = @(
         "$($book.Name)!$qualifiedProcedure",
-        "'$($book.Name)'!$qualifiedProcedure"
+        "'$($book.Name)'!$qualifiedProcedure",
+        "$($book.Name)!$Procedure",
+        "'$($book.Name)'!$Procedure",
+        $Procedure
     )
     $runSucceeded = $false
     $runError = $null

@@ -408,6 +408,18 @@ Sub Case_npv_requires_array_argument()
     value = NPV(0.5, flows) ' @error
 End Sub
 
+' CASE: mirr_requires_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+' NOTE: MIRRもNPVと同じく第1引数に配列またはユーザー定義型を要求する。
+'   Array(...)を直接渡す式はVariant配列値ではなく、VBAのコンパイル時
+'   配列引数契約を満たさないため、実行前に拒否される。
+Sub Case_mirr_requires_array_argument()
+    Dim value As Variant
+    value = MIRR(Array(-100, 50, 100), 0.1, 0.12) ' @error
+End Sub
+
 ' 実行時確認: function_call_with_excess_argument_runtime
 ' VBAではコンパイルエラーにならず、実行時エラー13（型が一致しません）になる。
 ' @errorは付けないため、vba_compile_error.test.tsには生成されない。

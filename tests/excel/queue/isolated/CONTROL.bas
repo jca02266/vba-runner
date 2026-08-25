@@ -1,6 +1,8 @@
 Attribute VB_Name = "PControl"
 Option Explicit
 
-Public Function RunCompileProbe() As String
-    RunCompileProbe = "CONTROL COMPILE=0"
-End Function
+Public Sub RunCompileProbe()
+    ' A Sub is intentionally used for the harness control call.  The
+    ' isolated runner only needs a successful Application.Run dispatch;
+    ' each probe returns its own result string.
+End Sub

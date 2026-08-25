@@ -2252,6 +2252,7 @@ export class Evaluator {
         };
 
         const hasBuiltinArrayTypeMismatch = (name: string, args: Expression[]): boolean => {
+            const builtinName = name.toLowerCase();
             const fn = this.env.getConst(name);
             const specs = typeof fn === 'function'
                 ? (fn as any).__vbaParamSpec__ as BuiltinParamSpec[] | undefined
@@ -2268,7 +2269,15 @@ export class Evaluator {
                 }
                 if (index < 0) continue;
                 const spec = specs[index];
-                if (!spec?.isArray || value.type !== 'Identifier') continue;
+                if (!spec?.isArray) continue;
+                // Excel's MIRR declaration requires an array argument at
+                // compile time.  A scalar expression such as Array(...) is
+                // a Variant array at runtime, but it does not satisfy the
+                // VBA array-parameter syntax contract.
+                if (value.type !== 'Identifier') {
+                    if (builtinName === 'mirr') return true;
+                    continue;
+                }
                 const key = (value as Identifier).name.toLowerCase();
                 if (!arrayDeclarations.has(key) && variableTypes.has(key)) return true;
             }
