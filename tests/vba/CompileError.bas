@@ -408,6 +408,47 @@ Sub Case_npv_requires_array_argument()
     value = NPV(0.5, flows) ' @error
 End Sub
 
+' CASE: irr_requires_double_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+' NOTE: IRRのValueArray()はDouble配列でなければならず、Currency配列は要素型が一致しない。
+Sub Case_irr_requires_double_array_argument()
+    Dim flows(0 To 2) As Currency, value As Variant
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    value = IRR(flows) ' @error
+End Sub
+
+' CASE: irr_variant_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+Sub Case_irr_variant_array_argument()
+    Dim flows(0 To 2) As Variant, value As Variant
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    value = IRR(flows) ' @error
+End Sub
+
+' CASE: npv_requires_double_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+Sub Case_npv_requires_double_array_argument()
+    Dim flows(0 To 2) As Currency, value As Variant
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    value = NPV(0.1, flows) ' @error
+End Sub
+
+' CASE: npv_variant_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+Sub Case_npv_variant_array_argument()
+    Dim flows(0 To 2) As Variant, value As Variant
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    value = NPV(0.1, flows) ' @error
+End Sub
+
 ' CASE: mirr_requires_array_argument
 ' TYPE: preproc
 ' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。

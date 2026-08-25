@@ -795,6 +795,150 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] irr_requires_double_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim flows(0 To 2) As Currency, value As Variant
+        flows(0) = -100: flows(1) = 50: flows(2) = 100
+        value = IRR(flows)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'irr_requires_double_array_argument');
+        console.log('[PASS] irr_requires_double_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] irr_requires_double_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] irr_variant_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim flows(0 To 2) As Variant, value As Variant
+        flows(0) = -100: flows(1) = 50: flows(2) = 100
+        value = IRR(flows)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'irr_variant_array_argument');
+        console.log('[PASS] irr_variant_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] irr_variant_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] npv_requires_double_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim flows(0 To 2) As Currency, value As Variant
+        flows(0) = -100: flows(1) = 50: flows(2) = 100
+        value = NPV(0.1, flows)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'npv_requires_double_array_argument');
+        console.log('[PASS] npv_requires_double_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] npv_requires_double_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
+// [preproc] npv_variant_array_argument
+// VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+// VBA error line (within Sub body): 3
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim flows(0 To 2) As Variant, value As Variant
+        flows(0) = -100: flows(1) = 50: flows(2) = 100
+        value = NPV(0.1, flows)
+      End Sub
+    `, '__test__', 21, /array or user-defined type|type mismatch/i, 'npv_variant_array_argument');
+        console.log('[PASS] npv_variant_array_argument');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] npv_variant_array_argument:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] mirr_requires_array_argument
 // VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
 // VBA error line (within Sub body): 2

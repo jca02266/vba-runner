@@ -2281,7 +2281,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return r;
-    }, [{ name: 'ValueArray', isArray: true }, { name: 'Guess', optional: true }]);
+    }, [{ name: 'ValueArray', isArray: true, arrayElementType: 'Double' }, { name: 'Guess', optional: true }]);
     ctx.reg('mirr', (values: any, finance_rate: any, reinvest_rate: any) => {
         const v = requireMixedCashFlows(toCashFlowValues(values));
         const fr = toNum(finance_rate), rr = toNum(reinvest_rate);
@@ -2323,7 +2323,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             result += value / Math.pow(1 + r, period++);
         }
         return finiteResult(result);
-    }, [{ name: 'Rate' }, { name: 'ValueArray', isArray: true }]);
+    }, [{ name: 'Rate' }, { name: 'ValueArray', isArray: true, arrayElementType: 'Double' }]);
     ctx.reg('ipmt', (rate: any, per: any, nper: any, pv: any, fv: any = 0, type: any = 0) => {
         const r = toNum(rate), p = toNum(per), n = toNum(nper), v = toNum(pv), f = toNum(fv), t = toPaymentType(type);
         if (!Number.isInteger(p) || p < 1 || p > n) {
