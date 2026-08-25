@@ -35,7 +35,7 @@ function Get-SourceHash {
 $currentHash = Get-SourceHash
 $preparedHash = (Get-Content -LiteralPath $stampPath -Raw).Trim().ToLowerInvariant()
 if ($currentHash -ne $preparedHash -or $currentHash -ne ([string]$manifest.sourceHash).ToLowerInvariant()) {
-    throw "Isolated probe source is stale; rerun prepare-excel-vba.sh (prepared=$preparedHash current=$currentHash)"
+    throw "Isolated probe source is stale; regenerate on the development side with prepare-excel-vba.sh and copy isolated/*.bas plus isolated/workbooks/manifest.json, source.sha256, and *.xlsm to Windows (prepared=$preparedHash current=$currentHash)"
 }
 foreach ($case in $manifest.cases) {
     $workbook = Join-Path $isolated $case.workbook
