@@ -7,3 +7,8 @@
   status: needs-excel
   fromStatus: needs-excel-probe
   occurredAt: '2026-08-25T14:47:10.586Z'
+- candidateId: RCA-FOLLOWUP-060
+  evaluationId: EV-00944
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-08-25T22:22:43.000Z'
