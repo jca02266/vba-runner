@@ -49,6 +49,8 @@ export interface BuiltinParamSpec {
     isParamArray?: boolean;
     /** The VBA declaration requires an array/UDT argument at compile time. */
     isArray?: boolean;
+    /** Element type required when isArray is true (for example MIRR Double()). */
+    arrayElementType?: string;
     /** Apply a shared VBA coercion before invoking the implementation. */
     coerce?: 'boolean' | 'string' | 'long';
 }
@@ -2309,7 +2311,7 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
         return finiteResult(result);
-    }, [{ name: 'ValueArray', isArray: true }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
+    }, [{ name: 'ValueArray', isArray: true, arrayElementType: 'Double' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
         const r = toNum(rate);

@@ -2279,7 +2279,14 @@ export class Evaluator {
                     continue;
                 }
                 const key = (value as Identifier).name.toLowerCase();
-                if (!arrayDeclarations.has(key) && variableTypes.has(key)) return true;
+                const declaration = arrayDeclarations.get(key);
+                if (!declaration) {
+                    if (spec.arrayElementType || variableTypes.has(key)) return true;
+                    continue;
+                }
+                if (spec.arrayElementType && declaration.type?.toLowerCase() !== spec.arrayElementType.toLowerCase()) {
+                    return true;
+                }
             }
             return false;
         };
