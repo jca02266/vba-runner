@@ -464,6 +464,28 @@ Sub Case_mirr_single_array_argument()
     value = MIRR(flows, 0.1, 0.12) ' @error
 End Sub
 
+' CASE: mirr_variant_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+' NOTE: MIRRのValues()はVariant()配列も受け付けない。
+Sub Case_mirr_variant_array_argument()
+    Dim flows(0 To 2) As Variant, value As Variant
+    flows(0) = -100: flows(1) = 50: flows(2) = 100
+    value = MIRR(flows, 0.1, 0.12) ' @error
+End Sub
+
+' CASE: mirr_variant_value_array_argument
+' TYPE: preproc
+' VBA: コンパイル エラー: 型が一致しません: 配列またはユーザー定義型を指定してください。
+' RUNNER: /array or user-defined type|type mismatch/i
+' NOTE: VariantにArrayを代入した変数もMIRRの静的配列引数契約を満たさない。
+Sub Case_mirr_variant_value_array_argument()
+    Dim flows As Variant, value As Variant
+    flows = Array(-100, 50, 100)
+    value = MIRR(flows, 0.1, 0.12) ' @error
+End Sub
+
 ' 実行時確認: function_call_with_excess_argument_runtime
 ' VBAではコンパイルエラーにならず、実行時エラー13（型が一致しません）になる。
 ' @errorは付けないため、vba_compile_error.test.tsには生成されない。
