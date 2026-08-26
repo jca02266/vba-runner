@@ -2,3 +2,13 @@
   evaluationId: EV-00950
   status: in-progress
   occurredAt: '2026-08-26T12:49:03.120Z'
+- candidateId: FZ-BUILTIN-154
+  evaluationId: EV-00950
+  status: needs-excel-probe
+  fromStatus: in-progress
+  occurredAt: '2026-08-26T12:51:22.896Z'
+- candidateId: FZ-BUILTIN-154
+  evaluationId: EV-00950
+  status: needs-excel
+  fromStatus: needs-excel-probe
+  occurredAt: '2026-08-26T12:52:02.103Z'
