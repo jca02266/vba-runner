@@ -1359,3 +1359,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/datediff-interval-time-matrix.test.ts
+  - id: FZ-BUILTIN-152
+    title: Filter Option Base配列境界
+    status: queued
+    priority: 1
+    focus: FilterがArray()の隠し格納スロットを結果へ混入させないこと
+    priorCauseKey: filter-vba-base-storage-slot
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/split-join.test.ts

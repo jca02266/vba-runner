@@ -97,6 +97,22 @@ console.log('--- Starting Split / Join Tests ---');
     console.log('[PASS] Split と Join の往復');
 }
 
+// Filter must ignore the hidden zero-based storage slot used when Array()
+// is evaluated under Option Base 1.
+{
+    const ev3 = evalVBA(String.raw`
+        Option Base 1
+        Function T() As String
+            Dim src As Variant, result As Variant
+            src = Array("a", "b")
+            result = Filter(src, "", True)
+            T = CStr(LBound(result)) & "|" & CStr(UBound(result)) & "|" & result(0) & "|" & result(1)
+        End Function`);
+    assert.strictEqual(ev3.callProcedure('T', []), '0|1|a|b',
+        'Filter ignores the hidden Array() storage slot under Option Base 1');
+    console.log('[PASS] Filter Option Base 1 Array boundary');
+}
+
 // --- Bug #25-5: Split の limit 引数 ---
 {
     const runFunc = (code: string, name: string, args: any[] = []) =>

@@ -1234,7 +1234,8 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const find = vbaToString(match ?? '');
         const isInclude = ctx.isTrue(include);
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
-        const result = source.filter((s: any) => {
+        const base = (source as any).vbaBase || 0;
+        const result = source.slice(base).filter((s: any) => {
             const str = vbaToString(s ?? '');
             const found = isText ? str.toLowerCase().includes(find.toLowerCase()) : str.includes(find);
             return isInclude ? found : !found;
