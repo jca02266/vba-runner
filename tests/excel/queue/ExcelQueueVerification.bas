@@ -136,10 +136,21 @@ Public Sub RunExcelQueueVerification()
     VerifyUdtObjectArraySet
     VerifyOpaqueShape
     VerifyPowerOperatorBoundary
+    VerifyUnallocatedArrayBounds
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyUnallocatedArrayBounds()
+    Dim values() As Long, lower As Long, upper As Long, errNo As Long
+    On Error Resume Next
+    Err.Clear: lower = LBound(values): errNo = Err.Number
+    EmitResult "XL-250 LBOUND=" & CStr(lower) & " ERR=" & CStr(errNo)
+    Err.Clear: upper = UBound(values): errNo = Err.Number
+    EmitResult "XL-250 UBOUND=" & CStr(upper) & " ERR=" & CStr(errNo)
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifySydDomainBoundaryMatrix()
