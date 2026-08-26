@@ -1377,3 +1377,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/split-join.test.ts
+  - id: FZ-BUILTIN-154
+    title: 未割当動的配列の境界取得
+    status: queued
+    priority: 1
+    focus: ReDim前のLBound/UBoundとError 9
+    priorCauseKey: unallocated-array-boundary
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
