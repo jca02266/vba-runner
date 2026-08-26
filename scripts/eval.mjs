@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import process from 'node:process';
+import { execFileSync } from 'node:child_process';
 import * as yaml from 'js-yaml';
 import { inferEvaluationArea, VALID_EVALUATION_AREAS } from './eval-areas.mjs';
 
@@ -29,10 +30,36 @@ const statuses = new Set([
 ]);
 const finalEvaluationStatuses = new Set(['verified-no-bug', 'fixed', 'known-limit', 'retired']);
 const terminalJudgmentStatuses = new Set([...finalEvaluationStatuses, 'bug-found']);
+const htmlReportFile = path.join(evalRoot, 'EVAL_REPORT.html');
 
 function fail(message) {
   console.error(`eval: ${message}`);
   process.exitCode = 1;
+}
+
+function reportCheck() {
+  execFileSync(process.execPath, [path.join(root, 'scripts', 'eval-report.mjs'), '--output', htmlReportFile], {
+    cwd: root,
+    stdio: 'ignore',
+  });
+  const html = fs.readFileSync(htmlReportFile, 'utf8');
+  const records = readRecords().map(({ data }) => data);
+  const expected = {
+    evaluations: records.length,
+    needsExcel: records.filter(({ status }) => status === 'needs-excel').length,
+    bugFound: records.filter(({ status }) => status === 'bug-found').length,
+  };
+  const actual = {
+    evaluations: Number(html.match(/評価件数:\s*([0-9]+)/)?.[1]),
+    needsExcel: Number(html.match(/needs-excel件数:\s*([0-9]+)/)?.[1]),
+    bugFound: Number(html.match(/bug-found件数:\s*([0-9]+)/)?.[1]),
+  };
+  for (const [key, value] of Object.entries(expected)) {
+    if (actual[key] !== value) {
+      throw new Error(`evaluation report is stale for ${key}: expected ${value}, got ${actual[key]}`);
+    }
+  }
+  console.log(`report check passed: evaluations=${actual.evaluations}, needs-excel=${actual.needsExcel}, bug-found=${actual.bugFound}`);
 }
 
 function files(dir, suffix) {
@@ -1257,7 +1284,7 @@ function classifyAreas(dryRun = false, refreshInferred = false) {
 }
 
 function usage() {
-  console.log('Usage: node scripts/eval.mjs <audit|validate|render|classify|next|context|claim|release|complete|transition|rollback|excel-sync|remediation-next|remediation-context> [args]');
+  console.log('Usage: node scripts/eval.mjs <audit|validate|report-check|render|classify|next|context|claim|release|complete|transition|rollback|excel-sync|remediation-next|remediation-context> [args]');
 }
 
 try {
@@ -1265,6 +1292,8 @@ try {
   if (command === 'validate') {
     const records = validate();
     console.log(`validated ${records.length} evaluation records`);
+  } else if (command === 'report-check') {
+    reportCheck();
   } else if (command === 'audit') {
     audit();
   } else if (command === 'render') {

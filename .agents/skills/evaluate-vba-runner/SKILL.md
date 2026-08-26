@@ -237,8 +237,9 @@ maintain a second copy here.
    `node scripts/eval-report.mjs --output evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit
    it. Before reporting any pending count or selecting the next candidate,
-   confirm that the refreshed report reflects the current `eval validate` and
-   `eval audit` state; never use an older HTML report.
+   run `node scripts/eval.mjs report-check`. This command regenerates the HTML
+   and compares its evaluation, `needs-excel`, and `bug-found` counts with the
+   current records; stop on mismatch instead of relying on manual inspection.
 9.5. After the post-commit 30-minute wait has completed, perform a mandatory
    convergence checkpoint **before** obtaining the next evaluation candidate.
    This is a required decision step on every loop, not an optional status
