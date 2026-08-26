@@ -2120,6 +2120,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
     };
     const toCashFlowValues = (values: any): number[] => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");
+        const dimensions = (values as any).__vbaDimensions__;
+        if ((Array.isArray(dimensions) && dimensions.length > 1) || values.some((item: any) => Array.isArray(item))) {
+            ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
+        }
         const base: number = (values as any).vbaBase ?? 0;
         return Array.from({ length: values.length - base }, (_, i) => toNum(values[base + i]));
     };

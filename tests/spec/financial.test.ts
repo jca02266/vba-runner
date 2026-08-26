@@ -81,8 +81,8 @@ console.log('[PASS] 減価償却関数 (SLN, SYD, DDB)');
 const cashCode = `
     Public resIRR, resNPV
     Sub Test()
-        Dim v
-        v = Array(-10000, 3000, 4200, 6800)
+        Dim v(0 To 3) As Double
+        v(0) = -10000: v(1) = 3000: v(2) = 4200: v(3) = 6800
         resIRR = IRR(v)
         resNPV = NPV(0.1, v)
     End Sub
@@ -92,6 +92,22 @@ ev3.callProcedure('Test', []);
 assert.ok(Math.abs(ev3.env.get('resirr') - 0.16) < 0.05, 'IRR');
 assert.ok(Math.abs(ev3.env.get('resnpv') - 1188) < 100, 'NPV');
 console.log('[PASS] キャッシュフロー関数 (IRR, NPV)');
+
+// Excel rejects multidimensional ValueArray arguments with Error 5.
+{
+    const ev = evalVBASingle(String.raw`
+    Public result
+    Sub Test()
+        Dim flows(0 To 1, 0 To 1) As Double
+        On Error Resume Next
+        result = MIRR(flows, 0.1, 0.12)
+        result = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 5, 'MIRR multidimensional array Error 5');
+}
+console.log('[PASS] MIRR multidimensional array error classification');
 
 // Excel may retain a machine-epsilon residue where the runner rounds MIRR to
 // zero. Compare this boundary with the shared absolute/relative policy rather
