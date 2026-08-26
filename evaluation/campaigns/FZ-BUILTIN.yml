@@ -1370,7 +1370,7 @@ items:
       - tests/spec/split-join.test.ts
   - id: FZ-BUILTIN-153
     title: Join多次元配列境界
-    status: fixed
+    status: queued
     priority: 1
     focus: Joinが1次元配列契約を守ること
     priorCauseKey: join-array-rank-contract
