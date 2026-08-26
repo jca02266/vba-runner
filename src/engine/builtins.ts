@@ -2301,9 +2301,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         const periods = v.length - 1;
         const npvNeg = vbaFinancialNpv(fr, v, (value) => value < 0);
         const npvPos = vbaFinancialNpv(rr, v, (value) => value > 0);
-        if (!Number.isFinite(npvNeg) || !Number.isFinite(npvPos) || npvNeg === 0) {
+        if (!Number.isFinite(npvNeg) || !Number.isFinite(npvPos)) {
             invalidFinancialArg();
         }
+        if (npvNeg === 0) ctx.throwError(VbaErrorCode.DIVISION_BY_ZERO, 'Division by zero');
         // VBA's financial runtime raises the reinvestment factor to the array
         // length after its one-based NPV recurrence. Repeated multiplication
         // avoids V8 Math.pow's one-ulp difference from the native integer power.
@@ -2311,10 +2312,10 @@ export function registerFinancialFunctions(ctx: StdlibCtx): void {
         for (let i = 0; i < v.length; i++) reinvestmentPower *= 1 + rr;
         const ratio = -npvPos * reinvestmentPower / (npvNeg * (fr + 1));
         const result = Math.pow(ratio, 1 / periods) - 1;
-        if (!Number.isFinite(result)) {
+        if (Number.isNaN(result)) {
             ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         }
-        return finiteResult(result);
+        return result;
     }, [{ name: 'ValueArray', isArray: true, arrayElementType: 'Double' }, { name: 'FinanceRate' }, { name: 'ReinvestRate' }]);
     ctx.reg('npv', (rate: any, values: any) => {
         if (!Array.isArray(values)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, "Type mismatch");

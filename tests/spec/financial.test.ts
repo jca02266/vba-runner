@@ -165,6 +165,38 @@ console.log('[PASS] MIRR ReinvestRate boundary error');
 }
 console.log('[PASS] MIRR FinanceRate zero-denominator boundary');
 
+// Excel reports Division by zero when the negative NPV is exactly zero.
+{
+    const ev = evalVBASingle(String.raw`
+    Public result
+    Sub Test()
+        Dim flows(0 To 2) As Double
+        flows(0) = -100: flows(1) = -50: flows(2) = 200
+        On Error Resume Next
+        result = MIRR(flows, -1.5, 0.1)
+        result = Err.Number
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), 11, 'MIRR zero negative NPV is Error 11');
+}
+console.log('[PASS] MIRR zero-NPV division error classification');
+
+// Excel preserves a positive Infinity result for the extreme reinvestment boundary.
+{
+    const ev = evalVBASingle(String.raw`
+    Public result
+    Sub Test()
+        Dim flows(0 To 3) As Double
+        flows(0) = -100: flows(1) = -50: flows(2) = 50: flows(3) = 100
+        result = MIRR(flows, 0.1, 1E+100)
+    End Sub
+    `);
+    ev.callProcedure('Test', []);
+    assert.strictEqual(ev.env.get('result'), Infinity, 'MIRR extreme reinvestment returns Infinity');
+}
+console.log('[PASS] MIRR extreme reinvestment Infinity result');
+
 // The initial negative cash flow is enough for Excel to reject FinanceRate=-1.
 {
     const ev = evalVBASingle(String.raw`
