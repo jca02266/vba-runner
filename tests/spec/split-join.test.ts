@@ -90,6 +90,19 @@ console.log('--- Starting Split / Join Tests ---');
     console.log('[PASS] Join');
 }
 
+{
+    const ev4 = evalVBA(String.raw`
+        Function T() As Long
+            Dim a(0 To 1, 0 To 1) As String, value As String
+            On Error Resume Next
+            value = Join(a, ",")
+            T = Err.Number
+        End Function`);
+    assert.strictEqual(ev4.callProcedure('T', []), 13,
+        'Join rejects multidimensional arrays');
+    console.log('[PASS] Join multidimensional array boundary');
+}
+
 // --- Split と Join の往復 ---
 {
     assert.strictEqual(ev(`Join(Split("a,b,c", ","), "-")`), 'a-b-c', 'Split→Join 区切り変更');

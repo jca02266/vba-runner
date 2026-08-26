@@ -1124,6 +1124,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
     ctx.reg('join', (arr: any, del: any = ' ') => {
         if (del === vbaNull) return vbaNull;
         if (!Array.isArray(arr)) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        const dimensions = (arr as any).__vbaDimensions__;
+        if (Array.isArray(dimensions) && dimensions.length > 1) {
+            ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
+        }
         const base = (arr as any).vbaBase || 0;
         const elems = arr.slice(base).map((el: any) => {
             if (el === vbaNull) ctx.throwError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
