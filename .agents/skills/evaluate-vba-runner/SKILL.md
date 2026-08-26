@@ -232,11 +232,13 @@ maintain a second copy here.
    Do not erase or overwrite the prior result event. Use rollback only to
    correct an existing evaluation; a new behavior or expectation requires a
    new candidate and EV.
-9. After each evaluation commit, refresh the local HTML report with
+9. After every commit that changes an evaluation, candidate state, result, or
+   event, refresh the local HTML report with
    `node scripts/eval-report.mjs --output evaluation/EVAL_REPORT.html`.
    The HTML is generated output and is ignored by Git; do not stage or commit
-   it. Use the refreshed report for the next loop's status and convergence
-   review.
+   it. Before reporting any pending count or selecting the next candidate,
+   confirm that the refreshed report reflects the current `eval validate` and
+   `eval audit` state; never use an older HTML report.
 9.5. After the post-commit 30-minute wait has completed, perform a mandatory
    convergence checkpoint **before** obtaining the next evaluation candidate.
    This is a required decision step on every loop, not an optional status
