@@ -576,14 +576,22 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     };
 
-    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, _cancellation) => {
+    testController.createRunProfile('Run', vscode.TestRunProfileKind.Run, async (request, cancellation) => {
         const run = testController.createTestRun(request);
-        const items = request.include?.length ? request.include : [...testController.items].map(([, item]) => item);
+        const roots = request.include?.length ? request.include : [...testController.items].map(([, item]) => item);
+        const items: vscode.TestItem[] = [];
+        const flatten = (item: vscode.TestItem) => {
+            if (item.children.size === 0) items.push(item);
+            else item.children.forEach(flatten);
+        };
+        roots.forEach(flatten);
         for (const item of items) {
+            if (cancellation.isCancellationRequested) break;
             run.started(item);
             const uri = item.uri?.toString();
             if (uri) {
-                const results = lspServer.runTests(uri);
+                const result = lspServer.runTest(uri, item.label);
+                const results = result ? [result] : [];
                 lspServer.setTestResults(uri, results);
                 codeLensChangeEmitter.fire();
                 for (const result of results) {

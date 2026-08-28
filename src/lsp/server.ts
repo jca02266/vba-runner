@@ -653,6 +653,19 @@ export class LSPServer {
         return this.testRunner.runTests(doc.content, moduleName, uri.toLowerCase().endsWith('.cls'));
     }
 
+    /** Run one discovered test without re-running its sibling procedures. */
+    runTest(uri: string, testName: string): any {
+        const doc = this.documents.get(uri);
+        if (!doc) return null;
+        const moduleName = path.basename(uriToPath(uri)).replace(/\.[^.]+$/, '');
+        return this.testRunner.runTestWithEvaluation(
+            doc.content,
+            testName,
+            moduleName,
+            uri.toLowerCase().endsWith('.cls'),
+        );
+    }
+
     /**
      * Get diagnostics (parse errors/warnings) for document
      */

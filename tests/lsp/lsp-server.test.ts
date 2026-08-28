@@ -299,6 +299,23 @@ End Sub`;
     console.log('[PASS] runTests normalizes VBE-exported class modules');
 }
 
+// 11b. runTest executes only the requested test item
+{
+    const server = createServer();
+    const uri = 'file:///targeted.bas';
+    const code = String.raw`Sub Test_Pass()
+End Sub
+
+Sub Test_Fail()
+    Err.Raise 5, , "must not run"
+End Sub`;
+    server.didOpen(uri, code);
+    const result = server.runTest(uri, 'Test_Pass');
+    assert.strictEqual(result.name, 'Test_Pass', 'targeted test name');
+    assert.strictEqual(result.state, 'passed', 'targeted test passes without running sibling');
+    console.log('[PASS] runTest executes one requested test');
+}
+
 // 12. createDebugAdapter creates adapter for document
 {
     const server = createServer();
