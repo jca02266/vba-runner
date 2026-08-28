@@ -832,37 +832,39 @@
 | EV-00929 | FZ-COVERAGE-20260823 | fixed | 1 | 空のFOREIGN-NAMEとforeign-identifier最小長のLexer境界 |
 | EV-00930 | FZ-COVERAGE-20260823 | verified-no-bug |  | NPerの極端な利率・FV・符号反転における定義域とOverflow分類 |
 | EV-00931 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | SYDのLife・Period・Cost・Salvage境界における領域エラーとOverflow分類 |
-| EV-00932 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
-| EV-00933 | RCA-FOLLOWUP | bug-found | 1 | MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する |
+| EV-00932 | RCA-FOLLOWUP | fixed | 1 | MIRRのReinvestRate境界をキャッシュフロー形状ごとに照合する |
+| EV-00933 | RCA-FOLLOWUP | fixed | 1 | MIRRのReinvestRate近傍を期間数・正キャッシュフロー位置別に横展開する |
 | EV-00934 | RCA-FOLLOWUP | verified-no-bug | 1 | MIRR近傍の成長係数・終端価値・負値現在価値をExcelとRunnerで分解照合する |
-| EV-00935 | RCA-FOLLOWUP | bug-found | 1 | MIRRの2進正確値と10進近傍値で手計算値・組み込み値の乖離開始点を照合する |
+| EV-00935 | RCA-FOLLOWUP | fixed | 1 | MIRRの2進正確値と10進近傍値で手計算値・組み込み値の乖離開始点を照合する |
 | EV-00936 | RCA-FOLLOWUP | verified-no-bug | 1 | MIRRの一様な2進スケーリングに対する結果不変性を照合する |
-| EV-00937 | RCA-FOLLOWUP | bug-found | 1 | MIRRの期間数増加に対する近傍金利の数値安定性を照合する |
-| EV-00938 | RCA-FOLLOWUP | bug-found | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
-| EV-00939 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
+| EV-00937 | RCA-FOLLOWUP | fixed | 1 | MIRRの期間数増加に対する近傍金利の数値安定性を照合する |
+| EV-00938 | RCA-FOLLOWUP | fixed | 1 | MIRRの正負キャッシュフロー位置による近傍金利結果を照合する |
+| EV-00939 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRateとReinvestRate相互作用を近傍値と通常値で照合する |
 | EV-00940 | RCA-FOLLOWUP | fixed | 1 | VBA互換の拡張精度NPV漸化式でMIRR近傍金利の有限値差を解消する |
-| EV-00941 | RCA-FOLLOWUP | bug-found | 1 | MIRRのFinanceRate境界のError分類 |
+| EV-00941 | RCA-FOLLOWUP | fixed | 1 | MIRRのFinanceRate境界のError分類 |
 | EV-00942 | RCA-FOLLOWUP | verified-no-bug |  | MIRRのReinvestRate境界のError分類 |
-| EV-00943 | RCA-FOLLOWUP | bug-found | 1 | MIRRの巨大有限金利のError分類 |
-| EV-00944 | RCA-FOLLOWUP | needs-excel |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
+| EV-00943 | RCA-FOLLOWUP | fixed | 1 | MIRRの巨大有限金利のError分類 |
+| EV-00944 | RCA-FOLLOWUP | verified-no-bug |  | MIRRのValueArrayに渡せる配列宣言型とコンパイル時型検査をマトリクスで照合する |
 | EV-00945 | RCA-FOLLOWUP | verified-no-bug |  | MIRR配列の下限と固定長・可変長の同値性 |
-| EV-00946 | RCA-FOLLOWUP | needs-excel |  | MIRRへ渡す多次元Double配列の受理・走査順・Error分類を1次元対照と照合する |
+| EV-00946 | RCA-FOLLOWUP | fixed |  | MIRRへ渡す多次元Double配列の受理・走査順・Error分類を1次元対照と照合する |
+| EV-00947 | RCA-FOLLOWUP | verified-no-bug |  | IRR・NPVのValueArrayに渡せる配列要素型とコンパイル時型検査をMIRRと横展開して照合する |
+| EV-00948 | FZ-BUILTIN | fixed |  | Filter Option Base配列境界 |
+| EV-00949 | FZ-BUILTIN | fixed |  | Join多次元配列境界 |
+| EV-00950 | FZ-BUILTIN | verified-no-bug |  | 未割当動的配列の境界取得 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 8 |
-| fixed | 371 |
+| fixed | 382 |
 | known-limit | 5 |
-| needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 455 |
+| verified-no-bug | 458 |
 
-横展開未解決経路: 595、実Excel待ち評価: 2
+横展開未解決経路: 597、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-FOLLOWUP-063 | 1 | queued | IRR・NPVのValueArrayに渡せる配列要素型とコンパイル時型検査をMIRRと横展開して照合する | yes |
+| (none) | | | | |
