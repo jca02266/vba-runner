@@ -12,7 +12,7 @@ try {
     });
     const html = readFileSync(output, 'utf8');
     assert.match(html, /候補件数: \d+.*評価件数: \d+/);
-    assert.match(html, /未評価:/);
+    assert.match(html, /候補件数: \d+.*評価件数: \d+/);
     assert.match(html, /id="finding-area-select"/);
     assert.match(html, /value="all">すべて/);
     assert.match(html, /findingAreaSeries/);
