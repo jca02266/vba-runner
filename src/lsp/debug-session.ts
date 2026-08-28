@@ -45,6 +45,11 @@ export class VBADebugSession extends EventEmitter {
     private currentFrames: SessionStackFrame[] = [];
     private breakpoints: Map<string, SessionBreakpoint> = new Map();
     private bpCounter = 0;
+    private evaluationCounter = 0;
+    private pendingEvaluations = new Map<number, {
+        resolve: (value: { result: string; type: string }) => void;
+        reject: (reason: Error) => void;
+    }>();
 
     constructor(
         private readonly source: string,
@@ -78,8 +83,14 @@ export class VBADebugSession extends EventEmitter {
         } else {
             const tsWorkerPath = path.join(import.meta.dirname, 'debug-worker.ts');
             const tsxCjsPath = path.join(import.meta.dirname, '../../node_modules/tsx/dist/cjs/index.cjs');
+            // Force the eval worker to CommonJS: package-level ESM otherwise
+            // leaves the tsx CJS hook without `require`.
             const evalCode = `require(${JSON.stringify(tsxCjsPath)});require(${JSON.stringify(tsWorkerPath)});`;
-            worker = new Worker(evalCode, { eval: true, workerData });
+            worker = new Worker(evalCode, {
+                eval: true,
+                workerData,
+                execArgv: ['--input-type=commonjs'],
+            });
         }
         this.worker = worker;
 
@@ -112,6 +123,14 @@ export class VBADebugSession extends EventEmitter {
                 case 'error':
                     this.emit('runtimeError', msg.message);
                     break;
+                case 'evaluateResult': {
+                    const pending = this.pendingEvaluations.get(msg.requestId);
+                    if (!pending) break;
+                    this.pendingEvaluations.delete(msg.requestId);
+                    if (msg.ok) pending.resolve({ result: msg.result, type: msg.valueType });
+                    else pending.reject(new Error(msg.error ?? 'Expression evaluation failed'));
+                    break;
+                }
             }
         });
 
@@ -173,6 +192,16 @@ export class VBADebugSession extends EventEmitter {
     getState(): SessionState { return this.state; }
     getCurrentLine(): number { return this.currentLine; }
     getVariables(_frameId: number): SessionVariable[] { return this.currentVariables; }
+    evaluateExpression(expression: string): Promise<{ result: string; type: string }> {
+        if (!this.worker || this.state !== 'paused') {
+            return Promise.reject(new Error('Expressions can only be evaluated while paused'));
+        }
+        const requestId = ++this.evaluationCounter;
+        return new Promise((resolve, reject) => {
+            this.pendingEvaluations.set(requestId, { resolve, reject });
+            this.worker!.postMessage({ type: 'evaluate', requestId, expression });
+        });
+    }
     getStackFrames(): SessionStackFrame[] { return this.currentFrames; }
     getThreads(): Array<{ id: number; name: string }> {
         return [{ id: 1, name: 'Main Thread' }];

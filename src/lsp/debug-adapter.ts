@@ -168,12 +168,16 @@ export class DebugAdapter {
         return {};
     }
 
-    handleEvaluate(_expression: string, _frameId: number, _context?: string): any {
-        return {
-            result: '(evaluation not supported in current version)',
-            type: 'string',
-            variablesReference: 0,
-        };
+    async handleEvaluate(expression: string, _frameId: number, _context?: string): Promise<any> {
+        if (!this.session) {
+            return { success: false, error: 'Debug session is not running' };
+        }
+        try {
+            const value = await this.session.evaluateExpression(expression);
+            return { ...value, variablesReference: 0 };
+        } catch (error: any) {
+            return { success: false, error: error?.message ?? String(error) };
+        }
     }
 
     handleSetVariable(_frameId: number, _name: string, _value: string): any {
@@ -186,7 +190,7 @@ export class DebugAdapter {
         return { success: true };
     }
 
-    handleRequest(request: DebugRequest): any {
+    async handleRequest(request: DebugRequest): Promise<any> {
         switch (request.command) {
             case 'initialize':
                 return this.handleInitialize();

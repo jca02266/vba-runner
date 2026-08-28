@@ -93,16 +93,25 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Step over request');
 }
 
-// 9. Evaluate request
-{
-    const code = 'Sub Test()\nEnd Sub';
+// 9. Evaluate request while paused
+await (async () => {
+    const code = 'Sub Test()\n  Dim x As Long\n  x = 41\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleEvaluate('x + 1', 0);
+    const stopped = new Promise<void>((resolve) => {
+        adapter.onEvent = (event) => {
+            if (event.event === 'stopped') resolve();
+        };
+    });
+    adapter.handleLaunch({});
+    await stopped;
+    const response = await adapter.handleEvaluate('1 + 1', 0);
     assert.ok(response, 'evaluate response');
-    assert.ok(typeof response.result === 'string', 'result is string');
-    console.log('[PASS] Evaluate request');
-}
+    assert.strictEqual(response.result, '2', 'evaluated expression result');
+    assert.strictEqual(response.type, 'Long', 'evaluated expression type');
+    adapter.handleDisconnect();
+    console.log('[PASS] Evaluate request while paused');
+})();
 
 // 10. Disconnect request
 {

@@ -40,11 +40,11 @@ class VBAInlineDebugAdapter implements vscode.DebugAdapter {
         };
     }
 
-    handleMessage(message: vscode.DebugProtocolMessage): void {
+    async handleMessage(message: vscode.DebugProtocolMessage): Promise<void> {
         const msg = message as any;
         if (msg.type !== 'request') return;
 
-        const result = this.adapter.handleRequest({ command: msg.command, arguments: msg.arguments });
+        const result = await this.adapter.handleRequest({ command: msg.command, arguments: msg.arguments });
         const success = result == null || result.success !== false;
 
         this._send({

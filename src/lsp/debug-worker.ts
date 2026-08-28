@@ -29,13 +29,15 @@ let startCallDepth = 0;
 let pauseAfterCurrent = false;
 const breakpointLines = new Set<number>();
 let isFirstPause = true;
+let activeEvaluator: Evaluator | null = null;
+let isEvaluatingExpression = false;
 
 /**
  * Atomics.wait はスレッドをブロックするためイベントループが止まり、
  * parentPort の 'message' イベントが発火しない。
  * receiveMessageOnPort で同期的にキューを読み、setBreakpoints / pause を処理する。
  */
-function processMessages(): void {
+function processMessages(env?: Environment, evaluator?: Evaluator): void {
     while (true) {
         const received = receiveMessageOnPort(parentPort as MessagePort);
         if (!received) break;
@@ -45,6 +47,34 @@ function processMessages(): void {
             for (const line of msg.lines as number[]) breakpointLines.add(line);
         } else if (msg.type === 'pause') {
             pauseAfterCurrent = true;
+        } else if (msg.type === 'evaluate' && env && evaluator) {
+            const previousEnv = evaluator.env;
+            try {
+                evaluator.env = env;
+                isEvaluatingExpression = true;
+                // DAP evaluate is explicitly an expression context. Wrapping
+                // it removes VBA's statement-vs-expression ambiguity for
+                // inputs such as `x + 1`.
+                const value = evaluator.evalExpression(`(${String(msg.expression ?? '')})`);
+                isEvaluatingExpression = false;
+                evaluator.env = previousEnv;
+                parentPort!.postMessage({
+                    type: 'evaluateResult',
+                    requestId: msg.requestId,
+                    ok: true,
+                    result: formatValue(value),
+                    valueType: getTypeName(value),
+                });
+            } catch (error: any) {
+                isEvaluatingExpression = false;
+                evaluator.env = previousEnv;
+                parentPort!.postMessage({
+                    type: 'evaluateResult',
+                    requestId: msg.requestId,
+                    ok: false,
+                    error: error?.vbaBareMessage ?? error?.message ?? String(error),
+                });
+            }
         }
     }
 }
@@ -114,8 +144,9 @@ const hook: DebugHook = {
         env: Environment,
         callStack: ReadonlyArray<{ name: string; moduleName: string; line: number }>
     ) {
+        if (isEvaluatingExpression) return;
         // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
-        processMessages();
+        processMessages(env, activeEvaluator ?? undefined);
 
         if (!shouldPause(line, callDepth)) return;
 
@@ -133,8 +164,12 @@ const hook: DebugHook = {
 
         parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frames, reason });
 
-        // main スレッドからのコマンドを待つ
-        Atomics.wait(control, 0, CMD_WAIT);
+        // main スレッドからのコマンドを待つ。タイムアウトを設けて
+        // evaluate要求などのMessagePortも停止中に処理する。
+        while (Atomics.load(control, 0) === CMD_WAIT) {
+            processMessages(env, activeEvaluator ?? undefined);
+            Atomics.wait(control, 0, CMD_WAIT, 50);
+        }
         const cmd = Atomics.load(control, 0);
 
         if (cmd === CMD_TERMINATE) {
@@ -146,7 +181,7 @@ const hook: DebugHook = {
         Atomics.store(control, 0, CMD_WAIT);
 
         // Atomics.wait 復帰後のキューも処理（Resume 直後の setBreakpoints など）
-        processMessages();
+        processMessages(env, activeEvaluator ?? undefined);
     },
 };
 
@@ -160,6 +195,7 @@ try {
         (text) => parentPort!.postMessage({ type: 'output', text }),
         { fs: new MemoryFileSystem(), allowTopLevelStatements: false }
     );
+    activeEvaluator = evaluator;
     evaluator.setDebugHook(hook);
     evaluator.setSourceModule(moduleName || 'Module1');
     evaluator.evaluateModule(ast);

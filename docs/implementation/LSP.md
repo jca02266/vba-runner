@@ -285,6 +285,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `stackTrace` | コールスタック |
 | `scopes` | スコープ一覧（Locals） |
 | `variables` | 変数一覧 |
+| `evaluate` | 停止中の現在スコープでVBA式を評価（ウォッチ式） |
 | `continue` | 実行継続、`stopped(step)` 送出 |
 | `next` | ステップオーバー、`stopped(step)` 送出 |
 | `stepIn` / `stepOut` | ステップイン/アウト |
@@ -303,6 +304,9 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 **実装ファイル:**
 - `src/lsp/debug-adapter.ts` — DAP ロジック本体
 - `src/lsp/vscode-debug-adapter.ts` — VS Code `DebugAdapterDescriptorFactory` / `DebugAdapter` ラッパー
+
+`evaluate` は停止中のWorkerへ式を転送し、現在の環境で評価した値とVBA型名を返す。
+DAPの評価コンテキストを明確にするため、入力式は括弧で囲んで評価される。
 
 **テスト:** `tests/lsp/lsp-debug-adapter.test.ts`, `tests/lsp/lsp-debugger.test.ts`
 
