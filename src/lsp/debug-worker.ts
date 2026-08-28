@@ -31,6 +31,9 @@ const breakpointLines = new Set<number>();
 let isFirstPause = true;
 let activeEvaluator: Evaluator | null = null;
 let isEvaluatingExpression = false;
+let lastLine = 0;
+let lastFrames: Array<{ id: number; name: string; source: string; line: number; column: number }> = [];
+let lastVariables: Array<{ name: string; value: string; type: string }> = [];
 
 /**
  * Atomics.wait はスレッドをブロックするためイベントループが止まり、
@@ -145,19 +148,22 @@ const hook: DebugHook = {
         callStack: ReadonlyArray<{ name: string; moduleName: string; line: number }>
     ) {
         if (isEvaluatingExpression) return;
-        // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
-        processMessages(env, activeEvaluator ?? undefined);
-
-        if (!shouldPause(line, callDepth)) return;
-
-        const variables = extractVariables(env);
-        const frames = callStack.map((frame, i) => ({
+        lastLine = line;
+        lastVariables = extractVariables(env);
+        lastFrames = callStack.map((frame, i) => ({
             id: i,
             name: frame.name,
             source: frame.moduleName,
             line: i === callStack.length - 1 ? line : frame.line,
             column: 0,
         }));
+        // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
+        processMessages(env, activeEvaluator ?? undefined);
+
+        if (!shouldPause(line, callDepth)) return;
+
+        const variables = lastVariables;
+        const frames = lastFrames;
 
         const reason = isFirstPause ? 'entry' : (breakpointLines.has(line) ? 'breakpoint' : 'step');
         isFirstPause = false;
@@ -248,7 +254,13 @@ try {
         parentPort!.postMessage({ type: 'exited', exitCode: 0 });
     } else {
         const msg = e instanceof Error ? e.message : String(e);
-        parentPort!.postMessage({ type: 'error', message: msg });
+        parentPort!.postMessage({
+            type: 'error',
+            message: msg,
+            line: lastLine,
+            frames: lastFrames,
+            variables: lastVariables,
+        });
         parentPort!.postMessage({ type: 'exited', exitCode: 1 });
     }
 }

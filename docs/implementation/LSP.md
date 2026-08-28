@@ -289,6 +289,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `continue` | 実行継続、`stopped(step)` 送出 |
 | `next` | ステップオーバー、`stopped(step)` 送出 |
 | `stepIn` / `stepOut` | ステップイン/アウト |
+| 実行時エラー | `stopped(exception)` として発生行・スタックを通知し、実行時エラーを出力 |
 | `disconnect` | 終了、`terminated` イベント送出 |
 
 **起動設定（`.vscode/launch.json`）:**

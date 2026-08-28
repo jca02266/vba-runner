@@ -357,7 +357,38 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
-// 10. 出力が output イベントで通知される
+// 10. 実行時エラーは発生行で停止する
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Err.Raise 5, , "boom"', // line 2
+        'End Sub',
+    ].join('\n');
+
+    const session = new VBADebugSession(src, 'Module1');
+    await startAndWait(session);
+
+    const exception = new Promise<any>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('timeout waiting for exception stop')), TIMEOUT_MS);
+        session.on('stopped', (info: any) => {
+            if (info.reason !== 'exception') return;
+            clearTimeout(timer);
+            resolve(info);
+        });
+    });
+    session.stepInto();
+    const info = await exception;
+
+    assert.strictEqual(info.line, 2, 'exception stop reports the raising line');
+    assert.strictEqual(session.getCurrentLine(), 2, 'session keeps the raising line');
+    assert.ok(session.getStackFrames().length >= 1, 'exception stop keeps a stack frame');
+
+    console.log('[PASS] Runtime errors stop at the raising statement');
+}
+
+// ──────────────────────────────────────────────
+// 11. 出力が output イベントで通知される
 // ──────────────────────────────────────────────
 {
     const src = [

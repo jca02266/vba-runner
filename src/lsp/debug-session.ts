@@ -121,6 +121,15 @@ export class VBADebugSession extends EventEmitter {
                     this.emit('exited', msg.exitCode ?? 0);
                     break;
                 case 'error':
+                    if (msg.line) {
+                        this.state = 'paused';
+                        this.currentLine = msg.line;
+                        this.currentFrames = msg.frames ?? [];
+                        this.currentVariables = (msg.variables ?? []).map((v: any) => ({
+                            ...v, variablesReference: 0,
+                        }));
+                        this.emit('stopped', { reason: 'exception', line: msg.line });
+                    }
                     this.emit('runtimeError', msg.message);
                     break;
                 case 'evaluateResult': {
