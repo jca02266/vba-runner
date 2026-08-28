@@ -388,7 +388,36 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
-// 11. 出力が output イベントで通知される
+// 11. pause は手動停止として通知される
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim i As Long',
+        '  For i = 1 To 100000',
+        '    i = i + 1',
+        '  Next i',
+        'End Sub',
+    ].join('\n');
+
+    const session = new VBADebugSession(src, 'Module1');
+    await startAndWait(session);
+
+    const stopped = waitFor(session, 'stopped');
+    session.continue();
+    session.pause();
+    const info = await stopped;
+
+    assert.strictEqual(info.reason, 'pause', 'manual pause has pause reason');
+    assert.ok(info.line >= 2, 'manual pause reports a statement line');
+
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Manual pause reports pause reason');
+}
+
+// ──────────────────────────────────────────────
+// 12. 出力が output イベントで通知される
 // ──────────────────────────────────────────────
 {
     const src = [

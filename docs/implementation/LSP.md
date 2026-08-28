@@ -287,6 +287,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `variables` | 変数一覧 |
 | `evaluate` | 停止中の現在スコープでVBA式を評価（ウォッチ式） |
 | `continue` | 実行継続、`stopped(step)` 送出 |
+| `pause` | 実行中の次のステートメントで `stopped(pause)` 送出 |
 | `next` | ステップオーバー、`stopped(step)` 送出 |
 | `stepIn` / `stepOut` | ステップイン/アウト |
 | 実行時エラー | `stopped(exception)` として発生行・スタックを通知し、実行時エラーを出力 |

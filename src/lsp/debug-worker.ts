@@ -159,13 +159,16 @@ const hook: DebugHook = {
         }));
         // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
         processMessages(env, activeEvaluator ?? undefined);
+        const pauseRequested = pauseAfterCurrent;
 
         if (!shouldPause(line, callDepth)) return;
 
         const variables = lastVariables;
         const frames = lastFrames;
 
-        const reason = isFirstPause ? 'entry' : (breakpointLines.has(line) ? 'breakpoint' : 'step');
+        const reason = isFirstPause
+            ? 'entry'
+            : (pauseRequested ? 'pause' : (breakpointLines.has(line) ? 'breakpoint' : 'step'));
         isFirstPause = false;
 
         parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frames, reason });
