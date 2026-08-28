@@ -22,8 +22,10 @@ const statesDir = path.join(evaluationRoot, 'states');
 const campaignsDir = path.join(evaluationRoot, 'campaigns');
 const defaultOutput = path.join(evaluationRoot, 'EVAL_REPORT.md');
 
-// Findings are considered resolved only when the evaluation explicitly closes
-// the defect or classifies it as a known limit or withdrawn hypothesis.
+// Findings are considered resolved when the evaluation explicitly closes the
+// defect. A verified-no-bug follow-up can also close a finding whose BUG record
+// is already fixed; this preserves the distinction between the evaluation
+// outcome and the finding's own lifecycle without leaving a stale open count.
 const resolvedFindingStatuses = new Set(['fixed']);
 // Known limits and withdrawn candidates are evaluation outcomes, not findings
 // to include in discovery or convergence totals.
@@ -392,7 +394,10 @@ function timeSeries(records, results, findings, stateEvents) {
       for (const findingId of findingIds) {
         discoveredFindingIds.add(findingId);
         areaState.discovered.add(findingId);
-        if (resolvedFindingStatuses.has(status)) {
+        const finding = findings.get(findingId);
+        const findingIsFixed = finding?.status === 'fixed';
+        if (resolvedFindingStatuses.has(status)
+          || (status === 'verified-no-bug' && findingIsFixed)) {
           resolvedFindingIds.add(findingId);
           areaState.resolved.add(findingId);
         } else {
