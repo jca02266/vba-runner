@@ -2,6 +2,17 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.9] - 2026-08-28
+
+### Fixed
+
+- **VBA diagnostics** — corrected identifier and call-boundary diagnostics for
+  class members, host objects, and omitted procedure arguments.
+- **Source parsing** — aligned exponent, radix-literal, and compile-error
+  classification with the VBA lexer and parser rules.
+- **Excel mock guidance** — host-dependent identifiers now provide actionable
+  mock guidance while preserving live updates when project mocks are added.
+
 ## [0.3.8] - 2026-08-23
 
 ### Fixed

@@ -2,6 +2,19 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.22] - 2026-08-28
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — aligned MIRR, IRR, and NPV
+  array-argument contracts with VBA compile-time type checking.
+- **Real-VBA engine compatibility updates** — corrected radix and decimal
+  literal boundaries, exponent spacing, and numeric overflow classification.
+- **Real-VBA engine compatibility updates** — aligned Filter and Join array
+  handling, including array bounds and multidimensional input rejection.
+- **Real-VBA engine compatibility updates** — corrected class member,
+  Property, ByRef, and procedure-call validation across evaluator paths.
+
 ## [0.1.1-alpha.21] - 2026-08-23
 
 ### Fixed
