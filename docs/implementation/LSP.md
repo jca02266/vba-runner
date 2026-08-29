@@ -280,7 +280,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `initialize` | デバッガー初期化、`initialized` イベント送出 |
 | `launch` | 実行開始、`stopped(entry)` イベント送出 |
 | `configurationDone` | ブレークポイント設定完了、`stopped(entry)` 送出 |
-| `setBreakpoints` | ブレークポイント登録（`condition` にVBA式を指定可能） |
+| `setBreakpoints` | ブレークポイント登録（`condition` にVBA式、`hitCondition` に到達回数を指定可能） |
 | `threads` | スレッド一覧（1スレッド固定） |
 | `stackTrace` | コールスタック |
 | `scopes` | スコープ一覧（Locals） |

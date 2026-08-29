@@ -29,6 +29,8 @@ let startCallDepth = 0;
 let pauseAfterCurrent = false;
 const breakpointLines = new Set<number>();
 const breakpointConditions = new Map<number, string>();
+const breakpointHitConditions = new Map<number, number>();
+const breakpointHitCounts = new Map<number, number>();
 let isFirstPause = true;
 let activeEvaluator: Evaluator | null = null;
 let isEvaluatingExpression = false;
@@ -49,10 +51,18 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
         if (msg.type === 'setBreakpoints') {
             breakpointLines.clear();
             breakpointConditions.clear();
+            breakpointHitConditions.clear();
+            breakpointHitCounts.clear();
             for (const line of msg.lines as number[]) breakpointLines.add(line);
             for (const [line, condition] of Object.entries(msg.conditions ?? {})) {
                 if (typeof condition === 'string' && condition.trim()) {
                     breakpointConditions.set(Number(line), condition);
+                }
+            }
+            for (const [line, hitCondition] of Object.entries(msg.hitConditions ?? {})) {
+                const threshold = Number.parseInt(String(hitCondition), 10);
+                if (Number.isFinite(threshold) && threshold > 0) {
+                    breakpointHitConditions.set(Number(line), threshold);
                 }
             }
         } else if (msg.type === 'pause') {
@@ -194,6 +204,12 @@ const hook: DebugHook = {
         processMessages(env, activeEvaluator ?? undefined);
         const pauseRequested = pauseAfterCurrent;
         let breakpointHit = breakpointLines.has(line);
+        if (breakpointHit) {
+            const hitCount = (breakpointHitCounts.get(line) ?? 0) + 1;
+            breakpointHitCounts.set(line, hitCount);
+            const threshold = breakpointHitConditions.get(line);
+            breakpointHit = threshold === undefined || hitCount >= threshold;
+        }
         const condition = breakpointConditions.get(line);
         if (breakpointHit && condition) {
             try {

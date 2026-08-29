@@ -476,7 +476,36 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
-// 14. 出力が output イベントで通知される
+// 14. ヒット回数ブレークポイントは指定回数で停止する
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim i As Long',
+        '  For i = 1 To 3',
+        '    Debug.Print i', // line 4
+        '  Next i',
+        'End Sub',
+    ].join('\n');
+
+    const session = new VBADebugSession(src, 'Module1');
+    session.setBreakpoints([4], new Map(), new Map([[4, '2']]));
+    await startAndWait(session);
+    const stopped = waitFor(session, 'stopped');
+    session.continue();
+    const info = await stopped;
+
+    assert.strictEqual(info.reason, 'breakpoint', 'hit condition stops as breakpoint');
+    assert.strictEqual(session.getVariables(0).find(v => v.name === 'i')?.value, '2',
+        'hit condition stops on the second line hit');
+
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Hit condition breakpoint waits for its threshold');
+}
+
+// ──────────────────────────────────────────────
+// 15. 出力が output イベントで通知される
 // ──────────────────────────────────────────────
 {
     const src = [

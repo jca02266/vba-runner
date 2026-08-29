@@ -106,27 +106,36 @@ export class DebugAdapter {
     handleSetBreakpoints(args: any): any {
         const lines: number[] = [];
         const conditions = new Map<number, string>();
+        const hitConditions = new Map<number, string>();
         if (Array.isArray(args?.breakpoints)) {
             for (const bp of args.breakpoints) {
                 lines.push(bp.line);
                 if (typeof bp.condition === 'string' && bp.condition.trim()) {
                     conditions.set(bp.line, bp.condition);
                 }
+                if (typeof bp.hitCondition === 'string' && bp.hitCondition.trim()) {
+                    hitConditions.set(bp.line, bp.hitCondition);
+                }
             }
         } else if (args?.line !== undefined) {
             lines.push(args.line);
         }
 
-        const bps = this.session?.setBreakpoints(lines, conditions) ?? lines.map((line, i) => ({
+        const bps = this.session?.setBreakpoints(lines, conditions, hitConditions) ?? lines.map((line, i) => ({
             id: `bp_${i}`,
             line,
             column: 0,
             verified: false,
             condition: conditions.get(line),
+            hitCondition: hitConditions.get(line),
         }));
 
         return {
-            breakpoints: bps.map(bp => ({ id: bp.id, verified: bp.verified, line: bp.line, ...(bp.condition ? { condition: bp.condition } : {}) })),
+            breakpoints: bps.map(bp => ({
+                id: bp.id, verified: bp.verified, line: bp.line,
+                ...(bp.condition ? { condition: bp.condition } : {}),
+                ...(bp.hitCondition ? { hitCondition: bp.hitCondition } : {}),
+            })),
         };
     }
 

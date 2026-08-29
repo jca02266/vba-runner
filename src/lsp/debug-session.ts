@@ -9,6 +9,7 @@ export interface SessionBreakpoint {
     column: number;
     verified: boolean;
     condition?: string;
+    hitCondition?: string;
 }
 
 export interface SessionStackFrame {
@@ -112,6 +113,11 @@ export class VBADebugSession extends EventEmitter {
                         .filter(bp => bp.condition)
                         .map(bp => [bp.line, bp.condition]),
                 ),
+                hitConditions: Object.fromEntries(
+                    [...this.breakpoints.values()]
+                        .filter(bp => bp.hitCondition)
+                        .map(bp => [bp.line, bp.hitCondition]),
+                ),
             });
         }
 
@@ -214,13 +220,22 @@ export class VBADebugSession extends EventEmitter {
         this.state = 'exited';
     }
 
-    setBreakpoints(lines: number[], conditions: Map<number, string> = new Map()): SessionBreakpoint[] {
+    setBreakpoints(
+        lines: number[],
+        conditions: Map<number, string> = new Map(),
+        hitConditions: Map<number, string> = new Map(),
+    ): SessionBreakpoint[] {
         this.breakpoints.clear();
         const result: SessionBreakpoint[] = [];
         for (const line of lines) {
             const id = `bp_${++this.bpCounter}`;
             const condition = conditions.get(line);
-            const bp: SessionBreakpoint = { id, line, column: 0, verified: true, ...(condition ? { condition } : {}) };
+            const hitCondition = hitConditions.get(line);
+            const bp: SessionBreakpoint = {
+                id, line, column: 0, verified: true,
+                ...(condition ? { condition } : {}),
+                ...(hitCondition ? { hitCondition } : {}),
+            };
             this.breakpoints.set(id, bp);
             result.push(bp);
         }
@@ -229,6 +244,7 @@ export class VBADebugSession extends EventEmitter {
                 type: 'setBreakpoints',
                 lines,
                 conditions: Object.fromEntries(conditions),
+                hitConditions: Object.fromEntries(hitConditions),
             });
         }
         return result;

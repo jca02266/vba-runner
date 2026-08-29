@@ -211,7 +211,7 @@ AI: 解析実行（VS Code コマンド）          品質指標が改善した�
   - [x] SymbolProvider 実装済み。テスト: `lsp-symbol-provider.test.ts`
   - [x] extension.ts への登録（`registerDocumentSymbolProvider`）
 - [x] **DAP（デバッガー）の VS Code 接続**
-  - [x] ステップ実行・条件付きブレークポイント・変数表示・変数変更・手動停止・実行時エラー位置通知を実装。テスト: `lsp-debug-adapter.test.ts`, `lsp-debug-hook.test.ts`, `lsp-debug-session.test.ts`
+  - [x] ステップ実行・条件付き/ヒット回数ブレークポイント・変数表示・変数変更・手動停止・実行時エラー位置通知を実装。テスト: `lsp-debug-adapter.test.ts`, `lsp-debug-hook.test.ts`, `lsp-debug-session.test.ts`
   - [x] `src/lsp/vscode-debug-adapter.ts` 作成（`VBADebugAdapterFactory` + `VBAInlineDebugAdapter`）
   - [x] extension.ts への登録（`registerDebugAdapterDescriptorFactory`）
   - [x] package.json に `contributes.debuggers` エントリ追加（launch設定テンプレート含む）
@@ -226,7 +226,7 @@ AI: 解析実行（VS Code コマンド）          品質指標が改善した�
   - `src/lsp/debug-worker.ts`（Worker スレッド）: Atomics.wait でブロック、receiveMessageOnPort でメッセージ受信
   - `src/lsp/debug-session.ts`（VBADebugSession）: Worker 管理・Atomics.notify でコマンド送信・EventEmitter でイベント通知
   - stepOver / stepInto / stepOut / continue / ブレークポイント / 変数パネル / スタックフレーム / 出力イベント
-  - テスト: `lsp-debug-hook.test.ts`（7件）、`lsp-debug-session.test.ts`（14件）
+  - テスト: `lsp-debug-hook.test.ts`（7件）、`lsp-debug-session.test.ts`（15件）
 
 ---
 
