@@ -39,11 +39,13 @@ VS Code Extension Host (src/extension.ts)
     └── VBADebugAdapterFactory                  (src/lsp/vscode-debug-adapter.ts)
             └── VBAInlineDebugAdapter
                     └── DebugAdapter            (src/lsp/debug-adapter.ts)
+                            └── VBADebugSession + Worker (debug-session.ts / debug-worker.ts)
 ```
 
 - **LSPServer** は `didOpen` / `didChange` / `didClose` でドキュメントを管理し、各プロバイダーの呼び出し口となる。
 - 拡張機能の `activate()` はすべての VS Code プロバイダーを登録し、`LSPServer` インスタンスを共有する。
-- インライン実装のため起動オーバーヘッドがなく、Node.js IPC が不要。
+- インライン実装のため通常のLSPプロセスは起動せず、Node.js IPCも不要。DAP実行時だけ、評価器を専用Workerで動かす。
+- DAP Workerは `SharedArrayBuffer` と `Atomics` で停止・再開を同期し、停止中のメッセージは `receiveMessageOnPort` で処理する。
 
 ---
 
@@ -51,7 +53,7 @@ VS Code Extension Host (src/extension.ts)
 
 | 機能 | VS Code 操作 | 実装ファイル |
 |---|---|---|
-| Diagnostics | 自動（保存不要） | `server.ts`, `code-lens-provider.ts` |
+| Diagnostics | 自動（保存不要） | `server.ts`, `code-lens-provider.ts`, `host-mock-advisor.ts` |
 | Document Symbol | アウトラインペイン / `@` 検索 | `symbol-provider.ts` |
 | Hover | カーソルホバー | `hover-provider.ts` |
 | Go to Definition | F12 | `definition-provider.ts` |
@@ -60,7 +62,7 @@ VS Code Extension Host (src/extension.ts)
 | Rename Symbol | F2 | `rename-provider.ts` |
 | Code Lens | 行上部のインライン UI | `code-lens-provider.ts` |
 | Folding Range | 折りたたみ / Sticky Scroll | `folding-range-provider.ts` |
-| Test Discovery / Run | テストエクスプローラー | `test-discovery.ts`, `test-runner.ts` |
+| Test Discovery / Run | テストエクスプローラー（個別実行対応） | `test-discovery.ts`, `test-runner.ts` |
 | DAP Debugger | F5 / デバッグビュー | `debug-adapter.ts`, `vscode-debug-adapter.ts` |
 
 ---
@@ -77,12 +79,16 @@ VS Code Extension Host (src/extension.ts)
 |---|---|---|
 | 構文エラー | Error (1) | `Parser` が検出した構文違反 |
 | Dead code 警告 | Warning (2) | Private プロシージャで外部参照が 0 件のもの |
+| VBA lint | Warning / Information | VBA001〜VBA012（ByRef、省略宣言、型・構文上の落とし穴など） |
+| ホスト依存警告 | Information | `Application`、`Worksheets`、`ThisWorkbook` などのExcel/Access識別子。`__mocks__` 作成案内を含む |
 
 **実装詳細:**
 - `Parser.diagnostics` は 1-based line/column → LSP 変換時に `line - 1`, `character - 1`
 - Dead code = `isPrivate && refCount === 0`（`CodeLensProvider.getDeadCodeWarnings()` と連携）
 
 **テスト:** `tests/lsp/server-diagnostics.test.ts`, `tests/lsp/lsp-dead-code.test.ts`
+
+`__mocks__` の追加・変更はファイル監視で再スキャンされ、対応するホスト依存診断を再計算する。診断スキャナーはJavaScriptを実行せず、CommonJSの静的なexport名だけを収集する。したがって、計算プロパティや実行時に生成されるメンバーは診断だけでは解決しない。
 
 ---
 
@@ -265,6 +271,10 @@ Sub ProcessData()           ← 常に上部に表示
 
 `Test_` で始まる Sub を自動検出し、テストエクスプローラーに表示・実行する。
 
+- スイート実行は `runTests`、選択項目の実行は `runTestWithEvaluation` を使い、選択したSubだけを評価する。
+- 実行対象と同じディレクトリの `.bas` / `.cls` を収集し、クラスモジュールはクラス定義として結合する。
+- テスト実行のキャンセルは `TestRunRequest.token` を確認し、未開始の項目を実行しない。
+
 **テスト:** `tests/lsp/lsp-test-discovery.test.ts`, `tests/lsp/lsp-test-runner.test.ts`
 
 ---
@@ -279,7 +289,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 |---|---|
 | `initialize` | デバッガー初期化、`initialized` イベント送出 |
 | `launch` | 実行開始、`stopped(entry)` イベント送出 |
-| `configurationDone` | ブレークポイント設定完了、`stopped(entry)` 送出 |
+| `configurationDone` | DAPハンドシェイクを完了（実行開始は `launch`） |
 | `setBreakpoints` | ブレークポイント登録（`condition` にVBA式、`hitCondition` に到達回数を指定可能） |
 | `threads` | スレッド一覧（1スレッド固定） |
 | `stackTrace` | コールスタック |
@@ -287,7 +297,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `variables` | 変数一覧 |
 | `setVariable` | 停止中に既存のローカル変数をVBA式で評価した値へ変更（未知の名前は拒否） |
 | `evaluate` | 停止中の現在スコープでVBA式を評価（ウォッチ式） |
-| `continue` | 実行継続、`stopped(step)` 送出 |
+| `continue` | 実行継続。条件を満たすブレークポイントで停止し、なければ終了 |
 | `pause` | 実行中の次のステートメントで `stopped(pause)` 送出 |
 | `next` | ステップオーバー、`stopped(step)` 送出 |
 | `stepIn` / `stepOut` | ステップイン/アウト |
@@ -307,11 +317,19 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 **実装ファイル:**
 - `src/lsp/debug-adapter.ts` — DAP ロジック本体
 - `src/lsp/vscode-debug-adapter.ts` — VS Code `DebugAdapterDescriptorFactory` / `DebugAdapter` ラッパー
+- `src/lsp/debug-session.ts` — Worker管理、停止状態、式評価、変数変更
+- `src/lsp/debug-worker.ts` — DebugHook、ステップ制御、条件・ヒット回数判定、例外位置の収集
 
 `evaluate` は停止中のWorkerへ式を転送し、現在の環境で評価した値とVBA型名を返す。
 DAPの評価コンテキストを明確にするため、入力式は括弧で囲んで評価される。
 
-**テスト:** `tests/lsp/lsp-debug-adapter.test.ts`, `tests/lsp/lsp-debug-session.test.ts`
+`setVariable` は既存のローカル変数だけを対象とし、入力値をVBA式として評価してからEvaluatorの型強制を通して代入する。未知の名前、実行中の変更、配列要素やオブジェクトメンバーの編集は対象外である。
+
+条件付きブレークポイントの条件式が評価できない場合は、その到達では停止しない。`hitCondition` は正の整数として解釈し、同じ行への到達回数が閾値に達した時点で停止する。
+
+実行時エラーは、直前のステートメントの行・スタック・変数を `stopped(exception)` として通知した後、実行終了イベントを送出する。DAPクライアントは停止イベント受信後に `stackTrace` / `variables` を取得できる。
+
+**テスト:** `tests/lsp/lsp-debug-adapter.test.ts`, `tests/lsp/lsp-debug-session.test.ts`（15項目）、`tests/lsp/lsp-debug-hook.test.ts`
 
 ---
 
@@ -331,8 +349,10 @@ done
 
 ## 今後の拡張候補
 
-- Extract Sub/Function リファクタリング（Code Action）
-- Workspace Outline（プロジェクト横断のシンボル検索）
+- DAPの `scopes` 応答（現在は `variables` を直接取得する実装）
+- DAPの配列要素・オブジェクトメンバー編集
+- キーワード引数に対応したSignature Helpのアクティブ引数選択
+- Excel/COM型ライブラリからのSignature Help定義ロード
 - コールグラフの可視化
 - npm パッケージ化（エンジン本体を `@vba-runner/engine` として公開）
 
