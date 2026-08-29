@@ -28,6 +28,7 @@ let currentCommand = CMD_STEP_INTO; // pause at first statement by default
 let startCallDepth = 0;
 let pauseAfterCurrent = false;
 const breakpointLines = new Set<number>();
+const breakpointConditions = new Map<number, string>();
 let isFirstPause = true;
 let activeEvaluator: Evaluator | null = null;
 let isEvaluatingExpression = false;
@@ -47,7 +48,13 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
         const msg = received.message;
         if (msg.type === 'setBreakpoints') {
             breakpointLines.clear();
+            breakpointConditions.clear();
             for (const line of msg.lines as number[]) breakpointLines.add(line);
+            for (const [line, condition] of Object.entries(msg.conditions ?? {})) {
+                if (typeof condition === 'string' && condition.trim()) {
+                    breakpointConditions.set(Number(line), condition);
+                }
+            }
         } else if (msg.type === 'pause') {
             pauseAfterCurrent = true;
         } else if (msg.type === 'evaluate' && env && evaluator) {
@@ -108,14 +115,14 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
     }
 }
 
-function shouldPause(line: number, callDepth: number): boolean {
+function shouldPause(line: number, callDepth: number, breakpointHit = breakpointLines.has(line)): boolean {
     if (pauseAfterCurrent) {
         pauseAfterCurrent = false;
         return true;
     }
     switch (currentCommand) {
         case CMD_CONTINUE:
-            return breakpointLines.has(line);
+            return breakpointHit;
         case CMD_STEP_OVER:
             return callDepth <= startCallDepth;
         case CMD_STEP_INTO:
@@ -186,15 +193,32 @@ const hook: DebugHook = {
         // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
         processMessages(env, activeEvaluator ?? undefined);
         const pauseRequested = pauseAfterCurrent;
+        let breakpointHit = breakpointLines.has(line);
+        const condition = breakpointConditions.get(line);
+        if (breakpointHit && condition) {
+            try {
+                isEvaluatingExpression = true;
+                const conditionValue = activeEvaluator?.evalExpression(`(${condition})`);
+                const primitive = conditionValue && typeof conditionValue === 'object'
+                    && typeof (conditionValue as any).valueOf === 'function'
+                    ? (conditionValue as any).valueOf()
+                    : conditionValue;
+                breakpointHit = Boolean(primitive);
+            } catch {
+                breakpointHit = false;
+            } finally {
+                isEvaluatingExpression = false;
+            }
+        }
 
-        if (!shouldPause(line, callDepth)) return;
+        if (!shouldPause(line, callDepth, breakpointHit)) return;
 
         const variables = lastVariables;
         const frames = lastFrames;
 
         const reason = isFirstPause
             ? 'entry'
-            : (pauseRequested ? 'pause' : (breakpointLines.has(line) ? 'breakpoint' : 'step'));
+            : (pauseRequested ? 'pause' : (breakpointHit ? 'breakpoint' : 'step'));
         isFirstPause = false;
 
         parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frames, reason });

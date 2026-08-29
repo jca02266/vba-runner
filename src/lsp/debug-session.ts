@@ -8,6 +8,7 @@ export interface SessionBreakpoint {
     line: number;
     column: number;
     verified: boolean;
+    condition?: string;
 }
 
 export interface SessionStackFrame {
@@ -103,7 +104,15 @@ export class VBADebugSession extends EventEmitter {
         // 起動前に設定されたブレークポイントを Worker へ送信
         if (this.breakpoints.size > 0) {
             const lines = [...this.breakpoints.values()].map(bp => bp.line);
-            this.worker.postMessage({ type: 'setBreakpoints', lines });
+            this.worker.postMessage({
+                type: 'setBreakpoints',
+                lines,
+                conditions: Object.fromEntries(
+                    [...this.breakpoints.values()]
+                        .filter(bp => bp.condition)
+                        .map(bp => [bp.line, bp.condition]),
+                ),
+            });
         }
 
         this.worker.on('message', (msg: any) => {
@@ -205,17 +214,22 @@ export class VBADebugSession extends EventEmitter {
         this.state = 'exited';
     }
 
-    setBreakpoints(lines: number[]): SessionBreakpoint[] {
+    setBreakpoints(lines: number[], conditions: Map<number, string> = new Map()): SessionBreakpoint[] {
         this.breakpoints.clear();
         const result: SessionBreakpoint[] = [];
         for (const line of lines) {
             const id = `bp_${++this.bpCounter}`;
-            const bp: SessionBreakpoint = { id, line, column: 0, verified: true };
+            const condition = conditions.get(line);
+            const bp: SessionBreakpoint = { id, line, column: 0, verified: true, ...(condition ? { condition } : {}) };
             this.breakpoints.set(id, bp);
             result.push(bp);
         }
         if (this.worker) {
-            this.worker.postMessage({ type: 'setBreakpoints', lines });
+            this.worker.postMessage({
+                type: 'setBreakpoints',
+                lines,
+                conditions: Object.fromEntries(conditions),
+            });
         }
         return result;
     }

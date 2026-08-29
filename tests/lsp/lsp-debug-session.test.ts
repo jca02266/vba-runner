@@ -446,7 +446,37 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
-// 13. 出力が output イベントで通知される
+// 13. 条件付きブレークポイントは条件成立時だけ停止する
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim i As Long',
+        '  For i = 1 To 3',
+        '    Debug.Print i', // line 4
+        '  Next i',
+        'End Sub',
+    ].join('\n');
+
+    const session = new VBADebugSession(src, 'Module1');
+    session.setBreakpoints([4], new Map([[4, 'i = 2']]));
+    await startAndWait(session);
+    const stopped = waitFor(session, 'stopped');
+    session.continue();
+    const info = await stopped;
+
+    assert.strictEqual(info.reason, 'breakpoint', 'condition breakpoint stops as breakpoint');
+    assert.strictEqual(info.line, 4, 'condition breakpoint stops at configured line');
+    assert.strictEqual(session.getVariables(0).find(v => v.name === 'i')?.value, '2',
+        'condition breakpoint stops when i equals 2');
+
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Conditional breakpoint waits for a true expression');
+}
+
+// ──────────────────────────────────────────────
+// 14. 出力が output イベントで通知される
 // ──────────────────────────────────────────────
 {
     const src = [

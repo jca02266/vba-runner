@@ -33,9 +33,10 @@ function createAdapter(src: string): DebugAdapter {
     const code = 'Sub Test()\n  x = 1\nEnd Sub';
     const adapter = createAdapter(code);
     adapter.handleInitialize();
-    const response = adapter.handleSetBreakpoints({ breakpoints: [{ line: 2, column: 0 }] });
+    const response = adapter.handleSetBreakpoints({ breakpoints: [{ line: 2, column: 0, condition: 'x = 1' }] });
     assert.ok(response, 'breakpoints response');
     assert.ok(Array.isArray(response.breakpoints), 'breakpoints array');
+    assert.strictEqual(response.breakpoints[0].condition, 'x = 1', 'condition is preserved');
     console.log('[PASS] Set breakpoints request');
 }
 
