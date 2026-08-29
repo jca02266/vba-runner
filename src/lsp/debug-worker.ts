@@ -103,6 +103,9 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
                 const value = evaluator.evalExpression(`(${String(msg.value ?? '')})`);
                 evaluator.env = previousEnv;
                 isEvaluatingExpression = false;
+                if (!env.hasVariable(String(msg.name ?? ''))) {
+                    throw new Error(`Variable not found: ${String(msg.name ?? '')}`);
+                }
                 env.set(String(msg.name ?? ''), value);
                 parentPort!.postMessage({
                     type: 'setVariableResult',

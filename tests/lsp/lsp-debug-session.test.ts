@@ -439,6 +439,10 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
     assert.strictEqual(updated.result, '42', 'setVariable returns the assigned value');
     assert.strictEqual(session.getVariables(0).find(v => v.name === 'x')?.value, '42',
         'locals reflect the assigned value');
+    await session.setVariable('missing', '1').then(
+        () => { throw new Error('unknown variable assignment unexpectedly succeeded'); },
+        error => assert.ok(error.message.includes('Variable not found'), 'unknown variable is rejected'),
+    );
 
     session.terminate();
     await waitFor(session, 'exited').catch(() => { /* ok */ });
