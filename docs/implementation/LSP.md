@@ -349,7 +349,6 @@ done
 
 ## 今後の拡張候補
 
-- DAPの `scopes` 応答（現在は `variables` を直接取得する実装）
 - DAPの配列要素・オブジェクトメンバー編集
 - キーワード引数に対応したSignature Helpのアクティブ引数選択
 - Excel/COM型ライブラリからのSignature Help定義ロード

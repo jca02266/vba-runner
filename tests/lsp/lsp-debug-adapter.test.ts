@@ -63,7 +63,19 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Stack trace request');
 }
 
-// 6. Variables request
+// 6. Scopes request
+{
+    const code = 'Sub Test()\n  Dim x As Integer\nEnd Sub';
+    const adapter = createAdapter(code);
+    adapter.handleInitialize();
+    const response = adapter.handleScopes(0);
+    assert.ok(response, 'scopes response');
+    assert.strictEqual(response.scopes[0].name, 'Locals', 'locals scope is exposed');
+    assert.strictEqual(response.scopes[0].variablesReference, 1, 'locals reference is stable');
+    console.log('[PASS] Scopes request');
+}
+
+// 7. Variables request
 {
     const code = 'Sub Test()\n  Dim x As Integer\nEnd Sub';
     const adapter = createAdapter(code);
@@ -74,7 +86,7 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Variables request');
 }
 
-// 7. Continue request
+// 8. Continue request
 {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);
@@ -84,7 +96,7 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Continue request');
 }
 
-// 8. Step over request
+// 9. Step over request
 {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);
@@ -94,7 +106,7 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Step over request');
 }
 
-// 9. Evaluate request while paused
+// 10. Evaluate request while paused
 await (async () => {
     const code = 'Sub Test()\n  Dim x As Long\n  x = 41\nEnd Sub';
     const adapter = createAdapter(code);
@@ -114,7 +126,7 @@ await (async () => {
     console.log('[PASS] Evaluate request while paused');
 })();
 
-// 10. setVariable request while paused
+// 11. setVariable request while paused
 await (async () => {
     const code = 'Sub Test()\n  Dim x As Long\n  x = 1\n  Debug.Print x\nEnd Sub';
     const adapter = createAdapter(code);
@@ -142,7 +154,7 @@ await (async () => {
     console.log('[PASS] Set variable request while paused');
 })();
 
-// 11. Disconnect request
+// 12. Disconnect request
 {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);

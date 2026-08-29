@@ -159,6 +159,12 @@ export class DebugAdapter {
         return { variables: vars };
     }
 
+    handleScopes(_frameId: number): any {
+        return {
+            scopes: [{ name: 'Locals', variablesReference: 1, expensive: false }],
+        };
+    }
+
     handleContinue(_threadId: number): any {
         this.session?.continue();
         return { allThreadsContinued: true };
@@ -230,6 +236,8 @@ export class DebugAdapter {
                 return this.handleStackTrace(request.arguments?.threadId ?? 1);
             case 'variables':
                 return this.handleVariables(request.arguments?.variablesReference ?? 0);
+            case 'scopes':
+                return this.handleScopes(request.arguments?.frameId ?? 0);
             case 'continue':
                 return this.handleContinue(request.arguments?.threadId ?? 1);
             case 'next':
