@@ -113,7 +113,35 @@ await (async () => {
     console.log('[PASS] Evaluate request while paused');
 })();
 
-// 10. Disconnect request
+// 10. setVariable request while paused
+await (async () => {
+    const code = 'Sub Test()\n  Dim x As Long\n  x = 1\n  Debug.Print x\nEnd Sub';
+    const adapter = createAdapter(code);
+    adapter.handleInitialize();
+    const stopped = new Promise<void>((resolve) => {
+        adapter.onEvent = (event) => {
+            if (event.event === 'stopped') resolve();
+        };
+    });
+    adapter.handleLaunch({});
+    await stopped;
+    adapter.handleSetBreakpoints({ breakpoints: [{ line: 4, column: 0 }] });
+    // launch enters at line 2; continue to the configured breakpoint.
+    const bpStopped = new Promise<void>((resolve) => {
+        adapter.onEvent = (event) => {
+            if (event.event === 'stopped') resolve();
+        };
+    });
+    adapter.handleContinue(1);
+    await bpStopped;
+    const response = await adapter.handleSetVariable(0, 'x', '42');
+    assert.strictEqual(response.result, '42', 'setVariable returns assigned value');
+    assert.strictEqual(response.type, 'Long', 'setVariable preserves VBA type');
+    adapter.handleDisconnect();
+    console.log('[PASS] Set variable request while paused');
+})();
+
+// 11. Disconnect request
 {
     const code = 'Sub Test()\nEnd Sub';
     const adapter = createAdapter(code);

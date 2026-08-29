@@ -48,7 +48,7 @@ export class DebugAdapter {
         return {
             capabilities: {
                 supportsConfigurationDoneRequest: true,
-                supportsSetVariable: false,
+                supportsSetVariable: true,
                 supportsEvaluateForHovers: true,
                 supportsStepBack: false,
                 supportsGotoTargetsRequest: false,
@@ -180,8 +180,16 @@ export class DebugAdapter {
         }
     }
 
-    handleSetVariable(_frameId: number, _name: string, _value: string): any {
-        return { success: false, error: 'setVariable not supported' };
+    async handleSetVariable(_frameId: number, name: string, value: string): Promise<any> {
+        if (!this.session) {
+            return { success: false, error: 'Debug session is not running' };
+        }
+        try {
+            const result = await this.session.setVariable(name, value);
+            return { ...result, variablesReference: 0 };
+        } catch (error: any) {
+            return { success: false, error: error?.message ?? String(error) };
+        }
     }
 
     handleDisconnect(): any {

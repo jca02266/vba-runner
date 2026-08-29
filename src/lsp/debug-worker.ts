@@ -78,6 +78,32 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
                     error: error?.vbaBareMessage ?? error?.message ?? String(error),
                 });
             }
+        } else if (msg.type === 'setVariable' && env && evaluator) {
+            const previousEnv = evaluator.env;
+            try {
+                evaluator.env = env;
+                isEvaluatingExpression = true;
+                const value = evaluator.evalExpression(`(${String(msg.value ?? '')})`);
+                evaluator.env = previousEnv;
+                isEvaluatingExpression = false;
+                env.set(String(msg.name ?? ''), value);
+                parentPort!.postMessage({
+                    type: 'setVariableResult',
+                    requestId: msg.requestId,
+                    ok: true,
+                    result: formatValue(value),
+                    valueType: getTypeName(value),
+                });
+            } catch (error: any) {
+                isEvaluatingExpression = false;
+                evaluator.env = previousEnv;
+                parentPort!.postMessage({
+                    type: 'setVariableResult',
+                    requestId: msg.requestId,
+                    ok: false,
+                    error: error?.vbaBareMessage ?? error?.message ?? String(error),
+                });
+            }
         }
     }
 }

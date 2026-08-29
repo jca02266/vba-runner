@@ -285,6 +285,7 @@ F5 で VBA コードをステップ実行する。別プロセス不要のイン
 | `stackTrace` | コールスタック |
 | `scopes` | スコープ一覧（Locals） |
 | `variables` | 変数一覧 |
+| `setVariable` | 停止中のローカル変数をVBA式で評価した値へ変更 |
 | `evaluate` | 停止中の現在スコープでVBA式を評価（ウォッチ式） |
 | `continue` | 実行継続、`stopped(step)` 送出 |
 | `pause` | 実行中の次のステートメントで `stopped(pause)` 送出 |

@@ -46,7 +46,13 @@ export class VBADebugSession extends EventEmitter {
     private breakpoints: Map<string, SessionBreakpoint> = new Map();
     private bpCounter = 0;
     private evaluationCounter = 0;
+    private variableWriteCounter = 0;
     private pendingEvaluations = new Map<number, {
+        resolve: (value: { result: string; type: string }) => void;
+        reject: (reason: Error) => void;
+    }>();
+    private pendingVariableWrites = new Map<number, {
+        name: string;
         resolve: (value: { result: string; type: string }) => void;
         reject: (reason: Error) => void;
     }>();
@@ -140,6 +146,22 @@ export class VBADebugSession extends EventEmitter {
                     else pending.reject(new Error(msg.error ?? 'Expression evaluation failed'));
                     break;
                 }
+                case 'setVariableResult': {
+                    const pending = this.pendingVariableWrites.get(msg.requestId);
+                    if (!pending) break;
+                    this.pendingVariableWrites.delete(msg.requestId);
+                    if (msg.ok) {
+                        const updated = this.currentVariables.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
+                        if (updated) {
+                            updated.value = msg.result;
+                            updated.type = msg.valueType;
+                        }
+                        pending.resolve({ result: msg.result, type: msg.valueType });
+                    } else {
+                        pending.reject(new Error(msg.error ?? 'Variable assignment failed'));
+                    }
+                    break;
+                }
             }
         });
 
@@ -209,6 +231,16 @@ export class VBADebugSession extends EventEmitter {
         return new Promise((resolve, reject) => {
             this.pendingEvaluations.set(requestId, { resolve, reject });
             this.worker!.postMessage({ type: 'evaluate', requestId, expression });
+        });
+    }
+    setVariable(name: string, value: string): Promise<{ result: string; type: string }> {
+        if (!this.worker || this.state !== 'paused') {
+            return Promise.reject(new Error('Variables can only be changed while paused'));
+        }
+        const requestId = ++this.variableWriteCounter;
+        return new Promise((resolve, reject) => {
+            this.pendingVariableWrites.set(requestId, { name, resolve, reject });
+            this.worker!.postMessage({ type: 'setVariable', requestId, name, value });
         });
     }
     getStackFrames(): SessionStackFrame[] { return this.currentFrames; }

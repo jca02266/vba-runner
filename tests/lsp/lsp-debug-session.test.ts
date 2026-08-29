@@ -417,7 +417,36 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
-// 12. 出力が output イベントで通知される
+// 12. 停止中のローカル変数を書き換えられる
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim x As Long',
+        '  x = 1',
+        '  Debug.Print x', // line 4
+        'End Sub',
+    ].join('\n');
+
+    const session = new VBADebugSession(src, 'Module1');
+    session.setBreakpoints([4]);
+    await startAndWait(session);
+    const atBreakpoint = waitFor(session, 'stopped');
+    session.continue();
+    await atBreakpoint;
+
+    const updated = await session.setVariable('x', '42');
+    assert.strictEqual(updated.result, '42', 'setVariable returns the assigned value');
+    assert.strictEqual(session.getVariables(0).find(v => v.name === 'x')?.value, '42',
+        'locals reflect the assigned value');
+
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Paused local variables can be changed');
+}
+
+// ──────────────────────────────────────────────
+// 13. 出力が output イベントで通知される
 // ──────────────────────────────────────────────
 {
     const src = [
