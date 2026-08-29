@@ -164,6 +164,10 @@ Host-dependent identifier recommendations include a GitHub link to the mock guid
 generic AI prompt for creating the smallest mock and a focused test. Diagnostics refresh
 immediately when `__mocks__` files are created, edited, or deleted.
 
+JavaScript mocks are not executed while diagnostics are calculated. Only statically discoverable
+names such as `module.exports` object properties are resolved; computed or runtime-generated
+members should be described in `vba-types.json` or a VBA mock.
+
 **Quick Fixes** are provided for:
 
 - **VBA013** — *Add 'Option Explicit'*: inserts `Option Explicit` at the top of the file
@@ -280,6 +284,10 @@ After running tests with the **▶ Run** Code Lens on a test procedure, the resu
 - `✓ 3ms` — test passed in 3 ms
 - `✗ Expected 1 but got 2` — test failed with the first line of the assertion message
 
+The Test Explorer can run all discovered `Test_` procedures or only the selected item. A
+targeted run evaluates only that procedure and loads supporting `.bas` / `.cls` files from
+the same directory.
+
 ### Mock Skeleton Generation
 
 Run **VBA: Generate Mocks** from the Command Palette to analyze Excel object dependencies (`Worksheet`, `Range`, etc.) in the source file and generate a mock skeleton at `__mocks__/ExcelObjects.bas`.
@@ -287,6 +295,15 @@ Run **VBA: Generate Mocks** from the Command Palette to analyze Excel object dep
 ## VBA Debugger Integration
 
 With a `.bas` file open, press `F5` to launch the file with the VBA Runner debugger (no `launch.json` required).
+
+In addition to ordinary breakpoints, the debugger accepts a VBA expression in `condition` and
+a positive hit count in `hitCondition`. While paused, you can use Step Over / Step Into /
+Step Out / Continue, request a manual pause, inspect locals and arguments, evaluate watch
+expressions, and assign existing local variables. Runtime errors stop at the raising statement
+with its call stack available to the client.
+
+`setVariable` only changes existing local variables; array elements, object members, unknown
+names, and writes while running are not supported.
 
 ### `Debug.Print` Output
 
