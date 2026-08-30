@@ -2439,6 +2439,22 @@ export class Evaluator {
             return classDef.procedures.find(p => p.name.name.toLowerCase() === memberName.toLowerCase());
         };
 
+        const resolveProcedureInScope = (name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined => {
+            // Class members are not placed in the global procedure namespace.
+            // Resolve them from the owning class first, matching the runtime
+            // `Me.__classDef__` dispatch path used by class instances.
+            const owner = proc.moduleName
+                ? this.classDefinitions.get(proc.moduleName.toLowerCase())
+                : undefined;
+            if (owner) {
+                const member = owner.procedures.find(candidate =>
+                    candidate.name.name.toLowerCase() === name.toLowerCase()
+                    && (type === undefined || candidate.propertyType === type));
+                if (member) return member;
+            }
+            return this.env.getProcedure(name, type);
+        };
+
         const visitExpression = (expr: Expression, assignmentTarget = false, asCallCallee = false): void => {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
@@ -2458,7 +2474,7 @@ export class Evaluator {
                                 line: call.loc?.start.line ?? call.callee.loc?.start.line,
                             };
                         }
-                        const target = this.env.getProcedure((call.callee as Identifier).name);
+                        const target = resolveProcedureInScope((call.callee as Identifier).name);
                         if (target) {
                             // A local scalar shadows a module procedure in
                             // VBA's value namespace. `name(index)` is then an
@@ -2707,7 +2723,7 @@ export class Evaluator {
                     }
                     const name = this.subNameInValueExpr(a.right);
                     if (!findings.subAsValue && name) {
-                        const target = this.env.getProcedure(name);
+                        const target = resolveProcedureInScope(name);
                         if (target && !target.isFunction && !target.isProperty) {
                             findings.subAsValue = { name, line: a.right.loc?.start.line };
                         }
@@ -2720,7 +2736,7 @@ export class Evaluator {
                     // all).
                     if (!findings.argumentError && a.right.type === 'Identifier') {
                         const implicitName = (a.right as Identifier).name;
-                        const implicitProc = this.env.getProcedure(implicitName);
+                        const implicitProc = resolveProcedureInScope(implicitName);
                         if (!declared.has(implicitName.toLowerCase()) &&
                             implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
                             const min = requiredArgumentCount(implicitProc.parameters);
