@@ -215,7 +215,9 @@ const hook: DebugHook = {
             id: i,
             name: frame.name,
             source: frame.moduleName,
-            line: i === callStack.length - 1 ? line : frame.line,
+            // A non-leaf frame stores the line at which its child was called.
+            // Point the caller at that call site instead of the initial 0.
+            line: i === callStack.length - 1 ? line : (callStack[i + 1]?.line ?? frame.line),
             column: 0,
         }));
         // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理

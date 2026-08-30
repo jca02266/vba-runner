@@ -350,6 +350,7 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
     const frames = session.getStackFrames();
     assert.ok(frames.length >= 1, 'has at least 1 frame');
     assert.ok(frames.some(f => f.name === 'Foo'), 'Foo frame present');
+    assert.strictEqual(frames[0].line, 2, 'caller frame points to the Foo call site');
 
     session.terminate();
     await waitFor(session, 'exited').catch(() => { /* ok */ });
