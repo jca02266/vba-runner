@@ -741,11 +741,23 @@ End Class`;
             // catch ブロックからも参照できるようスコープを外に出す
             const moduleFileMap = new Map<string, string>();
             try {
-                const doc = documentMap.get(uri);
+                let doc = documentMap.get(uri);
                 if (!doc) {
-                    outputChannel.appendLine(`[Error] Document not found in map: ${uri}`);
-                    outputChannel.show();
-                    return;
+                    // Explorer items can target files that are not open in an
+                    // editor. Fall back to the current on-disk source while
+                    // preserving the existing unsaved-document path above.
+                    try {
+                        const fileUri = vscode.Uri.parse(uri);
+                        const content = fs.readFileSync(fileUri.fsPath, 'utf8');
+                        doc = {
+                            uri: fileUri,
+                            getText: () => content,
+                        } as unknown as vscode.TextDocument;
+                    } catch (error: any) {
+                        outputChannel.appendLine(`[Error] Cannot read VBA document: ${uri} (${error.message})`);
+                        outputChannel.show();
+                        return;
+                    }
                 }
 
                 // 同ディレクトリの .bas/.cls をマルチモジュール評価（行番号をファイル単位で独立させる）
