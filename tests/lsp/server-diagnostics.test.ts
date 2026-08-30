@@ -235,4 +235,24 @@ console.assert(callByNameDiagnostics.length === 0,
     `Expected CallByName constants to be recognized, got ${callByNameDiagnostics.length}`);
 console.log('[PASS] CallByName dispatch constants are recognized by Option Explicit');
 
+// Test 15: A class member can call another Private member without a qualifier
+const privateMemberCallUri = 'file:///workspace/private-member-call.cls';
+server.didOpen(privateMemberCallUri, String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "PrivateMemberCall"
+Option Explicit
+Private Sub Handler()
+    AppendAlert "message"
+End Sub
+Private Sub AppendAlert(ByVal message As String)
+End Sub`);
+const privateMemberDiagnostics = server.getDiagnostics(privateMemberCallUri)
+    .filter((d: any) => d.message.includes("AppendAlert")
+        && d.message.includes('Sub or Function not defined'));
+console.assert(privateMemberDiagnostics.length === 0,
+    `Expected same-class Private member call to resolve, got ${privateMemberDiagnostics.map((d: any) => d.message).join('; ')}`);
+console.log('[PASS] Same-class Private member calls resolve');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

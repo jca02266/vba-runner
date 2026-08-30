@@ -2324,6 +2324,18 @@ export class Evaluator {
             }
         }
         for (const name of this.analysisKnownNames) knownNames.add(name);
+        // A class procedure may call another Private member without a
+        // qualifier. Those members are intentionally not registered in the
+        // global procedure namespace, so add the owning class's members to
+        // the lexical name set for this procedure's precheck.
+        if (proc.moduleName) {
+            const classDef = this.classDefinitions.get(proc.moduleName.toLowerCase());
+            if (classDef) {
+                for (const member of classDef.procedures) {
+                    knownNames.add(member.name.name.toLowerCase());
+                }
+            }
+        }
 
         const declared = new Set<string>([proc.name.name.toLowerCase()]);
         for (const param of proc.parameters) declared.add(param.name.toLowerCase());

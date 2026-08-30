@@ -116,7 +116,13 @@ export async function activate(context: vscode.ExtensionContext) {
 
     function updateDiagnostics(uri: vscode.Uri): void {
         const raw = lspServer.getDiagnostics(uri.toString());
-        const filtered = raw.filter((d: any) => !d.code || shouldShowLintDiag(String(d.code)));
+        // Only style/lint diagnostics are controlled by lint.enabledCodes.
+        // Compiler and precheck diagnostics also carry codes, but hiding them
+        // when lint is disabled would conceal real VBA errors such as
+        // "Array required".
+        const filtered = raw.filter((d: any) =>
+            !String(d.source ?? '').startsWith('vba-lint(')
+            || shouldShowLintDiag(String(d.code)));
         publishDiagnostics(uri, filtered, diagnosticCollection, {
             range: (startLine, startCharacter, endLine, endCharacter) =>
                 new vscode.Range(startLine, startCharacter, endLine, endCharacter),
