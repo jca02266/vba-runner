@@ -49,6 +49,7 @@ import { Lexer } from '../src/engine/lexer';
 import { Parser, Program } from '../src/engine/parser';
 import { Evaluator } from '../src/engine/evaluator';
 import { preprocess, stripVBAFileHeader } from '../src/engine/preprocessor';
+import { isVbaMockConstantValue, isVbaMockNamespace } from '../src/engine/mock/mock-contract';
 
 // ESM 環境でも require() を使えるようにする
 const _require = createRequire(import.meta.url);
@@ -215,7 +216,7 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, contex
     const namespaces = exports as Record<string, any>;
     if (namespaces.constants && typeof namespaces.constants === 'object') {
         for (const [name, value] of Object.entries(namespaces.constants)) {
-            if (isMockConstantValue(value)) evaluator.setConstant(name, value);
+            if (isVbaMockConstantValue(value)) evaluator.setConstant(name, value);
             else console.warn(`[mock-loader] Constant '${name}' in "${file}" must be scalar`);
         }
     }
@@ -235,10 +236,10 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, contex
     }
 
     for (const [key, value] of Object.entries(exports)) {
-        if (key === 'constants' || key === 'objects' || key === 'procedures' || key === 'comObjects') continue;
+        if (isVbaMockNamespace(key)) continue;
         if (key === '__addCreateObject__') {
             if (typeof value === 'object' && value !== null) registerComObjects(value, evaluator);
-        } else if (isMockConstantValue(value)) {
+        } else if (isVbaMockConstantValue(value)) {
             evaluator.setConstant(key, value);
         } else if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {
             evaluator.setBuiltinOverride(key, value);
@@ -255,8 +256,4 @@ function registerComObjects(entries: Record<string, unknown>, evaluator: Evaluat
             return obj;
         });
     }
-}
-
-function isMockConstantValue(value: unknown): value is string | number | boolean {
-    return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }

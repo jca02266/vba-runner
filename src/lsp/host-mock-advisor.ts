@@ -7,6 +7,7 @@ import {
     CallExpression,
 } from '../engine/parser';
 import { buildScopedSymbolTable } from './symbol-table';
+import { VBA_MOCK_IDENTIFIER_NAMESPACES } from '../engine/mock/mock-contract';
 
 export interface HostMockDiagnostic {
     range: {
@@ -61,7 +62,8 @@ export function collectMockIdentifiers(content: string): Set<string> {
 /** Collect first-level names from the explicit mock namespaces. */
 function collectNamespacedExportNames(content: string): Set<string> {
     const names = new Set<string>();
-    for (const match of content.matchAll(/\b(constants|objects|procedures)\s*:\s*\{/g)) {
+    const namespacePattern = new RegExp(`\\b(?:${VBA_MOCK_IDENTIFIER_NAMESPACES.join('|')})\\s*:\\s*\\{`, 'g');
+    for (const match of content.matchAll(namespacePattern)) {
         const openBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
         scanObjectLiteralKeys(content, openBrace, names);
     }
