@@ -211,6 +211,9 @@ const hook: DebugHook = {
         }
         lastLine = line;
         lastVariables = extractVariables(env);
+        // DAP expects the innermost (currently executing) frame first.
+        // The evaluator keeps the call stack in caller-to-callee order, so
+        // reverse it only after resolving each caller's call-site line.
         lastFrames = callStack.map((frame, i) => ({
             id: i,
             name: frame.name,
@@ -219,7 +222,7 @@ const hook: DebugHook = {
             // Point the caller at that call site instead of the initial 0.
             line: i === callStack.length - 1 ? line : (callStack[i + 1]?.line ?? frame.line),
             column: 0,
-        }));
+        })).reverse().map((frame, i) => ({ ...frame, id: i }));
         // ステートメント実行前にキュー内のメッセージ（setBreakpoints など）を処理
         processMessages(env, activeEvaluator ?? undefined);
         const pauseRequested = pauseAfterCurrent;
