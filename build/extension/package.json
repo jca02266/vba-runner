@@ -55,6 +55,31 @@
         "category": "VBA"
       },
       {
+        "command": "vba-runner.openProcedure",
+        "title": "Open VBA Procedure",
+        "category": "VBA"
+      },
+      { "command": "vba-runner.treeRunProcedure", "title": "Run", "category": "VBA" },
+      { "command": "vba-runner.treeDebugProcedure", "title": "Debug", "category": "VBA" },
+      { "command": "vba-runner.treeFindReferences", "title": "Find References", "category": "VBA" },
+      { "command": "vba-runner.treeGenerateTest", "title": "Generate Test (Untested)", "category": "VBA" },
+      { "command": "vba-runner.treeShowInCallGraph", "title": "Show in Call Graph", "category": "VBA" },
+      {
+        "command": "vba-runner.runProcedure",
+        "title": "Run VBA Procedure",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.findReferences",
+        "title": "Find VBA References",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.generateTest",
+        "title": "Generate VBA Test",
+        "category": "VBA"
+      },
+      {
         "command": "vba-runner.showCallGraph",
         "title": "Show Call Graph",
         "category": "VBA"
@@ -90,6 +115,13 @@
       ]
     },
     "menus": {
+      "view/item/context": [
+        { "command": "vba-runner.treeRunProcedure", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "inline" },
+        { "command": "vba-runner.treeDebugProcedure", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" },
+        { "command": "vba-runner.treeFindReferences", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" },
+        { "command": "vba-runner.treeGenerateTest", "when": "view == vba-runner.publicSubs && viewItem == vbaPublicSubUntested", "group": "vba" },
+        { "command": "vba-runner.treeShowInCallGraph", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" }
+      ],
       "editor/context": [
         {
           "command": "vba-runner.showCallGraph",

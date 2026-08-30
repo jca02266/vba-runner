@@ -38,16 +38,23 @@ class PublicSubItem extends vscode.TreeItem {
         public readonly uri: string,
         public readonly procedureName: string,
         public readonly line: number,
+        public readonly nameChar: number,
+        public readonly isTested: boolean,
     ) {
         super(label, vscode.TreeItemCollapsibleState.None);
         this.description = 'Public Sub';
+        this.command = {
+            command: 'vba-runner.openProcedure',
+            title: 'Open VBA procedure',
+            arguments: [uri, line, nameChar],
+        };
         this.command = {
             command: 'vba-runner.runProcedure',
             title: 'Run VBA procedure',
             arguments: [uri, procedureName, false],
         };
         this.resourceUri = vscode.Uri.parse(uri);
-        this.contextValue = 'vbaPublicSub';
+        this.contextValue = isTested ? 'vbaPublicSub' : 'vbaPublicSubUntested';
     }
 }
 
@@ -79,7 +86,9 @@ class PublicSubTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> 
         for (const file of files.sort((a, b) => a.fsPath.localeCompare(b.fsPath))) {
             const uri = file.toString();
             const procedures = lspServer?.getExecutablePublicSubs(uri) ?? [];
-            const children = procedures.map(proc => new PublicSubItem(proc.name, uri, proc.name, proc.line));
+            const children = procedures.map(proc => new PublicSubItem(
+                proc.name, uri, proc.name, proc.line, proc.nameChar, proc.isTested,
+            ));
             if (children.length > 0) result.push(new PublicSubFileItem(uri, path.basename(file.fsPath), children));
         }
         return result;
@@ -122,6 +131,23 @@ export async function activate(context: vscode.ExtensionContext) {
     const publicSubTree = new PublicSubTreeProvider();
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('vba-runner.publicSubs', publicSubTree),
+        vscode.commands.registerCommand('vba-runner.openProcedure', async (uri: string, line: number, character: number) => {
+            const document = await vscode.workspace.openTextDocument(vscode.Uri.parse(uri));
+            const editor = await vscode.window.showTextDocument(document);
+            const position = new vscode.Position(Math.max(0, line), Math.max(0, character));
+            editor.selection = new vscode.Selection(position, position);
+            editor.revealRange(new vscode.Range(position, position), vscode.TextEditorRevealType.InCenter);
+        }),
+        vscode.commands.registerCommand('vba-runner.treeRunProcedure', (item: PublicSubItem) =>
+            vscode.commands.executeCommand('vba-runner.runProcedure', item.uri, item.procedureName, false)),
+        vscode.commands.registerCommand('vba-runner.treeDebugProcedure', (item: PublicSubItem) =>
+            vscode.commands.executeCommand('vba-runner.debugProcedure', item.uri, item.procedureName)),
+        vscode.commands.registerCommand('vba-runner.treeFindReferences', (item: PublicSubItem) =>
+            vscode.commands.executeCommand('vba-runner.findReferences', item.uri, item.line, item.nameChar)),
+        vscode.commands.registerCommand('vba-runner.treeGenerateTest', (item: PublicSubItem) =>
+            vscode.commands.executeCommand('vba-runner.generateTest', item.uri, item.procedureName)),
+        vscode.commands.registerCommand('vba-runner.treeShowInCallGraph', (item: PublicSubItem) =>
+            vscode.commands.executeCommand('vba-runner.showInCallGraph', item.uri, item.procedureName)),
         vscode.commands.registerCommand('vba-runner.refreshPublicSubs', () => publicSubTree.refresh()),
         vscode.workspace.onDidChangeTextDocument(() => publicSubTree.refresh()),
         vscode.workspace.onDidCreateFiles(() => publicSubTree.refresh()),
