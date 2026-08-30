@@ -32,6 +32,60 @@ let _hoverProviderReg: vscode.Disposable | undefined;
 let _definitionProviderReg: vscode.Disposable | undefined;
 let _referencesProviderReg: vscode.Disposable | undefined;
 
+class PublicSubItem extends vscode.TreeItem {
+    constructor(
+        label: string,
+        public readonly uri: string,
+        public readonly procedureName: string,
+        public readonly line: number,
+    ) {
+        super(label, vscode.TreeItemCollapsibleState.None);
+        this.description = 'Public Sub';
+        this.command = {
+            command: 'vba-runner.runProcedure',
+            title: 'Run VBA procedure',
+            arguments: [uri, procedureName, false],
+        };
+        this.resourceUri = vscode.Uri.parse(uri);
+        this.contextValue = 'vbaPublicSub';
+    }
+}
+
+class PublicSubFileItem extends vscode.TreeItem {
+    constructor(public readonly uri: string, label: string, children: PublicSubItem[]) {
+        super(label, vscode.TreeItemCollapsibleState.Expanded);
+        this.resourceUri = vscode.Uri.parse(uri);
+        this.contextValue = 'vbaProcedureFile';
+        this.children = children;
+    }
+    public readonly children: PublicSubItem[];
+}
+
+class PublicSubTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> {
+    private readonly changedEmitter = new vscode.EventEmitter<void>();
+    readonly onDidChangeTreeData = this.changedEmitter.event;
+
+    refresh(): void { this.changedEmitter.fire(); }
+
+    getTreeItem(element: vscode.TreeItem): vscode.TreeItem { return element; }
+
+    async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
+        if (element instanceof PublicSubFileItem) return element.children;
+        const files: vscode.Uri[] = [];
+        for (const pattern of ['**/*.bas', '**/*.cls', '**/*.frm']) {
+            files.push(...await vscode.workspace.findFiles(pattern, '**/{node_modules,.git}/**'));
+        }
+        const result: PublicSubFileItem[] = [];
+        for (const file of files.sort((a, b) => a.fsPath.localeCompare(b.fsPath))) {
+            const uri = file.toString();
+            const procedures = lspServer?.getExecutablePublicSubs(uri) ?? [];
+            const children = procedures.map(proc => new PublicSubItem(proc.name, uri, proc.name, proc.line));
+            if (children.length > 0) result.push(new PublicSubFileItem(uri, path.basename(file.fsPath), children));
+        }
+        return result;
+    }
+}
+
 export async function activate(context: vscode.ExtensionContext) {
     console.log('🚀 VBA Runner extension activated');
 
@@ -64,6 +118,15 @@ export async function activate(context: vscode.ExtensionContext) {
         debugOutputChannel.show(true);
     });
     outputChannel.appendLine('LSP Server initialized');
+
+    const publicSubTree = new PublicSubTreeProvider();
+    context.subscriptions.push(
+        vscode.window.registerTreeDataProvider('vba-runner.publicSubs', publicSubTree),
+        vscode.commands.registerCommand('vba-runner.refreshPublicSubs', () => publicSubTree.refresh()),
+        vscode.workspace.onDidChangeTextDocument(() => publicSubTree.refresh()),
+        vscode.workspace.onDidCreateFiles(() => publicSubTree.refresh()),
+        vscode.workspace.onDidDeleteFiles(() => publicSubTree.refresh()),
+    );
 
     // ワークスペースの vba-types.json から外部型定義を読み込む
     const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
@@ -229,6 +292,7 @@ export async function activate(context: vscode.ExtensionContext) {
                 updateDiagnostics(uri);
             } catch { /* 読み取り失敗は無視 */ }
         }
+        publicSubTree.refresh();
     });
 
     // ファイルシステム監視: ディスク上で変更・作成・削除されたVBAファイルの診断を更新

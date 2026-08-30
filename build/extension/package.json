@@ -50,6 +50,11 @@
     ],
     "commands": [
       {
+        "command": "vba-runner.refreshPublicSubs",
+        "title": "Refresh Public VBA Subs",
+        "category": "VBA"
+      },
+      {
         "command": "vba-runner.showCallGraph",
         "title": "Show Call Graph",
         "category": "VBA"
@@ -75,6 +80,15 @@
         "category": "VBA"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "vba-runner.publicSubs",
+          "name": "VBA Public Subs",
+          "when": "workspaceFolderCount > 0"
+        }
+      ]
+    },
     "menus": {
       "editor/context": [
         {

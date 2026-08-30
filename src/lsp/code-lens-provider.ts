@@ -216,7 +216,8 @@ export class CodeLensProvider {
         return KNOWN_VBA_EVENT_NAMES.has(suffix);
     }
 
-    private collectProcs(statements: Statement[], sourceText: string, uri: string): ProcInfo[] {
+    /** Procedures used by the editor integrations (for example the Explorer view). */
+    getProcedures(statements: Statement[], sourceText: string, uri: string): ProcInfo[] {
         const result: ProcInfo[] = [];
 
         const withEventsVars = this.collectWithEventsVarNames(statements);
@@ -267,6 +268,10 @@ export class CodeLensProvider {
         }
 
         return result;
+    }
+
+    private collectProcs(statements: Statement[], sourceText: string, uri: string): ProcInfo[] {
+        return this.getProcedures(statements, sourceText, uri);
     }
 
     private testProcReferences(statements: Statement[], testProcName: string, targetLower: string, sourceText: string): boolean {

@@ -19,7 +19,7 @@ import { checkUnknownTypes, collectUserDefinedTypeNames } from './unknown-type-c
 import { findAllReferences, LocationInfo } from './references-provider';
 import { buildScopedSymbolTable, getWordAtPosition, lookupSymbolWithContext } from './symbol-table';
 import { RenameProvider } from './rename-provider';
-import { CodeLensProvider, TestRunResult } from './code-lens-provider';
+import { CodeLensProvider, TestRunResult, ProcInfo } from './code-lens-provider';
 import { CallGraphProvider, CallGraph } from './call-graph-provider';
 import { TestDiscovery } from './test-discovery';
 import { TestRunner } from './test-runner';
@@ -534,6 +534,16 @@ export class LSPServer {
         if (!ast) return [];
 
         return this.codeLensProvider.getCodeLens(ast.body, doc.content, uri, this.testResultCache.get(uri));
+    }
+
+    /** Explorer 用の、引数なしで実行できる Public Sub を返す。 */
+    getExecutablePublicSubs(uri: string): ProcInfo[] {
+        const doc = this.documents.get(uri) ?? this.workspaceDocuments.get(uri);
+        if (!doc) return [];
+        const ast = this.parseDocument(doc.content, doc.uri);
+        if (!ast) return [];
+        return this.codeLensProvider.getProcedures(ast.body, doc.content, uri)
+            .filter(proc => !proc.isPrivate && !proc.isFunction && !proc.isProperty && !proc.hasRequiredParams);
     }
 
     /**
