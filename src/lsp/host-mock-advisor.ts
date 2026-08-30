@@ -54,6 +54,17 @@ export function collectMockIdentifiers(content: string): Set<string> {
     for (const match of content.matchAll(/\b(?:module\.)?exports\s*\[\s*(['"])([A-Za-z_][A-Za-z0-9_]*)\1\s*\]\s*=/g)) add(match[2]);
     for (const name of collectCommonJsObjectExportNames(content)) add(name);
     for (const name of collectFactoryReturnNames(content)) add(name);
+    for (const name of collectNamespacedExportNames(content)) add(name);
+    return names;
+}
+
+/** Collect first-level names from the explicit mock namespaces. */
+function collectNamespacedExportNames(content: string): Set<string> {
+    const names = new Set<string>();
+    for (const match of content.matchAll(/\b(constants|objects|procedures)\s*:\s*\{/g)) {
+        const openBrace = (match.index ?? 0) + match[0].lastIndexOf('{');
+        scanObjectLiteralKeys(content, openBrace, names);
+    }
     return names;
 }
 

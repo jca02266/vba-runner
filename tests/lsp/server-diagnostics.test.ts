@@ -208,6 +208,16 @@ for (const name of ['application', 'worksheets', 'thisworkbook']) {
 for (const nested of ['pathseparator', 'displayalerts', 'pattern', 'path']) {
     console.assert(!applicationMockNames.has(nested), `Nested member ${nested} must not become a host mock`);
 }
+const namespacedMockNames = collectMockIdentifiers(String.raw`module.exports = ({ excel }) => ({
+    constants: { xlUp: -4162 },
+    objects: { ThisWorkbook: excel.Application },
+    procedures: { HostHelper: () => 1 },
+});`);
+for (const name of ['xlup', 'thisworkbook', 'hosthelper']) {
+    console.assert(namespacedMockNames.has(name), `Namespaced mock should expose ${name}`);
+}
+console.assert(!namespacedMockNames.has('constants') && !namespacedMockNames.has('objects'),
+    'Namespace containers must not become host identifiers');
 console.log('[PASS] CommonJS __mocks__/Application.js is discoverable');
 
 // Test 13: Diagnostics discover the real sibling mock without manual registration
