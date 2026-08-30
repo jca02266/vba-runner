@@ -33,7 +33,9 @@ Excel VBA で `xlUp` が使えるのは Excel 型ライブラリが **tier 6** �
 名前解決は、名前だけでなく呼び出し元のモジュール・クラスと
 Property のアクセサ種別を入力にして行う。実行時呼び出しと実行前検査は
 `Evaluator.resolveProcedureForScope`を共有し、クラス内の無修飾メンバーは
-グローバル手続き表より先に現在の`ClassDeclaration`から解決する。
+グローバル手続き表より先に現在の`ClassDeclaration`から解決する。クラスの
+フィールドもそのクラスの各メンバー手続きにおける既知の語彙として扱い、
+`m_items(key)`のような既定メンバー呼び出しを未定義手続きと誤診断しない。
 
 この契約が導入される前は、実行時の`Me.__classDef__`検索、事前検査の
 `Environment`検索、LSPのシンボル表が別々にクラスPrivateメンバーを扱っていた。
