@@ -288,6 +288,11 @@ The Test Explorer can run all discovered `Test_` procedures or only the selected
 targeted run evaluates only that procedure and loads supporting `.bas` / `.cls` files from
 the same directory.
 
+Extension diagnostics can be tested without launching VS Code with
+`tests/lsp/extension-diagnostics-harness.test.ts`. The harness sends real workspace VBA through
+the engine and an in-memory DiagnosticCollection, checking the range, severity, message, source,
+and code that would reach the Problems panel.
+
 ### Mock Skeleton Generation
 
 Run **VBA: Generate Mocks** from the Command Palette to analyze Excel object dependencies (`Worksheet`, `Range`, etc.) in the source file and generate a mock skeleton at `__mocks__/ExcelObjects.bas`.

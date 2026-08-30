@@ -349,6 +349,13 @@ done
 
 ## 今後の拡張候補
 
+### 拡張機能診断の自動検証
+
+`tests/lsp/extension-diagnostics-harness.test.ts` はVS Codeを起動せず、実ワークスペースのVBAを
+`LSPServer`とインメモリのDiagnosticCollectionへ通して診断結果を検証する。エンジン側の
+`evalVBASingle`にも同じフィクスチャを渡せるため、実行結果とVS Code診断の不整合を同じテストで
+検出できる。Fake APIは範囲、重大度、source、codeの変換を検証し、手動のProblemsパネル確認を不要にする。
+
 - DAPの配列要素・オブジェクトメンバー編集
 - キーワード引数に対応したSignature Helpのアクティブ引数選択
 - Excel/COM型ライブラリからのSignature Help定義ロード

@@ -288,6 +288,11 @@ Code Lens の「未テスト」ボタンを押すと、`Test_<プロシージャ
 選択した項目単位で実行できます。選択実行では、選択したプロシージャだけを評価し、
 同じディレクトリの補助 `.bas` / `.cls` を実行コンテキストへ読み込みます。
 
+拡張機能の診断は、VS Codeを起動せずに
+`tests/lsp/extension-diagnostics-harness.test.ts` で検証できます。実ワークスペースのVBAを
+エンジン実行とインメモリのDiagnosticCollectionへ通し、Problemsパネルへ登録される範囲・重大度・
+メッセージ・コードを自動比較します。
+
 ### モックひな形生成
 
 コマンドパレットから **VBA: Generate Mocks** を実行すると、ソースファイルの Excel 依存オブジェクト（`Worksheet`・`Range` 等）を解析し、`__mocks__/ExcelObjects.bas` にモックのひな形を生成します。

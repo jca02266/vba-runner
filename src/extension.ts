@@ -20,6 +20,7 @@ import { checkOptionExplicit } from './engine/option-explicit-checker';
 import { loadMocks } from '../test-libs/mock-loader';
 import { injectExcelStub } from '../test-libs/excel-stub';
 import { collectMockIdentifiers } from './lsp/host-mock-advisor';
+import { publishDiagnostics } from './lsp/diagnostic-publisher';
 
 let lspServer: LSPServer;
 const documentMap = new Map<string, vscode.TextDocument>();
@@ -116,29 +117,14 @@ export async function activate(context: vscode.ExtensionContext) {
     function updateDiagnostics(uri: vscode.Uri): void {
         const raw = lspServer.getDiagnostics(uri.toString());
         const filtered = raw.filter((d: any) => !d.code || shouldShowLintDiag(String(d.code)));
-        const diags = filtered.map((d: any) => {
-            const range = new vscode.Range(
-                d.range.start.line,
-                d.range.start.character,
-                d.range.end.line,
-                d.range.end.character
-            );
-            const sev = d.severity === 1
-                ? vscode.DiagnosticSeverity.Error
-                : d.severity === 2
-                    ? vscode.DiagnosticSeverity.Warning
-                    : d.severity === 3
-                        ? vscode.DiagnosticSeverity.Information
-                        : vscode.DiagnosticSeverity.Hint;
-            const msg = d.l10nKey != null
-                ? l10n.t(d.l10nKey, ...(d.l10nArgs ?? []))
-                : d.message;
-            const diag = new vscode.Diagnostic(range, msg, sev);
-            diag.source = d.source;
-            if (d.code != null) diag.code = d.code;
-            return diag;
-        });
-        diagnosticCollection.set(uri, diags);
+        publishDiagnostics(uri, filtered, diagnosticCollection, {
+            range: (startLine, startCharacter, endLine, endCharacter) =>
+                new vscode.Range(startLine, startCharacter, endLine, endCharacter),
+            diagnostic: (range, message, severity) =>
+                new vscode.Diagnostic(range, message, severity as vscode.DiagnosticSeverity),
+            setSource: (diagnostic, source) => { diagnostic.source = source; },
+            setCode: (diagnostic, code) => { if (code != null) diagnostic.code = code; },
+        }, (key, args) => l10n.t(key, ...args));
     }
 
     let mockRefreshGeneration = 0;
