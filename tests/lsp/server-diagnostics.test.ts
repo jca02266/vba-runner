@@ -275,4 +275,21 @@ console.assert(classFieldCallDiagnostics.length === 0,
     `Expected class field default-member call to resolve, got ${classFieldCallDiagnostics.map((d: any) => d.message).join('; ')}`);
 console.log('[PASS] Class fields resolve in default-member calls');
 
+// Test 17: Procedure-scope declarations are visible before their Dim line,
+// as required by VBA's procedure-wide declaration rule.
+const useBeforeDimUri = 'file:///workspace/use-before-dim.bas';
+server.didOpen(useBeforeDimUri, String.raw`Option Explicit
+Sub UseBeforeDim()
+    Dim result As Variant
+    result = later(key)
+    Dim later As Object
+    Dim key As String
+End Sub`);
+const useBeforeDimDiagnostics = server.getDiagnostics(useBeforeDimUri)
+    .filter((d: any) => d.message.includes("'later'")
+        && d.message.includes('Sub or Function not defined'));
+console.assert(useBeforeDimDiagnostics.length === 0,
+    `Expected later Dim declaration to be known, got ${useBeforeDimDiagnostics.map((d: any) => d.message).join('; ')}`);
+console.log('[PASS] Procedure declarations are known before their Dim line');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');

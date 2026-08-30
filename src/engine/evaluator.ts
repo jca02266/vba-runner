@@ -2365,6 +2365,43 @@ export class Evaluator {
 
         const declared = new Set<string>([proc.name.name.toLowerCase()]);
         for (const param of proc.parameters) declared.add(param.name.toLowerCase());
+        // VBA declarations have procedure scope even when their Dim/Const
+        // statement appears after a use.  Keep a complete lexical-name set
+        // separate from `declared`, which is also used by duplicate-declaration
+        // checks while walking statements in source order.
+        const lexicalNames = new Set<string>(declared);
+        const collectLexicalNames = (statements: readonly Statement[]): void => {
+            for (const statement of statements) {
+                if (statement.type === 'VariableDeclaration' || statement.type === 'ConstDeclaration') {
+                    for (const declaration of (statement as VariableDeclaration | ConstDeclaration).declarations) {
+                        lexicalNames.add(declaration.name.name.toLowerCase());
+                    }
+                } else if (statement.type === 'ForStatement') {
+                    lexicalNames.add((statement as ForStatement).identifier.name.toLowerCase());
+                    collectLexicalNames((statement as ForStatement).body);
+                } else if (statement.type === 'ForEachStatement') {
+                    lexicalNames.add((statement as ForEachStatement).variable.name.toLowerCase());
+                    collectLexicalNames((statement as ForEachStatement).body);
+                } else if (statement.type === 'IfStatement') {
+                    const branch = statement as IfStatement;
+                    collectLexicalNames(branch.consequent);
+                    if (Array.isArray(branch.alternate)) collectLexicalNames(branch.alternate);
+                    else if (branch.alternate) collectLexicalNames([branch.alternate]);
+                } else if (statement.type === 'DoWhileStatement' || statement.type === 'WhileStatement'
+                    || statement.type === 'WithStatement') {
+                    collectLexicalNames((statement as any).body ?? []);
+                } else if (statement.type === 'SelectCaseStatement') {
+                    const select = statement as SelectCaseStatement;
+                    for (const clause of select.cases) collectLexicalNames(clause.body);
+                    collectLexicalNames(select.elseBody ?? []);
+                }
+            }
+        };
+        collectLexicalNames(proc.body);
+        const isDefinedIdentifier = (name: string): boolean => {
+            const key = name.toLowerCase();
+            return lexicalNames.has(key) || knownNames.has(key);
+        };
         let inResumeNext = false;
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
@@ -2472,7 +2509,7 @@ export class Evaluator {
                     if (call.callee.type === 'Identifier') {
                         const id = call.callee as Identifier;
                         const lower = id.name.toLowerCase();
-                        if (!inResumeNext && !id.foreign && !declared.has(lower) && !knownNames.has(lower)) {
+                        if (!inResumeNext && !id.foreign && !isDefinedIdentifier(lower)) {
                             findings.undefinedCalls.push({ name: id.name, line: id.loc?.start.line ?? 0 });
                         }
                     }
@@ -2748,7 +2785,7 @@ export class Evaluator {
                     if (!findings.argumentError && a.right.type === 'Identifier') {
                         const implicitName = (a.right as Identifier).name;
                         const implicitProc = this.resolveProcedureForScope(implicitName, undefined, proc.moduleName);
-                        if (!declared.has(implicitName.toLowerCase()) &&
+                        if (!isDefinedIdentifier(implicitName) &&
                             implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
                             const min = requiredArgumentCount(implicitProc.parameters);
                             if (min > 0) {
