@@ -552,6 +552,45 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] local_variable_shadows_function_call
+// VBA: コンパイルエラー: 配列がありません
+// VBA error line (within Sub body): 7
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+
+      Private Function MyFuncHasArg(x)
+      End Function
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+
+      Private Function ShadowTarget(value As Variant) As Long
+          ShadowTarget = 1
+      End Function
+      Sub Case_local_variable_shadows_function_call()
+          Dim shadowTarget As Long
+          Dim value As Variant
+          shadowTarget = shadowTarget(value)
+      End Sub
+    `, 'Case_local_variable_shadows_function_call', 24, /array required|array not found|expected array|配列がありません/i, 'local_variable_shadows_function_call');
+        console.log('[PASS] local_variable_shadows_function_call');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] local_variable_shadows_function_call:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] undefined_sub_call
 // VBA: コンパイルエラー: SubまたはFunctionが定義されていません
 // VBA error line (within Sub body): 1

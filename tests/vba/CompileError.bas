@@ -301,6 +301,24 @@ Sub Case_goto_undefined_label()
     GoTo NoSuchLabel ' @error
 End Sub
 
+' CASE: local_variable_shadows_function_call
+' TYPE: preproc
+' VBA: コンパイルエラー: 配列がありません
+' RUNNER: /array required|array not found|expected array|配列がありません/i
+' PROC: Case_local_variable_shadows_function_call
+' NOTE: 同名のローカル変数はモジュール関数より優先されるため、
+'       ShadowTarget(value) は関数呼び出しではなく非配列変数への添字参照になる。
+'@case-begin
+Private Function ShadowTarget(value As Variant) As Long
+    ShadowTarget = 1
+End Function
+Sub Case_local_variable_shadows_function_call()
+    Dim shadowTarget As Long
+    Dim value As Variant
+    shadowTarget = shadowTarget(value) ' @error
+End Sub
+'@case-end
+
 ' ----------------------------------------------------------------
 ' 備考（コンパイルエラーにならない例）:
 '

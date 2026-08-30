@@ -84,13 +84,13 @@ End Sub
 ' 重複 ID を除いたデータを Result シートへコピーする
 ' ----------------------------------------------------------
 Private Sub CopyFilteredData(wsSource As Worksheet, wsDest As Worksheet)
-    Dim lastRow As Long
+    Dim lastDataRow As Long
     Dim destRow As Long
     Dim seenIDs As Object      ' Scripting.Dictionary として使用
     Dim i As Long
     Dim currentID As Variant
 
-    lastRow = LastRow(wsSource)
+    lastDataRow = LastRow(wsSource)
     Set seenIDs = CreateObject("Scripting.Dictionary")
 
     ' ---- セクションタイトル ----
@@ -102,7 +102,7 @@ Private Sub CopyFilteredData(wsSource As Worksheet, wsDest As Worksheet)
     destRow = 3
 
     ' データ行を走査
-    For i = 2 To lastRow
+    For i = 2 To lastDataRow
         currentID = wsSource.Cells(i, 1).Value
         If currentID = "" Then GoTo NextRow
 
@@ -124,20 +124,20 @@ End Sub
 ' カテゴリ別集計を Result シートに追記する
 ' ----------------------------------------------------------
 Private Sub SummarizeByCategory(wsSource As Worksheet, wsDest As Worksheet)
-    Dim lastRow As Long
+    Dim lastDataRow As Long
     Dim i As Long
     Dim cat As String
     Dim totals As Object       ' カテゴリ -> 売上合計
     Dim counts As Object       ' カテゴリ -> 件数
     Dim seenIDs As Object      ' 重複除去用
 
-    lastRow = LastRow(wsSource)
+    lastDataRow = LastRow(wsSource)
     Set totals = CreateObject("Scripting.Dictionary")
     Set counts = CreateObject("Scripting.Dictionary")
     Set seenIDs = CreateObject("Scripting.Dictionary")
 
     ' 重複を除いてカテゴリ別に集計
-    For i = 2 To lastRow
+    For i = 2 To lastDataRow
         Dim currentID As Variant
         currentID = wsSource.Cells(i, 1).Value
         If currentID = "" Then GoTo SkipRow

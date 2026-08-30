@@ -682,7 +682,9 @@ End Class`;
                 const dir = path.dirname(doc.uri.fsPath);
                 const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
 
+                let debugOutputProduced = false;
                 const ev = new Evaluator((msg: string) => {
+                    debugOutputProduced = true;
                     debugOutputChannel.appendLine(msg);
                     debugOutputChannel.show(true);
                 }, { allowTopLevelStatements: false });
@@ -759,7 +761,14 @@ End Class`;
                 if (result !== undefined) {
                     outputChannel.appendLine(`[Run] ${procName}() → ${result}`);
                 }
-                outputChannel.show();
+                if (debugOutputProduced) {
+                    // Keep Debug.Print visible after execution. Showing the
+                    // general runner channel here used to immediately replace
+                    // the VBA Debug channel selected by the print callback.
+                    debugOutputChannel.show(true);
+                } else {
+                    outputChannel.show();
+                }
             } catch (e: any) {
                 outputChannel.appendLine(`[Error] ${procName}: ${e.message}`);
 

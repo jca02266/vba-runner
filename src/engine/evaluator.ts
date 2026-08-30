@@ -2220,6 +2220,11 @@ export class Evaluator {
                     "Can't assign to an array", findings.arrayAssignment.line,
                     proc.moduleName ?? undefined);
             }
+            if (findings.arrayRequired) {
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                    `Array required: '${findings.arrayRequired.name}'`, findings.arrayRequired.line,
+                    proc.moduleName ?? undefined);
+            }
             if (findings.literalOverflow) {
                 this.throwCompileError(VbaErrorCode.OVERFLOW,
                     `Numeric literal out of range for ${findings.literalOverflow.targetType}`,
@@ -2281,6 +2286,7 @@ export class Evaluator {
         arrayBounds: ArrayBound[];
         duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
         arrayAssignment?: { line?: number };
+        arrayRequired?: { name: string; line?: number };
         paramArrayUse?: { line?: number };
         labels: Set<string>;
         jumps: Array<{ label: string; line: number }>;
@@ -2299,6 +2305,7 @@ export class Evaluator {
             arrayBounds: ArrayBound[];
             duplicate?: { kind: 'Variable' | 'Constant'; name: string; line?: number };
             arrayAssignment?: { line?: number };
+            arrayRequired?: { name: string; line?: number };
             paramArrayUse?: { line?: number };
             labels: Set<string>;
             jumps: Array<{ label: string; line: number }>;
@@ -2324,6 +2331,7 @@ export class Evaluator {
         const seen = new Set<string>(declared);
         if (proc.isFunction || proc.isProperty) seen.add(proc.name.name.toLowerCase());
         const arrayDeclarations = new Map<string, { type?: string; fixed: boolean; paramArray?: boolean }>();
+        const valueDeclarations = new Set<string>();
         const variableTypes = new Map<string, string>();
         for (const param of proc.parameters) {
             if (param.paramType) variableTypes.set(param.name.toLowerCase(), param.paramType);
@@ -2440,6 +2448,18 @@ export class Evaluator {
                         }
                         const target = this.env.getProcedure((call.callee as Identifier).name);
                         if (target) {
+                            // A local scalar shadows a module procedure in
+                            // VBA's value namespace. `name(index)` is then an
+                            // array access, rejected before execution.
+                            const calleeName = (call.callee as Identifier).name;
+                            const calleeKey = calleeName.toLowerCase();
+                            if (!findings.arrayRequired && valueDeclarations.has(calleeKey)
+                                && !arrayDeclarations.has(calleeKey)) {
+                                findings.arrayRequired = {
+                                    name: calleeName,
+                                    line: call.loc?.start.line ?? call.callee.loc?.start.line,
+                                };
+                            }
                             if (!findings.argumentError && hasByRefTypeMismatch(target.parameters, call.args)) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.TYPE_MISMATCH,
@@ -2598,6 +2618,7 @@ export class Evaluator {
                     const decl = stmt as VariableDeclaration;
                     for (const d of decl.declarations) {
                         const key = d.name.name.toLowerCase();
+                        valueDeclarations.add(key);
                         if (d.isArray && d.arrayBounds) findings.arrayBounds.push(...d.arrayBounds);
                         if (d.isArray) arrayDeclarations.set(key, {
                             type: d.objectType,
