@@ -2453,10 +2453,31 @@ export class Evaluator {
             const key = name.toLowerCase();
             return lexicalTypes.get(key) ?? classFieldTypes.get(key);
         };
+        const hasClassDefaultMember = (typeName: string | undefined): boolean => {
+            if (!typeName) return false;
+            const classDef = this.classDefinitions.get(typeName.toLowerCase());
+            if (!classDef) return false;
+            // Exported VBA classes mark the default accessor with
+            // `Attribute <Member>.VB_UserMemId = 0`.  Source-level fixtures
+            // historically omit that hidden attribute; Item/Value are the
+            // runner's compatibility names for the same default members.
+            return classDef.procedures.some(procedure => {
+                if (procedure.scope === 'private') return false;
+                const marked = procedure.body.some(statement =>
+                    statement.type === 'AttributeStatement' &&
+                    /\.vb_usermemid$/i.test((statement as AttributeStatement).name) &&
+                    (statement as AttributeStatement).value.type === 'NumberLiteral' &&
+                    (statement as AttributeStatement).value.value === 0);
+                if (marked) return true;
+                if (!procedure.isProperty && !procedure.isFunction) return false;
+                const memberName = procedure.name.name.toLowerCase();
+                return memberName === 'item' || memberName === 'value';
+            });
+        };
         const acceptsDefaultMemberCall = (name: string): boolean => {
             const type = valueTypeFor(name)?.toLowerCase();
             return type === undefined || type === 'variant' || type === 'object' || type === 'collection'
-                || this.classDefinitions.has(type) || this.externalObjectFactories.has(type);
+                || hasClassDefaultMember(type) || this.externalObjectFactories.has(type);
         };
         const resolveCallCategory = (name: string, scopeModuleName?: string): 'value' | 'procedure' | 'defined' | 'undefined' => {
             if (isDefinedValueName(name)) return 'value';

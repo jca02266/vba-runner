@@ -427,4 +427,29 @@ End Sub`,
         'Procedure-scope declarations are known before their Dim statement');
 }
 
+// A user-defined class is not automatically indexable.  The index form is
+// accepted only when the class exposes a default member (Item/Value in the
+// source-level fixture convention); an unrelated class member must still
+// produce the array/object usage diagnostic.
+{
+    const runner = evalVBAModules([{
+        name: 'PlainValue',
+        parseAsClass: 'PlainValue',
+        code: String.raw`Class PlainValue
+Public Property Get Name() As String
+    Name = "plain"
+End Property
+End Class`,
+    }, {
+        name: 'PlainCaller',
+        code: String.raw`Sub Caller()
+    Dim value As New PlainValue
+    Dim result As String
+    result = value(0)
+End Sub`,
+    }], { diagnostics: { expectation: 'skip', reason: 'precheck-only default member classification' } });
+    assert.throws(() => runner.callProcedure('Caller', []), /array required/i,
+        'Class without a default member is not treated as an index expression');
+}
+
 console.log('✅ Function/Sub definition and call arity matrix passed');
