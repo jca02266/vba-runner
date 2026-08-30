@@ -117,6 +117,25 @@ console.assert(classOptionUndeclared.length === 1,
     `Option Explicit in .cls must report missing once, got ${classOptionUndeclared.length}`);
 console.log('[PASS] VBE class Option Explicit checks undeclared names');
 
+// Test 9c: Class-level Const declarations are visible to all class members
+server.didOpen('file:///workspace/Product.cls', String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "Product"
+Option Explicit
+Private Const MIN_PRICE As Long = 1
+Public Sub Verify()
+    Dim value As Long
+    value = MIN_PRICE
+End Sub`);
+const classConstDiagnostics = server.getDiagnostics('file:///workspace/Product.cls')
+    .filter((d: any) => d.source === 'vba-runner'
+        && d.message.includes("Variable 'MIN_PRICE' not declared"));
+console.assert(classConstDiagnostics.length === 0,
+    `Class-level Const must not be reported as undeclared, got ${classConstDiagnostics.length}`);
+console.log('[PASS] VBE class Const declarations resolve under Option Explicit');
+
 // Test 10: Cross-module member qualifiers are known to Option Explicit
 server.loadWorkspaceFile('file:///workspace/ExcelQueueQualifiedProperty.cls', String.raw`VERSION 1.0 CLASS
 Attribute VB_Name = "ExcelQueueQualifiedProperty"

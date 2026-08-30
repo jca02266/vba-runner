@@ -152,6 +152,15 @@ export function checkOptionExplicit(
                     classModuleNames.add(decl.name.name.toLowerCase());
                 }
             }
+            // Class-level Const declarations live in `body` rather than
+            // `fields`.  They are visible from every member procedure just
+            // like class fields and must be included for Option Explicit.
+            for (const member of cls.body) {
+                if (member.type !== 'ConstDeclaration') continue;
+                for (const decl of (member as ConstDeclaration).declarations) {
+                    classModuleNames.add(decl.name.name.toLowerCase());
+                }
+            }
             // Class members are module-level names inside the class.  This
             // includes Property Get/Let/Set and Functions referenced without
             // an explicit Me. qualifier.

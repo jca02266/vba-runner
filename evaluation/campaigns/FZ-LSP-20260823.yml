@@ -19,3 +19,29 @@ items:
       - src/lsp/debug-worker.ts
       - src/lsp/test-runner.ts
       - src/extension.ts
+  - id: FZ-LSP-20260823-002
+    title: Class-level Const Option Explicit resolution
+    status: queued
+    priority: 1
+    focus: .cls内Private ConstのOption Explicit診断
+    sourceReview:
+      - src/lsp/server.ts
+      - src/engine/option-explicit-checker.ts
+      - src/engine/parser.ts
+      - sample/workspace/Product.cls
+    coverageTargets:
+      - src/engine/option-explicit-checker.ts
+      - src/lsp/server.ts
+  - id: FZ-LSP-20260823-003
+    title: Class Const access-scope preservation
+    status: queued
+    priority: 2
+    focus: .cls内ConstのPrivate/Publicスコープ保持と横断参照
+    priorCauseKey: class-const-scope-metadata-loss
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - src/engine/option-explicit-checker.ts
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
