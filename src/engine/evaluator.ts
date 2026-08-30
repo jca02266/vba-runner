@@ -2005,6 +2005,24 @@ export class Evaluator {
         this.precheckProc(proc);
     }
 
+    /** Resolve an unqualified procedure using the active module/class scope. */
+    private resolveProcedureForScope(
+        name: string,
+        type?: 'get' | 'let' | 'set',
+        scopeModuleName?: string,
+    ): ProcedureDeclaration | undefined {
+        const owner = scopeModuleName
+            ? this.classDefinitions.get(scopeModuleName.toLowerCase())
+            : undefined;
+        if (owner) {
+            const member = owner.procedures.find(candidate =>
+                candidate.name.name.toLowerCase() === name.toLowerCase()
+                && (type === undefined || candidate.propertyType === type));
+            if (member) return member;
+        }
+        return this.env.getProcedure(name, type);
+    }
+
     /**
      * Analyze procedure-level compile/precheck rules without executing VBA.
      *
@@ -2439,22 +2457,6 @@ export class Evaluator {
             return classDef.procedures.find(p => p.name.name.toLowerCase() === memberName.toLowerCase());
         };
 
-        const resolveProcedureInScope = (name: string, type?: 'get' | 'let' | 'set'): ProcedureDeclaration | undefined => {
-            // Class members are not placed in the global procedure namespace.
-            // Resolve them from the owning class first, matching the runtime
-            // `Me.__classDef__` dispatch path used by class instances.
-            const owner = proc.moduleName
-                ? this.classDefinitions.get(proc.moduleName.toLowerCase())
-                : undefined;
-            if (owner) {
-                const member = owner.procedures.find(candidate =>
-                    candidate.name.name.toLowerCase() === name.toLowerCase()
-                    && (type === undefined || candidate.propertyType === type));
-                if (member) return member;
-            }
-            return this.env.getProcedure(name, type);
-        };
-
         const visitExpression = (expr: Expression, assignmentTarget = false, asCallCallee = false): void => {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
@@ -2474,7 +2476,8 @@ export class Evaluator {
                                 line: call.loc?.start.line ?? call.callee.loc?.start.line,
                             };
                         }
-                        const target = resolveProcedureInScope((call.callee as Identifier).name);
+                        const target = this.resolveProcedureForScope(
+                            (call.callee as Identifier).name, undefined, proc.moduleName);
                         if (target) {
                             // A local scalar shadows a module procedure in
                             // VBA's value namespace. `name(index)` is then an
@@ -2723,7 +2726,7 @@ export class Evaluator {
                     }
                     const name = this.subNameInValueExpr(a.right);
                     if (!findings.subAsValue && name) {
-                        const target = resolveProcedureInScope(name);
+                        const target = this.resolveProcedureForScope(name, undefined, proc.moduleName);
                         if (target && !target.isFunction && !target.isProperty) {
                             findings.subAsValue = { name, line: a.right.loc?.start.line };
                         }
@@ -2736,7 +2739,7 @@ export class Evaluator {
                     // all).
                     if (!findings.argumentError && a.right.type === 'Identifier') {
                         const implicitName = (a.right as Identifier).name;
-                        const implicitProc = resolveProcedureInScope(implicitName);
+                        const implicitProc = this.resolveProcedureForScope(implicitName, undefined, proc.moduleName);
                         if (!declared.has(implicitName.toLowerCase()) &&
                             implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
                             const min = requiredArgumentCount(implicitProc.parameters);
@@ -10078,9 +10081,8 @@ export class Evaluator {
             // (class scope → global scope).
             const me = this.env.getConst('me');
             if (me && me.__vbaClass__ && me.__classDef__) {
-                const classProc = (me.__classDef__ as ClassDeclaration).procedures.find(
-                    p => p.name.name.toLowerCase() === nameLower
-                );
+                const classProc = this.resolveProcedureForScope(
+                    nameLower, undefined, me.__className__);
                 if (classProc) {
                     this.checkNoGapOnRequiredParam(classProc.parameters, expr.args);
                     this.vbaCallStack.push({ name: classProc.name.name, moduleName: me.__className__ ?? '', line: this.currentLine });
