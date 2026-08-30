@@ -2350,6 +2350,16 @@ export class Evaluator {
                 for (const member of classDef.procedures) {
                     knownNames.add(member.name.name.toLowerCase());
                 }
+                // Class fields are lexical names inside every member procedure.
+                // They must also be known when a field is used with call syntax
+                // (for example, a dictionary's default Item member:
+                // `m_items(key)`).  Otherwise the precheck mistakes the field
+                // for an undefined function even though runtime lookup finds it.
+                for (const field of classDef.fields) {
+                    for (const declaration of field.declarations) {
+                        knownNames.add(declaration.name.name.toLowerCase());
+                    }
+                }
             }
         }
 

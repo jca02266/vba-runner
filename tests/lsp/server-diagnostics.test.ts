@@ -255,4 +255,24 @@ console.assert(privateMemberDiagnostics.length === 0,
     `Expected same-class Private member call to resolve, got ${privateMemberDiagnostics.map((d: any) => d.message).join('; ')}`);
 console.log('[PASS] Same-class Private member calls resolve');
 
+// Test 16: Class fields used with default-member call syntax are not treated
+// as undefined procedures by the shared precheck (Inventory-style dictionary).
+const classFieldCallUri = 'file:///workspace/class-field-call.cls';
+server.didOpen(classFieldCallUri, String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "ClassFieldCall"
+Option Explicit
+Private m_items As Object
+Public Function GetItem(ByVal key As String) As Variant
+    Set GetItem = m_items(key)
+End Function`);
+const classFieldCallDiagnostics = server.getDiagnostics(classFieldCallUri)
+    .filter((d: any) => d.message.includes("'m_items'")
+        && d.message.includes('Sub or Function not defined'));
+console.assert(classFieldCallDiagnostics.length === 0,
+    `Expected class field default-member call to resolve, got ${classFieldCallDiagnostics.map((d: any) => d.message).join('; ')}`);
+console.log('[PASS] Class fields resolve in default-member calls');
+
 console.log('\n✅ LSPServer.getDiagnostics: 全テスト通過');
