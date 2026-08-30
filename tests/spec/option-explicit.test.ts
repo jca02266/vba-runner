@@ -2,15 +2,16 @@ import { Lexer } from '../../src/engine/lexer';
 import { Parser } from '../../src/engine/parser';
 import { Evaluator } from '../../src/engine/evaluator';
 import { assert, evalVBASingle } from '../../test-libs/test-runner';
+import type { EvalOptions } from '../../test-libs/test-runner';
 
 // Option Explicit チェックは Pass 2（resolveIdentifiers）に一本化されているため、
 // 単一モジュールのテストは Pass 1+2 を両方実行する evalVBASingle を使う。
-function evalVBA(code: string): any {
-    return evalVBASingle(code);
+function evalVBA(code: string, options?: EvalOptions): any {
+    return evalVBASingle(code, options);
 }
 
-function runFunc(code: string, name: string, args: any[] = []): any {
-    return evalVBA(code).callProcedure(name, args);
+function runFunc(code: string, name: string, args: any[] = [], options?: EvalOptions): any {
+    return evalVBA(code, options).callProcedure(name, args);
 }
 
 // --- 1. No Option Explicit: undeclared variables are fine ---

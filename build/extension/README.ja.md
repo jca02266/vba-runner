@@ -288,10 +288,15 @@ Code Lens の「未テスト」ボタンを押すと、`Test_<プロシージャ
 選択した項目単位で実行できます。選択実行では、選択したプロシージャだけを評価し、
 同じディレクトリの補助 `.bas` / `.cls` を実行コンテキストへ読み込みます。
 
-拡張機能の診断は、VS Codeを起動せずに
-`tests/lsp/extension-diagnostics-harness.test.ts` で検証できます。実ワークスペースのVBAを
-エンジン実行とインメモリのDiagnosticCollectionへ通し、Problemsパネルへ登録される範囲・重大度・
-メッセージ・コードを自動比較します。
+拡張機能の診断は、VS Codeを起動せずに検証できます。
+`evalVBASingle` と `evalVBAModules` は既存のエンジンテストが渡すインライン VBA ソースを
+そのままエンジンと公開済みLSP診断経路の両方へ、手続きの呼び出し時に渡します。診断は
+呼び出した手続きの範囲に限定されるため、未呼び出しの兄弟手続きはテストを失敗させません。
+例えば
+`tests/spec/parse-as-class.test.ts` の Private Const テストは、同じ `String.raw` ソースで
+エンジンの結果とLSPのError診断なしを同時に検証します。
+`tests/lsp/extension-diagnostics-harness.test.ts` は、Problemsパネルへ登録される範囲・重大度・
+メッセージ・source・codeのDiagnosticCollection変換を個別に検証します。
 
 ### モックひな形生成
 

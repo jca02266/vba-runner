@@ -437,6 +437,17 @@ export class Environment {
         this.variables.set(key, value);
     }
 
+    /** Names injected by a host or test harness and visible from this scope. */
+    getVisibleVariableNames(): string[] {
+        const names = new Set<string>();
+        let env: Environment | undefined = this;
+        while (env) {
+            for (const name of env.variables.keys()) names.add(name);
+            env = env.enclosing;
+        }
+        return [...names];
+    }
+
     setLocally(name: string, value: any) {
         const key = name.toLowerCase();
         this.variables.set(key, this.coerceToType(key, value));
@@ -884,6 +895,15 @@ export class Environment {
 
 export type PrintCallback = (output: string) => void;
 
+/** A procedure-level diagnostic produced by the shared engine precheck. */
+export interface ProcedurePrecheckDiagnostic {
+    procedureName: string;
+    moduleName: string;
+    line?: number;
+    number?: number;
+    message: string;
+}
+
 export class Evaluator {
     public env: Environment;          // Tier 3: Public cross-module names
     private builtinEnv!: Environment; // Tier 4: standard library
@@ -959,6 +979,8 @@ export class Evaluator {
     private inConstEval = false;
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
     private debugHook: DebugHook | null = null;
+    /** Names supplied by an embedding host for static-only analysis. */
+    private analysisKnownNames = new Set<string>();
 
     /** Keep Err object mutation in one path for Resume and runtime failures. */
     private clearErrState(): void {
@@ -1955,6 +1977,21 @@ export class Evaluator {
         this.defaultBindingObject = obj;
     }
 
+    /** Host-provided names that the diagnostic harness must treat as declared. */
+    public getDiagnosticExternalNames(): string[] {
+        const names = new Set(this.env.getVisibleVariableNames());
+        if (this.defaultBindingObject) {
+            let current = this.defaultBindingObject;
+            while (current && current !== Object.prototype) {
+                for (const name of Object.getOwnPropertyNames(current)) {
+                    if (name !== 'constructor') names.add(name);
+                }
+                current = Object.getPrototypeOf(current);
+            }
+        }
+        return [...names];
+    }
+
     /** 名前をグローバル定数として登録する。VBA コード側からの代入は Error 5 になる。 */
     public setConstant(name: string, value: any): void {
         this.env.setConstant(name, value);
@@ -1966,6 +2003,89 @@ export class Evaluator {
         const proc = this.env.getProcedure(procName);
         if (!proc) throw new Error(`Procedure '${name}' not found`);
         this.precheckProc(proc);
+    }
+
+    /**
+     * Analyze procedure-level compile/precheck rules without executing VBA.
+     *
+     * This is the bridge used by LSP integration tests and diagnostics.  It
+     * deliberately uses the same precheckProc implementation as the runtime
+     * call path; the only difference is that module-level executable
+     * statements are not run while the analysis environment is prepared.
+     */
+    public static analyzeProcedureDiagnostics(
+        modules: Array<{ ast: Program; moduleName: string }>,
+        targetModule?: string,
+        knownExternalNames: Iterable<string> = [],
+    ): ProcedurePrecheckDiagnostic[] {
+        // Match evalVBASingle's default source acceptance.  This flag only
+        // controls whether declarations may appear after procedures; with
+        // executeTopLevel:false below, no module-level executable statement
+        // is run during analysis.
+        const analysis = new Evaluator(() => undefined, { allowTopLevelStatements: true });
+        analysis.analysisKnownNames = new Set([...knownExternalNames].map(name => name.toLowerCase()));
+        for (const { ast, moduleName } of modules) {
+            analysis.setSourceModule(moduleName);
+            analysis.evaluateModule(ast);
+        }
+
+        // Resolve names/constants and populate the same Option Explicit cache,
+        // but discard pending module-level execution statements.  Diagnostics
+        // must never execute arbitrary user VBA.
+        try {
+            analysis.resolveIdentifiers(modules, { executeTopLevel: false });
+        } catch (error: any) {
+            const line = error?.vbaLine as number | undefined;
+            const moduleName = (error?.vbaModule ?? '') as string;
+            const message = error?.message ?? String(error);
+            return [{ procedureName: '', moduleName, line, number: error?.number, message }];
+        }
+
+        // The runtime cache historically keys Option Explicit violations by
+        // procedure name for a single loaded module.  An LSP workspace may
+        // contain many `Verify` procedures, so reconstruct the cache for the
+        // requested document before checking it; otherwise another document's
+        // violation can be reported against this one.
+        analysis.optionExplicitViolations.clear();
+        const knownModuleNames = new Set(modules.map(m => m.moduleName.toLowerCase()));
+        for (const { ast, moduleName } of modules) {
+            if (targetModule && moduleName.toLowerCase() !== targetModule.toLowerCase()) continue;
+            const { violatedProcedures } = checkOptionExplicit(ast, knownModuleNames);
+            for (const [procName, undeclared] of violatedProcedures) {
+                if (undeclared.size > 0) analysis.optionExplicitViolations.set(procName, undeclared);
+            }
+        }
+
+        const diagnostics: ProcedurePrecheckDiagnostic[] = [];
+        const target = targetModule?.toLowerCase();
+        for (const { ast, moduleName } of modules) {
+            if (target && moduleName.toLowerCase() !== target) continue;
+            const procedures: ProcedureDeclaration[] = [];
+            for (const stmt of ast.body) {
+                if (stmt.type === 'ProcedureDeclaration') {
+                    procedures.push(stmt as ProcedureDeclaration);
+                } else if (stmt.type === 'ClassDeclaration') {
+                    procedures.push(...(stmt as ClassDeclaration).procedures);
+                }
+            }
+            for (const proc of procedures) {
+                const effectiveModule = proc.moduleName ?? moduleName;
+                analysis.currentSourceModule = effectiveModule;
+                analysis.executingModuleName = effectiveModule;
+                try {
+                    analysis.precheckProc(proc);
+                } catch (error: any) {
+                    diagnostics.push({
+                        procedureName: proc.name.name,
+                        moduleName: effectiveModule,
+                        line: error?.vbaLine ?? proc.loc?.start.line,
+                        number: error?.number,
+                        message: error?.message ?? String(error),
+                    });
+                }
+            }
+        }
+        return diagnostics;
     }
 
     public callProcedure(name: string, args: any[], type?: 'get' | 'let' | 'set', moduleName?: string, argSubtypes?: (VbaVarType | undefined)[]): any {
@@ -2135,6 +2255,7 @@ export class Evaluator {
         const stillMissing = [...violations.entries()].filter(([n]) => {
             if (this.env.hasVariable(n)) return false;
             if (this.typeLibraryNamespaces.has(n)) return false;
+            if (this.analysisKnownNames.has(n.toLowerCase())) return false;
             if (this.defaultBindingObject &&
                     this.resolveObjectMemberKey(this.defaultBindingObject, n) !== undefined) return false;
             return true;
@@ -2195,6 +2316,7 @@ export class Evaluator {
                 cur = Object.getPrototypeOf(cur);
             }
         }
+        for (const name of this.analysisKnownNames) knownNames.add(name);
 
         const declared = new Set<string>([proc.name.name.toLowerCase()]);
         for (const param of proc.parameters) declared.add(param.name.toLowerCase());
@@ -6184,7 +6306,10 @@ export class Evaluator {
      * Option Explicit の精密チェックを再実行する。
      * evalVBASingle / evalVBAModules から必ず1回だけ呼ぶこと。
      */
-    public resolveIdentifiers(modules: Array<{ ast: Program; moduleName: string }>): void {
+    public resolveIdentifiers(
+        modules: Array<{ ast: Program; moduleName: string }>,
+        options: { executeTopLevel?: boolean } = {},
+    ): void {
         try {
         // VBA identifiers are case-insensitive.  Perform this pass before
         // resolving constants so collisions are reported as compile errors,
@@ -6345,15 +6470,17 @@ export class Evaluator {
         // バッチロード完了。以降の evaluateModule 呼び出し（evalExpression 等）は即時実行する。
         this.resolveIdentifiersDone = true;
 
-        // Pass 1 でシンボルテーブルに退避したモジュールレベル実行文を順番に実行する。
-        // Const・配列 Dim がすべて確定した状態で実行されるため定数参照が正しく解決される。
-        for (const { moduleName, stmts } of this.pendingTopLevel) {
-            const prev = this.currentSourceModule;
-            this.currentSourceModule = moduleName;
-            for (const stmt of stmts) {
-                this.evaluateStatement(stmt);
+        if (options.executeTopLevel !== false) {
+            // Pass 1 でシンボルテーブルに退避したモジュールレベル実行文を順番に実行する。
+            // Const・配列 Dim がすべて確定した状態で実行されるため定数参照が正しく解決される。
+            for (const { moduleName, stmts } of this.pendingTopLevel) {
+                const prev = this.currentSourceModule;
+                this.currentSourceModule = moduleName;
+                for (const stmt of stmts) {
+                    this.evaluateStatement(stmt);
+                }
+                this.currentSourceModule = prev;
             }
-            this.currentSourceModule = prev;
         }
         this.pendingTopLevel = [];
 

@@ -1,11 +1,17 @@
 import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
+import type { EvalOptions } from '../../test-libs/test-runner';
 
-function evalWithClass(clsSource: string, className: string, moduleSource: string = '') {
+function evalWithClass(
+    clsSource: string,
+    className: string,
+    moduleSource: string = '',
+    options?: EvalOptions,
+) {
     const modules: Array<{ name: string; code: string; parseAsClass?: string }> = [
         { name: className, code: clsSource, parseAsClass: className },
     ];
     if (moduleSource) modules.push({ name: 'Module', code: moduleSource });
-    return evalVBAModules(modules);
+    return evalVBAModules(modules, options);
 }
 
 // Test 1: parseAsClass produces the same result as explicit Class...End Class wrapping
@@ -241,15 +247,14 @@ End Function
 
 // Test 9: B-1 — クラス内 Private Const がメソッドから参照できる
 {
-    const clsSource = `
-Option Explicit
+    const className = 'Validator';
+    const classSource = String.raw`Option Explicit
 Private Const LOW As Long = 1
 Private Const HIGH As Long = 100
 Public Function InRange(ByVal v As Long) As Boolean
     InRange = (v >= LOW And v <= HIGH)
-End Function
-`;
-    const modSource = `
+End Function`;
+    const moduleSource = String.raw`Option Explicit
 Function Test9() As String
     Dim obj As New Validator
     If obj.InRange(50) Then
@@ -257,10 +262,13 @@ Function Test9() As String
     Else
         Test9 = "fail"
     End If
-End Function
-`;
-    const ev = evalWithClass(clsSource, 'Validator', modSource);
-    assert.strictEqual(ev.callProcedure('Test9', []), 'ok', 'Private Const accessible inside class method');
+End Function`;
+    const ev = evalVBAModules([
+        { name: className, code: classSource, parseAsClass: className },
+        { name: 'Module', code: moduleSource },
+    ], { diagnostics: { expectation: 'clean' } });
+    assert.strictEqual(ev.callProcedure('Test9', []), 'ok',
+        'Private Const accessible inside class method');
     console.log('[PASS] parseAsClass: B-1 — Private Const クラス内参照');
 }
 

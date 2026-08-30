@@ -28,6 +28,7 @@ import { FoldingRangeProvider, FoldingRange } from './folding-range-provider';
 import { SignatureHelpProvider, SignatureHelpResult } from './signature-help-provider';
 import { collectHostMockDiagnostics, collectMockIdentifiers } from './host-mock-advisor';
 import { parseVBAModule } from './vba-source-parser';
+import { Evaluator } from '../engine/evaluator';
 
 export interface TextDocument {
     uri: string;
@@ -674,6 +675,7 @@ export class LSPServer {
         if (!doc) return [];
 
         this.ensureDirectoryScanned(uri);
+        const moduleName = path.basename(uriToPath(uri)).replace(/\.[^.]+$/, '');
 
         try {
             const lexer = new Lexer(stripVBAFileHeader(doc.content));
@@ -753,7 +755,53 @@ export class LSPServer {
             }));
             const hostMockDiags = collectHostMockDiagnostics(ast, mockedHostIdentifiers);
 
-            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags];
+            // Keep the editor's normal whole-document diagnostics above, but
+            // add the same procedure-level precheck used by the engine call
+            // path.  The analyzer only registers ASTs and resolves symbols;
+            // it deliberately does not execute pending module-level VBA.
+            const analysisModules: Array<{ ast: ReturnType<typeof parseVBAModule>; moduleName: string }> = [];
+            for (const candidate of this.allDocuments().values()) {
+                try {
+                    const candidatePath = uriToPath(candidate.uri);
+                    const candidateName = path.basename(candidatePath).replace(/\.[^.]+$/, '');
+                    analysisModules.push({
+                        ast: parseVBAModule(candidate.content, {
+                            moduleName: candidateName,
+                            isClass: candidate.uri.toLowerCase().endsWith('.cls'),
+                        }),
+                        moduleName: candidateName,
+                    });
+                } catch {
+                    // A non-file URI or a source that cannot be parsed is
+                    // already covered by the lexical/parser diagnostics.
+                }
+            }
+            let precheckDiags: any[] = [];
+            try {
+                precheckDiags = Evaluator.analyzeProcedureDiagnostics(
+                    analysisModules,
+                    moduleName,
+                    mockedHostIdentifiers,
+                ).map(d => ({
+                    range: {
+                        start: { line: Math.max(0, (d.line ?? 1) - 1), character: 0 },
+                        end: { line: Math.max(0, (d.line ?? 1) - 1), character: 1 },
+                    },
+                    severity: 1,
+                    code: d.number == null ? 'VBA-PRECHECK' : `VBA-PRECHECK-${d.number}`,
+                    message: d.message,
+                    // Keep the same source namespace as parser/Option Explicit
+                    // diagnostics so existing consumers do not need a second
+                    // error channel for engine prechecks.
+                    source: 'vba-runner',
+                }));
+            } catch {
+                // Recovery ASTs may contain incomplete declarations.  Keep
+                // lexical/parser diagnostics available even when the shared
+                // precheck cannot build an analysis environment for them.
+            }
+
+            return [...lexerDiags, ...parseDiags, ...deadCodeWarnings, ...rangeAccessHints, ...vbaLintDiags, ...unknownTypeDiags, ...hostMockDiags, ...precheckDiags];
         } catch {
             return [];
         }

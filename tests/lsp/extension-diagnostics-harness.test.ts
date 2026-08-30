@@ -1,5 +1,3 @@
-import fs from 'node:fs';
-import { pathToFileURL } from 'node:url';
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 import { LSPServer } from '../../src/lsp/server';
 import { publishDiagnostics, DiagnosticApi } from '../../src/lsp/diagnostic-publisher';
@@ -51,19 +49,6 @@ End Function`;
     assert.strictEqual(diagnose('file:///workspace/engine.bas', source).length, 0,
         'valid engine fixture has no diagnostics');
     console.log('[PASS] Extension harness shares a valid engine fixture');
-}
-
-// Exercise the real workspace class file that previously produced the false
-// MIN_PRICE diagnostic, without starting VS Code.
-{
-    const file = pathToFileURL('sample/workspace/Product.cls').toString();
-    const source = fs.readFileSync('sample/workspace/Product.cls', 'utf8');
-    const diagnostics = diagnose(file, source);
-    const undeclared = diagnostics.filter(d => d.message.includes("Variable '")
-        && /MIN_PRICE|MAX_PRICE|MAX_STOCK|LOW_STOCK_LEVEL/.test(d.message));
-    assert.strictEqual(undeclared.length, 0,
-        'Product class constants must not be reported as undeclared');
-    console.log('[PASS] Extension harness validates Product.cls diagnostics');
 }
 
 // The adapter preserves VS Code-facing metadata, including ranges and codes.

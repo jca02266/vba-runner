@@ -288,10 +288,14 @@ The Test Explorer can run all discovered `Test_` procedures or only the selected
 targeted run evaluates only that procedure and loads supporting `.bas` / `.cls` files from
 the same directory.
 
-Extension diagnostics can be tested without launching VS Code with
-`tests/lsp/extension-diagnostics-harness.test.ts`. The harness sends real workspace VBA through
-the engine and an in-memory DiagnosticCollection, checking the range, severity, message, source,
-and code that would reach the Problems panel.
+Extension diagnostics can be tested without launching VS Code. `evalVBASingle` and
+`evalVBAModules` send the exact inline VBA source used by existing engine tests through both
+the engine and the published LSP diagnostic path at the called-procedure boundary. Diagnostics
+are scoped to that procedure, so an uncalled sibling does not fail the test. For example, the Private Const test in
+`tests/spec/parse-as-class.test.ts` checks its engine result and that no LSP Error is reported
+from the same `String.raw` source. `tests/lsp/extension-diagnostics-harness.test.ts` separately
+checks the VS Code-facing DiagnosticCollection conversion, including range, severity, message,
+source, and code.
 
 ### Mock Skeleton Generation
 

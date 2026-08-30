@@ -351,10 +351,31 @@ done
 
 ### 拡張機能診断の自動検証
 
-`tests/lsp/extension-diagnostics-harness.test.ts` はVS Codeを起動せず、実ワークスペースのVBAを
-`LSPServer`とインメモリのDiagnosticCollectionへ通して診断結果を検証する。エンジン側の
-`evalVBASingle`にも同じフィクスチャを渡せるため、実行結果とVS Code診断の不整合を同じテストで
-検出できる。Fake APIは範囲、重大度、source、codeの変換を検証し、手動のProblemsパネル確認を不要にする。
+`evalVBASingle` と `evalVBAModules` は、既存テストが渡したインライン VBA ソースを
+そのままエンジンと LSP の両方へ渡す診断整合性チェックを、手続きの呼び出し時に実行する。
+既定の `clean` は呼び出した手続きのソース範囲だけを対象にし、未呼び出しの兄弟手続きの
+エラーを混入させない。エンジンの評価 API は `publishDiagnostics` と同じ変換経路を使い、
+Error 診断とエンジンのコンパイル時エラーの不一致があればテスト終了時に失敗させる。したがって、例えば
+`evalVBAModules` の複数モジュール入力や
+`tests/spec/parse-as-class.test.ts` の Private Const テストは、エンジンの実行結果と
+VS Code 診断の不整合を同じ `String.raw` ソースで同時に検出する。
+
+意図的なコンパイルエラーのテストは、次のように期待値を明示する。
+
+```typescript
+evalVBASingle(String.raw`Option Explicit
+Sub BadSub()
+    missing = 1
+End Sub`, {
+    diagnostics: { expectation: 'lsp-error', message: /Variable 'missing' not declared/ },
+});
+```
+
+この期待値はLSP静的診断の存在を表し、エンジンの `callProcedure` の例外発生時期とは
+独立している。診断不一致はエンジンの例外に置き換えず、テストプロセス終了時に報告する。
+`tests/lsp/extension-diagnostics-harness.test.ts` は、VS Code を起動せずに
+DiagnosticCollection への範囲・重大度・メッセージ・コードの変換を検証する。
+Fake APIは範囲、重大度、source、codeの変換を検証し、手動のProblemsパネル確認を不要にする。
 
 - DAPの配列要素・オブジェクトメンバー編集
 - キーワード引数に対応したSignature Helpのアクティブ引数選択

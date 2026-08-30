@@ -12,6 +12,8 @@ import { loadMocks } from './mock-loader';
 import type { MockLoadContext } from './mock-loader';
 import { injectExcelStub } from './excel-stub';
 import { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockWorkbook } from '../src/engine/mock/MockExcel';
+import { LSPServer } from '../src/lsp/server';
+import { publishDiagnostics, DiagnosticApi, RawDiagnostic } from '../src/lsp/diagnostic-publisher';
 export { vbaTrue, vbaFalse, vbaNull, vbaEmpty };
 export { MockApplication, MockWorksheet, MockRange, MockRows, MockColumns, MockWorkbook };
 export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
@@ -330,6 +332,279 @@ export interface EvalOptions {
     /** vba-runner 拡張: モジュールレベル実行文をプロシージャの後にも書けるようにするか（デフォルト true）。
      *  false にすると標準 VBA 仕様どおりコンパイルエラーになる。 */
     allowTopLevelStatements?: boolean;
+    /**
+     * Run the same inline sources through the LSP diagnostic publication path.
+     * `clean` requires that no published engine Error diagnostic is present.
+     * `lsp-error` explicitly expects a published LSP Error while leaving the
+     * engine's own load and call timing unchanged. Failures are deferred until
+     * process shutdown so they cannot replace an engine exception.
+     */
+    diagnostics?: DiagnosticConsistencyOptions;
+}
+
+export type DiagnosticConsistencyOptions =
+    | { expectation: 'clean' }
+    | { expectation: 'lsp-error'; message?: RegExp }
+    | { expectation: 'skip'; reason: string };
+
+type InlineEvalModule = { name: string; code: string; parseAsClass?: string };
+
+type PublishedDiagnostic = {
+    range: RawDiagnostic['range'];
+    severity: number;
+    message: string;
+    source?: string;
+    code?: string | number;
+};
+
+const diagnosticApi: DiagnosticApi<unknown, PublishedDiagnostic> = {
+    range: (startLine, startCharacter, endLine, endCharacter) => ({
+        start: { line: startLine, character: startCharacter },
+        end: { line: endLine, character: endCharacter },
+    }),
+    diagnostic: (range, message, severity) => ({
+        range: range as PublishedDiagnostic['range'], message, severity,
+    }),
+    setSource: (diagnostic, source) => { diagnostic.source = source; },
+    setCode: (diagnostic, code) => { if (code != null) diagnostic.code = code; },
+};
+
+function inlineModuleUri(module: InlineEvalModule): string {
+    const extension = module.parseAsClass ? '.cls' : '.bas';
+    const name = encodeURIComponent(module.name.replace(/\.[^.]+$/, ''));
+    return `file:///vba-runner-consistency/${name}${extension}`;
+}
+
+type DiagnosticContext = {
+    server: LSPServer;
+    cache: Map<string, PublishedDiagnostic[]>;
+};
+
+function collectBindingObjectNames(obj: any): Set<string> {
+    const names = new Set<string>();
+    let current = obj;
+    while (current && current !== Object.prototype && current !== Function.prototype) {
+        for (const name of Object.getOwnPropertyNames(current)) names.add(name.toLowerCase());
+        current = Object.getPrototypeOf(current);
+    }
+    return names;
+}
+
+function createDiagnosticContext(
+    modules: InlineEvalModule[],
+    knownExternalNames: Iterable<string> = [],
+): DiagnosticContext {
+    const server = new LSPServer();
+    server.setMockedHostIdentifiers(knownExternalNames);
+    for (const module of modules) {
+        server.didOpen(inlineModuleUri(module), module.code);
+    }
+    return { server, cache: new Map() };
+}
+
+function publishedDiagnosticsFor(
+    context: DiagnosticContext,
+    uri: string,
+): PublishedDiagnostic[] {
+    const cached = context.cache.get(uri);
+    if (cached) return cached;
+    let result: PublishedDiagnostic[] = [];
+    const collection = {
+        set: (_uri: string, diagnostics: PublishedDiagnostic[]) => { result = diagnostics; },
+    };
+    publishDiagnostics(uri, context.server.getDiagnostics(uri) as RawDiagnostic[], collection, diagnosticApi,
+        (key, args) => `${key}${args.length ? ` ${args.join(',')}` : ''}`);
+    context.cache.set(uri, result);
+    return result;
+}
+
+const deferredDiagnosticFailures: string[] = [];
+let diagnosticFailureHandlerInstalled = false;
+
+function deferDiagnosticFailure(message: string): void {
+    deferredDiagnosticFailures.push(message);
+    if (diagnosticFailureHandlerInstalled) return;
+    diagnosticFailureHandlerInstalled = true;
+    process.once('beforeExit', () => {
+        if (deferredDiagnosticFailures.length === 0) return;
+        console.error('[FAIL] LSP diagnostic consistency checks:');
+        for (const failure of deferredDiagnosticFailures) console.error(`  ${failure}`);
+        process.exitCode = 1;
+    });
+}
+
+type ProcedureSpan = {
+    uri: string;
+    moduleName: string;
+    name: string;
+    startLine: number;
+    endLine: number;
+};
+
+function procedureSpans(modules: InlineEvalModule[]): ProcedureSpan[] {
+    const spans: ProcedureSpan[] = [];
+    for (const module of modules) {
+        let ast: Program;
+        try {
+            ast = new Parser(new Lexer(module.code).tokenize(), {
+                parseAsClass: module.parseAsClass,
+                errorRecovery: true,
+                sourceLines: module.code.split('\n'),
+            } as any).parse();
+        } catch {
+            continue;
+        }
+        const visit = (statements: any[]): void => {
+            for (const statement of statements) {
+                if (statement.type === 'ProcedureDeclaration' && statement.loc) {
+                    spans.push({
+                        uri: inlineModuleUri(module),
+                        moduleName: module.name,
+                        name: statement.name.name.toLowerCase(),
+                        startLine: statement.loc.start.line - 1,
+                        endLine: statement.loc.end.line - 1,
+                    });
+                }
+                if (statement.type === 'ClassDeclaration' && Array.isArray(statement.body)) {
+                    visit(statement.body);
+                }
+            }
+        };
+        visit(ast.body);
+    }
+    return spans;
+}
+
+function findProcedureSpan(
+    spans: ProcedureSpan[],
+    name: string,
+    moduleName?: string,
+): ProcedureSpan | undefined {
+    const parts = name.toLowerCase().split('.');
+    const procName = parts.length === 2 ? parts[1] : parts[0];
+    const qualifier = (moduleName ?? (parts.length === 2 ? parts[0] : undefined))?.toLowerCase();
+    return spans.find(span => span.name === procName
+        && (!qualifier || span.moduleName.toLowerCase() === qualifier));
+}
+
+function errorsInProcedure(
+    context: DiagnosticContext,
+    span: ProcedureSpan,
+): PublishedDiagnostic[] {
+    return publishedDiagnosticsFor(context, span.uri).filter(diagnostic =>
+        diagnostic.severity === 0
+        && diagnostic.source === 'vba-runner'
+        && diagnostic.range.end.line >= span.startLine
+        && diagnostic.range.start.line <= span.endLine);
+}
+
+function isPreprocError(error: unknown): boolean {
+    return typeof (error as any)?.message === 'string'
+        && (error as any).message.startsWith('Compile error:');
+}
+
+/**
+ * A procedure wrapper can observe an error rethrown by a nested call.  The
+ * engine records the originating frame first, so only that frame should be
+ * compared with the LSP diagnostics.  Otherwise a compile error in `Inner`
+ * is incorrectly reported again while the `Outer` wrapper unwinds.
+ */
+function errorOriginatesInProcedure(
+    error: unknown,
+    span: ProcedureSpan,
+): boolean {
+    const vbaError = error as any;
+    const origin = Array.isArray(vbaError?.vbaStack) ? vbaError.vbaStack[0] : undefined;
+    if (!origin) return true;
+    const originName = typeof origin.name === 'string' ? origin.name.toLowerCase() : undefined;
+    const originModule = typeof origin.moduleName === 'string' ? origin.moduleName.toLowerCase() : undefined;
+    if (originName && originName !== span.name) return false;
+    if (originModule && originModule !== span.moduleName.toLowerCase()) return false;
+    return true;
+}
+
+function checkCalledProcedureDiagnostics(
+    context: DiagnosticContext,
+    span: ProcedureSpan | undefined,
+    error: unknown,
+    options: DiagnosticConsistencyOptions,
+): void {
+    if (options.expectation === 'skip') return;
+    if (!span) return;
+    // A nested call may rethrow its original error through this wrapper.  The
+    // inner wrapper already checked the originating procedure; do not compare
+    // the parent's source range with that error's diagnostics.
+    if (error && !errorOriginatesInProcedure(error, span)) return;
+    const errors = errorsInProcedure(context, span);
+    const compileError = isPreprocError(error);
+    if (options.expectation === 'clean') {
+        if (!compileError && errors.length > 0) {
+            deferDiagnosticFailure(`expected clean diagnostics for ${span.moduleName}.${span.name}, got: ${errors.map(d => d.message).join('; ')}`);
+        }
+        if (compileError && errors.length === 0) {
+            deferDiagnosticFailure(`engine compile error in ${span.moduleName}.${span.name} has no LSP Error`);
+        }
+        return;
+    }
+    if (errors.length === 0) {
+        deferDiagnosticFailure(`expected an LSP Error in ${span.moduleName}.${span.name}, but none was published`);
+    } else if (options.message && !errors.some(d => options.message!.test(d.message))) {
+        deferDiagnosticFailure(`LSP Error in ${span.moduleName}.${span.name} did not match ${options.message}`);
+    }
+}
+
+function attachDiagnosticConsistency(
+    ev: Evaluator,
+    modules: InlineEvalModule[],
+    options: DiagnosticConsistencyOptions,
+    defaultBindingObject?: any,
+): void {
+    if (options.expectation === 'skip') {
+        if (options.reason.trim().length === 0) {
+            throw new Error('diagnostics skip requires a non-empty reason');
+        }
+        return;
+    }
+    let externalNamesKey = '';
+    let context: DiagnosticContext;
+    const currentContext = (): DiagnosticContext => {
+        const names = new Set(ev.getDiagnosticExternalNames());
+        if (defaultBindingObject !== undefined) {
+            for (const name of collectBindingObjectNames(defaultBindingObject)) names.add(name);
+        }
+        const sortedNames = [...names].sort();
+        const key = sortedNames.join('\0');
+        if (!context || key !== externalNamesKey) {
+            context = createDiagnosticContext(modules, sortedNames);
+            externalNamesKey = key;
+        }
+        return context;
+    };
+    const spans = procedureSpans(modules);
+    const originalCall = ev.callProcedure;
+    (ev as any).callProcedure = function(this: Evaluator, name: string, args: any[], ...rest: any[]): any {
+        const moduleName = rest[1] as string | undefined;
+        const span = findProcedureSpan(spans, name, moduleName);
+        try {
+            const result = originalCall.call(this, name, args, ...rest);
+            checkCalledProcedureDiagnostics(currentContext(), span, undefined, options);
+            return result;
+        } catch (error) {
+            checkCalledProcedureDiagnostics(currentContext(), span, error, options);
+            throw error;
+        }
+    };
+    const originalCheck = ev.checkProcedure;
+    (ev as any).checkProcedure = function(this: Evaluator, name: string): void {
+        const span = findProcedureSpan(spans, name);
+        try {
+            originalCheck.call(this, name);
+            checkCalledProcedureDiagnostics(currentContext(), span, undefined, options);
+        } catch (error) {
+            checkCalledProcedureDiagnostics(currentContext(), span, error, options);
+            throw error;
+        }
+    };
 }
 
 /**
@@ -338,6 +613,7 @@ export interface EvalOptions {
  * tests/spec/ のテストで evalVBASingle をローカル定義する代わりに使う。
  */
 export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
+    const diagnosticOptions = options?.diagnostics ?? { expectation: 'clean' as const };
     const ast = new Parser(new Lexer(code).tokenize(), { sourceLines: code.split('\n') }).parse();
     options?.afterParse?.(ast);
     const ev = new Evaluator(options?.onPrint ?? console.log, {
@@ -346,9 +622,14 @@ export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
         env: options?.env,
         allowTopLevelStatements: options?.allowTopLevelStatements,
     });
+    if (options?.defaultBindingObject !== undefined) {
+        ev.setDefaultBindingObject(options.defaultBindingObject);
+    }
     options?.setup?.(ev);
     ev.evaluateModule(ast);
     ev.resolveIdentifiers([{ ast, moduleName: '' }]);
+    attachDiagnosticConsistency(ev, [{ name: 'InlineModule', code }], diagnosticOptions,
+        options?.defaultBindingObject);
     return ev;
 }
 
@@ -360,9 +641,10 @@ export function evalVBASingle(code: string, options?: EvalOptions): Evaluator {
  * resolveIdentifiers は全モジュールのロード後に1回だけ呼ぶ。
  */
 export function evalVBAModules(
-    modules: Array<{ name: string; code: string; parseAsClass?: string }>,
+    modules: InlineEvalModule[],
     options?: EvalOptions,
 ): Evaluator {
+    const diagnosticOptions = options?.diagnostics ?? { expectation: 'clean' as const };
     const ev = new Evaluator(options?.onPrint ?? console.log, {
         fs: options?.fs,
         sandboxRoot: options?.sandboxRoot,
@@ -381,6 +663,7 @@ export function evalVBAModules(
         return { ast, moduleName: name };
     });
     ev.resolveIdentifiers(asts);
+    attachDiagnosticConsistency(ev, modules, diagnosticOptions, options?.defaultBindingObject);
     return ev;
 }
 
