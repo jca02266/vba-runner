@@ -21,6 +21,7 @@ class VBScriptRegExp {
 }
 
 module.exports = {
+    xlup: -4162,
     MsgBox: (prompt, _buttons, _title) => {
         console.log(`[MsgBox mock] ${prompt}`);
         return 99;

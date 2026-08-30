@@ -13,3 +13,7 @@ Function UseRegExp() As String
         UseRegExp = "no match"
     End If
 End Function
+
+Function ReadHostConstant() As Long
+    ReadHostConstant = xlUp
+End Function

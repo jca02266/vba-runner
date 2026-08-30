@@ -41,6 +41,10 @@ import { VBARunner, assert } from '../../test-libs/test-runner';
     const reResult = suite.run('UseRegExp', []);
     assert.strictEqual(reResult, 'matched', '__mocks__.js: VBScript.RegExp のモックが動く');
     console.log('[PASS] __mocks__.js: __addCreateObject__ (VBScript.RegExp)');
+
+    const constantResult = suite.run('ReadHostConstant', []);
+    assert.strictEqual(constantResult, -4162, '__mocks__.js: xlUp が定数として解決される');
+    console.log('[PASS] __mocks__.js: ホスト定数を事前検査・実行へ反映');
 }
 
 // --- 3. __mocks__/ ディレクトリ形式 ---

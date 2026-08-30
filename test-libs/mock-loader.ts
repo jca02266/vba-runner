@@ -227,8 +227,22 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, contex
                     evaluator.registerComObject(wrappedFactory);
                 }
             }
+        } else if (isMockConstantName(key) && isMockConstantValue(value)) {
+            // Host enum constants exported by a JS mock must be registered as
+            // constants, not only as builtin overrides.  The precheck phase
+            // consults the constant environment before runtime lookup.
+            evaluator.setConstant(key, value);
         } else if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {
             evaluator.setBuiltinOverride(key, value);
         }
     }
+}
+
+/** Common host-constant naming convention used by Excel/Office mocks. */
+function isMockConstantName(name: string): boolean {
+    return /^(xl|vb|mso)[a-z0-9_]+$/i.test(name);
+}
+
+function isMockConstantValue(value: unknown): value is string | number | boolean {
+    return typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean';
 }
