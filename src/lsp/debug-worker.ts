@@ -28,6 +28,8 @@ const control = new Int32Array(controlBuffer);
 let currentCommand = CMD_STEP_INTO; // pause at first statement by default
 let startCallDepth = 0;
 let pauseAfterCurrent = false;
+let skipStepLine: number | null = null;
+let skipStepDepth: number | null = null;
 const breakpointLines = new Set<number>();
 const breakpointConditions = new Map<number, string>();
 const breakpointHitConditions = new Map<number, number>();
@@ -195,6 +197,15 @@ const hook: DebugHook = {
         callStack: ReadonlyArray<{ name: string; moduleName: string; line: number }>
     ) {
         if (isEvaluatingExpression) return;
+        // A step command resumes from the statement that just paused. Do not
+        // immediately report that same statement again (notably for a Set
+        // assignment whose RHS enters a helper procedure).
+        if (skipStepLine === line && skipStepDepth === callDepth) {
+            skipStepLine = null;
+            skipStepDepth = null;
+            lastLine = line;
+            return;
+        }
         lastLine = line;
         lastVariables = extractVariables(env);
         lastFrames = callStack.map((frame, i) => ({
@@ -257,6 +268,13 @@ const hook: DebugHook = {
 
         currentCommand = cmd;
         startCallDepth = callDepth;
+        if (cmd === CMD_STEP_OVER || cmd === CMD_STEP_OUT) {
+            skipStepLine = line;
+            skipStepDepth = callDepth;
+        } else {
+            skipStepLine = null;
+            skipStepDepth = null;
+        }
         Atomics.store(control, 0, CMD_WAIT);
 
         // Atomics.wait 復帰後のキューも処理（Resume 直後の setBreakpoints など）
