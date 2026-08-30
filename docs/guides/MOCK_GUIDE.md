@@ -105,10 +105,15 @@ module.exports = ({ excel }) => {
     app.PathSeparator = '/';
 
     return {
-        // 同じ app を返すので、組み込みの Worksheets/Range も維持される
-        Application: app,
-        // 必要なら組み込みメソッドを別のグローバル名にも公開できる
-        Worksheets: app.Worksheets.bind(app),
+        objects: {
+            // 同じ app を返すので、組み込みの Worksheets/Range も維持される
+            Application: app,
+            // 必要なら組み込みメソッドを別のグローバル名にも公開できる
+            Worksheets: app.Worksheets.bind(app),
+        },
+        constants: {
+            xlUp: -4162,
+        },
     };
 };
 ```
@@ -119,11 +124,11 @@ module.exports = ({ excel }) => {
 `Application` が組み込みインスタンスを置き換えるため、未定義の
 `Worksheets` や `Range` を呼ぶコードが実行時に失敗することがあります。
 
-JavaScript モックが数値・文字列・真偽値をエクスポートした場合、その値は
-VBA のホスト定数として登録されます。たとえば `xlUp: -4162` は、実行時だけで
-なく `Option Explicit` の事前検査でも `xlUp` として解決されます。スカラー値を
-通常の書き換え可能なグローバル変数として注入したい場合は、モックのエクスポート
-ではなく `runner.set` を使用してください。
+`constants` の値はVBAのホスト定数として登録され、実行時だけでなく
+`Option Explicit` の事前検査でも解決されます。`objects` はホストオブジェクト、
+`procedures` はグローバル手続き、`comObjects` は `CreateObject` 用ファクトリです。
+従来のフラット形式も互換性のため利用できますが、新規モックでは名前空間形式を
+使用してください。
 
 この仕組みは実行時の注入です。VS Code の診断はモックファイルを実行して
 メンバーを推論するものではないため、診断メッセージの解消には、対象ファイルを

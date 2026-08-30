@@ -64,11 +64,9 @@ module.exports = ({ excel }) => {
     ];
 
     return {
-        // Excel.XlDirection.xlUp. Host constants are normalized to lowercase
-        // by vba-runner, just like object and member names.
-        xlup: -4162,
-        ThisWorkbook: {
-            Sheets: sheets,
+        constants: { xlUp: -4162 },
+        objects: {
+            ThisWorkbook: { Sheets: sheets },
         },
     };
 };

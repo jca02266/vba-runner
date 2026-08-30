@@ -212,29 +212,48 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, contex
         return;
     }
 
-    for (const [key, value] of Object.entries(exports)) {
-        if (key === '__addCreateObject__') {
-            if (typeof value === 'object' && value !== null) {
-                for (const [progId, factory] of Object.entries(value as Record<string, () => any>)) {
-                    // factory が __progId__ を持たない場合はキーで補完して VbaComObject 型に合わせる
-                    const wrappedFactory = () => {
-                        const obj = (factory as () => any)();
-                        if (obj && typeof obj === 'object' && !('__progId__' in obj)) {
-                            obj.__progId__ = progId;
-                        }
-                        return obj;
-                    };
-                    evaluator.registerComObject(wrappedFactory);
-                }
+    const namespaces = exports as Record<string, any>;
+    if (namespaces.constants && typeof namespaces.constants === 'object') {
+        for (const [name, value] of Object.entries(namespaces.constants)) {
+            if (isMockConstantValue(value)) evaluator.setConstant(name, value);
+            else console.warn(`[mock-loader] Constant '${name}' in "${file}" must be scalar`);
+        }
+    }
+    for (const namespace of ['objects', 'procedures'] as const) {
+        const entries = namespaces[namespace];
+        if (!entries || typeof entries !== 'object') continue;
+        for (const [name, value] of Object.entries(entries)) {
+            if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {
+                evaluator.setBuiltinOverride(name, value);
+            } else {
+                console.warn(`[mock-loader] ${namespace}.${name} in "${file}" must be an object or function`);
             }
+        }
+    }
+    if (namespaces.comObjects && typeof namespaces.comObjects === 'object') {
+        registerComObjects(namespaces.comObjects, evaluator);
+    }
+
+    for (const [key, value] of Object.entries(exports)) {
+        if (key === 'constants' || key === 'objects' || key === 'procedures' || key === 'comObjects') continue;
+        if (key === '__addCreateObject__') {
+            if (typeof value === 'object' && value !== null) registerComObjects(value, evaluator);
         } else if (isMockConstantValue(value)) {
-            // Scalar exports from a JS mock are VBA host constants. Register
-            // them in the constant environment so the precheck phase sees
-            // the same names as runtime lookup, without guessing from names.
             evaluator.setConstant(key, value);
         } else if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {
             evaluator.setBuiltinOverride(key, value);
         }
+    }
+}
+
+function registerComObjects(entries: Record<string, unknown>, evaluator: Evaluator): void {
+    for (const [progId, factory] of Object.entries(entries)) {
+        if (typeof factory !== 'function') continue;
+        evaluator.registerComObject(() => {
+            const obj = (factory as () => any)();
+            if (obj && typeof obj === 'object' && !('__progId__' in obj)) obj.__progId__ = progId;
+            return obj;
+        });
     }
 }
 
