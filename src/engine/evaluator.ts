@@ -85,7 +85,7 @@ import {
     Parameter,
 } from './parser';
 import { Lexer, TokenType } from './lexer';
-import { findClassProperty } from './property-resolution';
+import { findClassProcedure, findClassProperty, findClassSetter } from './property-resolution';
 import { SandboxPath } from './sandbox';
 import { FileSystem, MemoryFileSystem, VBA_FILE_ATTRIBUTE } from './filesystem';
 import { checkOptionExplicit, UndefinedProcError } from './option-explicit-checker';
@@ -1848,7 +1848,7 @@ export class Evaluator {
             obj.__terminateCalled__ = true;
 
             const classDef = obj.__classDef__ as ClassDeclaration;
-            const terminateProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_terminate');
+            const terminateProc = findClassProcedure(classDef.procedures, 'class_terminate');
             if (terminateProc) {
                 try {
                     this.callClassMethod(obj, terminateProc, []);
@@ -2015,9 +2015,7 @@ export class Evaluator {
             ? this.classDefinitions.get(scopeModuleName.toLowerCase())
             : undefined;
         if (owner) {
-            const member = owner.procedures.find(candidate =>
-                candidate.name.name.toLowerCase() === name.toLowerCase()
-                && (type === undefined || candidate.propertyType === type));
+            const member = findClassProcedure(owner.procedures, name, type ?? 'any');
             if (member) return member;
         }
         return this.env.getProcedure(name, type);
@@ -2454,7 +2452,7 @@ export class Evaluator {
         const classProcedure = (typeName: string | undefined, memberName: string): ProcedureDeclaration | undefined => {
             const classDef = typeName ? this.classDefinitions.get(typeName.toLowerCase()) : undefined;
             if (!classDef) return undefined;
-            return classDef.procedures.find(p => p.name.name.toLowerCase() === memberName.toLowerCase());
+            return findClassProcedure(classDef.procedures, memberName);
         };
 
         const visitExpression = (expr: Expression, assignmentTarget = false, asCallCallee = false): void => {
@@ -4436,9 +4434,7 @@ export class Evaluator {
         if (val && typeof val === 'object' && val.__vbaClass__ && !(val instanceof VbaDate) && !(val instanceof VbaBoolean)) {
             const classDef = val.__classDef__ as ClassDeclaration;
             if (classDef) {
-                const valueGetter = classDef.procedures.find(
-                    p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === 'value'
-                );
+                const valueGetter = findClassProcedure(classDef.procedures, 'value', 'get');
                 if (valueGetter) {
                     // Call the Value property getter to extract the value
                     val = this.callClassMethod(val, valueGetter, []);
@@ -5523,7 +5519,7 @@ export class Evaluator {
         }
 
         // Call Class_Initialize if defined
-        const initProc = classDef.procedures.find(p => p.name.name.toLowerCase() === 'class_initialize');
+        const initProc = findClassProcedure(classDef.procedures, 'class_initialize');
         if (initProc) {
             this.callClassMethod(instance, initProc, []);
         }
@@ -6722,9 +6718,7 @@ export class Evaluator {
             const handlers = value.__events__.get(eventName);
             let eventHandler: ((...args: any[]) => void) | undefined;
             if (classDef) {
-                const classProc = classDef.procedures.find(
-                    p => p.name.name.toLowerCase() === handlerNameLower
-                );
+                const classProc = findClassProcedure(classDef.procedures, handlerNameLower);
                 if (classProc) {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
@@ -6850,9 +6844,8 @@ export class Evaluator {
                 const oldVal = this.getClassField(instanceEnv, propName);
                 this.rejectTypedArrayWholeAssignment(oldVal, value, stmt.right);
                 const isWithEvents = instanceEnv.hasOwnWithEvents(propName);
-                const setter = classDef.procedures.find(
-                    p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                ) ?? this.findInterfaceDispatch(obj, member.property.name, 'set');
+                const setter = findClassSetter(classDef.procedures, propName)
+                    ?? this.findInterfaceDispatch(obj, member.property.name, 'set');
                 if (setter) {
                     this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
                 } else {
@@ -6896,9 +6889,8 @@ export class Evaluator {
                 const classDef = obj.__classDef__ as ClassDeclaration;
                 const instanceEnv = obj.__instanceEnv__ as Environment;
                 this.rejectTypedArrayWholeAssignment(this.getClassField(instanceEnv, propName), value, stmt.right);
-                const setter = classDef.procedures.find(
-                    p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                ) ?? this.findInterfaceDispatch(obj,
+                const setter = findClassSetter(classDef.procedures, propName)
+                    ?? this.findInterfaceDispatch(obj,
                     (stmt.left as ImplicitWithObjectExpression).property.name, 'set');
                 if (setter) {
                         this.callPropertySetterAssignment(obj, setter, [], [], stmt.right, value);
@@ -6943,9 +6935,8 @@ export class Evaluator {
                         current[lastIndex] = value;
                         return;
                     }
-                    const setter = classDef.procedures.find(
-                        p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === methodName
-                    ) ?? this.findInterfaceDispatch(obj, memberCallee.property.name, 'set');
+                    const setter = findClassSetter(classDef.procedures, methodName)
+                        ?? this.findInterfaceDispatch(obj, memberCallee.property.name, 'set');
                     if (setter) {
                         const argsVals = this.evaluateExpressions(call.args);
                         this.callPropertySetterAssignment(obj, setter, call.args, argsVals, stmt.right, value);
@@ -7033,9 +7024,8 @@ export class Evaluator {
                         return;
                     }
                     const classDef = obj.__classDef__ as ClassDeclaration;
-                    const setter = classDef.procedures.find(
-                        p => p.isProperty && p.propertyType === 'set' && p.name.name.toLowerCase() === propName
-                    ) ?? this.findInterfaceDispatch(obj,
+                    const setter = findClassSetter(classDef.procedures, propName)
+                        ?? this.findInterfaceDispatch(obj,
                         (call.callee as ImplicitWithObjectExpression).property.name, 'set');
                     if (setter) {
                         this.callPropertySetterAssignment(obj, setter, call.args,
@@ -9444,13 +9434,13 @@ export class Evaluator {
                             idName.toLowerCase() === this.currentProcedureName.toLowerCase();
                         if (!isCurrentProcReturn) {
                             const lower = idName.toLowerCase();
-                            const member = (me.__classDef__ as ClassDeclaration).procedures.find(cp =>
-                                cp.name.name.toLowerCase() === lower &&
-                                (cp.isFunction || (cp.isProperty && cp.propertyType === 'get')) &&
-                                requiredArgumentCount(cp.parameters) === 0
-                            );
-                            if (member) {
-                                return this.callClassMethod(me, member, []);
+                            const member = findClassProcedure(
+                                (me.__classDef__ as ClassDeclaration).procedures, lower);
+                            const implicitMember = member &&
+                                (member.isFunction || (member.isProperty && member.propertyType === 'get')) &&
+                                requiredArgumentCount(member.parameters) === 0 ? member : undefined;
+                            if (implicitMember) {
+                                return this.callClassMethod(me, implicitMember, []);
                             }
                         }
                     }
@@ -10066,7 +10056,7 @@ export class Evaluator {
                         ? findClassProperty(procedures, procName, propertyType)
                         : (callType === 2
                             ? findClassProperty(procedures, procName, 'get')
-                            : procedures.find(p => !p.isProperty && p.name.name.toLowerCase() === procName));
+                            : findClassProcedure(procedures, procName, 'method'));
                     const proc = directProc ?? this.findInterfaceDispatch(target, procName, propertyType);
                     if (proc) {
                         this.checkNoGapOnRequiredParam(proc.parameters, propertyArgs);
@@ -10170,9 +10160,7 @@ export class Evaluator {
                     // Default property access: obj(args) -> obj.Item(args)
                     const classDef = variable.__classDef__ as ClassDeclaration;
                     // Look for Item property (or Value for single-arg no-index patterns)
-                    let defaultProperty = classDef.procedures.find(
-                        p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === 'item'
-                    );
+                    const defaultProperty = findClassProcedure(classDef.procedures, 'item', 'get');
                     if (defaultProperty) {
                         this.checkNoGapOnRequiredParam(defaultProperty.parameters, expr.args);
                         return this.callClassMethodWithExpressions(variable, defaultProperty, expr.args);
@@ -10298,13 +10286,8 @@ export class Evaluator {
                 // when both share the same name. `classDef.procedures.find()` returns whichever was
                 // declared first, so if Property Set precedes Property Get, the setter is incorrectly
                 // invoked on a call like `w.Inner("key")`.
-                const getter = classDef.procedures.find(
-                    p => p.name.name.toLowerCase() === methodNameLower && p.isProperty && p.propertyType === 'get'
-                );
-                const setter = classDef.procedures.find(
-                    p => p.name.name.toLowerCase() === methodNameLower &&
-                        p.isProperty && (p.propertyType === 'let' || p.propertyType === 'set')
-                );
+                const getter = findClassProcedure(classDef.procedures, methodNameLower, 'get');
+                const setter = findClassSetter(classDef.procedures, methodNameLower);
                 // A call-style Property Let can supply its value by name (for example,
                 // Call obj.Value(Value:=x)). Prefer the setter when a named argument
                 // exists only in the setter; ordinary property reads keep Getter priority.
@@ -10315,7 +10298,7 @@ export class Evaluator {
                 const setterNames = new Set((setter?.parameters ?? []).map(param => param.name.toLowerCase()));
                 const setterOnlyNamedArg = namedArgs.some(name => setterNames.has(name) && !getterNames.has(name));
                 const proc = setterOnlyNamedArg ? setter : getter ?? setter ??
-                    classDef.procedures.find(p => p.name.name.toLowerCase() === methodNameLower);
+                    findClassProcedure(classDef.procedures, methodNameLower);
                 if (proc) {
                     // Bug BZ: Property Get with 0 params but called with args → get the object first,
                     // then subscript/index the returned value with the given args.
@@ -10348,9 +10331,7 @@ export class Evaluator {
                         }
                         if (returned && returned.__vbaClass__) {
                             const retClassDef = returned.__classDef__ as ClassDeclaration;
-                            const itemProp = retClassDef.procedures.find(
-                                p2 => p2.isProperty && p2.propertyType === 'get' && p2.name.name.toLowerCase() === 'item'
-                            );
+                            const itemProp = findClassProcedure(retClassDef.procedures, 'item', 'get');
                             if (itemProp) return this.callClassMethod(returned, itemProp, argsVals);
                         }
                         // fallthrough: let checkNoGapOnRequiredParam produce Error 450
@@ -10862,9 +10843,7 @@ export class Evaluator {
             const instanceEnv = obj.__instanceEnv__ as Environment;
 
             // Check for Property Get
-            const getter = classDef.procedures.find(
-                p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === propName
-            );
+            const getter = findClassProcedure(classDef.procedures, propName, 'get');
             if (getter) {
                 if (requiredArgumentCount(getter.parameters) > 0) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
@@ -10876,9 +10855,7 @@ export class Evaluator {
             // parameters have defaults.  Use the shared contract rather than
             // checking the declaration length, so defaultValue-only parameters
             // behave like Optional parameters on every member path.
-            const method = classDef.procedures.find(
-                p => !p.isProperty && p.name.name.toLowerCase() === propName
-            );
+            const method = findClassProcedure(classDef.procedures, propName, 'method');
             if (method) {
                 if (requiredArgumentCount(method.parameters) > 0) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
@@ -10961,9 +10938,10 @@ export class Evaluator {
 
             // look for IfaceName_MethodName in concrete class
             const implName = `${ifaceName}_${methodNameOriginal}`.toLowerCase();
-            const implProc = classDef.procedures.find(p =>
-                p.name.name.toLowerCase() === implName
-                && (!propertyType || (p.isProperty && p.propertyType === propertyType))
+            const implProc = findClassProcedure(
+                classDef.procedures,
+                implName,
+                propertyType ?? 'any',
             );
             if (implProc) return implProc;
         }
@@ -11375,23 +11353,20 @@ export class Evaluator {
         if (obj && obj.__vbaClass__) {
             const classDef = obj.__classDef__ as ClassDeclaration;
             const instanceEnv = obj.__instanceEnv__ as Environment;
-            const getter = classDef.procedures.find(
-                p => p.isProperty && p.propertyType === 'get' && p.name.name.toLowerCase() === propName
-            );
+            const getter = findClassProcedure(classDef.procedures, propName, 'get');
             if (getter) {
                 if (requiredArgumentCount(getter.parameters) > 0) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                 }
                 return this.callClassMethod(obj, getter, []);
             }
-            const method = classDef.procedures.find(
-                p => !p.isProperty && p.name.name.toLowerCase() === propName && p.isFunction
-            );
-            if (method) {
-                if (requiredArgumentCount(method.parameters) > 0) {
+            const method = findClassProcedure(classDef.procedures, propName, 'method');
+            const callableMethod = method?.isFunction ? method : undefined;
+            if (callableMethod) {
+                if (requiredArgumentCount(callableMethod.parameters) > 0) {
                     this.throwVbaError(VbaErrorCode.ARGUMENT_NOT_OPTIONAL, 'Argument not optional');
                 }
-                return this.callClassMethod(obj, method, []);
+                return this.callClassMethod(obj, callableMethod, []);
             }
             const ifaceProc = this.findInterfaceDispatch(obj, expr.property.name);
             if (ifaceProc) {

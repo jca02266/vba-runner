@@ -1,6 +1,7 @@
-import { Statement, ProcedureDeclaration } from '../engine/parser';
+import { Statement } from '../engine/parser';
 import { Lexer, TokenType } from '../engine/lexer';
 import { buildScopedSymbolTable } from './symbol-table';
+import { findProcedureDeclaration } from '../engine/property-resolution';
 
 export interface SignatureInfo {
     label: string;
@@ -243,10 +244,8 @@ export class SignatureHelpProvider {
     }
 
     private paramsFromProc(statements: Statement[], nameLower: string): string[] {
-        for (const stmt of statements) {
-            if (stmt.type !== 'ProcedureDeclaration') continue;
-            const proc = stmt as ProcedureDeclaration;
-            if (proc.name.name.toLowerCase() !== nameLower) continue;
+        const proc = findProcedureDeclaration(statements, nameLower);
+        if (proc) {
             return proc.parameters.map(p => {
                 const pname = p.name as unknown as string;
                 const ptype = p.paramType || 'Variant';

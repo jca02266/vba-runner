@@ -3,6 +3,7 @@ import { Evaluator, Environment, DebugHook } from '../engine/evaluator';
 import { vbaToDisplayString } from '../engine/coerce';
 import { ProcedureDeclaration } from '../engine/parser';
 import { MemoryFileSystem } from '../engine/filesystem';
+import { findClassProcedure, findFirstClassProcedure } from '../engine/property-resolution';
 import { parseVBAModule } from './vba-source-parser';
 
 interface WorkerInitData {
@@ -283,9 +284,11 @@ try {
     let classEntry: ProcedureDeclaration | undefined;
     if (parseAsClass && ast.body.length > 0) {
         const classDecl = ast.body.find((stmt: any) => stmt.type === 'ClassDeclaration') as any;
-        classEntry = classDecl?.procedures?.find((proc: ProcedureDeclaration) =>
-            !proc.isProperty && (!ep || proc.name.name.toLowerCase() === ep.toLowerCase())
-        );
+        classEntry = classDecl
+            ? (ep
+                ? findClassProcedure(classDecl.procedures, ep, 'method')
+                : findFirstClassProcedure(classDecl.procedures, 'method'))
+            : undefined;
         if (!ep && classEntry) ep = classEntry.name.name;
     }
     if (!ep) {

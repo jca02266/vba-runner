@@ -10,6 +10,27 @@ function getSignatureHelp(src: string, line: number, character: number) {
     return provider.getSignatureHelp(ast.body, src, line, character);
 }
 
+// Class members use the same AST procedure lookup as module procedures.  This
+// catches the former split where signature help could find a class member in
+// the flat symbol table but could not recover its parameters.
+{
+    const src = String.raw`Class Sample
+Private Sub Hidden(value As Long, label As String)
+End Sub
+Public Sub Caller()
+    Hidden(1, "x")
+End Sub
+End Class`;
+    const tokens = new Lexer(src).tokenize();
+    const ast = new Parser(tokens, { parseAsClass: 'Sample' }).parse();
+    const line = '    Hidden(';
+    const result = new SignatureHelpProvider().getSignatureHelp(ast.body, src, 4, line.length);
+    assert.ok(result, 'クラスメンバーのシグネチャヘルプが返る');
+    assert.strictEqual(result!.signature.parameters.length, 2,
+        'クラスメンバーのパラメーター数 2');
+    console.log('[PASS] getSignatureHelp: クラスメンバー');
+}
+
 // --- findCallContext の直接テスト ---
 
 // 1. 基本: 関数名と activeParameter=0

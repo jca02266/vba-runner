@@ -9,7 +9,7 @@ import { VbaErrorCode } from './vba-errors';
 import { vbaToBoolean, vbaToString, vbaRound, unwrapDefaultValue, normalizeVbaNumericString } from './coerce';
 // VbaErrorCode is imported as a value-namespace for use in function bodies (VbaErrorCode.OVERFLOW etc.)
 import type { ProcedureDeclaration } from './parser';
-import { findClassProperty } from './property-resolution';
+import { findClassProcedure, findClassProperty } from './property-resolution';
 import {
     formatDate, formatNumber, formatString, formatNullSection,
     splitFormatSections, containsDateFormatTokens, hasNumericFormatTokens, isNumericOnlyFormat,
@@ -243,9 +243,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
                 const classDef = obj.__classDef__ as ProcedureDeclaration & { procedures: ProcedureDeclaration[] };
                 const getter = findClassProperty(classDef.procedures, name, 'get');
                 if (getter) return ctx.callMethod(obj, getter, args);
-                const method = (classDef as any).procedures.find(
-                    (p: any) => !p.isProperty && p.name.name.toLowerCase() === name
-                );
+                const method = findClassProcedure(classDef.procedures, name, 'method');
                 if (method) return ctx.callMethod(obj, method, args);
                 return obj.__instanceEnv__.get(name);
             }
