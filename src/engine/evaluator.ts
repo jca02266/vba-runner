@@ -2455,7 +2455,8 @@ export class Evaluator {
         };
         const acceptsDefaultMemberCall = (name: string): boolean => {
             const type = valueTypeFor(name)?.toLowerCase();
-            return type === undefined || type === 'variant' || type === 'object' || type === 'collection';
+            return type === undefined || type === 'variant' || type === 'object' || type === 'collection'
+                || this.classDefinitions.has(type) || this.externalObjectFactories.has(type);
         };
         const resolveCallCategory = (name: string, scopeModuleName?: string): 'value' | 'procedure' | 'defined' | 'undefined' => {
             if (isDefinedValueName(name)) return 'value';
