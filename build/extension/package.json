@@ -2,7 +2,7 @@
   "name": "vba-runner",
   "displayName": "VBA Runner",
   "description": "VBA Runner with LSP support, testing integration, and interactive debugging",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "publisher": "jca02266",
   "icon": "icon.png",
   "license": "MIT",
@@ -59,11 +59,31 @@
         "title": "Open VBA Procedure",
         "category": "VBA"
       },
-      { "command": "vba-runner.treeRunProcedure", "title": "Run", "category": "VBA" },
-      { "command": "vba-runner.treeDebugProcedure", "title": "Debug", "category": "VBA" },
-      { "command": "vba-runner.treeFindReferences", "title": "Find References", "category": "VBA" },
-      { "command": "vba-runner.treeGenerateTest", "title": "Generate Test (Untested)", "category": "VBA" },
-      { "command": "vba-runner.treeShowInCallGraph", "title": "Show in Call Graph", "category": "VBA" },
+      {
+        "command": "vba-runner.treeRunProcedure",
+        "title": "Run",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.treeDebugProcedure",
+        "title": "Debug",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.treeFindReferences",
+        "title": "Find References",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.treeGenerateTest",
+        "title": "Generate Test (Untested)",
+        "category": "VBA"
+      },
+      {
+        "command": "vba-runner.treeShowInCallGraph",
+        "title": "Show in Call Graph",
+        "category": "VBA"
+      },
       {
         "command": "vba-runner.runProcedure",
         "title": "Run VBA Procedure",
@@ -116,11 +136,31 @@
     },
     "menus": {
       "view/item/context": [
-        { "command": "vba-runner.treeRunProcedure", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "inline" },
-        { "command": "vba-runner.treeDebugProcedure", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" },
-        { "command": "vba-runner.treeFindReferences", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" },
-        { "command": "vba-runner.treeGenerateTest", "when": "view == vba-runner.publicSubs && viewItem == vbaPublicSubUntested", "group": "vba" },
-        { "command": "vba-runner.treeShowInCallGraph", "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)", "group": "vba" }
+        {
+          "command": "vba-runner.treeRunProcedure",
+          "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)",
+          "group": "inline"
+        },
+        {
+          "command": "vba-runner.treeDebugProcedure",
+          "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)",
+          "group": "vba"
+        },
+        {
+          "command": "vba-runner.treeFindReferences",
+          "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)",
+          "group": "vba"
+        },
+        {
+          "command": "vba-runner.treeGenerateTest",
+          "when": "view == vba-runner.publicSubs && viewItem == vbaPublicSubUntested",
+          "group": "vba"
+        },
+        {
+          "command": "vba-runner.treeShowInCallGraph",
+          "when": "view == vba-runner.publicSubs && (viewItem == vbaPublicSub || viewItem == vbaPublicSubUntested)",
+          "group": "vba"
+        }
       ],
       "editor/context": [
         {

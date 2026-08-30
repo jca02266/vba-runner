@@ -2,6 +2,18 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.10] - 2026-08-31
+
+### Added
+
+- **Debugger value inspection** — Object and array values in Locals and watch
+  expressions can now be expanded while execution is paused.
+
+### Fixed
+
+- **Debugger stepping** — Step Into now displays the entered procedure as the
+  current frame, keeping subsequent Step Over commands on the visible frame.
+
 ## [0.3.9] - 2026-08-28
 
 ### Fixed
