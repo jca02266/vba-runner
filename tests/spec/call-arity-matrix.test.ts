@@ -387,4 +387,44 @@ End Sub
         'Implicit function precheck respects parameter shadowing');
 }
 
+// Class fields and procedure-scope declarations are identifiers before they
+// are considered call syntax.  This is especially important for dictionary
+// default-member access such as `m_items(key)`.
+{
+    const runner = evalVBAModules([{
+        name: 'Inventory',
+        parseAsClass: 'Inventory',
+        code: String.raw`VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1
+END
+Attribute VB_Name = "Inventory"
+Option Explicit
+Private m_items As Object
+Public Function GetProduct(ByVal key As String) As Variant
+    Set GetProduct = m_items(key)
+End Function
+End Class`,
+    }, {
+        name: 'Caller',
+        code: String.raw`Sub UseBeforeDim()
+    Dim result As Variant
+    result = later(key)
+    Dim later As Object
+    Dim key As String
+End Sub`,
+    }, {
+        name: 'ClassCaller',
+        code: String.raw`Sub Caller()
+    Dim instance As New Inventory
+    Dim result As Variant
+    result = instance.GetProduct("missing")
+End Sub`,
+    }], { diagnostics: { expectation: 'skip', reason: 'precheck-only identifier scope coverage' } });
+    assert.throws(() => runner.callProcedure('Caller', []), /object required/i,
+        'Class field default-member access passes precheck before runtime object validation');
+    assert.doesNotThrow(() => runner.checkProcedure('UseBeforeDim'),
+        'Procedure-scope declarations are known before their Dim statement');
+}
+
 console.log('✅ Function/Sub definition and call arity matrix passed');

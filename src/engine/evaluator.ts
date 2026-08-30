@@ -2370,17 +2370,24 @@ export class Evaluator {
         // separate from `declared`, which is also used by duplicate-declaration
         // checks while walking statements in source order.
         const lexicalNames = new Set<string>(declared);
+        const lexicalValueNames = new Set<string>(proc.parameters.map(param => param.name.toLowerCase()));
         const collectLexicalNames = (statements: readonly Statement[]): void => {
             for (const statement of statements) {
                 if (statement.type === 'VariableDeclaration' || statement.type === 'ConstDeclaration') {
                     for (const declaration of (statement as VariableDeclaration | ConstDeclaration).declarations) {
-                        lexicalNames.add(declaration.name.name.toLowerCase());
+                        const key = declaration.name.name.toLowerCase();
+                        lexicalNames.add(key);
+                        lexicalValueNames.add(key);
                     }
                 } else if (statement.type === 'ForStatement') {
-                    lexicalNames.add((statement as ForStatement).identifier.name.toLowerCase());
+                    const key = (statement as ForStatement).identifier.name.toLowerCase();
+                    lexicalNames.add(key);
+                    lexicalValueNames.add(key);
                     collectLexicalNames((statement as ForStatement).body);
                 } else if (statement.type === 'ForEachStatement') {
-                    lexicalNames.add((statement as ForEachStatement).variable.name.toLowerCase());
+                    const key = (statement as ForEachStatement).variable.name.toLowerCase();
+                    lexicalNames.add(key);
+                    lexicalValueNames.add(key);
                     collectLexicalNames((statement as ForEachStatement).body);
                 } else if (statement.type === 'IfStatement') {
                     const branch = statement as IfStatement;
@@ -2401,6 +2408,32 @@ export class Evaluator {
         const isDefinedIdentifier = (name: string): boolean => {
             const key = name.toLowerCase();
             return lexicalNames.has(key) || knownNames.has(key);
+        };
+        const classFieldNames = new Set<string>();
+        if (proc.moduleName) {
+            const owner = this.classDefinitions.get(proc.moduleName.toLowerCase());
+            for (const field of owner?.fields ?? []) {
+                for (const declaration of field.declarations) {
+                    classFieldNames.add(declaration.name.name.toLowerCase());
+                }
+            }
+        }
+        // Resolve the identifier category before applying call-specific rules.
+        // A value (including a class/module field) shadows a procedure in VBA;
+        // only a resolved procedure gets an argument-count check.
+        const isDefinedValueName = (name: string): boolean => {
+            const key = name.toLowerCase();
+            if (lexicalValueNames.has(key) || classFieldNames.has(key)) return true;
+            if (this.env.hasVariable(key)) return true;
+            for (const moduleEnv of this.moduleEnvs.values()) {
+                if (moduleEnv.hasVariable(key)) return true;
+            }
+            return false;
+        };
+        const resolveCallCategory = (name: string, scopeModuleName?: string): 'value' | 'procedure' | 'defined' | 'undefined' => {
+            if (isDefinedValueName(name)) return 'value';
+            if (this.resolveProcedureForScope(name, undefined, scopeModuleName)) return 'procedure';
+            return isDefinedIdentifier(name) ? 'defined' : 'undefined';
         };
         let inResumeNext = false;
         const seen = new Set<string>(declared);
@@ -2509,7 +2542,8 @@ export class Evaluator {
                     if (call.callee.type === 'Identifier') {
                         const id = call.callee as Identifier;
                         const lower = id.name.toLowerCase();
-                        if (!inResumeNext && !id.foreign && !isDefinedIdentifier(lower)) {
+                        if (!inResumeNext && !id.foreign &&
+                            resolveCallCategory(id.name, proc.moduleName) === 'undefined') {
                             findings.undefinedCalls.push({ name: id.name, line: id.loc?.start.line ?? 0 });
                         }
                     }
@@ -2785,7 +2819,7 @@ export class Evaluator {
                     if (!findings.argumentError && a.right.type === 'Identifier') {
                         const implicitName = (a.right as Identifier).name;
                         const implicitProc = this.resolveProcedureForScope(implicitName, undefined, proc.moduleName);
-                        if (!isDefinedIdentifier(implicitName) &&
+                        if (!lexicalValueNames.has(implicitName.toLowerCase()) &&
                             implicitProc && (implicitProc.isFunction || implicitProc.isProperty)) {
                             const min = requiredArgumentCount(implicitProc.parameters);
                             if (min > 0) {
