@@ -35,7 +35,7 @@ Function TestEndXlUp() As Long
     Set ws = ActiveSheet
     ' スタブではデータなし → End(xlUp).Row = 1
     Dim lastRow As Long
-    lastRow = ws.Cells(ws.Rows.Count, 1).End(-4162).Row
+    lastRow = ws.Cells(ws.Rows.Count, 1).End(xlUp).Row
     TestEndXlUp = lastRow
 End Function
 

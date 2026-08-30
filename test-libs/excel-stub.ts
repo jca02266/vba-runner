@@ -19,6 +19,16 @@
 import { Evaluator } from '../src/engine/evaluator';
 import { MockApplication } from '../src/engine/mock/MockExcel';
 
+/** Excel ホストを注入したときだけ公開する、代表的な Excel 列挙定数。 */
+const EXCEL_STUB_CONSTANTS: Record<string, number> = {
+    xlUp: -4162,
+    xlDown: -4121,
+    xlToLeft: -4159,
+    xlToRight: -4161,
+    xlCalculationAutomatic: -4105,
+    xlCalculationManual: -4135,
+};
+
 /**
  * evaluator に MockApplication を注入する。
  *
@@ -33,5 +43,8 @@ import { MockApplication } from '../src/engine/mock/MockExcel';
 export function injectExcelStub(evaluator: Evaluator, app: MockApplication = new MockApplication()): MockApplication {
     evaluator.setDefaultBindingObject(app);
     evaluator.setBuiltinOverride('Application', app);
+    for (const [name, value] of Object.entries(EXCEL_STUB_CONSTANTS)) {
+        evaluator.setConstant(name, value);
+    }
     return app;
 }
