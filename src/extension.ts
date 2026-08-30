@@ -48,11 +48,6 @@ class PublicSubItem extends vscode.TreeItem {
             title: 'Open VBA procedure',
             arguments: [uri, line, nameChar],
         };
-        this.command = {
-            command: 'vba-runner.runProcedure',
-            title: 'Run VBA procedure',
-            arguments: [uri, procedureName, false],
-        };
         this.resourceUri = vscode.Uri.parse(uri);
         this.contextValue = isTested ? 'vbaPublicSub' : 'vbaPublicSubUntested';
     }
