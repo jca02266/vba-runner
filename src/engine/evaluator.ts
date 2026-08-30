@@ -2371,13 +2371,23 @@ export class Evaluator {
         // checks while walking statements in source order.
         const lexicalNames = new Set<string>(declared);
         const lexicalValueNames = new Set<string>(proc.parameters.map(param => param.name.toLowerCase()));
+        const lexicalArrayNames = new Set<string>();
+        const lexicalTypes = new Map<string, string>();
         const collectLexicalNames = (statements: readonly Statement[]): void => {
             for (const statement of statements) {
                 if (statement.type === 'VariableDeclaration' || statement.type === 'ConstDeclaration') {
-                    for (const declaration of (statement as VariableDeclaration | ConstDeclaration).declarations) {
+                    const declarationStatement = statement as VariableDeclaration | ConstDeclaration;
+                    for (const declaration of declarationStatement.declarations) {
                         const key = declaration.name.name.toLowerCase();
                         lexicalNames.add(key);
                         lexicalValueNames.add(key);
+                        if (statement.type === 'VariableDeclaration') {
+                            if ((declaration as any).isArray) {
+                                lexicalArrayNames.add(key);
+                            }
+                            const objectType = (declaration as any).objectType as string | undefined;
+                            if (objectType) lexicalTypes.set(key, objectType);
+                        }
                     }
                 } else if (statement.type === 'ForStatement') {
                     const key = (statement as ForStatement).identifier.name.toLowerCase();
@@ -2410,11 +2420,16 @@ export class Evaluator {
             return lexicalNames.has(key) || knownNames.has(key);
         };
         const classFieldNames = new Set<string>();
+        const classFieldArrayNames = new Set<string>();
+        const classFieldTypes = new Map<string, string>();
         if (proc.moduleName) {
             const owner = this.classDefinitions.get(proc.moduleName.toLowerCase());
             for (const field of owner?.fields ?? []) {
                 for (const declaration of field.declarations) {
-                    classFieldNames.add(declaration.name.name.toLowerCase());
+                    const key = declaration.name.name.toLowerCase();
+                    classFieldNames.add(key);
+                    if (declaration.isArray) classFieldArrayNames.add(key);
+                    if (declaration.objectType) classFieldTypes.set(key, declaration.objectType);
                 }
             }
         }
@@ -2429,6 +2444,18 @@ export class Evaluator {
                 if (moduleEnv.hasVariable(key)) return true;
             }
             return false;
+        };
+        const isArrayValueName = (name: string): boolean => {
+            const key = name.toLowerCase();
+            return lexicalArrayNames.has(key) || classFieldArrayNames.has(key);
+        };
+        const valueTypeFor = (name: string): string | undefined => {
+            const key = name.toLowerCase();
+            return lexicalTypes.get(key) ?? classFieldTypes.get(key);
+        };
+        const acceptsDefaultMemberCall = (name: string): boolean => {
+            const type = valueTypeFor(name)?.toLowerCase();
+            return type === undefined || type === 'variant' || type === 'object' || type === 'collection';
         };
         const resolveCallCategory = (name: string, scopeModuleName?: string): 'value' | 'procedure' | 'defined' | 'undefined' => {
             if (isDefinedValueName(name)) return 'value';
@@ -2548,28 +2575,32 @@ export class Evaluator {
                         }
                     }
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
-                        if (hasBuiltinArrayTypeMismatch((call.callee as Identifier).name, call.args)) {
+                        const calleeName = (call.callee as Identifier).name;
+                        const calleeKey = calleeName.toLowerCase();
+                        const category = resolveCallCategory(calleeName, proc.moduleName);
+                        if (category !== 'undefined' && hasBuiltinArrayTypeMismatch(calleeName, call.args)) {
                             findings.argumentError = {
                                 code: VbaErrorCode.TYPE_MISMATCH,
                                 message: 'Type mismatch: array or user-defined type required',
                                 line: call.loc?.start.line ?? call.callee.loc?.start.line,
                             };
                         }
-                        const target = this.resolveProcedureForScope(
-                            (call.callee as Identifier).name, undefined, proc.moduleName);
-                        if (target) {
-                            // A local scalar shadows a module procedure in
-                            // VBA's value namespace. `name(index)` is then an
-                            // array access, rejected before execution.
-                            const calleeName = (call.callee as Identifier).name;
-                            const calleeKey = calleeName.toLowerCase();
-                            if (!findings.arrayRequired && valueDeclarations.has(calleeKey)
-                                && !arrayDeclarations.has(calleeKey)) {
+                        if (category === 'value') {
+                            // A value call is an array/default-member access,
+                            // never a procedure invocation.  Primitive values
+                            // cannot satisfy that usage expectation.
+                            if (!findings.arrayRequired && !isArrayValueName(calleeName)
+                                && !acceptsDefaultMemberCall(calleeName)) {
                                 findings.arrayRequired = {
                                     name: calleeName,
                                     line: call.loc?.start.line ?? call.callee.loc?.start.line,
                                 };
                             }
+                        }
+                        const target = category === 'procedure'
+                            ? this.resolveProcedureForScope(calleeName, undefined, proc.moduleName)
+                            : undefined;
+                        if (target) {
                             if (!findings.argumentError && hasByRefTypeMismatch(target.parameters, call.args)) {
                                 findings.argumentError = {
                                     code: VbaErrorCode.TYPE_MISMATCH,
