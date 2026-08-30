@@ -5,12 +5,15 @@ import { ProcedureDeclaration } from '../engine/parser';
 import { MemoryFileSystem } from '../engine/filesystem';
 import { findClassProcedure, findFirstClassProcedure } from '../engine/property-resolution';
 import { parseVBAModule } from './vba-source-parser';
+import { loadMocks } from '../../test-libs/mock-loader';
+import { injectExcelStub } from '../../test-libs/excel-stub';
 
 interface WorkerInitData {
     source: string;
     moduleName: string;
     entryPoint: string | null;
     parseAsClass?: boolean;
+    sourceDirectory?: string | null;
     controlBuffer: SharedArrayBuffer;
 }
 
@@ -22,7 +25,7 @@ const CMD_STEP_INTO = 3;
 const CMD_STEP_OUT = 4;
 const CMD_TERMINATE = 5;
 
-const { source, moduleName, entryPoint, parseAsClass, controlBuffer } = workerData as WorkerInitData;
+const { source, moduleName, entryPoint, parseAsClass, sourceDirectory, controlBuffer } = workerData as WorkerInitData;
 const control = new Int32Array(controlBuffer);
 
 let currentCommand = CMD_STEP_INTO; // pause at first statement by default
@@ -293,6 +296,14 @@ try {
         { fs: new MemoryFileSystem(), allowTopLevelStatements: false }
     );
     activeEvaluator = evaluator;
+    const excelApplication = injectExcelStub(evaluator);
+    const mockModules = sourceDirectory
+        ? loadMocks(sourceDirectory, evaluator, { excel: { Application: excelApplication }, sourceDirectory })
+        : [];
+    for (const { ast: mockAst, moduleName: mockName } of mockModules) {
+        evaluator.setSourceModule(mockName);
+        evaluator.evaluateModule(mockAst);
+    }
     evaluator.setDebugHook(hook);
     evaluator.setSourceModule(moduleName || 'Module1');
     evaluator.evaluateModule(ast);
