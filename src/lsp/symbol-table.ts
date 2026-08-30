@@ -44,6 +44,8 @@ export interface SymbolLookupResult {
     entry: SymbolEntry;
     /** Enclosing procedure name; null when symbol is at module level */
     procName: string | null;
+    /** Enclosing class name for class members. */
+    className?: string;
 }
 
 export interface ProcedureScope {
@@ -54,6 +56,18 @@ export interface ProcedureScope {
         end: { line: number; character: number };
     };
     localSymbols: Map<string, SymbolEntry>;
+    /** Enclosing class name for class member procedures. */
+    className?: string;
+}
+
+export interface ClassScope {
+    name: string;
+    /** 0-based line range of the class body. */
+    range: {
+        start: { line: number; character: number };
+        end: { line: number; character: number };
+    };
+    memberSymbols: Map<string, SymbolEntry>;
 }
 
 export interface ScopedSymbolTable {
@@ -61,6 +75,8 @@ export interface ScopedSymbolTable {
     moduleSymbols: Map<string, SymbolEntry>;
     /** Per-procedure scopes with local declarations */
     procedures: ProcedureScope[];
+    /** Class-level declarations, which are not visible at module level. */
+    classes: ClassScope[];
 }
 
 // ─── text helpers ────────────────────────────────────────────────────────────
@@ -84,14 +100,17 @@ export function getWordAtPosition(text: string, line: number, character: number)
 export function buildScopedSymbolTable(statements: Statement[]): ScopedSymbolTable {
     const moduleSymbols = new Map<string, SymbolEntry>();
     const procedures: ProcedureScope[] = [];
-    collectScopedSymbols(statements, moduleSymbols, procedures);
-    return { moduleSymbols, procedures };
+    const classes: ClassScope[] = [];
+    collectScopedSymbols(statements, moduleSymbols, procedures, classes);
+    return { moduleSymbols, procedures, classes };
 }
 
 function collectScopedSymbols(
     statements: Statement[],
     moduleSymbols: Map<string, SymbolEntry>,
     procedures: ProcedureScope[],
+    classes: ClassScope[],
+    ownerClass?: ClassScope,
 ): void {
     for (const stmt of statements) {
         if (stmt.type === 'ProcedureDeclaration') {
@@ -99,7 +118,10 @@ function collectScopedSymbols(
             if (!proc.loc) continue;
 
             const procEntry = makeProcEntry(proc);
-            moduleSymbols.set(proc.name.name.toLowerCase(), procEntry);
+            // Class members belong to their class, not the containing module.
+            // Keeping them in moduleSymbols makes Private members leak into
+            // workspace lookup/completion and cross-file references.
+            (ownerClass?.memberSymbols ?? moduleSymbols).set(proc.name.name.toLowerCase(), procEntry);
 
             const localSymbols = new Map<string, SymbolEntry>();
 
@@ -132,13 +154,14 @@ function collectScopedSymbols(
                     end: { line: proc.loc.end.line - 1, character: Number.MAX_SAFE_INTEGER },
                 },
                 localSymbols,
+                className: ownerClass?.name,
             });
 
         } else if (stmt.type === 'VariableDeclaration') {
-            addVariableDeclaration(stmt as VariableDeclaration, moduleSymbols, 'module-var');
+            addVariableDeclaration(stmt as VariableDeclaration, ownerClass?.memberSymbols ?? moduleSymbols, 'module-var');
 
         } else if (stmt.type === 'ConstDeclaration') {
-            addConstDeclaration(stmt as ConstDeclaration, moduleSymbols);
+            addConstDeclaration(stmt as ConstDeclaration, ownerClass?.memberSymbols ?? moduleSymbols);
 
         } else if (stmt.type === 'ClassDeclaration') {
             const cls = stmt as ClassDeclaration;
@@ -152,7 +175,16 @@ function collectScopedSymbols(
                 kind: 'class',
                 range: { start: { line: clsLine, character: nameStart }, end: { line: clsLine, character: nameStart + cls.name.length } },
             });
-            collectScopedSymbols(cls.body, moduleSymbols, procedures);
+            const classScope: ClassScope = {
+                name: cls.name,
+                range: {
+                    start: { line: cls.loc.start.line - 1, character: 0 },
+                    end: { line: cls.loc.end.line - 1, character: Number.MAX_SAFE_INTEGER },
+                },
+                memberSymbols: new Map<string, SymbolEntry>(),
+            };
+            classes.push(classScope);
+            collectScopedSymbols(cls.body, moduleSymbols, procedures, classes, classScope);
 
         } else if (stmt.type === 'EventDeclaration') {
             const evt = stmt as EventDeclaration;
@@ -163,7 +195,7 @@ function collectScopedSymbols(
             const params = evt.parameters
                 .map(p => `${p.name} As ${p.paramType || 'Variant'}`)
                 .join(', ');
-            moduleSymbols.set(evtName.toLowerCase(), {
+            (ownerClass?.memberSymbols ?? moduleSymbols).set(evtName.toLowerCase(), {
                 name: evtName,
                 displayText: `Event ${evtName}(${params})`,
                 kind: 'event',
@@ -176,7 +208,7 @@ function collectScopedSymbols(
             const tdLine = td.loc.start.line - 1;
             const nameStart = (td.loc.start.column - 1) + 5; // 'Type '
             const memberDesc = td.members.map(m => `${m.name} As ${m.memberType}`).join(', ');
-            moduleSymbols.set(td.name.toLowerCase(), {
+            (ownerClass?.memberSymbols ?? moduleSymbols).set(td.name.toLowerCase(), {
                 name: td.name,
                 displayText: `Type ${td.name} (${memberDesc})`,
                 kind: 'udt',
@@ -193,7 +225,7 @@ function collectScopedSymbols(
                 const mLine = loc ? loc.start.line - 1 : ed.loc.start.line - 1;
                 const mCol = loc ? loc.start.column - 1 : 0;
                 const valText = member.value ? ` = ${constLiteralText(member.value)}` : '';
-                moduleSymbols.set(mname.toLowerCase(), {
+                (ownerClass?.memberSymbols ?? moduleSymbols).set(mname.toLowerCase(), {
                     name: mname,
                     displayText: `${enumName}.${mname}${valText}`,
                     kind: 'enum-member',
@@ -393,6 +425,14 @@ export function findEnclosingScope(procedures: ProcedureScope[], line: number): 
     return null;
 }
 
+/** Find the class body containing a 0-based source line. */
+export function findEnclosingClassScope(classes: ClassScope[], line: number): ClassScope | null {
+    for (const scope of classes) {
+        if (line >= scope.range.start.line && line <= scope.range.end.line) return scope;
+    }
+    return null;
+}
+
 /**
  * Look up a symbol name respecting scope.
  * Returns the entry from the innermost scope that declares it, or null.
@@ -419,6 +459,16 @@ export function lookupSymbolWithContext(
     if (enclosing) {
         const local = enclosing.localSymbols.get(lower);
         if (local) return { entry: local, procName: enclosing.name };
+        if (enclosing.className) {
+            const cls = table.classes.find(c => c.name.toLowerCase() === enclosing.className!.toLowerCase());
+            const member = cls?.memberSymbols.get(lower);
+            if (member) return { entry: member, procName: enclosing.name, className: cls!.name };
+        }
+    }
+    const enclosingClass = findEnclosingClassScope(table.classes, cursorLine);
+    if (enclosingClass) {
+        const member = enclosingClass.memberSymbols.get(lower);
+        if (member) return { entry: member, procName: null, className: enclosingClass.name };
     }
     const mod = table.moduleSymbols.get(lower);
     if (mod) return { entry: mod, procName: null };

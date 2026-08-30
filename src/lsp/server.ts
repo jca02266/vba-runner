@@ -17,7 +17,7 @@ import { DefinitionProvider } from './definition-provider';
 import { CompletionProvider, generateDefaultTypeStubsJson, parseTypeStubsJson } from './completion-provider';
 import { checkUnknownTypes, collectUserDefinedTypeNames } from './unknown-type-checker';
 import { findAllReferences, LocationInfo } from './references-provider';
-import { buildScopedSymbolTable, getWordAtPosition } from './symbol-table';
+import { buildScopedSymbolTable, getWordAtPosition, lookupSymbolWithContext } from './symbol-table';
 import { RenameProvider } from './rename-provider';
 import { CodeLensProvider, TestRunResult } from './code-lens-provider';
 import { CallGraphProvider, CallGraph } from './call-graph-provider';
@@ -455,11 +455,11 @@ export class LSPServer {
 
         const table = buildScopedSymbolTable(ast.body);
         const wordLower = word.toLowerCase();
+        const symbolContext = lookupSymbolWithContext(word, line, table);
 
         // 識別子コンテキスト確認: シンボルテーブルに定義が存在する場合のみ参照検索を行う。
         // どのファイルにも定義が見つからない単語はキーワードや演算子として使われているとみなし空を返す。
-        const isDefinedInCurrentFile = table.moduleSymbols.has(wordLower)
-            || table.procedures.some(p => p.localSymbols.has(wordLower));
+        const isDefinedInCurrentFile = symbolContext !== null;
         if (!isDefinedInCurrentFile) {
             const isDefinedInWorkspace = [...this.allDocuments()].some(([docUri, docDoc]) => {
                 if (docUri === uri) return false;
@@ -472,6 +472,7 @@ export class LSPServer {
 
         // ローカルシンボル（プロシージャ内ローカル変数）は現在ファイルのみ検索
         const isOnlyLocal = !table.moduleSymbols.has(wordLower)
+            && symbolContext?.className == null
             && table.procedures.some(p => p.localSymbols.has(wordLower));
 
         if (isOnlyLocal) {
@@ -480,7 +481,8 @@ export class LSPServer {
 
         // Private/Friend シンボルはモジュール内スコープ → 他ファイルを検索しない
         const modEntry = table.moduleSymbols.get(wordLower);
-        const isFilePrivate = modEntry != null && /^(private|friend)\b/i.test(modEntry.displayText);
+        const isFilePrivate = symbolContext?.className != null
+            || (modEntry != null && /^(private|friend)\b/i.test(modEntry.displayText));
         if (isFilePrivate) {
             return findAllReferences(doc.content, word, uri, ast.body, includeDeclaration, line);
         }
@@ -554,7 +556,7 @@ export class LSPServer {
             } catch { /* 壊れたドキュメントはスキップ */ }
         }
 
-        return this.completionProvider.getCompletions(allStatements, doc.content, line, character);
+        return this.completionProvider.getCompletions(allStatements, doc.content, line, character, ast.body);
     }
 
     /** 外部型定義ファイル (vba-types.json) を読み込んで補完プロバイダーに設定する。 */

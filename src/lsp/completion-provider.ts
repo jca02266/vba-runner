@@ -387,7 +387,13 @@ export class CompletionProvider {
         { label: 'CreateObject', kind: CompletionItemKind.Function, detail: 'CreateObject(class) As Object' },
     ];
 
-    getCompletions(statements: Statement[], source: string, line: number, character: number): CompletionItem[] {
+    getCompletions(
+        statements: Statement[],
+        source: string,
+        line: number,
+        character: number,
+        scopeStatements: Statement[] = statements,
+    ): CompletionItem[] {
         // Block-closer completions take priority when at line start
         const blockClosers = this.getBlockClosers(source, line, character);
         if (blockClosers.length > 0) return blockClosers;
@@ -456,7 +462,7 @@ export class CompletionProvider {
         );
 
         // Add local symbols (variables, procedures, classes)
-        const symbols = this.extractSymbols(statements);
+        const symbols = this.extractSymbols(scopeStatements, line);
         completions.push(
             ...symbols.filter((sym) => this.matchesPrefix(sym.label, prefix))
         );
@@ -864,8 +870,16 @@ export class CompletionProvider {
         return label.toLowerCase().startsWith(prefix.toLowerCase());
     }
 
-    private extractSymbols(statements: Statement[]): CompletionItem[] {
+    private extractSymbols(statements: Statement[], cursorLine?: number): CompletionItem[] {
         const symbols: CompletionItem[] = [];
+        let enclosingClass: ClassDeclaration | undefined;
+
+        if (cursorLine !== undefined) {
+            enclosingClass = statements.find(stmt => {
+                if (stmt.type !== 'ClassDeclaration' || !stmt.loc) return false;
+                return cursorLine >= stmt.loc.start.line - 1 && cursorLine <= stmt.loc.end.line - 1;
+            }) as ClassDeclaration | undefined;
+        }
 
         for (const stmt of statements) {
             if (stmt.type === 'ProcedureDeclaration') {
@@ -883,28 +897,6 @@ export class CompletionProvider {
                     kind: CompletionItemKind.Class,
                     detail: 'Class',
                 });
-                // Add class members
-                for (const member of cls.body) {
-                    if (member.type === 'VariableDeclaration') {
-                        const decl = member as VariableDeclaration;
-                        const scope = decl.scope ?? 'private';
-                        for (const d of decl.declarations) {
-                            symbols.push({
-                                label: d.name.name,
-                                kind: CompletionItemKind.Property,
-                                detail: `${scope} ${d.objectType || 'Variant'} (class member)`,
-                            });
-                        }
-                    } else if (member.type === 'ProcedureDeclaration') {
-                        const proc = member as ProcedureDeclaration;
-                        const scope = proc.scope ?? 'public';
-                        symbols.push({
-                            label: proc.name.name,
-                            kind: proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
-                            detail: `${scope} ${proc.isFunction ? 'Function' : 'Sub'} (class member)`,
-                        });
-                    }
-                }
             } else if (stmt.type === 'VariableDeclaration') {
                 const decl = stmt as VariableDeclaration;
                 const scope = decl.scope ?? 'private';
@@ -913,6 +905,33 @@ export class CompletionProvider {
                         label: d.name.name,
                         kind: CompletionItemKind.Variable,
                         detail: `${scope} ${d.objectType || 'Variant'}`,
+                    });
+                }
+            }
+        }
+
+        // Unqualified class members are visible only from their own class.
+        // In particular, do not flatten Private members from every workspace
+        // class into completion candidates.
+        if (enclosingClass) {
+            for (const member of enclosingClass.body) {
+                if (member.type === 'VariableDeclaration') {
+                    const decl = member as VariableDeclaration;
+                    const scope = decl.scope ?? 'private';
+                    for (const d of decl.declarations) {
+                        symbols.push({
+                            label: d.name.name,
+                            kind: CompletionItemKind.Property,
+                            detail: `${scope} ${d.objectType || 'Variant'} (class member)`,
+                        });
+                    }
+                } else if (member.type === 'ProcedureDeclaration') {
+                    const proc = member as ProcedureDeclaration;
+                    const scope = proc.scope ?? 'public';
+                    symbols.push({
+                        label: proc.name.name,
+                        kind: proc.isFunction ? CompletionItemKind.Function : CompletionItemKind.Method,
+                        detail: `${scope} ${proc.isFunction ? 'Function' : 'Sub'} (class member)`,
                     });
                 }
             }

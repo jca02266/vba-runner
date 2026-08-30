@@ -4,6 +4,7 @@ import {
     findEnclosingScope,
     getWordAtPosition,
     lookupSymbol,
+    lookupSymbolWithContext,
     ProcedureScope,
 } from './symbol-table';
 
@@ -51,7 +52,13 @@ export function findAllReferences(
     // Determine scope of the symbol: local (inside a procedure) or module-level
     const resolvedLine = cursorLine ?? 0;
     const declEntry = lookupSymbol(targetWord, resolvedLine, table);
+    const declContext = cursorLine === undefined
+        ? null
+        : lookupSymbolWithContext(targetWord, resolvedLine, table);
     const enclosingScope = findEnclosingScope(table.procedures, resolvedLine);
+    const ownerClass = declContext?.className
+        ? table.classes.find(c => c.name.toLowerCase() === declContext.className!.toLowerCase()) ?? null
+        : null;
 
     // カーソルあり（同ファイル検索）: カーソル位置のプロシージャ内でローカル宣言があれば
     // そのプロシージャに検索を限定する。
@@ -67,6 +74,7 @@ export function findAllReferences(
     const pattern = new RegExp(`(?<![a-zA-Z0-9_])${escapeRegex(targetWord)}(?![a-zA-Z0-9_])`, 'gi');
 
     for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+        if (ownerClass && (lineIdx < ownerClass.range.start.line || lineIdx > ownerClass.range.end.line)) continue;
         if (ownerScope) {
             // ローカルシンボル: 所有プロシージャの範囲のみ
             if (lineIdx < ownerScope.range.start.line || lineIdx > ownerScope.range.end.line) continue;
