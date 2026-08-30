@@ -35,7 +35,15 @@ module.exports = ({ excel }) => {
             ? nameOrIndex
             : `Sheet${nameOrIndex}`;
         if (!names.has(name)) {
-            throw new Error(`Worksheet not found: ${name}`);
+            // The built-in stub may be asked for the next generated sheet
+            // while Sheets.Add evaluates its After argument.  Materialize
+            // that generated name here; arbitrary missing names still follow
+            // the VBA error path below.
+            if (/^Sheet\d+$/i.test(name) && Number(name.slice(5)) <= nextSheet) {
+                names.add(name);
+            } else {
+                throw new Error(`Worksheet not found: ${name}`);
+            }
         }
         return wrapSheet(getSheet(name));
     };

@@ -6013,6 +6013,14 @@ export class Evaluator {
             return fn.apply(thisArg, args);
         } catch (e: any) {
             if (e?.type === 'VbaError' && !(e instanceof Error)) this.throwVbaError(e.number, e.message, undefined, undefined, e.vbaSource);
+            // Host/JS mocks may throw a native Error.  Preserve the VBA
+            // execution location so the VS Code runner can publish a
+            // clickable runtime diagnostic instead of falling back to Output.
+            if (e instanceof Error) {
+                e.vbaLine ??= this.currentLine || undefined;
+                e.vbaModule ??= this.executingModuleName || this.currentSourceModule || undefined;
+                e.vbaStack ??= [...this.vbaCallStack].reverse();
+            }
             throw e;
         }
     }

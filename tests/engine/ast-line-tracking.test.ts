@@ -16,6 +16,30 @@ function catchError(code: string, proc: string): any {
     }
 }
 
+// Native host/JS mocks must retain the VBA location when they fail so the
+// VS Code run command can publish a clickable Problems diagnostic.
+{
+    const source = String.raw`
+Sub HostFailure()
+    Dim value As Variant
+    value = HostBoom()
+End Sub
+`;
+    const ev = runVba(source);
+    ev.set('HostBoom', () => { throw new Error('host failure'); });
+    let err: any;
+    try {
+        ev.callProcedure('HostFailure', []);
+    } catch (e: any) {
+        err = e;
+    }
+    assert.ok(err !== undefined, 'Native host error should propagate');
+    assert.strictEqual(err.vbaLine, 4, 'Native host error keeps VBA line');
+    assert.strictEqual(err.vbaModule, 'Module1', 'Native host error keeps VBA module');
+    assert.ok(Array.isArray(err.vbaStack), 'Native host error keeps VBA stack');
+    console.log('[PASS] Native host errors retain VBA location metadata');
+}
+
 // 1. Parser attaches line numbers to statements
 {
     const source = `
