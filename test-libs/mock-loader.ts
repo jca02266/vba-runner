@@ -238,7 +238,7 @@ function applyJsMockExports(mod: any, evaluator: Evaluator, file: string, contex
     for (const [key, value] of Object.entries(exports)) {
         if (isVbaMockNamespace(key)) continue;
         if (key === '__addCreateObject__') {
-            if (typeof value === 'object' && value !== null) registerComObjects(value, evaluator);
+            if (typeof value === 'object' && value !== null) registerComObjects(value as Record<string, unknown>, evaluator);
         } else if (isVbaMockConstantValue(value)) {
             evaluator.setConstant(key, value);
         } else if (typeof value === 'function' || (typeof value === 'object' && value !== null)) {

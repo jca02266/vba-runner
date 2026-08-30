@@ -207,7 +207,8 @@ export async function activate(context: vscode.ExtensionContext) {
         const filtered = raw.filter((d: any) =>
             !String(d.source ?? '').startsWith('vba-lint(')
             || shouldShowLintDiag(String(d.code)));
-        publishDiagnostics(uri, filtered, diagnosticCollection, {
+        publishDiagnostics<vscode.Uri, vscode.Range, vscode.Diagnostic>(uri, filtered,
+            diagnosticCollection as unknown as { set(uri: vscode.Uri, diagnostics: vscode.Diagnostic[]): void }, {
             range: (startLine, startCharacter, endLine, endCharacter) =>
                 new vscode.Range(startLine, startCharacter, endLine, endCharacter),
             diagnostic: (range, message, severity) =>

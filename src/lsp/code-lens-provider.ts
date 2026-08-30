@@ -71,6 +71,8 @@ export interface ProcInfo {
     endLine: number;        // 0-based (End Sub/Function line)
     nameChar: number;       // 0-based column of the procedure name identifier
     isPrivate: boolean;
+    isFunction: boolean;
+    isProperty: boolean;
     hasRequiredParams: boolean;
     isTestProc: boolean;    // Test_* with exactly 1 param (the assert helper)
     refCount: number;       // call sites from outside this procedure
@@ -264,7 +266,8 @@ export class CodeLensProvider {
                 this.testProcReferences(statements, testName, name.toLowerCase(), sourceText)
             );
 
-            result.push({ name, line, endLine, nameChar, isPrivate, hasRequiredParams, isTestProc, refCount, isTested, isEventHandler });
+            result.push({ name, line, endLine, nameChar, isPrivate, isFunction: proc.isFunction,
+                isProperty: proc.isProperty, hasRequiredParams, isTestProc, refCount, isTested, isEventHandler });
         }
 
         return result;

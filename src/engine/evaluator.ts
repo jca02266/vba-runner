@@ -2467,7 +2467,7 @@ export class Evaluator {
                     statement.type === 'AttributeStatement' &&
                     /\.vb_usermemid$/i.test((statement as AttributeStatement).name) &&
                     (statement as AttributeStatement).value.type === 'NumberLiteral' &&
-                    (statement as AttributeStatement).value.value === 0);
+                    ((statement as AttributeStatement).value as any).value === 0);
                 if (marked) return true;
                 if (!procedure.isProperty && !procedure.isFunction) return false;
                 const memberName = procedure.name.name.toLowerCase();
@@ -2590,7 +2590,6 @@ export class Evaluator {
                 if (!(assignmentTarget && call.callee.type === 'Identifier')) {
                     if (call.callee.type === 'Identifier') {
                         const id = call.callee as Identifier;
-                        const lower = id.name.toLowerCase();
                         if (!inResumeNext && !id.foreign &&
                             resolveCallCategory(id.name, proc.moduleName) === 'undefined') {
                             findings.undefinedCalls.push({ name: id.name, line: id.loc?.start.line ?? 0 });
@@ -2598,7 +2597,6 @@ export class Evaluator {
                     }
                     if (!findings.argumentError && call.callee.type === 'Identifier') {
                         const calleeName = (call.callee as Identifier).name;
-                        const calleeKey = calleeName.toLowerCase();
                         const category = resolveCallCategory(calleeName, proc.moduleName);
                         if (category !== 'undefined' && hasBuiltinArrayTypeMismatch(calleeName, call.args)) {
                             findings.argumentError = {
@@ -6020,9 +6018,10 @@ export class Evaluator {
             // execution location so the VS Code runner can publish a
             // clickable runtime diagnostic instead of falling back to Output.
             if (e instanceof Error) {
-                e.vbaLine ??= this.currentLine || undefined;
-                e.vbaModule ??= this.executingModuleName || this.currentSourceModule || undefined;
-                e.vbaStack ??= [...this.vbaCallStack].reverse();
+                const diagnosticError = e as Error & { vbaLine?: number; vbaModule?: string; vbaStack?: unknown[] };
+                diagnosticError.vbaLine ??= this.currentLine || undefined;
+                diagnosticError.vbaModule ??= this.executingModuleName || this.currentSourceModule || undefined;
+                diagnosticError.vbaStack ??= [...this.vbaCallStack].reverse();
             }
             throw e;
         }
