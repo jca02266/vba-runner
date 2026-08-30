@@ -19,11 +19,25 @@
  * MockApplication は opt-in。`setDefaultBindingObject` を呼ばなければ既存の動作と変わらない。
  */
 
-import { MockWorksheet, MockRange, MockRows, MockColumns } from './MockWorksheet';
+import {
+    MockWorksheet,
+    MockRange,
+    MockRows,
+    MockColumns,
+    MockFont,
+    MockInterior,
+} from './MockWorksheet';
 import { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject } from '../vba-types';
 import type { BuiltinOverload } from '../evaluator';
 
-export { MockWorksheet, MockRange, MockRows, MockColumns };
+export {
+    MockWorksheet,
+    MockRange,
+    MockRows,
+    MockColumns,
+    MockFont,
+    MockInterior,
+};
 export type { VbaType, VbaDefaultProperty, VbaIterable, VbaComObject };
 
 /** ActiveWorkbook / ThisWorkbook の最小スタブ */

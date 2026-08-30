@@ -63,7 +63,11 @@ Function TestNoOps() As String
     ActiveSheet.Activate
     ActiveSheet.Select
     ActiveSheet.Rows(1).Hidden = True
+    ActiveSheet.Rows(1).Font.Bold = True
+    ActiveSheet.Rows(1).Font.Color = 255
+    ActiveSheet.Rows(1).Interior.Color = 16711680
     ActiveSheet.Columns(1).ColumnWidth = 10
+    ActiveSheet.Columns(1).Font.Bold = True
     ActiveSheet.Range("A1:C1").NumberFormat = "@"
     ActiveSheet.Range("A1").Font.Bold = True
     ActiveSheet.Range("A1").Interior.Color = 255

@@ -29,7 +29,8 @@ interface CellRect {
 
 // ========== フォーマット/スタイルのノーオプスタブ ==========
 
-class MockFont {
+/** Excel の Range / Rows / Columns から参照できる最小の Font スタブ。 */
+export class MockFont {
     get Bold() { return false; }
     set Bold(_v: any) {}
     get Italic() { return false; }
@@ -46,7 +47,8 @@ class MockFont {
     set Name(_v: any) {}
 }
 
-class MockInterior {
+/** Excel の Range / Rows / Columns から参照できる最小の Interior スタブ。 */
+export class MockInterior {
     get Color() { return 0; }
     set Color(_v: any) {}
     get ColorIndex() { return 0; }
@@ -87,6 +89,8 @@ export class MockRows {
     set Hidden(_v: any) {}
     get RowHeight() { return 15; }
     set RowHeight(_v: any) {}
+    get Font(): MockFont { return new MockFont(); }
+    get Interior(): MockInterior { return new MockInterior(); }
     AutoFit() {}
     Select() {}
     Delete() {}
@@ -99,6 +103,8 @@ export class MockColumns {
     set Hidden(_v: any) {}
     get ColumnWidth() { return 8; }
     set ColumnWidth(_v: any) {}
+    get Font(): MockFont { return new MockFont(); }
+    get Interior(): MockInterior { return new MockInterior(); }
     AutoFit() {}
     Select() {}
     Delete() {}
