@@ -226,10 +226,15 @@ export class SignatureHelpProvider {
         // 1. ユーザー定義シンボルを優先
         const table = buildScopedSymbolTable(statements);
         const entry = table.moduleSymbols.get(nameLower);
-        if (entry?.displayText) {
+        // Class members are intentionally kept out of moduleSymbols. Resolve
+        // them through the same AST resolver used by the engine instead of
+        // losing signature help when the procedure belongs to a class.
+        const procedure = findProcedureDeclaration(statements, nameLower);
+        if (entry?.displayText || procedure) {
+            const parameters = this.paramsFromProc(statements, nameLower);
             const sig: SignatureInfo = {
-                label: entry.displayText,
-                parameters: this.paramsFromProc(statements, nameLower),
+                label: entry?.displayText ?? `${ctx.name}(${parameters.join(', ')})`,
+                parameters,
             };
             return { signature: sig, activeParameter: ctx.activeParameter };
         }
