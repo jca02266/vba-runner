@@ -316,6 +316,34 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 }
 
 // ──────────────────────────────────────────────
+// 8b. Object/配列のLocals展開
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim values(0 To 1) As Long',
+        '  values(0) = 7',
+        '  values(1) = 8',
+        'End Sub',
+    ].join('\n');
+    const session = new VBADebugSession(src, 'Module1');
+    await startAndWait(session);
+    const p = waitFor(session, 'stopped');
+    session.stepInto();
+    await p;
+    const p2 = waitFor(session, 'stopped');
+    session.stepInto();
+    await p2;
+    const values = session.getVariables(0).find(v => v.name.toLowerCase() === 'values');
+    assert.ok(values && values.variablesReference > 1, 'array local has an expandable reference');
+    const children = await session.requestVariables(values!.variablesReference);
+    assert.strictEqual(children.find(v => v.name === '0')?.value, '7', 'array element is expandable and current');
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Object and array locals can be expanded');
+}
+
+// ──────────────────────────────────────────────
 // 9. スタックフレームが取れる
 // ──────────────────────────────────────────────
 {

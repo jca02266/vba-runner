@@ -27,6 +27,13 @@ export interface SessionVariable {
     variablesReference: number;
 }
 
+export interface SessionChildVariable {
+    name: string;
+    value: string;
+    type: string;
+    variablesReference: number;
+}
+
 export type SessionState = 'initialized' | 'running' | 'paused' | 'exited';
 
 // Commands (control[0]) — must match debug-worker.ts
@@ -49,13 +56,18 @@ export class VBADebugSession extends EventEmitter {
     private bpCounter = 0;
     private evaluationCounter = 0;
     private variableWriteCounter = 0;
+    private variableRequestCounter = 0;
     private pendingEvaluations = new Map<number, {
-        resolve: (value: { result: string; type: string }) => void;
+        resolve: (value: { result: string; type: string; variablesReference?: number }) => void;
         reject: (reason: Error) => void;
     }>();
     private pendingVariableWrites = new Map<number, {
         name: string;
         resolve: (value: { result: string; type: string }) => void;
+        reject: (reason: Error) => void;
+    }>();
+    private pendingVariableRequests = new Map<number, {
+        resolve: (value: SessionChildVariable[]) => void;
         reject: (reason: Error) => void;
     }>();
 
@@ -128,10 +140,7 @@ export class VBADebugSession extends EventEmitter {
                 case 'paused':
                     this.state = 'paused';
                     this.currentLine = msg.line;
-                    this.currentVariables = (msg.variables as any[]).map(v => ({
-                        ...v,
-                        variablesReference: 0,
-                    }));
+                    this.currentVariables = msg.variables as SessionVariable[];
                     this.currentFrames = msg.frames ?? [];
                     this.emit('stopped', { reason: msg.reason ?? 'step', line: msg.line });
                     break;
@@ -148,9 +157,7 @@ export class VBADebugSession extends EventEmitter {
                         this.state = 'paused';
                         this.currentLine = msg.line;
                         this.currentFrames = msg.frames ?? [];
-                        this.currentVariables = (msg.variables ?? []).map((v: any) => ({
-                            ...v, variablesReference: 0,
-                        }));
+                        this.currentVariables = (msg.variables ?? []) as SessionVariable[];
                         this.emit('stopped', { reason: 'exception', line: msg.line });
                     }
                     this.emit('runtimeError', msg.message);
@@ -159,8 +166,16 @@ export class VBADebugSession extends EventEmitter {
                     const pending = this.pendingEvaluations.get(msg.requestId);
                     if (!pending) break;
                     this.pendingEvaluations.delete(msg.requestId);
-                    if (msg.ok) pending.resolve({ result: msg.result, type: msg.valueType });
+                    if (msg.ok) pending.resolve({ result: msg.result, type: msg.valueType, variablesReference: msg.variablesReference ?? 0 });
                     else pending.reject(new Error(msg.error ?? 'Expression evaluation failed'));
+                    break;
+                }
+                case 'variablesResult': {
+                    const pending = this.pendingVariableRequests.get(msg.requestId);
+                    if (!pending) break;
+                    this.pendingVariableRequests.delete(msg.requestId);
+                    if (msg.ok) pending.resolve(msg.variables ?? []);
+                    else pending.reject(new Error(msg.error ?? 'Variables request failed'));
                     break;
                 }
                 case 'setVariableResult': {
@@ -255,7 +270,15 @@ export class VBADebugSession extends EventEmitter {
     getState(): SessionState { return this.state; }
     getCurrentLine(): number { return this.currentLine; }
     getVariables(_frameId: number): SessionVariable[] { return this.currentVariables; }
-    evaluateExpression(expression: string): Promise<{ result: string; type: string }> {
+    requestVariables(variablesReference: number): Promise<SessionChildVariable[]> {
+        if (!this.worker || this.state !== 'paused') return Promise.reject(new Error('Variables can only be requested while paused'));
+        const requestId = ++this.variableRequestCounter;
+        return new Promise((resolve, reject) => {
+            this.pendingVariableRequests.set(requestId, { resolve, reject });
+            this.worker!.postMessage({ type: 'variables', requestId, variablesReference });
+        });
+    }
+    evaluateExpression(expression: string): Promise<{ result: string; type: string; variablesReference?: number }> {
         if (!this.worker || this.state !== 'paused') {
             return Promise.reject(new Error('Expressions can only be evaluated while paused'));
         }

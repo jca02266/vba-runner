@@ -43,6 +43,8 @@ let isEvaluatingExpression = false;
 let lastLine = 0;
 let lastFrames: Array<{ id: number; name: string; source: string; line: number; column: number }> = [];
 let lastVariables: Array<{ name: string; value: string; type: string }> = [];
+let nextVariableHandle = 2;
+const variableHandles = new Map<number, any>();
 
 /**
  * Atomics.wait はスレッドをブロックするためイベントループが止まり、
@@ -90,6 +92,7 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
                     ok: true,
                     result: formatValue(value),
                     valueType: getTypeName(value),
+                    variablesReference: variableReference(value),
                 });
             } catch (error: any) {
                 isEvaluatingExpression = false;
@@ -101,6 +104,9 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
                     error: error?.vbaBareMessage ?? error?.message ?? String(error),
                 });
             }
+        } else if (msg.type === 'variables') {
+            const value = variableHandles.get(Number(msg.variablesReference));
+            parentPort!.postMessage({ type: 'variablesResult', requestId: msg.requestId, ok: true, variables: childVariables(value) });
         } else if (msg.type === 'setVariable' && env && evaluator) {
             const previousEnv = evaluator.env;
             try {
@@ -182,12 +188,31 @@ function getTypeName(value: any): string {
     return 'Variant';
 }
 
+function variableReference(value: any): number {
+    if (value === null || typeof value !== 'object') return 0;
+    const ref = nextVariableHandle++;
+    variableHandles.set(ref, value);
+    return ref;
+}
+
+function makeVariable(name: string, value: any) {
+    return { name, value: formatValue(value), type: getTypeName(value), variablesReference: variableReference(value) };
+}
+
+function childVariables(value: any): any[] {
+    if (Array.isArray(value)) return value.map((item, index) => makeVariable(String(index), item));
+    if (!value || typeof value !== 'object') return [];
+    return Object.keys(value)
+        .filter(key => !key.startsWith('__') && typeof value[key] !== 'function')
+        .map(key => makeVariable(key, value[key]));
+}
+
 function extractVariables(env: Environment): Array<{ name: string; value: string; type: string }> {
     const vars: Array<{ name: string; value: string; type: string }> = [];
     const localVars = env.getLocalVariables();
     for (const [name, value] of localVars) {
         if (typeof value === 'function') continue;
-        vars.push({ name, value: formatValue(value), type: getTypeName(value) });
+        vars.push(makeVariable(name, value));
     }
     return vars;
 }

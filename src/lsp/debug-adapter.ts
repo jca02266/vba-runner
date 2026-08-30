@@ -155,9 +155,12 @@ export class DebugAdapter {
         return { stackFrames, totalFrames: stackFrames.length };
     }
 
-    handleVariables(_frameId: number): any {
-        const vars = this.session?.getVariables(_frameId) ?? [];
-        return { variables: vars };
+    handleVariables(variablesReference: number): any {
+        if (variablesReference === 1) {
+            return { variables: this.session?.getVariables(0) ?? [] };
+        }
+        if (!this.session) return { variables: [] };
+        return this.session.requestVariables(variablesReference).then(variables => ({ variables }));
     }
 
     handleScopes(_frameId: number): any {
@@ -197,7 +200,7 @@ export class DebugAdapter {
         }
         try {
             const value = await this.session.evaluateExpression(expression);
-            return { ...value, variablesReference: 0 };
+            return { ...value, variablesReference: value.variablesReference ?? 0 };
         } catch (error: any) {
             return { success: false, error: error?.message ?? String(error) };
         }
@@ -236,7 +239,7 @@ export class DebugAdapter {
             case 'stackTrace':
                 return this.handleStackTrace(request.arguments?.threadId ?? 1);
             case 'variables':
-                return this.handleVariables(request.arguments?.variablesReference ?? 0);
+                return await this.handleVariables(request.arguments?.variablesReference ?? 0);
             case 'scopes':
                 return this.handleScopes(request.arguments?.frameId ?? 0);
             case 'continue':
