@@ -91,6 +91,7 @@ export class MockRows {
     set RowHeight(_v: any) {}
     get Font(): MockFont { return new MockFont(); }
     get Interior(): MockInterior { return new MockInterior(); }
+    Copy(_destination?: any) {}
     AutoFit() {}
     Select() {}
     Delete() {}
@@ -105,6 +106,7 @@ export class MockColumns {
     set ColumnWidth(_v: any) {}
     get Font(): MockFont { return new MockFont(); }
     get Interior(): MockInterior { return new MockInterior(); }
+    Copy(_destination?: any) {}
     AutoFit() {}
     Select() {}
     Delete() {}

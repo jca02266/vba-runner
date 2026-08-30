@@ -66,8 +66,10 @@ Function TestNoOps() As String
     ActiveSheet.Rows(1).Font.Bold = True
     ActiveSheet.Rows(1).Font.Color = 255
     ActiveSheet.Rows(1).Interior.Color = 16711680
+    ActiveSheet.Rows(1).Copy ActiveSheet.Cells(2, 1)
     ActiveSheet.Columns(1).ColumnWidth = 10
     ActiveSheet.Columns(1).Font.Bold = True
+    ActiveSheet.Columns(1).Copy ActiveSheet.Cells(1, 2)
     ActiveSheet.Range("A1:C1").NumberFormat = "@"
     ActiveSheet.Range("A1").Font.Bold = True
     ActiveSheet.Range("A1").Interior.Color = 255
