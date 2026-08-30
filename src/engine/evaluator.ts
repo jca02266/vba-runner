@@ -5413,7 +5413,10 @@ export class Evaluator {
             // Same Dim stmt re-executed in a loop is NOT a duplicate — check by AST node identity.
             if (this.currentProcedureName && this.env.hasOwnVariable(varKey)) {
                 const prevNode = this.env.getRegisteredDimStmt(varKey);
-                if (prevNode !== stmt) {
+                // Host/mock-injected values may exist without a declaration
+                // node. Only two recorded VBA declarations prove a duplicate;
+                // do not report a false duplicate after a debugger resume.
+                if (prevNode && prevNode !== stmt) {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL,
                         `Variable '${varName}' is already declared in this scope (duplicate declaration)`);
                 }
