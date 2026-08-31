@@ -1,0 +1,9 @@
+- candidateId: FZ-LSP-20260823-003
+  evaluationId: EV-00952
+  status: bug-found
+  occurredAt: '2026-08-31T10:56:15.579Z'
+- candidateId: FZ-LSP-20260823-003
+  evaluationId: EV-00952
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-08-31T11:14:49.158Z'

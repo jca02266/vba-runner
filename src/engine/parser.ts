@@ -2703,6 +2703,8 @@ export class Parser {
                     constDecl.loc = { start: { line: tok.line, column: tok.column }, end: { line: endTok.line, column: endTok.column + endTok.value.length } };
                     clsEndTok = this.tokens[this.pos - 1];
                 }
+                // Preserve class-member visibility for cross-module checks.
+                constDecl.scope = scope;
                 body.push(constDecl);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'

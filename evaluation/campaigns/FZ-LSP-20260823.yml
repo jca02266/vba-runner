@@ -45,3 +45,27 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-LSP-20260823-004
+    title: Class Const owner-aware dependency resolution
+    status: queued
+    priority: 3
+    focus: クラス定数の所有者付き依存解決と同名定数の衝突防止
+    priorCauseKey: declaration-visibility-contract-not-preserved
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+  - id: FZ-LSP-20260823-005
+    title: Class Const initialization order and type environment
+    status: queued
+    priority: 3
+    focus: クラスConstの前方参照初期化と型環境登録
+    priorCauseKey: declaration-visibility-contract-not-preserved
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts

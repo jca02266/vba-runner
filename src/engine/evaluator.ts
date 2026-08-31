@@ -940,6 +940,8 @@ export class Evaluator {
     private executingModuleName: string = '';
     // Maps module name (lower) -> set of variable/const names (lower) declared at module level
     private moduleVarRegistry: Map<string, Set<string>> = new Map();
+    /** Visibility metadata for module-qualified constants. */
+    private moduleConstScopes: Map<string, 'public' | 'private' | 'friend' | undefined> = new Map();
     private withObjectStack: any[] = [];
     // Non-zero while executing a GoSub target in the current procedure.  A
     // Return propagates to that target executor; a new procedure resets this
@@ -2363,6 +2365,13 @@ export class Evaluator {
                 for (const field of classDef.fields) {
                     for (const declaration of field.declarations) {
                         knownNames.add(declaration.name.name.toLowerCase());
+                    }
+                }
+                for (const member of classDef.body) {
+                    if (member.type === 'ConstDeclaration') {
+                        for (const declaration of (member as ConstDeclaration).declarations) {
+                            knownNames.add(declaration.name.name.toLowerCase());
+                        }
                     }
                 }
             }
@@ -6519,10 +6528,12 @@ export class Evaluator {
         // 全モジュールレベル定数を「module:name」修飾キーで収集する。
         // 1 ConstDeclaration に複数の declarator が含まれる場合も個別にエントリを作る。
         const allConsts = new Map<string, { stmt: ConstDeclaration; decl: ConstDeclaratorItem; moduleName: string; name: string }>();
+        this.moduleConstScopes.clear();
         const collect = (stmt: ConstDeclaration, moduleName: string) => {
             for (const decl of stmt.declarations) {
                 const name = decl.name.name.toLowerCase();
                 allConsts.set(`${moduleName.toLowerCase()}:${name}`, { stmt, decl, moduleName, name });
+                this.moduleConstScopes.set(`${moduleName.toLowerCase()}:${name}`, stmt.scope);
             }
         };
         for (const { ast, moduleName } of modules) {
@@ -10953,6 +10964,11 @@ export class Evaluator {
             const moduleKey = `${possibleModule.toLowerCase()}:${propName}`;
             // Constants are stored with module-qualified key (immutable → no sync issue)
             if (this.env.hasVariable(moduleKey)) {
+                if (this.moduleConstScopes.get(moduleKey) === 'private' &&
+                    this.currentSourceModule.toLowerCase() !== possibleModule.toLowerCase()) {
+                    this.throwVbaError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
+                        `Private constant '${expr.property.name}' is not accessible from module '${this.currentSourceModule}'`);
+                }
                 return this.env.get(moduleKey);
             }
             // VBA standard library module: VBA.vbNull, VBA.vbString, VBA.String$, etc.
@@ -11025,7 +11041,25 @@ export class Evaluator {
                 return this.callClassMethod(obj, ifaceProc, []);
             }
 
+            const accessingModule = (this.executingModuleName || this.currentSourceModule).toLowerCase();
             // Field access
+            const classField = classDef.fields
+                .flatMap(field => field.declarations.map(decl => ({ field, decl })))
+                .find(({ decl }) => decl.name.name.toLowerCase() === propName);
+            if (classField?.field.scope === 'private' &&
+                accessingModule !== classDef.name.toLowerCase()) {
+                this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY,
+                    `Private member '${classField.decl.name.name}' is not accessible from module '${accessingModule}'`);
+            }
+            const classConst = classDef.body
+                .filter((member): member is ConstDeclaration => member.type === 'ConstDeclaration')
+                .flatMap(member => member.declarations.map(decl => ({ member, decl })))
+                .find(({ decl }) => decl.name.name.toLowerCase() === propName);
+            if (classConst?.member.scope === 'private' &&
+                accessingModule !== classDef.name.toLowerCase()) {
+                this.throwVbaError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
+                    `Private constant '${classConst.decl.name.name}' is not accessible from module '${accessingModule}'`);
+            }
             if (instanceEnv.hasOwnVariable(propName)) return instanceEnv.get(propName);
             this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY, `Object doesn't support this property or method: '${propName}'`);
         }

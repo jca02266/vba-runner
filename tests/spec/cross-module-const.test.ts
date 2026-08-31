@@ -147,3 +147,53 @@ import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runn
 }
 
 console.log('cross-module-const: all tests passed');
+
+// --- 9. クラスの Private Const は外部から参照不可 ---
+{
+    const classSource = String.raw`Option Explicit
+Private Const PrivateValue As Long = 11
+Public Const PublicValue As Long = 22
+Public Function ReadPrivate() As Long
+    ReadPrivate = PrivateValue
+End Function`;
+    const moduleSource = String.raw`Option Explicit
+Public Function ReadClassPublic() As Long
+    ReadClassPublic = ConstClass.PublicValue
+End Function
+Public Function ReadClassPrivate() As Long
+    ReadClassPrivate = ConstClass.PrivateValue
+End Function`;
+    const ev = evalVBAModules([
+        { name: 'ConstClass', parseAsClass: 'ConstClass', code: classSource },
+        { name: 'Caller', code: moduleSource },
+    ], { diagnostics: { expectation: 'clean' } });
+    assert.strictEqual(ev.callProcedure('ReadClassPublic', []), 22,
+        'クラスの Public Const は外部から参照できる');
+    assert.throws(() => ev.callProcedure('ReadClassPrivate', []), /private|Constant expression required|not declared/i,
+        'クラスの Private Const は外部から参照できない');
+}
+
+// --- 10. クラスのPrivate/Publicフィールドも同じ可視性契約に従う ---
+{
+    const classSource = String.raw`Option Explicit
+Private Secret As Long
+Public Exposed As Long`;
+    const moduleSource = String.raw`Option Explicit
+Public Function ReadPublicField() As Long
+    Dim c As New FieldClass
+    c.Exposed = 22
+    ReadPublicField = c.Exposed
+End Function
+Public Function ReadPrivateField() As Long
+    Dim c As New FieldClass
+    ReadPrivateField = c.Secret
+End Function`;
+    const ev = evalVBAModules([
+        { name: 'FieldClass', parseAsClass: 'FieldClass', code: classSource },
+        { name: 'FieldCaller', code: moduleSource },
+    ], { diagnostics: { expectation: 'clean' } });
+    assert.strictEqual(ev.callProcedure('ReadPublicField', []), 22,
+        'クラスの Public フィールドは外部から参照できる');
+    assert.throws(() => ev.callProcedure('ReadPrivateField', []), /private|property|method/i,
+        'クラスの Private フィールドは外部から参照できない');
+}
