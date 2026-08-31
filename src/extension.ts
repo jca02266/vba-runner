@@ -784,7 +784,10 @@ End Class`;
 
                 // 同ディレクトリの .bas/.cls をマルチモジュール評価（行番号をファイル単位で独立させる）
                 const dir = path.dirname(doc.uri.fsPath);
-                const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
+                // Form modules are executable VBA modules too. Keep the
+                // command path aligned with LSP/workspace scanning so a
+                // Public Sub in a .frm can be run from Explorer.
+                const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls|frm)$/i.test(f));
 
                 let debugOutputProduced = false;
                 const ev = new Evaluator((msg: string) => {
@@ -1312,7 +1315,7 @@ End Class`;
 
             // 同ディレクトリの全 .bas/.cls ファイルをスキャン
             const fileContents = new Map<string, string>();
-            const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls)$/i.test(f));
+            const entries = fs.readdirSync(dir).filter(f => /\.(bas|cls|frm)$/i.test(f));
             for (const entry of entries) {
                 const filePath = path.join(dir, entry);
                 try {
