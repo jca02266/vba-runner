@@ -47,6 +47,12 @@ let lastFrameVariables: Array<Array<{ name: string; value: string; type: string;
 let nextVariableHandle = 2;
 const variableHandles = new Map<number, any>();
 
+function frameEnvironment(evaluator: Evaluator, frameId: number, fallback: Environment): Environment {
+    const frames = evaluator.getDebugFrameEnvironments();
+    const index = frames.length - 1 - Math.max(0, frameId);
+    return frames[index] ?? fallback;
+}
+
 /**
  * Atomics.wait はスレッドをブロックするためイベントループが止まり、
  * parentPort の 'message' イベントが発火しない。
@@ -79,7 +85,7 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
         } else if (msg.type === 'evaluate' && env && evaluator) {
             const previousEnv = evaluator.env;
             try {
-                evaluator.env = env;
+                evaluator.env = frameEnvironment(evaluator, Number(msg.frameId ?? 0), env);
                 isEvaluatingExpression = true;
                 // DAP evaluate is explicitly an expression context. Wrapping
                 // it removes VBA's statement-vs-expression ambiguity for
@@ -111,15 +117,16 @@ function processMessages(env?: Environment, evaluator?: Evaluator): void {
         } else if (msg.type === 'setVariable' && env && evaluator) {
             const previousEnv = evaluator.env;
             try {
-                evaluator.env = env;
+                const targetEnv = frameEnvironment(evaluator, Number(msg.frameId ?? 0), env);
+                evaluator.env = targetEnv;
                 isEvaluatingExpression = true;
                 const value = evaluator.evalExpression(`(${String(msg.value ?? '')})`);
                 evaluator.env = previousEnv;
                 isEvaluatingExpression = false;
-                if (!env.hasVariable(String(msg.name ?? ''))) {
+                if (!targetEnv.hasVariable(String(msg.name ?? ''))) {
                     throw new Error(`Variable not found: ${String(msg.name ?? '')}`);
                 }
-                env.set(String(msg.name ?? ''), value);
+                targetEnv.set(String(msg.name ?? ''), value);
                 parentPort!.postMessage({
                     type: 'setVariableResult',
                     requestId: msg.requestId,

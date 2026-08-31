@@ -64,6 +64,7 @@ export class VBADebugSession extends EventEmitter {
     }>();
     private pendingVariableWrites = new Map<number, {
         name: string;
+        frameId: number;
         resolve: (value: { result: string; type: string }) => void;
         reject: (reason: Error) => void;
     }>();
@@ -186,17 +187,18 @@ export class VBADebugSession extends EventEmitter {
                     if (!pending) break;
                     this.pendingVariableWrites.delete(msg.requestId);
                     if (msg.ok) {
-                        const updated = this.currentVariables.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
-                        if (updated) {
-                            updated.value = msg.result;
-                            updated.type = msg.valueType;
-                        }
-                        for (const frameVariables of this.currentFrameVariables) {
-                            const frameUpdated = frameVariables.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
-                            if (frameUpdated) {
-                                frameUpdated.value = msg.result;
-                                frameUpdated.type = msg.valueType;
+                        if (pending.frameId === 0) {
+                            const updated = this.currentVariables.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
+                            if (updated) {
+                                updated.value = msg.result;
+                                updated.type = msg.valueType;
                             }
+                        }
+                        const frameVariables = this.currentFrameVariables[pending.frameId];
+                        const frameUpdated = frameVariables?.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
+                        if (frameUpdated) {
+                            frameUpdated.value = msg.result;
+                            frameUpdated.type = msg.valueType;
                         }
                         pending.resolve({ result: msg.result, type: msg.valueType });
                     } else {
@@ -290,24 +292,24 @@ export class VBADebugSession extends EventEmitter {
             this.worker!.postMessage({ type: 'variables', requestId, variablesReference });
         });
     }
-    evaluateExpression(expression: string): Promise<{ result: string; type: string; variablesReference?: number }> {
+    evaluateExpression(expression: string, frameId = 0): Promise<{ result: string; type: string; variablesReference?: number }> {
         if (!this.worker || this.state !== 'paused') {
             return Promise.reject(new Error('Expressions can only be evaluated while paused'));
         }
         const requestId = ++this.evaluationCounter;
         return new Promise((resolve, reject) => {
             this.pendingEvaluations.set(requestId, { resolve, reject });
-            this.worker!.postMessage({ type: 'evaluate', requestId, expression });
+            this.worker!.postMessage({ type: 'evaluate', requestId, expression, frameId });
         });
     }
-    setVariable(name: string, value: string): Promise<{ result: string; type: string }> {
+    setVariable(name: string, value: string, frameId = 0): Promise<{ result: string; type: string }> {
         if (!this.worker || this.state !== 'paused') {
             return Promise.reject(new Error('Variables can only be changed while paused'));
         }
         const requestId = ++this.variableWriteCounter;
         return new Promise((resolve, reject) => {
-            this.pendingVariableWrites.set(requestId, { name, resolve, reject });
-            this.worker!.postMessage({ type: 'setVariable', requestId, name, value });
+            this.pendingVariableWrites.set(requestId, { name, frameId, resolve, reject });
+            this.worker!.postMessage({ type: 'setVariable', requestId, name, value, frameId });
         });
     }
     getStackFrames(): SessionStackFrame[] { return this.currentFrames; }

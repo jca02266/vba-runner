@@ -419,12 +419,19 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
     const initialized = waitFor(session, 'stopped');
     session.stepInto();
     await initialized;
+    const assigned = waitFor(session, 'stopped');
+    session.stepInto();
+    await assigned;
     const callee = session.getVariables(0).map(v => v.name.toLowerCase());
     const caller = session.getVariables(1).map(v => v.name.toLowerCase());
     assert.ok(callee.includes('y'), 'innermost frame exposes callee local');
     assert.ok(caller.includes('x'), 'caller frame exposes caller local');
     assert.ok(!callee.includes('x'), 'callee frame does not expose caller local');
     assert.ok(!caller.includes('y'), 'caller frame does not expose callee local');
+    assert.strictEqual((await session.evaluateExpression('x', 1)).result, '11',
+        'evaluate uses the selected caller frame');
+    assert.strictEqual((await session.evaluateExpression('y', 0)).result, '22',
+        'evaluate uses the selected callee frame');
     session.terminate();
     await waitFor(session, 'exited').catch(() => { /* ok */ });
     console.log('[PASS] Locals are isolated per stack frame');

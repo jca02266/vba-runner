@@ -220,7 +220,7 @@ export class DebugAdapter {
             return { success: false, error: 'Debug session is not running' };
         }
         try {
-            const value = await this.session.evaluateExpression(expression);
+            const value = await this.session.evaluateExpression(expression, _frameId);
             return { ...value, variablesReference: value.variablesReference ?? 0 };
         } catch (error: any) {
             return { success: false, error: error?.message ?? String(error) };
@@ -232,7 +232,7 @@ export class DebugAdapter {
             return { success: false, error: 'Debug session is not running' };
         }
         try {
-            const result = await this.session.setVariable(name, value);
+            const result = await this.session.setVariable(name, value, _frameId);
             return { ...result, variablesReference: 0 };
         } catch (error: any) {
             return { success: false, error: error?.message ?? String(error) };
