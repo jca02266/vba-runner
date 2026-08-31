@@ -116,6 +116,31 @@ function patchProjectWm(data: Buffer, deletedLower: Set<string>, addedNames: str
     return Buffer.concat(parts);
 }
 
+/** Return workbook/document module names that are backed by the OOXML host. */
+async function hostDocumentNames(zip: JSZip, documentNames: Set<string>): Promise<Set<string>> {
+    const names = new Set<string>(['thisworkbook']);
+    const workbook = zip.file('xl/workbook.xml');
+    if (!workbook) return names;
+    const workbookXml = await workbook.async('string');
+    for (const m of workbookXml.matchAll(/<sheet\b[^>]*\bname="([^"]+)"/gi)) {
+        if (documentNames.has(m[1].toLowerCase())) names.add(m[1].toLowerCase());
+    }
+    for (const m of workbookXml.matchAll(/<workbookPr\b[^>]*\bcodeName="([^"]+)"/gi)) {
+        if (documentNames.has(m[1].toLowerCase())) names.add(m[1].toLowerCase());
+    }
+    // Worksheet codeName is optional and is the name used by PROJECT Document=.
+    for (const path of Object.keys(zip.files)) {
+        if (!/^xl\/worksheets\/sheet\d+\.xml$/i.test(path)) continue;
+        const file = zip.file(path);
+        if (!file) continue;
+        const xml = await file.async('string');
+        for (const m of xml.matchAll(/<sheetPr\b[^>]*\bcodeName="([^"]+)"/gi)) {
+            if (documentNames.has(m[1].toLowerCase())) names.add(m[1].toLowerCase());
+        }
+    }
+    return names;
+}
+
 async function promptYesNo(question: string): Promise<boolean> {
     const rl = createInterface({ input: process.stdin, output: process.stdout });
     return new Promise(resolve => {
@@ -283,8 +308,8 @@ async function runImport(args: string[]): Promise<void> {
     console.log('');
     console.log('⚠️  Warning: import directly modifies the Excel file.');
     console.log('   The file may become corrupted. It is strongly recommended to back up before proceeding.');
-    console.log('   Modules are SYNCED to exactly match <source-dir>: any .bas/.cls module that');
-    console.log('   exists in the file but has NO matching file in <source-dir> will be DELETED.');
+    console.log('   Standard/class modules are synced to <source-dir>; omitted host Document');
+    console.log('   modules for existing workbook/sheets are retained with an empty source body.');
     console.log(`   Input  : ${absXlsm}`);
     console.log(`   Source : ${absSrc}`);
     console.log(`   Output : ${outPath}`);
@@ -335,6 +360,17 @@ async function runImport(args: string[]): Promise<void> {
 
     const { zip, cfb, codePage, dirEntry, dirDecompressed } = await openXlsm(absXlsm);
     const encoding = resolveEncoding(encodingOverride, codePage);
+    const projectEntry = CFB.find(cfb, '/PROJECT');
+    const projectText = projectEntry
+        ? iconv.decode(Buffer.from(projectEntry.content as unknown as ArrayBuffer), encoding)
+        : '';
+    const documentNames = new Set<string>();
+    for (const line of projectText.split(/\r\n|\r|\n/)) {
+        if (line.trim().toLowerCase().startsWith('document=')) {
+            documentNames.add(line.slice(line.indexOf('=') + 1).split('/')[0].trim().toLowerCase());
+        }
+    }
+    const hostNames = await hostDocumentNames(zip, documentNames);
 
     // Parse the dir stream fully so we can rebuild it
     const dirData = parseDirStreamFull(dirDecompressed);
@@ -390,6 +426,33 @@ async function runImport(args: string[]): Promise<void> {
         const src = sourceMap.get(mod.name.toLowerCase());
 
         if (src === undefined) {
+            // Document modules are owned by the workbook/sheet host.  Omitting
+            // their exported source must not remove the OLE stream while the
+            // PROJECT Document= declaration remains.  Keep the attributes and
+            // clear only the procedure body so Excel can recompile safely.
+            if (hostNames.has(mod.name.toLowerCase())) {
+                const entry = CFB.find(cfb, `/VBA/${mod.streamName}`);
+                if (!entry) {
+                    console.warn(`  [warn] ${mod.name}: host stream not found`);
+                    continue;
+                }
+                const original = iconv.decode(
+                    decompress(Buffer.from(entry.content as unknown as ArrayBuffer).subarray(mod.offset)), encoding,
+                );
+                const attributes = original.match(/^Attribute\s+[^\r\n]+/gim) ?? [];
+                const minimalSource = attributes.length > 0
+                    ? `${attributes.join('\r\n')}\r\n`
+                    : `Attribute VB_Name = "${mod.name}"\r\n`;
+                const compressed = compress(iconv.encode(minimalSource, encoding));
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (entry as any).content = compressed;
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (entry as any).size = compressed.length;
+                updatedModules.push({ ...mod, offset: 0 });
+                console.log(`  ~ ${mod.name}: preserved host module (cleared source body)`);
+                updated++;
+                continue;
+            }
             deletedNames.push(mod.name);
             // Delete VBA source code stream
             const entry = CFB.find(cfb, `/VBA/${mod.streamName}`);
@@ -476,20 +539,18 @@ async function runImport(args: string[]): Promise<void> {
     }
 
     // Patch PROJECT stream (module list + workspace entries)
-    const projEntry = CFB.find(cfb, '/PROJECT');
-    if (projEntry) {
-        const projText = iconv.decode(Buffer.from(projEntry.content as unknown as ArrayBuffer), encoding);
+    if (projectEntry) {
         const deletedLower = new Set(deletedNames.map(n => n.toLowerCase()));
         const addedMods = newModuleNames.map(k => {
             const f = readdirSync(absSrc).find(file => basename(file, extname(file)).toLowerCase() === k);
             return { name: sourceFileNames.get(k)!, isClass: f ? extname(f).toLowerCase() === '.cls' : false };
         });
-        const newText = patchProjectStream(projText, deletedLower, addedMods);
+        const newText = patchProjectStream(projectText, deletedLower, addedMods);
         const newBytes = iconv.encode(newText, encoding);
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (projEntry as any).content = newBytes;
+        (projectEntry as any).content = newBytes;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (projEntry as any).size = newBytes.length;
+        (projectEntry as any).size = newBytes.length;
     }
 
     // Patch PROJECTwm stream (module name unicode mappings)

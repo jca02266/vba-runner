@@ -212,6 +212,19 @@ for (let i = cfbAny.FullPaths.length - 1; i >= 0; i--) {
 }
 ```
 
+### ドキュメントモジュールの省略
+
+`ThisWorkbook` と、OOXML の workbook/worksheet に対応する `Document=` モジュールは、
+ソースディレクトリに `.cls` が無くても削除してはいけない。これらは `vbaProject.bin` の
+外側にあるブック・シートのホストオブジェクトに結び付いており、OLE ストリームだけを
+削除すると `PROJECT` の `Document=` 宣言との不整合が生じ、VBE 参照時のハングや破損を
+招く。
+
+`import` は対象モジュールの OLE ストリームと `dir`/`PROJECT`/`PROJECTwm` の宣言を保持し、
+既存ストリームから `Attribute` 行だけを残した空のソースへ差し替える。これにより Excel
+がホストモジュールを再コンパイルできる。実在しない標準モジュールまたは通常クラスは、
+従来どおりソースディレクトリとの同期で削除する。
+
 ---
 
 ## PROJECT ストリーム（`/PROJECT`）

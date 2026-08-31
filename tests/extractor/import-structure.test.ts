@@ -10,7 +10,7 @@
  * Excel の「シートをコピーできません」破損を起こしたことがある（その回帰を防ぐ）。
  */
 import { execFileSync } from 'child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import CFB from 'cfb';
@@ -21,6 +21,7 @@ import { decompress } from '../../tools/extractor/ovba';
 import { parseDirStreamFull } from '../../tools/extractor/dir-parser';
 
 const XLSM = 'sample/excel/test.xlsm';
+const EMPTY_XLSM = 'sample/excel/empty_with_macro.xlsm';
 
 const tmp = mkdtempSync(join(tmpdir(), 'vba-extractor-test-'));
 const CLI = join(tmp, 'vba-extractor.cjs');
@@ -89,6 +90,36 @@ try {
     const reachableInvalid = [...reachable].filter(i => fi[i] && fi[i].type === 0);
     assert.strictEqual(reachableInvalid.length, 0, '木に到達可能な type=0 ノードが無い');
     console.log('[PASS] 赤黒木に無効ノードなし（Sh33tJ5 破損の回帰ガード）');
+
+    // --- ホストの Document モジュールをソース省略で削除しない ---
+    // ThisWorkbook/Sheet1 は PROJECT の Document= 宣言と OOXML ホストに
+    // 結び付くため、ソースディレクトリに無くても空のコードストリームを保持する。
+    const hostSrcDir = join(tmp, 'host-src');
+    const hostOut = join(tmp, 'host-omitted.xlsm');
+    execFileSync('node', [CLI, 'export', EMPTY_XLSM, hostSrcDir], { stdio: 'pipe' });
+    renameSync(join(hostSrcDir, 'ThisWorkbook.cls'), join(tmp, 'ThisWorkbook.omitted.cls'));
+    renameSync(join(hostSrcDir, 'Sheet1.cls'), join(tmp, 'Sheet1.omitted.cls'));
+    execFileSync('node', [CLI, 'import', EMPTY_XLSM, hostSrcDir, hostOut, '--yes'], { stdio: 'pipe' });
+    const hostBin = await JSZip.loadAsync(readFileSync(hostOut))
+        .then(z => z.file('xl/vbaProject.bin')!.async('nodebuffer'));
+    const hostCfb = CFB.read(hostBin, { type: 'buffer' });
+    assert.ok(CFB.find(hostCfb, '/VBA/ThisWorkbook'), 'ThisWorkbook ストリームを保持する');
+    assert.ok(CFB.find(hostCfb, '/VBA/Sheet1'), 'Sheet1 ストリームを保持する');
+    const hostProject = iconv.decode(
+        Buffer.from(CFB.find(hostCfb, '/PROJECT')!.content as unknown as ArrayBuffer), 'cp932',
+    );
+    assert.ok(/^Document=ThisWorkbook\//mi.test(hostProject), 'ThisWorkbook の Document 宣言を保持する');
+    assert.ok(/^Document=Sheet1\//mi.test(hostProject), 'Sheet1 の Document 宣言を保持する');
+    const hostDir = parseDirStreamFull(
+        decompress(Buffer.from(CFB.find(hostCfb, '/VBA/dir')!.content as unknown as ArrayBuffer)),
+    );
+    for (const name of ['ThisWorkbook', 'Sheet1']) {
+        const mod = hostDir.modules.find(m => m.name === name)!;
+        const stream = Buffer.from(CFB.find(hostCfb, `/VBA/${mod.streamName}`)!.content as unknown as ArrayBuffer);
+        const source = iconv.decode(decompress(stream.subarray(mod.offset)), 'cp932');
+        assert.ok(/Attribute\s+VB_Name/i.test(source), `${name} の空ソースが有効`);
+    }
+    console.log('[PASS] ホスト Document モジュールはソース省略時も保持');
 
     // --- 新規クラスの MODULEPRIVATE (0x0028) ---
     // この空レコードを欠く dir stream は Excel で開けても VBE 保存時の検証に失敗する。
