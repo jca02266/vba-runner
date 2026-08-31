@@ -22,6 +22,7 @@ import { parseDirStreamFull } from '../../tools/extractor/dir-parser';
 
 const XLSM = 'sample/excel/test.xlsm';
 const EMPTY_XLSM = 'sample/excel/empty_with_macro.xlsm';
+const NO_VBA_XLSM = 'sample/excel/empty.xlsm';
 
 const tmp = mkdtempSync(join(tmpdir(), 'vba-extractor-test-'));
 const CLI = join(tmp, 'vba-extractor.cjs');
@@ -120,6 +121,25 @@ try {
         assert.ok(/Attribute\s+VB_Name/i.test(source), `${name} の空ソースが有効`);
     }
     console.log('[PASS] ホスト Document モジュールはソース省略時も保持');
+
+    // --- VBAプロジェクトを持たないXLSMにも新規プロジェクトを生成する ---
+    const generatedSrcDir = join(tmp, 'generated-src');
+    const generatedOut = join(tmp, 'generated.xlsm');
+    // CLIはソースディレクトリを走査するため、エクスポートでディレクトリを作成する。
+    execFileSync('node', [CLI, 'export', EMPTY_XLSM, join(tmp, 'unused-src')], { stdio: 'pipe' });
+    writeFileSync(join(tmp, 'unused-src', 'Module1.bas'), 'Attribute VB_Name = "Module1"\r\n');
+    execFileSync('node', [CLI, 'import', NO_VBA_XLSM, join(tmp, 'unused-src'), generatedOut, '--yes'], { stdio: 'pipe' });
+    const generatedZip = await JSZip.loadAsync(readFileSync(generatedOut));
+    assert.ok(generatedZip.file('xl/vbaProject.bin'), 'VBAプロジェクトを新規生成する');
+    assert.ok(/macroEnabled\.main\+xml/i.test(await generatedZip.file('[Content_Types].xml')!.async('string')),
+        'Workbookをマクロ有効Content Typeにする');
+    assert.ok(/relationships\/vbaProject/i.test(await generatedZip.file('xl/_rels/workbook.xml.rels')!.async('string')),
+        'VBAプロジェクトのリレーションを追加する');
+    const generatedCfb = CFB.read(await generatedZip.file('xl/vbaProject.bin')!.async('nodebuffer'), { type: 'buffer' });
+    assert.ok(CFB.find(generatedCfb, '/VBA/ThisWorkbook'), '生成プロジェクトにThisWorkbookを含める');
+    assert.ok(CFB.find(generatedCfb, '/VBA/Sheet1'), '生成プロジェクトにSheet1を含める');
+    assert.ok(CFB.find(generatedCfb, '/VBA/Module1'), '生成プロジェクトにソースModule1を含める');
+    console.log('[PASS] VBAプロジェクトなしXLSMへ最小プロジェクトを生成');
 
     // --- 新規クラスの MODULEPRIVATE (0x0028) ---
     // この空レコードを欠く dir stream は Excel で開けても VBE 保存時の検証に失敗する。

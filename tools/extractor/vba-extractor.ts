@@ -4,9 +4,10 @@ import iconv from 'iconv-lite';
 import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
 import { createInterface } from 'readline';
 import { resolve, dirname, basename, extname, join } from 'path';
+import { randomUUID } from 'crypto';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream, parseDirStreamFull, VbaModuleFull } from './dir-parser.js';
-import { buildDirStream } from './dir-builder.js';
+import { buildDirStream, buildMinimalDirStream } from './dir-builder.js';
 
 // tsx from tools/extractor/: ../../build/extractor/package.json
 // built CJS in build/extractor/dist/bin/: ../../package.json
@@ -205,6 +206,106 @@ async function openXlsm(xlsmPath: string) {
     return { zip, cfb, codePage, modules, dirEntry, dirDecompressed };
 }
 
+function workbookHostNames(workbookXml: string): string[] {
+    const names = new Set<string>(['ThisWorkbook']);
+    for (const m of workbookXml.matchAll(/<sheet\b[^>]*\bname="([^"]+)"/gi)) names.add(m[1]);
+    for (const m of workbookXml.matchAll(/<workbookPr\b[^>]*\bcodeName="([^"]+)"/gi)) names.add(m[1]);
+    return [...names];
+}
+
+function minimalHostSource(name: string, isWorkbook: boolean): string {
+    const base = isWorkbook
+        ? '0{00020819-0000-0000-C000-000000000046}'
+        : '0{00020820-0000-0000-C000-000000000046}';
+    return [
+        `Attribute VB_Name = "${name}"`,
+        `Attribute VB_Base = "${base}"`,
+        'Attribute VB_GlobalNameSpace = False',
+        'Attribute VB_Creatable = False',
+        'Attribute VB_PredeclaredId = True',
+        'Attribute VB_Exposed = True',
+        'Attribute VB_TemplateDerived = False',
+        'Attribute VB_Customizable = True',
+        '',
+    ].join('\r\n');
+}
+
+function buildProjectWm(names: string[]): Buffer {
+    const chunks: Buffer[] = [];
+    for (const name of names) {
+        chunks.push(Buffer.from(`${name}\0`, 'latin1'));
+        chunks.push(Buffer.from(name, 'utf16le'));
+        chunks.push(Buffer.from([0, 0]));
+    }
+    chunks.push(Buffer.from([0, 0]));
+    return Buffer.concat(chunks);
+}
+
+async function createVbaProject(zip: JSZip, sourceMap: Map<string, string>, encoding: string): Promise<void> {
+    const workbookXml = await zip.file('xl/workbook.xml')?.async('string') ?? '';
+    const hostNames = workbookHostNames(workbookXml);
+    const modules: VbaModuleFull[] = [];
+    const moduleSources = new Map<string, string>();
+    for (const name of hostNames) {
+        const key = name.toLowerCase();
+        moduleSources.set(key, sourceMap.get(key) ?? minimalHostSource(name, key === 'thisworkbook'));
+        modules.push({ name, streamName: name, offset: 0, isClass: true, rawBlock: Buffer.alloc(0) });
+    }
+    for (const [key, source] of sourceMap) {
+        if (modules.some(m => m.name.toLowerCase() === key)) continue;
+        const name = source.match(/^\s*Attribute\s+VB_Name\s*=\s*"([^"]+)"/im)?.[1] ?? key;
+        const isClass = sourceMap.has(key) && [...sourceMap.keys()].some(k => k === key)
+            && source.includes('Attribute VB_PredeclaredId');
+        moduleSources.set(key, source);
+        modules.push({ name, streamName: name, offset: 0, isClass, rawBlock: Buffer.alloc(0) });
+    }
+    const cfb = CFB.utils.cfb_new();
+    for (const mod of modules) {
+        const source = moduleSources.get(mod.name.toLowerCase()) ?? '';
+        CFB.utils.cfb_add(cfb, `/VBA/${mod.streamName}`, compress(iconv.encode(source, encoding)));
+    }
+    const dir = buildMinimalDirStream(modules, encoding);
+    CFB.utils.cfb_add(cfb, '/VBA/dir', compress(dir));
+    CFB.utils.cfb_add(cfb, '/VBA/_VBA_PROJECT', Buffer.from([0xcc, 0x61, 0xff, 0xff, 0, 0, 0]));
+    const projectLines = [
+        `ID="{${randomUUID().toUpperCase()}}"`,
+        ...modules.filter(m => hostNames.some(h => h.toLowerCase() === m.name.toLowerCase()))
+            .map(m => `Document=${m.name}/&H00000000`),
+        ...modules.filter(m => !hostNames.some(h => h.toLowerCase() === m.name.toLowerCase()))
+            .map(m => `${m.isClass ? 'Class' : 'Module'}=${m.name}`),
+        'Name="VBAProject"',
+        'HelpFile=""',
+        'Description=""',
+        '[Workspace]',
+        ...modules.map(m => `${m.name}=0, 0, 2000, 1000, C`),
+        '',
+    ].join('\r\n');
+    CFB.utils.cfb_add(cfb, '/PROJECT', iconv.encode(projectLines, encoding));
+    CFB.utils.cfb_add(cfb, '/PROJECTwm', buildProjectWm(modules.map(m => m.name)));
+    zip.file('xl/vbaProject.bin', Buffer.from(CFB.write(cfb, { type: 'buffer' }) as unknown as ArrayBuffer));
+
+    const types = zip.file('[Content_Types].xml');
+    if (types) {
+        let xml = await types.async('string');
+        xml = xml.replace(/(PartName="\/xl\/workbook\.xml"\s+ContentType=")([^"]+)/i,
+            '$1application/vnd.ms-excel.sheet.macroEnabled.main+xml');
+        if (!/PartName="\/xl\/vbaProject\.bin"/i.test(xml)) {
+            xml = xml.replace('</Types>', '<Override PartName="/xl/vbaProject.bin" ContentType="application/vnd.ms-office.vbaProject"/></Types>');
+        }
+        zip.file('[Content_Types].xml', xml);
+    }
+    const rels = zip.file('xl/_rels/workbook.xml.rels');
+    if (rels) {
+        let xml = await rels.async('string');
+        if (!/relationships\/vbaProject/i.test(xml)) {
+            const ids = [...xml.matchAll(/Id="rId(\d+)"/g)].map(m => Number(m[1]));
+            const id = `rId${Math.max(0, ...ids) + 1}`;
+            xml = xml.replace('</Relationships>', `<Relationship Id="${id}" Type="http://schemas.microsoft.com/office/2006/relationships/vbaProject" Target="vbaProject.bin"/></Relationships>`);
+            zip.file('xl/_rels/workbook.xml.rels', xml);
+        }
+    }
+}
+
 function resolveEncoding(encodingOverride: string | undefined, codePage: number | null): string {
     if (!encodingOverride && codePage === null) {
         console.error('Error: PROJECTCODEPAGE not found. Specify encoding with --encoding.');
@@ -358,6 +459,15 @@ async function runImport(args: string[]): Promise<void> {
         console.log(`  (stripped VBE-style class header from ${headerStrippedCount} .cls file(s))`);
     }
 
+    const inputZip = await JSZip.loadAsync(readFileSync(absXlsm));
+    if (!inputZip.file('xl/vbaProject.bin')) {
+        console.log('No VBA project found; generating a minimal source-only project.');
+        await createVbaProject(inputZip, sourceMap, encodingOverride ?? 'cp932');
+        const newXlsm = await inputZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+        writeFileSync(outPath, newXlsm);
+        console.log(`Created: ${outPath}`);
+        return;
+    }
     const { zip, cfb, codePage, dirEntry, dirDecompressed } = await openXlsm(absXlsm);
     const encoding = resolveEncoding(encodingOverride, codePage);
     const projectEntry = CFB.find(cfb, '/PROJECT');

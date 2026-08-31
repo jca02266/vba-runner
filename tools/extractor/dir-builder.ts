@@ -119,3 +119,15 @@ export function buildDirStream(data: DirStreamData, modules: VbaModuleFull[], en
 
     return Buffer.from(out);
 }
+
+/** Build a source-only dir stream for a newly created VBA project. */
+export function buildMinimalDirStream(
+    modules: VbaModuleFull[], encoding: string, codePage = 932,
+): Buffer {
+    const projectRaw: number[] = [];
+    writeRecord(projectRaw, 0x0001, [1, 0, 0, 0]); // PROJECTSYSKIND: Win32
+    writeRecord(projectRaw, 0x0003, [codePage & 0xff, (codePage >> 8) & 0xff]);
+    writeRecord(projectRaw, 0x0009, [0, 0, 0, 0]); // PROJECTVERSION
+    projectRaw.push(0, 0); // MinorVersion (not included in the record size)
+    return buildDirStream({ codePage, cookie: 0xffff, projectRaw: Buffer.from(projectRaw), modules }, modules, encoding);
+}

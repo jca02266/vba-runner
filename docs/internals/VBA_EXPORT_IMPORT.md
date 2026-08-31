@@ -13,6 +13,23 @@ status: stable
 `vba-extractor` は `.xlsm`（および類似形式）ファイル内の `xl/vbaProject.bin` を読み書きする。
 本ドキュメントはバイナリ形式の仕様と実装上の要点をまとめたものである。
 
+## VBAプロジェクトがないブックへのimport
+
+入力が`.xlsx`、または拡張子が`.xlsm`でも`xl/vbaProject.bin`を持たない場合、
+`import`は既存ブックをテンプレートとしてコピーしない。入力のOOXMLパーツを保持したまま、
+VBAプロジェクトの最小差分だけを生成して追加する。
+
+追加されるのは、`xl/vbaProject.bin`、Workbookリレーション、VBAプロジェクトのContent
+Typeである。`.xlsx`入力ではWorkbookのContent TypeもmacroEnabledへ変更する。シート、
+スタイル、プリンタ設定など入力ブック固有のパーツはそのまま保持し、別ブック由来の環境依存
+情報を持ち込まない。
+
+生成するプロジェクトには、Workbookの`ThisWorkbook`、各ワークシートのDocumentモジュール、
+ソースディレクトリの標準モジュール／クラスモジュールを含める。`dir`、`PROJECT`、
+`PROJECTwm`、`_VBA_PROJECT`はsource-only形式で新規生成し、Excelに再コンパイルさせる。
+入力`.xlsm`が存在しない場合に別のXLSXを基底にする処理は、誤ったブックの利用を避けるため
+明示的なbase指定を受けるCLI拡張として扱う。
+
 ---
 
 ## vbaProject.bin の CFB 構造
