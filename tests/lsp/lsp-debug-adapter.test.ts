@@ -40,6 +40,31 @@ function createAdapter(src: string): DebugAdapter {
     console.log('[PASS] Set breakpoints request');
 }
 
+// 3b. Breakpoints configured before launch survive session creation
+await (async () => {
+    const adapter = new DebugAdapter('Sub Main()\n  x = 1\n  x = 2\nEnd Sub', 'TestModule');
+    adapter.handleInitialize();
+    adapter.handleSetBreakpoints({ breakpoints: [{ line: 3 }] });
+    let entryResolve: (() => void) | undefined;
+    const entry = new Promise<void>(resolve => { entryResolve = resolve; });
+    const stopped = new Promise<any>((resolve) => {
+        adapter.onEvent = (event) => {
+            if (event.event === 'stopped' && event.body?.reason === 'entry') entryResolve?.();
+            if (event.event === 'stopped' && event.body?.reason === 'breakpoint') resolve(event.body);
+        };
+    });
+    adapter.handleLaunch({ entryPoint: 'Main' });
+    await entry;
+    adapter.handleContinue(1);
+    const event = await Promise.race([
+        stopped,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('pre-launch breakpoint was lost')), 2000)),
+    ]);
+    assert.strictEqual(event.reason, 'breakpoint', 'pre-launch breakpoint is retained');
+    adapter.handleDisconnect();
+    console.log('[PASS] Pre-launch breakpoints survive launch');
+})();
+
 // 4. Threads request
 {
     const code = 'Sub Test()\nEnd Sub';

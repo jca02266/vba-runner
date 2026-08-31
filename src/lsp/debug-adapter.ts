@@ -30,6 +30,9 @@ export class DebugAdapter {
     private session: VBADebugSession | null = null;
     private initialized = false;
     private moduleName: string;
+    private pendingBreakpointLines: number[] = [];
+    private pendingBreakpointConditions = new Map<number, string>();
+    private pendingBreakpointHitConditions = new Map<number, string>();
 
     /** DAP イベントを送るコールバック（VBAInlineDebugAdapter が設定する） */
     public onEvent?: (event: any) => void;
@@ -66,6 +69,13 @@ export class DebugAdapter {
 
         const entryPoint = args?.entryPoint ?? null;
         this.session = new VBADebugSession(this.source, this.moduleName, entryPoint, this.parseAsClass, this.sourceDirectory);
+        if (this.pendingBreakpointLines.length > 0) {
+            this.session.setBreakpoints(
+                this.pendingBreakpointLines,
+                this.pendingBreakpointConditions,
+                this.pendingBreakpointHitConditions,
+            );
+        }
 
         this.session.on('stopped', (info: { reason: string; line: number }) => {
             this.onEvent?.({
@@ -121,6 +131,10 @@ export class DebugAdapter {
         } else if (args?.line !== undefined) {
             lines.push(args.line);
         }
+
+        this.pendingBreakpointLines = [...lines];
+        this.pendingBreakpointConditions = conditions;
+        this.pendingBreakpointHitConditions = hitConditions;
 
         const bps = this.session?.setBreakpoints(lines, conditions, hitConditions) ?? lines.map((line, i) => ({
             id: `bp_${i}`,
