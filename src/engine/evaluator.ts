@@ -978,6 +978,7 @@ export class Evaluator {
     /** 定数式評価中は true。Identifier 解決で resolveConstIdent() を使う。 */
     private inConstEval = false;
     private vbaCallStack: Array<{ name: string; moduleName: string; line: number }> = [];
+    private debugFrameEnvironments: Environment[] = [];
     private debugHook: DebugHook | null = null;
     /** Names supplied by an embedding host for static-only analysis. */
     private analysisKnownNames = new Set<string>();
@@ -1280,6 +1281,10 @@ export class Evaluator {
 
     getVbaCallStack(): ReadonlyArray<{ name: string; moduleName: string; line: number }> {
         return this.vbaCallStack;
+    }
+
+    getDebugFrameEnvironments(): ReadonlyArray<Environment> {
+        return this.debugFrameEnvironments;
     }
 
     setNowFn(fn: (() => Date) | null): void {
@@ -3116,6 +3121,7 @@ export class Evaluator {
         const previousGoSubTargetDepth = this.gosubTargetDepth;
 
         this.env = localEnv;
+        this.debugFrameEnvironments.push(localEnv);
         this.errorHandlerLabel = null;
         this.errorHandlingMode = 'None';
         this.isInErrorHandler = false;
@@ -3146,6 +3152,7 @@ export class Evaluator {
             }
         } finally {
             this.env = previousEnv;
+            this.debugFrameEnvironments.pop();
 
             // ByRef writeback (evaluateCallExpression only; empty for callProcedure)
             for (const ref of opts.byRefArgs) {

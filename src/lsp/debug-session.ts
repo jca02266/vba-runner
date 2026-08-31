@@ -51,6 +51,7 @@ export class VBADebugSession extends EventEmitter {
     private state: SessionState = 'initialized';
     private currentLine = 0;
     private currentVariables: SessionVariable[] = [];
+    private currentFrameVariables: SessionVariable[][] = [];
     private currentFrames: SessionStackFrame[] = [];
     private breakpoints: Map<string, SessionBreakpoint> = new Map();
     private bpCounter = 0;
@@ -141,6 +142,7 @@ export class VBADebugSession extends EventEmitter {
                     this.state = 'paused';
                     this.currentLine = msg.line;
                     this.currentVariables = msg.variables as SessionVariable[];
+                    this.currentFrameVariables = (msg.frameVariables ?? []) as SessionVariable[][];
                     this.currentFrames = msg.frames ?? [];
                     this.emit('stopped', { reason: msg.reason ?? 'step', line: msg.line });
                     break;
@@ -158,6 +160,7 @@ export class VBADebugSession extends EventEmitter {
                         this.currentLine = msg.line;
                         this.currentFrames = msg.frames ?? [];
                         this.currentVariables = (msg.variables ?? []) as SessionVariable[];
+                        this.currentFrameVariables = (msg.frameVariables ?? []) as SessionVariable[][];
                         this.emit('stopped', { reason: 'exception', line: msg.line });
                     }
                     this.emit('runtimeError', msg.message);
@@ -187,6 +190,13 @@ export class VBADebugSession extends EventEmitter {
                         if (updated) {
                             updated.value = msg.result;
                             updated.type = msg.valueType;
+                        }
+                        for (const frameVariables of this.currentFrameVariables) {
+                            const frameUpdated = frameVariables.find(v => v.name.toLowerCase() === pending.name.toLowerCase());
+                            if (frameUpdated) {
+                                frameUpdated.value = msg.result;
+                                frameUpdated.type = msg.valueType;
+                            }
                         }
                         pending.resolve({ result: msg.result, type: msg.valueType });
                     } else {
@@ -269,7 +279,9 @@ export class VBADebugSession extends EventEmitter {
 
     getState(): SessionState { return this.state; }
     getCurrentLine(): number { return this.currentLine; }
-    getVariables(_frameId: number): SessionVariable[] { return this.currentVariables; }
+    getVariables(frameId: number): SessionVariable[] {
+        return this.currentFrameVariables[frameId] ?? this.currentVariables;
+    }
     requestVariables(variablesReference: number): Promise<SessionChildVariable[]> {
         if (!this.worker || this.state !== 'paused') return Promise.reject(new Error('Variables can only be requested while paused'));
         const requestId = ++this.variableRequestCounter;

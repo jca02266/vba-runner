@@ -321,9 +321,9 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
 {
     const src = [
         'Sub Main()',
-        '  Dim values(0 To 1) As Long',
-        '  values(0) = 7',
-        '  values(1) = 8',
+        '  Dim values(1 To 2) As Long',
+        '  values(1) = 7',
+        '  values(2) = 8',
         'End Sub',
     ].join('\n');
     const session = new VBADebugSession(src, 'Module1');
@@ -337,7 +337,7 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
     const values = session.getVariables(0).find(v => v.name.toLowerCase() === 'values');
     assert.ok(values && values.variablesReference > 1, 'array local has an expandable reference');
     const children = await session.requestVariables(values!.variablesReference);
-    assert.strictEqual(children.find(v => v.name === '0')?.value, '7', 'array element is expandable and current');
+    assert.strictEqual(children.find(v => v.name === '1')?.value, '7', 'array lower bound is preserved when expanded');
     session.terminate();
     await waitFor(session, 'exited').catch(() => { /* ok */ });
     console.log('[PASS] Object and array locals can be expanded');
@@ -385,6 +385,49 @@ async function startAndWait(session: VBADebugSession): Promise<{ line: number; r
     session.terminate();
     await waitFor(session, 'exited').catch(() => { /* ok */ });
     console.log('[PASS] Stack frames available inside called procedure');
+}
+
+// ──────────────────────────────────────────────
+// 9b. フレームごとのLocalsが分離される
+// ──────────────────────────────────────────────
+{
+    const src = [
+        'Sub Main()',
+        '  Dim x As Long',
+        '  x = 11',
+        '  Call Foo()',
+        'End Sub',
+        'Sub Foo()',
+        '  Dim y As Long',
+        '  y = 22',
+        '  y = 23',
+        'End Sub',
+    ].join('\n');
+    const session = new VBADebugSession(src, 'Module1');
+    await startAndWait(session);
+    let line = session.getCurrentLine();
+    for (let i = 0; i < 10 && line !== 4; i++) {
+        const p = waitFor(session, 'stopped');
+        session.stepInto();
+        await p;
+        line = session.getCurrentLine();
+    }
+    assert.strictEqual(line, 4, 'reached the caller call site');
+    const entered = waitFor(session, 'stopped');
+    session.stepInto();
+    await entered;
+    const initialized = waitFor(session, 'stopped');
+    session.stepInto();
+    await initialized;
+    const callee = session.getVariables(0).map(v => v.name.toLowerCase());
+    const caller = session.getVariables(1).map(v => v.name.toLowerCase());
+    assert.ok(callee.includes('y'), 'innermost frame exposes callee local');
+    assert.ok(caller.includes('x'), 'caller frame exposes caller local');
+    assert.ok(!callee.includes('x'), 'callee frame does not expose caller local');
+    assert.ok(!caller.includes('y'), 'caller frame does not expose callee local');
+    session.terminate();
+    await waitFor(session, 'exited').catch(() => { /* ok */ });
+    console.log('[PASS] Locals are isolated per stack frame');
 }
 
 // ──────────────────────────────────────────────

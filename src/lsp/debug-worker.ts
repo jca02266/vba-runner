@@ -43,6 +43,7 @@ let isEvaluatingExpression = false;
 let lastLine = 0;
 let lastFrames: Array<{ id: number; name: string; source: string; line: number; column: number }> = [];
 let lastVariables: Array<{ name: string; value: string; type: string }> = [];
+let lastFrameVariables: Array<Array<{ name: string; value: string; type: string; variablesReference: number }>> = [];
 let nextVariableHandle = 2;
 const variableHandles = new Map<number, any>();
 
@@ -200,15 +201,34 @@ function makeVariable(name: string, value: any) {
 }
 
 function childVariables(value: any): any[] {
-    if (Array.isArray(value)) return value.map((item, index) => makeVariable(String(index), item));
+    if (Array.isArray(value)) {
+        const base = Number((value as any).vbaBase ?? 0);
+        const dimensions = (value as any).__vbaDimensions__;
+        const lower = Number.isFinite(dimensions?.[0]?.lower) ? dimensions[0].lower : base;
+        const upper = Number.isFinite(dimensions?.[0]?.upper) ? dimensions[0].upper : value.length - 1;
+        const children: any[] = [];
+        for (let index = lower; index <= upper; index++) {
+            children.push(makeVariable(String(index), value[index]));
+        }
+        return children;
+    }
     if (!value || typeof value !== 'object') return [];
+    // Class instances keep their VBA fields in a private Environment rather
+    // than as enumerable JavaScript properties. Expose that environment while
+    // hiding evaluator bookkeeping and methods.
+    const instanceEnv = (value as any).__instanceEnv__;
+    if (instanceEnv && typeof instanceEnv.getLocalVariables === 'function') {
+        return [...instanceEnv.getLocalVariables()]
+            .filter(([name, member]: [string, any]) => !String(name).startsWith('__') && typeof member !== 'function')
+            .map(([name, member]: [string, any]) => makeVariable(String(name), member));
+    }
     return Object.keys(value)
         .filter(key => !key.startsWith('__') && typeof value[key] !== 'function')
         .map(key => makeVariable(key, value[key]));
 }
 
-function extractVariables(env: Environment): Array<{ name: string; value: string; type: string }> {
-    const vars: Array<{ name: string; value: string; type: string }> = [];
+function extractVariables(env: Environment): Array<{ name: string; value: string; type: string; variablesReference: number }> {
+    const vars: Array<{ name: string; value: string; type: string; variablesReference: number }> = [];
     const localVars = env.getLocalVariables();
     for (const [name, value] of localVars) {
         if (typeof value === 'function') continue;
@@ -236,6 +256,8 @@ const hook: DebugHook = {
         }
         lastLine = line;
         lastVariables = extractVariables(env);
+        const frameEnvs = activeEvaluator?.getDebugFrameEnvironments() ?? [env];
+        lastFrameVariables = frameEnvs.map(frameEnv => extractVariables(frameEnv)).reverse();
         // DAP expects the innermost (currently executing) frame first.
         // The evaluator keeps the call stack in caller-to-callee order, so
         // reverse it only after resolving each caller's call-site line.
@@ -285,7 +307,7 @@ const hook: DebugHook = {
             : (pauseRequested ? 'pause' : (breakpointHit ? 'breakpoint' : 'step'));
         isFirstPause = false;
 
-        parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frames, reason });
+        parentPort!.postMessage({ type: 'paused', line, callDepth, variables, frameVariables: lastFrameVariables, frames, reason });
 
         // main スレッドからのコマンドを待つ。タイムアウトを設けて
         // evaluate要求などのMessagePortも停止中に処理する。
@@ -394,6 +416,7 @@ try {
             line: lastLine,
             frames: lastFrames,
             variables: lastVariables,
+            frameVariables: lastFrameVariables,
         });
         parentPort!.postMessage({ type: 'exited', exitCode: 1 });
     }

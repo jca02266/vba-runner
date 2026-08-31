@@ -170,16 +170,23 @@ export class DebugAdapter {
     }
 
     handleVariables(variablesReference: number): any {
-        if (variablesReference === 1) {
+        // Reference 0 is retained for direct adapter callers; DAP uses 1 for
+        // the innermost Locals scope.
+        if (variablesReference === 0 || variablesReference === 1) {
             return { variables: this.session?.getVariables(0) ?? [] };
+        }
+        if (variablesReference >= 100000) {
+            return { variables: this.session?.getVariables(variablesReference - 100000) ?? [] };
         }
         if (!this.session) return { variables: [] };
         return this.session.requestVariables(variablesReference).then(variables => ({ variables }));
     }
 
-    handleScopes(_frameId: number): any {
+    handleScopes(frameId: number): any {
         return {
-            scopes: [{ name: 'Locals', variablesReference: 1, expensive: false }],
+            // Frame-local references are disjoint from object/array handles.
+            // The worker/session keeps frame 0 as the innermost frame.
+            scopes: [{ name: 'Locals', variablesReference: frameId === 0 ? 1 : 100000 + frameId, expensive: false }],
         };
     }
 
