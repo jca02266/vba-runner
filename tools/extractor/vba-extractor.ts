@@ -241,7 +241,10 @@ function buildProjectWm(names: string[]): Buffer {
     return Buffer.concat(chunks);
 }
 
-async function createVbaProject(zip: JSZip, sourceMap: Map<string, string>, encoding: string): Promise<void> {
+async function createVbaProject(
+    zip: JSZip, sourceMap: Map<string, string>, sourceNames: Map<string, string>,
+    sourceClasses: Map<string, boolean>, encoding: string,
+): Promise<void> {
     const workbookXml = await zip.file('xl/workbook.xml')?.async('string') ?? '';
     const hostNames = workbookHostNames(workbookXml);
     const modules: VbaModuleFull[] = [];
@@ -253,9 +256,8 @@ async function createVbaProject(zip: JSZip, sourceMap: Map<string, string>, enco
     }
     for (const [key, source] of sourceMap) {
         if (modules.some(m => m.name.toLowerCase() === key)) continue;
-        const name = source.match(/^\s*Attribute\s+VB_Name\s*=\s*"([^"]+)"/im)?.[1] ?? key;
-        const isClass = sourceMap.has(key) && [...sourceMap.keys()].some(k => k === key)
-            && source.includes('Attribute VB_PredeclaredId');
+        const name = sourceNames.get(key) ?? source.match(/^\s*Attribute\s+VB_Name\s*=\s*"([^"]+)"/im)?.[1] ?? key;
+        const isClass = sourceClasses.get(key) ?? false;
         moduleSources.set(key, source);
         modules.push({ name, streamName: name, offset: 0, isClass, rawBlock: Buffer.alloc(0) });
     }
@@ -274,8 +276,14 @@ async function createVbaProject(zip: JSZip, sourceMap: Map<string, string>, enco
         ...modules.filter(m => !hostNames.some(h => h.toLowerCase() === m.name.toLowerCase()))
             .map(m => `${m.isClass ? 'Class' : 'Module'}=${m.name}`),
         'Name="VBAProject"',
+        'HelpContextID="0"',
         'HelpFile=""',
         'Description=""',
+        'VersionCompatible32="393222000"',
+        '',
+        '[Host Extender Info]',
+        '&H00000001={3832D640-CF90-11CF-8E43-00A0C911005A};VBE;&H00000000',
+        '',
         '[Workspace]',
         ...modules.map(m => `${m.name}=0, 0, 2000, 1000, C`),
         '',
@@ -283,6 +291,32 @@ async function createVbaProject(zip: JSZip, sourceMap: Map<string, string>, enco
     CFB.utils.cfb_add(cfb, '/PROJECT', iconv.encode(projectLines, encoding));
     CFB.utils.cfb_add(cfb, '/PROJECTwm', buildProjectWm(modules.map(m => m.name)));
     zip.file('xl/vbaProject.bin', Buffer.from(CFB.write(cfb, { type: 'buffer' }) as unknown as ArrayBuffer));
+
+    // Bind generated Document modules to their OOXML host objects.  Without
+    // these code names Excel creates duplicate ThisWorkbook/Sheet modules.
+    let patchedWorkbook = workbookXml;
+    if (/<workbookPr\b/i.test(patchedWorkbook)) {
+        patchedWorkbook = patchedWorkbook.replace(/<workbookPr\b([^>]*?)(\/>|>)/i, (all, attrs, end) =>
+            /\bcodeName\s*=/.test(attrs) ? all : `<workbookPr${attrs} codeName="ThisWorkbook"${end}`);
+    } else {
+        patchedWorkbook = patchedWorkbook.replace(/(<workbook\b[^>]*>)/i, '$1<workbookPr codeName="ThisWorkbook"/>');
+    }
+    if (patchedWorkbook !== workbookXml) zip.file('xl/workbook.xml', patchedWorkbook);
+    const sheetNames = [...patchedWorkbook.matchAll(/<sheet\b[^>]*\bname="([^"]+)"/gi)].map(m => m[1]);
+    for (let i = 0; i < sheetNames.length; i++) {
+        const path = `xl/worksheets/sheet${i + 1}.xml`;
+        const file = zip.file(path);
+        if (!file) continue;
+        let xml = await file.async('string');
+        const codeName = sheetNames[i].replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+        if (/<sheetPr\b/i.test(xml)) {
+            xml = xml.replace(/<sheetPr\b([^>]*?)(\/>|>)/i, (all, attrs, end) =>
+                /\bcodeName\s*=/.test(attrs) ? all : `<sheetPr${attrs} codeName="${codeName}"${end}`);
+        } else {
+            xml = xml.replace(/(<worksheet\b[^>]*>)/i, `$1<sheetPr codeName="${codeName}"/>`);
+        }
+        zip.file(path, xml);
+    }
 
     const types = zip.file('[Content_Types].xml');
     if (types) {
@@ -441,6 +475,7 @@ async function runImport(args: string[]): Promise<void> {
     // Build a map of source files: lowercase name → source text
     const sourceFileNames = new Map<string, string>(); // lowercase name → original filename (no ext)
     const sourceMap = new Map<string, string>();        // lowercase name → source text
+    const sourceClasses = new Map<string, boolean>();   // lowercase name → .cls source
     let headerStrippedCount = 0;
     for (const f of readdirSync(absSrc)) {
         const ext = extname(f).toLowerCase();
@@ -453,6 +488,7 @@ async function runImport(args: string[]): Promise<void> {
         }
         sourceMap.set(baseName.toLowerCase(), text);
         sourceFileNames.set(baseName.toLowerCase(), baseName);
+        sourceClasses.set(baseName.toLowerCase(), ext === '.cls');
     }
     console.log(`Source files : ${sourceMap.size}`);
     if (headerStrippedCount > 0) {
@@ -462,7 +498,7 @@ async function runImport(args: string[]): Promise<void> {
     const inputZip = await JSZip.loadAsync(readFileSync(absXlsm));
     if (!inputZip.file('xl/vbaProject.bin')) {
         console.log('No VBA project found; generating a minimal source-only project.');
-        await createVbaProject(inputZip, sourceMap, encodingOverride ?? 'cp932');
+        await createVbaProject(inputZip, sourceMap, sourceFileNames, sourceClasses, encodingOverride ?? 'cp932');
         const newXlsm = await inputZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
         writeFileSync(outPath, newXlsm);
         console.log(`Created: ${outPath}`);

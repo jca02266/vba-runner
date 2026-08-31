@@ -128,6 +128,9 @@ try {
     // CLIはソースディレクトリを走査するため、エクスポートでディレクトリを作成する。
     execFileSync('node', [CLI, 'export', EMPTY_XLSM, join(tmp, 'unused-src')], { stdio: 'pipe' });
     writeFileSync(join(tmp, 'unused-src', 'Module1.bas'), 'Attribute VB_Name = "Module1"\r\n');
+    writeFileSync(join(tmp, 'unused-src', 'DataProcessor.bas'), 'Option Explicit\r\n');
+    writeFileSync(join(tmp, 'unused-src', 'Inventory.cls'), 'VERSION 1.0 CLASS\r\nBEGIN\r\n  MultiUse = -1\r\nEND\r\nAttribute VB_Name = "Inventory"\r\n');
+    writeFileSync(join(tmp, 'unused-src', 'Product.cls'), 'VERSION 1.0 CLASS\r\nBEGIN\r\n  MultiUse = -1\r\nEND\r\nAttribute VB_Name = "Product"\r\n');
     execFileSync('node', [CLI, 'import', NO_VBA_XLSM, join(tmp, 'unused-src'), generatedOut, '--yes'], { stdio: 'pipe' });
     const generatedZip = await JSZip.loadAsync(readFileSync(generatedOut));
     assert.ok(generatedZip.file('xl/vbaProject.bin'), 'VBAプロジェクトを新規生成する');
@@ -139,6 +142,18 @@ try {
     assert.ok(CFB.find(generatedCfb, '/VBA/ThisWorkbook'), '生成プロジェクトにThisWorkbookを含める');
     assert.ok(CFB.find(generatedCfb, '/VBA/Sheet1'), '生成プロジェクトにSheet1を含める');
     assert.ok(CFB.find(generatedCfb, '/VBA/Module1'), '生成プロジェクトにソースModule1を含める');
+    const generatedProject = Buffer.from(CFB.find(generatedCfb, '/PROJECT')!.content as unknown as ArrayBuffer)
+        .toString('latin1');
+    assert.ok(/^Class=Inventory$/m.test(generatedProject), 'InventoryをClassとして登録する');
+    assert.ok(/^Class=Product$/m.test(generatedProject), 'ProductをClassとして登録する');
+    assert.ok(/^Module=DataProcessor$/m.test(generatedProject), 'DataProcessorの大文字小文字を保持する');
+    assert.ok(!/^Module=dataprocessor$/m.test(generatedProject), '小文字化したモジュール名を生成しない');
+    const generatedWorkbook = await generatedZip.file('xl/workbook.xml')!.async('string');
+    const generatedSheet = await generatedZip.file('xl/worksheets/sheet1.xml')!.async('string');
+    assert.ok(/<workbookPr\b[^>]*\bcodeName="ThisWorkbook"/i.test(generatedWorkbook),
+        'Workbook DocumentのcodeNameを設定する');
+    assert.ok(/<sheetPr\b[^>]*\bcodeName="Sheet1"/i.test(generatedSheet),
+        'Sheet DocumentのcodeNameを設定する');
     console.log('[PASS] VBAプロジェクトなしXLSMへ最小プロジェクトを生成');
 
     // --- 新規クラスの MODULEPRIVATE (0x0028) ---
