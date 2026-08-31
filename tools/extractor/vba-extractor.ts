@@ -1,10 +1,11 @@
 import JSZip from 'jszip';
 import CFB from 'cfb';
 import iconv from 'iconv-lite';
-import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync } from 'fs';
+import { readFileSync, writeFileSync, copyFileSync, mkdirSync, existsSync, readdirSync, mkdtempSync, rmSync } from 'fs';
 import { createInterface } from 'readline';
 import { resolve, dirname, basename, extname, join } from 'path';
 import { randomUUID } from 'crypto';
+import { tmpdir } from 'os';
 import { decompress, compress } from './ovba.js';
 import { parseDirStream, parseDirStreamFull, VbaModuleFull } from './dir-parser.js';
 import { buildDirStream, buildMinimalDirStream } from './dir-builder.js';
@@ -60,6 +61,14 @@ function patchProjectStream(
         }
 
         if (pendingPackage !== null) { out.push(pendingPackage); pendingPackage = null; }
+
+        if (t.startsWith('Document=')) {
+            out.push(line);
+            // New standard/class declarations belong after all host Document
+            // declarations, even when the input project has no other modules.
+            insertIdx = out.length;
+            continue;
+        }
 
         if (t.startsWith('Module=') || t.startsWith('Class=')) {
             const name = t.slice(t.indexOf('=') + 1).trim();
@@ -497,11 +506,20 @@ async function runImport(args: string[]): Promise<void> {
 
     const inputZip = await JSZip.loadAsync(readFileSync(absXlsm));
     if (!inputZip.file('xl/vbaProject.bin')) {
-        console.log('No VBA project found; generating a minimal source-only project.');
-        await createVbaProject(inputZip, sourceMap, sourceFileNames, sourceClasses, encodingOverride ?? 'cp932');
-        const newXlsm = await inputZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
-        writeFileSync(outPath, newXlsm);
-        console.log(`Created: ${outPath}`);
+        console.log('No VBA project found; initializing a minimal source-only project.');
+        // Bootstrap only the host Document modules, then run the normal import
+        // path.  This keeps module classification, casing, synchronization,
+        // and PROJECT/dir updates identical for new and existing projects.
+        const bootstrapDir = mkdtempSync(join(tmpdir(), 'vba-extractor-bootstrap-'));
+        const bootstrapPath = join(bootstrapDir, 'bootstrap.xlsm');
+        try {
+            await createVbaProject(inputZip, new Map(), new Map(), new Map(), encodingOverride ?? 'cp932');
+            const bootstrap = await inputZip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' });
+            writeFileSync(bootstrapPath, bootstrap);
+            await runImport([bootstrapPath, absSrc, outPath, '--yes']);
+        } finally {
+            rmSync(bootstrapDir, { recursive: true, force: true });
+        }
         return;
     }
     const { zip, cfb, codePage, dirEntry, dirDecompressed } = await openXlsm(absXlsm);
@@ -651,8 +669,7 @@ async function runImport(args: string[]): Promise<void> {
         const origName = sourceFileNames.get(k)!;
 
         // Determine if class module by checking file extension
-        const f = readdirSync(absSrc).find(file => basename(file, extname(file)).toLowerCase() === k);
-        const isClass = f ? extname(f).toLowerCase() === '.cls' : false;
+        const isClass = sourceClasses.get(k) ?? false;
         const source = sourceMap.get(k)!;
         const src = isClass ? completeNewClassAttributes(source) : source;
         if (isClass && src !== source) completedClassAttributeCount++;
