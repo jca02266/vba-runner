@@ -197,3 +197,22 @@ End Function`;
     assert.throws(() => ev.callProcedure('ReadPrivateField', []), /private|property|method/i,
         'クラスの Private フィールドは外部から参照できない');
 }
+
+// --- 11. 修飾なしのクラスメンバーは既定の公開スコープを確認 ---
+{
+    const classSource = String.raw`Option Explicit
+ImplicitValue As Long
+Const ImplicitConst As Long = 33`;
+    const moduleSource = String.raw`Option Explicit
+Public Function ReadImplicit() As Long
+    Dim c As New ImplicitClass
+    c.ImplicitValue = 7
+    ReadImplicit = c.ImplicitValue + ImplicitClass.ImplicitConst
+End Function`;
+    const ev = evalVBAModules([
+        { name: 'ImplicitClass', parseAsClass: 'ImplicitClass', code: classSource },
+        { name: 'ImplicitCaller', code: moduleSource },
+    ], { diagnostics: { expectation: 'clean' } });
+    assert.strictEqual(ev.callProcedure('ReadImplicit', []), 40,
+        '修飾なしクラスメンバーは既定の公開スコープで参照できる');
+}
