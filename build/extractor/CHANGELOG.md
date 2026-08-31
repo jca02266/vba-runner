@@ -2,6 +2,18 @@
 
 All notable changes to the `vba-extractor` npm package are documented here.
 
+## [0.1.1-alpha.9] - 2026-08-31
+
+### Added
+
+- **Import into plain workbooks** — `import` now creates a minimal source-only VBA project when the input `.xlsx` or VBA-free `.xlsm` has no `vbaProject.bin`, preserving the workbook's existing sheets and data.
+
+### Fixed
+
+- **Host module binding** — generated `ThisWorkbook` and worksheet modules now receive OOXML `codeName` bindings, preventing duplicate Document modules such as `ThisWorkbook1` or `Sheet2 (Sheet1)` in VBE.
+- **Module type and name preservation** — generated imports now retain `.cls` as `Class=` and `.bas` as `Module=`, including the original casing of module names.
+- **Import path consistency** — newly initialized projects use the same module synchronization path as existing projects, keeping `PROJECT`, `PROJECTwm`, and `dir` metadata aligned.
+
 ## [0.1.1-alpha.8] - 2026-07-19
 
 ### Fixed

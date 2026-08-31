@@ -26,9 +26,12 @@ Typeである。`.xlsx`入力ではWorkbookのContent TypeもmacroEnabledへ変�
 
 生成するプロジェクトには、Workbookの`ThisWorkbook`、各ワークシートのDocumentモジュール、
 ソースディレクトリの標準モジュール／クラスモジュールを含める。`dir`、`PROJECT`、
-`PROJECTwm`、`_VBA_PROJECT`はsource-only形式で新規生成し、Excelに再コンパイルさせる。
-入力`.xlsm`が存在しない場合に別のXLSXを基底にする処理は、誤ったブックの利用を避けるため
-明示的なbase指定を受けるCLI拡張として扱う。
+`PROJECTwm`、`_VBA_PROJECT`はsource-only形式で生成し、Excelに再コンパイルさせる。
+
+新規作成も既存更新も、処理の後半は同じ同期経路を通る。VBAプロジェクトがない場合は、
+まずホストDocumentだけを持つ最小プロジェクトを一時的に初期化し、そのブックを通常の
+import処理へ渡す。これにより`.bas`/`.cls`の分類、元ファイル名の大文字小文字、モジュール
+追加、`PROJECT`/`PROJECTwm`/`dir`更新の規則が経路間で分岐しない。
 
 ---
 
