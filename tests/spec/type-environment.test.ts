@@ -56,6 +56,22 @@ assert.strictEqual(lookupType(env2, 'NEG')?.constValue,    -50,     'NEG 負数'
 assert.strictEqual(lookupType(env2, 'FLAG')?.constValue,   true,    'FLAG = True');
 console.log('[PASS] Const 宣言');
 
+// クラス手続きからクラスレベルConstを型環境で解決できる
+const classConstSource = String.raw`
+    Private Const CLASS_LIMIT As Long = 10
+    Public Function ReadLimit() As Long
+        ReadLimit = CLASS_LIMIT
+    End Function
+`;
+const classConstEnv = buildTypeEnvironment(new Parser(
+    new Lexer(classConstSource).tokenize(), { parseAsClass: 'ConstOwner' },
+).parse());
+assert.strictEqual(lookupType(classConstEnv, 'CLASS_LIMIT', 'ReadLimit')?.kind, 'const',
+    'クラス手続きの型環境にクラスConstを登録');
+assert.strictEqual(lookupType(classConstEnv, 'CLASS_LIMIT', 'ReadLimit')?.declaredType, 'Long',
+    'クラスConstの型を保持');
+console.log('[PASS] クラスConstの型環境登録');
+
 // ─── 3. Function / Sub 宣言 ───────────────────────────────────────────────────
 const env3 = buildEnv(`
     Function GetTotal() As Double

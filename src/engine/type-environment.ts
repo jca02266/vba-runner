@@ -111,7 +111,7 @@ export function buildTypeEnvironment(program: Program): ModuleTypeEnvironment {
         } else if (stmt.type === 'ClassDeclaration') {
             const cls = stmt as ClassDeclaration;
             for (const proc of cls.procedures) {
-                const scope = buildProcedureScope(proc);
+                const scope = buildProcedureScope(proc, cls);
                 procedures.set(proc.name.name.toLowerCase(), scope);
             }
         }
@@ -202,8 +202,21 @@ function collectModuleLevel(stmt: Statement, out: Map<string, TypeInfo>): void {
     }
 }
 
-function buildProcedureScope(proc: ProcedureDeclaration): ProcedureTypeScope {
+function buildProcedureScope(proc: ProcedureDeclaration, ownerClass?: ClassDeclaration): ProcedureTypeScope {
     const vars = new Map<string, TypeInfo>();
+
+    // Class-level constants are lexical names of every member procedure.
+    for (const member of ownerClass?.body ?? []) {
+        if (member.type !== 'ConstDeclaration') continue;
+        for (const decl of (member as ConstDeclaration).declarations) {
+            vars.set(decl.name.name.toLowerCase(), {
+                kind: 'const',
+                declaredType: inferConstType(decl.value),
+                constValue: extractConstValue(decl.value),
+                isArray: false,
+            });
+        }
+    }
 
     // 戻り値変数（Function 名への代入 = 戻り値）
     if (proc.isFunction) {
