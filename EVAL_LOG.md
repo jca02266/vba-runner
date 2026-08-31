@@ -853,6 +853,7 @@
 | EV-00950 | FZ-BUILTIN | verified-no-bug |  | 未割当動的配列の境界取得 |
 | EV-00951 | FZ-LSP-20260823 | fixed | 1 | .cls内Private ConstのOption Explicit診断 |
 | EV-00952 | FZ-LSP-20260823 | fixed | 1 | .cls内ConstのPrivate/Publicスコープ保持 |
+| EV-00953 | FZ-LSP-20260823 | verified-no-bug | 1 | クラス定数の所有者付き依存解決と同名定数の衝突防止 |
 
 ## 状態集計
 
@@ -861,13 +862,12 @@
 | fixed | 384 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 458 |
+| verified-no-bug | 459 |
 
-横展開未解決経路: 599、実Excel待ち評価: 0
+横展開未解決経路: 600、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-LSP-20260823-004 | 3 | queued | クラス定数の所有者付き依存解決と同名定数の衝突防止 | yes |
 | FZ-LSP-20260823-005 | 3 | queued | クラスConstの前方参照初期化と型環境登録 | yes |
