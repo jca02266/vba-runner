@@ -855,6 +855,7 @@
 | EV-00952 | FZ-LSP-20260823 | fixed | 1 | .cls内ConstのPrivate/Publicスコープ保持 |
 | EV-00953 | FZ-LSP-20260823 | verified-no-bug | 1 | クラス定数の所有者付き依存解決と同名定数の衝突防止 |
 | EV-00954 | FZ-LSP-20260823 | fixed | 1 | クラスConstの型環境登録 |
+| EV-00955 | META-DECLARATION-ORDER-20260904 | needs-excel |  | モジュールUDT前方宣言の初期化不変性 |
 
 ## 状態集計
 
@@ -862,10 +863,11 @@
 |---|---:|
 | fixed | 385 |
 | known-limit | 5 |
+| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 459 |
 
-横展開未解決経路: 601、実Excel待ち評価: 0
+横展開未解決経路: 601、実Excel待ち評価: 1
 
 ## 次の候補
 

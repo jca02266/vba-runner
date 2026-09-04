@@ -1,0 +1,16 @@
+id: META-DECLARATION-ORDER-20260904
+method: declaration-order-metamorphic
+items:
+  - id: META-DECLARATION-ORDER-20260904-001
+    title: モジュールUDT前方宣言の初期化不変性
+    status: queued
+    priority: 1
+    focus: モジュール変数のUDT型定義を前後へ移動しても初期化結果が変わらないこと
+    priorCauseKey: declaration-registration-order-couples-runtime-initialization
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+      - test-libs/test-runner.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts

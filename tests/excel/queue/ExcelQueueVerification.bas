@@ -36,6 +36,18 @@ Private Type UdtObjectArrayRecord
     Values(0 To 1) As Object
 End Type
 
+Private forwardUdtState As ForwardUdtRecord
+
+Private Type ForwardUdtRecord
+    Value As Long
+End Type
+
+Private Type PriorUdtRecord
+    Value As Long
+End Type
+
+Private priorUdtState As PriorUdtRecord
+
 Private resultFile As Integer
 Private resultOpen As Boolean
 
@@ -137,10 +149,21 @@ Public Sub RunExcelQueueVerification()
     VerifyOpaqueShape
     VerifyPowerOperatorBoundary
     VerifyUnallocatedArrayBounds
+    VerifyModuleUdtDeclarationOrder
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyModuleUdtDeclarationOrder()
+    Dim forwardInitial As Long, priorInitial As Long
+    forwardInitial = forwardUdtState.Value
+    priorInitial = priorUdtState.Value
+    forwardUdtState.Value = 42
+    priorUdtState.Value = 42
+    EmitResult "XL-251 FORWARD=" & CStr(forwardInitial) & ":" & CStr(forwardUdtState.Value) & _
+        " PRIOR=" & CStr(priorInitial) & ":" & CStr(priorUdtState.Value)
 End Sub
 
 Private Sub VerifyUnallocatedArrayBounds()

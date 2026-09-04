@@ -3173,3 +3173,11 @@ checkpoints:
     nextEvaluation: EV-00944
     nextCandidate: RCA-FOLLOWUP-060
     coverageSnapshot: COV-2026-08-24-financial-rate
+  - afterEvaluation: EV-00954
+    audit: "851 evaluations, 0 active claims; queued candidateとroot remediationはいずれも0件"
+    decision: "宣言順だけを変えた同値プログラムを比較するmetamorphic評価で、Pass 1の登録順と実行時初期化の結合を検査する"
+    action: create-candidate
+    nextArea: "配列・UDT"
+    nextEvaluation: EV-00955
+    nextCandidate: META-DECLARATION-ORDER-20260904-001
+    coverageSnapshot: COV-2026-08-14-current
