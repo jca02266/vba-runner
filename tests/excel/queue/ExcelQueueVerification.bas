@@ -48,6 +48,14 @@ End Type
 
 Private priorUdtState As PriorUdtRecord
 
+Private enumBefore As QueueColor
+
+Private Enum QueueColor
+    QueueRed = 3
+End Enum
+
+Private enumAfter As QueueColor
+
 Private resultFile As Integer
 Private resultOpen As Boolean
 
@@ -150,6 +158,7 @@ Public Sub RunExcelQueueVerification()
     VerifyPowerOperatorBoundary
     VerifyUnallocatedArrayBounds
     VerifyModuleUdtDeclarationOrder
+    VerifyEnumDeclarationOrder
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
@@ -164,6 +173,17 @@ Private Sub VerifyModuleUdtDeclarationOrder()
     priorUdtState.Value = 42
     EmitResult "XL-251 FORWARD=" & CStr(forwardInitial) & ":" & CStr(forwardUdtState.Value) & _
         " PRIOR=" & CStr(priorInitial) & ":" & CStr(priorUdtState.Value)
+End Sub
+
+Private Sub VerifyEnumDeclarationOrder()
+    Dim beforeText As String, afterText As String
+    Dim beforeErr As Long, afterErr As Long
+    On Error Resume Next
+    Err.Clear: beforeText = CStr(enumBefore): beforeErr = Err.Number
+    Err.Clear: afterText = CStr(enumAfter): afterErr = Err.Number
+    On Error GoTo 0
+    EmitResult "XL-252 BEFORE=" & CStr(VarType(enumBefore)) & "/" & CStr(beforeErr) & "/" & beforeText & _
+        " AFTER=" & CStr(VarType(enumAfter)) & "/" & CStr(afterErr) & "/" & afterText
 End Sub
 
 Private Sub VerifyUnallocatedArrayBounds()
