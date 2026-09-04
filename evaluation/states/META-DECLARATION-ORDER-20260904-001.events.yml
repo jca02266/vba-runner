@@ -2,3 +2,8 @@
   evaluationId: EV-00955
   status: needs-excel
   occurredAt: '2026-09-04T21:48:21.832Z'
+- candidateId: META-DECLARATION-ORDER-20260904-001
+  evaluationId: EV-00955
+  status: bug-found
+  fromStatus: needs-excel
+  occurredAt: '2026-09-04T21:56:13.750Z'
