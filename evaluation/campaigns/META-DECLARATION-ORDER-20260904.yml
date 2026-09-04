@@ -14,3 +14,35 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/type-environment.ts
+  - id: META-DECLARATION-ORDER-20260904-002
+    title: Enumモジュール変数の宣言順不変性
+    status: queued
+    priority: 2
+    focus: Enum宣言順による既定値と型メタデータの差
+    priorCauseKey: declaration-registration-order-couples-runtime-initialization
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-003
+    title: As Newクラス変数の宣言順不変性
+    status: queued
+    priority: 2
+    focus: クラス宣言順によるAs New遅延生成の差
+    priorCauseKey: declaration-registration-order-couples-runtime-initialization
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-004
+    title: モジュール間型メタデータ汚染
+    status: queued
+    priority: 2
+    focus: 同名Private変数のモジュール間型情報がロード順で汚染されないこと
+    priorCauseKey: declaration-registration-order-couples-runtime-initialization
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/type-environment.ts
+    coverageTargets:
+      - src/engine/evaluator.ts

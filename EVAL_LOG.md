@@ -855,14 +855,13 @@
 | EV-00952 | FZ-LSP-20260823 | fixed | 1 | .cls内ConstのPrivate/Publicスコープ保持 |
 | EV-00953 | FZ-LSP-20260823 | verified-no-bug | 1 | クラス定数の所有者付き依存解決と同名定数の衝突防止 |
 | EV-00954 | FZ-LSP-20260823 | fixed | 1 | クラスConstの型環境登録 |
-| EV-00955 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | モジュールUDT前方宣言の初期化不変性 |
+| EV-00955 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュールUDT前方宣言の初期化不変性 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 385 |
+| fixed | 386 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 459 |
@@ -873,4 +872,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| META-DECLARATION-ORDER-20260904-002 | 2 | queued | Enum宣言順による既定値と型メタデータの差 | yes |
+| META-DECLARATION-ORDER-20260904-003 | 2 | queued | クラス宣言順によるAs New遅延生成の差 | yes |
+| META-DECLARATION-ORDER-20260904-004 | 2 | queued | 同名Private変数のモジュール間型情報がロード順で汚染されないこと | yes |
