@@ -1239,8 +1239,11 @@ export class Evaluator {
      * 実行文を pendingTopLevel に退避し、インタラクティブ呼び出し（true）では即時実行する。
      */
     private resolveIdentifiersDone = false;
-    /** Pass 1 で配列境界を評価できなかった VariableDeclaration。Pass 2 で再評価。 */
-    private pendingArrayDecls: Array<{ stmt: VariableDeclaration; moduleName: string }> = [];
+    /**
+     * Pass 1ではモジュール変数をすべて延期する。型宣言の登録とストレージの
+     * 初期化を同じ逐次走査で行うと、後置UDTの既定値がNothingになるため。
+     */
+    private pendingModuleVarDecls: Array<{ stmt: VariableDeclaration; moduleName: string; arrayBase: number }> = [];
     /** Pass 1 でシンボルテーブルに退避したモジュールレベル実行文。Pass 2 後に実行。 */
     private pendingTopLevel: Array<{ moduleName: string; stmts: Statement[] }> = [];
     /** vba-runner 拡張: モジュールレベル実行文（代入・For 等）をプロシージャの後にも書けるようにするか。
@@ -3277,8 +3280,7 @@ export class Evaluator {
      * Pass 1: 1モジュール分の AST を登録する（シンボルテーブル構築）。
      *
      * - ConstDeclaration      → スキップ。Pass 2（resolveIdentifiers）で依存順に評価。
-     * - VariableDeclaration   → 配列境界なしは即時登録。配列境界ありは pendingArrayDecls
-     *                           に退避し Pass 2 で Const 解決後に評価。
+     * - VariableDeclaration   → pendingModuleVarDecls に退避し、全型登録とConst解決後に評価。
      * - モジュールレベル実行文 → resolveIdentifiers 完了前（バッチロード中）は
      *                           pendingTopLevel に退避。Pass 2 後に実行。
      *                           resolveIdentifiers 完了後（インタラクティブ呼び出し）は
@@ -3300,14 +3302,16 @@ export class Evaluator {
                 continue;
             }
 
-            // VariableDeclaration: 配列境界あり → Pass 2 まで評価を延期してシンボル登録のみ。
-            // 境界なし → 即時登録（初期値は型デフォルトのみで Const 参照なし）。
+            // モジュール変数は型宣言の登録完了後に初期化する。配列境界の有無に
+            // かかわらず延期し、宣言順による型情報の欠落を防ぐ。
             if (batchMode && stmt.type === 'VariableDeclaration') {
                 const varDecl = stmt as VariableDeclaration;
-                if (varDecl.declarations.some(d => d.isArray && d.arrayBounds && d.arrayBounds.length > 0)) {
-                    this.pendingArrayDecls.push({ stmt: varDecl, moduleName: this.currentSourceModule || '' });
-                    continue;
-                }
+                this.pendingModuleVarDecls.push({
+                    stmt: varDecl,
+                    moduleName: this.currentSourceModule || '',
+                    arrayBase: this.arrayBase,
+                });
+                continue;
             }
 
             // 宣言文でないモジュールレベル実行文はバッチ中は退避し、Pass 2 後にまとめて実行。
@@ -6593,22 +6597,26 @@ export class Evaluator {
             this.currentSourceModule = prev;
         }
 
-        // Pass 1 で延期した配列境界付き VariableDeclaration を Const 解決後に評価する。
-        // evaluateModule はバッチ中は配列境界付き Dim を pendingArrayDecls に退避している。
-        for (const { stmt, moduleName } of this.pendingArrayDecls) {
+        // Pass 1で延期したすべてのモジュールVariableDeclarationを、型とConstが
+        // 確定した後に評価する。各モジュールのOption Baseも保存した値を復元する。
+        for (const { stmt, moduleName, arrayBase } of this.pendingModuleVarDecls) {
             const prev = this.currentSourceModule;
+            const prevArrayBase = this.arrayBase;
             this.currentSourceModule = moduleName;
+            this.arrayBase = arrayBase;
             for (const decl of stmt.declarations) {
-                if (!decl.arrayBounds) continue;
-                for (const bound of decl.arrayBounds) {
-                    this.validateConstantExpr(bound.upper);
-                    if (bound.lower) this.validateConstantExpr(bound.lower);
+                if (decl.arrayBounds) {
+                    for (const bound of decl.arrayBounds) {
+                        this.validateConstantExpr(bound.upper);
+                        if (bound.lower) this.validateConstantExpr(bound.lower);
+                    }
                 }
             }
             this.evaluateVariableDeclaration(stmt);
+            this.arrayBase = prevArrayBase;
             this.currentSourceModule = prev;
         }
-        this.pendingArrayDecls = [];
+        this.pendingModuleVarDecls = [];
 
         // 同一モジュール内の重複プロシージャ名チェック（Pass 2）
         for (const { ast, moduleName } of modules) {

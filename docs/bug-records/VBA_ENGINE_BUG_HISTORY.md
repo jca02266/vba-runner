@@ -605,3 +605,8 @@ status: stable
   - 原因: パーサーが `nextIdentifier` を AST に記録するだけで、ループ変数（`identifier` / `variable`）との一致検証を行っていなかった
   - 修正: `parseForStatementBody` と `parseForEachStatementBody` の `Next` 解析直後に大文字小文字を無視した名前比較を追加し、不一致なら `throwError` でコンパイルエラーを throw する。`Next`（変数名なし）は引き続き正常
   - 仕様: VBA コンパイラは「Next で指定された変数の参照が不正です」としてコンパイルエラーを生成する
+
+- ⚠️ **Finding: UDT型宣言より前のモジュール変数が初期化されない** | `module-udt-declaration-order.test.ts`
+  - 事象: ExcelはUDT型を後置したモジュール変数を`0:42`として扱うが、vba-runnerはError 91を返す
+  - 仮説: 型宣言の登録とモジュール変数のストレージ初期化を同じ逐次走査で行い、宣言順へ依存している
+  - 状況: `EV-00955`、`BUG-00581`として実機確認済み。実装修正と回帰テスト拡張は未完了
