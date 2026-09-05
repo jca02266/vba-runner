@@ -55,6 +55,7 @@ Private Enum QueueColor
 End Enum
 
 Private enumAfter As QueueColor
+Private enumValues(0 To 1) As QueueColor
 
 Private resultFile As Integer
 Private resultOpen As Boolean
@@ -159,6 +160,7 @@ Public Sub RunExcelQueueVerification()
     VerifyUnallocatedArrayBounds
     VerifyModuleUdtDeclarationOrder
     VerifyEnumDeclarationOrder
+    VerifyEnumArrayDefaults
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
@@ -184,6 +186,14 @@ Private Sub VerifyEnumDeclarationOrder()
     On Error GoTo 0
     EmitResult "XL-252 BEFORE=" & CStr(VarType(enumBefore)) & "/" & CStr(beforeErr) & "/" & beforeText & _
         " AFTER=" & CStr(VarType(enumAfter)) & "/" & CStr(afterErr) & "/" & afterText
+End Sub
+
+Private Sub VerifyEnumArrayDefaults()
+    Dim errNo As Long, elementText As String
+    On Error Resume Next
+    Err.Clear: elementText = CStr(enumValues(0)): errNo = Err.Number
+    On Error GoTo 0
+    EmitResult "XL-253 ARRAY=" & CStr(VarType(enumValues)) & "/" & CStr(VarType(enumValues(0))) & "/" & CStr(errNo) & "/" & elementText
 End Sub
 
 Private Sub VerifyUnallocatedArrayBounds()
