@@ -858,6 +858,7 @@
 | EV-00955 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュールUDT前方宣言の初期化不変性 |
 | EV-00956 | META-DECLARATION-ORDER-20260904 | fixed | 1 | Enumモジュール変数の宣言順不変性 |
 | EV-00957 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | Enum配列の既定値と要素メタデータ |
+| EV-00958 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | As Newクラス変数の宣言順不変性 |
 
 ## 状態集計
 
@@ -867,7 +868,7 @@
 | fixed | 387 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 459 |
+| verified-no-bug | 460 |
 
 横展開未解決経路: 601、実Excel待ち評価: 0
 
@@ -875,7 +876,6 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| META-DECLARATION-ORDER-20260904-003 | 2 | queued | クラス宣言順によるAs New遅延生成の差 | yes |
 | META-DECLARATION-ORDER-20260904-004 | 2 | queued | 同名Private変数のモジュール間型情報がロード順で汚染されないこと | yes |
 | META-DECLARATION-ORDER-20260904-006 | 3 | queued | resolveIdentifiers完了後の追加モジュールでもEnum既定値が型解決されること | yes |
 | META-DECLARATION-ORDER-20260904-007 | 3 | queued | Private Enumの型名が別モジュールの同名型へ漏れないこと | yes |
