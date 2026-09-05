@@ -37,11 +37,11 @@ End Enum
 Private colors(0 To 1) As ColorKind
 
 Public Function ProbeArray() As String
-    ProbeArray = CStr(VarType(colors)) & ":" & CStr(VarType(colors(0))) & ":" & CStr(colors(0))
+    ProbeArray = CStr(VarType(colors)) & ":" & CStr(VarType(colors(0))) & ":" & TypeName(colors(0)) & ":" & CStr(colors(0))
 End Function
 `;
 const arrayEvaluator = evalVBASingle(arraySource);
-assert.strictEqual(arrayEvaluator.callProcedure('ProbeArray', []), '8195:3:0');
+assert.strictEqual(arrayEvaluator.callProcedure('ProbeArray', []), '8195:3:Long:0');
 
 const localSource = String.raw`Option Explicit
 Private Enum ColorKind
