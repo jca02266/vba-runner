@@ -30,6 +30,19 @@ End Function
 const priorEvaluator = evalVBASingle(priorSource);
 assert.strictEqual(priorEvaluator.callProcedure('ProbePrior', []), '3:0');
 
+const arraySource = String.raw`Option Explicit
+Private Enum ColorKind
+    Red = 3
+End Enum
+Private colors(0 To 1) As ColorKind
+
+Public Function ProbeArray() As String
+    ProbeArray = CStr(VarType(colors)) & ":" & CStr(VarType(colors(0))) & ":" & CStr(colors(0))
+End Function
+`;
+const arrayEvaluator = evalVBASingle(arraySource);
+assert.strictEqual(arrayEvaluator.callProcedure('ProbeArray', []), '8195:3:0');
+
 const localSource = String.raw`Option Explicit
 Private Enum ColorKind
     Red = 3

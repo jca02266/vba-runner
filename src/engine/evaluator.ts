@@ -5374,7 +5374,11 @@ export class Evaluator {
                 }
                 // 型付き配列: 要素代入時の coerceToDeclaredType に使う型名を保持
                 if (effectiveType) {
-                    (initialValue as any).__vbaElementType__ = effectiveType.toLowerCase();
+                    // Enum arrays have the same declared element type as Long
+                    // (§2.2, §5.2.3.4); retain numeric metadata rather than
+                    // exposing the Enum name as an unknown array subtype.
+                    (initialValue as any).__vbaElementType__ = isEnumType
+                        ? 'long' : effectiveType.toLowerCase();
                     if (effectiveType.toLowerCase() === 'string' && decl.fixedLength !== undefined) {
                         (initialValue as any).__vbaElementFixedLength__ = decl.fixedLength;
                     }
@@ -9959,6 +9963,30 @@ export class Evaluator {
         const declaredType = this.resolveDeclaredReturnType(argExpr);
         if (declaredType && declaredType !== 'Variant' && declaredType !== 'Object') {
             return funcName === 'typename' ? declaredType : (vtMap[declaredType] ?? 12);
+        }
+
+        // An indexed typed array element has the array's declared element
+        // type even though evaluating the JavaScript value alone would infer
+        // a numeric literal as Double. Enum arrays are normalized to Long
+        // metadata during declaration initialization.
+        if (argExpr.type === 'CallExpression') {
+            const call = argExpr as CallExpression;
+            if (call.callee.type === 'Identifier') {
+                const arrayValue = this.env.getConst((call.callee as Identifier).name);
+                const elementType = Array.isArray(arrayValue)
+                    ? (arrayValue as any).__vbaElementType__?.toLowerCase()
+                    : undefined;
+                const elementVt: Record<string, number> = {
+                    byte: 17, integer: 2, long: 3, single: 4, double: 5,
+                    currency: 6, date: 7, string: 8, boolean: 11,
+                    longlong: 20, longptr: 20,
+                };
+                if (elementType && elementVt[elementType] !== undefined) {
+                    return funcName === 'typename'
+                        ? elementType.charAt(0).toUpperCase() + elementType.slice(1)
+                        : elementVt[elementType];
+                }
+            }
         }
 
         // 値を評価して型を判定する
