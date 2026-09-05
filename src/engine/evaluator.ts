@@ -5306,6 +5306,15 @@ export class Evaluator {
                 || Boolean(enumObj && typeof enumObj === 'object'
                 && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__
                 && !(enumObj instanceof VbaNamespaceRef));
+            // Keep module-private type metadata in the same module scope as
+            // its value.  Writing every declaration to the global environment
+            // lets a later module with the same Private name overwrite the
+            // earlier module's type information.
+            const declarationEnv = this.currentProcedureName
+                ? this.env
+                : (this.currentSourceModule && stmt.scope !== 'public' && stmt.scope !== 'friend'
+                    ? this.getOrCreateModuleEnv(this.currentSourceModule)
+                    : this.env);
             if (effectiveType && !decl.isArray) {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
@@ -5316,9 +5325,9 @@ export class Evaluator {
                 };
                 const mapped = typeMap[effectiveType.toLowerCase()];
                 if (mapped) {
-                    this.env.setVariableType(varName, { vbaType: mapped, fixedLength: decl.fixedLength });
+                    declarationEnv.setVariableType(varName, { vbaType: mapped, fixedLength: decl.fixedLength });
                 } else if (this.classDefinitions.has(effectiveType.toLowerCase())) {
-                    this.env.setVariableType(varName, {
+                    declarationEnv.setVariableType(varName, {
                         vbaType: 'Object',
                         objectTypeName: effectiveType,
                     });
@@ -5328,7 +5337,7 @@ export class Evaluator {
                     // Bug CI: Exclude VbaNamespaceRef (module/class names stored in env) to prevent
                     // treating class types like MyClass as enums when they share an env key.
                     if (isEnumType) {
-                        this.env.setVariableType(varName, { vbaType: 'Long' });
+                        declarationEnv.setVariableType(varName, { vbaType: 'Long' });
                     }
                 }
             }
