@@ -1244,6 +1244,8 @@ export class Evaluator {
      * 初期化を同じ逐次走査で行うと、後置UDTの既定値がNothingになるため。
      */
     private pendingModuleVarDecls: Array<{ stmt: VariableDeclaration; moduleName: string; arrayBase: number }> = [];
+    /** Enum名は値オブジェクトと同じ環境へ登録されるため、型名として明示的に追跡する。 */
+    private enumTypeNames = new Set<string>();
     /** Pass 1 でシンボルテーブルに退避したモジュールレベル実行文。Pass 2 後に実行。 */
     private pendingTopLevel: Array<{ moduleName: string; stmts: Statement[] }> = [];
     /** vba-runner 拡張: モジュールレベル実行文（代入・For 等）をプロシージャの後にも書けるようにするか。
@@ -5299,6 +5301,11 @@ export class Evaluator {
             // If no explicit type, apply Def-Directive mapping by first letter (§5.2.2)
             const effectiveType = decl.objectType
                 ?? this.defTypeMap.get(varName.charAt(0).toLowerCase()) ?? null;
+            const enumObj = effectiveType ? this.env.getConst(effectiveType) : undefined;
+            const isEnumType = this.enumTypeNames.has(effectiveType?.toLowerCase() ?? '')
+                || Boolean(enumObj && typeof enumObj === 'object'
+                && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__
+                && !(enumObj instanceof VbaNamespaceRef));
             if (effectiveType && !decl.isArray) {
                 const typeMap: Record<string, VbaVarType> = {
                     'byte': 'Byte', 'integer': 'Integer', 'long': 'Long',
@@ -5318,11 +5325,9 @@ export class Evaluator {
                 } else {
                     // Bug CB: Enum-typed variable (e.g. `Dim c As Color`) — map to 'Long'
                     // so TypeName/VarType reflects the underlying numeric type instead of "Double"
-                    const enumObj = this.env.getConst(effectiveType);
                     // Bug CI: Exclude VbaNamespaceRef (module/class names stored in env) to prevent
                     // treating class types like MyClass as enums when they share an env key.
-                    if (enumObj && typeof enumObj === 'object' && !enumObj.__vbaClass__ && !enumObj.__vbaTypeName__
-                            && !(enumObj instanceof VbaNamespaceRef)) {
+                    if (isEnumType) {
                         this.env.setVariableType(varName, { vbaType: 'Long' });
                     }
                 }
@@ -5348,6 +5353,9 @@ export class Evaluator {
                     initialValue = decl.fixedLength !== undefined ? '\0'.repeat(decl.fixedLength) : '';
                 } else if (t === 'boolean') {
                     initialValue = 0; // vbaFalse
+                } else if (isEnumType) {
+                    // Enum values use Long storage and have the numeric default 0.
+                    initialValue = 0;
                 } else if (
                     this.classDefinitions.has(t) || this.externalObjectFactories.has(t) ||
                     t === 'object' || t === 'collection'
@@ -5405,7 +5413,7 @@ export class Evaluator {
                 // メンバアクセスやメソッド呼び出し時に遅延インスタンス化される。
                 initialValue = createAutoInstancePlaceholder(decl.objectType);
                 this.autoInstanceVars.set(varName.toLowerCase(), decl.objectType);
-            } else if (decl.objectType) {
+            } else if (decl.objectType && !isEnumType) {
                 const t = decl.objectType.toLowerCase();
                 if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean', 'longlong', 'longptr'].includes(t)) {
                     if (this.env.getType(decl.objectType)) {
@@ -6487,6 +6495,7 @@ export class Evaluator {
     }
 
     private evaluateEnumDeclaration(stmt: EnumDeclaration) {
+        this.enumTypeNames.add(stmt.name.name.toLowerCase());
         let currentValue = 0;
         const enumObj: any = {};
         for (const member of stmt.members) {
