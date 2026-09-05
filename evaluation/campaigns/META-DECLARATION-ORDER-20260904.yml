@@ -46,3 +46,33 @@ items:
       - src/engine/type-environment.ts
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-005
+    title: Enum配列の既定値と要素メタデータ
+    status: queued
+    priority: 2
+    focus: Enum型配列の既定値と要素型が宣言順によらず維持されること
+    priorCauseKey: typed-declaration-defaults-are-not-centralized
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-006
+    title: Enum追加ロード経路の既定値
+    status: queued
+    priority: 3
+    focus: resolveIdentifiers完了後の追加モジュールでもEnum既定値が型解決されること
+    priorCauseKey: typed-declaration-defaults-are-not-centralized
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-007
+    title: モジュール間Private Enum可視性
+    status: queued
+    priority: 3
+    focus: Private Enumの型名が別モジュールの同名型へ漏れないこと
+    priorCauseKey: typed-declaration-defaults-are-not-centralized
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts

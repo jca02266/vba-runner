@@ -856,19 +856,18 @@
 | EV-00953 | FZ-LSP-20260823 | verified-no-bug | 1 | クラス定数の所有者付き依存解決と同名定数の衝突防止 |
 | EV-00954 | FZ-LSP-20260823 | fixed | 1 | クラスConstの型環境登録 |
 | EV-00955 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュールUDT前方宣言の初期化不変性 |
-| EV-00956 | META-DECLARATION-ORDER-20260904 | needs-excel |  | Enumモジュール変数の宣言順不変性 |
+| EV-00956 | META-DECLARATION-ORDER-20260904 | fixed | 1 | Enumモジュール変数の宣言順不変性 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 386 |
+| fixed | 387 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 459 |
 
-横展開未解決経路: 601、実Excel待ち評価: 1
+横展開未解決経路: 601、実Excel待ち評価: 0
 
 ## 次の候補
 
@@ -876,3 +875,6 @@
 |---|---:|---|---|---|
 | META-DECLARATION-ORDER-20260904-003 | 2 | queued | クラス宣言順によるAs New遅延生成の差 | yes |
 | META-DECLARATION-ORDER-20260904-004 | 2 | queued | 同名Private変数のモジュール間型情報がロード順で汚染されないこと | yes |
+| META-DECLARATION-ORDER-20260904-005 | 2 | queued | Enum型配列の既定値と要素型が宣言順によらず維持されること | yes |
+| META-DECLARATION-ORDER-20260904-006 | 3 | queued | resolveIdentifiers完了後の追加モジュールでもEnum既定値が型解決されること | yes |
+| META-DECLARATION-ORDER-20260904-007 | 3 | queued | Private Enumの型名が別モジュールの同名型へ漏れないこと | yes |
