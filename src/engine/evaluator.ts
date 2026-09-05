@@ -6509,6 +6509,12 @@ export class Evaluator {
 
     private evaluateEnumDeclaration(stmt: EnumDeclaration) {
         this.enumTypeNames.add(stmt.name.name.toLowerCase());
+        // Private Enum members belong to the declaring module.  Registering
+        // them in the shared environment lets a later module overwrite an
+        // identically named member and changes earlier code's value.
+        const targetEnv = this.currentSourceModule && stmt.scope === 'private'
+            ? this.getOrCreateModuleEnv(this.currentSourceModule)
+            : this.env;
         let currentValue = 0;
         const enumObj: any = {};
         for (const member of stmt.members) {
@@ -6517,13 +6523,13 @@ export class Evaluator {
             }
             const memberName = member.name.name;
             // Set directly in environment for flat access (common in VBA)
-            this.env.set(memberName, currentValue);
+            targetEnv.set(memberName, currentValue);
             // Also store in enum object for EnumName.MemberName access
             enumObj[memberName] = currentValue;
             currentValue++;
         }
         // Register the Enum name itself
-        this.env.set(stmt.name.name, enumObj);
+        targetEnv.set(stmt.name.name, enumObj);
     }
 
     private evaluateCallStatement(stmt: CallStatement) {

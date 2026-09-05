@@ -861,21 +861,22 @@
 | EV-00958 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | As Newクラス変数の宣言順不変性 |
 | EV-00959 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | モジュール間型メタデータ汚染 |
 | EV-00960 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | Enum追加ロード経路の既定値 |
+| EV-00961 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | モジュール間Private Enum可視性 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
+| bug-found | 3 |
 | fixed | 387 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 461 |
 
-横展開未解決経路: 603、実Excel待ち評価: 0
+横展開未解決経路: 604、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| META-DECLARATION-ORDER-20260904-007 | 3 | queued | Private Enumの型名が別モジュールの同名型へ漏れないこと | yes |
+| (none) | | | | |
