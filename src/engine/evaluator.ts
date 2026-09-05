@@ -5425,7 +5425,12 @@ export class Evaluator {
                 // Auto-Instantiation: 宣言時点ではインスタンス化せず、placeholder を入れる。
                 // メンバアクセスやメソッド呼び出し時に遅延インスタンス化される。
                 initialValue = createAutoInstancePlaceholder(decl.objectType);
-                this.autoInstanceVars.set(varName.toLowerCase(), decl.objectType);
+                const autoOwner = this.currentProcedureName
+                    ? this.env
+                    : (this.currentSourceModule && decl.scope !== 'public' && decl.scope !== 'friend'
+                        ? this.getOrCreateModuleEnv(this.currentSourceModule)
+                        : this.env);
+                this.registerAutoInstanceVar(autoOwner, varName, decl.objectType);
             } else if (decl.objectType && !isEnumType) {
                 const t = decl.objectType.toLowerCase();
                 if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean', 'longlong', 'longptr'].includes(t)) {
@@ -7013,7 +7018,7 @@ export class Evaluator {
 
             // Auto-Instantiation: `Set x = Nothing` で auto-instance 変数なら placeholder に戻す。
             // 仕様: 再度参照したら新しいインスタンスが生成される。
-            const className = this.autoInstanceVars.get(name.toLowerCase());
+            const className = this.findAutoInstanceClass(this.env, name);
             if (className && value === vbaNothing) {
                 const placeholder = createAutoInstancePlaceholder(className);
                 // Remember that this auto-instance was explicitly cleared.
@@ -8242,7 +8247,28 @@ export class Evaluator {
      * `Dim x As New ClassName` で宣言された変数の追跡。キーは変数名(小文字)、
      * 値はクラス名。Set x = Nothing 後の再インスタンス化判定で使う。
      */
-    private autoInstanceVars: Map<string, string> = new Map();
+    /** As New の遅延生成情報を所有 Environment ごとに保持する。 */
+    private autoInstanceVars: WeakMap<Environment, Map<string, string>> = new WeakMap();
+
+    private registerAutoInstanceVar(env: Environment, name: string, className: string): void {
+        let vars = this.autoInstanceVars.get(env);
+        if (!vars) {
+            vars = new Map();
+            this.autoInstanceVars.set(env, vars);
+        }
+        vars.set(name.toLowerCase(), className);
+    }
+
+    private findAutoInstanceClass(env: Environment, name: string): string | undefined {
+        const key = name.toLowerCase();
+        let owner: Environment | undefined = env;
+        while (owner) {
+            const className = this.autoInstanceVars.get(owner)?.get(key);
+            if (className) return className;
+            owner = owner.enclosing;
+        }
+        return undefined;
+    }
 
     /**
      * CreateObject(progId) で返されるオブジェクトのファクトリを登録する。

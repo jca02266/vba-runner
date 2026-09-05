@@ -76,3 +76,29 @@ items:
       - src/engine/evaluator.ts
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-008
+    title: モジュール間As New遅延状態の分離
+    status: queued
+    priority: 1
+    focus: 同名Private As New変数のSet Nothing後再生成がモジュール間で汚染されないこと
+    priorCauseKey: auto-new-state-is-keyed-only-by-variable-name
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-009
+    title: As New外部COM状態の所有スコープ
+    status: queued
+    priority: 2
+    focus: 外部COM factoryのAs New状態がモジュール間で汚染されないこと
+    priorCauseKey: auto-new-state-is-keyed-only-by-variable-name
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: META-DECLARATION-ORDER-20260904-010
+    title: ローカルAs New状態の再生成分離
+    status: queued
+    priority: 2
+    focus: ネストした同名ローカルAs New変数のSet Nothing後再生成が混線しないこと
+    priorCauseKey: auto-new-state-is-keyed-only-by-variable-name
+    coverageTargets:
+      - src/engine/evaluator.ts
