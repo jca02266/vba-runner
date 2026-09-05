@@ -857,19 +857,19 @@
 | EV-00954 | FZ-LSP-20260823 | fixed | 1 | クラスConstの型環境登録 |
 | EV-00955 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュールUDT前方宣言の初期化不変性 |
 | EV-00956 | META-DECLARATION-ORDER-20260904 | fixed | 1 | Enumモジュール変数の宣言順不変性 |
-| EV-00957 | META-DECLARATION-ORDER-20260904 | needs-excel | 1 | Enum配列の既定値と要素メタデータ |
+| EV-00957 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | Enum配列の既定値と要素メタデータ |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 387 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | retired | 2 |
 | verified-no-bug | 459 |
 
-横展開未解決経路: 601、実Excel待ち評価: 1
+横展開未解決経路: 601、実Excel待ち評価: 0
 
 ## 次の候補
 
