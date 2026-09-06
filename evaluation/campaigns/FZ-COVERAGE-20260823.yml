@@ -208,3 +208,15 @@ items:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-016
+    title: For Each control-variable coercion error boundary
+    status: queued
+    priority: 1
+    focus: For Eachの配列・Collection制御変数Let強制とOn Error Resume Nextの継続位置
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/for-each.test.ts

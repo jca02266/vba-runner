@@ -869,20 +869,26 @@
 | EV-00966 | FZ-BUILTIN | fixed | 1 | InStr空検索の開始位置契約 |
 | EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
 | EV-00968 | FZ-BUILTIN | fixed | 1 | Rnd負数シードと状態遷移 |
+| EV-00969 | FZ-BUILTIN | fixed | 1 | Randomize数値指定のシード写像 |
+| EV-00970 | FZ-COVERAGE-20260823 | needs-excel | 1 | Lock/UnlockのNull record-range変換 |
+| EV-00971 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのVariant数値強制と算術経路の真値表現 |
+| EV-00972 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化 |
+| EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Eachの配列・Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 394 |
+| fixed | 397 |
 | known-limit | 5 |
+| needs-excel | 2 |
 | retired | 2 |
 | verified-no-bug | 464 |
 
-横展開未解決経路: 608、実Excel待ち評価: 0
+横展開未解決経路: 611、実Excel待ち評価: 2
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-159 | 2 | queued | Randomizeの数値・省略入力と後続Rnd系列 | yes |
+| (none) | | | | |
