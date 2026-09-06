@@ -226,6 +226,9 @@ function ev(expr: string): any {
     assert.strictEqual(ev('Replace("Hello hello", "HELLO", "Hi", 1, -1, 0)'), 'Hello hello', 'Replace vbBinaryCompare: 大文字小文字区別');
     // find が空文字列 → working をそのまま返す
     assert.strictEqual(ev('Replace("Hello", "", "x", 1)'), 'Hello', 'Replace find="" → そのまま返す');
+    assert.strictEqual(ev('Replace("Hello", "", "x", 2)'), 'Hello', 'Replace find="" start=2 → Expression全体');
+    assert.strictEqual(ev('Replace("Hello", "", "x", 6)'), 'Hello', 'Replace find="" start超過もExpression全体');
+    assert.strictEqual(ev('Replace("Hello", "", "x", 2, 0)'), 'Hello', 'Replace find="" count=0 → Expression全体');
     console.log('[PASS] Bug A: Replace start/count/compare');
 }
 

@@ -1155,10 +1155,12 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
         const countNum = count ?? -1;
         const isText = (compare === 1) || (compare === undefined && ctx.compMode === 'Text');
+        // Find="" is a VBA special case: return a copy of Expression before
+        // applying Start/Count (unlike the normal Start-based result).
+        if (find === '') return str;
         // Slice from start position (1-based), operate, then return from that offset
         const prefix = str.substring(0, startNum - 1);
         const working = str.substring(startNum - 1);
-        if (find === '') return working;
         const findLower = isText ? find.toLowerCase() : find;
         let result = '';
         let remaining = working;
