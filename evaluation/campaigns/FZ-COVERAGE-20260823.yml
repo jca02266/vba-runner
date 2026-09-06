@@ -179,3 +179,32 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/lock-unlock.test.ts
+  - id: FZ-COVERAGE-20260823-014
+    title: Native Boolean Variant coercion boundary
+    status: queued
+    priority: 1
+    focus: ホスト由来BooleanのVariant数値強制と算術経路の真値表現
+    priorCauseKey: native-boolean-variant-coercion-bypasses-vba-boolean
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/evaluator.ts
+      - tests/spec/if-condition-truthy.test.ts
+      - docs/implementation/VBA_SPEC_LIST.md
+    coverageTargets:
+      - src/engine/coerce.ts
+      - tests/spec/if-condition-truthy.test.ts
+  - id: FZ-COVERAGE-20260823-015
+    title: Native Boolean presentation and type metadata boundary
+    status: queued
+    priority: 2
+    focus: ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化
+    priorCauseKey: native-boolean-variant-coercion-bypasses-vba-boolean
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/boolean-coercion.test.ts
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts

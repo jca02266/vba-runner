@@ -40,6 +40,33 @@ function expectError(fn: () => any, errorNumber: number, label: string) {
 
 console.log('--- Starting Boolean Coercion Tests ---');
 
+// Host-boundary booleans must retain VBA's numeric representation across
+// built-in conversion and arithmetic paths.
+{
+    const code = String.raw`
+        Function ToInt(value As Variant) As Long
+            ToInt = CInt(value)
+        End Function
+        Function ToLong(value As Variant) As Long
+            ToLong = CLng(value)
+        End Function
+        Function AddZero(value As Variant) As Long
+            AddZero = value + 0
+        End Function
+        Function AssignBoolean(value As Variant) As Boolean
+            Dim result As Boolean
+            result = value
+            AssignBoolean = result
+        End Function
+    `;
+    assert.strictEqual(runFunc(code, 'ToInt', [true]), -1, 'host true → CInt -1');
+    assert.strictEqual(runFunc(code, 'ToInt', [false]), 0, 'host false → CInt 0');
+    assert.strictEqual(runFunc(code, 'ToLong', [true]), -1, 'host true → CLng -1');
+    assert.strictEqual(runFunc(code, 'AddZero', [true]), -1, 'host true → arithmetic -1');
+    assert.strictEqual(runFunc(code, 'AssignBoolean', [true]), vbaTrue, 'host true → Boolean singleton');
+    console.log('[PASS] ホストBooleanの数値強制');
+}
+
 // =============================================================================
 // 1. 数値からの Boolean 変換
 // =============================================================================

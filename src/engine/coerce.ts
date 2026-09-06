@@ -63,6 +63,10 @@ export function vbaToNumber(val: any): number {
     if (val === vbaNull) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (val instanceof VbaBoolean) return val.value;
+    // Public runner APIs may inject native JavaScript booleans. Normalize
+    // them to VBA's Boolean numeric representation (True=-1, False=0)
+    // before every numeric conversion path.
+    if (typeof val === 'boolean') return val ? -1 : 0;
     if (val instanceof VbaDate) return val.value;
     if (val instanceof VbaDecimal) return val.value;
     if (val instanceof VbaCurrency) return Number(val.internal) / 10000;

@@ -632,10 +632,7 @@ export class Environment {
                 return s;
             }
             case 'Boolean':
-                if (typeof value === 'number') {
-                    return value !== 0 ? vbaTrue : vbaFalse;
-                }
-                return value;
+                return vbaToBoolean(value);
             default:
                 return value;
         }
