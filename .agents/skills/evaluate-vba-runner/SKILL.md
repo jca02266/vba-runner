@@ -34,6 +34,23 @@ maintain a second copy here.
    first pass finds no defect, make one further targeted pass against a
    different queued boundary; never invent a defect merely to satisfy the
    workflow. A single fuzzer or mutation run never marks the method complete.
+   If `eval next` reports no queued candidate and `audit` reports no unresolved
+   bug, switch to discovery mode instead of ending the loop. Select a
+   coverage-guided blind spot or an untested boundary from the current source
+   (prioritize shared parser/evaluator dispatch, type conversion, scope, and
+   error propagation), then combine at least two inputs or paths in a focused
+   metamorphic, fuzz, mutation, or source-review probe. Have an independent
+   sub-agent review the proposed probe and run it outside the repository.
+   Treat a failure as a bug only after reproducing it with a minimal case and
+   checking the specification or Excel expectation. Before writing an EV,
+   register a new candidate in the campaign manifest; never create an EV or
+   BUG directly from an unregistered exploratory result. If no defect is found,
+   record the tested boundary and its evidence as a completed no-bug evaluation,
+   then choose a different seed, operator, or adjacent dispatch path on the
+   next discovery pass. The discovery phase ends only when the selected blind
+   spots and their adjacent paths are covered or a verified defect enters the
+   normal reproduction/RCA/fix workflow; one fuzzer or mutation run alone is
+   not an exhaustion proof.
 4. Independently reproduce every reported defect with the smallest practical command or scratch program. Do not change tracked files for unverified reports. Identify the responsible parser, evaluator, builtin, or LSP code before editing.
 5. After a defect is independently reproduced, run a horizontal-expansion investigation before editing. Delegate a bounded subtask to a second independent sub-agent: inspect the source for every analogous dispatch/evaluation path and report suspicious sites, without changing tracked files or reading TODO files/git history. Have the sub-agent add a scratch driver outside the repository only when source inspection identifies a plausible analogue; use focused tests for those candidates rather than broad test-suite runs. Record each confirmed analogue, ruled-out path, or unresolved real-Excel semantic question in the evaluation notes, and do not treat an unverified suspicion as a product bug.
 6. After reproduction and horizontal expansion, follow the command's
