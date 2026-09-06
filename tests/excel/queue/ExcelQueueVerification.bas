@@ -163,6 +163,7 @@ Public Sub RunExcelQueueVerification()
     VerifyEnumArrayDefaults
     VerifyRndSeed
     VerifyRandomizeSeedMapping
+    VerifyLockNullRange
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
@@ -177,6 +178,19 @@ End Sub
 Private Sub VerifyRandomizeSeedMapping()
     Randomize 1
     EmitResult "XL-256 RANDOMIZE_1=" & CStr(Rnd()) & "," & CStr(Rnd()) & "," & CStr(Rnd())
+End Sub
+
+Private Sub VerifyLockNullRange()
+    Dim f As Integer, errNo As Long
+    On Error Resume Next
+    f = FreeFile
+    Open Environ$("TEMP") & Application.PathSeparator & "vba-lock-null.dat" For Random As #f Len = 4
+    Err.Clear: Lock #f, Null To 2: errNo = Err.Number
+    EmitResult "XL-257 LOCK_NULL_TO ERR=" & CStr(errNo)
+    Err.Clear: Unlock #f, 1 To Null: errNo = Err.Number
+    EmitResult "XL-257 UNLOCK_ONE_TO_NULL ERR=" & CStr(errNo)
+    Close #f
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifyModuleUdtDeclarationOrder()
