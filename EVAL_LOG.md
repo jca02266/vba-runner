@@ -867,12 +867,13 @@
 | EV-00964 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | ローカルAs New状態の再生成分離 |
 | EV-00965 | FZ-BUILTIN | verified-no-bug | 1 | AscとChrの非ASCIIコード境界 |
 | EV-00966 | FZ-BUILTIN | fixed | 1 | InStr空検索の開始位置契約 |
+| EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 392 |
+| fixed | 393 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 464 |
@@ -883,4 +884,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-BUILTIN-157 | 2 | queued | InStr系入力分類とInStrRev/Replaceの空検索境界 | yes |
+| (none) | | | | |
