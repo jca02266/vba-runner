@@ -166,3 +166,16 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/financial-invalid-matrix.test.ts
+  - id: FZ-COVERAGE-20260823-013
+    title: Lock and Unlock Null record-range coercion
+    status: queued
+    priority: 1
+    focus: Lock/Unlockのrecordrange境界におけるNullのVBA数値変換とError 94
+    priorCauseKey: lock-range-coercion-bypasses-vba-null-error
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/lock-unlock.test.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/lock-unlock.test.ts
