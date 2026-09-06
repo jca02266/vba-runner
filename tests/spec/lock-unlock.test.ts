@@ -135,5 +135,20 @@ console.log('[PASS] Sequential invalid Lock ranges raise Permission denied');
     `);
     assert.strictEqual(ev.callProcedure('CrossHandleLock', []), 7000,
         'overlapping Shared handles raise 70 and Close releases the range');
-    console.log('[PASS] Cross-handle Lock registry');
+console.log('[PASS] Cross-handle Lock registry');
+
+for (const operation of ['Lock #1, Null To 2', 'Unlock #1, 1 To Null']) {
+    const source = String.raw`Function TestNullRange() As Long
+        Open "C:\ledger\null-range.dat" For Random As #1 Len = 4
+        On Error Resume Next
+        ${operation}
+        TestNullRange = Err.Number
+        Close #1
+        On Error GoTo 0
+    End Function`;
+    const ev = evalVba(source);
+    assert.strictEqual(ev.callProcedure('TestNullRange', []), 13,
+        `${operation} converts Null with VBA Type mismatch Error 13`);
+}
+console.log('[PASS] Lock/Unlock Null range coercion');
 }

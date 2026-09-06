@@ -4537,8 +4537,8 @@ export class Evaluator {
     ): { start: number, end: number, key: string } {
         const requested = range
             ? {
-                start: range.start ? Number(this.evaluateExpression(range.start)) : undefined,
-                end: range.end ? Number(this.evaluateExpression(range.end)) : undefined,
+                start: range.start ? this.toVbaNumber(this.evaluateExpression(range.start)) : undefined,
+                end: range.end ? this.toVbaNumber(this.evaluateExpression(range.end)) : undefined,
             }
             : undefined;
         const key = requested
