@@ -1402,3 +1402,11 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - spec/MS-VBAL.txt
+  - id: FZ-BUILTIN-157
+    title: 検索組み込み空入力契約の共通化
+    status: queued
+    priority: 2
+    focus: InStr系入力分類とInStrRev/Replaceの空検索境界
+    priorCauseKey: builtin-search-empty-contract
+    coverageTargets:
+      - src/engine/builtins.ts

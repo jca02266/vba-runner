@@ -857,26 +857,30 @@
 | EV-00954 | FZ-LSP-20260823 | fixed | 1 | クラスConstの型環境登録 |
 | EV-00955 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュールUDT前方宣言の初期化不変性 |
 | EV-00956 | META-DECLARATION-ORDER-20260904 | fixed | 1 | Enumモジュール変数の宣言順不変性 |
-| EV-00957 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | Enum配列の既定値と要素メタデータ |
+| EV-00957 | META-DECLARATION-ORDER-20260904 | fixed | 1 | Enum配列の既定値と要素メタデータ |
 | EV-00958 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | As Newクラス変数の宣言順不変性 |
-| EV-00959 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | モジュール間型メタデータ汚染 |
+| EV-00959 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュール間型メタデータ汚染 |
 | EV-00960 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | Enum追加ロード経路の既定値 |
-| EV-00961 | META-DECLARATION-ORDER-20260904 | bug-found | 1 | モジュール間Private Enum可視性 |
+| EV-00961 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュール間Private Enum可視性 |
+| EV-00962 | META-DECLARATION-ORDER-20260904 | fixed | 1 | モジュール間As New遅延状態の分離 |
+| EV-00963 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | As New外部COM状態の所有スコープ |
+| EV-00964 | META-DECLARATION-ORDER-20260904 | verified-no-bug | 1 | ローカルAs New状態の再生成分離 |
+| EV-00965 | FZ-BUILTIN | verified-no-bug | 1 | AscとChrの非ASCIIコード境界 |
+| EV-00966 | FZ-BUILTIN | fixed | 1 | InStr空検索の開始位置契約 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 3 |
-| fixed | 387 |
+| fixed | 392 |
 | known-limit | 5 |
 | retired | 2 |
-| verified-no-bug | 461 |
+| verified-no-bug | 464 |
 
-横展開未解決経路: 604、実Excel待ち評価: 0
+横展開未解決経路: 607、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-157 | 2 | queued | InStr系入力分類とInStrRev/Replaceの空検索境界 | yes |

@@ -2,3 +2,8 @@
   evaluationId: EV-00966
   status: bug-found
   occurredAt: '2026-09-06T09:21:45.118Z'
+- candidateId: FZ-BUILTIN-156
+  evaluationId: EV-00966
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-06T09:23:24.406Z'
