@@ -159,7 +159,20 @@ End Function
     // 同じシードで Randomize すれば同じ値が得られる
     const r2 = runFunc(code, 'GetRndAfterRandomize') as number;
     assert.strictEqual(r1, r2, '同一シードで同じ値');
-    console.log('[PASS] Randomize');
+console.log('[PASS] Randomize');
+
+// Excel/VBAの再現可能なRandomize系列（Rndの負数呼び出し直後）
+const randomizeSequence = String.raw`Function GetRandomizeSequence() As String
+    Dim result As String
+    Rnd -1
+    Randomize 1
+    result = CStr(Rnd()) & "," & CStr(Rnd()) & "," & CStr(Rnd())
+    GetRandomizeSequence = result
+End Function`;
+const randomizeResult = runFunc(randomizeSequence, 'GetRandomizeSequence') as string;
+assert.strictEqual(randomizeResult, '0.3335753083229065,0.06816387176513672,0.593829333782196',
+    'Rnd(-1)後のRandomize 1系列');
+console.log('[PASS] Randomize numeric seed mapping');
 }
 
 // --- 三角関数・逆三角関数の組み合わせ確認 ---

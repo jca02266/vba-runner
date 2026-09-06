@@ -780,6 +780,7 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
 
     const rndModulus = 0x1000000;
     const rndBits = new DataView(new ArrayBuffer(4));
+    const randomizeBits = new DataView(new ArrayBuffer(8));
     let rndSeed = 327680;
     let lastRnd = Math.fround(rndSeed / rndModulus);
     const nextRndSeed = (seed: number): number =>
@@ -812,11 +813,19 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     ctx.reg('rnd', rndFunc, [{ name: 'Number', optional: true }]);
     ctx.reg('randomize', (val?: any) => {
         const n = normalizeRandomArg(val);
-        const seed = (n === undefined)
-            ? (Date.now() % rndModulus)
-            : (Math.round(Math.abs(n) * 1000) % rndModulus);
-        if (!Number.isFinite(seed)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
-        setRndSeed(seed);
+        if (n === undefined) {
+            setRndSeed(Date.now() % rndModulus);
+            return;
+        }
+        if (!Number.isFinite(n)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+        // VBA stores the high 32 bits of the Double seed after a byte
+        // rearrangement, while retaining the state byte/word that Randomize
+        // is specified to preserve.  Multiplying the value by 1000 loses
+        // this contract (for example, Randomize 1 after Rnd(-1)).
+        randomizeBits.setFloat64(0, n, true);
+        const high = randomizeBits.getUint32(4, true);
+        const mapped = (((high & 0xffff) << 8) ^ ((high >>> 8) & 0xffff00)) >>> 0;
+        setRndSeed(mapped | (rndSeed & 0xff0000ff));
     }, [{ name: 'Number', optional: true }]);
 }
 
