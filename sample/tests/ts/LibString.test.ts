@@ -57,7 +57,7 @@ function r(name: string, ...args: any[]): any {
 {
     assert.strictEqual(r('Contains', 'hello world', 'lo wo'),  -1, '部分文字列あり');
     assert.strictEqual(r('Contains', 'hello world', 'xyz'),     0, '部分文字列なし');
-    assert.strictEqual(r('Contains', 'hello', ''),             -1, '空文字は常に含む');
+    assert.strictEqual(r('Contains', 'hello', ''),              0, 'InStr準拠で空文字は非包含');
     console.log('[PASS] Contains');
 }
 

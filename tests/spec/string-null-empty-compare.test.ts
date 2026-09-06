@@ -22,7 +22,7 @@ End Sub
 ev.callProcedure('Test', []);
 
 assert.strictEqual(ev.env.get('instrnull'), vbaNull, 'InStr Null propagates Null');
-assert.strictEqual(ev.env.get('instrempty'), 1, 'InStr Empty matches an empty substring');
+assert.strictEqual(ev.env.get('instrempty'), 0, 'InStr Empty uses the empty-search contract');
 assert.strictEqual(ev.env.get('replaceempty'), 'abc', 'Replace Empty leaves the source unchanged');
 assert.strictEqual(ev.env.get('strnull'), vbaNull, 'StrComp Null propagates Null');
 assert.strictEqual(ev.env.get('strempty'), 0, 'StrComp Empty equals an empty string');
