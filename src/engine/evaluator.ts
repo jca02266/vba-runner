@@ -5427,7 +5427,7 @@ export class Evaluator {
                 initialValue = createAutoInstancePlaceholder(decl.objectType);
                 const autoOwner = this.currentProcedureName
                     ? this.env
-                    : (this.currentSourceModule && decl.scope !== 'public' && decl.scope !== 'friend'
+                    : (this.currentSourceModule
                         ? this.getOrCreateModuleEnv(this.currentSourceModule)
                         : this.env);
                 this.registerAutoInstanceVar(autoOwner, varName, decl.objectType);
