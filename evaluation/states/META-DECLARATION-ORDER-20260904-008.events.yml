@@ -2,3 +2,8 @@
   evaluationId: EV-00962
   status: bug-found
   occurredAt: '2026-09-05T22:57:25.665Z'
+- candidateId: META-DECLARATION-ORDER-20260904-008
+  evaluationId: EV-00962
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-06T07:24:58.556Z'
