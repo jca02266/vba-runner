@@ -1386,3 +1386,19 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-BUILTIN-155
+    title: AscとChrの非ASCIIコード境界
+    status: queued
+    priority: 2
+    focus: Chrのコードページ境界とAscの実装定義領域
+    coverageTargets:
+      - src/engine/builtins.ts
+      - scripts/metamorphic-test.ts
+  - id: FZ-BUILTIN-156
+    title: InStr空検索の開始位置契約
+    status: queued
+    priority: 1
+    focus: InStr/InStrBの空文字列と開始位置
+    coverageTargets:
+      - src/engine/builtins.ts
+      - spec/MS-VBAL.txt

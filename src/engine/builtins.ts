@@ -925,6 +925,10 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         if (startNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
         if (s1 === vbaNull || s2 === vbaNull) return vbaNull;
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
+        // VBA's empty-pattern contract differs from JavaScript indexOf: the
+        // two-argument form returns 0, while the start-position form returns
+        // the supplied start (Arg1).
+        if (str2.length === 0) return args.length >= 3 ? startNum : 0;
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startNum - 1) : str1.indexOf(str2, startNum - 1);
         return idx === -1 ? 0 : idx + 1;
@@ -946,6 +950,7 @@ export function registerStringFunctions(ctx: StdlibCtx): void {
         const str1 = vbaToString(s1 ?? ''), str2 = vbaToString(s2 ?? '');
         const startByteNum = startByte;
         if (startByteNum < 1) ctx.throwError(VbaErrorCode.INVALID_PROCEDURE_CALL, "Invalid procedure call or argument");
+        if (str2.length === 0) return args.length >= 3 ? startByteNum : 0;
         const startChar = Math.floor((startByteNum - 1) / 2) + 1;
         const isText = (comp === 1) || (comp === undefined && ctx.compMode === 'Text');
         const idx = isText ? str1.toLowerCase().indexOf(str2.toLowerCase(), startChar - 1) : str1.indexOf(str2, startChar - 1);

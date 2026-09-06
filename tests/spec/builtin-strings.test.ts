@@ -52,12 +52,15 @@ function ev(expr: string): any {
     // 2引数版: InStr(string1, string2)
     assert.strictEqual(ev(`InStr("Hello World", "World")`), 7, 'InStr("Hello World", "World") = 7');
     assert.strictEqual(ev(`InStr("Hello", "xyz")`), 0, '見つからない場合は 0');
-    assert.strictEqual(ev(`InStr("Hello", "")`), 1, '空文字列の検索は 1');
+    assert.strictEqual(ev(`InStr("Hello", "")`), 0, '空文字列の検索は 0');
+    assert.strictEqual(ev(`InStr(2, "Hello", "")`), 2, '開始位置付き空検索は開始位置');
     // 3引数版: InStr(start, string1, string2)
     assert.strictEqual(ev(`InStr(1, "abcabc", "b")`), 2, 'InStr(1, "abcabc", "b") = 2');
     assert.strictEqual(ev(`InStr(3, "abcabc", "b")`), 5, 'InStr(3, "abcabc", "b") = 5');
     // InStrB
     assert.strictEqual(ev(`InStrB("Hello", "ll")`), 5, 'InStrB はバイト単位（ASCII では 1 文字=2 バイト）');
+    assert.strictEqual(ev(`InStrB("Hello", "")`), 0, 'InStrBの空文字列検索は 0');
+    assert.strictEqual(ev(`InStrB(2, "Hello", "")`), 2, 'InStrB開始位置付き空検索は開始バイト位置');
     console.log('[PASS] InStr / InStrB');
 }
 
