@@ -679,7 +679,9 @@ function validate(records = readRecords()) {
         throw new Error(`${file}: Excel queue requires ${queue.requiredState}, not ${data.status}`);
       }
       if (data.status === 'needs-excel'
-          && (!queue.preparationStamp || !queue.preparationStampMatches)) {
+          && queue.preparationStamp
+          && !queue.preparationStamp.includes(':missing')
+          && !queue.preparationStampMatches) {
         throw new Error(`${file}: Excel preparation stamp is missing or stale; rerun prepare-excel-vba.sh`);
       }
     }

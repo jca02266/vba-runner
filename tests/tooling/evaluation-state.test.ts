@@ -559,11 +559,21 @@ try {
     const stalePreparation = run('validate');
     assert.notEqual(stalePreparation.status, 0);
     assert.match(stalePreparation.stderr, /Excel preparation stamp is missing or stale/);
+
+    // A clean checkout does not contain the machine-local preparation stamp;
+    // validation must still allow the committed needs-excel record so the
+    // development-side preparation can be performed before Windows runs it.
+    unlinkSync(preparationStamp);
+    const unprepared = run('validate');
+    assert.equal(unprepared.status, 0, unprepared.stderr);
 } finally {
     if (queueResultBody === null) unlinkSync(queueResult);
     else writeFileSync(queueResult, queueResultBody);
-    if (preparationStampBody === null) unlinkSync(preparationStamp);
-    else writeFileSync(preparationStamp, preparationStampBody);
+    if (preparationStampBody === null) {
+        if (existsSync(preparationStamp)) unlinkSync(preparationStamp);
+    } else {
+        writeFileSync(preparationStamp, preparationStampBody);
+    }
     if (existsSync(readyState)) unlinkSync(readyState);
 }
 
