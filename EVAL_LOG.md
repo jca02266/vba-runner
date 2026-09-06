@@ -873,7 +873,7 @@
 | EV-00970 | FZ-COVERAGE-20260823 | needs-excel | 1 | Lock/UnlockのNull record-range変換 |
 | EV-00971 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのVariant数値強制と算術経路の真値表現 |
 | EV-00972 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化 |
-| EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Eachの配列・Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
+| EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
 
 ## 状態集計
 
@@ -891,4 +891,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-COVERAGE-20260823-017 | 1 | queued | For Each配列制御変数のVariant静的要件 | yes |

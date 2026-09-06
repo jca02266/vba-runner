@@ -212,10 +212,21 @@ items:
     title: For Each control-variable coercion error boundary
     status: queued
     priority: 1
-    focus: For Eachの配列・Collection制御変数Let強制とOn Error Resume Nextの継続位置
+    focus: For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置
     sourceReview:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
+  - id: FZ-COVERAGE-20260823-017
+    title: For Each array control-variable static type boundary
+    status: queued
+    priority: 1
+    focus: For Each配列制御変数のVariant静的要件
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+      - tests/spec/for-each.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts

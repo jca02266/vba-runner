@@ -173,14 +173,6 @@ End Sub
 
 Private Sub VerifyForEachControlCoercion()
     Dim value As Long, output As String, items As Collection
-    On Error Resume Next
-    Err.Clear
-    output = ""
-    For Each value In Array(1, "bad", 3)
-        output = output & CStr(value) & ","
-    Next
-    EmitResult "XL-258 ARRAY=" & output & "ERR=" & CStr(Err.Number)
-
     Err.Clear
     output = ""
     Set items = New Collection
