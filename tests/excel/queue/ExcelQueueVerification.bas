@@ -161,10 +161,16 @@ Public Sub RunExcelQueueVerification()
     VerifyModuleUdtDeclarationOrder
     VerifyEnumDeclarationOrder
     VerifyEnumArrayDefaults
+    VerifyRndSeed
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyRndSeed()
+    EmitResult "XL-255 RND_NEG=" & CStr(Rnd(-1)) & _
+        " RND_ZERO=" & CStr(Rnd(0)) & " RND_NEXT=" & CStr(Rnd())
 End Sub
 
 Private Sub VerifyModuleUdtDeclarationOrder()

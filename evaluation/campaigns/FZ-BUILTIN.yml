@@ -1410,3 +1410,11 @@ items:
     priorCauseKey: builtin-search-empty-contract
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-BUILTIN-158
+    title: Rnd負数シードの決定論的結果
+    status: queued
+    priority: 1
+    focus: Rnd負数シードとRnd(0)・無引数の状態遷移
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/math-module.test.ts
