@@ -868,20 +868,22 @@
 | EV-00965 | FZ-BUILTIN | verified-no-bug | 1 | AscとChrの非ASCIIコード境界 |
 | EV-00966 | FZ-BUILTIN | fixed | 1 | InStr空検索の開始位置契約 |
 | EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
+| EV-00968 | FZ-BUILTIN | bug-found | 1 | Rnd負数シードと状態遷移 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 393 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 464 |
 
-横展開未解決経路: 607、実Excel待ち評価: 0
+横展開未解決経路: 608、実Excel待ち評価: 0
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-BUILTIN-159 | 2 | queued | Randomizeの数値・省略入力と後続Rnd系列 | yes |

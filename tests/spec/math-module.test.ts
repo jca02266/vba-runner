@@ -99,7 +99,7 @@ Function T(n As Double) As Double: T = Log(n): End Function
 // --- Rnd ---
 {
     // Rnd() は [0, 1) の範囲に収まる
-    const code = `
+    const code = String.raw`
 Function GetRnd() As Double: GetRnd = Rnd(): End Function
 Function GetRndArg(n As Double) As Double: GetRndArg = Rnd(n): End Function
 Function GetRndZero() As Double: GetRndZero = Rnd(0): End Function
@@ -121,7 +121,11 @@ Function GetRndZero() As Double: GetRndZero = Rnd(0): End Function
     const neg1a = ev.callProcedure('GetRndArg', [-1]) as number;
     const neg1b = ev.callProcedure('GetRndArg', [-1]) as number;
     assert.strictEqual(neg1a, neg1b, 'Rnd(-1) は同じ値を繰り返す');
-    assert.strictEqual(neg1a >= 0 && neg1a < 1, true, 'Rnd(負) も [0, 1) 範囲');
+    assert.strictEqual(neg1a, 0.2240070104598999, 'Rnd(-1) はExcelの負数シード値');
+    assert.strictEqual(ev.callProcedure('GetRndZero', []), neg1b,
+        '負数シード後のRnd(0)は直前値を返す');
+    assert.strictEqual(ev.callProcedure('GetRnd', []), 0.035845816135406494,
+        '負数シード後のRnd()は同じ系列の次値を返す');
     console.log('[PASS] Rnd');
 }
 

@@ -778,41 +778,45 @@ export function registerMathFunctions(ctx: StdlibCtx): void {
     }, [{ name: 'Number' }]);
     ctx.reg('tan', (val: any) => val === vbaNull ? vbaNull : Math.tan(ctx.toVbaNumber(val)), [{ name: 'Number' }]);
 
-    let rndSeed = 0.5;
-    let lastRnd = 0.5;
-    let rndInitialized = false;
+    const rndModulus = 0x1000000;
+    const rndBits = new DataView(new ArrayBuffer(4));
+    let rndSeed = 327680;
+    let lastRnd = Math.fround(rndSeed / rndModulus);
+    const nextRndSeed = (seed: number): number =>
+        (Math.imul(seed & 0xffffff, 0x43fd43fd) + 0xc39ec3) & 0xffffff;
+    const setRndSeed = (seed: number): number => {
+        rndSeed = seed & 0xffffff;
+        lastRnd = Math.fround(rndSeed / rndModulus);
+        return lastRnd;
+    };
     const normalizeRandomArg = (val?: any): number | undefined => {
         if (val === undefined) return undefined;
         if (val === vbaNull) ctx.throwError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
         return ctx.toVbaNumber(val);
     };
     const rndFunc = (val?: any) => {
-        if (!rndInitialized) { rndSeed = 0.5; rndInitialized = true; }
         const n = normalizeRandomArg(val);
-        if (n === undefined || n > 0) {
-            rndSeed = (rndSeed * 214013 + 2531011) % 4294967296;
-            lastRnd = rndSeed / 4294967296;
+        const single = n === undefined ? undefined : Math.fround(n);
+        if (single === undefined || single > 0) {
+            return setRndSeed(nextRndSeed(rndSeed));
+        } else if (single === 0) {
             return lastRnd;
-        } else if (n === 0) {
-            return lastRnd;
-        } else if (n < 0) {
-            const s = Math.abs(n) * 9301 + 49297;
-            if (!Number.isFinite(s)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
-            lastRnd = (s % 233280) / 233280;
-            return lastRnd;
+        } else if (single < 0) {
+            if (!Number.isFinite(single)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
+            rndBits.setFloat32(0, single, true);
+            const bits = rndBits.getUint32(0, true);
+            return setRndSeed(nextRndSeed(bits + (bits >>> 24)));
         }
         return lastRnd;
     };
     ctx.reg('rnd', rndFunc, [{ name: 'Number', optional: true }]);
     ctx.reg('randomize', (val?: any) => {
         const n = normalizeRandomArg(val);
-        rndInitialized = true;
         const seed = (n === undefined)
-            ? (Date.now() % 4294967296)
-            : (Math.round(Math.abs(n) * 1000) % 4294967296);
+            ? (Date.now() % rndModulus)
+            : (Math.round(Math.abs(n) * 1000) % rndModulus);
         if (!Number.isFinite(seed)) ctx.throwError(VbaErrorCode.OVERFLOW, 'Overflow');
-        rndSeed = seed;
-        lastRnd = rndSeed / 4294967296;
+        setRndSeed(seed);
     }, [{ name: 'Number', optional: true }]);
 }
 

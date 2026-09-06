@@ -1418,3 +1418,12 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - tests/spec/math-module.test.ts
+  - id: FZ-BUILTIN-159
+    title: Randomize入力別シード写像
+    status: queued
+    priority: 2
+    focus: Randomizeの数値・省略入力と後続Rnd系列
+    priorCauseKey: rnd-state-owner-lacks-single-vba-rng-transition
+    coverageTargets:
+      - src/engine/builtins.ts
+      - tests/spec/math-module.test.ts

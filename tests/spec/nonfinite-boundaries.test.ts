@@ -1,6 +1,6 @@
 import { evalVBASingle, assert } from '../../test-libs/test-runner';
 
-const probe = evalVBASingle(`
+const probe = evalVBASingle(String.raw`
     Function ProbeNonFinite() As String
         Dim result As String, value As Variant
         On Error Resume Next
@@ -37,6 +37,6 @@ const probe = evalVBASingle(`
     End Function
 `);
 
-assert.strictEqual(probe.callProcedure('ProbeNonFinite', []), '6,0,0.000614211312495172,6,6,6,6,6,6,6,6',
+assert.strictEqual(probe.callProcedure('ProbeNonFinite', []), '6,0,0.7055475115776062,6,6,6,6,6,6,6,6',
     'non-finite random, financial, and date results become VBA errors');
 console.log('[PASS] non-finite builtin boundaries');
