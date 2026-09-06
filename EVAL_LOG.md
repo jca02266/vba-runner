@@ -868,14 +868,13 @@
 | EV-00965 | FZ-BUILTIN | verified-no-bug | 1 | AscとChrの非ASCIIコード境界 |
 | EV-00966 | FZ-BUILTIN | fixed | 1 | InStr空検索の開始位置契約 |
 | EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
-| EV-00968 | FZ-BUILTIN | bug-found | 1 | Rnd負数シードと状態遷移 |
+| EV-00968 | FZ-BUILTIN | fixed | 1 | Rnd負数シードと状態遷移 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 393 |
+| fixed | 394 |
 | known-limit | 5 |
 | retired | 2 |
 | verified-no-bug | 464 |
