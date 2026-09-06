@@ -1,0 +1,9 @@
+- candidateId: FZ-COVERAGE-20260823-015
+  evaluationId: EV-00972
+  status: in-progress
+  occurredAt: '2026-09-06T23:26:36.876Z'
+- candidateId: FZ-COVERAGE-20260823-015
+  evaluationId: EV-00972
+  status: fixed
+  fromStatus: in-progress
+  occurredAt: '2026-09-06T23:30:06.901Z'

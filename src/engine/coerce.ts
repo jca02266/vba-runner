@@ -196,6 +196,7 @@ export function vbaToString(val: any): string {
     if (val === vbaEmpty) return '';
     if (val === vbaNothing) throwVbaError(VbaErrorCode.OBJECT_VARIABLE_NOT_SET);
     if (Array.isArray(val)) throwVbaError(VbaErrorCode.TYPE_MISMATCH);
+    if (typeof val === 'boolean') return val ? 'True' : 'False';
     // Excel-like objects explicitly opt in to a default Value property.  In
     // VBA value contexts such as CStr(Range("A1")), the property's value is
     // coerced rather than the JavaScript object identity.
@@ -233,6 +234,7 @@ export function vbaToDisplayString(val: any): string {
     if (val === vbaNull) return 'Null';
     if (val === vbaNothing) return 'Nothing';
     if (val instanceof VbaBoolean) return val.toString();   // "True" / "False"
+    if (typeof val === 'boolean') return val ? 'True' : 'False';
     if (val instanceof VbaDate) return val.toString();
     if (val instanceof VbaErrorValue) return val.toString();
     if (val instanceof VbaDecimal) return val.toString();

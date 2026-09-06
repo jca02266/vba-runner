@@ -144,6 +144,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val === vbaNull) return 1;
         if (val === vbaNothing) return 9;
         if (val instanceof VbaBoolean) return 11;
+        if (typeof val === 'boolean') return 11;
         if (val instanceof VbaDate) return 7;
         if (val === vbaMissing || val instanceof VbaErrorValue) return 10;
         if (Array.isArray(val)) {
@@ -176,6 +177,7 @@ export function registerInformationFunctions(ctx: StdlibCtx): void {
         if (val === vbaNothing) return 'Nothing';
         if (val === vbaMissing || val instanceof VbaErrorValue) return 'Error';
         if (val instanceof VbaBoolean) return 'Boolean';
+        if (typeof val === 'boolean') return 'Boolean';
         if (val instanceof VbaDate) return 'Date';
         if (val instanceof VbaCurrency) return 'Currency';
         if (typeof val === 'number') return 'Double';

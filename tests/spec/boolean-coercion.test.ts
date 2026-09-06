@@ -58,12 +58,20 @@ console.log('--- Starting Boolean Coercion Tests ---');
             result = value
             AssignBoolean = result
         End Function
+        Function Present(value As Variant) As String
+            Present = CStr(value) & "|" & TypeName(value) & "|" & CStr(VarType(value))
+        End Function
+        Function UnaryMinus(value As Variant) As Long
+            UnaryMinus = -value
+        End Function
     `;
     assert.strictEqual(runFunc(code, 'ToInt', [true]), -1, 'host true → CInt -1');
     assert.strictEqual(runFunc(code, 'ToInt', [false]), 0, 'host false → CInt 0');
     assert.strictEqual(runFunc(code, 'ToLong', [true]), -1, 'host true → CLng -1');
     assert.strictEqual(runFunc(code, 'AddZero', [true]), -1, 'host true → arithmetic -1');
     assert.strictEqual(runFunc(code, 'AssignBoolean', [true]), vbaTrue, 'host true → Boolean singleton');
+    assert.strictEqual(runFunc(code, 'Present', [true]), 'True|Boolean|11', 'host true → VBA presentation/type');
+    assert.strictEqual(runFunc(code, 'UnaryMinus', [true]), 1, 'host true → unary minus 1');
     console.log('[PASS] ホストBooleanの数値強制');
 }
 

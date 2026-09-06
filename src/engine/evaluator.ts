@@ -10769,6 +10769,7 @@ export class Evaluator {
                 if (typeof argument === 'boolean') return argument ? vbaFalse : vbaTrue;
                 return ~argument;
             case '-':
+                if (typeof argument === 'boolean') return argument ? 1 : 0;
                 if (argument instanceof VbaCurrency) return new VbaCurrency(-argument.internal);
                 if (argument instanceof VbaDecimal) return new VbaDecimal(-argument.mantissa, argument.scale);
                 return -argument;
@@ -10776,6 +10777,7 @@ export class Evaluator {
                 // JavaScript の単項 + は BigInt を受け付けない。LongLong は
                 // 値を変更しない単項演算としてそのまま保持する。
                 if (typeof argument === 'bigint') return argument;
+                if (typeof argument === 'boolean') return argument ? -1 : 0;
                 return +argument;
             default:
                 throw new Error(`Execution error: Unknown unary operator ${expr.operator}`);
