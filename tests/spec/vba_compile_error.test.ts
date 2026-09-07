@@ -120,6 +120,44 @@ let __pass__ = 0, __fail__ = 0;
     }
 }
 
+// [preproc] for_each_collection_typed_control_variable
+// VBA: コンパイル エラー: For Each に指定する変数はバリアント型またはオブジェクト型でなければなりません。
+// VBA error line (within Sub body): 4
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+      
+      Private Function MyFuncHasArg(x)
+      End Function
+      
+      Private Function MyFuncNoArg()
+      End Function
+      
+      Private Sub MySubHasArg(x)
+      End Sub
+      
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+      
+      Sub __test__()
+        Dim items As Collection, value As Long
+        Set items = New Collection
+        items.Add 1
+        For Each value In items
+        Next value
+      End Sub
+    `, '__test__', 22, /For Each control variable must be Variant or Object|variant.*object|バリアント型またはオブジェクト型/i, 'for_each_collection_typed_control_variable');
+        console.log('[PASS] for_each_collection_typed_control_variable');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] for_each_collection_typed_control_variable:', e.message);
+        __fail__++;
+    }
+}
+
 // [parse] assign_func_arg_no_parens
 // VBA: コンパイルエラー: 構文エラー
 // VBA error line (within Sub body): 2
@@ -560,20 +598,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-
+      
       Private Function MyFuncHasArg(x)
       End Function
-
+      
       Private Function MyFuncNoArg()
       End Function
-
+      
       Private Sub MySubHasArg(x)
       End Sub
-
+      
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-
+      
       Private Function ShadowTarget(value As Variant) As Long
           ShadowTarget = 1
       End Function

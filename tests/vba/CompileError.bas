@@ -97,6 +97,19 @@ Sub Case_for_each_next_control_variable_mismatch()
     Next value ' @error
 End Sub
 
+' CASE: for_each_collection_typed_control_variable
+' TYPE: preproc
+' VBA: コンパイル エラー: For Each に指定する変数はバリアント型またはオブジェクト型でなければなりません。
+' RUNNER: /For Each control variable must be Variant or Object|variant.*object|バリアント型またはオブジェクト型/i
+' NOTE: Collectionを列挙する制御変数はVariantまたはObjectでなければならない。
+Sub Case_for_each_collection_typed_control_variable()
+    Dim items As Collection, value As Long
+    Set items = New Collection
+    items.Add 1
+    For Each value In items ' @error
+    Next value
+End Sub
+
 ' CASE: assign_func_arg_no_parens
 ' TYPE: parse
 ' VBA: コンパイルエラー: 構文エラー

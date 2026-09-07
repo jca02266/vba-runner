@@ -2213,6 +2213,11 @@ export class Evaluator {
                     'For Each control variable on arrays must be Variant',
                     findings.forEachArrayControl.line, proc.moduleName ?? undefined);
             }
+            if (findings.forEachCollectionControl) {
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                    'For Each control variable must be Variant or Object',
+                    findings.forEachCollectionControl.line, proc.moduleName ?? undefined);
+            }
             if (findings.subAsValue) {
                 this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     `Function or variable expected: '${findings.subAsValue.name}'`,
@@ -2311,6 +2316,7 @@ export class Evaluator {
     private collectPrecheckFindings(proc: ProcedureDeclaration): {
         nextControlVariable?: { expected: string; actual: string; line?: number };
         forEachArrayControl?: { line?: number };
+        forEachCollectionControl?: { line?: number };
         subAsValue?: { name: string; line?: number };
         literalOverflow?: { line?: number; targetType: string };
         undefinedCalls: UndefinedProcError[];
@@ -2331,6 +2337,7 @@ export class Evaluator {
         } as {
             nextControlVariable?: { expected: string; actual: string; line?: number };
             forEachArrayControl?: { line?: number };
+            forEachCollectionControl?: { line?: number };
             subAsValue?: { name: string; line?: number };
             literalOverflow?: { line?: number; targetType: string };
             undefinedCalls: UndefinedProcError[];
@@ -2948,6 +2955,17 @@ export class Evaluator {
                         const arrayInfo = arrayDeclarations.get(collectionName);
                         if (arrayInfo && controlType && controlType !== 'variant') {
                             findings.forEachArrayControl = {
+                                line: s.variable.loc?.start.line ?? s.loc?.start.line,
+                            };
+                        }
+                    }
+                    if (!findings.forEachCollectionControl && s.collection.type === 'Identifier') {
+                        const collectionName = (s.collection as Identifier).name.toLowerCase();
+                        const collectionType = variableTypes.get(collectionName)?.toLowerCase();
+                        const controlType = variableTypes.get(s.variable.name.toLowerCase())?.toLowerCase();
+                        const scalarTypes = new Set(['byte', 'integer', 'long', 'longlong', 'single', 'double', 'currency', 'decimal', 'date', 'string', 'boolean']);
+                        if (collectionType === 'collection' && controlType && scalarTypes.has(controlType)) {
+                            findings.forEachCollectionControl = {
                                 line: s.variable.loc?.start.line ?? s.loc?.start.line,
                             };
                         }

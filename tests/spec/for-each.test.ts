@@ -220,3 +220,20 @@ assert.throws(() => runFunc(typedArrayControlCode, 'InvalidArrayControl'),
     /For Each control variable on arrays must be Variant|型が一致|Variant/i,
     '配列のFor Each制御変数はVariant必須');
 console.log('[PASS] 配列For Each制御変数のVariant静的要件');
+
+// --- 10. CollectionのFor Each制御変数もVariant/Objectが必須 ---
+const typedCollectionControlCode = String.raw`
+Function InvalidCollectionControl() As Long
+    Dim items As Collection
+    Dim value As Long
+    Set items = New Collection
+    items.Add 1
+    For Each value In items
+        InvalidCollectionControl = InvalidCollectionControl + value
+    Next value
+End Function
+`;
+assert.throws(() => runFunc(typedCollectionControlCode, 'InvalidCollectionControl'),
+    /For Each control variable must be Variant or Object|型が一致|Variant/i,
+    'CollectionのFor Each制御変数はVariantまたはObject必須');
+console.log('[PASS] Collection For Each制御変数のVariant/Object静的要件');
