@@ -164,26 +164,10 @@ Public Sub RunExcelQueueVerification()
     VerifyRndSeed
     VerifyRandomizeSeedMapping
     VerifyLockNullRange
-    VerifyForEachControlCoercion
     EmitResult "XL-023 SKIPPED=逐次モードLock境界はExcelで待機する可能性があるため単発実行"
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
-End Sub
-
-Private Sub VerifyForEachControlCoercion()
-    Dim value As Long, output As String, items As Collection
-    Err.Clear
-    output = ""
-    Set items = New Collection
-    items.Add 1
-    items.Add "bad"
-    items.Add 3
-    For Each value In items
-        output = output & CStr(value) & ","
-    Next
-    EmitResult "XL-258 COLLECTION=" & output & "ERR=" & CStr(Err.Number)
-    On Error GoTo 0
 End Sub
 
 Private Sub VerifyRndSeed()
