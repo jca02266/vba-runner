@@ -1,6 +1,17 @@
 id: ROOT-CAUSE
 method: historical-migration
 items:
+  - id: RCA-LOCK-001
+    title: Lock/Unlock Null数値境界の横展開確認
+    status: queued
+    priority: 1
+    focus: Lock/Unlock以外のNull数値境界と共通変換責務の確認
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/builtins.ts
+      - tests/spec/lock-unlock.test.ts
   - id: RCA-EXCEL-011
     title: MIRR金利境界・計算精度横展開
     status: known-limit
