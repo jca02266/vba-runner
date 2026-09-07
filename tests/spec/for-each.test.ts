@@ -205,3 +205,18 @@ assert.strictEqual(runFunc(colFromFuncCode, 'F'), 'pqr', 'Set = New Collection �
 console.log('[PASS] Set = New Collection から返した Collection の For Each');
 
 console.log('\n✅ For Each Statement: 全テスト通過');
+
+// --- 9. 配列のFor Each制御変数はVariantでなければならない ---
+const typedArrayControlCode = String.raw`
+Function InvalidArrayControl() As Long
+    Dim values(0 To 1) As Long
+    Dim value As Long
+    For Each value In values
+        InvalidArrayControl = InvalidArrayControl + value
+    Next value
+End Function
+`;
+assert.throws(() => runFunc(typedArrayControlCode, 'InvalidArrayControl'),
+    /For Each control variable on arrays must be Variant|型が一致|Variant/i,
+    '配列のFor Each制御変数はVariant必須');
+console.log('[PASS] 配列For Each制御変数のVariant静的要件');
