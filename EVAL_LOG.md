@@ -874,14 +874,13 @@
 | EV-00971 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのVariant数値強制と算術経路の真値表現 |
 | EV-00972 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化 |
 | EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
-| EV-00974 | FZ-COVERAGE-20260823 | bug-found | 1 | For Each配列制御変数のVariant静的要件 |
+| EV-00974 | FZ-COVERAGE-20260823 | fixed | 1 | For Each配列制御変数のVariant静的要件 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 397 |
+| fixed | 398 |
 | known-limit | 5 |
 | needs-excel | 2 |
 | retired | 2 |
