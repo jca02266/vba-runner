@@ -288,3 +288,16 @@ items:
     coverageTargets:
       - src/engine/coerce.ts
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260823-023
+    title: Collection For Each control-variable compile boundary
+    status: queued
+    priority: 1
+    focus: Collectionを列挙するFor Each制御変数のVariant/Object静的要件
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/vba/CompileError.bas
+      - tests/spec/for-each.test.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/vba/CompileError.bas
