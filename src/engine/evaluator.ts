@@ -4567,10 +4567,21 @@ export class Evaluator {
         mode: OpenStatement['mode'],
         range?: { start?: Expression, end?: Expression },
     ): { start: number, end: number, key: string } {
+        const evaluateRangeValue = (expression: Expression | undefined): number | undefined => {
+            if (!expression) return undefined;
+            const value = this.evaluateExpression(expression);
+            // Lock/Unlock use VBA's Invalid use of Null (Error 94) rather
+            // than allowing JavaScript's Number(Symbol) conversion to leak
+            // through as an internal error.
+            if (value === vbaNull) {
+                this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+            }
+            return this.toVbaNumber(value);
+        };
         const requested = range
             ? {
-                start: range.start ? this.toVbaNumber(this.evaluateExpression(range.start)) : undefined,
-                end: range.end ? this.toVbaNumber(this.evaluateExpression(range.end)) : undefined,
+                start: evaluateRangeValue(range.start),
+                end: evaluateRangeValue(range.end),
             }
             : undefined;
         const key = requested

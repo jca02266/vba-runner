@@ -147,8 +147,8 @@ for (const operation of ['Lock #1, Null To 2', 'Unlock #1, 1 To Null']) {
         On Error GoTo 0
     End Function`;
     const ev = evalVba(source);
-    assert.strictEqual(ev.callProcedure('TestNullRange', []), 13,
-        `${operation} converts Null with VBA Type mismatch Error 13`);
+    assert.strictEqual(ev.callProcedure('TestNullRange', []), 94,
+        `${operation} converts Null with VBA Invalid use of Null Error 94`);
 }
 console.log('[PASS] Lock/Unlock Null range coercion');
 }
