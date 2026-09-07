@@ -252,3 +252,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/error-handling.test.ts
+  - id: FZ-COVERAGE-20260823-020
+    title: Array builtin dispatch and type metadata boundary
+    status: queued
+    priority: 3
+    focus: IsArrayとTypeNameの配列先行ディスパッチおよび要素型メタデータ
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
+      - tests/spec/builtins.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/evaluator.ts
