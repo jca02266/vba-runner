@@ -276,3 +276,15 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-022
+    title: Empty value string coercion boundary
+    status: queued
+    priority: 3
+    focus: ユーザー手続き経由のEmpty値からStringへの変換
+    sourceReview:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts
+      - tests/spec/cstr.test.ts
+    coverageTargets:
+      - src/engine/coerce.ts
+      - src/engine/builtins.ts

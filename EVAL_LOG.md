@@ -879,6 +879,7 @@
 | EV-00976 | FZ-COVERAGE-20260823 | verified-no-bug |  | On Error Resume Next下のネストした手続き呼び出しにおけるErr状態と継続位置 |
 | EV-00977 | FZ-COVERAGE-20260823 | verified-no-bug |  | IsArrayとTypeNameの配列先行ディスパッチおよび要素型メタデータ |
 | EV-00978 | FZ-COVERAGE-20260823 | verified-no-bug |  | And演算子と数値トークンの空白境界およびNot比較の解析 |
+| EV-00979 | FZ-COVERAGE-20260823 | verified-no-bug |  | ユーザー手続き経由のEmpty値からStringへの変換 |
 
 ## 状態集計
 
@@ -888,7 +889,7 @@
 | known-limit | 5 |
 | needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 468 |
+| verified-no-bug | 469 |
 
 横展開未解決経路: 611、実Excel待ち評価: 2
 
