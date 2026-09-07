@@ -223,6 +223,16 @@ items:
     focus: For Each配列制御変数のVariant静的要件
     sourceReview:
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-018
+    title: Select Case reversed range boundary
+    status: queued
+    priority: 2
+    focus: Select Caseの逆順To範囲
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/select-case.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
       - spec/MS-VBAL.txt
       - tests/spec/for-each.test.ts
     coverageTargets:

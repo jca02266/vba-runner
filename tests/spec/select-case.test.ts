@@ -479,3 +479,20 @@ End Function
     assert.strictEqual(ordinary, 'equal', 'LongLong ordinary equality preserves 64-bit String digits');
     console.log('[PASS] Bug 198-A: LongLong numeric String precision');
 }
+
+// 逆順のTo範囲は空範囲として扱い、Case Elseへ進む。
+const reverseRangeCode = String.raw`
+Function SelectReverse(value As Long) As String
+    Select Case value
+        Case 5 To 1
+            SelectReverse = "range"
+        Case Else
+            SelectReverse = "other"
+    End Select
+End Function
+`;
+assert.strictEqual(runFunc(reverseRangeCode, 'SelectReverse', [3]), 'other',
+    '逆順To範囲は3を含まない');
+assert.strictEqual(runFunc(reverseRangeCode, 'SelectReverse', [5]), 'other',
+    '逆順To範囲は5を含まない');
+console.log('[PASS] Select Case reversed To range');
