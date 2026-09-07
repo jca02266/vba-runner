@@ -241,3 +241,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/for-each.test.ts
+  - id: FZ-COVERAGE-20260823-019
+    title: Nested procedure error suppression boundary
+    status: queued
+    priority: 2
+    focus: On Error Resume Next下のネストした手続き呼び出しにおけるErr状態と継続位置
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/error-handling.test.ts

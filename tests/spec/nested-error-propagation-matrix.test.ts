@@ -32,10 +32,23 @@ Function ProbePropagation() As String
 Handler:
     ProbePropagation = CStr(Err.Number)
 End Function
+
+Function DivideInChild() As Long
+    DivideInChild = 1 / 0
+End Function
+
+Function ProbeDivision() As Long
+    On Error Resume Next
+    Err.Clear
+    DivideInChild
+    ProbeDivision = Err.Number
+End Function
 `);
 
 assert.strictEqual(ev.callProcedure('ProbeCaller', []), '5:5',
     'Resume Next caller receives repeated nested procedure errors');
 assert.strictEqual(ev.callProcedure('ProbePropagation', []), '7',
     'a nested handler re-raise propagates the replacement error');
+assert.strictEqual(ev.callProcedure('ProbeDivision', []), 11,
+    'Resume Next preserves nested division-by-zero Err.Number');
 console.log('[PASS] Nested error propagation matrix');

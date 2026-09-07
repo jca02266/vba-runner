@@ -876,6 +876,7 @@
 | EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
 | EV-00974 | FZ-COVERAGE-20260823 | fixed | 1 | For Each配列制御変数のVariant静的要件 |
 | EV-00975 | FZ-COVERAGE-20260823 | verified-no-bug |  | Select Caseの逆順To範囲 |
+| EV-00976 | FZ-COVERAGE-20260823 | verified-no-bug |  | On Error Resume Next下のネストした手続き呼び出しにおけるErr状態と継続位置 |
 
 ## 状態集計
 
@@ -885,7 +886,7 @@
 | known-limit | 5 |
 | needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 465 |
+| verified-no-bug | 466 |
 
 横展開未解決経路: 611、実Excel待ち評価: 2
 
