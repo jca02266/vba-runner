@@ -87,6 +87,7 @@ Public Sub RunExcelQueueVerification()
     VerifyAppendWidthInitialColumn root & Application.PathSeparator & "XL-018-append-width.bin"
     VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
     EmitResult "XL-020 ALREADY_VERIFIED=SECONDERR=70"
+    VerifyWidthNull
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -2039,6 +2040,19 @@ Private Sub VerifyCrossHandleLock(ByVal path As String)
     Close #second
     Close #first
     On Error GoTo 0
+End Sub
+
+Private Sub VerifyWidthNull()
+    Dim f As Integer, errNo As Long
+    f = FreeFile
+    Open "width-null.dat" For Output As #f
+    On Error Resume Next
+    Err.Clear
+    Width #f, Null
+    errNo = Err.Number
+    Close #f
+    On Error GoTo 0
+    EmitResult "XL-259 WIDTH_NULL ERR=" & CStr(errNo)
 End Sub
 
 Private Sub VerifySharedLockRange(ByVal path As String)

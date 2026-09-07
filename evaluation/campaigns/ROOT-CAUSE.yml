@@ -2,16 +2,61 @@ id: ROOT-CAUSE
 method: historical-migration
 items:
   - id: RCA-LOCK-001
-    title: Lock/Unlock Null数値境界の横展開確認
+    title: Width Null数値境界の横展開確認
     status: queued
     priority: 1
-    focus: Lock/Unlock以外のNull数値境界と共通変換責務の確認
+    focus: WIDTH文の幅引数におけるNullのエラー契約
     priorCauseKey: lock-range-null-error-mapping
     rootCauseId: RC-00117
     sourceReview:
       - src/engine/evaluator.ts
       - src/engine/builtins.ts
       - tests/spec/lock-unlock.test.ts
+  - id: RCA-LOCK-002
+    title: Random Open Len Null数値境界の確認
+    status: queued
+    priority: 1
+    focus: Random OpenのLen引数におけるNullのエラー契約
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
+  - id: RCA-LOCK-003
+    title: Spc Tab Null数値境界の確認
+    status: queued
+    priority: 1
+    focus: Spc/Tab引数におけるNullのエラー契約
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
+  - id: RCA-LOCK-004
+    title: 配列添字 Null数値境界の確認
+    status: queued
+    priority: 1
+    focus: 配列添字におけるNullのエラー契約
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
+  - id: RCA-LOCK-005
+    title: Mid Null数値境界の確認
+    status: queued
+    priority: 1
+    focus: Mid/MidBの開始位置・長さにおけるNullのエラー契約
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
+  - id: RCA-LOCK-006
+    title: On GoTo Null数値境界の確認
+    status: queued
+    priority: 1
+    focus: On GoTo/GoSubの分岐番号におけるNullのエラー契約
+    priorCauseKey: lock-range-null-error-mapping
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
   - id: RCA-EXCEL-011
     title: MIRR金利境界・計算精度横展開
     status: known-limit

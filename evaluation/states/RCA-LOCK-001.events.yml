@@ -1,0 +1,9 @@
+- candidateId: RCA-LOCK-001
+  evaluationId: EV-00981
+  status: in-progress
+  occurredAt: '2026-09-07T22:58:02.737Z'
+- candidateId: RCA-LOCK-001
+  evaluationId: EV-00981
+  status: needs-excel
+  fromStatus: in-progress
+  occurredAt: '2026-09-07T22:59:50.081Z'
