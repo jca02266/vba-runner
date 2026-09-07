@@ -870,28 +870,30 @@
 | EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
 | EV-00968 | FZ-BUILTIN | fixed | 1 | Rnd負数シードと状態遷移 |
 | EV-00969 | FZ-BUILTIN | fixed | 1 | Randomize数値指定のシード写像 |
-| EV-00970 | FZ-COVERAGE-20260823 | needs-excel | 1 | Lock/UnlockのNull record-range変換 |
+| EV-00970 | FZ-COVERAGE-20260823 | bug-found | 1 | Lock/UnlockのNull record-range変換 |
 | EV-00971 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのVariant数値強制と算術経路の真値表現 |
 | EV-00972 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化 |
-| EV-00973 | FZ-COVERAGE-20260823 | needs-excel |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
+| EV-00973 | FZ-COVERAGE-20260823 | needs-excel-probe |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
 | EV-00974 | FZ-COVERAGE-20260823 | fixed | 1 | For Each配列制御変数のVariant静的要件 |
 | EV-00975 | FZ-COVERAGE-20260823 | verified-no-bug |  | Select Caseの逆順To範囲 |
 | EV-00976 | FZ-COVERAGE-20260823 | verified-no-bug |  | On Error Resume Next下のネストした手続き呼び出しにおけるErr状態と継続位置 |
 | EV-00977 | FZ-COVERAGE-20260823 | verified-no-bug |  | IsArrayとTypeNameの配列先行ディスパッチおよび要素型メタデータ |
 | EV-00978 | FZ-COVERAGE-20260823 | verified-no-bug |  | And演算子と数値トークンの空白境界およびNot比較の解析 |
 | EV-00979 | FZ-COVERAGE-20260823 | verified-no-bug |  | ユーザー手続き経由のEmpty値からStringへの変換 |
+| EV-00980 | FZ-COVERAGE-20260823 | fixed | 1 | Collectionを列挙するFor Each制御変数のVariant/Object静的要件 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 398 |
+| bug-found | 1 |
+| fixed | 399 |
 | known-limit | 5 |
-| needs-excel | 2 |
+| needs-excel-probe | 1 |
 | retired | 2 |
 | verified-no-bug | 469 |
 
-横展開未解決経路: 611、実Excel待ち評価: 2
+横展開未解決経路: 611、実Excel待ち評価: 1
 
 ## 次の候補
 
