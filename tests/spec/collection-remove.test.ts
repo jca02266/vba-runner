@@ -103,7 +103,7 @@ function runFunc(code: string, name: string, args: any[] = []): any {
         col.Add "A"
         col.Add "B"
         col.Add "C"
-        Dim s As String
+        Dim s As Variant
         Dim result As String
         For Each s In col
             result = result & s
