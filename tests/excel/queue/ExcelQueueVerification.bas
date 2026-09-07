@@ -88,6 +88,10 @@ Public Sub RunExcelQueueVerification()
     VerifyCrossHandleLock root & Application.PathSeparator & "XL-019-lock.bin"
     EmitResult "XL-020 ALREADY_VERIFIED=SECONDERR=70"
     VerifyWidthNull
+    VerifyRandomLenNull
+    VerifySpcNull
+    VerifyArrayIndexNull
+    VerifyMidNull
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -2053,6 +2057,52 @@ Private Sub VerifyWidthNull()
     Close #f
     On Error GoTo 0
     EmitResult "XL-259 WIDTH_NULL ERR=" & CStr(errNo)
+End Sub
+
+Private Sub VerifyRandomLenNull()
+    Dim f As Integer, errNo As Long
+    f = FreeFile
+    On Error Resume Next
+    Err.Clear
+    Open "random-len-null.dat" For Random Access Read Write As #f Len = Null
+    errNo = Err.Number
+    If errNo = 0 Then Close #f
+    On Error GoTo 0
+    EmitResult "XL-260 RANDOM_LEN_NULL ERR=" & CStr(errNo)
+End Sub
+
+Private Sub VerifySpcNull()
+    Dim f As Integer, errNo As Long
+    f = FreeFile
+    Open "spc-null.dat" For Output As #f
+    On Error Resume Next
+    Err.Clear
+    Print #f, Spc(Null); "x"
+    errNo = Err.Number
+    Close #f
+    On Error GoTo 0
+    EmitResult "XL-261 SPC_NULL ERR=" & CStr(errNo)
+End Sub
+
+Private Sub VerifyArrayIndexNull()
+    Dim values(0 To 1) As Long, value As Long, errNo As Long
+    values(0) = 7
+    On Error Resume Next
+    Err.Clear
+    value = values(Null)
+    errNo = Err.Number
+    On Error GoTo 0
+    EmitResult "XL-262 ARRAY_INDEX_NULL ERR=" & CStr(errNo)
+End Sub
+
+Private Sub VerifyMidNull()
+    Dim value As String, errNo As Long
+    On Error Resume Next
+    Err.Clear
+    value = Mid$("abc", Null, 1)
+    errNo = Err.Number
+    On Error GoTo 0
+    EmitResult "XL-263 MID_NULL ERR=" & CStr(errNo)
 End Sub
 
 Private Sub VerifySharedLockRange(ByVal path As String)
