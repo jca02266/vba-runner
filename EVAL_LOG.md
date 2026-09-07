@@ -878,6 +878,7 @@
 | EV-00975 | FZ-COVERAGE-20260823 | verified-no-bug |  | Select Caseの逆順To範囲 |
 | EV-00976 | FZ-COVERAGE-20260823 | verified-no-bug |  | On Error Resume Next下のネストした手続き呼び出しにおけるErr状態と継続位置 |
 | EV-00977 | FZ-COVERAGE-20260823 | verified-no-bug |  | IsArrayとTypeNameの配列先行ディスパッチおよび要素型メタデータ |
+| EV-00978 | FZ-COVERAGE-20260823 | verified-no-bug |  | And演算子と数値トークンの空白境界およびNot比較の解析 |
 
 ## 状態集計
 
@@ -887,7 +888,7 @@
 | known-limit | 5 |
 | needs-excel | 2 |
 | retired | 2 |
-| verified-no-bug | 467 |
+| verified-no-bug | 468 |
 
 横展開未解決経路: 611、実Excel待ち評価: 2
 

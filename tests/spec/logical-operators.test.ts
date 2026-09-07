@@ -88,4 +88,31 @@ console.log('--- Starting Logical/Bitwise Operators Tests ---');
     console.log('[PASS] Like');
 }
 
+// --- And / Not の字句境界 ---
+{
+    assert.strictEqual(ev('1 And 0'), 0, '空白付きAnd');
+    assert.strictEqual(ev('1And 0'), 0, '左辺数値に隣接したAnd');
+    assert.throws(() => ev('1 And0'), /Run-time error '35'|not defined/i,
+        '式評価では右辺数値に隣接したAnd0が未定義識別子になる');
+    assert.strictEqual(String(ev('Not 1 = 1')), 'False', 'Notは比較結果に適用');
+    const procedureEval = evalVBASingle(String.raw`
+Function ProbeAnd() As Long
+    ProbeAnd = 1 And 0
+End Function
+Function ProbeAdjacent() As Long
+    ProbeAdjacent = 1And 0
+End Function
+Function ProbeNot() As String
+    ProbeNot = CStr(Not 1 = 1)
+End Function
+`);
+    assert.strictEqual(procedureEval.callProcedure('ProbeAnd', []), 0,
+        '手続き内の空白付きAnd');
+    assert.strictEqual(procedureEval.callProcedure('ProbeAdjacent', []), 0,
+        '手続き内の左辺隣接And');
+    assert.strictEqual(procedureEval.callProcedure('ProbeNot', []), 'False',
+        '手続き内のNot比較');
+    console.log('[PASS] And / Not の字句境界');
+}
+
 console.log('\n✅ 論理/ビット演算子: 全テスト通過');

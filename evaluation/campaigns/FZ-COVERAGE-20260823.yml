@@ -264,3 +264,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-021
+    title: Logical operator lexical spacing boundary
+    status: queued
+    priority: 3
+    focus: And演算子と数値トークンの空白境界およびNot比較の解析
+    sourceReview:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - tests/spec/logical-operators.test.ts
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
