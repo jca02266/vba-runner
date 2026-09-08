@@ -2,3 +2,8 @@
   evaluationId: EV-00988
   status: needs-excel
   occurredAt: '2026-09-08T14:37:51.424Z'
+- candidateId: RCA-LOCK-008
+  evaluationId: EV-00988
+  status: verified-no-bug
+  fromStatus: needs-excel
+  occurredAt: '2026-09-08T21:45:17.278Z'
