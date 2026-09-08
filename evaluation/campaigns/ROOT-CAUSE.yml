@@ -66,6 +66,15 @@ items:
     rootCauseId: RC-00117
     sourceReview:
       - src/engine/evaluator.ts
+  - id: RCA-LOCK-008
+    title: Mid文・配列宣言境界Null契約の確認
+    status: queued
+    priority: 2
+    focus: Mid書き換え文と配列宣言境界のNullエラー契約
+    priorCauseKey: null-argument-contract-before-coercion
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
   - id: RCA-EXCEL-011
     title: MIRR金利境界・計算精度横展開
     status: known-limit

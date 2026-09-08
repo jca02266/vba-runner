@@ -94,6 +94,7 @@ Public Sub RunExcelQueueVerification()
     VerifyMidNull
     VerifyOnGoToNull
     VerifyNullNumericBoundaries
+    VerifyNullDeclarationBoundaries
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -2131,6 +2132,15 @@ Private Sub VerifyNullNumericBoundaries()
     Err.Clear: value = values(Null): errNo = Err.Number
     EmitResult "XL-267 ARRAY_INDEX_NULL_2 ERR=" & CStr(errNo)
     Close #f
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyNullDeclarationBoundaries()
+    Dim text As String, errNo As Long
+    text = "abc"
+    On Error Resume Next
+    Err.Clear: Mid$(text, Null, 1) = "x": errNo = Err.Number
+    EmitResult "XL-268 MID_ASSIGN_NULL ERR=" & CStr(errNo)
     On Error GoTo 0
 End Sub
 
