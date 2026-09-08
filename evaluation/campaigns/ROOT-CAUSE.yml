@@ -57,6 +57,15 @@ items:
     rootCauseId: RC-00117
     sourceReview:
       - src/engine/evaluator.ts
+  - id: RCA-LOCK-007
+    title: 数値引数Null契約の残存経路確認
+    status: queued
+    priority: 2
+    focus: Seek、Tab、配列境界など未照合のNull数値引数契約
+    priorCauseKey: null-argument-contract-before-coercion
+    rootCauseId: RC-00117
+    sourceReview:
+      - src/engine/evaluator.ts
   - id: RCA-EXCEL-011
     title: MIRR金利境界・計算精度横展開
     status: known-limit

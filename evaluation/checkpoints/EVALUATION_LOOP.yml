@@ -3189,3 +3189,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: RCA-LOCK-006
     coverageSnapshot: COV-2026-09-08-null-boundaries
+  - afterEvaluation: EV-00986
+    audit: "883 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。RC-00117はNull引数契約の未照合経路を残す"
+    decision: "Lock系の直接修正は収束したため、Seek・Tab・配列境界など残存する数値引数のNull契約を横展開する"
+    action: create-candidate
+    nextArea: "ファイルI/O・FSO"
+    nextEvaluation: null
+    nextCandidate: RCA-LOCK-007
+    coverageSnapshot: COV-2026-09-08-null-boundaries
