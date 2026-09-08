@@ -3181,3 +3181,11 @@ checkpoints:
     nextEvaluation: EV-00955
     nextCandidate: META-DECLARATION-ORDER-20260904-001
     coverageSnapshot: COV-2026-08-14-current
+  - afterEvaluation: EV-00985
+    audit: "882 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Null境界4件を固定し、RC-00117は仮説のまま未解決境界が残る"
+    decision: "共通Null引数契約の追加修正へ進む前に、RC-00117の未評価境界を最小のOn GoTo/GoSubプローブで確認する"
+    action: claim
+    nextArea: "制御構文"
+    nextEvaluation: null
+    nextCandidate: RCA-LOCK-006
+    coverageSnapshot: COV-2026-09-08-null-boundaries
