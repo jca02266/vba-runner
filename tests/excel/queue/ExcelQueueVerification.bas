@@ -93,6 +93,7 @@ Public Sub RunExcelQueueVerification()
     VerifyArrayIndexNull
     VerifyMidNull
     VerifyOnGoToNull
+    VerifyNullNumericBoundaries
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -2115,6 +2116,21 @@ Private Sub VerifyOnGoToNull()
 Label1:
     EmitResult "XL-264 ON_GOTO_NULL ERR=" & CStr(errNo)
 Label2:
+    On Error GoTo 0
+End Sub
+
+Private Sub VerifyNullNumericBoundaries()
+    Dim f As Integer, values(0 To 1) As Long, value As Long, errNo As Long
+    On Error Resume Next
+    f = FreeFile
+    Open "null-boundary.dat" For Binary As #f
+    Err.Clear: Seek #f, Null: errNo = Err.Number
+    EmitResult "XL-265 SEEK_NULL ERR=" & CStr(errNo)
+    Err.Clear: Debug.Print Tab(Null): errNo = Err.Number
+    EmitResult "XL-266 TAB_NULL ERR=" & CStr(errNo)
+    Err.Clear: value = values(Null): errNo = Err.Number
+    EmitResult "XL-267 ARRAY_INDEX_NULL_2 ERR=" & CStr(errNo)
+    Close #f
     On Error GoTo 0
 End Sub
 

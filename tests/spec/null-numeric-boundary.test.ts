@@ -24,11 +24,22 @@ Sub IndexProbe()
     values(Null) = 1
     Debug.Print "INDEX=" & Err.Number
 End Sub
+Sub SeekProbe()
+    Open "seek.dat" For Binary As #1
+    On Error Resume Next
+    Seek #1, Null
+    Debug.Print "SEEK=" & Err.Number
+End Sub
+Sub TabProbe()
+    On Error Resume Next
+    Debug.Print Tab(Null)
+    Debug.Print "TAB=" & Err.Number
+End Sub
 `;
 
 const output: string[] = [];
 const ev = evalVBASingle(source, { onPrint: (line: string) => output.push(line) });
-for (const name of ['WidthProbe', 'RandomProbe', 'SpcProbe', 'IndexProbe']) {
+for (const name of ['WidthProbe', 'RandomProbe', 'SpcProbe', 'IndexProbe', 'SeekProbe', 'TabProbe']) {
     ev.callProcedure(name, []);
 }
 
@@ -37,5 +48,7 @@ assert.deepStrictEqual(output, [
     'RANDOM=94',
     'SPC=94',
     'INDEX=94',
+    'SEEK=94',
+    'TAB=94',
 ]);
 console.log('[PASS] Null numeric argument boundaries map to Invalid use of Null');
