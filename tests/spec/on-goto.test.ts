@@ -5,6 +5,22 @@ function runFunc(code: string, name: string, args: any[] = []): any {
     return ev.callProcedure(name, args);
 }
 
+{
+    const code = String.raw`Function TestOnGoToNull() As Long
+        On Error Resume Next
+        On Null GoTo Label1, Label2
+        TestOnGoToNull = Err.Number
+        Exit Function
+    Label1:
+        TestOnGoToNull = 111
+        Exit Function
+    Label2:
+        TestOnGoToNull = 222
+    End Function`;
+    assert.strictEqual(runFunc(code, 'TestOnGoToNull'), 94,
+        'On Null GoTo raises Invalid use of Null');
+}
+
 // 1. On...GoTo Statement
 {
     const code = `

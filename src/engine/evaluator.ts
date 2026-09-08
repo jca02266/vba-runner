@@ -4374,6 +4374,9 @@ export class Evaluator {
 
     private evaluateOnGoToSubStatement(stmt: OnGoToSubStatement) {
         const val = this.evaluateExpression(stmt.expression);
+        if (val === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
         const idx = Math.floor(Number(val));
 
         if (idx < 0 || idx > 255) {
