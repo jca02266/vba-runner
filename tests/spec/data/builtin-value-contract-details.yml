@@ -1,0 +1,1149 @@
+# 詳細契約は既存実装・仕様テストで確定した関数から段階的に追加する。
+- name: split
+  parameters:
+    - name: Expression
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Delimiter
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: error-94
+    - name: Limit
+      optional: true
+      categories: [integer, zero, negative, null, omitted]
+      nullBehavior: error-94
+    - name: Compare
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: normalize-compare
+- name: join
+  parameters:
+    - name: SourceArray
+      categories: [string-array, empty-array, null-element, scalar]
+      nullBehavior: type-mismatch-13
+    - name: Delimiter
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: propagate-null
+- name: mid
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Start
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+    - name: Length
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-5-or-null
+- name: instr
+  overloads:
+    - parameters: [String1, String2]
+    - parameters: [Start, String1, String2]
+    - parameters: [Start, String1, String2, Compare]
+  parameters:
+    - name: String1
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: String2
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Start
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-5-or-null
+    - name: Compare
+      optional: true
+      categories: [binary, text, null, omitted]
+      nullBehavior: normalize-compare
+- name: round
+  parameters:
+    - name: Number
+      categories: [integer, fraction, null, empty]
+      nullBehavior: propagate-null
+    - name: NumDigitsAfterDecimal
+      optional: true
+      categories: [integer, negative, null, empty, omitted]
+      nullBehavior: error-94-or-empty-default
+- name: mirr
+  parameters:
+    - name: ValueArray
+      categories: [double-array, currency-array, integer-array, variant-array, scalar]
+      nullBehavior: type-mismatch-13
+    - name: FinanceRate
+      categories: [number, null, empty]
+      nullBehavior: invalid-argument
+    - name: ReinvestRate
+      categories: [number, null, empty]
+      nullBehavior: invalid-argument
+- name: cstr
+  parameters:
+    - name: Expression
+      categories: [string, number, empty, null, object]
+      nullBehavior: error-94
+- name: cint
+  parameters:
+    - name: Expression
+      categories: [integer, fraction, empty, null, overflow]
+      nullBehavior: error-94-or-overflow
+- name: len
+  parameters:
+    - name: String
+      categories: [string, empty, null, array]
+      nullBehavior: propagate-null
+- name: lcase
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+- name: replace
+  parameters:
+    - name: Expression
+      categories: [string, empty, null]
+      nullBehavior: error-94-or-null
+    - name: Find
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Replace
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Start
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-5-or-94
+    - name: Count
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-94
+- name: npv
+  parameters:
+    - name: Rate
+      categories: [number, null, empty, invalid]
+      nullBehavior: invalid-argument
+    - name: ValueArray
+      categories: [double-array, currency-array, integer-array, variant-array, scalar]
+      nullBehavior: type-mismatch-13
+- name: datevalue
+  parameters:
+    - name: String
+      categories: [date-string, empty, null, invalid]
+      nullBehavior: propagate-null-or-type-mismatch
+- name: cbool
+  parameters:
+    - name: Expression
+      categories: [boolean, number, string, empty, null]
+      nullBehavior: error-94
+- name: cbyte
+  parameters:
+    - name: Expression
+      categories: [integer, fraction, empty, null, overflow]
+      nullBehavior: error-94-or-overflow
+- name: cdbl
+  parameters:
+    - name: Expression
+      categories: [number, string, empty, null, overflow]
+      nullBehavior: error-94
+- name: ccur
+  parameters:
+    - name: Expression
+      categories: [number, string, empty, null, overflow]
+      nullBehavior: error-94
+- name: cdec
+  parameters:
+    - name: Expression
+      categories: [number, string, empty, null, overflow]
+      nullBehavior: error-94
+- name: clng
+  parameters:
+    - name: Expression
+      categories: [integer, fraction, empty, null, overflow]
+      nullBehavior: error-94-or-overflow
+- name: csng
+  parameters:
+    - name: Expression
+      categories: [number, string, empty, null, overflow]
+      nullBehavior: error-94-or-overflow
+- name: cvar
+  parameters:
+    - name: Expression
+      categories: [scalar, empty, null, object]
+      nullBehavior: propagate-null
+- name: left
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Length
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+- name: right
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Length
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+- name: ltrim
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+- name: rtrim
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+- name: lenb
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+- name: leftb
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+    - name: Length
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+- name: rightb
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+    - name: Length
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+- name: midb
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+    - name: Start
+      categories: [positive, zero, negative, null]
+      nullBehavior: error-5-or-null
+    - name: Length
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-5-or-null
+- name: space
+  parameters:
+    - name: Number
+      categories: [integer, zero, negative, null, overflow]
+      nullBehavior: error-5-or-94
+- name: string
+  parameters:
+    - name: Number
+      categories: [integer, zero, negative, null, overflow]
+      nullBehavior: error-5-or-94
+    - name: Character
+      categories: [string, empty, number, null, unicode]
+      nullBehavior: error-5-or-null
+- name: strcomp
+  parameters:
+    - name: String1
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: String2
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Compare
+      optional: true
+      categories: [binary, text, null, omitted]
+      nullBehavior: normalize-compare
+- name: strconv
+  parameters:
+    - name: String
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Conversion
+      categories: [integer, null, invalid]
+      nullBehavior: invalid-argument
+    - name: LCID
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: invalid-argument
+- name: strreverse
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: error-94
+- name: filter
+  parameters:
+    - name: SourceArray
+      categories: [string-array, empty-array, null-element, scalar]
+      nullBehavior: type-mismatch-13
+    - name: Match
+      categories: [string, empty, null]
+      nullBehavior: error-94-or-null
+    - name: Include
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: normalize-boolean
+    - name: Compare
+      optional: true
+      categories: [binary, text, null, omitted]
+      nullBehavior: normalize-compare
+- name: format
+  parameters:
+    - name: Expression
+      categories: [number, date, string, empty, null]
+      nullBehavior: format-specific
+    - name: Format
+      categories: [standard, custom, empty, null]
+      nullBehavior: format-specific
+    - name: FirstDayOfWeek
+      optional: true
+      categories: [weekday-constant, null, omitted]
+      nullBehavior: default-or-error
+    - name: FirstWeekOfYear
+      optional: true
+      categories: [week-constant, null, omitted]
+      nullBehavior: default-or-error
+- name: formatcurrency
+  parameters:
+    - name: Expression
+      categories: [number, empty, null]
+      nullBehavior: format-specific
+    - name: NumDigitsAfterDecimal
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: default-or-error
+    - name: IncludeLeadingDigit
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+    - name: UseParensForNegativeNumbers
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+    - name: GroupDigits
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+- name: formatnumber
+  parameters:
+    - name: Expression
+      categories: [number, empty, null]
+      nullBehavior: format-specific
+    - name: NumDigitsAfterDecimal
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: default-or-error
+    - name: IncludeLeadingDigit
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+    - name: UseParensForNegativeNumbers
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+    - name: GroupDigits
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+- name: formatpercent
+  parameters:
+    - name: Expression
+      categories: [number, empty, null]
+      nullBehavior: format-specific
+    - name: NumDigitsAfterDecimal
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: default-or-error
+- name: formatdatetime
+  parameters:
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: format-specific
+    - name: NamedFormat
+      optional: true
+      categories: [date-format-constant, null, omitted]
+      nullBehavior: default-or-error
+- name: timeserial
+  parameters:
+    - name: Hour
+      categories: [integer, negative, null]
+      nullBehavior: normalize-or-error
+    - name: Minute
+      categories: [integer, negative, null]
+      nullBehavior: normalize-or-error
+    - name: Second
+      categories: [integer, negative, null]
+      nullBehavior: normalize-or-error
+- name: timevalue
+  parameters:
+    - name: String
+      categories: [time-string, date-string, empty, null, invalid]
+      nullBehavior: propagate-null-or-type-mismatch
+- name: monthname
+  parameters:
+    - name: Month
+      categories: [integer, zero, negative, null, out-of-range]
+      nullBehavior: error-5-or-null
+    - name: Abbreviate
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+- name: weekday
+  parameters:
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+    - name: FirstDayOfWeek
+      optional: true
+      categories: [weekday-constant, null, omitted]
+      nullBehavior: default-or-error
+- name: weekdayname
+  parameters:
+    - name: Weekday
+      categories: [integer, zero, negative, null, out-of-range]
+      nullBehavior: error-5-or-null
+    - name: Abbreviate
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+    - name: FirstDayOfWeek
+      optional: true
+      categories: [weekday-constant, null, omitted]
+      nullBehavior: default-or-error
+- name: isempty
+  parameters:
+    - name: Expression
+      categories: [empty, null, scalar, object]
+      nullBehavior: predicate
+- name: ismissing
+  parameters:
+    - name: ArgName
+      categories: [omitted, empty, null, scalar]
+      nullBehavior: predicate
+- name: isnumeric
+  parameters:
+    - name: Expression
+      categories: [number, numeric-string, empty, null, object]
+      nullBehavior: predicate
+- name: isdate
+  parameters:
+    - name: Expression
+      categories: [date, date-string, empty, null, invalid]
+      nullBehavior: predicate
+- name: isobject
+  parameters:
+    - name: Identifier
+      categories: [object, nothing, scalar, array, null]
+      nullBehavior: predicate
+- name: iserror
+  parameters:
+    - name: Expression
+      categories: [error-value, scalar, null, empty]
+      nullBehavior: predicate
+- name: isnull
+  parameters:
+    - name: Expression
+      categories: [null, empty, scalar, object]
+      nullBehavior: predicate
+- name: isarray
+  parameters:
+    - name: VarName
+      categories: [array, scalar, null, empty]
+      nullBehavior: predicate
+- name: vartype
+  parameters:
+    - name: VarName
+      categories: [all-variant-types, array, object, null, empty]
+      nullBehavior: type-code
+- name: typename
+  parameters:
+    - name: VarName
+      categories: [all-variant-types, array, object, null, empty]
+      nullBehavior: type-name
+- name: cdate
+  parameters:
+    - name: Expression
+      categories: [date, date-string, number, empty, null, invalid]
+      nullBehavior: error-94-or-type-mismatch
+- name: trim
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+- name: ucase
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+- name: ddb
+  parameters:
+    - name: Cost
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Salvage
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Life
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Period
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Factor
+      optional: true
+      categories: [number, null, omitted]
+      nullBehavior: default-or-error
+- name: rnd
+  parameters:
+    - name: Number
+      optional: true
+      categories: [negative, zero, positive, null, omitted]
+      nullBehavior: stateful-random-contract
+- name: iif
+  parameters:
+    - name: Expression
+      categories: [boolean, number, string, null, empty]
+      nullBehavior: boolean-coercion
+    - name: TruePart
+      categories: [scalar, object, null, empty]
+      nullBehavior: preserve-value
+    - name: FalsePart
+      categories: [scalar, object, null, empty]
+      nullBehavior: preserve-value
+- name: instrb
+  overloads:
+    - parameters: [String1, String2]
+    - parameters: [Start, String1, String2]
+    - parameters: [Start, String1, String2, Compare]
+  parameters:
+    - name: String1
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+    - name: String2
+      categories: [string, empty, null, unicode]
+      nullBehavior: propagate-null
+    - name: Start
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: error-5-or-null
+    - name: Compare
+      optional: true
+      categories: [binary, text, null, omitted]
+      nullBehavior: normalize-compare
+- name: instrrev
+  parameters:
+    - name: StringCheck
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: StringMatch
+      categories: [string, empty, null]
+      nullBehavior: propagate-null
+    - name: Start
+      optional: true
+      categories: [positive, negative, null, omitted]
+      nullBehavior: error-5-or-null
+    - name: Compare
+      optional: true
+      categories: [binary, text, null, omitted]
+      nullBehavior: normalize-compare
+- name: appactivate
+  parameters:
+    - name: Title
+      categories: [string, empty, null]
+      nullBehavior: host-error
+    - name: Wait
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+- name: callbyname
+  parameters:
+    - name: Object
+      categories: [object, nothing, null, scalar]
+      nullBehavior: object-error
+    - name: ProcName
+      categories: [string, empty, null]
+      nullBehavior: error-94-or-member-not-found
+    - name: CallType
+      categories: [enum, integer, null]
+      nullBehavior: invalid-argument
+    - name: Args
+      optional: true
+      categories: [scalar, array, omitted]
+      nullBehavior: preserve-value
+- name: createobject
+  parameters:
+    - name: Class
+      categories: [string, empty, null]
+      nullBehavior: class-not-registered
+    - name: ServerName
+      optional: true
+      categories: [string, null, omitted]
+      nullBehavior: host-error
+- name: deletesetting
+  parameters:
+    - name: AppName
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Section
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: invalid-argument
+    - name: Key
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: invalid-argument
+- name: doevents
+  parameters: []
+- name: environ
+  parameters:
+    - name: EnvironmentVariable
+      categories: [string, integer, empty, null]
+      nullBehavior: empty-or-error
+- name: error
+  parameters:
+    - name: ErrorNumber
+      optional: true
+      categories: [integer, zero, null, omitted]
+      nullBehavior: raise-or-clear-error
+- name: getallsettings
+  parameters:
+    - name: AppName
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Section
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+- name: getobject
+  parameters:
+    - name: PathName
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: host-error
+    - name: Class
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: host-error
+- name: getsetting
+  parameters:
+    - name: AppName
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Section
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Key
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Default
+      optional: true
+      categories: [scalar, empty, null, omitted]
+      nullBehavior: preserve-value
+- name: inputbox
+  parameters:
+    - name: Prompt
+      categories: [string, empty, null]
+      nullBehavior: host-dialog
+    - name: Title
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: default-or-error
+    - name: Default
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: preserve-value
+- name: msgbox
+  parameters:
+    - name: Prompt
+      categories: [string, empty, null]
+      nullBehavior: host-dialog
+    - name: Buttons
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: default-or-error
+    - name: Title
+      optional: true
+      categories: [string, empty, null, omitted]
+      nullBehavior: default-or-error
+- name: nz
+  parameters:
+    - name: Value
+      categories: [null, empty, scalar, object]
+      nullBehavior: fallback-on-null
+    - name: ValueIfNull
+      optional: true
+      categories: [scalar, empty, null, omitted]
+      nullBehavior: default-empty
+- name: objptr
+  parameters:
+    - name: VarName
+      categories: [object, nothing, scalar, null]
+      nullBehavior: pointer-or-restricted
+- name: qbcolor
+  parameters:
+    - name: Color
+      categories: [integer, zero, negative, null]
+      nullBehavior: numeric-coercion
+- name: randomize
+  parameters:
+    - name: Number
+      optional: true
+      categories: [number, null, omitted]
+      nullBehavior: stateful-seed-contract
+- name: rgb
+  parameters:
+    - name: Red
+      categories: [byte, integer, negative, null]
+      nullBehavior: numeric-coercion
+    - name: Green
+      categories: [byte, integer, negative, null]
+      nullBehavior: numeric-coercion
+    - name: Blue
+      categories: [byte, integer, negative, null]
+      nullBehavior: numeric-coercion
+- name: savesetting
+  parameters:
+    - name: AppName
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Section
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Key
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+    - name: Setting
+      categories: [string, empty, null]
+      nullBehavior: invalid-argument
+- name: sendkeys
+  parameters:
+    - name: Keys
+      categories: [string, empty, null]
+      nullBehavior: host-error
+    - name: Wait
+      optional: true
+      categories: [boolean, null, omitted]
+      nullBehavior: default-or-error
+- name: shell
+  parameters:
+    - name: PathName
+      categories: [string, empty, null]
+      nullBehavior: host-error
+    - name: WindowStyle
+      optional: true
+      categories: [integer, null, omitted]
+      nullBehavior: default-or-error
+- name: strptr
+  parameters:
+    - name: VarName
+      categories: [string, variable, null]
+      nullBehavior: pointer-or-restricted
+- name: varptr
+  parameters:
+    - name: VarName
+      categories: [variable, array-element, null]
+      nullBehavior: pointer-or-restricted
+- name: str
+  parameters:
+    - name: Number
+      categories: [number, negative, zero, null, overflow]
+      nullBehavior: error-94-or-format
+- name: ipmt
+  parameters:
+    - name: Rate
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Per
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: PV
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: default-or-error
+- name: ppmt
+  parameters:
+    - name: Rate
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Per
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: PV
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: default-or-error
+- name: sln
+  parameters:
+    - name: Cost
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Salvage
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Life
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+- name: syd
+  parameters:
+    - name: Cost
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Salvage
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: Life
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Period
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+- name: cvdate
+  parameters:
+    - name: Expression
+      categories: [date, date-string, number, empty, null]
+      nullBehavior: error-94-or-propagate-null
+- name: cverr
+  parameters:
+    - name: ErrorNumber
+      categories: [integer, zero, negative, null, omitted]
+      nullBehavior: error-94-or-invalid-error
+- name: clnglng
+  parameters:
+    - name: Expression
+      categories: [integer, fraction, empty, null, overflow]
+      nullBehavior: error-94-or-overflow
+- name: hex
+  parameters:
+    - name: Number
+      categories: [integer, negative, empty, null, overflow]
+      nullBehavior: error-94-or-format
+- name: oct
+  parameters:
+    - name: Number
+      categories: [integer, negative, empty, null, overflow]
+      nullBehavior: error-94-or-format
+- name: val
+  parameters:
+    - name: String
+      categories: [numeric-string, radix-string, empty, null, suffix]
+      nullBehavior: error-94-or-zero
+- name: asc
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: error-5-or-94
+- name: ascb
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: error-5-or-94
+- name: ascw
+  parameters:
+    - name: String
+      categories: [string, empty, null, unicode]
+      nullBehavior: error-5-or-94
+- name: chr
+  parameters:
+    - name: CharCode
+      categories: [byte, integer, negative, null, empty]
+      nullBehavior: error-5-or-94
+- name: chrb
+  parameters:
+    - name: CharCode
+      categories: [byte, integer, negative, null, empty]
+      nullBehavior: error-5-or-94
+- name: chrw
+  parameters:
+    - name: CharCode
+      categories: [unicode, integer, negative, null, empty]
+      nullBehavior: error-5-or-94
+- name: fv
+  parameters:
+    - name: Rate
+      categories: [number, zero, null]
+      nullBehavior: numeric-coercion
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Pmt
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: PV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: invalid-argument
+- name: pv
+  parameters:
+    - name: Rate
+      categories: [number, zero, null]
+      nullBehavior: numeric-coercion
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Pmt
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: invalid-argument
+- name: pmt
+  parameters:
+    - name: Rate
+      categories: [number, zero, null]
+      nullBehavior: numeric-coercion
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: PV
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: invalid-argument
+- name: nper
+  parameters:
+    - name: Rate
+      categories: [number, zero, null]
+      nullBehavior: numeric-coercion
+    - name: Pmt
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: PV
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: invalid-argument
+- name: rate
+  parameters:
+    - name: NPer
+      categories: [positive, zero, null]
+      nullBehavior: invalid-argument
+    - name: Pmt
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: PV
+      categories: [number, null]
+      nullBehavior: numeric-coercion
+    - name: FV
+      optional: true
+      categories: [number, empty, null, omitted]
+      nullBehavior: numeric-coercion
+    - name: Type
+      optional: true
+      categories: [zero, one, null, omitted]
+      nullBehavior: invalid-argument
+    - name: Guess
+      optional: true
+      categories: [number, null, omitted]
+      nullBehavior: numeric-coercion
+- name: irr
+  parameters:
+    - name: ValueArray
+      categories: [double-array, currency-array, integer-array, variant-array, scalar]
+      nullBehavior: type-mismatch-13
+    - name: Guess
+      optional: true
+      categories: [number, null, omitted]
+      nullBehavior: invalid-argument
+- name: lbound
+  parameters:
+    - name: ArrayName
+      categories: [array, scalar, empty, null]
+      nullBehavior: type-mismatch-13
+    - name: Dimension
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: subscript-9
+- name: ubound
+  parameters:
+    - name: ArrayName
+      categories: [array, scalar, empty, null]
+      nullBehavior: type-mismatch-13
+    - name: Dimension
+      optional: true
+      categories: [positive, zero, negative, null, omitted]
+      nullBehavior: subscript-9
+- name: array
+  parameters:
+    - name: VarArg
+      optional: true
+      categories: [scalar, empty, null, omitted]
+      nullBehavior: preserve-element
+- name: choose
+  parameters:
+    - name: Index
+      categories: [integer, zero, negative, null]
+      nullBehavior: invalid-argument
+    - name: Choice
+      optional: true
+      categories: [scalar, empty, null, omitted]
+      nullBehavior: preserve-element
+- name: switch
+  parameters:
+    - name: VarArg
+      categories: [boolean-value-pairs, empty, null, omitted]
+      nullBehavior: first-true-pair
+- name: abs
+  parameters:
+    - name: Number
+      categories: [number, empty, null, overflow]
+      nullBehavior: propagate-null
+- name: int
+  parameters:
+    - name: Number
+      categories: [integer, fraction, negative, empty, null]
+      nullBehavior: propagate-null
+- name: fix
+  parameters:
+    - name: Number
+      categories: [integer, fraction, negative, empty, null]
+      nullBehavior: propagate-null
+- name: sgn
+  parameters:
+    - name: Number
+      categories: [negative, zero, positive, empty, null]
+      nullBehavior: propagate-null
+- name: sqr
+  parameters:
+    - name: Number
+      categories: [positive, zero, negative, empty, null]
+      nullBehavior: error-5-or-null
+- name: exp
+  parameters:
+    - name: Number
+      categories: [number, empty, null, overflow]
+      nullBehavior: propagate-null
+- name: log
+  parameters:
+    - name: Number
+      categories: [positive, zero, negative, empty, null]
+      nullBehavior: error-5-or-null
+- name: sin
+  parameters:
+    - name: Number
+      categories: [number, empty, null]
+      nullBehavior: propagate-null
+- name: cos
+  parameters:
+    - name: Number
+      categories: [number, empty, null]
+      nullBehavior: propagate-null
+- name: tan
+  parameters:
+    - name: Number
+      categories: [number, empty, null]
+      nullBehavior: propagate-null
+- name: atn
+  parameters:
+    - name: Number
+      categories: [number, empty, null]
+      nullBehavior: propagate-null
+- name: dateadd
+  parameters:
+    - name: Interval
+      categories: [date-part, string, null]
+      nullBehavior: error-5-or-null
+    - name: Number
+      categories: [integer, fraction, null]
+      nullBehavior: error-94-or-null
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: datediff
+  parameters:
+    - name: Interval
+      categories: [date-part, string, null]
+      nullBehavior: error-5-or-null
+    - name: Date1
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+    - name: Date2
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: datepart
+  parameters:
+    - name: Interval
+      categories: [date-part, string, null]
+      nullBehavior: error-5-or-null
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: dateserial
+  parameters:
+    - name: Year
+      categories: [integer, empty, null, out-of-range]
+      nullBehavior: error-94-or-overflow
+    - name: Month
+      categories: [integer, empty, null, out-of-range]
+      nullBehavior: error-94-or-overflow
+    - name: Day
+      categories: [integer, empty, null, out-of-range]
+      nullBehavior: error-94-or-overflow
+- name: day
+  parameters:
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: hour
+  parameters:
+    - name: Time
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: minute
+  parameters:
+    - name: Time
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: month
+  parameters:
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: second
+  parameters:
+    - name: Time
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null
+- name: year
+  parameters:
+    - name: Date
+      categories: [date, empty, null, invalid]
+      nullBehavior: propagate-null

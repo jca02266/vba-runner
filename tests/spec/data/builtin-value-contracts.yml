@@ -1,0 +1,22 @@
+# 正本: 組み込み関数の値境界契約。関数ごとの parameters は段階的に拡張する。
+- name: information/predicates
+  rule: Variant predicate/type result
+  functions: [isempty, ismissing, isnumeric, isdate, isobject, iserror, isnull, isarray, vartype, typename]
+- name: conversion
+  rule: scalar conversion; Null is rejected unless documented otherwise
+  functions: [cbool, cbyte, ccur, cdate, cdbl, cdec, cint, clng, clnglng, csng, cstr, cvar, cvdate, cverr, str, val]
+- name: string/value propagation
+  rule: explicit Empty/Null propagation
+  functions: [asc, ascb, ascw, chr, chrb, chrw, filter, hex, instr, instrb, join, lcase, left, leftb, len, lenb, ltrim, mid, midb, oct, replace, right, rightb, rtrim, space, split, strcomp, strconv, string, strreverse, trim, ucase]
+- name: numeric/math
+  rule: numeric coercion, overflow, and Null behavior
+  functions: [abs, atn, cos, ddb, exp, fix, int, log, rnd, round, sgn, sin, sqr, tan]
+- name: date/time
+  rule: Empty, Null, invalid dates, and optional arguments
+  functions: [dateadd, datediff, datepart, dateserial, datevalue, day, hour, minute, month, monthname, second, timeserial, timevalue, weekday, weekdayname, year]
+- name: financial/array
+  rule: array/scalar contracts and optional arguments
+  functions: [choose, fv, iif, instrrev, ipmt, irr, lbound, mirr, nper, npv, pmt, ppmt, pv, rate, sln, switch, syd, ubound]
+- name: format/host/runtime
+  rule: formatting and host boundary behavior
+  functions: [appactivate, array, callbyname, createobject, deletesetting, doevents, environ, error, format, formatcurrency, formatdatetime, formatnumber, formatpercent, getallsettings, getobject, getsetting, inputbox, msgbox, nz, objptr, qbcolor, randomize, rgb, savesetting, sendkeys, shell, strptr, varptr]

@@ -1,0 +1,346 @@
+# 厳密値を比較できる純粋関数の代表例。期待値はVBA実行意味論で検証する。
+- function: abs
+  expression: Abs(-2)
+  expected: 2
+- function: int
+  expression: Int(-1.2)
+  expected: -2
+- function: fix
+  expression: Fix(-1.2)
+  expected: -1
+- function: sgn
+  expression: Sgn(-2)
+  expected: -1
+- function: sqr
+  expression: Sqr(9)
+  expected: 3
+- function: len
+  expression: Len("abc")
+  expected: 3
+- function: lcase
+  expression: LCase("ABC")
+  expected: abc
+- function: left
+  expression: Left("abc", 2)
+  expected: ab
+- function: right
+  expression: Right("abc", 2)
+  expected: bc
+- function: strreverse
+  expression: StrReverse("abc")
+  expected: cba
+- function: ucase
+  expression: UCase("abc")
+  expected: ABC
+- function: trim
+  expression: Trim("  abc  ")
+  expected: abc
+- function: replace
+  expression: Replace("abcabc", "b", "X")
+  expected: aXcaXc
+- function: strcomp
+  expression: StrComp("abc", "ABC", 1)
+  expected: 0
+- function: hex
+  expression: Hex(255)
+  expected: FF
+- function: oct
+  expression: Oct(255)
+  expected: "377"
+- function: val
+  expression: Val("12.5xyz")
+  expected: 12.5
+- function: format
+  expression: Format(0.5, "0")
+  expected: "1"
+- function: dateadd
+  expression: Day(DateAdd("d", 1, DateSerial(2020, 1, 1)))
+  expected: 2
+- function: weekday
+  expression: Weekday(DateSerial(2020, 1, 5))
+  expected: 1
+- function: sln
+  expression: SLN(10000, 1000, 5)
+  expected: 1800
+- function: syd
+  expression: SYD(10000, 1000, 5, 1)
+  expected: 3000
+- function: ddb
+  expression: DDB(10000, 1000, 5, 1)
+  expected: 4000
+- function: fv
+  expression: FV(0, 1, -100)
+  expected: 100
+- function: pv
+  expression: PV(0, 1, -100)
+  expected: 100
+- function: pmt
+  expression: Pmt(0, 1, 100)
+  expected: -100
+- function: nper
+  expression: NPer(0, -100, 100)
+  expected: 1
+- function: rate
+  expression: Rate(10, -10, 100, 0, 0, 0)
+  expected: 0
+- function: dateserial
+  expression: Day(DateSerial(2020, 2, 29))
+  expected: 29
+- function: timeserial
+  expression: Hour(TimeSerial(12, 34, 56))
+  expected: 12
+- function: datevalue
+  expression: Day(DateValue("2020-02-29"))
+  expected: 29
+- function: timevalue
+  expression: Hour(TimeValue("12:34:56"))
+  expected: 12
+- function: monthname
+  expression: MonthName(1)
+  expected: January
+- function: weekdayname
+  expression: WeekdayName(1)
+  expected: Sunday
+- function: formatnumber
+  expression: FormatNumber(12.5, 1)
+  expected: "12.5"
+- function: isnull
+  expression: IsNull(Null)
+  expected: -1
+- function: isempty
+  expression: IsEmpty(Empty)
+  expected: -1
+- function: isnumeric
+  expression: IsNumeric("123")
+  expected: -1
+- function: isdate
+  expression: IsDate("2020-01-01")
+  expected: -1
+- function: isarray
+  expression: IsArray(Array(1))
+  expected: -1
+- function: typename
+  expression: TypeName(Empty)
+  expected: Empty
+- function: vartype
+  expression: VarType(Empty)
+  expected: 0
+- function: cbool
+  expression: TypeName(CBool(1))
+  expected: Boolean
+- function: cbyte
+  expression: CByte(1)
+  expected: 1
+- function: cdbl
+  expression: CDbl(1)
+  expected: 1
+- function: atn
+  expression: Atn(0)
+  expected: 0
+- function: cos
+  expression: Cos(0)
+  expected: 1
+- function: exp
+  expression: Exp(0)
+  expected: 1
+- function: log
+  expression: Log(1)
+  expected: 0
+- function: sin
+  expression: Sin(0)
+  expected: 0
+- function: tan
+  expression: Tan(0)
+  expected: 0
+- function: ltrim
+  expression: LTrim("  abc")
+  expected: abc
+- function: rtrim
+  expression: RTrim("abc  ")
+  expected: abc
+- function: mid
+  expression: Mid("abc", 2, 1)
+  expected: b
+- function: cstr
+  expression: CStr(42)
+  expected: "42"
+- function: cint
+  expression: CInt(1.4)
+  expected: 1
+- function: clng
+  expression: CLng(1.4)
+  expected: 1
+- function: csng
+  expression: CSng(1.25)
+  expected: 1.25
+- function: ccur
+  expression: TypeName(CCur(1.25))
+  expected: Currency
+- function: cdec
+  expression: TypeName(CDec(1.25))
+  expected: Decimal
+- function: cdate
+  expression: Day(CDate("2020-01-02"))
+  expected: 2
+- function: cvdate
+  expression: TypeName(CVDate("2020-01-02"))
+  expected: Date
+- function: cverr
+  expression: TypeName(CVErr(5))
+  expected: Error
+- function: day
+  expression: Day(DateSerial(2020, 2, 29))
+  expected: 29
+- function: hour
+  expression: Hour(TimeSerial(12, 34, 56))
+  expected: 12
+- function: minute
+  expression: Minute(TimeSerial(12, 34, 56))
+  expected: 34
+- function: month
+  expression: Month(DateSerial(2020, 2, 29))
+  expected: 2
+- function: second
+  expression: Second(TimeSerial(12, 34, 56))
+  expected: 56
+- function: year
+  expression: Year(DateSerial(2020, 2, 29))
+  expected: 2020
+- function: lbound
+  expression: LBound(Array("a", "b"))
+  expected: 0
+- function: ubound
+  expression: UBound(Array("a", "b"))
+  expected: 1
+- function: split
+  expression: UBound(Split("a,b", ","))
+  expected: 1
+- function: join
+  expression: Join(Array("a", "b"), ",")
+  expected: a,b
+- function: choose
+  expression: Choose(2, "a", "b")
+  expected: b
+- function: iif
+  expression: IIf(True, "yes", "no")
+  expected: yes
+- function: rgb
+  expression: RGB(255, 0, 0)
+  expected: 255
+- function: round
+  expression: Round(2.5, 0)
+  expected: 2
+- function: datediff
+  expression: DateDiff("d", DateSerial(2020, 1, 1), DateSerial(2020, 1, 3))
+  expected: 2
+- function: datepart
+  expression: DatePart("m", DateSerial(2020, 2, 29))
+  expected: 2
+- function: instr
+  expression: InStr("abc", "b")
+  expected: 2
+- function: instrrev
+  expression: InStrRev("abca", "a")
+  expected: 4
+- function: formatcurrency
+  expression: FormatCurrency(12.5, 2)
+  expected: "$12.50"
+- function: formatpercent
+  expression: FormatPercent(0.125, 1)
+  expected: "12.5%"
+- function: formatdatetime
+  expression: FormatDateTime(DateSerial(2020, 1, 2), 2)
+  expected: "1/2/2020"
+- function: str
+  expression: Str(-1.5)
+  expected: "-1.5"
+- function: nz
+  expression: Nz(Null, "fallback")
+  expected: fallback
+- function: filter
+  expression: UBound(Filter(Array("a", "b"), "a"))
+  expected: 0
+- function: switch
+  expression: Switch(False, "no", True, "yes")
+  expected: yes
+- function: clnglng
+  expression: TypeName(CLngLng(1))
+  expected: LongLong
+- function: cvar
+  expression: TypeName(CVar(1))
+  expected: Double
+- function: instrb
+  expression: InStrB("abc", "b")
+  expected: 3
+- function: iserror
+  expression: TypeName(IsError(CVErr(5)))
+  expected: Boolean
+- function: isobject
+  expression: TypeName(IsObject(Nothing))
+  expected: Boolean
+- function: ipmt
+  expression: IPmt(0.1, 1, 3, 100)
+  expected: -10
+- function: ppmt
+  expression: PPmt(0.1, 1, 3, 100)
+  expected: -30.211480362537728
+- function: qbcolor
+  expression: QBColor(1)
+  expected: 8388608
+- function: array
+  expression: TypeName(Array(1, 2))
+  expected: Variant()
+- function: strconv
+  expression: StrConv("abc", 1)
+  expected: ABC
+- function: mirr
+  expression: MIRR(Array(-100, 50, 100), 0.1, 0.12)
+  error: 13
+- function: lenb
+  expression: LenB("abc")
+  expected: 6
+- function: leftb
+  expression: LeftB("abc", 2)
+  expected: a
+- function: rightb
+  expression: RightB("abc", 2)
+  expected: c
+- function: midb
+  expression: MidB("abc", 2, 2)
+  expected: a
+- function: space
+  expression: Len(Space(3))
+  expected: 3
+- function: string
+  expression: String(3, "x")
+  expected: xxx
+- function: asc
+  expression: Asc("A")
+  expected: 65
+- function: ascb
+  expression: AscB("A")
+  expected: 65
+- function: ascw
+  expression: AscW("A")
+  expected: 65
+- function: chr
+  expression: Chr(65)
+  expected: A
+- function: chrb
+  expression: ChrB(65)
+  expected: A
+- function: chrw
+  expression: ChrW(65)
+  expected: A
+- function: npv
+  expression: NPV(0.1, Array(-100, 40, 80))
+  expected: 2.253944402704711
+  tolerance:
+    absolute: 1.0e-12
+    relative: 1.0e-12
+- function: irr
+  expression: IRR(Array(-100, 40, 80))
+  expected: 0.11651513899116808
+  tolerance:
+    absolute: 1.0e-12
+    relative: 1.0e-12
