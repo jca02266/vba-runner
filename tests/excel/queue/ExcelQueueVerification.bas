@@ -92,6 +92,7 @@ Public Sub RunExcelQueueVerification()
     VerifySpcNull
     VerifyArrayIndexNull
     VerifyMidNull
+    VerifyOnGoToNull
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -2103,6 +2104,18 @@ Private Sub VerifyMidNull()
     errNo = Err.Number
     On Error GoTo 0
     EmitResult "XL-263 MID_NULL ERR=" & CStr(errNo)
+End Sub
+
+Private Sub VerifyOnGoToNull()
+    Dim errNo As Long
+    On Error Resume Next
+    Err.Clear
+    On Null GoTo Label1, Label2
+    errNo = Err.Number
+Label1:
+    EmitResult "XL-264 ON_GOTO_NULL ERR=" & CStr(errNo)
+Label2:
+    On Error GoTo 0
 End Sub
 
 Private Sub VerifySharedLockRange(ByVal path As String)
