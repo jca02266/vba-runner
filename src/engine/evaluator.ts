@@ -4199,9 +4199,18 @@ export class Evaluator {
 
     /** Evaluate and validate one VBA array subscript through the shared path. */
     private evaluateArrayIndex(expression: Expression, dims: { lower: number, upper: number }[] | undefined, dimension: number): number {
-        const index = Number(this.evaluateExpression(expression));
+        const index = this.evaluateNumericArgument(expression);
         this.validateArrayIndex(dims, dimension, index);
         return index;
+    }
+
+    /** Convert an argument whose operation rejects Null before numeric coercion. */
+    private evaluateNumericArgument(expression: Expression): number {
+        const value = this.evaluateExpression(expression);
+        if (value === vbaNull) {
+            this.throwVbaError(VbaErrorCode.INVALID_USE_OF_NULL, 'Invalid use of Null');
+        }
+        return Number(value);
     }
 
     private evaluateDoWhileStatement(stmt: DoWhileStatement) {
@@ -4613,7 +4622,7 @@ export class Evaluator {
 
     private evaluateWidthStatement(stmt: WidthStatement) {
         const fileNum = this.evaluateFileNumber(stmt.fileNumber);
-        const width = Number(this.evaluateExpression(stmt.width));
+        const width = this.evaluateNumericArgument(stmt.width);
         const handle = this.fileHandles.get(fileNum);
         if (!handle) this.throwVbaError(VbaErrorCode.BAD_FILE_NAME_OR_NUMBER, "Bad file name or number");
         if (!Number.isInteger(width) || width < 0 || width > 255) {
@@ -7371,7 +7380,7 @@ export class Evaluator {
             const fd = this.fs.openSync(realPath, flags);
             let recordLen: number | undefined;
             if (stmt.mode === 'Random') {
-                recordLen = stmt.recordLen ? Number(this.evaluateExpression(stmt.recordLen)) : 128;
+                recordLen = stmt.recordLen ? this.evaluateNumericArgument(stmt.recordLen) : 128;
                 if (!Number.isInteger(recordLen) || recordLen < 1) {
                     this.throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, 'Invalid procedure call or argument');
                 }
@@ -7448,11 +7457,11 @@ export class Evaluator {
                 // Continue
             } else if (typeof expr === 'object' && expr !== null && 'type' in expr) {
                  if (expr.type === 'Spc') {
-                     const n = Number(this.evaluateExpression((expr as any).val));
+                     const n = this.evaluateNumericArgument((expr as any).val);
                      output += " ".repeat(Math.max(0, n));
                 } else if (expr.type === 'Tab') {
                     // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
-                    const n = Number(this.evaluateExpression((expr as any).val));
+                    const n = this.evaluateNumericArgument((expr as any).val);
                     output += " ".repeat(Math.max(0, n - 1 - startingColumn - output.length));
                  } else {
                      output += String(this.evaluateExpression(expr as any));
@@ -7517,11 +7526,11 @@ export class Evaluator {
                 // no separator
             } else if (typeof expr === 'object' && expr !== null && 'type' in expr) {
                 if (expr.type === 'Spc') {
-                    const n = Number(this.evaluateExpression((expr as any).val));
+                    const n = this.evaluateNumericArgument((expr as any).val);
                     output += " ".repeat(Math.max(0, n));
                 } else if (expr.type === 'Tab') {
                     // Tab(n): 次の出力を n 桁目（1 始まり）から始める → 長さ n-1 まで空白
-                    const n = Number(this.evaluateExpression((expr as any).val));
+                    const n = this.evaluateNumericArgument((expr as any).val);
                     output += " ".repeat(Math.max(0, n - 1 - output.length));
                 } else {
                     output += this.toDisplayString(this.evaluateExpression(expr as any));
