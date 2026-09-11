@@ -313,3 +313,15 @@ items:
     coverageTargets:
       - src/engine/lexer.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-025
+    title: Nested error dispatch and coercion consistency
+    status: queued
+    priority: 2
+    focus: ネスト手続きのエラー伝播と暗黙変換の隣接経路
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+      - tests/spec/error-handling.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts

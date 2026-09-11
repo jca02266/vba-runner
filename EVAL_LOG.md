@@ -890,6 +890,7 @@
 | EV-00987 | ROOT-CAUSE | verified-no-bug | 1 | Seek・Tab・配列添字のNull数値引数契約 |
 | EV-00988 | ROOT-CAUSE | verified-no-bug | 1 | Mid書き換え文のNull位置引数契約 |
 | EV-00989 | FZ-COVERAGE-20260823 | in-progress | 1 | べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認 |
+| EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播と暗黙変換の隣接経路 |
 
 ## 状態集計
 
@@ -900,7 +901,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 473 |
+| verified-no-bug | 474 |
 
 横展開未解決経路: 619、実Excel待ち評価: 1
 
