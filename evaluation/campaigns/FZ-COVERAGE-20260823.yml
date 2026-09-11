@@ -301,3 +301,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/vba/CompileError.bas
+  - id: FZ-COVERAGE-20260823-024
+    title: Radix operand exponentiation adjacency
+    status: queued
+    priority: 1
+    focus: べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認
+    sourceReview:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/lexer.ts
+      - src/engine/parser.ts

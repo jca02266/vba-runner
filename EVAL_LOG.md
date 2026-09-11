@@ -870,7 +870,7 @@
 | EV-00967 | FZ-BUILTIN | fixed | 1 | Replace空検索のExpression返却契約 |
 | EV-00968 | FZ-BUILTIN | fixed | 1 | Rnd負数シードと状態遷移 |
 | EV-00969 | FZ-BUILTIN | fixed | 1 | Randomize数値指定のシード写像 |
-| EV-00970 | FZ-COVERAGE-20260823 | bug-found | 1 | Lock/UnlockのNull record-range変換 |
+| EV-00970 | FZ-COVERAGE-20260823 | fixed | 1 | Lock/UnlockのNull record-range変換 |
 | EV-00971 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのVariant数値強制と算術経路の真値表現 |
 | EV-00972 | FZ-COVERAGE-20260823 | fixed | 1 | ホスト由来BooleanのCStr/TypeName/VarTypeと単項演算のVBA型正規化 |
 | EV-00973 | FZ-COVERAGE-20260823 | needs-excel-probe |  | For Each Collection制御変数Let強制とOn Error Resume Nextの継続位置 |
@@ -881,19 +881,28 @@
 | EV-00978 | FZ-COVERAGE-20260823 | verified-no-bug |  | And演算子と数値トークンの空白境界およびNot比較の解析 |
 | EV-00979 | FZ-COVERAGE-20260823 | verified-no-bug |  | ユーザー手続き経由のEmpty値からStringへの変換 |
 | EV-00980 | FZ-COVERAGE-20260823 | fixed | 1 | Collectionを列挙するFor Each制御変数のVariant/Object静的要件 |
+| EV-00981 | ROOT-CAUSE | fixed | 1 | WIDTH文の幅引数におけるNullのエラー契約 |
+| EV-00982 | ROOT-CAUSE | fixed | 1 | Random OpenのLen引数におけるNullのエラー契約 |
+| EV-00983 | ROOT-CAUSE | fixed | 1 | Spc/Tab引数におけるNullのエラー契約 |
+| EV-00984 | ROOT-CAUSE | fixed | 1 | 配列添字におけるNullのエラー契約 |
+| EV-00985 | ROOT-CAUSE | verified-no-bug | 1 | Mid/MidBの開始位置・長さにおけるNullのエラー契約 |
+| EV-00986 | ROOT-CAUSE | verified-no-bug | 1 | On GoTo/GoSubの分岐番号におけるNullのエラー契約 |
+| EV-00987 | ROOT-CAUSE | verified-no-bug | 1 | Seek・Tab・配列添字のNull数値引数契約 |
+| EV-00988 | ROOT-CAUSE | verified-no-bug | 1 | Mid書き換え文のNull位置引数契約 |
+| EV-00989 | FZ-COVERAGE-20260823 | in-progress | 1 | べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 399 |
+| fixed | 404 |
+| in-progress | 1 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 469 |
+| verified-no-bug | 473 |
 
-横展開未解決経路: 611、実Excel待ち評価: 1
+横展開未解決経路: 619、実Excel待ち評価: 1
 
 ## 次の候補
 
