@@ -894,12 +894,13 @@
 | EV-00991 | FZ-COVERAGE-20260823 | fixed | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
 | EV-00992 | FZ-COVERAGE-20260823 | bug-found |  | Private Typeのクロスモジュール型解決 |
 | EV-00993 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾参照の型実体化 |
+| EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
+| bug-found | 3 |
 | fixed | 405 |
 | in-progress | 1 |
 | known-limit | 5 |
@@ -913,4 +914,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-004 | 2 | queued | Module.Type修飾UDTの引数・戻り値・配列境界 | yes |
+| RCA-PRIVATE-VISIBILITY-005 | 2 | queued | Private UDTのPublic戻り値・配列境界 | yes |

@@ -377,3 +377,13 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-005
+    title: UDT return and array visibility boundaries
+    status: queued
+    priority: 2
+    focus: Private UDTのPublic戻り値・配列境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
