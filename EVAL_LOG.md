@@ -922,6 +922,7 @@
 | EV-01019 | FZ-COVERAGE-20260823 | verified-no-bug |  | ReplaceのStart指定時の返却範囲 |
 | EV-01020 | FZ-COVERAGE-20260823 | verified-no-bug |  | SplitのLimit=0境界 |
 | EV-01021 | FZ-COVERAGE-20260823 | verified-no-bug |  | JoinのDelimiter Null・Empty境界 |
+| EV-01022 | FZ-COVERAGE-20260823 | verified-no-bug |  | CIntとCVarの合成変換境界 |
 
 ## 状態集計
 
@@ -932,7 +933,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 485 |
+| verified-no-bug | 486 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 

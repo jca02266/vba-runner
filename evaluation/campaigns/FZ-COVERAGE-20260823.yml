@@ -669,3 +669,15 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260823-035
+    title: CInt and CVar composition boundary
+    status: queued
+    priority: 3
+    focus: CInt(x)とCInt(CVar(x))の合成変換・丸め・エラー伝播
+    priorCauseKey: conversion-composition-coercion-path
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
