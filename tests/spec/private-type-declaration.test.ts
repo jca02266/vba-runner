@@ -242,3 +242,32 @@ End Function`);
     assert.ok(threw, 'class Public Function Private UDT return is rejected');
     console.log('[PASS] Class Public Function Private UDT return is rejected');
 }
+
+// Test 11: クラス内Private UDTのProperty Get/Let経路
+{
+    const ev = evalVBA(String.raw`Class ClassCase
+Private Type TItem
+    Value As Long
+End Type
+Private mItem As TItem
+Private Property Get Item() As TItem
+    Item = mItem
+End Property
+Private Property Let Item(ByVal value As TItem)
+    mItem = value
+End Property
+Public Function Probe() As Long
+    Dim localItem As TItem
+    localItem.Value = 41
+    Item = localItem
+    Probe = Item.Value + 1
+End Function
+End Class
+Public Function RunClassPropertyUdt() As Long
+    Dim instance As New ClassCase
+    RunClassPropertyUdt = instance.Probe
+End Function`);
+    assert.strictEqual(ev.callProcedure('RunClassPropertyUdt', []), 42,
+        'Class-local Private UDT Property Get/Let works');
+    console.log('[PASS] Class-local Private UDT Property Get/Let works');
+}
