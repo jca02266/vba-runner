@@ -180,8 +180,8 @@ Public Sub RunExcelQueueVerification()
 End Sub
 
 Private Sub VerifyQualifiedUdtArrayTypeName()
-    Dim values() As ExcelQueueTypeProducer.RecordT
-    Dim returned() As ExcelQueueTypeProducer.RecordT
+    Dim values() As RecordT
+    Dim returned() As RecordT
     Dim errNo As Long
     On Error Resume Next
     Err.Clear

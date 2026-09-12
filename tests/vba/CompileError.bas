@@ -570,6 +570,19 @@ Sub Case_function_call_with_excess_argument_runtime()
     On Error GoTo 0
 End Sub
 
+' CASE: qualified_udt_array_declaration
+' TYPE: preproc
+' VBA: コンパイル エラー: パブリック オブジェクト モジュールで定義されたユーザー定義型に限り、変数に割り当てることができ、実行時バインディングの関数に渡すことができます。
+' RUNNER: /public object module|user-defined type|array or user-defined type/i
+' NOTE: Excelは標準モジュールのPublic UDTをモジュール修飾した配列宣言として受け付けない。
+Public Type CompileRecordT
+    Id As Long
+End Type
+
+Sub Case_qualified_udt_array_declaration()
+    Dim values() As CompileError.CompileRecordT ' @error
+End Sub
+
 ' CASE: sub_call_without_required_argument
 ' TYPE: preproc
 ' VBA: コンパイル エラー: 引数は省略できません。

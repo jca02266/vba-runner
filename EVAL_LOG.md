@@ -918,21 +918,21 @@
 | EV-01015 | FZ-COVERAGE-20260823 | verified-no-bug |  | 修飾UDT配列のErase後再代入 |
 | EV-01016 | FZ-COVERAGE-20260823 | verified-no-bug |  | 冪乗演算子の左結合性境界 |
 | EV-01017 | FZ-COVERAGE-20260823 | verified-no-bug |  | CInt/CVar変換の丸めとエラー伝播 |
-| EV-01018 | FZ-COVERAGE-20260823 | needs-excel |  | 修飾UDT配列とFunction戻り値のTypeName表記 |
+| EV-01018 | FZ-COVERAGE-20260823 | bug-found |  | 修飾UDT配列とFunction戻り値のTypeName表記 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 422 |
 | in-progress | 2 |
 | known-limit | 5 |
-| needs-excel | 1 |
 | needs-excel-probe | 1 |
 | retired | 2 |
 | verified-no-bug | 482 |
 
-横展開未解決経路: 621、実Excel待ち評価: 2
+横展開未解決経路: 621、実Excel待ち評価: 1
 
 ## 次の候補
 

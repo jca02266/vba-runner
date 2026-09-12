@@ -1267,6 +1267,40 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
     }
 }
 
+// [preproc] qualified_udt_array_declaration
+// VBA: コンパイル エラー: パブリック オブジェクト モジュールで定義されたユーザー定義型に限り、変数に割り当てることができ、実行時バインディングの関数に渡すことができます。
+// VBA error line (within Sub body): 1
+{
+    try {
+        assertCompileErrorPreproc(`
+      Private Sub MySub()
+      End Sub
+
+      Private Function MyFuncHasArg(x)
+      End Function
+
+      Private Function MyFuncNoArg()
+      End Function
+
+      Private Sub MySubHasArg(x)
+      End Sub
+
+      Private Property Get MyPropertyHasArg(index As Long) As Long
+          MyPropertyHasArg = index
+      End Property
+
+      Sub __test__()
+        Dim values() As CompileError.CompileRecordT
+      End Sub
+    `, '__test__', 19, /public object module|user-defined type|array or user-defined type/i, 'qualified_udt_array_declaration');
+        console.log('[PASS] qualified_udt_array_declaration');
+        __pass__++;
+    } catch (e: any) {
+        console.error('[FAIL] qualified_udt_array_declaration:', e.message);
+        __fail__++;
+    }
+}
+
 // [preproc] sub_call_without_required_argument
 // VBA: コンパイル エラー: 引数は省略できません。
 // VBA error line (within Sub body): 2
