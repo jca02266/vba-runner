@@ -894,7 +894,7 @@
 | EV-00991 | FZ-COVERAGE-20260823 | fixed | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
 | EV-00992 | FZ-COVERAGE-20260823 | fixed |  | Private Typeのクロスモジュール型解決 |
 | EV-00993 | FZ-COVERAGE-20260823 | fixed | 1 | Module.Type修飾参照の型実体化 |
-| EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
+| EV-00994 | FZ-COVERAGE-20260823 | fixed |  | Private UDTを使うPublic手続きの引数境界 |
 | EV-00995 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDTを返すPublic手続きの境界 |
 | EV-00996 | FZ-COVERAGE-20260823 | in-progress |  | Private UDT配列を返すPublic手続きの境界 |
 | EV-00997 | FZ-COVERAGE-20260823 | fixed |  | クラスモジュール内Private UDTを返すPublic Function |
@@ -920,8 +920,8 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 3 |
-| fixed | 419 |
+| bug-found | 2 |
+| fixed | 420 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
