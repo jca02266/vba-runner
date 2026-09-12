@@ -906,12 +906,13 @@
 | EV-01003 | FZ-COVERAGE-20260823 | bug-found |  | Event宣言とRaiseEventの引数個数不一致 |
 | EV-01004 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラーのByRef・型署名不一致 |
 | EV-01005 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラー候補へのProperty Get誤登録 |
+| EV-01006 | FZ-COVERAGE-20260823 | bug-found |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 12 |
+| bug-found | 13 |
 | fixed | 405 |
 | in-progress | 3 |
 | known-limit | 5 |
@@ -925,4 +926,5 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-016 | 3 | queued | 標準モジュールEventハンドラーの所属境界とInterface経路 | yes |
+| RCA-PRIVATE-VISIBILITY-017 | 3 | queued | 標準モジュールPrivateイベントハンドラーの可視性境界 | yes |
+| RCA-PRIVATE-VISIBILITY-018 | 3 | queued | Interface実装と拡張モジュールのEvent配線 | yes |

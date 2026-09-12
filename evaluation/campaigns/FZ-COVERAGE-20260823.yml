@@ -491,6 +491,26 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/property-resolution.ts
+  - id: RCA-PRIVATE-VISIBILITY-017
+    title: Cross-module Private event handler visibility
+    status: queued
+    priority: 3
+    focus: 標準モジュールPrivateイベントハンドラーの可視性境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-018
+    title: Interface and host-extension event dispatch
+    status: queued
+    priority: 3
+    focus: Interface実装と拡張モジュールのEvent配線
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued
