@@ -347,3 +347,13 @@ items:
       - evaluation/root-causes/RC-00119.md
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-002
+    title: Private Type and Enum visibility boundaries
+    status: queued
+    priority: 2
+    focus: Private Type・Enumのモジュール境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
