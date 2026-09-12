@@ -467,6 +467,18 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-015
+    title: Event handler property and multi-handler boundaries
+    status: queued
+    priority: 3
+    focus: WithEventsハンドラーのProperty誤登録と複数ハンドラー互換性
+    sourceReview:
+      - src/engine/property-resolution.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/property-resolution.ts
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued

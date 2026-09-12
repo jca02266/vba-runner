@@ -904,12 +904,13 @@
 | EV-01001 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT配列のReDim Preserve・Erase後再利用 |
 | EV-01002 | FZ-COVERAGE-20260823 | bug-found |  | クラスPublic FunctionのPrivate UDT引数署名 |
 | EV-01003 | FZ-COVERAGE-20260823 | bug-found |  | Event宣言とRaiseEventの引数個数不一致 |
+| EV-01004 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラーのByRef・型署名不一致 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 10 |
+| bug-found | 11 |
 | fixed | 405 |
 | in-progress | 3 |
 | known-limit | 5 |
@@ -923,4 +924,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-014 | 3 | queued | RaiseEventの引数個数とWithEventsハンドラー署名の静的契約 | yes |
+| RCA-PRIVATE-VISIBILITY-015 | 3 | queued | WithEventsハンドラーのProperty誤登録と複数ハンドラー互換性 | yes |
