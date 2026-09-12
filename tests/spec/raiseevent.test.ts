@@ -312,4 +312,23 @@ End Function`,
     console.log('[PASS] WithEvents ignores standard-module candidates');
 }
 
+// RaiseEvent argument count is checked before dispatch, even with no handler.
+{
+    const code = String.raw`Class ArityEmitter
+Public Event Ping(ByVal firstValue As Long, ByVal secondValue As Long)
+Public Sub Fire()
+    RaiseEvent Ping(1)
+End Sub
+End Class
+Public Function RunBadRaiseEvent() As Long
+    Dim emitter As New ArityEmitter
+    emitter.Fire
+    RunBadRaiseEvent = 1
+End Function`;
+    const ev = evalVBA(code);
+    assert.throws(() => ev.callProcedure('RunBadRaiseEvent', []), /Wrong number of arguments|Compile error/,
+        'RaiseEvent rejects an argument count mismatch');
+    console.log('[PASS] RaiseEvent argument count mismatch is rejected');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');

@@ -2308,6 +2308,11 @@ export class Evaluator {
                     findings.argumentError.message, findings.argumentError.line,
                     proc.moduleName ?? undefined);
             }
+            if (findings.raiseEventArgumentError) {
+                this.throwCompileError(VbaErrorCode.WRONG_NUMBER_OF_ARGUMENTS,
+                    'Wrong number of arguments for RaiseEvent',
+                    findings.raiseEventArgumentError.line, proc.moduleName ?? undefined);
+            }
             if (findings.arrayAssignment) {
                 this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     "Can't assign to an array", findings.arrayAssignment.line,
@@ -2416,6 +2421,7 @@ export class Evaluator {
         labels: Set<string>;
         jumps: Array<{ label: string; line: number }>;
         argumentError?: { code: number; message: string; line?: number };
+        raiseEventArgumentError?: { line?: number };
     } {
         const findings = {
             undefinedCalls: [] as UndefinedProcError[],
@@ -2437,6 +2443,7 @@ export class Evaluator {
             labels: Set<string>;
             jumps: Array<{ label: string; line: number }>;
             argumentError?: { code: number; message: string; line?: number };
+            raiseEventArgumentError?: { line?: number };
         };
 
         const knownNames = this.env.collectAllNames();
@@ -3007,6 +3014,23 @@ export class Evaluator {
                     visitExpression(s.left, true); visitExpression(s.right); break;
                 }
                 case 'CallStatement': visitExpression((stmt as CallStatement).expression); break;
+                case 'RaiseEventStatement': {
+                    const event = stmt as RaiseEventStatement;
+                    const classDef = proc.moduleName
+                        ? this.classDefinitions.get(proc.moduleName.toLowerCase())
+                        : undefined;
+                    const declaration = classDef?.body.find((member): member is EventDeclaration =>
+                        member.type === 'EventDeclaration' &&
+                        member.name.name.toLowerCase() === event.eventName.name.toLowerCase());
+                    if (declaration && !findings.raiseEventArgumentError) {
+                        const required = requiredArgumentCount(declaration.parameters);
+                        if (event.args.length < required || event.args.length > declaration.parameters.length) {
+                            findings.raiseEventArgumentError = { line: event.eventName.loc?.start.line ?? event.loc?.start.line };
+                        }
+                    }
+                    for (const arg of event.args) visitExpression(arg);
+                    break;
+                }
                 case 'IfStatement': {
                     const s = stmt as IfStatement;
                     visitExpression(s.condition); this.walkPrecheckStatements(s.consequent, visitStatement);
