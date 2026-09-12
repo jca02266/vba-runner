@@ -2313,6 +2313,11 @@ export class Evaluator {
                     'Wrong number of arguments for RaiseEvent',
                     findings.raiseEventArgumentError.line, proc.moduleName ?? undefined);
             }
+            if (findings.inaccessibleType) {
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                    `Type '${findings.inaccessibleType.name}' is not accessible in this module`,
+                    findings.inaccessibleType.line, proc.moduleName ?? undefined);
+            }
             if (findings.arrayAssignment) {
                 this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     "Can't assign to an array", findings.arrayAssignment.line,
@@ -2422,6 +2427,7 @@ export class Evaluator {
         jumps: Array<{ label: string; line: number }>;
         argumentError?: { code: number; message: string; line?: number };
         raiseEventArgumentError?: { line?: number };
+        inaccessibleType?: { name: string; line?: number };
     } {
         const findings = {
             undefinedCalls: [] as UndefinedProcError[],
@@ -2444,6 +2450,7 @@ export class Evaluator {
             jumps: Array<{ label: string; line: number }>;
             argumentError?: { code: number; message: string; line?: number };
             raiseEventArgumentError?: { line?: number };
+            inaccessibleType?: { name: string; line?: number };
         };
 
         const knownNames = this.env.collectAllNames();
@@ -2911,6 +2918,16 @@ export class Evaluator {
                             fixed: Array.isArray(d.arrayBounds) && d.arrayBounds.length > 0,
                         });
                         if (d.objectType) variableTypes.set(key, d.objectType);
+                        if (!findings.inaccessibleType && d.objectType && !d.objectType.includes('.') &&
+                            !this.env.getType(d.objectType) &&
+                            [...this.moduleEnvs.entries()].some(([moduleName, moduleEnv]) =>
+                                moduleName !== (proc.moduleName ?? '').toLowerCase() &&
+                                Boolean(moduleEnv.getType(d.objectType!)))) {
+                            findings.inaccessibleType = {
+                                name: d.objectType,
+                                line: d.objectTypeLoc?.start.line ?? d.name.loc?.start.line,
+                            };
+                        }
                         if (!findings.duplicate && seen.has(key)) {
                             findings.duplicate = { kind: 'Variable', name: d.name.name, line: d.name.loc?.start.line };
                         }

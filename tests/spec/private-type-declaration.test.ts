@@ -172,6 +172,35 @@ End Function`,
     console.log('[PASS] Private Type: cross-module bare reference is rejected');
 }
 
+// Cross-module use of a Private UDT must be rejected during the shared
+// precheck, rather than being deferred to an uninitialized runtime value.
+{
+    const ev = evalVBAModules([
+        {
+            name: 'PrivateProducer',
+            code: String.raw`Option Explicit
+Private Type HiddenRecord
+    Value As Long
+End Type
+Public Function Accept(ByRef value As HiddenRecord) As Long
+    Accept = value.Value
+End Function`,
+        },
+        {
+            name: 'PrivateCaller',
+            code: String.raw`Option Explicit
+Public Function RunPrivateTypeBoundary() As Long
+    Dim value As HiddenRecord
+    value.Value = 5
+    RunPrivateTypeBoundary = PrivateProducer.Accept(value)
+End Function`,
+        },
+    ]);
+    assert.throws(() => ev.callProcedure('RunPrivateTypeBoundary', []), /Compile error|not declared|Type mismatch/,
+        'cross-module Private UDT use is rejected before execution');
+    console.log('[PASS] Cross-module Private UDT use is rejected during precheck');
+}
+
 // Test 7: Public Type は別モジュールから Module.Type で解決できる
 {
     const ev = evalVBAModules([
