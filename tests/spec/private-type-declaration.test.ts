@@ -112,6 +112,32 @@ End Function
 
 console.log('\n✅ private-type-declaration: 全テスト通過');
 
+// Test 15: クラスPublic FunctionのPrivate UDT引数は静的に拒否する
+{
+    const ev = evalVBA(String.raw`Class ParameterHolder
+Private Type HiddenRecord
+    Value As Long
+End Type
+Public Function Expose(ByVal item As HiddenRecord) As Long
+    Expose = item.Value
+End Function
+End Class
+Public Function RunInvalidClassParameter() As Long
+    Dim holder As New ParameterHolder
+    RunInvalidClassParameter = holder.Expose(Nothing)
+End Function`);
+    let threw = false;
+    try {
+        ev.callProcedure('RunInvalidClassParameter', []);
+    } catch (error: any) {
+        threw = true;
+        assert.ok(/Public class procedure.*Private UDT|Compile error/.test(String(error?.message)),
+            'class Public Function Private UDT parameter is rejected');
+    }
+    assert.ok(threw, 'class Public Function Private UDT parameter is rejected');
+    console.log('[PASS] Class Public Function Private UDT parameter is rejected');
+}
+
 // Test 6: Private Type は宣言元モジュールの外から非修飾参照できない
 {
     let threw = false;

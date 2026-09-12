@@ -2238,7 +2238,7 @@ export class Evaluator {
     private precheckProc(proc: ProcedureDeclaration): void {
         try {
             this.precheckOptionExplicitProc(proc);
-            this.precheckClassPrivateUdtReturn(proc);
+            this.precheckClassPrivateUdtSignature(proc);
             const findings = this.collectPrecheckFindings(proc);
             if (findings.nextControlVariable) {
                 const mismatch = findings.nextControlVariable;
@@ -2325,23 +2325,33 @@ export class Evaluator {
         }
     }
 
-    /** MS-VBAL 5.3.1.1.6: a public class procedure cannot expose a
-     * class-private UDT as its function result type. */
-    private precheckClassPrivateUdtReturn(proc: ProcedureDeclaration): void {
-        if (!proc.isFunction || !proc.returnType || proc.scope === 'private') return;
+    /** MS-VBAL 5.3.1: public class signatures cannot expose class-private UDTs. */
+    private precheckClassPrivateUdtSignature(proc: ProcedureDeclaration): void {
+        // MS-VBAL applies this signature restriction to public procedures;
+        // Friend visibility has a separate boundary and remains unclassified.
+        if (proc.scope === 'private' || proc.scope === 'friend') return;
         const owner = proc.moduleName ? this.classDefinitions.get(proc.moduleName.toLowerCase()) : undefined;
         if (!owner) return;
-        const typeName = proc.returnType.split('.').at(-1)?.toLowerCase();
-        if (!typeName) return;
-        const privateType = owner.body.some((stmt) => {
-            if (stmt.type !== 'TypeDeclaration') return false;
-            const typeDecl = stmt as TypeDeclaration & { scope?: string };
-            return typeDecl.name.toLowerCase() === typeName && typeDecl.scope === 'private';
-        });
-        if (privateType) {
+        const privateTypes = new Set(owner.body
+            .filter((stmt): stmt is TypeDeclaration => stmt.type === 'TypeDeclaration')
+            .filter((stmt) => (stmt as TypeDeclaration & { scope?: string }).scope === 'private')
+            .map((stmt) => stmt.name.toLowerCase()));
+        const exposedType = (typeName: string | undefined): string | undefined => {
+            if (!typeName) return undefined;
+            const bare = typeName.split('.').at(-1)?.toLowerCase();
+            return bare && privateTypes.has(bare) ? bare : undefined;
+        };
+        const returnType = exposedType(proc.returnType);
+        if (proc.isFunction && returnType) {
             this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                 `Public class function '${proc.name.name}' cannot return a Private UDT`,
                 proc.name.loc?.start.line, proc.moduleName);
+        }
+        const parameter = proc.parameters.find((param) => exposedType(param.paramType));
+        if (parameter) {
+            this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                `Public class procedure '${proc.name.name}' cannot expose a Private UDT parameter`,
+                parameter.loc?.start.line ?? proc.name.loc?.start.line, proc.moduleName);
         }
     }
 
