@@ -168,5 +168,27 @@ End Function`,
     ]);
     assert.strictEqual(ev.callProcedure('UseQualifiedType', []), 9,
         'Public Type: qualified cross-module reference works');
-    console.log('[PASS] Public Type: qualified cross-module reference works');
+console.log('[PASS] Public Type: qualified cross-module reference works');
+}
+
+// Test 8: 標準モジュールのPublic FunctionはPrivate UDTを戻り値にできる
+{
+    const ev = evalVBAModules([
+        {
+            name: 'ModuleA',
+            code: String.raw`Option Explicit
+Private Type T
+    X As Long
+End Type
+Public Function Make() As T
+    Dim value As T
+    value.X = 7
+    Make = value
+End Function`,
+        },
+    ]);
+    const value = ev.callProcedure('ModuleA.Make', []) as { x: number };
+    assert.strictEqual(value.x, 7,
+        'Standard module Public Function may return a Private UDT');
+    console.log('[PASS] Standard module Public Function may return a Private UDT');
 }

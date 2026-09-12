@@ -549,3 +549,16 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-020
+    title: Private UDT return consumer visibility
+    status: queued
+    priority: 2
+    focus: 標準モジュールPublic FunctionのPrivate UDT戻り値を別モジュールで受ける型可視性境界
+    priorCauseKey: type-declaration-lookup-lacks-module-visibility
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+      - evaluation/root-causes/RC-00120.md
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

@@ -2,3 +2,8 @@
   evaluationId: EV-00995
   status: in-progress
   occurredAt: '2026-09-12T07:05:53.833Z'
+- candidateId: RCA-PRIVATE-VISIBILITY-005
+  evaluationId: EV-00995
+  status: verified-no-bug
+  fromStatus: in-progress
+  occurredAt: '2026-09-12T09:47:24.182Z'
