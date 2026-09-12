@@ -7,3 +7,8 @@
   status: in-progress
   fromStatus: bug-found
   occurredAt: '2026-09-12T09:21:45.508Z'
+- candidateId: RCA-PRIVATE-VISIBILITY-019
+  evaluationId: EV-01009
+  status: fixed
+  fromStatus: in-progress
+  occurredAt: '2026-09-12T09:23:11.606Z'

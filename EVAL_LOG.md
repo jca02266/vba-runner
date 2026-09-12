@@ -892,7 +892,7 @@
 | EV-00989 | FZ-COVERAGE-20260823 | in-progress | 1 | べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認 |
 | EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播経路 |
 | EV-00991 | FZ-COVERAGE-20260823 | fixed | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
-| EV-00992 | FZ-COVERAGE-20260823 | bug-found |  | Private Typeのクロスモジュール型解決 |
+| EV-00992 | FZ-COVERAGE-20260823 | fixed |  | Private Typeのクロスモジュール型解決 |
 | EV-00993 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾参照の型実体化 |
 | EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
 | EV-00995 | FZ-COVERAGE-20260823 | in-progress |  | Private UDTを返すPublic手続きの境界 |
@@ -909,14 +909,14 @@
 | EV-01006 | FZ-COVERAGE-20260823 | bug-found |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
 | EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
 | EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
-| EV-01009 | FZ-COVERAGE-20260823 | bug-found | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
+| EV-01009 | FZ-COVERAGE-20260823 | fixed | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 15 |
-| fixed | 405 |
+| bug-found | 13 |
+| fixed | 407 |
 | in-progress | 3 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
