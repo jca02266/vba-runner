@@ -443,6 +443,18 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-013
+    title: Event UDT signature compatibility and Friend boundary
+    status: queued
+    priority: 3
+    focus: EventのUDT引数互換性とFriend手続きの可視性境界
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued

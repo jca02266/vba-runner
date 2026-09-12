@@ -902,12 +902,13 @@
 | EV-00999 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT固定配列の要素初期化 |
 | EV-01000 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT動的配列のReDim後要素アクセス |
 | EV-01001 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT配列のReDim Preserve・Erase後再利用 |
+| EV-01002 | FZ-COVERAGE-20260823 | bug-found |  | クラスPublic FunctionのPrivate UDT引数署名 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 8 |
+| bug-found | 9 |
 | fixed | 405 |
 | in-progress | 3 |
 | known-limit | 5 |
@@ -921,4 +922,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-012 | 3 | queued | クラス内UDTのEvent引数・Public境界の型検証 | yes |
+| RCA-PRIVATE-VISIBILITY-013 | 3 | queued | EventのUDT引数互換性とFriend手続きの可視性境界 | yes |
