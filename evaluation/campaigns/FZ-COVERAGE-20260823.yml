@@ -636,3 +636,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/excel/queue/ExcelQueueVerification.bas
+  - id: FZ-COVERAGE-20260823-032
+    title: Replace start offset semantics
+    status: queued
+    priority: 3
+    focus: ReplaceのStart指定時の返却範囲を仕様と実装で照合する
+    priorCauseKey: replace-start-prefix-retention
+    sourceReview:
+      - src/engine/builtins.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/builtins.ts
