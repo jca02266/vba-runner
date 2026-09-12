@@ -909,12 +909,13 @@
 | EV-01006 | FZ-COVERAGE-20260823 | bug-found |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
 | EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
 | EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
+| EV-01009 | FZ-COVERAGE-20260823 | bug-found | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 14 |
+| bug-found | 15 |
 | fixed | 405 |
 | in-progress | 3 |
 | known-limit | 5 |
@@ -922,7 +923,7 @@
 | retired | 2 |
 | verified-no-bug | 475 |
 
-横展開未解決経路: 619、実Excel待ち評価: 1
+横展開未解決経路: 621、実Excel待ち評価: 1
 
 ## 次の候補
 

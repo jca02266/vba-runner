@@ -511,6 +511,20 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-019
+    title: Public procedure Private UDT signature boundary
+    status: queued
+    priority: 2
+    focus: Public手続きのPrivate UDT引数・戻り値・配列・ByRef署名境界
+    priorCauseKey: type-declaration-lookup-lacks-module-visibility
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+      - evaluation/root-causes/RC-00120.md
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued
