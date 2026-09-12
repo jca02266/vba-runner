@@ -407,3 +407,15 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-008
+    title: Class-local UDT arrays and properties
+    status: queued
+    priority: 3
+    focus: クラス内UDT配列・Property・Event境界
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
