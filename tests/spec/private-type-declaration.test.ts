@@ -145,3 +145,28 @@ End Function`,
     assert.ok(threw, 'Private Type: cross-module bare reference is rejected');
     console.log('[PASS] Private Type: cross-module bare reference is rejected');
 }
+
+// Test 7: Public Type は別モジュールから Module.Type で解決できる
+{
+    const ev = evalVBAModules([
+        {
+            name: 'ModuleA',
+            code: String.raw`Option Explicit
+Public Type T
+    X As Long
+End Type`,
+        },
+        {
+            name: 'ModuleB',
+            code: String.raw`Option Explicit
+Public Function UseQualifiedType() As Long
+    Dim value As ModuleA.T
+    value.X = 9
+    UseQualifiedType = value.X
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('UseQualifiedType', []), 9,
+        'Public Type: qualified cross-module reference works');
+    console.log('[PASS] Public Type: qualified cross-module reference works');
+}

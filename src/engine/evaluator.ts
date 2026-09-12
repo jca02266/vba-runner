@@ -1890,8 +1890,32 @@ export class Evaluator {
         }
     }
 
+    /** Resolve a UDT name in the caller's module scope.
+     *
+     * Public types are registered in the shared environment and may be
+     * referenced as Module.Type. Private types stay in their module
+     * environment and are only visible while evaluating that module.
+     */
+    private getTypeMembers(typeName: string): TypeMember[] | undefined {
+        const separator = typeName.lastIndexOf('.');
+        if (separator > 0) {
+            const owner = typeName.slice(0, separator).toLowerCase();
+            const bareName = typeName.slice(separator + 1);
+            const ownerEnv = this.moduleEnvs.get(owner);
+            const accessingOwner = (this.currentSourceModule || this.executingModuleName)
+                .toLowerCase() === owner;
+            if (accessingOwner && ownerEnv) {
+                return ownerEnv.getType(bareName);
+            }
+            // Only the shared environment is visible from another module;
+            // module-private definitions are deliberately not consulted.
+            return this.globalEnv?.getType(bareName);
+        }
+        return this.env.getType(typeName);
+    }
+
     private instantiateType(typeName: string): any {
-        const typeMembers = this.env.getType(typeName);
+        const typeMembers = this.getTypeMembers(typeName);
         if (!typeMembers) return 0;
 
         const instance: any = {
@@ -1911,7 +1935,7 @@ export class Evaluator {
                         const a = new Array(upper + 1);
                         if (dimIdx < dims.length - 1) {
                             for (let i = lower; i <= upper; i++) a[i] = buildArr(dimIdx + 1);
-                        } else if (this.env.getType(mt)) {
+                        } else if (this.getTypeMembers(mt)) {
                             for (let i = lower; i <= upper; i++) a[i] = this.instantiateType(mt);
                         } else {
                             const def = this.makeUdtMemberDefault(mt, mtLower, member.fixedLength);
@@ -1923,7 +1947,7 @@ export class Evaluator {
                     (arr as any).__vbaDimensions__ = dims.map(b => ({ lower: b.lower, upper: b.upper }));
                     (arr as any).vbaFixed = true;
                     (arr as any).vbaBase = dims[0].lower;
-                    if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    if (this.getTypeMembers(mt)) (arr as any).__vbaElementTypeName__ = mt;
                     else if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mtLower)) {
                         (arr as any).__vbaElementType__ = mtLower;
                     } else if (mtLower === 'object' || this.classDefinitions.has(mtLower) || this.externalObjectFactories.has(mtLower)) {
@@ -1937,7 +1961,7 @@ export class Evaluator {
                     const arr: any[] = [];
                     (arr as any).vbaBase = this.arrayBase;
                     (arr as any).vbaFixed = false;
-                    if (this.env.getType(mt)) (arr as any).__vbaElementTypeName__ = mt;
+                    if (this.getTypeMembers(mt)) (arr as any).__vbaElementTypeName__ = mt;
                     else if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mtLower)) {
                         (arr as any).__vbaElementType__ = mtLower;
                     } else if (mtLower === 'object' || this.classDefinitions.has(mtLower) || this.externalObjectFactories.has(mtLower)) {
@@ -1956,7 +1980,7 @@ export class Evaluator {
                 }
             } else if (mtLower === 'boolean') {
                 instance[memberKey] = 0; // vbaFalse
-            } else if (this.env.getType(mt)) {
+            } else if (this.getTypeMembers(mt)) {
                 instance[memberKey] = this.instantiateType(mt);
             } else {
                 instance[memberKey] = 0;
@@ -1968,7 +1992,7 @@ export class Evaluator {
     private makeUdtMemberDefault(mt: string, mtLower: string, fixedLength?: number): any {
         if (mtLower === 'string') return fixedLength !== undefined ? '\0'.repeat(fixedLength) : '';
         if (mtLower === 'boolean') return 0;
-        if (this.env.getType(mt)) return this.instantiateType(mt);
+        if (this.getTypeMembers(mt)) return this.instantiateType(mt);
         return 0;
     }
 
@@ -5461,7 +5485,7 @@ export class Evaluator {
                     }
                 }
                 // UDT 型配列: ReDim 時に要素を初期化できるよう型名を保持する
-                if (decl.objectType && this.env.getType(decl.objectType)) {
+                if (decl.objectType && this.getTypeMembers(decl.objectType)) {
                     (initialValue as any).__vbaElementTypeName__ = decl.objectType;
                     // B-4: For fixed-size UDT arrays, initialize each element with a proper UDT instance
                     if ((initialValue as any).vbaFixed) {
@@ -5502,7 +5526,7 @@ export class Evaluator {
             } else if (decl.objectType && !isEnumType) {
                 const t = decl.objectType.toLowerCase();
                 if (!['integer', 'long', 'single', 'double', 'currency', 'byte', 'string', 'boolean', 'longlong', 'longptr'].includes(t)) {
-                    if (this.env.getType(decl.objectType)) {
+                    if (this.getTypeMembers(decl.objectType)) {
                         // UDT 型: 各メンバを既定値で初期化したインスタンスを生成
                         initialValue = this.instantiateType(decl.objectType);
                     } else if (
@@ -5665,7 +5689,7 @@ export class Evaluator {
                 }
                 else if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(mt)) defaultVal = 0;
                 else if (mt === 'boolean') defaultVal = 0; // vbaFalse
-                else if (decl.objectType && this.env.getType(decl.objectType)) {
+                else if (decl.objectType && this.getTypeMembers(decl.objectType)) {
                     // UDT (Type ... End Type) フィールド: 既定値では Empty のままになり、
                     // Class_Initialize 等でのメンバー代入が Error 91 になっていた。
                     // Dim 変数の UDT 初期化と同じ instantiateType() を使う。
@@ -5706,7 +5730,7 @@ export class Evaluator {
                     if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mt)) {
                         (defaultVal as any).__vbaElementType__ = mt;
                     }
-                    if (decl.objectType && this.env.getType(decl.objectType)) {
+                    if (decl.objectType && this.getTypeMembers(decl.objectType)) {
                         (defaultVal as any).__vbaElementTypeName__ = decl.objectType;
                         if ((defaultVal as any).vbaFixed) {
                             this.fillArrayWithUdtInstances(defaultVal, decl.objectType);
@@ -7650,7 +7674,7 @@ export class Evaluator {
     private getBinaryValueLayout(expr: Expression, value: any): BinaryValueLayout {
         const elementType = Array.isArray(value) ? (value as any).__vbaElementType__?.toLowerCase() : undefined;
         const elementTypeName = Array.isArray(value) ? (value as any).__vbaElementTypeName__ as string | undefined : undefined;
-        if (elementTypeName && this.env.getType(elementTypeName)) {
+        if (elementTypeName && this.getTypeMembers(elementTypeName)) {
             return { typeName: 'Array', elementType: elementTypeName };
         }
         if (elementType && [
@@ -7683,7 +7707,7 @@ export class Evaluator {
             const n = Number(value);
             return { typeName: Number.isInteger(n) && n >= -32768 && n <= 32767 ? 'Integer' : 'Long' };
         }
-        if (value && typeof value === 'object' && value.__vbaTypeName__ && this.env.getType(value.__vbaTypeName__)) {
+        if (value && typeof value === 'object' && value.__vbaTypeName__ && this.getTypeMembers(value.__vbaTypeName__)) {
             return { typeName: value.__vbaTypeName__ };
         }
         if (typeof value === 'string') return { typeName: 'String' };
@@ -7787,7 +7811,7 @@ export class Evaluator {
                 return buffer;
             }
             default: {
-                const members = this.env.getType(layout.typeName);
+                const members = this.getTypeMembers(layout.typeName);
                 if (!members || !value || typeof value !== 'object') {
                     this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Unsupported binary value type: ${layout.typeName}`);
                 }
@@ -7965,7 +7989,7 @@ export class Evaluator {
                 };
             }
             default: {
-                const members = this.env.getType(layout.typeName);
+                const members = this.getTypeMembers(layout.typeName);
                 if (!members) this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, `Unsupported binary value type: ${layout.typeName}`);
                 const value = this.instantiateType(layout.typeName);
                 let length = 0;
@@ -9521,13 +9545,13 @@ export class Evaluator {
         const elementTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementTypeName__ : undefined) ??
             storedArrayTypeInfo?.elementTypeName ??
-            (decl.objectType && this.env.getType(decl.objectType) ? decl.objectType : undefined) ??
-            (returnArrayType && this.env.getType(returnArrayType) ? returnArrayType : undefined);
+            (decl.objectType && this.getTypeMembers(decl.objectType) ? decl.objectType : undefined) ??
+            (returnArrayType && this.getTypeMembers(returnArrayType) ? returnArrayType : undefined);
         const elementType: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementType__ : undefined) ??
             storedArrayTypeInfo?.elementType ??
-            (decl.objectType && !this.env.getType(decl.objectType) ? decl.objectType.toLowerCase() : undefined) ??
-            (returnArrayType && !this.env.getType(returnArrayType) ? returnArrayType.toLowerCase() : undefined);
+            (decl.objectType && !this.getTypeMembers(decl.objectType) ? decl.objectType.toLowerCase() : undefined) ??
+            (returnArrayType && !this.getTypeMembers(returnArrayType) ? returnArrayType.toLowerCase() : undefined);
         const elementObjectTypeName: string | undefined =
             (Array.isArray(oldArr) ? (oldArr as any).__vbaElementObjectTypeName__ : undefined) ??
             storedArrayTypeInfo?.elementObjectTypeName ??
