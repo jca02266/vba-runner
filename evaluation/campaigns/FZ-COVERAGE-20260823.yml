@@ -367,3 +367,13 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-004
+    title: Qualified UDT parameter return and array paths
+    status: queued
+    priority: 2
+    focus: Module.Type修飾UDTの引数・戻り値・配列境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
