@@ -613,3 +613,14 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-030
+    title: CInt/CVar conversion transparency boundary
+    status: queued
+    priority: 3
+    focus: CVarを経由したCIntの丸め・Null・Empty・オーバーフロー伝播
+    priorCauseKey: conversion-wrapper-error-propagation
+    sourceReview:
+      - src/engine/builtins.ts
+      - tests/spec/builtin-numeric.test.ts
+    coverageTargets:
+      - src/engine/builtins.ts

@@ -917,6 +917,7 @@
 | EV-01014 | FZ-COVERAGE-20260823 | verified-no-bug |  | Public UDTのTypeName/VarType表示境界 |
 | EV-01015 | FZ-COVERAGE-20260823 | verified-no-bug |  | 修飾UDT配列のErase後再代入 |
 | EV-01016 | FZ-COVERAGE-20260823 | verified-no-bug |  | 冪乗演算子の左結合性境界 |
+| EV-01017 | FZ-COVERAGE-20260823 | verified-no-bug |  | CInt/CVar変換の丸めとエラー伝播 |
 
 ## 状態集計
 
@@ -927,7 +928,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 481 |
+| verified-no-bug | 482 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
