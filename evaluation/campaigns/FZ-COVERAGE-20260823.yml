@@ -647,3 +647,14 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260823-033
+    title: Split zero limit boundary
+    status: queued
+    priority: 3
+    focus: SplitのLimit=0における空配列とJoinの仕様境界
+    priorCauseKey: split-zero-limit-boundary
+    sourceReview:
+      - src/engine/builtins.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/builtins.ts

@@ -920,6 +920,7 @@
 | EV-01017 | FZ-COVERAGE-20260823 | verified-no-bug |  | CInt/CVar変換の丸めとエラー伝播 |
 | EV-01018 | FZ-COVERAGE-20260823 | fixed |  | 修飾UDT配列とFunction戻り値のTypeName表記 |
 | EV-01019 | FZ-COVERAGE-20260823 | verified-no-bug |  | ReplaceのStart指定時の返却範囲 |
+| EV-01020 | FZ-COVERAGE-20260823 | verified-no-bug |  | SplitのLimit=0境界 |
 
 ## 状態集計
 
@@ -930,7 +931,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 483 |
+| verified-no-bug | 484 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
