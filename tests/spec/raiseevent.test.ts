@@ -361,4 +361,46 @@ End Function`;
     console.log('[PASS] WithEvents rejects mismatched type/ByRef signatures');
 }
 
+// A Private handler in a different standard module is not in the subscriber
+// class scope and must not be connected implicitly.
+{
+    const ev = evalVBAModules([
+        {
+            name: 'PrivatePublisher',
+            parseAsClass: 'PrivatePublisher',
+            code: String.raw`Option Explicit
+Public Event Changed()
+Public Sub Fire()
+    RaiseEvent Changed
+End Sub`,
+        },
+        {
+            name: 'PrivateListener',
+            parseAsClass: 'PrivateListener',
+            code: String.raw`Option Explicit
+Private WithEvents Source As PrivatePublisher
+Public Sub Init()
+    Set Source = New PrivatePublisher
+    Source.Fire
+End Sub`,
+        },
+        {
+            name: 'PrivateHandlerModule',
+            code: String.raw`Option Explicit
+Public fired As Long
+Private Sub Source_Changed()
+    fired = fired + 1
+End Sub
+Public Function RunPrivateCandidate() As Long
+    Dim listener As New PrivateListener
+    listener.Init
+    RunPrivateCandidate = fired
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('RunPrivateCandidate', []), 0,
+        'private standard-module event Sub is not implicitly connected');
+    console.log('[PASS] WithEvents ignores private standard-module candidates');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');
