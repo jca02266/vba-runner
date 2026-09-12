@@ -41,6 +41,17 @@ maintain a second copy here.
    error propagation), then combine at least two inputs or paths in a focused
    metamorphic, fuzz, mutation, or source-review probe. Have an independent
    sub-agent review the proposed probe and run it outside the repository.
+   Before registering a discovery candidate, search the existing `tests/spec/`,
+   contract-matrix data, and evaluation records for the exact input boundary
+   and its adjacent paths. Compare actual assertions and evidence, not only
+   matching keywords. If the boundary is already covered with equivalent
+   inputs and expected results, do not create a duplicate candidate or EV;
+   record the discovery as redundant and select an uncovered adjacent case.
+   A combined probe is still redundant when it merely repeats already-tested
+   Null, Empty, omitted, or empty-array cases without adding a distinct input,
+   dispatch path, type, or specification question. Register a new candidate
+   only for the genuinely uncovered portion, and state that narrower scope in
+   its focus and evaluation method.
    Treat a failure as a bug only after reproducing it with a minimal case and
    checking the specification or Excel expectation. Before writing an EV,
    register a new candidate in the campaign manifest; never create an EV or
