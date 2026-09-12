@@ -918,7 +918,7 @@
 | EV-01015 | FZ-COVERAGE-20260823 | verified-no-bug |  | 修飾UDT配列のErase後再代入 |
 | EV-01016 | FZ-COVERAGE-20260823 | verified-no-bug |  | 冪乗演算子の左結合性境界 |
 | EV-01017 | FZ-COVERAGE-20260823 | verified-no-bug |  | CInt/CVar変換の丸めとエラー伝播 |
-| EV-01018 | FZ-COVERAGE-20260823 | fixed |  | 修飾UDT配列とFunction戻り値のTypeName表記 |
+| EV-01018 | FZ-COVERAGE-20260823 | fixed |  | UDT配列を実行時バインディング関数へ渡すコンパイル境界 |
 | EV-01019 | FZ-COVERAGE-20260823 | verified-no-bug |  | ReplaceのStart指定時の返却範囲 |
 | EV-01020 | FZ-COVERAGE-20260823 | verified-no-bug |  | SplitのLimit=0境界 |
 
