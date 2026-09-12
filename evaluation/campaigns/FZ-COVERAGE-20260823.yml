@@ -588,3 +588,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/private-type-declaration.test.ts
+  - id: FZ-COVERAGE-20260823-028
+    title: Qualified UDT array return after Erase
+    status: queued
+    priority: 3
+    focus: 修飾UDT配列のFunction戻り値をErase後に再代入する型メタデータ境界
+    priorCauseKey: qualified-udt-array-metadata-reuse
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/private-type-declaration.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/private-type-declaration.test.ts

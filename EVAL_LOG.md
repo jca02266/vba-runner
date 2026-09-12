@@ -915,6 +915,7 @@
 | EV-01012 | RCA-FOLLOWUP | fixed |  | Public Module.Type UDT配列のFunction戻り値代入 |
 | EV-01013 | RCA-FOLLOWUP | verified-no-bug |  | Public UDT配列のProperty Get戻り値とReDim Preserve |
 | EV-01014 | FZ-COVERAGE-20260823 | verified-no-bug |  | Public UDTのTypeName/VarType表示境界 |
+| EV-01015 | FZ-COVERAGE-20260823 | verified-no-bug |  | 修飾UDT配列のErase後再代入 |
 
 ## 状態集計
 
@@ -925,7 +926,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 479 |
+| verified-no-bug | 480 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
