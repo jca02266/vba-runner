@@ -397,3 +397,13 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-007
+    title: Class module UDT visibility boundary
+    status: queued
+    priority: 3
+    focus: クラスモジュールのUDT戻り値・引数可視性
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts

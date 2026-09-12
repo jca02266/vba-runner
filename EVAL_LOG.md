@@ -896,6 +896,7 @@
 | EV-00993 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾参照の型実体化 |
 | EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
 | EV-00995 | FZ-COVERAGE-20260823 | in-progress |  | Private UDTを返すPublic手続きの境界 |
+| EV-00996 | FZ-COVERAGE-20260823 | in-progress |  | Private UDT配列を返すPublic手続きの境界 |
 
 ## 状態集計
 
@@ -903,7 +904,7 @@
 |---|---:|
 | bug-found | 3 |
 | fixed | 405 |
-| in-progress | 2 |
+| in-progress | 3 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -915,4 +916,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-006 | 2 | queued | Private UDT配列をPublic戻り値として公開する境界 | yes |
+| RCA-PRIVATE-VISIBILITY-007 | 3 | queued | クラスモジュールのUDT戻り値・引数可視性 | yes |
