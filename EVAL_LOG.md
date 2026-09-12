@@ -911,14 +911,14 @@
 | EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
 | EV-01009 | FZ-COVERAGE-20260823 | fixed | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
 | EV-01010 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDT戻り値のVariant消費境界 |
-| EV-01011 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾UDT配列をByRef引数へ渡す型識別 |
+| EV-01011 | FZ-COVERAGE-20260823 | fixed |  | Module.Type修飾UDT配列をByRef引数へ渡す型識別 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 7 |
-| fixed | 414 |
+| bug-found | 6 |
+| fixed | 415 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
@@ -931,4 +931,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| RCA-FOLLOWUP-064 | 2 | queued | 修飾UDT配列の型同一性をByRef・Property・戻り値・ReDim経路で共通化する | yes |

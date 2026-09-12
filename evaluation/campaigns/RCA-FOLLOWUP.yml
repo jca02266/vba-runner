@@ -713,3 +713,13 @@ items:
       - src/engine/builtins.ts
       - src/engine/evaluator.ts
       - tests/spec/vba_compile_error.test.ts
+  - id: RCA-FOLLOWUP-064
+    title: Qualified UDT array identity commonization
+    status: queued
+    priority: 2
+    focus: 修飾UDT配列の型同一性をByRef・Property・戻り値・ReDim経路で共通化する
+    priorCauseKey: type-identity-canonicalization-missing
+    rootCauseId: RC-00124
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts
