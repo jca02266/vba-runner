@@ -890,12 +890,14 @@
 | EV-00987 | ROOT-CAUSE | verified-no-bug | 1 | Seek・Tab・配列添字のNull数値引数契約 |
 | EV-00988 | ROOT-CAUSE | verified-no-bug | 1 | Mid書き換え文のNull位置引数契約 |
 | EV-00989 | FZ-COVERAGE-20260823 | in-progress | 1 | べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認 |
-| EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播と暗黙変換の隣接経路 |
+| EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播経路 |
+| EV-00991 | FZ-COVERAGE-20260823 | bug-found | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 404 |
 | in-progress | 1 |
 | known-limit | 5 |
@@ -909,4 +911,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| RCA-PRIVATE-VISIBILITY-001 | 1 | queued | 非修飾識別子解決へ所有モジュール可視性を統合 | yes |

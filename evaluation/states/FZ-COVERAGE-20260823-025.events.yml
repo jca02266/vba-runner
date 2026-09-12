@@ -2,3 +2,17 @@
   evaluationId: EV-00990
   status: verified-no-bug
   occurredAt: '2026-09-11T23:29:40.779Z'
+- candidateId: FZ-COVERAGE-20260823-025
+  evaluationId: EV-00990
+  status: in-progress
+  fromStatus: verified-no-bug
+  occurredAt: '2026-09-12T06:21:50.921Z'
+  rollbackFrom: verified-no-bug
+  rollbackReason: >-
+    Reopen record after independent format review; narrow scope and add self-contained error-path
+    evidence.
+- candidateId: FZ-COVERAGE-20260823-025
+  evaluationId: EV-00990
+  status: verified-no-bug
+  fromStatus: in-progress
+  occurredAt: '2026-09-12T06:25:38.226Z'

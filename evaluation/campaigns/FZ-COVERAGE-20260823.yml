@@ -325,3 +325,25 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260823-026
+    title: Private constant cross-module leakage
+    status: queued
+    priority: 1
+    focus: Privateモジュール定数の非修飾クロスモジュール参照
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/cross-module-const.test.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/cross-module-const.test.ts
+  - id: RCA-PRIVATE-VISIBILITY-001
+    title: Visibility-aware bare symbol lookup
+    status: queued
+    priority: 1
+    focus: 非修飾識別子解決へ所有モジュール可視性を統合
+    sourceReview:
+      - src/engine/evaluator.ts
+      - evaluation/root-causes/RC-00119.md
+    coverageTargets:
+      - src/engine/evaluator.ts
