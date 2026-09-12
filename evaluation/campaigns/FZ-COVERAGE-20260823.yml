@@ -479,6 +479,18 @@ items:
     coverageTargets:
       - src/engine/property-resolution.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-016
+    title: Module event handler fallback and interface dispatch
+    status: queued
+    priority: 3
+    focus: 標準モジュールEventハンドラーの所属境界とInterface経路
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/property-resolution.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/property-resolution.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued
