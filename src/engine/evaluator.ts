@@ -7125,7 +7125,13 @@ export class Evaluator {
             const handlers = value.__events__.get(eventName);
             let eventHandler: ((...args: any[]) => void) | undefined;
             if (classDef) {
-                const classProc = findClassProcedure(classDef.procedures, handlerNameLower);
+                // Event handlers are Sub procedures.  Generic member lookup
+                // also returns Function/Property declarations, which can
+                // otherwise be registered as callbacks merely because their
+                // names match the generated handler name.
+                const classProc = classDef.procedures.find(proc =>
+                    proc.name.name.toLowerCase() === handlerNameLower &&
+                    !proc.isFunction && !proc.isProperty);
                 if (classProc) {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
@@ -7138,7 +7144,7 @@ export class Evaluator {
             }
             if (!eventHandler) {
                 const handler = this.env.getProcedure(handlerName);
-                if (handler) {
+                if (handler && !handler.isFunction && !handler.isProperty) {
                     eventHandler = (...args: any[]) => {
                         this.callProcedure(handlerName, args);
                         return args;

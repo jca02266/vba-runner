@@ -1,7 +1,7 @@
 /**
  * Event Declaration (§5.2.4.3) & RaiseEvent (§5.4.2.20) のテスト
  */
-import { evalVBASingle, assert, assertCompileErrorPass1 } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert, assertCompileErrorPass1 } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -224,9 +224,50 @@ Function TestByRefEvent() As String
     TestByRefEvent = source.Fire
 End Function
 `;
-    const result = evalVBA(code).callProcedure('TestByRefEvent', []);
+const result = evalVBA(code).callProcedure('TestByRefEvent', []);
     assert.strictEqual(result, 'changed', 'RaiseEvent の ByRef 引数をハンドラーから発行元へ書き戻す');
     console.log('[PASS] Bug 73-A: RaiseEvent の ByRef 引数を書き戻す');
+}
+
+// Event handler candidates are Sub procedures only; a same-named Property Get
+// must not be registered or invoked when the event is raised.
+{
+    const ev = evalVBAModules([
+        {
+            name: 'Publisher',
+            parseAsClass: 'Publisher',
+            code: String.raw`Option Explicit
+Public Event Ping()
+Public Sub Fire()
+    RaiseEvent Ping
+End Sub`,
+        },
+        {
+            name: 'Subscriber',
+            parseAsClass: 'Subscriber',
+            code: String.raw`Option Explicit
+Public WithEvents Source As Publisher
+Public count As Long
+Public Property Get Source_Ping() As Long
+    count = count + 1
+    Source_Ping = 99
+End Property`,
+        },
+        {
+            name: 'Module1',
+            code: String.raw`Option Explicit
+Public Function RunPropertyCandidate() As Long
+    Dim p As New Publisher
+    Dim s As New Subscriber
+    Set s.Source = p
+    p.Fire
+    RunPropertyCandidate = s.count
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('RunPropertyCandidate', []), 0,
+        'Property Get is not registered as a WithEvents handler');
+    console.log('[PASS] WithEvents ignores Property Get candidates');
 }
 
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');
