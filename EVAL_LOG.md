@@ -907,7 +907,7 @@
 | EV-01004 | FZ-COVERAGE-20260823 | fixed |  | WithEventsハンドラーのByRef・型署名不一致 |
 | EV-01005 | FZ-COVERAGE-20260823 | fixed |  | WithEventsハンドラー候補へのProperty Get誤登録 |
 | EV-01006 | FZ-COVERAGE-20260823 | fixed |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
-| EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
+| EV-01007 | FZ-COVERAGE-20260823 | fixed |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
 | EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
 | EV-01009 | FZ-COVERAGE-20260823 | fixed | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
 | EV-01010 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDT戻り値のVariant消費境界 |
@@ -920,8 +920,7 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 1 |
-| fixed | 421 |
+| fixed | 422 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
