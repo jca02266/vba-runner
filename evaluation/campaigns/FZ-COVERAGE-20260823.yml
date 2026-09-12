@@ -600,3 +600,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/private-type-declaration.test.ts
+  - id: FZ-COVERAGE-20260823-029
+    title: Exponentiation associativity boundary
+    status: queued
+    priority: 3
+    focus: 冪乗演算子の左結合性と括弧による評価順序
+    priorCauseKey: exponentiation-associativity-boundary
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
