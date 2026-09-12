@@ -339,7 +339,7 @@ items:
       - tests/spec/cross-module-const.test.ts
   - id: RCA-PRIVATE-VISIBILITY-001
     title: Visibility-aware bare symbol lookup
-    status: queued
+    status: fixed
     priority: 1
     focus: 非修飾識別子解決へ所有モジュール可視性を統合
     sourceReview:
@@ -352,6 +352,16 @@ items:
     status: queued
     priority: 2
     focus: Private Type・Enumのモジュール境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-003
+    title: Qualified Type and class visibility boundaries
+    status: queued
+    priority: 2
+    focus: Module.Type修飾参照とクラスPrivate Type境界
     sourceReview:
       - src/engine/evaluator.ts
       - spec/MS-VBAL.txt

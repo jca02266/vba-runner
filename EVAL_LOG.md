@@ -892,11 +892,13 @@
 | EV-00989 | FZ-COVERAGE-20260823 | in-progress | 1 | べき乗演算子と基数リテラルの空白なし境界、およびLongLongサフィックス誤認 |
 | EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播経路 |
 | EV-00991 | FZ-COVERAGE-20260823 | fixed | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
+| EV-00992 | FZ-COVERAGE-20260823 | bug-found |  | Private Typeのクロスモジュール型解決 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
+| bug-found | 1 |
 | fixed | 405 |
 | in-progress | 1 |
 | known-limit | 5 |
@@ -910,5 +912,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-001 | 1 | queued | 非修飾識別子解決へ所有モジュール可視性を統合 | yes |
-| RCA-PRIVATE-VISIBILITY-002 | 2 | queued | Private Type・Enumのモジュール境界 | yes |
+| RCA-PRIVATE-VISIBILITY-003 | 2 | queued | Module.Type修飾参照とクラスPrivate Type境界 | yes |
