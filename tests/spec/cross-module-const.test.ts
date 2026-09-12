@@ -146,6 +146,45 @@ import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runn
     assert.strictEqual(ev.get('a'), 42, '他モジュールの Public Const は参照可');
 }
 
+// --- 8b. Private Const は裸の名前を共有環境へ漏洩させない ---
+{
+    const privateModule = String.raw`Option Explicit
+Private Const Secret As Long = 17
+Public Function ReadSecret() As Long
+    ReadSecret = Secret
+End Function`;
+    const callerModule = String.raw`Option Explicit
+Public Function ReadCrossModule() As Long
+    ReadCrossModule = Secret
+End Function`;
+    const ev = evalVBAModules([
+        { name: 'PrivateOwner', code: privateModule },
+        { name: 'PrivateCaller', code: callerModule },
+    ]);
+    assert.strictEqual(ev.callProcedure('ReadSecret', []), 17,
+        '同一モジュールの Private Const は参照可');
+    assert.throws(() => ev.callProcedure('ReadCrossModule', []), /not declared|constant|explicit/i,
+        '別モジュールの Private Const の非修飾参照は拒否される');
+}
+
+// --- 8c. ローカルシャドーイングと Public Const は維持する ---
+{
+    const ev = evalVBAModules([
+        { name: 'PublicOwner', code: String.raw`Public Const Value As Long = 42` },
+        { name: 'ShadowCaller', code: String.raw`Option Explicit
+Public Function ReadShadow() As Long
+    Dim Value As Long
+    Value = 9
+    ReadShadow = Value
+End Function
+Public Function ReadPublic() As Long
+    ReadPublic = Value
+End Function` },
+    ]);
+    assert.strictEqual(ev.callProcedure('ReadShadow', []), 9, 'ローカル変数が Public Const を隠す');
+    assert.strictEqual(ev.callProcedure('ReadPublic', []), 42, '別モジュールの Public Const は参照可');
+}
+
 console.log('cross-module-const: all tests passed');
 
 // --- 9. クラスの Private Const は外部から参照不可 ---

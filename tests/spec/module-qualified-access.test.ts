@@ -70,4 +70,21 @@ Function TestB() As Long: TestB = ModB.MAX: End Function
     console.log('[PASS] ModA.MAX =', ev.callProcedure('TestA', []), 'ModB.MAX =', ev.callProcedure('TestB', []));
 }
 
+// 4. Module.Private 変数は所有モジュール以外から修飾参照できない
+{
+    const ev = evalVBAModules([
+        { name: 'PrivateVars', code: String.raw`Private Secret As Long
+Public Function ReadOwn() As Long
+    Secret = 23
+    ReadOwn = Secret
+End Function` },
+        { name: 'PrivateVarCaller', code: String.raw`Public Function ReadCross() As Long
+    ReadCross = PrivateVars.Secret
+End Function` },
+    ]);
+    assert.strictEqual(ev.callProcedure('ReadOwn', []), 23, '同一モジュールの Private 変数は参照可');
+    assert.throws(() => ev.callProcedure('ReadCross', []), /private|property|method/i,
+        '別モジュールの Module.Private 変数は修飾参照できない');
+}
+
 console.log('\n✅ Module-qualified variable/const access: 全テスト通過');

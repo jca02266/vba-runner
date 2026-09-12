@@ -419,12 +419,15 @@ export class Environment {
 
     set(name: string, value: any) {
         const key = name.toLowerCase();
-        if (this.isConstant(key)) {
-            throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Assignment to constant not allowed: '${name}'`);
-        }
         if (this.variables.has(key)) {
+            if (this.constantVariables.has(key)) {
+                throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Assignment to constant not allowed: '${name}'`);
+            }
             this.variables.set(key, this.coerceToType(key, value));
             return;
+        }
+        if (this.isConstant(key)) {
+            throwVbaError(VbaErrorCode.INVALID_PROCEDURE_CALL, `Assignment to constant not allowed: '${name}'`);
         }
         let env: Environment | undefined = this.enclosing;
         while (env) {
@@ -937,6 +940,7 @@ export class Evaluator {
     private executingModuleName: string = '';
     // Maps module name (lower) -> set of variable/const names (lower) declared at module level
     private moduleVarRegistry: Map<string, Set<string>> = new Map();
+    private moduleVarScopes: Map<string, 'public' | 'private' | 'friend' | undefined> = new Map();
     /** Visibility metadata for module-qualified constants. */
     private moduleConstScopes: Map<string, 'public' | 'private' | 'friend' | undefined> = new Map();
     private withObjectStack: any[] = [];
@@ -2194,6 +2198,15 @@ export class Evaluator {
             this.moduleEnvs.set(key, new Environment(this.globalEnv));
         }
         return this.moduleEnvs.get(key)!;
+    }
+
+    /** Module-private members are visible only inside their declaring module. */
+    private isModuleMemberVisible(
+        scope: 'public' | 'private' | 'friend' | undefined,
+        ownerModule: string,
+        accessingModule: string,
+    ): boolean {
+        return scope !== 'private' || ownerModule.toLowerCase() === accessingModule.toLowerCase();
     }
 
     // OE check shared between callProcedure and evaluateCallExpression.
@@ -5537,7 +5550,7 @@ export class Evaluator {
                 } else {
                     this.getOrCreateModuleEnv(this.currentSourceModule).setLocally(varName, initialValue);
                 }
-                this.registerModuleVar(modName, varName);
+                this.registerModuleVar(modName, varName, stmt.scope);
             }
             if (isStaticDecl) {
                 this.staticVarsInCurrentProc.add(varKey);
@@ -6661,8 +6674,7 @@ export class Evaluator {
                 if (r) {
                     // 他モジュールの Private Const への参照はエラー
                     const { moduleName: depModule, stmt: depStmt, decl: depDecl } = allConsts.get(r)!;
-                    if (depModule.toLowerCase() !== moduleName.toLowerCase() &&
-                        (depStmt as any).scope === 'private') {
+                    if (!this.isModuleMemberVisible((depStmt as any).scope, depModule, moduleName)) {
                         throw new Error(
                             `Constant expression required: '${decl.name.name}' references private constant '${depDecl.name.name}' in module '${depModule}'`
                         );
@@ -6678,10 +6690,10 @@ export class Evaluator {
 
         // 正しい順序で評価（各 declarator を個別に評価）
         for (const qkey of order) {
-            const { decl, moduleName } = allConsts.get(qkey)!;
+            const { decl, stmt, moduleName } = allConsts.get(qkey)!;
             const prev = this.currentSourceModule;
             this.currentSourceModule = moduleName;
-            this.evaluateOneConst(decl);
+            this.evaluateOneConst(decl, stmt.scope);
             this.currentSourceModule = prev;
         }
 
@@ -6898,7 +6910,10 @@ export class Evaluator {
      * 他モジュールの Public Const はグローバルトポロジカルソートにより評価済みなので参照可能。
      */
     private resolveConstIdent(name: string): any {
-        const val = this.env.getConst(name.toLowerCase());
+        const moduleEnv = this.currentSourceModule
+            ? this.getOrCreateModuleEnv(this.currentSourceModule)
+            : undefined;
+        const val = moduleEnv?.getConst(name.toLowerCase()) ?? this.env.getConst(name.toLowerCase());
         if (val === undefined) {
             throw new Error(`Constant expression required: '${name}' is not defined`);
         }
@@ -6917,29 +6932,41 @@ export class Evaluator {
 
     private evaluateConstDeclaration(stmt: ConstDeclaration) {
         for (const decl of stmt.declarations) {
-            this.evaluateOneConst(decl);
+            this.evaluateOneConst(decl, stmt.scope);
         }
     }
 
-    private evaluateOneConst(decl: ConstDeclaratorItem) {
+    private evaluateOneConst(
+        decl: ConstDeclaratorItem,
+        scope: 'public' | 'private' | 'friend' | undefined = 'public',
+    ) {
         const value = this.evaluateConstValue(decl.value);
         const name = decl.name.name;
         if (!this.currentProcedureName && this.currentSourceModule) {
             const modName = this.currentSourceModule;
-            this.env.setConstant(name, value);
+            if (scope === 'private') {
+                this.getOrCreateModuleEnv(modName).setConstant(name, value);
+            } else {
+                this.env.setConstant(name, value);
+            }
             this.env.setConstant(`${modName}:${name}`, value);
-            this.registerModuleVar(modName, name);
+            this.registerModuleVar(modName, name, scope);
         } else {
             this.env.setConstant(name, value);
         }
     }
 
-    private registerModuleVar(moduleName: string, varName: string) {
+    private registerModuleVar(
+        moduleName: string,
+        varName: string,
+        scope: 'public' | 'private' | 'friend' | undefined = 'public',
+    ) {
         const key = moduleName.toLowerCase();
         if (!this.moduleVarRegistry.has(key)) {
             this.moduleVarRegistry.set(key, new Set());
         }
         this.moduleVarRegistry.get(key)!.add(varName.toLowerCase());
+        this.moduleVarScopes.set(`${key}:${varName.toLowerCase()}`, scope);
     }
 
     /**
@@ -11107,10 +11134,10 @@ export class Evaluator {
             const moduleKey = `${possibleModule.toLowerCase()}:${propName}`;
             // Constants are stored with module-qualified key (immutable → no sync issue)
             if (this.env.hasVariable(moduleKey)) {
-                if (this.moduleConstScopes.get(moduleKey) === 'private' &&
-                    this.currentSourceModule.toLowerCase() !== possibleModule.toLowerCase()) {
+                const accessingModule = this.executingModuleName || this.currentSourceModule;
+                if (!this.isModuleMemberVisible(this.moduleConstScopes.get(moduleKey), possibleModule, accessingModule)) {
                     this.throwVbaError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
-                        `Private constant '${expr.property.name}' is not accessible from module '${this.currentSourceModule}'`);
+                        `Private constant '${expr.property.name}' is not accessible from module '${accessingModule}'`);
                 }
                 return this.env.get(moduleKey);
             }
@@ -11123,7 +11150,15 @@ export class Evaluator {
             // Variables: look up by unqualified name via module registry
             const vars = this.moduleVarRegistry.get(possibleModule.toLowerCase());
             if (vars && vars.has(propName)) {
-                return this.env.get(propName);
+                const ownerModule = possibleModule;
+                const scope = this.moduleVarScopes.get(`${ownerModule.toLowerCase()}:${propName}`);
+                const accessingModule = this.executingModuleName || this.currentSourceModule;
+                if (!this.isModuleMemberVisible(scope, ownerModule, accessingModule)) {
+                    this.throwVbaError(VbaErrorCode.OBJECT_DOESNT_SUPPORT_PROPERTY,
+                        `Private member '${expr.property.name}' is not accessible from module '${accessingModule}'`);
+                }
+                const ownerEnv = this.getOrCreateModuleEnv(ownerModule);
+                return scope === 'private' ? ownerEnv.getConst(propName) : this.env.get(propName);
             }
             const qualified = this.env.getProcedureFromModule(propName, possibleModule, 'get');
             if (qualified?.isProperty && qualified.propertyType === 'get') {
