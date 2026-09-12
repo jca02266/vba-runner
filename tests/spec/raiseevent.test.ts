@@ -331,4 +331,34 @@ End Function`;
     console.log('[PASS] RaiseEvent argument count mismatch is rejected');
 }
 
+// Explicit Event/handler type and ByRef mismatches do not bind the handler.
+{
+    const code = String.raw`Class TypedPublisher
+Public Event Changed(ByRef value As Long)
+Public Sub Fire()
+    Dim n As Long
+    n = 42
+    RaiseEvent Changed(n)
+End Sub
+End Class
+Class TypedSubscriber
+Public WithEvents Source As TypedPublisher
+Public seen As String
+Private Sub Source_Changed(ByRef value As String)
+    seen = "handled"
+End Sub
+End Class
+Public Function RunTypedMismatch() As String
+    Dim publisher As New TypedPublisher
+    Dim subscriber As New TypedSubscriber
+    Set subscriber.Source = publisher
+    publisher.Fire
+    RunTypedMismatch = subscriber.seen
+End Function`;
+    const ev = evalVBA(code);
+    assert.strictEqual(ev.callProcedure('RunTypedMismatch', []), '',
+        'mismatched Event handler signature is not bound');
+    console.log('[PASS] WithEvents rejects mismatched type/ByRef signatures');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');

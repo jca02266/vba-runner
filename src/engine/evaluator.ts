@@ -7154,6 +7154,19 @@ export class Evaluator {
         bindings!.delete(fieldKey);
     }
 
+    /** Event handlers are Sub declarations whose explicit signature must match. */
+    private isEventHandlerSignatureCompatible(eventDecl: EventDeclaration | undefined, handler: ProcedureDeclaration): boolean {
+        if (!eventDecl) return true;
+        if (handler.isFunction || handler.isProperty) return false;
+        if (handler.parameters.length !== eventDecl.parameters.length) return false;
+        return eventDecl.parameters.every((eventParam, index) => {
+            const handlerParam = handler.parameters[index];
+            if (eventParam.isByVal !== handlerParam.isByVal) return false;
+            if (!handlerParam.paramType || !eventParam.paramType) return true;
+            return handlerParam.paramType.toLowerCase() === eventParam.paramType.toLowerCase();
+        });
+    }
+
     private bindWithEventsHandlers(fieldName: string, value: any, classDef: ClassDeclaration | undefined, instance: any) {
         this.detachWithEventsHandlers(fieldName, instance);
         const fieldKey = fieldName.toLowerCase();
@@ -7165,6 +7178,10 @@ export class Evaluator {
             const handlerNameLower = handlerName.toLowerCase();
             const handlers = value.__events__.get(eventName);
             let eventHandler: ((...args: any[]) => void) | undefined;
+            const eventDecl = (value.__classDef__ as ClassDeclaration | undefined)?.body
+                .find((member): member is EventDeclaration =>
+                    member.type === 'EventDeclaration' &&
+                    member.name.name.toLowerCase() === eventName.toLowerCase());
             if (classDef) {
                 // Event handlers are Sub procedures.  Generic member lookup
                 // also returns Function/Property declarations, which can
@@ -7172,7 +7189,7 @@ export class Evaluator {
                 // names match the generated handler name.
                 const classProc = classDef.procedures.find(proc =>
                     proc.name.name.toLowerCase() === handlerNameLower &&
-                    !proc.isFunction && !proc.isProperty);
+                    this.isEventHandlerSignatureCompatible(eventDecl, proc));
                 if (classProc) {
                     const capturedInstance = instance;
                     const capturedProc = classProc;
