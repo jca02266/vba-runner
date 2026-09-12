@@ -415,3 +415,34 @@ End Function`,
         'same-named UDTs from different modules remain distinct');
     console.log('[PASS] Qualified/bare Public UDT array identity and owner separation');
 }
+
+// Test 17: 修飾UDT配列へのFunction戻り値代入を許可する
+{
+    const ev = evalVBAModules([
+        {
+            name: 'Producer',
+            code: String.raw`Option Explicit
+Public Type RecordT
+    Id As Long
+End Type
+Public Function Make() As RecordT()
+    Dim values(0 To 1) As RecordT
+    values(0).Id = 5
+    values(1).Id = 6
+    Make = values
+End Function`,
+        },
+        {
+            name: 'Consumer',
+            code: String.raw`Option Explicit
+Public Function QualifiedArrayReturn() As Long
+    Dim values() As Producer.RecordT
+    values = Producer.Make()
+    QualifiedArrayReturn = values(0).Id + values(1).Id
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('QualifiedArrayReturn', []), 11,
+        'qualified Public UDT array accepts matching Function return');
+    console.log('[PASS] Qualified Public UDT array Function return assignment');
+}

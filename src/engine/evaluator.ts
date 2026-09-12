@@ -4875,6 +4875,9 @@ export class Evaluator {
             (result as any).__vbaArrayReturn__ = true;
             if (proc.returnType) {
                 (result as any).__vbaArrayReturnType__ = proc.returnType;
+                if (proc.moduleName) {
+                    (result as any).__vbaArrayReturnOwner__ = proc.moduleName.toLowerCase();
+                }
             }
         }
         return result;
@@ -4918,6 +4921,7 @@ export class Evaluator {
             (existing as any).__vbaElementTypeName__ ||
             (existing as any).__vbaElementObjectTypeName__;
         const returnType = (value as any).__vbaArrayReturnType__ as string | undefined;
+        const returnOwner = (value as any).__vbaArrayReturnOwner__ as string | undefined;
         const sourceElementType = ((value as any).__vbaElementType__ ??
             (value as any).__vbaElementTypeName__ ??
             (value as any).__vbaElementObjectTypeName__) as string | undefined;
@@ -4926,7 +4930,9 @@ export class Evaluator {
         // typed-array return. Only an evaluated procedure/host getter that
         // explicitly carries the array-return marker may bypass this guard.
         void sourceExpr;
-        const sameType = returnType && returnType.toLowerCase() === String(typed).toLowerCase();
+        const sameType = returnType && this.isSameUdtType(
+            returnType.toLowerCase(), String(typed).toLowerCase(), returnOwner,
+        );
         const variantDestination = typed?.toLowerCase() === 'variant';
         if (typed && opaqueArrayReturn && !variantDestination) {
             if (sourceElementType && sourceElementType.toLowerCase() === typed.toLowerCase()) {

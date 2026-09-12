@@ -723,3 +723,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/argument-contract.ts
+  - id: RCA-FOLLOWUP-065
+    title: Qualified UDT array return assignment
+    status: queued
+    priority: 2
+    focus: Public Module.Type UDT配列のFunction戻り値代入と型メタデータ維持
+    priorCauseKey: type-identity-canonicalization-missing
+    rootCauseId: RC-00124
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
