@@ -575,3 +575,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/argument-contract.ts
+  - id: FZ-COVERAGE-20260823-027
+    title: Qualified UDT TypeName and VarType normalization
+    status: queued
+    priority: 3
+    focus: Public UDTの修飾名・裸名・戻り値におけるTypeName/VarType表示の一貫性
+    priorCauseKey: qualified-udt-typename-normalization
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/private-type-declaration.test.ts

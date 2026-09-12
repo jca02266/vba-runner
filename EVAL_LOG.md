@@ -914,6 +914,7 @@
 | EV-01011 | FZ-COVERAGE-20260823 | fixed |  | Module.Type修飾UDT配列をByRef引数へ渡す型識別 |
 | EV-01012 | RCA-FOLLOWUP | fixed |  | Public Module.Type UDT配列のFunction戻り値代入 |
 | EV-01013 | RCA-FOLLOWUP | verified-no-bug |  | Public UDT配列のProperty Get戻り値とReDim Preserve |
+| EV-01014 | FZ-COVERAGE-20260823 | verified-no-bug |  | Public UDTのTypeName/VarType表示境界 |
 
 ## 状態集計
 
@@ -925,7 +926,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 478 |
+| verified-no-bug | 479 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
