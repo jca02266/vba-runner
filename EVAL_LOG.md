@@ -895,6 +895,7 @@
 | EV-00992 | FZ-COVERAGE-20260823 | bug-found |  | Private Typeのクロスモジュール型解決 |
 | EV-00993 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾参照の型実体化 |
 | EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
+| EV-00995 | FZ-COVERAGE-20260823 | in-progress |  | Private UDTを返すPublic手続きの境界 |
 
 ## 状態集計
 
@@ -902,7 +903,7 @@
 |---|---:|
 | bug-found | 3 |
 | fixed | 405 |
-| in-progress | 1 |
+| in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
@@ -914,4 +915,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-005 | 2 | queued | Private UDTのPublic戻り値・配列境界 | yes |
+| RCA-PRIVATE-VISIBILITY-006 | 2 | queued | Private UDT配列をPublic戻り値として公開する境界 | yes |
