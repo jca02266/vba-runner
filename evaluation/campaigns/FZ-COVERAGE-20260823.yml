@@ -455,6 +455,18 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-014
+    title: RaiseEvent arity and handler signature contract
+    status: queued
+    priority: 3
+    focus: RaiseEventの引数個数とWithEventsハンドラー署名の静的契約
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued
