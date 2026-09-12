@@ -904,7 +904,7 @@
 | EV-01001 | FZ-COVERAGE-20260823 | fixed |  | クラス内Private UDT配列のReDim Preserve・Erase後再利用 |
 | EV-01002 | FZ-COVERAGE-20260823 | fixed |  | クラスPublic FunctionのPrivate UDT引数署名 |
 | EV-01003 | FZ-COVERAGE-20260823 | fixed |  | Event宣言とRaiseEventの引数個数不一致 |
-| EV-01004 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラーのByRef・型署名不一致 |
+| EV-01004 | FZ-COVERAGE-20260823 | fixed |  | WithEventsハンドラーのByRef・型署名不一致 |
 | EV-01005 | FZ-COVERAGE-20260823 | fixed |  | WithEventsハンドラー候補へのProperty Get誤登録 |
 | EV-01006 | FZ-COVERAGE-20260823 | fixed |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
 | EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
@@ -920,8 +920,8 @@
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 2 |
-| fixed | 420 |
+| bug-found | 1 |
+| fixed | 421 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
