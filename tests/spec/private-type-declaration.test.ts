@@ -271,3 +271,24 @@ End Function`);
         'Class-local Private UDT Property Get/Let works');
     console.log('[PASS] Class-local Private UDT Property Get/Let works');
 }
+
+// Test 12: クラス内Private UDT固定配列の要素初期化
+{
+    const ev = evalVBA(String.raw`Class ArrayHolder
+Private Type TItem
+    Value As Long
+End Type
+Private items(0 To 1) As TItem
+Public Function Probe() As Long
+    items(0).Value = 7
+    Probe = items(0).Value
+End Function
+End Class
+Public Function RunClassArrayUdt() As Long
+    Dim instance As New ArrayHolder
+    RunClassArrayUdt = instance.Probe
+End Function`);
+    assert.strictEqual(ev.callProcedure('RunClassArrayUdt', []), 7,
+        'Class-local Private UDT fixed array works');
+    console.log('[PASS] Class-local Private UDT fixed array works');
+}

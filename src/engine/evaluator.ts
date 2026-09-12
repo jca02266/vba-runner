@@ -5729,11 +5729,17 @@ export class Evaluator {
                 }
                 else if (['integer', 'long', 'single', 'double', 'currency', 'byte', 'longlong', 'longptr'].includes(mt)) defaultVal = 0;
                 else if (mt === 'boolean') defaultVal = 0; // vbaFalse
-                else if (decl.objectType && this.getTypeMembers(decl.objectType)) {
+                else if (decl.objectType && instanceEnv.getType(decl.objectType)) {
                     // UDT (Type ... End Type) フィールド: 既定値では Empty のままになり、
                     // Class_Initialize 等でのメンバー代入が Error 91 になっていた。
                     // Dim 変数の UDT 初期化と同じ instantiateType() を使う。
-                    defaultVal = this.instantiateType(decl.objectType);
+                    const previousTypeEnv = this.env;
+                    this.env = instanceEnv;
+                    try {
+                        defaultVal = this.instantiateType(decl.objectType);
+                    } finally {
+                        this.env = previousTypeEnv;
+                    }
                 } else if (decl.isNew && decl.objectType && (
                     this.classDefinitions.has(mt) || this.externalObjectFactories.has(mt) ||
                     mt === 'collection'
@@ -5770,10 +5776,16 @@ export class Evaluator {
                     if (['byte', 'integer', 'long', 'single', 'double', 'currency', 'longlong', 'longptr', 'string', 'boolean', 'date'].includes(mt)) {
                         (defaultVal as any).__vbaElementType__ = mt;
                     }
-                    if (decl.objectType && this.getTypeMembers(decl.objectType)) {
+                    if (decl.objectType && instanceEnv.getType(decl.objectType)) {
                         (defaultVal as any).__vbaElementTypeName__ = decl.objectType;
                         if ((defaultVal as any).vbaFixed) {
-                            this.fillArrayWithUdtInstances(defaultVal, decl.objectType);
+                            const previousTypeEnv = this.env;
+                            this.env = instanceEnv;
+                            try {
+                                this.fillArrayWithUdtInstances(defaultVal, decl.objectType);
+                            } finally {
+                                this.env = previousTypeEnv;
+                            }
                         }
                     }
                     if (decl.objectType && (
