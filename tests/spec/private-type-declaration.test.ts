@@ -446,3 +446,40 @@ End Function`,
         'qualified Public UDT array accepts matching Function return');
     console.log('[PASS] Qualified Public UDT array Function return assignment');
 }
+
+// Test 18: 修飾UDT配列へのProperty Get戻り値代入とReDim Preserve
+{
+    const ev = evalVBAModules([
+        {
+            name: 'Producer',
+            code: String.raw`Option Explicit
+Public Type RecordT
+    Id As Long
+End Type
+Private mValues() As RecordT
+Private Sub Class_Initialize()
+    ReDim mValues(0 To 1)
+    mValues(0).Id = 5
+    mValues(1).Id = 6
+End Sub
+Public Property Get Make() As RecordT()
+    Make = mValues
+End Property`,
+            parseAsClass: 'Producer',
+        },
+        {
+            name: 'Consumer',
+            code: String.raw`Option Explicit
+Public Function QualifiedPropertyReturn() As Long
+    Dim values() As Producer.RecordT
+    Dim producer As New Producer
+    values = producer.Make
+    ReDim Preserve values(0 To 2)
+    QualifiedPropertyReturn = values(0).Id + values(1).Id
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('QualifiedPropertyReturn', []), 11,
+        'qualified Public UDT array accepts Property Get return and Preserve');
+    console.log('[PASS] Qualified Public UDT array Property Get and ReDim Preserve');
+}
